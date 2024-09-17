@@ -204,15 +204,17 @@ docker_create_db_directories() {
 
 	if [ "$user" = "0" ]; then
 		# this will cause less disk access than `chown -R`
-		find "$DATADIR" \! -user mysql -exec chown mysql: '{}' +
+		find "$DATADIR" \! -user mysql \( -exec chown mysql: '{}' + -o -true \)
 		# See https://github.com/MariaDB/mariadb-docker/issues/363
-		find "${SOCKET%/*}" -maxdepth 0 \! -user mysql -exec chown mysql: '{}' \;
+		if [ "${SOCKET:0:1}" != '@' ]; then # not abstract sockets
+			find "${SOCKET%/*}" -maxdepth 0 \! -user mysql \( -exec chown mysql: '{}' \; -o -true \)
+		fi
 
 	fi
 }
 
 _mariadb_version() {
-	echo -n "10.5.25-MariaDB"
+	echo -n "10.5.26-MariaDB"
 }
 
 # initializes the database directory
@@ -221,16 +223,16 @@ docker_init_database_dir() {
 	installArgs=( --datadir="$DATADIR" --rpm --auth-root-authentication-method=normal )
 	# "Other options are passed to mysqld." (so we pass all "mysqld" arguments directly here)
 
-	local mariadbdArgs=()
+	local mysqldArgs=()
 	for arg in "${@:2}"; do
 		# Check if the argument contains whitespace
 		if [[ "$arg" =~ [[:space:]] ]]; then
-			mysql_warn "Not passing argument \'$arg\' to mariadb-install-db because mariadb-install-db does not support arguments with whitespace."
+			mysql_warn "Not passing argument \'$arg\' to mysql_install_db because mysql_install_db does not support arguments with whitespace."
 		else
-			mariadbdArgs+=("$arg")
+			mysqldArgs+=("$arg")
 		fi
 	done
-	mysql_install_db "${installArgs[@]}" "${mariadbdArgs[@]}" \
+	mysql_install_db "${installArgs[@]}" "${mysqldArgs[@]}" \
 		--skip-test-db \
 		--default-time-zone=SYSTEM --enforce-storage-engine= \
 		--skip-log-bin \
@@ -344,7 +346,7 @@ create_healthcheck_users() {
 	local maskPreserve
 	maskPreserve=$(umask -p)
 	umask 0077
-	echo -e "[mariadb-client]\\nport=$PORT\\nsocket=$SOCKET\\nuser=healthcheck\\npassword=$healthCheckConnectPass\\nprotocol=tcp\\n" > "$DATADIR"/.my-healthcheck.cnf
+	echo -e "[mariadb-client]\\nport=$PORT\\nsocket=$SOCKET\\nuser=healthcheck\\npassword=$healthCheckConnectPass\\n" > "$DATADIR"/.my-healthcheck.cnf
 	$maskPreserve
 }
 
@@ -517,7 +519,7 @@ docker_mariadb_init()
 			rm -rf "$DATADIR"/.init "$DATADIR"/.restore
 			if [ "$(id -u)" = "0" ]; then
 				# this will cause less disk access than `chown -R`
-				find "$DATADIR" \! -user mysql -exec chown mysql: '{}' +
+				find "$DATADIR" \! -user mysql \( -exec chown mysql: '{}' + -o -true \)
 			fi
 		done
 		if _check_if_upgrade_is_needed; then

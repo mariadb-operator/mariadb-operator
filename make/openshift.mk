@@ -11,11 +11,7 @@ BUNDLE_DEFAULT_CHANNEL := --default-channel=$(DEFAULT_CHANNEL)
 endif
 BUNDLE_METADATA_OPTS ?= $(BUNDLE_CHANNELS) $(BUNDLE_DEFAULT_CHANNEL)
 
-BUNDLE_GEN_FLAGS ?= -q --overwrite=false --version $(VERSION) --output-dir $(BUNDLE_DIR) $(BUNDLE_METADATA_OPTS)
-USE_IMAGE_DIGESTS ?= true
-ifeq ($(USE_IMAGE_DIGESTS), true)
-	BUNDLE_GEN_FLAGS += --use-image-digests
-endif
+BUNDLE_GEN_FLAGS ?= -q --use-image-digests --overwrite=false --version $(VERSION) --output-dir $(BUNDLE_DIR) $(BUNDLE_METADATA_OPTS)
 
 ifneq ($(origin CATALOG_BASE_IMG), undefined)
 FROM_INDEX_OPT := --from-index $(CATALOG_BASE_IMG)
@@ -52,21 +48,15 @@ bundle: operator-sdk yq kustomize manifests ## Generate bundle manifests and met
 	$(YQ) e -i '.spec.template.spec.containers[0].env[2].value = "$(RELATED_IMAGE_EXPORTER_ENT)"' config/manager/manager.yaml
 	$(YQ) e -i '.spec.template.spec.containers[0].env[3].value = "$(RELATED_IMAGE_EXPORTER_MAXSCALE_ENT)"' config/manager/manager.yaml
 	$(YQ) e -i '.spec.template.spec.containers[0].env[4].value = "$(IMG_ENT)"' config/manager/manager.yaml
-	$(YQ) e -i '.spec.template.spec.containers[0].env[5].value = "$(MARIADB_GALERA_INIT_IMAGE_ENT)"' config/manager/manager.yaml
-	$(YQ) e -i '.spec.template.spec.containers[0].env[6].value = "$(MARIADB_GALERA_AGENT_IMAGE_ENT)"' config/manager/manager.yaml
-	$(YQ) e -i '.spec.template.spec.containers[0].env[7].value = "$(MARIADB_GALERA_LIB_PATH_ENT)"' config/manager/manager.yaml
-	$(YQ) e -i '.spec.template.spec.containers[0].env[8].value = "$(MARIADB_ENTRYPOINT_VERSION)"' config/manager/manager.yaml
+	$(YQ) e -i '.spec.template.spec.containers[0].env[5].value = "$(MARIADB_GALERA_LIB_PATH_ENT)"' config/manager/manager.yaml
+	$(YQ) e -i '.spec.template.spec.containers[0].env[6].value = "$(MARIADB_ENTRYPOINT_VERSION_ENT)"' config/manager/manager.yaml
 	$(KUSTOMIZE) build config/manifests | $(OPERATOR_SDK) generate bundle $(BUNDLE_GEN_FLAGS)
-	$(YQ) e -i '.metadata.annotations.containerImage = (.spec.relatedImages[] | select(.name == "mariadb-operator-enterprise").image)' $(BUNDLE_DIR)/manifests/mariadb-operator-enterprise.clusterserviceversion.yaml
+	$(YQ) e -i '.metadata.annotations.containerImage = "$(IMG_ENT)"' $(BUNDLE_DIR)/manifests/mariadb-operator-enterprise.clusterserviceversion.yaml
 	$(MAKE) bundle-validate
 
 .PHONY: bundle-build
 bundle-build: ## Build the bundle image.
-	$(DOCKER) build -f Dockerfile.bundle -t $(BUNDLE_IMG) .
-
-.PHONY: bundle-push
-bundle-push: ## Push the bundle image.
-	$(MAKE) docker-push IMG=$(BUNDLE_IMG)
+	$(DOCKER) buildx build -f Dockerfile.bundle -t $(BUNDLE_IMG) . $(DOCKER_ARGS)
 
 .PHONY: catalog-build
 catalog-build: opm ## Build a catalog image.
@@ -74,7 +64,7 @@ catalog-build: opm ## Build a catalog image.
 
 .PHONY: catalog-push
 catalog-push: ## Push a catalog image.
-	$(MAKE) docker-push IMG=$(CATALOG_IMG)
+	$(DOCKER) push $(CATALOG_IMG)
 
 .PHONY: catalog-deploy
 catalog-deploy: openshift-registry ## Deploy catalog to a OpenShift cluster.
@@ -132,16 +122,26 @@ BUNDLE_PATH ?= "operators/mariadb-operator/${VERSION}"
 openshift-cert-test: openshift-ctx openshift-registry ## Run certification tests.
 	CERTIFIED_REPO=$(CERTIFIED_REPO) CERTIFIED_BRANCH=$(CERTIFIED_BRANCH) BUNDLE_PATH=$(BUNDLE_PATH) ./hack/certification_test.sh 
 
+MINIO_CA_SECRET ?= mariadb
 .PHONY: openshift-minio
 openshift-minio: openshift-ctx cert-minio ## Deploy minio.
 	@MINIO_VERSION=$(MINIO_VERSION) ./hack/install_minio.sh
 	$(OC) apply -f examples/manifests/config/minio-secret.yaml -n openshift-operators 
 	$(OC) create secret generic minio-ca \
 		--from-file=ca.crt=$(CA_DIR)/tls.crt \
-		--dry-run=client -o yaml -n openshift-operators | $(OC) apply -f -
+		--dry-run=client -o yaml -n $(MINIO_CA_SECRET)| $(OC) apply -f -
+
+.PHONY: openshift-image
+openshift-image: ## Build and push operator enterprise image.
+	$(DOCKER) build -f Dockerfile.ent -t mariadb/mariadb-operator-enterprise:$(IMG_ENT_VERSION) .
+	$(DOCKER) push mariadb/mariadb-operator-enterprise:$(IMG_ENT_VERSION)
+
+.PHONY: openshift-bundle
+openshift-bundle: bundle bundle-build  ## Build and push bundle image.
+	$(DOCKER) push $(BUNDLE_IMG) 
 
 .PHONY: openshift-catalog
-openshift-catalog: docker-build-ent docker-push-ent bundle bundle-build bundle-push catalog-build catalog-push openshift-ctx catalog-deploy ## Build, push and deploy images needed for the catalog.
+openshift-catalog: catalog-build catalog-push openshift-ctx catalog-deploy ## Build, push and deploy catalog images.
 
 .PHONY: openshift-deploy
 openshift-deploy: openshift-registry openshift-minio openshift-catalog ## Deploy dependencies to test mariadb-operator.

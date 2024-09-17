@@ -5,7 +5,7 @@ metadata:
 spec:
   # See: https://mariadb.com/kb/en/full-backup-and-restore-with-mariabackup/
   initContainers:
-    - image: docker-registry1.mariadb.com/library/mariadb:10.11.8
+    - image: docker-registry1.mariadb.com/library/mariadb:11.4.3
       args:
         - mariadb-backup 
         - --copy-back 

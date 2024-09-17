@@ -3,7 +3,7 @@ CLUSTER ?= mdb
 ##@ Cluster
 
 KIND_CONFIG ?= hack/config/kind.yaml
-KIND_IMAGE ?= kindest/node:v1.30.2
+KIND_IMAGE ?= kindest/node:v1.31.0
 
 .PHONY: cluster
 cluster: kind ## Create a single node kind cluster.

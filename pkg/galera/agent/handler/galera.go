@@ -49,6 +49,10 @@ func (g *Galera) GetState(w http.ResponseWriter, r *http.Request) {
 		g.responseWriter.WriteErrorf(w, "error reading galera state: %v", err)
 		return
 	}
+	if len(bytes) == 0 {
+		g.responseWriter.Write(w, http.StatusNotFound, galeraErrors.NewAPIError("galera state empty"))
+		return
+	}
 
 	var galeraState recovery.GaleraState
 	if err := galeraState.Unmarshal(bytes); err != nil {

@@ -47,6 +47,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	ctrlbuilder "sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -239,7 +240,7 @@ func (r *MariaDBReconciler) reconcileSecret(ctx context.Context, mariadb *mariad
 		}
 	}
 
-	if mariadb.IsInitialDataEnabled() && mariadb.Spec.PasswordSecretKeyRef != nil {
+	if mariadb.Spec.PasswordSecretKeyRef != nil {
 		secretKeyRef := *mariadb.Spec.PasswordSecretKeyRef
 		req := secret.PasswordRequest{
 			Owner:    mariadb,
@@ -364,6 +365,12 @@ func (r *MariaDBReconciler) reconcilePodDisruptionBudget(ctx context.Context, ma
 }
 
 func (r *MariaDBReconciler) reconcileService(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
+	if err := r.reconcileInternalService(ctx, mariadb); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error reconciling internal Service: %v", err)
+	}
+	if err := r.reconcileDefaultService(ctx, mariadb); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error reconciling default Service: %v", err)
+	}
 	if mariadb.IsHAEnabled() {
 		if result, err := r.reconcilePrimaryService(ctx, mariadb); !result.IsZero() || err != nil {
 			return ctrl.Result{}, err
@@ -372,10 +379,7 @@ func (r *MariaDBReconciler) reconcileService(ctx context.Context, mariadb *maria
 			return ctrl.Result{}, err
 		}
 	}
-	if err := r.reconcileInternalService(ctx, mariadb); err != nil {
-		return ctrl.Result{}, err
-	}
-	return ctrl.Result{}, r.reconcileDefaultService(ctx, mariadb)
+	return ctrl.Result{}, nil
 }
 
 func shouldReconcileRestore(mdb *mariadbv1alpha1.MariaDB) bool {
@@ -732,7 +736,7 @@ func (r *MariaDBReconciler) reconcileUsers(ctx context.Context, mariadb *mariadb
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
 
-	if mariadb.Spec.Database != nil && mariadb.Spec.Username != nil && mariadb.Spec.PasswordSecretKeyRef != nil {
+	if mariadb.IsInitialUserEnabled() {
 		userKey := mariadb.MariadbUserKey()
 		user := builder.UserOpts{
 			MariaDBRef: mariadbv1alpha1.MariaDBRef{
@@ -741,11 +745,17 @@ func (r *MariaDBReconciler) reconcileUsers(ctx context.Context, mariadb *mariadb
 					Namespace: mariadb.Namespace,
 				},
 			},
-			Metadata:             mariadb.Spec.InheritMetadata,
-			MaxUserConnections:   20,
-			Name:                 *mariadb.Spec.Username,
-			Host:                 "%",
-			PasswordSecretKeyRef: &mariadb.Spec.PasswordSecretKeyRef.SecretKeySelector,
+			Metadata:           mariadb.Spec.InheritMetadata,
+			MaxUserConnections: 20,
+			Name:               *mariadb.Spec.Username,
+			Host:               "%",
+		}
+		if mariadb.Spec.PasswordPlugin != nil {
+			user.PasswordPlugin = mariadb.Spec.PasswordPlugin
+		} else if mariadb.Spec.PasswordHashSecretKeyRef != nil {
+			user.PasswordHashSecretKeyRef = mariadb.Spec.PasswordHashSecretKeyRef
+		} else if mariadb.Spec.PasswordSecretKeyRef != nil {
+			user.PasswordSecretKeyRef = &mariadb.Spec.PasswordSecretKeyRef.SecretKeySelector
 		}
 		grant := auth.GrantOpts{
 			Key: mariadb.MariadbGrantKey(),
@@ -792,7 +802,7 @@ func (r *MariaDBReconciler) reconcileSuspend(ctx context.Context, mariadb *maria
 }
 
 func (r *MariaDBReconciler) reconcileConnection(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
-	if !mariadb.IsInitialDataEnabled() {
+	if !mariadb.IsInitialUserEnabled() {
 		return ctrl.Result{}, nil
 	}
 	if !mariadb.IsReady() {
@@ -905,7 +915,7 @@ func (r *MariaDBReconciler) patch(ctx context.Context, mariadb *mariadbv1alpha1.
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *MariaDBReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
+func (r *MariaDBReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opts controller.Options) error {
 	builder := ctrl.NewControllerManagedBy(mgr).
 		For(&mariadbv1alpha1.MariaDB{}).
 		Owns(&mariadbv1alpha1.MaxScale{}).
@@ -923,7 +933,8 @@ func (r *MariaDBReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manag
 		Owns(&policyv1.PodDisruptionBudget{}).
 		Owns(&rbacv1.Role{}).
 		Owns(&rbacv1.RoleBinding{}).
-		Owns(&rbacv1.ClusterRoleBinding{})
+		Owns(&rbacv1.ClusterRoleBinding{}).
+		WithOptions(opts)
 
 	watcherIndexer := watch.NewWatcherIndexer(mgr, builder, r.Client)
 	if err := watcherIndexer.Watch(

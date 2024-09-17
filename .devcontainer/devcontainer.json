@@ -1,6 +1,6 @@
 {
     "name": "Go",
-    "image": "mcr.microsoft.com/devcontainers/go:1.22-bookworm",
+    "image": "mcr.microsoft.com/devcontainers/go:1.23-bookworm",
     "features": {
         "ghcr.io/devcontainers/features/docker-in-docker:2.11.0": {
             "moby": true,
@@ -9,7 +9,7 @@
             "dockerDashComposeVersion": "v2"
             
         },
-        "ghcr.io/devcontainers/features/kubectl-helm-minikube:1.1.10": {
+        "ghcr.io/devcontainers/features/kubectl-helm-minikube:1.2.0": {
             "version": "latest",
             "helm": "latest",
             "minikube": "none"

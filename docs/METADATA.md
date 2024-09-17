@@ -12,8 +12,6 @@ This documentation shows how to configure metadata in the `mariadb-operator` CRs
 - [<code>Service</code> metadata](#service-metadata)
 - [<code>PVC</code> metadata](#pvc-metadata)
 - [Use cases](#use-cases)
-    - [Metallb](#metallb)
-    - [Istio](#istio)
 - [Reference](#reference)
 <!-- /toc -->
 

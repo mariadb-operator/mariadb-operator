@@ -10,9 +10,9 @@ This documentation aims to describe the supported strategies to perform updates 
 - [Update strategies](#update-strategies)
 - [Configuration](#configuration)
 - [Trigger updates](#trigger-updates)
-- [<code>ReplicasFirstPrimaryLast</code>](#replicasfirstprimarylast)
-- [<code>RollingUpdate</code>](#rollingupdate)
-- [<code>OnDelete</code>](#ondelete)
+- [`ReplicasFirstPrimaryLast`](#replicasfirstprimarylast)
+- [`RollingUpdate`](#rollingupdate)
+- [`OnDelete`](#ondelete)
 <!-- /toc -->
 
 ## Update strategies

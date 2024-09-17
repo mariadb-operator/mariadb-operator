@@ -41,29 +41,39 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/config"
+	ctrlcontroller "sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
 
 var (
-	scheme            = runtime.NewScheme()
-	setupLog          = ctrl.Log.WithName("setup")
-	metricsAddr       string
-	healthAddr        string
-	logLevel          string
-	logTimeEncoder    string
-	logDev            bool
-	logMaxScale       bool
-	logSql            bool
-	leaderElect       bool
+	scheme      = runtime.NewScheme()
+	setupLog    = ctrl.Log.WithName("setup")
+	metricsAddr string
+	healthAddr  string
+
+	leaderElect bool
+
+	logLevel       string
+	logTimeEncoder string
+	logDev         bool
+	logMaxScale    bool
+	logSql         bool
+
+	maxConcurrentReconciles         int
+	mariadbMaxConcurrentReconciles  int
+	maxscaleMaxConcurrentReconciles int
+
 	requeueConnection time.Duration
 	requeueSql        time.Duration
 	requeueSqlJob     time.Duration
 	requeueMaxScale   time.Duration
-	webhookEnabled    bool
-	webhookPort       int
-	webhookCertDir    string
+
+	webhookEnabled bool
+	webhookPort    int
+	webhookCertDir string
 
 	featureMaxScaleSuspend bool
 )
@@ -75,6 +85,9 @@ func init() {
 
 	rootCmd.PersistentFlags().StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	rootCmd.PersistentFlags().StringVar(&healthAddr, "health-addr", ":8081", "The address the probe endpoint binds to.")
+
+	rootCmd.PersistentFlags().BoolVar(&leaderElect, "leader-elect", false, "Enable leader election for controller manager.")
+
 	rootCmd.PersistentFlags().StringVar(&logLevel, "log-level", "info", "Log level to use, one of: "+
 		"debug, info, warn, error, dpanic, panic, fatal.")
 	rootCmd.PersistentFlags().StringVar(&logTimeEncoder, "log-time-encoder", "epoch", "Log time encoder to use, one of: "+
@@ -82,17 +95,26 @@ func init() {
 	rootCmd.PersistentFlags().BoolVar(&logDev, "log-dev", false, "Enable development logs.")
 	rootCmd.Flags().BoolVar(&logSql, "log-sql", false, "Enable SQL resource logs.")
 	rootCmd.Flags().BoolVar(&logMaxScale, "log-maxscale", false, "Enable MaxScale API request logs.")
-	rootCmd.PersistentFlags().BoolVar(&leaderElect, "leader-elect", false, "Enable leader election for controller manager.")
+
+	rootCmd.Flags().IntVar(&maxConcurrentReconciles, "max-concurrent-reconciles", 1,
+		"Global maximum number of concurrent reconciles per resource.")
+	rootCmd.Flags().IntVar(&mariadbMaxConcurrentReconciles, "mariadb-max-concurrent-reconciles", 10,
+		"Maximum number of concurrent reconciles per MariaDB.")
+	rootCmd.Flags().IntVar(&maxscaleMaxConcurrentReconciles, "maxscale-max-concurrent-reconciles", 10,
+		"Maximum number of concurrent reconciles per MaxScale.")
+
 	rootCmd.Flags().DurationVar(&requeueConnection, "requeue-connection", 30*time.Second, "The interval at which Connections are requeued.")
 	rootCmd.Flags().DurationVar(&requeueSql, "requeue-sql", 30*time.Second, "The interval at which SQL objects are requeued.")
 	rootCmd.Flags().DurationVar(&requeueSqlJob, "requeue-sqljob", 5*time.Second, "The interval at which SqlJobs are requeued.")
 	rootCmd.Flags().DurationVar(&requeueMaxScale, "requeue-maxscale", 10*time.Second, "The interval at which MaxScales are requeued.")
+
 	rootCmd.Flags().BoolVar(&webhookEnabled, "webhook", true, "Enable the webhook server.")
 	rootCmd.Flags().IntVar(&webhookPort, "webhook-port", 9443, "Port to be used by the webhook server."+
 		"This only applies if the webhook server is enabled.")
 	rootCmd.Flags().StringVar(&webhookCertDir, "webhook-cert-dir", "/tmp/k8s-webhook-server/serving-certs",
 		"Directory containing the TLS certificate for the webhook server. 'tls.crt' and 'tls.key' must be present in this directory."+
 			"This only applies if the webhook server is enabled.")
+
 	rootCmd.Flags().BoolVar(&featureMaxScaleSuspend, "feature-maxscale-suspend", false, "Feature flag to enable MaxScale resource suspension.")
 }
 
@@ -132,6 +154,9 @@ var rootCmd = &cobra.Command{
 			HealthProbeBindAddress: healthAddr,
 			LeaderElection:         leaderElect,
 			LeaderElectionID:       "mariadb-operator-enterprise.k8s.mariadb.com",
+			Controller: config.Controller{
+				MaxConcurrentReconciles: maxConcurrentReconciles,
+			},
 		}
 		if webhookEnabled {
 			setupLog.Info("Enabling webhook")
@@ -229,6 +254,7 @@ var rootCmd = &cobra.Command{
 		)
 
 		podReplicationController := controller.NewPodController(
+			"pod-replication",
 			client,
 			refResolver,
 			controller.NewPodReplicationController(
@@ -244,6 +270,7 @@ var rootCmd = &cobra.Command{
 			},
 		)
 		podGaleraController := controller.NewPodController(
+			"pod-galera",
 			client,
 			refResolver,
 			controller.NewPodGaleraController(client, galeraRecorder),
@@ -277,7 +304,7 @@ var rootCmd = &cobra.Command{
 			MaxScaleReconciler:    mxsReconciler,
 			ReplicationReconciler: replicationReconciler,
 			GaleraReconciler:      galeraReconciler,
-		}).SetupWithManager(ctx, mgr); err != nil {
+		}).SetupWithManager(ctx, mgr, ctrlcontroller.Options{MaxConcurrentReconciles: mariadbMaxConcurrentReconciles}); err != nil {
 			setupLog.Error(err, "Unable to create controller", "controller", "MariaDB")
 			os.Exit(1)
 		}
@@ -304,7 +331,7 @@ var rootCmd = &cobra.Command{
 
 			RequeueInterval: requeueMaxScale,
 			LogMaxScale:     logMaxScale,
-		}).SetupWithManager(ctx, mgr); err != nil {
+		}).SetupWithManager(ctx, mgr, ctrlcontroller.Options{MaxConcurrentReconciles: maxscaleMaxConcurrentReconciles}); err != nil {
 			setupLog.Error(err, "Unable to create controller", "controller", "MaxScale")
 			os.Exit(1)
 		}

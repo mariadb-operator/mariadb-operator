@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/pkg/datastructures"
 	"github.com/mariadb-operator/mariadb-operator/pkg/discovery"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -258,6 +259,40 @@ func TestMariadbPodMeta(t *testing.T) {
 					"sidecar.istio.io/inject": "false",
 				},
 				Annotations: map[string]string{},
+			},
+		},
+		{
+			name: "without HA annotations",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+					},
+					PodTemplate: mariadbv1alpha1.PodTemplate{
+						PodMetadata: &mariadbv1alpha1.Metadata{
+							Labels: map[string]string{
+								"sidecar.istio.io/inject": "false",
+							},
+							Annotations: map[string]string{
+								"sidecar.istio.io/inject": "false",
+							},
+						},
+					},
+				},
+			},
+			opts: []mariadbPodOpt{
+				withHAAnnotations(false),
+			},
+			wantMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{
+					"app.kubernetes.io/name":     "mariadb",
+					"app.kubernetes.io/instance": "mariadb-obj",
+					"sidecar.istio.io/inject":    "false",
+				},
+				Annotations: map[string]string{
+					"sidecar.istio.io/inject": "false",
+				},
 			},
 		},
 		{
@@ -552,6 +587,197 @@ func TestMariadbPodBuilder(t *testing.T) {
 	fsGroup := ptr.Deref(sc.FSGroup, 0)
 	if fsGroup != mysqlGroup {
 		t.Errorf("expected to run as mysql fsGroup, got fsGroup: %d", fsGroup)
+	}
+}
+
+func TestMariadbPodBuilderResources(t *testing.T) {
+	builder := newDefaultTestBuilder(t)
+	objMeta := metav1.ObjectMeta{
+		Name: "test-mariadb-builder-resources",
+	}
+	tests := []struct {
+		name          string
+		mariadb       *mariadbv1alpha1.MariaDB
+		opts          []mariadbPodOpt
+		wantResources corev1.ResourceRequirements
+	}{
+		{
+			name: "no resources",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+			},
+			opts:          nil,
+			wantResources: corev1.ResourceRequirements{},
+		},
+		{
+			name: "mariadb resources",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
+						Resources: &corev1.ResourceRequirements{
+							Requests: corev1.ResourceList{
+								"cpu": resource.MustParse("300m"),
+							},
+						},
+					},
+				},
+			},
+			opts: nil,
+			wantResources: corev1.ResourceRequirements{
+				Requests: corev1.ResourceList{
+					"cpu": resource.MustParse("300m"),
+				},
+			},
+		},
+		{
+			name: "opt resources",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+			},
+			opts: []mariadbPodOpt{
+				withResources(&corev1.ResourceRequirements{
+					Requests: corev1.ResourceList{
+						"cpu": resource.MustParse("100m"),
+					},
+				}),
+				withMariadbResources(false),
+			},
+			wantResources: corev1.ResourceRequirements{
+				Requests: corev1.ResourceList{
+					"cpu": resource.MustParse("100m"),
+				},
+			},
+		},
+		{
+			name: "mariadb and opt resources",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
+						Resources: &corev1.ResourceRequirements{
+							Requests: corev1.ResourceList{
+								"cpu": resource.MustParse("300m"),
+							},
+						},
+					},
+				},
+			},
+			opts: []mariadbPodOpt{
+				withResources(&corev1.ResourceRequirements{
+					Requests: corev1.ResourceList{
+						"cpu": resource.MustParse("100m"),
+					},
+				}),
+				withMariadbResources(true),
+			},
+			wantResources: corev1.ResourceRequirements{
+				Requests: corev1.ResourceList{
+					"cpu": resource.MustParse("100m"),
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			podTpl, err := builder.mariadbPodTemplate(tt.mariadb, tt.opts...)
+			if err != nil {
+				t.Fatalf("unexpected error building MariaDB Pod template: %v", err)
+			}
+			if len(podTpl.Spec.Containers) != 1 {
+				t.Error("expecting to have one container")
+			}
+			resources := podTpl.Spec.Containers[0].Resources
+			if !reflect.DeepEqual(resources, tt.wantResources) {
+				t.Errorf("unexpected resources, got: %v, expected: %v", resources, tt.wantResources)
+			}
+		})
+	}
+}
+
+func TestMariadbPodBuilderServiceAccount(t *testing.T) {
+	builder := newDefaultTestBuilder(t)
+	objMeta := metav1.ObjectMeta{
+		Name: "test-mariadb-builder-serviceaccount",
+	}
+	tests := []struct {
+		name               string
+		mariadb            *mariadbv1alpha1.MariaDB
+		opts               []mariadbPodOpt
+		wantServiceAccount bool
+	}{
+		{
+			name: "serviceaccount",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+					},
+				},
+			},
+			opts:               nil,
+			wantServiceAccount: true,
+		},
+		{
+			name: "no serviceaccount",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+					},
+				},
+			},
+			opts: []mariadbPodOpt{
+				withServiceAccount(false),
+			},
+			wantServiceAccount: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			podTpl, err := builder.mariadbPodTemplate(tt.mariadb, tt.opts...)
+			if err != nil {
+				t.Fatalf("unexpected error building MariaDB Pod template: %v", err)
+			}
+			if len(podTpl.Spec.Containers) == 0 {
+				t.Error("expecting to have containers")
+			}
+
+			container := podTpl.Spec.Containers[0]
+			scName := podTpl.Spec.ServiceAccountName
+			scVol := datastructures.Find(podTpl.Spec.Volumes, func(vol corev1.Volume) bool {
+				return vol.Name == ServiceAccountVolume
+			})
+			scVolMount := datastructures.Find(container.VolumeMounts, func(volMount corev1.VolumeMount) bool {
+				return volMount.Name == ServiceAccountVolume
+			})
+
+			if tt.wantServiceAccount {
+				if scName != objMeta.Name {
+					t.Error("expecting to have ServiceAccount")
+				}
+				if scVol == nil {
+					t.Error("expecting to have ServiceAccount Volume")
+				}
+				if scVolMount == nil {
+					t.Error("expecting to have ServiceAccount VolumeMount")
+				}
+			} else {
+				if scName != "" {
+					t.Error("expecting to NOT have ServiceAccount")
+				}
+				if scVol != nil {
+					t.Error("expecting to NOT have ServiceAccount Volume")
+				}
+				if scVolMount != nil {
+					t.Error("expecting to NOT have ServiceAccount VolumeMount")
+				}
+			}
+		})
 	}
 }
 

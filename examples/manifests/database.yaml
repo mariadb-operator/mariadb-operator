@@ -9,5 +9,8 @@ spec:
     name: mariadb
   characterSet: utf8
   collate: utf8_general_ci
+  # Delete the resource in the database whenever the CR gets deleted.
+  # Alternatively, you can specify Skip in order to omit deletion.
+  cleanupPolicy: Delete
   requeueInterval: 30s
   retryInterval: 5s

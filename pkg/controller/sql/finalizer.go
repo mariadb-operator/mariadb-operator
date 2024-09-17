@@ -5,11 +5,14 @@ import (
 	"fmt"
 	"time"
 
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	sqlClient "github.com/mariadb-operator/mariadb-operator/pkg/sql"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 type SqlFinalizer struct {
@@ -74,8 +77,13 @@ func (tf *SqlFinalizer) Finalize(ctx context.Context, resource Resource) (ctrl.R
 	}
 	defer mdbClient.Close()
 
-	if err := tf.WrappedFinalizer.Reconcile(ctx, mdbClient); err != nil {
-		return ctrl.Result{}, fmt.Errorf("error reconciling in TemplateFinalizer: %v", err)
+	cleanupPolicy := ptr.Deref(resource.CleanupPolicy(), mariadbv1alpha1.CleanupPolicyDelete)
+	if cleanupPolicy == mariadbv1alpha1.CleanupPolicyDelete {
+		log.FromContext(ctx).Info("Cleaning up SQL resource")
+
+		if err := tf.WrappedFinalizer.Reconcile(ctx, mdbClient); err != nil {
+			return ctrl.Result{}, fmt.Errorf("error reconciling in TemplateFinalizer: %v", err)
+		}
 	}
 
 	if err := tf.WrappedFinalizer.RemoveFinalizer(ctx); err != nil {

@@ -107,7 +107,6 @@ func (k *KubernetesAuth) AuthDelegatorRoleNameOrDefault(mariadb *MariaDB) string
 // GaleraAgent is a sidecar agent that co-operates with mariadb-operator.
 type GaleraAgent struct {
 	// ContainerTemplate defines a template to configure Container objects.
-	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	ContainerTemplate `json:",inline"`
 	// Image name to be used by the MariaDB instances. The supported format is `<image>:<tag>`.
@@ -136,10 +135,7 @@ type GaleraAgent struct {
 // SetDefaults sets reasonable defaults.
 func (r *GaleraAgent) SetDefaults(env *environment.OperatorEnv) {
 	if r.Image == "" {
-		r.Image = env.MariadbGaleraAgentImage
-	}
-	if r.ImagePullPolicy == "" {
-		r.ImagePullPolicy = corev1.PullIfNotPresent
+		r.Image = env.MariadbOperatorImage
 	}
 	if r.Port == 0 {
 		r.Port = 5555
@@ -164,6 +160,10 @@ type GaleraRecoveryJob struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:resourceRequirements"}
 	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
+	// PodAffinity indicates whether the recovery Jobs should run in the same Node as the MariaDB Pods. It defaults to true.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:resourceRequirements"}
+	PodAffinity *bool `json:"podAffinity,omitempty"`
 }
 
 // GaleraRecovery is the recovery process performed by the operator whenever the Galera cluster is not healthy.
@@ -173,9 +173,9 @@ type GaleraRecovery struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
 	Enabled bool `json:"enabled"`
-	// MinClusterSize is the minimum number of replicas to consider the cluster healthy. It can be either a number of replicas (3) or a percentage (50%).
+	// MinClusterSize is the minimum number of replicas to consider the cluster healthy. It can be either a number of replicas (1) or a percentage (50%).
 	// If Galera consistently reports less replicas than this value for the given 'ClusterHealthyTimeout' interval, a cluster recovery is iniated.
-	// It defaults to '50%' of the replicas specified by the MariaDB object.
+	// It defaults to '1' replica.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	MinClusterSize *intstr.IntOrString `json:"minClusterSize,omitempty"`
@@ -207,7 +207,7 @@ type GaleraRecovery struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	ForceClusterBootstrapInPod *string `json:"forceClusterBootstrapInPod,omitempty"`
-	// Job allows configuration of the Galera recovery Job, which is used to recover the Galera cluster.
+	// Job defines a Job that co-operates with mariadb-operator by performing the Galera cluster recovery .
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Job *GaleraRecoveryJob `json:"job,omitempty"`
@@ -241,7 +241,7 @@ func (g *GaleraRecovery) Validate(mdb *MariaDB) error {
 // SetDefaults sets reasonable defaults.
 func (g *GaleraRecovery) SetDefaults(mdb *MariaDB) {
 	if g.MinClusterSize == nil {
-		g.MinClusterSize = ptr.To(intstr.FromString("50%"))
+		g.MinClusterSize = ptr.To(intstr.FromInt(1))
 	}
 	if g.ClusterMonitorInterval == nil {
 		g.ClusterMonitorInterval = ptr.To(metav1.Duration{Duration: 10 * time.Second})
@@ -262,7 +262,7 @@ func (g *GaleraRecovery) SetDefaults(mdb *MariaDB) {
 
 // HasMinClusterSize returns whether the current cluster has the minimum number of replicas. If not, a cluster recovery will be performed.
 func (g *GaleraRecovery) HasMinClusterSize(currentSize int, mdb *MariaDB) (bool, error) {
-	minClusterSize := ptr.Deref(g.MinClusterSize, intstr.FromString("50%"))
+	minClusterSize := ptr.Deref(g.MinClusterSize, intstr.FromInt(1))
 	scaled, err := intstr.GetScaledValueFromIntOrPercent(&minClusterSize, int(mdb.Spec.Replicas), true)
 	if err != nil {
 		return false, err
@@ -307,7 +307,6 @@ func (g *GaleraConfig) SetDefaults() {
 // Galera allows you to enable multi-master HA via Galera in your MariaDB cluster.
 type Galera struct {
 	// GaleraSpec is the Galera desired state specification.
-	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	GaleraSpec `json:",inline"`
 	// Enabled is a flag to enable Galera.
@@ -332,8 +331,7 @@ func (g *Galera) SetDefaults(mdb *MariaDB, env *environment.OperatorEnv) {
 	}
 	if reflect.ValueOf(g.InitContainer).IsZero() {
 		g.InitContainer = Container{
-			Image:           env.MariadbGaleraInitImage,
-			ImagePullPolicy: corev1.PullIfNotPresent,
+			Image: env.MariadbOperatorImage,
 		}
 	}
 	g.Primary.SetDefaults()
@@ -394,11 +392,11 @@ type GaleraSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Recovery *GaleraRecovery `json:"recovery,omitempty"`
-	// InitContainer is an init container that co-operates with mariadb-operator.
+	// InitContainer is an init container that runs in the MariaDB Pod and co-operates with mariadb-operator.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	InitContainer Container `json:"initContainer,omitempty"`
-	// InitJob defines additional properties for the Job used to perform the initialization.
+	// InitJob defines a Job that co-operates with mariadb-operator by performing initialization tasks.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	InitJob *Job `json:"initJob,omitempty"`
@@ -442,4 +440,14 @@ func (m *MariaDB) HasGaleraNotReadyCondition() bool {
 // This means that the cluster has been successfully configured the first time.
 func (m *MariaDB) HasGaleraConfiguredCondition() bool {
 	return meta.IsStatusConditionTrue(m.Status.Conditions, ConditionTypeGaleraConfigured)
+}
+
+// IsGaleraInitialized indicates that the Galera init Job has successfully completed.
+func (m *MariaDB) IsGaleraInitialized() bool {
+	return meta.IsStatusConditionTrue(m.Status.Conditions, ConditionTypeGaleraInitialized)
+}
+
+// IsGaleraInitializing indicates that the Galera init Job is running.
+func (m *MariaDB) IsGaleraInitializing() bool {
+	return meta.IsStatusConditionFalse(m.Status.Conditions, ConditionTypeGaleraInitialized)
 }

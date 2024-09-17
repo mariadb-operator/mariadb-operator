@@ -1,9 +1,9 @@
+version: 2
 changelog:
   use: github-native
 builds:
   - id: mariadb-operator
     main: ./cmd/controller
-    binary: "mariadb-operator_{{ .Version }}_{{ .Arch }}"
     env:
       - CGO_ENABLED=0
     goos:
@@ -12,3 +12,6 @@ builds:
     goarch:
       - amd64
       - arm64
+archives:
+  - format: tar.gz
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"

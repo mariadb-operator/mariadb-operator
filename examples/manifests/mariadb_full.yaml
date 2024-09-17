@@ -13,7 +13,7 @@ spec:
     key: password
   database: mariadb
 
-  image: docker-registry1.mariadb.com/library/mariadb:10.11.8
+  image: docker-registry1.mariadb.com/library/mariadb:11.4.3
   imagePullPolicy: IfNotPresent
   imagePullSecrets:
     - name: registry # run 'make registry-secret' to generate a secret from ~/.docker/config.json
@@ -55,6 +55,8 @@ spec:
   myCnfConfigMapKeyRef:
     name: mariadb
     key: my.cnf
+
+  timeZone: "UTC"
 
   resources:
     requests:
@@ -109,3 +111,5 @@ spec:
 
   metrics:
     enabled: true
+
+  suspend: false

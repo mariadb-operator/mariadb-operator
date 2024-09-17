@@ -26,16 +26,16 @@ OC ?= $(LOCALBIN)/oc
 PREFLIGHT ?= $(LOCALBIN)/preflight
 
 ## Tool Versions
-KUBERNETES_VERSION ?= 1.30.x
-KIND_VERSION ?= v0.23.0
-KUBECTL_VERSION ?= v1.30.2
-KUSTOMIZE_VERSION ?= v5.4.2
-CONTROLLER_GEN_VERSION ?= v0.15.0
-GINKGO_VERSION ?= v2.19.1
-GOLANGCI_LINT_VERSION ?= v1.59.1
-GORELEASER_VERSION ?= v2.10.0
+KUBERNETES_VERSION ?= 1.31.x
+KIND_VERSION ?= v0.24.0
+KUBECTL_VERSION ?= v1.31.0
+KUSTOMIZE_VERSION ?= v5.4.3
+CONTROLLER_GEN_VERSION ?= v0.16.1
+GINKGO_VERSION ?= v2.20.2
+GOLANGCI_LINT_VERSION ?= v1.60.1
+GORELEASER_VERSION ?= v2.2.0
 GO_LICENSES_VERSION ?= v1.0.0
-CRD_REF_DOCS_VERSION ?= v0.0.12
+CRD_REF_DOCS_VERSION ?= v0.1.0
 FLUX_VERSION ?= 0.40.1
 JQ_VERSION ?= jq-1.7
 YQ_VERSION ?= v4.18.1
@@ -93,7 +93,7 @@ $(GOLANGCI_LINT): $(LOCALBIN)
 .PHONY: goreleaser
 goreleaser: $(GORELEASER) ## Download goreleaser locally if necessary.
 $(GORELEASER): $(LOCALBIN)
-	GOBIN=$(LOCALBIN) $(GO) install github.com/goreleaser/goreleaser@$(GORELEASER_VERSION)
+	GOBIN=$(LOCALBIN) $(GO) install github.com/goreleaser/goreleaser/v2@$(GORELEASER_VERSION)
 
 .PHONY: go-licenses
 go-licenses: $(GO_LICENSES) ## Download go-licenses locally if necessary.

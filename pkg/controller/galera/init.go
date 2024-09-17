@@ -9,6 +9,8 @@ import (
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
+	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
+	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/configmap"
 	mdbembed "github.com/mariadb-operator/mariadb-operator/pkg/embed"
 	jobpkg "github.com/mariadb-operator/mariadb-operator/pkg/job"
@@ -16,15 +18,51 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	klabels "k8s.io/apimachinery/pkg/labels"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 func (r *GaleraReconciler) ReconcileInit(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
-	if mariadb.HasGaleraConfiguredCondition() {
+	if mariadb.HasGaleraConfiguredCondition() || mariadb.IsGaleraInitialized() {
 		return ctrl.Result{}, nil
+	}
+
+	if !mariadb.IsGaleraInitializing() {
+		pvcs, err := r.listPVCs(ctx, mariadb)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("error listing PVCs: %v", err)
+		}
+		if len(pvcs) > 0 {
+			for _, p := range pvcs {
+				if p.Status.Phase != corev1.ClaimBound {
+					r.recorder.Eventf(mariadb, corev1.EventTypeWarning, mariadbv1alpha1.ReasonGaleraPVCNotBound,
+						"Unable to init Galera cluster: PVC \"%s\" in non Bound phase", p.Name)
+
+					log.FromContext(ctx).Info("Unable to init Galera cluster: PVC in non Bound phase. Requeuing...",
+						"pvc", p.Name, "phase", p.Status.Phase)
+					return ctrl.Result{RequeueAfter: 3 * time.Second}, nil
+				}
+			}
+
+			if err = r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
+				condition.SetGaleraConfigured(status)
+				status.GaleraRecovery = nil
+				condition.SetGaleraNotReady(status)
+			}); err != nil {
+				return ctrl.Result{}, fmt.Errorf("error patching MariaDB status: %v", err)
+			}
+			return ctrl.Result{}, nil
+		}
+	}
+
+	if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
+		condition.SetGaleraInitializing(status)
+	}); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error patching MariaDB status: %v", err)
 	}
 
 	if err := r.reconcilePVC(ctx, mariadb); err != nil {
@@ -37,7 +75,6 @@ func (r *GaleraReconciler) ReconcileInit(ctx context.Context, mariadb *mariadbv1
 	var initJob batchv1.Job
 	if err := r.Get(ctx, mariadb.InitKey(), &initJob); err != nil {
 		if apierrors.IsNotFound(err) {
-			log.FromContext(ctx).V(1).Info("Creating init job")
 			if err := r.createJob(ctx, mariadb); err != nil {
 				return ctrl.Result{}, err
 			}
@@ -50,12 +87,38 @@ func (r *GaleraReconciler) ReconcileInit(ctx context.Context, mariadb *mariadbv1
 		log.FromContext(ctx).V(1).Info("Init job not completed. Requeuing")
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
+
+	if err := r.initCleanup(ctx, mariadb); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error cleaning up init resources: %v", err)
+	}
+
+	if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
+		condition.SetGaleraInitialized(status)
+	}); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error patching MariaDB status: %v", err)
+	}
 	return ctrl.Result{}, nil
 }
 
+func (r *GaleraReconciler) listPVCs(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) ([]corev1.PersistentVolumeClaim, error) {
+	list := corev1.PersistentVolumeClaimList{}
+	listOpts := &ctrlclient.ListOptions{
+		LabelSelector: klabels.SelectorFromSet(
+			labels.NewLabelsBuilder().
+				WithMariaDBSelectorLabels(mariadb).
+				WithPVCRole(builder.StorageVolumeRole).
+				Build(),
+		),
+		Namespace: mariadb.GetNamespace(),
+	}
+	if err := r.List(ctx, &list, listOpts); err != nil {
+		return nil, fmt.Errorf("error listing PVCs: %v", err)
+	}
+	return list.Items, nil
+}
+
 func (r *GaleraReconciler) createJob(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
-	galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
-	job, err := r.builder.BuilInitJob(mariadb.InitKey(), mariadb, galera.InitJob)
+	job, err := r.builder.BuilGaleraInitJob(mariadb.InitKey(), mariadb)
 	if err != nil {
 		return err
 	}
@@ -103,29 +166,8 @@ docker_create_db_directories
 
 # Check if MariaDB is already initialized.
 if [ -n "$DATABASE_ALREADY_EXISTS" ]; then
-	run_as_mysql
-
-	mysql_note "Starting temporary server"
-	docker_temp_server_start "mariadbd"
-	mysql_note "Temporary server started."
-
-	if mariadb -u root -p"${MARIADB_ROOT_PASSWORD}" -e "SELECT 1;" &> /dev/null; then
-		mysql_note "MariaDB is already initialized. Skipping initialization."
-		
-		mysql_note "Stopping temporary server"
-		docker_temp_server_stop
-		mysql_note "Temporary server stopped"
-		exit 0
-	fi
-	
-	mysql_warn "This MariaDB instance has already been initialized."
-	mysql_warn "The root password Secret does not match the existing state available in the PVC."
-	mysql_warn "Please either update the root password Secret or delete the PVC."
-	
-	mysql_note "Stopping temporary server"
-	docker_temp_server_stop
-	mysql_note "Temporary server stopped"
-	exit 1
+	mysql_note "MariaDB Server already initialized"
+	exit 0
 fi
 
 run_as_mysql
@@ -180,19 +222,18 @@ func (r *GaleraReconciler) reconcilePVC(ctx context.Context, mariadb *mariadbv1a
 
 func (r *GaleraReconciler) initCleanup(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
 	var job batchv1.Job
-	if err := r.Get(ctx, mariadb.InitKey(), &job); err != nil {
-		return client.IgnoreNotFound(err)
+	if err := r.Get(ctx, mariadb.InitKey(), &job); err == nil {
+		if err := r.Delete(ctx, &job, &client.DeleteOptions{PropagationPolicy: ptr.To(metav1.DeletePropagationBackground)}); err != nil {
+			if !apierrors.IsNotFound(err) {
+				return err
+			}
+		}
 	}
-	if err := r.Delete(ctx, &job, &client.DeleteOptions{PropagationPolicy: ptr.To(metav1.DeletePropagationBackground)}); err != nil {
-		return client.IgnoreNotFound(err)
-	}
-
 	var cm corev1.ConfigMap
-	if err := r.Get(ctx, mariadb.InitKey(), &cm); err != nil {
-		return client.IgnoreNotFound(err)
-	}
-	if err := r.Delete(ctx, &cm); err != nil {
-		return client.IgnoreNotFound(err)
+	if err := r.Get(ctx, mariadb.InitKey(), &cm); err == nil {
+		if err := r.Delete(ctx, &cm); err != nil {
+			return client.IgnoreNotFound(err)
+		}
 	}
 	return nil
 }

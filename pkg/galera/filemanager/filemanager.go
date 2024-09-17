@@ -1,6 +1,7 @@
 package filemanager
 
 import (
+	"errors"
 	"fmt"
 	"io/fs"
 	"os"
@@ -41,6 +42,16 @@ func (f *FileManager) DeleteStateFile(name string) error {
 	return os.Remove(filepath.Join(f.stateDir, name))
 }
 
+func (f *FileManager) StateFileExists(name string) (bool, error) {
+	if _, err := os.Stat(filepath.Join(f.stateDir, name)); err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
+}
+
 func (f *FileManager) WriteConfigFile(name string, bytes []byte) error {
 	return os.WriteFile(filepath.Join(f.configDir, name), bytes, writeFileMode)
 }
@@ -55,7 +66,7 @@ func (f *FileManager) DeleteConfigFile(name string) error {
 
 func (f *FileManager) ConfigFileExists(name string) (bool, error) {
 	if _, err := os.Stat(filepath.Join(f.configDir, name)); err != nil {
-		if os.IsNotExist(err) {
+		if errors.Is(err, os.ErrNotExist) {
 			return false, nil
 		}
 		return false, err

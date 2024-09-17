@@ -5,7 +5,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func SetGaleraNotReady(c Conditioner, mariadb *mariadbv1alpha1.MariaDB) {
+func SetGaleraNotReady(c Conditioner) {
 	c.SetCondition(metav1.Condition{
 		Type:    mariadbv1alpha1.ConditionTypeReady,
 		Status:  metav1.ConditionFalse,

@@ -12,7 +12,6 @@ import (
 // UserSpec defines the desired state of User
 type UserSpec struct {
 	// SQLTemplate defines templates to configure SQL objects.
-	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	SQLTemplate `json:",inline"`
 	// MariaDBRef is a reference to a MariaDB object.
@@ -25,6 +24,15 @@ type UserSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	PasswordSecretKeyRef *corev1.SecretKeySelector `json:"passwordSecretKeyRef,omitempty"`
+	// PasswordHashSecretKeyRef is a reference to the password hash to be used by the User.
+	// If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password hash.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	PasswordHashSecretKeyRef *corev1.SecretKeySelector `json:"passwordHashSecretKeyRef,omitempty"`
+	// PasswordPlugin is a reference to the password plugin and arguments to be used by the User.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	PasswordPlugin PasswordPlugin `json:"passwordPlugin,omitempty"`
 	// MaxUserConnections defines the maximum number of connections that the User can establish.
 	// +optional
 	// +kubebuilder:default=10
@@ -114,8 +122,15 @@ func (u *User) RetryInterval() *metav1.Duration {
 	return u.Spec.RetryInterval
 }
 
+func (u *User) CleanupPolicy() *CleanupPolicy {
+	return u.Spec.CleanupPolicy
+}
+
 // UserPasswordSecretFieldPath is the path related to the password Secret field.
 const UserPasswordSecretFieldPath = ".spec.passwordSecretKeyRef.name"
+const UserPasswordHashSecretFieldPath = ".spec.passwordHashSecretKeyRef.name"
+const UserPasswordPluginNameSecretFieldPath = ".spec.passwordPlugin.pluginNameSecretKeyRef.name"
+const UserPasswordPluginArgSecretFieldPath = ".spec.passwordPlugin.pluginArgSecretKeyRef.name"
 
 // IndexerFuncForFieldPath returns an indexer function for a given field path.
 func (m *User) IndexerFuncForFieldPath(fieldPath string) (client.IndexerFunc, error) {
@@ -128,6 +143,41 @@ func (m *User) IndexerFuncForFieldPath(fieldPath string) (client.IndexerFunc, er
 			}
 			if user.Spec.PasswordSecretKeyRef != nil && user.Spec.PasswordSecretKeyRef.LocalObjectReference.Name != "" {
 				return []string{user.Spec.PasswordSecretKeyRef.LocalObjectReference.Name}
+			}
+			return nil
+		}, nil
+	case UserPasswordHashSecretFieldPath:
+		return func(obj client.Object) []string {
+			user, ok := obj.(*User)
+			if !ok {
+				return nil
+			}
+			if user.Spec.PasswordHashSecretKeyRef != nil && user.Spec.PasswordHashSecretKeyRef.LocalObjectReference.Name != "" {
+				return []string{user.Spec.PasswordHashSecretKeyRef.LocalObjectReference.Name}
+			}
+			return nil
+		}, nil
+	case UserPasswordPluginNameSecretFieldPath:
+		return func(obj client.Object) []string {
+			user, ok := obj.(*User)
+			if !ok {
+				return nil
+			}
+			if user.Spec.PasswordPlugin.PluginNameSecretKeyRef != nil &&
+				user.Spec.PasswordPlugin.PluginNameSecretKeyRef.LocalObjectReference.Name != "" {
+				return []string{user.Spec.PasswordPlugin.PluginNameSecretKeyRef.LocalObjectReference.Name}
+			}
+			return nil
+		}, nil
+	case UserPasswordPluginArgSecretFieldPath:
+		return func(obj client.Object) []string {
+			user, ok := obj.(*User)
+			if !ok {
+				return nil
+			}
+			if user.Spec.PasswordPlugin.PluginArgSecretKeyRef != nil &&
+				user.Spec.PasswordPlugin.PluginArgSecretKeyRef.LocalObjectReference.Name != "" {
+				return []string{user.Spec.PasswordPlugin.PluginArgSecretKeyRef.LocalObjectReference.Name}
 			}
 			return nil
 		}, nil

@@ -2,7 +2,9 @@ package init
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"os/signal"
 	"syscall"
@@ -32,6 +34,11 @@ var (
 	logger    = ctrl.Log
 	configDir string
 	stateDir  string
+)
+
+const (
+	wsrepSSTPidFile   = "wsrep_sst.pid"
+	sstInProgressFile = "sst_in_progress"
 )
 
 func init() {
@@ -75,7 +82,7 @@ var RootCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		isGaleraInit, err := state.IsGaleraInit()
+		hasGaleraState, err := state.HasGaleraState()
 		if err != nil {
 			logger.Error(err, "Error checking Galera init state")
 			os.Exit(1)
@@ -106,11 +113,15 @@ var RootCmd = &cobra.Command{
 			logger.Error(err, "error configuring Galera")
 			os.Exit(1)
 		}
-		if err := configureGaleraBootstrap(fileManager, *podIndex, isGaleraInit); err != nil {
+		if err := configureGaleraBootstrap(fileManager, &mdb, hasGaleraState, *podIndex); err != nil {
 			logger.Error(err, "error configuring Galera bootstrap")
 		}
-		if err := waitForPreviousPod(ctx, k8sClient, env, &mdb, *podIndex, isGaleraInit); err != nil {
+		if err := waitForPreviousPod(ctx, k8sClient, env, &mdb, hasGaleraState, *podIndex); err != nil {
 			logger.Error(err, "error waiting for previous Pod")
+			os.Exit(1)
+		}
+		if err := cleanupPreviousSST(fileManager); err != nil {
+			logger.Error(err, "error cleaning up previous SST")
 			os.Exit(1)
 		}
 		logger.Info("Init done")
@@ -170,20 +181,21 @@ func updateGaleraConfig(fm *filemanager.FileManager, env *environment.PodEnviron
 	return nil
 }
 
-func configureGaleraBootstrap(fm *filemanager.FileManager, podIndex int, isGaleraInit bool) error {
-	if podIndex == 0 && !isGaleraInit {
-		logger.Info("Configuring Galera bootstrap")
+func configureGaleraBootstrap(fm *filemanager.FileManager, mdb *mariadbv1alpha1.MariaDB, hasGaleraState bool, podIndex int) error {
+	if mdb.HasGaleraConfiguredCondition() || hasGaleraState || podIndex != 0 {
+		return nil
+	}
+	logger.Info("Configuring Galera bootstrap")
 
-		if err := fm.WriteConfigFile(config.BootstrapFileName, config.BootstrapFile); err != nil {
-			return fmt.Errorf("error configuring Galera bootstrap: %v", err)
-		}
+	if err := fm.WriteConfigFile(config.BootstrapFileName, config.BootstrapFile); err != nil {
+		return fmt.Errorf("error configuring Galera bootstrap: %v", err)
 	}
 	return nil
 }
 
 func waitForPreviousPod(ctx context.Context, k8sClient client.Client, env *environment.PodEnvironment,
-	mdb *mariadbv1alpha1.MariaDB, podIndex int, isGaleraInit bool) error {
-	if podIndex == 0 || isGaleraInit {
+	mdb *mariadbv1alpha1.MariaDB, hasGaleraState bool, podIndex int) error {
+	if mdb.HasGaleraConfiguredCondition() || hasGaleraState || podIndex == 0 {
 		return nil
 	}
 	previousPodName, err := getPreviousPodName(mdb, podIndex)
@@ -199,6 +211,22 @@ func waitForPreviousPod(ctx context.Context, k8sClient client.Client, env *envir
 	if err := waitForPodReady(ctx, previousKey, k8sClient); err != nil {
 		logger.Info("Waiting for previous Pod to be ready", "pod", previousPodName)
 		return fmt.Errorf("error waiting for previous Pod '%s' to be ready: %v", previousPodName, err)
+	}
+	return nil
+}
+
+func cleanupPreviousSST(fm *filemanager.FileManager) error {
+	for _, file := range []string{wsrepSSTPidFile, sstInProgressFile} {
+		exists, err := fm.StateFileExists(file)
+		if err != nil {
+			return fmt.Errorf("error checking if %s file exists: %v", file, err)
+		}
+		if exists {
+			logger.Info("Deleting pending SST file", "file", file)
+			if err := fm.DeleteStateFile(file); err != nil && !errors.Is(err, fs.ErrNotExist) {
+				return fmt.Errorf("error deleting %s file: %v", file, err)
+			}
+		}
 	}
 	return nil
 }

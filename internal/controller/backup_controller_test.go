@@ -1,6 +1,8 @@
 package controller
 
 import (
+	"reflect"
+
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -18,81 +20,135 @@ var _ = Describe("Backup", func() {
 		expectMariadbReady(testCtx, k8sClient, testMdbkey)
 	})
 
-	It("should reconcile a Job with PVC storage", func() {
-		key := types.NamespacedName{
-			Name:      "backup-pvc-test",
-			Namespace: testNamespace,
-		}
-		backup := getBackupWithPVCStorage(key)
-		testBackup(backup)
-	})
-
-	It("should reconcile a Job with Volume storage", func() {
-		key := types.NamespacedName{
-			Name:      "backup-volume-test",
-			Namespace: testNamespace,
-		}
-		backup := getBackupWithVolumeStorage(key)
-		testBackup(backup)
-	})
-
-	It("should reconcile a Job with S3 storage", func() {
-		key := types.NamespacedName{
-			Name:      "backup-s3-test",
-			Namespace: testNamespace,
-		}
-		backup := getBackupWithS3Storage(key, "test-backup", "")
-		testS3Backup(backup)
-	})
-
-	It("should reconcile a Job with S3 storage with prefix", func() {
-		key := types.NamespacedName{
-			Name:      "backup-s3-test-prefix",
-			Namespace: testNamespace,
-		}
-		backup := getBackupWithS3Storage(key, "test-backup", "mariadb")
-		testS3Backup(backup)
-	})
-
-	It("should reconcile a CronJob with PVC storage", func() {
-		key := types.NamespacedName{
-			Name:      "backup-pvc-scheduled-test",
-			Namespace: testNamespace,
-		}
-		backup := getBackupWithScheduleAndHistoryLimits(getBackupWithPVCStorage(key))
-		testBackup(backup)
-	})
-
-	It("should reconcile a CronJob with Volume storage", func() {
-		key := types.NamespacedName{
-			Name:      "backup-volume-scheduled-test",
-			Namespace: testNamespace,
-		}
-		backup := getBackupWithScheduleAndHistoryLimits(getBackupWithVolumeStorage(key))
-		testBackup(backup)
-	})
-
-	It("should reconcile a CronJob with S3 storage", func() {
-		key := types.NamespacedName{
-			Name:      "backup-s3-scheduled-test",
-			Namespace: testNamespace,
-		}
-		backup := getBackupWithScheduleAndHistoryLimits(
-			getBackupWithS3Storage(key, "test-backup", ""),
-		)
-		testS3Backup(backup)
-	})
-
-	It("should reconcile a CronJob with S3 storage with prefix", func() {
-		key := types.NamespacedName{
-			Name:      "backup-s3-scheduled-test-prefix",
-			Namespace: testNamespace,
-		}
-		backup := getBackupWithScheduleAndHistoryLimits(
-			getBackupWithS3Storage(key, "test-backup", "mariadb"),
-		)
-		testS3Backup(backup)
-	})
+	DescribeTable("Creating a Backup",
+		func(
+			resourceName string,
+			builderFn func(types.NamespacedName) *mariadbv1alpha1.Backup,
+			testFn func(*mariadbv1alpha1.Backup),
+		) {
+			key := types.NamespacedName{
+				Name:      resourceName,
+				Namespace: testNamespace,
+			}
+			backup := builderFn(key)
+			testFn(backup)
+		},
+		Entry("should reconcile a Job with PVC storage",
+			"backup-pvc-test",
+			getBackupWithPVCStorage,
+			testBackup,
+		),
+		Entry("should reconcile a Job with Volume storage",
+			"backup-volume-test",
+			getBackupWithVolumeStorage,
+			testBackup,
+		),
+		Entry("should reconcile a Job with S3 storage",
+			"backup-s3-test",
+			buildBackupWithS3Storage("test-backup", ""),
+			testS3Backup,
+		),
+		Entry("should reconcile a Job with S3 storage with prefix",
+			"backup-s3-test-prefix",
+			buildBackupWithS3Storage("test-backup", "mariadb"),
+			testS3Backup,
+		),
+		Entry("should reconcile a CronJob with PVC storage",
+			"backup-pvc-scheduled-test",
+			getBackupWithPVCStorage,
+			testBackup,
+		),
+		Entry("should reconcile a CronJob with Volume storage",
+			"backup-volume-scheduled-test",
+			getBackupWithPVCStorage,
+			testBackup,
+		),
+		Entry("should reconcile a CronJob with S3 storage",
+			"backup-s3-scheduled-test",
+			buildBackupWithS3Storage("test-backup", ""),
+			testS3Backup,
+		),
+		Entry(
+			"should reconcile a CronJob with S3 storage with prefix",
+			"backup-s3-scheduled-test-prefix",
+			buildBackupWithS3Storage("test-backup", ""),
+			testS3Backup,
+		),
+		Entry("should reconcile a CronJob with PVC storage and history limits",
+			"backup-pvc-scheduled-with-limits-test",
+			applyDecoratorChain[*mariadbv1alpha1.Backup](
+				getBackupWithPVCStorage,
+				decorateBackupWithSchedule,
+				decorateBackupWithHistoryLimits,
+			),
+			testBackup,
+		),
+		Entry("should reconcile a CronJob with Volume storage and history limits",
+			"backup-volume-scheduled-with-limits-test",
+			applyDecoratorChain[*mariadbv1alpha1.Backup](
+				getBackupWithVolumeStorage,
+				decorateBackupWithSchedule,
+				decorateBackupWithHistoryLimits,
+			),
+			testBackup,
+		),
+		Entry("should reconcile a CronJob with S3 storage and history limits",
+			"backup-s3-scheduled-with-limits-test",
+			applyDecoratorChain[*mariadbv1alpha1.Backup](
+				buildBackupWithS3Storage("test-backup", ""),
+				decorateBackupWithSchedule,
+				decorateBackupWithHistoryLimits,
+			),
+			testS3Backup,
+		),
+		Entry(
+			"should reconcile a CronJob with S3 storage with prefix and history limits",
+			"backup-s3-scheduled-with-limits-test-prefix",
+			applyDecoratorChain[*mariadbv1alpha1.Backup](
+				buildBackupWithS3Storage("test-backup", "mariadb"),
+				decorateBackupWithSchedule,
+				decorateBackupWithHistoryLimits,
+			),
+			testS3Backup,
+		),
+		Entry("should reconcile a CronJob with PVC storage and time zone setting",
+			"backup-pvc-scheduled-with-tz-test",
+			applyDecoratorChain[*mariadbv1alpha1.Backup](
+				getBackupWithPVCStorage,
+				decorateBackupWithSchedule,
+				decorateBackupWithTimeZone,
+			),
+			testBackup,
+		),
+		Entry("should reconcile a CronJob with Volume storage and time zone setting",
+			"backup-volume-scheduled-with-tz-test",
+			applyDecoratorChain[*mariadbv1alpha1.Backup](
+				getBackupWithVolumeStorage,
+				decorateBackupWithSchedule,
+				decorateBackupWithTimeZone,
+			),
+			testBackup,
+		),
+		Entry("should reconcile a CronJob with S3 storage and time zone setting",
+			"backup-s3-scheduled-with-tz-test",
+			applyDecoratorChain[*mariadbv1alpha1.Backup](
+				buildBackupWithS3Storage("test-backup", ""),
+				decorateBackupWithSchedule,
+				decorateBackupWithTimeZone,
+			),
+			testS3Backup,
+		),
+		Entry(
+			"should reconcile a CronJob with S3 storage with prefix and time zone setting",
+			"backup-s3-scheduled-with-tz-test-prefix",
+			applyDecoratorChain[*mariadbv1alpha1.Backup](
+				buildBackupWithS3Storage("test-backup", "mariadb"),
+				decorateBackupWithSchedule,
+				decorateBackupWithTimeZone,
+			),
+			testS3Backup,
+		),
+	)
 })
 
 func testBackup(backup *mariadbv1alpha1.Backup) {
@@ -173,10 +229,34 @@ func testBackupCronJob(backup *mariadbv1alpha1.Backup) {
 			return false
 		}
 		isScheduleCorrect := cronJob.Spec.Schedule == backup.Spec.Schedule.Cron
-		isSuccessfulJobHistoryLimitCorrect := *cronJob.Spec.SuccessfulJobsHistoryLimit ==
-			*backup.Spec.SuccessfulJobsHistoryLimit
-		isFailedJobHistoryLimitCorrect := *cronJob.Spec.FailedJobsHistoryLimit == *backup.Spec.FailedJobsHistoryLimit
-		return isScheduleCorrect && isSuccessfulJobHistoryLimitCorrect && isFailedJobHistoryLimitCorrect
+
+		if backup.Spec.SuccessfulJobsHistoryLimit == nil {
+			// Kubernetes sets a default of 3 when no limit is specified.
+			backup.Spec.SuccessfulJobsHistoryLimit = ptr.To[int32](3)
+		}
+
+		if backup.Spec.FailedJobsHistoryLimit == nil {
+			// Kubernetes sets a default of 1 when no limit is specified.
+			backup.Spec.FailedJobsHistoryLimit = ptr.To[int32](1)
+		}
+
+		return isScheduleCorrect && assertBackupCronJobTemplateSpecsEqual(cronJob, backup)
+	}, testHighTimeout, testInterval).Should(BeTrue())
+
+	patch := client.MergeFrom(backup.DeepCopy())
+	backup.Spec.SuccessfulJobsHistoryLimit = ptr.To[int32](7)
+	backup.Spec.FailedJobsHistoryLimit = ptr.To[int32](7)
+	backup.Spec.TimeZone = ptr.To[string]("Europe/Madrid")
+	By("Updating a CronJob's history limits and time zone")
+	Expect(k8sClient.Patch(testCtx, backup, patch)).To(Succeed())
+
+	By("Expecting to update the CronJob history limits and time zone eventually")
+	Eventually(func() bool {
+		var cronJob batchv1.CronJob
+		if k8sClient.Get(testCtx, client.ObjectKeyFromObject(backup), &cronJob) != nil {
+			return false
+		}
+		return assertBackupCronJobTemplateSpecsEqual(cronJob, backup)
 	}, testHighTimeout, testInterval).Should(BeTrue())
 }
 
@@ -200,9 +280,33 @@ func testS3Backup(backup *mariadbv1alpha1.Backup) {
 	}
 }
 
-func getBackupWithScheduleAndHistoryLimits(backup *mariadbv1alpha1.Backup) *mariadbv1alpha1.Backup {
+func decorateBackupWithSchedule(backup *mariadbv1alpha1.Backup) *mariadbv1alpha1.Backup {
 	backup.Spec.Schedule = &mariadbv1alpha1.Schedule{Cron: "*/5 * * * *"}
+	return backup
+}
+
+func decorateBackupWithHistoryLimits(backup *mariadbv1alpha1.Backup) *mariadbv1alpha1.Backup {
 	backup.Spec.SuccessfulJobsHistoryLimit = ptr.To[int32](5)
 	backup.Spec.FailedJobsHistoryLimit = ptr.To[int32](5)
 	return backup
+}
+
+func decorateBackupWithTimeZone(backup *mariadbv1alpha1.Backup) *mariadbv1alpha1.Backup {
+	backup.Spec.TimeZone = ptr.To[string]("Europe/Sofia")
+	return backup
+}
+
+func buildBackupWithS3Storage(bucket, prefix string) func(key types.NamespacedName) *mariadbv1alpha1.Backup {
+	return func(key types.NamespacedName) *mariadbv1alpha1.Backup {
+		return getBackupWithS3Storage(key, bucket, prefix)
+	}
+}
+
+func assertBackupCronJobTemplateSpecsEqual(cronJob batchv1.CronJob, backup *mariadbv1alpha1.Backup) bool {
+	isSuccessfulJobHistoryLimitCorrect :=
+		reflect.DeepEqual(cronJob.Spec.SuccessfulJobsHistoryLimit, backup.Spec.SuccessfulJobsHistoryLimit)
+	isFailedJobHistoryLimitCorrect :=
+		reflect.DeepEqual(cronJob.Spec.FailedJobsHistoryLimit, backup.Spec.FailedJobsHistoryLimit)
+	isTimeZoneCorrect := reflect.DeepEqual(cronJob.Spec.TimeZone, backup.Spec.TimeZone)
+	return isSuccessfulJobHistoryLimitCorrect && isFailedJobHistoryLimitCorrect && isTimeZoneCorrect
 }

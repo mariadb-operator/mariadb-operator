@@ -1233,6 +1233,106 @@ var _ = Describe("MariaDB types", func() {
 		)
 
 		DescribeTable(
+			"Is initial user enabled?",
+			func(mdb *MariaDB, wantIsEnabled bool) {
+				isEnabled := mdb.IsInitialUserEnabled()
+				Expect(isEnabled).To(Equal(wantIsEnabled))
+			},
+			Entry(
+				"Empty",
+				&MariaDB{
+					Spec: MariaDBSpec{},
+				},
+				false,
+			),
+			Entry(
+				"Username and Database",
+				&MariaDB{
+					Spec: MariaDBSpec{
+						Username: ptr.To("test"),
+						Database: ptr.To("test"),
+					},
+				},
+				false,
+			),
+			Entry(
+				"Username and Password",
+				&MariaDB{
+					Spec: MariaDBSpec{
+						PasswordSecretKeyRef: &GeneratedSecretKeyRef{
+							SecretKeySelector: corev1.SecretKeySelector{
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: "test",
+								},
+								Key: "test",
+							},
+						},
+						Username: ptr.To("test"),
+					},
+				},
+				false,
+			),
+			Entry(
+				"Username, Password and Database",
+				&MariaDB{
+					Spec: MariaDBSpec{
+						PasswordSecretKeyRef: &GeneratedSecretKeyRef{
+							SecretKeySelector: corev1.SecretKeySelector{
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: "test",
+								},
+								Key: "test",
+							},
+						},
+						Username: ptr.To("test"),
+						Database: ptr.To("test"),
+					},
+				},
+				true,
+			),
+			Entry(
+				"Username, Password hash and Database",
+				&MariaDB{
+					Spec: MariaDBSpec{
+						PasswordHashSecretKeyRef: &corev1.SecretKeySelector{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: "test",
+							},
+							Key: "test",
+						},
+						Username: ptr.To("test"),
+						Database: ptr.To("test"),
+					},
+				},
+				true,
+			),
+			Entry(
+				"Username, Password plugin and Database",
+				&MariaDB{
+					Spec: MariaDBSpec{
+						PasswordPlugin: &PasswordPlugin{
+							PluginNameSecretKeyRef: &corev1.SecretKeySelector{
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: "test",
+								},
+								Key: "test",
+							},
+							PluginArgSecretKeyRef: &corev1.SecretKeySelector{
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: "test",
+								},
+								Key: "test",
+							},
+						},
+						Username: ptr.To("test"),
+						Database: ptr.To("test"),
+					},
+				},
+				true,
+			),
+		)
+
+		DescribeTable(
 			"Get size",
 			func(mdb *MariaDB, wantSize *resource.Quantity) {
 				Expect(mdb.Spec.Storage.GetSize()).To(Equal(wantSize))

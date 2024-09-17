@@ -39,6 +39,8 @@ import (
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/config"
+	ctrlcontroller "sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	log "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -68,8 +70,8 @@ var _ = BeforeSuite(func() {
 
 	var err error
 	testCidrPrefix, err = docker.GetKindCidrPrefix()
-	Expect(testCidrPrefix).NotTo(BeEmpty())
 	Expect(err).NotTo(HaveOccurred())
+	Expect(testCidrPrefix).NotTo(BeEmpty())
 
 	err = mariadbv1alpha1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
@@ -103,6 +105,9 @@ var _ = BeforeSuite(func() {
 
 	k8sManager, err := ctrl.NewManager(cfg, ctrl.Options{
 		Scheme: scheme.Scheme,
+		Controller: config.Controller{
+			MaxConcurrentReconciles: 1,
+		},
 	})
 	Expect(err).ToNot(HaveOccurred())
 
@@ -165,6 +170,7 @@ var _ = BeforeSuite(func() {
 	)
 
 	podReplicationController := NewPodController(
+		"pod-replication",
 		client,
 		refResolver,
 		NewPodReplicationController(
@@ -180,6 +186,7 @@ var _ = BeforeSuite(func() {
 		},
 	)
 	podGaleraController := NewPodController(
+		"pod-galera",
 		client,
 		refResolver,
 		NewPodGaleraController(client, galeraRecorder),
@@ -213,7 +220,7 @@ var _ = BeforeSuite(func() {
 		MaxScaleReconciler:    mxsReconciler,
 		ReplicationReconciler: replicationReconciler,
 		GaleraReconciler:      galeraReconciler,
-	}).SetupWithManager(testCtx, k8sManager)
+	}).SetupWithManager(testCtx, k8sManager, ctrlcontroller.Options{MaxConcurrentReconciles: 10})
 	Expect(err).ToNot(HaveOccurred())
 
 	err = (&MaxScaleReconciler{
@@ -239,7 +246,7 @@ var _ = BeforeSuite(func() {
 
 		RequeueInterval: 5 * time.Second,
 		LogMaxScale:     false,
-	}).SetupWithManager(testCtx, k8sManager)
+	}).SetupWithManager(testCtx, k8sManager, ctrlcontroller.Options{MaxConcurrentReconciles: 10})
 	Expect(err).ToNot(HaveOccurred())
 
 	err = (&BackupReconciler{

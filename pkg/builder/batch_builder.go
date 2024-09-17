@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"strconv"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	metadata "github.com/mariadb-operator/mariadb-operator/pkg/builder/metadata"
@@ -11,6 +12,7 @@ import (
 	galeraresources "github.com/mariadb-operator/mariadb-operator/pkg/controller/galera/resources"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -154,6 +156,7 @@ func (b *Builder) BuildBackupCronJob(key types.NamespacedName, backup *mariadbv1
 			},
 			SuccessfulJobsHistoryLimit: backup.Spec.SuccessfulJobsHistoryLimit,
 			FailedJobsHistoryLimit:     backup.Spec.FailedJobsHistoryLimit,
+			TimeZone:                   backup.Spec.TimeZone,
 		},
 	}
 	if err := controllerutil.SetControllerReference(backup, cronJob, b.scheme); err != nil {
@@ -252,9 +255,12 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 	return job, nil
 }
 
-func (b *Builder) BuilInitJob(key types.NamespacedName, mariadb *mariadbv1alpha1.MariaDB,
-	mariadbInitJob *mariadbv1alpha1.Job) (*batchv1.Job, error) {
-	initJob := ptr.Deref(mariadbInitJob, mariadbv1alpha1.Job{})
+func (b *Builder) BuilGaleraInitJob(key types.NamespacedName, mariadb *mariadbv1alpha1.MariaDB) (*batchv1.Job, error) {
+	galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
+	if !galera.Enabled {
+		return nil, errors.New("Galera must be enabled")
+	}
+	initJob := ptr.Deref(galera.InitJob, mariadbv1alpha1.Job{})
 	extraMeta := ptr.Deref(initJob.Metadata, mariadbv1alpha1.Metadata{})
 	objMeta :=
 		metadata.NewMetadataBuilder(key).
@@ -265,8 +271,7 @@ func (b *Builder) BuilInitJob(key types.NamespacedName, mariadb *mariadbv1alpha1
 		filepath.Join(InitConfigPath, InitEntrypointKey),
 	})
 
-	podTpl, err := b.mariadbPodTemplate(
-		mariadb,
+	opts := []mariadbPodOpt{
 		withMeta(mariadb.Spec.InheritMetadata),
 		withMeta(&extraMeta),
 		withCommand(command.Command),
@@ -301,12 +306,17 @@ func (b *Builder) BuilInitJob(key types.NamespacedName, mariadb *mariadbv1alpha1
 				MountPath: InitConfigPath,
 			},
 		}),
+		withMariadbResources(false),
+		withMariadbSelectorLabels(false),
 		withGaleraContainers(false),
 		withGaleraConfig(false),
+		withServiceAccount(false),
 		withPorts(false),
 		withProbes(false),
-		withMariadbSelectorLabels(false),
-	)
+		withHAAnnotations(false),
+	}
+
+	podTpl, err := b.mariadbPodTemplate(mariadb, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("error building MariaDB Pod template: %v", err)
 	}
@@ -323,9 +333,16 @@ func (b *Builder) BuilInitJob(key types.NamespacedName, mariadb *mariadbv1alpha1
 	return job, nil
 }
 
-func (b *Builder) BuildGaleraRecoveryJob(key types.NamespacedName, mariadb *mariadbv1alpha1.MariaDB,
-	galeraRecoveryJob *mariadbv1alpha1.GaleraRecoveryJob, podIndex int) (*batchv1.Job, error) {
-	recoveryJob := ptr.Deref(galeraRecoveryJob, mariadbv1alpha1.GaleraRecoveryJob{})
+func (b *Builder) BuildGaleraRecoveryJob(key types.NamespacedName, mariadb *mariadbv1alpha1.MariaDB, podIndex int) (*batchv1.Job, error) {
+	galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
+	if !galera.Enabled {
+		return nil, errors.New("Galera must be enabled")
+	}
+	recovery := ptr.Deref(galera.Recovery, mariadbv1alpha1.GaleraRecovery{})
+	if !recovery.Enabled {
+		return nil, errors.New("Galera recovery must be enabled")
+	}
+	recoveryJob := ptr.Deref(recovery.Job, mariadbv1alpha1.GaleraRecoveryJob{})
 	extraMeta := ptr.Deref(recoveryJob.Metadata, mariadbv1alpha1.Metadata{})
 	objMeta :=
 		metadata.NewMetadataBuilder(key).
@@ -334,7 +351,6 @@ func (b *Builder) BuildGaleraRecoveryJob(key types.NamespacedName, mariadb *mari
 			Build()
 	command := command.NewCommand([]string{"mariadbd"}, []string{"--wsrep-recover"})
 
-	galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
 	reuseStorageVolume := ptr.Deref(galera.Config.ReuseStorageVolume, false)
 
 	volumes := []corev1.Volume{
@@ -358,6 +374,12 @@ func (b *Builder) BuildGaleraRecoveryJob(key types.NamespacedName, mariadb *mari
 		})
 	}
 
+	affinityEnabled := ptr.Deref(recoveryJob.PodAffinity, true)
+	affinity, err := galeraRecoveryJobAffinity(mariadb, podIndex)
+	if err != nil {
+		return nil, fmt.Errorf("error getting recovery Job affinity: %v", err)
+	}
+
 	podTpl, err := b.mariadbPodTemplate(
 		mariadb,
 		withMeta(mariadb.Spec.InheritMetadata),
@@ -367,12 +389,16 @@ func (b *Builder) BuildGaleraRecoveryJob(key types.NamespacedName, mariadb *mari
 		withRestartPolicy(corev1.RestartPolicyOnFailure),
 		withResources(recoveryJob.Resources),
 		withExtraVolumes(volumes),
-		withAffinityEnabled(false), // We need to schedule the recovery Job even if MariaDB defines anti-affinity.
+		withAffinityEnabled(affinityEnabled),
+		withAffinity(affinity),
+		withMariadbResources(false),
+		withMariadbSelectorLabels(false),
 		withGaleraContainers(false),
 		withGaleraConfig(true),
+		withServiceAccount(false),
 		withPorts(false),
 		withProbes(false),
-		withMariadbSelectorLabels(false),
+		withHAAnnotations(false),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("error building MariaDB Pod template: %v", err)
@@ -488,6 +514,7 @@ func (b *Builder) BuildSqlCronJob(key types.NamespacedName, sqlJob *mariadbv1alp
 			},
 			SuccessfulJobsHistoryLimit: sqlJob.Spec.SuccessfulJobsHistoryLimit,
 			FailedJobsHistoryLimit:     sqlJob.Spec.FailedJobsHistoryLimit,
+			TimeZone:                   sqlJob.Spec.TimeZone,
 		},
 	}
 	if err := controllerutil.SetControllerReference(sqlJob, cronJob, b.scheme); err != nil {
@@ -523,4 +550,38 @@ func batchImagePullSecrets(mariadb *mariadbv1alpha1.MariaDB, pullSecrets []corev
 	secrets = append(secrets, mariadb.Spec.ImagePullSecrets...)
 	secrets = append(secrets, pullSecrets...)
 	return secrets
+}
+
+func galeraRecoveryJobAffinity(mariadb *mariadbv1alpha1.MariaDB, podIndex int) (*mariadbv1alpha1.AffinityConfig, error) {
+	galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
+	if !galera.Enabled {
+		return nil, errors.New("Galera must be enabled")
+	}
+
+	return &mariadbv1alpha1.AffinityConfig{
+		AntiAffinityEnabled: ptr.To(false),
+		Affinity: corev1.Affinity{
+			PodAffinity: &corev1.PodAffinity{
+				RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
+					{
+						LabelSelector: &metav1.LabelSelector{
+							MatchExpressions: []metav1.LabelSelectorRequirement{
+								{
+									Key:      "app.kubernetes.io/instance",
+									Operator: metav1.LabelSelectorOpIn,
+									Values:   []string{mariadb.Name},
+								},
+								{
+									Key:      "apps.kubernetes.io/pod-index",
+									Operator: metav1.LabelSelectorOpIn,
+									Values:   []string{strconv.Itoa(podIndex)},
+								},
+							},
+						},
+						TopologyKey: "kubernetes.io/hostname",
+					},
+				},
+			},
+		},
+	}, nil
 }

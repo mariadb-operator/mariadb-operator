@@ -15,9 +15,8 @@ import (
 
 var _ = Describe("MariaDB Galera types", func() {
 	env := &environment.OperatorEnv{
-		MariadbGaleraInitImage:  "ghcr.io/mariadb-operator/mariadb-operator:v0.0.26",
-		MariadbGaleraAgentImage: "ghcr.io/mariadb-operator/mariadb-operator:v0.0.26",
-		MariadbGaleraLibPath:    "/usr/lib/galera/libgalera_smm.so",
+		MariadbOperatorImage: "ghcr.io/mariadb-operator/mariadb-operator:v0.0.26",
+		MariadbGaleraLibPath: "/usr/lib/galera/libgalera_smm.so",
 	}
 	Context("When creating a MariaDB Galera object", func() {
 		mdbObjMeta := metav1.ObjectMeta{
@@ -47,8 +46,7 @@ var _ = Describe("MariaDB Galera types", func() {
 						SST:            SSTMariaBackup,
 						ReplicaThreads: 1,
 						InitContainer: Container{
-							Image:           "ghcr.io/mariadb-operator/mariadb-operator:v0.0.26",
-							ImagePullPolicy: corev1.PullIfNotPresent,
+							Image: "ghcr.io/mariadb-operator/mariadb-operator:v0.0.26",
 						},
 						AvailableWhenDonor: ptr.To(false),
 						GaleraLibPath:      "/usr/lib/galera/libgalera_smm.so",
@@ -72,9 +70,8 @@ var _ = Describe("MariaDB Galera types", func() {
 							AutomaticFailover: ptr.To(true),
 						},
 						Agent: GaleraAgent{
-							Image:           "ghcr.io/mariadb-operator/mariadb-operator:v0.0.26",
-							ImagePullPolicy: corev1.PullIfNotPresent,
-							Port:            5555,
+							Image: "ghcr.io/mariadb-operator/mariadb-operator:v0.0.26",
+							Port:  5555,
 							KubernetesAuth: &KubernetesAuth{
 								Enabled: true,
 							},
@@ -82,7 +79,7 @@ var _ = Describe("MariaDB Galera types", func() {
 						},
 						Recovery: &GaleraRecovery{
 							Enabled:                 true,
-							MinClusterSize:          ptr.To(intstr.FromString("50%")),
+							MinClusterSize:          ptr.To(intstr.FromInt(1)),
 							ClusterMonitorInterval:  ptr.To(metav1.Duration{Duration: 10 * time.Second}),
 							ClusterHealthyTimeout:   ptr.To(metav1.Duration{Duration: 30 * time.Second}),
 							ClusterBootstrapTimeout: ptr.To(metav1.Duration{Duration: 10 * time.Minute}),
@@ -110,8 +107,7 @@ var _ = Describe("MariaDB Galera types", func() {
 							AutomaticFailover: ptr.To(false),
 						},
 						InitContainer: Container{
-							Image:           "mariadb/mariadb-operator-enterprise:v0.0.26",
-							ImagePullPolicy: corev1.PullIfNotPresent,
+							Image: "mariadb/mariadb-operator-enterprise:v0.0.26",
 						},
 						Agent: GaleraAgent{
 							Image: "mariadb/mariadb-operator-enterprise:v0.0.26",
@@ -133,8 +129,7 @@ var _ = Describe("MariaDB Galera types", func() {
 						GaleraLibPath:  "/usr/lib/galera/libgalera_enterprise_smm.so",
 						ReplicaThreads: 1,
 						InitContainer: Container{
-							Image:           "mariadb/mariadb-operator-enterprise:v0.0.26",
-							ImagePullPolicy: corev1.PullIfNotPresent,
+							Image: "mariadb/mariadb-operator-enterprise:v0.0.26",
 						},
 						AvailableWhenDonor: ptr.To(true),
 						Config: GaleraConfig{
@@ -157,9 +152,8 @@ var _ = Describe("MariaDB Galera types", func() {
 							AutomaticFailover: ptr.To(false),
 						},
 						Agent: GaleraAgent{
-							Image:           "mariadb/mariadb-operator-enterprise:v0.0.26",
-							ImagePullPolicy: corev1.PullIfNotPresent,
-							Port:            5555,
+							Image: "mariadb/mariadb-operator-enterprise:v0.0.26",
+							Port:  5555,
 							KubernetesAuth: &KubernetesAuth{
 								Enabled: false,
 							},
@@ -200,8 +194,7 @@ var _ = Describe("MariaDB Galera types", func() {
 						SST:            SSTMariaBackup,
 						ReplicaThreads: 1,
 						InitContainer: Container{
-							Image:           "ghcr.io/mariadb-operator/mariadb-operator:v0.0.26",
-							ImagePullPolicy: corev1.PullIfNotPresent,
+							Image: "ghcr.io/mariadb-operator/mariadb-operator:v0.0.26",
 						},
 						GaleraLibPath:      "/usr/lib/galera/libgalera_smm.so",
 						AvailableWhenDonor: ptr.To(false),
@@ -225,9 +218,8 @@ var _ = Describe("MariaDB Galera types", func() {
 							AutomaticFailover: ptr.To(true),
 						},
 						Agent: GaleraAgent{
-							Image:           "ghcr.io/mariadb-operator/mariadb-operator:v0.0.26",
-							ImagePullPolicy: corev1.PullIfNotPresent,
-							Port:            5555,
+							Image: "ghcr.io/mariadb-operator/mariadb-operator:v0.0.26",
+							Port:  5555,
 							KubernetesAuth: &KubernetesAuth{
 								Enabled: true,
 							},
@@ -267,8 +259,7 @@ var _ = Describe("MariaDB Galera types", func() {
 						SST:            SSTMariaBackup,
 						ReplicaThreads: 1,
 						InitContainer: Container{
-							Image:           "ghcr.io/mariadb-operator/mariadb-operator:v0.0.26",
-							ImagePullPolicy: corev1.PullIfNotPresent,
+							Image: "ghcr.io/mariadb-operator/mariadb-operator:v0.0.26",
 						},
 						GaleraLibPath:      "/usr/lib/galera/libgalera_smm.so",
 						AvailableWhenDonor: ptr.To(false),
@@ -292,9 +283,8 @@ var _ = Describe("MariaDB Galera types", func() {
 							AutomaticFailover: ptr.To(true),
 						},
 						Agent: GaleraAgent{
-							Image:           "ghcr.io/mariadb-operator/mariadb-operator:v0.0.26",
-							ImagePullPolicy: corev1.PullIfNotPresent,
-							Port:            5555,
+							Image: "ghcr.io/mariadb-operator/mariadb-operator:v0.0.26",
+							Port:  5555,
 							KubernetesAuth: &KubernetesAuth{
 								Enabled: true,
 							},
@@ -354,6 +344,7 @@ var _ = Describe("MariaDB Galera types", func() {
 						Galera: &Galera{
 							GaleraSpec: GaleraSpec{
 								Recovery: &GaleraRecovery{
+									Enabled:        true,
 									MinClusterSize: ptr.To(intstr.FromString("foo")),
 								},
 							},
@@ -364,7 +355,7 @@ var _ = Describe("MariaDB Galera types", func() {
 				true,
 			),
 			Entry(
-				"Zero replicas",
+				"Less than min fixed size",
 				0,
 				&MariaDB{
 					Spec: MariaDBSpec{
@@ -372,7 +363,8 @@ var _ = Describe("MariaDB Galera types", func() {
 						Galera: &Galera{
 							GaleraSpec: GaleraSpec{
 								Recovery: &GaleraRecovery{
-									MinClusterSize: ptr.To(intstr.FromString("50%")),
+									Enabled:        true,
+									MinClusterSize: ptr.To(intstr.FromInt(1)),
 								},
 							},
 						},
@@ -382,7 +374,7 @@ var _ = Describe("MariaDB Galera types", func() {
 				false,
 			),
 			Entry(
-				"Less than min size",
+				"Exact min fixed size",
 				1,
 				&MariaDB{
 					Spec: MariaDBSpec{
@@ -390,6 +382,45 @@ var _ = Describe("MariaDB Galera types", func() {
 						Galera: &Galera{
 							GaleraSpec: GaleraSpec{
 								Recovery: &GaleraRecovery{
+									Enabled:        true,
+									MinClusterSize: ptr.To(intstr.FromInt(1)),
+								},
+							},
+						},
+					},
+				},
+				true,
+				false,
+			),
+			Entry(
+				"More than min fixed size",
+				3,
+				&MariaDB{
+					Spec: MariaDBSpec{
+						Replicas: 3,
+						Galera: &Galera{
+							GaleraSpec: GaleraSpec{
+								Recovery: &GaleraRecovery{
+									Enabled:        true,
+									MinClusterSize: ptr.To(intstr.FromInt(2)),
+								},
+							},
+						},
+					},
+				},
+				true,
+				false,
+			),
+			Entry(
+				"Less than min relative size",
+				1,
+				&MariaDB{
+					Spec: MariaDBSpec{
+						Replicas: 3,
+						Galera: &Galera{
+							GaleraSpec: GaleraSpec{
+								Recovery: &GaleraRecovery{
+									Enabled:        true,
 									MinClusterSize: ptr.To(intstr.FromString("50%")),
 								},
 							},
@@ -400,7 +431,7 @@ var _ = Describe("MariaDB Galera types", func() {
 				false,
 			),
 			Entry(
-				"Exact min size",
+				"Exact min relative size",
 				2,
 				&MariaDB{
 					Spec: MariaDBSpec{
@@ -408,6 +439,7 @@ var _ = Describe("MariaDB Galera types", func() {
 						Galera: &Galera{
 							GaleraSpec: GaleraSpec{
 								Recovery: &GaleraRecovery{
+									Enabled:        true,
 									MinClusterSize: ptr.To(intstr.FromString("50%")),
 								},
 							},
@@ -418,7 +450,7 @@ var _ = Describe("MariaDB Galera types", func() {
 				false,
 			),
 			Entry(
-				"More than min size",
+				"More than min relative size",
 				3,
 				&MariaDB{
 					Spec: MariaDBSpec{
@@ -447,6 +479,24 @@ var _ = Describe("MariaDB Galera types", func() {
 								Recovery: &GaleraRecovery{
 									Enabled:        true,
 									MinClusterSize: ptr.To(intstr.FromString("50%")),
+								},
+							},
+						},
+					},
+				},
+				true,
+				false,
+			),
+			Entry(
+				"Default min cluster size",
+				1,
+				&MariaDB{
+					Spec: MariaDBSpec{
+						Replicas: 3,
+						Galera: &Galera{
+							GaleraSpec: GaleraSpec{
+								Recovery: &GaleraRecovery{
+									Enabled: true,
 								},
 							},
 						},
@@ -508,8 +558,7 @@ var _ = Describe("MariaDB Galera types", func() {
 						Galera: &Galera{
 							GaleraSpec: GaleraSpec{
 								Recovery: &GaleraRecovery{
-									Enabled:        false,
-									MinClusterSize: ptr.To(intstr.FromString("foo")),
+									Enabled: false,
 								},
 							},
 						},

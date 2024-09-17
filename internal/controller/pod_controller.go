@@ -23,15 +23,17 @@ type PodReadinessController interface {
 // PodController reconciles a Pod object
 type PodController struct {
 	client.Client
+	name                   string
 	refResolver            *refresolver.RefResolver
 	podReadinessController PodReadinessController
 	podAnnotations         []string
 }
 
-func NewPodController(client client.Client, refResolver *refresolver.RefResolver, podReadinessController PodReadinessController,
-	podAnnotations []string) *PodController {
+func NewPodController(name string, client client.Client, refResolver *refresolver.RefResolver,
+	podReadinessController PodReadinessController, podAnnotations []string) *PodController {
 	return &PodController{
 		Client:                 client,
+		name:                   name,
 		refResolver:            refResolver,
 		podReadinessController: podReadinessController,
 		podAnnotations:         podAnnotations,
@@ -73,6 +75,7 @@ func (r *PodController) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 // SetupWithManager sets up the controller with the Manager.
 func (r *PodController) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
+		Named(r.name).
 		For(&corev1.Pod{}).
 		WithEventFilter(
 			predicate.PredicateChangedWithAnnotations(

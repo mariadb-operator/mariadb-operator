@@ -8,6 +8,7 @@ This documentation aims to provide guidance on various configuration aspects acr
 ## Table of contents
 <!-- toc -->
 - [my.cnf](#mycnf)
+- [Timezones](#timezones)
 - [Passwords](#passwords)
 - [External resources](#external-resources)
 - [Probes](#probes)
@@ -35,7 +36,7 @@ spec:
 ```
 In this field, you may provide any [configuration option](https://mariadb.com/kb/en/mariadbd-options/) or [system variable](https://mariadb.com/kb/en/server-system-variables/) supported by MariaDB.
 
-Under the hood, the operator automatically creates a `ConfigMap` with the contents of  the `myCnf` field, which will be mounted in the `MariaDB` instance. Alternatively, you can manage your own configuration using a pre-existing `ConfigMap` by linking it via `myCnfConfigMapKeyRef`:
+Under the hood, the operator automatically creates a `ConfigMap` with the contents of  the `myCnf` field, which will be mounted in the `MariaDB` instance. Alternatively, you can manage your own configuration using a pre-existing `ConfigMap` by linking it via `myCnfConfigMapKeyRef`. It is important to note that the key in this `ConfigMap` i.e. the config file name, must have a `.cnf` extension in order to be detected by MariaDB:
 
 ```yaml
 apiVersion: k8s.mariadb.com/v1alpha1
@@ -50,6 +51,41 @@ spec:
 ```
 
 To ensure your configuration changes take effect, the operator triggers a [rolling update](./UPDATES.md) whenever the `myCnf` field or a `ConfigMap` is updated. For the operator to detect changes in a `ConfigMap`, it must be labeled with `k8s.mariadb.com/watch`. Refer to the [external resources](#external-resources) section for further detail.
+
+## Timezones
+
+By default, MariaDB does not load timezone data on startup for performance reasons and defaults the timezone to `SYSTEM`, obtaining the timezone information from the environment where it runs. See the [MariaDB docs](https://mariadb.com/kb/en/time-zones/) for further information.
+
+You can explicitly configure a timezone in your `MariaDB` instance by setting the `timeZone` field: 
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+spec:
+  timeZone: "UTC"
+```
+
+This setting is immutable and implies loading the timezone data on startup.
+
+In regards to `Backup` and `SqlJob` resources, which get reconciled into `CronJobs`, you can also define a `timeZone` associated with their cron expression:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: Backup
+metadata:
+  name: backup-scheduled
+spec:
+  mariaDbRef:
+    name: mariadb
+  schedule:
+    cron: "*/1 * * * *"
+    suspend: false
+  timeZone: "UTC"
+```
+
+If `timeZone` is not provided, the local timezone will be used, as described in the [Kubernetes docs](https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/#time-zones).
 
 ## Passwords
 
@@ -113,7 +149,6 @@ spec:
     name: mariadb
     key: mycnf
 ```
-
 
 These external resources should be labeled with `k8s.mariadb.com/watch` so the operator can watch them and perform reconciliations based on their changes. For example, see the `my.cnf` `ConfigMap`:
 

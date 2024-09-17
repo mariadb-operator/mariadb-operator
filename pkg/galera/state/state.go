@@ -16,7 +16,7 @@ func NewState(stateDir string) *State {
 	}
 }
 
-func (i *State) IsGaleraInit() (bool, error) {
+func (i *State) HasGaleraState() (bool, error) {
 	entries, err := os.ReadDir(i.stateDir)
 	if err != nil {
 		return false, fmt.Errorf("error reading state directory: %v", err)

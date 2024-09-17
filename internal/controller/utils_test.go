@@ -33,9 +33,9 @@ import (
 )
 
 var (
-	testVeryHighTimeout = 6 * time.Minute
-	testHighTimeout     = 3 * time.Minute
-	testTimeout         = 1 * time.Minute
+	testVeryHighTimeout = 10 * time.Minute
+	testHighTimeout     = 5 * time.Minute
+	testTimeout         = 2 * time.Minute
 	testInterval        = 1 * time.Second
 
 	testNamespace = "default"
@@ -148,7 +148,11 @@ func testCreateInitialData(ctx context.Context, env environment.OperatorEnv) {
 					Key: &testConnSecretKey,
 				},
 			},
+			// MariaDB Enterprise has --strict-password-validation enabled by default.
+			// This way we can test both Community and and Enterprise server.
+			// https://mariadb.com/docs/server/ref/mdb/cli/mariadbd/strict-password-validation/
 			MyCnf: ptr.To(`[mariadb]
+skip-strict-password-validation
 bind-address=*
 default_storage_engine=InnoDB
 binlog_format=row
@@ -200,10 +204,7 @@ func testCleanupInitialData(ctx context.Context) {
 	var password corev1.Secret
 	Expect(k8sClient.Get(ctx, testPwdKey, &password)).To(Succeed())
 	Expect(k8sClient.Delete(ctx, &password)).To(Succeed())
-
-	var mdb mariadbv1alpha1.MariaDB
-	Expect(k8sClient.Get(ctx, testMdbkey, &mdb)).To(Succeed())
-	Expect(k8sClient.Delete(ctx, &mdb)).To(Succeed())
+	deleteMariadb(testMdbkey)
 }
 
 func testMariadbUpdate(mdb *mariadbv1alpha1.MariaDB) {
@@ -496,7 +497,7 @@ func testMaxscale(mdb *mariadbv1alpha1.MariaDB, mxs *mariadbv1alpha1.MaxScale) {
 	}
 }
 
-func testValidCredentials(username string, passwordSecretKeyRef corev1.SecretKeySelector) {
+func testConnection(username string, passwordSecretKeyRef corev1.SecretKeySelector, database string, isValid bool) {
 	key := types.NamespacedName{
 		Name:      fmt.Sprintf("test-creds-conn-%s", uuid.New().String()),
 		Namespace: testNamespace,
@@ -519,7 +520,7 @@ func testValidCredentials(username string, passwordSecretKeyRef corev1.SecretKey
 			},
 			Username:             username,
 			PasswordSecretKeyRef: passwordSecretKeyRef,
-			Database:             &testDatabase,
+			Database:             &database,
 		},
 	}
 	By("Creating Connection")
@@ -528,49 +529,45 @@ func testValidCredentials(username string, passwordSecretKeyRef corev1.SecretKey
 		Expect(k8sClient.Delete(testCtx, &conn)).To(Succeed())
 	})
 
-	By("Expecting Connection to be ready eventually")
+	if isValid {
+		By("Expecting Connection to be valid eventually")
+	} else {
+		By("Expecting Connection to be invalid eventually")
+	}
 	Eventually(func() bool {
 		if err := k8sClient.Get(testCtx, key, &conn); err != nil {
 			return false
 		}
-		return conn.IsReady()
+		if isValid {
+			return conn.IsReady()
+		} else {
+			return !conn.IsReady()
+		}
 	}, testTimeout, testInterval).Should(BeTrue())
 }
 
+// See: https://docs.github.com/en/actions/using-github-hosted-runners/using-github-hosted-runners/about-github-hosted-runners#standard-github-hosted-runners-for-public-repositories
 func applyMariadbTestConfig(mdb *mariadbv1alpha1.MariaDB) *mariadbv1alpha1.MariaDB {
-	mdb.Spec.ContainerTemplate.ReadinessProbe = &corev1.Probe{
-		InitialDelaySeconds: 10,
-	}
-	mdb.Spec.ContainerTemplate.LivenessProbe = &corev1.Probe{
-		InitialDelaySeconds: 30,
-	}
 	mdb.Spec.Resources = &corev1.ResourceRequirements{
 		Requests: corev1.ResourceList{
-			"cpu":    resource.MustParse("300m"),
-			"memory": resource.MustParse("256Mi"),
+			"cpu":    resource.MustParse("500m"),
+			"memory": resource.MustParse("1Gi"),
 		},
 		Limits: corev1.ResourceList{
-			"cpu":    resource.MustParse("300m"),
-			"memory": resource.MustParse("256Mi"),
+			"memory": resource.MustParse("1Gi"),
 		},
 	}
 	return mdb
 }
 
+// See: https://docs.github.com/en/actions/using-github-hosted-runners/using-github-hosted-runners/about-github-hosted-runners#standard-github-hosted-runners-for-public-repositories
 func applyMaxscaleTestConfig(mxs *mariadbv1alpha1.MaxScale) *mariadbv1alpha1.MaxScale {
-	mxs.Spec.ContainerTemplate.ReadinessProbe = &corev1.Probe{
-		InitialDelaySeconds: 10,
-	}
-	mxs.Spec.ContainerTemplate.LivenessProbe = &corev1.Probe{
-		InitialDelaySeconds: 30,
-	}
 	mxs.Spec.Resources = &corev1.ResourceRequirements{
 		Requests: corev1.ResourceList{
-			"cpu":    resource.MustParse("200m"),
+			"cpu":    resource.MustParse("250m"),
 			"memory": resource.MustParse("128Mi"),
 		},
 		Limits: corev1.ResourceList{
-			"cpu":    resource.MustParse("200m"),
 			"memory": resource.MustParse("128Mi"),
 		},
 	}
@@ -692,6 +689,15 @@ func expectSecretToExist(ctx context.Context, k8sClient client.Client, key types
 	}, testTimeout, testInterval).Should(BeTrue())
 }
 
+func expectToNotExist(ctx context.Context, k8sClient client.Client, obj client.Object) {
+	Eventually(func(g Gomega) bool {
+		if err := k8sClient.Get(ctx, client.ObjectKeyFromObject(obj), obj); err != nil {
+			return apierrors.IsNotFound(err)
+		}
+		return false
+	}, testTimeout, testInterval).Should(BeTrue())
+}
+
 func deploymentReady(deploy *appsv1.Deployment) bool {
 	for _, c := range deploy.Status.Conditions {
 		if c.Type == appsv1.DeploymentAvailable && c.Status == corev1.ConditionTrue {
@@ -701,26 +707,23 @@ func deploymentReady(deploy *appsv1.Deployment) bool {
 	return false
 }
 
-func deleteMariaDB(mdb *mariadbv1alpha1.MariaDB) {
-	Expect(k8sClient.Delete(testCtx, mdb)).To(Succeed())
+func deleteMariadb(key types.NamespacedName) {
+	var mdb mariadbv1alpha1.MariaDB
+	By("Deleting MariaDB")
+	Expect(k8sClient.Get(testCtx, key, &mdb)).To(Succeed())
+	Expect(k8sClient.Delete(testCtx, &mdb)).To(Succeed())
 
-	Eventually(func(g Gomega) bool {
-		listOpts := &client.ListOptions{
-			LabelSelector: klabels.SelectorFromSet(
-				labels.NewLabelsBuilder().
-					WithMariaDBSelectorLabels(mdb).
-					Build(),
-			),
-			Namespace: mdb.GetNamespace(),
-		}
-		pvcList := &corev1.PersistentVolumeClaimList{}
-		g.Expect(k8sClient.List(testCtx, pvcList, listOpts)).To(Succeed())
+	By("Deleting PVCs")
+	opts := []client.DeleteAllOfOption{
+		client.MatchingLabels(
+			labels.NewLabelsBuilder().
+				WithMariaDBSelectorLabels(&mdb).
+				Build(),
+		),
+		client.InNamespace(mdb.Namespace),
+	}
+	Expect(k8sClient.DeleteAllOf(testCtx, &corev1.PersistentVolumeClaim{}, opts...)).To(Succeed())
 
-		for _, pvc := range pvcList.Items {
-			g.Expect(k8sClient.Delete(testCtx, &pvc)).To(Succeed())
-		}
-		return true
-	}, 30*time.Second, 1*time.Second).Should(BeTrue())
 }
 
 func deleteMaxScale(key types.NamespacedName, assertPVCDeletion bool) {
@@ -754,4 +757,33 @@ func deleteMaxScale(key types.NamespacedName, assertPVCDeletion bool) {
 		}
 		return len(pvcList.Items) == 0
 	}, testHighTimeout, testInterval).Should(BeTrue())
+}
+
+func removeFinalizerAndDelete(obj client.Object) error {
+	if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(obj), obj); err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil
+		}
+		return err
+	}
+
+	obj.SetFinalizers(nil)
+	if err := k8sClient.Update(testCtx, obj); err != nil {
+		return err
+	}
+	return k8sClient.Delete(testCtx, obj)
+}
+
+// applyDecoratorChain applies a set of decorator functions that modify certain field values on the object created by the builder function.
+func applyDecoratorChain[T any](
+	builderFn func(types.NamespacedName) T,
+	decoratorFns ...func(T) T,
+) func(key types.NamespacedName) T {
+	return func(key types.NamespacedName) T {
+		backup := builderFn(key)
+		for _, decoratorFn := range decoratorFns {
+			backup = decoratorFn(backup)
+		}
+		return backup
+	}
 }

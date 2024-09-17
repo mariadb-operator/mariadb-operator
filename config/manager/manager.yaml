@@ -44,23 +44,19 @@ spec:
               name: health
           env:
             - name: RELATED_IMAGE_MARIADB
-              value: mariadbmmontes/enterprise-server:10.6
+              value: docker-registry.mariadb.com/enterprise-server:10.6.18-14.1
             - name: RELATED_IMAGE_MAXSCALE
-              value: docker-registry2.mariadb.com/mariadb/maxscale:23.08.5-ubi
+              value: docker-registry2.mariadb.com/mariadb/maxscale:23.08.6-ubi-1
             - name: RELATED_IMAGE_EXPORTER
               value: docker-registry2.mariadb.com/mariadb/mariadb-prometheus-exporter-ubi:v0.0.1
             - name: RELATED_IMAGE_EXPORTER_MAXSCALE
               value: docker-registry2.mariadb.com/mariadb/maxscale-prometheus-exporter-ubi:v0.0.1
             - name: MARIADB_OPERATOR_IMAGE
-              value: docker-registry2.mariadb.com/mariadb/mariadb-operator-enterprise:v0.0.29
-            - name: MARIADB_GALERA_INIT_IMAGE
-              value: docker-registry2.mariadb.com/mariadb/mariadb-operator-enterprise:v0.0.29
-            - name: MARIADB_GALERA_AGENT_IMAGE
-              value: docker-registry2.mariadb.com/mariadb/mariadb-operator-enterprise:v0.0.29
+              value: docker-registry2.mariadb.com/mariadb/mariadb-operator-enterprise:v0.0.31
             - name: MARIADB_GALERA_LIB_PATH
               value: /usr/lib64/galera/libgalera_smm.so
             - name: MARIADB_ENTRYPOINT_VERSION
-              value: "10.11"
+              value: "10.6"
             - name: WATCH_NAMESPACE
               valueFrom:
                 fieldRef:
@@ -94,7 +90,7 @@ spec:
             periodSeconds: 10
           resources:
             limits:
-              memory: 2Gi
+              memory: 4Gi
             requests:
               cpu: 100m
               memory: 128Mi

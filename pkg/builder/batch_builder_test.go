@@ -171,375 +171,6 @@ func TestBackupJobImagePullSecrets(t *testing.T) {
 	}
 }
 
-func TestRestoreJobImagePullSecrets(t *testing.T) {
-	builder := newDefaultTestBuilder(t)
-	objMeta := metav1.ObjectMeta{
-		Name:      "restore-image-pull-secrets",
-		Namespace: "test",
-	}
-
-	tests := []struct {
-		name            string
-		restore         *mariadbv1alpha1.Restore
-		mariadb         *mariadbv1alpha1.MariaDB
-		wantPullSecrets []corev1.LocalObjectReference
-	}{
-		{
-			name: "No Secrets",
-			restore: &mariadbv1alpha1.Restore{
-				ObjectMeta: objMeta,
-				Spec: mariadbv1alpha1.RestoreSpec{
-					MariaDBRef: mariadbv1alpha1.MariaDBRef{
-						ObjectReference: corev1.ObjectReference{
-							Name: objMeta.Name,
-						},
-					},
-					RestoreSource: mariadbv1alpha1.RestoreSource{
-						Volume: &corev1.VolumeSource{},
-					},
-				},
-			},
-			mariadb: &mariadbv1alpha1.MariaDB{
-				ObjectMeta: objMeta,
-				Spec:       mariadbv1alpha1.MariaDBSpec{},
-			},
-			wantPullSecrets: nil,
-		},
-		{
-			name: "Secrets in MariaDB",
-			restore: &mariadbv1alpha1.Restore{
-				ObjectMeta: objMeta,
-				Spec: mariadbv1alpha1.RestoreSpec{
-					MariaDBRef: mariadbv1alpha1.MariaDBRef{
-						ObjectReference: corev1.ObjectReference{
-							Name: objMeta.Name,
-						},
-					},
-					RestoreSource: mariadbv1alpha1.RestoreSource{
-						Volume: &corev1.VolumeSource{},
-					},
-				},
-			},
-			mariadb: &mariadbv1alpha1.MariaDB{
-				ObjectMeta: objMeta,
-				Spec: mariadbv1alpha1.MariaDBSpec{
-					PodTemplate: mariadbv1alpha1.PodTemplate{
-						ImagePullSecrets: []corev1.LocalObjectReference{
-							{
-								Name: "mariadb-registry",
-							},
-						},
-					},
-				},
-			},
-			wantPullSecrets: []corev1.LocalObjectReference{
-				{
-					Name: "mariadb-registry",
-				},
-			},
-		},
-		{
-			name: "Secrets in Restore",
-			restore: &mariadbv1alpha1.Restore{
-				ObjectMeta: objMeta,
-				Spec: mariadbv1alpha1.RestoreSpec{
-					JobPodTemplate: mariadbv1alpha1.JobPodTemplate{
-						ImagePullSecrets: []corev1.LocalObjectReference{
-							{
-								Name: "restore-registry",
-							},
-						},
-					},
-					RestoreSource: mariadbv1alpha1.RestoreSource{
-						Volume: &corev1.VolumeSource{},
-					},
-					MariaDBRef: mariadbv1alpha1.MariaDBRef{
-						ObjectReference: corev1.ObjectReference{
-							Name: objMeta.Name,
-						},
-					},
-				},
-			},
-			mariadb: &mariadbv1alpha1.MariaDB{
-				ObjectMeta: objMeta,
-				Spec:       mariadbv1alpha1.MariaDBSpec{},
-			},
-			wantPullSecrets: []corev1.LocalObjectReference{
-				{
-					Name: "restore-registry",
-				},
-			},
-		},
-		{
-			name: "Secrets in MariaDB and Restore",
-			restore: &mariadbv1alpha1.Restore{
-				ObjectMeta: objMeta,
-				Spec: mariadbv1alpha1.RestoreSpec{
-					JobPodTemplate: mariadbv1alpha1.JobPodTemplate{
-						ImagePullSecrets: []corev1.LocalObjectReference{
-							{
-								Name: "restore-registry",
-							},
-						},
-					},
-					RestoreSource: mariadbv1alpha1.RestoreSource{
-						Volume: &corev1.VolumeSource{},
-					},
-					MariaDBRef: mariadbv1alpha1.MariaDBRef{
-						ObjectReference: corev1.ObjectReference{
-							Name: objMeta.Name,
-						},
-					},
-				},
-			},
-			mariadb: &mariadbv1alpha1.MariaDB{
-				ObjectMeta: objMeta,
-				Spec: mariadbv1alpha1.MariaDBSpec{
-					PodTemplate: mariadbv1alpha1.PodTemplate{
-						ImagePullSecrets: []corev1.LocalObjectReference{
-							{
-								Name: "mariadb-registry",
-							},
-						},
-					},
-				},
-			},
-			wantPullSecrets: []corev1.LocalObjectReference{
-				{
-					Name: "mariadb-registry",
-				},
-				{
-					Name: "restore-registry",
-				},
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			job, err := builder.BuildRestoreJob(client.ObjectKeyFromObject(tt.restore), tt.restore, tt.mariadb)
-			if err != nil {
-				t.Fatalf("unexpected error building Job: %v", err)
-			}
-			if !reflect.DeepEqual(tt.wantPullSecrets, job.Spec.Template.Spec.ImagePullSecrets) {
-				t.Errorf("unexpected ImagePullSecrets, want: %v  got: %v", tt.wantPullSecrets, job.Spec.Template.Spec.ImagePullSecrets)
-			}
-		})
-	}
-}
-
-func TestInitJobImagePullSecrets(t *testing.T) {
-	builder := newDefaultTestBuilder(t)
-	objMeta := metav1.ObjectMeta{
-		Name:      "init-image-pull-secrets",
-		Namespace: "test",
-	}
-
-	tests := []struct {
-		name            string
-		mariadb         *mariadbv1alpha1.MariaDB
-		wantPullSecrets []corev1.LocalObjectReference
-	}{
-		{
-			name: "No Secrets",
-			mariadb: &mariadbv1alpha1.MariaDB{
-				ObjectMeta: objMeta,
-				Spec:       mariadbv1alpha1.MariaDBSpec{},
-			},
-			wantPullSecrets: nil,
-		},
-		{
-			name: "Secrets in MariaDB",
-			mariadb: &mariadbv1alpha1.MariaDB{
-				ObjectMeta: objMeta,
-				Spec: mariadbv1alpha1.MariaDBSpec{
-					PodTemplate: mariadbv1alpha1.PodTemplate{
-						ImagePullSecrets: []corev1.LocalObjectReference{
-							{
-								Name: "mariadb-registry",
-							},
-						},
-					},
-				},
-			},
-			wantPullSecrets: []corev1.LocalObjectReference{
-				{
-					Name: "mariadb-registry",
-				},
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			job, err := builder.BuilInitJob(tt.mariadb.InitKey(), tt.mariadb, nil)
-			if err != nil {
-				t.Fatalf("unexpected error building Job: %v", err)
-			}
-			if !reflect.DeepEqual(tt.wantPullSecrets, job.Spec.Template.Spec.ImagePullSecrets) {
-				t.Errorf("unexpected ImagePullSecrets, want: %v  got: %v", tt.wantPullSecrets, job.Spec.Template.Spec.ImagePullSecrets)
-			}
-		})
-	}
-}
-
-func TestSqlJobImagePullSecrets(t *testing.T) {
-	builder := newDefaultTestBuilder(t)
-	objMeta := metav1.ObjectMeta{
-		Name:      "sqljob-image-pull-secrets",
-		Namespace: "test",
-	}
-
-	tests := []struct {
-		name            string
-		sqlJob          *mariadbv1alpha1.SqlJob
-		mariadb         *mariadbv1alpha1.MariaDB
-		wantPullSecrets []corev1.LocalObjectReference
-	}{
-		{
-			name: "No Secrets",
-			sqlJob: &mariadbv1alpha1.SqlJob{
-				ObjectMeta: objMeta,
-				Spec: mariadbv1alpha1.SqlJobSpec{
-					MariaDBRef: mariadbv1alpha1.MariaDBRef{
-						ObjectReference: corev1.ObjectReference{
-							Name: objMeta.Name,
-						},
-					},
-					SqlConfigMapKeyRef: &corev1.ConfigMapKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{},
-					},
-				},
-			},
-			mariadb: &mariadbv1alpha1.MariaDB{
-				ObjectMeta: objMeta,
-				Spec:       mariadbv1alpha1.MariaDBSpec{},
-			},
-			wantPullSecrets: nil,
-		},
-		{
-			name: "Secrets in MariaDB",
-			sqlJob: &mariadbv1alpha1.SqlJob{
-				ObjectMeta: objMeta,
-				Spec: mariadbv1alpha1.SqlJobSpec{
-					MariaDBRef: mariadbv1alpha1.MariaDBRef{
-						ObjectReference: corev1.ObjectReference{
-							Name: objMeta.Name,
-						},
-					},
-					SqlConfigMapKeyRef: &corev1.ConfigMapKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{},
-					},
-				},
-			},
-			mariadb: &mariadbv1alpha1.MariaDB{
-				ObjectMeta: objMeta,
-				Spec: mariadbv1alpha1.MariaDBSpec{
-					PodTemplate: mariadbv1alpha1.PodTemplate{
-						ImagePullSecrets: []corev1.LocalObjectReference{
-							{
-								Name: "mariadb-registry",
-							},
-						},
-					},
-				},
-			},
-			wantPullSecrets: []corev1.LocalObjectReference{
-				{
-					Name: "mariadb-registry",
-				},
-			},
-		},
-		{
-			name: "Secrets in SqlJob",
-			sqlJob: &mariadbv1alpha1.SqlJob{
-				ObjectMeta: objMeta,
-				Spec: mariadbv1alpha1.SqlJobSpec{
-					JobPodTemplate: mariadbv1alpha1.JobPodTemplate{
-						ImagePullSecrets: []corev1.LocalObjectReference{
-							{
-								Name: "sqljob-registry",
-							},
-						},
-					},
-					MariaDBRef: mariadbv1alpha1.MariaDBRef{
-						ObjectReference: corev1.ObjectReference{
-							Name: objMeta.Name,
-						},
-					},
-					SqlConfigMapKeyRef: &corev1.ConfigMapKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{},
-					},
-				},
-			},
-			mariadb: &mariadbv1alpha1.MariaDB{
-				ObjectMeta: objMeta,
-				Spec:       mariadbv1alpha1.MariaDBSpec{},
-			},
-			wantPullSecrets: []corev1.LocalObjectReference{
-				{
-					Name: "sqljob-registry",
-				},
-			},
-		},
-		{
-			name: "Secrets in MariaDB and SqlJob",
-			sqlJob: &mariadbv1alpha1.SqlJob{
-				ObjectMeta: objMeta,
-				Spec: mariadbv1alpha1.SqlJobSpec{
-					JobPodTemplate: mariadbv1alpha1.JobPodTemplate{
-						ImagePullSecrets: []corev1.LocalObjectReference{
-							{
-								Name: "sqljob-registry",
-							},
-						},
-					},
-					MariaDBRef: mariadbv1alpha1.MariaDBRef{
-						ObjectReference: corev1.ObjectReference{
-							Name: objMeta.Name,
-						},
-					},
-					SqlConfigMapKeyRef: &corev1.ConfigMapKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{},
-					},
-				},
-			},
-			mariadb: &mariadbv1alpha1.MariaDB{
-				ObjectMeta: objMeta,
-				Spec: mariadbv1alpha1.MariaDBSpec{
-					PodTemplate: mariadbv1alpha1.PodTemplate{
-						ImagePullSecrets: []corev1.LocalObjectReference{
-							{
-								Name: "mariadb-registry",
-							},
-						},
-					},
-				},
-			},
-			wantPullSecrets: []corev1.LocalObjectReference{
-				{
-					Name: "mariadb-registry",
-				},
-				{
-					Name: "sqljob-registry",
-				},
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			job, err := builder.BuildSqlJob(client.ObjectKeyFromObject(tt.sqlJob), tt.sqlJob, tt.mariadb)
-			if err != nil {
-				t.Fatalf("unexpected error building Job: %v", err)
-			}
-			if !reflect.DeepEqual(tt.wantPullSecrets, job.Spec.Template.Spec.ImagePullSecrets) {
-				t.Errorf("unexpected ImagePullSecrets, want: %v  got: %v", tt.wantPullSecrets, job.Spec.Template.Spec.ImagePullSecrets)
-			}
-		})
-	}
-}
-
 func TestBackupJobMeta(t *testing.T) {
 	builder := newDefaultTestBuilder(t)
 	key := types.NamespacedName{
@@ -725,6 +356,163 @@ func TestBackupJobMeta(t *testing.T) {
 			}
 			assertObjectMeta(t, &job.ObjectMeta, tt.wantJobMeta.Labels, tt.wantJobMeta.Annotations)
 			assertObjectMeta(t, &job.Spec.Template.ObjectMeta, tt.wantPodMeta.Labels, tt.wantPodMeta.Annotations)
+		})
+	}
+}
+
+func TestRestoreJobImagePullSecrets(t *testing.T) {
+	builder := newDefaultTestBuilder(t)
+	objMeta := metav1.ObjectMeta{
+		Name:      "restore-image-pull-secrets",
+		Namespace: "test",
+	}
+
+	tests := []struct {
+		name            string
+		restore         *mariadbv1alpha1.Restore
+		mariadb         *mariadbv1alpha1.MariaDB
+		wantPullSecrets []corev1.LocalObjectReference
+	}{
+		{
+			name: "No Secrets",
+			restore: &mariadbv1alpha1.Restore{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.RestoreSpec{
+					MariaDBRef: mariadbv1alpha1.MariaDBRef{
+						ObjectReference: corev1.ObjectReference{
+							Name: objMeta.Name,
+						},
+					},
+					RestoreSource: mariadbv1alpha1.RestoreSource{
+						Volume: &corev1.VolumeSource{},
+					},
+				},
+			},
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec:       mariadbv1alpha1.MariaDBSpec{},
+			},
+			wantPullSecrets: nil,
+		},
+		{
+			name: "Secrets in MariaDB",
+			restore: &mariadbv1alpha1.Restore{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.RestoreSpec{
+					MariaDBRef: mariadbv1alpha1.MariaDBRef{
+						ObjectReference: corev1.ObjectReference{
+							Name: objMeta.Name,
+						},
+					},
+					RestoreSource: mariadbv1alpha1.RestoreSource{
+						Volume: &corev1.VolumeSource{},
+					},
+				},
+			},
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					PodTemplate: mariadbv1alpha1.PodTemplate{
+						ImagePullSecrets: []corev1.LocalObjectReference{
+							{
+								Name: "mariadb-registry",
+							},
+						},
+					},
+				},
+			},
+			wantPullSecrets: []corev1.LocalObjectReference{
+				{
+					Name: "mariadb-registry",
+				},
+			},
+		},
+		{
+			name: "Secrets in Restore",
+			restore: &mariadbv1alpha1.Restore{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.RestoreSpec{
+					JobPodTemplate: mariadbv1alpha1.JobPodTemplate{
+						ImagePullSecrets: []corev1.LocalObjectReference{
+							{
+								Name: "restore-registry",
+							},
+						},
+					},
+					RestoreSource: mariadbv1alpha1.RestoreSource{
+						Volume: &corev1.VolumeSource{},
+					},
+					MariaDBRef: mariadbv1alpha1.MariaDBRef{
+						ObjectReference: corev1.ObjectReference{
+							Name: objMeta.Name,
+						},
+					},
+				},
+			},
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec:       mariadbv1alpha1.MariaDBSpec{},
+			},
+			wantPullSecrets: []corev1.LocalObjectReference{
+				{
+					Name: "restore-registry",
+				},
+			},
+		},
+		{
+			name: "Secrets in MariaDB and Restore",
+			restore: &mariadbv1alpha1.Restore{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.RestoreSpec{
+					JobPodTemplate: mariadbv1alpha1.JobPodTemplate{
+						ImagePullSecrets: []corev1.LocalObjectReference{
+							{
+								Name: "restore-registry",
+							},
+						},
+					},
+					RestoreSource: mariadbv1alpha1.RestoreSource{
+						Volume: &corev1.VolumeSource{},
+					},
+					MariaDBRef: mariadbv1alpha1.MariaDBRef{
+						ObjectReference: corev1.ObjectReference{
+							Name: objMeta.Name,
+						},
+					},
+				},
+			},
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					PodTemplate: mariadbv1alpha1.PodTemplate{
+						ImagePullSecrets: []corev1.LocalObjectReference{
+							{
+								Name: "mariadb-registry",
+							},
+						},
+					},
+				},
+			},
+			wantPullSecrets: []corev1.LocalObjectReference{
+				{
+					Name: "mariadb-registry",
+				},
+				{
+					Name: "restore-registry",
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			job, err := builder.BuildRestoreJob(client.ObjectKeyFromObject(tt.restore), tt.restore, tt.mariadb)
+			if err != nil {
+				t.Fatalf("unexpected error building Job: %v", err)
+			}
+			if !reflect.DeepEqual(tt.wantPullSecrets, job.Spec.Template.Spec.ImagePullSecrets) {
+				t.Errorf("unexpected ImagePullSecrets, want: %v  got: %v", tt.wantPullSecrets, job.Spec.Template.Spec.ImagePullSecrets)
+			}
 		})
 	}
 }
@@ -933,7 +721,68 @@ func TestRestoreJobMeta(t *testing.T) {
 	}
 }
 
-func TestInitJobMeta(t *testing.T) {
+func TestGaleraInitJobImagePullSecrets(t *testing.T) {
+	builder := newDefaultTestBuilder(t)
+	objMeta := metav1.ObjectMeta{
+		Name: "init-image-pull-secrets",
+	}
+
+	tests := []struct {
+		name            string
+		mariadb         *mariadbv1alpha1.MariaDB
+		wantPullSecrets []corev1.LocalObjectReference
+	}{
+		{
+			name: "No Secrets",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+					},
+				},
+			},
+			wantPullSecrets: nil,
+		},
+		{
+			name: "Secrets in MariaDB",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+					},
+					PodTemplate: mariadbv1alpha1.PodTemplate{
+						ImagePullSecrets: []corev1.LocalObjectReference{
+							{
+								Name: "mariadb-registry",
+							},
+						},
+					},
+				},
+			},
+			wantPullSecrets: []corev1.LocalObjectReference{
+				{
+					Name: "mariadb-registry",
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			job, err := builder.BuilGaleraInitJob(tt.mariadb.InitKey(), tt.mariadb)
+			if err != nil {
+				t.Fatalf("unexpected error building Job: %v", err)
+			}
+			if !reflect.DeepEqual(tt.wantPullSecrets, job.Spec.Template.Spec.ImagePullSecrets) {
+				t.Errorf("unexpected ImagePullSecrets, want: %v  got: %v", tt.wantPullSecrets, job.Spec.Template.Spec.ImagePullSecrets)
+			}
+		})
+	}
+}
+
+func TestGaleraInitJobMeta(t *testing.T) {
 	builder := newDefaultTestBuilder(t)
 	key := types.NamespacedName{
 		Name: "init-obj",
@@ -944,7 +793,6 @@ func TestInitJobMeta(t *testing.T) {
 	tests := []struct {
 		name        string
 		mariadb     *mariadbv1alpha1.MariaDB
-		initJob     *mariadbv1alpha1.Job
 		wantJobMeta *mariadbv1alpha1.Metadata
 		wantPodMeta *mariadbv1alpha1.Metadata
 	}{
@@ -952,8 +800,12 @@ func TestInitJobMeta(t *testing.T) {
 			name: "empty",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: mariadbObjMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+					},
+				},
 			},
-			initJob: &mariadbv1alpha1.Job{},
 			wantJobMeta: &mariadbv1alpha1.Metadata{
 				Labels:      map[string]string{},
 				Annotations: map[string]string{},
@@ -968,6 +820,9 @@ func TestInitJobMeta(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: mariadbObjMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+					},
 					InheritMetadata: &mariadbv1alpha1.Metadata{
 						Labels: map[string]string{
 							"sidecar.istio.io/inject": "false",
@@ -978,7 +833,6 @@ func TestInitJobMeta(t *testing.T) {
 					},
 				},
 			},
-			initJob: &mariadbv1alpha1.Job{},
 			wantJobMeta: &mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"sidecar.istio.io/inject": "false",
@@ -1000,14 +854,21 @@ func TestInitJobMeta(t *testing.T) {
 			name: "extra meta",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: mariadbObjMeta,
-			},
-			initJob: &mariadbv1alpha1.Job{
-				Metadata: &mariadbv1alpha1.Metadata{
-					Labels: map[string]string{
-						"sidecar.istio.io/inject": "false",
-					},
-					Annotations: map[string]string{
-						"database.myorg.io": "mariadb",
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							InitJob: &mariadbv1alpha1.Job{
+								Metadata: &mariadbv1alpha1.Metadata{
+									Labels: map[string]string{
+										"sidecar.istio.io/inject": "false",
+									},
+									Annotations: map[string]string{
+										"database.myorg.io": "mariadb",
+									},
+								},
+							},
+						},
 					},
 				},
 			},
@@ -1033,6 +894,9 @@ func TestInitJobMeta(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: mariadbObjMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+					},
 					PodTemplate: mariadbv1alpha1.PodTemplate{
 						PodMetadata: &mariadbv1alpha1.Metadata{
 							Labels: map[string]string{
@@ -1045,7 +909,6 @@ func TestInitJobMeta(t *testing.T) {
 					},
 				},
 			},
-			initJob: &mariadbv1alpha1.Job{},
 			wantJobMeta: &mariadbv1alpha1.Metadata{
 				Labels:      map[string]string{},
 				Annotations: map[string]string{},
@@ -1064,6 +927,18 @@ func TestInitJobMeta(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: mariadbObjMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							InitJob: &mariadbv1alpha1.Job{
+								Metadata: &mariadbv1alpha1.Metadata{
+									Labels: map[string]string{
+										"sidecar.istio.io/inject": "true",
+									},
+								},
+							},
+						},
+					},
 					PodTemplate: mariadbv1alpha1.PodTemplate{
 						PodMetadata: &mariadbv1alpha1.Metadata{
 							Labels: map[string]string{
@@ -1073,13 +948,6 @@ func TestInitJobMeta(t *testing.T) {
 								"database.myorg.io": "mariadb",
 							},
 						},
-					},
-				},
-			},
-			initJob: &mariadbv1alpha1.Job{
-				Metadata: &mariadbv1alpha1.Metadata{
-					Labels: map[string]string{
-						"sidecar.istio.io/inject": "true",
 					},
 				},
 			},
@@ -1103,6 +971,18 @@ func TestInitJobMeta(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: mariadbObjMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							InitJob: &mariadbv1alpha1.Job{
+								Metadata: &mariadbv1alpha1.Metadata{
+									Annotations: map[string]string{
+										"sidecar.istio.io/inject": "false",
+									},
+								},
+							},
+						},
+					},
 					InheritMetadata: &mariadbv1alpha1.Metadata{
 						Annotations: map[string]string{
 							"database.myorg.io": "mariadb",
@@ -1114,13 +994,6 @@ func TestInitJobMeta(t *testing.T) {
 								"sidecar.istio.io/inject": "false",
 							},
 						},
-					},
-				},
-			},
-			initJob: &mariadbv1alpha1.Job{
-				Metadata: &mariadbv1alpha1.Metadata{
-					Annotations: map[string]string{
-						"sidecar.istio.io/inject": "false",
 					},
 				},
 			},
@@ -1145,12 +1018,174 @@ func TestInitJobMeta(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			job, err := builder.BuilInitJob(key, tt.mariadb, tt.initJob)
+			job, err := builder.BuilGaleraInitJob(key, tt.mariadb)
 			if err != nil {
 				t.Fatalf("unexpected error building init Job: %v", err)
 			}
 			assertObjectMeta(t, &job.ObjectMeta, tt.wantJobMeta.Labels, tt.wantJobMeta.Annotations)
 			assertObjectMeta(t, &job.Spec.Template.ObjectMeta, tt.wantPodMeta.Labels, tt.wantPodMeta.Annotations)
+		})
+	}
+}
+
+func TestGaleraInitJobResources(t *testing.T) {
+	builder := newDefaultTestBuilder(t)
+	key := types.NamespacedName{
+		Name: "job-obj",
+	}
+	objMeta := metav1.ObjectMeta{
+		Name: "mariadb-obj",
+	}
+	tests := []struct {
+		name          string
+		mariadb       *mariadbv1alpha1.MariaDB
+		wantResources corev1.ResourceRequirements
+	}{
+		{
+			name: "no resources",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+					},
+				},
+			},
+			wantResources: corev1.ResourceRequirements{},
+		},
+		{
+			name: "mariadb resources",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+					},
+					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
+						Resources: &corev1.ResourceRequirements{
+							Requests: corev1.ResourceList{
+								"cpu": resource.MustParse("300m"),
+							},
+						},
+					},
+				},
+			},
+			wantResources: corev1.ResourceRequirements{},
+		},
+		{
+			name: "init Job resources",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							InitJob: &mariadbv1alpha1.Job{
+								Resources: &corev1.ResourceRequirements{
+									Requests: corev1.ResourceList{
+										"cpu": resource.MustParse("100m"),
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantResources: corev1.ResourceRequirements{
+				Requests: corev1.ResourceList{
+					"cpu": resource.MustParse("100m"),
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			job, err := builder.BuilGaleraInitJob(key, tt.mariadb)
+			if err != nil {
+				t.Fatalf("unexpected error building Galera init Job: %v", err)
+			}
+			podTpl := job.Spec.Template
+			if len(podTpl.Spec.Containers) != 1 {
+				t.Error("expecting to have one container")
+			}
+			resources := podTpl.Spec.Containers[0].Resources
+			if !reflect.DeepEqual(resources, tt.wantResources) {
+				t.Errorf("unexpected resources, got: %v, expected: %v", resources, tt.wantResources)
+			}
+		})
+	}
+}
+
+func TestGaleraRecoveryJobImagePullSecrets(t *testing.T) {
+	builder := newDefaultTestBuilder(t)
+	key := types.NamespacedName{
+		Name: "recovery-obj",
+	}
+	objMeta := metav1.ObjectMeta{
+		Name: "recovery-job-pull-secrets",
+	}
+	tests := []struct {
+		name            string
+		mariadb         *mariadbv1alpha1.MariaDB
+		wantPullSecrets []corev1.LocalObjectReference
+	}{
+		{
+			name: "No Secrets",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							Recovery: &mariadbv1alpha1.GaleraRecovery{
+								Enabled: true,
+							},
+						},
+					},
+				},
+			},
+			wantPullSecrets: nil,
+		},
+		{
+			name: "Secrets in MariaDB",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							Recovery: &mariadbv1alpha1.GaleraRecovery{
+								Enabled: true,
+							},
+						},
+					},
+					PodTemplate: mariadbv1alpha1.PodTemplate{
+						ImagePullSecrets: []corev1.LocalObjectReference{
+							{
+								Name: "mariadb-registry",
+							},
+						},
+					},
+				},
+			},
+			wantPullSecrets: []corev1.LocalObjectReference{
+				{
+					Name: "mariadb-registry",
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			job, err := builder.BuildGaleraRecoveryJob(key, tt.mariadb, 0)
+			if err != nil {
+				t.Fatalf("unexpected error building Job: %v", err)
+			}
+			if !reflect.DeepEqual(tt.wantPullSecrets, job.Spec.Template.Spec.ImagePullSecrets) {
+				t.Errorf("unexpected ImagePullSecrets, want: %v  got: %v", tt.wantPullSecrets, job.Spec.Template.Spec.ImagePullSecrets)
+			}
 		})
 	}
 }
@@ -1166,7 +1201,6 @@ func TestGaleraRecoveryJobMeta(t *testing.T) {
 	tests := []struct {
 		name        string
 		mariadb     *mariadbv1alpha1.MariaDB
-		recoveryJob *mariadbv1alpha1.GaleraRecoveryJob
 		wantJobMeta *mariadbv1alpha1.Metadata
 		wantPodMeta *mariadbv1alpha1.Metadata
 	}{
@@ -1174,8 +1208,17 @@ func TestGaleraRecoveryJobMeta(t *testing.T) {
 			name: "empty",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: mariadbObjMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							Recovery: &mariadbv1alpha1.GaleraRecovery{
+								Enabled: true,
+							},
+						},
+					},
+				},
 			},
-			recoveryJob: &mariadbv1alpha1.GaleraRecoveryJob{},
 			wantJobMeta: &mariadbv1alpha1.Metadata{
 				Labels:      map[string]string{},
 				Annotations: map[string]string{},
@@ -1190,6 +1233,14 @@ func TestGaleraRecoveryJobMeta(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: mariadbObjMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							Recovery: &mariadbv1alpha1.GaleraRecovery{
+								Enabled: true,
+							},
+						},
+					},
 					InheritMetadata: &mariadbv1alpha1.Metadata{
 						Labels: map[string]string{
 							"sidecar.istio.io/inject": "false",
@@ -1200,7 +1251,6 @@ func TestGaleraRecoveryJobMeta(t *testing.T) {
 					},
 				},
 			},
-			recoveryJob: &mariadbv1alpha1.GaleraRecoveryJob{},
 			wantJobMeta: &mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"sidecar.istio.io/inject": "false",
@@ -1222,14 +1272,24 @@ func TestGaleraRecoveryJobMeta(t *testing.T) {
 			name: "extra meta",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: mariadbObjMeta,
-			},
-			recoveryJob: &mariadbv1alpha1.GaleraRecoveryJob{
-				Metadata: &mariadbv1alpha1.Metadata{
-					Labels: map[string]string{
-						"sidecar.istio.io/inject": "false",
-					},
-					Annotations: map[string]string{
-						"database.myorg.io": "mariadb",
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							Recovery: &mariadbv1alpha1.GaleraRecovery{
+								Enabled: true,
+								Job: &mariadbv1alpha1.GaleraRecoveryJob{
+									Metadata: &mariadbv1alpha1.Metadata{
+										Labels: map[string]string{
+											"sidecar.istio.io/inject": "false",
+										},
+										Annotations: map[string]string{
+											"database.myorg.io": "mariadb",
+										},
+									},
+								},
+							},
+						},
 					},
 				},
 			},
@@ -1255,6 +1315,14 @@ func TestGaleraRecoveryJobMeta(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: mariadbObjMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							Recovery: &mariadbv1alpha1.GaleraRecovery{
+								Enabled: true,
+							},
+						},
+					},
 					PodTemplate: mariadbv1alpha1.PodTemplate{
 						PodMetadata: &mariadbv1alpha1.Metadata{
 							Labels: map[string]string{
@@ -1267,7 +1335,6 @@ func TestGaleraRecoveryJobMeta(t *testing.T) {
 					},
 				},
 			},
-			recoveryJob: &mariadbv1alpha1.GaleraRecoveryJob{},
 			wantJobMeta: &mariadbv1alpha1.Metadata{
 				Labels:      map[string]string{},
 				Annotations: map[string]string{},
@@ -1286,6 +1353,21 @@ func TestGaleraRecoveryJobMeta(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: mariadbObjMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							Recovery: &mariadbv1alpha1.GaleraRecovery{
+								Enabled: true,
+								Job: &mariadbv1alpha1.GaleraRecoveryJob{
+									Metadata: &mariadbv1alpha1.Metadata{
+										Labels: map[string]string{
+											"sidecar.istio.io/inject": "true",
+										},
+									},
+								},
+							},
+						},
+					},
 					PodTemplate: mariadbv1alpha1.PodTemplate{
 						PodMetadata: &mariadbv1alpha1.Metadata{
 							Labels: map[string]string{
@@ -1295,13 +1377,6 @@ func TestGaleraRecoveryJobMeta(t *testing.T) {
 								"database.myorg.io": "mariadb",
 							},
 						},
-					},
-				},
-			},
-			recoveryJob: &mariadbv1alpha1.GaleraRecoveryJob{
-				Metadata: &mariadbv1alpha1.Metadata{
-					Labels: map[string]string{
-						"sidecar.istio.io/inject": "true",
 					},
 				},
 			},
@@ -1325,6 +1400,21 @@ func TestGaleraRecoveryJobMeta(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: mariadbObjMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							Recovery: &mariadbv1alpha1.GaleraRecovery{
+								Enabled: true,
+								Job: &mariadbv1alpha1.GaleraRecoveryJob{
+									Metadata: &mariadbv1alpha1.Metadata{
+										Annotations: map[string]string{
+											"sidecar.istio.io/inject": "false",
+										},
+									},
+								},
+							},
+						},
+					},
 					InheritMetadata: &mariadbv1alpha1.Metadata{
 						Annotations: map[string]string{
 							"database.myorg.io": "mariadb",
@@ -1336,13 +1426,6 @@ func TestGaleraRecoveryJobMeta(t *testing.T) {
 								"sidecar.istio.io/inject": "false",
 							},
 						},
-					},
-				},
-			},
-			recoveryJob: &mariadbv1alpha1.GaleraRecoveryJob{
-				Metadata: &mariadbv1alpha1.Metadata{
-					Annotations: map[string]string{
-						"sidecar.istio.io/inject": "false",
 					},
 				},
 			},
@@ -1367,7 +1450,7 @@ func TestGaleraRecoveryJobMeta(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			job, err := builder.BuildGaleraRecoveryJob(key, tt.mariadb, tt.recoveryJob, 0)
+			job, err := builder.BuildGaleraRecoveryJob(key, tt.mariadb, 0)
 			if err != nil {
 				t.Fatalf("unexpected error building Galera recovery Job: %v", err)
 			}
@@ -1391,28 +1474,16 @@ func TestGaleraRecoveryJobVolumes(t *testing.T) {
 		wantVolumes []string
 	}{
 		{
-			name: "galera",
+			name: "dedicated storage",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Storage: mariadbv1alpha1.Storage{
-						Size: ptr.To(resource.MustParse("1Gi")),
-						VolumeClaimTemplate: &mariadbv1alpha1.VolumeClaimTemplate{
-							PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
-								Resources: corev1.VolumeResourceRequirements{
-									Requests: corev1.ResourceList{
-										"storage": resource.MustParse("1Gi"),
-									},
-								},
-								AccessModes: []corev1.PersistentVolumeAccessMode{
-									corev1.ReadWriteOnce,
-								},
-							},
-						},
-					},
 					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
 						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							Recovery: &mariadbv1alpha1.GaleraRecovery{
+								Enabled: true,
+							},
 							Config: mariadbv1alpha1.GaleraConfig{
 								VolumeClaimTemplate: &mariadbv1alpha1.VolumeClaimTemplate{
 									PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
@@ -1429,15 +1500,6 @@ func TestGaleraRecoveryJobVolumes(t *testing.T) {
 							},
 						},
 					},
-				},
-			},
-			wantVolumes: []string{StorageVolume, galeraresources.GaleraConfigVolume},
-		},
-		{
-			name: "galera resuse storage",
-			mariadb: &mariadbv1alpha1.MariaDB{
-				ObjectMeta: objMeta,
-				Spec: mariadbv1alpha1.MariaDBSpec{
 					Storage: mariadbv1alpha1.Storage{
 						Size: ptr.To(resource.MustParse("1Gi")),
 						VolumeClaimTemplate: &mariadbv1alpha1.VolumeClaimTemplate{
@@ -1453,11 +1515,38 @@ func TestGaleraRecoveryJobVolumes(t *testing.T) {
 							},
 						},
 					},
+				},
+			},
+			wantVolumes: []string{StorageVolume, galeraresources.GaleraConfigVolume},
+		},
+		{
+			name: "resuse storage",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
 					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
 						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							Recovery: &mariadbv1alpha1.GaleraRecovery{
+								Enabled: true,
+							},
 							Config: mariadbv1alpha1.GaleraConfig{
 								ReuseStorageVolume: ptr.To(true),
+							},
+						},
+					},
+					Storage: mariadbv1alpha1.Storage{
+						Size: ptr.To(resource.MustParse("1Gi")),
+						VolumeClaimTemplate: &mariadbv1alpha1.VolumeClaimTemplate{
+							PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
+								Resources: corev1.VolumeResourceRequirements{
+									Requests: corev1.ResourceList{
+										"storage": resource.MustParse("1Gi"),
+									},
+								},
+								AccessModes: []corev1.PersistentVolumeAccessMode{
+									corev1.ReadWriteOnce,
+								},
 							},
 						},
 					},
@@ -1469,7 +1558,7 @@ func TestGaleraRecoveryJobVolumes(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			job, err := builder.BuildGaleraRecoveryJob(key, tt.mariadb, nil, 0)
+			job, err := builder.BuildGaleraRecoveryJob(key, tt.mariadb, 0)
 			if err != nil {
 				t.Errorf("unexpected error building Galera recovery Job: %v", err)
 			}
@@ -1491,44 +1580,77 @@ func TestGaleraRecoveryJobAffinity(t *testing.T) {
 		Name: "mariadb-obj",
 	}
 	tests := []struct {
-		name    string
-		mariadb *mariadbv1alpha1.MariaDB
+		name         string
+		mariadb      *mariadbv1alpha1.MariaDB
+		podIndex     int
+		wantAffinity *corev1.Affinity
 	}{
 		{
-			name: "no mariadb affinity",
+			name: "no recovery Job affinity",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Storage: mariadbv1alpha1.Storage{
-						Size: ptr.To(resource.MustParse("1Gi")),
-					},
 					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
-					},
-				},
-			},
-		},
-		{
-			name: "mariadb affinity",
-			mariadb: &mariadbv1alpha1.MariaDB{
-				ObjectMeta: objMeta,
-				Spec: mariadbv1alpha1.MariaDBSpec{
-					PodTemplate: mariadbv1alpha1.PodTemplate{
-						Affinity: &mariadbv1alpha1.AffinityConfig{
-							AntiAffinityEnabled: ptr.To(true),
-						},
-						TopologySpreadConstraints: []corev1.TopologySpreadConstraint{
-							{
-								MaxSkew:     1,
-								TopologyKey: "kubernetes.io/hostname",
+						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							Recovery: &mariadbv1alpha1.GaleraRecovery{
+								Enabled: true,
+								Job: &mariadbv1alpha1.GaleraRecoveryJob{
+									PodAffinity: ptr.To(false),
+								},
 							},
 						},
 					},
 					Storage: mariadbv1alpha1.Storage{
 						Size: ptr.To(resource.MustParse("1Gi")),
 					},
+				},
+			},
+			podIndex:     0,
+			wantAffinity: nil,
+		},
+		{
+			name: "recovery Job affinity",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
 					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
+						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							Recovery: &mariadbv1alpha1.GaleraRecovery{
+								Enabled: true,
+								Job: &mariadbv1alpha1.GaleraRecoveryJob{
+									PodAffinity: ptr.To(true),
+								},
+							},
+						},
+					},
+					Storage: mariadbv1alpha1.Storage{
+						Size: ptr.To(resource.MustParse("1Gi")),
+					},
+				},
+			},
+			podIndex: 0,
+			wantAffinity: &corev1.Affinity{
+				PodAffinity: &corev1.PodAffinity{
+					RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
+						{
+							LabelSelector: &metav1.LabelSelector{
+								MatchExpressions: []metav1.LabelSelectorRequirement{
+									{
+										Key:      "app.kubernetes.io/instance",
+										Operator: metav1.LabelSelectorOpIn,
+										Values:   []string{objMeta.Name},
+									},
+									{
+										Key:      "apps.kubernetes.io/pod-index",
+										Operator: metav1.LabelSelectorOpIn,
+										Values:   []string{"0"},
+									},
+								},
+							},
+							TopologyKey: "kubernetes.io/hostname",
+						},
 					},
 				},
 			},
@@ -1537,15 +1659,271 @@ func TestGaleraRecoveryJobAffinity(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			job, err := builder.BuildGaleraRecoveryJob(key, tt.mariadb, nil, 0)
+			job, err := builder.BuildGaleraRecoveryJob(key, tt.mariadb, tt.podIndex)
 			if err != nil {
 				t.Errorf("unexpected error building Galera recovery Job: %v", err)
 			}
-			if job.Spec.Template.Spec.Affinity != nil {
-				t.Error("expected Galera recovery Job to not have affinity")
+			if !reflect.DeepEqual(tt.wantAffinity, job.Spec.Template.Spec.Affinity) {
+				t.Errorf("unexpected Affinity, want: %v got: %v", tt.wantAffinity, job.Spec.Template.Spec.Affinity)
 			}
-			if job.Spec.Template.Spec.TopologySpreadConstraints != nil {
-				t.Error("expected Galera recovery Job to not have topologySpreadConstraints")
+		})
+	}
+}
+
+func TestGaleraRecoveryJobResources(t *testing.T) {
+	builder := newDefaultTestBuilder(t)
+	key := types.NamespacedName{
+		Name: "job-obj",
+	}
+	objMeta := metav1.ObjectMeta{
+		Name: "mariadb-obj",
+	}
+	tests := []struct {
+		name          string
+		mariadb       *mariadbv1alpha1.MariaDB
+		wantResources corev1.ResourceRequirements
+	}{
+		{
+			name: "no resources",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							Recovery: &mariadbv1alpha1.GaleraRecovery{
+								Enabled: true,
+							},
+						},
+					},
+				},
+			},
+			wantResources: corev1.ResourceRequirements{},
+		},
+		{
+			name: "mariadb resources",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							Recovery: &mariadbv1alpha1.GaleraRecovery{
+								Enabled: true,
+							},
+						},
+					},
+					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
+						Resources: &corev1.ResourceRequirements{
+							Requests: corev1.ResourceList{
+								"cpu": resource.MustParse("300m"),
+							},
+						},
+					},
+				},
+			},
+			wantResources: corev1.ResourceRequirements{},
+		},
+		{
+			name: "recovery Job resources",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							Recovery: &mariadbv1alpha1.GaleraRecovery{
+								Enabled: true,
+								Job: &mariadbv1alpha1.GaleraRecoveryJob{
+									Resources: &corev1.ResourceRequirements{
+										Requests: corev1.ResourceList{
+											"cpu": resource.MustParse("100m"),
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantResources: corev1.ResourceRequirements{
+				Requests: corev1.ResourceList{
+					"cpu": resource.MustParse("100m"),
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			job, err := builder.BuildGaleraRecoveryJob(key, tt.mariadb, 0)
+			if err != nil {
+				t.Fatalf("unexpected error building Galera recovery Job: %v", err)
+			}
+			podTpl := job.Spec.Template
+			if len(podTpl.Spec.Containers) != 1 {
+				t.Error("expecting to have one container")
+			}
+			resources := podTpl.Spec.Containers[0].Resources
+			if !reflect.DeepEqual(resources, tt.wantResources) {
+				t.Errorf("unexpected resources, got: %v, expected: %v", resources, tt.wantResources)
+			}
+		})
+	}
+}
+
+func TestSqlJobImagePullSecrets(t *testing.T) {
+	builder := newDefaultTestBuilder(t)
+	objMeta := metav1.ObjectMeta{
+		Name:      "sqljob-image-pull-secrets",
+		Namespace: "test",
+	}
+
+	tests := []struct {
+		name            string
+		sqlJob          *mariadbv1alpha1.SqlJob
+		mariadb         *mariadbv1alpha1.MariaDB
+		wantPullSecrets []corev1.LocalObjectReference
+	}{
+		{
+			name: "No Secrets",
+			sqlJob: &mariadbv1alpha1.SqlJob{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.SqlJobSpec{
+					MariaDBRef: mariadbv1alpha1.MariaDBRef{
+						ObjectReference: corev1.ObjectReference{
+							Name: objMeta.Name,
+						},
+					},
+					SqlConfigMapKeyRef: &corev1.ConfigMapKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{},
+					},
+				},
+			},
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec:       mariadbv1alpha1.MariaDBSpec{},
+			},
+			wantPullSecrets: nil,
+		},
+		{
+			name: "Secrets in MariaDB",
+			sqlJob: &mariadbv1alpha1.SqlJob{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.SqlJobSpec{
+					MariaDBRef: mariadbv1alpha1.MariaDBRef{
+						ObjectReference: corev1.ObjectReference{
+							Name: objMeta.Name,
+						},
+					},
+					SqlConfigMapKeyRef: &corev1.ConfigMapKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{},
+					},
+				},
+			},
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					PodTemplate: mariadbv1alpha1.PodTemplate{
+						ImagePullSecrets: []corev1.LocalObjectReference{
+							{
+								Name: "mariadb-registry",
+							},
+						},
+					},
+				},
+			},
+			wantPullSecrets: []corev1.LocalObjectReference{
+				{
+					Name: "mariadb-registry",
+				},
+			},
+		},
+		{
+			name: "Secrets in SqlJob",
+			sqlJob: &mariadbv1alpha1.SqlJob{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.SqlJobSpec{
+					JobPodTemplate: mariadbv1alpha1.JobPodTemplate{
+						ImagePullSecrets: []corev1.LocalObjectReference{
+							{
+								Name: "sqljob-registry",
+							},
+						},
+					},
+					MariaDBRef: mariadbv1alpha1.MariaDBRef{
+						ObjectReference: corev1.ObjectReference{
+							Name: objMeta.Name,
+						},
+					},
+					SqlConfigMapKeyRef: &corev1.ConfigMapKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{},
+					},
+				},
+			},
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec:       mariadbv1alpha1.MariaDBSpec{},
+			},
+			wantPullSecrets: []corev1.LocalObjectReference{
+				{
+					Name: "sqljob-registry",
+				},
+			},
+		},
+		{
+			name: "Secrets in MariaDB and SqlJob",
+			sqlJob: &mariadbv1alpha1.SqlJob{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.SqlJobSpec{
+					JobPodTemplate: mariadbv1alpha1.JobPodTemplate{
+						ImagePullSecrets: []corev1.LocalObjectReference{
+							{
+								Name: "sqljob-registry",
+							},
+						},
+					},
+					MariaDBRef: mariadbv1alpha1.MariaDBRef{
+						ObjectReference: corev1.ObjectReference{
+							Name: objMeta.Name,
+						},
+					},
+					SqlConfigMapKeyRef: &corev1.ConfigMapKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{},
+					},
+				},
+			},
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					PodTemplate: mariadbv1alpha1.PodTemplate{
+						ImagePullSecrets: []corev1.LocalObjectReference{
+							{
+								Name: "mariadb-registry",
+							},
+						},
+					},
+				},
+			},
+			wantPullSecrets: []corev1.LocalObjectReference{
+				{
+					Name: "mariadb-registry",
+				},
+				{
+					Name: "sqljob-registry",
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			job, err := builder.BuildSqlJob(client.ObjectKeyFromObject(tt.sqlJob), tt.sqlJob, tt.mariadb)
+			if err != nil {
+				t.Fatalf("unexpected error building Job: %v", err)
+			}
+			if !reflect.DeepEqual(tt.wantPullSecrets, job.Spec.Template.Spec.ImagePullSecrets) {
+				t.Errorf("unexpected ImagePullSecrets, want: %v  got: %v", tt.wantPullSecrets, job.Spec.Template.Spec.ImagePullSecrets)
 			}
 		})
 	}

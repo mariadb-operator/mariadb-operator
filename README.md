@@ -1,5 +1,5 @@
-<p align="center">
-<img src="https://mariadb-operator.github.io/mariadb-operator/assets/mariadb_centered_whitebg.svg" alt="mariadb" width="100%"/>
+<p align="center" width="100%">
+<img src="https://mariadb-operator.github.io/mariadb-operator/assets/mariadb_centered_whitebg.svg" alt="mariadb" width="500"/>
 </p>
 
 <p align="center">
@@ -22,7 +22,7 @@
 Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB using Kubernetes [CRDs](https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definitions/) rather than imperative commands.
 - [Easily provision](./examples/manifests/mariadb_minimal.yaml) MariaDB servers in Kubernetes.
 - [Highly configurable](./examples/manifests/mariadb_full.yaml) MariaDB servers.
-- Multiple [HA modes](./docs/HA.md): SemiSync Replication and Galera.
+- Multiple [HA modes](./docs/HA.md): Galera and SemiSync Replication.
 - Automated [primary failover](./docs/HA.md).
 - Automated [Galera cluster recovery](./docs/GALERA.md#galera-cluster-recovery).
 - Enhanced HA with [MaxScale](./docs/MAXSCALE.md): a sophisticated database proxy, router, and load balancer designed specifically for and by MariaDB.
@@ -33,10 +33,11 @@ Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB
 - [Backup retention policy](./docs/BACKUP.md#retention-policy).
 - [Target recovery time](./docs/BACKUP.md#target-recovery-time): infer which backup to restore.
 - [Bootstrap new instances](./docs/BACKUP.md#bootstrap-new-mariadb-instances-from-backups) from: Backups, S3, PVCs ...
-- [Rolling updates](./docs/UPDATES.md): roll out replica Pods one by one, wait for each of them to become ready, and then proceed with the primary Pod.
+- [Cluster aware rolling update](./docs/UPDATES.md): roll out replica Pods one by one, wait for each of them to become ready, and then proceed with the primary Pod.
 - [my.cnf configuration](./docs/CONFIGURATION.md#mycnf). Automatically trigger [rolling updates](./docs/UPDATES.md) when my.cnf changes.
+- [Suspend](./docs/SUSPEND.md) operator reconciliation for maintenance and progressive upgrades.
 - [Prometheus metrics](./docs/METRICS.md) via [mysqld-exporter](https://github.com/prometheus/mysqld_exporter).
-- Manage [users](./examples/manifests/user.yaml), [grants](./examples/manifests/grant.yaml) and logical [databases](./examples/manifests/database.yaml).
+- Declaratively manage [SQL resources](./docs/SQL_RESOURCES.md): [users](./examples/manifests/user.yaml), [grants](./examples/manifests/grant.yaml) and logical [databases](./examples/manifests/database.yaml).
 - Configure [connections](./examples/manifests/connection.yaml) for your applications.
 - Orchestrate and schedule [sql scripts](./examples/manifests/sqljobs).
 - Validation webhooks to provide CRD immutability.
@@ -68,9 +69,24 @@ helm install mariadb-operator mariadb-operator/mariadb-operator \
   --set metrics.enabled=true --set webhook.cert.certManager.enabled=true
 ```
 
-## Openshift
+## Openshift installation
 
 The Openshift installation is managed separately in the [mariadb-operator-helm](https://github.com/mariadb-operator/mariadb-operator-helm) repository, which contains a [helm based operator](https://sdk.operatorframework.io/docs/building-operators/helm/) that allows you to install `mariadb-operator` via [OLM](https://olm.operatorframework.io/docs/).
+
+## Image compatibility
+`mariadb-operator` is only compatible with official MariaDB images. Refer to the [images documentation](./docs/DOCKER.md) for further detail.
+
+## MariaDB compatibility
+- MariaDB Community >= 10.5
+- MariaDB Enterprise >= 10.5
+
+## Kubernetes compatibility
+- Kubernetes >= 1.26
+- OpenShift >= 1.13
+
+## Migrate your MariaDB instance to Kubernetes
+
+This [migration guide](./docs/BACKUP.md#migrating-an-external-mariadb-to-a-mariadb-running-in-kubernetes) will streamline your onboarding process and assist you in migrating your data into a `MariaDB` instance running on Kubernetes.
 
 ## Quickstart
 

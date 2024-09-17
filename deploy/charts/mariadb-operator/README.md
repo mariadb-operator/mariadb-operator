@@ -6,7 +6,7 @@
 <img src="https://mariadb-operator.github.io/mariadb-operator/assets/mariadb-operator_centered_whitebg.svg" alt="mariadb" width="100%"/>
 </p>
 
-![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![Version: 0.29.0](https://img.shields.io/badge/Version-0.29.0-informational?style=flat-square) ![AppVersion: v0.0.29](https://img.shields.io/badge/AppVersion-v0.0.29-informational?style=flat-square)
+![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![Version: 0.31.0](https://img.shields.io/badge/Version-0.31.0-informational?style=flat-square) ![AppVersion: v0.0.31](https://img.shields.io/badge/AppVersion-v0.0.31-informational?style=flat-square)
 
 Run and operate MariaDB in a cloud native way
 
@@ -59,6 +59,7 @@ helm uninstall mariadb-operator
 | clusterName | string | `"cluster.local"` | Cluster DNS name |
 | extrArgs | list | `[]` | Extra arguments to be passed to the controller entrypoint |
 | extraEnv | list | `[]` | Extra environment variables to be passed to the controller |
+| extraEnvFrom | list | `[]` | Extra environment variables from preexiting ConfigMap / Secret objects used by the controller using envFrom |
 | extraVolumeMounts | list | `[]` | Extra volumes to mount to the container. |
 | extraVolumes | list | `[]` | Extra volumes to pass to pod. |
 | fullnameOverride | string | `""` |  |
@@ -78,6 +79,7 @@ helm uninstall mariadb-operator
 | nodeSelector | object | `{}` | Node selectors to add to controller Pod |
 | podAnnotations | object | `{}` | Annotations to add to controller Pod |
 | podSecurityContext | object | `{}` | Security context to add to controller Pod |
+| rbac.aggregation.enabled | bool | `true` | Specifies whether the cluster roles aggrate to view and edit predefinied roles |
 | rbac.enabled | bool | `true` | Specifies whether RBAC resources should be created |
 | resources | object | `{}` | Resources to add to controller container |
 | securityContext | object | `{}` | Security context to add to controller container |
@@ -95,6 +97,7 @@ helm uninstall mariadb-operator
 | webhook.cert.certManager.enabled | bool | `false` | Whether to use cert-manager to issue and rotate the certificate. If set to false, mariadb-operator's cert-controller will be used instead. |
 | webhook.cert.certManager.issuerRef | object | `{}` | Issuer reference to be used in the Certificate resource. If not provided, a self-signed issuer will be used. |
 | webhook.cert.certManager.renewBefore | string | `""` | Renew before duration to be used in the Certificate resource. |
+| webhook.cert.certManager.revisionHistoryLimit | int | `3` | The maximum number of CertificateRequest revisions that are maintained in the Certificate’s history. |
 | webhook.cert.path | string | `"/tmp/k8s-webhook-server/serving-certs"` | Path where the certificate will be mounted. 'tls.crt' and 'tls.key' certificates files should be under this path. |
 | webhook.cert.secretAnnotations | object | `{}` | Annotatioms to be added to webhook TLS secret. |
 | webhook.cert.secretLabels | object | `{}` | Labels to be added to webhook TLS secret. |

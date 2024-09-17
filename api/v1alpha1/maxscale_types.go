@@ -91,7 +91,6 @@ const (
 // MaxScaleMonitor monitors MariaDB server instances
 type MaxScaleMonitor struct {
 	// SuspendTemplate defines how a resource can be suspended. Feature flag --feature-maxscale-suspend is required in the controller to enable this.
-	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	SuspendTemplate `json:",inline"`
 	// Name is the identifier of the monitor. It is defaulted if not provided.
@@ -138,7 +137,6 @@ func (m *MaxScaleMonitor) SetDefaults(mxs *MaxScale) {
 // MaxScaleListener defines how the MaxScale server will listen for connections.
 type MaxScaleListener struct {
 	// SuspendTemplate defines how a resource can be suspended. Feature flag --feature-maxscale-suspend is required in the controller to enable this.
-	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	SuspendTemplate `json:",inline"`
 	// Name is the identifier of the listener. It is defaulted if not provided
@@ -184,7 +182,6 @@ const (
 // Services define how the traffic is forwarded to the MariaDB servers.
 type MaxScaleService struct {
 	// SuspendTemplate defines how a resource can be suspended. Feature flag --feature-maxscale-suspend is required in the controller to enable this.
-	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	SuspendTemplate `json:",inline"`
 	// Name is the identifier of the MaxScale service.
@@ -478,15 +475,12 @@ type MaxScaleMetrics struct {
 // MaxScaleSpec defines the desired state of MaxScale.
 type MaxScaleSpec struct {
 	// ContainerTemplate defines templates to configure Container objects.
-	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	ContainerTemplate `json:",inline"`
 	// PodTemplate defines templates to configure Pod objects.
-	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	PodTemplate `json:",inline"`
 	// SuspendTemplate defines whether the MaxScale reconciliation loop is enabled. This can be useful for maintenance, as disabling the reconciliation loop prevents the operator from interfering with user operations during maintenance activities.
-	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	SuspendTemplate `json:",inline"`
 	// MariaDBRef is a reference to the MariaDB that MaxScale points to. It is used to initialize the servers field.

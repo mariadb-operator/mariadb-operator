@@ -20,8 +20,6 @@ helm-env: ## Update operator env in the Helm chart.
 		--from-literal=RELATED_IMAGE_EXPORTER=$(RELATED_IMAGE_EXPORTER) \
 		--from-literal=RELATED_IMAGE_EXPORTER_MAXSCALE=$(RELATED_IMAGE_EXPORTER_MAXSCALE) \
 		--from-literal=MARIADB_OPERATOR_IMAGE=$(IMG) \
-		--from-literal=MARIADB_GALERA_INIT_IMAGE=$(MARIADB_GALERA_INIT_IMAGE) \
-		--from-literal=MARIADB_GALERA_AGENT_IMAGE=$(MARIADB_GALERA_AGENT_IMAGE) \
 		--from-literal=MARIADB_GALERA_LIB_PATH=$(MARIADB_GALERA_LIB_PATH) \
 		--from-literal=MARIADB_ENTRYPOINT_VERSION=$(MARIADB_ENTRYPOINT_VERSION) \
 		--dry-run=client -o yaml \
@@ -42,12 +40,17 @@ helm-gen: helm-crds helm-env helm-docs ## Generate manifests and documentation f
 helm-version: yq ## Get helm chart version.
 	@cat $(HELM_CHART_FILE) | $(YQ) e ".version"
 
+HELM_APP_VERSION ?=
 .PHONY: helm-version-bump
 helm-version-bump: yq ## Bump helm minor version and return it to stdout.
-	VERSION=$$($(YQ) e '.version' $(HELM_CHART_FILE)); \
+ifndef HELM_APP_VERSION
+	$(error HELM_APP_VERSION is not set. Please set it before running this target)
+endif
+	@VERSION=$$($(YQ) e '.version' $(HELM_CHART_FILE)); \
 	MAJOR=$$(echo $$VERSION | cut -d'.' -f1); \
 	MINOR=$$(echo $$VERSION | cut -d'.' -f2); \
 	NEW_MINOR=$$((MINOR + 1)); \
 	NEW_VERSION=$$MAJOR.$$NEW_MINOR.0; \
 	$(YQ) e -i ".version = \"$$NEW_VERSION\"" $(HELM_CHART_FILE); \
+	$(YQ) e -i ".appVersion = \"$(HELM_APP_VERSION)\"" $(HELM_CHART_FILE); \
 	echo $$NEW_VERSION

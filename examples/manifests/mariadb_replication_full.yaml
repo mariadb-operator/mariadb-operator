@@ -27,6 +27,7 @@ spec:
       storageClassName: standard
 
   replicas: 3
+  replicasAllowEvenNumber: false
 
   # point to an existing MaxScale instance. Doing this will delegate tasks such as primary failover to MaxScale.
   # maxScaleRef:
@@ -45,6 +46,9 @@ spec:
     connection:
       secretName: mxs-repl-conn
       port: 3306
+
+    metrics:
+      enabled: true
 
   replication:
     enabled: true
@@ -116,6 +120,8 @@ spec:
     innodb_buffer_pool_size=1024M
     max_allowed_packet=256M
 
+  timeZone: "UTC"
+
   resources:
     requests:
       cpu: 100m
@@ -135,3 +141,5 @@ spec:
 
   metrics:
     enabled: true
+
+  suspend: false

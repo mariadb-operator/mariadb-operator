@@ -27,6 +27,7 @@ spec:
       storageClassName: standard
 
   replicas: 3
+  replicasAllowEvenNumber: false
 
   # point to an existing MaxScale instance. Doing this will delegate tasks such as primary failover to MaxScale.
   # maxScaleRef:
@@ -46,6 +47,9 @@ spec:
       secretName: mxs-galera-conn
       port: 3306
 
+    metrics:
+      enabled: true
+
   galera:
     enabled: true
     primary:
@@ -58,21 +62,32 @@ spec:
     providerOptions:
       gcs.fc_limit: '64'
     agent:
-      image: docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:v0.0.29
+      image: docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:v0.0.31
       port: 5555
       kubernetesAuth:
         enabled: true
       gracefulShutdownTimeout: 1s
     recovery:
       enabled: true
-      minClusterSize: 50%
+      minClusterSize: 1
+      forceClusterBootstrapInPod: mariadb-galera-0
       clusterMonitorInterval: 10s
       clusterHealthyTimeout: 30s
       clusterBootstrapTimeout: 10m
       podRecoveryTimeout: 5m
       podSyncTimeout: 5m
+      job:
+        metadata:
+          labels:
+            sidecar.istio.io/inject: "false"
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            memory: 256Mi
     initContainer:
-      image: docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:v0.0.29
+      image: docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:v0.0.31
     initJob:
       metadata:
         labels:
@@ -148,6 +163,8 @@ spec:
     innodb_autoinc_lock_mode=2
     max_allowed_packet=256M
 
+  timeZone: "UTC"
+
   resources:
     requests:
       cpu: 100m
@@ -167,3 +184,5 @@ spec:
 
   metrics:
     enabled: true
+
+  suspend: false

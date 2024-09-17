@@ -1,10 +1,10 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-- alpha-catalogsource.yaml
+- mariadb-catalogsource.yaml
 configurations:
 - kustomizeconfig.yaml
 images:
 - name: catalog
   newName: mariadb/mariadb-operator-enterprise-catalog
-  newTag: v0.0.29-dev
+  newTag: v0.0.31-dev

@@ -6,7 +6,7 @@ on:
       - "v*"
 
 env:
-  GORELEASER_VERSION: "v1.24.0"
+  GORELEASER_VERSION: "v2.2.0"
 
 jobs:
   args:
@@ -156,13 +156,6 @@ jobs:
           IMG_ENT: mariadb/mariadb-operator-enterprise:${{ needs.args.outputs.TAG }}
           REDHAT_API_KEY: "${{ secrets.REDHAT_API_KEY }}"
           REDHAT_PROJECT_ID: "${{ secrets.REDHAT_PROJECT_ID }}"
-
-      - name: Preflight operator image - latest
-        run: make preflight-image-submit
-        env:
-          IMG_ENT: mariadb/mariadb-operator-enterprise:latest
-          REDHAT_API_KEY: "${{ secrets.REDHAT_API_KEY }}"
-          REDHAT_PROJECT_ID: "${{ secrets.REDHAT_PROJECT_ID }}"
   
   goreleaser:
     name: Goreleaser
@@ -205,6 +198,7 @@ jobs:
         with:
           fetch-depth: 0
           token: "${{ secrets.GHA_TOKEN }}"
+          ref: "${{ github.event.repository.default_branch }}"
 
       - name: Configure Git
         run: |
@@ -213,6 +207,8 @@ jobs:
 
       - name: Helm version
         id: version
+        env:
+          HELM_APP_VERSION: ${{ needs.args.outputs.TAG }}
         run: |
           echo "VERSION=$(make helm-version-bump)" >> $GITHUB_OUTPUT
       
@@ -240,6 +236,7 @@ jobs:
         with:
           fetch-depth: 0
           token: "${{ secrets.GHA_TOKEN }}"
+          ref: "${{ github.event.repository.default_branch }}"
 
       - name: Configure Git
         run: |
@@ -269,7 +266,7 @@ jobs:
 
       - name: Dispatch docs workflow
         run: |
-          gh workflow run docs.yaml \
+          gh workflow run docs.yml \
             --repo mariadb-operator/mariadb-operator \
             -f version=${{ needs.args.outputs.TAG }} alias=latest
         env:

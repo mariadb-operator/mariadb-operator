@@ -62,7 +62,6 @@ func (r *ConnectionRefs) objectMeta() (*metav1.ObjectMeta, error) {
 // ConnectionSpec defines the desired state of Connection
 type ConnectionSpec struct {
 	// ContainerTemplate defines templates to configure Container objects.
-	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	ConnectionTemplate `json:",inline"`
 	// MariaDBRef is a reference to the MariaDB to connect to. Either MariaDBRef or MaxScaleRef must be provided.

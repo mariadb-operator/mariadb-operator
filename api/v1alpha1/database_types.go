@@ -8,7 +8,6 @@ import (
 // DatabaseSpec defines the desired state of Database
 type DatabaseSpec struct {
 	// SQLTemplate defines templates to configure SQL objects.
-	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	SQLTemplate `json:",inline"`
 	// MariaDBRef is a reference to a MariaDB object.
@@ -94,6 +93,10 @@ func (d *Database) RequeueInterval() *metav1.Duration {
 
 func (d *Database) RetryInterval() *metav1.Duration {
 	return d.Spec.RetryInterval
+}
+
+func (d *Database) CleanupPolicy() *CleanupPolicy {
+	return d.Spec.CleanupPolicy
 }
 
 // +kubebuilder:object:root=true

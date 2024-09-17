@@ -401,8 +401,8 @@ var _ = Describe("MariaDB webhook", func() {
 					ObjectMeta: meta,
 					Spec: MariaDBSpec{
 						PodDisruptionBudget: &PodDisruptionBudget{
-							MaxUnavailable: func() *intstr.IntOrString { i := intstr.FromString("50%"); return &i }(),
-							MinAvailable:   func() *intstr.IntOrString { i := intstr.FromString("50%"); return &i }(),
+							MaxUnavailable: ptr.To(intstr.FromString("50%")),
+							MinAvailable:   ptr.To(intstr.FromString("50%")),
 						},
 						Storage: Storage{
 							Size: ptr.To(resource.MustParse("100Mi")),
@@ -417,7 +417,7 @@ var _ = Describe("MariaDB webhook", func() {
 					ObjectMeta: meta,
 					Spec: MariaDBSpec{
 						PodDisruptionBudget: &PodDisruptionBudget{
-							MaxUnavailable: func() *intstr.IntOrString { i := intstr.FromString("50%"); return &i }(),
+							MaxUnavailable: ptr.To(intstr.FromString("50%")),
 						},
 						Storage: Storage{
 							Size: ptr.To(resource.MustParse("100Mi")),

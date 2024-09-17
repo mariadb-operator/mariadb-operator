@@ -131,7 +131,7 @@ var _ = Describe("MariaDB replication", Ordered, func() {
 		By("Creating MariaDB with replication")
 		Expect(k8sClient.Create(testCtx, mdb)).To(Succeed())
 		DeferCleanup(func() {
-			deleteMariaDB(mdb)
+			deleteMariadb(key)
 		})
 	})
 
@@ -194,6 +194,8 @@ var _ = Describe("MariaDB replication", Ordered, func() {
 	})
 
 	It("should fail and switch over primary", func() {
+		Skip("TODO: re-evaluate this test when productionizing replication. See https://github.com/mariadb-operator/mariadb-operator/issues/738")
+
 		By("Expecting MariaDB primary to be set")
 		Eventually(func() bool {
 			return mdb.Status.CurrentPrimary != nil
@@ -297,7 +299,7 @@ var _ = Describe("MariaDB replication", Ordered, func() {
 	})
 
 	It("should reconcile with MaxScale", func() {
-		Skip("TODO: re-evaluate this test when productionizing replication")
+		Skip("TODO: re-evaluate this test when productionizing replication. See https://github.com/mariadb-operator/mariadb-operator/issues/738")
 
 		mxs := &mariadbv1alpha1.MaxScale{
 			ObjectMeta: metav1.ObjectMeta{

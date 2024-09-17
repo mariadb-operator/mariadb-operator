@@ -12,7 +12,6 @@ import (
 // GrantSpec defines the desired state of Grant
 type GrantSpec struct {
 	// SQLTemplate defines templates to configure SQL objects.
-	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	SQLTemplate `json:",inline"`
 	// MariaDBRef is a reference to a MariaDB object.
@@ -105,6 +104,10 @@ func (d *Grant) RequeueInterval() *metav1.Duration {
 
 func (g *Grant) RetryInterval() *metav1.Duration {
 	return g.Spec.RetryInterval
+}
+
+func (g *Grant) CleanupPolicy() *CleanupPolicy {
+	return g.Spec.CleanupPolicy
 }
 
 func (g *Grant) AccountName() string {

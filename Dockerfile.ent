@@ -1,4 +1,4 @@
-FROM golang:1.22.5-alpine3.20 AS builder
+FROM golang:1.23.0-alpine3.20 AS builder
 
 ARG TARGETOS
 ARG TARGETARCH
@@ -15,7 +15,7 @@ RUN go mod download
 COPY . /app
 RUN go build -o mariadb-operator-enterprise cmd/enterprise/*.go
 
-FROM registry.access.redhat.com/ubi8/ubi-micro:8.10-9 AS app
+FROM registry.access.redhat.com/ubi8/ubi-micro:8.10-11 AS app
 
 WORKDIR /
 COPY --from=builder /licenses /licenses

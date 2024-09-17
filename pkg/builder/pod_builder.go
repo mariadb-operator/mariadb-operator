@@ -12,30 +12,36 @@ import (
 )
 
 type mariadbPodOpts struct {
-	meta                    *mariadbv1alpha1.Metadata
-	command                 []string
-	args                    []string
-	restartPolicy           *corev1.RestartPolicy
-	resources               *corev1.ResourceRequirements
-	affinity                *mariadbv1alpha1.AffinityConfig
-	extraVolumes            []corev1.Volume
-	extraVolumeMounts       []corev1.VolumeMount
-	includeGaleraContainers bool
-	includeGaleraConfig     bool
-	includePorts            bool
-	includeProbes           bool
-	includeSelectorLabels   bool
-	includeAffinity         bool
+	meta                         *mariadbv1alpha1.Metadata
+	command                      []string
+	args                         []string
+	restartPolicy                *corev1.RestartPolicy
+	resources                    *corev1.ResourceRequirements
+	affinity                     *mariadbv1alpha1.AffinityConfig
+	extraVolumes                 []corev1.Volume
+	extraVolumeMounts            []corev1.VolumeMount
+	includeMariadbResources      bool
+	includeMariadbSelectorLabels bool
+	includeGaleraContainers      bool
+	includeGaleraConfig          bool
+	includeServiceAccount        bool
+	includePorts                 bool
+	includeProbes                bool
+	includeHAAnnotations         bool
+	includeAffinity              bool
 }
 
 func newMariadbPodOpts(userOpts ...mariadbPodOpt) *mariadbPodOpts {
 	opts := &mariadbPodOpts{
-		includeGaleraContainers: true,
-		includeGaleraConfig:     true,
-		includePorts:            true,
-		includeProbes:           true,
-		includeSelectorLabels:   true,
-		includeAffinity:         true,
+		includeMariadbResources:      true,
+		includeMariadbSelectorLabels: true,
+		includeGaleraContainers:      true,
+		includeGaleraConfig:          true,
+		includeServiceAccount:        true,
+		includePorts:                 true,
+		includeProbes:                true,
+		includeHAAnnotations:         true,
+		includeAffinity:              true,
 	}
 	for _, setOpt := range userOpts {
 		setOpt(opts)
@@ -99,6 +105,18 @@ func withExtraVolumeMounts(volumeMounts []corev1.VolumeMount) mariadbPodOpt {
 	}
 }
 
+func withMariadbResources(includeMariadbResources bool) mariadbPodOpt {
+	return func(opts *mariadbPodOpts) {
+		opts.includeMariadbResources = includeMariadbResources
+	}
+}
+
+func withMariadbSelectorLabels(includeMariadbSelectorLabels bool) mariadbPodOpt {
+	return func(opts *mariadbPodOpts) {
+		opts.includeMariadbSelectorLabels = includeMariadbSelectorLabels
+	}
+}
+
 func withGaleraContainers(includeGaleraContainers bool) mariadbPodOpt {
 	return func(opts *mariadbPodOpts) {
 		opts.includeGaleraContainers = includeGaleraContainers
@@ -108,6 +126,12 @@ func withGaleraContainers(includeGaleraContainers bool) mariadbPodOpt {
 func withGaleraConfig(includeGaleraConfig bool) mariadbPodOpt {
 	return func(opts *mariadbPodOpts) {
 		opts.includeGaleraConfig = includeGaleraConfig
+	}
+}
+
+func withServiceAccount(includeServiceAccount bool) mariadbPodOpt {
+	return func(opts *mariadbPodOpts) {
+		opts.includeServiceAccount = includeServiceAccount
 	}
 }
 
@@ -123,9 +147,9 @@ func withProbes(includeProbes bool) mariadbPodOpt {
 	}
 }
 
-func withMariadbSelectorLabels(includeSelectorLabels bool) mariadbPodOpt {
+func withHAAnnotations(includeHAAnnotations bool) mariadbPodOpt {
 	return func(opts *mariadbPodOpts) {
-		opts.includeSelectorLabels = includeSelectorLabels
+		opts.includeHAAnnotations = includeHAAnnotations
 	}
 }
 
@@ -141,16 +165,17 @@ func (b *Builder) mariadbPodTemplate(mariadb *mariadbv1alpha1.MariaDB, opts ...m
 			WithMetadata(mariadb.Spec.InheritMetadata).
 			WithMetadata(mariadb.Spec.PodMetadata).
 			WithMetadata(mariadbOpts.meta)
-	if mariadbOpts.includeSelectorLabels {
+	if mariadbOpts.includeMariadbSelectorLabels {
 		selectorLabels :=
 			labels.NewLabelsBuilder().
 				WithMariaDBSelectorLabels(mariadb).
 				Build()
 		objMetaBuilder = objMetaBuilder.WithLabels(selectorLabels)
 	}
-	objMeta := objMetaBuilder.
-		WithAnnotations(mariadbHAAnnotations(mariadb)).
-		Build()
+	if mariadbOpts.includeHAAnnotations {
+		objMetaBuilder = objMetaBuilder.WithAnnotations(mariadbHAAnnotations(mariadb))
+	}
+	objMeta := objMetaBuilder.Build()
 
 	initContainers, err := b.mariadbInitContainers(mariadb, opts...)
 	if err != nil {
@@ -166,7 +191,7 @@ func (b *Builder) mariadbPodTemplate(mariadb *mariadbv1alpha1.MariaDB, opts ...m
 		ObjectMeta: objMeta,
 		Spec: corev1.PodSpec{
 			AutomountServiceAccountToken: ptr.To(false),
-			ServiceAccountName:           ptr.Deref(mariadb.Spec.ServiceAccountName, mariadb.Name),
+			ServiceAccountName:           mariadbServiceAccount(mariadb, opts...),
 			RestartPolicy:                ptr.Deref(mariadbOpts.restartPolicy, corev1.RestartPolicyAlways),
 			InitContainers:               initContainers,
 			Containers:                   containers,
@@ -262,6 +287,14 @@ func mariadbTopologySpreadConstraints(mariadb *mariadbv1alpha1.MariaDB, opts ...
 	return mariadb.Spec.TopologySpreadConstraints
 }
 
+func mariadbServiceAccount(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt) string {
+	mariadbOpts := newMariadbPodOpts(opts...)
+	if !mariadbOpts.includeServiceAccount {
+		return ""
+	}
+	return ptr.Deref(mariadb.Spec.ServiceAccountName, mariadb.Name)
+}
+
 func mariadbVolumes(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt) []corev1.Volume {
 	mariadbOpts := newMariadbPodOpts(opts...)
 	volumes := []corev1.Volume{
@@ -280,7 +313,7 @@ func mariadbVolumes(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt) []c
 			},
 		})
 	}
-	if mariadb.IsGaleraEnabled() {
+	if mariadb.IsGaleraEnabled() && mariadbOpts.includeServiceAccount {
 		volumes = append(volumes, corev1.Volume{
 			Name: ServiceAccountVolume,
 			VolumeSource: corev1.VolumeSource{

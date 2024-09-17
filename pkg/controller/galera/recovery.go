@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"reflect"
 	"sort"
 	"time"
@@ -14,6 +15,7 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	galeraclient "github.com/mariadb-operator/mariadb-operator/pkg/galera/client"
+	galeraerrors "github.com/mariadb-operator/mariadb-operator/pkg/galera/errors"
 	galerarecovery "github.com/mariadb-operator/mariadb-operator/pkg/galera/recovery"
 	mdbhttp "github.com/mariadb-operator/mariadb-operator/pkg/http"
 	jobpkg "github.com/mariadb-operator/mariadb-operator/pkg/job"
@@ -82,7 +84,7 @@ func (r *GaleraReconciler) recoverCluster(ctx context.Context, mariadb *mariadbv
 
 	if recovery.ForceClusterBootstrapInPod != nil {
 		logger.Info("Starting forceful bootstrap ")
-		src, err := rs.bootstrapSource(pods, recovery.ForceClusterBootstrapInPod, logger)
+		src, err := rs.bootstrapSource(mariadb, recovery.ForceClusterBootstrapInPod, logger)
 		if err != nil {
 			return fmt.Errorf("error getting source to forcefully bootstrap: %v", err)
 		}
@@ -104,7 +106,7 @@ func (r *GaleraReconciler) recoverCluster(ctx context.Context, mariadb *mariadbv
 		return fmt.Errorf("error getting state: %v", err)
 	}
 
-	src, err := rs.bootstrapSource(pods, nil, logger)
+	src, err := rs.bootstrapSource(mariadb, nil, logger)
 	if err != nil {
 		logger.V(1).Info("Error getting bootstrap source", "err", err)
 	}
@@ -127,7 +129,7 @@ func (r *GaleraReconciler) recoverCluster(ctx context.Context, mariadb *mariadbv
 		return fmt.Errorf("error performing recovery: %v", err)
 	}
 
-	src, err = rs.bootstrapSource(pods, nil, logger)
+	src, err = rs.bootstrapSource(mariadb, nil, logger)
 	if err != nil {
 		return fmt.Errorf("error getting bootstrap source: %v", err)
 	}
@@ -194,15 +196,17 @@ func (r *GaleraReconciler) restartPods(ctx context.Context, mariadb *mariadbv1al
 			logger.Info("Restarting Pod", "pod", key.Name)
 		}
 
+		mariadbKey := ctrlclient.ObjectKeyFromObject(mariadb)
+
 		syncTimeout := ptr.Deref(recovery.PodSyncTimeout, metav1.Duration{Duration: 5 * time.Minute}).Duration
 		syncCtx, syncCancel := context.WithTimeout(ctx, syncTimeout)
 		defer syncCancel()
 
-		if err := wait.PollUntilSucessWithTimeout(syncCtx, logger, func(ctx context.Context) error {
-			if err := r.pollUntilPodDeleted(ctx, key, logger); err != nil {
+		if err := wait.PollWithMariaDB(syncCtx, mariadbKey, r.Client, logger, func(ctx context.Context) error {
+			if err := r.pollUntilPodDeleted(ctx, mariadbKey, key, logger); err != nil {
 				return fmt.Errorf("error deleting Pod '%s': %v", key.Name, err)
 			}
-			if err := r.pollUntilPodSynced(ctx, key, sqlClientSet, logger); err != nil {
+			if err := r.pollUntilPodSynced(ctx, mariadbKey, key, sqlClientSet, logger); err != nil {
 				return fmt.Errorf("error waiting for Pod '%s' to be synced: %v", key.Name, err)
 			}
 			return nil
@@ -261,19 +265,24 @@ func (r *GaleraReconciler) getGaleraState(ctx context.Context, mariadb *mariadbv
 
 			galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
 			recovery := ptr.Deref(galera.Recovery, mariadbv1alpha1.GaleraRecovery{})
+			mariadbKey := ctrlclient.ObjectKeyFromObject(mariadb)
 			stateLogger := logger.WithValues("pod", pod.Name)
 
 			recoveryTimeout := ptr.Deref(recovery.PodRecoveryTimeout, metav1.Duration{Duration: 5 * time.Minute}).Duration
 			recoveryCtx, cancelRecovery := context.WithTimeout(ctx, recoveryTimeout)
 			defer cancelRecovery()
 
-			err = wait.PollUntilSucessWithTimeout(recoveryCtx, stateLogger, func(ctx context.Context) error {
-				if err := r.ensurePodRunning(ctx, ctrlclient.ObjectKeyFromObject(&pod), logger); err != nil {
+			err = wait.PollWithMariaDB(recoveryCtx, mariadbKey, r.Client, stateLogger, func(ctx context.Context) error {
+				if err := r.ensurePodRunning(ctx, mariadbKey, ctrlclient.ObjectKeyFromObject(&pod), logger); err != nil {
 					return err
 				}
 				galeraState, err := client.Galera.GetState(ctx)
 				if err != nil {
-					return err
+					if galeraErr, ok := err.(*galeraerrors.Error); ok && galeraErr.HTTPCode == http.StatusNotFound {
+						stateLogger.Info("Galera state not found. Skipping Pod...")
+						return nil
+					}
+					return fmt.Errorf("error getting Galera state for Pod '%s': %v", pod.Name, err)
 				}
 
 				stateLogger.Info(
@@ -314,11 +323,9 @@ func (r *GaleraReconciler) recoverGaleraState(ctx context.Context, mariadb *mari
 			if err != nil {
 				return fmt.Errorf("error getting index for Pod '%s': %v", pod.Name, err)
 			}
-			galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
-			recovery := ptr.Deref(galera.Recovery, mariadbv1alpha1.GaleraRecovery{})
 
 			recoveryJobKey := mariadb.RecoveryJobKey(pod.Name)
-			recoveryJob, err := r.builder.BuildGaleraRecoveryJob(recoveryJobKey, mariadb, recovery.Job, *i)
+			recoveryJob, err := r.builder.BuildGaleraRecoveryJob(recoveryJobKey, mariadb, *i)
 			if err != nil {
 				return fmt.Errorf("error building recovery Job for Pod '%s': %v", pod.Name, err)
 			}
@@ -338,41 +345,45 @@ func (r *GaleraReconciler) recoverGaleraState(ctx context.Context, mariadb *mari
 				}
 			}()
 
+			galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
+			recovery := ptr.Deref(galera.Recovery, mariadbv1alpha1.GaleraRecovery{})
 			recoveryTimeout := ptr.Deref(recovery.PodRecoveryTimeout, metav1.Duration{Duration: 5 * time.Minute}).Duration
+
 			recoveryCtx, cancelRecovery := context.WithTimeout(ctx, recoveryTimeout)
 			defer cancelRecovery()
 
-			if err = wait.PollUntilSucessWithTimeout(recoveryCtx, recoveryLogger, func(ctx context.Context) error {
-				var job batchv1.Job
-				if err := r.Get(ctx, recoveryJobKey, &job); err != nil {
-					return fmt.Errorf("error getting recovery Job for Pod '%s': %v", pod.Name, err)
-				}
+			if err = wait.PollWithMariaDB(recoveryCtx, ctrlclient.ObjectKeyFromObject(mariadb), r.Client, recoveryLogger,
+				func(ctx context.Context) error {
+					var job batchv1.Job
+					if err := r.Get(ctx, recoveryJobKey, &job); err != nil {
+						return fmt.Errorf("error getting recovery Job for Pod '%s': %v", pod.Name, err)
+					}
 
-				if !jobpkg.IsJobComplete(&job) {
-					return fmt.Errorf("recovery Job '%s' not complete", job.Name)
-				}
+					if !jobpkg.IsJobComplete(&job) {
+						return fmt.Errorf("recovery Job '%s' not complete", job.Name)
+					}
 
-				logs, err := r.getJobLogs(ctx, recoveryJobKey)
-				if err != nil {
-					return fmt.Errorf("error getting logs from recovery Job '%s': %v", job.Name, err)
-				}
+					logs, err := r.getJobLogs(ctx, recoveryJobKey)
+					if err != nil {
+						return fmt.Errorf("error getting logs from recovery Job '%s': %v", job.Name, err)
+					}
 
-				var bootstrap galerarecovery.Bootstrap
-				if err := bootstrap.Unmarshal([]byte(logs)); err != nil {
-					return fmt.Errorf("error unmarshaling recovery logs from Job '%s': %v", job.Name, err)
-				}
+					var bootstrap galerarecovery.Bootstrap
+					if err := bootstrap.Unmarshal([]byte(logs)); err != nil {
+						return fmt.Errorf("error unmarshaling recovery logs from Job '%s': %v", job.Name, err)
+					}
 
-				recoveryLogger.Info(
-					"Recovered Galera state",
-					"sequence", bootstrap.Seqno,
-					"uuid", bootstrap.UUID,
-				)
-				r.recorder.Eventf(mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonGaleraPodRecovered,
-					"Recovered Galera sequence in Pod '%s'", pod.Name)
-				rs.setRecovered(pod.Name, &bootstrap)
+					recoveryLogger.Info(
+						"Recovered Galera state",
+						"sequence", bootstrap.Seqno,
+						"uuid", bootstrap.UUID,
+					)
+					r.recorder.Eventf(mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonGaleraPodRecovered,
+						"Recovered Galera sequence in Pod '%s'", pod.Name)
+					rs.setRecovered(pod.Name, &bootstrap)
 
-				return nil
-			}); err != nil {
+					return nil
+				}); err != nil {
 				return fmt.Errorf("error performing recovery in Pod '%s': %v", pod.Name, err)
 			}
 			return nil
@@ -384,36 +395,41 @@ func (r *GaleraReconciler) recoverGaleraState(ctx context.Context, mariadb *mari
 
 func (r *GaleraReconciler) bootstrap(ctx context.Context, src *bootstrapSource, rs *recoveryStatus, mdb *mariadbv1alpha1.MariaDB,
 	clientSet *agentClientSet, logger logr.Logger) error {
-	logger.Info("Bootstrapping cluster", "pod", src.pod.Name)
+	logger.Info("Bootstrapping cluster", "pod", src.pod)
 	r.recorder.Eventf(mdb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonGaleraClusterBootstrap,
-		"Bootstrapping Galera cluster in Pod '%s'", src.pod.Name)
+		"Bootstrapping Galera cluster in Pod '%s'", src.pod)
 
-	idx, err := statefulset.PodIndex(src.pod.Name)
+	idx, err := statefulset.PodIndex(src.pod)
 	if err != nil {
-		return fmt.Errorf("error getting index for Pod '%s': %v", src.pod.Name, err)
+		return fmt.Errorf("error getting index for Pod '%s': %v", src.pod, err)
 	}
 	client, err := clientSet.clientForIndex(*idx)
 	if err != nil {
-		return fmt.Errorf("error getting client for Pod '%s': %v", src.pod.Name, err)
+		return fmt.Errorf("error getting client for Pod '%s': %v", src.pod, err)
 	}
 
 	bootstrapCtx, cancelBootstrap := context.WithTimeout(ctx, 3*time.Minute)
 	defer cancelBootstrap()
 
-	if err = wait.PollUntilSucessWithTimeout(bootstrapCtx, logger, func(ctx context.Context) error {
-		if err := r.ensurePodRunning(ctx, ctrlclient.ObjectKeyFromObject(&src.pod), logger); err != nil {
+	mariadbKey := ctrlclient.ObjectKeyFromObject(mdb)
+	podKey := types.NamespacedName{
+		Name:      src.pod,
+		Namespace: mdb.Namespace,
+	}
+	if err = wait.PollWithMariaDB(bootstrapCtx, mariadbKey, r.Client, logger, func(ctx context.Context) error {
+		if err := r.ensurePodRunning(ctx, mariadbKey, podKey, logger); err != nil {
 			return err
 		}
 		return client.Galera.EnableBootstrap(ctx, src.bootstrap)
 	}); err != nil {
-		return fmt.Errorf("error enabling bootstrap in Pod '%s': %v", src.pod.Name, err)
+		return fmt.Errorf("error enabling bootstrap in Pod '%s': %v", src.pod, err)
 	}
 
-	rs.setBootstrapping(src.pod.Name)
+	rs.setBootstrapping(src.pod)
 	return nil
 }
 
-func (r *GaleraReconciler) ensurePodRunning(ctx context.Context, podKey types.NamespacedName, logger logr.Logger) error {
+func (r *GaleraReconciler) ensurePodRunning(ctx context.Context, mariadbKey, podKey types.NamespacedName, logger logr.Logger) error {
 	var pod corev1.Pod
 	if err := r.Get(ctx, podKey, &pod); err != nil {
 		return fmt.Errorf("error getting Pod '%s': %v", podKey.Name, err)
@@ -425,7 +441,7 @@ func (r *GaleraReconciler) ensurePodRunning(ctx context.Context, podKey types.Na
 	if err := r.Delete(ctx, &pod); err != nil {
 		return fmt.Errorf("error deleting Pod '%s': %v", podKey.Name, err)
 	}
-	return r.pollUntilPodRunning(ctx, podKey, logger)
+	return r.pollUntilPodRunning(ctx, mariadbKey, podKey, logger)
 }
 
 func (r *GaleraReconciler) ensureJob(ctx context.Context, recoveryJob *batchv1.Job) error {
@@ -442,8 +458,8 @@ func (r *GaleraReconciler) ensureJob(ctx context.Context, recoveryJob *batchv1.J
 	return r.Delete(ctx, recoveryJob, &client.DeleteOptions{PropagationPolicy: ptr.To(metav1.DeletePropagationBackground)})
 }
 
-func (r *GaleraReconciler) pollUntilPodRunning(ctx context.Context, podKey types.NamespacedName, logger logr.Logger) error {
-	return wait.PollUntilSucessWithTimeout(ctx, logger, func(ctx context.Context) error {
+func (r *GaleraReconciler) pollUntilPodRunning(ctx context.Context, mariadbKey, podKey types.NamespacedName, logger logr.Logger) error {
+	return wait.PollWithMariaDB(ctx, mariadbKey, r.Client, logger, func(ctx context.Context) error {
 		var pod corev1.Pod
 		if err := r.Get(ctx, podKey, &pod); err != nil {
 			return fmt.Errorf("error getting Pod '%s': %v", podKey.Name, err)
@@ -455,8 +471,8 @@ func (r *GaleraReconciler) pollUntilPodRunning(ctx context.Context, podKey types
 	})
 }
 
-func (r *GaleraReconciler) pollUntilPodDeleted(ctx context.Context, podKey types.NamespacedName, logger logr.Logger) error {
-	return wait.PollUntilSucessWithTimeout(ctx, logger, func(ctx context.Context) error {
+func (r *GaleraReconciler) pollUntilPodDeleted(ctx context.Context, mariadbKey, podKey types.NamespacedName, logger logr.Logger) error {
+	return wait.PollWithMariaDB(ctx, mariadbKey, r.Client, logger, func(ctx context.Context) error {
 		var pod corev1.Pod
 		if err := r.Get(ctx, podKey, &pod); err != nil {
 			return fmt.Errorf("error getting Pod '%s': %v", podKey.Name, err)
@@ -468,9 +484,9 @@ func (r *GaleraReconciler) pollUntilPodDeleted(ctx context.Context, podKey types
 	})
 }
 
-func (r *GaleraReconciler) pollUntilPodSynced(ctx context.Context, podKey types.NamespacedName, sqlClientSet *sqlclientset.ClientSet,
-	logger logr.Logger) error {
-	return wait.PollUntilSucessWithTimeout(ctx, logger, func(ctx context.Context) error {
+func (r *GaleraReconciler) pollUntilPodSynced(ctx context.Context, mariadbKey, podKey types.NamespacedName,
+	sqlClientSet *sqlclientset.ClientSet, logger logr.Logger) error {
+	return wait.PollWithMariaDB(ctx, mariadbKey, r.Client, logger, func(ctx context.Context) error {
 		var pod corev1.Pod
 		if err := r.Get(ctx, podKey, &pod); err != nil {
 			return fmt.Errorf("error getting Pod '%s': %v", podKey.Name, err)
