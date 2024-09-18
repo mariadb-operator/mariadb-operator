@@ -919,7 +919,8 @@ func (r *MariaDBReconciler) patch(ctx context.Context, mariadb *mariadbv1alpha1.
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *MariaDBReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opts controller.Options) error {
+func (r *MariaDBReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, env *environment.OperatorEnv,
+	opts controller.Options) error {
 	builder := ctrl.NewControllerManagedBy(mgr).
 		For(&mariadbv1alpha1.MariaDB{}).
 		Owns(&mariadbv1alpha1.MaxScale{}).
@@ -937,8 +938,15 @@ func (r *MariaDBReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manag
 		Owns(&policyv1.PodDisruptionBudget{}).
 		Owns(&rbacv1.Role{}).
 		Owns(&rbacv1.RoleBinding{}).
-		Owns(&rbacv1.ClusterRoleBinding{}).
 		WithOptions(opts)
+
+	currentNamespaceOnly, err := env.CurrentNamespaceOnly()
+	if err != nil {
+		return fmt.Errorf("error checking operator watch scope: %v", err)
+	}
+	if !currentNamespaceOnly {
+		builder = builder.Owns(&rbacv1.ClusterRoleBinding{})
+	}
 
 	watcherIndexer := watch.NewWatcherIndexer(mgr, builder, r.Client)
 	if err := watcherIndexer.Watch(
