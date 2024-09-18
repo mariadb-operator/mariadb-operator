@@ -1,4 +1,4 @@
-{{- if and (not .Values.currentNamespaceOnly) .Values.rbac.enabled -}}
+{{- if and .Values.currentNamespaceOnly .Values.rbac.enabled -}}
 {{ $fullName := include "mariadb-operator.fullname" . }}
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -36,23 +36,6 @@ rules:
   verbs:
   - create
   - patch
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: {{ $fullName }}
-rules:
-- apiGroups:
-  - ""
-  resources:
-  - configmaps
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - watch
 - apiGroups:
   - ""
   resources:
@@ -121,18 +104,6 @@ rules:
   - list
   - patch
   - watch
-- apiGroups:
-  - authentication.k8s.io
-  resources:
-  - tokenreviews
-  verbs:
-  - create
-- apiGroups:
-  - authorization.k8s.io
-  resources:
-  - subjectaccessreviews
-  verbs:
-  - create
 - apiGroups:
   - batch
   resources:
@@ -232,7 +203,6 @@ rules:
 - apiGroups:
   - rbac.authorization.k8s.io
   resources:
-  - clusterrolebindings
   - rolebindings
   - roles
   verbs:
@@ -249,32 +219,6 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
   name: {{ $fullName }}
-subjects:
-- kind: ServiceAccount
-  name: {{ include "mariadb-operator.serviceAccountName" . }}
-  namespace: {{ .Release.Namespace }}
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: {{ $fullName }}
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: {{ $fullName }}
-subjects:
-- kind: ServiceAccount
-  name: {{ include "mariadb-operator.serviceAccountName" . }}
-  namespace: {{ .Release.Namespace }}
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: {{ $fullName }}:auth-delegator
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: system:auth-delegator
 subjects:
 - kind: ServiceAccount
   name: {{ include "mariadb-operator.serviceAccountName" . }}

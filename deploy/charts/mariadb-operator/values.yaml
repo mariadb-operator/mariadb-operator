@@ -14,6 +14,9 @@ logLevel: INFO
 # -- Cluster DNS name
 clusterName: cluster.local
 
+# -- Whether the operator should watch CRDs only in its own namespace or not.
+currentNamespaceOnly: false
+
 ha:
   # -- Enable high availability
   enabled: false
@@ -96,6 +99,8 @@ tolerations: []
 affinity: {}
 
 webhook:
+  # -- Specifies whether the webhook should be created.
+  enabled: true
   image:
     repository: docker-registry3.mariadb.com/mariadb-operator/mariadb-operator
     pullPolicy: IfNotPresent
