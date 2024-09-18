@@ -19,6 +19,8 @@ type Options struct {
 	RateLimitDuration *time.Duration
 	KubernetesAuth    bool
 	KubernetesTrusted *kubeauth.Trusted
+	BasicAuth         bool
+	BasicAuthCreds    map[string]string
 }
 
 type Option func(*Options)
@@ -42,6 +44,15 @@ func WithKubernetesAuth(auth bool, trusted *kubeauth.Trusted) Option {
 	return func(o *Options) {
 		o.KubernetesAuth = auth
 		o.KubernetesTrusted = trusted
+	}
+}
+
+func WithBasicAuth(auth bool, user, pass string) Option {
+	return func(o *Options) {
+		o.BasicAuth = auth
+		o.BasicAuthCreds = map[string]string{
+			user: pass,
+		}
 	}
 }
 
@@ -77,6 +88,8 @@ func apiRouter(h *handler.Handler, k8sClient ctrlclient.Client, logger logr.Logg
 	if opts.KubernetesAuth && opts.KubernetesTrusted != nil {
 		kauth := kubeauth.NewKubernetesAuth(k8sClient, opts.KubernetesTrusted, logger)
 		r.Use(kauth.Handler)
+	} else if opts.BasicAuth && opts.BasicAuthCreds != nil {
+		r.Use(middleware.BasicAuth("mariadb-operator", opts.BasicAuthCreds))
 	}
 
 	r.Route("/galera", func(r chi.Router) {

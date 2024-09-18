@@ -31,13 +31,18 @@ var (
 	configDir string
 	stateDir  string
 
-	compressLevel              int
-	rateLimitRequests          int
-	rateLimitDuration          time.Duration
+	compressLevel           int
+	rateLimitRequests       int
+	rateLimitDuration       time.Duration
+	gracefulShutdownTimeout time.Duration
+
 	kubernetesAuth             bool
 	kubernetesTrustedName      string
 	kubernetesTrustedNamespace string
-	gracefulShutdownTimeout    time.Duration
+
+	basicAuth             bool
+	basicAuthUsername     string
+	basicAuthPasswordPath string
 )
 
 func init() {
@@ -51,12 +56,17 @@ func init() {
 	RootCmd.Flags().IntVar(&compressLevel, "compress-level", 5, "HTTP compression level")
 	RootCmd.Flags().IntVar(&rateLimitRequests, "rate-limit-requests", 0, "Number of requests to be used as rate limit")
 	RootCmd.Flags().DurationVar(&rateLimitDuration, "rate-limit-duration", 0, "Duration to be used as rate limit")
+	RootCmd.Flags().DurationVar(&gracefulShutdownTimeout, "graceful-shutdown-timeout", 5*time.Second, "Timeout to gracefully terminate "+
+		"in-flight requests")
+
 	RootCmd.Flags().BoolVar(&kubernetesAuth, "kubernetes-auth", false, "Enable Kubernetes authentication via the TokenReview API")
 	RootCmd.Flags().StringVar(&kubernetesTrustedName, "kubernetes-trusted-name", "", "Trusted Kubernetes ServiceAccount name to be verified")
 	RootCmd.Flags().StringVar(&kubernetesTrustedNamespace, "kubernetes-trusted-namespace", "", "Trusted Kubernetes ServiceAccount "+
 		"namespace to be verified")
-	RootCmd.Flags().DurationVar(&gracefulShutdownTimeout, "graceful-shutdown-timeout", 5*time.Second, "Timeout to gracefully terminate "+
-		"in-flight requests")
+
+	RootCmd.Flags().BoolVar(&basicAuth, "basic-auth", false, "Enable basic authentication")
+	RootCmd.Flags().StringVar(&basicAuthUsername, "basic-auth-username", "", "Basic authentication username")
+	RootCmd.Flags().StringVar(&basicAuthPasswordPath, "basic-auth-password-path", "", "Basic authentication password path")
 }
 
 var RootCmd = &cobra.Command{
@@ -106,12 +116,27 @@ var RootCmd = &cobra.Command{
 			router.WithRateLimit(rateLimitRequests, rateLimitDuration),
 		}
 		if kubernetesAuth && kubernetesTrustedName != "" && kubernetesTrustedNamespace != "" {
+			logger.Info("Configuring Kubernetes authentication")
+
 			routerOpts = append(routerOpts, router.WithKubernetesAuth(
 				kubernetesAuth,
 				&kubeauth.Trusted{
 					ServiceAccountName:      kubernetesTrustedName,
 					ServiceAccountNamespace: kubernetesTrustedNamespace,
 				},
+			))
+		} else if basicAuth && basicAuthUsername != "" && basicAuthPasswordPath != "" {
+			logger.Info("Configuring basic authentication")
+
+			basicAuthPassword, err := os.ReadFile(basicAuthPasswordPath)
+			if err != nil {
+				logger.Error(err, "Error reading basic-auth password")
+				os.Exit(1)
+			}
+			routerOpts = append(routerOpts, router.WithBasicAuth(
+				basicAuth,
+				basicAuthUsername,
+				string(basicAuthPassword),
 			))
 		}
 		router := router.NewRouter(
@@ -129,7 +154,7 @@ var RootCmd = &cobra.Command{
 			server.WithGracefulShutdownTimeout(gracefulShutdownTimeout),
 		)
 		if err := server.Start(context.Background()); err != nil {
-			logger.Error(err, "server error")
+			logger.Error(err, "Server error")
 			os.Exit(1)
 		}
 	},

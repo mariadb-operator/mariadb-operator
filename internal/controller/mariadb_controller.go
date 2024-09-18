@@ -222,26 +222,21 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 }
 
 func (r *MariaDBReconciler) reconcileSecret(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
+	var secretKeyRefs []mariadbv1alpha1.GeneratedSecretKeyRef
+
 	if !mariadb.IsRootPasswordEmpty() {
-		secretKeyRef := mariadb.Spec.RootPasswordSecretKeyRef
-		req := secret.PasswordRequest{
-			Owner:    mariadb,
-			Metadata: mariadb.Spec.InheritMetadata,
-			Key: types.NamespacedName{
-				Name:      secretKeyRef.Name,
-				Namespace: mariadb.Namespace,
-			},
-			SecretKey: secretKeyRef.Key,
-			Generate:  secretKeyRef.Generate,
-		}
-		_, err := r.SecretReconciler.ReconcilePassword(ctx, req)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
+		secretKeyRefs = append(secretKeyRefs, mariadb.Spec.RootPasswordSecretKeyRef)
+	}
+	if mariadb.Spec.PasswordSecretKeyRef != nil {
+		secretKeyRefs = append(secretKeyRefs, *mariadb.Spec.PasswordSecretKeyRef)
+	}
+	galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
+	basicAuth := ptr.Deref(galera.Agent.BasicAuth, mariadbv1alpha1.BasicAuth{})
+	if galera.Enabled && basicAuth.Enabled {
+		secretKeyRefs = append(secretKeyRefs, galera.Agent.BasicAuth.PasswordSecretKeyRef)
 	}
 
-	if mariadb.Spec.PasswordSecretKeyRef != nil {
-		secretKeyRef := *mariadb.Spec.PasswordSecretKeyRef
+	for _, secretKeyRef := range secretKeyRefs {
 		req := secret.PasswordRequest{
 			Owner:    mariadb,
 			Metadata: mariadb.Spec.InheritMetadata,

@@ -142,7 +142,7 @@ func (r *GaleraReconciler) Reconcile(ctx context.Context, mariadb *mariadbv1alph
 func (r *GaleraReconciler) disableBootstrap(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, logger logr.Logger) error {
 	logger.V(1).Info("Disabling Galera bootstrap")
 
-	clientSet, err := r.newAgentClientSet(mariadb)
+	clientSet, err := r.newAgentClientSet(ctx, mariadb)
 	if err != nil {
 		return fmt.Errorf("error creating agent client set: %v", err)
 	}
@@ -158,14 +158,26 @@ func (r *GaleraReconciler) disableBootstrap(ctx context.Context, mariadb *mariad
 	return nil
 }
 
-func (r *GaleraReconciler) newAgentClientSet(mariadb *mariadbv1alpha1.MariaDB, clientOpts ...mdbhttp.Option) (*agentClientSet, error) {
+func (r *GaleraReconciler) newAgentClientSet(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+	clientOpts ...mdbhttp.Option) (*agentClientSet, error) {
 	opts := []mdbhttp.Option{}
 	opts = append(opts, clientOpts...)
 
 	agent := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{}).Agent
-	if ptr.Deref(agent.KubernetesAuth, mariadbv1alpha1.KubernetesAuth{}).Enabled {
+	kubernetesAuth := ptr.Deref(agent.KubernetesAuth, mariadbv1alpha1.KubernetesAuth{})
+	basicAuth := ptr.Deref(agent.BasicAuth, mariadbv1alpha1.BasicAuth{})
+
+	if kubernetesAuth.Enabled {
 		opts = append(opts,
 			mdbhttp.WithKubernetesAuth(r.env.MariadbOperatorSAPath),
+		)
+	} else if basicAuth.Enabled {
+		password, err := r.refResolver.SecretKeyRef(ctx, basicAuth.PasswordSecretKeyRef.SecretKeySelector, mariadb.Namespace)
+		if err != nil {
+			return nil, fmt.Errorf("error getting agent password: %v", err)
+		}
+		opts = append(opts,
+			mdbhttp.WithBasicAuth(basicAuth.Username, password),
 		)
 	}
 

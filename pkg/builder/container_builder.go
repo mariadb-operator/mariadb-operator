@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path"
+	"reflect"
 	"strconv"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
@@ -196,13 +198,24 @@ func (b *Builder) galeraAgentContainer(mariadb *mariadbv1alpha1.MariaDB) (*corev
 		if agent.GracefulShutdownTimeout != nil {
 			args = append(args, fmt.Sprintf("--graceful-shutdown-timeout=%s", agent.GracefulShutdownTimeout.Duration))
 		}
-		if ptr.Deref(agent.KubernetesAuth, mariadbv1alpha1.KubernetesAuth{}).Enabled {
+
+		kubernetesAuth := ptr.Deref(agent.KubernetesAuth, mariadbv1alpha1.KubernetesAuth{})
+		basicAuth := ptr.Deref(agent.BasicAuth, mariadbv1alpha1.BasicAuth{})
+
+		if kubernetesAuth.Enabled {
 			args = append(args, []string{
 				"--kubernetes-auth",
 				fmt.Sprintf("--kubernetes-trusted-name=%s", b.env.MariadbOperatorName),
 				fmt.Sprintf("--kubernetes-trusted-namespace=%s", b.env.MariadbOperatorNamespace),
 			}...)
+		} else if basicAuth.Enabled && !reflect.ValueOf(basicAuth.PasswordSecretKeyRef).IsZero() {
+			args = append(args, []string{
+				"--basic-auth",
+				fmt.Sprintf("--basic-auth-username=%s", basicAuth.Username),
+				fmt.Sprintf("--basic-auth-password-path=%s", path.Join(galeraresources.AgentAuthVolumeMount, basicAuth.PasswordSecretKeyRef.Key)),
+			}...)
 		}
+
 		return args
 	}()
 	container.Env = mariadbEnv(mariadb)
@@ -462,6 +475,14 @@ func mariadbVolumeMounts(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt
 			galeraConfigVolumeMount.SubPath = galeraresources.GaleraConfigVolume
 		} else {
 			galeraConfigVolumeMount.Name = galeraresources.GaleraConfigVolume
+		}
+
+		basicAuth := ptr.Deref(galera.Agent.BasicAuth, mariadbv1alpha1.BasicAuth{})
+		if basicAuth.Enabled {
+			volumeMounts = append(volumeMounts, corev1.VolumeMount{
+				Name:      galeraresources.AgentAuthVolume,
+				MountPath: galeraresources.AgentAuthVolumeMount,
+			})
 		}
 
 		volumeMounts = append(volumeMounts, galeraConfigVolumeMount)
