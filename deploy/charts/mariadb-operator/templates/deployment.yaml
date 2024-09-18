@@ -69,6 +69,10 @@ spec:
           env:
             - name: CLUSTER_NAME
               value: {{ .Values.clusterName }}
+            {{- if .Values.currentNamespaceOnly }}
+            - name: WATCH_NAMESPACE
+              value: {{ .Release.Namespace }}
+            {{- end }}
             - name: MARIADB_OPERATOR_NAME
               valueFrom:
                 fieldRef:

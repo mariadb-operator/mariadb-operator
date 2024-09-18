@@ -1,4 +1,4 @@
-{{ if and .Values.certController.enabled (not .Values.webhook.cert.certManager.enabled) .Values.metrics.enabled  .Values.certController.serviceMonitor.enabled }}
+{{ if and (not .Values.currentNamespaceOnly) .Values.certController.enabled (not .Values.webhook.cert.certManager.enabled) .Values.metrics.enabled  .Values.certController.serviceMonitor.enabled }}
 apiVersion: v1
 kind: Service
 metadata:
