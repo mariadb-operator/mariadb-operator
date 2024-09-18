@@ -3,6 +3,7 @@ package environment
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -31,6 +32,21 @@ func (e *OperatorEnv) WatchNamespaces() ([]string, error) {
 		return strings.Split(e.WatchNamespace, ","), nil
 	}
 	return []string{e.WatchNamespace}, nil
+}
+
+func (e *OperatorEnv) CurrentNamespaceOnly() (bool, error) {
+	if e.WatchNamespace == "" {
+		return false, nil
+	}
+	watchNamespaces, err := e.WatchNamespaces()
+	if err != nil {
+		return false, fmt.Errorf("error getting namespaces to watch: %v", err)
+	}
+
+	if len(watchNamespaces) != 1 {
+		return false, nil
+	}
+	return watchNamespaces[0] == e.MariadbOperatorNamespace, nil
 }
 
 func GetOperatorEnv(ctx context.Context) (*OperatorEnv, error) {

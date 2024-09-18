@@ -220,7 +220,7 @@ var _ = BeforeSuite(func() {
 		MaxScaleReconciler:    mxsReconciler,
 		ReplicationReconciler: replicationReconciler,
 		GaleraReconciler:      galeraReconciler,
-	}).SetupWithManager(testCtx, k8sManager, ctrlcontroller.Options{MaxConcurrentReconciles: 10})
+	}).SetupWithManager(testCtx, k8sManager, env, ctrlcontroller.Options{MaxConcurrentReconciles: 10})
 	Expect(err).ToNot(HaveOccurred())
 
 	err = (&MaxScaleReconciler{
