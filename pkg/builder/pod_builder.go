@@ -2,10 +2,12 @@ package builder
 
 import (
 	"fmt"
+	"reflect"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	metadata "github.com/mariadb-operator/mariadb-operator/pkg/builder/metadata"
+	galeraresources "github.com/mariadb-operator/mariadb-operator/pkg/controller/galera/resources"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -313,46 +315,65 @@ func mariadbVolumes(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt) []c
 			},
 		})
 	}
-	if mariadb.IsGaleraEnabled() && mariadbOpts.includeServiceAccount {
-		volumes = append(volumes, corev1.Volume{
-			Name: ServiceAccountVolume,
-			VolumeSource: corev1.VolumeSource{
-				Projected: &corev1.ProjectedVolumeSource{
-					Sources: []corev1.VolumeProjection{
-						{
-							ServiceAccountToken: &corev1.ServiceAccountTokenProjection{
-								Path: "token",
+
+	galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
+
+	if galera.Enabled {
+		basicAuth := galera.Agent.BasicAuth
+
+		if mariadbOpts.includeGaleraConfig && basicAuth.Enabled && !reflect.ValueOf(basicAuth.PasswordSecretKeyRef).IsZero() {
+			volumes = append(volumes, corev1.Volume{
+				Name: galeraresources.AgentAuthVolume,
+				VolumeSource: corev1.VolumeSource{
+					Secret: &corev1.SecretVolumeSource{
+						SecretName: basicAuth.PasswordSecretKeyRef.Name,
+					},
+				},
+			})
+		}
+
+		if mariadbOpts.includeServiceAccount {
+			volumes = append(volumes, corev1.Volume{
+				Name: ServiceAccountVolume,
+				VolumeSource: corev1.VolumeSource{
+					Projected: &corev1.ProjectedVolumeSource{
+						Sources: []corev1.VolumeProjection{
+							{
+								ServiceAccountToken: &corev1.ServiceAccountTokenProjection{
+									Path: "token",
+								},
 							},
-						},
-						{
-							ConfigMap: &corev1.ConfigMapProjection{
-								Items: []corev1.KeyToPath{
-									{
-										Key:  "ca.crt",
-										Path: "ca.crt",
+							{
+								ConfigMap: &corev1.ConfigMapProjection{
+									Items: []corev1.KeyToPath{
+										{
+											Key:  "ca.crt",
+											Path: "ca.crt",
+										},
+									},
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: "kube-root-ca.crt",
 									},
 								},
-								LocalObjectReference: corev1.LocalObjectReference{
-									Name: "kube-root-ca.crt",
-								},
 							},
-						},
-						{
-							DownwardAPI: &corev1.DownwardAPIProjection{
-								Items: []corev1.DownwardAPIVolumeFile{
-									{
-										FieldRef: &corev1.ObjectFieldSelector{
-											FieldPath: "metadata.namespace",
+							{
+								DownwardAPI: &corev1.DownwardAPIProjection{
+									Items: []corev1.DownwardAPIVolumeFile{
+										{
+											FieldRef: &corev1.ObjectFieldSelector{
+												FieldPath: "metadata.namespace",
+											},
+											Path: "namespace",
 										},
-										Path: "namespace",
 									},
 								},
 							},
 						},
 					},
 				},
-			},
-		})
+			})
+		}
+
 	}
 	if mariadb.IsEphemeralStorageEnabled() {
 		volumes = append(volumes, corev1.Volume{

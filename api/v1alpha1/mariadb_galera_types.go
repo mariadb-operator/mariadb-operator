@@ -91,6 +91,35 @@ type KubernetesAuth struct {
 	AuthDelegatorRoleName string `json:"authDelegatorRoleName,omitempty"`
 }
 
+// KubernetesAuth refers to the basic authentication mechanism utilized for establishing a connection from the operator to the agent.
+type BasicAuth struct {
+	// Enabled is a flag to enable BasicAuth
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
+	Enabled bool `json:"enabled,omitempty"`
+	// Username to be used for basic authentication
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Username string `json:"username,omitempty"`
+	// PasswordSecretKeyRef to be used for basic authentication
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	PasswordSecretKeyRef GeneratedSecretKeyRef `json:"passwordSecretKeyRef,omitempty"`
+}
+
+// SetDefaults set reasonable defaults
+func (b *BasicAuth) SetDefaults(mariadb *MariaDB) {
+	if !b.Enabled {
+		return
+	}
+	if b.Username == "" {
+		b.Username = "mariadb-operator"
+	}
+	if reflect.ValueOf(b.PasswordSecretKeyRef).IsZero() {
+		b.PasswordSecretKeyRef = mariadb.AgentAuthSecretKeyRef()
+	}
+}
+
 // AuthDelegatorRoleNameOrDefault defines the ClusterRoleBinding name bound to system:auth-delegator.
 // It falls back to the MariaDB name if AuthDelegatorRoleName is not set.
 func (k *KubernetesAuth) AuthDelegatorRoleNameOrDefault(mariadb *MariaDB) string {
@@ -127,6 +156,10 @@ type GaleraAgent struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	KubernetesAuth *KubernetesAuth `json:"kubernetesAuth,omitempty"`
+	// BasicAuth to be used by the agent container
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	BasicAuth *BasicAuth `json:"basicAuth,omitempty"`
 	// GracefulShutdownTimeout is the time we give to the agent container in order to gracefully terminate in-flight requests.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -134,21 +167,41 @@ type GaleraAgent struct {
 }
 
 // SetDefaults sets reasonable defaults.
-func (r *GaleraAgent) SetDefaults(env *environment.OperatorEnv) {
+func (r *GaleraAgent) SetDefaults(mariadb *MariaDB, env *environment.OperatorEnv) error {
 	if r.Image == "" {
 		r.Image = env.MariadbOperatorImage
 	}
 	if r.Port == 0 {
 		r.Port = 5555
 	}
-	if r.KubernetesAuth == nil {
+
+	currentNamespaceOnly, err := env.CurrentNamespaceOnly()
+	if err != nil {
+		return fmt.Errorf("error checking operator watch scope: %v", err)
+	}
+	if currentNamespaceOnly {
+		if r.BasicAuth == nil {
+			r.BasicAuth = &BasicAuth{
+				Enabled: true,
+			}
+		}
+	} else if r.KubernetesAuth == nil && r.BasicAuth == nil {
 		r.KubernetesAuth = &KubernetesAuth{
 			Enabled: true,
 		}
+	} else if r.BasicAuth == nil {
+		r.BasicAuth = &BasicAuth{
+			Enabled: true,
+		}
 	}
+	if r.BasicAuth != nil {
+		r.BasicAuth.SetDefaults(mariadb)
+	}
+
 	if r.GracefulShutdownTimeout == nil {
 		r.GracefulShutdownTimeout = ptr.To(metav1.Duration{Duration: 1 * time.Second})
 	}
+	return nil
 }
 
 // GaleraRecoveryJob defines a Job used to be used to recover the Galera cluster.
@@ -337,7 +390,9 @@ func (g *Galera) SetDefaults(mdb *MariaDB, env *environment.OperatorEnv) error {
 		}
 	}
 	g.Primary.SetDefaults()
-	g.Agent.SetDefaults(env)
+	if err := g.Agent.SetDefaults(mdb, env); err != nil {
+		return fmt.Errorf("error setting agent defaults: %v", err)
+	}
 	g.Config.SetDefaults()
 
 	if g.Recovery == nil {

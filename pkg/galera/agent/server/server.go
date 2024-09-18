@@ -56,19 +56,19 @@ func (s *Server) Start(ctx context.Context) error {
 		defer cancel()
 		go func() {
 			<-shutdownCtx.Done()
-			s.logger.Info("graceful shutdown timed out")
+			s.logger.Info("Graceful shutdown timed out")
 		}()
 
-		s.logger.Info("shutting down server")
+		s.logger.Info("Shutting down server")
 		if err := s.httpServer.Shutdown(shutdownCtx); err != nil {
 			errChan <- fmt.Errorf("error shutting down server: %v", err)
 		}
 	}()
 
 	go func() {
-		s.logger.Info("server listening", "addr", s.httpServer.Addr)
+		s.logger.Info("Server listening", "addr", s.httpServer.Addr)
 		if err := s.httpServer.ListenAndServe(); err != http.ErrServerClosed {
-			errChan <- fmt.Errorf("error starting server: %v", err)
+			errChan <- fmt.Errorf("Error starting server: %v", err)
 		}
 	}()
 

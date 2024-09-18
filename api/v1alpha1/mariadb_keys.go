@@ -221,3 +221,16 @@ func (m *MariaDB) MariadbGrantKey() types.NamespacedName {
 		Namespace: m.Namespace,
 	}
 }
+
+// AgentAuthSecretKeyRef defines the Secret key selector for the agent password
+func (m *MariaDB) AgentAuthSecretKeyRef() GeneratedSecretKeyRef {
+	return GeneratedSecretKeyRef{
+		SecretKeySelector: corev1.SecretKeySelector{
+			LocalObjectReference: corev1.LocalObjectReference{
+				Name: fmt.Sprintf("%s-agent-auth", m.Name),
+			},
+			Key: "password",
+		},
+		Generate: true,
+	}
+}
