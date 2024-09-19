@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: mariadb-galera-ns-0-lb
+  name: mariadb-galera-test-0-lb
   namespace: default
   annotations:
     metallb.universe.tf/loadBalancerIPs: $CIDR_PREFIX.0.165
@@ -16,16 +16,16 @@ spec:
     protocol: TCP
     targetPort: 5555
   selector:
-    app.kubernetes.io/instance: mariadb-galera-ns
+    app.kubernetes.io/instance: mariadb-galera-test
     app.kubernetes.io/name: mariadb
-    statefulset.kubernetes.io/pod-name: mariadb-galera-ns-0
+    statefulset.kubernetes.io/pod-name: mariadb-galera-test-0
   publishNotReadyAddresses: true
   type: LoadBalancer
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: mariadb-galera-ns-1-lb
+  name: mariadb-galera-test-1-lb
   namespace: default
   annotations:
     metallb.universe.tf/loadBalancerIPs: $CIDR_PREFIX.0.166
@@ -40,16 +40,16 @@ spec:
     protocol: TCP
     targetPort: 5555
   selector:
-    app.kubernetes.io/instance: mariadb-galera-ns
+    app.kubernetes.io/instance: mariadb-galera-test
     app.kubernetes.io/name: mariadb
-    statefulset.kubernetes.io/pod-name: mariadb-galera-ns-1
+    statefulset.kubernetes.io/pod-name: mariadb-galera-test-1
   publishNotReadyAddresses: true
   type: LoadBalancer
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: mariadb-galera-ns-2-lb
+  name: mariadb-galera-test-2-lb
   namespace: default
   annotations:
     metallb.universe.tf/loadBalancerIPs: $CIDR_PREFIX.0.167
@@ -64,8 +64,8 @@ spec:
     protocol: TCP
     targetPort: 5555
   selector:
-    app.kubernetes.io/instance: mariadb-galera-ns
+    app.kubernetes.io/instance: mariadb-galera-test
     app.kubernetes.io/name: mariadb
-    statefulset.kubernetes.io/pod-name: mariadb-galera-ns-2
+    statefulset.kubernetes.io/pod-name: mariadb-galera-test-2
   publishNotReadyAddresses: true
   type: LoadBalancer
