@@ -1,6 +1,7 @@
 package v1alpha1
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -200,6 +201,16 @@ func (r *GaleraAgent) SetDefaults(mariadb *MariaDB, env *environment.OperatorEnv
 
 	if r.GracefulShutdownTimeout == nil {
 		r.GracefulShutdownTimeout = ptr.To(metav1.Duration{Duration: 1 * time.Second})
+	}
+	return nil
+}
+
+// Validate determines if a Galera Agent object is valid.
+func (r *GaleraAgent) Validate() error {
+	kubernetesAuth := ptr.Deref(r.KubernetesAuth, KubernetesAuth{})
+	basicAuth := ptr.Deref(r.BasicAuth, BasicAuth{})
+	if kubernetesAuth.Enabled && basicAuth.Enabled {
+		return errors.New("Only one authentication method must be enabled: kubernetes or basic auth")
 	}
 	return nil
 }

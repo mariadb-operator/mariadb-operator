@@ -130,6 +130,7 @@ func (r *MariaDB) validateGalera() error {
 	if !galera.Enabled {
 		return nil
 	}
+
 	if galera.Primary.PodIndex != nil {
 		if *galera.Primary.PodIndex < 0 || *galera.Primary.PodIndex >= int(r.Spec.Replicas) {
 			return field.Invalid(
@@ -139,6 +140,7 @@ func (r *MariaDB) validateGalera() error {
 			)
 		}
 	}
+
 	if !reflect.ValueOf(galera.SST).IsZero() {
 		if err := galera.SST.Validate(); err != nil {
 			return field.Invalid(
@@ -148,6 +150,7 @@ func (r *MariaDB) validateGalera() error {
 			)
 		}
 	}
+
 	if galera.ReplicaThreads < 0 {
 		return field.Invalid(
 			field.NewPath("spec").Child("galera").Child("replicaThreads"),
@@ -155,6 +158,7 @@ func (r *MariaDB) validateGalera() error {
 			"'spec.galera.replicaThreads' must be at least 1",
 		)
 	}
+
 	_, exists := galera.ProviderOptions[galerakeys.WsrepOptISTRecvAddr]
 	if exists {
 		return field.Invalid(
@@ -163,6 +167,15 @@ func (r *MariaDB) validateGalera() error {
 			"'spec.galera.providerOptions' cannot contain: ist.recv_addr",
 		)
 	}
+
+	if err := galera.Agent.Validate(); err != nil {
+		return field.Invalid(
+			field.NewPath("spec").Child("galera").Child("agent"),
+			galera.Agent,
+			err.Error(),
+		)
+	}
+
 	if galera.Recovery != nil {
 		if err := galera.Recovery.Validate(r); err != nil {
 			return field.Invalid(

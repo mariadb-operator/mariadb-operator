@@ -15,8 +15,10 @@ import (
 
 var _ = Describe("MariaDB Galera types", func() {
 	env := &environment.OperatorEnv{
-		MariadbOperatorImage: "ghcr.io/mariadb-operator/mariadb-operator:v0.0.26",
-		MariadbGaleraLibPath: "/usr/lib/galera/libgalera_smm.so",
+		WatchNamespace:           "",
+		MariadbOperatorNamespace: testNamespace,
+		MariadbOperatorImage:     "ghcr.io/mariadb-operator/mariadb-operator:v0.0.26",
+		MariadbGaleraLibPath:     "/usr/lib/galera/libgalera_smm.so",
 	}
 	Context("When creating a MariaDB Galera object", func() {
 		mdbObjMeta := metav1.ObjectMeta{
@@ -155,6 +157,19 @@ var _ = Describe("MariaDB Galera types", func() {
 							Port:  5555,
 							KubernetesAuth: &KubernetesAuth{
 								Enabled: false,
+							},
+							BasicAuth: &BasicAuth{
+								Enabled:  true,
+								Username: "mariadb-operator",
+								PasswordSecretKeyRef: GeneratedSecretKeyRef{
+									SecretKeySelector: corev1.SecretKeySelector{
+										LocalObjectReference: corev1.LocalObjectReference{
+											Name: "mariadb-galera-agent-auth",
+										},
+										Key: "password",
+									},
+									Generate: true,
+								},
 							},
 							GracefulShutdownTimeout: ptr.To(metav1.Duration{Duration: 1 * time.Second}),
 						},
