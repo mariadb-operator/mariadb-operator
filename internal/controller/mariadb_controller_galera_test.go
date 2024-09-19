@@ -1,8 +1,6 @@
 package controller
 
 import (
-	"os"
-	"reflect"
 	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
@@ -414,34 +412,10 @@ var _ = Describe("MariaDB Galera", Ordered, func() {
 		By("Using MariaDB with MaxScale")
 		testMaxscale(mdb, mxs)
 	})
-})
 
-var _ = Describe("MariaDB Galera single namespace", Ordered, func() {
-	BeforeAll(func() {
-		var (
-			mariadbOperatorNamespace = "MARIADB_OPERATOR_NAMESPACE"
-			watchNamespace           = "WATCH_NAMESPACE"
-		)
-		originalMariadbOperatorNamespace := os.Getenv(mariadbOperatorNamespace)
-		originalWatchNamespace := os.Getenv(watchNamespace)
-
-		err := os.Setenv(mariadbOperatorNamespace, testNamespace)
-		Expect(err).ToNot(HaveOccurred())
-		err = os.Setenv(watchNamespace, testNamespace)
-		Expect(err).ToNot(HaveOccurred())
-
-		DeferCleanup(func() {
-			err := os.Setenv(mariadbOperatorNamespace, originalMariadbOperatorNamespace)
-			Expect(err).ToNot(HaveOccurred())
-
-			err = os.Setenv(watchNamespace, originalWatchNamespace)
-			Expect(err).ToNot(HaveOccurred())
-		})
-	})
-
-	It("should reconcile", func() {
+	It("should reconcile with basic auth", func() {
 		key := types.NamespacedName{
-			Name:      "mariadb-galera-ns",
+			Name:      "mariadb-galera-test",
 			Namespace: testNamespace,
 		}
 		mdb := &mariadbv1alpha1.MariaDB{
@@ -477,6 +451,13 @@ var _ = Describe("MariaDB Galera single namespace", Ordered, func() {
 					`),
 				Galera: &mariadbv1alpha1.Galera{
 					Enabled: true,
+					GaleraSpec: mariadbv1alpha1.GaleraSpec{
+						Agent: mariadbv1alpha1.GaleraAgent{
+							BasicAuth: &mariadbv1alpha1.BasicAuth{
+								Enabled: true,
+							},
+						},
+					},
 				},
 				Replicas: 3,
 				Storage: mariadbv1alpha1.Storage{
@@ -541,8 +522,9 @@ var _ = Describe("MariaDB Galera single namespace", Ordered, func() {
 			}
 			galera := ptr.Deref(mdb.Spec.Galera, mariadbv1alpha1.Galera{})
 			basicAuth := ptr.Deref(galera.Agent.BasicAuth, mariadbv1alpha1.BasicAuth{})
+			kubernetesAuth := ptr.Deref(galera.Agent.KubernetesAuth, mariadbv1alpha1.KubernetesAuth{})
 
-			return basicAuth.Enabled && basicAuth.Username != "" && !reflect.ValueOf(basicAuth.PasswordSecretKeyRef).IsZero()
+			return basicAuth.Enabled && !kubernetesAuth.Enabled
 		}, testHighTimeout, testInterval).Should(BeTrue())
 
 		By("Expecting MariaDB to be ready eventually")

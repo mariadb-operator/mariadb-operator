@@ -44,14 +44,14 @@ host-mariadb-galera: ## Add mariadb galera hosts to /etc/hosts.
 	@./hack/add_host.sh 160 mariadb-galera-primary.default.svc.cluster.local
 	@./hack/add_host.sh 161 mariadb-galera-secondary.default.svc.cluster.local
 
-.PHONY: host-mariadb-galera-ns
-host-mariadb-galera-ns: ## Add mariadb galera namespaced hosts to /etc/hosts.
-	@./hack/add_host.sh 165 mariadb-galera-ns-0.mariadb-galera-ns-internal.default.svc.cluster.local
-	@./hack/add_host.sh 166 mariadb-galera-ns-1.mariadb-galera-ns-internal.default.svc.cluster.local
-	@./hack/add_host.sh 167 mariadb-galera-ns-2.mariadb-galera-ns-internal.default.svc.cluster.local
-	@./hack/add_host.sh 168 mariadb-galera-ns.default.svc.cluster.local
-	@./hack/add_host.sh 169 mariadb-galera-ns-primary.default.svc.cluster.local
-	@./hack/add_host.sh 170 mariadb-galera-ns-secondary.default.svc.cluster.local
+.PHONY: host-mariadb-galera-test
+host-mariadb-galera-test: ## Add mariadb galera test hosts to /etc/hosts.
+	@./hack/add_host.sh 165 mariadb-galera-test-0.mariadb-galera-test-internal.default.svc.cluster.local
+	@./hack/add_host.sh 166 mariadb-galera-test-1.mariadb-galera-test-internal.default.svc.cluster.local
+	@./hack/add_host.sh 167 mariadb-galera-test-2.mariadb-galera-test-internal.default.svc.cluster.local
+	@./hack/add_host.sh 168 mariadb-galera-test.default.svc.cluster.local
+	@./hack/add_host.sh 169 mariadb-galera-test-primary.default.svc.cluster.local
+	@./hack/add_host.sh 170 mariadb-galera-test-secondary.default.svc.cluster.local
 
 .PHONY: host-monitoring
 host-monitoring: ## Add monitoring hosts to /etc/hosts.
@@ -95,7 +95,7 @@ host-maxscale-gui: ## Add maxscale GUI hosts to /etc/hosts.
 	@./hack/add_host.sh 231 maxscale-galera-gui.default.svc.cluster.local
 
 .PHONY: host
-host: host-mariadb host-mdb-test host-mxs-test host-mariadb-repl host-mariadb-galera host-mariadb-galera-ns host-monitoring host-minio host-maxscale-repl host-maxscale-galera host-maxscale-gui ## Configure hosts for local development.
+host: host-mariadb host-mdb-test host-mxs-test host-mariadb-repl host-mariadb-galera host-mariadb-galera-test host-monitoring host-minio host-maxscale-repl host-maxscale-galera host-maxscale-gui ## Configure hosts for local development.
 
 .PHONY: net
 net: install-metallb host ## Configure networking for local development.
