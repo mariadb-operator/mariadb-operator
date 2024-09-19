@@ -292,6 +292,32 @@ var _ = Describe("MariaDB webhook", func() {
 				true,
 			),
 			Entry(
+				"Invalid agent auth",
+				&MariaDB{
+					ObjectMeta: meta,
+					Spec: MariaDBSpec{
+						Galera: &Galera{
+							Enabled: true,
+							GaleraSpec: GaleraSpec{
+								Agent: GaleraAgent{
+									BasicAuth: &BasicAuth{
+										Enabled: true,
+									},
+									KubernetesAuth: &KubernetesAuth{
+										Enabled: true,
+									},
+								},
+							},
+						},
+						Replicas: 3,
+						Storage: Storage{
+							Size: ptr.To(resource.MustParse("100Mi")),
+						},
+					},
+				},
+				true,
+			),
+			Entry(
 				"Invalid replication primary pod index",
 				&MariaDB{
 					ObjectMeta: meta,

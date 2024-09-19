@@ -319,7 +319,7 @@ func mariadbVolumes(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt) []c
 	galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
 
 	if galera.Enabled {
-		basicAuth := galera.Agent.BasicAuth
+		basicAuth := ptr.Deref(galera.Agent.BasicAuth, mariadbv1alpha1.BasicAuth{})
 
 		if mariadbOpts.includeGaleraConfig && basicAuth.Enabled && !reflect.ValueOf(basicAuth.PasswordSecretKeyRef).IsZero() {
 			volumes = append(volumes, corev1.Volume{
