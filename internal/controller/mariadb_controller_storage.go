@@ -24,7 +24,7 @@ import (
 )
 
 func shouldReconcileStorage(mdb *mariadbv1alpha1.MariaDB) bool {
-	if mdb.IsRestoringBackup() || mdb.IsUpdating() || mdb.IsSwitchingPrimary() || mdb.HasGaleraNotReadyCondition() {
+	if mdb.IsRestoringBackup() || mdb.IsUpdating() || mdb.IsSwitchingPrimary() || mdb.HasGaleraNotReadyCondition() || mdb.IsEphemeralStorageEnabled() {
 		return false
 	}
 	return true
@@ -52,7 +52,6 @@ func (r *MariaDBReconciler) reconcileStorage(ctx context.Context, mariadb *maria
 	if desiredSize == nil {
 		return ctrl.Result{}, errors.New("invalid desired storage size")
 	}
-
 	sizeCmp := desiredSize.Cmp(*existingSize)
 	if sizeCmp == 0 {
 		return ctrl.Result{}, nil
