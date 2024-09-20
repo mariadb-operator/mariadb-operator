@@ -108,7 +108,7 @@ func init() {
 	rootCmd.Flags().DurationVar(&requeueSqlJob, "requeue-sqljob", 5*time.Second, "The interval at which SqlJobs are requeued.")
 	rootCmd.Flags().DurationVar(&requeueMaxScale, "requeue-maxscale", 10*time.Second, "The interval at which MaxScales are requeued.")
 
-	rootCmd.Flags().BoolVar(&webhookEnabled, "webhook", true, "Enable the webhook server.")
+	rootCmd.Flags().BoolVar(&webhookEnabled, "webhook", false, "Enable the webhook server.")
 	rootCmd.Flags().IntVar(&webhookPort, "webhook-port", 9443, "Port to be used by the webhook server."+
 		"This only applies if the webhook server is enabled.")
 	rootCmd.Flags().StringVar(&webhookCertDir, "webhook-cert-dir", "/tmp/k8s-webhook-server/serving-certs",

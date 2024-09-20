@@ -28,6 +28,7 @@ spec:
       containers:
         - args:
             - --leader-elect
+            - --webhook
             - --webhook-cert-dir=/tmp/k8s-webhook-server/serving-certs
             - --webhook-port=9443
           image: controller:latest
