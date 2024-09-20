@@ -183,7 +183,7 @@ var _ = Describe("Backup types", func() {
 		)
 		DescribeTable(
 			"Should return a volume",
-			func(backup *Backup, expectedVolume *corev1.VolumeSource, wantErr bool) {
+			func(backup *Backup, expectedVolume corev1.VolumeSource, wantErr bool) {
 				volume, err := backup.Volume()
 				if wantErr {
 					Expect(err).To(HaveOccurred())
@@ -213,7 +213,7 @@ var _ = Describe("Backup types", func() {
 						},
 					},
 				},
-				&corev1.VolumeSource{
+				corev1.VolumeSource{
 					EmptyDir: &corev1.EmptyDirVolumeSource{},
 				},
 				false,
@@ -228,7 +228,7 @@ var _ = Describe("Backup types", func() {
 						},
 					},
 				},
-				&corev1.VolumeSource{
+				corev1.VolumeSource{
 					PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
 						ClaimName: objMeta.Name,
 					},
@@ -250,7 +250,7 @@ var _ = Describe("Backup types", func() {
 						},
 					},
 				},
-				&corev1.VolumeSource{
+				corev1.VolumeSource{
 					NFS: &corev1.NFSVolumeSource{
 						Server: "test",
 						Path:   "test",
