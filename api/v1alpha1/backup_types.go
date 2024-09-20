@@ -164,14 +164,14 @@ func (b *Backup) SetDefaults(mariadb *MariaDB) {
 	b.Spec.JobPodTemplate.SetDefaults(b.ObjectMeta, mariadb.ObjectMeta)
 }
 
-func (b *Backup) Volume() (*corev1.VolumeSource, error) {
+func (b *Backup) Volume() (corev1.VolumeSource, error) {
 	if b.Spec.Storage.S3 != nil {
-		return &corev1.VolumeSource{
+		return corev1.VolumeSource{
 			EmptyDir: &corev1.EmptyDirVolumeSource{},
 		}, nil
 	}
 	if b.Spec.Storage.PersistentVolumeClaim != nil {
-		return &corev1.VolumeSource{
+		return corev1.VolumeSource{
 			PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
 				ClaimName: b.Name,
 			},
@@ -180,7 +180,7 @@ func (b *Backup) Volume() (*corev1.VolumeSource, error) {
 	if b.Spec.Storage.Volume != nil {
 		return b.Spec.Storage.Volume.ToKubernetesType(), nil
 	}
-	return nil, errors.New("unable to get volume for Backup")
+	return corev1.VolumeSource{}, errors.New("unable to get volume for Backup")
 }
 
 // +kubebuilder:object:root=true

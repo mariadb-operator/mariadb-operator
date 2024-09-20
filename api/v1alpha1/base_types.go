@@ -261,7 +261,7 @@ type PodTemplate struct {
 	// Volumes to be used in the Pod.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	Volumes []corev1.Volume `json:"volumes,omitempty" webhook:"inmutable"`
+	Volumes []Volume `json:"volumes,omitempty" webhook:"inmutable"`
 	// PriorityClassName to be used in the Pod.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
@@ -616,14 +616,12 @@ func (r *RestoreSource) SetDefaults() {
 }
 
 func (r *RestoreSource) SetDefaultsWithBackup(backup *Backup) error {
-	kubernetesVolume, err := backup.Volume()
+	volume, err := backup.Volume()
 	if err != nil {
 		return fmt.Errorf("error getting backup volume: %v", err)
 	}
-	var volume VolumeSource
-	volume.FromKubernetesType(kubernetesVolume)
 
-	r.Volume = &volume
+	r.Volume = ptr.To(VolumeSourceFromKubernetesType(volume))
 	r.S3 = backup.Spec.Storage.S3
 	return nil
 }
