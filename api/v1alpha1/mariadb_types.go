@@ -17,12 +17,6 @@ import (
 
 // Exporter defines a metrics exporter container.
 type Exporter struct {
-	// ContainerTemplate defines a template to configure Container objects.
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	ContainerTemplate `json:",inline"`
-	// PodTemplate defines templates to configure Pod objects.
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	PodTemplate `json:",inline"`
 	// Image name to be used as metrics exporter. The supported format is `<image>:<tag>`.
 	// Only mysqld-exporter >= v0.15.0 is supported: https://github.com/prometheus/mysqld_exporter
 	// +optional
