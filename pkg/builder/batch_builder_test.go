@@ -384,7 +384,7 @@ func TestRestoreJobImagePullSecrets(t *testing.T) {
 						},
 					},
 					RestoreSource: mariadbv1alpha1.RestoreSource{
-						Volume: &corev1.VolumeSource{},
+						Volume: &mariadbv1alpha1.VolumeSource{},
 					},
 				},
 			},
@@ -405,7 +405,7 @@ func TestRestoreJobImagePullSecrets(t *testing.T) {
 						},
 					},
 					RestoreSource: mariadbv1alpha1.RestoreSource{
-						Volume: &corev1.VolumeSource{},
+						Volume: &mariadbv1alpha1.VolumeSource{},
 					},
 				},
 			},
@@ -440,7 +440,7 @@ func TestRestoreJobImagePullSecrets(t *testing.T) {
 						},
 					},
 					RestoreSource: mariadbv1alpha1.RestoreSource{
-						Volume: &corev1.VolumeSource{},
+						Volume: &mariadbv1alpha1.VolumeSource{},
 					},
 					MariaDBRef: mariadbv1alpha1.MariaDBRef{
 						ObjectReference: corev1.ObjectReference{
@@ -472,7 +472,7 @@ func TestRestoreJobImagePullSecrets(t *testing.T) {
 						},
 					},
 					RestoreSource: mariadbv1alpha1.RestoreSource{
-						Volume: &corev1.VolumeSource{},
+						Volume: &mariadbv1alpha1.VolumeSource{},
 					},
 					MariaDBRef: mariadbv1alpha1.MariaDBRef{
 						ObjectReference: corev1.ObjectReference{
@@ -533,7 +533,7 @@ func TestRestoreJobMeta(t *testing.T) {
 			restore: &mariadbv1alpha1.Restore{
 				Spec: mariadbv1alpha1.RestoreSpec{
 					RestoreSource: mariadbv1alpha1.RestoreSource{
-						Volume: &corev1.VolumeSource{
+						Volume: &mariadbv1alpha1.VolumeSource{
 							PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{},
 						},
 						S3: &mariadbv1alpha1.S3{},
@@ -554,7 +554,7 @@ func TestRestoreJobMeta(t *testing.T) {
 			restore: &mariadbv1alpha1.Restore{
 				Spec: mariadbv1alpha1.RestoreSpec{
 					RestoreSource: mariadbv1alpha1.RestoreSource{
-						Volume: &corev1.VolumeSource{
+						Volume: &mariadbv1alpha1.VolumeSource{
 							PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{},
 						},
 						S3: &mariadbv1alpha1.S3{},
@@ -591,7 +591,7 @@ func TestRestoreJobMeta(t *testing.T) {
 			restore: &mariadbv1alpha1.Restore{
 				Spec: mariadbv1alpha1.RestoreSpec{
 					RestoreSource: mariadbv1alpha1.RestoreSource{
-						Volume: &corev1.VolumeSource{
+						Volume: &mariadbv1alpha1.VolumeSource{
 							PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{},
 						},
 						S3: &mariadbv1alpha1.S3{},
@@ -626,7 +626,7 @@ func TestRestoreJobMeta(t *testing.T) {
 			restore: &mariadbv1alpha1.Restore{
 				Spec: mariadbv1alpha1.RestoreSpec{
 					RestoreSource: mariadbv1alpha1.RestoreSource{
-						Volume: &corev1.VolumeSource{
+						Volume: &mariadbv1alpha1.VolumeSource{
 							PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{},
 						},
 						S3: &mariadbv1alpha1.S3{},
@@ -673,7 +673,7 @@ func TestRestoreJobMeta(t *testing.T) {
 			restore: &mariadbv1alpha1.Restore{
 				Spec: mariadbv1alpha1.RestoreSpec{
 					RestoreSource: mariadbv1alpha1.RestoreSource{
-						Volume: &corev1.VolumeSource{
+						Volume: &mariadbv1alpha1.VolumeSource{
 							PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{},
 						},
 						S3: &mariadbv1alpha1.S3{},

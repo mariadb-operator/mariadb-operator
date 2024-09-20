@@ -241,7 +241,7 @@ var _ = Describe("Backup types", func() {
 					ObjectMeta: objMeta,
 					Spec: BackupSpec{
 						Storage: BackupStorage{
-							Volume: &corev1.VolumeSource{
+							Volume: &VolumeSource{
 								NFS: &corev1.NFSVolumeSource{
 									Server: "test",
 									Path:   "test",

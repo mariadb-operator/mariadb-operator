@@ -169,7 +169,7 @@ var _ = Describe("Restore", func() {
 					WaitForIt: true,
 				},
 				RestoreSource: mariadbv1alpha1.RestoreSource{
-					Volume: &corev1.VolumeSource{
+					Volume: &mariadbv1alpha1.VolumeSource{
 						PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
 							ClaimName: backupKey.Name,
 						},
