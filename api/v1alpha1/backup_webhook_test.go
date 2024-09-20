@@ -73,7 +73,7 @@ var _ = Describe("Backup webhook", func() {
 								Bucket:   "test",
 								Endpoint: "test",
 							},
-							Volume: &corev1.VolumeSource{
+							Volume: &VolumeSource{
 								PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
 									ClaimName: "TEST",
 								},

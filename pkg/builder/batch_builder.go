@@ -194,7 +194,9 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 	if err != nil {
 		return nil, fmt.Errorf("error building restore command: %v", err)
 	}
-	volumes, volumeSources := jobBatchStorageVolume(restore.Spec.Volume, restore.Spec.S3)
+
+	volume := ptr.Deref(restore.Spec.Volume, mariadbv1alpha1.VolumeSource{})
+	volumes, volumeSources := jobBatchStorageVolume(volume.ToKubernetesType(), restore.Spec.S3)
 	affinity := ptr.Deref(restore.Spec.Affinity, mariadbv1alpha1.AffinityConfig{}).Affinity
 
 	operatorContainer, err := b.jobMariadbOperatorContainer(

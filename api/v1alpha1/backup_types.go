@@ -25,7 +25,7 @@ type BackupStorage struct {
 	// Volume is a Kubernetes volume specification.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Volume *corev1.VolumeSource `json:"volume,omitempty"`
+	Volume *VolumeSource `json:"volume,omitempty"`
 }
 
 func (b *BackupStorage) Validate() error {
@@ -178,7 +178,7 @@ func (b *Backup) Volume() (*corev1.VolumeSource, error) {
 		}, nil
 	}
 	if b.Spec.Storage.Volume != nil {
-		return b.Spec.Storage.Volume, nil
+		return b.Spec.Storage.Volume.ToKubernetesType(), nil
 	}
 	return nil, errors.New("unable to get volume for Backup")
 }
