@@ -383,8 +383,8 @@ func mariadbVolumes(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt) []c
 			},
 		})
 	}
-	if mariadb.Spec.Volumes != nil {
-		volumes = append(volumes, mariadb.Spec.Volumes...)
+	for _, v := range mariadb.Spec.Volumes {
+		volumes = append(volumes, v.ToKubernetesType())
 	}
 	if mariadbOpts.extraVolumes != nil {
 		volumes = append(volumes, mariadbOpts.extraVolumes...)
@@ -463,8 +463,8 @@ func maxscaleVolumes(maxscale *mariadbv1alpha1.MaxScale) []corev1.Volume {
 			},
 		},
 	}
-	if maxscale.Spec.Volumes != nil {
-		volumes = append(volumes, maxscale.Spec.Volumes...)
+	for _, v := range maxscale.Spec.Volumes {
+		volumes = append(volumes, v.ToKubernetesType())
 	}
 	return volumes
 }
