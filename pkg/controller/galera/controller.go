@@ -3,6 +3,7 @@ package galera
 import (
 	"context"
 	"fmt"
+	"reflect"
 
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
@@ -171,7 +172,7 @@ func (r *GaleraReconciler) newAgentClientSet(ctx context.Context, mariadb *maria
 		opts = append(opts,
 			mdbhttp.WithKubernetesAuth(r.env.MariadbOperatorSAPath),
 		)
-	} else if basicAuth.Enabled {
+	} else if basicAuth.Enabled && !reflect.ValueOf(basicAuth.PasswordSecretKeyRef).IsZero() {
 		password, err := r.refResolver.SecretKeyRef(ctx, basicAuth.PasswordSecretKeyRef.SecretKeySelector, mariadb.Namespace)
 		if err != nil {
 			return nil, fmt.Errorf("error getting agent password: %v", err)
