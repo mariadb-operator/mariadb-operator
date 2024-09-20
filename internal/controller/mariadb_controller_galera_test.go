@@ -63,6 +63,102 @@ var _ = Describe("MariaDB Galera spec", func() {
 	})
 })
 
+var _ = Describe("MariaDB Galera basic auth", func() {
+	It("should reconcile", func() {
+		By("Creating MariaDB")
+		key := types.NamespacedName{
+			Name:      "mariadb-galera-test",
+			Namespace: testNamespace,
+		}
+		mdb := &mariadbv1alpha1.MariaDB{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      key.Name,
+				Namespace: key.Namespace,
+			},
+			Spec: mariadbv1alpha1.MariaDBSpec{
+				RootPasswordSecretKeyRef: mariadbv1alpha1.GeneratedSecretKeyRef{
+					SecretKeySelector: corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: testPwdKey.Name,
+						},
+						Key: testPwdSecretKey,
+					},
+				},
+				MyCnf: ptr.To(`[mariadb]
+					bind-address=*
+					default_storage_engine=InnoDB
+					binlog_format=row
+					innodb_autoinc_lock_mode=2
+					max_allowed_packet=256M
+					`),
+				Galera: &mariadbv1alpha1.Galera{
+					Enabled: true,
+					GaleraSpec: mariadbv1alpha1.GaleraSpec{
+						Agent: mariadbv1alpha1.GaleraAgent{
+							BasicAuth: &mariadbv1alpha1.BasicAuth{
+								Enabled: true,
+							},
+						},
+					},
+				},
+				Replicas: 3,
+				Storage: mariadbv1alpha1.Storage{
+					Size: ptr.To(resource.MustParse("300Mi")),
+				},
+				Service: &mariadbv1alpha1.ServiceTemplate{
+					Type: corev1.ServiceTypeLoadBalancer,
+					Metadata: &mariadbv1alpha1.Metadata{
+						Annotations: map[string]string{
+							"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.168",
+						},
+					},
+				},
+				PrimaryService: &mariadbv1alpha1.ServiceTemplate{
+					Type: corev1.ServiceTypeLoadBalancer,
+					Metadata: &mariadbv1alpha1.Metadata{
+						Annotations: map[string]string{
+							"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.169",
+						},
+					},
+				},
+				SecondaryService: &mariadbv1alpha1.ServiceTemplate{
+					Type: corev1.ServiceTypeLoadBalancer,
+					Metadata: &mariadbv1alpha1.Metadata{
+						Annotations: map[string]string{
+							"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.170",
+						},
+					},
+				},
+			},
+		}
+		applyMariadbTestConfig(mdb)
+
+		Expect(k8sClient.Create(testCtx, mdb)).To(Succeed())
+		DeferCleanup(func() {
+			deleteMariadb(key)
+		})
+
+		Eventually(func() bool {
+			if err := k8sClient.Get(testCtx, key, mdb); err != nil {
+				return false
+			}
+			galera := ptr.Deref(mdb.Spec.Galera, mariadbv1alpha1.Galera{})
+			basicAuth := ptr.Deref(galera.Agent.BasicAuth, mariadbv1alpha1.BasicAuth{})
+			kubernetesAuth := ptr.Deref(galera.Agent.KubernetesAuth, mariadbv1alpha1.KubernetesAuth{})
+
+			return basicAuth.Enabled && !kubernetesAuth.Enabled
+		}, testHighTimeout, testInterval).Should(BeTrue())
+
+		By("Expecting MariaDB to be ready eventually")
+		Eventually(func() bool {
+			if err := k8sClient.Get(testCtx, key, mdb); err != nil {
+				return false
+			}
+			return mdb.IsReady() && mdb.HasGaleraConfiguredCondition() && mdb.HasGaleraReadyCondition()
+		}, testHighTimeout, testInterval).Should(BeTrue())
+	})
+})
+
 var _ = Describe("MariaDB Galera", Ordered, func() {
 	var (
 		key = types.NamespacedName{
@@ -411,129 +507,6 @@ var _ = Describe("MariaDB Galera", Ordered, func() {
 
 		By("Using MariaDB with MaxScale")
 		testMaxscale(mdb, mxs)
-	})
-
-	It("should reconcile with basic auth", func() {
-		key := types.NamespacedName{
-			Name:      "mariadb-galera-test",
-			Namespace: testNamespace,
-		}
-		mdb := &mariadbv1alpha1.MariaDB{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      key.Name,
-				Namespace: key.Namespace,
-			},
-			Spec: mariadbv1alpha1.MariaDBSpec{
-				RootPasswordSecretKeyRef: mariadbv1alpha1.GeneratedSecretKeyRef{
-					SecretKeySelector: corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: testPwdKey.Name,
-						},
-						Key: testPwdSecretKey,
-					},
-				},
-				Username: &testUser,
-				PasswordSecretKeyRef: &mariadbv1alpha1.GeneratedSecretKeyRef{
-					SecretKeySelector: corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: testPwdKey.Name,
-						},
-						Key: testPwdSecretKey,
-					},
-				},
-				Database: &testDatabase,
-				MyCnf: ptr.To(`[mariadb]
-					bind-address=*
-					default_storage_engine=InnoDB
-					binlog_format=row
-					innodb_autoinc_lock_mode=2
-					max_allowed_packet=256M
-					`),
-				Galera: &mariadbv1alpha1.Galera{
-					Enabled: true,
-					GaleraSpec: mariadbv1alpha1.GaleraSpec{
-						Agent: mariadbv1alpha1.GaleraAgent{
-							BasicAuth: &mariadbv1alpha1.BasicAuth{
-								Enabled: true,
-							},
-						},
-					},
-				},
-				Replicas: 3,
-				Storage: mariadbv1alpha1.Storage{
-					Size: ptr.To(resource.MustParse("300Mi")),
-				},
-				Service: &mariadbv1alpha1.ServiceTemplate{
-					Type: corev1.ServiceTypeLoadBalancer,
-					Metadata: &mariadbv1alpha1.Metadata{
-						Annotations: map[string]string{
-							"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.168",
-						},
-					},
-				},
-				Connection: &mariadbv1alpha1.ConnectionTemplate{
-					SecretName: ptr.To("mdb-galera-conn"),
-					SecretTemplate: &mariadbv1alpha1.SecretTemplate{
-						Key: &testConnSecretKey,
-					},
-				},
-				PrimaryService: &mariadbv1alpha1.ServiceTemplate{
-					Type: corev1.ServiceTypeLoadBalancer,
-					Metadata: &mariadbv1alpha1.Metadata{
-						Annotations: map[string]string{
-							"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.169",
-						},
-					},
-				},
-				PrimaryConnection: &mariadbv1alpha1.ConnectionTemplate{
-					SecretName: ptr.To("mdb-galera-conn-primary"),
-					SecretTemplate: &mariadbv1alpha1.SecretTemplate{
-						Key: &testConnSecretKey,
-					},
-				},
-				SecondaryService: &mariadbv1alpha1.ServiceTemplate{
-					Type: corev1.ServiceTypeLoadBalancer,
-					Metadata: &mariadbv1alpha1.Metadata{
-						Annotations: map[string]string{
-							"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.170",
-						},
-					},
-				},
-				SecondaryConnection: &mariadbv1alpha1.ConnectionTemplate{
-					SecretName: ptr.To("mdb-galera-conn-secondary"),
-					SecretTemplate: &mariadbv1alpha1.SecretTemplate{
-						Key: &testConnSecretKey,
-					},
-				},
-			},
-		}
-		applyMariadbTestConfig(mdb)
-
-		By("Creating MariaDB Galera")
-		Expect(k8sClient.Create(testCtx, mdb)).To(Succeed())
-		DeferCleanup(func() {
-			deleteMariadb(key)
-		})
-
-		By("Expecting MariaDB to use basic authentication")
-		Eventually(func() bool {
-			if err := k8sClient.Get(testCtx, key, mdb); err != nil {
-				return false
-			}
-			galera := ptr.Deref(mdb.Spec.Galera, mariadbv1alpha1.Galera{})
-			basicAuth := ptr.Deref(galera.Agent.BasicAuth, mariadbv1alpha1.BasicAuth{})
-			kubernetesAuth := ptr.Deref(galera.Agent.KubernetesAuth, mariadbv1alpha1.KubernetesAuth{})
-
-			return basicAuth.Enabled && !kubernetesAuth.Enabled
-		}, testHighTimeout, testInterval).Should(BeTrue())
-
-		By("Expecting MariaDB to be ready eventually")
-		Eventually(func() bool {
-			if err := k8sClient.Get(testCtx, key, mdb); err != nil {
-				return false
-			}
-			return mdb.IsReady() && mdb.HasGaleraConfiguredCondition() && mdb.HasGaleraReadyCondition()
-		}, testHighTimeout, testInterval).Should(BeTrue())
 	})
 })
 
