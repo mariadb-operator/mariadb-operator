@@ -24,7 +24,11 @@ import (
 )
 
 func shouldReconcileStorage(mdb *mariadbv1alpha1.MariaDB) bool {
-	if mdb.IsRestoringBackup() || mdb.IsUpdating() || mdb.IsSwitchingPrimary() || mdb.HasGaleraNotReadyCondition() || mdb.IsEphemeralStorageEnabled() {
+	if mdb.IsRestoringBackup() ||
+		mdb.IsUpdating() ||
+		mdb.IsSwitchingPrimary() ||
+		mdb.HasGaleraNotReadyCondition() ||
+		mdb.IsEphemeralStorageEnabled() {
 		return false
 	}
 	return true
