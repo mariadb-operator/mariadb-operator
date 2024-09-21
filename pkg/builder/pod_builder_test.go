@@ -859,10 +859,7 @@ func TestMariadbPodBuilderAffinity(t *testing.T) {
 				},
 			},
 			opts: []mariadbPodOpt{
-				withAffinity(&mariadbv1alpha1.AffinityConfig{
-					AntiAffinityEnabled: ptr.To(true),
-					Affinity:            mariadbv1alpha1.Affinity{},
-				}),
+				withAffinity(&corev1.Affinity{}),
 				withAffinityEnabled(true),
 			},
 			wantAffinity:                 true,
@@ -890,10 +887,7 @@ func TestMariadbPodBuilderAffinity(t *testing.T) {
 				},
 			},
 			opts: []mariadbPodOpt{
-				withAffinity(&mariadbv1alpha1.AffinityConfig{
-					AntiAffinityEnabled: ptr.To(true),
-					Affinity:            mariadbv1alpha1.Affinity{},
-				}),
+				withAffinity(&corev1.Affinity{}),
 				withAffinityEnabled(true),
 			},
 			wantAffinity:                 true,
@@ -921,10 +915,7 @@ func TestMariadbPodBuilderAffinity(t *testing.T) {
 				},
 			},
 			opts: []mariadbPodOpt{
-				withAffinity(&mariadbv1alpha1.AffinityConfig{
-					AntiAffinityEnabled: ptr.To(true),
-					Affinity:            mariadbv1alpha1.Affinity{},
-				}),
+				withAffinity(&corev1.Affinity{}),
 				withAffinityEnabled(false),
 			},
 			wantAffinity:                 false,

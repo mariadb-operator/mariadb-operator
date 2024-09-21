@@ -273,6 +273,11 @@ func (b *Builder) BuilGaleraInitJob(key types.NamespacedName, mariadb *mariadbv1
 		filepath.Join(InitConfigPath, InitEntrypointKey),
 	})
 
+	var affinity *corev1.Affinity
+	if initJob.Affinity != nil {
+		affinity = ptr.To(initJob.Affinity.ToKubernetesType())
+	}
+
 	opts := []mariadbPodOpt{
 		withMeta(mariadb.Spec.InheritMetadata),
 		withMeta(&extraMeta),
@@ -280,7 +285,7 @@ func (b *Builder) BuilGaleraInitJob(key types.NamespacedName, mariadb *mariadbv1
 		withArgs(command.Args),
 		withRestartPolicy(corev1.RestartPolicyOnFailure),
 		withResources(initJob.Resources),
-		withAffinity(initJob.Affinity),
+		withAffinity(affinity),
 		withExtraVolumes([]corev1.Volume{
 			{
 				Name: StorageVolume,
@@ -554,34 +559,31 @@ func batchImagePullSecrets(mariadb *mariadbv1alpha1.MariaDB, pullSecrets []corev
 	return secrets
 }
 
-func galeraRecoveryJobAffinity(mariadb *mariadbv1alpha1.MariaDB, podIndex int) (*mariadbv1alpha1.AffinityConfig, error) {
+func galeraRecoveryJobAffinity(mariadb *mariadbv1alpha1.MariaDB, podIndex int) (*corev1.Affinity, error) {
 	galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
 	if !galera.Enabled {
 		return nil, errors.New("Galera must be enabled")
 	}
 
-	return &mariadbv1alpha1.AffinityConfig{
-		AntiAffinityEnabled: ptr.To(false),
-		Affinity: mariadbv1alpha1.Affinity{
-			PodAffinity: &mariadbv1alpha1.PodAffinity{
-				RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
-					{
-						LabelSelector: &metav1.LabelSelector{
-							MatchExpressions: []metav1.LabelSelectorRequirement{
-								{
-									Key:      "app.kubernetes.io/instance",
-									Operator: metav1.LabelSelectorOpIn,
-									Values:   []string{mariadb.Name},
-								},
-								{
-									Key:      "apps.kubernetes.io/pod-index",
-									Operator: metav1.LabelSelectorOpIn,
-									Values:   []string{strconv.Itoa(podIndex)},
-								},
+	return &corev1.Affinity{
+		PodAffinity: &corev1.PodAffinity{
+			RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
+				{
+					LabelSelector: &metav1.LabelSelector{
+						MatchExpressions: []metav1.LabelSelectorRequirement{
+							{
+								Key:      "app.kubernetes.io/instance",
+								Operator: metav1.LabelSelectorOpIn,
+								Values:   []string{mariadb.Name},
+							},
+							{
+								Key:      "apps.kubernetes.io/pod-index",
+								Operator: metav1.LabelSelectorOpIn,
+								Values:   []string{strconv.Itoa(podIndex)},
 							},
 						},
-						TopologyKey: "kubernetes.io/hostname",
 					},
+					TopologyKey: "kubernetes.io/hostname",
 				},
 			},
 		},
