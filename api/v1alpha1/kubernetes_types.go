@@ -1,3 +1,4 @@
+// nolint:lll
 package v1alpha1
 
 import (
@@ -5,7 +6,6 @@ import (
 	"k8s.io/utils/ptr"
 )
 
-// nolint:lll
 // Represents the source of a volume to mount. Only one of its members may be specified.
 // Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#volume-v1-core.
 type VolumeSource struct {
@@ -55,7 +55,8 @@ func (v Volume) ToKubernetesType() corev1.Volume {
 	}
 }
 
-// nolint:lll
+// Pod affinity is a group of inter pod affinity scheduling rules.
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#podaffinity-v1-core.
 type PodAffinity struct {
 	// +optional
 	// +listType=atomic
@@ -72,7 +73,8 @@ func (p PodAffinity) ToKubernetesType() corev1.PodAffinity {
 	}
 }
 
-// nolint:lll
+// Pod anti affinity is a group of inter pod anti affinity scheduling rules.
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#podantiaffinity-v1-core.
 type PodAntiAffinity struct {
 	// +optional
 	// +listType=atomic
@@ -93,9 +95,9 @@ func (p PodAntiAffinity) ToKubernetesType() corev1.PodAntiAffinity {
 // Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#affinity-v1-core.
 type Affinity struct {
 	// +optional
-	PodAffinity *PodAffinity `json:"podAffinity,omitempty" protobuf:"bytes,2,opt,name=podAffinity"`
+	PodAffinity *PodAffinity `json:"podAffinity,omitempty" protobuf:"bytes,1,opt,name=podAffinity"`
 	// +optional
-	PodAntiAffinity *PodAntiAffinity `json:"podAntiAffinity,omitempty" protobuf:"bytes,3,opt,name=podAntiAffinity"`
+	PodAntiAffinity *PodAntiAffinity `json:"podAntiAffinity,omitempty" protobuf:"bytes,2,opt,name=podAntiAffinity"`
 }
 
 func (a Affinity) ToKubernetesType() corev1.Affinity {
