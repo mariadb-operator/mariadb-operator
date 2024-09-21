@@ -10,8 +10,6 @@ import (
 // Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#volume-v1-core.
 type VolumeSource struct {
 	// +optional
-	HostPath *corev1.HostPathVolumeSource `json:"hostPath,omitempty" protobuf:"bytes,1,opt,name=hostPath"`
-	// +optional
 	EmptyDir *corev1.EmptyDirVolumeSource `json:"emptyDir,omitempty" protobuf:"bytes,2,opt,name=emptyDir"`
 	// +optional
 	NFS *corev1.NFSVolumeSource `json:"nfs,omitempty" protobuf:"bytes,7,opt,name=nfs"`
@@ -23,7 +21,6 @@ type VolumeSource struct {
 
 func VolumeSourceFromKubernetesType(kv corev1.VolumeSource) VolumeSource {
 	return VolumeSource{
-		HostPath:              kv.HostPath,
 		EmptyDir:              kv.EmptyDir,
 		NFS:                   kv.NFS,
 		PersistentVolumeClaim: kv.PersistentVolumeClaim,
@@ -33,7 +30,6 @@ func VolumeSourceFromKubernetesType(kv corev1.VolumeSource) VolumeSource {
 
 func (v VolumeSource) ToKubernetesType() corev1.VolumeSource {
 	return corev1.VolumeSource{
-		HostPath:              v.HostPath,
 		EmptyDir:              v.EmptyDir,
 		NFS:                   v.NFS,
 		PersistentVolumeClaim: v.PersistentVolumeClaim,
