@@ -65,11 +65,9 @@ func TestExporterImagePullSecrets(t *testing.T) {
 					Metrics: &mariadbv1alpha1.MariadbMetrics{
 						Enabled: true,
 						Exporter: mariadbv1alpha1.Exporter{
-							PodTemplate: mariadbv1alpha1.PodTemplate{
-								ImagePullSecrets: []corev1.LocalObjectReference{
-									{
-										Name: "exporter-registry",
-									},
+							ImagePullSecrets: []corev1.LocalObjectReference{
+								{
+									Name: "exporter-registry",
 								},
 							},
 						},
@@ -97,11 +95,9 @@ func TestExporterImagePullSecrets(t *testing.T) {
 					Metrics: &mariadbv1alpha1.MariadbMetrics{
 						Enabled: true,
 						Exporter: mariadbv1alpha1.Exporter{
-							PodTemplate: mariadbv1alpha1.PodTemplate{
-								ImagePullSecrets: []corev1.LocalObjectReference{
-									{
-										Name: "exporter-registry",
-									},
+							ImagePullSecrets: []corev1.LocalObjectReference{
+								{
+									Name: "exporter-registry",
 								},
 							},
 						},
@@ -187,11 +183,9 @@ func TestExporterMaxScaleImagePullSecrets(t *testing.T) {
 					Metrics: &mariadbv1alpha1.MaxScaleMetrics{
 						Enabled: true,
 						Exporter: mariadbv1alpha1.Exporter{
-							PodTemplate: mariadbv1alpha1.PodTemplate{
-								ImagePullSecrets: []corev1.LocalObjectReference{
-									{
-										Name: "exporter-registry",
-									},
+							ImagePullSecrets: []corev1.LocalObjectReference{
+								{
+									Name: "exporter-registry",
 								},
 							},
 						},
@@ -219,11 +213,9 @@ func TestExporterMaxScaleImagePullSecrets(t *testing.T) {
 					Metrics: &mariadbv1alpha1.MaxScaleMetrics{
 						Enabled: true,
 						Exporter: mariadbv1alpha1.Exporter{
-							PodTemplate: mariadbv1alpha1.PodTemplate{
-								ImagePullSecrets: []corev1.LocalObjectReference{
-									{
-										Name: "exporter-registry",
-									},
+							ImagePullSecrets: []corev1.LocalObjectReference{
+								{
+									Name: "exporter-registry",
 								},
 							},
 						},
@@ -335,14 +327,12 @@ func TestExporterDeploymentMeta(t *testing.T) {
 					Metrics: &mariadbv1alpha1.MariadbMetrics{
 						Enabled: true,
 						Exporter: mariadbv1alpha1.Exporter{
-							PodTemplate: mariadbv1alpha1.PodTemplate{
-								PodMetadata: &mariadbv1alpha1.Metadata{
-									Labels: map[string]string{
-										"database.myorg.io": "pod",
-									},
-									Annotations: map[string]string{
-										"database.myorg.io": "pod",
-									},
+							PodMetadata: &mariadbv1alpha1.Metadata{
+								Labels: map[string]string{
+									"database.myorg.io": "pod",
+								},
+								Annotations: map[string]string{
+									"database.myorg.io": "pod",
 								},
 							},
 						},
@@ -384,14 +374,12 @@ func TestExporterDeploymentMeta(t *testing.T) {
 					Metrics: &mariadbv1alpha1.MariadbMetrics{
 						Enabled: true,
 						Exporter: mariadbv1alpha1.Exporter{
-							PodTemplate: mariadbv1alpha1.PodTemplate{
-								PodMetadata: &mariadbv1alpha1.Metadata{
-									Labels: map[string]string{
-										"database.myorg.io": "pod",
-									},
-									Annotations: map[string]string{
-										"database.myorg.io": "pod",
-									},
+							PodMetadata: &mariadbv1alpha1.Metadata{
+								Labels: map[string]string{
+									"database.myorg.io": "pod",
+								},
+								Annotations: map[string]string{
+									"database.myorg.io": "pod",
 								},
 							},
 						},
@@ -516,14 +504,12 @@ func TestExporterMaxScaleDeploymentMeta(t *testing.T) {
 					Metrics: &mariadbv1alpha1.MaxScaleMetrics{
 						Enabled: true,
 						Exporter: mariadbv1alpha1.Exporter{
-							PodTemplate: mariadbv1alpha1.PodTemplate{
-								PodMetadata: &mariadbv1alpha1.Metadata{
-									Labels: map[string]string{
-										"database.myorg.io": "pod",
-									},
-									Annotations: map[string]string{
-										"database.myorg.io": "pod",
-									},
+							PodMetadata: &mariadbv1alpha1.Metadata{
+								Labels: map[string]string{
+									"database.myorg.io": "pod",
+								},
+								Annotations: map[string]string{
+									"database.myorg.io": "pod",
 								},
 							},
 						},
@@ -565,14 +551,12 @@ func TestExporterMaxScaleDeploymentMeta(t *testing.T) {
 					Metrics: &mariadbv1alpha1.MaxScaleMetrics{
 						Enabled: true,
 						Exporter: mariadbv1alpha1.Exporter{
-							PodTemplate: mariadbv1alpha1.PodTemplate{
-								PodMetadata: &mariadbv1alpha1.Metadata{
-									Labels: map[string]string{
-										"database.myorg.io": "pod",
-									},
-									Annotations: map[string]string{
-										"database.myorg.io": "pod",
-									},
+							PodMetadata: &mariadbv1alpha1.Metadata{
+								Labels: map[string]string{
+									"database.myorg.io": "pod",
+								},
+								Annotations: map[string]string{
+									"database.myorg.io": "pod",
 								},
 							},
 						},

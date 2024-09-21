@@ -356,10 +356,8 @@ var _ = Describe("MaxScale types", func() {
 						Metrics: &MaxScaleMetrics{
 							Enabled: true,
 							Exporter: Exporter{
-								PodTemplate: PodTemplate{
-									Affinity: &AffinityConfig{
-										AntiAffinityEnabled: ptr.To(true),
-									},
+								Affinity: &AffinityConfig{
+									AntiAffinityEnabled: ptr.To(true),
 								},
 							},
 						},
@@ -554,27 +552,25 @@ var _ = Describe("MaxScale types", func() {
 							Exporter: Exporter{
 								Image: "mariadb/maxscale-prometheus-exporter-ubi:latest",
 								Port:  9105,
-								PodTemplate: PodTemplate{
-									Affinity: &AffinityConfig{
-										AntiAffinityEnabled: ptr.To(true),
-										Affinity: Affinity{
-											PodAntiAffinity: &PodAntiAffinity{
-												RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
-													{
-														LabelSelector: &metav1.LabelSelector{
-															MatchExpressions: []metav1.LabelSelectorRequirement{
-																{
-																	Key:      "app.kubernetes.io/instance",
-																	Operator: metav1.LabelSelectorOpIn,
-																	Values: []string{
-																		objMeta.Name,
-																		mariadbObjMeta.Name,
-																	},
+								Affinity: &AffinityConfig{
+									AntiAffinityEnabled: ptr.To(true),
+									Affinity: Affinity{
+										PodAntiAffinity: &PodAntiAffinity{
+											RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
+												{
+													LabelSelector: &metav1.LabelSelector{
+														MatchExpressions: []metav1.LabelSelectorRequirement{
+															{
+																Key:      "app.kubernetes.io/instance",
+																Operator: metav1.LabelSelectorOpIn,
+																Values: []string{
+																	objMeta.Name,
+																	mariadbObjMeta.Name,
 																},
 															},
 														},
-														TopologyKey: "kubernetes.io/hostname",
 													},
+													TopologyKey: "kubernetes.io/hostname",
 												},
 											},
 										},
