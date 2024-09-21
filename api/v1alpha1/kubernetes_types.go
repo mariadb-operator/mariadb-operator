@@ -2,11 +2,12 @@
 package v1alpha1
 
 import (
+	kadapter "github.com/mariadb-operator/mariadb-operator/pkg/kubernetes/adapter"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 )
 
-// Represents the source of a volume to mount. Only one of its members may be specified.
 // Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#volume-v1-core.
 type VolumeSource struct {
 	// +optional
@@ -14,17 +15,17 @@ type VolumeSource struct {
 	// +optional
 	NFS *corev1.NFSVolumeSource `json:"nfs,omitempty" protobuf:"bytes,7,opt,name=nfs"`
 	// +optional
-	PersistentVolumeClaim *corev1.PersistentVolumeClaimVolumeSource `json:"persistentVolumeClaim,omitempty" protobuf:"bytes,10,opt,name=persistentVolumeClaim"`
-	// +optional
 	CSI *corev1.CSIVolumeSource `json:"csi,omitempty" protobuf:"bytes,28,opt,name=csi"`
+	// +optional
+	PersistentVolumeClaim *corev1.PersistentVolumeClaimVolumeSource `json:"persistentVolumeClaim,omitempty" protobuf:"bytes,10,opt,name=persistentVolumeClaim"`
 }
 
 func VolumeSourceFromKubernetesType(kv corev1.VolumeSource) VolumeSource {
 	return VolumeSource{
 		EmptyDir:              kv.EmptyDir,
 		NFS:                   kv.NFS,
-		PersistentVolumeClaim: kv.PersistentVolumeClaim,
 		CSI:                   kv.CSI,
+		PersistentVolumeClaim: kv.PersistentVolumeClaim,
 	}
 }
 
@@ -32,12 +33,11 @@ func (v VolumeSource) ToKubernetesType() corev1.VolumeSource {
 	return corev1.VolumeSource{
 		EmptyDir:              v.EmptyDir,
 		NFS:                   v.NFS,
-		PersistentVolumeClaim: v.PersistentVolumeClaim,
 		CSI:                   v.CSI,
+		PersistentVolumeClaim: v.PersistentVolumeClaim,
 	}
 }
 
-// Volume represents a named volume in a pod that may be accessed by any container in the pod.
 // Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#volume-v1-core.
 type Volume struct {
 	Name         string `json:"name" protobuf:"bytes,1,opt,name=name"`
@@ -51,43 +51,50 @@ func (v Volume) ToKubernetesType() corev1.Volume {
 	}
 }
 
-// Pod affinity is a group of inter pod affinity scheduling rules.
-// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#podaffinity-v1-core.
-type PodAffinity struct {
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#podaffinityterm-v1-core
+type PodAffinityTerm struct {
 	// +optional
-	// +listType=atomic
-	RequiredDuringSchedulingIgnoredDuringExecution []corev1.PodAffinityTerm `json:"requiredDuringSchedulingIgnoredDuringExecution,omitempty" protobuf:"bytes,1,rep,name=requiredDuringSchedulingIgnoredDuringExecution"`
-	// +optional
-	// +listType=atomic
-	PreferredDuringSchedulingIgnoredDuringExecution []corev1.WeightedPodAffinityTerm `json:"preferredDuringSchedulingIgnoredDuringExecution,omitempty" protobuf:"bytes,2,rep,name=preferredDuringSchedulingIgnoredDuringExecution"`
+	LabelSelector *metav1.LabelSelector `json:"labelSelector,omitempty" protobuf:"bytes,1,opt,name=labelSelector"`
+	TopologyKey   string                `json:"topologyKey" protobuf:"bytes,2,opt,name=topologyKey"`
 }
 
-func (p PodAffinity) ToKubernetesType() corev1.PodAffinity {
-	return corev1.PodAffinity{
-		RequiredDuringSchedulingIgnoredDuringExecution:  p.RequiredDuringSchedulingIgnoredDuringExecution,
-		PreferredDuringSchedulingIgnoredDuringExecution: p.PreferredDuringSchedulingIgnoredDuringExecution,
+func (p PodAffinityTerm) ToKubernetesType() corev1.PodAffinityTerm {
+	return corev1.PodAffinityTerm{
+		LabelSelector: p.LabelSelector,
+		TopologyKey:   p.TopologyKey,
 	}
 }
 
-// Pod anti affinity is a group of inter pod anti affinity scheduling rules.
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#weightedpodaffinityterm-v1-core
+type WeightedPodAffinityTerm struct {
+	Weight          int32           `json:"weight" protobuf:"varint,1,opt,name=weight"`
+	PodAffinityTerm PodAffinityTerm `json:"podAffinityTerm" protobuf:"bytes,2,opt,name=podAffinityTerm"`
+}
+
+func (p WeightedPodAffinityTerm) ToKubernetesType() corev1.WeightedPodAffinityTerm {
+	return corev1.WeightedPodAffinityTerm{
+		Weight:          p.Weight,
+		PodAffinityTerm: p.PodAffinityTerm.ToKubernetesType(),
+	}
+}
+
 // Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#podantiaffinity-v1-core.
 type PodAntiAffinity struct {
 	// +optional
 	// +listType=atomic
-	RequiredDuringSchedulingIgnoredDuringExecution []corev1.PodAffinityTerm `json:"requiredDuringSchedulingIgnoredDuringExecution,omitempty" protobuf:"bytes,1,rep,name=requiredDuringSchedulingIgnoredDuringExecution"`
+	RequiredDuringSchedulingIgnoredDuringExecution []PodAffinityTerm `json:"requiredDuringSchedulingIgnoredDuringExecution,omitempty" protobuf:"bytes,1,rep,name=requiredDuringSchedulingIgnoredDuringExecution"`
 	// +optional
 	// +listType=atomic
-	PreferredDuringSchedulingIgnoredDuringExecution []corev1.WeightedPodAffinityTerm `json:"preferredDuringSchedulingIgnoredDuringExecution,omitempty" protobuf:"bytes,2,rep,name=preferredDuringSchedulingIgnoredDuringExecution"`
+	PreferredDuringSchedulingIgnoredDuringExecution []WeightedPodAffinityTerm `json:"preferredDuringSchedulingIgnoredDuringExecution,omitempty" protobuf:"bytes,2,rep,name=preferredDuringSchedulingIgnoredDuringExecution"`
 }
 
 func (p PodAntiAffinity) ToKubernetesType() corev1.PodAntiAffinity {
 	return corev1.PodAntiAffinity{
-		RequiredDuringSchedulingIgnoredDuringExecution:  p.RequiredDuringSchedulingIgnoredDuringExecution,
-		PreferredDuringSchedulingIgnoredDuringExecution: p.PreferredDuringSchedulingIgnoredDuringExecution,
+		RequiredDuringSchedulingIgnoredDuringExecution:  kadapter.ToKubernetesSlice(p.RequiredDuringSchedulingIgnoredDuringExecution),
+		PreferredDuringSchedulingIgnoredDuringExecution: kadapter.ToKubernetesSlice(p.PreferredDuringSchedulingIgnoredDuringExecution),
 	}
 }
 
-// Affinity is a group of affinity scheduling rules.
 // Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#affinity-v1-core.
 type Affinity struct {
 	// +optional

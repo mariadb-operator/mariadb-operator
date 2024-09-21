@@ -201,7 +201,7 @@ func (a *AffinityConfig) SetDefaults(antiAffinityInstances ...string) {
 	if ptr.Deref(a.AntiAffinityEnabled, false) && reflect.ValueOf(a.Affinity).IsZero() && len(antiAffinityInstances) > 0 {
 		a.Affinity = Affinity{
 			PodAntiAffinity: &PodAntiAffinity{
-				RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
+				RequiredDuringSchedulingIgnoredDuringExecution: []PodAffinityTerm{
 					{
 						LabelSelector: &metav1.LabelSelector{
 							MatchExpressions: []metav1.LabelSelectorRequirement{

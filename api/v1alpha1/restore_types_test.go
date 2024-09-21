@@ -3,7 +3,6 @@ package v1alpha1
 import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 )
@@ -66,7 +65,7 @@ var _ = Describe("Restore types", func() {
 								AntiAffinityEnabled: ptr.To(true),
 								Affinity: Affinity{
 									PodAntiAffinity: &PodAntiAffinity{
-										RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
+										RequiredDuringSchedulingIgnoredDuringExecution: []PodAffinityTerm{
 											{
 												LabelSelector: &metav1.LabelSelector{
 													MatchExpressions: []metav1.LabelSelectorRequirement{
@@ -116,7 +115,7 @@ var _ = Describe("Restore types", func() {
 								AntiAffinityEnabled: ptr.To(true),
 								Affinity: Affinity{
 									PodAntiAffinity: &PodAntiAffinity{
-										RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
+										RequiredDuringSchedulingIgnoredDuringExecution: []PodAffinityTerm{
 											{
 												LabelSelector: &metav1.LabelSelector{
 													MatchExpressions: []metav1.LabelSelectorRequirement{
