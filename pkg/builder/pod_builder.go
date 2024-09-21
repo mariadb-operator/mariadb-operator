@@ -227,10 +227,6 @@ func (b *Builder) maxscalePodTemplate(mxs *mariadbv1alpha1.MaxScale) (*corev1.Po
 			WithLabels(selectorLabels).
 			Build()
 
-	initContainers, err := b.maxscaleInitContainers(mxs)
-	if err != nil {
-		return nil, err
-	}
 	securityContext, err := b.maxscalePodSecurityContext(mxs)
 	if err != nil {
 		return nil, err
@@ -242,7 +238,6 @@ func (b *Builder) maxscalePodTemplate(mxs *mariadbv1alpha1.MaxScale) (*corev1.Po
 		Spec: corev1.PodSpec{
 			AutomountServiceAccountToken: ptr.To(false),
 			ServiceAccountName:           ptr.Deref(mxs.Spec.ServiceAccountName, mxs.Name),
-			InitContainers:               initContainers,
 			Containers:                   containers,
 			ImagePullSecrets:             mxs.Spec.ImagePullSecrets,
 			Volumes:                      maxscaleVolumes(mxs),
@@ -463,9 +458,6 @@ func maxscaleVolumes(maxscale *mariadbv1alpha1.MaxScale) []corev1.Volume {
 				EmptyDir: &corev1.EmptyDirVolumeSource{},
 			},
 		},
-	}
-	for _, v := range maxscale.Spec.Volumes {
-		volumes = append(volumes, v.ToKubernetesType())
 	}
 	return volumes
 }

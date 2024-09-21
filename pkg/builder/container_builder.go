@@ -265,25 +265,6 @@ func (b *Builder) mariadbInitContainers(mariadb *mariadbv1alpha1.MariaDB, opts .
 	return initContainers, nil
 }
 
-func (b *Builder) maxscaleInitContainers(mxs *mariadbv1alpha1.MaxScale) ([]corev1.Container, error) {
-	var initContainers []corev1.Container
-	if mxs.Spec.InitContainers != nil {
-		for index, container := range mxs.Spec.InitContainers {
-			initContainer, err := b.buildContainer(container.Image, container.ImagePullPolicy, &container.ContainerTemplate)
-			if err != nil {
-				return nil, err
-			}
-
-			initContainer.Name = fmt.Sprintf("init-%d", index)
-			if initContainer.VolumeMounts == nil {
-				initContainer.VolumeMounts = maxscaleVolumeMounts(mxs)
-			}
-			initContainers = append(initContainers, *initContainer)
-		}
-	}
-	return initContainers, nil
-}
-
 func (b *Builder) galeraInitContainer(mariadb *mariadbv1alpha1.MariaDB) (*corev1.Container, error) {
 	galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
 	if !galera.Enabled {

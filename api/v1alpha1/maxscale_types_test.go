@@ -66,7 +66,7 @@ var _ = Describe("MaxScale types", func() {
 				&MaxScale{
 					ObjectMeta: objMeta,
 					Spec: MaxScaleSpec{
-						PodTemplate: PodTemplate{
+						MaxScalePodTemplate: MaxScalePodTemplate{
 							ServiceAccountName: &objMeta.Name,
 						},
 						Image: env.RelatedMaxscaleImage,
@@ -198,7 +198,7 @@ var _ = Describe("MaxScale types", func() {
 				&MaxScale{
 					ObjectMeta: objMeta,
 					Spec: MaxScaleSpec{
-						PodTemplate: PodTemplate{
+						MaxScalePodTemplate: MaxScalePodTemplate{
 							ServiceAccountName: &objMeta.Name,
 						},
 						Image: env.RelatedMaxscaleImage,
@@ -301,7 +301,7 @@ var _ = Describe("MaxScale types", func() {
 				&MaxScale{
 					ObjectMeta: objMeta,
 					Spec: MaxScaleSpec{
-						PodTemplate: PodTemplate{
+						MaxScalePodTemplate: MaxScalePodTemplate{
 							Affinity: &AffinityConfig{
 								AntiAffinityEnabled: ptr.To(true),
 							},
@@ -366,7 +366,7 @@ var _ = Describe("MaxScale types", func() {
 				&MaxScale{
 					ObjectMeta: objMeta,
 					Spec: MaxScaleSpec{
-						PodTemplate: PodTemplate{
+						MaxScalePodTemplate: MaxScalePodTemplate{
 							ServiceAccountName: &objMeta.Name,
 							Affinity: &AffinityConfig{
 								AntiAffinityEnabled: ptr.To(true),

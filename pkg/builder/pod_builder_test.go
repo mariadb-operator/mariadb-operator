@@ -405,7 +405,7 @@ func TestMaxScalePodMeta(t *testing.T) {
 			maxscale: &mariadbv1alpha1.MaxScale{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MaxScaleSpec{
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					MaxScalePodTemplate: mariadbv1alpha1.MaxScalePodTemplate{
 						PodMetadata: &mariadbv1alpha1.Metadata{
 							Labels: map[string]string{
 								"sidecar.istio.io/inject": "false",
@@ -438,7 +438,7 @@ func TestMaxScalePodMeta(t *testing.T) {
 							"database.myorg.io": "mariadb",
 						},
 					},
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					MaxScalePodTemplate: mariadbv1alpha1.MaxScalePodTemplate{
 						PodMetadata: &mariadbv1alpha1.Metadata{
 							Labels: map[string]string{
 								"sidecar.istio.io/inject": "false",
@@ -471,7 +471,7 @@ func TestMaxScalePodMeta(t *testing.T) {
 							"database.myorg.io": "mariadb",
 						},
 					},
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					MaxScalePodTemplate: mariadbv1alpha1.MaxScalePodTemplate{
 						PodMetadata: &mariadbv1alpha1.Metadata{
 							Labels: map[string]string{
 								"sidecar.istio.io/inject": "false",
@@ -504,7 +504,7 @@ func TestMaxScalePodMeta(t *testing.T) {
 							"k8s.mariadb.com": "test",
 						},
 					},
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					MaxScalePodTemplate: mariadbv1alpha1.MaxScalePodTemplate{
 						PodMetadata: &mariadbv1alpha1.Metadata{
 							Labels: map[string]string{
 								"sidecar.istio.io/inject": "false",
