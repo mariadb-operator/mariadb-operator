@@ -5,18 +5,6 @@ import (
 	"k8s.io/utils/ptr"
 )
 
-type KubernetesAdapter[K any] interface {
-	ToKubernetesType() K
-}
-
-func ToKubernetesSlice[KA KubernetesAdapter[K], K any](adapters []KA) []K {
-	kubernetesSlice := make([]K, len(adapters))
-	for i, a := range adapters {
-		kubernetesSlice[i] = a.ToKubernetesType()
-	}
-	return kubernetesSlice
-}
-
 // nolint:lll
 // Represents the source of a volume to mount. Only one of its members may be specified.
 // Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#volume-v1-core.

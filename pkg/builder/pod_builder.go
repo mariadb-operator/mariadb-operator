@@ -8,6 +8,7 @@ import (
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	metadata "github.com/mariadb-operator/mariadb-operator/pkg/builder/metadata"
 	galeraresources "github.com/mariadb-operator/mariadb-operator/pkg/controller/galera/resources"
+	kadapter "github.com/mariadb-operator/mariadb-operator/pkg/kubernetes/adapter"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -384,7 +385,7 @@ func mariadbVolumes(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt) []c
 		})
 	}
 	if mariadb.Spec.Volumes != nil {
-		volumes = append(volumes, mariadbv1alpha1.ToKubernetesSlice(mariadb.Spec.Volumes)...)
+		volumes = append(volumes, kadapter.ToKubernetesSlice(mariadb.Spec.Volumes)...)
 	}
 	if mariadbOpts.extraVolumes != nil {
 		volumes = append(volumes, mariadbOpts.extraVolumes...)
