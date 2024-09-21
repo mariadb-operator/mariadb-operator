@@ -5,6 +5,9 @@ type KubernetesAdapter[K any] interface {
 }
 
 func ToKubernetesSlice[KA KubernetesAdapter[K], K any](adapters []KA) []K {
+	if adapters == nil {
+		return nil
+	}
 	kubernetesSlice := make([]K, len(adapters))
 	for i, a := range adapters {
 		kubernetesSlice[i] = a.ToKubernetesType()
