@@ -20,7 +20,7 @@ type mariadbPodOpts struct {
 	args                         []string
 	restartPolicy                *corev1.RestartPolicy
 	resources                    *corev1.ResourceRequirements
-	affinity                     *mariadbv1alpha1.AffinityConfig
+	affinity                     *corev1.Affinity
 	extraVolumes                 []corev1.Volume
 	extraVolumeMounts            []corev1.VolumeMount
 	includeMariadbResources      bool
@@ -84,7 +84,7 @@ func withResources(resources *corev1.ResourceRequirements) mariadbPodOpt {
 	}
 }
 
-func withAffinity(affinity *mariadbv1alpha1.AffinityConfig) mariadbPodOpt {
+func withAffinity(affinity *corev1.Affinity) mariadbPodOpt {
 	return func(opts *mariadbPodOpts) {
 		opts.affinity = affinity
 	}
@@ -264,14 +264,11 @@ func mariadbAffinity(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt) *c
 	if !mariadbOpts.includeAffinity {
 		return nil
 	}
-	affinityConfig := []*mariadbv1alpha1.AffinityConfig{
-		mariadbOpts.affinity,
-		mariadb.Spec.Affinity,
+	if mariadbOpts.affinity != nil {
+		return mariadbOpts.affinity
 	}
-	for _, affinity := range affinityConfig {
-		if affinity != nil {
-			return ptr.To(affinity.Affinity.ToKubernetesType())
-		}
+	if mariadb.Spec.Affinity != nil {
+		return ptr.To(mariadb.Spec.Affinity.ToKubernetesType())
 	}
 	return nil
 }

@@ -95,16 +95,11 @@ func (p PodAntiAffinity) ToKubernetesType() corev1.PodAntiAffinity {
 // Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#affinity-v1-core.
 type Affinity struct {
 	// +optional
-	PodAffinity *PodAffinity `json:"podAffinity,omitempty" protobuf:"bytes,1,opt,name=podAffinity"`
-	// +optional
-	PodAntiAffinity *PodAntiAffinity `json:"podAntiAffinity,omitempty" protobuf:"bytes,2,opt,name=podAntiAffinity"`
+	PodAntiAffinity *PodAntiAffinity `json:"podAntiAffinity,omitempty" protobuf:"bytes,1,opt,name=podAntiAffinity"`
 }
 
 func (a Affinity) ToKubernetesType() corev1.Affinity {
 	var affinity corev1.Affinity
-	if a.PodAffinity != nil {
-		affinity.PodAffinity = ptr.To(a.PodAffinity.ToKubernetesType())
-	}
 	if a.PodAntiAffinity != nil {
 		affinity.PodAntiAffinity = ptr.To(a.PodAntiAffinity.ToKubernetesType())
 	}
