@@ -15,30 +15,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// Exporter defines a metrics exporter container.
-type Exporter struct {
-	// ContainerTemplate defines a template to configure Container objects.
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	ContainerTemplate `json:",inline"`
-	// PodTemplate defines templates to configure Pod objects.
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	PodTemplate `json:",inline"`
-	// Image name to be used as metrics exporter. The supported format is `<image>:<tag>`.
-	// Only mysqld-exporter >= v0.15.0 is supported: https://github.com/prometheus/mysqld_exporter
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Image string `json:"image,omitempty"`
-	// ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`.
-	// +optional
-	// +kubebuilder:validation:Enum=Always;Never;IfNotPresent
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:imagePullPolicy"}
-	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
-	// Port where the exporter will be listening for connections.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
-	Port int32 `json:"port,omitempty"`
-}
-
 // ServiceMonitor defines a prometheus ServiceMonitor object.
 type ServiceMonitor struct {
 	// PrometheusRelease is the release label to add to the ServiceMonitor object.

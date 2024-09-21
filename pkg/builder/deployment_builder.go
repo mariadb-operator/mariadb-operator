@@ -130,11 +130,6 @@ func (b *Builder) BuildMaxScaleExporterDeployment(mxs *mariadbv1alpha1.MaxScale,
 
 func (b *Builder) exporterPodTemplate(objMeta metav1.ObjectMeta, exporter *mariadbv1alpha1.Exporter, args []string,
 	pullSecrets []corev1.LocalObjectReference, configSecretName string) (*corev1.PodTemplateSpec, error) {
-	container, err := b.exporterContainer(exporter, args)
-	if err != nil {
-		return nil, fmt.Errorf("error building exporter container: %v", err)
-	}
-
 	securityContext, err := b.buildPodSecurityContext(exporter.PodSecurityContext)
 	if err != nil {
 		return nil, err
@@ -147,7 +142,7 @@ func (b *Builder) exporterPodTemplate(objMeta metav1.ObjectMeta, exporter *maria
 		Spec: corev1.PodSpec{
 			ImagePullSecrets: datastructures.Merge(pullSecrets, exporter.ImagePullSecrets),
 			Containers: []corev1.Container{
-				container,
+				b.exporterContainer(exporter, args),
 			},
 			Volumes: []corev1.Volume{
 				{
@@ -159,42 +154,16 @@ func (b *Builder) exporterPodTemplate(objMeta metav1.ObjectMeta, exporter *maria
 					},
 				},
 			},
-			SecurityContext:           securityContext,
-			Affinity:                  ptr.To(affinity.ToKubernetesType()),
-			NodeSelector:              exporter.NodeSelector,
-			Tolerations:               exporter.Tolerations,
-			PriorityClassName:         ptr.Deref(exporter.PriorityClassName, ""),
-			TopologySpreadConstraints: exporter.TopologySpreadConstraints,
+			SecurityContext:   securityContext,
+			Affinity:          ptr.To(affinity.ToKubernetesType()),
+			NodeSelector:      exporter.NodeSelector,
+			Tolerations:       exporter.Tolerations,
+			PriorityClassName: ptr.Deref(exporter.PriorityClassName, ""),
 		},
 	}, nil
 }
 
-func (b *Builder) exporterContainer(exporter *mariadbv1alpha1.Exporter, args []string) (corev1.Container, error) {
-	tpl := exporter.ContainerTemplate
-	container, err := b.buildContainer(exporter.Image, exporter.ImagePullPolicy, &tpl)
-	if err != nil {
-		return corev1.Container{}, err
-	}
-
-	container.Name = "exporter"
-	container.Args = args
-	if len(tpl.Args) > 0 {
-		container.Args = append(container.Args, tpl.Args...)
-	}
-	container.Ports = []corev1.ContainerPort{
-		{
-			Name:          MetricsPortName,
-			ContainerPort: exporter.Port,
-		},
-	}
-	container.VolumeMounts = []corev1.VolumeMount{
-		{
-			Name:      deployConfigVolume,
-			MountPath: deployConfigMountPath,
-			ReadOnly:  true,
-		},
-	}
-
+func (b *Builder) exporterContainer(exporter *mariadbv1alpha1.Exporter, args []string) corev1.Container {
 	probe := &corev1.Probe{
 		ProbeHandler: corev1.ProbeHandler{
 			HTTPGet: &corev1.HTTPGetAction{
@@ -203,10 +172,26 @@ func (b *Builder) exporterContainer(exporter *mariadbv1alpha1.Exporter, args []s
 			},
 		},
 	}
-	container.LivenessProbe = probe
-	container.ReadinessProbe = probe
 
-	return *container, nil
+	return corev1.Container{
+		Name: "exporter",
+		Args: args,
+		Ports: []corev1.ContainerPort{
+			{
+				Name:          MetricsPortName,
+				ContainerPort: exporter.Port,
+			},
+		},
+		VolumeMounts: []corev1.VolumeMount{
+			{
+				Name:      deployConfigVolume,
+				MountPath: deployConfigMountPath,
+				ReadOnly:  true,
+			},
+		},
+		LivenessProbe:  probe,
+		ReadinessProbe: probe,
+	}
 }
 
 func exporterConfigFile(fileName string) string {
