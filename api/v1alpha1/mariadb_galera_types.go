@@ -215,6 +215,18 @@ func (r *GaleraAgent) Validate() error {
 	return nil
 }
 
+// GaleraInitJob defines a Job used to be used to initialize the Galera cluster.
+type GaleraInitJob struct {
+	// Metadata defines additional metadata for the Galera init Job.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	Metadata *Metadata `json:"metadata,omitempty"`
+	// Resouces describes the compute resource requirements.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:resourceRequirements"}
+	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
+}
+
 // GaleraRecoveryJob defines a Job used to be used to recover the Galera cluster.
 type GaleraRecoveryJob struct {
 	// Metadata defines additional metadata for the Galera recovery Jobs.
@@ -415,10 +427,6 @@ func (g *Galera) SetDefaults(mdb *MariaDB, env *environment.OperatorEnv) error {
 		g.Recovery.SetDefaults(mdb)
 	}
 
-	if g.InitJob != nil {
-		g.InitJob.SetDefaults(mdb.ObjectMeta)
-	}
-
 	autoUpdateDataPlane := ptr.Deref(mdb.Spec.UpdateStrategy.AutoUpdateDataPlane, false)
 	if autoUpdateDataPlane {
 		initBumped, err := docker.SetTagOrDigest(env.MariadbOperatorImage, g.InitContainer.Image)
@@ -484,7 +492,7 @@ type GaleraSpec struct {
 	// InitJob defines a Job that co-operates with mariadb-operator by performing initialization tasks.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	InitJob *Job `json:"initJob,omitempty"`
+	InitJob *GaleraInitJob `json:"initJob,omitempty"`
 	// GaleraConfig defines storage options for the Galera configuration files.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}

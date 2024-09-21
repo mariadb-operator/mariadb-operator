@@ -858,7 +858,7 @@ func TestGaleraInitJobMeta(t *testing.T) {
 					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
 						GaleraSpec: mariadbv1alpha1.GaleraSpec{
-							InitJob: &mariadbv1alpha1.Job{
+							InitJob: &mariadbv1alpha1.GaleraInitJob{
 								Metadata: &mariadbv1alpha1.Metadata{
 									Labels: map[string]string{
 										"sidecar.istio.io/inject": "false",
@@ -930,7 +930,7 @@ func TestGaleraInitJobMeta(t *testing.T) {
 					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
 						GaleraSpec: mariadbv1alpha1.GaleraSpec{
-							InitJob: &mariadbv1alpha1.Job{
+							InitJob: &mariadbv1alpha1.GaleraInitJob{
 								Metadata: &mariadbv1alpha1.Metadata{
 									Labels: map[string]string{
 										"sidecar.istio.io/inject": "true",
@@ -974,7 +974,7 @@ func TestGaleraInitJobMeta(t *testing.T) {
 					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
 						GaleraSpec: mariadbv1alpha1.GaleraSpec{
-							InitJob: &mariadbv1alpha1.Job{
+							InitJob: &mariadbv1alpha1.GaleraInitJob{
 								Metadata: &mariadbv1alpha1.Metadata{
 									Annotations: map[string]string{
 										"sidecar.istio.io/inject": "false",
@@ -1080,7 +1080,7 @@ func TestGaleraInitJobResources(t *testing.T) {
 					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
 						GaleraSpec: mariadbv1alpha1.GaleraSpec{
-							InitJob: &mariadbv1alpha1.Job{
+							InitJob: &mariadbv1alpha1.GaleraInitJob{
 								Resources: &corev1.ResourceRequirements{
 									Requests: corev1.ResourceList{
 										"cpu": resource.MustParse("100m"),
