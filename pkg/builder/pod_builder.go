@@ -383,8 +383,8 @@ func mariadbVolumes(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt) []c
 			},
 		})
 	}
-	for _, v := range mariadb.Spec.Volumes {
-		volumes = append(volumes, v.ToKubernetesType())
+	if mariadb.Spec.Volumes != nil {
+		volumes = append(volumes, mariadbv1alpha1.ToKubernetesSlice(mariadb.Spec.Volumes)...)
 	}
 	if mariadbOpts.extraVolumes != nil {
 		volumes = append(volumes, mariadbOpts.extraVolumes...)
