@@ -174,8 +174,10 @@ func (b *Builder) exporterContainer(exporter *mariadbv1alpha1.Exporter, args []s
 	}
 
 	return corev1.Container{
-		Name: "exporter",
-		Args: args,
+		Name:            "exporter",
+		Image:           exporter.Image,
+		ImagePullPolicy: exporter.ImagePullPolicy,
+		Args:            args,
 		Ports: []corev1.ContainerPort{
 			{
 				Name:          MetricsPortName,
