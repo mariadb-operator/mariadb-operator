@@ -103,7 +103,7 @@ func TestMaxScaleImagePullSecrets(t *testing.T) {
 			maxScale: &mariadbv1alpha1.MaxScale{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MaxScaleSpec{
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					MaxScalePodTemplate: mariadbv1alpha1.MaxScalePodTemplate{
 						ImagePullSecrets: []corev1.LocalObjectReference{
 							{
 								Name: "maxscale-registry",

@@ -14,6 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -472,6 +473,64 @@ type MaxScaleMetrics struct {
 	ServiceMonitor ServiceMonitor `json:"serviceMonitor"`
 }
 
+// MaxScalePodTemplate defines a template for MaxScale Pods.
+type MaxScalePodTemplate struct {
+	// PodMetadata defines extra metadata for the Pod.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	PodMetadata *Metadata `json:"podMetadata,omitempty"`
+	// ImagePullSecrets is the list of pull Secrets to be used to pull the image.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	ImagePullSecrets []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty" webhook:"inmutable"`
+	// SecurityContext holds pod-level security attributes and common container settings.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	PodSecurityContext *corev1.PodSecurityContext `json:"podSecurityContext,omitempty"`
+	// ServiceAccountName is the name of the ServiceAccount to be used by the Pods.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	ServiceAccountName *string `json:"serviceAccountName,omitempty" webhook:"inmutableinit"`
+	// Affinity to be used in the Pod.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	Affinity *AffinityConfig `json:"affinity,omitempty"`
+	// NodeSelector to be used in the Pod.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
+	// Tolerations to be used in the Pod.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
+	// PriorityClassName to be used in the Pod.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	PriorityClassName *string `json:"priorityClassName,omitempty" webhook:"inmutable"`
+	// TopologySpreadConstraints to be used in the Pod.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	TopologySpreadConstraints []corev1.TopologySpreadConstraint `json:"topologySpreadConstraints,omitempty"`
+}
+
+// SetDefaults sets reasonable defaults.
+func (p *MaxScalePodTemplate) SetDefaults(objMeta metav1.ObjectMeta) {
+	if p.ServiceAccountName == nil {
+		p.ServiceAccountName = ptr.To(p.ServiceAccountKey(objMeta).Name)
+	}
+	if p.Affinity != nil {
+		p.Affinity.SetDefaults(objMeta.Name)
+	}
+}
+
+// ServiceAccountKey defines the key for the ServiceAccount object.
+func (p *MaxScalePodTemplate) ServiceAccountKey(objMeta metav1.ObjectMeta) types.NamespacedName {
+	return types.NamespacedName{
+		Name:      ptr.Deref(p.ServiceAccountName, objMeta.Name),
+		Namespace: objMeta.Namespace,
+	}
+}
+
 // MaxScaleSpec defines the desired state of MaxScale.
 type MaxScaleSpec struct {
 	// ContainerTemplate defines templates to configure Container objects.
@@ -479,7 +538,7 @@ type MaxScaleSpec struct {
 	ContainerTemplate `json:",inline"`
 	// PodTemplate defines templates to configure Pod objects.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	PodTemplate `json:",inline"`
+	MaxScalePodTemplate `json:",inline"`
 	// SuspendTemplate defines whether the MaxScale reconciliation loop is enabled. This can be useful for maintenance, as disabling the reconciliation loop prevents the operator from interfering with user operations during maintenance activities.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	SuspendTemplate `json:",inline"`
@@ -737,7 +796,7 @@ func (m *MaxScale) SetDefaults(env *environment.OperatorEnv, mariadb *MariaDB) {
 		m.Spec.Affinity.SetDefaults(antiAffinityInstances...)
 	}
 
-	m.Spec.PodTemplate.SetDefaults(m.ObjectMeta)
+	m.Spec.MaxScalePodTemplate.SetDefaults(m.ObjectMeta)
 }
 
 func (m *MaxScale) getAntiAffinityInstances(mariadb *MariaDB) []string {

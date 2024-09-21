@@ -456,7 +456,7 @@ func (r *MaxScaleReconciler) reconcileSecret(ctx context.Context, req *requestMa
 }
 
 func (r *MaxScaleReconciler) reconcileServiceAccount(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
-	key := req.mxs.Spec.PodTemplate.ServiceAccountKey(req.mxs.ObjectMeta)
+	key := req.mxs.Spec.MaxScalePodTemplate.ServiceAccountKey(req.mxs.ObjectMeta)
 	_, err := r.RBACReconciler.ReconcileServiceAccount(ctx, key, req.mxs, req.mxs.Spec.InheritMetadata)
 	return ctrl.Result{}, err
 }
