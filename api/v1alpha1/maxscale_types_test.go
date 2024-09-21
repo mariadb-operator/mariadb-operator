@@ -372,7 +372,7 @@ var _ = Describe("MaxScale types", func() {
 								AntiAffinityEnabled: ptr.To(true),
 								Affinity: Affinity{
 									PodAntiAffinity: &PodAntiAffinity{
-										RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
+										RequiredDuringSchedulingIgnoredDuringExecution: []PodAffinityTerm{
 											{
 												LabelSelector: &metav1.LabelSelector{
 													MatchExpressions: []metav1.LabelSelectorRequirement{
@@ -556,7 +556,7 @@ var _ = Describe("MaxScale types", func() {
 									AntiAffinityEnabled: ptr.To(true),
 									Affinity: Affinity{
 										PodAntiAffinity: &PodAntiAffinity{
-											RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
+											RequiredDuringSchedulingIgnoredDuringExecution: []PodAffinityTerm{
 												{
 													LabelSelector: &metav1.LabelSelector{
 														MatchExpressions: []metav1.LabelSelectorRequirement{
