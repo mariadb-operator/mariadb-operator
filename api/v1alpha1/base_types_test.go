@@ -256,8 +256,8 @@ var _ = Describe("Base types", func() {
 				"Already defaulted",
 				&AffinityConfig{
 					AntiAffinityEnabled: ptr.To(true),
-					Affinity: corev1.Affinity{
-						PodAntiAffinity: &corev1.PodAntiAffinity{
+					Affinity: Affinity{
+						PodAntiAffinity: &PodAntiAffinity{
 							RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
 								{
 									LabelSelector: &metav1.LabelSelector{
@@ -278,8 +278,8 @@ var _ = Describe("Base types", func() {
 				[]string{"mariadb", "maxscale"},
 				&AffinityConfig{
 					AntiAffinityEnabled: ptr.To(true),
-					Affinity: corev1.Affinity{
-						PodAntiAffinity: &corev1.PodAntiAffinity{
+					Affinity: Affinity{
+						PodAntiAffinity: &PodAntiAffinity{
 							RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
 								{
 									LabelSelector: &metav1.LabelSelector{
@@ -316,8 +316,8 @@ var _ = Describe("Base types", func() {
 				[]string{"mariadb"},
 				&AffinityConfig{
 					AntiAffinityEnabled: ptr.To(true),
-					Affinity: corev1.Affinity{
-						PodAntiAffinity: &corev1.PodAntiAffinity{
+					Affinity: Affinity{
+						PodAntiAffinity: &PodAntiAffinity{
 							RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
 								{
 									LabelSelector: &metav1.LabelSelector{
@@ -344,8 +344,8 @@ var _ = Describe("Base types", func() {
 				[]string{"mariadb", "maxscale"},
 				&AffinityConfig{
 					AntiAffinityEnabled: ptr.To(true),
-					Affinity: corev1.Affinity{
-						PodAntiAffinity: &corev1.PodAntiAffinity{
+					Affinity: Affinity{
+						PodAntiAffinity: &PodAntiAffinity{
 							RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
 								{
 									LabelSelector: &metav1.LabelSelector{

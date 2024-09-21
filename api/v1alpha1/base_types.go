@@ -188,7 +188,7 @@ func (j *Job) SetDefaults(mariadbObjMeta metav1.ObjectMeta) {
 type AffinityConfig struct {
 	// Affinity to be used in the Pod.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	corev1.Affinity `json:",inline"`
+	Affinity `json:",inline"`
 	// AntiAffinityEnabled configures PodAntiAffinity so each Pod is scheduled in a different Node, enabling HA.
 	// Make sure you have at least as many Nodes available as the replicas to not end up with unscheduled Pods.
 	// +optional
@@ -199,8 +199,8 @@ type AffinityConfig struct {
 // SetDefaults sets reasonable defaults.
 func (a *AffinityConfig) SetDefaults(antiAffinityInstances ...string) {
 	if ptr.Deref(a.AntiAffinityEnabled, false) && reflect.ValueOf(a.Affinity).IsZero() && len(antiAffinityInstances) > 0 {
-		a.Affinity = corev1.Affinity{
-			PodAntiAffinity: &corev1.PodAntiAffinity{
+		a.Affinity = Affinity{
+			PodAntiAffinity: &PodAntiAffinity{
 				RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
 					{
 						LabelSelector: &metav1.LabelSelector{

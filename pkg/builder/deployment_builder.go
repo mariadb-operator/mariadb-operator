@@ -160,7 +160,7 @@ func (b *Builder) exporterPodTemplate(objMeta metav1.ObjectMeta, exporter *maria
 				},
 			},
 			SecurityContext:           securityContext,
-			Affinity:                  &affinity,
+			Affinity:                  ptr.To(affinity.ToKubernetesType()),
 			NodeSelector:              exporter.NodeSelector,
 			Tolerations:               exporter.Tolerations,
 			PriorityClassName:         ptr.Deref(exporter.PriorityClassName, ""),

@@ -2,24 +2,21 @@ package v1alpha1
 
 import (
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/utils/ptr"
 )
 
 // nolint:lll
 // Represents the source of a volume to mount. Only one of its members may be specified.
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#volume-v1-core.
 type VolumeSource struct {
-	// mount host directories as read/write.
 	// +optional
 	HostPath *corev1.HostPathVolumeSource `json:"hostPath,omitempty" protobuf:"bytes,1,opt,name=hostPath"`
-	// emptyDir represents a temporary directory that shares a pod's lifetime.
 	// +optional
 	EmptyDir *corev1.EmptyDirVolumeSource `json:"emptyDir,omitempty" protobuf:"bytes,2,opt,name=emptyDir"`
-	// nfs represents an NFS mount on the host that shares a pod's lifetime
 	// +optional
 	NFS *corev1.NFSVolumeSource `json:"nfs,omitempty" protobuf:"bytes,7,opt,name=nfs"`
-	// persistentVolumeClaimVolumeSource represents a reference to a PersistentVolumeClaim in the same namespace.
 	// +optional
 	PersistentVolumeClaim *corev1.PersistentVolumeClaimVolumeSource `json:"persistentVolumeClaim,omitempty" protobuf:"bytes,10,opt,name=persistentVolumeClaim"`
-	// csi (Container Storage Interface) represents ephemeral storage that is handled by certain external CSI drivers (Beta feature).
 	// +optional
 	CSI *corev1.CSIVolumeSource `json:"csi,omitempty" protobuf:"bytes,28,opt,name=csi"`
 }
@@ -45,10 +42,9 @@ func (v VolumeSource) ToKubernetesType() corev1.VolumeSource {
 }
 
 // Volume represents a named volume in a pod that may be accessed by any container in the pod.
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#volume-v1-core.
 type Volume struct {
-	// name of the volume.
-	Name string `json:"name" protobuf:"bytes,1,opt,name=name"`
-	// volumeSource represents the location and type of the mounted volume.
+	Name         string `json:"name" protobuf:"bytes,1,opt,name=name"`
 	VolumeSource `json:",inline" protobuf:"bytes,2,opt,name=volumeSource"`
 }
 
@@ -57,4 +53,58 @@ func (v Volume) ToKubernetesType() corev1.Volume {
 		Name:         v.Name,
 		VolumeSource: v.VolumeSource.ToKubernetesType(),
 	}
+}
+
+// nolint:lll
+type PodAffinity struct {
+	// +optional
+	// +listType=atomic
+	RequiredDuringSchedulingIgnoredDuringExecution []corev1.PodAffinityTerm `json:"requiredDuringSchedulingIgnoredDuringExecution,omitempty" protobuf:"bytes,1,rep,name=requiredDuringSchedulingIgnoredDuringExecution"`
+	// +optional
+	// +listType=atomic
+	PreferredDuringSchedulingIgnoredDuringExecution []corev1.WeightedPodAffinityTerm `json:"preferredDuringSchedulingIgnoredDuringExecution,omitempty" protobuf:"bytes,2,rep,name=preferredDuringSchedulingIgnoredDuringExecution"`
+}
+
+func (p PodAffinity) ToKubernetesType() corev1.PodAffinity {
+	return corev1.PodAffinity{
+		RequiredDuringSchedulingIgnoredDuringExecution:  p.RequiredDuringSchedulingIgnoredDuringExecution,
+		PreferredDuringSchedulingIgnoredDuringExecution: p.PreferredDuringSchedulingIgnoredDuringExecution,
+	}
+}
+
+// nolint:lll
+type PodAntiAffinity struct {
+	// +optional
+	// +listType=atomic
+	RequiredDuringSchedulingIgnoredDuringExecution []corev1.PodAffinityTerm `json:"requiredDuringSchedulingIgnoredDuringExecution,omitempty" protobuf:"bytes,1,rep,name=requiredDuringSchedulingIgnoredDuringExecution"`
+	// +optional
+	// +listType=atomic
+	PreferredDuringSchedulingIgnoredDuringExecution []corev1.WeightedPodAffinityTerm `json:"preferredDuringSchedulingIgnoredDuringExecution,omitempty" protobuf:"bytes,2,rep,name=preferredDuringSchedulingIgnoredDuringExecution"`
+}
+
+func (p PodAntiAffinity) ToKubernetesType() corev1.PodAntiAffinity {
+	return corev1.PodAntiAffinity{
+		RequiredDuringSchedulingIgnoredDuringExecution:  p.RequiredDuringSchedulingIgnoredDuringExecution,
+		PreferredDuringSchedulingIgnoredDuringExecution: p.PreferredDuringSchedulingIgnoredDuringExecution,
+	}
+}
+
+// Affinity is a group of affinity scheduling rules.
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#affinity-v1-core.
+type Affinity struct {
+	// +optional
+	PodAffinity *PodAffinity `json:"podAffinity,omitempty" protobuf:"bytes,2,opt,name=podAffinity"`
+	// +optional
+	PodAntiAffinity *PodAntiAffinity `json:"podAntiAffinity,omitempty" protobuf:"bytes,3,opt,name=podAntiAffinity"`
+}
+
+func (a Affinity) ToKubernetesType() corev1.Affinity {
+	var affinity corev1.Affinity
+	if a.PodAffinity != nil {
+		affinity.PodAffinity = ptr.To(a.PodAffinity.ToKubernetesType())
+	}
+	if a.PodAntiAffinity != nil {
+		affinity.PodAntiAffinity = ptr.To(a.PodAntiAffinity.ToKubernetesType())
+	}
+	return affinity
 }

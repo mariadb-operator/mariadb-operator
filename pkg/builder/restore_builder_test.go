@@ -168,7 +168,7 @@ func TestBuildRestore(t *testing.T) {
 				RestoreJob: &mariadbv1alpha1.Job{
 					Affinity: &mariadbv1alpha1.AffinityConfig{
 						AntiAffinityEnabled: ptr.To(true),
-						Affinity:            corev1.Affinity{},
+						Affinity:            mariadbv1alpha1.Affinity{},
 					},
 					Resources: &corev1.ResourceRequirements{
 						Requests: corev1.ResourceList{
