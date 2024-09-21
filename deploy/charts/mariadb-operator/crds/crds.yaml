@@ -63,7 +63,9 @@ spec:
                       Make sure you have at least as many Nodes available as the replicas to not end up with unscheduled Pods.
                     type: boolean
                   podAffinity:
-                    description: nolint:lll
+                    description: |-
+                      Pod affinity is a group of inter pod affinity scheduling rules.
+                      Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#podaffinity-v1-core.
                     properties:
                       preferredDuringSchedulingIgnoredDuringExecution:
                         items:
@@ -402,7 +404,9 @@ spec:
                         x-kubernetes-list-type: atomic
                     type: object
                   podAntiAffinity:
-                    description: nolint:lll
+                    description: |-
+                      Pod anti affinity is a group of inter pod anti affinity scheduling rules.
+                      Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#podantiaffinity-v1-core.
                     properties:
                       preferredDuringSchedulingIgnoredDuringExecution:
                         items:
@@ -2790,7 +2794,9 @@ spec:
                       Make sure you have at least as many Nodes available as the replicas to not end up with unscheduled Pods.
                     type: boolean
                   podAffinity:
-                    description: nolint:lll
+                    description: |-
+                      Pod affinity is a group of inter pod affinity scheduling rules.
+                      Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#podaffinity-v1-core.
                     properties:
                       preferredDuringSchedulingIgnoredDuringExecution:
                         items:
@@ -3129,7 +3135,9 @@ spec:
                         x-kubernetes-list-type: atomic
                     type: object
                   podAntiAffinity:
-                    description: nolint:lll
+                    description: |-
+                      Pod anti affinity is a group of inter pod anti affinity scheduling rules.
+                      Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#podantiaffinity-v1-core.
                     properties:
                       preferredDuringSchedulingIgnoredDuringExecution:
                         items:
@@ -3504,7 +3512,9 @@ spec:
                               Make sure you have at least as many Nodes available as the replicas to not end up with unscheduled Pods.
                             type: boolean
                           podAffinity:
-                            description: nolint:lll
+                            description: |-
+                              Pod affinity is a group of inter pod affinity scheduling rules.
+                              Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#podaffinity-v1-core.
                             properties:
                               preferredDuringSchedulingIgnoredDuringExecution:
                                 items:
@@ -3848,7 +3858,9 @@ spec:
                                 x-kubernetes-list-type: atomic
                             type: object
                           podAntiAffinity:
-                            description: nolint:lll
+                            description: |-
+                              Pod anti affinity is a group of inter pod anti affinity scheduling rules.
+                              Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#podantiaffinity-v1-core.
                             properties:
                               preferredDuringSchedulingIgnoredDuringExecution:
                                 items:
@@ -6761,7 +6773,9 @@ spec:
                               Make sure you have at least as many Nodes available as the replicas to not end up with unscheduled Pods.
                             type: boolean
                           podAffinity:
-                            description: nolint:lll
+                            description: |-
+                              Pod affinity is a group of inter pod affinity scheduling rules.
+                              Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#podaffinity-v1-core.
                             properties:
                               preferredDuringSchedulingIgnoredDuringExecution:
                                 items:
@@ -7105,7 +7119,9 @@ spec:
                                 x-kubernetes-list-type: atomic
                             type: object
                           podAntiAffinity:
-                            description: nolint:lll
+                            description: |-
+                              Pod anti affinity is a group of inter pod anti affinity scheduling rules.
+                              Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#podantiaffinity-v1-core.
                             properties:
                               preferredDuringSchedulingIgnoredDuringExecution:
                                 items:
@@ -9435,7 +9451,9 @@ spec:
                                   Make sure you have at least as many Nodes available as the replicas to not end up with unscheduled Pods.
                                 type: boolean
                               podAffinity:
-                                description: nolint:lll
+                                description: |-
+                                  Pod affinity is a group of inter pod affinity scheduling rules.
+                                  Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#podaffinity-v1-core.
                                 properties:
                                   preferredDuringSchedulingIgnoredDuringExecution:
                                     items:
@@ -9781,7 +9799,9 @@ spec:
                                     x-kubernetes-list-type: atomic
                                 type: object
                               podAntiAffinity:
-                                description: nolint:lll
+                                description: |-
+                                  Pod anti affinity is a group of inter pod anti affinity scheduling rules.
+                                  Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#podantiaffinity-v1-core.
                                 properties:
                                   preferredDuringSchedulingIgnoredDuringExecution:
                                     items:
@@ -10757,7 +10777,9 @@ spec:
                               Make sure you have at least as many Nodes available as the replicas to not end up with unscheduled Pods.
                             type: boolean
                           podAffinity:
-                            description: nolint:lll
+                            description: |-
+                              Pod affinity is a group of inter pod affinity scheduling rules.
+                              Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#podaffinity-v1-core.
                             properties:
                               preferredDuringSchedulingIgnoredDuringExecution:
                                 items:
@@ -11101,7 +11123,9 @@ spec:
                                 x-kubernetes-list-type: atomic
                             type: object
                           podAntiAffinity:
-                            description: nolint:lll
+                            description: |-
+                              Pod anti affinity is a group of inter pod anti affinity scheduling rules.
+                              Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#podantiaffinity-v1-core.
                             properties:
                               preferredDuringSchedulingIgnoredDuringExecution:
                                 items:
@@ -14876,7 +14900,9 @@ spec:
                       Make sure you have at least as many Nodes available as the replicas to not end up with unscheduled Pods.
                     type: boolean
                   podAffinity:
-                    description: nolint:lll
+                    description: |-
+                      Pod affinity is a group of inter pod affinity scheduling rules.
+                      Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#podaffinity-v1-core.
                     properties:
                       preferredDuringSchedulingIgnoredDuringExecution:
                         items:
@@ -15215,7 +15241,9 @@ spec:
                         x-kubernetes-list-type: atomic
                     type: object
                   podAntiAffinity:
-                    description: nolint:lll
+                    description: |-
+                      Pod anti affinity is a group of inter pod anti affinity scheduling rules.
+                      Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#podantiaffinity-v1-core.
                     properties:
                       preferredDuringSchedulingIgnoredDuringExecution:
                         items:
@@ -16654,7 +16682,9 @@ spec:
                               Make sure you have at least as many Nodes available as the replicas to not end up with unscheduled Pods.
                             type: boolean
                           podAffinity:
-                            description: nolint:lll
+                            description: |-
+                              Pod affinity is a group of inter pod affinity scheduling rules.
+                              Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#podaffinity-v1-core.
                             properties:
                               preferredDuringSchedulingIgnoredDuringExecution:
                                 items:
@@ -16998,7 +17028,9 @@ spec:
                                 x-kubernetes-list-type: atomic
                             type: object
                           podAntiAffinity:
-                            description: nolint:lll
+                            description: |-
+                              Pod anti affinity is a group of inter pod anti affinity scheduling rules.
+                              Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#podantiaffinity-v1-core.
                             properties:
                               preferredDuringSchedulingIgnoredDuringExecution:
                                 items:
@@ -19079,7 +19111,9 @@ spec:
                       Make sure you have at least as many Nodes available as the replicas to not end up with unscheduled Pods.
                     type: boolean
                   podAffinity:
-                    description: nolint:lll
+                    description: |-
+                      Pod affinity is a group of inter pod affinity scheduling rules.
+                      Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#podaffinity-v1-core.
                     properties:
                       preferredDuringSchedulingIgnoredDuringExecution:
                         items:
@@ -19418,7 +19452,9 @@ spec:
                         x-kubernetes-list-type: atomic
                     type: object
                   podAntiAffinity:
-                    description: nolint:lll
+                    description: |-
+                      Pod anti affinity is a group of inter pod anti affinity scheduling rules.
+                      Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#podantiaffinity-v1-core.
                     properties:
                       preferredDuringSchedulingIgnoredDuringExecution:
                         items:
@@ -20825,7 +20861,9 @@ spec:
                       Make sure you have at least as many Nodes available as the replicas to not end up with unscheduled Pods.
                     type: boolean
                   podAffinity:
-                    description: nolint:lll
+                    description: |-
+                      Pod affinity is a group of inter pod affinity scheduling rules.
+                      Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#podaffinity-v1-core.
                     properties:
                       preferredDuringSchedulingIgnoredDuringExecution:
                         items:
@@ -21164,7 +21202,9 @@ spec:
                         x-kubernetes-list-type: atomic
                     type: object
                   podAntiAffinity:
-                    description: nolint:lll
+                    description: |-
+                      Pod anti affinity is a group of inter pod anti affinity scheduling rules.
+                      Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#podantiaffinity-v1-core.
                     properties:
                       preferredDuringSchedulingIgnoredDuringExecution:
                         items:
