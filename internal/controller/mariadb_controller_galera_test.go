@@ -226,7 +226,7 @@ var _ = Describe("MariaDB Galera", Ordered, func() {
 								},
 							},
 						},
-						InitJob: &mariadbv1alpha1.Job{
+						InitJob: &mariadbv1alpha1.GaleraInitJob{
 							Metadata: &mariadbv1alpha1.Metadata{
 								Labels: map[string]string{
 									"sidecar.istio.io/inject": "false",

@@ -262,7 +262,7 @@ func (b *Builder) BuilGaleraInitJob(key types.NamespacedName, mariadb *mariadbv1
 	if !galera.Enabled {
 		return nil, errors.New("Galera must be enabled")
 	}
-	initJob := ptr.Deref(galera.InitJob, mariadbv1alpha1.Job{})
+	initJob := ptr.Deref(galera.InitJob, mariadbv1alpha1.GaleraInitJob{})
 	extraMeta := ptr.Deref(initJob.Metadata, mariadbv1alpha1.Metadata{})
 	objMeta :=
 		metadata.NewMetadataBuilder(key).
@@ -273,11 +273,6 @@ func (b *Builder) BuilGaleraInitJob(key types.NamespacedName, mariadb *mariadbv1
 		filepath.Join(InitConfigPath, InitEntrypointKey),
 	})
 
-	var affinity *corev1.Affinity
-	if initJob.Affinity != nil {
-		affinity = ptr.To(initJob.Affinity.ToKubernetesType())
-	}
-
 	opts := []mariadbPodOpt{
 		withMeta(mariadb.Spec.InheritMetadata),
 		withMeta(&extraMeta),
@@ -285,7 +280,6 @@ func (b *Builder) BuilGaleraInitJob(key types.NamespacedName, mariadb *mariadbv1
 		withArgs(command.Args),
 		withRestartPolicy(corev1.RestartPolicyOnFailure),
 		withResources(initJob.Resources),
-		withAffinity(affinity),
 		withExtraVolumes([]corev1.Volume{
 			{
 				Name: StorageVolume,
