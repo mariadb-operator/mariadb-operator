@@ -114,7 +114,7 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alph
 					Volumes:            volumes,
 					InitContainers:     []corev1.Container{*mariadbContainer},
 					Containers:         []corev1.Container{*operatorContainer},
-					Affinity:           &affinity,
+					Affinity:           ptr.To(affinity.ToKubernetesType()),
 					NodeSelector:       backup.Spec.NodeSelector,
 					Tolerations:        backup.Spec.Tolerations,
 					SecurityContext:    securityContext,
@@ -241,7 +241,7 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 					Volumes:            volumes,
 					InitContainers:     []corev1.Container{*operatorContainer},
 					Containers:         []corev1.Container{*mariadbContainer},
-					Affinity:           &affinity,
+					Affinity:           ptr.To(affinity.ToKubernetesType()),
 					NodeSelector:       restore.Spec.NodeSelector,
 					Tolerations:        restore.Spec.Tolerations,
 					SecurityContext:    securityContext,
@@ -474,7 +474,7 @@ func (b *Builder) BuildSqlJob(key types.NamespacedName, sqlJob *mariadbv1alpha1.
 					ImagePullSecrets:   batchImagePullSecrets(mariadb, sqlJob.Spec.ImagePullSecrets),
 					Volumes:            volumes,
 					Containers:         []corev1.Container{*container},
-					Affinity:           &affinity,
+					Affinity:           ptr.To(affinity.ToKubernetesType()),
 					NodeSelector:       sqlJob.Spec.NodeSelector,
 					Tolerations:        sqlJob.Spec.Tolerations,
 					SecurityContext:    securityContext,
@@ -562,8 +562,8 @@ func galeraRecoveryJobAffinity(mariadb *mariadbv1alpha1.MariaDB, podIndex int) (
 
 	return &mariadbv1alpha1.AffinityConfig{
 		AntiAffinityEnabled: ptr.To(false),
-		Affinity: corev1.Affinity{
-			PodAffinity: &corev1.PodAffinity{
+		Affinity: mariadbv1alpha1.Affinity{
+			PodAffinity: &mariadbv1alpha1.PodAffinity{
 				RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
 					{
 						LabelSelector: &metav1.LabelSelector{

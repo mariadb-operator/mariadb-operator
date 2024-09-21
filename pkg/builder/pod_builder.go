@@ -246,7 +246,7 @@ func (b *Builder) maxscalePodTemplate(mxs *mariadbv1alpha1.MaxScale) (*corev1.Po
 			ImagePullSecrets:             mxs.Spec.ImagePullSecrets,
 			Volumes:                      maxscaleVolumes(mxs),
 			SecurityContext:              securityContext,
-			Affinity:                     &affinity,
+			Affinity:                     ptr.To(affinity.ToKubernetesType()),
 			NodeSelector:                 mxs.Spec.NodeSelector,
 			Tolerations:                  mxs.Spec.Tolerations,
 			PriorityClassName:            ptr.Deref(mxs.Spec.PriorityClassName, ""),
@@ -274,7 +274,7 @@ func mariadbAffinity(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt) *c
 	}
 	for _, affinity := range affinityConfig {
 		if affinity != nil {
-			return &affinity.Affinity
+			return ptr.To(affinity.Affinity.ToKubernetesType())
 		}
 	}
 	return nil
