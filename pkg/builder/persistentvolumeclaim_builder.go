@@ -20,7 +20,7 @@ func (b *Builder) BuildBackupPVC(key types.NamespacedName, backup *mariadbv1alph
 			Build()
 	return &corev1.PersistentVolumeClaim{
 		ObjectMeta: objMeta,
-		Spec:       *backup.Spec.Storage.PersistentVolumeClaim,
+		Spec:       backup.Spec.Storage.PersistentVolumeClaim.ToKubernetesType(),
 	}, nil
 }
 
@@ -41,6 +41,6 @@ func (b *Builder) BuildStoragePVC(key types.NamespacedName, tpl *mariadbv1alpha1
 			Build()
 	return &corev1.PersistentVolumeClaim{
 		ObjectMeta: objMeta,
-		Spec:       tpl.PersistentVolumeClaimSpec,
+		Spec:       tpl.PersistentVolumeClaimSpec.ToKubernetesType(),
 	}, nil
 }

@@ -21,7 +21,7 @@ type BackupStorage struct {
 	// PersistentVolumeClaim is a Kubernetes PVC specification.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	PersistentVolumeClaim *corev1.PersistentVolumeClaimSpec `json:"persistentVolumeClaim,omitempty"`
+	PersistentVolumeClaim *PersistentVolumeClaimSpec `json:"persistentVolumeClaim,omitempty"`
 	// Volume is a Kubernetes volume specification.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec

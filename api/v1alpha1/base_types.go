@@ -376,7 +376,7 @@ func (p *JobPodTemplate) ServiceAccountKey(objMeta metav1.ObjectMeta) types.Name
 type VolumeClaimTemplate struct {
 	// PersistentVolumeClaimSpec is the specification of a PVC.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	corev1.PersistentVolumeClaimSpec `json:",inline"`
+	PersistentVolumeClaimSpec `json:",inline"`
 	// Metadata to be added to the PVC metadata.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}

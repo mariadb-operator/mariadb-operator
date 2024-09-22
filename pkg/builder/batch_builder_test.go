@@ -187,7 +187,7 @@ func TestBackupJobMeta(t *testing.T) {
 			backup: &mariadbv1alpha1.Backup{
 				Spec: mariadbv1alpha1.BackupSpec{
 					Storage: mariadbv1alpha1.BackupStorage{
-						PersistentVolumeClaim: &corev1.PersistentVolumeClaimSpec{},
+						PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimSpec{},
 					},
 				},
 			},
@@ -205,7 +205,7 @@ func TestBackupJobMeta(t *testing.T) {
 			backup: &mariadbv1alpha1.Backup{
 				Spec: mariadbv1alpha1.BackupSpec{
 					Storage: mariadbv1alpha1.BackupStorage{
-						PersistentVolumeClaim: &corev1.PersistentVolumeClaimSpec{},
+						PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimSpec{},
 					},
 					InheritMetadata: &mariadbv1alpha1.Metadata{
 						Labels: map[string]string{
@@ -239,7 +239,7 @@ func TestBackupJobMeta(t *testing.T) {
 			backup: &mariadbv1alpha1.Backup{
 				Spec: mariadbv1alpha1.BackupSpec{
 					Storage: mariadbv1alpha1.BackupStorage{
-						PersistentVolumeClaim: &corev1.PersistentVolumeClaimSpec{},
+						PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimSpec{},
 					},
 					JobPodTemplate: mariadbv1alpha1.JobPodTemplate{
 						PodMetadata: &mariadbv1alpha1.Metadata{
@@ -271,7 +271,7 @@ func TestBackupJobMeta(t *testing.T) {
 			backup: &mariadbv1alpha1.Backup{
 				Spec: mariadbv1alpha1.BackupSpec{
 					Storage: mariadbv1alpha1.BackupStorage{
-						PersistentVolumeClaim: &corev1.PersistentVolumeClaimSpec{},
+						PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimSpec{},
 					},
 					InheritMetadata: &mariadbv1alpha1.Metadata{
 						Labels: map[string]string{
@@ -315,7 +315,7 @@ func TestBackupJobMeta(t *testing.T) {
 			backup: &mariadbv1alpha1.Backup{
 				Spec: mariadbv1alpha1.BackupSpec{
 					Storage: mariadbv1alpha1.BackupStorage{
-						PersistentVolumeClaim: &corev1.PersistentVolumeClaimSpec{},
+						PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimSpec{},
 					},
 					InheritMetadata: &mariadbv1alpha1.Metadata{
 						Annotations: map[string]string{
@@ -1486,7 +1486,7 @@ func TestGaleraRecoveryJobVolumes(t *testing.T) {
 							},
 							Config: mariadbv1alpha1.GaleraConfig{
 								VolumeClaimTemplate: &mariadbv1alpha1.VolumeClaimTemplate{
-									PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
+									PersistentVolumeClaimSpec: mariadbv1alpha1.PersistentVolumeClaimSpec{
 										Resources: corev1.VolumeResourceRequirements{
 											Requests: corev1.ResourceList{
 												"storage": resource.MustParse("1Gi"),
@@ -1503,7 +1503,7 @@ func TestGaleraRecoveryJobVolumes(t *testing.T) {
 					Storage: mariadbv1alpha1.Storage{
 						Size: ptr.To(resource.MustParse("1Gi")),
 						VolumeClaimTemplate: &mariadbv1alpha1.VolumeClaimTemplate{
-							PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
+							PersistentVolumeClaimSpec: mariadbv1alpha1.PersistentVolumeClaimSpec{
 								Resources: corev1.VolumeResourceRequirements{
 									Requests: corev1.ResourceList{
 										"storage": resource.MustParse("1Gi"),
@@ -1538,7 +1538,7 @@ func TestGaleraRecoveryJobVolumes(t *testing.T) {
 					Storage: mariadbv1alpha1.Storage{
 						Size: ptr.To(resource.MustParse("1Gi")),
 						VolumeClaimTemplate: &mariadbv1alpha1.VolumeClaimTemplate{
-							PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
+							PersistentVolumeClaimSpec: mariadbv1alpha1.PersistentVolumeClaimSpec{
 								Resources: corev1.VolumeResourceRequirements{
 									Requests: corev1.ResourceList{
 										"storage": resource.MustParse("1Gi"),

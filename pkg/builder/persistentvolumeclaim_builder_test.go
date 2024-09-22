@@ -30,7 +30,7 @@ func TestInvalidBackupPVC(t *testing.T) {
 			backup: &mariadbv1alpha1.Backup{
 				Spec: mariadbv1alpha1.BackupSpec{
 					Storage: mariadbv1alpha1.BackupStorage{
-						PersistentVolumeClaim: &corev1.PersistentVolumeClaimSpec{
+						PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimSpec{
 							Resources: corev1.VolumeResourceRequirements{
 								Requests: corev1.ResourceList{
 									corev1.ResourceStorage: resource.MustParse("100Mi"),
@@ -75,7 +75,7 @@ func TestBackupPVCMeta(t *testing.T) {
 			backup: &mariadbv1alpha1.Backup{
 				Spec: mariadbv1alpha1.BackupSpec{
 					Storage: mariadbv1alpha1.BackupStorage{
-						PersistentVolumeClaim: &corev1.PersistentVolumeClaimSpec{
+						PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimSpec{
 							Resources: corev1.VolumeResourceRequirements{
 								Requests: corev1.ResourceList{
 									corev1.ResourceStorage: resource.MustParse("100Mi"),
@@ -98,7 +98,7 @@ func TestBackupPVCMeta(t *testing.T) {
 			backup: &mariadbv1alpha1.Backup{
 				Spec: mariadbv1alpha1.BackupSpec{
 					Storage: mariadbv1alpha1.BackupStorage{
-						PersistentVolumeClaim: &corev1.PersistentVolumeClaimSpec{
+						PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimSpec{
 							Resources: corev1.VolumeResourceRequirements{
 								Requests: corev1.ResourceList{
 									corev1.ResourceStorage: resource.MustParse("100Mi"),

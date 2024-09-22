@@ -214,7 +214,7 @@ var _ = Describe("MariaDB Galera", Ordered, func() {
 						Config: mariadbv1alpha1.GaleraConfig{
 							ReuseStorageVolume: ptr.To(false),
 							VolumeClaimTemplate: &mariadbv1alpha1.VolumeClaimTemplate{
-								PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
+								PersistentVolumeClaimSpec: mariadbv1alpha1.PersistentVolumeClaimSpec{
 									Resources: corev1.VolumeResourceRequirements{
 										Requests: corev1.ResourceList{
 											"storage": resource.MustParse("100Mi"),

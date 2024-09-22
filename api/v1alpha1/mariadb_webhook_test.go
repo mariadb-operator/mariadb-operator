@@ -565,7 +565,7 @@ var _ = Describe("MariaDB webhook", func() {
 					Storage: Storage{
 						Size: ptr.To(resource.MustParse("100Mi")),
 						VolumeClaimTemplate: &VolumeClaimTemplate{
-							PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
+							PersistentVolumeClaimSpec: PersistentVolumeClaimSpec{
 								Resources: corev1.VolumeResourceRequirements{
 									Requests: corev1.ResourceList{
 										corev1.ResourceStorage: resource.MustParse("100Mi"),
