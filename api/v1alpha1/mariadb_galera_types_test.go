@@ -46,7 +46,7 @@ var _ = Describe("MariaDB Galera types", func() {
 					GaleraSpec: GaleraSpec{
 						SST:            SSTMariaBackup,
 						ReplicaThreads: 1,
-						InitContainer: Container{
+						InitContainer: GaleraInit{
 							Image: "ghcr.io/mariadb-operator/mariadb-operator:v0.0.26",
 						},
 						AvailableWhenDonor: ptr.To(false),
@@ -107,7 +107,7 @@ var _ = Describe("MariaDB Galera types", func() {
 						Primary: PrimaryGalera{
 							AutomaticFailover: ptr.To(false),
 						},
-						InitContainer: Container{
+						InitContainer: GaleraInit{
 							Image: "mariadb/mariadb-operator-enterprise:v0.0.26",
 						},
 						Agent: GaleraAgent{
@@ -129,7 +129,7 @@ var _ = Describe("MariaDB Galera types", func() {
 						SST:            SSTRsync,
 						GaleraLibPath:  "/usr/lib/galera/libgalera_enterprise_smm.so",
 						ReplicaThreads: 1,
-						InitContainer: Container{
+						InitContainer: GaleraInit{
 							Image: "mariadb/mariadb-operator-enterprise:v0.0.26",
 						},
 						AvailableWhenDonor: ptr.To(true),
@@ -207,7 +207,7 @@ var _ = Describe("MariaDB Galera types", func() {
 					GaleraSpec: GaleraSpec{
 						SST:            SSTMariaBackup,
 						ReplicaThreads: 1,
-						InitContainer: Container{
+						InitContainer: GaleraInit{
 							Image: "ghcr.io/mariadb-operator/mariadb-operator:v0.0.26",
 						},
 						GaleraLibPath:      "/usr/lib/galera/libgalera_smm.so",
@@ -273,7 +273,7 @@ var _ = Describe("MariaDB Galera types", func() {
 						Agent: GaleraAgent{
 							Image: "docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:v0.0.1",
 						},
-						InitContainer: Container{
+						InitContainer: GaleraInit{
 							Image: "docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:v0.0.1",
 						},
 					},
@@ -299,7 +299,7 @@ var _ = Describe("MariaDB Galera types", func() {
 						Agent: GaleraAgent{
 							Image: "docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:v0.0.1",
 						},
-						InitContainer: Container{
+						InitContainer: GaleraInit{
 							Image: "docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:v0.0.1",
 						},
 					},
