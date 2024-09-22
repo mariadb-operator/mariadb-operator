@@ -946,6 +946,148 @@ func TestMariadbPodBuilderAffinity(t *testing.T) {
 	}
 }
 
+func TestMariadbPodBuilderInitContainers(t *testing.T) {
+	builder := newDefaultTestBuilder(t)
+	objMeta := metav1.ObjectMeta{
+		Name: "test-mariadb-builder-initcontainers",
+	}
+	tests := []struct {
+		name               string
+		mariadb            *mariadbv1alpha1.MariaDB
+		wantInitContainers int
+	}{
+		{
+			name: "no init containers",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Image: "mariadb:11.4.3",
+					PodTemplate: mariadbv1alpha1.PodTemplate{
+						InitContainers: nil,
+					},
+				},
+			},
+			wantInitContainers: 0,
+		},
+		{
+			name: "init containers",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Image: "mariadb:11.4.3",
+					PodTemplate: mariadbv1alpha1.PodTemplate{
+						InitContainers: []mariadbv1alpha1.Container{
+							{
+								Image: "busybox:latest",
+							},
+							{
+								Image: "busybox:latest",
+							},
+						},
+					},
+				},
+			},
+			wantInitContainers: 2,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			podTpl, err := builder.mariadbPodTemplate(tt.mariadb)
+			if err != nil {
+				t.Fatalf("unexpected error building MariaDB Pod template: %v", err)
+			}
+
+			if len(podTpl.Spec.InitContainers) != tt.wantInitContainers {
+				t.Errorf("unexpected number of init containers, got: %v, want: %v", len(podTpl.Spec.InitContainers), tt.wantInitContainers)
+			}
+
+			for _, container := range podTpl.Spec.InitContainers {
+				if container.Image == "" {
+					t.Error("expected container image to be set")
+				}
+				if container.Env == nil {
+					t.Error("expected container env to be set")
+				}
+				if container.VolumeMounts == nil {
+					t.Error("expected container VolumeMounts to be set")
+				}
+			}
+		})
+	}
+}
+
+func TestMariadbPodBuilderSidecarContainers(t *testing.T) {
+	builder := newDefaultTestBuilder(t)
+	objMeta := metav1.ObjectMeta{
+		Name: "test-mariadb-builder-sidecarcontainers",
+	}
+	tests := []struct {
+		name           string
+		mariadb        *mariadbv1alpha1.MariaDB
+		wantContainers int
+	}{
+		{
+			name: "no sidecar containers",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Image: "mariadb:11.4.3",
+					PodTemplate: mariadbv1alpha1.PodTemplate{
+						SidecarContainers: nil,
+					},
+				},
+			},
+			wantContainers: 1,
+		},
+		{
+			name: "sidecar containers",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Image: "mariadb:11.4.3",
+					PodTemplate: mariadbv1alpha1.PodTemplate{
+						SidecarContainers: []mariadbv1alpha1.Container{
+							{
+								Image: "busybox:latest",
+							},
+							{
+								Image: "busybox:latest",
+							},
+						},
+					},
+				},
+			},
+			wantContainers: 3,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			podTpl, err := builder.mariadbPodTemplate(tt.mariadb)
+			if err != nil {
+				t.Fatalf("unexpected error building MariaDB Pod template: %v", err)
+			}
+
+			if len(podTpl.Spec.Containers) != tt.wantContainers {
+				t.Errorf("unexpected number of containers, got: %v, want: %v", len(podTpl.Spec.Containers), tt.wantContainers)
+			}
+
+			for _, container := range podTpl.Spec.Containers {
+				if container.Image == "" {
+					t.Error("expected container image to be set")
+				}
+				if container.Env == nil {
+					t.Error("expected container env to be set")
+				}
+				if container.VolumeMounts == nil {
+					t.Error("expected container VolumeMounts to be set")
+				}
+			}
+		})
+	}
+}
+
 func TestMaxscalePodBuilder(t *testing.T) {
 	d, err := discovery.NewFakeDiscovery(false)
 	if err != nil {

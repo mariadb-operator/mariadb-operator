@@ -838,7 +838,7 @@ func TestContainerSecurityContext(t *testing.T) {
 	builder := newDefaultTestBuilder(t)
 	tpl := &mariadbv1alpha1.ContainerTemplate{}
 
-	container, err := builder.buildContainer("mariadb:10.6", corev1.PullIfNotPresent, tpl)
+	container, err := builder.buildContainerWithTemplate("mariadb:10.6", corev1.PullIfNotPresent, tpl)
 	if err != nil {
 		t.Fatalf("unexpected error building container: %v", err)
 	}
@@ -851,7 +851,7 @@ func TestContainerSecurityContext(t *testing.T) {
 			RunAsUser: ptr.To(mysqlUser),
 		},
 	}
-	container, err = builder.buildContainer("mariadb:10.6", corev1.PullIfNotPresent, tpl)
+	container, err = builder.buildContainerWithTemplate("mariadb:10.6", corev1.PullIfNotPresent, tpl)
 	if err != nil {
 		t.Fatalf("unexpected error building container: %v", err)
 	}
@@ -873,7 +873,7 @@ func TestContainerSecurityContext(t *testing.T) {
 	}
 	builder = newTestBuilder(discovery)
 
-	container, err = builder.buildContainer("mariadb:10.6", corev1.PullIfNotPresent, tpl)
+	container, err = builder.buildContainerWithTemplate("mariadb:10.6", corev1.PullIfNotPresent, tpl)
 	if err != nil {
 		t.Fatalf("unexpected error building container: %v", err)
 	}
