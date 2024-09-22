@@ -832,7 +832,7 @@ func TestMariadbPodBuilderAffinity(t *testing.T) {
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					PodTemplate: mariadbv1alpha1.PodTemplate{
-						TopologySpreadConstraints: []corev1.TopologySpreadConstraint{
+						TopologySpreadConstraints: []mariadbv1alpha1.TopologySpreadConstraint{
 							{
 								MaxSkew:     1,
 								TopologyKey: "kubernetes.io/hostname",
@@ -874,7 +874,7 @@ func TestMariadbPodBuilderAffinity(t *testing.T) {
 						Affinity: &mariadbv1alpha1.AffinityConfig{
 							AntiAffinityEnabled: ptr.To(true),
 						},
-						TopologySpreadConstraints: []corev1.TopologySpreadConstraint{
+						TopologySpreadConstraints: []mariadbv1alpha1.TopologySpreadConstraint{
 							{
 								MaxSkew:     1,
 								TopologyKey: "kubernetes.io/hostname",
@@ -902,7 +902,7 @@ func TestMariadbPodBuilderAffinity(t *testing.T) {
 						Affinity: &mariadbv1alpha1.AffinityConfig{
 							AntiAffinityEnabled: ptr.To(true),
 						},
-						TopologySpreadConstraints: []corev1.TopologySpreadConstraint{
+						TopologySpreadConstraints: []mariadbv1alpha1.TopologySpreadConstraint{
 							{
 								MaxSkew:     1,
 								TopologyKey: "kubernetes.io/hostname",
