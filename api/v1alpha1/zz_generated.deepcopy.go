@@ -31,8 +31,8 @@ package v1alpha1
 import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/galera/recovery"
 	appsv1 "k8s.io/api/apps/v1"
-	"k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
@@ -183,7 +183,7 @@ func (in *BackupStatus) DeepCopyInto(out *BackupStatus) {
 	*out = *in
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
-		*out = make([]metav1.Condition, len(*in))
+		*out = make([]v1.Condition, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
@@ -210,7 +210,7 @@ func (in *BackupStorage) DeepCopyInto(out *BackupStorage) {
 	}
 	if in.PersistentVolumeClaim != nil {
 		in, out := &in.PersistentVolumeClaim, &out.PersistentVolumeClaim
-		*out = new(v1.PersistentVolumeClaimSpec)
+		*out = new(PersistentVolumeClaimSpec)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.Volume != nil {
@@ -362,7 +362,7 @@ func (in *ConnectionSpec) DeepCopyInto(out *ConnectionSpec) {
 	}
 	if in.MaxScaleRef != nil {
 		in, out := &in.MaxScaleRef, &out.MaxScaleRef
-		*out = new(v1.ObjectReference)
+		*out = new(corev1.ObjectReference)
 		**out = **in
 	}
 	in.PasswordSecretKeyRef.DeepCopyInto(&out.PasswordSecretKeyRef)
@@ -388,7 +388,7 @@ func (in *ConnectionStatus) DeepCopyInto(out *ConnectionStatus) {
 	*out = *in
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
-		*out = make([]metav1.Condition, len(*in))
+		*out = make([]v1.Condition, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
@@ -478,43 +478,43 @@ func (in *ContainerTemplate) DeepCopyInto(out *ContainerTemplate) {
 	}
 	if in.Env != nil {
 		in, out := &in.Env, &out.Env
-		*out = make([]v1.EnvVar, len(*in))
+		*out = make([]corev1.EnvVar, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
 	if in.EnvFrom != nil {
 		in, out := &in.EnvFrom, &out.EnvFrom
-		*out = make([]v1.EnvFromSource, len(*in))
+		*out = make([]corev1.EnvFromSource, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
 	if in.VolumeMounts != nil {
 		in, out := &in.VolumeMounts, &out.VolumeMounts
-		*out = make([]v1.VolumeMount, len(*in))
+		*out = make([]corev1.VolumeMount, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
 	if in.LivenessProbe != nil {
 		in, out := &in.LivenessProbe, &out.LivenessProbe
-		*out = new(v1.Probe)
+		*out = new(corev1.Probe)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.ReadinessProbe != nil {
 		in, out := &in.ReadinessProbe, &out.ReadinessProbe
-		*out = new(v1.Probe)
+		*out = new(corev1.Probe)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.Resources != nil {
 		in, out := &in.Resources, &out.Resources
-		*out = new(v1.ResourceRequirements)
+		*out = new(corev1.ResourceRequirements)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.SecurityContext != nil {
 		in, out := &in.SecurityContext, &out.SecurityContext
-		*out = new(v1.SecurityContext)
+		*out = new(corev1.SecurityContext)
 		(*in).DeepCopyInto(*out)
 	}
 }
@@ -640,7 +640,7 @@ func (in *DatabaseStatus) DeepCopyInto(out *DatabaseStatus) {
 	*out = *in
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
-		*out = make([]metav1.Condition, len(*in))
+		*out = make([]v1.Condition, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
@@ -662,12 +662,12 @@ func (in *Exporter) DeepCopyInto(out *Exporter) {
 	*out = *in
 	if in.ImagePullSecrets != nil {
 		in, out := &in.ImagePullSecrets, &out.ImagePullSecrets
-		*out = make([]v1.LocalObjectReference, len(*in))
+		*out = make([]corev1.LocalObjectReference, len(*in))
 		copy(*out, *in)
 	}
 	if in.Resources != nil {
 		in, out := &in.Resources, &out.Resources
-		*out = new(v1.ResourceRequirements)
+		*out = new(corev1.ResourceRequirements)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.PodMetadata != nil {
@@ -677,7 +677,7 @@ func (in *Exporter) DeepCopyInto(out *Exporter) {
 	}
 	if in.PodSecurityContext != nil {
 		in, out := &in.PodSecurityContext, &out.PodSecurityContext
-		*out = new(v1.PodSecurityContext)
+		*out = new(corev1.PodSecurityContext)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.Affinity != nil {
@@ -694,7 +694,7 @@ func (in *Exporter) DeepCopyInto(out *Exporter) {
 	}
 	if in.Tolerations != nil {
 		in, out := &in.Tolerations, &out.Tolerations
-		*out = make([]v1.Toleration, len(*in))
+		*out = make([]corev1.Toleration, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
@@ -748,7 +748,7 @@ func (in *GaleraAgent) DeepCopyInto(out *GaleraAgent) {
 	}
 	if in.GracefulShutdownTimeout != nil {
 		in, out := &in.GracefulShutdownTimeout, &out.GracefulShutdownTimeout
-		*out = new(metav1.Duration)
+		*out = new(v1.Duration)
 		**out = **in
 	}
 }
@@ -822,7 +822,7 @@ func (in *GaleraInitJob) DeepCopyInto(out *GaleraInitJob) {
 	}
 	if in.Resources != nil {
 		in, out := &in.Resources, &out.Resources
-		*out = new(v1.ResourceRequirements)
+		*out = new(corev1.ResourceRequirements)
 		(*in).DeepCopyInto(*out)
 	}
 }
@@ -847,27 +847,27 @@ func (in *GaleraRecovery) DeepCopyInto(out *GaleraRecovery) {
 	}
 	if in.ClusterMonitorInterval != nil {
 		in, out := &in.ClusterMonitorInterval, &out.ClusterMonitorInterval
-		*out = new(metav1.Duration)
+		*out = new(v1.Duration)
 		**out = **in
 	}
 	if in.ClusterHealthyTimeout != nil {
 		in, out := &in.ClusterHealthyTimeout, &out.ClusterHealthyTimeout
-		*out = new(metav1.Duration)
+		*out = new(v1.Duration)
 		**out = **in
 	}
 	if in.ClusterBootstrapTimeout != nil {
 		in, out := &in.ClusterBootstrapTimeout, &out.ClusterBootstrapTimeout
-		*out = new(metav1.Duration)
+		*out = new(v1.Duration)
 		**out = **in
 	}
 	if in.PodRecoveryTimeout != nil {
 		in, out := &in.PodRecoveryTimeout, &out.PodRecoveryTimeout
-		*out = new(metav1.Duration)
+		*out = new(v1.Duration)
 		**out = **in
 	}
 	if in.PodSyncTimeout != nil {
 		in, out := &in.PodSyncTimeout, &out.PodSyncTimeout
-		*out = new(metav1.Duration)
+		*out = new(v1.Duration)
 		**out = **in
 	}
 	if in.ForceClusterBootstrapInPod != nil {
@@ -902,7 +902,7 @@ func (in *GaleraRecoveryJob) DeepCopyInto(out *GaleraRecoveryJob) {
 	}
 	if in.Resources != nil {
 		in, out := &in.Resources, &out.Resources
-		*out = new(v1.ResourceRequirements)
+		*out = new(corev1.ResourceRequirements)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.PodAffinity != nil {
@@ -1127,7 +1127,7 @@ func (in *GrantStatus) DeepCopyInto(out *GrantStatus) {
 	*out = *in
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
-		*out = make([]metav1.Condition, len(*in))
+		*out = make([]v1.Condition, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
@@ -1149,12 +1149,12 @@ func (in *HealthCheck) DeepCopyInto(out *HealthCheck) {
 	*out = *in
 	if in.Interval != nil {
 		in, out := &in.Interval, &out.Interval
-		*out = new(metav1.Duration)
+		*out = new(v1.Duration)
 		**out = **in
 	}
 	if in.RetryInterval != nil {
 		in, out := &in.RetryInterval, &out.RetryInterval
-		*out = new(metav1.Duration)
+		*out = new(v1.Duration)
 		**out = **in
 	}
 }
@@ -1184,7 +1184,7 @@ func (in *Job) DeepCopyInto(out *Job) {
 	}
 	if in.Resources != nil {
 		in, out := &in.Resources, &out.Resources
-		*out = new(v1.ResourceRequirements)
+		*out = new(corev1.ResourceRequirements)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.Args != nil {
@@ -1214,12 +1214,12 @@ func (in *JobContainerTemplate) DeepCopyInto(out *JobContainerTemplate) {
 	}
 	if in.Resources != nil {
 		in, out := &in.Resources, &out.Resources
-		*out = new(v1.ResourceRequirements)
+		*out = new(corev1.ResourceRequirements)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.SecurityContext != nil {
 		in, out := &in.SecurityContext, &out.SecurityContext
-		*out = new(v1.SecurityContext)
+		*out = new(corev1.SecurityContext)
 		(*in).DeepCopyInto(*out)
 	}
 }
@@ -1244,12 +1244,12 @@ func (in *JobPodTemplate) DeepCopyInto(out *JobPodTemplate) {
 	}
 	if in.ImagePullSecrets != nil {
 		in, out := &in.ImagePullSecrets, &out.ImagePullSecrets
-		*out = make([]v1.LocalObjectReference, len(*in))
+		*out = make([]corev1.LocalObjectReference, len(*in))
 		copy(*out, *in)
 	}
 	if in.PodSecurityContext != nil {
 		in, out := &in.PodSecurityContext, &out.PodSecurityContext
-		*out = new(v1.PodSecurityContext)
+		*out = new(corev1.PodSecurityContext)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.ServiceAccountName != nil {
@@ -1271,7 +1271,7 @@ func (in *JobPodTemplate) DeepCopyInto(out *JobPodTemplate) {
 	}
 	if in.Tolerations != nil {
 		in, out := &in.Tolerations, &out.Tolerations
-		*out = make([]v1.Toleration, len(*in))
+		*out = make([]corev1.Toleration, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
@@ -1434,7 +1434,7 @@ func (in *MariaDBMaxScaleSpec) DeepCopyInto(out *MariaDBMaxScaleSpec) {
 	}
 	if in.RequeueInterval != nil {
 		in, out := &in.RequeueInterval, &out.RequeueInterval
-		*out = new(metav1.Duration)
+		*out = new(v1.Duration)
 		**out = **in
 	}
 }
@@ -1499,7 +1499,7 @@ func (in *MariaDBSpec) DeepCopyInto(out *MariaDBSpec) {
 	}
 	if in.PasswordHashSecretKeyRef != nil {
 		in, out := &in.PasswordHashSecretKeyRef, &out.PasswordHashSecretKeyRef
-		*out = new(v1.SecretKeySelector)
+		*out = new(corev1.SecretKeySelector)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.PasswordPlugin != nil {
@@ -1514,7 +1514,7 @@ func (in *MariaDBSpec) DeepCopyInto(out *MariaDBSpec) {
 	}
 	if in.MyCnfConfigMapKeyRef != nil {
 		in, out := &in.MyCnfConfigMapKeyRef, &out.MyCnfConfigMapKeyRef
-		*out = new(v1.ConfigMapKeySelector)
+		*out = new(corev1.ConfigMapKeySelector)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.TimeZone != nil {
@@ -1545,7 +1545,7 @@ func (in *MariaDBSpec) DeepCopyInto(out *MariaDBSpec) {
 	}
 	if in.MaxScaleRef != nil {
 		in, out := &in.MaxScaleRef, &out.MaxScaleRef
-		*out = new(v1.ObjectReference)
+		*out = new(corev1.ObjectReference)
 		**out = **in
 	}
 	if in.MaxScale != nil {
@@ -1606,7 +1606,7 @@ func (in *MariaDBStatus) DeepCopyInto(out *MariaDBStatus) {
 	*out = *in
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
-		*out = make([]metav1.Condition, len(*in))
+		*out = make([]v1.Condition, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
@@ -1926,12 +1926,12 @@ func (in *MaxScalePodTemplate) DeepCopyInto(out *MaxScalePodTemplate) {
 	}
 	if in.ImagePullSecrets != nil {
 		in, out := &in.ImagePullSecrets, &out.ImagePullSecrets
-		*out = make([]v1.LocalObjectReference, len(*in))
+		*out = make([]corev1.LocalObjectReference, len(*in))
 		copy(*out, *in)
 	}
 	if in.PodSecurityContext != nil {
 		in, out := &in.PodSecurityContext, &out.PodSecurityContext
-		*out = new(v1.PodSecurityContext)
+		*out = new(corev1.PodSecurityContext)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.ServiceAccountName != nil {
@@ -1953,7 +1953,7 @@ func (in *MaxScalePodTemplate) DeepCopyInto(out *MaxScalePodTemplate) {
 	}
 	if in.Tolerations != nil {
 		in, out := &in.Tolerations, &out.Tolerations
-		*out = make([]v1.Toleration, len(*in))
+		*out = make([]corev1.Toleration, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
@@ -1965,7 +1965,7 @@ func (in *MaxScalePodTemplate) DeepCopyInto(out *MaxScalePodTemplate) {
 	}
 	if in.TopologySpreadConstraints != nil {
 		in, out := &in.TopologySpreadConstraints, &out.TopologySpreadConstraints
-		*out = make([]v1.TopologySpreadConstraint, len(*in))
+		*out = make([]corev1.TopologySpreadConstraint, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
@@ -2124,7 +2124,7 @@ func (in *MaxScaleSpec) DeepCopyInto(out *MaxScaleSpec) {
 	}
 	if in.RequeueInterval != nil {
 		in, out := &in.RequeueInterval, &out.RequeueInterval
-		*out = new(metav1.Duration)
+		*out = new(v1.Duration)
 		**out = **in
 	}
 }
@@ -2144,7 +2144,7 @@ func (in *MaxScaleStatus) DeepCopyInto(out *MaxScaleStatus) {
 	*out = *in
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
-		*out = make([]metav1.Condition, len(*in))
+		*out = make([]v1.Condition, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
@@ -2225,12 +2225,12 @@ func (in *PasswordPlugin) DeepCopyInto(out *PasswordPlugin) {
 	*out = *in
 	if in.PluginNameSecretKeyRef != nil {
 		in, out := &in.PluginNameSecretKeyRef, &out.PluginNameSecretKeyRef
-		*out = new(v1.SecretKeySelector)
+		*out = new(corev1.SecretKeySelector)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.PluginArgSecretKeyRef != nil {
 		in, out := &in.PluginArgSecretKeyRef, &out.PluginArgSecretKeyRef
-		*out = new(v1.SecretKeySelector)
+		*out = new(corev1.SecretKeySelector)
 		(*in).DeepCopyInto(*out)
 	}
 }
@@ -2246,11 +2246,42 @@ func (in *PasswordPlugin) DeepCopy() *PasswordPlugin {
 }
 
 // DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
+func (in *PersistentVolumeClaimSpec) DeepCopyInto(out *PersistentVolumeClaimSpec) {
+	*out = *in
+	if in.AccessModes != nil {
+		in, out := &in.AccessModes, &out.AccessModes
+		*out = make([]corev1.PersistentVolumeAccessMode, len(*in))
+		copy(*out, *in)
+	}
+	if in.Selector != nil {
+		in, out := &in.Selector, &out.Selector
+		*out = new(v1.LabelSelector)
+		(*in).DeepCopyInto(*out)
+	}
+	in.Resources.DeepCopyInto(&out.Resources)
+	if in.StorageClassName != nil {
+		in, out := &in.StorageClassName, &out.StorageClassName
+		*out = new(string)
+		**out = **in
+	}
+}
+
+// DeepCopy is an autogenerated deepcopy function, copying the receiver, creating a new PersistentVolumeClaimSpec.
+func (in *PersistentVolumeClaimSpec) DeepCopy() *PersistentVolumeClaimSpec {
+	if in == nil {
+		return nil
+	}
+	out := new(PersistentVolumeClaimSpec)
+	in.DeepCopyInto(out)
+	return out
+}
+
+// DeepCopyInto is an autogenerated deepcopy function, copying the receiver, writing into out. in must be non-nil.
 func (in *PodAffinityTerm) DeepCopyInto(out *PodAffinityTerm) {
 	*out = *in
 	if in.LabelSelector != nil {
 		in, out := &in.LabelSelector, &out.LabelSelector
-		*out = new(metav1.LabelSelector)
+		*out = new(v1.LabelSelector)
 		(*in).DeepCopyInto(*out)
 	}
 }
@@ -2329,7 +2360,7 @@ func (in *PodTemplate) DeepCopyInto(out *PodTemplate) {
 	}
 	if in.ImagePullSecrets != nil {
 		in, out := &in.ImagePullSecrets, &out.ImagePullSecrets
-		*out = make([]v1.LocalObjectReference, len(*in))
+		*out = make([]corev1.LocalObjectReference, len(*in))
 		copy(*out, *in)
 	}
 	if in.InitContainers != nil {
@@ -2348,7 +2379,7 @@ func (in *PodTemplate) DeepCopyInto(out *PodTemplate) {
 	}
 	if in.PodSecurityContext != nil {
 		in, out := &in.PodSecurityContext, &out.PodSecurityContext
-		*out = new(v1.PodSecurityContext)
+		*out = new(corev1.PodSecurityContext)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.ServiceAccountName != nil {
@@ -2370,7 +2401,7 @@ func (in *PodTemplate) DeepCopyInto(out *PodTemplate) {
 	}
 	if in.Tolerations != nil {
 		in, out := &in.Tolerations, &out.Tolerations
-		*out = make([]v1.Toleration, len(*in))
+		*out = make([]corev1.Toleration, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
@@ -2389,7 +2420,7 @@ func (in *PodTemplate) DeepCopyInto(out *PodTemplate) {
 	}
 	if in.TopologySpreadConstraints != nil {
 		in, out := &in.TopologySpreadConstraints, &out.TopologySpreadConstraints
-		*out = make([]v1.TopologySpreadConstraint, len(*in))
+		*out = make([]corev1.TopologySpreadConstraint, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
@@ -2476,7 +2507,7 @@ func (in *ReplicaReplication) DeepCopyInto(out *ReplicaReplication) {
 	}
 	if in.ConnectionTimeout != nil {
 		in, out := &in.ConnectionTimeout, &out.ConnectionTimeout
-		*out = new(metav1.Duration)
+		*out = new(v1.Duration)
 		**out = **in
 	}
 	if in.ConnectionRetries != nil {
@@ -2486,7 +2517,7 @@ func (in *ReplicaReplication) DeepCopyInto(out *ReplicaReplication) {
 	}
 	if in.SyncTimeout != nil {
 		in, out := &in.SyncTimeout, &out.SyncTimeout
-		*out = new(metav1.Duration)
+		*out = new(v1.Duration)
 		**out = **in
 	}
 }
@@ -2637,7 +2668,7 @@ func (in *RestoreSource) DeepCopyInto(out *RestoreSource) {
 	*out = *in
 	if in.BackupRef != nil {
 		in, out := &in.BackupRef, &out.BackupRef
-		*out = new(v1.LocalObjectReference)
+		*out = new(corev1.LocalObjectReference)
 		**out = **in
 	}
 	if in.S3 != nil {
@@ -2695,7 +2726,7 @@ func (in *RestoreStatus) DeepCopyInto(out *RestoreStatus) {
 	*out = *in
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
-		*out = make([]metav1.Condition, len(*in))
+		*out = make([]v1.Condition, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
@@ -2719,7 +2750,7 @@ func (in *S3) DeepCopyInto(out *S3) {
 	in.SecretAccessKeySecretKeyRef.DeepCopyInto(&out.SecretAccessKeySecretKeyRef)
 	if in.SessionTokenSecretKeyRef != nil {
 		in, out := &in.SessionTokenSecretKeyRef, &out.SessionTokenSecretKeyRef
-		*out = new(v1.SecretKeySelector)
+		*out = new(corev1.SecretKeySelector)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.TLS != nil {
@@ -2744,12 +2775,12 @@ func (in *SQLTemplate) DeepCopyInto(out *SQLTemplate) {
 	*out = *in
 	if in.RequeueInterval != nil {
 		in, out := &in.RequeueInterval, &out.RequeueInterval
-		*out = new(metav1.Duration)
+		*out = new(v1.Duration)
 		**out = **in
 	}
 	if in.RetryInterval != nil {
 		in, out := &in.RetryInterval, &out.RetryInterval
-		*out = new(metav1.Duration)
+		*out = new(v1.Duration)
 		**out = **in
 	}
 	if in.CleanupPolicy != nil {
@@ -2874,12 +2905,12 @@ func (in *ServiceTemplate) DeepCopyInto(out *ServiceTemplate) {
 	}
 	if in.ExternalTrafficPolicy != nil {
 		in, out := &in.ExternalTrafficPolicy, &out.ExternalTrafficPolicy
-		*out = new(v1.ServiceExternalTrafficPolicy)
+		*out = new(corev1.ServiceExternalTrafficPolicy)
 		**out = **in
 	}
 	if in.SessionAffinity != nil {
 		in, out := &in.SessionAffinity, &out.SessionAffinity
-		*out = new(v1.ServiceAffinity)
+		*out = new(corev1.ServiceAffinity)
 		**out = **in
 	}
 	if in.AllocateLoadBalancerNodePorts != nil {
@@ -2978,7 +3009,7 @@ func (in *SqlJobSpec) DeepCopyInto(out *SqlJobSpec) {
 	}
 	if in.DependsOn != nil {
 		in, out := &in.DependsOn, &out.DependsOn
-		*out = make([]v1.LocalObjectReference, len(*in))
+		*out = make([]corev1.LocalObjectReference, len(*in))
 		copy(*out, *in)
 	}
 	if in.Sql != nil {
@@ -2988,7 +3019,7 @@ func (in *SqlJobSpec) DeepCopyInto(out *SqlJobSpec) {
 	}
 	if in.SqlConfigMapKeyRef != nil {
 		in, out := &in.SqlConfigMapKeyRef, &out.SqlConfigMapKeyRef
-		*out = new(v1.ConfigMapKeySelector)
+		*out = new(corev1.ConfigMapKeySelector)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.InheritMetadata != nil {
@@ -3013,7 +3044,7 @@ func (in *SqlJobStatus) DeepCopyInto(out *SqlJobStatus) {
 	*out = *in
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
-		*out = make([]metav1.Condition, len(*in))
+		*out = make([]v1.Condition, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
@@ -3090,7 +3121,7 @@ func (in *TLS) DeepCopyInto(out *TLS) {
 	*out = *in
 	if in.CASecretKeyRef != nil {
 		in, out := &in.CASecretKeyRef, &out.CASecretKeyRef
-		*out = new(v1.SecretKeySelector)
+		*out = new(corev1.SecretKeySelector)
 		(*in).DeepCopyInto(*out)
 	}
 }
@@ -3196,12 +3227,12 @@ func (in *UserSpec) DeepCopyInto(out *UserSpec) {
 	out.MariaDBRef = in.MariaDBRef
 	if in.PasswordSecretKeyRef != nil {
 		in, out := &in.PasswordSecretKeyRef, &out.PasswordSecretKeyRef
-		*out = new(v1.SecretKeySelector)
+		*out = new(corev1.SecretKeySelector)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.PasswordHashSecretKeyRef != nil {
 		in, out := &in.PasswordHashSecretKeyRef, &out.PasswordHashSecretKeyRef
-		*out = new(v1.SecretKeySelector)
+		*out = new(corev1.SecretKeySelector)
 		(*in).DeepCopyInto(*out)
 	}
 	in.PasswordPlugin.DeepCopyInto(&out.PasswordPlugin)
@@ -3222,7 +3253,7 @@ func (in *UserStatus) DeepCopyInto(out *UserStatus) {
 	*out = *in
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
-		*out = make([]metav1.Condition, len(*in))
+		*out = make([]v1.Condition, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
@@ -3281,22 +3312,22 @@ func (in *VolumeSource) DeepCopyInto(out *VolumeSource) {
 	*out = *in
 	if in.EmptyDir != nil {
 		in, out := &in.EmptyDir, &out.EmptyDir
-		*out = new(v1.EmptyDirVolumeSource)
+		*out = new(corev1.EmptyDirVolumeSource)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.NFS != nil {
 		in, out := &in.NFS, &out.NFS
-		*out = new(v1.NFSVolumeSource)
+		*out = new(corev1.NFSVolumeSource)
 		**out = **in
 	}
 	if in.CSI != nil {
 		in, out := &in.CSI, &out.CSI
-		*out = new(v1.CSIVolumeSource)
+		*out = new(corev1.CSIVolumeSource)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.PersistentVolumeClaim != nil {
 		in, out := &in.PersistentVolumeClaim, &out.PersistentVolumeClaim
-		*out = new(v1.PersistentVolumeClaimVolumeSource)
+		*out = new(corev1.PersistentVolumeClaimVolumeSource)
 		**out = **in
 	}
 }

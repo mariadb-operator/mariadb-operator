@@ -535,7 +535,7 @@ func TestMariaDBVolumeClaimTemplates(t *testing.T) {
 					Storage: mariadbv1alpha1.Storage{
 						Size: ptr.To(resource.MustParse("1Gi")),
 						VolumeClaimTemplate: &mariadbv1alpha1.VolumeClaimTemplate{
-							PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
+							PersistentVolumeClaimSpec: mariadbv1alpha1.PersistentVolumeClaimSpec{
 								Resources: corev1.VolumeResourceRequirements{
 									Requests: corev1.ResourceList{
 										"storage": resource.MustParse("1Gi"),
@@ -559,7 +559,7 @@ func TestMariaDBVolumeClaimTemplates(t *testing.T) {
 					Storage: mariadbv1alpha1.Storage{
 						Size: ptr.To(resource.MustParse("1Gi")),
 						VolumeClaimTemplate: &mariadbv1alpha1.VolumeClaimTemplate{
-							PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
+							PersistentVolumeClaimSpec: mariadbv1alpha1.PersistentVolumeClaimSpec{
 								Resources: corev1.VolumeResourceRequirements{
 									Requests: corev1.ResourceList{
 										"storage": resource.MustParse("1Gi"),
@@ -586,7 +586,7 @@ func TestMariaDBVolumeClaimTemplates(t *testing.T) {
 					Storage: mariadbv1alpha1.Storage{
 						Size: ptr.To(resource.MustParse("1Gi")),
 						VolumeClaimTemplate: &mariadbv1alpha1.VolumeClaimTemplate{
-							PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
+							PersistentVolumeClaimSpec: mariadbv1alpha1.PersistentVolumeClaimSpec{
 								Resources: corev1.VolumeResourceRequirements{
 									Requests: corev1.ResourceList{
 										"storage": resource.MustParse("1Gi"),
@@ -603,7 +603,7 @@ func TestMariaDBVolumeClaimTemplates(t *testing.T) {
 						GaleraSpec: mariadbv1alpha1.GaleraSpec{
 							Config: mariadbv1alpha1.GaleraConfig{
 								VolumeClaimTemplate: &mariadbv1alpha1.VolumeClaimTemplate{
-									PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
+									PersistentVolumeClaimSpec: mariadbv1alpha1.PersistentVolumeClaimSpec{
 										Resources: corev1.VolumeResourceRequirements{
 											Requests: corev1.ResourceList{
 												"storage": resource.MustParse("1Gi"),
@@ -629,7 +629,7 @@ func TestMariaDBVolumeClaimTemplates(t *testing.T) {
 					Storage: mariadbv1alpha1.Storage{
 						Size: ptr.To(resource.MustParse("1Gi")),
 						VolumeClaimTemplate: &mariadbv1alpha1.VolumeClaimTemplate{
-							PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
+							PersistentVolumeClaimSpec: mariadbv1alpha1.PersistentVolumeClaimSpec{
 								Resources: corev1.VolumeResourceRequirements{
 									Requests: corev1.ResourceList{
 										"storage": resource.MustParse("1Gi"),

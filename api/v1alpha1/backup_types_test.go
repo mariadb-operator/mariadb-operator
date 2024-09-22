@@ -224,7 +224,7 @@ var _ = Describe("Backup types", func() {
 					ObjectMeta: objMeta,
 					Spec: BackupSpec{
 						Storage: BackupStorage{
-							PersistentVolumeClaim: &corev1.PersistentVolumeClaimSpec{},
+							PersistentVolumeClaim: &PersistentVolumeClaimSpec{},
 						},
 					},
 				},

@@ -51,6 +51,28 @@ func (v Volume) ToKubernetesType() corev1.Volume {
 	}
 }
 
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#persistentvolumeclaimspec-v1-core
+type PersistentVolumeClaimSpec struct {
+	// +optional
+	// +listType=atomic
+	AccessModes []corev1.PersistentVolumeAccessMode `json:"accessModes,omitempty" protobuf:"bytes,1,rep,name=accessModes,casttype=PersistentVolumeAccessMode"`
+	// +optional
+	Selector *metav1.LabelSelector `json:"selector,omitempty" protobuf:"bytes,4,opt,name=selector"`
+	// +optional
+	Resources corev1.VolumeResourceRequirements `json:"resources,omitempty" protobuf:"bytes,2,opt,name=resources"`
+	// +optional
+	StorageClassName *string `json:"storageClassName,omitempty" protobuf:"bytes,3,opt,name=storageClassName"`
+}
+
+func (p PersistentVolumeClaimSpec) ToKubernetesType() corev1.PersistentVolumeClaimSpec {
+	return corev1.PersistentVolumeClaimSpec{
+		AccessModes:      p.AccessModes,
+		Selector:         p.Selector,
+		Resources:        p.Resources,
+		StorageClassName: p.StorageClassName,
+	}
+}
+
 // Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#podaffinityterm-v1-core
 type PodAffinityTerm struct {
 	// +optional

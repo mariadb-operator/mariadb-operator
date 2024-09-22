@@ -54,7 +54,7 @@ var _ = Describe("MariaDB Galera types", func() {
 						Config: GaleraConfig{
 							ReuseStorageVolume: ptr.To(false),
 							VolumeClaimTemplate: &VolumeClaimTemplate{
-								PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
+								PersistentVolumeClaimSpec: PersistentVolumeClaimSpec{
 									Resources: corev1.VolumeResourceRequirements{
 										Requests: corev1.ResourceList{
 											"storage": resource.MustParse("100Mi"),
@@ -136,7 +136,7 @@ var _ = Describe("MariaDB Galera types", func() {
 						Config: GaleraConfig{
 							ReuseStorageVolume: ptr.To(false),
 							VolumeClaimTemplate: &VolumeClaimTemplate{
-								PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
+								PersistentVolumeClaimSpec: PersistentVolumeClaimSpec{
 									Resources: corev1.VolumeResourceRequirements{
 										Requests: corev1.ResourceList{
 											"storage": resource.MustParse("100Mi"),
@@ -215,7 +215,7 @@ var _ = Describe("MariaDB Galera types", func() {
 						Config: GaleraConfig{
 							ReuseStorageVolume: ptr.To(false),
 							VolumeClaimTemplate: &VolumeClaimTemplate{
-								PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
+								PersistentVolumeClaimSpec: PersistentVolumeClaimSpec{
 									Resources: corev1.VolumeResourceRequirements{
 										Requests: corev1.ResourceList{
 											"storage": resource.MustParse("100Mi"),

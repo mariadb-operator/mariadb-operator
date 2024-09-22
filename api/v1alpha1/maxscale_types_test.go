@@ -101,7 +101,7 @@ var _ = Describe("MaxScale types", func() {
 						},
 						Config: MaxScaleConfig{
 							VolumeClaimTemplate: VolumeClaimTemplate{
-								PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
+								PersistentVolumeClaimSpec: PersistentVolumeClaimSpec{
 									Resources: corev1.VolumeResourceRequirements{
 										Requests: corev1.ResourceList{
 											"storage": resource.MustParse("100Mi"),
@@ -188,7 +188,7 @@ var _ = Describe("MaxScale types", func() {
 						},
 						Config: MaxScaleConfig{
 							VolumeClaimTemplate: VolumeClaimTemplate{
-								PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
+								PersistentVolumeClaimSpec: PersistentVolumeClaimSpec{
 									StorageClassName: &storageClassName,
 								},
 							},
@@ -233,7 +233,7 @@ var _ = Describe("MaxScale types", func() {
 						},
 						Config: MaxScaleConfig{
 							VolumeClaimTemplate: VolumeClaimTemplate{
-								PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
+								PersistentVolumeClaimSpec: PersistentVolumeClaimSpec{
 									Resources: corev1.VolumeResourceRequirements{
 										Requests: corev1.ResourceList{
 											"storage": resource.MustParse("100Mi"),
@@ -443,7 +443,7 @@ var _ = Describe("MaxScale types", func() {
 						},
 						Config: MaxScaleConfig{
 							VolumeClaimTemplate: VolumeClaimTemplate{
-								PersistentVolumeClaimSpec: corev1.PersistentVolumeClaimSpec{
+								PersistentVolumeClaimSpec: PersistentVolumeClaimSpec{
 									Resources: corev1.VolumeResourceRequirements{
 										Requests: corev1.ResourceList{
 											"storage": resource.MustParse("100Mi"),

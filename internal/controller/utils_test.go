@@ -632,7 +632,7 @@ func getBackupWithStorage(key types.NamespacedName, storage mariadbv1alpha1.Back
 
 func getBackupWithPVCStorage(key types.NamespacedName) *mariadbv1alpha1.Backup {
 	return getBackupWithStorage(key, mariadbv1alpha1.BackupStorage{
-		PersistentVolumeClaim: &corev1.PersistentVolumeClaimSpec{
+		PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimSpec{
 			Resources: corev1.VolumeResourceRequirements{
 				Requests: corev1.ResourceList{
 					"storage": resource.MustParse("100Mi"),
