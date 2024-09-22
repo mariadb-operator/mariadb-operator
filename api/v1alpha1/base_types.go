@@ -143,10 +143,7 @@ func (j *JobContainerTemplate) FromContainerTemplate(ctpl *ContainerTemplate) {
 
 // Container object definition.
 type Container struct {
-	// ContainerTemplate defines a template to configure Container objects.
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	ContainerTemplate `json:",inline"`
-	// Image name to be used by the MariaDB instances. The supported format is `<image>:<tag>`.
+	// Image name to be used by the container. The supported format is `<image>:<tag>`.
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Image string `json:"image"`
@@ -155,6 +152,22 @@ type Container struct {
 	// +kubebuilder:validation:Enum=Always;Never;IfNotPresent
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:imagePullPolicy","urn:alm:descriptor:com.tectonic.ui:advanced"}
 	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
+	// Command to be used in the Container.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	Command []string `json:"command,omitempty"`
+	// Args to be used in the Container.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	Args []string `json:"args,omitempty"`
+	// VolumeMounts to be used in the Container.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	VolumeMounts []corev1.VolumeMount `json:"volumeMounts,omitempty" webhook:"inmutable"`
+	// Resouces describes the compute resource requirements.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:resourceRequirements"}
+	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
 }
 
 // Job defines a Job used to be used with MariaDB.
