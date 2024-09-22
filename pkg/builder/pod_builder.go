@@ -246,7 +246,7 @@ func (b *Builder) maxscalePodTemplate(mxs *mariadbv1alpha1.MaxScale) (*corev1.Po
 			NodeSelector:                 mxs.Spec.NodeSelector,
 			Tolerations:                  mxs.Spec.Tolerations,
 			PriorityClassName:            ptr.Deref(mxs.Spec.PriorityClassName, ""),
-			TopologySpreadConstraints:    mxs.Spec.TopologySpreadConstraints,
+			TopologySpreadConstraints:    kadapter.ToKubernetesSlice(mxs.Spec.TopologySpreadConstraints),
 		},
 	}, nil
 }
@@ -279,7 +279,7 @@ func mariadbTopologySpreadConstraints(mariadb *mariadbv1alpha1.MariaDB, opts ...
 	if !mariadbOpts.includeAffinity {
 		return nil
 	}
-	return mariadb.Spec.TopologySpreadConstraints
+	return kadapter.ToKubernetesSlice(mariadb.Spec.TopologySpreadConstraints)
 }
 
 func mariadbServiceAccount(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt) string {

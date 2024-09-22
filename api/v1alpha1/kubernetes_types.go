@@ -130,3 +130,33 @@ func (a Affinity) ToKubernetesType() corev1.Affinity {
 	}
 	return affinity
 }
+
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#topologyspreadconstraint-v1-core
+type TopologySpreadConstraint struct {
+	MaxSkew           int32                                `json:"maxSkew" protobuf:"varint,1,opt,name=maxSkew"`
+	TopologyKey       string                               `json:"topologyKey" protobuf:"bytes,2,opt,name=topologyKey"`
+	WhenUnsatisfiable corev1.UnsatisfiableConstraintAction `json:"whenUnsatisfiable" protobuf:"bytes,3,opt,name=whenUnsatisfiable,casttype=UnsatisfiableConstraintAction"`
+	// +optional
+	LabelSelector *metav1.LabelSelector `json:"labelSelector,omitempty" protobuf:"bytes,4,opt,name=labelSelector"`
+	// +optional
+	MinDomains *int32 `json:"minDomains,omitempty" protobuf:"varint,5,opt,name=minDomains"`
+	// +optional
+	NodeAffinityPolicy *corev1.NodeInclusionPolicy `json:"nodeAffinityPolicy,omitempty" protobuf:"bytes,6,opt,name=nodeAffinityPolicy"`
+	// +optional
+	NodeTaintsPolicy *corev1.NodeInclusionPolicy `json:"nodeTaintsPolicy,omitempty" protobuf:"bytes,7,opt,name=nodeTaintsPolicy"`
+	// +optional
+	MatchLabelKeys []string `json:"matchLabelKeys,omitempty" protobuf:"bytes,8,opt,name=matchLabelKeys"`
+}
+
+func (t TopologySpreadConstraint) ToKubernetesType() corev1.TopologySpreadConstraint {
+	return corev1.TopologySpreadConstraint{
+		MaxSkew:            t.MaxSkew,
+		TopologyKey:        t.TopologyKey,
+		WhenUnsatisfiable:  t.WhenUnsatisfiable,
+		LabelSelector:      t.LabelSelector,
+		MinDomains:         t.MinDomains,
+		NodeAffinityPolicy: t.NodeAffinityPolicy,
+		NodeTaintsPolicy:   t.NodeTaintsPolicy,
+		MatchLabelKeys:     t.MatchLabelKeys,
+	}
+}
