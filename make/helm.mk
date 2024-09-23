@@ -14,6 +14,7 @@ helm-lint: ## Lint Helm charts.
 .PHONY: helm-crds 
 helm-crds: kustomize ## Generate CRDs for the Helm chart.
 	$(KUSTOMIZE) build config/crd > $(HELM_CRDS_DIR)/templates/crds.yaml
+	helm dependency update deploy/charts/mariadb-operator
 
 .PHONY: helm-env
 helm-env: ## Update operator env in the Helm chart.
