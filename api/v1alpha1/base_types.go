@@ -85,11 +85,11 @@ type ContainerTemplate struct {
 	// Env represents the environment variables to be injected in a container.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	Env []corev1.EnvVar `json:"env,omitempty"`
+	Env []EnvVar `json:"env,omitempty"`
 	// EnvFrom represents the references (via ConfigMap and Secrets) to environment variables to be injected in the container.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	EnvFrom []corev1.EnvFromSource `json:"envFrom,omitempty"`
+	EnvFrom []EnvFromSource `json:"envFrom,omitempty"`
 	// VolumeMounts to be used in the Container.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}

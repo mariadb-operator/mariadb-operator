@@ -11,6 +11,7 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/command"
 	galeraresources "github.com/mariadb-operator/mariadb-operator/pkg/controller/galera/resources"
+	kadapter "github.com/mariadb-operator/mariadb-operator/pkg/kubernetes/adapter"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/utils/ptr"
@@ -290,10 +291,16 @@ func (b *Builder) buildContainerWithTemplate(image string, pullPolicy corev1.Pul
 		ImagePullPolicy: pullPolicy,
 		Command:         tpl.Command,
 		Args:            tpl.Args,
-		Env:             tpl.Env,
-		EnvFrom:         tpl.EnvFrom,
 		VolumeMounts:    tpl.VolumeMounts,
+		LivenessProbe:   tpl.LivenessProbe,
+		ReadinessProbe:  tpl.ReadinessProbe,
 		SecurityContext: sc,
+	}
+	if tpl.Env != nil {
+		container.Env = kadapter.ToKubernetesSlice(tpl.Env)
+	}
+	if tpl.EnvFrom != nil {
+		container.EnvFrom = kadapter.ToKubernetesSlice(tpl.EnvFrom)
 	}
 	if mariadbOpts.resources != nil {
 		container.Resources = *mariadbOpts.resources
@@ -408,9 +415,9 @@ func mariadbEnv(mariadb *mariadbv1alpha1.MariaDB) []corev1.EnvVar {
 		}
 		for _, envVar := range mariadb.Spec.Env {
 			if i, ok := idx[envVar.Name]; ok {
-				env[i] = envVar
+				env[i] = envVar.ToKubernetesType()
 			} else {
-				env = append(env, envVar)
+				env = append(env, envVar.ToKubernetesType())
 			}
 		}
 	}

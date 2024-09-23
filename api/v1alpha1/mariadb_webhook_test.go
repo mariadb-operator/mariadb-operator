@@ -607,18 +607,16 @@ var _ = Describe("MariaDB webhook", func() {
 								"cpu": resource.MustParse("100m"),
 							},
 						},
-						Env: []corev1.EnvVar{
+						Env: []EnvVar{
 							{
 								Name:  "TZ",
 								Value: "SYSTEM",
 							},
 						},
-						EnvFrom: []corev1.EnvFromSource{
+						EnvFrom: []EnvFromSource{
 							{
-								ConfigMapRef: &corev1.ConfigMapEnvSource{
-									LocalObjectReference: corev1.LocalObjectReference{
-										Name: "mariadb",
-									},
+								ConfigMapRef: &LocalObjectReference{
+									Name: "mariadb",
 								},
 							},
 						},
@@ -784,7 +782,7 @@ var _ = Describe("MariaDB webhook", func() {
 			Entry(
 				"Updating Env",
 				func(mdb *MariaDB) {
-					mdb.Spec.Env = []corev1.EnvVar{
+					mdb.Spec.Env = []EnvVar{
 						{
 							Name:  "FOO",
 							Value: "foo",
@@ -796,12 +794,10 @@ var _ = Describe("MariaDB webhook", func() {
 			Entry(
 				"Updating EnvFrom",
 				func(mdb *MariaDB) {
-					mdb.Spec.EnvFrom = []corev1.EnvFromSource{
+					mdb.Spec.EnvFrom = []EnvFromSource{
 						{
-							ConfigMapRef: &corev1.ConfigMapEnvSource{
-								LocalObjectReference: corev1.LocalObjectReference{
-									Name: "mariadb",
-								},
+							ConfigMapRef: &LocalObjectReference{
+								Name: "mariadb",
 							},
 						},
 					}

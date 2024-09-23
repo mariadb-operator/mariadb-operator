@@ -961,7 +961,7 @@ func TestMariadbEnv(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
-						Env: []corev1.EnvVar{
+						Env: []mariadbv1alpha1.EnvVar{
 							{
 								Name:  "FOO_BAR_BAZ",
 								Value: "LOREM_IPSUM_DOLOR",
@@ -980,7 +980,7 @@ func TestMariadbEnv(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
-						Env: []corev1.EnvVar{
+						Env: []mariadbv1alpha1.EnvVar{
 							{
 								Name:  "MYSQL_TCP_PORT",
 								Value: strconv.Itoa(12345),
