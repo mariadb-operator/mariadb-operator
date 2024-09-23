@@ -30,13 +30,13 @@ var _ = Describe("User", func() {
 			},
 			Spec: mariadbv1alpha1.UserSpec{
 				MariaDBRef: mariadbv1alpha1.MariaDBRef{
-					ObjectReference: corev1.ObjectReference{
+					ObjectReference: mariadbv1alpha1.ObjectReference{
 						Name: testMdbkey.Name,
 					},
 					WaitForIt: true,
 				},
-				PasswordSecretKeyRef: &corev1.SecretKeySelector{
-					LocalObjectReference: corev1.LocalObjectReference{
+				PasswordSecretKeyRef: &mariadbv1alpha1.SecretKeySelector{
+					LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
 						Name: testPwdKey.Name,
 					},
 					Key: testPwdSecretKey,
@@ -99,13 +99,13 @@ var _ = Describe("User", func() {
 			},
 			Spec: mariadbv1alpha1.UserSpec{
 				MariaDBRef: mariadbv1alpha1.MariaDBRef{
-					ObjectReference: corev1.ObjectReference{
+					ObjectReference: mariadbv1alpha1.ObjectReference{
 						Name: testMdbkey.Name,
 					},
 					WaitForIt: true,
 				},
-				PasswordSecretKeyRef: &corev1.SecretKeySelector{
-					LocalObjectReference: corev1.LocalObjectReference{
+				PasswordSecretKeyRef: &mariadbv1alpha1.SecretKeySelector{
+					LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
 						Name: key.Name,
 					},
 					Key: secretKey,
@@ -149,8 +149,8 @@ var _ = Describe("User", func() {
 		secretKeyPassword := "password"
 		secretKeyHash := "passwordHash"
 
-		PasswordSecretKeyRef := &corev1.SecretKeySelector{
-			LocalObjectReference: corev1.LocalObjectReference{
+		PasswordSecretKeyRef := &mariadbv1alpha1.SecretKeySelector{
+			LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
 				Name: key.Name,
 			},
 			Key: secretKeyPassword,
@@ -183,13 +183,13 @@ var _ = Describe("User", func() {
 			},
 			Spec: mariadbv1alpha1.UserSpec{
 				MariaDBRef: mariadbv1alpha1.MariaDBRef{
-					ObjectReference: corev1.ObjectReference{
+					ObjectReference: mariadbv1alpha1.ObjectReference{
 						Name: testMdbkey.Name,
 					},
 					WaitForIt: true,
 				},
-				PasswordHashSecretKeyRef: &corev1.SecretKeySelector{
-					LocalObjectReference: corev1.LocalObjectReference{
+				PasswordHashSecretKeyRef: &mariadbv1alpha1.SecretKeySelector{
+					LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
 						Name: key.Name,
 					},
 					Key: secretKeyHash,
@@ -235,8 +235,8 @@ var _ = Describe("User", func() {
 		secretKeyPluginName := "pluginName"
 		secretKeyPluginArg := "pluginArg"
 
-		PasswordSecretKeyRef := &corev1.SecretKeySelector{
-			LocalObjectReference: corev1.LocalObjectReference{
+		PasswordSecretKeyRef := &mariadbv1alpha1.SecretKeySelector{
+			LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
 				Name: key.Name,
 			},
 			Key: secretKeyPassword,
@@ -270,20 +270,20 @@ var _ = Describe("User", func() {
 			},
 			Spec: mariadbv1alpha1.UserSpec{
 				MariaDBRef: mariadbv1alpha1.MariaDBRef{
-					ObjectReference: corev1.ObjectReference{
+					ObjectReference: mariadbv1alpha1.ObjectReference{
 						Name: testMdbkey.Name,
 					},
 					WaitForIt: true,
 				},
 				PasswordPlugin: mariadbv1alpha1.PasswordPlugin{
-					PluginNameSecretKeyRef: &corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{
+					PluginNameSecretKeyRef: &mariadbv1alpha1.SecretKeySelector{
+						LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
 							Name: key.Name,
 						},
 						Key: secretKeyPluginName,
 					},
-					PluginArgSecretKeyRef: &corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{
+					PluginArgSecretKeyRef: &mariadbv1alpha1.SecretKeySelector{
+						LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
 							Name: key.Name,
 						},
 						Key: secretKeyPluginArg,
@@ -327,8 +327,8 @@ var _ = Describe("User", func() {
 			Name:      "test-clean-up-user",
 			Namespace: testNamespace,
 		}
-		passwordSecretKeyRef := corev1.SecretKeySelector{
-			LocalObjectReference: corev1.LocalObjectReference{
+		passwordSecretKeyRef := mariadbv1alpha1.SecretKeySelector{
+			LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
 				Name: testPwdKey.Name,
 			},
 			Key: testPwdSecretKey,
@@ -343,7 +343,7 @@ var _ = Describe("User", func() {
 					CleanupPolicy: ptr.To(mariadbv1alpha1.CleanupPolicyDelete),
 				},
 				MariaDBRef: mariadbv1alpha1.MariaDBRef{
-					ObjectReference: corev1.ObjectReference{
+					ObjectReference: mariadbv1alpha1.ObjectReference{
 						Name: testMdbkey.Name,
 					},
 					WaitForIt: true,
@@ -372,7 +372,7 @@ var _ = Describe("User", func() {
 					CleanupPolicy: ptr.To(mariadbv1alpha1.CleanupPolicyDelete),
 				},
 				MariaDBRef: mariadbv1alpha1.MariaDBRef{
-					ObjectReference: corev1.ObjectReference{
+					ObjectReference: mariadbv1alpha1.ObjectReference{
 						Name: testMdbkey.Name,
 					},
 					WaitForIt: true,
@@ -399,7 +399,7 @@ var _ = Describe("User", func() {
 					CleanupPolicy: ptr.To(mariadbv1alpha1.CleanupPolicyDelete),
 				},
 				MariaDBRef: mariadbv1alpha1.MariaDBRef{
-					ObjectReference: corev1.ObjectReference{
+					ObjectReference: mariadbv1alpha1.ObjectReference{
 						Name: testMdbkey.Name,
 					},
 					WaitForIt: true,
@@ -443,8 +443,8 @@ var _ = Describe("User", func() {
 			Name:      "test-skip-clean-up-user",
 			Namespace: testNamespace,
 		}
-		passwordSecretKeyRef := corev1.SecretKeySelector{
-			LocalObjectReference: corev1.LocalObjectReference{
+		passwordSecretKeyRef := mariadbv1alpha1.SecretKeySelector{
+			LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
 				Name: testPwdKey.Name,
 			},
 			Key: testPwdSecretKey,
@@ -459,7 +459,7 @@ var _ = Describe("User", func() {
 					CleanupPolicy: ptr.To(mariadbv1alpha1.CleanupPolicySkip),
 				},
 				MariaDBRef: mariadbv1alpha1.MariaDBRef{
-					ObjectReference: corev1.ObjectReference{
+					ObjectReference: mariadbv1alpha1.ObjectReference{
 						Name: testMdbkey.Name,
 					},
 					WaitForIt: true,
@@ -488,7 +488,7 @@ var _ = Describe("User", func() {
 					CleanupPolicy: ptr.To(mariadbv1alpha1.CleanupPolicySkip),
 				},
 				MariaDBRef: mariadbv1alpha1.MariaDBRef{
-					ObjectReference: corev1.ObjectReference{
+					ObjectReference: mariadbv1alpha1.ObjectReference{
 						Name: testMdbkey.Name,
 					},
 					WaitForIt: true,
@@ -515,7 +515,7 @@ var _ = Describe("User", func() {
 					CleanupPolicy: ptr.To(mariadbv1alpha1.CleanupPolicySkip),
 				},
 				MariaDBRef: mariadbv1alpha1.MariaDBRef{
-					ObjectReference: corev1.ObjectReference{
+					ObjectReference: mariadbv1alpha1.ObjectReference{
 						Name: testMdbkey.Name,
 					},
 					WaitForIt: true,

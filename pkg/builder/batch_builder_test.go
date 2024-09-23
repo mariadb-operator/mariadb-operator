@@ -33,7 +33,7 @@ func TestBackupJobImagePullSecrets(t *testing.T) {
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.BackupSpec{
 					MariaDBRef: mariadbv1alpha1.MariaDBRef{
-						ObjectReference: corev1.ObjectReference{
+						ObjectReference: mariadbv1alpha1.ObjectReference{
 							Name: objMeta.Name,
 						},
 					},
@@ -54,7 +54,7 @@ func TestBackupJobImagePullSecrets(t *testing.T) {
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.BackupSpec{
 					MariaDBRef: mariadbv1alpha1.MariaDBRef{
-						ObjectReference: corev1.ObjectReference{
+						ObjectReference: mariadbv1alpha1.ObjectReference{
 							Name: objMeta.Name,
 						},
 					},
@@ -67,7 +67,7 @@ func TestBackupJobImagePullSecrets(t *testing.T) {
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					PodTemplate: mariadbv1alpha1.PodTemplate{
-						ImagePullSecrets: []corev1.LocalObjectReference{
+						ImagePullSecrets: []mariadbv1alpha1.LocalObjectReference{
 							{
 								Name: "mariadb-registry",
 							},
@@ -87,14 +87,14 @@ func TestBackupJobImagePullSecrets(t *testing.T) {
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.BackupSpec{
 					JobPodTemplate: mariadbv1alpha1.JobPodTemplate{
-						ImagePullSecrets: []corev1.LocalObjectReference{
+						ImagePullSecrets: []mariadbv1alpha1.LocalObjectReference{
 							{
 								Name: "backup-registry",
 							},
 						},
 					},
 					MariaDBRef: mariadbv1alpha1.MariaDBRef{
-						ObjectReference: corev1.ObjectReference{
+						ObjectReference: mariadbv1alpha1.ObjectReference{
 							Name: objMeta.Name,
 						},
 					},
@@ -119,14 +119,14 @@ func TestBackupJobImagePullSecrets(t *testing.T) {
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.BackupSpec{
 					JobPodTemplate: mariadbv1alpha1.JobPodTemplate{
-						ImagePullSecrets: []corev1.LocalObjectReference{
+						ImagePullSecrets: []mariadbv1alpha1.LocalObjectReference{
 							{
 								Name: "backup-registry",
 							},
 						},
 					},
 					MariaDBRef: mariadbv1alpha1.MariaDBRef{
-						ObjectReference: corev1.ObjectReference{
+						ObjectReference: mariadbv1alpha1.ObjectReference{
 							Name: objMeta.Name,
 						},
 					},
@@ -139,7 +139,7 @@ func TestBackupJobImagePullSecrets(t *testing.T) {
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					PodTemplate: mariadbv1alpha1.PodTemplate{
-						ImagePullSecrets: []corev1.LocalObjectReference{
+						ImagePullSecrets: []mariadbv1alpha1.LocalObjectReference{
 							{
 								Name: "mariadb-registry",
 							},
@@ -379,7 +379,7 @@ func TestRestoreJobImagePullSecrets(t *testing.T) {
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.RestoreSpec{
 					MariaDBRef: mariadbv1alpha1.MariaDBRef{
-						ObjectReference: corev1.ObjectReference{
+						ObjectReference: mariadbv1alpha1.ObjectReference{
 							Name: objMeta.Name,
 						},
 					},
@@ -400,7 +400,7 @@ func TestRestoreJobImagePullSecrets(t *testing.T) {
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.RestoreSpec{
 					MariaDBRef: mariadbv1alpha1.MariaDBRef{
-						ObjectReference: corev1.ObjectReference{
+						ObjectReference: mariadbv1alpha1.ObjectReference{
 							Name: objMeta.Name,
 						},
 					},
@@ -413,7 +413,7 @@ func TestRestoreJobImagePullSecrets(t *testing.T) {
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					PodTemplate: mariadbv1alpha1.PodTemplate{
-						ImagePullSecrets: []corev1.LocalObjectReference{
+						ImagePullSecrets: []mariadbv1alpha1.LocalObjectReference{
 							{
 								Name: "mariadb-registry",
 							},
@@ -433,7 +433,7 @@ func TestRestoreJobImagePullSecrets(t *testing.T) {
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.RestoreSpec{
 					JobPodTemplate: mariadbv1alpha1.JobPodTemplate{
-						ImagePullSecrets: []corev1.LocalObjectReference{
+						ImagePullSecrets: []mariadbv1alpha1.LocalObjectReference{
 							{
 								Name: "restore-registry",
 							},
@@ -443,7 +443,7 @@ func TestRestoreJobImagePullSecrets(t *testing.T) {
 						Volume: &mariadbv1alpha1.VolumeSource{},
 					},
 					MariaDBRef: mariadbv1alpha1.MariaDBRef{
-						ObjectReference: corev1.ObjectReference{
+						ObjectReference: mariadbv1alpha1.ObjectReference{
 							Name: objMeta.Name,
 						},
 					},
@@ -465,7 +465,7 @@ func TestRestoreJobImagePullSecrets(t *testing.T) {
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.RestoreSpec{
 					JobPodTemplate: mariadbv1alpha1.JobPodTemplate{
-						ImagePullSecrets: []corev1.LocalObjectReference{
+						ImagePullSecrets: []mariadbv1alpha1.LocalObjectReference{
 							{
 								Name: "restore-registry",
 							},
@@ -475,7 +475,7 @@ func TestRestoreJobImagePullSecrets(t *testing.T) {
 						Volume: &mariadbv1alpha1.VolumeSource{},
 					},
 					MariaDBRef: mariadbv1alpha1.MariaDBRef{
-						ObjectReference: corev1.ObjectReference{
+						ObjectReference: mariadbv1alpha1.ObjectReference{
 							Name: objMeta.Name,
 						},
 					},
@@ -485,7 +485,7 @@ func TestRestoreJobImagePullSecrets(t *testing.T) {
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					PodTemplate: mariadbv1alpha1.PodTemplate{
-						ImagePullSecrets: []corev1.LocalObjectReference{
+						ImagePullSecrets: []mariadbv1alpha1.LocalObjectReference{
 							{
 								Name: "mariadb-registry",
 							},
@@ -753,7 +753,7 @@ func TestGaleraInitJobImagePullSecrets(t *testing.T) {
 						Enabled: true,
 					},
 					PodTemplate: mariadbv1alpha1.PodTemplate{
-						ImagePullSecrets: []corev1.LocalObjectReference{
+						ImagePullSecrets: []mariadbv1alpha1.LocalObjectReference{
 							{
 								Name: "mariadb-registry",
 							},
@@ -1161,7 +1161,7 @@ func TestGaleraRecoveryJobImagePullSecrets(t *testing.T) {
 						},
 					},
 					PodTemplate: mariadbv1alpha1.PodTemplate{
-						ImagePullSecrets: []corev1.LocalObjectReference{
+						ImagePullSecrets: []mariadbv1alpha1.LocalObjectReference{
 							{
 								Name: "mariadb-registry",
 							},
@@ -1791,12 +1791,12 @@ func TestSqlJobImagePullSecrets(t *testing.T) {
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.SqlJobSpec{
 					MariaDBRef: mariadbv1alpha1.MariaDBRef{
-						ObjectReference: corev1.ObjectReference{
+						ObjectReference: mariadbv1alpha1.ObjectReference{
 							Name: objMeta.Name,
 						},
 					},
-					SqlConfigMapKeyRef: &corev1.ConfigMapKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{},
+					SqlConfigMapKeyRef: &mariadbv1alpha1.ConfigMapKeySelector{
+						LocalObjectReference: mariadbv1alpha1.LocalObjectReference{},
 					},
 				},
 			},
@@ -1812,12 +1812,12 @@ func TestSqlJobImagePullSecrets(t *testing.T) {
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.SqlJobSpec{
 					MariaDBRef: mariadbv1alpha1.MariaDBRef{
-						ObjectReference: corev1.ObjectReference{
+						ObjectReference: mariadbv1alpha1.ObjectReference{
 							Name: objMeta.Name,
 						},
 					},
-					SqlConfigMapKeyRef: &corev1.ConfigMapKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{},
+					SqlConfigMapKeyRef: &mariadbv1alpha1.ConfigMapKeySelector{
+						LocalObjectReference: mariadbv1alpha1.LocalObjectReference{},
 					},
 				},
 			},
@@ -1825,7 +1825,7 @@ func TestSqlJobImagePullSecrets(t *testing.T) {
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					PodTemplate: mariadbv1alpha1.PodTemplate{
-						ImagePullSecrets: []corev1.LocalObjectReference{
+						ImagePullSecrets: []mariadbv1alpha1.LocalObjectReference{
 							{
 								Name: "mariadb-registry",
 							},
@@ -1845,19 +1845,19 @@ func TestSqlJobImagePullSecrets(t *testing.T) {
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.SqlJobSpec{
 					JobPodTemplate: mariadbv1alpha1.JobPodTemplate{
-						ImagePullSecrets: []corev1.LocalObjectReference{
+						ImagePullSecrets: []mariadbv1alpha1.LocalObjectReference{
 							{
 								Name: "sqljob-registry",
 							},
 						},
 					},
 					MariaDBRef: mariadbv1alpha1.MariaDBRef{
-						ObjectReference: corev1.ObjectReference{
+						ObjectReference: mariadbv1alpha1.ObjectReference{
 							Name: objMeta.Name,
 						},
 					},
-					SqlConfigMapKeyRef: &corev1.ConfigMapKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{},
+					SqlConfigMapKeyRef: &mariadbv1alpha1.ConfigMapKeySelector{
+						LocalObjectReference: mariadbv1alpha1.LocalObjectReference{},
 					},
 				},
 			},
@@ -1877,19 +1877,19 @@ func TestSqlJobImagePullSecrets(t *testing.T) {
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.SqlJobSpec{
 					JobPodTemplate: mariadbv1alpha1.JobPodTemplate{
-						ImagePullSecrets: []corev1.LocalObjectReference{
+						ImagePullSecrets: []mariadbv1alpha1.LocalObjectReference{
 							{
 								Name: "sqljob-registry",
 							},
 						},
 					},
 					MariaDBRef: mariadbv1alpha1.MariaDBRef{
-						ObjectReference: corev1.ObjectReference{
+						ObjectReference: mariadbv1alpha1.ObjectReference{
 							Name: objMeta.Name,
 						},
 					},
-					SqlConfigMapKeyRef: &corev1.ConfigMapKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{},
+					SqlConfigMapKeyRef: &mariadbv1alpha1.ConfigMapKeySelector{
+						LocalObjectReference: mariadbv1alpha1.LocalObjectReference{},
 					},
 				},
 			},
@@ -1897,7 +1897,7 @@ func TestSqlJobImagePullSecrets(t *testing.T) {
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					PodTemplate: mariadbv1alpha1.PodTemplate{
-						ImagePullSecrets: []corev1.LocalObjectReference{
+						ImagePullSecrets: []mariadbv1alpha1.LocalObjectReference{
 							{
 								Name: "mariadb-registry",
 							},
@@ -1944,7 +1944,7 @@ func TestSqlJobMeta(t *testing.T) {
 			name: "empty",
 			sqlJob: &mariadbv1alpha1.SqlJob{
 				Spec: mariadbv1alpha1.SqlJobSpec{
-					SqlConfigMapKeyRef: &corev1.ConfigMapKeySelector{},
+					SqlConfigMapKeyRef: &mariadbv1alpha1.ConfigMapKeySelector{},
 				},
 			},
 			wantJobMeta: &mariadbv1alpha1.Metadata{
@@ -1960,7 +1960,7 @@ func TestSqlJobMeta(t *testing.T) {
 			name: "inherit metadata",
 			sqlJob: &mariadbv1alpha1.SqlJob{
 				Spec: mariadbv1alpha1.SqlJobSpec{
-					SqlConfigMapKeyRef: &corev1.ConfigMapKeySelector{},
+					SqlConfigMapKeyRef: &mariadbv1alpha1.ConfigMapKeySelector{},
 					InheritMetadata: &mariadbv1alpha1.Metadata{
 						Labels: map[string]string{
 							"sidecar.istio.io/inject": "false",
@@ -1992,7 +1992,7 @@ func TestSqlJobMeta(t *testing.T) {
 			name: "Pod meta",
 			sqlJob: &mariadbv1alpha1.SqlJob{
 				Spec: mariadbv1alpha1.SqlJobSpec{
-					SqlConfigMapKeyRef: &corev1.ConfigMapKeySelector{},
+					SqlConfigMapKeyRef: &mariadbv1alpha1.ConfigMapKeySelector{},
 					JobPodTemplate: mariadbv1alpha1.JobPodTemplate{
 						PodMetadata: &mariadbv1alpha1.Metadata{
 							Labels: map[string]string{
@@ -2022,7 +2022,7 @@ func TestSqlJobMeta(t *testing.T) {
 			name: "override interit metadata",
 			sqlJob: &mariadbv1alpha1.SqlJob{
 				Spec: mariadbv1alpha1.SqlJobSpec{
-					SqlConfigMapKeyRef: &corev1.ConfigMapKeySelector{},
+					SqlConfigMapKeyRef: &mariadbv1alpha1.ConfigMapKeySelector{},
 					InheritMetadata: &mariadbv1alpha1.Metadata{
 						Labels: map[string]string{
 							"sidecar.istio.io/inject": "true",
@@ -2064,7 +2064,7 @@ func TestSqlJobMeta(t *testing.T) {
 			name: "all",
 			sqlJob: &mariadbv1alpha1.SqlJob{
 				Spec: mariadbv1alpha1.SqlJobSpec{
-					SqlConfigMapKeyRef: &corev1.ConfigMapKeySelector{},
+					SqlConfigMapKeyRef: &mariadbv1alpha1.ConfigMapKeySelector{},
 					InheritMetadata: &mariadbv1alpha1.Metadata{
 						Annotations: map[string]string{
 							"database.myorg.io": "mariadb",

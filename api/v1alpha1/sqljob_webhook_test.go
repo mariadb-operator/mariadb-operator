@@ -34,13 +34,13 @@ var _ = Describe("SqlJob webhook", func() {
 					ObjectMeta: objMeta,
 					Spec: SqlJobSpec{
 						MariaDBRef: MariaDBRef{
-							ObjectReference: corev1.ObjectReference{
+							ObjectReference: ObjectReference{
 								Name: "foo",
 							},
 						},
 						Username: "foo",
-						PasswordSecretKeyRef: corev1.SecretKeySelector{
-							LocalObjectReference: corev1.LocalObjectReference{
+						PasswordSecretKeyRef: SecretKeySelector{
+							LocalObjectReference: LocalObjectReference{
 								Name: "foo",
 							},
 							Key: "foo",
@@ -55,7 +55,7 @@ var _ = Describe("SqlJob webhook", func() {
 					ObjectMeta: objMeta,
 					Spec: SqlJobSpec{
 						MariaDBRef: MariaDBRef{
-							ObjectReference: corev1.ObjectReference{
+							ObjectReference: ObjectReference{
 								Name: "foo",
 							},
 						},
@@ -63,8 +63,8 @@ var _ = Describe("SqlJob webhook", func() {
 							Cron: "foo",
 						},
 						Username: "foo",
-						PasswordSecretKeyRef: corev1.SecretKeySelector{
-							LocalObjectReference: corev1.LocalObjectReference{
+						PasswordSecretKeyRef: SecretKeySelector{
+							LocalObjectReference: LocalObjectReference{
 								Name: "foo",
 							},
 							Key: "foo",
@@ -79,7 +79,7 @@ var _ = Describe("SqlJob webhook", func() {
 					ObjectMeta: objMeta,
 					Spec: SqlJobSpec{
 						MariaDBRef: MariaDBRef{
-							ObjectReference: corev1.ObjectReference{
+							ObjectReference: ObjectReference{
 								Name: "foo",
 							},
 						},
@@ -87,8 +87,8 @@ var _ = Describe("SqlJob webhook", func() {
 							Cron: "foo",
 						},
 						Username: "foo",
-						PasswordSecretKeyRef: corev1.SecretKeySelector{
-							LocalObjectReference: corev1.LocalObjectReference{
+						PasswordSecretKeyRef: SecretKeySelector{
+							LocalObjectReference: LocalObjectReference{
 								Name: "foo",
 							},
 							Key: "foo",
@@ -108,13 +108,13 @@ var _ = Describe("SqlJob webhook", func() {
 					ObjectMeta: objMeta,
 					Spec: SqlJobSpec{
 						MariaDBRef: MariaDBRef{
-							ObjectReference: corev1.ObjectReference{
+							ObjectReference: ObjectReference{
 								Name: "foo",
 							},
 						},
 						Username: "foo",
-						PasswordSecretKeyRef: corev1.SecretKeySelector{
-							LocalObjectReference: corev1.LocalObjectReference{
+						PasswordSecretKeyRef: SecretKeySelector{
+							LocalObjectReference: LocalObjectReference{
 								Name: "foo",
 							},
 							Key: "foo",
@@ -130,7 +130,7 @@ var _ = Describe("SqlJob webhook", func() {
 					ObjectMeta: objMeta,
 					Spec: SqlJobSpec{
 						MariaDBRef: MariaDBRef{
-							ObjectReference: corev1.ObjectReference{
+							ObjectReference: ObjectReference{
 								Name: "foo",
 							},
 						},
@@ -138,8 +138,8 @@ var _ = Describe("SqlJob webhook", func() {
 							Cron: "*/1 * * * *",
 						},
 						Username: "foo",
-						PasswordSecretKeyRef: corev1.SecretKeySelector{
-							LocalObjectReference: corev1.LocalObjectReference{
+						PasswordSecretKeyRef: SecretKeySelector{
+							LocalObjectReference: LocalObjectReference{
 								Name: "foo",
 							},
 							Key: "foo",
@@ -155,7 +155,7 @@ var _ = Describe("SqlJob webhook", func() {
 					ObjectMeta: objMeta,
 					Spec: SqlJobSpec{
 						MariaDBRef: MariaDBRef{
-							ObjectReference: corev1.ObjectReference{
+							ObjectReference: ObjectReference{
 								Name: "foo",
 							},
 						},
@@ -163,8 +163,8 @@ var _ = Describe("SqlJob webhook", func() {
 							Cron: "foo",
 						},
 						Username: "foo",
-						PasswordSecretKeyRef: corev1.SecretKeySelector{
-							LocalObjectReference: corev1.LocalObjectReference{
+						PasswordSecretKeyRef: SecretKeySelector{
+							LocalObjectReference: LocalObjectReference{
 								Name: "foo",
 							},
 							Key: "foo",
@@ -193,20 +193,20 @@ var _ = Describe("SqlJob webhook", func() {
 					Namespace: key.Namespace,
 				},
 				Spec: SqlJobSpec{
-					DependsOn: []corev1.LocalObjectReference{
+					DependsOn: []LocalObjectReference{
 						{
 							Name: "sqljob-webhook",
 						},
 					},
 					MariaDBRef: MariaDBRef{
-						ObjectReference: corev1.ObjectReference{
+						ObjectReference: ObjectReference{
 							Name: "mariadb-webhook",
 						},
 						WaitForIt: true,
 					},
 					Username: "test",
-					PasswordSecretKeyRef: corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{
+					PasswordSecretKeyRef: SecretKeySelector{
+						LocalObjectReference: LocalObjectReference{
 							Name: "test",
 						},
 						Key: "test",
@@ -312,8 +312,8 @@ var _ = Describe("SqlJob webhook", func() {
 			Entry(
 				"Updating SqlConfigMapKeyRef",
 				func(job *SqlJob) {
-					job.Spec.SqlConfigMapKeyRef = &corev1.ConfigMapKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{
+					job.Spec.SqlConfigMapKeyRef = &ConfigMapKeySelector{
+						LocalObjectReference: LocalObjectReference{
 							Name: "foo",
 						},
 					}

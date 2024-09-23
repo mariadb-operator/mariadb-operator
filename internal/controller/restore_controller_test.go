@@ -55,7 +55,7 @@ var _ = Describe("Restore", func() {
 					Args: []string{"--verbose"},
 				},
 				MariaDBRef: mariadbv1alpha1.MariaDBRef{
-					ObjectReference: corev1.ObjectReference{
+					ObjectReference: mariadbv1alpha1.ObjectReference{
 						Name: testMdbkey.Name,
 					},
 					WaitForIt: true,
@@ -69,7 +69,7 @@ var _ = Describe("Restore", func() {
 					},
 				},
 				RestoreSource: mariadbv1alpha1.RestoreSource{
-					BackupRef: &corev1.LocalObjectReference{
+					BackupRef: &mariadbv1alpha1.LocalObjectReference{
 						Name: backup.Name,
 					},
 					TargetRecoveryTime: &metav1.Time{Time: time.Now()},
@@ -163,7 +163,7 @@ var _ = Describe("Restore", func() {
 			},
 			Spec: mariadbv1alpha1.RestoreSpec{
 				MariaDBRef: mariadbv1alpha1.MariaDBRef{
-					ObjectReference: corev1.ObjectReference{
+					ObjectReference: mariadbv1alpha1.ObjectReference{
 						Name: testMdbkey.Name,
 					},
 					WaitForIt: true,
@@ -237,7 +237,7 @@ func testS3BackupRestore(key types.NamespacedName, bucket, prefix string) {
 		},
 		Spec: mariadbv1alpha1.RestoreSpec{
 			MariaDBRef: mariadbv1alpha1.MariaDBRef{
-				ObjectReference: corev1.ObjectReference{
+				ObjectReference: mariadbv1alpha1.ObjectReference{
 					Name: testMdbkey.Name,
 				},
 				WaitForIt: true,

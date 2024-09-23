@@ -120,7 +120,7 @@ var _ = Describe("MaxScale webhook", func() {
 					ObjectMeta: meta,
 					Spec: MaxScaleSpec{
 						MariaDBRef: &MariaDBRef{
-							ObjectReference: corev1.ObjectReference{
+							ObjectReference: ObjectReference{
 								Name: "mariadb",
 							},
 						},
@@ -176,7 +176,7 @@ var _ = Describe("MaxScale webhook", func() {
 					ObjectMeta: meta,
 					Spec: MaxScaleSpec{
 						MariaDBRef: &MariaDBRef{
-							ObjectReference: corev1.ObjectReference{
+							ObjectReference: ObjectReference{
 								Name: "mariadb",
 							},
 						},
@@ -322,7 +322,7 @@ var _ = Describe("MaxScale webhook", func() {
 					ObjectMeta: meta,
 					Spec: MaxScaleSpec{
 						MariaDBRef: &MariaDBRef{
-							ObjectReference: corev1.ObjectReference{
+							ObjectReference: ObjectReference{
 								Name: "mariadb",
 							},
 						},
@@ -388,7 +388,7 @@ var _ = Describe("MaxScale webhook", func() {
 				},
 				Spec: MaxScaleSpec{
 					MariaDBRef: &MariaDBRef{
-						ObjectReference: corev1.ObjectReference{
+						ObjectReference: ObjectReference{
 							Name: "mariadb",
 						},
 					},

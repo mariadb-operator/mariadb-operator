@@ -125,8 +125,8 @@ func testCreateInitialData(ctx context.Context, env environment.OperatorEnv) {
 				},
 			},
 			RootPasswordSecretKeyRef: mariadbv1alpha1.GeneratedSecretKeyRef{
-				SecretKeySelector: corev1.SecretKeySelector{
-					LocalObjectReference: corev1.LocalObjectReference{
+				SecretKeySelector: mariadbv1alpha1.SecretKeySelector{
+					LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
 						Name: testPwdKey.Name,
 					},
 					Key: testPwdSecretKey,
@@ -134,8 +134,8 @@ func testCreateInitialData(ctx context.Context, env environment.OperatorEnv) {
 			},
 			Username: &testUser,
 			PasswordSecretKeyRef: &mariadbv1alpha1.GeneratedSecretKeyRef{
-				SecretKeySelector: corev1.SecretKeySelector{
-					LocalObjectReference: corev1.LocalObjectReference{
+				SecretKeySelector: mariadbv1alpha1.SecretKeySelector{
+					LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
 						Name: testPwdKey.Name,
 					},
 					Key: testPwdSecretKey,
@@ -181,8 +181,8 @@ max_allowed_packet=256M`),
 				},
 				Username: "monitoring",
 				PasswordSecretKeyRef: mariadbv1alpha1.GeneratedSecretKeyRef{
-					SecretKeySelector: corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{
+					SecretKeySelector: mariadbv1alpha1.SecretKeySelector{
+						LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
 							Name: testPwdKey.Name,
 						},
 						Key: testPwdMetricsSecretKey,
@@ -295,7 +295,7 @@ func testMaxscale(mdb *mariadbv1alpha1.MariaDB, mxs *mariadbv1alpha1.MaxScale) {
 		if err := k8sClient.Get(testCtx, mdbKey, mdb); err != nil {
 			return false
 		}
-		mdb.Spec.MaxScaleRef = &corev1.ObjectReference{
+		mdb.Spec.MaxScaleRef = &mariadbv1alpha1.ObjectReference{
 			Name:      mxsKey.Name,
 			Namespace: mxsKey.Namespace,
 		}
@@ -309,7 +309,7 @@ func testMaxscale(mdb *mariadbv1alpha1.MariaDB, mxs *mariadbv1alpha1.MaxScale) {
 			return false
 		}
 		mxs.Spec.MariaDBRef = &mariadbv1alpha1.MariaDBRef{
-			ObjectReference: corev1.ObjectReference{
+			ObjectReference: mariadbv1alpha1.ObjectReference{
 				Name:      mdbKey.Name,
 				Namespace: mdbKey.Namespace,
 			},
@@ -411,7 +411,7 @@ func testMaxscale(mdb *mariadbv1alpha1.MariaDB, mxs *mariadbv1alpha1.MaxScale) {
 
 	type secretRef struct {
 		name        string
-		keySelector corev1.SecretKeySelector
+		keySelector mariadbv1alpha1.SecretKeySelector
 	}
 	secretKeyRefs := []secretRef{
 		{
@@ -497,7 +497,7 @@ func testMaxscale(mdb *mariadbv1alpha1.MariaDB, mxs *mariadbv1alpha1.MaxScale) {
 	}
 }
 
-func testConnection(username string, passwordSecretKeyRef corev1.SecretKeySelector, database string, isValid bool) {
+func testConnection(username string, passwordSecretKeyRef mariadbv1alpha1.SecretKeySelector, database string, isValid bool) {
 	key := types.NamespacedName{
 		Name:      fmt.Sprintf("test-creds-conn-%s", uuid.New().String()),
 		Namespace: testNamespace,
@@ -513,7 +513,7 @@ func testConnection(username string, passwordSecretKeyRef corev1.SecretKeySelect
 				SecretName: ptr.To(key.Name),
 			},
 			MariaDBRef: &mariadbv1alpha1.MariaDBRef{
-				ObjectReference: corev1.ObjectReference{
+				ObjectReference: mariadbv1alpha1.ObjectReference{
 					Name: testMdbkey.Name,
 				},
 				WaitForIt: true,
@@ -580,22 +580,22 @@ func getS3WithBucket(bucket, prefix string) *mariadbv1alpha1.S3 {
 		Prefix:   prefix,
 		Endpoint: "minio.minio.svc.cluster.local:9000",
 		Region:   "us-east-1",
-		AccessKeyIdSecretKeyRef: corev1.SecretKeySelector{
-			LocalObjectReference: corev1.LocalObjectReference{
+		AccessKeyIdSecretKeyRef: mariadbv1alpha1.SecretKeySelector{
+			LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
 				Name: "minio",
 			},
 			Key: "access-key-id",
 		},
-		SecretAccessKeySecretKeyRef: corev1.SecretKeySelector{
-			LocalObjectReference: corev1.LocalObjectReference{
+		SecretAccessKeySecretKeyRef: mariadbv1alpha1.SecretKeySelector{
+			LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
 				Name: "minio",
 			},
 			Key: "secret-access-key",
 		},
 		TLS: &mariadbv1alpha1.TLS{
 			Enabled: true,
-			CASecretKeyRef: &corev1.SecretKeySelector{
-				LocalObjectReference: corev1.LocalObjectReference{
+			CASecretKeyRef: &mariadbv1alpha1.SecretKeySelector{
+				LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
 					Name: "minio-ca",
 				},
 				Key: "ca.crt",
@@ -612,7 +612,7 @@ func getBackupWithStorage(key types.NamespacedName, storage mariadbv1alpha1.Back
 		},
 		Spec: mariadbv1alpha1.BackupSpec{
 			MariaDBRef: mariadbv1alpha1.MariaDBRef{
-				ObjectReference: corev1.ObjectReference{
+				ObjectReference: mariadbv1alpha1.ObjectReference{
 					Name: testMdbkey.Name,
 				},
 				WaitForIt: true,

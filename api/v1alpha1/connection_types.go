@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
@@ -71,7 +70,7 @@ type ConnectionSpec struct {
 	// MaxScaleRef is a reference to the MaxScale to connect to. Either MariaDBRef or MaxScaleRef must be provided.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	MaxScaleRef *corev1.ObjectReference `json:"maxScaleRef,omitempty"`
+	MaxScaleRef *ObjectReference `json:"maxScaleRef,omitempty"`
 	// Username to use for configuring the Connection.
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -80,7 +79,7 @@ type ConnectionSpec struct {
 	// If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password.
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	PasswordSecretKeyRef corev1.SecretKeySelector `json:"passwordSecretKeyRef"`
+	PasswordSecretKeyRef SecretKeySelector `json:"passwordSecretKeyRef"`
 	// Host to connect to. If not provided, it defaults to the MariaDB host or to the MaxScale host.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number","urn:alm:descriptor:com.tectonic.ui:advanced"}

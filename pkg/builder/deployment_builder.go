@@ -8,6 +8,7 @@ import (
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	metadata "github.com/mariadb-operator/mariadb-operator/pkg/builder/metadata"
 	"github.com/mariadb-operator/mariadb-operator/pkg/datastructures"
+	kadapter "github.com/mariadb-operator/mariadb-operator/pkg/kubernetes/adapter"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -129,7 +130,7 @@ func (b *Builder) BuildMaxScaleExporterDeployment(mxs *mariadbv1alpha1.MaxScale,
 }
 
 func (b *Builder) exporterPodTemplate(objMeta metav1.ObjectMeta, exporter *mariadbv1alpha1.Exporter, args []string,
-	pullSecrets []corev1.LocalObjectReference, configSecretName string) (*corev1.PodTemplateSpec, error) {
+	pullSecrets []mariadbv1alpha1.LocalObjectReference, configSecretName string) (*corev1.PodTemplateSpec, error) {
 	securityContext, err := b.buildPodSecurityContext(exporter.PodSecurityContext)
 	if err != nil {
 		return nil, err
@@ -140,7 +141,7 @@ func (b *Builder) exporterPodTemplate(objMeta metav1.ObjectMeta, exporter *maria
 	return &corev1.PodTemplateSpec{
 		ObjectMeta: objMeta,
 		Spec: corev1.PodSpec{
-			ImagePullSecrets: datastructures.Merge(pullSecrets, exporter.ImagePullSecrets),
+			ImagePullSecrets: kadapter.ToKubernetesSlice(datastructures.Merge(pullSecrets, exporter.ImagePullSecrets)),
 			Containers: []corev1.Container{
 				b.exporterContainer(exporter, args),
 			},

@@ -328,7 +328,7 @@ func TestInmutableInitWebhook(t *testing.T) {
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.RestoreSpec{
 					RestoreSource: mariadbv1alpha1.RestoreSource{
-						BackupRef: &corev1.LocalObjectReference{
+						BackupRef: &mariadbv1alpha1.LocalObjectReference{
 							Name: "bar",
 						},
 					},
@@ -342,7 +342,7 @@ func TestInmutableInitWebhook(t *testing.T) {
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.RestoreSpec{
 					RestoreSource: mariadbv1alpha1.RestoreSource{
-						BackupRef: &corev1.LocalObjectReference{
+						BackupRef: &mariadbv1alpha1.LocalObjectReference{
 							Name: "bar",
 						},
 					},
@@ -352,7 +352,7 @@ func TestInmutableInitWebhook(t *testing.T) {
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.RestoreSpec{
 					RestoreSource: mariadbv1alpha1.RestoreSource{
-						BackupRef: &corev1.LocalObjectReference{
+						BackupRef: &mariadbv1alpha1.LocalObjectReference{
 							Name: "foo",
 						},
 					},
@@ -372,8 +372,8 @@ func TestInmutableInitWebhook(t *testing.T) {
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					RootPasswordSecretKeyRef: mariadbv1alpha1.GeneratedSecretKeyRef{
-						SecretKeySelector: corev1.SecretKeySelector{
-							LocalObjectReference: corev1.LocalObjectReference{
+						SecretKeySelector: mariadbv1alpha1.SecretKeySelector{
+							LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
 								Name: "mariadb-root",
 							},
 							Key: "password",
@@ -390,8 +390,8 @@ func TestInmutableInitWebhook(t *testing.T) {
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					RootPasswordSecretKeyRef: mariadbv1alpha1.GeneratedSecretKeyRef{
-						SecretKeySelector: corev1.SecretKeySelector{
-							LocalObjectReference: corev1.LocalObjectReference{
+						SecretKeySelector: mariadbv1alpha1.SecretKeySelector{
+							LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
 								Name: "mariadb-root",
 							},
 							Key: "password",
@@ -403,8 +403,8 @@ func TestInmutableInitWebhook(t *testing.T) {
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					RootPasswordSecretKeyRef: mariadbv1alpha1.GeneratedSecretKeyRef{
-						SecretKeySelector: corev1.SecretKeySelector{
-							LocalObjectReference: corev1.LocalObjectReference{
+						SecretKeySelector: mariadbv1alpha1.SecretKeySelector{
+							LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
 								Name: "mariadb-root",
 							},
 							Key: "another-password",
@@ -420,7 +420,7 @@ func TestInmutableInitWebhook(t *testing.T) {
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.RestoreSpec{
 					RestoreSource: mariadbv1alpha1.RestoreSource{
-						BackupRef: &corev1.LocalObjectReference{
+						BackupRef: &mariadbv1alpha1.LocalObjectReference{
 							Name: "foo",
 						},
 					},
@@ -430,7 +430,7 @@ func TestInmutableInitWebhook(t *testing.T) {
 				ObjectMeta: objectMeta,
 				Spec: mariadbv1alpha1.RestoreSpec{
 					RestoreSource: mariadbv1alpha1.RestoreSource{
-						BackupRef: &corev1.LocalObjectReference{
+						BackupRef: &mariadbv1alpha1.LocalObjectReference{
 							Name: "foo",
 						},
 						Volume: &mariadbv1alpha1.VolumeSource{

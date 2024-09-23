@@ -46,7 +46,7 @@ func TestMariadbImagePullSecrets(t *testing.T) {
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					PodTemplate: mariadbv1alpha1.PodTemplate{
-						ImagePullSecrets: []corev1.LocalObjectReference{
+						ImagePullSecrets: []mariadbv1alpha1.LocalObjectReference{
 							{
 								Name: "mariadb-registry",
 							},
@@ -104,7 +104,7 @@ func TestMaxScaleImagePullSecrets(t *testing.T) {
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MaxScaleSpec{
 					MaxScalePodTemplate: mariadbv1alpha1.MaxScalePodTemplate{
-						ImagePullSecrets: []corev1.LocalObjectReference{
+						ImagePullSecrets: []mariadbv1alpha1.LocalObjectReference{
 							{
 								Name: "maxscale-registry",
 							},

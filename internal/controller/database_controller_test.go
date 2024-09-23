@@ -4,7 +4,6 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -29,7 +28,7 @@ var _ = Describe("Database", func() {
 			},
 			Spec: mariadbv1alpha1.DatabaseSpec{
 				MariaDBRef: mariadbv1alpha1.MariaDBRef{
-					ObjectReference: corev1.ObjectReference{
+					ObjectReference: mariadbv1alpha1.ObjectReference{
 						Name: testMdbkey.Name,
 					},
 					WaitForIt: true,

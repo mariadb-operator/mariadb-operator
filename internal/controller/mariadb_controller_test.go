@@ -397,8 +397,8 @@ var _ = Describe("MariaDB", func() {
 			},
 			Spec: mariadbv1alpha1.MariaDBSpec{
 				RootPasswordSecretKeyRef: mariadbv1alpha1.GeneratedSecretKeyRef{
-					SecretKeySelector: corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{
+					SecretKeySelector: mariadbv1alpha1.SecretKeySelector{
+						LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
 							Name: rootPasswordKey.Name,
 						},
 						Key: testPwdSecretKey,
@@ -407,8 +407,8 @@ var _ = Describe("MariaDB", func() {
 				},
 				Username: ptr.To("user"),
 				PasswordSecretKeyRef: &mariadbv1alpha1.GeneratedSecretKeyRef{
-					SecretKeySelector: corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{
+					SecretKeySelector: mariadbv1alpha1.SecretKeySelector{
+						LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
 							Name: testPwdKey.Name,
 						},
 						Key: testPwdSecretKey,
@@ -543,8 +543,8 @@ var _ = Describe("MariaDB", func() {
 				UpdateStrategy: mariadbv1alpha1.UpdateStrategy{
 					Type: mariadbv1alpha1.OnDeleteUpdateType,
 				},
-				MyCnfConfigMapKeyRef: &corev1.ConfigMapKeySelector{
-					LocalObjectReference: corev1.LocalObjectReference{
+				MyCnfConfigMapKeyRef: &mariadbv1alpha1.ConfigMapKeySelector{
+					LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
 						Name: configMap.Name,
 					},
 					Key: configMapKey,
@@ -653,7 +653,7 @@ var _ = Describe("MariaDB", func() {
 			Namespace: testNamespace,
 		}
 		restoreSource := mariadbv1alpha1.RestoreSource{
-			BackupRef: &corev1.LocalObjectReference{
+			BackupRef: &mariadbv1alpha1.LocalObjectReference{
 				Name: backupKey.Name,
 			},
 			TargetRecoveryTime: &metav1.Time{Time: time.Now()},

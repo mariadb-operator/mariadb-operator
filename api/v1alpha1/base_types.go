@@ -28,7 +28,7 @@ var (
 type MariaDBRef struct {
 	// ObjectReference is a reference to a object.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	corev1.ObjectReference `json:",inline"`
+	ObjectReference `json:",inline"`
 	// WaitForIt indicates whether the controller using this reference should wait for MariaDB to be ready.
 	// +optional
 	// +kubebuilder:default=true
@@ -242,7 +242,7 @@ type PodTemplate struct {
 	// ImagePullSecrets is the list of pull Secrets to be used to pull the image.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	ImagePullSecrets []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty" webhook:"inmutable"`
+	ImagePullSecrets []LocalObjectReference `json:"imagePullSecrets,omitempty" webhook:"inmutable"`
 	// InitContainers to be used in the Pod.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
@@ -312,7 +312,7 @@ type JobPodTemplate struct {
 	// ImagePullSecrets is the list of pull Secrets to be used to pull the image.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	ImagePullSecrets []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty" webhook:"inmutable"`
+	ImagePullSecrets []LocalObjectReference `json:"imagePullSecrets,omitempty" webhook:"inmutable"`
 	// SecurityContext holds pod-level security attributes and common container settings.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
@@ -518,7 +518,7 @@ type TLS struct {
 	// By default, the system trust chain will be used, but you can use this field to add more CAs to the bundle.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	CASecretKeyRef *corev1.SecretKeySelector `json:"caSecretKeyRef,omitempty"`
+	CASecretKeyRef *SecretKeySelector `json:"caSecretKeyRef,omitempty"`
 }
 
 type S3 struct {
@@ -541,15 +541,15 @@ type S3 struct {
 	// AccessKeyIdSecretKeyRef is a reference to a Secret key containing the S3 access key id.
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	AccessKeyIdSecretKeyRef corev1.SecretKeySelector `json:"accessKeyIdSecretKeyRef"`
+	AccessKeyIdSecretKeyRef SecretKeySelector `json:"accessKeyIdSecretKeyRef"`
 	// AccessKeyIdSecretKeyRef is a reference to a Secret key containing the S3 secret key.
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	SecretAccessKeySecretKeyRef corev1.SecretKeySelector `json:"secretAccessKeySecretKeyRef"`
+	SecretAccessKeySecretKeyRef SecretKeySelector `json:"secretAccessKeySecretKeyRef"`
 	// SessionTokenSecretKeyRef is a reference to a Secret key containing the S3 session token.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	SessionTokenSecretKeyRef *corev1.SecretKeySelector `json:"sessionTokenSecretKeyRef,omitempty"`
+	SessionTokenSecretKeyRef *SecretKeySelector `json:"sessionTokenSecretKeyRef,omitempty"`
 	// TLS provides the configuration required to establish TLS connections with S3.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -593,7 +593,7 @@ type RestoreSource struct {
 	// BackupRef is a reference to a Backup object. It has priority over S3 and Volume.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	BackupRef *corev1.LocalObjectReference `json:"backupRef,omitempty" webhook:"inmutableinit"`
+	BackupRef *LocalObjectReference `json:"backupRef,omitempty" webhook:"inmutableinit"`
 	// S3 defines the configuration to restore backups from a S3 compatible storage. It has priority over Volume.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -686,7 +686,7 @@ type CronJobTemplate struct {
 type GeneratedSecretKeyRef struct {
 	// SecretKeySelector is a reference to a Secret key.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	corev1.SecretKeySelector `json:",inline"`
+	SecretKeySelector `json:",inline"`
 	// Generate indicates whether the Secret should be generated if the Secret referenced is not present.
 	// +optional
 	// +kubebuilder:default=false
@@ -710,12 +710,12 @@ type PasswordPlugin struct {
 	// If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the authentication plugin.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	PluginNameSecretKeyRef *corev1.SecretKeySelector `json:"pluginNameSecretKeyRef,omitempty"`
+	PluginNameSecretKeyRef *SecretKeySelector `json:"pluginNameSecretKeyRef,omitempty"`
 	// PluginArgSecretKeyRef is a reference to the arguments to be provided to the authentication plugin for the User.
 	// If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the authentication plugin arguments.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	PluginArgSecretKeyRef *corev1.SecretKeySelector `json:"pluginArgSecretKeyRef,omitempty"`
+	PluginArgSecretKeyRef *SecretKeySelector `json:"pluginArgSecretKeyRef,omitempty"`
 }
 
 // CleanupPolicy defines the behavior for cleaning up a resource.
@@ -753,7 +753,7 @@ type Exporter struct {
 	// ImagePullSecrets is the list of pull Secrets to be used to pull the image.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	ImagePullSecrets []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty" webhook:"inmutable"`
+	ImagePullSecrets []LocalObjectReference `json:"imagePullSecrets,omitempty" webhook:"inmutable"`
 	// Port where the exporter will be listening for connections.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}

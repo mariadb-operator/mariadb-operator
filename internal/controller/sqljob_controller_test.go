@@ -28,7 +28,7 @@ var _ = Describe("SqlJob", func() {
 			},
 			Spec: mariadbv1alpha1.SqlJobSpec{
 				MariaDBRef: mariadbv1alpha1.MariaDBRef{
-					ObjectReference: corev1.ObjectReference{
+					ObjectReference: mariadbv1alpha1.ObjectReference{
 						Name: testMdbkey.Name,
 					},
 					WaitForIt: true,
@@ -42,8 +42,8 @@ var _ = Describe("SqlJob", func() {
 					},
 				},
 				Username: testUser,
-				PasswordSecretKeyRef: corev1.SecretKeySelector{
-					LocalObjectReference: corev1.LocalObjectReference{
+				PasswordSecretKeyRef: mariadbv1alpha1.SecretKeySelector{
+					LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
 						Name: testPwdKey.Name,
 					},
 					Key: testPwdSecretKey,
@@ -68,13 +68,13 @@ var _ = Describe("SqlJob", func() {
 				Namespace: testNamespace,
 			},
 			Spec: mariadbv1alpha1.SqlJobSpec{
-				DependsOn: []corev1.LocalObjectReference{
+				DependsOn: []mariadbv1alpha1.LocalObjectReference{
 					{
 						Name: createUsersJob.Name,
 					},
 				},
 				MariaDBRef: mariadbv1alpha1.MariaDBRef{
-					ObjectReference: corev1.ObjectReference{
+					ObjectReference: mariadbv1alpha1.ObjectReference{
 						Name: testMdbkey.Name,
 					},
 					WaitForIt: true,
@@ -88,8 +88,8 @@ var _ = Describe("SqlJob", func() {
 					},
 				},
 				Username: testUser,
-				PasswordSecretKeyRef: corev1.SecretKeySelector{
-					LocalObjectReference: corev1.LocalObjectReference{
+				PasswordSecretKeyRef: mariadbv1alpha1.SecretKeySelector{
+					LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
 						Name: testPwdKey.Name,
 					},
 					Key: testPwdSecretKey,
@@ -109,13 +109,13 @@ var _ = Describe("SqlJob", func() {
 				Namespace: testNamespace,
 			},
 			Spec: mariadbv1alpha1.SqlJobSpec{
-				DependsOn: []corev1.LocalObjectReference{
+				DependsOn: []mariadbv1alpha1.LocalObjectReference{
 					{
 						Name: createUsersJob.Name,
 					},
 				},
 				MariaDBRef: mariadbv1alpha1.MariaDBRef{
-					ObjectReference: corev1.ObjectReference{
+					ObjectReference: mariadbv1alpha1.ObjectReference{
 						Name: testMdbkey.Name,
 					},
 					WaitForIt: true,
@@ -129,8 +129,8 @@ var _ = Describe("SqlJob", func() {
 					},
 				},
 				Username: testUser,
-				PasswordSecretKeyRef: corev1.SecretKeySelector{
-					LocalObjectReference: corev1.LocalObjectReference{
+				PasswordSecretKeyRef: mariadbv1alpha1.SecretKeySelector{
+					LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
 						Name: testPwdKey.Name,
 					},
 					Key: testPwdSecretKey,
@@ -246,14 +246,14 @@ func buildScheduledSqlJob(key types.NamespacedName) mariadbv1alpha1.SqlJob {
 				Cron: "*/1 * * * *",
 			},
 			MariaDBRef: mariadbv1alpha1.MariaDBRef{
-				ObjectReference: corev1.ObjectReference{
+				ObjectReference: mariadbv1alpha1.ObjectReference{
 					Name: testMdbkey.Name,
 				},
 				WaitForIt: true,
 			},
 			Username: testUser,
-			PasswordSecretKeyRef: corev1.SecretKeySelector{
-				LocalObjectReference: corev1.LocalObjectReference{
+			PasswordSecretKeyRef: mariadbv1alpha1.SecretKeySelector{
+				LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
 					Name: testPwdKey.Name,
 				},
 				Key: testPwdSecretKey,

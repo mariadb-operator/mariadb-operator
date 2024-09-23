@@ -482,7 +482,7 @@ type MaxScalePodTemplate struct {
 	// ImagePullSecrets is the list of pull Secrets to be used to pull the image.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	ImagePullSecrets []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty" webhook:"inmutable"`
+	ImagePullSecrets []LocalObjectReference `json:"imagePullSecrets,omitempty" webhook:"inmutable"`
 	// SecurityContext holds pod-level security attributes and common container settings.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}

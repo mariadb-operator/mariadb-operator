@@ -14,7 +14,6 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/health"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -143,7 +142,7 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, mdb *mariadbv1alp
 }
 
 // nolint:lll
-func (r *ReplicationReconciler) ReconcileProbeConfigMap(ctx context.Context, configMapKeyRef corev1.ConfigMapKeySelector,
+func (r *ReplicationReconciler) ReconcileProbeConfigMap(ctx context.Context, configMapKeyRef mariadbv1alpha1.ConfigMapKeySelector,
 	mdb *mariadbv1alpha1.MariaDB) error {
 	if !mdb.Replication().Enabled {
 		return nil

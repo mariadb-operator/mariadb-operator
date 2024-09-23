@@ -3,15 +3,14 @@ package v1alpha1
 import (
 	"fmt"
 
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
 
 // RootPasswordSecretKeyRef defines the key selector for the root password Secret.
 func (m *MariaDB) RootPasswordSecretKeyRef() GeneratedSecretKeyRef {
 	return GeneratedSecretKeyRef{
-		SecretKeySelector: corev1.SecretKeySelector{
-			LocalObjectReference: corev1.LocalObjectReference{
+		SecretKeySelector: SecretKeySelector{
+			LocalObjectReference: LocalObjectReference{
 				Name: fmt.Sprintf("%s-root", m.Name),
 			},
 			Key: "password",
@@ -23,8 +22,8 @@ func (m *MariaDB) RootPasswordSecretKeyRef() GeneratedSecretKeyRef {
 // PasswordSecretKeyRef defines the key selector for the initial user password Secret.
 func (m *MariaDB) PasswordSecretKeyRef() GeneratedSecretKeyRef {
 	return GeneratedSecretKeyRef{
-		SecretKeySelector: corev1.SecretKeySelector{
-			LocalObjectReference: corev1.LocalObjectReference{
+		SecretKeySelector: SecretKeySelector{
+			LocalObjectReference: LocalObjectReference{
 				Name: fmt.Sprintf("%s-password", m.Name),
 			},
 			Key: "password",
@@ -34,9 +33,9 @@ func (m *MariaDB) PasswordSecretKeyRef() GeneratedSecretKeyRef {
 }
 
 // DefaultConfigMapKeyRef defines the key selector for the default my.cnf ConfigMap.
-func (m *MariaDB) DefaultConfigMapKeyRef() corev1.ConfigMapKeySelector {
-	return corev1.ConfigMapKeySelector{
-		LocalObjectReference: corev1.LocalObjectReference{
+func (m *MariaDB) DefaultConfigMapKeyRef() ConfigMapKeySelector {
+	return ConfigMapKeySelector{
+		LocalObjectReference: LocalObjectReference{
 			Name: fmt.Sprintf("%s-config-default", m.Name),
 		},
 		Key: "0-default.cnf",
@@ -44,9 +43,9 @@ func (m *MariaDB) DefaultConfigMapKeyRef() corev1.ConfigMapKeySelector {
 }
 
 // MyCnfConfigMapKeyRef defines the key selector for the my.cnf ConfigMap.
-func (m *MariaDB) MyCnfConfigMapKeyRef() corev1.ConfigMapKeySelector {
-	return corev1.ConfigMapKeySelector{
-		LocalObjectReference: corev1.LocalObjectReference{
+func (m *MariaDB) MyCnfConfigMapKeyRef() ConfigMapKeySelector {
+	return ConfigMapKeySelector{
+		LocalObjectReference: LocalObjectReference{
 			Name: fmt.Sprintf("%s-config", m.Name),
 		},
 		Key: "my.cnf",
@@ -125,8 +124,8 @@ func (m *MariaDB) MaxScaleKey() types.NamespacedName {
 // MetricsPasswordSecretKeyRef defines the key selector for for the password to be used by the metrics user
 func (m *MariaDB) MetricsPasswordSecretKeyRef() GeneratedSecretKeyRef {
 	return GeneratedSecretKeyRef{
-		SecretKeySelector: corev1.SecretKeySelector{
-			LocalObjectReference: corev1.LocalObjectReference{
+		SecretKeySelector: SecretKeySelector{
+			LocalObjectReference: LocalObjectReference{
 				Name: fmt.Sprintf("%s-metrics-password", m.Name),
 			},
 			Key: "password",
@@ -138,8 +137,8 @@ func (m *MariaDB) MetricsPasswordSecretKeyRef() GeneratedSecretKeyRef {
 // MetricsConfigSecretKeyRef defines the key selector for the metrics Secret configuration
 func (m *MariaDB) MetricsConfigSecretKeyRef() GeneratedSecretKeyRef {
 	return GeneratedSecretKeyRef{
-		SecretKeySelector: corev1.SecretKeySelector{
-			LocalObjectReference: corev1.LocalObjectReference{
+		SecretKeySelector: SecretKeySelector{
+			LocalObjectReference: LocalObjectReference{
 				Name: fmt.Sprintf("%s-metrics-config", m.Name),
 			},
 			Key: "exporter.cnf",
@@ -149,9 +148,9 @@ func (m *MariaDB) MetricsConfigSecretKeyRef() GeneratedSecretKeyRef {
 }
 
 // ConfigMapKeySelector defines the key selector for the ConfigMap used for replication healthchecks.
-func (m *MariaDB) ReplConfigMapKeyRef() corev1.ConfigMapKeySelector {
-	return corev1.ConfigMapKeySelector{
-		LocalObjectReference: corev1.LocalObjectReference{
+func (m *MariaDB) ReplConfigMapKeyRef() ConfigMapKeySelector {
+	return ConfigMapKeySelector{
+		LocalObjectReference: LocalObjectReference{
 			Name: fmt.Sprintf("%s-probes", m.Name),
 		},
 		Key: "replication.sh",
@@ -225,8 +224,8 @@ func (m *MariaDB) MariadbGrantKey() types.NamespacedName {
 // AgentAuthSecretKeyRef defines the Secret key selector for the agent password
 func (m *MariaDB) AgentAuthSecretKeyRef() GeneratedSecretKeyRef {
 	return GeneratedSecretKeyRef{
-		SecretKeySelector: corev1.SecretKeySelector{
-			LocalObjectReference: corev1.LocalObjectReference{
+		SecretKeySelector: SecretKeySelector{
+			LocalObjectReference: LocalObjectReference{
 				Name: fmt.Sprintf("%s-agent-auth", m.Name),
 			},
 			Key: "password",

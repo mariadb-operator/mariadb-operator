@@ -162,8 +162,8 @@ var _ = Describe("MariaDB Galera types", func() {
 								Enabled:  true,
 								Username: "mariadb-operator",
 								PasswordSecretKeyRef: GeneratedSecretKeyRef{
-									SecretKeySelector: corev1.SecretKeySelector{
-										LocalObjectReference: corev1.LocalObjectReference{
+									SecretKeySelector: SecretKeySelector{
+										LocalObjectReference: LocalObjectReference{
 											Name: "mariadb-galera-agent-auth",
 										},
 										Key: "password",

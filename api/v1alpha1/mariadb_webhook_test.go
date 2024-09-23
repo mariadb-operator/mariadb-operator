@@ -51,7 +51,7 @@ var _ = Describe("MariaDB webhook", func() {
 					Spec: MariaDBSpec{
 						BootstrapFrom: &BootstrapFrom{
 							RestoreSource: RestoreSource{
-								BackupRef: &corev1.LocalObjectReference{
+								BackupRef: &LocalObjectReference{
 									Name: "backup-webhook",
 								},
 							},
@@ -411,7 +411,7 @@ var _ = Describe("MariaDB webhook", func() {
 				&MariaDB{
 					ObjectMeta: meta,
 					Spec: MariaDBSpec{
-						MaxScaleRef: &corev1.ObjectReference{
+						MaxScaleRef: &ObjectReference{
 							Name: "maxscale",
 						},
 						MaxScale: &MariaDBMaxScaleSpec{
@@ -468,8 +468,8 @@ var _ = Describe("MariaDB webhook", func() {
 					ObjectMeta: meta,
 					Spec: MariaDBSpec{
 						RootPasswordSecretKeyRef: GeneratedSecretKeyRef{
-							SecretKeySelector: corev1.SecretKeySelector{
-								LocalObjectReference: corev1.LocalObjectReference{
+							SecretKeySelector: SecretKeySelector{
+								LocalObjectReference: LocalObjectReference{
 									Name: "secret",
 								},
 								Key: "root-password",
@@ -489,8 +489,8 @@ var _ = Describe("MariaDB webhook", func() {
 					ObjectMeta: meta,
 					Spec: MariaDBSpec{
 						RootPasswordSecretKeyRef: GeneratedSecretKeyRef{
-							SecretKeySelector: corev1.SecretKeySelector{
-								LocalObjectReference: corev1.LocalObjectReference{
+							SecretKeySelector: SecretKeySelector{
+								LocalObjectReference: LocalObjectReference{
 									Name: "secret",
 								},
 								Key: "root-password",
@@ -624,8 +624,8 @@ var _ = Describe("MariaDB webhook", func() {
 						},
 					},
 					RootPasswordSecretKeyRef: GeneratedSecretKeyRef{
-						SecretKeySelector: corev1.SecretKeySelector{
-							LocalObjectReference: corev1.LocalObjectReference{
+						SecretKeySelector: SecretKeySelector{
+							LocalObjectReference: LocalObjectReference{
 								Name: "secret",
 							},
 							Key: "root-password",
@@ -634,8 +634,8 @@ var _ = Describe("MariaDB webhook", func() {
 					Database: ptr.To("test"),
 					Username: ptr.To("test"),
 					PasswordSecretKeyRef: &GeneratedSecretKeyRef{
-						SecretKeySelector: corev1.SecretKeySelector{
-							LocalObjectReference: corev1.LocalObjectReference{
+						SecretKeySelector: SecretKeySelector{
+							LocalObjectReference: LocalObjectReference{
 								Name: "secret",
 							},
 							Key: "password",
@@ -644,7 +644,7 @@ var _ = Describe("MariaDB webhook", func() {
 					MyCnf: ptr.To("foo"),
 					BootstrapFrom: &BootstrapFrom{
 						RestoreSource: RestoreSource{
-							BackupRef: &corev1.LocalObjectReference{
+							BackupRef: &LocalObjectReference{
 								Name: "backup",
 							},
 						},
@@ -747,8 +747,8 @@ var _ = Describe("MariaDB webhook", func() {
 			Entry(
 				"Updating MyCnfConfigMapKeyRef",
 				func(mdb *MariaDB) {
-					mdb.Spec.MyCnfConfigMapKeyRef = &corev1.ConfigMapKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{
+					mdb.Spec.MyCnfConfigMapKeyRef = &ConfigMapKeySelector{
+						LocalObjectReference: LocalObjectReference{
 							Name: "my-cnf-configmap",
 						},
 						Key: "config",
@@ -831,8 +831,8 @@ var _ = Describe("MariaDB webhook", func() {
 					Database: &test,
 					Username: &test,
 					PasswordSecretKeyRef: &GeneratedSecretKeyRef{
-						SecretKeySelector: corev1.SecretKeySelector{
-							LocalObjectReference: corev1.LocalObjectReference{
+						SecretKeySelector: SecretKeySelector{
+							LocalObjectReference: LocalObjectReference{
 								Name: "secret",
 							},
 							Key: "password",
@@ -862,8 +862,8 @@ var _ = Describe("MariaDB webhook", func() {
 					Database: &test,
 					Username: &test,
 					PasswordSecretKeyRef: &GeneratedSecretKeyRef{
-						SecretKeySelector: corev1.SecretKeySelector{
-							LocalObjectReference: corev1.LocalObjectReference{
+						SecretKeySelector: SecretKeySelector{
+							LocalObjectReference: LocalObjectReference{
 								Name: "secret",
 							},
 							Key: "password",

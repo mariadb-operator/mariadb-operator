@@ -31,7 +31,7 @@ var _ = Describe("MaxScale", func() {
 			},
 			Spec: mariadbv1alpha1.MaxScaleSpec{
 				MariaDBRef: &mariadbv1alpha1.MariaDBRef{
-					ObjectReference: corev1.ObjectReference{
+					ObjectReference: mariadbv1alpha1.ObjectReference{
 						Name:      testMdbkey.Name,
 						Namespace: testMdbkey.Namespace,
 					},
@@ -66,7 +66,7 @@ var _ = Describe("MaxScale", func() {
 			},
 			Spec: mariadbv1alpha1.MaxScaleSpec{
 				MariaDBRef: &mariadbv1alpha1.MariaDBRef{
-					ObjectReference: corev1.ObjectReference{
+					ObjectReference: mariadbv1alpha1.ObjectReference{
 						Name:      testMdbkey.Name,
 						Namespace: testMdbkey.Namespace,
 					},
@@ -135,7 +135,7 @@ var _ = Describe("MaxScale", func() {
 			},
 			Spec: mariadbv1alpha1.MaxScaleSpec{
 				MariaDBRef: &mariadbv1alpha1.MariaDBRef{
-					ObjectReference: corev1.ObjectReference{
+					ObjectReference: mariadbv1alpha1.ObjectReference{
 						Name:      testMdbkey.Name,
 						Namespace: testMdbkey.Namespace,
 					},
@@ -146,8 +146,8 @@ var _ = Describe("MaxScale", func() {
 				Auth: mariadbv1alpha1.MaxScaleAuth{
 					MetricsUsername: "metrics",
 					MetricsPasswordSecretKeyRef: mariadbv1alpha1.GeneratedSecretKeyRef{
-						SecretKeySelector: corev1.SecretKeySelector{
-							LocalObjectReference: corev1.LocalObjectReference{
+						SecretKeySelector: mariadbv1alpha1.SecretKeySelector{
+							LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
 								Name: secret.Name,
 							},
 							Key: secretKey,

@@ -1185,8 +1185,8 @@ func TestMariadbConfigVolume(t *testing.T) {
 		t.Fatalf("expecting to have '%s' key, got: '%s'", expectedKey, volume.Projected.Sources[0].ConfigMap.Items[0].Key)
 	}
 
-	mariadb.Spec.MyCnfConfigMapKeyRef = &corev1.ConfigMapKeySelector{
-		LocalObjectReference: corev1.LocalObjectReference{
+	mariadb.Spec.MyCnfConfigMapKeyRef = &mariadbv1alpha1.ConfigMapKeySelector{
+		LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
 			Name: "test",
 		},
 		Key: "my.cnf",

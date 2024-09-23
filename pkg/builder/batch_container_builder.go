@@ -6,6 +6,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/utils/ptr"
 )
 
 func (b *Builder) jobContainer(name string, cmd *cmd.Command, image string, volumeMounts []corev1.VolumeMount, env []v1.EnvVar,
@@ -86,7 +87,7 @@ func jobEnv(mariadb *mariadbv1alpha1.MariaDB) []v1.EnvVar {
 		{
 			Name: batchPasswordEnv,
 			ValueFrom: &v1.EnvVarSource{
-				SecretKeyRef: &mariadb.Spec.RootPasswordSecretKeyRef.SecretKeySelector,
+				SecretKeyRef: ptr.To(mariadb.Spec.RootPasswordSecretKeyRef.SecretKeySelector.ToKubernetesType()),
 			},
 		},
 	}
@@ -100,13 +101,13 @@ func jobS3Env(s3 *mariadbv1alpha1.S3) []v1.EnvVar {
 		{
 			Name: batchS3AccessKeyId,
 			ValueFrom: &v1.EnvVarSource{
-				SecretKeyRef: &s3.AccessKeyIdSecretKeyRef,
+				SecretKeyRef: ptr.To(s3.AccessKeyIdSecretKeyRef.ToKubernetesType()),
 			},
 		},
 		{
 			Name: batchS3SecretAccessKey,
 			ValueFrom: &v1.EnvVarSource{
-				SecretKeyRef: &s3.SecretAccessKeySecretKeyRef,
+				SecretKeyRef: ptr.To(s3.SecretAccessKeySecretKeyRef.ToKubernetesType()),
 			},
 		},
 	}
@@ -114,7 +115,7 @@ func jobS3Env(s3 *mariadbv1alpha1.S3) []v1.EnvVar {
 		env = append(env, v1.EnvVar{
 			Name: batchS3SessionTokenKey,
 			ValueFrom: &v1.EnvVarSource{
-				SecretKeyRef: s3.SessionTokenSecretKeyRef,
+				SecretKeyRef: ptr.To(s3.SessionTokenSecretKeyRef.ToKubernetesType()),
 			},
 		})
 	}
@@ -127,7 +128,7 @@ func sqlJobvolumes(sqlJob *mariadbv1alpha1.SqlJob) ([]corev1.Volume, []corev1.Vo
 				Name: batchScriptsVolume,
 				VolumeSource: corev1.VolumeSource{
 					ConfigMap: &corev1.ConfigMapVolumeSource{
-						LocalObjectReference: sqlJob.Spec.SqlConfigMapKeyRef.LocalObjectReference,
+						LocalObjectReference: sqlJob.Spec.SqlConfigMapKeyRef.LocalObjectReference.ToKubernetesType(),
 						Items: []corev1.KeyToPath{
 							{
 								Key:  sqlJob.Spec.SqlConfigMapKeyRef.Key,
@@ -154,7 +155,7 @@ func sqlJobEnv(sqlJob *mariadbv1alpha1.SqlJob) []v1.EnvVar {
 		{
 			Name: batchPasswordEnv,
 			ValueFrom: &v1.EnvVarSource{
-				SecretKeyRef: &sqlJob.Spec.PasswordSecretKeyRef,
+				SecretKeyRef: ptr.To(sqlJob.Spec.PasswordSecretKeyRef.ToKubernetesType()),
 			},
 		},
 	}

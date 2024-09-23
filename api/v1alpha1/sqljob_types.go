@@ -32,7 +32,7 @@ type SqlJobSpec struct {
 	// UserPasswordSecretKeyRef is a reference to the impersonated user's password to be used when executing the SqlJob.
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	PasswordSecretKeyRef corev1.SecretKeySelector `json:"passwordSecretKeyRef" webhook:"inmutable"`
+	PasswordSecretKeyRef SecretKeySelector `json:"passwordSecretKeyRef" webhook:"inmutable"`
 	// Username to be used when executing the SqlJob.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -40,7 +40,7 @@ type SqlJobSpec struct {
 	// DependsOn defines dependencies with other SqlJob objectecs.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	DependsOn []corev1.LocalObjectReference `json:"dependsOn,omitempty" webhook:"inmutable"`
+	DependsOn []LocalObjectReference `json:"dependsOn,omitempty" webhook:"inmutable"`
 	// Sql is the script to be executed by the SqlJob.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -49,7 +49,7 @@ type SqlJobSpec struct {
 	// It is defaulted to a ConfigMap with the contents of the Sql field.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	SqlConfigMapKeyRef *corev1.ConfigMapKeySelector `json:"sqlConfigMapKeyRef,omitempty" webhook:"inmutableinit"`
+	SqlConfigMapKeyRef *ConfigMapKeySelector `json:"sqlConfigMapKeyRef,omitempty" webhook:"inmutableinit"`
 	// BackoffLimit defines the maximum number of attempts to successfully execute a SqlJob.
 	// +optional
 	// +kubebuilder:default=5

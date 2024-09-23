@@ -3,7 +3,6 @@ package v1alpha1
 import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
@@ -38,13 +37,13 @@ var _ = Describe("User webhook", func() {
 							CleanupPolicy: ptr.To(CleanupPolicyDelete),
 						},
 						MariaDBRef: MariaDBRef{
-							ObjectReference: corev1.ObjectReference{
+							ObjectReference: ObjectReference{
 								Name: "mariadb-webhook",
 							},
 							WaitForIt: true,
 						},
-						PasswordSecretKeyRef: &corev1.SecretKeySelector{
-							LocalObjectReference: corev1.LocalObjectReference{
+						PasswordSecretKeyRef: &SecretKeySelector{
+							LocalObjectReference: LocalObjectReference{
 								Name: "user-mariadb-webhook-root",
 							},
 							Key: "password",
@@ -66,13 +65,13 @@ var _ = Describe("User webhook", func() {
 							CleanupPolicy: ptr.To(CleanupPolicy("")),
 						},
 						MariaDBRef: MariaDBRef{
-							ObjectReference: corev1.ObjectReference{
+							ObjectReference: ObjectReference{
 								Name: "mariadb-webhook",
 							},
 							WaitForIt: true,
 						},
-						PasswordSecretKeyRef: &corev1.SecretKeySelector{
-							LocalObjectReference: corev1.LocalObjectReference{
+						PasswordSecretKeyRef: &SecretKeySelector{
+							LocalObjectReference: LocalObjectReference{
 								Name: "user-mariadb-webhook-root",
 							},
 							Key: "password",
@@ -91,14 +90,14 @@ var _ = Describe("User webhook", func() {
 			Namespace: testNamespace,
 		}
 		PasswordPlugin := PasswordPlugin{
-			PluginNameSecretKeyRef: &corev1.SecretKeySelector{
-				LocalObjectReference: corev1.LocalObjectReference{
+			PluginNameSecretKeyRef: &SecretKeySelector{
+				LocalObjectReference: LocalObjectReference{
 					Name: "user-mariadb-webhook-root",
 				},
 				Key: "pluginName",
 			},
-			PluginArgSecretKeyRef: &corev1.SecretKeySelector{
-				LocalObjectReference: corev1.LocalObjectReference{
+			PluginArgSecretKeyRef: &SecretKeySelector{
+				LocalObjectReference: LocalObjectReference{
 					Name: "user-mariadb-webhook-root",
 				},
 				Key: "pluginArg",
@@ -112,13 +111,13 @@ var _ = Describe("User webhook", func() {
 				},
 				Spec: UserSpec{
 					MariaDBRef: MariaDBRef{
-						ObjectReference: corev1.ObjectReference{
+						ObjectReference: ObjectReference{
 							Name: "mariadb-webhook",
 						},
 						WaitForIt: true,
 					},
-					PasswordSecretKeyRef: &corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{
+					PasswordSecretKeyRef: &SecretKeySelector{
+						LocalObjectReference: LocalObjectReference{
 							Name: "user-mariadb-webhook-root",
 						},
 						Key: "password",

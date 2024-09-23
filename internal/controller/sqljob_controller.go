@@ -162,8 +162,8 @@ func (r *SqlJobReconciler) reconcileConfigMap(ctx context.Context, sqlJob *maria
 	}
 
 	return r.patch(ctx, sqlJob, func(sqlJob *mariadbv1alpha1.SqlJob) {
-		sqlJob.Spec.SqlConfigMapKeyRef = &corev1.ConfigMapKeySelector{
-			LocalObjectReference: corev1.LocalObjectReference{
+		sqlJob.Spec.SqlConfigMapKeyRef = &mariadbv1alpha1.ConfigMapKeySelector{
+			LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
 				Name: key.Name,
 			},
 			Key: jobConfigMapKey,

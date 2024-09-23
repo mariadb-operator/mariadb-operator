@@ -72,14 +72,14 @@ var _ = Describe("Connection", func() {
 						},
 					},
 					MariaDBRef: &mariadbv1alpha1.MariaDBRef{
-						ObjectReference: corev1.ObjectReference{
+						ObjectReference: mariadbv1alpha1.ObjectReference{
 							Name: testMdbkey.Name,
 						},
 						WaitForIt: true,
 					},
 					Username: testUser,
-					PasswordSecretKeyRef: corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{
+					PasswordSecretKeyRef: mariadbv1alpha1.SecretKeySelector{
+						LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
 							Name: testPwdKey.Name,
 						},
 						Key: testPwdSecretKey,
@@ -117,14 +117,14 @@ var _ = Describe("Connection", func() {
 						ServiceName: &testMdbkey.Name,
 					},
 					MariaDBRef: &mariadbv1alpha1.MariaDBRef{
-						ObjectReference: corev1.ObjectReference{
+						ObjectReference: mariadbv1alpha1.ObjectReference{
 							Name: testMdbkey.Name,
 						},
 						WaitForIt: true,
 					},
 					Username: testUser,
-					PasswordSecretKeyRef: corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{
+					PasswordSecretKeyRef: mariadbv1alpha1.SecretKeySelector{
+						LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
 							Name: testPwdKey.Name,
 						},
 						Key: testPwdSecretKey,
@@ -165,14 +165,14 @@ var _ = Describe("Connection", func() {
 						},
 					},
 					MariaDBRef: &mariadbv1alpha1.MariaDBRef{
-						ObjectReference: corev1.ObjectReference{
+						ObjectReference: mariadbv1alpha1.ObjectReference{
 							Name: testMdbkey.Name,
 						},
 						WaitForIt: true,
 					},
 					Username: testUser,
-					PasswordSecretKeyRef: corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{
+					PasswordSecretKeyRef: mariadbv1alpha1.SecretKeySelector{
+						LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
 							Name: testPwdKey.Name,
 						},
 						Key: testPwdSecretKey,
@@ -196,14 +196,14 @@ var _ = Describe("Connection", func() {
 			},
 			Spec: mariadbv1alpha1.ConnectionSpec{
 				MariaDBRef: &mariadbv1alpha1.MariaDBRef{
-					ObjectReference: corev1.ObjectReference{
+					ObjectReference: mariadbv1alpha1.ObjectReference{
 						Name: testMdbkey.Name,
 					},
 					WaitForIt: true,
 				},
 				Username: testUser,
-				PasswordSecretKeyRef: corev1.SecretKeySelector{
-					LocalObjectReference: corev1.LocalObjectReference{
+				PasswordSecretKeyRef: mariadbv1alpha1.SecretKeySelector{
+					LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
 						Name: testPwdKey.Name,
 					},
 					Key: testPwdSecretKey,
@@ -251,14 +251,14 @@ var _ = Describe("Connection", func() {
 					},
 				},
 				MariaDBRef: &mariadbv1alpha1.MariaDBRef{
-					ObjectReference: corev1.ObjectReference{
+					ObjectReference: mariadbv1alpha1.ObjectReference{
 						Name: testMdbkey.Name,
 					},
 					WaitForIt: true,
 				},
 				Username: testUser,
-				PasswordSecretKeyRef: corev1.SecretKeySelector{
-					LocalObjectReference: corev1.LocalObjectReference{
+				PasswordSecretKeyRef: mariadbv1alpha1.SecretKeySelector{
+					LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
 						Name: testPwdKey.Name,
 					},
 					Key: testPwdSecretKey,
@@ -344,14 +344,14 @@ var _ = Describe("Connection", func() {
 					},
 				},
 				MariaDBRef: &mariadbv1alpha1.MariaDBRef{
-					ObjectReference: corev1.ObjectReference{
+					ObjectReference: mariadbv1alpha1.ObjectReference{
 						Name: testMdbkey.Name,
 					},
 					WaitForIt: true,
 				},
 				Username: testUser,
-				PasswordSecretKeyRef: corev1.SecretKeySelector{
-					LocalObjectReference: corev1.LocalObjectReference{
+				PasswordSecretKeyRef: mariadbv1alpha1.SecretKeySelector{
+					LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
 						Name: passwordSecret.Name,
 					},
 					Key: secretKey,
