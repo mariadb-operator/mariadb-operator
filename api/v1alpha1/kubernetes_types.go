@@ -204,16 +204,103 @@ func (s SecretKeySelector) ToKubernetesType() corev1.SecretKeySelector {
 	}
 }
 
-// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#configmapkeyselector-v1-core
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#configmapkeyselector-v1-core.
 // +structType=atomic
 type ConfigMapKeySelector struct {
 	LocalObjectReference `json:",inline" protobuf:"bytes,1,opt,name=localObjectReference"`
 	Key                  string `json:"key" protobuf:"bytes,2,opt,name=key"`
 }
 
-func (s ConfigMapKeySelector) ToKubernetesType() corev1.SecretKeySelector {
-	return corev1.SecretKeySelector{
+func (s ConfigMapKeySelector) ToKubernetesType() corev1.ConfigMapKeySelector {
+	return corev1.ConfigMapKeySelector{
 		LocalObjectReference: s.LocalObjectReference.ToKubernetesType(),
 		Key:                  s.Key,
 	}
+}
+
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#objectfieldselector-v1-core.
+// +structType=atomic
+type ObjectFieldSelector struct {
+	// +optional
+	APIVersion string `json:"apiVersion,omitempty" protobuf:"bytes,1,opt,name=apiVersion"`
+	FieldPath  string `json:"fieldPath" protobuf:"bytes,2,opt,name=fieldPath"`
+}
+
+func (s ObjectFieldSelector) ToKubernetesType() corev1.ObjectFieldSelector {
+	return corev1.ObjectFieldSelector{
+		APIVersion: s.APIVersion,
+		FieldPath:  s.FieldPath,
+	}
+}
+
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#envvarsource-v1-core.
+type EnvVarSource struct {
+	// +optional
+	FieldRef *ObjectFieldSelector `json:"fieldRef,omitempty" protobuf:"bytes,1,opt,name=fieldRef"`
+	// +optional
+	ConfigMapKeyRef *ConfigMapKeySelector `json:"configMapKeyRef,omitempty" protobuf:"bytes,3,opt,name=configMapKeyRef"`
+	// +optional
+	SecretKeyRef *SecretKeySelector `json:"secretKeyRef,omitempty" protobuf:"bytes,4,opt,name=secretKeyRef"`
+}
+
+func (e EnvVarSource) ToKubernetesType() corev1.EnvVarSource {
+	var env corev1.EnvVarSource
+	if e.FieldRef != nil {
+		env.FieldRef = ptr.To(e.FieldRef.ToKubernetesType())
+	}
+	if e.ConfigMapKeyRef != nil {
+		env.ConfigMapKeyRef = ptr.To(e.ConfigMapKeyRef.ToKubernetesType())
+	}
+	if e.SecretKeyRef != nil {
+		env.SecretKeyRef = ptr.To(e.SecretKeyRef.ToKubernetesType())
+	}
+	return env
+}
+
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#envvarsource-v1-core.
+type EnvVar struct {
+	// Name of the environment variable. Must be a C_IDENTIFIER.
+	Name string `json:"name" protobuf:"bytes,1,opt,name=name"`
+	// +optional
+	Value string `json:"value,omitempty" protobuf:"bytes,2,opt,name=value"`
+	// +optional
+	ValueFrom *EnvVarSource `json:"valueFrom,omitempty" protobuf:"bytes,3,opt,name=valueFrom"`
+}
+
+func (e EnvVar) ToKubernetesType() corev1.EnvVar {
+	env := corev1.EnvVar{
+		Name:  e.Name,
+		Value: e.Value,
+	}
+	if e.ValueFrom != nil {
+		env.ValueFrom = ptr.To(e.ValueFrom.ToKubernetesType())
+	}
+	return env
+}
+
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#envfromsource-v1-core.
+type EnvFromSource struct {
+	// +optional
+	Prefix string `json:"prefix,omitempty" protobuf:"bytes,1,opt,name=prefix"`
+	// +optional
+	ConfigMapRef *LocalObjectReference `json:"configMapRef,omitempty" protobuf:"bytes,2,opt,name=configMapRef"`
+	// +optional
+	SecretRef *LocalObjectReference `json:"secretRef,omitempty" protobuf:"bytes,3,opt,name=secretRef"`
+}
+
+func (e EnvFromSource) ToKubernetesType() corev1.EnvFromSource {
+	env := corev1.EnvFromSource{
+		Prefix: e.Prefix,
+	}
+	if e.ConfigMapRef != nil {
+		env.ConfigMapRef = ptr.To(corev1.ConfigMapEnvSource{
+			LocalObjectReference: e.ConfigMapRef.ToKubernetesType(),
+		})
+	}
+	if e.SecretRef != nil {
+		env.SecretRef = ptr.To(corev1.SecretEnvSource{
+			LocalObjectReference: e.SecretRef.ToKubernetesType(),
+		})
+	}
+	return env
 }
