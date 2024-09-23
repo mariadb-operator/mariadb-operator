@@ -73,7 +73,7 @@ examples: examples-operator examples-mariadb examples-maxscale examples-exporter
 
 .PHONY: generate
 ifneq ($(findstring -dev,$(VERSION)),)
-generate: manifests code embed-entrypoint
+generate: manifests code embed-entrypoint helm-crds 
 else
 generate: manifests code embed-entrypoint helm-gen manifests-bundle docs-gen examples
 endif
