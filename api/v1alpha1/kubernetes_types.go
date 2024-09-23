@@ -52,7 +52,7 @@ func (v Volume) ToKubernetesType() corev1.Volume {
 	}
 }
 
-// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#volumemount-v1-core
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#volumemount-v1-core.
 type VolumeMount struct {
 	// This must match the Name of a Volume.
 	Name string `json:"name" protobuf:"bytes,1,opt,name=name"`
@@ -72,7 +72,7 @@ func (v VolumeMount) ToKubernetesType() corev1.VolumeMount {
 	}
 }
 
-// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#persistentvolumeclaimspec-v1-core
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#persistentvolumeclaimspec-v1-core.
 type PersistentVolumeClaimSpec struct {
 	// +optional
 	// +listType=atomic
@@ -94,7 +94,7 @@ func (p PersistentVolumeClaimSpec) ToKubernetesType() corev1.PersistentVolumeCla
 	}
 }
 
-// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#podaffinityterm-v1-core
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#podaffinityterm-v1-core.
 type PodAffinityTerm struct {
 	// +optional
 	LabelSelector *metav1.LabelSelector `json:"labelSelector,omitempty" protobuf:"bytes,1,opt,name=labelSelector"`
@@ -108,7 +108,7 @@ func (p PodAffinityTerm) ToKubernetesType() corev1.PodAffinityTerm {
 	}
 }
 
-// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#weightedpodaffinityterm-v1-core
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#weightedpodaffinityterm-v1-core.
 type WeightedPodAffinityTerm struct {
 	Weight          int32           `json:"weight" protobuf:"varint,1,opt,name=weight"`
 	PodAffinityTerm PodAffinityTerm `json:"podAffinityTerm" protobuf:"bytes,2,opt,name=podAffinityTerm"`
@@ -378,7 +378,7 @@ func (p ProbeHandler) ToKubernetesType() corev1.ProbeHandler {
 	return probe
 }
 
-// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#probe-v1-core
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#probe-v1-core.
 type Probe struct {
 	ProbeHandler `json:",inline" protobuf:"bytes,1,opt,name=handler"`
 	// +optional
@@ -404,7 +404,7 @@ func (p Probe) ToKubernetesType() corev1.Probe {
 	}
 }
 
-// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#resourcerequirements-v1-core
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#resourcerequirements-v1-core.
 type ResourceRequirements struct {
 	// +optional
 	Limits corev1.ResourceList `json:"limits,omitempty" protobuf:"bytes,1,rep,name=limits,casttype=ResourceList,castkey=ResourceName"`
@@ -416,5 +416,35 @@ func (r ResourceRequirements) ToKubernetesType() corev1.ResourceRequirements {
 	return corev1.ResourceRequirements{
 		Limits:   r.Limits,
 		Requests: r.Requests,
+	}
+}
+
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#securitycontext-v1-core.
+type SecurityContext struct {
+	// +optional
+	Capabilities *corev1.Capabilities `json:"capabilities,omitempty" protobuf:"bytes,1,opt,name=capabilities"`
+	// +optional
+	Privileged *bool `json:"privileged,omitempty" protobuf:"varint,2,opt,name=privileged"`
+	// +optional
+	RunAsUser *int64 `json:"runAsUser,omitempty" protobuf:"varint,4,opt,name=runAsUser"`
+	// +optional
+	RunAsGroup *int64 `json:"runAsGroup,omitempty" protobuf:"varint,8,opt,name=runAsGroup"`
+	// +optional
+	RunAsNonRoot *bool `json:"runAsNonRoot,omitempty" protobuf:"varint,5,opt,name=runAsNonRoot"`
+	// +optional
+	ReadOnlyRootFilesystem *bool `json:"readOnlyRootFilesystem,omitempty" protobuf:"varint,6,opt,name=readOnlyRootFilesystem"`
+	// +optional
+	AllowPrivilegeEscalation *bool `json:"allowPrivilegeEscalation,omitempty" protobuf:"varint,7,opt,name=allowPrivilegeEscalation"`
+}
+
+func (r SecurityContext) ToKubernetesType() corev1.SecurityContext {
+	return corev1.SecurityContext{
+		Capabilities:             r.Capabilities,
+		Privileged:               r.Privileged,
+		RunAsUser:                r.RunAsUser,
+		RunAsGroup:               r.RunAsGroup,
+		RunAsNonRoot:             r.RunAsNonRoot,
+		ReadOnlyRootFilesystem:   r.ReadOnlyRootFilesystem,
+		AllowPrivilegeEscalation: r.AllowPrivilegeEscalation,
 	}
 }
