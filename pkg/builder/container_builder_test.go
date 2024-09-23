@@ -847,7 +847,7 @@ func TestContainerSecurityContext(t *testing.T) {
 	}
 
 	tpl = &mariadbv1alpha1.ContainerTemplate{
-		SecurityContext: &corev1.SecurityContext{
+		SecurityContext: &mariadbv1alpha1.SecurityContext{
 			RunAsUser: ptr.To(mysqlUser),
 		},
 	}

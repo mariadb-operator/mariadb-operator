@@ -109,7 +109,7 @@ type ContainerTemplate struct {
 	// SecurityContext holds security configuration that will be applied to a container.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	SecurityContext *corev1.SecurityContext `json:"securityContext,omitempty"`
+	SecurityContext *SecurityContext `json:"securityContext,omitempty"`
 }
 
 // JobContainerTemplate defines a template to configure Container objects that run in a Job.
@@ -125,7 +125,7 @@ type JobContainerTemplate struct {
 	// SecurityContext holds security configuration that will be applied to a container.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	SecurityContext *corev1.SecurityContext `json:"securityContext,omitempty"`
+	SecurityContext *SecurityContext `json:"securityContext,omitempty"`
 }
 
 // FromContainerTemplate sets the ContainerTemplate fields in the current JobContainerTemplate.

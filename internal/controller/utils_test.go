@@ -97,7 +97,7 @@ func testCreateInitialData(ctx context.Context, env environment.OperatorEnv) {
 		},
 		Spec: mariadbv1alpha1.MariaDBSpec{
 			ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
-				SecurityContext: &corev1.SecurityContext{
+				SecurityContext: &mariadbv1alpha1.SecurityContext{
 					AllowPrivilegeEscalation: ptr.To(false),
 				},
 			},

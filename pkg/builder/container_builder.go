@@ -281,7 +281,12 @@ func (b *Builder) galeraInitContainer(mariadb *mariadbv1alpha1.MariaDB) (*corev1
 func (b *Builder) buildContainerWithTemplate(image string, pullPolicy corev1.PullPolicy, tpl *mariadbv1alpha1.ContainerTemplate,
 	opts ...mariadbPodOpt) (*corev1.Container, error) {
 	mariadbOpts := newMariadbPodOpts(opts...)
-	sc, err := b.buildContainerSecurityContext(tpl.SecurityContext)
+
+	var securityContext *corev1.SecurityContext
+	if tpl.SecurityContext != nil {
+		securityContext = ptr.To(tpl.SecurityContext.ToKubernetesType())
+	}
+	sc, err := b.buildContainerSecurityContext(securityContext)
 	if err != nil {
 		return nil, err
 	}

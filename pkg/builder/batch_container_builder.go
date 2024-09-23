@@ -129,6 +129,13 @@ func jobResources(resources *mariadbv1alpha1.ResourceRequirements) *corev1.Resou
 	return nil
 }
 
+func jobSecurityContext(securityContext *mariadbv1alpha1.SecurityContext) *corev1.SecurityContext {
+	if securityContext != nil {
+		return ptr.To(securityContext.ToKubernetesType())
+	}
+	return nil
+}
+
 func sqlJobvolumes(sqlJob *mariadbv1alpha1.SqlJob) ([]corev1.Volume, []corev1.VolumeMount) {
 	return []corev1.Volume{
 			{
