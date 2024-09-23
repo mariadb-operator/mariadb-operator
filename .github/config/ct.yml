@@ -1,3 +1,5 @@
+chart-dirs:
+  - deploy/charts/
 charts:
   - deploy/charts/mariadb-operator
 helm-extra-args: "--set crds.enabled=true --timeout=5m"
