@@ -190,7 +190,7 @@ jobs:
     needs: detect-noop
     if: ${{ needs.detect-noop.outputs.noop != 'true' }}
     env:
-      CRD_FILE: deploy/charts/mariadb-operator/crds/crds.yaml
+      CRD_FILE: deploy/charts/mariadb-operator-crds/templates/crds.yaml
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
