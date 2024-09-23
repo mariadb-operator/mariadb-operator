@@ -105,7 +105,7 @@ type ContainerTemplate struct {
 	// Resouces describes the compute resource requirements.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:resourceRequirements"}
-	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
+	Resources *ResourceRequirements `json:"resources,omitempty"`
 	// SecurityContext holds security configuration that will be applied to a container.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
@@ -121,7 +121,7 @@ type JobContainerTemplate struct {
 	// Resouces describes the compute resource requirements.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:resourceRequirements"}
-	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
+	Resources *ResourceRequirements `json:"resources,omitempty"`
 	// SecurityContext holds security configuration that will be applied to a container.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
@@ -163,11 +163,11 @@ type Container struct {
 	// VolumeMounts to be used in the Container.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	VolumeMounts []corev1.VolumeMount `json:"volumeMounts,omitempty" webhook:"inmutable"`
+	VolumeMounts []VolumeMount `json:"volumeMounts,omitempty" webhook:"inmutable"`
 	// Resouces describes the compute resource requirements.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:resourceRequirements"}
-	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
+	Resources *ResourceRequirements `json:"resources,omitempty"`
 }
 
 // Job defines a Job used to be used with MariaDB.
@@ -183,7 +183,7 @@ type Job struct {
 	// Resouces describes the compute resource requirements.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:resourceRequirements"}
-	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
+	Resources *ResourceRequirements `json:"resources,omitempty"`
 	// Args to be used in the Container.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
@@ -761,7 +761,7 @@ type Exporter struct {
 	// Resouces describes the compute resource requirements.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:resourceRequirements"}
-	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
+	Resources *ResourceRequirements `json:"resources,omitempty"`
 	// PodMetadata defines extra metadata for the Pod.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}

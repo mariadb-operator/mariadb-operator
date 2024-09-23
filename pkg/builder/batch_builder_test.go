@@ -1062,7 +1062,7 @@ func TestGaleraInitJobResources(t *testing.T) {
 						Enabled: true,
 					},
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
-						Resources: &corev1.ResourceRequirements{
+						Resources: &mariadbv1alpha1.ResourceRequirements{
 							Requests: corev1.ResourceList{
 								"cpu": resource.MustParse("300m"),
 							},
@@ -1081,7 +1081,7 @@ func TestGaleraInitJobResources(t *testing.T) {
 						Enabled: true,
 						GaleraSpec: mariadbv1alpha1.GaleraSpec{
 							InitJob: &mariadbv1alpha1.GaleraInitJob{
-								Resources: &corev1.ResourceRequirements{
+								Resources: &mariadbv1alpha1.ResourceRequirements{
 									Requests: corev1.ResourceList{
 										"cpu": resource.MustParse("100m"),
 									},
@@ -1714,7 +1714,7 @@ func TestGaleraRecoveryJobResources(t *testing.T) {
 						},
 					},
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
-						Resources: &corev1.ResourceRequirements{
+						Resources: &mariadbv1alpha1.ResourceRequirements{
 							Requests: corev1.ResourceList{
 								"cpu": resource.MustParse("300m"),
 							},
@@ -1735,7 +1735,7 @@ func TestGaleraRecoveryJobResources(t *testing.T) {
 							Recovery: &mariadbv1alpha1.GaleraRecovery{
 								Enabled: true,
 								Job: &mariadbv1alpha1.GaleraRecoveryJob{
-									Resources: &corev1.ResourceRequirements{
+									Resources: &mariadbv1alpha1.ResourceRequirements{
 										Requests: corev1.ResourceList{
 											"cpu": resource.MustParse("100m"),
 										},

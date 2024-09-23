@@ -602,7 +602,7 @@ var _ = Describe("MariaDB webhook", func() {
 					Image:           "mariadb:11.3.3",
 					ImagePullPolicy: corev1.PullIfNotPresent,
 					ContainerTemplate: ContainerTemplate{
-						Resources: &corev1.ResourceRequirements{
+						Resources: &ResourceRequirements{
 							Requests: corev1.ResourceList{
 								"cpu": resource.MustParse("100m"),
 							},
@@ -771,7 +771,7 @@ var _ = Describe("MariaDB webhook", func() {
 			Entry(
 				"Updating Resources",
 				func(mdb *MariaDB) {
-					mdb.Spec.Resources = &corev1.ResourceRequirements{
+					mdb.Spec.Resources = &ResourceRequirements{
 						Requests: corev1.ResourceList{
 							"cpu": resource.MustParse("200m"),
 						},

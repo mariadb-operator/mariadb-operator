@@ -34,7 +34,7 @@ var _ = Describe("Backup webhook", func() {
 					},
 					Spec: BackupSpec{
 						JobContainerTemplate: JobContainerTemplate{
-							Resources: &corev1.ResourceRequirements{
+							Resources: &ResourceRequirements{
 								Requests: corev1.ResourceList{
 									"cpu": resource.MustParse("100m"),
 								},
@@ -62,7 +62,7 @@ var _ = Describe("Backup webhook", func() {
 					},
 					Spec: BackupSpec{
 						JobContainerTemplate: JobContainerTemplate{
-							Resources: &corev1.ResourceRequirements{
+							Resources: &ResourceRequirements{
 								Requests: corev1.ResourceList{
 									"cpu": resource.MustParse("100m"),
 								},
@@ -100,7 +100,7 @@ var _ = Describe("Backup webhook", func() {
 					},
 					Spec: BackupSpec{
 						JobContainerTemplate: JobContainerTemplate{
-							Resources: &corev1.ResourceRequirements{
+							Resources: &ResourceRequirements{
 								Requests: corev1.ResourceList{
 									"cpu": resource.MustParse("100m"),
 								},
@@ -133,7 +133,7 @@ var _ = Describe("Backup webhook", func() {
 					},
 					Spec: BackupSpec{
 						JobContainerTemplate: JobContainerTemplate{
-							Resources: &corev1.ResourceRequirements{
+							Resources: &ResourceRequirements{
 								Requests: corev1.ResourceList{
 									"cpu": resource.MustParse("100m"),
 								},
@@ -169,7 +169,7 @@ var _ = Describe("Backup webhook", func() {
 					},
 					Spec: BackupSpec{
 						JobContainerTemplate: JobContainerTemplate{
-							Resources: &corev1.ResourceRequirements{
+							Resources: &ResourceRequirements{
 								Requests: corev1.ResourceList{
 									"cpu": resource.MustParse("100m"),
 								},
@@ -209,7 +209,7 @@ var _ = Describe("Backup webhook", func() {
 					},
 					Spec: BackupSpec{
 						JobContainerTemplate: JobContainerTemplate{
-							Resources: &corev1.ResourceRequirements{
+							Resources: &ResourceRequirements{
 								Requests: corev1.ResourceList{
 									"cpu": resource.MustParse("100m"),
 								},
@@ -245,7 +245,7 @@ var _ = Describe("Backup webhook", func() {
 					},
 					Spec: BackupSpec{
 						JobContainerTemplate: JobContainerTemplate{
-							Resources: &corev1.ResourceRequirements{
+							Resources: &ResourceRequirements{
 								Requests: corev1.ResourceList{
 									"cpu": resource.MustParse("100m"),
 								},
@@ -292,7 +292,7 @@ var _ = Describe("Backup webhook", func() {
 				},
 				Spec: BackupSpec{
 					JobContainerTemplate: JobContainerTemplate{
-						Resources: &corev1.ResourceRequirements{
+						Resources: &ResourceRequirements{
 							Requests: corev1.ResourceList{
 								"cpu": resource.MustParse("100m"),
 							},
@@ -409,7 +409,7 @@ var _ = Describe("Backup webhook", func() {
 			Entry(
 				"Updating Resources",
 				func(bmdb *Backup) {
-					bmdb.Spec.Resources = &corev1.ResourceRequirements{
+					bmdb.Spec.Resources = &ResourceRequirements{
 						Requests: corev1.ResourceList{
 							"cpu": resource.MustParse("200m"),
 						},

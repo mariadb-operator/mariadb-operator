@@ -259,7 +259,7 @@ var _ = Describe("SqlJob webhook", func() {
 			Entry(
 				"Updating Resources",
 				func(job *SqlJob) {
-					job.Spec.Resources = &corev1.ResourceRequirements{
+					job.Spec.Resources = &ResourceRequirements{
 						Requests: corev1.ResourceList{
 							"cpu": resource.MustParse("200m"),
 						},

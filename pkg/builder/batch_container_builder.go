@@ -122,6 +122,13 @@ func jobS3Env(s3 *mariadbv1alpha1.S3) []v1.EnvVar {
 	return env
 }
 
+func jobResources(resources *mariadbv1alpha1.ResourceRequirements) *corev1.ResourceRequirements {
+	if resources != nil {
+		return ptr.To(resources.ToKubernetesType())
+	}
+	return nil
+}
+
 func sqlJobvolumes(sqlJob *mariadbv1alpha1.SqlJob) ([]corev1.Volume, []corev1.VolumeMount) {
 	return []corev1.Volume{
 			{

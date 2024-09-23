@@ -77,7 +77,7 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alph
 		cmd.MariadbDump(backup, mariadb),
 		volumeSources,
 		jobEnv(mariadb),
-		backup.Spec.Resources,
+		jobResources(backup.Spec.Resources),
 		mariadb,
 		backup.Spec.SecurityContext,
 	)
@@ -89,7 +89,7 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alph
 		cmd.MariadbOperatorBackup(),
 		volumeSources,
 		jobS3Env(backup.Spec.Storage.S3),
-		backup.Spec.Resources,
+		jobResources(backup.Spec.Resources),
 		mariadb,
 		b.env,
 		backup.Spec.SecurityContext,
@@ -204,7 +204,7 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 		cmd.MariadbOperatorRestore(),
 		volumeSources,
 		jobS3Env(restore.Spec.S3),
-		restore.Spec.Resources,
+		jobResources(restore.Spec.Resources),
 		mariadb,
 		b.env,
 		restore.Spec.SecurityContext,
@@ -217,7 +217,7 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 		cmd.MariadbRestore(restore, mariadb),
 		volumeSources,
 		jobEnv(mariadb),
-		restore.Spec.Resources,
+		jobResources(restore.Spec.Resources),
 		mariadb,
 		restore.Spec.SecurityContext,
 	)
@@ -280,7 +280,7 @@ func (b *Builder) BuilGaleraInitJob(key types.NamespacedName, mariadb *mariadbv1
 		withCommand(command.Command),
 		withArgs(command.Args),
 		withRestartPolicy(corev1.RestartPolicyOnFailure),
-		withResources(initJob.Resources),
+		withResources(jobResources(initJob.Resources)),
 		withExtraVolumes([]corev1.Volume{
 			{
 				Name: StorageVolume,
@@ -389,7 +389,7 @@ func (b *Builder) BuildGaleraRecoveryJob(key types.NamespacedName, mariadb *mari
 		withCommand(command.Command),
 		withArgs(command.Args),
 		withRestartPolicy(corev1.RestartPolicyOnFailure),
-		withResources(recoveryJob.Resources),
+		withResources(jobResources(recoveryJob.Resources)),
 		withExtraVolumes(volumes),
 		withAffinityEnabled(affinityEnabled),
 		withAffinity(affinity),
@@ -445,12 +445,16 @@ func (b *Builder) BuildSqlJob(key types.NamespacedName, sqlJob *mariadbv1alpha1.
 
 	volumes, volumeMounts := sqlJobvolumes(sqlJob)
 	affinity := ptr.Deref(sqlJob.Spec.Affinity, mariadbv1alpha1.AffinityConfig{}).Affinity
+	var resources *corev1.ResourceRequirements
+	if sqlJob.Spec.Resources != nil {
+		resources = ptr.To(sqlJob.Spec.Resources.ToKubernetesType())
+	}
 
 	container, err := b.jobMariadbContainer(
 		cmd.ExecCommand(mariadb),
 		volumeMounts,
 		sqlJobEnv(sqlJob),
-		sqlJob.Spec.Resources,
+		resources,
 		mariadb,
 		sqlJob.Spec.SecurityContext,
 	)

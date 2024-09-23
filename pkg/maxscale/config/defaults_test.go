@@ -19,7 +19,7 @@ func TestThreads(t *testing.T) {
 			mxs: &mariadbv1alpha1.MaxScale{
 				Spec: mariadbv1alpha1.MaxScaleSpec{
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
-						Resources: &corev1.ResourceRequirements{
+						Resources: &mariadbv1alpha1.ResourceRequirements{
 							Limits: corev1.ResourceList{
 								"cpu": resource.MustParse("1"),
 							},
@@ -34,7 +34,7 @@ func TestThreads(t *testing.T) {
 			mxs: &mariadbv1alpha1.MaxScale{
 				Spec: mariadbv1alpha1.MaxScaleSpec{
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
-						Resources: &corev1.ResourceRequirements{
+						Resources: &mariadbv1alpha1.ResourceRequirements{
 							Limits: corev1.ResourceList{
 								"cpu": resource.MustParse("200m"),
 							},
@@ -56,7 +56,7 @@ func TestThreads(t *testing.T) {
 			mxs: &mariadbv1alpha1.MaxScale{
 				Spec: mariadbv1alpha1.MaxScaleSpec{
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
-						Resources: &corev1.ResourceRequirements{
+						Resources: &mariadbv1alpha1.ResourceRequirements{
 							Requests: corev1.ResourceList{
 								"cpu": resource.MustParse("200m"),
 							},
@@ -71,7 +71,7 @@ func TestThreads(t *testing.T) {
 			mxs: &mariadbv1alpha1.MaxScale{
 				Spec: mariadbv1alpha1.MaxScaleSpec{
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
-						Resources: &corev1.ResourceRequirements{
+						Resources: &mariadbv1alpha1.ResourceRequirements{
 							Limits: corev1.ResourceList{
 								"memory": resource.MustParse("1Gi"),
 							},
@@ -104,7 +104,7 @@ func TestQueryClassifierCacheSize(t *testing.T) {
 			mxs: &mariadbv1alpha1.MaxScale{
 				Spec: mariadbv1alpha1.MaxScaleSpec{
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
-						Resources: &corev1.ResourceRequirements{
+						Resources: &mariadbv1alpha1.ResourceRequirements{
 							Limits: corev1.ResourceList{
 								"memory": resource.MustParse("1G"),
 							},
@@ -126,7 +126,7 @@ func TestQueryClassifierCacheSize(t *testing.T) {
 			mxs: &mariadbv1alpha1.MaxScale{
 				Spec: mariadbv1alpha1.MaxScaleSpec{
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
-						Resources: &corev1.ResourceRequirements{
+						Resources: &mariadbv1alpha1.ResourceRequirements{
 							Requests: corev1.ResourceList{
 								"memory": resource.MustParse("2Gi"),
 							},
@@ -141,7 +141,7 @@ func TestQueryClassifierCacheSize(t *testing.T) {
 			mxs: &mariadbv1alpha1.MaxScale{
 				Spec: mariadbv1alpha1.MaxScaleSpec{
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
-						Resources: &corev1.ResourceRequirements{
+						Resources: &mariadbv1alpha1.ResourceRequirements{
 							Limits: corev1.ResourceList{
 								"cpu": resource.MustParse("100m"),
 							},

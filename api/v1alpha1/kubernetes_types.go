@@ -403,3 +403,18 @@ func (p Probe) ToKubernetesType() corev1.Probe {
 		FailureThreshold:    p.FailureThreshold,
 	}
 }
+
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#resourcerequirements-v1-core
+type ResourceRequirements struct {
+	// +optional
+	Limits corev1.ResourceList `json:"limits,omitempty" protobuf:"bytes,1,rep,name=limits,casttype=ResourceList,castkey=ResourceName"`
+	// +optional
+	Requests corev1.ResourceList `json:"requests,omitempty" protobuf:"bytes,2,rep,name=requests,casttype=ResourceList,castkey=ResourceName"`
+}
+
+func (r ResourceRequirements) ToKubernetesType() corev1.ResourceRequirements {
+	return corev1.ResourceRequirements{
+		Limits:   r.Limits,
+		Requests: r.Requests,
+	}
+}

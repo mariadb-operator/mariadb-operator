@@ -548,7 +548,7 @@ func testConnection(username string, passwordSecretKeyRef mariadbv1alpha1.Secret
 
 // See: https://docs.github.com/en/actions/using-github-hosted-runners/using-github-hosted-runners/about-github-hosted-runners#standard-github-hosted-runners-for-public-repositories
 func applyMariadbTestConfig(mdb *mariadbv1alpha1.MariaDB) *mariadbv1alpha1.MariaDB {
-	mdb.Spec.Resources = &corev1.ResourceRequirements{
+	mdb.Spec.Resources = &mariadbv1alpha1.ResourceRequirements{
 		Requests: corev1.ResourceList{
 			"cpu":    resource.MustParse("500m"),
 			"memory": resource.MustParse("1Gi"),
@@ -562,7 +562,7 @@ func applyMariadbTestConfig(mdb *mariadbv1alpha1.MariaDB) *mariadbv1alpha1.Maria
 
 // See: https://docs.github.com/en/actions/using-github-hosted-runners/using-github-hosted-runners/about-github-hosted-runners#standard-github-hosted-runners-for-public-repositories
 func applyMaxscaleTestConfig(mxs *mariadbv1alpha1.MaxScale) *mariadbv1alpha1.MaxScale {
-	mxs.Spec.Resources = &corev1.ResourceRequirements{
+	mxs.Spec.Resources = &mariadbv1alpha1.ResourceRequirements{
 		Requests: corev1.ResourceList{
 			"cpu":    resource.MustParse("250m"),
 			"memory": resource.MustParse("128Mi"),
