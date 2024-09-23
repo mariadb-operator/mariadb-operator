@@ -5,6 +5,7 @@ import (
 	kadapter "github.com/mariadb-operator/mariadb-operator/pkg/kubernetes/adapter"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/utils/ptr"
 )
 
@@ -323,4 +324,82 @@ func (e EnvFromSource) ToKubernetesType() corev1.EnvFromSource {
 		})
 	}
 	return env
+}
+
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#execaction-v1-core.
+type ExecAction struct {
+	// +optional
+	// +listType=atomic
+	Command []string `json:"command,omitempty" protobuf:"bytes,1,rep,name=command"`
+}
+
+func (e ExecAction) ToKubernetesType() corev1.ExecAction {
+	return corev1.ExecAction{
+		Command: e.Command,
+	}
+}
+
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#httpgetaction-v1-core.
+type HTTPGetAction struct {
+	// +optional
+	Path string             `json:"path,omitempty" protobuf:"bytes,1,opt,name=path"`
+	Port intstr.IntOrString `json:"port" protobuf:"bytes,2,opt,name=port"`
+	// +optional
+	Host string `json:"host,omitempty" protobuf:"bytes,3,opt,name=host"`
+	// +optional
+	Scheme corev1.URIScheme `json:"scheme,omitempty" protobuf:"bytes,4,opt,name=scheme,casttype=URIScheme"`
+}
+
+func (e HTTPGetAction) ToKubernetesType() corev1.HTTPGetAction {
+	return corev1.HTTPGetAction{
+		Path:   e.Path,
+		Port:   e.Port,
+		Host:   e.Host,
+		Scheme: e.Scheme,
+	}
+}
+
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#probe-v1-core.
+type ProbeHandler struct {
+	// +optional
+	Exec *ExecAction `json:"exec,omitempty" protobuf:"bytes,1,opt,name=exec"`
+	// +optional
+	HTTPGet *HTTPGetAction `json:"httpGet,omitempty" protobuf:"bytes,2,opt,name=httpGet"`
+}
+
+func (p ProbeHandler) ToKubernetesType() corev1.ProbeHandler {
+	var probe corev1.ProbeHandler
+	if p.Exec != nil {
+		probe.Exec = ptr.To(p.Exec.ToKubernetesType())
+	}
+	if p.HTTPGet != nil {
+		probe.HTTPGet = ptr.To(p.HTTPGet.ToKubernetesType())
+	}
+	return probe
+}
+
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#probe-v1-core
+type Probe struct {
+	ProbeHandler `json:",inline" protobuf:"bytes,1,opt,name=handler"`
+	// +optional
+	InitialDelaySeconds int32 `json:"initialDelaySeconds,omitempty" protobuf:"varint,2,opt,name=initialDelaySeconds"`
+	// +optional
+	TimeoutSeconds int32 `json:"timeoutSeconds,omitempty" protobuf:"varint,3,opt,name=timeoutSeconds"`
+	// +optional
+	PeriodSeconds int32 `json:"periodSeconds,omitempty" protobuf:"varint,4,opt,name=periodSeconds"`
+	// +optional
+	SuccessThreshold int32 `json:"successThreshold,omitempty" protobuf:"varint,5,opt,name=successThreshold"`
+	// +optional
+	FailureThreshold int32 `json:"failureThreshold,omitempty" protobuf:"varint,6,opt,name=failureThreshold"`
+}
+
+func (p Probe) ToKubernetesType() corev1.Probe {
+	return corev1.Probe{
+		ProbeHandler:        p.ProbeHandler.ToKubernetesType(),
+		InitialDelaySeconds: p.InitialDelaySeconds,
+		TimeoutSeconds:      p.TimeoutSeconds,
+		PeriodSeconds:       p.PeriodSeconds,
+		SuccessThreshold:    p.SuccessThreshold,
+		FailureThreshold:    p.FailureThreshold,
+	}
 }

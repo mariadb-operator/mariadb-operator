@@ -44,7 +44,7 @@ func TestMariadbLivenessProbe(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
-						LivenessProbe: &corev1.Probe{
+						LivenessProbe: &mariadbv1alpha1.Probe{
 							InitialDelaySeconds: 10,
 							TimeoutSeconds:      10,
 							PeriodSeconds:       5,
@@ -72,9 +72,9 @@ func TestMariadbLivenessProbe(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
-						LivenessProbe: &corev1.Probe{
-							ProbeHandler: corev1.ProbeHandler{
-								Exec: &corev1.ExecAction{
+						LivenessProbe: &mariadbv1alpha1.Probe{
+							ProbeHandler: mariadbv1alpha1.ProbeHandler{
+								Exec: &mariadbv1alpha1.ExecAction{
 									Command: []string{
 										"bash",
 										"-c",
@@ -169,7 +169,7 @@ func TestMariadbLivenessProbe(t *testing.T) {
 						},
 					},
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
-						LivenessProbe: &corev1.Probe{
+						LivenessProbe: &mariadbv1alpha1.Probe{
 							InitialDelaySeconds: 10,
 							TimeoutSeconds:      10,
 							PeriodSeconds:       5,
@@ -203,9 +203,9 @@ func TestMariadbLivenessProbe(t *testing.T) {
 						},
 					},
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
-						LivenessProbe: &corev1.Probe{
-							ProbeHandler: corev1.ProbeHandler{
-								Exec: &corev1.ExecAction{
+						LivenessProbe: &mariadbv1alpha1.Probe{
+							ProbeHandler: mariadbv1alpha1.ProbeHandler{
+								Exec: &mariadbv1alpha1.ExecAction{
 									Command: []string{
 										"bash",
 										"-c",
@@ -274,7 +274,7 @@ func TestMariadbLivenessProbe(t *testing.T) {
 						},
 					},
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
-						LivenessProbe: &corev1.Probe{
+						LivenessProbe: &mariadbv1alpha1.Probe{
 							InitialDelaySeconds: 10,
 							TimeoutSeconds:      10,
 							PeriodSeconds:       5,
@@ -307,9 +307,9 @@ func TestMariadbLivenessProbe(t *testing.T) {
 						},
 					},
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
-						LivenessProbe: &corev1.Probe{
-							ProbeHandler: corev1.ProbeHandler{
-								HTTPGet: &corev1.HTTPGetAction{
+						LivenessProbe: &mariadbv1alpha1.Probe{
+							ProbeHandler: mariadbv1alpha1.ProbeHandler{
+								HTTPGet: &mariadbv1alpha1.HTTPGetAction{
 									Path: "/liveness-custom",
 									Port: intstr.FromInt(5555),
 								},
@@ -374,7 +374,7 @@ func TestMariadbReadinessProbe(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
-						ReadinessProbe: &corev1.Probe{
+						ReadinessProbe: &mariadbv1alpha1.Probe{
 							InitialDelaySeconds: 10,
 							TimeoutSeconds:      10,
 							PeriodSeconds:       5,
@@ -402,9 +402,9 @@ func TestMariadbReadinessProbe(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
-						ReadinessProbe: &corev1.Probe{
-							ProbeHandler: corev1.ProbeHandler{
-								Exec: &corev1.ExecAction{
+						ReadinessProbe: &mariadbv1alpha1.Probe{
+							ProbeHandler: mariadbv1alpha1.ProbeHandler{
+								Exec: &mariadbv1alpha1.ExecAction{
 									Command: []string{
 										"bash",
 										"-c",
@@ -499,7 +499,7 @@ func TestMariadbReadinessProbe(t *testing.T) {
 						},
 					},
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
-						ReadinessProbe: &corev1.Probe{
+						ReadinessProbe: &mariadbv1alpha1.Probe{
 							InitialDelaySeconds: 10,
 							TimeoutSeconds:      10,
 							PeriodSeconds:       5,
@@ -533,9 +533,9 @@ func TestMariadbReadinessProbe(t *testing.T) {
 						},
 					},
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
-						ReadinessProbe: &corev1.Probe{
-							ProbeHandler: corev1.ProbeHandler{
-								Exec: &corev1.ExecAction{
+						ReadinessProbe: &mariadbv1alpha1.Probe{
+							ProbeHandler: mariadbv1alpha1.ProbeHandler{
+								Exec: &mariadbv1alpha1.ExecAction{
 									Command: []string{
 										"bash",
 										"-c",
@@ -604,7 +604,7 @@ func TestMariadbReadinessProbe(t *testing.T) {
 						},
 					},
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
-						ReadinessProbe: &corev1.Probe{
+						ReadinessProbe: &mariadbv1alpha1.Probe{
 							InitialDelaySeconds: 10,
 							TimeoutSeconds:      10,
 							PeriodSeconds:       5,
@@ -637,9 +637,9 @@ func TestMariadbReadinessProbe(t *testing.T) {
 						},
 					},
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
-						ReadinessProbe: &corev1.Probe{
-							ProbeHandler: corev1.ProbeHandler{
-								HTTPGet: &corev1.HTTPGetAction{
+						ReadinessProbe: &mariadbv1alpha1.Probe{
+							ProbeHandler: mariadbv1alpha1.ProbeHandler{
+								HTTPGet: &mariadbv1alpha1.HTTPGetAction{
 									Path: "/readiness-custom",
 									Port: intstr.FromInt(5555),
 								},
@@ -679,7 +679,7 @@ func TestMaxScaleProbe(t *testing.T) {
 	tests := []struct {
 		name      string
 		maxScale  *mariadbv1alpha1.MaxScale
-		probe     *corev1.Probe
+		probe     *mariadbv1alpha1.Probe
 		wantProbe *corev1.Probe
 	}{
 		{
@@ -691,7 +691,7 @@ func TestMaxScaleProbe(t *testing.T) {
 					},
 				},
 			},
-			probe: &corev1.Probe{},
+			probe: &mariadbv1alpha1.Probe{},
 			wantProbe: &corev1.Probe{
 				ProbeHandler: corev1.ProbeHandler{
 					HTTPGet: &corev1.HTTPGetAction{
@@ -713,7 +713,7 @@ func TestMaxScaleProbe(t *testing.T) {
 					},
 				},
 			},
-			probe: &corev1.Probe{
+			probe: &mariadbv1alpha1.Probe{
 				InitialDelaySeconds: 10,
 				TimeoutSeconds:      10,
 				PeriodSeconds:       5,
@@ -739,9 +739,9 @@ func TestMaxScaleProbe(t *testing.T) {
 					},
 				},
 			},
-			probe: &corev1.Probe{
-				ProbeHandler: corev1.ProbeHandler{
-					HTTPGet: &corev1.HTTPGetAction{
+			probe: &mariadbv1alpha1.Probe{
+				ProbeHandler: mariadbv1alpha1.ProbeHandler{
+					HTTPGet: &mariadbv1alpha1.HTTPGetAction{
 						Path: "/custom",
 						Port: intstr.FromInt(8989),
 					},
