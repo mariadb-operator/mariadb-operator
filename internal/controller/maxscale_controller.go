@@ -928,7 +928,7 @@ func (r *MaxScaleReconciler) reconcileMetricsAdminInPod(ctx context.Context, mxs
 }
 
 func (r *MaxScaleReconciler) patchUser(ctx context.Context, mxs *mariadbv1alpha1.MaxScale, client *mxsclient.Client,
-	username string, passwordKeyRef corev1.SecretKeySelector) error {
+	username string, passwordKeyRef mariadbv1alpha1.SecretKeySelector) error {
 	password, err := r.RefResolver.SecretKeyRef(ctx, passwordKeyRef, mxs.Namespace)
 	if err != nil {
 		return fmt.Errorf("error getting password: %v", err)

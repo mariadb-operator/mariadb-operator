@@ -42,7 +42,7 @@ var _ = Describe("Backup webhook", func() {
 						},
 						Storage: BackupStorage{},
 						MariaDBRef: MariaDBRef{
-							ObjectReference: corev1.ObjectReference{
+							ObjectReference: ObjectReference{
 								Name: "mariadb-webhook",
 							},
 							WaitForIt: true,
@@ -80,7 +80,7 @@ var _ = Describe("Backup webhook", func() {
 							},
 						},
 						MariaDBRef: MariaDBRef{
-							ObjectReference: corev1.ObjectReference{
+							ObjectReference: ObjectReference{
 								Name: "mariadb-webhook",
 							},
 							WaitForIt: true,
@@ -113,7 +113,7 @@ var _ = Describe("Backup webhook", func() {
 							},
 						},
 						MariaDBRef: MariaDBRef{
-							ObjectReference: corev1.ObjectReference{
+							ObjectReference: ObjectReference{
 								Name: "mariadb-webhook",
 							},
 							WaitForIt: true,
@@ -149,7 +149,7 @@ var _ = Describe("Backup webhook", func() {
 							},
 						},
 						MariaDBRef: MariaDBRef{
-							ObjectReference: corev1.ObjectReference{
+							ObjectReference: ObjectReference{
 								Name: "mariadb-webhook",
 							},
 							WaitForIt: true,
@@ -185,7 +185,7 @@ var _ = Describe("Backup webhook", func() {
 							},
 						},
 						MariaDBRef: MariaDBRef{
-							ObjectReference: corev1.ObjectReference{
+							ObjectReference: ObjectReference{
 								Name: "mariadb-webhook",
 							},
 							WaitForIt: true,
@@ -225,7 +225,7 @@ var _ = Describe("Backup webhook", func() {
 							},
 						},
 						MariaDBRef: MariaDBRef{
-							ObjectReference: corev1.ObjectReference{
+							ObjectReference: ObjectReference{
 								Name: "mariadb-webhook",
 							},
 							WaitForIt: true,
@@ -261,7 +261,7 @@ var _ = Describe("Backup webhook", func() {
 							},
 						},
 						MariaDBRef: MariaDBRef{
-							ObjectReference: corev1.ObjectReference{
+							ObjectReference: ObjectReference{
 								Name: "mariadb-webhook",
 							},
 							WaitForIt: true,
@@ -306,7 +306,7 @@ var _ = Describe("Backup webhook", func() {
 						},
 					},
 					MariaDBRef: MariaDBRef{
-						ObjectReference: corev1.ObjectReference{
+						ObjectReference: ObjectReference{
 							Name: "mariadb-webhook",
 						},
 						WaitForIt: true,

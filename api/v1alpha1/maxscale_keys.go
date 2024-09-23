@@ -3,7 +3,6 @@ package v1alpha1
 import (
 	"fmt"
 
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -34,8 +33,8 @@ func (m *MaxScale) ConnectionKey() types.NamespacedName {
 // AdminPasswordSecretKeyRef defines the Secret key selector for the admin password
 func (m *MaxScale) AdminPasswordSecretKeyRef() GeneratedSecretKeyRef {
 	return GeneratedSecretKeyRef{
-		SecretKeySelector: corev1.SecretKeySelector{
-			LocalObjectReference: corev1.LocalObjectReference{
+		SecretKeySelector: SecretKeySelector{
+			LocalObjectReference: LocalObjectReference{
 				Name: fmt.Sprintf("%s-admin", m.Name),
 			},
 			Key: "password",
@@ -47,8 +46,8 @@ func (m *MaxScale) AdminPasswordSecretKeyRef() GeneratedSecretKeyRef {
 // MetricsPasswordSecretKeyRef defines the Secret key selector for the metrics password
 func (m *MaxScale) MetricsPasswordSecretKeyRef() GeneratedSecretKeyRef {
 	return GeneratedSecretKeyRef{
-		SecretKeySelector: corev1.SecretKeySelector{
-			LocalObjectReference: corev1.LocalObjectReference{
+		SecretKeySelector: SecretKeySelector{
+			LocalObjectReference: LocalObjectReference{
 				Name: fmt.Sprintf("%s-metrics", m.Name),
 			},
 			Key: "password",
@@ -60,8 +59,8 @@ func (m *MaxScale) MetricsPasswordSecretKeyRef() GeneratedSecretKeyRef {
 // MetricsConfigSecretKeyRef defines the key selector for the metrics Secret configuration
 func (m *MaxScale) MetricsConfigSecretKeyRef() GeneratedSecretKeyRef {
 	return GeneratedSecretKeyRef{
-		SecretKeySelector: corev1.SecretKeySelector{
-			LocalObjectReference: corev1.LocalObjectReference{
+		SecretKeySelector: SecretKeySelector{
+			LocalObjectReference: LocalObjectReference{
 				Name: fmt.Sprintf("%s-metrics-config", m.Name),
 			},
 			Key: "exporter.cnf",
@@ -81,8 +80,8 @@ func (m *MaxScale) MetricsKey() types.NamespacedName {
 // ConfigSecretKeyRef defines the Secret key selector for the configuration
 func (m *MaxScale) ConfigSecretKeyRef() GeneratedSecretKeyRef {
 	return GeneratedSecretKeyRef{
-		SecretKeySelector: corev1.SecretKeySelector{
-			LocalObjectReference: corev1.LocalObjectReference{
+		SecretKeySelector: SecretKeySelector{
+			LocalObjectReference: LocalObjectReference{
 				Name: fmt.Sprintf("%s-config", m.Name),
 			},
 			Key: "maxscale.cnf",
@@ -92,8 +91,8 @@ func (m *MaxScale) ConfigSecretKeyRef() GeneratedSecretKeyRef {
 }
 
 // AuthClientUserKey defines the key for the client User
-func (m *MaxScale) AuthClientUserKey() corev1.LocalObjectReference {
-	return corev1.LocalObjectReference{
+func (m *MaxScale) AuthClientUserKey() LocalObjectReference {
+	return LocalObjectReference{
 		Name: fmt.Sprintf("%s-client", m.Name),
 	}
 }
@@ -101,8 +100,8 @@ func (m *MaxScale) AuthClientUserKey() corev1.LocalObjectReference {
 // AuthClientPasswordSecretKeyRef defines the Secret key selector for the client password
 func (m *MaxScale) AuthClientPasswordSecretKeyRef() GeneratedSecretKeyRef {
 	return GeneratedSecretKeyRef{
-		SecretKeySelector: corev1.SecretKeySelector{
-			LocalObjectReference: corev1.LocalObjectReference{
+		SecretKeySelector: SecretKeySelector{
+			LocalObjectReference: LocalObjectReference{
 				Name: fmt.Sprintf("%s-client", m.Name),
 			},
 			Key: "password",
@@ -112,8 +111,8 @@ func (m *MaxScale) AuthClientPasswordSecretKeyRef() GeneratedSecretKeyRef {
 }
 
 // AuthClientUserKey defines the key for the monitor User
-func (m *MaxScale) AuthServerUserKey() corev1.LocalObjectReference {
-	return corev1.LocalObjectReference{
+func (m *MaxScale) AuthServerUserKey() LocalObjectReference {
+	return LocalObjectReference{
 		Name: fmt.Sprintf("%s-server", m.Name),
 	}
 }
@@ -121,8 +120,8 @@ func (m *MaxScale) AuthServerUserKey() corev1.LocalObjectReference {
 // AuthClientPasswordSecretKeyRef defines the Secret key selector for the server password
 func (m *MaxScale) AuthServerPasswordSecretKeyRef() GeneratedSecretKeyRef {
 	return GeneratedSecretKeyRef{
-		SecretKeySelector: corev1.SecretKeySelector{
-			LocalObjectReference: corev1.LocalObjectReference{
+		SecretKeySelector: SecretKeySelector{
+			LocalObjectReference: LocalObjectReference{
 				Name: fmt.Sprintf("%s-server", m.Name),
 			},
 			Key: "password",
@@ -132,8 +131,8 @@ func (m *MaxScale) AuthServerPasswordSecretKeyRef() GeneratedSecretKeyRef {
 }
 
 // AuthClientUserKey defines the key for the monitor User
-func (m *MaxScale) AuthMonitorUserKey() corev1.LocalObjectReference {
-	return corev1.LocalObjectReference{
+func (m *MaxScale) AuthMonitorUserKey() LocalObjectReference {
+	return LocalObjectReference{
 		Name: fmt.Sprintf("%s-monitor", m.Name),
 	}
 }
@@ -141,8 +140,8 @@ func (m *MaxScale) AuthMonitorUserKey() corev1.LocalObjectReference {
 // AuthClientPasswordSecretKeyRef defines the Secret key selector for the monitor password
 func (m *MaxScale) AuthMonitorPasswordSecretKeyRef() GeneratedSecretKeyRef {
 	return GeneratedSecretKeyRef{
-		SecretKeySelector: corev1.SecretKeySelector{
-			LocalObjectReference: corev1.LocalObjectReference{
+		SecretKeySelector: SecretKeySelector{
+			LocalObjectReference: LocalObjectReference{
 				Name: fmt.Sprintf("%s-monitor", m.Name),
 			},
 			Key: "password",
@@ -152,8 +151,8 @@ func (m *MaxScale) AuthMonitorPasswordSecretKeyRef() GeneratedSecretKeyRef {
 }
 
 // AuthSyncUserKey defines the key for the config sync User
-func (m *MaxScale) AuthSyncUserKey() corev1.LocalObjectReference {
-	return corev1.LocalObjectReference{
+func (m *MaxScale) AuthSyncUserKey() LocalObjectReference {
+	return LocalObjectReference{
 		Name: fmt.Sprintf("%s-sync", m.Name),
 	}
 }
@@ -161,8 +160,8 @@ func (m *MaxScale) AuthSyncUserKey() corev1.LocalObjectReference {
 // AuthSyncPasswordSecretKeyRef defines the Secret key selector for the config sync password
 func (m *MaxScale) AuthSyncPasswordSecretKeyRef() GeneratedSecretKeyRef {
 	return GeneratedSecretKeyRef{
-		SecretKeySelector: corev1.SecretKeySelector{
-			LocalObjectReference: corev1.LocalObjectReference{
+		SecretKeySelector: SecretKeySelector{
+			LocalObjectReference: LocalObjectReference{
 				Name: fmt.Sprintf("%s-sync", m.Name),
 			},
 			Key: "password",

@@ -40,7 +40,7 @@ func TestExporterImagePullSecrets(t *testing.T) {
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					PodTemplate: mariadbv1alpha1.PodTemplate{
-						ImagePullSecrets: []corev1.LocalObjectReference{
+						ImagePullSecrets: []mariadbv1alpha1.LocalObjectReference{
 							{
 								Name: "mariadb-registry",
 							},
@@ -65,7 +65,7 @@ func TestExporterImagePullSecrets(t *testing.T) {
 					Metrics: &mariadbv1alpha1.MariadbMetrics{
 						Enabled: true,
 						Exporter: mariadbv1alpha1.Exporter{
-							ImagePullSecrets: []corev1.LocalObjectReference{
+							ImagePullSecrets: []mariadbv1alpha1.LocalObjectReference{
 								{
 									Name: "exporter-registry",
 								},
@@ -86,7 +86,7 @@ func TestExporterImagePullSecrets(t *testing.T) {
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					PodTemplate: mariadbv1alpha1.PodTemplate{
-						ImagePullSecrets: []corev1.LocalObjectReference{
+						ImagePullSecrets: []mariadbv1alpha1.LocalObjectReference{
 							{
 								Name: "mariadb-registry",
 							},
@@ -95,7 +95,7 @@ func TestExporterImagePullSecrets(t *testing.T) {
 					Metrics: &mariadbv1alpha1.MariadbMetrics{
 						Enabled: true,
 						Exporter: mariadbv1alpha1.Exporter{
-							ImagePullSecrets: []corev1.LocalObjectReference{
+							ImagePullSecrets: []mariadbv1alpha1.LocalObjectReference{
 								{
 									Name: "exporter-registry",
 								},
@@ -158,7 +158,7 @@ func TestExporterMaxScaleImagePullSecrets(t *testing.T) {
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MaxScaleSpec{
 					MaxScalePodTemplate: mariadbv1alpha1.MaxScalePodTemplate{
-						ImagePullSecrets: []corev1.LocalObjectReference{
+						ImagePullSecrets: []mariadbv1alpha1.LocalObjectReference{
 							{
 								Name: "maxscale-registry",
 							},
@@ -183,7 +183,7 @@ func TestExporterMaxScaleImagePullSecrets(t *testing.T) {
 					Metrics: &mariadbv1alpha1.MaxScaleMetrics{
 						Enabled: true,
 						Exporter: mariadbv1alpha1.Exporter{
-							ImagePullSecrets: []corev1.LocalObjectReference{
+							ImagePullSecrets: []mariadbv1alpha1.LocalObjectReference{
 								{
 									Name: "exporter-registry",
 								},
@@ -204,7 +204,7 @@ func TestExporterMaxScaleImagePullSecrets(t *testing.T) {
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MaxScaleSpec{
 					MaxScalePodTemplate: mariadbv1alpha1.MaxScalePodTemplate{
-						ImagePullSecrets: []corev1.LocalObjectReference{
+						ImagePullSecrets: []mariadbv1alpha1.LocalObjectReference{
 							{
 								Name: "maxscale-registry",
 							},
@@ -213,7 +213,7 @@ func TestExporterMaxScaleImagePullSecrets(t *testing.T) {
 					Metrics: &mariadbv1alpha1.MaxScaleMetrics{
 						Enabled: true,
 						Exporter: mariadbv1alpha1.Exporter{
-							ImagePullSecrets: []corev1.LocalObjectReference{
+							ImagePullSecrets: []mariadbv1alpha1.LocalObjectReference{
 								{
 									Name: "exporter-registry",
 								},

@@ -365,7 +365,7 @@ type MariaDBSpec struct {
 	// If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password hash.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	PasswordHashSecretKeyRef *corev1.SecretKeySelector `json:"passwordHashSecretKeyRef,omitempty"`
+	PasswordHashSecretKeyRef *SecretKeySelector `json:"passwordHashSecretKeyRef,omitempty"`
 	// PasswordPlugin is a reference to the password plugin and arguments to be used by the initial User.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
@@ -380,7 +380,7 @@ type MariaDBSpec struct {
 	// If the referred ConfigMap is labeled with "k8s.mariadb.com/watch", an update to the Mariadb resource will be triggered when the ConfigMap is updated.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	MyCnfConfigMapKeyRef *corev1.ConfigMapKeySelector `json:"myCnfConfigMapKeyRef,omitempty"`
+	MyCnfConfigMapKeyRef *ConfigMapKeySelector `json:"myCnfConfigMapKeyRef,omitempty"`
 	// TimeZone sets the default timezone. If not provided, it defaults to SYSTEM and the timezone data is not loaded.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
@@ -409,7 +409,7 @@ type MariaDBSpec struct {
 	// Providing this field implies delegating high availability tasks such as primary failover to MaxScale.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	MaxScaleRef *corev1.ObjectReference `json:"maxScaleRef,omitempty"`
+	MaxScaleRef *ObjectReference `json:"maxScaleRef,omitempty"`
 	// MaxScale is the MaxScale specification that defines the MaxScale resource to be used with the current MariaDB.
 	// When enabling this field, MaxScaleRef is automatically set.
 	// +optional
@@ -577,7 +577,7 @@ func (m *MariaDB) SetDefaults(env *environment.OperatorEnv) error {
 		}
 	}
 	if ptr.Deref(m.Spec.MaxScale, MariaDBMaxScaleSpec{}).Enabled && m.Spec.MaxScaleRef == nil {
-		m.Spec.MaxScaleRef = &corev1.ObjectReference{
+		m.Spec.MaxScaleRef = &ObjectReference{
 			Name:      m.MaxScaleKey().Name,
 			Namespace: m.Namespace,
 		}

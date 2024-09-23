@@ -5,7 +5,6 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -35,8 +34,8 @@ var _ = Describe("Connection webhook", func() {
 					ObjectMeta: meta,
 					Spec: ConnectionSpec{
 						Username: "foo",
-						PasswordSecretKeyRef: corev1.SecretKeySelector{
-							LocalObjectReference: corev1.LocalObjectReference{
+						PasswordSecretKeyRef: SecretKeySelector{
+							LocalObjectReference: LocalObjectReference{
 								Name: "foo",
 							},
 						},
@@ -50,13 +49,13 @@ var _ = Describe("Connection webhook", func() {
 					ObjectMeta: meta,
 					Spec: ConnectionSpec{
 						MariaDBRef: &MariaDBRef{
-							ObjectReference: corev1.ObjectReference{
+							ObjectReference: ObjectReference{
 								Name: "foo",
 							},
 						},
 						Username: "foo",
-						PasswordSecretKeyRef: corev1.SecretKeySelector{
-							LocalObjectReference: corev1.LocalObjectReference{
+						PasswordSecretKeyRef: SecretKeySelector{
+							LocalObjectReference: LocalObjectReference{
 								Name: "foo",
 							},
 						},
@@ -69,12 +68,12 @@ var _ = Describe("Connection webhook", func() {
 				&Connection{
 					ObjectMeta: meta,
 					Spec: ConnectionSpec{
-						MaxScaleRef: &corev1.ObjectReference{
+						MaxScaleRef: &ObjectReference{
 							Name: "foo",
 						},
 						Username: "foo",
-						PasswordSecretKeyRef: corev1.SecretKeySelector{
-							LocalObjectReference: corev1.LocalObjectReference{
+						PasswordSecretKeyRef: SecretKeySelector{
+							LocalObjectReference: LocalObjectReference{
 								Name: "foo",
 							},
 						},
@@ -87,17 +86,17 @@ var _ = Describe("Connection webhook", func() {
 				&Connection{
 					ObjectMeta: meta,
 					Spec: ConnectionSpec{
-						MaxScaleRef: &corev1.ObjectReference{
+						MaxScaleRef: &ObjectReference{
 							Name: "foo",
 						},
 						MariaDBRef: &MariaDBRef{
-							ObjectReference: corev1.ObjectReference{
+							ObjectReference: ObjectReference{
 								Name: "foo",
 							},
 						},
 						Username: "foo",
-						PasswordSecretKeyRef: corev1.SecretKeySelector{
-							LocalObjectReference: corev1.LocalObjectReference{
+						PasswordSecretKeyRef: SecretKeySelector{
+							LocalObjectReference: LocalObjectReference{
 								Name: "foo",
 							},
 						},
@@ -134,14 +133,14 @@ var _ = Describe("Connection webhook", func() {
 						},
 					},
 					MariaDBRef: &MariaDBRef{
-						ObjectReference: corev1.ObjectReference{
+						ObjectReference: ObjectReference{
 							Name: "mariadb-webhook",
 						},
 						WaitForIt: true,
 					},
 					Username: "test",
-					PasswordSecretKeyRef: corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{
+					PasswordSecretKeyRef: SecretKeySelector{
+						LocalObjectReference: LocalObjectReference{
 							Name: "test",
 						},
 						Key: "dsn",

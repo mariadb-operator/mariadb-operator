@@ -10,7 +10,6 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	sqlClient "github.com/mariadb-operator/mariadb-operator/pkg/sql"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -232,8 +231,8 @@ func newReplPasswordRef(mariadb *mariadbv1alpha1.MariaDB) mariadbv1alpha1.Genera
 		return *mariadb.Replication().Replica.ReplPasswordSecretKeyRef
 	}
 	return mariadbv1alpha1.GeneratedSecretKeyRef{
-		SecretKeySelector: corev1.SecretKeySelector{
-			LocalObjectReference: corev1.LocalObjectReference{
+		SecretKeySelector: mariadbv1alpha1.SecretKeySelector{
+			LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
 				Name: fmt.Sprintf("repl-password-%s", mariadb.Name),
 			},
 			Key: "password",

@@ -77,8 +77,8 @@ var _ = Describe("MariaDB Galera basic auth", func() {
 			},
 			Spec: mariadbv1alpha1.MariaDBSpec{
 				RootPasswordSecretKeyRef: mariadbv1alpha1.GeneratedSecretKeyRef{
-					SecretKeySelector: corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{
+					SecretKeySelector: mariadbv1alpha1.SecretKeySelector{
+						LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
 							Name: testPwdKey.Name,
 						},
 						Key: testPwdSecretKey,
@@ -176,8 +176,8 @@ var _ = Describe("MariaDB Galera", Ordered, func() {
 			},
 			Spec: mariadbv1alpha1.MariaDBSpec{
 				RootPasswordSecretKeyRef: mariadbv1alpha1.GeneratedSecretKeyRef{
-					SecretKeySelector: corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{
+					SecretKeySelector: mariadbv1alpha1.SecretKeySelector{
+						LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
 							Name: testPwdKey.Name,
 						},
 						Key: testPwdSecretKey,
@@ -185,8 +185,8 @@ var _ = Describe("MariaDB Galera", Ordered, func() {
 				},
 				Username: &testUser,
 				PasswordSecretKeyRef: &mariadbv1alpha1.GeneratedSecretKeyRef{
-					SecretKeySelector: corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{
+					SecretKeySelector: mariadbv1alpha1.SecretKeySelector{
+						LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
 							Name: testPwdKey.Name,
 						},
 						Key: testPwdSecretKey,
@@ -490,8 +490,8 @@ var _ = Describe("MariaDB Galera", Ordered, func() {
 				Auth: mariadbv1alpha1.MaxScaleAuth{
 					Generate: ptr.To(true),
 					AdminPasswordSecretKeyRef: mariadbv1alpha1.GeneratedSecretKeyRef{
-						SecretKeySelector: corev1.SecretKeySelector{
-							LocalObjectReference: corev1.LocalObjectReference{
+						SecretKeySelector: mariadbv1alpha1.SecretKeySelector{
+							LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
 								Name: testPwdKey.Name,
 							},
 							Key: testPwdSecretKey,

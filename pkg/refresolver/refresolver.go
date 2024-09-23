@@ -30,10 +30,6 @@ func New(client client.Client) *RefResolver {
 
 func (r *RefResolver) MariaDB(ctx context.Context, ref *mariadbv1alpha1.MariaDBRef,
 	namespace string) (*mariadbv1alpha1.MariaDB, error) {
-	if ref.Kind != "" && ref.Kind != "MariaDB" {
-		return nil, fmt.Errorf("Unsupported reference kind: '%s'", ref.Kind)
-	}
-
 	key := types.NamespacedName{
 		Name:      ref.Name,
 		Namespace: namespace,
@@ -69,12 +65,8 @@ func (r *RefResolver) MariaDBFromAnnotation(ctx context.Context, objMeta metav1.
 	return &mariadb, nil
 }
 
-func (r *RefResolver) MaxScale(ctx context.Context, ref *corev1.ObjectReference,
+func (r *RefResolver) MaxScale(ctx context.Context, ref *mariadbv1alpha1.ObjectReference,
 	namespace string) (*mariadbv1alpha1.MaxScale, error) {
-	if ref.Kind != "" && ref.Kind != "MaxScale" {
-		return nil, fmt.Errorf("Unsupported reference kind: '%s'", ref.Kind)
-	}
-
 	key := types.NamespacedName{
 		Name:      ref.Name,
 		Namespace: namespace,
@@ -90,7 +82,7 @@ func (r *RefResolver) MaxScale(ctx context.Context, ref *corev1.ObjectReference,
 	return &mxs, nil
 }
 
-func (r *RefResolver) Backup(ctx context.Context, ref *corev1.LocalObjectReference,
+func (r *RefResolver) Backup(ctx context.Context, ref *mariadbv1alpha1.LocalObjectReference,
 	namespace string) (*mariadbv1alpha1.Backup, error) {
 	nn := types.NamespacedName{
 		Name:      ref.Name,
@@ -103,7 +95,7 @@ func (r *RefResolver) Backup(ctx context.Context, ref *corev1.LocalObjectReferen
 	return &backup, nil
 }
 
-func (r *RefResolver) SqlJob(ctx context.Context, ref *corev1.LocalObjectReference,
+func (r *RefResolver) SqlJob(ctx context.Context, ref *mariadbv1alpha1.LocalObjectReference,
 	namespace string) (*mariadbv1alpha1.SqlJob, error) {
 	nn := types.NamespacedName{
 		Name:      ref.Name,
@@ -116,7 +108,7 @@ func (r *RefResolver) SqlJob(ctx context.Context, ref *corev1.LocalObjectReferen
 	return &sqlJob, nil
 }
 
-func (r *RefResolver) SecretKeyRef(ctx context.Context, selector corev1.SecretKeySelector,
+func (r *RefResolver) SecretKeyRef(ctx context.Context, selector mariadbv1alpha1.SecretKeySelector,
 	namespace string) (string, error) {
 	key := types.NamespacedName{
 		Name:      selector.Name,
@@ -134,7 +126,7 @@ func (r *RefResolver) SecretKeyRef(ctx context.Context, selector corev1.SecretKe
 	return string(data), nil
 }
 
-func (r *RefResolver) ConfigMapKeyRef(ctx context.Context, selector *corev1.ConfigMapKeySelector,
+func (r *RefResolver) ConfigMapKeyRef(ctx context.Context, selector *mariadbv1alpha1.ConfigMapKeySelector,
 	namespace string) (string, error) {
 	key := types.NamespacedName{
 		Name:      selector.Name,

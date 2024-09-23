@@ -38,7 +38,7 @@ var _ = Describe("Restore webhook", func() {
 							TargetRecoveryTime: &metav1.Time{Time: time.Now()},
 						},
 						MariaDBRef: MariaDBRef{
-							ObjectReference: corev1.ObjectReference{
+							ObjectReference: ObjectReference{
 								Name: "mariadb-webhook",
 							},
 							WaitForIt: true,
@@ -54,12 +54,12 @@ var _ = Describe("Restore webhook", func() {
 					ObjectMeta: objMeta,
 					Spec: RestoreSpec{
 						RestoreSource: RestoreSource{
-							BackupRef: &corev1.LocalObjectReference{
+							BackupRef: &LocalObjectReference{
 								Name: "backup-webhook",
 							},
 						},
 						MariaDBRef: MariaDBRef{
-							ObjectReference: corev1.ObjectReference{
+							ObjectReference: ObjectReference{
 								Name: "mariadb-webhook",
 							},
 							WaitForIt: true,
@@ -81,7 +81,7 @@ var _ = Describe("Restore webhook", func() {
 							},
 						},
 						MariaDBRef: MariaDBRef{
-							ObjectReference: corev1.ObjectReference{
+							ObjectReference: ObjectReference{
 								Name: "mariadb-webhook",
 							},
 							WaitForIt: true,
@@ -104,7 +104,7 @@ var _ = Describe("Restore webhook", func() {
 							},
 						},
 						MariaDBRef: MariaDBRef{
-							ObjectReference: corev1.ObjectReference{
+							ObjectReference: ObjectReference{
 								Name: "mariadb-webhook",
 							},
 							WaitForIt: true,
@@ -129,7 +129,7 @@ var _ = Describe("Restore webhook", func() {
 							},
 						},
 						MariaDBRef: MariaDBRef{
-							ObjectReference: corev1.ObjectReference{
+							ObjectReference: ObjectReference{
 								Name: "mariadb-webhook",
 							},
 							WaitForIt: true,
@@ -145,7 +145,7 @@ var _ = Describe("Restore webhook", func() {
 					ObjectMeta: objMeta,
 					Spec: RestoreSpec{
 						RestoreSource: RestoreSource{
-							BackupRef: &corev1.LocalObjectReference{
+							BackupRef: &LocalObjectReference{
 								Name: "backup-webhook",
 							},
 							S3: &S3{
@@ -157,7 +157,7 @@ var _ = Describe("Restore webhook", func() {
 							},
 						},
 						MariaDBRef: MariaDBRef{
-							ObjectReference: corev1.ObjectReference{
+							ObjectReference: ObjectReference{
 								Name: "mariadb-webhook",
 							},
 							WaitForIt: true,
@@ -190,13 +190,13 @@ var _ = Describe("Restore webhook", func() {
 						},
 					},
 					RestoreSource: RestoreSource{
-						BackupRef: &corev1.LocalObjectReference{
+						BackupRef: &LocalObjectReference{
 							Name: "backup-webhook",
 						},
 						TargetRecoveryTime: &metav1.Time{Time: time.Now()},
 					},
 					MariaDBRef: MariaDBRef{
-						ObjectReference: corev1.ObjectReference{
+						ObjectReference: ObjectReference{
 							Name: "mariadb-webhook",
 						},
 						WaitForIt: true,

@@ -10,6 +10,7 @@ import (
 	metadata "github.com/mariadb-operator/mariadb-operator/pkg/builder/metadata"
 	"github.com/mariadb-operator/mariadb-operator/pkg/command"
 	galeraresources "github.com/mariadb-operator/mariadb-operator/pkg/controller/galera/resources"
+	kadapter "github.com/mariadb-operator/mariadb-operator/pkg/kubernetes/adapter"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -546,11 +547,11 @@ func s3Opts(s3 *mariadbv1alpha1.S3) []command.BackupOpt {
 	return cmdOpts
 }
 
-func batchImagePullSecrets(mariadb *mariadbv1alpha1.MariaDB, pullSecrets []corev1.LocalObjectReference) []corev1.LocalObjectReference {
-	var secrets []corev1.LocalObjectReference
+func batchImagePullSecrets(mariadb *mariadbv1alpha1.MariaDB, pullSecrets []mariadbv1alpha1.LocalObjectReference) []corev1.LocalObjectReference {
+	var secrets []mariadbv1alpha1.LocalObjectReference
 	secrets = append(secrets, mariadb.Spec.ImagePullSecrets...)
 	secrets = append(secrets, pullSecrets...)
-	return secrets
+	return kadapter.ToKubernetesSlice(secrets)
 }
 
 func galeraRecoveryJobAffinity(mariadb *mariadbv1alpha1.MariaDB, podIndex int) (*corev1.Affinity, error) {

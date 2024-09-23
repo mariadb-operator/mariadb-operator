@@ -3,7 +3,6 @@ package v1alpha1
 import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
@@ -38,7 +37,7 @@ var _ = Describe("Database webhook", func() {
 							CleanupPolicy: ptr.To(CleanupPolicyDelete),
 						},
 						MariaDBRef: MariaDBRef{
-							ObjectReference: corev1.ObjectReference{
+							ObjectReference: ObjectReference{
 								Name: "mariadb-webhook",
 							},
 							WaitForIt: true,
@@ -61,7 +60,7 @@ var _ = Describe("Database webhook", func() {
 							CleanupPolicy: ptr.To(CleanupPolicy("")),
 						},
 						MariaDBRef: MariaDBRef{
-							ObjectReference: corev1.ObjectReference{
+							ObjectReference: ObjectReference{
 								Name: "mariadb-webhook",
 							},
 							WaitForIt: true,
@@ -88,7 +87,7 @@ var _ = Describe("Database webhook", func() {
 				},
 				Spec: DatabaseSpec{
 					MariaDBRef: MariaDBRef{
-						ObjectReference: corev1.ObjectReference{
+						ObjectReference: ObjectReference{
 							Name: "mariadb-webhook",
 						},
 						WaitForIt: true,

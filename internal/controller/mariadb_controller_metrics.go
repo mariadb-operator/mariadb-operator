@@ -89,7 +89,7 @@ func (r *MariaDBReconciler) reconcileMetricsPassword(ctx context.Context, mariad
 func (r *MariaDBReconciler) reconcileAuth(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
 	key := mariadb.MetricsKey()
 	ref := mariadbv1alpha1.MariaDBRef{
-		ObjectReference: corev1.ObjectReference{
+		ObjectReference: mariadbv1alpha1.ObjectReference{
 			Name:      mariadb.Name,
 			Namespace: mariadb.Namespace,
 		},
