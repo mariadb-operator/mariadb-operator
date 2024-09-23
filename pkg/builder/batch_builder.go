@@ -547,7 +547,8 @@ func s3Opts(s3 *mariadbv1alpha1.S3) []command.BackupOpt {
 	return cmdOpts
 }
 
-func batchImagePullSecrets(mariadb *mariadbv1alpha1.MariaDB, pullSecrets []mariadbv1alpha1.LocalObjectReference) []corev1.LocalObjectReference {
+func batchImagePullSecrets(mariadb *mariadbv1alpha1.MariaDB,
+	pullSecrets []mariadbv1alpha1.LocalObjectReference) []corev1.LocalObjectReference {
 	var secrets []mariadbv1alpha1.LocalObjectReference
 	secrets = append(secrets, mariadb.Spec.ImagePullSecrets...)
 	secrets = append(secrets, pullSecrets...)
