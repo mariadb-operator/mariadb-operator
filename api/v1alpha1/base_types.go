@@ -97,11 +97,11 @@ type ContainerTemplate struct {
 	// LivenessProbe to be used in the Container.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	LivenessProbe *corev1.Probe `json:"livenessProbe,omitempty"`
+	LivenessProbe *Probe `json:"livenessProbe,omitempty"`
 	// ReadinessProbe to be used in the Container.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	ReadinessProbe *corev1.Probe `json:"readinessProbe,omitempty"`
+	ReadinessProbe *Probe `json:"readinessProbe,omitempty"`
 	// Resouces describes the compute resource requirements.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:resourceRequirements"}

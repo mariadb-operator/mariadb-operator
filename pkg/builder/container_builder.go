@@ -294,9 +294,13 @@ func (b *Builder) buildContainerWithTemplate(image string, pullPolicy corev1.Pul
 		Env:             kadapter.ToKubernetesSlice(tpl.Env),
 		EnvFrom:         kadapter.ToKubernetesSlice(tpl.EnvFrom),
 		VolumeMounts:    kadapter.ToKubernetesSlice(tpl.VolumeMounts),
-		LivenessProbe:   tpl.LivenessProbe,
-		ReadinessProbe:  tpl.ReadinessProbe,
 		SecurityContext: sc,
+	}
+	if tpl.LivenessProbe != nil {
+		container.LivenessProbe = ptr.To(tpl.LivenessProbe.ToKubernetesType())
+	}
+	if tpl.ReadinessProbe != nil {
+		container.ReadinessProbe = ptr.To(tpl.ReadinessProbe.ToKubernetesType())
 	}
 	if mariadbOpts.resources != nil {
 		container.Resources = *mariadbOpts.resources
@@ -552,21 +556,26 @@ func mariadbReadinessProbe(mariadb *mariadbv1alpha1.MariaDB) *corev1.Probe {
 	return mariadbProbe(mariadb, mariadb.Spec.ReadinessProbe)
 }
 
-func mariadbProbe(mariadb *mariadbv1alpha1.MariaDB, probe *corev1.Probe) *corev1.Probe {
+func mariadbProbe(mariadb *mariadbv1alpha1.MariaDB, probe *mariadbv1alpha1.Probe) *corev1.Probe {
 	if mariadb.Replication().Enabled && ptr.Deref(mariadb.Replication().ProbesEnabled, false) {
 		replProbe := mariadbReplProbe(mariadb, probe)
-		setProbeThresholds(replProbe, probe)
+		if probe != nil {
+			setProbeThresholds(replProbe, ptr.To(probe.ToKubernetesType()))
+		}
 		return replProbe
 	}
-	if probe != nil && probe.ProbeHandler != (corev1.ProbeHandler{}) {
-		return probe
+	if probe != nil && probe.ProbeHandler != (mariadbv1alpha1.ProbeHandler{}) {
+		return ptr.To(probe.ToKubernetesType())
 	}
+
 	defaultProbe := defaultProbe.DeepCopy()
-	setProbeThresholds(defaultProbe, probe)
+	if probe != nil {
+		setProbeThresholds(defaultProbe, ptr.To(probe.ToKubernetesType()))
+	}
 	return defaultProbe
 }
 
-func mariadbReplProbe(mariadb *mariadbv1alpha1.MariaDB, probe *corev1.Probe) *corev1.Probe {
+func mariadbReplProbe(mariadb *mariadbv1alpha1.MariaDB, probe *mariadbv1alpha1.Probe) *corev1.Probe {
 	replProbe := &corev1.Probe{
 		ProbeHandler: corev1.ProbeHandler{
 			Exec: &corev1.ExecAction{
@@ -581,11 +590,13 @@ func mariadbReplProbe(mariadb *mariadbv1alpha1.MariaDB, probe *corev1.Probe) *co
 		TimeoutSeconds:      5,
 		PeriodSeconds:       5,
 	}
-	setProbeThresholds(replProbe, probe)
+	if probe != nil {
+		setProbeThresholds(replProbe, ptr.To(probe.ToKubernetesType()))
+	}
 	return replProbe
 }
 
-func mariadbGaleraProbe(mdb *mariadbv1alpha1.MariaDB, path string, probe *corev1.Probe) *corev1.Probe {
+func mariadbGaleraProbe(mdb *mariadbv1alpha1.MariaDB, path string, probe *mariadbv1alpha1.Probe) *corev1.Probe {
 	agent := ptr.Deref(mdb.Spec.Galera, mariadbv1alpha1.Galera{}).Agent
 	galeraProbe := corev1.Probe{
 		ProbeHandler: corev1.ProbeHandler{
@@ -598,13 +609,15 @@ func mariadbGaleraProbe(mdb *mariadbv1alpha1.MariaDB, path string, probe *corev1
 		TimeoutSeconds:      5,
 		PeriodSeconds:       5,
 	}
-	setProbeThresholds(&galeraProbe, probe)
+	if probe != nil {
+		setProbeThresholds(&galeraProbe, ptr.To(probe.ToKubernetesType()))
+	}
 	return &galeraProbe
 }
 
-func maxscaleProbe(mxs *mariadbv1alpha1.MaxScale, probe *corev1.Probe) *corev1.Probe {
-	if probe != nil && probe.ProbeHandler != (corev1.ProbeHandler{}) {
-		return probe
+func maxscaleProbe(mxs *mariadbv1alpha1.MaxScale, probe *mariadbv1alpha1.Probe) *corev1.Probe {
+	if probe != nil && probe.ProbeHandler != (mariadbv1alpha1.ProbeHandler{}) {
+		return ptr.To(probe.ToKubernetesType())
 	}
 	mxsProbe := corev1.Probe{
 		ProbeHandler: corev1.ProbeHandler{
@@ -617,7 +630,9 @@ func maxscaleProbe(mxs *mariadbv1alpha1.MaxScale, probe *corev1.Probe) *corev1.P
 		TimeoutSeconds:      5,
 		PeriodSeconds:       5,
 	}
-	setProbeThresholds(&mxsProbe, probe)
+	if probe != nil {
+		setProbeThresholds(&mxsProbe, ptr.To(probe.ToKubernetesType()))
+	}
 	return &mxsProbe
 }
 
