@@ -12,13 +12,13 @@ import (
 // Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#volume-v1-core.
 type VolumeSource struct {
 	// +optional
-	EmptyDir *corev1.EmptyDirVolumeSource `json:"emptyDir,omitempty" protobuf:"bytes,2,opt,name=emptyDir"`
+	EmptyDir *corev1.EmptyDirVolumeSource `json:"emptyDir,omitempty"`
 	// +optional
-	NFS *corev1.NFSVolumeSource `json:"nfs,omitempty" protobuf:"bytes,7,opt,name=nfs"`
+	NFS *corev1.NFSVolumeSource `json:"nfs,omitempty"`
 	// +optional
-	CSI *corev1.CSIVolumeSource `json:"csi,omitempty" protobuf:"bytes,28,opt,name=csi"`
+	CSI *corev1.CSIVolumeSource `json:"csi,omitempty"`
 	// +optional
-	PersistentVolumeClaim *corev1.PersistentVolumeClaimVolumeSource `json:"persistentVolumeClaim,omitempty" protobuf:"bytes,10,opt,name=persistentVolumeClaim"`
+	PersistentVolumeClaim *corev1.PersistentVolumeClaimVolumeSource `json:"persistentVolumeClaim,omitempty"`
 }
 
 func VolumeSourceFromKubernetesType(kv corev1.VolumeSource) VolumeSource {
@@ -41,8 +41,8 @@ func (v VolumeSource) ToKubernetesType() corev1.VolumeSource {
 
 // Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#volume-v1-core.
 type Volume struct {
-	Name         string `json:"name" protobuf:"bytes,1,opt,name=name"`
-	VolumeSource `json:",inline" protobuf:"bytes,2,opt,name=volumeSource"`
+	Name         string `json:"name"`
+	VolumeSource `json:",inline"`
 }
 
 func (v Volume) ToKubernetesType() corev1.Volume {
@@ -55,12 +55,12 @@ func (v Volume) ToKubernetesType() corev1.Volume {
 // Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#volumemount-v1-core.
 type VolumeMount struct {
 	// This must match the Name of a Volume.
-	Name string `json:"name" protobuf:"bytes,1,opt,name=name"`
+	Name string `json:"name"`
 	// +optional
-	ReadOnly  bool   `json:"readOnly,omitempty" protobuf:"varint,2,opt,name=readOnly"`
-	MountPath string `json:"mountPath" protobuf:"bytes,3,opt,name=mountPath"`
+	ReadOnly  bool   `json:"readOnly,omitempty"`
+	MountPath string `json:"mountPath"`
 	// +optional
-	SubPath string `json:"subPath,omitempty" protobuf:"bytes,4,opt,name=subPath"`
+	SubPath string `json:"subPath,omitempty"`
 }
 
 func (v VolumeMount) ToKubernetesType() corev1.VolumeMount {
@@ -76,13 +76,13 @@ func (v VolumeMount) ToKubernetesType() corev1.VolumeMount {
 type PersistentVolumeClaimSpec struct {
 	// +optional
 	// +listType=atomic
-	AccessModes []corev1.PersistentVolumeAccessMode `json:"accessModes,omitempty" protobuf:"bytes,1,rep,name=accessModes,casttype=PersistentVolumeAccessMode"`
+	AccessModes []corev1.PersistentVolumeAccessMode `json:"accessModes,omitempty"`
 	// +optional
-	Selector *metav1.LabelSelector `json:"selector,omitempty" protobuf:"bytes,4,opt,name=selector"`
+	Selector *metav1.LabelSelector `json:"selector,omitempty"`
 	// +optional
-	Resources corev1.VolumeResourceRequirements `json:"resources,omitempty" protobuf:"bytes,2,opt,name=resources"`
+	Resources corev1.VolumeResourceRequirements `json:"resources,omitempty"`
 	// +optional
-	StorageClassName *string `json:"storageClassName,omitempty" protobuf:"bytes,3,opt,name=storageClassName"`
+	StorageClassName *string `json:"storageClassName,omitempty"`
 }
 
 func (p PersistentVolumeClaimSpec) ToKubernetesType() corev1.PersistentVolumeClaimSpec {
@@ -97,8 +97,8 @@ func (p PersistentVolumeClaimSpec) ToKubernetesType() corev1.PersistentVolumeCla
 // Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#podaffinityterm-v1-core.
 type PodAffinityTerm struct {
 	// +optional
-	LabelSelector *metav1.LabelSelector `json:"labelSelector,omitempty" protobuf:"bytes,1,opt,name=labelSelector"`
-	TopologyKey   string                `json:"topologyKey" protobuf:"bytes,2,opt,name=topologyKey"`
+	LabelSelector *metav1.LabelSelector `json:"labelSelector,omitempty"`
+	TopologyKey   string                `json:"topologyKey"`
 }
 
 func (p PodAffinityTerm) ToKubernetesType() corev1.PodAffinityTerm {
@@ -110,8 +110,8 @@ func (p PodAffinityTerm) ToKubernetesType() corev1.PodAffinityTerm {
 
 // Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#weightedpodaffinityterm-v1-core.
 type WeightedPodAffinityTerm struct {
-	Weight          int32           `json:"weight" protobuf:"varint,1,opt,name=weight"`
-	PodAffinityTerm PodAffinityTerm `json:"podAffinityTerm" protobuf:"bytes,2,opt,name=podAffinityTerm"`
+	Weight          int32           `json:"weight"`
+	PodAffinityTerm PodAffinityTerm `json:"podAffinityTerm"`
 }
 
 func (p WeightedPodAffinityTerm) ToKubernetesType() corev1.WeightedPodAffinityTerm {
@@ -125,10 +125,10 @@ func (p WeightedPodAffinityTerm) ToKubernetesType() corev1.WeightedPodAffinityTe
 type PodAntiAffinity struct {
 	// +optional
 	// +listType=atomic
-	RequiredDuringSchedulingIgnoredDuringExecution []PodAffinityTerm `json:"requiredDuringSchedulingIgnoredDuringExecution,omitempty" protobuf:"bytes,1,rep,name=requiredDuringSchedulingIgnoredDuringExecution"`
+	RequiredDuringSchedulingIgnoredDuringExecution []PodAffinityTerm `json:"requiredDuringSchedulingIgnoredDuringExecution,omitempty"`
 	// +optional
 	// +listType=atomic
-	PreferredDuringSchedulingIgnoredDuringExecution []WeightedPodAffinityTerm `json:"preferredDuringSchedulingIgnoredDuringExecution,omitempty" protobuf:"bytes,2,rep,name=preferredDuringSchedulingIgnoredDuringExecution"`
+	PreferredDuringSchedulingIgnoredDuringExecution []WeightedPodAffinityTerm `json:"preferredDuringSchedulingIgnoredDuringExecution,omitempty"`
 }
 
 func (p PodAntiAffinity) ToKubernetesType() corev1.PodAntiAffinity {
@@ -141,7 +141,7 @@ func (p PodAntiAffinity) ToKubernetesType() corev1.PodAntiAffinity {
 // Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#affinity-v1-core.
 type Affinity struct {
 	// +optional
-	PodAntiAffinity *PodAntiAffinity `json:"podAntiAffinity,omitempty" protobuf:"bytes,1,opt,name=podAntiAffinity"`
+	PodAntiAffinity *PodAntiAffinity `json:"podAntiAffinity,omitempty"`
 }
 
 func (a Affinity) ToKubernetesType() corev1.Affinity {
@@ -154,19 +154,19 @@ func (a Affinity) ToKubernetesType() corev1.Affinity {
 
 // Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#topologyspreadconstraint-v1-core.
 type TopologySpreadConstraint struct {
-	MaxSkew           int32                                `json:"maxSkew" protobuf:"varint,1,opt,name=maxSkew"`
-	TopologyKey       string                               `json:"topologyKey" protobuf:"bytes,2,opt,name=topologyKey"`
-	WhenUnsatisfiable corev1.UnsatisfiableConstraintAction `json:"whenUnsatisfiable" protobuf:"bytes,3,opt,name=whenUnsatisfiable,casttype=UnsatisfiableConstraintAction"`
+	MaxSkew           int32                                `json:"maxSkew"`
+	TopologyKey       string                               `json:"topologyKey"`
+	WhenUnsatisfiable corev1.UnsatisfiableConstraintAction `json:"whenUnsatisfiable"`
 	// +optional
-	LabelSelector *metav1.LabelSelector `json:"labelSelector,omitempty" protobuf:"bytes,4,opt,name=labelSelector"`
+	LabelSelector *metav1.LabelSelector `json:"labelSelector,omitempty"`
 	// +optional
-	MinDomains *int32 `json:"minDomains,omitempty" protobuf:"varint,5,opt,name=minDomains"`
+	MinDomains *int32 `json:"minDomains,omitempty"`
 	// +optional
-	NodeAffinityPolicy *corev1.NodeInclusionPolicy `json:"nodeAffinityPolicy,omitempty" protobuf:"bytes,6,opt,name=nodeAffinityPolicy"`
+	NodeAffinityPolicy *corev1.NodeInclusionPolicy `json:"nodeAffinityPolicy,omitempty"`
 	// +optional
-	NodeTaintsPolicy *corev1.NodeInclusionPolicy `json:"nodeTaintsPolicy,omitempty" protobuf:"bytes,7,opt,name=nodeTaintsPolicy"`
+	NodeTaintsPolicy *corev1.NodeInclusionPolicy `json:"nodeTaintsPolicy,omitempty"`
 	// +optional
-	MatchLabelKeys []string `json:"matchLabelKeys,omitempty" protobuf:"bytes,8,opt,name=matchLabelKeys"`
+	MatchLabelKeys []string `json:"matchLabelKeys,omitempty"`
 }
 
 func (t TopologySpreadConstraint) ToKubernetesType() corev1.TopologySpreadConstraint {
@@ -187,7 +187,7 @@ type LocalObjectReference struct {
 	// +optional
 	// +default=""
 	// +kubebuilder:default=""
-	Name string `json:"name,omitempty" protobuf:"bytes,1,opt,name=name"`
+	Name string `json:"name,omitempty"`
 }
 
 func (r LocalObjectReference) ToKubernetesType() corev1.LocalObjectReference {
@@ -199,9 +199,9 @@ func (r LocalObjectReference) ToKubernetesType() corev1.LocalObjectReference {
 // Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#objectreference-v1-core.
 type ObjectReference struct {
 	// +optional
-	Name string `json:"name,omitempty" protobuf:"bytes,3,opt,name=name"`
+	Name string `json:"name,omitempty"`
 	// +optional
-	Namespace string `json:"namespace,omitempty" protobuf:"bytes,2,opt,name=namespace"`
+	Namespace string `json:"namespace,omitempty"`
 }
 
 func (r ObjectReference) ToKubernetesType() corev1.ObjectReference {
@@ -214,8 +214,8 @@ func (r ObjectReference) ToKubernetesType() corev1.ObjectReference {
 // Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#secretkeyselector-v1-core.
 // +structType=atomic
 type SecretKeySelector struct {
-	LocalObjectReference `json:",inline" protobuf:"bytes,1,opt,name=localObjectReference"`
-	Key                  string `json:"key" protobuf:"bytes,2,opt,name=key"`
+	LocalObjectReference `json:",inline"`
+	Key                  string `json:"key"`
 }
 
 func (s SecretKeySelector) ToKubernetesType() corev1.SecretKeySelector {
@@ -228,8 +228,8 @@ func (s SecretKeySelector) ToKubernetesType() corev1.SecretKeySelector {
 // Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#configmapkeyselector-v1-core.
 // +structType=atomic
 type ConfigMapKeySelector struct {
-	LocalObjectReference `json:",inline" protobuf:"bytes,1,opt,name=localObjectReference"`
-	Key                  string `json:"key" protobuf:"bytes,2,opt,name=key"`
+	LocalObjectReference `json:",inline"`
+	Key                  string `json:"key"`
 }
 
 func (s ConfigMapKeySelector) ToKubernetesType() corev1.ConfigMapKeySelector {
@@ -243,8 +243,8 @@ func (s ConfigMapKeySelector) ToKubernetesType() corev1.ConfigMapKeySelector {
 // +structType=atomic
 type ObjectFieldSelector struct {
 	// +optional
-	APIVersion string `json:"apiVersion,omitempty" protobuf:"bytes,1,opt,name=apiVersion"`
-	FieldPath  string `json:"fieldPath" protobuf:"bytes,2,opt,name=fieldPath"`
+	APIVersion string `json:"apiVersion,omitempty"`
+	FieldPath  string `json:"fieldPath"`
 }
 
 func (s ObjectFieldSelector) ToKubernetesType() corev1.ObjectFieldSelector {
@@ -257,11 +257,11 @@ func (s ObjectFieldSelector) ToKubernetesType() corev1.ObjectFieldSelector {
 // Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#envvarsource-v1-core.
 type EnvVarSource struct {
 	// +optional
-	FieldRef *ObjectFieldSelector `json:"fieldRef,omitempty" protobuf:"bytes,1,opt,name=fieldRef"`
+	FieldRef *ObjectFieldSelector `json:"fieldRef,omitempty"`
 	// +optional
-	ConfigMapKeyRef *ConfigMapKeySelector `json:"configMapKeyRef,omitempty" protobuf:"bytes,3,opt,name=configMapKeyRef"`
+	ConfigMapKeyRef *ConfigMapKeySelector `json:"configMapKeyRef,omitempty"`
 	// +optional
-	SecretKeyRef *SecretKeySelector `json:"secretKeyRef,omitempty" protobuf:"bytes,4,opt,name=secretKeyRef"`
+	SecretKeyRef *SecretKeySelector `json:"secretKeyRef,omitempty"`
 }
 
 func (e EnvVarSource) ToKubernetesType() corev1.EnvVarSource {
@@ -281,11 +281,11 @@ func (e EnvVarSource) ToKubernetesType() corev1.EnvVarSource {
 // Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#envvarsource-v1-core.
 type EnvVar struct {
 	// Name of the environment variable. Must be a C_IDENTIFIER.
-	Name string `json:"name" protobuf:"bytes,1,opt,name=name"`
+	Name string `json:"name"`
 	// +optional
-	Value string `json:"value,omitempty" protobuf:"bytes,2,opt,name=value"`
+	Value string `json:"value,omitempty"`
 	// +optional
-	ValueFrom *EnvVarSource `json:"valueFrom,omitempty" protobuf:"bytes,3,opt,name=valueFrom"`
+	ValueFrom *EnvVarSource `json:"valueFrom,omitempty"`
 }
 
 func (e EnvVar) ToKubernetesType() corev1.EnvVar {
@@ -302,11 +302,11 @@ func (e EnvVar) ToKubernetesType() corev1.EnvVar {
 // Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#envfromsource-v1-core.
 type EnvFromSource struct {
 	// +optional
-	Prefix string `json:"prefix,omitempty" protobuf:"bytes,1,opt,name=prefix"`
+	Prefix string `json:"prefix,omitempty"`
 	// +optional
-	ConfigMapRef *LocalObjectReference `json:"configMapRef,omitempty" protobuf:"bytes,2,opt,name=configMapRef"`
+	ConfigMapRef *LocalObjectReference `json:"configMapRef,omitempty"`
 	// +optional
-	SecretRef *LocalObjectReference `json:"secretRef,omitempty" protobuf:"bytes,3,opt,name=secretRef"`
+	SecretRef *LocalObjectReference `json:"secretRef,omitempty"`
 }
 
 func (e EnvFromSource) ToKubernetesType() corev1.EnvFromSource {
@@ -330,7 +330,7 @@ func (e EnvFromSource) ToKubernetesType() corev1.EnvFromSource {
 type ExecAction struct {
 	// +optional
 	// +listType=atomic
-	Command []string `json:"command,omitempty" protobuf:"bytes,1,rep,name=command"`
+	Command []string `json:"command,omitempty"`
 }
 
 func (e ExecAction) ToKubernetesType() corev1.ExecAction {
@@ -342,12 +342,12 @@ func (e ExecAction) ToKubernetesType() corev1.ExecAction {
 // Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#httpgetaction-v1-core.
 type HTTPGetAction struct {
 	// +optional
-	Path string             `json:"path,omitempty" protobuf:"bytes,1,opt,name=path"`
-	Port intstr.IntOrString `json:"port" protobuf:"bytes,2,opt,name=port"`
+	Path string             `json:"path,omitempty"`
+	Port intstr.IntOrString `json:"port"`
 	// +optional
-	Host string `json:"host,omitempty" protobuf:"bytes,3,opt,name=host"`
+	Host string `json:"host,omitempty"`
 	// +optional
-	Scheme corev1.URIScheme `json:"scheme,omitempty" protobuf:"bytes,4,opt,name=scheme,casttype=URIScheme"`
+	Scheme corev1.URIScheme `json:"scheme,omitempty"`
 }
 
 func (e HTTPGetAction) ToKubernetesType() corev1.HTTPGetAction {
@@ -362,9 +362,9 @@ func (e HTTPGetAction) ToKubernetesType() corev1.HTTPGetAction {
 // Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#probe-v1-core.
 type ProbeHandler struct {
 	// +optional
-	Exec *ExecAction `json:"exec,omitempty" protobuf:"bytes,1,opt,name=exec"`
+	Exec *ExecAction `json:"exec,omitempty"`
 	// +optional
-	HTTPGet *HTTPGetAction `json:"httpGet,omitempty" protobuf:"bytes,2,opt,name=httpGet"`
+	HTTPGet *HTTPGetAction `json:"httpGet,omitempty"`
 }
 
 func (p ProbeHandler) ToKubernetesType() corev1.ProbeHandler {
@@ -380,17 +380,17 @@ func (p ProbeHandler) ToKubernetesType() corev1.ProbeHandler {
 
 // Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#probe-v1-core.
 type Probe struct {
-	ProbeHandler `json:",inline" protobuf:"bytes,1,opt,name=handler"`
+	ProbeHandler `json:",inline"`
 	// +optional
-	InitialDelaySeconds int32 `json:"initialDelaySeconds,omitempty" protobuf:"varint,2,opt,name=initialDelaySeconds"`
+	InitialDelaySeconds int32 `json:"initialDelaySeconds,omitempty"`
 	// +optional
-	TimeoutSeconds int32 `json:"timeoutSeconds,omitempty" protobuf:"varint,3,opt,name=timeoutSeconds"`
+	TimeoutSeconds int32 `json:"timeoutSeconds,omitempty"`
 	// +optional
-	PeriodSeconds int32 `json:"periodSeconds,omitempty" protobuf:"varint,4,opt,name=periodSeconds"`
+	PeriodSeconds int32 `json:"periodSeconds,omitempty"`
 	// +optional
-	SuccessThreshold int32 `json:"successThreshold,omitempty" protobuf:"varint,5,opt,name=successThreshold"`
+	SuccessThreshold int32 `json:"successThreshold,omitempty"`
 	// +optional
-	FailureThreshold int32 `json:"failureThreshold,omitempty" protobuf:"varint,6,opt,name=failureThreshold"`
+	FailureThreshold int32 `json:"failureThreshold,omitempty"`
 }
 
 func (p Probe) ToKubernetesType() corev1.Probe {
@@ -407,9 +407,9 @@ func (p Probe) ToKubernetesType() corev1.Probe {
 // Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#resourcerequirements-v1-core.
 type ResourceRequirements struct {
 	// +optional
-	Limits corev1.ResourceList `json:"limits,omitempty" protobuf:"bytes,1,rep,name=limits,casttype=ResourceList,castkey=ResourceName"`
+	Limits corev1.ResourceList `json:"limits,omitempty"`
 	// +optional
-	Requests corev1.ResourceList `json:"requests,omitempty" protobuf:"bytes,2,rep,name=requests,casttype=ResourceList,castkey=ResourceName"`
+	Requests corev1.ResourceList `json:"requests,omitempty"`
 }
 
 func (r ResourceRequirements) ToKubernetesType() corev1.ResourceRequirements {
@@ -422,19 +422,19 @@ func (r ResourceRequirements) ToKubernetesType() corev1.ResourceRequirements {
 // Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#securitycontext-v1-core.
 type SecurityContext struct {
 	// +optional
-	Capabilities *corev1.Capabilities `json:"capabilities,omitempty" protobuf:"bytes,1,opt,name=capabilities"`
+	Capabilities *corev1.Capabilities `json:"capabilities,omitempty"`
 	// +optional
-	Privileged *bool `json:"privileged,omitempty" protobuf:"varint,2,opt,name=privileged"`
+	Privileged *bool `json:"privileged,omitempty"`
 	// +optional
-	RunAsUser *int64 `json:"runAsUser,omitempty" protobuf:"varint,4,opt,name=runAsUser"`
+	RunAsUser *int64 `json:"runAsUser,omitempty"`
 	// +optional
-	RunAsGroup *int64 `json:"runAsGroup,omitempty" protobuf:"varint,8,opt,name=runAsGroup"`
+	RunAsGroup *int64 `json:"runAsGroup,omitempty"`
 	// +optional
-	RunAsNonRoot *bool `json:"runAsNonRoot,omitempty" protobuf:"varint,5,opt,name=runAsNonRoot"`
+	RunAsNonRoot *bool `json:"runAsNonRoot,omitempty"`
 	// +optional
-	ReadOnlyRootFilesystem *bool `json:"readOnlyRootFilesystem,omitempty" protobuf:"varint,6,opt,name=readOnlyRootFilesystem"`
+	ReadOnlyRootFilesystem *bool `json:"readOnlyRootFilesystem,omitempty"`
 	// +optional
-	AllowPrivilegeEscalation *bool `json:"allowPrivilegeEscalation,omitempty" protobuf:"varint,7,opt,name=allowPrivilegeEscalation"`
+	AllowPrivilegeEscalation *bool `json:"allowPrivilegeEscalation,omitempty"`
 }
 
 func (r SecurityContext) ToKubernetesType() corev1.SecurityContext {
