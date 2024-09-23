@@ -1,6 +1,14 @@
 nameOverride: ""
 fullnameOverride: ""
 
+# --- CRDs
+crds:
+  # -- Whether the helm chart should create and update the CRDs. It is false by default, which implies that the CRDs must be
+  # managed independently with the mariadb-operator-crds helm chart.
+  # **WARNING** This should only be set to true during the initial deployment. If this chart manages the CRDs 
+  # and is later uninstalled, all MariaDB instances will be DELETED.
+  enabled: false
+
 image:
   repository: docker-registry3.mariadb.com/mariadb-operator/mariadb-operator
   pullPolicy: IfNotPresent
