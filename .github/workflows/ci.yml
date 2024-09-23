@@ -184,11 +184,13 @@ jobs:
       - name: Scorecard
         run: make bundle-scorecard
 
-  gen:
-    name: Generate artifacts
+  artifacts:
+    name: Artifacts
     runs-on: ubuntu-latest
     needs: detect-noop
     if: ${{ needs.detect-noop.outputs.noop != 'true' }}
+    env:
+      CRD_FILE: deploy/charts/mariadb-operator/crds/crds.yaml
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -200,6 +202,20 @@ jobs:
         uses: mmontes11/diff-porcelain@v0.0.1
         with:
           message: Generated artifacts are not up to date. Run 'make generate' and commit the changes.
+
+      - name: Verify CRD size
+        shell: bash
+        run: |
+          crd_file="$CRD_FILE"
+          max_size=$((1024 * 1024))
+          crd_size=$(stat -c%s "$crd_file")
+
+          echo "Current CRD size: $((crd_size / 1024)) KB"
+
+          if [ "$crd_size" -ge "$max_size" ]; then
+            echo "Error: CRDs exceed 1MB (current size: $((crd_size / 1024)) KB)"
+            exit 1
+          fi
 
   licenses:
     name: Generate licenses
