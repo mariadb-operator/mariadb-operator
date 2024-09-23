@@ -218,7 +218,7 @@ jobs:
           fi
 
   licenses:
-    name: Generate licenses
+    name: Licenses
     runs-on: ubuntu-latest
     needs: detect-noop
     if: ${{ needs.detect-noop.outputs.noop != 'true' }}
