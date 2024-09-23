@@ -51,6 +51,26 @@ func (v Volume) ToKubernetesType() corev1.Volume {
 	}
 }
 
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#volumemount-v1-core
+type VolumeMount struct {
+	// This must match the Name of a Volume.
+	Name string `json:"name" protobuf:"bytes,1,opt,name=name"`
+	// +optional
+	ReadOnly  bool   `json:"readOnly,omitempty" protobuf:"varint,2,opt,name=readOnly"`
+	MountPath string `json:"mountPath" protobuf:"bytes,3,opt,name=mountPath"`
+	// +optional
+	SubPath string `json:"subPath,omitempty" protobuf:"bytes,4,opt,name=subPath"`
+}
+
+func (v VolumeMount) ToKubernetesType() corev1.VolumeMount {
+	return corev1.VolumeMount{
+		Name:      v.Name,
+		ReadOnly:  v.ReadOnly,
+		MountPath: v.MountPath,
+		SubPath:   v.SubPath,
+	}
+}
+
 // Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#persistentvolumeclaimspec-v1-core
 type PersistentVolumeClaimSpec struct {
 	// +optional

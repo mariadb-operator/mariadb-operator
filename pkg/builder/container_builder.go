@@ -291,16 +291,12 @@ func (b *Builder) buildContainerWithTemplate(image string, pullPolicy corev1.Pul
 		ImagePullPolicy: pullPolicy,
 		Command:         tpl.Command,
 		Args:            tpl.Args,
-		VolumeMounts:    tpl.VolumeMounts,
+		Env:             kadapter.ToKubernetesSlice(tpl.Env),
+		EnvFrom:         kadapter.ToKubernetesSlice(tpl.EnvFrom),
+		VolumeMounts:    kadapter.ToKubernetesSlice(tpl.VolumeMounts),
 		LivenessProbe:   tpl.LivenessProbe,
 		ReadinessProbe:  tpl.ReadinessProbe,
 		SecurityContext: sc,
-	}
-	if tpl.Env != nil {
-		container.Env = kadapter.ToKubernetesSlice(tpl.Env)
-	}
-	if tpl.EnvFrom != nil {
-		container.EnvFrom = kadapter.ToKubernetesSlice(tpl.EnvFrom)
 	}
 	if mariadbOpts.resources != nil {
 		container.Resources = *mariadbOpts.resources
@@ -479,7 +475,7 @@ func mariadbVolumeMounts(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt
 		volumeMounts = append(volumeMounts, galeraConfigVolumeMount)
 	}
 	if mariadb.Spec.VolumeMounts != nil {
-		volumeMounts = append(volumeMounts, mariadb.Spec.VolumeMounts...)
+		volumeMounts = append(volumeMounts, kadapter.ToKubernetesSlice(mariadb.Spec.VolumeMounts)...)
 	}
 	if mariadbOpts.extraVolumeMounts != nil {
 		volumeMounts = append(volumeMounts, mariadbOpts.extraVolumeMounts...)
@@ -511,7 +507,7 @@ func maxscaleVolumeMounts(maxscale *mariadbv1alpha1.MaxScale) []corev1.VolumeMou
 		},
 	}
 	if maxscale.Spec.VolumeMounts != nil {
-		volumeMounts = append(volumeMounts, maxscale.Spec.VolumeMounts...)
+		volumeMounts = append(volumeMounts, kadapter.ToKubernetesSlice(maxscale.Spec.VolumeMounts)...)
 	}
 	return volumeMounts
 }
