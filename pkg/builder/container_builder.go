@@ -305,7 +305,7 @@ func (b *Builder) buildContainerWithTemplate(image string, pullPolicy corev1.Pul
 	if mariadbOpts.resources != nil {
 		container.Resources = *mariadbOpts.resources
 	} else if tpl.Resources != nil && mariadbOpts.includeMariadbResources {
-		container.Resources = *tpl.Resources
+		container.Resources = tpl.Resources.ToKubernetesType()
 	}
 	return &container, nil
 }
@@ -320,10 +320,10 @@ func (b *Builder) buildContainer(mdb *mariadbv1alpha1.MariaDB, mdbContainer *mar
 		VolumeMounts:    mariadbVolumeMounts(mdb),
 	}
 	if mdbContainer.VolumeMounts != nil {
-		container.VolumeMounts = append(container.VolumeMounts, mdbContainer.VolumeMounts...)
+		container.VolumeMounts = append(container.VolumeMounts, kadapter.ToKubernetesSlice(mdbContainer.VolumeMounts)...)
 	}
 	if mdbContainer.Resources != nil {
-		container.Resources = *mdbContainer.Resources
+		container.Resources = mdbContainer.Resources.ToKubernetesType()
 	}
 	return &container
 }

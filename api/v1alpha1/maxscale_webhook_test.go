@@ -558,7 +558,7 @@ var _ = Describe("MaxScale webhook", func() {
 			Entry(
 				"Updating Resources",
 				func(mxs *MaxScale) {
-					mxs.Spec.Resources = &corev1.ResourceRequirements{
+					mxs.Spec.Resources = &ResourceRequirements{
 						Requests: corev1.ResourceList{
 							"cpu": resource.MustParse("200m"),
 						},

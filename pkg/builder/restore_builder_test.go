@@ -170,7 +170,7 @@ func TestBuildRestore(t *testing.T) {
 						AntiAffinityEnabled: ptr.To(true),
 						Affinity:            mariadbv1alpha1.Affinity{},
 					},
-					Resources: &corev1.ResourceRequirements{
+					Resources: &mariadbv1alpha1.ResourceRequirements{
 						Requests: corev1.ResourceList{
 							"cpu": resource.MustParse("100m"),
 						},

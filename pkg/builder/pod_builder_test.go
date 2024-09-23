@@ -615,7 +615,7 @@ func TestMariadbPodBuilderResources(t *testing.T) {
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
-						Resources: &corev1.ResourceRequirements{
+						Resources: &mariadbv1alpha1.ResourceRequirements{
 							Requests: corev1.ResourceList{
 								"cpu": resource.MustParse("300m"),
 							},
@@ -655,7 +655,7 @@ func TestMariadbPodBuilderResources(t *testing.T) {
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
-						Resources: &corev1.ResourceRequirements{
+						Resources: &mariadbv1alpha1.ResourceRequirements{
 							Requests: corev1.ResourceList{
 								"cpu": resource.MustParse("300m"),
 							},

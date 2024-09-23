@@ -183,7 +183,7 @@ var _ = Describe("Restore webhook", func() {
 				},
 				Spec: RestoreSpec{
 					JobContainerTemplate: JobContainerTemplate{
-						Resources: &corev1.ResourceRequirements{
+						Resources: &ResourceRequirements{
 							Requests: corev1.ResourceList{
 								"cpu": resource.MustParse("100m"),
 							},
@@ -240,7 +240,7 @@ var _ = Describe("Restore webhook", func() {
 			Entry(
 				"Updating Resources",
 				func(rmdb *Restore) {
-					rmdb.Spec.Resources = &corev1.ResourceRequirements{
+					rmdb.Spec.Resources = &ResourceRequirements{
 						Requests: corev1.ResourceList{
 							"cpu": resource.MustParse("200m"),
 						},
