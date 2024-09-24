@@ -7,10 +7,15 @@ HELM_CRDS_DIR ?= deploy/charts/mariadb-operator-crds
 HELM_CRDS_CHART_FILE ?= $(HELM_CRDS_DIR)/Chart.yaml
 
 HELM_CT_IMG ?= quay.io/helmpack/chart-testing:v3.5.0 
-HELM_CT_CONFIG ?= hack/config/mariadb-operator-ct.yaml
+HELM_CT_CONFIG ?= hack/config/chart-testing/mariadb-operator.yaml
+HELM_CRDS_CT_CONFIG ?= hack/config/chart-testing/mariadb-operator-crds.yaml
 .PHONY: helm-lint
-helm-lint: ## Lint Helm charts.
+helm-lint: ## Lint mariadb-operator helm chart.
 	$(DOCKER) run --rm --workdir /repo -v $(shell pwd):/repo $(HELM_CT_IMG) ct lint --config $(HELM_CT_CONFIG) 
+
+.PHONY: helm-crds-lint
+helm-crds-lint: ## Lint mariadb-operator-crds helm chart.
+	$(DOCKER) run --rm --workdir /repo -v $(shell pwd):/repo $(HELM_CT_IMG) ct lint --config $(HELM_CRDS_CT_CONFIG) 
 
 .PHONY: helm-crds 
 helm-crds: kustomize ## Generate CRDs for the Helm chart.
