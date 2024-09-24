@@ -36,15 +36,6 @@ jobs:
         env:
           GITHUB_TOKEN: "${{ secrets.GHA_TOKEN }}"
 
-  index:
-    name: Helm index
-    runs-on: ubuntu-latest
-    steps:
-      - name: Dispatch helm index workflow
-        run: gh workflow run helm-index.yml --repo mariadb-operator/mariadb-operator
-        env:
-          GITHUB_TOKEN: "${{ secrets.GHA_TOKEN }}"
-
   olm:
     name: Helm OLM
     runs-on: ubuntu-latest
