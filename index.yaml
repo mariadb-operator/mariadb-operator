@@ -22,7 +22,7 @@ entries:
       name: mariadb-operator
       type: application
       urls:
-        - https://helm.mariadb.com/mariadb-operator/releases/download/helm-chart-0.31.0/mariadb-operator-0.31.0.tgz
+        - https://helm.mariadb.com/mariadb-operator/releases/download/mariadb-operator-0.31.0/mariadb-operator-0.31.0.tgz
       version: 0.31.0
     - apiVersion: v2
       appVersion: v0.0.30
@@ -917,4 +917,5 @@ entries:
       urls:
         - https://helm.mariadb.com/mariadb-operator/releases/download/helm-chart-0.2.0/mariadb-operator-0.2.0.tgz
       version: 0.2.0
-generated: "2024-09-13T15:44:11Z"
+  mariadb-operator-crds: []
+generated: "2024-09-24T17:31:31Z"
