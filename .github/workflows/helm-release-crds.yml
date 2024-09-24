@@ -1,0 +1,34 @@
+name: Helm release CRDs
+
+on:
+  push:
+    tags:
+      - "mariadb-operator-crds-*"
+
+jobs:
+  manifests:
+    name: Manifests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Tag
+        id: tag
+        run: echo "name=mariadb-operator-crds-$(make helm-crds-version)" >> $GITHUB_OUTPUT
+
+      - name: Generate manifests CRDs
+        run: make manifests-crds
+        env:
+          MANIFESTS_CRDS_DIR: dist/crds
+
+      - name: Update Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: "${{ steps.tag.outputs.name }}"
+          files: |
+            dist/crds/crds.yaml
+        env:
+          GITHUB_TOKEN: "${{ secrets.GHA_TOKEN }}"
