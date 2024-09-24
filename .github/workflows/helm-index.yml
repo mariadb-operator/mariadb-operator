@@ -1,7 +1,16 @@
 name: Helm index
 
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      mariadb_operator_version:
+        description: "mariadb-operator version to be updated in index.yaml."
+        type: string
+        required: true
+      mariadb_operator_crds_version:
+        description: "mariadb-operator-crds version to be updated in index.yaml."
+        type: string
+        required: true
 
 jobs:
   index:
@@ -22,6 +31,8 @@ jobs:
       - name: Update index.yaml
         run: ./hack/helm_index.sh
         env:
+          MARIADB_OPERATOR_VERSION: ${{ github.event.inputs.mariadb_operator_version }}
+          MARIADB_OPERATOR_CRDS_VERSION: ${{ github.event.inputs.mariadb_operator_crds_version }}
           BRANCH: gh-pages
           BASE_URL: https://helm.mariadb.com/mariadb-operator/
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
