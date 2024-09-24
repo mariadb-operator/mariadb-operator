@@ -55,7 +55,7 @@ jobs:
 
       - name: Test install
         if: steps.list-changed.outputs.changed == 'true'
-        run: ct install --config=hack/config/mariadb-operator-ct.yaml
+        run: ct install --config=hack/config/mariadb-operator-ct.yaml --helm-extra-set-args "--set=crds.enabled=true"
 
   release:
     runs-on: ubuntu-latest
