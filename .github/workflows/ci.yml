@@ -101,7 +101,9 @@ jobs:
           cache: true
 
       - name: Test
-        run: make test
+        run: |
+          make helm-crds
+          make test
 
   integration-test:
     name: Integration tests
