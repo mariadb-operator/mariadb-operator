@@ -6,7 +6,7 @@
 <img src="https://mariadb-operator.github.io/mariadb-operator/assets/mariadb-operator_centered_whitebg.svg" alt="mariadb" width="100%"/>
 </p>
 
-![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![Version: 0.31.0](https://img.shields.io/badge/Version-0.31.0-informational?style=flat-square) ![AppVersion: v0.0.31](https://img.shields.io/badge/AppVersion-v0.0.31-informational?style=flat-square)
+![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![Version: 0.31.0](https://img.shields.io/badge/Version-0.31.0-informational?style=flat-square) ![AppVersion: v0.0.32-dev](https://img.shields.io/badge/AppVersion-v0.0.32--dev-informational?style=flat-square)
 
 Run and operate MariaDB in a cloud native way
 
@@ -57,6 +57,7 @@ helm uninstall mariadb-operator
 | certController.serviceMonitor.scrapeTimeout | string | `"25s"` | Timeout if metrics can't be retrieved in given time interval |
 | certController.tolerations | list | `[]` | Tolerations to add to controller Pod |
 | clusterName | string | `"cluster.local"` | Cluster DNS name |
+| currentNamespaceOnly | bool | `false` | Whether the operator should watch CRDs only in its own namespace or not. |
 | extrArgs | list | `[]` | Extra arguments to be passed to the controller entrypoint |
 | extraEnv | list | `[]` | Extra environment variables to be passed to the controller |
 | extraEnvFrom | list | `[]` | Extra environment variables from preexiting ConfigMap / Secret objects used by the controller using envFrom |
@@ -101,6 +102,7 @@ helm uninstall mariadb-operator
 | webhook.cert.path | string | `"/tmp/k8s-webhook-server/serving-certs"` | Path where the certificate will be mounted. 'tls.crt' and 'tls.key' certificates files should be under this path. |
 | webhook.cert.secretAnnotations | object | `{}` | Annotatioms to be added to webhook TLS secret. |
 | webhook.cert.secretLabels | object | `{}` | Labels to be added to webhook TLS secret. |
+| webhook.enabled | bool | `true` | Specifies whether the webhook should be created. |
 | webhook.extrArgs | list | `[]` | Extra arguments to be passed to the webhook entrypoint |
 | webhook.extraVolumeMounts | list | `[]` | Extra volumes to mount to webhook container |
 | webhook.extraVolumes | list | `[]` | Extra volumes to pass to webhook Pod |
