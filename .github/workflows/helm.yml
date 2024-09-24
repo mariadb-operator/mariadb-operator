@@ -17,6 +17,8 @@ jobs:
   lint-crds:
     name: CRDs
     runs-on: ubuntu-latest
+    env:
+      CT_CONFIG: hack/config/chart-testing/mariadb-operator-crds.yaml
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -38,14 +40,14 @@ jobs:
       - name: List changed
         id: list-changed
         run: |
-          changed=$(ct list-changed --config hack/config/chart-testing/mariadb-operator-crds.yaml)
+          changed=$(ct list-changed --config $CT_CONFIG)
           if [[ -n "$changed" ]]; then
             echo "changed=true" >> $GITHUB_OUTPUT
           fi
 
       - name: Lint
         if: steps.list-changed.outputs.changed == 'true'
-        run: ct lint --config hack/config/chart-testing/mariadb-operator-crds.yaml
+        run: ct lint --config $CT_CONFIG
       
       - name: Cluster
         if: steps.list-changed.outputs.changed == 'true'
@@ -53,11 +55,13 @@ jobs:
 
       - name: Test install
         if: steps.list-changed.outputs.changed == 'true'
-        run: ct install --config hack/config/chart-testing/mariadb-operator-crds.yaml
+        run: ct install --config $CT_CONFIG
 
   lint-operator:
     name: Operator
     runs-on: ubuntu-latest
+    env:
+      CT_CONFIG: hack/config/chart-testing/mariadb-operator.yaml
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -79,14 +83,14 @@ jobs:
       - name: List changed
         id: list-changed
         run: |
-          changed=$(ct list-changed --config hack/config/chart-testing/mariadb-operator.yaml)
+          changed=$(ct list-changed --config $CT_CONFIG)
           if [[ -n "$changed" ]]; then
             echo "changed=true" >> $GITHUB_OUTPUT
           fi
 
       - name: Lint
         if: steps.list-changed.outputs.changed == 'true'
-        run: ct lint --config hack/config/chart-testing/mariadb-operator.yaml
+        run: ct lint --config $CT_CONFIG
       
       - name: Cluster
         if: steps.list-changed.outputs.changed == 'true'
@@ -97,7 +101,7 @@ jobs:
 
       - name: Test install
         if: steps.list-changed.outputs.changed == 'true'
-        run: ct install --config hack/config/chart-testing/mariadb-operator.yaml --helm-extra-set-args "--set=crds.enabled=true"
+        run: ct install --config $CT_CONFIG --helm-extra-set-args "--set=crds.enabled=true"
 
   release:
     runs-on: ubuntu-latest
