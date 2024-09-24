@@ -1,0 +1,7 @@
+chart-dirs:
+  - deploy/charts/
+charts:
+  - deploy/charts/mariadb-operator-crds
+helm-extra-args: "--timeout=5m"
+check-version-increment: false
+target-branch: main
