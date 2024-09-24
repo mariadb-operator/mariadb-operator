@@ -3,7 +3,7 @@ name: Helm release
 on:
   push:
     tags:
-      - "helm-chart-*"
+      - "mariadb-operator-*"
 
 jobs:
   manifests:
@@ -17,12 +17,11 @@ jobs:
 
       - name: Tag
         id: tag
-        run: echo "name=helm-chart-$(make helm-version)" >> $GITHUB_OUTPUT
+        run: echo "name=mariadb-operator-$(make helm-version)" >> $GITHUB_OUTPUT
 
       - name: Generate manifests bundle
         run: make manifests-bundle
         env:
-          MANIFESTS_CRDS_DIR: dist/crds
           MANIFESTS_DIR: dist/manifests
 
       - name: Update Release
@@ -30,7 +29,6 @@ jobs:
         with:
           tag_name: "${{ steps.tag.outputs.name }}"
           files: |
-            dist/crds/crds.yaml
             dist/manifests/manifests.yaml
             dist/manifests/manifests.min.yaml
         env:

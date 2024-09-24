@@ -31,7 +31,6 @@ MANIFESTS_BUNDLE_VALUES ?= deploy/manifests/helm-values.yaml
 .PHONY: manifests-bundle-helm
 manifests-bundle-helm: manifests manifests-crds ## Generate manifests bundle from helm chart.
 	mkdir -p $(MANIFESTS_DIR)
-	cat $(MANIFESTS_CRDS_DIR)/crds.yaml > $(MANIFESTS_DIR)/manifests.yaml
 	helm template -n default mariadb-operator $(HELM_DIR) -f $(MANIFESTS_BUNDLE_VALUES) >> $(MANIFESTS_DIR)/manifests.yaml
 
 MANIFESTS_BUNDLE_MIN_VALUES ?= deploy/manifests/helm-values.min.yaml 
