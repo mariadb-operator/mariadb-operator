@@ -47,8 +47,12 @@ helm-docs: ## Generate Helm chart docs.
 helm-gen: helm-crds helm-env helm-docs ## Generate manifests and documentation for the Helm chart.
 
 .PHONY: helm-version
-helm-version: yq ## Get helm chart version.
+helm-version: yq ## Get mariadb-operator chart version.
 	@cat $(HELM_CHART_FILE) | $(YQ) e ".version"
+
+.PHONY: helm-crds-version
+helm-crds-version: yq ## Get mariadb-operator-crds chart version.
+	@cat $(HELM_CRDS_CHART_FILE) | $(YQ) e ".version"
 
 HELM_APP_VERSION ?=
 .PHONY: helm-version-bump

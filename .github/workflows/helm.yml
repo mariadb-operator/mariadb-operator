@@ -126,6 +126,7 @@ jobs:
   #       uses: azure/setup-helm@v4
 
   #     - name: Run chart-releaser
+  #       id: chart-releaser
   #       uses: helm/chart-releaser-action@v1.6.0
   #       env:
   #         CR_TOKEN: "${{ secrets.GHA_TOKEN }}"
@@ -134,3 +135,13 @@ jobs:
   #         charts_dir: deploy/charts
   #         skip_existing: "true"
   #         pages_branch: gh-pages
+
+  #     - name: Dispatch helm-index workflow
+  #       if: ${{ steps.chart-releaser.outputs.changed_charts != '' }}
+  #       run: |
+  #         gh workflow run helm-index.yml \
+  #           -f mariadb_operator_version=$(make helm-version) \
+  #           -f mariadb_operator_crds_version=$(make helm-crds-version) \
+  #           --repo mariadb-operator/mariadb-operator
+  #       env:
+  #         GITHUB_TOKEN: "${{ secrets.GHA_TOKEN }}"
