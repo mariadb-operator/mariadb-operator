@@ -209,13 +209,13 @@ jobs:
         shell: bash
         run: |
           crd_file="$CRD_FILE"
-          max_size=$((1024 * 1024))
+          max_size=$((900 * 1024))
           crd_size=$(stat -c%s "$crd_file")
 
           echo "Current CRD size: $((crd_size / 1024)) KB"
 
           if [ "$crd_size" -ge "$max_size" ]; then
-            echo "Error: CRDs exceed 1MB (current size: $((crd_size / 1024)) KB)"
+            echo "Error: CRDs exceed 900KB (current size: $((crd_size / 1024)) KB)"
             exit 1
           fi
 
