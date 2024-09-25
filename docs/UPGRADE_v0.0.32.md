@@ -14,7 +14,7 @@ kubectl delete validatingwebhookconfiguration mariadb-operator-webhook
 kubectl delete mutatingwebhookconfiguration mariadb-operator-webhook
 ```
 
-- Helm has certain [limitations when managing CRDs](https://helm.sh/docs/chart_best_practices/custom_resource_definitions/#some-caveats-and-explanations). Therefore, beginning with the current version, we will adopt [this approach recommended in the official Helm documentation](https://helm.sh/docs/chart_best_practices/custom_resource_definitions/#method-2-separate-charts), which involves managing CRDs in a separate chart. First, let's specify the release name and namespace for installing the new `mariadb-operator-crds` new chart:
+- Helm has certain [limitations when managing CRDs](https://helm.sh/docs/chart_best_practices/custom_resource_definitions/#some-caveats-and-explanations). Therefore, beginning with the current version, we will adopt [this approach recommended in the official Helm documentation](https://helm.sh/docs/chart_best_practices/custom_resource_definitions/#method-2-separate-charts), which involves managing CRDs in a separate chart. First, let's specify the release name and namespace for installing the new `mariadb-operator-crds` chart:
 
 ```bash
 export CRDS_RELEASE_NAME="<HELM-RELEASE-NAME>" # e.g. mariadb-operator-crds
@@ -40,7 +40,7 @@ helm repo update mariadb-operator
 helm install $CRDS_RELEASE_NAME -n $CRDS_RELEASE_NAMESPACE mariadb-operator/mariadb-operator-crds --version 0.0.32 
 ```
 
-- If you are using Galera, and you want the operator to automatically update the data plane (i.e. init and agent containers) to `v0.0.32`, you can set `updateStrategy.autoUpdateDataPlane=true`:
+- If you are using Galera, and you want the operator to automatically update the data plane (i.e. init and agent containers) to `v0.0.32`, you can set `updateStrategy.autoUpdateDataPlane=true` in your `MariaDB` resources:
 
 ```diff
 apiVersion: k8s.mariadb.com/v1alpha1
@@ -76,7 +76,7 @@ kubectl scale deployment mariadb-operator -n default --replicas=1
 kubectl scale deployment mariadb-operator-webhook -n default --replicas=1
 ```
 
-- If you previously set `updateStratety.autoUpdateDataPlane=true` and/or `updateStratety.type = Never`, you may consider undo the changes once the upgrades have finished:
+- If you previously set `updateStratety.autoUpdateDataPlane=true` and/or `updateStratety.type=Never`, you may consider undo the changes once the upgrades have finished:
 
 ```diff
 apiVersion: k8s.mariadb.com/v1alpha1
