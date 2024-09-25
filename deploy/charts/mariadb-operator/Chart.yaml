@@ -21,6 +21,6 @@ keywords:
   - maxscale
 dependencies:
   - name: mariadb-operator-crds
-    version: "0.0.32"
+    version: "0.0.31"
     condition: crds.enabled
     repository: file://../mariadb-operator-crds

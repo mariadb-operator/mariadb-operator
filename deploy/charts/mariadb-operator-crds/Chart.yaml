@@ -4,8 +4,8 @@ description: mariadb-operator CRDs
 home: https://github.com/mariadb-operator/mariadb-operator
 icon: https://mariadb-operator.github.io/mariadb-operator/assets/mariadb_profile.svg
 type: application
-version: 0.0.32
-appVersion: "v0.0.32-dev"
+version: 0.0.31
+appVersion: "0.0.0"
 kubeVersion: ">=1.26.0-0"
 maintainers:
   - email: martin.montes@mariadb.com
