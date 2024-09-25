@@ -1394,7 +1394,7 @@ spec:
       kubernetesAuth:
         enabled: true
 </code></pre>
-<p>This Kubernetes-native authentication mechanism eliminates the need for the operator to manage credentials, as it relies entirely on Kubernetes for this purpose. However, the drawback is that the agent requires cluster-wide permissions to impersonate the <a href="https://kubernetes.io/docs/reference/access-authn-authz/rbac/#other-component-roles"><code>system:auth-delegator</code></a> <code>ClusterRole</code> and to create <code>TokenReviews</code>, which are cluster-scoped objects.</p>
+<p>This Kubernetes-native authentication mechanism eliminates the need for the operator to manage credentials, as it relies entirely on Kubernetes for this purpose. However, the drawback is that the agent requires cluster-wide permissions to impersonate the <a href="https://kubernetes.io/docs/reference/access-authn-authz/rbac/#other-component-roles"><code>system:auth-delegator</code></a> <code>ClusterRole</code> and to create <a href="https://kubernetes.io/docs/reference/kubernetes-api/authentication-resources/token-review-v1/"><code>TokenReviews</code></a>, which are cluster-scoped objects.</p>
 <h4 id="basic-authentication">Basic authentication</h4>
 <p>As an alternative, the agent also supports basic authentication:</p>
 <pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
