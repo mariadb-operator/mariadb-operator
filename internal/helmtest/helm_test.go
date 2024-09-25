@@ -174,6 +174,66 @@ func TestHelmMetrics(t *testing.T) {
 	testHelmTemplates(t, opts, expectedTemplates, nil)
 }
 
+func TestWebhook(t *testing.T) {
+	RegisterTestingT(t)
+	opts := &helm.Options{
+		SetValues: map[string]string{
+			"webhook.enabled": `true`,
+		},
+	}
+	expectedTemplates := []string{
+		"templates/webhook-config.yaml",
+		"templates/webhook-deployment.yaml",
+		"templates/webhook-service.yaml",
+		"templates/webhook-serviceaccount.yaml",
+	}
+	unexpectedTemplates := []string{}
+	testHelmTemplates(t, opts, expectedTemplates, unexpectedTemplates)
+
+	opts = &helm.Options{
+		SetValues: map[string]string{
+			"webhook.enabled": `false`,
+		},
+	}
+	expectedTemplates = []string{}
+	unexpectedTemplates = []string{
+		"templates/webhook-config.yaml",
+		"templates/webhook-deployment.yaml",
+		"templates/webhook-service.yaml",
+		"templates/webhook-serviceaccount.yaml",
+	}
+	testHelmTemplates(t, opts, expectedTemplates, unexpectedTemplates)
+}
+
+func TestCertController(t *testing.T) {
+	RegisterTestingT(t)
+	opts := &helm.Options{
+		SetValues: map[string]string{
+			"certController.enabled": `true`,
+		},
+	}
+	expectedTemplates := []string{
+		"templates/cert-controller-deployment.yaml",
+		"templates/cert-controller-rbac.yaml",
+		"templates/cert-controller-serviceaccount.yaml",
+	}
+	unexpectedTemplates := []string{}
+	testHelmTemplates(t, opts, expectedTemplates, unexpectedTemplates)
+
+	opts = &helm.Options{
+		SetValues: map[string]string{
+			"certController.enabled": `false`,
+		},
+	}
+	expectedTemplates = []string{}
+	unexpectedTemplates = []string{
+		"templates/cert-controller-deployment.yaml",
+		"templates/cert-controller-rbac.yaml",
+		"templates/cert-controller-serviceaccount.yaml",
+	}
+	testHelmTemplates(t, opts, expectedTemplates, unexpectedTemplates)
+}
+
 func testHelmTemplates(t *testing.T, opts *helm.Options, expectedTemplates, unexpectedTemplates []string) {
 	for _, tpl := range expectedTemplates {
 		_, err := helm.RenderTemplateE(t, opts, helmChartPath, helmReleaseName, []string{tpl})
