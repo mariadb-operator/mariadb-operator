@@ -48,10 +48,16 @@ helm-gen: helm-crds helm-env helm-docs ## Generate manifests and documentation f
 
 .PHONY: helm-version
 helm-version: yq ## Get mariadb-operator chart version.
+ifndef HELM_CHART_FILE
+	$(error HELM_CHART_FILE is not set. Please set it before running this target)
+endif
 	@cat $(HELM_CHART_FILE) | $(YQ) e ".version"
 
 .PHONY: helm-crds-version
 helm-crds-version: yq ## Get mariadb-operator-crds chart version.
+ifndef HELM_CRDS_CHART_FILE
+	$(error HELM_CRDS_CHART_FILE is not set. Please set it before running this target)
+endif
 	@cat $(HELM_CRDS_CHART_FILE) | $(YQ) e ".version"
 
 HELM_APP_VERSION ?=
