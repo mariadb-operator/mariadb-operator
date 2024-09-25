@@ -92,6 +92,20 @@ type KubernetesAuth struct {
 	AuthDelegatorRoleName string `json:"authDelegatorRoleName,omitempty"`
 }
 
+// AuthDelegatorRoleNameOrDefault defines the ClusterRoleBinding name bound to system:auth-delegator.
+// It falls back to the MariaDB name if AuthDelegatorRoleName is not set.
+func (k *KubernetesAuth) AuthDelegatorRoleNameOrDefault(mariadb *MariaDB) string {
+	if k.AuthDelegatorRoleName != "" {
+		return k.AuthDelegatorRoleName
+	}
+	name := fmt.Sprintf("%s-%s", mariadb.Name, mariadb.Namespace)
+	parts := strings.Split(string(mariadb.UID), "-")
+	if len(parts) > 0 {
+		name += fmt.Sprintf("-%s", parts[0])
+	}
+	return name
+}
+
 // KubernetesAuth refers to the basic authentication mechanism utilized for establishing a connection from the operator to the agent.
 type BasicAuth struct {
 	// Enabled is a flag to enable BasicAuth
@@ -119,20 +133,6 @@ func (b *BasicAuth) SetDefaults(mariadb *MariaDB) {
 	if reflect.ValueOf(b.PasswordSecretKeyRef).IsZero() {
 		b.PasswordSecretKeyRef = mariadb.AgentAuthSecretKeyRef()
 	}
-}
-
-// AuthDelegatorRoleNameOrDefault defines the ClusterRoleBinding name bound to system:auth-delegator.
-// It falls back to the MariaDB name if AuthDelegatorRoleName is not set.
-func (k *KubernetesAuth) AuthDelegatorRoleNameOrDefault(mariadb *MariaDB) string {
-	if k.AuthDelegatorRoleName != "" {
-		return k.AuthDelegatorRoleName
-	}
-	name := fmt.Sprintf("%s-%s", mariadb.Name, mariadb.Namespace)
-	parts := strings.Split(string(mariadb.UID), "-")
-	if len(parts) > 0 {
-		name += fmt.Sprintf("-%s", parts[0])
-	}
-	return name
 }
 
 // GaleraInit is an init container that runs in the MariaDB Pod and co-operates with mariadb-operator.
@@ -203,12 +203,14 @@ func (r *GaleraAgent) SetDefaults(mariadb *MariaDB, env *environment.OperatorEnv
 			}
 		}
 	} else if r.KubernetesAuth == nil && r.BasicAuth == nil {
-		r.KubernetesAuth = &KubernetesAuth{
-			Enabled: true,
-		}
-	} else if r.BasicAuth == nil {
-		r.BasicAuth = &BasicAuth{
-			Enabled: true,
+		if r.KubernetesAuth == nil {
+			r.KubernetesAuth = &KubernetesAuth{
+				Enabled: true,
+			}
+		} else if r.BasicAuth == nil {
+			r.BasicAuth = &BasicAuth{
+				Enabled: true,
+			}
 		}
 	}
 	if r.BasicAuth != nil {

@@ -30,8 +30,7 @@ var _ = Describe("MariaDB Galera types", func() {
 				Expect(galera.SetDefaults(mdb, env)).To(Succeed())
 				Expect(galera).To(BeEquivalentTo(expected))
 			},
-			Entry(
-				"Full default",
+			Entry("Full default",
 				&MariaDB{
 					ObjectMeta: mdbObjMeta,
 					Spec: MariaDBSpec{
@@ -91,8 +90,7 @@ var _ = Describe("MariaDB Galera types", func() {
 				},
 				env,
 			),
-			Entry(
-				"Partial default",
+			Entry("Partial default",
 				&MariaDB{
 					ObjectMeta: mdbObjMeta,
 					Spec: MariaDBSpec{
@@ -158,19 +156,6 @@ var _ = Describe("MariaDB Galera types", func() {
 							KubernetesAuth: &KubernetesAuth{
 								Enabled: false,
 							},
-							BasicAuth: &BasicAuth{
-								Enabled:  true,
-								Username: "mariadb-operator",
-								PasswordSecretKeyRef: GeneratedSecretKeyRef{
-									SecretKeySelector: SecretKeySelector{
-										LocalObjectReference: LocalObjectReference{
-											Name: "mariadb-galera-agent-auth",
-										},
-										Key: "password",
-									},
-									Generate: true,
-								},
-							},
 							GracefulShutdownTimeout: ptr.To(metav1.Duration{Duration: 1 * time.Second}),
 						},
 						Recovery: &GaleraRecovery{
@@ -186,8 +171,7 @@ var _ = Describe("MariaDB Galera types", func() {
 				},
 				env,
 			),
-			Entry(
-				"Recovery disabled",
+			Entry("Recovery disabled",
 				&MariaDB{
 					ObjectMeta: mdbObjMeta,
 					Spec: MariaDBSpec{
