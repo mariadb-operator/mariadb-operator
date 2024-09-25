@@ -36,8 +36,8 @@ This results in the reconciliation loop being disabled and the status being mark
 
 ```bash
 kubectl get mariadbs
-NAME             READY   STATUS      PRIMARY POD        AGE
-mariadb-galera   False   Suspended   mariadb-galera-0   25h
+NAME             READY   STATUS      PRIMARY           UPDATES                   AGE
+mariadb-galera   True    Suspended   mariadb-galera-0  ReplicasFirstPrimaryLast  12m
 ```
 
 To re-enable it, simply remove the `suspend` setting or set it to `suspend=false`.

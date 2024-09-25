@@ -124,13 +124,13 @@ mariadb-galera   True    Running        mariadb-galera-0   OnDelete   12m
 
 ## `Never`
 
-The operator will not perform updates on the `StatefulSet` whenever this update strategy is set. This could be useful in multiple scenarios:
+The operator will not perform updates on the `StatefulSet` whenever this update strategy is configured. This could be useful in multiple scenarios:
 - __Progressive fleet upgrades__: If you're managing fleets of thousands of databases, you likely prefer to roll out updates progressively rather than simultaneously across all instances.
 - __Operator upgrades__: When upgrading `mariadb-operator`, changes to the `StatefulSet` or the `Pod` template may occur from one version to another, which could trigger a rolling update of your `MariaDB` instances.
 
 ## Auto update data-plane
 
-As described [this section](./GALERA.md#data-plane), Galera relies on data-plane components that run alongside MariaDB to implement provisioning and high availability operations on the cluster. These containers use the `mariadb-operator` image, which can be automatically updated by the operator based on its image version:
+As described in [this section](./GALERA.md#data-plane), Galera relies on data-plane components that run alongside MariaDB to implement provisioning and high availability operations on the cluster. These containers use the `mariadb-operator` image, which can be automatically updated by the operator based on its image version:
 
 ```yaml
 apiVersion: k8s.mariadb.com/v1alpha1
@@ -144,4 +144,4 @@ spec:
 
 By default, `updateStrategy.autoUpdateDataPlane` is `false`, which means that no automatic upgrades will be performed, but you can opt-in/opt-out from this feature at any point in time by updating this field. For instance, you may want to selectively enable `updateStrategy.autoUpdateDataPlane` in a subset of your `MariaDB` instances after the operator has been upgraded to a newer version, and then disable it once the upgrades are completed.
 
-It is important to note that this feature is totally compatible with the [`Never`](#never) strategy: no upgrades will happen when `updateStrategy.autoUpdateDataPlane=true` and `updateStrategy.type=Never`.
+It is important to note that this feature is fully compatible with the [`Never`](#never) strategy: no upgrades will happen when `updateStrategy.autoUpdateDataPlane=true` and `updateStrategy.type=Never`.

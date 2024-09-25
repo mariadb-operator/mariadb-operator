@@ -26,7 +26,7 @@ To accomplish this, after the MariaDB cluster has been provisioned, `mariadb-ope
 
 To be able to effectively provision and recover MariaDB Galera clusters, the following data-plane components were introduced to run alongside MariaDB and co-operate with `mariadb-operator`:
 - **init**: Init container that dynamically provisions the Galera configuration file before the MariaDB container starts. Guarantees ordered deployment of `Pods` even if `spec.podManagementPolicy=Parallel` is set on the MariaDB `StatefulSet`, something crucial for performing the Galera recovery, as the operator needs to restart `Pods` independently.
-- **agent**: Sidecar agent that exposes the Galera state ([`grastate.dat`](https://galeracluster.com/2016/11/introducing-the-safe-to-bootstrap-feature-in-galera-cluster/)) via HTTP and allows the operator to remotely bootstrap and recover the Galera cluster. It comes with [multiple auth methods](#agent-auth-methods) to ensure secure access to its API.
+- **agent**: Sidecar agent that exposes the Galera state ([`grastate.dat`](https://galeracluster.com/2016/11/introducing-the-safe-to-bootstrap-feature-in-galera-cluster/)) via HTTP and allows the operator to remotely bootstrap and recover the Galera cluster. It comes with [multiple auth methods](#agent-auth-methods) to ensure that only the operator is able to call the agent.
 
 All these components are available in the operator image. More preciselly, they are subcommands of the CLI shipped as binary inside the image.
 
@@ -98,11 +98,11 @@ If you have a Kubernetes cluster running with IPv6, the operator will automatica
 
 ## Agent auth methods
 
-As previously mention in the [data-plane](#data-plane) section, the agent exposes an API to remotely manage the MariaDB Galera cluster. The following authentication methods are supported to ensure secure access:
+As previously mentioned in the [data-plane](#data-plane) section, the agent exposes an API to remotely manage the MariaDB Galera cluster. The following authentication methods are supported to ensure that only the operator is able to call the agent:
 
 #### `ServiceAccount` based authentication
 
-The operator uses its `ServiceAccount` token as a mean of  authentication to communicating with the agent, which subsequently verifies the token by creating a [`TokenReview` object](https://kubernetes.io/docs/reference/kubernetes-api/authentication-resources/token-review-v1/). This is the default authentication method and will be automatically applied by setting:
+The operator uses its `ServiceAccount` token as a mean of  authentication for communicating with the agent, which subsequently verifies the token by creating a [`TokenReview` object](https://kubernetes.io/docs/reference/kubernetes-api/authentication-resources/token-review-v1/). This is the default authentication method and will be automatically applied by setting:
 
 ```yaml
 apiVersion: k8s.mariadb.com/v1alpha1
@@ -115,7 +115,7 @@ spec:
       kubernetesAuth:
         enabled: true
 ```
-This Kubernetes-native authentication mechanism eliminates the need for the operator to manage credentials, as it relies entirely on Kubernetes for this purpose. However, the drawback is that the agent requires cluster-wide permissions to impersonate `system:auth-delegator` and to create `TokenReviews`, which are cluster-scoped objects.
+This Kubernetes-native authentication mechanism eliminates the need for the operator to manage credentials, as it relies entirely on Kubernetes for this purpose. However, the drawback is that the agent requires cluster-wide permissions to impersonate the [`system:auth-delegator`](https://kubernetes.io/docs/reference/access-authn-authz/rbac/#other-component-roles) `ClusterRole` and to create `TokenReviews`, which are cluster-scoped objects.
 
 #### Basic authentication
 
