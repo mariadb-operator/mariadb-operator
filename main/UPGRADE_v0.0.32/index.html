@@ -800,7 +800,7 @@ kubectl delete validatingwebhookconfiguration mariadb-operator-webhook
 kubectl delete mutatingwebhookconfiguration mariadb-operator-webhook
 </code></pre>
 <ul>
-<li>Helm has certain <a href="https://helm.sh/docs/chart_best_practices/custom_resource_definitions/#some-caveats-and-explanations">limitations when managing CRDs</a>. Therefore, beginning with the current version, we will adopt <a href="https://helm.sh/docs/chart_best_practices/custom_resource_definitions/#method-2-separate-charts">this approach recommended in the official Helm documentation</a>, which involves managing CRDs in a separate chart. First, let's specify the release name and namespace for installing the new <code>mariadb-operator-crds</code> new chart:</li>
+<li>Helm has certain <a href="https://helm.sh/docs/chart_best_practices/custom_resource_definitions/#some-caveats-and-explanations">limitations when managing CRDs</a>. Therefore, beginning with the current version, we will adopt <a href="https://helm.sh/docs/chart_best_practices/custom_resource_definitions/#method-2-separate-charts">this approach recommended in the official Helm documentation</a>, which involves managing CRDs in a separate chart. First, let's specify the release name and namespace for installing the new <code>mariadb-operator-crds</code> chart:</li>
 </ul>
 <pre><code class="language-bash">export CRDS_RELEASE_NAME=&quot;&lt;HELM-RELEASE-NAME&gt;&quot; # e.g. mariadb-operator-crds
 export CRDS_RELEASE_NAMESPACE=&quot;&lt;HELM-RELEASE-NAMESPASE&gt;&quot; # e.g. databases
@@ -823,7 +823,7 @@ done
 helm install $CRDS_RELEASE_NAME -n $CRDS_RELEASE_NAMESPACE mariadb-operator/mariadb-operator-crds --version 0.0.32 
 </code></pre>
 <ul>
-<li>If you are using Galera, and you want the operator to automatically update the data plane (i.e. init and agent containers) to <code>v0.0.32</code>, you can set <code>updateStrategy.autoUpdateDataPlane=true</code>:</li>
+<li>If you are using Galera, and you want the operator to automatically update the data plane (i.e. init and agent containers) to <code>v0.0.32</code>, you can set <code>updateStrategy.autoUpdateDataPlane=true</code> in your <code>MariaDB</code> resources:</li>
 </ul>
 <pre><code class="language-diff">apiVersion: k8s.mariadb.com/v1alpha1
 kind: MariaDB
@@ -855,7 +855,7 @@ helm upgrade --install mariadb-operator mariadb-operator/mariadb-operator --vers
 kubectl scale deployment mariadb-operator-webhook -n default --replicas=1
 </code></pre>
 <ul>
-<li>If you previously set <code>updateStratety.autoUpdateDataPlane=true</code> and/or <code>updateStratety.type = Never</code>, you may consider undo the changes once the upgrades have finished:</li>
+<li>If you previously set <code>updateStratety.autoUpdateDataPlane=true</code> and/or <code>updateStratety.type=Never</code>, you may consider undo the changes once the upgrades have finished:</li>
 </ul>
 <pre><code class="language-diff">apiVersion: k8s.mariadb.com/v1alpha1
 kind: MariaDB
