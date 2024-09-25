@@ -205,12 +205,14 @@ jobs:
           git config user.name "$GITHUB_ACTOR"
           git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
 
-      - name: Helm version
+      - name: Bump version
         id: version
         env:
           HELM_APP_VERSION: ${{ needs.args.outputs.TAG }}
+          HELM_CRDS_VERSION: ${{ needs.args.outputs.VERSION }}
         run: |
-          echo "VERSION=$(make helm-version-bump)" >> $GITHUB_OUTPUT
+          echo "CRDS_VERSION=$(make helm-crds-version-bump)" >> $GITHUB_OUTPUT
+          echo "OPERATOR_VERSION=$(make helm-version-bump)" >> $GITHUB_OUTPUT
       
       - name: Helm generate
         run: make helm-gen
@@ -218,7 +220,7 @@ jobs:
       - name: Commit changes
         run: |
           git add .
-          git commit -am "Updated helm chart (${{ steps.version.outputs.VERSION }})"
+          git commit -am "Updated mariadb-operator(${{ steps.version.outputs.OPERATOR_VERSION }}) and mariadb-opertor-crds(${{ steps.version.outputs.CRDS_VERSION }}) helm chart versions"
           git push
 
   olm:
