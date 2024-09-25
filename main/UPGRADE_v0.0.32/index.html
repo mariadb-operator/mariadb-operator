@@ -9,10 +9,8 @@
       
       
       
-        <link rel="prev" href="../METADATA/">
+        <link rel="prev" href="../UPGRADE_v0.0.31/">
       
-      
-        <link rel="next" href="../REGISTRY/">
       
       
       <link rel="icon" href="../assets/mariadb_favicon.svg">
@@ -20,7 +18,7 @@
     
     
       
-        <title>Prometheus metrics - MariaDB Operator</title>
+        <title>Upgrade guide v0.0.32 - MariaDB Operator</title>
       
     
     
@@ -76,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#prometheus-metrics" class="md-skip">
+        <a href="#upgrade-guide-v0032" class="md-skip">
           Skip to content
         </a>
       
@@ -127,7 +125,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Prometheus metrics
+              Upgrade guide v0.0.32
             
           </span>
         </div>
@@ -466,30 +464,10 @@
       
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  <span class="md-ellipsis">
-    Prometheus metrics
-  </span>
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../METRICS/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -498,98 +476,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#table-of-contents" class="md-nav__link">
-    <span class="md-ellipsis">
-      Table of contents
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#operator-metrics" class="md-nav__link">
-    <span class="md-ellipsis">
-      Operator metrics
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#exporter" class="md-nav__link">
-    <span class="md-ellipsis">
-      Exporter
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#servicemonitor" class="md-nav__link">
-    <span class="md-ellipsis">
-      ServiceMonitor
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#configuration" class="md-nav__link">
-    <span class="md-ellipsis">
-      Configuration
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#prometheus-reference-installation" class="md-nav__link">
-    <span class="md-ellipsis">
-      Prometheus reference installation
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#grafana-dashboards" class="md-nav__link">
-    <span class="md-ellipsis">
-      Grafana dashboards
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#reference" class="md-nav__link">
-    <span class="md-ellipsis">
-      Reference
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -838,10 +724,19 @@
       
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../UPGRADE_v0.0.32/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   <span class="md-ellipsis">
@@ -850,6 +745,7 @@
   
 
       </a>
+      
     </li>
   
 
@@ -874,86 +770,6 @@
     
   
   
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#table-of-contents" class="md-nav__link">
-    <span class="md-ellipsis">
-      Table of contents
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#operator-metrics" class="md-nav__link">
-    <span class="md-ellipsis">
-      Operator metrics
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#exporter" class="md-nav__link">
-    <span class="md-ellipsis">
-      Exporter
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#servicemonitor" class="md-nav__link">
-    <span class="md-ellipsis">
-      ServiceMonitor
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#configuration" class="md-nav__link">
-    <span class="md-ellipsis">
-      Configuration
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#prometheus-reference-installation" class="md-nav__link">
-    <span class="md-ellipsis">
-      Prometheus reference installation
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#grafana-dashboards" class="md-nav__link">
-    <span class="md-ellipsis">
-      Grafana dashboards
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#reference" class="md-nav__link">
-    <span class="md-ellipsis">
-      Reference
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
 </nav>
                   </div>
                 </div>
@@ -970,91 +786,86 @@
   
 
 
-<h1 id="prometheus-metrics">Prometheus metrics</h1>
-<blockquote>
-<p>[!NOTE]<br />
-This documentation applies to <code>mariadb-operator</code> version &gt;= v0.0.24</p>
-</blockquote>
-<p><code>mariadb-operator</code> is able to provision MariaDB instances and automatically configure <a href="https://github.com/prometheus/prometheus">Prometheus</a> to scrape their metrics so they can be used later on to build <a href="#grafana-dashboards">Grafana dashboards</a> or trigger Alertmanager alerts.</p>
-<h2 id="table-of-contents">Table of contents</h2>
-<!-- toc -->
+<h1 id="upgrade-guide-v0032">Upgrade guide v0.0.32</h1>
+<p>This guide illustrates, step by step, how to migrate to <code>v0.0.32</code> from previous versions. </p>
 <ul>
-<li><a href="#operator-metrics">Operator metrics</a></li>
-<li><a href="#exporter">Exporter</a></li>
-<li><a href="#servicemonitor"><code>ServiceMonitor</code></a></li>
-<li><a href="#configuration">Configuration</a></li>
-<li><a href="#prometheus-reference-installation">Prometheus reference installation</a></li>
-<li><a href="#grafana-dashboards">Grafana dashboards</a></li>
-<li><a href="#reference">Reference</a></li>
+<li>Uninstall you current <code>mariadb-operator</code> for preventing conflicts:</li>
 </ul>
-<!-- /toc -->
-
-<h2 id="operator-metrics">Operator metrics</h2>
-<p>In order to expose the operator internal metrics, please refer to the <a href="../README.md#recommended-installation">recommended installation</a> flavour.</p>
-<h2 id="exporter">Exporter</h2>
-<p>The operator configures a <a href="https://github.com/prometheus/mysqld_exporter">prometheus/mysqld-exporter</a> exporter to query MariaDB and export the metrics in Prometheus format via an http endpoint.</p>
-<p>It is important to note that, we run this exporter as an standalone <code>Deployment</code> and not as a sidecar alongside every MariaDB replica. This implies that the MariaDB lifecycle is not coupled to the exporter one, so we can upgrade them independently without affecting the availability of the other.</p>
-<p>For being able to do this, we rely on the <a href="https://github.com/prometheus/mysqld_exporter?tab=readme-ov-file#multi-target-support">multi-target</a> feature introduced in the <a href="https://github.com/prometheus/mysqld_exporter/releases/tag/v0.15.0">v0.15.0</a> of <a href="https://github.com/prometheus/mysqld_exporter">prometheus/mysqld-exporter</a>, so make sure to specify at least v0.15.0 in the exporter image.</p>
-<h2 id="servicemonitor"><code>ServiceMonitor</code></h2>
-<p>Once the exporter <code>Deployment</code> is ready, <code>mariadb-operator</code> creates a <a href="https://prometheus-operator.dev/docs/operator/api/#monitoring.coreos.com/v1.ServiceMonitor">ServiceMonitor</a> object that will be eventually reconciled by the <a href="https://github.com/prometheus-operator/prometheus-operator">Prometheus operator </a>, resulting in the Prometheus instance being configured to scrape the exporter endpoint.</p>
-<p>As you scale your MariaDB with more or less replicas, <code>mariadb-operator</code> will reconcile the <code>ServiceMonitor</code> to add/remove targets related to the MariaDB instances. </p>
-<h2 id="configuration">Configuration</h2>
-<p>The easiest way to setup metrics in your MariaDB instance is just by setting <code>spec.metrics.enabled = true</code>, like in this <a href="../examples/manifests/mariadb_metrics.yaml">example</a>:</p>
-<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
+<pre><code class="language-bash">helm uninstall mariadb-operator
+</code></pre>
+<p>Alternatively, you may only downscale and delete the webhook configurations:</p>
+<pre><code class="language-bash">kubectl scale deployment mariadb-operator --replicas=0
+kubectl scale deployment mariadb-operator-webhook --replicas=0
+kubectl delete validatingwebhookconfiguration mariadb-operator-webhook
+kubectl delete mutatingwebhookconfiguration mariadb-operator-webhook
+</code></pre>
+<ul>
+<li>Helm has certain <a href="https://helm.sh/docs/chart_best_practices/custom_resource_definitions/#some-caveats-and-explanations">limitations when managing CRDs</a>. Therefore, beginning with the current version, we will adopt <a href="https://helm.sh/docs/chart_best_practices/custom_resource_definitions/#method-2-separate-charts">this approach recommended in the official Helm documentation</a>, which involves managing CRDs in a separate chart. First, let's specify the release name and namespace for installing the new <code>mariadb-operator-crds</code> new chart:</li>
+</ul>
+<pre><code class="language-bash">export CRDS_RELEASE_NAME=&quot;&lt;HELM-RELEASE-NAME&gt;&quot; # e.g. mariadb-operator-crds
+export CRDS_RELEASE_NAMESPACE=&quot;&lt;HELM-RELEASE-NAMESPASE&gt;&quot; # e.g. databases
+</code></pre>
+<ul>
+<li>If you installed previous versions of the <code>mariadb-operator</code> helm chart, you need to patch the CRDs to be owned by the new <code>mariadb-operator-crds</code> helm chart:</li>
+</ul>
+<pre><code class="language-bash">for crd in $(kubectl get crd -o jsonpath='{range .items[?(@.spec.group==&quot;k8s.mariadb.com&quot;)]}{.metadata.name}{&quot;\n&quot;}{end}'); do
+  kubectl annotate crd $crd \
+    meta.helm.sh/release-name=$CRDS_RELEASE_NAME \
+    meta.helm.sh/release-namespace=$CRDS_RELEASE_NAMESPACE --overwrite
+  kubectl label crd $crd \
+    app.kubernetes.io/managed-by=Helm --overwrite
+done
+</code></pre>
+<ul>
+<li>Install the new <code>mariadb-operator-crds</code> helm chart:</li>
+</ul>
+<pre><code class="language-bash">helm repo update mariadb-operator
+helm install $CRDS_RELEASE_NAME -n $CRDS_RELEASE_NAMESPACE mariadb-operator/mariadb-operator-crds --version 0.0.31 
+</code></pre>
+<ul>
+<li>If you are using Galera, and you want the operator to automatically update the data plane (i.e. init and agent containers), you can set <code>updateStrategy.autoUpdateDataPlane=true</code>:</li>
+</ul>
+<pre><code class="language-diff">apiVersion: k8s.mariadb.com/v1alpha1
 kind: MariaDB
 metadata:
-  name: mariadb
+  name: mariadb-galera
 spec:
-...
-  metrics:
-    enabled: true
+  updateStrategy:
++   autoUpdateDataPlane: true
 </code></pre>
-<p>The rest of the fields are defaulted by the operator. If you need a more fine grained configuration, refer to the <a href="../API_REFERENCE/">API reference</a> and take a look at this <a href="../examples/manifests/mariadb_metrics_full.yaml">example</a>:</p>
-<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
+<p>If want to progressively update your fleet of databases, you may also set <code>updateStrategy.type=Never</code> in some of them:</p>
+<pre><code class="language-diff">apiVersion: k8s.mariadb.com/v1alpha1
 kind: MariaDB
 metadata:
-  name: mariadb
+  name: mariadb-galera
 spec:
-...
-  metrics:
-    enabled: true
-    exporter:
-      image: prom/mysqld-exporter:v0.15.1
-      resources:
-        requests:
-          cpu: 50m
-          memory: 64Mi
-        limits:
-          cpu: 300m
-          memory: 512Mi
-      port: 9104
-    serviceMonitor:
-      prometheusRelease: kube-prometheus-stack
-      jobLabel: mariadb-monitoring
-      interval: 10s
-      scrapeTimeout: 10s
-    username: monitoring
-    passwordSecretKeyRef:
-      name: mariadb
-      key: password
+  updateStrategy:
++   type: Never
 </code></pre>
-<h2 id="prometheus-reference-installation">Prometheus reference installation</h2>
-<p>The easiest way to spin up a Prometheus observability stack in Kubernetes is by installing the <a href="https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack">kube-prometheus-stack</a> helm chart.</p>
-<p>We leverage this chart in our local <a href="../DEVELOPMENT/">development</a> environment and we have <a href="../hack/config/kube-prometheus-stack.yaml">configured</a> it to ensure quality interactions between <code>mariadb-operator</code> and Prometheus. Feel free to install it by running:</p>
-<pre><code class="language-bash">make cluster
-make install-prometheus
-</code></pre>
-<h2 id="grafana-dashboards">Grafana dashboards</h2>
-<p>To visualize MariaDB metrics, our <a href="#prometheus-reference-installation">Prometheus reference installation</a> has some interesting Grafana dashboards <a href="../hack/config/kube-prometheus-stack.yaml">configured</a> that make use of the metrics configured by <code>mariadb-operator</code>. They are all available on <a href="https://grafana.com/grafana/dashboards/">grafana.com</a>:</p>
-<p><strong><a href="https://grafana.com/grafana/dashboards/7362-mysql-overview/">MySQL Overview</a></strong></p>
-<p><strong><a href="https://grafana.com/grafana/dashboards/14057-mysql/">MySQL Exporter Quickstart and Dashboard</a></strong></p>
-<p><strong><a href="https://grafana.com/grafana/dashboards/7371-mysql-replication/">MySQL Replication</a></strong></p>
-<p><strong><a href="https://grafana.com/grafana/dashboards/13106-galera-mariadb-overview/">Galera/MariaDB - Overview</a></strong></p>
-<h2 id="reference">Reference</h2>
 <ul>
-<li><a href="../API_REFERENCE/">API reference</a></li>
-<li><a href="../examples/">Example suite</a></li>
+<li>Upgrade <code>mariadb-operator</code> to <code>v0.0.32</code>:</li>
 </ul>
+<pre><code class="language-bash">helm repo update mariadb-operator
+helm upgrade --install mariadb-operator mariadb-operator/mariadb-operator --version 0.32.0 
+</code></pre>
+<ul>
+<li>If you previously decided to downscale the operator, make sure you upscale it back:</li>
+</ul>
+<pre><code class="language-bash">kubectl scale deployment mariadb-operator -n default --replicas=1
+kubectl scale deployment mariadb-operator-webhook -n default --replicas=1
+</code></pre>
+<ul>
+<li>If you previously set <code>updateStratety.autoUpdateDataPlane=true</code> and/or <code>updateStratety.type = Never</code>, you may consider undo the changes once the upgrades have finished:</li>
+</ul>
+<pre><code class="language-diff">apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+spec:
+  updateStrategy:
++   type: ReplicasFirstPrimaryLast
+-   autoUpdateDataPlane: true
+</code></pre>
 
 
 
