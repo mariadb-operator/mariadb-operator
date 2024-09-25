@@ -444,9 +444,9 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#components" class="md-nav__link">
+  <a href="#data-plane" class="md-nav__link">
     <span class="md-ellipsis">
-      Components
+      Data-plane
     </span>
   </a>
   
@@ -485,6 +485,39 @@
       IPv6 support
     </span>
   </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#agent-auth-methods" class="md-nav__link">
+    <span class="md-ellipsis">
+      Agent auth methods
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Agent auth methods">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#serviceaccount-based-authentication" class="md-nav__link">
+    <span class="md-ellipsis">
+      ServiceAccount based authentication
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#basic-authentication" class="md-nav__link">
+    <span class="md-ellipsis">
+      Basic authentication
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1025,9 +1058,9 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#components" class="md-nav__link">
+  <a href="#data-plane" class="md-nav__link">
     <span class="md-ellipsis">
-      Components
+      Data-plane
     </span>
   </a>
   
@@ -1066,6 +1099,39 @@
       IPv6 support
     </span>
   </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#agent-auth-methods" class="md-nav__link">
+    <span class="md-ellipsis">
+      Agent auth methods
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Agent auth methods">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#serviceaccount-based-authentication" class="md-nav__link">
+    <span class="md-ellipsis">
+      ServiceAccount based authentication
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#basic-authentication" class="md-nav__link">
+    <span class="md-ellipsis">
+      Basic authentication
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1247,11 +1313,12 @@
 <h2 id="table-of-contents">Table of contents</h2>
 <!-- toc -->
 <ul>
-<li><a href="#components">Components</a></li>
+<li><a href="#data-plane">Data-plane</a></li>
 <li><a href="#mariadb-configuration"><code>MariaDB</code> configuration</a></li>
 <li><a href="#storage">Storage</a></li>
 <li><a href="#wsrep-provider">Wsrep provider</a></li>
 <li><a href="#ipv6-support">IPv6 support</a></li>
+<li><a href="#agent-auth-methods">Agent auth methods</a></li>
 <li><a href="#backup-and-restore">Backup and restore</a></li>
 <li><a href="#galera-cluster-recovery">Galera cluster recovery</a></li>
 <li><a href="#bootstrap-galera-cluster-from-existing-pvcs">Bootstrap Galera cluster from existing PVCs</a></li>
@@ -1261,11 +1328,11 @@
 </ul>
 <!-- /toc -->
 
-<h2 id="components">Components</h2>
-<p>To be able to effectively provision and recover MariaDB Galera clusters, the following components were introduced to co-operate with <code>mariadb-operator</code>:
-- <strong>init</strong>: Init container that dynamically provisions the Galera configuration file before the MariaDB container starts. Guarantees ordered deployment of <code>Pods</code> even if <code>spec.podManagementPolicy = Parallel</code> is set on the MariaDB <code>StatefulSet</code>, something crucial for performing the Galera recovery, as the operator needs to restart <code>Pods</code> independently.
-- <strong>agent</strong>: Sidecar agent that exposes the Galera state (<a href="https://galeracluster.com/2016/11/introducing-the-safe-to-bootstrap-feature-in-galera-cluster/"><code>grastate.dat</code></a>) via HTTP and allows the operator to remotely bootstrap and recover the Galera cluster. For security reasons, it has authentication based on Kubernetes service accounts; this way only the operator is able to call the agent.</p>
-<p>All these components are available in the <code>ghcr.io/mariadb-operator mariadb-operator</code> image. More preciselly, they are subcommands of the CLI shipped as binary inside the image.</p>
+<h2 id="data-plane">Data-plane</h2>
+<p>To be able to effectively provision and recover MariaDB Galera clusters, the following data-plane components were introduced to run alongside MariaDB and co-operate with <code>mariadb-operator</code>:
+- <strong>init</strong>: Init container that dynamically provisions the Galera configuration file before the MariaDB container starts. Guarantees ordered deployment of <code>Pods</code> even if <code>spec.podManagementPolicy=Parallel</code> is set on the MariaDB <code>StatefulSet</code>, something crucial for performing the Galera recovery, as the operator needs to restart <code>Pods</code> independently.
+- <strong>agent</strong>: Sidecar agent that exposes the Galera state (<a href="https://galeracluster.com/2016/11/introducing-the-safe-to-bootstrap-feature-in-galera-cluster/"><code>grastate.dat</code></a>) via HTTP and allows the operator to remotely bootstrap and recover the Galera cluster. It comes with <a href="#agent-auth-methods">multiple auth methods</a> to ensure secure access to its API.</p>
+<p>All these components are available in the operator image. More preciselly, they are subcommands of the CLI shipped as binary inside the image.</p>
 <h2 id="mariadb-configuration"><code>MariaDB</code> configuration</h2>
 <p>The easiest way to get a MariaDB Galera cluster up and running is setting <code>spec.galera.enabled = true</code>, like in this <a href="../examples/manifests/mariadb_galera.yaml">example</a>:</p>
 <pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
@@ -1313,6 +1380,34 @@ spec:
 <p>A list of the available options can be found in the <a href="https://mariadb.com/kb/en/wsrep_provider_options/">MariaDB documentation</a>.</p>
 <h2 id="ipv6-support">IPv6 support</h2>
 <p>If you have a Kubernetes cluster running with IPv6, the operator will automatically detect the IPv6 addresses of your <code>Pods</code> and it will configure several <a href="#wsrep-provider">wsrep provider</a> options to ensure that the Galera protocol runs smoothly with IPv6.</p>
+<h2 id="agent-auth-methods">Agent auth methods</h2>
+<p>As previously mention in the <a href="#data-plane">data-plane</a> section, the agent exposes an API to remotely manage the MariaDB Galera cluster. The following authentication methods are supported to ensure secure access:</p>
+<h4 id="serviceaccount-based-authentication"><code>ServiceAccount</code> based authentication</h4>
+<p>The operator uses its <code>ServiceAccount</code> token as a mean of  authentication to communicating with the agent, which subsequently verifies the token by creating a <a href="https://kubernetes.io/docs/reference/kubernetes-api/authentication-resources/token-review-v1/"><code>TokenReview</code> object</a>. This is the default authentication method and will be automatically applied by setting:</p>
+<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+spec:
+  galera:
+    agent:
+      kubernetesAuth:
+        enabled: true
+</code></pre>
+<p>This Kubernetes-native authentication mechanism eliminates the need for the operator to manage credentials, as it relies entirely on Kubernetes for this purpose. However, the drawback is that the agent requires cluster-wide permissions to impersonate <code>system:auth-delegator</code> and to create <code>TokenReviews</code>, which are cluster-scoped objects.</p>
+<h4 id="basic-authentication">Basic authentication</h4>
+<p>As an alternative, the agent also supports basic authentication:</p>
+<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+spec:
+  galera:
+    agent:
+      basicAuth:
+        enabled: true
+</code></pre>
+<p>Unlike the <a href="#serviceaccount-based-authentication"><code>ServiceAccount</code> based authentication</a>, the operator needs to explicitly generate credentials to authenticate. The advantage of this approach is that it is entirely decoupled from Kubernetes and it does not require cluster-wide permissions on the Kubernetes API.</p>
 <h2 id="backup-and-restore">Backup and restore</h2>
 <p>Please refer to the <a href="../BACKUP/">backup documentation</a> to understand how to backup and restore Galera clusters. Specially, make sure you understand the <a href="../BACKUP/#galera-backup-limitations">Galera backup limitations</a>.</p>
 <h2 id="galera-cluster-recovery">Galera cluster recovery</h2>
