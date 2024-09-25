@@ -1089,7 +1089,7 @@ mariadb-galera   True    Running        mariadb-galera-0   OnDelete   12m
 - <strong>Progressive fleet upgrades</strong>: If you're managing fleets of thousands of databases, you likely prefer to roll out updates progressively rather than simultaneously across all instances.
 - <strong>Operator upgrades</strong>: When upgrading <code>mariadb-operator</code>, changes to the <code>StatefulSet</code> or the <code>Pod</code> template may occur from one version to another, which could trigger a rolling update of your <code>MariaDB</code> instances.</p>
 <h2 id="auto-update-data-plane">Auto update data-plane</h2>
-<p>As described in <a href="../GALERA/#data-plane">this section</a>, Galera relies on data-plane components that run alongside MariaDB to implement provisioning and high availability operations on the cluster. These containers use the <code>mariadb-operator</code> image, which can be automatically updated by the operator based on its image version:</p>
+<p>Galera relies on <a href="../GALERA/#data-plane">data-plane containers</a> that run alongside MariaDB to implement provisioning and high availability operations on the cluster. These containers use the <code>mariadb-operator</code> image, which can be automatically updated by the operator based on its image version:</p>
 <pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
 kind: MariaDB
 metadata:
