@@ -14,14 +14,14 @@ kubectl delete validatingwebhookconfiguration mariadb-operator-webhook
 kubectl delete mutatingwebhookconfiguration mariadb-operator-webhook
 ```
 
-- Helm has [some caveats when managing CRDs](https://helm.sh/docs/chart_best_practices/custom_resource_definitions/#some-caveats-and-explanations). For this reason, starting with the current version, we will be [following this approach](https://helm.sh/docs/chart_best_practices/custom_resource_definitions/#method-2-separate-charts) suggested by the helm official docs to manage CRDs, which consists in managing them in a separate chart. First of all, let's define the release name and namespace used to install this new chart:
+- Helm has certain [limitations when managing CRDs](https://helm.sh/docs/chart_best_practices/custom_resource_definitions/#some-caveats-and-explanations). Therefore, beginning with the current version, we will adopt [this approach recommended in the official Helm documentation](https://helm.sh/docs/chart_best_practices/custom_resource_definitions/#method-2-separate-charts), which involves managing CRDs in a separate chart. First, let's specify the release name and namespace for installing the new `mariadb-operator-crds` new chart:
 
 ```bash
 export CRDS_RELEASE_NAME="<HELM-RELEASE-NAME>" # e.g. mariadb-operator-crds
 export CRDS_RELEASE_NAMESPACE="<HELM-RELEASE-NAMESPASE>" # e.g. databases
 ```
 
-- If you installed previous versions of the `mariadb-operator` helm chart, you need to patch the CRDs to be owned by the new helm chart:
+- If you installed previous versions of the `mariadb-operator` helm chart, you need to patch the CRDs to be owned by the new `mariadb-operator-crds` helm chart:
 
 ```bash
 for crd in $(kubectl get crd -o jsonpath='{range .items[?(@.spec.group=="k8s.mariadb.com")]}{.metadata.name}{"\n"}{end}'); do
