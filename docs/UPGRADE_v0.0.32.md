@@ -37,10 +37,10 @@ done
 
 ```bash
 helm repo update mariadb-operator
-helm install $CRDS_RELEASE_NAME -n $CRDS_RELEASE_NAMESPACE mariadb-operator/mariadb-operator-crds --version 0.0.31 
+helm install $CRDS_RELEASE_NAME -n $CRDS_RELEASE_NAMESPACE mariadb-operator/mariadb-operator-crds --version 0.0.32 
 ```
 
-- If you are using Galera, and you want the operator to automatically update the data plane (i.e. init and agent containers), you can set `updateStrategy.autoUpdateDataPlane=true`:
+- If you are using Galera, and you want the operator to automatically update the data plane (i.e. init and agent containers) to `v0.0.32`, you can set `updateStrategy.autoUpdateDataPlane=true`:
 
 ```diff
 apiVersion: k8s.mariadb.com/v1alpha1
