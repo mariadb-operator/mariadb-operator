@@ -174,7 +174,7 @@ func TestHelmMetrics(t *testing.T) {
 	testHelmTemplates(t, opts, expectedTemplates, nil)
 }
 
-func TestWebhook(t *testing.T) {
+func TestHelmWebhook(t *testing.T) {
 	RegisterTestingT(t)
 	opts := &helm.Options{
 		SetValues: map[string]string{
@@ -205,7 +205,7 @@ func TestWebhook(t *testing.T) {
 	testHelmTemplates(t, opts, expectedTemplates, unexpectedTemplates)
 }
 
-func TestCertController(t *testing.T) {
+func TestHelmCertController(t *testing.T) {
 	RegisterTestingT(t)
 	opts := &helm.Options{
 		SetValues: map[string]string{
