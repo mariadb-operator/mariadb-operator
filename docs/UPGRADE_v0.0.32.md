@@ -1,6 +1,6 @@
 # Upgrade guide v0.0.32
 
-This guide illustrates, step by step, how to migrate to `v0.0.31` from previous versions. 
+This guide illustrates, step by step, how to migrate to `v0.0.32` from previous versions. 
 
 - Uninstall you current `mariadb-operator` for preventing conflicts:
 ```bash
