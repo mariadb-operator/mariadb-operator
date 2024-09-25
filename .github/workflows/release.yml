@@ -220,7 +220,7 @@ jobs:
       - name: Commit changes
         run: |
           git add .
-          git commit -am "Updated mariadb-operator(${{ steps.version.outputs.OPERATOR_VERSION }}) and mariadb-opertor-crds(${{ steps.version.outputs.CRDS_VERSION }}) helm chart versions"
+          git commit -am "Updated mariadb-operator(${{ steps.version.outputs.OPERATOR_VERSION }}) and mariadb-operator-crds(${{ steps.version.outputs.CRDS_VERSION }}) helm chart versions"
           git push
 
   olm:
