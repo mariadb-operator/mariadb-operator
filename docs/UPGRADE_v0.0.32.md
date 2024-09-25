@@ -1,4 +1,4 @@
-# Upgrade guide v0.0.31
+# Upgrade guide v0.0.32
 
 This guide illustrates, step by step, how to migrate to `v0.0.31` from previous versions. 
 
