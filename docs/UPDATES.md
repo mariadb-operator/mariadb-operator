@@ -3,7 +3,9 @@
 > [!NOTE]  
 > This documentation applies to `mariadb-operator` version >= v0.0.29
 
-This documentation aims to describe the supported strategies to perform updates of the `MariaDB` resource. 
+By leveraging the automation provided by `mariadb-operator`, you can declaratively manage large fleets of databases using CRs. This also covers day two operations, such as upgrades, which can be risky when rolling out updates to thousands of instances simultaneously.
+
+To mitigate this, and to give you full control on the upgrade process, you are able to choose between multiple update strategies described in the following sections.
 
 ## Table of contents
 <!-- toc -->
@@ -13,6 +15,8 @@ This documentation aims to describe the supported strategies to perform updates 
 - [`ReplicasFirstPrimaryLast`](#replicasfirstprimarylast)
 - [`RollingUpdate`](#rollingupdate)
 - [`OnDelete`](#ondelete)
+- [`Never`](#never)
+- [Auto update data-plane](#auto-update-data-plane)
 <!-- /toc -->
 
 ## Update strategies
@@ -22,6 +26,7 @@ In order to provide you with flexibility for updating `MariaDB` reliably, this o
 - [`ReplicasFirstPrimaryLast`](#replicasfirstprimarylast): Roll out replica `Pods` one by one, wait for each of them to become ready, and then proceed with the primary `Pod`.
 - [`RollingUpdate`](#rollingupdate): Utilize the rolling update strategy from Kubernetes. 
 - [`OnDelete`](#ondelete): Updates are performed manually by deleting `Pods`.
+- [`Never`](#never): Pause updates.
 
 ## Configuration
 
@@ -33,7 +38,6 @@ kind: MariaDB
 metadata:
   name: mariadb
 spec:
-  ...
   updateStrategy:
     type: ReplicasFirstPrimaryLast
 ``` 
@@ -93,28 +97,51 @@ spec:
 
 ## `OnDelete`
 
-This strategy aims to provide a method to update `MariaDB` resources manually by allowing users to restart the `Pods` individually.This way, the user has full control over the update process and can decide which `Pods` are rolled out at any given time.
+This strategy aims to provide a method to update `MariaDB` resources manually by allowing the user to restart the `Pods` individually. This way, the user has full control over the update process and can decide which `Pods` are rolled out at any given time.
 
 Whenever an [update is triggered](#trigger-updates), the `MariaDB` will be marked as pending to update:
 
 ```bash
 kubectl get mariadbs
-NAME             READY   STATUS           PRIMARY POD        AGE
-mariadb-galera   True    Pending update   mariadb-galera-0   5m17s
+NAME             READY   STATUS           PRIMARY            UPDATES    AGE
+mariadb-galera   True    Pending update   mariadb-galera-0   OnDelete   5m17s
 ```
 
 From this point, you are able to delete the `Pods` to trigger the update, which will result the `MariaDB` marked as updating:
 
 ```bash
 kubectl get mariadbs
-NAME             READY   STATUS     PRIMARY POD        AGE
-mariadb-galera   False   Updating   mariadb-galera-0   9m50s
+NAME             READY   STATUS         PRIMARY            UPDATES    AGE
+mariadb-galera   True    Updating       mariadb-galera-0   OnDelete   9m50s
 ``` 
 
 Once all the `Pods` have been rolled out, the `MariaDB` resource will be back to a ready state:
 
 ```bash
-kubectl get mariadbs
-NAME             READY   STATUS    PRIMARY POD        AGE
-mariadb-galera   True    Running   mariadb-galera-1   12m
+NAME             READY   STATUS         PRIMARY            UPDATES    AGE
+mariadb-galera   True    Running        mariadb-galera-0   OnDelete   12m
 ```
+
+## `Never`
+
+The operator will not perform updates on the `StatefulSet` whenever this update strategy is set. This could be useful in multiple scenarios:
+- __Progressive fleet upgrades__: If you're managing fleets of thousands of databases, you likely prefer to roll out updates progressively rather than simultaneously across all instances.
+- __Operator upgrades__: When upgrading `mariadb-operator`, changes to the `StatefulSet` or the `Pod` template may occur from one version to another, which could trigger a rolling update of your `MariaDB` instances.
+
+## Auto update data-plane
+
+As described [this section](./GALERA.md#data-plane), Galera relies on data-plane components that run alongside MariaDB to implement provisioning and high availability operations on the cluster. These containers use the `mariadb-operator` image, which can be automatically updated by the operator based on its image version:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+spec:
+  updateStrategy:
+    autoUpdateDataPlane: true
+```
+
+By default, `updateStrategy.autoUpdateDataPlane` is `false`, which means that no automatic upgrades will be performed, but you can opt-in/opt-out from this feature at any point in time by updating this field. For instance, you may want to selectively enable `updateStrategy.autoUpdateDataPlane` in a subset of your `MariaDB` instances after the operator has been upgraded to a newer version, and then disable it once the upgrades are completed.
+
+It is important to note that this feature is totally compatible with the [`Never`](#never) strategy: no upgrades will happen when `updateStrategy.autoUpdateDataPlane=true` and `updateStrategy.type=Never`.
