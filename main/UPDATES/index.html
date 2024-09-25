@@ -1085,11 +1085,11 @@ mariadb-galera   True    Updating       mariadb-galera-0   OnDelete   9m50s
 mariadb-galera   True    Running        mariadb-galera-0   OnDelete   12m
 </code></pre>
 <h2 id="never"><code>Never</code></h2>
-<p>The operator will not perform updates on the <code>StatefulSet</code> whenever this update strategy is set. This could be useful in multiple scenarios:
+<p>The operator will not perform updates on the <code>StatefulSet</code> whenever this update strategy is configured. This could be useful in multiple scenarios:
 - <strong>Progressive fleet upgrades</strong>: If you're managing fleets of thousands of databases, you likely prefer to roll out updates progressively rather than simultaneously across all instances.
 - <strong>Operator upgrades</strong>: When upgrading <code>mariadb-operator</code>, changes to the <code>StatefulSet</code> or the <code>Pod</code> template may occur from one version to another, which could trigger a rolling update of your <code>MariaDB</code> instances.</p>
 <h2 id="auto-update-data-plane">Auto update data-plane</h2>
-<p>As described <a href="../GALERA/#data-plane">this section</a>, Galera relies on data-plane components that run alongside MariaDB to implement provisioning and high availability operations on the cluster. These containers use the <code>mariadb-operator</code> image, which can be automatically updated by the operator based on its image version:</p>
+<p>As described in <a href="../GALERA/#data-plane">this section</a>, Galera relies on data-plane components that run alongside MariaDB to implement provisioning and high availability operations on the cluster. These containers use the <code>mariadb-operator</code> image, which can be automatically updated by the operator based on its image version:</p>
 <pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
 kind: MariaDB
 metadata:
@@ -1099,7 +1099,7 @@ spec:
     autoUpdateDataPlane: true
 </code></pre>
 <p>By default, <code>updateStrategy.autoUpdateDataPlane</code> is <code>false</code>, which means that no automatic upgrades will be performed, but you can opt-in/opt-out from this feature at any point in time by updating this field. For instance, you may want to selectively enable <code>updateStrategy.autoUpdateDataPlane</code> in a subset of your <code>MariaDB</code> instances after the operator has been upgraded to a newer version, and then disable it once the upgrades are completed.</p>
-<p>It is important to note that this feature is totally compatible with the <a href="#never"><code>Never</code></a> strategy: no upgrades will happen when <code>updateStrategy.autoUpdateDataPlane=true</code> and <code>updateStrategy.type=Never</code>.</p>
+<p>It is important to note that this feature is fully compatible with the <a href="#never"><code>Never</code></a> strategy: no upgrades will happen when <code>updateStrategy.autoUpdateDataPlane=true</code> and <code>updateStrategy.type=Never</code>.</p>
 
 
 

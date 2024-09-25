@@ -911,8 +911,8 @@ spec:
 </code></pre>
 <p>This results in the reconciliation loop being disabled and the status being marked as <code>Suspended</code>:</p>
 <pre><code class="language-bash">kubectl get mariadbs
-NAME             READY   STATUS      PRIMARY POD        AGE
-mariadb-galera   False   Suspended   mariadb-galera-0   25h
+NAME             READY   STATUS      PRIMARY           UPDATES                   AGE
+mariadb-galera   True    Suspended   mariadb-galera-0  ReplicasFirstPrimaryLast  12m
 </code></pre>
 <p>To re-enable it, simply remove the <code>suspend</code> setting or set it to <code>suspend=false</code>.</p>
 

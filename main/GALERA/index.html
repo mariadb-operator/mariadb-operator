@@ -1331,7 +1331,7 @@
 <h2 id="data-plane">Data-plane</h2>
 <p>To be able to effectively provision and recover MariaDB Galera clusters, the following data-plane components were introduced to run alongside MariaDB and co-operate with <code>mariadb-operator</code>:
 - <strong>init</strong>: Init container that dynamically provisions the Galera configuration file before the MariaDB container starts. Guarantees ordered deployment of <code>Pods</code> even if <code>spec.podManagementPolicy=Parallel</code> is set on the MariaDB <code>StatefulSet</code>, something crucial for performing the Galera recovery, as the operator needs to restart <code>Pods</code> independently.
-- <strong>agent</strong>: Sidecar agent that exposes the Galera state (<a href="https://galeracluster.com/2016/11/introducing-the-safe-to-bootstrap-feature-in-galera-cluster/"><code>grastate.dat</code></a>) via HTTP and allows the operator to remotely bootstrap and recover the Galera cluster. It comes with <a href="#agent-auth-methods">multiple auth methods</a> to ensure secure access to its API.</p>
+- <strong>agent</strong>: Sidecar agent that exposes the Galera state (<a href="https://galeracluster.com/2016/11/introducing-the-safe-to-bootstrap-feature-in-galera-cluster/"><code>grastate.dat</code></a>) via HTTP and allows the operator to remotely bootstrap and recover the Galera cluster. It comes with <a href="#agent-auth-methods">multiple auth methods</a> to ensure that only the operator is able to call the agent.</p>
 <p>All these components are available in the operator image. More preciselly, they are subcommands of the CLI shipped as binary inside the image.</p>
 <h2 id="mariadb-configuration"><code>MariaDB</code> configuration</h2>
 <p>The easiest way to get a MariaDB Galera cluster up and running is setting <code>spec.galera.enabled = true</code>, like in this <a href="../examples/manifests/mariadb_galera.yaml">example</a>:</p>
@@ -1381,9 +1381,9 @@ spec:
 <h2 id="ipv6-support">IPv6 support</h2>
 <p>If you have a Kubernetes cluster running with IPv6, the operator will automatically detect the IPv6 addresses of your <code>Pods</code> and it will configure several <a href="#wsrep-provider">wsrep provider</a> options to ensure that the Galera protocol runs smoothly with IPv6.</p>
 <h2 id="agent-auth-methods">Agent auth methods</h2>
-<p>As previously mention in the <a href="#data-plane">data-plane</a> section, the agent exposes an API to remotely manage the MariaDB Galera cluster. The following authentication methods are supported to ensure secure access:</p>
+<p>As previously mentioned in the <a href="#data-plane">data-plane</a> section, the agent exposes an API to remotely manage the MariaDB Galera cluster. The following authentication methods are supported to ensure that only the operator is able to call the agent:</p>
 <h4 id="serviceaccount-based-authentication"><code>ServiceAccount</code> based authentication</h4>
-<p>The operator uses its <code>ServiceAccount</code> token as a mean of  authentication to communicating with the agent, which subsequently verifies the token by creating a <a href="https://kubernetes.io/docs/reference/kubernetes-api/authentication-resources/token-review-v1/"><code>TokenReview</code> object</a>. This is the default authentication method and will be automatically applied by setting:</p>
+<p>The operator uses its <code>ServiceAccount</code> token as a mean of  authentication for communicating with the agent, which subsequently verifies the token by creating a <a href="https://kubernetes.io/docs/reference/kubernetes-api/authentication-resources/token-review-v1/"><code>TokenReview</code> object</a>. This is the default authentication method and will be automatically applied by setting:</p>
 <pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
 kind: MariaDB
 metadata:
@@ -1394,7 +1394,7 @@ spec:
       kubernetesAuth:
         enabled: true
 </code></pre>
-<p>This Kubernetes-native authentication mechanism eliminates the need for the operator to manage credentials, as it relies entirely on Kubernetes for this purpose. However, the drawback is that the agent requires cluster-wide permissions to impersonate <code>system:auth-delegator</code> and to create <code>TokenReviews</code>, which are cluster-scoped objects.</p>
+<p>This Kubernetes-native authentication mechanism eliminates the need for the operator to manage credentials, as it relies entirely on Kubernetes for this purpose. However, the drawback is that the agent requires cluster-wide permissions to impersonate the <a href="https://kubernetes.io/docs/reference/access-authn-authz/rbac/#other-component-roles"><code>system:auth-delegator</code></a> <code>ClusterRole</code> and to create <code>TokenReviews</code>, which are cluster-scoped objects.</p>
 <h4 id="basic-authentication">Basic authentication</h4>
 <p>As an alternative, the agent also supports basic authentication:</p>
 <pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
