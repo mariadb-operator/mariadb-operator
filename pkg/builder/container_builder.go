@@ -334,13 +334,16 @@ func (b *Builder) buildContainer(mdb *mariadbv1alpha1.MariaDB, mdbContainer *mar
 }
 
 func mariadbArgs(mariadb *mariadbv1alpha1.MariaDB) []string {
+	var mariadbArgs []string
 	if mariadb.Replication().Enabled {
-		return []string{
+		mariadbArgs = append(mariadbArgs, []string{
 			"--log-bin",
-			fmt.Sprintf("--log-basename=%s", mariadb.Name),
-		}
+			fmt.Sprintf("--log-basename=%s", mariadb.Name)}...)
 	}
-	return nil
+	if mariadb.Spec.Args != nil {
+		mariadbArgs = append(mariadbArgs, mariadb.Spec.Args...)
+	}
+	return mariadbArgs
 }
 
 func mariadbEnv(mariadb *mariadbv1alpha1.MariaDB) []corev1.EnvVar {
