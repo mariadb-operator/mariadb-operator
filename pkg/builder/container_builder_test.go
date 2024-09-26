@@ -1160,3 +1160,60 @@ func removeEnv(env []corev1.EnvVar, key string) []corev1.EnvVar {
 	}
 	return result
 }
+
+func TestContainerArgs(t *testing.T) {
+	tests := []struct {
+		name     string
+		mariadb  *mariadbv1alpha1.MariaDB
+		wantArgs []string
+	}{
+		{
+			name:     "MariaDB args empty",
+			mariadb:  &mariadbv1alpha1.MariaDB{},
+			wantArgs: nil,
+		},
+		{
+			name: "MariaDB args verbose",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
+						Args: []string{"--verbose"},
+					},
+				},
+			},
+			wantArgs: []string{
+				"--verbose",
+			},
+		},
+		{
+			name: "MariaDB args verbose /w replication",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "mariadb-test",
+				},
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
+						Args: []string{"--verbose"},
+					},
+					Replication: &mariadbv1alpha1.Replication{
+						Enabled: true,
+					},
+				},
+			},
+			wantArgs: []string{
+				"--log-bin",
+				fmt.Sprintf("--log-basename=%s", "mariadb-test"),
+				"--verbose",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			args := mariadbArgs(tt.mariadb)
+			if !reflect.DeepEqual(tt.wantArgs, args) {
+				t.Errorf("unexpected result:\nexpected:\n%s\ngot:\n%s\n", tt.wantArgs, args)
+			}
+		})
+	}
+}
