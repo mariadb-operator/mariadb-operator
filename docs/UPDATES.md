@@ -125,7 +125,7 @@ mariadb-galera   True    Running        mariadb-galera-0   OnDelete   12m
 ## `Never`
 
 The operator will not perform updates on the `StatefulSet` whenever this update strategy is configured. This could be useful in multiple scenarios:
-- __Progressive fleet upgrades__: If you're managing fleets of thousands of databases, you likely prefer to roll out updates progressively rather than simultaneously across all instances.
+- __Progressive fleet upgrades__: If you're managing large fleets of databases, you likely prefer to roll out updates progressively rather than simultaneously across all instances.
 - __Operator upgrades__: When upgrading `mariadb-operator`, changes to the `StatefulSet` or the `Pod` template may occur from one version to another, which could trigger a rolling update of your `MariaDB` instances.
 
 ## Auto update data-plane
