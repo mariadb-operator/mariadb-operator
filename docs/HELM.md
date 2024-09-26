@@ -116,7 +116,7 @@ Whenever a new version of the `mariadb-operator` is released, an upgrade guide i
 > [!CAUTION]
 > Uninstalling the `mariadb-operator-crds` Helm chart will remove the CRDs and their associated resources, resulting in downtime.
 
-First, uninstall the `mariadb-operator` Helm chart. This action will not delete your CRDs, so your operands (i.e. `MariaDBs` and `MaxScale`) will continue to operate without the operator's reconciliation.
+First, uninstall the `mariadb-operator` Helm chart. This action will not delete your CRDs, so your operands (i.e. `MariaDB` and `MaxScale`) will continue to run without the operator's reconciliation.
 
 ```bash
 helm uninstall mariadb-operator
