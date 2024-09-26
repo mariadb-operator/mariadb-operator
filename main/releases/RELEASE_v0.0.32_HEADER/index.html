@@ -9,25 +9,23 @@
       
       
       
-        <link rel="prev" href="../UPGRADE_v0.0.26/">
+        <link rel="prev" href="../../UPGRADE_v0.0.32/">
       
       
-        <link rel="next" href="../UPGRADE_v0.0.30/">
       
-      
-      <link rel="icon" href="../assets/mariadb_favicon.svg">
+      <link rel="icon" href="../../assets/mariadb_favicon.svg">
       <meta name="generator" content="mkdocs-1.6.0, mkdocs-material-9.5.27">
     
     
       
-        <title>Upgrade guide v0.0.28 - MariaDB Operator</title>
+        <title>RELEASE v0.0.32 HEADER - MariaDB Operator</title>
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.6543a935.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.6543a935.min.css">
       
         
-        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.06af60db.min.css">
       
       
 
@@ -46,9 +44,9 @@
       
     
     
-      <link rel="stylesheet" href="../stylesheets/extra.css">
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
     
-    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -76,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#upgrade-guide-v0028" class="md-skip">
+        <a href="#auto-update-data-plane" class="md-skip">
           Skip to content
         </a>
       
@@ -91,7 +89,7 @@
             <div class="md-banner__inner md-grid md-typeset">
               
   You're not viewing the latest version.
-  <a href="../..">
+  <a href="../../..">
     <strong>Click here to go to latest.</strong>
   </a>
 
@@ -108,9 +106,9 @@
 
 <header class="md-header md-header--shadow" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href=".." title="MariaDB Operator" class="md-header__button md-logo" aria-label="MariaDB Operator" data-md-component="logo">
+    <a href="../.." title="MariaDB Operator" class="md-header__button md-logo" aria-label="MariaDB Operator" data-md-component="logo">
       
-  <img src="../assets/mariadb_medium.svg" alt="logo">
+  <img src="../../assets/mariadb_medium.svg" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -127,7 +125,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Upgrade guide v0.0.28
+              RELEASE v0.0.32 HEADER
             
           </span>
         </div>
@@ -240,9 +238,9 @@
 
 <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href=".." title="MariaDB Operator" class="md-nav__button md-logo" aria-label="MariaDB Operator" data-md-component="logo">
+    <a href="../.." title="MariaDB Operator" class="md-nav__button md-logo" aria-label="MariaDB Operator" data-md-component="logo">
       
-  <img src="../assets/mariadb_medium.svg" alt="logo">
+  <img src="../../assets/mariadb_medium.svg" alt="logo">
 
     </a>
     MariaDB Operator
@@ -269,7 +267,7 @@
   
   
     <li class="md-nav__item">
-      <a href=".." class="md-nav__link">
+      <a href="../.." class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -289,7 +287,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../API_REFERENCE/" class="md-nav__link">
+      <a href="../../API_REFERENCE/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -309,7 +307,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../BACKUP/" class="md-nav__link">
+      <a href="../../BACKUP/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -329,7 +327,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../CONFIGURATION/" class="md-nav__link">
+      <a href="../../CONFIGURATION/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -349,7 +347,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../DEVELOPMENT/" class="md-nav__link">
+      <a href="../../DEVELOPMENT/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -369,7 +367,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../DOCKER/" class="md-nav__link">
+      <a href="../../DOCKER/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -389,7 +387,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../GALERA/" class="md-nav__link">
+      <a href="../../GALERA/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -409,7 +407,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../HA/" class="md-nav__link">
+      <a href="../../HA/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -429,7 +427,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../HELM/" class="md-nav__link">
+      <a href="../../HELM/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -449,7 +447,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../MAXSCALE/" class="md-nav__link">
+      <a href="../../MAXSCALE/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -469,7 +467,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../METADATA/" class="md-nav__link">
+      <a href="../../METADATA/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -489,7 +487,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../METRICS/" class="md-nav__link">
+      <a href="../../METRICS/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -509,7 +507,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../REGISTRY/" class="md-nav__link">
+      <a href="../../REGISTRY/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -529,7 +527,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../SQL_RESOURCES/" class="md-nav__link">
+      <a href="../../SQL_RESOURCES/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -549,7 +547,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../STORAGE/" class="md-nav__link">
+      <a href="../../STORAGE/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -569,7 +567,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../SUSPEND/" class="md-nav__link">
+      <a href="../../SUSPEND/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -589,7 +587,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../UPDATES/" class="md-nav__link">
+      <a href="../../UPDATES/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -609,7 +607,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../UPGRADE_v0.0.20/" class="md-nav__link">
+      <a href="../../UPGRADE_v0.0.20/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -629,7 +627,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../UPGRADE_v0.0.21/" class="md-nav__link">
+      <a href="../../UPGRADE_v0.0.21/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -649,7 +647,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../UPGRADE_v0.0.24/" class="md-nav__link">
+      <a href="../../UPGRADE_v0.0.24/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -669,7 +667,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../UPGRADE_v0.0.26/" class="md-nav__link">
+      <a href="../../UPGRADE_v0.0.26/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -686,19 +684,10 @@
       
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../UPGRADE_v0.0.28/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -707,7 +696,6 @@
   
 
       </a>
-      
     </li>
   
 
@@ -719,7 +707,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../UPGRADE_v0.0.30/" class="md-nav__link">
+      <a href="../../UPGRADE_v0.0.30/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -739,7 +727,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../UPGRADE_v0.0.31/" class="md-nav__link">
+      <a href="../../UPGRADE_v0.0.31/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -759,7 +747,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../UPGRADE_v0.0.32/" class="md-nav__link">
+      <a href="../../UPGRADE_v0.0.32/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -776,17 +764,19 @@
       
   
   
+    
   
   
+  
     
     
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_26" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_26" checked>
         
           
           <label class="md-nav__link" for="__nav_26" id="__nav_26_label" tabindex="0">
@@ -800,7 +790,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_26_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_26_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_26">
             <span class="md-nav__icon md-icon"></span>
             Releases
@@ -811,10 +801,28 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../releases/RELEASE_v0.0.32_HEADER/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    RELEASE v0.0.32 HEADER
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   <span class="md-ellipsis">
@@ -823,6 +831,96 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#auto-update-data-plane" class="md-nav__link">
+    <span class="md-ellipsis">
+      Auto update data-plane
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pause-updates-via-never-update-strategy" class="md-nav__link">
+    <span class="md-ellipsis">
+      Pause updates via Never update strategy
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#new-mariadb-operator-crds-helm-chart" class="md-nav__link">
+    <span class="md-ellipsis">
+      New mariadb-operator-crds helm chart
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#81-crd-size-reduction" class="md-nav__link">
+    <span class="md-ellipsis">
+      ~81% CRD size reduction
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#single-namespace-deployment" class="md-nav__link">
+    <span class="md-ellipsis">
+      Single namespace deployment
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#basic-auth-support-in-galera-agent" class="md-nav__link">
+    <span class="md-ellipsis">
+      Basic auth support in Galera agent
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#support-for-args-in-mariadb" class="md-nav__link">
+    <span class="md-ellipsis">
+      Support for args in MariaDB
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#fix-ephemeral-storage-reconcile" class="md-nav__link">
+    <span class="md-ellipsis">
+      Fix ephemeral storage reconcile
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -852,8 +950,86 @@
   
   
   
-    
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#auto-update-data-plane" class="md-nav__link">
+    <span class="md-ellipsis">
+      Auto update data-plane
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pause-updates-via-never-update-strategy" class="md-nav__link">
+    <span class="md-ellipsis">
+      Pause updates via Never update strategy
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#new-mariadb-operator-crds-helm-chart" class="md-nav__link">
+    <span class="md-ellipsis">
+      New mariadb-operator-crds helm chart
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#81-crd-size-reduction" class="md-nav__link">
+    <span class="md-ellipsis">
+      ~81% CRD size reduction
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#single-namespace-deployment" class="md-nav__link">
+    <span class="md-ellipsis">
+      Single namespace deployment
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#basic-auth-support-in-galera-agent" class="md-nav__link">
+    <span class="md-ellipsis">
+      Basic auth support in Galera agent
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#support-for-args-in-mariadb" class="md-nav__link">
+    <span class="md-ellipsis">
+      Support for args in MariaDB
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#fix-ephemeral-storage-reconcile" class="md-nav__link">
+    <span class="md-ellipsis">
+      Fix ephemeral storage reconcile
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
   
 </nav>
                   </div>
@@ -871,181 +1047,58 @@
   
 
 
-<h1 id="upgrade-guide-v0028">Upgrade guide v0.0.28</h1>
-<blockquote>
-<p>[!NOTE]<br />
-APIs are currently in <code>v1alpha1</code>, which implies that non backward compatible changes might happen. See <a href="https://kubernetes.io/docs/reference/using-api/#api-versioning">Kubernetes API versioning</a> for more detail.</p>
-</blockquote>
-<p>This guide illustrates, step by step, how to migrate to <code>v0.0.28</code> from previous versions, as some breaking changes have been introduced:</p>
-<ul>
-<li><strong>Metadata</strong>: https://github.com/mariadb-operator/mariadb-operator/pull/537</li>
-<li><strong>Affinity</strong>: https://github.com/mariadb-operator/mariadb-operator/pull/566 and https://github.com/mariadb-operator/mariadb-operator/pull/568</li>
-<li><strong>Opt-in password generation</strong>: https://github.com/mariadb-operator/mariadb-operator/pull/598</li>
-</ul>
-<p>Follow these steps for upgrading:</p>
-<ul>
-<li>Install <code>v0.0.28</code> CRDs:<blockquote>
-<p>[!NOTE]<br />
-Helm does not handle CRD upgrades. See <a href="https://helm.sh/docs/chart_best_practices/custom_resource_definitions/#some-caveats-and-explanations">helm docs</a>.</p>
-</blockquote>
-</li>
-</ul>
-<pre><code class="language-bash">kubectl apply --server-side=true --force-conflicts -f https://github.com/mariadb-operator/mariadb-operator/releases/download/helm-chart-0.28.0/crds.yaml
-</code></pre>
-<ul>
-<li>Uninstall you current <code>mariadb-operator</code> for preventing conflicts:</li>
-</ul>
-<pre><code class="language-bash">helm uninstall mariadb-operator
-</code></pre>
-<p>Alternatively, you may only downscale and delete the webhook configurations:</p>
-<pre><code class="language-bash">kubectl scale deployment mariadb-operator --replicas=0
-kubectl scale deployment mariadb-operator-webhook --replicas=0
-kubectl delete validatingwebhookconfiguration mariadb-operator-webhook
-kubectl delete mutatingwebhookconfiguration mariadb-operator-webhook
-</code></pre>
-<ul>
-<li>In case you are manually applying manifests, get a copy of your resources, as the CRD upgrade will wipe out fields that are no longer supported:</li>
-</ul>
-<pre><code class="language-bash">kubectl get mariadb mariadb -o yaml &gt; mariadb.yaml
-kubectl get maxscale maxscale -o yaml &gt; maxscale.yaml
-kubectl get backup backup -o yaml &gt; backup.yaml
-kubectl get restore restore -o yaml &gt; restore.yaml
-kubectl get restore sqljob -o yaml &gt; sqljob.yaml
-</code></pre>
-<ul>
-<li>Upgrade CRDs to <code>v0.0.28</code>:<blockquote>
-<p>[!IMPORTANT]<br />
-Helm does not handle CRD upgrades. See <a href="https://helm.sh/docs/chart_best_practices/custom_resource_definitions/#some-caveats-and-explanations">helm docs</a>.</p>
-</blockquote>
-</li>
-</ul>
-<blockquote>
-<p>[!WARNING]<br />
-This step will delete fields that are no longer supported in your resources.</p>
-</blockquote>
-<pre><code class="language-bash">kubectl replace -f https://github.com/mariadb-operator/mariadb-operator/releases/download/helm-chart-0.28.0/crds.yaml
-</code></pre>
-<ul>
-<li>Perform <code>metadata</code> related migrations in <code>MariaDB</code>, <code>MaxScale</code> and <code>Connection</code> resouces:</li>
-</ul>
-<pre><code class="language-diff">  storage:
-    volumeClaimTemplate:
--     labels:
--       k8s.mariadb.io/storage: &quot;fast&quot;
--     annotations:
--       k8s.mariadb.io/storage: &quot;fast&quot;
-+     metadata:
-+       labels:
-+         k8s.mariadb.io/storage: &quot;fast&quot;
-+       annotations:
-+         k8s.mariadb.io/storage: &quot;fast&quot;
-      accessModes:
-      - ReadWriteOnce
-      resources:
-        requests:
-          storage: 1Gi
-      storageClassName: standard
+  <h1>RELEASE v0.0.32 HEADER</h1>
 
-  service:
-    type: LoadBalancer
--   labels:
--     k8s.mariadb.io/service: &quot;mysvc&quot;
--   annotations:
--     metallb.universe.tf/loadBalancerIPs: 172.18.0.150
-+   metadata:
-+     labels:
-+       k8s.mariadb.io/service: &quot;mysvc&quot;
-+     annotations:
-+       metallb.universe.tf/loadBalancerIPs: 172.18.0.150
-
-  connection:
-    secretName: mariadb-galera-conn
-    secretTemplate:
--     labels:
--       k8s.mariadb.io/secret: &quot;supersecret&quot;
--     annotations:
--       k8s.mariadb.io/secret: &quot;supersecret&quot;
-+     metadata:
-+       labels:
-+         k8s.mariadb.io/secret: &quot;supersecret&quot;
-+       annotations:
-+         k8s.mariadb.io/secret: &quot;supersecret&quot;
-      key: dsn
-
-  galera:
-    initJob:
--     labels:
--       sidecar.istio.io/inject: &quot;false&quot;
--     annotations
--       sidecar.istio.io/inject: &quot;false&quot;
-+     metadata:
-+       labels:
-+         sidecar.istio.io/inject: &quot;false&quot;
-+       annotations
-+         sidecar.istio.io/inject: &quot;false&quot;
-
-  bootstrapFrom:
-    restoreJob:
--     labels:
--       sidecar.istio.io/inject: &quot;false&quot;
--     annotations
--       sidecar.istio.io/inject: &quot;false&quot;
-+     metadata:
-+       labels:
-+         sidecar.istio.io/inject: &quot;false&quot;
-+       annotations
-+         sidecar.istio.io/inject: &quot;false&quot;
+<p><code>{{ .ProjectName }}</code> <strong><a href="https://github.com/mariadb-operator/mariadb-operator/releases/tag/v0.0.32">v0.0.32</a></strong> is out! 🦭</p>
+<p>This release ships new features and improvements focused on fleet management, upgrades and deployments. Check them out below!</p>
+<p>To upgrade from older versions, be sure to follow the <strong><a href="https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/UPGRADE_v0.0.32.md">UPGRADE GUIDE</a></strong>.</p>
+<h3 id="auto-update-data-plane">Auto update data-plane</h3>
+<p>Galera relies on <a href="https://github.com/mariadb-operator/mariadb-operator/tree/main/docs/GALERA.md#data-plane">data-plane containers</a> that run alongside MariaDB to implement provisioning and high availability operations on the cluster. These containers use the <code>mariadb-operator</code> image, which can be automatically updated by the operator based on its image version:</p>
+<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+spec:
+  updateStrategy:
+    autoUpdateDataPlane: true
 </code></pre>
-<ul>
-<li>Perform <code>affinity</code> related migrations in <code>MariaDB</code>, <code>MaxScale</code>, <code>Backup</code>, <code>Restore</code> and <code>SqlJob</code> resources:</li>
-</ul>
-<pre><code class="language-diff">  affinity:
--   enableAntiAffinity: true
-+   antiAffinityEnabled: true
-
-  galera:
-    initJob:
-      affinity:
--       enableAntiAffinity: true
-+       antiAffinityEnabled: true
-
-  bootstrapFrom:
-    restoreJob:
-      affinity:
--       enableAntiAffinity: true
-+       antiAffinityEnabled: true
+<p>By default, <code>updateStrategy.autoUpdateDataPlane</code> is <code>false</code>, which means that no automatic upgrades will be performed, but you can opt-in/opt-out from this feature at any point in time by updating this field. For instance, you may want to selectively enable <code>updateStrategy.autoUpdateDataPlane</code> in a subset of your <code>MariaDB</code> instances after the operator has been upgraded to a newer version, and then disable it once the upgrades are completed.</p>
+<h3 id="pause-updates-via-never-update-strategy">Pause updates via <code>Never</code> update strategy</h3>
+<p>With this new update strategy set, the operator will <code>Never</code> perform updates on the <code>StatefulSet</code>. This could be useful in multiple scenarios:
+- <strong>Progressive fleet upgrades</strong>: If you're managing large fleets of of databases, you likely prefer to roll out updates progressively rather than simultaneously across all instances.
+- <strong>Operator upgrades</strong>: When upgrading <code>mariadb-operator</code>, changes to the <code>StatefulSet</code> or the <code>Pod</code> template may occur from one version to another, which could trigger a rolling update of your <code>MariaDB</code> instances.</p>
+<p>You can configure this new strategy by setting:</p>
+<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+spec:
+  updateStrategy:
+    type: Never
 </code></pre>
-<ul>
-<li>Perform password generation migrations in <code>MariaDB</code> and <code>MaxScale</code> resources. This only applies if you are currently relying on <code>Secrets</code> generated by the operator:</li>
-</ul>
-<pre><code class="language-diff">-  rootPasswordSecretKeyRef:
--    name: mariadb
--    key: root-password
-+  rootPasswordSecretKeyRef:
-+    name: mariadb
-+    key: root-password
-+    generate: true
-
--  passwordSecretKeyRef:
--    name: mariadb
--    key: root-password
-+  passwordSecretKeyRef:
-+    name: mariadb
-+    key: root-password
-+    generate: true
+<p>It is important to note that this feature is fully compatible with <code>autoUpdateDataPlane</code>: no upgrades will happen when <code>updateStrategy.autoUpdateDataPlane=true</code> and <code>updateStrategy.type=Never</code>.</p>
+<h3 id="new-mariadb-operator-crds-helm-chart">New <code>mariadb-operator-crds</code> helm chart</h3>
+<p>Helm has certain <a href="https://helm.sh/docs/chart_best_practices/custom_resource_definitions/#some-caveats-and-explanations">limitations when it comes to manage CRDs</a>. To address this, we are providing the CRDs in a separate chart, <a href="https://helm.sh/docs/chart_best_practices/custom_resource_definitions/#method-2-separate-charts">as recommended by the official Helm documentation</a>. This allows us to manage the installation and updates of the CRDs independently from the operator. For example, you can uninstall the operator without impacting your existing <code>MariaDB</code> CRDs.</p>
+<p>CRDs can be installed in your cluster by running the following commands</p>
+<pre><code class="language-bash">helm repo add mariadb-operator https://helm.mariadb.com/mariadb-operator
+helm install mariadb-operator-crds mariadb-operator/mariadb-operator-crds
 </code></pre>
-<ul>
-<li>Upgrade <code>mariadb-operator</code> to <code>v0.0.28</code>:</li>
-</ul>
-<pre><code class="language-bash">helm repo update mariadb-operator
-helm upgrade --install mariadb-operator mariadb-operator/mariadb-operator --version 0.28.0 
+<h3 id="81-crd-size-reduction">~81% CRD size reduction</h3>
+<p>Have you seen this before?</p>
+<pre><code class="language-bash">helm fails with failed to create: Secret &quot;sh.helm.release.v1.(release-name).v1&quot; is invalid: data: Too long: must have at most 1048576 character
 </code></pre>
-<ul>
-<li>If you previously decided to downscale the operator, make sure you upscale it back:</li>
-</ul>
-<pre><code class="language-bash">kubectl scale deployment mariadb-operator -n default --replicas=1
-kubectl scale deployment mariadb-operator-webhook -n default --replicas=1
-</code></pre>
+<p>Helm has a hard limit of 1MB in the size of the releases to be installed. This was a problem for us, since our <a href="https://github.com/mariadb-operator/mariadb-operator/blob/v0.0.31/deploy/crds/crds.yaml">CRD bundle was 3.1MB</a> in previous releases. This made it incompatible with Helm, so the only choice was to use <code>kubectl apply</code> directly.</p>
+<p>To address this, we have reduced the size of our CRDs by replacing the upstream Kubernetes types, which were used directly in our CRDs, with a more lightweight version of these types that only contain the fields we support. See https://github.com/mariadb-operator/mariadb-operator/pull/869.</p>
+<p>Our <a href="https://github.com/mariadb-operator/mariadb-operator/blob/fcdab4bcb297fda0b82aa8b5e0fe22d00563f590/deploy/crds/crds.yaml">CRD bundle is now 580K</a>, an ~81% slimmer than before!  🧹</p>
+<h3 id="single-namespace-deployment">Single namespace deployment</h3>
+<h3 id="basic-auth-support-in-galera-agent">Basic auth support in Galera agent</h3>
+<h3 id="support-for-args-in-mariadb">Support for <code>args</code> in <code>MariaDB</code></h3>
+<p>Kudos to @onesolpark for this contribution! 🙏🏻</p>
+<h3 id="fix-ephemeral-storage-reconcile">Fix ephemeral storage reconcile</h3>
+<p>Kudos to @Uburro for this contribution! 🙏🏻</p>
+<hr />
+<p>We value your feedback! If you encounter any issues or have suggestions, please <a href="https://github.com/mariadb-operator/mariadb-operator/issues/new/choose">open an issue on GitHub</a>. Your input is crucial to improve <code>{{ .ProjectName }}</code>🦭.</p>
+<p>Join us on Slack: <strong><a href="https://r.mariadb.com/join-community-slack">MariaDB Community Slack</a></strong>.</p>
 
 
 
@@ -1129,10 +1182,10 @@ kubectl scale deployment mariadb-operator-webhook -n default --replicas=1
     </div>
     
     
-    <script id="__config" type="application/json">{"base": "..", "features": [], "search": "../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+    <script id="__config" type="application/json">{"base": "../..", "features": [], "search": "../../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../assets/javascripts/bundle.ad660dcc.min.js"></script>
+      <script src="../../assets/javascripts/bundle.ad660dcc.min.js"></script>
       
     
   </body>
