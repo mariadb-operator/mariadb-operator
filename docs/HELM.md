@@ -76,7 +76,7 @@ helm install mariadb-operator mariadb-operator/mariadb-operator
 
 #### Single namespace
 
-By setting `currentNamespaceOnly=true`, the operator will only watch CRDs in the namespace where it is deployed, and the RBAC permissions will also be limited to that namespace:
+By setting `currentNamespaceOnly=true`, the operator will only watch CRDs within the namespace it is deployed in, and the RBAC permissions will be restricted to that namespace as well:
 
 ```bash
 helm repo add mariadb-operator https://helm.mariadb.com/mariadb-operator

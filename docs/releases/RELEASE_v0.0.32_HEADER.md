@@ -59,22 +59,53 @@ Have you seen this before?
 ```bash
 Secret "sh.helm.release.v1.x.v1" is invalid: data: Too long: must have at most 1048576 character
 ```
-
-Helm has a hard limit of 1MB in the size of the releases to be installed. This was a problem for us, since our [CRD bundle was 3.1M](https://github.com/mariadb-operator/mariadb-operator/blob/v0.0.31/deploy/crds/crds.yaml) in previous releases. This made it incompatible with Helm, so the only choice was to use `kubectl apply` directly to upgrade CRDs.
+Helm has a 1MB size hard-limit on releases, which was an issue for us as our [CRD bundle was 3.1MB](https://github.com/mariadb-operator/mariadb-operator/blob/v0.0.31/deploy/crds/crds.yaml) in previous releases. This made it incompatible with Helm, leaving `kubectl apply` as the only option for upgrading CRDs.
 
 To address this, we have reduced the size of our CRDs by replacing the upstream Kubernetes types, which were used directly in our CRDs, with a more lightweight version of these types that only contain the fields we support. See https://github.com/mariadb-operator/mariadb-operator/pull/869.
 
-Our [CRD bundle is now 580K](https://github.com/mariadb-operator/mariadb-operator/blob/fcdab4bcb297fda0b82aa8b5e0fe22d00563f590/deploy/crds/crds.yaml), an ~81% slimmer than before!  🧹
+Our [CRD bundle is now 580KB](https://github.com/mariadb-operator/mariadb-operator/blob/fcdab4bcb297fda0b82aa8b5e0fe22d00563f590/deploy/crds/crds.yaml), an ~81% slimmer than before!  🧹
 
 ### Single namespace deployment
 
+By setting `currentNamespaceOnly=true` when installing the `mariadb-operator` helm chart, the operator will only watch CRDs within the namespace it is deployed in, and the RBAC permissions will be restricted to that namespace as well:
+
+```bash
+helm repo add mariadb-operator https://helm.mariadb.com/mariadb-operator
+helm install mariadb-operator \
+  -n databases --create-namespace \
+  --set currentNamespaceOnly=true \
+  mariadb-operator/mariadb-operator
+```
+
+This is more locked-down alternative to the default cluster-wide installation.
+
 ### Basic auth support in Galera agent
 
-### Support for `args` in `MariaDB` 
+By default, the operator uses its `ServiceAccount` token as a mean of  authentication for communicating with the agent, which subsequently verifies the token by creating a [`TokenReview` object](https://kubernetes.io/docs/reference/kubernetes-api/authentication-resources/token-review-v1/). This Kubernetes-native authentication mechanism eliminates the need for the operator to manage credentials, as it relies entirely on Kubernetes for this purpose. However, the drawback is that the agent requires cluster-wide permissions to impersonate the [`system:auth-delegator`](https://kubernetes.io/docs/reference/access-authn-authz/rbac/#other-component-roles) `ClusterRole` and to create [`TokenReviews`](https://kubernetes.io/docs/reference/kubernetes-api/authentication-resources/token-review-v1/), which are cluster-scoped objects.
+
+As an alternative, we are introducing basic authentication in the agent, which implies that the operator will need to explicitly manage credentials, but in return, it does not require cluster-wide permissions on the Kubernetes API. You can enable this by setting:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+spec:
+  galera:
+    agent:
+      basicAuth:
+        enabled: true
+```
+
+### Support for `args` in `MariaDB`
+
+See https://github.com/mariadb-operator/mariadb-operator/pull/888.
 
 Kudos to @onesolpark for this contribution! 🙏🏻
 
 ### Fix ephemeral storage reconcile
+
+See https://github.com/mariadb-operator/mariadb-operator/pull/865.
 
 Kudos to @Uburro for this contribution! 🙏🏻
 
