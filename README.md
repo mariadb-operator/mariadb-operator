@@ -34,7 +34,7 @@ Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB
 - [Target recovery time](./docs/BACKUP.md#target-recovery-time): infer which backup to restore.
 - [Bootstrap new instances](./docs/BACKUP.md#bootstrap-new-mariadb-instances-from-backups) from: Backups, S3, PVCs ...
 - Multiple [update strategies](./docs/UPDATES.md#update-strategies): ReplicasFirstPrimaryLast, RollingUpdate, OnDelete and Never.
-- [Cluster aware rolling update](./docs/UPDATES.md#replicasfirstprimarylast): roll out replica Pods one by one, wait for each of them to become ready, and then proceed with the primary Pod.
+- [Cluster-aware rolling update](./docs/UPDATES.md#replicasfirstprimarylast): roll out replica Pods one by one, wait for each of them to become ready, and then proceed with the primary Pod.
 - Automated [data-plane updates](./docs/UPDATES.md#auto-update-data-plane).
 - [my.cnf configuration](./docs/CONFIGURATION.md#mycnf). Automatically trigger [updates](./docs/UPDATES.md) when my.cnf changes.
 - [Suspend](./docs/SUSPEND.md) operator reconciliation for maintenance operations.
@@ -47,7 +47,7 @@ Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB
 - CRDs designed according to the Kubernetes [API conventions](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md).
 - Install it using [helm](./docs/HELM.md), [OLM](https://operatorhub.io/operator/mariadb-operator) or [static manifests](./deploy/manifests).
 - Multiple [deployment modes](./docs/HELM.md#deployment-modes): cluster-wide and single namespace.
-- Multi-arch distroless based [image](https://github.com/orgs/mariadb-operator/packages/container/package/mariadb-operator).
+- Multi-arch distroless [image](https://github.com/orgs/mariadb-operator/packages/container/package/mariadb-operator).
 - [GitOps](#gitops) friendly.
 
 Please, refer to the [documentation](./docs/), the [API reference](./docs/API_REFERENCE.md) and the [example suite](./examples/) for further detail.
