@@ -45,10 +45,10 @@ Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB
 - Validation webhooks to provide CRD immutability.
 - Additional printer columns to report the current CRD status.
 - CRDs designed according to the Kubernetes [API conventions](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md).
-- [GitOps](#gitops) friendly.
-- Multi-arch distroless based [image](https://github.com/orgs/mariadb-operator/packages/container/package/mariadb-operator).
 - Install it using [kubectl](./deploy/manifests), [helm](./docs/HELM.md) or [OLM](https://operatorhub.io/operator/mariadb-operator).
 - Multiple [deployment modes](./docs/HELM.md#deployment-modes): cluster-wide and single namespace
+- Multi-arch distroless based [image](https://github.com/orgs/mariadb-operator/packages/container/package/mariadb-operator).
+- [GitOps](#gitops) friendly.
 
 Please, refer to the [documentation](./docs/), the [API reference](./docs/API_REFERENCE.md) and the [example suite](./examples/) for further detail.
 
