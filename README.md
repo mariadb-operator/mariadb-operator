@@ -33,9 +33,11 @@ Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB
 - [Backup retention policy](./docs/BACKUP.md#retention-policy).
 - [Target recovery time](./docs/BACKUP.md#target-recovery-time): infer which backup to restore.
 - [Bootstrap new instances](./docs/BACKUP.md#bootstrap-new-mariadb-instances-from-backups) from: Backups, S3, PVCs ...
-- [Cluster aware rolling update](./docs/UPDATES.md): roll out replica Pods one by one, wait for each of them to become ready, and then proceed with the primary Pod.
-- [my.cnf configuration](./docs/CONFIGURATION.md#mycnf). Automatically trigger [rolling updates](./docs/UPDATES.md) when my.cnf changes.
-- [Suspend](./docs/SUSPEND.md) operator reconciliation for maintenance and progressive upgrades.
+- Multiple [update strategies](./docs/UPDATES.md#update-strategies): ReplicasFirstPrimaryLast, RollingUpdate, OnDelete and Never.
+- [Cluster aware rolling update](./docs/UPDATES.md#replicasfirstprimarylast): roll out replica Pods one by one, wait for each of them to become ready, and then proceed with the primary Pod.
+- Automated [data-plane updates](./docs/UPDATES.md#auto-update-data-plane).
+- [my.cnf configuration](./docs/CONFIGURATION.md#mycnf). Automatically trigger [updates](./docs/UPDATES.md) when my.cnf changes.
+- [Suspend](./docs/SUSPEND.md) operator reconciliation for maintenance operations.
 - [Prometheus metrics](./docs/METRICS.md) via [mysqld-exporter](https://github.com/prometheus/mysqld_exporter).
 - Declaratively manage [SQL resources](./docs/SQL_RESOURCES.md): [users](./examples/manifests/user.yaml), [grants](./examples/manifests/grant.yaml) and logical [databases](./examples/manifests/database.yaml).
 - Configure [connections](./examples/manifests/connection.yaml) for your applications.
@@ -46,6 +48,7 @@ Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB
 - [GitOps](#gitops) friendly.
 - Multi-arch distroless based [image](https://github.com/orgs/mariadb-operator/packages/container/package/mariadb-operator).
 - Install it using [kubectl](./deploy/manifests), [helm](./docs/HELM.md) or [OLM](https://operatorhub.io/operator/mariadb-operator).
+- Multiple [deployment modes](./docs/HELM.md#deployment-modes): cluster-wide and single namespace
 
 Please, refer to the [documentation](./docs/), the [API reference](./docs/API_REFERENCE.md) and the [example suite](./examples/) for further detail.
 
