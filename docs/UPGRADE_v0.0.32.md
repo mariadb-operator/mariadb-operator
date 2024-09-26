@@ -76,7 +76,7 @@ kubectl scale deployment mariadb-operator -n default --replicas=1
 kubectl scale deployment mariadb-operator-webhook -n default --replicas=1
 ```
 
-- If you previously set `updateStratety.autoUpdateDataPlane=true` and/or `updateStratety.type=Never`, you may consider undo the changes once the upgrades have finished:
+- If you previously set `updateStratety.autoUpdateDataPlane=true` and/or `updateStratety.type=Never`, you may consider reverting the changes once the upgrades have finished:
 
 ```diff
 apiVersion: k8s.mariadb.com/v1alpha1
