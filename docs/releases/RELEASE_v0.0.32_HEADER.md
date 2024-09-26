@@ -48,6 +48,7 @@ CRDs can now be installed/upgraded in your cluster by running the following comm
 
 ```bash
 helm repo add mariadb-operator https://helm.mariadb.com/mariadb-operator
+helm repo update
 helm upgrade --install mariadb-operator-crds mariadb-operator/mariadb-operator-crds
 ```
 
