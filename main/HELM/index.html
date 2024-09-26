@@ -493,6 +493,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#control-plane" class="md-nav__link">
+    <span class="md-ellipsis">
+      Control-plane
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#installing-crds" class="md-nav__link">
     <span class="md-ellipsis">
       Installing CRDs
@@ -505,15 +514,6 @@
   <a href="#installing-the-operator" class="md-nav__link">
     <span class="md-ellipsis">
       Installing the operator
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#control-plane" class="md-nav__link">
-    <span class="md-ellipsis">
-      Control-plane
     </span>
   </a>
   
@@ -556,6 +556,15 @@
   <a href="#updates" class="md-nav__link">
     <span class="md-ellipsis">
       Updates
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#uninstalling" class="md-nav__link">
+    <span class="md-ellipsis">
+      Uninstalling
     </span>
   </a>
   
@@ -934,6 +943,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#control-plane" class="md-nav__link">
+    <span class="md-ellipsis">
+      Control-plane
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#installing-crds" class="md-nav__link">
     <span class="md-ellipsis">
       Installing CRDs
@@ -946,15 +964,6 @@
   <a href="#installing-the-operator" class="md-nav__link">
     <span class="md-ellipsis">
       Installing the operator
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#control-plane" class="md-nav__link">
-    <span class="md-ellipsis">
-      Control-plane
     </span>
   </a>
   
@@ -1002,6 +1011,15 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#uninstalling" class="md-nav__link">
+    <span class="md-ellipsis">
+      Uninstalling
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1030,18 +1048,26 @@ This documentation applies to <code>mariadb-operator</code> version &gt;= v0.0.3
 <!-- toc -->
 <ul>
 <li><a href="#charts">Charts</a></li>
+<li><a href="#control-plane">Control-plane</a></li>
 <li><a href="#installing-crds">Installing CRDs</a></li>
 <li><a href="#installing-the-operator">Installing the operator</a></li>
-<li><a href="#control-plane">Control-plane</a></li>
 <li><a href="#deployment-modes">Deployment modes</a></li>
 <li><a href="#updates">Updates</a></li>
+<li><a href="#uninstalling">Uninstalling</a></li>
 </ul>
 <!-- /toc -->
 
 <h2 id="charts">Charts</h2>
-<p>The installation of <code>mariadb-operator</code> is splitted in 2 different helm charts for better convenience:
+<p>The installation of <code>mariadb-operator</code> is splitted into two different helm charts for better convenience:
 - <a href="../deploy/charts/mariadb-operator-crds/"><code>mariadb-operator-crds</code></a>: Bundles the <a href="https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/"><code>CustomResourceDefinitions</code></a> required by the operator.
 - <a href="../deploy/charts/mariadb-operator/"><code>mariadb-operator</code></a>: Contains all the template manifests required to install the operator.</p>
+<h2 id="control-plane">Control-plane</h2>
+<p>The <code>mariadb-operator</code> is an extension of the Kubernetes control-plane, consisting of the following components that are deployed by Helm:</p>
+<ul>
+<li><code>operator</code>: The <code>mariadb-operator</code> itself that performs the CRD reconciliation.</li>
+<li><code>webhook</code>: The Kubernetes control-plane delegates CRD validations to this HTTP server. Kubernetes requires TLS to communicate with the webhook server.</li>
+<li><code>cert-controller</code>: Provisions TLS certificates for the webhook. You can see it as a minimal <a href="https://cert-manager.io/">cert-manager</a> that is intended to work only with the webhook. It is optional and can be replaced by cert-manager.</li>
+</ul>
 <h2 id="installing-crds">Installing CRDs</h2>
 <p>Helm has certain <a href="https://helm.sh/docs/chart_best_practices/custom_resource_definitions/#some-caveats-and-explanations">limitations when it comes to manage CRDs</a>. To address this, we are providing the CRDs in a separate chart, <a href="https://helm.sh/docs/chart_best_practices/custom_resource_definitions/#method-2-separate-charts">as recommended by the official Helm documentation</a>. This allows us to manage the installation and updates of the CRDs independently from the operator. For example, you can uninstall the operator without impacting your existing <code>MariaDB</code> CRDs.</p>
 <p>CRDs can be installed in your cluster by running the following commands</p>
@@ -1053,14 +1079,12 @@ helm install mariadb-operator-crds mariadb-operator/mariadb-operator-crds
 <pre><code class="language-bash">helm repo add mariadb-operator https://helm.mariadb.com/mariadb-operator
 helm install mariadb-operator mariadb-operator/mariadb-operator
 </code></pre>
+<p>If you have the <a href="https://github.com/prometheus-operator/prometheus-operator">prometheus operator</a> and <a href="https://cert-manager.io/docs/installation/">cert-manager</a> already installed in your cluster, it is recommended to leverage them to scrape the operator metrics and provision the webhook certificate respectively:</p>
+<pre><code class="language-bash">helm repo add mariadb-operator https://helm.mariadb.com/mariadb-operator
+helm install mariadb-operator mariadb-operator/mariadb-operator \
+  --set metrics.enabled=true --set webhook.cert.certManager.enabled=true
+</code></pre>
 <p>Refer to the helm chart README for detailed information about all the supported <a href="./../deploy/charts/mariadb-operator/README.md">helm values</a>.</p>
-<h2 id="control-plane">Control-plane</h2>
-<p>The <code>mariadb-operator</code> is an extension of the Kubernetes control-plane, consisting of the following components that are deployed via Helm:</p>
-<ul>
-<li><code>operator</code>: The <code>mariadb-operator</code> itself that performs the CRD reconciliation.</li>
-<li><code>webhook</code>: The Kubernetes control-plane delegates CRD validations to this HTTP server. Kubernetes requires TLS to communicate with the webhook server.</li>
-<li><code>cert-controller</code>: Provisions TLS certificates for the webhook. You can see it as a minimal <a href="https://cert-manager.io/">cert-manager</a> that is intended to work only with the webhook. It is optional and can be replaced by cert-manager.</li>
-</ul>
 <h2 id="deployment-modes">Deployment modes</h2>
 <p>Deployments are highly configurable via the <a href="./../deploy/charts/mariadb-operator/README.md">helm values</a>. In particular the following deployment modes are supported:</p>
 <h4 id="cluster-wide">Cluster-wide</h4>
@@ -1094,6 +1118,17 @@ helm upgrade --install mariadb-operator \
   mariadb-operator/mariadb-operator 
 </code></pre>
 <p>Whenever a new version of the <code>mariadb-operator</code> is released, an upgrade guide is linked in the release notes if additional upgrade steps are required. Be sure to review the <a href="https://github.com/mariadb-operator/mariadb-operator/releases">release notes</a> and follow the version-specific upgrade guides accordingly.</p>
+<h2 id="uninstalling">Uninstalling</h2>
+<blockquote>
+<p>[!CAUTION]
+Uninstalling the <code>mariadb-operator-crds</code> Helm chart will remove the CRDs and their associated resources, resulting in downtime.</p>
+</blockquote>
+<p>First, uninstall the <code>mariadb-operator</code> Helm chart. This action will not delete your CRDs, so your operands (i.e. <code>MariaDBs</code> and <code>MaxScale</code>) will continue to operate without the operator's reconciliation.</p>
+<pre><code class="language-bash">helm uninstall mariadb-operator
+</code></pre>
+<p>At this point, if you also want to delete CRDs and the operands running in your cluster, you may proceed to uninstall the <code>mariadb-operator-crds</code> Helm chart:</p>
+<pre><code class="language-bash">helm uninstall mariadb-operator-crds
+</code></pre>
 
 
 
