@@ -9,10 +9,10 @@
       
       
       
-        <link rel="prev" href="../STORAGE/">
+        <link rel="prev" href="../HA/">
       
       
-        <link rel="next" href="../UPDATES/">
+        <link rel="next" href="../MAXSCALE/">
       
       
       <link rel="icon" href="../assets/mariadb_favicon.svg">
@@ -20,7 +20,7 @@
     
     
       
-        <title>Suspend - MariaDB Operator</title>
+        <title>Helm - MariaDB Operator</title>
       
     
     
@@ -76,7 +76,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#suspend" class="md-skip">
+        <a href="#helm" class="md-skip">
           Skip to content
         </a>
       
@@ -127,7 +127,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Suspend
+              Helm
             
           </span>
         </div>
@@ -426,10 +426,30 @@
       
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../HELM/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Helm
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   <span class="md-ellipsis">
@@ -438,6 +458,113 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#table-of-contents" class="md-nav__link">
+    <span class="md-ellipsis">
+      Table of contents
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#charts" class="md-nav__link">
+    <span class="md-ellipsis">
+      Charts
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#installing-crds" class="md-nav__link">
+    <span class="md-ellipsis">
+      Installing CRDs
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#installing-the-operator" class="md-nav__link">
+    <span class="md-ellipsis">
+      Installing the operator
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#control-plane" class="md-nav__link">
+    <span class="md-ellipsis">
+      Control-plane
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#deployment-modes" class="md-nav__link">
+    <span class="md-ellipsis">
+      Deployment modes
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Deployment modes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cluster-wide" class="md-nav__link">
+    <span class="md-ellipsis">
+      Cluster-wide
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#single-namespace" class="md-nav__link">
+    <span class="md-ellipsis">
+      Single namespace
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#updates" class="md-nav__link">
+    <span class="md-ellipsis">
+      Updates
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -566,30 +693,10 @@
       
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  <span class="md-ellipsis">
-    Suspend
-  </span>
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../SUSPEND/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -598,53 +705,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#table-of-contents" class="md-nav__link">
-    <span class="md-ellipsis">
-      Table of contents
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#suspended-state" class="md-nav__link">
-    <span class="md-ellipsis">
-      Suspended state
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#suspend-a-resource" class="md-nav__link">
-    <span class="md-ellipsis">
-      Suspend a resource
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -865,18 +925,78 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#suspended-state" class="md-nav__link">
+  <a href="#charts" class="md-nav__link">
     <span class="md-ellipsis">
-      Suspended state
+      Charts
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#suspend-a-resource" class="md-nav__link">
+  <a href="#installing-crds" class="md-nav__link">
     <span class="md-ellipsis">
-      Suspend a resource
+      Installing CRDs
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#installing-the-operator" class="md-nav__link">
+    <span class="md-ellipsis">
+      Installing the operator
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#control-plane" class="md-nav__link">
+    <span class="md-ellipsis">
+      Control-plane
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#deployment-modes" class="md-nav__link">
+    <span class="md-ellipsis">
+      Deployment modes
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Deployment modes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cluster-wide" class="md-nav__link">
+    <span class="md-ellipsis">
+      Cluster-wide
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#single-namespace" class="md-nav__link">
+    <span class="md-ellipsis">
+      Single namespace
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#updates" class="md-nav__link">
+    <span class="md-ellipsis">
+      Updates
     </span>
   </a>
   
@@ -900,41 +1020,80 @@
   
 
 
-<h1 id="suspend">Suspend</h1>
+<h1 id="helm">Helm</h1>
 <blockquote>
 <p>[!NOTE]<br />
-This documentation applies to <code>mariadb-operator</code> version &gt;= v0.0.30</p>
+This documentation applies to <code>mariadb-operator</code> version &gt;= v0.0.32</p>
 </blockquote>
+<p>Helm is the preferred way to install <code>mariadb-operator</code> in vanilla Kubernetes clusters (i.e. not OpenShift). This doc aims to provide guidance on how to manage the installation and upgrades of both the CRDs and the operator via Helm charts.</p>
 <h2 id="table-of-contents">Table of contents</h2>
 <!-- toc -->
 <ul>
-<li><a href="#suspended-state">Suspended state</a></li>
-<li><a href="#suspend-a-resource">Suspend a resource</a></li>
+<li><a href="#charts">Charts</a></li>
+<li><a href="#installing-crds">Installing CRDs</a></li>
+<li><a href="#installing-the-operator">Installing the operator</a></li>
+<li><a href="#control-plane">Control-plane</a></li>
+<li><a href="#deployment-modes">Deployment modes</a></li>
+<li><a href="#updates">Updates</a></li>
 </ul>
 <!-- /toc -->
 
-<h2 id="suspended-state">Suspended state</h2>
-<p>When a resource is suspended, all operations performed by the operator are disabled, including but not limited to:
-- Provisioning
-- Upgrades
-- Volume resize
-- Galera cluster recovery</p>
-<p>More specifically, the reconciliation loop of the operator is omitted, anything part of it will not happen while the resource is suspended. This could be useful in <strong>maintenance</strong> scenarios, where manual operations need to be performed, as it helps prevent conflicts with the operator.</p>
-<h2 id="suspend-a-resource">Suspend a resource</h2>
-<p>Currently, only <code>MariaDB</code> and <code>MaxScale</code> resources support suspension. You can enable it by setting <code>suspend=true</code>:</p>
-<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
-kind: MariaDB
-metadata:
-  name: mariadb-galera
-spec:
-  suspend: true
+<h2 id="charts">Charts</h2>
+<p>The installation of <code>mariadb-operator</code> is splitted in 2 different helm charts for better convenience:
+- <a href="../deploy/charts/mariadb-operator-crds/"><code>mariadb-operator-crds</code></a>: Bundles the <a href="https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/"><code>CustomResourceDefinitions</code></a> required by the operator.
+- <a href="../deploy/charts/mariadb-operator/"><code>mariadb-operator</code></a>: Contains all the template manifests required to install the operator.</p>
+<h2 id="installing-crds">Installing CRDs</h2>
+<p>Helm has certain <a href="https://helm.sh/docs/chart_best_practices/custom_resource_definitions/#some-caveats-and-explanations">limitations when it comes to manage CRDs</a>. To address this, we are providing the CRDs in a separate chart, <a href="https://helm.sh/docs/chart_best_practices/custom_resource_definitions/#method-2-separate-charts">as recommended by the official Helm documentation</a>. This allows us to manage the installation and updates of the CRDs independently from the operator. For example, you can uninstall the operator without impacting your existing <code>MariaDB</code> CRDs.</p>
+<p>CRDs can be installed in your cluster by running the following commands</p>
+<pre><code class="language-bash">helm repo add mariadb-operator https://helm.mariadb.com/mariadb-operator
+helm install mariadb-operator-crds mariadb-operator/mariadb-operator-crds
 </code></pre>
-<p>This results in the reconciliation loop being disabled and the status being marked as <code>Suspended</code>:</p>
-<pre><code class="language-bash">kubectl get mariadbs
-NAME             READY   STATUS      PRIMARY           UPDATES                   AGE
-mariadb-galera   True    Suspended   mariadb-galera-0  ReplicasFirstPrimaryLast  12m
+<h2 id="installing-the-operator">Installing the operator</h2>
+<p>Once the CRDs are available in the cluster, you can proceed to install the operator:</p>
+<pre><code class="language-bash">helm repo add mariadb-operator https://helm.mariadb.com/mariadb-operator
+helm install mariadb-operator mariadb-operator/mariadb-operator
 </code></pre>
-<p>To re-enable it, simply remove the <code>suspend</code> setting or set it to <code>suspend=false</code>.</p>
+<p>Refer to the helm chart README for detailed information about all the supported <a href="./../deploy/charts/mariadb-operator/README.md">helm values</a>.</p>
+<h2 id="control-plane">Control-plane</h2>
+<p>The <code>mariadb-operator</code> is an extension of the Kubernetes control-plane, consisting of the following components that are deployed via Helm:</p>
+<ul>
+<li><code>operator</code>: The <code>mariadb-operator</code> itself that performs the CRD reconciliation.</li>
+<li><code>webhook</code>: The Kubernetes control-plane delegates CRD validations to this HTTP server. Kubernetes requires TLS to communicate with the webhook server.</li>
+<li><code>cert-controller</code>: Provisions TLS certificates for the webhook. You can see it as a minimal <a href="https://cert-manager.io/">cert-manager</a> that is intended to work only with the webhook. It is optional and can be replaced by cert-manager.</li>
+</ul>
+<h2 id="deployment-modes">Deployment modes</h2>
+<p>Deployments are highly configurable via the <a href="./../deploy/charts/mariadb-operator/README.md">helm values</a>. In particular the following deployment modes are supported:</p>
+<h4 id="cluster-wide">Cluster-wide</h4>
+<p>The operator watches CRDs in all namespaces and requires cluster-wide RBAC permissions to operate. This is the default deployment mode, enabled through the default configuration values:</p>
+<pre><code class="language-bash">helm repo add mariadb-operator https://helm.mariadb.com/mariadb-operator
+helm install mariadb-operator mariadb-operator/mariadb-operator
+</code></pre>
+<h4 id="single-namespace">Single namespace</h4>
+<p>By setting <code>currentNamespaceOnly=true</code>, the operator will only watch CRDs in the namespace where it is deployed, and the RBAC permissions will also be limited to that namespace:</p>
+<pre><code class="language-bash">helm repo add mariadb-operator https://helm.mariadb.com/mariadb-operator
+helm install mariadb-operator \
+  -n databases --create-namespace \
+  --set currentNamespaceOnly=true \
+  mariadb-operator/mariadb-operator
+</code></pre>
+<h2 id="updates">Updates</h2>
+<blockquote>
+<p>[!IMPORTANT]<br />
+Make sure you read and understand the <a href="../UPDATES/">updates documentation</a> before proceeding to update the operator.</p>
+</blockquote>
+<p>The first step to perform an operator update is upgrading the CRDs:</p>
+<pre><code class="language-bash">helm repo update mariadb-operator
+helm upgrade --install mariadb-operator-crds \
+  --version &lt;new-version&gt; \
+  mariadb-operator/mariadb-operator-crds
+</code></pre>
+<p>Once updated, you may proceed to upgrade the operator:</p>
+<pre><code class="language-bash">helm repo update mariadb-operator
+helm upgrade --install mariadb-operator \
+  --version &lt;new-version&gt; \
+  mariadb-operator/mariadb-operator 
+</code></pre>
+<p>Whenever a new version of the <code>mariadb-operator</code> is released, an upgrade guide is linked in the release notes if additional upgrade steps are required. Be sure to review the <a href="https://github.com/mariadb-operator/mariadb-operator/releases">release notes</a> and follow the version-specific upgrade guides accordingly.</p>
 
 
 
