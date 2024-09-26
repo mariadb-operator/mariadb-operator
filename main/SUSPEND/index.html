@@ -429,26 +429,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../HELM/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Helm
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../MAXSCALE/" class="md-nav__link">
         
   
@@ -641,6 +621,48 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#use-cases" class="md-nav__link">
+    <span class="md-ellipsis">
+      Use cases
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Use cases">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#progressive-fleet-upgrades" class="md-nav__link">
+    <span class="md-ellipsis">
+      Progressive fleet upgrades
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#operator-upgrades" class="md-nav__link">
+    <span class="md-ellipsis">
+      Operator upgrades
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#maintenance" class="md-nav__link">
+    <span class="md-ellipsis">
+      Maintenance
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -809,26 +831,6 @@
   
 
     
-      
-      
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../UPGRADE_v0.0.32/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Upgrade guide v0.0.32
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-    
   </ul>
 </nav>
                   </div>
@@ -882,6 +884,48 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#use-cases" class="md-nav__link">
+    <span class="md-ellipsis">
+      Use cases
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Use cases">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#progressive-fleet-upgrades" class="md-nav__link">
+    <span class="md-ellipsis">
+      Progressive fleet upgrades
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#operator-upgrades" class="md-nav__link">
+    <span class="md-ellipsis">
+      Operator upgrades
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#maintenance" class="md-nav__link">
+    <span class="md-ellipsis">
+      Maintenance
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -905,11 +949,14 @@
 <p>[!NOTE]<br />
 This documentation applies to <code>mariadb-operator</code> version &gt;= v0.0.30</p>
 </blockquote>
+<p>By leveraging the automation provided by <code>mariadb-operator</code>, you can declaratively manage large fleets of databases using CRs. This also covers day two operations, such as upgrades, which can be risky when rolling out updates to thousands of instances simultaneously.</p>
+<p>To mitigate this, and to give you more control on when these operations are performed, you are able to selectively suspend a subset of <code>MariaDB</code> resources, temporarily stopping the upgrades and other operations on them.</p>
 <h2 id="table-of-contents">Table of contents</h2>
 <!-- toc -->
 <ul>
 <li><a href="#suspended-state">Suspended state</a></li>
 <li><a href="#suspend-a-resource">Suspend a resource</a></li>
+<li><a href="#use-cases">Use cases</a></li>
 </ul>
 <!-- /toc -->
 
@@ -919,7 +966,7 @@ This documentation applies to <code>mariadb-operator</code> version &gt;= v0.0.3
 - Upgrades
 - Volume resize
 - Galera cluster recovery</p>
-<p>More specifically, the reconciliation loop of the operator is omitted, anything part of it will not happen while the resource is suspended. This could be useful in <strong>maintenance</strong> scenarios, where manual operations need to be performed, as it helps prevent conflicts with the operator.</p>
+<p>More specifically, the reconciliation loop of the operator is omitted, anything part of it will not happen while the resource is suspended.</p>
 <h2 id="suspend-a-resource">Suspend a resource</h2>
 <p>Currently, only <code>MariaDB</code> and <code>MaxScale</code> resources support suspension. You can enable it by setting <code>suspend=true</code>:</p>
 <pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
@@ -931,10 +978,18 @@ spec:
 </code></pre>
 <p>This results in the reconciliation loop being disabled and the status being marked as <code>Suspended</code>:</p>
 <pre><code class="language-bash">kubectl get mariadbs
-NAME             READY   STATUS      PRIMARY           UPDATES                   AGE
-mariadb-galera   True    Suspended   mariadb-galera-0  ReplicasFirstPrimaryLast  12m
+NAME             READY   STATUS      PRIMARY POD        AGE
+mariadb-galera   False   Suspended   mariadb-galera-0   25h
 </code></pre>
 <p>To re-enable it, simply remove the <code>suspend</code> setting or set it to <code>suspend=false</code>.</p>
+<h2 id="use-cases">Use cases</h2>
+<h4 id="progressive-fleet-upgrades">Progressive fleet upgrades</h4>
+<p>If you're managing fleets of thousands of databases, you likely prefer to roll out updates progressively rather than simultaneously across all instances.</p>
+<p>Refer to the <a href="../UPDATES/">updates documentation</a> for further detail.</p>
+<h4 id="operator-upgrades">Operator upgrades</h4>
+<p>When upgrading <code>mariadb-operator</code>, changes to the <code>StatefulSet</code> or the <code>Pod</code> template may occur from one version to another, which could trigger a rolling update of your <code>MariaDB</code> instances.</p>
+<h4 id="maintenance">Maintenance</h4>
+<p>Disabling the reconciliation loop can be useful when manual operations need to be performed on an instance, as it helps prevent conflicts with the operator.</p>
 
 
 
