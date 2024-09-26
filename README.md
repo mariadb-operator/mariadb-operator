@@ -45,29 +45,21 @@ Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB
 - CRDs designed according to the Kubernetes [API conventions](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md).
 - [GitOps](#gitops) friendly.
 - Multi-arch distroless based [image](https://github.com/orgs/mariadb-operator/packages/container/package/mariadb-operator).
-- Install it using [kubectl](./deploy/manifests), [helm](https://artifacthub.io/packages/helm/mariadb-operator/mariadb-operator) or [OLM](https://operatorhub.io/operator/mariadb-operator).
+- Install it using [kubectl](./deploy/manifests), [helm](./docs/HELM.md) or [OLM](https://operatorhub.io/operator/mariadb-operator).
 
 Please, refer to the [documentation](./docs/), the [API reference](./docs/API_REFERENCE.md) and the [example suite](./examples/) for further detail.
 
-## Bare minimum installation
+## Helm installation
 
-This installation flavour provides the minimum resources required to run `mariadb-operator` in your cluster.
+You can easily deploy the operator to your cluster by installing the `mariadb-operator-crds` and `mariadb-operator` Helm charts:
 
 ```bash
 helm repo add mariadb-operator https://helm.mariadb.com/mariadb-operator
+helm install mariadb-operator-crds mariadb-operator/mariadb-operator-crds
 helm install mariadb-operator mariadb-operator/mariadb-operator
 ```
-## Recommended installation
 
-The recommended installation includes the following features:
-- **Metrics**: Leverage [prometheus operator](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack) to scrape the `mariadb-operator` internal metrics.
-- **Webhook certificate renewal**: Automatic webhook certificate issuance and renewal using  [cert-manager](https://cert-manager.io/docs/installation/). By default, a static self-signed certificate is generated.
-
-```bash
-helm repo add mariadb-operator https://helm.mariadb.com/mariadb-operator
-helm install mariadb-operator mariadb-operator/mariadb-operator \
-  --set metrics.enabled=true --set webhook.cert.certManager.enabled=true
-```
+Refer to the [helm documentation](./docs/HELM.md) for further detail.
 
 ## Openshift installation
 
