@@ -20,8 +20,6 @@ Refer to the [helm documentation](https://github.com/mariadb-operator/mariadb-op
 
 ## Values
 
-## Values
-
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | affinity | object | `{}` | Affinity to add to controller Pod |
@@ -130,4 +128,3 @@ Refer to the [helm documentation](https://github.com/mariadb-operator/mariadb-op
 | webhook.serviceMonitor.interval | string | `"30s"` | Interval to scrape metrics |
 | webhook.serviceMonitor.scrapeTimeout | string | `"25s"` | Timeout if metrics can't be retrieved in given time interval |
 | webhook.tolerations | list | `[]` | Tolerations to add to controller Pod |
-
