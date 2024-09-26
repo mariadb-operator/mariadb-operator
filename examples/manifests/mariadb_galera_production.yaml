@@ -1,7 +1,9 @@
 # Please, take a look at our HA guide to configure production-ready MariaDB instances:
 # https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/HA.md
-# You should have a backup and recovery strategy in case that something goes wrong, take a look at our backup docs:
+# Configure a backup and recovery strategy in case that something goes wrong:
 # https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/BACKUP.md
+# Roll out upgrades choosing the right upgrade strategy:
+# https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/UPDATES.md
 apiVersion: k8s.mariadb.com/v1alpha1
 kind: MariaDB
 metadata:
@@ -14,7 +16,7 @@ spec:
   storage:
     size: 10Gi
 
-  # Uncomment this and recreate the MariaDB resource in case that something was wrong.
+  # Recreate the MariaDB resource and bootstrap from a backup in S3.
   # bootstrapFrom:
   #   s3:
   #     bucket: backups
@@ -42,6 +44,8 @@ spec:
 
   updateStrategy:
     type: ReplicasFirstPrimaryLast
+    # Pause updates.
+    # type: Never
 
   # Configure enough compute resources. This is just an example, take a look at your historic compute metrics to estimate.
   resources:
@@ -68,6 +72,8 @@ spec:
   # Schedule Pods in different Nodes to achieve real HA.
   affinity:
     antiAffinityEnabled: true
+    # Update the data-plane after an operator upgrade.
+    # autoUpdateDataPlane: true
 
   # When draining Nodes, make sure that you have at least 2 Pods available.
   podDisruptionBudget:
