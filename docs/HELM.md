@@ -8,18 +8,27 @@ Helm is the preferred way to install `mariadb-operator` in vanilla Kubernetes cl
 ## Table of contents
 <!-- toc -->
 - [Charts](#charts)
+- [Control-plane](#control-plane)
 - [Installing CRDs](#installing-crds)
 - [Installing the operator](#installing-the-operator)
-- [Control-plane](#control-plane)
 - [Deployment modes](#deployment-modes)
 - [Updates](#updates)
+- [Uninstalling](#uninstalling)
 <!-- /toc -->
 
 ## Charts
 
-The installation of `mariadb-operator` is splitted in 2 different helm charts for better convenience:
+The installation of `mariadb-operator` is splitted into two different helm charts for better convenience:
 - [`mariadb-operator-crds`](../deploy/charts/mariadb-operator-crds/): Bundles the [`CustomResourceDefinitions`](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/) required by the operator.
 - [`mariadb-operator`](../deploy/charts/mariadb-operator/): Contains all the template manifests required to install the operator.
+
+## Control-plane
+
+The `mariadb-operator` is an extension of the Kubernetes control-plane, consisting of the following components that are deployed by Helm:
+ 
+- `operator`: The `mariadb-operator` itself that performs the CRD reconciliation.
+- `webhook`: The Kubernetes control-plane delegates CRD validations to this HTTP server. Kubernetes requires TLS to communicate with the webhook server.
+- `cert-controller`: Provisions TLS certificates for the webhook. You can see it as a minimal [cert-manager](https://cert-manager.io/) that is intended to work only with the webhook. It is optional and can be replaced by cert-manager.
 
 ## Installing CRDs
 
@@ -41,15 +50,16 @@ helm repo add mariadb-operator https://helm.mariadb.com/mariadb-operator
 helm install mariadb-operator mariadb-operator/mariadb-operator
 ```
 
+If you have the [prometheus operator](https://github.com/prometheus-operator/prometheus-operator) and [cert-manager](https://cert-manager.io/docs/installation/) already installed in your cluster, it is recommended to leverage them to scrape the operator metrics and provision the webhook certificate respectively:
+
+```bash
+helm repo add mariadb-operator https://helm.mariadb.com/mariadb-operator
+helm install mariadb-operator mariadb-operator/mariadb-operator \
+  --set metrics.enabled=true --set webhook.cert.certManager.enabled=true
+```
+
 Refer to the helm chart README for detailed information about all the supported [helm values](./../deploy/charts/mariadb-operator/README.md).
 
-## Control-plane
-
-The `mariadb-operator` is an extension of the Kubernetes control-plane, consisting of the following components that are deployed via Helm:
- 
-- `operator`: The `mariadb-operator` itself that performs the CRD reconciliation.
-- `webhook`: The Kubernetes control-plane delegates CRD validations to this HTTP server. Kubernetes requires TLS to communicate with the webhook server.
-- `cert-controller`: Provisions TLS certificates for the webhook. You can see it as a minimal [cert-manager](https://cert-manager.io/) that is intended to work only with the webhook. It is optional and can be replaced by cert-manager.
 
 ## Deployment modes
 
@@ -100,3 +110,20 @@ helm upgrade --install mariadb-operator \
 ```
 
 Whenever a new version of the `mariadb-operator` is released, an upgrade guide is linked in the release notes if additional upgrade steps are required. Be sure to review the [release notes](https://github.com/mariadb-operator/mariadb-operator/releases) and follow the version-specific upgrade guides accordingly.
+
+## Uninstalling
+
+> [!CAUTION]
+> Uninstalling the `mariadb-operator-crds` Helm chart will remove the CRDs and their associated resources, resulting in downtime.
+
+First, uninstall the `mariadb-operator` Helm chart. This action will not delete your CRDs, so your operands (i.e. `MariaDBs` and `MaxScale`) will continue to operate without the operator's reconciliation.
+
+```bash
+helm uninstall mariadb-operator
+```
+
+At this point, if you also want to delete CRDs and the operands running in your cluster, you may proceed to uninstall the `mariadb-operator-crds` Helm chart:
+
+```bash
+helm uninstall mariadb-operator-crds
+```
