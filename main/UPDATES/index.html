@@ -429,6 +429,26 @@
   
   
     <li class="md-nav__item">
+      <a href="../HELM/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Helm
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../MAXSCALE/" class="md-nav__link">
         
   
@@ -677,6 +697,24 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#never" class="md-nav__link">
+    <span class="md-ellipsis">
+      Never
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#auto-update-data-plane" class="md-nav__link">
+    <span class="md-ellipsis">
+      Auto update data-plane
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -825,6 +863,26 @@
   
 
     
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../UPGRADE_v0.0.32/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Upgrade guide v0.0.32
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
   </ul>
 </nav>
                   </div>
@@ -914,6 +972,24 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#never" class="md-nav__link">
+    <span class="md-ellipsis">
+      Never
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#auto-update-data-plane" class="md-nav__link">
+    <span class="md-ellipsis">
+      Auto update data-plane
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -937,7 +1013,8 @@
 <p>[!NOTE]<br />
 This documentation applies to <code>mariadb-operator</code> version &gt;= v0.0.29</p>
 </blockquote>
-<p>This documentation aims to describe the supported strategies to perform updates of the <code>MariaDB</code> resource. </p>
+<p>By leveraging the automation provided by <code>mariadb-operator</code>, you can declaratively manage large fleets of databases using CRs. This also covers day two operations, such as upgrades, which can be risky when rolling out updates to thousands of instances simultaneously.</p>
+<p>To mitigate this, and to give you full control on the upgrade process, you are able to choose between multiple update strategies described in the following sections.</p>
 <h2 id="table-of-contents">Table of contents</h2>
 <!-- toc -->
 <ul>
@@ -947,6 +1024,8 @@ This documentation applies to <code>mariadb-operator</code> version &gt;= v0.0.2
 <li><a href="#replicasfirstprimarylast"><code>ReplicasFirstPrimaryLast</code></a></li>
 <li><a href="#rollingupdate"><code>RollingUpdate</code></a></li>
 <li><a href="#ondelete"><code>OnDelete</code></a></li>
+<li><a href="#never"><code>Never</code></a></li>
+<li><a href="#auto-update-data-plane">Auto update data-plane</a></li>
 </ul>
 <!-- /toc -->
 
@@ -956,6 +1035,7 @@ This documentation applies to <code>mariadb-operator</code> version &gt;= v0.0.2
 <li><a href="#replicasfirstprimarylast"><code>ReplicasFirstPrimaryLast</code></a>: Roll out replica <code>Pods</code> one by one, wait for each of them to become ready, and then proceed with the primary <code>Pod</code>.</li>
 <li><a href="#rollingupdate"><code>RollingUpdate</code></a>: Utilize the rolling update strategy from Kubernetes. </li>
 <li><a href="#ondelete"><code>OnDelete</code></a>: Updates are performed manually by deleting <code>Pods</code>.</li>
+<li><a href="#never"><code>Never</code></a>: Pause updates.</li>
 </ul>
 <h2 id="configuration">Configuration</h2>
 <p>The update strategy can be configured in the <code>updateStrategy</code> field of the <code>MariaDB</code> resource:</p>
@@ -964,7 +1044,6 @@ kind: MariaDB
 metadata:
   name: mariadb
 spec:
-  ...
   updateStrategy:
     type: ReplicasFirstPrimaryLast
 </code></pre>
@@ -1010,22 +1089,37 @@ spec:
       maxUnavailable: 1
 </code></pre>
 <h2 id="ondelete"><code>OnDelete</code></h2>
-<p>This strategy aims to provide a method to update <code>MariaDB</code> resources manually by allowing users to restart the <code>Pods</code> individually.This way, the user has full control over the update process and can decide which <code>Pods</code> are rolled out at any given time.</p>
+<p>This strategy aims to provide a method to update <code>MariaDB</code> resources manually by allowing the user to restart the <code>Pods</code> individually. This way, the user has full control over the update process and can decide which <code>Pods</code> are rolled out at any given time.</p>
 <p>Whenever an <a href="#trigger-updates">update is triggered</a>, the <code>MariaDB</code> will be marked as pending to update:</p>
 <pre><code class="language-bash">kubectl get mariadbs
-NAME             READY   STATUS           PRIMARY POD        AGE
-mariadb-galera   True    Pending update   mariadb-galera-0   5m17s
+NAME             READY   STATUS           PRIMARY            UPDATES    AGE
+mariadb-galera   True    Pending update   mariadb-galera-0   OnDelete   5m17s
 </code></pre>
 <p>From this point, you are able to delete the <code>Pods</code> to trigger the update, which will result the <code>MariaDB</code> marked as updating:</p>
 <pre><code class="language-bash">kubectl get mariadbs
-NAME             READY   STATUS     PRIMARY POD        AGE
-mariadb-galera   False   Updating   mariadb-galera-0   9m50s
+NAME             READY   STATUS         PRIMARY            UPDATES    AGE
+mariadb-galera   True    Updating       mariadb-galera-0   OnDelete   9m50s
 </code></pre>
 <p>Once all the <code>Pods</code> have been rolled out, the <code>MariaDB</code> resource will be back to a ready state:</p>
-<pre><code class="language-bash">kubectl get mariadbs
-NAME             READY   STATUS    PRIMARY POD        AGE
-mariadb-galera   True    Running   mariadb-galera-1   12m
+<pre><code class="language-bash">NAME             READY   STATUS         PRIMARY            UPDATES    AGE
+mariadb-galera   True    Running        mariadb-galera-0   OnDelete   12m
 </code></pre>
+<h2 id="never"><code>Never</code></h2>
+<p>The operator will not perform updates on the <code>StatefulSet</code> whenever this update strategy is configured. This could be useful in multiple scenarios:
+- <strong>Progressive fleet upgrades</strong>: If you're managing fleets of thousands of databases, you likely prefer to roll out updates progressively rather than simultaneously across all instances.
+- <strong>Operator upgrades</strong>: When upgrading <code>mariadb-operator</code>, changes to the <code>StatefulSet</code> or the <code>Pod</code> template may occur from one version to another, which could trigger a rolling update of your <code>MariaDB</code> instances.</p>
+<h2 id="auto-update-data-plane">Auto update data-plane</h2>
+<p>Galera relies on <a href="../GALERA/#data-plane">data-plane containers</a> that run alongside MariaDB to implement provisioning and high availability operations on the cluster. These containers use the <code>mariadb-operator</code> image, which can be automatically updated by the operator based on its image version:</p>
+<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+spec:
+  updateStrategy:
+    autoUpdateDataPlane: true
+</code></pre>
+<p>By default, <code>updateStrategy.autoUpdateDataPlane</code> is <code>false</code>, which means that no automatic upgrades will be performed, but you can opt-in/opt-out from this feature at any point in time by updating this field. For instance, you may want to selectively enable <code>updateStrategy.autoUpdateDataPlane</code> in a subset of your <code>MariaDB</code> instances after the operator has been upgraded to a newer version, and then disable it once the upgrades are completed.</p>
+<p>It is important to note that this feature is fully compatible with the <a href="#never"><code>Never</code></a> strategy: no upgrades will happen when <code>updateStrategy.autoUpdateDataPlane=true</code> and <code>updateStrategy.type=Never</code>.</p>
 
 
 

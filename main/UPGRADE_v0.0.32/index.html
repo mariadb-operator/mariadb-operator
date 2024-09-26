@@ -9,10 +9,8 @@
       
       
       
-        <link rel="prev" href="../STORAGE/">
+        <link rel="prev" href="../UPGRADE_v0.0.31/">
       
-      
-        <link rel="next" href="../UPDATES/">
       
       
       <link rel="icon" href="../assets/mariadb_favicon.svg">
@@ -20,7 +18,7 @@
     
     
       
-        <title>Suspend - MariaDB Operator</title>
+        <title>Upgrade guide v0.0.32 - MariaDB Operator</title>
       
     
     
@@ -76,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#suspend" class="md-skip">
+        <a href="#upgrade-guide-v0032" class="md-skip">
           Skip to content
         </a>
       
@@ -127,7 +125,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Suspend
+              Upgrade guide v0.0.32
             
           </span>
         </div>
@@ -566,30 +564,10 @@
       
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  <span class="md-ellipsis">
-    Suspend
-  </span>
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../SUSPEND/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -598,53 +576,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#table-of-contents" class="md-nav__link">
-    <span class="md-ellipsis">
-      Table of contents
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#suspended-state" class="md-nav__link">
-    <span class="md-ellipsis">
-      Suspended state
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#suspend-a-resource" class="md-nav__link">
-    <span class="md-ellipsis">
-      Suspend a resource
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -813,10 +744,19 @@
       
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../UPGRADE_v0.0.32/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   <span class="md-ellipsis">
@@ -825,6 +765,7 @@
   
 
       </a>
+      
     </li>
   
 
@@ -849,41 +790,6 @@
     
   
   
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#table-of-contents" class="md-nav__link">
-    <span class="md-ellipsis">
-      Table of contents
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#suspended-state" class="md-nav__link">
-    <span class="md-ellipsis">
-      Suspended state
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#suspend-a-resource" class="md-nav__link">
-    <span class="md-ellipsis">
-      Suspend a resource
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
 </nav>
                   </div>
                 </div>
@@ -900,41 +806,86 @@
   
 
 
-<h1 id="suspend">Suspend</h1>
-<blockquote>
-<p>[!NOTE]<br />
-This documentation applies to <code>mariadb-operator</code> version &gt;= v0.0.30</p>
-</blockquote>
-<h2 id="table-of-contents">Table of contents</h2>
-<!-- toc -->
+<h1 id="upgrade-guide-v0032">Upgrade guide v0.0.32</h1>
+<p>This guide illustrates, step by step, how to migrate to <code>v0.0.32</code> from previous versions. </p>
 <ul>
-<li><a href="#suspended-state">Suspended state</a></li>
-<li><a href="#suspend-a-resource">Suspend a resource</a></li>
+<li>Uninstall you current <code>mariadb-operator</code> for preventing conflicts:</li>
 </ul>
-<!-- /toc -->
-
-<h2 id="suspended-state">Suspended state</h2>
-<p>When a resource is suspended, all operations performed by the operator are disabled, including but not limited to:
-- Provisioning
-- Upgrades
-- Volume resize
-- Galera cluster recovery</p>
-<p>More specifically, the reconciliation loop of the operator is omitted, anything part of it will not happen while the resource is suspended. This could be useful in <strong>maintenance</strong> scenarios, where manual operations need to be performed, as it helps prevent conflicts with the operator.</p>
-<h2 id="suspend-a-resource">Suspend a resource</h2>
-<p>Currently, only <code>MariaDB</code> and <code>MaxScale</code> resources support suspension. You can enable it by setting <code>suspend=true</code>:</p>
-<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
+<pre><code class="language-bash">helm uninstall mariadb-operator
+</code></pre>
+<p>Alternatively, you may only downscale and delete the webhook configurations:</p>
+<pre><code class="language-bash">kubectl scale deployment mariadb-operator --replicas=0
+kubectl scale deployment mariadb-operator-webhook --replicas=0
+kubectl delete validatingwebhookconfiguration mariadb-operator-webhook
+kubectl delete mutatingwebhookconfiguration mariadb-operator-webhook
+</code></pre>
+<ul>
+<li>Helm has certain <a href="https://helm.sh/docs/chart_best_practices/custom_resource_definitions/#some-caveats-and-explanations">limitations when managing CRDs</a>. Therefore, beginning with the current version, we will adopt <a href="https://helm.sh/docs/chart_best_practices/custom_resource_definitions/#method-2-separate-charts">this approach recommended in the official Helm documentation</a>, which involves managing CRDs in a separate chart. First, let's specify the release name and namespace for installing the new <code>mariadb-operator-crds</code> chart:</li>
+</ul>
+<pre><code class="language-bash">export CRDS_RELEASE_NAME=&quot;&lt;HELM-RELEASE-NAME&gt;&quot; # e.g. mariadb-operator-crds
+export CRDS_RELEASE_NAMESPACE=&quot;&lt;HELM-RELEASE-NAMESPASE&gt;&quot; # e.g. databases
+</code></pre>
+<ul>
+<li>If you installed previous versions of the <code>mariadb-operator</code> helm chart, you need to patch the CRDs to be owned by the new <code>mariadb-operator-crds</code> helm chart:</li>
+</ul>
+<pre><code class="language-bash">for crd in $(kubectl get crd -o jsonpath='{range .items[?(@.spec.group==&quot;k8s.mariadb.com&quot;)]}{.metadata.name}{&quot;\n&quot;}{end}'); do
+  kubectl annotate crd $crd \
+    meta.helm.sh/release-name=$CRDS_RELEASE_NAME \
+    meta.helm.sh/release-namespace=$CRDS_RELEASE_NAMESPACE --overwrite
+  kubectl label crd $crd \
+    app.kubernetes.io/managed-by=Helm --overwrite
+done
+</code></pre>
+<ul>
+<li>Install the new <code>mariadb-operator-crds</code> helm chart:</li>
+</ul>
+<pre><code class="language-bash">helm repo update mariadb-operator
+helm install $CRDS_RELEASE_NAME -n $CRDS_RELEASE_NAMESPACE mariadb-operator/mariadb-operator-crds --version 0.0.32 
+</code></pre>
+<ul>
+<li>If you are using Galera, and you want the operator to automatically update the data plane (i.e. init and agent containers) to <code>v0.0.32</code>, you can set <code>updateStrategy.autoUpdateDataPlane=true</code> in your <code>MariaDB</code> resources:</li>
+</ul>
+<pre><code class="language-diff">apiVersion: k8s.mariadb.com/v1alpha1
 kind: MariaDB
 metadata:
   name: mariadb-galera
 spec:
-  suspend: true
+  updateStrategy:
++   autoUpdateDataPlane: true
 </code></pre>
-<p>This results in the reconciliation loop being disabled and the status being marked as <code>Suspended</code>:</p>
-<pre><code class="language-bash">kubectl get mariadbs
-NAME             READY   STATUS      PRIMARY           UPDATES                   AGE
-mariadb-galera   True    Suspended   mariadb-galera-0  ReplicasFirstPrimaryLast  12m
+<p>If want to progressively update your fleet of databases, you may also set <code>updateStrategy.type=Never</code> in some of them:</p>
+<pre><code class="language-diff">apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+spec:
+  updateStrategy:
++   type: Never
 </code></pre>
-<p>To re-enable it, simply remove the <code>suspend</code> setting or set it to <code>suspend=false</code>.</p>
+<ul>
+<li>Upgrade <code>mariadb-operator</code> to <code>v0.0.32</code>:</li>
+</ul>
+<pre><code class="language-bash">helm repo update mariadb-operator
+helm upgrade --install mariadb-operator mariadb-operator/mariadb-operator --version 0.32.0 
+</code></pre>
+<ul>
+<li>If you previously decided to downscale the operator, make sure you upscale it back:</li>
+</ul>
+<pre><code class="language-bash">kubectl scale deployment mariadb-operator -n default --replicas=1
+kubectl scale deployment mariadb-operator-webhook -n default --replicas=1
+</code></pre>
+<ul>
+<li>If you previously set <code>updateStratety.autoUpdateDataPlane=true</code> and/or <code>updateStratety.type=Never</code>, you may consider undo the changes once the upgrades have finished:</li>
+</ul>
+<pre><code class="language-diff">apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+spec:
+  updateStrategy:
++   type: ReplicasFirstPrimaryLast
+-   autoUpdateDataPlane: true
+</code></pre>
 
 
 
