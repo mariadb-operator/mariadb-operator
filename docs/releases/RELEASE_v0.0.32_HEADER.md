@@ -44,11 +44,11 @@ It is important to note that this feature is fully compatible with `autoUpdateDa
 
 Helm has certain [limitations when it comes to manage CRDs](https://helm.sh/docs/chart_best_practices/custom_resource_definitions/#some-caveats-and-explanations). To address this, we are providing the CRDs in a separate chart, [as recommended by the official Helm documentation](https://helm.sh/docs/chart_best_practices/custom_resource_definitions/#method-2-separate-charts). This allows us to manage the installation and updates of the CRDs independently from the operator. For example, you can uninstall the operator without impacting your existing `MariaDB` CRDs.
 
-CRDs can be installed in your cluster by running the following commands
+CRDs can now be installed/upgraded in your cluster by running the following commands
 
 ```bash
 helm repo add mariadb-operator https://helm.mariadb.com/mariadb-operator
-helm install mariadb-operator-crds mariadb-operator/mariadb-operator-crds
+helm upgrade --install mariadb-operator-crds mariadb-operator/mariadb-operator-crds
 ```
 
 ### ~81% CRD size reduction
@@ -56,10 +56,10 @@ helm install mariadb-operator-crds mariadb-operator/mariadb-operator-crds
 Have you seen this before?
 
 ```bash
-helm fails with failed to create: Secret "sh.helm.release.v1.(release-name).v1" is invalid: data: Too long: must have at most 1048576 character
+Secret "sh.helm.release.v1.x.v1" is invalid: data: Too long: must have at most 1048576 character
 ```
 
-Helm has a hard limit of 1MB in the size of the releases to be installed. This was a problem for us, since our [CRD bundle was 3.1MB](https://github.com/mariadb-operator/mariadb-operator/blob/v0.0.31/deploy/crds/crds.yaml) in previous releases. This made it incompatible with Helm, so the only choice was to use `kubectl apply` directly.
+Helm has a hard limit of 1MB in the size of the releases to be installed. This was a problem for us, since our [CRD bundle was 3.1M](https://github.com/mariadb-operator/mariadb-operator/blob/v0.0.31/deploy/crds/crds.yaml) in previous releases. This made it incompatible with Helm, so the only choice was to use `kubectl apply` directly to upgrade CRDs.
 
 To address this, we have reduced the size of our CRDs by replacing the upstream Kubernetes types, which were used directly in our CRDs, with a more lightweight version of these types that only contain the fields we support. See https://github.com/mariadb-operator/mariadb-operator/pull/869.
 
