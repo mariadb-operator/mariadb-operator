@@ -940,7 +940,7 @@ helm upgrade --install mariadb-operator mariadb-operator/mariadb-operator --vers
 kubectl scale deployment mariadb-operator-webhook -n default --replicas=1
 </code></pre>
 <ul>
-<li>If you previously set <code>updateStratety.autoUpdateDataPlane=true</code> and/or <code>updateStratety.type=Never</code>, you may consider undo the changes once the upgrades have finished:</li>
+<li>If you previously set <code>updateStratety.autoUpdateDataPlane=true</code> and/or <code>updateStratety.type=Never</code>, you may consider reverting the changes once the upgrades have finished:</li>
 </ul>
 <pre><code class="language-diff">apiVersion: k8s.mariadb.com/v1alpha1
 kind: MariaDB
