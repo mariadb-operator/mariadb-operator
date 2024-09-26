@@ -1081,6 +1081,7 @@ spec:
 <p>Helm has certain <a href="https://helm.sh/docs/chart_best_practices/custom_resource_definitions/#some-caveats-and-explanations">limitations when it comes to manage CRDs</a>. To address this, we are providing the CRDs in a separate chart, <a href="https://helm.sh/docs/chart_best_practices/custom_resource_definitions/#method-2-separate-charts">as recommended by the official Helm documentation</a>. This allows us to manage the installation and updates of the CRDs independently from the operator. For example, you can uninstall the operator without impacting your existing <code>MariaDB</code> CRDs.</p>
 <p>CRDs can now be installed/upgraded in your cluster by running the following commands</p>
 <pre><code class="language-bash">helm repo add mariadb-operator https://helm.mariadb.com/mariadb-operator
+helm repo update
 helm upgrade --install mariadb-operator-crds mariadb-operator/mariadb-operator-crds
 </code></pre>
 <h3 id="81-crd-size-reduction">~81% CRD size reduction</h3>
