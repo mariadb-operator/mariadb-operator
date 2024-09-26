@@ -1088,14 +1088,36 @@ helm upgrade --install mariadb-operator-crds mariadb-operator/mariadb-operator-c
 <p>Have you seen this before?</p>
 <pre><code class="language-bash">Secret &quot;sh.helm.release.v1.x.v1&quot; is invalid: data: Too long: must have at most 1048576 character
 </code></pre>
-<p>Helm has a hard limit of 1MB in the size of the releases to be installed. This was a problem for us, since our <a href="https://github.com/mariadb-operator/mariadb-operator/blob/v0.0.31/deploy/crds/crds.yaml">CRD bundle was 3.1M</a> in previous releases. This made it incompatible with Helm, so the only choice was to use <code>kubectl apply</code> directly to upgrade CRDs.</p>
+<p>Helm has a 1MB size hard-limit on releases, which was an issue for us as our <a href="https://github.com/mariadb-operator/mariadb-operator/blob/v0.0.31/deploy/crds/crds.yaml">CRD bundle was 3.1MB</a> in previous releases. This made it incompatible with Helm, leaving <code>kubectl apply</code> as the only option for upgrading CRDs.</p>
 <p>To address this, we have reduced the size of our CRDs by replacing the upstream Kubernetes types, which were used directly in our CRDs, with a more lightweight version of these types that only contain the fields we support. See https://github.com/mariadb-operator/mariadb-operator/pull/869.</p>
-<p>Our <a href="https://github.com/mariadb-operator/mariadb-operator/blob/fcdab4bcb297fda0b82aa8b5e0fe22d00563f590/deploy/crds/crds.yaml">CRD bundle is now 580K</a>, an ~81% slimmer than before!  🧹</p>
+<p>Our <a href="https://github.com/mariadb-operator/mariadb-operator/blob/fcdab4bcb297fda0b82aa8b5e0fe22d00563f590/deploy/crds/crds.yaml">CRD bundle is now 580KB</a>, an ~81% slimmer than before!  🧹</p>
 <h3 id="single-namespace-deployment">Single namespace deployment</h3>
+<p>By setting <code>currentNamespaceOnly=true</code> when installing the <code>mariadb-operator</code> helm chart, the operator will only watch CRDs within the namespace it is deployed in, and the RBAC permissions will be restricted to that namespace as well:</p>
+<pre><code class="language-bash">helm repo add mariadb-operator https://helm.mariadb.com/mariadb-operator
+helm install mariadb-operator \
+  -n databases --create-namespace \
+  --set currentNamespaceOnly=true \
+  mariadb-operator/mariadb-operator
+</code></pre>
+<p>This is more locked-down alternative to the default cluster-wide installation.</p>
 <h3 id="basic-auth-support-in-galera-agent">Basic auth support in Galera agent</h3>
+<p>By default, the operator uses its <code>ServiceAccount</code> token as a mean of  authentication for communicating with the agent, which subsequently verifies the token by creating a <a href="https://kubernetes.io/docs/reference/kubernetes-api/authentication-resources/token-review-v1/"><code>TokenReview</code> object</a>. This Kubernetes-native authentication mechanism eliminates the need for the operator to manage credentials, as it relies entirely on Kubernetes for this purpose. However, the drawback is that the agent requires cluster-wide permissions to impersonate the <a href="https://kubernetes.io/docs/reference/access-authn-authz/rbac/#other-component-roles"><code>system:auth-delegator</code></a> <code>ClusterRole</code> and to create <a href="https://kubernetes.io/docs/reference/kubernetes-api/authentication-resources/token-review-v1/"><code>TokenReviews</code></a>, which are cluster-scoped objects.</p>
+<p>As an alternative, we are introducing basic authentication in the agent, which implies that the operator will need to explicitly manage credentials, but in return, it does not require cluster-wide permissions on the Kubernetes API. You can enable this by setting:</p>
+<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+spec:
+  galera:
+    agent:
+      basicAuth:
+        enabled: true
+</code></pre>
 <h3 id="support-for-args-in-mariadb">Support for <code>args</code> in <code>MariaDB</code></h3>
+<p>See https://github.com/mariadb-operator/mariadb-operator/pull/888.</p>
 <p>Kudos to @onesolpark for this contribution! 🙏🏻</p>
 <h3 id="fix-ephemeral-storage-reconcile">Fix ephemeral storage reconcile</h3>
+<p>See https://github.com/mariadb-operator/mariadb-operator/pull/865.</p>
 <p>Kudos to @Uburro for this contribution! 🙏🏻</p>
 <hr />
 <p>We value your feedback! If you encounter any issues or have suggestions, please <a href="https://github.com/mariadb-operator/mariadb-operator/issues/new/choose">open an issue on GitHub</a>. Your input is crucial to improve <code>{{ .ProjectName }}</code>🦭.</p>
