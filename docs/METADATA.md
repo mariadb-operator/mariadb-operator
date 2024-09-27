@@ -161,7 +161,7 @@ spec:
 
 #### Istio
 
-[Istio](https://istio.io/) injects the data plane container to all `Pods`, but you might want to opt-out of this feature in some cases:
+[Istio](https://istio.io/) injects the data-plane container to all `Pods`, but you might want to opt-out of this feature in some cases:
 
 ```yaml
 apiVersion: k8s.mariadb.com/v1alpha1

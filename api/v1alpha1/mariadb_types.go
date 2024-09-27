@@ -297,7 +297,7 @@ type UpdateStrategy struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	RollingUpdate *appsv1.RollingUpdateStatefulSetStrategy `json:"rollingUpdate,omitempty"`
-	// AutoUpdateDataPlane indicates whether the Galera data plane version (agent and init containers) should be automatically updated based on the operator version. It defaults to false.
+	// AutoUpdateDataPlane indicates whether the Galera data-plane version (agent and init containers) should be automatically updated based on the operator version. It defaults to false.
 	// Updating the operator will trigger updates on all the MariaDB instances that have this flag set to true. Thus, it is recommended to progressively set this flag after having updated the operator.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
