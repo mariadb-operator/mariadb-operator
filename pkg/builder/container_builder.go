@@ -301,12 +301,6 @@ func (b *Builder) buildContainerWithTemplate(image string, pullPolicy corev1.Pul
 		VolumeMounts:    kadapter.ToKubernetesSlice(tpl.VolumeMounts),
 		SecurityContext: sc,
 	}
-	if tpl.LivenessProbe != nil {
-		container.LivenessProbe = ptr.To(tpl.LivenessProbe.ToKubernetesType())
-	}
-	if tpl.ReadinessProbe != nil {
-		container.ReadinessProbe = ptr.To(tpl.ReadinessProbe.ToKubernetesType())
-	}
 	if mariadbOpts.resources != nil {
 		container.Resources = *mariadbOpts.resources
 	} else if tpl.Resources != nil && mariadbOpts.includeMariadbResources {
