@@ -9,10 +9,10 @@
       
       
       
-        <link rel="prev" href="../CONFIGURATION/">
+        <link rel="prev" href="../UPGRADE_v0.0.32/">
       
       
-        <link rel="next" href="../DOCKER/">
+        <link rel="next" href="../releases/RELEASE_v0.0.32_HEADER/">
       
       
       <link rel="icon" href="../assets/mariadb_favicon.svg">
@@ -20,7 +20,7 @@
     
     
       
-        <title>Development guide - MariaDB Operator</title>
+        <title>Upgrade guide v0.0.33 - MariaDB Operator</title>
       
     
     
@@ -76,7 +76,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#development-guide" class="md-skip">
+        <a href="#upgrade-guide-v0033" class="md-skip">
           Skip to content
         </a>
       
@@ -127,7 +127,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Development guide
+              Upgrade guide v0.0.33
             
           </span>
         </div>
@@ -346,30 +346,10 @@
       
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  <span class="md-ellipsis">
-    Development guide
-  </span>
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../DEVELOPMENT/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -378,158 +358,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#table-of-contents" class="md-nav__link">
-    <span class="md-ellipsis">
-      Table of contents
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#flavours" class="md-nav__link">
-    <span class="md-ellipsis">
-      Flavours
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Flavours">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#devcontainer" class="md-nav__link">
-    <span class="md-ellipsis">
-      devcontainer
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#local" class="md-nav__link">
-    <span class="md-ellipsis">
-      local
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#getting-started" class="md-nav__link">
-    <span class="md-ellipsis">
-      Getting started
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#cluster" class="md-nav__link">
-    <span class="md-ellipsis">
-      Cluster
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#network" class="md-nav__link">
-    <span class="md-ellipsis">
-      Network
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#dependencies" class="md-nav__link">
-    <span class="md-ellipsis">
-      Dependencies
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#generate" class="md-nav__link">
-    <span class="md-ellipsis">
-      Generate
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#install" class="md-nav__link">
-    <span class="md-ellipsis">
-      Install
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#build" class="md-nav__link">
-    <span class="md-ellipsis">
-      Build
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#run" class="md-nav__link">
-    <span class="md-ellipsis">
-      Run
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#unit-tests" class="md-nav__link">
-    <span class="md-ellipsis">
-      Unit tests
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#integration-tests" class="md-nav__link">
-    <span class="md-ellipsis">
-      Integration tests
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -938,10 +766,19 @@
       
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../UPGRADE_v0.0.33/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   <span class="md-ellipsis">
@@ -950,6 +787,7 @@
   
 
       </a>
+      
     </li>
   
 
@@ -1037,146 +875,6 @@
     
   
   
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#table-of-contents" class="md-nav__link">
-    <span class="md-ellipsis">
-      Table of contents
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#flavours" class="md-nav__link">
-    <span class="md-ellipsis">
-      Flavours
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Flavours">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#devcontainer" class="md-nav__link">
-    <span class="md-ellipsis">
-      devcontainer
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#local" class="md-nav__link">
-    <span class="md-ellipsis">
-      local
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#getting-started" class="md-nav__link">
-    <span class="md-ellipsis">
-      Getting started
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#cluster" class="md-nav__link">
-    <span class="md-ellipsis">
-      Cluster
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#network" class="md-nav__link">
-    <span class="md-ellipsis">
-      Network
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#dependencies" class="md-nav__link">
-    <span class="md-ellipsis">
-      Dependencies
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#generate" class="md-nav__link">
-    <span class="md-ellipsis">
-      Generate
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#install" class="md-nav__link">
-    <span class="md-ellipsis">
-      Install
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#build" class="md-nav__link">
-    <span class="md-ellipsis">
-      Build
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#run" class="md-nav__link">
-    <span class="md-ellipsis">
-      Run
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#unit-tests" class="md-nav__link">
-    <span class="md-ellipsis">
-      Unit tests
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#integration-tests" class="md-nav__link">
-    <span class="md-ellipsis">
-      Integration tests
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
 </nav>
                   </div>
                 </div>
@@ -1193,123 +891,85 @@
   
 
 
-<h1 id="development-guide">Development guide</h1>
-<p>In this guide, we will be configuring a local environment to run <code>mariadb-operator</code> so you can develop and test features without hassle. The local <code>mariadb-operator</code> will be able to resolve DNS and connect to MariaDB as if it was running inside a Kubernetes cluster.</p>
-<h2 id="table-of-contents">Table of contents</h2>
-<!-- toc -->
+<h1 id="upgrade-guide-v0033">Upgrade guide v0.0.33</h1>
+<p>This guide illustrates, step by step, how to migrate to <code>v0.0.33</code> from previous versions. </p>
 <ul>
-<li><a href="#flavours">Flavours</a></li>
-<li><a href="#getting-started">Getting started</a></li>
-<li><a href="#cluster">Cluster</a></li>
-<li><a href="#network">Network</a></li>
-<li><a href="#dependencies">Dependencies</a></li>
-<li><a href="#generate">Generate</a></li>
-<li><a href="#install">Install</a></li>
-<li><a href="#build">Build</a></li>
-<li><a href="#run">Run</a></li>
-<li><a href="#test">Test</a></li>
+<li>Uninstall you current <code>mariadb-operator</code> for preventing conflicts:</li>
 </ul>
-<!-- /toc -->
-
-<h2 id="flavours">Flavours</h2>
-<h4 id="devcontainer">devcontainer</h4>
-<p>Spin up a <a href="https://containers.dev/implementors/json_reference/">devcontainer</a> with everything you need to develop. This can be used in conjunction with many tools, such as <a href="https://code.visualstudio.com/docs/devcontainers/containers">vscode</a>, <a href="https://github.com/features/codespaces">GitHub codespaces</a> and <a href="https://devpod.sh/">DevPod</a>, which will automatically detect the <a href="../.devcontainer/devcontainer.json">devcontainer.json</a>.</p>
-<p>The only dependency you need is <a href="https://www.docker.com/">docker</a> in case that choose to run your devcontainer locally.</p>
-<h4 id="local">local</h4>
-<p>Run the operator locally in your machine using <code>go run</code>. It requires the following dependencies:
-- <a href="https://www.gnu.org/software/make/manual/make.html">make</a>
-- <a href="https://go.dev/doc/install">go</a>
-- <a href="https://www.docker.com/">docker</a></p>
-<p>This flavour uses <a href="https://kind.sigs.k8s.io/">KIND</a> and <a href="https://metallb.universe.tf/">MetalLB</a> under the hood to provision Kubernetes clusters and assign local IPs to <code>LoadBalancer</code> <code>Services</code>. It has some <a href="https://kind.sigs.k8s.io/docs/user/loadbalancer/">limitations</a> in Mac and Windows which will make the operator unable to connect to MariaDB via the <code>LoadBalancer</code> <code>Service</code>, leading to errors when reconciling SQL-related resources. Alternatively, use the <a href="#devcontainer">devcontainer</a> flavour.</p>
-<h2 id="getting-started">Getting started</h2>
-<p>After having decided which <a href="#flavours">flavour</a> to use and install the required dependencies, you will be able to use the <code>Makefile</code> targets we provide. For convenience, every development action has an associated <code>Makefile</code> target. You can list all of them by running <code>make</code>:</p>
-<pre><code class="language-bash">make
-
-Usage:
-  make &lt;target&gt;
-
-General
-  help             Display this help.
-
-...
-
-Install
-  install-crds     Install CRDs.
-  uninstall-crds   Uninstall CRDs.
-  install          Install CRDs and dependencies for local development.
-  install-samples  Install sample configuration.
-  serviceaccount   Create long-lived ServiceAccount token for development.
-
-Dev
-  certs            Generates development certificates.
-  lint             Lint.
-  build            Build binary.
-  test             Run tests.
-  cover            Run tests and generate coverage.
-  release          Test release locally.
-
-Operator
-  run              Run a controller from your host. 
-
-...
+<pre><code class="language-bash">helm uninstall mariadb-operator
 </code></pre>
-<h2 id="cluster">Cluster</h2>
-<p>To start with, you will need a Kubernetes cluster for developing locally. You can provision a <a href="https://kind.sigs.k8s.io/">KIND</a> cluster by using the following target:</p>
-<pre><code class="language-bash">make cluster
+<p>Alternatively, you may only downscale and delete the webhook configurations:</p>
+<pre><code class="language-bash">kubectl scale deployment mariadb-operator --replicas=0
+kubectl scale deployment mariadb-operator-webhook --replicas=0
+kubectl delete validatingwebhookconfiguration mariadb-operator-webhook
+kubectl delete mutatingwebhookconfiguration mariadb-operator-webhook
 </code></pre>
-<p>To decommission the cluster:</p>
-<pre><code class="language-bash">make cluster-delete
+<ul>
+<li>Helm has certain <a href="https://helm.sh/docs/chart_best_practices/custom_resource_definitions/#some-caveats-and-explanations">limitations when managing CRDs</a>. Therefore, beginning with the current version, we will adopt <a href="https://helm.sh/docs/chart_best_practices/custom_resource_definitions/#method-2-separate-charts">this approach recommended in the official Helm documentation</a>, which involves managing CRDs in a separate chart. First, let's specify the release name and namespace for installing the new <code>mariadb-operator-crds</code> chart:</li>
+</ul>
+<pre><code class="language-bash">export CRDS_RELEASE_NAME=&quot;&lt;HELM-RELEASE-NAME&gt;&quot; # e.g. mariadb-operator-crds
+export CRDS_RELEASE_NAMESPACE=&quot;&lt;HELM-RELEASE-NAMESPASE&gt;&quot; # e.g. databases
 </code></pre>
-<h2 id="network">Network</h2>
-<p>You can configure the network connectivity so the operator is able to resolve DNS and address MariaDB as if it was running in-cluster:</p>
-<pre><code class="language-bash">make net
+<ul>
+<li>If you installed previous versions of the <code>mariadb-operator</code> helm chart, you need to patch the CRDs to be owned by the new <code>mariadb-operator-crds</code> helm chart:</li>
+</ul>
+<pre><code class="language-bash">for crd in $(kubectl get crd -o jsonpath='{range .items[?(@.spec.group==&quot;k8s.mariadb.com&quot;)]}{.metadata.name}{&quot;\n&quot;}{end}'); do
+  kubectl annotate crd $crd \
+    meta.helm.sh/release-name=$CRDS_RELEASE_NAME \
+    meta.helm.sh/release-namespace=$CRDS_RELEASE_NAMESPACE --overwrite
+  kubectl label crd $crd \
+    app.kubernetes.io/managed-by=Helm --overwrite
+done
 </code></pre>
-<p>This connectivity leverages <a href="https://metallb.universe.tf/">MetalLB</a> to assign local IPs to the <code>LoadBalancer</code> <code>Services</code> for the operator to connect to MariaDB. For this to happen, these local IPs need to be within the docker CIDR, which can be queried using:</p>
-<pre><code class="language-bash">make cidr
-172.18.0.0/16
+<ul>
+<li>Install the new <code>mariadb-operator-crds</code> helm chart:</li>
+</ul>
+<pre><code class="language-bash">helm repo update mariadb-operator
+helm install $CRDS_RELEASE_NAME -n $CRDS_RELEASE_NAMESPACE mariadb-operator/mariadb-operator-crds --version 0.0.32 
 </code></pre>
-<p>When deploying <a href="../examples/manifests/">example manifests</a>, take into account that <code>LoadBalancer</code> <code>Services</code> need to be within the docker CIDR to function properly, see:
-- <a href="https://github.com/mariadb-operator/mariadb-operator/blob/6f79a8e9e73977c433fb2d5c39a4b7210349b46c/examples/manifests/mariadb_v1alpha1_mariadb.yaml#L95">examples/manifests/mariadb_v1alpha1_mariadb.yaml</a>
-- <a href="https://github.com/mariadb-operator/mariadb-operator/blob/160b7cc937c031f6faf7c1f50fcae78053faf766/examples/manifests/mariadb_v1alpha1_mariadb_replication.yaml#L87">examples/manifests/mariadb_v1alpha1_mariadb_replication.yaml</a>
-- <a href="https://github.com/mariadb-operator/mariadb-operator/blob/6f79a8e9e73977c433fb2d5c39a4b7210349b46c/examples/manifests/mariadb_v1alpha1_mariadb_galera.yaml#L102">examples/manifests/mariadb_v1alpha1_mariadb_galera.yaml</a></p>
-<h2 id="dependencies">Dependencies</h2>
-<p>You might need the following third party dependencies to test certain features of <code>mariadb-operator</code>, to install them run:</p>
-<pre><code class="language-bash">make install-prometheus
-make install-cert-manager
-make install-minio
+<ul>
+<li>If you are using Galera, and you want the operator to automatically update the data-plane (i.e. init and agent containers) to <code>v0.0.33</code>, you can set <code>updateStrategy.autoUpdateDataPlane=true</code> in your <code>MariaDB</code> resources:</li>
+</ul>
+<pre><code class="language-diff">apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+spec:
+  updateStrategy:
++   autoUpdateDataPlane: true
 </code></pre>
-<p>Some of this dependencies have ports mapped to the host (i.e. Grafana and Minio to expose the dashboard) so be sure to check the <a href="../.devcontainer/devcontainer.json">forwarded ports</a> to access. This step requires running <code>make net</code> previously.</p>
-<h2 id="generate">Generate</h2>
-<p>This target generates code, CRDs and deployment manifests. Make sure to run this before pushing a commit, as it is required by the CI:</p>
-<pre><code class="language-bash">make gen
+<p>If want to progressively update your fleet of databases, you may also set <code>updateStrategy.type=Never</code> in some of them:</p>
+<pre><code class="language-diff">apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+spec:
+  updateStrategy:
++   type: Never
 </code></pre>
-<h2 id="install">Install</h2>
-<p>Install CRDs and everything you need to run the operator locally:</p>
-<pre><code class="language-bash">make install
+<ul>
+<li>Upgrade <code>mariadb-operator</code> to <code>v0.0.33</code>:</li>
+</ul>
+<pre><code class="language-bash">helm repo update mariadb-operator
+helm upgrade --install mariadb-operator mariadb-operator/mariadb-operator --version 0.33.0 
 </code></pre>
-<h2 id="build">Build</h2>
-<p>Build the operator binary:</p>
-<pre><code class="language-bash">make build
+<ul>
+<li>If you previously decided to downscale the operator, make sure you upscale it back:</li>
+</ul>
+<pre><code class="language-bash">kubectl scale deployment mariadb-operator -n default --replicas=1
+kubectl scale deployment mariadb-operator-webhook -n default --replicas=1
 </code></pre>
-<p>Build the docker image and load it into KIND:</p>
-<pre><code class="language-bash">make docker-build
-make docker-load
-</code></pre>
-<h2 id="run">Run</h2>
-<pre><code class="language-bash">make cluster
-make install
-make net
-make run
-</code></pre>
-<h2 id="unit-tests">Unit tests</h2>
-<pre><code class="language-bash">make test
-</code></pre>
-<h2 id="integration-tests">Integration tests</h2>
-<pre><code class="language-bash">make cluster
-make install
-make install-minio
-make net
-make test-int
+<ul>
+<li>If you previously set <code>updateStratety.autoUpdateDataPlane=true</code> and/or <code>updateStratety.type=Never</code>, you may consider reverting the changes once the upgrades have finished:</li>
+</ul>
+<pre><code class="language-diff">apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+spec:
+  updateStrategy:
++   type: ReplicasFirstPrimaryLast
+-   autoUpdateDataPlane: true
 </code></pre>
 
 
