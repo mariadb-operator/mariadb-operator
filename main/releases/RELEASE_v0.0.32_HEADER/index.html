@@ -74,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#auto-update-data-plane" class="md-skip">
+        <a href="#data-plane-updates" class="md-skip">
           Skip to content
         </a>
       
@@ -846,9 +846,9 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#auto-update-data-plane" class="md-nav__link">
+  <a href="#data-plane-updates" class="md-nav__link">
     <span class="md-ellipsis">
-      Auto update data-plane
+      Data-plane updates
     </span>
   </a>
   
@@ -958,9 +958,9 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#auto-update-data-plane" class="md-nav__link">
+  <a href="#data-plane-updates" class="md-nav__link">
     <span class="md-ellipsis">
-      Auto update data-plane
+      Data-plane updates
     </span>
   </a>
   
@@ -1052,7 +1052,7 @@
 <p><code>{{ .ProjectName }}</code> <strong><a href="https://github.com/mariadb-operator/mariadb-operator/releases/tag/v0.0.32">v0.0.32</a></strong> is out! 🦭</p>
 <p>This release ships new features and improvements focused on fleet management, upgrades and deployments. Check them out below!</p>
 <p>To upgrade from older versions, be sure to follow the <strong><a href="https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/UPGRADE_v0.0.32.md">UPGRADE GUIDE</a></strong>.</p>
-<h3 id="auto-update-data-plane">Auto update data-plane</h3>
+<h3 id="data-plane-updates">Data-plane updates</h3>
 <p>Galera relies on <a href="https://github.com/mariadb-operator/mariadb-operator/tree/main/docs/GALERA.md#data-plane">data-plane containers</a> that run alongside MariaDB to implement provisioning and high availability operations on the cluster. These containers use the <code>mariadb-operator</code> image, which can be automatically updated by the operator based on its image version:</p>
 <pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
 kind: MariaDB
