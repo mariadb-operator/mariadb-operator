@@ -111,6 +111,7 @@ _Appears in:_
 | `failedJobsHistoryLimit` _integer_ | FailedJobsHistoryLimit defines the maximum number of failed Jobs to be displayed. |  | Minimum: 0 <br /> |
 | `timeZone` _string_ | TimeZone defines the timezone associated with the cron expression. |  |  |
 | `mariaDbRef` _[MariaDBRef](#mariadbref)_ | MariaDBRef is a reference to a MariaDB object. |  | Required: \{\} <br /> |
+| `compression` _[CompressAlgorithm](#compressalgorithm)_ | Compression algorithm to be used in the Backup. |  | Enum: [none bzip2 gzip] <br /> |
 | `storage` _[BackupStorage](#backupstorage)_ | Storage to be used in the Backup. |  | Required: \{\} <br /> |
 | `schedule` _[Schedule](#schedule)_ | Schedule defines when the Backup will be taken. |  |  |
 | `maxRetention` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#duration-v1-meta)_ | MaxRetention defines the retention policy for backups. Old backups will be cleaned up by the Backup Job.<br />It defaults to 30 days. |  |  |
@@ -196,6 +197,24 @@ _Appears in:_
 | --- | --- |
 | `Skip` | CleanupPolicySkip indicates that the resource will NOT be deleted from the database after the CR is deleted.<br /> |
 | `Delete` | CleanupPolicyDelete indicates that the resource will be deleted from the database after the CR is deleted.<br /> |
+
+
+#### CompressAlgorithm
+
+_Underlying type:_ _string_
+
+CompressAlgorithm defines the compression algorithm for a Backup resource.
+
+
+
+_Appears in:_
+- [BackupSpec](#backupspec)
+
+| Field | Description |
+| --- | --- |
+| `none` | No compression<br /> |
+| `bzip2` | Bzip2 compression<br /> |
+| `gzip` | Gzip compression<br /> |
 
 
 #### ConfigMapKeySelector

@@ -208,6 +208,13 @@ spec:
                   successfully take a Backup.
                 format: int32
                 type: integer
+              compression:
+                description: Compression algorithm to be used in the Backup.
+                enum:
+                - none
+                - bzip2
+                - gzip
+                type: string
               databases:
                 description: Databases defines the logical databases to be backed
                   up. If not provided, all databases are backed up.
