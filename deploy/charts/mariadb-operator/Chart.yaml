@@ -5,7 +5,7 @@ home: https://github.com/mariadb-operator/mariadb-operator
 icon: https://mariadb-operator.github.io/mariadb-operator/assets/mariadb_profile.svg
 type: application
 version: 0.32.0
-appVersion: "v0.0.32"
+appVersion: "v0.0.33"
 kubeVersion: ">=1.26.0-0"
 maintainers:
   - email: martin.montes@mariadb.com
