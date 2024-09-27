@@ -4,7 +4,7 @@ description: Run and operate MariaDB in a cloud native way
 home: https://github.com/mariadb-operator/mariadb-operator
 icon: https://mariadb-operator.github.io/mariadb-operator/assets/mariadb_profile.svg
 type: application
-version: 0.32.0
+version: 0.33.0
 appVersion: "v0.0.33"
 kubeVersion: ">=1.26.0-0"
 maintainers:
@@ -21,6 +21,6 @@ keywords:
   - maxscale
 dependencies:
   - name: mariadb-operator-crds
-    version: "0.0.32"
+    version: "0.0.33"
     condition: crds.enabled
     repository: file://../mariadb-operator-crds
