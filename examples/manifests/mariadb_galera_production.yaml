@@ -55,6 +55,18 @@ spec:
     limits:
       memory: 4Gi
 
+  # Tune your liveness probe accordingly to avoid Pod restarts.
+  livenessProbe:
+    initialDelaySeconds: 20
+    periodSeconds: 5
+    timeoutSeconds: 5
+
+  # Tune your readiness probe accordingly to prevent disruptions in network traffic.
+  readinessProbe:
+    initialDelaySeconds: 20
+    periodSeconds: 5
+    timeoutSeconds: 5
+
   # innodb_buffer_pool_size: 80% of memory limits.
   myCnf: |
     [mariadb]
@@ -67,7 +79,7 @@ spec:
 
   # Select a node type with enough compute capacity.
   nodeSelector:
-    node.mycompany.io/type: compute
+    kubernetes.io/arch: amd64  
 
   # Schedule Pods in different Nodes to achieve real HA.
   affinity:
