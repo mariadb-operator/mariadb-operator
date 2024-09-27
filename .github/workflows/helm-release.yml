@@ -4,7 +4,6 @@ on:
   push:
     tags:
       - "mariadb-operator-*"
-  workflow_dispatch: {}
 
 jobs:
   manifests:
