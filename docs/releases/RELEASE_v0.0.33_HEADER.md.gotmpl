@@ -63,7 +63,7 @@ Helm has a 1MB size hard-limit on releases, which was an issue for us, as our [C
 
 To address this, we have reduced the size of our CRDs by replacing the upstream Kubernetes types, which were used directly in our CRDs, with a more lightweight version of these types that only contain the fields we support. See https://github.com/mariadb-operator/mariadb-operator/pull/869.
 
-Our [CRD bundle is now 580KB](https://github.com/mariadb-operator/mariadb-operator/blob/fcdab4bcb297fda0b82aa8b5e0fe22d00563f590/deploy/crds/crds.yaml), an ~81% slimmer than before!  🧹
+Our [CRD bundle is now 580KB](https://github.com/mariadb-operator/mariadb-operator/blob/v0.0.33/deploy/crds/crds.yaml), an ~81% slimmer than before!  🧹
 
 ### Single namespace deployment
 
