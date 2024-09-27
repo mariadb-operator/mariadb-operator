@@ -908,7 +908,7 @@ done
 helm install $CRDS_RELEASE_NAME -n $CRDS_RELEASE_NAMESPACE mariadb-operator/mariadb-operator-crds --version 0.0.32 
 </code></pre>
 <ul>
-<li>If you are using Galera, and you want the operator to automatically update the data plane (i.e. init and agent containers) to <code>v0.0.32</code>, you can set <code>updateStrategy.autoUpdateDataPlane=true</code> in your <code>MariaDB</code> resources:</li>
+<li>If you are using Galera, and you want the operator to automatically update the data-plane (i.e. init and agent containers) to <code>v0.0.32</code>, you can set <code>updateStrategy.autoUpdateDataPlane=true</code> in your <code>MariaDB</code> resources:</li>
 </ul>
 <pre><code class="language-diff">apiVersion: k8s.mariadb.com/v1alpha1
 kind: MariaDB
