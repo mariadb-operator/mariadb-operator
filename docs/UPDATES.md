@@ -16,7 +16,7 @@ To mitigate this, and to give you full control on the upgrade process, you are a
 - [`RollingUpdate`](#rollingupdate)
 - [`OnDelete`](#ondelete)
 - [`Never`](#never)
-- [Auto update data-plane](#auto-update-data-plane)
+- [Data-plane updates](#data-plane-updates)
 <!-- /toc -->
 
 ## Update strategies
@@ -128,7 +128,7 @@ The operator will not perform updates on the `StatefulSet` whenever this update 
 - __Progressive fleet upgrades__: If you're managing large fleets of databases, you likely prefer to roll out updates progressively rather than simultaneously across all instances.
 - __Operator upgrades__: When upgrading `mariadb-operator`, changes to the `StatefulSet` or the `Pod` template may occur from one version to another, which could trigger a rolling update of your `MariaDB` instances.
 
-## Auto update data-plane
+## Data-plane updates
 
 Galera relies on [data-plane containers](./GALERA.md#data-plane) that run alongside MariaDB to implement provisioning and high availability operations on the cluster. These containers use the `mariadb-operator` image, which can be automatically updated by the operator based on its image version:
 

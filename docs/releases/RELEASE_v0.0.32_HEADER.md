@@ -5,7 +5,7 @@ This release ships new features and improvements focused on fleet management, up
 
 To upgrade from older versions, be sure to follow the __[UPGRADE GUIDE](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/UPGRADE_v0.0.32.md)__.
 
-### Auto update data-plane
+### Data-plane updates
 
 Galera relies on [data-plane containers](https://github.com/mariadb-operator/mariadb-operator/tree/main/docs/GALERA.md#data-plane) that run alongside MariaDB to implement provisioning and high availability operations on the cluster. These containers use the `mariadb-operator` image, which can be automatically updated by the operator based on its image version:
 
