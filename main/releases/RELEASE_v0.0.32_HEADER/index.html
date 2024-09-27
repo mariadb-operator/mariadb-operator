@@ -866,7 +866,7 @@
         <li class="md-nav__item">
   <a href="#new-mariadb-operator-crds-helm-chart" class="md-nav__link">
     <span class="md-ellipsis">
-      New mariadb-operator-crds helm chart
+      New mariadb-operator-crds Helm chart
     </span>
   </a>
   
@@ -978,7 +978,7 @@
         <li class="md-nav__item">
   <a href="#new-mariadb-operator-crds-helm-chart" class="md-nav__link">
     <span class="md-ellipsis">
-      New mariadb-operator-crds helm chart
+      New mariadb-operator-crds Helm chart
     </span>
   </a>
   
@@ -1077,8 +1077,8 @@ spec:
     type: Never
 </code></pre>
 <p>It is important to note that this feature is fully compatible with <code>autoUpdateDataPlane</code>: no upgrades will happen when <code>updateStrategy.autoUpdateDataPlane=true</code> and <code>updateStrategy.type=Never</code>.</p>
-<h3 id="new-mariadb-operator-crds-helm-chart">New <code>mariadb-operator-crds</code> helm chart</h3>
-<p>Helm has certain <a href="https://helm.sh/docs/chart_best_practices/custom_resource_definitions/#some-caveats-and-explanations">limitations when it comes to manage CRDs</a>. To address this, we are providing the CRDs in a separate chart, <a href="https://helm.sh/docs/chart_best_practices/custom_resource_definitions/#method-2-separate-charts">as recommended by the official Helm documentation</a>. This allows us to manage the installation and updates of the CRDs independently from the operator. For example, you can uninstall the operator without impacting your existing <code>MariaDB</code> CRDs.</p>
+<h3 id="new-mariadb-operator-crds-helm-chart">New <code>mariadb-operator-crds</code> Helm chart</h3>
+<p>Helm has certain <a href="https://helm.sh/docs/chart_best_practices/custom_resource_definitions/#some-caveats-and-explanations">limitations when it comes to manage CRDs</a>. To address this, we are providing the CRDs in a separate chart, <a href="https://helm.sh/docs/chart_best_practices/custom_resource_definitions/#method-2-separate-charts">as recommended by the official Helm documentation</a>. This allows us to manage the installation and updates of the CRDs independently from the operator Helm chart. For example, you can uninstall the operator without impacting your existing <code>MariaDB</code> CRDs.</p>
 <p>CRDs can now be installed/upgraded in your cluster by running the following commands</p>
 <pre><code class="language-bash">helm repo add mariadb-operator https://helm.mariadb.com/mariadb-operator
 helm repo update
@@ -1088,11 +1088,11 @@ helm upgrade --install mariadb-operator-crds mariadb-operator/mariadb-operator-c
 <p>Have you seen this before?</p>
 <pre><code class="language-bash">Secret &quot;sh.helm.release.v1.x.v1&quot; is invalid: data: Too long: must have at most 1048576 character
 </code></pre>
-<p>Helm has a 1MB size hard-limit on releases, which was an issue for us as our <a href="https://github.com/mariadb-operator/mariadb-operator/blob/v0.0.31/deploy/crds/crds.yaml">CRD bundle was 3.1MB</a> in previous releases. This made it incompatible with Helm, leaving <code>kubectl apply</code> as the only option for upgrading CRDs.</p>
+<p>Helm has a 1MB size hard-limit on releases, which was an issue for us, as our <a href="https://github.com/mariadb-operator/mariadb-operator/blob/v0.0.31/deploy/crds/crds.yaml">CRD bundle was 3.1MB</a> in previous releases. This made it incompatible with Helm, leaving <code>kubectl apply</code> as the only option for upgrading CRDs.</p>
 <p>To address this, we have reduced the size of our CRDs by replacing the upstream Kubernetes types, which were used directly in our CRDs, with a more lightweight version of these types that only contain the fields we support. See https://github.com/mariadb-operator/mariadb-operator/pull/869.</p>
 <p>Our <a href="https://github.com/mariadb-operator/mariadb-operator/blob/fcdab4bcb297fda0b82aa8b5e0fe22d00563f590/deploy/crds/crds.yaml">CRD bundle is now 580KB</a>, an ~81% slimmer than before!  🧹</p>
 <h3 id="single-namespace-deployment">Single namespace deployment</h3>
-<p>By setting <code>currentNamespaceOnly=true</code> when installing the <code>mariadb-operator</code> helm chart, the operator will only watch CRDs within the namespace it is deployed in, and the RBAC permissions will be restricted to that namespace as well:</p>
+<p>By setting <code>currentNamespaceOnly=true</code> when installing the <code>mariadb-operator</code> Helm chart, the operator will only watch CRDs within the namespace it is deployed in, and the RBAC permissions will be restricted to that namespace as well:</p>
 <pre><code class="language-bash">helm repo add mariadb-operator https://helm.mariadb.com/mariadb-operator
 helm install mariadb-operator \
   -n databases --create-namespace \
@@ -1101,7 +1101,7 @@ helm install mariadb-operator \
 </code></pre>
 <p>This is more locked-down alternative to the default cluster-wide installation.</p>
 <h3 id="basic-auth-support-in-galera-agent">Basic auth support in Galera agent</h3>
-<p>By default, the operator uses its <code>ServiceAccount</code> token as a mean of  authentication for communicating with the agent, which subsequently verifies the token by creating a <a href="https://kubernetes.io/docs/reference/kubernetes-api/authentication-resources/token-review-v1/"><code>TokenReview</code> object</a>. This Kubernetes-native authentication mechanism eliminates the need for the operator to manage credentials, as it relies entirely on Kubernetes for this purpose. However, the drawback is that the agent requires cluster-wide permissions to impersonate the <a href="https://kubernetes.io/docs/reference/access-authn-authz/rbac/#other-component-roles"><code>system:auth-delegator</code></a> <code>ClusterRole</code> and to create <a href="https://kubernetes.io/docs/reference/kubernetes-api/authentication-resources/token-review-v1/"><code>TokenReviews</code></a>, which are cluster-scoped objects.</p>
+<p>By default, the operator uses its <code>ServiceAccount</code> token as a mean of  authentication for communicating with the Galera agent, which subsequently verifies the token by creating a <a href="https://kubernetes.io/docs/reference/kubernetes-api/authentication-resources/token-review-v1/"><code>TokenReview</code> object</a>. This Kubernetes-native authentication mechanism eliminates the need for the operator to manage credentials, as it relies entirely on Kubernetes for this purpose. However, the drawback is that the agent requires cluster-wide permissions to impersonate the <a href="https://kubernetes.io/docs/reference/access-authn-authz/rbac/#other-component-roles"><code>system:auth-delegator</code></a> <code>ClusterRole</code> and to create <a href="https://kubernetes.io/docs/reference/kubernetes-api/authentication-resources/token-review-v1/"><code>TokenReviews</code></a>, which are cluster-scoped objects.</p>
 <p>As an alternative, we are introducing basic authentication in the agent, which implies that the operator will need to explicitly manage credentials, but in return, it does not require cluster-wide permissions on the Kubernetes API. You can enable this by setting:</p>
 <pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
 kind: MariaDB
