@@ -19,6 +19,9 @@ jobs:
         id: tag
         run: echo "name=mariadb-operator-$(make helm-version)" >> $GITHUB_OUTPUT
 
+      - name: Helm generate
+        run: make helm-gen
+      
       - name: Generate manifests bundle
         run: make manifests-bundle
         env:
