@@ -1032,6 +1032,26 @@ spec:
         path: galera.agent.args
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:advanced
+      - description: BasicAuth to be used by the agent container
+        displayName: Basic Auth
+        path: galera.agent.basicAuth
+      - description: Enabled is a flag to enable BasicAuth
+        displayName: Enabled
+        path: galera.agent.basicAuth.enabled
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: PasswordSecretKeyRef to be used for basic authentication
+        displayName: Password Secret Key Ref
+        path: galera.agent.basicAuth.passwordSecretKeyRef
+      - description: Generate indicates whether the Secret should be generated if
+          the Secret referenced is not present.
+        displayName: Generate
+        path: galera.agent.basicAuth.passwordSecretKeyRef.generate
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Username to be used for basic authentication
+        displayName: Username
+        path: galera.agent.basicAuth.username
       - description: Command to be used in the Container.
         displayName: Command
         path: galera.agent.command
@@ -1225,24 +1245,7 @@ spec:
         path: galera.initJob
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: Affinity to be used in the Pod.
-        displayName: Affinity
-        path: galera.initJob.affinity
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: AntiAffinityEnabled configures PodAntiAffinity so each Pod is
-          scheduled in a different Node, enabling HA. Make sure you have at least
-          as many Nodes available as the replicas to not end up with unscheduled Pods.
-        displayName: Anti Affinity Enabled
-        path: galera.initJob.affinity.antiAffinityEnabled
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
-      - description: Args to be used in the Container.
-        displayName: Args
-        path: galera.initJob.args
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: Metadata defines additional metadata for the bootstrap Jobs.
+      - description: Metadata defines additional metadata for the Galera init Job.
         displayName: Metadata
         path: galera.initJob.metadata
         x-descriptors:
@@ -1410,20 +1413,8 @@ spec:
         path: initContainers[0].command
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: Env represents the environment variables to be injected in a
-          container.
-        displayName: Env
-        path: initContainers[0].env
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: EnvFrom represents the references (via ConfigMap and Secrets)
-          to environment variables to be injected in the container.
-        displayName: Env From
-        path: initContainers[0].envFrom
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: Image name to be used by the MariaDB instances. The supported
-          format is `<image>:<tag>`.
+      - description: Image name to be used by the container. The supported format
+          is `<image>:<tag>`.
         displayName: Image
         path: initContainers[0].image
       - description: ImagePullPolicy is the image pull policy. One of `Always`, `Never`
@@ -1433,27 +1424,11 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
         - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: LivenessProbe to be used in the Container.
-        displayName: Liveness Probe
-        path: initContainers[0].livenessProbe
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: ReadinessProbe to be used in the Container.
-        displayName: Readiness Probe
-        path: initContainers[0].readinessProbe
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Resouces describes the compute resource requirements.
         displayName: Resources
         path: initContainers[0].resources
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
-      - description: SecurityContext holds security configuration that will be applied
-          to a container.
-        displayName: Security Context
-        path: initContainers[0].securityContext
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: VolumeMounts to be used in the Container.
         displayName: Volume Mounts
         path: initContainers[0].volumeMounts
@@ -1923,28 +1898,6 @@ spec:
         path: maxScale.metrics.exporter.affinity.antiAffinityEnabled
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
-      - description: Args to be used in the Container.
-        displayName: Args
-        path: maxScale.metrics.exporter.args
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: Command to be used in the Container.
-        displayName: Command
-        path: maxScale.metrics.exporter.command
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: Env represents the environment variables to be injected in a
-          container.
-        displayName: Env
-        path: maxScale.metrics.exporter.env
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: EnvFrom represents the references (via ConfigMap and Secrets)
-          to environment variables to be injected in the container.
-        displayName: Env From
-        path: maxScale.metrics.exporter.envFrom
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: 'Image name to be used as metrics exporter. The supported format
           is `<image>:<tag>`. Only mysqld-exporter >= v0.15.0 is supported: https://github.com/prometheus/mysqld_exporter'
         displayName: Image
@@ -1959,75 +1912,6 @@ spec:
           the image.
         displayName: Image Pull Secrets
         path: maxScale.metrics.exporter.imagePullSecrets
-      - description: InitContainers to be used in the Pod.
-        displayName: Init Containers
-        path: maxScale.metrics.exporter.initContainers
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: Args to be used in the Container.
-        displayName: Args
-        path: maxScale.metrics.exporter.initContainers[0].args
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: Command to be used in the Container.
-        displayName: Command
-        path: maxScale.metrics.exporter.initContainers[0].command
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: Env represents the environment variables to be injected in a
-          container.
-        displayName: Env
-        path: maxScale.metrics.exporter.initContainers[0].env
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: EnvFrom represents the references (via ConfigMap and Secrets)
-          to environment variables to be injected in the container.
-        displayName: Env From
-        path: maxScale.metrics.exporter.initContainers[0].envFrom
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: Image name to be used by the MariaDB instances. The supported
-          format is `<image>:<tag>`.
-        displayName: Image
-        path: maxScale.metrics.exporter.initContainers[0].image
-      - description: ImagePullPolicy is the image pull policy. One of `Always`, `Never`
-          or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`.
-        displayName: Image Pull Policy
-        path: maxScale.metrics.exporter.initContainers[0].imagePullPolicy
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: LivenessProbe to be used in the Container.
-        displayName: Liveness Probe
-        path: maxScale.metrics.exporter.initContainers[0].livenessProbe
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: ReadinessProbe to be used in the Container.
-        displayName: Readiness Probe
-        path: maxScale.metrics.exporter.initContainers[0].readinessProbe
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: Resouces describes the compute resource requirements.
-        displayName: Resources
-        path: maxScale.metrics.exporter.initContainers[0].resources
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
-      - description: SecurityContext holds security configuration that will be applied
-          to a container.
-        displayName: Security Context
-        path: maxScale.metrics.exporter.initContainers[0].securityContext
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: VolumeMounts to be used in the Container.
-        displayName: Volume Mounts
-        path: maxScale.metrics.exporter.initContainers[0].volumeMounts
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: LivenessProbe to be used in the Container.
-        displayName: Liveness Probe
-        path: maxScale.metrics.exporter.livenessProbe
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: NodeSelector to be used in the Pod.
         displayName: Node Selector
         path: maxScale.metrics.exporter.nodeSelector
@@ -2060,110 +1944,14 @@ spec:
         path: maxScale.metrics.exporter.priorityClassName
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: ReadinessProbe to be used in the Container.
-        displayName: Readiness Probe
-        path: maxScale.metrics.exporter.readinessProbe
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Resouces describes the compute resource requirements.
         displayName: Resources
         path: maxScale.metrics.exporter.resources
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
-      - description: SecurityContext holds security configuration that will be applied
-          to a container.
-        displayName: Security Context
-        path: maxScale.metrics.exporter.securityContext
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: ServiceAccountName is the name of the ServiceAccount to be used
-          by the Pods.
-        displayName: Service Account Name
-        path: maxScale.metrics.exporter.serviceAccountName
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: SidecarContainers to be used in the Pod.
-        displayName: Sidecar Containers
-        path: maxScale.metrics.exporter.sidecarContainers
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: Args to be used in the Container.
-        displayName: Args
-        path: maxScale.metrics.exporter.sidecarContainers[0].args
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: Command to be used in the Container.
-        displayName: Command
-        path: maxScale.metrics.exporter.sidecarContainers[0].command
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: Env represents the environment variables to be injected in a
-          container.
-        displayName: Env
-        path: maxScale.metrics.exporter.sidecarContainers[0].env
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: EnvFrom represents the references (via ConfigMap and Secrets)
-          to environment variables to be injected in the container.
-        displayName: Env From
-        path: maxScale.metrics.exporter.sidecarContainers[0].envFrom
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: Image name to be used by the MariaDB instances. The supported
-          format is `<image>:<tag>`.
-        displayName: Image
-        path: maxScale.metrics.exporter.sidecarContainers[0].image
-      - description: ImagePullPolicy is the image pull policy. One of `Always`, `Never`
-          or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`.
-        displayName: Image Pull Policy
-        path: maxScale.metrics.exporter.sidecarContainers[0].imagePullPolicy
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: LivenessProbe to be used in the Container.
-        displayName: Liveness Probe
-        path: maxScale.metrics.exporter.sidecarContainers[0].livenessProbe
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: ReadinessProbe to be used in the Container.
-        displayName: Readiness Probe
-        path: maxScale.metrics.exporter.sidecarContainers[0].readinessProbe
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: Resouces describes the compute resource requirements.
-        displayName: Resources
-        path: maxScale.metrics.exporter.sidecarContainers[0].resources
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
-      - description: SecurityContext holds security configuration that will be applied
-          to a container.
-        displayName: Security Context
-        path: maxScale.metrics.exporter.sidecarContainers[0].securityContext
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: VolumeMounts to be used in the Container.
-        displayName: Volume Mounts
-        path: maxScale.metrics.exporter.sidecarContainers[0].volumeMounts
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Tolerations to be used in the Pod.
         displayName: Tolerations
         path: maxScale.metrics.exporter.tolerations
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: TopologySpreadConstraints to be used in the Pod.
-        displayName: Topology Spread Constraints
-        path: maxScale.metrics.exporter.topologySpreadConstraints
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: VolumeMounts to be used in the Container.
-        displayName: Volume Mounts
-        path: maxScale.metrics.exporter.volumeMounts
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: Volumes to be used in the Pod.
-        displayName: Volumes
-        path: maxScale.metrics.exporter.volumes
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: ServiceMonitor defines the ServiceMonior object.
@@ -2344,28 +2132,6 @@ spec:
         path: metrics.exporter.affinity.antiAffinityEnabled
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
-      - description: Args to be used in the Container.
-        displayName: Args
-        path: metrics.exporter.args
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: Command to be used in the Container.
-        displayName: Command
-        path: metrics.exporter.command
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: Env represents the environment variables to be injected in a
-          container.
-        displayName: Env
-        path: metrics.exporter.env
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: EnvFrom represents the references (via ConfigMap and Secrets)
-          to environment variables to be injected in the container.
-        displayName: Env From
-        path: metrics.exporter.envFrom
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: 'Image name to be used as metrics exporter. The supported format
           is `<image>:<tag>`. Only mysqld-exporter >= v0.15.0 is supported: https://github.com/prometheus/mysqld_exporter'
         displayName: Image
@@ -2380,75 +2146,6 @@ spec:
           the image.
         displayName: Image Pull Secrets
         path: metrics.exporter.imagePullSecrets
-      - description: InitContainers to be used in the Pod.
-        displayName: Init Containers
-        path: metrics.exporter.initContainers
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: Args to be used in the Container.
-        displayName: Args
-        path: metrics.exporter.initContainers[0].args
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: Command to be used in the Container.
-        displayName: Command
-        path: metrics.exporter.initContainers[0].command
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: Env represents the environment variables to be injected in a
-          container.
-        displayName: Env
-        path: metrics.exporter.initContainers[0].env
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: EnvFrom represents the references (via ConfigMap and Secrets)
-          to environment variables to be injected in the container.
-        displayName: Env From
-        path: metrics.exporter.initContainers[0].envFrom
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: Image name to be used by the MariaDB instances. The supported
-          format is `<image>:<tag>`.
-        displayName: Image
-        path: metrics.exporter.initContainers[0].image
-      - description: ImagePullPolicy is the image pull policy. One of `Always`, `Never`
-          or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`.
-        displayName: Image Pull Policy
-        path: metrics.exporter.initContainers[0].imagePullPolicy
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: LivenessProbe to be used in the Container.
-        displayName: Liveness Probe
-        path: metrics.exporter.initContainers[0].livenessProbe
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: ReadinessProbe to be used in the Container.
-        displayName: Readiness Probe
-        path: metrics.exporter.initContainers[0].readinessProbe
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: Resouces describes the compute resource requirements.
-        displayName: Resources
-        path: metrics.exporter.initContainers[0].resources
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
-      - description: SecurityContext holds security configuration that will be applied
-          to a container.
-        displayName: Security Context
-        path: metrics.exporter.initContainers[0].securityContext
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: VolumeMounts to be used in the Container.
-        displayName: Volume Mounts
-        path: metrics.exporter.initContainers[0].volumeMounts
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: LivenessProbe to be used in the Container.
-        displayName: Liveness Probe
-        path: metrics.exporter.livenessProbe
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: NodeSelector to be used in the Pod.
         displayName: Node Selector
         path: metrics.exporter.nodeSelector
@@ -2481,110 +2178,14 @@ spec:
         path: metrics.exporter.priorityClassName
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: ReadinessProbe to be used in the Container.
-        displayName: Readiness Probe
-        path: metrics.exporter.readinessProbe
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Resouces describes the compute resource requirements.
         displayName: Resources
         path: metrics.exporter.resources
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
-      - description: SecurityContext holds security configuration that will be applied
-          to a container.
-        displayName: Security Context
-        path: metrics.exporter.securityContext
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: ServiceAccountName is the name of the ServiceAccount to be used
-          by the Pods.
-        displayName: Service Account Name
-        path: metrics.exporter.serviceAccountName
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: SidecarContainers to be used in the Pod.
-        displayName: Sidecar Containers
-        path: metrics.exporter.sidecarContainers
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: Args to be used in the Container.
-        displayName: Args
-        path: metrics.exporter.sidecarContainers[0].args
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: Command to be used in the Container.
-        displayName: Command
-        path: metrics.exporter.sidecarContainers[0].command
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: Env represents the environment variables to be injected in a
-          container.
-        displayName: Env
-        path: metrics.exporter.sidecarContainers[0].env
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: EnvFrom represents the references (via ConfigMap and Secrets)
-          to environment variables to be injected in the container.
-        displayName: Env From
-        path: metrics.exporter.sidecarContainers[0].envFrom
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: Image name to be used by the MariaDB instances. The supported
-          format is `<image>:<tag>`.
-        displayName: Image
-        path: metrics.exporter.sidecarContainers[0].image
-      - description: ImagePullPolicy is the image pull policy. One of `Always`, `Never`
-          or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`.
-        displayName: Image Pull Policy
-        path: metrics.exporter.sidecarContainers[0].imagePullPolicy
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: LivenessProbe to be used in the Container.
-        displayName: Liveness Probe
-        path: metrics.exporter.sidecarContainers[0].livenessProbe
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: ReadinessProbe to be used in the Container.
-        displayName: Readiness Probe
-        path: metrics.exporter.sidecarContainers[0].readinessProbe
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: Resouces describes the compute resource requirements.
-        displayName: Resources
-        path: metrics.exporter.sidecarContainers[0].resources
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
-      - description: SecurityContext holds security configuration that will be applied
-          to a container.
-        displayName: Security Context
-        path: metrics.exporter.sidecarContainers[0].securityContext
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: VolumeMounts to be used in the Container.
-        displayName: Volume Mounts
-        path: metrics.exporter.sidecarContainers[0].volumeMounts
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Tolerations to be used in the Pod.
         displayName: Tolerations
         path: metrics.exporter.tolerations
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: TopologySpreadConstraints to be used in the Pod.
-        displayName: Topology Spread Constraints
-        path: metrics.exporter.topologySpreadConstraints
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: VolumeMounts to be used in the Container.
-        displayName: Volume Mounts
-        path: metrics.exporter.volumeMounts
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: Volumes to be used in the Pod.
-        displayName: Volumes
-        path: metrics.exporter.volumes
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: PasswordSecretKeyRef is a reference to the password of the monitoring
@@ -3169,20 +2770,8 @@ spec:
         path: sidecarContainers[0].command
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: Env represents the environment variables to be injected in a
-          container.
-        displayName: Env
-        path: sidecarContainers[0].env
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: EnvFrom represents the references (via ConfigMap and Secrets)
-          to environment variables to be injected in the container.
-        displayName: Env From
-        path: sidecarContainers[0].envFrom
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: Image name to be used by the MariaDB instances. The supported
-          format is `<image>:<tag>`.
+      - description: Image name to be used by the container. The supported format
+          is `<image>:<tag>`.
         displayName: Image
         path: sidecarContainers[0].image
       - description: ImagePullPolicy is the image pull policy. One of `Always`, `Never`
@@ -3192,27 +2781,11 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
         - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: LivenessProbe to be used in the Container.
-        displayName: Liveness Probe
-        path: sidecarContainers[0].livenessProbe
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: ReadinessProbe to be used in the Container.
-        displayName: Readiness Probe
-        path: sidecarContainers[0].readinessProbe
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Resouces describes the compute resource requirements.
         displayName: Resources
         path: sidecarContainers[0].resources
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
-      - description: SecurityContext holds security configuration that will be applied
-          to a container.
-        displayName: Security Context
-        path: sidecarContainers[0].securityContext
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: VolumeMounts to be used in the Container.
         displayName: Volume Mounts
         path: sidecarContainers[0].volumeMounts
@@ -3304,7 +2877,7 @@ spec:
       - description: AutoUpdateDataPlane indicates whether the Galera data-plane version
           (agent and init containers) should be automatically updated based on the
           operator version. It defaults to false. Updating the operator will trigger
-          updates on all the MariaDB instances that have this flag set to true. This,
+          updates on all the MariaDB instances that have this flag set to true. Thus,
           it is recommended to progressively set this flag after having updated the
           operator.
         displayName: Auto Update Data Plane
@@ -3816,70 +3389,6 @@ spec:
       - description: Labels to be added to children resources.
         displayName: Labels
         path: inheritMetadata.labels
-      - description: InitContainers to be used in the Pod.
-        displayName: Init Containers
-        path: initContainers
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: Args to be used in the Container.
-        displayName: Args
-        path: initContainers[0].args
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: Command to be used in the Container.
-        displayName: Command
-        path: initContainers[0].command
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: Env represents the environment variables to be injected in a
-          container.
-        displayName: Env
-        path: initContainers[0].env
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: EnvFrom represents the references (via ConfigMap and Secrets)
-          to environment variables to be injected in the container.
-        displayName: Env From
-        path: initContainers[0].envFrom
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: Image name to be used by the MariaDB instances. The supported
-          format is `<image>:<tag>`.
-        displayName: Image
-        path: initContainers[0].image
-      - description: ImagePullPolicy is the image pull policy. One of `Always`, `Never`
-          or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`.
-        displayName: Image Pull Policy
-        path: initContainers[0].imagePullPolicy
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: LivenessProbe to be used in the Container.
-        displayName: Liveness Probe
-        path: initContainers[0].livenessProbe
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: ReadinessProbe to be used in the Container.
-        displayName: Readiness Probe
-        path: initContainers[0].readinessProbe
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: Resouces describes the compute resource requirements.
-        displayName: Resources
-        path: initContainers[0].resources
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
-      - description: SecurityContext holds security configuration that will be applied
-          to a container.
-        displayName: Security Context
-        path: initContainers[0].securityContext
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: VolumeMounts to be used in the Container.
-        displayName: Volume Mounts
-        path: initContainers[0].volumeMounts
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: KubernetesService defines a template for a Kubernetes Service
           object to connect to MaxScale.
         displayName: Kubernetes Service
@@ -3966,28 +3475,6 @@ spec:
         path: metrics.exporter.affinity.antiAffinityEnabled
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
-      - description: Args to be used in the Container.
-        displayName: Args
-        path: metrics.exporter.args
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: Command to be used in the Container.
-        displayName: Command
-        path: metrics.exporter.command
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: Env represents the environment variables to be injected in a
-          container.
-        displayName: Env
-        path: metrics.exporter.env
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: EnvFrom represents the references (via ConfigMap and Secrets)
-          to environment variables to be injected in the container.
-        displayName: Env From
-        path: metrics.exporter.envFrom
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: 'Image name to be used as metrics exporter. The supported format
           is `<image>:<tag>`. Only mysqld-exporter >= v0.15.0 is supported: https://github.com/prometheus/mysqld_exporter'
         displayName: Image
@@ -4002,75 +3489,6 @@ spec:
           the image.
         displayName: Image Pull Secrets
         path: metrics.exporter.imagePullSecrets
-      - description: InitContainers to be used in the Pod.
-        displayName: Init Containers
-        path: metrics.exporter.initContainers
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: Args to be used in the Container.
-        displayName: Args
-        path: metrics.exporter.initContainers[0].args
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: Command to be used in the Container.
-        displayName: Command
-        path: metrics.exporter.initContainers[0].command
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: Env represents the environment variables to be injected in a
-          container.
-        displayName: Env
-        path: metrics.exporter.initContainers[0].env
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: EnvFrom represents the references (via ConfigMap and Secrets)
-          to environment variables to be injected in the container.
-        displayName: Env From
-        path: metrics.exporter.initContainers[0].envFrom
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: Image name to be used by the MariaDB instances. The supported
-          format is `<image>:<tag>`.
-        displayName: Image
-        path: metrics.exporter.initContainers[0].image
-      - description: ImagePullPolicy is the image pull policy. One of `Always`, `Never`
-          or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`.
-        displayName: Image Pull Policy
-        path: metrics.exporter.initContainers[0].imagePullPolicy
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: LivenessProbe to be used in the Container.
-        displayName: Liveness Probe
-        path: metrics.exporter.initContainers[0].livenessProbe
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: ReadinessProbe to be used in the Container.
-        displayName: Readiness Probe
-        path: metrics.exporter.initContainers[0].readinessProbe
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: Resouces describes the compute resource requirements.
-        displayName: Resources
-        path: metrics.exporter.initContainers[0].resources
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
-      - description: SecurityContext holds security configuration that will be applied
-          to a container.
-        displayName: Security Context
-        path: metrics.exporter.initContainers[0].securityContext
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: VolumeMounts to be used in the Container.
-        displayName: Volume Mounts
-        path: metrics.exporter.initContainers[0].volumeMounts
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: LivenessProbe to be used in the Container.
-        displayName: Liveness Probe
-        path: metrics.exporter.livenessProbe
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: NodeSelector to be used in the Pod.
         displayName: Node Selector
         path: metrics.exporter.nodeSelector
@@ -4103,110 +3521,14 @@ spec:
         path: metrics.exporter.priorityClassName
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: ReadinessProbe to be used in the Container.
-        displayName: Readiness Probe
-        path: metrics.exporter.readinessProbe
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Resouces describes the compute resource requirements.
         displayName: Resources
         path: metrics.exporter.resources
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
-      - description: SecurityContext holds security configuration that will be applied
-          to a container.
-        displayName: Security Context
-        path: metrics.exporter.securityContext
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: ServiceAccountName is the name of the ServiceAccount to be used
-          by the Pods.
-        displayName: Service Account Name
-        path: metrics.exporter.serviceAccountName
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: SidecarContainers to be used in the Pod.
-        displayName: Sidecar Containers
-        path: metrics.exporter.sidecarContainers
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: Args to be used in the Container.
-        displayName: Args
-        path: metrics.exporter.sidecarContainers[0].args
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: Command to be used in the Container.
-        displayName: Command
-        path: metrics.exporter.sidecarContainers[0].command
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: Env represents the environment variables to be injected in a
-          container.
-        displayName: Env
-        path: metrics.exporter.sidecarContainers[0].env
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: EnvFrom represents the references (via ConfigMap and Secrets)
-          to environment variables to be injected in the container.
-        displayName: Env From
-        path: metrics.exporter.sidecarContainers[0].envFrom
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: Image name to be used by the MariaDB instances. The supported
-          format is `<image>:<tag>`.
-        displayName: Image
-        path: metrics.exporter.sidecarContainers[0].image
-      - description: ImagePullPolicy is the image pull policy. One of `Always`, `Never`
-          or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`.
-        displayName: Image Pull Policy
-        path: metrics.exporter.sidecarContainers[0].imagePullPolicy
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: LivenessProbe to be used in the Container.
-        displayName: Liveness Probe
-        path: metrics.exporter.sidecarContainers[0].livenessProbe
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: ReadinessProbe to be used in the Container.
-        displayName: Readiness Probe
-        path: metrics.exporter.sidecarContainers[0].readinessProbe
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: Resouces describes the compute resource requirements.
-        displayName: Resources
-        path: metrics.exporter.sidecarContainers[0].resources
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
-      - description: SecurityContext holds security configuration that will be applied
-          to a container.
-        displayName: Security Context
-        path: metrics.exporter.sidecarContainers[0].securityContext
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: VolumeMounts to be used in the Container.
-        displayName: Volume Mounts
-        path: metrics.exporter.sidecarContainers[0].volumeMounts
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Tolerations to be used in the Pod.
         displayName: Tolerations
         path: metrics.exporter.tolerations
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: TopologySpreadConstraints to be used in the Pod.
-        displayName: Topology Spread Constraints
-        path: metrics.exporter.topologySpreadConstraints
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: VolumeMounts to be used in the Container.
-        displayName: Volume Mounts
-        path: metrics.exporter.volumeMounts
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: Volumes to be used in the Pod.
-        displayName: Volumes
-        path: metrics.exporter.volumes
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: ServiceMonitor defines the ServiceMonior object.
@@ -4433,70 +3755,6 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
         - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: SidecarContainers to be used in the Pod.
-        displayName: Sidecar Containers
-        path: sidecarContainers
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: Args to be used in the Container.
-        displayName: Args
-        path: sidecarContainers[0].args
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: Command to be used in the Container.
-        displayName: Command
-        path: sidecarContainers[0].command
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: Env represents the environment variables to be injected in a
-          container.
-        displayName: Env
-        path: sidecarContainers[0].env
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: EnvFrom represents the references (via ConfigMap and Secrets)
-          to environment variables to be injected in the container.
-        displayName: Env From
-        path: sidecarContainers[0].envFrom
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: Image name to be used by the MariaDB instances. The supported
-          format is `<image>:<tag>`.
-        displayName: Image
-        path: sidecarContainers[0].image
-      - description: ImagePullPolicy is the image pull policy. One of `Always`, `Never`
-          or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`.
-        displayName: Image Pull Policy
-        path: sidecarContainers[0].imagePullPolicy
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: LivenessProbe to be used in the Container.
-        displayName: Liveness Probe
-        path: sidecarContainers[0].livenessProbe
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: ReadinessProbe to be used in the Container.
-        displayName: Readiness Probe
-        path: sidecarContainers[0].readinessProbe
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: Resouces describes the compute resource requirements.
-        displayName: Resources
-        path: sidecarContainers[0].resources
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
-      - description: SecurityContext holds security configuration that will be applied
-          to a container.
-        displayName: Security Context
-        path: sidecarContainers[0].securityContext
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: VolumeMounts to be used in the Container.
-        displayName: Volume Mounts
-        path: sidecarContainers[0].volumeMounts
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Suspend indicates whether the current resource should be suspended
           or not. This can be useful for maintenance, as disabling the reconciliation
           prevents the operator from interfering with user operations during maintenance
@@ -4526,11 +3784,6 @@ spec:
       - description: VolumeMounts to be used in the Container.
         displayName: Volume Mounts
         path: volumeMounts
-        x-descriptors:
-        - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: Volumes to be used in the Pod.
-        displayName: Volumes
-        path: volumes
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:advanced
       statusDescriptors:

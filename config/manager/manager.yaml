@@ -53,7 +53,7 @@ spec:
             - name: RELATED_IMAGE_EXPORTER_MAXSCALE
               value: docker-registry2.mariadb.com/mariadb/maxscale-prometheus-exporter-ubi:v0.0.1
             - name: MARIADB_OPERATOR_IMAGE
-              value: docker-registry2.mariadb.com/mariadb/mariadb-operator-enterprise:v0.0.31
+              value: docker-registry2.mariadb.com/mariadb/mariadb-operator-enterprise:v0.0.32
             - name: MARIADB_GALERA_LIB_PATH
               value: /usr/lib64/galera/libgalera_smm.so
             - name: MARIADB_ENTRYPOINT_VERSION
