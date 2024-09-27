@@ -3301,7 +3301,7 @@ spec:
       - description: UpdateStrategy defines how a MariaDB resource is updated.
         displayName: Update Strategy
         path: updateStrategy
-      - description: AutoUpdateDataPlane indicates whether the Galera data plane version
+      - description: AutoUpdateDataPlane indicates whether the Galera data-plane version
           (agent and init containers) should be automatically updated based on the
           operator version. It defaults to false. Updating the operator will trigger
           updates on all the MariaDB instances that have this flag set to true. This,
