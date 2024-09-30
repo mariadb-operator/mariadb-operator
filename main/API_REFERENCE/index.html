@@ -436,6 +436,15 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#compressalgorithm" class="md-nav__link">
+    <span class="md-ellipsis">
+      CompressAlgorithm
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#configmapkeyselector" class="md-nav__link">
     <span class="md-ellipsis">
       ConfigMapKeySelector
@@ -1943,6 +1952,15 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#compressalgorithm" class="md-nav__link">
+    <span class="md-ellipsis">
+      CompressAlgorithm
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#configmapkeyselector" class="md-nav__link">
     <span class="md-ellipsis">
       ConfigMapKeySelector
@@ -3074,6 +3092,12 @@
 <td>Required: {} <br /></td>
 </tr>
 <tr>
+<td><code>compression</code> <em><a href="#compressalgorithm">CompressAlgorithm</a></em></td>
+<td>Compression algorithm to be used in the Backup.</td>
+<td></td>
+<td>Enum: [none bzip2 gzip] <br /></td>
+</tr>
+<tr>
 <td><code>storage</code> <em><a href="#backupstorage">BackupStorage</a></em></td>
 <td>Storage to be used in the Backup.</td>
 <td></td>
@@ -3266,6 +3290,33 @@
 <tr>
 <td><code>Delete</code></td>
 <td>CleanupPolicyDelete indicates that the resource will be deleted from the database after the CR is deleted.<br /></td>
+</tr>
+</tbody>
+</table>
+<h4 id="compressalgorithm">CompressAlgorithm</h4>
+<p><em>Underlying type:</em> <em>string</em></p>
+<p>CompressAlgorithm defines the compression algorithm for a Backup resource.</p>
+<p><em>Appears in:</em>
+- <a href="#backupspec">BackupSpec</a></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>none</code></td>
+<td>No compression<br /></td>
+</tr>
+<tr>
+<td><code>bzip2</code></td>
+<td>Bzip2 compression<br /></td>
+</tr>
+<tr>
+<td><code>gzip</code></td>
+<td>Gzip compression<br /></td>
 </tr>
 </tbody>
 </table>
