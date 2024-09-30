@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/dsnet/compress/bzip2"
+	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/backup"
 	"github.com/mariadb-operator/mariadb-operator/pkg/log"
@@ -99,13 +100,14 @@ var RootCmd = &cobra.Command{
 		}
 		logger.Info("obtained target backup", "file", backupTargetFile)
 
-		if compression != string(mariadbv1alpha1.CompressNone) {
-			logger.Info("compressing target backup", "file", backupTargetFile)
-			err := compressFile(filepath.Join(path, backupTargetFile), mariadbv1alpha1.CompressAlgorithm(compression))
-			if err != nil {
-				logger.Error(err, "error compressing file", "path", backupTargetFile, "error", err)
-				os.Exit(1)
-			}
+		err = compressFile(
+			filepath.Join(path, backupTargetFile),
+			mariadbv1alpha1.CompressAlgorithm(compression),
+			logger.WithName("compress"),
+		)
+		if err != nil {
+			logger.Error(err, "error compressing file", "path", backupTargetFile)
+			os.Exit(1)
 		}
 
 		logger.Info("pushing target backup", "file", backupTargetFile, "prefix", s3Prefix)
@@ -180,15 +182,19 @@ func readTargetFile() (string, error) {
 	return string(bytes), nil
 }
 
-func compressFile(f string, compression mariadbv1alpha1.CompressAlgorithm) error {
+func compressFile(fileName string, compression mariadbv1alpha1.CompressAlgorithm, logger logr.Logger) error {
+	if compression == mariadbv1alpha1.CompressNone {
+		return nil
+	}
+	logger.Info("compressing target backup", "file", fileName)
 
-	originalFile, err := os.Open(f)
+	originalFile, err := os.Open(fileName)
 	if err != nil {
 		return err
 	}
 	defer originalFile.Close()
 
-	tmpf := f + ".tmp"
+	tmpf := fileName + ".tmp"
 	compressedFile, err := os.Create(tmpf)
 	if err != nil {
 		return err
@@ -200,41 +206,34 @@ func compressFile(f string, compression mariadbv1alpha1.CompressAlgorithm) error
 	case mariadbv1alpha1.CompressGzip:
 		writer := gzip.NewWriter(compressedFile)
 		defer writer.Close()
-		_, err = io.Copy(writer, originalFile)
-		if err != nil {
-			return (err)
+		if _, err := io.Copy(writer, originalFile); err != nil {
+			return err
 		}
 		writer.Flush()
 
 	case mariadbv1alpha1.CompressBzip2:
 		writer, err := bzip2.NewWriter(compressedFile,
 			&bzip2.WriterConfig{Level: bzip2.DefaultCompression})
-		defer writer.Close()
 		if err != nil {
-			return (err)
+			return err
 		}
-		_, err = io.Copy(writer, originalFile)
-		if err != nil {
-			return (err)
+		defer writer.Close()
+		if _, err := io.Copy(writer, originalFile); err != nil {
+			return err
 		}
 
 	default:
-		err = os.Remove(tmpf)
-		if err != nil {
-			return (err)
+		if err := os.Remove(tmpf); err != nil {
+			return err
 		}
 		return errors.New("unknown compression algorithm")
 	}
 
-	err = os.Remove(f)
-	if err != nil {
-		return (err)
-	}
-
-	err = os.Rename(tmpf, f)
-	if err != nil {
+	if err := os.Remove(fileName); err != nil {
 		return err
 	}
-
+	if err := os.Rename(tmpf, fileName); err != nil {
+		return err
+	}
 	return nil
 }
