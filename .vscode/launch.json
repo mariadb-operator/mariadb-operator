@@ -98,6 +98,7 @@
         "--s3-region=us-east-1",
         "--s3-tls",
         "--s3-ca-cert-path=/tmp/certificate-authority/tls.crt",
+        "--compression=gzip",
         "--log-dev",
         "--log-level=info",
         "--log-time-encoder=iso8601",

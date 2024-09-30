@@ -226,17 +226,16 @@ func (b *BackupCommand) MariadbRestore(restore *mariadbv1alpha1.Restore,
 }
 
 func (b *BackupCommand) newBackupFile() string {
-	var calg string
-	switch b.Compression {
-	case mariadbv1alpha1.CompressNone:
-		calg = ""
-	default:
-		calg = fmt.Sprintf(".%v", b.Compression)
+	if b.Compression == mariadbv1alpha1.CompressNone {
+		return fmt.Sprintf(
+			"backup.$(date -u +'%s').sql",
+			"%Y-%m-%dT%H:%M:%SZ",
+		)
 	}
 	return fmt.Sprintf(
-		"backup.$(date -u +'%s')%s.sql",
+		"backup.$(date -u +'%s').%v.sql",
 		"%Y-%m-%dT%H:%M:%SZ",
-		calg,
+		b.Compression,
 	)
 }
 
