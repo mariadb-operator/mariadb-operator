@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
@@ -42,8 +43,18 @@ func TestIsValidBackupFile(t *testing.T) {
 			wantValid:  false,
 		},
 		{
+			name:       "invalid compression",
+			backupFile: "backup.2023-12-18 16:14.foo.sql",
+			wantValid:  false,
+		},
+		{
 			name:       "valid",
 			backupFile: "backup.2023-12-18T16:14:00Z.sql",
+			wantValid:  true,
+		},
+		{
+			name:       "valid with compression",
+			backupFile: "backup.2023-12-18T16:14:00Z.bzip2.sql",
 			wantValid:  true,
 		},
 	}
@@ -326,6 +337,128 @@ func TestGetBackupFilesToDelete(t *testing.T) {
 			backups := GetOldBackupFiles(tt.backupFiles, tt.maxRetention, logger)
 			if !reflect.DeepEqual(tt.wantBackups, backups) {
 				t.Fatalf("unexpected backup files, expected: %v got: %v", tt.wantBackups, backups)
+			}
+		})
+	}
+}
+
+func TestParseCompressionAlgorithm(t *testing.T) {
+	tests := []struct {
+		name         string
+		fileName     string
+		wantCompress mariadbv1alpha1.CompressAlgorithm
+		wantErr      bool
+	}{
+		{
+			name:         "empty",
+			fileName:     "",
+			wantCompress: mariadbv1alpha1.CompressAlgorithm(""),
+			wantErr:      true,
+		},
+		{
+			name:         "invalid",
+			fileName:     "foo",
+			wantCompress: mariadbv1alpha1.CompressAlgorithm(""),
+			wantErr:      true,
+		},
+		{
+			name:         "invalid format",
+			fileName:     "backup.sql",
+			wantCompress: mariadbv1alpha1.CompressAlgorithm(""),
+			wantErr:      true,
+		},
+		{
+			name:         "no compression",
+			fileName:     "backup.2023-12-22T13:00:00Z.sql",
+			wantCompress: mariadbv1alpha1.CompressNone,
+			wantErr:      false,
+		},
+		{
+			name:         "invalid compression",
+			fileName:     "backup.2023-12-22T13:00:00Z.foo.sql",
+			wantCompress: mariadbv1alpha1.CompressNone,
+			wantErr:      true,
+		},
+		{
+			name:         "compression",
+			fileName:     "backup.2023-12-22T13:00:00Z.gzip.sql",
+			wantCompress: mariadbv1alpha1.CompressGzip,
+			wantErr:      false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			compress, err := ParseCompressionAlgorithm(tt.fileName)
+			if tt.wantCompress != compress {
+				t.Fatalf("unexpected compression algorithm, expected: %v got: %v", tt.wantCompress, compress)
+			}
+			if tt.wantErr && err == nil {
+				t.Error("expect error to have occurred, got nil")
+			}
+			if !tt.wantErr && err != nil {
+				t.Errorf("expect error to not have occurred, got: %v", err)
+			}
+		})
+	}
+}
+
+func TestGetUncompressedBackupFile(t *testing.T) {
+	tests := []struct {
+		name         string
+		fileName     string
+		wantFileName string
+		wantErr      bool
+	}{
+		{
+			name:         "empty",
+			fileName:     "",
+			wantFileName: "",
+			wantErr:      true,
+		},
+		{
+			name:         "invalid",
+			fileName:     "foo",
+			wantFileName: "",
+			wantErr:      true,
+		},
+		{
+			name:         "invalid format",
+			fileName:     "backup.sql",
+			wantFileName: "",
+			wantErr:      true,
+		},
+		{
+			name:         "no compression",
+			fileName:     "backup.2023-12-22T13:00:00Z.sql",
+			wantFileName: "",
+			wantErr:      true,
+		},
+		{
+			name:         "invalid compression",
+			fileName:     "backup.2023-12-22T13:00:00Z.foo.sql",
+			wantFileName: "",
+			wantErr:      true,
+		},
+		{
+			name:         "compression",
+			fileName:     "backup.2023-12-22T13:00:00Z.gzip.sql",
+			wantFileName: "backup.2023-12-22T13:00:00Z.sql",
+			wantErr:      false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fileName, err := GetUncompressedBackupFile(tt.fileName)
+			if tt.wantFileName != fileName {
+				t.Fatalf("unexpected uncompressed file, expected: %v got: %v", tt.wantFileName, fileName)
+			}
+			if tt.wantErr && err == nil {
+				t.Error("expect error to have occurred, got nil")
+			}
+			if !tt.wantErr && err != nil {
+				t.Errorf("expect error to not have occurred, got: %v", err)
 			}
 		})
 	}

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 )
 
 const timeLayout = time.RFC3339
@@ -70,8 +71,44 @@ func IsValidBackupFile(fileName string) bool {
 	if !strings.HasPrefix(fileName, "backup.") || !strings.HasSuffix(fileName, ".sql") {
 		return false
 	}
-	_, err := parseDateInBackupFile(fileName)
+	_, err := ParseCompressionAlgorithm(fileName)
+	if err != nil {
+		return false
+	}
+	_, err = parseDateInBackupFile(fileName)
 	return err == nil
+}
+
+// ParseCompressionAlrogrithm gets the compression algorithm from the backup file name.
+func ParseCompressionAlgorithm(fileName string) (mariadbv1alpha1.CompressAlgorithm, error) {
+	parts := strings.Split(fileName, ".")
+	if len(parts) == 3 {
+		return mariadbv1alpha1.CompressNone, nil
+	}
+	if len(parts) != 4 {
+		return mariadbv1alpha1.CompressAlgorithm(""), fmt.Errorf("invalid backup file name: %s", fileName)
+	}
+
+	calg := mariadbv1alpha1.CompressAlgorithm(parts[2])
+	if err := calg.Validate(); err != nil {
+		return "", err
+	}
+	return calg, nil
+}
+
+// GetUncompressedBackupFile returns the file without the compression extension.
+// It will return an error if the file does not have compression. You may check this with ParseCompressionAlgorithm.
+func GetUncompressedBackupFile(compressedBackupFile string) (string, error) {
+	parts := strings.Split(compressedBackupFile, ".")
+	if len(parts) != 4 {
+		return "", fmt.Errorf("invalid compressed backup file name: %s", compressedBackupFile)
+	}
+
+	calg := mariadbv1alpha1.CompressAlgorithm(parts[2])
+	if err := calg.Validate(); err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%s.%s.%s", parts[0], parts[1], parts[3]), nil
 }
 
 // FormatBackupDate formats a time with the layout compatible with this module.
