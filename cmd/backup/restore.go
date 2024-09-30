@@ -6,10 +6,10 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/dsnet/compress/bzip2"
+	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/backup"
 	"github.com/mariadb-operator/mariadb-operator/pkg/log"
@@ -70,8 +70,7 @@ var restoreCommand = &cobra.Command{
 			os.Exit(1)
 		}
 
-		logger.Info("uncompressing file", "path", backupTargetFile)
-		backupFile, err := uncompressFile(path, backupTargetFile)
+		backupFile, err := uncompressFile(path, backupTargetFile, logger.WithName("uncompress"))
 		if err != nil {
 			logger.Error(err, "error uncompressing file", "path", backupTargetFile)
 			os.Exit(1)
@@ -96,38 +95,28 @@ func writeTargetFile(backupTargetFilePath string) error {
 	return os.WriteFile(targetFilePath, []byte(backupTargetFilePath), 0777)
 }
 
-func uncompressFile(path string, f string) (string, error) {
-
-	parts := strings.Split(f, ".")
-	if len(parts) == 3 {
-		// uncompressed file, do nothing
-		return f, nil
-	}
-
-	if len(parts) != 4 {
-		return "", fmt.Errorf("Invalid filename: %s", f)
-	}
-
-	calg := mariadbv1alpha1.CompressAlgorithm(parts[2])
-
-	err := calg.Validate()
+func uncompressFile(path string, fileName string, logger logr.Logger) (string, error) {
+	calg, err := backup.ParseCompressionAlgorithm(fileName)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("error parsing compression algorithm: %v", err)
 	}
-
 	if calg == mariadbv1alpha1.CompressNone {
-		// uncompressed file, do nothing
-		return f, nil
+		return fileName, nil
 	}
 
-	compressedFile, err := os.Open(filepath.Join(path, f))
+	fullPathFileName := filepath.Join(path, fileName)
+	logger.Info("uncompressing file", "path", fullPathFileName)
+
+	compressedFile, err := os.Open(fullPathFileName)
 	if err != nil {
 		return "", err
 	}
 	defer compressedFile.Close()
 
-	plainFileName := fmt.Sprintf("%s.%s.%s", parts[0], parts[1], parts[3])
-
+	plainFileName, err := backup.GetUncompressedBackupFile(fileName)
+	if err != nil {
+		return "", fmt.Errorf("error getting uncompressed file: %v", err)
+	}
 	plainFile, err := os.Create(filepath.Join(path, plainFileName))
 	if err != nil {
 		return "", err
@@ -135,16 +124,17 @@ func uncompressFile(path string, f string) (string, error) {
 	defer plainFile.Close()
 
 	switch calg {
+
 	case mariadbv1alpha1.CompressGzip:
 		reader, err := gzip.NewReader(compressedFile)
 		if err != nil {
 			return "", err
 		}
 		defer reader.Close()
-		_, err = io.Copy(plainFile, reader)
-		if err != nil {
+		if _, err = io.Copy(plainFile, reader); err != nil {
 			return "", err
 		}
+
 	case mariadbv1alpha1.CompressBzip2:
 		reader, err := bzip2.NewReader(compressedFile,
 			&bzip2.ReaderConfig{})
@@ -152,8 +142,7 @@ func uncompressFile(path string, f string) (string, error) {
 			return "", err
 		}
 		defer reader.Close()
-		_, err = io.Copy(plainFile, reader)
-		if err != nil {
+		if _, err = io.Copy(plainFile, reader); err != nil {
 			return "", err
 		}
 	}
