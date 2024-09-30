@@ -376,7 +376,7 @@ func TestParseCompressionAlgorithm(t *testing.T) {
 		{
 			name:         "invalid compression",
 			fileName:     "backup.2023-12-22T13:00:00Z.foo.sql",
-			wantCompress: mariadbv1alpha1.CompressNone,
+			wantCompress: mariadbv1alpha1.CompressAlgorithm(""),
 			wantErr:      true,
 		},
 		{
