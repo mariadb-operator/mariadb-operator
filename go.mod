@@ -12,7 +12,7 @@ require (
 	github.com/gruntwork-io/terratest v0.47.1
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/go-version v1.7.0
-	github.com/minio/minio-go/v7 v7.0.76
+	github.com/minio/minio-go/v7 v7.0.77
 	github.com/onsi/ginkgo/v2 v2.20.2
 	github.com/onsi/gomega v1.34.2
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.77.0
