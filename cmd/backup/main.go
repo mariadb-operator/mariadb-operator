@@ -59,12 +59,6 @@ func init() {
 	RootCmd.PersistentFlags().StringVar(&compression, "compression", string(mariadbv1alpha1.CompressNone),
 		"Compression algorithm, none, gzip or bzip2.")
 
-	err := mariadbv1alpha1.CompressAlgorithm(compression).Validate()
-	if err != nil {
-		fmt.Printf("compression algorithm not supported: %v", err)
-		os.Exit(1)
-	}
-
 	RootCmd.Flags().DurationVar(&maxRetention, "max-retention", 30*24*time.Hour,
 		"Defines the retention policy for backups. Older backups will be deleted.")
 
@@ -85,6 +79,11 @@ var RootCmd = &cobra.Command{
 
 		ctx, cancel := newContext()
 		defer cancel()
+
+		if err := mariadbv1alpha1.CompressAlgorithm(compression).Validate(); err != nil {
+			fmt.Printf("compression algorithm not supported: %v", err)
+			os.Exit(1)
+		}
 
 		backupStorage, err := getBackupStorage()
 		if err != nil {
