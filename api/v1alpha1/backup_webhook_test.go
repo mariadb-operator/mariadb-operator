@@ -40,7 +40,8 @@ var _ = Describe("Backup webhook", func() {
 								},
 							},
 						},
-						Storage: BackupStorage{},
+						Compression: CompressGzip,
+						Storage:     BackupStorage{},
 						MariaDBRef: MariaDBRef{
 							ObjectReference: ObjectReference{
 								Name: "mariadb-webhook",
@@ -68,6 +69,7 @@ var _ = Describe("Backup webhook", func() {
 								},
 							},
 						},
+						Compression: CompressGzip,
 						Storage: BackupStorage{
 							S3: &S3{
 								Bucket:   "test",
@@ -106,6 +108,7 @@ var _ = Describe("Backup webhook", func() {
 								},
 							},
 						},
+						Compression: CompressGzip,
 						Storage: BackupStorage{
 							S3: &S3{
 								Bucket:   "test",
@@ -125,6 +128,40 @@ var _ = Describe("Backup webhook", func() {
 				false,
 			),
 			Entry(
+				"Invalid compression",
+				&Backup{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "backup-invalid-storage",
+						Namespace: testNamespace,
+					},
+					Spec: BackupSpec{
+						JobContainerTemplate: JobContainerTemplate{
+							Resources: &ResourceRequirements{
+								Requests: corev1.ResourceList{
+									"cpu": resource.MustParse("100m"),
+								},
+							},
+						},
+						Compression: CompressAlgorithm("foo"),
+						Storage: BackupStorage{
+							S3: &S3{
+								Bucket:   "test",
+								Endpoint: "test",
+							},
+						},
+						MariaDBRef: MariaDBRef{
+							ObjectReference: ObjectReference{
+								Name: "mariadb-webhook",
+							},
+							WaitForIt: true,
+						},
+						BackoffLimit:  10,
+						RestartPolicy: corev1.RestartPolicyOnFailure,
+					},
+				},
+				true,
+			),
+			Entry(
 				"Invalid schedule",
 				&Backup{
 					ObjectMeta: metav1.ObjectMeta{
@@ -142,6 +179,7 @@ var _ = Describe("Backup webhook", func() {
 						Schedule: &Schedule{
 							Cron: "foo",
 						},
+						Compression: CompressGzip,
 						Storage: BackupStorage{
 							S3: &S3{
 								Bucket:   "test",
@@ -178,6 +216,7 @@ var _ = Describe("Backup webhook", func() {
 						Schedule: &Schedule{
 							Cron: "*/1 * * * *",
 						},
+						Compression: CompressGzip,
 						Storage: BackupStorage{
 							S3: &S3{
 								Bucket:   "test",
@@ -218,6 +257,7 @@ var _ = Describe("Backup webhook", func() {
 						Schedule: &Schedule{
 							Cron: "*/1 * * * *",
 						},
+						Compression: CompressGzip,
 						Storage: BackupStorage{
 							S3: &S3{
 								Bucket:   "test",
@@ -254,6 +294,7 @@ var _ = Describe("Backup webhook", func() {
 						Schedule: &Schedule{
 							Cron: "*/1 * * * *",
 						},
+						Compression: CompressGzip,
 						Storage: BackupStorage{
 							S3: &S3{
 								Bucket:   "test",
@@ -299,6 +340,7 @@ var _ = Describe("Backup webhook", func() {
 						},
 					},
 					MaxRetention: metav1.Duration{Duration: 12 * time.Hour},
+					Compression:  CompressNone,
 					Storage: BackupStorage{
 						S3: &S3{
 							Bucket:   "test",
@@ -384,6 +426,13 @@ var _ = Describe("Backup webhook", func() {
 					bmdb.Spec.MaxRetention = metav1.Duration{Duration: 24 * time.Hour}
 				},
 				true,
+			),
+			Entry(
+				"Updating Compression",
+				func(bmdb *Backup) {
+					bmdb.Spec.Compression = CompressBzip2
+				},
+				false,
 			),
 			Entry(
 				"Updating Storage",
