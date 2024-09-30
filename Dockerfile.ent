@@ -15,7 +15,7 @@ RUN go mod download
 COPY . /app
 RUN go build -o mariadb-operator-enterprise cmd/enterprise/*.go
 
-FROM registry.access.redhat.com/ubi8/ubi-micro:8.10-11 AS app
+FROM registry.access.redhat.com/ubi8/ubi-micro:8.10-13 AS app
 
 WORKDIR /
 COPY --from=builder /licenses /licenses
