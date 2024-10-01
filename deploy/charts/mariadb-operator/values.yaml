@@ -27,6 +27,7 @@ currentNamespaceOnly: false
 
 ha:
   # -- Enable high availability
+  # If you enable it we recommend to set `affinity` and `pdb`
   enabled: false
   # -- Number of replicas
   replicas: 3
@@ -262,3 +263,9 @@ certController:
   tolerations: []
   # -- Affinity to add to controller Pod
   affinity: {}
+
+pdb:
+  # -- Enable PodDisruptionBudget for the controller. 
+  enabled: false
+  # -- Maximum number of unavailable Pods. 
+  maxUnavailable: 1
