@@ -45,6 +45,9 @@ GOCOVERDIR ?= .
 test: envtest ginkgo ## Run unit tests.
 	$(TEST) ./pkg/... ./api/... ./internal/helmtest/...
 
+test-helm: envtest ginkgo ## Run helm unit tests.
+	$(TEST) ./internal/helmtest/...
+
 .PHONY: test-int
 test-int: envtest ginkgo ## Run integration tests.
 	$(TEST) ./internal/controller/...

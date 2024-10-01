@@ -267,5 +267,5 @@ certController:
 pdb:
   # -- Enable PodDisruptionBudget for the controller. 
   enabled: false
-  # -- Maximum number of unavailable Pods. 
+  # -- Maximum number of unavailable Pods. You may also give a percentage, like `50%`
   maxUnavailable: 1
