@@ -9,6 +9,7 @@ import (
 	"github.com/gruntwork-io/terratest/modules/k8s"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	policyv1 "k8s.io/api/policy/v1"
 )
 
 var (
@@ -233,6 +234,82 @@ func TestHelmCertController(t *testing.T) {
 	}
 	testHelmTemplates(t, opts, expectedTemplates, unexpectedTemplates)
 }
+
+func TestHelmHaEnabled(t *testing.T) {
+	RegisterTestingT(t)
+	opts := &helm.Options{
+		SetValues: map[string]string{
+			"ha.enabled": `true`,
+		},
+		KubectlOptions: &k8s.KubectlOptions{
+			Namespace: testNamespace,
+		},
+	}
+
+	deploymentData := helm.RenderTemplate(t, opts, helmChartPath, helmReleaseName, []string{"templates/deployment.yaml"})
+	var deployment appsv1.Deployment
+	helm.UnmarshalK8SYaml(t, deploymentData, &deployment)
+
+	container := deployment.Spec.Template.Spec.Containers[0]
+	Expect(container.Name).To(Equal("controller"))
+
+	replicas := int(*deployment.Spec.Replicas)
+	Expect(replicas).To(Equal(3))
+	Expect(container.Args).To(ContainElement("--leader-elect"))
+}
+
+func TestHelmPDBEnabled(t *testing.T) {
+	RegisterTestingT(t)
+	opts := &helm.Options{
+		SetValues: map[string]string{
+			"pdb.enabled": `true`,
+		},
+		KubectlOptions: &k8s.KubectlOptions{
+			Namespace: testNamespace,
+		},
+	}
+	pdbData := helm.RenderTemplate(t, opts, helmChartPath, helmReleaseName, []string{"templates/pdb.yaml"})
+	var pdb policyv1.PodDisruptionBudget
+	helm.UnmarshalK8SYaml(t, pdbData, &pdb)
+	maxUnavailable := pdb.Spec.MaxUnavailable.IntValue()
+	Expect(maxUnavailable).To(Equal(1))
+
+	opts = &helm.Options{
+		SetValues: map[string]string{
+			"pdb.enabled": `true`,
+			"pdb.maxUnavailable": "50%",
+		},
+		KubectlOptions: &k8s.KubectlOptions{
+			Namespace: testNamespace,
+		},
+	}
+	pdbData = helm.RenderTemplate(t, opts, helmChartPath, helmReleaseName, []string{"templates/pdb.yaml"})
+	helm.UnmarshalK8SYaml(t, pdbData, &pdb)
+	maxUnavailablePercent := pdb.Spec.MaxUnavailable.String()
+	Expect(maxUnavailablePercent).To(Equal("50%"))
+
+
+	expectedTemplates := []string{
+		"templates/pdb.yaml",
+	}
+	unexpectedTemplates := []string{}
+	testHelmTemplates(t, opts, expectedTemplates, unexpectedTemplates)
+
+	opts = &helm.Options{
+		SetValues: map[string]string{
+			"pdb.enabled": `false`,
+		},
+		KubectlOptions: &k8s.KubectlOptions{
+			Namespace: testNamespace,
+		},
+	}
+	expectedTemplates = []string{}
+	unexpectedTemplates = []string{
+		"templates/pdb.yaml",
+	}
+	testHelmTemplates(t, opts, expectedTemplates, unexpectedTemplates)
+}
+
 
 func testHelmTemplates(t *testing.T, opts *helm.Options, expectedTemplates, unexpectedTemplates []string) {
 	for _, tpl := range expectedTemplates {
