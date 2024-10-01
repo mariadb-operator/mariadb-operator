@@ -63,7 +63,7 @@ Refer to the [helm documentation](https://github.com/mariadb-operator/mariadb-op
 | extraVolumeMounts | list | `[]` | Extra volumes to mount to the container. |
 | extraVolumes | list | `[]` | Extra volumes to pass to pod. |
 | fullnameOverride | string | `""` |  |
-| ha.enabled | bool | `false` | Enable high availability If you enable it we recommend to set `affinity` and `pdb` |
+| ha.enabled | bool | `false` | Enable high availability. If you enable it we recommend to set `affinity` and `pdb` |
 | ha.replicas | int | `3` | Number of replicas |
 | image.pullPolicy | string | `"IfNotPresent"` |  |
 | image.repository | string | `"docker-registry3.mariadb.com/mariadb-operator/mariadb-operator"` |  |

@@ -26,7 +26,7 @@ clusterName: cluster.local
 currentNamespaceOnly: false
 
 ha:
-  # -- Enable high availability
+  # -- Enable high availability.
   # If you enable it we recommend to set `affinity` and `pdb`
   enabled: false
   # -- Number of replicas
