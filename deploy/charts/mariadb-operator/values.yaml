@@ -26,7 +26,7 @@ clusterName: cluster.local
 currentNamespaceOnly: false
 
 ha:
-  # -- Enable high availability.
+  # -- Enable high availability of the controller.
   # If you enable it we recommend to set `affinity` and `pdb`
   enabled: false
   # -- Number of replicas
@@ -106,6 +106,21 @@ tolerations: []
 
 # -- Affinity to add to controller Pod
 affinity: {}
+  #  Sample on how to create an antiAffinity rule that place
+  #  the pods on different nodes, to be used together with `ha.enabled: true`
+  # podAntiAffinity:
+  #   requiredDuringSchedulingIgnoredDuringExecution:
+  #   - labelSelector:
+  #       matchExpressions:
+  #       - key: app.kubernetes.io/name
+  #         operator: In
+  #         values:
+  #         - mariadb-operator
+  #       - key: app.kubernetes.io/instance
+  #         operator: In
+  #         values:
+  #         - mariadb-operator
+  #     topologyKey: kubernetes.io/hostname
 
 webhook:
   # -- Specifies whether the webhook should be created.
