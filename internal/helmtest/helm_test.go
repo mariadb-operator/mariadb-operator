@@ -276,7 +276,7 @@ func TestHelmPDBEnabled(t *testing.T) {
 
 	opts = &helm.Options{
 		SetValues: map[string]string{
-			"pdb.enabled": `true`,
+			"pdb.enabled":        `true`,
 			"pdb.maxUnavailable": "50%",
 		},
 		KubectlOptions: &k8s.KubectlOptions{
@@ -287,7 +287,6 @@ func TestHelmPDBEnabled(t *testing.T) {
 	helm.UnmarshalK8SYaml(t, pdbData, &pdb)
 	maxUnavailablePercent := pdb.Spec.MaxUnavailable.String()
 	Expect(maxUnavailablePercent).To(Equal("50%"))
-
 
 	expectedTemplates := []string{
 		"templates/pdb.yaml",
@@ -309,7 +308,6 @@ func TestHelmPDBEnabled(t *testing.T) {
 	}
 	testHelmTemplates(t, opts, expectedTemplates, unexpectedTemplates)
 }
-
 
 func testHelmTemplates(t *testing.T, opts *helm.Options, expectedTemplates, unexpectedTemplates []string) {
 	for _, tpl := range expectedTemplates {
