@@ -63,14 +63,14 @@ The mariadb-operator uses a variety of docker images depending on how it’s con
        <td>Public</td>
       <td><code>v0.0.33</code></td>
       <td><code>amd64</code> <code>arm64</code></td>
-	  <td><code>docker pull docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:v0.0.30</code></td>
+	  <td><code>docker pull docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:v0.0.33</code></td>
     </tr>
          <tr>
       <td>Enterprise Operator</td>
        <td>Public</td>
       <td><code>v0.0.33</code></td>
       <td><code>amd64</code> <code>arm64</code></td>
-	  <td><code>docker pull docker-registry2.mariadb.com/mariadb/mariadb-operator-enterprise:v0.0.30</code></td>
+	  <td><code>docker pull docker-registry2.mariadb.com/mariadb/mariadb-operator-enterprise:v0.0.33</code></td>
     </tr>
   </tbody>
 </table>
