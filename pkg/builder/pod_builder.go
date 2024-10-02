@@ -21,6 +21,7 @@ type mariadbPodOpts struct {
 	restartPolicy                *corev1.RestartPolicy
 	resources                    *corev1.ResourceRequirements
 	affinity                     *corev1.Affinity
+	nodeSelector                 map[string]string
 	extraVolumes                 []corev1.Volume
 	extraVolumeMounts            []corev1.VolumeMount
 	includeMariadbResources      bool
@@ -93,6 +94,12 @@ func withAffinity(affinity *corev1.Affinity) mariadbPodOpt {
 func withAffinityEnabled(includeAffinity bool) mariadbPodOpt {
 	return func(opts *mariadbPodOpts) {
 		opts.includeAffinity = includeAffinity
+	}
+}
+
+func withNodeSelector(nodeSelector map[string]string) mariadbPodOpt {
+	return func(opts *mariadbPodOpts) {
+		opts.nodeSelector = nodeSelector
 	}
 }
 
@@ -202,7 +209,7 @@ func (b *Builder) mariadbPodTemplate(mariadb *mariadbv1alpha1.MariaDB, opts ...m
 			Volumes:                      mariadbVolumes(mariadb, opts...),
 			SecurityContext:              securityContext,
 			Affinity:                     mariadbAffinity(mariadb, opts...),
-			NodeSelector:                 mariadb.Spec.NodeSelector,
+			NodeSelector:                 mariadbNodeSelector(mariadb, opts...),
 			Tolerations:                  mariadb.Spec.Tolerations,
 			PriorityClassName:            ptr.Deref(mariadb.Spec.PriorityClassName, ""),
 			TopologySpreadConstraints:    mariadbTopologySpreadConstraints(mariadb, opts...),
@@ -271,6 +278,15 @@ func mariadbAffinity(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt) *c
 		return ptr.To(mariadb.Spec.Affinity.ToKubernetesType())
 	}
 	return nil
+}
+
+func mariadbNodeSelector(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt) map[string]string {
+	mariadbOpts := newMariadbPodOpts(opts...)
+
+	if mariadbOpts.nodeSelector != nil {
+		return mariadbOpts.nodeSelector
+	}
+	return mariadb.Spec.NodeSelector
 }
 
 func mariadbTopologySpreadConstraints(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt) []corev1.TopologySpreadConstraint {

@@ -1125,6 +1125,14 @@ func TestGaleraRecoveryJobImagePullSecrets(t *testing.T) {
 	objMeta := metav1.ObjectMeta{
 		Name: "recovery-job-pull-secrets",
 	}
+	pod := corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "mariadb-galera-0",
+		},
+		Spec: corev1.PodSpec{
+			NodeName: "compute-0",
+		},
+	}
 	tests := []struct {
 		name            string
 		mariadb         *mariadbv1alpha1.MariaDB
@@ -1179,7 +1187,7 @@ func TestGaleraRecoveryJobImagePullSecrets(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			job, err := builder.BuildGaleraRecoveryJob(key, tt.mariadb, 0)
+			job, err := builder.BuildGaleraRecoveryJob(key, tt.mariadb, &pod)
 			if err != nil {
 				t.Fatalf("unexpected error building Job: %v", err)
 			}
@@ -1197,6 +1205,14 @@ func TestGaleraRecoveryJobMeta(t *testing.T) {
 	}
 	mariadbObjMeta := metav1.ObjectMeta{
 		Name: "mariadb-obj",
+	}
+	pod := corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "mariadb-galera-0",
+		},
+		Spec: corev1.PodSpec{
+			NodeName: "compute-0",
+		},
 	}
 	tests := []struct {
 		name        string
@@ -1450,7 +1466,7 @@ func TestGaleraRecoveryJobMeta(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			job, err := builder.BuildGaleraRecoveryJob(key, tt.mariadb, 0)
+			job, err := builder.BuildGaleraRecoveryJob(key, tt.mariadb, &pod)
 			if err != nil {
 				t.Fatalf("unexpected error building Galera recovery Job: %v", err)
 			}
@@ -1467,6 +1483,14 @@ func TestGaleraRecoveryJobVolumes(t *testing.T) {
 	}
 	objMeta := metav1.ObjectMeta{
 		Name: "mariadb-obj",
+	}
+	pod := corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "mariadb-galera-0",
+		},
+		Spec: corev1.PodSpec{
+			NodeName: "compute-0",
+		},
 	}
 	tests := []struct {
 		name        string
@@ -1558,7 +1582,7 @@ func TestGaleraRecoveryJobVolumes(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			job, err := builder.BuildGaleraRecoveryJob(key, tt.mariadb, 0)
+			job, err := builder.BuildGaleraRecoveryJob(key, tt.mariadb, &pod)
 			if err != nil {
 				t.Errorf("unexpected error building Galera recovery Job: %v", err)
 			}
@@ -1571,7 +1595,7 @@ func TestGaleraRecoveryJobVolumes(t *testing.T) {
 	}
 }
 
-func TestGaleraRecoveryJobAffinity(t *testing.T) {
+func TestGaleraRecoveryJobNodeSelector(t *testing.T) {
 	builder := newDefaultTestBuilder(t)
 	key := types.NamespacedName{
 		Name: "job-obj",
@@ -1580,13 +1604,13 @@ func TestGaleraRecoveryJobAffinity(t *testing.T) {
 		Name: "mariadb-obj",
 	}
 	tests := []struct {
-		name         string
-		mariadb      *mariadbv1alpha1.MariaDB
-		podIndex     int
-		wantAffinity *corev1.Affinity
+		name             string
+		mariadb          *mariadbv1alpha1.MariaDB
+		pod              *corev1.Pod
+		wantNodeSelector map[string]string
 	}{
 		{
-			name: "no recovery Job affinity",
+			name: "no recovery Job nodeSelector",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
@@ -1606,11 +1630,18 @@ func TestGaleraRecoveryJobAffinity(t *testing.T) {
 					},
 				},
 			},
-			podIndex:     0,
-			wantAffinity: nil,
+			pod: &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "mariadb-galera-0",
+				},
+				Spec: corev1.PodSpec{
+					NodeName: "compute-0",
+				},
+			},
+			wantNodeSelector: nil,
 		},
 		{
-			name: "recovery Job affinity",
+			name: "recovery Job nodeSelector",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
@@ -1630,41 +1661,28 @@ func TestGaleraRecoveryJobAffinity(t *testing.T) {
 					},
 				},
 			},
-			podIndex: 0,
-			wantAffinity: &corev1.Affinity{
-				PodAffinity: &corev1.PodAffinity{
-					RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
-						{
-							LabelSelector: &metav1.LabelSelector{
-								MatchExpressions: []metav1.LabelSelectorRequirement{
-									{
-										Key:      "app.kubernetes.io/instance",
-										Operator: metav1.LabelSelectorOpIn,
-										Values:   []string{objMeta.Name},
-									},
-									{
-										Key:      "apps.kubernetes.io/pod-index",
-										Operator: metav1.LabelSelectorOpIn,
-										Values:   []string{"0"},
-									},
-								},
-							},
-							TopologyKey: "kubernetes.io/hostname",
-						},
-					},
+			pod: &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "mariadb-galera-0",
 				},
+				Spec: corev1.PodSpec{
+					NodeName: "compute-0",
+				},
+			},
+			wantNodeSelector: map[string]string{
+				"kubernetes.io/hostname": "compute-0",
 			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			job, err := builder.BuildGaleraRecoveryJob(key, tt.mariadb, tt.podIndex)
+			job, err := builder.BuildGaleraRecoveryJob(key, tt.mariadb, tt.pod)
 			if err != nil {
 				t.Errorf("unexpected error building Galera recovery Job: %v", err)
 			}
-			if !reflect.DeepEqual(tt.wantAffinity, job.Spec.Template.Spec.Affinity) {
-				t.Errorf("unexpected Affinity, want: %v got: %v", tt.wantAffinity, job.Spec.Template.Spec.Affinity)
+			if !reflect.DeepEqual(tt.wantNodeSelector, job.Spec.Template.Spec.NodeSelector) {
+				t.Errorf("unexpected nodeSelector, want: %v got: %v", tt.wantNodeSelector, job.Spec.Template.Spec.NodeSelector)
 			}
 		})
 	}
@@ -1677,6 +1695,14 @@ func TestGaleraRecoveryJobResources(t *testing.T) {
 	}
 	objMeta := metav1.ObjectMeta{
 		Name: "mariadb-obj",
+	}
+	pod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "mariadb-galera-0",
+		},
+		Spec: corev1.PodSpec{
+			NodeName: "compute-0",
+		},
 	}
 	tests := []struct {
 		name          string
@@ -1756,7 +1782,7 @@ func TestGaleraRecoveryJobResources(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			job, err := builder.BuildGaleraRecoveryJob(key, tt.mariadb, 0)
+			job, err := builder.BuildGaleraRecoveryJob(key, tt.mariadb, pod)
 			if err != nil {
 				t.Fatalf("unexpected error building Galera recovery Job: %v", err)
 			}

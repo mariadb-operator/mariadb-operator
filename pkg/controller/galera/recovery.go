@@ -24,6 +24,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	"github.com/mariadb-operator/mariadb-operator/pkg/wait"
 	"golang.org/x/sync/errgroup"
+	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -31,18 +32,25 @@ import (
 	klabels "k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func (r *GaleraReconciler) reconcileRecovery(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, logger logr.Logger) error {
+func (r *GaleraReconciler) reconcileRecovery(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+	logger logr.Logger) (ctrl.Result, error) {
 	pods, err := r.getPods(ctx, mariadb)
 	if err != nil {
-		return fmt.Errorf("error getting Pods: %v", err)
+		return ctrl.Result{}, fmt.Errorf("error getting Pods: %v", err)
 	}
+	if len(pods) == 0 {
+		logger.Info("No Pods to recover. Requeuing...")
+		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+	}
+
 	agentClientSet, err := r.newAgentClientSet(ctx, mariadb, mdbhttp.WithTimeout(5*time.Second))
 	if err != nil {
-		return fmt.Errorf("error getting agent client: %v", err)
+		return ctrl.Result{}, fmt.Errorf("error getting agent client: %v", err)
 	}
 	sqlClientSet := sqlclientset.NewClientSet(mariadb, r.refResolver)
 	defer sqlClientSet.Close()
@@ -55,7 +63,7 @@ func (r *GaleraReconciler) reconcileRecovery(ctx context.Context, mariadb *maria
 			"Galera cluster bootstrap timed out")
 
 		if err := r.resetRecovery(ctx, mariadb, rs); err != nil {
-			return fmt.Errorf("error resetting recovery: %v", err)
+			return ctrl.Result{}, fmt.Errorf("error resetting recovery: %v", err)
 		}
 	}
 
@@ -65,16 +73,16 @@ func (r *GaleraReconciler) reconcileRecovery(ctx context.Context, mariadb *maria
 	if !rs.isBootstrapping() {
 		logger.Info("Recovering cluster")
 		if err := r.recoverCluster(ctx, mariadb, pods, rs, agentClientSet, clusterLogger); err != nil {
-			return fmt.Errorf("error recovering cluster: %v", err)
+			return ctrl.Result{}, fmt.Errorf("error recovering cluster: %v", err)
 		}
 	}
 	if !rs.podsRestarted() {
 		logger.Info("Restarting Pods")
 		if err := r.restartPods(ctx, mariadb, rs, agentClientSet, sqlClientSet, podLogger); err != nil {
-			return fmt.Errorf("error restarting Pods: %v", err)
+			return ctrl.Result{}, fmt.Errorf("error restarting Pods: %v", err)
 		}
 	}
-	return nil
+	return ctrl.Result{}, nil
 }
 
 func (r *GaleraReconciler) recoverCluster(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, pods []corev1.Pod,
@@ -235,10 +243,18 @@ func (r *GaleraReconciler) getPods(ctx context.Context, mariadb *mariadbv1alpha1
 	if err := r.List(ctx, &list, listOpts); err != nil {
 		return nil, fmt.Errorf("error listing Pods: %v", err)
 	}
-	sort.Slice(list.Items, func(i, j int) bool {
-		return list.Items[i].Name < list.Items[j].Name
+
+	var scheduledPods []corev1.Pod
+	for _, pod := range list.Items {
+		if pod.Spec.NodeName != "" {
+			scheduledPods = append(scheduledPods, pod)
+		}
+	}
+
+	sort.Slice(scheduledPods, func(i, j int) bool {
+		return scheduledPods[i].Name < scheduledPods[j].Name
 	})
-	return list.Items, nil
+	return scheduledPods, nil
 }
 
 func (r *GaleraReconciler) getGaleraState(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, pods []corev1.Pod, rs *recoveryStatus,
@@ -309,6 +325,26 @@ func (r *GaleraReconciler) getGaleraState(ctx context.Context, mariadb *mariadbv
 
 func (r *GaleraReconciler) recoverGaleraState(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, pods []corev1.Pod, rs *recoveryStatus,
 	logger logr.Logger) error {
+	stsKey := client.ObjectKeyFromObject(mariadb)
+
+	logger.Info("Downscaling cluster")
+	// TODO: add clusterUpscaleTimeout to MariaDB CR
+	downscaleCtx, cancelDownscale := context.WithTimeout(ctx, 5*time.Minute)
+	defer cancelDownscale()
+	if err := r.updateStatefulSetReplicas(downscaleCtx, stsKey, 0, logger); err != nil {
+		return fmt.Errorf("error downscaling cluster: %v", err)
+	}
+
+	defer func() {
+		logger.Info("Upscaling cluster")
+		// TODO: add clusterDownscaleTimeout to MariaDB CR
+		upscaleCtx, cancelUpscale := context.WithTimeout(ctx, 5*time.Minute)
+		defer cancelUpscale()
+		if err := r.updateStatefulSetReplicas(upscaleCtx, stsKey, mariadb.Spec.Replicas, logger); err != nil {
+			logger.Error(err, "Error upscaling cluster")
+		}
+	}()
+
 	g := new(errgroup.Group)
 	g.SetLimit(len(pods))
 
@@ -319,13 +355,8 @@ func (r *GaleraReconciler) recoverGaleraState(ctx context.Context, mariadb *mari
 		}
 
 		g.Go(func() error {
-			i, err := statefulset.PodIndex(pod.Name)
-			if err != nil {
-				return fmt.Errorf("error getting index for Pod '%s': %v", pod.Name, err)
-			}
-
 			recoveryJobKey := mariadb.RecoveryJobKey(pod.Name)
-			recoveryJob, err := r.builder.BuildGaleraRecoveryJob(recoveryJobKey, mariadb, *i)
+			recoveryJob, err := r.builder.BuildGaleraRecoveryJob(recoveryJobKey, mariadb, &pod)
 			if err != nil {
 				return fmt.Errorf("error building recovery Job for Pod '%s': %v", pod.Name, err)
 			}
@@ -427,6 +458,32 @@ func (r *GaleraReconciler) bootstrap(ctx context.Context, src *bootstrapSource, 
 
 	rs.setBootstrapping(src.pod)
 	return nil
+}
+
+func (r *GaleraReconciler) updateStatefulSetReplicas(ctx context.Context, key types.NamespacedName, replicas int32,
+	logger logr.Logger) error {
+	var sts appsv1.StatefulSet
+
+	if err := r.Get(ctx, key, &sts); err != nil {
+		return fmt.Errorf("error getting StatefulSet: %v", err)
+	}
+
+	sts.Spec.Replicas = ptr.To(replicas)
+	if err := r.Update(ctx, &sts); err != nil {
+		return fmt.Errorf("error updating StatefulSet: %v", err)
+	}
+
+	return wait.PollWithMariaDB(ctx, key, r.Client, logger, func(ctx context.Context) error {
+		var sts appsv1.StatefulSet
+
+		if err := r.Get(ctx, key, &sts); err != nil {
+			return fmt.Errorf("error getting StatefulSet: %v", err)
+		}
+		if sts.Status.Replicas == replicas {
+			return nil
+		}
+		return errors.New("waiting for StatefulSet Pods")
+	})
 }
 
 func (r *GaleraReconciler) ensurePodRunning(ctx context.Context, mariadbKey, podKey types.NamespacedName, logger logr.Logger) error {
