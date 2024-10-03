@@ -334,7 +334,7 @@ func (r *GaleraReconciler) recoverGaleraState(ctx context.Context, mariadb *mari
 	downscaleTimeout := ptr.Deref(recovery.ClusterDownscaleTimeout, metav1.Duration{Duration: 5 * time.Minute}).Duration
 	downscaleCtx, cancelDownscale := context.WithTimeout(ctx, downscaleTimeout)
 	defer cancelDownscale()
-	if err := r.updateStatefulSetReplicas(downscaleCtx, stsKey, 0, logger); err != nil {
+	if err := r.patchStatefulSetReplicas(downscaleCtx, stsKey, 0, logger); err != nil {
 		return fmt.Errorf("error downscaling cluster: %v", err)
 	}
 
@@ -343,7 +343,7 @@ func (r *GaleraReconciler) recoverGaleraState(ctx context.Context, mariadb *mari
 		upscaleTimeout := ptr.Deref(recovery.ClusterUpscaleTimeout, metav1.Duration{Duration: 5 * time.Minute}).Duration
 		upscaleCtx, cancelUpscale := context.WithTimeout(ctx, upscaleTimeout)
 		defer cancelUpscale()
-		if err := r.updateStatefulSetReplicas(upscaleCtx, stsKey, mariadb.Spec.Replicas, logger); err != nil {
+		if err := r.patchStatefulSetReplicas(upscaleCtx, stsKey, mariadb.Spec.Replicas, logger); err != nil {
 			logger.Error(err, "Error upscaling cluster")
 		}
 	}()
@@ -460,7 +460,7 @@ func (r *GaleraReconciler) bootstrap(ctx context.Context, src *bootstrapSource, 
 	return nil
 }
 
-func (r *GaleraReconciler) updateStatefulSetReplicas(ctx context.Context, key types.NamespacedName, replicas int32,
+func (r *GaleraReconciler) patchStatefulSetReplicas(ctx context.Context, key types.NamespacedName, replicas int32,
 	logger logr.Logger) error {
 	stsCtx, stsCancel := context.WithTimeout(ctx, 30*time.Second)
 	defer stsCancel()
@@ -470,9 +470,10 @@ func (r *GaleraReconciler) updateStatefulSetReplicas(ctx context.Context, key ty
 		return fmt.Errorf("error getting StatefulSet: %v", err)
 	}
 
+	patch := client.MergeFrom(sts.DeepCopy())
 	sts.Spec.Replicas = ptr.To(replicas)
-	if err := r.Update(stsCtx, &sts); err != nil {
-		return fmt.Errorf("error updating StatefulSet: %v", err)
+	if err := r.Patch(stsCtx, &sts, patch); err != nil {
+		return fmt.Errorf("error patching StatefulSet: %v", err)
 	}
 
 	return wait.PollWithMariaDB(ctx, key, r.Client, logger, func(ctx context.Context) error {
