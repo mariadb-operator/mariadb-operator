@@ -47,8 +47,8 @@ manifests-bundle: manifests-crds manifests-bundle-helm manifests-bundle-helm-min
 
 .PHONY: examples-operator
 examples-operator: ## Update mariadb-operator version in examples
-	@./hack/bump_version_examples.sh examples/manifests $(IMG_NAME) $(IMG_VERSION)
-	@./hack/bump_version_examples.sh config/samples $(IMG_ENT_NAME) $(IMG_ENT_VERSION)
+	@./hack/bump_version_examples.sh examples/manifests $(IMG_NAME) $(VERSION)
+	@./hack/bump_version_examples.sh config/samples $(IMG_ENT_NAME) $(VERSION)
 
 .PHONY: examples-mariadb
 examples-mariadb: ## Update mariadb version in examples

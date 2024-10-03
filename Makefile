@@ -12,16 +12,14 @@ endif
 SHELL = /usr/bin/env bash -o pipefail
 .SHELLFLAGS = -ec
 
-VERSION ?= 0.0.34-dev
+VERSION ?= 0.34.0-dev
 
 # mariadb-operator
 IMG_NAME ?= docker-registry3.mariadb.com/mariadb-operator/mariadb-operator
-IMG_VERSION ?= v$(VERSION)
-IMG ?= $(IMG_NAME):$(IMG_VERSION)
+IMG ?= $(IMG_NAME):$(VERSION)
 
 IMG_ENT_NAME ?= docker-registry2.mariadb.com/mariadb/mariadb-operator-enterprise
-IMG_ENT_VERSION ?= v$(VERSION)
-IMG_ENT ?= $(IMG_ENT_NAME):$(IMG_ENT_VERSION)
+IMG_ENT ?= $(IMG_ENT_NAME):$(VERSION)
 
 # mariadb
 RELATED_IMAGE_MARIADB_NAME ?= docker-registry1.mariadb.com/library/mariadb
