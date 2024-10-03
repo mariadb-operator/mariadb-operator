@@ -462,21 +462,23 @@ func (r *GaleraReconciler) bootstrap(ctx context.Context, src *bootstrapSource, 
 
 func (r *GaleraReconciler) updateStatefulSetReplicas(ctx context.Context, key types.NamespacedName, replicas int32,
 	logger logr.Logger) error {
-	var sts appsv1.StatefulSet
+	stsCtx, stsCancel := context.WithTimeout(ctx, 30*time.Second)
+	defer stsCancel()
 
-	if err := r.Get(ctx, key, &sts); err != nil {
+	var sts appsv1.StatefulSet
+	if err := r.Get(stsCtx, key, &sts); err != nil {
 		return fmt.Errorf("error getting StatefulSet: %v", err)
 	}
 
 	sts.Spec.Replicas = ptr.To(replicas)
-	if err := r.Update(ctx, &sts); err != nil {
+	if err := r.Update(stsCtx, &sts); err != nil {
 		return fmt.Errorf("error updating StatefulSet: %v", err)
 	}
 
 	return wait.PollWithMariaDB(ctx, key, r.Client, logger, func(ctx context.Context) error {
 		var sts appsv1.StatefulSet
 
-		if err := r.Get(ctx, key, &sts); err != nil {
+		if err := r.Get(stsCtx, key, &sts); err != nil {
 			return fmt.Errorf("error getting StatefulSet: %v", err)
 		}
 		if sts.Status.Replicas == replicas {
