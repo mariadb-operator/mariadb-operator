@@ -270,7 +270,8 @@ type GaleraRecovery struct {
 	Enabled bool `json:"enabled"`
 	// MinClusterSize is the minimum number of replicas to consider the cluster healthy. It can be either a number of replicas (1) or a percentage (50%).
 	// If Galera consistently reports less replicas than this value for the given 'ClusterHealthyTimeout' interval, a cluster recovery is iniated.
-	// It defaults to '1' replica.
+	// It defaults to '1' replica, and it is highly recommendeded to keep this value at '1' in most cases.
+	// If set to more than one replica, the cluster recovery process may restart the healthy replicas as well.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	MinClusterSize *intstr.IntOrString `json:"minClusterSize,omitempty"`
