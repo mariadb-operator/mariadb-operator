@@ -60,37 +60,19 @@ ifndef HELM_CRDS_CHART_FILE
 endif
 	@cat $(HELM_CRDS_CHART_FILE) | $(YQ) e ".version"
 
-HELM_APP_VERSION ?=
-HELM_CRDS_VERSION ?=
-
+HELM_VERSION ?=
 .PHONY: helm-version-bump
-helm-version-bump: yq ## Bump mariadb-operator version and return it to stdout.
+helm-version-bump: yq ## Bump helm charts version.
 ifndef HELM_CHART_FILE
 	$(error HELM_CHART_FILE is not set. Please set it before running this target)
 endif
-ifndef HELM_APP_VERSION
-	$(error HELM_APP_VERSION is not set. Please set it before running this target)
-endif
-ifndef HELM_CRDS_VERSION
-	$(error HELM_CRDS_VERSION is not set. Please set it before running this target)
-endif
-	@VERSION=$$($(YQ) e '.version' $(HELM_CHART_FILE)); \
-	MAJOR=$$(echo $$VERSION | cut -d'.' -f1); \
-	MINOR=$$(echo $$VERSION | cut -d'.' -f2); \
-	NEW_MINOR=$$((MINOR + 1)); \
-	NEW_VERSION=$$MAJOR.$$NEW_MINOR.0; \
-	$(YQ) e -i ".version = \"$$NEW_VERSION\"" $(HELM_CHART_FILE); \
-	$(YQ) e -i ".appVersion = \"$(HELM_APP_VERSION)\"" $(HELM_CHART_FILE); \
-	$(YQ) e -i ".dependencies |= map(select(.name == \"mariadb-operator-crds\").version = \"$(HELM_CRDS_VERSION)\" // .)" $(HELM_CHART_FILE); \
-	echo $$NEW_VERSION
-
-.PHONY: helm-crds-version-bump
-helm-crds-version-bump: yq ## Bump mariadb-operator-crds version and return it to stdout.
 ifndef HELM_CRDS_CHART_FILE
 	$(error HELM_CRDS_CHART_FILE is not set. Please set it before running this target)
 endif
-ifndef HELM_CRDS_VERSION
-	$(error HELM_CRDS_VERSION is not set. Please set it before running this target)
+ifndef HELM_VERSION
+	$(error HELM_VERSION is not set. Please set it before running this target)
 endif
-	@$(YQ) e -i ".version = \"$(HELM_CRDS_VERSION)\"" $(HELM_CRDS_CHART_FILE); \
-	echo $(HELM_CRDS_VERSION)
+	@$(YQ) e -i ".version = \"$(HELM_VERSION)\"" $(HELM_CHART_FILE); \
+	$(YQ) e -i ".appVersion = \"$(HELM_VERSION)\"" $(HELM_CHART_FILE); \
+	$(YQ) e -i ".dependencies |= map(select(.name == \"mariadb-operator-crds\").version = \"$(HELM_VERSION)\" // .)" $(HELM_CHART_FILE); \
+	$(YQ) e -i ".version = \"$(HELM_VERSION)\"" $(HELM_CRDS_CHART_FILE)

@@ -3,7 +3,7 @@ name: Release
 on:
   push:
     tags:
-      - "v*"
+      - "[0-9]+.[0-9]+.[0-9]+"
 
 env:
   GORELEASER_VERSION: "v2.2.0"
@@ -14,7 +14,6 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       BUILD_DATE: ${{ steps.args.outputs.BUILD_DATE }}
-      TAG: ${{ steps.args.outputs.TAG }}
       VERSION: ${{ steps.args.outputs.VERSION }}
       RELEASE_ARGS: ${{ steps.args.outputs.RELEASE_ARGS }}
     steps:
@@ -29,15 +28,11 @@ jobs:
       - name: Args
         id: args
         run: |
-          function get_version() {
-            echo "$1" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+'
-          }
-          TAG=${GITHUB_REF/refs\/tags\//}
-          VERSION=$(get_version "$TAG")
+          VERSION=${GITHUB_REF/refs\/tags\//}
           MAKE_VERSION=$(get_version $(make version))
 
           if [ "$VERSION" != "$MAKE_VERSION" ]; then
-            echo "Tag('$TAG') with version('$VERSION') and Makefile version('$MAKE_VERSION') don't match!"
+            echo "Version('$VERSION') and Makefile version('$MAKE_VERSION') don't match!"
             exit 1;
           fi
           
@@ -56,7 +51,6 @@ jobs:
           fi
           
           echo "BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_OUTPUT
-          echo "TAG=${TAG}" >> $GITHUB_OUTPUT
           echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
           echo "RELEASE_ARGS=${RELEASE_ARGS}" >> $GITHUB_OUTPUT
 
@@ -93,7 +87,7 @@ jobs:
           file: ./Dockerfile
           platforms: linux/arm64,linux/amd64
           tags: |
-            ghcr.io/${{ github.repository_owner }}/mariadb-operator:${{ needs.args.outputs.TAG }}
+            ghcr.io/${{ github.repository_owner }}/mariadb-operator:${{ needs.args.outputs.VERSION }}
             ghcr.io/${{ github.repository_owner }}/mariadb-operator:latest
           labels: |
             org.opencontainers.image.title=${{ github.event.repository.name }}
@@ -139,7 +133,7 @@ jobs:
           file: ./Dockerfile.ent
           platforms: linux/arm64,linux/amd64
           tags: |
-            mariadb/mariadb-operator-enterprise:${{ needs.args.outputs.TAG }}
+            mariadb/mariadb-operator-enterprise:${{ needs.args.outputs.VERSION }}
             mariadb/mariadb-operator-enterprise:latest
           labels: |
             org.opencontainers.image.title=MariaDB Operator Enterprise
@@ -153,7 +147,7 @@ jobs:
       - name: Preflight operator image
         run: make preflight-image-submit
         env:
-          IMG_ENT: mariadb/mariadb-operator-enterprise:${{ needs.args.outputs.TAG }}
+          IMG_ENT: mariadb/mariadb-operator-enterprise:${{ needs.args.outputs.VERSION }}
           REDHAT_API_KEY: "${{ secrets.REDHAT_API_KEY }}"
           REDHAT_PROJECT_ID: "${{ secrets.REDHAT_PROJECT_ID }}"
   
@@ -208,11 +202,8 @@ jobs:
       - name: Bump version
         id: version
         env:
-          HELM_APP_VERSION: ${{ needs.args.outputs.TAG }}
-          HELM_CRDS_VERSION: ${{ needs.args.outputs.VERSION }}
-        run: |
-          echo "CRDS_VERSION=$(make helm-crds-version-bump)" >> $GITHUB_OUTPUT
-          echo "OPERATOR_VERSION=$(make helm-version-bump)" >> $GITHUB_OUTPUT
+          HELM_VERSION: ${{ needs.args.outputs.VERSION }}
+        run: make helm-version-bump
       
       - name: Helm generate
         run: make helm-gen
@@ -220,7 +211,7 @@ jobs:
       - name: Commit changes
         run: |
           git add .
-          git commit -am "Updated mariadb-operator(${{ steps.version.outputs.OPERATOR_VERSION }}) and mariadb-operator-crds(${{ steps.version.outputs.CRDS_VERSION }}) helm chart versions"
+          git commit -am "Bump helm chart versions to ${{ needs.args.outputs.VERSION }}"
           git push
 
   olm:
@@ -270,6 +261,6 @@ jobs:
         run: |
           gh workflow run docs.yml \
             --repo mariadb-operator/mariadb-operator \
-            -f version=${{ needs.args.outputs.TAG }} alias=latest
+            -f version=${{ needs.args.outputs.VERSION }} alias=latest
         env:
           GITHUB_TOKEN: "${{ secrets.GHA_TOKEN }}"
