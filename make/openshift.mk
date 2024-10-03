@@ -17,9 +17,9 @@ ifneq ($(origin CATALOG_BASE_IMG), undefined)
 FROM_INDEX_OPT := --from-index $(CATALOG_BASE_IMG)
 endif
 
-BUNDLE_IMG ?= mariadb/mariadb-operator-enterprise-bundle:v$(VERSION)
+BUNDLE_IMG ?= mariadb/mariadb-operator-enterprise-bundle:$(VERSION)
 BUNDLE_IMGS ?= $(BUNDLE_IMG)
-CATALOG_IMG ?= mariadb/mariadb-operator-enterprise-catalog:v$(VERSION)
+CATALOG_IMG ?= mariadb/mariadb-operator-enterprise-catalog:$(VERSION)
 
 REDHAT_PROJECT_ID ?= ""
 REDHAT_API_KEY ?= ""
