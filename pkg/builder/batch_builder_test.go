@@ -1608,7 +1608,70 @@ func TestGaleraRecoveryJobNodeSelector(t *testing.T) {
 		mariadb          *mariadbv1alpha1.MariaDB
 		pod              *corev1.Pod
 		wantNodeSelector map[string]string
+		wantErr          bool
 	}{
+		{
+			name: "no Pod index",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							Recovery: &mariadbv1alpha1.GaleraRecovery{
+								Enabled: true,
+								Job: &mariadbv1alpha1.GaleraRecoveryJob{
+									PodAffinity: ptr.To(true),
+								},
+							},
+						},
+					},
+					Storage: mariadbv1alpha1.Storage{
+						Size: ptr.To(resource.MustParse("1Gi")),
+					},
+				},
+			},
+			pod: &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "foo",
+				},
+				Spec: corev1.PodSpec{
+					NodeName: "compute-0",
+				},
+			},
+			wantNodeSelector: nil,
+			wantErr:          true,
+		},
+		{
+			name: "no Node",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							Recovery: &mariadbv1alpha1.GaleraRecovery{
+								Enabled: true,
+								Job: &mariadbv1alpha1.GaleraRecoveryJob{
+									PodAffinity: ptr.To(true),
+								},
+							},
+						},
+					},
+					Storage: mariadbv1alpha1.Storage{
+						Size: ptr.To(resource.MustParse("1Gi")),
+					},
+				},
+			},
+			pod: &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "mariadb-galera-0",
+				},
+				Spec: corev1.PodSpec{},
+			},
+			wantNodeSelector: nil,
+			wantErr:          true,
+		},
 		{
 			name: "no recovery Job nodeSelector",
 			mariadb: &mariadbv1alpha1.MariaDB{
@@ -1639,6 +1702,7 @@ func TestGaleraRecoveryJobNodeSelector(t *testing.T) {
 				},
 			},
 			wantNodeSelector: nil,
+			wantErr:          false,
 		},
 		{
 			name: "recovery Job nodeSelector",
@@ -1672,17 +1736,27 @@ func TestGaleraRecoveryJobNodeSelector(t *testing.T) {
 			wantNodeSelector: map[string]string{
 				"kubernetes.io/hostname": "compute-0",
 			},
+			wantErr: false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			job, err := builder.BuildGaleraRecoveryJob(key, tt.mariadb, tt.pod)
-			if err != nil {
-				t.Errorf("unexpected error building Galera recovery Job: %v", err)
-			}
-			if !reflect.DeepEqual(tt.wantNodeSelector, job.Spec.Template.Spec.NodeSelector) {
-				t.Errorf("unexpected nodeSelector, want: %v got: %v", tt.wantNodeSelector, job.Spec.Template.Spec.NodeSelector)
+			if tt.wantErr {
+				if err == nil {
+					t.Error("expect error to have occurred, got nil")
+				}
+				if job != nil {
+					t.Error("expected Job to be nil")
+				}
+			} else {
+				if err != nil {
+					t.Errorf("expect error to not have occurred, got: %v", err)
+				}
+				if !reflect.DeepEqual(tt.wantNodeSelector, job.Spec.Template.Spec.NodeSelector) {
+					t.Errorf("unexpected nodeSelector, want: %v got: %v", tt.wantNodeSelector, job.Spec.Template.Spec.NodeSelector)
+				}
 			}
 		})
 	}
