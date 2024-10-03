@@ -1004,6 +1004,16 @@ func (in *GaleraRecovery) DeepCopyInto(out *GaleraRecovery) {
 		*out = new(v1.Duration)
 		**out = **in
 	}
+	if in.ClusterUpscaleTimeout != nil {
+		in, out := &in.ClusterUpscaleTimeout, &out.ClusterUpscaleTimeout
+		*out = new(v1.Duration)
+		**out = **in
+	}
+	if in.ClusterDownscaleTimeout != nil {
+		in, out := &in.ClusterDownscaleTimeout, &out.ClusterDownscaleTimeout
+		*out = new(v1.Duration)
+		**out = **in
+	}
 	if in.PodRecoveryTimeout != nil {
 		in, out := &in.PodRecoveryTimeout, &out.PodRecoveryTimeout
 		*out = new(v1.Duration)

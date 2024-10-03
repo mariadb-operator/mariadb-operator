@@ -325,11 +325,14 @@ func (r *GaleraReconciler) getGaleraState(ctx context.Context, mariadb *mariadbv
 
 func (r *GaleraReconciler) recoverGaleraState(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, pods []corev1.Pod, rs *recoveryStatus,
 	logger logr.Logger) error {
+	galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
+	recovery := ptr.Deref(galera.Recovery, mariadbv1alpha1.GaleraRecovery{})
+
 	stsKey := client.ObjectKeyFromObject(mariadb)
 
 	logger.Info("Downscaling cluster")
-	// TODO: add clusterUpscaleTimeout to MariaDB CR
-	downscaleCtx, cancelDownscale := context.WithTimeout(ctx, 5*time.Minute)
+	downscaleTimeout := ptr.Deref(recovery.ClusterDownscaleTimeout, metav1.Duration{Duration: 5 * time.Minute}).Duration
+	downscaleCtx, cancelDownscale := context.WithTimeout(ctx, downscaleTimeout)
 	defer cancelDownscale()
 	if err := r.updateStatefulSetReplicas(downscaleCtx, stsKey, 0, logger); err != nil {
 		return fmt.Errorf("error downscaling cluster: %v", err)
@@ -337,8 +340,8 @@ func (r *GaleraReconciler) recoverGaleraState(ctx context.Context, mariadb *mari
 
 	defer func() {
 		logger.Info("Upscaling cluster")
-		// TODO: add clusterDownscaleTimeout to MariaDB CR
-		upscaleCtx, cancelUpscale := context.WithTimeout(ctx, 5*time.Minute)
+		upscaleTimeout := ptr.Deref(recovery.ClusterUpscaleTimeout, metav1.Duration{Duration: 5 * time.Minute}).Duration
+		upscaleCtx, cancelUpscale := context.WithTimeout(ctx, upscaleTimeout)
 		defer cancelUpscale()
 		if err := r.updateStatefulSetReplicas(upscaleCtx, stsKey, mariadb.Spec.Replicas, logger); err != nil {
 			logger.Error(err, "Error upscaling cluster")
@@ -376,10 +379,7 @@ func (r *GaleraReconciler) recoverGaleraState(ctx context.Context, mariadb *mari
 				}
 			}()
 
-			galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
-			recovery := ptr.Deref(galera.Recovery, mariadbv1alpha1.GaleraRecovery{})
 			recoveryTimeout := ptr.Deref(recovery.PodRecoveryTimeout, metav1.Duration{Duration: 5 * time.Minute}).Duration
-
 			recoveryCtx, cancelRecovery := context.WithTimeout(ctx, recoveryTimeout)
 			defer cancelRecovery()
 
