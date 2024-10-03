@@ -3247,6 +3247,11 @@ spec:
                           ClusterBootstrapTimeout is the time limit for bootstrapping a cluster.
                           Once this timeout is reached, the Galera recovery state is reset and a new cluster bootstrap will be attempted.
                         type: string
+                      clusterDownscaleTimeout:
+                        description: ClusterDownscaleTimeout represents the maximum
+                          duration for downscaling the cluster's StatefulSet during
+                          the recovery process.
+                        type: string
                       clusterHealthyTimeout:
                         description: |-
                           ClusterHealthyTimeout represents the duration at which a Galera cluster, that consistently failed health checks,
@@ -3255,6 +3260,11 @@ spec:
                       clusterMonitorInterval:
                         description: ClusterMonitorInterval represents the interval
                           used to monitor the Galera cluster health.
+                        type: string
+                      clusterUpscaleTimeout:
+                        description: ClusterUpscaleTimeout represents the maximum
+                          duration for upscaling the cluster's StatefulSet during
+                          the recovery process.
                         type: string
                       enabled:
                         description: Enabled is a flag to enable GaleraRecovery.

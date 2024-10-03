@@ -288,6 +288,14 @@ type GaleraRecovery struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	ClusterBootstrapTimeout *metav1.Duration `json:"clusterBootstrapTimeout,omitempty"`
+	// ClusterUpscaleTimeout represents the maximum duration for upscaling the cluster's StatefulSet during the recovery process.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	ClusterUpscaleTimeout *metav1.Duration `json:"clusterUpscaleTimeout,omitempty"`
+	// ClusterDownscaleTimeout represents the maximum duration for downscaling the cluster's StatefulSet during the recovery process.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	ClusterDownscaleTimeout *metav1.Duration `json:"clusterDownscaleTimeout,omitempty"`
 	// PodRecoveryTimeout is the time limit for recevorying the sequence of a Pod during the cluster recovery.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -346,6 +354,12 @@ func (g *GaleraRecovery) SetDefaults(mdb *MariaDB) {
 	}
 	if g.ClusterBootstrapTimeout == nil {
 		g.ClusterBootstrapTimeout = ptr.To(metav1.Duration{Duration: 10 * time.Minute})
+	}
+	if g.ClusterUpscaleTimeout == nil {
+		g.ClusterUpscaleTimeout = ptr.To(metav1.Duration{Duration: 5 * time.Minute})
+	}
+	if g.ClusterDownscaleTimeout == nil {
+		g.ClusterDownscaleTimeout = ptr.To(metav1.Duration{Duration: 5 * time.Minute})
 	}
 	if g.PodRecoveryTimeout == nil {
 		g.PodRecoveryTimeout = ptr.To(metav1.Duration{Duration: 5 * time.Minute})
