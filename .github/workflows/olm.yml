@@ -98,7 +98,7 @@ jobs:
           context: .
           file: ./Dockerfile.bundle
           tags: |
-            mariadb/mariadb-operator-enterprise-bundle:v${{ needs.args.outputs.VERSION }}
+            mariadb/mariadb-operator-enterprise-bundle:${{ needs.args.outputs.VERSION }}
             mariadb/mariadb-operator-enterprise-bundle:latest
           labels: |
             org.opencontainers.image.title=MariaDB Operator Enterprise bundle
