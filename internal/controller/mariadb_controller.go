@@ -32,14 +32,17 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	"github.com/mariadb-operator/mariadb-operator/pkg/health"
 	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
+	mdbpod "github.com/mariadb-operator/mariadb-operator/pkg/pod"
 	"github.com/mariadb-operator/mariadb-operator/pkg/predicate"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
+	sts "github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	"github.com/mariadb-operator/mariadb-operator/pkg/watch"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	klabels "k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -164,6 +167,10 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		{
 			Name:      "Replication",
 			Reconcile: r.ReplicationReconciler.Reconcile,
+		},
+		{
+			Name:      "Labels",
+			Reconcile: r.reconcilePodLabels,
 		},
 		{
 			Name:      "Galera",
@@ -337,6 +344,55 @@ func (r *MariaDBReconciler) reconcileStatefulSet(ctx context.Context, mariadb *m
 
 	if result, err := r.reconcileUpdates(ctx, mariadb); !result.IsZero() || err != nil {
 		return result, err
+	}
+	return ctrl.Result{}, nil
+}
+
+func (r *MariaDBReconciler) reconcilePodLabels(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
+	if !mariadb.Replication().Enabled {
+		return ctrl.Result{}, nil
+	}
+
+	podList := corev1.PodList{}
+	listOpts := &client.ListOptions{
+		LabelSelector: klabels.SelectorFromSet(
+			labels.NewLabelsBuilder().
+				WithMariaDBSelectorLabels(mariadb).
+				Build(),
+		),
+		Namespace: mariadb.GetNamespace(),
+	}
+	if err := r.List(ctx, &podList, listOpts); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error listing Pods: %v", err)
+	}
+
+	for _, pod := range podList.Items {
+		var role = "replica"
+
+		if pod.Status.PodIP == "" || pod.Spec.NodeName == "" {
+			continue
+		}
+		podIndex, err := sts.PodIndex(pod.Name)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("error getting Pod '%s' index: %v", pod.Name, err)
+		}
+
+		if *podIndex == *mariadb.Status.CurrentPrimaryPodIndex {
+			role = "primary"
+		}
+		pod.Labels = labels.NewLabelsBuilder().WithLabels(pod.Labels).WithPodRole(role).Build()
+
+		if mdbpod.PodReady(&pod) {
+			if err := r.Update(ctx, &pod); err != nil {
+				if apierrors.IsConflict(err) {
+					return ctrl.Result{Requeue: true}, nil
+				}
+				if apierrors.IsNotFound(err) {
+					return ctrl.Result{Requeue: true}, nil
+				}
+				return ctrl.Result{}, err
+			}
+		}
 	}
 	return ctrl.Result{}, nil
 }
