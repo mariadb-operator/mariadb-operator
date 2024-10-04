@@ -1217,3 +1217,131 @@ func TestContainerArgs(t *testing.T) {
 		})
 	}
 }
+
+func TestMariadbContainers(t *testing.T) {
+	tests := []struct {
+		name     string
+		mariadb  *mariadbv1alpha1.MariaDB
+		wantName string
+	}{
+		{
+			name: "Without sidecar container name",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					PodTemplate: mariadbv1alpha1.PodTemplate{
+						SidecarContainers: []mariadbv1alpha1.Container{
+							{
+								Image: "busybox",
+								Command: []string{
+									"sh",
+									"-c",
+									"sleep infinity",
+								},
+							},
+						},
+					},
+				},
+			},
+			wantName: "sidecar-0",
+		},
+		{
+			name: "With sidecar container name",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					PodTemplate: mariadbv1alpha1.PodTemplate{
+						SidecarContainers: []mariadbv1alpha1.Container{
+							{
+								Name:  "busybox",
+								Image: "busybox",
+								Command: []string{
+									"sh",
+									"-c",
+									"sleep infinity",
+								},
+							},
+						},
+					},
+				},
+			},
+			wantName: "busybox",
+		},
+	}
+
+	builder := newDefaultTestBuilder(t)
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			containers, err := builder.mariadbContainers(tt.mariadb)
+			if err != nil {
+				t.Fatalf("unexpected error building containers: %v", err)
+			}
+			if containers[1].Name != tt.wantName {
+				t.Errorf("unexpected result:\nexpected:\n%s\ngot:\n%s\n", tt.wantName, containers[1].Name)
+			}
+		})
+	}
+}
+
+func TestMariadbInitContainers(t *testing.T) {
+	tests := []struct {
+		name     string
+		mariadb  *mariadbv1alpha1.MariaDB
+		wantName string
+	}{
+		{
+			name: "Without container name",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					PodTemplate: mariadbv1alpha1.PodTemplate{
+						InitContainers: []mariadbv1alpha1.Container{
+							{
+								Image: "busybox",
+								Command: []string{
+									"sh",
+									"-c",
+									"sleep 1",
+								},
+							},
+						},
+					},
+				},
+			},
+			wantName: "init-0",
+		},
+		{
+			name: "With container name",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					PodTemplate: mariadbv1alpha1.PodTemplate{
+						InitContainers: []mariadbv1alpha1.Container{
+							{
+								Name:  "busybox",
+								Image: "busybox",
+								Command: []string{
+									"sh",
+									"-c",
+									"sleep 1",
+								},
+							},
+						},
+					},
+				},
+			},
+			wantName: "busybox",
+		},
+	}
+
+	builder := newDefaultTestBuilder(t)
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			initContainers, err := builder.mariadbInitContainers(tt.mariadb)
+			if err != nil {
+				t.Fatalf("unexpected error building init containers: %v", err)
+			}
+			if initContainers[0].Name != tt.wantName {
+				t.Errorf("unexpected result:\nexpected:\n%s\ngot:\n%s\n", tt.wantName, initContainers[0].Name)
+			}
+		})
+	}
+}
