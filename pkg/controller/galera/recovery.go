@@ -479,7 +479,6 @@ func (r *GaleraReconciler) patchStatefulSetReplicas(ctx context.Context, key typ
 
 	return wait.PollWithMariaDB(ctx, key, r.Client, logger, func(ctx context.Context) error {
 		var sts appsv1.StatefulSet
-
 		if err := r.Get(ctx, key, &sts); err != nil {
 			return fmt.Errorf("error getting StatefulSet: %v", err)
 		}
@@ -507,22 +506,18 @@ func (r *GaleraReconciler) ensurePodRunning(ctx context.Context, mariadbKey, pod
 	if err := r.Delete(ctx, &pod); err != nil {
 		return fmt.Errorf("error deleting Pod '%s': %v", podKey.Name, err)
 	}
-
 	return r.pollUntilPodRunning(ctx, mariadbKey, podKey, logger)
 }
 
 func (r *GaleraReconciler) ensureJob(ctx context.Context, recoveryJob *batchv1.Job) error {
-	key := ctrlclient.ObjectKeyFromObject(recoveryJob)
-
 	var job batchv1.Job
-	if err := r.Get(ctx, key, &job); err != nil {
+	if err := r.Get(ctx, ctrlclient.ObjectKeyFromObject(recoveryJob), &job); err != nil {
 		if apierrors.IsNotFound(err) {
 			return r.Create(ctx, recoveryJob)
 		}
 		return err
 	}
-
-	return r.Delete(ctx, recoveryJob, &client.DeleteOptions{PropagationPolicy: ptr.To(metav1.DeletePropagationBackground)})
+	return nil
 }
 
 func (r *GaleraReconciler) pollUntilPodRunning(ctx context.Context, mariadbKey, podKey types.NamespacedName, logger logr.Logger) error {
