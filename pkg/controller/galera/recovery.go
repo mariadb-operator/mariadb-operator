@@ -96,9 +96,7 @@ func (r *GaleraReconciler) recoverCluster(ctx context.Context, mariadb *mariadbv
 		if err != nil {
 			return fmt.Errorf("error getting source to forcefully bootstrap: %v", err)
 		}
-		if err := r.bootstrap(ctx, src, rs, mariadb, clientSet, logger); err != nil {
-			return fmt.Errorf("error forcefully bootstrapping: %v", err)
-		}
+		rs.setBootstrapping(src.pod)
 		return r.patchRecoveryStatus(ctx, mariadb, rs)
 	}
 
@@ -119,9 +117,7 @@ func (r *GaleraReconciler) recoverCluster(ctx context.Context, mariadb *mariadbv
 		logger.V(1).Info("Error getting bootstrap source", "err", err)
 	}
 	if src != nil {
-		if err := r.bootstrap(ctx, src, rs, mariadb, clientSet, logger); err != nil {
-			return fmt.Errorf("error bootstrapping: %v", err)
-		}
+		rs.setBootstrapping(src.pod)
 		return r.patchRecoveryStatus(ctx, mariadb, rs)
 	}
 
@@ -141,9 +137,7 @@ func (r *GaleraReconciler) recoverCluster(ctx context.Context, mariadb *mariadbv
 	if err != nil {
 		return fmt.Errorf("error getting bootstrap source: %v", err)
 	}
-	if err := r.bootstrap(ctx, src, rs, mariadb, clientSet, logger); err != nil {
-		return fmt.Errorf("error bootstrapping: %v", err)
-	}
+	rs.setBootstrapping(src.pod)
 	if err := r.patchRecoveryStatus(ctx, mariadb, rs); err != nil {
 		return fmt.Errorf("error patching recovery status: %v", err)
 	}
@@ -152,33 +146,20 @@ func (r *GaleraReconciler) recoverCluster(ctx context.Context, mariadb *mariadbv
 
 func (r *GaleraReconciler) restartPods(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, rs *recoveryStatus,
 	agentClientSet *agentClientSet, sqlClientSet *sqlclientset.ClientSet, logger logr.Logger) error {
-	statusRecovery := ptr.Deref(mariadb.Status.GaleraRecovery, mariadbv1alpha1.GaleraRecoveryStatus{})
-	bootstrap := ptr.Deref(statusRecovery.Bootstrap, mariadbv1alpha1.GaleraBootstrapStatus{})
+	galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
+	recovery := ptr.Deref(galera.Recovery, mariadbv1alpha1.GaleraRecovery{})
 
-	if bootstrap.Pod == nil {
+	src, err := rs.bootstrapSource(mariadb, recovery.ForceClusterBootstrapInPod, logger)
+	if err != nil {
+		return fmt.Errorf("error getting source to forcefully bootstrap: %v", err)
+	}
+	if src.pod == "" {
 		return errors.New("Unable to restart Pods. Cluster hasn't been bootstrapped")
-	}
-	index, err := statefulset.PodIndex(*bootstrap.Pod)
-	if err != nil {
-		return fmt.Errorf("error getting Pod index: %v", err)
-	}
-	client, err := agentClientSet.clientForIndex(*index)
-	if err != nil {
-		return fmt.Errorf("error getting agent client: %v", err)
-	}
-
-	galeraState, err := client.Galera.GetState(ctx)
-	if err != nil {
-		return fmt.Errorf("error getting Galera state: %v", err)
-	}
-	if !galeraState.SafeToBootstrap {
-		logger.Info("Pod is no longer safe to bootstrap. Resetting recovery", "pod", *bootstrap.Pod)
-		return r.resetRecovery(ctx, mariadb, rs)
 	}
 
 	mariadbKey := ctrlclient.ObjectKeyFromObject(mariadb)
 	bootstrapPodKey := types.NamespacedName{
-		Name:      *bootstrap.Pod,
+		Name:      src.pod,
 		Namespace: mariadb.Namespace,
 	}
 	podKeys := []types.NamespacedName{
@@ -195,33 +176,39 @@ func (r *GaleraReconciler) restartPods(ctx context.Context, mariadb *mariadbv1al
 		})
 	}
 
-	galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
-	recovery := ptr.Deref(galera.Recovery, mariadbv1alpha1.GaleraRecovery{})
-
-	for _, key := range podKeys {
+	for _, podKey := range podKeys {
 		syncTimeout := ptr.Deref(recovery.PodSyncTimeout, metav1.Duration{Duration: 5 * time.Minute}).Duration
 		syncCtx, syncCancel := context.WithTimeout(ctx, syncTimeout)
 		defer syncCancel()
 
-		if key.Name == bootstrapPodKey.Name {
-			logger.Info("Restarting bootstrap Pod", "pod", key.Name)
-		} else {
-			if err := r.disableBootstrapInPod(syncCtx, mariadbKey, key, agentClientSet, logger); err != nil {
-				return fmt.Errorf("error disabling bootstrap in Pod '%s': %v", key.Name, err)
+		if podKey.Name == bootstrapPodKey.Name {
+			logger.Info("Bootstrapping cluster", "pod", podKey.Name)
+			r.recorder.Eventf(mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonGaleraClusterBootstrap,
+				"Bootstrapping Galera cluster in Pod '%s'", podKey.Name)
+
+			if err := r.enableBootstrapWithSource(syncCtx, mariadbKey, src, agentClientSet, logger); err != nil {
+				return fmt.Errorf("error enabling bootstrap in Pod '%s': %v", podKey.Name, err)
 			}
-			logger.Info("Restarting Pod", "pod", key.Name)
+			logger.Info("Restarting bootstrap Pod", "pod", podKey.Name)
+		} else {
+			logger.V(1).Info("Ensuring bootstrap disabled in Pod", "pod", podKey.Name)
+
+			if err := r.disableBootstrapInPod(syncCtx, mariadbKey, podKey, agentClientSet, logger); err != nil {
+				return fmt.Errorf("error disabling bootstrap in Pod '%s': %v", podKey.Name, err)
+			}
+			logger.Info("Restarting Pod", "pod", podKey.Name)
 		}
 
 		if err := wait.PollWithMariaDB(syncCtx, mariadbKey, r.Client, logger, func(ctx context.Context) error {
-			if err := r.pollUntilPodDeleted(ctx, mariadbKey, key, logger); err != nil {
-				return fmt.Errorf("error deleting Pod '%s': %v", key.Name, err)
+			if err := r.pollUntilPodDeleted(ctx, mariadbKey, podKey, logger); err != nil {
+				return fmt.Errorf("error deleting Pod '%s': %v", podKey.Name, err)
 			}
-			if err := r.pollUntilPodSynced(ctx, mariadbKey, key, sqlClientSet, logger); err != nil {
-				return fmt.Errorf("error waiting for Pod '%s' to be synced: %v", key.Name, err)
+			if err := r.pollUntilPodSynced(ctx, mariadbKey, podKey, sqlClientSet, logger); err != nil {
+				return fmt.Errorf("error waiting for Pod '%s' to be synced: %v", podKey.Name, err)
 			}
 			return nil
 		}); err != nil {
-			return fmt.Errorf("error restarting Pod '%s': %v", key.Name, err)
+			return fmt.Errorf("error restarting Pod '%s': %v", podKey.Name, err)
 		}
 	}
 
@@ -426,12 +413,8 @@ func (r *GaleraReconciler) recoverGaleraState(ctx context.Context, mariadb *mari
 	return g.Wait()
 }
 
-func (r *GaleraReconciler) bootstrap(ctx context.Context, src *bootstrapSource, rs *recoveryStatus, mdb *mariadbv1alpha1.MariaDB,
+func (r *GaleraReconciler) enableBootstrapWithSource(ctx context.Context, mariadbKey types.NamespacedName, src *bootstrapSource,
 	clientSet *agentClientSet, logger logr.Logger) error {
-	logger.Info("Bootstrapping cluster", "pod", src.pod)
-	r.recorder.Eventf(mdb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonGaleraClusterBootstrap,
-		"Bootstrapping Galera cluster in Pod '%s'", src.pod)
-
 	idx, err := statefulset.PodIndex(src.pod)
 	if err != nil {
 		return fmt.Errorf("error getting index for Pod '%s': %v", src.pod, err)
@@ -440,25 +423,19 @@ func (r *GaleraReconciler) bootstrap(ctx context.Context, src *bootstrapSource, 
 	if err != nil {
 		return fmt.Errorf("error getting client for Pod '%s': %v", src.pod, err)
 	}
-
-	bootstrapCtx, cancelBootstrap := context.WithTimeout(ctx, 3*time.Minute)
-	defer cancelBootstrap()
-
-	mariadbKey := ctrlclient.ObjectKeyFromObject(mdb)
 	podKey := types.NamespacedName{
 		Name:      src.pod,
-		Namespace: mdb.Namespace,
+		Namespace: mariadbKey.Namespace,
 	}
-	if err = wait.PollWithMariaDB(bootstrapCtx, mariadbKey, r.Client, logger, func(ctx context.Context) error {
+
+	if err = wait.PollWithMariaDB(ctx, mariadbKey, r.Client, logger, func(ctx context.Context) error {
 		if err := r.ensurePodRunning(ctx, mariadbKey, podKey, logger); err != nil {
 			return err
 		}
 		return client.Galera.EnableBootstrap(ctx, src.bootstrap)
 	}); err != nil {
-		return fmt.Errorf("error enabling bootstrap in Pod '%s': %v", src.pod, err)
+		return fmt.Errorf("error enabling bootstrap in Pod '%s': %v", podKey.Name, err)
 	}
-
-	rs.setBootstrapping(src.pod)
 	return nil
 }
 
@@ -473,11 +450,15 @@ func (r *GaleraReconciler) disableBootstrapInPod(ctx context.Context, mariadbKey
 		return fmt.Errorf("error getting agent client: %v", err)
 	}
 
-	logger.V(1).Info("Disabling bootstrap", "pod", podKey.Name)
-	if err := r.ensurePodRunning(ctx, mariadbKey, podKey, logger); err != nil {
-		return fmt.Errorf("error ensuring Pod '%s' is running: %v", podKey.Name, err)
-	}
-	if err := client.Galera.DisableBootstrap(ctx); err != nil && !galeraerrors.IsNotFound(err) {
+	if err = wait.PollWithMariaDB(ctx, mariadbKey, r.Client, logger, func(ctx context.Context) error {
+		if err := r.ensurePodRunning(ctx, mariadbKey, podKey, logger); err != nil {
+			return err
+		}
+		if err := client.Galera.DisableBootstrap(ctx); err != nil && !galeraerrors.IsNotFound(err) {
+			return err
+		}
+		return nil
+	}); err != nil {
 		return fmt.Errorf("error disabling bootstrap in Pod '%s': %v", podKey.Name, err)
 	}
 	return nil
@@ -513,17 +494,20 @@ func (r *GaleraReconciler) patchStatefulSetReplicas(ctx context.Context, key typ
 }
 
 func (r *GaleraReconciler) ensurePodRunning(ctx context.Context, mariadbKey, podKey types.NamespacedName, logger logr.Logger) error {
+	initialCtx, initialCancel := context.WithTimeout(ctx, 30*time.Second)
+	defer initialCancel()
+	if err := r.pollUntilPodRunning(initialCtx, mariadbKey, podKey, logger); err != nil {
+		logger.V(1).Info("Initial wait for Pod timed out", "pod", podKey.Name, "err", err)
+	}
+
 	var pod corev1.Pod
 	if err := r.Get(ctx, podKey, &pod); err != nil {
 		return fmt.Errorf("error getting Pod '%s': %v", podKey.Name, err)
 	}
-	if pod.Status.Phase == corev1.PodRunning {
-		return nil
-	}
-
 	if err := r.Delete(ctx, &pod); err != nil {
 		return fmt.Errorf("error deleting Pod '%s': %v", podKey.Name, err)
 	}
+
 	return r.pollUntilPodRunning(ctx, mariadbKey, podKey, logger)
 }
 
