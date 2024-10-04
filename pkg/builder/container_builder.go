@@ -99,7 +99,9 @@ func (b *Builder) mariadbContainers(mariadb *mariadbv1alpha1.MariaDB, opts ...ma
 	if mariadb.Spec.SidecarContainers != nil {
 		for index, container := range mariadb.Spec.SidecarContainers {
 			sidecarContainer := b.buildContainer(mariadb, &container)
-			sidecarContainer.Name = fmt.Sprintf("sidecar-%d", index)
+			if sidecarContainer.Name == "" {
+				sidecarContainer.Name = fmt.Sprintf("sidecar-%d", index)
+			}
 			containers = append(containers, *sidecarContainer)
 		}
 	}
@@ -237,7 +239,9 @@ func (b *Builder) mariadbInitContainers(mariadb *mariadbv1alpha1.MariaDB, opts .
 	if mariadb.Spec.InitContainers != nil {
 		for index, container := range mariadb.Spec.InitContainers {
 			initContainer := b.buildContainer(mariadb, &container)
-			initContainer.Name = fmt.Sprintf("init-%d", index)
+			if initContainer.Name == "" {
+				initContainer.Name = fmt.Sprintf("init-%d", index)
+			}
 			initContainers = append(initContainers, *initContainer)
 		}
 	}
@@ -311,6 +315,7 @@ func (b *Builder) buildContainerWithTemplate(image string, pullPolicy corev1.Pul
 
 func (b *Builder) buildContainer(mdb *mariadbv1alpha1.MariaDB, mdbContainer *mariadbv1alpha1.Container) *corev1.Container {
 	container := corev1.Container{
+		Name:            mdbContainer.Name,
 		Image:           mdbContainer.Image,
 		ImagePullPolicy: mdbContainer.ImagePullPolicy,
 		Command:         mdbContainer.Command,

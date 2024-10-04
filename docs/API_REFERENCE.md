@@ -213,8 +213,8 @@ _Appears in:_
 | Field | Description |
 | --- | --- |
 | `none` | No compression<br /> |
-| `bzip2` | Bzip2 compression<br /> |
-| `gzip` | Gzip compression<br /> |
+| `bzip2` | Bzip2 compression. Good compression ratio, but slower compression/decompression speed.<br /> |
+| `gzip` | Gzip compression. Good compression/decompression speed, but worse compression ratio.<br /> |
 
 
 #### ConfigMapKeySelector
@@ -319,6 +319,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
+| `name` _string_ | Name to be given to the container. |  |  |
 | `image` _string_ | Image name to be used by the container. The supported format is `<image>:<tag>`. |  | Required: \{\} <br /> |
 | `imagePullPolicy` _[PullPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#pullpolicy-v1-core)_ | ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`. |  | Enum: [Always Never IfNotPresent] <br /> |
 | `command` _string array_ | Command to be used in the Container. |  |  |
