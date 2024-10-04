@@ -12,6 +12,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -321,6 +322,20 @@ var _ = Describe("MariaDB Galera", Ordered, func() {
 
 		By("Expecting to create a secondary Service")
 		Expect(k8sClient.Get(testCtx, mdb.SecondaryServiceKey(), &svc)).To(Succeed())
+
+		By("Expecting role label to be set to primary")
+		Eventually(func() bool {
+			currentPrimary := *mdb.Status.CurrentPrimary
+			primaryPodKey := types.NamespacedName{
+				Name:      currentPrimary,
+				Namespace: mdb.Namespace,
+			}
+			var primaryPod corev1.Pod
+			if err := k8sClient.Get(testCtx, primaryPodKey, &primaryPod); err != nil {
+				return apierrors.IsNotFound(err)
+			}
+			return primaryPod.Labels["k8s.mariadb.com/role"] == "primary"
+		}, testTimeout, testInterval).Should(BeTrue())
 
 		By("Expecting Connection to be ready eventually")
 		Eventually(func() bool {
