@@ -98,7 +98,7 @@ type patcherMariaDB func(*mariadbv1alpha1.MariaDBStatus) error
 //+kubebuilder:rbac:groups="",resources=secrets,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups="",resources=endpoints,verbs=create;patch;get;list;watch
 //+kubebuilder:rbac:groups="",resources=endpoints/restricted,verbs=create;patch;get;list;watch
-//+kubebuilder:rbac:groups="",resources=pods,verbs=get;delete
+//+kubebuilder:rbac:groups="",resources=pods,verbs=get;patch;delete
 //+kubebuilder:rbac:groups="",resources=pods/log,verbs=get
 //+kubebuilder:rbac:groups="",resources=persistentvolumeclaims,verbs=list
 //+kubebuilder:rbac:groups="",resources=events,verbs=list;watch;create;patch
@@ -349,10 +349,6 @@ func (r *MariaDBReconciler) reconcileStatefulSet(ctx context.Context, mariadb *m
 }
 
 func (r *MariaDBReconciler) reconcilePodLabels(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
-	if !mariadb.Replication().Enabled {
-		return ctrl.Result{}, nil
-	}
-
 	podList := corev1.PodList{}
 	listOpts := &client.ListOptions{
 		LabelSelector: klabels.SelectorFromSet(
@@ -377,13 +373,15 @@ func (r *MariaDBReconciler) reconcilePodLabels(ctx context.Context, mariadb *mar
 			return ctrl.Result{}, fmt.Errorf("error getting Pod '%s' index: %v", pod.Name, err)
 		}
 
-		if *podIndex == *mariadb.Status.CurrentPrimaryPodIndex {
+		if mariadb.Status.CurrentPrimaryPodIndex != nil && *podIndex == *mariadb.Status.CurrentPrimaryPodIndex {
 			role = "primary"
 		}
+
+		p := client.MergeFrom(pod.DeepCopy())
 		pod.Labels = labels.NewLabelsBuilder().WithLabels(pod.Labels).WithPodRole(role).Build()
 
 		if mdbpod.PodReady(&pod) {
-			if err := r.Update(ctx, &pod); err != nil {
+			if err := r.Patch(ctx, &pod, p); err != nil {
 				if apierrors.IsConflict(err) {
 					return ctrl.Result{Requeue: true}, nil
 				}
