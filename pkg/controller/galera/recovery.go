@@ -477,15 +477,8 @@ func (r *GaleraReconciler) disableBootstrapInPod(ctx context.Context, mariadbKey
 	if err := r.ensurePodRunning(ctx, mariadbKey, podKey, logger); err != nil {
 		return fmt.Errorf("error ensuring Pod '%s' is running: %v", podKey.Name, err)
 	}
-
-	isEnabled, err := client.Galera.IsBootstrapEnabled(ctx)
-	if err != nil {
-		return fmt.Errorf("error checking bootstrap in Pod '%s': %v", podKey.Name, err)
-	}
-	if isEnabled {
-		if err := client.Galera.DisableBootstrap(ctx); err != nil {
-			return fmt.Errorf("error disabling bootstrap in Pod '%s': %v", podKey.Name, err)
-		}
+	if err := client.Galera.DisableBootstrap(ctx); err != nil && !galeraerrors.IsNotFound(err) {
+		return fmt.Errorf("error disabling bootstrap in Pod '%s': %v", podKey.Name, err)
 	}
 	return nil
 }
