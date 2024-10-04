@@ -466,24 +466,21 @@ func (r *GaleraReconciler) disableBootstrapInPod(ctx context.Context, mariadbKey
 
 func (r *GaleraReconciler) patchStatefulSetReplicas(ctx context.Context, key types.NamespacedName, replicas int32,
 	logger logr.Logger) error {
-	stsCtx, stsCancel := context.WithTimeout(ctx, 30*time.Second)
-	defer stsCancel()
-
 	var sts appsv1.StatefulSet
-	if err := r.Get(stsCtx, key, &sts); err != nil {
+	if err := r.Get(ctx, key, &sts); err != nil {
 		return fmt.Errorf("error getting StatefulSet: %v", err)
 	}
 
 	patch := client.MergeFrom(sts.DeepCopy())
 	sts.Spec.Replicas = ptr.To(replicas)
-	if err := r.Patch(stsCtx, &sts, patch); err != nil {
+	if err := r.Patch(ctx, &sts, patch); err != nil {
 		return fmt.Errorf("error patching StatefulSet: %v", err)
 	}
 
 	return wait.PollWithMariaDB(ctx, key, r.Client, logger, func(ctx context.Context) error {
 		var sts appsv1.StatefulSet
 
-		if err := r.Get(stsCtx, key, &sts); err != nil {
+		if err := r.Get(ctx, key, &sts); err != nil {
 			return fmt.Errorf("error getting StatefulSet: %v", err)
 		}
 		if sts.Status.Replicas == replicas {
@@ -498,8 +495,11 @@ func (r *GaleraReconciler) ensurePodRunning(ctx context.Context, mariadbKey, pod
 	defer initialCancel()
 	if err := r.pollUntilPodRunning(initialCtx, mariadbKey, podKey, logger); err != nil {
 		logger.V(1).Info("Initial wait for Pod timed out", "pod", podKey.Name, "err", err)
+	} else {
+		return nil
 	}
 
+	logger.V(1).Info("Pod not running. Recreating...", "pod", podKey.Name)
 	var pod corev1.Pod
 	if err := r.Get(ctx, podKey, &pod); err != nil {
 		return fmt.Errorf("error getting Pod '%s': %v", podKey.Name, err)
