@@ -1798,6 +1798,9 @@ spec:
                       - Never
                       - IfNotPresent
                       type: string
+                    name:
+                      description: Name to be given to the container.
+                      type: string
                     resources:
                       description: Resouces describes the compute resource requirements.
                       properties:
@@ -4504,6 +4507,9 @@ spec:
                       - Always
                       - Never
                       - IfNotPresent
+                      type: string
+                    name:
+                      description: Name to be given to the container.
                       type: string
                     resources:
                       description: Resouces describes the compute resource requirements.

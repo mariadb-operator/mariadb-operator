@@ -143,6 +143,10 @@ func (j *JobContainerTemplate) FromContainerTemplate(ctpl *ContainerTemplate) {
 
 // Container object definition.
 type Container struct {
+	// Name to be given to the container.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Name string `json:"name,omitempty"`
 	// Image name to be used by the container. The supported format is `<image>:<tag>`.
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
