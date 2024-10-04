@@ -349,6 +349,10 @@ func (r *MariaDBReconciler) reconcileStatefulSet(ctx context.Context, mariadb *m
 }
 
 func (r *MariaDBReconciler) reconcilePodLabels(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
+	if mariadb.Status.CurrentPrimaryPodIndex == nil {
+		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+	}
+
 	podList := corev1.PodList{}
 	listOpts := &client.ListOptions{
 		LabelSelector: klabels.SelectorFromSet(
@@ -373,7 +377,7 @@ func (r *MariaDBReconciler) reconcilePodLabels(ctx context.Context, mariadb *mar
 			return ctrl.Result{}, fmt.Errorf("error getting Pod '%s' index: %v", pod.Name, err)
 		}
 
-		if mariadb.Status.CurrentPrimaryPodIndex != nil && *podIndex == *mariadb.Status.CurrentPrimaryPodIndex {
+		if *podIndex == *mariadb.Status.CurrentPrimaryPodIndex {
 			role = "primary"
 		}
 
