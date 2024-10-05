@@ -753,6 +753,7 @@ func (r *MariaDBReconciler) reconcileUsers(ctx context.Context, mariadb *mariadb
 		Name:                 "mariadb.sys",
 		Host:                 "localhost",
 		PasswordSecretKeyRef: nil,
+		CleanupPolicy:        ptr.To(mariadbv1alpha1.CleanupPolicySkip),
 	}
 	grantOpts := auth.GrantOpts{
 		Key: sysGrantKey,
@@ -769,10 +770,11 @@ func (r *MariaDBReconciler) reconcileUsers(ctx context.Context, mariadb *mariadb
 				"UPDATE",
 				"DELETE",
 			},
-			Database: "mysql",
-			Table:    "global_priv",
-			Username: "mariadb.sys",
-			Host:     "localhost",
+			Database:      "mysql",
+			Table:         "global_priv",
+			Username:      "mariadb.sys",
+			Host:          "localhost",
+			CleanupPolicy: ptr.To(mariadbv1alpha1.CleanupPolicySkip),
 		},
 	}
 
