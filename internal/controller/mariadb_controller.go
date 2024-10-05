@@ -560,17 +560,21 @@ func (r *MariaDBReconciler) reconcileHighAvailabilityPDB(ctx context.Context, ma
 
 func (r *MariaDBReconciler) reconcileDefaultService(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
 	key := client.ObjectKeyFromObject(mariadb)
+	ports := []corev1.ServicePort{
+		{
+			Name: builder.MariadbPortName,
+			Port: mariadb.Spec.Port,
+		},
+	}
+	if mariadb.Spec.ServicePorts != nil {
+		ports = append(ports, mariadb.Spec.ServicePorts...)
+	}
 	selectorLabels :=
 		labels.NewLabelsBuilder().
 			WithMariaDBSelectorLabels(mariadb).
 			Build()
 	opts := builder.ServiceOpts{
-		Ports: []corev1.ServicePort{
-			{
-				Name: builder.MariadbPortName,
-				Port: mariadb.Spec.Port,
-			},
-		},
+		Ports:          ports,
 		SelectorLabels: selectorLabels,
 		ExtraMeta:      mariadb.Spec.InheritMetadata,
 	}
@@ -592,6 +596,9 @@ func (r *MariaDBReconciler) reconcileInternalService(ctx context.Context, mariad
 			Name: builder.MariadbPortName,
 			Port: mariadb.Spec.Port,
 		},
+	}
+	if mariadb.Spec.ServicePorts != nil {
+		ports = append(ports, mariadb.Spec.ServicePorts...)
 	}
 	if mariadb.IsGaleraEnabled() {
 		ports = append(ports, []corev1.ServicePort{
@@ -637,18 +644,22 @@ func (r *MariaDBReconciler) reconcilePrimaryService(ctx context.Context, mariadb
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
 	key := mariadb.PrimaryServiceKey()
+	ports := []corev1.ServicePort{
+		{
+			Name: builder.MariadbPortName,
+			Port: mariadb.Spec.Port,
+		},
+	}
+	if mariadb.Spec.ServicePorts != nil {
+		ports = append(ports, mariadb.Spec.ServicePorts...)
+	}
 	serviceLabels :=
 		labels.NewLabelsBuilder().
 			WithMariaDBSelectorLabels(mariadb).
 			WithStatefulSetPod(mariadb, *mariadb.Status.CurrentPrimaryPodIndex).
 			Build()
 	opts := builder.ServiceOpts{
-		Ports: []corev1.ServicePort{
-			{
-				Name: builder.MariadbPortName,
-				Port: mariadb.Spec.Port,
-			},
-		},
+		Ports:          ports,
 		SelectorLabels: serviceLabels,
 		ExtraMeta:      mariadb.Spec.InheritMetadata,
 	}
@@ -665,20 +676,24 @@ func (r *MariaDBReconciler) reconcilePrimaryService(ctx context.Context, mariadb
 
 func (r *MariaDBReconciler) reconcileSecondaryService(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
 	key := mariadb.SecondaryServiceKey()
+	ports := []corev1.ServicePort{
+		{
+			Name: builder.MariadbPortName,
+			Port: mariadb.Spec.Port,
+		},
+	}
+	if mariadb.Spec.ServicePorts != nil {
+		ports = append(ports, mariadb.Spec.ServicePorts...)
+	}
 	selectorLabels :=
 		labels.NewLabelsBuilder().
 			WithMariaDBSelectorLabels(mariadb).
 			Build()
 	opts := builder.ServiceOpts{
 		ExcludeSelectorLabels: true,
-		Ports: []corev1.ServicePort{
-			{
-				Name: builder.MariadbPortName,
-				Port: mariadb.Spec.Port,
-			},
-		},
-		SelectorLabels: selectorLabels,
-		ExtraMeta:      mariadb.Spec.InheritMetadata,
+		Ports:                 ports,
+		SelectorLabels:        selectorLabels,
+		ExtraMeta:             mariadb.Spec.InheritMetadata,
 	}
 	if mariadb.Spec.SecondaryService != nil {
 		opts.ServiceTemplate = *mariadb.Spec.SecondaryService

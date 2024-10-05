@@ -428,6 +428,10 @@ type MariaDBSpec struct {
 	// +kubebuilder:default=3306
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number","urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Port int32 `json:"port,omitempty"`
+	// ServicePorts are additional ports to be added to the Services created by the operator.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	ServicePorts []corev1.ServicePort `json:"servicePorts,omitempty"`
 	// PodDisruptionBudget defines the budget for replica availability.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
