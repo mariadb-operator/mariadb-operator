@@ -79,7 +79,7 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alph
 		jobEnv(mariadb),
 		jobResources(backup.Spec.Resources),
 		mariadb,
-		jobSecurityContext(backup.Spec.SecurityContext),
+		backup.Spec.SecurityContext,
 	)
 	if err != nil {
 		return nil, err
@@ -92,7 +92,7 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alph
 		jobResources(backup.Spec.Resources),
 		mariadb,
 		b.env,
-		jobSecurityContext(backup.Spec.SecurityContext),
+		backup.Spec.SecurityContext,
 	)
 	if err != nil {
 		return nil, err
@@ -207,7 +207,7 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 		jobResources(restore.Spec.Resources),
 		mariadb,
 		b.env,
-		jobSecurityContext(restore.Spec.SecurityContext),
+		restore.Spec.SecurityContext,
 	)
 	if err != nil {
 		return nil, err
@@ -219,7 +219,7 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 		jobEnv(mariadb),
 		jobResources(restore.Spec.Resources),
 		mariadb,
-		jobSecurityContext(restore.Spec.SecurityContext),
+		restore.Spec.SecurityContext,
 	)
 	if err != nil {
 		return nil, err
@@ -469,7 +469,7 @@ func (b *Builder) BuildSqlJob(key types.NamespacedName, sqlJob *mariadbv1alpha1.
 		sqlJobEnv(sqlJob),
 		resources,
 		mariadb,
-		jobSecurityContext(sqlJob.Spec.SecurityContext),
+		sqlJob.Spec.SecurityContext,
 	)
 	if err != nil {
 		return nil, err

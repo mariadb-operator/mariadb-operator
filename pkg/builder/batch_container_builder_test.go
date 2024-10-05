@@ -19,7 +19,7 @@ func TestJobContainerSecurityContext(t *testing.T) {
 	envVar := []corev1.EnvVar{}
 	resources := &corev1.ResourceRequirements{}
 	mariadb := &mariadbv1alpha1.MariaDB{}
-	var securityContext *corev1.SecurityContext
+	var securityContext *mariadbv1alpha1.SecurityContext
 
 	container, err := builder.jobContainer("mariadb", cmd, image, volumeMounts, envVar, resources, mariadb, securityContext)
 	if err != nil {
@@ -29,7 +29,7 @@ func TestJobContainerSecurityContext(t *testing.T) {
 		t.Error("expected SecurityContext to be nil")
 	}
 
-	securityContext = &corev1.SecurityContext{
+	securityContext = &mariadbv1alpha1.SecurityContext{
 		RunAsUser: ptr.To(mysqlUser),
 	}
 	container, err = builder.jobContainer("mariadb", cmd, image, volumeMounts, envVar, resources, mariadb, securityContext)
