@@ -1738,6 +1738,13 @@ func (in *MariaDBSpec) DeepCopyInto(out *MariaDBSpec) {
 		*out = new(MariaDBMaxScaleSpec)
 		(*in).DeepCopyInto(*out)
 	}
+	if in.ServicePorts != nil {
+		in, out := &in.ServicePorts, &out.ServicePorts
+		*out = make([]corev1.ServicePort, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
 	if in.PodDisruptionBudget != nil {
 		in, out := &in.PodDisruptionBudget, &out.PodDisruptionBudget
 		*out = new(PodDisruptionBudget)
