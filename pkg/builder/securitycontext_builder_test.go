@@ -3,6 +3,7 @@ package builder
 import (
 	"testing"
 
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/discovery"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -50,7 +51,7 @@ func TestBuildContainerSecurityContext(t *testing.T) {
 func TestBuildPodSecurityContext(t *testing.T) {
 	builder := newDefaultTestBuilder(t)
 
-	sc, err := builder.buildPodSecurityContext(&corev1.PodSecurityContext{
+	sc, err := builder.buildPodSecurityContext(&mariadbv1alpha1.PodSecurityContext{
 		RunAsUser: ptr.To(mysqlUser),
 	})
 	if err != nil {
@@ -74,7 +75,7 @@ func TestBuildPodSecurityContext(t *testing.T) {
 	}
 	builder = newTestBuilder(discovery)
 
-	sc, err = builder.buildPodSecurityContext(&corev1.PodSecurityContext{
+	sc, err = builder.buildPodSecurityContext(&mariadbv1alpha1.PodSecurityContext{
 		RunAsUser: ptr.To(mysqlUser),
 	})
 	if err != nil {
@@ -88,7 +89,7 @@ func TestBuildPodSecurityContext(t *testing.T) {
 func TestBuildPodSecurityContextWithUserGroup(t *testing.T) {
 	builder := newDefaultTestBuilder(t)
 
-	sc, err := builder.buildPodSecurityContextWithUserGroup(&corev1.PodSecurityContext{
+	sc, err := builder.buildPodSecurityContextWithUserGroup(&mariadbv1alpha1.PodSecurityContext{
 		RunAsUser: ptr.To(mysqlUser),
 	}, mysqlUser, mysqlGroup)
 	if err != nil {
@@ -132,7 +133,7 @@ func TestBuildPodSecurityContextWithUserGroup(t *testing.T) {
 	}
 	builder = newTestBuilder(discovery)
 
-	sc, err = builder.buildPodSecurityContextWithUserGroup(&corev1.PodSecurityContext{
+	sc, err = builder.buildPodSecurityContextWithUserGroup(&mariadbv1alpha1.PodSecurityContext{
 		RunAsUser: ptr.To(mysqlUser),
 	}, mysqlUser, mysqlGroup)
 	if err != nil {

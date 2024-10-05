@@ -102,8 +102,8 @@ func testCreateInitialData(ctx context.Context, env environment.OperatorEnv) {
 				},
 			},
 			PodTemplate: mariadbv1alpha1.PodTemplate{
-				PodSecurityContext: &corev1.PodSecurityContext{
-					RunAsUser: ptr.To(int64(0)),
+				PodSecurityContext: &mariadbv1alpha1.PodSecurityContext{
+					RunAsUser: ptr.To(int64(999)),
 				},
 				PodMetadata: &mariadbv1alpha1.Metadata{
 					Labels: map[string]string{

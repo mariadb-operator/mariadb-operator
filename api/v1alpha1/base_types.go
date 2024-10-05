@@ -258,7 +258,7 @@ type PodTemplate struct {
 	// SecurityContext holds pod-level security attributes and common container settings.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	PodSecurityContext *corev1.PodSecurityContext `json:"podSecurityContext,omitempty"`
+	PodSecurityContext *PodSecurityContext `json:"podSecurityContext,omitempty"`
 	// ServiceAccountName is the name of the ServiceAccount to be used by the Pods.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
@@ -320,7 +320,7 @@ type JobPodTemplate struct {
 	// SecurityContext holds pod-level security attributes and common container settings.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	PodSecurityContext *corev1.PodSecurityContext `json:"podSecurityContext,omitempty"`
+	PodSecurityContext *PodSecurityContext `json:"podSecurityContext,omitempty"`
 	// ServiceAccountName is the name of the ServiceAccount to be used by the Pods.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
@@ -773,7 +773,7 @@ type Exporter struct {
 	// SecurityContext holds pod-level security attributes and common container settings.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	PodSecurityContext *corev1.PodSecurityContext `json:"podSecurityContext,omitempty"`
+	PodSecurityContext *PodSecurityContext `json:"podSecurityContext,omitempty"`
 	// Affinity to be used in the Pod.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
