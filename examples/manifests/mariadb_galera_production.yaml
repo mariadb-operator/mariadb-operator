@@ -46,6 +46,8 @@ spec:
     type: ReplicasFirstPrimaryLast
     # Pause updates.
     # type: Never
+    # Update the data-plane after an operator upgrade.
+    # autoUpdateDataPlane: true
 
   # Configure enough compute resources. This is just an example, take a look at your historic compute metrics to estimate.
   resources:
@@ -84,8 +86,6 @@ spec:
   # Schedule Pods in different Nodes to achieve real HA.
   affinity:
     antiAffinityEnabled: true
-    # Update the data-plane after an operator upgrade.
-    # autoUpdateDataPlane: true
 
   # When draining Nodes, make sure that you have at least 2 Pods available.
   podDisruptionBudget:
