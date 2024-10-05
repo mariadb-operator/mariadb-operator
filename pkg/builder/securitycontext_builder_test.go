@@ -13,7 +13,7 @@ import (
 func TestBuildContainerSecurityContext(t *testing.T) {
 	builder := newDefaultTestBuilder(t)
 
-	sc, err := builder.buildContainerSecurityContext(&corev1.SecurityContext{
+	sc, err := builder.buildContainerSecurityContext(&mariadbv1alpha1.SecurityContext{
 		RunAsUser: ptr.To(mysqlUser),
 	})
 	if err != nil {
@@ -37,7 +37,7 @@ func TestBuildContainerSecurityContext(t *testing.T) {
 	}
 	builder = newTestBuilder(discovery)
 
-	sc, err = builder.buildContainerSecurityContext(&corev1.SecurityContext{
+	sc, err = builder.buildContainerSecurityContext(&mariadbv1alpha1.SecurityContext{
 		RunAsUser: ptr.To(mysqlUser),
 	})
 	if err != nil {

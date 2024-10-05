@@ -8,7 +8,7 @@ import (
 	"k8s.io/utils/ptr"
 )
 
-func (b *Builder) buildContainerSecurityContext(securityContext *corev1.SecurityContext) (*corev1.SecurityContext, error) {
+func (b *Builder) buildContainerSecurityContext(securityContext *mariadbv1alpha1.SecurityContext) (*corev1.SecurityContext, error) {
 	sccExists, err := b.discovery.SecurityContextConstrainstsExist()
 	if err != nil {
 		return nil, fmt.Errorf("error discovering SecurityContextConstraints: %v", err)
@@ -19,7 +19,10 @@ func (b *Builder) buildContainerSecurityContext(securityContext *corev1.Security
 	if sccExists {
 		return nil, nil
 	}
-	return securityContext, nil
+	if securityContext != nil {
+		return ptr.To(securityContext.ToKubernetesType()), nil
+	}
+	return nil, nil
 }
 
 func (b *Builder) buildPodSecurityContext(podSecurityContext *mariadbv1alpha1.PodSecurityContext) (*corev1.PodSecurityContext, error) {

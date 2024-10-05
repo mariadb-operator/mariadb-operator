@@ -286,11 +286,7 @@ func (b *Builder) buildContainerWithTemplate(image string, pullPolicy corev1.Pul
 	opts ...mariadbPodOpt) (*corev1.Container, error) {
 	mariadbOpts := newMariadbPodOpts(opts...)
 
-	var securityContext *corev1.SecurityContext
-	if tpl.SecurityContext != nil {
-		securityContext = ptr.To(tpl.SecurityContext.ToKubernetesType())
-	}
-	sc, err := b.buildContainerSecurityContext(securityContext)
+	sc, err := b.buildContainerSecurityContext(tpl.SecurityContext)
 	if err != nil {
 		return nil, err
 	}

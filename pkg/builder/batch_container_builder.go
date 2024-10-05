@@ -10,8 +10,7 @@ import (
 )
 
 func (b *Builder) jobContainer(name string, cmd *cmd.Command, image string, volumeMounts []corev1.VolumeMount, env []v1.EnvVar,
-	resources *corev1.ResourceRequirements, mariadb *mariadbv1alpha1.MariaDB,
-	securityContext *corev1.SecurityContext) (*corev1.Container, error) {
+	resources *corev1.ResourceRequirements, mariadb *mariadbv1alpha1.MariaDB, securityContext *mariadbv1alpha1.SecurityContext) (*corev1.Container, error) {
 	sc, err := b.buildContainerSecurityContext(securityContext)
 	if err != nil {
 		return nil, err
@@ -35,14 +34,14 @@ func (b *Builder) jobContainer(name string, cmd *cmd.Command, image string, volu
 
 func (b *Builder) jobMariadbOperatorContainer(cmd *cmd.Command, volumeMounts []corev1.VolumeMount, envVar []v1.EnvVar,
 	resources *corev1.ResourceRequirements, mariadb *mariadbv1alpha1.MariaDB, env *environment.OperatorEnv,
-	securityContext *corev1.SecurityContext) (*corev1.Container, error) {
+	securityContext *mariadbv1alpha1.SecurityContext) (*corev1.Container, error) {
 
 	return b.jobContainer("mariadb-operator", cmd, env.MariadbOperatorImage, volumeMounts, envVar, resources, mariadb, securityContext)
 }
 
 func (b *Builder) jobMariadbContainer(cmd *cmd.Command, volumeMounts []corev1.VolumeMount, envVar []v1.EnvVar,
 	resources *corev1.ResourceRequirements, mariadb *mariadbv1alpha1.MariaDB,
-	securityContext *corev1.SecurityContext) (*corev1.Container, error) {
+	securityContext *mariadbv1alpha1.SecurityContext) (*corev1.Container, error) {
 
 	return b.jobContainer("mariadb", cmd, mariadb.Spec.Image, volumeMounts, envVar, resources, mariadb, securityContext)
 }
@@ -125,13 +124,6 @@ func jobS3Env(s3 *mariadbv1alpha1.S3) []v1.EnvVar {
 func jobResources(resources *mariadbv1alpha1.ResourceRequirements) *corev1.ResourceRequirements {
 	if resources != nil {
 		return ptr.To(resources.ToKubernetesType())
-	}
-	return nil
-}
-
-func jobSecurityContext(securityContext *mariadbv1alpha1.SecurityContext) *corev1.SecurityContext {
-	if securityContext != nil {
-		return ptr.To(securityContext.ToKubernetesType())
 	}
 	return nil
 }
