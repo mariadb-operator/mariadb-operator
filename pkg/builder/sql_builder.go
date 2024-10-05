@@ -17,6 +17,7 @@ type UserOpts struct {
 	PasswordHashSecretKeyRef *mariadbv1alpha1.SecretKeySelector
 	PasswordPlugin           *mariadbv1alpha1.PasswordPlugin
 	MaxUserConnections       int32
+	CleanupPolicy            *mariadbv1alpha1.CleanupPolicy
 	Metadata                 *mariadbv1alpha1.Metadata
 	MariaDBRef               mariadbv1alpha1.MariaDBRef
 }
@@ -42,6 +43,9 @@ func (b *Builder) BuildUser(key types.NamespacedName, owner metav1.Object, opts 
 	if opts.MaxUserConnections > 0 {
 		user.Spec.MaxUserConnections = opts.MaxUserConnections
 	}
+	if opts.CleanupPolicy != nil {
+		user.Spec.CleanupPolicy = opts.CleanupPolicy
+	}
 	if err := controllerutil.SetControllerReference(owner, user, b.scheme); err != nil {
 		return nil, fmt.Errorf("error setting controller reference to User: %v", err)
 	}
@@ -49,14 +53,15 @@ func (b *Builder) BuildUser(key types.NamespacedName, owner metav1.Object, opts 
 }
 
 type GrantOpts struct {
-	Privileges  []string
-	Database    string
-	Table       string
-	Username    string
-	Host        string
-	GrantOption bool
-	Metadata    *mariadbv1alpha1.Metadata
-	MariaDBRef  mariadbv1alpha1.MariaDBRef
+	Privileges    []string
+	Database      string
+	Table         string
+	Username      string
+	Host          string
+	GrantOption   bool
+	CleanupPolicy *mariadbv1alpha1.CleanupPolicy
+	Metadata      *mariadbv1alpha1.Metadata
+	MariaDBRef    mariadbv1alpha1.MariaDBRef
 }
 
 func (b *Builder) BuildGrant(key types.NamespacedName, owner metav1.Object, opts GrantOpts) (*mariadbv1alpha1.Grant, error) {
@@ -77,6 +82,9 @@ func (b *Builder) BuildGrant(key types.NamespacedName, owner metav1.Object, opts
 	}
 	if opts.Host != "" {
 		grant.Spec.Host = &opts.Host
+	}
+	if opts.CleanupPolicy != nil {
+		grant.Spec.CleanupPolicy = opts.CleanupPolicy
 	}
 	if err := controllerutil.SetControllerReference(owner, grant, b.scheme); err != nil {
 		return nil, fmt.Errorf("error setting controller reference to Grant: %v", err)
