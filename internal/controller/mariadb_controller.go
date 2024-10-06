@@ -31,6 +31,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/discovery"
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	"github.com/mariadb-operator/mariadb-operator/pkg/health"
+	kadapter "github.com/mariadb-operator/mariadb-operator/pkg/kubernetes/adapter"
 	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
 	mdbpod "github.com/mariadb-operator/mariadb-operator/pkg/pod"
 	"github.com/mariadb-operator/mariadb-operator/pkg/predicate"
@@ -567,7 +568,7 @@ func (r *MariaDBReconciler) reconcileDefaultService(ctx context.Context, mariadb
 		},
 	}
 	if mariadb.Spec.ServicePorts != nil {
-		ports = append(ports, mariadb.Spec.ServicePorts...)
+		ports = append(ports, kadapter.ToKubernetesSlice(mariadb.Spec.ServicePorts)...)
 	}
 	selectorLabels :=
 		labels.NewLabelsBuilder().
@@ -598,7 +599,7 @@ func (r *MariaDBReconciler) reconcileInternalService(ctx context.Context, mariad
 		},
 	}
 	if mariadb.Spec.ServicePorts != nil {
-		ports = append(ports, mariadb.Spec.ServicePorts...)
+		ports = append(ports, kadapter.ToKubernetesSlice(mariadb.Spec.ServicePorts)...)
 	}
 	if mariadb.IsGaleraEnabled() {
 		ports = append(ports, []corev1.ServicePort{
@@ -651,7 +652,7 @@ func (r *MariaDBReconciler) reconcilePrimaryService(ctx context.Context, mariadb
 		},
 	}
 	if mariadb.Spec.ServicePorts != nil {
-		ports = append(ports, mariadb.Spec.ServicePorts...)
+		ports = append(ports, kadapter.ToKubernetesSlice(mariadb.Spec.ServicePorts)...)
 	}
 	serviceLabels :=
 		labels.NewLabelsBuilder().
@@ -683,7 +684,7 @@ func (r *MariaDBReconciler) reconcileSecondaryService(ctx context.Context, maria
 		},
 	}
 	if mariadb.Spec.ServicePorts != nil {
-		ports = append(ports, mariadb.Spec.ServicePorts...)
+		ports = append(ports, kadapter.ToKubernetesSlice(mariadb.Spec.ServicePorts)...)
 	}
 	selectorLabels :=
 		labels.NewLabelsBuilder().

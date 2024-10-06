@@ -448,3 +448,16 @@ func (r SecurityContext) ToKubernetesType() corev1.SecurityContext {
 		AllowPrivilegeEscalation: r.AllowPrivilegeEscalation,
 	}
 }
+
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#serviceport-v1-core
+type ServicePort struct {
+	Name string `json:"name"`
+	Port int32  `json:"port"`
+}
+
+func (r ServicePort) ToKubernetesType() corev1.ServicePort {
+	return corev1.ServicePort{
+		Name: r.Name,
+		Port: r.Port,
+	}
+}
