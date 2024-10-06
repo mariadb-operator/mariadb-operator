@@ -20,7 +20,7 @@ kubectl wait -n metallb \
   --selector=app.kubernetes.io/name=metallb \
   --timeout=120s
 
-export CIDR_PREFIX=$(go run ./hack/get_kind_cidr_prefix.go)
+export CIDR_PREFIX=$(go run ./hack/get_kind_cidr_prefix/main.go)
 
 for f in $CURDIR/manifests/metallb/*; 
 do 

@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-CIDR_PREFIX=$(go run ./hack/get_kind_cidr_prefix.go)
+CIDR_PREFIX=$(go run ./hack/get_kind_cidr_prefix/main.go)
 IP="${CIDR_PREFIX}.0.$1"
 HOSTNAME=$2
 

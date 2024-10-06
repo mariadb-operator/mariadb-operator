@@ -11,7 +11,7 @@ fi
 helm repo add minio https://charts.min.io/
 helm repo update minio
 
-CIDR_PREFIX=$(go run ./hack/get_kind_cidr_prefix.go)
+CIDR_PREFIX=$(go run ./hack/get_kind_cidr_prefix/main.go)
 
 helm upgrade --install \
   --version $MINIO_VERSION \
