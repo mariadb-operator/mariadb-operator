@@ -8,8 +8,12 @@ docs-api: crd-ref-docs ## Generate API reference docs.
 		--renderer=markdown \
 		--output-path=./docs/API_REFERENCE.md
 
+.PHONY: docs-docker
+docs-docker: ## Generate Docker docs.
+	VERSION=$(VERSION) $(GO) run ./hack/render_docker_docs/main.go
+
 .PHONY: docs-gen
-docs-gen: docs-api ## Generate documentation.
+docs-gen: docs-api docs-docker ## Generate documentation.
 
 DOCS_IMG ?= mariadb-operator/docs:0.0.1
 DOCS_RUN ?= $(DOCKER) run --rm \

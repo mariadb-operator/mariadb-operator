@@ -11,7 +11,7 @@ fi
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
 helm repo update prometheus-community
 
-CIDR_PREFIX=$(go run ./hack/get_kind_cidr_prefix.go)
+CIDR_PREFIX=$(go run ./hack/get_kind_cidr_prefix/main.go)
 
 helm upgrade --install \
   --version $PROMETHEUS_VERSION \
