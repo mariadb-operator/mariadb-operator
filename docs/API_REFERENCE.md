@@ -531,6 +531,7 @@ _Appears in:_
 | `port` _integer_ | Port where the exporter will be listening for connections. |  |  |
 | `resources` _[ResourceRequirements](#resourcerequirements)_ | Resouces describes the compute resource requirements. |  |  |
 | `podMetadata` _[Metadata](#metadata)_ | PodMetadata defines extra metadata for the Pod. |  |  |
+| `securityContext` _[SecurityContext](#securitycontext)_ | SecurityContext holds container-level security attributes. |  |  |
 | `podSecurityContext` _[PodSecurityContext](#podsecuritycontext)_ | SecurityContext holds pod-level security attributes and common container settings. |  |  |
 | `affinity` _[AffinityConfig](#affinityconfig)_ | Affinity to be used in the Pod. |  |  |
 | `nodeSelector` _object (keys:string, values:string)_ | NodeSelector to be used in the Pod. |  |  |
@@ -2035,6 +2036,7 @@ Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kub
 _Appears in:_
 - [BackupSpec](#backupspec)
 - [ContainerTemplate](#containertemplate)
+- [Exporter](#exporter)
 - [GaleraAgent](#galeraagent)
 - [GaleraInit](#galerainit)
 - [JobContainerTemplate](#jobcontainertemplate)
