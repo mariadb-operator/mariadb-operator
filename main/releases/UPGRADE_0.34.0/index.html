@@ -9,10 +9,10 @@
       
       
       
-        <link rel="prev" href="../UPGRADE_v0.0.21/">
+        <link rel="prev" href="../../UPDATES/">
       
       
-        <link rel="next" href="../UPGRADE_v0.0.26/">
+        <link rel="next" href="../UPGRADE_v0.0.20/">
       
       
       <link rel="icon" href="../../assets/mariadb_favicon.svg">
@@ -20,7 +20,7 @@
     
     
       
-        <title>Upgrade guide v0.0.24 - MariaDB Operator</title>
+        <title>Upgrade guide 0.34.0 - MariaDB Operator</title>
       
     
     
@@ -76,7 +76,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#upgrade-guide-v0024" class="md-skip">
+        <a href="#upgrade-guide-0340" class="md-skip">
           Skip to content
         </a>
       
@@ -127,7 +127,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Upgrade guide v0.0.24
+              Upgrade guide 0.34.0
             
           </span>
         </div>
@@ -643,10 +643,19 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../UPGRADE_0.34.0/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   <span class="md-ellipsis">
@@ -655,6 +664,7 @@
   
 
       </a>
+      
     </li>
   
 
@@ -706,19 +716,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../UPGRADE_v0.0.24/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -727,7 +728,6 @@
   
 
       </a>
-      
     </li>
   
 
@@ -902,20 +902,8 @@
   
 
 
-<h1 id="upgrade-guide-v0024">Upgrade guide v0.0.24</h1>
-<blockquote>
-<p>[!NOTE]<br />
-APIs are currently in <code>v1alpha1</code>, which implies that non backward compatible changes might happen. See <a href="https://kubernetes.io/docs/reference/using-api/#api-versioning">Kubernetes API versioning</a> for more detail.</p>
-</blockquote>
-<p>This guide illustrates, step by step, how to migrate to <code>v0.0.24</code> from previous versions, as some breaking changes have been introduced. See:</p>
-<p><code>MariaDB</code>
-- https://github.com/mariadb-operator/mariadb-operator/pull/248
-- https://github.com/mariadb-operator/mariadb-operator/pull/312</p>
-<p><code>Backup</code>
-- https://github.com/mariadb-operator/mariadb-operator/pull/314</p>
-<p><code>Restore</code>
-- https://github.com/mariadb-operator/mariadb-operator/pull/308</p>
-<p>Follow these steps for upgrading:</p>
+<h1 id="upgrade-guide-0340">Upgrade guide 0.34.0</h1>
+<p>This guide illustrates, step by step, how to migrate to <code>0.34.0</code> from previous versions. </p>
 <ul>
 <li>Uninstall you current <code>mariadb-operator</code> for preventing conflicts:</li>
 </ul>
@@ -928,63 +916,59 @@ kubectl delete validatingwebhookconfiguration mariadb-operator-webhook
 kubectl delete mutatingwebhookconfiguration mariadb-operator-webhook
 </code></pre>
 <ul>
-<li>In case you are manually applying manifests, get a copy of your <code>MariaDB</code>, <code>Backup</code> and <code>Restore</code> resources, as the CRD upgrade will wipe out fields that are no longer supported:</li>
-</ul>
-<pre><code class="language-bash">kubectl get mariadb mariadb -o yaml &gt; mariadb.yaml
-kubectl get backup backup -o yaml &gt; backup.yaml
-kubectl get restore restore -o yaml &gt; restore.yaml
-</code></pre>
-<ul>
-<li>Upgrade CRDs to <code>v0.0.24</code>:<blockquote>
-<p>[!IMPORTANT]<br />
-Helm does not handle CRD upgrades. See <a href="https://helm.sh/docs/chart_best_practices/custom_resource_definitions/#some-caveats-and-explanations">helm docs</a>.</p>
-</blockquote>
-</li>
-</ul>
-<blockquote>
-<p>[!WARNING]<br />
-This step will delete fields that are no longer supported in your resources.</p>
-</blockquote>
-<pre><code class="language-bash">kubectl replace -f https://github.com/mariadb-operator/mariadb-operator/releases/download/helm-chart-0.24.0/crds.yaml
-</code></pre>
-<ul>
-<li>Perform migrations in your <code>MariaDB</code> resouces:</li>
-</ul>
-<pre><code class="language-diff">  metrics:
-+   enabled: true
-    exporter:
--      image: prom/mysqld-exporter:v0.14.0
-+      image: prom/mysqld-exporter:v0.15.1
-</code></pre>
-<ul>
-<li>Perform migrations in your <code>Backup</code> resouces:</li>
-</ul>
-<pre><code class="language-diff">-  maxRetentionDays: 30
-+  maxRetention: 720h
-</code></pre>
-<ul>
-<li>Perform migrations in your <code>Restore</code> resouces:</li>
-</ul>
-<pre><code class="language-diff">-  fileName: backup.2023-12-19T09:00:00Z.sql
-+  targetRecoveryTime: 2023-12-19T09:00:00Z
-</code></pre>
-<ul>
-<li>Upgrade <code>mariadb-operator</code> to <code>v0.0.24</code>:</li>
+<li>Upgrade <code>mariadb-operator-crds</code> to <code>0.34.0</code>:</li>
 </ul>
 <pre><code class="language-bash">helm repo update mariadb-operator
-helm upgrade --install mariadb-operator mariadb-operator/mariadb-operator --version 0.24.0 
+helm upgrade --install mariadb-operator-crds  mariadb-operator/mariadb-operator-crds --version 0.34.0
+</code></pre>
+<ul>
+<li>If you are using Galera, and you want the operator to automatically update the data-plane (i.e. init and agent containers) to <code>0.34.0</code>, you can set <code>updateStrategy.autoUpdateDataPlane=true</code> in your <code>MariaDB</code> resources:</li>
+</ul>
+<pre><code class="language-diff">apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+spec:
+  updateStrategy:
++   autoUpdateDataPlane: true
+</code></pre>
+<p>Alternatively, you can also do this manually:</p>
+<pre><code class="language-diff">apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb
+spec:
+  galera:
+    agent:
+-      image: docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:v0.0.33
++      image: docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:0.34.0
+    initContainer:
+-      image: docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:v0.0.33
++      image: docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:0.34.0
+</code></pre>
+<ul>
+<li>Upgrade <code>mariadb-operator</code> to <code>0.34.0</code>:</li>
+</ul>
+<pre><code class="language-bash">helm repo update mariadb-operator
+helm upgrade --install mariadb-operator mariadb-operator/mariadb-operator --version 0.34.0 
 </code></pre>
 <ul>
 <li>If you previously decided to downscale the operator, make sure you upscale it back:</li>
 </ul>
-<pre><code class="language-bash">kubectl scale deployment mariadb-operator -n default --replicas=1
-kubectl scale deployment mariadb-operator-webhook -n default --replicas=1
+<pre><code class="language-bash">kubectl scale deployment mariadb-operator --replicas=1
+kubectl scale deployment mariadb-operator-webhook --replicas=1
 </code></pre>
 <ul>
-<li>If you have previously created <code>MariaDB</code> instances with metrics enabled and a single replica, we also need to perform the following changes in order to create a new <code>StatefulSet</code> with <code>spec.serviceName</code> pointing to the internal <code>Service</code>(see https://github.com/mariadb-operator/mariadb-operator/issues/319 for context):</li>
+<li>If you previously set <code>updateStratety.autoUpdateDataPlane=true</code>, you may consider reverting the changes once the upgrades have finished:</li>
 </ul>
-<pre><code class="language-bash">kubectl delete statefulset mariadb --cascade=orphan
-kubectl rollout restart statefulset mariadb
+<pre><code class="language-diff">apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+spec:
+  updateStrategy:
++   autoUpdateDataPlane: false
+-   autoUpdateDataPlane: true
 </code></pre>
 
 
