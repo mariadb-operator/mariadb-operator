@@ -452,24 +452,24 @@ func (s SecurityContext) ToKubernetesType() corev1.SecurityContext {
 // Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#podsecuritycontext-v1-core
 type PodSecurityContext struct {
 	// +optional
-	SELinuxOptions *corev1.SELinuxOptions `json:"seLinuxOptions,omitempty" protobuf:"bytes,1,opt,name=seLinuxOptions"`
+	SELinuxOptions *corev1.SELinuxOptions `json:"seLinuxOptions,omitempty"`
 	// +optional
-	RunAsUser *int64 `json:"runAsUser,omitempty" protobuf:"varint,2,opt,name=runAsUser"`
+	RunAsUser *int64 `json:"runAsUser,omitempty"`
 	// +optional
-	RunAsGroup *int64 `json:"runAsGroup,omitempty" protobuf:"varint,6,opt,name=runAsGroup"`
+	RunAsGroup *int64 `json:"runAsGroup,omitempty"`
 	// +optional
-	RunAsNonRoot *bool `json:"runAsNonRoot,omitempty" protobuf:"varint,3,opt,name=runAsNonRoot"`
+	RunAsNonRoot *bool `json:"runAsNonRoot,omitempty"`
 	// +optional
 	// +listType=atomic
-	SupplementalGroups []int64 `json:"supplementalGroups,omitempty" protobuf:"varint,4,rep,name=supplementalGroups"`
+	SupplementalGroups []int64 `json:"supplementalGroups,omitempty"`
 	// +optional
-	FSGroup *int64 `json:"fsGroup,omitempty" protobuf:"varint,5,opt,name=fsGroup"`
+	FSGroup *int64 `json:"fsGroup,omitempty"`
 	// +optional
-	FSGroupChangePolicy *corev1.PodFSGroupChangePolicy `json:"fsGroupChangePolicy,omitempty" protobuf:"bytes,9,opt,name=fsGroupChangePolicy"`
+	FSGroupChangePolicy *corev1.PodFSGroupChangePolicy `json:"fsGroupChangePolicy,omitempty"`
 	// +optional
-	SeccompProfile *corev1.SeccompProfile `json:"seccompProfile,omitempty" protobuf:"bytes,10,opt,name=seccompProfile"`
+	SeccompProfile *corev1.SeccompProfile `json:"seccompProfile,omitempty"`
 	// +optional
-	AppArmorProfile *corev1.AppArmorProfile `json:"appArmorProfile,omitempty" protobuf:"bytes,11,opt,name=appArmorProfile"`
+	AppArmorProfile *corev1.AppArmorProfile `json:"appArmorProfile,omitempty"`
 }
 
 func (s PodSecurityContext) ToKubernetesType() corev1.PodSecurityContext {
