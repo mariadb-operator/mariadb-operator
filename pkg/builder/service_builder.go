@@ -23,20 +23,17 @@ func MariaDBPort(svc *corev1.Service) (*v1.ServicePort, error) {
 }
 
 func ValidateServicePorts(ports []corev1.ServicePort) error {
-	nameMap := make(map[string]struct{}, len(ports))
-	portMap := make(map[int32]struct{}, len(ports))
+	nameMap := make(map[string]bool, len(ports))
+	portMap := make(map[int32]bool, len(ports))
 	for _, p := range ports {
-		if p.Name == "" {
-			return fmt.Errorf("Port number %d has no name set", p.Port)
-		}
-		if _, exists := nameMap[p.Name]; exists {
+		if nameMap[p.Name] {
 			return fmt.Errorf("Port name %s is already taken by another port", p.Name)
 		}
-		if _, exists := portMap[p.Port]; exists {
+		nameMap[p.Name] = true
+		if portMap[p.Port] {
 			return fmt.Errorf("Port number %d is already taken by another port", p.Port)
 		}
-		nameMap[p.Name] = struct{}{}
-		portMap[p.Port] = struct{}{}
+		portMap[p.Port] = true
 	}
 	return nil
 }

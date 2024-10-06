@@ -130,22 +130,6 @@ func TestServicePorts(t *testing.T) {
 		opts ServiceOpts
 	}{
 		{
-			name: "duplicated port numbers",
-			opts: ServiceOpts{
-				Ports: []corev1.ServicePort{
-					{
-						Name: "mariadb",
-						Port: 3306,
-					},
-					{
-						Name: "disk-usage-exporter",
-						Port: 3306,
-					},
-				},
-				ExcludeSelectorLabels: true,
-			},
-		},
-		{
 			name: "duplicated port names",
 			opts: ServiceOpts{
 				Ports: []corev1.ServicePort{
@@ -162,7 +146,7 @@ func TestServicePorts(t *testing.T) {
 			},
 		},
 		{
-			name: "missing port name",
+			name: "duplicated port numbers",
 			opts: ServiceOpts{
 				Ports: []corev1.ServicePort{
 					{
@@ -170,7 +154,8 @@ func TestServicePorts(t *testing.T) {
 						Port: 3306,
 					},
 					{
-						Port: 9995,
+						Name: "disk-usage-exporter",
+						Port: 3306,
 					},
 				},
 				ExcludeSelectorLabels: true,
