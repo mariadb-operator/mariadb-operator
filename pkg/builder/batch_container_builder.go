@@ -10,7 +10,8 @@ import (
 )
 
 func (b *Builder) jobContainer(name string, cmd *cmd.Command, image string, volumeMounts []corev1.VolumeMount, env []v1.EnvVar,
-	resources *corev1.ResourceRequirements, mariadb *mariadbv1alpha1.MariaDB, securityContext *mariadbv1alpha1.SecurityContext) (*corev1.Container, error) {
+	resources *corev1.ResourceRequirements, mariadb *mariadbv1alpha1.MariaDB,
+	securityContext *mariadbv1alpha1.SecurityContext) (*corev1.Container, error) {
 	sc, err := b.buildContainerSecurityContext(securityContext)
 	if err != nil {
 		return nil, err
