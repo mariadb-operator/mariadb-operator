@@ -803,6 +803,11 @@ func (in *Exporter) DeepCopyInto(out *Exporter) {
 		*out = new(Metadata)
 		(*in).DeepCopyInto(*out)
 	}
+	if in.SecurityContext != nil {
+		in, out := &in.SecurityContext, &out.SecurityContext
+		*out = new(SecurityContext)
+		(*in).DeepCopyInto(*out)
+	}
 	if in.PodSecurityContext != nil {
 		in, out := &in.PodSecurityContext, &out.PodSecurityContext
 		*out = new(PodSecurityContext)

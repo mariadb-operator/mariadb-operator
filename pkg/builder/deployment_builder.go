@@ -136,6 +136,11 @@ func (b *Builder) exporterPodTemplate(objMeta metav1.ObjectMeta, exporter *maria
 		return nil, err
 	}
 
+	container, err := b.exporterContainer(exporter, args)
+	if err != nil {
+		return nil, fmt.Errorf("error building exporter container: %v", err)
+	}
+
 	affinity := ptr.Deref(exporter.Affinity, mariadbv1alpha1.AffinityConfig{}).Affinity
 
 	return &corev1.PodTemplateSpec{
@@ -143,7 +148,7 @@ func (b *Builder) exporterPodTemplate(objMeta metav1.ObjectMeta, exporter *maria
 		Spec: corev1.PodSpec{
 			ImagePullSecrets: kadapter.ToKubernetesSlice(datastructures.Merge(pullSecrets, exporter.ImagePullSecrets)),
 			Containers: []corev1.Container{
-				b.exporterContainer(exporter, args),
+				*container,
 			},
 			Volumes: []corev1.Volume{
 				{
@@ -164,7 +169,12 @@ func (b *Builder) exporterPodTemplate(objMeta metav1.ObjectMeta, exporter *maria
 	}, nil
 }
 
-func (b *Builder) exporterContainer(exporter *mariadbv1alpha1.Exporter, args []string) corev1.Container {
+func (b *Builder) exporterContainer(exporter *mariadbv1alpha1.Exporter, args []string) (*corev1.Container, error) {
+	securityContext, err := b.buildContainerSecurityContext(exporter.SecurityContext)
+	if err != nil {
+		return nil, fmt.Errorf("error building container security context: %v", err)
+	}
+
 	probe := &corev1.Probe{
 		ProbeHandler: corev1.ProbeHandler{
 			HTTPGet: &corev1.HTTPGetAction{
@@ -174,7 +184,7 @@ func (b *Builder) exporterContainer(exporter *mariadbv1alpha1.Exporter, args []s
 		},
 	}
 
-	return corev1.Container{
+	return &corev1.Container{
 		Name:            "exporter",
 		Image:           exporter.Image,
 		ImagePullPolicy: exporter.ImagePullPolicy,
@@ -192,9 +202,10 @@ func (b *Builder) exporterContainer(exporter *mariadbv1alpha1.Exporter, args []s
 				ReadOnly:  true,
 			},
 		},
-		LivenessProbe:  probe,
-		ReadinessProbe: probe,
-	}
+		SecurityContext: securityContext,
+		LivenessProbe:   probe,
+		ReadinessProbe:  probe,
+	}, nil
 }
 
 func exporterConfigFile(fileName string) string {
