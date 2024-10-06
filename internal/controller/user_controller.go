@@ -140,9 +140,7 @@ func (wr *wrappedUserReconciler) Reconcile(ctx context.Context, mdbClient *sqlCl
 		}
 		createUserOpts = append(createUserOpts, sqlClient.WithIdentifiedBy(password))
 	}
-	if wr.user.Spec.MaxUserConnections > 0 {
-		createUserOpts = append(createUserOpts, sqlClient.WithMaxUserConnections(wr.user.Spec.MaxUserConnections))
-	}
+	createUserOpts = append(createUserOpts, sqlClient.WithMaxUserConnections(wr.user.Spec.MaxUserConnections))
 
 	username := wr.user.UsernameOrDefault()
 	hostname := wr.user.HostnameOrDefault()

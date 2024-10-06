@@ -32,11 +32,11 @@ type UserSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	PasswordPlugin PasswordPlugin `json:"passwordPlugin,omitempty"`
-	// MaxUserConnections defines the maximum number of connections that the User can establish.
+	// MaxUserConnections defines the maximum number of simultaneous connections that the User can establish.
 	// +optional
 	// +kubebuilder:default=10
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
-	MaxUserConnections int32 `json:"maxUserConnections,omitempty" webhook:"inmutable"`
+	MaxUserConnections int32 `json:"maxUserConnections,omitempty"`
 	// Name overrides the default name provided by metadata.name.
 	// +optional
 	// +kubebuilder:validation:MaxLength=80

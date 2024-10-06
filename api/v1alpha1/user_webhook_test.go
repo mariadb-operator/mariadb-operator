@@ -162,7 +162,7 @@ var _ = Describe("User webhook", func() {
 				func(umdb *User) {
 					umdb.Spec.MaxUserConnections = 20
 				},
-				true,
+				false,
 			),
 			Entry(
 				"Duplicate authentication methods",
