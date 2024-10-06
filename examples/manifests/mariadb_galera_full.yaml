@@ -62,7 +62,7 @@ spec:
     providerOptions:
       gcs.fc_limit: '64'
     agent:
-      image: docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:v0.0.33
+      image: docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:0.34.0
       port: 5555
       kubernetesAuth:
         enabled: true
@@ -89,7 +89,7 @@ spec:
           limits:
             memory: 256Mi
     initContainer:
-      image: docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:v0.0.33
+      image: docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:0.34.0
     initJob:
       metadata:
         labels:
