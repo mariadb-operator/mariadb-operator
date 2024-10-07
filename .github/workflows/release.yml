@@ -29,7 +29,7 @@ jobs:
         id: args
         run: |
           VERSION=${GITHUB_REF/refs\/tags\//}
-          MAKE_VERSION=$(get_version $(make version))
+          MAKE_VERSION=$(make version)
 
           if [ "$VERSION" != "$MAKE_VERSION" ]; then
             echo "Version('$VERSION') and Makefile version('$MAKE_VERSION') don't match!"
