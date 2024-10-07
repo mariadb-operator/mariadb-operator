@@ -9,25 +9,25 @@
       
       
       
-        <link rel="prev" href="../METRICS/">
+        <link rel="prev" href="../UPGRADE_0.34.0/">
       
       
-        <link rel="next" href="../SQL_RESOURCES/">
+        <link rel="next" href="../UPGRADE_v0.0.21/">
       
       
-      <link rel="icon" href="../assets/mariadb_favicon.svg">
+      <link rel="icon" href="../../assets/mariadb_favicon.svg">
       <meta name="generator" content="mkdocs-1.6.0, mkdocs-material-9.5.27">
     
     
       
-        <title>Registry - MariaDB Operator</title>
+        <title>Upgrade guide v0.0.20 - MariaDB Operator</title>
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.6543a935.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.6543a935.min.css">
       
         
-        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.06af60db.min.css">
       
       
 
@@ -46,9 +46,9 @@
       
     
     
-      <link rel="stylesheet" href="../stylesheets/extra.css">
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
     
-    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -76,7 +76,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#registry" class="md-skip">
+        <a href="#upgrade-guide-v0020" class="md-skip">
           Skip to content
         </a>
       
@@ -91,7 +91,7 @@
             <div class="md-banner__inner md-grid md-typeset">
               
   You're not viewing the latest version.
-  <a href="../..">
+  <a href="../../..">
     <strong>Click here to go to latest.</strong>
   </a>
 
@@ -108,9 +108,9 @@
 
 <header class="md-header md-header--shadow" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href=".." title="MariaDB Operator" class="md-header__button md-logo" aria-label="MariaDB Operator" data-md-component="logo">
+    <a href="../.." title="MariaDB Operator" class="md-header__button md-logo" aria-label="MariaDB Operator" data-md-component="logo">
       
-  <img src="../assets/mariadb_medium.svg" alt="logo">
+  <img src="../../assets/mariadb_medium.svg" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -127,7 +127,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Registry
+              Upgrade guide v0.0.20
             
           </span>
         </div>
@@ -240,9 +240,9 @@
 
 <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href=".." title="MariaDB Operator" class="md-nav__button md-logo" aria-label="MariaDB Operator" data-md-component="logo">
+    <a href="../.." title="MariaDB Operator" class="md-nav__button md-logo" aria-label="MariaDB Operator" data-md-component="logo">
       
-  <img src="../assets/mariadb_medium.svg" alt="logo">
+  <img src="../../assets/mariadb_medium.svg" alt="logo">
 
     </a>
     MariaDB Operator
@@ -269,7 +269,7 @@
   
   
     <li class="md-nav__item">
-      <a href=".." class="md-nav__link">
+      <a href="../.." class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -289,7 +289,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../API_REFERENCE/" class="md-nav__link">
+      <a href="../../API_REFERENCE/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -309,7 +309,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../BACKUP/" class="md-nav__link">
+      <a href="../../BACKUP/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -329,7 +329,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../CONFIGURATION/" class="md-nav__link">
+      <a href="../../CONFIGURATION/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -349,7 +349,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../DEVELOPMENT/" class="md-nav__link">
+      <a href="../../DEVELOPMENT/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -369,7 +369,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../DOCKER/" class="md-nav__link">
+      <a href="../../DOCKER/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -389,7 +389,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../GALERA/" class="md-nav__link">
+      <a href="../../GALERA/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -409,7 +409,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../HA/" class="md-nav__link">
+      <a href="../../HA/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -429,7 +429,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../HELM/" class="md-nav__link">
+      <a href="../../HELM/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -449,7 +449,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../MAXSCALE/" class="md-nav__link">
+      <a href="../../MAXSCALE/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -469,7 +469,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../METADATA/" class="md-nav__link">
+      <a href="../../METADATA/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -489,7 +489,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../METRICS/" class="md-nav__link">
+      <a href="../../METRICS/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -506,30 +506,10 @@
       
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  <span class="md-ellipsis">
-    Registry
-  </span>
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../REGISTRY/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -538,71 +518,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#table-of-contents" class="md-nav__link">
-    <span class="md-ellipsis">
-      Table of contents
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#credentials" class="md-nav__link">
-    <span class="md-ellipsis">
-      Credentials
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#mariadb" class="md-nav__link">
-    <span class="md-ellipsis">
-      MariaDB
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#maxscale" class="md-nav__link">
-    <span class="md-ellipsis">
-      MaxScale
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#backup-restore-and-sqljob" class="md-nav__link">
-    <span class="md-ellipsis">
-      Backup, Restore and SqlJob
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -614,7 +529,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../SQL_RESOURCES/" class="md-nav__link">
+      <a href="../../SQL_RESOURCES/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -634,7 +549,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../STORAGE/" class="md-nav__link">
+      <a href="../../STORAGE/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -654,7 +569,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../SUSPEND/" class="md-nav__link">
+      <a href="../../SUSPEND/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -674,7 +589,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../UPDATES/" class="md-nav__link">
+      <a href="../../UPDATES/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -691,17 +606,19 @@
       
   
   
+    
   
   
+  
     
     
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_18" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_18" checked>
         
           
           <label class="md-nav__link" for="__nav_18" id="__nav_18_label" tabindex="0">
@@ -715,7 +632,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_18_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_18_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_18">
             <span class="md-nav__icon md-icon"></span>
             Releases
@@ -729,7 +646,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../releases/UPGRADE_0.34.0/" class="md-nav__link">
+      <a href="../UPGRADE_0.34.0/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -747,10 +664,19 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../releases/UPGRADE_v0.0.20/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   <span class="md-ellipsis">
@@ -759,6 +685,7 @@
   
 
       </a>
+      
     </li>
   
 
@@ -771,7 +698,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../releases/UPGRADE_v0.0.21/" class="md-nav__link">
+      <a href="../UPGRADE_v0.0.21/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -792,7 +719,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../releases/UPGRADE_v0.0.24/" class="md-nav__link">
+      <a href="../UPGRADE_v0.0.24/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -813,7 +740,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../releases/UPGRADE_v0.0.26/" class="md-nav__link">
+      <a href="../UPGRADE_v0.0.26/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -834,7 +761,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../releases/UPGRADE_v0.0.28/" class="md-nav__link">
+      <a href="../UPGRADE_v0.0.28/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -855,7 +782,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../releases/UPGRADE_v0.0.30/" class="md-nav__link">
+      <a href="../UPGRADE_v0.0.30/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -876,7 +803,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../releases/UPGRADE_v0.0.31/" class="md-nav__link">
+      <a href="../UPGRADE_v0.0.31/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -897,7 +824,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../releases/UPGRADE_v0.0.32/" class="md-nav__link">
+      <a href="../UPGRADE_v0.0.32/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -918,7 +845,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../releases/UPGRADE_v0.0.33/" class="md-nav__link">
+      <a href="../UPGRADE_v0.0.33/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -959,59 +886,6 @@
     
   
   
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#table-of-contents" class="md-nav__link">
-    <span class="md-ellipsis">
-      Table of contents
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#credentials" class="md-nav__link">
-    <span class="md-ellipsis">
-      Credentials
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#mariadb" class="md-nav__link">
-    <span class="md-ellipsis">
-      MariaDB
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#maxscale" class="md-nav__link">
-    <span class="md-ellipsis">
-      MaxScale
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#backup-restore-and-sqljob" class="md-nav__link">
-    <span class="md-ellipsis">
-      Backup, Restore and SqlJob
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
 </nav>
                   </div>
                 </div>
@@ -1028,96 +902,69 @@
   
 
 
-<h1 id="registry">Registry</h1>
+<h1 id="upgrade-guide-v0020">Upgrade guide v0.0.20</h1>
 <blockquote>
 <p>[!NOTE]<br />
-This documentation applies to <code>mariadb-operator</code> version &gt;= v0.0.27</p>
+APIs are currently in <code>v1alpha1</code>, which implies that non backward compatible changes might happen. See <a href="https://kubernetes.io/docs/reference/using-api/#api-versioning">Kubernetes API versioning</a> for more detail.</p>
 </blockquote>
-<p>This documentation aims to provide guidance on how to configure private registries in the <code>mariadb-operator</code> CRs.</p>
-<h2 id="table-of-contents">Table of contents</h2>
-<!-- toc -->
+<p>This guide illustrates, step by step, how to migrate to <code>v0.0.20</code> from previous versions, as some breaking changes have been introduced. See:
+- https://github.com/mariadb-operator/mariadb-operator/pull/197
+- https://github.com/mariadb-operator/mariadb-operator/pull/211</p>
+<p>It's important to note that this migration process only applies if:
+- You have created a <code>MariaDB</code> resource using a <code>mariadb-operator</code> version &lt; <code>v0.0.20</code> and you are upgrading to &gt;= <code>v0.0.20</code>.
+- Your <code>MariaDB</code> resource has <code>spec.replication</code> enabled.</p>
+<p>If that's your case follow these steps for upgrading:</p>
 <ul>
-<li><a href="#credentials">Credentials</a></li>
-<li><a href="#mariadb"><code>MariaDB</code></a></li>
-<li><a href="#maxscale"><code>MaxScale</code></a></li>
-<li><a href="#backup-restore-and-sqljob"><code>Backup</code>, <code>Restore</code> and <code>SqlJob</code></a></li>
+<li>Uninstall you current <code>mariadb-operator</code> for preventing conflicts:</li>
 </ul>
-<!-- /toc -->
-
-<h2 id="credentials">Credentials</h2>
-<p>The first requirement to access a private registry is having credentials in the cluster that will be pulling the images. Kubernetes has a specific type of <code>Secret</code> <code>kubernetes.io/dockerconfigjson</code> designed specifically for this purpose. Please, refer to the <a href="https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/">Kubernetes documentation</a> to see how it can be configured.</p>
-<p>For convenience, this repo provides a make target that can be used to configure your existing credentials available in <code>~/.docker/config</code> as a <code>kubernetes.io/dockerconfigjson</code> <code>Secret</code>:</p>
-<pre><code class="language-bash">REGISTRY_PULL_SECRET=registry DOCKER_CONFIG=~/.docker/config.json make registry-secret
+<pre><code class="language-bash">helm uninstall mariadb-operator
 </code></pre>
-<h2 id="mariadb"><code>MariaDB</code></h2>
-<p>In order to configure a private registry in your <code>MariaDB</code> resource, you can specify multiple <code>imagePullSecrets</code>:</p>
-<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
-kind: MariaDB
-metadata:
-  name: mariadb
-spec:
-  ...
-  image: docker.mariadb.com/enterprise-server:10.6
-  imagePullPolicy: IfNotPresent
-  imagePullSecrets:
-    - name: registry
-    - name: another-registry
+<p>Alternatively, you may only downscale and delete the webhook configurations:</p>
+<pre><code class="language-bash">kubectl scale deployment mariadb-operator -n default --replicas=0
+kubectl scale deployment mariadb-operator-webhook -n default --replicas=0
+kubectl delete validatingwebhookconfiguration mariadb-operator-webhook
+kubectl delete mutatingwebhookconfiguration mariadb-operator-webhook
 </code></pre>
-<p>As a result, the <code>Pods</code> created as part of the reconciliation process will have the <code>imagePullSecrets</code>.</p>
-<p>You can also configure credentials for the metrics exporter:</p>
-<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
-kind: MariaDB
-metadata:
-  name: mariadb
-spec:
-  ...
-  metrics:
-    enabled: true
-    exporter:
-      image: prom/mysqld-exporter:v0.15.1
-      imagePullPolicy: IfNotPresent
-      imagePullSecrets:
-        - name: registry
+<ul>
+<li>In case you are manually applying manifests, get a copy of your <code>MariaDB</code> resources, as the CRD upgrade will wipe out fields that are no longer supported:</li>
+</ul>
+<pre><code class="language-bash">kubectl get mariadb mariadb-repl -n default -o yaml &gt; mariadb-repl.yaml
 </code></pre>
-<p>By default, the metrics exporter <code>Pod</code> will inherit the credentials specified in the <code>imagePullSecrets</code> root field, but you can also specify dedicated credentials via <code>metrics.exporter.imagePullSecrets</code>.</p>
-<h2 id="maxscale"><code>MaxScale</code></h2>
-<p>Similarly to <code>MariaDB</code>, you are able to configure private registries in your <code>MaxScale</code> resource:</p>
-<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
-kind: MaxScale
-metadata:
-  name: maxscale
-spec:
-  ...
-  image: mariadb/maxscale:23.08
-  imagePullPolicy: IfNotPresent
-  imagePullSecrets:
-    - name: registry
+<ul>
+<li>Upgrade CRDs to <code>v0.0.20</code>:<blockquote>
+<p>[!IMPORTANT]<br />
+Helm does not handle CRD upgrades. See <a href="https://helm.sh/docs/chart_best_practices/custom_resource_definitions/#some-caveats-and-explanations">helm docs</a>.</p>
+</blockquote>
+</li>
+</ul>
+<blockquote>
+<p>[!WARNING]<br />
+This step will delete fields that are no longer supported in your resources.</p>
+</blockquote>
+<pre><code class="language-bash">kubectl replace -f https://github.com/mariadb-operator/mariadb-operator/releases/download/helm-chart-0.20.0/crds.yaml
 </code></pre>
-<h2 id="backup-restore-and-sqljob"><code>Backup</code>, <code>Restore</code> and <code>SqlJob</code></h2>
-<p>The batch <code>Job</code> resources will inherit the <code>imagePullSecrets</code> from the referred <code>MariaDB</code>, as they also make use of its <code>image</code>. However, you are also able to provide dedicated <code>imagePullSecrets</code> for these resources:</p>
-<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
-kind: MariaDB
-metadata:
-  name: mariadb
-spec:
-  ...
-  image: docker.mariadb.com/enterprise-server:10.6
-  imagePullPolicy: IfNotPresent
-  imagePullSecrets:
-    - name: registry
+<ul>
+<li>Perform migrations in your <code>MariaDB</code> resouces:</li>
+<li>Set <code>spec.replication.enabled = true</code>.</li>
+<li>If you had previously set <code>spec.replication.primary.service</code>, move it to <code>spec.primaryService</code>.</li>
+<li>Rename your resources to point to the new <code>&lt;mariadb-name&gt;-primary</code> <code>Service</code> instead of  <code>primary-&lt;mariadb-name&gt;</code>.</li>
+<li>If you had previously set  <code>spec.replication.primary.connection</code>, move it to <code>spec.primaryConnection</code>.</li>
+<li>
+<p>Rename your resources to point to the new <code>&lt;mariadb-name&gt;-primary</code> <code>Connection</code> instead of  <code>primary-&lt;mariadb-name&gt;</code>.</p>
+</li>
+<li>
+<p>Upgrade <code>mariadb-operator</code> to <code>v0.0.20</code>:</p>
+</li>
+</ul>
+<pre><code class="language-bash">helm repo update mariadb-operator
+helm upgrade --install mariadb-operator mariadb-operator/mariadb-operator --version 0.20.0 
 </code></pre>
-<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
-kind: Backup
-metadata:
-  name: backup
-spec:
-  ...
-  mariaDbRef:
-    name: mariadb
-  imagePullSecrets:
-    - name: backup-registry
+<ul>
+<li>If you previously decided to downscale the operator, make sure you upscale it back:</li>
+</ul>
+<pre><code class="language-bash">kubectl scale deployment mariadb-operator -n default --replicas=1
+kubectl scale deployment mariadb-operator-webhook -n default --replicas=1
 </code></pre>
-<p>When the resources from the above examples are created, a <code>Job</code> with both <code>registry</code> and <code>backup-registry</code> <code>imagePullSecrets</code> will be reconciled.</p>
 
 
 
@@ -1201,10 +1048,10 @@ spec:
     </div>
     
     
-    <script id="__config" type="application/json">{"base": "..", "features": [], "search": "../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+    <script id="__config" type="application/json">{"base": "../..", "features": [], "search": "../../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../assets/javascripts/bundle.ad660dcc.min.js"></script>
+      <script src="../../assets/javascripts/bundle.ad660dcc.min.js"></script>
       
     
   </body>
