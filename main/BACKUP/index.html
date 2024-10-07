@@ -400,6 +400,15 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#compression" class="md-nav__link">
+    <span class="md-ellipsis">
+      Compression
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1221,6 +1230,15 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#compression" class="md-nav__link">
+    <span class="md-ellipsis">
+      Compression
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1532,8 +1550,6 @@ metadata:
 spec:
   mariaDbRef:
     name: mariadb
-  backupRef:
-    name: backup
   schedule:
     cron: &quot;*/1 * * * *&quot;
     suspend: false
@@ -1549,11 +1565,24 @@ metadata:
 spec:
   mariaDbRef:
     name: mariadb
-  backupRef:
-    name: backup
   maxRetention: 720h # 30 days
 </code></pre>
-<p>By default, it will be set to <code>720h</code> (30 days), indicating that backups older than 30 days will be automatically deleted.</p>
+<h4 id="compression">Compression</h4>
+<p>You are able to compress backups by providing the compression algorithm you want to use in the  <code>spec.compression</code> field:</p>
+<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
+kind: Backup
+metadata:
+  name: backup-scheduled
+spec:
+  mariaDbRef:
+    name: mariadb
+  compression: gzip
+</code></pre>
+<p>Currently the following compression algorithms are supported:
+- <code>bzip2</code>: Good compression ratio, but slower compression/decompression speed compared to gzip.
+- <code>gzip</code>: Good compression/decompression speed, but worse compression ratio compared to bzip2.
+- <code>none</code>: No compression.</p>
+<p><code>compression</code> is defaulted to <code>none</code> by the operator.</p>
 <h2 id="restore-cr"><code>Restore</code> CR</h2>
 <p>You can easily restore a <code>Backup</code> in your <code>MariaDB</code> instance by creating the following resource:</p>
 <pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
