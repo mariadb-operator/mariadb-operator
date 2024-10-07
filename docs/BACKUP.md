@@ -93,8 +93,6 @@ metadata:
 spec:
   mariaDbRef:
     name: mariadb
-  backupRef:
-    name: backup
   schedule:
     cron: "*/1 * * * *"
     suspend: false
@@ -116,12 +114,31 @@ metadata:
 spec:
   mariaDbRef:
     name: mariadb
-  backupRef:
-    name: backup
   maxRetention: 720h # 30 days
 ```
 
-By default, it will be set to `720h` (30 days), indicating that backups older than 30 days will be automatically deleted.
+#### Compression
+
+You are able to compress backups by providing the compression algorithm you want to use in the  `spec.compression` field:
+
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: Backup
+metadata:
+  name: backup-scheduled
+spec:
+  mariaDbRef:
+    name: mariadb
+  compression: gzip
+```
+
+Currently the following compression algorithms are supported:
+- `bzip2`: Good compression ratio, but slower compression/decompression speed compared to gzip.
+- `gzip`: Good compression/decompression speed, but worse compression ratio compared to bzip2.
+- `none`: No compression.
+
+`compression` is defaulted to `none` by the operator.
 
 ## `Restore` CR
 
