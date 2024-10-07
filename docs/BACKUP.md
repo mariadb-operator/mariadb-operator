@@ -89,7 +89,7 @@ To minimize the Recovery Point Objective (RPO) and mitigate the risk of data los
 apiVersion: k8s.mariadb.com/v1alpha1
 kind: Backup
 metadata:
-  name: backup-scheduled
+  name: backup
 spec:
   mariaDbRef:
     name: mariadb
@@ -110,7 +110,7 @@ Given that the backups can consume a substantial amount of storage, it is crucia
 apiVersion: k8s.mariadb.com/v1alpha1
 kind: Backup
 metadata:
-  name: backup-scheduled
+  name: backup
 spec:
   mariaDbRef:
     name: mariadb
@@ -126,7 +126,7 @@ You are able to compress backups by providing the compression algorithm you want
 apiVersion: k8s.mariadb.com/v1alpha1
 kind: Backup
 metadata:
-  name: backup-scheduled
+  name: backup
 spec:
   mariaDbRef:
     name: mariadb
