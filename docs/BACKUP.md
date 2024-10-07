@@ -121,7 +121,6 @@ spec:
 
 You are able to compress backups by providing the compression algorithm you want to use in the  `spec.compression` field:
 
-
 ```yaml
 apiVersion: k8s.mariadb.com/v1alpha1
 kind: Backup
