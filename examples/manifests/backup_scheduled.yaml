@@ -10,6 +10,7 @@ spec:
     suspend: false
   timeZone: "UTC"
   maxRetention: 720h # 30 days
+  compression: bzip2
   storage:
     s3:
       bucket: backups
