@@ -1,6 +1,6 @@
 dependencies:
 - name: mariadb-operator-crds
   repository: file://../mariadb-operator-crds
-  version: 0.0.33
-digest: sha256:04e1f2d49ad3cddd409634ecbde1fd9efa8439a93b517a1615c000efb187540b
-generated: "2024-09-27T15:49:44.642851367Z"
+  version: 0.34.0
+digest: sha256:198d58218ad047e777691d445761753db238f0fb02adf74fac07973f726fd76d
+generated: "2024-10-07T14:19:26.930249985Z"
