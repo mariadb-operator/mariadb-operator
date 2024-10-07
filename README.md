@@ -31,6 +31,7 @@ Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB
 - Scheduled [backups](./docs/BACKUP.md/#scheduling). 
 - Multiple [backup storage types](./docs/BACKUP.md#storage-types): S3 compatible, PVCs and Kubernetes volumes.
 - [Backup retention policy](./docs/BACKUP.md#retention-policy).
+- [Backup compression](./docs/BACKUP.md#compression): bzip2 and gzip algorithms supported.
 - [Target recovery time](./docs/BACKUP.md#target-recovery-time): infer which backup to restore.
 - [Bootstrap new instances](./docs/BACKUP.md#bootstrap-new-mariadb-instances-from-backups) from: Backups, S3, PVCs ...
 - Multiple [update strategies](./docs/UPDATES.md#update-strategies): ReplicasFirstPrimaryLast, RollingUpdate, OnDelete and Never.

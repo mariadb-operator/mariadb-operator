@@ -49,9 +49,9 @@ type CompressAlgorithm string
 const (
 	// No compression
 	CompressNone CompressAlgorithm = "none"
-	// Bzip2 compression. Good compression ratio, but slower compression/decompression speed.
+	// Bzip2 compression. Good compression ratio, but slower compression/decompression speed compared to gzip.
 	CompressBzip2 CompressAlgorithm = "bzip2"
-	// Gzip compression. Good compression/decompression speed, but worse compression ratio.
+	// Gzip compression. Good compression/decompression speed, but worse compression ratio compared to bzip2.
 	CompressGzip CompressAlgorithm = "gzip"
 )
 
