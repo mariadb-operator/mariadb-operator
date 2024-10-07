@@ -2,12 +2,14 @@ package controller
 
 import (
 	"reflect"
+	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
@@ -197,6 +199,59 @@ var _ = Describe("SqlJob", func() {
 			Expect(svcAcc.ObjectMeta.Annotations).NotTo(BeNil())
 			Expect(svcAcc.ObjectMeta.Annotations).To(HaveKeyWithValue("k8s.mariadb.com/test", "test"))
 		}
+	})
+
+	It("should report unready status for non-existent dependencies", func() {
+		nonExistentDependency := "not-existing-job"
+		sqlJob := mariadbv1alpha1.SqlJob{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "sqljob-with-non-existent-dependency",
+				Namespace: testNamespace,
+			},
+			Spec: mariadbv1alpha1.SqlJobSpec{
+				DependsOn: []mariadbv1alpha1.LocalObjectReference{
+					{
+						Name: nonExistentDependency,
+					},
+				},
+				MariaDBRef: mariadbv1alpha1.MariaDBRef{
+					ObjectReference: mariadbv1alpha1.ObjectReference{
+						Name: testMdbkey.Name,
+					},
+					WaitForIt: true,
+				},
+				Username: testUser,
+				PasswordSecretKeyRef: mariadbv1alpha1.SecretKeySelector{
+					LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+						Name: testPwdKey.Name,
+					},
+					Key: testPwdSecretKey,
+				},
+				Database: &testDatabase,
+			},
+		}
+
+		By("Creating SqlJob with non-existent dependency")
+		Expect(k8sClient.Create(testCtx, &sqlJob)).To(Succeed())
+		DeferCleanup(func() {
+			Expect(k8sClient.Delete(testCtx, &sqlJob)).To(Succeed())
+		})
+
+		By("Expecting SqlJob to report unready status")
+		Consistently(func() bool {
+			var updatedSqlJob mariadbv1alpha1.SqlJob
+			if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&sqlJob), &updatedSqlJob); err != nil {
+				return false
+			}
+			return !updatedSqlJob.IsComplete()
+		}, 10*time.Second, testInterval).Should(BeTrue())
+
+		By("Expecting SqlJob to not create a Job")
+		Consistently(func() bool {
+			var job batchv1.Job
+			err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&sqlJob), &job)
+			return err != nil && apierrors.IsNotFound(err)
+		}, 10*time.Second, testInterval).Should(BeTrue())
 	})
 
 	DescribeTable("Creating an SqlJob",
