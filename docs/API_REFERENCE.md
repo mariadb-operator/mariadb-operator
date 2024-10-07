@@ -213,8 +213,8 @@ _Appears in:_
 | Field | Description |
 | --- | --- |
 | `none` | No compression<br /> |
-| `bzip2` | Bzip2 compression. Good compression ratio, but slower compression/decompression speed.<br /> |
-| `gzip` | Gzip compression. Good compression/decompression speed, but worse compression ratio.<br /> |
+| `bzip2` | Bzip2 compression. Good compression ratio, but slower compression/decompression speed compared to gzip.<br /> |
+| `gzip` | Gzip compression. Good compression/decompression speed, but worse compression ratio compared to bzip2.<br /> |
 
 
 #### ConfigMapKeySelector
