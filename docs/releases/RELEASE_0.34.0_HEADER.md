@@ -13,7 +13,7 @@ In this release, we're introducing a new versioning model where everything (oper
 
 ### Backup compression
 
-You are able to compress backups by providing the compression algorithm you want to use in the  `spec.compression` field:
+You can now compress backups by specifying the desired compression algorithm in the new `compression` field:
 
 ```yaml
 apiVersion: k8s.mariadb.com/v1alpha1
@@ -57,27 +57,80 @@ This can occur if a different `Pod` was selected to bootstrap the cluster during
 
 ### Run operator in HA
 
+We have extended the operator Helm chart to provide you with everything needed to run the operator in HA:
+- Multiple replicas
+- Configure `Pod` anti-affinity
+- Configure `PodDisruptionBudgets`
+
+You can achieve this by providing the following values to the helm chart:
+
+```yaml
+ha:
+  enabled: true
+  replicas: 3
+
+affinity:
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+    - labelSelector:
+        matchExpressions:
+        - key: app.kubernetes.io/name
+          operator: In
+          values:
+          - mariadb-operator
+        - key: app.kubernetes.io/instance
+          operator: In
+          values:
+          - mariadb-operator
+      topologyKey: kubernetes.io/hostname
+
+pdb:
+  enabled: true
+  maxUnavailable: 1
+```
+
 See https://github.com/mariadb-operator/mariadb-operator/pull/899.
 
 Kudos to @sennerholm for this contribution! 🙏🏻
 
-### Extensibility
-
-See https://github.com/mariadb-operator/mariadb-operator/pull/908 and https://github.com/mariadb-operator/mariadb-operator/pull/912.
-
-Kudos to @hedgieinsocks for these contributions! 🙏🏻
-
 ### `Pod` role labels
 
+A new label `k8s.mariadb.com/role` is now added to the `MariaDB` `Pods`:
+
+```bash
+❯ kubectl get mariadbs
+NAME             READY   STATUS    PRIMARY            UPDATES                    AGE
+mariadb-galera   True    Running   mariadb-galera-0   ReplicasFirstPrimaryLast   79m
+
+❯ kubectl get pods -l k8s.mariadb.com/role=primary
+NAME               READY   STATUS    RESTARTS   AGE
+mariadb-galera-0   2/2     Running   0          79m
+
+❯ kubectl get pods -l k8s.mariadb.com/role=replica
+NAME               READY   STATUS    RESTARTS   AGE
+mariadb-galera-1   2/2     Running   0          79m
+mariadb-galera-2   2/2     Running   0          79m
+```
 See https://github.com/mariadb-operator/mariadb-operator/pull/909.
 
 Kudos to @nocturo for this contribution! 🙏🏻
 
 ### Mutable `maxUserConnections`
 
+You may update the `maxUserConnections` field without having to recreate the `User` resource.
+
 See https://github.com/mariadb-operator/mariadb-operator/pull/918.
 
 Kudos to @hedgieinsocks for this contribution! 🙏🏻
+
+### Extensibility
+
+We have introduced several extensibility improvements for deploying `MariaDB`:
+- Support for extra `Service` ports. See https://github.com/mariadb-operator/mariadb-operator/pull/912
+- Support for named `initContainers` and `sidecarContainers`. See https://github.com/mariadb-operator/mariadb-operator/pull/908.
+
+Kudos to @hedgieinsocks for these contributions! 🙏🏻
+
 
 ---
 
