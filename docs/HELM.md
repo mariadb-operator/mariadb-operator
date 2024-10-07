@@ -116,8 +116,8 @@ Whenever a new version of the `mariadb-operator` is released, an upgrade guide i
 
 The operator can run in high availability mode to ensure that your CRs get reconciled even if the node where the operator runs goes down. For achieving this you need:
 - Multiple replicas
-- Configure `PodDisruptionBudgets` 
 - Configure `Pod` anti-affinity
+- Configure `PodDisruptionBudgets` 
 
 You can achieve this by providing the following values to the helm chart:
 
