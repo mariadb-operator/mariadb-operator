@@ -1,5 +1,7 @@
 # High availability
 
+This section provide guidance on how to run `MariaDB` and `MaxScale` in high availability mode. If you are looking to run the operator in HA as well, please refer to the [Helm documentation](./HELM.md#high-availability).
+
 Our recommended HA setup for production is:
 - **[Galera](./GALERA.md)** with at least 3 nodes. Always an odd number of nodes.
 - Load balance requests using **[MaxScale](./MAXSCALE.md)** as database proxy.
