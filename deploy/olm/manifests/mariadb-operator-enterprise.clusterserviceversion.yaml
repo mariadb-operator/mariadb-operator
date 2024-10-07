@@ -334,8 +334,8 @@ metadata:
     capabilities: Deep Insights
     categories: Database
     certified: "true"
-    containerImage: docker-registry2.mariadb.com/mariadb/mariadb-operator-enterprise:v0.0.32
-    createdAt: "2024-09-27T09:56:12Z"
+    containerImage: docker-registry2.mariadb.com/mariadb/mariadb-operator-enterprise:0.34.0
+    createdAt: "2024-10-07T14:21:48Z"
     features.operators.openshift.io/disconnected: "false"
     features.operators.openshift.io/fips-compliant: "false"
     features.operators.openshift.io/proxy-aware: "false"
@@ -351,7 +351,7 @@ metadata:
     operatorframework.io/arch.amd64: supported
     operatorframework.io/arch.arm64: supported
     operatorframework.io/os.linux: supported
-  name: mariadb-operator-enterprise.v0.0.32
+  name: mariadb-operator-enterprise.v0.34.0
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -1302,12 +1302,18 @@ spec:
           - description: ClusterBootstrapTimeout is the time limit for bootstrapping a cluster. Once this timeout is reached, the Galera recovery state is reset and a new cluster bootstrap will be attempted.
             displayName: Cluster Bootstrap Timeout
             path: galera.recovery.clusterBootstrapTimeout
+          - description: ClusterDownscaleTimeout represents the maximum duration for downscaling the cluster's StatefulSet during the recovery process.
+            displayName: Cluster Downscale Timeout
+            path: galera.recovery.clusterDownscaleTimeout
           - description: ClusterHealthyTimeout represents the duration at which a Galera cluster, that consistently failed health checks, is considered unhealthy, and consequently the Galera recovery process will be initiated by the operator.
             displayName: Cluster Healthy Timeout
             path: galera.recovery.clusterHealthyTimeout
           - description: ClusterMonitorInterval represents the interval used to monitor the Galera cluster health.
             displayName: Cluster Monitor Interval
             path: galera.recovery.clusterMonitorInterval
+          - description: ClusterUpscaleTimeout represents the maximum duration for upscaling the cluster's StatefulSet during the recovery process.
+            displayName: Cluster Upscale Timeout
+            path: galera.recovery.clusterUpscaleTimeout
           - description: Enabled is a flag to enable GaleraRecovery.
             displayName: Enabled
             path: galera.recovery.enabled
@@ -1340,7 +1346,7 @@ spec:
             path: galera.recovery.job.resources
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
-          - description: MinClusterSize is the minimum number of replicas to consider the cluster healthy. It can be either a number of replicas (1) or a percentage (50%). If Galera consistently reports less replicas than this value for the given 'ClusterHealthyTimeout' interval, a cluster recovery is iniated. It defaults to '1' replica.
+          - description: MinClusterSize is the minimum number of replicas to consider the cluster healthy. It can be either a number of replicas (1) or a percentage (50%). If Galera consistently reports less replicas than this value for the given 'ClusterHealthyTimeout' interval, a cluster recovery is iniated. It defaults to '1' replica, and it is highly recommendeded to keep this value at '1' in most cases. If set to more than one replica, the cluster recovery process may restart the healthy replicas as well.
             displayName: Min Cluster Size
             path: galera.recovery.minClusterSize
           - description: PodRecoveryTimeout is the time limit for recevorying the sequence of a Pod during the cluster recovery.
@@ -1408,6 +1414,9 @@ spec:
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
               - urn:alm:descriptor:com.tectonic.ui:advanced
+          - description: Name to be given to the container.
+            displayName: Name
+            path: initContainers[0].name
           - description: Resouces describes the compute resource requirements.
             displayName: Resources
             path: initContainers[0].resources
@@ -1865,6 +1874,11 @@ spec:
             path: maxScale.metrics.exporter.resources
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
+          - description: SecurityContext holds container-level security attributes.
+            displayName: Security Context
+            path: maxScale.metrics.exporter.securityContext
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:advanced
           - description: Tolerations to be used in the Pod.
             displayName: Tolerations
             path: maxScale.metrics.exporter.tolerations
@@ -2066,6 +2080,11 @@ spec:
             path: metrics.exporter.resources
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
+          - description: SecurityContext holds container-level security attributes.
+            displayName: Security Context
+            path: metrics.exporter.securityContext
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:advanced
           - description: Tolerations to be used in the Pod.
             displayName: Tolerations
             path: metrics.exporter.tolerations
@@ -2576,6 +2595,11 @@ spec:
             path: serviceAccountName
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:advanced
+          - description: ServicePorts is the list of additional named ports to be added to the Services created by the operator.
+            displayName: Service Ports
+            path: servicePorts
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:advanced
           - description: SidecarContainers to be used in the Pod.
             displayName: Sidecar Containers
             path: sidecarContainers
@@ -2600,6 +2624,9 @@ spec:
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
               - urn:alm:descriptor:com.tectonic.ui:advanced
+          - description: Name to be given to the container.
+            displayName: Name
+            path: sidecarContainers[0].name
           - description: Resouces describes the compute resource requirements.
             displayName: Resources
             path: sidecarContainers[0].resources
@@ -3249,6 +3276,11 @@ spec:
             path: metrics.exporter.resources
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
+          - description: SecurityContext holds container-level security attributes.
+            displayName: Security Context
+            path: metrics.exporter.securityContext
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:advanced
           - description: Tolerations to be used in the Pod.
             displayName: Tolerations
             path: metrics.exporter.tolerations
@@ -3862,7 +3894,7 @@ spec:
             x-descriptors:
               - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
               - urn:alm:descriptor:com.tectonic.ui:advanced
-          - description: MaxUserConnections defines the maximum number of connections that the User can establish.
+          - description: MaxUserConnections defines the maximum number of simultaneous connections that the User can establish.
             displayName: Max User Connections
             path: maxUserConnections
             x-descriptors:
@@ -3967,6 +3999,7 @@ spec:
                 - delete
                 - get
                 - list
+                - patch
                 - watch
             - apiGroups:
                 - ""
@@ -4153,7 +4186,7 @@ spec:
                       - name: RELATED_IMAGE_EXPORTER_MAXSCALE
                         value: docker-registry2.mariadb.com/mariadb/maxscale-prometheus-exporter-ubi@sha256:9312d49ce245feebba5cc2788a0e5c8b6982f9f6eefe02c24b0901592274ef9f
                       - name: MARIADB_OPERATOR_IMAGE
-                        value: docker-registry2.mariadb.com/mariadb/mariadb-operator-enterprise@sha256:508f0590cf3e37737e63fc96810f8840adab38fffb5373c9bf005417a3558972
+                        value: docker-registry2.mariadb.com/mariadb/mariadb-operator-enterprise@sha256:01947a1743ef6f07fe2dcb43790985cf94acc53f845730014903a841dd17f2f4
                       - name: MARIADB_GALERA_LIB_PATH
                         value: /usr/lib64/galera/libgalera_smm.so
                       - name: MARIADB_ENTRYPOINT_VERSION
@@ -4172,7 +4205,7 @@ spec:
                             fieldPath: metadata.namespace
                       - name: MARIADB_OPERATOR_SA_PATH
                         value: /var/run/secrets/kubernetes.io/serviceaccount/token
-                    image: docker-registry2.mariadb.com/mariadb/mariadb-operator-enterprise@sha256:508f0590cf3e37737e63fc96810f8840adab38fffb5373c9bf005417a3558972
+                    image: docker-registry2.mariadb.com/mariadb/mariadb-operator-enterprise@sha256:01947a1743ef6f07fe2dcb43790985cf94acc53f845730014903a841dd17f2f4
                     livenessProbe:
                       httpGet:
                         path: /healthz
@@ -4285,13 +4318,13 @@ spec:
       name: exporter
     - image: docker-registry2.mariadb.com/mariadb/maxscale-prometheus-exporter-ubi@sha256:9312d49ce245feebba5cc2788a0e5c8b6982f9f6eefe02c24b0901592274ef9f
       name: exporter-maxscale
-    - image: docker-registry2.mariadb.com/mariadb/mariadb-operator-enterprise@sha256:508f0590cf3e37737e63fc96810f8840adab38fffb5373c9bf005417a3558972
+    - image: docker-registry2.mariadb.com/mariadb/mariadb-operator-enterprise@sha256:01947a1743ef6f07fe2dcb43790985cf94acc53f845730014903a841dd17f2f4
       name: mariadb-operator-enterprise
     - image: docker-registry2.mariadb.com/mariadb/maxscale-prometheus-exporter-ubi@sha256:9312d49ce245feebba5cc2788a0e5c8b6982f9f6eefe02c24b0901592274ef9f
       name: exporter_maxscale
     - image: docker-registry.mariadb.com/enterprise-server@sha256:d2cf32def245daba522c09ae10c74eb8c1e509062be5ec2ebe705dc4b3fd78c7
       name: mariadb
-  version: 0.0.32
+  version: 0.34.0
   webhookdefinitions:
     - admissionReviewVersions:
         - v1

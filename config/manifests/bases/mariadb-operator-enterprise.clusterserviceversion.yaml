@@ -1296,6 +1296,10 @@ spec:
           and a new cluster bootstrap will be attempted.
         displayName: Cluster Bootstrap Timeout
         path: galera.recovery.clusterBootstrapTimeout
+      - description: ClusterDownscaleTimeout represents the maximum duration for downscaling
+          the cluster's StatefulSet during the recovery process.
+        displayName: Cluster Downscale Timeout
+        path: galera.recovery.clusterDownscaleTimeout
       - description: ClusterHealthyTimeout represents the duration at which a Galera
           cluster, that consistently failed health checks, is considered unhealthy,
           and consequently the Galera recovery process will be initiated by the operator.
@@ -1305,6 +1309,10 @@ spec:
           the Galera cluster health.
         displayName: Cluster Monitor Interval
         path: galera.recovery.clusterMonitorInterval
+      - description: ClusterUpscaleTimeout represents the maximum duration for upscaling
+          the cluster's StatefulSet during the recovery process.
+        displayName: Cluster Upscale Timeout
+        path: galera.recovery.clusterUpscaleTimeout
       - description: Enabled is a flag to enable GaleraRecovery.
         displayName: Enabled
         path: galera.recovery.enabled
@@ -1349,7 +1357,9 @@ spec:
           the cluster healthy. It can be either a number of replicas (1) or a percentage
           (50%). If Galera consistently reports less replicas than this value for
           the given 'ClusterHealthyTimeout' interval, a cluster recovery is iniated.
-          It defaults to '1' replica.
+          It defaults to '1' replica, and it is highly recommendeded to keep this
+          value at '1' in most cases. If set to more than one replica, the cluster
+          recovery process may restart the healthy replicas as well.
         displayName: Min Cluster Size
         path: galera.recovery.minClusterSize
       - description: PodRecoveryTimeout is the time limit for recevorying the sequence
@@ -1427,6 +1437,9 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
         - urn:alm:descriptor:com.tectonic.ui:advanced
+      - description: Name to be given to the container.
+        displayName: Name
+        path: initContainers[0].name
       - description: Resouces describes the compute resource requirements.
         displayName: Resources
         path: initContainers[0].resources
@@ -1952,6 +1965,11 @@ spec:
         path: maxScale.metrics.exporter.resources
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
+      - description: SecurityContext holds container-level security attributes.
+        displayName: Security Context
+        path: maxScale.metrics.exporter.securityContext
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Tolerations to be used in the Pod.
         displayName: Tolerations
         path: maxScale.metrics.exporter.tolerations
@@ -2186,6 +2204,11 @@ spec:
         path: metrics.exporter.resources
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
+      - description: SecurityContext holds container-level security attributes.
+        displayName: Security Context
+        path: metrics.exporter.securityContext
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Tolerations to be used in the Pod.
         displayName: Tolerations
         path: metrics.exporter.tolerations
@@ -2758,6 +2781,12 @@ spec:
         path: serviceAccountName
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:advanced
+      - description: ServicePorts is the list of additional named ports to be added
+          to the Services created by the operator.
+        displayName: Service Ports
+        path: servicePorts
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: SidecarContainers to be used in the Pod.
         displayName: Sidecar Containers
         path: sidecarContainers
@@ -2784,6 +2813,9 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
         - urn:alm:descriptor:com.tectonic.ui:advanced
+      - description: Name to be given to the container.
+        displayName: Name
+        path: sidecarContainers[0].name
       - description: Resouces describes the compute resource requirements.
         displayName: Resources
         path: sidecarContainers[0].resources
@@ -3529,6 +3561,11 @@ spec:
         path: metrics.exporter.resources
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
+      - description: SecurityContext holds container-level security attributes.
+        displayName: Security Context
+        path: metrics.exporter.securityContext
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Tolerations to be used in the Pod.
         displayName: Tolerations
         path: metrics.exporter.tolerations
@@ -4221,8 +4258,8 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
         - urn:alm:descriptor:com.tectonic.ui:advanced
-      - description: MaxUserConnections defines the maximum number of connections
-          that the User can establish.
+      - description: MaxUserConnections defines the maximum number of simultaneous
+          connections that the User can establish.
         displayName: Max User Connections
         path: maxUserConnections
         x-descriptors:

@@ -6,4 +6,4 @@ kind: Kustomization
 images:
 - name: controller
   newName: docker-registry2.mariadb.com/mariadb/mariadb-operator-enterprise
-  newTag: v0.0.32
+  newTag: 0.34.0
