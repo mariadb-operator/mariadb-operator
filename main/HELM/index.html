@@ -1232,8 +1232,8 @@ helm upgrade --install mariadb-operator \
 <h2 id="high-availability">High availability</h2>
 <p>The operator can run in high availability mode to ensure that your CRs get reconciled even if the node where the operator runs goes down. For achieving this you need:
 - Multiple replicas
-- Configure <code>PodDisruptionBudgets</code> 
-- Configure <code>Pod</code> anti-affinity</p>
+- Configure <code>Pod</code> anti-affinity
+- Configure <code>PodDisruptionBudgets</code> </p>
 <p>You can achieve this by providing the following values to the helm chart:</p>
 <pre><code class="language-yaml">ha:
   enabled: true
