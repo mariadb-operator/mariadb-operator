@@ -12,6 +12,7 @@ spec:
     labels:
       sidecar.istio.io/inject: "false"
   serviceAccountName: backup
+  compression: gzip
   storage:
     persistentVolumeClaim:
       resources:
