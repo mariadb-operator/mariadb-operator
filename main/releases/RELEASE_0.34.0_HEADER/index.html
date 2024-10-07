@@ -1113,7 +1113,7 @@ spec:
 </code></pre>
 <p>This occurs because the <code>MariaDB</code> <code>Pods</code> create exclusive locks on the same PVCs that the <code>Jobs</code> try to mount. To resolve this, the operator now downscales the <code>StatefulSet</code> before initiating the recovery <code>Jobs</code>. See https://github.com/mariadb-operator/mariadb-operator/pull/904.</p>
 <p>Another less frequent error is that, after not being able to bootstrap the cluster on the first attempt, the <code>MariaDB</code> <code>Pods</code> return the following error:</p>
-<pre><code class="language-bash"> [ERROR] WSREP: It may not be safe to bootstrap the cluster from this node. It was not the last one to leave the cluster and may not contain all the updates.
+<pre><code class="language-bash">[ERROR] WSREP: It may not be safe to bootstrap the cluster from this node. It was not the last one to leave the cluster and may not contain all the updates.
 </code></pre>
 <p>This can occur if a different <code>Pod</code> was selected to bootstrap the cluster during a previous attempt, leaving the previous <code>Pod</code> with the bootstrap configuration. To handle this, the operator now cleans up the bootstrap config on non-bootstrapping <code>Pods</code>. See https://github.com/mariadb-operator/mariadb-operator/pull/910</p>
 <h3 id="run-operator-in-ha">Run operator in HA</h3>
