@@ -31,7 +31,7 @@ Currently the following compression algorithms are supported:
 - `gzip`: Good compression/decompression speed, but worse compression ratio compared to bzip2.
 - `none`: No compression.
 
-See: https://github.com/mariadb-operator/mariadb-operator/pull/836
+See https://github.com/mariadb-operator/mariadb-operator/pull/836.
 
 Kudos to @vixns for this contribution! 🙏🏻
 
