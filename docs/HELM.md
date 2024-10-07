@@ -13,6 +13,7 @@ Helm is the preferred way to install `mariadb-operator` in vanilla Kubernetes cl
 - [Installing the operator](#installing-the-operator)
 - [Deployment modes](#deployment-modes)
 - [Updates](#updates)
+- [High availability](#high-availability)
 - [Uninstalling](#uninstalling)
 <!-- /toc -->
 
@@ -110,6 +111,40 @@ helm upgrade --install mariadb-operator \
 ```
 
 Whenever a new version of the `mariadb-operator` is released, an upgrade guide is linked in the release notes if additional upgrade steps are required. Be sure to review the [release notes](https://github.com/mariadb-operator/mariadb-operator/releases) and follow the version-specific upgrade guides accordingly.
+
+## High availability
+
+The operator can run in high availability mode to ensure that your CRs get reconciled even if the node where the operator runs goes down. For achieving this you need:
+- Multiple replicas
+- Configure `PodDisruptionBudgets` 
+- Configure `Pod` anti-affinity
+
+You can achieve this by providing the following values to the helm chart:
+
+```yaml
+ha:
+  enabled: true
+  replicas: 3
+
+affinity:
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+    - labelSelector:
+        matchExpressions:
+        - key: app.kubernetes.io/name
+          operator: In
+          values:
+          - mariadb-operator
+        - key: app.kubernetes.io/instance
+          operator: In
+          values:
+          - mariadb-operator
+      topologyKey: kubernetes.io/hostname
+
+pdb:
+  enabled: true
+  maxUnavailable: 1
+```
 
 ## Uninstalling
 
