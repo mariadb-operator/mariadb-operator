@@ -1087,17 +1087,35 @@
 <p>This release introduces more intuitive versioning, backup compression, and enhancements to Galera cluster recovery, along with several other new features. See the full details below.</p>
 <p>To upgrade from older versions, be sure to follow the <strong><a href="https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/UPGRADE_0.34.0.md">UPGRADE GUIDE</a></strong>.</p>
 <h3 id="versioning">Versioning</h3>
-<p>https://github.com/mariadb-operator/mariadb-operator/issues/891</p>
+<p>Many of you have reported that our previous versioning model was confusing, as we had different versions for the operator image, operator Helm chart and CRD Helm chart. See https://github.com/mariadb-operator/mariadb-operator/issues/891.</p>
+<p>In this release, we're introducing a new versioning model where everything (operator image, Helm charts) uses the unified version <code>0.34.0</code>.</p>
 <h3 id="backup-compression">Backup compression</h3>
+<p>You are able to compress backups by providing the compression algorithm you want to use in the  <code>spec.compression</code> field:</p>
+<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
+kind: Backup
+metadata:
+  name: backup
+spec:
+  mariaDbRef:
+    name: mariadb
+  compression: gzip
+</code></pre>
+<p>Currently the following compression algorithms are supported:
+- <code>bzip2</code>: Good compression ratio, but slower compression/decompression speed compared to gzip.
+- <code>gzip</code>: Good compression/decompression speed, but worse compression ratio compared to bzip2.
+- <code>none</code>: No compression.</p>
 <p>See: https://github.com/mariadb-operator/mariadb-operator/pull/836</p>
 <p>Kudos to @vixns for this contribution! 🙏🏻</p>
 <h3 id="galera-cluster-recovery">Galera cluster recovery</h3>
+<p>We're continuously refining our Galera recovery process based on the issues you report!</p>
+<p>Some of you have encountered situations where the recovery <code>Jobs</code> get stuck with the following error:</p>
 <pre><code class="language-bash">2024-09-25 21:08:57 0 [ERROR] mariadbd: Can't lock aria control file '/var/lib/mysql/aria_log_control' for exclusive use, error: 11. Will retry for 30 seconds
 </code></pre>
-<p>See https://github.com/mariadb-operator/mariadb-operator/pull/904.</p>
+<p>This occurs because the <code>MariaDB</code> <code>Pods</code> create exclusive locks on the same PVCs that the <code>Jobs</code> try to mount. To resolve this, the operator now downscales the <code>StatefulSet</code> before initiating the recovery <code>Jobs</code>. See https://github.com/mariadb-operator/mariadb-operator/pull/904.</p>
+<p>Another less frequent error is that, after not being able to bootstrap the cluster on the first attempt, the <code>MariaDB</code> <code>Pods</code> return the following error:</p>
 <pre><code class="language-bash"> [ERROR] WSREP: It may not be safe to bootstrap the cluster from this node. It was not the last one to leave the cluster and may not contain all the updates.
 </code></pre>
-<p>See https://github.com/mariadb-operator/mariadb-operator/pull/910</p>
+<p>This can occur if a different <code>Pod</code> was selected to bootstrap the cluster during a previous attempt, leaving the previous <code>Pod</code> with the bootstrap configuration. To handle this, the operator now cleans up the bootstrap config on non-bootstrapping <code>Pods</code>. See https://github.com/mariadb-operator/mariadb-operator/pull/910</p>
 <h3 id="run-operator-in-ha">Run operator in HA</h3>
 <p>See https://github.com/mariadb-operator/mariadb-operator/pull/899.</p>
 <p>Kudos to @sennerholm for this contribution! 🙏🏻</p>
