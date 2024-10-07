@@ -724,15 +724,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#extensibility" class="md-nav__link">
-    <span class="md-ellipsis">
-      Extensibility
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#pod-role-labels" class="md-nav__link">
     <span class="md-ellipsis">
       Pod role labels
@@ -745,6 +736,15 @@
   <a href="#mutable-maxuserconnections" class="md-nav__link">
     <span class="md-ellipsis">
       Mutable maxUserConnections
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#extensibility" class="md-nav__link">
+    <span class="md-ellipsis">
+      Extensibility
     </span>
   </a>
   
@@ -1037,15 +1037,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#extensibility" class="md-nav__link">
-    <span class="md-ellipsis">
-      Extensibility
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#pod-role-labels" class="md-nav__link">
     <span class="md-ellipsis">
       Pod role labels
@@ -1058,6 +1049,15 @@
   <a href="#mutable-maxuserconnections" class="md-nav__link">
     <span class="md-ellipsis">
       Mutable maxUserConnections
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#extensibility" class="md-nav__link">
+    <span class="md-ellipsis">
+      Extensibility
     </span>
   </a>
   
@@ -1090,7 +1090,7 @@
 <p>Many of you have reported that our previous versioning model was confusing, as we had different versions for the operator image, operator Helm chart and CRD Helm chart. See https://github.com/mariadb-operator/mariadb-operator/issues/891.</p>
 <p>In this release, we're introducing a new versioning model where everything (operator image, Helm charts) uses the unified version <code>0.34.0</code>.</p>
 <h3 id="backup-compression">Backup compression</h3>
-<p>You are able to compress backups by providing the compression algorithm you want to use in the  <code>spec.compression</code> field:</p>
+<p>You can now compress backups by specifying the desired compression algorithm in the new <code>compression</code> field:</p>
 <pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
 kind: Backup
 metadata:
@@ -1117,17 +1117,62 @@ spec:
 </code></pre>
 <p>This can occur if a different <code>Pod</code> was selected to bootstrap the cluster during a previous attempt, leaving the previous <code>Pod</code> with the bootstrap configuration. To handle this, the operator now cleans up the bootstrap config on non-bootstrapping <code>Pods</code>. See https://github.com/mariadb-operator/mariadb-operator/pull/910</p>
 <h3 id="run-operator-in-ha">Run operator in HA</h3>
+<p>We have extended the operator Helm chart to provide you with everything needed to run the operator in HA:
+- Multiple replicas
+- Configure <code>Pod</code> anti-affinity
+- Configure <code>PodDisruptionBudgets</code></p>
+<p>You can achieve this by providing the following values to the helm chart:</p>
+<pre><code class="language-yaml">ha:
+  enabled: true
+  replicas: 3
+
+affinity:
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+    - labelSelector:
+        matchExpressions:
+        - key: app.kubernetes.io/name
+          operator: In
+          values:
+          - mariadb-operator
+        - key: app.kubernetes.io/instance
+          operator: In
+          values:
+          - mariadb-operator
+      topologyKey: kubernetes.io/hostname
+
+pdb:
+  enabled: true
+  maxUnavailable: 1
+</code></pre>
 <p>See https://github.com/mariadb-operator/mariadb-operator/pull/899.</p>
 <p>Kudos to @sennerholm for this contribution! 🙏🏻</p>
-<h3 id="extensibility">Extensibility</h3>
-<p>See https://github.com/mariadb-operator/mariadb-operator/pull/908 and https://github.com/mariadb-operator/mariadb-operator/pull/912.</p>
-<p>Kudos to @hedgieinsocks for these contributions! 🙏🏻</p>
 <h3 id="pod-role-labels"><code>Pod</code> role labels</h3>
+<p>A new label <code>k8s.mariadb.com/role</code> is now added to the <code>MariaDB</code> <code>Pods</code>:</p>
+<pre><code class="language-bash">❯ kubectl get mariadbs
+NAME             READY   STATUS    PRIMARY            UPDATES                    AGE
+mariadb-galera   True    Running   mariadb-galera-0   ReplicasFirstPrimaryLast   79m
+
+❯ kubectl get pods -l k8s.mariadb.com/role=primary
+NAME               READY   STATUS    RESTARTS   AGE
+mariadb-galera-0   2/2     Running   0          79m
+
+❯ kubectl get pods -l k8s.mariadb.com/role=replica
+NAME               READY   STATUS    RESTARTS   AGE
+mariadb-galera-1   2/2     Running   0          79m
+mariadb-galera-2   2/2     Running   0          79m
+</code></pre>
 <p>See https://github.com/mariadb-operator/mariadb-operator/pull/909.</p>
 <p>Kudos to @nocturo for this contribution! 🙏🏻</p>
 <h3 id="mutable-maxuserconnections">Mutable <code>maxUserConnections</code></h3>
+<p>You may update the <code>maxUserConnections</code> field without having to recreate the <code>User</code> resource.</p>
 <p>See https://github.com/mariadb-operator/mariadb-operator/pull/918.</p>
 <p>Kudos to @hedgieinsocks for this contribution! 🙏🏻</p>
+<h3 id="extensibility">Extensibility</h3>
+<p>We have introduced several extensibility improvements for deploying <code>MariaDB</code>:
+- Support for extra <code>Service</code> ports. See https://github.com/mariadb-operator/mariadb-operator/pull/912
+- Support for named <code>initContainers</code> and <code>sidecarContainers</code>. See https://github.com/mariadb-operator/mariadb-operator/pull/908.</p>
+<p>Kudos to @hedgieinsocks for these contributions! 🙏🏻</p>
 <hr />
 <p>We value your feedback! If you encounter any issues or have suggestions, please <a href="https://github.com/mariadb-operator/mariadb-operator/issues/new/choose">open an issue on GitHub</a>. Your input is crucial to improve <code>{{ .ProjectName }}</code>🦭.</p>
 <p>Join us on Slack: <strong><a href="https://r.mariadb.com/join-community-slack">MariaDB Community Slack</a></strong>.</p>
