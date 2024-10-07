@@ -1109,7 +1109,7 @@ spec:
 <h3 id="galera-cluster-recovery">Galera cluster recovery</h3>
 <p>We're continuously refining our Galera recovery process based on the issues you report!</p>
 <p>Some of you have encountered situations where the recovery <code>Jobs</code> get stuck with the following error:</p>
-<pre><code class="language-bash">2024-09-25 21:08:57 0 [ERROR] mariadbd: Can't lock aria control file '/var/lib/mysql/aria_log_control' for exclusive use, error: 11. Will retry for 30 seconds
+<pre><code class="language-bash">[ERROR] mariadbd: Can't lock aria control file '/var/lib/mysql/aria_log_control' for exclusive use, error: 11. Will retry for 30 seconds
 </code></pre>
 <p>This occurs because the <code>MariaDB</code> <code>Pods</code> create exclusive locks on the same PVCs that the <code>Jobs</code> try to mount. To resolve this, the operator now downscales the <code>StatefulSet</code> before initiating the recovery <code>Jobs</code>. See https://github.com/mariadb-operator/mariadb-operator/pull/904.</p>
 <p>Another less frequent error is that, after not being able to bootstrap the cluster on the first attempt, the <code>MariaDB</code> <code>Pods</code> return the following error:</p>
