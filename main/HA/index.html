@@ -1083,6 +1083,7 @@
 
 
 <h1 id="high-availability">High availability</h1>
+<p>This section provide guidance on how to run <code>MariaDB</code> and <code>MaxScale</code> in high availability mode. If you are looking to run the operator in HA as well, please refer to the <a href="../HELM/#high-availability">Helm documentation</a>.</p>
 <p>Our recommended HA setup for production is:
 - <strong><a href="../GALERA/">Galera</a></strong> with at least 3 nodes. Always an odd number of nodes.
 - Load balance requests using <strong><a href="../MAXSCALE/">MaxScale</a></strong> as database proxy.
