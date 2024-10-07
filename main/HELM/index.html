@@ -562,6 +562,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#high-availability" class="md-nav__link">
+    <span class="md-ellipsis">
+      High availability
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#uninstalling" class="md-nav__link">
     <span class="md-ellipsis">
       Uninstalling
@@ -1104,6 +1113,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#high-availability" class="md-nav__link">
+    <span class="md-ellipsis">
+      High availability
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#uninstalling" class="md-nav__link">
     <span class="md-ellipsis">
       Uninstalling
@@ -1145,6 +1163,7 @@ This documentation applies to <code>mariadb-operator</code> version &gt;= v0.0.3
 <li><a href="#installing-the-operator">Installing the operator</a></li>
 <li><a href="#deployment-modes">Deployment modes</a></li>
 <li><a href="#updates">Updates</a></li>
+<li><a href="#high-availability">High availability</a></li>
 <li><a href="#uninstalling">Uninstalling</a></li>
 </ul>
 <!-- /toc -->
@@ -1210,6 +1229,35 @@ helm upgrade --install mariadb-operator \
   mariadb-operator/mariadb-operator 
 </code></pre>
 <p>Whenever a new version of the <code>mariadb-operator</code> is released, an upgrade guide is linked in the release notes if additional upgrade steps are required. Be sure to review the <a href="https://github.com/mariadb-operator/mariadb-operator/releases">release notes</a> and follow the version-specific upgrade guides accordingly.</p>
+<h2 id="high-availability">High availability</h2>
+<p>The operator can run in high availability mode to ensure that your CRs get reconciled even if the node where the operator runs goes down. For achieving this you need:
+- Multiple replicas
+- Configure <code>PodDisruptionBudgets</code> 
+- Configure <code>Pod</code> anti-affinity</p>
+<p>You can achieve this by providing the following values to the helm chart:</p>
+<pre><code class="language-yaml">ha:
+  enabled: true
+  replicas: 3
+
+affinity:
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+    - labelSelector:
+        matchExpressions:
+        - key: app.kubernetes.io/name
+          operator: In
+          values:
+          - mariadb-operator
+        - key: app.kubernetes.io/instance
+          operator: In
+          values:
+          - mariadb-operator
+      topologyKey: kubernetes.io/hostname
+
+pdb:
+  enabled: true
+  maxUnavailable: 1
+</code></pre>
 <h2 id="uninstalling">Uninstalling</h2>
 <blockquote>
 <p>[!CAUTION]
