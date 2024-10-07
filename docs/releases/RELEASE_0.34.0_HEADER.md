@@ -50,7 +50,7 @@ This occurs because the `MariaDB` `Pods` create exclusive locks on the same PVCs
 Another less frequent error is that, after not being able to bootstrap the cluster on the first attempt, the `MariaDB` `Pods` return the following error:
 
 ```bash
- [ERROR] WSREP: It may not be safe to bootstrap the cluster from this node. It was not the last one to leave the cluster and may not contain all the updates.
+[ERROR] WSREP: It may not be safe to bootstrap the cluster from this node. It was not the last one to leave the cluster and may not contain all the updates.
 ```
 
 This can occur if a different `Pod` was selected to bootstrap the cluster during a previous attempt, leaving the previous `Pod` with the bootstrap configuration. To handle this, the operator now cleans up the bootstrap config on non-bootstrapping `Pods`. See https://github.com/mariadb-operator/mariadb-operator/pull/910
