@@ -3,7 +3,7 @@
 
 This release introduces more intuitive versioning, backup compression, and enhancements to Galera cluster recovery, along with several other new features. See the full details below.
 
-To upgrade from older versions, be sure to follow the __[UPGRADE GUIDE](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/UPGRADE_0.34.0.md)__.
+To upgrade from older versions, be sure to follow the __[UPGRADE GUIDE](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/releases/UPGRADE_0.34.0.md)__.
 
 ### Versioning
 
