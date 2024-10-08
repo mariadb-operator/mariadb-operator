@@ -320,3 +320,41 @@ func testHelmTemplates(t *testing.T, opts *helm.Options, expectedTemplates, unex
 		Expect(err).To(HaveOccurred())
 	}
 }
+
+func TestHelmImageTagAndDigest(t *testing.T) {
+	RegisterTestingT(t)
+
+	repository := "docker-registry3.mariadb.com/mariadb-operator/mariadb-operator"
+	tag := "v1.0.0"
+	digest := "sha256:abc123def456"
+
+	opts := &helm.Options{
+		SetValues: map[string]string{
+			"image.repository": repository,
+			"image.tag":        tag,
+			"image.digest":     digest,
+		},
+	}
+
+	renderedData := helm.RenderTemplate(t, opts, helmChartPath, helmReleaseName, []string{"templates/deployment.yaml"})
+	var deployment appsv1.Deployment
+	helm.UnmarshalK8SYaml(t, renderedData, &deployment)
+
+	container := deployment.Spec.Template.Spec.Containers[0]
+	Expect(container.Name).To(Equal("controller"))
+	Expect(container.Image).To(ContainSubstring(repository + "@" + digest))
+
+	opts = &helm.Options{
+		SetValues: map[string]string{
+			"image.repository": repository,
+			"image.tag":        tag,
+		},
+	}
+
+	renderedData = helm.RenderTemplate(t, opts, helmChartPath, helmReleaseName, []string{"templates/deployment.yaml"})
+	helm.UnmarshalK8SYaml(t, renderedData, &deployment)
+
+	container = deployment.Spec.Template.Spec.Containers[0]
+	Expect(container.Name).To(Equal("controller"))
+	Expect(container.Image).To(ContainSubstring(repository + ":" + tag))
+}

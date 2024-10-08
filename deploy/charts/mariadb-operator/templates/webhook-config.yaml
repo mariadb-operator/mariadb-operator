@@ -5,16 +5,16 @@ kind: MutatingWebhookConfiguration
 metadata:
   name: {{ $fullName }}-webhook
   labels:
-    {{ include "mariadb-operator-webhook.labels" . | nindent 4 }}
+    {{- include "mariadb-operator-webhook.labels" . | nindent 4 }}
   annotations:
     {{- if .Values.webhook.cert.certManager.enabled }}
     cert-manager.io/inject-ca-from: {{ .Release.Namespace }}/{{ include "mariadb-operator.fullname" . }}-webhook-cert
     {{- else }}
     k8s.mariadb.com/webhook: ""
     {{- end }}
-    {{ with .Values.webhook.annotations }}
+    {{- with .Values.webhook.annotations }}
     {{ toYaml . | indent 4 }}
-    {{ end }}
+    {{- end }}
 webhooks:
 - admissionReviewVersions:
   - v1
@@ -42,16 +42,16 @@ kind: ValidatingWebhookConfiguration
 metadata:
   name: {{ $fullName }}-webhook
   labels:
-    {{ include "mariadb-operator-webhook.labels" . | nindent 4 }}
+    {{- include "mariadb-operator-webhook.labels" . | nindent 4 }}
   annotations:
     {{- if .Values.webhook.cert.certManager.enabled }}
     cert-manager.io/inject-ca-from: {{ .Release.Namespace }}/{{ include "mariadb-operator.fullname" . }}-webhook-cert
     {{- else }}
     k8s.mariadb.com/webhook: ""
     {{- end }}
-    {{ with .Values.webhook.annotations }}
+    {{- with .Values.webhook.annotations }}
     {{ toYaml . | indent 4 }}
-    {{ end }}
+    {{- end }}
 webhooks:
   - admissionReviewVersions:
       - v1
