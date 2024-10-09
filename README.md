@@ -214,4 +214,4 @@ We welcome and encourage contributions to this project! Please check our [contri
 
 ## Get in touch
 
-- [Slack](https://r.mariadb.com/join-community-slack)
+Join us on Slack: **[MariaDB Community Slack](https://r.mariadb.com/join-community-slack)**.
