@@ -215,4 +215,3 @@ We welcome and encourage contributions to this project! Please check our [contri
 ## Get in touch
 
 - [Slack](https://r.mariadb.com/join-community-slack)
-- [martin.montes@mariadb.com](martin.montes@mariadb.com)
