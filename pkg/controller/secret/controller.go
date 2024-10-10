@@ -22,7 +22,7 @@ type SecretReconciler struct {
 
 func NewSecretReconciler(client client.Client, builder *builder.Builder) (*SecretReconciler, error) {
 	generator, err := password.NewGenerator(&password.GeneratorInput{
-		Symbols: "~!@#$%^&*()_+-={}|[]:<>/",
+		Symbols: "~!@$%^&*()_+-={}|[]:<>/",
 	})
 	if err != nil {
 		return nil, fmt.Errorf("error creating password generator: %v", err)
