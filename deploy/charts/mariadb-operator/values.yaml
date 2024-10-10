@@ -14,6 +14,8 @@ image:
   pullPolicy: IfNotPresent
   # -- Image tag to use. By default the chart appVersion is used
   tag: ""
+  # Setting a digest will override any tag
+  # digest: sha256:084a927ee9f3918a5c85d283f73822ae205757df352218de0b935853a0765060
 imagePullSecrets: []
 
 # -- Controller log level
@@ -136,6 +138,8 @@ webhook:
     pullPolicy: IfNotPresent
     # -- Image tag to use. By default the chart appVersion is used
     tag: ""
+    # Setting a digest will override any tag
+    # digest: sha256:084a927ee9f3918a5c85d283f73822ae205757df352218de0b935853a0765060
   imagePullSecrets: []
   ha:
     # -- Enable high availability
@@ -225,6 +229,8 @@ certController:
     pullPolicy: IfNotPresent
     # -- Image tag to use. By default the chart appVersion is used
     tag: ""
+    # Setting a digest will override any tag
+    # digest: sha256:084a927ee9f3918a5c85d283f73822ae205757df352218de0b935853a0765060
   imagePullSecrets: []
   ha:
     # -- Enable high availability
