@@ -128,6 +128,7 @@ func (r *SqlJobReconciler) waitForDependencies(ctx context.Context, sqlJob *v1al
 			if err := r.patchStatus(ctx, sqlJob, r.ConditionComplete.PatcherFailed(msg)); err != nil {
 				return false, ctrl.Result{}, err
 			}
+			return false, ctrl.Result{}, err
 		}
 		if !sqlJobDep.IsComplete() {
 			msg := fmt.Sprintf("Dependency '%s' not ready", dep.Name)
