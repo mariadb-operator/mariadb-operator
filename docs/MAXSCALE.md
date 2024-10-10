@@ -615,7 +615,7 @@ The GUI is exposed via a dedicated Kubernetes `Service` in the same port as the 
 
 `mariadb-operator` interacts with the [MaxScale REST API](https://mariadb.com/kb/en/mariadb-maxscale-23-08-rest-api/) to reconcile the specification provided by the user, considering both the MaxScale status retrieved from the API and the provided spec.
 
-[<img src="https://run.pstmn.io/button.svg" alt="Run In Postman" style="width: 128px; height: 32px;">](https://mariadb-operator.postman.co/workspace/mariadb-operator~a184b7e4-b1f7-405e-b9ec-ec62ed36dd27/collection/9776-74dfd54a-2b2b-451f-95ab-006e1d9d9998?action=share&creator=9776&active-environment=9776-30cd165d-2616-40d0-95c6-7798556aaa1b)
+[<img src="https://run.pstmn.io/button.svg" alt="Run In Postman" style="width: 128px; height: 32px;">](https://mariadb-operator.postman.co/collection/9776-74dfd54a-2b2b-451f-95ab-006e1d9d9998?source=rip_markdown)
 
 ## Troubleshooting
 
