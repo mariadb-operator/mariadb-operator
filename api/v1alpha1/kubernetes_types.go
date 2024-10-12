@@ -138,16 +138,49 @@ func (p PodAntiAffinity) ToKubernetesType() corev1.PodAntiAffinity {
 	}
 }
 
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#preferredschedulingterm-v1-core
+type PreferredSchedulingTerm struct {
+	Weight     int32                   `json:"weight"`
+	Preference corev1.NodeSelectorTerm `json:"preference"`
+}
+
+func (p PreferredSchedulingTerm) ToKubernetesType() corev1.PreferredSchedulingTerm {
+	return corev1.PreferredSchedulingTerm{
+		Weight:     p.Weight,
+		Preference: p.Preference,
+	}
+}
+
+type NodeAffinity struct {
+	// +optional
+	RequiredDuringSchedulingIgnoredDuringExecution *corev1.NodeSelector `json:"requiredDuringSchedulingIgnoredDuringExecution,omitempty"`
+	// +optional
+	// +listType=atomic
+	PreferredDuringSchedulingIgnoredDuringExecution []PreferredSchedulingTerm `json:"preferredDuringSchedulingIgnoredDuringExecution,omitempty"`
+}
+
+func (p NodeAffinity) ToKubernetesType() corev1.NodeAffinity {
+	return corev1.NodeAffinity{
+		RequiredDuringSchedulingIgnoredDuringExecution:  p.RequiredDuringSchedulingIgnoredDuringExecution,
+		PreferredDuringSchedulingIgnoredDuringExecution: kadapter.ToKubernetesSlice(p.PreferredDuringSchedulingIgnoredDuringExecution),
+	}
+}
+
 // Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#affinity-v1-core.
 type Affinity struct {
 	// +optional
 	PodAntiAffinity *PodAntiAffinity `json:"podAntiAffinity,omitempty"`
+	// +optional
+	NodeAffinity *NodeAffinity `json:"nodeAffinity,omitempty"`
 }
 
 func (a Affinity) ToKubernetesType() corev1.Affinity {
 	var affinity corev1.Affinity
 	if a.PodAntiAffinity != nil {
 		affinity.PodAntiAffinity = ptr.To(a.PodAntiAffinity.ToKubernetesType())
+	}
+	if a.NodeAffinity != nil {
+		affinity.NodeAffinity = ptr.To(a.NodeAffinity.ToKubernetesType())
 	}
 	return affinity
 }
