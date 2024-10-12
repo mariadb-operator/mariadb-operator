@@ -792,6 +792,7 @@ func TestMariadbPodBuilderAffinity(t *testing.T) {
 		opts                         []mariadbPodOpt
 		wantAffinity                 bool
 		wantTopologySpreadContraints bool
+		wantNodeAffinity             bool
 	}{
 		{
 			name: "no affinity",
@@ -921,6 +922,43 @@ func TestMariadbPodBuilderAffinity(t *testing.T) {
 			wantAffinity:                 false,
 			wantTopologySpreadContraints: false,
 		},
+		{
+			name: "mariadb with node affinity",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					PodTemplate: mariadbv1alpha1.PodTemplate{
+						Affinity: &mariadbv1alpha1.AffinityConfig{
+							Affinity: mariadbv1alpha1.Affinity{
+								NodeAffinity: &mariadbv1alpha1.NodeAffinity{
+									RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelector{
+										NodeSelectorTerms: []corev1.NodeSelectorTerm{
+											{
+												MatchExpressions: []corev1.NodeSelectorRequirement{
+													{
+														Key:      "kubernetes.io/hostname",
+														Operator: corev1.NodeSelectorOpIn,
+														Values:   []string{"node1", "node2"},
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+							AntiAffinityEnabled: nil,
+						},
+					},
+					Storage: mariadbv1alpha1.Storage{
+						Size: ptr.To(resource.MustParse("300Mi")),
+					},
+				},
+			},
+			opts:                         nil,
+			wantAffinity:                 true,
+			wantTopologySpreadContraints: false,
+			wantNodeAffinity:             true,
+		},
 	}
 
 	for _, tt := range tests {
@@ -941,6 +979,13 @@ func TestMariadbPodBuilderAffinity(t *testing.T) {
 			}
 			if !tt.wantTopologySpreadContraints && podTpl.Spec.TopologySpreadConstraints != nil {
 				t.Error("expected topologySpreadConstraints to not have been set")
+			}
+
+			if tt.wantNodeAffinity && podTpl.Spec.Affinity.NodeAffinity == nil {
+				t.Error("expected node affinity to have been set")
+			}
+			if !tt.wantNodeAffinity && podTpl.Spec.Affinity != nil && podTpl.Spec.Affinity.NodeAffinity != nil {
+				t.Error("expected node affinity to not have been set")
 			}
 		})
 	}
