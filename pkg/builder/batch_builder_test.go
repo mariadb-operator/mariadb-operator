@@ -534,7 +534,7 @@ func TestRestoreJobMeta(t *testing.T) {
 				Spec: mariadbv1alpha1.RestoreSpec{
 					RestoreSource: mariadbv1alpha1.RestoreSource{
 						Volume: &mariadbv1alpha1.VolumeSource{
-							PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{},
+							PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimVolumeSource{},
 						},
 						S3: &mariadbv1alpha1.S3{},
 					},
@@ -555,7 +555,7 @@ func TestRestoreJobMeta(t *testing.T) {
 				Spec: mariadbv1alpha1.RestoreSpec{
 					RestoreSource: mariadbv1alpha1.RestoreSource{
 						Volume: &mariadbv1alpha1.VolumeSource{
-							PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{},
+							PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimVolumeSource{},
 						},
 						S3: &mariadbv1alpha1.S3{},
 					},
@@ -592,7 +592,7 @@ func TestRestoreJobMeta(t *testing.T) {
 				Spec: mariadbv1alpha1.RestoreSpec{
 					RestoreSource: mariadbv1alpha1.RestoreSource{
 						Volume: &mariadbv1alpha1.VolumeSource{
-							PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{},
+							PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimVolumeSource{},
 						},
 						S3: &mariadbv1alpha1.S3{},
 					},
@@ -627,7 +627,7 @@ func TestRestoreJobMeta(t *testing.T) {
 				Spec: mariadbv1alpha1.RestoreSpec{
 					RestoreSource: mariadbv1alpha1.RestoreSource{
 						Volume: &mariadbv1alpha1.VolumeSource{
-							PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{},
+							PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimVolumeSource{},
 						},
 						S3: &mariadbv1alpha1.S3{},
 					},
@@ -674,7 +674,7 @@ func TestRestoreJobMeta(t *testing.T) {
 				Spec: mariadbv1alpha1.RestoreSpec{
 					RestoreSource: mariadbv1alpha1.RestoreSource{
 						Volume: &mariadbv1alpha1.VolumeSource{
-							PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{},
+							PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimVolumeSource{},
 						},
 						S3: &mariadbv1alpha1.S3{},
 					},

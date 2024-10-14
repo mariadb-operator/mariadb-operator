@@ -5,7 +5,6 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 )
@@ -188,7 +187,7 @@ var _ = Describe("Backup types", func() {
 		)
 		DescribeTable(
 			"Should return a volume",
-			func(backup *Backup, expectedVolume corev1.VolumeSource, wantErr bool) {
+			func(backup *Backup, expectedVolume VolumeSource, wantErr bool) {
 				volume, err := backup.Volume()
 				if wantErr {
 					Expect(err).To(HaveOccurred())
@@ -218,8 +217,8 @@ var _ = Describe("Backup types", func() {
 						},
 					},
 				},
-				corev1.VolumeSource{
-					EmptyDir: &corev1.EmptyDirVolumeSource{},
+				VolumeSource{
+					EmptyDir: &EmptyDirVolumeSource{},
 				},
 				false,
 			),
@@ -233,8 +232,8 @@ var _ = Describe("Backup types", func() {
 						},
 					},
 				},
-				corev1.VolumeSource{
-					PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+				VolumeSource{
+					PersistentVolumeClaim: &PersistentVolumeClaimVolumeSource{
 						ClaimName: objMeta.Name,
 					},
 				},
@@ -247,7 +246,7 @@ var _ = Describe("Backup types", func() {
 					Spec: BackupSpec{
 						Storage: BackupStorage{
 							Volume: &VolumeSource{
-								NFS: &corev1.NFSVolumeSource{
+								NFS: &NFSVolumeSource{
 									Server: "test",
 									Path:   "test",
 								},
@@ -255,8 +254,8 @@ var _ = Describe("Backup types", func() {
 						},
 					},
 				},
-				corev1.VolumeSource{
-					NFS: &corev1.NFSVolumeSource{
+				VolumeSource{
+					NFS: &NFSVolumeSource{
 						Server: "test",
 						Path:   "test",
 					},

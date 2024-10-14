@@ -3,95 +3,9 @@ package v1alpha1
 
 import (
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/utils/ptr"
 )
-
-// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#volume-v1-core.
-type VolumeSource struct {
-	// +optional
-	EmptyDir *corev1.EmptyDirVolumeSource `json:"emptyDir,omitempty"`
-	// +optional
-	NFS *corev1.NFSVolumeSource `json:"nfs,omitempty"`
-	// +optional
-	CSI *corev1.CSIVolumeSource `json:"csi,omitempty"`
-	// +optional
-	PersistentVolumeClaim *corev1.PersistentVolumeClaimVolumeSource `json:"persistentVolumeClaim,omitempty"`
-}
-
-func VolumeSourceFromKubernetesType(kv corev1.VolumeSource) VolumeSource {
-	return VolumeSource{
-		EmptyDir:              kv.EmptyDir,
-		NFS:                   kv.NFS,
-		CSI:                   kv.CSI,
-		PersistentVolumeClaim: kv.PersistentVolumeClaim,
-	}
-}
-
-func (v VolumeSource) ToKubernetesType() corev1.VolumeSource {
-	return corev1.VolumeSource{
-		EmptyDir:              v.EmptyDir,
-		NFS:                   v.NFS,
-		CSI:                   v.CSI,
-		PersistentVolumeClaim: v.PersistentVolumeClaim,
-	}
-}
-
-// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#volume-v1-core.
-type Volume struct {
-	Name         string `json:"name"`
-	VolumeSource `json:",inline"`
-}
-
-func (v Volume) ToKubernetesType() corev1.Volume {
-	return corev1.Volume{
-		Name:         v.Name,
-		VolumeSource: v.VolumeSource.ToKubernetesType(),
-	}
-}
-
-// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#volumemount-v1-core.
-type VolumeMount struct {
-	// This must match the Name of a Volume.
-	Name string `json:"name"`
-	// +optional
-	ReadOnly  bool   `json:"readOnly,omitempty"`
-	MountPath string `json:"mountPath"`
-	// +optional
-	SubPath string `json:"subPath,omitempty"`
-}
-
-func (v VolumeMount) ToKubernetesType() corev1.VolumeMount {
-	return corev1.VolumeMount{
-		Name:      v.Name,
-		ReadOnly:  v.ReadOnly,
-		MountPath: v.MountPath,
-		SubPath:   v.SubPath,
-	}
-}
-
-// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#persistentvolumeclaimspec-v1-core.
-type PersistentVolumeClaimSpec struct {
-	// +optional
-	// +listType=atomic
-	AccessModes []corev1.PersistentVolumeAccessMode `json:"accessModes,omitempty"`
-	// +optional
-	Selector *metav1.LabelSelector `json:"selector,omitempty"`
-	// +optional
-	Resources corev1.VolumeResourceRequirements `json:"resources,omitempty"`
-	// +optional
-	StorageClassName *string `json:"storageClassName,omitempty"`
-}
-
-func (p PersistentVolumeClaimSpec) ToKubernetesType() corev1.PersistentVolumeClaimSpec {
-	return corev1.PersistentVolumeClaimSpec{
-		AccessModes:      p.AccessModes,
-		Selector:         p.Selector,
-		Resources:        p.Resources,
-		StorageClassName: p.StorageClassName,
-	}
-}
 
 // Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#localobjectreference-v1-core.
 type LocalObjectReference struct {
