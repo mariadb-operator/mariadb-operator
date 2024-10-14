@@ -364,6 +364,66 @@ var _ = Describe("Base types", func() {
 					},
 				},
 			),
+			Entry(
+				"AntiAffinity and nodeAffinity",
+				&AffinityConfig{
+					AntiAffinityEnabled: ptr.To(true),
+					Affinity: Affinity{
+						NodeAffinity: &NodeAffinity{
+							RequiredDuringSchedulingIgnoredDuringExecution: &NodeSelector{
+								NodeSelectorTerms: []NodeSelectorTerm{
+									{
+										MatchExpressions: []NodeSelectorRequirement{
+											{
+												Key:      "kubernetes.io/hostname",
+												Operator: corev1.NodeSelectorOpIn,
+												Values:   []string{"node1", "node2"},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+				[]string{"mariadb"},
+				&AffinityConfig{
+					AntiAffinityEnabled: ptr.To(true),
+					Affinity: Affinity{
+						PodAntiAffinity: &PodAntiAffinity{
+							RequiredDuringSchedulingIgnoredDuringExecution: []PodAffinityTerm{
+								{
+									LabelSelector: &LabelSelector{
+										MatchExpressions: []LabelSelectorRequirement{
+											{
+												Key:      "app.kubernetes.io/instance",
+												Operator: metav1.LabelSelectorOpIn,
+												Values:   []string{"mariadb"},
+											},
+										},
+									},
+									TopologyKey: "kubernetes.io/hostname",
+								},
+							},
+						},
+						NodeAffinity: &NodeAffinity{
+							RequiredDuringSchedulingIgnoredDuringExecution: &NodeSelector{
+								NodeSelectorTerms: []NodeSelectorTerm{
+									{
+										MatchExpressions: []NodeSelectorRequirement{
+											{
+												Key:      "kubernetes.io/hostname",
+												Operator: corev1.NodeSelectorOpIn,
+												Values:   []string{"node1", "node2"},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			),
 		)
 	})
 
