@@ -626,7 +626,7 @@ func (r *RestoreSource) IsDefaulted() bool {
 func (r *RestoreSource) SetDefaults() {
 	if r.S3 != nil {
 		r.Volume = &VolumeSource{
-			EmptyDir: &corev1.EmptyDirVolumeSource{},
+			EmptyDir: &EmptyDirVolumeSource{},
 		}
 	}
 }
@@ -637,7 +637,7 @@ func (r *RestoreSource) SetDefaultsWithBackup(backup *Backup) error {
 		return fmt.Errorf("error getting backup volume: %v", err)
 	}
 
-	r.Volume = ptr.To(VolumeSourceFromKubernetesType(volume))
+	r.Volume = &volume
 	r.S3 = backup.Spec.Storage.S3
 	return nil
 }

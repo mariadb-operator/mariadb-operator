@@ -47,12 +47,12 @@ func (b *Builder) jobMariadbContainer(cmd *cmd.Command, volumeMounts []corev1.Vo
 	return b.jobContainer("mariadb", cmd, mariadb.Spec.Image, volumeMounts, envVar, resources, mariadb, securityContext)
 }
 
-func jobBatchStorageVolume(volumeSource corev1.VolumeSource, s3 *mariadbv1alpha1.S3) ([]corev1.Volume, []corev1.VolumeMount) {
+func jobBatchStorageVolume(volumeSource mariadbv1alpha1.VolumeSource, s3 *mariadbv1alpha1.S3) ([]corev1.Volume, []corev1.VolumeMount) {
 	volumes :=
 		[]corev1.Volume{
 			{
 				Name:         batchStorageVolume,
-				VolumeSource: volumeSource,
+				VolumeSource: volumeSource.ToKubernetesType(),
 			},
 		}
 	volumeMounts := []corev1.VolumeMount{

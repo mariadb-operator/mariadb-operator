@@ -197,7 +197,7 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 	}
 
 	volume := ptr.Deref(restore.Spec.Volume, mariadbv1alpha1.VolumeSource{})
-	volumes, volumeSources := jobBatchStorageVolume(volume.ToKubernetesType(), restore.Spec.S3)
+	volumes, volumeSources := jobBatchStorageVolume(volume, restore.Spec.S3)
 	affinity := ptr.Deref(restore.Spec.Affinity, mariadbv1alpha1.AffinityConfig{}).Affinity
 
 	operatorContainer, err := b.jobMariadbOperatorContainer(

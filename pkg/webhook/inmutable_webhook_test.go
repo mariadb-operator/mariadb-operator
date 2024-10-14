@@ -434,7 +434,7 @@ func TestInmutableInitWebhook(t *testing.T) {
 							Name: "foo",
 						},
 						Volume: &mariadbv1alpha1.VolumeSource{
-							NFS: &corev1.NFSVolumeSource{
+							NFS: &mariadbv1alpha1.NFSVolumeSource{
 								Server: "nas.local",
 								Path:   "/volume/foo",
 							},
