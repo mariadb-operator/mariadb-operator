@@ -3,7 +3,6 @@ package v1alpha1
 import (
 	"errors"
 	"fmt"
-	"reflect"
 	"time"
 
 	"github.com/mariadb-operator/mariadb-operator/pkg/webhook"
@@ -215,22 +214,22 @@ type AffinityConfig struct {
 
 // SetDefaults sets reasonable defaults.
 func (a *AffinityConfig) SetDefaults(antiAffinityInstances ...string) {
-	if ptr.Deref(a.AntiAffinityEnabled, false) && reflect.ValueOf(a.Affinity).IsZero() && len(antiAffinityInstances) > 0 {
-		a.Affinity = Affinity{
-			PodAntiAffinity: &PodAntiAffinity{
-				RequiredDuringSchedulingIgnoredDuringExecution: []PodAffinityTerm{
-					{
-						LabelSelector: &LabelSelector{
-							MatchExpressions: []LabelSelectorRequirement{
-								{
-									Key:      "app.kubernetes.io/instance",
-									Operator: metav1.LabelSelectorOpIn,
-									Values:   antiAffinityInstances,
-								},
+	antiAffinityEnabled := ptr.Deref(a.AntiAffinityEnabled, false)
+
+	if antiAffinityEnabled && len(antiAffinityInstances) > 0 && a.Affinity.PodAntiAffinity == nil {
+		a.Affinity.PodAntiAffinity = &PodAntiAffinity{
+			RequiredDuringSchedulingIgnoredDuringExecution: []PodAffinityTerm{
+				{
+					LabelSelector: &LabelSelector{
+						MatchExpressions: []LabelSelectorRequirement{
+							{
+								Key:      "app.kubernetes.io/instance",
+								Operator: metav1.LabelSelectorOpIn,
+								Values:   antiAffinityInstances,
 							},
 						},
-						TopologyKey: "kubernetes.io/hostname",
 					},
+					TopologyKey: "kubernetes.io/hostname",
 				},
 			},
 		}
