@@ -67,8 +67,8 @@ var _ = Describe("Restore types", func() {
 									PodAntiAffinity: &PodAntiAffinity{
 										RequiredDuringSchedulingIgnoredDuringExecution: []PodAffinityTerm{
 											{
-												LabelSelector: &metav1.LabelSelector{
-													MatchExpressions: []metav1.LabelSelectorRequirement{
+												LabelSelector: &LabelSelector{
+													MatchExpressions: []LabelSelectorRequirement{
 														{
 															Key:      "app.kubernetes.io/instance",
 															Operator: metav1.LabelSelectorOpIn,
@@ -117,8 +117,8 @@ var _ = Describe("Restore types", func() {
 									PodAntiAffinity: &PodAntiAffinity{
 										RequiredDuringSchedulingIgnoredDuringExecution: []PodAffinityTerm{
 											{
-												LabelSelector: &metav1.LabelSelector{
-													MatchExpressions: []metav1.LabelSelectorRequirement{
+												LabelSelector: &LabelSelector{
+													MatchExpressions: []LabelSelectorRequirement{
 														{
 															Key:      "app.kubernetes.io/instance",
 															Operator: metav1.LabelSelectorOpIn,

@@ -67,41 +67,27 @@ spec:
                       Make sure you have at least as many Nodes available as the replicas to not end up with unscheduled Pods.
                     type: boolean
                   nodeAffinity:
+                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#nodeaffinity-v1-core'
                     properties:
                       preferredDuringSchedulingIgnoredDuringExecution:
                         items:
                           description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#preferredschedulingterm-v1-core'
                           properties:
                             preference:
-                              description: |-
-                                A null or empty node selector term matches no objects. The requirements of
-                                them are ANDed.
-                                The TopologySelectorTerm type implements a subset of the NodeSelectorTerm.
+                              description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#nodeselectorterm-v1-core'
                               properties:
                                 matchExpressions:
-                                  description: A list of node selector requirements
-                                    by node's labels.
                                   items:
-                                    description: |-
-                                      A node selector requirement is a selector that contains values, a key, and an operator
-                                      that relates the key and values.
+                                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#nodeselectorrequirement-v1-core'
                                     properties:
                                       key:
-                                        description: The label key that the selector
-                                          applies to.
                                         type: string
                                       operator:
                                         description: |-
-                                          Represents a key's relationship to a set of values.
-                                          Valid operators are In, NotIn, Exists, DoesNotExist. Gt, and Lt.
+                                          A node selector operator is the set of operators that can be used in
+                                          a node selector requirement.
                                         type: string
                                       values:
-                                        description: |-
-                                          An array of string values. If the operator is In or NotIn,
-                                          the values array must be non-empty. If the operator is Exists or DoesNotExist,
-                                          the values array must be empty. If the operator is Gt or Lt, the values
-                                          array must have a single element, which will be interpreted as an integer.
-                                          This array is replaced during a strategic merge patch.
                                         items:
                                           type: string
                                         type: array
@@ -113,29 +99,17 @@ spec:
                                   type: array
                                   x-kubernetes-list-type: atomic
                                 matchFields:
-                                  description: A list of node selector requirements
-                                    by node's fields.
                                   items:
-                                    description: |-
-                                      A node selector requirement is a selector that contains values, a key, and an operator
-                                      that relates the key and values.
+                                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#nodeselectorrequirement-v1-core'
                                     properties:
                                       key:
-                                        description: The label key that the selector
-                                          applies to.
                                         type: string
                                       operator:
                                         description: |-
-                                          Represents a key's relationship to a set of values.
-                                          Valid operators are In, NotIn, Exists, DoesNotExist. Gt, and Lt.
+                                          A node selector operator is the set of operators that can be used in
+                                          a node selector requirement.
                                         type: string
                                       values:
-                                        description: |-
-                                          An array of string values. If the operator is In or NotIn,
-                                          the values array must be non-empty. If the operator is Exists or DoesNotExist,
-                                          the values array must be empty. If the operator is Gt or Lt, the values
-                                          array must have a single element, which will be interpreted as an integer.
-                                          This array is replaced during a strategic merge patch.
                                         items:
                                           type: string
                                         type: array
@@ -147,7 +121,6 @@ spec:
                                   type: array
                                   x-kubernetes-list-type: atomic
                               type: object
-                              x-kubernetes-map-type: atomic
                             weight:
                               format: int32
                               type: integer
@@ -158,44 +131,24 @@ spec:
                         type: array
                         x-kubernetes-list-type: atomic
                       requiredDuringSchedulingIgnoredDuringExecution:
-                        description: |-
-                          A node selector represents the union of the results of one or more label queries
-                          over a set of nodes; that is, it represents the OR of the selectors represented
-                          by the node selector terms.
+                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#nodeselector-v1-core'
                         properties:
                           nodeSelectorTerms:
-                            description: Required. A list of node selector terms.
-                              The terms are ORed.
                             items:
-                              description: |-
-                                A null or empty node selector term matches no objects. The requirements of
-                                them are ANDed.
-                                The TopologySelectorTerm type implements a subset of the NodeSelectorTerm.
+                              description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#nodeselectorterm-v1-core'
                               properties:
                                 matchExpressions:
-                                  description: A list of node selector requirements
-                                    by node's labels.
                                   items:
-                                    description: |-
-                                      A node selector requirement is a selector that contains values, a key, and an operator
-                                      that relates the key and values.
+                                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#nodeselectorrequirement-v1-core'
                                     properties:
                                       key:
-                                        description: The label key that the selector
-                                          applies to.
                                         type: string
                                       operator:
                                         description: |-
-                                          Represents a key's relationship to a set of values.
-                                          Valid operators are In, NotIn, Exists, DoesNotExist. Gt, and Lt.
+                                          A node selector operator is the set of operators that can be used in
+                                          a node selector requirement.
                                         type: string
                                       values:
-                                        description: |-
-                                          An array of string values. If the operator is In or NotIn,
-                                          the values array must be non-empty. If the operator is Exists or DoesNotExist,
-                                          the values array must be empty. If the operator is Gt or Lt, the values
-                                          array must have a single element, which will be interpreted as an integer.
-                                          This array is replaced during a strategic merge patch.
                                         items:
                                           type: string
                                         type: array
@@ -207,29 +160,17 @@ spec:
                                   type: array
                                   x-kubernetes-list-type: atomic
                                 matchFields:
-                                  description: A list of node selector requirements
-                                    by node's fields.
                                   items:
-                                    description: |-
-                                      A node selector requirement is a selector that contains values, a key, and an operator
-                                      that relates the key and values.
+                                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#nodeselectorrequirement-v1-core'
                                     properties:
                                       key:
-                                        description: The label key that the selector
-                                          applies to.
                                         type: string
                                       operator:
                                         description: |-
-                                          Represents a key's relationship to a set of values.
-                                          Valid operators are In, NotIn, Exists, DoesNotExist. Gt, and Lt.
+                                          A node selector operator is the set of operators that can be used in
+                                          a node selector requirement.
                                         type: string
                                       values:
-                                        description: |-
-                                          An array of string values. If the operator is In or NotIn,
-                                          the values array must be non-empty. If the operator is Exists or DoesNotExist,
-                                          the values array must be empty. If the operator is Gt or Lt, the values
-                                          array must have a single element, which will be interpreted as an integer.
-                                          This array is replaced during a strategic merge patch.
                                         items:
                                           type: string
                                         type: array
@@ -241,13 +182,11 @@ spec:
                                   type: array
                                   x-kubernetes-list-type: atomic
                               type: object
-                              x-kubernetes-map-type: atomic
                             type: array
                             x-kubernetes-list-type: atomic
                         required:
                         - nodeSelectorTerms
                         type: object
-                        x-kubernetes-map-type: atomic
                     type: object
                   podAntiAffinity:
                     description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#podantiaffinity-v1-core.'
@@ -260,35 +199,21 @@ spec:
                               description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#podaffinityterm-v1-core.'
                               properties:
                                 labelSelector:
-                                  description: |-
-                                    A label selector is a label query over a set of resources. The result of matchLabels and
-                                    matchExpressions are ANDed. An empty label selector matches all objects. A null
-                                    label selector matches no objects.
+                                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#labelselector-v1-meta'
                                   properties:
                                     matchExpressions:
-                                      description: matchExpressions is a list of label
-                                        selector requirements. The requirements are
-                                        ANDed.
                                       items:
-                                        description: |-
-                                          A label selector requirement is a selector that contains values, a key, and an operator that
-                                          relates the key and values.
+                                        description: 'Refer to the Kubernetes docs:
+                                          https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#labelselectorrequirement-v1-meta'
                                         properties:
                                           key:
-                                            description: key is the label key that
-                                              the selector applies to.
                                             type: string
                                           operator:
-                                            description: |-
-                                              operator represents a key's relationship to a set of values.
-                                              Valid operators are In, NotIn, Exists and DoesNotExist.
+                                            description: A label selector operator
+                                              is the set of operators that can be
+                                              used in a selector requirement.
                                             type: string
                                           values:
-                                            description: |-
-                                              values is an array of string values. If the operator is In or NotIn,
-                                              the values array must be non-empty. If the operator is Exists or DoesNotExist,
-                                              the values array must be empty. This array is replaced during a strategic
-                                              merge patch.
                                             items:
                                               type: string
                                             type: array
@@ -302,13 +227,8 @@ spec:
                                     matchLabels:
                                       additionalProperties:
                                         type: string
-                                      description: |-
-                                        matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
-                                        map is equivalent to an element of matchExpressions, whose key field is "key", the
-                                        operator is "In", and the values array contains only "value". The requirements are ANDed.
                                       type: object
                                   type: object
-                                  x-kubernetes-map-type: atomic
                                 topologyKey:
                                   type: string
                               required:
@@ -328,34 +248,20 @@ spec:
                           description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#podaffinityterm-v1-core.'
                           properties:
                             labelSelector:
-                              description: |-
-                                A label selector is a label query over a set of resources. The result of matchLabels and
-                                matchExpressions are ANDed. An empty label selector matches all objects. A null
-                                label selector matches no objects.
+                              description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#labelselector-v1-meta'
                               properties:
                                 matchExpressions:
-                                  description: matchExpressions is a list of label
-                                    selector requirements. The requirements are ANDed.
                                   items:
-                                    description: |-
-                                      A label selector requirement is a selector that contains values, a key, and an operator that
-                                      relates the key and values.
+                                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#labelselectorrequirement-v1-meta'
                                     properties:
                                       key:
-                                        description: key is the label key that the
-                                          selector applies to.
                                         type: string
                                       operator:
-                                        description: |-
-                                          operator represents a key's relationship to a set of values.
-                                          Valid operators are In, NotIn, Exists and DoesNotExist.
+                                        description: A label selector operator is
+                                          the set of operators that can be used in
+                                          a selector requirement.
                                         type: string
                                       values:
-                                        description: |-
-                                          values is an array of string values. If the operator is In or NotIn,
-                                          the values array must be non-empty. If the operator is Exists or DoesNotExist,
-                                          the values array must be empty. This array is replaced during a strategic
-                                          merge patch.
                                         items:
                                           type: string
                                         type: array
@@ -369,13 +275,8 @@ spec:
                                 matchLabels:
                                   additionalProperties:
                                     type: string
-                                  description: |-
-                                    matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
-                                    map is equivalent to an element of matchExpressions, whose key field is "key", the
-                                    operator is "In", and the values array contains only "value". The requirements are ANDed.
                                   type: object
                               type: object
-                              x-kubernetes-map-type: atomic
                             topologyKey:
                               type: string
                           required:
@@ -414,41 +315,29 @@ spec:
                               Make sure you have at least as many Nodes available as the replicas to not end up with unscheduled Pods.
                             type: boolean
                           nodeAffinity:
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#nodeaffinity-v1-core'
                             properties:
                               preferredDuringSchedulingIgnoredDuringExecution:
                                 items:
                                   description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#preferredschedulingterm-v1-core'
                                   properties:
                                     preference:
-                                      description: |-
-                                        A null or empty node selector term matches no objects. The requirements of
-                                        them are ANDed.
-                                        The TopologySelectorTerm type implements a subset of the NodeSelectorTerm.
+                                      description: 'Refer to the Kubernetes docs:
+                                        https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#nodeselectorterm-v1-core'
                                       properties:
                                         matchExpressions:
-                                          description: A list of node selector requirements
-                                            by node's labels.
                                           items:
-                                            description: |-
-                                              A node selector requirement is a selector that contains values, a key, and an operator
-                                              that relates the key and values.
+                                            description: 'Refer to the Kubernetes
+                                              docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#nodeselectorrequirement-v1-core'
                                             properties:
                                               key:
-                                                description: The label key that the
-                                                  selector applies to.
                                                 type: string
                                               operator:
                                                 description: |-
-                                                  Represents a key's relationship to a set of values.
-                                                  Valid operators are In, NotIn, Exists, DoesNotExist. Gt, and Lt.
+                                                  A node selector operator is the set of operators that can be used in
+                                                  a node selector requirement.
                                                 type: string
                                               values:
-                                                description: |-
-                                                  An array of string values. If the operator is In or NotIn,
-                                                  the values array must be non-empty. If the operator is Exists or DoesNotExist,
-                                                  the values array must be empty. If the operator is Gt or Lt, the values
-                                                  array must have a single element, which will be interpreted as an integer.
-                                                  This array is replaced during a strategic merge patch.
                                                 items:
                                                   type: string
                                                 type: array
@@ -460,29 +349,18 @@ spec:
                                           type: array
                                           x-kubernetes-list-type: atomic
                                         matchFields:
-                                          description: A list of node selector requirements
-                                            by node's fields.
                                           items:
-                                            description: |-
-                                              A node selector requirement is a selector that contains values, a key, and an operator
-                                              that relates the key and values.
+                                            description: 'Refer to the Kubernetes
+                                              docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#nodeselectorrequirement-v1-core'
                                             properties:
                                               key:
-                                                description: The label key that the
-                                                  selector applies to.
                                                 type: string
                                               operator:
                                                 description: |-
-                                                  Represents a key's relationship to a set of values.
-                                                  Valid operators are In, NotIn, Exists, DoesNotExist. Gt, and Lt.
+                                                  A node selector operator is the set of operators that can be used in
+                                                  a node selector requirement.
                                                 type: string
                                               values:
-                                                description: |-
-                                                  An array of string values. If the operator is In or NotIn,
-                                                  the values array must be non-empty. If the operator is Exists or DoesNotExist,
-                                                  the values array must be empty. If the operator is Gt or Lt, the values
-                                                  array must have a single element, which will be interpreted as an integer.
-                                                  This array is replaced during a strategic merge patch.
                                                 items:
                                                   type: string
                                                 type: array
@@ -494,7 +372,6 @@ spec:
                                           type: array
                                           x-kubernetes-list-type: atomic
                                       type: object
-                                      x-kubernetes-map-type: atomic
                                     weight:
                                       format: int32
                                       type: integer
@@ -505,44 +382,26 @@ spec:
                                 type: array
                                 x-kubernetes-list-type: atomic
                               requiredDuringSchedulingIgnoredDuringExecution:
-                                description: |-
-                                  A node selector represents the union of the results of one or more label queries
-                                  over a set of nodes; that is, it represents the OR of the selectors represented
-                                  by the node selector terms.
+                                description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#nodeselector-v1-core'
                                 properties:
                                   nodeSelectorTerms:
-                                    description: Required. A list of node selector
-                                      terms. The terms are ORed.
                                     items:
-                                      description: |-
-                                        A null or empty node selector term matches no objects. The requirements of
-                                        them are ANDed.
-                                        The TopologySelectorTerm type implements a subset of the NodeSelectorTerm.
+                                      description: 'Refer to the Kubernetes docs:
+                                        https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#nodeselectorterm-v1-core'
                                       properties:
                                         matchExpressions:
-                                          description: A list of node selector requirements
-                                            by node's labels.
                                           items:
-                                            description: |-
-                                              A node selector requirement is a selector that contains values, a key, and an operator
-                                              that relates the key and values.
+                                            description: 'Refer to the Kubernetes
+                                              docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#nodeselectorrequirement-v1-core'
                                             properties:
                                               key:
-                                                description: The label key that the
-                                                  selector applies to.
                                                 type: string
                                               operator:
                                                 description: |-
-                                                  Represents a key's relationship to a set of values.
-                                                  Valid operators are In, NotIn, Exists, DoesNotExist. Gt, and Lt.
+                                                  A node selector operator is the set of operators that can be used in
+                                                  a node selector requirement.
                                                 type: string
                                               values:
-                                                description: |-
-                                                  An array of string values. If the operator is In or NotIn,
-                                                  the values array must be non-empty. If the operator is Exists or DoesNotExist,
-                                                  the values array must be empty. If the operator is Gt or Lt, the values
-                                                  array must have a single element, which will be interpreted as an integer.
-                                                  This array is replaced during a strategic merge patch.
                                                 items:
                                                   type: string
                                                 type: array
@@ -554,29 +413,18 @@ spec:
                                           type: array
                                           x-kubernetes-list-type: atomic
                                         matchFields:
-                                          description: A list of node selector requirements
-                                            by node's fields.
                                           items:
-                                            description: |-
-                                              A node selector requirement is a selector that contains values, a key, and an operator
-                                              that relates the key and values.
+                                            description: 'Refer to the Kubernetes
+                                              docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#nodeselectorrequirement-v1-core'
                                             properties:
                                               key:
-                                                description: The label key that the
-                                                  selector applies to.
                                                 type: string
                                               operator:
                                                 description: |-
-                                                  Represents a key's relationship to a set of values.
-                                                  Valid operators are In, NotIn, Exists, DoesNotExist. Gt, and Lt.
+                                                  A node selector operator is the set of operators that can be used in
+                                                  a node selector requirement.
                                                 type: string
                                               values:
-                                                description: |-
-                                                  An array of string values. If the operator is In or NotIn,
-                                                  the values array must be non-empty. If the operator is Exists or DoesNotExist,
-                                                  the values array must be empty. If the operator is Gt or Lt, the values
-                                                  array must have a single element, which will be interpreted as an integer.
-                                                  This array is replaced during a strategic merge patch.
                                                 items:
                                                   type: string
                                                 type: array
@@ -588,13 +436,11 @@ spec:
                                           type: array
                                           x-kubernetes-list-type: atomic
                                       type: object
-                                      x-kubernetes-map-type: atomic
                                     type: array
                                     x-kubernetes-list-type: atomic
                                 required:
                                 - nodeSelectorTerms
                                 type: object
-                                x-kubernetes-map-type: atomic
                             type: object
                           podAntiAffinity:
                             description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#podantiaffinity-v1-core.'
@@ -608,36 +454,23 @@ spec:
                                         https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#podaffinityterm-v1-core.'
                                       properties:
                                         labelSelector:
-                                          description: |-
-                                            A label selector is a label query over a set of resources. The result of matchLabels and
-                                            matchExpressions are ANDed. An empty label selector matches all objects. A null
-                                            label selector matches no objects.
+                                          description: 'Refer to the Kubernetes docs:
+                                            https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#labelselector-v1-meta'
                                           properties:
                                             matchExpressions:
-                                              description: matchExpressions is a list
-                                                of label selector requirements. The
-                                                requirements are ANDed.
                                               items:
-                                                description: |-
-                                                  A label selector requirement is a selector that contains values, a key, and an operator that
-                                                  relates the key and values.
+                                                description: 'Refer to the Kubernetes
+                                                  docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#labelselectorrequirement-v1-meta'
                                                 properties:
                                                   key:
-                                                    description: key is the label
-                                                      key that the selector applies
-                                                      to.
                                                     type: string
                                                   operator:
-                                                    description: |-
-                                                      operator represents a key's relationship to a set of values.
-                                                      Valid operators are In, NotIn, Exists and DoesNotExist.
+                                                    description: A label selector
+                                                      operator is the set of operators
+                                                      that can be used in a selector
+                                                      requirement.
                                                     type: string
                                                   values:
-                                                    description: |-
-                                                      values is an array of string values. If the operator is In or NotIn,
-                                                      the values array must be non-empty. If the operator is Exists or DoesNotExist,
-                                                      the values array must be empty. This array is replaced during a strategic
-                                                      merge patch.
                                                     items:
                                                       type: string
                                                     type: array
@@ -651,13 +484,8 @@ spec:
                                             matchLabels:
                                               additionalProperties:
                                                 type: string
-                                              description: |-
-                                                matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
-                                                map is equivalent to an element of matchExpressions, whose key field is "key", the
-                                                operator is "In", and the values array contains only "value". The requirements are ANDed.
                                               type: object
                                           type: object
-                                          x-kubernetes-map-type: atomic
                                         topologyKey:
                                           type: string
                                       required:
@@ -677,35 +505,22 @@ spec:
                                   description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#podaffinityterm-v1-core.'
                                   properties:
                                     labelSelector:
-                                      description: |-
-                                        A label selector is a label query over a set of resources. The result of matchLabels and
-                                        matchExpressions are ANDed. An empty label selector matches all objects. A null
-                                        label selector matches no objects.
+                                      description: 'Refer to the Kubernetes docs:
+                                        https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#labelselector-v1-meta'
                                       properties:
                                         matchExpressions:
-                                          description: matchExpressions is a list
-                                            of label selector requirements. The requirements
-                                            are ANDed.
                                           items:
-                                            description: |-
-                                              A label selector requirement is a selector that contains values, a key, and an operator that
-                                              relates the key and values.
+                                            description: 'Refer to the Kubernetes
+                                              docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#labelselectorrequirement-v1-meta'
                                             properties:
                                               key:
-                                                description: key is the label key
-                                                  that the selector applies to.
                                                 type: string
                                               operator:
-                                                description: |-
-                                                  operator represents a key's relationship to a set of values.
-                                                  Valid operators are In, NotIn, Exists and DoesNotExist.
+                                                description: A label selector operator
+                                                  is the set of operators that can
+                                                  be used in a selector requirement.
                                                 type: string
                                               values:
-                                                description: |-
-                                                  values is an array of string values. If the operator is In or NotIn,
-                                                  the values array must be non-empty. If the operator is Exists or DoesNotExist,
-                                                  the values array must be empty. This array is replaced during a strategic
-                                                  merge patch.
                                                 items:
                                                   type: string
                                                 type: array
@@ -719,13 +534,8 @@ spec:
                                         matchLabels:
                                           additionalProperties:
                                             type: string
-                                          description: |-
-                                            matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
-                                            map is equivalent to an element of matchExpressions, whose key field is "key", the
-                                            operator is "In", and the values array contains only "value". The requirements are ANDed.
                                           type: object
                                       type: object
-                                      x-kubernetes-map-type: atomic
                                     topologyKey:
                                       type: string
                                   required:
@@ -2797,6 +2607,7 @@ spec:
                                   Make sure you have at least as many Nodes available as the replicas to not end up with unscheduled Pods.
                                 type: boolean
                               nodeAffinity:
+                                description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#nodeaffinity-v1-core'
                                 properties:
                                   preferredDuringSchedulingIgnoredDuringExecution:
                                     items:
@@ -2804,35 +2615,22 @@ spec:
                                         https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#preferredschedulingterm-v1-core'
                                       properties:
                                         preference:
-                                          description: |-
-                                            A null or empty node selector term matches no objects. The requirements of
-                                            them are ANDed.
-                                            The TopologySelectorTerm type implements a subset of the NodeSelectorTerm.
+                                          description: 'Refer to the Kubernetes docs:
+                                            https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#nodeselectorterm-v1-core'
                                           properties:
                                             matchExpressions:
-                                              description: A list of node selector
-                                                requirements by node's labels.
                                               items:
-                                                description: |-
-                                                  A node selector requirement is a selector that contains values, a key, and an operator
-                                                  that relates the key and values.
+                                                description: 'Refer to the Kubernetes
+                                                  docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#nodeselectorrequirement-v1-core'
                                                 properties:
                                                   key:
-                                                    description: The label key that
-                                                      the selector applies to.
                                                     type: string
                                                   operator:
                                                     description: |-
-                                                      Represents a key's relationship to a set of values.
-                                                      Valid operators are In, NotIn, Exists, DoesNotExist. Gt, and Lt.
+                                                      A node selector operator is the set of operators that can be used in
+                                                      a node selector requirement.
                                                     type: string
                                                   values:
-                                                    description: |-
-                                                      An array of string values. If the operator is In or NotIn,
-                                                      the values array must be non-empty. If the operator is Exists or DoesNotExist,
-                                                      the values array must be empty. If the operator is Gt or Lt, the values
-                                                      array must have a single element, which will be interpreted as an integer.
-                                                      This array is replaced during a strategic merge patch.
                                                     items:
                                                       type: string
                                                     type: array
@@ -2844,29 +2642,18 @@ spec:
                                               type: array
                                               x-kubernetes-list-type: atomic
                                             matchFields:
-                                              description: A list of node selector
-                                                requirements by node's fields.
                                               items:
-                                                description: |-
-                                                  A node selector requirement is a selector that contains values, a key, and an operator
-                                                  that relates the key and values.
+                                                description: 'Refer to the Kubernetes
+                                                  docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#nodeselectorrequirement-v1-core'
                                                 properties:
                                                   key:
-                                                    description: The label key that
-                                                      the selector applies to.
                                                     type: string
                                                   operator:
                                                     description: |-
-                                                      Represents a key's relationship to a set of values.
-                                                      Valid operators are In, NotIn, Exists, DoesNotExist. Gt, and Lt.
+                                                      A node selector operator is the set of operators that can be used in
+                                                      a node selector requirement.
                                                     type: string
                                                   values:
-                                                    description: |-
-                                                      An array of string values. If the operator is In or NotIn,
-                                                      the values array must be non-empty. If the operator is Exists or DoesNotExist,
-                                                      the values array must be empty. If the operator is Gt or Lt, the values
-                                                      array must have a single element, which will be interpreted as an integer.
-                                                      This array is replaced during a strategic merge patch.
                                                     items:
                                                       type: string
                                                     type: array
@@ -2878,7 +2665,6 @@ spec:
                                               type: array
                                               x-kubernetes-list-type: atomic
                                           type: object
-                                          x-kubernetes-map-type: atomic
                                         weight:
                                           format: int32
                                           type: integer
@@ -2889,44 +2675,26 @@ spec:
                                     type: array
                                     x-kubernetes-list-type: atomic
                                   requiredDuringSchedulingIgnoredDuringExecution:
-                                    description: |-
-                                      A node selector represents the union of the results of one or more label queries
-                                      over a set of nodes; that is, it represents the OR of the selectors represented
-                                      by the node selector terms.
+                                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#nodeselector-v1-core'
                                     properties:
                                       nodeSelectorTerms:
-                                        description: Required. A list of node selector
-                                          terms. The terms are ORed.
                                         items:
-                                          description: |-
-                                            A null or empty node selector term matches no objects. The requirements of
-                                            them are ANDed.
-                                            The TopologySelectorTerm type implements a subset of the NodeSelectorTerm.
+                                          description: 'Refer to the Kubernetes docs:
+                                            https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#nodeselectorterm-v1-core'
                                           properties:
                                             matchExpressions:
-                                              description: A list of node selector
-                                                requirements by node's labels.
                                               items:
-                                                description: |-
-                                                  A node selector requirement is a selector that contains values, a key, and an operator
-                                                  that relates the key and values.
+                                                description: 'Refer to the Kubernetes
+                                                  docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#nodeselectorrequirement-v1-core'
                                                 properties:
                                                   key:
-                                                    description: The label key that
-                                                      the selector applies to.
                                                     type: string
                                                   operator:
                                                     description: |-
-                                                      Represents a key's relationship to a set of values.
-                                                      Valid operators are In, NotIn, Exists, DoesNotExist. Gt, and Lt.
+                                                      A node selector operator is the set of operators that can be used in
+                                                      a node selector requirement.
                                                     type: string
                                                   values:
-                                                    description: |-
-                                                      An array of string values. If the operator is In or NotIn,
-                                                      the values array must be non-empty. If the operator is Exists or DoesNotExist,
-                                                      the values array must be empty. If the operator is Gt or Lt, the values
-                                                      array must have a single element, which will be interpreted as an integer.
-                                                      This array is replaced during a strategic merge patch.
                                                     items:
                                                       type: string
                                                     type: array
@@ -2938,29 +2706,18 @@ spec:
                                               type: array
                                               x-kubernetes-list-type: atomic
                                             matchFields:
-                                              description: A list of node selector
-                                                requirements by node's fields.
                                               items:
-                                                description: |-
-                                                  A node selector requirement is a selector that contains values, a key, and an operator
-                                                  that relates the key and values.
+                                                description: 'Refer to the Kubernetes
+                                                  docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#nodeselectorrequirement-v1-core'
                                                 properties:
                                                   key:
-                                                    description: The label key that
-                                                      the selector applies to.
                                                     type: string
                                                   operator:
                                                     description: |-
-                                                      Represents a key's relationship to a set of values.
-                                                      Valid operators are In, NotIn, Exists, DoesNotExist. Gt, and Lt.
+                                                      A node selector operator is the set of operators that can be used in
+                                                      a node selector requirement.
                                                     type: string
                                                   values:
-                                                    description: |-
-                                                      An array of string values. If the operator is In or NotIn,
-                                                      the values array must be non-empty. If the operator is Exists or DoesNotExist,
-                                                      the values array must be empty. If the operator is Gt or Lt, the values
-                                                      array must have a single element, which will be interpreted as an integer.
-                                                      This array is replaced during a strategic merge patch.
                                                     items:
                                                       type: string
                                                     type: array
@@ -2972,13 +2729,11 @@ spec:
                                               type: array
                                               x-kubernetes-list-type: atomic
                                           type: object
-                                          x-kubernetes-map-type: atomic
                                         type: array
                                         x-kubernetes-list-type: atomic
                                     required:
                                     - nodeSelectorTerms
                                     type: object
-                                    x-kubernetes-map-type: atomic
                                 type: object
                               podAntiAffinity:
                                 description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#podantiaffinity-v1-core.'
@@ -2993,36 +2748,23 @@ spec:
                                             https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#podaffinityterm-v1-core.'
                                           properties:
                                             labelSelector:
-                                              description: |-
-                                                A label selector is a label query over a set of resources. The result of matchLabels and
-                                                matchExpressions are ANDed. An empty label selector matches all objects. A null
-                                                label selector matches no objects.
+                                              description: 'Refer to the Kubernetes
+                                                docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#labelselector-v1-meta'
                                               properties:
                                                 matchExpressions:
-                                                  description: matchExpressions is
-                                                    a list of label selector requirements.
-                                                    The requirements are ANDed.
                                                   items:
-                                                    description: |-
-                                                      A label selector requirement is a selector that contains values, a key, and an operator that
-                                                      relates the key and values.
+                                                    description: 'Refer to the Kubernetes
+                                                      docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#labelselectorrequirement-v1-meta'
                                                     properties:
                                                       key:
-                                                        description: key is the label
-                                                          key that the selector applies
-                                                          to.
                                                         type: string
                                                       operator:
-                                                        description: |-
-                                                          operator represents a key's relationship to a set of values.
-                                                          Valid operators are In, NotIn, Exists and DoesNotExist.
+                                                        description: A label selector
+                                                          operator is the set of operators
+                                                          that can be used in a selector
+                                                          requirement.
                                                         type: string
                                                       values:
-                                                        description: |-
-                                                          values is an array of string values. If the operator is In or NotIn,
-                                                          the values array must be non-empty. If the operator is Exists or DoesNotExist,
-                                                          the values array must be empty. This array is replaced during a strategic
-                                                          merge patch.
                                                         items:
                                                           type: string
                                                         type: array
@@ -3036,13 +2778,8 @@ spec:
                                                 matchLabels:
                                                   additionalProperties:
                                                     type: string
-                                                  description: |-
-                                                    matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
-                                                    map is equivalent to an element of matchExpressions, whose key field is "key", the
-                                                    operator is "In", and the values array contains only "value". The requirements are ANDed.
                                                   type: object
                                               type: object
-                                              x-kubernetes-map-type: atomic
                                             topologyKey:
                                               type: string
                                           required:
@@ -3063,36 +2800,23 @@ spec:
                                         https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#podaffinityterm-v1-core.'
                                       properties:
                                         labelSelector:
-                                          description: |-
-                                            A label selector is a label query over a set of resources. The result of matchLabels and
-                                            matchExpressions are ANDed. An empty label selector matches all objects. A null
-                                            label selector matches no objects.
+                                          description: 'Refer to the Kubernetes docs:
+                                            https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#labelselector-v1-meta'
                                           properties:
                                             matchExpressions:
-                                              description: matchExpressions is a list
-                                                of label selector requirements. The
-                                                requirements are ANDed.
                                               items:
-                                                description: |-
-                                                  A label selector requirement is a selector that contains values, a key, and an operator that
-                                                  relates the key and values.
+                                                description: 'Refer to the Kubernetes
+                                                  docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#labelselectorrequirement-v1-meta'
                                                 properties:
                                                   key:
-                                                    description: key is the label
-                                                      key that the selector applies
-                                                      to.
                                                     type: string
                                                   operator:
-                                                    description: |-
-                                                      operator represents a key's relationship to a set of values.
-                                                      Valid operators are In, NotIn, Exists and DoesNotExist.
+                                                    description: A label selector
+                                                      operator is the set of operators
+                                                      that can be used in a selector
+                                                      requirement.
                                                     type: string
                                                   values:
-                                                    description: |-
-                                                      values is an array of string values. If the operator is In or NotIn,
-                                                      the values array must be non-empty. If the operator is Exists or DoesNotExist,
-                                                      the values array must be empty. This array is replaced during a strategic
-                                                      merge patch.
                                                     items:
                                                       type: string
                                                     type: array
@@ -3106,13 +2830,8 @@ spec:
                                             matchLabels:
                                               additionalProperties:
                                                 type: string
-                                              description: |-
-                                                matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
-                                                map is equivalent to an element of matchExpressions, whose key field is "key", the
-                                                operator is "In", and the values array contains only "value". The requirements are ANDed.
                                               type: object
                                           type: object
-                                          x-kubernetes-map-type: atomic
                                         topologyKey:
                                           type: string
                                       required:
@@ -3598,41 +3317,29 @@ spec:
                               Make sure you have at least as many Nodes available as the replicas to not end up with unscheduled Pods.
                             type: boolean
                           nodeAffinity:
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#nodeaffinity-v1-core'
                             properties:
                               preferredDuringSchedulingIgnoredDuringExecution:
                                 items:
                                   description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#preferredschedulingterm-v1-core'
                                   properties:
                                     preference:
-                                      description: |-
-                                        A null or empty node selector term matches no objects. The requirements of
-                                        them are ANDed.
-                                        The TopologySelectorTerm type implements a subset of the NodeSelectorTerm.
+                                      description: 'Refer to the Kubernetes docs:
+                                        https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#nodeselectorterm-v1-core'
                                       properties:
                                         matchExpressions:
-                                          description: A list of node selector requirements
-                                            by node's labels.
                                           items:
-                                            description: |-
-                                              A node selector requirement is a selector that contains values, a key, and an operator
-                                              that relates the key and values.
+                                            description: 'Refer to the Kubernetes
+                                              docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#nodeselectorrequirement-v1-core'
                                             properties:
                                               key:
-                                                description: The label key that the
-                                                  selector applies to.
                                                 type: string
                                               operator:
                                                 description: |-
-                                                  Represents a key's relationship to a set of values.
-                                                  Valid operators are In, NotIn, Exists, DoesNotExist. Gt, and Lt.
+                                                  A node selector operator is the set of operators that can be used in
+                                                  a node selector requirement.
                                                 type: string
                                               values:
-                                                description: |-
-                                                  An array of string values. If the operator is In or NotIn,
-                                                  the values array must be non-empty. If the operator is Exists or DoesNotExist,
-                                                  the values array must be empty. If the operator is Gt or Lt, the values
-                                                  array must have a single element, which will be interpreted as an integer.
-                                                  This array is replaced during a strategic merge patch.
                                                 items:
                                                   type: string
                                                 type: array
@@ -3644,29 +3351,18 @@ spec:
                                           type: array
                                           x-kubernetes-list-type: atomic
                                         matchFields:
-                                          description: A list of node selector requirements
-                                            by node's fields.
                                           items:
-                                            description: |-
-                                              A node selector requirement is a selector that contains values, a key, and an operator
-                                              that relates the key and values.
+                                            description: 'Refer to the Kubernetes
+                                              docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#nodeselectorrequirement-v1-core'
                                             properties:
                                               key:
-                                                description: The label key that the
-                                                  selector applies to.
                                                 type: string
                                               operator:
                                                 description: |-
-                                                  Represents a key's relationship to a set of values.
-                                                  Valid operators are In, NotIn, Exists, DoesNotExist. Gt, and Lt.
+                                                  A node selector operator is the set of operators that can be used in
+                                                  a node selector requirement.
                                                 type: string
                                               values:
-                                                description: |-
-                                                  An array of string values. If the operator is In or NotIn,
-                                                  the values array must be non-empty. If the operator is Exists or DoesNotExist,
-                                                  the values array must be empty. If the operator is Gt or Lt, the values
-                                                  array must have a single element, which will be interpreted as an integer.
-                                                  This array is replaced during a strategic merge patch.
                                                 items:
                                                   type: string
                                                 type: array
@@ -3678,7 +3374,6 @@ spec:
                                           type: array
                                           x-kubernetes-list-type: atomic
                                       type: object
-                                      x-kubernetes-map-type: atomic
                                     weight:
                                       format: int32
                                       type: integer
@@ -3689,44 +3384,26 @@ spec:
                                 type: array
                                 x-kubernetes-list-type: atomic
                               requiredDuringSchedulingIgnoredDuringExecution:
-                                description: |-
-                                  A node selector represents the union of the results of one or more label queries
-                                  over a set of nodes; that is, it represents the OR of the selectors represented
-                                  by the node selector terms.
+                                description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#nodeselector-v1-core'
                                 properties:
                                   nodeSelectorTerms:
-                                    description: Required. A list of node selector
-                                      terms. The terms are ORed.
                                     items:
-                                      description: |-
-                                        A null or empty node selector term matches no objects. The requirements of
-                                        them are ANDed.
-                                        The TopologySelectorTerm type implements a subset of the NodeSelectorTerm.
+                                      description: 'Refer to the Kubernetes docs:
+                                        https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#nodeselectorterm-v1-core'
                                       properties:
                                         matchExpressions:
-                                          description: A list of node selector requirements
-                                            by node's labels.
                                           items:
-                                            description: |-
-                                              A node selector requirement is a selector that contains values, a key, and an operator
-                                              that relates the key and values.
+                                            description: 'Refer to the Kubernetes
+                                              docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#nodeselectorrequirement-v1-core'
                                             properties:
                                               key:
-                                                description: The label key that the
-                                                  selector applies to.
                                                 type: string
                                               operator:
                                                 description: |-
-                                                  Represents a key's relationship to a set of values.
-                                                  Valid operators are In, NotIn, Exists, DoesNotExist. Gt, and Lt.
+                                                  A node selector operator is the set of operators that can be used in
+                                                  a node selector requirement.
                                                 type: string
                                               values:
-                                                description: |-
-                                                  An array of string values. If the operator is In or NotIn,
-                                                  the values array must be non-empty. If the operator is Exists or DoesNotExist,
-                                                  the values array must be empty. If the operator is Gt or Lt, the values
-                                                  array must have a single element, which will be interpreted as an integer.
-                                                  This array is replaced during a strategic merge patch.
                                                 items:
                                                   type: string
                                                 type: array
@@ -3738,29 +3415,18 @@ spec:
                                           type: array
                                           x-kubernetes-list-type: atomic
                                         matchFields:
-                                          description: A list of node selector requirements
-                                            by node's fields.
                                           items:
-                                            description: |-
-                                              A node selector requirement is a selector that contains values, a key, and an operator
-                                              that relates the key and values.
+                                            description: 'Refer to the Kubernetes
+                                              docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#nodeselectorrequirement-v1-core'
                                             properties:
                                               key:
-                                                description: The label key that the
-                                                  selector applies to.
                                                 type: string
                                               operator:
                                                 description: |-
-                                                  Represents a key's relationship to a set of values.
-                                                  Valid operators are In, NotIn, Exists, DoesNotExist. Gt, and Lt.
+                                                  A node selector operator is the set of operators that can be used in
+                                                  a node selector requirement.
                                                 type: string
                                               values:
-                                                description: |-
-                                                  An array of string values. If the operator is In or NotIn,
-                                                  the values array must be non-empty. If the operator is Exists or DoesNotExist,
-                                                  the values array must be empty. If the operator is Gt or Lt, the values
-                                                  array must have a single element, which will be interpreted as an integer.
-                                                  This array is replaced during a strategic merge patch.
                                                 items:
                                                   type: string
                                                 type: array
@@ -3772,13 +3438,11 @@ spec:
                                           type: array
                                           x-kubernetes-list-type: atomic
                                       type: object
-                                      x-kubernetes-map-type: atomic
                                     type: array
                                     x-kubernetes-list-type: atomic
                                 required:
                                 - nodeSelectorTerms
                                 type: object
-                                x-kubernetes-map-type: atomic
                             type: object
                           podAntiAffinity:
                             description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#podantiaffinity-v1-core.'
@@ -3792,36 +3456,23 @@ spec:
                                         https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#podaffinityterm-v1-core.'
                                       properties:
                                         labelSelector:
-                                          description: |-
-                                            A label selector is a label query over a set of resources. The result of matchLabels and
-                                            matchExpressions are ANDed. An empty label selector matches all objects. A null
-                                            label selector matches no objects.
+                                          description: 'Refer to the Kubernetes docs:
+                                            https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#labelselector-v1-meta'
                                           properties:
                                             matchExpressions:
-                                              description: matchExpressions is a list
-                                                of label selector requirements. The
-                                                requirements are ANDed.
                                               items:
-                                                description: |-
-                                                  A label selector requirement is a selector that contains values, a key, and an operator that
-                                                  relates the key and values.
+                                                description: 'Refer to the Kubernetes
+                                                  docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#labelselectorrequirement-v1-meta'
                                                 properties:
                                                   key:
-                                                    description: key is the label
-                                                      key that the selector applies
-                                                      to.
                                                     type: string
                                                   operator:
-                                                    description: |-
-                                                      operator represents a key's relationship to a set of values.
-                                                      Valid operators are In, NotIn, Exists and DoesNotExist.
+                                                    description: A label selector
+                                                      operator is the set of operators
+                                                      that can be used in a selector
+                                                      requirement.
                                                     type: string
                                                   values:
-                                                    description: |-
-                                                      values is an array of string values. If the operator is In or NotIn,
-                                                      the values array must be non-empty. If the operator is Exists or DoesNotExist,
-                                                      the values array must be empty. This array is replaced during a strategic
-                                                      merge patch.
                                                     items:
                                                       type: string
                                                     type: array
@@ -3835,13 +3486,8 @@ spec:
                                             matchLabels:
                                               additionalProperties:
                                                 type: string
-                                              description: |-
-                                                matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
-                                                map is equivalent to an element of matchExpressions, whose key field is "key", the
-                                                operator is "In", and the values array contains only "value". The requirements are ANDed.
                                               type: object
                                           type: object
-                                          x-kubernetes-map-type: atomic
                                         topologyKey:
                                           type: string
                                       required:
@@ -3861,35 +3507,22 @@ spec:
                                   description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#podaffinityterm-v1-core.'
                                   properties:
                                     labelSelector:
-                                      description: |-
-                                        A label selector is a label query over a set of resources. The result of matchLabels and
-                                        matchExpressions are ANDed. An empty label selector matches all objects. A null
-                                        label selector matches no objects.
+                                      description: 'Refer to the Kubernetes docs:
+                                        https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#labelselector-v1-meta'
                                       properties:
                                         matchExpressions:
-                                          description: matchExpressions is a list
-                                            of label selector requirements. The requirements
-                                            are ANDed.
                                           items:
-                                            description: |-
-                                              A label selector requirement is a selector that contains values, a key, and an operator that
-                                              relates the key and values.
+                                            description: 'Refer to the Kubernetes
+                                              docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#labelselectorrequirement-v1-meta'
                                             properties:
                                               key:
-                                                description: key is the label key
-                                                  that the selector applies to.
                                                 type: string
                                               operator:
-                                                description: |-
-                                                  operator represents a key's relationship to a set of values.
-                                                  Valid operators are In, NotIn, Exists and DoesNotExist.
+                                                description: A label selector operator
+                                                  is the set of operators that can
+                                                  be used in a selector requirement.
                                                 type: string
                                               values:
-                                                description: |-
-                                                  values is an array of string values. If the operator is In or NotIn,
-                                                  the values array must be non-empty. If the operator is Exists or DoesNotExist,
-                                                  the values array must be empty. This array is replaced during a strategic
-                                                  merge patch.
                                                 items:
                                                   type: string
                                                 type: array
@@ -3903,13 +3536,8 @@ spec:
                                         matchLabels:
                                           additionalProperties:
                                             type: string
-                                          description: |-
-                                            matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
-                                            map is equivalent to an element of matchExpressions, whose key field is "key", the
-                                            operator is "In", and the values array contains only "value". The requirements are ANDed.
                                           type: object
                                       type: object
-                                      x-kubernetes-map-type: atomic
                                     topologyKey:
                                       type: string
                                   required:

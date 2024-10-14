@@ -807,6 +807,7 @@ func TestMariadbPodBuilderAffinity(t *testing.T) {
 			opts:                         nil,
 			wantAffinity:                 false,
 			wantTopologySpreadContraints: false,
+			wantNodeAffinity:             false,
 		},
 		{
 			name: "mariadb affinity",
@@ -826,6 +827,7 @@ func TestMariadbPodBuilderAffinity(t *testing.T) {
 			opts:                         nil,
 			wantAffinity:                 true,
 			wantTopologySpreadContraints: false,
+			wantNodeAffinity:             false,
 		},
 		{
 			name: "mariadb topologyspreadconstraints",
@@ -848,6 +850,7 @@ func TestMariadbPodBuilderAffinity(t *testing.T) {
 			opts:                         nil,
 			wantAffinity:                 false,
 			wantTopologySpreadContraints: true,
+			wantNodeAffinity:             false,
 		},
 		{
 			name: "opt affinity",
@@ -865,6 +868,7 @@ func TestMariadbPodBuilderAffinity(t *testing.T) {
 			},
 			wantAffinity:                 true,
 			wantTopologySpreadContraints: false,
+			wantNodeAffinity:             false,
 		},
 		{
 			name: "mariadb and opt affinity",
@@ -893,6 +897,7 @@ func TestMariadbPodBuilderAffinity(t *testing.T) {
 			},
 			wantAffinity:                 true,
 			wantTopologySpreadContraints: true,
+			wantNodeAffinity:             false,
 		},
 		{
 			name: "disable affinity",
@@ -921,6 +926,7 @@ func TestMariadbPodBuilderAffinity(t *testing.T) {
 			},
 			wantAffinity:                 false,
 			wantTopologySpreadContraints: false,
+			wantNodeAffinity:             false,
 		},
 		{
 			name: "mariadb with node affinity",
@@ -931,10 +937,10 @@ func TestMariadbPodBuilderAffinity(t *testing.T) {
 						Affinity: &mariadbv1alpha1.AffinityConfig{
 							Affinity: mariadbv1alpha1.Affinity{
 								NodeAffinity: &mariadbv1alpha1.NodeAffinity{
-									RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelector{
-										NodeSelectorTerms: []corev1.NodeSelectorTerm{
+									RequiredDuringSchedulingIgnoredDuringExecution: &mariadbv1alpha1.NodeSelector{
+										NodeSelectorTerms: []mariadbv1alpha1.NodeSelectorTerm{
 											{
-												MatchExpressions: []corev1.NodeSelectorRequirement{
+												MatchExpressions: []mariadbv1alpha1.NodeSelectorRequirement{
 													{
 														Key:      "kubernetes.io/hostname",
 														Operator: corev1.NodeSelectorOpIn,
