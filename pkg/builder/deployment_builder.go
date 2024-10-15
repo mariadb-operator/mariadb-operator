@@ -175,6 +175,11 @@ func (b *Builder) exporterContainer(exporter *mariadbv1alpha1.Exporter, args []s
 		return nil, fmt.Errorf("error building container security context: %v", err)
 	}
 
+	var resources corev1.ResourceRequirements
+	if exporter.Resources != nil {
+		resources = exporter.Resources.ToKubernetesType()
+	}
+
 	probe := &corev1.Probe{
 		ProbeHandler: corev1.ProbeHandler{
 			HTTPGet: &corev1.HTTPGetAction{
@@ -202,6 +207,7 @@ func (b *Builder) exporterContainer(exporter *mariadbv1alpha1.Exporter, args []s
 				ReadOnly:  true,
 			},
 		},
+		Resources:       resources,
 		SecurityContext: securityContext,
 		LivenessProbe:   probe,
 		ReadinessProbe:  probe,
