@@ -7,6 +7,7 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 )
@@ -129,124 +130,6 @@ func TestExporterImagePullSecrets(t *testing.T) {
 	}
 }
 
-func TestExporterSecurityContext(t *testing.T) {
-	builder := newDefaultTestBuilder(t)
-	objMeta := metav1.ObjectMeta{
-		Name:      "mariadb-metrics-security-context",
-		Namespace: "test",
-	}
-
-	tests := []struct {
-		name                string
-		mariadb             *mariadbv1alpha1.MariaDB
-		wantSecurityContext *corev1.SecurityContext
-	}{
-		{
-			name: "No SecurityContext",
-			mariadb: &mariadbv1alpha1.MariaDB{
-				ObjectMeta: objMeta,
-				Spec: mariadbv1alpha1.MariaDBSpec{
-					Metrics: &mariadbv1alpha1.MariadbMetrics{
-						Enabled: true,
-					},
-				},
-			},
-			wantSecurityContext: nil,
-		},
-		{
-			name: "SecurityContext",
-			mariadb: &mariadbv1alpha1.MariaDB{
-				ObjectMeta: objMeta,
-				Spec: mariadbv1alpha1.MariaDBSpec{
-					Metrics: &mariadbv1alpha1.MariadbMetrics{
-						Enabled: true,
-						Exporter: mariadbv1alpha1.Exporter{
-							SecurityContext: &mariadbv1alpha1.SecurityContext{
-								RunAsUser: ptr.To(int64(666)),
-							},
-						},
-					},
-				},
-			},
-			wantSecurityContext: &corev1.SecurityContext{
-				RunAsUser: ptr.To(int64(666)),
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			job, err := builder.BuildExporterDeployment(tt.mariadb, nil)
-			if err != nil {
-				t.Fatalf("unexpected error building Deployment: %v", err)
-			}
-			securityContext := job.Spec.Template.Spec.Containers[0].SecurityContext
-			if !reflect.DeepEqual(tt.wantSecurityContext, securityContext) {
-				t.Errorf("unexpected SecurityContext, want: %v  got: %v", tt.wantSecurityContext, securityContext)
-			}
-		})
-	}
-}
-
-func TestExporterPodSecurityContext(t *testing.T) {
-	builder := newDefaultTestBuilder(t)
-	objMeta := metav1.ObjectMeta{
-		Name:      "mariadb-metrics-pod-security-context",
-		Namespace: "test",
-	}
-
-	tests := []struct {
-		name                string
-		mariadb             *mariadbv1alpha1.MariaDB
-		wantSecurityContext *corev1.PodSecurityContext
-	}{
-		{
-			name: "No PodSecurityContext",
-			mariadb: &mariadbv1alpha1.MariaDB{
-				ObjectMeta: objMeta,
-				Spec: mariadbv1alpha1.MariaDBSpec{
-					Metrics: &mariadbv1alpha1.MariadbMetrics{
-						Enabled: true,
-					},
-				},
-			},
-			wantSecurityContext: nil,
-		},
-		{
-			name: "PodSecurityContext",
-			mariadb: &mariadbv1alpha1.MariaDB{
-				ObjectMeta: objMeta,
-				Spec: mariadbv1alpha1.MariaDBSpec{
-					Metrics: &mariadbv1alpha1.MariadbMetrics{
-						Enabled: true,
-						Exporter: mariadbv1alpha1.Exporter{
-							PodSecurityContext: &mariadbv1alpha1.PodSecurityContext{
-								RunAsUser: ptr.To(int64(666)),
-							},
-						},
-					},
-				},
-			},
-			wantSecurityContext: &corev1.PodSecurityContext{
-				RunAsUser: ptr.To(int64(666)),
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			job, err := builder.BuildExporterDeployment(tt.mariadb, nil)
-			if err != nil {
-				t.Fatalf("unexpected error building Deployment: %v", err)
-			}
-			securityContext := job.Spec.Template.Spec.SecurityContext
-			if !reflect.DeepEqual(tt.wantSecurityContext, securityContext) {
-				t.Errorf("unexpected PodSecurityContext, want: %v  got: %v", tt.wantSecurityContext, securityContext)
-			}
-		})
-	}
-}
-
 func TestExporterMaxScaleImagePullSecrets(t *testing.T) {
 	builder := newDefaultTestBuilder(t)
 	objMeta := metav1.ObjectMeta{
@@ -360,6 +243,195 @@ func TestExporterMaxScaleImagePullSecrets(t *testing.T) {
 			}
 			if !reflect.DeepEqual(tt.wantPullSecrets, job.Spec.Template.Spec.ImagePullSecrets) {
 				t.Errorf("unexpected ImagePullSecrets, want: %v  got: %v", tt.wantPullSecrets, job.Spec.Template.Spec.ImagePullSecrets)
+			}
+		})
+	}
+}
+
+func TestExporterResources(t *testing.T) {
+	builder := newDefaultTestBuilder(t)
+	objMeta := metav1.ObjectMeta{
+		Name:      "mariadb-metrics-resources",
+		Namespace: "test",
+	}
+
+	tests := []struct {
+		name          string
+		mariadb       *mariadbv1alpha1.MariaDB
+		wantResources corev1.ResourceRequirements
+	}{
+		{
+			name: "No Resources",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Metrics: &mariadbv1alpha1.MariadbMetrics{
+						Enabled: true,
+					},
+				},
+			},
+			wantResources: corev1.ResourceRequirements{},
+		},
+		{
+			name: "Resources",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Metrics: &mariadbv1alpha1.MariadbMetrics{
+						Enabled: true,
+						Exporter: mariadbv1alpha1.Exporter{
+							Resources: &mariadbv1alpha1.ResourceRequirements{
+								Requests: corev1.ResourceList{
+									"cpu":    resource.MustParse("100m"),
+									"memory": resource.MustParse("100Mi"),
+								},
+								Limits: corev1.ResourceList{
+									"memory": resource.MustParse("100Mi"),
+								},
+							},
+						},
+					},
+				},
+			},
+			wantResources: corev1.ResourceRequirements{
+				Requests: corev1.ResourceList{
+					"cpu":    resource.MustParse("100m"),
+					"memory": resource.MustParse("100Mi"),
+				},
+				Limits: corev1.ResourceList{
+					"memory": resource.MustParse("100Mi"),
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			job, err := builder.BuildExporterDeployment(tt.mariadb, nil)
+			if err != nil {
+				t.Fatalf("unexpected error building Deployment: %v", err)
+			}
+			resources := job.Spec.Template.Spec.Containers[0].Resources
+			if !reflect.DeepEqual(tt.wantResources, resources) {
+				t.Errorf("unexpected Resources, want: %v  got: %v", tt.wantResources, resources)
+			}
+		})
+	}
+}
+
+func TestExporterSecurityContext(t *testing.T) {
+	builder := newDefaultTestBuilder(t)
+	objMeta := metav1.ObjectMeta{
+		Name:      "mariadb-metrics-security-context",
+		Namespace: "test",
+	}
+
+	tests := []struct {
+		name                string
+		mariadb             *mariadbv1alpha1.MariaDB
+		wantSecurityContext *corev1.SecurityContext
+	}{
+		{
+			name: "No SecurityContext",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Metrics: &mariadbv1alpha1.MariadbMetrics{
+						Enabled: true,
+					},
+				},
+			},
+			wantSecurityContext: nil,
+		},
+		{
+			name: "SecurityContext",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Metrics: &mariadbv1alpha1.MariadbMetrics{
+						Enabled: true,
+						Exporter: mariadbv1alpha1.Exporter{
+							SecurityContext: &mariadbv1alpha1.SecurityContext{
+								RunAsUser: ptr.To(int64(666)),
+							},
+						},
+					},
+				},
+			},
+			wantSecurityContext: &corev1.SecurityContext{
+				RunAsUser: ptr.To(int64(666)),
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			job, err := builder.BuildExporterDeployment(tt.mariadb, nil)
+			if err != nil {
+				t.Fatalf("unexpected error building Deployment: %v", err)
+			}
+			securityContext := job.Spec.Template.Spec.Containers[0].SecurityContext
+			if !reflect.DeepEqual(tt.wantSecurityContext, securityContext) {
+				t.Errorf("unexpected SecurityContext, want: %v  got: %v", tt.wantSecurityContext, securityContext)
+			}
+		})
+	}
+}
+
+func TestExporterPodSecurityContext(t *testing.T) {
+	builder := newDefaultTestBuilder(t)
+	objMeta := metav1.ObjectMeta{
+		Name:      "mariadb-metrics-pod-security-context",
+		Namespace: "test",
+	}
+
+	tests := []struct {
+		name                string
+		mariadb             *mariadbv1alpha1.MariaDB
+		wantSecurityContext *corev1.PodSecurityContext
+	}{
+		{
+			name: "No PodSecurityContext",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Metrics: &mariadbv1alpha1.MariadbMetrics{
+						Enabled: true,
+					},
+				},
+			},
+			wantSecurityContext: nil,
+		},
+		{
+			name: "PodSecurityContext",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Metrics: &mariadbv1alpha1.MariadbMetrics{
+						Enabled: true,
+						Exporter: mariadbv1alpha1.Exporter{
+							PodSecurityContext: &mariadbv1alpha1.PodSecurityContext{
+								RunAsUser: ptr.To(int64(666)),
+							},
+						},
+					},
+				},
+			},
+			wantSecurityContext: &corev1.PodSecurityContext{
+				RunAsUser: ptr.To(int64(666)),
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			job, err := builder.BuildExporterDeployment(tt.mariadb, nil)
+			if err != nil {
+				t.Fatalf("unexpected error building Deployment: %v", err)
+			}
+			securityContext := job.Spec.Template.Spec.SecurityContext
+			if !reflect.DeepEqual(tt.wantSecurityContext, securityContext) {
+				t.Errorf("unexpected PodSecurityContext, want: %v  got: %v", tt.wantSecurityContext, securityContext)
 			}
 		})
 	}
