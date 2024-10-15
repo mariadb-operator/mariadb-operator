@@ -82,22 +82,28 @@ func (v PersistentVolumeClaimVolumeSource) ToKubernetesType() corev1.PersistentV
 type SecretVolumeSource struct {
 	// +optional
 	SecretName string `json:"secretName,omitempty"`
+	// +optional
+	DefaultMode *int32 `json:"defaultMode,omitempty"`
 }
 
 func (v SecretVolumeSource) ToKubernetesType() corev1.SecretVolumeSource {
 	return corev1.SecretVolumeSource{
-		SecretName: v.SecretName,
+		SecretName:  v.SecretName,
+		DefaultMode: v.DefaultMode,
 	}
 }
 
 // Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#configmapvolumesource-v1-core.
 type ConfigMapVolumeSource struct {
 	LocalObjectReference `json:",inline"`
+	// +optional
+	DefaultMode *int32 `json:"defaultMode,omitempty"`
 }
 
 func (v ConfigMapVolumeSource) ToKubernetesType() corev1.ConfigMapVolumeSource {
 	return corev1.ConfigMapVolumeSource{
 		LocalObjectReference: v.LocalObjectReference.ToKubernetesType(),
+		DefaultMode:          v.DefaultMode,
 	}
 }
 

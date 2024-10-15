@@ -678,6 +678,9 @@ spec:
                   configMap:
                     description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#configmapvolumesource-v1-core.'
                     properties:
+                      defaultMode:
+                        format: int32
+                        type: integer
                       name:
                         default: ""
                         type: string
@@ -745,6 +748,9 @@ spec:
                   secret:
                     description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#secretvolumesource-v1-core.'
                     properties:
+                      defaultMode:
+                        format: int32
+                        type: integer
                       secretName:
                         type: string
                     type: object
