@@ -310,17 +310,24 @@ func (b *Builder) buildContainerWithTemplate(image string, pullPolicy corev1.Pul
 }
 
 func (b *Builder) buildContainer(mdb *mariadbv1alpha1.MariaDB, mdbContainer *mariadbv1alpha1.Container) *corev1.Container {
+	env := mariadbEnv(mdb)
+	for k, v := range mdbContainer.Env {
+		env[k] = v.ToKubernetesType()
+	}
+
+	volumeMounts := mariadbVolumeMounts(mdb)
+	if mdbContainer.VolumeMounts != nil {
+		volumeMounts = append(volumeMounts, kadapter.ToKubernetesSlice(mdbContainer.VolumeMounts)...)
+	}
+
 	container := corev1.Container{
 		Name:            mdbContainer.Name,
 		Image:           mdbContainer.Image,
 		ImagePullPolicy: mdbContainer.ImagePullPolicy,
 		Command:         mdbContainer.Command,
 		Args:            mdbContainer.Args,
-		Env:             mariadbEnv(mdb),
-		VolumeMounts:    mariadbVolumeMounts(mdb),
-	}
-	if mdbContainer.VolumeMounts != nil {
-		container.VolumeMounts = append(container.VolumeMounts, kadapter.ToKubernetesSlice(mdbContainer.VolumeMounts)...)
+		Env:             env,
+		VolumeMounts:    volumeMounts,
 	}
 	if mdbContainer.Resources != nil {
 		container.Resources = mdbContainer.Resources.ToKubernetesType()

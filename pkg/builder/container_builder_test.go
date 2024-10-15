@@ -8,6 +8,7 @@ import (
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/command"
+	"github.com/mariadb-operator/mariadb-operator/pkg/datastructures"
 	"github.com/mariadb-operator/mariadb-operator/pkg/discovery"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -1075,6 +1076,361 @@ func TestMariadbEnv(t *testing.T) {
 	}
 }
 
+func TestContainerArgs(t *testing.T) {
+	tests := []struct {
+		name     string
+		mariadb  *mariadbv1alpha1.MariaDB
+		wantArgs []string
+	}{
+		{
+			name:     "MariaDB args empty",
+			mariadb:  &mariadbv1alpha1.MariaDB{},
+			wantArgs: nil,
+		},
+		{
+			name: "MariaDB args verbose",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
+						Args: []string{"--verbose"},
+					},
+				},
+			},
+			wantArgs: []string{
+				"--verbose",
+			},
+		},
+		{
+			name: "MariaDB args verbose /w replication",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "mariadb-test",
+				},
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
+						Args: []string{"--verbose"},
+					},
+					Replication: &mariadbv1alpha1.Replication{
+						Enabled: true,
+					},
+				},
+			},
+			wantArgs: []string{
+				"--log-bin",
+				fmt.Sprintf("--log-basename=%s", "mariadb-test"),
+				"--verbose",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			args := mariadbArgs(tt.mariadb)
+			if !reflect.DeepEqual(tt.wantArgs, args) {
+				t.Errorf("unexpected result:\nexpected:\n%s\ngot:\n%s\n", tt.wantArgs, args)
+			}
+		})
+	}
+}
+
+func TestMariadbContainers(t *testing.T) {
+	tests := []struct {
+		name               string
+		mariadb            *mariadbv1alpha1.MariaDB
+		wantName           string
+		wantEnvKey         *string
+		wantVolumeMountKey *string
+	}{
+		{
+			name: "Without sidecar container name",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					PodTemplate: mariadbv1alpha1.PodTemplate{
+						SidecarContainers: []mariadbv1alpha1.Container{
+							{
+								Image: "busybox",
+								Command: []string{
+									"sh",
+									"-c",
+									"sleep infinity",
+								},
+							},
+						},
+					},
+				},
+			},
+			wantName:           "sidecar-0",
+			wantEnvKey:         nil,
+			wantVolumeMountKey: nil,
+		},
+		{
+			name: "With sidecar container name",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					PodTemplate: mariadbv1alpha1.PodTemplate{
+						SidecarContainers: []mariadbv1alpha1.Container{
+							{
+								Name:  "busybox",
+								Image: "busybox",
+								Command: []string{
+									"sh",
+									"-c",
+									"sleep infinity",
+								},
+							},
+						},
+					},
+				},
+			},
+			wantName:           "busybox",
+			wantEnvKey:         nil,
+			wantVolumeMountKey: nil,
+		},
+		{
+			name: "With env",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Port: 3306,
+					PodTemplate: mariadbv1alpha1.PodTemplate{
+						SidecarContainers: []mariadbv1alpha1.Container{
+							{
+								Name:  "busybox",
+								Image: "busybox",
+								Command: []string{
+									"sh",
+									"-c",
+									"sleep 1",
+								},
+								Env: []mariadbv1alpha1.EnvVar{
+									{
+										Name:  "TEST",
+										Value: "TEST",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantName:           "busybox",
+			wantEnvKey:         ptr.To("TEST"),
+			wantVolumeMountKey: nil,
+		},
+		{
+			name: "With volumeMount",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Port: 3306,
+					PodTemplate: mariadbv1alpha1.PodTemplate{
+						SidecarContainers: []mariadbv1alpha1.Container{
+							{
+								Name:  "busybox",
+								Image: "busybox",
+								Command: []string{
+									"sh",
+									"-c",
+									"sleep 1",
+								},
+								VolumeMounts: []mariadbv1alpha1.VolumeMount{
+									{
+										Name:      "TEST",
+										MountPath: "/test",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantName:           "busybox",
+			wantEnvKey:         nil,
+			wantVolumeMountKey: ptr.To("TEST"),
+		},
+	}
+
+	builder := newDefaultTestBuilder(t)
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			containers, err := builder.mariadbContainers(tt.mariadb)
+			if err != nil {
+				t.Fatalf("unexpected error building containers: %v", err)
+			}
+
+			container := containers[1]
+
+			if container.Name != tt.wantName {
+				t.Errorf("unexpected result:\nexpected:\n%s\ngot:\n%s\n", tt.wantName, containers[1].Name)
+			}
+			if tt.wantEnvKey != nil {
+				exists := datastructures.Any(container.Env, func(env corev1.EnvVar) bool {
+					return env.Name == *tt.wantEnvKey
+				})
+				if !exists {
+					t.Errorf("expected \"%s\" env key to exist", *tt.wantEnvKey)
+				}
+			}
+			if tt.wantVolumeMountKey != nil {
+				exists := datastructures.Any(container.VolumeMounts, func(volumeMount corev1.VolumeMount) bool {
+					return volumeMount.Name == *tt.wantVolumeMountKey
+				})
+				if !exists {
+					t.Errorf("expected \"%s\" volumeMount key to exist", *tt.wantVolumeMountKey)
+				}
+			}
+		})
+	}
+}
+
+func TestMariadbInitContainers(t *testing.T) {
+	tests := []struct {
+		name               string
+		mariadb            *mariadbv1alpha1.MariaDB
+		wantName           string
+		wantEnvKey         *string
+		wantVolumeMountKey *string
+	}{
+		{
+			name: "Without container name",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					PodTemplate: mariadbv1alpha1.PodTemplate{
+						InitContainers: []mariadbv1alpha1.Container{
+							{
+								Image: "busybox",
+								Command: []string{
+									"sh",
+									"-c",
+									"sleep 1",
+								},
+							},
+						},
+					},
+				},
+			},
+			wantName:           "init-0",
+			wantEnvKey:         nil,
+			wantVolumeMountKey: nil,
+		},
+		{
+			name: "With container name",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					PodTemplate: mariadbv1alpha1.PodTemplate{
+						InitContainers: []mariadbv1alpha1.Container{
+							{
+								Name:  "busybox",
+								Image: "busybox",
+								Command: []string{
+									"sh",
+									"-c",
+									"sleep 1",
+								},
+							},
+						},
+					},
+				},
+			},
+			wantName:           "busybox",
+			wantEnvKey:         nil,
+			wantVolumeMountKey: nil,
+		},
+		{
+			name: "With env",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Port: 3306,
+					PodTemplate: mariadbv1alpha1.PodTemplate{
+						InitContainers: []mariadbv1alpha1.Container{
+							{
+								Name:  "busybox",
+								Image: "busybox",
+								Command: []string{
+									"sh",
+									"-c",
+									"sleep 1",
+								},
+								Env: []mariadbv1alpha1.EnvVar{
+									{
+										Name:  "TEST",
+										Value: "TEST",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantName:           "busybox",
+			wantEnvKey:         ptr.To("TEST"),
+			wantVolumeMountKey: nil,
+		},
+		{
+			name: "With volumeMount",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Port: 3306,
+					PodTemplate: mariadbv1alpha1.PodTemplate{
+						InitContainers: []mariadbv1alpha1.Container{
+							{
+								Name:  "busybox",
+								Image: "busybox",
+								Command: []string{
+									"sh",
+									"-c",
+									"sleep 1",
+								},
+								VolumeMounts: []mariadbv1alpha1.VolumeMount{
+									{
+										Name:      "TEST",
+										MountPath: "/test",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantName:           "busybox",
+			wantEnvKey:         nil,
+			wantVolumeMountKey: ptr.To("TEST"),
+		},
+	}
+
+	builder := newDefaultTestBuilder(t)
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			initContainers, err := builder.mariadbInitContainers(tt.mariadb)
+			if err != nil {
+				t.Fatalf("unexpected error building init containers: %v", err)
+			}
+
+			initContainer := initContainers[0]
+
+			if initContainer.Name != tt.wantName {
+				t.Errorf("unexpected name:\nexpected:\n%s\ngot:\n%s\n", tt.wantName, initContainer.Name)
+			}
+			if tt.wantEnvKey != nil {
+				exists := datastructures.Any(initContainer.Env, func(env corev1.EnvVar) bool {
+					return env.Name == *tt.wantEnvKey
+				})
+				if !exists {
+					t.Errorf("expected \"%s\" env key to exist", *tt.wantEnvKey)
+				}
+			}
+			if tt.wantVolumeMountKey != nil {
+				exists := datastructures.Any(initContainer.VolumeMounts, func(volumeMount corev1.VolumeMount) bool {
+					return volumeMount.Name == *tt.wantVolumeMountKey
+				})
+				if !exists {
+					t.Errorf("expected \"%s\" volumeMount key to exist", *tt.wantVolumeMountKey)
+				}
+			}
+		})
+	}
+}
+
 func defaultEnv(overrides []corev1.EnvVar) []corev1.EnvVar {
 	mysqlTcpPort := corev1.EnvVar{
 		Name:  "MYSQL_TCP_PORT",
@@ -1159,189 +1515,4 @@ func removeEnv(env []corev1.EnvVar, key string) []corev1.EnvVar {
 		}
 	}
 	return result
-}
-
-func TestContainerArgs(t *testing.T) {
-	tests := []struct {
-		name     string
-		mariadb  *mariadbv1alpha1.MariaDB
-		wantArgs []string
-	}{
-		{
-			name:     "MariaDB args empty",
-			mariadb:  &mariadbv1alpha1.MariaDB{},
-			wantArgs: nil,
-		},
-		{
-			name: "MariaDB args verbose",
-			mariadb: &mariadbv1alpha1.MariaDB{
-				Spec: mariadbv1alpha1.MariaDBSpec{
-					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
-						Args: []string{"--verbose"},
-					},
-				},
-			},
-			wantArgs: []string{
-				"--verbose",
-			},
-		},
-		{
-			name: "MariaDB args verbose /w replication",
-			mariadb: &mariadbv1alpha1.MariaDB{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "mariadb-test",
-				},
-				Spec: mariadbv1alpha1.MariaDBSpec{
-					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
-						Args: []string{"--verbose"},
-					},
-					Replication: &mariadbv1alpha1.Replication{
-						Enabled: true,
-					},
-				},
-			},
-			wantArgs: []string{
-				"--log-bin",
-				fmt.Sprintf("--log-basename=%s", "mariadb-test"),
-				"--verbose",
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			args := mariadbArgs(tt.mariadb)
-			if !reflect.DeepEqual(tt.wantArgs, args) {
-				t.Errorf("unexpected result:\nexpected:\n%s\ngot:\n%s\n", tt.wantArgs, args)
-			}
-		})
-	}
-}
-
-func TestMariadbContainers(t *testing.T) {
-	tests := []struct {
-		name     string
-		mariadb  *mariadbv1alpha1.MariaDB
-		wantName string
-	}{
-		{
-			name: "Without sidecar container name",
-			mariadb: &mariadbv1alpha1.MariaDB{
-				Spec: mariadbv1alpha1.MariaDBSpec{
-					PodTemplate: mariadbv1alpha1.PodTemplate{
-						SidecarContainers: []mariadbv1alpha1.Container{
-							{
-								Image: "busybox",
-								Command: []string{
-									"sh",
-									"-c",
-									"sleep infinity",
-								},
-							},
-						},
-					},
-				},
-			},
-			wantName: "sidecar-0",
-		},
-		{
-			name: "With sidecar container name",
-			mariadb: &mariadbv1alpha1.MariaDB{
-				Spec: mariadbv1alpha1.MariaDBSpec{
-					PodTemplate: mariadbv1alpha1.PodTemplate{
-						SidecarContainers: []mariadbv1alpha1.Container{
-							{
-								Name:  "busybox",
-								Image: "busybox",
-								Command: []string{
-									"sh",
-									"-c",
-									"sleep infinity",
-								},
-							},
-						},
-					},
-				},
-			},
-			wantName: "busybox",
-		},
-	}
-
-	builder := newDefaultTestBuilder(t)
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			containers, err := builder.mariadbContainers(tt.mariadb)
-			if err != nil {
-				t.Fatalf("unexpected error building containers: %v", err)
-			}
-			if containers[1].Name != tt.wantName {
-				t.Errorf("unexpected result:\nexpected:\n%s\ngot:\n%s\n", tt.wantName, containers[1].Name)
-			}
-		})
-	}
-}
-
-func TestMariadbInitContainers(t *testing.T) {
-	tests := []struct {
-		name     string
-		mariadb  *mariadbv1alpha1.MariaDB
-		wantName string
-	}{
-		{
-			name: "Without container name",
-			mariadb: &mariadbv1alpha1.MariaDB{
-				Spec: mariadbv1alpha1.MariaDBSpec{
-					PodTemplate: mariadbv1alpha1.PodTemplate{
-						InitContainers: []mariadbv1alpha1.Container{
-							{
-								Image: "busybox",
-								Command: []string{
-									"sh",
-									"-c",
-									"sleep 1",
-								},
-							},
-						},
-					},
-				},
-			},
-			wantName: "init-0",
-		},
-		{
-			name: "With container name",
-			mariadb: &mariadbv1alpha1.MariaDB{
-				Spec: mariadbv1alpha1.MariaDBSpec{
-					PodTemplate: mariadbv1alpha1.PodTemplate{
-						InitContainers: []mariadbv1alpha1.Container{
-							{
-								Name:  "busybox",
-								Image: "busybox",
-								Command: []string{
-									"sh",
-									"-c",
-									"sleep 1",
-								},
-							},
-						},
-					},
-				},
-			},
-			wantName: "busybox",
-		},
-	}
-
-	builder := newDefaultTestBuilder(t)
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			initContainers, err := builder.mariadbInitContainers(tt.mariadb)
-			if err != nil {
-				t.Fatalf("unexpected error building init containers: %v", err)
-			}
-			if initContainers[0].Name != tt.wantName {
-				t.Errorf("unexpected result:\nexpected:\n%s\ngot:\n%s\n", tt.wantName, initContainers[0].Name)
-			}
-		})
-	}
 }
