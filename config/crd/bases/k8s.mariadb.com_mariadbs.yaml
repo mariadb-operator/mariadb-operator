@@ -1914,6 +1914,61 @@ spec:
                       items:
                         type: string
                       type: array
+                    env:
+                      description: Env represents the environment variables to be
+                        injected in a container.
+                      items:
+                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#envvarsource-v1-core.'
+                        properties:
+                          name:
+                            description: Name of the environment variable. Must be
+                              a C_IDENTIFIER.
+                            type: string
+                          value:
+                            type: string
+                          valueFrom:
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#envvarsource-v1-core.'
+                            properties:
+                              configMapKeyRef:
+                                description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#configmapkeyselector-v1-core.'
+                                properties:
+                                  key:
+                                    type: string
+                                  name:
+                                    default: ""
+                                    type: string
+                                required:
+                                - key
+                                type: object
+                                x-kubernetes-map-type: atomic
+                              fieldRef:
+                                description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#objectfieldselector-v1-core.'
+                                properties:
+                                  apiVersion:
+                                    type: string
+                                  fieldPath:
+                                    type: string
+                                required:
+                                - fieldPath
+                                type: object
+                                x-kubernetes-map-type: atomic
+                              secretKeyRef:
+                                description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#secretkeyselector-v1-core.'
+                                properties:
+                                  key:
+                                    type: string
+                                  name:
+                                    default: ""
+                                    type: string
+                                required:
+                                - key
+                                type: object
+                                x-kubernetes-map-type: atomic
+                            type: object
+                        required:
+                        - name
+                        type: object
+                      type: array
                     image:
                       description: Image name to be used by the container. The supported
                         format is `<image>:<tag>`.
@@ -4563,6 +4618,61 @@ spec:
                       description: Command to be used in the Container.
                       items:
                         type: string
+                      type: array
+                    env:
+                      description: Env represents the environment variables to be
+                        injected in a container.
+                      items:
+                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#envvarsource-v1-core.'
+                        properties:
+                          name:
+                            description: Name of the environment variable. Must be
+                              a C_IDENTIFIER.
+                            type: string
+                          value:
+                            type: string
+                          valueFrom:
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#envvarsource-v1-core.'
+                            properties:
+                              configMapKeyRef:
+                                description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#configmapkeyselector-v1-core.'
+                                properties:
+                                  key:
+                                    type: string
+                                  name:
+                                    default: ""
+                                    type: string
+                                required:
+                                - key
+                                type: object
+                                x-kubernetes-map-type: atomic
+                              fieldRef:
+                                description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#objectfieldselector-v1-core.'
+                                properties:
+                                  apiVersion:
+                                    type: string
+                                  fieldPath:
+                                    type: string
+                                required:
+                                - fieldPath
+                                type: object
+                                x-kubernetes-map-type: atomic
+                              secretKeyRef:
+                                description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#secretkeyselector-v1-core.'
+                                properties:
+                                  key:
+                                    type: string
+                                  name:
+                                    default: ""
+                                    type: string
+                                required:
+                                - key
+                                type: object
+                                x-kubernetes-map-type: atomic
+                            type: object
+                        required:
+                        - name
+                        type: object
                       type: array
                     image:
                       description: Image name to be used by the container. The supported
