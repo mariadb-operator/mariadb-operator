@@ -277,10 +277,16 @@ const (
 type ReplicationStatus map[string]ReplicationState
 
 func (r ReplicationStatus) IsReplicationConfigured() bool {
+	anyReplicaConfigured := false
 	for _, state := range r {
 		if state == ReplicationStateNotConfigured {
 			return false
 		}
+		if state == ReplicationStateSlave {
+			anyReplicaConfigured = true
+		}
 	}
-	return true
+	// it might happen that no replica pod is present in the Status, e.g. if the pod is being re-created
+	// therefore, make sure at least one replica is configured
+	return anyReplicaConfigured
 }
