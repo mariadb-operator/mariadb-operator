@@ -158,7 +158,7 @@ func (r *ReplicationReconciler) ReconcileProbeConfigMap(ctx context.Context, con
 			configMapKeyRef.Key: `#!/bin/bash
 
 if [[ $(mariadb -u root -p"${MARIADB_ROOT_PASSWORD}" -e "SHOW VARIABLES LIKE 'rpl_semi_sync_slave_enabled';" --skip-column-names | grep -c "ON") -eq 1 ]]; then
-	mariadb -u root -p"${MARIADB_ROOT_PASSWORD}" -e "SHOW SLAVE 'mariadb-operator' STATUS\G" | grep -c "Slave_IO_Running: Yes" 
+	mariadb -u root -p"${MARIADB_ROOT_PASSWORD}" -e "SHOW SLAVE 'mariadb-operator' STATUS\G" | grep -c "Slave_IO_Running: Yes"
 else
 	mariadb -u root -p"${MARIADB_ROOT_PASSWORD}" -e "SELECT 1;"
 fi
