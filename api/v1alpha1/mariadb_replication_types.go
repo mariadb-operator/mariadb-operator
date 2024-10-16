@@ -1,6 +1,7 @@
 package v1alpha1
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -256,6 +257,8 @@ var (
 	}
 )
 
+var ErrReplicationNotConfigured = errors.New("replication is not configured")
+
 // IsReplicationConfigured indicates whether replication has been configured.
 func (m *MariaDB) IsReplicationConfigured() bool {
 	return m.Status.ReplicationStatus.IsReplicationConfigured()
@@ -277,10 +280,16 @@ const (
 type ReplicationStatus map[string]ReplicationState
 
 func (r ReplicationStatus) IsReplicationConfigured() bool {
+	anyReplicaConfigured := false
 	for _, state := range r {
 		if state == ReplicationStateNotConfigured {
 			return false
 		}
+		if state == ReplicationStateSlave {
+			anyReplicaConfigured = true
+		}
 	}
-	return true
+	// make sure at least one replica is configured. For example, this ensures that
+	// a switchover/failover operation will not start if no replica has been configured.
+	return anyReplicaConfigured
 }

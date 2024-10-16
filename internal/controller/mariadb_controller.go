@@ -206,6 +206,14 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 				continue
 			}
 
+			// don't break the loop when replication is not configured
+			// it may happen that replication is required for a phase to complete successfully
+			// e.g. switchover during update; however, the Replication phase may run afterward
+			// and the previous phase will never complete successfully;
+			if errors.Is(err, mariadbv1alpha1.ErrReplicationNotConfigured) {
+				continue
+			}
+
 			var errBundle *multierror.Error
 			errBundle = multierror.Append(errBundle, err)
 
