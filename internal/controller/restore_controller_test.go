@@ -170,8 +170,10 @@ var _ = Describe("Restore", func() {
 				},
 				RestoreSource: mariadbv1alpha1.RestoreSource{
 					Volume: &mariadbv1alpha1.VolumeSource{
-						PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimVolumeSource{
-							ClaimName: backupKey.Name,
+						StorageVolumeSource: mariadbv1alpha1.StorageVolumeSource{
+							PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimVolumeSource{
+								ClaimName: backupKey.Name,
+							},
 						},
 					},
 				},
@@ -230,8 +232,10 @@ var _ = Describe("Restore", func() {
 				},
 				RestoreSource: mariadbv1alpha1.RestoreSource{
 					Volume: &mariadbv1alpha1.VolumeSource{
-						PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimVolumeSource{
-							ClaimName: backupKey.Name,
+						StorageVolumeSource: mariadbv1alpha1.StorageVolumeSource{
+							PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimVolumeSource{
+								ClaimName: backupKey.Name,
+							},
 						},
 					},
 				},
@@ -290,8 +294,10 @@ var _ = Describe("Restore", func() {
 				},
 				RestoreSource: mariadbv1alpha1.RestoreSource{
 					Volume: &mariadbv1alpha1.VolumeSource{
-						PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimVolumeSource{
-							ClaimName: backupKey.Name,
+						StorageVolumeSource: mariadbv1alpha1.StorageVolumeSource{
+							PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimVolumeSource{
+								ClaimName: backupKey.Name,
+							},
 						},
 					},
 				},

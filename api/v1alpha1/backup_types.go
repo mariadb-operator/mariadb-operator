@@ -199,13 +199,17 @@ func (b *Backup) SetDefaults(mariadb *MariaDB) {
 func (b *Backup) Volume() (VolumeSource, error) {
 	if b.Spec.Storage.S3 != nil {
 		return VolumeSource{
-			EmptyDir: &EmptyDirVolumeSource{},
+			StorageVolumeSource: StorageVolumeSource{
+				EmptyDir: &EmptyDirVolumeSource{},
+			},
 		}, nil
 	}
 	if b.Spec.Storage.PersistentVolumeClaim != nil {
 		return VolumeSource{
-			PersistentVolumeClaim: &PersistentVolumeClaimVolumeSource{
-				ClaimName: b.Name,
+			StorageVolumeSource: StorageVolumeSource{
+				PersistentVolumeClaim: &PersistentVolumeClaimVolumeSource{
+					ClaimName: b.Name,
+				},
 			},
 		}, nil
 	}
