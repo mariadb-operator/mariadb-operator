@@ -630,7 +630,9 @@ func (r *RestoreSource) IsDefaulted() bool {
 func (r *RestoreSource) SetDefaults() {
 	if r.S3 != nil {
 		r.Volume = &VolumeSource{
-			EmptyDir: &EmptyDirVolumeSource{},
+			StorageVolumeSource: StorageVolumeSource{
+				EmptyDir: &EmptyDirVolumeSource{},
+			},
 		}
 	}
 }

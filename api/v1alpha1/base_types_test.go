@@ -54,7 +54,9 @@ var _ = Describe("Base types", func() {
 						Endpoint: "test",
 					},
 					Volume: &VolumeSource{
-						EmptyDir: &EmptyDirVolumeSource{},
+						StorageVolumeSource: StorageVolumeSource{
+							EmptyDir: &EmptyDirVolumeSource{},
+						},
 					},
 				},
 				true,
@@ -64,18 +66,22 @@ var _ = Describe("Base types", func() {
 				"Volume",
 				&RestoreSource{
 					Volume: &VolumeSource{
-						NFS: &NFSVolumeSource{
-							Server: "test",
-							Path:   "test",
+						StorageVolumeSource: StorageVolumeSource{
+							NFS: &NFSVolumeSource{
+								Server: "test",
+								Path:   "test",
+							},
 						},
 					},
 				},
 				nil,
 				&RestoreSource{
 					Volume: &VolumeSource{
-						NFS: &NFSVolumeSource{
-							Server: "test",
-							Path:   "test",
+						StorageVolumeSource: StorageVolumeSource{
+							NFS: &NFSVolumeSource{
+								Server: "test",
+								Path:   "test",
+							},
 						},
 					},
 				},
@@ -90,9 +96,11 @@ var _ = Describe("Base types", func() {
 						Endpoint: "test",
 					},
 					Volume: &VolumeSource{
-						NFS: &NFSVolumeSource{
-							Server: "test",
-							Path:   "test",
+						StorageVolumeSource: StorageVolumeSource{
+							NFS: &NFSVolumeSource{
+								Server: "test",
+								Path:   "test",
+							},
 						},
 					},
 				},
@@ -103,7 +111,9 @@ var _ = Describe("Base types", func() {
 						Endpoint: "test",
 					},
 					Volume: &VolumeSource{
-						EmptyDir: &EmptyDirVolumeSource{},
+						StorageVolumeSource: StorageVolumeSource{
+							EmptyDir: &EmptyDirVolumeSource{},
+						},
 					},
 				},
 				true,
@@ -128,7 +138,9 @@ var _ = Describe("Base types", func() {
 						Endpoint: "test",
 					},
 					Volume: &VolumeSource{
-						EmptyDir: &EmptyDirVolumeSource{},
+						StorageVolumeSource: StorageVolumeSource{
+							EmptyDir: &EmptyDirVolumeSource{},
+						},
 					},
 				},
 				true,
@@ -141,9 +153,11 @@ var _ = Describe("Base types", func() {
 					Spec: BackupSpec{
 						Storage: BackupStorage{
 							Volume: &VolumeSource{
-								NFS: &NFSVolumeSource{
-									Server: "test",
-									Path:   "test",
+								StorageVolumeSource: StorageVolumeSource{
+									NFS: &NFSVolumeSource{
+										Server: "test",
+										Path:   "test",
+									},
 								},
 							},
 						},
@@ -151,9 +165,11 @@ var _ = Describe("Base types", func() {
 				},
 				&RestoreSource{
 					Volume: &VolumeSource{
-						NFS: &NFSVolumeSource{
-							Server: "test",
-							Path:   "test",
+						StorageVolumeSource: StorageVolumeSource{
+							NFS: &NFSVolumeSource{
+								Server: "test",
+								Path:   "test",
+							},
 						},
 					},
 				},
@@ -184,7 +200,9 @@ var _ = Describe("Base types", func() {
 						Endpoint: "test-backup",
 					},
 					Volume: &VolumeSource{
-						EmptyDir: &EmptyDirVolumeSource{},
+						StorageVolumeSource: StorageVolumeSource{
+							EmptyDir: &EmptyDirVolumeSource{},
+						},
 					},
 				},
 				true,
@@ -194,9 +212,11 @@ var _ = Describe("Base types", func() {
 				"Backup priority over Volume",
 				&RestoreSource{
 					Volume: &VolumeSource{
-						NFS: &NFSVolumeSource{
-							Server: "test",
-							Path:   "test",
+						StorageVolumeSource: StorageVolumeSource{
+							NFS: &NFSVolumeSource{
+								Server: "test",
+								Path:   "test",
+							},
 						},
 					},
 				},
@@ -216,7 +236,9 @@ var _ = Describe("Base types", func() {
 						Endpoint: "test-backup",
 					},
 					Volume: &VolumeSource{
-						EmptyDir: &EmptyDirVolumeSource{},
+						StorageVolumeSource: StorageVolumeSource{
+							EmptyDir: &EmptyDirVolumeSource{},
+						},
 					},
 				},
 				true,

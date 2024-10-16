@@ -98,8 +98,10 @@ var _ = Describe("Restore webhook", func() {
 					Spec: RestoreSpec{
 						RestoreSource: RestoreSource{
 							Volume: &VolumeSource{
-								PersistentVolumeClaim: &PersistentVolumeClaimVolumeSource{
-									ClaimName: "pvc-webhook",
+								StorageVolumeSource: StorageVolumeSource{
+									PersistentVolumeClaim: &PersistentVolumeClaimVolumeSource{
+										ClaimName: "pvc-webhook",
+									},
 								},
 							},
 						},
@@ -125,7 +127,9 @@ var _ = Describe("Restore webhook", func() {
 								Endpoint: "test",
 							},
 							Volume: &VolumeSource{
-								EmptyDir: &EmptyDirVolumeSource{},
+								StorageVolumeSource: StorageVolumeSource{
+									EmptyDir: &EmptyDirVolumeSource{},
+								},
 							},
 						},
 						MariaDBRef: MariaDBRef{
@@ -153,7 +157,9 @@ var _ = Describe("Restore webhook", func() {
 								Endpoint: "test",
 							},
 							Volume: &VolumeSource{
-								EmptyDir: &EmptyDirVolumeSource{},
+								StorageVolumeSource: StorageVolumeSource{
+									EmptyDir: &EmptyDirVolumeSource{},
+								},
 							},
 						},
 						MariaDBRef: MariaDBRef{
@@ -276,7 +282,9 @@ var _ = Describe("Restore webhook", func() {
 				"Init Volume source",
 				func(rmdb *Restore) {
 					rmdb.Spec.RestoreSource.Volume = &VolumeSource{
-						EmptyDir: &EmptyDirVolumeSource{},
+						StorageVolumeSource: StorageVolumeSource{
+							EmptyDir: &EmptyDirVolumeSource{},
+						},
 					}
 				},
 				false,

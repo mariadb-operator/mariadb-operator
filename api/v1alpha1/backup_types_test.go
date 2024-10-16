@@ -218,7 +218,9 @@ var _ = Describe("Backup types", func() {
 					},
 				},
 				VolumeSource{
-					EmptyDir: &EmptyDirVolumeSource{},
+					StorageVolumeSource: StorageVolumeSource{
+						EmptyDir: &EmptyDirVolumeSource{},
+					},
 				},
 				false,
 			),
@@ -233,8 +235,10 @@ var _ = Describe("Backup types", func() {
 					},
 				},
 				VolumeSource{
-					PersistentVolumeClaim: &PersistentVolumeClaimVolumeSource{
-						ClaimName: objMeta.Name,
+					StorageVolumeSource: StorageVolumeSource{
+						PersistentVolumeClaim: &PersistentVolumeClaimVolumeSource{
+							ClaimName: objMeta.Name,
+						},
 					},
 				},
 				false,
@@ -246,18 +250,22 @@ var _ = Describe("Backup types", func() {
 					Spec: BackupSpec{
 						Storage: BackupStorage{
 							Volume: &VolumeSource{
-								NFS: &NFSVolumeSource{
-									Server: "test",
-									Path:   "test",
+								StorageVolumeSource: StorageVolumeSource{
+									NFS: &NFSVolumeSource{
+										Server: "test",
+										Path:   "test",
+									},
 								},
 							},
 						},
 					},
 				},
 				VolumeSource{
-					NFS: &NFSVolumeSource{
-						Server: "test",
-						Path:   "test",
+					StorageVolumeSource: StorageVolumeSource{
+						NFS: &NFSVolumeSource{
+							Server: "test",
+							Path:   "test",
+						},
 					},
 				},
 				false,
