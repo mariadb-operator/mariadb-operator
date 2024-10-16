@@ -12,19 +12,7 @@ import (
 	"k8s.io/utils/ptr"
 )
 
-// BackupStagingStorage defines the staging storage to temporarily store backups.
-// type BackupStagingStorage struct {
-// 	// PersistentVolumeClaim is a Kubernetes PVC specification.
-// 	// +optional
-// 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-// 	PersistentVolumeClaim *PersistentVolumeClaimSpec `json:"persistentVolumeClaim,omitempty"`
-// 	// Volume is a Kubernetes volume specification.
-// 	// +optional
-// 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-// 	Volume *StorageVolumeSource `json:"volume,omitempty"`
-// }
-
-// BackupStorage defines the final storage for backups
+// BackupStorage defines the final storage for backups.
 type BackupStorage struct {
 	// S3 defines the configuration to store backups in a S3 compatible storage.
 	// +optional
@@ -96,7 +84,13 @@ type BackupSpec struct {
 	// +kubebuilder:validation:Enum=none;bzip2;gzip
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Compression CompressAlgorithm `json:"compression,omitempty"`
-	// Storage to be used in the Backup.
+	// StagingStorage defines the temporary storage used to keep backups while they are being processed.
+	// It defaults to an emptyDir volume, meaning that the backups will be temporarily stored in the node
+	// where the Backup Job is scheduled.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	StagingStorage *BackupStagingStorage `json:"stagingStorage,omitempty" webhook:"inmutable"`
+	// Storage defines the final storage for backups.
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Storage BackupStorage `json:"storage" webhook:"inmutable"`

@@ -595,6 +595,18 @@ func MergeMetadata(metas ...*Metadata) *Metadata {
 	return &meta
 }
 
+// BackupStagingStorage defines the temporary storage used to keep backups while they are being processed.
+type BackupStagingStorage struct {
+	// PersistentVolumeClaim is a Kubernetes PVC specification.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	PersistentVolumeClaim *PersistentVolumeClaimSpec `json:"persistentVolumeClaim,omitempty"`
+	// Volume is a Kubernetes volume specification.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Volume *StorageVolumeSource `json:"volume,omitempty"`
+}
+
 // RestoreSource defines a source for restoring a MariaDB.
 type RestoreSource struct {
 	// BackupRef is a reference to a Backup object. It has priority over S3 and Volume.
@@ -614,6 +626,12 @@ type RestoreSource struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	TargetRecoveryTime *metav1.Time `json:"targetRecoveryTime,omitempty" webhook:"inmutable"`
+	// StagingStorage defines the temporary storage used to keep backups while they are being processed.
+	// It defaults to an emptyDir volume, meaning that the backups will be temporarily stored in the node
+	// where the Restore Job is scheduled.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	StagingStorage *BackupStagingStorage `json:"stagingStorage,omitempty" webhook:"inmutableinit"`
 }
 
 func (r *RestoreSource) Validate() error {
