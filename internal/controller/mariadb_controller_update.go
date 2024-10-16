@@ -72,6 +72,12 @@ func (r *MariaDBReconciler) reconcileUpdates(ctx context.Context, mdb *mariadbv1
 		return ctrl.Result{Requeue: true}, nil
 	}
 
+	if result, err := r.waitForConfiguredReplication(mdb, logger); !result.IsZero() || err != nil {
+		// the error is not returned to avoid immediate requeuing
+		// and to allow the Replication phase to configure the recreated replicas
+		return result, nil
+	}
+
 	primaryPod := podsByRole.primary
 	if podpkg.PodUpdated(&primaryPod, stsUpdateRevision) {
 		logger.V(1).Info("Primary Pod up to date", "pod", primaryPod.Name)
@@ -105,6 +111,16 @@ func (r *MariaDBReconciler) waitForReadyStatus(ctx context.Context, mdb *mariadb
 			return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 		}
 	}
+	return ctrl.Result{}, nil
+}
+
+func (r *MariaDBReconciler) waitForConfiguredReplication(mdb *mariadbv1alpha1.MariaDB, logger logr.Logger) (ctrl.Result, error) {
+	if !mdb.IsReplicationConfigured() {
+		logger.V(1).Info("Waiting for all Pods to have configured replication.")
+		return ctrl.Result{}, fmt.Errorf("replication is not configured")
+	}
+	logger.V(1).Info("All Pods have configured replication.")
+
 	return ctrl.Result{}, nil
 }
 

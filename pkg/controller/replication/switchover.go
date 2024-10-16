@@ -25,7 +25,7 @@ type switchoverPhase struct {
 }
 
 func shouldReconcileSwitchover(mdb *mariadbv1alpha1.MariaDB) bool {
-	if mdb.IsMaxScaleEnabled() || mdb.IsRestoringBackup() || mdb.IsUpdating() || mdb.IsResizingStorage() {
+	if mdb.IsMaxScaleEnabled() || mdb.IsRestoringBackup() || mdb.IsResizingStorage() {
 		return false
 	}
 	if !mdb.IsReplicationConfigured() {
