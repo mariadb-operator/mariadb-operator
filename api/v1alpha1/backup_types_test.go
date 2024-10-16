@@ -187,7 +187,7 @@ var _ = Describe("Backup types", func() {
 		)
 		DescribeTable(
 			"Should return a volume",
-			func(backup *Backup, expectedVolume VolumeSource, wantErr bool) {
+			func(backup *Backup, expectedVolume StorageVolumeSource, wantErr bool) {
 				volume, err := backup.Volume()
 				if wantErr {
 					Expect(err).To(HaveOccurred())
@@ -217,10 +217,8 @@ var _ = Describe("Backup types", func() {
 						},
 					},
 				},
-				VolumeSource{
-					StorageVolumeSource: StorageVolumeSource{
-						EmptyDir: &EmptyDirVolumeSource{},
-					},
+				StorageVolumeSource{
+					EmptyDir: &EmptyDirVolumeSource{},
 				},
 				false,
 			),
@@ -234,11 +232,9 @@ var _ = Describe("Backup types", func() {
 						},
 					},
 				},
-				VolumeSource{
-					StorageVolumeSource: StorageVolumeSource{
-						PersistentVolumeClaim: &PersistentVolumeClaimVolumeSource{
-							ClaimName: objMeta.Name,
-						},
+				StorageVolumeSource{
+					PersistentVolumeClaim: &PersistentVolumeClaimVolumeSource{
+						ClaimName: objMeta.Name,
 					},
 				},
 				false,
@@ -249,23 +245,19 @@ var _ = Describe("Backup types", func() {
 					ObjectMeta: objMeta,
 					Spec: BackupSpec{
 						Storage: BackupStorage{
-							Volume: &VolumeSource{
-								StorageVolumeSource: StorageVolumeSource{
-									NFS: &NFSVolumeSource{
-										Server: "test",
-										Path:   "test",
-									},
+							Volume: &StorageVolumeSource{
+								NFS: &NFSVolumeSource{
+									Server: "test",
+									Path:   "test",
 								},
 							},
 						},
 					},
 				},
-				VolumeSource{
-					StorageVolumeSource: StorageVolumeSource{
-						NFS: &NFSVolumeSource{
-							Server: "test",
-							Path:   "test",
-						},
+				StorageVolumeSource{
+					NFS: &NFSVolumeSource{
+						Server: "test",
+						Path:   "test",
 					},
 				},
 				false,

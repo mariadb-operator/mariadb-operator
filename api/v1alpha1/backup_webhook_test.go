@@ -75,11 +75,9 @@ var _ = Describe("Backup webhook", func() {
 								Bucket:   "test",
 								Endpoint: "test",
 							},
-							Volume: &VolumeSource{
-								StorageVolumeSource: StorageVolumeSource{
-									PersistentVolumeClaim: &PersistentVolumeClaimVolumeSource{
-										ClaimName: "TEST",
-									},
+							Volume: &StorageVolumeSource{
+								PersistentVolumeClaim: &PersistentVolumeClaimVolumeSource{
+									ClaimName: "TEST",
 								},
 							},
 						},

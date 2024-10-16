@@ -608,7 +608,7 @@ type RestoreSource struct {
 	// Volume is a Kubernetes Volume object that contains a backup.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Volume *VolumeSource `json:"volume,omitempty" webhook:"inmutableinit"`
+	Volume *StorageVolumeSource `json:"volume,omitempty" webhook:"inmutableinit"`
 	// TargetRecoveryTime is a RFC3339 (1970-01-01T00:00:00Z) date and time that defines the point in time recovery objective.
 	// It is used to determine the closest restoration source in time.
 	// +optional
@@ -629,10 +629,8 @@ func (r *RestoreSource) IsDefaulted() bool {
 
 func (r *RestoreSource) SetDefaults() {
 	if r.S3 != nil {
-		r.Volume = &VolumeSource{
-			StorageVolumeSource: StorageVolumeSource{
-				EmptyDir: &EmptyDirVolumeSource{},
-			},
+		r.Volume = &StorageVolumeSource{
+			EmptyDir: &EmptyDirVolumeSource{},
 		}
 	}
 }

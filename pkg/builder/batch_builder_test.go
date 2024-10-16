@@ -384,7 +384,7 @@ func TestRestoreJobImagePullSecrets(t *testing.T) {
 						},
 					},
 					RestoreSource: mariadbv1alpha1.RestoreSource{
-						Volume: &mariadbv1alpha1.VolumeSource{},
+						Volume: &mariadbv1alpha1.StorageVolumeSource{},
 					},
 				},
 			},
@@ -405,7 +405,7 @@ func TestRestoreJobImagePullSecrets(t *testing.T) {
 						},
 					},
 					RestoreSource: mariadbv1alpha1.RestoreSource{
-						Volume: &mariadbv1alpha1.VolumeSource{},
+						Volume: &mariadbv1alpha1.StorageVolumeSource{},
 					},
 				},
 			},
@@ -440,7 +440,7 @@ func TestRestoreJobImagePullSecrets(t *testing.T) {
 						},
 					},
 					RestoreSource: mariadbv1alpha1.RestoreSource{
-						Volume: &mariadbv1alpha1.VolumeSource{},
+						Volume: &mariadbv1alpha1.StorageVolumeSource{},
 					},
 					MariaDBRef: mariadbv1alpha1.MariaDBRef{
 						ObjectReference: mariadbv1alpha1.ObjectReference{
@@ -472,7 +472,7 @@ func TestRestoreJobImagePullSecrets(t *testing.T) {
 						},
 					},
 					RestoreSource: mariadbv1alpha1.RestoreSource{
-						Volume: &mariadbv1alpha1.VolumeSource{},
+						Volume: &mariadbv1alpha1.StorageVolumeSource{},
 					},
 					MariaDBRef: mariadbv1alpha1.MariaDBRef{
 						ObjectReference: mariadbv1alpha1.ObjectReference{
@@ -533,10 +533,8 @@ func TestRestoreJobMeta(t *testing.T) {
 			restore: &mariadbv1alpha1.Restore{
 				Spec: mariadbv1alpha1.RestoreSpec{
 					RestoreSource: mariadbv1alpha1.RestoreSource{
-						Volume: &mariadbv1alpha1.VolumeSource{
-							StorageVolumeSource: mariadbv1alpha1.StorageVolumeSource{
-								PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimVolumeSource{},
-							},
+						Volume: &mariadbv1alpha1.StorageVolumeSource{
+							PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimVolumeSource{},
 						},
 						S3: &mariadbv1alpha1.S3{},
 					},
@@ -556,10 +554,8 @@ func TestRestoreJobMeta(t *testing.T) {
 			restore: &mariadbv1alpha1.Restore{
 				Spec: mariadbv1alpha1.RestoreSpec{
 					RestoreSource: mariadbv1alpha1.RestoreSource{
-						Volume: &mariadbv1alpha1.VolumeSource{
-							StorageVolumeSource: mariadbv1alpha1.StorageVolumeSource{
-								PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimVolumeSource{},
-							},
+						Volume: &mariadbv1alpha1.StorageVolumeSource{
+							PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimVolumeSource{},
 						},
 						S3: &mariadbv1alpha1.S3{},
 					},
@@ -595,10 +591,8 @@ func TestRestoreJobMeta(t *testing.T) {
 			restore: &mariadbv1alpha1.Restore{
 				Spec: mariadbv1alpha1.RestoreSpec{
 					RestoreSource: mariadbv1alpha1.RestoreSource{
-						Volume: &mariadbv1alpha1.VolumeSource{
-							StorageVolumeSource: mariadbv1alpha1.StorageVolumeSource{
-								PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimVolumeSource{},
-							},
+						Volume: &mariadbv1alpha1.StorageVolumeSource{
+							PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimVolumeSource{},
 						},
 						S3: &mariadbv1alpha1.S3{},
 					},
@@ -632,10 +626,8 @@ func TestRestoreJobMeta(t *testing.T) {
 			restore: &mariadbv1alpha1.Restore{
 				Spec: mariadbv1alpha1.RestoreSpec{
 					RestoreSource: mariadbv1alpha1.RestoreSource{
-						Volume: &mariadbv1alpha1.VolumeSource{
-							StorageVolumeSource: mariadbv1alpha1.StorageVolumeSource{
-								PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimVolumeSource{},
-							},
+						Volume: &mariadbv1alpha1.StorageVolumeSource{
+							PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimVolumeSource{},
 						},
 						S3: &mariadbv1alpha1.S3{},
 					},
@@ -681,10 +673,8 @@ func TestRestoreJobMeta(t *testing.T) {
 			restore: &mariadbv1alpha1.Restore{
 				Spec: mariadbv1alpha1.RestoreSpec{
 					RestoreSource: mariadbv1alpha1.RestoreSource{
-						Volume: &mariadbv1alpha1.VolumeSource{
-							StorageVolumeSource: mariadbv1alpha1.StorageVolumeSource{
-								PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimVolumeSource{},
-							},
+						Volume: &mariadbv1alpha1.StorageVolumeSource{
+							PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimVolumeSource{},
 						},
 						S3: &mariadbv1alpha1.S3{},
 					},
