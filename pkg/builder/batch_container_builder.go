@@ -47,7 +47,8 @@ func (b *Builder) jobMariadbContainer(cmd *cmd.Command, volumeMounts []corev1.Vo
 	return b.jobContainer("mariadb", cmd, mariadb.Spec.Image, volumeMounts, envVar, resources, mariadb, securityContext)
 }
 
-func jobBatchStorageVolume(storageVolume mariadbv1alpha1.StorageVolumeSource, s3 *mariadbv1alpha1.S3) ([]corev1.Volume, []corev1.VolumeMount) {
+func jobBatchStorageVolume(storageVolume mariadbv1alpha1.StorageVolumeSource,
+	s3 *mariadbv1alpha1.S3) ([]corev1.Volume, []corev1.VolumeMount) {
 	volumes :=
 		[]corev1.Volume{
 			{
