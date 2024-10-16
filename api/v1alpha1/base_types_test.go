@@ -53,10 +53,8 @@ var _ = Describe("Base types", func() {
 						Bucket:   "test",
 						Endpoint: "test",
 					},
-					Volume: &VolumeSource{
-						StorageVolumeSource: StorageVolumeSource{
-							EmptyDir: &EmptyDirVolumeSource{},
-						},
+					Volume: &StorageVolumeSource{
+						EmptyDir: &EmptyDirVolumeSource{},
 					},
 				},
 				true,
@@ -65,23 +63,19 @@ var _ = Describe("Base types", func() {
 			Entry(
 				"Volume",
 				&RestoreSource{
-					Volume: &VolumeSource{
-						StorageVolumeSource: StorageVolumeSource{
-							NFS: &NFSVolumeSource{
-								Server: "test",
-								Path:   "test",
-							},
+					Volume: &StorageVolumeSource{
+						NFS: &NFSVolumeSource{
+							Server: "test",
+							Path:   "test",
 						},
 					},
 				},
 				nil,
 				&RestoreSource{
-					Volume: &VolumeSource{
-						StorageVolumeSource: StorageVolumeSource{
-							NFS: &NFSVolumeSource{
-								Server: "test",
-								Path:   "test",
-							},
+					Volume: &StorageVolumeSource{
+						NFS: &NFSVolumeSource{
+							Server: "test",
+							Path:   "test",
 						},
 					},
 				},
@@ -95,12 +89,10 @@ var _ = Describe("Base types", func() {
 						Bucket:   "test",
 						Endpoint: "test",
 					},
-					Volume: &VolumeSource{
-						StorageVolumeSource: StorageVolumeSource{
-							NFS: &NFSVolumeSource{
-								Server: "test",
-								Path:   "test",
-							},
+					Volume: &StorageVolumeSource{
+						NFS: &NFSVolumeSource{
+							Server: "test",
+							Path:   "test",
 						},
 					},
 				},
@@ -110,10 +102,8 @@ var _ = Describe("Base types", func() {
 						Bucket:   "test",
 						Endpoint: "test",
 					},
-					Volume: &VolumeSource{
-						StorageVolumeSource: StorageVolumeSource{
-							EmptyDir: &EmptyDirVolumeSource{},
-						},
+					Volume: &StorageVolumeSource{
+						EmptyDir: &EmptyDirVolumeSource{},
 					},
 				},
 				true,
@@ -137,10 +127,8 @@ var _ = Describe("Base types", func() {
 						Bucket:   "test",
 						Endpoint: "test",
 					},
-					Volume: &VolumeSource{
-						StorageVolumeSource: StorageVolumeSource{
-							EmptyDir: &EmptyDirVolumeSource{},
-						},
+					Volume: &StorageVolumeSource{
+						EmptyDir: &EmptyDirVolumeSource{},
 					},
 				},
 				true,
@@ -152,24 +140,20 @@ var _ = Describe("Base types", func() {
 				&Backup{
 					Spec: BackupSpec{
 						Storage: BackupStorage{
-							Volume: &VolumeSource{
-								StorageVolumeSource: StorageVolumeSource{
-									NFS: &NFSVolumeSource{
-										Server: "test",
-										Path:   "test",
-									},
+							Volume: &StorageVolumeSource{
+								NFS: &NFSVolumeSource{
+									Server: "test",
+									Path:   "test",
 								},
 							},
 						},
 					},
 				},
 				&RestoreSource{
-					Volume: &VolumeSource{
-						StorageVolumeSource: StorageVolumeSource{
-							NFS: &NFSVolumeSource{
-								Server: "test",
-								Path:   "test",
-							},
+					Volume: &StorageVolumeSource{
+						NFS: &NFSVolumeSource{
+							Server: "test",
+							Path:   "test",
 						},
 					},
 				},
@@ -199,10 +183,8 @@ var _ = Describe("Base types", func() {
 						Bucket:   "test-backup",
 						Endpoint: "test-backup",
 					},
-					Volume: &VolumeSource{
-						StorageVolumeSource: StorageVolumeSource{
-							EmptyDir: &EmptyDirVolumeSource{},
-						},
+					Volume: &StorageVolumeSource{
+						EmptyDir: &EmptyDirVolumeSource{},
 					},
 				},
 				true,
@@ -211,12 +193,10 @@ var _ = Describe("Base types", func() {
 			Entry(
 				"Backup priority over Volume",
 				&RestoreSource{
-					Volume: &VolumeSource{
-						StorageVolumeSource: StorageVolumeSource{
-							NFS: &NFSVolumeSource{
-								Server: "test",
-								Path:   "test",
-							},
+					Volume: &StorageVolumeSource{
+						NFS: &NFSVolumeSource{
+							Server: "test",
+							Path:   "test",
 						},
 					},
 				},
@@ -235,10 +215,8 @@ var _ = Describe("Base types", func() {
 						Bucket:   "test-backup",
 						Endpoint: "test-backup",
 					},
-					Volume: &VolumeSource{
-						StorageVolumeSource: StorageVolumeSource{
-							EmptyDir: &EmptyDirVolumeSource{},
-						},
+					Volume: &StorageVolumeSource{
+						EmptyDir: &EmptyDirVolumeSource{},
 					},
 				},
 				true,

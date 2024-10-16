@@ -196,7 +196,7 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 		return nil, fmt.Errorf("error building restore command: %v", err)
 	}
 
-	volume := ptr.Deref(restore.Spec.Volume, mariadbv1alpha1.VolumeSource{})
+	volume := ptr.Deref(restore.Spec.Volume, mariadbv1alpha1.StorageVolumeSource{})
 	volumes, volumeSources := jobBatchStorageVolume(volume, restore.Spec.S3)
 	affinity := ptr.Deref(restore.Spec.Affinity, mariadbv1alpha1.AffinityConfig{}).Affinity
 

@@ -12,7 +12,19 @@ import (
 	"k8s.io/utils/ptr"
 )
 
-// BackupStorage defines the storage for a Backup.
+// BackupStagingStorage defines the staging storage to temporarily store backups.
+// type BackupStagingStorage struct {
+// 	// PersistentVolumeClaim is a Kubernetes PVC specification.
+// 	// +optional
+// 	// +operator-sdk:csv:customresourcedefinitions:type=spec
+// 	PersistentVolumeClaim *PersistentVolumeClaimSpec `json:"persistentVolumeClaim,omitempty"`
+// 	// Volume is a Kubernetes volume specification.
+// 	// +optional
+// 	// +operator-sdk:csv:customresourcedefinitions:type=spec
+// 	Volume *StorageVolumeSource `json:"volume,omitempty"`
+// }
+
+// BackupStorage defines the final storage for backups
 type BackupStorage struct {
 	// S3 defines the configuration to store backups in a S3 compatible storage.
 	// +optional
@@ -25,7 +37,7 @@ type BackupStorage struct {
 	// Volume is a Kubernetes volume specification.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Volume *VolumeSource `json:"volume,omitempty"`
+	Volume *StorageVolumeSource `json:"volume,omitempty"`
 }
 
 func (b *BackupStorage) Validate() error {
@@ -196,27 +208,23 @@ func (b *Backup) SetDefaults(mariadb *MariaDB) {
 	b.Spec.JobPodTemplate.SetDefaults(b.ObjectMeta, mariadb.ObjectMeta)
 }
 
-func (b *Backup) Volume() (VolumeSource, error) {
+func (b *Backup) Volume() (StorageVolumeSource, error) {
 	if b.Spec.Storage.S3 != nil {
-		return VolumeSource{
-			StorageVolumeSource: StorageVolumeSource{
-				EmptyDir: &EmptyDirVolumeSource{},
-			},
+		return StorageVolumeSource{
+			EmptyDir: &EmptyDirVolumeSource{},
 		}, nil
 	}
 	if b.Spec.Storage.PersistentVolumeClaim != nil {
-		return VolumeSource{
-			StorageVolumeSource: StorageVolumeSource{
-				PersistentVolumeClaim: &PersistentVolumeClaimVolumeSource{
-					ClaimName: b.Name,
-				},
+		return StorageVolumeSource{
+			PersistentVolumeClaim: &PersistentVolumeClaimVolumeSource{
+				ClaimName: b.Name,
 			},
 		}, nil
 	}
 	if b.Spec.Storage.Volume != nil {
 		return *b.Spec.Storage.Volume, nil
 	}
-	return VolumeSource{}, errors.New("unable to get volume for Backup")
+	return StorageVolumeSource{}, errors.New("unable to get volume for Backup")
 }
 
 // +kubebuilder:object:root=true

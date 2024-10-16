@@ -220,7 +220,7 @@ func (in *BackupStorage) DeepCopyInto(out *BackupStorage) {
 	}
 	if in.Volume != nil {
 		in, out := &in.Volume, &out.Volume
-		*out = new(VolumeSource)
+		*out = new(StorageVolumeSource)
 		(*in).DeepCopyInto(*out)
 	}
 }
@@ -3316,7 +3316,7 @@ func (in *RestoreSource) DeepCopyInto(out *RestoreSource) {
 	}
 	if in.Volume != nil {
 		in, out := &in.Volume, &out.Volume
-		*out = new(VolumeSource)
+		*out = new(StorageVolumeSource)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.TargetRecoveryTime != nil {

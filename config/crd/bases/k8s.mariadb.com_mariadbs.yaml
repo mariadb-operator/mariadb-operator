@@ -686,16 +686,6 @@ spec:
                     description: Volume is a Kubernetes Volume object that contains
                       a backup.
                     properties:
-                      configMap:
-                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#configmapvolumesource-v1-core.'
-                        properties:
-                          defaultMode:
-                            format: int32
-                            type: integer
-                          name:
-                            default: ""
-                            type: string
-                        type: object
                       csi:
                         description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#csivolumesource-v1-core.'
                         properties:
@@ -755,15 +745,6 @@ spec:
                             type: boolean
                         required:
                         - claimName
-                        type: object
-                      secret:
-                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#secretvolumesource-v1-core.'
-                        properties:
-                          defaultMode:
-                            format: int32
-                            type: integer
-                          secretName:
-                            type: string
                         type: object
                     type: object
                 type: object
