@@ -607,6 +607,22 @@ type BackupStagingStorage struct {
 	Volume *StorageVolumeSource `json:"volume,omitempty"`
 }
 
+func (s *BackupStagingStorage) VolumeOrEmptyDir(pvcKey types.NamespacedName) StorageVolumeSource {
+	if s.PersistentVolumeClaim != nil {
+		return StorageVolumeSource{
+			PersistentVolumeClaim: &PersistentVolumeClaimVolumeSource{
+				ClaimName: pvcKey.Name,
+			},
+		}
+	}
+	if s.Volume != nil {
+		return *s.Volume
+	}
+	return StorageVolumeSource{
+		EmptyDir: &EmptyDirVolumeSource{},
+	}
+}
+
 // RestoreSource defines a source for restoring a MariaDB.
 type RestoreSource struct {
 	// BackupRef is a reference to a Backup object. It has priority over S3 and Volume.
@@ -645,20 +661,18 @@ func (r *RestoreSource) IsDefaulted() bool {
 	return r.Volume != nil
 }
 
-func (r *RestoreSource) SetDefaults() {
+func (r *RestoreSource) SetDefaults(restore *Restore) {
 	if r.S3 != nil {
-		r.Volume = &StorageVolumeSource{
-			EmptyDir: &EmptyDirVolumeSource{},
-		}
+		stagingStorage := ptr.Deref(r.StagingStorage, BackupStagingStorage{})
+		r.Volume = ptr.To(stagingStorage.VolumeOrEmptyDir(restore.StagingPVCKey()))
 	}
 }
 
 func (r *RestoreSource) SetDefaultsWithBackup(backup *Backup) error {
 	volume, err := backup.Volume()
 	if err != nil {
-		return fmt.Errorf("error getting backup volume: %v", err)
+		return fmt.Errorf("error getting Backup volume: %v", err)
 	}
-
 	r.Volume = &volume
 	r.S3 = backup.Spec.Storage.S3
 	return nil
