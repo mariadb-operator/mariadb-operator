@@ -74,7 +74,7 @@ var _ = Describe("Base types", func() {
 						Bucket:   "test",
 						Endpoint: "test",
 					},
-					StagingStorage: &StagingStorage{
+					StagingStorage: &BackupStagingStorage{
 						PersistentVolumeClaim: &PersistentVolumeClaimSpec{
 							StorageClassName: ptr.To("my-sc"),
 							Resources: corev1.VolumeResourceRequirements{
@@ -96,7 +96,7 @@ var _ = Describe("Base types", func() {
 							ClaimName: restore.StagingPVCKey().Name,
 						},
 					},
-					StagingStorage: &StagingStorage{
+					StagingStorage: &BackupStagingStorage{
 						PersistentVolumeClaim: &PersistentVolumeClaimSpec{
 							StorageClassName: ptr.To("my-sc"),
 							Resources: corev1.VolumeResourceRequirements{
@@ -172,7 +172,7 @@ var _ = Describe("Base types", func() {
 							Path:   "test",
 						},
 					},
-					StagingStorage: &StagingStorage{
+					StagingStorage: &BackupStagingStorage{
 						PersistentVolumeClaim: &PersistentVolumeClaimSpec{
 							StorageClassName: ptr.To("my-sc"),
 							Resources: corev1.VolumeResourceRequirements{
@@ -194,7 +194,7 @@ var _ = Describe("Base types", func() {
 							ClaimName: restore.StagingPVCKey().Name,
 						},
 					},
-					StagingStorage: &StagingStorage{
+					StagingStorage: &BackupStagingStorage{
 						PersistentVolumeClaim: &PersistentVolumeClaimSpec{
 							StorageClassName: ptr.To("my-sc"),
 							Resources: corev1.VolumeResourceRequirements{
