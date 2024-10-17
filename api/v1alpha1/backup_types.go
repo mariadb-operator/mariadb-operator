@@ -85,8 +85,8 @@ type BackupSpec struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Compression CompressAlgorithm `json:"compression,omitempty"`
 	// StagingStorage defines the temporary storage used to keep external backups (i.e. S3) while they are being processed.
-	// It defaults to an emptyDir volume, meaning that the backups will be temporarily stored in the node
-	// where the Backup Job is scheduled.
+	// It defaults to an emptyDir volume, meaning that the backups will be temporarily stored in the node  where the Backup Job is scheduled.
+	// The staging area gets cleaned up after each backup is completed, consider this for sizing it appropriately.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch","urn:alm:descriptor:com.tectonic.ui:advanced"}
 	StagingStorage *BackupStagingStorage `json:"stagingStorage,omitempty" webhook:"inmutable"`

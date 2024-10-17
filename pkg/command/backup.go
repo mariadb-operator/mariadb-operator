@@ -16,6 +16,7 @@ type BackupOpts struct {
 	CommandOpts
 	Path                 string
 	TargetFilePath       string
+	CleanupPath          bool
 	MaxRetentionDuration time.Duration
 	TargetTime           time.Time
 	Compression          mariadbv1alpha1.CompressAlgorithm
@@ -36,6 +37,12 @@ func WithBackup(path string, targetFilePath string) BackupOpt {
 	return func(bo *BackupOpts) {
 		bo.Path = path
 		bo.TargetFilePath = targetFilePath
+	}
+}
+
+func WithCleanupPath(shoudlCleanup bool) BackupOpt {
+	return func(bo *BackupOpts) {
+		bo.CleanupPath = shoudlCleanup
 	}
 }
 
@@ -184,6 +191,9 @@ func (b *BackupCommand) MariadbOperatorBackup() *Command {
 		string(b.Compression),
 		"--log-level",
 		b.LogLevel,
+	}
+	if b.CleanupPath {
+		args = append(args, "--cleanup-path")
 	}
 	args = append(args, b.s3Args()...)
 	return NewCommand(nil, args)

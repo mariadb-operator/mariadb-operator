@@ -52,6 +52,7 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alph
 			batchStorageMountPath,
 			batchBackupTargetFilePath,
 		),
+		command.WithCleanupPath(backupShouldCleanupPath(backup)),
 		command.WithBackupMaxRetention(backup.Spec.MaxRetention.Duration),
 		command.WithBackupCompression(backup.Spec.Compression),
 		command.WithBackupUserEnv(batchUserEnv),
@@ -540,6 +541,10 @@ func (b *Builder) BuildSqlCronJob(key types.NamespacedName, sqlJob *mariadbv1alp
 		return nil, fmt.Errorf("error setting controller reference to CronJob: %v", err)
 	}
 	return cronJob, nil
+}
+
+func backupShouldCleanupPath(backup *mariadbv1alpha1.Backup) bool {
+	return backup.Spec.Storage.S3 != nil && backup.Spec.StagingStorage != nil
 }
 
 func s3Opts(s3 *mariadbv1alpha1.S3) []command.BackupOpt {
