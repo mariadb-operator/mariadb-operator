@@ -22,22 +22,28 @@ import (
 )
 
 var (
-	logger         = ctrl.Log
+	logger = ctrl.Log
+
 	path           string
 	targetFilePath string
-	s3             bool
-	s3Bucket       string
-	s3Endpoint     string
-	s3Region       string
-	s3TLS          bool
-	s3CACertPath   string
-	s3Prefix       string
-	maxRetention   time.Duration
-	compression    string
+	cleanupPath    bool
+
+	s3           bool
+	s3Bucket     string
+	s3Endpoint   string
+	s3Region     string
+	s3TLS        bool
+	s3CACertPath string
+	s3Prefix     string
+
+	maxRetention time.Duration
+
+	compression string
 )
 
 func init() {
-	RootCmd.PersistentFlags().StringVar(&path, "path", "/backup", "Directory path where the backup files are located.")
+	RootCmd.PersistentFlags().StringVar(&path, "path", "/backup", "Directory path where the backup files are located."+
+		"When S3 is enabled, it is used as staging area and the source of truth of backups remains in S3.")
 	RootCmd.PersistentFlags().StringVar(&targetFilePath, "target-file-path", "/backup/0-backup-target.txt",
 		"Path to a file that contains the name of the backup target file.")
 	if err := RootCmd.MarkPersistentFlagRequired("path"); err != nil {
@@ -48,6 +54,7 @@ func init() {
 		fmt.Printf("error marking 'target-file-path' flag as required: %v", err)
 		os.Exit(1)
 	}
+	RootCmd.PersistentFlags().BoolVar(&cleanupPath, "cleanup-path", false, "Whether to clean up files available in 'path' after finishing.")
 
 	RootCmd.PersistentFlags().BoolVar(&s3, "s3", false, "Enable S3 backup storage.")
 	RootCmd.PersistentFlags().StringVar(&s3Bucket, "s3-bucket", "backups", "Name of the bucket to store backups.")
@@ -121,19 +128,20 @@ var RootCmd = &cobra.Command{
 			logger.Error(err, "error listing backup files")
 			os.Exit(1)
 		}
-
-		logger.Info("cleaning up old backups")
 		oldBackups := backup.GetOldBackupFiles(backupNames, maxRetention, logger.WithName("backup-cleanup"))
-		if len(oldBackups) == 0 {
-			logger.Info("no old backups were found")
-			os.Exit(0)
-		}
 		logger.Info("old backups to delete", "backups", len(oldBackups))
-
 		for _, backup := range oldBackups {
 			logger.V(1).Info("deleting old backup", "backup", backup)
 			if err := backupStorage.Delete(ctx, backup); err != nil {
 				logger.Error(err, "error removing old backup", "backup", backup)
+			}
+		}
+
+		if cleanupPath {
+			logger.Info("cleaning up staging area")
+			if err := cleanupStaging(logger.WithName("staging")); err != nil {
+				logger.Error(err, "error cleaning up staging area", "path", path)
+				os.Exit(1)
 			}
 		}
 	},
@@ -234,6 +242,24 @@ func compressFile(fileName string, compression mariadbv1alpha1.CompressAlgorithm
 	}
 	if err := os.Rename(tmpf, fileName); err != nil {
 		return err
+	}
+	return nil
+}
+
+func cleanupStaging(logger logr.Logger) error {
+	logger.V(1).Info("reading staging directory", "path", path)
+	files, err := os.ReadDir(path)
+	if err != nil {
+		return fmt.Errorf("error reading staging directory \"%s\": %v", path, err)
+	}
+
+	for _, file := range files {
+		filePath := filepath.Join(path, file.Name())
+		logger.V(1).Info("deleting file", "path", filePath)
+
+		if err := os.RemoveAll(filePath); err != nil {
+			return fmt.Errorf("error deleting file \"%s\": %v", filePath, err)
+		}
 	}
 	return nil
 }
