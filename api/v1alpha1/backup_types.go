@@ -204,14 +204,13 @@ func (b *Backup) SetDefaults(mariadb *MariaDB) {
 
 func (b *Backup) Volume() (StorageVolumeSource, error) {
 	if b.Spec.Storage.S3 != nil {
-		return StorageVolumeSource{
-			EmptyDir: &EmptyDirVolumeSource{},
-		}, nil
+		stagingStorage := ptr.Deref(b.Spec.StagingStorage, BackupStagingStorage{})
+		return stagingStorage.VolumeOrEmptyDir(b.StagingPVCKey()), nil
 	}
 	if b.Spec.Storage.PersistentVolumeClaim != nil {
 		return StorageVolumeSource{
 			PersistentVolumeClaim: &PersistentVolumeClaimVolumeSource{
-				ClaimName: b.Name,
+				ClaimName: b.StoragePVCKey().Name,
 			},
 		}, nil
 	}

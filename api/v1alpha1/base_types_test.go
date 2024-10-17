@@ -4,12 +4,19 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 )
 
 var _ = Describe("Base types", func() {
 	Context("When creating a RestoreSource object", func() {
+		restore := Restore{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "restore-default",
+				Namespace: testNamespace,
+			},
+		}
 		DescribeTable(
 			"Should default",
 			func(
@@ -19,7 +26,7 @@ var _ = Describe("Base types", func() {
 				wantDefaulted bool,
 				wantBackupDefaulErr bool,
 			) {
-				rs.SetDefaults()
+				rs.SetDefaults(&restore)
 				if backup != nil {
 					err := rs.SetDefaultsWithBackup(backup)
 					if wantBackupDefaulErr {
@@ -55,6 +62,49 @@ var _ = Describe("Base types", func() {
 					},
 					Volume: &StorageVolumeSource{
 						EmptyDir: &EmptyDirVolumeSource{},
+					},
+				},
+				true,
+				false,
+			),
+			Entry(
+				"S3 with staging",
+				&RestoreSource{
+					S3: &S3{
+						Bucket:   "test",
+						Endpoint: "test",
+					},
+					StagingStorage: &BackupStagingStorage{
+						PersistentVolumeClaim: &PersistentVolumeClaimSpec{
+							StorageClassName: ptr.To("my-sc"),
+							Resources: corev1.VolumeResourceRequirements{
+								Requests: corev1.ResourceList{
+									"storage": resource.MustParse("1Gi"),
+								},
+							},
+						},
+					},
+				},
+				nil,
+				&RestoreSource{
+					S3: &S3{
+						Bucket:   "test",
+						Endpoint: "test",
+					},
+					Volume: &StorageVolumeSource{
+						PersistentVolumeClaim: &PersistentVolumeClaimVolumeSource{
+							ClaimName: restore.StagingPVCKey().Name,
+						},
+					},
+					StagingStorage: &BackupStagingStorage{
+						PersistentVolumeClaim: &PersistentVolumeClaimSpec{
+							StorageClassName: ptr.To("my-sc"),
+							Resources: corev1.VolumeResourceRequirements{
+								Requests: corev1.ResourceList{
+									"storage": resource.MustParse("1Gi"),
+								},
+							},
+						},
 					},
 				},
 				true,
@@ -104,6 +154,55 @@ var _ = Describe("Base types", func() {
 					},
 					Volume: &StorageVolumeSource{
 						EmptyDir: &EmptyDirVolumeSource{},
+					},
+				},
+				true,
+				false,
+			),
+			Entry(
+				"S3 with staging priority over Volume",
+				&RestoreSource{
+					S3: &S3{
+						Bucket:   "test",
+						Endpoint: "test",
+					},
+					Volume: &StorageVolumeSource{
+						NFS: &NFSVolumeSource{
+							Server: "test",
+							Path:   "test",
+						},
+					},
+					StagingStorage: &BackupStagingStorage{
+						PersistentVolumeClaim: &PersistentVolumeClaimSpec{
+							StorageClassName: ptr.To("my-sc"),
+							Resources: corev1.VolumeResourceRequirements{
+								Requests: corev1.ResourceList{
+									"storage": resource.MustParse("1Gi"),
+								},
+							},
+						},
+					},
+				},
+				nil,
+				&RestoreSource{
+					S3: &S3{
+						Bucket:   "test",
+						Endpoint: "test",
+					},
+					Volume: &StorageVolumeSource{
+						PersistentVolumeClaim: &PersistentVolumeClaimVolumeSource{
+							ClaimName: restore.StagingPVCKey().Name,
+						},
+					},
+					StagingStorage: &BackupStagingStorage{
+						PersistentVolumeClaim: &PersistentVolumeClaimSpec{
+							StorageClassName: ptr.To("my-sc"),
+							Resources: corev1.VolumeResourceRequirements{
+								Requests: corev1.ResourceList{
+									"storage": resource.MustParse("1Gi"),
+								},
+							},
+						},
 					},
 				},
 				true,
