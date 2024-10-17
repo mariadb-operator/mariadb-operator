@@ -84,12 +84,12 @@ type BackupSpec struct {
 	// +kubebuilder:validation:Enum=none;bzip2;gzip
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Compression CompressAlgorithm `json:"compression,omitempty"`
-	// StagingStorage defines the temporary storage used to keep backups while they are being processed.
+	// StagingStorage defines the temporary storage used to keep external backups (i.e. S3) while they are being processed.
 	// It defaults to an emptyDir volume, meaning that the backups will be temporarily stored in the node
 	// where the Backup Job is scheduled.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	StagingStorage *BackupStagingStorage `json:"stagingStorage,omitempty" webhook:"inmutable"`
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch","urn:alm:descriptor:com.tectonic.ui:advanced"}
+	StagingStorage *StagingStorage `json:"stagingStorage,omitempty" webhook:"inmutable"`
 	// Storage defines the final storage for backups.
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -204,7 +204,7 @@ func (b *Backup) SetDefaults(mariadb *MariaDB) {
 
 func (b *Backup) Volume() (StorageVolumeSource, error) {
 	if b.Spec.Storage.S3 != nil {
-		stagingStorage := ptr.Deref(b.Spec.StagingStorage, BackupStagingStorage{})
+		stagingStorage := ptr.Deref(b.Spec.StagingStorage, StagingStorage{})
 		return stagingStorage.VolumeOrEmptyDir(b.StagingPVCKey()), nil
 	}
 	if b.Spec.Storage.PersistentVolumeClaim != nil {

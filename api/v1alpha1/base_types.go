@@ -595,8 +595,8 @@ func MergeMetadata(metas ...*Metadata) *Metadata {
 	return &meta
 }
 
-// BackupStagingStorage defines the temporary storage used to keep backups while they are being processed.
-type BackupStagingStorage struct {
+// StagingStorage defines the temporary storage used to keep external backups (i.e. S3) while they are being processed.
+type StagingStorage struct {
 	// PersistentVolumeClaim is a Kubernetes PVC specification.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -607,7 +607,7 @@ type BackupStagingStorage struct {
 	Volume *StorageVolumeSource `json:"volume,omitempty"`
 }
 
-func (s *BackupStagingStorage) VolumeOrEmptyDir(pvcKey types.NamespacedName) StorageVolumeSource {
+func (s *StagingStorage) VolumeOrEmptyDir(pvcKey types.NamespacedName) StorageVolumeSource {
 	if s.PersistentVolumeClaim != nil {
 		return StorageVolumeSource{
 			PersistentVolumeClaim: &PersistentVolumeClaimVolumeSource{
@@ -642,12 +642,12 @@ type RestoreSource struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	TargetRecoveryTime *metav1.Time `json:"targetRecoveryTime,omitempty" webhook:"inmutable"`
-	// StagingStorage defines the temporary storage used to keep backups while they are being processed.
+	// StagingStorage defines the temporary storage used to keep external backups (i.e. S3) while they are being processed.
 	// It defaults to an emptyDir volume, meaning that the backups will be temporarily stored in the node
 	// where the Restore Job is scheduled.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	StagingStorage *BackupStagingStorage `json:"stagingStorage,omitempty" webhook:"inmutableinit"`
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch","urn:alm:descriptor:com.tectonic.ui:advanced"}
+	StagingStorage *StagingStorage `json:"stagingStorage,omitempty" webhook:"inmutable"`
 }
 
 func (r *RestoreSource) Validate() error {
@@ -663,7 +663,7 @@ func (r *RestoreSource) IsDefaulted() bool {
 
 func (r *RestoreSource) SetDefaults(restore *Restore) {
 	if r.S3 != nil {
-		stagingStorage := ptr.Deref(r.StagingStorage, BackupStagingStorage{})
+		stagingStorage := ptr.Deref(r.StagingStorage, StagingStorage{})
 		r.Volume = ptr.To(stagingStorage.VolumeOrEmptyDir(restore.StagingPVCKey()))
 	}
 }
