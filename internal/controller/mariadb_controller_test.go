@@ -87,7 +87,7 @@ var _ = Describe("MariaDB", func() {
 		expectMariadbReady(testCtx, k8sClient, testMdbkey)
 	})
 
-	It("should suspend ", func() {
+	It("should suspend", func() {
 		By("Creating MariaDB")
 		key := types.NamespacedName{
 			Name:      "test-mariadb-suspend",
@@ -689,7 +689,17 @@ var _ = Describe("MariaDB", func() {
 			Namespace: testNamespace,
 		}
 		restoreSource := mariadbv1alpha1.RestoreSource{
-			S3:                 getS3WithBucket("test-mariadb", "s3"),
+			S3: getS3WithBucket("test-mariadb", "s3"),
+			StagingStorage: &mariadbv1alpha1.BackupStagingStorage{
+				PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimSpec{
+					StorageClassName: ptr.To("my-sc"),
+					Resources: corev1.VolumeResourceRequirements{
+						Requests: corev1.ResourceList{
+							"storage": resource.MustParse("500Mi"),
+						},
+					},
+				},
+			},
 			TargetRecoveryTime: &metav1.Time{Time: time.Now()},
 		}
 
