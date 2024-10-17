@@ -235,7 +235,7 @@ var _ = Describe("Backup types", func() {
 						Storage: BackupStorage{
 							S3: &S3{},
 						},
-						StagingStorage: &BackupStagingStorage{
+						StagingStorage: &StagingStorage{
 							PersistentVolumeClaim: &PersistentVolumeClaimSpec{
 								StorageClassName: ptr.To("my-sc"),
 								Resources: corev1.VolumeResourceRequirements{
@@ -329,7 +329,7 @@ var _ = Describe("Backup types", func() {
 								},
 							},
 						},
-						StagingStorage: &BackupStagingStorage{
+						StagingStorage: &StagingStorage{
 							PersistentVolumeClaim: &PersistentVolumeClaimSpec{
 								StorageClassName: ptr.To("my-sc"),
 								Resources: corev1.VolumeResourceRequirements{

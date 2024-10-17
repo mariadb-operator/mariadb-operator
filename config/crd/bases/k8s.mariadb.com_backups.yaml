@@ -573,7 +573,7 @@ spec:
                 type: string
               stagingStorage:
                 description: |-
-                  StagingStorage defines the temporary storage used to keep backups while they are being processed.
+                  StagingStorage defines the temporary storage used to keep external backups (i.e. S3) while they are being processed.
                   It defaults to an emptyDir volume, meaning that the backups will be temporarily stored in the node
                   where the Backup Job is scheduled.
                 properties:
