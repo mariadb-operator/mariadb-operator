@@ -654,6 +654,9 @@ func (r *RestoreSource) Validate() error {
 	if r.BackupRef == nil && r.S3 == nil && r.Volume == nil {
 		return errors.New("unable to determine restore source")
 	}
+	if r.S3 == nil && r.StagingStorage != nil {
+		return errors.New("'spec.stagingStorage' may only be specified when 'spec.s3' is set")
+	}
 	return nil
 }
 
