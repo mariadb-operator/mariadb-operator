@@ -108,7 +108,7 @@ func (v ConfigMapVolumeSource) ToKubernetesType() corev1.ConfigMapVolumeSource {
 }
 
 // Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#volume-v1-core.
-type VolumeSource struct {
+type StorageVolumeSource struct {
 	// +optional
 	EmptyDir *EmptyDirVolumeSource `json:"emptyDir,omitempty"`
 	// +optional
@@ -117,13 +117,9 @@ type VolumeSource struct {
 	CSI *CSIVolumeSource `json:"csi,omitempty"`
 	// +optional
 	PersistentVolumeClaim *PersistentVolumeClaimVolumeSource `json:"persistentVolumeClaim,omitempty"`
-	// +optional
-	Secret *SecretVolumeSource `json:"secret,omitempty"`
-	// +optional
-	ConfigMap *ConfigMapVolumeSource `json:"configMap,omitempty"`
 }
 
-func (v VolumeSource) ToKubernetesType() corev1.VolumeSource {
+func (v StorageVolumeSource) ToKubernetesType() corev1.VolumeSource {
 	var volumeSource corev1.VolumeSource
 	if v.EmptyDir != nil {
 		volumeSource.EmptyDir = ptr.To(v.EmptyDir.ToKubernetesType())
@@ -137,6 +133,20 @@ func (v VolumeSource) ToKubernetesType() corev1.VolumeSource {
 	if v.PersistentVolumeClaim != nil {
 		volumeSource.PersistentVolumeClaim = ptr.To(v.PersistentVolumeClaim.ToKubernetesType())
 	}
+	return volumeSource
+}
+
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#volume-v1-core.
+type VolumeSource struct {
+	StorageVolumeSource `json:",inline"`
+	// +optional
+	Secret *SecretVolumeSource `json:"secret,omitempty"`
+	// +optional
+	ConfigMap *ConfigMapVolumeSource `json:"configMap,omitempty"`
+}
+
+func (v VolumeSource) ToKubernetesType() corev1.VolumeSource {
+	volumeSource := v.StorageVolumeSource.ToKubernetesType()
 	if v.Secret != nil {
 		volumeSource.Secret = ptr.To(v.Secret.ToKubernetesType())
 	}

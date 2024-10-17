@@ -106,7 +106,7 @@ func (r *RestoreReconciler) setDefaults(ctx context.Context, restore *mariadbv1a
 	mariadb *mariadbv1alpha1.MariaDB) error {
 	if err := r.patch(ctx, restore, func(r *mariadbv1alpha1.Restore) error {
 		restore.SetDefaults(mariadb)
-		r.Spec.RestoreSource.SetDefaults()
+		r.Spec.RestoreSource.SetDefaults(restore)
 		return nil
 	}); err != nil {
 		return fmt.Errorf("error patching restore: %v", err)
