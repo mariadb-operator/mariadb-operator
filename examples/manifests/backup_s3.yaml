@@ -25,6 +25,13 @@ spec:
         caSecretKeyRef:
           name: minio-ca
           key: ca.crt
+  stagingStorage:
+    persistentVolumeClaim:
+      resources:
+        requests:
+          storage: 100Mi
+      accessModes:
+        - ReadWriteOnce
     # s3:
     #   bucket: mariadb-operator
     #   endpoint: play.min.io
