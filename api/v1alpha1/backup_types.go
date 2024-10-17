@@ -183,6 +183,9 @@ func (b *Backup) Validate() error {
 	if err := b.Spec.Compression.Validate(); err != nil {
 		return fmt.Errorf("invalid Compression: %v", err)
 	}
+	if b.Spec.Storage.S3 == nil && b.Spec.StagingStorage != nil {
+		return errors.New("'spec.stagingStorage' may only be specified when 'spec.storage.s3' is set")
+	}
 	return nil
 }
 

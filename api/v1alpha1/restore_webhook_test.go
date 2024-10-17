@@ -167,6 +167,73 @@ var _ = Describe("Restore webhook", func() {
 				},
 				false,
 			),
+			Entry(
+				"S3 and staging storage",
+				&Restore{
+					ObjectMeta: objMeta,
+					Spec: RestoreSpec{
+						RestoreSource: RestoreSource{
+							S3: &S3{
+								Bucket:   "test",
+								Endpoint: "test",
+							},
+							StagingStorage: &BackupStagingStorage{
+								PersistentVolumeClaim: &PersistentVolumeClaimSpec{
+									AccessModes: []corev1.PersistentVolumeAccessMode{
+										corev1.ReadWriteOnce,
+									},
+									Resources: corev1.VolumeResourceRequirements{
+										Requests: corev1.ResourceList{
+											"storage": resource.MustParse("300Mi"),
+										},
+									},
+								},
+							},
+						},
+						MariaDBRef: MariaDBRef{
+							ObjectReference: ObjectReference{
+								Name: "mariadb-webhook",
+							},
+							WaitForIt: true,
+						},
+						BackoffLimit: 10,
+					},
+				},
+				false,
+			),
+			Entry(
+				"Volume and stagingStorage",
+				&Restore{
+					ObjectMeta: objMeta,
+					Spec: RestoreSpec{
+						RestoreSource: RestoreSource{
+							Volume: &StorageVolumeSource{
+								EmptyDir: &EmptyDirVolumeSource{},
+							},
+							StagingStorage: &BackupStagingStorage{
+								PersistentVolumeClaim: &PersistentVolumeClaimSpec{
+									AccessModes: []corev1.PersistentVolumeAccessMode{
+										corev1.ReadWriteOnce,
+									},
+									Resources: corev1.VolumeResourceRequirements{
+										Requests: corev1.ResourceList{
+											"storage": resource.MustParse("300Mi"),
+										},
+									},
+								},
+							},
+						},
+						MariaDBRef: MariaDBRef{
+							ObjectReference: ObjectReference{
+								Name: "mariadb-webhook",
+							},
+							WaitForIt: true,
+						},
+						BackoffLimit: 10,
+					},
+				},
+				true,
+			),
 		)
 	})
 
@@ -190,8 +257,21 @@ var _ = Describe("Restore webhook", func() {
 						},
 					},
 					RestoreSource: RestoreSource{
-						BackupRef: &LocalObjectReference{
-							Name: "backup-webhook",
+						S3: &S3{
+							Bucket:   "test",
+							Endpoint: "test",
+						},
+						StagingStorage: &BackupStagingStorage{
+							PersistentVolumeClaim: &PersistentVolumeClaimSpec{
+								AccessModes: []corev1.PersistentVolumeAccessMode{
+									corev1.ReadWriteOnce,
+								},
+								Resources: corev1.VolumeResourceRequirements{
+									Requests: corev1.ResourceList{
+										"storage": resource.MustParse("300Mi"),
+									},
+								},
+							},
 						},
 						TargetRecoveryTime: &metav1.Time{Time: time.Now()},
 					},
@@ -258,19 +338,21 @@ var _ = Describe("Restore webhook", func() {
 			Entry(
 				"Updating BackupRef source",
 				func(rmdb *Restore) {
-					rmdb.Spec.RestoreSource.BackupRef.Name = "another-backup"
-				},
-				true,
-			),
-			Entry(
-				"Init S3 source",
-				func(rmdb *Restore) {
-					rmdb.Spec.RestoreSource.S3 = &S3{
-						Bucket:   "test",
-						Endpoint: "test",
+					rmdb.Spec.RestoreSource.BackupRef = &LocalObjectReference{
+						Name: "backup",
 					}
 				},
 				false,
+			),
+			Entry(
+				"Update S3 source",
+				func(rmdb *Restore) {
+					rmdb.Spec.RestoreSource.S3 = &S3{
+						Bucket:   "another-bucket",
+						Endpoint: "another-endpoint",
+					}
+				},
+				true,
 			),
 			Entry(
 				"Init Volume source",
@@ -285,6 +367,13 @@ var _ = Describe("Restore webhook", func() {
 				"Init TargetRecoveryTime source",
 				func(rmdb *Restore) {
 					rmdb.Spec.RestoreSource.TargetRecoveryTime = &metav1.Time{Time: time.Now().Add(1 * time.Hour)}
+				},
+				true,
+			),
+			Entry(
+				"Update StagingStorage",
+				func(rmdb *Restore) {
+					rmdb.Spec.StagingStorage = nil
 				},
 				true,
 			),
