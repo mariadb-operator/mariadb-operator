@@ -679,8 +679,7 @@ spec:
                   stagingStorage:
                     description: |-
                       StagingStorage defines the temporary storage used to keep external backups (i.e. S3) while they are being processed.
-                      It defaults to an emptyDir volume, meaning that the backups will be temporarily stored in the node
-                      where the Restore Job is scheduled.
+                      It defaults to an emptyDir volume, meaning that the backups will be temporarily stored in the node where the Restore Job is scheduled.
                     properties:
                       persistentVolumeClaim:
                         description: PersistentVolumeClaim is a Kubernetes PVC specification.

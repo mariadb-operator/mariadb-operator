@@ -124,6 +124,7 @@ var RootCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
+		logger.Info("cleaning up old backups")
 		backupNames, err := backupStorage.List(ctx)
 		if err != nil {
 			logger.Error(err, "error listing backup files")

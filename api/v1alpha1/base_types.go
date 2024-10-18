@@ -643,8 +643,7 @@ type RestoreSource struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	TargetRecoveryTime *metav1.Time `json:"targetRecoveryTime,omitempty" webhook:"inmutable"`
 	// StagingStorage defines the temporary storage used to keep external backups (i.e. S3) while they are being processed.
-	// It defaults to an emptyDir volume, meaning that the backups will be temporarily stored in the node
-	// where the Restore Job is scheduled.
+	// It defaults to an emptyDir volume, meaning that the backups will be temporarily stored in the node where the Restore Job is scheduled.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch","urn:alm:descriptor:com.tectonic.ui:advanced"}
 	StagingStorage *BackupStagingStorage `json:"stagingStorage,omitempty" webhook:"inmutable"`
