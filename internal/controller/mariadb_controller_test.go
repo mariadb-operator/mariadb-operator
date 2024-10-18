@@ -692,6 +692,9 @@ var _ = Describe("MariaDB", func() {
 			S3: getS3WithBucket("test-mariadb", "s3"),
 			StagingStorage: &mariadbv1alpha1.BackupStagingStorage{
 				PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimSpec{
+					AccessModes: []corev1.PersistentVolumeAccessMode{
+						corev1.ReadWriteOnce,
+					},
 					Resources: corev1.VolumeResourceRequirements{
 						Requests: corev1.ResourceList{
 							"storage": resource.MustParse("500Mi"),
