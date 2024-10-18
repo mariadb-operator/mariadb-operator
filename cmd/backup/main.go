@@ -24,9 +24,9 @@ import (
 var (
 	logger = ctrl.Log
 
-	path           string
-	targetFilePath string
-	cleanupPath    bool
+	path              string
+	targetFilePath    string
+	cleanupTargetFile bool
 
 	s3           bool
 	s3Bucket     string
@@ -54,7 +54,9 @@ func init() {
 		fmt.Printf("error marking 'target-file-path' flag as required: %v", err)
 		os.Exit(1)
 	}
-	RootCmd.PersistentFlags().BoolVar(&cleanupPath, "cleanup-path", false, "Whether to clean up files available in 'path' after finishing.")
+	RootCmd.PersistentFlags().BoolVar(&cleanupTargetFile, "cleanup-target-file", false,
+		"Whether to clean up the target file after S3 backups are completed."+
+			"This option should be used exclusively with external backups, such as S3.")
 
 	RootCmd.PersistentFlags().BoolVar(&s3, "s3", false, "Enable S3 backup storage.")
 	RootCmd.PersistentFlags().StringVar(&s3Bucket, "s3-bucket", "backups", "Name of the bucket to store backups.")
@@ -107,12 +109,11 @@ var RootCmd = &cobra.Command{
 		}
 		logger.Info("obtained target backup", "file", backupTargetFile)
 
-		err = compressFile(
-			filepath.Join(path, backupTargetFile),
+		if err := compressFile(
+			backupTargetFile,
 			mariadbv1alpha1.CompressAlgorithm(compression),
 			logger.WithName("compress"),
-		)
-		if err != nil {
+		); err != nil {
 			logger.Error(err, "error compressing file", "path", backupTargetFile)
 			os.Exit(1)
 		}
@@ -137,12 +138,9 @@ var RootCmd = &cobra.Command{
 			}
 		}
 
-		if cleanupPath {
-			logger.Info("cleaning up staging area")
-			if err := cleanupStaging(logger.WithName("staging")); err != nil {
-				logger.Error(err, "error cleaning up staging area", "path", path)
-				os.Exit(1)
-			}
+		if err := cleanupFile(backupTargetFile, logger.WithName("cleanup")); err != nil && os.IsNotExist(err) {
+			logger.Error(err, "error cleaning up target file", "file", backupTargetFile)
+			os.Exit(1)
 		}
 	},
 }
@@ -194,15 +192,16 @@ func compressFile(fileName string, compression mariadbv1alpha1.CompressAlgorithm
 	if compression == mariadbv1alpha1.CompressNone {
 		return nil
 	}
-	logger.Info("compressing target backup", "file", fileName)
+	filePath := filepath.Join(path, fileName)
+	logger.Info("compressing target backup", "file", filePath)
 
-	originalFile, err := os.Open(fileName)
+	originalFile, err := os.Open(filePath)
 	if err != nil {
 		return err
 	}
 	defer originalFile.Close()
 
-	tmpf := fileName + ".tmp"
+	tmpf := filePath + ".tmp"
 	compressedFile, err := os.Create(tmpf)
 	if err != nil {
 		return err
@@ -237,29 +236,21 @@ func compressFile(fileName string, compression mariadbv1alpha1.CompressAlgorithm
 		return errors.New("unknown compression algorithm")
 	}
 
-	if err := os.Remove(fileName); err != nil {
+	if err := os.Remove(filePath); err != nil {
 		return err
 	}
-	if err := os.Rename(tmpf, fileName); err != nil {
+	if err := os.Rename(tmpf, filePath); err != nil {
 		return err
 	}
 	return nil
 }
 
-func cleanupStaging(logger logr.Logger) error {
-	logger.V(1).Info("reading staging directory", "path", path)
-	files, err := os.ReadDir(path)
-	if err != nil {
-		return fmt.Errorf("error reading staging directory \"%s\": %v", path, err)
+func cleanupFile(fileName string, logger logr.Logger) error {
+	if !s3 || !cleanupTargetFile {
+		return nil
 	}
+	filePath := filepath.Join(path, fileName)
+	logger.Info("cleaning up target file", "file", filePath)
 
-	for _, file := range files {
-		filePath := filepath.Join(path, file.Name())
-		logger.V(1).Info("deleting file", "path", filePath)
-
-		if err := os.RemoveAll(filePath); err != nil {
-			return fmt.Errorf("error deleting file \"%s\": %v", filePath, err)
-		}
-	}
-	return nil
+	return os.Remove(filePath)
 }

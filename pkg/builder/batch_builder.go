@@ -52,7 +52,7 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alph
 			batchStorageMountPath,
 			batchBackupTargetFilePath,
 		),
-		command.WithCleanupPath(backupShouldCleanupPath(backup)),
+		command.WithCleanupTargetFile(backupShouldCleanupTargetFile(backup)),
 		command.WithBackupMaxRetention(backup.Spec.MaxRetention.Duration),
 		command.WithBackupCompression(backup.Spec.Compression),
 		command.WithBackupUserEnv(batchUserEnv),
@@ -543,7 +543,7 @@ func (b *Builder) BuildSqlCronJob(key types.NamespacedName, sqlJob *mariadbv1alp
 	return cronJob, nil
 }
 
-func backupShouldCleanupPath(backup *mariadbv1alpha1.Backup) bool {
+func backupShouldCleanupTargetFile(backup *mariadbv1alpha1.Backup) bool {
 	return backup.Spec.Storage.S3 != nil && backup.Spec.StagingStorage != nil
 }
 
