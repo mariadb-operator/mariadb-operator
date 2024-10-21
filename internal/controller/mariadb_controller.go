@@ -178,6 +178,10 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			Reconcile: r.GaleraReconciler.Reconcile,
 		},
 		{
+			Name:      "Update",
+			Reconcile: r.reconcileUpdates,
+		},
+		{
 			Name:      "Restore",
 			Reconcile: r.reconcileRestore,
 		},
@@ -339,14 +343,7 @@ func (r *MariaDBReconciler) reconcileStatefulSet(ctx context.Context, mariadb *m
 	}
 	shouldUpdate := mariadb.Spec.UpdateStrategy.Type != mariadbv1alpha1.NeverUpdateType
 
-	if err := r.StatefulSetReconciler.ReconcileWithUpdates(ctx, desiredSts, shouldUpdate); err != nil {
-		return ctrl.Result{}, fmt.Errorf("error reconciling StatefulSet: %v", err)
-	}
-
-	if result, err := r.reconcileUpdates(ctx, mariadb); !result.IsZero() || err != nil {
-		return result, err
-	}
-	return ctrl.Result{}, nil
+	return ctrl.Result{}, r.StatefulSetReconciler.ReconcileWithUpdates(ctx, desiredSts, shouldUpdate)
 }
 
 func (r *MariaDBReconciler) reconcilePodLabels(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
