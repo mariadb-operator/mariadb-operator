@@ -10,6 +10,8 @@ Package v1alpha1 contains API Schema definitions for the v1alpha1 API group
 
 nolint:lll
 
+nolint:lll
+
 ### Resource Types
 - [Backup](#backup)
 - [Connection](#connection)
@@ -37,6 +39,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `podAntiAffinity` _[PodAntiAffinity](#podantiaffinity)_ |  |  |  |
+| `nodeAffinity` _[NodeAffinity](#nodeaffinity)_ |  |  |  |
 
 
 #### AffinityConfig
@@ -62,6 +65,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `podAntiAffinity` _[PodAntiAffinity](#podantiaffinity)_ |  |  |  |
+| `nodeAffinity` _[NodeAffinity](#nodeaffinity)_ |  |  |  |
 | `antiAffinityEnabled` _boolean_ | AntiAffinityEnabled configures PodAntiAffinity so each Pod is scheduled in a different Node, enabling HA.<br />Make sure you have at least as many Nodes available as the replicas to not end up with unscheduled Pods. |  |  |
 
 
@@ -112,7 +116,8 @@ _Appears in:_
 | `timeZone` _string_ | TimeZone defines the timezone associated with the cron expression. |  |  |
 | `mariaDbRef` _[MariaDBRef](#mariadbref)_ | MariaDBRef is a reference to a MariaDB object. |  | Required: \{\} <br /> |
 | `compression` _[CompressAlgorithm](#compressalgorithm)_ | Compression algorithm to be used in the Backup. |  | Enum: [none bzip2 gzip] <br /> |
-| `storage` _[BackupStorage](#backupstorage)_ | Storage to be used in the Backup. |  | Required: \{\} <br /> |
+| `stagingStorage` _[BackupStagingStorage](#backupstagingstorage)_ | StagingStorage defines the temporary storage used to keep external backups (i.e. S3) while they are being processed.<br />It defaults to an emptyDir volume, meaning that the backups will be temporarily stored in the node where the Backup Job is scheduled.<br />The staging area gets cleaned up after each backup is completed, consider this for sizing it appropriately. |  |  |
+| `storage` _[BackupStorage](#backupstorage)_ | Storage defines the final storage for backups. |  | Required: \{\} <br /> |
 | `schedule` _[Schedule](#schedule)_ | Schedule defines when the Backup will be taken. |  |  |
 | `maxRetention` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#duration-v1-meta)_ | MaxRetention defines the retention policy for backups. Old backups will be cleaned up by the Backup Job.<br />It defaults to 30 days. |  |  |
 | `databases` _string array_ | Databases defines the logical databases to be backed up. If not provided, all databases are backed up. |  |  |
@@ -123,11 +128,31 @@ _Appears in:_
 | `inheritMetadata` _[Metadata](#metadata)_ | InheritMetadata defines the metadata to be inherited by children resources. |  |  |
 
 
+#### BackupStagingStorage
+
+
+
+BackupStagingStorage defines the temporary storage used to keep external backups (i.e. S3) while they are being processed.
+
+
+
+_Appears in:_
+- [BackupSpec](#backupspec)
+- [BootstrapFrom](#bootstrapfrom)
+- [RestoreSource](#restoresource)
+- [RestoreSpec](#restorespec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `persistentVolumeClaim` _[PersistentVolumeClaimSpec](#persistentvolumeclaimspec)_ | PersistentVolumeClaim is a Kubernetes PVC specification. |  |  |
+| `volume` _[StorageVolumeSource](#storagevolumesource)_ | Volume is a Kubernetes volume specification. |  |  |
+
+
 #### BackupStorage
 
 
 
-BackupStorage defines the storage for a Backup.
+BackupStorage defines the final storage for backups.
 
 
 
@@ -138,7 +163,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `s3` _[S3](#s3)_ | S3 defines the configuration to store backups in a S3 compatible storage. |  |  |
 | `persistentVolumeClaim` _[PersistentVolumeClaimSpec](#persistentvolumeclaimspec)_ | PersistentVolumeClaim is a Kubernetes PVC specification. |  |  |
-| `volume` _[VolumeSource](#volumesource)_ | Volume is a Kubernetes volume specification. |  |  |
+| `volume` _[StorageVolumeSource](#storagevolumesource)_ | Volume is a Kubernetes volume specification. |  |  |
 
 
 #### BasicAuth
@@ -174,9 +199,32 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `backupRef` _[LocalObjectReference](#localobjectreference)_ | BackupRef is a reference to a Backup object. It has priority over S3 and Volume. |  |  |
 | `s3` _[S3](#s3)_ | S3 defines the configuration to restore backups from a S3 compatible storage. It has priority over Volume. |  |  |
-| `volume` _[VolumeSource](#volumesource)_ | Volume is a Kubernetes Volume object that contains a backup. |  |  |
+| `volume` _[StorageVolumeSource](#storagevolumesource)_ | Volume is a Kubernetes Volume object that contains a backup. |  |  |
 | `targetRecoveryTime` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#time-v1-meta)_ | TargetRecoveryTime is a RFC3339 (1970-01-01T00:00:00Z) date and time that defines the point in time recovery objective.<br />It is used to determine the closest restoration source in time. |  |  |
+| `stagingStorage` _[BackupStagingStorage](#backupstagingstorage)_ | StagingStorage defines the temporary storage used to keep external backups (i.e. S3) while they are being processed.<br />It defaults to an emptyDir volume, meaning that the backups will be temporarily stored in the node where the Restore Job is scheduled. |  |  |
 | `restoreJob` _[Job](#job)_ | RestoreJob defines additional properties for the Job used to perform the Restore. |  |  |
+
+
+#### CSIVolumeSource
+
+
+
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#csivolumesource-v1-core.
+
+
+
+_Appears in:_
+- [StorageVolumeSource](#storagevolumesource)
+- [Volume](#volume)
+- [VolumeSource](#volumesource)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `driver` _string_ |  |  |  |
+| `readOnly` _boolean_ |  |  |  |
+| `fsType` _string_ |  |  |  |
+| `volumeAttributes` _object (keys:string, values:string)_ |  |  |  |
+| `nodePublishSecretRef` _[LocalObjectReference](#localobjectreference)_ |  |  |  |
 
 
 #### CleanupPolicy
@@ -234,6 +282,24 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `name` _string_ |  |  |  |
 | `key` _string_ |  |  |  |
+
+
+#### ConfigMapVolumeSource
+
+
+
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#configmapvolumesource-v1-core.
+
+
+
+_Appears in:_
+- [Volume](#volume)
+- [VolumeSource](#volumesource)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `name` _string_ |  |  |  |
+| `defaultMode` _integer_ |  |  |  |
 
 
 #### Connection
@@ -324,6 +390,7 @@ _Appears in:_
 | `imagePullPolicy` _[PullPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#pullpolicy-v1-core)_ | ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`. |  | Enum: [Always Never IfNotPresent] <br /> |
 | `command` _string array_ | Command to be used in the Container. |  |  |
 | `args` _string array_ | Args to be used in the Container. |  |  |
+| `env` _[EnvVar](#envvar) array_ | Env represents the environment variables to be injected in a container. |  |  |
 | `volumeMounts` _[VolumeMount](#volumemount) array_ | VolumeMounts to be used in the Container. |  |  |
 | `resources` _[ResourceRequirements](#resourcerequirements)_ | Resouces describes the compute resource requirements. |  |  |
 
@@ -432,6 +499,25 @@ _Appears in:_
 | `name` _string_ | Name overrides the default Database name provided by metadata.name. |  | MaxLength: 80 <br /> |
 
 
+#### EmptyDirVolumeSource
+
+
+
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#emptydirvolumesource-v1-core.
+
+
+
+_Appears in:_
+- [StorageVolumeSource](#storagevolumesource)
+- [Volume](#volume)
+- [VolumeSource](#volumesource)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `medium` _[StorageMedium](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#storagemedium-v1-core)_ |  |  |  |
+| `sizeLimit` _[Quantity](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#quantity-resource-api)_ |  |  |  |
+
+
 #### EnvFromSource
 
 
@@ -463,6 +549,7 @@ Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kub
 
 
 _Appears in:_
+- [Container](#container)
 - [ContainerTemplate](#containertemplate)
 - [GaleraAgent](#galeraagent)
 - [GaleraInit](#galerainit)
@@ -935,6 +1022,21 @@ _Appears in:_
 | `authDelegatorRoleName` _string_ | AuthDelegatorRoleName is the name of the ClusterRoleBinding that is associated with the "system:auth-delegator" ClusterRole.<br />It is necessary for creating TokenReview objects in order for the agent to validate the service account token. |  |  |
 
 
+#### LabelSelector
+
+_Underlying type:_ _[struct{MatchLabels map[string]string "json:\"matchLabels,omitempty\""; MatchExpressions []LabelSelectorRequirement "json:\"matchExpressions,omitempty\""}](#struct{matchlabels-map[string]string-"json:\"matchlabels,omitempty\"";-matchexpressions-[]labelselectorrequirement-"json:\"matchexpressions,omitempty\""})_
+
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#labelselector-v1-meta
+
+
+
+_Appears in:_
+- [PodAffinityTerm](#podaffinityterm)
+
+
+
+
+
 #### LocalObjectReference
 
 
@@ -946,7 +1048,9 @@ Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kub
 _Appears in:_
 - [BackupSpec](#backupspec)
 - [BootstrapFrom](#bootstrapfrom)
+- [CSIVolumeSource](#csivolumesource)
 - [ConfigMapKeySelector](#configmapkeyselector)
+- [ConfigMapVolumeSource](#configmapvolumesource)
 - [EnvFromSource](#envfromsource)
 - [Exporter](#exporter)
 - [GeneratedSecretKeyRef](#generatedsecretkeyref)
@@ -1462,6 +1566,76 @@ _Appears in:_
 | `galeramon` | MonitorModuleGalera is a monitor to be used with Galera servers.<br /> |
 
 
+#### NFSVolumeSource
+
+
+
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#nfsvolumesource-v1-core.
+
+
+
+_Appears in:_
+- [StorageVolumeSource](#storagevolumesource)
+- [Volume](#volume)
+- [VolumeSource](#volumesource)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `server` _string_ |  |  |  |
+| `path` _string_ |  |  |  |
+| `readOnly` _boolean_ |  |  |  |
+
+
+#### NodeAffinity
+
+
+
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#nodeaffinity-v1-core
+
+
+
+_Appears in:_
+- [Affinity](#affinity)
+- [AffinityConfig](#affinityconfig)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `requiredDuringSchedulingIgnoredDuringExecution` _[NodeSelector](#nodeselector)_ |  |  |  |
+| `preferredDuringSchedulingIgnoredDuringExecution` _[PreferredSchedulingTerm](#preferredschedulingterm) array_ |  |  |  |
+
+
+#### NodeSelector
+
+
+
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#nodeselector-v1-core
+
+
+
+_Appears in:_
+- [NodeAffinity](#nodeaffinity)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `nodeSelectorTerms` _[NodeSelectorTerm](#nodeselectorterm) array_ |  |  |  |
+
+
+
+
+#### NodeSelectorTerm
+
+_Underlying type:_ _[struct{MatchExpressions []NodeSelectorRequirement "json:\"matchExpressions,omitempty\""; MatchFields []NodeSelectorRequirement "json:\"matchFields,omitempty\""}](#struct{matchexpressions-[]nodeselectorrequirement-"json:\"matchexpressions,omitempty\"";-matchfields-[]nodeselectorrequirement-"json:\"matchfields,omitempty\""})_
+
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#nodeselectorterm-v1-core
+
+
+
+_Appears in:_
+- [NodeSelector](#nodeselector)
+- [PreferredSchedulingTerm](#preferredschedulingterm)
+
+
+
 #### ObjectFieldSelector
 
 
@@ -1525,6 +1699,7 @@ Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kub
 
 
 _Appears in:_
+- [BackupStagingStorage](#backupstagingstorage)
 - [BackupStorage](#backupstorage)
 - [VolumeClaimTemplate](#volumeclaimtemplate)
 
@@ -1534,6 +1709,25 @@ _Appears in:_
 | `selector` _[LabelSelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#labelselector-v1-meta)_ |  |  |  |
 | `resources` _[VolumeResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#volumeresourcerequirements-v1-core)_ |  |  |  |
 | `storageClassName` _string_ |  |  |  |
+
+
+#### PersistentVolumeClaimVolumeSource
+
+
+
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#persistentvolumeclaimvolumesource-v1-core.
+
+
+
+_Appears in:_
+- [StorageVolumeSource](#storagevolumesource)
+- [Volume](#volume)
+- [VolumeSource](#volumesource)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `claimName` _string_ |  |  |  |
+| `readOnly` _boolean_ |  |  |  |
 
 
 #### PodAffinityTerm
@@ -1550,7 +1744,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `labelSelector` _[LabelSelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#labelselector-v1-meta)_ |  |  |  |
+| `labelSelector` _[LabelSelector](#labelselector)_ |  |  |  |
 | `topologyKey` _string_ |  |  |  |
 
 
@@ -1648,6 +1842,23 @@ _Appears in:_
 | `volumes` _[Volume](#volume) array_ | Volumes to be used in the Pod. |  |  |
 | `priorityClassName` _string_ | PriorityClassName to be used in the Pod. |  |  |
 | `topologySpreadConstraints` _[TopologySpreadConstraint](#topologyspreadconstraint) array_ | TopologySpreadConstraints to be used in the Pod. |  |  |
+
+
+#### PreferredSchedulingTerm
+
+
+
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#preferredschedulingterm-v1-core
+
+
+
+_Appears in:_
+- [NodeAffinity](#nodeaffinity)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `weight` _integer_ |  |  |  |
+| `preference` _[NodeSelectorTerm](#nodeselectorterm)_ |  |  |  |
 
 
 #### PrimaryGalera
@@ -1852,8 +2063,9 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `backupRef` _[LocalObjectReference](#localobjectreference)_ | BackupRef is a reference to a Backup object. It has priority over S3 and Volume. |  |  |
 | `s3` _[S3](#s3)_ | S3 defines the configuration to restore backups from a S3 compatible storage. It has priority over Volume. |  |  |
-| `volume` _[VolumeSource](#volumesource)_ | Volume is a Kubernetes Volume object that contains a backup. |  |  |
+| `volume` _[StorageVolumeSource](#storagevolumesource)_ | Volume is a Kubernetes Volume object that contains a backup. |  |  |
 | `targetRecoveryTime` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#time-v1-meta)_ | TargetRecoveryTime is a RFC3339 (1970-01-01T00:00:00Z) date and time that defines the point in time recovery objective.<br />It is used to determine the closest restoration source in time. |  |  |
+| `stagingStorage` _[BackupStagingStorage](#backupstagingstorage)_ | StagingStorage defines the temporary storage used to keep external backups (i.e. S3) while they are being processed.<br />It defaults to an emptyDir volume, meaning that the backups will be temporarily stored in the node where the Restore Job is scheduled. |  |  |
 
 
 #### RestoreSpec
@@ -1882,8 +2094,9 @@ _Appears in:_
 | `priorityClassName` _string_ | PriorityClassName to be used in the Pod. |  |  |
 | `backupRef` _[LocalObjectReference](#localobjectreference)_ | BackupRef is a reference to a Backup object. It has priority over S3 and Volume. |  |  |
 | `s3` _[S3](#s3)_ | S3 defines the configuration to restore backups from a S3 compatible storage. It has priority over Volume. |  |  |
-| `volume` _[VolumeSource](#volumesource)_ | Volume is a Kubernetes Volume object that contains a backup. |  |  |
+| `volume` _[StorageVolumeSource](#storagevolumesource)_ | Volume is a Kubernetes Volume object that contains a backup. |  |  |
 | `targetRecoveryTime` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#time-v1-meta)_ | TargetRecoveryTime is a RFC3339 (1970-01-01T00:00:00Z) date and time that defines the point in time recovery objective.<br />It is used to determine the closest restoration source in time. |  |  |
+| `stagingStorage` _[BackupStagingStorage](#backupstagingstorage)_ | StagingStorage defines the temporary storage used to keep external backups (i.e. S3) while they are being processed.<br />It defaults to an emptyDir volume, meaning that the backups will be temporarily stored in the node where the Restore Job is scheduled. |  |  |
 | `mariaDbRef` _[MariaDBRef](#mariadbref)_ | MariaDBRef is a reference to a MariaDB object. |  | Required: \{\} <br /> |
 | `database` _string_ | Database defines the logical database to be restored. If not provided, all databases available in the backup are restored.<br />IMPORTANT: The database must previously exist. |  |  |
 | `logLevel` _string_ | LogLevel to be used n the Backup Job. It defaults to 'info'. | info |  |
@@ -2023,6 +2236,24 @@ _Appears in:_
 | `hostKey` _string_ | HostKey to be used in the Secret. |  |  |
 | `portKey` _string_ | PortKey to be used in the Secret. |  |  |
 | `databaseKey` _string_ | DatabaseKey to be used in the Secret. |  |  |
+
+
+#### SecretVolumeSource
+
+
+
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#secretvolumesource-v1-core.
+
+
+
+_Appears in:_
+- [Volume](#volume)
+- [VolumeSource](#volumesource)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `secretName` _string_ |  |  |  |
+| `defaultMode` _integer_ |  |  |  |
 
 
 #### SecurityContext
@@ -2213,6 +2444,31 @@ _Appears in:_
 | `volumeClaimTemplate` _[VolumeClaimTemplate](#volumeclaimtemplate)_ | VolumeClaimTemplate provides a template to define the PVCs. |  |  |
 
 
+#### StorageVolumeSource
+
+
+
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#volume-v1-core.
+
+
+
+_Appears in:_
+- [BackupStagingStorage](#backupstagingstorage)
+- [BackupStorage](#backupstorage)
+- [BootstrapFrom](#bootstrapfrom)
+- [RestoreSource](#restoresource)
+- [RestoreSpec](#restorespec)
+- [Volume](#volume)
+- [VolumeSource](#volumesource)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `emptyDir` _[EmptyDirVolumeSource](#emptydirvolumesource)_ |  |  |  |
+| `nfs` _[NFSVolumeSource](#nfsvolumesource)_ |  |  |  |
+| `csi` _[CSIVolumeSource](#csivolumesource)_ |  |  |  |
+| `persistentVolumeClaim` _[PersistentVolumeClaimVolumeSource](#persistentvolumeclaimvolumesource)_ |  |  |  |
+
+
 #### SuspendTemplate
 
 
@@ -2371,10 +2627,12 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `name` _string_ |  |  |  |
-| `emptyDir` _[EmptyDirVolumeSource](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#emptydirvolumesource-v1-core)_ |  |  |  |
-| `nfs` _[NFSVolumeSource](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#nfsvolumesource-v1-core)_ |  |  |  |
-| `csi` _[CSIVolumeSource](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#csivolumesource-v1-core)_ |  |  |  |
-| `persistentVolumeClaim` _[PersistentVolumeClaimVolumeSource](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#persistentvolumeclaimvolumesource-v1-core)_ |  |  |  |
+| `emptyDir` _[EmptyDirVolumeSource](#emptydirvolumesource)_ |  |  |  |
+| `nfs` _[NFSVolumeSource](#nfsvolumesource)_ |  |  |  |
+| `csi` _[CSIVolumeSource](#csivolumesource)_ |  |  |  |
+| `persistentVolumeClaim` _[PersistentVolumeClaimVolumeSource](#persistentvolumeclaimvolumesource)_ |  |  |  |
+| `secret` _[SecretVolumeSource](#secretvolumesource)_ |  |  |  |
+| `configMap` _[ConfigMapVolumeSource](#configmapvolumesource)_ |  |  |  |
 
 
 #### VolumeClaimTemplate
@@ -2432,18 +2690,16 @@ Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kub
 
 
 _Appears in:_
-- [BackupStorage](#backupstorage)
-- [BootstrapFrom](#bootstrapfrom)
-- [RestoreSource](#restoresource)
-- [RestoreSpec](#restorespec)
 - [Volume](#volume)
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `emptyDir` _[EmptyDirVolumeSource](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#emptydirvolumesource-v1-core)_ |  |  |  |
-| `nfs` _[NFSVolumeSource](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#nfsvolumesource-v1-core)_ |  |  |  |
-| `csi` _[CSIVolumeSource](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#csivolumesource-v1-core)_ |  |  |  |
-| `persistentVolumeClaim` _[PersistentVolumeClaimVolumeSource](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#persistentvolumeclaimvolumesource-v1-core)_ |  |  |  |
+| `emptyDir` _[EmptyDirVolumeSource](#emptydirvolumesource)_ |  |  |  |
+| `nfs` _[NFSVolumeSource](#nfsvolumesource)_ |  |  |  |
+| `csi` _[CSIVolumeSource](#csivolumesource)_ |  |  |  |
+| `persistentVolumeClaim` _[PersistentVolumeClaimVolumeSource](#persistentvolumeclaimvolumesource)_ |  |  |  |
+| `secret` _[SecretVolumeSource](#secretvolumesource)_ |  |  |  |
+| `configMap` _[ConfigMapVolumeSource](#configmapvolumesource)_ |  |  |  |
 
 
 #### WaitPoint
