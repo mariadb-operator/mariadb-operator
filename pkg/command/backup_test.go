@@ -3,6 +3,7 @@ package command
 import (
 	"reflect"
 	"testing"
+	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"k8s.io/utils/ptr"
@@ -254,6 +255,139 @@ func TestMariadbDumpArgs(t *testing.T) {
 			args := tt.backupCmd.mariadbDumpArgs(tt.backup, tt.mariadb)
 			if !reflect.DeepEqual(args, tt.wantArgs) {
 				t.Errorf("expecting args to be:\n%v\ngot:\n%v\n", tt.wantArgs, args)
+			}
+		})
+	}
+}
+
+func TestMariadbOperatorBackup(t *testing.T) {
+	tests := []struct {
+		name      string
+		backupCmd *BackupCommand
+		wantArgs  []string
+	}{
+		{
+			name: "no S3 no cleanupTargetFile",
+			backupCmd: &BackupCommand{
+				BackupOpts: BackupOpts{
+					Path:                 "/backups",
+					TargetFilePath:       "/backups/0-backup-target.txt",
+					MaxRetentionDuration: 24 * time.Hour,
+					Compression:          mariadbv1alpha1.CompressGzip,
+					LogLevel:             "info",
+				},
+			},
+			wantArgs: []string{
+				"backup",
+				"--path",
+				"/backups",
+				"--target-file-path",
+				"/backups/0-backup-target.txt",
+				"--max-retention",
+				"24h0m0s",
+				"--compression",
+				"gzip",
+				"--log-level",
+				"info",
+			},
+		},
+		{
+			name: "S3",
+			backupCmd: &BackupCommand{
+				BackupOpts: BackupOpts{
+					Path:                 "/backups",
+					TargetFilePath:       "/backups/0-backup-target.txt",
+					MaxRetentionDuration: 24 * time.Hour,
+					Compression:          mariadbv1alpha1.CompressGzip,
+					LogLevel:             "info",
+					S3:                   true,
+					S3Bucket:             "backups",
+					S3Endpoint:           "s3.amazonaws.com",
+					S3Region:             "us-east-1",
+					S3TLS:                true,
+					S3CACertPath:         "/etc/ssl/ca.crt",
+					S3Prefix:             "mariadb",
+				},
+			},
+			wantArgs: []string{
+				"backup",
+				"--path",
+				"/backups",
+				"--target-file-path",
+				"/backups/0-backup-target.txt",
+				"--max-retention",
+				"24h0m0s",
+				"--compression",
+				"gzip",
+				"--log-level",
+				"info",
+				"--s3",
+				"--s3-bucket",
+				"backups",
+				"--s3-endpoint",
+				"s3.amazonaws.com",
+				"--s3-region",
+				"us-east-1",
+				"--s3-tls",
+				"--s3-ca-cert-path",
+				"/etc/ssl/ca.crt",
+				"--s3-prefix",
+				"mariadb",
+			},
+		},
+		{
+			name: "S3 and cleanup target file",
+			backupCmd: &BackupCommand{
+				BackupOpts: BackupOpts{
+					Path:                 "/backups",
+					TargetFilePath:       "/backups/0-backup-target.txt",
+					MaxRetentionDuration: 24 * time.Hour,
+					Compression:          mariadbv1alpha1.CompressGzip,
+					LogLevel:             "info",
+					S3:                   true,
+					S3Bucket:             "backups",
+					S3Endpoint:           "s3.amazonaws.com",
+					S3Region:             "us-east-1",
+					S3TLS:                true,
+					S3CACertPath:         "/etc/ssl/ca.crt",
+					S3Prefix:             "mariadb",
+					CleanupTargetFile:    true,
+				},
+			},
+			wantArgs: []string{
+				"backup",
+				"--path",
+				"/backups",
+				"--target-file-path",
+				"/backups/0-backup-target.txt",
+				"--max-retention",
+				"24h0m0s",
+				"--compression",
+				"gzip",
+				"--log-level",
+				"info",
+				"--s3",
+				"--s3-bucket",
+				"backups",
+				"--s3-endpoint",
+				"s3.amazonaws.com",
+				"--s3-region",
+				"us-east-1",
+				"--s3-tls",
+				"--s3-ca-cert-path",
+				"/etc/ssl/ca.crt",
+				"--s3-prefix",
+				"mariadb",
+				"--cleanup-target-file",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			command := tt.backupCmd.MariadbOperatorBackup()
+			if !reflect.DeepEqual(tt.wantArgs, command.Args) {
+				t.Errorf("expecting args to be:\n%v\ngot:\n%v\n", tt.wantArgs, command.Args)
 			}
 		})
 	}

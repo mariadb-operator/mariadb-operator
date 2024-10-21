@@ -653,7 +653,7 @@ func getBackupWithS3Storage(key types.NamespacedName, bucket, prefix string) *ma
 
 func getBackupWithVolumeStorage(key types.NamespacedName) *mariadbv1alpha1.Backup {
 	return getBackupWithStorage(key, mariadbv1alpha1.BackupStorage{
-		Volume: &mariadbv1alpha1.VolumeSource{
+		Volume: &mariadbv1alpha1.StorageVolumeSource{
 			EmptyDir: &mariadbv1alpha1.EmptyDirVolumeSource{},
 		},
 	})

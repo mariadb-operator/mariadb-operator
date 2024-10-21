@@ -169,7 +169,7 @@ var _ = Describe("Restore", func() {
 					WaitForIt: true,
 				},
 				RestoreSource: mariadbv1alpha1.RestoreSource{
-					Volume: &mariadbv1alpha1.VolumeSource{
+					Volume: &mariadbv1alpha1.StorageVolumeSource{
 						PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimVolumeSource{
 							ClaimName: backupKey.Name,
 						},
@@ -229,7 +229,7 @@ var _ = Describe("Restore", func() {
 					WaitForIt: true,
 				},
 				RestoreSource: mariadbv1alpha1.RestoreSource{
-					Volume: &mariadbv1alpha1.VolumeSource{
+					Volume: &mariadbv1alpha1.StorageVolumeSource{
 						PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimVolumeSource{
 							ClaimName: backupKey.Name,
 						},
@@ -289,7 +289,7 @@ var _ = Describe("Restore", func() {
 					WaitForIt: true,
 				},
 				RestoreSource: mariadbv1alpha1.RestoreSource{
-					Volume: &mariadbv1alpha1.VolumeSource{
+					Volume: &mariadbv1alpha1.StorageVolumeSource{
 						PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimVolumeSource{
 							ClaimName: backupKey.Name,
 						},
@@ -316,7 +316,7 @@ var _ = Describe("Restore", func() {
 			Name:      "restore-s3-test",
 			Namespace: testNamespace,
 		}
-		testS3BackupRestore(key, "test-restore", "")
+		testS3BackupRestore(key, "test-restore", "", false)
 	})
 
 	It("should reconcile a Job with S3 storage with prefix", func() {
@@ -324,16 +324,27 @@ var _ = Describe("Restore", func() {
 			Name:      "restore-s3-test-prefix",
 			Namespace: testNamespace,
 		}
-		testS3BackupRestore(key, "test-restore", "mariadb")
+		testS3BackupRestore(key, "test-restore", "mariadb", false)
+	})
+
+	It("should reconcile a Job with S3 storage and staging storage", func() {
+		key := types.NamespacedName{
+			Name:      "restore-s3-test-staging",
+			Namespace: testNamespace,
+		}
+		testS3BackupRestore(key, "test-restore", "mariadb", true)
 	})
 })
 
-func testS3BackupRestore(key types.NamespacedName, bucket, prefix string) {
+func testS3BackupRestore(key types.NamespacedName, bucket, prefix string, stagingStorage bool) {
 	backupKey := types.NamespacedName{
 		Name:      fmt.Sprintf("%s-%s", key.Name, "backup"),
 		Namespace: testNamespace,
 	}
 	backup := getBackupWithS3Storage(backupKey, bucket, prefix)
+	if stagingStorage {
+		decorateBackupWithStagingStorage(backup)
+	}
 
 	By("Creating Backup")
 	Expect(k8sClient.Create(testCtx, backup)).To(Succeed())

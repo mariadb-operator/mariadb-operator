@@ -12,7 +12,7 @@ import (
 	"k8s.io/utils/ptr"
 )
 
-// BackupStorage defines the storage for a Backup.
+// BackupStorage defines the final storage for backups.
 type BackupStorage struct {
 	// S3 defines the configuration to store backups in a S3 compatible storage.
 	// +optional
@@ -25,7 +25,7 @@ type BackupStorage struct {
 	// Volume is a Kubernetes volume specification.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Volume *VolumeSource `json:"volume,omitempty"`
+	Volume *StorageVolumeSource `json:"volume,omitempty"`
 }
 
 func (b *BackupStorage) Validate() error {
@@ -84,7 +84,13 @@ type BackupSpec struct {
 	// +kubebuilder:validation:Enum=none;bzip2;gzip
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Compression CompressAlgorithm `json:"compression,omitempty"`
-	// Storage to be used in the Backup.
+	// StagingStorage defines the temporary storage used to keep external backups (i.e. S3) while they are being processed.
+	// It defaults to an emptyDir volume, meaning that the backups will be temporarily stored in the node where the Backup Job is scheduled.
+	// The staging area gets cleaned up after each backup is completed, consider this for sizing it appropriately.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch","urn:alm:descriptor:com.tectonic.ui:advanced"}
+	StagingStorage *BackupStagingStorage `json:"stagingStorage,omitempty" webhook:"inmutable"`
+	// Storage defines the final storage for backups.
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Storage BackupStorage `json:"storage" webhook:"inmutable"`
@@ -177,6 +183,9 @@ func (b *Backup) Validate() error {
 	if err := b.Spec.Compression.Validate(); err != nil {
 		return fmt.Errorf("invalid Compression: %v", err)
 	}
+	if b.Spec.Storage.S3 == nil && b.Spec.StagingStorage != nil {
+		return errors.New("'spec.stagingStorage' may only be specified when 'spec.storage.s3' is set")
+	}
 	return nil
 }
 
@@ -196,23 +205,22 @@ func (b *Backup) SetDefaults(mariadb *MariaDB) {
 	b.Spec.JobPodTemplate.SetDefaults(b.ObjectMeta, mariadb.ObjectMeta)
 }
 
-func (b *Backup) Volume() (VolumeSource, error) {
+func (b *Backup) Volume() (StorageVolumeSource, error) {
 	if b.Spec.Storage.S3 != nil {
-		return VolumeSource{
-			EmptyDir: &EmptyDirVolumeSource{},
-		}, nil
+		stagingStorage := ptr.Deref(b.Spec.StagingStorage, BackupStagingStorage{})
+		return stagingStorage.VolumeOrEmptyDir(b.StagingPVCKey()), nil
 	}
 	if b.Spec.Storage.PersistentVolumeClaim != nil {
-		return VolumeSource{
+		return StorageVolumeSource{
 			PersistentVolumeClaim: &PersistentVolumeClaimVolumeSource{
-				ClaimName: b.Name,
+				ClaimName: b.StoragePVCKey().Name,
 			},
 		}, nil
 	}
 	if b.Spec.Storage.Volume != nil {
 		return *b.Spec.Storage.Volume, nil
 	}
-	return VolumeSource{}, errors.New("unable to get volume for Backup")
+	return StorageVolumeSource{}, errors.New("unable to get volume for Backup")
 }
 
 // +kubebuilder:object:root=true

@@ -52,6 +52,7 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alph
 			batchStorageMountPath,
 			batchBackupTargetFilePath,
 		),
+		command.WithCleanupTargetFile(backupShouldCleanupTargetFile(backup)),
 		command.WithBackupMaxRetention(backup.Spec.MaxRetention.Duration),
 		command.WithBackupCompression(backup.Spec.Compression),
 		command.WithBackupUserEnv(batchUserEnv),
@@ -196,7 +197,7 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 		return nil, fmt.Errorf("error building restore command: %v", err)
 	}
 
-	volume := ptr.Deref(restore.Spec.Volume, mariadbv1alpha1.VolumeSource{})
+	volume := ptr.Deref(restore.Spec.Volume, mariadbv1alpha1.StorageVolumeSource{})
 	volumes, volumeSources := jobBatchStorageVolume(volume, restore.Spec.S3)
 	affinity := ptr.Deref(restore.Spec.Affinity, mariadbv1alpha1.AffinityConfig{}).Affinity
 
@@ -540,6 +541,10 @@ func (b *Builder) BuildSqlCronJob(key types.NamespacedName, sqlJob *mariadbv1alp
 		return nil, fmt.Errorf("error setting controller reference to CronJob: %v", err)
 	}
 	return cronJob, nil
+}
+
+func backupShouldCleanupTargetFile(backup *mariadbv1alpha1.Backup) bool {
+	return backup.Spec.Storage.S3 != nil && backup.Spec.StagingStorage != nil
 }
 
 func s3Opts(s3 *mariadbv1alpha1.S3) []command.BackupOpt {

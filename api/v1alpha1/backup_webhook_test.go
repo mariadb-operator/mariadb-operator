@@ -75,7 +75,7 @@ var _ = Describe("Backup webhook", func() {
 								Bucket:   "test",
 								Endpoint: "test",
 							},
-							Volume: &VolumeSource{
+							Volume: &StorageVolumeSource{
 								PersistentVolumeClaim: &PersistentVolumeClaimVolumeSource{
 									ClaimName: "TEST",
 								},
@@ -202,7 +202,7 @@ var _ = Describe("Backup webhook", func() {
 				"Invalid history limits",
 				&Backup{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "backup-valid",
+						Name:      "backup-invalid-history-limits",
 						Namespace: testNamespace,
 					},
 					Spec: BackupSpec{
@@ -240,6 +240,54 @@ var _ = Describe("Backup webhook", func() {
 				true,
 			),
 			Entry(
+				"Invalid staging storage",
+				&Backup{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "backup-invalid-staging-storage",
+						Namespace: testNamespace,
+					},
+					Spec: BackupSpec{
+						JobContainerTemplate: JobContainerTemplate{
+							Resources: &ResourceRequirements{
+								Requests: corev1.ResourceList{
+									"cpu": resource.MustParse("100m"),
+								},
+							},
+						},
+						Schedule: &Schedule{
+							Cron: "*/1 * * * *",
+						},
+						Compression: CompressGzip,
+						Storage: BackupStorage{
+							Volume: &StorageVolumeSource{
+								EmptyDir: &EmptyDirVolumeSource{},
+							},
+						},
+						StagingStorage: &BackupStagingStorage{
+							PersistentVolumeClaim: &PersistentVolumeClaimSpec{
+								AccessModes: []corev1.PersistentVolumeAccessMode{
+									corev1.ReadWriteOnce,
+								},
+								Resources: corev1.VolumeResourceRequirements{
+									Requests: corev1.ResourceList{
+										"storage": resource.MustParse("300Mi"),
+									},
+								},
+							},
+						},
+						MariaDBRef: MariaDBRef{
+							ObjectReference: ObjectReference{
+								Name: "mariadb-webhook",
+							},
+							WaitForIt: true,
+						},
+						BackoffLimit:  10,
+						RestartPolicy: corev1.RestartPolicyOnFailure,
+					},
+				},
+				true,
+			),
+			Entry(
 				"Valid",
 				&Backup{
 					ObjectMeta: metav1.ObjectMeta{
@@ -264,41 +312,16 @@ var _ = Describe("Backup webhook", func() {
 								Endpoint: "test",
 							},
 						},
-						MariaDBRef: MariaDBRef{
-							ObjectReference: ObjectReference{
-								Name: "mariadb-webhook",
-							},
-							WaitForIt: true,
-						},
-						BackoffLimit:  10,
-						RestartPolicy: corev1.RestartPolicyOnFailure,
-					},
-				},
-				false,
-			),
-			Entry(
-				"Valid with history limits",
-				&Backup{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "backup-valid-with-history-limits",
-						Namespace: testNamespace,
-					},
-					Spec: BackupSpec{
-						JobContainerTemplate: JobContainerTemplate{
-							Resources: &ResourceRequirements{
-								Requests: corev1.ResourceList{
-									"cpu": resource.MustParse("100m"),
+						StagingStorage: &BackupStagingStorage{
+							PersistentVolumeClaim: &PersistentVolumeClaimSpec{
+								AccessModes: []corev1.PersistentVolumeAccessMode{
+									corev1.ReadWriteOnce,
 								},
-							},
-						},
-						Schedule: &Schedule{
-							Cron: "*/1 * * * *",
-						},
-						Compression: CompressGzip,
-						Storage: BackupStorage{
-							S3: &S3{
-								Bucket:   "test",
-								Endpoint: "test",
+								Resources: corev1.VolumeResourceRequirements{
+									Requests: corev1.ResourceList{
+										"storage": resource.MustParse("300Mi"),
+									},
+								},
 							},
 						},
 						MariaDBRef: MariaDBRef{
@@ -345,6 +368,18 @@ var _ = Describe("Backup webhook", func() {
 						S3: &S3{
 							Bucket:   "test",
 							Endpoint: "test",
+						},
+					},
+					StagingStorage: &BackupStagingStorage{
+						PersistentVolumeClaim: &PersistentVolumeClaimSpec{
+							AccessModes: []corev1.PersistentVolumeAccessMode{
+								corev1.ReadWriteOnce,
+							},
+							Resources: corev1.VolumeResourceRequirements{
+								Requests: corev1.ResourceList{
+									"storage": resource.MustParse("300Mi"),
+								},
+							},
 						},
 					},
 					MariaDBRef: MariaDBRef{
@@ -438,6 +473,13 @@ var _ = Describe("Backup webhook", func() {
 				"Updating Storage",
 				func(bmdb *Backup) {
 					bmdb.Spec.Storage.S3.Bucket = "another-bucket"
+				},
+				true,
+			),
+			Entry(
+				"Updating StagingStorage",
+				func(bmdb *Backup) {
+					bmdb.Spec.StagingStorage = nil
 				},
 				true,
 			),

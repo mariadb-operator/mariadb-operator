@@ -595,6 +595,34 @@ func MergeMetadata(metas ...*Metadata) *Metadata {
 	return &meta
 }
 
+// BackupStagingStorage defines the temporary storage used to keep external backups (i.e. S3) while they are being processed.
+type BackupStagingStorage struct {
+	// PersistentVolumeClaim is a Kubernetes PVC specification.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	PersistentVolumeClaim *PersistentVolumeClaimSpec `json:"persistentVolumeClaim,omitempty"`
+	// Volume is a Kubernetes volume specification.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Volume *StorageVolumeSource `json:"volume,omitempty"`
+}
+
+func (s *BackupStagingStorage) VolumeOrEmptyDir(pvcKey types.NamespacedName) StorageVolumeSource {
+	if s.PersistentVolumeClaim != nil {
+		return StorageVolumeSource{
+			PersistentVolumeClaim: &PersistentVolumeClaimVolumeSource{
+				ClaimName: pvcKey.Name,
+			},
+		}
+	}
+	if s.Volume != nil {
+		return *s.Volume
+	}
+	return StorageVolumeSource{
+		EmptyDir: &EmptyDirVolumeSource{},
+	}
+}
+
 // RestoreSource defines a source for restoring a MariaDB.
 type RestoreSource struct {
 	// BackupRef is a reference to a Backup object. It has priority over S3 and Volume.
@@ -608,17 +636,25 @@ type RestoreSource struct {
 	// Volume is a Kubernetes Volume object that contains a backup.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Volume *VolumeSource `json:"volume,omitempty" webhook:"inmutableinit"`
+	Volume *StorageVolumeSource `json:"volume,omitempty" webhook:"inmutableinit"`
 	// TargetRecoveryTime is a RFC3339 (1970-01-01T00:00:00Z) date and time that defines the point in time recovery objective.
 	// It is used to determine the closest restoration source in time.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	TargetRecoveryTime *metav1.Time `json:"targetRecoveryTime,omitempty" webhook:"inmutable"`
+	// StagingStorage defines the temporary storage used to keep external backups (i.e. S3) while they are being processed.
+	// It defaults to an emptyDir volume, meaning that the backups will be temporarily stored in the node where the Restore Job is scheduled.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch","urn:alm:descriptor:com.tectonic.ui:advanced"}
+	StagingStorage *BackupStagingStorage `json:"stagingStorage,omitempty" webhook:"inmutable"`
 }
 
 func (r *RestoreSource) Validate() error {
 	if r.BackupRef == nil && r.S3 == nil && r.Volume == nil {
 		return errors.New("unable to determine restore source")
+	}
+	if r.S3 == nil && r.StagingStorage != nil {
+		return errors.New("'spec.stagingStorage' may only be specified when 'spec.s3' is set")
 	}
 	return nil
 }
@@ -627,20 +663,18 @@ func (r *RestoreSource) IsDefaulted() bool {
 	return r.Volume != nil
 }
 
-func (r *RestoreSource) SetDefaults() {
+func (r *RestoreSource) SetDefaults(restore *Restore) {
 	if r.S3 != nil {
-		r.Volume = &VolumeSource{
-			EmptyDir: &EmptyDirVolumeSource{},
-		}
+		stagingStorage := ptr.Deref(r.StagingStorage, BackupStagingStorage{})
+		r.Volume = ptr.To(stagingStorage.VolumeOrEmptyDir(restore.StagingPVCKey()))
 	}
 }
 
 func (r *RestoreSource) SetDefaultsWithBackup(backup *Backup) error {
 	volume, err := backup.Volume()
 	if err != nil {
-		return fmt.Errorf("error getting backup volume: %v", err)
+		return fmt.Errorf("error getting Backup volume: %v", err)
 	}
-
 	r.Volume = &volume
 	r.S3 = backup.Spec.Storage.S3
 	return nil

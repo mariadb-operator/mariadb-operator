@@ -22,22 +22,28 @@ import (
 )
 
 var (
-	logger         = ctrl.Log
-	path           string
-	targetFilePath string
-	s3             bool
-	s3Bucket       string
-	s3Endpoint     string
-	s3Region       string
-	s3TLS          bool
-	s3CACertPath   string
-	s3Prefix       string
-	maxRetention   time.Duration
-	compression    string
+	logger = ctrl.Log
+
+	path              string
+	targetFilePath    string
+	cleanupTargetFile bool
+
+	s3           bool
+	s3Bucket     string
+	s3Endpoint   string
+	s3Region     string
+	s3TLS        bool
+	s3CACertPath string
+	s3Prefix     string
+
+	maxRetention time.Duration
+
+	compression string
 )
 
 func init() {
-	RootCmd.PersistentFlags().StringVar(&path, "path", "/backup", "Directory path where the backup files are located.")
+	RootCmd.PersistentFlags().StringVar(&path, "path", "/backup", "Directory path where the backup files are located."+
+		"When S3 is enabled, it is used as staging area and the source of truth of backups remains in S3.")
 	RootCmd.PersistentFlags().StringVar(&targetFilePath, "target-file-path", "/backup/0-backup-target.txt",
 		"Path to a file that contains the name of the backup target file.")
 	if err := RootCmd.MarkPersistentFlagRequired("path"); err != nil {
@@ -48,6 +54,9 @@ func init() {
 		fmt.Printf("error marking 'target-file-path' flag as required: %v", err)
 		os.Exit(1)
 	}
+	RootCmd.PersistentFlags().BoolVar(&cleanupTargetFile, "cleanup-target-file", false,
+		"Whether to clean up the target file after S3 backups are completed."+
+			"This option should be used exclusively with external backups, such as S3.")
 
 	RootCmd.PersistentFlags().BoolVar(&s3, "s3", false, "Enable S3 backup storage.")
 	RootCmd.PersistentFlags().StringVar(&s3Bucket, "s3-bucket", "backups", "Name of the bucket to store backups.")
@@ -100,12 +109,11 @@ var RootCmd = &cobra.Command{
 		}
 		logger.Info("obtained target backup", "file", backupTargetFile)
 
-		err = compressFile(
-			filepath.Join(path, backupTargetFile),
+		if err := compressFile(
+			backupTargetFile,
 			mariadbv1alpha1.CompressAlgorithm(compression),
 			logger.WithName("compress"),
-		)
-		if err != nil {
+		); err != nil {
 			logger.Error(err, "error compressing file", "path", backupTargetFile)
 			os.Exit(1)
 		}
@@ -116,25 +124,24 @@ var RootCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
+		logger.Info("cleaning up old backups")
 		backupNames, err := backupStorage.List(ctx)
 		if err != nil {
 			logger.Error(err, "error listing backup files")
 			os.Exit(1)
 		}
-
-		logger.Info("cleaning up old backups")
 		oldBackups := backup.GetOldBackupFiles(backupNames, maxRetention, logger.WithName("backup-cleanup"))
-		if len(oldBackups) == 0 {
-			logger.Info("no old backups were found")
-			os.Exit(0)
-		}
 		logger.Info("old backups to delete", "backups", len(oldBackups))
-
 		for _, backup := range oldBackups {
 			logger.V(1).Info("deleting old backup", "backup", backup)
 			if err := backupStorage.Delete(ctx, backup); err != nil {
 				logger.Error(err, "error removing old backup", "backup", backup)
 			}
+		}
+
+		if err := cleanupFile(backupTargetFile, logger.WithName("cleanup")); err != nil && os.IsNotExist(err) {
+			logger.Error(err, "error cleaning up target file", "file", backupTargetFile)
+			os.Exit(1)
 		}
 	},
 }
@@ -186,15 +193,16 @@ func compressFile(fileName string, compression mariadbv1alpha1.CompressAlgorithm
 	if compression == mariadbv1alpha1.CompressNone {
 		return nil
 	}
-	logger.Info("compressing target backup", "file", fileName)
+	filePath := filepath.Join(path, fileName)
+	logger.Info("compressing target backup", "file", filePath)
 
-	originalFile, err := os.Open(fileName)
+	originalFile, err := os.Open(filePath)
 	if err != nil {
 		return err
 	}
 	defer originalFile.Close()
 
-	tmpf := fileName + ".tmp"
+	tmpf := filePath + ".tmp"
 	compressedFile, err := os.Create(tmpf)
 	if err != nil {
 		return err
@@ -229,11 +237,21 @@ func compressFile(fileName string, compression mariadbv1alpha1.CompressAlgorithm
 		return errors.New("unknown compression algorithm")
 	}
 
-	if err := os.Remove(fileName); err != nil {
+	if err := os.Remove(filePath); err != nil {
 		return err
 	}
-	if err := os.Rename(tmpf, fileName); err != nil {
+	if err := os.Rename(tmpf, filePath); err != nil {
 		return err
 	}
 	return nil
+}
+
+func cleanupFile(fileName string, logger logr.Logger) error {
+	if !s3 || !cleanupTargetFile {
+		return nil
+	}
+	filePath := filepath.Join(path, fileName)
+	logger.Info("cleaning up target file", "file", filePath)
+
+	return os.Remove(filePath)
 }

@@ -5,6 +5,8 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 )
@@ -13,6 +15,9 @@ var _ = Describe("Backup types", func() {
 	objMeta := metav1.ObjectMeta{
 		Name:      "backup-obj",
 		Namespace: testNamespace,
+	}
+	backup := Backup{
+		ObjectMeta: objMeta,
 	}
 	mdbObjMeta := metav1.ObjectMeta{
 		Name:      "mdb-backup-obj",
@@ -187,7 +192,7 @@ var _ = Describe("Backup types", func() {
 		)
 		DescribeTable(
 			"Should return a volume",
-			func(backup *Backup, expectedVolume VolumeSource, wantErr bool) {
+			func(backup *Backup, expectedVolume StorageVolumeSource, wantErr bool) {
 				volume, err := backup.Volume()
 				if wantErr {
 					Expect(err).To(HaveOccurred())
@@ -217,8 +222,35 @@ var _ = Describe("Backup types", func() {
 						},
 					},
 				},
-				VolumeSource{
+				StorageVolumeSource{
 					EmptyDir: &EmptyDirVolumeSource{},
+				},
+				false,
+			),
+			Entry(
+				"S3 with staging",
+				&Backup{
+					ObjectMeta: objMeta,
+					Spec: BackupSpec{
+						Storage: BackupStorage{
+							S3: &S3{},
+						},
+						StagingStorage: &BackupStagingStorage{
+							PersistentVolumeClaim: &PersistentVolumeClaimSpec{
+								StorageClassName: ptr.To("my-sc"),
+								Resources: corev1.VolumeResourceRequirements{
+									Requests: corev1.ResourceList{
+										"storage": resource.MustParse("1Gi"),
+									},
+								},
+							},
+						},
+					},
+				},
+				StorageVolumeSource{
+					PersistentVolumeClaim: &PersistentVolumeClaimVolumeSource{
+						ClaimName: backup.StagingPVCKey().Name,
+					},
 				},
 				false,
 			),
@@ -232,7 +264,7 @@ var _ = Describe("Backup types", func() {
 						},
 					},
 				},
-				VolumeSource{
+				StorageVolumeSource{
 					PersistentVolumeClaim: &PersistentVolumeClaimVolumeSource{
 						ClaimName: objMeta.Name,
 					},
@@ -245,7 +277,7 @@ var _ = Describe("Backup types", func() {
 					ObjectMeta: objMeta,
 					Spec: BackupSpec{
 						Storage: BackupStorage{
-							Volume: &VolumeSource{
+							Volume: &StorageVolumeSource{
 								NFS: &NFSVolumeSource{
 									Server: "test",
 									Path:   "test",
@@ -254,10 +286,64 @@ var _ = Describe("Backup types", func() {
 						},
 					},
 				},
-				VolumeSource{
+				StorageVolumeSource{
 					NFS: &NFSVolumeSource{
 						Server: "test",
 						Path:   "test",
+					},
+				},
+				false,
+			),
+			Entry(
+				"S3 priority over Volume",
+				&Backup{
+					ObjectMeta: objMeta,
+					Spec: BackupSpec{
+						Storage: BackupStorage{
+							S3: &S3{},
+							Volume: &StorageVolumeSource{
+								NFS: &NFSVolumeSource{
+									Server: "test",
+									Path:   "test",
+								},
+							},
+						},
+					},
+				},
+				StorageVolumeSource{
+					EmptyDir: &EmptyDirVolumeSource{},
+				},
+				false,
+			),
+			Entry(
+				"S3 with staging priority over Volume",
+				&Backup{
+					ObjectMeta: objMeta,
+					Spec: BackupSpec{
+						Storage: BackupStorage{
+							S3: &S3{},
+							Volume: &StorageVolumeSource{
+								NFS: &NFSVolumeSource{
+									Server: "test",
+									Path:   "test",
+								},
+							},
+						},
+						StagingStorage: &BackupStagingStorage{
+							PersistentVolumeClaim: &PersistentVolumeClaimSpec{
+								StorageClassName: ptr.To("my-sc"),
+								Resources: corev1.VolumeResourceRequirements{
+									Requests: corev1.ResourceList{
+										"storage": resource.MustParse("1Gi"),
+									},
+								},
+							},
+						},
+					},
+				},
+				StorageVolumeSource{
+					PersistentVolumeClaim: &PersistentVolumeClaimVolumeSource{
+						ClaimName: backup.StagingPVCKey().Name,
 					},
 				},
 				false,
