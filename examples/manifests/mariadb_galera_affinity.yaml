@@ -36,7 +36,7 @@ spec:
   metrics:
     enabled: true
 
-  # Configure Pod anti-affinity and schedule Pods only in given set of nodes defined by the nodeAffinity
+  # Configure Pod anti-affinity and schedule Pods only in given set of nodes defined by the nodeAffinity.
   affinity:
     antiAffinityEnabled: true
     nodeAffinity:
