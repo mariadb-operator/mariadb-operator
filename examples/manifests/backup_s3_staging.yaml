@@ -29,6 +29,6 @@ spec:
     persistentVolumeClaim:
       resources:
         requests:
-          storage: 100Mi
+          storage: 1Gi
       accessModes:
         - ReadWriteOnce

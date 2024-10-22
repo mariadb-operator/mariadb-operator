@@ -323,6 +323,72 @@ spec:
 
 Refer to the `mariadb-dump` and `mariadb` CLI options in the [reference](#reference) section.
 
+## Staging area
+
+> [!NOTE]  
+> S3 is the only storage type that requires an staging area.
+
+When using S3 storage for backups, an staging area is used for keeping the external backups while they are being processed. By default, this staging area is an `emptyDir` volume, which means that the backups are temporarily stored in the node where the `Backup`/`Restore` `Job` has been scheduled. In production environments, large backups may lead to issues if the node doesn't have sufficient space, potentially causing the backup/restore process to fail.
+
+To overcome this limitation, you are able to define your own staging area by setting the `stagingStorage` field to both the `Backup` and `Restore` CRs:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: Backup
+metadata:
+  name: backup
+spec:
+  stagingStorage:
+    storage:
+      s3:
+        ...
+    persistentVolumeClaim:
+      resources:
+        requests:
+          storage: 10Gi
+      accessModes:
+        - ReadWriteOnce
+```
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: Restore
+metadata:
+  name: restore
+spec:
+  s3:
+    ...
+  stagingStorage:
+    persistentVolumeClaim:
+      resources:
+        requests:
+          storage: 10Gi
+      accessModes:
+        - ReadWriteOnce
+``` 
+
+In the examples above, a PVC with the default `StorageClass` will be used as staging area. Refer to the [API reference](./API_REFERENCE.md) for more configuration options.
+
+Similarly, you may also use a custom staging area when [bootstrapping from backup](#bootstrap-new-mariadb-instances):
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb
+spec:
+  bootstrapFrom:
+    s3:
+      ...
+    stagingStorage:
+      persistentVolumeClaim:
+        resources:
+          requests:
+            storage: 10Gi
+        accessModes:
+          - ReadWriteOnce
+```
+
 ## Important considerations and limitations
 
 #### Root credentials
