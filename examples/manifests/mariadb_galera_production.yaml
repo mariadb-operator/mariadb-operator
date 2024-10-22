@@ -33,6 +33,21 @@ spec:
   #       caSecretKeyRef:
   #         name: minio-ca
   #         key: ca.crt
+  #   targetRecoveryTime: 2023-12-19T09:00:00Z
+  #   stagingStorage:
+  #     persistentVolumeClaim:
+  #       resources:
+  #         requests:
+  #           storage: 10Gi
+  #       accessModes:
+  #         - ReadWriteOnce
+  #   restoreJob:
+  #     resources:
+  #       requests:
+  #         cpu: 100m
+  #         memory: 128Mi
+  #       limits:
+  #         memory: 1Gi
 
   replicas: 3
 

@@ -32,6 +32,13 @@ spec:
           name: minio-ca
           key: ca.crt
     targetRecoveryTime: 2023-12-19T09:00:00Z
+    stagingStorage:
+      persistentVolumeClaim:
+        resources:
+          requests:
+            storage: 1Gi
+        accessModes:
+          - ReadWriteOnce
     restoreJob:
       metadata:
         labels:
