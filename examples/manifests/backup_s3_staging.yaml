@@ -1,20 +1,18 @@
 apiVersion: k8s.mariadb.com/v1alpha1
 kind: Backup
 metadata:
-  name: backup-scheduled
+  name: backup
 spec:
   mariaDbRef:
     name: mariadb
-  schedule:
-    cron: "*/1 * * * *"
-    suspend: false
-  timeZone: "UTC"
   maxRetention: 720h # 30 days
-  compression: bzip2
+  compression: gzip
   storage:
     s3:
       bucket: backups
+      prefix: mariadb
       endpoint: minio.minio.svc.cluster.local:9000
+      region:  us-east-1
       accessKeyIdSecretKeyRef:
         name: minio
         key: access-key-id
@@ -34,14 +32,3 @@ spec:
           storage: 100Mi
       accessModes:
         - ReadWriteOnce
-  args:
-    - --single-transaction
-    - --all-databases
-  logLevel: info
-  resources:
-    requests:
-      cpu: 100m
-      memory: 128Mi
-    limits:
-      cpu: 300m
-      memory: 512Mi
