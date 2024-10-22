@@ -1,0 +1,59 @@
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb
+spec:
+  # Additional init containers to be added to the MariaDB Pod.
+  initContainers:
+    - name: init
+      image: busybox:1.36
+      command:
+        - /bin/sh
+        - -c
+        - 'echo "MY_ENV: $MY_ENV"'
+      # Additional env added to the container. By default, all the MariaDB container environment is included.
+      env:
+        - name: MY_ENV
+          value: "foo"
+
+  # Additional sidecar containers to be added to the MariaDB Pod.
+  sidecarContainers:
+    - name: sidecar
+      image: busybox:1.36
+      args:
+        - sleep
+        - infinity
+      # Additional env added to the container. By default, all the MariaDB container environment is included.
+      env:
+        - name: INSTANCE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.labels['app.kubernetes.io/instance']
+        - name: MARIADB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mariadb
+              key: password
+
+  # Additional volumes to be mounted by containers.
+  volumes: 
+    - name: tmp
+      emptyDir:
+        sizeLimit: 100Mi
+    - name: mariadb-secret
+      secret:
+        secretName: mariadb
+    - name: mariadb-configmap
+      configMap:
+        name: mariadb
+  # Additional volumeMounts to be used by all containers. By default, all the MariaDB container volumeMounts are included.
+  volumeMounts: 
+    - name: tmp
+      mountPath: /tmp
+    - name: mariadb-secret
+      mountPath: /mariadb-secret
+    - name: mariadb-configmap
+      mountPath: /mariadb-configmap
+
+  storage:
+    size: 1Gi
