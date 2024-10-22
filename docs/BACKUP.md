@@ -13,6 +13,7 @@
 - [Bootstrap new `MariaDB` instances](#bootstrap-new-mariadb-instances)
 - [Backup and restore specific databases](#backup-and-restore-specific-databases)
 - [Extra options](#extra-options)
+- [Staging area](#staging-area)
 - [Important considerations and limitations](#important-considerations-and-limitations)
 - [Logical backups](#logical-backups)
 - [Migrating an external MariaDB to a `MariaDB` running in Kubernetes](#migrating-an-external-mariadb-to-a-mariadb-running-in-kubernetes)
