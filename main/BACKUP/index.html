@@ -1753,19 +1753,19 @@ spec:
 <h2 id="staging-area">Staging area</h2>
 <blockquote>
 <p>[!NOTE]<br />
-S3 is the only storage type that requires an staging area.</p>
+S3 is the only storage type that requires a staging area.</p>
 </blockquote>
-<p>When using S3 storage for backups, an staging area is used for keeping the external backups while they are being processed. By default, this staging area is an <code>emptyDir</code> volume, which means that the backups are temporarily stored in the node where the <code>Backup</code>/<code>Restore</code> <code>Job</code> has been scheduled. In production environments, large backups may lead to issues if the node doesn't have sufficient space, potentially causing the backup/restore process to fail.</p>
+<p>When using S3 storage for backups, a staging area is used for keeping the external backups while they are being processed. By default, this staging area is an <code>emptyDir</code> volume, which means that the backups are temporarily stored in the node filesystem where the <code>Backup</code>/<code>Restore</code> <code>Job</code> has been scheduled. In production environments, large backups may lead to issues if the node doesn't have sufficient space, potentially causing the backup/restore process to fail.</p>
 <p>To overcome this limitation, you are able to define your own staging area by setting the <code>stagingStorage</code> field to both the <code>Backup</code> and <code>Restore</code> CRs:</p>
 <pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
 kind: Backup
 metadata:
   name: backup
 spec:
+  storage:
+    s3:
+      ...
   stagingStorage:
-    storage:
-      s3:
-        ...
     persistentVolumeClaim:
       resources:
         requests:
