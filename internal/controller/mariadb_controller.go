@@ -202,18 +202,9 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	for _, p := range phases {
 		result, err := p.Reconcile(ctx, &mariadb)
 		if err != nil {
-			if apierrors.IsNotFound(err) {
+			if shouldSkipPhase(err) {
 				continue
 			}
-
-			// don't break the loop when replication is not configured
-			// it may happen that replication is required for a phase to complete successfully
-			// e.g. switchover during update; however, the Replication phase may run afterward
-			// and the previous phase will never complete successfully;
-			if errors.Is(err, mariadbv1alpha1.ErrReplicationNotConfigured) {
-				continue
-			}
-
 			var errBundle *multierror.Error
 			errBundle = multierror.Append(errBundle, err)
 
@@ -236,6 +227,21 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		}
 	}
 	return ctrl.Result{}, nil
+}
+
+func shouldSkipPhase(err error) bool {
+	if apierrors.IsNotFound(err) {
+		return true
+	}
+	// Don't break the loop when replication is not configured, let the reconciliation continue with the rest of the phases.
+	// e.g. switchover during update: the 'Replication' phase runs after the `StatefulSet` phase where the updates are performed,
+	// therefore, when replication is found to be unconfigured during the update phase, we will need to continue the reconciliation
+	// to get replication configured and be able to continue with updates in further reconciliation cycles.
+	// See: https://github.com/mariadb-operator/mariadb-operator/pull/947
+	if errors.Is(err, mariadbv1alpha1.ErrReplicationNotConfigured) {
+		return true
+	}
+	return false
 }
 
 func (r *MariaDBReconciler) reconcileSecret(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
