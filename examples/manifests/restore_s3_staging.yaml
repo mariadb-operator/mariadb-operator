@@ -1,0 +1,32 @@
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: Restore
+metadata:
+  name: restore
+spec:
+  mariaDbRef:
+    name: mariadb
+  targetRecoveryTime: 2023-12-19T09:00:00Z
+  s3:
+    bucket: backups
+    # prefix: mariadb
+    endpoint: minio.minio.svc.cluster.local:9000
+    region:  us-east-1
+    accessKeyIdSecretKeyRef:
+      name: minio
+      key: access-key-id
+    secretAccessKeySecretKeyRef:
+      name: minio
+      key: secret-access-key
+    tls:
+      enabled: true
+      caSecretKeyRef:
+        name: minio-ca
+        key: ca.crt
+  # Define a PVC to use as staging area for keeping the backups while they are being processed.
+  stagingStorage:
+    persistentVolumeClaim:
+      resources:
+        requests:
+          storage: 100Mi
+      accessModes:
+        - ReadWriteOnce

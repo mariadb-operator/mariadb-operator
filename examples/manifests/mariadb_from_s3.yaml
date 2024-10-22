@@ -23,6 +23,14 @@ spec:
           name: minio-ca
           key: ca.crt
     targetRecoveryTime: 2023-12-19T09:00:00Z
+     # Define a PVC to use as staging area for keeping the backups while they are being processed.
+    stagingStorage:
+      persistentVolumeClaim:
+        resources:
+          requests:
+            storage: 100Mi
+        accessModes:
+          - ReadWriteOnce
     restoreJob:
       metadata:
         labels:
