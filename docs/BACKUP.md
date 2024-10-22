@@ -327,9 +327,9 @@ Refer to the `mariadb-dump` and `mariadb` CLI options in the [reference](#refere
 ## Staging area
 
 > [!NOTE]  
-> S3 is the only storage type that requires an staging area.
+> S3 is the only storage type that requires a staging area.
 
-When using S3 storage for backups, an staging area is used for keeping the external backups while they are being processed. By default, this staging area is an `emptyDir` volume, which means that the backups are temporarily stored in the node where the `Backup`/`Restore` `Job` has been scheduled. In production environments, large backups may lead to issues if the node doesn't have sufficient space, potentially causing the backup/restore process to fail.
+When using S3 storage for backups, a staging area is used for keeping the external backups while they are being processed. By default, this staging area is an `emptyDir` volume, which means that the backups are temporarily stored in the node filesystem where the `Backup`/`Restore` `Job` has been scheduled. In production environments, large backups may lead to issues if the node doesn't have sufficient space, potentially causing the backup/restore process to fail.
 
 To overcome this limitation, you are able to define your own staging area by setting the `stagingStorage` field to both the `Backup` and `Restore` CRs:
 
@@ -339,10 +339,10 @@ kind: Backup
 metadata:
   name: backup
 spec:
+  storage:
+    s3:
+      ...
   stagingStorage:
-    storage:
-      s3:
-        ...
     persistentVolumeClaim:
       resources:
         requests:
