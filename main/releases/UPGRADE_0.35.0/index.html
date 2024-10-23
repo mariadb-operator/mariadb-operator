@@ -9,10 +9,10 @@
       
       
       
-        <link rel="prev" href="../UPGRADE_v0.0.26/">
+        <link rel="prev" href="../UPGRADE_0.34.0/">
       
       
-        <link rel="next" href="../UPGRADE_v0.0.30/">
+        <link rel="next" href="../UPGRADE_v0.0.20/">
       
       
       <link rel="icon" href="../../assets/mariadb_favicon.svg">
@@ -20,7 +20,7 @@
     
     
       
-        <title>Upgrade guide v0.0.28 - MariaDB Operator</title>
+        <title>Upgrade guide 0.35.0 - MariaDB Operator</title>
       
     
     
@@ -76,7 +76,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#upgrade-guide-v0028" class="md-skip">
+        <a href="#upgrade-guide-0350" class="md-skip">
           Skip to content
         </a>
       
@@ -127,7 +127,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Upgrade guide v0.0.28
+              Upgrade guide 0.35.0
             
           </span>
         </div>
@@ -664,10 +664,19 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../UPGRADE_0.35.0/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   <span class="md-ellipsis">
@@ -676,6 +685,7 @@
   
 
       </a>
+      
     </li>
   
 
@@ -769,19 +779,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../UPGRADE_v0.0.28/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -790,7 +791,6 @@
   
 
       </a>
-      
     </li>
   
 
@@ -923,27 +923,8 @@
   
 
 
-<h1 id="upgrade-guide-v0028">Upgrade guide v0.0.28</h1>
-<blockquote>
-<p>[!NOTE]<br />
-APIs are currently in <code>v1alpha1</code>, which implies that non backward compatible changes might happen. See <a href="https://kubernetes.io/docs/reference/using-api/#api-versioning">Kubernetes API versioning</a> for more detail.</p>
-</blockquote>
-<p>This guide illustrates, step by step, how to migrate to <code>v0.0.28</code> from previous versions, as some breaking changes have been introduced:</p>
-<ul>
-<li><strong>Metadata</strong>: https://github.com/mariadb-operator/mariadb-operator/pull/537</li>
-<li><strong>Affinity</strong>: https://github.com/mariadb-operator/mariadb-operator/pull/566 and https://github.com/mariadb-operator/mariadb-operator/pull/568</li>
-<li><strong>Opt-in password generation</strong>: https://github.com/mariadb-operator/mariadb-operator/pull/598</li>
-</ul>
-<p>Follow these steps for upgrading:</p>
-<ul>
-<li>Install <code>v0.0.28</code> CRDs:<blockquote>
-<p>[!NOTE]<br />
-Helm does not handle CRD upgrades. See <a href="https://helm.sh/docs/chart_best_practices/custom_resource_definitions/#some-caveats-and-explanations">helm docs</a>.</p>
-</blockquote>
-</li>
-</ul>
-<pre><code class="language-bash">kubectl apply --server-side=true --force-conflicts -f https://github.com/mariadb-operator/mariadb-operator/releases/download/helm-chart-0.28.0/crds.yaml
-</code></pre>
+<h1 id="upgrade-guide-0350">Upgrade guide 0.35.0</h1>
+<p>This guide illustrates, step by step, how to migrate to <code>0.35.0</code> from previous versions. </p>
 <ul>
 <li>Uninstall you current <code>mariadb-operator</code> for preventing conflicts:</li>
 </ul>
@@ -956,147 +937,59 @@ kubectl delete validatingwebhookconfiguration mariadb-operator-webhook
 kubectl delete mutatingwebhookconfiguration mariadb-operator-webhook
 </code></pre>
 <ul>
-<li>In case you are manually applying manifests, get a copy of your resources, as the CRD upgrade will wipe out fields that are no longer supported:</li>
-</ul>
-<pre><code class="language-bash">kubectl get mariadb mariadb -o yaml &gt; mariadb.yaml
-kubectl get maxscale maxscale -o yaml &gt; maxscale.yaml
-kubectl get backup backup -o yaml &gt; backup.yaml
-kubectl get restore restore -o yaml &gt; restore.yaml
-kubectl get restore sqljob -o yaml &gt; sqljob.yaml
-</code></pre>
-<ul>
-<li>Upgrade CRDs to <code>v0.0.28</code>:<blockquote>
-<p>[!IMPORTANT]<br />
-Helm does not handle CRD upgrades. See <a href="https://helm.sh/docs/chart_best_practices/custom_resource_definitions/#some-caveats-and-explanations">helm docs</a>.</p>
-</blockquote>
-</li>
-</ul>
-<blockquote>
-<p>[!WARNING]<br />
-This step will delete fields that are no longer supported in your resources.</p>
-</blockquote>
-<pre><code class="language-bash">kubectl replace -f https://github.com/mariadb-operator/mariadb-operator/releases/download/helm-chart-0.28.0/crds.yaml
-</code></pre>
-<ul>
-<li>Perform <code>metadata</code> related migrations in <code>MariaDB</code>, <code>MaxScale</code> and <code>Connection</code> resouces:</li>
-</ul>
-<pre><code class="language-diff">  storage:
-    volumeClaimTemplate:
--     labels:
--       k8s.mariadb.io/storage: &quot;fast&quot;
--     annotations:
--       k8s.mariadb.io/storage: &quot;fast&quot;
-+     metadata:
-+       labels:
-+         k8s.mariadb.io/storage: &quot;fast&quot;
-+       annotations:
-+         k8s.mariadb.io/storage: &quot;fast&quot;
-      accessModes:
-      - ReadWriteOnce
-      resources:
-        requests:
-          storage: 1Gi
-      storageClassName: standard
-
-  service:
-    type: LoadBalancer
--   labels:
--     k8s.mariadb.io/service: &quot;mysvc&quot;
--   annotations:
--     metallb.universe.tf/loadBalancerIPs: 172.18.0.150
-+   metadata:
-+     labels:
-+       k8s.mariadb.io/service: &quot;mysvc&quot;
-+     annotations:
-+       metallb.universe.tf/loadBalancerIPs: 172.18.0.150
-
-  connection:
-    secretName: mariadb-galera-conn
-    secretTemplate:
--     labels:
--       k8s.mariadb.io/secret: &quot;supersecret&quot;
--     annotations:
--       k8s.mariadb.io/secret: &quot;supersecret&quot;
-+     metadata:
-+       labels:
-+         k8s.mariadb.io/secret: &quot;supersecret&quot;
-+       annotations:
-+         k8s.mariadb.io/secret: &quot;supersecret&quot;
-      key: dsn
-
-  galera:
-    initJob:
--     labels:
--       sidecar.istio.io/inject: &quot;false&quot;
--     annotations
--       sidecar.istio.io/inject: &quot;false&quot;
-+     metadata:
-+       labels:
-+         sidecar.istio.io/inject: &quot;false&quot;
-+       annotations
-+         sidecar.istio.io/inject: &quot;false&quot;
-
-  bootstrapFrom:
-    restoreJob:
--     labels:
--       sidecar.istio.io/inject: &quot;false&quot;
--     annotations
--       sidecar.istio.io/inject: &quot;false&quot;
-+     metadata:
-+       labels:
-+         sidecar.istio.io/inject: &quot;false&quot;
-+       annotations
-+         sidecar.istio.io/inject: &quot;false&quot;
-</code></pre>
-<ul>
-<li>Perform <code>affinity</code> related migrations in <code>MariaDB</code>, <code>MaxScale</code>, <code>Backup</code>, <code>Restore</code> and <code>SqlJob</code> resources:</li>
-</ul>
-<pre><code class="language-diff">  affinity:
--   enableAntiAffinity: true
-+   antiAffinityEnabled: true
-
-  galera:
-    initJob:
-      affinity:
--       enableAntiAffinity: true
-+       antiAffinityEnabled: true
-
-  bootstrapFrom:
-    restoreJob:
-      affinity:
--       enableAntiAffinity: true
-+       antiAffinityEnabled: true
-</code></pre>
-<ul>
-<li>Perform password generation migrations in <code>MariaDB</code> and <code>MaxScale</code> resources. This only applies if you are currently relying on <code>Secrets</code> generated by the operator:</li>
-</ul>
-<pre><code class="language-diff">-  rootPasswordSecretKeyRef:
--    name: mariadb
--    key: root-password
-+  rootPasswordSecretKeyRef:
-+    name: mariadb
-+    key: root-password
-+    generate: true
-
--  passwordSecretKeyRef:
--    name: mariadb
--    key: root-password
-+  passwordSecretKeyRef:
-+    name: mariadb
-+    key: root-password
-+    generate: true
-</code></pre>
-<ul>
-<li>Upgrade <code>mariadb-operator</code> to <code>v0.0.28</code>:</li>
+<li>Upgrade <code>mariadb-operator-crds</code> to <code>0.35.0</code>:</li>
 </ul>
 <pre><code class="language-bash">helm repo update mariadb-operator
-helm upgrade --install mariadb-operator mariadb-operator/mariadb-operator --version 0.28.0 
+helm upgrade --install mariadb-operator-crds  mariadb-operator/mariadb-operator-crds --version 0.35.0
+</code></pre>
+<ul>
+<li>If you are using Galera, and you want the operator to automatically update the data-plane (i.e. init and agent containers) to <code>0.35.0</code>, you can set <code>updateStrategy.autoUpdateDataPlane=true</code> in your <code>MariaDB</code> resources:</li>
+</ul>
+<pre><code class="language-diff">apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+spec:
+  updateStrategy:
++   autoUpdateDataPlane: true
+</code></pre>
+<p>Alternatively, you can also do this manually:</p>
+<pre><code class="language-diff">apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb
+spec:
+  galera:
+    agent:
+-      image: docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:0.34.0
++      image: docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:0.35.0
+    initContainer:
+-      image: docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:0.34.0
++      image: docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:0.35.0
+</code></pre>
+<ul>
+<li>Upgrade <code>mariadb-operator</code> to <code>0.35.0</code>:</li>
+</ul>
+<pre><code class="language-bash">helm repo update mariadb-operator
+helm upgrade --install mariadb-operator mariadb-operator/mariadb-operator --version 0.35.0 
 </code></pre>
 <ul>
 <li>If you previously decided to downscale the operator, make sure you upscale it back:</li>
 </ul>
-<pre><code class="language-bash">kubectl scale deployment mariadb-operator -n default --replicas=1
-kubectl scale deployment mariadb-operator-webhook -n default --replicas=1
+<pre><code class="language-bash">kubectl scale deployment mariadb-operator --replicas=1
+kubectl scale deployment mariadb-operator-webhook --replicas=1
+</code></pre>
+<ul>
+<li>If you previously set <code>updateStratety.autoUpdateDataPlane=true</code>, you may consider reverting the changes once the upgrades have finished:</li>
+</ul>
+<pre><code class="language-diff">apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+spec:
+  updateStrategy:
++   autoUpdateDataPlane: false
+-   autoUpdateDataPlane: true
 </code></pre>
 
 
