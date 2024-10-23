@@ -510,6 +510,7 @@ func (c *Client) WaitForReplicaGtid(ctx context.Context, gtid string, timeout ti
 type ChangeMasterOpts struct {
 	Connection string
 	Host       string
+	Port       int32
 	User       string
 	Password   string
 	Gtid       string
@@ -519,6 +520,7 @@ type ChangeMasterOpts struct {
 func (c *Client) ChangeMaster(ctx context.Context, opts *ChangeMasterOpts) error {
 	tpl := createTpl("change-master.sql", `CHANGE MASTER '{{ .Connection }}' TO
 MASTER_HOST='{{ .Host }}',
+MASTER_PORT={{ .Port }},
 MASTER_USER='{{ .User }}',
 MASTER_PASSWORD='{{ .Password }}',
 MASTER_USE_GTID={{ .Gtid }},

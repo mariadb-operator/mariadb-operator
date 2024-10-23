@@ -152,6 +152,7 @@ func (r *ReplicationConfig) changeMaster(ctx context.Context, mariadb *mariadbv1
 			mariadb.InternalServiceKey().Name,
 		),
 		User:     replUser,
+		Port:     mariadb.Spec.Port,
 		Password: password,
 		Gtid:     gtidString,
 		Retries:  *mariadb.Replication().Replica.ConnectionRetries,
