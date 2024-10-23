@@ -66,11 +66,6 @@ spec:
       affinity:
         antiAffinityEnabled: true
   ...
-  galera:
-    initJob:
-      affinity:
-        antiAffinityEnabled: true
-  ...
   metrics:
     exporter:
       affinity:

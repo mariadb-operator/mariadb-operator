@@ -94,10 +94,6 @@ spec:
       metadata:
         labels:
           sidecar.istio.io/inject: "false"
-      args:
-        - "--verbose"
-      affinity:
-        antiAffinityEnabled: true
       resources:
         requests:
           cpu: 100m
