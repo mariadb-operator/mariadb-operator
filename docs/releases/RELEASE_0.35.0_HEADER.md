@@ -15,7 +15,7 @@ Kudos to @am6737 for helping with this! 🙏🏻
 
 Kudos to @BonySmoke for this contribution! 🙏🏻
 
-### Support for image in Helm chart
+### Support for image digest in Helm chart
 
 Kudos to @am6737 for this contribution! 🙏🏻
 
