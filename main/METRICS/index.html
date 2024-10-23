@@ -1102,7 +1102,7 @@ This documentation applies to <code>mariadb-operator</code> version &gt;= v0.0.2
 <!-- /toc -->
 
 <h2 id="operator-metrics">Operator metrics</h2>
-<p>In order to expose the operator internal metrics, please refer to the <a href="../README.md#recommended-installation">recommended installation</a> flavour.</p>
+<p>In order to expose the operator internal metrics, you may install the operator Helm chart passing the <code>metrics.enabled = true</code> value. Refer to the <a href="../HELM/">Helm documentation</a> for further detail.</p>
 <h2 id="exporter">Exporter</h2>
 <p>The operator configures a <a href="https://github.com/prometheus/mysqld_exporter">prometheus/mysqld-exporter</a> exporter to query MariaDB and export the metrics in Prometheus format via an http endpoint.</p>
 <p>It is important to note that, we run this exporter as an standalone <code>Deployment</code> and not as a sidecar alongside every MariaDB replica. This implies that the MariaDB lifecycle is not coupled to the exporter one, so we can upgrade them independently without affecting the availability of the other.</p>
