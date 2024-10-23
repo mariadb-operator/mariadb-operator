@@ -18,7 +18,7 @@
 
 ## Operator metrics
 
-In order to expose the operator internal metrics, please refer to the [recommended installation](../README.md#recommended-installation) flavour.
+In order to expose the operator internal metrics, you may install the operator Helm chart passing the `metrics.enabled = true` value. Refer to the [Helm documentation](./HELM.md) for further detail.
 
 ## Exporter
 
