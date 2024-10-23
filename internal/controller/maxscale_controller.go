@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/hashicorp/go-multierror"
@@ -24,6 +25,7 @@ import (
 	mxsclient "github.com/mariadb-operator/mariadb-operator/pkg/maxscale/client"
 	mxsconfig "github.com/mariadb-operator/mariadb-operator/pkg/maxscale/config"
 	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
+	"github.com/mariadb-operator/mariadb-operator/pkg/pod"
 	"github.com/mariadb-operator/mariadb-operator/pkg/predicate"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	stsobj "github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
@@ -525,7 +527,7 @@ func (r *MaxScaleReconciler) reconcileService(ctx context.Context, req *requestM
 	if err := r.reconcileKubernetesService(ctx, req.mxs); err != nil {
 		return ctrl.Result{}, err
 	}
-	return ctrl.Result{}, r.reconcileGuiKubernetesService(ctx, req.mxs)
+	return r.reconcileGuiKubernetesService(ctx, req.mxs)
 }
 
 func (r *MaxScaleReconciler) reconcileInternalService(ctx context.Context, maxscale *mariadbv1alpha1.MaxScale) error {
@@ -581,14 +583,20 @@ func (r *MaxScaleReconciler) reconcileKubernetesService(ctx context.Context, max
 	return r.ServiceReconciler.Reconcile(ctx, desiredSvc)
 }
 
-func (r *MaxScaleReconciler) reconcileGuiKubernetesService(ctx context.Context, maxscale *mariadbv1alpha1.MaxScale) error {
+func (r *MaxScaleReconciler) reconcileGuiKubernetesService(ctx context.Context, maxscale *mariadbv1alpha1.MaxScale) (ctrl.Result, error) {
 	if !ptr.Deref(maxscale.Spec.Admin.GuiEnabled, false) {
-		return nil
+		return ctrl.Result{}, nil
 	}
-	key := maxscale.GuiServiceKey()
+	podIndex, err := r.firstMaxScaleReadyPodIndex(ctx, maxscale)
+	if err != nil {
+		log.FromContext(ctx).V(1).Info("Unable to find ready Pod for GUI Service. Requeuing...", "err", err)
+		return ctrl.Result{RequeueAfter: 3 * time.Second}, nil
+	}
+
 	selectorLabels :=
 		labels.NewLabelsBuilder().
 			WithMaxScaleSelectorLabels(maxscale).
+			WithStatefulSetPod(maxscale.ObjectMeta, *podIndex).
 			Build()
 	ports := []corev1.ServicePort{
 		{
@@ -604,13 +612,40 @@ func (r *MaxScaleReconciler) reconcileGuiKubernetesService(ctx context.Context, 
 	if maxscale.Spec.GuiKubernetesService != nil {
 		opts.ServiceTemplate = *maxscale.Spec.GuiKubernetesService
 	}
-	opts.SessionAffinity = ptr.To(corev1.ServiceAffinityClientIP)
 
-	desiredSvc, err := r.Builder.BuildService(key, maxscale, opts)
+	desiredSvc, err := r.Builder.BuildService(maxscale.GuiServiceKey(), maxscale, opts)
 	if err != nil {
-		return fmt.Errorf("error building GUI Service: %v", err)
+		return ctrl.Result{}, fmt.Errorf("error building GUI Service: %v", err)
 	}
-	return r.ServiceReconciler.Reconcile(ctx, desiredSvc)
+	return ctrl.Result{}, r.ServiceReconciler.Reconcile(ctx, desiredSvc)
+}
+
+func (r *MaxScaleReconciler) firstMaxScaleReadyPodIndex(ctx context.Context, maxscale *mariadbv1alpha1.MaxScale) (*int, error) {
+	list := corev1.PodList{}
+	listOpts := &client.ListOptions{
+		LabelSelector: klabels.SelectorFromSet(
+			labels.NewLabelsBuilder().
+				WithMaxScaleSelectorLabels(maxscale).
+				Build(),
+		),
+		Namespace: maxscale.GetNamespace(),
+	}
+	if err := r.List(ctx, &list, listOpts); err != nil {
+		return nil, fmt.Errorf("error listing Pods: %v", err)
+	}
+	if len(list.Items) == 0 {
+		return nil, errors.New("no Pods were found")
+	}
+
+	sort.Slice(list.Items, func(i, j int) bool {
+		return list.Items[i].Name < list.Items[j].Name
+	})
+	for _, p := range list.Items {
+		if pod.PodReady(&p) {
+			return stsobj.PodIndex(p.Name)
+		}
+	}
+	return nil, errors.New("no ready Pods were found")
 }
 
 func (r *MaxScaleReconciler) ensureStatefulSetReady(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
@@ -621,7 +656,8 @@ func (r *MaxScaleReconciler) ensureStatefulSetReady(ctx context.Context, req *re
 	if r.isStatefulSetReady(&sts, req.mxs) {
 		return ctrl.Result{}, nil
 	}
-	return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+	log.FromContext(ctx).V(1).Info("StatefulSet not ready. Requeuing...")
+	return ctrl.Result{RequeueAfter: 3 * time.Second}, nil
 }
 
 func (r *MaxScaleReconciler) isStatefulSetReady(sts *appsv1.StatefulSet, mxs *mariadbv1alpha1.MaxScale) bool {
