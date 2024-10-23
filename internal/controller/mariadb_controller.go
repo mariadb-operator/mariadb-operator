@@ -671,7 +671,7 @@ func (r *MariaDBReconciler) reconcilePrimaryService(ctx context.Context, mariadb
 	serviceLabels :=
 		labels.NewLabelsBuilder().
 			WithMariaDBSelectorLabels(mariadb).
-			WithStatefulSetPod(mariadb, *mariadb.Status.CurrentPrimaryPodIndex).
+			WithStatefulSetPod(mariadb.ObjectMeta, *mariadb.Status.CurrentPrimaryPodIndex).
 			Build()
 	opts := builder.ServiceOpts{
 		Ports:          ports,

@@ -3,6 +3,7 @@ package builder
 import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -37,8 +38,8 @@ func (b *LabelsBuilder) WithInstance(instance string) *LabelsBuilder {
 	return b
 }
 
-func (b *LabelsBuilder) WithStatefulSetPod(mdb *mariadbv1alpha1.MariaDB, podIndex int) *LabelsBuilder {
-	b.labels[statefulSetPodName] = statefulset.PodName(mdb.ObjectMeta, podIndex)
+func (b *LabelsBuilder) WithStatefulSetPod(objMeta metav1.ObjectMeta, podIndex int) *LabelsBuilder {
+	b.labels[statefulSetPodName] = statefulset.PodName(objMeta, podIndex)
 	return b
 }
 
