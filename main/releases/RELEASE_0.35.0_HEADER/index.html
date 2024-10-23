@@ -9,25 +9,25 @@
       
       
       
-        <link rel="prev" href="../BACKUP/">
+        <link rel="prev" href="../../UPDATES/">
       
       
-        <link rel="next" href="../DEVELOPMENT/">
+        <link rel="next" href="../UPGRADE_0.34.0/">
       
       
-      <link rel="icon" href="../assets/mariadb_favicon.svg">
+      <link rel="icon" href="../../assets/mariadb_favicon.svg">
       <meta name="generator" content="mkdocs-1.6.0, mkdocs-material-9.5.27">
     
     
       
-        <title>Configuration - MariaDB Operator</title>
+        <title>RELEASE 0.35.0 HEADER - MariaDB Operator</title>
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.6543a935.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.6543a935.min.css">
       
         
-        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.06af60db.min.css">
       
       
 
@@ -46,9 +46,9 @@
       
     
     
-      <link rel="stylesheet" href="../stylesheets/extra.css">
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
     
-    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -76,7 +76,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#configuration" class="md-skip">
+        <a href="#staging-storage-for-s3-backups" class="md-skip">
           Skip to content
         </a>
       
@@ -91,7 +91,7 @@
             <div class="md-banner__inner md-grid md-typeset">
               
   You're not viewing the latest version.
-  <a href="../..">
+  <a href="../../..">
     <strong>Click here to go to latest.</strong>
   </a>
 
@@ -108,9 +108,9 @@
 
 <header class="md-header md-header--shadow" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href=".." title="MariaDB Operator" class="md-header__button md-logo" aria-label="MariaDB Operator" data-md-component="logo">
+    <a href="../.." title="MariaDB Operator" class="md-header__button md-logo" aria-label="MariaDB Operator" data-md-component="logo">
       
-  <img src="../assets/mariadb_medium.svg" alt="logo">
+  <img src="../../assets/mariadb_medium.svg" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -127,7 +127,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Configuration
+              RELEASE 0.35.0 HEADER
             
           </span>
         </div>
@@ -240,9 +240,9 @@
 
 <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href=".." title="MariaDB Operator" class="md-nav__button md-logo" aria-label="MariaDB Operator" data-md-component="logo">
+    <a href="../.." title="MariaDB Operator" class="md-nav__button md-logo" aria-label="MariaDB Operator" data-md-component="logo">
       
-  <img src="../assets/mariadb_medium.svg" alt="logo">
+  <img src="../../assets/mariadb_medium.svg" alt="logo">
 
     </a>
     MariaDB Operator
@@ -269,7 +269,7 @@
   
   
     <li class="md-nav__item">
-      <a href=".." class="md-nav__link">
+      <a href="../.." class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -289,7 +289,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../API_REFERENCE/" class="md-nav__link">
+      <a href="../../API_REFERENCE/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -309,7 +309,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../BACKUP/" class="md-nav__link">
+      <a href="../../BACKUP/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -326,30 +326,10 @@
       
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  <span class="md-ellipsis">
-    Configuration
-  </span>
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../CONFIGURATION/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -358,80 +338,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#table-of-contents" class="md-nav__link">
-    <span class="md-ellipsis">
-      Table of contents
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#mycnf" class="md-nav__link">
-    <span class="md-ellipsis">
-      my.cnf
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#timezones" class="md-nav__link">
-    <span class="md-ellipsis">
-      Timezones
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#passwords" class="md-nav__link">
-    <span class="md-ellipsis">
-      Passwords
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#external-resources" class="md-nav__link">
-    <span class="md-ellipsis">
-      External resources
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#probes" class="md-nav__link">
-    <span class="md-ellipsis">
-      Probes
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -443,7 +349,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../DEVELOPMENT/" class="md-nav__link">
+      <a href="../../DEVELOPMENT/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -463,7 +369,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../DOCKER/" class="md-nav__link">
+      <a href="../../DOCKER/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -483,7 +389,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../GALERA/" class="md-nav__link">
+      <a href="../../GALERA/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -503,7 +409,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../HA/" class="md-nav__link">
+      <a href="../../HA/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -523,7 +429,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../HELM/" class="md-nav__link">
+      <a href="../../HELM/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -543,7 +449,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../MAXSCALE/" class="md-nav__link">
+      <a href="../../MAXSCALE/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -563,7 +469,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../METADATA/" class="md-nav__link">
+      <a href="../../METADATA/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -583,7 +489,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../METRICS/" class="md-nav__link">
+      <a href="../../METRICS/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -603,7 +509,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../REGISTRY/" class="md-nav__link">
+      <a href="../../REGISTRY/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -623,7 +529,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../SQL_RESOURCES/" class="md-nav__link">
+      <a href="../../SQL_RESOURCES/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -643,7 +549,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../STORAGE/" class="md-nav__link">
+      <a href="../../STORAGE/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -663,7 +569,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../SUSPEND/" class="md-nav__link">
+      <a href="../../SUSPEND/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -683,7 +589,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../UPDATES/" class="md-nav__link">
+      <a href="../../UPDATES/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -700,17 +606,19 @@
       
   
   
+    
   
   
+  
     
     
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_18" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_18" checked>
         
           
           <label class="md-nav__link" for="__nav_18" id="__nav_18_label" tabindex="0">
@@ -724,7 +632,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_18_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_18_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_18">
             <span class="md-nav__icon md-icon"></span>
             Releases
@@ -735,10 +643,28 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../releases/RELEASE_0.35.0_HEADER/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    RELEASE 0.35.0 HEADER
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   <span class="md-ellipsis">
@@ -747,6 +673,87 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#staging-storage-for-s3-backups" class="md-nav__link">
+    <span class="md-ellipsis">
+      Staging storage for S3 backups
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#more-flexibility-configuring-kubernetes-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      More flexibility configuring Kubernetes types
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#enhanced-session-affinity-for-maxscale-gui" class="md-nav__link">
+    <span class="md-ellipsis">
+      Enhanced session affinity for MaxScale GUI
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#replication-improvements" class="md-nav__link">
+    <span class="md-ellipsis">
+      Replication improvements
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#support-for-image-in-helm-chart" class="md-nav__link">
+    <span class="md-ellipsis">
+      Support for image in Helm chart
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#fix-password-generator" class="md-nav__link">
+    <span class="md-ellipsis">
+      Fix password generator
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#fix-sqljob-dependencies" class="md-nav__link">
+    <span class="md-ellipsis">
+      Fix SqlJob dependencies
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -759,7 +766,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../releases/UPGRADE_0.34.0/" class="md-nav__link">
+      <a href="../UPGRADE_0.34.0/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -780,7 +787,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../releases/UPGRADE_0.35.0/" class="md-nav__link">
+      <a href="../UPGRADE_0.35.0/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -801,7 +808,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../releases/UPGRADE_v0.0.20/" class="md-nav__link">
+      <a href="../UPGRADE_v0.0.20/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -822,7 +829,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../releases/UPGRADE_v0.0.21/" class="md-nav__link">
+      <a href="../UPGRADE_v0.0.21/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -843,7 +850,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../releases/UPGRADE_v0.0.24/" class="md-nav__link">
+      <a href="../UPGRADE_v0.0.24/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -864,7 +871,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../releases/UPGRADE_v0.0.26/" class="md-nav__link">
+      <a href="../UPGRADE_v0.0.26/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -885,7 +892,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../releases/UPGRADE_v0.0.28/" class="md-nav__link">
+      <a href="../UPGRADE_v0.0.28/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -906,7 +913,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../releases/UPGRADE_v0.0.30/" class="md-nav__link">
+      <a href="../UPGRADE_v0.0.30/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -927,7 +934,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../releases/UPGRADE_v0.0.31/" class="md-nav__link">
+      <a href="../UPGRADE_v0.0.31/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -948,7 +955,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../releases/UPGRADE_v0.0.32/" class="md-nav__link">
+      <a href="../UPGRADE_v0.0.32/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -969,7 +976,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../releases/UPGRADE_v0.0.33/" class="md-nav__link">
+      <a href="../UPGRADE_v0.0.33/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1007,8 +1014,6 @@
   
   
   
-    
-  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
@@ -1017,54 +1022,63 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#table-of-contents" class="md-nav__link">
+  <a href="#staging-storage-for-s3-backups" class="md-nav__link">
     <span class="md-ellipsis">
-      Table of contents
+      Staging storage for S3 backups
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#mycnf" class="md-nav__link">
+  <a href="#more-flexibility-configuring-kubernetes-types" class="md-nav__link">
     <span class="md-ellipsis">
-      my.cnf
+      More flexibility configuring Kubernetes types
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#timezones" class="md-nav__link">
+  <a href="#enhanced-session-affinity-for-maxscale-gui" class="md-nav__link">
     <span class="md-ellipsis">
-      Timezones
+      Enhanced session affinity for MaxScale GUI
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#passwords" class="md-nav__link">
+  <a href="#replication-improvements" class="md-nav__link">
     <span class="md-ellipsis">
-      Passwords
+      Replication improvements
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#external-resources" class="md-nav__link">
+  <a href="#support-for-image-in-helm-chart" class="md-nav__link">
     <span class="md-ellipsis">
-      External resources
+      Support for image in Helm chart
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#probes" class="md-nav__link">
+  <a href="#fix-password-generator" class="md-nav__link">
     <span class="md-ellipsis">
-      Probes
+      Fix password generator
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#fix-sqljob-dependencies" class="md-nav__link">
+    <span class="md-ellipsis">
+      Fix SqlJob dependencies
     </span>
   </a>
   
@@ -1088,166 +1102,25 @@
   
 
 
-<h1 id="configuration">Configuration</h1>
-<blockquote>
-<p>[!NOTE]<br />
-This documentation applies to <code>mariadb-operator</code> version &gt;= v0.0.28</p>
-</blockquote>
-<p>This documentation aims to provide guidance on various configuration aspects across many <code>mariadb-operator</code> CRs. </p>
-<h2 id="table-of-contents">Table of contents</h2>
-<!-- toc -->
-<ul>
-<li><a href="#mycnf">my.cnf</a></li>
-<li><a href="#timezones">Timezones</a></li>
-<li><a href="#passwords">Passwords</a></li>
-<li><a href="#external-resources">External resources</a></li>
-<li><a href="#probes">Probes</a></li>
-</ul>
-<!-- /toc -->
+  <h1>RELEASE 0.35.0 HEADER</h1>
 
-<h2 id="mycnf">my.cnf</h2>
-<p>An inline <a href="https://mariadb.com/kb/en/configuring-mariadb-with-option-files/">configuration file (my.cnf)</a> can be provisioned in the <code>MariaDB</code> resource via the <code>myCnf</code> field:</p>
-<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
-kind: MariaDB
-metadata:
-  name: mariadb
-spec:
-  ...
-  myCnf: |
-    [mariadb]
-    bind-address=*
-    default_storage_engine=InnoDB
-    binlog_format=row
-    innodb_autoinc_lock_mode=2
-    innodb_buffer_pool_size=1024M
-    max_allowed_packet=256M 
-</code></pre>
-<p>In this field, you may provide any <a href="https://mariadb.com/kb/en/mariadbd-options/">configuration option</a> or <a href="https://mariadb.com/kb/en/server-system-variables/">system variable</a> supported by MariaDB.</p>
-<p>Under the hood, the operator automatically creates a <code>ConfigMap</code> with the contents of  the <code>myCnf</code> field, which will be mounted in the <code>MariaDB</code> instance. Alternatively, you can manage your own configuration using a pre-existing <code>ConfigMap</code> by linking it via <code>myCnfConfigMapKeyRef</code>. It is important to note that the key in this <code>ConfigMap</code> i.e. the config file name, must have a <code>.cnf</code> extension in order to be detected by MariaDB:</p>
-<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
-kind: MariaDB
-metadata:
-  name: mariadb
-spec:
-  ...
-  myCnfConfigMapKeyRef:
-    name: mariadb
-    key: mycnf
-</code></pre>
-<p>To ensure your configuration changes take effect, the operator triggers a <a href="../UPDATES/">rolling update</a> whenever the <code>myCnf</code> field or a <code>ConfigMap</code> is updated. For the operator to detect changes in a <code>ConfigMap</code>, it must be labeled with <code>k8s.mariadb.com/watch</code>. Refer to the <a href="#external-resources">external resources</a> section for further detail.</p>
-<h2 id="timezones">Timezones</h2>
-<p>By default, MariaDB does not load timezone data on startup for performance reasons and defaults the timezone to <code>SYSTEM</code>, obtaining the timezone information from the environment where it runs. See the <a href="https://mariadb.com/kb/en/time-zones/">MariaDB docs</a> for further information.</p>
-<p>You can explicitly configure a timezone in your <code>MariaDB</code> instance by setting the <code>timeZone</code> field: </p>
-<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
-kind: MariaDB
-metadata:
-  name: mariadb-galera
-spec:
-  timeZone: &quot;UTC&quot;
-</code></pre>
-<p>This setting is immutable and implies loading the timezone data on startup.</p>
-<p>In regards to <code>Backup</code> and <code>SqlJob</code> resources, which get reconciled into <code>CronJobs</code>, you can also define a <code>timeZone</code> associated with their cron expression:</p>
-<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
-kind: Backup
-metadata:
-  name: backup-scheduled
-spec:
-  mariaDbRef:
-    name: mariadb
-  schedule:
-    cron: &quot;*/1 * * * *&quot;
-    suspend: false
-  timeZone: &quot;UTC&quot;
-</code></pre>
-<p>If <code>timeZone</code> is not provided, the local timezone will be used, as described in the <a href="https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/#time-zones">Kubernetes docs</a>.</p>
-<h2 id="passwords">Passwords</h2>
-<p>Some CRs require passwords provided as <code>Secret</code> references to function properly. For instance, the root password for a <code>MariaDB</code> resource:</p>
-<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
-kind: MariaDB
-metadata:
-  name: mariadb-galera
-spec:
-  rootPasswordSecretKeyRef:
-    name: mariadb
-    key: root-password
-</code></pre>
-<p>By default, fields like <code>rootPasswordSecretKeyRef</code> are optional and defaulted by the operator, resulting in random password generation if not provided:</p>
-<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
-kind: MariaDB
-metadata:
-  name: mariadb-galera
-spec:
-  rootPasswordSecretKeyRef:
-    name: mariadb
-    key: root-password
-    generate: true
-</code></pre>
-<p>You may choose to explicitly provide a <code>Secret</code> reference via <code>rootPasswordSecretKeyRef</code> and opt-out from random password generation by either not providing the <code>generate</code> field or setting it to <code>false</code>: </p>
-<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
-kind: MariaDB
-metadata:
-  name: mariadb-galera
-spec:
-  rootPasswordSecretKeyRef:
-    name: mariadb
-    key: root-password
-    generate: false
-</code></pre>
-<p>This way, we are telling the operator that we are expecting a <code>Secret</code> to be available eventually, enabling the use of GitOps tools to seed the password:
-- <a href="https://github.com/bitnami-labs/sealed-secrets">sealed-secrets</a>: The <code>Secret</code> is reconciled from a <code>SealedSecret</code>, which is decrypted by the sealed-secrets controller.
-- <a href="https://github.com/external-secrets/external-secrets">external-secrets</a>: The <code>Secret</code> is reconciled fom an <code>ExternalSecret</code>, which is read by the external-secrets controller from an external secrets source (Vault, AWS Secrets Manager ...).</p>
-<h2 id="external-resources">External resources</h2>
-<p>Many CRs have a references to external resources (i.e. <code>ConfigMap</code>, <code>Secret</code>) not managed by the operator. </p>
-<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
-kind: MariaDB
-metadata:
-  name: mariadb
-spec:
-  ...
-  myCnfConfigMapKeyRef:
-    name: mariadb
-    key: mycnf
-</code></pre>
-<p>These external resources should be labeled with <code>k8s.mariadb.com/watch</code> so the operator can watch them and perform reconciliations based on their changes. For example, see the <code>my.cnf</code> <code>ConfigMap</code>:</p>
-<pre><code class="language-yaml">apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: mariadb
-  labels:
-    k8s.mariadb.com/watch: &quot;&quot;
-data:
-  my.cnf: |
-    [mariadb]
-    bind-address=*
-    default_storage_engine=InnoDB
-    binlog_format=row
-    innodb_autoinc_lock_mode=2
-    innodb_buffer_pool_size=1024M
-    max_allowed_packet=256M
-</code></pre>
-<h2 id="probes">Probes</h2>
-<p>Kubernetes probes serve as an inversion of control mechanism, enabling the application to communicate its health status to Kubernetes. This enables Kubernetes to take appropriate actions when the application is unhealthy, such as restarting or stop sending traffic to <code>Pods</code>.</p>
-<blockquote>
-<p>[!IMPORTANT]<br />
-Make sure you check the <a href="https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/">Kubernetes documentation</a> if you are unfamiliar with Kubernetes probes.</p>
-</blockquote>
-<p>Fine tunning of probes for databases running in Kubernetes is critical, you may do so by tweaking the following fields:</p>
-<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
-kind: MariaDB
-metadata:
-  name: mariadb-galera
-spec:
-  livenessProbe:
-    initialDelaySeconds: 20
-    periodSeconds: 5
-    timeoutSeconds: 5
-
-  readinessProbe:
-    initialDelaySeconds: 20
-    periodSeconds: 5
-    timeoutSeconds: 5
-</code></pre>
-<p>There isn't an universally correct default value for these thresholds, so we recommend determining your own based on factors like the compute resources, network, storage, and other aspects of the environment where your <code>MariaDB</code> and <code>MaxScale</code> instances are running.</p>
+<p><code>{{ .ProjectName }}</code> <strong><a href="https://github.com/mariadb-operator/mariadb-operator/releases/tag/0.35.0">0.35.0</a></strong> is out! 🦭</p>
+<p>To upgrade from older versions, be sure to follow the <strong><a href="https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/releases/UPGRADE_0.35.0.md">UPGRADE GUIDE</a></strong>.</p>
+<h3 id="staging-storage-for-s3-backups">Staging storage for S3 backups</h3>
+<h3 id="more-flexibility-configuring-kubernetes-types">More flexibility configuring Kubernetes types</h3>
+<p>Kudos to @am6737 for helping with this! 🙏🏻</p>
+<h3 id="enhanced-session-affinity-for-maxscale-gui">Enhanced session affinity for MaxScale GUI</h3>
+<h3 id="replication-improvements">Replication improvements</h3>
+<p>Kudos to @BonySmoke for this contribution! 🙏🏻</p>
+<h3 id="support-for-image-in-helm-chart">Support for image in Helm chart</h3>
+<p>Kudos to @am6737 for this contribution! 🙏🏻</p>
+<h3 id="fix-password-generator">Fix password generator</h3>
+<p>Kudos to @am6737 for this contribution! 🙏🏻</p>
+<h3 id="fix-sqljob-dependencies">Fix SqlJob dependencies</h3>
+<p>Kudos to @am6737 for this contribution! 🙏🏻</p>
+<hr />
+<p>We value your feedback! If you encounter any issues or have suggestions, please <a href="https://github.com/mariadb-operator/mariadb-operator/issues/new/choose">open an issue on GitHub</a>. Your input is crucial to improve <code>{{ .ProjectName }}</code>🦭.</p>
+<p>Join us on Slack: <strong><a href="https://r.mariadb.com/join-community-slack">MariaDB Community Slack</a></strong>.</p>
 
 
 
@@ -1331,10 +1204,10 @@ spec:
     </div>
     
     
-    <script id="__config" type="application/json">{"base": "..", "features": [], "search": "../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+    <script id="__config" type="application/json">{"base": "../..", "features": [], "search": "../../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../assets/javascripts/bundle.ad660dcc.min.js"></script>
+      <script src="../../assets/javascripts/bundle.ad660dcc.min.js"></script>
       
     
   </body>
