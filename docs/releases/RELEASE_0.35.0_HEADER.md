@@ -60,16 +60,15 @@ Kudos to @am6737 for helping with this! 🙏🏻
 
 ### Enhanced session affinity for MaxScale GUI
 
-MaxScale GUI `Service` used `sessionAffinity` in previous releases to avoid load balancing GUI requests and therefore, end up landing in a different `Pod`. This is important because every MaxScale `Pod` is an independent server which has its own user sessions for the GUI.
+MaxScale GUI `Service` used `sessionAffinity` in previous releases to avoid load balancing, preventing GUI requests from landing in a different `Pods`. This is important because every MaxScale `Pod` is an independent server which has its own user sessions for the GUI.
 
-
-When using an API gateway in front of the MaxScale GUI `Service`, if it doesn't have `sessionAffinity` configured in its `Service`, it will result in the previous undesired behaviour as well. To overcome this, we are pointing the MaxScale GUI `Service` to a specific `Pod`, dynamically updating this `Pod` in case that it goes down. This is done in a consistent and predictable way to avoid sending GUI requests to new MaxScale `Pods` whenever possible.
+When using an API gateway in front of the MaxScale GUI `Service`, if it doesn't have `sessionAffinity` configured, it will result in undexpected logouts, as the session from one server would be invalid in another. To overcome this, we are pointing the MaxScale GUI `Service` to a specific `Pod`, dynamically updating this `Pod` in case that it goes down. This is done in a consistent and predictable way to avoid sending GUI requests to new MaxScale `Pods` whenever possible. See https://github.com/mariadb-operator/mariadb-operator/pull/956.
 
 Refer to the [MaxScale docs](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/MAXSCALE.md#maxscale-gui) for further detail.
 
 ### Support for image digests in Helm chart
 
-We are now able to specify image digests when installing the Helm chart. You will need to provide a `digest` instead of a `tag` under the image values:
+We are now able to specify image digests when installing the operator Helm chart. You will need to provide a `digest` instead of a `tag` under the image values:
 
 ```yaml
 image:
