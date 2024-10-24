@@ -715,6 +715,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#support-for-image-digests-in-helm-chart" class="md-nav__link">
+    <span class="md-ellipsis">
+      Support for image digests in Helm chart
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#replication-improvements" class="md-nav__link">
     <span class="md-ellipsis">
       Replication improvements
@@ -724,27 +733,9 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#support-for-image-digest-in-helm-chart" class="md-nav__link">
+  <a href="#various-fixes" class="md-nav__link">
     <span class="md-ellipsis">
-      Support for image digest in Helm chart
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#fix-password-generator" class="md-nav__link">
-    <span class="md-ellipsis">
-      Fix password generator
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#fix-sqljob-dependencies" class="md-nav__link">
-    <span class="md-ellipsis">
-      Fix SqlJob dependencies
+      Various fixes
     </span>
   </a>
   
@@ -1049,6 +1040,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#support-for-image-digests-in-helm-chart" class="md-nav__link">
+    <span class="md-ellipsis">
+      Support for image digests in Helm chart
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#replication-improvements" class="md-nav__link">
     <span class="md-ellipsis">
       Replication improvements
@@ -1058,27 +1058,9 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#support-for-image-digest-in-helm-chart" class="md-nav__link">
+  <a href="#various-fixes" class="md-nav__link">
     <span class="md-ellipsis">
-      Support for image digest in Helm chart
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#fix-password-generator" class="md-nav__link">
-    <span class="md-ellipsis">
-      Fix password generator
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#fix-sqljob-dependencies" class="md-nav__link">
-    <span class="md-ellipsis">
-      Fix SqlJob dependencies
+      Various fixes
     </span>
   </a>
   
@@ -1107,17 +1089,80 @@
 <p><code>{{ .ProjectName }}</code> <strong><a href="https://github.com/mariadb-operator/mariadb-operator/releases/tag/0.35.0">0.35.0</a></strong> is out! 🦭</p>
 <p>To upgrade from older versions, be sure to follow the <strong><a href="https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/releases/UPGRADE_0.35.0.md">UPGRADE GUIDE</a></strong>.</p>
 <h3 id="staging-storage-for-s3-backups">Staging storage for S3 backups</h3>
+<p>When using S3 storage for backups, a staging area is used for keeping the external backups while they are being processed. By default, this staging area is an <code>emptyDir</code> volume, which means that the backups are temporarily stored in the node's local storage where the <code>Backup</code>/<code>Restore</code> <code>Job</code> is scheduled. In production environments, large backups may lead to issues if the node doesn't have sufficient space, potentially causing the backup/restore process to fail.</p>
+<p>To overcome this limitation, you are now able to define your own staging area by setting the <code>stagingStorage</code> field to both the <code>Backup</code> and <code>Restore</code> CRs:</p>
+<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
+kind: Backup
+metadata:
+  name: backup
+spec:
+  storage:
+    s3:
+      ...
+  stagingStorage:
+    persistentVolumeClaim:
+      resources:
+        requests:
+          storage: 10Gi
+      accessModes:
+        - ReadWriteOnce
+</code></pre>
+<pre><code class="language-yaml">apiVersion: k8s.mariadb.com/v1alpha1
+kind: Restore
+metadata:
+  name: restore
+spec:
+  s3:
+    ...
+  stagingStorage:
+    persistentVolumeClaim:
+      resources:
+        requests:
+          storage: 10Gi
+      accessModes:
+        - ReadWriteOnce
+</code></pre>
+<p>In the examples above, a PVC with the default <code>StorageClass</code> will be used as staging area. Refer to the <a href="https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/API_REFERENCE.md">API reference</a> for more configuration options.</p>
 <h3 id="more-flexibility-configuring-kubernetes-types">More flexibility configuring Kubernetes types</h3>
+<p>We have recently slimmed down our CRDs, resulting in a <a href="https://github.com/mariadb-operator/mariadb-operator/pull/869">~81% size decrease</a>. As part of this massive refactor, we have replaced the upstream Kubernetes types and introduce our own ones. In this release, we keep committed to this matter, and we have extended our Kubernetes types to ensure flexibility, including:
+- <code>nodeAffinity</code> as expression-driven alternative to <code>nodeSelector</code>
+- <code>configMap</code> and <code>secret</code> volume sources support
+- <code>env</code> support for both <code>initContainers</code> and <code>sidecarContainers</code>
+- <code>resources</code> support in metrics exporter <code>Deployment</code></p>
+<p>Refer to the <a href="https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/API_REFERENCE.md">API reference</a> for more details about this fields.</p>
 <p>Kudos to @am6737 for helping with this! 🙏🏻</p>
 <h3 id="enhanced-session-affinity-for-maxscale-gui">Enhanced session affinity for MaxScale GUI</h3>
+<p>MaxScale GUI <code>Service</code> used <code>sessionAffinity</code> in previous releases to avoid load balancing GUI requests and therefore, end up landing in a different <code>Pod</code>. This is important because every MaxScale <code>Pod</code> is an independent server which has its own user sessions for the GUI.</p>
+<p>When using an API gateway in front of the MaxScale GUI <code>Service</code>, if it doesn't have <code>sessionAffinity</code> configured in its <code>Service</code>, it will result in the previous undesired behaviour as well. To overcome this, we are pointing the MaxScale GUI <code>Service</code> to a specific <code>Pod</code>, dynamically updating this <code>Pod</code> in case that it goes down. This is done in a consistent and predictable way to avoid sending GUI requests to new MaxScale <code>Pods</code> whenever possible.</p>
+<p>Refer to the <a href="https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/MAXSCALE.md#maxscale-gui">MaxScale docs</a> for further detail.</p>
+<h3 id="support-for-image-digests-in-helm-chart">Support for image digests in Helm chart</h3>
+<p>We are now able to specify image digests when installing the Helm chart. You will need to provide a <code>digest</code> instead of a <code>tag</code> under the image values:</p>
+<pre><code class="language-yaml">image:
+  repository: docker-registry3.mariadb.com/mariadb-operator/mariadb-operator
+  pullPolicy: IfNotPresent
+  digest: sha256:084a927ee9f3918a5c85d283f73822ae205757df352218de0b935853a0765060
+
+webhook:
+  enabled: true
+  image:
+    repository: docker-registry3.mariadb.com/mariadb-operator/mariadb-operator
+    pullPolicy: IfNotPresent
+    digest: sha256:084a927ee9f3918a5c85d283f73822ae205757df352218de0b935853a0765060
+
+certController:
+  enabled: true
+  image:
+    repository: docker-registry3.mariadb.com/mariadb-operator/mariadb-operator
+    pullPolicy: IfNotPresent
+    digest: sha256:084a927ee9f3918a5c85d283f73822ae205757df352218de0b935853a0765060
+</code></pre>
+<p>Kudos to @am6737 for this contribution! 🙏🏻</p>
 <h3 id="replication-improvements">Replication improvements</h3>
+<p>During an update, ensure that at least one <code>Pod</code> has replication configured before proceeding to update the primary. See https://github.com/mariadb-operator/mariadb-operator/pull/947.</p>
 <p>Kudos to @BonySmoke for this contribution! 🙏🏻</p>
-<h3 id="support-for-image-digest-in-helm-chart">Support for image digest in Helm chart</h3>
-<p>Kudos to @am6737 for this contribution! 🙏🏻</p>
-<h3 id="fix-password-generator">Fix password generator</h3>
-<p>Kudos to @am6737 for this contribution! 🙏🏻</p>
-<h3 id="fix-sqljob-dependencies">Fix SqlJob dependencies</h3>
-<p>Kudos to @am6737 for this contribution! 🙏🏻</p>
+<h3 id="various-fixes">Various fixes</h3>
+<p>See https://github.com/mariadb-operator/mariadb-operator/pull/932 and https://github.com/mariadb-operator/mariadb-operator/pull/924.</p>
+<p>Kudos to @am6737 for this contributions! 🙏🏻</p>
 <hr />
 <p>We value your feedback! If you encounter any issues or have suggestions, please <a href="https://github.com/mariadb-operator/mariadb-operator/issues/new/choose">open an issue on GitHub</a>. Your input is crucial to improve <code>{{ .ProjectName }}</code>🦭.</p>
 <p>Join us on Slack: <strong><a href="https://r.mariadb.com/join-community-slack">MariaDB Community Slack</a></strong>.</p>
