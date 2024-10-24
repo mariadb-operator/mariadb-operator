@@ -103,7 +103,7 @@ Kudos to @BonySmoke for this contribution! 🙏🏻
 
 See https://github.com/mariadb-operator/mariadb-operator/pull/932 https://github.com/mariadb-operator/mariadb-operator/pull/924.
 
-Kudos to @am6737 for this contributions! 🙏🏻
+Kudos to @am6737 for these contributions! 🙏🏻
 
 ---
 
