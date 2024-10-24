@@ -1124,7 +1124,7 @@ spec:
 </code></pre>
 <p>In the examples above, a PVC with the default <code>StorageClass</code> will be used as staging area. Refer to the <a href="https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/API_REFERENCE.md">API reference</a> for more configuration options.</p>
 <h3 id="more-flexibility-configuring-kubernetes-types">More flexibility configuring Kubernetes types</h3>
-<p>We have recently slimmed down our CRDs, resulting in a <a href="https://github.com/mariadb-operator/mariadb-operator/pull/869">~81% size decrease</a>. As part of this massive refactor, we have replaced the upstream Kubernetes types and introduce our own ones. In this release, we keep committed to this matter, and we have extended our Kubernetes types to ensure flexibility, including:
+<p>We have recently slimmed down our CRDs, resulting in a <a href="https://github.com/mariadb-operator/mariadb-operator/pull/869">~81% size decrease</a>. As part of this massive refactor, we have replaced the upstream Kubernetes types and introduce our custom types. In this release, we keep committed to this matter, and we have extended our Kubernetes types to ensure flexibility, including:
 - <code>nodeAffinity</code> as expression-driven alternative to <code>nodeSelector</code>
 - <code>configMap</code> and <code>secret</code> volume sources support
 - <code>env</code> support for both <code>initContainers</code> and <code>sidecarContainers</code>
@@ -1132,11 +1132,11 @@ spec:
 <p>Refer to the <a href="https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/API_REFERENCE.md">API reference</a> for more details about this fields.</p>
 <p>Kudos to @am6737 for helping with this! 🙏🏻</p>
 <h3 id="enhanced-session-affinity-for-maxscale-gui">Enhanced session affinity for MaxScale GUI</h3>
-<p>MaxScale GUI <code>Service</code> used <code>sessionAffinity</code> in previous releases to avoid load balancing, preventing GUI requests from landing in a different <code>Pods</code>. This is important because every MaxScale <code>Pod</code> is an independent server which has its own user sessions for the GUI.</p>
-<p>When using an API gateway in front of the MaxScale GUI <code>Service</code>, if it doesn't have <code>sessionAffinity</code> configured, it will result in undexpected logouts, as the session from one server would be invalid in another. To overcome this, we are pointing the MaxScale GUI <code>Service</code> to a specific <code>Pod</code>, dynamically updating this <code>Pod</code> in case that it goes down. This is done in a consistent and predictable way to avoid sending GUI requests to new MaxScale <code>Pods</code> whenever possible. See https://github.com/mariadb-operator/mariadb-operator/pull/956.</p>
+<p>In previous releases, the MaxScale GUI <code>Service</code> used <code>sessionAffinity</code> to avoid load balancing, ensuring that GUI requests stayed with the same Pod. This was important because each MaxScale <code>Pod</code> operates as an independent server, maintaining its own user sessions for the GUI.</p>
+<p>When using an API gateway in front of the MaxScale GUI <code>Service</code> without <code>sessionAffinity</code> configured, users may experience unexpected logouts, as sessions from one server are invalid on another. To address this, we now point the MaxScale GUI <code>Service</code> to a specific <code>Pod</code>, dynamically updating the target if the selected <code>Pod</code> goes down. This approach ensures consistency and predictability, minimizing the chances of sending GUI requests to new MaxScale <code>Pods</code> whenever possible. For more details, see <a href="https://github.com/mariadb-operator/mariadb-operator/pull/956">PR 956</a>.</p>
 <p>Refer to the <a href="https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/MAXSCALE.md#maxscale-gui">MaxScale docs</a> for further detail.</p>
 <h3 id="support-for-image-digests-in-helm-chart">Support for image digests in Helm chart</h3>
-<p>We are now able to specify image digests when installing the operator Helm chart. You will need to provide a <code>digest</code> instead of a <code>tag</code> under the image values:</p>
+<p>You can now specify image digests when installing the operator Helm chart. Instead of providing a <code>tag</code>, you will need to specify a <code>digest</code> under the image values:</p>
 <pre><code class="language-yaml">image:
   repository: docker-registry3.mariadb.com/mariadb-operator/mariadb-operator
   pullPolicy: IfNotPresent
@@ -1158,7 +1158,7 @@ certController:
 </code></pre>
 <p>Kudos to @am6737 for this contribution! 🙏🏻</p>
 <h3 id="replication-improvements">Replication improvements</h3>
-<p>During an update, ensure that at least one <code>Pod</code> has replication configured before proceeding to update the primary. See https://github.com/mariadb-operator/mariadb-operator/pull/947.</p>
+<p>During an update, make sure that at least one <code>Pod</code> has replication configured before proceeding with the update of the primary. See https://github.com/mariadb-operator/mariadb-operator/pull/947.</p>
 <p>Kudos to @BonySmoke for this contribution! 🙏🏻</p>
 <h3 id="various-fixes">Various fixes</h3>
 <p>See https://github.com/mariadb-operator/mariadb-operator/pull/932 and https://github.com/mariadb-operator/mariadb-operator/pull/924.</p>
