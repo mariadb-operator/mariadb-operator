@@ -48,7 +48,7 @@ In the examples above, a PVC with the default `StorageClass` will be used as sta
 
 ### More flexibility configuring Kubernetes types
 
-We have recently slimmed down our CRDs, resulting in a [~81% size decrease](https://github.com/mariadb-operator/mariadb-operator/pull/869). As part of this massive refactor, we have replaced the upstream Kubernetes types and introduce our own ones. In this release, we keep committed to this matter, and we have extended our Kubernetes types to ensure flexibility, including:
+We have recently slimmed down our CRDs, resulting in a [~81% size decrease](https://github.com/mariadb-operator/mariadb-operator/pull/869). As part of this massive refactor, we have replaced the upstream Kubernetes types and introduce our custom types. In this release, we keep committed to this matter, and we have extended our Kubernetes types to ensure flexibility, including:
 - `nodeAffinity` as expression-driven alternative to `nodeSelector`
 - `configMap` and `secret` volume sources support
 - `env` support for both `initContainers` and `sidecarContainers`
@@ -60,15 +60,15 @@ Kudos to @am6737 for helping with this! 🙏🏻
 
 ### Enhanced session affinity for MaxScale GUI
 
-MaxScale GUI `Service` used `sessionAffinity` in previous releases to avoid load balancing, preventing GUI requests from landing in a different `Pods`. This is important because every MaxScale `Pod` is an independent server which has its own user sessions for the GUI.
+In previous releases, the MaxScale GUI `Service` used `sessionAffinity` to avoid load balancing, ensuring that GUI requests stayed with the same Pod. This was important because each MaxScale `Pod` operates as an independent server, maintaining its own user sessions for the GUI.
 
-When using an API gateway in front of the MaxScale GUI `Service`, if it doesn't have `sessionAffinity` configured, it will result in undexpected logouts, as the session from one server would be invalid in another. To overcome this, we are pointing the MaxScale GUI `Service` to a specific `Pod`, dynamically updating this `Pod` in case that it goes down. This is done in a consistent and predictable way to avoid sending GUI requests to new MaxScale `Pods` whenever possible. See https://github.com/mariadb-operator/mariadb-operator/pull/956.
+When using an API gateway in front of the MaxScale GUI `Service` without `sessionAffinity` configured, users may experience unexpected logouts, as sessions from one server are invalid on another. To address this, we now point the MaxScale GUI `Service` to a specific `Pod`, dynamically updating the target if the selected `Pod` goes down. This approach ensures consistency and predictability, minimizing the chances of sending GUI requests to new MaxScale `Pods` whenever possible. For more details, see [PR 956](https://github.com/mariadb-operator/mariadb-operator/pull/956).
 
 Refer to the [MaxScale docs](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/MAXSCALE.md#maxscale-gui) for further detail.
 
 ### Support for image digests in Helm chart
 
-We are now able to specify image digests when installing the operator Helm chart. You will need to provide a `digest` instead of a `tag` under the image values:
+You can now specify image digests when installing the operator Helm chart. Instead of providing a `tag`, you will need to specify a `digest` under the image values:
 
 ```yaml
 image:
@@ -95,7 +95,7 @@ Kudos to @am6737 for this contribution! 🙏🏻
 
 ### Replication improvements
 
-During an update, ensure that at least one `Pod` has replication configured before proceeding to update the primary. See https://github.com/mariadb-operator/mariadb-operator/pull/947.
+During an update, make sure that at least one `Pod` has replication configured before proceeding with the update of the primary. See https://github.com/mariadb-operator/mariadb-operator/pull/947.
 
 Kudos to @BonySmoke for this contribution! 🙏🏻
 
