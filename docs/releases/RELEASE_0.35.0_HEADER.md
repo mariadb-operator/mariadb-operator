@@ -62,7 +62,7 @@ Kudos to @am6737 for helping with this! 🙏🏻
 
 In previous releases, the MaxScale GUI `Service` used `sessionAffinity` to avoid load balancing, ensuring that GUI requests stayed with the same Pod. This was important because each MaxScale `Pod` operates as an independent server, maintaining its own user sessions for the GUI.
 
-When using an API gateway in front of the MaxScale GUI `Service` without `sessionAffinity` configured, users may experience unexpected logouts, as sessions from one server are invalid on another. To address this, we now point the MaxScale GUI `Service` to a specific `Pod`, dynamically updating the target if the selected `Pod` goes down. This approach ensures consistency and predictability, minimizing the chances of sending GUI requests to new MaxScale `Pods` whenever possible. For more details, see [PR 956](https://github.com/mariadb-operator/mariadb-operator/pull/956).
+When using an API gateway in front of the MaxScale GUI `Service` without `sessionAffinity` configured, users may experience unexpected logouts, as sessions from one server are invalid on another. To address this, we now point the MaxScale GUI `Service` to a specific `Pod`, dynamically updating the target if the selected `Pod` goes down. This approach ensures consistency and predictability, minimizing the chances of sending GUI requests to new MaxScale `Pods` whenever possible. See https://github.com/mariadb-operator/mariadb-operator/pull/956.
 
 Refer to the [MaxScale docs](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/MAXSCALE.md#maxscale-gui) for further detail.
 
@@ -101,7 +101,7 @@ Kudos to @BonySmoke for this contribution! 🙏🏻
 
 ### Various fixes
 
-See https://github.com/mariadb-operator/mariadb-operator/pull/932 and https://github.com/mariadb-operator/mariadb-operator/pull/924.
+See https://github.com/mariadb-operator/mariadb-operator/pull/932 https://github.com/mariadb-operator/mariadb-operator/pull/924.
 
 Kudos to @am6737 for this contributions! 🙏🏻
 
