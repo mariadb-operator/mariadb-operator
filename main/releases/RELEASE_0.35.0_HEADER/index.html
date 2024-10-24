@@ -1132,11 +1132,11 @@ spec:
 <p>Refer to the <a href="https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/API_REFERENCE.md">API reference</a> for more details about this fields.</p>
 <p>Kudos to @am6737 for helping with this! 🙏🏻</p>
 <h3 id="enhanced-session-affinity-for-maxscale-gui">Enhanced session affinity for MaxScale GUI</h3>
-<p>MaxScale GUI <code>Service</code> used <code>sessionAffinity</code> in previous releases to avoid load balancing GUI requests and therefore, end up landing in a different <code>Pod</code>. This is important because every MaxScale <code>Pod</code> is an independent server which has its own user sessions for the GUI.</p>
-<p>When using an API gateway in front of the MaxScale GUI <code>Service</code>, if it doesn't have <code>sessionAffinity</code> configured in its <code>Service</code>, it will result in the previous undesired behaviour as well. To overcome this, we are pointing the MaxScale GUI <code>Service</code> to a specific <code>Pod</code>, dynamically updating this <code>Pod</code> in case that it goes down. This is done in a consistent and predictable way to avoid sending GUI requests to new MaxScale <code>Pods</code> whenever possible.</p>
+<p>MaxScale GUI <code>Service</code> used <code>sessionAffinity</code> in previous releases to avoid load balancing, preventing GUI requests from landing in a different <code>Pods</code>. This is important because every MaxScale <code>Pod</code> is an independent server which has its own user sessions for the GUI.</p>
+<p>When using an API gateway in front of the MaxScale GUI <code>Service</code>, if it doesn't have <code>sessionAffinity</code> configured, it will result in undexpected logouts, as the session from one server would be invalid in another. To overcome this, we are pointing the MaxScale GUI <code>Service</code> to a specific <code>Pod</code>, dynamically updating this <code>Pod</code> in case that it goes down. This is done in a consistent and predictable way to avoid sending GUI requests to new MaxScale <code>Pods</code> whenever possible. See https://github.com/mariadb-operator/mariadb-operator/pull/956.</p>
 <p>Refer to the <a href="https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/MAXSCALE.md#maxscale-gui">MaxScale docs</a> for further detail.</p>
 <h3 id="support-for-image-digests-in-helm-chart">Support for image digests in Helm chart</h3>
-<p>We are now able to specify image digests when installing the Helm chart. You will need to provide a <code>digest</code> instead of a <code>tag</code> under the image values:</p>
+<p>We are now able to specify image digests when installing the operator Helm chart. You will need to provide a <code>digest</code> instead of a <code>tag</code> under the image values:</p>
 <pre><code class="language-yaml">image:
   repository: docker-registry3.mariadb.com/mariadb-operator/mariadb-operator
   pullPolicy: IfNotPresent
