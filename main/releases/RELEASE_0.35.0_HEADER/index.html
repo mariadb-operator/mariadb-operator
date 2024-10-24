@@ -1133,7 +1133,7 @@ spec:
 <p>Kudos to @am6737 for helping with this! 🙏🏻</p>
 <h3 id="enhanced-session-affinity-for-maxscale-gui">Enhanced session affinity for MaxScale GUI</h3>
 <p>In previous releases, the MaxScale GUI <code>Service</code> used <code>sessionAffinity</code> to avoid load balancing, ensuring that GUI requests stayed with the same Pod. This was important because each MaxScale <code>Pod</code> operates as an independent server, maintaining its own user sessions for the GUI.</p>
-<p>When using an API gateway in front of the MaxScale GUI <code>Service</code> without <code>sessionAffinity</code> configured, users may experience unexpected logouts, as sessions from one server are invalid on another. To address this, we now point the MaxScale GUI <code>Service</code> to a specific <code>Pod</code>, dynamically updating the target if the selected <code>Pod</code> goes down. This approach ensures consistency and predictability, minimizing the chances of sending GUI requests to new MaxScale <code>Pods</code> whenever possible. For more details, see <a href="https://github.com/mariadb-operator/mariadb-operator/pull/956">PR 956</a>.</p>
+<p>When using an API gateway in front of the MaxScale GUI <code>Service</code> without <code>sessionAffinity</code> configured, users may experience unexpected logouts, as sessions from one server are invalid on another. To address this, we now point the MaxScale GUI <code>Service</code> to a specific <code>Pod</code>, dynamically updating the target if the selected <code>Pod</code> goes down. This approach ensures consistency and predictability, minimizing the chances of sending GUI requests to new MaxScale <code>Pods</code> whenever possible. See https://github.com/mariadb-operator/mariadb-operator/pull/956.</p>
 <p>Refer to the <a href="https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/MAXSCALE.md#maxscale-gui">MaxScale docs</a> for further detail.</p>
 <h3 id="support-for-image-digests-in-helm-chart">Support for image digests in Helm chart</h3>
 <p>You can now specify image digests when installing the operator Helm chart. Instead of providing a <code>tag</code>, you will need to specify a <code>digest</code> under the image values:</p>
@@ -1161,7 +1161,7 @@ certController:
 <p>During an update, make sure that at least one <code>Pod</code> has replication configured before proceeding with the update of the primary. See https://github.com/mariadb-operator/mariadb-operator/pull/947.</p>
 <p>Kudos to @BonySmoke for this contribution! 🙏🏻</p>
 <h3 id="various-fixes">Various fixes</h3>
-<p>See https://github.com/mariadb-operator/mariadb-operator/pull/932 and https://github.com/mariadb-operator/mariadb-operator/pull/924.</p>
+<p>See https://github.com/mariadb-operator/mariadb-operator/pull/932 https://github.com/mariadb-operator/mariadb-operator/pull/924.</p>
 <p>Kudos to @am6737 for this contributions! 🙏🏻</p>
 <hr />
 <p>We value your feedback! If you encounter any issues or have suggestions, please <a href="https://github.com/mariadb-operator/mariadb-operator/issues/new/choose">open an issue on GitHub</a>. Your input is crucial to improve <code>{{ .ProjectName }}</code>🦭.</p>
