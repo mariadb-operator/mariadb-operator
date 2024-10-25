@@ -311,8 +311,8 @@ func (b *Builder) buildContainerWithTemplate(image string, pullPolicy corev1.Pul
 
 func (b *Builder) buildContainer(mdb *mariadbv1alpha1.MariaDB, mdbContainer *mariadbv1alpha1.Container) *corev1.Container {
 	env := mariadbEnv(mdb)
-	for k, v := range mdbContainer.Env {
-		env[k] = v.ToKubernetesType()
+	if mdbContainer.Env != nil {
+		env = append(env, kadapter.ToKubernetesSlice(mdbContainer.Env)...)
 	}
 
 	volumeMounts := mariadbVolumeMounts(mdb)
