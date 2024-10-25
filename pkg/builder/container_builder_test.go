@@ -1135,11 +1135,11 @@ func TestContainerArgs(t *testing.T) {
 
 func TestMariadbContainers(t *testing.T) {
 	tests := []struct {
-		name               string
-		mariadb            *mariadbv1alpha1.MariaDB
-		wantName           string
-		wantEnvKey         *string
-		wantVolumeMountKey *string
+		name                string
+		mariadb             *mariadbv1alpha1.MariaDB
+		wantName            string
+		wantEnvKeys         []string
+		wantVolumeMountKeys []string
 	}{
 		{
 			name: "Without sidecar container name",
@@ -1159,9 +1159,9 @@ func TestMariadbContainers(t *testing.T) {
 					},
 				},
 			},
-			wantName:           "sidecar-0",
-			wantEnvKey:         nil,
-			wantVolumeMountKey: nil,
+			wantName:            "sidecar-0",
+			wantEnvKeys:         nil,
+			wantVolumeMountKeys: nil,
 		},
 		{
 			name: "With sidecar container name",
@@ -1182,9 +1182,9 @@ func TestMariadbContainers(t *testing.T) {
 					},
 				},
 			},
-			wantName:           "busybox",
-			wantEnvKey:         nil,
-			wantVolumeMountKey: nil,
+			wantName:            "busybox",
+			wantEnvKeys:         nil,
+			wantVolumeMountKeys: nil,
 		},
 		{
 			name: "With env",
@@ -1206,15 +1206,23 @@ func TestMariadbContainers(t *testing.T) {
 										Name:  "TEST",
 										Value: "TEST",
 									},
+									{
+										Name:  "FOO",
+										Value: "FOO",
+									},
+									{
+										Name:  "BAR",
+										Value: "BAR",
+									},
 								},
 							},
 						},
 					},
 				},
 			},
-			wantName:           "busybox",
-			wantEnvKey:         ptr.To("TEST"),
-			wantVolumeMountKey: nil,
+			wantName:            "busybox",
+			wantEnvKeys:         []string{"TEST", "FOO", "BAR"},
+			wantVolumeMountKeys: nil,
 		},
 		{
 			name: "With volumeMount",
@@ -1236,15 +1244,23 @@ func TestMariadbContainers(t *testing.T) {
 										Name:      "TEST",
 										MountPath: "/test",
 									},
+									{
+										Name:      "FOO",
+										MountPath: "/foo",
+									},
+									{
+										Name:      "BAR",
+										MountPath: "/bar",
+									},
 								},
 							},
 						},
 					},
 				},
 			},
-			wantName:           "busybox",
-			wantEnvKey:         nil,
-			wantVolumeMountKey: ptr.To("TEST"),
+			wantName:            "busybox",
+			wantEnvKeys:         nil,
+			wantVolumeMountKeys: []string{"TEST", "FOO", "BAR"},
 		},
 	}
 
@@ -1262,20 +1278,20 @@ func TestMariadbContainers(t *testing.T) {
 			if container.Name != tt.wantName {
 				t.Errorf("unexpected result:\nexpected:\n%s\ngot:\n%s\n", tt.wantName, containers[1].Name)
 			}
-			if tt.wantEnvKey != nil {
-				exists := datastructures.Any(container.Env, func(env corev1.EnvVar) bool {
-					return env.Name == *tt.wantEnvKey
+			if tt.wantEnvKeys != nil {
+				idx := datastructures.NewIndex(container.Env, func(env corev1.EnvVar) string {
+					return env.Name
 				})
-				if !exists {
-					t.Errorf("expected \"%s\" env key to exist", *tt.wantEnvKey)
+				if !datastructures.AllExists(idx, tt.wantEnvKeys...) {
+					t.Errorf("expected env keys \"%v\" to exist", tt.wantEnvKeys)
 				}
 			}
-			if tt.wantVolumeMountKey != nil {
-				exists := datastructures.Any(container.VolumeMounts, func(volumeMount corev1.VolumeMount) bool {
-					return volumeMount.Name == *tt.wantVolumeMountKey
+			if tt.wantVolumeMountKeys != nil {
+				idx := datastructures.NewIndex(container.VolumeMounts, func(volumeMount corev1.VolumeMount) string {
+					return volumeMount.Name
 				})
-				if !exists {
-					t.Errorf("expected \"%s\" volumeMount key to exist", *tt.wantVolumeMountKey)
+				if !datastructures.AllExists(idx, tt.wantVolumeMountKeys...) {
+					t.Errorf("expected volumeMount keys \"%s\" to exist", tt.wantVolumeMountKeys)
 				}
 			}
 		})
@@ -1284,11 +1300,11 @@ func TestMariadbContainers(t *testing.T) {
 
 func TestMariadbInitContainers(t *testing.T) {
 	tests := []struct {
-		name               string
-		mariadb            *mariadbv1alpha1.MariaDB
-		wantName           string
-		wantEnvKey         *string
-		wantVolumeMountKey *string
+		name                string
+		mariadb             *mariadbv1alpha1.MariaDB
+		wantName            string
+		wantEnvKeys         []string
+		wantVolumeMountKeys []string
 	}{
 		{
 			name: "Without container name",
@@ -1308,9 +1324,9 @@ func TestMariadbInitContainers(t *testing.T) {
 					},
 				},
 			},
-			wantName:           "init-0",
-			wantEnvKey:         nil,
-			wantVolumeMountKey: nil,
+			wantName:            "init-0",
+			wantEnvKeys:         nil,
+			wantVolumeMountKeys: nil,
 		},
 		{
 			name: "With container name",
@@ -1331,9 +1347,9 @@ func TestMariadbInitContainers(t *testing.T) {
 					},
 				},
 			},
-			wantName:           "busybox",
-			wantEnvKey:         nil,
-			wantVolumeMountKey: nil,
+			wantName:            "busybox",
+			wantEnvKeys:         nil,
+			wantVolumeMountKeys: nil,
 		},
 		{
 			name: "With env",
@@ -1355,15 +1371,23 @@ func TestMariadbInitContainers(t *testing.T) {
 										Name:  "TEST",
 										Value: "TEST",
 									},
+									{
+										Name:  "FOO",
+										Value: "FOO",
+									},
+									{
+										Name:  "BAR",
+										Value: "BAR",
+									},
 								},
 							},
 						},
 					},
 				},
 			},
-			wantName:           "busybox",
-			wantEnvKey:         ptr.To("TEST"),
-			wantVolumeMountKey: nil,
+			wantName:            "busybox",
+			wantEnvKeys:         []string{"TEST", "FOO", "BAR"},
+			wantVolumeMountKeys: nil,
 		},
 		{
 			name: "With volumeMount",
@@ -1385,15 +1409,23 @@ func TestMariadbInitContainers(t *testing.T) {
 										Name:      "TEST",
 										MountPath: "/test",
 									},
+									{
+										Name:      "FOO",
+										MountPath: "/foo",
+									},
+									{
+										Name:      "BAR",
+										MountPath: "/bar",
+									},
 								},
 							},
 						},
 					},
 				},
 			},
-			wantName:           "busybox",
-			wantEnvKey:         nil,
-			wantVolumeMountKey: ptr.To("TEST"),
+			wantName:            "busybox",
+			wantEnvKeys:         nil,
+			wantVolumeMountKeys: []string{"TEST", "FOO", "BAR"},
 		},
 	}
 
@@ -1411,20 +1443,20 @@ func TestMariadbInitContainers(t *testing.T) {
 			if initContainer.Name != tt.wantName {
 				t.Errorf("unexpected name:\nexpected:\n%s\ngot:\n%s\n", tt.wantName, initContainer.Name)
 			}
-			if tt.wantEnvKey != nil {
-				exists := datastructures.Any(initContainer.Env, func(env corev1.EnvVar) bool {
-					return env.Name == *tt.wantEnvKey
+			if tt.wantEnvKeys != nil {
+				idx := datastructures.NewIndex(initContainer.Env, func(env corev1.EnvVar) string {
+					return env.Name
 				})
-				if !exists {
-					t.Errorf("expected \"%s\" env key to exist", *tt.wantEnvKey)
+				if !datastructures.AllExists(idx, tt.wantEnvKeys...) {
+					t.Errorf("expected env keys \"%v\" to exist", tt.wantEnvKeys)
 				}
 			}
-			if tt.wantVolumeMountKey != nil {
-				exists := datastructures.Any(initContainer.VolumeMounts, func(volumeMount corev1.VolumeMount) bool {
-					return volumeMount.Name == *tt.wantVolumeMountKey
+			if tt.wantVolumeMountKeys != nil {
+				idx := datastructures.NewIndex(initContainer.VolumeMounts, func(volumeMount corev1.VolumeMount) string {
+					return volumeMount.Name
 				})
-				if !exists {
-					t.Errorf("expected \"%s\" volumeMount key to exist", *tt.wantVolumeMountKey)
+				if !datastructures.AllExists(idx, tt.wantVolumeMountKeys...) {
+					t.Errorf("expected volumeMount keys \"%s\" to exist", tt.wantVolumeMountKeys)
 				}
 			}
 		})
