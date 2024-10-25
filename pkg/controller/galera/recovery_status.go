@@ -161,7 +161,7 @@ func (rs *recoveryStatus) isComplete(mdb *mariadbv1alpha1.MariaDB, logger logr.L
 			numSkippedPods++
 			continue
 		}
-		if (state != nil && state.GetSeqno() > 0) || (recovered != nil && recovered.GetSeqno() > 0) {
+		if (state != nil && state.GetSeqno() >= 0) || (recovered != nil && recovered.GetSeqno() >= 0) {
 			continue
 		}
 		isComplete = false
@@ -216,11 +216,11 @@ func (rs *recoveryStatus) bootstrapSource(mdb *mariadbv1alpha1.MariaDB, forceBoo
 			logger.Info("Skipping Pod while looking for a bootstrap source", "pod", p)
 			continue
 		}
-		if state != nil && state.GetSeqno() > 0 && state.Compare(currentSource) >= 0 {
+		if state != nil && state.GetSeqno() >= 0 && state.Compare(currentSource) >= 0 {
 			currentSource = state
 			currentPod = p
 		}
-		if recovered != nil && recovered.GetSeqno() > 0 && recovered.Compare(currentSource) >= 0 {
+		if recovered != nil && recovered.GetSeqno() >= 0 && recovered.Compare(currentSource) >= 0 {
 			currentSource = recovered
 			currentPod = p
 		}
