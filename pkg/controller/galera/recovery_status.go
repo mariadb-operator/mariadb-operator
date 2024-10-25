@@ -151,17 +151,17 @@ func (rs *recoveryStatus) isComplete(mdb *mariadbv1alpha1.MariaDB, logger logr.L
 	numSkippedPods := 0
 	isComplete := true
 	for _, p := range pods {
-		state := ptr.Deref(rs.inner.State[p], recovery.GaleraState{})
-		recovered := ptr.Deref(rs.inner.Recovered[p], recovery.Bootstrap{})
+		state := rs.inner.State[p]
+		recovered := rs.inner.Recovered[p]
 
-		if state.SafeToBootstrap {
+		if state != nil && state.SafeToBootstrap {
 			return true
 		}
-		if shouldSkipPod(recovered) {
+		if recovered != nil && shouldSkipPod(*recovered) {
 			numSkippedPods++
 			continue
 		}
-		if state.GetSeqno() > 0 || recovered.GetSeqno() > 0 {
+		if (state != nil && state.GetSeqno() > 0) || (recovered != nil && recovered.GetSeqno() > 0) {
 			continue
 		}
 		isComplete = false
@@ -200,10 +200,10 @@ func (rs *recoveryStatus) bootstrapSource(mdb *mariadbv1alpha1.MariaDB, forceBoo
 	var currentPod string
 
 	for _, p := range pods {
-		state := ptr.Deref(rs.inner.State[p], recovery.GaleraState{})
-		recovered := ptr.Deref(rs.inner.Recovered[p], recovery.Bootstrap{})
+		state := rs.inner.State[p]
+		recovered := rs.inner.Recovered[p]
 
-		if state.SafeToBootstrap {
+		if state != nil && state.SafeToBootstrap {
 			return &bootstrapSource{
 				bootstrap: &recovery.Bootstrap{
 					UUID:  state.GetUUID(),
@@ -212,16 +212,16 @@ func (rs *recoveryStatus) bootstrapSource(mdb *mariadbv1alpha1.MariaDB, forceBoo
 				pod: p,
 			}, nil
 		}
-		if shouldSkipPod(recovered) {
+		if recovered != nil && shouldSkipPod(*recovered) {
 			logger.Info("Skipping Pod while looking for a bootstrap source", "pod", p)
 			continue
 		}
-		if state.GetSeqno() > 0 && state.Compare(currentSource) >= 0 {
-			currentSource = &state
+		if state != nil && state.GetSeqno() > 0 && state.Compare(currentSource) >= 0 {
+			currentSource = state
 			currentPod = p
 		}
-		if recovered.GetSeqno() > 0 && recovered.Compare(currentSource) >= 0 {
-			currentSource = &recovered
+		if recovered != nil && recovered.GetSeqno() > 0 && recovered.Compare(currentSource) >= 0 {
+			currentSource = recovered
 			currentPod = p
 		}
 	}
