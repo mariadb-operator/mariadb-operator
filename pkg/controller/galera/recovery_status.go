@@ -3,6 +3,7 @@ package galera
 import (
 	"errors"
 	"fmt"
+	"reflect"
 	"sync"
 	"time"
 
@@ -157,11 +158,11 @@ func (rs *recoveryStatus) isComplete(mdb *mariadbv1alpha1.MariaDB, logger logr.L
 		if state != nil && state.SafeToBootstrap {
 			return true
 		}
-		if recovered != nil && shouldSkipPod(*recovered) {
+		if shouldSkipRecoverer(recovered) {
 			numSkippedPods++
 			continue
 		}
-		if (state != nil && state.GetSeqno() >= 0) || (recovered != nil && recovered.GetSeqno() >= 0) {
+		if validSeqno(state) || validSeqno(recovered) {
 			continue
 		}
 		isComplete = false
@@ -212,15 +213,15 @@ func (rs *recoveryStatus) bootstrapSource(mdb *mariadbv1alpha1.MariaDB, forceBoo
 				pod: p,
 			}, nil
 		}
-		if recovered != nil && shouldSkipPod(*recovered) {
+		if shouldSkipRecoverer(recovered) {
 			logger.Info("Skipping Pod while looking for a bootstrap source", "pod", p)
 			continue
 		}
-		if state != nil && state.GetSeqno() >= 0 && state.Compare(currentSource) >= 0 {
+		if validSeqno(state) && state.Compare(currentSource) >= 0 {
 			currentSource = state
 			currentPod = p
 		}
-		if recovered != nil && recovered.GetSeqno() >= 0 && recovered.Compare(currentSource) >= 0 {
+		if validSeqno(recovered) && recovered.Compare(currentSource) >= 0 {
 			currentSource = recovered
 			currentPod = p
 		}
@@ -236,6 +237,25 @@ func (rs *recoveryStatus) bootstrapSource(mdb *mariadbv1alpha1.MariaDB, forceBoo
 		},
 		pod: currentPod,
 	}, nil
+}
+
+// validSeqno determines whether the recoverer has a valid sequence number to continue with the recovery process.
+func validSeqno(recoverer recovery.GaleraRecoverer) bool {
+	if recoverer == nil || (reflect.ValueOf(recoverer).IsNil()) {
+		return false
+	}
+	return recoverer.GetSeqno() >= 0
+}
+
+// shouldSkipRecoverer determines whether a recoverer should be skipped during the recovery process.
+// UUID 00000000-0000-0000-0000-000000000000 means that the Pods needs SST to rejoin the cluster.
+// See: https://galeracluster.com/library/documentation/node-provisioning.html#node-provisioning
+// Seqno -1 does not really help determining the last running Pod.
+func shouldSkipRecoverer(recoverer recovery.GaleraRecoverer) bool {
+	if recoverer == nil || (reflect.ValueOf(recoverer).IsNil()) {
+		return false
+	}
+	return recoverer.GetUUID() == "00000000-0000-0000-0000-000000000000" && recoverer.GetSeqno() == -1
 }
 
 func (rs *recoveryStatus) setPodsRestarted(restarted bool) {
@@ -258,12 +278,4 @@ func getPodNames(mdb *mariadbv1alpha1.MariaDB) []string {
 		podNames[i] = statefulset.PodName(mdb.ObjectMeta, i)
 	}
 	return podNames
-}
-
-// shouldSkipPod determines whether a Pod should be skipped during the recovery process.
-// UUID 00000000-0000-0000-0000-000000000000 means that the Pods needs SST to rejoin the cluster.
-// See: https://galeracluster.com/library/documentation/node-provisioning.html#node-provisioning
-// Seqno -1 does not really help determining the last running Pod.
-func shouldSkipPod(recovered recovery.Bootstrap) bool {
-	return recovered.UUID == "00000000-0000-0000-0000-000000000000" && recovered.Seqno == -1
 }
