@@ -148,6 +148,10 @@ func (rs *recoveryStatus) isComplete(mdb *mariadbv1alpha1.MariaDB, logger logr.L
 	defer rs.mux.RUnlock()
 
 	pods := getPodNames(mdb)
+	if len(pods) == 0 {
+		logger.Info("Recovery status not completed: no Pods found for recovery")
+		return false
+	}
 
 	numSkippedPods := 0
 	isComplete := true
