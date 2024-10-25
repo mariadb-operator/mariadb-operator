@@ -830,7 +830,7 @@ func TestRecoveryStatusIsComplete(t *testing.T) {
 					},
 				},
 			},
-			wantBool: false,
+			wantBool: true,
 		},
 	}
 
@@ -1571,8 +1571,14 @@ func TestRecoveryStatusBootstrapSource(t *testing.T) {
 				},
 			},
 			forceBootstrapInPod: nil,
-			wantSource:          nil,
-			wantErr:             true,
+			wantSource: &bootstrapSource{
+				bootstrap: &recovery.Bootstrap{
+					UUID:  "00000000-0000-0000-0000-000000000000",
+					Seqno: 1,
+				},
+				pod: pod2,
+			},
+			wantErr: false,
 		},
 	}
 
