@@ -264,6 +264,8 @@ func (m *MariaDB) IsReplicationConfigured() bool {
 	return m.Status.ReplicationStatus.IsReplicationConfigured()
 }
 
+var ErrPrimarySwitchoverRequired = errors.New("primary switchover is required")
+
 // IsSwitchingPrimary indicates whether the primary is being switched.
 func (m *MariaDB) IsSwitchingPrimary() bool {
 	return meta.IsStatusConditionFalse(m.Status.Conditions, ConditionTypePrimarySwitched)

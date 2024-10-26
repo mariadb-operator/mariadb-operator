@@ -241,6 +241,9 @@ func shouldSkipPhase(err error) bool {
 	if errors.Is(err, mariadbv1alpha1.ErrReplicationNotConfigured) {
 		return true
 	}
+	if errors.Is(err, mariadbv1alpha1.ErrPrimarySwitchoverRequired) {
+		return true
+	}
 	return false
 }
 

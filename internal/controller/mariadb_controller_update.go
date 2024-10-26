@@ -10,6 +10,7 @@ import (
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
+	"github.com/mariadb-operator/mariadb-operator/pkg/health"
 	podpkg "github.com/mariadb-operator/mariadb-operator/pkg/pod"
 	"github.com/mariadb-operator/mariadb-operator/pkg/wait"
 	appsv1 "k8s.io/api/apps/v1"
@@ -80,6 +81,10 @@ func (r *MariaDBReconciler) reconcileUpdates(ctx context.Context, mdb *mariadbv1
 	if podpkg.PodUpdated(&primaryPod, stsUpdateRevision) {
 		logger.V(1).Info("Primary Pod up to date", "pod", primaryPod.Name)
 		return ctrl.Result{}, nil
+	}
+
+	if err := r.TriggerSwitchover(ctx, mdb, logger); err != nil {
+		return ctrl.Result{}, err
 	}
 
 	logger.Info("Updating primary Pod", "pod", primaryPod.Name)
@@ -230,4 +235,39 @@ func (r *MariaDBReconciler) getPodsByRole(ctx context.Context, mdb *mariadbv1alp
 	podsByRole.primary = *primary
 
 	return ctrl.Result{}, nil
+}
+
+func (r *MariaDBReconciler) TriggerSwitchover(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, logger logr.Logger) error {
+	if !shouldTriggerSwitchover(mariadb) {
+		return nil
+	}
+
+	if mariadb.Status.CurrentPrimaryPodIndex == nil {
+		return fmt.Errorf("'status.currentPrimaryPodIndex' must be set")
+	}
+
+	fromIndex := mariadb.Status.CurrentPrimaryPodIndex
+	toIndex, err := health.HealthyMariaDBReplica(ctx, r.Client, mariadb)
+	if err != nil {
+		return fmt.Errorf("error getting healthy replica: %v", err)
+	}
+
+	if err := r.patch(ctx, mariadb, func(mdb *mariadbv1alpha1.MariaDB) error {
+		mdb.Replication().Primary.PodIndex = toIndex
+		return nil
+	}); err != nil {
+		return err
+	}
+
+	logger.Info("Switching primary", "from-index", fromIndex, "to-index", *toIndex)
+
+	return mariadbv1alpha1.ErrPrimarySwitchoverRequired
+}
+
+func shouldTriggerSwitchover(mariadb *mariadbv1alpha1.MariaDB) bool {
+	if mariadb.IsMaxScaleEnabled() || mariadb.IsRestoringBackup() {
+		return false
+	}
+	primaryRepl := ptr.Deref(mariadb.Replication().Primary, mariadbv1alpha1.PrimaryReplication{})
+	return mariadb.Replication().Enabled && *primaryRepl.AutomaticFailover && mariadb.IsReplicationConfigured()
 }
