@@ -2,6 +2,13 @@
 
 This guide illustrates, step by step, how to migrate to `v0.0.33` from previous versions. 
 
+> [!NOTE]  
+> Do not attempt to skip intermediate version upgrades. Upgrade progressively through each version.
+
+For example, if upgrading from `0.0.31` to `0.0.33`:
+An attempt to upgrade from `0.0.31` directly to `0.0.33` will result in will result in unpredictable behavior.
+An attempt to upgrade from `0.0.31` to `0.0.32` and then `0.0.33` will result in success.
+
 - Uninstall you current `mariadb-operator` for preventing conflicts:
 ```bash
 helm uninstall mariadb-operator
