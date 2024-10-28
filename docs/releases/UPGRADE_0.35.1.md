@@ -6,7 +6,7 @@ This guide illustrates, step by step, how to migrate to `0.35.1` from previous v
 > Do not attempt to skip intermediate version upgrades. Upgrade progressively through each version.
 
 For example, if upgrading from `0.0.33` to `0.35.1`:
-An attempt to upgrade from `0.0.33` directly to `0.35.1` will result in will result in unpredictable behavior.
+An attempt to upgrade from `0.0.33` directly to `0.35.1` will result in unpredictable behavior.
 An attempt to upgrade from `0.0.33` to `0.34.0`, then `0.35.0`, and then `0.35.1` will result in success.
 
 - Uninstall you current `mariadb-operator` for preventing conflicts:
