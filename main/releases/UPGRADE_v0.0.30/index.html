@@ -946,6 +946,13 @@
 
 <h1 id="upgrade-guide-v0030">Upgrade guide v0.0.30</h1>
 <p>This guide illustrates, step by step, how to migrate to <code>v0.0.30</code> from previous versions. </p>
+<blockquote>
+<p>[!NOTE]<br />
+Do not attempt to skip intermediate version upgrades. Upgrade progressively through each version.</p>
+</blockquote>
+<p>For example, if upgrading from <code>0.0.31</code> to <code>0.0.33</code>:
+An attempt to upgrade from <code>0.0.31</code> directly to <code>0.0.33</code> will result in will result in unpredictable behavior.
+An attempt to upgrade from <code>0.0.31</code> to <code>0.0.32</code> and then <code>0.0.33</code> will result in success.</p>
 <p>This release ships outstanding changes that make the Galera recovery process notably more robust. For making this possible, the <code>v0.0.30</code> operator relies some functionality available in both the <code>init</code> and <code>agent</code> containers used for Galera, so they both need to be updated to <code>v0.0.30</code> as detailed in further steps.</p>
 <ul>
 <li>Uninstall you current <code>mariadb-operator</code> for preventing conflicts:</li>
