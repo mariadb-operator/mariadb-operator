@@ -3,7 +3,16 @@
 > [!NOTE]  
 > APIs are currently in `v1alpha1`, which implies that non backward compatible changes might happen. See [Kubernetes API versioning](https://kubernetes.io/docs/reference/using-api/#api-versioning) for more detail.
 
-This guide illustrates, step by step, how to migrate to `v0.0.28` from previous versions, as some breaking changes have been introduced:
+This guide illustrates, step by step, how to migrate to `v0.0.28` from previous versions.
+
+> [!NOTE]  
+> Do not attempt to skip intermediate version upgrades. Upgrade progressively through each version.
+
+For example, if upgrading from `0.0.31` to `0.0.33`:
+An attempt to upgrade from `0.0.31` directly to `0.0.33` will result in will result in unpredictable behavior.
+An attempt to upgrade from `0.0.31` to `0.0.32` and then `0.0.33` will result in success.
+
+Some breaking changes have been introduced in this release:
 
 - __Metadata__: https://github.com/mariadb-operator/mariadb-operator/pull/537
 - __Affinity__: https://github.com/mariadb-operator/mariadb-operator/pull/566 and https://github.com/mariadb-operator/mariadb-operator/pull/568
