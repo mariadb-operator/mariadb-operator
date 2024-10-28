@@ -946,6 +946,13 @@
 
 <h1 id="upgrade-guide-v0032">Upgrade guide v0.0.32</h1>
 <p>This guide illustrates, step by step, how to migrate to <code>v0.0.32</code> from previous versions. </p>
+<blockquote>
+<p>[!NOTE]<br />
+Do not attempt to skip intermediate version upgrades. Upgrade progressively through each version.</p>
+</blockquote>
+<p>For example, if upgrading from <code>0.0.31</code> to <code>0.0.33</code>:
+An attempt to upgrade from <code>0.0.31</code> directly to <code>0.0.33</code> will result in will result in unpredictable behavior.
+An attempt to upgrade from <code>0.0.31</code> to <code>0.0.32</code> and then <code>0.0.33</code> will result in success.</p>
 <ul>
 <li>Uninstall you current <code>mariadb-operator</code> for preventing conflicts:</li>
 </ul>
