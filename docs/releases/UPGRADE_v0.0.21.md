@@ -8,10 +8,6 @@ This guide illustrates, step by step, how to migrate to `v0.0.21` from previous 
 > [!NOTE]  
 > Do not attempt to skip intermediate version upgrades. Upgrade progressively through each version.
 
-For example, if upgrading from `0.0.31` to `0.0.33`:
-An attempt to upgrade from `0.0.31` directly to `0.0.33` will result in will result in unpredictable behavior.
-An attempt to upgrade from `0.0.31` to `0.0.32` and then `0.0.33` will result in success.
-
 Some breaking changes have been introduced in this release. See:
 - https://github.com/mariadb-operator/mariadb-operator/pull/248
 
