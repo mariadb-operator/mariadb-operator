@@ -56,6 +56,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
+var (
+	ErrSkipReconciliationPhase = errors.New("skipping reconciliation phase")
+)
+
 // MariaDBReconciler reconciles a MariaDB object
 type MariaDBReconciler struct {
 	client.Client
@@ -233,15 +237,7 @@ func shouldSkipPhase(err error) bool {
 	if apierrors.IsNotFound(err) {
 		return true
 	}
-	// Don't break the loop when replication is not configured, let the reconciliation continue with the rest of the phases.
-	// e.g. switchover during update: the 'Replication' phase runs after the `StatefulSet` phase where the updates are performed,
-	// therefore, when replication is found to be unconfigured during the update phase, we will need to continue the reconciliation
-	// to get replication configured and be able to continue with updates in further reconciliation cycles.
-	// See: https://github.com/mariadb-operator/mariadb-operator/pull/947
-	if errors.Is(err, mariadbv1alpha1.ErrReplicationNotConfigured) {
-		return true
-	}
-	if errors.Is(err, mariadbv1alpha1.ErrPrimarySwitchoverRequired) {
+	if errors.Is(err, ErrSkipReconciliationPhase) {
 		return true
 	}
 	return false
