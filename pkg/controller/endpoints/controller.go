@@ -10,6 +10,7 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
+	kadapter "github.com/mariadb-operator/mariadb-operator/pkg/kubernetes/adapter"
 	mdbpod "github.com/mariadb-operator/mariadb-operator/pkg/pod"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	corev1 "k8s.io/api/core/v1"
@@ -109,17 +110,27 @@ func (r *EndpointsReconciler) endpoints(ctx context.Context, key types.Namespace
 		return nil, errNoAddressesAvailable
 	}
 
+	ports := []corev1.EndpointPort{
+		{
+			Name:     builder.MariadbPortName,
+			Port:     mariadb.Spec.Port,
+			Protocol: corev1.ProtocolTCP,
+		},
+	}
+	if mariadb.Spec.ServicePorts != nil {
+		for _, servicePort := range kadapter.ToKubernetesSlice(mariadb.Spec.ServicePorts) {
+			ports = append(ports, corev1.EndpointPort{
+				Name:     servicePort.Name,
+				Port:     servicePort.Port,
+				Protocol: corev1.ProtocolTCP,
+			})
+		}
+	}
 	subsets := []corev1.EndpointSubset{
 		{
 			Addresses:         addresses,
 			NotReadyAddresses: notReadyAddresses,
-			Ports: []corev1.EndpointPort{
-				{
-					Name:     builder.MariadbPortName,
-					Port:     mariadb.Spec.Port,
-					Protocol: corev1.ProtocolTCP,
-				},
-			},
+			Ports:             ports,
 		},
 	}
 	endpoints, err := r.builder.BuildEndpoints(key, mariadb, subsets)
