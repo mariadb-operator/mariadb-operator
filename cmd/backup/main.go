@@ -195,48 +195,55 @@ func compressFile(fileName string, compression mariadbv1alpha1.CompressAlgorithm
 	}
 	filePath := filepath.Join(path, fileName)
 	logger.Info("compressing target backup", "file", filePath)
-
-	originalFile, err := os.Open(filePath)
-	if err != nil {
-		return err
-	}
-	defer originalFile.Close()
-
 	tmpf := filePath + ".tmp"
-	compressedFile, err := os.Create(tmpf)
-	if err != nil {
-		return err
-	}
-	defer compressedFile.Close()
 
-	switch compression {
+	if err := func() error {
 
-	case mariadbv1alpha1.CompressGzip:
-		writer := gzip.NewWriter(compressedFile)
-		defer writer.Close()
-		if _, err := io.Copy(writer, originalFile); err != nil {
-			return err
-		}
-		writer.Flush()
-
-	case mariadbv1alpha1.CompressBzip2:
-		writer, err := bzip2.NewWriter(compressedFile,
-			&bzip2.WriterConfig{Level: bzip2.DefaultCompression})
+		originalFile, err := os.Open(filePath)
 		if err != nil {
 			return err
 		}
-		defer writer.Close()
-		if _, err := io.Copy(writer, originalFile); err != nil {
-			return err
-		}
+		defer originalFile.Close()
 
-	default:
-		if err := os.Remove(tmpf); err != nil {
+		compressedFile, err := os.Create(tmpf)
+		if err != nil {
 			return err
 		}
-		return errors.New("unknown compression algorithm")
+		defer compressedFile.Close()
+
+		switch compression {
+
+		case mariadbv1alpha1.CompressGzip:
+			writer := gzip.NewWriter(compressedFile)
+			defer writer.Close()
+			if _, err := io.Copy(writer, originalFile); err != nil {
+				return err
+			}
+			writer.Flush()
+
+		case mariadbv1alpha1.CompressBzip2:
+			writer, err := bzip2.NewWriter(compressedFile,
+				&bzip2.WriterConfig{Level: bzip2.DefaultCompression})
+			if err != nil {
+				return err
+			}
+			defer writer.Close()
+			if _, err := io.Copy(writer, originalFile); err != nil {
+				return err
+			}
+
+		default:
+			return errors.New("unknown compression algorithm")
+		}
+		return nil
+	}(); err != nil {
+		if _, err := os.Stat(tmpf); err == nil {
+			if err := os.Remove(tmpf); err != nil {
+				return err
+			}
+		}
+		return err
 	}
-
 	if err := os.Remove(filePath); err != nil {
 		return err
 	}
