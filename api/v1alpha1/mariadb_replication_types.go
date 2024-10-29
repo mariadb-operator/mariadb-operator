@@ -1,7 +1,6 @@
 package v1alpha1
 
 import (
-	"errors"
 	"fmt"
 	"time"
 
@@ -257,14 +256,10 @@ var (
 	}
 )
 
-var ErrReplicationNotConfigured = errors.New("replication is not configured")
-
 // IsReplicationConfigured indicates whether replication has been configured.
 func (m *MariaDB) IsReplicationConfigured() bool {
 	return m.Status.ReplicationStatus.IsReplicationConfigured()
 }
-
-var ErrPrimarySwitchoverRequired = errors.New("primary switchover is required")
 
 // IsSwitchingPrimary indicates whether the primary is being switched.
 func (m *MariaDB) IsSwitchingPrimary() bool {

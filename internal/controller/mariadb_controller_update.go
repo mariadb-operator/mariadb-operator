@@ -124,7 +124,10 @@ func (r *MariaDBReconciler) waitForConfiguredReplication(mdb *mariadbv1alpha1.Ma
 
 	if !mdb.IsReplicationConfigured() {
 		logger.V(1).Info("Waiting for Pods to have configured replication.")
-		return ctrl.Result{}, mariadbv1alpha1.ErrReplicationNotConfigured
+		// To configure replication we must reach the 'Replication' phase that runs after the 'StatefulSet' phase.
+		// When the 'MariaDBReconciler' controller receives the 'ErrSkipReconciliationPhase' error, it continues the reconciliation loop.
+		// See: https://github.com/mariadb-operator/mariadb-operator/pull/947
+		return ctrl.Result{}, ErrSkipReconciliationPhase
 	}
 	logger.V(1).Info("Pods have configured replication.")
 
@@ -260,8 +263,10 @@ func (r *MariaDBReconciler) TriggerSwitchover(ctx context.Context, mariadb *mari
 	}
 
 	logger.Info("Switching primary", "from-index", fromIndex, "to-index", *toIndex)
-
-	return mariadbv1alpha1.ErrPrimarySwitchoverRequired
+	// To perform switchover we must reach the 'Replication' phase that runs after the 'StatefulSet' phase.
+	// When the 'MariaDBReconciler' controller receives the 'ErrSkipReconciliationPhase' error, it continues the reconciliation loop.
+	// See: https://github.com/mariadb-operator/mariadb-operator/pull/967
+	return ErrSkipReconciliationPhase
 }
 
 func shouldTriggerSwitchover(mariadb *mariadbv1alpha1.MariaDB) bool {
