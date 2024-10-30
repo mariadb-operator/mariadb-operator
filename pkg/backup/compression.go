@@ -53,7 +53,7 @@ func (c *GzipBackupCompressor) Compress(fileName string) error {
 }
 
 func (c *GzipBackupCompressor) Decompress(fileName string) (string, error) {
-	return uncompressFile(c.basePath, fileName, func(dst io.Writer, src io.Reader) error {
+	return decompressFile(c.basePath, fileName, func(dst io.Writer, src io.Reader) error {
 		reader, err := gzip.NewReader(src)
 		if err != nil {
 			return err
@@ -88,7 +88,7 @@ func (c *Bzip2BackupCompressor) Compress(fileName string) error {
 }
 
 func (c *Bzip2BackupCompressor) Decompress(fileName string) (string, error) {
-	return uncompressFile(c.basePath, fileName, func(dst io.Writer, src io.Reader) error {
+	return decompressFile(c.basePath, fileName, func(dst io.Writer, src io.Reader) error {
 		reader, err := bzip2.NewReader(src,
 			&bzip2.ReaderConfig{})
 		if err != nil {
@@ -145,7 +145,7 @@ func compressFile(path, fileName string, compressFn func(dst io.Writer, src io.R
 	return nil
 }
 
-func uncompressFile(path, fileName string, uncompressFn func(dst io.Writer, src io.Reader) error) (string, error) {
+func decompressFile(path, fileName string, uncompressFn func(dst io.Writer, src io.Reader) error) (string, error) {
 	filePath := getFilePath(path, fileName)
 
 	compressedFile, err := os.Open(filePath)
