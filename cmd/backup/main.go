@@ -1,18 +1,14 @@
 package backup
 
 import (
-	"compress/gzip"
 	"context"
-	"errors"
 	"fmt"
-	"io"
 	"os"
 	"os/signal"
 	"path/filepath"
 	"syscall"
 	"time"
 
-	"github.com/dsnet/compress/bzip2"
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/backup"
@@ -90,31 +86,27 @@ var RootCmd = &cobra.Command{
 		ctx, cancel := newContext()
 		defer cancel()
 
-		if err := mariadbv1alpha1.CompressAlgorithm(compression).Validate(); err != nil {
-			fmt.Printf("compression algorithm not supported: %v", err)
-			os.Exit(1)
-		}
-
 		backupStorage, err := getBackupStorage()
 		if err != nil {
 			logger.Error(err, "error getting backup storage")
 			os.Exit(1)
 		}
+		backupCompressor, err := getBackupCompressor()
+		if err != nil {
+			logger.Error(err, "error getting backup compressor")
+			os.Exit(1)
+		}
 
-		logger.Info("reading target file", "path", targetFilePath)
+		logger.Info("reading target file", "file", targetFilePath)
 		backupTargetFile, err := readTargetFile()
 		if err != nil {
-			logger.Error(err, "error reading target file", "path", targetFilePath)
+			logger.Error(err, "error reading target file", "file", targetFilePath)
 			os.Exit(1)
 		}
 		logger.Info("obtained target backup", "file", backupTargetFile)
 
-		if err := compressFile(
-			backupTargetFile,
-			mariadbv1alpha1.CompressAlgorithm(compression),
-			logger.WithName("compress"),
-		); err != nil {
-			logger.Error(err, "error compressing file", "path", backupTargetFile)
+		if err := backupCompressor.Compress(backupTargetFile); err != nil {
+			logger.Error(err, "error compressing backup", "file", backupTargetFile)
 			os.Exit(1)
 		}
 
@@ -181,76 +173,33 @@ func getS3BackupStorage() (backup.BackupStorage, error) {
 	)
 }
 
+func getBackupCompressor() (backup.BackupCompressor, error) {
+	calg := mariadbv1alpha1.CompressAlgorithm(compression)
+	if err := calg.Validate(); err != nil {
+		return nil, fmt.Errorf("compression algorithm not supported: %v", err)
+	}
+	return getBackupCompressorWithAlgorithm(calg)
+}
+
+func getBackupCompressorWithAlgorithm(calg mariadbv1alpha1.CompressAlgorithm) (backup.BackupCompressor, error) {
+	switch calg {
+	case mariadbv1alpha1.CompressNone:
+		return backup.NewNopCompressor(path, logger.WithName("nop-compressor")), nil
+	case mariadbv1alpha1.CompressGzip:
+		return backup.NewGzipBackupCompressor(path, logger.WithName("gzip-compressor")), nil
+	case mariadbv1alpha1.CompressBzip2:
+		return backup.NewBzip2BackupCompressor(path, logger.WithName("bzip2-compressor")), nil
+	default:
+		return nil, fmt.Errorf("unsupported compression algorithm: %v", calg)
+	}
+}
+
 func readTargetFile() (string, error) {
 	bytes, err := os.ReadFile(targetFilePath)
 	if err != nil {
 		return "", err
 	}
 	return string(bytes), nil
-}
-
-func compressFile(fileName string, compression mariadbv1alpha1.CompressAlgorithm, logger logr.Logger) error {
-	if compression == mariadbv1alpha1.CompressNone {
-		return nil
-	}
-	filePath := filepath.Join(path, fileName)
-	logger.Info("compressing target backup", "file", filePath)
-	tmpf := filePath + ".tmp"
-
-	if err := func() error {
-
-		originalFile, err := os.Open(filePath)
-		if err != nil {
-			return err
-		}
-		defer originalFile.Close()
-
-		compressedFile, err := os.Create(tmpf)
-		if err != nil {
-			return err
-		}
-		defer compressedFile.Close()
-
-		switch compression {
-
-		case mariadbv1alpha1.CompressGzip:
-			writer := gzip.NewWriter(compressedFile)
-			defer writer.Close()
-			if _, err := io.Copy(writer, originalFile); err != nil {
-				return err
-			}
-			writer.Flush()
-
-		case mariadbv1alpha1.CompressBzip2:
-			writer, err := bzip2.NewWriter(compressedFile,
-				&bzip2.WriterConfig{Level: bzip2.DefaultCompression})
-			if err != nil {
-				return err
-			}
-			defer writer.Close()
-			if _, err := io.Copy(writer, originalFile); err != nil {
-				return err
-			}
-
-		default:
-			return errors.New("unknown compression algorithm")
-		}
-		return nil
-	}(); err != nil {
-		if _, err := os.Stat(tmpf); err == nil {
-			if err := os.Remove(tmpf); err != nil {
-				return err
-			}
-		}
-		return err
-	}
-	if err := os.Remove(filePath); err != nil {
-		return err
-	}
-	if err := os.Rename(tmpf, filePath); err != nil {
-		return err
-	}
-	return nil
 }
 
 func cleanupFile(fileName string, logger logr.Logger) error {
