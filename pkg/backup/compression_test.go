@@ -4,13 +4,15 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/go-logr/logr"
 )
 
 func TestBackupCompressors(t *testing.T) {
 	content := "Lorem ipsum dolor sit amet, consectetur adipiscing elit."
 	tests := []struct {
 		name            string
-		newCompressorFn func(basePath string) BackupCompressor
+		newCompressorFn func(basePath string, logger logr.Logger) BackupCompressor
 		fileName        string
 	}{
 		{
@@ -38,7 +40,7 @@ func TestBackupCompressors(t *testing.T) {
 			}
 			defer os.RemoveAll(dir)
 
-			compressor := tt.newCompressorFn(dir)
+			compressor := tt.newCompressorFn(dir, logger)
 
 			filePath := filepath.Join(dir, tt.fileName)
 			if err := os.WriteFile(filePath, []byte(content), 0644); err != nil {
