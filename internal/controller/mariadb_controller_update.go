@@ -83,7 +83,7 @@ func (r *MariaDBReconciler) reconcileUpdates(ctx context.Context, mdb *mariadbv1
 		return ctrl.Result{}, nil
 	}
 
-	if err := r.TriggerSwitchover(ctx, mdb, logger); err != nil {
+	if err := r.triggerSwitchover(ctx, mdb, logger); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -240,7 +240,7 @@ func (r *MariaDBReconciler) getPodsByRole(ctx context.Context, mdb *mariadbv1alp
 	return ctrl.Result{}, nil
 }
 
-func (r *MariaDBReconciler) TriggerSwitchover(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, logger logr.Logger) error {
+func (r *MariaDBReconciler) triggerSwitchover(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, logger logr.Logger) error {
 	if !shouldTriggerSwitchover(mariadb) {
 		return nil
 	}
