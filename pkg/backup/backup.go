@@ -126,17 +126,18 @@ func ParseBackupDate(timeRaw string) (time.Time, error) {
 	return t, nil
 }
 
+// GetFilePath returns the path to a backup file.
+func GetFilePath(path, fileName string) string {
+	if filepath.IsAbs(fileName) {
+		return fileName
+	}
+	return filepath.Join(path, fileName)
+}
+
 func parseDateInBackupFile(fileName string) (time.Time, error) {
 	parts := strings.Split(fileName, ".")
 	if len(parts) != 3 && len(parts) != 4 {
 		return time.Time{}, fmt.Errorf("invalid backup file name: %s", fileName)
 	}
 	return ParseBackupDate(parts[1])
-}
-
-func getFilePath(path, fileName string) string {
-	if filepath.IsAbs(fileName) {
-		return fileName
-	}
-	return filepath.Join(path, fileName)
 }

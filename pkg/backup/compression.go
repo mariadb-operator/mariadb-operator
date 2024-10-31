@@ -30,7 +30,7 @@ func (c *NopCompressor) Compress(fileName string) error {
 }
 
 func (c *NopCompressor) Decompress(fileName string) (string, error) {
-	return getFilePath(c.basePath, fileName), nil
+	return GetFilePath(c.basePath, fileName), nil
 }
 
 type GzipBackupCompressor struct {
@@ -105,7 +105,7 @@ func (c *Bzip2BackupCompressor) Decompress(fileName string) (string, error) {
 }
 
 func compressFile(path, fileName string, logger logr.Logger, compressFn func(dst io.Writer, src io.Reader) error) error {
-	filePath := getFilePath(path, fileName)
+	filePath := GetFilePath(path, fileName)
 	logger.Info("compressing backup", "file", filePath)
 
 	compressedFilePath := filePath + ".tmp"
@@ -145,7 +145,7 @@ func compressFile(path, fileName string, logger logr.Logger, compressFn func(dst
 }
 
 func decompressFile(path, fileName string, logger logr.Logger, uncompressFn func(dst io.Writer, src io.Reader) error) (string, error) {
-	filePath := getFilePath(path, fileName)
+	filePath := GetFilePath(path, fileName)
 	logger.Info("decompressing file", "file", filePath)
 
 	compressedFile, err := os.Open(filePath)
@@ -158,7 +158,7 @@ func decompressFile(path, fileName string, logger logr.Logger, uncompressFn func
 	if err != nil {
 		return "", err
 	}
-	plainFilePath := getFilePath(path, plainFileName)
+	plainFilePath := GetFilePath(path, plainFileName)
 	plainFile, err := os.Create(plainFilePath)
 	if err != nil {
 		return "", err

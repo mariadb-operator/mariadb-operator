@@ -56,7 +56,7 @@ func (f *FileSystemBackupStorage) Pull(ctx context.Context, fileName string) err
 }
 
 func (f *FileSystemBackupStorage) Delete(ctx context.Context, fileName string) error {
-	return os.Remove(getFilePath(f.basePath, fileName))
+	return os.Remove(GetFilePath(f.basePath, fileName))
 }
 
 func (f *FileSystemBackupStorage) shouldProcessBackupFile(fileName string, logger logr.Logger) bool {
@@ -152,18 +152,14 @@ func (s *S3BackupStorage) List(ctx context.Context) ([]string, error) {
 
 func (s *S3BackupStorage) Push(ctx context.Context, fileName string) error {
 	s3FilePath := s.prefixedFileName(fileName)
-	filePath := getFilePath(s.basePath, fileName)
-	fmt.Printf("S3 FILE PATH: \"%s\"\n", s3FilePath)
-	fmt.Printf("FILE PATH: \"%s\"\n", filePath)
+	filePath := GetFilePath(s.basePath, fileName)
 	_, err := s.client.FPutObject(ctx, s.bucket, s3FilePath, filePath, minio.PutObjectOptions{})
 	return err
 }
 
 func (s *S3BackupStorage) Pull(ctx context.Context, fileName string) error {
 	s3FilePath := s.prefixedFileName(fileName)
-	filePath := getFilePath(s.basePath, fileName)
-	fmt.Printf("S3 FILE PATH: \"%s\"\n", s3FilePath)
-	fmt.Printf("FILE PATH: \"%s\"\n", filePath)
+	filePath := GetFilePath(s.basePath, fileName)
 	return s.client.FGetObject(ctx, s.bucket, s3FilePath, filePath, minio.GetObjectOptions{})
 }
 
