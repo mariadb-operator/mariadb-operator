@@ -73,7 +73,7 @@ func init() {
 var RootCmd = &cobra.Command{
 	Use:   "backup",
 	Short: "Backup.",
-	Long:  `Manages the backup files to implement the retention policy.`,
+	Long:  `Manages backup files, stores them in multiple storage types and implements retention policy.`,
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		if err := log.SetupLoggerWithCommand(cmd); err != nil {
@@ -150,26 +150,19 @@ func newContext() (context.Context, context.CancelFunc) {
 func getBackupStorage() (backup.BackupStorage, error) {
 	if s3 {
 		logger.Info("configuring S3 backup storage")
-		return getS3BackupStorage()
+		return backup.NewS3BackupStorage(
+			path,
+			s3Bucket,
+			s3Endpoint,
+			logger.WithName("s3-storage"),
+			backup.WithTLS(s3TLS),
+			backup.WithCACertPath(s3CACertPath),
+			backup.WithRegion(s3Region),
+			backup.WithPrefix(s3Prefix),
+		)
 	}
 	logger.Info("configuring filesystem backup storage")
 	return backup.NewFileSystemBackupStorage(path, logger.WithName("file-system-storage")), nil
-}
-
-func getS3BackupStorage() (backup.BackupStorage, error) {
-	opts := []backup.S3BackupStorageOpt{
-		backup.WithTLS(s3TLS),
-		backup.WithCACertPath(s3CACertPath),
-		backup.WithRegion(s3Region),
-		backup.WithPrefix(s3Prefix),
-	}
-	return backup.NewS3BackupStorage(
-		path,
-		s3Bucket,
-		s3Endpoint,
-		logger.WithName("s3-storage"),
-		opts...,
-	)
 }
 
 func getBackupCompressor() (backup.BackupCompressor, error) {

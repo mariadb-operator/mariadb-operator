@@ -178,14 +178,11 @@ func (s *S3BackupStorage) shouldProcessBackupFile(fileName string, logger logr.L
 }
 
 func (s *S3BackupStorage) prefixedFileName(fileName string) string {
-	baseFileName := filepath.Base(fileName)
-	prefix := s.getPrefix()
-	return prefix + baseFileName
+	return s.getPrefix() + filepath.Base(fileName)
 }
 
 func (s *S3BackupStorage) unprefixedFilename(fileName string) string {
-	baseFileName := filepath.Base(fileName)
-	return strings.TrimPrefix(baseFileName, s.getPrefix())
+	return strings.TrimPrefix(filepath.Base(fileName), s.getPrefix())
 }
 
 func (s *S3BackupStorage) getPrefix() string {

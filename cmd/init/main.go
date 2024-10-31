@@ -53,7 +53,7 @@ func init() {
 var RootCmd = &cobra.Command{
 	Use:   "init",
 	Short: "Init.",
-	Long:  `Init container for Galera and co-operates with mariadb-operator.`,
+	Long:  `Init container for Galera that co-operates with mariadb-operator.`,
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		if err := log.SetupLoggerWithCommand(cmd); err != nil {
