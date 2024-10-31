@@ -4,7 +4,6 @@ import (
 	"compress/gzip"
 	"io"
 	"os"
-	"path/filepath"
 
 	"github.com/dsnet/compress/bzip2"
 	"github.com/go-logr/logr"
@@ -105,13 +104,6 @@ func (c *Bzip2BackupCompressor) Decompress(fileName string) (string, error) {
 	})
 }
 
-func getFilePath(path, fileName string) string {
-	if filepath.IsAbs(fileName) {
-		return fileName
-	}
-	return filepath.Join(path, fileName)
-}
-
 func compressFile(path, fileName string, logger logr.Logger, compressFn func(dst io.Writer, src io.Reader) error) error {
 	filePath := getFilePath(path, fileName)
 	logger.Info("compressing backup", "file", filePath)
@@ -166,7 +158,8 @@ func decompressFile(path, fileName string, logger logr.Logger, uncompressFn func
 	if err != nil {
 		return "", err
 	}
-	plainFile, err := os.Create(getFilePath(path, plainFileName))
+	plainFilePath := getFilePath(path, plainFileName)
+	plainFile, err := os.Create(plainFilePath)
 	if err != nil {
 		return "", err
 	}
@@ -176,5 +169,5 @@ func decompressFile(path, fileName string, logger logr.Logger, uncompressFn func
 		return "", err
 	}
 
-	return plainFileName, nil
+	return plainFilePath, nil
 }

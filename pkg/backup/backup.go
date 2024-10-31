@@ -3,6 +3,7 @@ package backup
 import (
 	"errors"
 	"fmt"
+	"path/filepath"
 	"sort"
 	"strings"
 	"time"
@@ -131,4 +132,11 @@ func parseDateInBackupFile(fileName string) (time.Time, error) {
 		return time.Time{}, fmt.Errorf("invalid backup file name: %s", fileName)
 	}
 	return ParseBackupDate(parts[1])
+}
+
+func getFilePath(path, fileName string) string {
+	if filepath.IsAbs(fileName) {
+		return fileName
+	}
+	return filepath.Join(path, fileName)
 }

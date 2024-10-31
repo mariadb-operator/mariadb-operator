@@ -56,7 +56,7 @@ func (f *FileSystemBackupStorage) Pull(ctx context.Context, fileName string) err
 }
 
 func (f *FileSystemBackupStorage) Delete(ctx context.Context, fileName string) error {
-	return os.Remove(filepath.Join(f.basePath, fileName))
+	return os.Remove(getFilePath(f.basePath, fileName))
 }
 
 func (f *FileSystemBackupStorage) shouldProcessBackupFile(fileName string, logger logr.Logger) bool {
@@ -152,14 +152,18 @@ func (s *S3BackupStorage) List(ctx context.Context) ([]string, error) {
 
 func (s *S3BackupStorage) Push(ctx context.Context, fileName string) error {
 	s3FilePath := s.prefixedFileName(fileName)
-	filePath := filepath.Join(s.basePath, fileName)
+	filePath := getFilePath(s.basePath, fileName)
+	fmt.Printf("S3 FILE PATH: \"%s\"\n", s3FilePath)
+	fmt.Printf("FILE PATH: \"%s\"\n", filePath)
 	_, err := s.client.FPutObject(ctx, s.bucket, s3FilePath, filePath, minio.PutObjectOptions{})
 	return err
 }
 
 func (s *S3BackupStorage) Pull(ctx context.Context, fileName string) error {
 	s3FilePath := s.prefixedFileName(fileName)
-	filePath := filepath.Join(s.basePath, fileName)
+	filePath := getFilePath(s.basePath, fileName)
+	fmt.Printf("S3 FILE PATH: \"%s\"\n", s3FilePath)
+	fmt.Printf("FILE PATH: \"%s\"\n", filePath)
 	return s.client.FGetObject(ctx, s.bucket, s3FilePath, filePath, minio.GetObjectOptions{})
 }
 
@@ -178,15 +182,14 @@ func (s *S3BackupStorage) shouldProcessBackupFile(fileName string, logger logr.L
 }
 
 func (s *S3BackupStorage) prefixedFileName(fileName string) string {
+	baseFileName := filepath.Base(fileName)
 	prefix := s.getPrefix()
-	if strings.HasPrefix(fileName, prefix) {
-		return fileName
-	}
-	return prefix + fileName
+	return prefix + baseFileName
 }
 
 func (s *S3BackupStorage) unprefixedFilename(fileName string) string {
-	return strings.TrimPrefix(fileName, s.getPrefix())
+	baseFileName := filepath.Base(fileName)
+	return strings.TrimPrefix(baseFileName, s.getPrefix())
 }
 
 func (s *S3BackupStorage) getPrefix() string {
