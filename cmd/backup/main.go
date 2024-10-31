@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"syscall"
 	"time"
 
@@ -206,7 +205,7 @@ func cleanupFile(fileName string, logger logr.Logger) error {
 	if !s3 || !cleanupTargetFile {
 		return nil
 	}
-	filePath := filepath.Join(path, fileName)
+	filePath := backup.GetFilePath(path, fileName)
 	logger.Info("cleaning up target file", "file", filePath)
 
 	return os.Remove(filePath)
