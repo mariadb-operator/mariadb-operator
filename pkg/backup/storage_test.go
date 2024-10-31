@@ -16,6 +16,12 @@ func TestS3PrefixedFile(t *testing.T) {
 			wantFileName:  "backup.2023-12-18T16:14:00Z.sql",
 		},
 		{
+			name:          "no prefix with file path",
+			backupStorage: &S3BackupStorage{},
+			fileName:      "backup/backup.2023-12-18T16:14:00Z.sql",
+			wantFileName:  "backup.2023-12-18T16:14:00Z.sql",
+		},
+		{
 			name: "prefix",
 			backupStorage: &S3BackupStorage{
 				S3BackupStorageOpts: S3BackupStorageOpts{
@@ -23,6 +29,16 @@ func TestS3PrefixedFile(t *testing.T) {
 				},
 			},
 			fileName:     "backup.2023-12-18T16:14:00Z.sql",
+			wantFileName: "mariadb/backup.2023-12-18T16:14:00Z.sql",
+		},
+		{
+			name: "prefix with file path",
+			backupStorage: &S3BackupStorage{
+				S3BackupStorageOpts: S3BackupStorageOpts{
+					Prefix: "mariadb",
+				},
+			},
+			fileName:     "backup/backup.2023-12-18T16:14:00Z.sql",
 			wantFileName: "mariadb/backup.2023-12-18T16:14:00Z.sql",
 		},
 		{
@@ -36,6 +52,16 @@ func TestS3PrefixedFile(t *testing.T) {
 			wantFileName: "mariadb/backup.2023-12-18T16:14:00Z.sql",
 		},
 		{
+			name: "prefix with trailing slash and file path",
+			backupStorage: &S3BackupStorage{
+				S3BackupStorageOpts: S3BackupStorageOpts{
+					Prefix: "mariadb/",
+				},
+			},
+			fileName:     "backup/backup.2023-12-18T16:14:00Z.sql",
+			wantFileName: "mariadb/backup.2023-12-18T16:14:00Z.sql",
+		},
+		{
 			name: "nested prefix",
 			backupStorage: &S3BackupStorage{
 				S3BackupStorageOpts: S3BackupStorageOpts{
@@ -43,6 +69,16 @@ func TestS3PrefixedFile(t *testing.T) {
 				},
 			},
 			fileName:     "backup.2023-12-18T16:14:00Z.sql",
+			wantFileName: "backups/production/mariadb/backup.2023-12-18T16:14:00Z.sql",
+		},
+		{
+			name: "nested prefix with file path",
+			backupStorage: &S3BackupStorage{
+				S3BackupStorageOpts: S3BackupStorageOpts{
+					Prefix: "backups/production/mariadb",
+				},
+			},
+			fileName:     "backup/backup.2023-12-18T16:14:00Z.sql",
 			wantFileName: "backups/production/mariadb/backup.2023-12-18T16:14:00Z.sql",
 		},
 		{
@@ -81,6 +117,12 @@ func TestS3UnprefixedFile(t *testing.T) {
 			wantFileName:  "backup.2023-12-18T16:14:00Z.sql",
 		},
 		{
+			name:          "no prefix with file path",
+			backupStorage: &S3BackupStorage{},
+			fileName:      "backup/backup.2023-12-18T16:14:00Z.sql",
+			wantFileName:  "backup.2023-12-18T16:14:00Z.sql",
+		},
+		{
 			name: "prefix",
 			backupStorage: &S3BackupStorage{
 				S3BackupStorageOpts: S3BackupStorageOpts{
@@ -88,6 +130,16 @@ func TestS3UnprefixedFile(t *testing.T) {
 				},
 			},
 			fileName:     "mariadb/backup.2023-12-18T16:14:00Z.sql",
+			wantFileName: "backup.2023-12-18T16:14:00Z.sql",
+		},
+		{
+			name: "prefix with file path",
+			backupStorage: &S3BackupStorage{
+				S3BackupStorageOpts: S3BackupStorageOpts{
+					Prefix: "mariadb",
+				},
+			},
+			fileName:     "backup/backup.2023-12-18T16:14:00Z.sql",
 			wantFileName: "backup.2023-12-18T16:14:00Z.sql",
 		},
 		{

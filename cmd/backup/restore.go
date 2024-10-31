@@ -69,15 +69,15 @@ var restoreCommand = &cobra.Command{
 			logger.Error(err, "error getting backup compressor")
 			os.Exit(1)
 		}
-		backupFile, err := backupCompressor.Decompress(backupTargetFile)
+		backupTargetFile, err = backupCompressor.Decompress(backupTargetFile)
 		if err != nil {
 			logger.Error(err, "error decompressing backup", "file", backupTargetFile)
 			os.Exit(1)
 		}
 
-		logger.Info("writing target file", "file", targetFilePath)
-		if err := writeTargetFile(backupFile); err != nil {
-			logger.Error(err, "error writing target file", "file", targetFilePath)
+		logger.Info("writing target file", "file", targetFilePath, "file-content", backupTargetFile)
+		if err := writeTargetFile(backupTargetFile); err != nil {
+			logger.Error(err, "error writing target file", "file", backupTargetFile)
 			os.Exit(1)
 		}
 	},
@@ -90,8 +90,8 @@ func getTargetTime() (time.Time, error) {
 	return backup.ParseBackupDate(targetTimeRaw)
 }
 
-func writeTargetFile(backupTargetFilePath string) error {
-	return os.WriteFile(targetFilePath, []byte(backupTargetFilePath), 0777)
+func writeTargetFile(backupTargetFile string) error {
+	return os.WriteFile(targetFilePath, []byte(backupTargetFile), 0777)
 }
 
 func getBackupCompressorWithFile(fileName string) (backup.BackupCompressor, error) {

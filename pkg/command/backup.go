@@ -3,6 +3,7 @@ package command
 import (
 	"errors"
 	"fmt"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -236,21 +237,24 @@ func (b *BackupCommand) MariadbRestore(restore *mariadbv1alpha1.Restore,
 }
 
 func (b *BackupCommand) newBackupFile() string {
+	var fileName string
 	if b.Compression == mariadbv1alpha1.CompressNone {
-		return fmt.Sprintf(
+		fileName = fmt.Sprintf(
 			"backup.$(date -u +'%s').sql",
 			"%Y-%m-%dT%H:%M:%SZ",
 		)
+	} else {
+		fileName = fmt.Sprintf(
+			"backup.$(date -u +'%s').%v.sql",
+			"%Y-%m-%dT%H:%M:%SZ",
+			b.Compression,
+		)
 	}
-	return fmt.Sprintf(
-		"backup.$(date -u +'%s').%v.sql",
-		"%Y-%m-%dT%H:%M:%SZ",
-		b.Compression,
-	)
+	return filepath.Join(b.Path, fileName)
 }
 
 func (b *BackupCommand) getTargetFilePath() string {
-	return fmt.Sprintf("%s/$(cat '%s')", b.Path, b.TargetFilePath)
+	return fmt.Sprintf("$(cat '%s')", b.TargetFilePath)
 }
 
 func (b *BackupCommand) mariadbDumpArgs(backup *mariadbv1alpha1.Backup, mariab *mariadbv1alpha1.MariaDB) []string {
