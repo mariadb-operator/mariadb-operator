@@ -21,7 +21,7 @@ func init() {
 var restoreCommand = &cobra.Command{
 	Use:   "restore",
 	Short: "Restore.",
-	Long:  `Finds the target backup file to implement point in time recovery.`,
+	Long:  `Fetches backup files from multiple storage types and matches the one closest to the target recovery time.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if err := log.SetupLoggerWithCommand(cmd); err != nil {
 			fmt.Printf("error setting up logger: %v\n", err)
