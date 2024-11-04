@@ -121,6 +121,7 @@ mysql_get_config() {
 docker_temp_server_start() {
 	"$@" --skip-networking --default-time-zone=SYSTEM --socket="${SOCKET}" --wsrep_on=OFF \
 		--expire-logs-days=0 \
+		--skip-slave-start \
 		--loose-innodb_buffer_pool_load_at_startup=0 \
 		&
 	declare -g MARIADB_PID
@@ -214,7 +215,7 @@ docker_create_db_directories() {
 }
 
 _mariadb_version() {
-	echo -n "10.6.19-MariaDB"
+	echo -n "10.6.20-MariaDB"
 }
 
 # initializes the database directory
@@ -233,6 +234,7 @@ docker_init_database_dir() {
 		fi
 	done
 	mariadb-install-db "${installArgs[@]}" "${mariadbdArgs[@]}" \
+		--cross-bootstrap \
 		--skip-test-db \
 		--old-mode='UTF8_IS_UTF8MB3' \
 		--default-time-zone=SYSTEM --enforce-storage-engine= \
@@ -449,7 +451,6 @@ docker_setup_db() {
 	# To create replica user
 	local createReplicaUser=
 	local changeMasterTo=
-	local startReplica=
 	if  [ -n "$MARIADB_REPLICATION_USER" ] ; then
 		if [ -z "$MARIADB_MASTER_HOST" ]; then
 			# on master
@@ -462,7 +463,6 @@ docker_setup_db() {
 			# SC cannot follow how MARIADB_MASTER_PORT is assigned a default value.
 			# shellcheck disable=SC2153
 			changeMasterTo="CHANGE MASTER TO MASTER_HOST='$MARIADB_MASTER_HOST', MASTER_USER='$MARIADB_REPLICATION_USER', MASTER_PASSWORD='$rplPasswordEscaped', MASTER_PORT=$MARIADB_MASTER_PORT, MASTER_CONNECT_RETRY=10;"
-			startReplica="START REPLICA;"
 		fi
 	fi
 
@@ -493,7 +493,6 @@ docker_setup_db() {
 		${userGrants}
 
 		${changeMasterTo}
-		${startReplica}
 	EOSQL
 }
 
@@ -589,8 +588,7 @@ docker_mariadb_upgrade() {
 	fi
 	mysql_note "Starting temporary server"
 	docker_temp_server_start "$@" --skip-grant-tables \
-		--loose-innodb_buffer_pool_dump_at_shutdown=0 \
-		--skip-slave-start
+		--loose-innodb_buffer_pool_dump_at_shutdown=0
 	mysql_note "Temporary server started."
 
 	docker_mariadb_backup_system
@@ -615,8 +613,7 @@ EOSQL
 			# need a restart as FLUSH PRIVILEGES isn't reversable
 			mysql_note "Restarting temporary server for upgrade"
 			docker_temp_server_start "$@" --skip-grant-tables \
-				--loose-innodb_buffer_pool_dump_at_shutdown=0 \
-				--skip-slave-start
+				--loose-innodb_buffer_pool_dump_at_shutdown=0
 		else
 			return 0
 		fi
