@@ -144,13 +144,14 @@ func (wr *wrappedUserReconciler) Reconcile(ctx context.Context, mdbClient *sqlCl
 
 	username := wr.user.UsernameOrDefault()
 	hostname := wr.user.HostnameOrDefault()
+	accountName := wr.user.AccountName()
+
 	exists, err := mdbClient.UserExists(ctx, username, hostname)
 	if err != nil {
 		log.FromContext(ctx).Error(err, "Error checking if User exists")
 	}
 
 	if !exists {
-		accountName := wr.user.AccountName()
 		// This forces the user to be recreated from a clean state.
 		// It helps fixing intermediate states in mysql.global_priv and mysql.user.
 		if err := mdbClient.DropUser(ctx, accountName); err != nil {
@@ -160,7 +161,7 @@ func (wr *wrappedUserReconciler) Reconcile(ctx context.Context, mdbClient *sqlCl
 			return fmt.Errorf("error creating User: %v", err)
 		}
 	} else if password != "" || passwordHash != "" || passwordVia != "" {
-		if err := mdbClient.AlterUser(ctx, username, createUserOpts...); err != nil {
+		if err := mdbClient.AlterUser(ctx, accountName, createUserOpts...); err != nil {
 			return fmt.Errorf("error altering User: %v", err)
 		}
 	}

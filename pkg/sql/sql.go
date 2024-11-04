@@ -296,7 +296,7 @@ func (c *Client) AlterUser(ctx context.Context, accountName string, createUserOp
 		setOpt(&opts)
 	}
 
-	query := fmt.Sprintf("ALTER USER '%s' ", accountName)
+	query := fmt.Sprintf("ALTER USER %s ", accountName)
 
 	if opts.IdentifiedVia != "" {
 		query += fmt.Sprintf("IDENTIFIED VIA %s ", opts.IdentifiedVia)
