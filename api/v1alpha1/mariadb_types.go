@@ -326,26 +326,22 @@ type TLS struct {
 	// - Generic Secret containing the tls.crt to establish trust. In this case, serverSecretRef is mandatory.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	ServerCASecretRef LocalObjectReference `json:"serverCASecretRef,omitempty"`
-	// ServerSecretRef is a reference to a TLS Secret used by the MariaDB server to configure TLS.
+	ServerCASecretRef *LocalObjectReference `json:"serverCASecretRef,omitempty"`
+	// ServerCertSecretRef is a reference to a TLS Secret used by the MariaDB server to configure TLS.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	ServerSecretRef LocalObjectReference `json:"serverSecretRef,omitempty"`
+	ServerCertSecretRef *LocalObjectReference `json:"serverCertSecretRef,omitempty"`
 	// ClientCASecretRef is a reference to a Secret containing the client certificate authority keypair. It is used to establish trust and issue server certificates for MariaDB clients.
 	// One of:
 	// - TLS Secret containing both the tls.crt and tls.key. This allows you to bring your own CA to Kubernetes to issue certificates.
 	// - Generic Secret containing the tls.crt to establish trust. In this case, clientSecretRef is mandatory.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	ClientCASecretRef LocalObjectReference `json:"clientCASecretRef,omitempty"`
-	// ClientSecretRef is a reference to a TLS Secret used by the MariaDB clients to configure TLS.
+	ClientCASecretRef *LocalObjectReference `json:"clientCASecretRef,omitempty"`
+	// ClientCertSecretRef is a reference to a TLS Secret used by the MariaDB clients to configure TLS.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	ClientSecretRef LocalObjectReference `json:"clientSecretRef,omitempty"`
-	// ClientSecretRef is a reference to a TLS Secret used by the initial MariaDB user to configure TLS.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	ClientUserSecretRef *LocalObjectReference `json:"clientUserSecretRef,omitempty"`
+	ClientCertSecretRef *LocalObjectReference `json:"clientCertSecretRef,omitempty"`
 }
 
 // MariaDBSpec defines the desired state of MariaDB
