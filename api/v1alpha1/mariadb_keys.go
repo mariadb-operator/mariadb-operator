@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 )
 
 // RootPasswordSecretKeyRef defines the key selector for the root password Secret.
@@ -59,6 +60,66 @@ func (m *MariaDB) TLSConfigMapKeyRef() ConfigMapKeySelector {
 			Name: fmt.Sprintf("%s-config-tls", m.Name),
 		},
 		Key: "1-tls.cnf",
+	}
+}
+
+// TLSServerCASecretKey defines the key for the TLS server CA.
+func (m *MariaDB) TLSServerCASecretKey() types.NamespacedName {
+	tls := ptr.Deref(m.Spec.TLS, TLS{})
+	if tls.Enabled && tls.ServerCASecretRef != nil {
+		return types.NamespacedName{
+			Name:      tls.ServerCASecretRef.Name,
+			Namespace: m.Namespace,
+		}
+	}
+	return types.NamespacedName{
+		Name:      fmt.Sprintf("%s-ca", m.Name),
+		Namespace: m.Namespace,
+	}
+}
+
+// TLSServerCertSecretKey defines the key for the TLS server cert.
+func (m *MariaDB) TLSServerCertSecretKey() types.NamespacedName {
+	tls := ptr.Deref(m.Spec.TLS, TLS{})
+	if tls.Enabled && tls.ServerCertSecretRef != nil {
+		return types.NamespacedName{
+			Name:      tls.ServerCertSecretRef.Name,
+			Namespace: m.Namespace,
+		}
+	}
+	return types.NamespacedName{
+		Name:      fmt.Sprintf("%s-server-cert", m.Name),
+		Namespace: m.Namespace,
+	}
+}
+
+// TLSClientCASecretKey defines the key for the TLS client CA.
+func (m *MariaDB) TLSClientCASecretKey() types.NamespacedName {
+	tls := ptr.Deref(m.Spec.TLS, TLS{})
+	if tls.Enabled && tls.ClientCASecretRef != nil {
+		return types.NamespacedName{
+			Name:      tls.ClientCASecretRef.Name,
+			Namespace: m.Namespace,
+		}
+	}
+	return types.NamespacedName{
+		Name:      fmt.Sprintf("%s-ca", m.Name),
+		Namespace: m.Namespace,
+	}
+}
+
+// TLSClientCertSecretKey defines the key for the TLS client cert.
+func (m *MariaDB) TLSClientCertSecretKey() types.NamespacedName {
+	tls := ptr.Deref(m.Spec.TLS, TLS{})
+	if tls.Enabled && tls.ClientCertSecretRef != nil {
+		return types.NamespacedName{
+			Name:      tls.ClientCertSecretRef.Name,
+			Namespace: m.Namespace,
+		}
+	}
+	return types.NamespacedName{
+		Name:      fmt.Sprintf("%s-client-cert", m.Name),
+		Namespace: m.Namespace,
 	}
 }
 

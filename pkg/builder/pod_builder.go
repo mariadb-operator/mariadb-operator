@@ -475,7 +475,7 @@ func mariadbPKIVolumes(mariadb *mariadbv1alpha1.MariaDB) []corev1.Volume {
 						{
 							Secret: &corev1.SecretProjection{
 								LocalObjectReference: corev1.LocalObjectReference{
-									Name: mariadb.Spec.TLS.ClientCASecretRef.Name,
+									Name: mariadb.TLSClientCASecretKey().Name,
 								},
 								Items: []corev1.KeyToPath{
 									{
@@ -488,7 +488,7 @@ func mariadbPKIVolumes(mariadb *mariadbv1alpha1.MariaDB) []corev1.Volume {
 						{
 							Secret: &corev1.SecretProjection{
 								LocalObjectReference: corev1.LocalObjectReference{
-									Name: mariadb.Spec.TLS.ServerCASecretRef.Name,
+									Name: mariadb.TLSServerCASecretKey().Name,
 								},
 								Items: []corev1.KeyToPath{
 									{
@@ -510,7 +510,7 @@ func mariadbPKIVolumes(mariadb *mariadbv1alpha1.MariaDB) []corev1.Volume {
 						{
 							Secret: &corev1.SecretProjection{
 								LocalObjectReference: corev1.LocalObjectReference{
-									Name: mariadb.Spec.TLS.ClientSecretRef.Name,
+									Name: mariadb.TLSClientCertSecretKey().Name,
 								},
 								Items: []corev1.KeyToPath{
 									{
@@ -527,7 +527,7 @@ func mariadbPKIVolumes(mariadb *mariadbv1alpha1.MariaDB) []corev1.Volume {
 						{
 							Secret: &corev1.SecretProjection{
 								LocalObjectReference: corev1.LocalObjectReference{
-									Name: mariadb.Spec.TLS.ServerSecretRef.Name,
+									Name: mariadb.TLSServerCertSecretKey().Name,
 								},
 								Items: []corev1.KeyToPath{
 									{
