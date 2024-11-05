@@ -6884,17 +6884,9 @@ spec:
                         default: ""
                         type: string
                     type: object
-                  clientSecretRef:
-                    description: ClientSecretRef is a reference to a TLS Secret used
-                      by the MariaDB clients to configure TLS.
-                    properties:
-                      name:
-                        default: ""
-                        type: string
-                    type: object
-                  clientUserSecretRef:
-                    description: ClientSecretRef is a reference to a TLS Secret used
-                      by the initial MariaDB user to configure TLS.
+                  clientCertSecretRef:
+                    description: ClientCertSecretRef is a reference to a TLS Secret
+                      used by the MariaDB clients to configure TLS.
                     properties:
                       name:
                         default: ""
@@ -6914,9 +6906,9 @@ spec:
                         default: ""
                         type: string
                     type: object
-                  serverSecretRef:
-                    description: ServerSecretRef is a reference to a TLS Secret used
-                      by the MariaDB server to configure TLS.
+                  serverCertSecretRef:
+                    description: ServerCertSecretRef is a reference to a TLS Secret
+                      used by the MariaDB server to configure TLS.
                     properties:
                       name:
                         default: ""
