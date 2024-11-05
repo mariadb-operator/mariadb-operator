@@ -6882,45 +6882,24 @@ spec:
                     properties:
                       name:
                         default: ""
-                        description: |-
-                          Name of the referent.
-                          This field is effectively required, but due to backwards compatibility is
-                          allowed to be empty. Instances of this type with an empty value here are
-                          almost certainly wrong.
-                          More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
                         type: string
                     type: object
-                    x-kubernetes-map-type: atomic
                   clientSecretRef:
                     description: ClientSecretRef is a reference to a TLS Secret used
                       by the MariaDB clients to configure TLS.
                     properties:
                       name:
                         default: ""
-                        description: |-
-                          Name of the referent.
-                          This field is effectively required, but due to backwards compatibility is
-                          allowed to be empty. Instances of this type with an empty value here are
-                          almost certainly wrong.
-                          More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
                         type: string
                     type: object
-                    x-kubernetes-map-type: atomic
                   clientUserSecretRef:
                     description: ClientSecretRef is a reference to a TLS Secret used
                       by the initial MariaDB user to configure TLS.
                     properties:
                       name:
                         default: ""
-                        description: |-
-                          Name of the referent.
-                          This field is effectively required, but due to backwards compatibility is
-                          allowed to be empty. Instances of this type with an empty value here are
-                          almost certainly wrong.
-                          More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
                         type: string
                     type: object
-                    x-kubernetes-map-type: atomic
                   enabled:
                     description: Enabled is a flag to enable TLS.
                     type: boolean
@@ -6933,30 +6912,16 @@ spec:
                     properties:
                       name:
                         default: ""
-                        description: |-
-                          Name of the referent.
-                          This field is effectively required, but due to backwards compatibility is
-                          allowed to be empty. Instances of this type with an empty value here are
-                          almost certainly wrong.
-                          More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
                         type: string
                     type: object
-                    x-kubernetes-map-type: atomic
                   serverSecretRef:
                     description: ServerSecretRef is a reference to a TLS Secret used
                       by the MariaDB server to configure TLS.
                     properties:
                       name:
                         default: ""
-                        description: |-
-                          Name of the referent.
-                          This field is effectively required, but due to backwards compatibility is
-                          allowed to be empty. Instances of this type with an empty value here are
-                          almost certainly wrong.
-                          More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
                         type: string
                     type: object
-                    x-kubernetes-map-type: atomic
                 type: object
               tolerations:
                 description: Tolerations to be used in the Pod.

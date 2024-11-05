@@ -3944,7 +3944,7 @@ func (in *TLS) DeepCopyInto(out *TLS) {
 	out.ClientSecretRef = in.ClientSecretRef
 	if in.ClientUserSecretRef != nil {
 		in, out := &in.ClientUserSecretRef, &out.ClientUserSecretRef
-		*out = new(corev1.LocalObjectReference)
+		*out = new(LocalObjectReference)
 		**out = **in
 	}
 }
