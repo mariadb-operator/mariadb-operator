@@ -53,9 +53,9 @@ func (m *MariaDB) MyCnfConfigMapKeyRef() ConfigMapKeySelector {
 }
 
 // TLSConfigMapKeyRef defines the key selector for the TLS ConfigMap
-func (m *MariaDB) TLSConfigMapKeyRef() corev1.ConfigMapKeySelector {
-	return corev1.ConfigMapKeySelector{
-		LocalObjectReference: corev1.LocalObjectReference{
+func (m *MariaDB) TLSConfigMapKeyRef() ConfigMapKeySelector {
+	return ConfigMapKeySelector{
+		LocalObjectReference: LocalObjectReference{
 			Name: fmt.Sprintf("%s-config-tls", m.Name),
 		},
 		Key: "1-tls.cnf",
