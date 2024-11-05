@@ -13,6 +13,10 @@ jobs:
     name: "Test \"${{ inputs.mariadb_image }}\" image"
     runs-on: ubuntu-latest
     steps:
+      - name: MariaDB Version
+        run: |
+          docker run --rm ${{ inputs.mariadb_image }} mariadbd --version
+
       - name: Checkout code
         uses: actions/checkout@v4
 
