@@ -326,26 +326,26 @@ type TLS struct {
 	// - Generic Secret containing the tls.crt to establish trust. In this case, serverSecretRef is mandatory.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	ServerCASecretRef corev1.LocalObjectReference `json:"serverCASecretRef,omitempty"`
+	ServerCASecretRef LocalObjectReference `json:"serverCASecretRef,omitempty"`
 	// ServerSecretRef is a reference to a TLS Secret used by the MariaDB server to configure TLS.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	ServerSecretRef corev1.LocalObjectReference `json:"serverSecretRef,omitempty"`
+	ServerSecretRef LocalObjectReference `json:"serverSecretRef,omitempty"`
 	// ClientCASecretRef is a reference to a Secret containing the client certificate authority keypair. It is used to establish trust and issue server certificates for MariaDB clients.
 	// One of:
 	// - TLS Secret containing both the tls.crt and tls.key. This allows you to bring your own CA to Kubernetes to issue certificates.
 	// - Generic Secret containing the tls.crt to establish trust. In this case, clientSecretRef is mandatory.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	ClientCASecretRef corev1.LocalObjectReference `json:"clientCASecretRef,omitempty"`
+	ClientCASecretRef LocalObjectReference `json:"clientCASecretRef,omitempty"`
 	// ClientSecretRef is a reference to a TLS Secret used by the MariaDB clients to configure TLS.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	ClientSecretRef corev1.LocalObjectReference `json:"clientSecretRef,omitempty"`
+	ClientSecretRef LocalObjectReference `json:"clientSecretRef,omitempty"`
 	// ClientSecretRef is a reference to a TLS Secret used by the initial MariaDB user to configure TLS.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	ClientUserSecretRef *corev1.LocalObjectReference `json:"clientUserSecretRef,omitempty"`
+	ClientUserSecretRef *LocalObjectReference `json:"clientUserSecretRef,omitempty"`
 }
 
 // MariaDBSpec defines the desired state of MariaDB
