@@ -312,7 +312,8 @@ func mariadbVolumes(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt) []c
 		mariadbConfigVolume(mariadb),
 	}
 	if mariadb.IsTLSEnabled() {
-		volumes = append(volumes, mariadbPKIVolumes(mariadb)...)
+		tlsVolumes, _ := mariadbTLSVolumes(mariadb)
+		volumes = append(volumes, tlsVolumes...)
 	}
 	if mariadb.Replication().Enabled && ptr.Deref(mariadb.Replication().ProbesEnabled, false) {
 		volumes = append(volumes, corev1.Volume{
@@ -462,81 +463,39 @@ func mariadbConfigVolume(mariadb *mariadbv1alpha1.MariaDB) corev1.Volume {
 	}
 }
 
-func mariadbPKIVolumes(mariadb *mariadbv1alpha1.MariaDB) []corev1.Volume {
+func mariadbTLSVolumes(mariadb *mariadbv1alpha1.MariaDB) ([]corev1.Volume, []corev1.VolumeMount) {
 	if !mariadb.IsTLSEnabled() {
-		return nil
+		return nil, nil
 	}
 	return []corev1.Volume{
-		{
-			Name: PKICAVolume,
-			VolumeSource: corev1.VolumeSource{
-				Projected: &corev1.ProjectedVolumeSource{
-					Sources: []corev1.VolumeProjection{
-						{
-							Secret: &corev1.SecretProjection{
-								LocalObjectReference: corev1.LocalObjectReference{
-									Name: mariadb.TLSClientCASecretKey().Name,
-								},
-								Items: []corev1.KeyToPath{
-									{
-										Key:  "tls.crt",
-										Path: "client.crt",
+			{
+				Name: PKICAVolume,
+				VolumeSource: corev1.VolumeSource{
+					Projected: &corev1.ProjectedVolumeSource{
+						Sources: []corev1.VolumeProjection{
+							{
+								Secret: &corev1.SecretProjection{
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: mariadb.TLSClientCASecretKey().Name,
+									},
+									Items: []corev1.KeyToPath{
+										{
+											Key:  "tls.crt",
+											Path: "client.crt",
+										},
 									},
 								},
 							},
-						},
-						{
-							Secret: &corev1.SecretProjection{
-								LocalObjectReference: corev1.LocalObjectReference{
-									Name: mariadb.TLSServerCASecretKey().Name,
-								},
-								Items: []corev1.KeyToPath{
-									{
-										Key:  "tls.crt",
-										Path: "server.crt",
+							{
+								Secret: &corev1.SecretProjection{
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: mariadb.TLSServerCASecretKey().Name,
 									},
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-		{
-			Name: PKIVolume,
-			VolumeSource: corev1.VolumeSource{
-				Projected: &corev1.ProjectedVolumeSource{
-					Sources: []corev1.VolumeProjection{
-						{
-							Secret: &corev1.SecretProjection{
-								LocalObjectReference: corev1.LocalObjectReference{
-									Name: mariadb.TLSClientCertSecretKey().Name,
-								},
-								Items: []corev1.KeyToPath{
-									{
-										Key:  "tls.crt",
-										Path: "client.crt",
-									},
-									{
-										Key:  "tls.key",
-										Path: "client.key",
-									},
-								},
-							},
-						},
-						{
-							Secret: &corev1.SecretProjection{
-								LocalObjectReference: corev1.LocalObjectReference{
-									Name: mariadb.TLSServerCertSecretKey().Name,
-								},
-								Items: []corev1.KeyToPath{
-									{
-										Key:  "tls.crt",
-										Path: "server.crt",
-									},
-									{
-										Key:  "tls.key",
-										Path: "server.key",
+									Items: []corev1.KeyToPath{
+										{
+											Key:  "tls.crt",
+											Path: "server.crt",
+										},
 									},
 								},
 							},
@@ -544,8 +503,59 @@ func mariadbPKIVolumes(mariadb *mariadbv1alpha1.MariaDB) []corev1.Volume {
 					},
 				},
 			},
-		},
-	}
+			{
+				Name: PKIVolume,
+				VolumeSource: corev1.VolumeSource{
+					Projected: &corev1.ProjectedVolumeSource{
+						Sources: []corev1.VolumeProjection{
+							{
+								Secret: &corev1.SecretProjection{
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: mariadb.TLSClientCertSecretKey().Name,
+									},
+									Items: []corev1.KeyToPath{
+										{
+											Key:  "tls.crt",
+											Path: "client.crt",
+										},
+										{
+											Key:  "tls.key",
+											Path: "client.key",
+										},
+									},
+								},
+							},
+							{
+								Secret: &corev1.SecretProjection{
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: mariadb.TLSServerCertSecretKey().Name,
+									},
+									Items: []corev1.KeyToPath{
+										{
+											Key:  "tls.crt",
+											Path: "server.crt",
+										},
+										{
+											Key:  "tls.key",
+											Path: "server.key",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		}, []corev1.VolumeMount{
+			{
+				Name:      PKICAVolume,
+				MountPath: MariadbPKICAMountPath,
+			},
+			{
+				Name:      PKIVolume,
+				MountPath: MariadbPKIMountPath,
+			},
+		}
 }
 
 func maxscaleVolumes(maxscale *mariadbv1alpha1.MaxScale) []corev1.Volume {
