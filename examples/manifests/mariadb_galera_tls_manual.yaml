@@ -1,0 +1,48 @@
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+spec:
+  rootPasswordSecretKeyRef:
+    name: mariadb
+    key: root-password
+
+  storage:
+    size: 1Gi
+
+  replicas: 3
+
+  galera:
+    enabled: true
+
+  service:
+    type: LoadBalancer
+    metadata:
+      annotations:
+        metallb.universe.tf/loadBalancerIPs: 172.18.0.150
+
+  primaryService:
+    type: LoadBalancer
+    metadata:
+      annotations:
+        metallb.universe.tf/loadBalancerIPs: 172.18.0.160
+
+  secondaryService:
+    type: LoadBalancer
+    metadata:
+      annotations:
+        metallb.universe.tf/loadBalancerIPs: 172.18.0.161
+  
+  metrics:
+    enabled: true
+
+  tls:
+    enabled: true
+    serverCASecretRef:
+      name: mariadb-ca-manual
+    serverCertSecretRef:
+      name: mariadb-galera-tls-server-manual
+    clientCASecretRef:
+      name: mariadb-ca-manual
+    clientCertSecretRef:
+      name: mariadb-galera-tls-client-manual
