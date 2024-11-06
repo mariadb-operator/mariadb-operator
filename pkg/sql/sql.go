@@ -32,9 +32,7 @@ type Opts struct {
 	Host        string
 	Port        int32
 	Database    string
-	SSLCert     string
-	SSLKey      string
-	SSLCA       string
+	CACert      []byte
 	Params      map[string]string
 	Timeout     *time.Duration
 }
@@ -83,11 +81,9 @@ func WithDatabase(database string) Opt {
 	}
 }
 
-func WithSSL(ca, cert, key string) Opt {
+func WithCACert(caCert []byte) Opt {
 	return func(o *Opts) {
-		o.SSLCA = ca
-		o.SSLCert = cert
-		o.SSLKey = key
+		o.CACert = caCert
 	}
 }
 
@@ -132,6 +128,8 @@ func NewClientWithMariaDB(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 		return nil, fmt.Errorf("error reading root password secret: %v", err)
 	}
 	opts := []Opt{
+		WithMariadbName(mariadb.Name),
+		WithNamespace(mariadb.Namespace),
 		WithUsername("root"),
 		WithPassword(password),
 		WitHost(func() string {
@@ -144,6 +142,13 @@ func NewClientWithMariaDB(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 			return statefulset.ServiceFQDN(mariadb.ObjectMeta)
 		}()),
 		WithPort(mariadb.Spec.Port),
+	}
+	if mariadb.IsTLSEnabled() {
+		caCert, err := refResolver.SecretKeyRef(ctx, mariadb.TLSServerCASecretKeyRef(), mariadb.Namespace)
+		if err != nil {
+			return nil, fmt.Errorf("error getting CA certificate: %v", err)
+		}
+		opts = append(opts, WithCACert([]byte(caCert)))
 	}
 	opts = append(opts, clientOpts...)
 	return NewClient(opts...)
@@ -177,12 +182,12 @@ func NewLocalClientWithPodEnv(ctx context.Context, env *environment.PodEnvironme
 		WitHost("localhost"),
 		WithPort(port),
 	}
-	if env.IsTLSEnabled() {
-		opts = append(opts, WithSSL(
-			env.MariadbSSLCA,
-			env.MariadbSSLCert,
-			env.MariadbSSLKey,
-		))
+	if env.CACertPath != "" {
+		caCert, err := os.ReadFile(env.CACertPath)
+		if err != nil {
+			return nil, fmt.Errorf("error reading CA certificate: %v", err)
+		}
+		opts = append(opts, WithCACert(caCert))
 	}
 	opts = append(opts, clientOpts...)
 	return NewClient(opts...)
@@ -211,11 +216,9 @@ func BuildDSN(opts Opts) (string, error) {
 	if opts.Params != nil {
 		config.Params = opts.Params
 	}
-	if opts.MariadbName != "" && opts.Namespace != "" &&
-		opts.SSLCA != "" && opts.SSLCert != "" && opts.SSLKey != "" {
-
+	if opts.MariadbName != "" && opts.Namespace != "" && opts.CACert != nil {
 		configName := fmt.Sprintf("%s-%s", opts.MariadbName, opts.Namespace)
-		if err := configureTLS(configName, opts.SSLCA); err != nil {
+		if err := configureTLS(configName, opts.CACert); err != nil {
 			return "", fmt.Errorf("error configuring TLS: %v", err)
 		}
 		config.TLSConfig = configName
@@ -223,29 +226,14 @@ func BuildDSN(opts Opts) (string, error) {
 	return config.FormatDSN(), nil
 }
 
-func configureTLS(configName, caPath string) error {
+func configureTLS(configName string, caCert []byte) error {
 	var tlsCfg tls.Config
 	caBundle := x509.NewCertPool()
-	pemCA, err := os.ReadFile(caPath)
-	if err != nil {
-		return err
-	}
-	if ok := caBundle.AppendCertsFromPEM(pemCA); ok {
+	if ok := caBundle.AppendCertsFromPEM(caCert); ok {
 		tlsCfg.RootCAs = caBundle
 	} else {
-		return fmt.Errorf("failed parse pem-encoded CA certificates from %s", caPath)
+		return errors.New("failed parse pem-encoded CA certificates")
 	}
-
-	// TODO: require TLS certificates for root connections. Create another mariadb-operator user?
-	// certPairs := make([]tls.Certificate, 0, 1)
-	// keyPair, err := tls.LoadX509KeyPair(certPath, keyPath)
-	// if err != nil {
-	// 	return fmt.Errorf("failed to parse pem-encoded SSL cert %s or SSL key %s: %w",
-	// 		certPath, keyPath, err)
-	// }
-	// certPairs = append(certPairs, keyPair)
-	// tlsCfg.Certificates = certPairs
-
 	if err := mysql.RegisterTLSConfig(configName, &tlsCfg); err != nil {
 		return fmt.Errorf("error registering TLS config \"%s\": %v", configName, err)
 	}
