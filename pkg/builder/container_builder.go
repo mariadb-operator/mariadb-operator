@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"path/filepath"
 	"reflect"
 	"strconv"
 
@@ -400,16 +401,8 @@ func mariadbEnv(mariadb *mariadbv1alpha1.MariaDB) []corev1.EnvVar {
 	if mariadb.IsTLSEnabled() {
 		env = append(env, []corev1.EnvVar{
 			{
-				Name:  "MARIADB_SSL_CA",
-				Value: "/etc/pki/ca/server.crt",
-			},
-			{
-				Name:  "MARIADB_SSL_CERT",
-				Value: "/etc/pki/client.crt",
-			},
-			{
-				Name:  "MARIADB_SSL_KEY",
-				Value: "/etc/pki/client.key",
+				Name:  "CA_CERT_PATH",
+				Value: filepath.Join(MariadbPKICAMountPath, "server.crt"),
 			},
 		}...)
 	}
