@@ -78,6 +78,16 @@ func (m *MariaDB) TLSServerCASecretKey() types.NamespacedName {
 	}
 }
 
+// TLSServerCASecretKey defines the Secret key selector for the TLS server CA.
+func (m *MariaDB) TLSServerCASecretKeyRef() SecretKeySelector {
+	return SecretKeySelector{
+		LocalObjectReference: LocalObjectReference{
+			Name: m.TLSServerCASecretKey().Name,
+		},
+		Key: "tls.crt",
+	}
+}
+
 // TLSServerCertSecretKey defines the key for the TLS server cert.
 func (m *MariaDB) TLSServerCertSecretKey() types.NamespacedName {
 	tls := ptr.Deref(m.Spec.TLS, TLS{})
