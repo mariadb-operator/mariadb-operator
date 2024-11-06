@@ -401,8 +401,28 @@ func mariadbEnv(mariadb *mariadbv1alpha1.MariaDB) []corev1.EnvVar {
 	if mariadb.IsTLSEnabled() {
 		env = append(env, []corev1.EnvVar{
 			{
-				Name:  "CA_CERT_PATH",
+				Name:  "TLS_SERVER_CA_CERT_PATH",
 				Value: filepath.Join(MariadbPKICAMountPath, "server.crt"),
+			},
+			{
+				Name:  "TLS_CLIENT_CA_CERT_PATH",
+				Value: filepath.Join(MariadbPKICAMountPath, "client.crt"),
+			},
+			{
+				Name:  "TLS_SERVER_CERT_PATH",
+				Value: filepath.Join(MariadbPKIMountPath, "server.crt"),
+			},
+			{
+				Name:  "TLS_SERVER_KEY_PATH",
+				Value: filepath.Join(MariadbPKIMountPath, "server.key"),
+			},
+			{
+				Name:  "TLS_CLIENT_CERT_PATH",
+				Value: filepath.Join(MariadbPKIMountPath, "client.crt"),
+			},
+			{
+				Name:  "TLS_CLIENT_KEY_PATH",
+				Value: filepath.Join(MariadbPKIMountPath, "client.key"),
 			},
 		}...)
 	}
