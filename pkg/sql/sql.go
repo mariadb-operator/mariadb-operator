@@ -33,7 +33,7 @@ type Opts struct {
 	Host        string
 	Port        int32
 	Database    string
-	CACert      []byte
+	TLSCACert   []byte
 	Params      map[string]string
 	Timeout     *time.Duration
 }
@@ -82,9 +82,9 @@ func WithDatabase(database string) Opt {
 	}
 }
 
-func WithCACert(caCert []byte) Opt {
+func WithTLSCACert(tlsCaCert []byte) Opt {
 	return func(o *Opts) {
-		o.CACert = caCert
+		o.TLSCACert = tlsCaCert
 	}
 }
 
@@ -149,7 +149,7 @@ func NewClientWithMariaDB(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 		if err != nil {
 			return nil, fmt.Errorf("error getting CA certificate: %v", err)
 		}
-		opts = append(opts, WithCACert([]byte(caCert)))
+		opts = append(opts, WithTLSCACert([]byte(caCert)))
 	}
 	opts = append(opts, clientOpts...)
 	return NewClient(opts...)
@@ -183,12 +183,12 @@ func NewLocalClientWithPodEnv(ctx context.Context, env *environment.PodEnvironme
 		WitHost("localhost"),
 		WithPort(port),
 	}
-	if env.CACertPath != "" {
-		caCert, err := os.ReadFile(env.CACertPath)
+	if env.TLSServerCACertPath != "" {
+		caCert, err := os.ReadFile(env.TLSServerCACertPath)
 		if err != nil {
 			return nil, fmt.Errorf("error reading CA certificate: %v", err)
 		}
-		opts = append(opts, WithCACert(caCert))
+		opts = append(opts, WithTLSCACert(caCert))
 	}
 	opts = append(opts, clientOpts...)
 	return NewClient(opts...)
@@ -217,9 +217,9 @@ func BuildDSN(opts Opts) (string, error) {
 	if opts.Params != nil {
 		config.Params = opts.Params
 	}
-	if opts.MariadbName != "" && opts.Namespace != "" && opts.CACert != nil {
+	if opts.MariadbName != "" && opts.Namespace != "" && opts.TLSCACert != nil {
 		configName := fmt.Sprintf("%s-%s", opts.MariadbName, opts.Namespace)
-		if err := configureTLS(configName, opts.CACert); err != nil {
+		if err := configureTLS(configName, opts.TLSCACert); err != nil {
 			return "", fmt.Errorf("error configuring TLS: %v", err)
 		}
 		config.TLSConfig = configName

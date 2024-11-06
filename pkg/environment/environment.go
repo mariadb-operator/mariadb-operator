@@ -65,7 +65,12 @@ type PodEnvironment struct {
 	MariadbName         string `env:"MARIADB_NAME,required"`
 	MariadbRootPassword string `env:"MARIADB_ROOT_PASSWORD,required"`
 	MariadbPort         string `env:"MYSQL_TCP_PORT,required"`
-	CACertPath          string `env:"CA_CERT_PATH"`
+	TLSServerCACertPath string `env:"TLS_SERVER_CA_CERT_PATH"`
+	TLSServerCertPath   string `env:"TLS_SERVER_CERT_PATH"`
+	TLSServerKeyPath    string `env:"TLS_SERVER_KEY_PATH"`
+	TLSClientCACertPath string `env:"TLS_CLIENT_CA_CERT_PATH"`
+	TLSClientCertPath   string `env:"TLS_CLIENT_CERT_PATH"`
+	TLSClientKeyPath    string `env:"TLS_CLIENT_KEY_PATH"`
 }
 
 func (e *PodEnvironment) Port() (int32, error) {
