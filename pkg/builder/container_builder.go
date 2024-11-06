@@ -464,16 +464,8 @@ func mariadbVolumeMounts(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt
 	}
 
 	if mariadb.IsTLSEnabled() {
-		volumeMounts = append(volumeMounts, []corev1.VolumeMount{
-			{
-				Name:      PKICAVolume,
-				MountPath: MariadbPKICAMountPath,
-			},
-			{
-				Name:      PKIVolume,
-				MountPath: MariadbPKIMountPath,
-			},
-		}...)
+		_, tlsVolumeMounts := mariadbTLSVolumes(mariadb)
+		volumeMounts = append(volumeMounts, tlsVolumeMounts...)
 	}
 
 	galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
