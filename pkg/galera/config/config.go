@@ -86,7 +86,7 @@ wsrep_provider={{ .GaleraLibPath }}
 		return nil, fmt.Errorf("error getting SST receive address: %v", err)
 	}
 
-	providerOptions, err := getProviderOptions(podEnv.PodIP, galera.ProviderOptions)
+	providerOptions, err := getProviderOptions(podEnv, galera.ProviderOptions)
 	if err != nil {
 		return nil, fmt.Errorf("error getting provider options: %v", err)
 	}
@@ -167,12 +167,12 @@ func UpdateConfig(configBytes []byte, podEnv *environment.PodEnvironment) ([]byt
 	return updatedConfig, nil
 }
 
-func getProviderOptions(podIP string, options map[string]string) (string, error) {
-	gmcastListenAddress, err := getGmcastListenAddress(podIP)
+func getProviderOptions(env *environment.PodEnvironment, options map[string]string) (string, error) {
+	gmcastListenAddress, err := getGmcastListenAddress(env.PodIP)
 	if err != nil {
 		return "", fmt.Errorf("error getting gcomm listden address: %v", err)
 	}
-	istReceiveAddress, err := getISTReceiveAddress(podIP)
+	istReceiveAddress, err := getISTReceiveAddress(env.PodIP)
 	if err != nil {
 		return "", fmt.Errorf("error getting IST receive address: %v", err)
 	}
@@ -180,10 +180,15 @@ func getProviderOptions(podIP string, options map[string]string) (string, error)
 	wsrepOpts := map[string]string{
 		galerakeys.WsrepOptGmcastListAddr: gmcastListenAddress,
 		galerakeys.WsrepOptISTRecvAddr:    istReceiveAddress,
-		// TODO: add SSL keys conditionally based on Pod environment MARIADB_TLS
-		// galerakeys.WsrepOptSocketSSLCert: "/etc/pki/server.crt",
-		// galerakeys.WsrepOptSocketSSLKey:  "/etc/pki/server.key",
-		// galerakeys.WsrepOptSocketSSLCA:   "/etc/pki/ca/client.crt",
+	}
+	if env.TLSServerCACertPath != "" {
+		wsrepOpts[galerakeys.WsrepOptSocketSSLCA] = env.TLSServerCACertPath
+	}
+	if env.TLSServerCertPath != "" {
+		wsrepOpts[galerakeys.WsrepOptSocketSSLCert] = env.TLSServerCertPath
+	}
+	if env.TLSServerKeyPath != "" {
+		wsrepOpts[galerakeys.WsrepOptSocketSSLKey] = env.TLSServerKeyPath
 	}
 	maps.Copy(wsrepOpts, options)
 
