@@ -76,7 +76,7 @@ cert-leaf-mariadb: ca ## Generate leaf certificates for MariaDB.
 	CERT=$(MARIADB_SERVER_CERT) \
 	KEY=$(MARIADB_SERVER_KEY) \
 	CERT_SUBJECT="/CN=$(MARIADB_NAME).default.svc.cluster.local" \
-	CERT_ALT_NAMES="subjectAltName=DNS:$(MARIADB_NAME).default.svc.cluster.local,DNS:$(MARIADB_NAME).default.svc,DNS:$(MARIADB_NAME).default,DNS:$(MARIADB_NAME),DNS:localhost" \
+	CERT_ALT_NAMES="$(CERT_ALT_NAMES)" \
 	$(MAKE) cert-leaf
 
 	CERT=$(MARIADB_CLIENT_CERT) \
@@ -100,7 +100,15 @@ cert-leaf-mariadb: ca ## Generate leaf certificates for MariaDB.
 
 .PHONY: cert-mariadb
 cert-mariadb: ## Generate certificates for MariaDB.
-	MARIADB_NAME="mariadb" $(MAKE) cert-leaf-mariadb
+	MARIADB_NAME="mariadb" \
+	CERT_ALT_NAMES="subjectAltName=DNS:mariadb.default.svc.cluster.local,DNS:localhost" \
+	$(MAKE) cert-leaf-mariadb
+
+.PHONY: cert-mariadb-galera
+cert-mariadb-galera: ## Generate certificates for MariaDB Galera.
+	MARIADB_NAME="mariadb-galera" \
+	CERT_ALT_NAMES="subjectAltName=DNS:*.mariadb-galera-internal.default.svc.cluster.local,DNS:mariadb-galera-primary.default.svc.cluster.local,DNS:mariadb-galera.default.svc.cluster.local,DNS:localhost" \
+	$(MAKE) cert-leaf-mariadb
 
 WEBHOOK_PKI_DIR ?= /tmp/k8s-webhook-server/serving-certs
 .PHONY: cert-webhook
@@ -143,4 +151,4 @@ cert-minio: ca kubectl ## Generates minio private key and certificate for local 
 	$(MAKE) cert-secret-tls
 
 .PHONY: cert
-cert: cert-mariadb cert-webhook cert-minio ## Generate certificates.
+cert: cert-mariadb cert-mariadb-galera cert-webhook cert-minio ## Generate certificates.
