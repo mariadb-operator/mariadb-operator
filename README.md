@@ -20,14 +20,14 @@
 # 🦭 mariadb-operator
 
 Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB using Kubernetes [CRDs](https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definitions/) rather than imperative commands.
-- [Easily provision](./examples/manifests/mariadb_minimal.yaml) and [configure]((./examples/manifests/mariadb_full.yaml) MariaDB servers in Kubernetes.
+- [Easily provision](./examples/manifests/mariadb_minimal.yaml) and [configure](./examples/manifests/mariadb_full.yaml) MariaDB servers in Kubernetes.
 - Multiple [HA modes](./docs/HA.md): Galera Cluster or MariaDB Replication.
 - Automated Galera [primary failover](./docs/HA.md) and [cluster recovery](./docs/GALERA.md#galera-cluster-recovery).
 - Advanced HA with [MaxScale](./docs/MAXSCALE.md): a sophisticated database proxy, router, and load balancer for MariaDB.
 - Flexible [storage](./docs/STORAGE.md) configuration. [Volume expansion](./docs/STORAGE.md#volume-resize).
 - Take, restore and schedule [backups](./docs/BACKUP.md). 
 - Multiple [backup storage types](./docs/BACKUP.md#storage-types): S3 compatible, PVCs and Kubernetes volumes.
-- Policy-driven [backup](./docs/BACKUP.md#retention-policy) retention with bzip and gzip [compression options](./docs/BACKUP.md#compression)).
+- Policy-driven [backup](./docs/BACKUP.md#retention-policy) retention with bzip and gzip [compression options](./docs/BACKUP.md#compression).
 - [Target recovery time](./docs/BACKUP.md#target-recovery-time): restore the closest available backup to the specified time.
 - [Bootstrap new instances](./docs/BACKUP.md#bootstrap-new-mariadb-instances-from-backups) from: Backups, S3, PVCs ...
 - [Cluster-aware rolling update](./docs/UPDATES.md#replicasfirstprimarylast): roll out replica Pods one by one, wait for each of them to become ready, and then proceed with the primary Pod, using `ReplicasFirstPrimaryLast`.
@@ -47,7 +47,7 @@ Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB
 - Multi-arch distroless [image](https://github.com/orgs/mariadb-operator/packages/container/package/mariadb-operator).
 - [GitOps](#gitops) friendly.
 
-Please, refer to the [documentation](./docs/), release-by-release [notes](https://github.com/mariadb-operator/mariadb-operator/releases), the [API reference](./docs/API_REFERENCE.md) and the [example suite](./examples/) for further detail, or dive into the [quickstart](http://./docs/quickstart.md).
+Please, refer to the [documentation](./docs/), [release notes](https://github.com/mariadb-operator/mariadb-operator/releases), the [API reference](./docs/API_REFERENCE.md) and the [example suite](./examples/) for further detail, or dive into the [quickstart](./docs/quickstart.md).
 
 ## Helm installation
 
@@ -75,7 +75,7 @@ The Openshift installation is managed separately in the [mariadb-operator-helm](
 - MariaDB Community >= 10.5
 - MariaDB Enterprise >= 10.5
 
-- ## MaxScale compatibility
+## MaxScale compatibility
 - MaxScale >= 23.08 
 - MaxScale >= 24.02
 
