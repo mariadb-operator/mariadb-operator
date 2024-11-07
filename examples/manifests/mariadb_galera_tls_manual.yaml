@@ -39,10 +39,10 @@ spec:
   tls:
     enabled: true
     serverCASecretRef:
-      name: mariadb-ca-manual
+      name: mariadb-server-ca
     serverCertSecretRef:
-      name: mariadb-galera-tls-server-manual
+      name: mariadb-galera-server-tls
     clientCASecretRef:
-      name: mariadb-ca-manual
+      name: mariadb-client-ca
     clientCertSecretRef:
-      name: mariadb-galera-tls-client-manual
+      name: mariadb-galera-client-tls
