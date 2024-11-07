@@ -62,7 +62,7 @@ helm install mariadb-operator mariadb-operator/mariadb-operator
 Refer to the [helm documentation](./docs/HELM.md) for further detail.
 
 ## Upgrading from older releases
-When upgrading from an older version of the operator, it’s important to understand how both operator and operand resources are affected.  Ensure you read both the [updates section of the helm docs](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/HELM.md#updates), and the [release notes](https://github.com/mariadb-operator/mariadb-operator/releases) for any additional version-specific steps that may be required.
+When upgrading from an older version of the operator, it’s important to understand how both operator and operand resources are affected.  Ensure you read both the [updates section of the helm docs](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/HELM.md#updates), and the [release notes](https://github.com/mariadb-operator/mariadb-operator/releases) for any additional version-specific steps that may be required. Do not attempt to skip intermediate version upgrades. Upgrade progressively through each version to the next.
 
 ## Openshift installation
 
