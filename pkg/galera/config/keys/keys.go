@@ -9,6 +9,7 @@ var (
 	WsrepOptISTRecvAddr     = "ist.recv_addr"
 	WsrepOptGmcastListAddr  = "gmcast.listen_addr"
 
+	WsrepOptSocketSSL     = "socket.ssl"
 	WsrepOptSocketSSLCert = "socket.ssl_cert"
 	WsrepOptSocketSSLKey  = "socket.ssl_key"
 	WsrepOptSocketSSLCA   = "socket.ssl_ca"
