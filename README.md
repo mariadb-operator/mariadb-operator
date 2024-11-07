@@ -20,26 +20,22 @@
 # 🦭 mariadb-operator
 
 Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB using Kubernetes [CRDs](https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definitions/) rather than imperative commands.
-- [Easily provision](./examples/manifests/mariadb_minimal.yaml) MariaDB servers in Kubernetes.
-- [Highly configurable](./examples/manifests/mariadb_full.yaml) MariaDB servers.
-- Multiple [HA modes](./docs/HA.md): Galera and SemiSync Replication.
-- Automated [primary failover](./docs/HA.md).
-- Automated [Galera cluster recovery](./docs/GALERA.md#galera-cluster-recovery).
-- Enhanced HA with [MaxScale](./docs/MAXSCALE.md): a sophisticated database proxy, router, and load balancer designed specifically for and by MariaDB.
+- [Easily provision](./examples/manifests/mariadb_minimal.yaml) and [configure]((./examples/manifests/mariadb_full.yaml) MariaDB servers in Kubernetes.
+- Multiple [HA modes](./docs/HA.md): Galera Cluster or MariaDB Replication.
+- Automated Galera [primary failover](./docs/HA.md) and [cluster recovery](./docs/GALERA.md#galera-cluster-recovery).
+- Advanced HA with [MaxScale](./docs/MAXSCALE.md): a sophisticated database proxy, router, and load balancer for MariaDB.
 - Flexible [storage](./docs/STORAGE.md) configuration. [Volume expansion](./docs/STORAGE.md#volume-resize).
-- Take and restore [backups](./docs/BACKUP.md). 
-- Scheduled [backups](./docs/BACKUP.md/#scheduling). 
+- Take, restore and schedule [backups](./docs/BACKUP.md). 
 - Multiple [backup storage types](./docs/BACKUP.md#storage-types): S3 compatible, PVCs and Kubernetes volumes.
-- [Backup retention policy](./docs/BACKUP.md#retention-policy).
-- [Backup compression](./docs/BACKUP.md#compression): bzip2 and gzip algorithms supported.
-- [Target recovery time](./docs/BACKUP.md#target-recovery-time): infer which backup to restore.
+- Policy-driven [backup](./docs/BACKUP.md#retention-policy) retention with bzip and gzip [compression options](./docs/BACKUP.md#compression)).
+- [Target recovery time](./docs/BACKUP.md#target-recovery-time): restore the closest available backup to the specified time.
 - [Bootstrap new instances](./docs/BACKUP.md#bootstrap-new-mariadb-instances-from-backups) from: Backups, S3, PVCs ...
-- Multiple [update strategies](./docs/UPDATES.md#update-strategies): ReplicasFirstPrimaryLast, RollingUpdate, OnDelete and Never.
-- [Cluster-aware rolling update](./docs/UPDATES.md#replicasfirstprimarylast): roll out replica Pods one by one, wait for each of them to become ready, and then proceed with the primary Pod.
+- [Cluster-aware rolling update](./docs/UPDATES.md#replicasfirstprimarylast): roll out replica Pods one by one, wait for each of them to become ready, and then proceed with the primary Pod, using `ReplicasFirstPrimaryLast`.
+- Manual [update strategies](./docs/UPDATES.md#update-strategies): `OnDelete` and `Never`.
 - Automated [data-plane updates](./docs/UPDATES.md#auto-update-data-plane).
-- [my.cnf configuration](./docs/CONFIGURATION.md#mycnf). Automatically trigger [updates](./docs/UPDATES.md) when my.cnf changes.
+- [my.cnf change detection](./docs/CONFIGURATION.md#mycnf). Automatically trigger [updates](./docs/UPDATES.md) when my.cnf changes.
 - [Suspend](./docs/SUSPEND.md) operator reconciliation for maintenance operations.
-- [Prometheus metrics](./docs/METRICS.md) via [mysqld-exporter](https://github.com/prometheus/mysqld_exporter).
+- [Prometheus metrics](./docs/METRICS.md) via [mysqld-exporter](https://github.com/prometheus/mysqld_exporter) and maxscale-exporter.
 - Declaratively manage [SQL resources](./docs/SQL_RESOURCES.md): [users](./examples/manifests/user.yaml), [grants](./examples/manifests/grant.yaml) and logical [databases](./examples/manifests/database.yaml).
 - Configure [connections](./examples/manifests/connection.yaml) for your applications.
 - Orchestrate and schedule [sql scripts](./examples/manifests/sqljobs).
@@ -51,7 +47,7 @@ Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB
 - Multi-arch distroless [image](https://github.com/orgs/mariadb-operator/packages/container/package/mariadb-operator).
 - [GitOps](#gitops) friendly.
 
-Please, refer to the [documentation](./docs/), the [API reference](./docs/API_REFERENCE.md) and the [example suite](./examples/) for further detail.
+Please, refer to the [documentation](./docs/), release-by-release [notes](https://github.com/mariadb-operator/mariadb-operator/releases), the [API reference](./docs/API_REFERENCE.md) and the [example suite](./examples/) for further detail, or dive into the [quickstart](http://./docs/quickstart.md).
 
 ## Helm installation
 
@@ -65,6 +61,9 @@ helm install mariadb-operator mariadb-operator/mariadb-operator
 
 Refer to the [helm documentation](./docs/HELM.md) for further detail.
 
+## Upgrading from older releases
+When upgrading from an older version of the operator, it’s important to understand how both operator and operand resources are affected.  Ensure you read both the [updates section of the helm docs](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/HELM.md#updates), and the [release notes](https://github.com/mariadb-operator/mariadb-operator/releases) for any additional version-specific steps that may be required.
+
 ## Openshift installation
 
 The Openshift installation is managed separately in the [mariadb-operator-helm](https://github.com/mariadb-operator/mariadb-operator-helm) repository, which contains a [helm based operator](https://sdk.operatorframework.io/docs/building-operators/helm/) that allows you to install `mariadb-operator` via [OLM](https://olm.operatorframework.io/docs/).
@@ -75,6 +74,10 @@ The Openshift installation is managed separately in the [mariadb-operator-helm](
 ## MariaDB compatibility
 - MariaDB Community >= 10.5
 - MariaDB Enterprise >= 10.5
+
+- ## MaxScale compatibility
+- MaxScale >= 23.08 
+- MaxScale >= 24.02
 
 ## Kubernetes compatibility
 - Kubernetes >= 1.26
@@ -181,12 +184,6 @@ NAME                                         COMPLETIONS   DURATION   AGE
 backup                                       1/1           9s         12m
 bootstrap-restore-mariadb-from-backup        1/1           5s         84s
 ``` 
-
-## Documentation
-
-- [Index](./docs/)
-- [API reference](./docs/API_REFERENCE.md)
-- [Example suite](./examples/)
 
 ## GitOps
 
