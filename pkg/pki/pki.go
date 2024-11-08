@@ -17,6 +17,7 @@ import (
 )
 
 var (
+	CACertKey  = "ca.crt"
 	TLSCertKey = "tls.crt"
 	TLSKeyKey  = "tls.key"
 

@@ -470,45 +470,24 @@ func mariadbTLSVolumes(mariadb *mariadbv1alpha1.MariaDB) ([]corev1.Volume, []cor
 	}
 	return []corev1.Volume{
 			{
-				Name: PKICAVolume,
-				VolumeSource: corev1.VolumeSource{
-					Projected: &corev1.ProjectedVolumeSource{
-						Sources: []corev1.VolumeProjection{
-							{
-								Secret: &corev1.SecretProjection{
-									LocalObjectReference: corev1.LocalObjectReference{
-										Name: mariadb.TLSClientCASecretKey().Name,
-									},
-									Items: []corev1.KeyToPath{
-										{
-											Key:  pki.TLSCertKey,
-											Path: "client.crt",
-										},
-									},
-								},
-							},
-							{
-								Secret: &corev1.SecretProjection{
-									LocalObjectReference: corev1.LocalObjectReference{
-										Name: mariadb.TLSServerCASecretKey().Name,
-									},
-									Items: []corev1.KeyToPath{
-										{
-											Key:  pki.TLSCertKey,
-											Path: "server.crt",
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-			{
 				Name: PKIVolume,
 				VolumeSource: corev1.VolumeSource{
 					Projected: &corev1.ProjectedVolumeSource{
+						DefaultMode: ptr.To(int32(0644)),
 						Sources: []corev1.VolumeProjection{
+							{
+								Secret: &corev1.SecretProjection{
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: mariadb.TLSCABundleSecretKeyRef().Name,
+									},
+									Items: []corev1.KeyToPath{
+										{
+											Key:  pki.CACertKey,
+											Path: pki.CACertKey,
+										},
+									},
+								},
+							},
 							{
 								Secret: &corev1.SecretProjection{
 									LocalObjectReference: corev1.LocalObjectReference{
@@ -548,10 +527,6 @@ func mariadbTLSVolumes(mariadb *mariadbv1alpha1.MariaDB) ([]corev1.Volume, []cor
 				},
 			},
 		}, []corev1.VolumeMount{
-			{
-				Name:      PKICAVolume,
-				MountPath: MariadbPKICAMountPath,
-			},
 			{
 				Name:      PKIVolume,
 				MountPath: MariadbPKIMountPath,
