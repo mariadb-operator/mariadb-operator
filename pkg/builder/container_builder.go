@@ -13,6 +13,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/command"
 	galeraresources "github.com/mariadb-operator/mariadb-operator/pkg/controller/galera/resources"
 	kadapter "github.com/mariadb-operator/mariadb-operator/pkg/kubernetes/adapter"
+	"github.com/mariadb-operator/mariadb-operator/pkg/pki"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/utils/ptr"
@@ -401,12 +402,8 @@ func mariadbEnv(mariadb *mariadbv1alpha1.MariaDB) []corev1.EnvVar {
 	if mariadb.IsTLSEnabled() {
 		env = append(env, []corev1.EnvVar{
 			{
-				Name:  "TLS_SERVER_CA_CERT_PATH",
-				Value: filepath.Join(MariadbPKICAMountPath, "server.crt"),
-			},
-			{
-				Name:  "TLS_CLIENT_CA_CERT_PATH",
-				Value: filepath.Join(MariadbPKICAMountPath, "client.crt"),
+				Name:  "TLS_CA_CERT_PATH",
+				Value: filepath.Join(MariadbPKIMountPath, pki.CACertKey),
 			},
 			{
 				Name:  "TLS_SERVER_CERT_PATH",

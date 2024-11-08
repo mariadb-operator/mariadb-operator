@@ -144,7 +144,7 @@ func NewClientWithMariaDB(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 		WithPort(mariadb.Spec.Port),
 	}
 	if mariadb.IsTLSEnabled() {
-		caCert, err := refResolver.SecretKeyRef(ctx, mariadb.TLSServerCASecretKeyRef(), mariadb.Namespace)
+		caCert, err := refResolver.SecretKeyRef(ctx, mariadb.TLSCABundleSecretKeyRef(), mariadb.Namespace)
 		if err != nil {
 			return nil, fmt.Errorf("error getting CA certificate: %v", err)
 		}
@@ -182,8 +182,8 @@ func NewLocalClientWithPodEnv(ctx context.Context, env *environment.PodEnvironme
 		WitHost("localhost"),
 		WithPort(port),
 	}
-	if env.TLSServerCACertPath != "" {
-		caCert, err := os.ReadFile(env.TLSServerCACertPath)
+	if env.TLSCACertPath != "" {
+		caCert, err := os.ReadFile(env.TLSCACertPath)
 		if err != nil {
 			return nil, fmt.Errorf("error reading CA certificate: %v", err)
 		}

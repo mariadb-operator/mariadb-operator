@@ -181,11 +181,11 @@ func getProviderOptions(env *environment.PodEnvironment, options map[string]stri
 		galerakeys.WsrepOptGmcastListAddr: gmcastListenAddress,
 		galerakeys.WsrepOptISTRecvAddr:    istReceiveAddress,
 	}
-	if env.TLSServerCACertPath != "" || env.TLSServerCertPath != "" || env.TLSServerKeyPath != "" {
+	if env.TLSCACertPath != "" || env.TLSServerCertPath != "" || env.TLSServerKeyPath != "" {
 		wsrepOpts[galerakeys.WsrepOptSocketSSL] = "true"
 	}
-	if env.TLSServerCACertPath != "" {
-		wsrepOpts[galerakeys.WsrepOptSocketSSLCA] = env.TLSServerCACertPath
+	if env.TLSCACertPath != "" {
+		wsrepOpts[galerakeys.WsrepOptSocketSSLCA] = env.TLSCACertPath
 	}
 	if env.TLSServerCertPath != "" {
 		wsrepOpts[galerakeys.WsrepOptSocketSSLCert] = env.TLSServerCertPath
