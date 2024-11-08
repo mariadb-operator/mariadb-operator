@@ -7,6 +7,20 @@ spec:
     name: mariadb
     key: root-password
 
+  initContainers:
+    - name: verify-server
+      image: mariadb:11.4.3
+      command:
+        - bash
+        - -c
+        - "openssl verify -CAfile /etc/pki/ca.crt /etc/pki/server.crt"
+    - name: verify-client
+      image: mariadb:11.4.3
+      command:
+        - bash
+        - -c
+        - "openssl verify -CAfile /etc/pki/ca.crt /etc/pki/client.crt"
+
   storage:
     size: 1Gi
 
