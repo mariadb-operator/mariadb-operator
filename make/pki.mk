@@ -2,6 +2,7 @@
 
 PKI_DIR ?= /tmp/pki
 CA_DIR ?= $(PKI_DIR)/ca
+CERT_SIZE ?= 2048
 
 .PHONY: ca
 ca: ca-server ca-client ## Generates CA keypairs.
@@ -15,7 +16,7 @@ CA_SERVER_SUBJECT ?= "/CN=mariadb-server-ca"
 ca-server: ## Generates server CA keypair.
 	@if [ ! -f "$(CA_SERVER_CERT)" ] || [ ! -f "$(CA_SERVER_KEY)" ]; then \
 		mkdir -p $(CA_DIR); \
-		openssl req -new -newkey rsa:4096 -x509 -sha256 -days 365 -nodes \
+		openssl req -new -newkey rsa:$(CERT_SIZE) -x509 -sha256 -days 365 -nodes \
 			-out $(CA_SERVER_CERT) -keyout $(CA_SERVER_KEY) \
 			-subj $(CA_SERVER_SUBJECT); \
 	else \
@@ -37,7 +38,7 @@ CA_CLIENT_SUBJECT ?= "/CN=mariadb-client-ca"
 ca-client: ## Generates client CA keypair.
 	@if [ ! -f "$(CA_CLIENT_CERT)" ] || [ ! -f "$(CA_CLIENT_KEY)" ]; then \
 		mkdir -p $(CA_DIR); \
-		openssl req -new -newkey rsa:4096 -x509 -sha256 -days 365 -nodes \
+		openssl req -new -newkey rsa:2048 -x509 -sha256 -days 365 -nodes \
 			-out $(CA_CLIENT_CERT) -keyout $(CA_CLIENT_KEY) \
 			-subj $(CA_CLIENT_SUBJECT); \
 	else \
@@ -62,7 +63,7 @@ CERT_ALT_NAMES ?=
 .PHONY: cert-leaf
 cert-leaf: ## Generates leaf certificate keypair.
 	@mkdir -p $(PKI_DIR)
-	@openssl req -new -newkey rsa:4096 -x509 -sha256 -days 365 -nodes \
+	@openssl req -new -newkey rsa:2048 -x509 -sha256 -days 365 -nodes \
 		-CA $(CA_CERT) -CAkey $(CA_KEY) \
 		-out $(CERT) -keyout $(KEY) \
 		-subj $(CERT_SUBJECT) -addext $(CERT_ALT_NAMES)
@@ -76,7 +77,7 @@ cert-leaf: ## Generates leaf certificate keypair.
 .PHONY: cert-leaf-client
 cert-leaf-client: ## Generates leaf certificate keypair for a client.
 	@mkdir -p $(PKI_DIR)
-	@openssl req -new -newkey rsa:4096 -x509 -sha256 -days 365 -nodes \
+	@openssl req -new -newkey rsa:$(CERT_SIZE) -x509 -sha256 -days 365 -nodes \
 		-CA $(CA_CERT) -CAkey $(CA_KEY) \
 		-out $(CERT) -keyout $(KEY) \
 		-subj $(CERT_SUBJECT)
