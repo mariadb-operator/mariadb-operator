@@ -54,6 +54,16 @@ func (m *MariaDB) MyCnfConfigMapKeyRef() ConfigMapKeySelector {
 	}
 }
 
+// TLSCABundleSecretKeyRef defines the key selector for the TLS Secret trust bundle
+func (m *MariaDB) TLSCABundleSecretKeyRef() SecretKeySelector {
+	return SecretKeySelector{
+		LocalObjectReference: LocalObjectReference{
+			Name: fmt.Sprintf("%s-ca-bundle", m.Name),
+		},
+		Key: pki.CACertKey,
+	}
+}
+
 // TLSConfigMapKeyRef defines the key selector for the TLS ConfigMap
 func (m *MariaDB) TLSConfigMapKeyRef() ConfigMapKeySelector {
 	return ConfigMapKeySelector{
@@ -76,16 +86,6 @@ func (m *MariaDB) TLSServerCASecretKey() types.NamespacedName {
 	return types.NamespacedName{
 		Name:      fmt.Sprintf("%s-ca", m.Name),
 		Namespace: m.Namespace,
-	}
-}
-
-// TLSServerCASecretKey defines the Secret key selector for the TLS server CA.
-func (m *MariaDB) TLSServerCASecretKeyRef() SecretKeySelector {
-	return SecretKeySelector{
-		LocalObjectReference: LocalObjectReference{
-			Name: m.TLSServerCASecretKey().Name,
-		},
-		Key: pki.TLSCertKey,
 	}
 }
 
