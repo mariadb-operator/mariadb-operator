@@ -9,6 +9,7 @@ require (
 	github.com/go-chi/httprate v0.14.1
 	github.com/go-logr/logr v1.4.2
 	github.com/go-sql-driver/mysql v1.8.1
+	github.com/google/go-cmp v0.6.0
 	github.com/google/uuid v1.6.0
 	github.com/gruntwork-io/terratest v0.48.1
 	github.com/hashicorp/go-multierror v1.1.1
@@ -97,7 +98,6 @@ require (
 	github.com/gonvenience/wrap v1.1.2 // indirect
 	github.com/gonvenience/ytbx v1.4.4 // indirect
 	github.com/google/gnostic-models v0.6.8 // indirect
-	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/pprof v0.0.0-20241210010833-40e02aabc2ad // indirect
 	github.com/gorilla/mux v1.8.1 // indirect
