@@ -1,4 +1,4 @@
-🚀 **`{{ .ProjectName }}` [0.36.0](https://github.com/mariadb-operator/mariadb-operator/releases/tag/0.36.0) is here!** 🦭
+**`{{ .ProjectName }}` [0.36.0](https://github.com/mariadb-operator/mariadb-operator/releases/tag/0.36.0) is here!** 🦭
 
 We're thrilled to announce this new release packed with multiple enhancements contributed by our community members. If you're upgrading from previous versions, don't miss the __[UPGRADE GUIDE](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/releases/UPGRADE_0.36.0.md)__ for a smooth transition.
 
@@ -16,7 +16,7 @@ We're thrilled to announce this new release packed with multiple enhancements co
 **SQL:**
 - [#1026](https://github.com/mariadb-operator/mariadb-operator/pull/1026)
 
-Huge thanks to our awesome contributors @hedgieinsocks, @onesolpark, @johanjk, and @P4sca1 for making this release possible! 🙌
+Huge thanks to our awesome contributors @hedgieinsocks, @onesolpark, @johanjk, and @P4sca1 for making this release possible! 🙇
 
 ---
 
