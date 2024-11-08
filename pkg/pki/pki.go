@@ -17,8 +17,9 @@ import (
 )
 
 var (
-	tlsCert                     = "tls.crt"
-	tlsKey                      = "tls.key"
+	TLSCertKey = "tls.crt"
+	TLSKeyKey  = "tls.key"
+
 	defaultCAValidityDuration   = 4 * 365 * 24 * time.Hour
 	defaultCertValidityDuration = 365 * 24 * time.Hour
 )
@@ -38,16 +39,16 @@ func (k *KeyPair) FillTLSSecret(secret *corev1.Secret) {
 	if secret.Data == nil {
 		secret.Data = make(map[string][]byte)
 	}
-	secret.Data[tlsCert] = k.CertPEM
-	secret.Data[tlsKey] = k.KeyPEM
+	secret.Data[TLSCertKey] = k.CertPEM
+	secret.Data[TLSKeyKey] = k.KeyPEM
 }
 
 func KeyPairFromTLSSecret(secret *corev1.Secret) (*KeyPair, error) {
 	if secret.Data == nil {
 		return nil, errors.New("TLS Secret is empty")
 	}
-	certPEM := secret.Data[tlsCert]
-	keyPEM := secret.Data[tlsKey]
+	certPEM := secret.Data[TLSCertKey]
+	keyPEM := secret.Data[TLSKeyKey]
 	return KeyPairFromPEM(certPEM, keyPEM)
 }
 
