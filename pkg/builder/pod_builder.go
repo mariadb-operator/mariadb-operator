@@ -9,6 +9,7 @@ import (
 	metadata "github.com/mariadb-operator/mariadb-operator/pkg/builder/metadata"
 	galeraresources "github.com/mariadb-operator/mariadb-operator/pkg/controller/galera/resources"
 	kadapter "github.com/mariadb-operator/mariadb-operator/pkg/kubernetes/adapter"
+	"github.com/mariadb-operator/mariadb-operator/pkg/pki"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -480,7 +481,7 @@ func mariadbTLSVolumes(mariadb *mariadbv1alpha1.MariaDB) ([]corev1.Volume, []cor
 									},
 									Items: []corev1.KeyToPath{
 										{
-											Key:  "tls.crt",
+											Key:  pki.TLSCertKey,
 											Path: "client.crt",
 										},
 									},
@@ -493,7 +494,7 @@ func mariadbTLSVolumes(mariadb *mariadbv1alpha1.MariaDB) ([]corev1.Volume, []cor
 									},
 									Items: []corev1.KeyToPath{
 										{
-											Key:  "tls.crt",
+											Key:  pki.TLSCertKey,
 											Path: "server.crt",
 										},
 									},
@@ -515,11 +516,11 @@ func mariadbTLSVolumes(mariadb *mariadbv1alpha1.MariaDB) ([]corev1.Volume, []cor
 									},
 									Items: []corev1.KeyToPath{
 										{
-											Key:  "tls.crt",
+											Key:  pki.TLSCertKey,
 											Path: "client.crt",
 										},
 										{
-											Key:  "tls.key",
+											Key:  pki.TLSKeyKey,
 											Path: "client.key",
 										},
 									},
@@ -532,11 +533,11 @@ func mariadbTLSVolumes(mariadb *mariadbv1alpha1.MariaDB) ([]corev1.Volume, []cor
 									},
 									Items: []corev1.KeyToPath{
 										{
-											Key:  "tls.crt",
+											Key:  pki.TLSCertKey,
 											Path: "server.crt",
 										},
 										{
-											Key:  "tls.key",
+											Key:  pki.TLSKeyKey,
 											Path: "server.key",
 										},
 									},
