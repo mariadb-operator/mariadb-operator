@@ -5,18 +5,18 @@ We're thrilled to announce this new release packed with multiple enhancements co
 
 If you're upgrading from previous versions, don't miss the __[UPGRADE GUIDE](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/releases/UPGRADE_0.36.0.md)__ for a smooth transition.
 
-**Replication:**
+**Replication (alpha)**
 - [#967](https://github.com/mariadb-operator/mariadb-operator/pull/967)
 - [#974](https://github.com/mariadb-operator/mariadb-operator/pull/974)
 
-**Backup:**
+**Backup**
 - [#1008](https://github.com/mariadb-operator/mariadb-operator/pull/1008)
 - [#1013](https://github.com/mariadb-operator/mariadb-operator/pull/1013)
 
-**Services:**
+**Services**
 - [#1009](https://github.com/mariadb-operator/mariadb-operator/pull/1009)
 
-**SQL:**
+**SQL**
 - [#1026](https://github.com/mariadb-operator/mariadb-operator/pull/1026)
 
 Huge thanks to our awesome contributors @hedgieinsocks, @onesolpark, @johanjk, and @P4sca1 for making this release possible! 🙇
