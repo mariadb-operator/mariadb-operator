@@ -24,13 +24,10 @@ var (
 	dnsName      string
 	port         int
 	validateCert bool
-
-	tlsCert = "tls.crt"
-	tlsKey  = "tls.key"
 )
 
 func init() {
-	webhookCmd.Flags().StringVar(&caCertPath, "ca-cert-path", "/tmp/k8s-webhook-server/certificate-authority/tls.crt",
+	webhookCmd.Flags().StringVar(&caCertPath, "ca-cert-path", filepath.Join("/tmp/k8s-webhook-server/certificate-authority", pki.TLSCertKey),
 		"Path containing the CA TLS certificate for the webhook server.")
 	webhookCmd.Flags().StringVar(&certDir, "cert-dir", "/tmp/k8s-webhook-server/serving-certs",
 		"Directory containing the TLS certificate for the webhook server. 'tls.crt' and 'tls.key' must be present in this directory.")
@@ -175,11 +172,11 @@ func readCert(certPath string) (*x509.Certificate, error) {
 }
 
 func readKeyPair(dir string) (*pki.KeyPair, error) {
-	certFile := filepath.Join(dir, tlsCert)
+	certFile := filepath.Join(dir, pki.TLSCertKey)
 	if _, err := os.Stat(certFile); err != nil {
 		return nil, err
 	}
-	keyFile := filepath.Join(dir, tlsKey)
+	keyFile := filepath.Join(dir, pki.TLSKeyKey)
 	if _, err := os.Stat(certFile); err != nil {
 		return nil, err
 	}
