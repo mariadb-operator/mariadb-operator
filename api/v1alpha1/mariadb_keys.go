@@ -3,6 +3,7 @@ package v1alpha1
 import (
 	"fmt"
 
+	"github.com/mariadb-operator/mariadb-operator/pkg/pki"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 )
@@ -84,7 +85,7 @@ func (m *MariaDB) TLSServerCASecretKeyRef() SecretKeySelector {
 		LocalObjectReference: LocalObjectReference{
 			Name: m.TLSServerCASecretKey().Name,
 		},
-		Key: "tls.crt",
+		Key: pki.TLSCertKey,
 	}
 }
 
