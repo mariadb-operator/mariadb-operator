@@ -473,7 +473,6 @@ func mariadbTLSVolumes(mariadb *mariadbv1alpha1.MariaDB) ([]corev1.Volume, []cor
 				Name: PKIVolume,
 				VolumeSource: corev1.VolumeSource{
 					Projected: &corev1.ProjectedVolumeSource{
-						DefaultMode: ptr.To(int32(0644)),
 						Sources: []corev1.VolumeProjection{
 							{
 								Secret: &corev1.SecretProjection{
