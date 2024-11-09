@@ -34,7 +34,7 @@ metadata:
                 },
                 "tls": {
                   "caSecretKeyRef": {
-                    "key": "ca.crt",
+                    "key": "tls.crt",
                     "name": "minio-ca"
                   },
                   "enabled": true
