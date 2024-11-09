@@ -24,7 +24,7 @@ spec:
         enabled: true
         caSecretKeyRef:
           name: minio-ca
-          key: ca.crt
+          key: tls.crt
     # s3:
     #   bucket: mariadb-operator
     #   endpoint: play.min.io
