@@ -2,7 +2,7 @@
 
 PKI_DIR ?= /tmp/pki
 CA_DIR ?= $(PKI_DIR)/ca
-CERT_SIZE ?= 1024
+CERT_SIZE ?= 4096
 
 .PHONY: ca
 ca: ca-server ca-client ## Generates CA keypairs.
