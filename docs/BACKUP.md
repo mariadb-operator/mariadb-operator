@@ -78,7 +78,7 @@ spec:
         enabled: true
         caSecretKeyRef:
           name: minio-ca
-          key: ca.crt
+          key: tls.crt
 ```
 By providing the authentication details and the TLS configuration via references to `Secret` keys, this example will store the backups in a local Minio instance.
 
@@ -183,7 +183,7 @@ spec:
       enabled: true
       caSecretKeyRef:
         name: minio-ca
-        key: ca.crt
+        key: tls.crt
 ```
 
 #### Target recovery time
@@ -250,7 +250,7 @@ spec:
         enabled: true
         caSecretKeyRef:
           name: minio-ca
-          key: ca.crt
+          key: tls.crt
     targetRecoveryTime: 2023-12-19T09:00:00Z
 ```
 
@@ -523,7 +523,7 @@ spec:
         enabled: true
         caSecretKeyRef:
           name: minio-ca
-          key: ca.crt
+          key: tls.crt
     targetRecoveryTime: 2024-08-26T12:24:34Z
 ```
 5. If you are using Galera in your new instance, migrate your previous users and grants to use the `User` and `Grant` CRs. Refer to the [SQL resource documentation](./SQL_RESOURCES.md) for further detail.
