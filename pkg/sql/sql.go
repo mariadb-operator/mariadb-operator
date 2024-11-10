@@ -183,13 +183,19 @@ func NewLocalClientWithPodEnv(ctx context.Context, env *environment.PodEnvironme
 		WitHost("localhost"),
 		WithPort(port),
 	}
-	if env.TLSCACertPath != "" {
+
+	isTLSEnabled, err := env.IsTLSEnabled()
+	if err != nil {
+		return nil, fmt.Errorf("error checking whether TLS is enabled in environment: %v", err)
+	}
+	if isTLSEnabled {
 		caCert, err := os.ReadFile(env.TLSCACertPath)
 		if err != nil {
 			return nil, fmt.Errorf("error reading CA certificate: %v", err)
 		}
 		opts = append(opts, WithTLSCACert(caCert))
 	}
+
 	opts = append(opts, clientOpts...)
 	return NewClient(opts...)
 }

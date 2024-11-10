@@ -4,9 +4,11 @@ import (
 	"context"
 	"reflect"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 )
 
-func TestWathcNamespaces(t *testing.T) {
+func TestWatchNamespaces(t *testing.T) {
 	tests := []struct {
 		name           string
 		env            map[string]string
@@ -126,6 +128,85 @@ func TestCurrentNamespaceOnly(t *testing.T) {
 			}
 			if err != nil {
 				t.Errorf("expect error to not have occurred, got: %v", err)
+			}
+		})
+	}
+}
+
+func TestTLSEnabled(t *testing.T) {
+	tests := []struct {
+		name     string
+		env      map[string]string
+		wantBool bool
+		wantErr  bool
+	}{
+		{
+			name:     "no env",
+			env:      map[string]string{},
+			wantBool: false,
+			wantErr:  false,
+		},
+		{
+			name: "empty",
+			env: map[string]string{
+				"TLS_ENABLED": "",
+			},
+			wantBool: false,
+			wantErr:  false,
+		},
+		{
+			name: "invalid",
+			env: map[string]string{
+				"TLS_ENABLED": "foo",
+			},
+			wantBool: false,
+			wantErr:  true,
+		},
+		{
+			name: "valid bool",
+			env: map[string]string{
+				"TLS_ENABLED": "true",
+			},
+			wantBool: true,
+			wantErr:  false,
+		},
+		{
+			name: "valid number",
+			env: map[string]string{
+				"TLS_ENABLED": "1",
+			},
+			wantBool: true,
+			wantErr:  false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Setenv("CLUSTER_NAME", "test")
+			t.Setenv("POD_NAME", "mariadb-0")
+			t.Setenv("POD_NAMESPACE", "default")
+			t.Setenv("POD_IP", "10.244.0.11")
+			t.Setenv("MARIADB_NAME", "mariadb")
+			t.Setenv("MARIADB_ROOT_PASSWORD", "MariaDB11!")
+			t.Setenv("MYSQL_TCP_PORT", "3306")
+			for k, v := range tt.env {
+				t.Setenv(k, v)
+			}
+
+			env, err := GetPodEnv(context.Background())
+			if err != nil {
+				t.Fatalf("unexpected error getting environment: %v", err)
+			}
+			if env == nil {
+				return
+			}
+
+			isTLSEnabled, err := env.IsTLSEnabled()
+			gotErr := err != nil
+			if diff := cmp.Diff(tt.wantErr, gotErr); diff != "" {
+				t.Errorf("unexpected err (-want +got):\n%s", diff)
+			}
+			if diff := cmp.Diff(tt.wantBool, isTLSEnabled); diff != "" {
+				t.Errorf("unexpected bool (-want +got):\n%s", diff)
 			}
 		})
 	}
