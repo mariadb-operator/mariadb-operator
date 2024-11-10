@@ -181,18 +181,24 @@ func getProviderOptions(env *environment.PodEnvironment, options map[string]stri
 		galerakeys.WsrepOptGmcastListAddr: gmcastListenAddress,
 		galerakeys.WsrepOptISTRecvAddr:    istReceiveAddress,
 	}
-	if env.TLSCACertPath != "" || env.TLSServerCertPath != "" || env.TLSServerKeyPath != "" {
+
+	isTLSEnabled, err := env.IsTLSEnabled()
+	if err != nil {
+		return "", fmt.Errorf("error checking whether TLS is enabled in environment: %v", err)
+	}
+	if isTLSEnabled {
 		wsrepOpts[galerakeys.WsrepOptSocketSSL] = "true"
+		if env.TLSCACertPath != "" {
+			wsrepOpts[galerakeys.WsrepOptSocketSSLCA] = env.TLSCACertPath
+		}
+		if env.TLSServerCertPath != "" {
+			wsrepOpts[galerakeys.WsrepOptSocketSSLCert] = env.TLSServerCertPath
+		}
+		if env.TLSServerKeyPath != "" {
+			wsrepOpts[galerakeys.WsrepOptSocketSSLKey] = env.TLSServerKeyPath
+		}
 	}
-	if env.TLSCACertPath != "" {
-		wsrepOpts[galerakeys.WsrepOptSocketSSLCA] = env.TLSCACertPath
-	}
-	if env.TLSServerCertPath != "" {
-		wsrepOpts[galerakeys.WsrepOptSocketSSLCert] = env.TLSServerCertPath
-	}
-	if env.TLSServerKeyPath != "" {
-		wsrepOpts[galerakeys.WsrepOptSocketSSLKey] = env.TLSServerKeyPath
-	}
+
 	maps.Copy(wsrepOpts, options)
 
 	providerOpts := newProviderOptions(wsrepOpts)
