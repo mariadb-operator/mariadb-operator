@@ -12,6 +12,7 @@ import (
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	galeraresources "github.com/mariadb-operator/mariadb-operator/pkg/controller/galera/resources"
+	"github.com/mariadb-operator/mariadb-operator/pkg/discovery"
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	galerakeys "github.com/mariadb-operator/mariadb-operator/pkg/galera/config/keys"
 	"github.com/mariadb-operator/mariadb-operator/pkg/galera/recovery"
@@ -28,12 +29,14 @@ var BootstrapFile = []byte(`[galera]
 wsrep_new_cluster="ON"`)
 
 type ConfigFile struct {
-	mariadb *mariadbv1alpha1.MariaDB
+	mariadb   *mariadbv1alpha1.MariaDB
+	discovery *discovery.Discovery
 }
 
-func NewConfigFile(mariadb *mariadbv1alpha1.MariaDB) *ConfigFile {
+func NewConfigFile(mariadb *mariadbv1alpha1.MariaDB, discovery *discovery.Discovery) *ConfigFile {
 	return &ConfigFile{
-		mariadb: mariadb,
+		mariadb:   mariadb,
+		discovery: discovery,
 	}
 }
 
@@ -43,7 +46,6 @@ func (c *ConfigFile) Marshal(podEnv *environment.PodEnvironment) ([]byte, error)
 	}
 	galera := ptr.Deref(c.mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
 
-	// TODO: add SSL keys conditionally based on Pod environment MARIADB_TLS
 	tpl := createTpl("galera", `[mariadb]
 bind_address=*
 default_storage_engine=InnoDB
@@ -55,6 +57,9 @@ wsrep_on=ON
 wsrep_cluster_address="{{ .ClusterAddress }}"
 wsrep_cluster_name=mariadb-operator
 wsrep_slave_threads={{ .Threads }}
+{{- if .SSLMode }}
+wsrep_ssl_mode={{ .SSLMode }}
+{{- end }}
 
 # Node
 {{ .NodeAddressKey }}="{{ .NodeAddress }}"
@@ -76,6 +81,10 @@ wsrep_provider={{ .GaleraLibPath }}
 	if err != nil {
 		return nil, fmt.Errorf("error getting cluster address: %v", err)
 	}
+	sslMode, err := c.sslMode(podEnv)
+	if err != nil {
+		return nil, fmt.Errorf("error getting SSL mode: %v", err)
+	}
 
 	sst, err := galera.SST.MariaDBFormat()
 	if err != nil {
@@ -94,6 +103,7 @@ wsrep_provider={{ .GaleraLibPath }}
 	err = tpl.Execute(buf, struct {
 		ClusterAddress string
 		Threads        int
+		SSLMode        string
 
 		NodeAddressKey string
 		NodeAddress    string
@@ -111,6 +121,7 @@ wsrep_provider={{ .GaleraLibPath }}
 	}{
 		ClusterAddress: clusterAddr,
 		Threads:        galera.ReplicaThreads,
+		SSLMode:        sslMode,
 
 		NodeAddressKey: galerakeys.WsrepNodeAddressKey,
 		NodeAddress:    podEnv.PodIP,
@@ -145,6 +156,17 @@ func (c *ConfigFile) clusterAddress() (string, error) {
 		)
 	}
 	return fmt.Sprintf("gcomm://%s", strings.Join(pods, ",")), nil
+}
+
+func (c *ConfigFile) sslMode(env *environment.PodEnvironment) (string, error) {
+	isTLSEnabled, err := env.IsTLSEnabled()
+	if err != nil {
+		return "", fmt.Errorf("error checking whether TLS is enabled in environment: %v", err)
+	}
+	if isTLSEnabled && c.discovery.IsEnterprise() {
+		return "SERVER_X509", nil
+	}
+	return "", nil
 }
 
 func UpdateConfig(configBytes []byte, podEnv *environment.PodEnvironment) ([]byte, error) {
