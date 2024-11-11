@@ -57,13 +57,17 @@ wsrep_on=ON
 wsrep_cluster_address="{{ .ClusterAddress }}"
 wsrep_cluster_name=mariadb-operator
 wsrep_slave_threads={{ .Threads }}
-{{- if .SSLMode }}
-wsrep_ssl_mode={{ .SSLMode }}
+{{- if and .SSLEnabled .ClusterSSLMode }}
+wsrep_ssl_mode={{ .ClusterSSLMode }}
 {{- end }}
 
 # Node
 {{ .NodeAddressKey }}="{{ .NodeAddress }}"
 wsrep_node_name="{{ .NodeName }}"
+
+# Provider
+wsrep_provider={{ .GaleraLibPath }}
+{{ .ProviderOptsKey }}="{{ .ProviderOpts }}"
 
 # SST
 wsrep_sst_method="{{ .SST }}"
@@ -71,19 +75,25 @@ wsrep_sst_method="{{ .SST }}"
 wsrep_sst_auth="root:{{ .RootPassword }}"
 {{- end }}
 {{ .SSTReceiveAddressKey }}="{{ .SSTReceiveAddress }}"
-
-# Provider
-wsrep_provider={{ .GaleraLibPath }}
-{{ .ProviderOptsKey }}="{{ .ProviderOpts }}"
+{{- if .SSLEnabled }}
+[sst]
+{{- if .SSLMode }}
+ssl_mode={{ .SSLMode }}
+{{- end }}
+encrypt=3
+tca={{ .SSLCAPath }}
+tcert={{ .SSLCertPath }}
+tkey={{ .SSLKeyPath }}
+{{- end }}
 `)
 	buf := new(bytes.Buffer)
 	clusterAddr, err := c.clusterAddress()
 	if err != nil {
 		return nil, fmt.Errorf("error getting cluster address: %v", err)
 	}
-	sslMode, err := c.sslMode(podEnv)
+	isTLSEnabled, err := podEnv.IsTLSEnabled()
 	if err != nil {
-		return nil, fmt.Errorf("error getting SSL mode: %v", err)
+		return nil, fmt.Errorf("error checking whether TLS is enabled in environment: %v", err)
 	}
 
 	sst, err := galera.SST.MariaDBFormat()
@@ -103,11 +113,14 @@ wsrep_provider={{ .GaleraLibPath }}
 	err = tpl.Execute(buf, struct {
 		ClusterAddress string
 		Threads        int
-		SSLMode        string
 
 		NodeAddressKey string
 		NodeAddress    string
 		NodeName       string
+
+		GaleraLibPath   string
+		ProviderOptsKey string
+		ProviderOpts    string
 
 		SST                  string
 		SSTAuth              bool
@@ -115,17 +128,23 @@ wsrep_provider={{ .GaleraLibPath }}
 		SSTReceiveAddressKey string
 		SSTReceiveAddress    string
 
-		GaleraLibPath   string
-		ProviderOptsKey string
-		ProviderOpts    string
+		SSLEnabled     bool
+		ClusterSSLMode string
+		SSLMode        string
+		SSLCAPath      string
+		SSLCertPath    string
+		SSLKeyPath     string
 	}{
 		ClusterAddress: clusterAddr,
 		Threads:        galera.ReplicaThreads,
-		SSLMode:        sslMode,
 
 		NodeAddressKey: galerakeys.WsrepNodeAddressKey,
 		NodeAddress:    podEnv.PodIP,
 		NodeName:       podEnv.PodName,
+
+		GaleraLibPath:   galera.GaleraLibPath,
+		ProviderOptsKey: galerakeys.WsrepProviderOptionsKey,
+		ProviderOpts:    providerOptions,
 
 		SST:                  sst,
 		SSTAuth:              galera.SST == mariadbv1alpha1.SSTMariaBackup || galera.SST == mariadbv1alpha1.SSTMysqldump,
@@ -133,9 +152,12 @@ wsrep_provider={{ .GaleraLibPath }}
 		SSTReceiveAddressKey: galerakeys.WsrepSSTReceiveAddressKey,
 		SSTReceiveAddress:    sstReceiveAddress,
 
-		GaleraLibPath:   galera.GaleraLibPath,
-		ProviderOptsKey: galerakeys.WsrepProviderOptionsKey,
-		ProviderOpts:    providerOptions,
+		SSLEnabled:     isTLSEnabled,
+		ClusterSSLMode: c.clusterSSLMode(isTLSEnabled),
+		SSLMode:        c.sslMode(isTLSEnabled),
+		SSLCAPath:      podEnv.TLSCACertPath,
+		SSLCertPath:    podEnv.TLSClientCertPath,
+		SSLKeyPath:     podEnv.TLSClientKeyPath,
 	})
 	if err != nil {
 		return nil, err
@@ -158,15 +180,18 @@ func (c *ConfigFile) clusterAddress() (string, error) {
 	return fmt.Sprintf("gcomm://%s", strings.Join(pods, ",")), nil
 }
 
-func (c *ConfigFile) sslMode(env *environment.PodEnvironment) (string, error) {
-	isTLSEnabled, err := env.IsTLSEnabled()
-	if err != nil {
-		return "", fmt.Errorf("error checking whether TLS is enabled in environment: %v", err)
-	}
+func (c *ConfigFile) clusterSSLMode(isTLSEnabled bool) string {
 	if isTLSEnabled && c.discovery.IsEnterprise() {
-		return "SERVER_X509", nil
+		return "SERVER_X509"
 	}
-	return "", nil
+	return ""
+}
+
+func (c *ConfigFile) sslMode(isTLSEnabled bool) string {
+	if isTLSEnabled && c.discovery.IsEnterprise() {
+		return "VERIFY_IDENTITY"
+	}
+	return ""
 }
 
 func UpdateConfig(configBytes []byte, podEnv *environment.PodEnvironment) ([]byte, error) {
