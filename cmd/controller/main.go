@@ -409,7 +409,7 @@ func main() {
 	rootCmd.AddCommand(certControllerCmd)
 	rootCmd.AddCommand(webhookCmd)
 	rootCmd.AddCommand(backupcmd.RootCmd)
-	rootCmd.AddCommand(initcmd.RootCmd)
+	rootCmd.AddCommand(initcmd.NewInitCommand(discovery.NewDiscovery))
 	rootCmd.AddCommand(agentcmd.RootCmd)
 
 	cobra.CheckErr(rootCmd.Execute())
