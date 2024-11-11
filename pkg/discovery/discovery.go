@@ -32,6 +32,8 @@ func WithEnterprise(isEnterprise bool) DiscoveryOpt {
 	}
 }
 
+type NewDiscoveryFn func(opts ...DiscoveryOpt) (*Discovery, error)
+
 func NewDiscovery(opts ...DiscoveryOpt) (*Discovery, error) {
 	discovery := Discovery{}
 	for _, setOpt := range opts {
@@ -51,10 +53,12 @@ func NewDiscovery(opts ...DiscoveryOpt) (*Discovery, error) {
 	return &discovery, nil
 }
 
-func NewDiscoveryEnterprise() (*Discovery, error) {
-	return NewDiscovery(
+func NewDiscoveryEnterprise(opts ...DiscoveryOpt) (*Discovery, error) {
+	discoveryOpts := []DiscoveryOpt{
 		WithEnterprise(true),
-	)
+	}
+	discoveryOpts = append(discoveryOpts, opts...)
+	return NewDiscovery(discoveryOpts...)
 }
 
 func NewFakeDiscovery(isEnterprise bool, resources ...*metav1.APIResourceList) (*Discovery, error) {
