@@ -450,9 +450,12 @@ idE60fGmuV8=
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			bundleBytes, err := BundleCertificatePEMs(logger, tt.pems...)
-			gotErr := err != nil
-			if diff := cmp.Diff(tt.wantErr, gotErr); diff != "" {
-				t.Errorf("unexpected error (-want +got):\n%s", diff)
+
+			if tt.wantErr && err == nil {
+				t.Error("expect error to have occurred, got nil")
+			}
+			if !tt.wantErr && err != nil {
+				t.Errorf("expect error to not have occurred, got: %v", err)
 			}
 			if diff := cmp.Diff(tt.wantBytes, bundleBytes); diff != "" {
 				t.Errorf("unexpected bundle content (-want +got):\n%s", diff)
