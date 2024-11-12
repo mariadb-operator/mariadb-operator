@@ -46,6 +46,7 @@ func (r *MariaDBReconciler) reconcileStatus(ctx context.Context, mdb *mariadbv1a
 	}
 
 	return ctrl.Result{}, r.patchStatus(ctx, mdb, func(status *mariadbv1alpha1.MariaDBStatus) error {
+		status.DefaultVersion = r.Environment.MariadbDefaultVersion
 		status.Replicas = sts.Status.ReadyReplicas
 		defaultPrimary(mdb)
 		setMaxScalePrimary(mdb, mxsPrimaryPodIndex)

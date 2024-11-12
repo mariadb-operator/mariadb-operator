@@ -3,6 +3,7 @@ package config
 import (
 	"testing"
 
+	"github.com/go-logr/logr"
 	"github.com/google/go-cmp/cmp"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/discovery"
@@ -315,6 +316,7 @@ wsrep_sst_receive_address="[2001:db8::a1]:4444"
 					Namespace: "default",
 				},
 				Spec: mariadbv1alpha1.MariaDBSpec{
+					Image: "mariadb:10.11.8",
 					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
 						GaleraSpec: mariadbv1alpha1.GaleraSpec{
@@ -322,6 +324,9 @@ wsrep_sst_receive_address="[2001:db8::a1]:4444"
 							GaleraLibPath:  "/usr/lib/galera/libgalera_enterprise_smm.so",
 							ReplicaThreads: 2,
 						},
+					},
+					TLS: &mariadbv1alpha1.TLS{
+						Enabled: true,
 					},
 					Replicas: 3,
 				},
@@ -364,7 +369,6 @@ wsrep_sst_method="mariabackup"
 wsrep_sst_auth="root:mariadb"
 wsrep_sst_receive_address="10.244.0.32:4444"
 [sst]
-encrypt=3
 tca=/etc/pki/ca.crt
 tcert=/etc/pki/client.crt
 tkey=/etc/pki/client.key
@@ -379,6 +383,7 @@ tkey=/etc/pki/client.key
 					Namespace: "default",
 				},
 				Spec: mariadbv1alpha1.MariaDBSpec{
+					Image: "docker.mariadb.com/enterprise-server:10.6",
 					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
 						GaleraSpec: mariadbv1alpha1.GaleraSpec{
@@ -386,6 +391,9 @@ tkey=/etc/pki/client.key
 							GaleraLibPath:  "/usr/lib/galera/libgalera_enterprise_smm.so",
 							ReplicaThreads: 2,
 						},
+					},
+					TLS: &mariadbv1alpha1.TLS{
+						Enabled: true,
 					},
 					Replicas: 3,
 				},
@@ -430,7 +438,6 @@ wsrep_sst_auth="root:mariadb"
 wsrep_sst_receive_address="10.244.0.32:4444"
 [sst]
 ssl_mode=VERIFY_IDENTITY
-encrypt=3
 tca=/etc/pki/ca.crt
 tcert=/etc/pki/client.crt
 tkey=/etc/pki/client.key
@@ -446,7 +453,7 @@ tkey=/etc/pki/client.key
 				t.Fatalf("unexpected error creating discovery: %v", err)
 			}
 
-			bytes, err := NewConfigFile(tt.mariadb, discovery).Marshal(tt.podEnv)
+			bytes, err := NewConfigFile(tt.mariadb, discovery, logr.Discard()).Marshal(tt.podEnv)
 
 			if tt.wantErr && err == nil {
 				t.Error("expect error to have occurred, got nil")
