@@ -280,10 +280,10 @@ certController:
   affinity: {}
 # -- Operator configuration
 config:
-  # -- Default entrypoint version to be used with MariaDB
-  entrypointVersion: "11.4"
   # -- Galera library path to be used with MariaDB Galera
   galeraLibPath: /usr/lib/galera/libgalera_smm.so
+  # -- Default MariaDB version to be used when unable to infer it via image tag
+  mariadbDefaultVersion: "11.4"
   # -- Default MariaDB image
   mariadbImage: docker-registry1.mariadb.com/library/mariadb:11.4.3
   # -- Default MaxScale image
