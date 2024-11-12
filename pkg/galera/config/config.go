@@ -10,6 +10,7 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	galeraresources "github.com/mariadb-operator/mariadb-operator/pkg/controller/galera/resources"
 	"github.com/mariadb-operator/mariadb-operator/pkg/discovery"
@@ -31,12 +32,14 @@ wsrep_new_cluster="ON"`)
 type ConfigFile struct {
 	mariadb   *mariadbv1alpha1.MariaDB
 	discovery *discovery.Discovery
+	logger    logr.Logger
 }
 
-func NewConfigFile(mariadb *mariadbv1alpha1.MariaDB, discovery *discovery.Discovery) *ConfigFile {
+func NewConfigFile(mariadb *mariadbv1alpha1.MariaDB, discovery *discovery.Discovery, logger logr.Logger) *ConfigFile {
 	return &ConfigFile{
 		mariadb:   mariadb,
 		discovery: discovery,
+		logger:    logger,
 	}
 }
 
@@ -80,7 +83,6 @@ wsrep_sst_auth="root:{{ .RootPassword }}"
 {{- if .SSLMode }}
 ssl_mode={{ .SSLMode }}
 {{- end }}
-encrypt=3
 tca={{ .SSLCAPath }}
 tcert={{ .SSLCertPath }}
 tkey={{ .SSLKeyPath }}
@@ -91,9 +93,9 @@ tkey={{ .SSLKeyPath }}
 	if err != nil {
 		return nil, fmt.Errorf("error getting cluster address: %v", err)
 	}
-	isTLSEnabled, err := podEnv.IsTLSEnabled()
+	isEnterpriseTLSEnabled, err := c.mariadb.IsGaleraEnterpriseTLSAvailable(c.discovery, c.mariadb.Status.DefaultVersion, c.logger)
 	if err != nil {
-		return nil, fmt.Errorf("error checking whether TLS is enabled in environment: %v", err)
+		c.logger.Error(err, "error checking whether TLS enterprise is enabled")
 	}
 
 	sst, err := galera.SST.MariaDBFormat()
@@ -152,9 +154,9 @@ tkey={{ .SSLKeyPath }}
 		SSTReceiveAddressKey: galerakeys.WsrepSSTReceiveAddressKey,
 		SSTReceiveAddress:    sstReceiveAddress,
 
-		SSLEnabled:     isTLSEnabled,
-		ClusterSSLMode: c.clusterSSLMode(isTLSEnabled),
-		SSLMode:        c.sslMode(isTLSEnabled),
+		SSLEnabled:     c.mariadb.IsTLSEnabled(),
+		ClusterSSLMode: c.clusterSSLMode(isEnterpriseTLSEnabled),
+		SSLMode:        c.sslMode(isEnterpriseTLSEnabled),
 		SSLCAPath:      podEnv.TLSCACertPath,
 		SSLCertPath:    podEnv.TLSClientCertPath,
 		SSLKeyPath:     podEnv.TLSClientKeyPath,
@@ -180,15 +182,15 @@ func (c *ConfigFile) clusterAddress() (string, error) {
 	return fmt.Sprintf("gcomm://%s", strings.Join(pods, ",")), nil
 }
 
-func (c *ConfigFile) clusterSSLMode(isTLSEnabled bool) string {
-	if isTLSEnabled && c.discovery.IsEnterprise() {
+func (c *ConfigFile) clusterSSLMode(isEnterpriseTLSEnabled bool) string {
+	if isEnterpriseTLSEnabled {
 		return "SERVER_X509"
 	}
 	return ""
 }
 
-func (c *ConfigFile) sslMode(isTLSEnabled bool) string {
-	if isTLSEnabled && c.discovery.IsEnterprise() {
+func (c *ConfigFile) sslMode(isEnterpriseTLSEnabled bool) string {
+	if isEnterpriseTLSEnabled {
 		return "VERIFY_IDENTITY"
 	}
 	return ""
