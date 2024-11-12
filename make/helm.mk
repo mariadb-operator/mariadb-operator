@@ -25,8 +25,8 @@ helm-crds: kustomize ## Generate CRDs for the Helm chart.
 
 .PHONY: helm-config
 helm-config: yq ## Update operator config in the Helm chart.
-	$(YQ) e -i '.config.entrypointVersion = "$(MARIADB_ENTRYPOINT_VERSION)"' $(HELM_VALUES_FILE)
 	$(YQ) e -i '.config.galeraLibPath = "$(MARIADB_GALERA_LIB_PATH)"' $(HELM_VALUES_FILE)
+	$(YQ) e -i '.config.mariadbDefaultVersion = "$(MARIADB_DEFAULT_VERSION)"' $(HELM_VALUES_FILE)
 	$(YQ) e -i '.config.mariadbImage = "$(RELATED_IMAGE_MARIADB)"' $(HELM_VALUES_FILE)
 	$(YQ) e -i '.config.maxscaleImage = "$(RELATED_IMAGE_MAXSCALE)"' $(HELM_VALUES_FILE)
 	$(YQ) e -i '.config.exporterImage = "$(RELATED_IMAGE_EXPORTER)"' $(HELM_VALUES_FILE)
