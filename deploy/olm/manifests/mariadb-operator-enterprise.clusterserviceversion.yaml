@@ -4189,7 +4189,7 @@ spec:
                         value: docker-registry2.mariadb.com/mariadb/mariadb-operator-enterprise@sha256:01947a1743ef6f07fe2dcb43790985cf94acc53f845730014903a841dd17f2f4
                       - name: MARIADB_GALERA_LIB_PATH
                         value: /usr/lib64/galera/libgalera_smm.so
-                      - name: MARIADB_ENTRYPOINT_VERSION
+                      - name: MARIADB_DEFAULT_VERSION
                         value: "10.6"
                       - name: WATCH_NAMESPACE
                         valueFrom:
