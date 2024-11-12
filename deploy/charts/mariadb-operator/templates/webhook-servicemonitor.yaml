@@ -33,4 +33,12 @@ spec:
   - port: metrics
     interval: {{ .Values.webhook.serviceMonitor.interval }}
     scrapeTimeout: {{ .Values.webhook.serviceMonitor.scrapeTimeout }}
+    {{- if .Values.webhook.serviceMonitor.metricRelabelings }}
+    metricRelabelings:
+      {{- toYaml .Values.webhook.serviceMonitor.metricRelabelings | nindent 6 }}
+    {{- end }}
+    {{- if .Values.webhook.serviceMonitor.relabelings }}
+    relabelings:
+      {{- toYaml .Values.webhook.serviceMonitor.relabelings | nindent 6 }}
+    {{- end }}
 {{- end }}
