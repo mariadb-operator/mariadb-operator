@@ -25,7 +25,7 @@
         "RELATED_IMAGE_EXPORTER": "prom/mysqld-exporter:v0.15.1",
         "RELATED_IMAGE_EXPORTER_MAXSCALE": "mariadb/maxscale-prometheus-exporter-ubi:latest",
         "MARIADB_GALERA_LIB_PATH": "/usr/lib/galera/libgalera_smm.so",
-        "MARIADB_ENTRYPOINT_VERSION": "11.4",
+        "MARIADB_DEFAULT_VERSION": "11.4",
         "WATCH_NAMESPACE": "",
       }
     },
@@ -50,7 +50,7 @@
         "RELATED_IMAGE_EXPORTER": "prom/mysqld-exporter:v0.15.1",
         "RELATED_IMAGE_EXPORTER_MAXSCALE": "mariadb/maxscale-prometheus-exporter-ubi:latest",
         "MARIADB_GALERA_LIB_PATH": "/usr/lib/galera/libgalera_enterprise_smm.so",
-        "MARIADB_ENTRYPOINT_VERSION": "10.6",
+        "MARIADB_DEFAULT_VERSION": "10.6",
         "WATCH_NAMESPACE": "",
       }
     },

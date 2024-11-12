@@ -19,29 +19,32 @@ import (
 var fs embed.FS
 
 func ReadEntrypoint(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, operatorEnv *env.OperatorEnv) ([]byte, error) {
-	var minorVersion string
-	var err error
 	image := mariadb.Spec.Image
 	logger := log.FromContext(ctx).
 		WithName("entrypoint").
-		WithValues("image", image).
-		V(1)
+		WithValues("image", image)
 
-	minorVersion, err = version.GetMinorVersion(image)
+	vOpts := []version.Option{
+		version.WithLogger(logger),
+	}
+	if operatorEnv != nil && operatorEnv.MariadbDefaultVersion != "" {
+		vOpts = append(vOpts, version.WithDefaultVersion(operatorEnv.MariadbDefaultVersion))
+	}
+
+	version, err := version.NewVersion(image, vOpts...)
 	if err != nil {
-		logger.Info(
-			"error getting entrypoint version. Using default version",
-			"version", operatorEnv.MariadbEntrypointVersion,
-			"err", err,
-		)
-		minorVersion = operatorEnv.MariadbEntrypointVersion
+		return nil, fmt.Errorf("error parsing version: %v", err)
+	}
+	minorVersion, err := version.GetMinorVersion()
+	if err != nil {
+		return nil, fmt.Errorf("error getting minor version: %v", err)
 	}
 	logger = logger.WithValues("version", minorVersion)
 
 	bytes, err := readEntrypoint(minorVersion, logger)
 	if err != nil {
 		if errors.Is(err, iofs.ErrNotExist) {
-			bytes, err := readEntrypoint(operatorEnv.MariadbEntrypointVersion, logger)
+			bytes, err := readEntrypoint(operatorEnv.MariadbDefaultVersion, logger)
 			if err != nil {
 				return nil, fmt.Errorf("error reading MariaDB default entrypoint: %v", err)
 			}
