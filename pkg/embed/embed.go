@@ -22,7 +22,8 @@ func ReadEntrypoint(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, opera
 	image := mariadb.Spec.Image
 	logger := log.FromContext(ctx).
 		WithName("entrypoint").
-		WithValues("image", image)
+		WithValues("image", image).
+		V(1)
 
 	vOpts := []version.Option{
 		version.WithLogger(logger),

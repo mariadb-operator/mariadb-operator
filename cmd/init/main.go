@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/discovery"
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
@@ -117,7 +118,7 @@ func NewInitCommand(newDiscoveryFn discovery.NewDiscoveryFn) *cobra.Command {
 				os.Exit(0)
 			}
 
-			if err := configureGalera(fileManager, env, &mdb, discovery); err != nil {
+			if err := configureGalera(fileManager, env, &mdb, discovery, logger); err != nil {
 				logger.Error(err, "error configuring Galera")
 				os.Exit(1)
 			}
@@ -165,10 +166,10 @@ func getK8sClient() (client.Client, error) {
 }
 
 func configureGalera(fm *filemanager.FileManager, env *environment.PodEnvironment, mdb *mariadbv1alpha1.MariaDB,
-	discovery *discovery.Discovery) error {
+	discovery *discovery.Discovery, logger logr.Logger) error {
 	logger.Info("Configuring Galera")
 
-	configBytes, err := config.NewConfigFile(mdb, discovery).Marshal(env)
+	configBytes, err := config.NewConfigFile(mdb, discovery, logger).Marshal(env)
 	if err != nil {
 		return fmt.Errorf("error getting Galera config: %v", err)
 	}
