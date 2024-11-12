@@ -47,6 +47,8 @@ metrics:
     interval: 30s
     # -- Timeout if metrics can't be retrieved in given time interval
     scrapeTimeout: 25s
+    metricRelabelings: []
+    relabelings: []
 
 serviceAccount:
   # -- Specifies whether a service account should be created
@@ -183,6 +185,8 @@ webhook:
     interval: 30s
     # -- Timeout if metrics can't be retrieved in given time interval
     scrapeTimeout: 25s
+    metricRelabelings: []
+    relabelings: []
   serviceAccount:
     # -- Specifies whether a service account should be created
     enabled: true
@@ -255,6 +259,8 @@ certController:
     interval: 30s
     # -- Timeout if metrics can't be retrieved in given time interval
     scrapeTimeout: 25s
+    metricRelabelings: []
+    relabelings: []
   serviceAccount:
     # -- Specifies whether a service account should be created
     enabled: true
