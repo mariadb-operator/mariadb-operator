@@ -25,7 +25,7 @@ func newTestBuilder(discovery *discovery.Discovery) *Builder {
 		MariadbOperatorNamespace: "test",
 		MariadbOperatorSAPath:    "/var/run/secrets/kubernetes.io/serviceaccount/token",
 		MariadbOperatorImage:     "mariadb-operator:test",
-		RelatedMariadbImage:      "mariadb:11.2.2:test",
+		RelatedMariadbImage:      "mariadb:test",
 		RelatedMaxscaleImage:     "maxscale:test",
 		RelatedExporterImage:     "mysql-exporter:test",
 		MariadbGaleraLibPath:     "/usr/lib/galera/libgalera_smm.so",

@@ -1,6 +1,8 @@
 package v1alpha1
 
 import (
+	"github.com/go-logr/logr"
+	"github.com/mariadb-operator/mariadb-operator/pkg/discovery"
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -1343,6 +1345,140 @@ var _ = Describe("MariaDB types", func() {
 					},
 				},
 				true,
+			),
+		)
+
+		DescribeTable(
+			"Is Galera enterprise TLS enabled?",
+			func(mdb *MariaDB, isEnterprise bool, defaultMariadbVersion string, wantIsEnabled, wantErr bool) {
+				discovery, err := discovery.NewFakeDiscovery(isEnterprise)
+				Expect(err).ToNot(HaveOccurred())
+				logger := logr.Discard()
+
+				isEnabled, err := mdb.IsGaleraEnterpriseTLSAvailable(discovery, defaultMariadbVersion, logger)
+				if wantErr {
+					Expect(err).To(HaveOccurred())
+				} else {
+					Expect(err).ToNot(HaveOccurred())
+				}
+				Expect(isEnabled).To(Equal(wantIsEnabled))
+			},
+			Entry(
+				"Standalone",
+				&MariaDB{
+					Spec: MariaDBSpec{
+						Image: "mariadb:11.4.3",
+					},
+				},
+				false,
+				"",
+				false,
+				false,
+			),
+			Entry(
+				"Galera",
+				&MariaDB{
+					Spec: MariaDBSpec{
+						Image: "mariadb:11.4.3",
+						Galera: &Galera{
+							Enabled: true,
+						},
+					},
+				},
+				false,
+				"",
+				false,
+				false,
+			),
+			Entry(
+				"Galera TLS",
+				&MariaDB{
+					Spec: MariaDBSpec{
+						Image: "mariadb:11.4.3",
+						Galera: &Galera{
+							Enabled: true,
+						},
+						TLS: &TLS{
+							Enabled: true,
+						},
+					},
+				},
+				false,
+				"",
+				false,
+				false,
+			),
+			Entry(
+				"Enabled",
+				&MariaDB{
+					Spec: MariaDBSpec{
+						Image: "docker.mariadb.com/enterprise-server:10.6",
+						Galera: &Galera{
+							Enabled: true,
+						},
+						TLS: &TLS{
+							Enabled: true,
+						},
+					},
+				},
+				true,
+				"",
+				true,
+				false,
+			),
+			Entry(
+				"Unsupported version",
+				&MariaDB{
+					Spec: MariaDBSpec{
+						Image: "docker.mariadb.com/enterprise-server:10.5",
+						Galera: &Galera{
+							Enabled: true,
+						},
+						TLS: &TLS{
+							Enabled: true,
+						},
+					},
+				},
+				true,
+				"",
+				false,
+				false,
+			),
+			Entry(
+				"Invalid image",
+				&MariaDB{
+					Spec: MariaDBSpec{
+						Image: "docker.mariadb.com/enterprise-server@sha256:3f48454b6a33e094af6d23ced54645ec0533cb11854d07738920852ca48e390d",
+						Galera: &Galera{
+							Enabled: true,
+						},
+						TLS: &TLS{
+							Enabled: true,
+						},
+					},
+				},
+				true,
+				"",
+				false,
+				true,
+			),
+			Entry(
+				"Invalid image with default",
+				&MariaDB{
+					Spec: MariaDBSpec{
+						Image: "docker.mariadb.com/enterprise-server:@sha256:3f48454b6a33e094af6d23ced54645ec0533cb11854d07738920852ca48e390d",
+						Galera: &Galera{
+							Enabled: true,
+						},
+						TLS: &TLS{
+							Enabled: true,
+						},
+					},
+				},
+				true,
+				"10.6",
+				true,
+				false,
 			),
 		)
 
