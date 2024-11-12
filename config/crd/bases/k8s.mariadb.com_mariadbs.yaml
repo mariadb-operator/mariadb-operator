@@ -5567,6 +5567,12 @@ spec:
               currentPrimaryPodIndex:
                 description: CurrentPrimaryPodIndex is the primary Pod index.
                 type: integer
+              defaultVersion:
+                description: |-
+                  DefaultVersion is the MariaDB version used by the operator when it cannot infer the version
+                  from spec.image. This can happen if the image uses a digest (e.g. sha256) instead
+                  of a version tag.
+                type: string
               galeraRecovery:
                 description: GaleraRecovery is the Galera recovery current state.
                 properties:

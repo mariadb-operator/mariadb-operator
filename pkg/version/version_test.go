@@ -176,3 +176,77 @@ func TestGetMinorVersion(t *testing.T) {
 		})
 	}
 }
+
+func TestGreaterThanOrEqual(t *testing.T) {
+	tests := []struct {
+		name         string
+		image        string
+		otherVersion string
+		wantBool     bool
+		wantErr      bool
+	}{
+		{
+			name:         "empty",
+			image:        "mariadb:10.11.8",
+			otherVersion: "",
+			wantBool:     false,
+			wantErr:      true,
+		},
+		{
+			name:         "non semver",
+			image:        "mariadb:10.11.8",
+			otherVersion: "latest",
+			wantBool:     false,
+			wantErr:      true,
+		},
+		{
+			name:         "greater than",
+			image:        "mariadb:10.11.8",
+			otherVersion: "10.6",
+			wantBool:     true,
+			wantErr:      false,
+		},
+		{
+			name:         "greater than minor",
+			image:        "mariadb:10.11.8",
+			otherVersion: "10.11",
+			wantBool:     true,
+			wantErr:      false,
+		},
+		{
+			name:         "equal",
+			image:        "mariadb:10.11.8",
+			otherVersion: "10.11.8",
+			wantBool:     true,
+			wantErr:      false,
+		},
+		{
+			name:         "less than",
+			image:        "mariadb:10.11.8",
+			otherVersion: "11.4.3",
+			wantBool:     false,
+			wantErr:      false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			version, err := NewVersion(tt.image)
+			if err != nil {
+				t.Errorf("unexpected error creating version: %v", err)
+			}
+
+			gotBool, err := version.GreaterThanOrEqual(tt.otherVersion)
+			if tt.wantErr && err == nil {
+				t.Error("expected error but got nil")
+			}
+			if !tt.wantErr && err != nil {
+				t.Errorf("unexpected error checking version: %v", err)
+			}
+
+			if diff := cmp.Diff(tt.wantBool, gotBool); diff != "" {
+				t.Errorf("unexpected bool (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
