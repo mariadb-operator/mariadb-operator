@@ -33,4 +33,12 @@ spec:
   - port: metrics
     interval: {{ .Values.certController.serviceMonitor.interval }}
     scrapeTimeout: {{ .Values.certController.serviceMonitor.scrapeTimeout }}
+    {{- if .Values.certController.serviceMonitor.metricRelabelings }}
+    metricRelabelings:
+      {{- toYaml .Values.certController.serviceMonitor.metricRelabelings | nindent 6 }}
+    {{- end }}
+    {{- if .Values.certController.serviceMonitor.relabelings }}
+    relabelings:
+      {{- toYaml .Values.certController.serviceMonitor.relabelings | nindent 6 }}
+    {{- end }}
 {{ end }}
