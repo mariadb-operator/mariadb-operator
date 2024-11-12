@@ -24,6 +24,15 @@ func TestReadEntrypoint(t *testing.T) {
 			wantErr:   true,
 		},
 		{
+			name:    "empty with default",
+			mariadb: &mariadbv1alpha1.MariaDB{},
+			env: &environment.OperatorEnv{
+				MariadbDefaultVersion: "10.11",
+			},
+			wantBytes: true,
+			wantErr:   false,
+		},
+		{
 			name: "invalid version",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
@@ -35,14 +44,38 @@ func TestReadEntrypoint(t *testing.T) {
 			wantErr:   true,
 		},
 		{
-			name: "default invalid version",
+			name: "invalid version with default",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Image: "mariadb:foo",
 				},
 			},
 			env: &environment.OperatorEnv{
-				MariadbEntrypointVersion: "10.11",
+				MariadbDefaultVersion: "10.11",
+			},
+			wantBytes: true,
+			wantErr:   false,
+		},
+		{
+			name: "sha256",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Image: "mariadb@sha256:3f48454b6a33e094af6d23ced54645ec0533cb11854d07738920852ca48e390d",
+				},
+			},
+			env:       &environment.OperatorEnv{},
+			wantBytes: false,
+			wantErr:   true,
+		},
+		{
+			name: "sha256 with default",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Image: "mariadb@sha256:3f48454b6a33e094af6d23ced54645ec0533cb11854d07738920852ca48e390d",
+				},
+			},
+			env: &environment.OperatorEnv{
+				MariadbDefaultVersion: "10.11",
 			},
 			wantBytes: true,
 			wantErr:   false,
@@ -59,14 +92,14 @@ func TestReadEntrypoint(t *testing.T) {
 			wantErr:   true,
 		},
 		{
-			name: "default unsupported version",
+			name: "unsupported version with default",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Image: "mariadb:8.0.0",
 				},
 			},
 			env: &environment.OperatorEnv{
-				MariadbEntrypointVersion: "10.11",
+				MariadbDefaultVersion: "10.11",
 			},
 			wantBytes: true,
 			wantErr:   false,
@@ -90,6 +123,19 @@ func TestReadEntrypoint(t *testing.T) {
 			},
 			wantBytes: true,
 			wantErr:   false,
+		},
+		{
+			name: "invalid default",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Image: "",
+				},
+			},
+			env: &environment.OperatorEnv{
+				MariadbDefaultVersion: "latest",
+			},
+			wantBytes: false,
+			wantErr:   true,
 		},
 	}
 

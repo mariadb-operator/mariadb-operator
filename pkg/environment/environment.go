@@ -20,7 +20,7 @@ type OperatorEnv struct {
 	RelatedExporterImage         string `env:"RELATED_IMAGE_EXPORTER,required"`
 	RelatedExporterMaxscaleImage string `env:"RELATED_IMAGE_EXPORTER_MAXSCALE,required"`
 	MariadbGaleraLibPath         string `env:"MARIADB_GALERA_LIB_PATH,required"`
-	MariadbEntrypointVersion     string `env:"MARIADB_ENTRYPOINT_VERSION,required"`
+	MariadbDefaultVersion        string `env:"MARIADB_DEFAULT_VERSION,required"`
 	WatchNamespace               string `env:"WATCH_NAMESPACE"`
 }
 
