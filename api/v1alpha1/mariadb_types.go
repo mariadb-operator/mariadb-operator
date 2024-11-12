@@ -4,8 +4,11 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/go-logr/logr"
+	"github.com/mariadb-operator/mariadb-operator/pkg/discovery"
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
+	"github.com/mariadb-operator/mariadb-operator/pkg/version"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -534,6 +537,12 @@ type MariaDBStatus struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	ReplicationStatus ReplicationStatus `json:"replicationStatus,omitempty"`
+	// DefaultVersion is the MariaDB version used by the operator when it cannot infer the version
+	// from spec.image. This can happen if the image uses a digest (e.g. sha256) instead
+	// of a version tag.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	DefaultVersion string `json:"defaultVersion,omitempty"`
 }
 
 // SetCondition sets a status condition to MariaDB
@@ -690,6 +699,31 @@ func (m *MariaDB) IsEphemeralStorageEnabled() bool {
 // IsTLSEnabled indicates whether the MariaDB instance has TLS enabled
 func (m *MariaDB) IsTLSEnabled() bool {
 	return ptr.Deref(m.Spec.TLS, TLS{}).Enabled
+}
+
+// IsGaleraEnterpriseTLSAvailable indicates whether Galera enteprise TLS is available
+func (m *MariaDB) IsGaleraEnterpriseTLSAvailable(discovery *discovery.Discovery, defaultMariadbVersion string,
+	logger logr.Logger) (bool, error) {
+	if !m.IsGaleraEnabled() || !discovery.IsEnterprise() || !m.IsTLSEnabled() {
+		return false, nil
+	}
+
+	vOpts := []version.Option{
+		version.WithLogger(logger),
+	}
+	if defaultMariadbVersion != "" {
+		vOpts = append(vOpts, version.WithDefaultVersion(defaultMariadbVersion))
+	}
+	version, err := version.NewVersion(m.Spec.Image, vOpts...)
+	if err != nil {
+		return false, fmt.Errorf("error parsing version: %v", err)
+	}
+
+	isCompatibleVersion, err := version.GreaterThanOrEqual("10.6")
+	if err != nil {
+		return false, fmt.Errorf("error comparing version: %v", err)
+	}
+	return isCompatibleVersion, nil
 }
 
 // IsReady indicates whether the MariaDB instance is ready
