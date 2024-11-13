@@ -49,6 +49,10 @@ func (c *ConfigFile) Marshal(podEnv *environment.PodEnvironment) ([]byte, error)
 	}
 	galera := ptr.Deref(c.mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
 
+	tls := ptr.Deref(c.mariadb.Spec.TLS, mariadbv1alpha1.TLS{})
+	galeraServerSSLMode := ptr.Deref(tls.GaleraServerSSLMode, "")
+	galeraClientSSLMode := ptr.Deref(tls.GaleraClientSSLMode, "")
+
 	tpl := createTpl("galera", `[mariadb]
 bind_address=*
 default_storage_engine=InnoDB
@@ -107,7 +111,7 @@ tkey={{ .SSLKeyPath }}
 		return nil, fmt.Errorf("error getting SST receive address: %v", err)
 	}
 
-	providerOptions, err := getProviderOptions(podEnv, galera.ProviderOptions)
+	providerOptions, err := c.getProviderOptions(podEnv, galera.ProviderOptions)
 	if err != nil {
 		return nil, fmt.Errorf("error getting provider options: %v", err)
 	}
@@ -155,8 +159,8 @@ tkey={{ .SSLKeyPath }}
 		SSTReceiveAddress:    sstReceiveAddress,
 
 		SSLEnabled:     c.mariadb.IsTLSEnabled(),
-		ClusterSSLMode: c.clusterSSLMode(isEnterpriseTLSEnabled),
-		SSLMode:        c.sslMode(isEnterpriseTLSEnabled),
+		ClusterSSLMode: c.enterpriseTLSValue(isEnterpriseTLSEnabled, galeraServerSSLMode),
+		SSLMode:        c.enterpriseTLSValue(isEnterpriseTLSEnabled, galeraClientSSLMode),
 		SSLCAPath:      podEnv.TLSCACertPath,
 		SSLCertPath:    podEnv.TLSClientCertPath,
 		SSLKeyPath:     podEnv.TLSClientKeyPath,
@@ -182,18 +186,47 @@ func (c *ConfigFile) clusterAddress() (string, error) {
 	return fmt.Sprintf("gcomm://%s", strings.Join(pods, ",")), nil
 }
 
-func (c *ConfigFile) clusterSSLMode(isEnterpriseTLSEnabled bool) string {
+func (c *ConfigFile) enterpriseTLSValue(isEnterpriseTLSEnabled bool, value string) string {
 	if isEnterpriseTLSEnabled {
-		return "SERVER_X509"
+		return value
 	}
 	return ""
 }
 
-func (c *ConfigFile) sslMode(isEnterpriseTLSEnabled bool) string {
-	if isEnterpriseTLSEnabled {
-		return "VERIFY_IDENTITY"
+func (c *ConfigFile) getProviderOptions(env *environment.PodEnvironment, options map[string]string) (string, error) {
+	gmcastListenAddress, err := getGmcastListenAddress(env.PodIP)
+	if err != nil {
+		return "", fmt.Errorf("error getting gcomm listden address: %v", err)
 	}
-	return ""
+	istReceiveAddress, err := getISTReceiveAddress(env.PodIP)
+	if err != nil {
+		return "", fmt.Errorf("error getting IST receive address: %v", err)
+	}
+
+	wsrepOpts := map[string]string{
+		galerakeys.WsrepOptGmcastListAddr: gmcastListenAddress,
+		galerakeys.WsrepOptISTRecvAddr:    istReceiveAddress,
+	}
+
+	if c.mariadb.IsTLSEnabled() {
+		wsrepOpts[galerakeys.WsrepOptSocketSSL] = "true"
+		if env.TLSCACertPath != "" {
+			wsrepOpts[galerakeys.WsrepOptSocketSSLCA] = env.TLSCACertPath
+		}
+		if env.TLSServerCertPath != "" {
+			wsrepOpts[galerakeys.WsrepOptSocketSSLCert] = env.TLSServerCertPath
+		}
+		if env.TLSServerKeyPath != "" {
+			wsrepOpts[galerakeys.WsrepOptSocketSSLKey] = env.TLSServerKeyPath
+		}
+	} else {
+		wsrepOpts[galerakeys.WsrepOptSocketSSL] = "false"
+	}
+
+	maps.Copy(wsrepOpts, options)
+
+	providerOpts := newProviderOptions(wsrepOpts)
+	return providerOpts.marshal(), nil
 }
 
 func UpdateConfig(configBytes []byte, podEnv *environment.PodEnvironment) ([]byte, error) {
@@ -214,44 +247,6 @@ func UpdateConfig(configBytes []byte, podEnv *environment.PodEnvironment) ([]byt
 
 	updatedConfig := []byte(strings.Join(updatedLines, "\n"))
 	return updatedConfig, nil
-}
-
-func getProviderOptions(env *environment.PodEnvironment, options map[string]string) (string, error) {
-	gmcastListenAddress, err := getGmcastListenAddress(env.PodIP)
-	if err != nil {
-		return "", fmt.Errorf("error getting gcomm listden address: %v", err)
-	}
-	istReceiveAddress, err := getISTReceiveAddress(env.PodIP)
-	if err != nil {
-		return "", fmt.Errorf("error getting IST receive address: %v", err)
-	}
-
-	wsrepOpts := map[string]string{
-		galerakeys.WsrepOptGmcastListAddr: gmcastListenAddress,
-		galerakeys.WsrepOptISTRecvAddr:    istReceiveAddress,
-	}
-
-	isTLSEnabled, err := env.IsTLSEnabled()
-	if err != nil {
-		return "", fmt.Errorf("error checking whether TLS is enabled in environment: %v", err)
-	}
-	if isTLSEnabled {
-		wsrepOpts[galerakeys.WsrepOptSocketSSL] = "true"
-		if env.TLSCACertPath != "" {
-			wsrepOpts[galerakeys.WsrepOptSocketSSLCA] = env.TLSCACertPath
-		}
-		if env.TLSServerCertPath != "" {
-			wsrepOpts[galerakeys.WsrepOptSocketSSLCert] = env.TLSServerCertPath
-		}
-		if env.TLSServerKeyPath != "" {
-			wsrepOpts[galerakeys.WsrepOptSocketSSLKey] = env.TLSServerKeyPath
-		}
-	}
-
-	maps.Copy(wsrepOpts, options)
-
-	providerOpts := newProviderOptions(wsrepOpts)
-	return providerOpts.marshal(), nil
 }
 
 func getSSTReceiveAddress(podIP string) (string, error) {
