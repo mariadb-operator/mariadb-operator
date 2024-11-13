@@ -146,13 +146,34 @@ var RootCmd = &cobra.Command{
 			routerOpts...,
 		)
 
+		serverOpts := []server.Option{
+			server.WithGracefulShutdownTimeout(gracefulShutdownTimeout),
+		}
+		isTLSEnabled, err := env.IsTLSEnabled()
+		if err != nil {
+			logger.Error(err, "Error checking whether TLS is enabled in environment")
+			os.Exit(1)
+		}
+		if isTLSEnabled {
+			serverOpts = append(serverOpts, []server.Option{
+				server.WithTLSEnabled(isTLSEnabled),
+				server.WithTLSCAPath(env.TLSCACertPath),
+				server.WithTLSCertPath(env.TLSServerCertPath),
+				server.WithTLSKeyPath(env.TLSServerKeyPath),
+			}...)
+		}
 		serverLogger := logger.WithName("server")
-		server := server.NewServer(
+
+		server, err := server.NewServer(
 			addr,
 			router,
 			&serverLogger,
-			server.WithGracefulShutdownTimeout(gracefulShutdownTimeout),
+			serverOpts...,
 		)
+		if err != nil {
+			logger.Error(err, "Error creating new server")
+			os.Exit(1)
+		}
 		if err := server.Start(context.Background()); err != nil {
 			logger.Error(err, "Server error")
 			os.Exit(1)
