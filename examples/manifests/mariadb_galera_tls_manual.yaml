@@ -7,6 +7,8 @@ spec:
     name: mariadb
     key: root-password
 
+  # image: docker-registry.mariadb.com/enterprise-server:10.6.18-14.1
+
   storage:
     size: 1Gi
 
@@ -14,6 +16,8 @@ spec:
 
   galera:
     enabled: true
+    # providerOptions:
+    #   socket.dynamic: 'true'
 
   service:
     type: LoadBalancer
@@ -46,3 +50,8 @@ spec:
       name: mariadb-client-ca
     clientCertSecretRef:
       name: mariadb-galera-client-tls
+
+    # Enterprise >= 10.6 only:
+    # https://mariadb.com/docs/server/security/galera/#SST_TLS_Modes
+    galeraServerSSLMode: SERVER_X509 # PROVIDER|SERVER|SERVER_X509
+    galeraClientSSLMode: VERIFY_IDENTITY # DISABLED|REQUIRED|VERIFY_CA|VERIFY_IDENTITY 
