@@ -36,7 +36,7 @@ spec:
 +   galeraServerSSLMode: SERVER_X509
 ```
 - Trigger a rolling update if needed
-- Once the rolling update has finished, run [this script](../../hack/migrate_galera_ssl_mode.sh) to enable `ssl_mode` on the client side:
+- Once the rolling update has finished, run __[this script](../../hack/migrate_galera_ssl_mode.sh)__ to enable `ssl_mode` on the client side:
 ```bash
  ./hack/migrate_galera_ssl_mode.sh <mariadb-galera-name> VERIFY_IDENTITY
 ```
