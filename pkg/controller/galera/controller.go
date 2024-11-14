@@ -182,6 +182,15 @@ func (r *GaleraReconciler) newAgentClientSet(ctx context.Context, mariadb *maria
 		)
 	}
 
+	if mariadb.IsTLSEnabled() {
+		opts = append(opts, []mdbhttp.Option{
+			mdbhttp.WithTLSEnabled(mariadb.IsTLSEnabled()),
+			mdbhttp.WithTLSCAPath(builder.MariadbTLSCACertPath),
+			mdbhttp.WithTLSCertPath(builder.MariadbTLSClientCertPath),
+			mdbhttp.WithTLSKeyPath(builder.MariadbTLSClientKeyPath),
+		}...)
+	}
+
 	return newAgentClientSet(mariadb, opts...)
 }
 
