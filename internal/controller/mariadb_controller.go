@@ -604,6 +604,7 @@ func (r *MariaDBReconciler) reconcileInternalService(ctx context.Context, mariad
 		ports = append(ports, kadapter.ToKubernetesSlice(mariadb.Spec.ServicePorts)...)
 	}
 	if mariadb.IsGaleraEnabled() {
+		agent := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{}).Agent
 		ports = append(ports, []corev1.ServicePort{
 			{
 				Name: galeraresources.GaleraClusterPortName,
@@ -619,7 +620,11 @@ func (r *MariaDBReconciler) reconcileInternalService(ctx context.Context, mariad
 			},
 			{
 				Name: galeraresources.AgentPortName,
-				Port: ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{}).Agent.Port,
+				Port: agent.Port,
+			},
+			{
+				Name: galeraresources.AgentProbePortName,
+				Port: agent.ProbePort,
 			},
 		}...)
 	}

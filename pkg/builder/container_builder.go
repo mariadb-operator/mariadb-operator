@@ -46,7 +46,7 @@ var (
 			ProbeHandler: corev1.ProbeHandler{
 				HTTPGet: &corev1.HTTPGetAction{
 					Path: "/health",
-					Port: intstr.FromInt(int(galera.Agent.Port)),
+					Port: intstr.FromInt(int(galera.Agent.ProbePort)),
 				},
 			},
 		}
@@ -184,12 +184,17 @@ func (b *Builder) galeraAgentContainer(mariadb *mariadbv1alpha1.MariaDB) (*corev
 			Name:          galeraresources.AgentPortName,
 			ContainerPort: agent.Port,
 		},
+		{
+			Name:          galeraresources.AgentProbePortName,
+			ContainerPort: agent.ProbePort,
+		},
 	}
 	container.Args = func() []string {
 		var args []string
 		args = append(args, []string{
 			"agent",
 			fmt.Sprintf("--addr=:%d", agent.Port),
+			fmt.Sprintf("--probe-addr=:%d", agent.ProbePort),
 			fmt.Sprintf("--config-dir=%s", galeraresources.GaleraConfigMountPath),
 			fmt.Sprintf("--state-dir=%s", MariadbStorageMountPath),
 		}...)
@@ -648,7 +653,7 @@ func mariadbGaleraProbe(mdb *mariadbv1alpha1.MariaDB, path string, probe *mariad
 		ProbeHandler: corev1.ProbeHandler{
 			HTTPGet: &corev1.HTTPGetAction{
 				Path: path,
-				Port: intstr.FromInt(int(agent.Port)),
+				Port: intstr.FromInt(int(agent.ProbePort)),
 			},
 		},
 		InitialDelaySeconds: 20,
