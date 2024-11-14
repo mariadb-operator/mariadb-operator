@@ -58,8 +58,13 @@ func (c *agentClientSet) validateIndex(index int) error {
 }
 
 func baseUrl(mariadb *mariadbv1alpha1.MariaDB, index int) string {
+	scheme := "http"
+	if mariadb.IsTLSEnabled() {
+		scheme = "https"
+	}
 	return fmt.Sprintf(
-		"http://%s:%d",
+		"%s://%s:%d",
+		scheme,
 		statefulset.PodFQDNWithService(
 			mariadb.ObjectMeta,
 			index,
