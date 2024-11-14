@@ -20,86 +20,98 @@ import (
 
 var defaultTimeout = 10 * time.Second
 
-type Option func(*Client) error
+type Option func(*Opts) error
+
+type Opts struct {
+	httpClient *http.Client
+	headers    map[string]string
+	version    string
+	logger     *logr.Logger
+
+	tlsEnabled bool
+	tlsCACert  []byte
+	tlsCert    []byte
+	tlsKey     []byte
+}
 
 func WithHTTPClient(httpClient *http.Client) Option {
-	return func(c *Client) error {
+	return func(opts *Opts) error {
 		if httpClient == nil {
 			httpClient = http.DefaultClient
 		}
-		c.httpClient = httpClient
+		opts.httpClient = httpClient
 		return nil
 	}
 }
 
 func WithTimeout(timeout time.Duration) Option {
-	return func(c *Client) error {
+	return func(opts *Opts) error {
 		if timeout == 0 {
 			timeout = defaultTimeout
 		}
-		c.httpClient.Timeout = timeout
+		opts.httpClient.Timeout = timeout
 		return nil
 	}
 }
 
 func WithBasicAuth(username, password string) Option {
-	return func(c *Client) error {
+	return func(opts *Opts) error {
 		raw := fmt.Sprintf("%s:%s", username, password)
 		encoded := b64.StdEncoding.EncodeToString([]byte(raw))
-		c.headers["Authorization"] = fmt.Sprintf("Basic %s", encoded)
+		opts.headers["Authorization"] = fmt.Sprintf("Basic %s", encoded)
 		return nil
 	}
 }
 
 func WithKubernetesAuth(serviceAccountPath string) Option {
-	return func(c *Client) error {
+	return func(opts *Opts) error {
 		bytes, err := os.ReadFile(serviceAccountPath)
 		if err != nil {
 			return fmt.Errorf("error getting Kubernetes auth header: error reading '%s': %v", serviceAccountPath, err)
 		}
-		c.headers["Authorization"] = fmt.Sprintf("Bearer %s", string(bytes))
+		opts.headers["Authorization"] = fmt.Sprintf("Bearer %s", string(bytes))
 		return nil
 	}
 }
 
 func WithVersion(version string) Option {
-	return func(c *Client) error {
-		c.version = strings.TrimPrefix(version, "/")
+	return func(opts *Opts) error {
+		opts.version = strings.TrimPrefix(version, "/")
 		return nil
 	}
 }
 
 func WithLogger(logger *logr.Logger) Option {
-	return func(c *Client) error {
-		c.logger = logger
+	return func(opts *Opts) error {
+		opts.logger = logger
 		return nil
 	}
 }
 
 func WithTLSEnabled(tlsEnabled bool) Option {
-	return func(c *Client) error {
-		c.tlsEnabled = tlsEnabled
+	return func(opts *Opts) error {
+		opts.tlsEnabled = tlsEnabled
 		return nil
 	}
 }
 
-func WithTLSCAPath(tlsCACertPath string) Option {
-	return func(c *Client) error {
-		c.tlsCACertPath = tlsCACertPath
+func WithTLSCA(tlsCACert []byte) Option {
+	return func(opts *Opts) error {
+		opts.tlsCACert = tlsCACert
 		return nil
 	}
 }
 
-func WithTLSCertPath(tlsCertPath string) Option {
-	return func(c *Client) error {
-		c.tlsCertPath = tlsCertPath
+func WithTLSCert(tlsCert []byte) Option {
+	return func(opts *Opts) error {
+		opts.tlsCert = tlsCert
 		return nil
 	}
 }
 
-func WithTLSKeyPath(tlsKeyPath string) Option {
-	return func(c *Client) error {
-		c.tlsKeyPath = tlsKeyPath
+func WithTLSKey(tlsKey []byte) Option {
+	return func(opts *Opts) error {
+		opts.tlsKey = tlsKey
 		return nil
 	}
 }
@@ -110,11 +122,6 @@ type Client struct {
 	headers    map[string]string
 	version    string
 	logger     *logr.Logger
-
-	tlsEnabled    bool
-	tlsCACertPath string
-	tlsCertPath   string
-	tlsKeyPath    string
 }
 
 func NewClient(baseUrl string, opts ...Option) (*Client, error) {
@@ -122,20 +129,28 @@ func NewClient(baseUrl string, opts ...Option) (*Client, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error parsing base URL: %v", err)
 	}
-	client := &Client{
-		baseUrl: url,
+
+	clientOpts := Opts{
 		httpClient: &http.Client{
 			Timeout: defaultTimeout,
 		},
 		headers: make(map[string]string, 0),
 	}
 	for _, setOpt := range opts {
-		if err := setOpt(client); err != nil {
+		if err := setOpt(&clientOpts); err != nil {
 			return nil, err
 		}
 	}
 
-	transport, err := client.getTransport()
+	client := &Client{
+		baseUrl:    url,
+		httpClient: clientOpts.httpClient,
+		headers:    clientOpts.headers,
+		version:    clientOpts.version,
+		logger:     clientOpts.logger,
+	}
+
+	transport, err := client.getTransport(&clientOpts)
 	if err != nil {
 		return nil, fmt.Errorf("error getting transport: %v", err)
 	}
@@ -230,22 +245,18 @@ func (c *Client) logDebug(msg string, kv ...interface{}) {
 	c.logger.V(1).Info(msg, kv...)
 }
 
-func (c *Client) getTransport() (http.RoundTripper, error) {
-	if !c.tlsEnabled {
+func (c *Client) getTransport(opts *Opts) (http.RoundTripper, error) {
+	if !opts.tlsEnabled {
 		return http.DefaultTransport, nil
 	}
-	caCert, err := os.ReadFile(c.tlsCACertPath)
-	if err != nil {
-		return nil, fmt.Errorf("error reading CA cert: %v", err)
-	}
 	caCertPool := x509.NewCertPool()
-	if ok := caCertPool.AppendCertsFromPEM(caCert); !ok {
+	if ok := caCertPool.AppendCertsFromPEM(opts.tlsCACert); !ok {
 		return nil, errors.New("unable to add CA cert to pool")
 	}
 
-	cert, err := tls.LoadX509KeyPair(c.tlsCertPath, c.tlsKeyPath)
+	cert, err := tls.X509KeyPair(opts.tlsCert, opts.tlsKey)
 	if err != nil {
-		return nil, fmt.Errorf("error loading x509 keypair: %v", err)
+		return nil, fmt.Errorf("error parsing x509 keypair: %v", err)
 	}
 
 	return &http.Transport{

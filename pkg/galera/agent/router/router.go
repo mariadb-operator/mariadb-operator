@@ -56,11 +56,11 @@ func WithBasicAuth(auth bool, user, pass string) Option {
 	}
 }
 
-func NewRouter(handler *handler.Handler, k8sClient ctrlclient.Client, logger logr.Logger, opts ...Option) http.Handler {
+func NewRouter(handler *handler.Galera, k8sClient ctrlclient.Client, logger logr.Logger, opts ...Option) http.Handler {
 	routerOpts := Options{
-		CompressLevel:     5,
-		KubernetesAuth:    false,
-		KubernetesTrusted: nil,
+		CompressLevel:  5,
+		KubernetesAuth: false,
+		BasicAuth:      false,
 	}
 	for _, setOpt := range opts {
 		setOpt(&routerOpts)
@@ -73,13 +73,34 @@ func NewRouter(handler *handler.Handler, k8sClient ctrlclient.Client, logger log
 		w.WriteHeader(http.StatusOK)
 	})
 	r.Mount("/api", apiRouter(handler, k8sClient, logger, &routerOpts))
-	r.Get("/liveness", handler.Probe.Liveness)
-	r.Get("/readiness", handler.Probe.Readiness)
 
 	return r
 }
 
-func apiRouter(h *handler.Handler, k8sClient ctrlclient.Client, logger logr.Logger, opts *Options) http.Handler {
+func NewProbeRouter(handler *handler.Probe, logger logr.Logger, opts ...Option) http.Handler {
+	routerOpts := Options{
+		CompressLevel: 5,
+	}
+	for _, setOpt := range opts {
+		setOpt(&routerOpts)
+	}
+	routerOpts.KubernetesAuth = false
+	routerOpts.BasicAuth = false
+
+	r := chi.NewRouter()
+	r.Use(middleware.Compress(routerOpts.CompressLevel))
+	r.Use(middleware.Recoverer)
+
+	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+	r.Get("/liveness", handler.Liveness)
+	r.Get("/readiness", handler.Readiness)
+
+	return r
+}
+
+func apiRouter(h *handler.Galera, k8sClient ctrlclient.Client, logger logr.Logger, opts *Options) http.Handler {
 	r := chi.NewRouter()
 	if opts.RateLimitRequests != nil && opts.RateLimitDuration != nil {
 		r.Use(httprate.LimitAll(*opts.RateLimitRequests, *opts.RateLimitDuration))
@@ -93,11 +114,11 @@ func apiRouter(h *handler.Handler, k8sClient ctrlclient.Client, logger logr.Logg
 	}
 
 	r.Route("/galera", func(r chi.Router) {
-		r.Get("/state", h.Galera.GetState)
+		r.Get("/state", h.GetState)
 		r.Route("/bootstrap", func(r chi.Router) {
-			r.Get("/", h.Galera.IsBootstrapEnabled)
-			r.Put("/", h.Galera.EnableBootstrap)
-			r.Delete("/", h.Galera.DisableBootstrap)
+			r.Get("/", h.IsBootstrapEnabled)
+			r.Put("/", h.EnableBootstrap)
+			r.Delete("/", h.DisableBootstrap)
 		})
 	})
 

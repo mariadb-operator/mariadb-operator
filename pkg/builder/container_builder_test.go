@@ -244,7 +244,7 @@ func TestMariadbLivenessProbe(t *testing.T) {
 						Enabled: true,
 						GaleraSpec: mariadbv1alpha1.GaleraSpec{
 							Agent: mariadbv1alpha1.GaleraAgent{
-								Port: 5555,
+								ProbePort: 5566,
 							},
 						},
 					},
@@ -254,7 +254,7 @@ func TestMariadbLivenessProbe(t *testing.T) {
 				ProbeHandler: corev1.ProbeHandler{
 					HTTPGet: &corev1.HTTPGetAction{
 						Path: "/liveness",
-						Port: intstr.FromInt(5555),
+						Port: intstr.FromInt(5566),
 					},
 				},
 				InitialDelaySeconds: 20,
@@ -270,7 +270,7 @@ func TestMariadbLivenessProbe(t *testing.T) {
 						Enabled: true,
 						GaleraSpec: mariadbv1alpha1.GaleraSpec{
 							Agent: mariadbv1alpha1.GaleraAgent{
-								Port: 5555,
+								ProbePort: 5566,
 							},
 						},
 					},
@@ -287,7 +287,7 @@ func TestMariadbLivenessProbe(t *testing.T) {
 				ProbeHandler: corev1.ProbeHandler{
 					HTTPGet: &corev1.HTTPGetAction{
 						Path: "/liveness",
-						Port: intstr.FromInt(5555),
+						Port: intstr.FromInt(5566),
 					},
 				},
 				InitialDelaySeconds: 10,
@@ -303,7 +303,7 @@ func TestMariadbLivenessProbe(t *testing.T) {
 						Enabled: true,
 						GaleraSpec: mariadbv1alpha1.GaleraSpec{
 							Agent: mariadbv1alpha1.GaleraAgent{
-								Port: 5555,
+								ProbePort: 5566,
 							},
 						},
 					},
@@ -312,7 +312,7 @@ func TestMariadbLivenessProbe(t *testing.T) {
 							ProbeHandler: mariadbv1alpha1.ProbeHandler{
 								HTTPGet: &mariadbv1alpha1.HTTPGetAction{
 									Path: "/liveness-custom",
-									Port: intstr.FromInt(5555),
+									Port: intstr.FromInt(5566),
 								},
 							},
 							InitialDelaySeconds: 10,
@@ -326,7 +326,7 @@ func TestMariadbLivenessProbe(t *testing.T) {
 				ProbeHandler: corev1.ProbeHandler{
 					HTTPGet: &corev1.HTTPGetAction{
 						Path: "/liveness",
-						Port: intstr.FromInt(5555),
+						Port: intstr.FromInt(5566),
 					},
 				},
 				InitialDelaySeconds: 10,
@@ -909,7 +909,7 @@ func TestMariadbReadinessProbe(t *testing.T) {
 						Enabled: true,
 						GaleraSpec: mariadbv1alpha1.GaleraSpec{
 							Agent: mariadbv1alpha1.GaleraAgent{
-								Port: 5555,
+								ProbePort: 5566,
 							},
 						},
 					},
@@ -919,7 +919,7 @@ func TestMariadbReadinessProbe(t *testing.T) {
 				ProbeHandler: corev1.ProbeHandler{
 					HTTPGet: &corev1.HTTPGetAction{
 						Path: "/readiness",
-						Port: intstr.FromInt(5555),
+						Port: intstr.FromInt(5566),
 					},
 				},
 				InitialDelaySeconds: 20,
@@ -935,7 +935,7 @@ func TestMariadbReadinessProbe(t *testing.T) {
 						Enabled: true,
 						GaleraSpec: mariadbv1alpha1.GaleraSpec{
 							Agent: mariadbv1alpha1.GaleraAgent{
-								Port: 5555,
+								ProbePort: 5566,
 							},
 						},
 					},
@@ -952,7 +952,7 @@ func TestMariadbReadinessProbe(t *testing.T) {
 				ProbeHandler: corev1.ProbeHandler{
 					HTTPGet: &corev1.HTTPGetAction{
 						Path: "/readiness",
-						Port: intstr.FromInt(5555),
+						Port: intstr.FromInt(5566),
 					},
 				},
 				InitialDelaySeconds: 10,
@@ -968,7 +968,7 @@ func TestMariadbReadinessProbe(t *testing.T) {
 						Enabled: true,
 						GaleraSpec: mariadbv1alpha1.GaleraSpec{
 							Agent: mariadbv1alpha1.GaleraAgent{
-								Port: 5555,
+								ProbePort: 5566,
 							},
 						},
 					},
@@ -977,7 +977,7 @@ func TestMariadbReadinessProbe(t *testing.T) {
 							ProbeHandler: mariadbv1alpha1.ProbeHandler{
 								HTTPGet: &mariadbv1alpha1.HTTPGetAction{
 									Path: "/readiness-custom",
-									Port: intstr.FromInt(5555),
+									Port: intstr.FromInt(5566),
 								},
 							},
 							InitialDelaySeconds: 10,
@@ -991,7 +991,7 @@ func TestMariadbReadinessProbe(t *testing.T) {
 				ProbeHandler: corev1.ProbeHandler{
 					HTTPGet: &corev1.HTTPGetAction{
 						Path: "/readiness",
-						Port: intstr.FromInt(5555),
+						Port: intstr.FromInt(5566),
 					},
 				},
 				InitialDelaySeconds: 10,
