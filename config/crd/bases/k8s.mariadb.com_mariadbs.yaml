@@ -1270,7 +1270,13 @@ spec:
                             type: integer
                         type: object
                       port:
-                        description: Port where the agent will be listening for connections.
+                        description: Port where the agent will be listening for API
+                          connections.
+                        format: int32
+                        type: integer
+                      probePort:
+                        description: Port where the agent will be listening for probe
+                          connections.
                         format: int32
                         type: integer
                       readinessProbe:

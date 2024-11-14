@@ -70,8 +70,9 @@ var _ = Describe("MariaDB Galera types", func() {
 							AutomaticFailover: ptr.To(true),
 						},
 						Agent: GaleraAgent{
-							Image: "ghcr.io/mariadb-operator/mariadb-operator:v0.0.26",
-							Port:  5555,
+							Image:     "ghcr.io/mariadb-operator/mariadb-operator:v0.0.26",
+							Port:      5555,
+							ProbePort: 5566,
 							KubernetesAuth: &KubernetesAuth{
 								Enabled: true,
 							},
@@ -154,8 +155,9 @@ var _ = Describe("MariaDB Galera types", func() {
 							AutomaticFailover: ptr.To(false),
 						},
 						Agent: GaleraAgent{
-							Image: "mariadb/mariadb-operator-enterprise:v0.0.26",
-							Port:  5555,
+							Image:     "mariadb/mariadb-operator-enterprise:v0.0.26",
+							Port:      5555,
+							ProbePort: 5566,
 							KubernetesAuth: &KubernetesAuth{
 								Enabled: false,
 							},
@@ -221,8 +223,9 @@ var _ = Describe("MariaDB Galera types", func() {
 							AutomaticFailover: ptr.To(true),
 						},
 						Agent: GaleraAgent{
-							Image: "ghcr.io/mariadb-operator/mariadb-operator:v0.0.26",
-							Port:  5555,
+							Image:     "ghcr.io/mariadb-operator/mariadb-operator:v0.0.26",
+							Port:      5555,
+							ProbePort: 5566,
 							KubernetesAuth: &KubernetesAuth{
 								Enabled: true,
 							},
