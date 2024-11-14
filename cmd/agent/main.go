@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"sync"
 	"time"
 
+	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	"github.com/mariadb-operator/mariadb-operator/pkg/galera/agent/handler"
@@ -13,6 +15,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/galera/agent/server"
 	"github.com/mariadb-operator/mariadb-operator/pkg/galera/filemanager"
 	"github.com/mariadb-operator/mariadb-operator/pkg/galera/state"
+	mdbhttp "github.com/mariadb-operator/mariadb-operator/pkg/http"
 	kubeauth "github.com/mariadb-operator/mariadb-operator/pkg/kubernetes/auth"
 	"github.com/mariadb-operator/mariadb-operator/pkg/log"
 	"github.com/spf13/cobra"
@@ -28,6 +31,7 @@ var (
 	scheme    = runtime.NewScheme()
 	logger    = ctrl.Log
 	addr      string
+	probeAddr string
 	configDir string
 	stateDir  string
 
@@ -49,7 +53,8 @@ func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(mariadbv1alpha1.AddToScheme(scheme))
 
-	RootCmd.Flags().StringVar(&addr, "addr", ":5555", "The address that the HTTP server binds to")
+	RootCmd.Flags().StringVar(&addr, "addr", ":5555", "The address that the HTTP(s) API server binds to")
+	RootCmd.Flags().StringVar(&probeAddr, "probe-addr", ":5566", "The address that the HTTP probe server binds to")
 	RootCmd.Flags().StringVar(&configDir, "config-dir", "/etc/mysql/mariadb.conf.d", "The directory that contains MariaDB configuration files")
 	RootCmd.Flags().StringVar(&stateDir, "state-dir", "/var/lib/mysql", "The directory that contains MariaDB state files")
 
@@ -98,83 +103,42 @@ var RootCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		mariadbKey := types.NamespacedName{
-			Name:      env.MariadbName,
-			Namespace: env.PodNamespace,
-		}
-		handlerLogger := logger.WithName("handler")
-		handler := handler.NewHandler(
-			mariadbKey,
-			k8sClient,
-			fileManager,
-			state,
-			&handlerLogger,
-		)
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		errChan := make(chan error)
 
-		routerOpts := []router.Option{
-			router.WithCompressLevel(compressLevel),
-			router.WithRateLimit(rateLimitRequests, rateLimitDuration),
-		}
-		if kubernetesAuth && kubernetesTrustedName != "" && kubernetesTrustedNamespace != "" {
-			logger.Info("Configuring Kubernetes authentication")
-
-			routerOpts = append(routerOpts, router.WithKubernetesAuth(
-				kubernetesAuth,
-				&kubeauth.Trusted{
-					ServiceAccountName:      kubernetesTrustedName,
-					ServiceAccountNamespace: kubernetesTrustedNamespace,
-				},
-			))
-		} else if basicAuth && basicAuthUsername != "" && basicAuthPasswordPath != "" {
-			logger.Info("Configuring basic authentication")
-
-			basicAuthPassword, err := os.ReadFile(basicAuthPasswordPath)
+		go func() {
+			apiServer, err := getAPIServer(
+				env,
+				fileManager,
+				k8sClient,
+				state,
+				logger,
+			)
 			if err != nil {
-				logger.Error(err, "Error reading basic-auth password")
-				os.Exit(1)
+				errChan <- fmt.Errorf("error creating API server: %v", err)
+				return
 			}
-			routerOpts = append(routerOpts, router.WithBasicAuth(
-				basicAuth,
-				basicAuthUsername,
-				string(basicAuthPassword),
-			))
-		}
-		router := router.NewRouter(
-			handler,
-			k8sClient,
-			logger,
-			routerOpts...,
-		)
+			if err := apiServer.Start(ctx); err != nil {
+				errChan <- fmt.Errorf("error starting API server: %v", err)
+				return
+			}
+		}()
+		go func() {
+			probeServer, err := getProbeServer(env, k8sClient)
+			if err != nil {
+				errChan <- fmt.Errorf("error creating probe server: %v", err)
+			}
+			if err := probeServer.Start(ctx); err != nil {
+				errChan <- fmt.Errorf("error starting probe server: %v", err)
+				return
+			}
+		}()
 
-		serverOpts := []server.Option{
-			server.WithGracefulShutdownTimeout(gracefulShutdownTimeout),
-		}
-		isTLSEnabled, err := env.IsTLSEnabled()
-		if err != nil {
-			logger.Error(err, "Error checking whether TLS is enabled in environment")
-			os.Exit(1)
-		}
-		if isTLSEnabled {
-			serverOpts = append(serverOpts, []server.Option{
-				server.WithTLSEnabled(isTLSEnabled),
-				server.WithTLSCAPath(env.TLSCACertPath),
-				server.WithTLSCertPath(env.TLSServerCertPath),
-				server.WithTLSKeyPath(env.TLSServerKeyPath),
-			}...)
-		}
-		serverLogger := logger.WithName("server")
-
-		server, err := server.NewServer(
-			addr,
-			router,
-			&serverLogger,
-			serverOpts...,
-		)
-		if err != nil {
-			logger.Error(err, "Error creating new server")
-			os.Exit(1)
-		}
-		if err := server.Start(context.Background()); err != nil {
+		select {
+		case <-ctx.Done():
+			return
+		case err := <-errChan:
 			logger.Error(err, "Server error")
 			os.Exit(1)
 		}
@@ -191,4 +155,109 @@ func getK8sClient() (client.Client, error) {
 		return nil, fmt.Errorf("error creating Kubernetes client: %v", err)
 	}
 	return k8sClient, nil
+}
+
+func getAPIServer(env *environment.PodEnvironment, fileManager *filemanager.FileManager, k8sClient client.Client, state *state.State,
+	logger logr.Logger) (*server.Server, error) {
+	apiLogger := logger.WithName("api")
+	mux := &sync.RWMutex{}
+
+	handler := handler.NewGalera(
+		fileManager,
+		state,
+		mdbhttp.NewResponseWriter(&apiLogger),
+		mux,
+		&apiLogger,
+	)
+
+	routerOpts := []router.Option{
+		router.WithCompressLevel(compressLevel),
+		router.WithRateLimit(rateLimitRequests, rateLimitDuration),
+	}
+	if kubernetesAuth && kubernetesTrustedName != "" && kubernetesTrustedNamespace != "" {
+		logger.Info("Configuring Kubernetes authentication")
+
+		routerOpts = append(routerOpts, router.WithKubernetesAuth(
+			kubernetesAuth,
+			&kubeauth.Trusted{
+				ServiceAccountName:      kubernetesTrustedName,
+				ServiceAccountNamespace: kubernetesTrustedNamespace,
+			},
+		))
+	} else if basicAuth && basicAuthUsername != "" && basicAuthPasswordPath != "" {
+		logger.Info("Configuring basic authentication")
+
+		basicAuthPassword, err := os.ReadFile(basicAuthPasswordPath)
+		if err != nil {
+			logger.Error(err, "Error reading basic-auth password")
+			os.Exit(1)
+		}
+		routerOpts = append(routerOpts, router.WithBasicAuth(
+			basicAuth,
+			basicAuthUsername,
+			string(basicAuthPassword),
+		))
+	}
+	router := router.NewRouter(
+		handler,
+		k8sClient,
+		apiLogger,
+		routerOpts...,
+	)
+
+	serverOpts := []server.Option{
+		server.WithGracefulShutdownTimeout(gracefulShutdownTimeout),
+	}
+	isTLSEnabled, err := env.IsTLSEnabled()
+	if err != nil {
+		return nil, err
+	}
+	if isTLSEnabled {
+		serverOpts = append(serverOpts, []server.Option{
+			server.WithTLSEnabled(isTLSEnabled),
+			server.WithTLSCAPath(env.TLSCACertPath),
+			server.WithTLSCertPath(env.TLSServerCertPath),
+			server.WithTLSKeyPath(env.TLSServerKeyPath),
+		}...)
+	}
+
+	server, err := server.NewServer(
+		addr,
+		router,
+		&apiLogger,
+		serverOpts...,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return server, nil
+}
+
+func getProbeServer(env *environment.PodEnvironment, k8sClient client.Client) (*server.Server, error) {
+	probeLogger := logger.WithName("probe")
+	mariadbKey := types.NamespacedName{
+		Name:      env.MariadbName,
+		Namespace: env.PodNamespace,
+	}
+
+	handler := handler.NewProbe(
+		mariadbKey,
+		k8sClient,
+		mdbhttp.NewResponseWriter(&probeLogger),
+		&probeLogger,
+	)
+	router := router.NewProbeRouter(
+		handler,
+		probeLogger,
+	)
+
+	server, err := server.NewServer(
+		probeAddr,
+		router,
+		&probeLogger,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return server, nil
 }

@@ -14,6 +14,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	"github.com/mariadb-operator/mariadb-operator/pkg/galera/errors"
 	mdbhttp "github.com/mariadb-operator/mariadb-operator/pkg/http"
+	"github.com/mariadb-operator/mariadb-operator/pkg/pki"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -183,11 +184,38 @@ func (r *GaleraReconciler) newAgentClientSet(ctx context.Context, mariadb *maria
 	}
 
 	if mariadb.IsTLSEnabled() {
+		tlsCA, err := r.refResolver.SecretKeyRef(ctx, mariadb.TLSCABundleSecretKeyRef(), mariadb.Namespace)
+		if err != nil {
+			return nil, fmt.Errorf("error reading TLS CA bundle: %v", err)
+		}
+
+		clientCertKeySelector := mariadbv1alpha1.SecretKeySelector{
+			LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+				Name: mariadb.TLSClientCertSecretKey().Name,
+			},
+			Key: pki.TLSCertKey,
+		}
+		tlsCert, err := r.refResolver.SecretKeyRef(ctx, clientCertKeySelector, mariadb.Namespace)
+		if err != nil {
+			return nil, fmt.Errorf("error reading TLS cert: %v", err)
+		}
+
+		clientKeyKeySelector := mariadbv1alpha1.SecretKeySelector{
+			LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+				Name: mariadb.TLSClientCertSecretKey().Name,
+			},
+			Key: pki.TLSKeyKey,
+		}
+		tlsKey, err := r.refResolver.SecretKeyRef(ctx, clientKeyKeySelector, mariadb.Namespace)
+		if err != nil {
+			return nil, fmt.Errorf("error reading TLS key: %v", err)
+		}
+
 		opts = append(opts, []mdbhttp.Option{
 			mdbhttp.WithTLSEnabled(mariadb.IsTLSEnabled()),
-			mdbhttp.WithTLSCAPath(builder.MariadbTLSCACertPath),
-			mdbhttp.WithTLSCertPath(builder.MariadbTLSClientCertPath),
-			mdbhttp.WithTLSKeyPath(builder.MariadbTLSClientKeyPath),
+			mdbhttp.WithTLSCA([]byte(tlsCA)),
+			mdbhttp.WithTLSCert([]byte(tlsCert)),
+			mdbhttp.WithTLSKey([]byte(tlsKey)),
 		}...)
 	}
 

@@ -15,6 +15,10 @@ spec:
     port: 5555
     protocol: TCP
     targetPort: 5555
+  - name: agent-probe
+    port: 5566
+    protocol: TCP
+    targetPort: 5566
   selector:
     app.kubernetes.io/instance: mariadb-galera
     app.kubernetes.io/name: mariadb
@@ -39,6 +43,10 @@ spec:
     port: 5555
     protocol: TCP
     targetPort: 5555
+  - name: agent-probe
+    port: 5566
+    protocol: TCP
+    targetPort: 5566
   selector:
     app.kubernetes.io/instance: mariadb-galera
     app.kubernetes.io/name: mariadb
@@ -63,6 +71,10 @@ spec:
     port: 5555
     protocol: TCP
     targetPort: 5555
+  - name: agent-probe
+    port: 5566
+    protocol: TCP
+    targetPort: 5566
   selector:
     app.kubernetes.io/instance: mariadb-galera
     app.kubernetes.io/name: mariadb
@@ -87,6 +99,10 @@ spec:
     port: 5555
     protocol: TCP
     targetPort: 5555
+  - name: agent-probe
+    port: 5566
+    protocol: TCP
+    targetPort: 5566
   selector:
     app.kubernetes.io/instance: mariadb-galera
     app.kubernetes.io/name: mariadb
