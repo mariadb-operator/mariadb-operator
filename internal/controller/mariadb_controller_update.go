@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
-	"path/filepath"
 	"sort"
 	"strconv"
 	"time"
@@ -18,7 +17,6 @@ import (
 	galeraconfig "github.com/mariadb-operator/mariadb-operator/pkg/galera/config"
 	"github.com/mariadb-operator/mariadb-operator/pkg/health"
 	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
-	"github.com/mariadb-operator/mariadb-operator/pkg/pki"
 	podpkg "github.com/mariadb-operator/mariadb-operator/pkg/pod"
 	"github.com/mariadb-operator/mariadb-operator/pkg/wait"
 	appsv1 "k8s.io/api/apps/v1"
@@ -123,11 +121,11 @@ func (r *MariaDBReconciler) getUpdateAnnotations(ctx context.Context, mariadb *m
 			MariadbRootPassword: "password",
 			MariadbPort:         strconv.Itoa(int(mariadb.Spec.Port)),
 			TLSEnabled:          strconv.FormatBool(mariadb.IsTLSEnabled()),
-			TLSCACertPath:       filepath.Join(builder.MariadbPKIMountPath, pki.CACertKey),
-			TLSServerCertPath:   filepath.Join(builder.MariadbPKIMountPath, "server.crt"),
-			TLSServerKeyPath:    filepath.Join(builder.MariadbPKIMountPath, "server.key"),
-			TLSClientCertPath:   filepath.Join(builder.MariadbPKIMountPath, "client.crt"),
-			TLSClientKeyPath:    filepath.Join(builder.MariadbPKIMountPath, "client.key"),
+			TLSCACertPath:       builder.MariadbTLSCACertPath,
+			TLSServerCertPath:   builder.MariadbTLSServerCertPath,
+			TLSServerKeyPath:    builder.MariadbTLSServerKeyPath,
+			TLSClientCertPath:   builder.MariadbTLSClientCertPath,
+			TLSClientKeyPath:    builder.MariadbTLSClientKeyPath,
 		}
 		config, err := galeraconfig.NewConfigFile(mariadb, r.Discovery, logger).Marshal(env)
 		if err != nil {
