@@ -165,10 +165,14 @@ type GaleraAgent struct {
 	// +kubebuilder:validation:Enum=Always;Never;IfNotPresent
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:imagePullPolicy"}
 	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
-	// Port where the agent will be listening for connections.
+	// Port where the agent will be listening for API connections.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Port int32 `json:"port,omitempty"`
+	// Port where the agent will be listening for probe connections.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	ProbePort int32 `json:"probePort,omitempty"`
 	// KubernetesAuth to be used by the agent container
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -190,6 +194,9 @@ func (r *GaleraAgent) SetDefaults(mariadb *MariaDB, env *environment.OperatorEnv
 	}
 	if r.Port == 0 {
 		r.Port = 5555
+	}
+	if r.ProbePort == 0 {
+		r.ProbePort = 5566
 	}
 
 	currentNamespaceOnly, err := env.CurrentNamespaceOnly()
