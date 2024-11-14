@@ -148,8 +148,9 @@ func (s *Server) getTLSConfig() (*tls.Config, error) {
 	}
 
 	return &tls.Config{
-		ClientCAs:    caCertPool,
-		ClientAuth:   tls.RequireAndVerifyClientCert,
-		Certificates: []tls.Certificate{cert},
+		ClientCAs:          caCertPool,
+		ClientAuth:         tls.RequireAndVerifyClientCert,
+		Certificates:       []tls.Certificate{cert},
+		InsecureSkipVerify: false,
 	}, nil
 }
