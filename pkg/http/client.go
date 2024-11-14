@@ -3,7 +3,10 @@ package http
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	b64 "encoding/base64"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -73,12 +76,45 @@ func WithLogger(logger *logr.Logger) Option {
 	}
 }
 
+func WithTLSEnabled(tlsEnabled bool) Option {
+	return func(c *Client) error {
+		c.tlsEnabled = tlsEnabled
+		return nil
+	}
+}
+
+func WithTLSCAPath(tlsCACertPath string) Option {
+	return func(c *Client) error {
+		c.tlsCACertPath = tlsCACertPath
+		return nil
+	}
+}
+
+func WithTLSCertPath(tlsCertPath string) Option {
+	return func(c *Client) error {
+		c.tlsCertPath = tlsCertPath
+		return nil
+	}
+}
+
+func WithTLSKeyPath(tlsKeyPath string) Option {
+	return func(c *Client) error {
+		c.tlsKeyPath = tlsKeyPath
+		return nil
+	}
+}
+
 type Client struct {
 	baseUrl    *url.URL
 	httpClient *http.Client
 	headers    map[string]string
 	version    string
 	logger     *logr.Logger
+
+	tlsEnabled    bool
+	tlsCACertPath string
+	tlsCertPath   string
+	tlsKeyPath    string
 }
 
 func NewClient(baseUrl string, opts ...Option) (*Client, error) {
@@ -98,7 +134,12 @@ func NewClient(baseUrl string, opts ...Option) (*Client, error) {
 			return nil, err
 		}
 	}
-	client.httpClient.Transport = NewHeadersTransport(client.httpClient.Transport, client.headers)
+
+	transport, err := client.getTransport()
+	if err != nil {
+		return nil, fmt.Errorf("error getting transport: %v", err)
+	}
+	client.httpClient.Transport = NewHeadersTransport(transport, client.headers)
 	return client, nil
 }
 
@@ -187,4 +228,31 @@ func (c *Client) logDebug(msg string, kv ...interface{}) {
 		return
 	}
 	c.logger.V(1).Info(msg, kv...)
+}
+
+func (c *Client) getTransport() (http.RoundTripper, error) {
+	if !c.tlsEnabled {
+		return http.DefaultTransport, nil
+	}
+	caCert, err := os.ReadFile(c.tlsCACertPath)
+	if err != nil {
+		return nil, fmt.Errorf("error reading CA cert: %v", err)
+	}
+	caCertPool := x509.NewCertPool()
+	if ok := caCertPool.AppendCertsFromPEM(caCert); !ok {
+		return nil, errors.New("unable to add CA cert to pool")
+	}
+
+	cert, err := tls.LoadX509KeyPair(c.tlsCertPath, c.tlsKeyPath)
+	if err != nil {
+		return nil, fmt.Errorf("error loading x509 keypair: %v", err)
+	}
+
+	return &http.Transport{
+		TLSClientConfig: &tls.Config{
+			RootCAs:            caCertPool,
+			Certificates:       []tls.Certificate{cert},
+			InsecureSkipVerify: false,
+		},
+	}, nil
 }

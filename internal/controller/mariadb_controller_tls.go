@@ -1,10 +1,12 @@
 package controller
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/configmap"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
 	"github.com/mariadb-operator/mariadb-operator/pkg/pki"
@@ -71,6 +73,27 @@ func (r *MariaDBReconciler) reconcileTLSCABundle(ctx context.Context, mariadb *m
 
 func (r *MariaDBReconciler) reconcileTLSConfig(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
 	configMapKeyRef := mariadb.TLSConfigMapKeyRef()
+
+	tpl := createTpl("tls", `[mariadb]
+ssl_cert = {{ .SSLCert }}
+ssl_key = {{ .SSLKey }}
+ssl_ca = {{ .SSLCA }}
+require_secure_transport = true
+`)
+	buf := new(bytes.Buffer)
+	err := tpl.Execute(buf, struct {
+		SSLCert string
+		SSLKey  string
+		SSLCA   string
+	}{
+		SSLCert: builder.MariadbTLSServerCertPath,
+		SSLKey:  builder.MariadbTLSServerKeyPath,
+		SSLCA:   builder.MariadbTLSCACertPath,
+	})
+	if err != nil {
+		return fmt.Errorf("error rendering TLS config: %v", err)
+	}
+
 	configMapReq := configmap.ReconcileRequest{
 		Metadata: mariadb.Spec.InheritMetadata,
 		Owner:    mariadb,
@@ -79,12 +102,7 @@ func (r *MariaDBReconciler) reconcileTLSConfig(ctx context.Context, mariadb *mar
 			Namespace: mariadb.Namespace,
 		},
 		Data: map[string]string{
-			configMapKeyRef.Key: `[mariadb]
-ssl_cert = /etc/pki/server.crt
-ssl_key = /etc/pki/server.key
-ssl_ca = /etc/pki/ca.crt
-require_secure_transport = true
-`,
+			configMapKeyRef.Key: buf.String(),
 		},
 	}
 	return r.ConfigMapReconciler.Reconcile(ctx, &configMapReq)

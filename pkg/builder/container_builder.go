@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"path/filepath"
 	"reflect"
 	"strconv"
 
@@ -13,7 +12,6 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/command"
 	galeraresources "github.com/mariadb-operator/mariadb-operator/pkg/controller/galera/resources"
 	kadapter "github.com/mariadb-operator/mariadb-operator/pkg/kubernetes/adapter"
-	"github.com/mariadb-operator/mariadb-operator/pkg/pki"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/utils/ptr"
@@ -188,7 +186,7 @@ func (b *Builder) galeraAgentContainer(mariadb *mariadbv1alpha1.MariaDB) (*corev
 		},
 	}
 	container.Args = func() []string {
-		args := container.Args
+		var args []string
 		args = append(args, []string{
 			"agent",
 			fmt.Sprintf("--addr=:%d", agent.Port),
@@ -216,6 +214,7 @@ func (b *Builder) galeraAgentContainer(mariadb *mariadbv1alpha1.MariaDB) (*corev
 			}...)
 		}
 
+		args = append(args, container.Args...)
 		return args
 	}()
 	container.Env = mariadbEnv(mariadb)
@@ -403,27 +402,27 @@ func mariadbEnv(mariadb *mariadbv1alpha1.MariaDB) []corev1.EnvVar {
 		env = append(env, []corev1.EnvVar{
 			{
 				Name:  "TLS_ENABLED",
-				Value: "true",
+				Value: strconv.FormatBool(mariadb.IsTLSEnabled()),
 			},
 			{
 				Name:  "TLS_CA_CERT_PATH",
-				Value: filepath.Join(MariadbPKIMountPath, pki.CACertKey),
+				Value: MariadbTLSCACertPath,
 			},
 			{
 				Name:  "TLS_SERVER_CERT_PATH",
-				Value: filepath.Join(MariadbPKIMountPath, "server.crt"),
+				Value: MariadbTLSServerCertPath,
 			},
 			{
 				Name:  "TLS_SERVER_KEY_PATH",
-				Value: filepath.Join(MariadbPKIMountPath, "server.key"),
+				Value: MariadbTLSServerKeyPath,
 			},
 			{
 				Name:  "TLS_CLIENT_CERT_PATH",
-				Value: filepath.Join(MariadbPKIMountPath, "client.crt"),
+				Value: MariadbTLSClientCertPath,
 			},
 			{
 				Name:  "TLS_CLIENT_KEY_PATH",
-				Value: filepath.Join(MariadbPKIMountPath, "client.key"),
+				Value: MariadbTLSClientKeyPath,
 			},
 		}...)
 	}

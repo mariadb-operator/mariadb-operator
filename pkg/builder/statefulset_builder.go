@@ -2,12 +2,14 @@ package builder
 
 import (
 	"fmt"
+	"path/filepath"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	metadata "github.com/mariadb-operator/mariadb-operator/pkg/builder/metadata"
 	galeraresources "github.com/mariadb-operator/mariadb-operator/pkg/controller/galera/resources"
 	annotation "github.com/mariadb-operator/mariadb-operator/pkg/metadata"
+	"github.com/mariadb-operator/mariadb-operator/pkg/pki"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -56,6 +58,14 @@ const (
 	maxscaleGroup           = int64(996)
 	maxscaleEnterpriseUser  = int64(999)
 	maxscaleEnterpriseGroup = int64(999)
+)
+
+var (
+	MariadbTLSCACertPath     = filepath.Join(MariadbPKIMountPath, pki.CACertKey)
+	MariadbTLSServerCertPath = filepath.Join(MariadbPKIMountPath, "server.crt")
+	MariadbTLSServerKeyPath  = filepath.Join(MariadbPKIMountPath, "server.key")
+	MariadbTLSClientCertPath = filepath.Join(MariadbPKIMountPath, "client.crt")
+	MariadbTLSClientKeyPath  = filepath.Join(MariadbPKIMountPath, "client.key")
 )
 
 func (b *Builder) BuildMariadbStatefulSet(mariadb *mariadbv1alpha1.MariaDB, key types.NamespacedName,
