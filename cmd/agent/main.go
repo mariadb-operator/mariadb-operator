@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/signal"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -55,6 +57,7 @@ func init() {
 
 	RootCmd.Flags().StringVar(&addr, "addr", ":5555", "The address that the HTTP(s) API server binds to")
 	RootCmd.Flags().StringVar(&probeAddr, "probe-addr", ":5566", "The address that the HTTP probe server binds to")
+
 	RootCmd.Flags().StringVar(&configDir, "config-dir", "/etc/mysql/mariadb.conf.d", "The directory that contains MariaDB configuration files")
 	RootCmd.Flags().StringVar(&stateDir, "state-dir", "/var/lib/mysql", "The directory that contains MariaDB state files")
 
@@ -84,7 +87,7 @@ var RootCmd = &cobra.Command{
 			fmt.Printf("error setting up logger: %v\n", err)
 			os.Exit(1)
 		}
-		logger.Info("Starting agent")
+		logger.Info("Agent starting")
 
 		env, err := environment.GetPodEnv(context.Background())
 		if err != nil {
@@ -103,45 +106,53 @@ var RootCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
-		errChan := make(chan error)
+		apiServer, err := getAPIServer(
+			env,
+			fileManager,
+			k8sClient,
+			state,
+			logger,
+		)
+		if err != nil {
+			logger.Error(err, "Error creating API server")
+			os.Exit(1)
+		}
+		probeServer, err := getProbeServer(env, k8sClient)
+		if err != nil {
+			logger.Error(err, "Error creating probe server")
+			os.Exit(1)
+		}
 
+		ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+		defer cancel()
+		errChan := make(chan error, 2)
+
+		var wg sync.WaitGroup
+		wg.Add(2)
 		go func() {
-			apiServer, err := getAPIServer(
-				env,
-				fileManager,
-				k8sClient,
-				state,
-				logger,
-			)
-			if err != nil {
-				errChan <- fmt.Errorf("error creating API server: %v", err)
-				return
-			}
+			defer wg.Done()
+
 			if err := apiServer.Start(ctx); err != nil {
 				errChan <- fmt.Errorf("error starting API server: %v", err)
-				return
 			}
 		}()
 		go func() {
-			probeServer, err := getProbeServer(env, k8sClient)
-			if err != nil {
-				errChan <- fmt.Errorf("error creating probe server: %v", err)
-			}
+			defer wg.Done()
+
 			if err := probeServer.Start(ctx); err != nil {
 				errChan <- fmt.Errorf("error starting probe server: %v", err)
-				return
 			}
 		}()
+		go func() {
+			wg.Wait()
+			close(errChan)
+		}()
 
-		select {
-		case <-ctx.Done():
-			return
-		case err := <-errChan:
+		if err, ok := <-errChan; ok {
 			logger.Error(err, "Server error")
 			os.Exit(1)
 		}
+		logger.Info("Agent stopped")
 	},
 }
 
@@ -175,7 +186,7 @@ func getAPIServer(env *environment.PodEnvironment, fileManager *filemanager.File
 		router.WithRateLimit(rateLimitRequests, rateLimitDuration),
 	}
 	if kubernetesAuth && kubernetesTrustedName != "" && kubernetesTrustedNamespace != "" {
-		logger.Info("Configuring Kubernetes authentication")
+		apiLogger.Info("Configuring Kubernetes authentication")
 
 		routerOpts = append(routerOpts, router.WithKubernetesAuth(
 			kubernetesAuth,
@@ -185,12 +196,11 @@ func getAPIServer(env *environment.PodEnvironment, fileManager *filemanager.File
 			},
 		))
 	} else if basicAuth && basicAuthUsername != "" && basicAuthPasswordPath != "" {
-		logger.Info("Configuring basic authentication")
+		apiLogger.Info("Configuring basic authentication")
 
 		basicAuthPassword, err := os.ReadFile(basicAuthPasswordPath)
 		if err != nil {
-			logger.Error(err, "Error reading basic-auth password")
-			os.Exit(1)
+			return nil, err
 		}
 		routerOpts = append(routerOpts, router.WithBasicAuth(
 			basicAuth,
@@ -198,7 +208,7 @@ func getAPIServer(env *environment.PodEnvironment, fileManager *filemanager.File
 			string(basicAuthPassword),
 		))
 	}
-	router := router.NewRouter(
+	router := router.NewGaleraRouter(
 		handler,
 		k8sClient,
 		apiLogger,
