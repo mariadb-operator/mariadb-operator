@@ -8,8 +8,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -83,40 +81,24 @@ func NewServer(addr string, handler http.Handler, logger *logr.Logger, opts ...O
 }
 
 func (s *Server) Start(ctx context.Context) error {
-	serverContext, stopServer := context.WithCancel(ctx)
+	serverContext, stopServer := context.WithCancel(context.Background())
 	errChan := make(chan error)
 
-	sig := make(chan os.Signal, 1)
-	signal.Notify(sig, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
-
 	go func() {
-		<-sig
-		defer stopServer()
-
-		shutdownCtx, cancel := context.WithTimeout(serverContext, s.gracefulShutdownTimeout)
+		<-ctx.Done()
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), s.gracefulShutdownTimeout)
 		defer cancel()
-		go func() {
-			<-shutdownCtx.Done()
-			s.logger.Info("Graceful shutdown timed out")
-		}()
 
-		s.logger.Info("Shutting down server")
+		s.logger.Info("Gracefully shutting down server")
 		if err := s.httpServer.Shutdown(shutdownCtx); err != nil {
 			errChan <- fmt.Errorf("error shutting down server: %v", err)
 		}
+
+		s.logger.Info("Stopping server")
+		stopServer()
 	}()
-
 	go func() {
-		logger := s.logger.WithValues("addr", s.httpServer.Addr, "tls", s.tlsEnabled)
-		listenFn := func() error {
-			if s.tlsEnabled {
-				return s.httpServer.ListenAndServeTLS("", "")
-			}
-			return s.httpServer.ListenAndServe()
-		}
-
-		logger.Info("Server listening")
-		if err := listenFn(); err != http.ErrServerClosed {
+		if err := s.listen(); err != nil {
 			errChan <- fmt.Errorf("Error starting server: %v", err)
 		}
 	}()
@@ -127,6 +109,22 @@ func (s *Server) Start(ctx context.Context) error {
 	case err := <-errChan:
 		return err
 	}
+}
+
+func (s *Server) listen() error {
+	logger := s.logger.WithValues("addr", s.httpServer.Addr, "tls", s.tlsEnabled)
+	listenFn := func() error {
+		if s.tlsEnabled {
+			return s.httpServer.ListenAndServeTLS("", "")
+		}
+		return s.httpServer.ListenAndServe()
+	}
+
+	logger.Info("Server listening")
+	if err := listenFn(); err != http.ErrServerClosed {
+		return err
+	}
+	return nil
 }
 
 func (s *Server) getTLSConfig() (*tls.Config, error) {
