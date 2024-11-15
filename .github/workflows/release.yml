@@ -183,8 +183,6 @@ jobs:
     runs-on: ubuntu-latest
     needs: 
       - args
-      - release
-      - release-ent
       - goreleaser
     steps:
       - name: Checkout
@@ -219,9 +217,6 @@ jobs:
     runs-on: ubuntu-latest
     needs: 
     - args
-    - release
-    - release-ent
-    - goreleaser
     - helm
     steps:
       - name: Checkout
@@ -246,10 +241,6 @@ jobs:
     runs-on: ubuntu-latest
     needs: 
       - args
-      - release
-      - release-ent
-      - goreleaser
-      - helm
       - olm
     steps:
       - name: Checkout
@@ -264,3 +255,27 @@ jobs:
             -f version=${{ needs.args.outputs.VERSION }} alias=latest
         env:
           GITHUB_TOKEN: "${{ secrets.GHA_TOKEN }}"
+
+  gopkg:
+    name: Go package
+    runs-on: ubuntu-latest
+    needs: 
+    - args
+    - docs
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: "${{ secrets.GHA_TOKEN }}"
+          ref: "${{ github.event.repository.default_branch }}"
+
+      - name: Configure Git
+        run: |
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+
+      - name: Push Go package compatible tag
+        run: |
+          git tag "v${{ needs.args.outputs.VERSION }}"
+          git push --tags
