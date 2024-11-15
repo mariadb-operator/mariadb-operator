@@ -56,7 +56,7 @@ func WithBasicAuth(auth bool, user, pass string) Option {
 	}
 }
 
-func NewRouter(handler *handler.Galera, k8sClient ctrlclient.Client, logger logr.Logger, opts ...Option) http.Handler {
+func NewGaleraRouter(handler *handler.Galera, k8sClient ctrlclient.Client, logger logr.Logger, opts ...Option) http.Handler {
 	routerOpts := Options{
 		CompressLevel:  5,
 		KubernetesAuth: false,
