@@ -7,14 +7,22 @@ import (
 )
 
 const (
-	PKIVolume           = "pki"
-	MariadbPKIMountPath = "/etc/pki"
+	PKIVolume    = "pki"
+	PKIMountPath = "/etc/pki"
+
+	ServerCertKey = "server.crt"
+	ServerKeyKey  = "server.key"
+
+	ClientCertKey = "client.crt"
+	ClientKeyKey  = "client.key"
 )
 
 var (
-	MariadbTLSCACertPath     = filepath.Join(MariadbPKIMountPath, pki.CACertKey)
-	MariadbTLSServerCertPath = filepath.Join(MariadbPKIMountPath, "server.crt")
-	MariadbTLSServerKeyPath  = filepath.Join(MariadbPKIMountPath, "server.key")
-	MariadbTLSClientCertPath = filepath.Join(MariadbPKIMountPath, "client.crt")
-	MariadbTLSClientKeyPath  = filepath.Join(MariadbPKIMountPath, "client.key")
+	CACertPath = filepath.Join(PKIMountPath, pki.CACertKey)
+
+	ServerCertPath = filepath.Join(PKIMountPath, ServerCertKey)
+	ServerKeyPath  = filepath.Join(PKIMountPath, ServerKeyKey)
+
+	ClientCertPath = filepath.Join(PKIMountPath, ClientCertKey)
+	ClientKeyPath  = filepath.Join(PKIMountPath, ClientKeyKey)
 )
