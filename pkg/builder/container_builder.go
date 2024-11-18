@@ -412,23 +412,23 @@ func mariadbEnv(mariadb *mariadbv1alpha1.MariaDB) []corev1.EnvVar {
 			},
 			{
 				Name:  "TLS_CA_CERT_PATH",
-				Value: builderpki.MariadbTLSCACertPath,
+				Value: builderpki.CACertPath,
 			},
 			{
 				Name:  "TLS_SERVER_CERT_PATH",
-				Value: builderpki.MariadbTLSServerCertPath,
+				Value: builderpki.ServerCertPath,
 			},
 			{
 				Name:  "TLS_SERVER_KEY_PATH",
-				Value: builderpki.MariadbTLSServerKeyPath,
+				Value: builderpki.ServerKeyPath,
 			},
 			{
 				Name:  "TLS_CLIENT_CERT_PATH",
-				Value: builderpki.MariadbTLSClientCertPath,
+				Value: builderpki.ClientCertPath,
 			},
 			{
 				Name:  "TLS_CLIENT_KEY_PATH",
-				Value: builderpki.MariadbTLSClientKeyPath,
+				Value: builderpki.ClientKeyPath,
 			},
 		}...)
 	}

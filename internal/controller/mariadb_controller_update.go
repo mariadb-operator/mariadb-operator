@@ -121,11 +121,11 @@ func (r *MariaDBReconciler) getUpdateAnnotations(ctx context.Context, mariadb *m
 			MariadbRootPassword: "password",
 			MariadbPort:         strconv.Itoa(int(mariadb.Spec.Port)),
 			TLSEnabled:          strconv.FormatBool(mariadb.IsTLSEnabled()),
-			TLSCACertPath:       builderpki.MariadbTLSCACertPath,
-			TLSServerCertPath:   builderpki.MariadbTLSServerCertPath,
-			TLSServerKeyPath:    builderpki.MariadbTLSServerKeyPath,
-			TLSClientCertPath:   builderpki.MariadbTLSClientCertPath,
-			TLSClientKeyPath:    builderpki.MariadbTLSClientKeyPath,
+			TLSCACertPath:       builderpki.CACertPath,
+			TLSServerCertPath:   builderpki.ServerCertPath,
+			TLSServerKeyPath:    builderpki.ServerKeyPath,
+			TLSClientCertPath:   builderpki.ClientCertPath,
+			TLSClientKeyPath:    builderpki.ClientKeyPath,
 		}
 		config, err := galeraconfig.NewConfigFile(mariadb, r.Discovery, logger).Marshal(env)
 		if err != nil {
