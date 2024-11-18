@@ -197,7 +197,7 @@ func (r *ConnectionReconciler) checkHealth(ctx context.Context, conn *mariadbv1a
 
 func (r *ConnectionReconciler) reconcileSecret(ctx context.Context, conn *mariadbv1alpha1.Connection,
 	refs *mariadbv1alpha1.ConnectionRefs) error {
-	sqlOpts, err := r.getSqlOpts(ctx, conn, refs.MariaDB)
+	sqlOpts, err := r.getSqlOpts(ctx, conn, refs)
 	if err != nil {
 		return fmt.Errorf("error getting SQL options: %v", err)
 	}
@@ -282,7 +282,7 @@ func (r *ConnectionReconciler) reconcileSecret(ctx context.Context, conn *mariad
 }
 
 func (r *ConnectionReconciler) getSqlOpts(ctx context.Context, conn *mariadbv1alpha1.Connection,
-	mdb *mariadbv1alpha1.MariaDB) (clientsql.Opts, error) {
+	refs *mariadbv1alpha1.ConnectionRefs) (clientsql.Opts, error) {
 	password, err := r.RefResolver.SecretKeyRef(ctx, conn.Spec.PasswordSecretKeyRef, conn.Namespace)
 	if err != nil {
 		return clientsql.Opts{}, fmt.Errorf("error getting password for connection DSN: %v", err)
@@ -297,14 +297,14 @@ func (r *ConnectionReconciler) getSqlOpts(ctx context.Context, conn *mariadbv1al
 	if conn.Spec.Database != nil {
 		sqlOpts.Database = *conn.Spec.Database
 	}
-	if mdb.IsTLSEnabled() {
-		caBundle, err := r.RefResolver.SecretKeyRef(ctx, mdb.TLSCABundleSecretKeyRef(), mdb.Namespace)
+	if refs.MariaDB != nil && refs.MariaDB.IsTLSEnabled() {
+		caBundle, err := r.RefResolver.SecretKeyRef(ctx, refs.MariaDB.TLSCABundleSecretKeyRef(), refs.MariaDB.Namespace)
 		if err != nil {
 			return clientsql.Opts{}, fmt.Errorf("error getting CA bundle: %v", err)
 		}
 		sqlOpts.TLSCACert = []byte(caBundle)
-		sqlOpts.MariadbName = mdb.Name
-		sqlOpts.Namespace = mdb.Namespace
+		sqlOpts.MariadbName = refs.MariaDB.Name
+		sqlOpts.Namespace = refs.MariaDB.Namespace
 	}
 	return sqlOpts, nil
 }
