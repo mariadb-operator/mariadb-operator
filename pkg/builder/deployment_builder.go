@@ -49,6 +49,8 @@ func (b *Builder) BuildExporterDeployment(mariadb *mariadbv1alpha1.MariaDB,
 			WithLabels(selectorLabels).
 			Build()
 
+	volumes, volumeMounts := b.mariadbExporterVolumes(mariadb)
+
 	podTemplate, err := b.exporterPodTemplate(
 		podObjMeta,
 		&exporter,
@@ -56,7 +58,8 @@ func (b *Builder) BuildExporterDeployment(mariadb *mariadbv1alpha1.MariaDB,
 			fmt.Sprintf("--config.my-cnf=%s", exporterConfigFile(config.Key)),
 		},
 		mariadb.Spec.ImagePullSecrets,
-		config.Name,
+		withExporterVolumes(volumes),
+		withExporterVolumeMounts(volumeMounts),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("error building exporter pod template: %v", err)
@@ -101,6 +104,8 @@ func (b *Builder) BuildMaxScaleExporterDeployment(mxs *mariadbv1alpha1.MaxScale,
 			WithLabels(selectorLabels).
 			Build()
 
+	volumes, volumeMounts := b.maxscaleExporterVolumes(mxs)
+
 	podTemplate, err := b.exporterPodTemplate(
 		podObjMeta,
 		&exporter,
@@ -108,7 +113,8 @@ func (b *Builder) BuildMaxScaleExporterDeployment(mxs *mariadbv1alpha1.MaxScale,
 			fmt.Sprintf("--config=%s", exporterConfigFile(config.Key)),
 		},
 		mxs.Spec.ImagePullSecrets,
-		config.Name,
+		withExporterVolumes(volumes),
+		withExporterVolumeMounts(volumeMounts),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("error building MaxScale exporter pod template: %v", err)
@@ -129,14 +135,85 @@ func (b *Builder) BuildMaxScaleExporterDeployment(mxs *mariadbv1alpha1.MaxScale,
 	return deployment, nil
 }
 
+func (b *Builder) mariadbExporterVolumes(mariadb *mariadbv1alpha1.MariaDB) ([]corev1.Volume, []corev1.VolumeMount) {
+	volumes := []corev1.Volume{
+		{
+			Name: deployConfigVolume,
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					SecretName: mariadb.MetricsConfigSecretKeyRef().Name,
+				},
+			},
+		},
+	}
+	volumeMounts := []corev1.VolumeMount{
+		{
+			Name:      deployConfigVolume,
+			MountPath: deployConfigMountPath,
+			ReadOnly:  true,
+		},
+	}
+	if mariadb.IsTLSEnabled() {
+		tlsVolumes, tlsVolumeMounts := mariadbTLSVolumes(mariadb)
+		volumes = append(volumes, tlsVolumes...)
+		volumeMounts = append(volumeMounts, tlsVolumeMounts...)
+	}
+	return volumes, volumeMounts
+}
+
+func (b *Builder) maxscaleExporterVolumes(mxs *mariadbv1alpha1.MaxScale) ([]corev1.Volume, []corev1.VolumeMount) {
+	volumes := []corev1.Volume{
+		{
+			Name: deployConfigVolume,
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					SecretName: mxs.MetricsConfigSecretKeyRef().Name,
+				},
+			},
+		},
+	}
+	volumeMounts := []corev1.VolumeMount{
+		{
+			Name:      deployConfigVolume,
+			MountPath: deployConfigMountPath,
+			ReadOnly:  true,
+		},
+	}
+	return volumes, volumeMounts
+}
+
+type exporterOptions struct {
+	volumes      []corev1.Volume
+	volumeMounts []corev1.VolumeMount
+}
+
+type exporterOption func(*exporterOptions)
+
+func withExporterVolumes(volumes []corev1.Volume) exporterOption {
+	return func(eo *exporterOptions) {
+		eo.volumes = volumes
+	}
+}
+
+func withExporterVolumeMounts(volumeMounts []corev1.VolumeMount) exporterOption {
+	return func(eo *exporterOptions) {
+		eo.volumeMounts = volumeMounts
+	}
+}
+
 func (b *Builder) exporterPodTemplate(objMeta metav1.ObjectMeta, exporter *mariadbv1alpha1.Exporter, args []string,
-	pullSecrets []mariadbv1alpha1.LocalObjectReference, configSecretName string) (*corev1.PodTemplateSpec, error) {
+	pullSecrets []mariadbv1alpha1.LocalObjectReference, exporterOpts ...exporterOption) (*corev1.PodTemplateSpec, error) {
+	opts := exporterOptions{}
+	for _, setOpt := range exporterOpts {
+		setOpt(&opts)
+	}
+
 	securityContext, err := b.buildPodSecurityContext(exporter.PodSecurityContext)
 	if err != nil {
 		return nil, err
 	}
 
-	container, err := b.exporterContainer(exporter, args)
+	container, err := b.exporterContainer(exporter, args, withExporterVolumeMounts(opts.volumeMounts))
 	if err != nil {
 		return nil, fmt.Errorf("error building exporter container: %v", err)
 	}
@@ -150,16 +227,7 @@ func (b *Builder) exporterPodTemplate(objMeta metav1.ObjectMeta, exporter *maria
 			Containers: []corev1.Container{
 				*container,
 			},
-			Volumes: []corev1.Volume{
-				{
-					Name: deployConfigVolume,
-					VolumeSource: corev1.VolumeSource{
-						Secret: &corev1.SecretVolumeSource{
-							SecretName: configSecretName,
-						},
-					},
-				},
-			},
+			Volumes:           opts.volumes,
 			SecurityContext:   securityContext,
 			Affinity:          ptr.To(affinity.ToKubernetesType()),
 			NodeSelector:      exporter.NodeSelector,
@@ -169,7 +237,13 @@ func (b *Builder) exporterPodTemplate(objMeta metav1.ObjectMeta, exporter *maria
 	}, nil
 }
 
-func (b *Builder) exporterContainer(exporter *mariadbv1alpha1.Exporter, args []string) (*corev1.Container, error) {
+func (b *Builder) exporterContainer(exporter *mariadbv1alpha1.Exporter, args []string,
+	exporterOpts ...exporterOption) (*corev1.Container, error) {
+	opts := exporterOptions{}
+	for _, setOpt := range exporterOpts {
+		setOpt(&opts)
+	}
+
 	securityContext, err := b.buildContainerSecurityContext(exporter.SecurityContext)
 	if err != nil {
 		return nil, fmt.Errorf("error building container security context: %v", err)
@@ -200,13 +274,7 @@ func (b *Builder) exporterContainer(exporter *mariadbv1alpha1.Exporter, args []s
 				ContainerPort: exporter.Port,
 			},
 		},
-		VolumeMounts: []corev1.VolumeMount{
-			{
-				Name:      deployConfigVolume,
-				MountPath: deployConfigMountPath,
-				ReadOnly:  true,
-			},
-		},
+		VolumeMounts:    opts.volumeMounts,
 		Resources:       resources,
 		SecurityContext: securityContext,
 		LivenessProbe:   probe,

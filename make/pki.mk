@@ -125,7 +125,7 @@ cert-leaf-mariadb: ca ## Generate leaf certificates for MariaDB.
 .PHONY: cert-mariadb
 cert-mariadb: ## Generate certificates for MariaDB.
 	MARIADB_NAME="mariadb" \
-	CERT_ALT_NAMES="subjectAltName=DNS:mariadb.default.svc.cluster.local,DNS:localhost" \
+	CERT_ALT_NAMES="subjectAltName=DNS:*.mariadb-internal.default.svc.cluster.local,DNS:mariadb.default.svc.cluster.local,DNS:localhost" \
 	$(MAKE) cert-leaf-mariadb
 
 .PHONY: cert-mariadb-galera
