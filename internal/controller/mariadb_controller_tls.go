@@ -86,9 +86,9 @@ require_secure_transport = true
 		SSLKey  string
 		SSLCA   string
 	}{
-		SSLCert: builderpki.MariadbTLSServerCertPath,
-		SSLKey:  builderpki.MariadbTLSServerKeyPath,
-		SSLCA:   builderpki.MariadbTLSCACertPath,
+		SSLCert: builderpki.ServerCertPath,
+		SSLKey:  builderpki.ServerKeyPath,
+		SSLCA:   builderpki.CACertPath,
 	})
 	if err != nil {
 		return fmt.Errorf("error rendering TLS config: %v", err)

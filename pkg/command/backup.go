@@ -361,11 +361,11 @@ func (b *BackupCommand) tlsArgs(mariadb *mariadbv1alpha1.MariaDB) []string {
 	return []string{
 		"--ssl",
 		"--ssl-ca",
-		builderpki.MariadbTLSCACertPath,
+		builderpki.CACertPath,
 		"--ssl-cert",
-		builderpki.MariadbTLSClientCertPath,
+		builderpki.ClientCertPath,
 		"--ssl-key",
-		builderpki.MariadbTLSClientKeyPath,
+		builderpki.ClientKeyPath,
 		"--ssl-verify-server-cert",
 	}
 }
