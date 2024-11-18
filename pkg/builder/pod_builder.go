@@ -496,11 +496,11 @@ func mariadbTLSVolumes(mariadb *mariadbv1alpha1.MariaDB) ([]corev1.Volume, []cor
 									Items: []corev1.KeyToPath{
 										{
 											Key:  pki.TLSCertKey,
-											Path: "client.crt",
+											Path: builderpki.ClientCertKey,
 										},
 										{
 											Key:  pki.TLSKeyKey,
-											Path: "client.key",
+											Path: builderpki.ClientKeyKey,
 										},
 									},
 								},
@@ -513,11 +513,11 @@ func mariadbTLSVolumes(mariadb *mariadbv1alpha1.MariaDB) ([]corev1.Volume, []cor
 									Items: []corev1.KeyToPath{
 										{
 											Key:  pki.TLSCertKey,
-											Path: "server.crt",
+											Path: builderpki.ServerCertKey,
 										},
 										{
 											Key:  pki.TLSKeyKey,
-											Path: "server.key",
+											Path: builderpki.ServerKeyKey,
 										},
 									},
 								},
@@ -529,7 +529,7 @@ func mariadbTLSVolumes(mariadb *mariadbv1alpha1.MariaDB) ([]corev1.Volume, []cor
 		}, []corev1.VolumeMount{
 			{
 				Name:      builderpki.PKIVolume,
-				MountPath: builderpki.MariadbPKIMountPath,
+				MountPath: builderpki.PKIMountPath,
 			},
 		}
 }
