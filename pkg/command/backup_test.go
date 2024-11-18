@@ -1,11 +1,12 @@
 package command
 
 import (
-	"reflect"
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	builderpki "github.com/mariadb-operator/mariadb-operator/pkg/builder/pki"
 	"k8s.io/utils/ptr"
 )
 
@@ -67,6 +68,32 @@ func TestMariadbDumpArgs(t *testing.T) {
 				"--routines",
 				"--all-databases",
 				"--skip-add-locks",
+			},
+		},
+		{
+			name:      "TLS",
+			backupCmd: &BackupCommand{},
+			backup:    &mariadbv1alpha1.Backup{},
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					TLS: &mariadbv1alpha1.TLS{
+						Enabled: true,
+					},
+				},
+			},
+			wantArgs: []string{
+				"--single-transaction",
+				"--events",
+				"--routines",
+				"--all-databases",
+				"--ssl",
+				"--ssl-ca",
+				builderpki.MariadbTLSCACertPath,
+				"--ssl-cert",
+				builderpki.MariadbTLSClientCertPath,
+				"--ssl-key",
+				builderpki.MariadbTLSClientKeyPath,
+				"--ssl-verify-server-cert",
 			},
 		},
 		{
@@ -253,8 +280,8 @@ func TestMariadbDumpArgs(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			args := tt.backupCmd.mariadbDumpArgs(tt.backup, tt.mariadb)
-			if !reflect.DeepEqual(args, tt.wantArgs) {
-				t.Errorf("expecting args to be:\n%v\ngot:\n%v\n", tt.wantArgs, args)
+			if diff := cmp.Diff(args, tt.wantArgs); diff != "" {
+				t.Errorf("unexpected args (-want +got):\n%s", diff)
 			}
 		})
 	}
@@ -386,8 +413,8 @@ func TestMariadbOperatorBackup(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			command := tt.backupCmd.MariadbOperatorBackup()
-			if !reflect.DeepEqual(tt.wantArgs, command.Args) {
-				t.Errorf("expecting args to be:\n%v\ngot:\n%v\n", tt.wantArgs, command.Args)
+			if diff := cmp.Diff(command.Args, tt.wantArgs); diff != "" {
+				t.Errorf("unexpected args (-want +got):\n%s", diff)
 			}
 		})
 	}
@@ -398,12 +425,14 @@ func TestMariadbArgs(t *testing.T) {
 		name      string
 		backupCmd *BackupCommand
 		restore   *mariadbv1alpha1.Restore
+		mariadb   *mariadbv1alpha1.MariaDB
 		wantArgs  []string
 	}{
 		{
 			name:      "empty",
 			backupCmd: &BackupCommand{},
 			restore:   &mariadbv1alpha1.Restore{},
+			mariadb:   &mariadbv1alpha1.MariaDB{},
 			wantArgs:  nil,
 		},
 		{
@@ -417,6 +446,7 @@ func TestMariadbArgs(t *testing.T) {
 				},
 			},
 			restore: &mariadbv1alpha1.Restore{},
+			mariadb: &mariadbv1alpha1.MariaDB{},
 			wantArgs: []string{
 				"--verbose",
 				"--one-database db1",
@@ -434,6 +464,7 @@ func TestMariadbArgs(t *testing.T) {
 				},
 			},
 			restore: &mariadbv1alpha1.Restore{},
+			mariadb: &mariadbv1alpha1.MariaDB{},
 			wantArgs: []string{
 				"--verbose",
 				"--one-database db1",
@@ -447,6 +478,7 @@ func TestMariadbArgs(t *testing.T) {
 					Database: "db1",
 				},
 			},
+			mariadb: &mariadbv1alpha1.MariaDB{},
 			wantArgs: []string{
 				"--one-database db1",
 			},
@@ -465,18 +497,41 @@ func TestMariadbArgs(t *testing.T) {
 					Database: "db1",
 				},
 			},
+			mariadb: &mariadbv1alpha1.MariaDB{},
 			wantArgs: []string{
 				"--verbose",
 				"--one-database db1",
+			},
+		},
+		{
+			name:      "TLS",
+			backupCmd: &BackupCommand{},
+			restore:   &mariadbv1alpha1.Restore{},
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					TLS: &mariadbv1alpha1.TLS{
+						Enabled: true,
+					},
+				},
+			},
+			wantArgs: []string{
+				"--ssl",
+				"--ssl-ca",
+				builderpki.MariadbTLSCACertPath,
+				"--ssl-cert",
+				builderpki.MariadbTLSClientCertPath,
+				"--ssl-key",
+				builderpki.MariadbTLSClientKeyPath,
+				"--ssl-verify-server-cert",
 			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			args := tt.backupCmd.mariadbArgs(tt.restore)
-			if !reflect.DeepEqual(args, tt.wantArgs) {
-				t.Errorf("expecting args to be:\n%v\ngot:\n%v\n", tt.wantArgs, args)
+			args := tt.backupCmd.mariadbArgs(tt.restore, tt.mariadb)
+			if diff := cmp.Diff(args, tt.wantArgs); diff != "" {
+				t.Errorf("unexpected args (-want +got):\n%s", diff)
 			}
 		})
 	}
