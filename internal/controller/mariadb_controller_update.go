@@ -11,8 +11,8 @@ import (
 
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
+	builderpki "github.com/mariadb-operator/mariadb-operator/pkg/builder/pki"
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	galeraconfig "github.com/mariadb-operator/mariadb-operator/pkg/galera/config"
 	"github.com/mariadb-operator/mariadb-operator/pkg/health"
@@ -121,11 +121,11 @@ func (r *MariaDBReconciler) getUpdateAnnotations(ctx context.Context, mariadb *m
 			MariadbRootPassword: "password",
 			MariadbPort:         strconv.Itoa(int(mariadb.Spec.Port)),
 			TLSEnabled:          strconv.FormatBool(mariadb.IsTLSEnabled()),
-			TLSCACertPath:       builder.MariadbTLSCACertPath,
-			TLSServerCertPath:   builder.MariadbTLSServerCertPath,
-			TLSServerKeyPath:    builder.MariadbTLSServerKeyPath,
-			TLSClientCertPath:   builder.MariadbTLSClientCertPath,
-			TLSClientKeyPath:    builder.MariadbTLSClientKeyPath,
+			TLSCACertPath:       builderpki.MariadbTLSCACertPath,
+			TLSServerCertPath:   builderpki.MariadbTLSServerCertPath,
+			TLSServerKeyPath:    builderpki.MariadbTLSServerKeyPath,
+			TLSClientCertPath:   builderpki.MariadbTLSClientCertPath,
+			TLSClientKeyPath:    builderpki.MariadbTLSClientKeyPath,
 		}
 		config, err := galeraconfig.NewConfigFile(mariadb, r.Discovery, logger).Marshal(env)
 		if err != nil {

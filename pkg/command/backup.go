@@ -9,6 +9,7 @@ import (
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	backuppkg "github.com/mariadb-operator/mariadb-operator/pkg/backup"
+	builderpki "github.com/mariadb-operator/mariadb-operator/pkg/builder/pki"
 	ds "github.com/mariadb-operator/mariadb-operator/pkg/datastructures"
 	"k8s.io/utils/ptr"
 )
@@ -219,7 +220,7 @@ func (b *BackupCommand) MariadbOperatorRestore() *Command {
 
 func (b *BackupCommand) MariadbRestore(restore *mariadbv1alpha1.Restore,
 	mariadb *mariadbv1alpha1.MariaDB) *Command {
-	args := strings.Join(b.mariadbArgs(restore), " ")
+	args := strings.Join(b.mariadbArgs(restore, mariadb), " ")
 	cmds := []string{
 		"set -euo pipefail",
 		fmt.Sprintf(
@@ -257,7 +258,7 @@ func (b *BackupCommand) getTargetFilePath() string {
 	return fmt.Sprintf("$(cat '%s')", b.TargetFilePath)
 }
 
-func (b *BackupCommand) mariadbDumpArgs(backup *mariadbv1alpha1.Backup, mariab *mariadbv1alpha1.MariaDB) []string {
+func (b *BackupCommand) mariadbDumpArgs(backup *mariadbv1alpha1.Backup, mariadb *mariadbv1alpha1.MariaDB) []string {
 	dumpOpts := make([]string, len(b.BackupOpts.DumpOpts))
 	copy(dumpOpts, b.BackupOpts.DumpOpts)
 
@@ -282,7 +283,7 @@ func (b *BackupCommand) mariadbDumpArgs(backup *mariadbv1alpha1.Backup, mariab *
 	}
 
 	// LOCK TABLES is not compatible with Galera: https://mariadb.com/kb/en/lock-tables/#limitations
-	if mariab.IsGaleraEnabled() {
+	if mariadb.IsGaleraEnabled() {
 		args = append(args, "--skip-add-locks")
 	}
 	// Galera only replicates InnoDB tables and mysql.global_priv uses the MyISAM engine.
@@ -294,15 +295,23 @@ func (b *BackupCommand) mariadbDumpArgs(backup *mariadbv1alpha1.Backup, mariab *
 		args = append(args, "--ignore-table=mysql.global_priv")
 	}
 
+	if mariadb.IsTLSEnabled() {
+		args = append(args, b.tlsArgs(mariadb)...)
+	}
+
 	return ds.Unique(ds.Merge(args, dumpOpts)...)
 }
 
-func (b *BackupCommand) mariadbArgs(restore *mariadbv1alpha1.Restore) []string {
+func (b *BackupCommand) mariadbArgs(restore *mariadbv1alpha1.Restore, mariadb *mariadbv1alpha1.MariaDB) []string {
 	args := make([]string, len(b.BackupOpts.DumpOpts))
 	copy(args, b.BackupOpts.DumpOpts)
 
 	if restore.Spec.Database != "" {
 		args = append(args, fmt.Sprintf("--one-database %s", restore.Spec.Database))
+	}
+
+	if mariadb.IsTLSEnabled() {
+		args = append(args, b.tlsArgs(mariadb)...)
 	}
 
 	return ds.Unique(args...)
@@ -343,4 +352,20 @@ func (b *BackupCommand) s3Args() []string {
 		)
 	}
 	return args
+}
+
+func (b *BackupCommand) tlsArgs(mariadb *mariadbv1alpha1.MariaDB) []string {
+	if !mariadb.IsTLSEnabled() {
+		return nil
+	}
+	return []string{
+		"--ssl",
+		"--ssl-ca",
+		builderpki.MariadbTLSCACertPath,
+		"--ssl-cert",
+		builderpki.MariadbTLSClientCertPath,
+		"--ssl-key",
+		builderpki.MariadbTLSClientKeyPath,
+		"--ssl-verify-server-cert",
+	}
 }
