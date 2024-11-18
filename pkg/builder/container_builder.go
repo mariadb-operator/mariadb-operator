@@ -9,6 +9,7 @@ import (
 	"strconv"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	builderpki "github.com/mariadb-operator/mariadb-operator/pkg/builder/pki"
 	"github.com/mariadb-operator/mariadb-operator/pkg/command"
 	galeraresources "github.com/mariadb-operator/mariadb-operator/pkg/controller/galera/resources"
 	kadapter "github.com/mariadb-operator/mariadb-operator/pkg/kubernetes/adapter"
@@ -411,23 +412,23 @@ func mariadbEnv(mariadb *mariadbv1alpha1.MariaDB) []corev1.EnvVar {
 			},
 			{
 				Name:  "TLS_CA_CERT_PATH",
-				Value: MariadbTLSCACertPath,
+				Value: builderpki.MariadbTLSCACertPath,
 			},
 			{
 				Name:  "TLS_SERVER_CERT_PATH",
-				Value: MariadbTLSServerCertPath,
+				Value: builderpki.MariadbTLSServerCertPath,
 			},
 			{
 				Name:  "TLS_SERVER_KEY_PATH",
-				Value: MariadbTLSServerKeyPath,
+				Value: builderpki.MariadbTLSServerKeyPath,
 			},
 			{
 				Name:  "TLS_CLIENT_CERT_PATH",
-				Value: MariadbTLSClientCertPath,
+				Value: builderpki.MariadbTLSClientCertPath,
 			},
 			{
 				Name:  "TLS_CLIENT_KEY_PATH",
-				Value: MariadbTLSClientKeyPath,
+				Value: builderpki.MariadbTLSClientKeyPath,
 			},
 		}...)
 	}

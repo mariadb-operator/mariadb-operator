@@ -7,6 +7,7 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	metadata "github.com/mariadb-operator/mariadb-operator/pkg/builder/metadata"
+	builderpki "github.com/mariadb-operator/mariadb-operator/pkg/builder/pki"
 	galeraresources "github.com/mariadb-operator/mariadb-operator/pkg/controller/galera/resources"
 	kadapter "github.com/mariadb-operator/mariadb-operator/pkg/kubernetes/adapter"
 	"github.com/mariadb-operator/mariadb-operator/pkg/pki"
@@ -470,7 +471,7 @@ func mariadbTLSVolumes(mariadb *mariadbv1alpha1.MariaDB) ([]corev1.Volume, []cor
 	}
 	return []corev1.Volume{
 			{
-				Name: PKIVolume,
+				Name: builderpki.PKIVolume,
 				VolumeSource: corev1.VolumeSource{
 					Projected: &corev1.ProjectedVolumeSource{
 						Sources: []corev1.VolumeProjection{
@@ -527,8 +528,8 @@ func mariadbTLSVolumes(mariadb *mariadbv1alpha1.MariaDB) ([]corev1.Volume, []cor
 			},
 		}, []corev1.VolumeMount{
 			{
-				Name:      PKIVolume,
-				MountPath: MariadbPKIMountPath,
+				Name:      builderpki.PKIVolume,
+				MountPath: builderpki.MariadbPKIMountPath,
 			},
 		}
 }
