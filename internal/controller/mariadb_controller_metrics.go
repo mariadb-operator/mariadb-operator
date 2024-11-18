@@ -146,9 +146,9 @@ ssl-ca={{ .SSLCA }}
 		User:       mariadb.Spec.Metrics.Username,
 		Password:   password,
 		SSLEnabled: mariadb.IsTLSEnabled(),
-		SSLCert:    builderpki.MariadbTLSClientCertPath,
-		SSLKey:     builderpki.MariadbTLSClientKeyPath,
-		SSLCA:      builderpki.MariadbTLSCACertPath,
+		SSLCert:    builderpki.ClientCertPath,
+		SSLKey:     builderpki.ClientKeyPath,
+		SSLCA:      builderpki.CACertPath,
 	})
 	if err != nil {
 		return fmt.Errorf("error rendering exporter config: %v", err)
