@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
+	builderpki "github.com/mariadb-operator/mariadb-operator/pkg/builder/pki"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/configmap"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
 	"github.com/mariadb-operator/mariadb-operator/pkg/pki"
@@ -86,9 +86,9 @@ require_secure_transport = true
 		SSLKey  string
 		SSLCA   string
 	}{
-		SSLCert: builder.MariadbTLSServerCertPath,
-		SSLKey:  builder.MariadbTLSServerKeyPath,
-		SSLCA:   builder.MariadbTLSCACertPath,
+		SSLCert: builderpki.MariadbTLSServerCertPath,
+		SSLKey:  builderpki.MariadbTLSServerKeyPath,
+		SSLCA:   builderpki.MariadbTLSCACertPath,
 	})
 	if err != nil {
 		return fmt.Errorf("error rendering TLS config: %v", err)
