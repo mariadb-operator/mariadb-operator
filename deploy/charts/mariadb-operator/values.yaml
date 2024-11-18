@@ -47,7 +47,9 @@ metrics:
     interval: 30s
     # -- Timeout if metrics can't be retrieved in given time interval
     scrapeTimeout: 25s
+    # MetricRelabelConfigs to apply to samples before ingestion.
     metricRelabelings: []
+    # RelabelConfigs to apply to samples before scraping.
     relabelings: []
 
 serviceAccount:
