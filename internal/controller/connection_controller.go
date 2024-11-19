@@ -297,14 +297,14 @@ func (r *ConnectionReconciler) getSqlOpts(ctx context.Context, conn *mariadbv1al
 	if conn.Spec.Database != nil {
 		sqlOpts.Database = *conn.Spec.Database
 	}
-	if refs.MariaDB != nil && refs.MariaDB.IsTLSEnabled() {
-		caBundle, err := r.RefResolver.SecretKeyRef(ctx, refs.MariaDB.TLSCABundleSecretKeyRef(), refs.MariaDB.Namespace)
+	if mdb := refs.MariaDB; mdb != nil && mdb.IsTLSEnabled() {
+		caBundle, err := r.RefResolver.SecretKeyRef(ctx, mdb.TLSCABundleSecretKeyRef(), mdb.Namespace)
 		if err != nil {
 			return clientsql.Opts{}, fmt.Errorf("error getting CA bundle: %v", err)
 		}
 		sqlOpts.TLSCACert = []byte(caBundle)
-		sqlOpts.MariadbName = refs.MariaDB.Name
-		sqlOpts.Namespace = refs.MariaDB.Namespace
+		sqlOpts.MariadbName = mdb.Name
+		sqlOpts.Namespace = mdb.Namespace
 	}
 	return sqlOpts, nil
 }
