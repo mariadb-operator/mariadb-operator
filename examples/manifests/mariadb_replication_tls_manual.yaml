@@ -21,19 +21,19 @@ spec:
     type: LoadBalancer
     metadata:
       annotations:
-        metallb.universe.tf/loadBalancerIPs: 172.18.0.150
+        metallb.universe.tf/loadBalancerIPs: 172.18.0.120
 
   primaryService:
     type: LoadBalancer
     metadata:
       annotations:
-        metallb.universe.tf/loadBalancerIPs: 172.18.0.160
+        metallb.universe.tf/loadBalancerIPs: 172.18.0.130
 
   secondaryService:
     type: LoadBalancer
     metadata:
       annotations:
-        metallb.universe.tf/loadBalancerIPs: 172.18.0.161
+        metallb.universe.tf/loadBalancerIPs: 172.18.0.131
   
   metrics:
     enabled: true
