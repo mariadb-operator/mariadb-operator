@@ -6,8 +6,10 @@ import (
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
+	builderpki "github.com/mariadb-operator/mariadb-operator/pkg/builder/pki"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
+	"github.com/mariadb-operator/mariadb-operator/pkg/sql"
 	sqlClient "github.com/mariadb-operator/mariadb-operator/pkg/sql"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	"k8s.io/apimachinery/pkg/types"
@@ -143,21 +145,29 @@ func (r *ReplicationConfig) changeMaster(ctx context.Context, mariadb *mariadbv1
 		return fmt.Errorf("error getting GTID: %v", err)
 	}
 
-	changeMasterOpts := &sqlClient.ChangeMasterOpts{
-		Connection: connectionName,
-		// MariaDB 10.5 has a limitation of 60 characters in this host.
-		Host: statefulset.PodShortFQDNWithService(
-			mariadb.ObjectMeta,
-			primaryPodIndex,
-			mariadb.InternalServiceKey().Name,
+	changeMasterOpts := []sql.ChangeMasterOpt{
+		sql.WithChangeMasterConnection(connectionName),
+		sql.WithChangeMasterHost(
+			// MariaDB 10.5 has a limitation of 60 characters in this host.
+			statefulset.PodShortFQDNWithService(
+				mariadb.ObjectMeta,
+				primaryPodIndex,
+				mariadb.InternalServiceKey().Name,
+			),
 		),
-		User:     replUser,
-		Port:     mariadb.Spec.Port,
-		Password: password,
-		Gtid:     gtidString,
-		Retries:  *mariadb.Replication().Replica.ConnectionRetries,
+		sql.WithChangeMasterPort(mariadb.Spec.Port),
+		sql.WithChangeMasterCredentials(replUser, password),
+		sql.WithChangeMasterGtid(gtidString),
+		sql.WithChangeMasterRetries(*mariadb.Replication().Replica.ConnectionRetries),
 	}
-	if err := client.ChangeMaster(ctx, changeMasterOpts); err != nil {
+	if mariadb.IsTLSEnabled() {
+		changeMasterOpts = append(changeMasterOpts, sql.WithChangeMasterSSL(
+			builderpki.ClientCertPath,
+			builderpki.ClientKeyPath,
+			builderpki.CACertPath,
+		))
+	}
+	if err := client.ChangeMaster(ctx, changeMasterOpts...); err != nil {
 		return fmt.Errorf("error changing master: %v", err)
 	}
 	return nil
