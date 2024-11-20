@@ -583,23 +583,109 @@ type ChangeMasterOpts struct {
 	Password   string
 	Gtid       string
 	Retries    int
+
+	SSLEnabled  bool
+	SSLCertPath string
+	SSLKeyPath  string
+	SSLCAPath   string
 }
 
-func (c *Client) ChangeMaster(ctx context.Context, opts *ChangeMasterOpts) error {
+type ChangeMasterOpt func(*ChangeMasterOpts)
+
+func WithChangeMasterConnection(connection string) ChangeMasterOpt {
+	return func(cmo *ChangeMasterOpts) {
+		cmo.Connection = connection
+	}
+}
+
+func WithChangeMasterHost(host string) ChangeMasterOpt {
+	return func(cmo *ChangeMasterOpts) {
+		cmo.Host = host
+	}
+}
+
+func WithChangeMasterPort(port int32) ChangeMasterOpt {
+	return func(cmo *ChangeMasterOpts) {
+		cmo.Port = port
+	}
+}
+
+func WithChangeMasterCredentials(user, password string) ChangeMasterOpt {
+	return func(cmo *ChangeMasterOpts) {
+		cmo.User = user
+		cmo.Password = password
+	}
+}
+
+func WithChangeMasterGtid(gtid string) ChangeMasterOpt {
+	return func(cmo *ChangeMasterOpts) {
+		cmo.Gtid = gtid
+	}
+}
+
+func WithChangeMasterRetries(retries int) ChangeMasterOpt {
+	return func(cmo *ChangeMasterOpts) {
+		cmo.Retries = retries
+	}
+}
+
+func WithChangeMasterSSL(certPath, keyPath, caPath string) ChangeMasterOpt {
+	return func(cmo *ChangeMasterOpts) {
+		cmo.SSLEnabled = true
+		cmo.SSLCertPath = certPath
+		cmo.SSLKeyPath = keyPath
+		cmo.SSLCAPath = caPath
+	}
+}
+
+func (c *Client) ChangeMaster(ctx context.Context, changeMasterOpts ...ChangeMasterOpt) error {
+	query, err := buildChangeMasterQuery(changeMasterOpts...)
+	if err != nil {
+		return fmt.Errorf("error building CHANGE MASTER query: %v", err)
+	}
+	return c.Exec(ctx, query)
+}
+
+func buildChangeMasterQuery(changeMasterOpts ...ChangeMasterOpt) (string, error) {
+	opts := ChangeMasterOpts{
+		Connection: "mariadb-operator",
+		Port:       3306,
+		Gtid:       "CurrentPos",
+		Retries:    10,
+	}
+	for _, setOpt := range changeMasterOpts {
+		setOpt(&opts)
+	}
+	if opts.Host == "" {
+		return "", errors.New("host must be provided")
+	}
+	if opts.User == "" || opts.Password == "" {
+		return "", errors.New("credentials must be provided")
+	}
+	if opts.SSLEnabled && (opts.SSLCertPath == "" || opts.SSLKeyPath == "" || opts.SSLCAPath == "") {
+		return "", errors.New("all SSL paths must be provided when SSL is enabled")
+	}
+
 	tpl := createTpl("change-master.sql", `CHANGE MASTER '{{ .Connection }}' TO
 MASTER_HOST='{{ .Host }}',
 MASTER_PORT={{ .Port }},
 MASTER_USER='{{ .User }}',
 MASTER_PASSWORD='{{ .Password }}',
 MASTER_USE_GTID={{ .Gtid }},
-MASTER_CONNECT_RETRY={{ .Retries }};
+MASTER_CONNECT_RETRY={{ .Retries }}{{ if .SSLEnabled }},{{ else }};{{ end }}
+{{- if .SSLEnabled }}
+MASTER_SSL_CERT='{{ .SSLCertPath }}',
+MASTER_SSL_KEY='{{ .SSLKeyPath }}',
+MASTER_SSL_CA='{{ .SSLCAPath }}',
+MASTER_SSL_VERIFY_SERVER_CERT=1;
+{{- end }}
 `)
 	buf := new(bytes.Buffer)
 	err := tpl.Execute(buf, opts)
 	if err != nil {
-		return fmt.Errorf("error generating change master query: %v", err)
+		return "", fmt.Errorf("error rendering CHANGE MASTER template: %v", err)
 	}
-	return c.Exec(ctx, buf.String())
+	return buf.String(), nil
 }
 
 func (c *Client) ResetSlavePos(ctx context.Context) error {
