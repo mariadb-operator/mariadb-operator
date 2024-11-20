@@ -8,12 +8,15 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	builderpki "github.com/mariadb-operator/mariadb-operator/pkg/builder/pki"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
+	env "github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	"github.com/mariadb-operator/mariadb-operator/pkg/sql"
 	sqlClient "github.com/mariadb-operator/mariadb-operator/pkg/sql"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
+	"github.com/mariadb-operator/mariadb-operator/pkg/version"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 var (
@@ -27,14 +30,17 @@ type ReplicationConfig struct {
 	builder          *builder.Builder
 	refResolver      *refresolver.RefResolver
 	secretReconciler *secret.SecretReconciler
+	env              *env.OperatorEnv
 }
 
-func NewReplicationConfig(client client.Client, builder *builder.Builder, secretReconciler *secret.SecretReconciler) *ReplicationConfig {
+func NewReplicationConfig(client client.Client, builder *builder.Builder, secretReconciler *secret.SecretReconciler,
+	env *env.OperatorEnv) *ReplicationConfig {
 	return &ReplicationConfig{
 		Client:           client,
 		builder:          builder,
 		refResolver:      refresolver.New(client),
 		secretReconciler: secretReconciler,
+		env:              env,
 	}
 }
 
@@ -145,16 +151,14 @@ func (r *ReplicationConfig) changeMaster(ctx context.Context, mariadb *mariadbv1
 		return fmt.Errorf("error getting GTID: %v", err)
 	}
 
+	changeMasterHostOpt, err := r.getChangeMasterHost(ctx, mariadb, primaryPodIndex)
+	if err != nil {
+		return fmt.Errorf("error getting host option: %v", err)
+	}
+
 	changeMasterOpts := []sql.ChangeMasterOpt{
+		changeMasterHostOpt,
 		sql.WithChangeMasterConnection(connectionName),
-		sql.WithChangeMasterHost(
-			// MariaDB 10.5 has a limitation of 60 characters in this host.
-			statefulset.PodShortFQDNWithService(
-				mariadb.ObjectMeta,
-				primaryPodIndex,
-				mariadb.InternalServiceKey().Name,
-			),
-		),
 		sql.WithChangeMasterPort(mariadb.Spec.Port),
 		sql.WithChangeMasterCredentials(replUser, password),
 		sql.WithChangeMasterGtid(gtidString),
@@ -171,6 +175,47 @@ func (r *ReplicationConfig) changeMaster(ctx context.Context, mariadb *mariadbv1
 		return fmt.Errorf("error changing master: %v", err)
 	}
 	return nil
+}
+
+func (r *ReplicationConfig) getChangeMasterHost(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+	primaryPodIndex int) (sql.ChangeMasterOpt, error) {
+	logger := log.FromContext(ctx).
+		WithName("replication-config").
+		WithValues("image", mariadb.Spec.Image).
+		V(1)
+	vOpts := []version.Option{
+		version.WithLogger(logger),
+	}
+	if r.env != nil && r.env.MariadbDefaultVersion != "" {
+		vOpts = append(vOpts, version.WithDefaultVersion(r.env.MariadbDefaultVersion))
+	}
+	v, err := version.NewVersion(mariadb.Spec.Image, vOpts...)
+	if err != nil {
+		return nil, fmt.Errorf("error creating version: %v", err)
+	}
+
+	isCompatibleVersion, err := v.GreaterThanOrEqual("10.6")
+	if err != nil {
+		return nil, fmt.Errorf("error comparing version: %v", err)
+	}
+
+	if isCompatibleVersion {
+		return sql.WithChangeMasterHost(
+			statefulset.PodFQDNWithService(
+				mariadb.ObjectMeta,
+				primaryPodIndex,
+				mariadb.InternalServiceKey().Name,
+			),
+		), nil
+	}
+	return sql.WithChangeMasterHost(
+		// MariaDB 10.5 has a limitation of 60 characters in this host.
+		statefulset.PodShortFQDNWithService(
+			mariadb.ObjectMeta,
+			primaryPodIndex,
+			mariadb.InternalServiceKey().Name,
+		),
+	), nil
 }
 
 func (r *ReplicationConfig) reconcilePrimarySql(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *sqlClient.Client) error {
