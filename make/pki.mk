@@ -125,13 +125,19 @@ cert-leaf-mariadb: ca ## Generate leaf certificates for MariaDB.
 .PHONY: cert-mariadb
 cert-mariadb: ## Generate certificates for MariaDB.
 	MARIADB_NAME="mariadb" \
-	CERT_ALT_NAMES="subjectAltName=DNS:*.mariadb-internal.default.svc.cluster.local,DNS:mariadb.default.svc.cluster.local,DNS:localhost" \
+	CERT_ALT_NAMES="subjectAltName=DNS:*.mariadb-internal.default.svc.cluster.local,DNS:*.mariadb-internal,DNS:mariadb.default.svc.cluster.local,DNS:localhost" \
 	$(MAKE) cert-leaf-mariadb
 
 .PHONY: cert-mariadb-galera
 cert-mariadb-galera: ## Generate certificates for MariaDB Galera.
 	MARIADB_NAME="mariadb-galera" \
-	CERT_ALT_NAMES="subjectAltName=DNS:*.mariadb-galera-internal.default.svc.cluster.local,DNS:mariadb-galera-primary.default.svc.cluster.local,DNS:mariadb-galera.default.svc.cluster.local,DNS:localhost" \
+	CERT_ALT_NAMES="subjectAltName=DNS:*.mariadb-galera-internal.default.svc.cluster.local,DNS:*.mariadb-galera-internal,DNS:mariadb-galera-primary.default.svc.cluster.local,DNS:mariadb-galera.default.svc.cluster.local,DNS:localhost" \
+	$(MAKE) cert-leaf-mariadb
+
+.PHONY: cert-mariadb-repl
+cert-mariadb-repl: ## Generate certificates for MariaDB replication.
+	MARIADB_NAME="mariadb-repl" \
+	CERT_ALT_NAMES="subjectAltName=DNS:*.mariadb-repl-internal.default.svc.cluster.local,DNS:*.mariadb-repl-internal,DNS:mariadb-repl-primary.default.svc.cluster.local,DNS:mariadb-repl.default.svc.cluster.local,DNS:localhost" \
 	$(MAKE) cert-leaf-mariadb
 
 WEBHOOK_PKI_DIR ?= /tmp/k8s-webhook-server/serving-certs
@@ -184,4 +190,4 @@ cert-secret: kubectl ## Creates a generic Secret from a certificate.
 		--dry-run=client -o yaml | $(KUBECTL) apply -f -
 
 .PHONY: cert
-cert: cert-mariadb cert-mariadb-galera cert-webhook cert-minio ## Generate certificates.
+cert: cert-mariadb cert-mariadb-galera cert-mariadb-repl cert-webhook cert-minio ## Generate certificates.
