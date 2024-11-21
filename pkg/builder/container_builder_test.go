@@ -1030,8 +1030,7 @@ func TestMaxScaleProbe(t *testing.T) {
 			probe: &mariadbv1alpha1.Probe{},
 			wantProbe: &corev1.Probe{
 				ProbeHandler: corev1.ProbeHandler{
-					HTTPGet: &corev1.HTTPGetAction{
-						Path: "/",
+					TCPSocket: &corev1.TCPSocketAction{
 						Port: intstr.FromInt(8989),
 					},
 				},
@@ -1056,8 +1055,7 @@ func TestMaxScaleProbe(t *testing.T) {
 			},
 			wantProbe: &corev1.Probe{
 				ProbeHandler: corev1.ProbeHandler{
-					HTTPGet: &corev1.HTTPGetAction{
-						Path: "/",
+					TCPSocket: &corev1.TCPSocketAction{
 						Port: intstr.FromInt(8989),
 					},
 				},
@@ -1077,8 +1075,8 @@ func TestMaxScaleProbe(t *testing.T) {
 			},
 			probe: &mariadbv1alpha1.Probe{
 				ProbeHandler: mariadbv1alpha1.ProbeHandler{
-					HTTPGet: &mariadbv1alpha1.HTTPGetAction{
-						Path: "/custom",
+					TCPSocket: &mariadbv1alpha1.TCPSocketAction{
+						Host: "custom",
 						Port: intstr.FromInt(8989),
 					},
 				},
@@ -1088,8 +1086,8 @@ func TestMaxScaleProbe(t *testing.T) {
 			},
 			wantProbe: &corev1.Probe{
 				ProbeHandler: corev1.ProbeHandler{
-					HTTPGet: &corev1.HTTPGetAction{
-						Path: "/custom",
+					TCPSocket: &corev1.TCPSocketAction{
+						Host: "custom",
 						Port: intstr.FromInt(8989),
 					},
 				},
