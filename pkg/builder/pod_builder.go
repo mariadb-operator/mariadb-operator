@@ -610,6 +610,23 @@ func maxscaleTLSVolumes(mxs *mariadbv1alpha1.MaxScale) ([]corev1.Volume, []corev
 									},
 								},
 							},
+							{
+								Secret: &corev1.SecretProjection{
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: mxs.TLSListenerCertSecretKey().Name,
+									},
+									Items: []corev1.KeyToPath{
+										{
+											Key:  pki.TLSCertKey,
+											Path: builderpki.ListenerCertKey,
+										},
+										{
+											Key:  pki.TLSKeyKey,
+											Path: builderpki.ListenerKeyKey,
+										},
+									},
+								},
+							},
 						},
 					},
 				},

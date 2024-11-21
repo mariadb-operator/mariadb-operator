@@ -18,6 +18,9 @@ const (
 
 	AdminCertKey = "admin.crt"
 	AdminKeyKey  = "admin.key"
+
+	ListenerCertKey = "listener.crt"
+	ListenerKeyKey  = "listener.key"
 )
 
 var (
@@ -31,4 +34,7 @@ var (
 
 	AdminCertPath = filepath.Join(PKIMountPath, AdminCertKey)
 	AdminKeyPath  = filepath.Join(PKIMountPath, AdminKeyKey)
+
+	ListenerCertPath = filepath.Join(PKIMountPath, ListenerCertKey)
+	ListenerKeyPath  = filepath.Join(PKIMountPath, ListenerKeyKey)
 )
