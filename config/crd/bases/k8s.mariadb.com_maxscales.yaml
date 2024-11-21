@@ -1995,6 +1995,25 @@ spec:
                   enabled:
                     description: Enabled is a flag to enable TLS.
                     type: boolean
+                  listenerCASecretRef:
+                    description: |-
+                      ListenerCASecretRef is a reference to a Secret containing the admin certificate authority keypair. It is used to establish trust and issue scertificates for the MaxScale's listeners.
+                      One of:
+                      - TLS Secret containing both the tls.crt and tls.key. This allows you to bring your own CA to Kubernetes to issue certificates.
+                      - Generic Secret containing the tls.crt to establish trust. In this case, listenerCertSecretRef is mandatory.
+                    properties:
+                      name:
+                        default: ""
+                        type: string
+                    type: object
+                  listenerCertSecretRef:
+                    description: ListenerCertSecretRef is a reference to a TLS Secret
+                      used by the MaxScale's listeners.
+                    properties:
+                      name:
+                        default: ""
+                        type: string
+                    type: object
                 type: object
               tolerations:
                 description: Tolerations to be used in the Pod.
