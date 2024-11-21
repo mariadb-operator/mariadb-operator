@@ -179,6 +179,11 @@ func (b *Builder) maxscaleExporterVolumes(mxs *mariadbv1alpha1.MaxScale) ([]core
 			ReadOnly:  true,
 		},
 	}
+	if mxs.IsTLSEnabled() {
+		tlsVolumes, tlsVolumeMounts := maxscaleTLSVolumes(mxs)
+		volumes = append(volumes, tlsVolumes...)
+		volumeMounts = append(volumeMounts, tlsVolumeMounts...)
+	}
 	return volumes, volumeMounts
 }
 
