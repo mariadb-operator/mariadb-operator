@@ -9,6 +9,10 @@ import (
 type ListenerParameters struct {
 	Port     int32     `json:"port"`
 	Protocol string    `json:"protocol"`
+	SSL      bool      `json:"ssl,omitempty"`
+	SSLCert  string    `json:"ssl_cert,omitempty"`
+	SSLKey   string    `json:"ssl_key,omitempty"`
+	SSLCA    string    `json:"ssl_ca,omitempty"`
 	Params   MapParams `json:"-"`
 }
 

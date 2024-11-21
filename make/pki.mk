@@ -64,6 +64,17 @@ ca-mxs-admin: ## Generates MaxScale admin CA keypair.
 	CA_SUBJECT="/CN=maxscale-admin-ca" \
 	$(MAKE) ca-root
 
+CA_MAXSCALE_LISTENER_CERT ?= $(CA_DIR)/maxscale-listener.crt 
+CA_MAXSCALE_LISTENER_KEY ?= $(CA_DIR)/maxscale-listener.key 
+.PHONY: ca-mxs-listener
+ca-mxs-listener: ## Generates MaxScale listener CA keypair.
+	CA_SECRET_NAME=maxscale-listener-ca \
+	CA_SECRET_NAMESPACE=default \
+	CA_CERT=$(CA_MAXSCALE_LISTENER_CERT) \
+	CA_KEY=$(CA_MAXSCALE_LISTENER_KEY) \
+	CA_SUBJECT="/CN=maxscale-listener-ca" \
+	$(MAKE) ca-root
+
 CA_MINIO_CERT ?= $(CA_DIR)/minio.crt 
 CA_MINIO_KEY ?= $(CA_DIR)/minio.key 
 .PHONY: ca-minio
@@ -159,8 +170,8 @@ cert-mariadb-repl: ## Generate certificates for MariaDB replication.
 
 # MaxScale ================================================================================================================================
 
-.PHONY: cert-mxs-admin-galera
-cert-mxs-admin-galera: ca-mxs-admin ## Generate certificates for MaxScale admin Galera.
+.PHONY: cert-mxs-galera
+cert-mxs-galera: ca-mxs-admin ca-mxs-listener ## Generate certificates for MaxScale admin Galera.
 	CERT_SECRET_NAME=maxscale-galera-admin-tls \
 	CERT_SECRET_NAMESPACE=default \
 	CERT=$(PKI_DIR)/maxscale-galera-admin.crt \
@@ -171,10 +182,17 @@ cert-mxs-admin-galera: ca-mxs-admin ## Generate certificates for MaxScale admin 
 	CA_KEY=$(CA_MAXSCALE_ADMIN_KEY) \
 	$(MAKE) cert-leaf
 
-.PHONY: cert-mxs-galera
-cert-mxs-galera: cert-mxs-admin-galera
+	CERT_SECRET_NAME=maxscale-galera-listener-tls \
+	CERT_SECRET_NAMESPACE=default \
+	CERT=$(PKI_DIR)/maxscale-galera-listener.crt \
+	KEY=$(PKI_DIR)/maxscale-galera-listener.key \
+	CERT_SUBJECT="/CN=maxscale-galera.default.svc.cluster.local" \
+	CERT_ALT_NAMES="subjectAltName=DNS:*.maxscale-galera-internal.default.svc.cluster.local,DNS:maxscale-galera.default.svc.cluster.local,DNS:maxscale-galera-gui.default.svc.cluster.local"  \
+	CA_CERT=$(CA_MAXSCALE_LISTENER_CERT) \
+	CA_KEY=$(CA_MAXSCALE_LISTENER_KEY) \
+	$(MAKE) cert-leaf
 
-# Webhook =============================================================================================================================????
+# Webhook =================================================================================================================================
 
 WEBHOOK_PKI_DIR ?= /tmp/k8s-webhook-server/serving-certs
 .PHONY: cert-webhook
