@@ -9,6 +9,7 @@ import (
 
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	builderpki "github.com/mariadb-operator/mariadb-operator/pkg/builder/pki"
 	ds "github.com/mariadb-operator/mariadb-operator/pkg/datastructures"
 	"github.com/mariadb-operator/mariadb-operator/pkg/health"
 	mdbhttp "github.com/mariadb-operator/mariadb-operator/pkg/http"
@@ -200,7 +201,7 @@ func (m *maxScaleAPI) serviceRelationships(service string) *mxsclient.Relationsh
 // MaxScale API - Listeners
 
 func (m *maxScaleAPI) createListener(ctx context.Context, listener *mariadbv1alpha1.MaxScaleListener, rels *mxsclient.Relationships) error {
-	return m.client.Listener.Create(ctx, listener.Name, listenerAttributes(listener), mxsclient.WithRelationships(rels))
+	return m.client.Listener.Create(ctx, listener.Name, m.listenerAttributes(listener), mxsclient.WithRelationships(rels))
 }
 
 func (m *maxScaleAPI) deleteListener(ctx context.Context, name string) error {
@@ -208,7 +209,7 @@ func (m *maxScaleAPI) deleteListener(ctx context.Context, name string) error {
 }
 
 func (m *maxScaleAPI) patchListener(ctx context.Context, listener *mariadbv1alpha1.MaxScaleListener, rels *mxsclient.Relationships) error {
-	return m.client.Listener.Patch(ctx, listener.Name, listenerAttributes(listener), mxsclient.WithRelationships(rels))
+	return m.client.Listener.Patch(ctx, listener.Name, m.listenerAttributes(listener), mxsclient.WithRelationships(rels))
 }
 
 func (m *maxScaleAPI) updateListenerState(ctx context.Context, listener *mariadbv1alpha1.MaxScaleListener) error {
@@ -218,14 +219,21 @@ func (m *maxScaleAPI) updateListenerState(ctx context.Context, listener *mariadb
 	return m.client.Listener.Start(ctx, listener.Name)
 }
 
-func listenerAttributes(listener *mariadbv1alpha1.MaxScaleListener) mxsclient.ListenerAttributes {
-	return mxsclient.ListenerAttributes{
+func (m *maxScaleAPI) listenerAttributes(listener *mariadbv1alpha1.MaxScaleListener) mxsclient.ListenerAttributes {
+	attrs := mxsclient.ListenerAttributes{
 		Parameters: mxsclient.ListenerParameters{
 			Port:     listener.Port,
 			Protocol: listener.Protocol,
 			Params:   mxsclient.NewMapParams(listener.Params),
 		},
 	}
+	if m.mxs.IsTLSEnabled() {
+		attrs.Parameters.SSL = true
+		attrs.Parameters.SSLCert = builderpki.ListenerCertPath
+		attrs.Parameters.SSLKey = builderpki.ListenerKeyPath
+		attrs.Parameters.SSLCA = builderpki.CACertPath
+	}
+	return attrs
 }
 
 // MaxScale API - MaxScale

@@ -474,6 +474,17 @@ type MaxScaleTLS struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	AdminCertSecretRef *LocalObjectReference `json:"adminCertSecretRef,omitempty"`
+	// ListenerCASecretRef is a reference to a Secret containing the admin certificate authority keypair. It is used to establish trust and issue scertificates for the MaxScale's listeners.
+	// One of:
+	// - TLS Secret containing both the tls.crt and tls.key. This allows you to bring your own CA to Kubernetes to issue certificates.
+	// - Generic Secret containing the tls.crt to establish trust. In this case, listenerCertSecretRef is mandatory.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	ListenerCASecretRef *LocalObjectReference `json:"listenerCASecretRef,omitempty"`
+	// ListenerCertSecretRef is a reference to a TLS Secret used by the MaxScale's listeners.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	ListenerCertSecretRef *LocalObjectReference `json:"listenerCertSecretRef,omitempty"`
 }
 
 // MaxScaleMetrics defines the metrics for a Maxscale.

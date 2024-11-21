@@ -34,7 +34,18 @@ func (r *MaxScaleReconciler) reconcileTLSCABundle(ctx context.Context, mxs *mari
 		return fmt.Errorf("error getting server: CA: %v", err)
 	}
 
-	bundle, err := pki.BundleCertificatePEMs(log.FromContext(ctx), []byte(adminCA))
+	listenerCAKeySelector := mariadbv1alpha1.SecretKeySelector{
+		LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+			Name: mxs.TLSListenerCASecretKey().Name,
+		},
+		Key: pki.TLSCertKey,
+	}
+	listenerCA, err := r.RefResolver.SecretKeyRef(ctx, listenerCAKeySelector, mxs.Namespace)
+	if err != nil {
+		return fmt.Errorf("error getting server: CA: %v", err)
+	}
+
+	bundle, err := pki.BundleCertificatePEMs(log.FromContext(ctx), []byte(adminCA), []byte(listenerCA))
 	if err != nil {
 		return fmt.Errorf("error creating CA bundle: %v", err)
 	}

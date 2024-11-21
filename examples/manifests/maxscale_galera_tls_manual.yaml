@@ -40,3 +40,7 @@ spec:
       name: maxscale-admin-ca
     adminCertSecretRef:
       name: maxscale-galera-admin-tls
+    listenerCASecretRef:
+      name: maxscale-listener-ca
+    listenerCertSecretRef:
+      name: maxscale-galera-listener-tls
