@@ -2964,6 +2964,19 @@ spec:
                           successThreshold:
                             format: int32
                             type: integer
+                          tcpSocket:
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#tcpsocketaction-v1-core.'
+                            properties:
+                              host:
+                                type: string
+                              port:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                x-kubernetes-int-or-string: true
+                            required:
+                            - port
+                            type: object
                           timeoutSeconds:
                             format: int32
                             type: integer
@@ -3021,6 +3034,19 @@ spec:
                           successThreshold:
                             format: int32
                             type: integer
+                          tcpSocket:
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#tcpsocketaction-v1-core.'
+                            properties:
+                              host:
+                                type: string
+                              port:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                x-kubernetes-int-or-string: true
+                            required:
+                            - port
+                            type: object
                           timeoutSeconds:
                             format: int32
                             type: integer
@@ -3386,6 +3412,19 @@ spec:
                           successThreshold:
                             format: int32
                             type: integer
+                          tcpSocket:
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#tcpsocketaction-v1-core.'
+                            properties:
+                              host:
+                                type: string
+                              port:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                x-kubernetes-int-or-string: true
+                            required:
+                            - port
+                            type: object
                           timeoutSeconds:
                             format: int32
                             type: integer
@@ -3433,6 +3472,19 @@ spec:
                           successThreshold:
                             format: int32
                             type: integer
+                          tcpSocket:
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#tcpsocketaction-v1-core.'
+                            properties:
+                              host:
+                                type: string
+                              port:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                x-kubernetes-int-or-string: true
+                            required:
+                            - port
+                            type: object
                           timeoutSeconds:
                             format: int32
                             type: integer
@@ -3926,6 +3978,19 @@ spec:
                   successThreshold:
                     format: int32
                     type: integer
+                  tcpSocket:
+                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#tcpsocketaction-v1-core.'
+                    properties:
+                      host:
+                        type: string
+                      port:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        x-kubernetes-int-or-string: true
+                    required:
+                    - port
+                    type: object
                   timeoutSeconds:
                     format: int32
                     type: integer
@@ -6085,6 +6150,19 @@ spec:
                   successThreshold:
                     format: int32
                     type: integer
+                  tcpSocket:
+                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#tcpsocketaction-v1-core.'
+                    properties:
+                      host:
+                        type: string
+                      port:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        x-kubernetes-int-or-string: true
+                    required:
+                    - port
+                    type: object
                   timeoutSeconds:
                     format: int32
                     type: integer
@@ -8179,6 +8257,19 @@ spec:
                   successThreshold:
                     format: int32
                     type: integer
+                  tcpSocket:
+                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#tcpsocketaction-v1-core.'
+                    properties:
+                      host:
+                        type: string
+                      port:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        x-kubernetes-int-or-string: true
+                    required:
+                    - port
+                    type: object
                   timeoutSeconds:
                     format: int32
                     type: integer
@@ -8933,6 +9024,19 @@ spec:
                   successThreshold:
                     format: int32
                     type: integer
+                  tcpSocket:
+                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#tcpsocketaction-v1-core.'
+                    properties:
+                      host:
+                        type: string
+                      port:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        x-kubernetes-int-or-string: true
+                    required:
+                    - port
+                    type: object
                   timeoutSeconds:
                     format: int32
                     type: integer
@@ -9132,6 +9236,32 @@ spec:
                   Suspend indicates whether the current resource should be suspended or not.
                   This can be useful for maintenance, as disabling the reconciliation prevents the operator from interfering with user operations during maintenance activities.
                 type: boolean
+              tls:
+                description: TLS defines the PKI to be used with MaxScale.
+                properties:
+                  adminCASecretRef:
+                    description: |-
+                      AdminCASecretRef is a reference to a Secret containing the admin certificate authority keypair. It is used to establish trust and issue scertificates for the MaxScale's administrative REST API and GUI.
+                      One of:
+                      - TLS Secret containing both the tls.crt and tls.key. This allows you to bring your own CA to Kubernetes to issue certificates.
+                      - Generic Secret containing the tls.crt to establish trust. In this case, adminCertSecretRef is mandatory.
+                    properties:
+                      name:
+                        default: ""
+                        type: string
+                    type: object
+                  adminCertSecretRef:
+                    description: AdminCertSecretRef is a reference to a TLS Secret
+                      used by the MaxScale's administrative REST API and GUI.
+                    properties:
+                      name:
+                        default: ""
+                        type: string
+                    type: object
+                  enabled:
+                    description: Enabled is a flag to enable TLS.
+                    type: boolean
+                type: object
               tolerations:
                 description: Tolerations to be used in the Pod.
                 items:

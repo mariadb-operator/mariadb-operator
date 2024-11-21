@@ -6,6 +6,7 @@ import (
 	"text/template"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	builderpki "github.com/mariadb-operator/mariadb-operator/pkg/builder/pki"
 	"k8s.io/utils/ptr"
 )
 
@@ -17,7 +18,10 @@ type tplOpts struct {
 	AdminHost                string
 	AdminPort                int32
 	AdminGui                 bool
-	AdminSecureGui           bool
+	TLSEnabled               bool
+	TLSAdminKeyPath          string
+	TLSAdminCertPath         string
+	TLSAdminCAPath           string
 	Params                   map[string]string
 }
 
@@ -30,6 +34,9 @@ var existingConfigKeys = map[string]struct{}{
 	"admin_port":                  {},
 	"admin_gui":                   {},
 	"admin_secure_gui":            {},
+	"admin_ssl_key":               {},
+	"admin_ssl_cert":              {},
+	"admin_ssl_ca_cert":           {},
 }
 
 func Config(mxs *mariadbv1alpha1.MaxScale) ([]byte, error) {
@@ -43,7 +50,12 @@ load_persisted_configs={{ .LoadPersistentConfigs }}
 admin_host={{ .AdminHost }}
 admin_port={{ .AdminPort }}
 admin_gui={{ .AdminGui }}
-admin_secure_gui={{ .AdminSecureGui }}
+admin_secure_gui={{ .TLSEnabled }}
+{{- if .TLSEnabled }}
+admin_ssl_key={{ .TLSAdminKeyPath }}
+admin_ssl_cert={{ .TLSAdminCertPath }}
+admin_ssl_ca_cert={{ .TLSAdminCAPath }}
+{{- end }}
 {{ range $key,$value := .Params }}
 {{- $key }}={{ $value }}
 {{ end }}`)
@@ -56,7 +68,10 @@ admin_secure_gui={{ .AdminSecureGui }}
 		AdminHost:                configValueOrDefault("admin_host", mxs.Spec.Config.Params, "0.0.0.0"),
 		AdminPort:                mxs.Spec.Admin.Port,
 		AdminGui:                 ptr.Deref(mxs.Spec.Admin.GuiEnabled, true),
-		AdminSecureGui:           false,
+		TLSEnabled:               mxs.IsTLSEnabled(),
+		TLSAdminKeyPath:          builderpki.AdminKeyPath,
+		TLSAdminCertPath:         builderpki.AdminCertPath,
+		TLSAdminCAPath:           builderpki.CACertPath,
 		Params:                   filterExistingConfig(mxs.Spec.Config.Params),
 	})
 	if err != nil {

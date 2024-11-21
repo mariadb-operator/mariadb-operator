@@ -4,8 +4,10 @@ PKI_DIR ?= /tmp/pki
 CA_DIR ?= $(PKI_DIR)/ca
 CERT_SIZE ?= 4096
 
+# CAs =====================================================================================================================================
+
 .PHONY: ca
-ca: ca-server ca-client ca-minio ## Generates CA keypairs.
+ca: ca-server ca-client ca-mxs-admin ca-minio ## Generates CA keypairs.
 
 CA_SECRET_NAME ?=
 CA_SECRET_NAMESPACE ?=
@@ -51,6 +53,17 @@ ca-client: ## Generates client CA keypair.
 	CA_SUBJECT="/CN=mariadb-client-ca" \
 	$(MAKE) ca-root
 
+CA_MAXSCALE_ADMIN_CERT ?= $(CA_DIR)/maxscale-admin.crt 
+CA_MAXSCALE_ADMIN_KEY ?= $(CA_DIR)/maxscale-admin.key 
+.PHONY: ca-mxs-admin
+ca-mxs-admin: ## Generates MaxScale admin CA keypair.
+	CA_SECRET_NAME=maxscale-admin-ca \
+	CA_SECRET_NAMESPACE=default \
+	CA_CERT=$(CA_MAXSCALE_ADMIN_CERT) \
+	CA_KEY=$(CA_MAXSCALE_ADMIN_KEY) \
+	CA_SUBJECT="/CN=maxscale-admin-ca" \
+	$(MAKE) ca-root
+
 CA_MINIO_CERT ?= $(CA_DIR)/minio.crt 
 CA_MINIO_KEY ?= $(CA_DIR)/minio.key 
 .PHONY: ca-minio
@@ -70,6 +83,8 @@ CERT ?=
 KEY ?=
 CERT_SUBJECT ?=
 CERT_ALT_NAMES ?=
+
+# Leaf certs ==============================================================================================================================
 
 .PHONY: cert-leaf
 cert-leaf: ## Generates leaf certificate keypair.
@@ -98,6 +113,8 @@ cert-leaf-client: ## Generates leaf certificate keypair for a client.
 	CERT=$(CERT) \
 	KEY=$(KEY) \
 	$(MAKE) cert-secret-tls
+
+# MariaDB =================================================================================================================================
 
 MARIADB_NAME ?= mariadb
 MARIADB_NAMESPACE ?= default
@@ -140,6 +157,25 @@ cert-mariadb-repl: ## Generate certificates for MariaDB replication.
 	CERT_ALT_NAMES="subjectAltName=DNS:*.mariadb-repl-internal.default.svc.cluster.local,DNS:*.mariadb-repl-internal,DNS:mariadb-repl-primary.default.svc.cluster.local,DNS:mariadb-repl.default.svc.cluster.local,DNS:localhost" \
 	$(MAKE) cert-leaf-mariadb
 
+# MaxScale ================================================================================================================================
+
+.PHONY: cert-mxs-admin-galera
+cert-mxs-admin-galera: ca-mxs-admin ## Generate certificates for MaxScale admin Galera.
+	CERT_SECRET_NAME=maxscale-galera-admin-tls \
+	CERT_SECRET_NAMESPACE=default \
+	CERT=$(PKI_DIR)/maxscale-galera-admin.crt \
+	KEY=$(PKI_DIR)/maxscale-galera-admin.key \
+	CERT_SUBJECT="/CN=maxscale-galera.default.svc.cluster.local" \
+	CERT_ALT_NAMES="subjectAltName=DNS:*.maxscale-galera-internal.default.svc.cluster.local,DNS:maxscale-galera.default.svc.cluster.local,DNS:maxscale-galera-gui.default.svc.cluster.local"  \
+	CA_CERT=$(CA_MAXSCALE_ADMIN_CERT) \
+	CA_KEY=$(CA_MAXSCALE_ADMIN_KEY) \
+	$(MAKE) cert-leaf
+
+.PHONY: cert-mxs-galera
+cert-mxs-galera: cert-mxs-admin-galera
+
+# Webhook =============================================================================================================================????
+
 WEBHOOK_PKI_DIR ?= /tmp/k8s-webhook-server/serving-certs
 .PHONY: cert-webhook
 cert-webhook: ca ## Generates webhook private key and certificate for local development.
@@ -154,6 +190,8 @@ cert-webhook: ca ## Generates webhook private key and certificate for local deve
 	CERT_ALT_NAMES="subjectAltName=DNS:localhost,IP:127.0.0.1" \
 	$(MAKE) cert-leaf
 
+# Minio ===================================================================================================================================
+
 MINIO_PKI_DIR ?= /tmp/pki-minio
 .PHONY: cert-minio
 cert-minio: ca ## Generates minio private key and certificate for local development.
@@ -167,6 +205,8 @@ cert-minio: ca ## Generates minio private key and certificate for local developm
 	CERT_SUBJECT="/CN=minio.minio.svc.cluster.local" \
 	CERT_ALT_NAMES="subjectAltName=DNS:minio,DNS:minio.minio,DNS:minio.minio.svc.cluster.local" \
 	$(MAKE) cert-leaf
+
+# Secrets =================================================================================================================================
 
 CERT_SECRET_NAME ?=
 CERT_SECRET_NAMESPACE ?=
@@ -189,5 +229,7 @@ cert-secret: kubectl ## Creates a generic Secret from a certificate.
 		--from-file=$(CERT) \
 		--dry-run=client -o yaml | $(KUBECTL) apply -f -
 
+# Entrypoint ==============================================================================================================================
+
 .PHONY: cert
-cert: cert-mariadb cert-mariadb-galera cert-mariadb-repl cert-webhook cert-minio ## Generate certificates.
+cert: cert-mariadb cert-mariadb-galera cert-mariadb-repl cert-mxs-galera cert-webhook cert-minio ## Generate certificates.
