@@ -15,6 +15,9 @@ const (
 
 	ClientCertKey = "client.crt"
 	ClientKeyKey  = "client.key"
+
+	AdminCertKey = "admin.crt"
+	AdminKeyKey  = "admin.key"
 )
 
 var (
@@ -25,4 +28,7 @@ var (
 
 	ClientCertPath = filepath.Join(PKIMountPath, ClientCertKey)
 	ClientKeyPath  = filepath.Join(PKIMountPath, ClientKeyKey)
+
+	AdminCertPath = filepath.Join(PKIMountPath, AdminCertKey)
+	AdminKeyPath  = filepath.Join(PKIMountPath, AdminKeyKey)
 )

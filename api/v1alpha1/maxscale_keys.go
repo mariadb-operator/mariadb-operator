@@ -3,7 +3,9 @@ package v1alpha1
 import (
 	"fmt"
 
+	"github.com/mariadb-operator/mariadb-operator/pkg/pki"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 )
 
 // InternalServiceKey defines the key for the internal headless Service
@@ -87,6 +89,46 @@ func (m *MaxScale) ConfigSecretKeyRef() GeneratedSecretKeyRef {
 			Key: "maxscale.cnf",
 		},
 		Generate: true,
+	}
+}
+
+// TLSCABundleSecretKeyRef defines the key selector for the TLS Secret trust bundle
+func (m *MaxScale) TLSCABundleSecretKeyRef() SecretKeySelector {
+	return SecretKeySelector{
+		LocalObjectReference: LocalObjectReference{
+			Name: fmt.Sprintf("%s-ca-bundle", m.Name),
+		},
+		Key: pki.CACertKey,
+	}
+}
+
+// TLSServerCASecretKey defines the key for the TLS admin CA.
+func (m *MaxScale) TLSAdminCASecretKey() types.NamespacedName {
+	tls := ptr.Deref(m.Spec.TLS, MaxScaleTLS{})
+	if tls.Enabled && tls.AdminCASecretRef != nil {
+		return types.NamespacedName{
+			Name:      tls.AdminCASecretRef.Name,
+			Namespace: m.Namespace,
+		}
+	}
+	return types.NamespacedName{
+		Name:      fmt.Sprintf("%s-ca", m.Name),
+		Namespace: m.Namespace,
+	}
+}
+
+// TLSAdminCertSecretKey defines the key for the TLS admin cert.
+func (m *MaxScale) TLSAdminCertSecretKey() types.NamespacedName {
+	tls := ptr.Deref(m.Spec.TLS, MaxScaleTLS{})
+	if tls.Enabled && tls.AdminCertSecretRef != nil {
+		return types.NamespacedName{
+			Name:      tls.AdminCertSecretRef.Name,
+			Namespace: m.Namespace,
+		}
+	}
+	return types.NamespacedName{
+		Name:      fmt.Sprintf("%s-admin-cert", m.Name),
+		Namespace: m.Namespace,
 	}
 }
 
