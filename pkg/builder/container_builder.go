@@ -564,6 +564,10 @@ func maxscaleVolumeMounts(maxscale *mariadbv1alpha1.MaxScale) []corev1.VolumeMou
 			MountPath: MaxScaleCacheMountPath,
 		},
 	}
+	if maxscale.IsTLSEnabled() {
+		_, tlsVolumeMounts := maxscaleTLSVolumes(maxscale)
+		volumeMounts = append(volumeMounts, tlsVolumeMounts...)
+	}
 	if maxscale.Spec.VolumeMounts != nil {
 		volumeMounts = append(volumeMounts, kadapter.ToKubernetesSlice(maxscale.Spec.VolumeMounts)...)
 	}
@@ -682,8 +686,7 @@ func maxscaleProbe(mxs *mariadbv1alpha1.MaxScale, probe *mariadbv1alpha1.Probe) 
 	}
 	mxsProbe := corev1.Probe{
 		ProbeHandler: corev1.ProbeHandler{
-			HTTPGet: &corev1.HTTPGetAction{
-				Path: "/",
+			TCPSocket: &corev1.TCPSocketAction{
 				Port: intstr.FromInt(int(mxs.Spec.Admin.Port)),
 			},
 		},
