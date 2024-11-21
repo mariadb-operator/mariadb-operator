@@ -132,6 +132,36 @@ func (m *MaxScale) TLSAdminCertSecretKey() types.NamespacedName {
 	}
 }
 
+// TLSListenerCASecretKey defines the key for the TLS listener CA.
+func (m *MaxScale) TLSListenerCASecretKey() types.NamespacedName {
+	tls := ptr.Deref(m.Spec.TLS, MaxScaleTLS{})
+	if tls.Enabled && tls.ListenerCASecretRef != nil {
+		return types.NamespacedName{
+			Name:      tls.ListenerCASecretRef.Name,
+			Namespace: m.Namespace,
+		}
+	}
+	return types.NamespacedName{
+		Name:      fmt.Sprintf("%s-ca", m.Name),
+		Namespace: m.Namespace,
+	}
+}
+
+// TLSListenerCertSecretKey defines the key for the TLS listener cert.
+func (m *MaxScale) TLSListenerCertSecretKey() types.NamespacedName {
+	tls := ptr.Deref(m.Spec.TLS, MaxScaleTLS{})
+	if tls.Enabled && tls.ListenerCertSecretRef != nil {
+		return types.NamespacedName{
+			Name:      tls.ListenerCertSecretRef.Name,
+			Namespace: m.Namespace,
+		}
+	}
+	return types.NamespacedName{
+		Name:      fmt.Sprintf("%s-listener-cert", m.Name),
+		Namespace: m.Namespace,
+	}
+}
+
 // AuthClientUserKey defines the key for the client User
 func (m *MaxScale) AuthClientUserKey() LocalObjectReference {
 	return LocalObjectReference{
