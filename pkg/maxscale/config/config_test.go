@@ -36,6 +36,31 @@ admin_secure_gui=false
 `,
 		},
 		{
+			name: "tls",
+			mxs: &mariadbv1alpha1.MaxScale{
+				Spec: mariadbv1alpha1.MaxScaleSpec{
+					Admin: mariadbv1alpha1.MaxScaleAdmin{
+						Port: 8989,
+					},
+					TLS: &mariadbv1alpha1.MaxScaleTLS{
+						Enabled: true,
+					},
+				},
+			},
+			wantConfig: `[maxscale]
+threads=auto
+persist_runtime_changes=true
+load_persisted_configs=true
+admin_host=0.0.0.0
+admin_port=8989
+admin_gui=true
+admin_secure_gui=true
+admin_ssl_key=/etc/pki/admin.key
+admin_ssl_cert=/etc/pki/admin.crt
+admin_ssl_ca_cert=/etc/pki/ca.crt
+`,
+		},
+		{
 			name: "extra params",
 			mxs: &mariadbv1alpha1.MaxScale{
 				Spec: mariadbv1alpha1.MaxScaleSpec{

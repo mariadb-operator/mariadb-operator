@@ -13,6 +13,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/health"
 	mdbhttp "github.com/mariadb-operator/mariadb-operator/pkg/http"
 	mxsclient "github.com/mariadb-operator/mariadb-operator/pkg/maxscale/client"
+	"github.com/mariadb-operator/mariadb-operator/pkg/pki"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -277,6 +278,13 @@ func (r *MaxScaleReconciler) defaultClientWithPodIndex(ctx context.Context, mxs 
 		logger := apiLogger(ctx)
 		opts = append(opts, mdbhttp.WithLogger(&logger))
 	}
+	if mxs.IsTLSEnabled() {
+		tlsOpts, err := r.getClientTLSOptions(ctx, mxs)
+		if err != nil {
+			return nil, fmt.Errorf("error getting client TLS options: %v", err)
+		}
+		opts = append(opts, tlsOpts...)
+	}
 	return mxsclient.NewClientWithDefaultCredentials(mxs.PodAPIUrl(podIndex), opts...)
 }
 
@@ -312,7 +320,53 @@ func (r *MaxScaleReconciler) clientWithAPIUrl(ctx context.Context, mxs *mariadbv
 		logger := apiLogger(ctx)
 		opts = append(opts, mdbhttp.WithLogger(&logger))
 	}
+	if mxs.IsTLSEnabled() {
+		tlsOpts, err := r.getClientTLSOptions(ctx, mxs)
+		if err != nil {
+			return nil, fmt.Errorf("error getting client TLS options: %v", err)
+		}
+		opts = append(opts, tlsOpts...)
+	}
 	return mxsclient.NewClient(apiUrl, opts...)
+}
+
+func (r *MaxScaleReconciler) getClientTLSOptions(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) ([]mdbhttp.Option, error) {
+	if !mxs.IsTLSEnabled() {
+		return nil, nil
+	}
+	tlsCA, err := r.RefResolver.SecretKeyRef(ctx, mxs.TLSCABundleSecretKeyRef(), mxs.Namespace)
+	if err != nil {
+		return nil, fmt.Errorf("error reading TLS CA bundle: %v", err)
+	}
+
+	adminCertKeySelector := mariadbv1alpha1.SecretKeySelector{
+		LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+			Name: mxs.TLSAdminCertSecretKey().Name,
+		},
+		Key: pki.TLSCertKey,
+	}
+	tlsCert, err := r.RefResolver.SecretKeyRef(ctx, adminCertKeySelector, mxs.Namespace)
+	if err != nil {
+		return nil, fmt.Errorf("error reading TLS cert: %v", err)
+	}
+
+	adminKeyKeySelector := mariadbv1alpha1.SecretKeySelector{
+		LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+			Name: mxs.TLSAdminCertSecretKey().Name,
+		},
+		Key: pki.TLSKeyKey,
+	}
+	tlsKey, err := r.RefResolver.SecretKeyRef(ctx, adminKeyKeySelector, mxs.Namespace)
+	if err != nil {
+		return nil, fmt.Errorf("error reading TLS cert: %v", err)
+	}
+
+	return []mdbhttp.Option{
+		mdbhttp.WithTLSEnabled(mxs.IsTLSEnabled()),
+		mdbhttp.WithTLSCA([]byte(tlsCA)),
+		mdbhttp.WithTLSCert([]byte(tlsCert)),
+		mdbhttp.WithTLSKey([]byte(tlsKey)),
+	}, nil
 }
 
 func apiLogger(ctx context.Context) logr.Logger {

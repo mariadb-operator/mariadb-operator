@@ -563,5 +563,61 @@ func maxscaleVolumes(maxscale *mariadbv1alpha1.MaxScale) []corev1.Volume {
 			},
 		},
 	}
+	if maxscale.IsTLSEnabled() {
+		tlsVolumes, _ := maxscaleTLSVolumes(maxscale)
+		volumes = append(volumes, tlsVolumes...)
+	}
 	return volumes
+}
+
+func maxscaleTLSVolumes(mxs *mariadbv1alpha1.MaxScale) ([]corev1.Volume, []corev1.VolumeMount) {
+	if !mxs.IsTLSEnabled() {
+		return nil, nil
+	}
+	return []corev1.Volume{
+			{
+				Name: builderpki.PKIVolume,
+				VolumeSource: corev1.VolumeSource{
+					Projected: &corev1.ProjectedVolumeSource{
+						Sources: []corev1.VolumeProjection{
+							{
+								Secret: &corev1.SecretProjection{
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: mxs.TLSCABundleSecretKeyRef().Name,
+									},
+									Items: []corev1.KeyToPath{
+										{
+											Key:  pki.CACertKey,
+											Path: pki.CACertKey,
+										},
+									},
+								},
+							},
+							{
+								Secret: &corev1.SecretProjection{
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: mxs.TLSAdminCertSecretKey().Name,
+									},
+									Items: []corev1.KeyToPath{
+										{
+											Key:  pki.TLSCertKey,
+											Path: builderpki.AdminCertKey,
+										},
+										{
+											Key:  pki.TLSKeyKey,
+											Path: builderpki.AdminKeyKey,
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		}, []corev1.VolumeMount{
+			{
+				Name:      builderpki.PKIVolume,
+				MountPath: builderpki.PKIMountPath,
+			},
+		}
 }

@@ -457,6 +457,25 @@ func (m *MaxScaleAuth) SetDefaults(mxs *MaxScale) {
 	}
 }
 
+// TLS defines the PKI to be used with MaxScale.
+type MaxScaleTLS struct {
+	// Enabled is a flag to enable TLS.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
+	Enabled bool `json:"enabled"`
+	// AdminCASecretRef is a reference to a Secret containing the admin certificate authority keypair. It is used to establish trust and issue scertificates for the MaxScale's administrative REST API and GUI.
+	// One of:
+	// - TLS Secret containing both the tls.crt and tls.key. This allows you to bring your own CA to Kubernetes to issue certificates.
+	// - Generic Secret containing the tls.crt to establish trust. In this case, adminCertSecretRef is mandatory.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	AdminCASecretRef *LocalObjectReference `json:"adminCASecretRef,omitempty"`
+	// AdminCertSecretRef is a reference to a TLS Secret used by the MaxScale's administrative REST API and GUI.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	AdminCertSecretRef *LocalObjectReference `json:"adminCertSecretRef,omitempty"`
+}
+
 // MaxScaleMetrics defines the metrics for a Maxscale.
 type MaxScaleMetrics struct {
 	// Enabled is a flag to enable Metrics
@@ -588,6 +607,10 @@ type MaxScaleSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Metrics *MaxScaleMetrics `json:"metrics,omitempty"`
+	// TLS defines the PKI to be used with MaxScale.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	TLS *MaxScaleTLS `json:"tls,omitempty"`
 	// Connection provides a template to define the Connection for MaxScale.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -832,6 +855,11 @@ func (m *MaxScale) AreMetricsEnabled() bool {
 	return ptr.Deref(m.Spec.Metrics, MaxScaleMetrics{}).Enabled
 }
 
+// IsTLSEnabled indicates whether the MaxScale instance has TLS enabled
+func (m *MaxScale) IsTLSEnabled() bool {
+	return ptr.Deref(m.Spec.TLS, MaxScaleTLS{}).Enabled
+}
+
 // APIUrl returns the URL of the admin API pointing to the Kubernetes Service.
 func (m *MaxScale) APIUrl() string {
 	fqdn := statefulset.ServiceFQDNWithService(m.ObjectMeta, m.Name)
@@ -908,7 +936,11 @@ func (m *MaxScale) DefaultPort() (*int32, error) {
 }
 
 func (m *MaxScale) apiUrlWithAddress(addr string) string {
-	return fmt.Sprintf("http://%s:%d", addr, m.Spec.Admin.Port)
+	scheme := "http"
+	if m.IsTLSEnabled() {
+		scheme = "https"
+	}
+	return fmt.Sprintf("%s://%s:%d", scheme, addr, m.Spec.Admin.Port)
 }
 
 func (m *MaxScale) defaultConnections() int32 {

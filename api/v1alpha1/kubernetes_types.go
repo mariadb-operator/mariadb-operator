@@ -184,12 +184,28 @@ func (e HTTPGetAction) ToKubernetesType() corev1.HTTPGetAction {
 	}
 }
 
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#tcpsocketaction-v1-core.
+type TCPSocketAction struct {
+	Port intstr.IntOrString `json:"port"`
+	// +optional
+	Host string `json:"host,omitempty"`
+}
+
+func (e TCPSocketAction) ToKubernetesType() corev1.TCPSocketAction {
+	return corev1.TCPSocketAction{
+		Port: e.Port,
+		Host: e.Host,
+	}
+}
+
 // Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#probe-v1-core.
 type ProbeHandler struct {
 	// +optional
 	Exec *ExecAction `json:"exec,omitempty"`
 	// +optional
 	HTTPGet *HTTPGetAction `json:"httpGet,omitempty"`
+	// +optional
+	TCPSocket *TCPSocketAction `json:"tcpSocket,omitempty"`
 }
 
 func (p ProbeHandler) ToKubernetesType() corev1.ProbeHandler {
@@ -199,6 +215,9 @@ func (p ProbeHandler) ToKubernetesType() corev1.ProbeHandler {
 	}
 	if p.HTTPGet != nil {
 		probe.HTTPGet = ptr.To(p.HTTPGet.ToKubernetesType())
+	}
+	if p.TCPSocket != nil {
+		probe.TCPSocket = ptr.To(p.TCPSocket.ToKubernetesType())
 	}
 	return probe
 }
