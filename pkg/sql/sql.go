@@ -26,16 +26,17 @@ var (
 )
 
 type Opts struct {
-	MariadbName string
-	Namespace   string
-	Username    string
-	Password    string
-	Host        string
-	Port        int32
-	Database    string
-	TLSCACert   []byte
-	Params      map[string]string
-	Timeout     *time.Duration
+	MariadbName  string
+	MaxscaleName string
+	Namespace    string
+	Username     string
+	Password     string
+	Host         string
+	Port         int32
+	Database     string
+	TLSCACert    []byte
+	Params       map[string]string
+	Timeout      *time.Duration
 }
 
 type Opt func(*Opts)
@@ -43,6 +44,12 @@ type Opt func(*Opts)
 func WithMariadbName(name string) Opt {
 	return func(o *Opts) {
 		o.MariadbName = name
+	}
+}
+
+func WithMaxScaleName(name string) Opt {
+	return func(o *Opts) {
+		o.MaxscaleName = name
 	}
 }
 
@@ -223,9 +230,9 @@ func BuildDSN(opts Opts) (string, error) {
 	if opts.Params != nil {
 		config.Params = opts.Params
 	}
-	if opts.MariadbName != "" && opts.Namespace != "" && opts.TLSCACert != nil {
-		configName := fmt.Sprintf("%s-%s", opts.MariadbName, opts.Namespace)
-		if err := configureTLS(configName, opts.TLSCACert); err != nil {
+	if (opts.MariadbName != "" || opts.MaxscaleName != "") && opts.Namespace != "" && opts.TLSCACert != nil {
+		configName, err := configureTLS(opts)
+		if err != nil {
 			return "", fmt.Errorf("error configuring TLS: %v", err)
 		}
 		config.TLSConfig = configName
@@ -233,18 +240,28 @@ func BuildDSN(opts Opts) (string, error) {
 	return config.FormatDSN(), nil
 }
 
-func configureTLS(configName string, caCert []byte) error {
+func configureTLS(opts Opts) (string, error) {
+	var configName string
+	if opts.MariadbName != "" {
+		configName = fmt.Sprintf("mariadb-%s-%s", opts.MariadbName, opts.Namespace)
+	} else if opts.MaxscaleName != "" {
+		configName = fmt.Sprintf("maxscale-%s-%s", opts.MaxscaleName, opts.Namespace)
+	} else {
+		return "", errors.New("unable to create config name: either MariaDB or MaxScale names must be set")
+	}
+
 	var tlsCfg tls.Config
 	caBundle := x509.NewCertPool()
-	if ok := caBundle.AppendCertsFromPEM(caCert); ok {
+	if ok := caBundle.AppendCertsFromPEM(opts.TLSCACert); ok {
 		tlsCfg.RootCAs = caBundle
 	} else {
-		return errors.New("failed parse pem-encoded CA certificates")
+		return "", errors.New("failed parse pem-encoded CA certificates")
 	}
 	if err := mysql.RegisterTLSConfig(configName, &tlsCfg); err != nil {
-		return fmt.Errorf("error registering TLS config \"%s\": %v", configName, err)
+		return "", fmt.Errorf("error registering TLS config \"%s\": %v", configName, err)
 	}
-	return nil
+
+	return configName, nil
 }
 
 func Connect(dsn string) (*sql.DB, error) {
