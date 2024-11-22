@@ -45,6 +45,8 @@ spec:
     listenerCertSecretRef:
       name: maxscale-galera-listener-tls
     serverCASecretRef:
-      name: mariadb-server-ca
+      name: mariadb-galera-ca-bundle
     serverCertSecretRef:
       name: mariadb-galera-client-tls
+    verifyPeerCertificate: true
+    verifyPeerHost: false

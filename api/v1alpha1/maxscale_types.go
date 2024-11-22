@@ -496,6 +496,14 @@ type MaxScaleTLS struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	ServerCertSecretRef *LocalObjectReference `json:"serverCertSecretRef,omitempty"`
+	// VerifyPeerCertificate specifies whether the peer certificate's signature should be validated against the CA. It is enabled by default.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
+	VerifyPeerCertificate *bool `json:"verifyPeerCertificate,omitempty"`
+	// VerifyPeerHost specifies whether the peer certificate's SANs should match the peer host. It is disabled by default.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
+	VerifyPeerHost *bool `json:"verifyPeerHost,omitempty"`
 }
 
 // MaxScaleMetrics defines the metrics for a Maxscale.
