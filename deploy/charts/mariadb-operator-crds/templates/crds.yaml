@@ -9263,7 +9263,7 @@ spec:
                     type: boolean
                   listenerCASecretRef:
                     description: |-
-                      ListenerCASecretRef is a reference to a Secret containing the admin certificate authority keypair. It is used to establish trust and issue scertificates for the MaxScale's listeners.
+                      ListenerCASecretRef is a reference to a Secret containing the listener certificate authority keypair. It is used to establish trust and issue scertificates for the MaxScale's listeners.
                       One of:
                       - TLS Secret containing both the tls.crt and tls.key. This allows you to bring your own CA to Kubernetes to issue certificates.
                       - Generic Secret containing the tls.crt to establish trust. In this case, listenerCertSecretRef is mandatory.
@@ -9275,6 +9275,25 @@ spec:
                   listenerCertSecretRef:
                     description: ListenerCertSecretRef is a reference to a TLS Secret
                       used by the MaxScale's listeners.
+                    properties:
+                      name:
+                        default: ""
+                        type: string
+                    type: object
+                  serverCASecretRef:
+                    description: |-
+                      ServerCASecretRef is a reference to a Secret containing the MariaDB server certificate authority keypair. It is used to establish trust and issue scertificates for MariaDB servers.
+                      One of:
+                      - TLS Secret containing both the tls.crt and tls.key. This allows you to bring your own CA to Kubernetes to issue certificates.
+                      - Generic Secret containing the tls.crt to establish trust. In this case, serverCertSecretRef is mandatory.
+                    properties:
+                      name:
+                        default: ""
+                        type: string
+                    type: object
+                  serverCertSecretRef:
+                    description: ServerCertSecretRef is a reference to a TLS Secret
+                      used by MaxScale to connect to the MariaDB servers.
                     properties:
                       name:
                         default: ""
