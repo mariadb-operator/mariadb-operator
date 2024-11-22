@@ -13,14 +13,16 @@ import (
 var ErrMasterServerNotFound = errors.New("master server not found")
 
 type ServerParameters struct {
-	Address  string    `json:"address"`
-	Port     int32     `json:"port"`
-	Protocol string    `json:"protocol"`
-	SSL      bool      `json:"ssl,omitempty"`
-	SSLCert  string    `json:"ssl_cert,omitempty"`
-	SSLKey   string    `json:"ssl_key,omitempty"`
-	SSLCA    string    `json:"ssl_ca,omitempty"`
-	Params   MapParams `json:"-"`
+	Address                  string    `json:"address"`
+	Port                     int32     `json:"port"`
+	Protocol                 string    `json:"protocol"`
+	SSL                      bool      `json:"ssl,omitempty"`
+	SSLCert                  string    `json:"ssl_cert,omitempty"`
+	SSLKey                   string    `json:"ssl_key,omitempty"`
+	SSLCA                    string    `json:"ssl_ca,omitempty"`
+	SSLVerifyPeerCertificate bool      `json:"ssl_verify_peer_certificate,omitempty"`
+	SSLVerifyPeerHost        bool      `json:"ssl_verify_peer_host,omitempty"`
+	Params                   MapParams `json:"-"`
 }
 
 func (s ServerParameters) MarshalJSON() ([]byte, error) {
