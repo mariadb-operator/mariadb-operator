@@ -25,38 +25,22 @@ var (
 )
 
 type Opts struct {
+	Username string
+	Password string
+	Host     string
+	Port     int32
+	Database string
+
 	MariadbName  string
 	MaxscaleName string
 	Namespace    string
-	Username     string
-	Password     string
-	Host         string
-	Port         int32
-	Database     string
 	TLSCACert    []byte
-	Params       map[string]string
-	Timeout      *time.Duration
+
+	Params  map[string]string
+	Timeout *time.Duration
 }
 
 type Opt func(*Opts)
-
-func WithMariadbName(name string) Opt {
-	return func(o *Opts) {
-		o.MariadbName = name
-	}
-}
-
-func WithMaxScaleName(name string) Opt {
-	return func(o *Opts) {
-		o.MaxscaleName = name
-	}
-}
-
-func WithNamespace(namespace string) Opt {
-	return func(o *Opts) {
-		o.Namespace = namespace
-	}
-}
 
 func WithUsername(username string) Opt {
 	return func(o *Opts) {
@@ -88,8 +72,18 @@ func WithDatabase(database string) Opt {
 	}
 }
 
-func WithTLSCACert(tlsCaCert []byte) Opt {
+func WithMariadbTLS(name, namespace string, tlsCaCert []byte) Opt {
 	return func(o *Opts) {
+		o.MariadbName = name
+		o.Namespace = namespace
+		o.TLSCACert = tlsCaCert
+	}
+}
+
+func WithMaxscaleTLS(name, namespace string, tlsCaCert []byte) Opt {
+	return func(o *Opts) {
+		o.MaxscaleName = name
+		o.Namespace = namespace
 		o.TLSCACert = tlsCaCert
 	}
 }
@@ -135,8 +129,6 @@ func NewClientWithMariaDB(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 		return nil, fmt.Errorf("error reading root password secret: %v", err)
 	}
 	opts := []Opt{
-		WithMariadbName(mariadb.Name),
-		WithNamespace(mariadb.Namespace),
 		WithUsername("root"),
 		WithPassword(password),
 		WitHost(func() string {
@@ -155,7 +147,7 @@ func NewClientWithMariaDB(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 		if err != nil {
 			return nil, fmt.Errorf("error getting CA certificate: %v", err)
 		}
-		opts = append(opts, WithTLSCACert([]byte(caCert)))
+		opts = append(opts, WithMariadbTLS(mariadb.Name, mariadb.Namespace, []byte(caCert)))
 	}
 	opts = append(opts, clientOpts...)
 	return NewClient(opts...)
@@ -182,8 +174,6 @@ func NewLocalClientWithPodEnv(ctx context.Context, env *environment.PodEnvironme
 		return nil, fmt.Errorf("error getting port: %v", err)
 	}
 	opts := []Opt{
-		WithMariadbName(env.MariadbName),
-		WithNamespace(env.PodNamespace),
 		WithUsername("root"),
 		WithPassword(env.MariadbRootPassword),
 		WitHost("localhost"),
@@ -199,7 +189,7 @@ func NewLocalClientWithPodEnv(ctx context.Context, env *environment.PodEnvironme
 		if err != nil {
 			return nil, fmt.Errorf("error reading CA certificate: %v", err)
 		}
-		opts = append(opts, WithTLSCACert(caCert))
+		opts = append(opts, WithMariadbTLS(env.MariadbName, env.PodNamespace, caCert))
 	}
 
 	opts = append(opts, clientOpts...)
