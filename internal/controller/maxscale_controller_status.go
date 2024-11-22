@@ -314,13 +314,25 @@ func (r *MaxScaleReconciler) getSqlClient(ctx context.Context, mxs *mariadbv1alp
 		return nil, fmt.Errorf("error getting sync password: %v", err)
 	}
 
-	return sql.NewClient(
+	opts := []sql.Opt{
 		sql.WitHost(srv.Address),
 		sql.WithPort(srv.Port),
 		sql.WithDatabase(mxs.Spec.Config.Sync.Database),
 		sql.WithUsername(*mxs.Spec.Auth.SyncUsername),
 		sql.WithPassword(password),
-	)
+	}
+	if mxs.IsTLSEnabled() {
+		caBundle, err := r.RefResolver.SecretKeyRef(ctx, mxs.TLSCABundleSecretKeyRef(), mxs.Namespace)
+		if err != nil {
+			return nil, fmt.Errorf("error getting CA bundle: %v", err)
+		}
+		opts = append(opts, []sql.Opt{
+			sql.WithTLSCACert([]byte(caBundle)),
+			sql.WithMaxScaleName(mxs.Name),
+			sql.WithNamespace(mxs.Namespace),
+		}...)
+	}
+	return sql.NewClient(opts...)
 }
 
 func (r *MaxScaleReconciler) patchStatus(ctx context.Context, maxscale *mariadbv1alpha1.MaxScale,
