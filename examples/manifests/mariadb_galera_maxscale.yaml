@@ -7,6 +7,12 @@ spec:
     name: mariadb
     key: root-password
 
+  username: mariadb
+  passwordSecretKeyRef:
+    name: mariadb
+    key: password
+  database: mariadb
+
   storage:
     size: 1Gi
 
