@@ -83,11 +83,14 @@ func (m *maxScaleAPI) serverAttributes(srv *mariadbv1alpha1.MaxScaleServer) mxsc
 			Params:   mxsclient.NewMapParams(srv.Params),
 		},
 	}
-	if m.mxs.IsTLSEnabled() {
+	tls := ptr.Deref(m.mxs.Spec.TLS, mariadbv1alpha1.MaxScaleTLS{})
+	if tls.Enabled {
 		attrs.Parameters.SSL = true
 		attrs.Parameters.SSLCert = builderpki.ServerCertPath
 		attrs.Parameters.SSLKey = builderpki.ServerKeyPath
 		attrs.Parameters.SSLCA = builderpki.CACertPath
+		attrs.Parameters.SSLVerifyPeerCertificate = ptr.Deref(tls.VerifyPeerCertificate, true)
+		attrs.Parameters.SSLVerifyPeerHost = ptr.Deref(tls.VerifyPeerHost, false)
 	}
 	return attrs
 }
@@ -234,11 +237,14 @@ func (m *maxScaleAPI) listenerAttributes(listener *mariadbv1alpha1.MaxScaleListe
 			Params:   mxsclient.NewMapParams(listener.Params),
 		},
 	}
-	if m.mxs.IsTLSEnabled() {
+	tls := ptr.Deref(m.mxs.Spec.TLS, mariadbv1alpha1.MaxScaleTLS{})
+	if tls.Enabled {
 		attrs.Parameters.SSL = true
 		attrs.Parameters.SSLCert = builderpki.ListenerCertPath
 		attrs.Parameters.SSLKey = builderpki.ListenerKeyPath
 		attrs.Parameters.SSLCA = builderpki.CACertPath
+		attrs.Parameters.SSLVerifyPeerCertificate = ptr.Deref(tls.VerifyPeerCertificate, true)
+		attrs.Parameters.SSLVerifyPeerHost = ptr.Deref(tls.VerifyPeerHost, false)
 	}
 	return attrs
 }
