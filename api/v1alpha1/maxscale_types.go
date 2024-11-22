@@ -474,7 +474,7 @@ type MaxScaleTLS struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	AdminCertSecretRef *LocalObjectReference `json:"adminCertSecretRef,omitempty"`
-	// ListenerCASecretRef is a reference to a Secret containing the admin certificate authority keypair. It is used to establish trust and issue scertificates for the MaxScale's listeners.
+	// ListenerCASecretRef is a reference to a Secret containing the listener certificate authority keypair. It is used to establish trust and issue scertificates for the MaxScale's listeners.
 	// One of:
 	// - TLS Secret containing both the tls.crt and tls.key. This allows you to bring your own CA to Kubernetes to issue certificates.
 	// - Generic Secret containing the tls.crt to establish trust. In this case, listenerCertSecretRef is mandatory.
@@ -485,6 +485,17 @@ type MaxScaleTLS struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	ListenerCertSecretRef *LocalObjectReference `json:"listenerCertSecretRef,omitempty"`
+	// ServerCASecretRef is a reference to a Secret containing the MariaDB server certificate authority keypair. It is used to establish trust and issue scertificates for MariaDB servers.
+	// One of:
+	// - TLS Secret containing both the tls.crt and tls.key. This allows you to bring your own CA to Kubernetes to issue certificates.
+	// - Generic Secret containing the tls.crt to establish trust. In this case, serverCertSecretRef is mandatory.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	ServerCASecretRef *LocalObjectReference `json:"serverCASecretRef,omitempty"`
+	// ServerCertSecretRef is a reference to a TLS Secret used by MaxScale to connect to the MariaDB servers.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	ServerCertSecretRef *LocalObjectReference `json:"serverCertSecretRef,omitempty"`
 }
 
 // MaxScaleMetrics defines the metrics for a Maxscale.
