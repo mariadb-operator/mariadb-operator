@@ -28,41 +28,45 @@ func (r *MariaDBReconciler) reconcileTLS(ctx context.Context, mariadb *mariadbv1
 	return ctrl.Result{}, nil
 }
 
-func (r *MariaDBReconciler) reconcileTLSCABundle(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
+func (r *MariaDBReconciler) reconcileTLSCABundle(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) error {
 	serverCAKeySelector := mariadbv1alpha1.SecretKeySelector{
 		LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
-			Name: mariadb.TLSServerCASecretKey().Name,
+			Name: mdb.TLSServerCASecretKey().Name,
 		},
 		Key: pki.TLSCertKey,
 	}
-	serverCA, err := r.RefResolver.SecretKeyRef(ctx, serverCAKeySelector, mariadb.Namespace)
-	if err != nil {
-		return fmt.Errorf("error getting server: CA: %v", err)
-	}
-
 	clientCAKeySelector := mariadbv1alpha1.SecretKeySelector{
 		LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
-			Name: mariadb.TLSClientCASecretKey().Name,
+			Name: mdb.TLSClientCASecretKey().Name,
 		},
 		Key: pki.TLSCertKey,
 	}
-	clientCA, err := r.RefResolver.SecretKeyRef(ctx, clientCAKeySelector, mariadb.Namespace)
-	if err != nil {
-		return fmt.Errorf("error getting client CA: %v", err)
+	caKeySelectors := []mariadbv1alpha1.SecretKeySelector{
+		serverCAKeySelector,
+		clientCAKeySelector,
+	}
+	caBundles := make([][]byte, len(caKeySelectors))
+
+	for i, caKeySelector := range caKeySelectors {
+		ca, err := r.RefResolver.SecretKeyRef(ctx, caKeySelector, mdb.Namespace)
+		if err != nil {
+			return fmt.Errorf("error getting CA \"%s\": %v", caKeySelector.Name, err)
+		}
+		caBundles[i] = []byte(ca)
 	}
 
-	bundle, err := pki.BundleCertificatePEMs(log.FromContext(ctx), []byte(serverCA), []byte(clientCA))
+	bundle, err := pki.BundleCertificatePEMs(log.FromContext(ctx), caBundles...)
 	if err != nil {
 		return fmt.Errorf("error creating CA bundle: %v", err)
 	}
 
-	secretKeyRef := mariadb.TLSCABundleSecretKeyRef()
+	secretKeyRef := mdb.TLSCABundleSecretKeyRef()
 	secretReq := secret.SecretRequest{
-		Metadata: []*mariadbv1alpha1.Metadata{mariadb.Spec.InheritMetadata},
-		Owner:    mariadb,
+		Metadata: []*mariadbv1alpha1.Metadata{mdb.Spec.InheritMetadata},
+		Owner:    mdb,
 		Key: types.NamespacedName{
 			Name:      secretKeyRef.Name,
-			Namespace: mariadb.Namespace,
+			Namespace: mdb.Namespace,
 		},
 		Data: map[string][]byte{
 			secretKeyRef.Key: bundle,
