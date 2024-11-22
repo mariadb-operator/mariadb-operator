@@ -29,23 +29,34 @@ func (r *MaxScaleReconciler) reconcileTLSCABundle(ctx context.Context, mxs *mari
 		},
 		Key: pki.TLSCertKey,
 	}
-	adminCA, err := r.RefResolver.SecretKeyRef(ctx, adminCAKeySelector, mxs.Namespace)
-	if err != nil {
-		return fmt.Errorf("error getting server: CA: %v", err)
-	}
-
 	listenerCAKeySelector := mariadbv1alpha1.SecretKeySelector{
 		LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
 			Name: mxs.TLSListenerCASecretKey().Name,
 		},
 		Key: pki.TLSCertKey,
 	}
-	listenerCA, err := r.RefResolver.SecretKeyRef(ctx, listenerCAKeySelector, mxs.Namespace)
-	if err != nil {
-		return fmt.Errorf("error getting server: CA: %v", err)
+	serverCAKeySelector := mariadbv1alpha1.SecretKeySelector{
+		LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+			Name: mxs.TLSServerCASecretKey().Name,
+		},
+		Key: pki.TLSCertKey,
+	}
+	caKeySelectors := []mariadbv1alpha1.SecretKeySelector{
+		adminCAKeySelector,
+		listenerCAKeySelector,
+		serverCAKeySelector,
+	}
+	caBundles := make([][]byte, len(caKeySelectors))
+
+	for i, caKeySelector := range caKeySelectors {
+		ca, err := r.RefResolver.SecretKeyRef(ctx, caKeySelector, mxs.Namespace)
+		if err != nil {
+			return fmt.Errorf("error getting CA \"%s\": %v", caKeySelector.Name, err)
+		}
+		caBundles[i] = []byte(ca)
 	}
 
-	bundle, err := pki.BundleCertificatePEMs(log.FromContext(ctx), []byte(adminCA), []byte(listenerCA))
+	bundle, err := pki.BundleCertificatePEMs(log.FromContext(ctx), caBundles...)
 	if err != nil {
 		return fmt.Errorf("error creating CA bundle: %v", err)
 	}
