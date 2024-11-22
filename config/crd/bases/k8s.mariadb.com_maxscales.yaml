@@ -1986,6 +1986,15 @@ spec:
                         default: ""
                         type: string
                     type: object
+                  verifyPeerCertificate:
+                    description: VerifyPeerCertificate specifies whether the peer
+                      certificate's signature should be validated against the CA.
+                      It is enabled by default.
+                    type: boolean
+                  verifyPeerHost:
+                    description: VerifyPeerHost specifies whether the peer certificate's
+                      SANs should match the peer host. It is disabled by default.
+                    type: boolean
                 type: object
               tolerations:
                 description: Tolerations to be used in the Pod.
