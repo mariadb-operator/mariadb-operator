@@ -56,7 +56,6 @@ spec:
       name: mariadb-client-ca
     clientCertSecretRef:
       name: mariadb-galera-client-tls
-
     # Enterprise >= 10.6 only:
     # https://mariadb.com/docs/server/security/galera/#SST_TLS_Modes
     galeraServerSSLMode: SERVER_X509 # PROVIDER|SERVER|SERVER_X509
