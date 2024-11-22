@@ -60,7 +60,7 @@ func (m *MariaDB) TLSCABundleSecretKeyRef() SecretKeySelector {
 		LocalObjectReference: LocalObjectReference{
 			Name: fmt.Sprintf("%s-ca-bundle", m.Name),
 		},
-		Key: pki.CACertKey,
+		Key: pki.TLSCertKey,
 	}
 }
 
