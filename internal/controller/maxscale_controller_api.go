@@ -56,7 +56,7 @@ func (m *maxScaleAPI) patchUser(ctx context.Context, username, password string) 
 // MaxScale API - Servers
 
 func (m *maxScaleAPI) createServer(ctx context.Context, srv *mariadbv1alpha1.MaxScaleServer) error {
-	return m.client.Server.Create(ctx, srv.Name, serverAttributes(srv))
+	return m.client.Server.Create(ctx, srv.Name, m.serverAttributes(srv))
 }
 
 func (m *maxScaleAPI) deleteServer(ctx context.Context, name string) error {
@@ -64,7 +64,7 @@ func (m *maxScaleAPI) deleteServer(ctx context.Context, name string) error {
 }
 
 func (m *maxScaleAPI) patchServer(ctx context.Context, srv *mariadbv1alpha1.MaxScaleServer) error {
-	return m.client.Server.Patch(ctx, srv.Name, serverAttributes(srv))
+	return m.client.Server.Patch(ctx, srv.Name, m.serverAttributes(srv))
 }
 
 func (m *maxScaleAPI) updateServerState(ctx context.Context, srv *mariadbv1alpha1.MaxScaleServer) error {
@@ -74,8 +74,8 @@ func (m *maxScaleAPI) updateServerState(ctx context.Context, srv *mariadbv1alpha
 	return m.client.Server.ClearMaintenance(ctx, srv.Name)
 }
 
-func serverAttributes(srv *mariadbv1alpha1.MaxScaleServer) mxsclient.ServerAttributes {
-	return mxsclient.ServerAttributes{
+func (m *maxScaleAPI) serverAttributes(srv *mariadbv1alpha1.MaxScaleServer) mxsclient.ServerAttributes {
+	attrs := mxsclient.ServerAttributes{
 		Parameters: mxsclient.ServerParameters{
 			Address:  srv.Address,
 			Port:     srv.Port,
@@ -83,6 +83,13 @@ func serverAttributes(srv *mariadbv1alpha1.MaxScaleServer) mxsclient.ServerAttri
 			Params:   mxsclient.NewMapParams(srv.Params),
 		},
 	}
+	if m.mxs.IsTLSEnabled() {
+		attrs.Parameters.SSL = true
+		attrs.Parameters.SSLCert = builderpki.ServerCertPath
+		attrs.Parameters.SSLKey = builderpki.ServerKeyPath
+		attrs.Parameters.SSLCA = builderpki.CACertPath
+	}
+	return attrs
 }
 
 func (m *maxScaleAPI) serverRelationships(ctx context.Context) (*mxsclient.Relationships, error) {

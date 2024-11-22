@@ -162,6 +162,36 @@ func (m *MaxScale) TLSListenerCertSecretKey() types.NamespacedName {
 	}
 }
 
+// TLSServerCASecretKey defines the key for the TLS MariaDB server CA.
+func (m *MaxScale) TLSServerCASecretKey() types.NamespacedName {
+	tls := ptr.Deref(m.Spec.TLS, MaxScaleTLS{})
+	if tls.Enabled && tls.ServerCASecretRef != nil {
+		return types.NamespacedName{
+			Name:      tls.ServerCASecretRef.Name,
+			Namespace: m.Namespace,
+		}
+	}
+	return types.NamespacedName{
+		Name:      fmt.Sprintf("%s-ca", m.Name),
+		Namespace: m.Namespace,
+	}
+}
+
+// TLSServerCertSecretKey defines the key for the TLS MariaDB server cert.
+func (m *MaxScale) TLSServerCertSecretKey() types.NamespacedName {
+	tls := ptr.Deref(m.Spec.TLS, MaxScaleTLS{})
+	if tls.Enabled && tls.ServerCertSecretRef != nil {
+		return types.NamespacedName{
+			Name:      tls.ServerCertSecretRef.Name,
+			Namespace: m.Namespace,
+		}
+	}
+	return types.NamespacedName{
+		Name:      fmt.Sprintf("%s-server-cert", m.Name),
+		Namespace: m.Namespace,
+	}
+}
+
 // AuthClientUserKey defines the key for the client User
 func (m *MaxScale) AuthClientUserKey() LocalObjectReference {
 	return LocalObjectReference{
