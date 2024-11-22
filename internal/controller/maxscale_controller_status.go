@@ -326,11 +326,7 @@ func (r *MaxScaleReconciler) getSqlClient(ctx context.Context, mxs *mariadbv1alp
 		if err != nil {
 			return nil, fmt.Errorf("error getting CA bundle: %v", err)
 		}
-		opts = append(opts, []sql.Opt{
-			sql.WithTLSCACert([]byte(caBundle)),
-			sql.WithMaxScaleName(mxs.Name),
-			sql.WithNamespace(mxs.Namespace),
-		}...)
+		opts = append(opts, sql.WithMaxscaleTLS(mxs.Name, mxs.Namespace, []byte(caBundle)))
 	}
 	return sql.NewClient(opts...)
 }
