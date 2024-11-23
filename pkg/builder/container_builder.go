@@ -73,6 +73,7 @@ func (b *Builder) mariadbContainers(mariadb *mariadbv1alpha1.MariaDB, opts ...ma
 		mariadbContainer.Ports = mariadbPorts(mariadb)
 	}
 	if mariadbOpts.includeProbes {
+		mariadbContainer.StartupProbe = mariadbStartupProbe(mariadb)
 		mariadbContainer.LivenessProbe = mariadbLivenessProbe(mariadb)
 		mariadbContainer.ReadinessProbe = mariadbReadinessProbe(mariadb)
 	}
@@ -557,6 +558,13 @@ func mariadbLivenessProbe(mariadb *mariadbv1alpha1.MariaDB) *corev1.Probe {
 		return mariadbGaleraProbe(mariadb, "/liveness", mariadb.Spec.LivenessProbe)
 	}
 	return mariadbProbe(mariadb, mariadb.Spec.LivenessProbe)
+}
+
+func mariadbStartupProbe(mariadb *mariadbv1alpha1.MariaDB) *corev1.Probe {
+	if mariadb.IsGaleraEnabled() {
+		return mariadbGaleraProbe(mariadb, "/liveness", mariadb.Spec.StartupProbe)
+	}
+	return mariadbProbe(mariadb, mariadb.Spec.StartupProbe)
 }
 
 func mariadbReadinessProbe(mariadb *mariadbv1alpha1.MariaDB) *corev1.Probe {
