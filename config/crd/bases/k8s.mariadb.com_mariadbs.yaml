@@ -1384,6 +1384,53 @@ spec:
                             format: int64
                             type: integer
                         type: object
+                      startupProbe:
+                        description: Resouces describes the compute resource requirements.
+                        properties:
+                          exec:
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#execaction-v1-core.'
+                            properties:
+                              command:
+                                items:
+                                  type: string
+                                type: array
+                                x-kubernetes-list-type: atomic
+                            type: object
+                          failureThreshold:
+                            format: int32
+                            type: integer
+                          httpGet:
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#httpgetaction-v1-core.'
+                            properties:
+                              host:
+                                type: string
+                              path:
+                                type: string
+                              port:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                x-kubernetes-int-or-string: true
+                              scheme:
+                                description: URIScheme identifies the scheme used
+                                  for connection to a host for Get actions
+                                type: string
+                            required:
+                            - port
+                            type: object
+                          initialDelaySeconds:
+                            format: int32
+                            type: integer
+                          periodSeconds:
+                            format: int32
+                            type: integer
+                          successThreshold:
+                            format: int32
+                            type: integer
+                          timeoutSeconds:
+                            format: int32
+                            type: integer
+                        type: object
                       volumeMounts:
                         description: VolumeMounts to be used in the Container.
                         items:
@@ -1794,6 +1841,53 @@ spec:
                             type: boolean
                           runAsUser:
                             format: int64
+                            type: integer
+                        type: object
+                      startupProbe:
+                        description: Resouces describes the compute resource requirements.
+                        properties:
+                          exec:
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#execaction-v1-core.'
+                            properties:
+                              command:
+                                items:
+                                  type: string
+                                type: array
+                                x-kubernetes-list-type: atomic
+                            type: object
+                          failureThreshold:
+                            format: int32
+                            type: integer
+                          httpGet:
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#httpgetaction-v1-core.'
+                            properties:
+                              host:
+                                type: string
+                              path:
+                                type: string
+                              port:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                x-kubernetes-int-or-string: true
+                              scheme:
+                                description: URIScheme identifies the scheme used
+                                  for connection to a host for Get actions
+                                type: string
+                            required:
+                            - port
+                            type: object
+                          initialDelaySeconds:
+                            format: int32
+                            type: integer
+                          periodSeconds:
+                            format: int32
+                            type: integer
+                          successThreshold:
+                            format: int32
+                            type: integer
+                          timeoutSeconds:
+                            format: int32
                             type: integer
                         type: object
                       volumeMounts:
@@ -4883,6 +4977,53 @@ spec:
                   - image
                   type: object
                 type: array
+              startupProbe:
+                description: Resouces describes the compute resource requirements.
+                properties:
+                  exec:
+                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#execaction-v1-core.'
+                    properties:
+                      command:
+                        items:
+                          type: string
+                        type: array
+                        x-kubernetes-list-type: atomic
+                    type: object
+                  failureThreshold:
+                    format: int32
+                    type: integer
+                  httpGet:
+                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#httpgetaction-v1-core.'
+                    properties:
+                      host:
+                        type: string
+                      path:
+                        type: string
+                      port:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        x-kubernetes-int-or-string: true
+                      scheme:
+                        description: URIScheme identifies the scheme used for connection
+                          to a host for Get actions
+                        type: string
+                    required:
+                    - port
+                    type: object
+                  initialDelaySeconds:
+                    format: int32
+                    type: integer
+                  periodSeconds:
+                    format: int32
+                    type: integer
+                  successThreshold:
+                    format: int32
+                    type: integer
+                  timeoutSeconds:
+                    format: int32
+                    type: integer
+                type: object
               storage:
                 description: Storage defines the storage options to be used for provisioning
                   the PVCs mounted by MariaDB.

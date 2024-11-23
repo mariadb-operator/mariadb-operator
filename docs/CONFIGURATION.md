@@ -186,12 +186,15 @@ metadata:
   name: mariadb-galera
 spec:
   livenessProbe:
-    initialDelaySeconds: 20
     periodSeconds: 5
     timeoutSeconds: 5
 
   readinessProbe:
-    initialDelaySeconds: 20
+    periodSeconds: 5
+    timeoutSeconds: 5
+
+startupProbe:
+    failureThreshold: 10
     periodSeconds: 5
     timeoutSeconds: 5
 ```

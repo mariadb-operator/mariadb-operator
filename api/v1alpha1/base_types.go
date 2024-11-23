@@ -104,6 +104,10 @@ type ContainerTemplate struct {
 	// Resouces describes the compute resource requirements.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:resourceRequirements"}
+	StartupProbe *Probe `json:"startupProbe,omitempty"`
+	// Resouces describes the compute resource requirements.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:resourceRequirements"}
 	Resources *ResourceRequirements `json:"resources,omitempty"`
 	// SecurityContext holds security configuration that will be applied to a container.
 	// +optional
