@@ -74,13 +74,17 @@ spec:
 
   # Tune your liveness probe accordingly to avoid Pod restarts.
   livenessProbe:
-    initialDelaySeconds: 20
     periodSeconds: 5
     timeoutSeconds: 5
 
   # Tune your readiness probe accordingly to prevent disruptions in network traffic.
   readinessProbe:
-    initialDelaySeconds: 20
+    periodSeconds: 5
+    timeoutSeconds: 5
+
+  # Tune your startup probe accordingly to the delay needed for full sst completion.
+  startupProbe:
+    failureThreshold: 10
     periodSeconds: 5
     timeoutSeconds: 5
 
