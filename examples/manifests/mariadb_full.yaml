@@ -81,7 +81,6 @@ spec:
         - bash
         - -c
         - mariadb -u root -p"${MARIADB_ROOT_PASSWORD}" -e "SELECT 1;"
-    initialDelaySeconds: 20
     periodSeconds: 5
     timeoutSeconds: 5
 
@@ -91,7 +90,16 @@ spec:
         - bash
         - -c
         - mariadb -u root -p"${MARIADB_ROOT_PASSWORD}" -e "SELECT 1;"
-    initialDelaySeconds: 20
+    periodSeconds: 5
+    timeoutSeconds: 5
+
+  startupProbe:
+    exec:
+      command:
+        - bash
+        - -c
+        - mariadb -u root -p"${MARIADB_ROOT_PASSWORD}" -e "SELECT 1;"
+    failureThreshold: 10
     periodSeconds: 5
     timeoutSeconds: 5
 
