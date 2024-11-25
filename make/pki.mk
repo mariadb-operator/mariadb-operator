@@ -171,7 +171,7 @@ cert-mariadb-repl: ## Generate certificates for MariaDB replication.
 # MaxScale ================================================================================================================================
 
 .PHONY: cert-mxs-galera
-cert-mxs-galera: ca-mxs-admin ca-mxs-listener ## Generate certificates for MaxScale admin Galera.
+cert-mxs-galera: ca-mxs-admin ca-mxs-listener ## Generate certificates for MaxScale Galera.
 	CERT_SECRET_NAME=maxscale-galera-admin-tls \
 	CERT_SECRET_NAMESPACE=default \
 	CERT=$(PKI_DIR)/maxscale-galera-admin.crt \
@@ -188,6 +188,28 @@ cert-mxs-galera: ca-mxs-admin ca-mxs-listener ## Generate certificates for MaxSc
 	KEY=$(PKI_DIR)/maxscale-galera-listener.key \
 	CERT_SUBJECT="/CN=maxscale-galera.default.svc.cluster.local" \
 	CERT_ALT_NAMES="subjectAltName=DNS:*.maxscale-galera-internal.default.svc.cluster.local,DNS:maxscale-galera.default.svc.cluster.local,DNS:maxscale-galera-gui.default.svc.cluster.local"  \
+	CA_CERT=$(CA_MAXSCALE_LISTENER_CERT) \
+	CA_KEY=$(CA_MAXSCALE_LISTENER_KEY) \
+	$(MAKE) cert-leaf
+
+.PHONY: cert-mxs-repl
+cert-mxs-repl: ca-mxs-admin ca-mxs-listener ## Generate certificates for MaxScale replication.
+	CERT_SECRET_NAME=maxscale-repl-admin-tls \
+	CERT_SECRET_NAMESPACE=default \
+	CERT=$(PKI_DIR)/maxscale-repl-admin.crt \
+	KEY=$(PKI_DIR)/maxscale-repl-admin.key \
+	CERT_SUBJECT="/CN=maxscale-repl.default.svc.cluster.local" \
+	CERT_ALT_NAMES="subjectAltName=DNS:*.maxscale-repl-internal.default.svc.cluster.local,DNS:maxscale-repl.default.svc.cluster.local,DNS:maxscale-repl-gui.default.svc.cluster.local"  \
+	CA_CERT=$(CA_MAXSCALE_ADMIN_CERT) \
+	CA_KEY=$(CA_MAXSCALE_ADMIN_KEY) \
+	$(MAKE) cert-leaf
+
+	CERT_SECRET_NAME=maxscale-repl-listener-tls \
+	CERT_SECRET_NAMESPACE=default \
+	CERT=$(PKI_DIR)/maxscale-repl-listener.crt \
+	KEY=$(PKI_DIR)/maxscale-repl-listener.key \
+	CERT_SUBJECT="/CN=maxscale-repl.default.svc.cluster.local" \
+	CERT_ALT_NAMES="subjectAltName=DNS:*.maxscale-repl-internal.default.svc.cluster.local,DNS:maxscale-repl.default.svc.cluster.local,DNS:maxscale-repl-gui.default.svc.cluster.local"  \
 	CA_CERT=$(CA_MAXSCALE_LISTENER_CERT) \
 	CA_KEY=$(CA_MAXSCALE_LISTENER_KEY) \
 	$(MAKE) cert-leaf
@@ -250,4 +272,4 @@ cert-secret: kubectl ## Creates a generic Secret from a certificate.
 # Entrypoint ==============================================================================================================================
 
 .PHONY: cert
-cert: cert-mariadb cert-mariadb-galera cert-mariadb-repl cert-mxs-galera cert-webhook cert-minio ## Generate certificates.
+cert: cert-mariadb cert-mariadb-galera cert-mariadb-repl cert-mxs-galera cert-mxs-repl cert-webhook cert-minio ## Generate certificates.

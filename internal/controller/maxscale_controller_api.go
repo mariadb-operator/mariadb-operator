@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -56,7 +57,11 @@ func (m *maxScaleAPI) patchUser(ctx context.Context, username, password string) 
 // MaxScale API - Servers
 
 func (m *maxScaleAPI) createServer(ctx context.Context, srv *mariadbv1alpha1.MaxScaleServer) error {
-	return m.client.Server.Create(ctx, srv.Name, m.serverAttributes(srv))
+	serverAttrs, err := m.serverAttributes(srv)
+	if err != nil {
+		return fmt.Errorf("error getting server attributes: %v", err)
+	}
+	return m.client.Server.Create(ctx, srv.Name, *serverAttrs)
 }
 
 func (m *maxScaleAPI) deleteServer(ctx context.Context, name string) error {
@@ -64,7 +69,11 @@ func (m *maxScaleAPI) deleteServer(ctx context.Context, name string) error {
 }
 
 func (m *maxScaleAPI) patchServer(ctx context.Context, srv *mariadbv1alpha1.MaxScaleServer) error {
-	return m.client.Server.Patch(ctx, srv.Name, m.serverAttributes(srv))
+	serverAttrs, err := m.serverAttributes(srv)
+	if err != nil {
+		return fmt.Errorf("error getting server attributes: %v", err)
+	}
+	return m.client.Server.Patch(ctx, srv.Name, *serverAttrs)
 }
 
 func (m *maxScaleAPI) updateServerState(ctx context.Context, srv *mariadbv1alpha1.MaxScaleServer) error {
@@ -74,7 +83,7 @@ func (m *maxScaleAPI) updateServerState(ctx context.Context, srv *mariadbv1alpha
 	return m.client.Server.ClearMaintenance(ctx, srv.Name)
 }
 
-func (m *maxScaleAPI) serverAttributes(srv *mariadbv1alpha1.MaxScaleServer) mxsclient.ServerAttributes {
+func (m *maxScaleAPI) serverAttributes(srv *mariadbv1alpha1.MaxScaleServer) (*mxsclient.ServerAttributes, error) {
 	attrs := mxsclient.ServerAttributes{
 		Parameters: mxsclient.ServerParameters{
 			Address:  srv.Address,
@@ -91,8 +100,42 @@ func (m *maxScaleAPI) serverAttributes(srv *mariadbv1alpha1.MaxScaleServer) mxsc
 		attrs.Parameters.SSLCA = builderpki.CACertPath
 		attrs.Parameters.SSLVerifyPeerCertificate = ptr.Deref(tls.VerifyPeerCertificate, true)
 		attrs.Parameters.SSLVerifyPeerHost = ptr.Deref(tls.VerifyPeerHost, false)
+
+		if ptr.Deref(tls.ReplicationSSLEnabled, false) {
+			replicationCustomOptions, err := maxScaleReplicationCustomOptions(&tls)
+			if err != nil {
+				return nil, err
+			}
+			attrs.Parameters.ReplicationCustomOptions = replicationCustomOptions
+		}
 	}
-	return attrs
+	return &attrs, nil
+}
+
+func maxScaleReplicationCustomOptions(tls *mariadbv1alpha1.MaxScaleTLS) (string, error) {
+	if !tls.Enabled {
+		return "", errors.New("MaxScale TLS must be enabled")
+	}
+	if !ptr.Deref(tls.ReplicationSSLEnabled, false) {
+		return "", nil
+	}
+
+	//nolint:lll
+	tpl := createTpl("replication-custom-opts", `MASTER_SSL=1,MASTER_SSL_CERT={{ .SSLCert }},MASTER_SSL_KEY={{ .SSLKey }},MASTER_SSL_CA={{ .SSLCA }}`)
+	buf := new(bytes.Buffer)
+	err := tpl.Execute(buf, struct {
+		SSLCert string
+		SSLKey  string
+		SSLCA   string
+	}{
+		SSLCert: builderpki.ServerCertPath,
+		SSLKey:  builderpki.ServerKeyPath,
+		SSLCA:   builderpki.CACertPath,
+	})
+	if err != nil {
+		return "", fmt.Errorf("error building replication custom options: %v", err)
+	}
+	return buf.String(), nil
 }
 
 func (m *maxScaleAPI) serverRelationships(ctx context.Context) (*mxsclient.Relationships, error) {
