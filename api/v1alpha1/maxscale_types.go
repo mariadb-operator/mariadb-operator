@@ -504,6 +504,22 @@ type MaxScaleTLS struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
 	VerifyPeerHost *bool `json:"verifyPeerHost,omitempty"`
+	// ReplicationSSLEnabled specifies whether the replication SSL is enabled. If enabled, the SSL options will be added to the server configuration.
+	// This field is automatically set when a reference to a MariaDB via the 'mariaDbRef' field is provided.
+	// If the MariaDB servers are manually provided by the user via the 'servers' field, this must be set by the user as well.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
+	ReplicationSSLEnabled *bool `json:"replicationSSLEnabled,omitempty"`
+}
+
+// SetDefaults sets reasonable defaults.
+func (m *MaxScaleTLS) SetDefaults(mdb *MariaDB) {
+	if !m.Enabled || mdb == nil {
+		return
+	}
+	if mdb.IsTLSEnabled() && mdb.Replication().Enabled && m.ReplicationSSLEnabled == nil {
+		m.ReplicationSSLEnabled = ptr.To(true)
+	}
 }
 
 // MaxScaleMetrics defines the metrics for a Maxscale.
@@ -843,6 +859,10 @@ func (m *MaxScale) SetDefaults(env *environment.OperatorEnv, mariadb *MariaDB) {
 		if m.Spec.Metrics.Exporter.Affinity != nil {
 			m.Spec.Metrics.Exporter.Affinity.SetDefaults(antiAffinityInstances...)
 		}
+	}
+
+	if m.Spec.TLS != nil && m.IsTLSEnabled() {
+		m.Spec.TLS.SetDefaults(mariadb)
 	}
 
 	if m.Spec.Affinity != nil {

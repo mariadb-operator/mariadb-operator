@@ -2014,6 +2014,12 @@ spec:
                         default: ""
                         type: string
                     type: object
+                  replicationSSLEnabled:
+                    description: |-
+                      ReplicationSSLEnabled specifies whether the replication SSL is enabled. If enabled, the SSL options will be added to the server configuration.
+                      This field is automatically set when a reference to a MariaDB via the 'mariaDbRef' field is provided.
+                      If the MariaDB servers are manually provided by the user via the 'servers' field, this must be set by the user as well.
+                    type: boolean
                   serverCASecretRef:
                     description: |-
                       ServerCASecretRef is a reference to a Secret containing the MariaDB server certificate authority keypair. It is used to establish trust and issue scertificates for MariaDB servers.
