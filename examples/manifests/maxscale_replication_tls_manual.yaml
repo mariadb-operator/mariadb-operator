@@ -1,0 +1,53 @@
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MaxScale
+metadata:
+  name: maxscale-repl
+spec:
+  replicas: 3
+
+  mariaDbRef:
+    name: mariadb-repl
+
+  admin:
+    port: 8989
+    guiEnabled: true
+
+  auth:
+    generate: true
+
+  kubernetesService:
+    type: LoadBalancer
+    metadata:
+      annotations:
+        metallb.universe.tf/loadBalancerIPs: 172.18.0.214
+
+  guiKubernetesService:
+    type: LoadBalancer
+    metadata:
+      annotations:
+        metallb.universe.tf/loadBalancerIPs: 172.18.0.230
+
+  connection:
+    secretName: mxs-galera-conn
+    port: 3306
+
+  metrics:
+    enabled: true
+
+  tls:
+    enabled: true
+    adminCASecretRef:
+      name: maxscale-admin-ca
+    adminCertSecretRef:
+      name: maxscale-repl-admin-tls
+    listenerCASecretRef:
+      name: maxscale-listener-ca
+    listenerCertSecretRef:
+      name: maxscale-repl-listener-tls
+    serverCASecretRef:
+      name: mariadb-repl-ca-bundle
+    serverCertSecretRef:
+      name: mariadb-repl-client-tls
+    verifyPeerCertificate: true
+    verifyPeerHost: false
+    replicationSSLEnabled: true
