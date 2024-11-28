@@ -207,7 +207,7 @@ var rootCmd = &cobra.Command{
 		svcMonitorReconciler := servicemonitor.NewServiceMonitorReconciler(client)
 
 		mxsReconciler := maxscale.NewMaxScaleReconciler(client, builder, env)
-		replConfig := replication.NewReplicationConfig(client, builder, secretReconciler)
+		replConfig := replication.NewReplicationConfig(client, builder, secretReconciler, env)
 		replicationReconciler, err := replication.NewReplicationReconciler(
 			client,
 			replRecorder,
@@ -409,7 +409,7 @@ func main() {
 	rootCmd.AddCommand(certControllerCmd)
 	rootCmd.AddCommand(webhookCmd)
 	rootCmd.AddCommand(backupcmd.RootCmd)
-	rootCmd.AddCommand(initcmd.RootCmd)
+	rootCmd.AddCommand(initcmd.NewInitCommand(discovery.NewDiscovery))
 	rootCmd.AddCommand(agentcmd.RootCmd)
 
 	cobra.CheckErr(rootCmd.Execute())

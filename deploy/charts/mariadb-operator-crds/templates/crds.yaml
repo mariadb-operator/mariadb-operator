@@ -2964,12 +2964,31 @@ spec:
                           successThreshold:
                             format: int32
                             type: integer
+                          tcpSocket:
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#tcpsocketaction-v1-core.'
+                            properties:
+                              host:
+                                type: string
+                              port:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                x-kubernetes-int-or-string: true
+                            required:
+                            - port
+                            type: object
                           timeoutSeconds:
                             format: int32
                             type: integer
                         type: object
                       port:
-                        description: Port where the agent will be listening for connections.
+                        description: Port where the agent will be listening for API
+                          connections.
+                        format: int32
+                        type: integer
+                      probePort:
+                        description: Port where the agent will be listening for probe
+                          connections.
                         format: int32
                         type: integer
                       readinessProbe:
@@ -3015,6 +3034,19 @@ spec:
                           successThreshold:
                             format: int32
                             type: integer
+                          tcpSocket:
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#tcpsocketaction-v1-core.'
+                            properties:
+                              host:
+                                type: string
+                              port:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                x-kubernetes-int-or-string: true
+                            required:
+                            - port
+                            type: object
                           timeoutSeconds:
                             format: int32
                             type: integer
@@ -3380,6 +3412,19 @@ spec:
                           successThreshold:
                             format: int32
                             type: integer
+                          tcpSocket:
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#tcpsocketaction-v1-core.'
+                            properties:
+                              host:
+                                type: string
+                              port:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                x-kubernetes-int-or-string: true
+                            required:
+                            - port
+                            type: object
                           timeoutSeconds:
                             format: int32
                             type: integer
@@ -3427,6 +3472,19 @@ spec:
                           successThreshold:
                             format: int32
                             type: integer
+                          tcpSocket:
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#tcpsocketaction-v1-core.'
+                            properties:
+                              host:
+                                type: string
+                              port:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                x-kubernetes-int-or-string: true
+                            required:
+                            - port
+                            type: object
                           timeoutSeconds:
                             format: int32
                             type: integer
@@ -3920,6 +3978,19 @@ spec:
                   successThreshold:
                     format: int32
                     type: integer
+                  tcpSocket:
+                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#tcpsocketaction-v1-core.'
+                    properties:
+                      host:
+                        type: string
+                      port:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        x-kubernetes-int-or-string: true
+                    required:
+                    - port
+                    type: object
                   timeoutSeconds:
                     format: int32
                     type: integer
@@ -6079,6 +6150,19 @@ spec:
                   successThreshold:
                     format: int32
                     type: integer
+                  tcpSocket:
+                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#tcpsocketaction-v1-core.'
+                    properties:
+                      host:
+                        type: string
+                      port:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        x-kubernetes-int-or-string: true
+                    required:
+                    - port
+                    type: object
                   timeoutSeconds:
                     format: int32
                     type: integer
@@ -6729,6 +6813,72 @@ spec:
                 description: TimeZone sets the default timezone. If not provided,
                   it defaults to SYSTEM and the timezone data is not loaded.
                 type: string
+              tls:
+                description: TLS defines the PKI to be used with MariaDB.
+                properties:
+                  clientCASecretRef:
+                    description: |-
+                      ClientCASecretRef is a reference to a Secret containing the client certificate authority keypair. It is used to establish trust and issue server certificates for MariaDB clients.
+                      One of:
+                      - TLS Secret containing both the tls.crt and tls.key. This allows you to bring your own CA to Kubernetes to issue certificates.
+                      - Generic Secret containing the tls.crt to establish trust. In this case, clientSecretRef is mandatory.
+                    properties:
+                      name:
+                        default: ""
+                        type: string
+                    type: object
+                  clientCertSecretRef:
+                    description: ClientCertSecretRef is a reference to a TLS Secret
+                      used by the MariaDB clients to configure TLS.
+                    properties:
+                      name:
+                        default: ""
+                        type: string
+                    type: object
+                  enabled:
+                    description: Enabled is a flag to enable TLS.
+                    type: boolean
+                  galeraClientSSLMode:
+                    description: |-
+                      GaleraClientSSLMode defines the client SSL mode for a Galera Enterprise cluster.
+                      This field is only supported and applicable for Galera Enterprise >= 10.6 instances.
+                      Refer to the MariaDB Enterprise docs for more detail: https://mariadb.com/docs/server/security/galera/#SST_TLS_Modes
+                    enum:
+                    - DISABLED
+                    - REQUIRED
+                    - VERIFY_CA
+                    - VERIFY_IDENTITY
+                    type: string
+                  galeraServerSSLMode:
+                    description: |-
+                      GaleraServerSSLMode defines the server SSL mode for a Galera Enterprise cluster.
+                      This field is only supported and applicable for Galera Enterprise >= 10.6 instances.
+                      Refer to the MariaDB Enterprise docs for more detail: https://mariadb.com/docs/server/security/galera/#WSREP_TLS_Modes
+                    enum:
+                    - PROVIDER
+                    - SERVER
+                    - SERVER_X509
+                    type: string
+                  serverCASecretRef:
+                    description: |-
+                      ServerCASecretRef is a reference to a Secret containing the server certificate authority keypair. It is used to establish trust and issue server certificates for MariaDB server.
+                      One of:
+                      - TLS Secret containing both the tls.crt and tls.key. This allows you to bring your own CA to Kubernetes to issue certificates.
+                      - Generic Secret containing the tls.crt to establish trust. In this case, serverSecretRef is mandatory.
+                    properties:
+                      name:
+                        default: ""
+                        type: string
+                    type: object
+                  serverCertSecretRef:
+                    description: ServerCertSecretRef is a reference to a TLS Secret
+                      used by the MariaDB server to configure TLS.
+                    properties:
+                      name:
+                        default: ""
+                        type: string
+                    type: object
+                type: object
               tolerations:
                 description: Tolerations to be used in the Pod.
                 items:
@@ -7082,6 +7232,12 @@ spec:
               currentPrimaryPodIndex:
                 description: CurrentPrimaryPodIndex is the primary Pod index.
                 type: integer
+              defaultVersion:
+                description: |-
+                  DefaultVersion is the MariaDB version used by the operator when it cannot infer the version
+                  from spec.image. This can happen if the image uses a digest (e.g. sha256) instead
+                  of a version tag.
+                type: string
               galeraRecovery:
                 description: GaleraRecovery is the Galera recovery current state.
                 properties:
@@ -8101,6 +8257,19 @@ spec:
                   successThreshold:
                     format: int32
                     type: integer
+                  tcpSocket:
+                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#tcpsocketaction-v1-core.'
+                    properties:
+                      host:
+                        type: string
+                      port:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        x-kubernetes-int-or-string: true
+                    required:
+                    - port
+                    type: object
                   timeoutSeconds:
                     format: int32
                     type: integer
@@ -8855,6 +9024,19 @@ spec:
                   successThreshold:
                     format: int32
                     type: integer
+                  tcpSocket:
+                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#tcpsocketaction-v1-core.'
+                    properties:
+                      host:
+                        type: string
+                      port:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        x-kubernetes-int-or-string: true
+                    required:
+                    - port
+                    type: object
                   timeoutSeconds:
                     format: int32
                     type: integer
@@ -9054,6 +9236,85 @@ spec:
                   Suspend indicates whether the current resource should be suspended or not.
                   This can be useful for maintenance, as disabling the reconciliation prevents the operator from interfering with user operations during maintenance activities.
                 type: boolean
+              tls:
+                description: TLS defines the PKI to be used with MaxScale.
+                properties:
+                  adminCASecretRef:
+                    description: |-
+                      AdminCASecretRef is a reference to a Secret containing the admin certificate authority keypair. It is used to establish trust and issue scertificates for the MaxScale's administrative REST API and GUI.
+                      One of:
+                      - TLS Secret containing both the tls.crt and tls.key. This allows you to bring your own CA to Kubernetes to issue certificates.
+                      - Generic Secret containing the tls.crt to establish trust. In this case, adminCertSecretRef is mandatory.
+                    properties:
+                      name:
+                        default: ""
+                        type: string
+                    type: object
+                  adminCertSecretRef:
+                    description: AdminCertSecretRef is a reference to a TLS Secret
+                      used by the MaxScale's administrative REST API and GUI.
+                    properties:
+                      name:
+                        default: ""
+                        type: string
+                    type: object
+                  enabled:
+                    description: Enabled is a flag to enable TLS.
+                    type: boolean
+                  listenerCASecretRef:
+                    description: |-
+                      ListenerCASecretRef is a reference to a Secret containing the listener certificate authority keypair. It is used to establish trust and issue scertificates for the MaxScale's listeners.
+                      One of:
+                      - TLS Secret containing both the tls.crt and tls.key. This allows you to bring your own CA to Kubernetes to issue certificates.
+                      - Generic Secret containing the tls.crt to establish trust. In this case, listenerCertSecretRef is mandatory.
+                    properties:
+                      name:
+                        default: ""
+                        type: string
+                    type: object
+                  listenerCertSecretRef:
+                    description: ListenerCertSecretRef is a reference to a TLS Secret
+                      used by the MaxScale's listeners.
+                    properties:
+                      name:
+                        default: ""
+                        type: string
+                    type: object
+                  replicationSSLEnabled:
+                    description: |-
+                      ReplicationSSLEnabled specifies whether the replication SSL is enabled. If enabled, the SSL options will be added to the server configuration.
+                      This field is automatically set when a reference to a MariaDB via the 'mariaDbRef' field is provided.
+                      If the MariaDB servers are manually provided by the user via the 'servers' field, this must be set by the user as well.
+                    type: boolean
+                  serverCASecretRef:
+                    description: |-
+                      ServerCASecretRef is a reference to a Secret containing the MariaDB server certificate authority keypair. It is used to establish trust and issue scertificates for MariaDB servers.
+                      One of:
+                      - TLS Secret containing both the tls.crt and tls.key. This allows you to bring your own CA to Kubernetes to issue certificates.
+                      - Generic Secret containing the tls.crt to establish trust. In this case, serverCertSecretRef is mandatory.
+                    properties:
+                      name:
+                        default: ""
+                        type: string
+                    type: object
+                  serverCertSecretRef:
+                    description: ServerCertSecretRef is a reference to a TLS Secret
+                      used by MaxScale to connect to the MariaDB servers.
+                    properties:
+                      name:
+                        default: ""
+                        type: string
+                    type: object
+                  verifyPeerCertificate:
+                    description: VerifyPeerCertificate specifies whether the peer
+                      certificate's signature should be validated against the CA.
+                      It is enabled by default.
+                    type: boolean
+                  verifyPeerHost:
+                    description: VerifyPeerHost specifies whether the peer certificate's
+                      SANs should match the peer host. It is disabled by default.
+                    type: boolean
+                type: object
               tolerations:
                 description: Tolerations to be used in the Pod.
                 items:

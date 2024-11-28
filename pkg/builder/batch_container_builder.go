@@ -48,7 +48,7 @@ func (b *Builder) jobMariadbContainer(cmd *cmd.Command, volumeMounts []corev1.Vo
 }
 
 func jobBatchStorageVolume(storageVolume mariadbv1alpha1.StorageVolumeSource,
-	s3 *mariadbv1alpha1.S3) ([]corev1.Volume, []corev1.VolumeMount) {
+	s3 *mariadbv1alpha1.S3, mariadb *mariadbv1alpha1.MariaDB) ([]corev1.Volume, []corev1.VolumeMount) {
 	volumes :=
 		[]corev1.Volume{
 			{
@@ -75,6 +75,11 @@ func jobBatchStorageVolume(storageVolume mariadbv1alpha1.StorageVolumeSource,
 			Name:      batchS3PKI,
 			MountPath: batchS3PKIMountPath,
 		})
+	}
+	if mariadb.IsTLSEnabled() {
+		tlsVolumes, tlsVolumeMounts := mariadbTLSVolumes(mariadb)
+		volumes = append(volumes, tlsVolumes...)
+		volumeMounts = append(volumeMounts, tlsVolumeMounts...)
 	}
 	return volumes, volumeMounts
 }

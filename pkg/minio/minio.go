@@ -2,6 +2,7 @@ package minio
 
 import (
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -92,7 +93,7 @@ func getTransport(opts *MinioOpts) (*http.Transport, error) {
 			return nil, fmt.Errorf("error reading CA cert: %v", err)
 		}
 		if ok := transport.TLSClientConfig.RootCAs.AppendCertsFromPEM(caBytes); !ok {
-			return nil, fmt.Errorf("error parsing CA cert : %s", err)
+			return nil, errors.New("unable to add CA cert to pool")
 		}
 	}
 

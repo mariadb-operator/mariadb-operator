@@ -56,7 +56,7 @@ spec:
               value: docker-registry2.mariadb.com/mariadb/mariadb-operator-enterprise:0.34.0
             - name: MARIADB_GALERA_LIB_PATH
               value: /usr/lib64/galera/libgalera_smm.so
-            - name: MARIADB_ENTRYPOINT_VERSION
+            - name: MARIADB_DEFAULT_VERSION
               value: "10.6"
             - name: WATCH_NAMESPACE
               valueFrom:
