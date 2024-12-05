@@ -14,10 +14,17 @@ import (
 )
 
 const (
-	mariadbMyCnfConfigMapFieldPath        = ".spec.myCnfConfigMapKeyRef.name"
+	mariadbMyCnfConfigMapFieldPath = ".spec.myCnfConfigMapKeyRef.name"
+
 	mariadbMetricsPasswordSecretFieldPath = ".spec.metrics.passwordSecretKeyRef"
+
+	mariadbTLSServerCASecretFieldPath   = ".spec.tls.serverCASecretRef"
+	mariadbTLSServerCertSecretFieldPath = ".spec.tls.serverCertSecretRef"
+	mariadbTLSClientCASecretFieldPath   = ".spec.tls.clientCASecretRef"
+	mariadbTLSClientCertSecretFieldPath = ".spec.tls.clientCertSecretRef"
 )
 
+// nolint:gocyclo
 // IndexerFuncForFieldPath returns an indexer function for a given field path.
 func (m *MariaDB) IndexerFuncForFieldPath(fieldPath string) (client.IndexerFunc, error) {
 	switch fieldPath {
@@ -43,6 +50,50 @@ func (m *MariaDB) IndexerFuncForFieldPath(fieldPath string) (client.IndexerFunc,
 			}
 			return nil
 		}, nil
+	case mariadbTLSServerCASecretFieldPath:
+		return func(o client.Object) []string {
+			mdb, ok := o.(*MariaDB)
+			if !ok {
+				return nil
+			}
+			if mdb.IsTLSEnabled() && mdb.Spec.TLS != nil && mdb.Spec.TLS.ServerCASecretRef != nil {
+				return []string{mdb.Spec.TLS.ServerCASecretRef.Name}
+			}
+			return nil
+		}, nil
+	case mariadbTLSServerCertSecretFieldPath:
+		return func(o client.Object) []string {
+			mdb, ok := o.(*MariaDB)
+			if !ok {
+				return nil
+			}
+			if mdb.IsTLSEnabled() && mdb.Spec.TLS != nil && mdb.Spec.TLS.ServerCertSecretRef != nil {
+				return []string{mdb.Spec.TLS.ServerCertSecretRef.Name}
+			}
+			return nil
+		}, nil
+	case mariadbTLSClientCASecretFieldPath:
+		return func(o client.Object) []string {
+			mdb, ok := o.(*MariaDB)
+			if !ok {
+				return nil
+			}
+			if mdb.IsTLSEnabled() && mdb.Spec.TLS != nil && mdb.Spec.TLS.ClientCASecretRef != nil {
+				return []string{mdb.Spec.TLS.ClientCASecretRef.Name}
+			}
+			return nil
+		}, nil
+	case mariadbTLSClientCertSecretFieldPath:
+		return func(o client.Object) []string {
+			mdb, ok := o.(*MariaDB)
+			if !ok {
+				return nil
+			}
+			if mdb.IsTLSEnabled() && mdb.Spec.TLS != nil && mdb.Spec.TLS.ClientCertSecretRef != nil {
+				return []string{mdb.Spec.TLS.ClientCertSecretRef.Name}
+			}
+			return nil
+		}, nil
 	default:
 		return nil, fmt.Errorf("unsupported field path: %s", fieldPath)
 	}
@@ -65,17 +116,26 @@ func IndexMariaDB(ctx context.Context, mgr manager.Manager, builder *ctrlbuilder
 		return fmt.Errorf("error watching '%s': %v", mariadbMyCnfConfigMapFieldPath, err)
 	}
 
-	if err := watcherIndexer.Watch(
-		ctx,
-		&corev1.Secret{},
-		&MariaDB{},
-		&MariaDBList{},
+	secretFieldPaths := []string{
 		mariadbMetricsPasswordSecretFieldPath,
-		ctrlbuilder.WithPredicates(
-			predicate.PredicateWithLabel(metadata.WatchLabel),
-		),
-	); err != nil {
-		return fmt.Errorf("error watching '%s': %v", mariadbMetricsPasswordSecretFieldPath, err)
+		mariadbTLSServerCASecretFieldPath,
+		mariadbTLSServerCertSecretFieldPath,
+		mariadbTLSClientCASecretFieldPath,
+		mariadbTLSClientCertSecretFieldPath,
+	}
+	for _, fieldPath := range secretFieldPaths {
+		if err := watcherIndexer.Watch(
+			ctx,
+			&corev1.Secret{},
+			&MariaDB{},
+			&MariaDBList{},
+			fieldPath,
+			ctrlbuilder.WithPredicates(
+				predicate.PredicateWithLabel(metadata.WatchLabel),
+			),
+		); err != nil {
+			return fmt.Errorf("error watching '%s': %v", mariadbMetricsPasswordSecretFieldPath, err)
+		}
 	}
 
 	return nil
