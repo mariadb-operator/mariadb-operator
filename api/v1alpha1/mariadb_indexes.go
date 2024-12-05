@@ -48,8 +48,10 @@ func (m *MariaDB) IndexerFuncForFieldPath(fieldPath string) (client.IndexerFunc,
 	}
 }
 
+// IndexMariaDB watches and indexes external resources referred by MariaDB resources.
 func IndexMariaDB(ctx context.Context, mgr manager.Manager, builder *ctrlbuilder.Builder, client client.Client) error {
 	watcherIndexer := watch.NewWatcherIndexer(mgr, builder, client)
+
 	if err := watcherIndexer.Watch(
 		ctx,
 		&corev1.ConfigMap{},

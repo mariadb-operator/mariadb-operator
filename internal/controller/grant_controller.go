@@ -9,13 +9,9 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/sql"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	sqlClient "github.com/mariadb-operator/mariadb-operator/pkg/sql"
-	"github.com/mariadb-operator/mariadb-operator/pkg/watch"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
-	ctrlbuilder "sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/event"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
 // GrantReconciler reconciles a Grant object
@@ -65,20 +61,8 @@ func (r *GrantReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager
 	builder := ctrl.NewControllerManagedBy(mgr).
 		For(&mariadbv1alpha1.Grant{})
 
-	watcherIndexer := watch.NewWatcherIndexer(mgr, builder, r.Client)
-	if err := watcherIndexer.Watch(
-		ctx,
-		&mariadbv1alpha1.User{},
-		&mariadbv1alpha1.Grant{},
-		&mariadbv1alpha1.GrantList{},
-		mariadbv1alpha1.GrantUsernameFieldPath,
-		ctrlbuilder.WithPredicates(predicate.Funcs{
-			CreateFunc: func(ce event.CreateEvent) bool {
-				return true
-			},
-		}),
-	); err != nil {
-		return fmt.Errorf("error watching: %v", err)
+	if err := mariadbv1alpha1.IndexGrant(ctx, mgr, builder, r.Client); err != nil {
+		return fmt.Errorf("error indexing Grant: %v", err)
 	}
 
 	return builder.Complete(r)
