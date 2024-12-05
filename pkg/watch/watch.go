@@ -12,6 +12,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -44,28 +45,39 @@ func NewWatcherIndexer(mgr ctrl.Manager, builder *builder.Builder, client ctrlcl
 	}
 }
 
-func (rw *WatcherIndexer) Watch(ctx context.Context, obj client.Object, indexer Indexer, indexerList ItemLister,
+func (i *WatcherIndexer) Watch(ctx context.Context, obj client.Object, indexer Indexer, indexerList ItemLister,
 	indexerFieldPath string, opts ...builder.WatchesOption) error {
+
+	logger := log.FromContext(ctx).
+		WithName("indexer").
+		WithValues(
+			"kind", getKind(indexer),
+			"field", indexerFieldPath,
+		)
+	logger.Info("Watching field")
 
 	indexerFn, err := indexer.IndexerFuncForFieldPath(indexerFieldPath)
 	if err != nil {
 		return fmt.Errorf("error getting indexer func: %v", err)
 	}
-	if err := rw.mgr.GetFieldIndexer().IndexField(ctx, indexer, indexerFieldPath, indexerFn); err != nil {
+	if err := i.mgr.GetFieldIndexer().IndexField(ctx, indexer, indexerFieldPath, func(o ctrlclient.Object) []string {
+		logger.V(1).Info("Indexing field", "name", o.GetName(), "namespace", o.GetNamespace())
+		return indexerFn(o)
+	}); err != nil {
 		return fmt.Errorf("error indexing '%s' field: %v", indexerFieldPath, err)
 	}
 
-	rw.builder.Watches(
+	i.builder.Watches(
 		obj,
 		handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, o ctrlclient.Object) []reconcile.Request {
-			return rw.mapWatchedObjectToRequests(ctx, o, indexerList, indexerFieldPath)
+			return i.mapWatchedObjectToRequests(ctx, o, indexerList, indexerFieldPath)
 		}),
 		opts...,
 	)
 	return nil
 }
 
-func (rw *WatcherIndexer) mapWatchedObjectToRequests(ctx context.Context, obj ctrlclient.Object, indexList ItemLister,
+func (i *WatcherIndexer) mapWatchedObjectToRequests(ctx context.Context, obj ctrlclient.Object, indexList ItemLister,
 	indexerFieldPath string) []reconcile.Request {
 	indexersToReconcile := NewItemListerOfType(indexList)
 	listOpts := &ctrlclient.ListOptions{
@@ -73,7 +85,7 @@ func (rw *WatcherIndexer) mapWatchedObjectToRequests(ctx context.Context, obj ct
 		Namespace:     obj.GetNamespace(),
 	}
 
-	if err := rw.client.List(ctx, indexersToReconcile, listOpts); err != nil {
+	if err := i.client.List(ctx, indexersToReconcile, listOpts); err != nil {
 		return []reconcile.Request{}
 	}
 
@@ -88,4 +100,12 @@ func (rw *WatcherIndexer) mapWatchedObjectToRequests(ctx context.Context, obj ct
 		}
 	}
 	return requests
+}
+
+func getKind(obj client.Object) string {
+	kind := obj.GetObjectKind().GroupVersionKind().Kind
+	if kind != "" {
+		return kind
+	}
+	return reflect.TypeOf(obj).Elem().Name()
 }
