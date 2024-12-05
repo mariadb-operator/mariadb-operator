@@ -7,14 +7,9 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/sql"
-	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
-	"github.com/mariadb-operator/mariadb-operator/pkg/predicate"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	sqlClient "github.com/mariadb-operator/mariadb-operator/pkg/sql"
-	"github.com/mariadb-operator/mariadb-operator/pkg/watch"
-	corev1 "k8s.io/api/core/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
-	ctrlbuilder "sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlClient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -67,18 +62,8 @@ func (r *UserReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager)
 	builder := ctrl.NewControllerManagedBy(mgr).
 		For(&mariadbv1alpha1.User{})
 
-	watcherIndexer := watch.NewWatcherIndexer(mgr, builder, r.Client)
-	if err := watcherIndexer.Watch(
-		ctx,
-		&corev1.Secret{},
-		&mariadbv1alpha1.User{},
-		&mariadbv1alpha1.UserList{},
-		mariadbv1alpha1.UserPasswordSecretFieldPath,
-		ctrlbuilder.WithPredicates(
-			predicate.PredicateWithLabel(metadata.WatchLabel),
-		),
-	); err != nil {
-		return fmt.Errorf("error watching: %v", err)
+	if err := mariadbv1alpha1.IndexUser(ctx, mgr, builder, r.Client); err != nil {
+		return fmt.Errorf("error indexing User: %v", err)
 	}
 
 	return builder.Complete(r)

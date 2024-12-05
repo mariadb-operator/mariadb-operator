@@ -16,16 +16,12 @@ import (
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
 	"github.com/mariadb-operator/mariadb-operator/pkg/health"
-	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
-	"github.com/mariadb-operator/mariadb-operator/pkg/predicate"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	clientsql "github.com/mariadb-operator/mariadb-operator/pkg/sql"
-	"github.com/mariadb-operator/mariadb-operator/pkg/watch"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
-	ctrlbuilder "sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -385,18 +381,8 @@ func (r *ConnectionReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 		For(&mariadbv1alpha1.Connection{}).
 		Owns(&corev1.Secret{})
 
-	watcherIndexer := watch.NewWatcherIndexer(mgr, builder, r.Client)
-	if err := watcherIndexer.Watch(
-		ctx,
-		&corev1.Secret{},
-		&mariadbv1alpha1.Connection{},
-		&mariadbv1alpha1.ConnectionList{},
-		mariadbv1alpha1.ConnectionPasswordSecretFieldPath,
-		ctrlbuilder.WithPredicates(
-			predicate.PredicateWithLabel(metadata.WatchLabel),
-		),
-	); err != nil {
-		return fmt.Errorf("error watching: %v", err)
+	if err := mariadbv1alpha1.IndexConnection(ctx, mgr, builder, r.Client); err != nil {
+		return fmt.Errorf("error indexing Connection: %v", err)
 	}
 
 	return builder.Complete(r)

@@ -125,66 +125,6 @@ func (u *User) CleanupPolicy() *CleanupPolicy {
 	return u.Spec.CleanupPolicy
 }
 
-// UserPasswordSecretFieldPath is the path related to the password Secret field.
-const UserPasswordSecretFieldPath = ".spec.passwordSecretKeyRef.name"
-const UserPasswordHashSecretFieldPath = ".spec.passwordHashSecretKeyRef.name"
-const UserPasswordPluginNameSecretFieldPath = ".spec.passwordPlugin.pluginNameSecretKeyRef.name"
-const UserPasswordPluginArgSecretFieldPath = ".spec.passwordPlugin.pluginArgSecretKeyRef.name"
-
-// IndexerFuncForFieldPath returns an indexer function for a given field path.
-func (m *User) IndexerFuncForFieldPath(fieldPath string) (client.IndexerFunc, error) {
-	switch fieldPath {
-	case UserPasswordSecretFieldPath:
-		return func(obj client.Object) []string {
-			user, ok := obj.(*User)
-			if !ok {
-				return nil
-			}
-			if user.Spec.PasswordSecretKeyRef != nil && user.Spec.PasswordSecretKeyRef.LocalObjectReference.Name != "" {
-				return []string{user.Spec.PasswordSecretKeyRef.LocalObjectReference.Name}
-			}
-			return nil
-		}, nil
-	case UserPasswordHashSecretFieldPath:
-		return func(obj client.Object) []string {
-			user, ok := obj.(*User)
-			if !ok {
-				return nil
-			}
-			if user.Spec.PasswordHashSecretKeyRef != nil && user.Spec.PasswordHashSecretKeyRef.LocalObjectReference.Name != "" {
-				return []string{user.Spec.PasswordHashSecretKeyRef.LocalObjectReference.Name}
-			}
-			return nil
-		}, nil
-	case UserPasswordPluginNameSecretFieldPath:
-		return func(obj client.Object) []string {
-			user, ok := obj.(*User)
-			if !ok {
-				return nil
-			}
-			if user.Spec.PasswordPlugin.PluginNameSecretKeyRef != nil &&
-				user.Spec.PasswordPlugin.PluginNameSecretKeyRef.LocalObjectReference.Name != "" {
-				return []string{user.Spec.PasswordPlugin.PluginNameSecretKeyRef.LocalObjectReference.Name}
-			}
-			return nil
-		}, nil
-	case UserPasswordPluginArgSecretFieldPath:
-		return func(obj client.Object) []string {
-			user, ok := obj.(*User)
-			if !ok {
-				return nil
-			}
-			if user.Spec.PasswordPlugin.PluginArgSecretKeyRef != nil &&
-				user.Spec.PasswordPlugin.PluginArgSecretKeyRef.LocalObjectReference.Name != "" {
-				return []string{user.Spec.PasswordPlugin.PluginArgSecretKeyRef.LocalObjectReference.Name}
-			}
-			return nil
-		}, nil
-	default:
-		return nil, fmt.Errorf("unsupported field path: %s", fieldPath)
-	}
-}
-
 // +kubebuilder:object:root=true
 
 // UserList contains a list of User
