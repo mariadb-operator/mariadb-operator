@@ -1000,28 +1000,6 @@ func (m *MaxScale) defaultConnections() int32 {
 	return 30
 }
 
-// MaxScaleMetricsPasswordSecretFieldPath is the path related to the metrics password Secret field.
-const MaxScaleMetricsPasswordSecretFieldPath = ".spec.auth.metricsPasswordSecretKeyRef.name"
-
-// IndexerFuncForFieldPath returns an indexer function for a given field path.
-func (m *MaxScale) IndexerFuncForFieldPath(fieldPath string) (client.IndexerFunc, error) {
-	switch fieldPath {
-	case MaxScaleMetricsPasswordSecretFieldPath:
-		return func(obj client.Object) []string {
-			maxscale, ok := obj.(*MaxScale)
-			if !ok {
-				return nil
-			}
-			if maxscale.AreMetricsEnabled() && maxscale.Spec.Auth.MetricsPasswordSecretKeyRef.Name != "" {
-				return []string{maxscale.Spec.Auth.MetricsPasswordSecretKeyRef.Name}
-			}
-			return nil
-		}, nil
-	default:
-		return nil, fmt.Errorf("unsupported field path: %s", fieldPath)
-	}
-}
-
 //+kubebuilder:object:root=true
 
 // MaxScaleList contains a list of MaxScale
