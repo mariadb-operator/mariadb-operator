@@ -129,8 +129,12 @@ cert-leaf-client: ## Generates leaf certificate keypair for a client.
 
 MARIADB_NAME ?= mariadb
 MARIADB_NAMESPACE ?= default
+
 .PHONY: cert-leaf-mariadb
-cert-leaf-mariadb: ca ## Generate leaf certificates for MariaDB.
+cert-leaf-mariadb: ca cert-leaf-mariadb-server cert-leaf-mariadb-client ## Generate leaf certificates for MariaDB.
+
+.PHONY: cert-leaf-mariadb-server
+cert-leaf-mariadb-server: ## Generate server leaf certificate for MariaDB.
 	CERT_SECRET_NAME=$(MARIADB_NAME)-server-tls \
 	CERT_SECRET_NAMESPACE=$(MARIADB_NAMESPACE) \
 	CERT=$(PKI_DIR)/$(MARIADB_NAME)-server.crt \
@@ -141,6 +145,8 @@ cert-leaf-mariadb: ca ## Generate leaf certificates for MariaDB.
 	CA_KEY=$(CA_SERVER_KEY) \
 	$(MAKE) cert-leaf
 
+.PHONY: cert-leaf-mariadb-client
+cert-leaf-mariadb-client: ## Generate client leaf certificate for MariaDB.
 	CERT_SECRET_NAME=$(MARIADB_NAME)-client-tls \
 	CERT_SECRET_NAMESPACE=$(MARIADB_NAMESPACE) \
 	CERT=$(PKI_DIR)/$(MARIADB_NAME)-client.crt \
@@ -260,6 +266,8 @@ cert-secret-tls: kubectl ## Creates a TLS Secret.
 	$(KUBECTL) create secret tls $(CERT_SECRET_NAME) -n $(CERT_SECRET_NAMESPACE) \
 		--cert=$(CERT) --key=$(KEY) \
 		--dry-run=client -o yaml | $(KUBECTL) apply -f -
+	$(KUBECTL) label secret $(CERT_SECRET_NAME) -n $(CERT_SECRET_NAMESPACE) \
+		k8s.mariadb.com/watch=""
 
 .PHONY: cert-secret
 cert-secret: kubectl ## Creates a generic Secret from a certificate.
@@ -268,6 +276,8 @@ cert-secret: kubectl ## Creates a generic Secret from a certificate.
 	$(KUBECTL) create secret generic $(CERT_SECRET_NAME) -n $(CERT_SECRET_NAMESPACE) \
 		--from-file=$(CERT) \
 		--dry-run=client -o yaml | $(KUBECTL) apply -f -
+	$(KUBECTL) label secret $(CERT_SECRET_NAME) -n $(CERT_SECRET_NAMESPACE) \
+		k8s.mariadb.com/watch=""
 
 # Entrypoint ==============================================================================================================================
 
