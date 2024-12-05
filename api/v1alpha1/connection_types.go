@@ -2,7 +2,6 @@ package v1alpha1
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -165,28 +164,6 @@ func (c *Connection) SecretKey() string {
 		return *c.Spec.SecretTemplate.Key
 	}
 	return defaultConnSecretKey
-}
-
-// ConnectionPasswordSecretFieldPath is the path related to the password Secret field.
-const ConnectionPasswordSecretFieldPath = ".spec.passwordSecretKeyRef.name"
-
-// IndexerFuncForFieldPath returns an indexer function for a given field path.
-func (c *Connection) IndexerFuncForFieldPath(fieldPath string) (client.IndexerFunc, error) {
-	switch fieldPath {
-	case ConnectionPasswordSecretFieldPath:
-		return func(obj client.Object) []string {
-			connection, ok := obj.(*Connection)
-			if !ok {
-				return nil
-			}
-			if connection.Spec.PasswordSecretKeyRef.LocalObjectReference.Name != "" {
-				return []string{connection.Spec.PasswordSecretKeyRef.LocalObjectReference.Name}
-			}
-			return nil
-		}, nil
-	default:
-		return nil, fmt.Errorf("unsupported field path: %s", fieldPath)
-	}
 }
 
 //+kubebuilder:object:root=true
