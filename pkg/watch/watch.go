@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -70,7 +71,7 @@ func (i *WatcherIndexer) Watch(ctx context.Context, obj client.Object, indexer I
 	i.builder.Watches(
 		obj,
 		handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, o ctrlclient.Object) []reconcile.Request {
-			return i.mapWatchedObjectToRequests(ctx, o, indexerList, indexerFieldPath)
+			return i.mapWatchedObjectToRequests(ctx, o, indexerList, indexerFieldPath, logger)
 		}),
 		opts...,
 	)
@@ -78,7 +79,7 @@ func (i *WatcherIndexer) Watch(ctx context.Context, obj client.Object, indexer I
 }
 
 func (i *WatcherIndexer) mapWatchedObjectToRequests(ctx context.Context, obj ctrlclient.Object, indexList ItemLister,
-	indexerFieldPath string) []reconcile.Request {
+	indexerFieldPath string, logger logr.Logger) []reconcile.Request {
 	indexersToReconcile := NewItemListerOfType(indexList)
 	listOpts := &ctrlclient.ListOptions{
 		FieldSelector: fields.OneTermEqualSelector(indexerFieldPath, obj.GetName()),
@@ -86,6 +87,7 @@ func (i *WatcherIndexer) mapWatchedObjectToRequests(ctx context.Context, obj ctr
 	}
 
 	if err := i.client.List(ctx, indexersToReconcile, listOpts); err != nil {
+		logger.Error(err, "name", obj.GetName(), "namespace", obj.GetNamespace())
 		return []reconcile.Request{}
 	}
 
