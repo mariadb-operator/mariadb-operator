@@ -134,6 +134,16 @@ func (r *MariaDBReconciler) getUpdateAnnotations(ctx context.Context, mariadb *m
 		podAnnotations[metadata.ConfigGaleraAnnotation] = hash(string(config))
 	}
 
+	if mariadb.IsTLSEnabled() {
+		tlsAnnotations, err := r.getUpdateTLSAnnotations(ctx, mariadb)
+		if err != nil {
+			return nil, fmt.Errorf("error getting TLS annotations: %v", err)
+		}
+		for k, v := range tlsAnnotations {
+			podAnnotations[k] = v
+		}
+	}
+
 	return podAnnotations, nil
 }
 

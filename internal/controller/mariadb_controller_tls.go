@@ -9,6 +9,7 @@ import (
 	builderpki "github.com/mariadb-operator/mariadb-operator/pkg/builder/pki"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/configmap"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
+	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
 	"github.com/mariadb-operator/mariadb-operator/pkg/pki"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -110,4 +111,43 @@ require_secure_transport = true
 		},
 	}
 	return r.ConfigMapReconciler.Reconcile(ctx, &configMapReq)
+}
+
+func (r *MariaDBReconciler) getUpdateTLSAnnotations(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (map[string]string, error) {
+	if !mariadb.IsTLSEnabled() {
+		return nil, nil
+	}
+	podAnnotations := make(map[string]string)
+
+	ca, err := r.RefResolver.SecretKeyRef(ctx, mariadb.TLSCABundleSecretKeyRef(), mariadb.Namespace)
+	if err != nil {
+		return nil, fmt.Errorf("error getting CA bundle: %v", err)
+	}
+	podAnnotations[metadata.TLSCAAnnotation] = hash(ca)
+
+	serverCertKeySelector := mariadbv1alpha1.SecretKeySelector{
+		LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+			Name: mariadb.TLSServerCertSecretKey().Name,
+		},
+		Key: pki.TLSCertKey,
+	}
+	serverCert, err := r.RefResolver.SecretKeyRef(ctx, serverCertKeySelector, mariadb.Namespace)
+	if err != nil {
+		return nil, fmt.Errorf("error getting server cert: %v", err)
+	}
+	podAnnotations[metadata.TLSServerCertAnnotation] = hash(serverCert)
+
+	clientCertKeySelector := mariadbv1alpha1.SecretKeySelector{
+		LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+			Name: mariadb.TLSClientCertSecretKey().Name,
+		},
+		Key: pki.TLSCertKey,
+	}
+	clientCert, err := r.RefResolver.SecretKeyRef(ctx, clientCertKeySelector, mariadb.Namespace)
+	if err != nil {
+		return nil, fmt.Errorf("error getting client cert: %v", err)
+	}
+	podAnnotations[metadata.TLSClientCertAnnotation] = hash(clientCert)
+
+	return podAnnotations, nil
 }

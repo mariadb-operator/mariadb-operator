@@ -31,12 +31,9 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	"github.com/mariadb-operator/mariadb-operator/pkg/health"
 	kadapter "github.com/mariadb-operator/mariadb-operator/pkg/kubernetes/adapter"
-	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
 	mdbpod "github.com/mariadb-operator/mariadb-operator/pkg/pod"
-	"github.com/mariadb-operator/mariadb-operator/pkg/predicate"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	sts "github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
-	"github.com/mariadb-operator/mariadb-operator/pkg/watch"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
@@ -49,7 +46,6 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
-	ctrlbuilder "sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -1027,30 +1023,8 @@ func (r *MariaDBReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manag
 		builder = builder.Owns(&rbacv1.ClusterRoleBinding{})
 	}
 
-	watcherIndexer := watch.NewWatcherIndexer(mgr, builder, r.Client)
-	if err := watcherIndexer.Watch(
-		ctx,
-		&corev1.ConfigMap{},
-		&mariadbv1alpha1.MariaDB{},
-		&mariadbv1alpha1.MariaDBList{},
-		mariadbv1alpha1.MariadbMyCnfConfigMapFieldPath,
-		ctrlbuilder.WithPredicates(
-			predicate.PredicateWithLabel(metadata.WatchLabel),
-		),
-	); err != nil {
-		return fmt.Errorf("error watching '%s': %v", mariadbv1alpha1.MariadbMyCnfConfigMapFieldPath, err)
-	}
-	if err := watcherIndexer.Watch(
-		ctx,
-		&corev1.Secret{},
-		&mariadbv1alpha1.MariaDB{},
-		&mariadbv1alpha1.MariaDBList{},
-		mariadbv1alpha1.MariadbMetricsPasswordSecretFieldPath,
-		ctrlbuilder.WithPredicates(
-			predicate.PredicateWithLabel(metadata.WatchLabel),
-		),
-	); err != nil {
-		return fmt.Errorf("error watching '%s': %v", mariadbv1alpha1.MariadbMetricsPasswordSecretFieldPath, err)
+	if err := mariadbv1alpha1.IndexMariaDB(ctx, mgr, builder, r.Client); err != nil {
+		return fmt.Errorf("error indexing MariaDB: %v", err)
 	}
 
 	return builder.Complete(r)
