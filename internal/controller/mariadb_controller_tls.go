@@ -56,7 +56,11 @@ func (r *MariaDBReconciler) reconcileTLSCABundle(ctx context.Context, mdb *maria
 		caBundles[i] = []byte(ca)
 	}
 
-	bundle, err := pki.BundleCertificatePEMs(log.FromContext(ctx), caBundles...)
+	bundle, err := pki.BundleCertificatePEMs(
+		caBundles,
+		pki.WithLogger(log.FromContext(ctx).WithName("ca-bundle")),
+		pki.WithSkipExpired(true),
+	)
 	if err != nil {
 		return fmt.Errorf("error creating CA bundle: %v", err)
 	}
