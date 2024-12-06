@@ -1,7 +1,7 @@
 # MariaDB Operator on Google Distributed Cloud 
 
 > [!NOTE]  
-> MariaDB Operator is avaialible on Google Distributed Cloud air-gapped (GDC air-gapped) for MariaDB Enterprise Server customers only.
+> MariaDB Operator 0.36.0 is avaialible on Google Distributed Cloud air-gapped (GDC air-gapped) for MariaDB Enterprise Server customers only.
 > To use MariaDB Enterprise Server on GDC air-gapped, you must ensure you have the correct licenses from MariaDB, plc.
 > For more information, contact [gdc@mariadb.com](mailto:gdc@mariadb.com)
 
