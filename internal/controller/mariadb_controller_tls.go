@@ -32,6 +32,7 @@ func (r *MariaDBReconciler) reconcileTLS(ctx context.Context, mariadb *mariadbv1
 
 func (r *MariaDBReconciler) reconcileTLSCABundle(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) error {
 	logger := log.FromContext(ctx).WithName("ca-bundle")
+
 	caBundleKeySelector := mdb.TLSCABundleSecretKeyRef()
 	serverCAKeySelector := mariadbv1alpha1.SecretKeySelector{
 		LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
