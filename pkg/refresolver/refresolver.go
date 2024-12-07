@@ -116,7 +116,7 @@ func (r *RefResolver) SecretKeyRef(ctx context.Context, selector mariadbv1alpha1
 	}
 	var secret corev1.Secret
 	if err := r.client.Get(ctx, key, &secret); err != nil {
-		return "", fmt.Errorf("error getting Secret: %v", err)
+		return "", err
 	}
 
 	data, ok := secret.Data[selector.Key]
@@ -134,7 +134,7 @@ func (r *RefResolver) ConfigMapKeyRef(ctx context.Context, selector *mariadbv1al
 	}
 	var configMap corev1.ConfigMap
 	if err := r.client.Get(ctx, key, &configMap); err != nil {
-		return "", fmt.Errorf("error getting ConfigMap: %v", err)
+		return "", err
 	}
 
 	data, ok := configMap.Data[selector.Key]
