@@ -11,6 +11,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
 	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
 	"github.com/mariadb-operator/mariadb-operator/pkg/pki"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -30,6 +31,8 @@ func (r *MariaDBReconciler) reconcileTLS(ctx context.Context, mariadb *mariadbv1
 }
 
 func (r *MariaDBReconciler) reconcileTLSCABundle(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) error {
+	logger := log.FromContext(ctx).WithName("ca-bundle")
+	caBundleKeySelector := mdb.TLSCABundleSecretKeyRef()
 	serverCAKeySelector := mariadbv1alpha1.SecretKeySelector{
 		LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
 			Name: mdb.TLSServerCASecretKey().Name,
@@ -43,38 +46,41 @@ func (r *MariaDBReconciler) reconcileTLSCABundle(ctx context.Context, mdb *maria
 		Key: pki.TLSCertKey,
 	}
 	caKeySelectors := []mariadbv1alpha1.SecretKeySelector{
+		caBundleKeySelector,
 		serverCAKeySelector,
 		clientCAKeySelector,
 	}
-	caBundles := make([][]byte, len(caKeySelectors))
+	var caBundles [][]byte
 
-	for i, caKeySelector := range caKeySelectors {
+	for _, caKeySelector := range caKeySelectors {
 		ca, err := r.RefResolver.SecretKeyRef(ctx, caKeySelector, mdb.Namespace)
 		if err != nil {
-			return fmt.Errorf("error getting CA \"%s\": %v", caKeySelector.Name, err)
+			if !apierrors.IsNotFound(err) {
+				return fmt.Errorf("error getting CA Secret \"%s\": %v", caKeySelector.Name, err)
+			}
+			logger.V(1).Info("CA Secret not found", "secret-name", caKeySelector.Name)
 		}
-		caBundles[i] = []byte(ca)
+		caBundles = append(caBundles, []byte(ca))
 	}
 
 	bundle, err := pki.BundleCertificatePEMs(
 		caBundles,
-		pki.WithLogger(log.FromContext(ctx).WithName("ca-bundle")),
+		pki.WithLogger(logger),
 		pki.WithSkipExpired(true),
 	)
 	if err != nil {
 		return fmt.Errorf("error creating CA bundle: %v", err)
 	}
 
-	secretKeyRef := mdb.TLSCABundleSecretKeyRef()
 	secretReq := secret.SecretRequest{
 		Metadata: []*mariadbv1alpha1.Metadata{mdb.Spec.InheritMetadata},
 		Owner:    mdb,
 		Key: types.NamespacedName{
-			Name:      secretKeyRef.Name,
+			Name:      caBundleKeySelector.Name,
 			Namespace: mdb.Namespace,
 		},
 		Data: map[string][]byte{
-			secretKeyRef.Key: bundle,
+			caBundleKeySelector.Key: bundle,
 		},
 	}
 	return r.SecretReconciler.Reconcile(ctx, &secretReq)
