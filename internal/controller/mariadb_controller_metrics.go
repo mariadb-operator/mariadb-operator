@@ -3,7 +3,6 @@ package controller
 import (
 	"bytes"
 	"context"
-	"crypto/sha256"
 	"errors"
 	"fmt"
 	"time"
@@ -14,7 +13,6 @@ import (
 	builderpki "github.com/mariadb-operator/mariadb-operator/pkg/builder/pki"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/auth"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
-	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -178,17 +176,6 @@ func (r *MariaDBReconciler) reconcileExporterDeployment(ctx context.Context, mar
 		return fmt.Errorf("error building exporter Deployment: %v", err)
 	}
 	return r.DeploymentReconciler.Reconcile(ctx, desiredDeploy)
-}
-
-func (r *MariaDBReconciler) getExporterUpdateAnnotations(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) (map[string]string, error) {
-	config, err := r.RefResolver.SecretKeyRef(ctx, mdb.MetricsConfigSecretKeyRef().SecretKeySelector, mdb.Namespace)
-	if err != nil {
-		return nil, fmt.Errorf("error getting metrics config Secret: %v", err)
-	}
-	podAnnotations := map[string]string{
-		metadata.ConfigAnnotation: fmt.Sprintf("%x", sha256.Sum256([]byte(config))),
-	}
-	return podAnnotations, nil
 }
 
 func (r *MariaDBReconciler) reconcileExporterService(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
