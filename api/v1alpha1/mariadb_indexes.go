@@ -134,7 +134,7 @@ func IndexMariaDB(ctx context.Context, mgr manager.Manager, builder *ctrlbuilder
 				predicate.PredicateWithLabel(metadata.WatchLabel),
 			),
 		); err != nil {
-			return fmt.Errorf("error watching '%s': %v", mariadbMetricsPasswordSecretFieldPath, err)
+			return fmt.Errorf("error watching '%s': %v", fieldPath, err)
 		}
 	}
 
