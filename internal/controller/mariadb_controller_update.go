@@ -135,9 +135,31 @@ func (r *MariaDBReconciler) getUpdateAnnotations(ctx context.Context, mariadb *m
 	}
 
 	if mariadb.IsTLSEnabled() {
-		tlsAnnotations, err := r.getUpdateTLSAnnotations(ctx, mariadb)
+		tlsAnnotations, err := r.getTLSAnnotations(ctx, mariadb)
 		if err != nil {
 			return nil, fmt.Errorf("error getting TLS annotations: %v", err)
+		}
+		for k, v := range tlsAnnotations {
+			podAnnotations[k] = v
+		}
+	}
+
+	return podAnnotations, nil
+}
+
+func (r *MariaDBReconciler) getExporterUpdateAnnotations(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) (map[string]string, error) {
+	config, err := r.RefResolver.SecretKeyRef(ctx, mdb.MetricsConfigSecretKeyRef().SecretKeySelector, mdb.Namespace)
+	if err != nil {
+		return nil, fmt.Errorf("error getting metrics config Secret: %v", err)
+	}
+	podAnnotations := map[string]string{
+		metadata.ConfigAnnotation: hash(config),
+	}
+
+	if mdb.IsTLSEnabled() {
+		tlsAnnotations, err := r.getTLSClientAnnotations(ctx, mdb)
+		if err != nil {
+			return nil, fmt.Errorf("error getting TLS client annotations: %v", err)
 		}
 		for k, v := range tlsAnnotations {
 			podAnnotations[k] = v

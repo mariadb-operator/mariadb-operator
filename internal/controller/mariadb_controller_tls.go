@@ -123,17 +123,14 @@ require_secure_transport = true
 	return r.ConfigMapReconciler.Reconcile(ctx, &configMapReq)
 }
 
-func (r *MariaDBReconciler) getUpdateTLSAnnotations(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (map[string]string, error) {
+func (r *MariaDBReconciler) getTLSAnnotations(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (map[string]string, error) {
 	if !mariadb.IsTLSEnabled() {
 		return nil, nil
 	}
-	podAnnotations := make(map[string]string)
-
-	ca, err := r.RefResolver.SecretKeyRef(ctx, mariadb.TLSCABundleSecretKeyRef(), mariadb.Namespace)
+	annotations, err := r.getTLSClientAnnotations(ctx, mariadb)
 	if err != nil {
-		return nil, fmt.Errorf("error getting CA bundle: %v", err)
+		return nil, fmt.Errorf("error getting client annotations: %v", err)
 	}
-	podAnnotations[metadata.TLSCAAnnotation] = hash(ca)
 
 	serverCertKeySelector := mariadbv1alpha1.SecretKeySelector{
 		LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
@@ -145,7 +142,22 @@ func (r *MariaDBReconciler) getUpdateTLSAnnotations(ctx context.Context, mariadb
 	if err != nil {
 		return nil, fmt.Errorf("error getting server cert: %v", err)
 	}
-	podAnnotations[metadata.TLSServerCertAnnotation] = hash(serverCert)
+	annotations[metadata.TLSServerCertAnnotation] = hash(serverCert)
+
+	return annotations, nil
+}
+
+func (r *MariaDBReconciler) getTLSClientAnnotations(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (map[string]string, error) {
+	if !mariadb.IsTLSEnabled() {
+		return nil, nil
+	}
+	annotations := make(map[string]string)
+
+	ca, err := r.RefResolver.SecretKeyRef(ctx, mariadb.TLSCABundleSecretKeyRef(), mariadb.Namespace)
+	if err != nil {
+		return nil, fmt.Errorf("error getting CA bundle: %v", err)
+	}
+	annotations[metadata.TLSCAAnnotation] = hash(ca)
 
 	clientCertKeySelector := mariadbv1alpha1.SecretKeySelector{
 		LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
@@ -157,7 +169,7 @@ func (r *MariaDBReconciler) getUpdateTLSAnnotations(ctx context.Context, mariadb
 	if err != nil {
 		return nil, fmt.Errorf("error getting client cert: %v", err)
 	}
-	podAnnotations[metadata.TLSClientCertAnnotation] = hash(clientCert)
+	annotations[metadata.TLSClientCertAnnotation] = hash(clientCert)
 
-	return podAnnotations, nil
+	return annotations, nil
 }
