@@ -559,6 +559,13 @@ func mariadbLivenessProbe(mariadb *mariadbv1alpha1.MariaDB) *corev1.Probe {
 	return mariadbProbe(mariadb, mariadb.Spec.LivenessProbe)
 }
 
+func mariadbStartupProbe(mariadb *mariadbv1alpha1.MariaDB) *corev1.Probe {
+	if mariadb.IsGaleraEnabled() {
+		return mariadbGaleraProbe(mariadb, "/liveness", mariadb.Spec.StartupProbe)
+	}
+	return mariadbProbe(mariadb, mariadb.Spec.StartupProbe)
+}
+
 func mariadbReadinessProbe(mariadb *mariadbv1alpha1.MariaDB) *corev1.Probe {
 	if mariadb.IsGaleraEnabled() {
 		return mariadbGaleraProbe(mariadb, "/readiness", mariadb.Spec.ReadinessProbe)

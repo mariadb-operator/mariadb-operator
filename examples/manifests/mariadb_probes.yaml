@@ -15,3 +15,8 @@ spec:
     initialDelaySeconds: 20
     periodSeconds: 5
     timeoutSeconds: 5
+
+  startupProbe:
+    initialDelaySeconds: 300
+    periodSeconds: 10
+    timeoutSeconds: 10
