@@ -10,9 +10,11 @@ var (
 	ConfigAnnotation       = "k8s.mariadb.com/config"
 	ConfigGaleraAnnotation = "k8s.mariadb.com/config-galera"
 
-	TLSCAAnnotation         = "k8s.mariadb.com/ca"
-	TLSServerCertAnnotation = "k8s.mariadb.com/server-cert"
-	TLSClientCertAnnotation = "k8s.mariadb.com/client-cert"
+	TLSCAAnnotation           = "k8s.mariadb.com/ca"
+	TLSServerCertAnnotation   = "k8s.mariadb.com/server-cert"
+	TLSClientCertAnnotation   = "k8s.mariadb.com/client-cert"
+	TLSAdminCertAnnotation    = "k8s.mariadb.com/admin-cert"
+	TLSListenerCertAnnotation = "k8s.mariadb.com/listener-cert"
 
 	WebhookConfigAnnotation = "k8s.mariadb.com/webhook"
 )
