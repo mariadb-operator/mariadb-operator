@@ -122,7 +122,7 @@ func TestMaxScaleImagePullSecrets(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			job, err := builder.BuildMaxscaleStatefulSet(tt.maxScale, client.ObjectKeyFromObject(tt.maxScale))
+			job, err := builder.BuildMaxscaleStatefulSet(tt.maxScale, client.ObjectKeyFromObject(tt.maxScale), nil)
 			if err != nil {
 				t.Fatalf("unexpected error building StatefulSet: %v", err)
 			}
@@ -497,7 +497,7 @@ func TestMaxScaleStatefulSetMeta(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			sts, err := builder.BuildMaxscaleStatefulSet(tt.maxscale, key)
+			sts, err := builder.BuildMaxscaleStatefulSet(tt.maxscale, key, nil)
 			if err != nil {
 				t.Fatalf("unexpected error building MaxScale StatefulSet: %v", err)
 			}
