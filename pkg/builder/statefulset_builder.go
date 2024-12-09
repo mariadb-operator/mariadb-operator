@@ -105,7 +105,8 @@ func (b *Builder) BuildMariadbStatefulSet(mariadb *mariadbv1alpha1.MariaDB, key 
 	return sts, nil
 }
 
-func (b *Builder) BuildMaxscaleStatefulSet(maxscale *mariadbv1alpha1.MaxScale, key types.NamespacedName) (*appsv1.StatefulSet, error) {
+func (b *Builder) BuildMaxscaleStatefulSet(maxscale *mariadbv1alpha1.MaxScale, key types.NamespacedName,
+	podAnnotations map[string]string) (*appsv1.StatefulSet, error) {
 	objMeta :=
 		metadata.NewMetadataBuilder(key).
 			WithMetadata(maxscale.Spec.InheritMetadata).
@@ -114,7 +115,7 @@ func (b *Builder) BuildMaxscaleStatefulSet(maxscale *mariadbv1alpha1.MaxScale, k
 		labels.NewLabelsBuilder().
 			WithMaxScaleSelectorLabels(maxscale).
 			Build()
-	podTemplate, err := b.maxscalePodTemplate(maxscale)
+	podTemplate, err := b.maxscalePodTemplate(maxscale, podAnnotations)
 	if err != nil {
 		return nil, err
 	}

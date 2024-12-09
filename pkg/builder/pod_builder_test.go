@@ -533,7 +533,7 @@ func TestMaxScalePodMeta(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			podTpl, err := builder.maxscalePodTemplate(tt.maxscale)
+			podTpl, err := builder.maxscalePodTemplate(tt.maxscale, nil)
 			if err != nil {
 				t.Fatalf("unexpected error building MaxScale Pod template: %v", err)
 			}
@@ -1151,7 +1151,7 @@ func TestMaxscalePodBuilder(t *testing.T) {
 		},
 	}
 
-	podTpl, err := builder.maxscalePodTemplate(mxs)
+	podTpl, err := builder.maxscalePodTemplate(mxs, nil)
 	if err != nil {
 		t.Fatalf("unexpected error building MaxScale Pod template: %v", err)
 	}
@@ -1187,7 +1187,7 @@ func TestMaxscaleEnterprisePodBuilder(t *testing.T) {
 		},
 	}
 
-	podTpl, err := builder.maxscalePodTemplate(mxs)
+	podTpl, err := builder.maxscalePodTemplate(mxs, nil)
 	if err != nil {
 		t.Fatalf("unexpected error building MaxScale Pod template: %v", err)
 	}

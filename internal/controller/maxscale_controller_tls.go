@@ -6,6 +6,7 @@ import (
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
+	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
 	"github.com/mariadb-operator/mariadb-operator/pkg/pki"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
@@ -85,4 +86,66 @@ func (r *MaxScaleReconciler) reconcileTLSCABundle(ctx context.Context, mxs *mari
 		},
 	}
 	return r.SecretReconciler.Reconcile(ctx, &secretReq)
+}
+
+func (r *MaxScaleReconciler) getTLSAnnotations(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) (map[string]string, error) {
+	if !mxs.IsTLSEnabled() {
+		return nil, nil
+	}
+	annotations, err := r.getTLSAdminAnnotations(ctx, mxs)
+	if err != nil {
+		return nil, fmt.Errorf("error getting client annotations: %v", err)
+	}
+
+	secretSelectorsByAnn := map[string]mariadbv1alpha1.SecretKeySelector{
+		metadata.TLSListenerCertAnnotation: {
+			LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+				Name: mxs.TLSListenerCertSecretKey().Name,
+			},
+			Key: pki.TLSCertKey,
+		},
+		metadata.TLSServerCertAnnotation: {
+			LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+				Name: mxs.TLSServerCertSecretKey().Name,
+			},
+			Key: pki.TLSCertKey,
+		},
+	}
+
+	for annotation, secretKeySelector := range secretSelectorsByAnn {
+		cert, err := r.RefResolver.SecretKeyRef(ctx, secretKeySelector, mxs.Namespace)
+		if err != nil {
+			return nil, fmt.Errorf("error getting Secret \"%s\": %v", secretKeySelector.Name, err)
+		}
+		annotations[annotation] = hash(cert)
+	}
+
+	return annotations, nil
+}
+
+func (r *MaxScaleReconciler) getTLSAdminAnnotations(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) (map[string]string, error) {
+	if !mxs.IsTLSEnabled() {
+		return nil, nil
+	}
+	annotations := make(map[string]string)
+
+	ca, err := r.RefResolver.SecretKeyRef(ctx, mxs.TLSCABundleSecretKeyRef(), mxs.Namespace)
+	if err != nil {
+		return nil, fmt.Errorf("error getting CA bundle: %v", err)
+	}
+	annotations[metadata.TLSCAAnnotation] = hash(ca)
+
+	adminCertKeySelector := mariadbv1alpha1.SecretKeySelector{
+		LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+			Name: mxs.TLSAdminCertSecretKey().Name,
+		},
+		Key: pki.TLSCertKey,
+	}
+	clientCert, err := r.RefResolver.SecretKeyRef(ctx, adminCertKeySelector, mxs.Namespace)
+	if err != nil {
+		return nil, fmt.Errorf("error getting admin cert: %v", err)
+	}
+	annotations[metadata.TLSClientCertAnnotation] = hash(clientCert)
+
+	return annotations, nil
 }
