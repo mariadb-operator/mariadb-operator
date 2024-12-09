@@ -464,8 +464,18 @@ func (r *MaxScaleReconciler) reconcileServiceAccount(ctx context.Context, req *r
 }
 
 func (r *MaxScaleReconciler) reconcileStatefulSet(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
+	var podAnnotations map[string]string
+	var err error
+	if req.mxs.IsTLSEnabled() {
+		var err error
+		podAnnotations, err = r.getTLSAnnotations(ctx, req.mxs)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("error getting TLS annotations: %v", err)
+		}
+	}
+
 	key := client.ObjectKeyFromObject(req.mxs)
-	desiredSts, err := r.Builder.BuildMaxscaleStatefulSet(req.mxs, key)
+	desiredSts, err := r.Builder.BuildMaxscaleStatefulSet(req.mxs, key, podAnnotations)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error building StatefulSet: %v", err)
 	}
