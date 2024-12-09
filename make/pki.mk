@@ -131,10 +131,10 @@ MARIADB_NAME ?= mariadb
 MARIADB_NAMESPACE ?= default
 
 .PHONY: cert-leaf-mariadb
-cert-leaf-mariadb: ca cert-leaf-mariadb-server cert-leaf-mariadb-client ## Generate leaf certificates for MariaDB.
+cert-leaf-mariadb: cert-leaf-mariadb-server cert-leaf-mariadb-client ## Generate leaf certificates for MariaDB.
 
 .PHONY: cert-leaf-mariadb-server
-cert-leaf-mariadb-server: ## Generate server leaf certificate for MariaDB.
+cert-leaf-mariadb-server: ca-server ## Generate server leaf certificate for MariaDB.
 	CERT_SECRET_NAME=$(MARIADB_NAME)-server-tls \
 	CERT_SECRET_NAMESPACE=$(MARIADB_NAMESPACE) \
 	CERT=$(PKI_DIR)/$(MARIADB_NAME)-server.crt \
@@ -146,7 +146,7 @@ cert-leaf-mariadb-server: ## Generate server leaf certificate for MariaDB.
 	$(MAKE) cert-leaf
 
 .PHONY: cert-leaf-mariadb-client
-cert-leaf-mariadb-client: ## Generate client leaf certificate for MariaDB.
+cert-leaf-mariadb-client: ca-client ## Generate client leaf certificate for MariaDB.
 	CERT_SECRET_NAME=$(MARIADB_NAME)-client-tls \
 	CERT_SECRET_NAMESPACE=$(MARIADB_NAMESPACE) \
 	CERT=$(PKI_DIR)/$(MARIADB_NAME)-client.crt \
@@ -177,7 +177,10 @@ cert-mariadb-repl: ## Generate certificates for MariaDB replication.
 # MaxScale ================================================================================================================================
 
 .PHONY: cert-mxs-galera
-cert-mxs-galera: ca-mxs-admin ca-mxs-listener ## Generate certificates for MaxScale Galera.
+cert-mxs-galera: cert-mxs-galera-admin cert-mxs-galera-listener ## Generate certificates for MaxScale Galera.
+
+.PHONY: cert-mxs-galera-admin
+cert-mxs-galera-admin: ca-mxs-admin ## Generate admin certificates for MaxScale Galera.
 	CERT_SECRET_NAME=maxscale-galera-admin-tls \
 	CERT_SECRET_NAMESPACE=default \
 	CERT=$(PKI_DIR)/maxscale-galera-admin.crt \
@@ -188,6 +191,8 @@ cert-mxs-galera: ca-mxs-admin ca-mxs-listener ## Generate certificates for MaxSc
 	CA_KEY=$(CA_MAXSCALE_ADMIN_KEY) \
 	$(MAKE) cert-leaf
 
+.PHONY: cert-mxs-galera-listener
+cert-mxs-galera-listener: ca-mxs-listener ## Generate listener certificates for MaxScale Galera.
 	CERT_SECRET_NAME=maxscale-galera-listener-tls \
 	CERT_SECRET_NAMESPACE=default \
 	CERT=$(PKI_DIR)/maxscale-galera-listener.crt \
@@ -199,7 +204,10 @@ cert-mxs-galera: ca-mxs-admin ca-mxs-listener ## Generate certificates for MaxSc
 	$(MAKE) cert-leaf
 
 .PHONY: cert-mxs-repl
-cert-mxs-repl: ca-mxs-admin ca-mxs-listener ## Generate certificates for MaxScale replication.
+cert-mxs-repl: cert-mxs-repl-admin cert-mxs-repl-listener ## Generate certificates for MaxScale replication.
+
+.PHONY: cert-mxs-repl-admin
+cert-mxs-repl-admin: ca-mxs-admin ## Generate admin certificates for MaxScale replication.
 	CERT_SECRET_NAME=maxscale-repl-admin-tls \
 	CERT_SECRET_NAMESPACE=default \
 	CERT=$(PKI_DIR)/maxscale-repl-admin.crt \
@@ -210,6 +218,8 @@ cert-mxs-repl: ca-mxs-admin ca-mxs-listener ## Generate certificates for MaxScal
 	CA_KEY=$(CA_MAXSCALE_ADMIN_KEY) \
 	$(MAKE) cert-leaf
 
+.PHONY: cert-mxs-repl-listener
+cert-mxs-repl-listener: ca-mxs-listener ## Generate listener certificates for MaxScale replication.
 	CERT_SECRET_NAME=maxscale-repl-listener-tls \
 	CERT_SECRET_NAMESPACE=default \
 	CERT=$(PKI_DIR)/maxscale-repl-listener.crt \
