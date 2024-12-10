@@ -3,7 +3,6 @@ package controller
 import (
 	"bytes"
 	"context"
-	"crypto/sha256"
 	"errors"
 	"fmt"
 	"time"
@@ -123,8 +122,19 @@ func (r *MaxScaleReconciler) getExporterPodAnnotations(ctx context.Context, mxs 
 		return nil, fmt.Errorf("error getting metrics config Secret: %v", err)
 	}
 	podAnnotations := map[string]string{
-		metadata.ConfigAnnotation: fmt.Sprintf("%x", sha256.Sum256([]byte(config))),
+		metadata.ConfigAnnotation: hash(config),
 	}
+
+	if mxs.IsTLSEnabled() {
+		tlsAnnotations, err := r.getTLSAdminAnnotations(ctx, mxs)
+		if err != nil {
+			return nil, fmt.Errorf("error getting TLS annotations: %v", err)
+		}
+		for k, v := range tlsAnnotations {
+			podAnnotations[k] = v
+		}
+	}
+
 	return podAnnotations, nil
 }
 

@@ -141,11 +141,11 @@ func (r *MaxScaleReconciler) getTLSAdminAnnotations(ctx context.Context, mxs *ma
 		},
 		Key: pki.TLSCertKey,
 	}
-	clientCert, err := r.RefResolver.SecretKeyRef(ctx, adminCertKeySelector, mxs.Namespace)
+	adminCert, err := r.RefResolver.SecretKeyRef(ctx, adminCertKeySelector, mxs.Namespace)
 	if err != nil {
 		return nil, fmt.Errorf("error getting admin cert: %v", err)
 	}
-	annotations[metadata.TLSClientCertAnnotation] = hash(clientCert)
+	annotations[metadata.TLSAdminCertAnnotation] = hash(adminCert)
 
 	return annotations, nil
 }
