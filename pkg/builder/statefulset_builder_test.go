@@ -6,6 +6,7 @@ import (
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	galeraresources "github.com/mariadb-operator/mariadb-operator/pkg/controller/galera/resources"
+	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -455,17 +456,27 @@ func TestMaxScaleStatefulSetMeta(t *testing.T) {
 		Name: "maxscale-obj",
 	}
 	tests := []struct {
-		name     string
-		maxscale *mariadbv1alpha1.MaxScale
-		wantMeta *mariadbv1alpha1.Metadata
+		name           string
+		maxscale       *mariadbv1alpha1.MaxScale
+		podAnnotations map[string]string
+		wantMeta       *mariadbv1alpha1.Metadata
+		wantPodMeta    *mariadbv1alpha1.Metadata
 	}{
 		{
 			name: "empty",
 			maxscale: &mariadbv1alpha1.MaxScale{
 				ObjectMeta: objMeta,
 			},
+			podAnnotations: nil,
 			wantMeta: &mariadbv1alpha1.Metadata{
 				Labels:      map[string]string{},
+				Annotations: map[string]string{},
+			},
+			wantPodMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{
+					"app.kubernetes.io/instance": "maxscale-obj",
+					"app.kubernetes.io/name":     "maxscale",
+				},
 				Annotations: map[string]string{},
 			},
 		},
@@ -484,6 +495,7 @@ func TestMaxScaleStatefulSetMeta(t *testing.T) {
 					},
 				},
 			},
+			podAnnotations: nil,
 			wantMeta: &mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"sidecar.istio.io/inject": "false",
@@ -492,16 +504,49 @@ func TestMaxScaleStatefulSetMeta(t *testing.T) {
 					"database.myorg.io": "mariadb",
 				},
 			},
+			wantPodMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{
+					"app.kubernetes.io/instance": "maxscale-obj",
+					"app.kubernetes.io/name":     "maxscale",
+					"sidecar.istio.io/inject":    "false",
+				},
+				Annotations: map[string]string{
+					"database.myorg.io": "mariadb",
+				},
+			},
+		},
+		{
+			name: "Pod annotations",
+			maxscale: &mariadbv1alpha1.MaxScale{
+				ObjectMeta: objMeta,
+			},
+			podAnnotations: map[string]string{
+				metadata.TLSServerCertAnnotation: "cert",
+			},
+			wantMeta: &mariadbv1alpha1.Metadata{
+				Labels:      map[string]string{},
+				Annotations: map[string]string{},
+			},
+			wantPodMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{
+					"app.kubernetes.io/instance": "maxscale-obj",
+					"app.kubernetes.io/name":     "maxscale",
+				},
+				Annotations: map[string]string{
+					metadata.TLSServerCertAnnotation: "cert",
+				},
+			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			sts, err := builder.BuildMaxscaleStatefulSet(tt.maxscale, key, nil)
+			sts, err := builder.BuildMaxscaleStatefulSet(tt.maxscale, key, tt.podAnnotations)
 			if err != nil {
 				t.Fatalf("unexpected error building MaxScale StatefulSet: %v", err)
 			}
 			assertObjectMeta(t, &sts.ObjectMeta, tt.wantMeta.Labels, tt.wantMeta.Annotations)
+			assertObjectMeta(t, &sts.Spec.Template.ObjectMeta, tt.wantPodMeta.Labels, tt.wantPodMeta.Annotations)
 		})
 	}
 }
