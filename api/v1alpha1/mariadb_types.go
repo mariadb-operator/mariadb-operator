@@ -4,8 +4,11 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/go-logr/logr"
+	"github.com/mariadb-operator/mariadb-operator/pkg/discovery"
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
+	"github.com/mariadb-operator/mariadb-operator/pkg/version"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -314,6 +317,50 @@ func (u *UpdateStrategy) SetDefaults() {
 	}
 }
 
+// TLS defines the PKI to be used with MariaDB.
+type TLS struct {
+	// Enabled is a flag to enable TLS.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
+	Enabled bool `json:"enabled"`
+	// ServerCASecretRef is a reference to a Secret containing the server certificate authority keypair. It is used to establish trust and issue server certificates for MariaDB server.
+	// One of:
+	// - TLS Secret containing both the tls.crt and tls.key. This allows you to bring your own CA to Kubernetes to issue certificates.
+	// - Generic Secret containing the tls.crt to establish trust. In this case, serverSecretRef is mandatory.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	ServerCASecretRef *LocalObjectReference `json:"serverCASecretRef,omitempty"`
+	// ServerCertSecretRef is a reference to a TLS Secret used by the MariaDB server to configure TLS.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	ServerCertSecretRef *LocalObjectReference `json:"serverCertSecretRef,omitempty"`
+	// ClientCASecretRef is a reference to a Secret containing the client certificate authority keypair. It is used to establish trust and issue server certificates for MariaDB clients.
+	// One of:
+	// - TLS Secret containing both the tls.crt and tls.key. This allows you to bring your own CA to Kubernetes to issue certificates.
+	// - Generic Secret containing the tls.crt to establish trust. In this case, clientSecretRef is mandatory.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	ClientCASecretRef *LocalObjectReference `json:"clientCASecretRef,omitempty"`
+	// ClientCertSecretRef is a reference to a TLS Secret used by the MariaDB clients to configure TLS.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	ClientCertSecretRef *LocalObjectReference `json:"clientCertSecretRef,omitempty"`
+	// GaleraServerSSLMode defines the server SSL mode for a Galera Enterprise cluster.
+	// This field is only supported and applicable for Galera Enterprise >= 10.6 instances.
+	// Refer to the MariaDB Enterprise docs for more detail: https://mariadb.com/docs/server/security/galera/#WSREP_TLS_Modes
+	// +optional
+	// +kubebuilder:validation:Enum=PROVIDER;SERVER;SERVER_X509
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	GaleraServerSSLMode *string `json:"galeraServerSSLMode,omitempty"`
+	// GaleraClientSSLMode defines the client SSL mode for a Galera Enterprise cluster.
+	// This field is only supported and applicable for Galera Enterprise >= 10.6 instances.
+	// Refer to the MariaDB Enterprise docs for more detail: https://mariadb.com/docs/server/security/galera/#SST_TLS_Modes
+	// +optional
+	// +kubebuilder:validation:Enum=DISABLED;REQUIRED;VERIFY_CA;VERIFY_IDENTITY
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	GaleraClientSSLMode *string `json:"galeraClientSSLMode,omitempty"`
+}
+
 // MariaDBSpec defines the desired state of MariaDB
 type MariaDBSpec struct {
 	// ContainerTemplate defines templates to configure Container objects.
@@ -397,6 +444,10 @@ type MariaDBSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Metrics *MariadbMetrics `json:"metrics,omitempty"`
+	// TLS defines the PKI to be used with MariaDB.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	TLS *TLS `json:"tls,omitempty"`
 	// Replication configures high availability via replication. This feature is still in alpha, use Galera if you are looking for a more production-ready HA.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -500,6 +551,12 @@ type MariaDBStatus struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	ReplicationStatus ReplicationStatus `json:"replicationStatus,omitempty"`
+	// DefaultVersion is the MariaDB version used by the operator when it cannot infer the version
+	// from spec.image. This can happen if the image uses a digest (e.g. sha256) instead
+	// of a version tag.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	DefaultVersion string `json:"defaultVersion,omitempty"`
 }
 
 // SetCondition sets a status condition to MariaDB
@@ -651,6 +708,36 @@ func (m *MariaDB) IsRootPasswordDefined() bool {
 // IsEphemeralStorageEnabled indicates whether the MariaDB instance has ephemeral storage enabled
 func (m *MariaDB) IsEphemeralStorageEnabled() bool {
 	return ptr.Deref(m.Spec.Storage.Ephemeral, false)
+}
+
+// IsTLSEnabled indicates whether the MariaDB instance has TLS enabled
+func (m *MariaDB) IsTLSEnabled() bool {
+	return ptr.Deref(m.Spec.TLS, TLS{}).Enabled
+}
+
+// IsGaleraEnterpriseTLSAvailable indicates whether Galera enteprise TLS is available
+func (m *MariaDB) IsGaleraEnterpriseTLSAvailable(discovery *discovery.Discovery, defaultMariadbVersion string,
+	logger logr.Logger) (bool, error) {
+	if !m.IsGaleraEnabled() || !discovery.IsEnterprise() || !m.IsTLSEnabled() {
+		return false, nil
+	}
+
+	vOpts := []version.Option{
+		version.WithLogger(logger),
+	}
+	if defaultMariadbVersion != "" {
+		vOpts = append(vOpts, version.WithDefaultVersion(defaultMariadbVersion))
+	}
+	version, err := version.NewVersion(m.Spec.Image, vOpts...)
+	if err != nil {
+		return false, fmt.Errorf("error parsing version: %v", err)
+	}
+
+	isCompatibleVersion, err := version.GreaterThanOrEqual("10.6")
+	if err != nil {
+		return false, fmt.Errorf("error comparing version: %v", err)
+	}
+	return isCompatibleVersion, nil
 }
 
 // IsReady indicates whether the MariaDB instance is ready
