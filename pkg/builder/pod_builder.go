@@ -219,7 +219,7 @@ func (b *Builder) mariadbPodTemplate(mariadb *mariadbv1alpha1.MariaDB, opts ...m
 	}, nil
 }
 
-func (b *Builder) maxscalePodTemplate(mxs *mariadbv1alpha1.MaxScale) (*corev1.PodTemplateSpec, error) {
+func (b *Builder) maxscalePodTemplate(mxs *mariadbv1alpha1.MaxScale, annotations map[string]string) (*corev1.PodTemplateSpec, error) {
 	containers, err := b.maxscaleContainers(mxs)
 	if err != nil {
 		return nil, err
@@ -233,6 +233,7 @@ func (b *Builder) maxscalePodTemplate(mxs *mariadbv1alpha1.MaxScale) (*corev1.Po
 		metadata.NewMetadataBuilder(client.ObjectKeyFromObject(mxs)).
 			WithMetadata(mxs.Spec.InheritMetadata).
 			WithMetadata(mxs.Spec.PodMetadata).
+			WithAnnotations(annotations).
 			WithLabels(selectorLabels).
 			Build()
 

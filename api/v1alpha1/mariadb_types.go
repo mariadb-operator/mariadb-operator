@@ -792,43 +792,6 @@ func (m *MariaDB) IsSuspended() bool {
 	return m.Spec.Suspend
 }
 
-const (
-	// MariadbMyCnfConfigMapFieldPath is the path related to the my.cnf ConfigMap field.
-	MariadbMyCnfConfigMapFieldPath = ".spec.myCnfConfigMapKeyRef.name"
-	// MariadbMetricsPasswordSecretFieldPath is the path related to the metrics password Secret field.
-	MariadbMetricsPasswordSecretFieldPath = ".spec.metrics.passwordSecretKeyRef"
-)
-
-// IndexerFuncForFieldPath returns an indexer function for a given field path.
-func (m *MariaDB) IndexerFuncForFieldPath(fieldPath string) (client.IndexerFunc, error) {
-	switch fieldPath {
-	case MariadbMyCnfConfigMapFieldPath:
-		return func(obj client.Object) []string {
-			mdb, ok := obj.(*MariaDB)
-			if !ok {
-				return nil
-			}
-			if mdb.Spec.MyCnfConfigMapKeyRef != nil && mdb.Spec.MyCnfConfigMapKeyRef.LocalObjectReference.Name != "" {
-				return []string{mdb.Spec.MyCnfConfigMapKeyRef.LocalObjectReference.Name}
-			}
-			return nil
-		}, nil
-	case MariadbMetricsPasswordSecretFieldPath:
-		return func(obj client.Object) []string {
-			mdb, ok := obj.(*MariaDB)
-			if !ok {
-				return nil
-			}
-			if mdb.AreMetricsEnabled() && mdb.Spec.Metrics != nil && mdb.Spec.Metrics.PasswordSecretKeyRef.Name != "" {
-				return []string{mdb.Spec.Metrics.PasswordSecretKeyRef.Name}
-			}
-			return nil
-		}, nil
-	default:
-		return nil, fmt.Errorf("unsupported field path: %s", fieldPath)
-	}
-}
-
 // +kubebuilder:object:root=true
 
 // MariaDBList contains a list of MariaDB
