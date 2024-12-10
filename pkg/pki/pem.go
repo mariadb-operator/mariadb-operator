@@ -33,8 +33,6 @@ type BundleOptions struct {
 	skipExpired bool
 }
 
-const certificatePEMBlockType string = "CERTIFICATE"
-
 // BundleCertificatePEMs bundles multiple PEM-encoded certificate slices into a single bundle.
 func BundleCertificatePEMs(pems [][]byte, bundleOpts ...BundleOption) ([]byte, error) {
 	opts := BundleOptions{
