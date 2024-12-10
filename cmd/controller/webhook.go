@@ -168,7 +168,7 @@ func readCert(certPath string) (*x509.Certificate, error) {
 	if err != nil {
 		return nil, err
 	}
-	return pki.ParseCert(certBytes)
+	return pki.ParseCertificate(certBytes)
 }
 
 func readKeyPair(dir string) (*pki.KeyPair, error) {
