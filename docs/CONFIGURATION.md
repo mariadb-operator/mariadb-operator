@@ -194,6 +194,11 @@ spec:
     initialDelaySeconds: 20
     periodSeconds: 5
     timeoutSeconds: 5
+
+startupProbe:
+    initialDelaySeconds: 300
+    periodSeconds: 5
+    timeoutSeconds: 5
 ```
 
 There isn't an universally correct default value for these thresholds, so we recommend determining your own based on factors like the compute resources, network, storage, and other aspects of the environment where your `MariaDB` and `MaxScale` instances are running.

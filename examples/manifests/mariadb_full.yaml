@@ -95,6 +95,16 @@ spec:
     periodSeconds: 5
     timeoutSeconds: 5
 
+  startupProbe:
+    exec:
+      command:
+        - bash
+        - -c
+        - mariadb -u root -p"${MARIADB_ROOT_PASSWORD}" -e "SELECT 1;"
+    initialDelaySeconds: 300
+    periodSeconds: 5
+    timeoutSeconds: 5
+
   podDisruptionBudget:
     maxUnavailable: 50%
 
