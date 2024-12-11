@@ -24,6 +24,13 @@ jobs:
           username: ${{ secrets.DOCKER_MARIADB_USER }}
           password: ${{ secrets.DOCKER_MARIADB_PASSWORD }}
 
+      - name: Login GCR
+        uses: docker/login-action@v3
+        with:
+          registry: gcr.io
+          username: _json_key
+          password: ${{ secrets.GCR_JSON_KEY }}
+  
       - name: Login DockerHub
         uses: docker/login-action@v3
         with:
