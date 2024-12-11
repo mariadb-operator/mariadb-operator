@@ -17,6 +17,19 @@ jobs:
     name: "Test \"${{ inputs.mariadb_image }}\" enterprise image"
     runs-on: ubuntu-latest
     steps:
+      - name: Login Docker MariaDB
+        uses: docker/login-action@v3
+        with:
+          registry: docker-registry.mariadb.com
+          username: ${{ secrets.DOCKER_MARIADB_USER }}
+          password: ${{ secrets.DOCKER_MARIADB_PASSWORD }}
+
+      - name: Login DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
       - name: MariaDB Version
         run: |
           docker run --rm ${{ inputs.mariadb_image }} mariadbd --version
@@ -29,13 +42,6 @@ jobs:
         with:
           go-version-file: "go.mod"
           cache: true
-
-      - name: Login Docker MariaDB
-        uses: docker/login-action@v3
-        with:
-          registry: docker-registry.mariadb.com
-          username: ${{ secrets.DOCKER_MARIADB_USER }}
-          password: ${{ secrets.DOCKER_MARIADB_PASSWORD }}
 
       - name: Cluster
         run: |
