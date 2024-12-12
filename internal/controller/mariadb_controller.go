@@ -3,7 +3,6 @@ package controller
 import (
 	"bytes"
 	"context"
-	"crypto/sha256"
 	"errors"
 	"fmt"
 	"reflect"
@@ -144,6 +143,10 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		{
 			Name:      "ConfigMap",
 			Reconcile: r.reconcileConfigMap,
+		},
+		{
+			Name:      "TLS",
+			Reconcile: r.reconcileTLS,
 		},
 		{
 			Name:      "RBAC",
@@ -341,12 +344,12 @@ func (r *MariaDBReconciler) reconcileInit(ctx context.Context, mariadb *mariadbv
 
 func (r *MariaDBReconciler) reconcileStatefulSet(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
 	key := client.ObjectKeyFromObject(mariadb)
-	podAnnotations, err := r.getPodAnnotations(ctx, mariadb)
+	updateAnnotations, err := r.getUpdateAnnotations(ctx, mariadb)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error getting Pod annotations: %v", err)
 	}
 
-	desiredSts, err := r.Builder.BuildMariadbStatefulSet(mariadb, key, podAnnotations)
+	desiredSts, err := r.Builder.BuildMariadbStatefulSet(mariadb, key, updateAnnotations)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error building StatefulSet: %v", err)
 	}
@@ -411,20 +414,6 @@ func (r *MariaDBReconciler) reconcilePodLabels(ctx context.Context, mariadb *mar
 		}
 	}
 	return ctrl.Result{}, nil
-}
-
-func (r *MariaDBReconciler) getPodAnnotations(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (map[string]string, error) {
-	podAnnotations := make(map[string]string)
-
-	if mariadb.Spec.MyCnfConfigMapKeyRef != nil {
-		config, err := r.RefResolver.ConfigMapKeyRef(ctx, mariadb.Spec.MyCnfConfigMapKeyRef, mariadb.Namespace)
-		if err != nil {
-			return nil, fmt.Errorf("error getting my.cnf from ConfigMap: %v", err)
-		}
-		podAnnotations[metadata.ConfigAnnotation] = fmt.Sprintf("%x", sha256.Sum256([]byte(config)))
-	}
-
-	return podAnnotations, nil
 }
 
 func (r *MariaDBReconciler) reconcilePodDisruptionBudget(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
@@ -615,6 +604,7 @@ func (r *MariaDBReconciler) reconcileInternalService(ctx context.Context, mariad
 		ports = append(ports, kadapter.ToKubernetesSlice(mariadb.Spec.ServicePorts)...)
 	}
 	if mariadb.IsGaleraEnabled() {
+		agent := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{}).Agent
 		ports = append(ports, []corev1.ServicePort{
 			{
 				Name: galeraresources.GaleraClusterPortName,
@@ -630,7 +620,11 @@ func (r *MariaDBReconciler) reconcileInternalService(ctx context.Context, mariad
 			},
 			{
 				Name: galeraresources.AgentPortName,
-				Port: ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{}).Agent.Port,
+				Port: agent.Port,
+			},
+			{
+				Name: galeraresources.AgentProbePortName,
+				Port: agent.ProbePort,
 			},
 		}...)
 	}

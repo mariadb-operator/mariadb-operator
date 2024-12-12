@@ -2,15 +2,21 @@ package controller
 
 import (
 	"context"
+	"crypto/sha256"
 	"errors"
 	"fmt"
 	"sort"
+	"strconv"
 	"time"
 
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
+	builderpki "github.com/mariadb-operator/mariadb-operator/pkg/builder/pki"
+	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
+	galeraconfig "github.com/mariadb-operator/mariadb-operator/pkg/galera/config"
 	"github.com/mariadb-operator/mariadb-operator/pkg/health"
+	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
 	podpkg "github.com/mariadb-operator/mariadb-operator/pkg/pod"
 	"github.com/mariadb-operator/mariadb-operator/pkg/wait"
 	appsv1 "k8s.io/api/apps/v1"
@@ -92,6 +98,43 @@ func (r *MariaDBReconciler) reconcileUpdates(ctx context.Context, mdb *mariadbv1
 		return ctrl.Result{}, fmt.Errorf("error updating primary Pod '%s': %v", primaryPod.Name, err)
 	}
 	return ctrl.Result{}, nil
+}
+
+func (r *MariaDBReconciler) getUpdateAnnotations(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (map[string]string, error) {
+	podAnnotations := make(map[string]string)
+
+	if mariadb.Spec.MyCnfConfigMapKeyRef != nil {
+		config, err := r.RefResolver.ConfigMapKeyRef(ctx, mariadb.Spec.MyCnfConfigMapKeyRef, mariadb.Namespace)
+		if err != nil {
+			return nil, fmt.Errorf("error getting my.cnf from ConfigMap: %v", err)
+		}
+		podAnnotations[metadata.ConfigAnnotation] = hash(config)
+	}
+
+	if mariadb.IsGaleraEnabled() {
+		logger := log.FromContext(ctx).WithName("galera-config")
+		env := &environment.PodEnvironment{
+			ClusterName:         "cluster.local",
+			PodIP:               "10.0.0.0",
+			PodName:             "pod-name",
+			MariadbName:         mariadb.Name,
+			MariadbRootPassword: "password",
+			MariadbPort:         strconv.Itoa(int(mariadb.Spec.Port)),
+			TLSEnabled:          strconv.FormatBool(mariadb.IsTLSEnabled()),
+			TLSCACertPath:       builderpki.CACertPath,
+			TLSServerCertPath:   builderpki.ServerCertPath,
+			TLSServerKeyPath:    builderpki.ServerKeyPath,
+			TLSClientCertPath:   builderpki.ClientCertPath,
+			TLSClientKeyPath:    builderpki.ClientKeyPath,
+		}
+		config, err := galeraconfig.NewConfigFile(mariadb, r.Discovery, logger).Marshal(env)
+		if err != nil {
+			return nil, fmt.Errorf("error rendering Galera config file: %v", err)
+		}
+		podAnnotations[metadata.ConfigGaleraAnnotation] = hash(string(config))
+	}
+
+	return podAnnotations, nil
 }
 
 func (r *MariaDBReconciler) waitForReadyStatus(ctx context.Context, mdb *mariadbv1alpha1.MariaDB, logger logr.Logger) (ctrl.Result, error) {
@@ -275,4 +318,8 @@ func shouldTriggerSwitchover(mariadb *mariadbv1alpha1.MariaDB) bool {
 	}
 	primaryRepl := ptr.Deref(mariadb.Replication().Primary, mariadbv1alpha1.PrimaryReplication{})
 	return mariadb.Replication().Enabled && *primaryRepl.AutomaticFailover && mariadb.IsReplicationConfigured()
+}
+
+func hash(config string) string {
+	return fmt.Sprintf("%x", sha256.Sum256([]byte(config)))
 }

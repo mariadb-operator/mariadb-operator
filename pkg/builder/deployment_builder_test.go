@@ -5,6 +5,8 @@ import (
 	"testing"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	builderpki "github.com/mariadb-operator/mariadb-operator/pkg/builder/pki"
+	"github.com/mariadb-operator/mariadb-operator/pkg/datastructures"
 	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -787,6 +789,72 @@ func TestExporterMaxScaleDeploymentMeta(t *testing.T) {
 			}
 			assertObjectMeta(t, &deploy.ObjectMeta, tt.wantDeployMeta.Labels, tt.wantDeployMeta.Annotations)
 			assertObjectMeta(t, &deploy.Spec.Template.ObjectMeta, tt.wantPodMeta.Labels, tt.wantPodMeta.Annotations)
+		})
+	}
+}
+
+func TestExporterVolumes(t *testing.T) {
+	builder := newDefaultTestBuilder(t)
+	tests := []struct {
+		name            string
+		mariadb         *mariadbv1alpha1.MariaDB
+		wantVolumeNames []string
+	}{
+		{
+			name: "empty",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Metrics: &mariadbv1alpha1.MariadbMetrics{
+						Enabled: true,
+					},
+				},
+			},
+			wantVolumeNames: []string{
+				deployConfigVolume,
+			},
+		},
+		{
+			name: "TLS",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Metrics: &mariadbv1alpha1.MariadbMetrics{
+						Enabled: true,
+					},
+					TLS: &mariadbv1alpha1.TLS{
+						Enabled: true,
+					},
+				},
+			},
+			wantVolumeNames: []string{
+				deployConfigVolume,
+				builderpki.PKIVolume,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			deploy, err := builder.BuildExporterDeployment(tt.mariadb, nil)
+			if err != nil {
+				t.Fatalf("unexpected error building Deployment: %v", err)
+			}
+
+			volumes := deploy.Spec.Template.Spec.Volumes
+			volumeMounts := deploy.Spec.Template.Spec.Containers[0].VolumeMounts
+
+			volumeIndex := datastructures.NewIndex(volumes, func(v corev1.Volume) string {
+				return v.Name
+			})
+			volumeMountIndex := datastructures.NewIndex(volumeMounts, func(vm corev1.VolumeMount) string {
+				return vm.Name
+			})
+
+			if !datastructures.AllExists(volumeIndex, tt.wantVolumeNames...) {
+				t.Errorf("expecting all volumes %v to exist", tt.wantVolumeNames)
+			}
+			if !datastructures.AllExists(volumeMountIndex, tt.wantVolumeNames...) {
+				t.Errorf("expecting all volumeMounts %v to exist", tt.wantVolumeNames)
+			}
 		})
 	}
 }

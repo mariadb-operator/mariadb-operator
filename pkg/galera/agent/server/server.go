@@ -2,11 +2,12 @@ package server
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -20,13 +21,42 @@ func WithGracefulShutdownTimeout(timeout time.Duration) Option {
 	}
 }
 
+func WithTLSEnabled(tlsEnabled bool) Option {
+	return func(s *Server) {
+		s.tlsEnabled = tlsEnabled
+	}
+}
+
+func WithTLSCAPath(tlsCACertPath string) Option {
+	return func(s *Server) {
+		s.tlsCACertPath = tlsCACertPath
+	}
+}
+
+func WithTLSCertPath(tlsCertPath string) Option {
+	return func(s *Server) {
+		s.tlsCertPath = tlsCertPath
+	}
+}
+
+func WithTLSKeyPath(tlsKeyPath string) Option {
+	return func(s *Server) {
+		s.tlsKeyPath = tlsKeyPath
+	}
+}
+
 type Server struct {
 	httpServer              *http.Server
 	logger                  *logr.Logger
 	gracefulShutdownTimeout time.Duration
+
+	tlsEnabled    bool
+	tlsCACertPath string
+	tlsCertPath   string
+	tlsKeyPath    string
 }
 
-func NewServer(addr string, handler http.Handler, logger *logr.Logger, opts ...Option) *Server {
+func NewServer(addr string, handler http.Handler, logger *logr.Logger, opts ...Option) (*Server, error) {
 	srv := &Server{
 		httpServer: &http.Server{
 			Addr:    addr,
@@ -38,36 +68,37 @@ func NewServer(addr string, handler http.Handler, logger *logr.Logger, opts ...O
 	for _, setOpt := range opts {
 		setOpt(srv)
 	}
-	return srv
+
+	if srv.tlsEnabled {
+		srv.logger.Info("Configuring TLS")
+		tlsConfig, err := srv.getTLSConfig()
+		if err != nil {
+			return nil, fmt.Errorf("error getting TLS config: %v", err)
+		}
+		srv.httpServer.TLSConfig = tlsConfig
+	}
+	return srv, nil
 }
 
 func (s *Server) Start(ctx context.Context) error {
-	serverContext, stopServer := context.WithCancel(ctx)
+	serverContext, stopServer := context.WithCancel(context.Background())
 	errChan := make(chan error)
 
-	sig := make(chan os.Signal, 1)
-	signal.Notify(sig, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
-
 	go func() {
-		<-sig
-		defer stopServer()
-
-		shutdownCtx, cancel := context.WithTimeout(serverContext, s.gracefulShutdownTimeout)
+		<-ctx.Done()
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), s.gracefulShutdownTimeout)
 		defer cancel()
-		go func() {
-			<-shutdownCtx.Done()
-			s.logger.Info("Graceful shutdown timed out")
-		}()
 
-		s.logger.Info("Shutting down server")
+		s.logger.Info("Gracefully shutting down server")
 		if err := s.httpServer.Shutdown(shutdownCtx); err != nil {
 			errChan <- fmt.Errorf("error shutting down server: %v", err)
 		}
-	}()
 
+		s.logger.Info("Stopping server")
+		stopServer()
+	}()
 	go func() {
-		s.logger.Info("Server listening", "addr", s.httpServer.Addr)
-		if err := s.httpServer.ListenAndServe(); err != http.ErrServerClosed {
+		if err := s.listen(); err != nil {
 			errChan <- fmt.Errorf("Error starting server: %v", err)
 		}
 	}()
@@ -78,4 +109,46 @@ func (s *Server) Start(ctx context.Context) error {
 	case err := <-errChan:
 		return err
 	}
+}
+
+func (s *Server) listen() error {
+	logger := s.logger.WithValues("addr", s.httpServer.Addr, "tls", s.tlsEnabled)
+	listenFn := func() error {
+		if s.tlsEnabled {
+			return s.httpServer.ListenAndServeTLS("", "")
+		}
+		return s.httpServer.ListenAndServe()
+	}
+
+	logger.Info("Server listening")
+	if err := listenFn(); err != http.ErrServerClosed {
+		return err
+	}
+	return nil
+}
+
+func (s *Server) getTLSConfig() (*tls.Config, error) {
+	if !s.tlsEnabled {
+		return nil, errors.New("TLS must be enabled")
+	}
+	caCert, err := os.ReadFile(s.tlsCACertPath)
+	if err != nil {
+		return nil, fmt.Errorf("error reading CA cert: %v", err)
+	}
+	caCertPool := x509.NewCertPool()
+	if ok := caCertPool.AppendCertsFromPEM(caCert); !ok {
+		return nil, errors.New("unable to add CA cert to pool")
+	}
+
+	cert, err := tls.LoadX509KeyPair(s.tlsCertPath, s.tlsKeyPath)
+	if err != nil {
+		return nil, fmt.Errorf("error loading x509 keypair: %v", err)
+	}
+
+	return &tls.Config{
+		ClientCAs:          caCertPool,
+		ClientAuth:         tls.RequireAndVerifyClientCert,
+		Certificates:       []tls.Certificate{cert},
+		InsecureSkipVerify: false,
+	}, nil
 }

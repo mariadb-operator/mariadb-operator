@@ -516,7 +516,7 @@ type SQLTemplate struct {
 	CleanupPolicy *CleanupPolicy `json:"cleanupPolicy,omitempty"`
 }
 
-type TLS struct {
+type TLSS3 struct {
 	// Enabled is a flag to enable TLS.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
@@ -560,7 +560,7 @@ type S3 struct {
 	// TLS provides the configuration required to establish TLS connections with S3.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	TLS *TLS `json:"tls,omitempty"`
+	TLS *TLSS3 `json:"tls,omitempty"`
 }
 
 // Metadata defines the metadata to added to resources.

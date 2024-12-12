@@ -31,7 +31,7 @@ helm-env: ## Update operator env in the Helm chart.
 		--from-literal=RELATED_IMAGE_EXPORTER_MAXSCALE=$(RELATED_IMAGE_EXPORTER_MAXSCALE) \
 		--from-literal=MARIADB_OPERATOR_IMAGE=$(IMG) \
 		--from-literal=MARIADB_GALERA_LIB_PATH=$(MARIADB_GALERA_LIB_PATH) \
-		--from-literal=MARIADB_ENTRYPOINT_VERSION=$(MARIADB_ENTRYPOINT_VERSION) \
+		--from-literal=MARIADB_DEFAULT_VERSION=$(MARIADB_DEFAULT_VERSION) \
 		--dry-run=client -o yaml \
 		> $(HELM_DIR)/templates/configmap.yaml
 

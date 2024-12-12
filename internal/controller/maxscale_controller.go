@@ -140,6 +140,10 @@ func (r *MaxScaleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			reconcile: r.reconcileSecret,
 		},
 		{
+			name:      "TLS",
+			reconcile: r.reconcileTLS,
+		},
+		{
 			name:      "Auth",
 			reconcile: r.reconcileAuth,
 		},

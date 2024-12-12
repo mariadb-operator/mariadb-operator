@@ -143,8 +143,8 @@ func TestKeyPairFromTLSSecret(t *testing.T) {
 		},
 		Type: corev1.SecretTypeTLS,
 		Data: map[string][]byte{
-			"tls.crt": []byte(testTLSCert),
-			"tls.key": []byte(testTLSKey),
+			TLSCertKey: []byte(testTLSCert),
+			TLSKeyKey:  []byte(testTLSKey),
 		},
 	}
 
