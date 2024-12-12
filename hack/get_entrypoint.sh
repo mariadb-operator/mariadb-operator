@@ -46,6 +46,17 @@ for VERSION_DIR in $(find mariadb-docker/ -maxdepth 1 -type d -regex 'mariadb-do
   fi
 done
 
+ENTRYPOINT_PATH=mariadb-docker/main-ubi
+if [ -f "${ENTRYPOINT_PATH}"/Dockerfile ]; then
+  VERSION=$(sed -n 's/ARG MARIADB_VERSION=\([0-9]*\.[0-9]*\).*/\1/p' "${ENTRYPOINT_PATH}"/Dockerfile)
+  DEST="$MARIADB_ENTRYPOINT_PATH/$VERSION"
+   if [ -n "$VERSION" ] && [ ! -d "$DEST" ]; then
+     mkdir -p "$DEST"
+     cp "$ENTRYPOINT_PATH"/docker-entrypoint.sh "$DEST"
+     echo "Copied docker-entrypoint.sh for version \"$VERSION\" from $ENTRYPOINT_PATH"
+   fi
+fi
+
 # Cleanup
 rm -rf mariadb-docker
 echo "Done!"
