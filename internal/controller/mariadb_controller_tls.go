@@ -11,9 +11,11 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
 	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
 	"github.com/mariadb-operator/mariadb-operator/pkg/pki"
+	appsv1 "k8s.io/api/apps/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -128,6 +130,14 @@ func (r *MariaDBReconciler) getTLSAnnotations(ctx context.Context, mariadb *mari
 	if !mariadb.IsTLSEnabled() {
 		return nil, nil
 	}
+	if !mariadb.IsReady() {
+		annotations, err := r.getStatefulSetTLSAnnotations(ctx, mariadb)
+		if err != nil {
+			return nil, fmt.Errorf("error getting StatefulSet TLS annotations: %v", err)
+		}
+		return annotations, nil
+	}
+
 	annotations, err := r.getTLSClientAnnotations(ctx, mariadb)
 	if err != nil {
 		return nil, fmt.Errorf("error getting client annotations: %v", err)
@@ -173,4 +183,33 @@ func (r *MariaDBReconciler) getTLSClientAnnotations(ctx context.Context, mariadb
 	annotations[metadata.TLSClientCertAnnotation] = hash(clientCert)
 
 	return annotations, nil
+}
+
+func (r *MariaDBReconciler) getStatefulSetTLSAnnotations(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (map[string]string, error) {
+	key := client.ObjectKeyFromObject(mariadb)
+
+	var sts appsv1.StatefulSet
+	if err := r.Get(ctx, key, &sts); err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("error getting StatefulSet: %w", err)
+	}
+
+	annotations := sts.Spec.Template.ObjectMeta.Annotations
+	if annotations == nil {
+		return nil, nil
+	}
+
+	result := make(map[string]string)
+	if ca, ok := annotations[metadata.TLSCAAnnotation]; ok {
+		result[metadata.TLSCAAnnotation] = ca
+	}
+	if serverCert, ok := annotations[metadata.TLSServerCertAnnotation]; ok {
+		result[metadata.TLSServerCertAnnotation] = serverCert
+	}
+	if clientCert, ok := annotations[metadata.TLSClientCertAnnotation]; ok {
+		result[metadata.TLSClientCertAnnotation] = clientCert
+	}
+	return result, nil
 }
