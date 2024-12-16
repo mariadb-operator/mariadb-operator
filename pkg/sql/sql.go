@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/go-sql-driver/mysql"
-	"github.com/hashicorp/go-multierror"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
@@ -207,17 +206,6 @@ func (c *Client) Exec(ctx context.Context, sql string, args ...any) error {
 	return err
 }
 
-func (c *Client) ExecFlushingPrivileges(ctx context.Context, sql string, args ...any) error {
-	var errBundle *multierror.Error
-	if err := c.Exec(ctx, sql, args...); err != nil {
-		errBundle = multierror.Append(errBundle, err)
-	}
-	if err := c.FlushPrivileges(ctx); err != nil {
-		errBundle = multierror.Append(errBundle, err)
-	}
-	return errBundle.ErrorOrNil()
-}
-
 type CreateUserOpts struct {
 	IdentifiedBy         string
 	IdentifiedByPassword string
@@ -281,13 +269,13 @@ func (c *Client) CreateUser(ctx context.Context, accountName string, createUserO
 	}
 	query += ";"
 
-	return c.ExecFlushingPrivileges(ctx, query)
+	return c.Exec(ctx, query)
 }
 
 func (c *Client) DropUser(ctx context.Context, accountName string) error {
 	query := fmt.Sprintf("DROP USER IF EXISTS %s;", accountName)
 
-	return c.ExecFlushingPrivileges(ctx, query)
+	return c.Exec(ctx, query)
 }
 
 func (c *Client) AlterUser(ctx context.Context, accountName string, createUserOpts ...CreateUserOpt) error {
@@ -312,7 +300,7 @@ func (c *Client) AlterUser(ctx context.Context, accountName string, createUserOp
 
 	query += ";"
 
-	return c.ExecFlushingPrivileges(ctx, query)
+	return c.Exec(ctx, query)
 }
 
 func (c *Client) UserExists(ctx context.Context, username, host string) (bool, error) {
@@ -360,7 +348,7 @@ func (c *Client) Grant(
 	}
 	query += ";"
 
-	return c.ExecFlushingPrivileges(ctx, query)
+	return c.Exec(ctx, query)
 }
 
 func (c *Client) Revoke(
@@ -386,11 +374,7 @@ func (c *Client) Revoke(
 		accountName,
 	)
 
-	return c.ExecFlushingPrivileges(ctx, query)
-}
-
-func (c *Client) FlushPrivileges(ctx context.Context) error {
-	return c.Exec(ctx, "FLUSH PRIVILEGES;")
+	return c.Exec(ctx, query)
 }
 
 func escapeWildcard(s string) string {
