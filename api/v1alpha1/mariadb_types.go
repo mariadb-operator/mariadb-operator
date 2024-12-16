@@ -526,36 +526,16 @@ type MariaDBSpec struct {
 	SecondaryConnection *ConnectionTemplate `json:"secondaryConnection,omitempty" webhook:"inmutable"`
 }
 
-// CertificateStatus represents the current status of a TLS certificate.
-type CertificateStatus struct {
-	// NotAfter indicates that the certificate is not valid after the given date.
-	// +operator-sdk:csv:customresourcedefinitions:type=status
-	NotAfter metav1.Time `json:"notAfter,omitempty"`
-	// NotBefore indicates that the certificate is not valid before the given date.
-	// +operator-sdk:csv:customresourcedefinitions:type=status
-	NotBefore metav1.Time `json:"notBefore,omitempty"`
-	// Subject is the subject of the current certificate.
-	// +operator-sdk:csv:customresourcedefinitions:type=status
-	Subject string `json:"subject"`
-	// Issuer is the issuer of the current certificate.
-	// +operator-sdk:csv:customresourcedefinitions:type=status
-	Issuer string `json:"issuer"`
-}
-
 // MariaDBTLSStatus aggregates the status of the certificates used by the MariaDB instance.
 type MariaDBTLSStatus struct {
-	// ServerCA is the status of the server Certificate Authority bundle.
+	// CABundle is the status of the Certificate Authority bundle.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
-	ServerCA []CertificateStatus `json:"serverCA,omitempty"`
+	CABundle []CertificateStatus `json:"caBundle,omitempty"`
 	// ServerCert is the status of the server certificate.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	ServerCert *CertificateStatus `json:"serverCert,omitempty"`
-	// ClientCA is the status of the client Certificate Authority bundle.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=status
-	ClientCA []CertificateStatus `json:"clientCA,omitempty"`
 	// ClientCert is the status of the client certificate.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
