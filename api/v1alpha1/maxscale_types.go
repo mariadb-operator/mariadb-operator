@@ -719,6 +719,26 @@ type MaxScaleConfigSyncStatus struct {
 	DatabaseVersion int `json:"databaseVersion"`
 }
 
+// MaxScaleTLSStatus aggregates the status of the certificates used by the MaxScale instance.
+type MaxScaleTLSStatus struct {
+	// CABundle is the status of the Certificate Authority bundle.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	CABundle []CertificateStatus `json:"caBundle,omitempty"`
+	// AdminCert is the status of the admin certificate.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	AdminCert *CertificateStatus `json:"adminCert,omitempty"`
+	// ListenerCert is the status of the listener certificate.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	ListenerCert *CertificateStatus `json:"listenerCert,omitempty"`
+	// ServerCert is the status of the MariaDB server certificate.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	ServerCert *CertificateStatus `json:"serverCert,omitempty"`
+}
+
 // MaxScaleStatus defines the observed state of MaxScale
 type MaxScaleStatus struct {
 	// Conditions for the MaxScale object.
@@ -753,6 +773,10 @@ type MaxScaleStatus struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	ConfigSync *MaxScaleConfigSyncStatus `json:"configSync,omitempty"`
+	// TLS aggregates the status of the certificates used by the MaxScale instance.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	TLS *MaxScaleTLSStatus `json:"tls,omitempty"`
 }
 
 // SetCondition sets a status condition to MaxScale
