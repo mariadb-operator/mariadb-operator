@@ -11,13 +11,11 @@ import (
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	conditions "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/replication"
-	"github.com/mariadb-operator/mariadb-operator/pkg/pki"
 	podpkg "github.com/mariadb-operator/mariadb-operator/pkg/pod"
 	stspkg "github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	klabels "k8s.io/apimachinery/pkg/labels"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -147,90 +145,6 @@ func (r *MariaDBReconciler) getMaxScalePrimaryPod(ctx context.Context, mdb *mari
 		return nil, fmt.Errorf("error getting Pod for MaxScale server '%s': %v", *primarySrv, err)
 	}
 	return podIndex, nil
-}
-
-func (r *MariaDBReconciler) getTLSStatus(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) (*mariadbv1alpha1.MariaDBTLSStatus, error) {
-	if !mdb.IsTLSEnabled() {
-		return nil, nil
-	}
-	var tlsStatus mariadbv1alpha1.MariaDBTLSStatus
-
-	secretKeySelector := mariadbv1alpha1.SecretKeySelector{
-		LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
-			Name: mdb.TLSServerCASecretKey().Name,
-		},
-		Key: pki.TLSCertKey,
-	}
-	certStatus, err := r.getCertificateStatus(ctx, secretKeySelector, mdb.Namespace)
-	if err != nil {
-		return nil, fmt.Errorf("error getting Server CA status: %v", err)
-	}
-	tlsStatus.ServerCA = certStatus
-
-	secretKeySelector = mariadbv1alpha1.SecretKeySelector{
-		LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
-			Name: mdb.TLSServerCertSecretKey().Name,
-		},
-		Key: pki.TLSCertKey,
-	}
-	certStatus, err = r.getCertificateStatus(ctx, secretKeySelector, mdb.Namespace)
-	if err != nil {
-		return nil, fmt.Errorf("error getting Server certificate status: %v", err)
-	}
-	tlsStatus.ServerCert = ptr.To(certStatus[0])
-
-	secretKeySelector = mariadbv1alpha1.SecretKeySelector{
-		LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
-			Name: mdb.TLSClientCASecretKey().Name,
-		},
-		Key: pki.TLSCertKey,
-	}
-	certStatus, err = r.getCertificateStatus(ctx, secretKeySelector, mdb.Namespace)
-	if err != nil {
-		return nil, fmt.Errorf("error getting Client CA status: %v", err)
-	}
-	tlsStatus.ClientCA = certStatus
-
-	secretKeySelector = mariadbv1alpha1.SecretKeySelector{
-		LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
-			Name: mdb.TLSClientCertSecretKey().Name,
-		},
-		Key: pki.TLSCertKey,
-	}
-	certStatus, err = r.getCertificateStatus(ctx, secretKeySelector, mdb.Namespace)
-	if err != nil {
-		return nil, fmt.Errorf("error getting Client certificate status: %v", err)
-	}
-	tlsStatus.ClientCert = ptr.To(certStatus[0])
-
-	return &tlsStatus, nil
-}
-
-func (r *MariaDBReconciler) getCertificateStatus(ctx context.Context, selector mariadbv1alpha1.SecretKeySelector,
-	namespace string) ([]mariadbv1alpha1.CertificateStatus, error) {
-	secret, err := r.RefResolver.SecretKeyRef(ctx, selector, namespace)
-	if err != nil {
-		return nil, fmt.Errorf("error getting Secret: %v", err)
-	}
-
-	certs, err := pki.ParseCertificates([]byte(secret))
-	if err != nil {
-		return nil, fmt.Errorf("error getting certificates: %v", err)
-	}
-	if len(certs) == 0 {
-		return nil, errors.New("no certificates were found")
-	}
-
-	status := make([]mariadbv1alpha1.CertificateStatus, len(certs))
-	for i, cert := range certs {
-		status[i] = mariadbv1alpha1.CertificateStatus{
-			NotAfter:  metav1.NewTime(cert.NotAfter),
-			NotBefore: metav1.NewTime(cert.NotBefore),
-			Subject:   cert.Subject.String(),
-			Issuer:    cert.Issuer.String(),
-		}
-	}
-	return status, nil
 }
 
 func (r *MariaDBReconciler) setUpdatedCondition(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) error {
