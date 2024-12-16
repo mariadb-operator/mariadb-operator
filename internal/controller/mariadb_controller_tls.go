@@ -3,6 +3,7 @@ package controller
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
@@ -11,11 +12,12 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
 	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
 	"github.com/mariadb-operator/mariadb-operator/pkg/pki"
-	appsv1 "k8s.io/api/apps/v1"
+	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -130,13 +132,6 @@ func (r *MariaDBReconciler) getTLSAnnotations(ctx context.Context, mariadb *mari
 	if !mariadb.IsTLSEnabled() {
 		return nil, nil
 	}
-	if !mariadb.IsReady() {
-		annotations, err := r.getStatefulSetTLSAnnotations(ctx, mariadb)
-		if err != nil {
-			return nil, fmt.Errorf("error getting StatefulSet TLS annotations: %v", err)
-		}
-		return annotations, nil
-	}
 
 	annotations, err := r.getTLSClientAnnotations(ctx, mariadb)
 	if err != nil {
@@ -185,31 +180,68 @@ func (r *MariaDBReconciler) getTLSClientAnnotations(ctx context.Context, mariadb
 	return annotations, nil
 }
 
-func (r *MariaDBReconciler) getStatefulSetTLSAnnotations(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (map[string]string, error) {
-	key := client.ObjectKeyFromObject(mariadb)
-
-	var sts appsv1.StatefulSet
-	if err := r.Get(ctx, key, &sts); err != nil {
-		if apierrors.IsNotFound(err) {
-			return nil, nil
-		}
-		return nil, fmt.Errorf("error getting StatefulSet: %w", err)
-	}
-
-	annotations := sts.Spec.Template.ObjectMeta.Annotations
-	if annotations == nil {
+func (r *MariaDBReconciler) getTLSStatus(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) (*mariadbv1alpha1.MariaDBTLSStatus, error) {
+	if !mdb.IsTLSEnabled() {
 		return nil, nil
 	}
+	var tlsStatus mariadbv1alpha1.MariaDBTLSStatus
 
-	result := make(map[string]string)
-	if ca, ok := annotations[metadata.TLSCAAnnotation]; ok {
-		result[metadata.TLSCAAnnotation] = ca
+	certStatus, err := getCertificateStatus(ctx, r.RefResolver, mdb.TLSCABundleSecretKeyRef(), mdb.Namespace)
+	if err != nil {
+		return nil, fmt.Errorf("error getting CA bundle status: %v", err)
 	}
-	if serverCert, ok := annotations[metadata.TLSServerCertAnnotation]; ok {
-		result[metadata.TLSServerCertAnnotation] = serverCert
+	tlsStatus.CABundle = certStatus
+
+	secretKeySelector := mariadbv1alpha1.SecretKeySelector{
+		LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+			Name: mdb.TLSServerCertSecretKey().Name,
+		},
+		Key: pki.TLSCertKey,
 	}
-	if clientCert, ok := annotations[metadata.TLSClientCertAnnotation]; ok {
-		result[metadata.TLSClientCertAnnotation] = clientCert
+	certStatus, err = getCertificateStatus(ctx, r.RefResolver, secretKeySelector, mdb.Namespace)
+	if err != nil {
+		return nil, fmt.Errorf("error getting Server certificate status: %v", err)
 	}
-	return result, nil
+	tlsStatus.ServerCert = ptr.To(certStatus[0])
+
+	secretKeySelector = mariadbv1alpha1.SecretKeySelector{
+		LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+			Name: mdb.TLSClientCertSecretKey().Name,
+		},
+		Key: pki.TLSCertKey,
+	}
+	certStatus, err = getCertificateStatus(ctx, r.RefResolver, secretKeySelector, mdb.Namespace)
+	if err != nil {
+		return nil, fmt.Errorf("error getting Client certificate status: %v", err)
+	}
+	tlsStatus.ClientCert = ptr.To(certStatus[0])
+
+	return &tlsStatus, nil
+}
+
+func getCertificateStatus(ctx context.Context, refResolver *refresolver.RefResolver, selector mariadbv1alpha1.SecretKeySelector,
+	namespace string) ([]mariadbv1alpha1.CertificateStatus, error) {
+	secret, err := refResolver.SecretKeyRef(ctx, selector, namespace)
+	if err != nil {
+		return nil, fmt.Errorf("error getting Secret: %v", err)
+	}
+
+	certs, err := pki.ParseCertificates([]byte(secret))
+	if err != nil {
+		return nil, fmt.Errorf("error getting certificates: %v", err)
+	}
+	if len(certs) == 0 {
+		return nil, errors.New("no certificates were found")
+	}
+
+	status := make([]mariadbv1alpha1.CertificateStatus, len(certs))
+	for i, cert := range certs {
+		status[i] = mariadbv1alpha1.CertificateStatus{
+			NotAfter:  metav1.NewTime(cert.NotAfter),
+			NotBefore: metav1.NewTime(cert.NotBefore),
+			Subject:   cert.Subject.String(),
+			Issuer:    cert.Issuer.String(),
+		}
+	}
+	return status, nil
 }

@@ -5605,9 +5605,9 @@ spec:
                 description: TLS aggregates the status of the certificates used by
                   the MariaDB instance.
                 properties:
-                  clientCA:
-                    description: ClientCA is the status of the client Certificate
-                      Authority bundle.
+                  caBundle:
+                    description: CABundle is the status of the Certificate Authority
+                      bundle.
                     items:
                       description: CertificateStatus represents the current status
                         of a TLS certificate.
@@ -5656,34 +5656,6 @@ spec:
                     - issuer
                     - subject
                     type: object
-                  serverCA:
-                    description: ServerCA is the status of the server Certificate
-                      Authority bundle.
-                    items:
-                      description: CertificateStatus represents the current status
-                        of a TLS certificate.
-                      properties:
-                        issuer:
-                          description: Issuer is the issuer of the current certificate.
-                          type: string
-                        notAfter:
-                          description: NotAfter indicates that the certificate is
-                            not valid after the given date.
-                          format: date-time
-                          type: string
-                        notBefore:
-                          description: NotBefore indicates that the certificate is
-                            not valid before the given date.
-                          format: date-time
-                          type: string
-                        subject:
-                          description: Subject is the subject of the current certificate.
-                          type: string
-                      required:
-                      - issuer
-                      - subject
-                      type: object
-                    type: array
                   serverCert:
                     description: ServerCert is the status of the server certificate.
                     properties:
