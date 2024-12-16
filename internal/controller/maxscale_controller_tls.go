@@ -10,6 +10,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/pki"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -148,4 +149,55 @@ func (r *MaxScaleReconciler) getTLSAdminAnnotations(ctx context.Context, mxs *ma
 	annotations[metadata.TLSAdminCertAnnotation] = hash(adminCert)
 
 	return annotations, nil
+}
+
+func (r *MaxScaleReconciler) getTLSStatus(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) (*mariadbv1alpha1.MaxScaleTLSStatus, error) {
+	if !mxs.IsTLSEnabled() {
+		return nil, nil
+	}
+	var tlsStatus mariadbv1alpha1.MaxScaleTLSStatus
+
+	certStatus, err := getCertificateStatus(ctx, r.RefResolver, mxs.TLSCABundleSecretKeyRef(), mxs.Namespace)
+	if err != nil {
+		return nil, fmt.Errorf("error getting CA bundle status: %v", err)
+	}
+	tlsStatus.CABundle = certStatus
+
+	secretKeySelector := mariadbv1alpha1.SecretKeySelector{
+		LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+			Name: mxs.TLSAdminCertSecretKey().Name,
+		},
+		Key: pki.TLSCertKey,
+	}
+	certStatus, err = getCertificateStatus(ctx, r.RefResolver, secretKeySelector, mxs.Namespace)
+	if err != nil {
+		return nil, fmt.Errorf("error getting admin certificate status: %v", err)
+	}
+	tlsStatus.AdminCert = ptr.To(certStatus[0])
+
+	secretKeySelector = mariadbv1alpha1.SecretKeySelector{
+		LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+			Name: mxs.TLSListenerCertSecretKey().Name,
+		},
+		Key: pki.TLSCertKey,
+	}
+	certStatus, err = getCertificateStatus(ctx, r.RefResolver, secretKeySelector, mxs.Namespace)
+	if err != nil {
+		return nil, fmt.Errorf("error getting listener certificate status: %v", err)
+	}
+	tlsStatus.ListenerCert = ptr.To(certStatus[0])
+
+	secretKeySelector = mariadbv1alpha1.SecretKeySelector{
+		LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+			Name: mxs.TLSServerCertSecretKey().Name,
+		},
+		Key: pki.TLSCertKey,
+	}
+	certStatus, err = getCertificateStatus(ctx, r.RefResolver, secretKeySelector, mxs.Namespace)
+	if err != nil {
+		return nil, fmt.Errorf("error getting server certificate status: %v", err)
+	}
+	tlsStatus.ServerCert = ptr.To(certStatus[0])
+
+	return &tlsStatus, nil
 }
