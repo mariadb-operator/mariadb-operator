@@ -26,6 +26,7 @@ func (r *MaxScaleReconciler) reconcileStatus(ctx context.Context, req *requestMa
 			return nil
 		})
 	}
+	logger := log.FromContext(ctx).WithName("status")
 
 	var sts appsv1.StatefulSet
 	if err := r.Get(ctx, client.ObjectKeyFromObject(req.mxs), &sts); err != nil {
@@ -51,7 +52,7 @@ func (r *MaxScaleReconciler) reconcileStatus(ctx context.Context, req *requestMa
 	newPrimary := ptr.Deref(srvStatus, serverStatus{}).primary
 
 	if currentPrimary != "" && newPrimary != "" && currentPrimary != newPrimary {
-		log.FromContext(ctx).Info(
+		logger.Info(
 			"MaxScale primary server changed",
 			"from-server", currentPrimary,
 			"to-server", newPrimary,
@@ -76,8 +77,11 @@ func (r *MaxScaleReconciler) reconcileStatus(ctx context.Context, req *requestMa
 	configSync, err := r.getConfigSyncStatus(ctx, req.mxs, client)
 	errBundle = multierror.Append(errBundle, err)
 
+	tlsStatus, err := r.getTLSStatus(ctx, req.mxs)
+	errBundle = multierror.Append(errBundle, err)
+
 	if err := errBundle.ErrorOrNil(); err != nil {
-		log.FromContext(ctx).V(1).Info("error getting status", "err", err)
+		logger.V(1).Info("error getting status", "err", err)
 	}
 
 	return ctrl.Result{}, r.patchStatus(ctx, req.mxs, func(mss *mariadbv1alpha1.MaxScaleStatus) error {
@@ -101,6 +105,9 @@ func (r *MaxScaleReconciler) reconcileStatus(ctx context.Context, req *requestMa
 		}
 		if configSync != nil {
 			mss.ConfigSync = configSync
+		}
+		if tlsStatus != nil {
+			mss.TLS = tlsStatus
 		}
 
 		condition.SetReadyWithStatefulSet(mss, &sts)
