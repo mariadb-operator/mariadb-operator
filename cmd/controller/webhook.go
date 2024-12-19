@@ -160,7 +160,7 @@ func checkCerts(dnsName string, at time.Time) error {
 	return nil
 }
 
-func readCert(certPath string) (*x509.Certificate, error) {
+func readCert(certPath string) ([]*x509.Certificate, error) {
 	if _, err := os.Stat(certPath); err != nil {
 		return nil, err
 	}
@@ -168,7 +168,7 @@ func readCert(certPath string) (*x509.Certificate, error) {
 	if err != nil {
 		return nil, err
 	}
-	return pki.ParseCertificate(certBytes)
+	return pki.ParseCertificates(certBytes)
 }
 
 func readKeyPair(dir string) (*pki.KeyPair, error) {
@@ -188,5 +188,12 @@ func readKeyPair(dir string) (*pki.KeyPair, error) {
 	if err != nil {
 		return nil, err
 	}
-	return pki.KeyPairFromPEM(certBytes, keyBytes)
+	return pki.NewKeyPair(
+		certBytes,
+		keyBytes,
+		pki.WithSupportedPrivateKeys(
+			pki.PrivateKeyTypeECDSA,
+			pki.PrivateKeyTypeRSA, // backwards compatibility with webhook certs from previous versions
+		),
+	)
 }
