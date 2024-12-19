@@ -101,7 +101,9 @@ var _ = Describe("WebhookConfig", func() {
 
 		By("Expecting certificate to be valid")
 		dnsNames := serviceDNSNames(testWebhookServiceKey)
-		valid, err := pki.ValidCert(caKeyPair.Cert, certKeyPair, dnsNames.CommonName, time.Now())
+		caCerts, err := caKeyPair.Certificates()
+		Expect(err).ToNot(HaveOccurred())
+		valid, err := pki.ValidCert(caCerts, certKeyPair, dnsNames.CommonName, time.Now())
 		Expect(err).ToNot(HaveOccurred())
 		Expect(valid).To(BeTrue())
 
@@ -219,7 +221,9 @@ var _ = Describe("WebhookConfig", func() {
 
 		By("Expecting certificate to be valid")
 		dnsNames = serviceDNSNames(testWebhookServiceKey)
-		valid, err = pki.ValidCert(caKeyPair.Cert, certKeyPair, dnsNames.CommonName, time.Now())
+		caCerts, err = caKeyPair.Certificates()
+		Expect(err).ToNot(HaveOccurred())
+		valid, err = pki.ValidCert(caCerts, certKeyPair, dnsNames.CommonName, time.Now())
 		Expect(err).ToNot(HaveOccurred())
 		Expect(valid).To(BeTrue())
 	})
