@@ -147,7 +147,7 @@ func TestKeyPairFromTLSSecret(t *testing.T) {
 		},
 	}
 
-	keyPair, err := KeyPairFromTLSSecret(&secret)
+	keyPair, err := NewKeyPairFromTLSSecret(&secret, WithSupportedPrivateKeys(PrivateKeyTypeRSA))
 	if err != nil {
 		t.Fatalf("Unexpected error creating KeyPair from TLS Secret: %v", err)
 	}
@@ -170,7 +170,7 @@ func TestKeyPairFromTLSSecret(t *testing.T) {
 }
 
 func TestKeyPairInvalidPEM(t *testing.T) {
-	_, err := KeyPairFromPEM([]byte("foo"), []byte("bar"))
+	_, err := NewKeyPair([]byte("foo"), []byte("bar"))
 	if err == nil {
 		t.Fatal("Expected KeyPair creation to fail")
 	}

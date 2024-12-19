@@ -188,5 +188,12 @@ func readKeyPair(dir string) (*pki.KeyPair, error) {
 	if err != nil {
 		return nil, err
 	}
-	return pki.KeyPairFromPEM(certBytes, keyBytes)
+	return pki.NewKeyPair(
+		certBytes,
+		keyBytes,
+		pki.WithSupportedPrivateKeys(
+			pki.PrivateKeyTypeECDSA,
+			pki.PrivateKeyTypeRSA, // backwards compatibility with webhook certs from previous versions
+		),
+	)
 }
