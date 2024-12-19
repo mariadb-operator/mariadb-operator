@@ -1,6 +1,9 @@
 package pki
 
 import (
+	"crypto"
+	"crypto/ecdsa"
+	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
@@ -10,9 +13,10 @@ import (
 	"github.com/go-logr/logr"
 )
 
-var (
-	pemBlockTypeCertificate = "CERTIFICATE"
-	pemBlockRSAPrivateKey   = "RSA PRIVATE KEY"
+const (
+	pemBlockCertificate   = "CERTIFICATE"
+	pemBlockECPrivateKey  = "EC PRIVATE KEY"
+	pemBlockRSAPrivateKey = "RSA PRIVATE KEY"
 )
 
 // BundleOption represents a function that applies a bundle configuration.
@@ -72,7 +76,7 @@ func appendPEM(bundle []byte, pemBytes []byte, existingCerts map[string]struct{}
 			opts.logger.Error(errors.New("Invalid PEM block"), "Error decoding PEM block. Ignoring...")
 			break
 		}
-		if block.Type != string(pemBlockTypeCertificate) {
+		if block.Type != string(pemBlockCertificate) {
 			return nil, fmt.Errorf("invalid PEM certificate block, got block type: %v", block.Type)
 		}
 
@@ -108,9 +112,18 @@ func getCertID(cert *x509.Certificate) string {
 }
 
 func pemEncodeCertificate(bytes []byte) []byte {
-	return pem.EncodeToMemory(&pem.Block{Type: pemBlockTypeCertificate, Bytes: bytes})
+	return pem.EncodeToMemory(&pem.Block{Type: pemBlockCertificate, Bytes: bytes})
 }
 
-func pemEncodePrivateKey(bytes []byte) []byte {
-	return pem.EncodeToMemory(&pem.Block{Type: pemBlockRSAPrivateKey, Bytes: bytes})
+func pemEncodePrivateKey(bytes []byte, signer crypto.Signer) ([]byte, error) {
+	var blockType string
+	switch signer.(type) {
+	case *ecdsa.PrivateKey:
+		blockType = pemBlockECPrivateKey
+	case *rsa.PrivateKey:
+		blockType = pemBlockRSAPrivateKey
+	default:
+		return nil, fmt.Errorf("unsupported private key: %t", signer)
+	}
+	return pem.EncodeToMemory(&pem.Block{Type: blockType, Bytes: bytes}), nil
 }

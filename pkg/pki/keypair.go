@@ -1,11 +1,10 @@
 package pki
 
 import (
+	"crypto"
 	"crypto/rand"
-	"crypto/rsa"
 	"crypto/tls"
 	"crypto/x509"
-	"encoding/pem"
 	"errors"
 	"fmt"
 	"time"
@@ -22,10 +21,35 @@ var (
 	defaultCertValidityDuration = 365 * 24 * time.Hour
 )
 
+type KeyPairOpt func(*KeyPair)
+
+func WithSupportedPrivateKeys(pks ...PrivateKey) KeyPairOpt {
+	return func(k *KeyPair) {
+		k.SupportedPrivateKeys = pks
+	}
+}
+
 type KeyPair struct {
-	Key     *rsa.PrivateKey
-	CertPEM []byte
-	KeyPEM  []byte
+	CertPEM              []byte
+	KeyPEM               []byte
+	SupportedPrivateKeys []PrivateKey
+}
+
+func NewKeyPair(certPEM, keyPEM []byte, opts ...KeyPairOpt) (*KeyPair, error) {
+	k := KeyPair{
+		CertPEM: certPEM,
+		KeyPEM:  keyPEM,
+		SupportedPrivateKeys: []PrivateKey{
+			PrivateKeyTypeECDSA,
+		},
+	}
+	for _, setOpt := range opts {
+		setOpt(&k)
+	}
+	if err := k.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid keypair: %v", err)
+	}
+	return &k, nil
 }
 
 func (k *KeyPair) Validate() error {
@@ -35,9 +59,11 @@ func (k *KeyPair) Validate() error {
 	if len(k.KeyPEM) == 0 {
 		return errors.New("private key PEM is empty")
 	}
-
 	if _, err := k.Certificates(); err != nil {
 		return fmt.Errorf("error parsing certificates: %v", err)
+	}
+	if _, err := k.PrivateKey(); err != nil {
+		return fmt.Errorf("error parsing private key: %v", err)
 	}
 	if _, err := tls.X509KeyPair(k.CertPEM, k.KeyPEM); err != nil {
 		return fmt.Errorf("invalid keypair: %v", err)
@@ -49,6 +75,10 @@ func (k *KeyPair) Certificates() ([]*x509.Certificate, error) {
 	return ParseCertificates(k.CertPEM)
 }
 
+func (k *KeyPair) PrivateKey() (crypto.Signer, error) {
+	return ParsePrivateKey(k.KeyPEM, k.SupportedPrivateKeys)
+}
+
 func (k *KeyPair) UpdateTLSSecret(secret *corev1.Secret) {
 	if secret.Data == nil {
 		secret.Data = make(map[string][]byte)
@@ -57,7 +87,7 @@ func (k *KeyPair) UpdateTLSSecret(secret *corev1.Secret) {
 	secret.Data[TLSKeyKey] = k.KeyPEM
 }
 
-func KeyPairFromTLSSecret(secret *corev1.Secret) (*KeyPair, error) {
+func NewKeyPairFromTLSSecret(secret *corev1.Secret, opts ...KeyPairOpt) (*KeyPair, error) {
 	if secret.Data == nil {
 		return nil, errors.New("TLS Secret is empty")
 	}
@@ -67,35 +97,13 @@ func KeyPairFromTLSSecret(secret *corev1.Secret) (*KeyPair, error) {
 
 	certPEM := secret.Data[TLSCertKey]
 	keyPEM := secret.Data[TLSKeyKey]
-	return KeyPairFromPEM(certPEM, keyPEM)
+	return NewKeyPair(certPEM, keyPEM, opts...)
 }
 
-func KeyPairFromPEM(certPEM, keyPEM []byte) (*KeyPair, error) {
-	pemBlockKey, _ := pem.Decode(keyPEM)
-	if pemBlockKey == nil {
-		return nil, fmt.Errorf("Bad private key")
-	}
-	key, err := x509.ParsePKCS1PrivateKey(pemBlockKey.Bytes)
+func NewKeyPairFromTemplate(tpl *x509.Certificate, caKeyPair *KeyPair, opts ...KeyPairOpt) (*KeyPair, error) {
+	privateKey, err := GeneratePrivateKey()
 	if err != nil {
-		return nil, fmt.Errorf("Error parsing PKCS1 private key: %v", err)
-	}
-
-	keyPair := &KeyPair{
-		Key:     key,
-		CertPEM: certPEM,
-		KeyPEM:  keyPEM,
-	}
-	if err := keyPair.Validate(); err != nil {
-		return nil, fmt.Errorf("invalid keypair: %v", err)
-	}
-
-	return keyPair, nil
-}
-
-func createKeyPair(tpl *x509.Certificate, caKeyPair *KeyPair) (*KeyPair, error) {
-	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
-	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error generating private key: %v", err)
 	}
 
 	parentCert := tpl
@@ -103,22 +111,31 @@ func createKeyPair(tpl *x509.Certificate, caKeyPair *KeyPair) (*KeyPair, error) 
 	if caKeyPair != nil {
 		caCerts, err := caKeyPair.Certificates()
 		if err != nil {
-			return nil, fmt.Errorf("error getting certificate: %v", err)
+			return nil, fmt.Errorf("error getting CA certificate: %v", err)
+		}
+		caPrivateKey, err := caKeyPair.PrivateKey()
+		if err != nil {
+			return nil, fmt.Errorf("error getting CA private key: %v", err)
 		}
 
 		parentCert = caCerts[0] // assume first certificate in the CA bundle
-		parentKey = caKeyPair.Key
+		parentKey = caPrivateKey
 	}
 
 	certBytes, err := x509.CreateCertificate(rand.Reader, tpl, parentCert, privateKey.Public(), parentKey)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error creating certificate: %v", err)
 	}
-	privateKeyBytes := x509.MarshalPKCS1PrivateKey(privateKey)
+	privateKeyBytes, err := MarshalPrivateKey(privateKey)
+	if err != nil {
+		return nil, fmt.Errorf("error creating private key: %v", err)
+	}
 
-	return &KeyPair{
-		Key:     privateKey,
-		CertPEM: pemEncodeCertificate(certBytes),
-		KeyPEM:  pemEncodePrivateKey(privateKeyBytes),
-	}, nil
+	certPEMBytes := pemEncodeCertificate(certBytes)
+	privateKeyPEMBytes, err := pemEncodePrivateKey(privateKeyBytes, parentKey)
+	if err != nil {
+		return nil, fmt.Errorf("error encoding private key PEM: %v", err)
+	}
+
+	return NewKeyPair(certPEMBytes, privateKeyPEMBytes, opts...)
 }

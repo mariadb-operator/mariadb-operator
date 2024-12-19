@@ -64,7 +64,7 @@ func CreateCA(x509Opts ...X509Opt) (*KeyPair, error) {
 
 	serialNumber, err := getSerialNumber()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error getting serial number: %v", err)
 	}
 
 	tpl := &x509.Certificate{
@@ -82,7 +82,7 @@ func CreateCA(x509Opts ...X509Opt) (*KeyPair, error) {
 		BasicConstraintsValid: true,
 		IsCA:                  true,
 	}
-	return createKeyPair(tpl, nil)
+	return NewKeyPairFromTemplate(tpl, nil)
 }
 
 func CreateCert(caKeyPair *KeyPair, x509Opts ...X509Opt) (*KeyPair, error) {
@@ -99,7 +99,7 @@ func CreateCert(caKeyPair *KeyPair, x509Opts ...X509Opt) (*KeyPair, error) {
 
 	serialNumber, err := getSerialNumber()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error getting serial number: %v", err)
 	}
 
 	tpl := &x509.Certificate{
@@ -114,7 +114,7 @@ func CreateCert(caKeyPair *KeyPair, x509Opts ...X509Opt) (*KeyPair, error) {
 		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
 		BasicConstraintsValid: true,
 	}
-	return createKeyPair(tpl, caKeyPair)
+	return NewKeyPairFromTemplate(tpl, caKeyPair)
 }
 
 func ParseCertificate(bytes []byte) (*x509.Certificate, error) {
@@ -137,7 +137,7 @@ func ParseCertificates(bytes []byte) ([]*x509.Certificate, error) {
 		if block == nil {
 			return nil, errors.New("invalid PEM block")
 		}
-		if block.Type != pemBlockTypeCertificate {
+		if block.Type != pemBlockCertificate {
 			return nil, fmt.Errorf("invalid PEM certificate block, got block type: %v", block.Type)
 		}
 

@@ -153,7 +153,13 @@ func (r *CertReconciler) reconcileKeyPair(ctx context.Context, key types.Namespa
 		return keyPair, true, nil
 	}
 
-	keyPair, err = pki.KeyPairFromTLSSecret(&secret)
+	keyPair, err = pki.NewKeyPairFromTLSSecret(
+		&secret,
+		pki.WithSupportedPrivateKeys(
+			pki.PrivateKeyTypeECDSA,
+			pki.PrivateKeyTypeRSA, // backwards compatibility with webhook certs from previous versions
+		),
+	)
 	if err != nil {
 		return nil, false, err
 	}

@@ -84,7 +84,7 @@ var _ = Describe("WebhookConfig", func() {
 		}, testTimeout, testInterval).Should(BeTrue())
 
 		By("Expecting to get CA KeyPair")
-		caKeyPair, err := pki.KeyPairFromTLSSecret(&caSecret)
+		caKeyPair, err := pki.NewKeyPairFromTLSSecret(&caSecret)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(caKeyPair).NotTo(BeNil())
 		DeferCleanup(func() {
@@ -92,7 +92,7 @@ var _ = Describe("WebhookConfig", func() {
 		})
 
 		By("Expecting to get certificate KeyPair")
-		certKeyPair, err := pki.KeyPairFromTLSSecret(&certSecret)
+		certKeyPair, err := pki.NewKeyPairFromTLSSecret(&certSecret)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(certKeyPair).NotTo(BeNil())
 		DeferCleanup(func() {
@@ -210,12 +210,12 @@ var _ = Describe("WebhookConfig", func() {
 		}, testTimeout, testInterval).Should(BeTrue())
 
 		By("Expecting to get CA KeyPair")
-		caKeyPair, err = pki.KeyPairFromTLSSecret(&caSecret)
+		caKeyPair, err = pki.NewKeyPairFromTLSSecret(&caSecret)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(caKeyPair).NotTo(BeNil())
 
 		By("Expecting to get certificate KeyPair")
-		certKeyPair, err = pki.KeyPairFromTLSSecret(&certSecret)
+		certKeyPair, err = pki.NewKeyPairFromTLSSecret(&certSecret)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(certKeyPair).NotTo(BeNil())
 
