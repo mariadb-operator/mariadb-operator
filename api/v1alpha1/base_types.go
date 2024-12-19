@@ -516,7 +516,7 @@ type SQLTemplate struct {
 	CleanupPolicy *CleanupPolicy `json:"cleanupPolicy,omitempty"`
 }
 
-type TLS struct {
+type TLSS3 struct {
 	// Enabled is a flag to enable TLS.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
@@ -560,7 +560,7 @@ type S3 struct {
 	// TLS provides the configuration required to establish TLS connections with S3.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	TLS *TLS `json:"tls,omitempty"`
+	TLS *TLSS3 `json:"tls,omitempty"`
 }
 
 // Metadata defines the metadata to added to resources.
@@ -831,4 +831,20 @@ type Exporter struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	PriorityClassName *string `json:"priorityClassName,omitempty" webhook:"inmutable"`
+}
+
+// CertificateStatus represents the current status of a TLS certificate.
+type CertificateStatus struct {
+	// NotAfter indicates that the certificate is not valid after the given date.
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	NotAfter metav1.Time `json:"notAfter,omitempty"`
+	// NotBefore indicates that the certificate is not valid before the given date.
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	NotBefore metav1.Time `json:"notBefore,omitempty"`
+	// Subject is the subject of the current certificate.
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	Subject string `json:"subject"`
+	// Issuer is the issuer of the current certificate.
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	Issuer string `json:"issuer"`
 }

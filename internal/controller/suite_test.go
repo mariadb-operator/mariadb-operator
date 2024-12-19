@@ -147,7 +147,7 @@ var _ = BeforeSuite(func() {
 	svcMonitorReconciler := servicemonitor.NewServiceMonitorReconciler(client)
 
 	mxsReconciler := maxscale.NewMaxScaleReconciler(client, builder, env)
-	replConfig := replication.NewReplicationConfig(client, builder, secretReconciler)
+	replConfig := replication.NewReplicationConfig(client, builder, secretReconciler, env)
 	replicationReconciler, err := replication.NewReplicationReconciler(
 		client,
 		replRecorder,

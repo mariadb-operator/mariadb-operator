@@ -3,9 +3,12 @@ package sql
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"database/sql"
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 	"text/template"
 	"time"
@@ -27,8 +30,14 @@ type Opts struct {
 	Host     string
 	Port     int32
 	Database string
-	Params   map[string]string
-	Timeout  *time.Duration
+
+	MariadbName  string
+	MaxscaleName string
+	Namespace    string
+	TLSCACert    []byte
+
+	Params  map[string]string
+	Timeout *time.Duration
 }
 
 type Opt func(*Opts)
@@ -60,6 +69,22 @@ func WithPort(port int32) Opt {
 func WithDatabase(database string) Opt {
 	return func(o *Opts) {
 		o.Database = database
+	}
+}
+
+func WithMariadbTLS(name, namespace string, tlsCaCert []byte) Opt {
+	return func(o *Opts) {
+		o.MariadbName = name
+		o.Namespace = namespace
+		o.TLSCACert = tlsCaCert
+	}
+}
+
+func WithMaxscaleTLS(name, namespace string, tlsCaCert []byte) Opt {
+	return func(o *Opts) {
+		o.MaxscaleName = name
+		o.Namespace = namespace
+		o.TLSCACert = tlsCaCert
 	}
 }
 
@@ -117,6 +142,13 @@ func NewClientWithMariaDB(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 		}()),
 		WithPort(mariadb.Spec.Port),
 	}
+	if mariadb.IsTLSEnabled() {
+		caCert, err := refResolver.SecretKeyRef(ctx, mariadb.TLSCABundleSecretKeyRef(), mariadb.Namespace)
+		if err != nil {
+			return nil, fmt.Errorf("error getting CA certificate: %v", err)
+		}
+		opts = append(opts, WithMariadbTLS(mariadb.Name, mariadb.Namespace, []byte(caCert)))
+	}
 	opts = append(opts, clientOpts...)
 	return NewClient(opts...)
 }
@@ -147,6 +179,19 @@ func NewLocalClientWithPodEnv(ctx context.Context, env *environment.PodEnvironme
 		WitHost("localhost"),
 		WithPort(port),
 	}
+
+	isTLSEnabled, err := env.IsTLSEnabled()
+	if err != nil {
+		return nil, fmt.Errorf("error checking whether TLS is enabled in environment: %v", err)
+	}
+	if isTLSEnabled {
+		caCert, err := os.ReadFile(env.TLSCACertPath)
+		if err != nil {
+			return nil, fmt.Errorf("error reading CA certificate: %v", err)
+		}
+		opts = append(opts, WithMariadbTLS(env.MariadbName, env.PodNamespace, caCert))
+	}
+
 	opts = append(opts, clientOpts...)
 	return NewClient(opts...)
 }
@@ -174,8 +219,38 @@ func BuildDSN(opts Opts) (string, error) {
 	if opts.Params != nil {
 		config.Params = opts.Params
 	}
-
+	if (opts.MariadbName != "" || opts.MaxscaleName != "") && opts.Namespace != "" && opts.TLSCACert != nil {
+		configName, err := configureTLS(opts)
+		if err != nil {
+			return "", fmt.Errorf("error configuring TLS: %v", err)
+		}
+		config.TLSConfig = configName
+	}
 	return config.FormatDSN(), nil
+}
+
+func configureTLS(opts Opts) (string, error) {
+	var configName string
+	if opts.MariadbName != "" {
+		configName = fmt.Sprintf("mariadb-%s-%s", opts.MariadbName, opts.Namespace)
+	} else if opts.MaxscaleName != "" {
+		configName = fmt.Sprintf("maxscale-%s-%s", opts.MaxscaleName, opts.Namespace)
+	} else {
+		return "", errors.New("unable to create config name: either MariaDB or MaxScale names must be set")
+	}
+
+	var tlsCfg tls.Config
+	caBundle := x509.NewCertPool()
+	if ok := caBundle.AppendCertsFromPEM(opts.TLSCACert); ok {
+		tlsCfg.RootCAs = caBundle
+	} else {
+		return "", errors.New("failed parse pem-encoded CA certificates")
+	}
+	if err := mysql.RegisterTLSConfig(configName, &tlsCfg); err != nil {
+		return "", fmt.Errorf("error registering TLS config \"%s\": %v", configName, err)
+	}
+
+	return configName, nil
 }
 
 func Connect(dsn string) (*sql.DB, error) {
@@ -499,23 +574,109 @@ type ChangeMasterOpts struct {
 	Password   string
 	Gtid       string
 	Retries    int
+
+	SSLEnabled  bool
+	SSLCertPath string
+	SSLKeyPath  string
+	SSLCAPath   string
 }
 
-func (c *Client) ChangeMaster(ctx context.Context, opts *ChangeMasterOpts) error {
+type ChangeMasterOpt func(*ChangeMasterOpts)
+
+func WithChangeMasterConnection(connection string) ChangeMasterOpt {
+	return func(cmo *ChangeMasterOpts) {
+		cmo.Connection = connection
+	}
+}
+
+func WithChangeMasterHost(host string) ChangeMasterOpt {
+	return func(cmo *ChangeMasterOpts) {
+		cmo.Host = host
+	}
+}
+
+func WithChangeMasterPort(port int32) ChangeMasterOpt {
+	return func(cmo *ChangeMasterOpts) {
+		cmo.Port = port
+	}
+}
+
+func WithChangeMasterCredentials(user, password string) ChangeMasterOpt {
+	return func(cmo *ChangeMasterOpts) {
+		cmo.User = user
+		cmo.Password = password
+	}
+}
+
+func WithChangeMasterGtid(gtid string) ChangeMasterOpt {
+	return func(cmo *ChangeMasterOpts) {
+		cmo.Gtid = gtid
+	}
+}
+
+func WithChangeMasterRetries(retries int) ChangeMasterOpt {
+	return func(cmo *ChangeMasterOpts) {
+		cmo.Retries = retries
+	}
+}
+
+func WithChangeMasterSSL(certPath, keyPath, caPath string) ChangeMasterOpt {
+	return func(cmo *ChangeMasterOpts) {
+		cmo.SSLEnabled = true
+		cmo.SSLCertPath = certPath
+		cmo.SSLKeyPath = keyPath
+		cmo.SSLCAPath = caPath
+	}
+}
+
+func (c *Client) ChangeMaster(ctx context.Context, changeMasterOpts ...ChangeMasterOpt) error {
+	query, err := buildChangeMasterQuery(changeMasterOpts...)
+	if err != nil {
+		return fmt.Errorf("error building CHANGE MASTER query: %v", err)
+	}
+	return c.Exec(ctx, query)
+}
+
+func buildChangeMasterQuery(changeMasterOpts ...ChangeMasterOpt) (string, error) {
+	opts := ChangeMasterOpts{
+		Connection: "mariadb-operator",
+		Port:       3306,
+		Gtid:       "CurrentPos",
+		Retries:    10,
+	}
+	for _, setOpt := range changeMasterOpts {
+		setOpt(&opts)
+	}
+	if opts.Host == "" {
+		return "", errors.New("host must be provided")
+	}
+	if opts.User == "" || opts.Password == "" {
+		return "", errors.New("credentials must be provided")
+	}
+	if opts.SSLEnabled && (opts.SSLCertPath == "" || opts.SSLKeyPath == "" || opts.SSLCAPath == "") {
+		return "", errors.New("all SSL paths must be provided when SSL is enabled")
+	}
+
 	tpl := createTpl("change-master.sql", `CHANGE MASTER '{{ .Connection }}' TO
 MASTER_HOST='{{ .Host }}',
 MASTER_PORT={{ .Port }},
 MASTER_USER='{{ .User }}',
 MASTER_PASSWORD='{{ .Password }}',
 MASTER_USE_GTID={{ .Gtid }},
-MASTER_CONNECT_RETRY={{ .Retries }};
+MASTER_CONNECT_RETRY={{ .Retries }}{{ if .SSLEnabled }},{{ else }};{{ end }}
+{{- if .SSLEnabled }}
+MASTER_SSL_CERT='{{ .SSLCertPath }}',
+MASTER_SSL_KEY='{{ .SSLKeyPath }}',
+MASTER_SSL_CA='{{ .SSLCAPath }}',
+MASTER_SSL_VERIFY_SERVER_CERT=1;
+{{- end }}
 `)
 	buf := new(bytes.Buffer)
 	err := tpl.Execute(buf, opts)
 	if err != nil {
-		return fmt.Errorf("error generating change master query: %v", err)
+		return "", fmt.Errorf("error rendering CHANGE MASTER template: %v", err)
 	}
-	return c.Exec(ctx, buf.String())
+	return buf.String(), nil
 }
 
 func (c *Client) ResetSlavePos(ctx context.Context) error {

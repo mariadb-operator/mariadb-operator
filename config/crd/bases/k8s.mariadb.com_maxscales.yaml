@@ -944,6 +944,19 @@ spec:
                   successThreshold:
                     format: int32
                     type: integer
+                  tcpSocket:
+                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#tcpsocketaction-v1-core.'
+                    properties:
+                      host:
+                        type: string
+                      port:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        x-kubernetes-int-or-string: true
+                    required:
+                    - port
+                    type: object
                   timeoutSeconds:
                     format: int32
                     type: integer
@@ -1698,6 +1711,19 @@ spec:
                   successThreshold:
                     format: int32
                     type: integer
+                  tcpSocket:
+                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#tcpsocketaction-v1-core.'
+                    properties:
+                      host:
+                        type: string
+                      port:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        x-kubernetes-int-or-string: true
+                    required:
+                    - port
+                    type: object
                   timeoutSeconds:
                     format: int32
                     type: integer
@@ -1897,6 +1923,85 @@ spec:
                   Suspend indicates whether the current resource should be suspended or not.
                   This can be useful for maintenance, as disabling the reconciliation prevents the operator from interfering with user operations during maintenance activities.
                 type: boolean
+              tls:
+                description: TLS defines the PKI to be used with MaxScale.
+                properties:
+                  adminCASecretRef:
+                    description: |-
+                      AdminCASecretRef is a reference to a Secret containing the admin certificate authority keypair. It is used to establish trust and issue scertificates for the MaxScale's administrative REST API and GUI.
+                      One of:
+                      - TLS Secret containing both the tls.crt and tls.key. This allows you to bring your own CA to Kubernetes to issue certificates.
+                      - Generic Secret containing the tls.crt to establish trust. In this case, adminCertSecretRef is mandatory.
+                    properties:
+                      name:
+                        default: ""
+                        type: string
+                    type: object
+                  adminCertSecretRef:
+                    description: AdminCertSecretRef is a reference to a TLS Secret
+                      used by the MaxScale's administrative REST API and GUI.
+                    properties:
+                      name:
+                        default: ""
+                        type: string
+                    type: object
+                  enabled:
+                    description: Enabled is a flag to enable TLS.
+                    type: boolean
+                  listenerCASecretRef:
+                    description: |-
+                      ListenerCASecretRef is a reference to a Secret containing the listener certificate authority keypair. It is used to establish trust and issue scertificates for the MaxScale's listeners.
+                      One of:
+                      - TLS Secret containing both the tls.crt and tls.key. This allows you to bring your own CA to Kubernetes to issue certificates.
+                      - Generic Secret containing the tls.crt to establish trust. In this case, listenerCertSecretRef is mandatory.
+                    properties:
+                      name:
+                        default: ""
+                        type: string
+                    type: object
+                  listenerCertSecretRef:
+                    description: ListenerCertSecretRef is a reference to a TLS Secret
+                      used by the MaxScale's listeners.
+                    properties:
+                      name:
+                        default: ""
+                        type: string
+                    type: object
+                  replicationSSLEnabled:
+                    description: |-
+                      ReplicationSSLEnabled specifies whether the replication SSL is enabled. If enabled, the SSL options will be added to the server configuration.
+                      This field is automatically set when a reference to a MariaDB via the 'mariaDbRef' field is provided.
+                      If the MariaDB servers are manually provided by the user via the 'servers' field, this must be set by the user as well.
+                    type: boolean
+                  serverCASecretRef:
+                    description: |-
+                      ServerCASecretRef is a reference to a Secret containing the MariaDB server certificate authority keypair. It is used to establish trust and issue scertificates for MariaDB servers.
+                      One of:
+                      - TLS Secret containing both the tls.crt and tls.key. This allows you to bring your own CA to Kubernetes to issue certificates.
+                      - Generic Secret containing the tls.crt to establish trust. In this case, serverCertSecretRef is mandatory.
+                    properties:
+                      name:
+                        default: ""
+                        type: string
+                    type: object
+                  serverCertSecretRef:
+                    description: ServerCertSecretRef is a reference to a TLS Secret
+                      used by MaxScale to connect to the MariaDB servers.
+                    properties:
+                      name:
+                        default: ""
+                        type: string
+                    type: object
+                  verifyPeerCertificate:
+                    description: VerifyPeerCertificate specifies whether the peer
+                      certificate's signature should be validated against the CA.
+                      It is enabled by default.
+                    type: boolean
+                  verifyPeerHost:
+                    description: VerifyPeerHost specifies whether the peer certificate's
+                      SANs should match the peer host. It is disabled by default.
+                    type: boolean
+                type: object
               tolerations:
                 description: Tolerations to be used in the Pod.
                 items:
@@ -2210,6 +2315,108 @@ spec:
                   - state
                   type: object
                 type: array
+              tls:
+                description: TLS aggregates the status of the certificates used by
+                  the MaxScale instance.
+                properties:
+                  adminCert:
+                    description: AdminCert is the status of the admin certificate.
+                    properties:
+                      issuer:
+                        description: Issuer is the issuer of the current certificate.
+                        type: string
+                      notAfter:
+                        description: NotAfter indicates that the certificate is not
+                          valid after the given date.
+                        format: date-time
+                        type: string
+                      notBefore:
+                        description: NotBefore indicates that the certificate is not
+                          valid before the given date.
+                        format: date-time
+                        type: string
+                      subject:
+                        description: Subject is the subject of the current certificate.
+                        type: string
+                    required:
+                    - issuer
+                    - subject
+                    type: object
+                  caBundle:
+                    description: CABundle is the status of the Certificate Authority
+                      bundle.
+                    items:
+                      description: CertificateStatus represents the current status
+                        of a TLS certificate.
+                      properties:
+                        issuer:
+                          description: Issuer is the issuer of the current certificate.
+                          type: string
+                        notAfter:
+                          description: NotAfter indicates that the certificate is
+                            not valid after the given date.
+                          format: date-time
+                          type: string
+                        notBefore:
+                          description: NotBefore indicates that the certificate is
+                            not valid before the given date.
+                          format: date-time
+                          type: string
+                        subject:
+                          description: Subject is the subject of the current certificate.
+                          type: string
+                      required:
+                      - issuer
+                      - subject
+                      type: object
+                    type: array
+                  listenerCert:
+                    description: ListenerCert is the status of the listener certificate.
+                    properties:
+                      issuer:
+                        description: Issuer is the issuer of the current certificate.
+                        type: string
+                      notAfter:
+                        description: NotAfter indicates that the certificate is not
+                          valid after the given date.
+                        format: date-time
+                        type: string
+                      notBefore:
+                        description: NotBefore indicates that the certificate is not
+                          valid before the given date.
+                        format: date-time
+                        type: string
+                      subject:
+                        description: Subject is the subject of the current certificate.
+                        type: string
+                    required:
+                    - issuer
+                    - subject
+                    type: object
+                  serverCert:
+                    description: ServerCert is the status of the MariaDB server certificate.
+                    properties:
+                      issuer:
+                        description: Issuer is the issuer of the current certificate.
+                        type: string
+                      notAfter:
+                        description: NotAfter indicates that the certificate is not
+                          valid after the given date.
+                        format: date-time
+                        type: string
+                      notBefore:
+                        description: NotBefore indicates that the certificate is not
+                          valid before the given date.
+                        format: date-time
+                        type: string
+                      subject:
+                        description: Subject is the subject of the current certificate.
+                        type: string
+                    required:
+                    - issuer
+                    - subject
+                    type: object
+                type: object
             type: object
         type: object
     served: true

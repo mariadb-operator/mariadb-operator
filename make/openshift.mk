@@ -49,7 +49,7 @@ bundle: operator-sdk yq kustomize manifests ## Generate bundle manifests and met
 	$(YQ) e -i '.spec.template.spec.containers[0].env[3].value = "$(RELATED_IMAGE_EXPORTER_MAXSCALE_ENT)"' config/manager/manager.yaml
 	$(YQ) e -i '.spec.template.spec.containers[0].env[4].value = "$(IMG_ENT)"' config/manager/manager.yaml
 	$(YQ) e -i '.spec.template.spec.containers[0].env[5].value = "$(MARIADB_GALERA_LIB_PATH_ENT)"' config/manager/manager.yaml
-	$(YQ) e -i '.spec.template.spec.containers[0].env[6].value = "$(MARIADB_ENTRYPOINT_VERSION_ENT)"' config/manager/manager.yaml
+	$(YQ) e -i '.spec.template.spec.containers[0].env[6].value = "$(MARIADB_DEFAULT_VERSION_ENT)"' config/manager/manager.yaml
 	$(KUSTOMIZE) build config/manifests | $(OPERATOR_SDK) generate bundle $(BUNDLE_GEN_FLAGS)
 	$(YQ) e -i '.metadata.annotations.containerImage = "$(IMG_ENT)"' $(BUNDLE_DIR)/manifests/mariadb-operator-enterprise.clusterserviceversion.yaml
 	$(MAKE) bundle-validate
@@ -128,7 +128,7 @@ openshift-minio: openshift-ctx cert-minio ## Deploy minio.
 	@MINIO_VERSION=$(MINIO_VERSION) ./hack/install_minio.sh
 	$(OC) apply -f examples/manifests/config/minio-secret.yaml -n openshift-operators 
 	$(OC) create secret generic minio-ca \
-		--from-file=ca.crt=$(CA_DIR)/tls.crt \
+		--from-file=tls.crt=$(CA_DIR)/tls.crt \
 		--dry-run=client -o yaml -n $(MINIO_CA_SECRET)| $(OC) apply -f -
 
 .PHONY: openshift-image

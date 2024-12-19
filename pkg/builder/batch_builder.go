@@ -71,7 +71,7 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alph
 	if err != nil {
 		return nil, fmt.Errorf("error getting volume from Backup: %v", err)
 	}
-	volumes, volumeSources := jobBatchStorageVolume(volume, backup.Spec.Storage.S3)
+	volumes, volumeSources := jobBatchStorageVolume(volume, backup.Spec.Storage.S3, mariadb)
 	affinity := ptr.Deref(backup.Spec.Affinity, mariadbv1alpha1.AffinityConfig{}).Affinity
 
 	mariadbContainer, err := b.jobMariadbContainer(
@@ -198,7 +198,7 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 	}
 
 	volume := ptr.Deref(restore.Spec.Volume, mariadbv1alpha1.StorageVolumeSource{})
-	volumes, volumeSources := jobBatchStorageVolume(volume, restore.Spec.S3)
+	volumes, volumeSources := jobBatchStorageVolume(volume, restore.Spec.S3, mariadb)
 	affinity := ptr.Deref(restore.Spec.Affinity, mariadbv1alpha1.AffinityConfig{}).Affinity
 
 	operatorContainer, err := b.jobMariadbOperatorContainer(
@@ -551,7 +551,7 @@ func s3Opts(s3 *mariadbv1alpha1.S3) []command.BackupOpt {
 	if s3 == nil {
 		return nil
 	}
-	tls := ptr.Deref(s3.TLS, mariadbv1alpha1.TLS{})
+	tls := ptr.Deref(s3.TLS, mariadbv1alpha1.TLSS3{})
 
 	cmdOpts := []command.BackupOpt{
 		command.WithS3(
