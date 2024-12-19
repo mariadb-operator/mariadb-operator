@@ -111,7 +111,11 @@ func (r *CertReconciler) Reconcile(ctx context.Context) (*ReconcileResult, error
 		return nil, fmt.Errorf("Error reconciling certificate KeyPair: %v", err)
 	}
 
-	valid, err = pki.ValidCert(result.CAKeyPair.Cert, result.CertKeyPair, r.certCommonName, r.lookaheadTime())
+	caCerts, err := result.CAKeyPair.Certificates()
+	if err != nil {
+		return nil, fmt.Errorf("error getting CA certificates: %v", err)
+	}
+	valid, err = pki.ValidCert(caCerts, result.CertKeyPair, r.certCommonName, r.lookaheadTime())
 	if result.RefreshedCA || !valid || err != nil {
 		result.CertKeyPair, result.RefreshedCert, err = r.reconcileKeyPair(ctx, r.certSecretKey, true, createCert)
 		if err != nil {
@@ -182,7 +186,8 @@ func (r *CertReconciler) createSecret(ctx context.Context, key types.NamespacedN
 		Namespace: key.Namespace,
 	}
 	secret.Type = corev1.SecretTypeTLS
-	keyPair.FillTLSSecret(secret)
+	keyPair.UpdateTLSSecret(secret)
+
 	if err := r.Create(ctx, secret); err != nil {
 		return fmt.Errorf("Error creating TLS Secret: %v", err)
 	}
@@ -191,7 +196,7 @@ func (r *CertReconciler) createSecret(ctx context.Context, key types.NamespacedN
 
 func (r *CertReconciler) patchSecret(ctx context.Context, secret *corev1.Secret, keyPair *pki.KeyPair) error {
 	patch := client.MergeFrom(secret.DeepCopy())
-	keyPair.FillTLSSecret(secret)
+	keyPair.UpdateTLSSecret(secret)
 	if err := r.Patch(ctx, secret, patch); err != nil {
 		return fmt.Errorf("Error patching TLS Secret: %v", err)
 	}
