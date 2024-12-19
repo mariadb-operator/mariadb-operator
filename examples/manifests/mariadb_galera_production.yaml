@@ -84,6 +84,12 @@ spec:
     periodSeconds: 5
     timeoutSeconds: 5
 
+  # Tune your startup probe accordingly to the delay needed for full sst completion.
+  startupProbe:
+    initialDelaySeconds: 300
+    periodSeconds: 10
+    timeoutSeconds: 10
+
   # innodb_buffer_pool_size: 80% of memory limits.
   myCnf: |
     [mariadb]
