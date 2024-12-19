@@ -10,6 +10,11 @@ import (
 	"github.com/go-logr/logr"
 )
 
+var (
+	pemBlockTypeCertificate = "CERTIFICATE"
+	pemBlockRSAPrivateKey   = "RSA PRIVATE KEY"
+)
+
 // BundleOption represents a function that applies a bundle configuration.
 type BundleOption func(opts *BundleOptions)
 
@@ -67,7 +72,7 @@ func appendPEM(bundle []byte, pemBytes []byte, existingCerts map[string]struct{}
 			opts.logger.Error(errors.New("Invalid PEM block"), "Error decoding PEM block. Ignoring...")
 			break
 		}
-		if block.Type != string(certificatePEMBlockType) {
+		if block.Type != string(pemBlockTypeCertificate) {
 			return nil, fmt.Errorf("invalid PEM certificate block, got block type: %v", block.Type)
 		}
 
@@ -100,4 +105,12 @@ func getCertID(cert *x509.Certificate) string {
 		return fmt.Sprintf("%s-%s", cert.Subject.CommonName, cert.SerialNumber)
 	}
 	return cert.Subject.CommonName
+}
+
+func pemEncodeCertificate(bytes []byte) []byte {
+	return pem.EncodeToMemory(&pem.Block{Type: pemBlockTypeCertificate, Bytes: bytes})
+}
+
+func pemEncodePrivateKey(bytes []byte) []byte {
+	return pem.EncodeToMemory(&pem.Block{Type: pemBlockRSAPrivateKey, Bytes: bytes})
 }
