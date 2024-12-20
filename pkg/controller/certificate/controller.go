@@ -2,6 +2,7 @@ package certificate
 
 import (
 	"context"
+	"crypto/x509"
 	"fmt"
 	"time"
 
@@ -182,6 +183,7 @@ func (r *CertReconciler) createCertFn(caKeyPair *pki.KeyPair) func() (*pki.KeyPa
 			pki.WithDNSNames(r.certDNSNames),
 			pki.WithNotBefore(time.Now().Add(-1*time.Hour)),
 			pki.WithNotAfter(time.Now().Add(r.certValidity)),
+			pki.WithExtKeyUsage(x509.ExtKeyUsageServerAuth),
 		)
 	}
 }
