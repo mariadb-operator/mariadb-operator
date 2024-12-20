@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func TestCACert(t *testing.T) {
+func TestValidateCACert(t *testing.T) {
 	caName := "test-mariadb-operator"
 	x509Opts := []X509Opt{
 		WithCommonName(caName),
@@ -18,7 +18,7 @@ func TestCACert(t *testing.T) {
 		t.Fatalf("CA cert creation should succeed. Got error: %v", err)
 	}
 
-	valid, err := ValidCACert(caKeyPair, caName, time.Now())
+	valid, err := ValidateCACert(caKeyPair, caName, time.Now())
 	if err != nil {
 		t.Fatalf("CA cert validation should succeed. Got error: %v", err)
 	}
@@ -26,7 +26,7 @@ func TestCACert(t *testing.T) {
 		t.Fatal("Expected CA cert to be valid")
 	}
 
-	valid, err = ValidCACert(caKeyPair, caName, time.Now().Add(-1*time.Hour))
+	valid, err = ValidateCACert(caKeyPair, caName, time.Now().Add(-1*time.Hour))
 	if err == nil {
 		t.Fatalf("CA cert validation should return an error. Got nil")
 	}
@@ -34,7 +34,7 @@ func TestCACert(t *testing.T) {
 		t.Fatal("Expected CA cert to be invalid")
 	}
 
-	valid, err = ValidCACert(caKeyPair, "foo", time.Now())
+	valid, err = ValidateCACert(caKeyPair, "foo", time.Now())
 	if err == nil {
 		t.Fatalf("CA cert validation should return an error. Got nil")
 	}
@@ -47,7 +47,7 @@ func TestCACert(t *testing.T) {
 		t.Fatalf("CA cert renewal should succeed. Got error: %v", err)
 	}
 
-	valid, err = ValidCACert(caKeyPair, caName, time.Now())
+	valid, err = ValidateCACert(caKeyPair, caName, time.Now())
 	if err != nil {
 		t.Fatalf("CA cert validation should succeed after renewal. Got error: %v", err)
 	}
@@ -56,7 +56,7 @@ func TestCACert(t *testing.T) {
 	}
 }
 
-func TestCert(t *testing.T) {
+func TestValidateCert(t *testing.T) {
 	caKeyPair, err := CreateCA()
 	if err != nil {
 		t.Fatalf("CA cert creation should succeed. Got error: %v", err)
@@ -83,7 +83,7 @@ func TestCert(t *testing.T) {
 		t.Fatalf("Certificate creation should succeed. Got error: %v", err)
 	}
 
-	valid, err := ValidCert(caCerts, keyPairPEM, commonName, time.Now())
+	valid, err := ValidateCert(caCerts, keyPairPEM, commonName, time.Now())
 	if err != nil {
 		t.Fatalf("Cert validation should succeed. Got error: %v", err)
 	}
@@ -91,7 +91,7 @@ func TestCert(t *testing.T) {
 		t.Fatal("Expected cert to be valid")
 	}
 
-	valid, err = ValidCert(caCerts, keyPairPEM, commonName, time.Now().Add(-1*time.Hour))
+	valid, err = ValidateCert(caCerts, keyPairPEM, commonName, time.Now().Add(-1*time.Hour))
 	if err == nil {
 		t.Fatalf("Cert validation should return an error. Got nil")
 	}
@@ -99,7 +99,7 @@ func TestCert(t *testing.T) {
 		t.Fatal("Expected cert to be invalid")
 	}
 
-	valid, err = ValidCert(caCerts, keyPairPEM, "foo", time.Now())
+	valid, err = ValidateCert(caCerts, keyPairPEM, "foo", time.Now())
 	if err == nil {
 		t.Fatalf("Cert validation should return an error. Got nil")
 	}
@@ -112,7 +112,7 @@ func TestCert(t *testing.T) {
 		t.Fatalf("Certificate renewal should succeed. Got error: %v", err)
 	}
 
-	valid, err = ValidCert(caCerts, keyPairPEM, commonName, time.Now())
+	valid, err = ValidateCert(caCerts, keyPairPEM, commonName, time.Now())
 	if err != nil {
 		t.Fatalf("Cert validation should succeed after renewal. Got error: %v", err)
 	}
