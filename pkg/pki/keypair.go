@@ -7,7 +7,6 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
-	"time"
 
 	corev1 "k8s.io/api/core/v1"
 )
@@ -16,9 +15,6 @@ var (
 	CACertKey  = "ca.crt"
 	TLSCertKey = "tls.crt"
 	TLSKeyKey  = "tls.key"
-
-	defaultCAValidityDuration   = 4 * 365 * 24 * time.Hour
-	defaultCertValidityDuration = 365 * 24 * time.Hour
 )
 
 type KeyPairOpt func(*KeyPair)
