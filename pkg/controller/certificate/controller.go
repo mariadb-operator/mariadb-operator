@@ -98,7 +98,7 @@ func (r *CertReconciler) Reconcile(ctx context.Context) (*ReconcileResult, error
 		return nil, fmt.Errorf("Error reconciling CA KeyPair: %v", err)
 	}
 
-	valid, err := pki.ValidCACert(result.CAKeyPair, r.caCommonName, r.lookaheadTime())
+	valid, err := pki.ValidateCACert(result.CAKeyPair, r.caCommonName, r.lookaheadTime())
 	if !valid || err != nil {
 		result.CAKeyPair, result.RefreshedCA, err = r.reconcileKeyPair(ctx, r.caSecretKey, true, r.createCA)
 		if err != nil {
@@ -116,7 +116,7 @@ func (r *CertReconciler) Reconcile(ctx context.Context) (*ReconcileResult, error
 	if err != nil {
 		return nil, fmt.Errorf("error getting CA certificates: %v", err)
 	}
-	valid, err = pki.ValidCert(caCerts, result.CertKeyPair, r.certCommonName, r.lookaheadTime())
+	valid, err = pki.ValidateCert(caCerts, result.CertKeyPair, r.certCommonName, r.lookaheadTime())
 	if result.RefreshedCA || !valid || err != nil {
 		result.CertKeyPair, result.RefreshedCert, err = r.reconcileKeyPair(ctx, r.certSecretKey, true, createCert)
 		if err != nil {
