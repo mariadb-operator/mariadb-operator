@@ -167,25 +167,38 @@ func ParseCertificates(bytes []byte) ([]*x509.Certificate, error) {
 	return certs, nil
 }
 
-func ValidCert(caCerts []*x509.Certificate, certKeyPair *KeyPair, dnsName string, at time.Time) (bool, error) {
+func ValidateCert(caCerts []*x509.Certificate, certKeyPair *KeyPair, dnsName string, at time.Time) (bool, error) {
+	if len(caCerts) == 0 {
+		return false, errors.New("CA certicates should be provided to establish trust")
+	}
 	if err := certKeyPair.Validate(); err != nil {
 		return false, fmt.Errorf("invalid keypair: %v", err)
 	}
-
 	certs, err := certKeyPair.Certificates()
 	if err != nil {
 		return false, fmt.Errorf("error getting certificate: %v", err)
 	}
-	cert := certs[0] // leaf certificates should only have a single certificate, not a bundle
 
-	pool := x509.NewCertPool()
-	for _, cert := range caCerts {
-		pool.AddCert(cert)
+	leafCert := certs[0] // leaf certificate should be the first in the chain to establish trust
+	var intermediateCAs []*x509.Certificate
+	if len(certs) > 1 {
+		intermediateCAs = certs[1:] // intermediate certificates, if present, form the chain leading to a trusted root CA
 	}
-	_, err = cert.Verify(x509.VerifyOptions{
-		DNSName:     dnsName,
-		Roots:       pool,
-		CurrentTime: at,
+
+	rootCAsPool := x509.NewCertPool()
+	for _, cert := range caCerts {
+		rootCAsPool.AddCert(cert)
+	}
+	intermediateCAsPool := x509.NewCertPool()
+	for _, cert := range intermediateCAs {
+		intermediateCAsPool.AddCert(cert)
+	}
+
+	_, err = leafCert.Verify(x509.VerifyOptions{
+		Roots:         rootCAsPool,
+		Intermediates: intermediateCAsPool,
+		DNSName:       dnsName,
+		CurrentTime:   at,
 	})
 	if err != nil {
 		return false, err
@@ -193,12 +206,12 @@ func ValidCert(caCerts []*x509.Certificate, certKeyPair *KeyPair, dnsName string
 	return true, nil
 }
 
-func ValidCACert(keyPair *KeyPair, dnsName string, at time.Time) (bool, error) {
+func ValidateCACert(keyPair *KeyPair, dnsName string, at time.Time) (bool, error) {
 	certs, err := keyPair.Certificates()
 	if err != nil {
 		return false, fmt.Errorf("error getting certificates: %v", err)
 	}
-	return ValidCert(certs, keyPair, dnsName, at)
+	return ValidateCert(certs, keyPair, dnsName, at)
 }
 
 var serialNumberLimit = new(big.Int).Lsh(big.NewInt(1), 128)

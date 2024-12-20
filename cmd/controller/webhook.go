@@ -151,7 +151,7 @@ func checkCerts(dnsName string, at time.Time) error {
 		setupLog.V(1).Info("Error reading certificate KeyPair", "error", err)
 		return err
 	}
-	valid, err := pki.ValidCert(caCert, certKeyPair, dnsName, at)
+	valid, err := pki.ValidateCert(caCert, certKeyPair, dnsName, at)
 	if !valid || err != nil {
 		err := fmt.Errorf("Certificate is not valid for %s", dnsName)
 		setupLog.V(1).Info("Error validating certificate", "error", err)
