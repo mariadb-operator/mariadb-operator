@@ -11,12 +11,19 @@ import (
 	"time"
 )
 
+var (
+	defaultCACommonName         = "mariadb-operator"
+	defaultCALifetimeDuration   = 3 * 365 * 24 * time.Hour // 3 years
+	defaultCertLifetimeDuration = 3 * 30 * 24 * time.Hour  // 3 months
+)
+
 type X509Opts struct {
-	CommonName   string
-	DNSNames     []string
-	Organization string
-	NotBefore    time.Time
-	NotAfter     time.Time
+	CommonName  string
+	DNSNames    []string
+	NotBefore   time.Time
+	NotAfter    time.Time
+	KeyUsage    x509.KeyUsage
+	ExtKeyUsage []x509.ExtKeyUsage
 }
 
 type X509Opt func(*X509Opts)
@@ -33,12 +40,6 @@ func WithDNSNames(dnsNames []string) X509Opt {
 	}
 }
 
-func WithOrganization(org string) X509Opt {
-	return func(x *X509Opts) {
-		x.Organization = org
-	}
-}
-
 func WithNotBefore(notBefore time.Time) X509Opt {
 	return func(x *X509Opts) {
 		x.NotBefore = notBefore
@@ -51,12 +52,23 @@ func WithNotAfter(notAfter time.Time) X509Opt {
 	}
 }
 
+func WithKeyUsage(keyUsage x509.KeyUsage) X509Opt {
+	return func(x *X509Opts) {
+		x.KeyUsage |= keyUsage
+	}
+}
+
+func WithExtKeyUsage(extKeyUsage ...x509.ExtKeyUsage) X509Opt {
+	return func(x *X509Opts) {
+		x.ExtKeyUsage = append(x.ExtKeyUsage, extKeyUsage...)
+	}
+}
+
 func CreateCA(x509Opts ...X509Opt) (*KeyPair, error) {
 	opts := X509Opts{
-		CommonName:   "mariadb-operator",
-		Organization: "mariadb-operator",
-		NotBefore:    time.Now().Add(-1 * time.Hour),
-		NotAfter:     time.Now().Add(defaultCAValidityDuration),
+		CommonName: defaultCACommonName,
+		NotBefore:  time.Now().Add(-1 * time.Hour),
+		NotAfter:   time.Now().Add(defaultCALifetimeDuration),
 	}
 	for _, setOpt := range x509Opts {
 		setOpt(&opts)
@@ -70,15 +82,14 @@ func CreateCA(x509Opts ...X509Opt) (*KeyPair, error) {
 	tpl := &x509.Certificate{
 		SerialNumber: serialNumber,
 		Subject: pkix.Name{
-			CommonName:   opts.CommonName,
-			Organization: []string{opts.Organization},
+			CommonName: opts.CommonName,
 		},
 		DNSNames: []string{
 			opts.CommonName,
 		},
 		NotBefore:             opts.NotBefore,
 		NotAfter:              opts.NotAfter,
-		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment | x509.KeyUsageCertSign,
+		KeyUsage:              x509.KeyUsageCertSign,
 		BasicConstraintsValid: true,
 		IsCA:                  true,
 	}
@@ -88,7 +99,8 @@ func CreateCA(x509Opts ...X509Opt) (*KeyPair, error) {
 func CreateCert(caKeyPair *KeyPair, x509Opts ...X509Opt) (*KeyPair, error) {
 	opts := X509Opts{
 		NotBefore: time.Now().Add(-1 * time.Hour),
-		NotAfter:  time.Now().Add(defaultCertValidityDuration),
+		NotAfter:  time.Now().Add(defaultCertLifetimeDuration),
+		KeyUsage:  x509.KeyUsageDigitalSignature | x509.KeyUsageKeyAgreement,
 	}
 	for _, setOpt := range x509Opts {
 		setOpt(&opts)
@@ -110,9 +122,10 @@ func CreateCert(caKeyPair *KeyPair, x509Opts ...X509Opt) (*KeyPair, error) {
 		DNSNames:              opts.DNSNames,
 		NotBefore:             opts.NotBefore,
 		NotAfter:              opts.NotAfter,
-		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment,
-		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+		KeyUsage:              opts.KeyUsage,
+		ExtKeyUsage:           opts.ExtKeyUsage,
 		BasicConstraintsValid: true,
+		IsCA:                  false,
 	}
 	return NewKeyPairFromTemplate(tpl, caKeyPair)
 }
