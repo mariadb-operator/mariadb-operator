@@ -21,7 +21,7 @@ spec:
       enabled: true
       caSecretKeyRef:
         name: minio-ca
-        key: ca.crt
+        key: tls.crt
   # Define a PVC to use as staging area for keeping the backups while they are being processed.
   stagingStorage:
     persistentVolumeClaim:

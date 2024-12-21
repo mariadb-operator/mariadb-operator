@@ -17,11 +17,15 @@ import (
 )
 
 var (
-	tlsCert                     = "tls.crt"
-	tlsKey                      = "tls.key"
+	CACertKey  = "ca.crt"
+	TLSCertKey = "tls.crt"
+	TLSKeyKey  = "tls.key"
+
 	defaultCAValidityDuration   = 4 * 365 * 24 * time.Hour
 	defaultCertValidityDuration = 365 * 24 * time.Hour
 )
+
+const certificatePEMBlockType string = "CERTIFICATE"
 
 type KeyPair struct {
 	Cert    *x509.Certificate
@@ -38,16 +42,16 @@ func (k *KeyPair) FillTLSSecret(secret *corev1.Secret) {
 	if secret.Data == nil {
 		secret.Data = make(map[string][]byte)
 	}
-	secret.Data[tlsCert] = k.CertPEM
-	secret.Data[tlsKey] = k.KeyPEM
+	secret.Data[TLSCertKey] = k.CertPEM
+	secret.Data[TLSKeyKey] = k.KeyPEM
 }
 
 func KeyPairFromTLSSecret(secret *corev1.Secret) (*KeyPair, error) {
 	if secret.Data == nil {
 		return nil, errors.New("TLS Secret is empty")
 	}
-	certPEM := secret.Data[tlsCert]
-	keyPEM := secret.Data[tlsKey]
+	certPEM := secret.Data[TLSCertKey]
+	keyPEM := secret.Data[TLSKeyKey]
 	return KeyPairFromPEM(certPEM, keyPEM)
 }
 
@@ -176,16 +180,41 @@ func CreateCert(caKeyPair *KeyPair, x509Opts ...X509Opt) (*KeyPair, error) {
 	return createKeyPair(tpl, caKeyPair)
 }
 
-func ParseCert(bytes []byte) (*x509.Certificate, error) {
-	pemBlockCert, _ := pem.Decode(bytes)
-	if pemBlockCert == nil {
-		return nil, errors.New("Error parsing PEM block")
-	}
-	parsedCert, err := x509.ParseCertificate(pemBlockCert.Bytes)
+func ParseCertificate(bytes []byte) (*x509.Certificate, error) {
+	certs, err := ParseCertificates(bytes)
 	if err != nil {
 		return nil, err
 	}
-	return parsedCert, nil
+	return certs[0], nil
+}
+
+func ParseCertificates(bytes []byte) ([]*x509.Certificate, error) {
+	var (
+		certs []*x509.Certificate
+		block *pem.Block
+	)
+	pemBytes := bytes
+
+	for len(pemBytes) > 0 {
+		block, pemBytes = pem.Decode(pemBytes)
+		if block == nil {
+			return nil, errors.New("invalid PEM block")
+		}
+		if block.Type != certificatePEMBlockType {
+			return nil, fmt.Errorf("invalid PEM certificate block, got block type: %v", block.Type)
+		}
+
+		cert, err := x509.ParseCertificate(block.Bytes)
+		if err != nil {
+			return nil, err
+		}
+		certs = append(certs, cert)
+	}
+	if len(certs) == 0 {
+		return nil, errors.New("no valid certificates found")
+	}
+
+	return certs, nil
 }
 
 func ValidCert(caCert *x509.Certificate, certKeyPair *KeyPair, dnsName string, at time.Time) (bool, error) {
@@ -196,7 +225,7 @@ func ValidCert(caCert *x509.Certificate, certKeyPair *KeyPair, dnsName string, a
 	if err != nil {
 		return false, err
 	}
-	parsedCert, err := ParseCert(certKeyPair.CertPEM)
+	parsedCert, err := ParseCertificate(certKeyPair.CertPEM)
 	if err != nil {
 		return false, err
 	}

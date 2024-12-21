@@ -3,7 +3,6 @@ package controller
 import (
 	"bytes"
 	"context"
-	"crypto/sha256"
 	"errors"
 	"fmt"
 	"time"
@@ -11,6 +10,7 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
+	builderpki "github.com/mariadb-operator/mariadb-operator/pkg/builder/pki"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
 	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
 	corev1 "k8s.io/api/core/v1"
@@ -60,18 +60,31 @@ func (r *MaxScaleReconciler) reconcileExporterConfig(ctx context.Context, req *r
 	if err != nil {
 		return fmt.Errorf("error getting metrics password Secret: %v", err)
 	}
-
-	type tplOpts struct {
-		User     string
-		Password string
-	}
 	tpl := createTpl(secretKeyRef.Key, `[maxscale_exporter]
 maxscale_username={{ .User }}
-maxscale_password={{ .Password }}`)
+maxscale_password={{ .Password }}
+{{- if .TLSEnabled }}
+tls_insecure_skip_verify=false
+tls_ca_cert_file={{ .TLSCACertPath }}
+tls_private_key_file={{ .TLSKeyPath }}
+tls_key_cert_file={{ .TLSCertPath }}
+{{- end }}
+`)
 	buf := new(bytes.Buffer)
-	err = tpl.Execute(buf, tplOpts{
-		User:     req.mxs.Spec.Auth.MetricsUsername,
-		Password: password,
+	err = tpl.Execute(buf, struct {
+		User          string
+		Password      string
+		TLSEnabled    bool
+		TLSCACertPath string
+		TLSKeyPath    string
+		TLSCertPath   string
+	}{
+		User:          req.mxs.Spec.Auth.MetricsUsername,
+		Password:      password,
+		TLSEnabled:    req.mxs.IsTLSEnabled(),
+		TLSCACertPath: builderpki.CACertPath,
+		TLSKeyPath:    builderpki.AdminKeyPath,
+		TLSCertPath:   builderpki.AdminCertPath,
 	})
 	if err != nil {
 		return fmt.Errorf("error rendering exporter config: %v", err)
@@ -109,8 +122,19 @@ func (r *MaxScaleReconciler) getExporterPodAnnotations(ctx context.Context, mxs 
 		return nil, fmt.Errorf("error getting metrics config Secret: %v", err)
 	}
 	podAnnotations := map[string]string{
-		metadata.ConfigAnnotation: fmt.Sprintf("%x", sha256.Sum256([]byte(config))),
+		metadata.ConfigAnnotation: hash(config),
 	}
+
+	if mxs.IsTLSEnabled() {
+		tlsAnnotations, err := r.getTLSAdminAnnotations(ctx, mxs)
+		if err != nil {
+			return nil, fmt.Errorf("error getting TLS annotations: %v", err)
+		}
+		for k, v := range tlsAnnotations {
+			podAnnotations[k] = v
+		}
+	}
+
 	return podAnnotations, nil
 }
 

@@ -7,8 +7,10 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	metadata "github.com/mariadb-operator/mariadb-operator/pkg/builder/metadata"
+	builderpki "github.com/mariadb-operator/mariadb-operator/pkg/builder/pki"
 	galeraresources "github.com/mariadb-operator/mariadb-operator/pkg/controller/galera/resources"
 	kadapter "github.com/mariadb-operator/mariadb-operator/pkg/kubernetes/adapter"
+	"github.com/mariadb-operator/mariadb-operator/pkg/pki"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -217,7 +219,7 @@ func (b *Builder) mariadbPodTemplate(mariadb *mariadbv1alpha1.MariaDB, opts ...m
 	}, nil
 }
 
-func (b *Builder) maxscalePodTemplate(mxs *mariadbv1alpha1.MaxScale) (*corev1.PodTemplateSpec, error) {
+func (b *Builder) maxscalePodTemplate(mxs *mariadbv1alpha1.MaxScale, annotations map[string]string) (*corev1.PodTemplateSpec, error) {
 	containers, err := b.maxscaleContainers(mxs)
 	if err != nil {
 		return nil, err
@@ -231,6 +233,7 @@ func (b *Builder) maxscalePodTemplate(mxs *mariadbv1alpha1.MaxScale) (*corev1.Po
 		metadata.NewMetadataBuilder(client.ObjectKeyFromObject(mxs)).
 			WithMetadata(mxs.Spec.InheritMetadata).
 			WithMetadata(mxs.Spec.PodMetadata).
+			WithAnnotations(annotations).
 			WithLabels(selectorLabels).
 			Build()
 
@@ -310,6 +313,10 @@ func mariadbVolumes(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt) []c
 	mariadbOpts := newMariadbPodOpts(opts...)
 	volumes := []corev1.Volume{
 		mariadbConfigVolume(mariadb),
+	}
+	if mariadb.IsTLSEnabled() {
+		tlsVolumes, _ := mariadbTLSVolumes(mariadb)
+		volumes = append(volumes, tlsVolumes...)
 	}
 	if mariadb.Replication().Enabled && ptr.Deref(mariadb.Replication().ProbesEnabled, false) {
 		volumes = append(volumes, corev1.Volume{
@@ -433,6 +440,22 @@ func mariadbConfigVolume(mariadb *mariadbv1alpha1.MariaDB) corev1.Volume {
 			},
 		})
 	}
+	if mariadb.IsTLSEnabled() {
+		configMapKeyRef := mariadb.TLSConfigMapKeyRef()
+		projections = append(projections, corev1.VolumeProjection{
+			ConfigMap: &corev1.ConfigMapProjection{
+				LocalObjectReference: corev1.LocalObjectReference{
+					Name: configMapKeyRef.Name,
+				},
+				Items: []corev1.KeyToPath{
+					{
+						Key:  configMapKeyRef.Key,
+						Path: configMapKeyRef.Key,
+					},
+				},
+			},
+		})
+	}
 	return corev1.Volume{
 		Name: ConfigVolume,
 		VolumeSource: corev1.VolumeSource{
@@ -441,6 +464,75 @@ func mariadbConfigVolume(mariadb *mariadbv1alpha1.MariaDB) corev1.Volume {
 			},
 		},
 	}
+}
+
+func mariadbTLSVolumes(mariadb *mariadbv1alpha1.MariaDB) ([]corev1.Volume, []corev1.VolumeMount) {
+	if !mariadb.IsTLSEnabled() {
+		return nil, nil
+	}
+	return []corev1.Volume{
+			{
+				Name: builderpki.PKIVolume,
+				VolumeSource: corev1.VolumeSource{
+					Projected: &corev1.ProjectedVolumeSource{
+						Sources: []corev1.VolumeProjection{
+							{
+								Secret: &corev1.SecretProjection{
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: mariadb.TLSCABundleSecretKeyRef().Name,
+									},
+									Items: []corev1.KeyToPath{
+										{
+											Key:  pki.TLSCertKey,
+											Path: pki.CACertKey,
+										},
+									},
+								},
+							},
+							{
+								Secret: &corev1.SecretProjection{
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: mariadb.TLSClientCertSecretKey().Name,
+									},
+									Items: []corev1.KeyToPath{
+										{
+											Key:  pki.TLSCertKey,
+											Path: builderpki.ClientCertKey,
+										},
+										{
+											Key:  pki.TLSKeyKey,
+											Path: builderpki.ClientKeyKey,
+										},
+									},
+								},
+							},
+							{
+								Secret: &corev1.SecretProjection{
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: mariadb.TLSServerCertSecretKey().Name,
+									},
+									Items: []corev1.KeyToPath{
+										{
+											Key:  pki.TLSCertKey,
+											Path: builderpki.ServerCertKey,
+										},
+										{
+											Key:  pki.TLSKeyKey,
+											Path: builderpki.ServerKeyKey,
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		}, []corev1.VolumeMount{
+			{
+				Name:      builderpki.PKIVolume,
+				MountPath: builderpki.PKIMountPath,
+			},
+		}
 }
 
 func maxscaleVolumes(maxscale *mariadbv1alpha1.MaxScale) []corev1.Volume {
@@ -472,5 +564,95 @@ func maxscaleVolumes(maxscale *mariadbv1alpha1.MaxScale) []corev1.Volume {
 			},
 		},
 	}
+	if maxscale.IsTLSEnabled() {
+		tlsVolumes, _ := maxscaleTLSVolumes(maxscale)
+		volumes = append(volumes, tlsVolumes...)
+	}
 	return volumes
+}
+
+func maxscaleTLSVolumes(mxs *mariadbv1alpha1.MaxScale) ([]corev1.Volume, []corev1.VolumeMount) {
+	if !mxs.IsTLSEnabled() {
+		return nil, nil
+	}
+	return []corev1.Volume{
+			{
+				Name: builderpki.PKIVolume,
+				VolumeSource: corev1.VolumeSource{
+					Projected: &corev1.ProjectedVolumeSource{
+						Sources: []corev1.VolumeProjection{
+							{
+								Secret: &corev1.SecretProjection{
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: mxs.TLSCABundleSecretKeyRef().Name,
+									},
+									Items: []corev1.KeyToPath{
+										{
+											Key:  pki.TLSCertKey,
+											Path: pki.CACertKey,
+										},
+									},
+								},
+							},
+							{
+								Secret: &corev1.SecretProjection{
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: mxs.TLSAdminCertSecretKey().Name,
+									},
+									Items: []corev1.KeyToPath{
+										{
+											Key:  pki.TLSCertKey,
+											Path: builderpki.AdminCertKey,
+										},
+										{
+											Key:  pki.TLSKeyKey,
+											Path: builderpki.AdminKeyKey,
+										},
+									},
+								},
+							},
+							{
+								Secret: &corev1.SecretProjection{
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: mxs.TLSListenerCertSecretKey().Name,
+									},
+									Items: []corev1.KeyToPath{
+										{
+											Key:  pki.TLSCertKey,
+											Path: builderpki.ListenerCertKey,
+										},
+										{
+											Key:  pki.TLSKeyKey,
+											Path: builderpki.ListenerKeyKey,
+										},
+									},
+								},
+							},
+							{
+								Secret: &corev1.SecretProjection{
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: mxs.TLSServerCertSecretKey().Name,
+									},
+									Items: []corev1.KeyToPath{
+										{
+											Key:  pki.TLSCertKey,
+											Path: builderpki.ServerCertKey,
+										},
+										{
+											Key:  pki.TLSKeyKey,
+											Path: builderpki.ServerKeyKey,
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		}, []corev1.VolumeMount{
+			{
+				Name:      builderpki.PKIVolume,
+				MountPath: builderpki.PKIMountPath,
+			},
+		}
 }

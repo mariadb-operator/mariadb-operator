@@ -1265,12 +1265,31 @@ spec:
                           successThreshold:
                             format: int32
                             type: integer
+                          tcpSocket:
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#tcpsocketaction-v1-core.'
+                            properties:
+                              host:
+                                type: string
+                              port:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                x-kubernetes-int-or-string: true
+                            required:
+                            - port
+                            type: object
                           timeoutSeconds:
                             format: int32
                             type: integer
                         type: object
                       port:
-                        description: Port where the agent will be listening for connections.
+                        description: Port where the agent will be listening for API
+                          connections.
+                        format: int32
+                        type: integer
+                      probePort:
+                        description: Port where the agent will be listening for probe
+                          connections.
                         format: int32
                         type: integer
                       readinessProbe:
@@ -1316,6 +1335,19 @@ spec:
                           successThreshold:
                             format: int32
                             type: integer
+                          tcpSocket:
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#tcpsocketaction-v1-core.'
+                            properties:
+                              host:
+                                type: string
+                              port:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                x-kubernetes-int-or-string: true
+                            required:
+                            - port
+                            type: object
                           timeoutSeconds:
                             format: int32
                             type: integer
@@ -1681,6 +1713,19 @@ spec:
                           successThreshold:
                             format: int32
                             type: integer
+                          tcpSocket:
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#tcpsocketaction-v1-core.'
+                            properties:
+                              host:
+                                type: string
+                              port:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                x-kubernetes-int-or-string: true
+                            required:
+                            - port
+                            type: object
                           timeoutSeconds:
                             format: int32
                             type: integer
@@ -1728,6 +1773,19 @@ spec:
                           successThreshold:
                             format: int32
                             type: integer
+                          tcpSocket:
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#tcpsocketaction-v1-core.'
+                            properties:
+                              host:
+                                type: string
+                              port:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                x-kubernetes-int-or-string: true
+                            required:
+                            - port
+                            type: object
                           timeoutSeconds:
                             format: int32
                             type: integer
@@ -2221,6 +2279,19 @@ spec:
                   successThreshold:
                     format: int32
                     type: integer
+                  tcpSocket:
+                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#tcpsocketaction-v1-core.'
+                    properties:
+                      host:
+                        type: string
+                      port:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        x-kubernetes-int-or-string: true
+                    required:
+                    - port
+                    type: object
                   timeoutSeconds:
                     format: int32
                     type: integer
@@ -4380,6 +4451,19 @@ spec:
                   successThreshold:
                     format: int32
                     type: integer
+                  tcpSocket:
+                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#tcpsocketaction-v1-core.'
+                    properties:
+                      host:
+                        type: string
+                      port:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        x-kubernetes-int-or-string: true
+                    required:
+                    - port
+                    type: object
                   timeoutSeconds:
                     format: int32
                     type: integer
@@ -5030,6 +5114,72 @@ spec:
                 description: TimeZone sets the default timezone. If not provided,
                   it defaults to SYSTEM and the timezone data is not loaded.
                 type: string
+              tls:
+                description: TLS defines the PKI to be used with MariaDB.
+                properties:
+                  clientCASecretRef:
+                    description: |-
+                      ClientCASecretRef is a reference to a Secret containing the client certificate authority keypair. It is used to establish trust and issue server certificates for MariaDB clients.
+                      One of:
+                      - TLS Secret containing both the tls.crt and tls.key. This allows you to bring your own CA to Kubernetes to issue certificates.
+                      - Generic Secret containing the tls.crt to establish trust. In this case, clientSecretRef is mandatory.
+                    properties:
+                      name:
+                        default: ""
+                        type: string
+                    type: object
+                  clientCertSecretRef:
+                    description: ClientCertSecretRef is a reference to a TLS Secret
+                      used by the MariaDB clients to configure TLS.
+                    properties:
+                      name:
+                        default: ""
+                        type: string
+                    type: object
+                  enabled:
+                    description: Enabled is a flag to enable TLS.
+                    type: boolean
+                  galeraClientSSLMode:
+                    description: |-
+                      GaleraClientSSLMode defines the client SSL mode for a Galera Enterprise cluster.
+                      This field is only supported and applicable for Galera Enterprise >= 10.6 instances.
+                      Refer to the MariaDB Enterprise docs for more detail: https://mariadb.com/docs/server/security/galera/#SST_TLS_Modes
+                    enum:
+                    - DISABLED
+                    - REQUIRED
+                    - VERIFY_CA
+                    - VERIFY_IDENTITY
+                    type: string
+                  galeraServerSSLMode:
+                    description: |-
+                      GaleraServerSSLMode defines the server SSL mode for a Galera Enterprise cluster.
+                      This field is only supported and applicable for Galera Enterprise >= 10.6 instances.
+                      Refer to the MariaDB Enterprise docs for more detail: https://mariadb.com/docs/server/security/galera/#WSREP_TLS_Modes
+                    enum:
+                    - PROVIDER
+                    - SERVER
+                    - SERVER_X509
+                    type: string
+                  serverCASecretRef:
+                    description: |-
+                      ServerCASecretRef is a reference to a Secret containing the server certificate authority keypair. It is used to establish trust and issue server certificates for MariaDB server.
+                      One of:
+                      - TLS Secret containing both the tls.crt and tls.key. This allows you to bring your own CA to Kubernetes to issue certificates.
+                      - Generic Secret containing the tls.crt to establish trust. In this case, serverSecretRef is mandatory.
+                    properties:
+                      name:
+                        default: ""
+                        type: string
+                    type: object
+                  serverCertSecretRef:
+                    description: ServerCertSecretRef is a reference to a TLS Secret
+                      used by the MariaDB server to configure TLS.
+                    properties:
+                      name:
+                        default: ""
+                        type: string
+                    type: object
+                type: object
               tolerations:
                 description: Tolerations to be used in the Pod.
                 items:
@@ -5383,6 +5533,12 @@ spec:
               currentPrimaryPodIndex:
                 description: CurrentPrimaryPodIndex is the primary Pod index.
                 type: integer
+              defaultVersion:
+                description: |-
+                  DefaultVersion is the MariaDB version used by the operator when it cannot infer the version
+                  from spec.image. This can happen if the image uses a digest (e.g. sha256) instead
+                  of a version tag.
+                type: string
               galeraRecovery:
                 description: GaleraRecovery is the Galera recovery current state.
                 properties:
@@ -5444,6 +5600,85 @@ spec:
                   type: string
                 description: ReplicationStatus is the replication current state for
                   each Pod.
+                type: object
+              tls:
+                description: TLS aggregates the status of the certificates used by
+                  the MariaDB instance.
+                properties:
+                  caBundle:
+                    description: CABundle is the status of the Certificate Authority
+                      bundle.
+                    items:
+                      description: CertificateStatus represents the current status
+                        of a TLS certificate.
+                      properties:
+                        issuer:
+                          description: Issuer is the issuer of the current certificate.
+                          type: string
+                        notAfter:
+                          description: NotAfter indicates that the certificate is
+                            not valid after the given date.
+                          format: date-time
+                          type: string
+                        notBefore:
+                          description: NotBefore indicates that the certificate is
+                            not valid before the given date.
+                          format: date-time
+                          type: string
+                        subject:
+                          description: Subject is the subject of the current certificate.
+                          type: string
+                      required:
+                      - issuer
+                      - subject
+                      type: object
+                    type: array
+                  clientCert:
+                    description: ClientCert is the status of the client certificate.
+                    properties:
+                      issuer:
+                        description: Issuer is the issuer of the current certificate.
+                        type: string
+                      notAfter:
+                        description: NotAfter indicates that the certificate is not
+                          valid after the given date.
+                        format: date-time
+                        type: string
+                      notBefore:
+                        description: NotBefore indicates that the certificate is not
+                          valid before the given date.
+                        format: date-time
+                        type: string
+                      subject:
+                        description: Subject is the subject of the current certificate.
+                        type: string
+                    required:
+                    - issuer
+                    - subject
+                    type: object
+                  serverCert:
+                    description: ServerCert is the status of the server certificate.
+                    properties:
+                      issuer:
+                        description: Issuer is the issuer of the current certificate.
+                        type: string
+                      notAfter:
+                        description: NotAfter indicates that the certificate is not
+                          valid after the given date.
+                        format: date-time
+                        type: string
+                      notBefore:
+                        description: NotBefore indicates that the certificate is not
+                          valid before the given date.
+                        format: date-time
+                        type: string
+                      subject:
+                        description: Subject is the subject of the current certificate.
+                        type: string
+                    required:
+                    - issuer
+                    - subject
+                    type: object
                 type: object
             type: object
         required:

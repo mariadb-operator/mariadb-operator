@@ -24,12 +24,9 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	mxsclient "github.com/mariadb-operator/mariadb-operator/pkg/maxscale/client"
 	mxsconfig "github.com/mariadb-operator/mariadb-operator/pkg/maxscale/config"
-	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
 	"github.com/mariadb-operator/mariadb-operator/pkg/pod"
-	"github.com/mariadb-operator/mariadb-operator/pkg/predicate"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	stsobj "github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
-	"github.com/mariadb-operator/mariadb-operator/pkg/watch"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
@@ -41,7 +38,6 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
-	ctrlbuilder "sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -138,6 +134,10 @@ func (r *MaxScaleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		{
 			name:      "Secret",
 			reconcile: r.reconcileSecret,
+		},
+		{
+			name:      "TLS",
+			reconcile: r.reconcileTLS,
 		},
 		{
 			name:      "Auth",
@@ -464,8 +464,18 @@ func (r *MaxScaleReconciler) reconcileServiceAccount(ctx context.Context, req *r
 }
 
 func (r *MaxScaleReconciler) reconcileStatefulSet(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
+	var podAnnotations map[string]string
+	var err error
+	if req.mxs.IsTLSEnabled() {
+		var err error
+		podAnnotations, err = r.getTLSAnnotations(ctx, req.mxs)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("error getting TLS annotations: %v", err)
+		}
+	}
+
 	key := client.ObjectKeyFromObject(req.mxs)
-	desiredSts, err := r.Builder.BuildMaxscaleStatefulSet(req.mxs, key)
+	desiredSts, err := r.Builder.BuildMaxscaleStatefulSet(req.mxs, key, podAnnotations)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error building StatefulSet: %v", err)
 	}
@@ -1417,18 +1427,8 @@ func (r *MaxScaleReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Mana
 		Owns(&appsv1.Deployment{}).
 		WithOptions(opts)
 
-	watcherIndexer := watch.NewWatcherIndexer(mgr, builder, r.Client)
-	if err := watcherIndexer.Watch(
-		ctx,
-		&corev1.Secret{},
-		&mariadbv1alpha1.MaxScale{},
-		&mariadbv1alpha1.MaxScaleList{},
-		mariadbv1alpha1.MaxScaleMetricsPasswordSecretFieldPath,
-		ctrlbuilder.WithPredicates(
-			predicate.PredicateWithLabel(metadata.WatchLabel),
-		),
-	); err != nil {
-		return fmt.Errorf("error watching: %v", err)
+	if err := mariadbv1alpha1.IndexMaxScale(ctx, mgr, builder, r.Client); err != nil {
+		return fmt.Errorf("error indexing MaxScale: %v", err)
 	}
 
 	return builder.Complete(r)
