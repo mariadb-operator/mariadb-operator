@@ -180,7 +180,7 @@ func (r *CertReconciler) createCertFn(caKeyPair *pki.KeyPair) func() (*pki.KeyPa
 		return pki.CreateCert(
 			caKeyPair,
 			pki.WithCommonName(r.certCommonName),
-			pki.WithDNSNames(r.certDNSNames),
+			pki.WithDNSNames(r.certDNSNames...),
 			pki.WithNotBefore(time.Now().Add(-1*time.Hour)),
 			pki.WithNotAfter(time.Now().Add(r.certValidity)),
 			pki.WithExtKeyUsage(x509.ExtKeyUsageServerAuth),
