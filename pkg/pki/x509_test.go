@@ -210,12 +210,23 @@ func TestValidateCert(t *testing.T) {
 		wantErr             bool
 	}{
 		{
-			name: "CA invalid",
+			name: "CA invalid lifetime",
 			createCertKeyPairFn: func() *KeyPair {
 				return rootKeyPair
 			},
 			dnsName:        rootCA,
 			at:             time.Now().Add(10 * 365 * 24 * time.Hour), // 10 years in the future
+			validateCertFn: ValidateCA,
+			wantValid:      false,
+			wantErr:        true,
+		},
+		{
+			name: "CA invalid DNS name",
+			createCertKeyPairFn: func() *KeyPair {
+				return rootKeyPair
+			},
+			dnsName:        "foo",
+			at:             time.Now(),
 			validateCertFn: ValidateCA,
 			wantValid:      false,
 			wantErr:        true,
@@ -268,7 +279,7 @@ func TestValidateCert(t *testing.T) {
 			wantErr:   false,
 		},
 		{
-			name: "Cert issued by root invalid",
+			name: "Cert issued by root invalid trust chain",
 			createCertKeyPairFn: func() *KeyPair {
 				return mustCreateCert(
 					t,
@@ -283,6 +294,56 @@ func TestValidateCert(t *testing.T) {
 				return ValidateCert(
 					[]*x509.Certificate{
 						intermediateCert,
+					},
+					keyPair,
+					dnsName,
+					at,
+				)
+			},
+			wantValid: false,
+			wantErr:   true,
+		},
+		{
+			name: "Cert issued by root invalid lifetime",
+			createCertKeyPairFn: func() *KeyPair {
+				return mustCreateCert(
+					t,
+					rootKeyPair,
+					WithCommonName("issued-by-root"),
+					WithDNSNames("issued-by-root"),
+				)
+			},
+			dnsName: "issued-by-root",
+			at:      time.Now().Add(10 * 365 * 24 * time.Hour), // 10 years in the future
+			validateCertFn: func(keyPair *KeyPair, dnsName string, at time.Time) (bool, error) {
+				return ValidateCert(
+					[]*x509.Certificate{
+						rootCert,
+					},
+					keyPair,
+					dnsName,
+					at,
+				)
+			},
+			wantValid: false,
+			wantErr:   true,
+		},
+		{
+			name: "Cert issued by root invalid DNS name",
+			createCertKeyPairFn: func() *KeyPair {
+				return mustCreateCert(
+					t,
+					rootKeyPair,
+					WithCommonName("issued-by-root"),
+					WithDNSNames("issued-by-root"),
+				)
+			},
+			dnsName: "foo",
+			at:      time.Now(),
+			validateCertFn: func(keyPair *KeyPair, dnsName string, at time.Time) (bool, error) {
+				return ValidateCert(
+					[]*x509.Certificate{
+						rootCert,
 					},
 					keyPair,
 					dnsName,
@@ -344,7 +405,7 @@ func TestValidateCert(t *testing.T) {
 			wantErr:   false,
 		},
 		{
-			name: "Cert issued by untrusted intermediate invalid",
+			name: "Cert issued by untrusted intermediate invalid trust chain",
 			createCertKeyPairFn: func() *KeyPair {
 				return mustCreateCert(
 					t,
