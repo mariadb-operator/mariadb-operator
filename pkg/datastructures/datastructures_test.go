@@ -44,6 +44,18 @@ func TestDataStructures(t *testing.T) {
 		t.Errorf("expecting exists to be %v, got: %v", expectedExists, exists)
 	}
 
+	exists = Has(idx, "a")
+	expectedExists = true
+	if exists != expectedExists {
+		t.Errorf("expecting exists to be %v, got: %v", expectedExists, exists)
+	}
+
+	exists = Has(idx, "z")
+	expectedExists = false
+	if exists != expectedExists {
+		t.Errorf("expecting exists to be %v, got: %v", expectedExists, exists)
+	}
+
 	filteredIdx := Filter(idx, "a", "b", "c")
 	expectedFilteredIdx := newIndex("a", "b", "c")
 	if !reflect.DeepEqual(filteredIdx, expectedFilteredIdx) {
