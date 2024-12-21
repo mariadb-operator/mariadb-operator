@@ -23,60 +23,77 @@ var (
 	certMaxLifetime = 3 * 365 * 24 * time.Hour // 3 years
 )
 
+// X509Opts represents options for creating X.509 certificates.
 type X509Opts struct {
-	CommonName  string
-	DNSNames    []string
-	NotBefore   time.Time
-	NotAfter    time.Time
-	KeyUsage    x509.KeyUsage
+	// CommonName is the common name for the certificate.
+	CommonName string
+	// DNSNames is a list of DNS names for the certificate.
+	DNSNames []string
+	// NotBefore is the start time for the certificate's validity period.
+	NotBefore time.Time
+	// NotAfter is the end time for the certificate's validity period.
+	NotAfter time.Time
+	// KeyUsage specifies the allowed uses of the key.
+	KeyUsage x509.KeyUsage
+	// ExtKeyUsage specifies the extended key usages of the certificate.
 	ExtKeyUsage []x509.ExtKeyUsage
-	IsCA        bool
+	// IsCA indicates whether the certificate is a CA certificate.
+	IsCA bool
 }
 
+// X509Opt is a function type used to configure X509Opts.
 type X509Opt func(*X509Opts)
 
+// WithCommonName sets the common name for the certificate.
 func WithCommonName(name string) X509Opt {
 	return func(x *X509Opts) {
 		x.CommonName = name
 	}
 }
 
+// WithDNSNames sets the DNS names for the certificate.
 func WithDNSNames(dnsNames ...string) X509Opt {
 	return func(x *X509Opts) {
 		x.DNSNames = dnsNames
 	}
 }
 
+// WithNotBefore sets the start time for the certificate's validity period.
 func WithNotBefore(notBefore time.Time) X509Opt {
 	return func(x *X509Opts) {
 		x.NotBefore = notBefore
 	}
 }
 
+// WithNotAfter sets the end time for the certificate's validity period.
 func WithNotAfter(notAfter time.Time) X509Opt {
 	return func(x *X509Opts) {
 		x.NotAfter = notAfter
 	}
 }
 
+// WithKeyUsage sets the key usage for the certificate.
 func WithKeyUsage(keyUsage x509.KeyUsage) X509Opt {
 	return func(x *X509Opts) {
 		x.KeyUsage |= keyUsage
 	}
 }
 
+// WithExtKeyUsage sets the extended key usages for the certificate.
 func WithExtKeyUsage(extKeyUsage ...x509.ExtKeyUsage) X509Opt {
 	return func(x *X509Opts) {
 		x.ExtKeyUsage = append(x.ExtKeyUsage, extKeyUsage...)
 	}
 }
 
+// WithIsCA sets whether the certificate is a CA certificate.
 func WithIsCA(isCA bool) X509Opt {
 	return func(x *X509Opts) {
 		x.IsCA = isCA
 	}
 }
 
+// CreateCA creates a new CA certificate with the given options.
 func CreateCA(x509Opts ...X509Opt) (*KeyPair, error) {
 	opts := X509Opts{
 		CommonName: defaultCACommonName,
@@ -112,6 +129,7 @@ func CreateCA(x509Opts ...X509Opt) (*KeyPair, error) {
 	return NewKeyPairFromTemplate(tpl, nil)
 }
 
+// CreateCert creates a new certificate signed by the given CA key pair with the given options.
 func CreateCert(caKeyPair *KeyPair, x509Opts ...X509Opt) (*KeyPair, error) {
 	opts := X509Opts{
 		NotBefore: time.Now().Add(-1 * time.Hour),
@@ -150,6 +168,7 @@ func CreateCert(caKeyPair *KeyPair, x509Opts ...X509Opt) (*KeyPair, error) {
 	return NewKeyPairFromTemplate(tpl, caKeyPair)
 }
 
+// ValidateCA validates the given CA key pair at the specified time.
 func ValidateCA(keyPair *KeyPair, dnsName string, at time.Time) (bool, error) {
 	certs, err := keyPair.Certificates()
 	if err != nil {
@@ -158,18 +177,22 @@ func ValidateCA(keyPair *KeyPair, dnsName string, at time.Time) (bool, error) {
 	return ValidateCert(certs, keyPair, dnsName, at)
 }
 
+// ValidateCertOpts represents options for validating certificates.
 type ValidateCertOpts struct {
 	intermediateCAs []*x509.Certificate
 }
 
+// ValidateCertOpt is a function type used to configure ValidateCertOpts.
 type ValidateCertOpt func(*ValidateCertOpts)
 
+// WithIntermediateCAs sets the intermediate CAs for certificate validation.
 func WithIntermediateCAs(intermediateCAs ...*x509.Certificate) ValidateCertOpt {
 	return func(vco *ValidateCertOpts) {
 		vco.intermediateCAs = intermediateCAs
 	}
 }
 
+// ValidateCert validates the given certificate key pair against the provided CA certificates at the specified time.
 func ValidateCert(
 	caCerts []*x509.Certificate,
 	certKeyPair *KeyPair,
@@ -224,6 +247,7 @@ func ValidateCert(
 	return true, nil
 }
 
+// ParseCertificate parses a single certificate from the given bytes.
 func ParseCertificate(bytes []byte) (*x509.Certificate, error) {
 	certs, err := ParseCertificates(bytes)
 	if err != nil {
@@ -232,6 +256,7 @@ func ParseCertificate(bytes []byte) (*x509.Certificate, error) {
 	return certs[0], nil
 }
 
+// ParseCertificates parses multiple certificates from the given bytes.
 func ParseCertificates(bytes []byte) ([]*x509.Certificate, error) {
 	var (
 		certs []*x509.Certificate
