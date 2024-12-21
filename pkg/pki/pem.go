@@ -36,7 +36,7 @@ func WithSkipExpired(skipExpired bool) BundleOption {
 	}
 }
 
-// BundleOptions to be used with the bundle.
+// BundleOptions represents options for bundling certificates.
 type BundleOptions struct {
 	logger      logr.Logger
 	skipExpired bool
