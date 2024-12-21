@@ -20,7 +20,7 @@ var (
 	caMaxLifetime = 10 * 365 * 24 * time.Hour // 10 years
 
 	certMinLifetime = 1 * time.Hour
-	certMaxLifetime = 1 * 365 * 24 * time.Hour // 3 years
+	certMaxLifetime = 3 * 365 * 24 * time.Hour // 3 years
 )
 
 type X509Opts struct {
@@ -30,6 +30,7 @@ type X509Opts struct {
 	NotAfter    time.Time
 	KeyUsage    x509.KeyUsage
 	ExtKeyUsage []x509.ExtKeyUsage
+	IsCA        bool
 }
 
 type X509Opt func(*X509Opts)
@@ -40,7 +41,7 @@ func WithCommonName(name string) X509Opt {
 	}
 }
 
-func WithDNSNames(dnsNames []string) X509Opt {
+func WithDNSNames(dnsNames ...string) X509Opt {
 	return func(x *X509Opts) {
 		x.DNSNames = dnsNames
 	}
@@ -67,6 +68,12 @@ func WithKeyUsage(keyUsage x509.KeyUsage) X509Opt {
 func WithExtKeyUsage(extKeyUsage ...x509.ExtKeyUsage) X509Opt {
 	return func(x *X509Opts) {
 		x.ExtKeyUsage = append(x.ExtKeyUsage, extKeyUsage...)
+	}
+}
+
+func WithIsCA(isCA bool) X509Opt {
+	return func(x *X509Opts) {
+		x.IsCA = isCA
 	}
 }
 
@@ -110,6 +117,7 @@ func CreateCert(caKeyPair *KeyPair, x509Opts ...X509Opt) (*KeyPair, error) {
 		NotBefore: time.Now().Add(-1 * time.Hour),
 		NotAfter:  time.Now().Add(defaultCertLifetime),
 		KeyUsage:  x509.KeyUsageDigitalSignature | x509.KeyUsageKeyAgreement,
+		IsCA:      false,
 	}
 	for _, setOpt := range x509Opts {
 		setOpt(&opts)
@@ -137,7 +145,7 @@ func CreateCert(caKeyPair *KeyPair, x509Opts ...X509Opt) (*KeyPair, error) {
 		KeyUsage:              opts.KeyUsage,
 		ExtKeyUsage:           opts.ExtKeyUsage,
 		BasicConstraintsValid: true,
-		IsCA:                  false,
+		IsCA:                  opts.IsCA,
 	}
 	return NewKeyPairFromTemplate(tpl, caKeyPair)
 }
@@ -150,7 +158,25 @@ func ValidateCA(keyPair *KeyPair, dnsName string, at time.Time) (bool, error) {
 	return ValidateCert(certs, keyPair, dnsName, at)
 }
 
-func ValidateCert(caCerts []*x509.Certificate, certKeyPair *KeyPair, dnsName string, at time.Time) (bool, error) {
+type ValidateCertOpts struct {
+	intermediateCAs []*x509.Certificate
+}
+
+type ValidateCertOpt func(*ValidateCertOpts)
+
+func WithIntermediateCAs(intermediateCAs ...*x509.Certificate) ValidateCertOpt {
+	return func(vco *ValidateCertOpts) {
+		vco.intermediateCAs = intermediateCAs
+	}
+}
+
+func ValidateCert(
+	caCerts []*x509.Certificate,
+	certKeyPair *KeyPair,
+	dnsName string,
+	at time.Time,
+	validateCertOpts ...ValidateCertOpt,
+) (bool, error) {
 	if len(caCerts) == 0 {
 		return false, errors.New("CA certicates should be provided to establish trust")
 	}
@@ -168,12 +194,20 @@ func ValidateCert(caCerts []*x509.Certificate, certKeyPair *KeyPair, dnsName str
 		intermediateCAs = certs[1:] // intermediate certificates, if present, form the chain leading to a trusted root CA
 	}
 
+	opts := ValidateCertOpts{}
+	for _, setOpt := range validateCertOpts {
+		setOpt(&opts)
+	}
+
 	rootCAsPool := x509.NewCertPool()
 	for _, cert := range caCerts {
 		rootCAsPool.AddCert(cert)
 	}
 	intermediateCAsPool := x509.NewCertPool()
 	for _, cert := range intermediateCAs {
+		intermediateCAsPool.AddCert(cert)
+	}
+	for _, cert := range opts.intermediateCAs {
 		intermediateCAsPool.AddCert(cert)
 	}
 
