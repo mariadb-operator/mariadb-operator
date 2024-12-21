@@ -13,13 +13,17 @@ import (
 	ds "github.com/mariadb-operator/mariadb-operator/pkg/datastructures"
 )
 
+// PrivateKey represents a type of private key.
 type PrivateKey string
 
 const (
+	// PrivateKeyTypeECDSA represents an ECDSA private key.
 	PrivateKeyTypeECDSA PrivateKey = "ecdsa"
-	PrivateKeyTypeRSA   PrivateKey = "rsa"
+	// PrivateKeyTypeRSA represents an RSA private key.
+	PrivateKeyTypeRSA PrivateKey = "rsa"
 )
 
+// GeneratePrivateKey generates a new ECDSA private key.
 func GeneratePrivateKey() (crypto.Signer, error) {
 	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
@@ -28,6 +32,7 @@ func GeneratePrivateKey() (crypto.Signer, error) {
 	return privateKey, nil
 }
 
+// MarshalPrivateKey marshals the given ECDSA private key to bytes.
 func MarshalPrivateKey(signer crypto.Signer) ([]byte, error) {
 	privateKey, ok := signer.(*ecdsa.PrivateKey)
 	if !ok {
@@ -36,6 +41,7 @@ func MarshalPrivateKey(signer crypto.Signer) ([]byte, error) {
 	return x509.MarshalECPrivateKey(privateKey)
 }
 
+// ParsePrivateKey parses a private key from the given bytes.
 func ParsePrivateKey(bytes []byte, supportedKeys []PrivateKey) (crypto.Signer, error) {
 	block, _ := pem.Decode(bytes) // private key should only have a single block
 	if block == nil {

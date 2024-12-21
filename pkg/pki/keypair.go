@@ -12,25 +12,36 @@ import (
 )
 
 var (
-	CACertKey  = "ca.crt"
+	// CACertKey is the key used to store the CA certificate in a secret.
+	CACertKey = "ca.crt"
+	// TLSCertKey is the key used to store the TLS certificate in a secret.
 	TLSCertKey = "tls.crt"
-	TLSKeyKey  = "tls.key"
+	// TLSKeyKey is the key used to store the TLS private key in a secret.
+	TLSKeyKey = "tls.key"
 )
 
+// KeyPairOpt is a function type used to configure a KeyPair.
 type KeyPairOpt func(*KeyPair)
 
+// WithSupportedPrivateKeys returns a KeyPairOpt that sets the supported private keys for a KeyPair.
 func WithSupportedPrivateKeys(pks ...PrivateKey) KeyPairOpt {
 	return func(k *KeyPair) {
 		k.SupportedPrivateKeys = pks
 	}
 }
 
+// KeyPair represents a TLS key pair with its certificate and private key.
 type KeyPair struct {
-	CertPEM              []byte
-	KeyPEM               []byte
+	// CertPEM is the PEM-encoded certificate.
+	CertPEM []byte
+	// KeyPEM is the PEM-encoded private key.
+	KeyPEM []byte
+	// SupportedPrivateKeys is a list of supported private key types.
 	SupportedPrivateKeys []PrivateKey
 }
 
+// NewKeyPair creates a new KeyPair with the given certificate and private key PEM data.
+// Additional options can be provided to configure the KeyPair.
 func NewKeyPair(certPEM, keyPEM []byte, opts ...KeyPairOpt) (*KeyPair, error) {
 	k := KeyPair{
 		CertPEM: certPEM,
@@ -48,6 +59,8 @@ func NewKeyPair(certPEM, keyPEM []byte, opts ...KeyPairOpt) (*KeyPair, error) {
 	return &k, nil
 }
 
+// Validate checks if the KeyPair is valid by ensuring the certificate and private key are not empty
+// and can be parsed correctly.
 func (k *KeyPair) Validate() error {
 	if len(k.CertPEM) == 0 {
 		return errors.New("certificate PEM is empty")
@@ -67,14 +80,17 @@ func (k *KeyPair) Validate() error {
 	return nil
 }
 
+// Certificates parses and returns the certificates from the CertPEM field.
 func (k *KeyPair) Certificates() ([]*x509.Certificate, error) {
 	return ParseCertificates(k.CertPEM)
 }
 
+// PrivateKey parses and returns the private key from the KeyPEM field.
 func (k *KeyPair) PrivateKey() (crypto.Signer, error) {
 	return ParsePrivateKey(k.KeyPEM, k.SupportedPrivateKeys)
 }
 
+// UpdateTLSSecret updates the given Kubernetes secret with the certificate and private key from the KeyPair.
 func (k *KeyPair) UpdateTLSSecret(secret *corev1.Secret) {
 	if secret.Data == nil {
 		secret.Data = make(map[string][]byte)
@@ -83,6 +99,8 @@ func (k *KeyPair) UpdateTLSSecret(secret *corev1.Secret) {
 	secret.Data[TLSKeyKey] = k.KeyPEM
 }
 
+// NewKeyPairFromTLSSecret creates a new KeyPair from the given Kubernetes TLS secret.
+// Additional options can be provided to configure the KeyPair.
 func NewKeyPairFromTLSSecret(secret *corev1.Secret, opts ...KeyPairOpt) (*KeyPair, error) {
 	if secret.Data == nil {
 		return nil, errors.New("TLS Secret is empty")
@@ -96,6 +114,8 @@ func NewKeyPairFromTLSSecret(secret *corev1.Secret, opts ...KeyPairOpt) (*KeyPai
 	return NewKeyPair(certPEM, keyPEM, opts...)
 }
 
+// NewKeyPairFromTemplate creates a new KeyPair from the given certificate template and CA KeyPair.
+// Additional options can be provided to configure the KeyPair.
 func NewKeyPairFromTemplate(tpl *x509.Certificate, caKeyPair *KeyPair, opts ...KeyPairOpt) (*KeyPair, error) {
 	privateKey, err := GeneratePrivateKey()
 	if err != nil {
