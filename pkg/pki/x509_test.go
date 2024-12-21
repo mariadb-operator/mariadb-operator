@@ -27,6 +27,7 @@ func TestCreateCA(t *testing.T) {
 				wantIssuer:     defaultCACommonName,
 				wantDNSNames:   []string{defaultCACommonName},
 				wantKeyUsage:   x509.KeyUsageCertSign,
+				wantIsCA:       true,
 			},
 			{
 				name: "Custom CommonName",
@@ -38,6 +39,7 @@ func TestCreateCA(t *testing.T) {
 				wantIssuer:     "custom-ca",
 				wantDNSNames:   []string{"custom-ca"},
 				wantKeyUsage:   x509.KeyUsageCertSign,
+				wantIsCA:       true,
 			},
 			{
 				name: "Custom Lifetime",
@@ -50,6 +52,7 @@ func TestCreateCA(t *testing.T) {
 				wantIssuer:     defaultCACommonName,
 				wantDNSNames:   []string{defaultCACommonName},
 				wantKeyUsage:   x509.KeyUsageCertSign,
+				wantIsCA:       true,
 			},
 		},
 		CreateCA,
@@ -73,7 +76,7 @@ func TestCreateCert(t *testing.T) {
 			{
 				name: "Missing CommonName",
 				x509Opts: []X509Opt{
-					WithDNSNames([]string{"missing-common-name"}),
+					WithDNSNames("missing-common-name"),
 				},
 				wantErr: true,
 			},
@@ -88,7 +91,7 @@ func TestCreateCert(t *testing.T) {
 				name: "Invalid Lifetime",
 				x509Opts: []X509Opt{
 					WithCommonName("invalid-lifetime"),
-					WithDNSNames([]string{"invalid-lifetime"}),
+					WithDNSNames("invalid-lifetime"),
 					WithNotBefore(time.Now().Add(2 * time.Hour)),
 					WithNotAfter(time.Now().Add(1 * time.Hour)),
 				},
@@ -98,19 +101,20 @@ func TestCreateCert(t *testing.T) {
 				name: "Default Cert",
 				x509Opts: []X509Opt{
 					WithCommonName("default-cert"),
-					WithDNSNames([]string{"default-cert"}),
+					WithDNSNames("default-cert"),
 				},
 				wantErr:        false,
 				wantCommonName: "default-cert",
 				wantIssuer:     defaultCACommonName,
 				wantDNSNames:   []string{"default-cert"},
 				wantKeyUsage:   x509.KeyUsageDigitalSignature | x509.KeyUsageKeyAgreement,
+				wantIsCA:       false,
 			},
 			{
 				name: "Custom Key Usage",
 				x509Opts: []X509Opt{
 					WithCommonName("custom-key-usage"),
-					WithDNSNames([]string{"custom-key-usage"}),
+					WithDNSNames("custom-key-usage"),
 					WithKeyUsage(x509.KeyUsageKeyEncipherment),
 				},
 				wantErr:        false,
@@ -118,12 +122,13 @@ func TestCreateCert(t *testing.T) {
 				wantIssuer:     defaultCACommonName,
 				wantDNSNames:   []string{"custom-key-usage"},
 				wantKeyUsage:   x509.KeyUsageDigitalSignature | x509.KeyUsageKeyAgreement | x509.KeyUsageKeyEncipherment,
+				wantIsCA:       false,
 			},
 			{
 				name: "Custom Ext Key Usage",
 				x509Opts: []X509Opt{
 					WithCommonName("custom-ext-key-usage"),
-					WithDNSNames([]string{"custom-ext-key-usage"}),
+					WithDNSNames("custom-ext-key-usage"),
 					WithExtKeyUsage(x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth),
 				},
 				wantErr:         false,
@@ -132,6 +137,7 @@ func TestCreateCert(t *testing.T) {
 				wantDNSNames:    []string{"custom-ext-key-usage"},
 				wantKeyUsage:    x509.KeyUsageDigitalSignature | x509.KeyUsageKeyAgreement,
 				wantExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
+				wantIsCA:        false,
 			},
 		},
 		func(opts ...X509Opt) (*KeyPair, error) {
@@ -141,6 +147,243 @@ func TestCreateCert(t *testing.T) {
 			return ValidateCert(caCerts, kp, dnsName, at)
 		},
 	)
+}
+
+func TestValidateCert(t *testing.T) {
+	rootCA := "test-root"
+	rootKeyPair, err := CreateCA(
+		WithCommonName(rootCA),
+	)
+	if err != nil {
+		t.Fatalf("CA cert creation should succeed. Got error: %v", err)
+	}
+
+	intermediateCA := "test-intermediate"
+	intermediateCAKeyPair, err := CreateCert(
+		rootKeyPair,
+		WithCommonName(intermediateCA),
+		WithDNSNames(intermediateCA),
+		WithKeyUsage(x509.KeyUsageCertSign),
+		WithIsCA(true),
+	)
+	if err != nil {
+		t.Fatalf("Intermediate CA cert creation should succeed. Got error: %v", err)
+	}
+
+	rootCerts, err := rootKeyPair.Certificates()
+	if err != nil {
+		t.Fatalf("Unable to get CA certificates: %v", err)
+	}
+	if len(rootCerts) != 1 {
+		t.Fatalf("Unexpected number of root certs: %d", len(rootCerts))
+	}
+	rootCert := rootCerts[0]
+	if rootCert.Subject.CommonName != rootCA {
+		t.Fatalf("Unexpected root cert common name, got: %v, want: %v", rootCert.Subject.CommonName, rootCA)
+	}
+	if rootCert.Issuer.CommonName != rootCA {
+		t.Fatalf("Unexpected root cert issuer, got: %v, want: %v", rootCert.Issuer.CommonName, rootCA)
+	}
+
+	intermediateCerts, err := intermediateCAKeyPair.Certificates()
+	if err != nil {
+		t.Fatalf("Unable to get intermediate CA certificates: %v", err)
+	}
+	if len(intermediateCerts) != 1 {
+		t.Fatalf("Unexpected number of intermediate certs: %d", len(intermediateCerts))
+	}
+	intermediateCert := intermediateCerts[0]
+	if intermediateCert.Subject.CommonName != intermediateCA {
+		t.Fatalf("Unexpected intermediate cert common name, got: %v, want: %v", intermediateCert.Subject.CommonName, intermediateCA)
+	}
+	if intermediateCert.Issuer.CommonName != rootCA {
+		t.Fatalf("Unexpected intermediate cert issuer, got: %v, want: %v", intermediateCert.Issuer.CommonName, rootCA)
+	}
+
+	tests := []struct {
+		name                string
+		createCertKeyPairFn func() *KeyPair
+		dnsName             string
+		at                  time.Time
+		validateCertFn      func(keyPair *KeyPair, dnsName string, at time.Time) (bool, error)
+		wantValid           bool
+		wantErr             bool
+	}{
+		{
+			name: "CA invalid",
+			createCertKeyPairFn: func() *KeyPair {
+				return rootKeyPair
+			},
+			dnsName:        rootCA,
+			at:             time.Now().Add(10 * 365 * 24 * time.Hour), // 10 years in the future
+			validateCertFn: ValidateCA,
+			wantValid:      false,
+			wantErr:        true,
+		},
+		{
+			name: "CA valid root",
+			createCertKeyPairFn: func() *KeyPair {
+				return rootKeyPair
+			},
+			dnsName:        rootCA,
+			at:             time.Now(),
+			validateCertFn: ValidateCA,
+			wantValid:      true,
+			wantErr:        false,
+		},
+		{
+			name: "CA valid intermediate",
+			createCertKeyPairFn: func() *KeyPair {
+				return intermediateCAKeyPair
+			},
+			dnsName:        intermediateCA,
+			at:             time.Now(),
+			validateCertFn: ValidateCA,
+			wantValid:      true,
+			wantErr:        false,
+		},
+		{
+			name: "Cert issued by root valid",
+			createCertKeyPairFn: func() *KeyPair {
+				return mustCreateCert(
+					t,
+					rootKeyPair,
+					WithCommonName("issued-by-root"),
+					WithDNSNames("issued-by-root"),
+				)
+			},
+			dnsName: "issued-by-root",
+			at:      time.Now(),
+			validateCertFn: func(keyPair *KeyPair, dnsName string, at time.Time) (bool, error) {
+				return ValidateCert(
+					[]*x509.Certificate{
+						rootCert,
+					},
+					keyPair,
+					dnsName,
+					at,
+				)
+			},
+			wantValid: true,
+			wantErr:   false,
+		},
+		{
+			name: "Cert issued by root invalid",
+			createCertKeyPairFn: func() *KeyPair {
+				return mustCreateCert(
+					t,
+					rootKeyPair,
+					WithCommonName("issued-by-root"),
+					WithDNSNames("issued-by-root"),
+				)
+			},
+			dnsName: "issued-by-root",
+			at:      time.Now(),
+			validateCertFn: func(keyPair *KeyPair, dnsName string, at time.Time) (bool, error) {
+				return ValidateCert(
+					[]*x509.Certificate{
+						intermediateCert,
+					},
+					keyPair,
+					dnsName,
+					at,
+				)
+			},
+			wantValid: false,
+			wantErr:   true,
+		},
+		{
+			name: "Cert issued by trusted intermediate valid",
+			createCertKeyPairFn: func() *KeyPair {
+				return mustCreateCert(
+					t,
+					intermediateCAKeyPair,
+					WithCommonName("issued-by-intermediate"),
+					WithDNSNames("issued-by-intermediate"),
+				)
+			},
+			dnsName: "issued-by-intermediate",
+			at:      time.Now(),
+			validateCertFn: func(keyPair *KeyPair, dnsName string, at time.Time) (bool, error) {
+				return ValidateCert(
+					[]*x509.Certificate{
+						intermediateCert,
+					},
+					keyPair,
+					dnsName,
+					at,
+				)
+			},
+			wantValid: true,
+			wantErr:   false,
+		},
+		{
+			name: "Cert issued by untrusted intermediate valid",
+			createCertKeyPairFn: func() *KeyPair {
+				return mustCreateCert(
+					t,
+					intermediateCAKeyPair,
+					WithCommonName("issued-by-intermediate"),
+					WithDNSNames("issued-by-intermediate"),
+				)
+			},
+			dnsName: "issued-by-intermediate",
+			at:      time.Now(),
+			validateCertFn: func(keyPair *KeyPair, dnsName string, at time.Time) (bool, error) {
+				return ValidateCert(
+					[]*x509.Certificate{
+						rootCert,
+					},
+					keyPair,
+					dnsName,
+					at,
+					WithIntermediateCAs(intermediateCert),
+				)
+			},
+			wantValid: true,
+			wantErr:   false,
+		},
+		{
+			name: "Cert issued by untrusted intermediate invalid",
+			createCertKeyPairFn: func() *KeyPair {
+				return mustCreateCert(
+					t,
+					intermediateCAKeyPair,
+					WithCommonName("issued-by-intermediate"),
+					WithDNSNames("issued-by-intermediate"),
+				)
+			},
+			dnsName: "issued-by-intermediate",
+			at:      time.Now(),
+			validateCertFn: func(keyPair *KeyPair, dnsName string, at time.Time) (bool, error) {
+				return ValidateCert(
+					[]*x509.Certificate{
+						rootCert,
+					},
+					keyPair,
+					dnsName,
+					at,
+				)
+			},
+			wantValid: false,
+			wantErr:   true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			valid, err := tt.validateCertFn(tt.createCertKeyPairFn(), tt.dnsName, tt.at)
+			if tt.wantErr && err == nil {
+				t.Fatalf("Expecting error to be non nil for test '%s'", tt.name)
+			}
+			if !tt.wantErr && err != nil {
+				t.Fatalf("Expecting error to be nil for test '%s'. Got: %v", tt.name, err)
+			}
+			if valid != tt.wantValid {
+				t.Fatalf("Unexpected validation result for test '%s'. Got: %v, want: %v", tt.name, valid, tt.wantValid)
+			}
+		})
+	}
 }
 
 func TestParseCertificates(t *testing.T) {
@@ -352,6 +595,7 @@ type testCaseCreateCert struct {
 	wantDNSNames    []string
 	wantKeyUsage    x509.KeyUsage
 	wantExtKeyUsage []x509.ExtKeyUsage
+	wantIsCA        bool
 }
 
 func testCreateCert(
@@ -396,6 +640,9 @@ func testCreateCert(
 			if !reflect.DeepEqual(cert.ExtKeyUsage, tt.wantExtKeyUsage) {
 				t.Fatalf("unexpected extended key usage, got: %v, want: %v", cert.ExtKeyUsage, tt.wantExtKeyUsage)
 			}
+			if cert.IsCA != tt.wantIsCA {
+				t.Fatalf("unexpected IsCA, got: %v, want: %v", cert.IsCA, tt.wantIsCA)
+			}
 
 			valid, err := validateCertFn(keyPair, commonName, notBefore.Add(-1*time.Hour))
 			if err == nil {
@@ -427,4 +674,12 @@ func testCreateCert(
 			}
 		})
 	}
+}
+
+func mustCreateCert(t *testing.T, caKeyPair *KeyPair, opts ...X509Opt) *KeyPair {
+	keyPair, err := CreateCert(caKeyPair, opts...)
+	if err != nil {
+		t.Fatalf("unexpected error creating cert: %v", err)
+	}
+	return keyPair
 }
