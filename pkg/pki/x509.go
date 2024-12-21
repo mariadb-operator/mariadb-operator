@@ -12,9 +12,15 @@ import (
 )
 
 var (
-	defaultCACommonName         = "mariadb-operator"
-	defaultCALifetimeDuration   = 3 * 365 * 24 * time.Hour // 3 years
-	defaultCertLifetimeDuration = 3 * 30 * 24 * time.Hour  // 3 months
+	defaultCACommonName = "mariadb-operator"
+	defaultCALifetime   = 3 * 365 * 24 * time.Hour // 3 years
+	defaultCertLifetime = 3 * 30 * 24 * time.Hour  // 3 months
+
+	caMinLifetime = 1 * time.Hour
+	caMaxLifetime = 10 * 365 * 24 * time.Hour // 10 years
+
+	certMinLifetime = 1 * time.Hour
+	certMaxLifetime = 1 * 365 * 24 * time.Hour // 3 years
 )
 
 type X509Opts struct {
@@ -68,10 +74,13 @@ func CreateCA(x509Opts ...X509Opt) (*KeyPair, error) {
 	opts := X509Opts{
 		CommonName: defaultCACommonName,
 		NotBefore:  time.Now().Add(-1 * time.Hour),
-		NotAfter:   time.Now().Add(defaultCALifetimeDuration),
+		NotAfter:   time.Now().Add(defaultCALifetime),
 	}
 	for _, setOpt := range x509Opts {
 		setOpt(&opts)
+	}
+	if err := validateLifetime(opts.NotBefore, opts.NotAfter, caMinLifetime, caMaxLifetime); err != nil {
+		return nil, fmt.Errorf("invalid CA lifetime: %v", err)
 	}
 
 	serialNumber, err := getSerialNumber()
@@ -99,7 +108,7 @@ func CreateCA(x509Opts ...X509Opt) (*KeyPair, error) {
 func CreateCert(caKeyPair *KeyPair, x509Opts ...X509Opt) (*KeyPair, error) {
 	opts := X509Opts{
 		NotBefore: time.Now().Add(-1 * time.Hour),
-		NotAfter:  time.Now().Add(defaultCertLifetimeDuration),
+		NotAfter:  time.Now().Add(defaultCertLifetime),
 		KeyUsage:  x509.KeyUsageDigitalSignature | x509.KeyUsageKeyAgreement,
 	}
 	for _, setOpt := range x509Opts {
@@ -107,6 +116,9 @@ func CreateCert(caKeyPair *KeyPair, x509Opts ...X509Opt) (*KeyPair, error) {
 	}
 	if opts.CommonName == "" || opts.DNSNames == nil {
 		return nil, errors.New("CommonName and DNSNames are mandatory")
+	}
+	if err := validateLifetime(opts.NotBefore, opts.NotAfter, certMinLifetime, certMaxLifetime); err != nil {
+		return nil, fmt.Errorf("invalid certificate lifetime: %v", err)
 	}
 
 	serialNumber, err := getSerialNumber()
@@ -130,41 +142,12 @@ func CreateCert(caKeyPair *KeyPair, x509Opts ...X509Opt) (*KeyPair, error) {
 	return NewKeyPairFromTemplate(tpl, caKeyPair)
 }
 
-func ParseCertificate(bytes []byte) (*x509.Certificate, error) {
-	certs, err := ParseCertificates(bytes)
+func ValidateCA(keyPair *KeyPair, dnsName string, at time.Time) (bool, error) {
+	certs, err := keyPair.Certificates()
 	if err != nil {
-		return nil, err
+		return false, fmt.Errorf("error getting certificates: %v", err)
 	}
-	return certs[0], nil
-}
-
-func ParseCertificates(bytes []byte) ([]*x509.Certificate, error) {
-	var (
-		certs []*x509.Certificate
-		block *pem.Block
-	)
-	pemBytes := bytes
-
-	for len(pemBytes) > 0 {
-		block, pemBytes = pem.Decode(pemBytes)
-		if block == nil {
-			return nil, errors.New("invalid PEM block")
-		}
-		if block.Type != pemBlockCertificate {
-			return nil, fmt.Errorf("invalid PEM certificate block, got block type: %v", block.Type)
-		}
-
-		cert, err := x509.ParseCertificate(block.Bytes)
-		if err != nil {
-			return nil, err
-		}
-		certs = append(certs, cert)
-	}
-	if len(certs) == 0 {
-		return nil, errors.New("no valid certificates found")
-	}
-
-	return certs, nil
+	return ValidateCert(certs, keyPair, dnsName, at)
 }
 
 func ValidateCert(caCerts []*x509.Certificate, certKeyPair *KeyPair, dnsName string, at time.Time) (bool, error) {
@@ -206,12 +189,58 @@ func ValidateCert(caCerts []*x509.Certificate, certKeyPair *KeyPair, dnsName str
 	return true, nil
 }
 
-func ValidateCACert(keyPair *KeyPair, dnsName string, at time.Time) (bool, error) {
-	certs, err := keyPair.Certificates()
+func ParseCertificate(bytes []byte) (*x509.Certificate, error) {
+	certs, err := ParseCertificates(bytes)
 	if err != nil {
-		return false, fmt.Errorf("error getting certificates: %v", err)
+		return nil, err
 	}
-	return ValidateCert(certs, keyPair, dnsName, at)
+	return certs[0], nil
+}
+
+func ParseCertificates(bytes []byte) ([]*x509.Certificate, error) {
+	var (
+		certs []*x509.Certificate
+		block *pem.Block
+	)
+	pemBytes := bytes
+
+	for len(pemBytes) > 0 {
+		block, pemBytes = pem.Decode(pemBytes)
+		if block == nil {
+			return nil, errors.New("invalid PEM block")
+		}
+		if block.Type != pemBlockCertificate {
+			return nil, fmt.Errorf("invalid PEM certificate block, got block type: %v", block.Type)
+		}
+
+		cert, err := x509.ParseCertificate(block.Bytes)
+		if err != nil {
+			return nil, err
+		}
+		certs = append(certs, cert)
+	}
+	if len(certs) == 0 {
+		return nil, errors.New("no valid certificates found")
+	}
+
+	return certs, nil
+}
+
+func validateLifetime(notBefore, notAfter time.Time, minDuration, maxDuration time.Duration) error {
+	if notBefore.After(notAfter) {
+		return fmt.Errorf("NotBefore (%v) cannot be after NotAfter (%v)", notBefore, notAfter)
+	}
+
+	duration := notAfter.Sub(notBefore)
+	if duration < minDuration {
+		return fmt.Errorf("lifetime duration (%v) is less than the minimum allowed duration (%v)", duration, minDuration)
+	}
+
+	if duration > maxDuration {
+		return fmt.Errorf("lifetime duration (%v) exceeds the maximum allowed duration (%v)", duration, maxDuration)
+	}
+
+	return nil
 }
 
 var serialNumberLimit = new(big.Int).Lsh(big.NewInt(1), 128)
