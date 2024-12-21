@@ -207,6 +207,7 @@ func ValidateCert(
 	for _, cert := range intermediateCAs {
 		intermediateCAsPool.AddCert(cert)
 	}
+	// explicitly provided intermediate CAs to form the chain leading to a trusted root CA
 	for _, cert := range opts.intermediateCAs {
 		intermediateCAsPool.AddCert(cert)
 	}
