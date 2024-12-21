@@ -2,61 +2,62 @@ package pki
 
 import (
 	"crypto/x509"
+	"reflect"
 	"testing"
 	"time"
 )
 
-func TestValidateCACert(t *testing.T) {
-	caName := "test-mariadb-operator"
-	x509Opts := []X509Opt{
-		WithCommonName(caName),
-		WithNotBefore(time.Now()),
-		WithNotAfter(time.Now().Add(24 * time.Hour)),
-	}
-	caKeyPair, err := CreateCA(x509Opts...)
-	if err != nil {
-		t.Fatalf("CA cert creation should succeed. Got error: %v", err)
-	}
-
-	valid, err := ValidateCACert(caKeyPair, caName, time.Now())
-	if err != nil {
-		t.Fatalf("CA cert validation should succeed. Got error: %v", err)
-	}
-	if !valid {
-		t.Fatal("Expected CA cert to be valid")
-	}
-
-	valid, err = ValidateCACert(caKeyPair, caName, time.Now().Add(-1*time.Hour))
-	if err == nil {
-		t.Fatalf("CA cert validation should return an error. Got nil")
-	}
-	if valid {
-		t.Fatal("Expected CA cert to be invalid")
-	}
-
-	valid, err = ValidateCACert(caKeyPair, "foo", time.Now())
-	if err == nil {
-		t.Fatalf("CA cert validation should return an error. Got nil")
-	}
-	if valid {
-		t.Fatal("Expected CA cert to be invalid")
-	}
-
-	caKeyPair, err = CreateCA(x509Opts...)
-	if err != nil {
-		t.Fatalf("CA cert renewal should succeed. Got error: %v", err)
-	}
-
-	valid, err = ValidateCACert(caKeyPair, caName, time.Now())
-	if err != nil {
-		t.Fatalf("CA cert validation should succeed after renewal. Got error: %v", err)
-	}
-	if !valid {
-		t.Fatal("Expected CA cert to be valid after renewal")
-	}
+func TestCreateCA(t *testing.T) {
+	testCreateCert(
+		t,
+		[]testCaseCreateCert{
+			{
+				name: "Invalid Lifetime",
+				x509Opts: []X509Opt{
+					WithNotBefore(time.Now().Add(2 * time.Hour)),
+					WithNotAfter(time.Now().Add(1 * time.Hour)),
+				},
+				wantErr: true,
+			},
+			{
+				name:           "Default CA",
+				x509Opts:       []X509Opt{},
+				wantErr:        false,
+				wantCommonName: defaultCACommonName,
+				wantIssuer:     defaultCACommonName,
+				wantDNSNames:   []string{defaultCACommonName},
+				wantKeyUsage:   x509.KeyUsageCertSign,
+			},
+			{
+				name: "Custom CommonName",
+				x509Opts: []X509Opt{
+					WithCommonName("custom-ca"),
+				},
+				wantErr:        false,
+				wantCommonName: "custom-ca",
+				wantIssuer:     "custom-ca",
+				wantDNSNames:   []string{"custom-ca"},
+				wantKeyUsage:   x509.KeyUsageCertSign,
+			},
+			{
+				name: "Custom Lifetime",
+				x509Opts: []X509Opt{
+					WithNotBefore(time.Now().Add(-2 * time.Hour)),
+					WithNotAfter(time.Now().Add(5 * 365 * 24 * time.Hour)),
+				},
+				wantErr:        false,
+				wantCommonName: defaultCACommonName,
+				wantIssuer:     defaultCACommonName,
+				wantDNSNames:   []string{defaultCACommonName},
+				wantKeyUsage:   x509.KeyUsageCertSign,
+			},
+		},
+		CreateCA,
+		ValidateCA,
+	)
 }
 
-func TestValidateCert(t *testing.T) {
+func TestCreateCert(t *testing.T) {
 	caKeyPair, err := CreateCA()
 	if err != nil {
 		t.Fatalf("CA cert creation should succeed. Got error: %v", err)
@@ -66,59 +67,80 @@ func TestValidateCert(t *testing.T) {
 		t.Fatalf("Unable to get CA certificates: %v", err)
 	}
 
-	commonName := "mariadb-operator.default.svc"
-	x509Opts := []X509Opt{
-		WithCommonName(commonName),
-		WithDNSNames([]string{
-			"mariadb-operator",
-			"mariadb-operator.default",
-			commonName,
-		}),
-		WithNotBefore(time.Now()),
-		WithNotAfter(time.Now().Add(24 * time.Hour)),
-		WithExtKeyUsage(x509.ExtKeyUsageServerAuth),
-	}
-	keyPairPEM, err := CreateCert(caKeyPair, x509Opts...)
-	if err != nil {
-		t.Fatalf("Certificate creation should succeed. Got error: %v", err)
-	}
-
-	valid, err := ValidateCert(caCerts, keyPairPEM, commonName, time.Now())
-	if err != nil {
-		t.Fatalf("Cert validation should succeed. Got error: %v", err)
-	}
-	if !valid {
-		t.Fatal("Expected cert to be valid")
-	}
-
-	valid, err = ValidateCert(caCerts, keyPairPEM, commonName, time.Now().Add(-1*time.Hour))
-	if err == nil {
-		t.Fatalf("Cert validation should return an error. Got nil")
-	}
-	if valid {
-		t.Fatal("Expected cert to be invalid")
-	}
-
-	valid, err = ValidateCert(caCerts, keyPairPEM, "foo", time.Now())
-	if err == nil {
-		t.Fatalf("Cert validation should return an error. Got nil")
-	}
-	if valid {
-		t.Fatal("Expected cert to be invalid")
-	}
-
-	keyPairPEM, err = CreateCert(caKeyPair, x509Opts...)
-	if err != nil {
-		t.Fatalf("Certificate renewal should succeed. Got error: %v", err)
-	}
-
-	valid, err = ValidateCert(caCerts, keyPairPEM, commonName, time.Now())
-	if err != nil {
-		t.Fatalf("Cert validation should succeed after renewal. Got error: %v", err)
-	}
-	if !valid {
-		t.Fatal("Expected cert to be valid")
-	}
+	testCreateCert(
+		t,
+		[]testCaseCreateCert{
+			{
+				name: "Missing CommonName",
+				x509Opts: []X509Opt{
+					WithDNSNames([]string{"missing-common-name"}),
+				},
+				wantErr: true,
+			},
+			{
+				name: "Missing DNSNames",
+				x509Opts: []X509Opt{
+					WithCommonName("missing-dns-names"),
+				},
+				wantErr: true,
+			},
+			{
+				name: "Invalid Lifetime",
+				x509Opts: []X509Opt{
+					WithCommonName("invalid-lifetime"),
+					WithDNSNames([]string{"invalid-lifetime"}),
+					WithNotBefore(time.Now().Add(2 * time.Hour)),
+					WithNotAfter(time.Now().Add(1 * time.Hour)),
+				},
+				wantErr: true,
+			},
+			{
+				name: "Default Cert",
+				x509Opts: []X509Opt{
+					WithCommonName("default-cert"),
+					WithDNSNames([]string{"default-cert"}),
+				},
+				wantErr:        false,
+				wantCommonName: "default-cert",
+				wantIssuer:     defaultCACommonName,
+				wantDNSNames:   []string{"default-cert"},
+				wantKeyUsage:   x509.KeyUsageDigitalSignature | x509.KeyUsageKeyAgreement,
+			},
+			{
+				name: "Custom Key Usage",
+				x509Opts: []X509Opt{
+					WithCommonName("custom-key-usage"),
+					WithDNSNames([]string{"custom-key-usage"}),
+					WithKeyUsage(x509.KeyUsageKeyEncipherment),
+				},
+				wantErr:        false,
+				wantCommonName: "custom-key-usage",
+				wantIssuer:     defaultCACommonName,
+				wantDNSNames:   []string{"custom-key-usage"},
+				wantKeyUsage:   x509.KeyUsageDigitalSignature | x509.KeyUsageKeyAgreement | x509.KeyUsageKeyEncipherment,
+			},
+			{
+				name: "Custom Ext Key Usage",
+				x509Opts: []X509Opt{
+					WithCommonName("custom-ext-key-usage"),
+					WithDNSNames([]string{"custom-ext-key-usage"}),
+					WithExtKeyUsage(x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth),
+				},
+				wantErr:         false,
+				wantCommonName:  "custom-ext-key-usage",
+				wantIssuer:      defaultCACommonName,
+				wantDNSNames:    []string{"custom-ext-key-usage"},
+				wantKeyUsage:    x509.KeyUsageDigitalSignature | x509.KeyUsageKeyAgreement,
+				wantExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
+			},
+		},
+		func(opts ...X509Opt) (*KeyPair, error) {
+			return CreateCert(caKeyPair, opts...)
+		},
+		func(kp *KeyPair, dnsName string, at time.Time) (bool, error) {
+			return ValidateCert(caCerts, kp, dnsName, at)
+		},
+	)
 }
 
 func TestParseCertificates(t *testing.T) {
@@ -257,6 +279,151 @@ invalid
 			}
 			if !tt.wantErr && err != nil {
 				t.Fatalf("Expecting error to be nil when parsing '%s'. Got: %v", tt.name, err)
+			}
+		})
+	}
+}
+
+func TestValidateLifetime(t *testing.T) {
+	minLifetime := 1 * time.Hour
+	maxLifetime := 5 * 365 * 24 * time.Hour // 5 years
+
+	tests := []struct {
+		name        string
+		notBefore   time.Time
+		notAfter    time.Time
+		minDuration time.Duration
+		maxDuration time.Duration
+		wantErr     bool
+	}{
+		{
+			name:        "Valid lifetime",
+			notBefore:   time.Now(),
+			notAfter:    time.Now().Add(2 * time.Hour),
+			minDuration: minLifetime,
+			maxDuration: maxLifetime,
+			wantErr:     false,
+		},
+		{
+			name:        "NotBefore after NotAfter",
+			notBefore:   time.Now().Add(2 * time.Hour),
+			notAfter:    time.Now(),
+			minDuration: minLifetime,
+			maxDuration: maxLifetime,
+			wantErr:     true,
+		},
+		{
+			name:        "Duration less than minimum",
+			notBefore:   time.Now(),
+			notAfter:    time.Now().Add(30 * time.Minute),
+			minDuration: minLifetime,
+			maxDuration: maxLifetime,
+			wantErr:     true,
+		},
+		{
+			name:        "Duration exceeds maximum",
+			notBefore:   time.Now(),
+			notAfter:    time.Now().Add(6 * 365 * 24 * time.Hour), // 6 years
+			minDuration: minLifetime,
+			maxDuration: maxLifetime,
+			wantErr:     true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateLifetime(tt.notBefore, tt.notAfter, tt.minDuration, tt.maxDuration)
+			if tt.wantErr && err == nil {
+				t.Fatalf("Expecting error to be non nil for test '%s'", tt.name)
+			}
+			if !tt.wantErr && err != nil {
+				t.Fatalf("Expecting error to be nil for test '%s'. Got: %v", tt.name, err)
+			}
+		})
+	}
+}
+
+type testCaseCreateCert struct {
+	name            string
+	x509Opts        []X509Opt
+	wantErr         bool
+	wantCommonName  string
+	wantIssuer      string
+	wantDNSNames    []string
+	wantKeyUsage    x509.KeyUsage
+	wantExtKeyUsage []x509.ExtKeyUsage
+}
+
+func testCreateCert(
+	t *testing.T,
+	tests []testCaseCreateCert,
+	createCertFn func(...X509Opt) (*KeyPair, error),
+	validateCertFn func(*KeyPair, string, time.Time) (bool, error),
+) {
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			keyPair, err := createCertFn(tt.x509Opts...)
+			if tt.wantErr && err == nil {
+				t.Fatalf("Expecting error to be non nil when creating cert '%s'", tt.name)
+			}
+			if !tt.wantErr && err != nil {
+				t.Fatalf("Expecting error to be nil when creating cert '%s'. Got: %v", tt.name, err)
+			}
+			if tt.wantErr {
+				return
+			}
+
+			certs, err := keyPair.Certificates()
+			if err != nil {
+				t.Fatalf("error getting certificates: %v", err)
+			}
+			cert := certs[0] // we are only creating certificates with a single PEM block
+			commonName := cert.Subject.CommonName
+			notBefore := cert.NotBefore
+
+			if commonName != tt.wantCommonName {
+				t.Fatalf("unexpected common name, got: %v, want: %v", commonName, tt.wantCommonName)
+			}
+			if cert.Issuer.CommonName != tt.wantIssuer {
+				t.Fatalf("unexpected issuer, got: %v, want: %v", cert.Issuer.CommonName, tt.wantIssuer)
+			}
+			if !reflect.DeepEqual(cert.DNSNames, tt.wantDNSNames) {
+				t.Fatalf("unexpected DNS names, got: %v, want: %v", cert.DNSNames, tt.wantDNSNames)
+			}
+			if !reflect.DeepEqual(cert.KeyUsage, tt.wantKeyUsage) {
+				t.Fatalf("unexpected key usage, got: %v, want: %v", cert.KeyUsage, tt.wantKeyUsage)
+			}
+			if !reflect.DeepEqual(cert.ExtKeyUsage, tt.wantExtKeyUsage) {
+				t.Fatalf("unexpected extended key usage, got: %v, want: %v", cert.ExtKeyUsage, tt.wantExtKeyUsage)
+			}
+
+			valid, err := validateCertFn(keyPair, commonName, notBefore.Add(-1*time.Hour))
+			if err == nil {
+				t.Fatalf("Cert validation should return an error. Got nil")
+			}
+			if valid {
+				t.Fatal("Expected cert to be invalid")
+			}
+
+			valid, err = validateCertFn(keyPair, "foo", time.Now())
+			if err == nil {
+				t.Fatalf("Cert validation should return an error. Got nil")
+			}
+			if valid {
+				t.Fatal("Expected cert to be invalid")
+			}
+
+			keyPair, err = createCertFn(tt.x509Opts...)
+			if err != nil {
+				t.Fatalf("Certificate renewal should succeed. Got error: %v", err)
+			}
+
+			valid, err = validateCertFn(keyPair, commonName, time.Now())
+			if err != nil {
+				t.Fatalf("Cert validation should succeed after renewal. Got error: %v", err)
+			}
+			if !valid {
+				t.Fatal("Expected cert to be valid")
 			}
 		})
 	}
