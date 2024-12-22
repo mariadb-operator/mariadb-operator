@@ -2,7 +2,8 @@
 
 PKI_DIR ?= /tmp/pki
 CA_DIR ?= $(PKI_DIR)/ca
-CERT_SIZE ?= 4096
+EC_PARAM ?= prime256v1
+EC_HASH ?= -sha256
 
 # CAs =====================================================================================================================================
 
@@ -15,12 +16,12 @@ CA_CERT ?=
 CA_KEY ?=
 CA_SUBJECT ?= 
 .PHONY: ca-root
-ca-root: ## Generates a self-signed root CA keypair.
+ca-root: ## Generates a self-signed root CA keypair with EC private key.
 	@if [ ! -f "$(CA_CERT)" ] || [ ! -f "$(CA_KEY)" ]; then \
 		mkdir -p $(CA_DIR); \
-		openssl req -new -newkey rsa:$(CERT_SIZE) -x509 -sha256 -days 365 -nodes \
-			-out $(CA_CERT) -keyout $(CA_KEY) \
-			-subj $(CA_SUBJECT); \
+		openssl ecparam -genkey -name $(EC_PARAM) -noout -out $(CA_KEY); \
+		openssl req -new -key $(CA_KEY) -x509 $(EC_HASH) -days 365 \
+			-out $(CA_CERT) -subj $(CA_SUBJECT); \
 	else \
 		echo "CA files already exist, skipping generation."; \
 	fi
@@ -29,7 +30,7 @@ ca-root: ## Generates a self-signed root CA keypair.
 	CERT_SECRET_NAMESPACE=$(CA_SECRET_NAMESPACE) \
 	CERT=$(CA_CERT) \
 	KEY=$(CA_KEY) \
-	$(MAKE) cert-secret-tls
+	$(MAKE) cert-secret-ca
 
 CA_SERVER_CERT ?= $(CA_DIR)/server.crt 
 CA_SERVER_KEY ?= $(CA_DIR)/server.key 
@@ -100,10 +101,10 @@ CERT_ALT_NAMES ?=
 .PHONY: cert-leaf
 cert-leaf: ## Generates leaf certificate keypair.
 	@mkdir -p $(PKI_DIR)
-	@openssl req -new -newkey rsa:$(CERT_SIZE) -x509 -sha256 -days 365 -nodes \
+	@openssl ecparam -genkey -name $(EC_PARAM) -noout -out $(KEY)
+	@openssl req -new -key $(KEY) $(EC_HASH) -sha256 -days 365 \
 		-CA $(CA_CERT) -CAkey $(CA_KEY) \
-		-out $(CERT) -keyout $(KEY) \
-		-subj $(CERT_SUBJECT) -addext $(CERT_ALT_NAMES)
+		-out $(CERT) -subj $(CERT_SUBJECT) -addext $(CERT_ALT_NAMES)
 
 	CERT_SECRET_NAME=$(CERT_SECRET_NAME) \
 	CERT_SECRET_NAMESPACE=$(CERT_SECRET_NAMESPACE) \
@@ -114,10 +115,10 @@ cert-leaf: ## Generates leaf certificate keypair.
 .PHONY: cert-leaf-client
 cert-leaf-client: ## Generates leaf certificate keypair for a client.
 	@mkdir -p $(PKI_DIR)
-	@openssl req -new -newkey rsa:$(CERT_SIZE) -x509 -sha256 -days 365 -nodes \
+	@openssl ecparam -genkey -name $(EC_PARAM) -noout -out $(KEY)
+	@openssl req -new -key $(KEY) -x509 $(EC_HASH) -days 365 \
 		-CA $(CA_CERT) -CAkey $(CA_KEY) \
-		-out $(CERT) -keyout $(KEY) \
-		-subj $(CERT_SUBJECT)
+		-out $(CERT) -subj $(CERT_SUBJECT)
 
 	CERT_SECRET_NAME=$(CERT_SECRET_NAME) \
 	CERT_SECRET_NAMESPACE=$(CERT_SECRET_NAMESPACE) \
@@ -269,22 +270,22 @@ CERT_SECRET_NAMESPACE ?=
 CERT ?=
 KEY ?=
 
+.PHONY: cert-secret-ca
+cert-secret-ca: kubectl ## Creates a CA Secret.
+	$(KUBECTL) create namespace $(CERT_SECRET_NAMESPACE) \
+		--dry-run=client -o yaml | $(KUBECTL) apply -f -
+	$(KUBECTL) create secret generic $(CERT_SECRET_NAME) -n $(CERT_SECRET_NAMESPACE) \
+		--from-file=ca.crt=$(CERT) --from-file=ca.key=$(KEY) \
+		--dry-run=client -o yaml | $(KUBECTL) apply -f -
+	$(KUBECTL) label secret $(CERT_SECRET_NAME) -n $(CERT_SECRET_NAMESPACE) \
+		k8s.mariadb.com/watch=""
+
 .PHONY: cert-secret-tls
 cert-secret-tls: kubectl ## Creates a TLS Secret.
 	$(KUBECTL) create namespace $(CERT_SECRET_NAMESPACE) \
 		--dry-run=client -o yaml | $(KUBECTL) apply -f -
 	$(KUBECTL) create secret tls $(CERT_SECRET_NAME) -n $(CERT_SECRET_NAMESPACE) \
 		--cert=$(CERT) --key=$(KEY) \
-		--dry-run=client -o yaml | $(KUBECTL) apply -f -
-	$(KUBECTL) label secret $(CERT_SECRET_NAME) -n $(CERT_SECRET_NAMESPACE) \
-		k8s.mariadb.com/watch=""
-
-.PHONY: cert-secret
-cert-secret: kubectl ## Creates a generic Secret from a certificate.
-	$(KUBECTL) create namespace $(CERT_SECRET_NAMESPACE) \
-		--dry-run=client -o yaml | $(KUBECTL) apply -f -
-	$(KUBECTL) create secret generic $(CERT_SECRET_NAME) -n $(CERT_SECRET_NAMESPACE) \
-		--from-file=$(CERT) \
 		--dry-run=client -o yaml | $(KUBECTL) apply -f -
 	$(KUBECTL) label secret $(CERT_SECRET_NAME) -n $(CERT_SECRET_NAMESPACE) \
 		k8s.mariadb.com/watch=""
