@@ -21,4 +21,4 @@ spec:
       enabled: true
       caSecretKeyRef:
         name: minio-ca
-        key: tls.crt
+        key: ca.crt
