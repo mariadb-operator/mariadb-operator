@@ -598,7 +598,7 @@ func getS3WithBucket(bucket, prefix string) *mariadbv1alpha1.S3 {
 				LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
 					Name: "minio-ca",
 				},
-				Key: "tls.crt",
+				Key: "ca.crt",
 			},
 		},
 	}
