@@ -42,13 +42,13 @@ func (r *MariaDBReconciler) reconcileTLSCABundle(ctx context.Context, mdb *maria
 		LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
 			Name: mdb.TLSServerCASecretKey().Name,
 		},
-		Key: pki.TLSCertKey,
+		Key: pki.CACertKey,
 	}
 	clientCAKeySelector := mariadbv1alpha1.SecretKeySelector{
 		LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
 			Name: mdb.TLSClientCASecretKey().Name,
 		},
-		Key: pki.TLSCertKey,
+		Key: pki.CACertKey,
 	}
 	caKeySelectors := []mariadbv1alpha1.SecretKeySelector{
 		caBundleKeySelector,

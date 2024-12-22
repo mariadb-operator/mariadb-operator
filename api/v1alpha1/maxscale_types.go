@@ -465,8 +465,8 @@ type MaxScaleTLS struct {
 	Enabled bool `json:"enabled"`
 	// AdminCASecretRef is a reference to a Secret containing the admin certificate authority keypair. It is used to establish trust and issue scertificates for the MaxScale's administrative REST API and GUI.
 	// One of:
-	// - TLS Secret containing both the tls.crt and tls.key. This allows you to bring your own CA to Kubernetes to issue certificates.
-	// - Generic Secret containing the tls.crt to establish trust. In this case, adminCertSecretRef is mandatory.
+	// - Secret containing both the 'ca.crt' and 'ca.key' keys. This allows you to bring your own CA to Kubernetes to issue certificates.
+	// - Secret containing only the 'ca.crt' in order to establish trust. In this case, the adminCertSecretRef field is mandatory.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	AdminCASecretRef *LocalObjectReference `json:"adminCASecretRef,omitempty"`
@@ -476,8 +476,8 @@ type MaxScaleTLS struct {
 	AdminCertSecretRef *LocalObjectReference `json:"adminCertSecretRef,omitempty"`
 	// ListenerCASecretRef is a reference to a Secret containing the listener certificate authority keypair. It is used to establish trust and issue scertificates for the MaxScale's listeners.
 	// One of:
-	// - TLS Secret containing both the tls.crt and tls.key. This allows you to bring your own CA to Kubernetes to issue certificates.
-	// - Generic Secret containing the tls.crt to establish trust. In this case, listenerCertSecretRef is mandatory.
+	// - Secret containing both the 'ca.crt' and 'ca.key' keys. This allows you to bring your own CA to Kubernetes to issue certificates.
+	// - Secret containing only the 'ca.crt' in order to establish trust. In this case, the listenerCertSecretRef field is mandatory.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	ListenerCASecretRef *LocalObjectReference `json:"listenerCASecretRef,omitempty"`
@@ -487,8 +487,8 @@ type MaxScaleTLS struct {
 	ListenerCertSecretRef *LocalObjectReference `json:"listenerCertSecretRef,omitempty"`
 	// ServerCASecretRef is a reference to a Secret containing the MariaDB server certificate authority keypair. It is used to establish trust and issue scertificates for MariaDB servers.
 	// One of:
-	// - TLS Secret containing both the tls.crt and tls.key. This allows you to bring your own CA to Kubernetes to issue certificates.
-	// - Generic Secret containing the tls.crt to establish trust. In this case, serverCertSecretRef is mandatory.
+	// - Secret containing both the 'ca.crt' and 'ca.key' keys. This allows you to bring your own CA to Kubernetes to issue certificates.
+	// - Secret containing only the 'ca.crt' in order to establish trust. In this case, the serverCertSecretRef field is mandatory.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	ServerCASecretRef *LocalObjectReference `json:"serverCASecretRef,omitempty"`
