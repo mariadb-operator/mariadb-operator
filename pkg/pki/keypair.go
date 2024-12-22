@@ -14,6 +14,8 @@ import (
 var (
 	// CACertKey is the key used to store the CA certificate in a secret.
 	CACertKey = "ca.crt"
+	// CAKeyKey is the key used to store the CA private key in a secret.
+	CAKeyKey = "ca.key"
 	// TLSCertKey is the key used to store the TLS certificate in a secret.
 	TLSCertKey = "tls.crt"
 	// TLSKeyKey is the key used to store the TLS private key in a secret.
@@ -91,27 +93,48 @@ func (k *KeyPair) PrivateKey() (crypto.Signer, error) {
 }
 
 // UpdateTLSSecret updates the given Kubernetes secret with the certificate and private key from the KeyPair.
-func (k *KeyPair) UpdateTLSSecret(secret *corev1.Secret) {
+func (k *KeyPair) UpdateSecret(secret *corev1.Secret, certKey, privateKeyKey string) {
 	if secret.Data == nil {
 		secret.Data = make(map[string][]byte)
 	}
-	secret.Data[TLSCertKey] = k.CertPEM
-	secret.Data[TLSKeyKey] = k.KeyPEM
+	secret.Data[certKey] = k.CertPEM
+	secret.Data[privateKeyKey] = k.KeyPEM
 }
 
-// NewKeyPairFromTLSSecret creates a new KeyPair from the given Kubernetes TLS secret.
-// Additional options can be provided to configure the KeyPair.
-func NewKeyPairFromTLSSecret(secret *corev1.Secret, opts ...KeyPairOpt) (*KeyPair, error) {
+// UpdateTLSSecret updates the given Kubernetes TLS secret with the certificate and private key from the KeyPair.
+func (k *KeyPair) UpdateTLSSecret(secret *corev1.Secret) {
+	k.UpdateSecret(secret, TLSCertKey, TLSKeyKey)
+}
+
+// UpdateTLSSecret updates the given Kubernetes CA secret with the certificate and private key from the KeyPair.
+func (k *KeyPair) UpdateCASecret(secret *corev1.Secret) {
+	k.UpdateSecret(secret, CACertKey, CAKeyKey)
+}
+
+// NewKeyPairFromTLSSecret creates a new KeyPair from the given Kubernetes secret.
+func NewKeyPairFromSecret(secret *corev1.Secret, certKey, privateKeyKey string, opts ...KeyPairOpt) (*KeyPair, error) {
 	if secret.Data == nil {
 		return nil, errors.New("TLS Secret is empty")
 	}
-	if secret.Type != corev1.SecretTypeTLS {
-		return nil, fmt.Errorf("invalid secret type, got: %v, want: %v", secret.Type, corev1.SecretTypeTLS)
+	certPEM, ok := secret.Data[certKey]
+	if !ok {
+		return nil, fmt.Errorf("certificate key \"%s\" not found", certKey)
 	}
-
-	certPEM := secret.Data[TLSCertKey]
-	keyPEM := secret.Data[TLSKeyKey]
+	keyPEM, ok := secret.Data[privateKeyKey]
+	if !ok {
+		return nil, fmt.Errorf("private key key \"%s\" not found", privateKeyKey)
+	}
 	return NewKeyPair(certPEM, keyPEM, opts...)
+}
+
+// NewKeyPairFromTLSSecret creates a new KeyPair from the given Kubernetes TLS secret.
+func NewKeyPairFromTLSSecret(secret *corev1.Secret, opts ...KeyPairOpt) (*KeyPair, error) {
+	return NewKeyPairFromSecret(secret, TLSCertKey, TLSKeyKey, opts...)
+}
+
+// NewKeyPairFromTLSSecret creates a new KeyPair from the given Kubernetes CA secret.
+func NewKeyPairFromCASecret(secret *corev1.Secret, opts ...KeyPairOpt) (*KeyPair, error) {
+	return NewKeyPairFromSecret(secret, CACertKey, CAKeyKey, opts...)
 }
 
 // NewKeyPairFromTemplate creates a new KeyPair from the given certificate template and CA KeyPair.
