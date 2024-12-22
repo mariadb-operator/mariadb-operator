@@ -4,6 +4,7 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"math/big"
+	"reflect"
 	"testing"
 	"time"
 
@@ -202,30 +203,52 @@ J3c22DtEFzg9emNuruVS5/HL+hanzz4o+g==
 	}
 }
 
-func TestNewKeyPairFromTLSSecret(t *testing.T) {
+func TestNewKeyPairFromSecret(t *testing.T) {
 	tests := []struct {
-		name    string
-		secret  *corev1.Secret
-		wantErr bool
+		name          string
+		secret        *corev1.Secret
+		certKey       string
+		privateKeyKey string
+		opts          []KeyPairOpt
+		wantErr       bool
 	}{
 		{
-			name: "Empty TLS Secret",
+			name: "Empty Secret",
 			secret: &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test",
 				},
-				Type: corev1.SecretTypeTLS,
 				Data: map[string][]byte{},
 			},
-			wantErr: true,
+			certKey:       TLSCertKey,
+			privateKeyKey: TLSKeyKey,
+			wantErr:       true,
 		},
 		{
-			name: "Invalid Secret Type",
+			name: "Missing Cert Key",
 			secret: &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test",
 				},
-				Type: corev1.SecretTypeOpaque,
+				Data: map[string][]byte{
+					TLSKeyKey: []byte(`-----BEGIN EC PRIVATE KEY-----
+MHcCAQEEIAdp3iKnNA1kO2Ep5Hw7owMcm06SecFGdOqW/vO4k2AjoAoGCCqGSM49
+AwEHoUQDQgAEiTVhkriBksuWW5W3Mv9L918m1BECaHUl7ZV/Pz2q84wY9aEbxe2P
+J3c22DtEFzg9emNuruVS5/HL+hanzz4o+g==
+-----END EC PRIVATE KEY-----
+`),
+				},
+			},
+			certKey:       TLSCertKey,
+			privateKeyKey: TLSKeyKey,
+			wantErr:       true,
+		},
+		{
+			name: "Missing Key Key",
+			secret: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test",
+				},
 				Data: map[string][]byte{
 					TLSCertKey: []byte(`-----BEGIN CERTIFICATE-----
 MIICXzCCAgagAwIBAgIRAIBgotjwHCDFrV2H9FWQrYIwCgYIKoZIzj0EAwIwNjEZ
@@ -241,17 +264,13 @@ cmlhZGItb3BlcmF0b3Itd2ViaG9vay5kZWZhdWx0LnN2Y4IgbWFyaWFkYi1vcGVy
 YXRvci13ZWJob29rLmRlZmF1bHSCGG1hcmlhZGItb3BlcmF0b3Itd2ViaG9vazAK
 BggqhkjOPQQDAgNHADBEAiBSWY1rVufSE+3i0w553uJGJCC4Fpa6cvRPEti8X3Kp
 1AIgG0qN5IT9EsRZaY4J2vBYsbN5LL+qRI5N0XGYqVWXuD8=
------END CERTIFICATE-----			
-`),
-					TLSKeyKey: []byte(`-----BEGIN EC PRIVATE KEY-----
-MHcCAQEEIAdp3iKnNA1kO2Ep5Hw7owMcm06SecFGdOqW/vO4k2AjoAoGCCqGSM49
-AwEHoUQDQgAEiTVhkriBksuWW5W3Mv9L918m1BECaHUl7ZV/Pz2q84wY9aEbxe2P
-J3c22DtEFzg9emNuruVS5/HL+hanzz4o+g==
------END EC PRIVATE KEY-----
+-----END CERTIFICATE-----
 `),
 				},
 			},
-			wantErr: true,
+			certKey:       TLSCertKey,
+			privateKeyKey: TLSKeyKey,
+			wantErr:       true,
 		},
 		{
 			name: "Invalid Cert PEM",
@@ -259,7 +278,6 @@ J3c22DtEFzg9emNuruVS5/HL+hanzz4o+g==
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test",
 				},
-				Type: corev1.SecretTypeTLS,
 				Data: map[string][]byte{
 					TLSCertKey: []byte("invalid-cert"),
 					TLSKeyKey: []byte(`-----BEGIN EC PRIVATE KEY-----
@@ -270,7 +288,9 @@ J3c22DtEFzg9emNuruVS5/HL+hanzz4o+g==
 `),
 				},
 			},
-			wantErr: true,
+			certKey:       TLSCertKey,
+			privateKeyKey: TLSKeyKey,
+			wantErr:       true,
 		},
 		{
 			name: "Invalid Key PEM",
@@ -278,7 +298,6 @@ J3c22DtEFzg9emNuruVS5/HL+hanzz4o+g==
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test",
 				},
-				Type: corev1.SecretTypeTLS,
 				Data: map[string][]byte{
 					TLSCertKey: []byte(`-----BEGIN CERTIFICATE-----
 MIICXzCCAgagAwIBAgIRAIBgotjwHCDFrV2H9FWQrYIwCgYIKoZIzj0EAwIwNjEZ
@@ -294,20 +313,21 @@ cmlhZGItb3BlcmF0b3Itd2ViaG9vay5kZWZhdWx0LnN2Y4IgbWFyaWFkYi1vcGVy
 YXRvci13ZWJob29rLmRlZmF1bHSCGG1hcmlhZGItb3BlcmF0b3Itd2ViaG9vazAK
 BggqhkjOPQQDAgNHADBEAiBSWY1rVufSE+3i0w553uJGJCC4Fpa6cvRPEti8X3Kp
 1AIgG0qN5IT9EsRZaY4J2vBYsbN5LL+qRI5N0XGYqVWXuD8=
------END CERTIFICATE-----			
+-----END CERTIFICATE-----
 `),
 					TLSKeyKey: []byte("invalid-key"),
 				},
 			},
-			wantErr: true,
+			certKey:       TLSCertKey,
+			privateKeyKey: TLSKeyKey,
+			wantErr:       true,
 		},
 		{
-			name: "Valid TLS Secret",
+			name: "Valid",
 			secret: &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test",
 				},
-				Type: corev1.SecretTypeTLS,
 				Data: map[string][]byte{
 					TLSCertKey: []byte(`-----BEGIN CERTIFICATE-----
 MIICXzCCAgagAwIBAgIRAIBgotjwHCDFrV2H9FWQrYIwCgYIKoZIzj0EAwIwNjEZ
@@ -323,7 +343,7 @@ cmlhZGItb3BlcmF0b3Itd2ViaG9vay5kZWZhdWx0LnN2Y4IgbWFyaWFkYi1vcGVy
 YXRvci13ZWJob29rLmRlZmF1bHSCGG1hcmlhZGItb3BlcmF0b3Itd2ViaG9vazAK
 BggqhkjOPQQDAgNHADBEAiBSWY1rVufSE+3i0w553uJGJCC4Fpa6cvRPEti8X3Kp
 1AIgG0qN5IT9EsRZaY4J2vBYsbN5LL+qRI5N0XGYqVWXuD8=
------END CERTIFICATE-----			
+-----END CERTIFICATE-----
 `),
 					TLSKeyKey: []byte(`-----BEGIN EC PRIVATE KEY-----
 MHcCAQEEIAdp3iKnNA1kO2Ep5Hw7owMcm06SecFGdOqW/vO4k2AjoAoGCCqGSM49
@@ -333,15 +353,17 @@ J3c22DtEFzg9emNuruVS5/HL+hanzz4o+g==
 `),
 				},
 			},
-			wantErr: false,
+			certKey:       TLSCertKey,
+			privateKeyKey: TLSKeyKey,
+			wantErr:       false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := NewKeyPairFromTLSSecret(tt.secret)
+			_, err := NewKeyPairFromSecret(tt.secret, tt.certKey, tt.privateKeyKey, tt.opts...)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("NewKeyPairFromTLSSecret() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("NewKeyPairFromSecret() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
@@ -460,6 +482,81 @@ wMfXbaIBSyNnT+e9/glHQsUmYVLu5MskmA==
 			}
 			if cert.Issuer.CommonName != tt.wantIssuer {
 				t.Errorf("Issuer = %v, want %v", cert.Issuer.CommonName, tt.wantIssuer)
+			}
+		})
+	}
+}
+
+func TestUpdateSecret(t *testing.T) {
+	tests := []struct {
+		name          string
+		keyPair       *KeyPair
+		secret        *corev1.Secret
+		certKey       string
+		privateKeyKey string
+		want          map[string][]byte
+	}{
+		{
+			name: "Update empty secret",
+			keyPair: &KeyPair{
+				CertPEM: []byte("cert"),
+				KeyPEM:  []byte("key"),
+			},
+			secret: &corev1.Secret{
+				Data: map[string][]byte{},
+			},
+			certKey:       TLSCertKey,
+			privateKeyKey: TLSKeyKey,
+			want: map[string][]byte{
+				TLSCertKey: []byte("cert"),
+				TLSKeyKey:  []byte("key"),
+			},
+		},
+		{
+			name: "Update existing secret",
+			keyPair: &KeyPair{
+				CertPEM: []byte("new-cert"),
+				KeyPEM:  []byte("new-key"),
+			},
+			secret: &corev1.Secret{
+				Data: map[string][]byte{
+					TLSCertKey: []byte("old-cert"),
+					TLSKeyKey:  []byte("old-key"),
+				},
+			},
+			certKey:       TLSCertKey,
+			privateKeyKey: TLSKeyKey,
+			want: map[string][]byte{
+				TLSCertKey: []byte("new-cert"),
+				TLSKeyKey:  []byte("new-key"),
+			},
+		},
+		{
+			name: "Update secret with other data",
+			keyPair: &KeyPair{
+				CertPEM: []byte("another-cert"),
+				KeyPEM:  []byte("another-key"),
+			},
+			secret: &corev1.Secret{
+				Data: map[string][]byte{
+					"other-key": []byte("other-value"),
+				},
+			},
+			certKey:       TLSCertKey,
+			privateKeyKey: TLSKeyKey,
+			want: map[string][]byte{
+				TLSCertKey:  []byte("another-cert"),
+				TLSKeyKey:   []byte("another-key"),
+				"other-key": []byte("other-value"),
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.keyPair.UpdateSecret(tt.secret, tt.certKey, tt.privateKeyKey)
+			if !reflect.DeepEqual(tt.secret.Data, tt.want) {
+				t.Errorf("UpdateSecret() = %v, want %v", tt.secret.Data, tt.want)
 			}
 		})
 	}
