@@ -483,7 +483,7 @@ func mariadbTLSVolumes(mariadb *mariadbv1alpha1.MariaDB) ([]corev1.Volume, []cor
 									},
 									Items: []corev1.KeyToPath{
 										{
-											Key:  pki.TLSCertKey,
+											Key:  pki.CACertKey,
 											Path: pki.CACertKey,
 										},
 									},
@@ -588,7 +588,7 @@ func maxscaleTLSVolumes(mxs *mariadbv1alpha1.MaxScale) ([]corev1.Volume, []corev
 									},
 									Items: []corev1.KeyToPath{
 										{
-											Key:  pki.TLSCertKey,
+											Key:  pki.CACertKey,
 											Path: pki.CACertKey,
 										},
 									},
