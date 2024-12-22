@@ -33,19 +33,19 @@ func (r *MaxScaleReconciler) reconcileTLSCABundle(ctx context.Context, mxs *mari
 		LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
 			Name: mxs.TLSAdminCASecretKey().Name,
 		},
-		Key: pki.TLSCertKey,
+		Key: pki.CACertKey,
 	}
 	listenerCAKeySelector := mariadbv1alpha1.SecretKeySelector{
 		LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
 			Name: mxs.TLSListenerCASecretKey().Name,
 		},
-		Key: pki.TLSCertKey,
+		Key: pki.CACertKey,
 	}
 	serverCAKeySelector := mariadbv1alpha1.SecretKeySelector{
 		LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
 			Name: mxs.TLSServerCASecretKey().Name,
 		},
-		Key: pki.TLSCertKey,
+		Key: pki.CACertKey,
 	}
 	caKeySelectors := []mariadbv1alpha1.SecretKeySelector{
 		caBundleKeySelector,

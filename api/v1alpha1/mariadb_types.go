@@ -325,8 +325,8 @@ type TLS struct {
 	Enabled bool `json:"enabled"`
 	// ServerCASecretRef is a reference to a Secret containing the server certificate authority keypair. It is used to establish trust and issue server certificates for MariaDB server.
 	// One of:
-	// - TLS Secret containing both the tls.crt and tls.key. This allows you to bring your own CA to Kubernetes to issue certificates.
-	// - Generic Secret containing the tls.crt to establish trust. In this case, serverSecretRef is mandatory.
+	// - Secret containing both the 'ca.crt' and 'ca.key' keys. This allows you to bring your own CA to Kubernetes to issue certificates.
+	// - Secret containing only the 'ca.crt' in order to establish trust. In this case, the serverSecretRef field is mandatory.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	ServerCASecretRef *LocalObjectReference `json:"serverCASecretRef,omitempty"`
@@ -336,8 +336,8 @@ type TLS struct {
 	ServerCertSecretRef *LocalObjectReference `json:"serverCertSecretRef,omitempty"`
 	// ClientCASecretRef is a reference to a Secret containing the client certificate authority keypair. It is used to establish trust and issue server certificates for MariaDB clients.
 	// One of:
-	// - TLS Secret containing both the tls.crt and tls.key. This allows you to bring your own CA to Kubernetes to issue certificates.
-	// - Generic Secret containing the tls.crt to establish trust. In this case, clientSecretRef is mandatory.
+	// - Secret containing both the 'ca.crt' and 'ca.key' keys. This allows you to bring your own CA to Kubernetes to issue certificates.
+	// - Secret containing only the 'ca.crt' in order to establish trust. In this case, the clientSecretRef field is mandatory.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	ClientCASecretRef *LocalObjectReference `json:"clientCASecretRef,omitempty"`

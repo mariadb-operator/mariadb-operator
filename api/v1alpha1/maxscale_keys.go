@@ -98,7 +98,7 @@ func (m *MaxScale) TLSCABundleSecretKeyRef() SecretKeySelector {
 		LocalObjectReference: LocalObjectReference{
 			Name: fmt.Sprintf("%s-ca-bundle", m.Name),
 		},
-		Key: pki.TLSCertKey,
+		Key: pki.CACertKey,
 	}
 }
 
