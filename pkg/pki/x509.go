@@ -12,9 +12,8 @@ import (
 )
 
 var (
-	defaultCACommonName = "mariadb-operator"
-	defaultCALifetime   = 3 * 365 * 24 * time.Hour // 3 years
-	defaultCertLifetime = 3 * 30 * 24 * time.Hour  // 3 months
+	DefaultCALifetime   = 3 * 365 * 24 * time.Hour // 3 years
+	DefaultCertLifetime = 3 * 30 * 24 * time.Hour  // 3 months
 
 	caMinLifetime = 1 * time.Hour
 	caMaxLifetime = 10 * 365 * 24 * time.Hour // 10 years
@@ -96,12 +95,14 @@ func WithIsCA(isCA bool) X509Opt {
 // CreateCA creates a new CA certificate with the given options.
 func CreateCA(x509Opts ...X509Opt) (*KeyPair, error) {
 	opts := X509Opts{
-		CommonName: defaultCACommonName,
-		NotBefore:  time.Now().Add(-1 * time.Hour),
-		NotAfter:   time.Now().Add(defaultCALifetime),
+		NotBefore: time.Now().Add(-1 * time.Hour),
+		NotAfter:  time.Now().Add(DefaultCALifetime),
 	}
 	for _, setOpt := range x509Opts {
 		setOpt(&opts)
+	}
+	if opts.CommonName == "" {
+		return nil, errors.New("CommonName is mandatory")
 	}
 	if err := validateLifetime(opts.NotBefore, opts.NotAfter, caMinLifetime, caMaxLifetime); err != nil {
 		return nil, fmt.Errorf("invalid CA lifetime: %v", err)
@@ -133,7 +134,7 @@ func CreateCA(x509Opts ...X509Opt) (*KeyPair, error) {
 func CreateCert(caKeyPair *KeyPair, x509Opts ...X509Opt) (*KeyPair, error) {
 	opts := X509Opts{
 		NotBefore: time.Now().Add(-1 * time.Hour),
-		NotAfter:  time.Now().Add(defaultCertLifetime),
+		NotAfter:  time.Now().Add(DefaultCertLifetime),
 		KeyUsage:  x509.KeyUsageDigitalSignature | x509.KeyUsageKeyAgreement,
 		IsCA:      false,
 	}
