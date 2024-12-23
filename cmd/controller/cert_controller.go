@@ -14,9 +14,9 @@ import (
 
 var (
 	caSecretName, caSecretNamespace, caCommonName string
-	caValidity                                    time.Duration
+	caLifetime                                    time.Duration
 	certSecretName, certSecretNamespace           string
-	certValidity                                  time.Duration
+	certLifetime                                  time.Duration
 	lookaheadValidity                             time.Duration
 	serviceName, serviceNamespace                 string
 	requeueDuration                               time.Duration
@@ -28,13 +28,13 @@ func init() {
 	certControllerCmd.Flags().StringVar(&caSecretNamespace, "ca-secret-namespace", "default",
 		"Namespace of the Secret to store the CA certificate for webhook")
 	certControllerCmd.Flags().StringVar(&caCommonName, "ca-common-name", "mariadb-operator", "CA certificate common name")
-	certControllerCmd.Flags().DurationVar(&caValidity, "ca-validity", 4*365*24*time.Hour, "CA certificate validity")
+	certControllerCmd.Flags().DurationVar(&caLifetime, "ca-lifetime", 3*365*24*time.Hour, "CA certificate lifetime")
 	certControllerCmd.Flags().StringVar(&certSecretName, "cert-secret-name", "mariadb-operator-webhook-cert",
 		"Secret to store the certificate for webhook")
 	certControllerCmd.Flags().StringVar(&certSecretNamespace, "cert-secret-namespace", "default",
 		"Namespace of the Secret to store the certificate for webhook")
-	certControllerCmd.Flags().DurationVar(&certValidity, "cert-validity", 365*24*time.Hour, "Certificate validity")
-	certControllerCmd.Flags().DurationVar(&lookaheadValidity, "lookahead-validity", 90*24*time.Hour,
+	certControllerCmd.Flags().DurationVar(&certLifetime, "cert-lifetime", 3*30*24*time.Hour, "Certificate lifetime")
+	certControllerCmd.Flags().DurationVar(&lookaheadValidity, "lookahead-validity", 30*24*time.Hour,
 		"Lookahead validity used to determine whether a certificate is valid or not")
 	certControllerCmd.Flags().StringVar(&serviceName, "service-name", "mariadb-operator-webhook", "Webhook service name")
 	certControllerCmd.Flags().StringVar(&serviceNamespace, "service-namespace", "default", "Webhook service namespace")
@@ -73,12 +73,12 @@ var certControllerCmd = &cobra.Command{
 				Namespace: caSecretNamespace,
 			},
 			caCommonName,
-			caValidity,
+			caLifetime,
 			types.NamespacedName{
 				Name:      certSecretName,
 				Namespace: certSecretNamespace,
 			},
-			certValidity,
+			certLifetime,
 			lookaheadValidity,
 			types.NamespacedName{
 				Name:      serviceName,

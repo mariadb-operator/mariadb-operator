@@ -12,6 +12,11 @@ func TestCreateCA(t *testing.T) {
 		t,
 		[]testCaseCreateCert{
 			{
+				name:     "No CommonName",
+				x509Opts: []X509Opt{},
+				wantErr:  true,
+			},
+			{
 				name: "Invalid Lifetime",
 				x509Opts: []X509Opt{
 					WithNotBefore(time.Now().Add(2 * time.Hour)),
@@ -20,37 +25,28 @@ func TestCreateCA(t *testing.T) {
 				wantErr: true,
 			},
 			{
-				name:           "Default CA",
-				x509Opts:       []X509Opt{},
-				wantErr:        false,
-				wantCommonName: defaultCACommonName,
-				wantIssuer:     defaultCACommonName,
-				wantDNSNames:   []string{defaultCACommonName},
-				wantKeyUsage:   x509.KeyUsageCertSign,
-				wantIsCA:       true,
-			},
-			{
-				name: "Custom CommonName",
+				name: "Valid",
 				x509Opts: []X509Opt{
-					WithCommonName("custom-ca"),
+					WithCommonName("test"),
 				},
 				wantErr:        false,
-				wantCommonName: "custom-ca",
-				wantIssuer:     "custom-ca",
-				wantDNSNames:   []string{"custom-ca"},
+				wantCommonName: "test",
+				wantIssuer:     "test",
+				wantDNSNames:   []string{"test"},
 				wantKeyUsage:   x509.KeyUsageCertSign,
 				wantIsCA:       true,
 			},
 			{
 				name: "Custom Lifetime",
 				x509Opts: []X509Opt{
+					WithCommonName("test"),
 					WithNotBefore(time.Now().Add(-2 * time.Hour)),
 					WithNotAfter(time.Now().Add(5 * 365 * 24 * time.Hour)),
 				},
 				wantErr:        false,
-				wantCommonName: defaultCACommonName,
-				wantIssuer:     defaultCACommonName,
-				wantDNSNames:   []string{defaultCACommonName},
+				wantCommonName: "test",
+				wantIssuer:     "test",
+				wantDNSNames:   []string{"test"},
 				wantKeyUsage:   x509.KeyUsageCertSign,
 				wantIsCA:       true,
 			},
@@ -61,7 +57,10 @@ func TestCreateCA(t *testing.T) {
 }
 
 func TestCreateCert(t *testing.T) {
-	caKeyPair, err := CreateCA()
+	caName := "tetst"
+	caKeyPair, err := CreateCA(
+		WithCommonName(caName),
+	)
 	if err != nil {
 		t.Fatalf("CA cert creation should succeed. Got error: %v", err)
 	}
@@ -105,7 +104,7 @@ func TestCreateCert(t *testing.T) {
 				},
 				wantErr:        false,
 				wantCommonName: "default-cert",
-				wantIssuer:     defaultCACommonName,
+				wantIssuer:     caName,
 				wantDNSNames:   []string{"default-cert"},
 				wantKeyUsage:   x509.KeyUsageDigitalSignature | x509.KeyUsageKeyAgreement,
 				wantIsCA:       false,
@@ -119,7 +118,7 @@ func TestCreateCert(t *testing.T) {
 				},
 				wantErr:        false,
 				wantCommonName: "custom-key-usage",
-				wantIssuer:     defaultCACommonName,
+				wantIssuer:     caName,
 				wantDNSNames:   []string{"custom-key-usage"},
 				wantKeyUsage:   x509.KeyUsageDigitalSignature | x509.KeyUsageKeyAgreement | x509.KeyUsageKeyEncipherment,
 				wantIsCA:       false,
@@ -133,7 +132,7 @@ func TestCreateCert(t *testing.T) {
 				},
 				wantErr:         false,
 				wantCommonName:  "custom-ext-key-usage",
-				wantIssuer:      defaultCACommonName,
+				wantIssuer:      caName,
 				wantDNSNames:    []string{"custom-ext-key-usage"},
 				wantKeyUsage:    x509.KeyUsageDigitalSignature | x509.KeyUsageKeyAgreement,
 				wantExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
