@@ -221,12 +221,12 @@ certController:
     enabled: false
     # -- Number of replicas
     replicas: 3
-  # -- CA certificate validity. It must be greater than certValidity.
-  caValidity: 35064h
-  # -- Certificate validity.
-  certValidity: 8766h
+  # -- CA certificate lifetime. It must be greater than certLifetime.
+  caLifetime: 26280h
+  # -- Certificate lifetime.
+  certLifetime: 2160h
   # -- Duration used to verify whether a certificate is valid or not.
-  lookaheadValidity: 2160h
+  lookaheadValidity: 720h
   # -- Requeue duration to ensure that certificate gets renewed.
   requeueDuration: 5m
   serviceMonitor:
