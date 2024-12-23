@@ -412,7 +412,7 @@ wMfXbaIBSyNnT+e9/glHQsUmYVLu5MskmA==
 					CommonName: "cert",
 				},
 				NotBefore:             time.Now(),
-				NotAfter:              time.Now().Add(defaultCertLifetime),
+				NotAfter:              time.Now().Add(DefaultCertLifetime),
 				KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment,
 				BasicConstraintsValid: true,
 			},
@@ -432,7 +432,7 @@ wMfXbaIBSyNnT+e9/glHQsUmYVLu5MskmA==
 					CommonName: "ca",
 				},
 				NotBefore:             time.Now(),
-				NotAfter:              time.Now().Add(-defaultCertLifetime), // Invalid NotAfter
+				NotAfter:              time.Now().Add(-DefaultCertLifetime), // Invalid NotAfter
 				KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment | x509.KeyUsageCertSign,
 				BasicConstraintsValid: true,
 				IsCA:                  true,
@@ -450,7 +450,7 @@ wMfXbaIBSyNnT+e9/glHQsUmYVLu5MskmA==
 					CommonName: "cert",
 				},
 				NotBefore:             time.Now(),
-				NotAfter:              time.Now().Add(defaultCertLifetime),
+				NotAfter:              time.Now().Add(DefaultCertLifetime),
 				KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment,
 				BasicConstraintsValid: true,
 			},
