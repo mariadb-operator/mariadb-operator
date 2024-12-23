@@ -51,10 +51,10 @@ spec:
             - cert-controller
             - --ca-secret-name={{ include "mariadb-operator.fullname" . }}-webhook-ca
             - --ca-secret-namespace={{ .Release.Namespace }}
-            - --ca-validity={{ .Values.certController.caValidity }}
+            - --ca-lifetime={{ .Values.certController.caLifetime }}
             - --cert-secret-name={{ include "mariadb-operator.fullname" . }}-webhook-cert
             - --cert-secret-namespace={{ .Release.Namespace }}
-            - --cert-validity={{ .Values.certController.certValidity }}
+            - --cert-lifetime={{ .Values.certController.certLifetime }}
             - --lookahead-validity={{ .Values.certController.lookaheadValidity }}
             - --service-name={{ include "mariadb-operator.fullname" . }}-webhook
             - --service-namespace={{ .Release.Namespace }}
