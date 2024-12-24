@@ -38,7 +38,6 @@ func (r *CertReconciler) Reconcile(ctx context.Context, certOpts ...CertReconcil
 		setOpt(opts)
 	}
 	logger := log.FromContext(ctx).WithName("cert")
-
 	createCA := r.createCAFn(opts)
 
 	result := &ReconcileResult{}
@@ -58,15 +57,19 @@ func (r *CertReconciler) Reconcile(ctx context.Context, certOpts ...CertReconcil
 	}
 
 	valid, err := pki.ValidateCA(result.CAKeyPair, opts.caCommonName, time.Now())
-	if !valid || err != nil || time.Now().After(*renewalTime) {
-		logger.Info(
-			"Starting CA cert renewal",
-			"common-name", caLeafCert.Subject.CommonName,
-			"issuer", caLeafCert.Issuer.CommonName,
-			"valid", valid,
-			"err", err,
-			"renewal-time", renewalTime,
-		)
+	afterRenewal := time.Now().After(*renewalTime)
+	caLogger := logger.WithValues(
+		"common-name", caLeafCert.Subject.CommonName,
+		"issuer", caLeafCert.Issuer.CommonName,
+		"valid", valid,
+		"err", err,
+		"renewal-time", renewalTime,
+		"after-renewal", afterRenewal,
+	)
+	caLogger.V(1).Info("CA cert status")
+
+	if !valid || err != nil || afterRenewal {
+		caLogger.Info("Starting CA cert renewal")
 
 		result.CAKeyPair, result.RenewedCA, err = r.reconcileKeyPair(ctx, opts.caSecretKey, opts.caSecretType, true, createCA)
 		if err != nil {
@@ -94,15 +97,19 @@ func (r *CertReconciler) Reconcile(ctx context.Context, certOpts ...CertReconcil
 	}
 
 	valid, err = pki.ValidateCert(caCerts, result.CertKeyPair, opts.certCommonName, time.Now())
-	if !valid || err != nil || time.Now().After(*renewalTime) {
-		logger.Info(
-			"Starting cert renewal",
-			"common-name", leafCert.Subject.CommonName,
-			"issuer", leafCert.Issuer.CommonName,
-			"valid", valid,
-			"err", err,
-			"renewal-time", renewalTime,
-		)
+	afterRenewal = time.Now().After(*renewalTime)
+	certLogger := logger.WithValues(
+		"common-name", leafCert.Subject.CommonName,
+		"issuer", leafCert.Issuer.CommonName,
+		"valid", valid,
+		"err", err,
+		"renewal-time", renewalTime,
+		"after-renewal", afterRenewal,
+	)
+	certLogger.V(1).Info("Cert status")
+
+	if !valid || err != nil || afterRenewal {
+		certLogger.Info("Starting cert renewal")
 
 		result.CertKeyPair, result.RenewedCert, err = r.reconcileKeyPair(ctx, opts.certSecretKey, SecretTypeTLS, true, createCert)
 		if err != nil {
