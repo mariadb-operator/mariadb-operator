@@ -43,7 +43,7 @@ type WebhookConfigReconciler struct {
 
 func NewWebhookConfigReconciler(client client.Client, scheme *runtime.Scheme, recorder record.EventRecorder, leaderChan <-chan struct{},
 	caSecretKey types.NamespacedName, caCommonName string, caLifetime time.Duration,
-	certSecretKey types.NamespacedName, certLifetime time.Duration, lookaheadValidity time.Duration,
+	certSecretKey types.NamespacedName, certLifetime time.Duration, renewBeforePercentage int32,
 	serviceKey types.NamespacedName, requeueDuration time.Duration) *WebhookConfigReconciler {
 
 	certOpts := []certctrl.CertReconcilerOpt{
@@ -51,6 +51,7 @@ func NewWebhookConfigReconciler(client client.Client, scheme *runtime.Scheme, re
 		certctrl.WithCASecretType(certctrl.SecretTypeTLS),
 		certctrl.WithCert(certSecretKey, serviceDNSNames(serviceKey).Names, certLifetime),
 		certctrl.WithServerCertKeyUsage(),
+		certctrl.WithRenewBeforePercentage(renewBeforePercentage),
 	}
 
 	return &WebhookConfigReconciler{

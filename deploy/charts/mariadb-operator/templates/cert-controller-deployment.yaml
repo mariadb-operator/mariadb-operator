@@ -55,7 +55,7 @@ spec:
             - --cert-secret-name={{ include "mariadb-operator.fullname" . }}-webhook-cert
             - --cert-secret-namespace={{ .Release.Namespace }}
             - --cert-lifetime={{ .Values.certController.certLifetime }}
-            - --lookahead-validity={{ .Values.certController.lookaheadValidity }}
+            - --renew-before-percentage={{ .Values.certController.renewBeforePercentage }}
             - --service-name={{ include "mariadb-operator.fullname" . }}-webhook
             - --service-namespace={{ .Release.Namespace }}
             - --requeue-duration={{ .Values.certController.requeueDuration }}

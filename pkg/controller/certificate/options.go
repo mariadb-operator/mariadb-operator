@@ -9,9 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-var (
-	defaultLookaheadValidity = 30 * 24 * time.Hour
-)
+const DefaultRenewBeforePercentage = 33
 
 type SecretType int
 
@@ -33,7 +31,7 @@ type CertReconcilerOpts struct {
 	certKeyUsage    x509.KeyUsage
 	certExtKeyUsage []x509.ExtKeyUsage
 
-	lookaheadValidity time.Duration
+	renewBeforePercentage int32
 }
 
 type CertReconcilerOpt func(*CertReconcilerOpts)
@@ -89,9 +87,9 @@ func WithClientCertKeyUsage() CertReconcilerOpt {
 	}
 }
 
-func WithLookaheadValidity(validity time.Duration) CertReconcilerOpt {
+func WithRenewBeforePercentage(percentage int32) CertReconcilerOpt {
 	return func(o *CertReconcilerOpts) {
-		o.lookaheadValidity = validity
+		o.renewBeforePercentage = percentage
 	}
 }
 
@@ -124,9 +122,9 @@ func (o *CertReconcilerOpts) Certx509Opts() ([]pki.X509Opt, error) {
 
 func NewDefaultCertificateOpts() *CertReconcilerOpts {
 	opts := &CertReconcilerOpts{
-		caLifetime:        pki.DefaultCALifetime,
-		certLifetime:      pki.DefaultCertLifetime,
-		lookaheadValidity: defaultLookaheadValidity,
+		caLifetime:            pki.DefaultCALifetime,
+		certLifetime:          pki.DefaultCertLifetime,
+		renewBeforePercentage: DefaultRenewBeforePercentage,
 	}
 	return opts
 }
