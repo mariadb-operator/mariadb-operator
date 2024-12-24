@@ -2,6 +2,7 @@ package certificate
 
 import (
 	"context"
+	"crypto/x509"
 	"fmt"
 	"time"
 
@@ -11,6 +12,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 type CertReconciler struct {
@@ -24,10 +26,10 @@ func NewCertReconciler(client client.Client) *CertReconciler {
 }
 
 type ReconcileResult struct {
-	CAKeyPair     *pki.KeyPair
-	CertKeyPair   *pki.KeyPair
-	RefreshedCA   bool
-	RefreshedCert bool
+	CAKeyPair   *pki.KeyPair
+	CertKeyPair *pki.KeyPair
+	RenewedCA   bool
+	RenewedCert bool
 }
 
 func (r *CertReconciler) Reconcile(ctx context.Context, certOpts ...CertReconcilerOpt) (*ReconcileResult, error) {
@@ -35,26 +37,45 @@ func (r *CertReconciler) Reconcile(ctx context.Context, certOpts ...CertReconcil
 	for _, setOpt := range certOpts {
 		setOpt(opts)
 	}
+	logger := log.FromContext(ctx).WithName("cert")
 
 	createCA := r.createCAFn(opts)
 
 	result := &ReconcileResult{}
 	var err error
-	result.CAKeyPair, result.RefreshedCA, err = r.reconcileKeyPair(ctx, opts.caSecretKey, opts.caSecretType, false, createCA)
+	result.CAKeyPair, result.RenewedCA, err = r.reconcileKeyPair(ctx, opts.caSecretKey, opts.caSecretType, false, createCA)
 	if err != nil {
 		return nil, fmt.Errorf("Error reconciling CA KeyPair: %v", err)
 	}
 
-	valid, err := pki.ValidateCA(result.CAKeyPair, opts.caCommonName, lookaheadTime(opts))
-	if !valid || err != nil {
-		result.CAKeyPair, result.RefreshedCA, err = r.reconcileKeyPair(ctx, opts.caSecretKey, opts.caSecretType, true, createCA)
+	caLeafCert, err := getLeafCert(result.CAKeyPair)
+	if err != nil {
+		return nil, fmt.Errorf("error getting CA leaf certificate: %v", err)
+	}
+	renewalTime, err := getRenewalTime(caLeafCert.NotBefore, caLeafCert.NotAfter, opts.renewBeforePercentage)
+	if err != nil {
+		return nil, fmt.Errorf("error getting CA renewal time: %v", err)
+	}
+
+	valid, err := pki.ValidateCA(result.CAKeyPair, opts.caCommonName, time.Now())
+	if !valid || err != nil || time.Now().After(*renewalTime) {
+		logger.Info(
+			"Starting CA cert renewal",
+			"common-name", caLeafCert.Subject.CommonName,
+			"issuer", caLeafCert.Issuer.CommonName,
+			"valid", valid,
+			"err", err,
+			"renewal-time", renewalTime,
+		)
+
+		result.CAKeyPair, result.RenewedCA, err = r.reconcileKeyPair(ctx, opts.caSecretKey, opts.caSecretType, true, createCA)
 		if err != nil {
 			return nil, fmt.Errorf("Error reconciling CA KeyPair: %v", err)
 		}
 	}
 
 	createCert := r.createCertFn(result.CAKeyPair, opts)
-	result.CertKeyPair, result.RefreshedCert, err = r.reconcileKeyPair(ctx, opts.certSecretKey, SecretTypeTLS, false, createCert)
+	result.CertKeyPair, result.RenewedCert, err = r.reconcileKeyPair(ctx, opts.certSecretKey, SecretTypeTLS, false, createCert)
 	if err != nil {
 		return nil, fmt.Errorf("Error reconciling certificate KeyPair: %v", err)
 	}
@@ -63,9 +84,27 @@ func (r *CertReconciler) Reconcile(ctx context.Context, certOpts ...CertReconcil
 	if err != nil {
 		return nil, fmt.Errorf("error getting CA certificates: %v", err)
 	}
-	valid, err = pki.ValidateCert(caCerts, result.CertKeyPair, opts.certCommonName, lookaheadTime(opts))
-	if result.RefreshedCA || !valid || err != nil {
-		result.CertKeyPair, result.RefreshedCert, err = r.reconcileKeyPair(ctx, opts.certSecretKey, SecretTypeTLS, true, createCert)
+	leafCert, err := getLeafCert(result.CertKeyPair)
+	if err != nil {
+		return nil, fmt.Errorf("error getting leaf certificate: %v", err)
+	}
+	renewalTime, err = getRenewalTime(leafCert.NotBefore, leafCert.NotAfter, opts.renewBeforePercentage)
+	if err != nil {
+		return nil, fmt.Errorf("error getting cert renewal time: %v", err)
+	}
+
+	valid, err = pki.ValidateCert(caCerts, result.CertKeyPair, opts.certCommonName, time.Now())
+	if !valid || err != nil || time.Now().After(*renewalTime) {
+		logger.Info(
+			"Starting cert renewal",
+			"common-name", leafCert.Subject.CommonName,
+			"issuer", leafCert.Issuer.CommonName,
+			"valid", valid,
+			"err", err,
+			"renewal-time", renewalTime,
+		)
+
+		result.CertKeyPair, result.RenewedCert, err = r.reconcileKeyPair(ctx, opts.certSecretKey, SecretTypeTLS, true, createCert)
 		if err != nil {
 			return nil, fmt.Errorf("Error reconciling certificate KeyPair: %v", err)
 		}
@@ -74,7 +113,7 @@ func (r *CertReconciler) Reconcile(ctx context.Context, certOpts ...CertReconcil
 }
 
 func (r *CertReconciler) reconcileKeyPair(ctx context.Context, key types.NamespacedName, secretType SecretType,
-	refresh bool, createKeyPairFn func() (*pki.KeyPair, error)) (keyPair *pki.KeyPair, refreshed bool, err error) {
+	shouldRenew bool, createKeyPairFn func() (*pki.KeyPair, error)) (keyPair *pki.KeyPair, refreshed bool, err error) {
 	secret := corev1.Secret{}
 	if err := r.Get(ctx, key, &secret); err != nil {
 		if !apierrors.IsNotFound(err) {
@@ -90,7 +129,7 @@ func (r *CertReconciler) reconcileKeyPair(ctx context.Context, key types.Namespa
 		return keyPair, true, nil
 	}
 
-	if secret.Data == nil || refresh {
+	if secret.Data == nil || shouldRenew {
 		keyPair, err := createKeyPairFn()
 		if err != nil {
 			return nil, false, err
@@ -177,6 +216,25 @@ func (r *CertReconciler) patchSecret(ctx context.Context, secretType SecretType,
 	return nil
 }
 
-func lookaheadTime(opts *CertReconcilerOpts) time.Time {
-	return time.Now().Add(opts.lookaheadValidity)
+func getLeafCert(keyPair *pki.KeyPair) (*x509.Certificate, error) {
+	certs, err := keyPair.Certificates()
+	if err != nil {
+		return nil, fmt.Errorf("error getting keypair certificates: %v", err)
+	}
+	leafCert := certs[0] // First cert is the leaf certificate, the rest are intermediates to form a parth to root.
+
+	return leafCert, nil
+}
+
+// See https://github.com/cert-manager/cert-manager/blob/dd8b7d233110cbd49f2f31eb709f39865f8b0300/pkg/util/pki/renewaltime.go#L35
+func getRenewalTime(notBefore, notAfter time.Time, renewBeforePercentage int32) (*time.Time, error) {
+	if !(renewBeforePercentage >= 10 && renewBeforePercentage <= 90) {
+		return nil, fmt.Errorf("invalid renewBeforePercentage %v, it must be between [10, 90]", renewBeforePercentage)
+	}
+	duration := notAfter.Sub(notBefore)
+	renewalDuration := duration * time.Duration(renewBeforePercentage) / 100
+
+	renewalTime := notAfter.Add(-1 * renewalDuration).Truncate(time.Second)
+
+	return &renewalTime, nil
 }
