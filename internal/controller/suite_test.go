@@ -324,10 +324,10 @@ var _ = BeforeSuite(func() {
 		k8sManager.Elected(),
 		testCASecretKey,
 		"test",
-		4*365*24*time.Hour,
+		3*365*24*time.Hour,
 		testCertSecretKey,
-		365*24*time.Hour,
-		90*24*time.Hour,
+		3*30*24*time.Hour,
+		33,
 		testWebhookServiceKey,
 		5*time.Minute,
 	).SetupWithManager(k8sManager)
