@@ -101,8 +101,10 @@ WEBHOOK_FLAGS ?= --log-dev --log-level=debug --log-time-encoder=iso8601 \
 webhook: lint cert-webhook ## Run a webhook from your host.
 	$(GO) run cmd/controller/*.go webhook $(WEBHOOK_FLAGS)
 
+# CERT_CONTROLLER_FLAGS ?= --log-dev --log-level=debug --log-time-encoder=iso8601 \
+# 	--ca-lifetime=26280h --cert-lifetime=2160h --renew-before-percentage=33 --requeue-duration=5m
 CERT_CONTROLLER_FLAGS ?= --log-dev --log-level=debug --log-time-encoder=iso8601 \
-	--ca-lifetime=26280h --cert-lifetime=2160h --lookahead-validity=720h --requeue-duration=1m
+	--ca-lifetime=1h --cert-lifetime=1m --renew-before-percentage=33 --requeue-duration=30s
 .PHONY: cert-controller
 cert-controller: lint ## Run a cert-controller from your host.
 	$(GO) run cmd/controller/*.go cert-controller $(CERT_CONTROLLER_FLAGS)

@@ -225,8 +225,8 @@ certController:
   caLifetime: 26280h
   # -- Certificate lifetime.
   certLifetime: 2160h
-  # -- Duration used to verify whether a certificate is valid or not.
-  lookaheadValidity: 720h
+  # -- How long before the certificate expiration should the renewal process be triggered. For example, if a certificate is valid for 60 minutes, and renewBeforePercentage=25, cert-controller will begin to attempt to renew the certificate 45 minutes after it was issued (i.e. when there are 15 minutes (25%) remaining until the certificate is no longer valid).
+  renewBeforePercentage: 33
   # -- Requeue duration to ensure that certificate gets renewed.
   requeueDuration: 5m
   serviceMonitor:
