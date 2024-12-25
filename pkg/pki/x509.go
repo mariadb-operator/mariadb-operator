@@ -38,6 +38,8 @@ type X509Opts struct {
 	ExtKeyUsage []x509.ExtKeyUsage
 	// IsCA indicates whether the certificate is a CA certificate.
 	IsCA bool
+	// KeyPairOpts are options to configure the keypair.
+	KeyPairOpts []KeyPairOpt
 }
 
 // X509Opt is a function type used to configure X509Opts.
@@ -92,6 +94,13 @@ func WithIsCA(isCA bool) X509Opt {
 	}
 }
 
+// WithKeyPairOpts sets options to configure the keypair.
+func WithKeyPairOpts(keyPairOpts ...KeyPairOpt) X509Opt {
+	return func(x *X509Opts) {
+		x.KeyPairOpts = keyPairOpts
+	}
+}
+
 // CreateCA creates a new CA certificate with the given options.
 func CreateCA(x509Opts ...X509Opt) (*KeyPair, error) {
 	opts := X509Opts{
@@ -127,7 +136,7 @@ func CreateCA(x509Opts ...X509Opt) (*KeyPair, error) {
 		BasicConstraintsValid: true,
 		IsCA:                  true,
 	}
-	return NewKeyPairFromTemplate(tpl, nil)
+	return NewKeyPairFromTemplate(tpl, nil, opts.KeyPairOpts...)
 }
 
 // CreateCert creates a new certificate signed by the given CA key pair with the given options.
@@ -166,7 +175,7 @@ func CreateCert(caKeyPair *KeyPair, x509Opts ...X509Opt) (*KeyPair, error) {
 		BasicConstraintsValid: true,
 		IsCA:                  opts.IsCA,
 	}
-	return NewKeyPairFromTemplate(tpl, caKeyPair)
+	return NewKeyPairFromTemplate(tpl, caKeyPair, opts.KeyPairOpts...)
 }
 
 // ValidateCA validates the given CA key pair at the specified time.
