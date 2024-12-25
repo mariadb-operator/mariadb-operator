@@ -15,6 +15,7 @@ import (
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/auth"
+	certctrl "github.com/mariadb-operator/mariadb-operator/pkg/controller/certificate"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/configmap"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/deployment"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/endpoints"
@@ -76,10 +77,11 @@ type MariaDBReconciler struct {
 	AuthReconciler           *auth.AuthReconciler
 	DeploymentReconciler     *deployment.DeploymentReconciler
 	ServiceMonitorReconciler *servicemonitor.ServiceMonitorReconciler
-	MaxScaleReconciler       *maxscale.MaxScaleReconciler
+	CertReconciler           *certctrl.CertReconciler
 
 	ReplicationReconciler *replication.ReplicationReconciler
 	GaleraReconciler      *galera.GaleraReconciler
+	MaxScaleReconciler    *maxscale.MaxScaleReconciler
 }
 
 type reconcilePhaseMariaDB struct {
