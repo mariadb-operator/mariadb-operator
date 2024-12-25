@@ -28,8 +28,6 @@ func NewCertReconciler(client client.Client) *CertReconciler {
 type ReconcileResult struct {
 	CAKeyPair   *pki.KeyPair
 	CertKeyPair *pki.KeyPair
-	RenewedCA   bool
-	RenewedCert bool
 }
 
 func (r *CertReconciler) Reconcile(ctx context.Context, certOpts ...CertReconcilerOpt) (*ReconcileResult, error) {
@@ -37,12 +35,12 @@ func (r *CertReconciler) Reconcile(ctx context.Context, certOpts ...CertReconcil
 	for _, setOpt := range certOpts {
 		setOpt(opts)
 	}
+	result := &ReconcileResult{}
 	logger := log.FromContext(ctx).WithName("cert")
 	createCA := r.createCAFn(opts)
 
-	result := &ReconcileResult{}
 	var err error
-	result.CAKeyPair, result.RenewedCA, err = r.reconcileKeyPair(ctx, opts.caSecretKey, opts.caSecretType, false, createCA)
+	result.CAKeyPair, err = r.reconcileKeyPair(ctx, opts.caSecretKey, opts.caSecretType, false, createCA)
 	if err != nil {
 		return nil, fmt.Errorf("Error reconciling CA KeyPair: %v", err)
 	}
@@ -71,14 +69,14 @@ func (r *CertReconciler) Reconcile(ctx context.Context, certOpts ...CertReconcil
 	if !valid || err != nil || afterRenewal {
 		caLogger.Info("Starting CA cert renewal")
 
-		result.CAKeyPair, result.RenewedCA, err = r.reconcileKeyPair(ctx, opts.caSecretKey, opts.caSecretType, true, createCA)
+		result.CAKeyPair, err = r.reconcileKeyPair(ctx, opts.caSecretKey, opts.caSecretType, true, createCA)
 		if err != nil {
 			return nil, fmt.Errorf("Error reconciling CA KeyPair: %v", err)
 		}
 	}
 
 	createCert := r.createCertFn(result.CAKeyPair, opts)
-	result.CertKeyPair, result.RenewedCert, err = r.reconcileKeyPair(ctx, opts.certSecretKey, SecretTypeTLS, false, createCert)
+	result.CertKeyPair, err = r.reconcileKeyPair(ctx, opts.certSecretKey, SecretTypeTLS, false, createCert)
 	if err != nil {
 		return nil, fmt.Errorf("Error reconciling certificate KeyPair: %v", err)
 	}
@@ -111,7 +109,7 @@ func (r *CertReconciler) Reconcile(ctx context.Context, certOpts ...CertReconcil
 	if !valid || err != nil || afterRenewal {
 		certLogger.Info("Starting cert renewal")
 
-		result.CertKeyPair, result.RenewedCert, err = r.reconcileKeyPair(ctx, opts.certSecretKey, SecretTypeTLS, true, createCert)
+		result.CertKeyPair, err = r.reconcileKeyPair(ctx, opts.certSecretKey, SecretTypeTLS, true, createCert)
 		if err != nil {
 			return nil, fmt.Errorf("Error reconciling certificate KeyPair: %v", err)
 		}
@@ -120,31 +118,31 @@ func (r *CertReconciler) Reconcile(ctx context.Context, certOpts ...CertReconcil
 }
 
 func (r *CertReconciler) reconcileKeyPair(ctx context.Context, key types.NamespacedName, secretType SecretType,
-	shouldRenew bool, createKeyPairFn func() (*pki.KeyPair, error)) (keyPair *pki.KeyPair, refreshed bool, err error) {
+	shouldRenew bool, createKeyPairFn func() (*pki.KeyPair, error)) (keyPair *pki.KeyPair, err error) {
 	secret := corev1.Secret{}
 	if err := r.Get(ctx, key, &secret); err != nil {
 		if !apierrors.IsNotFound(err) {
-			return nil, false, err
+			return nil, err
 		}
 		keyPair, err := createKeyPairFn()
 		if err != nil {
-			return nil, false, err
+			return nil, err
 		}
 		if err := r.createSecret(ctx, key, secretType, &secret, keyPair); err != nil {
-			return nil, false, err
+			return nil, err
 		}
-		return keyPair, true, nil
+		return keyPair, nil
 	}
 
 	if secret.Data == nil || shouldRenew {
 		keyPair, err := createKeyPairFn()
 		if err != nil {
-			return nil, false, err
+			return nil, err
 		}
 		if err := r.patchSecret(ctx, secretType, &secret, keyPair); err != nil {
-			return nil, false, err
+			return nil, err
 		}
-		return keyPair, true, nil
+		return keyPair, nil
 	}
 
 	keyPairOpts := pki.WithSupportedPrivateKeys(
@@ -155,16 +153,16 @@ func (r *CertReconciler) reconcileKeyPair(ctx context.Context, key types.Namespa
 	if secretType == SecretTypeCA {
 		keyPair, err = pki.NewKeyPairFromCASecret(&secret, keyPairOpts)
 		if err != nil {
-			return nil, false, err
+			return nil, err
 		}
 	} else {
 		keyPair, err = pki.NewKeyPairFromTLSSecret(&secret, keyPairOpts)
 		if err != nil {
-			return nil, false, err
+			return nil, err
 		}
 	}
 
-	return keyPair, false, nil
+	return keyPair, nil
 }
 
 func (r *CertReconciler) createCAFn(opts *CertReconcilerOpts) func() (*pki.KeyPair, error) {
