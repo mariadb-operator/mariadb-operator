@@ -40,7 +40,7 @@ func (r *CertReconciler) Reconcile(ctx context.Context, certOpts ...CertReconcil
 	createCA := r.createCAFn(opts)
 
 	var err error
-	result.CAKeyPair, err = r.reconcileKeyPair(ctx, opts.caSecretKey, opts.caSecretType, false, createCA)
+	result.CAKeyPair, err = r.reconcileKeyPair(ctx, opts.caSecretKey, opts.caSecretType, false, opts, createCA)
 	if err != nil {
 		return nil, fmt.Errorf("Error reconciling CA KeyPair: %v", err)
 	}
@@ -69,14 +69,14 @@ func (r *CertReconciler) Reconcile(ctx context.Context, certOpts ...CertReconcil
 	if !valid || err != nil || afterRenewal {
 		caLogger.Info("Starting CA cert renewal")
 
-		result.CAKeyPair, err = r.reconcileKeyPair(ctx, opts.caSecretKey, opts.caSecretType, true, createCA)
+		result.CAKeyPair, err = r.reconcileKeyPair(ctx, opts.caSecretKey, opts.caSecretType, true, opts, createCA)
 		if err != nil {
 			return nil, fmt.Errorf("Error reconciling CA KeyPair: %v", err)
 		}
 	}
 
 	createCert := r.createCertFn(result.CAKeyPair, opts)
-	result.CertKeyPair, err = r.reconcileKeyPair(ctx, opts.certSecretKey, SecretTypeTLS, false, createCert)
+	result.CertKeyPair, err = r.reconcileKeyPair(ctx, opts.certSecretKey, SecretTypeTLS, false, opts, createCert)
 	if err != nil {
 		return nil, fmt.Errorf("Error reconciling certificate KeyPair: %v", err)
 	}
@@ -109,7 +109,7 @@ func (r *CertReconciler) Reconcile(ctx context.Context, certOpts ...CertReconcil
 	if !valid || err != nil || afterRenewal {
 		certLogger.Info("Starting cert renewal")
 
-		result.CertKeyPair, err = r.reconcileKeyPair(ctx, opts.certSecretKey, SecretTypeTLS, true, createCert)
+		result.CertKeyPair, err = r.reconcileKeyPair(ctx, opts.certSecretKey, SecretTypeTLS, true, opts, createCert)
 		if err != nil {
 			return nil, fmt.Errorf("Error reconciling certificate KeyPair: %v", err)
 		}
@@ -118,7 +118,7 @@ func (r *CertReconciler) Reconcile(ctx context.Context, certOpts ...CertReconcil
 }
 
 func (r *CertReconciler) reconcileKeyPair(ctx context.Context, key types.NamespacedName, secretType SecretType,
-	shouldRenew bool, createKeyPairFn func() (*pki.KeyPair, error)) (keyPair *pki.KeyPair, err error) {
+	shouldRenew bool, opts *CertReconcilerOpts, createKeyPairFn func() (*pki.KeyPair, error)) (keyPair *pki.KeyPair, err error) {
 	secret := corev1.Secret{}
 	if err := r.Get(ctx, key, &secret); err != nil {
 		if !apierrors.IsNotFound(err) {
@@ -145,18 +145,15 @@ func (r *CertReconciler) reconcileKeyPair(ctx context.Context, key types.Namespa
 		return keyPair, nil
 	}
 
-	keyPairOpts := pki.WithSupportedPrivateKeys(
-		pki.PrivateKeyTypeECDSA,
-		pki.PrivateKeyTypeRSA, // backwards compatibility with webhook certs from previous versions
-	)
+	keyPairOpts := opts.KeyPairOpts()
 
 	if secretType == SecretTypeCA {
-		keyPair, err = pki.NewKeyPairFromCASecret(&secret, keyPairOpts)
+		keyPair, err = pki.NewKeyPairFromCASecret(&secret, keyPairOpts...)
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		keyPair, err = pki.NewKeyPairFromTLSSecret(&secret, keyPairOpts)
+		keyPair, err = pki.NewKeyPairFromTLSSecret(&secret, keyPairOpts...)
 		if err != nil {
 			return nil, err
 		}
