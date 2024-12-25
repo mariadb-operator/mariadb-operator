@@ -73,8 +73,10 @@ func (k *KeyPair) Validate() error {
 	if _, err := k.Certificates(); err != nil {
 		return fmt.Errorf("error parsing certificates: %v", err)
 	}
-	if _, err := k.PrivateKey(); err != nil {
-		return fmt.Errorf("error parsing private key: %v", err)
+	if len(k.SupportedPrivateKeys) <= 1 {
+		if _, err := k.PrivateKey(); err != nil {
+			return fmt.Errorf("error parsing private key: %v", err)
+		}
 	}
 	if _, err := tls.X509KeyPair(k.CertPEM, k.KeyPEM); err != nil {
 		return fmt.Errorf("invalid keypair: %v", err)
