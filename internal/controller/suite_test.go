@@ -13,6 +13,7 @@ import (
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/auth"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/batch"
+	certctrl "github.com/mariadb-operator/mariadb-operator/pkg/controller/certificate"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/configmap"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/deployment"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/endpoints"
@@ -145,6 +146,7 @@ var _ = BeforeSuite(func() {
 	rbacReconciler := rbac.NewRBACReconiler(client, builder)
 	deployReconciler := deployment.NewDeploymentReconciler(client)
 	svcMonitorReconciler := servicemonitor.NewServiceMonitorReconciler(client)
+	certReconciler := certctrl.NewCertReconciler(client)
 
 	mxsReconciler := maxscale.NewMaxScaleReconciler(client, builder, env)
 	replConfig := replication.NewReplicationConfig(client, builder, secretReconciler, env)
@@ -216,6 +218,7 @@ var _ = BeforeSuite(func() {
 		AuthReconciler:           authReconciler,
 		DeploymentReconciler:     deployReconciler,
 		ServiceMonitorReconciler: svcMonitorReconciler,
+		CertReconciler:           certReconciler,
 
 		MaxScaleReconciler:    mxsReconciler,
 		ReplicationReconciler: replicationReconciler,
