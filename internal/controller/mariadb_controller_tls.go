@@ -25,6 +25,9 @@ func (r *MariaDBReconciler) reconcileTLS(ctx context.Context, mariadb *mariadbv1
 	if !mariadb.IsTLSEnabled() {
 		return ctrl.Result{}, nil
 	}
+	if err := r.reconcileTLSCerts(ctx, mariadb); err != nil {
+		return ctrl.Result{}, err
+	}
 	if err := r.reconcileTLSCABundle(ctx, mariadb); err != nil {
 		return ctrl.Result{}, err
 	}
@@ -89,6 +92,16 @@ func (r *MariaDBReconciler) reconcileTLSCABundle(ctx context.Context, mdb *maria
 		},
 	}
 	return r.SecretReconciler.Reconcile(ctx, &secretReq)
+}
+
+func (r *MariaDBReconciler) reconcileTLSCerts(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) error {
+	// tls := ptr.Deref(mdb.Spec.TLS, mariadbv1alpha1.TLS{})
+
+	// caBundleKeySelector := mdb.TLSCABundleSecretKeyRef() // falback to ServerCASecretRef if bundle not yet created (1st time)
+	// shouldIssueCA := tls.ServerCASecretRef == nil
+	// shouldIssueCert := tls.ServerCertSecretRef == nil
+
+	return nil
 }
 
 func (r *MariaDBReconciler) reconcileTLSConfig(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
