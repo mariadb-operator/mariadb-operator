@@ -14,6 +14,7 @@ import (
 	certctrl "github.com/mariadb-operator/mariadb-operator/pkg/controller/certificate"
 	"github.com/mariadb-operator/mariadb-operator/pkg/health"
 	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
+	"github.com/mariadb-operator/mariadb-operator/pkg/pki"
 	"github.com/mariadb-operator/mariadb-operator/pkg/predicate"
 	admissionregistration "k8s.io/api/admissionregistration/v1"
 	v1 "k8s.io/api/core/v1"
@@ -51,6 +52,10 @@ func NewWebhookConfigReconciler(client client.Client, scheme *runtime.Scheme, re
 		certctrl.WithCASecretType(certctrl.SecretTypeTLS),
 		certctrl.WithCert(certSecretKey, serviceDNSNames(serviceKey).Names, certLifetime),
 		certctrl.WithServerCertKeyUsage(),
+		certctrl.WithSupportedPrivateKeys(
+			pki.PrivateKeyTypeECDSA,
+			pki.PrivateKeyTypeRSA, // backwards compatibility with webhook certs from previous versions
+		),
 		certctrl.WithRenewBeforePercentage(renewBeforePercentage),
 	}
 
