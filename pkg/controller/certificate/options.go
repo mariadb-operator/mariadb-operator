@@ -31,6 +31,8 @@ type CertReconcilerOpts struct {
 	certKeyUsage    x509.KeyUsage
 	certExtKeyUsage []x509.ExtKeyUsage
 
+	supportedPrivateKeys []pki.PrivateKey
+
 	renewBeforePercentage int32
 }
 
@@ -87,6 +89,12 @@ func WithClientCertKeyUsage() CertReconcilerOpt {
 	}
 }
 
+func WithSupportedPrivateKeys(privateKeys ...pki.PrivateKey) CertReconcilerOpt {
+	return func(o *CertReconcilerOpts) {
+		o.supportedPrivateKeys = privateKeys
+	}
+}
+
 func WithRenewBeforePercentage(percentage int32) CertReconcilerOpt {
 	return func(o *CertReconcilerOpts) {
 		o.renewBeforePercentage = percentage
@@ -102,6 +110,7 @@ func (o *CertReconcilerOpts) CAx509Opts() ([]pki.X509Opt, error) {
 		pki.WithCommonName(o.caCommonName),
 		pki.WithNotBefore(time.Now().Add(-1 * time.Hour)),
 		pki.WithNotAfter(time.Now().Add(o.caLifetime)),
+		pki.WithKeyPairOpts(o.KeyPairOpts()...),
 	}, nil
 }
 
@@ -117,13 +126,23 @@ func (o *CertReconcilerOpts) Certx509Opts() ([]pki.X509Opt, error) {
 		pki.WithNotAfter(time.Now().Add(o.certLifetime)),
 		pki.WithKeyUsage(o.certKeyUsage),
 		pki.WithExtKeyUsage(o.certExtKeyUsage...),
+		pki.WithKeyPairOpts(o.KeyPairOpts()...),
 	}, nil
+}
+
+func (o *CertReconcilerOpts) KeyPairOpts() []pki.KeyPairOpt {
+	return []pki.KeyPairOpt{
+		pki.WithSupportedPrivateKeys(o.supportedPrivateKeys...),
+	}
 }
 
 func NewDefaultCertificateOpts() *CertReconcilerOpts {
 	opts := &CertReconcilerOpts{
-		caLifetime:            pki.DefaultCALifetime,
-		certLifetime:          pki.DefaultCertLifetime,
+		caLifetime:   pki.DefaultCALifetime,
+		certLifetime: pki.DefaultCertLifetime,
+		supportedPrivateKeys: []pki.PrivateKey{
+			pki.PrivateKeyTypeECDSA,
+		},
 		renewBeforePercentage: DefaultRenewBeforePercentage,
 	}
 	return opts
