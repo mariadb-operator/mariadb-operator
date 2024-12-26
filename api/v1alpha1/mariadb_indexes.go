@@ -56,8 +56,8 @@ func (m *MariaDB) IndexerFuncForFieldPath(fieldPath string) (client.IndexerFunc,
 			if !ok {
 				return nil
 			}
-			if mdb.IsTLSEnabled() && mdb.Spec.TLS != nil && mdb.Spec.TLS.ServerCASecretRef != nil {
-				return []string{mdb.Spec.TLS.ServerCASecretRef.Name}
+			if mdb.IsTLSEnabled() {
+				return []string{mdb.TLSServerCASecretKey().Name}
 			}
 			return nil
 		}, nil
@@ -67,8 +67,8 @@ func (m *MariaDB) IndexerFuncForFieldPath(fieldPath string) (client.IndexerFunc,
 			if !ok {
 				return nil
 			}
-			if mdb.IsTLSEnabled() && mdb.Spec.TLS != nil && mdb.Spec.TLS.ServerCertSecretRef != nil {
-				return []string{mdb.Spec.TLS.ServerCertSecretRef.Name}
+			if mdb.IsTLSEnabled() {
+				return []string{mdb.TLSServerCertSecretKey().Name}
 			}
 			return nil
 		}, nil
@@ -78,8 +78,8 @@ func (m *MariaDB) IndexerFuncForFieldPath(fieldPath string) (client.IndexerFunc,
 			if !ok {
 				return nil
 			}
-			if mdb.IsTLSEnabled() && mdb.Spec.TLS != nil && mdb.Spec.TLS.ClientCASecretRef != nil {
-				return []string{mdb.Spec.TLS.ClientCASecretRef.Name}
+			if mdb.IsTLSEnabled() {
+				return []string{mdb.TLSClientCASecretKey().Name}
 			}
 			return nil
 		}, nil
@@ -89,8 +89,8 @@ func (m *MariaDB) IndexerFuncForFieldPath(fieldPath string) (client.IndexerFunc,
 			if !ok {
 				return nil
 			}
-			if mdb.IsTLSEnabled() && mdb.Spec.TLS != nil && mdb.Spec.TLS.ClientCertSecretRef != nil {
-				return []string{mdb.Spec.TLS.ClientCertSecretRef.Name}
+			if mdb.IsTLSEnabled() {
+				return []string{mdb.TLSClientCertSecretKey().Name}
 			}
 			return nil
 		}, nil

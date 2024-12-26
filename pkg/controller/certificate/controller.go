@@ -15,21 +15,25 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 type CertReconciler struct {
 	client.Client
+	scheme      *runtime.Scheme
 	recorder    record.EventRecorder
 	refResolver *refresolver.RefResolver
 }
 
-func NewCertReconciler(client client.Client, recorder record.EventRecorder) *CertReconciler {
+func NewCertReconciler(client client.Client, scheme *runtime.Scheme, recorder record.EventRecorder) *CertReconciler {
 	return &CertReconciler{
 		Client:      client,
+		scheme:      scheme,
 		recorder:    recorder,
 		refResolver: refresolver.New(client),
 	}
@@ -172,7 +176,7 @@ func (r *CertReconciler) reconcileKeyPair(ctx context.Context, key types.Namespa
 		if err != nil {
 			return nil, err
 		}
-		if err := r.createSecret(ctx, key, secretType, &secret, keyPair); err != nil {
+		if err := r.createSecret(ctx, key, secretType, &secret, keyPair, opts.relatedObject); err != nil {
 			return nil, err
 		}
 		return keyPair, nil
@@ -183,7 +187,7 @@ func (r *CertReconciler) reconcileKeyPair(ctx context.Context, key types.Namespa
 		if err != nil {
 			return nil, err
 		}
-		if err := r.patchSecret(ctx, secretType, &secret, keyPair); err != nil {
+		if err := r.patchSecret(ctx, secretType, &secret, keyPair, opts.relatedObject); err != nil {
 			return nil, err
 		}
 		return keyPair, nil
@@ -226,7 +230,7 @@ func (r *CertReconciler) handleCAKeyPairResult(keyPair *pki.KeyPair, err error, 
 		if errors.Is(err, pki.ErrSecretKeyNotFound) {
 			msg := fmt.Sprintf("key not found in CA Secret \"%s\": %v", secretName, err)
 
-			if opts.relatedObject != nil {
+			if relatedObj := opts.relatedObject; relatedObj != nil {
 				r.recorder.Event(opts.relatedObject, corev1.EventTypeWarning, mariadbv1alpha1.SecretKeyNotFound, msg)
 			}
 			return nil, errors.New(msg)
@@ -256,8 +260,8 @@ func (r *CertReconciler) createCertFn(caKeyPair *pki.KeyPair, opts *CertReconcil
 	}
 }
 
-func (r *CertReconciler) createSecret(ctx context.Context, key types.NamespacedName, secretType SecretType,
-	secret *corev1.Secret, keyPair *pki.KeyPair) error {
+func (r *CertReconciler) createSecret(ctx context.Context, key types.NamespacedName, secretType SecretType, secret *corev1.Secret,
+	keyPair *pki.KeyPair, owner metav1.Object) error {
 	secret.ObjectMeta = metav1.ObjectMeta{
 		Name:      key.Name,
 		Namespace: key.Namespace,
@@ -269,7 +273,9 @@ func (r *CertReconciler) createSecret(ctx context.Context, key types.NamespacedN
 		secret.Type = corev1.SecretTypeTLS
 		keyPair.UpdateTLSSecret(secret)
 	}
-	addWatchLabel(secret)
+	if err := r.updateSecretMetadata(secret, owner); err != nil {
+		return fmt.Errorf("error updating Secret metadata: %v", err)
+	}
 
 	if err := r.Create(ctx, secret); err != nil {
 		return fmt.Errorf("Error creating TLS Secret: %v", err)
@@ -277,7 +283,8 @@ func (r *CertReconciler) createSecret(ctx context.Context, key types.NamespacedN
 	return nil
 }
 
-func (r *CertReconciler) patchSecret(ctx context.Context, secretType SecretType, secret *corev1.Secret, keyPair *pki.KeyPair) error {
+func (r *CertReconciler) patchSecret(ctx context.Context, secretType SecretType, secret *corev1.Secret,
+	keyPair *pki.KeyPair, owner metav1.Object) error {
 	patch := client.MergeFrom(secret.DeepCopy())
 
 	if secretType == SecretTypeCA {
@@ -286,7 +293,9 @@ func (r *CertReconciler) patchSecret(ctx context.Context, secretType SecretType,
 		secret.Type = corev1.SecretTypeTLS
 		keyPair.UpdateTLSSecret(secret)
 	}
-	addWatchLabel(secret)
+	if err := r.updateSecretMetadata(secret, owner); err != nil {
+		return fmt.Errorf("error updating Secret metadata: %v", err)
+	}
 
 	if err := r.Patch(ctx, secret, patch); err != nil {
 		return fmt.Errorf("Error patching TLS Secret: %v", err)
@@ -294,11 +303,18 @@ func (r *CertReconciler) patchSecret(ctx context.Context, secretType SecretType,
 	return nil
 }
 
-func addWatchLabel(secret *corev1.Secret) {
+func (r *CertReconciler) updateSecretMetadata(secret *corev1.Secret, owner metav1.Object) error {
 	if secret.Labels == nil {
 		secret.Labels = make(map[string]string)
 	}
 	secret.Labels[metadata.WatchLabel] = ""
+
+	if owner != nil {
+		if err := controllerutil.SetControllerReference(owner, secret, r.scheme); err != nil {
+			return fmt.Errorf("error setting controller reference to Secret: %v", err)
+		}
+	}
+	return nil
 }
 
 func (r *CertReconciler) getCABundle(ctx context.Context, caKeyPair *pki.KeyPair, opts *CertReconcilerOpts,
