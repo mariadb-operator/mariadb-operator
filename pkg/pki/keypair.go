@@ -22,6 +22,9 @@ var (
 	TLSKeyKey = "tls.key"
 )
 
+// ErrSecretKeyNotFound is returned when a CA/TLS key is not found in a Secret-
+var ErrSecretKeyNotFound = errors.New("Secret key not found")
+
 // KeyPairOpt is a function type used to configure a KeyPair.
 type KeyPairOpt func(*KeyPair)
 
@@ -120,11 +123,11 @@ func NewKeyPairFromSecret(secret *corev1.Secret, certKey, privateKeyKey string, 
 	}
 	certPEM, ok := secret.Data[certKey]
 	if !ok {
-		return nil, fmt.Errorf("certificate key \"%s\" not found", certKey)
+		return nil, fmt.Errorf("certificate key \"%s\" not found: %w", certKey, ErrSecretKeyNotFound)
 	}
 	keyPEM, ok := secret.Data[privateKeyKey]
 	if !ok {
-		return nil, fmt.Errorf("private key key \"%s\" not found", privateKeyKey)
+		return nil, fmt.Errorf("private key key \"%s\" not found: %w", privateKeyKey, ErrSecretKeyNotFound)
 	}
 	return NewKeyPair(certPEM, keyPEM, opts...)
 }
