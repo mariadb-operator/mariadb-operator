@@ -7,6 +7,7 @@ import (
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/pki"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -40,6 +41,8 @@ type CertReconcilerOpts struct {
 	supportedPrivateKeys []pki.PrivateKey
 
 	renewBeforePercentage int32
+
+	relatedObject runtime.Object
 }
 
 type CertReconcilerOpt func(*CertReconcilerOpts)
@@ -113,6 +116,12 @@ func WithSupportedPrivateKeys(privateKeys ...pki.PrivateKey) CertReconcilerOpt {
 func WithRenewBeforePercentage(percentage int32) CertReconcilerOpt {
 	return func(o *CertReconcilerOpts) {
 		o.renewBeforePercentage = percentage
+	}
+}
+
+func WithRelatedObject(obj runtime.Object) CertReconcilerOpt {
+	return func(o *CertReconcilerOpts) {
+		o.relatedObject = obj
 	}
 }
 
