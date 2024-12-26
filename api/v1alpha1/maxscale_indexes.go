@@ -45,8 +45,8 @@ func (m *MaxScale) IndexerFuncForFieldPath(fieldPath string) (client.IndexerFunc
 			if !ok {
 				return nil
 			}
-			if maxscale.IsTLSEnabled() && maxscale.Spec.TLS != nil && maxscale.Spec.TLS.AdminCASecretRef != nil {
-				return []string{maxscale.Spec.TLS.AdminCASecretRef.Name}
+			if maxscale.IsTLSEnabled() {
+				return []string{maxscale.TLSAdminCASecretKey().Name}
 			}
 			return nil
 		}, nil
@@ -56,8 +56,8 @@ func (m *MaxScale) IndexerFuncForFieldPath(fieldPath string) (client.IndexerFunc
 			if !ok {
 				return nil
 			}
-			if maxscale.IsTLSEnabled() && maxscale.Spec.TLS != nil && maxscale.Spec.TLS.AdminCertSecretRef != nil {
-				return []string{maxscale.Spec.TLS.AdminCertSecretRef.Name}
+			if maxscale.IsTLSEnabled() {
+				return []string{maxscale.TLSAdminCertSecretKey().Name}
 			}
 			return nil
 		}, nil
@@ -67,8 +67,8 @@ func (m *MaxScale) IndexerFuncForFieldPath(fieldPath string) (client.IndexerFunc
 			if !ok {
 				return nil
 			}
-			if maxscale.IsTLSEnabled() && maxscale.Spec.TLS != nil && maxscale.Spec.TLS.ListenerCASecretRef != nil {
-				return []string{maxscale.Spec.TLS.ListenerCASecretRef.Name}
+			if maxscale.IsTLSEnabled() {
+				return []string{maxscale.TLSListenerCASecretKey().Name}
 			}
 			return nil
 		}, nil
@@ -78,8 +78,8 @@ func (m *MaxScale) IndexerFuncForFieldPath(fieldPath string) (client.IndexerFunc
 			if !ok {
 				return nil
 			}
-			if maxscale.IsTLSEnabled() && maxscale.Spec.TLS != nil && maxscale.Spec.TLS.ListenerCertSecretRef != nil {
-				return []string{maxscale.Spec.TLS.ListenerCertSecretRef.Name}
+			if maxscale.IsTLSEnabled() {
+				return []string{maxscale.TLSListenerCertSecretKey().Name}
 			}
 			return nil
 		}, nil
@@ -89,8 +89,8 @@ func (m *MaxScale) IndexerFuncForFieldPath(fieldPath string) (client.IndexerFunc
 			if !ok {
 				return nil
 			}
-			if maxscale.IsTLSEnabled() && maxscale.Spec.TLS != nil && maxscale.Spec.TLS.ServerCASecretRef != nil {
-				return []string{maxscale.Spec.TLS.ServerCASecretRef.Name}
+			if maxscale.IsTLSEnabled() {
+				return []string{maxscale.TLSServerCASecretKey().Name}
 			}
 			return nil
 		}, nil
@@ -100,8 +100,8 @@ func (m *MaxScale) IndexerFuncForFieldPath(fieldPath string) (client.IndexerFunc
 			if !ok {
 				return nil
 			}
-			if maxscale.IsTLSEnabled() && maxscale.Spec.TLS != nil && maxscale.Spec.TLS.ServerCertSecretRef != nil {
-				return []string{maxscale.Spec.TLS.ServerCertSecretRef.Name}
+			if maxscale.IsTLSEnabled() {
+				return []string{maxscale.TLSServerCertSecretKey().Name}
 			}
 			return nil
 		}, nil

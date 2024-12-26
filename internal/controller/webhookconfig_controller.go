@@ -48,9 +48,12 @@ func NewWebhookConfigReconciler(client client.Client, scheme *runtime.Scheme, re
 	serviceKey types.NamespacedName, requeueDuration time.Duration) *WebhookConfigReconciler {
 
 	certOpts := []certctrl.CertReconcilerOpt{
-		certctrl.WithCA(true, caSecretKey, caCommonName, caLifetime),
+		certctrl.WithCA(true, caSecretKey),
+		certctrl.WithCACommonName(caCommonName),
+		certctrl.WithCALifetime(caLifetime),
 		certctrl.WithCASecretType(certctrl.SecretTypeTLS),
-		certctrl.WithCert(true, certSecretKey, serviceDNSNames(serviceKey).Names, certLifetime),
+		certctrl.WithCert(true, certSecretKey, serviceDNSNames(serviceKey).Names),
+		certctrl.WithCertLifetime(certLifetime),
 		certctrl.WithServerCertKeyUsage(),
 		certctrl.WithSupportedPrivateKeys(
 			pki.PrivateKeyTypeECDSA,
@@ -63,7 +66,7 @@ func NewWebhookConfigReconciler(client client.Client, scheme *runtime.Scheme, re
 		Client:          client,
 		scheme:          scheme,
 		recorder:        recorder,
-		certReconciler:  certctrl.NewCertReconciler(client, recorder),
+		certReconciler:  certctrl.NewCertReconciler(client, scheme, recorder),
 		certOpts:        certOpts,
 		serviceKey:      serviceKey,
 		requeueDuration: requeueDuration,
