@@ -23,11 +23,13 @@ type CertReconcilerOpts struct {
 	caBundleSecretKey *mariadbv1alpha1.SecretKeySelector
 	caBundleNamespace *string
 
-	caSecretKey  types.NamespacedName
-	caSecretType SecretType
-	caCommonName string
-	caLifetime   time.Duration
+	shouldIssueCA bool
+	caSecretKey   types.NamespacedName
+	caSecretType  SecretType
+	caCommonName  string
+	caLifetime    time.Duration
 
+	shouldIssueCert bool
 	certSecretKey   types.NamespacedName
 	certCommonName  string
 	certDNSNames    []string
@@ -49,8 +51,9 @@ func WithCABundle(secretKey mariadbv1alpha1.SecretKeySelector, namespace string)
 	}
 }
 
-func WithCA(secretKey types.NamespacedName, commonName string, lifetime time.Duration) CertReconcilerOpt {
+func WithCA(shouldIssue bool, secretKey types.NamespacedName, commonName string, lifetime time.Duration) CertReconcilerOpt {
 	return func(o *CertReconcilerOpts) {
+		o.shouldIssueCA = shouldIssue
 		o.caSecretKey = secretKey
 		o.caSecretType = SecretTypeCA
 		o.caCommonName = commonName
@@ -64,8 +67,9 @@ func WithCASecretType(secretType SecretType) CertReconcilerOpt {
 	}
 }
 
-func WithCert(secretKey types.NamespacedName, dnsNames []string, lifetime time.Duration) CertReconcilerOpt {
+func WithCert(shouldIssue bool, secretKey types.NamespacedName, dnsNames []string, lifetime time.Duration) CertReconcilerOpt {
 	return func(o *CertReconcilerOpts) {
+		o.shouldIssueCert = shouldIssue
 		o.certSecretKey = secretKey
 		if len(dnsNames) > 0 {
 			o.certCommonName = dnsNames[0]
@@ -149,8 +153,10 @@ func (o *CertReconcilerOpts) KeyPairOpts() []pki.KeyPairOpt {
 
 func NewDefaultCertificateOpts() *CertReconcilerOpts {
 	opts := &CertReconcilerOpts{
-		caLifetime:   pki.DefaultCALifetime,
-		certLifetime: pki.DefaultCertLifetime,
+		shouldIssueCA:   true,
+		caLifetime:      pki.DefaultCALifetime,
+		shouldIssueCert: true,
+		certLifetime:    pki.DefaultCertLifetime,
 		supportedPrivateKeys: []pki.PrivateKey{
 			pki.PrivateKeyTypeECDSA,
 		},
