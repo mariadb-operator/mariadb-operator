@@ -63,7 +63,7 @@ func NewWebhookConfigReconciler(client client.Client, scheme *runtime.Scheme, re
 		Client:          client,
 		scheme:          scheme,
 		recorder:        recorder,
-		certReconciler:  certctrl.NewCertReconciler(client),
+		certReconciler:  certctrl.NewCertReconciler(client, recorder),
 		certOpts:        certOpts,
 		serviceKey:      serviceKey,
 		requeueDuration: requeueDuration,
