@@ -8,24 +8,28 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/pki"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 type CertReconciler struct {
 	client.Client
+	recorder    record.EventRecorder
 	refResolver *refresolver.RefResolver
 }
 
-func NewCertReconciler(client client.Client) *CertReconciler {
+func NewCertReconciler(client client.Client, recorder record.EventRecorder) *CertReconciler {
 	return &CertReconciler{
 		Client:      client,
+		recorder:    recorder,
 		refResolver: refresolver.New(client),
 	}
 }
@@ -56,8 +60,15 @@ func (r *CertReconciler) Reconcile(ctx context.Context, certOpts ...CertReconcil
 }
 
 func (r *CertReconciler) reconcileCA(ctx context.Context, opts *CertReconcilerOpts, logger logr.Logger) (*pki.KeyPair, error) {
-	if !opts.shouldIssueCA {
+	if !opts.shouldIssueCA && !opts.shouldIssueCert {
 		return nil, nil
+	}
+	if !opts.shouldIssueCA && opts.shouldIssueCert {
+		caKeyPair, err := r.getCAKeyPair(ctx, opts)
+		if err != nil {
+			return nil, fmt.Errorf("error getting CA keypair: %v", err)
+		}
+		return caKeyPair, nil
 	}
 
 	createCA := r.createCAFn(opts)
@@ -191,6 +202,36 @@ func (r *CertReconciler) reconcileKeyPair(ctx context.Context, key types.Namespa
 		}
 	}
 
+	return keyPair, nil
+}
+
+func (r *CertReconciler) getCAKeyPair(ctx context.Context, opts *CertReconcilerOpts) (*pki.KeyPair, error) {
+	var secret corev1.Secret
+	if err := r.Get(ctx, opts.caSecretKey, &secret); err != nil {
+		return nil, fmt.Errorf("error getting CA keypair Secret: %w", err)
+	}
+	if opts.caSecretType == SecretTypeCA {
+		keyPair, err := pki.NewKeyPairFromCASecret(&secret, opts.KeyPairOpts()...)
+		return r.handleCAKeyPairResult(keyPair, err, opts.caSecretKey.Name, opts)
+	}
+
+	keyPair, err := pki.NewKeyPairFromTLSSecret(&secret, opts.KeyPairOpts()...)
+	return r.handleCAKeyPairResult(keyPair, err, opts.caSecretKey.Name, opts)
+}
+
+func (r *CertReconciler) handleCAKeyPairResult(keyPair *pki.KeyPair, err error, secretName string,
+	opts *CertReconcilerOpts) (*pki.KeyPair, error) {
+	if err != nil {
+		if errors.Is(err, pki.ErrSecretKeyNotFound) {
+			msg := fmt.Sprintf("key not found in CA Secret \"%s\": %v", secretName, err)
+
+			if opts.relatedObject != nil {
+				r.recorder.Event(opts.relatedObject, corev1.EventTypeWarning, mariadbv1alpha1.SecretKeyNotFound, msg)
+			}
+			return nil, errors.New(msg)
+		}
+		return nil, fmt.Errorf("error getting CA Secret \"%s\": %v", secretName, err)
+	}
 	return keyPair, nil
 }
 
