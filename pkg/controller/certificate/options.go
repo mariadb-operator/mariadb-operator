@@ -7,6 +7,7 @@ import (
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/pki"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -19,6 +20,11 @@ const (
 	SecretTypeCA SecretType = iota
 	SecretTypeTLS
 )
+
+type RelatedObject interface {
+	runtime.Object
+	metav1.Object
+}
 
 type CertReconcilerOpts struct {
 	caBundleSecretKey *mariadbv1alpha1.SecretKeySelector
@@ -42,7 +48,7 @@ type CertReconcilerOpts struct {
 
 	renewBeforePercentage int32
 
-	relatedObject runtime.Object
+	relatedObject RelatedObject
 }
 
 type CertReconcilerOpt func(*CertReconcilerOpts)
@@ -54,12 +60,22 @@ func WithCABundle(secretKey mariadbv1alpha1.SecretKeySelector, namespace string)
 	}
 }
 
-func WithCA(shouldIssue bool, secretKey types.NamespacedName, commonName string, lifetime time.Duration) CertReconcilerOpt {
+func WithCA(shouldIssue bool, secretKey types.NamespacedName) CertReconcilerOpt {
 	return func(o *CertReconcilerOpts) {
 		o.shouldIssueCA = shouldIssue
 		o.caSecretKey = secretKey
-		o.caSecretType = SecretTypeCA
+		o.caCommonName = secretKey.Name
+	}
+}
+
+func WithCACommonName(commonName string) CertReconcilerOpt {
+	return func(o *CertReconcilerOpts) {
 		o.caCommonName = commonName
+	}
+}
+
+func WithCALifetime(lifetime time.Duration) CertReconcilerOpt {
+	return func(o *CertReconcilerOpts) {
 		o.caLifetime = lifetime
 	}
 }
@@ -70,7 +86,7 @@ func WithCASecretType(secretType SecretType) CertReconcilerOpt {
 	}
 }
 
-func WithCert(shouldIssue bool, secretKey types.NamespacedName, dnsNames []string, lifetime time.Duration) CertReconcilerOpt {
+func WithCert(shouldIssue bool, secretKey types.NamespacedName, dnsNames []string) CertReconcilerOpt {
 	return func(o *CertReconcilerOpts) {
 		o.shouldIssueCert = shouldIssue
 		o.certSecretKey = secretKey
@@ -78,6 +94,11 @@ func WithCert(shouldIssue bool, secretKey types.NamespacedName, dnsNames []strin
 			o.certCommonName = dnsNames[0]
 		}
 		o.certDNSNames = dnsNames
+	}
+}
+
+func WithCertLifetime(lifetime time.Duration) CertReconcilerOpt {
+	return func(o *CertReconcilerOpts) {
 		o.certLifetime = lifetime
 	}
 }
@@ -119,7 +140,7 @@ func WithRenewBeforePercentage(percentage int32) CertReconcilerOpt {
 	}
 }
 
-func WithRelatedObject(obj runtime.Object) CertReconcilerOpt {
+func WithRelatedObject(obj RelatedObject) CertReconcilerOpt {
 	return func(o *CertReconcilerOpts) {
 		o.relatedObject = obj
 	}
@@ -163,6 +184,7 @@ func (o *CertReconcilerOpts) KeyPairOpts() []pki.KeyPairOpt {
 func NewDefaultCertificateOpts() *CertReconcilerOpts {
 	opts := &CertReconcilerOpts{
 		shouldIssueCA:   true,
+		caSecretType:    SecretTypeCA,
 		caLifetime:      pki.DefaultCALifetime,
 		shouldIssueCert: true,
 		certLifetime:    pki.DefaultCertLifetime,
