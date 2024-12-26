@@ -40,17 +40,33 @@ func (r *CertReconciler) Reconcile(ctx context.Context, certOpts ...CertReconcil
 	for _, setOpt := range certOpts {
 		setOpt(opts)
 	}
-	result := &ReconcileResult{}
 	logger := log.FromContext(ctx).WithName("cert")
-	createCA := r.createCAFn(opts)
-
+	result := &ReconcileResult{}
 	var err error
-	result.CAKeyPair, err = r.reconcileKeyPair(ctx, opts.caSecretKey, opts.caSecretType, false, opts, createCA)
+
+	result.CAKeyPair, err = r.reconcileCA(ctx, opts, logger)
 	if err != nil {
-		return nil, fmt.Errorf("Error reconciling CA KeyPair: %v", err)
+		return nil, fmt.Errorf("error reconciling CA: %v", err)
+	}
+	result.CertKeyPair, err = r.reconcileCert(ctx, result.CAKeyPair, opts, logger)
+	if err != nil {
+		return nil, fmt.Errorf("error reconciling certificate: %v", err)
+	}
+	return result, nil
+}
+
+func (r *CertReconciler) reconcileCA(ctx context.Context, opts *CertReconcilerOpts, logger logr.Logger) (*pki.KeyPair, error) {
+	if !opts.shouldIssueCA {
+		return nil, nil
 	}
 
-	caLeafCert, err := getLeafCert(result.CAKeyPair)
+	createCA := r.createCAFn(opts)
+	caKeyPair, err := r.reconcileKeyPair(ctx, opts.caSecretKey, opts.caSecretType, false, opts, createCA)
+	if err != nil {
+		return nil, fmt.Errorf("Error reconciling CA keypair: %v", err)
+	}
+
+	caLeafCert, err := getLeafCert(caKeyPair)
 	if err != nil {
 		return nil, fmt.Errorf("error getting CA leaf certificate: %v", err)
 	}
@@ -59,7 +75,7 @@ func (r *CertReconciler) Reconcile(ctx context.Context, certOpts ...CertReconcil
 		return nil, fmt.Errorf("error getting CA renewal time: %v", err)
 	}
 
-	valid, err := pki.ValidateCA(result.CAKeyPair, opts.caCommonName, time.Now())
+	valid, err := pki.ValidateCA(caKeyPair, opts.caCommonName, time.Now())
 	afterRenewal := time.Now().After(*renewalTime)
 	caLogger := logger.WithValues(
 		"common-name", caLeafCert.Subject.CommonName,
@@ -74,33 +90,44 @@ func (r *CertReconciler) Reconcile(ctx context.Context, certOpts ...CertReconcil
 	if !valid || err != nil || afterRenewal {
 		caLogger.Info("Starting CA cert renewal")
 
-		result.CAKeyPair, err = r.reconcileKeyPair(ctx, opts.caSecretKey, opts.caSecretType, true, opts, createCA)
+		caKeyPair, err = r.reconcileKeyPair(ctx, opts.caSecretKey, opts.caSecretType, true, opts, createCA)
 		if err != nil {
-			return nil, fmt.Errorf("Error reconciling CA KeyPair: %v", err)
+			return nil, fmt.Errorf("Error reconciling CA keypair: %v", err)
 		}
 	}
+	return caKeyPair, nil
+}
 
-	createCert := r.createCertFn(result.CAKeyPair, opts)
-	result.CertKeyPair, err = r.reconcileKeyPair(ctx, opts.certSecretKey, SecretTypeTLS, false, opts, createCert)
-	if err != nil {
-		return nil, fmt.Errorf("Error reconciling certificate KeyPair: %v", err)
+func (r *CertReconciler) reconcileCert(ctx context.Context, caKeyPair *pki.KeyPair, opts *CertReconcilerOpts,
+	logger logr.Logger) (*pki.KeyPair, error) {
+	if !opts.shouldIssueCert {
+		return nil, nil
+	}
+	if caKeyPair == nil {
+		return nil, errors.New("unable to issue cert: CA keypair is nil")
 	}
 
-	caCerts, err := r.getCABundle(ctx, result.CAKeyPair, opts, logger)
+	createCert := r.createCertFn(caKeyPair, opts)
+	certKeyPair, err := r.reconcileKeyPair(ctx, opts.certSecretKey, SecretTypeTLS, false, opts, createCert)
+	if err != nil {
+		return nil, fmt.Errorf("Error reconciling certificate keypair: %v", err)
+	}
+
+	caCerts, err := r.getCABundle(ctx, caKeyPair, opts, logger)
 	if err != nil {
 		return nil, fmt.Errorf("Error getting CA bundle: %v", err)
 	}
-	leafCert, err := getLeafCert(result.CertKeyPair)
+	leafCert, err := getLeafCert(certKeyPair)
 	if err != nil {
 		return nil, fmt.Errorf("error getting leaf certificate: %v", err)
 	}
-	renewalTime, err = getRenewalTime(leafCert.NotBefore, leafCert.NotAfter, opts.renewBeforePercentage)
+	renewalTime, err := getRenewalTime(leafCert.NotBefore, leafCert.NotAfter, opts.renewBeforePercentage)
 	if err != nil {
 		return nil, fmt.Errorf("error getting cert renewal time: %v", err)
 	}
 
-	valid, err = pki.ValidateCert(caCerts, result.CertKeyPair, opts.certCommonName, time.Now())
-	afterRenewal = time.Now().After(*renewalTime)
+	valid, err := pki.ValidateCert(caCerts, certKeyPair, opts.certCommonName, time.Now())
+	afterRenewal := time.Now().After(*renewalTime)
 	certLogger := logger.WithValues(
 		"common-name", leafCert.Subject.CommonName,
 		"issuer", leafCert.Issuer.CommonName,
@@ -114,12 +141,12 @@ func (r *CertReconciler) Reconcile(ctx context.Context, certOpts ...CertReconcil
 	if !valid || err != nil || afterRenewal {
 		certLogger.Info("Starting cert renewal")
 
-		result.CertKeyPair, err = r.reconcileKeyPair(ctx, opts.certSecretKey, SecretTypeTLS, true, opts, createCert)
+		certKeyPair, err = r.reconcileKeyPair(ctx, opts.certSecretKey, SecretTypeTLS, true, opts, createCert)
 		if err != nil {
 			return nil, fmt.Errorf("Error reconciling certificate KeyPair: %v", err)
 		}
 	}
-	return result, nil
+	return certKeyPair, nil
 }
 
 func (r *CertReconciler) reconcileKeyPair(ctx context.Context, key types.NamespacedName, secretType SecretType,
