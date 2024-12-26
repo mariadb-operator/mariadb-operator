@@ -9,6 +9,7 @@ import (
 
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
 	"github.com/mariadb-operator/mariadb-operator/pkg/pki"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	corev1 "k8s.io/api/core/v1"
@@ -268,6 +269,7 @@ func (r *CertReconciler) createSecret(ctx context.Context, key types.NamespacedN
 		secret.Type = corev1.SecretTypeTLS
 		keyPair.UpdateTLSSecret(secret)
 	}
+	addWatchLabel(secret)
 
 	if err := r.Create(ctx, secret); err != nil {
 		return fmt.Errorf("Error creating TLS Secret: %v", err)
@@ -284,11 +286,19 @@ func (r *CertReconciler) patchSecret(ctx context.Context, secretType SecretType,
 		secret.Type = corev1.SecretTypeTLS
 		keyPair.UpdateTLSSecret(secret)
 	}
+	addWatchLabel(secret)
 
 	if err := r.Patch(ctx, secret, patch); err != nil {
 		return fmt.Errorf("Error patching TLS Secret: %v", err)
 	}
 	return nil
+}
+
+func addWatchLabel(secret *corev1.Secret) {
+	if secret.Labels == nil {
+		secret.Labels = make(map[string]string)
+	}
+	secret.Labels[metadata.WatchLabel] = ""
 }
 
 func (r *CertReconciler) getCABundle(ctx context.Context, caKeyPair *pki.KeyPair, opts *CertReconcilerOpts,
