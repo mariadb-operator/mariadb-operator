@@ -206,7 +206,7 @@ var rootCmd = &cobra.Command{
 		authReconciler := auth.NewAuthReconciler(client, builder)
 		deployReconciler := deployment.NewDeploymentReconciler(client)
 		svcMonitorReconciler := servicemonitor.NewServiceMonitorReconciler(client)
-		certReconciler := certctrl.NewCertReconciler(client, mgr.GetEventRecorderFor("cert"))
+		certReconciler := certctrl.NewCertReconciler(client, scheme, mgr.GetEventRecorderFor("cert"))
 
 		mxsReconciler := maxscale.NewMaxScaleReconciler(client, builder, env)
 		replConfig := replication.NewReplicationConfig(client, builder, secretReconciler, env)

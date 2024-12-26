@@ -249,7 +249,11 @@ func ValidateCert(
 		Roots:         rootCAsPool,
 		Intermediates: intermediateCAsPool,
 		DNSName:       dnsName,
-		CurrentTime:   at,
+		KeyUsages: []x509.ExtKeyUsage{
+			x509.ExtKeyUsageServerAuth,
+			x509.ExtKeyUsageClientAuth,
+		},
+		CurrentTime: at,
 	})
 	if err != nil {
 		return false, err
