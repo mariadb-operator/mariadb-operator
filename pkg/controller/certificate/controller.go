@@ -3,10 +3,13 @@ package certificate
 import (
 	"context"
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"time"
 
+	"github.com/go-logr/logr"
 	"github.com/mariadb-operator/mariadb-operator/pkg/pki"
+	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -17,11 +20,13 @@ import (
 
 type CertReconciler struct {
 	client.Client
+	refResolver *refresolver.RefResolver
 }
 
 func NewCertReconciler(client client.Client) *CertReconciler {
 	return &CertReconciler{
-		Client: client,
+		Client:      client,
+		refResolver: refresolver.New(client),
 	}
 }
 
@@ -81,9 +86,9 @@ func (r *CertReconciler) Reconcile(ctx context.Context, certOpts ...CertReconcil
 		return nil, fmt.Errorf("Error reconciling certificate KeyPair: %v", err)
 	}
 
-	caCerts, err := result.CAKeyPair.Certificates()
+	caCerts, err := r.getCABundle(ctx, result.CAKeyPair, opts, logger)
 	if err != nil {
-		return nil, fmt.Errorf("error getting CA certificates: %v", err)
+		return nil, fmt.Errorf("Error getting CA bundle: %v", err)
 	}
 	leafCert, err := getLeafCert(result.CertKeyPair)
 	if err != nil {
@@ -216,6 +221,32 @@ func (r *CertReconciler) patchSecret(ctx context.Context, secretType SecretType,
 		return fmt.Errorf("Error patching TLS Secret: %v", err)
 	}
 	return nil
+}
+
+func (r *CertReconciler) getCABundle(ctx context.Context, caKeyPair *pki.KeyPair, opts *CertReconcilerOpts,
+	logger logr.Logger) ([]*x509.Certificate, error) {
+	if opts.caBundleSecretKey != nil && opts.caBundleNamespace != nil {
+		bundle, err := r.refResolver.SecretKeyRef(ctx, *opts.caBundleSecretKey, *opts.caBundleNamespace)
+		if err == nil {
+			certs, err := pki.ParseCertificates([]byte(bundle))
+			if err != nil {
+				return nil, fmt.Errorf("error parsing bundle certificates: %v", err)
+			}
+			return certs, nil
+		} else {
+			logger.V(1).Info("error getting CA bundle", "err", err)
+		}
+	}
+
+	if caKeyPair != nil {
+		caCerts, err := caKeyPair.Certificates()
+		if err != nil {
+			return nil, fmt.Errorf("error getting CA certificates: %v", err)
+		}
+		return caCerts, nil
+	}
+
+	return nil, errors.New("unable to get CA bundle")
 }
 
 func getLeafCert(keyPair *pki.KeyPair) (*x509.Certificate, error) {
