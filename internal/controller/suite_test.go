@@ -146,7 +146,7 @@ var _ = BeforeSuite(func() {
 	rbacReconciler := rbac.NewRBACReconiler(client, builder)
 	deployReconciler := deployment.NewDeploymentReconciler(client)
 	svcMonitorReconciler := servicemonitor.NewServiceMonitorReconciler(client)
-	certReconciler := certctrl.NewCertReconciler(client, k8sManager.GetEventRecorderFor("cert"))
+	certReconciler := certctrl.NewCertReconciler(client, scheme, k8sManager.GetEventRecorderFor("cert"))
 
 	mxsReconciler := maxscale.NewMaxScaleReconciler(client, builder, env)
 	replConfig := replication.NewReplicationConfig(client, builder, secretReconciler, env)

@@ -812,6 +812,24 @@ func (m *MariaDB) IsSuspended() bool {
 	return m.Spec.Suspend
 }
 
+// ServerDNSNames are the Service DNS names used by server TLS certificates.
+func (m *MariaDB) TLSServerDNSNames() []string {
+	var names []string
+	names = append(names, statefulset.ServiceNameVariants(m.ObjectMeta, m.Name)...)
+	if m.IsHAEnabled() {
+		names = append(names, statefulset.HeadlessServiceNameVariants(m.ObjectMeta, "*", m.InternalServiceKey().Name)...)
+		names = append(names, statefulset.ServiceNameVariants(m.ObjectMeta, m.PrimaryServiceKey().Name)...)
+		names = append(names, statefulset.ServiceNameVariants(m.ObjectMeta, m.SecondaryServiceKey().Name)...)
+	}
+	names = append(names, "localhost")
+	return names
+}
+
+// TLSClientNames are the names used by client TLS certificates.
+func (m *MariaDB) TLSClientNames() []string {
+	return []string{fmt.Sprintf("%s-client", m.Name)}
+}
+
 // +kubebuilder:object:root=true
 
 // MariaDBList contains a list of MariaDB
