@@ -5,6 +5,7 @@ import (
 	"errors"
 	"time"
 
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/pki"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -19,6 +20,9 @@ const (
 )
 
 type CertReconcilerOpts struct {
+	caBundleSecretKey *mariadbv1alpha1.SecretKeySelector
+	caBundleNamespace *string
+
 	caSecretKey  types.NamespacedName
 	caSecretType SecretType
 	caCommonName string
@@ -37,6 +41,13 @@ type CertReconcilerOpts struct {
 }
 
 type CertReconcilerOpt func(*CertReconcilerOpts)
+
+func WithCABundle(secretKey mariadbv1alpha1.SecretKeySelector, namespace string) CertReconcilerOpt {
+	return func(o *CertReconcilerOpts) {
+		o.caBundleSecretKey = &secretKey
+		o.caBundleNamespace = &namespace
+	}
+}
 
 func WithCA(secretKey types.NamespacedName, commonName string, lifetime time.Duration) CertReconcilerOpt {
 	return func(o *CertReconcilerOpts) {
