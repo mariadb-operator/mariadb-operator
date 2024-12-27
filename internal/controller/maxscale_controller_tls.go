@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
@@ -31,6 +32,12 @@ func (r *MaxScaleReconciler) reconcileTLS(ctx context.Context, req *requestMaxSc
 
 func (r *MaxScaleReconciler) reconcileTLSCerts(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) error {
 	tls := ptr.Deref(mxs.Spec.TLS, mariadbv1alpha1.MaxScaleTLS{})
+
+	// MaxScale TLS can't communicate with a non-TLS MariaDB server
+	if tls.ServerCASecretRef == nil || tls.ServerCertSecretRef == nil {
+		return errors.New("'spec.tls.serverCASecretRef' and 'spec.tls.ServerCertSecretRef' fields" +
+			"must be set in order to communicate with MariaDB server")
+	}
 
 	adminCertOpts := []certctrl.CertReconcilerOpt{
 		certctrl.WithCABundle(mxs.TLSCABundleSecretKeyRef(), mxs.Namespace),
