@@ -52,9 +52,10 @@ func (r *MariaDBReconciler) reconcileTLSCerts(ctx context.Context, mdb *mariadbv
 			mdb.TLSServerCertSecretKey(),
 			mdb.TLSServerDNSNames(),
 		),
-		certctrl.WithServerCertKeyUsage(),
 		certctrl.WithRelatedObject(mdb),
 	}
+	serverCertOpts = append(serverCertOpts, tlsServerCertOpts(mdb)...)
+
 	if _, err := r.CertReconciler.Reconcile(ctx, serverCertOpts...); err != nil {
 		return fmt.Errorf("error reconciling server cert: %v", err)
 	}
@@ -72,6 +73,8 @@ func (r *MariaDBReconciler) reconcileTLSCerts(ctx context.Context, mdb *mariadbv
 		),
 		certctrl.WithRelatedObject(mdb),
 	}
+	clientCertOpts = append(clientCertOpts, tlsClientCertOpts(mdb)...)
+
 	if _, err := r.CertReconciler.Reconcile(ctx, clientCertOpts...); err != nil {
 		return fmt.Errorf("error reconciling client cert: %v", err)
 	}
@@ -289,4 +292,22 @@ func getCertificateStatus(ctx context.Context, refResolver *refresolver.RefResol
 		}
 	}
 	return status, nil
+}
+
+func tlsServerCertOpts(mdb *mariadbv1alpha1.MariaDB) []certctrl.CertReconcilerOpt {
+	var opts []certctrl.CertReconcilerOpt
+	// Galera not compatible with key usages
+	if !mdb.IsGaleraEnabled() {
+		opts = append(opts, certctrl.WithServerCertKeyUsage())
+	}
+	return opts
+}
+
+func tlsClientCertOpts(mdb *mariadbv1alpha1.MariaDB) []certctrl.CertReconcilerOpt {
+	var opts []certctrl.CertReconcilerOpt
+	// Galera not compatible with key usages
+	if !mdb.IsGaleraEnabled() {
+		opts = append(opts, certctrl.WithClientCertKeyUsage())
+	}
+	return opts
 }
