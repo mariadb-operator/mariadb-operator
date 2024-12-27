@@ -231,7 +231,7 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			return result, err
 		}
 	}
-	return ctrl.Result{}, nil
+	return requeueResult(ctx, &mariadb)
 }
 
 func shouldSkipPhase(err error) bool {
@@ -242,6 +242,14 @@ func shouldSkipPhase(err error) bool {
 		return true
 	}
 	return false
+}
+
+func requeueResult(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
+	if mdb.IsTLSEnabled() {
+		log.FromContext(ctx).V(1).Info("Requeuing MariaDB")
+		return ctrl.Result{RequeueAfter: 5 * time.Minute}, nil // ensure certificates get renewed
+	}
+	return ctrl.Result{}, nil
 }
 
 func (r *MariaDBReconciler) reconcileSecret(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
