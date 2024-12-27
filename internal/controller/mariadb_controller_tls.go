@@ -38,6 +38,47 @@ func (r *MariaDBReconciler) reconcileTLS(ctx context.Context, mariadb *mariadbv1
 	return ctrl.Result{}, nil
 }
 
+func (r *MariaDBReconciler) reconcileTLSCerts(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) error {
+	tls := ptr.Deref(mdb.Spec.TLS, mariadbv1alpha1.TLS{})
+
+	serverCertOpts := []certctrl.CertReconcilerOpt{
+		certctrl.WithCABundle(mdb.TLSCABundleSecretKeyRef(), mdb.Namespace),
+		certctrl.WithCA(
+			tls.ServerCASecretRef == nil,
+			mdb.TLSServerCASecretKey(),
+		),
+		certctrl.WithCert(
+			tls.ServerCertSecretRef == nil,
+			mdb.TLSServerCertSecretKey(),
+			mdb.TLSServerDNSNames(),
+		),
+		certctrl.WithServerCertKeyUsage(),
+		certctrl.WithRelatedObject(mdb),
+	}
+	if _, err := r.CertReconciler.Reconcile(ctx, serverCertOpts...); err != nil {
+		return fmt.Errorf("error reconciling server cert: %v", err)
+	}
+
+	clientCertOpts := []certctrl.CertReconcilerOpt{
+		certctrl.WithCABundle(mdb.TLSCABundleSecretKeyRef(), mdb.Namespace),
+		certctrl.WithCA(
+			tls.ClientCASecretRef == nil,
+			mdb.TLSClientCASecretKey(),
+		),
+		certctrl.WithCert(
+			tls.ClientCertSecretRef == nil,
+			mdb.TLSClientCertSecretKey(),
+			mdb.TLSClientNames(),
+		),
+		certctrl.WithRelatedObject(mdb),
+	}
+	if _, err := r.CertReconciler.Reconcile(ctx, clientCertOpts...); err != nil {
+		return fmt.Errorf("error reconciling client cert: %v", err)
+	}
+
+	return nil
+}
+
 func (r *MariaDBReconciler) reconcileTLSCABundle(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) error {
 	logger := log.FromContext(ctx).WithName("ca-bundle")
 
@@ -93,47 +134,6 @@ func (r *MariaDBReconciler) reconcileTLSCABundle(ctx context.Context, mdb *maria
 		},
 	}
 	return r.SecretReconciler.Reconcile(ctx, &secretReq)
-}
-
-func (r *MariaDBReconciler) reconcileTLSCerts(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) error {
-	tls := ptr.Deref(mdb.Spec.TLS, mariadbv1alpha1.TLS{})
-
-	serverCertOpts := []certctrl.CertReconcilerOpt{
-		certctrl.WithCABundle(mdb.TLSCABundleSecretKeyRef(), mdb.Namespace),
-		certctrl.WithCA(
-			tls.ServerCASecretRef == nil,
-			mdb.TLSServerCASecretKey(),
-		),
-		certctrl.WithCert(
-			tls.ServerCertSecretRef == nil,
-			mdb.TLSServerCertSecretKey(),
-			mdb.TLSServerDNSNames(),
-		),
-		certctrl.WithServerCertKeyUsage(),
-		certctrl.WithRelatedObject(mdb),
-	}
-	if _, err := r.CertReconciler.Reconcile(ctx, serverCertOpts...); err != nil {
-		return fmt.Errorf("error reconciling server cert: %v", err)
-	}
-
-	clientCertOpts := []certctrl.CertReconcilerOpt{
-		certctrl.WithCABundle(mdb.TLSCABundleSecretKeyRef(), mdb.Namespace),
-		certctrl.WithCA(
-			tls.ClientCASecretRef == nil,
-			mdb.TLSClientCASecretKey(),
-		),
-		certctrl.WithCert(
-			tls.ClientCertSecretRef == nil,
-			mdb.TLSClientCertSecretKey(),
-			mdb.TLSClientNames(),
-		),
-		certctrl.WithRelatedObject(mdb),
-	}
-	if _, err := r.CertReconciler.Reconcile(ctx, clientCertOpts...); err != nil {
-		return fmt.Errorf("error reconciling client cert: %v", err)
-	}
-
-	return nil
 }
 
 func (r *MariaDBReconciler) reconcileTLSConfig(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
