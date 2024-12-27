@@ -244,6 +244,7 @@ var _ = BeforeSuite(func() {
 		ServiceReconciler:        serviceReconciler,
 		DeploymentReconciler:     deployReconciler,
 		ServiceMonitorReconciler: svcMonitorReconciler,
+		CertReconciler:           certReconciler,
 
 		SuspendEnabled: false,
 

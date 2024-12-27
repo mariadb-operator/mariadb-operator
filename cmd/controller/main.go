@@ -308,6 +308,7 @@ var rootCmd = &cobra.Command{
 			ServiceReconciler:        serviceReconciler,
 			DeploymentReconciler:     deployReconciler,
 			ServiceMonitorReconciler: svcMonitorReconciler,
+			CertReconciler:           certReconciler,
 
 			SuspendEnabled: featureMaxScaleSuspend,
 
