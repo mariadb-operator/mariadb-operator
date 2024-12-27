@@ -514,11 +514,20 @@ type MaxScaleTLS struct {
 
 // SetDefaults sets reasonable defaults.
 func (m *MaxScaleTLS) SetDefaults(mdb *MariaDB) {
-	if !m.Enabled || mdb == nil {
+	if !m.Enabled || mdb == nil || !mdb.IsTLSEnabled() {
 		return
 	}
-	if mdb.IsTLSEnabled() && mdb.Replication().Enabled && m.ReplicationSSLEnabled == nil {
+
+	if mdb.Replication().Enabled && m.ReplicationSSLEnabled == nil {
 		m.ReplicationSSLEnabled = ptr.To(true)
+	}
+	if m.ServerCASecretRef == nil {
+		m.ServerCASecretRef = ptr.To(mdb.TLSCABundleSecretKeyRef().LocalObjectReference)
+	}
+	if m.ServerCertSecretRef == nil {
+		m.ServerCertSecretRef = &LocalObjectReference{
+			Name: mdb.TLSClientCertSecretKey().Name,
+		}
 	}
 }
 
@@ -1012,6 +1021,7 @@ func (m *MaxScale) DefaultPort() (*int32, error) {
 // TLSAdminDNSNames are the Service DNS names used by admin TLS certificates.
 func (m *MaxScale) TLSAdminDNSNames() []string {
 	var names []string
+	names = append(names, statefulset.ServiceNameVariants(m.ObjectMeta, m.Name)...)
 	names = append(names, statefulset.ServiceNameVariants(m.ObjectMeta, m.GuiServiceKey().Name)...)
 	names = append(names, statefulset.HeadlessServiceNameVariants(m.ObjectMeta, "*", m.InternalServiceKey().Name)...)
 	return names
