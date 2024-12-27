@@ -1009,6 +1009,22 @@ func (m *MaxScale) DefaultPort() (*int32, error) {
 	return &m.Spec.Services[0].Listener.Port, nil
 }
 
+// TLSAdminDNSNames are the Service DNS names used by admin TLS certificates.
+func (m *MaxScale) TLSAdminDNSNames() []string {
+	var names []string
+	names = append(names, statefulset.ServiceNameVariants(m.ObjectMeta, m.GuiServiceKey().Name)...)
+	names = append(names, statefulset.HeadlessServiceNameVariants(m.ObjectMeta, "*", m.InternalServiceKey().Name)...)
+	return names
+}
+
+// TLSListenerDNSNames are the Service DNS names used by listener TLS certificates.
+func (m *MaxScale) TLSListenerDNSNames() []string {
+	var names []string
+	names = append(names, statefulset.ServiceNameVariants(m.ObjectMeta, m.Name)...)
+	names = append(names, statefulset.HeadlessServiceNameVariants(m.ObjectMeta, "*", m.InternalServiceKey().Name)...)
+	return names
+}
+
 func (m *MaxScale) apiUrlWithAddress(addr string) string {
 	scheme := "http"
 	if m.IsTLSEnabled() {
