@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	certctrl "github.com/mariadb-operator/mariadb-operator/pkg/controller/certificate"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
 	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
 	"github.com/mariadb-operator/mariadb-operator/pkg/pki"
@@ -19,10 +20,55 @@ func (r *MaxScaleReconciler) reconcileTLS(ctx context.Context, req *requestMaxSc
 	if !req.mxs.IsTLSEnabled() {
 		return ctrl.Result{}, nil
 	}
+	if err := r.reconcileTLSCerts(ctx, req.mxs); err != nil {
+		return ctrl.Result{}, err
+	}
 	if err := r.reconcileTLSCABundle(ctx, req.mxs); err != nil {
 		return ctrl.Result{}, err
 	}
 	return ctrl.Result{}, nil
+}
+
+func (r *MaxScaleReconciler) reconcileTLSCerts(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) error {
+	tls := ptr.Deref(mxs.Spec.TLS, mariadbv1alpha1.MaxScaleTLS{})
+
+	adminCertOpts := []certctrl.CertReconcilerOpt{
+		certctrl.WithCABundle(mxs.TLSCABundleSecretKeyRef(), mxs.Namespace),
+		certctrl.WithCA(
+			tls.AdminCASecretRef == nil,
+			mxs.TLSAdminCASecretKey(),
+		),
+		certctrl.WithCert(
+			tls.AdminCertSecretRef == nil,
+			mxs.TLSAdminCertSecretKey(),
+			mxs.TLSAdminDNSNames(),
+		),
+		certctrl.WithServerCertKeyUsage(),
+		certctrl.WithRelatedObject(mxs),
+	}
+	if _, err := r.CertReconciler.Reconcile(ctx, adminCertOpts...); err != nil {
+		return fmt.Errorf("error reconciling admin cert: %v", err)
+	}
+
+	listenerCertOpts := []certctrl.CertReconcilerOpt{
+		certctrl.WithCABundle(mxs.TLSCABundleSecretKeyRef(), mxs.Namespace),
+		certctrl.WithCA(
+			tls.ListenerCASecretRef == nil,
+			mxs.TLSAdminCASecretKey(),
+		),
+		certctrl.WithCert(
+			tls.ListenerCertSecretRef == nil,
+			mxs.TLSListenerCertSecretKey(),
+			mxs.TLSListenerDNSNames(),
+		),
+		certctrl.WithServerCertKeyUsage(),
+		certctrl.WithRelatedObject(mxs),
+	}
+	if _, err := r.CertReconciler.Reconcile(ctx, listenerCertOpts...); err != nil {
+		return fmt.Errorf("error reconciling listener cert: %v", err)
+	}
+
+	return nil
 }
 
 func (r *MaxScaleReconciler) reconcileTLSCABundle(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) error {
