@@ -215,12 +215,14 @@ func (r *CertReconciler) getCAKeyPair(ctx context.Context, opts *CertReconcilerO
 	if err := r.Get(ctx, opts.caSecretKey, &secret); err != nil {
 		return nil, fmt.Errorf("error getting CA keypair Secret: %w", err)
 	}
+	keyPairOpts := opts.KeyPairOpts()
+
 	if opts.caSecretType == SecretTypeCA {
-		keyPair, err := pki.NewKeyPairFromCASecret(&secret, opts.KeyPairOpts()...)
+		keyPair, err := pki.NewKeyPairFromCASecret(&secret, keyPairOpts...)
 		return r.handleCAKeyPairResult(keyPair, err, opts.caSecretKey.Name, opts)
 	}
 
-	keyPair, err := pki.NewKeyPairFromTLSSecret(&secret, opts.KeyPairOpts()...)
+	keyPair, err := pki.NewKeyPairFromTLSSecret(&secret, keyPairOpts...)
 	return r.handleCAKeyPairResult(keyPair, err, opts.caSecretKey.Name, opts)
 }
 
