@@ -16,8 +16,10 @@ import (
 	"github.com/go-sql-driver/mysql"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
+	"github.com/mariadb-operator/mariadb-operator/pkg/pki"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 var (
@@ -34,7 +36,11 @@ type Opts struct {
 	MariadbName  string
 	MaxscaleName string
 	Namespace    string
-	TLSCACert    []byte
+	ClientName   string
+
+	TLSCACert           []byte
+	TLSClientCert       []byte
+	TLSClientPrivateKey []byte
 
 	Params  map[string]string
 	Timeout *time.Duration
@@ -85,6 +91,14 @@ func WithMaxscaleTLS(name, namespace string, tlsCaCert []byte) Opt {
 		o.MaxscaleName = name
 		o.Namespace = namespace
 		o.TLSCACert = tlsCaCert
+	}
+}
+
+func WithTLSClientCert(clientName string, cert, privateKey []byte) Opt {
+	return func(o *Opts) {
+		o.ClientName = clientName
+		o.TLSClientCert = cert
+		o.TLSClientPrivateKey = privateKey
 	}
 }
 
@@ -142,13 +156,43 @@ func NewClientWithMariaDB(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 		}()),
 		WithPort(mariadb.Spec.Port),
 	}
+
 	if mariadb.IsTLSEnabled() {
 		caCert, err := refResolver.SecretKeyRef(ctx, mariadb.TLSCABundleSecretKeyRef(), mariadb.Namespace)
 		if err != nil {
 			return nil, fmt.Errorf("error getting CA certificate: %v", err)
 		}
 		opts = append(opts, WithMariadbTLS(mariadb.Name, mariadb.Namespace, []byte(caCert)))
+
+		clientSecretKey := types.NamespacedName{
+			Name:      mariadb.TLSClientCertSecretKey().Name,
+			Namespace: mariadb.Namespace,
+		}
+		clientCertSelector := mariadbv1alpha1.SecretKeySelector{
+			LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+				Name: clientSecretKey.Name,
+			},
+			Key: pki.TLSCertKey,
+		}
+		clientCert, err := refResolver.SecretKeyRef(ctx, clientCertSelector, clientSecretKey.Namespace)
+		if err != nil {
+			return nil, fmt.Errorf("error getting client certificate: %v", err)
+		}
+
+		clientPrivateKeySelector := mariadbv1alpha1.SecretKeySelector{
+			LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+				Name: clientSecretKey.Name,
+			},
+			Key: pki.TLSKeyKey,
+		}
+		clientPrivateKey, err := refResolver.SecretKeyRef(ctx, clientPrivateKeySelector, clientSecretKey.Namespace)
+		if err != nil {
+			return nil, fmt.Errorf("error getting client private key: %v", err)
+		}
+
+		opts = append(opts, WithTLSClientCert(clientCertSelector.Name, []byte(clientCert), []byte(clientPrivateKey)))
 	}
+
 	opts = append(opts, clientOpts...)
 	return NewClient(opts...)
 }
@@ -230,6 +274,34 @@ func BuildDSN(opts Opts) (string, error) {
 }
 
 func configureTLS(opts Opts) (string, error) {
+	configName, err := configTLSName(opts)
+	if err != nil {
+		return "", fmt.Errorf("error getting TLS config name: %v", err)
+	}
+	var tlsCfg tls.Config
+
+	caBundle := x509.NewCertPool()
+	if ok := caBundle.AppendCertsFromPEM(opts.TLSCACert); ok {
+		tlsCfg.RootCAs = caBundle
+	} else {
+		return "", errors.New("failed parse pem-encoded CA certificates")
+	}
+
+	if opts.TLSClientCert != nil && opts.TLSClientPrivateKey != nil {
+		keyPair, err := tls.X509KeyPair(opts.TLSClientCert, opts.TLSClientPrivateKey)
+		if err != nil {
+			return "", fmt.Errorf("error parsing client keypair: %v", err)
+		}
+		tlsCfg.Certificates = []tls.Certificate{keyPair}
+	}
+
+	if err := mysql.RegisterTLSConfig(configName, &tlsCfg); err != nil {
+		return "", fmt.Errorf("error registering TLS config \"%s\": %v", configName, err)
+	}
+	return configName, nil
+}
+
+func configTLSName(opts Opts) (string, error) {
 	var configName string
 	if opts.MariadbName != "" {
 		configName = fmt.Sprintf("mariadb-%s-%s", opts.MariadbName, opts.Namespace)
@@ -239,17 +311,9 @@ func configureTLS(opts Opts) (string, error) {
 		return "", errors.New("unable to create config name: either MariaDB or MaxScale names must be set")
 	}
 
-	var tlsCfg tls.Config
-	caBundle := x509.NewCertPool()
-	if ok := caBundle.AppendCertsFromPEM(opts.TLSCACert); ok {
-		tlsCfg.RootCAs = caBundle
-	} else {
-		return "", errors.New("failed parse pem-encoded CA certificates")
+	if opts.ClientName != "" {
+		configName += fmt.Sprintf("-client-%s", opts.ClientName)
 	}
-	if err := mysql.RegisterTLSConfig(configName, &tlsCfg); err != nil {
-		return "", fmt.Errorf("error registering TLS config \"%s\": %v", configName, err)
-	}
-
 	return configName, nil
 }
 
