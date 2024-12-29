@@ -147,6 +147,7 @@ ssl_cert = {{ .SSLCert }}
 ssl_key = {{ .SSLKey }}
 ssl_ca = {{ .SSLCA }}
 require_secure_transport = true
+tls_version = TLSv1.3
 `)
 	buf := new(bytes.Buffer)
 	err := tpl.Execute(buf, struct {
