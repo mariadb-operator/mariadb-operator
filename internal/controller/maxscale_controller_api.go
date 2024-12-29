@@ -98,6 +98,7 @@ func (m *maxScaleAPI) serverAttributes(srv *mariadbv1alpha1.MaxScaleServer) (*mx
 		attrs.Parameters.SSLCert = builderpki.ServerCertPath
 		attrs.Parameters.SSLKey = builderpki.ServerKeyPath
 		attrs.Parameters.SSLCA = builderpki.CACertPath
+		attrs.Parameters.SSLVersion = "TLSv13"
 		attrs.Parameters.SSLVerifyPeerCertificate = ptr.Deref(tls.VerifyPeerCertificate, true)
 		attrs.Parameters.SSLVerifyPeerHost = ptr.Deref(tls.VerifyPeerHost, false)
 
