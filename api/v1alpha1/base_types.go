@@ -11,6 +11,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/utils/ptr"
 )
 
@@ -851,4 +852,23 @@ type CertificateStatus struct {
 	// Issuer is the issuer of the current certificate.
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	Issuer string `json:"issuer"`
+}
+
+type tlsValidationItem struct {
+	tlsValue      interface{}
+	caSecretRef   *LocalObjectReference
+	caFieldPath   string
+	certSecretRef *LocalObjectReference
+	certFieldPath string
+}
+
+func validateTLSCert(item *tlsValidationItem) error {
+	if item.caSecretRef == nil && item.certSecretRef != nil {
+		return field.Invalid(
+			field.NewPath("spec").Child("tls"),
+			item.tlsValue,
+			fmt.Sprintf("'%s' must be set when '%s' is set", item.caFieldPath, item.certFieldPath),
+		)
+	}
+	return nil
 }
