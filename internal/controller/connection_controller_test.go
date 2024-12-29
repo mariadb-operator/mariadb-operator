@@ -87,7 +87,8 @@ var _ = Describe("Connection", func() {
 					Database: &testDatabase,
 				},
 			},
-			"test:MariaDB11!@tcp(mdb-test.default.svc.cluster.local:3306)/test?timeout=5s&tls=mariadb-mdb-test-default&parseTime=true",
+			"test:MariaDB11!@tcp(mdb-test.default.svc.cluster.local:3306)/test"+
+				"?timeout=5s&tls=mariadb-mdb-test-default-client-mdb-test-client-cert&parseTime=true",
 		),
 		Entry(
 			"Creating a Connection providing ServiceName",
@@ -132,7 +133,8 @@ var _ = Describe("Connection", func() {
 					Database: &testDatabase,
 				},
 			},
-			"test:MariaDB11!@tcp(mdb-test.default.svc.cluster.local:3306)/test?timeout=5s&tls=mariadb-mdb-test-default&parseTime=true",
+			"test:MariaDB11!@tcp(mdb-test.default.svc.cluster.local:3306)/test"+
+				"?timeout=5s&tls=mariadb-mdb-test-default-client-mdb-test-client-cert&parseTime=true",
 		),
 		Entry(
 			"Creating a Connection providing DSN Format",
@@ -372,7 +374,8 @@ var _ = Describe("Connection", func() {
 				return false
 			}
 			g.Expect(secret.Data[secretKey]).To(
-				BeEquivalentTo("test:MariaDB11!@tcp(mdb-test.default.svc.cluster.local:3306)/test?timeout=5s&tls=mariadb-mdb-test-default"),
+				BeEquivalentTo("test:MariaDB11!@tcp(mdb-test.default.svc.cluster.local:3306)/test" +
+					"?timeout=5s&tls=mariadb-mdb-test-default-client-mdb-test-client-cert"),
 			)
 			return true
 		}, testTimeout, testInterval).Should(BeTrue())
@@ -395,7 +398,8 @@ var _ = Describe("Connection", func() {
 				return false
 			}
 			g.Expect(secret.Data[secretKey]).To(
-				BeEquivalentTo("updated-test:MariaDB11!@tcp(mdb-test.default.svc.cluster.local:3306)/test?timeout=5s&tls=mariadb-mdb-test-default"),
+				BeEquivalentTo("updated-test:MariaDB11!@tcp(mdb-test.default.svc.cluster.local:3306)/test" +
+					"?timeout=5s&tls=mariadb-mdb-test-default-client-mdb-test-client-cert"),
 			)
 			return true
 		}, testTimeout, testInterval).Should(BeTrue())
@@ -418,7 +422,7 @@ var _ = Describe("Connection", func() {
 			}
 			g.Expect(secret.Data[secretKey]).To(
 				BeEquivalentTo("updated-test:MariaDB-updated11!@tcp(mdb-test.default.svc.cluster.local:3306)/test" +
-					"?timeout=5s&tls=mariadb-mdb-test-default"),
+					"?timeout=5s&tls=mariadb-mdb-test-default-client-mdb-test-client-cert"),
 			)
 			return true
 		}, testTimeout, testInterval).Should(BeTrue())
