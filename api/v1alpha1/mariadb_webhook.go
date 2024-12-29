@@ -51,6 +51,7 @@ func (r *MariaDB) ValidateCreate() (admission.Warnings, error) {
 		r.validateStorage,
 		r.validateRootPassword,
 		r.validateMaxScale,
+		r.validateTLS,
 	}
 	for _, fn := range validateFns {
 		if err := fn(); err != nil {
@@ -75,6 +76,7 @@ func (r *MariaDB) ValidateUpdate(old runtime.Object) (admission.Warnings, error)
 		r.validatePodDisruptionBudget,
 		r.validateStorage,
 		r.validateRootPassword,
+		r.validateTLS,
 	}
 	for _, fn := range validateFns {
 		if err := fn(); err != nil {
@@ -294,6 +296,35 @@ func (r *MariaDB) validateRootPassword() error {
 			r.Spec.RootEmptyPassword,
 			"'spec.rootEmptyPassword' must be disabled when 'spec.rootPasswordSecretKeyRef' is specified",
 		)
+	}
+	return nil
+}
+
+func (r *MariaDB) validateTLS() error {
+	tls := ptr.Deref(r.Spec.TLS, TLS{})
+	if !tls.Enabled {
+		return nil
+	}
+	validationItems := []tlsValidationItem{
+		{
+			tlsValue:      r.Spec.TLS,
+			caSecretRef:   tls.ServerCASecretRef,
+			caFieldPath:   "spec.tls.serverCASecretRef",
+			certSecretRef: tls.ServerCertSecretRef,
+			certFieldPath: "spec.tls.serverCertSecretRef",
+		},
+		{
+			tlsValue:      r.Spec.TLS,
+			caSecretRef:   tls.ClientCASecretRef,
+			caFieldPath:   "spec.tls.clientCASecretRef",
+			certSecretRef: tls.ClientCertSecretRef,
+			certFieldPath: "spec.tls.clientCertSecretRef",
+		},
+	}
+	for _, item := range validationItems {
+		if err := validateTLSCert(&item); err != nil {
+			return err
+		}
 	}
 	return nil
 }
