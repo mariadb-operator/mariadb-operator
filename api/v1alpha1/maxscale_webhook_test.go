@@ -372,6 +372,49 @@ var _ = Describe("MaxScale webhook", func() {
 				},
 				false,
 			),
+			Entry(
+				"Invalid TLS",
+				&MaxScale{
+					ObjectMeta: meta,
+					Spec: MaxScaleSpec{
+						MariaDBRef: &MariaDBRef{
+							ObjectReference: ObjectReference{
+								Name: "mariadb",
+							},
+						},
+						TLS: &MaxScaleTLS{
+							Enabled: true,
+							ListenerCertSecretRef: &LocalObjectReference{
+								Name: "listener-cert",
+							},
+						},
+					},
+				},
+				true,
+			),
+			Entry(
+				"Valid TLS",
+				&MaxScale{
+					ObjectMeta: meta,
+					Spec: MaxScaleSpec{
+						MariaDBRef: &MariaDBRef{
+							ObjectReference: ObjectReference{
+								Name: "mariadb",
+							},
+						},
+						TLS: &MaxScaleTLS{
+							Enabled: true,
+							ListenerCASecretRef: &LocalObjectReference{
+								Name: "listener-ca",
+							},
+							ListenerCertSecretRef: &LocalObjectReference{
+								Name: "listener-cert",
+							},
+						},
+					},
+				},
+				false,
+			),
 		)
 	})
 
@@ -561,6 +604,33 @@ var _ = Describe("MaxScale webhook", func() {
 					mxs.Spec.Resources = &ResourceRequirements{
 						Requests: corev1.ResourceList{
 							"cpu": resource.MustParse("200m"),
+						},
+					}
+				},
+				false,
+			),
+			Entry(
+				"Updating to invalid TLS",
+				func(mxs *MaxScale) {
+					mxs.Spec.TLS = &MaxScaleTLS{
+						Enabled: true,
+						ListenerCertSecretRef: &LocalObjectReference{
+							Name: "server-cert",
+						},
+					}
+				},
+				true,
+			),
+			Entry(
+				"Updating to valid TLS",
+				func(mxs *MaxScale) {
+					mxs.Spec.TLS = &MaxScaleTLS{
+						Enabled: true,
+						ListenerCASecretRef: &LocalObjectReference{
+							Name: "server-ca",
+						},
+						ListenerCertSecretRef: &LocalObjectReference{
+							Name: "server-cert",
 						},
 					}
 				},
