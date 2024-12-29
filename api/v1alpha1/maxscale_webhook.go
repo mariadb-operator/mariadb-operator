@@ -32,6 +32,7 @@ func (r *MaxScale) ValidateCreate() (admission.Warnings, error) {
 		r.validateMonitor,
 		r.validateServices,
 		r.validatePodDisruptionBudget,
+		r.validateTLS,
 	}
 	for _, fn := range validateFns {
 		if err := fn(); err != nil {
@@ -55,6 +56,7 @@ func (r *MaxScale) ValidateUpdate(old runtime.Object) (admission.Warnings, error
 		r.validateMonitor,
 		r.validateServices,
 		r.validatePodDisruptionBudget,
+		r.validateTLS,
 	}
 	for _, fn := range validateFns {
 		if err := fn(); err != nil {
@@ -181,6 +183,42 @@ func (r *MaxScale) validatePodDisruptionBudget() error {
 			r.Spec.PodDisruptionBudget,
 			err.Error(),
 		)
+	}
+	return nil
+}
+
+func (r *MaxScale) validateTLS() error {
+	tls := ptr.Deref(r.Spec.TLS, MaxScaleTLS{})
+	if !tls.Enabled {
+		return nil
+	}
+	validationItems := []tlsValidationItem{
+		{
+			tlsValue:      r.Spec.TLS,
+			caSecretRef:   tls.AdminCASecretRef,
+			caFieldPath:   "spec.tls.adminCASecretRef",
+			certSecretRef: tls.AdminCertSecretRef,
+			certFieldPath: "spec.tls.adminCertSecretRef",
+		},
+		{
+			tlsValue:      r.Spec.TLS,
+			caSecretRef:   tls.ListenerCASecretRef,
+			caFieldPath:   "spec.tls.listenerCASecretRef",
+			certSecretRef: tls.ListenerCertSecretRef,
+			certFieldPath: "spec.tls.listenerCertSecretRef",
+		},
+		{
+			tlsValue:      r.Spec.TLS,
+			caSecretRef:   tls.ServerCASecretRef,
+			caFieldPath:   "spec.tls.serverCASecretRef",
+			certSecretRef: tls.ServerCertSecretRef,
+			certFieldPath: "spec.tls.serverCertSecretRef",
+		},
+	}
+	for _, item := range validationItems {
+		if err := validateTLSCert(&item); err != nil {
+			return err
+		}
 	}
 	return nil
 }
