@@ -50,8 +50,14 @@ var (
 	testPwdSecretKey        = "passsword"
 	testPwdMetricsSecretKey = "metrics"
 	testUser                = "test"
-	testDatabase            = "test"
-	testConnKey             = types.NamespacedName{
+	testPasswordSecretRef   = mariadbv1alpha1.SecretKeySelector{
+		LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+			Name: testPwdKey.Name,
+		},
+		Key: testPwdSecretKey,
+	}
+	testDatabase = "test"
+	testConnKey  = types.NamespacedName{
 		Name:      "conn",
 		Namespace: testNamespace,
 	}
@@ -69,6 +75,8 @@ var (
 		Namespace: testNamespace,
 	}
 )
+
+var testTLSClientCertRef *mariadbv1alpha1.LocalObjectReference
 
 func testCreateInitialData(ctx context.Context, env environment.OperatorEnv) {
 	var testCidrPrefix, err = docker.GetKindCidrPrefix()
@@ -134,12 +142,7 @@ func testCreateInitialData(ctx context.Context, env environment.OperatorEnv) {
 			},
 			Username: &testUser,
 			PasswordSecretKeyRef: &mariadbv1alpha1.GeneratedSecretKeyRef{
-				SecretKeySelector: mariadbv1alpha1.SecretKeySelector{
-					LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
-						Name: testPwdKey.Name,
-					},
-					Key: testPwdSecretKey,
-				},
+				SecretKeySelector: testPasswordSecretRef,
 			},
 			Database: &testDatabase,
 			Connection: &mariadbv1alpha1.ConnectionTemplate{
@@ -198,6 +201,10 @@ max_allowed_packet=256M`),
 		},
 	}
 	applyMariadbTestConfig(&mdb)
+
+	testTLSClientCertRef = &mariadbv1alpha1.LocalObjectReference{
+		Name: mdb.TLSClientCertSecretKey().Name,
+	}
 
 	Expect(k8sClient.Create(ctx, &mdb)).To(Succeed())
 	expectMariadbReady(ctx, k8sClient, testMdbkey)
@@ -500,7 +507,8 @@ func testMaxscale(mdb *mariadbv1alpha1.MariaDB, mxs *mariadbv1alpha1.MaxScale) {
 	}
 }
 
-func testConnection(username string, passwordSecretKeyRef mariadbv1alpha1.SecretKeySelector, database string, isValid bool) {
+func testConnection(username string, password mariadbv1alpha1.SecretKeySelector, clientCert *mariadbv1alpha1.LocalObjectReference,
+	database string, isValid bool) {
 	key := types.NamespacedName{
 		Name:      fmt.Sprintf("test-creds-conn-%s", uuid.New().String()),
 		Namespace: testNamespace,
@@ -521,9 +529,10 @@ func testConnection(username string, passwordSecretKeyRef mariadbv1alpha1.Secret
 				},
 				WaitForIt: true,
 			},
-			Username:             username,
-			PasswordSecretKeyRef: passwordSecretKeyRef,
-			Database:             &database,
+			Username:               username,
+			PasswordSecretKeyRef:   password,
+			TLSClientCertSecretRef: clientCert,
+			Database:               &database,
 		},
 	}
 	By("Creating Connection")
