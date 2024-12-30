@@ -729,6 +729,7 @@ MASTER_PASSWORD='{{ .Password }}',
 MASTER_USE_GTID={{ .Gtid }},
 MASTER_CONNECT_RETRY={{ .Retries }}{{ if .SSLEnabled }},{{ else }};{{ end }}
 {{- if .SSLEnabled }}
+MASTER_SSL=1,
 MASTER_SSL_CERT='{{ .SSLCertPath }}',
 MASTER_SSL_KEY='{{ .SSLKeyPath }}',
 MASTER_SSL_CA='{{ .SSLCAPath }}',
