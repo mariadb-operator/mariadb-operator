@@ -350,6 +350,7 @@ type CreateUserOpts struct {
 	IdentifiedByPassword string
 	IdentifiedVia        string
 	IdentifiedViaUsing   string
+	Require              *mariadbv1alpha1.TLSRequirements
 	MaxUserConnections   int32
 }
 
@@ -379,6 +380,12 @@ func WithIdentifiedViaUsing(viaUsing string) CreateUserOpt {
 	}
 }
 
+func WithTLSRequirements(require *mariadbv1alpha1.TLSRequirements) CreateUserOpt {
+	return func(cuo *CreateUserOpts) {
+		cuo.Require = require
+	}
+}
+
 func WithMaxUserConnections(maxConns int32) CreateUserOpt {
 	return func(cuo *CreateUserOpts) {
 		cuo.MaxUserConnections = maxConns
@@ -402,6 +409,15 @@ func (c *Client) CreateUser(ctx context.Context, accountName string, createUserO
 	} else if opts.IdentifiedBy != "" {
 		query += fmt.Sprintf("IDENTIFIED BY '%s' ", opts.IdentifiedBy)
 	}
+
+	if require := opts.Require; require != nil {
+		requireSubQuery, err := requireQuery(require)
+		if err != nil {
+			return fmt.Errorf("error processing require subquery: %v", err)
+		}
+		query += fmt.Sprintf("%s ", requireSubQuery)
+	}
+
 	query += fmt.Sprintf("WITH MAX_USER_CONNECTIONS %d ", opts.MaxUserConnections)
 	if opts.IdentifiedBy == "" && opts.IdentifiedByPassword == "" && opts.IdentifiedVia == "" {
 		query += "ACCOUNT LOCK PASSWORD EXPIRE "
@@ -435,6 +451,15 @@ func (c *Client) AlterUser(ctx context.Context, accountName string, createUserOp
 	} else {
 		query += fmt.Sprintf("IDENTIFIED BY '%s' ", opts.IdentifiedBy)
 	}
+
+	if require := opts.Require; require != nil {
+		requireSubQuery, err := requireQuery(require)
+		if err != nil {
+			return fmt.Errorf("error processing require subquery: %v", err)
+		}
+		query += fmt.Sprintf("%s ", requireSubQuery)
+	}
+
 	query += fmt.Sprintf("WITH MAX_USER_CONNECTIONS %d ", opts.MaxUserConnections)
 
 	query += ";"
@@ -796,6 +821,35 @@ func (c *Client) TruncateMaxScaleConfig(ctx context.Context) error {
 
 func (c *Client) DropMaxScaleConfig(ctx context.Context) error {
 	return c.Exec(ctx, "DROP TABLE maxscale_config")
+}
+
+func requireQuery(require *mariadbv1alpha1.TLSRequirements) (string, error) {
+	if require == nil {
+		return "", errors.New("TLS requirements must be set")
+	}
+	if err := require.Validate(); err != nil {
+		return "", fmt.Errorf("invalid TLS requirements: %v", err)
+	}
+	var tlsOptions []string
+
+	if require.SSL != nil && *require.SSL {
+		tlsOptions = append(tlsOptions, "SSL")
+	}
+	if require.X509 != nil && *require.X509 {
+		tlsOptions = append(tlsOptions, "X509")
+	}
+	if require.Issuer != nil && *require.Issuer != "" {
+		tlsOptions = append(tlsOptions, fmt.Sprintf("ISSUER '%s'", *require.Issuer))
+	}
+	if require.Subject != nil && *require.Subject != "" {
+		tlsOptions = append(tlsOptions, fmt.Sprintf("SUBJECT '%s'", *require.Subject))
+	}
+
+	if len(tlsOptions) == 0 {
+		return "", errors.New("no valid TLS requirements specified")
+	}
+
+	return fmt.Sprintf("REQUIRE %s", strings.Join(tlsOptions, " AND ")), nil
 }
 
 func createTpl(name, t string) *template.Template {

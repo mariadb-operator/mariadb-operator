@@ -1,12 +1,55 @@
 package v1alpha1
 
 import (
+	"errors"
 	"fmt"
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
+
+// TLSRequirements specifies TLS requirements for the user to connect.
+type TLSRequirements struct {
+	// SSL indicates that the user must connect via SSL.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	SSL *bool `json:"ssl,omitempty"`
+	// X509 indicates that the user must provide a valid x509 certificate to connect.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	X509 *bool `json:"x509,omitempty"`
+	// Issuer indicates that the TLS certificed provided by the user must be issued by a specific issuer.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Issuer *string `json:"issuer,omitempty"`
+	// Subject indicates that the TLS certificed provided by the user must have a specific subject.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Subject *string `json:"subject,omitempty"`
+}
+
+// Validate ensures that TLSRequirements provides legit options.
+func (u *TLSRequirements) Validate() error {
+	// see: https://mariadb.com/kb/en/securing-connections-for-client-and-server/#requiring-tls
+	count := 0
+	if u.SSL != nil && *u.SSL {
+		count++
+	}
+	if u.X509 != nil && *u.X509 {
+		count++
+	}
+	if (u.Issuer != nil && *u.Issuer != "") || (u.Subject != nil && *u.Subject != "") {
+		count++
+	}
+	if count > 1 {
+		return errors.New("only one of [SSL, X509, (Issuer, Subject)] can be set at a time")
+	}
+	if count == 0 {
+		return errors.New("at least one field [SSL, X509, (Issuer, Subject)] must be set")
+	}
+	return nil
+}
 
 // UserSpec defines the desired state of User
 type UserSpec struct {
@@ -32,6 +75,10 @@ type UserSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	PasswordPlugin PasswordPlugin `json:"passwordPlugin,omitempty"`
+	// Require specifies TLS requirements for the user to connect.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	Require *TLSRequirements `json:"require,omitempty"`
 	// MaxUserConnections defines the maximum number of simultaneous connections that the User can establish.
 	// +optional
 	// +kubebuilder:default=10

@@ -26,6 +26,7 @@ func (r *User) ValidateCreate() (admission.Warnings, error) {
 	validateFns := []func() error{
 		r.validatePassword,
 		r.validateCleanupPolicy,
+		r.validateRequire,
 	}
 	for _, fn := range validateFns {
 		if err := fn(); err != nil {
@@ -46,6 +47,7 @@ func (r *User) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
 	validateFns := []func() error{
 		r.validatePassword,
 		r.validateCleanupPolicy,
+		r.validateRequire,
 	}
 	for _, fn := range validateFns {
 		if err := fn(); err != nil {
@@ -102,6 +104,19 @@ func (r *User) validateCleanupPolicy() error {
 			return field.Invalid(
 				field.NewPath("spec").Child("cleanupPolicy"),
 				r.Spec.CleanupPolicy,
+				err.Error(),
+			)
+		}
+	}
+	return nil
+}
+
+func (u *User) validateRequire() error {
+	if require := u.Spec.Require; require != nil {
+		if err := require.Validate(); err != nil {
+			return field.Invalid(
+				field.NewPath("spec").Child("require"),
+				u.Spec.Require,
 				err.Error(),
 			)
 		}
