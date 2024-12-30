@@ -1,0 +1,16 @@
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: User
+metadata:
+  name: user
+spec:
+  name: alice
+  mariaDbRef:
+    name: mariadb-galera
+  passwordSecretKeyRef:
+    name: mariadb
+    key: password
+  # see: https://mariadb.com/kb/en/securing-connections-for-client-and-server/#requiring-tls
+  require:
+    issuer: "/CN=mariadb-galera-ca"
+    subject: "/CN=mariadb-galera-client"
+  host: "%"
