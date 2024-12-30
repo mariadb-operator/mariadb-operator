@@ -77,14 +77,9 @@ var _ = Describe("Connection", func() {
 						},
 						WaitForIt: true,
 					},
-					Username: testUser,
-					PasswordSecretKeyRef: mariadbv1alpha1.SecretKeySelector{
-						LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
-							Name: testPwdKey.Name,
-						},
-						Key: testPwdSecretKey,
-					},
-					Database: &testDatabase,
+					Username:             testUser,
+					PasswordSecretKeyRef: testPasswordSecretRef,
+					Database:             &testDatabase,
 				},
 			},
 			"test:MariaDB11!@tcp(mdb-test.default.svc.cluster.local:3306)/test"+
@@ -123,14 +118,9 @@ var _ = Describe("Connection", func() {
 						},
 						WaitForIt: true,
 					},
-					Username: testUser,
-					PasswordSecretKeyRef: mariadbv1alpha1.SecretKeySelector{
-						LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
-							Name: testPwdKey.Name,
-						},
-						Key: testPwdSecretKey,
-					},
-					Database: &testDatabase,
+					Username:             testUser,
+					PasswordSecretKeyRef: testPasswordSecretRef,
+					Database:             &testDatabase,
 				},
 			},
 			"test:MariaDB11!@tcp(mdb-test.default.svc.cluster.local:3306)/test"+
@@ -150,17 +140,10 @@ var _ = Describe("Connection", func() {
 						},
 						WaitForIt: true,
 					},
-					Username: testUser,
-					PasswordSecretKeyRef: mariadbv1alpha1.SecretKeySelector{
-						LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
-							Name: testPwdKey.Name,
-						},
-						Key: testPwdSecretKey,
-					},
-					TLSClientCertSecretRef: &mariadbv1alpha1.LocalObjectReference{
-						Name: "mdb-test-client-cert",
-					},
-					Database: &testDatabase,
+					Username:               testUser,
+					PasswordSecretKeyRef:   testPasswordSecretRef,
+					TLSClientCertSecretRef: testTLSClientCertRef,
+					Database:               &testDatabase,
 				},
 			},
 			"test:MariaDB11!@tcp(mdb-test.default.svc.cluster.local:3306)/test"+
@@ -202,14 +185,9 @@ var _ = Describe("Connection", func() {
 						},
 						WaitForIt: true,
 					},
-					Username: testUser,
-					PasswordSecretKeyRef: mariadbv1alpha1.SecretKeySelector{
-						LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
-							Name: testPwdKey.Name,
-						},
-						Key: testPwdSecretKey,
-					},
-					Database: &testDatabase,
+					Username:             testUser,
+					PasswordSecretKeyRef: testPasswordSecretRef,
+					Database:             &testDatabase,
 				},
 			},
 			"mysql://test:MariaDB11!@mdb-test.default.svc.cluster.local:3306/test?timeout=5s",
