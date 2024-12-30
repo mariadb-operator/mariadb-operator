@@ -56,8 +56,9 @@ var (
 		},
 		Key: testPwdSecretKey,
 	}
-	testDatabase = "test"
-	testConnKey  = types.NamespacedName{
+	testTLSClientCertRef *mariadbv1alpha1.LocalObjectReference
+	testDatabase         = "test"
+	testConnKey          = types.NamespacedName{
 		Name:      "conn",
 		Namespace: testNamespace,
 	}
@@ -75,8 +76,6 @@ var (
 		Namespace: testNamespace,
 	}
 )
-
-var testTLSClientCertRef *mariadbv1alpha1.LocalObjectReference
 
 func testCreateInitialData(ctx context.Context, env environment.OperatorEnv) {
 	var testCidrPrefix, err = docker.GetKindCidrPrefix()
