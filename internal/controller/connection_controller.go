@@ -365,11 +365,11 @@ func (r *ConnectionReconciler) addSqlClientOpts(ctx context.Context, mdb *mariad
 
 	clientPrivateKeySelector := mariadbv1alpha1.SecretKeySelector{
 		LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
-			Name: mdb.TLSClientCertSecretKey().Name,
+			Name: secretKey.Name,
 		},
 		Key: pki.TLSKeyKey,
 	}
-	clientPrivateKey, err := r.RefResolver.SecretKeyRef(ctx, clientPrivateKeySelector, mdb.Namespace)
+	clientPrivateKey, err := r.RefResolver.SecretKeyRef(ctx, clientPrivateKeySelector, secretKey.Namespace)
 	if err != nil {
 		return fmt.Errorf("error getting client certificate: %v", err)
 	}
