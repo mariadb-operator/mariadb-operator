@@ -1,0 +1,17 @@
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: Connection
+metadata:
+  name: connection-maxscale
+spec:
+  maxScaleRef:
+    name: maxscale-galera
+  username: mariadb
+  passwordSecretKeyRef:
+    name: mariadb
+    key: password
+  tlsClientCertSecretRef:
+    name: mariadb-galera-client-cert
+  database: mariadb
+  healthCheck:
+    interval: 30s
+    retryInterval: 3s
