@@ -11663,6 +11663,25 @@ spec:
               requeueInterval:
                 description: RequeueInterval is used to perform requeue reconciliations.
                 type: string
+              require:
+                description: Require specifies TLS requirements for the user to connect.
+                properties:
+                  issuer:
+                    description: Issuer indicates that the TLS certificed provided
+                      by the user must be issued by a specific issuer.
+                    type: string
+                  ssl:
+                    description: SSL indicates that the user must connect via SSL.
+                    type: boolean
+                  subject:
+                    description: Subject indicates that the TLS certificed provided
+                      by the user must have a specific subject.
+                    type: string
+                  x509:
+                    description: X509 indicates that the user must provide a valid
+                      x509 certificate to connect.
+                    type: boolean
+                type: object
               retryInterval:
                 description: RetryInterval is the interval used to perform retries.
                 type: string
