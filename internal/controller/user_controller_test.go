@@ -35,13 +35,8 @@ var _ = Describe("User", func() {
 					},
 					WaitForIt: true,
 				},
-				PasswordSecretKeyRef: &mariadbv1alpha1.SecretKeySelector{
-					LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
-						Name: testPwdKey.Name,
-					},
-					Key: testPwdSecretKey,
-				},
-				MaxUserConnections: 20,
+				PasswordSecretKeyRef: &testPasswordSecretRef,
+				MaxUserConnections:   20,
 			},
 		}
 		Expect(k8sClient.Create(testCtx, &user)).To(Succeed())
@@ -104,13 +99,8 @@ var _ = Describe("User", func() {
 					},
 					WaitForIt: true,
 				},
-				PasswordSecretKeyRef: &mariadbv1alpha1.SecretKeySelector{
-					LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
-						Name: key.Name,
-					},
-					Key: secretKey,
-				},
-				MaxUserConnections: 20,
+				PasswordSecretKeyRef: &testPasswordSecretRef,
+				MaxUserConnections:   20,
 			},
 		}
 		Expect(k8sClient.Create(testCtx, &user)).To(Succeed())
@@ -127,7 +117,7 @@ var _ = Describe("User", func() {
 		}, testTimeout, testInterval).Should(BeTrue())
 
 		By("Expecting credentials to be valid")
-		testConnection(user.Name, *user.Spec.PasswordSecretKeyRef, testDatabase, true)
+		testConnection(user.Name, testPasswordSecretRef, testTLSClientCertRef, testDatabase, true)
 
 		By("Updating password Secret")
 		Eventually(func(g Gomega) bool {
@@ -138,7 +128,7 @@ var _ = Describe("User", func() {
 		}, testTimeout, testInterval).Should(BeTrue())
 
 		By("Expecting credentials to be valid")
-		testConnection(user.Name, *user.Spec.PasswordSecretKeyRef, testDatabase, true)
+		testConnection(user.Name, testPasswordSecretRef, testTLSClientCertRef, testDatabase, true)
 	})
 
 	It("should update password hash", func() {
@@ -148,13 +138,6 @@ var _ = Describe("User", func() {
 		}
 		secretKeyPassword := "password"
 		secretKeyHash := "passwordHash"
-
-		PasswordSecretKeyRef := &mariadbv1alpha1.SecretKeySelector{
-			LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
-				Name: key.Name,
-			},
-			Key: secretKeyPassword,
-		}
 
 		By("Creating Secret")
 		secret := corev1.Secret{
@@ -188,13 +171,8 @@ var _ = Describe("User", func() {
 					},
 					WaitForIt: true,
 				},
-				PasswordHashSecretKeyRef: &mariadbv1alpha1.SecretKeySelector{
-					LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
-						Name: key.Name,
-					},
-					Key: secretKeyHash,
-				},
-				MaxUserConnections: 20,
+				PasswordSecretKeyRef: &testPasswordSecretRef,
+				MaxUserConnections:   20,
 			},
 		}
 		Expect(k8sClient.Create(testCtx, &user)).To(Succeed())
@@ -211,7 +189,7 @@ var _ = Describe("User", func() {
 		}, testTimeout, testInterval).Should(BeTrue())
 
 		By("Expecting credentials to be valid")
-		testConnection(user.Name, *PasswordSecretKeyRef, testDatabase, true)
+		testConnection(user.Name, testPasswordSecretRef, testTLSClientCertRef, testDatabase, true)
 
 		By("Updating password Secret")
 		Eventually(func(g Gomega) bool {
@@ -223,7 +201,7 @@ var _ = Describe("User", func() {
 		}, testTimeout, testInterval).Should(BeTrue())
 
 		By("Expecting credentials to be valid")
-		testConnection(user.Name, *PasswordSecretKeyRef, testDatabase, true)
+		testConnection(user.Name, testPasswordSecretRef, testTLSClientCertRef, testDatabase, true)
 	})
 
 	It("should update password plugin", func() {
@@ -234,13 +212,6 @@ var _ = Describe("User", func() {
 		secretKeyPassword := "password"
 		secretKeyPluginName := "pluginName"
 		secretKeyPluginArg := "pluginArg"
-
-		PasswordSecretKeyRef := &mariadbv1alpha1.SecretKeySelector{
-			LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
-				Name: key.Name,
-			},
-			Key: secretKeyPassword,
-		}
 
 		By("Creating Secret")
 		secret := corev1.Secret{
@@ -306,7 +277,7 @@ var _ = Describe("User", func() {
 		}, testTimeout, testInterval).Should(BeTrue())
 
 		By("Expecting credentials to be valid")
-		testConnection(user.Name, *PasswordSecretKeyRef, testDatabase, true)
+		testConnection(user.Name, testPasswordSecretRef, testTLSClientCertRef, testDatabase, true)
 
 		By("Updating password Secret")
 		Eventually(func(g Gomega) bool {
@@ -318,7 +289,7 @@ var _ = Describe("User", func() {
 		}, testTimeout, testInterval).Should(BeTrue())
 
 		By("Expecting credentials to be valid")
-		testConnection(user.Name, *PasswordSecretKeyRef, testDatabase, true)
+		testConnection(user.Name, testPasswordSecretRef, testTLSClientCertRef, testDatabase, true)
 	})
 
 	It("should clean up", func() {
@@ -326,12 +297,6 @@ var _ = Describe("User", func() {
 		userKey := types.NamespacedName{
 			Name:      "test-clean-up-user",
 			Namespace: testNamespace,
-		}
-		passwordSecretKeyRef := mariadbv1alpha1.SecretKeySelector{
-			LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
-				Name: testPwdKey.Name,
-			},
-			Key: testPwdSecretKey,
 		}
 		user := mariadbv1alpha1.User{
 			ObjectMeta: metav1.ObjectMeta{
@@ -348,7 +313,7 @@ var _ = Describe("User", func() {
 					},
 					WaitForIt: true,
 				},
-				PasswordSecretKeyRef: &passwordSecretKeyRef,
+				PasswordSecretKeyRef: &testPasswordSecretRef,
 				MaxUserConnections:   20,
 			},
 		}
@@ -419,7 +384,7 @@ var _ = Describe("User", func() {
 		})
 
 		By("Expecting credentials to be valid")
-		testConnection(userKey.Name, passwordSecretKeyRef, databaseKey.Name, true)
+		testConnection(userKey.Name, testPasswordSecretRef, testTLSClientCertRef, databaseKey.Name, true)
 
 		By("Deleting Grant")
 		Expect(k8sClient.Delete(testCtx, &grant)).To(Succeed())
@@ -434,7 +399,7 @@ var _ = Describe("User", func() {
 		expectToNotExist(testCtx, k8sClient, &user)
 
 		By("Expecting credentials to be invalid")
-		testConnection(userKey.Name, passwordSecretKeyRef, databaseKey.Name, false)
+		testConnection(userKey.Name, testPasswordSecretRef, testTLSClientCertRef, databaseKey.Name, false)
 	})
 
 	It("should skip clean up", func() {
@@ -442,12 +407,6 @@ var _ = Describe("User", func() {
 		userKey := types.NamespacedName{
 			Name:      "test-skip-clean-up-user",
 			Namespace: testNamespace,
-		}
-		passwordSecretKeyRef := mariadbv1alpha1.SecretKeySelector{
-			LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
-				Name: testPwdKey.Name,
-			},
-			Key: testPwdSecretKey,
 		}
 		user := mariadbv1alpha1.User{
 			ObjectMeta: metav1.ObjectMeta{
@@ -464,7 +423,7 @@ var _ = Describe("User", func() {
 					},
 					WaitForIt: true,
 				},
-				PasswordSecretKeyRef: &passwordSecretKeyRef,
+				PasswordSecretKeyRef: &testPasswordSecretRef,
 				MaxUserConnections:   20,
 			},
 		}
@@ -535,7 +494,7 @@ var _ = Describe("User", func() {
 		})
 
 		By("Expecting credentials to be valid")
-		testConnection(userKey.Name, passwordSecretKeyRef, databaseKey.Name, true)
+		testConnection(userKey.Name, testPasswordSecretRef, testTLSClientCertRef, databaseKey.Name, true)
 
 		By("Deleting Grant")
 		Expect(k8sClient.Delete(testCtx, &grant)).To(Succeed())
@@ -550,6 +509,6 @@ var _ = Describe("User", func() {
 		expectToNotExist(testCtx, k8sClient, &user)
 
 		By("Expecting credentials to be valid")
-		testConnection(userKey.Name, passwordSecretKeyRef, databaseKey.Name, true)
+		testConnection(userKey.Name, testPasswordSecretRef, testTLSClientCertRef, databaseKey.Name, true)
 	})
 })

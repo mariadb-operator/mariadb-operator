@@ -79,6 +79,11 @@ type ConnectionSpec struct {
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	PasswordSecretKeyRef SecretKeySelector `json:"passwordSecretKeyRef"`
+	// TLSClientCertSecretRef is a reference to a Kubernetes TLS Secret used as authentication when checking the connection health.
+	// If not provided, the client certificate provided by the referred MariaDB is used.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	TLSClientCertSecretRef *LocalObjectReference `json:"tlsClientCertSecretRef,omitempty"`
 	// Host to connect to. If not provided, it defaults to the MariaDB host or to the MaxScale host.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number","urn:alm:descriptor:com.tectonic.ui:advanced"}
