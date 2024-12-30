@@ -137,6 +137,36 @@ var _ = Describe("Connection", func() {
 				"?timeout=5s&tls=mariadb-mdb-test-default-client-mdb-test-client-cert&parseTime=true",
 		),
 		Entry(
+			"Creating a Connection providing TLS client cert",
+			&mariadbv1alpha1.Connection{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "conn-tls",
+					Namespace: testNamespace,
+				},
+				Spec: mariadbv1alpha1.ConnectionSpec{
+					MariaDBRef: &mariadbv1alpha1.MariaDBRef{
+						ObjectReference: mariadbv1alpha1.ObjectReference{
+							Name: testMdbkey.Name,
+						},
+						WaitForIt: true,
+					},
+					Username: testUser,
+					PasswordSecretKeyRef: mariadbv1alpha1.SecretKeySelector{
+						LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+							Name: testPwdKey.Name,
+						},
+						Key: testPwdSecretKey,
+					},
+					TLSClientCertSecretRef: &mariadbv1alpha1.LocalObjectReference{
+						Name: "mdb-test-client-cert",
+					},
+					Database: &testDatabase,
+				},
+			},
+			"test:MariaDB11!@tcp(mdb-test.default.svc.cluster.local:3306)/test"+
+				"?timeout=5s&tls=mariadb-mdb-test-default-client-mdb-test-client-cert",
+		),
+		Entry(
 			"Creating a Connection providing DSN Format",
 			&mariadbv1alpha1.Connection{
 				ObjectMeta: metav1.ObjectMeta{
