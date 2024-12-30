@@ -1257,6 +1257,15 @@ spec:
               serviceName:
                 description: ServiceName to be used in the Connection.
                 type: string
+              tlsClientCertSecretRef:
+                description: |-
+                  TLSClientCertSecretRef is a reference to a Kubernetes TLS Secret used as authentication when checking the connection health.
+                  If not provided, the client certificate provided by the referred MariaDB is used.
+                properties:
+                  name:
+                    default: ""
+                    type: string
+                type: object
               username:
                 description: Username to use for configuring the Connection.
                 type: string

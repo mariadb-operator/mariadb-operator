@@ -335,19 +335,17 @@ func (r *ConnectionReconciler) getSqlOpts(ctx context.Context, conn *mariadbv1al
 		sqlOpts.Namespace = mdb.Namespace
 	}
 
-	if err := r.addSqlClientOpts(ctx, refs.MariaDB, &sqlOpts); err != nil {
+	if err := r.addSqlClientOpts(ctx, conn, refs.MariaDB, &sqlOpts); err != nil {
 		return clientsql.Opts{}, fmt.Errorf("error adding SQL client opts: %v", err)
 	}
 	return sqlOpts, nil
 }
 
-func (r *ConnectionReconciler) addSqlClientOpts(ctx context.Context, mdb *mariadbv1alpha1.MariaDB, opts *clientsql.Opts) error {
-	if mdb == nil || !mdb.IsTLSEnabled() {
+func (r *ConnectionReconciler) addSqlClientOpts(ctx context.Context, conn *mariadbv1alpha1.Connection, mdb *mariadbv1alpha1.MariaDB,
+	opts *clientsql.Opts) error {
+	secretKey := r.clientCertSecretKey(conn, mdb)
+	if secretKey == nil {
 		return nil
-	}
-	secretKey := types.NamespacedName{
-		Name:      mdb.TLSClientCertSecretKey().Name,
-		Namespace: mdb.Namespace,
 	}
 	opts.ClientName = secretKey.Name
 
@@ -375,6 +373,21 @@ func (r *ConnectionReconciler) addSqlClientOpts(ctx context.Context, mdb *mariad
 	}
 	opts.TLSClientPrivateKey = []byte(clientPrivateKey)
 
+	return nil
+}
+func (r *ConnectionReconciler) clientCertSecretKey(conn *mariadbv1alpha1.Connection, mdb *mariadbv1alpha1.MariaDB) *types.NamespacedName {
+	if conn != nil && conn.Spec.TLSClientCertSecretRef != nil {
+		return &types.NamespacedName{
+			Name:      conn.Spec.TLSClientCertSecretRef.Name,
+			Namespace: conn.Namespace,
+		}
+	}
+	if mdb != nil && mdb.IsTLSEnabled() {
+		return &types.NamespacedName{
+			Name:      mdb.TLSClientCertSecretKey().Name,
+			Namespace: mdb.Namespace,
+		}
+	}
 	return nil
 }
 
