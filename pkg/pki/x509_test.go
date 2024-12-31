@@ -677,11 +677,10 @@ func testCreateCert(
 				return
 			}
 
-			certs, err := keyPair.Certificates()
+			cert, err := keyPair.LeafCertificate() // we are only creating certificates with a single leaf cert, therefore only one PEM block
 			if err != nil {
-				t.Fatalf("error getting certificates: %v", err)
+				t.Fatalf("error getting leaf certificate: %v", err)
 			}
-			cert := certs[0] // we are only creating certificates with a single PEM block
 			commonName := cert.Subject.CommonName
 			notBefore := cert.NotBefore
 
