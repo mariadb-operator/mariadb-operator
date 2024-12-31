@@ -9,9 +9,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// TLSRequirements specifies TLS requirements for the user to connect.
+// TLSRequirements specifies TLS requirements for the user to connect. See: https://mariadb.com/kb/en/securing-connections-for-client-and-server/#requiring-tls.
 type TLSRequirements struct {
-	// SSL indicates that the user must connect via SSL.
+	// SSL indicates that the user must connect via TLS.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	SSL *bool `json:"ssl,omitempty"`
@@ -19,11 +19,11 @@ type TLSRequirements struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	X509 *bool `json:"x509,omitempty"`
-	// Issuer indicates that the TLS certificed provided by the user must be issued by a specific issuer.
+	// Issuer indicates that the TLS certificate provided by the user must be issued by a specific issuer.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Issuer *string `json:"issuer,omitempty"`
-	// Subject indicates that the TLS certificed provided by the user must have a specific subject.
+	// Subject indicates that the TLS certificate provided by the user must have a specific subject.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Subject *string `json:"subject,omitempty"`
@@ -75,7 +75,7 @@ type UserSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	PasswordPlugin PasswordPlugin `json:"passwordPlugin,omitempty"`
-	// Require specifies TLS requirements for the user to connect.
+	// Require specifies TLS requirements for the user to connect. See: https://mariadb.com/kb/en/securing-connections-for-client-and-server/#requiring-tls.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Require *TLSRequirements `json:"require,omitempty"`
