@@ -56,7 +56,9 @@ var (
 		},
 		Key: testPwdSecretKey,
 	}
+	testTLSClientCARef   *mariadbv1alpha1.LocalObjectReference
 	testTLSClientCertRef *mariadbv1alpha1.LocalObjectReference
+	testTLSRequirements  *mariadbv1alpha1.TLSRequirements
 	testDatabase         = "test"
 	testConnKey          = types.NamespacedName{
 		Name:      "conn",
@@ -201,8 +203,15 @@ max_allowed_packet=256M`),
 	}
 	applyMariadbTestConfig(&mdb)
 
+	testTLSClientCARef = &mariadbv1alpha1.LocalObjectReference{
+		Name: mdb.TLSClientCASecretKey().Name,
+	}
 	testTLSClientCertRef = &mariadbv1alpha1.LocalObjectReference{
 		Name: mdb.TLSClientCertSecretKey().Name,
+	}
+	testTLSRequirements = &mariadbv1alpha1.TLSRequirements{
+		Issuer:  ptr.To(fmt.Sprintf("/CN=%s", testTLSClientCARef.Name)),
+		Subject: ptr.To(fmt.Sprintf("/CN=%s", testTLSClientCertRef.Name)),
 	}
 
 	Expect(k8sClient.Create(ctx, &mdb)).To(Succeed())
