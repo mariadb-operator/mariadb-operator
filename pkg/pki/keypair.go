@@ -92,6 +92,15 @@ func (k *KeyPair) Certificates() ([]*x509.Certificate, error) {
 	return ParseCertificates(k.CertPEM)
 }
 
+// Certificates parses and returns the leaf certificate from the CertPEM field.
+func (k *KeyPair) LeafCertificate() (*x509.Certificate, error) {
+	certs, err := k.Certificates()
+	if err != nil {
+		return nil, fmt.Errorf("error getting certs: %v", err)
+	}
+	return certs[0], nil // leaf certificate should be the first in the chain to establish trust
+}
+
 // PrivateKey parses and returns the private key from the KeyPEM field.
 func (k *KeyPair) PrivateKey() (crypto.Signer, error) {
 	return ParsePrivateKey(k.KeyPEM, k.SupportedPrivateKeys)
