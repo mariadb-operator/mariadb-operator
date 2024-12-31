@@ -36,6 +36,7 @@ var _ = Describe("User", func() {
 					WaitForIt: true,
 				},
 				PasswordSecretKeyRef: &testPasswordSecretRef,
+				Require:              testTLSRequirements,
 				MaxUserConnections:   20,
 			},
 		}
@@ -59,6 +60,9 @@ var _ = Describe("User", func() {
 			}
 			return controllerutil.ContainsFinalizer(&user, userFinalizerName)
 		}, testTimeout, testInterval).Should(BeTrue())
+
+		By("Expecting credentials to be valid")
+		testConnection(user.Name, testPasswordSecretRef, testTLSClientCertRef, testDatabase, true)
 	})
 
 	It("should update password", func() {
@@ -100,6 +104,7 @@ var _ = Describe("User", func() {
 					WaitForIt: true,
 				},
 				PasswordSecretKeyRef: &testPasswordSecretRef,
+				Require:              testTLSRequirements,
 				MaxUserConnections:   20,
 			},
 		}
@@ -172,6 +177,7 @@ var _ = Describe("User", func() {
 					WaitForIt: true,
 				},
 				PasswordSecretKeyRef: &testPasswordSecretRef,
+				Require:              testTLSRequirements,
 				MaxUserConnections:   20,
 			},
 		}
@@ -260,6 +266,7 @@ var _ = Describe("User", func() {
 						Key: secretKeyPluginArg,
 					},
 				},
+				Require:            testTLSRequirements,
 				MaxUserConnections: 20,
 			},
 		}
@@ -314,6 +321,7 @@ var _ = Describe("User", func() {
 					WaitForIt: true,
 				},
 				PasswordSecretKeyRef: &testPasswordSecretRef,
+				Require:              testTLSRequirements,
 				MaxUserConnections:   20,
 			},
 		}
@@ -424,6 +432,7 @@ var _ = Describe("User", func() {
 					WaitForIt: true,
 				},
 				PasswordSecretKeyRef: &testPasswordSecretRef,
+				Require:              testTLSRequirements,
 				MaxUserConnections:   20,
 			},
 		}
