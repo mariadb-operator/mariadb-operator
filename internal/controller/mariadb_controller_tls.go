@@ -7,18 +7,23 @@ import (
 	"fmt"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	builderpki "github.com/mariadb-operator/mariadb-operator/pkg/builder/pki"
 	certctrl "github.com/mariadb-operator/mariadb-operator/pkg/controller/certificate"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/configmap"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
 	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
 	"github.com/mariadb-operator/mariadb-operator/pkg/pki"
+	"github.com/mariadb-operator/mariadb-operator/pkg/pod"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	klabels "k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -26,8 +31,8 @@ func (r *MariaDBReconciler) reconcileTLS(ctx context.Context, mariadb *mariadbv1
 	if !mariadb.IsTLSEnabled() {
 		return ctrl.Result{}, nil
 	}
-	if err := r.reconcileTLSCerts(ctx, mariadb); err != nil {
-		return ctrl.Result{}, err
+	if result, err := r.reconcileTLSCerts(ctx, mariadb); !result.IsZero() || err != nil {
+		return result, err
 	}
 	if err := r.reconcileTLSCABundle(ctx, mariadb); err != nil {
 		return ctrl.Result{}, err
@@ -38,7 +43,7 @@ func (r *MariaDBReconciler) reconcileTLS(ctx context.Context, mariadb *mariadbv1
 	return ctrl.Result{}, nil
 }
 
-func (r *MariaDBReconciler) reconcileTLSCerts(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) error {
+func (r *MariaDBReconciler) reconcileTLSCerts(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
 	tls := ptr.Deref(mdb.Spec.TLS, mariadbv1alpha1.TLS{})
 
 	serverCertOpts := []certctrl.CertReconcilerOpt{
@@ -52,12 +57,16 @@ func (r *MariaDBReconciler) reconcileTLSCerts(ctx context.Context, mdb *mariadbv
 			mdb.TLSServerCertSecretKey(),
 			mdb.TLSServerDNSNames(),
 		),
+		certctrl.WithShouldRenewCertFn(r.shouldRenewCertFn(mdb)),
 		certctrl.WithRelatedObject(mdb),
 	}
 	serverCertOpts = append(serverCertOpts, tlsServerCertOpts(mdb)...)
 
-	if _, err := r.CertReconciler.Reconcile(ctx, serverCertOpts...); err != nil {
-		return fmt.Errorf("error reconciling server cert: %v", err)
+	if result, err := r.CertReconciler.Reconcile(ctx, serverCertOpts...); !result.IsZero() || err != nil {
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("error reconciling server cert: %v", err)
+		}
+		return result.Result, nil
 	}
 
 	clientCertOpts := []certctrl.CertReconcilerOpt{
@@ -71,15 +80,19 @@ func (r *MariaDBReconciler) reconcileTLSCerts(ctx context.Context, mdb *mariadbv
 			mdb.TLSClientCertSecretKey(),
 			mdb.TLSClientNames(),
 		),
+		certctrl.WithShouldRenewCertFn(r.shouldRenewCertFn(mdb)),
 		certctrl.WithRelatedObject(mdb),
 	}
 	clientCertOpts = append(clientCertOpts, tlsClientCertOpts(mdb)...)
 
-	if _, err := r.CertReconciler.Reconcile(ctx, clientCertOpts...); err != nil {
-		return fmt.Errorf("error reconciling client cert: %v", err)
+	if result, err := r.CertReconciler.Reconcile(ctx, clientCertOpts...); !result.IsZero() || err != nil {
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("error reconciling client cert: %v", err)
+		}
+		return result.Result, nil
 	}
 
-	return nil
+	return ctrl.Result{}, nil
 }
 
 func (r *MariaDBReconciler) reconcileTLSCABundle(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) error {
@@ -227,6 +240,95 @@ func (r *MariaDBReconciler) getTLSClientAnnotations(ctx context.Context, mariadb
 	annotations[metadata.TLSClientCertAnnotation] = hash(clientCert)
 
 	return annotations, nil
+}
+
+func (r *MariaDBReconciler) shouldRenewCertFn(mdb *mariadbv1alpha1.MariaDB) certctrl.ShouldRenewCertFn {
+	return func(ctx context.Context, caKeyPair *pki.KeyPair) (bool, string, error) {
+		if !mdb.IsReady() {
+			return false, "", fmt.Errorf("MariaDB not ready: %w", certctrl.ErrSkipCertRenewal)
+		}
+
+		caLeafCert, err := caKeyPair.LeafCertificate()
+		if err != nil {
+			return false, "", fmt.Errorf("error getting CA leaf certificate: %v", err)
+		}
+
+		caBundleBytes, err := r.RefResolver.SecretKeyRef(ctx, mdb.TLSCABundleSecretKeyRef(), mdb.Namespace)
+		if err != nil {
+			return false, "CA bundle not found", nil
+		}
+		caCerts, err := pki.ParseCertificates([]byte(caBundleBytes))
+		if err != nil {
+			return false, "", fmt.Errorf("error getting CA certs: %v", err)
+		}
+
+		serialNo := caLeafCert.SerialNumber
+		hasSerialNo := false
+		for _, cert := range caCerts {
+			if cert.SerialNumber.Cmp(serialNo) == 0 {
+				hasSerialNo = true
+				break
+			}
+		}
+		// CA bundle hasn't been updated with the CA
+		if !hasSerialNo {
+			return false, fmt.Sprintf("Missing CA with serial number '%s' in CA bundle", serialNo.String()), nil
+		}
+
+		allPodsTrustingCA, err := r.ensureAllPodsTrustingCABundle(ctx, mdb, hash(caBundleBytes))
+		if err != nil {
+			return false, "", fmt.Errorf("error checking pod CAs: %v", err)
+		}
+		// Some Pods are still not trusting the CA, a rolling upgrade is pending/ongoing
+		if !allPodsTrustingCA {
+			return false, "Waiting for all Pods to trust CA", nil
+		}
+
+		return true, "", nil
+	}
+}
+
+func (r *MariaDBReconciler) ensureAllPodsTrustingCABundle(ctx context.Context, mdb *mariadbv1alpha1.MariaDB,
+	caBundleHash string) (bool, error) {
+	logger := log.FromContext(ctx).WithName("pod-ca").WithValues("ca-hash", caBundleHash)
+
+	list := corev1.PodList{}
+	listOpts := &client.ListOptions{
+		LabelSelector: klabels.SelectorFromSet(
+			labels.NewLabelsBuilder().
+				WithMariaDBSelectorLabels(mdb).
+				Build(),
+		),
+		Namespace: mdb.GetNamespace(),
+	}
+	if err := r.List(ctx, &list, listOpts); err != nil {
+		return false, fmt.Errorf("error listing Pods: %v", err)
+	}
+	if len(list.Items) != int(mdb.Spec.Replicas) {
+		return false, errors.New("some Pods are missing")
+	}
+
+	for _, p := range list.Items {
+		if !pod.PodReady(&p) {
+			logger.V(1).Info("Pod not ready", "pod", p.Name)
+			return false, nil
+		}
+
+		annotations := p.ObjectMeta.Annotations
+		if annotations == nil {
+			return false, nil
+		}
+		caAnnotation, ok := annotations[metadata.TLSCAAnnotation]
+		if !ok {
+			logger.V(1).Info("CA annotation not present", "pod", p.Name)
+			return false, nil
+		}
+		if caAnnotation != caBundleHash {
+			logger.V(1).Info("CA annotation mistmatch", "pod", p.Name, "pod-hash", caAnnotation)
+			return false, nil
+		}
+	}
+	return true, nil
 }
 
 func (r *MariaDBReconciler) getTLSStatus(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) (*mariadbv1alpha1.MariaDBTLSStatus, error) {

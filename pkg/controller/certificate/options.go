@@ -1,6 +1,7 @@
 package certificate
 
 import (
+	"context"
 	"crypto/x509"
 	"errors"
 	"time"
@@ -12,8 +13,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-const DefaultRenewBeforePercentage = 33
-
 type SecretType int
 
 const (
@@ -21,10 +20,21 @@ const (
 	SecretTypeTLS
 )
 
+type ShouldRenewCertFn func(ctx context.Context, caKeyPair *pki.KeyPair) (shouldRenew bool, reason string, err error)
+
 type RelatedObject interface {
 	runtime.Object
 	metav1.Object
 }
+
+const DefaultRenewBeforePercentage = 33
+
+var (
+	DefaultRenewCertReason   = "Certificate lifetime within renewal window"
+	DefaultShouldRenewCertFn = func(context.Context, *pki.KeyPair) (bool, string, error) {
+		return true, DefaultRenewCertReason, nil
+	}
+)
 
 type CertReconcilerOpts struct {
 	caBundleSecretKey *mariadbv1alpha1.SecretKeySelector
@@ -37,6 +47,7 @@ type CertReconcilerOpts struct {
 	caLifetime    time.Duration
 
 	shouldIssueCert bool
+	shouldRenewCert ShouldRenewCertFn
 	certSecretKey   types.NamespacedName
 	certCommonName  string
 	certDNSNames    []string
@@ -94,6 +105,12 @@ func WithCert(shouldIssue bool, secretKey types.NamespacedName, dnsNames []strin
 			o.certCommonName = dnsNames[0]
 		}
 		o.certDNSNames = dnsNames
+	}
+}
+
+func WithShouldRenewCertFn(shouldRenewFn ShouldRenewCertFn) CertReconcilerOpt {
+	return func(o *CertReconcilerOpts) {
+		o.shouldRenewCert = shouldRenewFn
 	}
 }
 
@@ -187,6 +204,7 @@ func NewDefaultCertificateOpts() *CertReconcilerOpts {
 		caSecretType:    SecretTypeCA,
 		caLifetime:      pki.DefaultCALifetime,
 		shouldIssueCert: true,
+		shouldRenewCert: DefaultShouldRenewCertFn,
 		certLifetime:    pki.DefaultCertLifetime,
 		supportedPrivateKeys: []pki.PrivateKey{
 			pki.PrivateKeyTypeECDSA,

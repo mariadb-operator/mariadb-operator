@@ -216,12 +216,16 @@ func ValidateCert(
 	if err := certKeyPair.Validate(); err != nil {
 		return false, fmt.Errorf("invalid keypair: %v", err)
 	}
+
+	leafCert, err := certKeyPair.LeafCertificate()
+	if err != nil {
+		return false, fmt.Errorf("error getting leaf certificate: %v", err)
+	}
 	certs, err := certKeyPair.Certificates()
 	if err != nil {
-		return false, fmt.Errorf("error getting certificate: %v", err)
+		return false, fmt.Errorf("error getting certificates: %v", err)
 	}
 
-	leafCert := certs[0] // leaf certificate should be the first in the chain to establish trust
 	var intermediateCAs []*x509.Certificate
 	if len(certs) > 1 {
 		intermediateCAs = certs[1:] // intermediate certificates, if present, form the chain leading to a trusted root CA

@@ -471,11 +471,10 @@ wMfXbaIBSyNnT+e9/glHQsUmYVLu5MskmA==
 				return
 			}
 
-			certs, err := keyPair.Certificates()
+			cert, err := keyPair.LeafCertificate()
 			if err != nil {
-				t.Errorf("error getting certificates: %v", err)
+				t.Errorf("error getting leaf certificate: %v", err)
 			}
-			cert := certs[0]
 
 			if cert.Subject.CommonName != tt.wantCommonName {
 				t.Errorf("CommonName = %v, want %v", cert.Subject.CommonName, tt.wantCommonName)
