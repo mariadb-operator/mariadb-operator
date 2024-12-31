@@ -11664,17 +11664,18 @@ spec:
                 description: RequeueInterval is used to perform requeue reconciliations.
                 type: string
               require:
-                description: Require specifies TLS requirements for the user to connect.
+                description: 'Require specifies TLS requirements for the user to connect.
+                  See: https://mariadb.com/kb/en/securing-connections-for-client-and-server/#requiring-tls.'
                 properties:
                   issuer:
-                    description: Issuer indicates that the TLS certificed provided
+                    description: Issuer indicates that the TLS certificate provided
                       by the user must be issued by a specific issuer.
                     type: string
                   ssl:
-                    description: SSL indicates that the user must connect via SSL.
+                    description: SSL indicates that the user must connect via TLS.
                     type: boolean
                   subject:
-                    description: Subject indicates that the TLS certificed provided
+                    description: Subject indicates that the TLS certificate provided
                       by the user must have a specific subject.
                     type: string
                   x509:
