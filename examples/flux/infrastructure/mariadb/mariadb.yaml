@@ -46,5 +46,10 @@ spec:
     periodSeconds: 10
     timeoutSeconds: 10
 
+  startupProbe:
+    initialDelaySeconds: 300
+    periodSeconds: 10
+    timeoutSeconds: 10
+
   metrics:
     enabled: true
