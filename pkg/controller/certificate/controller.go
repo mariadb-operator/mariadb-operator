@@ -117,7 +117,7 @@ func (r *CertReconciler) reconcileCA(ctx context.Context, opts *CertReconcilerOp
 	caLogger.V(1).Info("CA cert status")
 
 	if !valid || err != nil || afterRenewal {
-		caLogger.Info("Starting CA cert renewal")
+		caLogger.Info("starting CA cert renewal")
 
 		caKeyPair, err = r.reconcileKeyPair(ctx, opts.caSecretKey, opts.caSecretType, true, opts, createCA)
 		if err != nil {
@@ -165,10 +165,10 @@ func (r *CertReconciler) reconcileCert(ctx context.Context, caKeyPair *pki.KeyPa
 		"renewal-time", renewalTime,
 		"after-renewal", afterRenewal,
 	)
-	certLogger.V(1).Info("Cert status")
+	certLogger.V(1).Info("cert status")
 
 	if !valid || err != nil {
-		certLogger.Info("Starting cert renewal", "reason", "Invalid cert")
+		certLogger.Info("starting cert renewal", "reason", "Invalid cert")
 
 		certKeyPair, err = r.reconcileKeyPair(ctx, opts.certSecretKey, SecretTypeTLS, true, opts, createCert)
 		if err != nil {
@@ -183,17 +183,19 @@ func (r *CertReconciler) reconcileCert(ctx context.Context, caKeyPair *pki.KeyPa
 	shouldRenew, reason, err := opts.shouldRenewCert(ctx, caKeyPair)
 	if err != nil {
 		if errors.Is(err, ErrSkipCertRenewal) {
+			certLogger.V(1).Info("skipping cert renewal", "reason", reason)
+
 			return ctrl.Result{}, certKeyPair, nil
 		}
 		return ctrl.Result{}, nil, fmt.Errorf("error checking whether certificate should be renewed: %v", err)
 	}
 	if !shouldRenew {
-		certLogger.Info("Waiting for cert renewal", "reason", reason)
+		certLogger.Info("waiting for cert renewal", "reason", reason)
 
 		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil, nil
 	}
 	if shouldRenew {
-		certLogger.Info("Starting cert renewal", "reason", reason)
+		certLogger.Info("starting cert renewal", "reason", reason)
 
 		certKeyPair, err = r.reconcileKeyPair(ctx, opts.certSecretKey, SecretTypeTLS, true, opts, createCert)
 		if err != nil {
