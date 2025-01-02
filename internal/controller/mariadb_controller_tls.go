@@ -64,7 +64,7 @@ func (r *MariaDBReconciler) reconcileTLSCerts(ctx context.Context, mdb *mariadbv
 
 	if result, err := r.CertReconciler.Reconcile(ctx, serverCertOpts...); !result.IsZero() || err != nil {
 		if err != nil {
-			return ctrl.Result{}, fmt.Errorf("error reconciling server cert: %v", err)
+			return ctrl.Result{}, fmt.Errorf("error reconciling server cert: %w", err)
 		}
 		return result.Result, nil
 	}
@@ -87,7 +87,7 @@ func (r *MariaDBReconciler) reconcileTLSCerts(ctx context.Context, mdb *mariadbv
 
 	if result, err := r.CertReconciler.Reconcile(ctx, clientCertOpts...); !result.IsZero() || err != nil {
 		if err != nil {
-			return ctrl.Result{}, fmt.Errorf("error reconciling client cert: %v", err)
+			return ctrl.Result{}, fmt.Errorf("error reconciling client cert: %w", err)
 		}
 		return result.Result, nil
 	}
