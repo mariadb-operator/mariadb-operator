@@ -255,11 +255,11 @@ func (r *MariaDBReconciler) shouldRenewCertFn(mdb *mariadbv1alpha1.MariaDB) cert
 
 		caBundleBytes, err := r.RefResolver.SecretKeyRef(ctx, mdb.TLSCABundleSecretKeyRef(), mdb.Namespace)
 		if err != nil {
-			return false, "CA bundle not found", nil
+			return false, "", fmt.Errorf("error getting CA bundle: %w", err)
 		}
 		caCerts, err := pki.ParseCertificates([]byte(caBundleBytes))
 		if err != nil {
-			return false, "", fmt.Errorf("error getting CA certs: %v", err)
+			return false, "", fmt.Errorf("error parsing CA certs: %v", err)
 		}
 
 		serialNo := caLeafCert.SerialNumber
