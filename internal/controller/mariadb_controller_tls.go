@@ -245,7 +245,7 @@ func (r *MariaDBReconciler) getTLSClientAnnotations(ctx context.Context, mariadb
 func (r *MariaDBReconciler) shouldRenewCertFn(mdb *mariadbv1alpha1.MariaDB) certctrl.ShouldRenewCertFn {
 	return func(ctx context.Context, caKeyPair *pki.KeyPair) (bool, string, error) {
 		if !mdb.IsReady() {
-			return false, "", fmt.Errorf("MariaDB not ready: %w", certctrl.ErrSkipCertRenewal)
+			return false, "MariaDB not ready", fmt.Errorf("MariaDB not ready: %w", certctrl.ErrSkipCertRenewal)
 		}
 
 		caLeafCert, err := caKeyPair.LeafCertificate()
