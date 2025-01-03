@@ -11,10 +11,6 @@ import (
 
 var _ = Describe("User webhook", func() {
 	Context("When creating a User", func() {
-		key := types.NamespacedName{
-			Name:      "user-create-webhook",
-			Namespace: testNamespace,
-		}
 		DescribeTable(
 			"Should validate",
 			func(user *User, wantErr bool) {
@@ -29,8 +25,8 @@ var _ = Describe("User webhook", func() {
 				"Valid cleanupPolicy",
 				&User{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      key.Name,
-						Namespace: key.Namespace,
+						Name:      "test-user-valid-cleanuppolicy",
+						Namespace: testNamespace,
 					},
 					Spec: UserSpec{
 						SQLTemplate: SQLTemplate{
@@ -57,8 +53,8 @@ var _ = Describe("User webhook", func() {
 				"Invalid cleanupPolicy",
 				&User{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      key.Name,
-						Namespace: key.Namespace,
+						Name:      "test-user-invalid-cleanuppolicy",
+						Namespace: testNamespace,
 					},
 					Spec: UserSpec{
 						SQLTemplate: SQLTemplate{
@@ -75,6 +71,65 @@ var _ = Describe("User webhook", func() {
 								Name: "user-mariadb-webhook-root",
 							},
 							Key: "password",
+						},
+						MaxUserConnections: 10,
+					},
+				},
+				true,
+			),
+			Entry(
+				"Valid require",
+				&User{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-user-valid-require",
+						Namespace: testNamespace,
+					},
+					Spec: UserSpec{
+						MariaDBRef: MariaDBRef{
+							ObjectReference: ObjectReference{
+								Name: "mariadb-webhook",
+							},
+							WaitForIt: true,
+						},
+						PasswordSecretKeyRef: &SecretKeySelector{
+							LocalObjectReference: LocalObjectReference{
+								Name: "user-mariadb-webhook-root",
+							},
+							Key: "password",
+						},
+						Require: &TLSRequirements{
+							Issuer:  ptr.To("/CN=mariadb-galera-ca"),
+							Subject: ptr.To("/CN=mariadb-galera-ca"),
+						},
+						MaxUserConnections: 10,
+					},
+				},
+				false,
+			),
+			Entry(
+				"Invalid require",
+				&User{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-user-invalid-require",
+						Namespace: testNamespace,
+					},
+					Spec: UserSpec{
+						MariaDBRef: MariaDBRef{
+							ObjectReference: ObjectReference{
+								Name: "mariadb-webhook",
+							},
+							WaitForIt: true,
+						},
+						PasswordSecretKeyRef: &SecretKeySelector{
+							LocalObjectReference: LocalObjectReference{
+								Name: "user-mariadb-webhook-root",
+							},
+							Key: "password",
+						},
+						Require: &TLSRequirements{
+							X509:    ptr.To(true),
+							Issuer:  ptr.To("/CN=mariadb-galera-ca"),
+							Subject: ptr.To("/CN=mariadb-galera-ca"),
 						},
 						MaxUserConnections: 10,
 					},
@@ -196,18 +251,20 @@ var _ = Describe("User webhook", func() {
 				false,
 			),
 			Entry(
-				"Updating to valid CleanupPolicy",
+				"Updating CleanupPolicy",
 				func(umdb *User) {
 					umdb.Spec.CleanupPolicy = ptr.To(CleanupPolicySkip)
 				},
 				false,
 			),
 			Entry(
-				"Updating to invalid CleanupPolicy",
+				"Updating TLSRequirements",
 				func(umdb *User) {
-					umdb.Spec.CleanupPolicy = ptr.To(CleanupPolicy(""))
+					umdb.Spec.Require = &TLSRequirements{
+						X509: ptr.To(true),
+					}
 				},
-				true,
+				false,
 			),
 		)
 	})

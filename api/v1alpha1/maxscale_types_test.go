@@ -584,4 +584,62 @@ var _ = Describe("MaxScale types", func() {
 			),
 		)
 	})
+
+	Context("When setting defaults for MaxScaleTLS", func() {
+		It("should set defaults when TLS is enabled and MariaDB is provided", func() {
+			tls := &MaxScaleTLS{
+				Enabled: true,
+			}
+			mariadb := &MariaDB{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "mdb",
+				},
+				Spec: MariaDBSpec{
+					TLS: &TLS{
+						Enabled: true,
+						ClientCertSecretRef: &LocalObjectReference{
+							Name: "client-cert",
+						},
+					},
+					Replication: &Replication{
+						Enabled: true,
+					},
+				},
+			}
+			tls.SetDefaults(mariadb)
+
+			Expect(tls.ReplicationSSLEnabled).To(Equal(ptr.To(true)))
+			Expect(tls.ServerCASecretRef.Name).To(Equal("mdb-ca-bundle"))
+			Expect(tls.ServerCertSecretRef.Name).To(Equal("client-cert"))
+		})
+
+		It("should not set defaults when TLS is disabled", func() {
+			mariadb := &MariaDB{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "mdb",
+					Namespace: testNamespace,
+				},
+			}
+
+			tls := &MaxScaleTLS{
+				Enabled: false,
+			}
+			tls.SetDefaults(mariadb)
+
+			Expect(tls.ReplicationSSLEnabled).To(BeNil())
+			Expect(tls.ServerCASecretRef).To(BeNil())
+			Expect(tls.ServerCertSecretRef).To(BeNil())
+		})
+
+		It("should not set defaults when MariaDB is not provided", func() {
+			tls := &MaxScaleTLS{
+				Enabled: true,
+			}
+			tls.SetDefaults(nil)
+
+			Expect(tls.ReplicationSSLEnabled).To(BeNil())
+			Expect(tls.ServerCASecretRef).To(BeNil())
+			Expect(tls.ServerCertSecretRef).To(BeNil())
+		})
+	})
 })

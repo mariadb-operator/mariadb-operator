@@ -14,7 +14,7 @@ ENV ?= \
 	MARIADB_OPERATOR_NAME=$(MARIADB_OPERATOR_NAME) \
 	MARIADB_OPERATOR_NAMESPACE=$(MARIADB_OPERATOR_NAMESPACE) \
 	MARIADB_OPERATOR_SA_PATH=$(MARIADB_OPERATOR_SA_PATH) \
-	MARIADB_ENTRYPOINT_VERSION=$(MARIADB_ENTRYPOINT_VERSION) \
+	MARIADB_DEFAULT_VERSION=$(MARIADB_DEFAULT_VERSION) \
 	WATCH_NAMESPACE=$(WATCH_NAMESPACE) \
 	KUBEBUILDER_ASSETS=$(KUBEBUILDER_ASSETS)
 
@@ -28,7 +28,7 @@ ENV_ENT ?= \
 	MARIADB_OPERATOR_NAME=$(MARIADB_OPERATOR_NAME) \
 	MARIADB_OPERATOR_NAMESPACE=$(MARIADB_OPERATOR_NAMESPACE) \
 	MARIADB_OPERATOR_SA_PATH=$(MARIADB_OPERATOR_SA_PATH) \
-	MARIADB_ENTRYPOINT_VERSION=$(MARIADB_ENTRYPOINT_VERSION_ENT) \
+	MARIADB_DEFAULT_VERSION=$(MARIADB_DEFAULT_VERSION_ENT) \
 	WATCH_NAMESPACE=$(WATCH_NAMESPACE) \
 	TEST_ENTERPRISE=true \
 	KUBEBUILDER_ASSETS=$(KUBEBUILDER_ASSETS)
@@ -45,6 +45,15 @@ GOCOVERDIR ?= .
 test: envtest ginkgo ## Run unit tests.
 	$(TEST) ./pkg/... ./api/... ./internal/helmtest/...
 
+.PHONY: test-pkg
+test-pkg: envtest ginkgo ## Run pkg unit tests.
+	$(TEST) ./pkg/...
+
+.PHONY: test-api
+test-api: envtest ginkgo ## Run api unit tests.
+	$(TEST) ./api/...
+
+.PHONY: test-helm
 test-helm: envtest ginkgo ## Run helm unit tests.
 	$(TEST) ./internal/helmtest/...
 
@@ -82,25 +91,27 @@ run: lint ## Run a controller from your host.
 	$(ENV) $(GO) run cmd/controller/*.go $(RUN_FLAGS)
 
 .PHONY: run-ent
-run-ent: lint cert ## Run a enterprise controllers from your host.
+run-ent: lint cert-webhook ## Run a enterprise controllers from your host.
 	$(ENV_ENT) $(GO) run cmd/enterprise/*.go $(RUN_FLAGS)
 
 WEBHOOK_FLAGS ?= --log-dev --log-level=debug --log-time-encoder=iso8601 \
-	--ca-cert-path=$(CA_DIR)/tls.crt --cert-dir=$(CERT_DIR) \
+	--ca-cert-path=$(CA_CERT) --cert-dir=$(WEBHOOK_PKI_DIR) \
 	--validate-cert=false
 .PHONY: webhook
-webhook: lint cert ## Run a webhook from your host.
+webhook: lint cert-webhook ## Run a webhook from your host.
 	$(GO) run cmd/controller/*.go webhook $(WEBHOOK_FLAGS)
 
+# CERT_CONTROLLER_FLAGS ?= --log-dev --log-level=debug --log-time-encoder=iso8601 \
+# 	--ca-lifetime=26280h --cert-lifetime=2160h --renew-before-percentage=33 --requeue-duration=5m
 CERT_CONTROLLER_FLAGS ?= --log-dev --log-level=debug --log-time-encoder=iso8601 \
-	--ca-validity=24h --cert-validity=1h --lookahead-validity=8h --requeue-duration=1m
+	--ca-lifetime=1h --cert-lifetime=1m --renew-before-percentage=33 --requeue-duration=30s
 .PHONY: cert-controller
 cert-controller: lint ## Run a cert-controller from your host.
 	$(GO) run cmd/controller/*.go cert-controller $(CERT_CONTROLLER_FLAGS)
 
 BACKUP_ENV ?= AWS_ACCESS_KEY_ID=mariadb-operator AWS_SECRET_ACCESS_KEY=Minio11!
 BACKUP_COMMON_FLAGS ?= --path=backup --target-file-path=backup/0-backup-target.txt \
-	--s3 --s3-bucket=backups --s3-endpoint=minio:9000 --s3-region=us-east-1 --s3-tls --s3-ca-cert-path=/tmp/certificate-authority/tls.crt \
+	--s3 --s3-bucket=backups --s3-endpoint=minio:9000 --s3-region=us-east-1 --s3-tls --s3-ca-cert-path=/tmp/pki/ca/tls.crt \
 	--compression=gzip --log-dev --log-level=debug --log-time-encoder=iso8601
 
 BACKUP_FLAGS ?= --max-retention=8h $(BACKUP_COMMON_FLAGS)

@@ -1,0 +1,54 @@
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+spec:
+  rootPasswordSecretKeyRef:
+    name: mariadb
+    key: root-password
+
+  username: mariadb
+  passwordSecretKeyRef:
+    name: mariadb
+    key: password
+  database: mariadb
+
+  # image: docker-registry.mariadb.com/enterprise-server:10.6.18-14.1
+
+  storage:
+    size: 1Gi
+
+  replicas: 3
+
+  galera:
+    enabled: true
+    # providerOptions:
+    #   socket.dynamic: 'true'
+
+  service:
+    type: LoadBalancer
+    metadata:
+      annotations:
+        metallb.universe.tf/loadBalancerIPs: 172.18.0.150
+
+  primaryService:
+    type: LoadBalancer
+    metadata:
+      annotations:
+        metallb.universe.tf/loadBalancerIPs: 172.18.0.160
+
+  secondaryService:
+    type: LoadBalancer
+    metadata:
+      annotations:
+        metallb.universe.tf/loadBalancerIPs: 172.18.0.161
+  
+  metrics:
+    enabled: true
+
+  tls:
+    enabled: true
+    # Enterprise >= 10.6 only:
+    # https://mariadb.com/docs/server/security/galera/#SST_TLS_Modes
+    galeraServerSSLMode: SERVER_X509 # PROVIDER|SERVER|SERVER_X509
+    galeraClientSSLMode: VERIFY_IDENTITY # DISABLED|REQUIRED|VERIFY_CA|VERIFY_IDENTITY 

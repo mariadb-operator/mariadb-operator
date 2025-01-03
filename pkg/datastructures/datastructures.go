@@ -45,6 +45,10 @@ func AllExists[T any](idx Index[T], keys ...string) bool {
 	return true
 }
 
+func Has[T any](idx Index[T], key string) bool {
+	return AllExists(idx, key)
+}
+
 func Filter[T any](idx Index[T], keys ...string) Index[T] {
 	filterIdx := NewIndex[string](keys, func(s string) string {
 		return s

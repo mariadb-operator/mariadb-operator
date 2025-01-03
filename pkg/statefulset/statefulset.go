@@ -14,6 +14,28 @@ import (
 	"k8s.io/utils/ptr"
 )
 
+func HeadlessServiceNameVariants(meta metav1.ObjectMeta, pod, service string) []string {
+	clusterName := os.Getenv("CLUSTER_NAME")
+	if clusterName == "" {
+		clusterName = "cluster.local"
+	}
+	return []string{
+		fmt.Sprintf("%s.%s.%s.svc.%s", pod, service, meta.Namespace, clusterName),
+		fmt.Sprintf("%s.%s.%s.svc", pod, service, meta.Namespace),
+		fmt.Sprintf("%s.%s.%s", pod, service, meta.Namespace),
+		fmt.Sprintf("%s.%s", pod, service),
+	}
+}
+
+func ServiceNameVariants(meta metav1.ObjectMeta, service string) []string {
+	return []string{
+		ServiceFQDNWithService(meta, service),
+		fmt.Sprintf("%s.%s.svc", service, meta.Namespace),
+		fmt.Sprintf("%s.%s", service, meta.Namespace),
+		service,
+	}
+}
+
 func ServiceFQDNWithService(meta metav1.ObjectMeta, service string) string {
 	clusterName := os.Getenv("CLUSTER_NAME")
 	if clusterName == "" {

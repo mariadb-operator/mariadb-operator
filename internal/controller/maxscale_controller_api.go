@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -9,10 +10,12 @@ import (
 
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	builderpki "github.com/mariadb-operator/mariadb-operator/pkg/builder/pki"
 	ds "github.com/mariadb-operator/mariadb-operator/pkg/datastructures"
 	"github.com/mariadb-operator/mariadb-operator/pkg/health"
 	mdbhttp "github.com/mariadb-operator/mariadb-operator/pkg/http"
 	mxsclient "github.com/mariadb-operator/mariadb-operator/pkg/maxscale/client"
+	"github.com/mariadb-operator/mariadb-operator/pkg/pki"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -54,7 +57,11 @@ func (m *maxScaleAPI) patchUser(ctx context.Context, username, password string) 
 // MaxScale API - Servers
 
 func (m *maxScaleAPI) createServer(ctx context.Context, srv *mariadbv1alpha1.MaxScaleServer) error {
-	return m.client.Server.Create(ctx, srv.Name, serverAttributes(srv))
+	serverAttrs, err := m.serverAttributes(srv)
+	if err != nil {
+		return fmt.Errorf("error getting server attributes: %v", err)
+	}
+	return m.client.Server.Create(ctx, srv.Name, *serverAttrs)
 }
 
 func (m *maxScaleAPI) deleteServer(ctx context.Context, name string) error {
@@ -62,7 +69,11 @@ func (m *maxScaleAPI) deleteServer(ctx context.Context, name string) error {
 }
 
 func (m *maxScaleAPI) patchServer(ctx context.Context, srv *mariadbv1alpha1.MaxScaleServer) error {
-	return m.client.Server.Patch(ctx, srv.Name, serverAttributes(srv))
+	serverAttrs, err := m.serverAttributes(srv)
+	if err != nil {
+		return fmt.Errorf("error getting server attributes: %v", err)
+	}
+	return m.client.Server.Patch(ctx, srv.Name, *serverAttrs)
 }
 
 func (m *maxScaleAPI) updateServerState(ctx context.Context, srv *mariadbv1alpha1.MaxScaleServer) error {
@@ -72,8 +83,8 @@ func (m *maxScaleAPI) updateServerState(ctx context.Context, srv *mariadbv1alpha
 	return m.client.Server.ClearMaintenance(ctx, srv.Name)
 }
 
-func serverAttributes(srv *mariadbv1alpha1.MaxScaleServer) mxsclient.ServerAttributes {
-	return mxsclient.ServerAttributes{
+func (m *maxScaleAPI) serverAttributes(srv *mariadbv1alpha1.MaxScaleServer) (*mxsclient.ServerAttributes, error) {
+	attrs := mxsclient.ServerAttributes{
 		Parameters: mxsclient.ServerParameters{
 			Address:  srv.Address,
 			Port:     srv.Port,
@@ -81,6 +92,51 @@ func serverAttributes(srv *mariadbv1alpha1.MaxScaleServer) mxsclient.ServerAttri
 			Params:   mxsclient.NewMapParams(srv.Params),
 		},
 	}
+	tls := ptr.Deref(m.mxs.Spec.TLS, mariadbv1alpha1.MaxScaleTLS{})
+	if tls.Enabled {
+		attrs.Parameters.SSL = true
+		attrs.Parameters.SSLCert = builderpki.ServerCertPath
+		attrs.Parameters.SSLKey = builderpki.ServerKeyPath
+		attrs.Parameters.SSLCA = builderpki.CACertPath
+		attrs.Parameters.SSLVersion = "TLSv13"
+		attrs.Parameters.SSLVerifyPeerCertificate = ptr.Deref(tls.VerifyPeerCertificate, true)
+		attrs.Parameters.SSLVerifyPeerHost = ptr.Deref(tls.VerifyPeerHost, false)
+
+		if ptr.Deref(tls.ReplicationSSLEnabled, false) {
+			replicationCustomOptions, err := maxScaleReplicationCustomOptions(&tls)
+			if err != nil {
+				return nil, err
+			}
+			attrs.Parameters.ReplicationCustomOptions = replicationCustomOptions
+		}
+	}
+	return &attrs, nil
+}
+
+func maxScaleReplicationCustomOptions(tls *mariadbv1alpha1.MaxScaleTLS) (string, error) {
+	if !tls.Enabled {
+		return "", errors.New("MaxScale TLS must be enabled")
+	}
+	if !ptr.Deref(tls.ReplicationSSLEnabled, false) {
+		return "", nil
+	}
+
+	//nolint:lll
+	tpl := createTpl("replication-custom-opts", `MASTER_SSL=1,MASTER_SSL_CERT={{ .SSLCert }},MASTER_SSL_KEY={{ .SSLKey }},MASTER_SSL_CA={{ .SSLCA }}`)
+	buf := new(bytes.Buffer)
+	err := tpl.Execute(buf, struct {
+		SSLCert string
+		SSLKey  string
+		SSLCA   string
+	}{
+		SSLCert: builderpki.ServerCertPath,
+		SSLKey:  builderpki.ServerKeyPath,
+		SSLCA:   builderpki.CACertPath,
+	})
+	if err != nil {
+		return "", fmt.Errorf("error building replication custom options: %v", err)
+	}
+	return buf.String(), nil
 }
 
 func (m *maxScaleAPI) serverRelationships(ctx context.Context) (*mxsclient.Relationships, error) {
@@ -199,7 +255,7 @@ func (m *maxScaleAPI) serviceRelationships(service string) *mxsclient.Relationsh
 // MaxScale API - Listeners
 
 func (m *maxScaleAPI) createListener(ctx context.Context, listener *mariadbv1alpha1.MaxScaleListener, rels *mxsclient.Relationships) error {
-	return m.client.Listener.Create(ctx, listener.Name, listenerAttributes(listener), mxsclient.WithRelationships(rels))
+	return m.client.Listener.Create(ctx, listener.Name, m.listenerAttributes(listener), mxsclient.WithRelationships(rels))
 }
 
 func (m *maxScaleAPI) deleteListener(ctx context.Context, name string) error {
@@ -207,7 +263,7 @@ func (m *maxScaleAPI) deleteListener(ctx context.Context, name string) error {
 }
 
 func (m *maxScaleAPI) patchListener(ctx context.Context, listener *mariadbv1alpha1.MaxScaleListener, rels *mxsclient.Relationships) error {
-	return m.client.Listener.Patch(ctx, listener.Name, listenerAttributes(listener), mxsclient.WithRelationships(rels))
+	return m.client.Listener.Patch(ctx, listener.Name, m.listenerAttributes(listener), mxsclient.WithRelationships(rels))
 }
 
 func (m *maxScaleAPI) updateListenerState(ctx context.Context, listener *mariadbv1alpha1.MaxScaleListener) error {
@@ -217,14 +273,24 @@ func (m *maxScaleAPI) updateListenerState(ctx context.Context, listener *mariadb
 	return m.client.Listener.Start(ctx, listener.Name)
 }
 
-func listenerAttributes(listener *mariadbv1alpha1.MaxScaleListener) mxsclient.ListenerAttributes {
-	return mxsclient.ListenerAttributes{
+func (m *maxScaleAPI) listenerAttributes(listener *mariadbv1alpha1.MaxScaleListener) mxsclient.ListenerAttributes {
+	attrs := mxsclient.ListenerAttributes{
 		Parameters: mxsclient.ListenerParameters{
 			Port:     listener.Port,
 			Protocol: listener.Protocol,
 			Params:   mxsclient.NewMapParams(listener.Params),
 		},
 	}
+	tls := ptr.Deref(m.mxs.Spec.TLS, mariadbv1alpha1.MaxScaleTLS{})
+	if tls.Enabled {
+		attrs.Parameters.SSL = true
+		attrs.Parameters.SSLCert = builderpki.ListenerCertPath
+		attrs.Parameters.SSLKey = builderpki.ListenerKeyPath
+		attrs.Parameters.SSLCA = builderpki.CACertPath
+		attrs.Parameters.SSLVerifyPeerCertificate = ptr.Deref(tls.VerifyPeerCertificate, true)
+		attrs.Parameters.SSLVerifyPeerHost = ptr.Deref(tls.VerifyPeerHost, false)
+	}
+	return attrs
 }
 
 // MaxScale API - MaxScale
@@ -277,6 +343,13 @@ func (r *MaxScaleReconciler) defaultClientWithPodIndex(ctx context.Context, mxs 
 		logger := apiLogger(ctx)
 		opts = append(opts, mdbhttp.WithLogger(&logger))
 	}
+	if mxs.IsTLSEnabled() {
+		tlsOpts, err := r.getClientTLSOptions(ctx, mxs)
+		if err != nil {
+			return nil, fmt.Errorf("error getting client TLS options: %v", err)
+		}
+		opts = append(opts, tlsOpts...)
+	}
 	return mxsclient.NewClientWithDefaultCredentials(mxs.PodAPIUrl(podIndex), opts...)
 }
 
@@ -312,7 +385,53 @@ func (r *MaxScaleReconciler) clientWithAPIUrl(ctx context.Context, mxs *mariadbv
 		logger := apiLogger(ctx)
 		opts = append(opts, mdbhttp.WithLogger(&logger))
 	}
+	if mxs.IsTLSEnabled() {
+		tlsOpts, err := r.getClientTLSOptions(ctx, mxs)
+		if err != nil {
+			return nil, fmt.Errorf("error getting client TLS options: %v", err)
+		}
+		opts = append(opts, tlsOpts...)
+	}
 	return mxsclient.NewClient(apiUrl, opts...)
+}
+
+func (r *MaxScaleReconciler) getClientTLSOptions(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) ([]mdbhttp.Option, error) {
+	if !mxs.IsTLSEnabled() {
+		return nil, nil
+	}
+	tlsCA, err := r.RefResolver.SecretKeyRef(ctx, mxs.TLSCABundleSecretKeyRef(), mxs.Namespace)
+	if err != nil {
+		return nil, fmt.Errorf("error reading TLS CA bundle: %v", err)
+	}
+
+	adminCertKeySelector := mariadbv1alpha1.SecretKeySelector{
+		LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+			Name: mxs.TLSAdminCertSecretKey().Name,
+		},
+		Key: pki.TLSCertKey,
+	}
+	tlsCert, err := r.RefResolver.SecretKeyRef(ctx, adminCertKeySelector, mxs.Namespace)
+	if err != nil {
+		return nil, fmt.Errorf("error reading TLS cert: %v", err)
+	}
+
+	adminKeyKeySelector := mariadbv1alpha1.SecretKeySelector{
+		LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+			Name: mxs.TLSAdminCertSecretKey().Name,
+		},
+		Key: pki.TLSKeyKey,
+	}
+	tlsKey, err := r.RefResolver.SecretKeyRef(ctx, adminKeyKeySelector, mxs.Namespace)
+	if err != nil {
+		return nil, fmt.Errorf("error reading TLS cert: %v", err)
+	}
+
+	return []mdbhttp.Option{
+		mdbhttp.WithTLSEnabled(mxs.IsTLSEnabled()),
+		mdbhttp.WithTLSCA([]byte(tlsCA)),
+		mdbhttp.WithTLSCert([]byte(tlsCert)),
+		mdbhttp.WithTLSKey([]byte(tlsKey)),
+	}, nil
 }
 
 func apiLogger(ctx context.Context) logr.Logger {

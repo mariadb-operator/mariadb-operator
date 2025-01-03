@@ -16,6 +16,7 @@ import (
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/auth"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/batch"
+	certctrl "github.com/mariadb-operator/mariadb-operator/pkg/controller/certificate"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/configmap"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/deployment"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/endpoints"
@@ -205,9 +206,10 @@ var rootCmd = &cobra.Command{
 		authReconciler := auth.NewAuthReconciler(client, builder)
 		deployReconciler := deployment.NewDeploymentReconciler(client)
 		svcMonitorReconciler := servicemonitor.NewServiceMonitorReconciler(client)
+		certReconciler := certctrl.NewCertReconciler(client, scheme, mgr.GetEventRecorderFor("cert"))
 
 		mxsReconciler := maxscale.NewMaxScaleReconciler(client, builder, env)
-		replConfig := replication.NewReplicationConfig(client, builder, secretReconciler)
+		replConfig := replication.NewReplicationConfig(client, builder, secretReconciler, env)
 		replicationReconciler, err := replication.NewReplicationReconciler(
 			client,
 			replRecorder,
@@ -279,6 +281,7 @@ var rootCmd = &cobra.Command{
 			AuthReconciler:           authReconciler,
 			DeploymentReconciler:     deployReconciler,
 			ServiceMonitorReconciler: svcMonitorReconciler,
+			CertReconciler:           certReconciler,
 
 			MaxScaleReconciler:    mxsReconciler,
 			ReplicationReconciler: replicationReconciler,
@@ -305,6 +308,7 @@ var rootCmd = &cobra.Command{
 			ServiceReconciler:        serviceReconciler,
 			DeploymentReconciler:     deployReconciler,
 			ServiceMonitorReconciler: svcMonitorReconciler,
+			CertReconciler:           certReconciler,
 
 			SuspendEnabled: featureMaxScaleSuspend,
 
@@ -409,7 +413,7 @@ func main() {
 	rootCmd.AddCommand(certControllerCmd)
 	rootCmd.AddCommand(webhookCmd)
 	rootCmd.AddCommand(backupcmd.RootCmd)
-	rootCmd.AddCommand(initcmd.RootCmd)
+	rootCmd.AddCommand(initcmd.NewInitCommand(discovery.NewDiscovery))
 	rootCmd.AddCommand(agentcmd.RootCmd)
 
 	cobra.CheckErr(rootCmd.Execute())

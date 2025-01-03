@@ -457,6 +457,80 @@ func (m *MaxScaleAuth) SetDefaults(mxs *MaxScale) {
 	}
 }
 
+// TLS defines the PKI to be used with MaxScale.
+type MaxScaleTLS struct {
+	// Enabled is a flag to enable TLS.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
+	Enabled bool `json:"enabled"`
+	// AdminCASecretRef is a reference to a Secret containing the admin certificate authority keypair. It is used to establish trust and issue scertificates for the MaxScale's administrative REST API and GUI.
+	// One of:
+	// - Secret containing both the 'ca.crt' and 'ca.key' keys. This allows you to bring your own CA to Kubernetes to issue certificates.
+	// - Secret containing only the 'ca.crt' in order to establish trust. In this case, the adminCertSecretRef field is mandatory.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	AdminCASecretRef *LocalObjectReference `json:"adminCASecretRef,omitempty"`
+	// AdminCertSecretRef is a reference to a TLS Secret used by the MaxScale's administrative REST API and GUI.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	AdminCertSecretRef *LocalObjectReference `json:"adminCertSecretRef,omitempty"`
+	// ListenerCASecretRef is a reference to a Secret containing the listener certificate authority keypair. It is used to establish trust and issue scertificates for the MaxScale's listeners.
+	// One of:
+	// - Secret containing both the 'ca.crt' and 'ca.key' keys. This allows you to bring your own CA to Kubernetes to issue certificates.
+	// - Secret containing only the 'ca.crt' in order to establish trust. In this case, the listenerCertSecretRef field is mandatory.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	ListenerCASecretRef *LocalObjectReference `json:"listenerCASecretRef,omitempty"`
+	// ListenerCertSecretRef is a reference to a TLS Secret used by the MaxScale's listeners.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	ListenerCertSecretRef *LocalObjectReference `json:"listenerCertSecretRef,omitempty"`
+	// ServerCASecretRef is a reference to a Secret containing the MariaDB server certificate authority keypair. It is used to establish trust and issue scertificates for MariaDB servers.
+	// One of:
+	// - Secret containing both the 'ca.crt' and 'ca.key' keys. This allows you to bring your own CA to Kubernetes to issue certificates.
+	// - Secret containing only the 'ca.crt' in order to establish trust. In this case, the serverCertSecretRef field is mandatory.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	ServerCASecretRef *LocalObjectReference `json:"serverCASecretRef,omitempty"`
+	// ServerCertSecretRef is a reference to a TLS Secret used by MaxScale to connect to the MariaDB servers.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	ServerCertSecretRef *LocalObjectReference `json:"serverCertSecretRef,omitempty"`
+	// VerifyPeerCertificate specifies whether the peer certificate's signature should be validated against the CA. It is enabled by default.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
+	VerifyPeerCertificate *bool `json:"verifyPeerCertificate,omitempty"`
+	// VerifyPeerHost specifies whether the peer certificate's SANs should match the peer host. It is disabled by default.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
+	VerifyPeerHost *bool `json:"verifyPeerHost,omitempty"`
+	// ReplicationSSLEnabled specifies whether the replication SSL is enabled. If enabled, the SSL options will be added to the server configuration.
+	// This field is automatically set when a reference to a MariaDB via the 'mariaDbRef' field is provided.
+	// If the MariaDB servers are manually provided by the user via the 'servers' field, this must be set by the user as well.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
+	ReplicationSSLEnabled *bool `json:"replicationSSLEnabled,omitempty"`
+}
+
+// SetDefaults sets reasonable defaults.
+func (m *MaxScaleTLS) SetDefaults(mdb *MariaDB) {
+	if !m.Enabled || mdb == nil || !mdb.IsTLSEnabled() {
+		return
+	}
+
+	if mdb.Replication().Enabled && m.ReplicationSSLEnabled == nil {
+		m.ReplicationSSLEnabled = ptr.To(true)
+	}
+	if m.ServerCASecretRef == nil {
+		m.ServerCASecretRef = ptr.To(mdb.TLSCABundleSecretKeyRef().LocalObjectReference)
+	}
+	if m.ServerCertSecretRef == nil {
+		m.ServerCertSecretRef = &LocalObjectReference{
+			Name: mdb.TLSClientCertSecretKey().Name,
+		}
+	}
+}
+
 // MaxScaleMetrics defines the metrics for a Maxscale.
 type MaxScaleMetrics struct {
 	// Enabled is a flag to enable Metrics
@@ -588,6 +662,10 @@ type MaxScaleSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Metrics *MaxScaleMetrics `json:"metrics,omitempty"`
+	// TLS defines the PKI to be used with MaxScale.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	TLS *MaxScaleTLS `json:"tls,omitempty"`
 	// Connection provides a template to define the Connection for MaxScale.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -650,6 +728,26 @@ type MaxScaleConfigSyncStatus struct {
 	DatabaseVersion int `json:"databaseVersion"`
 }
 
+// MaxScaleTLSStatus aggregates the status of the certificates used by the MaxScale instance.
+type MaxScaleTLSStatus struct {
+	// CABundle is the status of the Certificate Authority bundle.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	CABundle []CertificateStatus `json:"caBundle,omitempty"`
+	// AdminCert is the status of the admin certificate.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	AdminCert *CertificateStatus `json:"adminCert,omitempty"`
+	// ListenerCert is the status of the listener certificate.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	ListenerCert *CertificateStatus `json:"listenerCert,omitempty"`
+	// ServerCert is the status of the MariaDB server certificate.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	ServerCert *CertificateStatus `json:"serverCert,omitempty"`
+}
+
 // MaxScaleStatus defines the observed state of MaxScale
 type MaxScaleStatus struct {
 	// Conditions for the MaxScale object.
@@ -684,6 +782,10 @@ type MaxScaleStatus struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	ConfigSync *MaxScaleConfigSyncStatus `json:"configSync,omitempty"`
+	// TLS aggregates the status of the certificates used by the MaxScale instance.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	TLS *MaxScaleTLSStatus `json:"tls,omitempty"`
 }
 
 // SetCondition sets a status condition to MaxScale
@@ -792,6 +894,10 @@ func (m *MaxScale) SetDefaults(env *environment.OperatorEnv, mariadb *MariaDB) {
 		}
 	}
 
+	if m.Spec.TLS != nil && m.IsTLSEnabled() {
+		m.Spec.TLS.SetDefaults(mariadb)
+	}
+
 	if m.Spec.Affinity != nil {
 		m.Spec.Affinity.SetDefaults(antiAffinityInstances...)
 	}
@@ -830,6 +936,11 @@ func (m *MaxScale) IsSuspended() bool {
 // AreMetricsEnabled indicates whether the MariaDB instance has metrics enabled
 func (m *MaxScale) AreMetricsEnabled() bool {
 	return ptr.Deref(m.Spec.Metrics, MaxScaleMetrics{}).Enabled
+}
+
+// IsTLSEnabled indicates whether the MaxScale instance has TLS enabled
+func (m *MaxScale) IsTLSEnabled() bool {
+	return ptr.Deref(m.Spec.TLS, MaxScaleTLS{}).Enabled
 }
 
 // APIUrl returns the URL of the admin API pointing to the Kubernetes Service.
@@ -907,8 +1018,29 @@ func (m *MaxScale) DefaultPort() (*int32, error) {
 	return &m.Spec.Services[0].Listener.Port, nil
 }
 
+// TLSAdminDNSNames are the Service DNS names used by admin TLS certificates.
+func (m *MaxScale) TLSAdminDNSNames() []string {
+	var names []string
+	names = append(names, statefulset.ServiceNameVariants(m.ObjectMeta, m.Name)...)
+	names = append(names, statefulset.ServiceNameVariants(m.ObjectMeta, m.GuiServiceKey().Name)...)
+	names = append(names, statefulset.HeadlessServiceNameVariants(m.ObjectMeta, "*", m.InternalServiceKey().Name)...)
+	return names
+}
+
+// TLSListenerDNSNames are the Service DNS names used by listener TLS certificates.
+func (m *MaxScale) TLSListenerDNSNames() []string {
+	var names []string
+	names = append(names, statefulset.ServiceNameVariants(m.ObjectMeta, m.Name)...)
+	names = append(names, statefulset.HeadlessServiceNameVariants(m.ObjectMeta, "*", m.InternalServiceKey().Name)...)
+	return names
+}
+
 func (m *MaxScale) apiUrlWithAddress(addr string) string {
-	return fmt.Sprintf("http://%s:%d", addr, m.Spec.Admin.Port)
+	scheme := "http"
+	if m.IsTLSEnabled() {
+		scheme = "https"
+	}
+	return fmt.Sprintf("%s://%s:%d", scheme, addr, m.Spec.Admin.Port)
 }
 
 func (m *MaxScale) defaultConnections() int32 {
@@ -916,28 +1048,6 @@ func (m *MaxScale) defaultConnections() int32 {
 		return m.Spec.Replicas * 30
 	}
 	return 30
-}
-
-// MaxScaleMetricsPasswordSecretFieldPath is the path related to the metrics password Secret field.
-const MaxScaleMetricsPasswordSecretFieldPath = ".spec.auth.metricsPasswordSecretKeyRef.name"
-
-// IndexerFuncForFieldPath returns an indexer function for a given field path.
-func (m *MaxScale) IndexerFuncForFieldPath(fieldPath string) (client.IndexerFunc, error) {
-	switch fieldPath {
-	case MaxScaleMetricsPasswordSecretFieldPath:
-		return func(obj client.Object) []string {
-			maxscale, ok := obj.(*MaxScale)
-			if !ok {
-				return nil
-			}
-			if maxscale.AreMetricsEnabled() && maxscale.Spec.Auth.MetricsPasswordSecretKeyRef.Name != "" {
-				return []string{maxscale.Spec.Auth.MetricsPasswordSecretKeyRef.Name}
-			}
-			return nil
-		}, nil
-	default:
-		return nil, fmt.Errorf("unsupported field path: %s", fieldPath)
-	}
 }
 
 //+kubebuilder:object:root=true

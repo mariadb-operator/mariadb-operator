@@ -13,6 +13,7 @@ import (
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/auth"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/batch"
+	certctrl "github.com/mariadb-operator/mariadb-operator/pkg/controller/certificate"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/configmap"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/deployment"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/endpoints"
@@ -145,9 +146,10 @@ var _ = BeforeSuite(func() {
 	rbacReconciler := rbac.NewRBACReconiler(client, builder)
 	deployReconciler := deployment.NewDeploymentReconciler(client)
 	svcMonitorReconciler := servicemonitor.NewServiceMonitorReconciler(client)
+	certReconciler := certctrl.NewCertReconciler(client, scheme, k8sManager.GetEventRecorderFor("cert"))
 
 	mxsReconciler := maxscale.NewMaxScaleReconciler(client, builder, env)
-	replConfig := replication.NewReplicationConfig(client, builder, secretReconciler)
+	replConfig := replication.NewReplicationConfig(client, builder, secretReconciler, env)
 	replicationReconciler, err := replication.NewReplicationReconciler(
 		client,
 		replRecorder,
@@ -216,6 +218,7 @@ var _ = BeforeSuite(func() {
 		AuthReconciler:           authReconciler,
 		DeploymentReconciler:     deployReconciler,
 		ServiceMonitorReconciler: svcMonitorReconciler,
+		CertReconciler:           certReconciler,
 
 		MaxScaleReconciler:    mxsReconciler,
 		ReplicationReconciler: replicationReconciler,
@@ -241,6 +244,7 @@ var _ = BeforeSuite(func() {
 		ServiceReconciler:        serviceReconciler,
 		DeploymentReconciler:     deployReconciler,
 		ServiceMonitorReconciler: svcMonitorReconciler,
+		CertReconciler:           certReconciler,
 
 		SuspendEnabled: false,
 
@@ -324,10 +328,10 @@ var _ = BeforeSuite(func() {
 		k8sManager.Elected(),
 		testCASecretKey,
 		"test",
-		4*365*24*time.Hour,
+		3*365*24*time.Hour,
 		testCertSecretKey,
-		365*24*time.Hour,
-		90*24*time.Hour,
+		3*30*24*time.Hour,
+		33,
 		testWebhookServiceKey,
 		5*time.Minute,
 	).SetupWithManager(k8sManager)

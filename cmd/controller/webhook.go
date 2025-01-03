@@ -24,13 +24,10 @@ var (
 	dnsName      string
 	port         int
 	validateCert bool
-
-	tlsCert = "tls.crt"
-	tlsKey  = "tls.key"
 )
 
 func init() {
-	webhookCmd.Flags().StringVar(&caCertPath, "ca-cert-path", "/tmp/k8s-webhook-server/certificate-authority/tls.crt",
+	webhookCmd.Flags().StringVar(&caCertPath, "ca-cert-path", filepath.Join("/tmp/k8s-webhook-server/certificate-authority", pki.TLSCertKey),
 		"Path containing the CA TLS certificate for the webhook server.")
 	webhookCmd.Flags().StringVar(&certDir, "cert-dir", "/tmp/k8s-webhook-server/serving-certs",
 		"Directory containing the TLS certificate for the webhook server. 'tls.crt' and 'tls.key' must be present in this directory.")
@@ -154,7 +151,7 @@ func checkCerts(dnsName string, at time.Time) error {
 		setupLog.V(1).Info("Error reading certificate KeyPair", "error", err)
 		return err
 	}
-	valid, err := pki.ValidCert(caCert, certKeyPair, dnsName, at)
+	valid, err := pki.ValidateCert(caCert, certKeyPair, dnsName, at)
 	if !valid || err != nil {
 		err := fmt.Errorf("Certificate is not valid for %s", dnsName)
 		setupLog.V(1).Info("Error validating certificate", "error", err)
@@ -163,7 +160,7 @@ func checkCerts(dnsName string, at time.Time) error {
 	return nil
 }
 
-func readCert(certPath string) (*x509.Certificate, error) {
+func readCert(certPath string) ([]*x509.Certificate, error) {
 	if _, err := os.Stat(certPath); err != nil {
 		return nil, err
 	}
@@ -171,15 +168,15 @@ func readCert(certPath string) (*x509.Certificate, error) {
 	if err != nil {
 		return nil, err
 	}
-	return pki.ParseCert(certBytes)
+	return pki.ParseCertificates(certBytes)
 }
 
 func readKeyPair(dir string) (*pki.KeyPair, error) {
-	certFile := filepath.Join(dir, tlsCert)
+	certFile := filepath.Join(dir, pki.TLSCertKey)
 	if _, err := os.Stat(certFile); err != nil {
 		return nil, err
 	}
-	keyFile := filepath.Join(dir, tlsKey)
+	keyFile := filepath.Join(dir, pki.TLSKeyKey)
 	if _, err := os.Stat(certFile); err != nil {
 		return nil, err
 	}
@@ -191,5 +188,12 @@ func readKeyPair(dir string) (*pki.KeyPair, error) {
 	if err != nil {
 		return nil, err
 	}
-	return pki.KeyPairFromPEM(certBytes, keyBytes)
+	return pki.NewKeyPair(
+		certBytes,
+		keyBytes,
+		pki.WithSupportedPrivateKeys(
+			pki.PrivateKeyTypeECDSA,
+			pki.PrivateKeyTypeRSA, // backwards compatibility with webhook certs from previous versions
+		),
+	)
 }

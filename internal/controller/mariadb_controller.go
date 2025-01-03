@@ -3,7 +3,6 @@ package controller
 import (
 	"bytes"
 	"context"
-	"crypto/sha256"
 	"errors"
 	"fmt"
 	"reflect"
@@ -16,6 +15,7 @@ import (
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/auth"
+	certctrl "github.com/mariadb-operator/mariadb-operator/pkg/controller/certificate"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/configmap"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/deployment"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/endpoints"
@@ -32,12 +32,9 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	"github.com/mariadb-operator/mariadb-operator/pkg/health"
 	kadapter "github.com/mariadb-operator/mariadb-operator/pkg/kubernetes/adapter"
-	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
 	mdbpod "github.com/mariadb-operator/mariadb-operator/pkg/pod"
-	"github.com/mariadb-operator/mariadb-operator/pkg/predicate"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	sts "github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
-	"github.com/mariadb-operator/mariadb-operator/pkg/watch"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
@@ -50,7 +47,6 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
-	ctrlbuilder "sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -81,10 +77,11 @@ type MariaDBReconciler struct {
 	AuthReconciler           *auth.AuthReconciler
 	DeploymentReconciler     *deployment.DeploymentReconciler
 	ServiceMonitorReconciler *servicemonitor.ServiceMonitorReconciler
-	MaxScaleReconciler       *maxscale.MaxScaleReconciler
+	CertReconciler           *certctrl.CertReconciler
 
 	ReplicationReconciler *replication.ReplicationReconciler
 	GaleraReconciler      *galera.GaleraReconciler
+	MaxScaleReconciler    *maxscale.MaxScaleReconciler
 }
 
 type reconcilePhaseMariaDB struct {
@@ -144,6 +141,10 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		{
 			Name:      "ConfigMap",
 			Reconcile: r.reconcileConfigMap,
+		},
+		{
+			Name:      "TLS",
+			Reconcile: r.reconcileTLS,
 		},
 		{
 			Name:      "RBAC",
@@ -230,7 +231,7 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			return result, err
 		}
 	}
-	return ctrl.Result{}, nil
+	return requeueResult(ctx, &mariadb)
 }
 
 func shouldSkipPhase(err error) bool {
@@ -241,6 +242,14 @@ func shouldSkipPhase(err error) bool {
 		return true
 	}
 	return false
+}
+
+func requeueResult(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
+	if mdb.IsTLSEnabled() {
+		log.FromContext(ctx).V(1).Info("Requeuing MariaDB")
+		return ctrl.Result{RequeueAfter: 5 * time.Minute}, nil // ensure certificates get renewed
+	}
+	return ctrl.Result{}, nil
 }
 
 func (r *MariaDBReconciler) reconcileSecret(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
@@ -341,12 +350,12 @@ func (r *MariaDBReconciler) reconcileInit(ctx context.Context, mariadb *mariadbv
 
 func (r *MariaDBReconciler) reconcileStatefulSet(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
 	key := client.ObjectKeyFromObject(mariadb)
-	podAnnotations, err := r.getPodAnnotations(ctx, mariadb)
+	updateAnnotations, err := r.getUpdateAnnotations(ctx, mariadb)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error getting Pod annotations: %v", err)
 	}
 
-	desiredSts, err := r.Builder.BuildMariadbStatefulSet(mariadb, key, podAnnotations)
+	desiredSts, err := r.Builder.BuildMariadbStatefulSet(mariadb, key, updateAnnotations)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error building StatefulSet: %v", err)
 	}
@@ -411,20 +420,6 @@ func (r *MariaDBReconciler) reconcilePodLabels(ctx context.Context, mariadb *mar
 		}
 	}
 	return ctrl.Result{}, nil
-}
-
-func (r *MariaDBReconciler) getPodAnnotations(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (map[string]string, error) {
-	podAnnotations := make(map[string]string)
-
-	if mariadb.Spec.MyCnfConfigMapKeyRef != nil {
-		config, err := r.RefResolver.ConfigMapKeyRef(ctx, mariadb.Spec.MyCnfConfigMapKeyRef, mariadb.Namespace)
-		if err != nil {
-			return nil, fmt.Errorf("error getting my.cnf from ConfigMap: %v", err)
-		}
-		podAnnotations[metadata.ConfigAnnotation] = fmt.Sprintf("%x", sha256.Sum256([]byte(config)))
-	}
-
-	return podAnnotations, nil
 }
 
 func (r *MariaDBReconciler) reconcilePodDisruptionBudget(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
@@ -615,6 +610,7 @@ func (r *MariaDBReconciler) reconcileInternalService(ctx context.Context, mariad
 		ports = append(ports, kadapter.ToKubernetesSlice(mariadb.Spec.ServicePorts)...)
 	}
 	if mariadb.IsGaleraEnabled() {
+		agent := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{}).Agent
 		ports = append(ports, []corev1.ServicePort{
 			{
 				Name: galeraresources.GaleraClusterPortName,
@@ -630,7 +626,11 @@ func (r *MariaDBReconciler) reconcileInternalService(ctx context.Context, mariad
 			},
 			{
 				Name: galeraresources.AgentPortName,
-				Port: ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{}).Agent.Port,
+				Port: agent.Port,
+			},
+			{
+				Name: galeraresources.AgentProbePortName,
+				Port: agent.ProbePort,
 			},
 		}...)
 	}
@@ -1033,30 +1033,8 @@ func (r *MariaDBReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manag
 		builder = builder.Owns(&rbacv1.ClusterRoleBinding{})
 	}
 
-	watcherIndexer := watch.NewWatcherIndexer(mgr, builder, r.Client)
-	if err := watcherIndexer.Watch(
-		ctx,
-		&corev1.ConfigMap{},
-		&mariadbv1alpha1.MariaDB{},
-		&mariadbv1alpha1.MariaDBList{},
-		mariadbv1alpha1.MariadbMyCnfConfigMapFieldPath,
-		ctrlbuilder.WithPredicates(
-			predicate.PredicateWithLabel(metadata.WatchLabel),
-		),
-	); err != nil {
-		return fmt.Errorf("error watching '%s': %v", mariadbv1alpha1.MariadbMyCnfConfigMapFieldPath, err)
-	}
-	if err := watcherIndexer.Watch(
-		ctx,
-		&corev1.Secret{},
-		&mariadbv1alpha1.MariaDB{},
-		&mariadbv1alpha1.MariaDBList{},
-		mariadbv1alpha1.MariadbMetricsPasswordSecretFieldPath,
-		ctrlbuilder.WithPredicates(
-			predicate.PredicateWithLabel(metadata.WatchLabel),
-		),
-	); err != nil {
-		return fmt.Errorf("error watching '%s': %v", mariadbv1alpha1.MariadbMetricsPasswordSecretFieldPath, err)
+	if err := mariadbv1alpha1.IndexMariaDB(ctx, mgr, builder, r.Client); err != nil {
+		return fmt.Errorf("error indexing MariaDB: %v", err)
 	}
 
 	return builder.Complete(r)

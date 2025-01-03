@@ -50,4 +50,7 @@ const (
 
 	// ReasonCRDNotFound indicates that a third party CRD is not present in the cluster.
 	ReasonCRDNotFound = "CRDNotFound"
+
+	// SecretKeyNotFound indicates that a required Secret key could not be found.
+	SecretKeyNotFound = "SecretKeyNotFound"
 )

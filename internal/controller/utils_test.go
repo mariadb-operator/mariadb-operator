@@ -50,8 +50,17 @@ var (
 	testPwdSecretKey        = "passsword"
 	testPwdMetricsSecretKey = "metrics"
 	testUser                = "test"
-	testDatabase            = "test"
-	testConnKey             = types.NamespacedName{
+	testPasswordSecretRef   = mariadbv1alpha1.SecretKeySelector{
+		LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+			Name: testPwdKey.Name,
+		},
+		Key: testPwdSecretKey,
+	}
+	testTLSClientCARef   *mariadbv1alpha1.LocalObjectReference
+	testTLSClientCertRef *mariadbv1alpha1.LocalObjectReference
+	testTLSRequirements  *mariadbv1alpha1.TLSRequirements
+	testDatabase         = "test"
+	testConnKey          = types.NamespacedName{
 		Name:      "conn",
 		Namespace: testNamespace,
 	}
@@ -134,12 +143,7 @@ func testCreateInitialData(ctx context.Context, env environment.OperatorEnv) {
 			},
 			Username: &testUser,
 			PasswordSecretKeyRef: &mariadbv1alpha1.GeneratedSecretKeyRef{
-				SecretKeySelector: mariadbv1alpha1.SecretKeySelector{
-					LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
-						Name: testPwdKey.Name,
-					},
-					Key: testPwdSecretKey,
-				},
+				SecretKeySelector: testPasswordSecretRef,
 			},
 			Database: &testDatabase,
 			Connection: &mariadbv1alpha1.ConnectionTemplate{
@@ -192,9 +196,23 @@ max_allowed_packet=256M`),
 			Storage: mariadbv1alpha1.Storage{
 				Size: ptr.To(resource.MustParse("300Mi")),
 			},
+			TLS: &mariadbv1alpha1.TLS{
+				Enabled: true,
+			},
 		},
 	}
 	applyMariadbTestConfig(&mdb)
+
+	testTLSClientCARef = &mariadbv1alpha1.LocalObjectReference{
+		Name: mdb.TLSClientCASecretKey().Name,
+	}
+	testTLSClientCertRef = &mariadbv1alpha1.LocalObjectReference{
+		Name: mdb.TLSClientCertSecretKey().Name,
+	}
+	testTLSRequirements = &mariadbv1alpha1.TLSRequirements{
+		Issuer:  ptr.To(fmt.Sprintf("/CN=%s", testTLSClientCARef.Name)),
+		Subject: ptr.To(fmt.Sprintf("/CN=%s", testTLSClientCertRef.Name)),
+	}
 
 	Expect(k8sClient.Create(ctx, &mdb)).To(Succeed())
 	expectMariadbReady(ctx, k8sClient, testMdbkey)
@@ -497,7 +515,8 @@ func testMaxscale(mdb *mariadbv1alpha1.MariaDB, mxs *mariadbv1alpha1.MaxScale) {
 	}
 }
 
-func testConnection(username string, passwordSecretKeyRef mariadbv1alpha1.SecretKeySelector, database string, isValid bool) {
+func testConnection(username string, password mariadbv1alpha1.SecretKeySelector, clientCert *mariadbv1alpha1.LocalObjectReference,
+	database string, isValid bool) {
 	key := types.NamespacedName{
 		Name:      fmt.Sprintf("test-creds-conn-%s", uuid.New().String()),
 		Namespace: testNamespace,
@@ -518,9 +537,10 @@ func testConnection(username string, passwordSecretKeyRef mariadbv1alpha1.Secret
 				},
 				WaitForIt: true,
 			},
-			Username:             username,
-			PasswordSecretKeyRef: passwordSecretKeyRef,
-			Database:             &database,
+			Username:               username,
+			PasswordSecretKeyRef:   password,
+			TLSClientCertSecretRef: clientCert,
+			Database:               &database,
 		},
 	}
 	By("Creating Connection")
@@ -592,7 +612,7 @@ func getS3WithBucket(bucket, prefix string) *mariadbv1alpha1.S3 {
 			},
 			Key: "secret-access-key",
 		},
-		TLS: &mariadbv1alpha1.TLS{
+		TLS: &mariadbv1alpha1.TLSS3{
 			Enabled: true,
 			CASecretKeyRef: &mariadbv1alpha1.SecretKeySelector{
 				LocalObjectReference: mariadbv1alpha1.LocalObjectReference{

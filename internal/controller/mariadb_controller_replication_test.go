@@ -70,6 +70,9 @@ var _ = Describe("MariaDB replication", Ordered, func() {
 					ResizeInUseVolumes:  ptr.To(true),
 					WaitForVolumeResize: ptr.To(true),
 				},
+				TLS: &mariadbv1alpha1.TLS{
+					Enabled: true,
+				},
 				Service: &mariadbv1alpha1.ServiceTemplate{
 					Type: corev1.ServiceTypeLoadBalancer,
 					Metadata: &mariadbv1alpha1.Metadata{
@@ -355,6 +358,9 @@ var _ = Describe("MariaDB replication", Ordered, func() {
 						},
 						Generate: false,
 					},
+				},
+				TLS: &mariadbv1alpha1.MaxScaleTLS{
+					Enabled: true,
 				},
 				Metrics: &mariadbv1alpha1.MaxScaleMetrics{
 					Enabled: true,
