@@ -174,13 +174,16 @@ func (r *CertReconciler) reconcileCert(ctx context.Context, caKeyPair *pki.KeyPa
 		if err != nil {
 			return ctrl.Result{}, nil, fmt.Errorf("error reconciling certificate KeyPair: %v", err)
 		}
+		if err := opts.certHandler.HandleExpiredCert(ctx); err != nil {
+			return ctrl.Result{}, certKeyPair, fmt.Errorf("error handling expired certificate: %v", err)
+		}
 		return ctrl.Result{}, certKeyPair, nil
 	}
 
 	if !afterRenewal {
 		return ctrl.Result{}, certKeyPair, nil
 	}
-	shouldRenew, reason, err := opts.shouldRenewCert(ctx, caKeyPair)
+	shouldRenew, reason, err := opts.certHandler.ShouldRenewCert(ctx, caKeyPair)
 	if err != nil {
 		if errors.Is(err, ErrSkipCertRenewal) {
 			certLogger.V(1).Info("skipping cert renewal", "reason", reason)

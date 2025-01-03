@@ -1,39 +1,13 @@
 package certificate
 
 import (
-	"context"
 	"crypto/x509"
 	"errors"
 	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/pki"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-)
-
-type SecretType int
-
-const (
-	SecretTypeCA SecretType = iota
-	SecretTypeTLS
-)
-
-type ShouldRenewCertFn func(ctx context.Context, caKeyPair *pki.KeyPair) (shouldRenew bool, reason string, err error)
-
-type RelatedObject interface {
-	runtime.Object
-	metav1.Object
-}
-
-const DefaultRenewBeforePercentage = 33
-
-var (
-	DefaultRenewCertReason   = "Certificate lifetime within renewal window"
-	DefaultShouldRenewCertFn = func(context.Context, *pki.KeyPair) (bool, string, error) {
-		return true, DefaultRenewCertReason, nil
-	}
 )
 
 type CertReconcilerOpts struct {
@@ -47,7 +21,7 @@ type CertReconcilerOpts struct {
 	caLifetime    time.Duration
 
 	shouldIssueCert bool
-	shouldRenewCert ShouldRenewCertFn
+	certHandler     CertHandler
 	certSecretKey   types.NamespacedName
 	certCommonName  string
 	certDNSNames    []string
@@ -108,9 +82,9 @@ func WithCert(shouldIssue bool, secretKey types.NamespacedName, dnsNames []strin
 	}
 }
 
-func WithShouldRenewCertFn(shouldRenewFn ShouldRenewCertFn) CertReconcilerOpt {
+func WithCertHandler(certHandler CertHandler) CertReconcilerOpt {
 	return func(o *CertReconcilerOpts) {
-		o.shouldRenewCert = shouldRenewFn
+		o.certHandler = certHandler
 	}
 }
 
@@ -204,7 +178,7 @@ func NewDefaultCertificateOpts() *CertReconcilerOpts {
 		caSecretType:    SecretTypeCA,
 		caLifetime:      pki.DefaultCALifetime,
 		shouldIssueCert: true,
-		shouldRenewCert: DefaultShouldRenewCertFn,
+		certHandler:     &DefaultCertHandler{},
 		certLifetime:    pki.DefaultCertLifetime,
 		supportedPrivateKeys: []pki.PrivateKey{
 			pki.PrivateKeyTypeECDSA,
