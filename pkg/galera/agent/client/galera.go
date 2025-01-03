@@ -18,6 +18,15 @@ func NewGalera(client *mdbhttp.Client) *Galera {
 	}
 }
 
+func (g *Galera) Health(ctx context.Context) (bool, error) {
+	res, err := g.client.Get(ctx, "/health", nil)
+	if err != nil {
+		return false, err
+	}
+	defer res.Body.Close()
+	return res.StatusCode == http.StatusOK, nil
+}
+
 func (g *Galera) GetState(ctx context.Context) (*recovery.GaleraState, error) {
 	res, err := g.client.Get(ctx, "/api/galera/state", nil)
 	if err != nil {
