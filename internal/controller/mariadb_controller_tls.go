@@ -9,6 +9,7 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	builderpki "github.com/mariadb-operator/mariadb-operator/pkg/builder/pki"
+	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	certctrl "github.com/mariadb-operator/mariadb-operator/pkg/controller/certificate"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/configmap"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
@@ -45,6 +46,7 @@ func (r *MariaDBReconciler) reconcileTLS(ctx context.Context, mariadb *mariadbv1
 
 func (r *MariaDBReconciler) reconcileTLSCerts(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
 	tls := ptr.Deref(mdb.Spec.TLS, mariadbv1alpha1.TLS{})
+	certHandler := newCertHandler(r.Client, r.RefResolver, mdb)
 
 	serverCertOpts := []certctrl.CertReconcilerOpt{
 		certctrl.WithCABundle(mdb.TLSCABundleSecretKeyRef(), mdb.Namespace),
@@ -57,7 +59,7 @@ func (r *MariaDBReconciler) reconcileTLSCerts(ctx context.Context, mdb *mariadbv
 			mdb.TLSServerCertSecretKey(),
 			mdb.TLSServerDNSNames(),
 		),
-		certctrl.WithShouldRenewCertFn(r.shouldRenewCertFn(mdb)),
+		certctrl.WithCertHandler(certHandler),
 		certctrl.WithRelatedObject(mdb),
 	}
 	serverCertOpts = append(serverCertOpts, tlsServerCertOpts(mdb)...)
@@ -80,7 +82,7 @@ func (r *MariaDBReconciler) reconcileTLSCerts(ctx context.Context, mdb *mariadbv
 			mdb.TLSClientCertSecretKey(),
 			mdb.TLSClientNames(),
 		),
-		certctrl.WithShouldRenewCertFn(r.shouldRenewCertFn(mdb)),
+		certctrl.WithCertHandler(certHandler),
 		certctrl.WithRelatedObject(mdb),
 	}
 	clientCertOpts = append(clientCertOpts, tlsClientCertOpts(mdb)...)
@@ -242,95 +244,6 @@ func (r *MariaDBReconciler) getTLSClientAnnotations(ctx context.Context, mariadb
 	return annotations, nil
 }
 
-func (r *MariaDBReconciler) shouldRenewCertFn(mdb *mariadbv1alpha1.MariaDB) certctrl.ShouldRenewCertFn {
-	return func(ctx context.Context, caKeyPair *pki.KeyPair) (bool, string, error) {
-		if !mdb.IsReady() {
-			return false, "MariaDB not ready", fmt.Errorf("MariaDB not ready: %w", certctrl.ErrSkipCertRenewal)
-		}
-
-		caLeafCert, err := caKeyPair.LeafCertificate()
-		if err != nil {
-			return false, "", fmt.Errorf("error getting CA leaf certificate: %v", err)
-		}
-
-		caBundleBytes, err := r.RefResolver.SecretKeyRef(ctx, mdb.TLSCABundleSecretKeyRef(), mdb.Namespace)
-		if err != nil {
-			return false, "", fmt.Errorf("error getting CA bundle: %w", err)
-		}
-		caCerts, err := pki.ParseCertificates([]byte(caBundleBytes))
-		if err != nil {
-			return false, "", fmt.Errorf("error parsing CA certs: %v", err)
-		}
-
-		serialNo := caLeafCert.SerialNumber
-		hasSerialNo := false
-		for _, cert := range caCerts {
-			if cert.SerialNumber.Cmp(serialNo) == 0 {
-				hasSerialNo = true
-				break
-			}
-		}
-		// CA bundle hasn't been updated with the CA
-		if !hasSerialNo {
-			return false, fmt.Sprintf("Missing CA with serial number '%s' in CA bundle", serialNo.String()), nil
-		}
-
-		allPodsTrustingCA, err := r.ensureAllPodsTrustingCABundle(ctx, mdb, hash(caBundleBytes))
-		if err != nil {
-			return false, "", fmt.Errorf("error checking pod CAs: %v", err)
-		}
-		// Some Pods are still not trusting the CA, a rolling upgrade is pending/ongoing
-		if !allPodsTrustingCA {
-			return false, "Waiting for all Pods to trust CA", nil
-		}
-
-		return true, "", nil
-	}
-}
-
-func (r *MariaDBReconciler) ensureAllPodsTrustingCABundle(ctx context.Context, mdb *mariadbv1alpha1.MariaDB,
-	caBundleHash string) (bool, error) {
-	logger := log.FromContext(ctx).WithName("pod-ca").WithValues("ca-hash", caBundleHash)
-
-	list := corev1.PodList{}
-	listOpts := &client.ListOptions{
-		LabelSelector: klabels.SelectorFromSet(
-			labels.NewLabelsBuilder().
-				WithMariaDBSelectorLabels(mdb).
-				Build(),
-		),
-		Namespace: mdb.GetNamespace(),
-	}
-	if err := r.List(ctx, &list, listOpts); err != nil {
-		return false, fmt.Errorf("error listing Pods: %v", err)
-	}
-	if len(list.Items) != int(mdb.Spec.Replicas) {
-		return false, errors.New("some Pods are missing")
-	}
-
-	for _, p := range list.Items {
-		if !pod.PodReady(&p) {
-			logger.V(1).Info("Pod not ready", "pod", p.Name)
-			return false, nil
-		}
-
-		annotations := p.ObjectMeta.Annotations
-		if annotations == nil {
-			return false, nil
-		}
-		caAnnotation, ok := annotations[metadata.TLSCAAnnotation]
-		if !ok {
-			logger.V(1).Info("CA annotation not present", "pod", p.Name)
-			return false, nil
-		}
-		if caAnnotation != caBundleHash {
-			logger.V(1).Info("CA annotation mistmatch", "pod", p.Name, "pod-hash", caAnnotation)
-			return false, nil
-		}
-	}
-	return true, nil
-}
-
 func (r *MariaDBReconciler) getTLSStatus(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) (*mariadbv1alpha1.MariaDBTLSStatus, error) {
 	if !mdb.IsTLSEnabled() {
 		return nil, nil
@@ -368,6 +281,129 @@ func (r *MariaDBReconciler) getTLSStatus(ctx context.Context, mdb *mariadbv1alph
 	tlsStatus.ClientCert = ptr.To(certStatus[0])
 
 	return &tlsStatus, nil
+}
+
+type certHandler struct {
+	client.Client
+	refResolver *refresolver.RefResolver
+	mdb         *mariadbv1alpha1.MariaDB
+}
+
+func newCertHandler(client client.Client, refResolver *refresolver.RefResolver, mdb *mariadbv1alpha1.MariaDB) *certHandler {
+	return &certHandler{
+		Client:      client,
+		refResolver: refResolver,
+		mdb:         mdb,
+	}
+}
+
+func (h *certHandler) ShouldRenewCert(ctx context.Context, caKeyPair *pki.KeyPair) (shouldRenew bool, reason string, err error) {
+	if !h.mdb.IsReady() {
+		return false, "MariaDB not ready", fmt.Errorf("MariaDB not ready: %w", certctrl.ErrSkipCertRenewal)
+	}
+
+	caLeafCert, err := caKeyPair.LeafCertificate()
+	if err != nil {
+		return false, "", fmt.Errorf("error getting CA leaf certificate: %v", err)
+	}
+
+	caBundleBytes, err := h.refResolver.SecretKeyRef(ctx, h.mdb.TLSCABundleSecretKeyRef(), h.mdb.Namespace)
+	if err != nil {
+		return false, "", fmt.Errorf("error getting CA bundle: %w", err)
+	}
+	caCerts, err := pki.ParseCertificates([]byte(caBundleBytes))
+	if err != nil {
+		return false, "", fmt.Errorf("error parsing CA certs: %v", err)
+	}
+
+	serialNo := caLeafCert.SerialNumber
+	hasSerialNo := false
+	for _, cert := range caCerts {
+		if cert.SerialNumber.Cmp(serialNo) == 0 {
+			hasSerialNo = true
+			break
+		}
+	}
+	// CA bundle hasn't been updated with the CA
+	if !hasSerialNo {
+		return false, fmt.Sprintf("Missing CA with serial number '%s' in CA bundle", serialNo.String()), nil
+	}
+
+	allPodsTrustingCA, err := h.ensureAllPodsTrustingCABundle(ctx, h.mdb, hash(caBundleBytes))
+	if err != nil {
+		return false, "", fmt.Errorf("error checking pod CAs: %v", err)
+	}
+	// Some Pods are still not trusting the CA, a rolling upgrade is pending/ongoing
+	if !allPodsTrustingCA {
+		return false, "Waiting for all Pods to trust CA", nil
+	}
+
+	return true, "", nil
+}
+
+func (h *certHandler) HandleExpiredCert(ctx context.Context) error {
+	if h.mdb.IsReady() {
+		return nil
+	}
+	if h.mdb.IsGaleraEnabled() {
+		if err := h.patchStatus(ctx, h.mdb, func(status *mariadbv1alpha1.MariaDBStatus) {
+			status.GaleraRecovery = nil
+			condition.SetGaleraNotReady(status)
+		}); err != nil {
+			return fmt.Errorf("error patching MariaDB status: %v", err)
+		}
+	}
+	return nil
+}
+
+func (h *certHandler) ensureAllPodsTrustingCABundle(ctx context.Context, mdb *mariadbv1alpha1.MariaDB,
+	caBundleHash string) (bool, error) {
+	logger := log.FromContext(ctx).WithName("pod-ca").WithValues("ca-hash", caBundleHash)
+
+	list := corev1.PodList{}
+	listOpts := &client.ListOptions{
+		LabelSelector: klabels.SelectorFromSet(
+			labels.NewLabelsBuilder().
+				WithMariaDBSelectorLabels(mdb).
+				Build(),
+		),
+		Namespace: mdb.GetNamespace(),
+	}
+	if err := h.List(ctx, &list, listOpts); err != nil {
+		return false, fmt.Errorf("error listing Pods: %v", err)
+	}
+	if len(list.Items) != int(mdb.Spec.Replicas) {
+		return false, errors.New("some Pods are missing")
+	}
+
+	for _, p := range list.Items {
+		if !pod.PodReady(&p) {
+			logger.V(1).Info("Pod not ready", "pod", p.Name)
+			return false, nil
+		}
+
+		annotations := p.ObjectMeta.Annotations
+		if annotations == nil {
+			return false, nil
+		}
+		caAnnotation, ok := annotations[metadata.TLSCAAnnotation]
+		if !ok {
+			logger.V(1).Info("CA annotation not present", "pod", p.Name)
+			return false, nil
+		}
+		if caAnnotation != caBundleHash {
+			logger.V(1).Info("CA annotation mistmatch", "pod", p.Name, "pod-hash", caAnnotation)
+			return false, nil
+		}
+	}
+	return true, nil
+}
+
+func (r *certHandler) patchStatus(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+	patcher func(*mariadbv1alpha1.MariaDBStatus)) error {
+	patch := client.MergeFrom(mariadb.DeepCopy())
+	patcher(&mariadb.Status)
+	return r.Status().Patch(ctx, mariadb, patch)
 }
 
 func getCertificateStatus(ctx context.Context, refResolver *refresolver.RefResolver, selector mariadbv1alpha1.SecretKeySelector,
