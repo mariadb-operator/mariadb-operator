@@ -9,6 +9,8 @@ import (
 
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
+	"github.com/mariadb-operator/mariadb-operator/pkg/discovery"
 	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
 	"github.com/mariadb-operator/mariadb-operator/pkg/pki"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
@@ -33,14 +35,19 @@ type CertReconciler struct {
 	scheme      *runtime.Scheme
 	recorder    record.EventRecorder
 	refResolver *refresolver.RefResolver
+	discovery   *discovery.Discovery
+	builder     *builder.Builder
 }
 
-func NewCertReconciler(client client.Client, scheme *runtime.Scheme, recorder record.EventRecorder) *CertReconciler {
+func NewCertReconciler(client client.Client, scheme *runtime.Scheme, recorder record.EventRecorder,
+	discovery *discovery.Discovery, builder *builder.Builder) *CertReconciler {
 	return &CertReconciler{
 		Client:      client,
 		scheme:      scheme,
 		recorder:    recorder,
 		refResolver: refresolver.New(client),
+		discovery:   discovery,
+		builder:     builder,
 	}
 }
 
@@ -65,6 +72,10 @@ func (r *CertReconciler) Reconcile(ctx context.Context, certOpts ...CertReconcil
 	logger := log.FromContext(ctx).WithName("cert")
 	result := &ReconcileResult{}
 	var err error
+
+	// TODO:
+	// - Reconcile cert-manager cert if issuerRef is not nil
+	// - Return an error if discovery and builder are nil
 
 	result.CAKeyPair, err = r.reconcileCA(ctx, opts, logger)
 	if err != nil {
