@@ -183,7 +183,7 @@ func NewDefaultCertificateOpts() *CertReconcilerOpts {
 		supportedPrivateKeys: []pki.PrivateKey{
 			pki.PrivateKeyTypeECDSA,
 		},
-		renewBeforePercentage: DefaultRenewBeforePercentage,
+		renewBeforePercentage: pki.DefaultRenewBeforePercentage,
 	}
 	return opts
 }

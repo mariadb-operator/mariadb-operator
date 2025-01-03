@@ -13,8 +13,6 @@ type SecretType int
 const (
 	SecretTypeCA SecretType = iota
 	SecretTypeTLS
-
-	DefaultRenewBeforePercentage = 33
 )
 
 type CertHandler interface {

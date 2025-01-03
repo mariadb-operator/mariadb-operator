@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
@@ -50,11 +51,9 @@ var _ = BeforeSuite(func() {
 	err = AddToScheme(scheme)
 	Expect(err).NotTo(HaveOccurred())
 
-	err = admissionv1.AddToScheme(scheme)
-	Expect(err).NotTo(HaveOccurred())
-
-	err = monitoringv1.AddToScheme(scheme)
-	Expect(err).NotTo(HaveOccurred())
+	Expect(admissionv1.AddToScheme(scheme)).NotTo(HaveOccurred())
+	Expect(monitoringv1.AddToScheme(scheme)).NotTo(HaveOccurred())
+	Expect(certmanagerv1.AddToScheme(scheme)).NotTo(HaveOccurred())
 
 	//+kubebuilder:scaffold:scheme
 

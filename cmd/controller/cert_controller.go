@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/mariadb-operator/mariadb-operator/internal/controller"
-	certctrl "github.com/mariadb-operator/mariadb-operator/pkg/controller/certificate"
 	"github.com/mariadb-operator/mariadb-operator/pkg/log"
 	"github.com/mariadb-operator/mariadb-operator/pkg/pki"
 	"github.com/spf13/cobra"
@@ -37,7 +36,7 @@ func init() {
 	certControllerCmd.Flags().StringVar(&certSecretNamespace, "cert-secret-namespace", "default",
 		"Namespace of the Secret to store the certificate for webhook")
 	certControllerCmd.Flags().DurationVar(&certLifetime, "cert-lifetime", pki.DefaultCertLifetime, "Certificate lifetime")
-	certControllerCmd.Flags().Int32Var(&renewBeforePercentage, "renew-before-percentage", certctrl.DefaultRenewBeforePercentage,
+	certControllerCmd.Flags().Int32Var(&renewBeforePercentage, "renew-before-percentage", pki.DefaultRenewBeforePercentage,
 		"How long before the certificate expiration should the renewal process be triggered."+
 			"For example, if a certificate is valid for 60 minutes, and renew-before-percentage=25, "+
 			"cert-controller will begin to attempt to renew the certificate 45 minutes after it was issued"+
