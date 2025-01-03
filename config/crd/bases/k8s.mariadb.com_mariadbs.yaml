@@ -5260,10 +5260,11 @@ spec:
                 properties:
                   clientCASecretRef:
                     description: |-
-                      ClientCASecretRef is a reference to a Secret containing the client certificate authority keypair. It is used to establish trust and issue server certificates for MariaDB clients.
+                      ClientCASecretRef is a reference to a Secret containing the client certificate authority keypair. It is used to establish trust and issue client certificates.
                       One of:
                       - Secret containing both the 'ca.crt' and 'ca.key' keys. This allows you to bring your own CA to Kubernetes to issue certificates.
-                      - Secret containing only the 'ca.crt' in order to establish trust. In this case, the clientSecretRef field is mandatory.
+                      - Secret containing only the 'ca.crt' in order to establish trust. In this case, either clientCertSecretRef or clientIssuerRef fields must be provided.
+                      If not provided, a self-signed CA will be provisioned by the operator.
                     properties:
                       name:
                         default: ""
@@ -5271,11 +5272,28 @@ spec:
                     type: object
                   clientCertSecretRef:
                     description: ClientCertSecretRef is a reference to a TLS Secret
-                      used by the MariaDB clients to configure TLS.
+                      containing the client certificate.
                     properties:
                       name:
                         default: ""
                         type: string
+                    type: object
+                  clientIssuerRef:
+                    description: |-
+                      ClientIssuerRef is a reference to a cert-manager issuer object used to issue the client certificate. cert-manager must be installed previously in the cluster.
+                      If the issuer maps to an intermediate CA, the trust chain must be completed by providing the required CAs via clientCASecretRef.
+                    properties:
+                      group:
+                        description: Group of the resource being referred to.
+                        type: string
+                      kind:
+                        description: Kind of the resource being referred to.
+                        type: string
+                      name:
+                        description: Name of the resource being referred to.
+                        type: string
+                    required:
+                    - name
                     type: object
                   enabled:
                     description: Enabled is a flag to enable TLS.
@@ -5303,10 +5321,11 @@ spec:
                     type: string
                   serverCASecretRef:
                     description: |-
-                      ServerCASecretRef is a reference to a Secret containing the server certificate authority keypair. It is used to establish trust and issue server certificates for MariaDB server.
+                      ServerCASecretRef is a reference to a Secret containing the server certificate authority keypair. It is used to establish trust and issue server certificates.
                       One of:
                       - Secret containing both the 'ca.crt' and 'ca.key' keys. This allows you to bring your own CA to Kubernetes to issue certificates.
-                      - Secret containing only the 'ca.crt' in order to establish trust. In this case, the serverSecretRef field is mandatory.
+                      - Secret containing only the 'ca.crt' in order to establish trust. In this case, either serverCertSecretRef or serverIssuerRef must be provided.
+                      If not provided, a self-signed CA will be provisioned by the operator.
                     properties:
                       name:
                         default: ""
@@ -5314,11 +5333,28 @@ spec:
                     type: object
                   serverCertSecretRef:
                     description: ServerCertSecretRef is a reference to a TLS Secret
-                      used by the MariaDB server to configure TLS.
+                      containing the server certificate.
                     properties:
                       name:
                         default: ""
                         type: string
+                    type: object
+                  serverIssuerRef:
+                    description: |-
+                      ServerIssuerRef is a reference to a cert-manager issuer object used to issue the server certificate. cert-manager must be installed previously in the cluster.
+                      If the issuer maps to an intermediate CA, the trust chain must be completed by providing the required CAs via serverCASecretRef.
+                    properties:
+                      group:
+                        description: Group of the resource being referred to.
+                        type: string
+                      kind:
+                        description: Kind of the resource being referred to.
+                        type: string
+                      name:
+                        description: Name of the resource being referred to.
+                        type: string
+                    required:
+                    - name
                     type: object
                 type: object
               tolerations:
