@@ -29,6 +29,7 @@ THE SOFTWARE.
 package v1alpha1
 
 import (
+	metav1 "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/galera/recovery"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -4143,6 +4144,11 @@ func (in *TLS) DeepCopyInto(out *TLS) {
 		*out = new(LocalObjectReference)
 		**out = **in
 	}
+	if in.ServerIssuerRef != nil {
+		in, out := &in.ServerIssuerRef, &out.ServerIssuerRef
+		*out = new(metav1.ObjectReference)
+		**out = **in
+	}
 	if in.ClientCASecretRef != nil {
 		in, out := &in.ClientCASecretRef, &out.ClientCASecretRef
 		*out = new(LocalObjectReference)
@@ -4151,6 +4157,11 @@ func (in *TLS) DeepCopyInto(out *TLS) {
 	if in.ClientCertSecretRef != nil {
 		in, out := &in.ClientCertSecretRef, &out.ClientCertSecretRef
 		*out = new(LocalObjectReference)
+		**out = **in
+	}
+	if in.ClientIssuerRef != nil {
+		in, out := &in.ClientIssuerRef, &out.ClientIssuerRef
+		*out = new(metav1.ObjectReference)
 		**out = **in
 	}
 	if in.GaleraServerSSLMode != nil {

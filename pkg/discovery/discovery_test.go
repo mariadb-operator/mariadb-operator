@@ -16,6 +16,16 @@ func TestDiscoveryServiceMonitors(t *testing.T) {
 		})
 }
 
+func TestDiscoveryCertificates(t *testing.T) {
+	testDiscoveryResource(t,
+		"Certificates",
+		"cert-manager.io/v1",
+		"certificates",
+		func(d *Discovery) (bool, error) {
+			return d.CertificateExist()
+		})
+}
+
 func TestDiscoverySecurityContextConstraints(t *testing.T) {
 	testDiscoveryResource(t,
 		"SecurityContextConstraints",

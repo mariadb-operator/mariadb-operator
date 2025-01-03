@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	cmmeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	"github.com/go-logr/logr"
 	"github.com/mariadb-operator/mariadb-operator/pkg/discovery"
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
@@ -323,28 +324,40 @@ type TLS struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
 	Enabled bool `json:"enabled"`
-	// ServerCASecretRef is a reference to a Secret containing the server certificate authority keypair. It is used to establish trust and issue server certificates for MariaDB server.
+	// ServerCASecretRef is a reference to a Secret containing the server certificate authority keypair. It is used to establish trust and issue server certificates.
 	// One of:
 	// - Secret containing both the 'ca.crt' and 'ca.key' keys. This allows you to bring your own CA to Kubernetes to issue certificates.
-	// - Secret containing only the 'ca.crt' in order to establish trust. In this case, the serverSecretRef field is mandatory.
+	// - Secret containing only the 'ca.crt' in order to establish trust. In this case, either serverCertSecretRef or serverIssuerRef must be provided.
+	// If not provided, a self-signed CA will be provisioned by the operator.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	ServerCASecretRef *LocalObjectReference `json:"serverCASecretRef,omitempty"`
-	// ServerCertSecretRef is a reference to a TLS Secret used by the MariaDB server to configure TLS.
+	// ServerCertSecretRef is a reference to a TLS Secret containing the server certificate.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	ServerCertSecretRef *LocalObjectReference `json:"serverCertSecretRef,omitempty"`
-	// ClientCASecretRef is a reference to a Secret containing the client certificate authority keypair. It is used to establish trust and issue server certificates for MariaDB clients.
+	// ServerIssuerRef is a reference to a cert-manager issuer object used to issue the server certificate. cert-manager must be installed previously in the cluster.
+	// If the issuer maps to an intermediate CA, the trust chain must be completed by providing the required CAs via serverCASecretRef.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	ServerIssuerRef *cmmeta.ObjectReference `json:"serverIssuerRef,omitempty"`
+	// ClientCASecretRef is a reference to a Secret containing the client certificate authority keypair. It is used to establish trust and issue client certificates.
 	// One of:
 	// - Secret containing both the 'ca.crt' and 'ca.key' keys. This allows you to bring your own CA to Kubernetes to issue certificates.
-	// - Secret containing only the 'ca.crt' in order to establish trust. In this case, the clientSecretRef field is mandatory.
+	// - Secret containing only the 'ca.crt' in order to establish trust. In this case, either clientCertSecretRef or clientIssuerRef fields must be provided.
+	// If not provided, a self-signed CA will be provisioned by the operator.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	ClientCASecretRef *LocalObjectReference `json:"clientCASecretRef,omitempty"`
-	// ClientCertSecretRef is a reference to a TLS Secret used by the MariaDB clients to configure TLS.
+	// ClientCertSecretRef is a reference to a TLS Secret containing the client certificate.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	ClientCertSecretRef *LocalObjectReference `json:"clientCertSecretRef,omitempty"`
+	// ClientIssuerRef is a reference to a cert-manager issuer object used to issue the client certificate. cert-manager must be installed previously in the cluster.
+	// If the issuer maps to an intermediate CA, the trust chain must be completed by providing the required CAs via clientCASecretRef.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	ClientIssuerRef *cmmeta.ObjectReference `json:"clientIssuerRef,omitempty"`
 	// GaleraServerSSLMode defines the server SSL mode for a Galera Enterprise cluster.
 	// This field is only supported and applicable for Galera Enterprise >= 10.6 instances.
 	// Refer to the MariaDB Enterprise docs for more detail: https://mariadb.com/docs/server/security/galera/#WSREP_TLS_Modes
