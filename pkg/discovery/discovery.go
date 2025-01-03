@@ -84,6 +84,10 @@ func (c *Discovery) ServiceMonitorExist() (bool, error) {
 	return c.resourceExist("monitoring.coreos.com/v1", "servicemonitors")
 }
 
+func (c *Discovery) CertificateExist() (bool, error) {
+	return c.resourceExist("cert-manager.io/v1", "certificates")
+}
+
 func (c *Discovery) SecurityContextConstrainstsExist() (bool, error) {
 	return c.resourceExist("security.openshift.io/v1", "securitycontextconstraints")
 }
