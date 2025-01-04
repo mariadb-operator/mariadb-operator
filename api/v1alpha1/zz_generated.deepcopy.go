@@ -4136,8 +4136,8 @@ func (in *TLS) DeepCopyInto(out *TLS) {
 		*out = new(LocalObjectReference)
 		**out = **in
 	}
-	if in.ServerIssuerRef != nil {
-		in, out := &in.ServerIssuerRef, &out.ServerIssuerRef
+	if in.ServerCertIssuerRef != nil {
+		in, out := &in.ServerCertIssuerRef, &out.ServerCertIssuerRef
 		*out = new(metav1.ObjectReference)
 		**out = **in
 	}
@@ -4151,8 +4151,8 @@ func (in *TLS) DeepCopyInto(out *TLS) {
 		*out = new(LocalObjectReference)
 		**out = **in
 	}
-	if in.ClientIssuerRef != nil {
-		in, out := &in.ClientIssuerRef, &out.ClientIssuerRef
+	if in.ClientCertIssuerRef != nil {
+		in, out := &in.ClientCertIssuerRef, &out.ClientCertIssuerRef
 		*out = new(metav1.ObjectReference)
 		**out = **in
 	}

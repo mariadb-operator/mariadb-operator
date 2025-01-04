@@ -5263,25 +5263,18 @@ spec:
                       ClientCASecretRef is a reference to a Secret containing the client certificate authority keypair. It is used to establish trust and issue client certificates.
                       One of:
                       - Secret containing both the 'ca.crt' and 'ca.key' keys. This allows you to bring your own CA to Kubernetes to issue certificates.
-                      - Secret containing only the 'ca.crt' in order to establish trust. In this case, either clientCertSecretRef or clientIssuerRef fields must be provided.
-                      If not provided, a self-signed CA will be provisioned by the operator.
+                      - Secret containing only the 'ca.crt' in order to establish trust. In this case, either clientCertSecretRef or clientCertIssuerRef fields must be provided.
+                      If not provided, a self-signed CA will be provisioned to issue the client certificate.
                     properties:
                       name:
                         default: ""
                         type: string
                     type: object
-                  clientCertSecretRef:
-                    description: ClientCertSecretRef is a reference to a TLS Secret
-                      containing the client certificate.
-                    properties:
-                      name:
-                        default: ""
-                        type: string
-                    type: object
-                  clientIssuerRef:
+                  clientCertIssuerRef:
                     description: |-
-                      ClientIssuerRef is a reference to a cert-manager issuer object used to issue the client certificate. cert-manager must be installed previously in the cluster.
+                      ClientCertIssuerRef is a reference to a cert-manager issuer object used to issue the client certificate. cert-manager must be installed previously in the cluster.
                       If the issuer maps to an intermediate CA, the trust chain must be completed by providing the required CAs via clientCASecretRef.
+                      It is mutually exclusive with clientCertSecretRef.
                     properties:
                       group:
                         description: Group of the resource being referred to.
@@ -5294,6 +5287,15 @@ spec:
                         type: string
                     required:
                     - name
+                    type: object
+                  clientCertSecretRef:
+                    description: |-
+                      ClientCertSecretRef is a reference to a TLS Secret containing the client certificate.
+                      It is mutually exclusive with clientCertIssuerRef.
+                    properties:
+                      name:
+                        default: ""
+                        type: string
                     type: object
                   enabled:
                     description: Enabled is a flag to enable TLS.
@@ -5324,25 +5326,18 @@ spec:
                       ServerCASecretRef is a reference to a Secret containing the server certificate authority keypair. It is used to establish trust and issue server certificates.
                       One of:
                       - Secret containing both the 'ca.crt' and 'ca.key' keys. This allows you to bring your own CA to Kubernetes to issue certificates.
-                      - Secret containing only the 'ca.crt' in order to establish trust. In this case, either serverCertSecretRef or serverIssuerRef must be provided.
-                      If not provided, a self-signed CA will be provisioned by the operator.
+                      - Secret containing only the 'ca.crt' in order to establish trust. In this case, either serverCertSecretRef or serverCertIssuerRef must be provided.
+                      If not provided, a self-signed CA will be provisioned to issue the server certificate.
                     properties:
                       name:
                         default: ""
                         type: string
                     type: object
-                  serverCertSecretRef:
-                    description: ServerCertSecretRef is a reference to a TLS Secret
-                      containing the server certificate.
-                    properties:
-                      name:
-                        default: ""
-                        type: string
-                    type: object
-                  serverIssuerRef:
+                  serverCertIssuerRef:
                     description: |-
-                      ServerIssuerRef is a reference to a cert-manager issuer object used to issue the server certificate. cert-manager must be installed previously in the cluster.
+                      ServerCertIssuerRef is a reference to a cert-manager issuer object used to issue the server certificate. cert-manager must be installed previously in the cluster.
                       If the issuer maps to an intermediate CA, the trust chain must be completed by providing the required CAs via serverCASecretRef.
+                      It is mutually exclusive with serverCertSecretRef.
                     properties:
                       group:
                         description: Group of the resource being referred to.
@@ -5355,6 +5350,15 @@ spec:
                         type: string
                     required:
                     - name
+                    type: object
+                  serverCertSecretRef:
+                    description: |-
+                      ServerCertSecretRef is a reference to a TLS Secret containing the server certificate.
+                      It is mutually exclusive with serverCertIssuerRef.
+                    properties:
+                      name:
+                        default: ""
+                        type: string
                     type: object
                 type: object
               tolerations:
