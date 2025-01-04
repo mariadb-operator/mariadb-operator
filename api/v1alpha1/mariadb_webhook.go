@@ -307,18 +307,22 @@ func (r *MariaDB) validateTLS() error {
 	}
 	validationItems := []tlsValidationItem{
 		{
-			tlsValue:      r.Spec.TLS,
-			caSecretRef:   tls.ServerCASecretRef,
-			caFieldPath:   "spec.tls.serverCASecretRef",
-			certSecretRef: tls.ServerCertSecretRef,
-			certFieldPath: "spec.tls.serverCertSecretRef",
+			tlsValue:            r.Spec.TLS,
+			caSecretRef:         tls.ServerCASecretRef,
+			caFieldPath:         "spec.tls.serverCASecretRef",
+			certSecretRef:       tls.ServerCertSecretRef,
+			certFieldPath:       "spec.tls.serverCertSecretRef",
+			certIssuerRef:       tls.ServerCertIssuerRef,
+			certIssuerFieldPath: "spec.tls.serverCertIssuerRef",
 		},
 		{
-			tlsValue:      r.Spec.TLS,
-			caSecretRef:   tls.ClientCASecretRef,
-			caFieldPath:   "spec.tls.clientCASecretRef",
-			certSecretRef: tls.ClientCertSecretRef,
-			certFieldPath: "spec.tls.clientCertSecretRef",
+			tlsValue:            r.Spec.TLS,
+			caSecretRef:         tls.ClientCASecretRef,
+			caFieldPath:         "spec.tls.clientCASecretRef",
+			certSecretRef:       tls.ClientCertSecretRef,
+			certFieldPath:       "spec.tls.clientCertSecretRef",
+			certIssuerRef:       tls.ClientCertIssuerRef,
+			certIssuerFieldPath: "spec.tls.clientCertIssuerRef",
 		},
 	}
 	for _, item := range validationItems {
