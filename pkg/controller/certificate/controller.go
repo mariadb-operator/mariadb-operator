@@ -74,8 +74,8 @@ func (r *CertReconciler) Reconcile(ctx context.Context, certOpts ...CertReconcil
 	var err error
 
 	// TODO:
-	// - Reconcile cert-manager cert if issuerRef is not nil
-	// - Return an error if discovery and builder are nil
+	// - Reconcile certs if opts.shouldIssueCA || opts.shouldIssueCert
+	// - Else, reconcile cert-manager cert if issuerRef is not nil. Return an error if discovery and builder are nil.
 
 	result.CAKeyPair, err = r.reconcileCA(ctx, opts, logger)
 	if err != nil {
