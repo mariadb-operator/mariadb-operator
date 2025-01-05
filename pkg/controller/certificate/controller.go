@@ -73,18 +73,22 @@ func (r *CertReconciler) Reconcile(ctx context.Context, certOpts ...CertReconcil
 	result := &ReconcileResult{}
 	var err error
 
-	// TODO:
-	// - Reconcile certs if opts.shouldIssueCA || opts.shouldIssueCert
-	// - Else, reconcile cert-manager cert if issuerRef is not nil. Return an error if discovery and builder are nil.
+	if opts.shouldIssueCA || opts.shouldIssueCert {
+		result.CAKeyPair, err = r.reconcileCA(ctx, opts, logger)
+		if err != nil {
+			return nil, fmt.Errorf("error reconciling CA: %v", err)
+		}
+		result.Result, result.CertKeyPair, err = r.reconcileCert(ctx, result.CAKeyPair, opts, logger)
+		if err != nil {
+			return nil, fmt.Errorf("error reconciling certificate: %v", err)
+		}
+	} else if opts.certIssuerRef != nil {
+		result.Result, err = r.reconcileCertManagerCert(ctx, opts, logger)
+		if err != nil {
+			return nil, fmt.Errorf("error reconciling cert-manager Certificate: %v", err)
+		}
+	}
 
-	result.CAKeyPair, err = r.reconcileCA(ctx, opts, logger)
-	if err != nil {
-		return nil, fmt.Errorf("error reconciling CA: %v", err)
-	}
-	result.Result, result.CertKeyPair, err = r.reconcileCert(ctx, result.CAKeyPair, opts, logger)
-	if err != nil {
-		return nil, fmt.Errorf("error reconciling certificate: %v", err)
-	}
 	return result, nil
 }
 

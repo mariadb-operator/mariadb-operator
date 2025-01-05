@@ -5,6 +5,7 @@ import (
 	"errors"
 	"time"
 
+	cmmeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/pki"
 	"k8s.io/apimachinery/pkg/types"
@@ -22,6 +23,7 @@ type CertReconcilerOpts struct {
 
 	shouldIssueCert bool
 	certHandler     CertHandler
+	certIssuerRef   *cmmeta.ObjectReference
 	certSecretKey   types.NamespacedName
 	certCommonName  string
 	certDNSNames    []string
@@ -85,6 +87,12 @@ func WithCert(shouldIssue bool, secretKey types.NamespacedName, dnsNames []strin
 func WithCertHandler(certHandler CertHandler) CertReconcilerOpt {
 	return func(o *CertReconcilerOpts) {
 		o.certHandler = certHandler
+	}
+}
+
+func WithCertIssuerRef(issuerRef *cmmeta.ObjectReference) CertReconcilerOpt {
+	return func(o *CertReconcilerOpts) {
+		o.certIssuerRef = issuerRef
 	}
 }
 
