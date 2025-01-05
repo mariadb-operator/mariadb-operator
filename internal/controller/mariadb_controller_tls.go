@@ -60,6 +60,7 @@ func (r *MariaDBReconciler) reconcileTLSCerts(ctx context.Context, mdb *mariadbv
 			mdb.TLSServerDNSNames(),
 		),
 		certctrl.WithCertHandler(certHandler),
+		certctrl.WithCertIssuerRef(tls.ServerCertIssuerRef),
 		certctrl.WithRelatedObject(mdb),
 	}
 	serverCertOpts = append(serverCertOpts, tlsServerCertOpts(mdb)...)
@@ -83,6 +84,7 @@ func (r *MariaDBReconciler) reconcileTLSCerts(ctx context.Context, mdb *mariadbv
 			mdb.TLSClientNames(),
 		),
 		certctrl.WithCertHandler(certHandler),
+		certctrl.WithCertIssuerRef(tls.ClientCertIssuerRef),
 		certctrl.WithRelatedObject(mdb),
 	}
 	clientCertOpts = append(clientCertOpts, tlsClientCertOpts(mdb)...)
