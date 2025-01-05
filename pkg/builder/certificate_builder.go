@@ -20,8 +20,8 @@ type CertOpts struct {
 	Owner     metav1.Object
 	DNSNames  []string
 	Lifetime  *time.Duration
-	IssuerRef *cmmeta.ObjectReference
 	Usages    []certmanagerv1.KeyUsage
+	IssuerRef *cmmeta.ObjectReference
 }
 
 type CertOpt func(*CertOpts)
@@ -50,15 +50,15 @@ func WithLifetime(lifetime time.Duration) CertOpt {
 	}
 }
 
-func WithIssuerRef(issuerRef cmmeta.ObjectReference) CertOpt {
-	return func(o *CertOpts) {
-		o.IssuerRef = ptr.To(issuerRef)
-	}
-}
-
 func WithUsages(usages ...certmanagerv1.KeyUsage) CertOpt {
 	return func(o *CertOpts) {
 		o.Usages = append(o.Usages, usages...)
+	}
+}
+
+func WithIssuerRef(issuerRef cmmeta.ObjectReference) CertOpt {
+	return func(o *CertOpts) {
+		o.IssuerRef = ptr.To(issuerRef)
 	}
 }
 
@@ -88,6 +88,7 @@ func (b *Builder) BuildCertificate(certOpts ...CertOpt) (*certmanagerv1.Certific
 			DNSNames:              opts.DNSNames,
 			CommonName:            opts.DNSNames[0],
 			Usages:                opts.Usages,
+			IssuerRef:             *opts.IssuerRef,
 			IsCA:                  false,
 			PrivateKey: &certmanagerv1.CertificatePrivateKey{
 				Encoding:  certmanagerv1.PKCS1,
