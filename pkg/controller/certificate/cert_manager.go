@@ -12,7 +12,6 @@ import (
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
-	"github.com/mariadb-operator/mariadb-operator/pkg/wait"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -43,8 +42,9 @@ func (r *CertReconciler) reconcileCertManagerCert(ctx context.Context, opts *Cer
 		return ctrl.Result{}, fmt.Errorf("error reconciling desired cert: %v", err)
 	}
 
-	if err := r.ensureCertManagerCertReady(ctx, opts, logger); err != nil {
-		return ctrl.Result{}, fmt.Errorf("error checking cert readiness: %v", err)
+	if err := r.certManagerCertReady(ctx, opts); err != nil {
+		logger.V(1).Info("Certificate not ready. Requeuing...", "err", err)
+		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 
 	return ctrl.Result{}, nil
@@ -87,14 +87,6 @@ func (r *CertReconciler) reconcileCertManagerDesiredCert(ctx context.Context, op
 	existingCert.Spec.IssuerRef = desiredCert.Spec.IssuerRef
 	existingCert.Spec.SecretName = desiredCert.Spec.SecretName
 	return r.Patch(ctx, &existingCert, patch)
-}
-
-func (r *CertReconciler) ensureCertManagerCertReady(ctx context.Context, opts *CertReconcilerOpts, logger logr.Logger) error {
-	certCtx, certCancel := context.WithTimeout(ctx, 10*time.Second)
-	defer certCancel()
-	return wait.PollUntilSucessOrContextCancel(certCtx, logger, func(ctx context.Context) error {
-		return r.certManagerCertReady(ctx, opts)
-	})
 }
 
 func (r *CertReconciler) certManagerCertReady(ctx context.Context, opts *CertReconcilerOpts) error {
