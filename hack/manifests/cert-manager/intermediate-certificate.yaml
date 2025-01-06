@@ -1,0 +1,25 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: intermediate-ca
+  namespace: default
+spec:
+  duration: 26280h # 3 years
+  commonName: intermediate-ca
+  usages:
+  - digital signature
+  - key encipherment
+  - cert sign
+  issuerRef:
+    name: selfsigned
+    kind: ClusterIssuer
+  isCA: true
+  privateKey:
+    encoding: PKCS1
+    algorithm: ECDSA
+    size: 256
+  secretTemplate:
+    labels:
+      k8s.mariadb.com/watch: ""
+  secretName: intermediate-ca
+  revisionHistoryLimit: 10

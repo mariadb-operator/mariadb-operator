@@ -1,3 +1,5 @@
+clusterResourceNamespace: default
+
 installCRDs: true
 
 prometheus:
