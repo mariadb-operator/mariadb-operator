@@ -16,12 +16,13 @@ import (
 )
 
 type CertOpts struct {
-	Key       *types.NamespacedName
-	Owner     metav1.Object
-	DNSNames  []string
-	Lifetime  *time.Duration
-	Usages    []certmanagerv1.KeyUsage
-	IssuerRef *cmmeta.ObjectReference
+	Key                   *types.NamespacedName
+	Owner                 metav1.Object
+	DNSNames              []string
+	Lifetime              *time.Duration
+	RenewBeforePercentage *int32
+	Usages                []certmanagerv1.KeyUsage
+	IssuerRef             *cmmeta.ObjectReference
 }
 
 type CertOpt func(*CertOpts)
@@ -50,6 +51,12 @@ func WithLifetime(lifetime time.Duration) CertOpt {
 	}
 }
 
+func WithRenewBeforePercentage(percentage int32) CertOpt {
+	return func(o *CertOpts) {
+		o.RenewBeforePercentage = ptr.To(percentage)
+	}
+}
+
 func WithUsages(usages ...certmanagerv1.KeyUsage) CertOpt {
 	return func(o *CertOpts) {
 		o.Usages = append(o.Usages, usages...)
@@ -64,7 +71,8 @@ func WithIssuerRef(issuerRef cmmeta.ObjectReference) CertOpt {
 
 func (b *Builder) BuildCertificate(certOpts ...CertOpt) (*certmanagerv1.Certificate, error) {
 	opts := CertOpts{
-		Lifetime: ptr.To(pki.DefaultCertLifetime),
+		Lifetime:              ptr.To(pki.DefaultCertLifetime),
+		RenewBeforePercentage: ptr.To(pki.DefaultRenewBeforePercentage),
 		Usages: []certmanagerv1.KeyUsage{
 			certmanagerv1.UsageDigitalSignature,
 			certmanagerv1.UsageKeyAgreement,
@@ -73,8 +81,14 @@ func (b *Builder) BuildCertificate(certOpts ...CertOpt) (*certmanagerv1.Certific
 	for _, setOpt := range certOpts {
 		setOpt(&opts)
 	}
-	if opts.Key == nil || opts.Owner == nil || len(opts.DNSNames) == 0 || opts.Lifetime == nil || opts.IssuerRef == nil {
-		return nil, errors.New("Key, Owner, DNSNames, Lifetime and IssuerRef must be set")
+	if opts.Key == nil || opts.Owner == nil || len(opts.DNSNames) == 0 ||
+		opts.Lifetime == nil || opts.RenewBeforePercentage == nil || opts.IssuerRef == nil {
+		return nil, errors.New("Key, Owner, DNSNames, Lifetime, RenewBeforePercentage and IssuerRef must be set")
+	}
+
+	renewBefore, err := pki.RenewalDuration(*opts.Lifetime, *opts.RenewBeforePercentage)
+	if err != nil {
+		return nil, fmt.Errorf("error getting renewal duration: %v", err)
 	}
 
 	cert := &certmanagerv1.Certificate{
@@ -83,13 +97,13 @@ func (b *Builder) BuildCertificate(certOpts ...CertOpt) (*certmanagerv1.Certific
 			Namespace: opts.Key.Namespace,
 		},
 		Spec: certmanagerv1.CertificateSpec{
-			Duration:              &metav1.Duration{Duration: *opts.Lifetime},
-			RenewBeforePercentage: ptr.To(pki.DefaultRenewBeforePercentage),
-			DNSNames:              opts.DNSNames,
-			CommonName:            opts.DNSNames[0],
-			Usages:                opts.Usages,
-			IssuerRef:             *opts.IssuerRef,
-			IsCA:                  false,
+			Duration:    &metav1.Duration{Duration: *opts.Lifetime},
+			RenewBefore: &metav1.Duration{Duration: *renewBefore},
+			DNSNames:    opts.DNSNames,
+			CommonName:  opts.DNSNames[0],
+			Usages:      opts.Usages,
+			IssuerRef:   *opts.IssuerRef,
+			IsCA:        false,
 			PrivateKey: &certmanagerv1.CertificatePrivateKey{
 				Encoding:  certmanagerv1.PKCS1,
 				Algorithm: certmanagerv1.ECDSAKeyAlgorithm,
