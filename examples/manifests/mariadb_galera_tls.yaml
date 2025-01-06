@@ -48,7 +48,3 @@ spec:
 
   tls:
     enabled: true
-    # Enterprise >= 10.6 only:
-    # https://mariadb.com/docs/server/security/galera/#SST_TLS_Modes
-    galeraServerSSLMode: SERVER_X509 # PROVIDER|SERVER|SERVER_X509
-    galeraClientSSLMode: VERIFY_IDENTITY # DISABLED|REQUIRED|VERIFY_CA|VERIFY_IDENTITY 

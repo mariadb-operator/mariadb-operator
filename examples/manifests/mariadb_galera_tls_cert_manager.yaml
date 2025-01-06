@@ -48,7 +48,9 @@ spec:
 
   tls:
     enabled: true
-    serverCASecretRef:
-      name: mariadb-server-ca
-    clientCASecretRef:
-      name: mariadb-client-ca
+    serverCertIssuerRef:
+      name: root-ca
+      kind: ClusterIssuer
+    clientCertIssuerRef:
+      name: root-ca
+      kind: ClusterIssuer
