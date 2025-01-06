@@ -12,9 +12,8 @@ import (
 )
 
 var (
-	DefaultCALifetime            = 3 * 365 * 24 * time.Hour // 3 years
-	DefaultCertLifetime          = 3 * 30 * 24 * time.Hour  // 3 months
-	DefaultRenewBeforePercentage = int32(33)                //33%
+	DefaultCALifetime   = 3 * 365 * 24 * time.Hour // 3 years
+	DefaultCertLifetime = 3 * 30 * 24 * time.Hour  // 3 months
 
 	caMinLifetime = 1 * time.Hour
 	caMaxLifetime = 10 * 365 * 24 * time.Hour // 10 years

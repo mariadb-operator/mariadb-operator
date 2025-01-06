@@ -114,7 +114,7 @@ func (r *CertReconciler) reconcileCA(ctx context.Context, opts *CertReconcilerOp
 	if err != nil {
 		return nil, fmt.Errorf("error getting CA leaf certificate: %v", err)
 	}
-	renewalTime, err := getRenewalTime(caLeafCert.NotBefore, caLeafCert.NotAfter, opts.renewBeforePercentage)
+	renewalTime, err := pki.RenewalTime(caLeafCert.NotBefore, caLeafCert.NotAfter, opts.renewBeforePercentage)
 	if err != nil {
 		return nil, fmt.Errorf("error getting CA renewal time: %v", err)
 	}
@@ -165,7 +165,7 @@ func (r *CertReconciler) reconcileCert(ctx context.Context, caKeyPair *pki.KeyPa
 	if err != nil {
 		return ctrl.Result{}, nil, fmt.Errorf("error getting leaf certificate: %v", err)
 	}
-	renewalTime, err := getRenewalTime(leafCert.NotBefore, leafCert.NotAfter, opts.renewBeforePercentage)
+	renewalTime, err := pki.RenewalTime(leafCert.NotBefore, leafCert.NotAfter, opts.renewBeforePercentage)
 	if err != nil {
 		return ctrl.Result{}, nil, fmt.Errorf("error getting cert renewal time: %v", err)
 	}
@@ -403,17 +403,4 @@ func (r *CertReconciler) getCABundle(ctx context.Context, caKeyPair *pki.KeyPair
 	}
 
 	return nil, errors.New("unable to get CA bundle")
-}
-
-// See https://github.com/cert-manager/cert-manager/blob/dd8b7d233110cbd49f2f31eb709f39865f8b0300/pkg/util/pki/renewaltime.go#L35
-func getRenewalTime(notBefore, notAfter time.Time, renewBeforePercentage int32) (*time.Time, error) {
-	if !(renewBeforePercentage >= 10 && renewBeforePercentage <= 90) {
-		return nil, fmt.Errorf("invalid renewBeforePercentage %v, it must be between [10, 90]", renewBeforePercentage)
-	}
-	duration := notAfter.Sub(notBefore)
-	renewalDuration := duration * time.Duration(renewBeforePercentage) / 100
-
-	renewalTime := notAfter.Add(-1 * renewalDuration).Truncate(time.Second)
-
-	return &renewalTime, nil
 }
