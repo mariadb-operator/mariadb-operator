@@ -30,7 +30,7 @@ spec:
     metadata:
       annotations:
         metallb.universe.tf/loadBalancerIPs: 172.18.0.150
-
+        
   primaryService:
     type: LoadBalancer
     metadata:
@@ -49,6 +49,12 @@ spec:
   tls:
     enabled: true
     serverCASecretRef:
-      name: mariadb-server-ca
+      name: custom-trust
+    serverCertIssuerRef:
+      name: intermediate-ca
+      kind: ClusterIssuer
     clientCASecretRef:
-      name: mariadb-client-ca
+      name: custom-trust
+    clientCertIssuerRef:
+      name: intermediate-ca
+      kind: ClusterIssuer

@@ -73,7 +73,12 @@ func (r *CertReconciler) Reconcile(ctx context.Context, certOpts ...CertReconcil
 	result := &ReconcileResult{}
 	var err error
 
-	if opts.shouldIssueCA || opts.shouldIssueCert {
+	if opts.certIssuerRef != nil {
+		result.Result, err = r.reconcileCertManagerCert(ctx, opts, logger)
+		if err != nil {
+			return nil, fmt.Errorf("error reconciling cert-manager Certificate: %v", err)
+		}
+	} else if opts.shouldIssueCA || opts.shouldIssueCert {
 		result.CAKeyPair, err = r.reconcileCA(ctx, opts, logger)
 		if err != nil {
 			return nil, fmt.Errorf("error reconciling CA: %v", err)
@@ -81,11 +86,6 @@ func (r *CertReconciler) Reconcile(ctx context.Context, certOpts ...CertReconcil
 		result.Result, result.CertKeyPair, err = r.reconcileCert(ctx, result.CAKeyPair, opts, logger)
 		if err != nil {
 			return nil, fmt.Errorf("error reconciling certificate: %v", err)
-		}
-	} else if opts.certIssuerRef != nil {
-		result.Result, err = r.reconcileCertManagerCert(ctx, opts, logger)
-		if err != nil {
-			return nil, fmt.Errorf("error reconciling cert-manager Certificate: %v", err)
 		}
 	}
 
