@@ -12,6 +12,7 @@ import (
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
+	"github.com/mariadb-operator/mariadb-operator/pkg/wait"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -42,13 +43,8 @@ func (r *CertReconciler) reconcileCertManagerCert(ctx context.Context, opts *Cer
 		return ctrl.Result{}, fmt.Errorf("error reconciling desired cert: %v", err)
 	}
 
-	isReady, err := r.ensureCertManagerCertReady(ctx, opts)
-	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error ensuring cert readiness: %v", err)
-	}
-	if !isReady {
-		logger.V(1).Info("Certificate not ready. Requeuing...", "cert", opts.certSecretKey.Name)
-		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+	if err := r.ensureCertManagerCertReady(ctx, opts, logger); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error checking cert readiness: %v", err)
 	}
 
 	return ctrl.Result{}, nil
@@ -93,17 +89,30 @@ func (r *CertReconciler) reconcileCertManagerDesiredCert(ctx context.Context, op
 	return r.Patch(ctx, &existingCert, patch)
 }
 
-func (r *CertReconciler) ensureCertManagerCertReady(ctx context.Context, opts *CertReconcilerOpts) (bool, error) {
+func (r *CertReconciler) ensureCertManagerCertReady(ctx context.Context, opts *CertReconcilerOpts, logger logr.Logger) error {
+	certCtx, certCancel := context.WithTimeout(ctx, 5*time.Second)
+	defer certCancel()
+	return wait.PollUntilSucessOrContextCancel(certCtx, logger, func(ctx context.Context) error {
+		return r.certManagerCertReady(ctx, opts)
+	})
+}
+
+func (r *CertReconciler) certManagerCertReady(ctx context.Context, opts *CertReconcilerOpts) error {
 	var cert certmanagerv1.Certificate
 	if err := r.Get(ctx, opts.certSecretKey, &cert); err != nil {
-		return false, fmt.Errorf("cert not found: %w", err)
+		return fmt.Errorf("error getting cert: %w", err)
 	}
 	for _, condition := range cert.Status.Conditions {
-		if condition.Type == certmanagerv1.CertificateConditionReady && condition.Status == cmmeta.ConditionTrue {
-			return true, nil
+		if condition.Type != certmanagerv1.CertificateConditionReady {
+			continue
+		}
+		if condition.Status == cmmeta.ConditionTrue {
+			return nil
+		} else {
+			return fmt.Errorf("Certificate '%s' not ready: %s", opts.certSecretKey.Name, condition.Message)
 		}
 	}
-	return false, nil
+	return fmt.Errorf("Certificate '%s' not ready", opts.certSecretKey.Name)
 }
 
 func certManagerKeyUsages(opts *CertReconcilerOpts, logger logr.Logger) []certmanagerv1.KeyUsage {
