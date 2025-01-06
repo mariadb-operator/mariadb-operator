@@ -6840,8 +6840,8 @@ spec:
                   clientCertIssuerRef:
                     description: |-
                       ClientCertIssuerRef is a reference to a cert-manager issuer object used to issue the client certificate. cert-manager must be installed previously in the cluster.
-                      If the issuer maps to an intermediate CA, the trust chain must be completed by providing the required CAs via clientCASecretRef.
                       It is mutually exclusive with clientCertSecretRef.
+                      By default, the Secret field 'ca.crt' provisioned by cert-manager will be added to the trust chain. A custom trust bundle may be specified via clientCASecretRef.
                     properties:
                       group:
                         description: Group of the resource being referred to.
@@ -6903,8 +6903,8 @@ spec:
                   serverCertIssuerRef:
                     description: |-
                       ServerCertIssuerRef is a reference to a cert-manager issuer object used to issue the server certificate. cert-manager must be installed previously in the cluster.
-                      If the issuer maps to an intermediate CA, the trust chain must be completed by providing the required CAs via serverCASecretRef.
                       It is mutually exclusive with serverCertSecretRef.
+                      By default, the Secret field 'ca.crt' provisioned by cert-manager will be added to the trust chain. A custom trust bundle may be specified via serverCASecretRef.
                     properties:
                       group:
                         description: Group of the resource being referred to.
