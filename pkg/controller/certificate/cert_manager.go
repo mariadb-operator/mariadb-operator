@@ -90,7 +90,7 @@ func (r *CertReconciler) reconcileCertManagerDesiredCert(ctx context.Context, op
 }
 
 func (r *CertReconciler) ensureCertManagerCertReady(ctx context.Context, opts *CertReconcilerOpts, logger logr.Logger) error {
-	certCtx, certCancel := context.WithTimeout(ctx, 5*time.Second)
+	certCtx, certCancel := context.WithTimeout(ctx, 10*time.Second)
 	defer certCancel()
 	return wait.PollUntilSucessOrContextCancel(certCtx, logger, func(ctx context.Context) error {
 		return r.certManagerCertReady(ctx, opts)
