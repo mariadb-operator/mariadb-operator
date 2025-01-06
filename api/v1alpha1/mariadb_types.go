@@ -338,8 +338,8 @@ type TLS struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	ServerCertSecretRef *LocalObjectReference `json:"serverCertSecretRef,omitempty"`
 	// ServerCertIssuerRef is a reference to a cert-manager issuer object used to issue the server certificate. cert-manager must be installed previously in the cluster.
-	// If the issuer maps to an intermediate CA, the trust chain must be completed by providing the required CAs via serverCASecretRef.
 	// It is mutually exclusive with serverCertSecretRef.
+	// By default, the Secret field 'ca.crt' provisioned by cert-manager will be added to the trust chain. A custom trust bundle may be specified via serverCASecretRef.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	ServerCertIssuerRef *cmmeta.ObjectReference `json:"serverCertIssuerRef,omitempty"`
@@ -357,8 +357,8 @@ type TLS struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	ClientCertSecretRef *LocalObjectReference `json:"clientCertSecretRef,omitempty"`
 	// ClientCertIssuerRef is a reference to a cert-manager issuer object used to issue the client certificate. cert-manager must be installed previously in the cluster.
-	// If the issuer maps to an intermediate CA, the trust chain must be completed by providing the required CAs via clientCASecretRef.
 	// It is mutually exclusive with clientCertSecretRef.
+	// By default, the Secret field 'ca.crt' provisioned by cert-manager will be added to the trust chain. A custom trust bundle may be specified via clientCASecretRef.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	ClientCertIssuerRef *cmmeta.ObjectReference `json:"clientCertIssuerRef,omitempty"`
