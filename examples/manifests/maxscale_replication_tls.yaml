@@ -36,5 +36,3 @@ spec:
 
   tls:
     enabled: true
-    verifyPeerCertificate: true
-    verifyPeerHost: false
