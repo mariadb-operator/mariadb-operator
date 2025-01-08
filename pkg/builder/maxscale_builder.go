@@ -34,6 +34,7 @@ func (b *Builder) BuildMaxScale(key types.NamespacedName, mdb *mariadbv1alpha1.M
 			Auth:                 ptr.Deref(mdbmxs.Auth, mariadbv1alpha1.MaxScaleAuth{}),
 			Connection:           mdbmxs.Connection,
 			Metrics:              mdbmxs.Metrics,
+			TLS:                  mdbmxs.TLS,
 			Replicas:             ptr.Deref(mdbmxs.Replicas, 1),
 			PodDisruptionBudget:  mdbmxs.PodDisruptionBudget,
 			UpdateStrategy:       mdbmxs.UpdateStrategy,
@@ -41,6 +42,11 @@ func (b *Builder) BuildMaxScale(key types.NamespacedName, mdb *mariadbv1alpha1.M
 			GuiKubernetesService: mdbmxs.GuiKubernetesService,
 			RequeueInterval:      mdbmxs.RequeueInterval,
 		},
+	}
+	if mxs.Spec.TLS == nil && mdb.IsTLSEnabled() {
+		mxs.Spec.TLS = &mariadbv1alpha1.MaxScaleTLS{
+			Enabled: true,
+		}
 	}
 	if err := controllerutil.SetControllerReference(mdb, &mxs, b.scheme); err != nil {
 		return nil, fmt.Errorf("error setting controller to MaxScale %v", err)
