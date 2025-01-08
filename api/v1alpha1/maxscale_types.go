@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	cmmeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	ds "github.com/mariadb-operator/mariadb-operator/pkg/datastructures"
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	mxsstate "github.com/mariadb-operator/mariadb-operator/pkg/maxscale/state"
@@ -463,10 +464,11 @@ type MaxScaleTLS struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
 	Enabled bool `json:"enabled"`
-	// AdminCASecretRef is a reference to a Secret containing the admin certificate authority keypair. It is used to establish trust and issue scertificates for the MaxScale's administrative REST API and GUI.
+	// AdminCASecretRef is a reference to a Secret containing the admin certificate authority keypair. It is used to establish trust and issue certificates for the MaxScale's administrative REST API and GUI.
 	// One of:
 	// - Secret containing both the 'ca.crt' and 'ca.key' keys. This allows you to bring your own CA to Kubernetes to issue certificates.
-	// - Secret containing only the 'ca.crt' in order to establish trust. In this case, the adminCertSecretRef field is mandatory.
+	// - Secret containing only the 'ca.crt' in order to establish trust. In this case, either adminCertSecretRef or adminCertIssuerRef fields must be provided.
+	// If not provided, a self-signed CA will be provisioned to issue the server certificate.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	AdminCASecretRef *LocalObjectReference `json:"adminCASecretRef,omitempty"`
@@ -474,10 +476,17 @@ type MaxScaleTLS struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	AdminCertSecretRef *LocalObjectReference `json:"adminCertSecretRef,omitempty"`
-	// ListenerCASecretRef is a reference to a Secret containing the listener certificate authority keypair. It is used to establish trust and issue scertificates for the MaxScale's listeners.
+	// AdminCertIssuerRef is a reference to a cert-manager issuer object used to issue the MaxScale's administrative REST API and GUI certificate. cert-manager must be installed previously in the cluster.
+	// It is mutually exclusive with adminCertSecretRef.
+	// By default, the Secret field 'ca.crt' provisioned by cert-manager will be added to the trust chain. A custom trust bundle may be specified via adminCASecretRef.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	AdminCertIssuerRef *cmmeta.ObjectReference `json:"adminCertIssuerRef,omitempty"`
+	// ListenerCASecretRef is a reference to a Secret containing the listener certificate authority keypair. It is used to establish trust and issue certificates for the MaxScale's listeners.
 	// One of:
 	// - Secret containing both the 'ca.crt' and 'ca.key' keys. This allows you to bring your own CA to Kubernetes to issue certificates.
-	// - Secret containing only the 'ca.crt' in order to establish trust. In this case, the listenerCertSecretRef field is mandatory.
+	// - Secret containing only the 'ca.crt' in order to establish trust. In this case, either listenerCertSecretRef or listenerCertIssuerRef fields must be provided.
+	// If not provided, a self-signed CA will be provisioned to issue the listener certificate.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	ListenerCASecretRef *LocalObjectReference `json:"listenerCASecretRef,omitempty"`
@@ -485,14 +494,20 @@ type MaxScaleTLS struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	ListenerCertSecretRef *LocalObjectReference `json:"listenerCertSecretRef,omitempty"`
-	// ServerCASecretRef is a reference to a Secret containing the MariaDB server certificate authority keypair. It is used to establish trust and issue scertificates for MariaDB servers.
-	// One of:
-	// - Secret containing both the 'ca.crt' and 'ca.key' keys. This allows you to bring your own CA to Kubernetes to issue certificates.
-	// - Secret containing only the 'ca.crt' in order to establish trust. In this case, the serverCertSecretRef field is mandatory.
+	// ListenerCertIssuerRef is a reference to a cert-manager issuer object used to issue the MaxScale's listeners certificate. cert-manager must be installed previously in the cluster.
+	// It is mutually exclusive with listenerCertSecretRef.
+	// By default, the Secret field 'ca.crt' provisioned by cert-manager will be added to the trust chain. A custom trust bundle may be specified via listenerCASecretRef.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	ListenerCertIssuerRef *cmmeta.ObjectReference `json:"listenerCertIssuerRef,omitempty"`
+	// ServerCASecretRef is a reference to a Secret containing the MariaDB server CA certificates. It is used to establish trust with MariaDB servers.
+	// The Secret should contain a 'ca.crt' key in order to establish trust.
+	// If not provided, and the reference to a MariaDB resource is set (mariaDbRef), it will be defaulted to the referred MariaDB CA bundle.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	ServerCASecretRef *LocalObjectReference `json:"serverCASecretRef,omitempty"`
 	// ServerCertSecretRef is a reference to a TLS Secret used by MaxScale to connect to the MariaDB servers.
+	// If not provided, and the reference to a MariaDB resource is set (mariaDbRef), it will be defaulted to the referred MariaDB client certificate (clientCertSecretRef).
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	ServerCertSecretRef *LocalObjectReference `json:"serverCertSecretRef,omitempty"`
