@@ -1784,6 +1784,11 @@ func (in *MariaDBMaxScaleSpec) DeepCopyInto(out *MariaDBMaxScaleSpec) {
 		*out = new(MaxScaleMetrics)
 		(*in).DeepCopyInto(*out)
 	}
+	if in.TLS != nil {
+		in, out := &in.TLS, &out.TLS
+		*out = new(MaxScaleTLS)
+		(*in).DeepCopyInto(*out)
+	}
 	if in.Connection != nil {
 		in, out := &in.Connection, &out.Connection
 		*out = new(ConnectionTemplate)
