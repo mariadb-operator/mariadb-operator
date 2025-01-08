@@ -2648,6 +2648,11 @@ func (in *MaxScaleTLS) DeepCopyInto(out *MaxScaleTLS) {
 		*out = new(LocalObjectReference)
 		**out = **in
 	}
+	if in.AdminCertIssuerRef != nil {
+		in, out := &in.AdminCertIssuerRef, &out.AdminCertIssuerRef
+		*out = new(metav1.ObjectReference)
+		**out = **in
+	}
 	if in.ListenerCASecretRef != nil {
 		in, out := &in.ListenerCASecretRef, &out.ListenerCASecretRef
 		*out = new(LocalObjectReference)
@@ -2656,6 +2661,11 @@ func (in *MaxScaleTLS) DeepCopyInto(out *MaxScaleTLS) {
 	if in.ListenerCertSecretRef != nil {
 		in, out := &in.ListenerCertSecretRef, &out.ListenerCertSecretRef
 		*out = new(LocalObjectReference)
+		**out = **in
+	}
+	if in.ListenerCertIssuerRef != nil {
+		in, out := &in.ListenerCertIssuerRef, &out.ListenerCertIssuerRef
+		*out = new(metav1.ObjectReference)
 		**out = **in
 	}
 	if in.ServerCASecretRef != nil {
