@@ -82,6 +82,37 @@ spec:
 ```
 By providing the authentication details and the TLS configuration via references to `Secret` keys, this example will store the backups in a local Minio instance.
 
+Alternatively you can use dynamic credentials from an EKS Service Account using EKS Pod Identity or IRSA:
+
+```yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: mariadb-backup
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::<<account_id>>:role/my-role-irsa
+```
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: Backup
+metadata:
+  name: backup
+spec:
+  mariaDbRef:
+    name: mariadb
+  serviceAccountName: mariadb-backup
+  storage:
+    s3:
+      bucket: backups
+      prefix: mariadb
+      endpoint: s3.us-east-1.amazonaws.com
+      region:  us-east-1
+      tls:
+        enabled: true
+```
+By leaving out `accessKeyIdSecretKeyRef` and `secretAccessKeySecretKeyRef` the credentials and pointing to the correct `serviceAccountName`, the backup Job will use the dynamic credentials from EKS.
+
 #### Scheduling
 
 To minimize the Recovery Point Objective (RPO) and mitigate the risk of data loss, it is recommended to perform backups regularly. You can do so by providing a `spec.schedule` in your `Backup` resource:

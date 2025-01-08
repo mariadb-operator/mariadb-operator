@@ -550,13 +550,13 @@ type S3 struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Prefix string `json:"prefix" webhook:"inmutable"`
 	// AccessKeyIdSecretKeyRef is a reference to a Secret key containing the S3 access key id.
-	// +kubebuilder:validation:Required
+	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	AccessKeyIdSecretKeyRef SecretKeySelector `json:"accessKeyIdSecretKeyRef"`
+	AccessKeyIdSecretKeyRef *SecretKeySelector `json:"accessKeyIdSecretKeyRef,omitempty"`
 	// AccessKeyIdSecretKeyRef is a reference to a Secret key containing the S3 secret key.
-	// +kubebuilder:validation:Required
+	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	SecretAccessKeySecretKeyRef SecretKeySelector `json:"secretAccessKeySecretKeyRef"`
+	SecretAccessKeySecretKeyRef *SecretKeySelector `json:"secretAccessKeySecretKeyRef,omitempty"`
 	// SessionTokenSecretKeyRef is a reference to a Secret key containing the S3 session token.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}

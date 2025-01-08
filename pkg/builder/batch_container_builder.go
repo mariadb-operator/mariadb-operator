@@ -98,19 +98,22 @@ func jobS3Env(s3 *mariadbv1alpha1.S3) []v1.EnvVar {
 	if s3 == nil {
 		return nil
 	}
-	env := []v1.EnvVar{
-		{
+	var env []v1.EnvVar
+	if s3.AccessKeyIdSecretKeyRef != nil {
+		env = append(env, v1.EnvVar{
 			Name: batchS3AccessKeyId,
 			ValueFrom: &v1.EnvVarSource{
 				SecretKeyRef: ptr.To(s3.AccessKeyIdSecretKeyRef.ToKubernetesType()),
 			},
-		},
-		{
+		})
+	}
+	if s3.AccessKeyIdSecretKeyRef != nil {
+		env = append(env, v1.EnvVar{
 			Name: batchS3SecretAccessKey,
 			ValueFrom: &v1.EnvVarSource{
 				SecretKeyRef: ptr.To(s3.SecretAccessKeySecretKeyRef.ToKubernetesType()),
 			},
-		},
+		})
 	}
 	if s3.SessionTokenSecretKeyRef != nil {
 		env = append(env, v1.EnvVar{
