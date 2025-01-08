@@ -228,6 +228,10 @@ type MariaDBMaxScaleSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Metrics *MaxScaleMetrics `json:"metrics,omitempty"`
+	// TLS defines the PKI to be used with MaxScale.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	TLS *MaxScaleTLS `json:"tls,omitempty"`
 	// Connection provides a template to define the Connection for MaxScale.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
