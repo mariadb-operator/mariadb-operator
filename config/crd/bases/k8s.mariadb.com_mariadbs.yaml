@@ -3569,6 +3569,123 @@ spec:
                       - router
                       type: object
                     type: array
+                  tls:
+                    description: TLS defines the PKI to be used with MaxScale.
+                    properties:
+                      adminCASecretRef:
+                        description: |-
+                          AdminCASecretRef is a reference to a Secret containing the admin certificate authority keypair. It is used to establish trust and issue certificates for the MaxScale's administrative REST API and GUI.
+                          One of:
+                          - Secret containing both the 'ca.crt' and 'ca.key' keys. This allows you to bring your own CA to Kubernetes to issue certificates.
+                          - Secret containing only the 'ca.crt' in order to establish trust. In this case, either adminCertSecretRef or adminCertIssuerRef fields must be provided.
+                          If not provided, a self-signed CA will be provisioned to issue the server certificate.
+                        properties:
+                          name:
+                            default: ""
+                            type: string
+                        type: object
+                      adminCertIssuerRef:
+                        description: |-
+                          AdminCertIssuerRef is a reference to a cert-manager issuer object used to issue the MaxScale's administrative REST API and GUI certificate. cert-manager must be installed previously in the cluster.
+                          It is mutually exclusive with adminCertSecretRef.
+                          By default, the Secret field 'ca.crt' provisioned by cert-manager will be added to the trust chain. A custom trust bundle may be specified via adminCASecretRef.
+                        properties:
+                          group:
+                            description: Group of the resource being referred to.
+                            type: string
+                          kind:
+                            description: Kind of the resource being referred to.
+                            type: string
+                          name:
+                            description: Name of the resource being referred to.
+                            type: string
+                        required:
+                        - name
+                        type: object
+                      adminCertSecretRef:
+                        description: AdminCertSecretRef is a reference to a TLS Secret
+                          used by the MaxScale's administrative REST API and GUI.
+                        properties:
+                          name:
+                            default: ""
+                            type: string
+                        type: object
+                      enabled:
+                        description: Enabled is a flag to enable TLS.
+                        type: boolean
+                      listenerCASecretRef:
+                        description: |-
+                          ListenerCASecretRef is a reference to a Secret containing the listener certificate authority keypair. It is used to establish trust and issue certificates for the MaxScale's listeners.
+                          One of:
+                          - Secret containing both the 'ca.crt' and 'ca.key' keys. This allows you to bring your own CA to Kubernetes to issue certificates.
+                          - Secret containing only the 'ca.crt' in order to establish trust. In this case, either listenerCertSecretRef or listenerCertIssuerRef fields must be provided.
+                          If not provided, a self-signed CA will be provisioned to issue the listener certificate.
+                        properties:
+                          name:
+                            default: ""
+                            type: string
+                        type: object
+                      listenerCertIssuerRef:
+                        description: |-
+                          ListenerCertIssuerRef is a reference to a cert-manager issuer object used to issue the MaxScale's listeners certificate. cert-manager must be installed previously in the cluster.
+                          It is mutually exclusive with listenerCertSecretRef.
+                          By default, the Secret field 'ca.crt' provisioned by cert-manager will be added to the trust chain. A custom trust bundle may be specified via listenerCASecretRef.
+                        properties:
+                          group:
+                            description: Group of the resource being referred to.
+                            type: string
+                          kind:
+                            description: Kind of the resource being referred to.
+                            type: string
+                          name:
+                            description: Name of the resource being referred to.
+                            type: string
+                        required:
+                        - name
+                        type: object
+                      listenerCertSecretRef:
+                        description: ListenerCertSecretRef is a reference to a TLS
+                          Secret used by the MaxScale's listeners.
+                        properties:
+                          name:
+                            default: ""
+                            type: string
+                        type: object
+                      replicationSSLEnabled:
+                        description: |-
+                          ReplicationSSLEnabled specifies whether the replication SSL is enabled. If enabled, the SSL options will be added to the server configuration.
+                          This field is automatically set when a reference to a MariaDB via the 'mariaDbRef' field is provided.
+                          If the MariaDB servers are manually provided by the user via the 'servers' field, this must be set by the user as well.
+                        type: boolean
+                      serverCASecretRef:
+                        description: |-
+                          ServerCASecretRef is a reference to a Secret containing the MariaDB server CA certificates. It is used to establish trust with MariaDB servers.
+                          The Secret should contain a 'ca.crt' key in order to establish trust.
+                          If not provided, and the reference to a MariaDB resource is set (mariaDbRef), it will be defaulted to the referred MariaDB CA bundle.
+                        properties:
+                          name:
+                            default: ""
+                            type: string
+                        type: object
+                      serverCertSecretRef:
+                        description: |-
+                          ServerCertSecretRef is a reference to a TLS Secret used by MaxScale to connect to the MariaDB servers.
+                          If not provided, and the reference to a MariaDB resource is set (mariaDbRef), it will be defaulted to the referred MariaDB client certificate (clientCertSecretRef).
+                        properties:
+                          name:
+                            default: ""
+                            type: string
+                        type: object
+                      verifyPeerCertificate:
+                        description: VerifyPeerCertificate specifies whether the peer
+                          certificate's signature should be validated against the
+                          CA. It is enabled by default.
+                        type: boolean
+                      verifyPeerHost:
+                        description: VerifyPeerHost specifies whether the peer certificate's
+                          SANs should match the peer host. It is disabled by default.
+                        type: boolean
+                    type: object
                   updateStrategy:
                     description: UpdateStrategy defines the update strategy for the
                       StatefulSet object.
