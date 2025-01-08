@@ -36,3 +36,9 @@ spec:
 
   tls:
     enabled: true
+    adminCertIssuerRef:
+      name: root-ca
+      kind: ClusterIssuer
+    listenerCertIssuerRef:
+      name: root-ca
+      kind: ClusterIssuer
