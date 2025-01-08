@@ -51,6 +51,7 @@ func (r *MaxScaleReconciler) reconcileTLSCerts(ctx context.Context, mxs *mariadb
 			mxs.TLSAdminDNSNames(),
 		),
 		certctrl.WithServerCertKeyUsage(),
+		certctrl.WithCertIssuerRef(tls.AdminCertIssuerRef),
 		certctrl.WithRelatedObject(mxs),
 	}
 	if _, err := r.CertReconciler.Reconcile(ctx, adminCertOpts...); err != nil {
@@ -69,6 +70,7 @@ func (r *MaxScaleReconciler) reconcileTLSCerts(ctx context.Context, mxs *mariadb
 			mxs.TLSListenerDNSNames(),
 		),
 		certctrl.WithServerCertKeyUsage(),
+		certctrl.WithCertIssuerRef(tls.ListenerCertIssuerRef),
 		certctrl.WithRelatedObject(mxs),
 	}
 	if _, err := r.CertReconciler.Reconcile(ctx, listenerCertOpts...); err != nil {
