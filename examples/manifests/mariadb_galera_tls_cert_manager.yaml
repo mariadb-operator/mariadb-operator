@@ -13,8 +13,6 @@ spec:
     key: password
   database: mariadb
 
-  # image: docker-registry.mariadb.com/enterprise-server:10.6.18-14.1
-
   storage:
     size: 1Gi
 
