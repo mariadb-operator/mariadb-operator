@@ -3,6 +3,7 @@ package controller
 import (
 	"time"
 
+	cmmeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
@@ -44,7 +45,7 @@ var _ = Describe("MariaDB Galera spec", func() {
 		}
 		Expect(k8sClient.Create(testCtx, &mdb)).To(Succeed())
 		DeferCleanup(func() {
-			deleteMariadb(key)
+			deleteMariadb(key, false)
 		})
 
 		By("Expecting to eventually default")
@@ -64,13 +65,14 @@ var _ = Describe("MariaDB Galera spec", func() {
 	})
 })
 
-var _ = Describe("MariaDB Galera basic auth", func() {
-	It("should reconcile", func() {
+var _ = Describe("MariaDB Galera use cases", Ordered, func() {
+	key := types.NamespacedName{
+		Name:      "mariadb-galera-test",
+		Namespace: testNamespace,
+	}
+
+	It("basic auth", func() {
 		By("Creating MariaDB")
-		key := types.NamespacedName{
-			Name:      "mariadb-galera-test",
-			Namespace: testNamespace,
-		}
 		mdb := &mariadbv1alpha1.MariaDB{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      key.Name,
@@ -85,13 +87,6 @@ var _ = Describe("MariaDB Galera basic auth", func() {
 						Key: testPwdSecretKey,
 					},
 				},
-				MyCnf: ptr.To(`[mariadb]
-					bind-address=*
-					default_storage_engine=InnoDB
-					binlog_format=row
-					innodb_autoinc_lock_mode=2
-					max_allowed_packet=256M
-					`),
 				Galera: &mariadbv1alpha1.Galera{
 					Enabled: true,
 					GaleraSpec: mariadbv1alpha1.GaleraSpec{
@@ -136,7 +131,7 @@ var _ = Describe("MariaDB Galera basic auth", func() {
 
 		Expect(k8sClient.Create(testCtx, mdb)).To(Succeed())
 		DeferCleanup(func() {
-			deleteMariadb(key)
+			deleteMariadb(key, true)
 		})
 
 		Eventually(func() bool {
@@ -149,6 +144,82 @@ var _ = Describe("MariaDB Galera basic auth", func() {
 
 			return basicAuth.Enabled && !kubernetesAuth.Enabled
 		}, testHighTimeout, testInterval).Should(BeTrue())
+
+		By("Expecting MariaDB to be ready eventually")
+		Eventually(func() bool {
+			if err := k8sClient.Get(testCtx, key, mdb); err != nil {
+				return false
+			}
+			return mdb.IsReady() && mdb.HasGaleraConfiguredCondition() && mdb.HasGaleraReadyCondition()
+		}, testHighTimeout, testInterval).Should(BeTrue())
+	})
+
+	It("TLS with cert-manager", func() {
+		By("Creating MariaDB")
+		mdb := &mariadbv1alpha1.MariaDB{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      key.Name,
+				Namespace: key.Namespace,
+			},
+			Spec: mariadbv1alpha1.MariaDBSpec{
+				RootPasswordSecretKeyRef: mariadbv1alpha1.GeneratedSecretKeyRef{
+					SecretKeySelector: mariadbv1alpha1.SecretKeySelector{
+						LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+							Name: testPwdKey.Name,
+						},
+						Key: testPwdSecretKey,
+					},
+				},
+				Galera: &mariadbv1alpha1.Galera{
+					Enabled: true,
+				},
+				Replicas: 3,
+				Storage: mariadbv1alpha1.Storage{
+					Size: ptr.To(resource.MustParse("300Mi")),
+				},
+				TLS: &mariadbv1alpha1.TLS{
+					Enabled: true,
+					ServerCertIssuerRef: &cmmeta.ObjectReference{
+						Name: "root-ca",
+						Kind: "ClusterIssuer",
+					},
+					ClientCertIssuerRef: &cmmeta.ObjectReference{
+						Name: "root-ca",
+						Kind: "ClusterIssuer",
+					},
+				},
+				Service: &mariadbv1alpha1.ServiceTemplate{
+					Type: corev1.ServiceTypeLoadBalancer,
+					Metadata: &mariadbv1alpha1.Metadata{
+						Annotations: map[string]string{
+							"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.168",
+						},
+					},
+				},
+				PrimaryService: &mariadbv1alpha1.ServiceTemplate{
+					Type: corev1.ServiceTypeLoadBalancer,
+					Metadata: &mariadbv1alpha1.Metadata{
+						Annotations: map[string]string{
+							"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.169",
+						},
+					},
+				},
+				SecondaryService: &mariadbv1alpha1.ServiceTemplate{
+					Type: corev1.ServiceTypeLoadBalancer,
+					Metadata: &mariadbv1alpha1.Metadata{
+						Annotations: map[string]string{
+							"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.170",
+						},
+					},
+				},
+			},
+		}
+		applyMariadbTestConfig(mdb)
+
+		Expect(k8sClient.Create(testCtx, mdb)).To(Succeed())
+		DeferCleanup(func() {
+			deleteMariadb(key, true)
+		})
 
 		By("Expecting MariaDB to be ready eventually")
 		Eventually(func() bool {
@@ -298,7 +369,7 @@ var _ = Describe("MariaDB Galera", Ordered, func() {
 		By("Creating MariaDB Galera")
 		Expect(k8sClient.Create(testCtx, mdb)).To(Succeed())
 		DeferCleanup(func() {
-			deleteMariadb(key)
+			deleteMariadb(key, false)
 		})
 	})
 
