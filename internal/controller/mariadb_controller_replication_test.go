@@ -134,7 +134,7 @@ var _ = Describe("MariaDB replication", Ordered, func() {
 		By("Creating MariaDB with replication")
 		Expect(k8sClient.Create(testCtx, mdb)).To(Succeed())
 		DeferCleanup(func() {
-			deleteMariadb(key)
+			deleteMariadb(key, false)
 		})
 	})
 
