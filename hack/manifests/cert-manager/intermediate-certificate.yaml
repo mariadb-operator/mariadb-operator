@@ -11,7 +11,7 @@ spec:
   - key encipherment
   - cert sign
   issuerRef:
-    name: selfsigned
+    name: root-ca
     kind: ClusterIssuer
   isCA: true
   privateKey:
