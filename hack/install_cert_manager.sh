@@ -30,6 +30,3 @@ kubectl apply -f "$MANIFESTS/intermediate-certificate.yaml"
 kubectl wait --for=condition=Ready certificate intermediate-ca --timeout=30s
 kubectl apply -f "$MANIFESTS/intermediate-clusterissuer.yaml"
 kubectl wait --for=condition=Ready clusterissuer intermediate-ca --timeout=30s
-
-CUSTOM_TRUST="$(kubectl get secret root-ca -o jsonpath='{.data.tls\.crt}' | base64 -d; kubectl get secret intermediate-ca -o jsonpath='{.data.tls\.crt}' | base64 -d)"
-kubectl create secret generic custom-trust --from-literal=ca.crt="$CUSTOM_TRUST" --dry-run=client -o yaml | kubectl apply -f -
