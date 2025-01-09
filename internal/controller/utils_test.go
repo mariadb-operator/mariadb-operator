@@ -222,7 +222,7 @@ func testCleanupInitialData(ctx context.Context) {
 	var password corev1.Secret
 	Expect(k8sClient.Get(ctx, testPwdKey, &password)).To(Succeed())
 	Expect(k8sClient.Delete(ctx, &password)).To(Succeed())
-	deleteMariadb(testMdbkey)
+	deleteMariadb(testMdbkey, false)
 }
 
 func testMariadbUpdate(mdb *mariadbv1alpha1.MariaDB) {
@@ -727,7 +727,7 @@ func deploymentReady(deploy *appsv1.Deployment) bool {
 	return false
 }
 
-func deleteMariadb(key types.NamespacedName) {
+func deleteMariadb(key types.NamespacedName, assertPVCDeletion bool) {
 	var mdb mariadbv1alpha1.MariaDB
 	By("Deleting MariaDB")
 	Expect(k8sClient.Get(testCtx, key, &mdb)).To(Succeed())
@@ -744,6 +744,25 @@ func deleteMariadb(key types.NamespacedName) {
 	}
 	Expect(k8sClient.DeleteAllOf(testCtx, &corev1.PersistentVolumeClaim{}, opts...)).To(Succeed())
 
+	if !assertPVCDeletion {
+		return
+	}
+	Eventually(func(g Gomega) bool {
+		listOpts := &client.ListOptions{
+			LabelSelector: klabels.SelectorFromSet(
+				labels.NewLabelsBuilder().
+					WithMariaDBSelectorLabels(&mdb).
+					Build(),
+			),
+			Namespace: mdb.GetNamespace(),
+		}
+		pvcList := &corev1.PersistentVolumeClaimList{}
+		err := k8sClient.List(testCtx, pvcList, listOpts)
+		if err != nil && !apierrors.IsNotFound(err) {
+			g.Expect(err).ToNot(HaveOccurred())
+		}
+		return len(pvcList.Items) == 0
+	}, testHighTimeout, testInterval).Should(BeTrue())
 }
 
 func deleteMaxScale(key types.NamespacedName, assertPVCDeletion bool) {

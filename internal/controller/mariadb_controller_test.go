@@ -41,7 +41,7 @@ var _ = Describe("MariaDB spec", func() {
 		}
 		Expect(k8sClient.Create(testCtx, &mdb)).To(Succeed())
 		DeferCleanup(func() {
-			deleteMariadb(key)
+			deleteMariadb(key, false)
 		})
 
 		By("Expecting to eventually default")
@@ -106,7 +106,7 @@ var _ = Describe("MariaDB", func() {
 		}
 		Expect(k8sClient.Create(testCtx, &mdb)).To(Succeed())
 		DeferCleanup(func() {
-			deleteMariadb(key)
+			deleteMariadb(key, false)
 		})
 
 		By("Suspend MariaDB")
@@ -425,7 +425,7 @@ var _ = Describe("MariaDB", func() {
 		By("Creating MariaDB")
 		Expect(k8sClient.Create(testCtx, &mdb)).To(Succeed())
 		DeferCleanup(func() {
-			deleteMariadb(key)
+			deleteMariadb(key, false)
 		})
 
 		By("Expecting MariaDB to be ready eventually")
@@ -471,7 +471,7 @@ var _ = Describe("MariaDB", func() {
 		By("Creating MariaDB")
 		Expect(k8sClient.Create(testCtx, &mdb)).To(Succeed())
 		DeferCleanup(func() {
-			deleteMariadb(key)
+			deleteMariadb(key, false)
 		})
 
 		By("Expecting MariaDB to be ready eventually")
@@ -556,7 +556,7 @@ var _ = Describe("MariaDB", func() {
 		By("Creating MariaDB")
 		Expect(k8sClient.Create(testCtx, &mdb)).To(Succeed())
 		DeferCleanup(func() {
-			deleteMariadb(key)
+			deleteMariadb(key, false)
 		})
 
 		By("Expecting MariaDB to be ready eventually")
@@ -737,7 +737,7 @@ func testMariadbBootstrap(key types.NamespacedName, source mariadbv1alpha1.Resto
 	By("Creating MariaDB")
 	Expect(k8sClient.Create(testCtx, &mdb)).To(Succeed())
 	DeferCleanup(func() {
-		deleteMariadb(key)
+		deleteMariadb(key, false)
 	})
 
 	By("Expecting MariaDB to be ready eventually")
