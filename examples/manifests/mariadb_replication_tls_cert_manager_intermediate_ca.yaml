@@ -1,7 +1,7 @@
 apiVersion: k8s.mariadb.com/v1alpha1
 kind: MariaDB
 metadata:
-  name: mariadb-galera
+  name: mariadb-repl
 spec:
   rootPasswordSecretKeyRef:
     name: mariadb
@@ -13,35 +13,31 @@ spec:
     key: password
   database: mariadb
 
-  # image: docker-registry.mariadb.com/enterprise-server:10.6.18-14.1
-
   storage:
     size: 1Gi
 
   replicas: 3
 
-  galera:
+  replication:
     enabled: true
-    # providerOptions:
-    #   socket.dynamic: 'true'
 
   service:
     type: LoadBalancer
     metadata:
       annotations:
-        metallb.universe.tf/loadBalancerIPs: 172.18.0.150
-        
+        metallb.universe.tf/loadBalancerIPs: 172.18.0.120
+
   primaryService:
     type: LoadBalancer
     metadata:
       annotations:
-        metallb.universe.tf/loadBalancerIPs: 172.18.0.160
+        metallb.universe.tf/loadBalancerIPs: 172.18.0.130
 
   secondaryService:
     type: LoadBalancer
     metadata:
       annotations:
-        metallb.universe.tf/loadBalancerIPs: 172.18.0.161
+        metallb.universe.tf/loadBalancerIPs: 172.18.0.131
   
   metrics:
     enabled: true
@@ -49,12 +45,12 @@ spec:
   tls:
     enabled: true
     serverCASecretRef:
-      name: custom-trust
+      name: root-ca
     serverCertIssuerRef:
       name: intermediate-ca
       kind: ClusterIssuer
     clientCASecretRef:
-      name: custom-trust
+      name: root-ca
     clientCertIssuerRef:
       name: intermediate-ca
       kind: ClusterIssuer
