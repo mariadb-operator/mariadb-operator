@@ -105,10 +105,19 @@ func (m *MaxScale) TLSCABundleSecretKeyRef() SecretKeySelector {
 // TLSServerCASecretKey defines the key for the TLS admin CA.
 func (m *MaxScale) TLSAdminCASecretKey() types.NamespacedName {
 	tls := ptr.Deref(m.Spec.TLS, MaxScaleTLS{})
-	if tls.Enabled && tls.AdminCASecretRef != nil {
-		return types.NamespacedName{
-			Name:      tls.AdminCASecretRef.Name,
-			Namespace: m.Namespace,
+	if tls.Enabled {
+		if tls.AdminCASecretRef != nil {
+			return types.NamespacedName{
+				Name:      tls.AdminCASecretRef.Name,
+				Namespace: m.Namespace,
+			}
+		}
+		if tls.AdminCertIssuerRef != nil {
+			// Secret issued by cert-manager containing the ca.crt field.
+			return types.NamespacedName{
+				Name:      m.TLSAdminCertSecretKey().Name,
+				Namespace: m.Namespace,
+			}
 		}
 	}
 	return types.NamespacedName{
@@ -135,10 +144,19 @@ func (m *MaxScale) TLSAdminCertSecretKey() types.NamespacedName {
 // TLSListenerCASecretKey defines the key for the TLS listener CA.
 func (m *MaxScale) TLSListenerCASecretKey() types.NamespacedName {
 	tls := ptr.Deref(m.Spec.TLS, MaxScaleTLS{})
-	if tls.Enabled && tls.ListenerCASecretRef != nil {
-		return types.NamespacedName{
-			Name:      tls.ListenerCASecretRef.Name,
-			Namespace: m.Namespace,
+	if tls.Enabled {
+		if tls.ListenerCASecretRef != nil {
+			return types.NamespacedName{
+				Name:      tls.ListenerCASecretRef.Name,
+				Namespace: m.Namespace,
+			}
+		}
+		if tls.ListenerCertIssuerRef != nil {
+			// Secret issued by cert-manager containing the ca.crt field.
+			return types.NamespacedName{
+				Name:      m.TLSListenerCertSecretKey().Name,
+				Namespace: m.Namespace,
+			}
 		}
 	}
 	return types.NamespacedName{
