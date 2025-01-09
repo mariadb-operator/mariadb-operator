@@ -57,6 +57,9 @@ spec:
   metrics:
     enabled: true
 
+  tls:
+    enabled: true
+
   updateStrategy:
     type: ReplicasFirstPrimaryLast
     # Pause updates.
