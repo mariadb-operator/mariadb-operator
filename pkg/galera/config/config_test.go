@@ -370,6 +370,7 @@ wsrep_sst_method="mariabackup"
 wsrep_sst_auth="root:mariadb"
 wsrep_sst_receive_address="10.244.0.32:4444"
 [sst]
+encrypt=3
 tca=/etc/pki/ca.crt
 tcert=/etc/pki/client.crt
 tkey=/etc/pki/client.key
@@ -437,6 +438,7 @@ wsrep_sst_method="mariabackup"
 wsrep_sst_auth="root:mariadb"
 wsrep_sst_receive_address="10.244.0.32:4444"
 [sst]
+encrypt=3
 tca=/etc/pki/ca.crt
 tcert=/etc/pki/client.crt
 tkey=/etc/pki/client.key
@@ -508,6 +510,7 @@ wsrep_sst_auth="root:mariadb"
 wsrep_sst_receive_address="10.244.0.32:4444"
 [sst]
 ssl_mode=VERIFY_IDENTITY
+encrypt=3
 tca=/etc/pki/ca.crt
 tcert=/etc/pki/client.crt
 tkey=/etc/pki/client.key
