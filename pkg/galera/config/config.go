@@ -87,6 +87,7 @@ wsrep_sst_auth="root:{{ .RootPassword }}"
 {{- if .SSLMode }}
 ssl_mode={{ .SSLMode }}
 {{- end }}
+encrypt=3
 tca={{ .SSLCAPath }}
 tcert={{ .SSLCertPath }}
 tkey={{ .SSLKeyPath }}
