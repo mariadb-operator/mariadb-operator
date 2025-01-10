@@ -431,6 +431,20 @@ func mariadbEnv(mariadb *mariadbv1alpha1.MariaDB) []corev1.EnvVar {
 				Value: builderpki.ClientKeyPath,
 			},
 		}...)
+
+		// By default, wsrep_sst_mariabackup.sh validates the client certificate commonName against the container IP.
+		// This doesn't work with Kubernetes, we cannot issue a certificate for a specific IP, as Pod IPs are ephemeral.
+		// Instead, we could configure wsrep_sst_mariabackup.sh to validate the certificate against the expected commonName:
+		// See:
+		// https://github.com/codership/mariadb-server/blob/16394f1aa1b4097f897b8ab01ea2064726cca059/scripts/wsrep_sst_common.sh#L1064
+		// https://github.com/codership/mariadb-server/blob/16394f1aa1b4097f897b8ab01ea2064726cca059/scripts/wsrep_sst_mariabackup.sh#L407
+		clientNames := mariadb.TLSClientNames()
+		if mariadb.IsGaleraEnabled() && len(clientNames) > 0 {
+			env = append(env, corev1.EnvVar{
+				Name:  "WSREP_SST_OPT_REMOTE_AUTH",
+				Value: fmt.Sprintf("%s:", clientNames[0]),
+			})
+		}
 	}
 
 	if mariadb.IsRootPasswordEmpty() {

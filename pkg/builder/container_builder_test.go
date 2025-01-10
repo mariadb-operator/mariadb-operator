@@ -3,10 +3,13 @@ package builder
 import (
 	"fmt"
 	"reflect"
+	"sort"
 	"strconv"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	builderpki "github.com/mariadb-operator/mariadb-operator/pkg/builder/pki"
 	"github.com/mariadb-operator/mariadb-operator/pkg/command"
 	"github.com/mariadb-operator/mariadb-operator/pkg/datastructures"
 	"github.com/mariadb-operator/mariadb-operator/pkg/discovery"
@@ -956,6 +959,96 @@ func TestMariadbEnv(t *testing.T) {
 			wantEnv: removeEnv(defaultEnv(nil), "MYSQL_INITDB_SKIP_TZINFO"),
 		},
 		{
+			name: "MariaDB TLS",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					TLS: &mariadbv1alpha1.TLS{
+						Enabled: true,
+					},
+				},
+			},
+			wantEnv: append(defaultEnv(nil),
+				[]corev1.EnvVar{
+					{
+						Name:  "TLS_ENABLED",
+						Value: strconv.FormatBool(true),
+					},
+					{
+						Name:  "TLS_CA_CERT_PATH",
+						Value: builderpki.CACertPath,
+					},
+					{
+						Name:  "TLS_SERVER_CERT_PATH",
+						Value: builderpki.ServerCertPath,
+					},
+					{
+						Name:  "TLS_SERVER_KEY_PATH",
+						Value: builderpki.ServerKeyPath,
+					},
+					{
+						Name:  "TLS_CLIENT_CERT_PATH",
+						Value: builderpki.ClientCertPath,
+					},
+					{
+						Name:  "TLS_CLIENT_KEY_PATH",
+						Value: builderpki.ClientKeyPath,
+					},
+				}...),
+		},
+		{
+			name: "MariaDB Galera TLS",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "mariadb-galera",
+				},
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+					},
+					TLS: &mariadbv1alpha1.TLS{
+						Enabled: true,
+					},
+				},
+			},
+			wantEnv: append(
+				defaultEnv([]corev1.EnvVar{
+					{
+						Name:  "MARIADB_NAME",
+						Value: "mariadb-galera",
+					},
+				}),
+				[]corev1.EnvVar{
+					{
+						Name:  "TLS_ENABLED",
+						Value: strconv.FormatBool(true),
+					},
+					{
+						Name:  "TLS_CA_CERT_PATH",
+						Value: builderpki.CACertPath,
+					},
+					{
+						Name:  "TLS_SERVER_CERT_PATH",
+						Value: builderpki.ServerCertPath,
+					},
+					{
+						Name:  "TLS_SERVER_KEY_PATH",
+						Value: builderpki.ServerKeyPath,
+					},
+					{
+						Name:  "TLS_CLIENT_CERT_PATH",
+						Value: builderpki.ClientCertPath,
+					},
+					{
+						Name:  "TLS_CLIENT_KEY_PATH",
+						Value: builderpki.ClientKeyPath,
+					},
+					{
+						Name:  "WSREP_SST_OPT_REMOTE_AUTH",
+						Value: "mariadb-galera-client:",
+					},
+				}...),
+		},
+		{
 			name: "MariaDB env append",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
@@ -1067,8 +1160,11 @@ func TestMariadbEnv(t *testing.T) {
 				t.Setenv("CLUSTER_NAME", "example.com")
 			}
 			env := mariadbEnv(tt.mariadb)
-			if !reflect.DeepEqual(tt.wantEnv, env) {
-				t.Errorf("unexpected result:\nexpected:\n%s\ngot:\n%s\n", tt.wantEnv, env)
+			sortedWantEnv := sortEnvVars(tt.wantEnv)
+			sortedEnv := sortEnvVars(env)
+
+			if diff := cmp.Diff(sortedWantEnv, sortedEnv); diff != "" {
+				t.Errorf("unexpected env (-want +got):\n%s", diff)
 			}
 		})
 	}
@@ -1545,4 +1641,13 @@ func removeEnv(env []corev1.EnvVar, key string) []corev1.EnvVar {
 		}
 	}
 	return result
+}
+
+func sortEnvVars(env []corev1.EnvVar) []corev1.EnvVar {
+	sortedEnv := make([]corev1.EnvVar, len(env))
+	copy(sortedEnv, env)
+	sort.SliceStable(sortedEnv, func(i, j int) bool {
+		return sortedEnv[i].Name < sortedEnv[j].Name
+	})
+	return sortedEnv
 }
