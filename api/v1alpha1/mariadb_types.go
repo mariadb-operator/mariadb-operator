@@ -366,20 +366,6 @@ type TLS struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	ClientCertIssuerRef *cmmeta.ObjectReference `json:"clientCertIssuerRef,omitempty"`
-	// GaleraServerSSLMode defines the server SSL mode for a Galera Enterprise cluster.
-	// This field is only supported and applicable for Galera Enterprise >= 10.6 instances.
-	// Refer to the MariaDB Enterprise docs for more detail: https://mariadb.com/docs/server/security/galera/#WSREP_TLS_Modes
-	// +optional
-	// +kubebuilder:validation:Enum=PROVIDER;SERVER;SERVER_X509
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	GaleraServerSSLMode *string `json:"galeraServerSSLMode,omitempty"`
-	// GaleraClientSSLMode defines the client SSL mode for a Galera Enterprise cluster.
-	// This field is only supported and applicable for Galera Enterprise >= 10.6 instances.
-	// Refer to the MariaDB Enterprise docs for more detail: https://mariadb.com/docs/server/security/galera/#SST_TLS_Modes
-	// +optional
-	// +kubebuilder:validation:Enum=DISABLED;REQUIRED;VERIFY_CA;VERIFY_IDENTITY
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	GaleraClientSSLMode *string `json:"galeraClientSSLMode,omitempty"`
 }
 
 // MariaDBSpec defines the desired state of MariaDB
