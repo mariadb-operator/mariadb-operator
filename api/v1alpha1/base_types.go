@@ -101,7 +101,7 @@ type ContainerTemplate struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	ReadinessProbe *Probe `json:"readinessProbe,omitempty"`
-	// Resouces describes the compute resource requirements.
+	// StartupProbe to be used in the Container.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:resourceRequirements"}
 	StartupProbe *Probe `json:"startupProbe,omitempty"`
