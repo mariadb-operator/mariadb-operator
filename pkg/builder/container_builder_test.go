@@ -342,8 +342,8 @@ func TestMariadbLivenessProbe(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			probe := mariadbLivenessProbe(tt.mariadb)
-			if !reflect.DeepEqual(tt.wantProbe, probe) {
-				t.Errorf("unexpected result:\nexpected:\n%s\ngot:\n%s\n", tt.wantProbe, probe)
+			if diff := cmp.Diff(tt.wantProbe, probe); diff != "" {
+				t.Errorf("unexpected probe (-want +got):\n%s", diff)
 			}
 		})
 	}
@@ -677,8 +677,8 @@ func TestMariadbStartupProbe(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			probe := mariadbStartupProbe(tt.mariadb)
-			if !reflect.DeepEqual(tt.wantProbe, probe) {
-				t.Errorf("unexpected result:\nexpected:\n%s\ngot:\n%s\n", tt.wantProbe, probe)
+			if diff := cmp.Diff(tt.wantProbe, probe); diff != "" {
+				t.Errorf("unexpected probe (-want +got):\n%s", diff)
 			}
 		})
 	}
@@ -1007,8 +1007,8 @@ func TestMariadbReadinessProbe(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			probe := mariadbReadinessProbe(tt.mariadb)
-			if !reflect.DeepEqual(tt.wantProbe, probe) {
-				t.Errorf("unexpected result:\nexpected:\n%s\ngot:\n%s\n", tt.wantProbe, probe)
+			if diff := cmp.Diff(tt.wantProbe, probe); diff != "" {
+				t.Errorf("unexpected probe (-want +got):\n%s", diff)
 			}
 		})
 	}
@@ -1138,8 +1138,8 @@ func TestMaxScaleProbe(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			probe := maxscaleProbe(tt.maxScale, tt.probe)
-			if !reflect.DeepEqual(tt.wantProbe, probe) {
-				t.Errorf("unexpected result:\nexpected:\n%s\ngot:\n%s\n", tt.wantProbe, probe)
+			if diff := cmp.Diff(tt.wantProbe, probe); diff != "" {
+				t.Errorf("unexpected probe (-want +got):\n%s", diff)
 			}
 		})
 	}
