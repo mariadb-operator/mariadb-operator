@@ -7125,27 +7125,6 @@ spec:
                   enabled:
                     description: Enabled is a flag to enable TLS.
                     type: boolean
-                  galeraClientSSLMode:
-                    description: |-
-                      GaleraClientSSLMode defines the client SSL mode for a Galera Enterprise cluster.
-                      This field is only supported and applicable for Galera Enterprise >= 10.6 instances.
-                      Refer to the MariaDB Enterprise docs for more detail: https://mariadb.com/docs/server/security/galera/#SST_TLS_Modes
-                    enum:
-                    - DISABLED
-                    - REQUIRED
-                    - VERIFY_CA
-                    - VERIFY_IDENTITY
-                    type: string
-                  galeraServerSSLMode:
-                    description: |-
-                      GaleraServerSSLMode defines the server SSL mode for a Galera Enterprise cluster.
-                      This field is only supported and applicable for Galera Enterprise >= 10.6 instances.
-                      Refer to the MariaDB Enterprise docs for more detail: https://mariadb.com/docs/server/security/galera/#WSREP_TLS_Modes
-                    enum:
-                    - PROVIDER
-                    - SERVER
-                    - SERVER_X509
-                    type: string
                   serverCASecretRef:
                     description: |-
                       ServerCASecretRef is a reference to a Secret containing the server certificate authority keypair. It is used to establish trust and issue server certificates.
