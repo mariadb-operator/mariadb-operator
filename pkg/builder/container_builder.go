@@ -136,6 +136,7 @@ func (b *Builder) maxscaleContainers(mxs *mariadbv1alpha1.MaxScale) ([]corev1.Co
 	container.VolumeMounts = maxscaleVolumeMounts(mxs)
 	container.LivenessProbe = maxscaleProbe(mxs, mxs.Spec.LivenessProbe)
 	container.ReadinessProbe = maxscaleProbe(mxs, mxs.Spec.ReadinessProbe)
+	container.StartupProbe = maxscaleProbe(mxs, mxs.Spec.StartupProbe)
 
 	return []corev1.Container{*container}, nil
 }
