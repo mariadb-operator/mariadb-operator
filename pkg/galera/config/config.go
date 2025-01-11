@@ -49,10 +49,6 @@ func (c *ConfigFile) Marshal(podEnv *environment.PodEnvironment) ([]byte, error)
 	}
 	galera := ptr.Deref(c.mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
 
-	tls := ptr.Deref(c.mariadb.Spec.TLS, mariadbv1alpha1.TLS{})
-	galeraServerSSLMode := ptr.Deref(tls.GaleraServerSSLMode, "")
-	galeraClientSSLMode := ptr.Deref(tls.GaleraClientSSLMode, "")
-
 	tpl := createTpl("galera", `[mariadb]
 bind_address=*
 default_storage_engine=InnoDB
@@ -64,9 +60,6 @@ wsrep_on=ON
 wsrep_cluster_address="{{ .ClusterAddress }}"
 wsrep_cluster_name=mariadb-operator
 wsrep_slave_threads={{ .Threads }}
-{{- if and .SSLEnabled .ClusterSSLMode }}
-wsrep_ssl_mode={{ .ClusterSSLMode }}
-{{- end }}
 
 # Node
 {{ .NodeAddressKey }}="{{ .NodeAddress }}"
@@ -84,9 +77,6 @@ wsrep_sst_auth="root:{{ .RootPassword }}"
 {{ .SSTReceiveAddressKey }}="{{ .SSTReceiveAddress }}"
 {{- if .SSLEnabled }}
 [sst]
-{{- if .SSLMode }}
-ssl_mode={{ .SSLMode }}
-{{- end }}
 encrypt=3
 tca={{ .SSLCAPath }}
 tcert={{ .SSLCertPath }}
@@ -97,10 +87,6 @@ tkey={{ .SSLKeyPath }}
 	clusterAddr, err := c.clusterAddress()
 	if err != nil {
 		return nil, fmt.Errorf("error getting cluster address: %v", err)
-	}
-	isEnterpriseTLSEnabled, err := c.mariadb.IsGaleraEnterpriseTLSAvailable(c.discovery, c.mariadb.Status.DefaultVersion, c.logger)
-	if err != nil {
-		c.logger.Error(err, "error checking whether TLS enterprise is enabled")
 	}
 
 	sst, err := galera.SST.MariaDBFormat()
@@ -135,12 +121,10 @@ tkey={{ .SSLKeyPath }}
 		SSTReceiveAddressKey string
 		SSTReceiveAddress    string
 
-		SSLEnabled     bool
-		ClusterSSLMode string
-		SSLMode        string
-		SSLCAPath      string
-		SSLCertPath    string
-		SSLKeyPath     string
+		SSLEnabled  bool
+		SSLCAPath   string
+		SSLCertPath string
+		SSLKeyPath  string
 	}{
 		ClusterAddress: clusterAddr,
 		Threads:        galera.ReplicaThreads,
@@ -159,12 +143,10 @@ tkey={{ .SSLKeyPath }}
 		SSTReceiveAddressKey: galerakeys.WsrepSSTReceiveAddressKey,
 		SSTReceiveAddress:    sstReceiveAddress,
 
-		SSLEnabled:     c.mariadb.IsTLSEnabled(),
-		ClusterSSLMode: c.enterpriseTLSValue(isEnterpriseTLSEnabled, galeraServerSSLMode),
-		SSLMode:        c.enterpriseTLSValue(isEnterpriseTLSEnabled, galeraClientSSLMode),
-		SSLCAPath:      podEnv.TLSCACertPath,
-		SSLCertPath:    podEnv.TLSClientCertPath,
-		SSLKeyPath:     podEnv.TLSClientKeyPath,
+		SSLEnabled:  c.mariadb.IsTLSEnabled(),
+		SSLCAPath:   podEnv.TLSCACertPath,
+		SSLCertPath: podEnv.TLSClientCertPath,
+		SSLKeyPath:  podEnv.TLSClientKeyPath,
 	})
 	if err != nil {
 		return nil, err
@@ -185,13 +167,6 @@ func (c *ConfigFile) clusterAddress() (string, error) {
 		)
 	}
 	return fmt.Sprintf("gcomm://%s", strings.Join(pods, ",")), nil
-}
-
-func (c *ConfigFile) enterpriseTLSValue(isEnterpriseTLSEnabled bool, value string) string {
-	if isEnterpriseTLSEnabled {
-		return value
-	}
-	return ""
 }
 
 func (c *ConfigFile) getProviderOptions(env *environment.PodEnvironment, options map[string]string) (string, error) {
