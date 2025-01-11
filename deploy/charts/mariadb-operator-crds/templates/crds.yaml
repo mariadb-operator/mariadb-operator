@@ -3084,7 +3084,7 @@ spec:
                             type: integer
                         type: object
                       startupProbe:
-                        description: Resouces describes the compute resource requirements.
+                        description: StartupProbe to be used in the Container.
                         properties:
                           exec:
                             description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#execaction-v1-core.'
@@ -3543,7 +3543,7 @@ spec:
                             type: integer
                         type: object
                       startupProbe:
-                        description: Resouces describes the compute resource requirements.
+                        description: StartupProbe to be used in the Container.
                         properties:
                           exec:
                             description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#execaction-v1-core.'
@@ -6677,7 +6677,7 @@ spec:
                   type: object
                 type: array
               startupProbe:
-                description: Resouces describes the compute resource requirements.
+                description: StartupProbe to be used in the Container.
                 properties:
                   exec:
                     description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#execaction-v1-core.'
@@ -9190,7 +9190,7 @@ spec:
                   type: object
                 type: array
               startupProbe:
-                description: Resouces describes the compute resource requirements.
+                description: StartupProbe to be used in the Container.
                 properties:
                   exec:
                     description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#execaction-v1-core.'
