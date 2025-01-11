@@ -193,7 +193,7 @@ spec:
     periodSeconds: 5
     timeoutSeconds: 5
 
-startupProbe:
+  startupProbe:
     failureThreshold: 10
     periodSeconds: 5
     timeoutSeconds: 5

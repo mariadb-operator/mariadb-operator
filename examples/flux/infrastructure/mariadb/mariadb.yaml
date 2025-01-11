@@ -45,9 +45,9 @@ spec:
     timeoutSeconds: 10
 
   startupProbe:
-    failureThreshold: 20
-    periodSeconds: 10
-    timeoutSeconds: 10
+    failureThreshold: 10
+    periodSeconds: 5
+    timeoutSeconds: 5
 
   metrics:
     enabled: true
