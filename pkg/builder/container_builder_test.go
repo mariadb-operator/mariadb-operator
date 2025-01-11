@@ -1098,6 +1098,40 @@ func TestMaxScaleProbe(t *testing.T) {
 				PeriodSeconds:       5,
 			},
 		},
+		{
+			name: "MaxScale Probe with Failure Threshold",
+			maxScale: &mariadbv1alpha1.MaxScale{
+				Spec: mariadbv1alpha1.MaxScaleSpec{
+					Admin: mariadbv1alpha1.MaxScaleAdmin{
+						Port: 8989,
+					},
+				},
+			},
+			probe: &mariadbv1alpha1.Probe{
+				ProbeHandler: mariadbv1alpha1.ProbeHandler{
+					HTTPGet: &mariadbv1alpha1.HTTPGetAction{
+						Path: "/custom",
+						Port: intstr.FromInt(8989),
+					},
+				},
+				FailureThreshold:    10,
+				InitialDelaySeconds: 10,
+				TimeoutSeconds:      10,
+				PeriodSeconds:       5,
+			},
+			wantProbe: &corev1.Probe{
+				ProbeHandler: corev1.ProbeHandler{
+					HTTPGet: &corev1.HTTPGetAction{
+						Path: "/custom",
+						Port: intstr.FromInt(8989),
+					},
+				},
+				FailureThreshold:    10,
+				InitialDelaySeconds: 10,
+				TimeoutSeconds:      10,
+				PeriodSeconds:       5,
+			},
+		},
 	}
 
 	for _, tt := range tests {
