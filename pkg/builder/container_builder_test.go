@@ -19,6 +19,341 @@ import (
 	"k8s.io/utils/ptr"
 )
 
+func TestMariadbStartupProbe(t *testing.T) {
+	tests := []struct {
+		name      string
+		mariadb   *mariadbv1alpha1.MariaDB
+		wantProbe *corev1.Probe
+	}{
+		{
+			name:    "MariaDB empty",
+			mariadb: &mariadbv1alpha1.MariaDB{},
+			wantProbe: &corev1.Probe{
+				ProbeHandler: corev1.ProbeHandler{
+					Exec: &corev1.ExecAction{
+						Command: []string{
+							"bash",
+							"-c",
+							"mariadb -u root -p\"${MARIADB_ROOT_PASSWORD}\" -e \"SELECT 1;\"",
+						},
+					},
+				},
+				InitialDelaySeconds: 20,
+				TimeoutSeconds:      5,
+				PeriodSeconds:       5,
+			},
+		},
+		{
+			name: "MariaDB partial",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
+						StartupProbe: &mariadbv1alpha1.Probe{
+							FailureThreshold: 10,
+							TimeoutSeconds:   5,
+							PeriodSeconds:    5,
+						},
+					},
+				},
+			},
+			wantProbe: &corev1.Probe{
+				ProbeHandler: corev1.ProbeHandler{
+					Exec: &corev1.ExecAction{
+						Command: []string{
+							"bash",
+							"-c",
+							"mariadb -u root -p\"${MARIADB_ROOT_PASSWORD}\" -e \"SELECT 1;\"",
+						},
+					},
+				},
+				InitialDelaySeconds: 20,
+				TimeoutSeconds:      5,
+				PeriodSeconds:       5,
+				FailureThreshold:    10,
+			},
+		},
+		{
+			name: "MariaDB full",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
+						StartupProbe: &mariadbv1alpha1.Probe{
+							ProbeHandler: mariadbv1alpha1.ProbeHandler{
+								Exec: &mariadbv1alpha1.ExecAction{
+									Command: []string{
+										"bash",
+										"-c",
+										"mysqladmin ping -u root -p\"${MARIADB_ROOT_PASSWORD}\" -e \"SELECT 1;\"",
+									},
+								},
+							},
+							FailureThreshold: 10,
+							TimeoutSeconds:   10,
+							PeriodSeconds:    5,
+						},
+					},
+				},
+			},
+			wantProbe: &corev1.Probe{
+				ProbeHandler: corev1.ProbeHandler{
+					Exec: &corev1.ExecAction{
+						Command: []string{
+							"bash",
+							"-c",
+							"mysqladmin ping -u root -p\"${MARIADB_ROOT_PASSWORD}\" -e \"SELECT 1;\"",
+						},
+					},
+				},
+				FailureThreshold: 10,
+				TimeoutSeconds:   10,
+				PeriodSeconds:    5,
+			},
+		},
+		{
+			name: "MariaDB replication empty without probes",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Replication: &mariadbv1alpha1.Replication{
+						Enabled: true,
+						ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
+							ProbesEnabled: ptr.To(false),
+						},
+					},
+				},
+			},
+			wantProbe: &corev1.Probe{
+				ProbeHandler: corev1.ProbeHandler{
+					Exec: &corev1.ExecAction{
+						Command: []string{
+							"bash",
+							"-c",
+							"mariadb -u root -p\"${MARIADB_ROOT_PASSWORD}\" -e \"SELECT 1;\"",
+						},
+					},
+				},
+				InitialDelaySeconds: 20,
+				TimeoutSeconds:      5,
+				PeriodSeconds:       5,
+			},
+		},
+		{
+			name: "MariaDB replication empty",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Replication: &mariadbv1alpha1.Replication{
+						Enabled: true,
+						ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
+							ProbesEnabled: ptr.To(true),
+						},
+					},
+				},
+			},
+			wantProbe: &corev1.Probe{
+				ProbeHandler: corev1.ProbeHandler{
+					Exec: &corev1.ExecAction{
+						Command: []string{
+							"bash",
+							"-c",
+							"/etc/probes/replication.sh",
+						},
+					},
+				},
+				InitialDelaySeconds: 20,
+				TimeoutSeconds:      5,
+				PeriodSeconds:       5,
+			},
+		},
+		{
+			name: "MariaDB replication partial",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Replication: &mariadbv1alpha1.Replication{
+						Enabled: true,
+						ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
+							ProbesEnabled: ptr.To(true),
+						},
+					},
+					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
+						StartupProbe: &mariadbv1alpha1.Probe{
+							FailureThreshold: 10,
+							TimeoutSeconds:   10,
+							PeriodSeconds:    5,
+						},
+					},
+				},
+			},
+			wantProbe: &corev1.Probe{
+				ProbeHandler: corev1.ProbeHandler{
+					Exec: &corev1.ExecAction{
+						Command: []string{
+							"bash",
+							"-c",
+							"/etc/probes/replication.sh",
+						},
+					},
+				},
+				InitialDelaySeconds: 20,
+				FailureThreshold:    10,
+				TimeoutSeconds:      10,
+				PeriodSeconds:       5,
+			},
+		},
+		{
+			name: "MariaDB replication full",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Replication: &mariadbv1alpha1.Replication{
+						Enabled: true,
+						ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
+							ProbesEnabled: ptr.To(true),
+						},
+					},
+					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
+						StartupProbe: &mariadbv1alpha1.Probe{
+							ProbeHandler: mariadbv1alpha1.ProbeHandler{
+								Exec: &mariadbv1alpha1.ExecAction{
+									Command: []string{
+										"bash",
+										"-c",
+										"/etc/probes/replication-custom.sh",
+									},
+								},
+							},
+							FailureThreshold: 10,
+							TimeoutSeconds:   10,
+							PeriodSeconds:    5,
+						},
+					},
+				},
+			},
+			wantProbe: &corev1.Probe{
+				ProbeHandler: corev1.ProbeHandler{
+					Exec: &corev1.ExecAction{
+						Command: []string{
+							"bash",
+							"-c",
+							"/etc/probes/replication.sh",
+						},
+					},
+				},
+				InitialDelaySeconds: 20,
+				FailureThreshold:    10,
+				TimeoutSeconds:      10,
+				PeriodSeconds:       5,
+			},
+		},
+		{
+			name: "MariaDB Galera empty",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							Agent: mariadbv1alpha1.GaleraAgent{
+								ProbePort: 5555,
+							},
+						},
+					},
+				},
+			},
+			wantProbe: &corev1.Probe{
+				ProbeHandler: corev1.ProbeHandler{
+					HTTPGet: &corev1.HTTPGetAction{
+						Path: "/liveness",
+						Port: intstr.FromInt(5555),
+					},
+				},
+				InitialDelaySeconds: 20,
+				TimeoutSeconds:      5,
+				PeriodSeconds:       5,
+			},
+		},
+		{
+			name: "MariaDB Galera partial",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							Agent: mariadbv1alpha1.GaleraAgent{
+								ProbePort: 5555,
+							},
+						},
+					},
+					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
+						StartupProbe: &mariadbv1alpha1.Probe{
+							FailureThreshold: 10,
+							TimeoutSeconds:   10,
+							PeriodSeconds:    5,
+						},
+					},
+				},
+			},
+			wantProbe: &corev1.Probe{
+				ProbeHandler: corev1.ProbeHandler{
+					HTTPGet: &corev1.HTTPGetAction{
+						Path: "/liveness",
+						Port: intstr.FromInt(5555),
+					},
+				},
+				InitialDelaySeconds: 20,
+				FailureThreshold:    10,
+				TimeoutSeconds:      10,
+				PeriodSeconds:       5,
+			},
+		},
+		{
+			name: "MariaDB Galera full",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							Agent: mariadbv1alpha1.GaleraAgent{
+								ProbePort: 5555,
+							},
+						},
+					},
+					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
+						StartupProbe: &mariadbv1alpha1.Probe{
+							ProbeHandler: mariadbv1alpha1.ProbeHandler{
+								HTTPGet: &mariadbv1alpha1.HTTPGetAction{
+									Path: "/liveness-custom",
+									Port: intstr.FromInt(5555),
+								},
+							},
+							FailureThreshold: 10,
+							TimeoutSeconds:   10,
+							PeriodSeconds:    5,
+						},
+					},
+				},
+			},
+			wantProbe: &corev1.Probe{
+				ProbeHandler: corev1.ProbeHandler{
+					HTTPGet: &corev1.HTTPGetAction{
+						Path: "/liveness",
+						Port: intstr.FromInt(5555),
+					},
+				},
+				InitialDelaySeconds: 20,
+				FailureThreshold:    10,
+				TimeoutSeconds:      10,
+				PeriodSeconds:       5,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			probe := mariadbStartupProbe(tt.mariadb)
+			if diff := cmp.Diff(tt.wantProbe, probe); diff != "" {
+				t.Errorf("unexpected probe (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
 func TestMariadbLivenessProbe(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -342,341 +677,6 @@ func TestMariadbLivenessProbe(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			probe := mariadbLivenessProbe(tt.mariadb)
-			if diff := cmp.Diff(tt.wantProbe, probe); diff != "" {
-				t.Errorf("unexpected probe (-want +got):\n%s", diff)
-			}
-		})
-	}
-}
-
-func TestMariadbStartupProbe(t *testing.T) {
-	tests := []struct {
-		name      string
-		mariadb   *mariadbv1alpha1.MariaDB
-		wantProbe *corev1.Probe
-	}{
-		{
-			name:    "MariaDB empty",
-			mariadb: &mariadbv1alpha1.MariaDB{},
-			wantProbe: &corev1.Probe{
-				ProbeHandler: corev1.ProbeHandler{
-					Exec: &corev1.ExecAction{
-						Command: []string{
-							"bash",
-							"-c",
-							"mariadb -u root -p\"${MARIADB_ROOT_PASSWORD}\" -e \"SELECT 1;\"",
-						},
-					},
-				},
-				InitialDelaySeconds: 20,
-				TimeoutSeconds:      5,
-				PeriodSeconds:       5,
-			},
-		},
-		{
-			name: "MariaDB partial",
-			mariadb: &mariadbv1alpha1.MariaDB{
-				Spec: mariadbv1alpha1.MariaDBSpec{
-					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
-						StartupProbe: &mariadbv1alpha1.Probe{
-							FailureThreshold: 10,
-							TimeoutSeconds:   5,
-							PeriodSeconds:    5,
-						},
-					},
-				},
-			},
-			wantProbe: &corev1.Probe{
-				ProbeHandler: corev1.ProbeHandler{
-					Exec: &corev1.ExecAction{
-						Command: []string{
-							"bash",
-							"-c",
-							"mariadb -u root -p\"${MARIADB_ROOT_PASSWORD}\" -e \"SELECT 1;\"",
-						},
-					},
-				},
-				InitialDelaySeconds: 20,
-				TimeoutSeconds:      5,
-				PeriodSeconds:       5,
-				FailureThreshold:    10,
-			},
-		},
-		{
-			name: "MariaDB full",
-			mariadb: &mariadbv1alpha1.MariaDB{
-				Spec: mariadbv1alpha1.MariaDBSpec{
-					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
-						StartupProbe: &mariadbv1alpha1.Probe{
-							ProbeHandler: mariadbv1alpha1.ProbeHandler{
-								Exec: &mariadbv1alpha1.ExecAction{
-									Command: []string{
-										"bash",
-										"-c",
-										"mysqladmin ping -u root -p\"${MARIADB_ROOT_PASSWORD}\" -e \"SELECT 1;\"",
-									},
-								},
-							},
-							FailureThreshold: 10,
-							TimeoutSeconds:   10,
-							PeriodSeconds:    5,
-						},
-					},
-				},
-			},
-			wantProbe: &corev1.Probe{
-				ProbeHandler: corev1.ProbeHandler{
-					Exec: &corev1.ExecAction{
-						Command: []string{
-							"bash",
-							"-c",
-							"mysqladmin ping -u root -p\"${MARIADB_ROOT_PASSWORD}\" -e \"SELECT 1;\"",
-						},
-					},
-				},
-				FailureThreshold: 10,
-				TimeoutSeconds:   10,
-				PeriodSeconds:    5,
-			},
-		},
-		{
-			name: "MariaDB replication empty without probes",
-			mariadb: &mariadbv1alpha1.MariaDB{
-				Spec: mariadbv1alpha1.MariaDBSpec{
-					Replication: &mariadbv1alpha1.Replication{
-						Enabled: true,
-						ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
-							ProbesEnabled: ptr.To(false),
-						},
-					},
-				},
-			},
-			wantProbe: &corev1.Probe{
-				ProbeHandler: corev1.ProbeHandler{
-					Exec: &corev1.ExecAction{
-						Command: []string{
-							"bash",
-							"-c",
-							"mariadb -u root -p\"${MARIADB_ROOT_PASSWORD}\" -e \"SELECT 1;\"",
-						},
-					},
-				},
-				InitialDelaySeconds: 20,
-				TimeoutSeconds:      5,
-				PeriodSeconds:       5,
-			},
-		},
-		{
-			name: "MariaDB replication empty",
-			mariadb: &mariadbv1alpha1.MariaDB{
-				Spec: mariadbv1alpha1.MariaDBSpec{
-					Replication: &mariadbv1alpha1.Replication{
-						Enabled: true,
-						ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
-							ProbesEnabled: ptr.To(true),
-						},
-					},
-				},
-			},
-			wantProbe: &corev1.Probe{
-				ProbeHandler: corev1.ProbeHandler{
-					Exec: &corev1.ExecAction{
-						Command: []string{
-							"bash",
-							"-c",
-							"/etc/probes/replication.sh",
-						},
-					},
-				},
-				InitialDelaySeconds: 20,
-				TimeoutSeconds:      5,
-				PeriodSeconds:       5,
-			},
-		},
-		{
-			name: "MariaDB replication partial",
-			mariadb: &mariadbv1alpha1.MariaDB{
-				Spec: mariadbv1alpha1.MariaDBSpec{
-					Replication: &mariadbv1alpha1.Replication{
-						Enabled: true,
-						ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
-							ProbesEnabled: ptr.To(true),
-						},
-					},
-					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
-						StartupProbe: &mariadbv1alpha1.Probe{
-							FailureThreshold: 10,
-							TimeoutSeconds:   10,
-							PeriodSeconds:    5,
-						},
-					},
-				},
-			},
-			wantProbe: &corev1.Probe{
-				ProbeHandler: corev1.ProbeHandler{
-					Exec: &corev1.ExecAction{
-						Command: []string{
-							"bash",
-							"-c",
-							"/etc/probes/replication.sh",
-						},
-					},
-				},
-				InitialDelaySeconds: 20,
-				FailureThreshold:    10,
-				TimeoutSeconds:      10,
-				PeriodSeconds:       5,
-			},
-		},
-		{
-			name: "MariaDB replication full",
-			mariadb: &mariadbv1alpha1.MariaDB{
-				Spec: mariadbv1alpha1.MariaDBSpec{
-					Replication: &mariadbv1alpha1.Replication{
-						Enabled: true,
-						ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
-							ProbesEnabled: ptr.To(true),
-						},
-					},
-					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
-						StartupProbe: &mariadbv1alpha1.Probe{
-							ProbeHandler: mariadbv1alpha1.ProbeHandler{
-								Exec: &mariadbv1alpha1.ExecAction{
-									Command: []string{
-										"bash",
-										"-c",
-										"/etc/probes/replication-custom.sh",
-									},
-								},
-							},
-							FailureThreshold: 10,
-							TimeoutSeconds:   10,
-							PeriodSeconds:    5,
-						},
-					},
-				},
-			},
-			wantProbe: &corev1.Probe{
-				ProbeHandler: corev1.ProbeHandler{
-					Exec: &corev1.ExecAction{
-						Command: []string{
-							"bash",
-							"-c",
-							"/etc/probes/replication.sh",
-						},
-					},
-				},
-				InitialDelaySeconds: 20,
-				FailureThreshold:    10,
-				TimeoutSeconds:      10,
-				PeriodSeconds:       5,
-			},
-		},
-		{
-			name: "MariaDB Galera empty",
-			mariadb: &mariadbv1alpha1.MariaDB{
-				Spec: mariadbv1alpha1.MariaDBSpec{
-					Galera: &mariadbv1alpha1.Galera{
-						Enabled: true,
-						GaleraSpec: mariadbv1alpha1.GaleraSpec{
-							Agent: mariadbv1alpha1.GaleraAgent{
-								Port: 5555,
-							},
-						},
-					},
-				},
-			},
-			wantProbe: &corev1.Probe{
-				ProbeHandler: corev1.ProbeHandler{
-					HTTPGet: &corev1.HTTPGetAction{
-						Path: "/liveness",
-						Port: intstr.FromInt(5555),
-					},
-				},
-				InitialDelaySeconds: 20,
-				TimeoutSeconds:      5,
-				PeriodSeconds:       5,
-			},
-		},
-		{
-			name: "MariaDB Galera partial",
-			mariadb: &mariadbv1alpha1.MariaDB{
-				Spec: mariadbv1alpha1.MariaDBSpec{
-					Galera: &mariadbv1alpha1.Galera{
-						Enabled: true,
-						GaleraSpec: mariadbv1alpha1.GaleraSpec{
-							Agent: mariadbv1alpha1.GaleraAgent{
-								Port: 5555,
-							},
-						},
-					},
-					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
-						StartupProbe: &mariadbv1alpha1.Probe{
-							FailureThreshold: 10,
-							TimeoutSeconds:   10,
-							PeriodSeconds:    5,
-						},
-					},
-				},
-			},
-			wantProbe: &corev1.Probe{
-				ProbeHandler: corev1.ProbeHandler{
-					HTTPGet: &corev1.HTTPGetAction{
-						Path: "/liveness",
-						Port: intstr.FromInt(5555),
-					},
-				},
-				InitialDelaySeconds: 20,
-				FailureThreshold:    10,
-				TimeoutSeconds:      10,
-				PeriodSeconds:       5,
-			},
-		},
-		{
-			name: "MariaDB Galera full",
-			mariadb: &mariadbv1alpha1.MariaDB{
-				Spec: mariadbv1alpha1.MariaDBSpec{
-					Galera: &mariadbv1alpha1.Galera{
-						Enabled: true,
-						GaleraSpec: mariadbv1alpha1.GaleraSpec{
-							Agent: mariadbv1alpha1.GaleraAgent{
-								Port: 5555,
-							},
-						},
-					},
-					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
-						StartupProbe: &mariadbv1alpha1.Probe{
-							ProbeHandler: mariadbv1alpha1.ProbeHandler{
-								HTTPGet: &mariadbv1alpha1.HTTPGetAction{
-									Path: "/liveness-custom",
-									Port: intstr.FromInt(5555),
-								},
-							},
-							FailureThreshold: 10,
-							TimeoutSeconds:   10,
-							PeriodSeconds:    5,
-						},
-					},
-				},
-			},
-			wantProbe: &corev1.Probe{
-				ProbeHandler: corev1.ProbeHandler{
-					HTTPGet: &corev1.HTTPGetAction{
-						Path: "/liveness",
-						Port: intstr.FromInt(5555),
-					},
-				},
-				InitialDelaySeconds: 20,
-				FailureThreshold:    10,
-				TimeoutSeconds:      10,
-				PeriodSeconds:       5,
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			probe := mariadbStartupProbe(tt.mariadb)
 			if diff := cmp.Diff(tt.wantProbe, probe); diff != "" {
 				t.Errorf("unexpected probe (-want +got):\n%s", diff)
 			}
