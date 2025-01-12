@@ -358,3 +358,32 @@ func TestHelmImageTagAndDigest(t *testing.T) {
 	Expect(container.Name).To(Equal("controller"))
 	Expect(container.Image).To(ContainSubstring(repository + ":" + tag))
 }
+
+func TestHelmConfigMap(t *testing.T) {
+	RegisterTestingT(t)
+	repository := "docker-registry3.mariadb.com/mariadb-operator/mariadb-operator"
+	tag := "v1.0.0"
+	opts := &helm.Options{
+		SetValues: map[string]string{
+			"image.repository":             repository,
+			"image.tag":                    tag,
+			"config.entrypointVersion":     "123.45",
+			"config.galeraLibPath":         "/path/to/libgalera.so",
+			"config.mariadbImage":          "mariadb:10.5",
+			"config.maxscaleImage":         "maxscale:2.5",
+			"config.exporterImage":         "exporter:1.0",
+			"config.exporterMaxScaleImage": "exporter-maxscale:1.0",
+		},
+	}
+	configMapData := helm.RenderTemplate(t, opts, helmChartPath, helmReleaseName, []string{"templates/configmap.yaml"})
+	var configMap corev1.ConfigMap
+	helm.UnmarshalK8SYaml(t, configMapData, &configMap)
+	Expect(configMap.Name).To(Equal("mariadb-operator-env"))
+	Expect(configMap.Data["MARIADB_ENTRYPOINT_VERSION"]).To(Equal("123.45"))
+	Expect(configMap.Data["MARIADB_GALERA_LIB_PATH"]).To(Equal("/path/to/libgalera.so"))
+	Expect(configMap.Data["MARIADB_OPERATOR_IMAGE"]).To(Equal(repository + ":" + tag))
+	Expect(configMap.Data["RELATED_IMAGE_MARIADB"]).To(Equal("mariadb:10.5"))
+	Expect(configMap.Data["RELATED_IMAGE_MAXSCALE"]).To(Equal("maxscale:2.5"))
+	Expect(configMap.Data["RELATED_IMAGE_EXPORTER"]).To(Equal("exporter:1.0"))
+	Expect(configMap.Data["RELATED_IMAGE_EXPORTER_MAXSCALE"]).To(Equal("exporter-maxscale:1.0"))
+}
