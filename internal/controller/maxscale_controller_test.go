@@ -36,9 +36,6 @@ var _ = Describe("MaxScale", func() {
 						Namespace: testMdbkey.Namespace,
 					},
 				},
-				TLS: &mariadbv1alpha1.MaxScaleTLS{
-					Enabled: true,
-				},
 			},
 		}
 		Expect(k8sClient.Create(testCtx, &testDefaultMxs)).To(Succeed())
@@ -52,7 +49,8 @@ var _ = Describe("MaxScale", func() {
 				return false
 			}
 			return testDefaultMxs.Spec.Image != "" && len(testDefaultMxs.Spec.Servers) > 0 &&
-				len(testDefaultMxs.Spec.Services) > 0 && testDefaultMxs.Spec.Monitor.Module != ""
+				len(testDefaultMxs.Spec.Services) > 0 && testDefaultMxs.Spec.Monitor.Module != "" &&
+				testDefaultMxs.Spec.TLS != nil && testDefaultMxs.Spec.TLS.Enabled
 		}, testTimeout, testInterval).Should(BeTrue())
 	})
 

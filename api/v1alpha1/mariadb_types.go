@@ -661,6 +661,12 @@ func (m *MariaDB) SetDefaults(env *environment.OperatorEnv) error {
 			m.Spec.Metrics.PasswordSecretKeyRef = m.MetricsPasswordSecretKeyRef()
 		}
 	}
+	if m.Spec.TLS == nil {
+		m.Spec.TLS = &TLS{
+			Enabled: true,
+		}
+	}
+
 	if ptr.Deref(m.Spec.MaxScale, MariaDBMaxScaleSpec{}).Enabled && m.Spec.MaxScaleRef == nil {
 		m.Spec.MaxScaleRef = &ObjectReference{
 			Name:      m.MaxScaleKey().Name,
