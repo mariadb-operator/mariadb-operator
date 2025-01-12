@@ -1,6 +1,5 @@
 nameOverride: ""
 fullnameOverride: ""
-
 # --- CRDs
 crds:
   # -- Whether the helm chart should create and update the CRDs. It is false by default, which implies that the CRDs must be
@@ -8,7 +7,6 @@ crds:
   # **WARNING** This should only be set to true during the initial deployment. If this chart manages the CRDs
   # and is later uninstalled, all MariaDB instances will be DELETED.
   enabled: false
-
 image:
   repository: docker-registry3.mariadb.com/mariadb-operator/mariadb-operator
   pullPolicy: IfNotPresent
@@ -17,23 +15,18 @@ image:
   # Setting a digest will override any tag
   # digest: sha256:084a927ee9f3918a5c85d283f73822ae205757df352218de0b935853a0765060
 imagePullSecrets: []
-
 # -- Controller log level
 logLevel: INFO
-
 # -- Cluster DNS name
 clusterName: cluster.local
-
 # -- Whether the operator should watch CRDs only in its own namespace or not.
 currentNamespaceOnly: false
-
 ha:
   # -- Enable high availability of the controller.
   # If you enable it we recommend to set `affinity` and `pdb`
   enabled: false
   # -- Number of replicas
   replicas: 3
-
 metrics:
   # -- Enable operator internal metrics. Prometheus must be installed in the cluster
   enabled: false
@@ -51,7 +44,6 @@ metrics:
     metricRelabelings: []
     # RelabelConfigs to apply to samples before scraping.
     relabelings: []
-
 serviceAccount:
   # -- Specifies whether a service account should be created
   enabled: true
@@ -64,40 +56,28 @@ serviceAccount:
   # -- The name of the service account to use.
   # If not set and enabled is true, a name is generated using the fullname template
   name: ""
-
 rbac:
   # -- Specifies whether RBAC resources should be created
   enabled: true
-
   aggregation:
-
     # -- Specifies whether the cluster roles aggrate to view and edit predefinied roles
     enabled: true
-
 # -- Extra arguments to be passed to the controller entrypoint
 extrArgs: []
-
 # -- Extra environment variables to be passed to the controller
 extraEnv: []
-
 # -- Extra environment variables from preexiting ConfigMap / Secret objects used by the controller using envFrom
 extraEnvFrom: []
-
 # -- Extra volumes to pass to pod.
 extraVolumes: []
-
 # -- Extra volumes to mount to the container.
 extraVolumeMounts: []
-
 # -- Annotations to add to controller Pod
 podAnnotations: {}
-
 # -- Security context to add to controller Pod
 podSecurityContext: {}
-
 # -- Security context to add to controller container
 securityContext: {}
-
 # -- Resources to add to controller container
 resources: {}
 # requests:
@@ -106,34 +86,31 @@ resources: {}
 
 # -- Node selectors to add to controller Pod
 nodeSelector: {}
-
 # -- Tolerations to add to controller Pod
 tolerations: []
-
 # -- Affinity to add to controller Pod
 affinity: {}
-  #  Sample on how to create an antiAffinity rule that place
-  #  the pods on different nodes, to be used together with `ha.enabled: true`
-  # podAntiAffinity:
-  #   requiredDuringSchedulingIgnoredDuringExecution:
-  #   - labelSelector:
-  #       matchExpressions:
-  #       - key: app.kubernetes.io/name
-  #         operator: In
-  #         values:
-  #         - mariadb-operator
-  #       - key: app.kubernetes.io/instance
-  #         operator: In
-  #         values:
-  #         - mariadb-operator
-  #     topologyKey: kubernetes.io/hostname
+#  Sample on how to create an antiAffinity rule that place
+#  the pods on different nodes, to be used together with `ha.enabled: true`
+# podAntiAffinity:
+#   requiredDuringSchedulingIgnoredDuringExecution:
+#   - labelSelector:
+#       matchExpressions:
+#       - key: app.kubernetes.io/name
+#         operator: In
+#         values:
+#         - mariadb-operator
+#       - key: app.kubernetes.io/instance
+#         operator: In
+#         values:
+#         - mariadb-operator
+#     topologyKey: kubernetes.io/hostname
 
 pdb:
   # -- Enable PodDisruptionBudget for the controller.
   enabled: false
   # -- Maximum number of unavailable Pods. You may also give a percentage, like `50%`
   maxUnavailable: 1
-
 webhook:
   # -- Specifies whether the webhook should be created.
   enabled: true
@@ -228,7 +205,6 @@ webhook:
   tolerations: []
   # -- Affinity to add to controller Pod
   affinity: {}
-
 certController:
   # -- Specifies whether the cert-controller should be created.
   enabled: true
@@ -302,7 +278,6 @@ certController:
   tolerations: []
   # -- Affinity to add to controller Pod
   affinity: {}
-
 # -- Operator configuration
 config:
   # -- Default entrypoint version to be used with MariaDB
@@ -316,4 +291,4 @@ config:
   # -- Default MariaDB exporter image
   exporterImage: prom/mysqld-exporter:v0.15.1
   # -- Default MaxScale exporter image
-  exporterMaxScaleImage: docker-registry2.mariadb.com/mariadb/maxscale-prometheus-exporter-ubi:v0.0.1
+  exporterMaxscaleImage: docker-registry2.mariadb.com/mariadb/maxscale-prometheus-exporter-ubi:v0.0.1
