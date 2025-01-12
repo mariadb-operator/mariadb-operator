@@ -159,6 +159,9 @@ var _ = Describe("MaxScale types", func() {
 							},
 							MonitorMaxConnections: 30,
 						},
+						TLS: &MaxScaleTLS{
+							Enabled: true,
+						},
 					},
 				},
 				env,
@@ -292,6 +295,9 @@ var _ = Describe("MaxScale types", func() {
 							},
 							MonitorMaxConnections: 30,
 						},
+						TLS: &MaxScaleTLS{
+							Enabled: true,
+						},
 					},
 				},
 				env,
@@ -352,6 +358,21 @@ var _ = Describe("MaxScale types", func() {
 						},
 						Monitor: MaxScaleMonitor{
 							Module: MonitorModuleMariadb,
+						},
+						TLS: &MaxScaleTLS{
+							Enabled: true,
+							AdminCASecretRef: &LocalObjectReference{
+								Name: "admin-ca",
+							},
+							AdminCertSecretRef: &LocalObjectReference{
+								Name: "admin-cert",
+							},
+							ListenerCASecretRef: &LocalObjectReference{
+								Name: "listener-ca",
+							},
+							ListenerCertSecretRef: &LocalObjectReference{
+								Name: "listener-cert",
+							},
 						},
 						Metrics: &MaxScaleMetrics{
 							Enabled: true,
@@ -545,6 +566,21 @@ var _ = Describe("MaxScale types", func() {
 								Address:  "mariadb-repl-2.mariadb-repl-internal.default.svc.cluster.local",
 								Port:     3306,
 								Protocol: "MariaDBBackend",
+							},
+						},
+						TLS: &MaxScaleTLS{
+							Enabled: true,
+							AdminCASecretRef: &LocalObjectReference{
+								Name: "admin-ca",
+							},
+							AdminCertSecretRef: &LocalObjectReference{
+								Name: "admin-cert",
+							},
+							ListenerCASecretRef: &LocalObjectReference{
+								Name: "listener-ca",
+							},
+							ListenerCertSecretRef: &LocalObjectReference{
+								Name: "listener-cert",
 							},
 						},
 						Metrics: &MaxScaleMetrics{

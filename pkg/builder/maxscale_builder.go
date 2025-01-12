@@ -43,9 +43,9 @@ func (b *Builder) BuildMaxScale(key types.NamespacedName, mdb *mariadbv1alpha1.M
 			RequeueInterval:      mdbmxs.RequeueInterval,
 		},
 	}
-	if mxs.Spec.TLS == nil && mdb.IsTLSEnabled() {
+	if mxs.Spec.TLS == nil {
 		mxs.Spec.TLS = &mariadbv1alpha1.MaxScaleTLS{
-			Enabled: true,
+			Enabled: mdb.IsTLSEnabled(),
 		}
 	}
 	if err := controllerutil.SetControllerReference(mdb, &mxs, b.scheme); err != nil {

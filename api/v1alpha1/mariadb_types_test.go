@@ -55,6 +55,9 @@ var _ = Describe("MariaDB types", func() {
 							ResizeInUseVolumes:  ptr.To(true),
 							WaitForVolumeResize: ptr.To(true),
 						},
+						TLS: &TLS{
+							Enabled: true,
+						},
 						UpdateStrategy: UpdateStrategy{
 							Type:                ReplicasFirstPrimaryLastUpdateType,
 							AutoUpdateDataPlane: ptr.To(false),
@@ -107,6 +110,9 @@ var _ = Describe("MariaDB types", func() {
 							ResizeInUseVolumes:  ptr.To(true),
 							WaitForVolumeResize: ptr.To(true),
 						},
+						TLS: &TLS{
+							Enabled: true,
+						},
 						UpdateStrategy: UpdateStrategy{
 							Type:                ReplicasFirstPrimaryLastUpdateType,
 							AutoUpdateDataPlane: ptr.To(false),
@@ -138,6 +144,9 @@ var _ = Describe("MariaDB types", func() {
 							Ephemeral:           ptr.To(false),
 							ResizeInUseVolumes:  ptr.To(true),
 							WaitForVolumeResize: ptr.To(true),
+						},
+						TLS: &TLS{
+							Enabled: true,
 						},
 						UpdateStrategy: UpdateStrategy{
 							Type:                ReplicasFirstPrimaryLastUpdateType,
@@ -198,6 +207,9 @@ var _ = Describe("MariaDB types", func() {
 							Ephemeral:           ptr.To(false),
 							ResizeInUseVolumes:  ptr.To(true),
 							WaitForVolumeResize: ptr.To(true),
+						},
+						TLS: &TLS{
+							Enabled: true,
 						},
 						UpdateStrategy: UpdateStrategy{
 							Type:                ReplicasFirstPrimaryLastUpdateType,
@@ -265,6 +277,9 @@ var _ = Describe("MariaDB types", func() {
 							ResizeInUseVolumes:  ptr.To(true),
 							WaitForVolumeResize: ptr.To(true),
 						},
+						TLS: &TLS{
+							Enabled: true,
+						},
 						UpdateStrategy: UpdateStrategy{
 							Type:                ReplicasFirstPrimaryLastUpdateType,
 							AutoUpdateDataPlane: ptr.To(false),
@@ -315,6 +330,9 @@ var _ = Describe("MariaDB types", func() {
 							Ephemeral:           ptr.To(false),
 							ResizeInUseVolumes:  ptr.To(true),
 							WaitForVolumeResize: ptr.To(true),
+						},
+						TLS: &TLS{
+							Enabled: true,
 						},
 						UpdateStrategy: UpdateStrategy{
 							Type:                ReplicasFirstPrimaryLastUpdateType,
@@ -374,6 +392,9 @@ var _ = Describe("MariaDB types", func() {
 							ResizeInUseVolumes:  ptr.To(true),
 							WaitForVolumeResize: ptr.To(true),
 						},
+						TLS: &TLS{
+							Enabled: true,
+						},
 						UpdateStrategy: UpdateStrategy{
 							Type:                ReplicasFirstPrimaryLastUpdateType,
 							AutoUpdateDataPlane: ptr.To(false),
@@ -431,6 +452,9 @@ var _ = Describe("MariaDB types", func() {
 							Ephemeral:           ptr.To(false),
 							ResizeInUseVolumes:  ptr.To(true),
 							WaitForVolumeResize: ptr.To(true),
+						},
+						TLS: &TLS{
+							Enabled: true,
 						},
 						UpdateStrategy: UpdateStrategy{
 							Type:                ReplicasFirstPrimaryLastUpdateType,
@@ -518,6 +542,9 @@ var _ = Describe("MariaDB types", func() {
 							ResizeInUseVolumes:  ptr.To(true),
 							WaitForVolumeResize: ptr.To(true),
 						},
+						TLS: &TLS{
+							Enabled: true,
+						},
 						UpdateStrategy: UpdateStrategy{
 							Type:                ReplicasFirstPrimaryLastUpdateType,
 							AutoUpdateDataPlane: ptr.To(false),
@@ -590,6 +617,9 @@ var _ = Describe("MariaDB types", func() {
 							ResizeInUseVolumes:  ptr.To(true),
 							WaitForVolumeResize: ptr.To(true),
 						},
+						TLS: &TLS{
+							Enabled: true,
+						},
 						UpdateStrategy: UpdateStrategy{
 							Type:                ReplicasFirstPrimaryLastUpdateType,
 							AutoUpdateDataPlane: ptr.To(false),
@@ -648,6 +678,9 @@ var _ = Describe("MariaDB types", func() {
 									StorageClassName: ptr.To("my-class"),
 								},
 							},
+						},
+						TLS: &TLS{
+							Enabled: true,
 						},
 						UpdateStrategy: UpdateStrategy{
 							Type:                ReplicasFirstPrimaryLastUpdateType,
@@ -737,6 +770,77 @@ var _ = Describe("MariaDB types", func() {
 							Type:                ReplicasFirstPrimaryLastUpdateType,
 							AutoUpdateDataPlane: ptr.To(false),
 						},
+						TLS: &TLS{
+							Enabled: true,
+						},
+					},
+				},
+				env,
+			),
+			Entry(
+				"TLS",
+				&MariaDB{
+					ObjectMeta: objMeta,
+					Spec: MariaDBSpec{
+						TLS: &TLS{
+							Enabled: true,
+							ServerCASecretRef: &LocalObjectReference{
+								Name: "server-ca",
+							},
+							ServerCertSecretRef: &LocalObjectReference{
+								Name: "server-cert",
+							},
+							ClientCASecretRef: &LocalObjectReference{
+								Name: "client-ca",
+							},
+							ClientCertSecretRef: &LocalObjectReference{
+								Name: "client-cert",
+							},
+						},
+					},
+				},
+				&MariaDB{
+					ObjectMeta: objMeta,
+					Spec: MariaDBSpec{
+						PodTemplate: PodTemplate{
+							ServiceAccountName: &objMeta.Name,
+						},
+						Image:             env.RelatedMariadbImage,
+						RootEmptyPassword: ptr.To(false),
+						RootPasswordSecretKeyRef: GeneratedSecretKeyRef{
+							SecretKeySelector: SecretKeySelector{
+								LocalObjectReference: LocalObjectReference{
+									Name: "mariadb-obj-root",
+								},
+								Key: "password",
+							},
+							Generate: true,
+						},
+						Port: 3306,
+						Storage: Storage{
+							Ephemeral:           ptr.To(false),
+							ResizeInUseVolumes:  ptr.To(true),
+							WaitForVolumeResize: ptr.To(true),
+						},
+						TLS: &TLS{
+							Enabled: true,
+							ServerCASecretRef: &LocalObjectReference{
+								Name: "server-ca",
+							},
+							ServerCertSecretRef: &LocalObjectReference{
+								Name: "server-cert",
+							},
+							ClientCASecretRef: &LocalObjectReference{
+								Name: "client-ca",
+							},
+							ClientCertSecretRef: &LocalObjectReference{
+								Name: "client-cert",
+							},
+						},
+						UpdateStrategy: UpdateStrategy{
+							Type:                ReplicasFirstPrimaryLastUpdateType,
+							AutoUpdateDataPlane: ptr.To(false),
+						},
 					},
 				},
 				env,
@@ -774,6 +878,9 @@ var _ = Describe("MariaDB types", func() {
 							Ephemeral:           ptr.To(false),
 							ResizeInUseVolumes:  ptr.To(true),
 							WaitForVolumeResize: ptr.To(true),
+						},
+						TLS: &TLS{
+							Enabled: true,
 						},
 						UpdateStrategy: UpdateStrategy{
 							Type:                OnDeleteUpdateType,
@@ -814,6 +921,9 @@ var _ = Describe("MariaDB types", func() {
 						Storage: Storage{
 							Ephemeral: ptr.To(true),
 						},
+						TLS: &TLS{
+							Enabled: true,
+						},
 						UpdateStrategy: UpdateStrategy{
 							Type:                ReplicasFirstPrimaryLastUpdateType,
 							AutoUpdateDataPlane: ptr.To(false),
@@ -853,6 +963,9 @@ var _ = Describe("MariaDB types", func() {
 							Ephemeral:           ptr.To(false),
 							ResizeInUseVolumes:  ptr.To(true),
 							WaitForVolumeResize: ptr.To(true),
+						},
+						TLS: &TLS{
+							Enabled: true,
 						},
 						UpdateStrategy: UpdateStrategy{
 							Type:                ReplicasFirstPrimaryLastUpdateType,
@@ -929,6 +1042,21 @@ var _ = Describe("MariaDB types", func() {
 						},
 						Metrics: &MariadbMetrics{
 							Enabled: true,
+						},
+						TLS: &TLS{
+							Enabled: true,
+							ServerCASecretRef: &LocalObjectReference{
+								Name: "server-ca",
+							},
+							ServerCertSecretRef: &LocalObjectReference{
+								Name: "server-cert",
+							},
+							ClientCASecretRef: &LocalObjectReference{
+								Name: "client-ca",
+							},
+							ClientCertSecretRef: &LocalObjectReference{
+								Name: "client-cert",
+							},
 						},
 						Storage: Storage{
 							Ephemeral:           ptr.To(false),
@@ -1049,6 +1177,21 @@ var _ = Describe("MariaDB types", func() {
 									},
 									StorageClassName: ptr.To("my-class"),
 								},
+							},
+						},
+						TLS: &TLS{
+							Enabled: true,
+							ServerCASecretRef: &LocalObjectReference{
+								Name: "server-ca",
+							},
+							ServerCertSecretRef: &LocalObjectReference{
+								Name: "server-cert",
+							},
+							ClientCASecretRef: &LocalObjectReference{
+								Name: "client-ca",
+							},
+							ClientCertSecretRef: &LocalObjectReference{
+								Name: "client-cert",
 							},
 						},
 						UpdateStrategy: UpdateStrategy{
