@@ -909,6 +909,11 @@ func (m *MaxScale) SetDefaults(env *environment.OperatorEnv, mariadb *MariaDB) {
 		}
 	}
 
+	if m.Spec.TLS == nil {
+		m.Spec.TLS = &MaxScaleTLS{
+			Enabled: true,
+		}
+	}
 	if m.Spec.TLS != nil && m.IsTLSEnabled() {
 		m.Spec.TLS.SetDefaults(mariadb)
 	}
