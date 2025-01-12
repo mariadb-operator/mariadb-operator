@@ -49,7 +49,7 @@ var _ = Describe("MariaDB spec", func() {
 			if err := k8sClient.Get(testCtx, key, &mdb); err != nil {
 				return false
 			}
-			return mdb.Spec.Image != ""
+			return mdb.Spec.Image != "" && mdb.Spec.TLS != nil && mdb.Spec.TLS.Enabled
 		}, testTimeout, testInterval).Should(BeTrue())
 	})
 

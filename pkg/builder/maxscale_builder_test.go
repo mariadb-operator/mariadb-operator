@@ -87,10 +87,14 @@ func TestMaxScaleTLS(t *testing.T) {
 		{
 			name: "tls not enabled in MariaDB",
 			mariadb: &mariadbv1alpha1.MariaDB{
-				Spec: mariadbv1alpha1.MariaDBSpec{},
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					TLS: &mariadbv1alpha1.TLS{
+						Enabled: false,
+					},
+				},
 			},
 			mdbmxs:  &mariadbv1alpha1.MariaDBMaxScaleSpec{},
-			wantTLS: nil,
+			wantTLS: &mariadbv1alpha1.MaxScaleTLS{Enabled: false},
 		},
 		{
 			name: "tls explicitly set in MaxScaleSpec",
