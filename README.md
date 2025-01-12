@@ -47,7 +47,7 @@ Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB
 - Multi-arch distroless [image](https://github.com/orgs/mariadb-operator/packages/container/package/mariadb-operator).
 - [GitOps](#gitops) friendly.
 
-Please, refer to the [documentation](./docs/), [release notes](https://github.com/mariadb-operator/mariadb-operator/releases), the [API reference](./docs/API_REFERENCE.md) and the [example suite](./examples/) for further detail, or dive into the [quickstart](./docs/quickstart.md).
+Please, refer to the [documentation](./docs/), [release notes](https://github.com/mariadb-operator/mariadb-operator/releases), the [API reference](./docs/API_REFERENCE.md) and the [example suite](./examples/) for further detail, or dive into the [quickstart](./docs/QUICKSTART.md).
 
 ## Helm installation
 
