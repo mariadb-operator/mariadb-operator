@@ -372,7 +372,7 @@ func TestHelmConfigMap(t *testing.T) {
 			"config.mariadbImage":          "mariadb:10.5",
 			"config.maxscaleImage":         "maxscale:2.5",
 			"config.exporterImage":         "exporter:1.0",
-			"config.exporterMaxScaleImage": "exporter-maxscale:1.0",
+			"config.exporterMaxscaleImage": "exporter-maxscale:1.0",
 		},
 	}
 	configMapData := helm.RenderTemplate(t, opts, helmChartPath, helmReleaseName, []string{"templates/configmap.yaml"})

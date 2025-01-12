@@ -2,6 +2,7 @@
 
 HELM_DIR ?= deploy/charts/mariadb-operator
 HELM_CHART_FILE ?= $(HELM_DIR)/Chart.yaml
+HELM_VALUES_FILE ?= $(HELM_DIR)/values.yaml
 
 HELM_CRDS_DIR ?= deploy/charts/mariadb-operator-crds
 HELM_CRDS_CHART_FILE ?= $(HELM_CRDS_DIR)/Chart.yaml
@@ -22,18 +23,14 @@ helm-crds: kustomize ## Generate CRDs for the Helm chart.
 	$(KUSTOMIZE) build config/crd > $(HELM_CRDS_DIR)/templates/crds.yaml
 	helm dependency update deploy/charts/mariadb-operator
 
-.PHONY: helm-env
-helm-env: ## Update operator env in the Helm chart.
-	$(KUBECTL) create configmap mariadb-operator-env \
-		--from-literal=RELATED_IMAGE_MARIADB=$(RELATED_IMAGE_MARIADB) \
-		--from-literal=RELATED_IMAGE_MAXSCALE=$(RELATED_IMAGE_MAXSCALE) \
-		--from-literal=RELATED_IMAGE_EXPORTER=$(RELATED_IMAGE_EXPORTER) \
-		--from-literal=RELATED_IMAGE_EXPORTER_MAXSCALE=$(RELATED_IMAGE_EXPORTER_MAXSCALE) \
-		--from-literal=MARIADB_OPERATOR_IMAGE=$(IMG) \
-		--from-literal=MARIADB_GALERA_LIB_PATH=$(MARIADB_GALERA_LIB_PATH) \
-		--from-literal=MARIADB_ENTRYPOINT_VERSION=$(MARIADB_ENTRYPOINT_VERSION) \
-		--dry-run=client -o yaml \
-		> $(HELM_DIR)/templates/configmap.yaml
+.PHONY: helm-config
+helm-config: yq ## Update operator config in the Helm chart.
+	$(YQ) e -i '.config.entrypointVersion = "$(MARIADB_ENTRYPOINT_VERSION)"' $(HELM_VALUES_FILE)
+	$(YQ) e -i '.config.galeraLibPath = "$(MARIADB_GALERA_LIB_PATH)"' $(HELM_VALUES_FILE)
+	$(YQ) e -i '.config.mariadbImage = "$(RELATED_IMAGE_MARIADB)"' $(HELM_VALUES_FILE)
+	$(YQ) e -i '.config.maxscaleImage = "$(RELATED_IMAGE_MAXSCALE)"' $(HELM_VALUES_FILE)
+	$(YQ) e -i '.config.exporterImage = "$(RELATED_IMAGE_EXPORTER)"' $(HELM_VALUES_FILE)
+	$(YQ) e -i '.config.exporterMaxscaleImage = "$(RELATED_IMAGE_EXPORTER_MAXSCALE)"' $(HELM_VALUES_FILE)
 
 HELM_DOCS_IMG ?= jnorwood/helm-docs:v1.14.2
 .PHONY: helm-docs
@@ -44,7 +41,7 @@ helm-docs: ## Generate Helm chart docs.
 		$(HELM_DOCS_IMG)
 
 .PHONY: helm-gen
-helm-gen: helm-crds helm-env helm-docs ## Generate manifests and documentation for the Helm chart.
+helm-gen: helm-crds helm-config helm-docs ## Generate manifests and documentation for the Helm chart.
 
 .PHONY: helm-version
 helm-version: yq ## Get mariadb-operator chart version.
