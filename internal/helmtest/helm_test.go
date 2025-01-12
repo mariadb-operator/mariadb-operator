@@ -381,7 +381,7 @@ func TestHelmConfigMap(t *testing.T) {
 	Expect(configMap.Name).To(Equal("mariadb-operator-env"))
 	Expect(configMap.Data["MARIADB_OPERATOR_IMAGE"]).To(Equal(repository + ":" + tag))
 	Expect(configMap.Data["MARIADB_GALERA_LIB_PATH"]).To(Equal("/path/to/libgalera.so"))
-	Expect(configMap.Data["MARIADB_ENTRYPOINT_VERSION"]).To(Equal("11.4"))
+	Expect(configMap.Data["MARIADB_DEFAULT_VERSION"]).To(Equal("11.4"))
 	Expect(configMap.Data["RELATED_IMAGE_MARIADB"]).To(Equal("mariadb:10.5"))
 	Expect(configMap.Data["RELATED_IMAGE_MAXSCALE"]).To(Equal("maxscale:2.5"))
 	Expect(configMap.Data["RELATED_IMAGE_EXPORTER"]).To(Equal("exporter:1.0"))
