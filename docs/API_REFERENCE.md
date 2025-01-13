@@ -343,6 +343,7 @@ _Appears in:_
 | `maxScaleRef` _[ObjectReference](#objectreference)_ | MaxScaleRef is a reference to the MaxScale to connect to. Either MariaDBRef or MaxScaleRef must be provided. |  |  |
 | `username` _string_ | Username to use for configuring the Connection. |  | Required: \{\} <br /> |
 | `passwordSecretKeyRef` _[SecretKeySelector](#secretkeyselector)_ | PasswordSecretKeyRef is a reference to the password to use for configuring the Connection.<br />If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password. |  | Required: \{\} <br /> |
+| `tlsClientCertSecretRef` _[LocalObjectReference](#localobjectreference)_ | TLSClientCertSecretRef is a reference to a Kubernetes TLS Secret used as authentication when checking the connection health.<br />If not provided, the client certificate provided by the referred MariaDB is used. |  |  |
 | `host` _string_ | Host to connect to. If not provided, it defaults to the MariaDB host or to the MaxScale host. |  |  |
 | `database` _string_ | Database to use when configuring the Connection. |  |  |
 
@@ -418,6 +419,7 @@ _Appears in:_
 | `volumeMounts` _[VolumeMount](#volumemount) array_ | VolumeMounts to be used in the Container. |  |  |
 | `livenessProbe` _[Probe](#probe)_ | LivenessProbe to be used in the Container. |  |  |
 | `readinessProbe` _[Probe](#probe)_ | ReadinessProbe to be used in the Container. |  |  |
+| `startupProbe` _[Probe](#probe)_ | StartupProbe to be used in the Container. |  |  |
 | `resources` _[ResourceRequirements](#resourcerequirements)_ | Resouces describes the compute resource requirements. |  |  |
 | `securityContext` _[SecurityContext](#securitycontext)_ | SecurityContext holds security configuration that will be applied to a container. |  |  |
 
@@ -674,11 +676,13 @@ _Appears in:_
 | `volumeMounts` _[VolumeMount](#volumemount) array_ | VolumeMounts to be used in the Container. |  |  |
 | `livenessProbe` _[Probe](#probe)_ | LivenessProbe to be used in the Container. |  |  |
 | `readinessProbe` _[Probe](#probe)_ | ReadinessProbe to be used in the Container. |  |  |
+| `startupProbe` _[Probe](#probe)_ | StartupProbe to be used in the Container. |  |  |
 | `resources` _[ResourceRequirements](#resourcerequirements)_ | Resouces describes the compute resource requirements. |  |  |
 | `securityContext` _[SecurityContext](#securitycontext)_ | SecurityContext holds security configuration that will be applied to a container. |  |  |
 | `image` _string_ | Image name to be used by the MariaDB instances. The supported format is `<image>:<tag>`. |  |  |
 | `imagePullPolicy` _[PullPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#pullpolicy-v1-core)_ | ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`. |  | Enum: [Always Never IfNotPresent] <br /> |
-| `port` _integer_ | Port where the agent will be listening for connections. |  |  |
+| `port` _integer_ | Port where the agent will be listening for API connections. |  |  |
+| `probePort` _integer_ | Port where the agent will be listening for probe connections. |  |  |
 | `kubernetesAuth` _[KubernetesAuth](#kubernetesauth)_ | KubernetesAuth to be used by the agent container |  |  |
 | `basicAuth` _[BasicAuth](#basicauth)_ | BasicAuth to be used by the agent container |  |  |
 | `gracefulShutdownTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#duration-v1-meta)_ | GracefulShutdownTimeout is the time we give to the agent container in order to gracefully terminate in-flight requests. |  |  |
@@ -723,6 +727,7 @@ _Appears in:_
 | `volumeMounts` _[VolumeMount](#volumemount) array_ | VolumeMounts to be used in the Container. |  |  |
 | `livenessProbe` _[Probe](#probe)_ | LivenessProbe to be used in the Container. |  |  |
 | `readinessProbe` _[Probe](#probe)_ | ReadinessProbe to be used in the Container. |  |  |
+| `startupProbe` _[Probe](#probe)_ | StartupProbe to be used in the Container. |  |  |
 | `resources` _[ResourceRequirements](#resourcerequirements)_ | Resouces describes the compute resource requirements. |  |  |
 | `securityContext` _[SecurityContext](#securitycontext)_ | SecurityContext holds security configuration that will be applied to a container. |  |  |
 | `image` _string_ | Image name to be used by the MariaDB instances. The supported format is `<image>:<tag>`. |  | Required: \{\} <br /> |
@@ -1051,6 +1056,7 @@ _Appears in:_
 - [CSIVolumeSource](#csivolumesource)
 - [ConfigMapKeySelector](#configmapkeyselector)
 - [ConfigMapVolumeSource](#configmapvolumesource)
+- [ConnectionSpec](#connectionspec)
 - [EnvFromSource](#envfromsource)
 - [Exporter](#exporter)
 - [GeneratedSecretKeyRef](#generatedsecretkeyref)
@@ -1058,11 +1064,13 @@ _Appears in:_
 - [MariaDBSpec](#mariadbspec)
 - [MaxScalePodTemplate](#maxscalepodtemplate)
 - [MaxScaleSpec](#maxscalespec)
+- [MaxScaleTLS](#maxscaletls)
 - [PodTemplate](#podtemplate)
 - [RestoreSource](#restoresource)
 - [RestoreSpec](#restorespec)
 - [SecretKeySelector](#secretkeyselector)
 - [SqlJobSpec](#sqljobspec)
+- [TLS](#tls)
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
@@ -1109,6 +1117,7 @@ _Appears in:_
 | `config` _[MaxScaleConfig](#maxscaleconfig)_ | Config defines the MaxScale configuration. |  |  |
 | `auth` _[MaxScaleAuth](#maxscaleauth)_ | Auth defines the credentials required for MaxScale to connect to MariaDB. |  |  |
 | `metrics` _[MaxScaleMetrics](#maxscalemetrics)_ | Metrics configures metrics and how to scrape them. |  |  |
+| `tls` _[MaxScaleTLS](#maxscaletls)_ | TLS defines the PKI to be used with MaxScale. |  |  |
 | `connection` _[ConnectionTemplate](#connectiontemplate)_ | Connection provides a template to define the Connection for MaxScale. |  |  |
 | `replicas` _integer_ | Replicas indicates the number of desired instances. |  |  |
 | `podDisruptionBudget` _[PodDisruptionBudget](#poddisruptionbudget)_ | PodDisruptionBudget defines the budget for replica availability. |  |  |
@@ -1163,6 +1172,7 @@ _Appears in:_
 | `volumeMounts` _[VolumeMount](#volumemount) array_ | VolumeMounts to be used in the Container. |  |  |
 | `livenessProbe` _[Probe](#probe)_ | LivenessProbe to be used in the Container. |  |  |
 | `readinessProbe` _[Probe](#probe)_ | ReadinessProbe to be used in the Container. |  |  |
+| `startupProbe` _[Probe](#probe)_ | StartupProbe to be used in the Container. |  |  |
 | `resources` _[ResourceRequirements](#resourcerequirements)_ | Resouces describes the compute resource requirements. |  |  |
 | `securityContext` _[SecurityContext](#securitycontext)_ | SecurityContext holds security configuration that will be applied to a container. |  |  |
 | `podMetadata` _[Metadata](#metadata)_ | PodMetadata defines extra metadata for the Pod. |  |  |
@@ -1194,6 +1204,7 @@ _Appears in:_
 | `bootstrapFrom` _[BootstrapFrom](#bootstrapfrom)_ | BootstrapFrom defines a source to bootstrap from. |  |  |
 | `storage` _[Storage](#storage)_ | Storage defines the storage options to be used for provisioning the PVCs mounted by MariaDB. |  |  |
 | `metrics` _[MariadbMetrics](#mariadbmetrics)_ | Metrics configures metrics and how to scrape them. |  |  |
+| `tls` _[TLS](#tls)_ | TLS defines the PKI to be used with MariaDB. |  |  |
 | `replication` _[Replication](#replication)_ | Replication configures high availability via replication. This feature is still in alpha, use Galera if you are looking for a more production-ready HA. |  |  |
 | `galera` _[Galera](#galera)_ | Replication configures high availability via Galera. |  |  |
 | `maxScaleRef` _[ObjectReference](#objectreference)_ | MaxScaleRef is a reference to a MaxScale resource to be used with the current MariaDB.<br />Providing this field implies delegating high availability tasks such as primary failover to MaxScale. |  |  |
@@ -1486,6 +1497,7 @@ _Appears in:_
 | `volumeMounts` _[VolumeMount](#volumemount) array_ | VolumeMounts to be used in the Container. |  |  |
 | `livenessProbe` _[Probe](#probe)_ | LivenessProbe to be used in the Container. |  |  |
 | `readinessProbe` _[Probe](#probe)_ | ReadinessProbe to be used in the Container. |  |  |
+| `startupProbe` _[Probe](#probe)_ | StartupProbe to be used in the Container. |  |  |
 | `resources` _[ResourceRequirements](#resourcerequirements)_ | Resouces describes the compute resource requirements. |  |  |
 | `securityContext` _[SecurityContext](#securitycontext)_ | SecurityContext holds security configuration that will be applied to a container. |  |  |
 | `podMetadata` _[Metadata](#metadata)_ | PodMetadata defines extra metadata for the Pod. |  |  |
@@ -1509,6 +1521,7 @@ _Appears in:_
 | `config` _[MaxScaleConfig](#maxscaleconfig)_ | Config defines the MaxScale configuration. |  |  |
 | `auth` _[MaxScaleAuth](#maxscaleauth)_ | Auth defines the credentials required for MaxScale to connect to MariaDB. |  |  |
 | `metrics` _[MaxScaleMetrics](#maxscalemetrics)_ | Metrics configures metrics and how to scrape them. |  |  |
+| `tls` _[MaxScaleTLS](#maxscaletls)_ | TLS defines the PKI to be used with MaxScale. |  |  |
 | `connection` _[ConnectionTemplate](#connectiontemplate)_ | Connection provides a template to define the Connection for MaxScale. |  |  |
 | `replicas` _integer_ | Replicas indicates the number of desired instances. | 1 |  |
 | `podDisruptionBudget` _[PodDisruptionBudget](#poddisruptionbudget)_ | PodDisruptionBudget defines the budget for replica availability. |  |  |
@@ -1516,6 +1529,34 @@ _Appears in:_
 | `kubernetesService` _[ServiceTemplate](#servicetemplate)_ | KubernetesService defines a template for a Kubernetes Service object to connect to MaxScale. |  |  |
 | `guiKubernetesService` _[ServiceTemplate](#servicetemplate)_ | GuiKubernetesService defines a template for a Kubernetes Service object to connect to MaxScale's GUI. |  |  |
 | `requeueInterval` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#duration-v1-meta)_ | RequeueInterval is used to perform requeue reconciliations. If not defined, it defaults to 10s. |  |  |
+
+
+#### MaxScaleTLS
+
+
+
+TLS defines the PKI to be used with MaxScale.
+
+
+
+_Appears in:_
+- [MariaDBMaxScaleSpec](#mariadbmaxscalespec)
+- [MaxScaleSpec](#maxscalespec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `enabled` _boolean_ | Enabled is a flag to enable TLS. |  |  |
+| `adminCASecretRef` _[LocalObjectReference](#localobjectreference)_ | AdminCASecretRef is a reference to a Secret containing the admin certificate authority keypair. It is used to establish trust and issue certificates for the MaxScale's administrative REST API and GUI.<br />One of:<br />- Secret containing both the 'ca.crt' and 'ca.key' keys. This allows you to bring your own CA to Kubernetes to issue certificates.<br />- Secret containing only the 'ca.crt' in order to establish trust. In this case, either adminCertSecretRef or adminCertIssuerRef fields must be provided.<br />If not provided, a self-signed CA will be provisioned to issue the server certificate. |  |  |
+| `adminCertSecretRef` _[LocalObjectReference](#localobjectreference)_ | AdminCertSecretRef is a reference to a TLS Secret used by the MaxScale's administrative REST API and GUI. |  |  |
+| `adminCertIssuerRef` _[ObjectReference](#objectreference)_ | AdminCertIssuerRef is a reference to a cert-manager issuer object used to issue the MaxScale's administrative REST API and GUI certificate. cert-manager must be installed previously in the cluster.<br />It is mutually exclusive with adminCertSecretRef.<br />By default, the Secret field 'ca.crt' provisioned by cert-manager will be added to the trust chain. A custom trust bundle may be specified via adminCASecretRef. |  |  |
+| `listenerCASecretRef` _[LocalObjectReference](#localobjectreference)_ | ListenerCASecretRef is a reference to a Secret containing the listener certificate authority keypair. It is used to establish trust and issue certificates for the MaxScale's listeners.<br />One of:<br />- Secret containing both the 'ca.crt' and 'ca.key' keys. This allows you to bring your own CA to Kubernetes to issue certificates.<br />- Secret containing only the 'ca.crt' in order to establish trust. In this case, either listenerCertSecretRef or listenerCertIssuerRef fields must be provided.<br />If not provided, a self-signed CA will be provisioned to issue the listener certificate. |  |  |
+| `listenerCertSecretRef` _[LocalObjectReference](#localobjectreference)_ | ListenerCertSecretRef is a reference to a TLS Secret used by the MaxScale's listeners. |  |  |
+| `listenerCertIssuerRef` _[ObjectReference](#objectreference)_ | ListenerCertIssuerRef is a reference to a cert-manager issuer object used to issue the MaxScale's listeners certificate. cert-manager must be installed previously in the cluster.<br />It is mutually exclusive with listenerCertSecretRef.<br />By default, the Secret field 'ca.crt' provisioned by cert-manager will be added to the trust chain. A custom trust bundle may be specified via listenerCASecretRef. |  |  |
+| `serverCASecretRef` _[LocalObjectReference](#localobjectreference)_ | ServerCASecretRef is a reference to a Secret containing the MariaDB server CA certificates. It is used to establish trust with MariaDB servers.<br />The Secret should contain a 'ca.crt' key in order to establish trust.<br />If not provided, and the reference to a MariaDB resource is set (mariaDbRef), it will be defaulted to the referred MariaDB CA bundle. |  |  |
+| `serverCertSecretRef` _[LocalObjectReference](#localobjectreference)_ | ServerCertSecretRef is a reference to a TLS Secret used by MaxScale to connect to the MariaDB servers.<br />If not provided, and the reference to a MariaDB resource is set (mariaDbRef), it will be defaulted to the referred MariaDB client certificate (clientCertSecretRef). |  |  |
+| `verifyPeerCertificate` _boolean_ | VerifyPeerCertificate specifies whether the peer certificate's signature should be validated against the CA. It is enabled by default. |  |  |
+| `verifyPeerHost` _boolean_ | VerifyPeerHost specifies whether the peer certificate's SANs should match the peer host. It is disabled by default. |  |  |
+| `replicationSSLEnabled` _boolean_ | ReplicationSSLEnabled specifies whether the replication SSL is enabled. If enabled, the SSL options will be added to the server configuration.<br />This field is automatically set when a reference to a MariaDB via the 'mariaDbRef' field is provided.<br />If the MariaDB servers are manually provided by the user via the 'servers' field, this must be set by the user as well. |  |  |
 
 
 #### Metadata
@@ -1916,6 +1957,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `exec` _[ExecAction](#execaction)_ |  |  |  |
 | `httpGet` _[HTTPGetAction](#httpgetaction)_ |  |  |  |
+| `tcpSocket` _[TCPSocketAction](#tcpsocketaction)_ |  |  |  |
 | `initialDelaySeconds` _integer_ |  |  |  |
 | `timeoutSeconds` _integer_ |  |  |  |
 | `periodSeconds` _integer_ |  |  |  |
@@ -1938,6 +1980,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `exec` _[ExecAction](#execaction)_ |  |  |  |
 | `httpGet` _[HTTPGetAction](#httpgetaction)_ |  |  |  |
+| `tcpSocket` _[TCPSocketAction](#tcpsocketaction)_ |  |  |  |
 
 
 #### ReplicaReplication
@@ -2125,10 +2168,10 @@ _Appears in:_
 | `endpoint` _string_ | Endpoint is the S3 API endpoint without scheme. |  | Required: \{\} <br /> |
 | `region` _string_ | Region is the S3 region name to use. |  |  |
 | `prefix` _string_ | Prefix indicates a folder/subfolder in the bucket. For example: mariadb/ or mariadb/backups. A trailing slash '/' is added if not provided. |  |  |
-| `accessKeyIdSecretKeyRef` _[SecretKeySelector](#secretkeyselector)_ | AccessKeyIdSecretKeyRef is a reference to a Secret key containing the S3 access key id. |  | Required: \{\} <br /> |
-| `secretAccessKeySecretKeyRef` _[SecretKeySelector](#secretkeyselector)_ | AccessKeyIdSecretKeyRef is a reference to a Secret key containing the S3 secret key. |  | Required: \{\} <br /> |
+| `accessKeyIdSecretKeyRef` _[SecretKeySelector](#secretkeyselector)_ | AccessKeyIdSecretKeyRef is a reference to a Secret key containing the S3 access key id. |  |  |
+| `secretAccessKeySecretKeyRef` _[SecretKeySelector](#secretkeyselector)_ | AccessKeyIdSecretKeyRef is a reference to a Secret key containing the S3 secret key. |  |  |
 | `sessionTokenSecretKeyRef` _[SecretKeySelector](#secretkeyselector)_ | SessionTokenSecretKeyRef is a reference to a Secret key containing the S3 session token. |  |  |
-| `tls` _[TLS](#tls)_ | TLS provides the configuration required to establish TLS connections with S3. |  |  |
+| `tls` _[TLSS3](#tlss3)_ | TLS provides the configuration required to establish TLS connections with S3. |  |  |
 
 
 #### SQLTemplate
@@ -2205,7 +2248,7 @@ _Appears in:_
 - [PasswordPlugin](#passwordplugin)
 - [S3](#s3)
 - [SqlJobSpec](#sqljobspec)
-- [TLS](#tls)
+- [TLSS3](#tlss3)
 - [UserSpec](#userspec)
 
 | Field | Description | Default | Validation |
@@ -2489,7 +2532,66 @@ _Appears in:_
 | `suspend` _boolean_ | Suspend indicates whether the current resource should be suspended or not.<br />This can be useful for maintenance, as disabling the reconciliation prevents the operator from interfering with user operations during maintenance activities. | false |  |
 
 
+#### TCPSocketAction
+
+
+
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#tcpsocketaction-v1-core.
+
+
+
+_Appears in:_
+- [Probe](#probe)
+- [ProbeHandler](#probehandler)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `port` _[IntOrString](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#intorstring-intstr-util)_ |  |  |  |
+| `host` _string_ |  |  |  |
+
+
 #### TLS
+
+
+
+TLS defines the PKI to be used with MariaDB.
+
+
+
+_Appears in:_
+- [MariaDBSpec](#mariadbspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `enabled` _boolean_ | Enabled is a flag to enable TLS. |  |  |
+| `serverCASecretRef` _[LocalObjectReference](#localobjectreference)_ | ServerCASecretRef is a reference to a Secret containing the server certificate authority keypair. It is used to establish trust and issue server certificates.<br />One of:<br />- Secret containing both the 'ca.crt' and 'ca.key' keys. This allows you to bring your own CA to Kubernetes to issue certificates.<br />- Secret containing only the 'ca.crt' in order to establish trust. In this case, either serverCertSecretRef or serverCertIssuerRef must be provided.<br />If not provided, a self-signed CA will be provisioned to issue the server certificate. |  |  |
+| `serverCertSecretRef` _[LocalObjectReference](#localobjectreference)_ | ServerCertSecretRef is a reference to a TLS Secret containing the server certificate.<br />It is mutually exclusive with serverCertIssuerRef. |  |  |
+| `serverCertIssuerRef` _[ObjectReference](#objectreference)_ | ServerCertIssuerRef is a reference to a cert-manager issuer object used to issue the server certificate. cert-manager must be installed previously in the cluster.<br />It is mutually exclusive with serverCertSecretRef.<br />By default, the Secret field 'ca.crt' provisioned by cert-manager will be added to the trust chain. A custom trust bundle may be specified via serverCASecretRef. |  |  |
+| `clientCASecretRef` _[LocalObjectReference](#localobjectreference)_ | ClientCASecretRef is a reference to a Secret containing the client certificate authority keypair. It is used to establish trust and issue client certificates.<br />One of:<br />- Secret containing both the 'ca.crt' and 'ca.key' keys. This allows you to bring your own CA to Kubernetes to issue certificates.<br />- Secret containing only the 'ca.crt' in order to establish trust. In this case, either clientCertSecretRef or clientCertIssuerRef fields must be provided.<br />If not provided, a self-signed CA will be provisioned to issue the client certificate. |  |  |
+| `clientCertSecretRef` _[LocalObjectReference](#localobjectreference)_ | ClientCertSecretRef is a reference to a TLS Secret containing the client certificate.<br />It is mutually exclusive with clientCertIssuerRef. |  |  |
+| `clientCertIssuerRef` _[ObjectReference](#objectreference)_ | ClientCertIssuerRef is a reference to a cert-manager issuer object used to issue the client certificate. cert-manager must be installed previously in the cluster.<br />It is mutually exclusive with clientCertSecretRef.<br />By default, the Secret field 'ca.crt' provisioned by cert-manager will be added to the trust chain. A custom trust bundle may be specified via clientCASecretRef. |  |  |
+
+
+#### TLSRequirements
+
+
+
+TLSRequirements specifies TLS requirements for the user to connect. See: https://mariadb.com/kb/en/securing-connections-for-client-and-server/#requiring-tls.
+
+
+
+_Appears in:_
+- [UserSpec](#userspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `ssl` _boolean_ | SSL indicates that the user must connect via TLS. |  |  |
+| `x509` _boolean_ | X509 indicates that the user must provide a valid x509 certificate to connect. |  |  |
+| `issuer` _string_ | Issuer indicates that the TLS certificate provided by the user must be issued by a specific issuer. |  |  |
+| `subject` _string_ | Subject indicates that the TLS certificate provided by the user must have a specific subject. |  |  |
+
+
+#### TLSS3
 
 
 
@@ -2607,6 +2709,7 @@ _Appears in:_
 | `passwordSecretKeyRef` _[SecretKeySelector](#secretkeyselector)_ | PasswordSecretKeyRef is a reference to the password to be used by the User.<br />If not provided, the account will be locked and the password will expire.<br />If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password. |  |  |
 | `passwordHashSecretKeyRef` _[SecretKeySelector](#secretkeyselector)_ | PasswordHashSecretKeyRef is a reference to the password hash to be used by the User.<br />If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password hash. |  |  |
 | `passwordPlugin` _[PasswordPlugin](#passwordplugin)_ | PasswordPlugin is a reference to the password plugin and arguments to be used by the User. |  |  |
+| `require` _[TLSRequirements](#tlsrequirements)_ | Require specifies TLS requirements for the user to connect. See: https://mariadb.com/kb/en/securing-connections-for-client-and-server/#requiring-tls. |  |  |
 | `maxUserConnections` _integer_ | MaxUserConnections defines the maximum number of simultaneous connections that the User can establish. | 10 |  |
 | `name` _string_ | Name overrides the default name provided by metadata.name. |  | MaxLength: 80 <br /> |
 | `host` _string_ | Host related to the User. |  | MaxLength: 255 <br /> |

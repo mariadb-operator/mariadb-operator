@@ -1257,6 +1257,15 @@ spec:
               serviceName:
                 description: ServiceName to be used in the Connection.
                 type: string
+              tlsClientCertSecretRef:
+                description: |-
+                  TLSClientCertSecretRef is a reference to a Kubernetes TLS Secret used as authentication when checking the connection health.
+                  If not provided, the client certificate provided by the referred MariaDB is used.
+                properties:
+                  name:
+                    default: ""
+                    type: string
+                type: object
               username:
                 description: Username to use for configuring the Connection.
                 type: string
@@ -2960,12 +2969,31 @@ spec:
                           successThreshold:
                             format: int32
                             type: integer
+                          tcpSocket:
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#tcpsocketaction-v1-core.'
+                            properties:
+                              host:
+                                type: string
+                              port:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                x-kubernetes-int-or-string: true
+                            required:
+                            - port
+                            type: object
                           timeoutSeconds:
                             format: int32
                             type: integer
                         type: object
                       port:
-                        description: Port where the agent will be listening for connections.
+                        description: Port where the agent will be listening for API
+                          connections.
+                        format: int32
+                        type: integer
+                      probePort:
+                        description: Port where the agent will be listening for probe
+                          connections.
                         format: int32
                         type: integer
                       readinessProbe:
@@ -3011,6 +3039,19 @@ spec:
                           successThreshold:
                             format: int32
                             type: integer
+                          tcpSocket:
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#tcpsocketaction-v1-core.'
+                            properties:
+                              host:
+                                type: string
+                              port:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                x-kubernetes-int-or-string: true
+                            required:
+                            - port
+                            type: object
                           timeoutSeconds:
                             format: int32
                             type: integer
@@ -3077,6 +3118,66 @@ spec:
                             type: boolean
                           runAsUser:
                             format: int64
+                            type: integer
+                        type: object
+                      startupProbe:
+                        description: StartupProbe to be used in the Container.
+                        properties:
+                          exec:
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#execaction-v1-core.'
+                            properties:
+                              command:
+                                items:
+                                  type: string
+                                type: array
+                                x-kubernetes-list-type: atomic
+                            type: object
+                          failureThreshold:
+                            format: int32
+                            type: integer
+                          httpGet:
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#httpgetaction-v1-core.'
+                            properties:
+                              host:
+                                type: string
+                              path:
+                                type: string
+                              port:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                x-kubernetes-int-or-string: true
+                              scheme:
+                                description: URIScheme identifies the scheme used
+                                  for connection to a host for Get actions
+                                type: string
+                            required:
+                            - port
+                            type: object
+                          initialDelaySeconds:
+                            format: int32
+                            type: integer
+                          periodSeconds:
+                            format: int32
+                            type: integer
+                          successThreshold:
+                            format: int32
+                            type: integer
+                          tcpSocket:
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#tcpsocketaction-v1-core.'
+                            properties:
+                              host:
+                                type: string
+                              port:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                x-kubernetes-int-or-string: true
+                            required:
+                            - port
+                            type: object
+                          timeoutSeconds:
+                            format: int32
                             type: integer
                         type: object
                       volumeMounts:
@@ -3376,6 +3477,19 @@ spec:
                           successThreshold:
                             format: int32
                             type: integer
+                          tcpSocket:
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#tcpsocketaction-v1-core.'
+                            properties:
+                              host:
+                                type: string
+                              port:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                x-kubernetes-int-or-string: true
+                            required:
+                            - port
+                            type: object
                           timeoutSeconds:
                             format: int32
                             type: integer
@@ -3423,6 +3537,19 @@ spec:
                           successThreshold:
                             format: int32
                             type: integer
+                          tcpSocket:
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#tcpsocketaction-v1-core.'
+                            properties:
+                              host:
+                                type: string
+                              port:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                x-kubernetes-int-or-string: true
+                            required:
+                            - port
+                            type: object
                           timeoutSeconds:
                             format: int32
                             type: integer
@@ -3489,6 +3616,66 @@ spec:
                             type: boolean
                           runAsUser:
                             format: int64
+                            type: integer
+                        type: object
+                      startupProbe:
+                        description: StartupProbe to be used in the Container.
+                        properties:
+                          exec:
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#execaction-v1-core.'
+                            properties:
+                              command:
+                                items:
+                                  type: string
+                                type: array
+                                x-kubernetes-list-type: atomic
+                            type: object
+                          failureThreshold:
+                            format: int32
+                            type: integer
+                          httpGet:
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#httpgetaction-v1-core.'
+                            properties:
+                              host:
+                                type: string
+                              path:
+                                type: string
+                              port:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                x-kubernetes-int-or-string: true
+                              scheme:
+                                description: URIScheme identifies the scheme used
+                                  for connection to a host for Get actions
+                                type: string
+                            required:
+                            - port
+                            type: object
+                          initialDelaySeconds:
+                            format: int32
+                            type: integer
+                          periodSeconds:
+                            format: int32
+                            type: integer
+                          successThreshold:
+                            format: int32
+                            type: integer
+                          tcpSocket:
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#tcpsocketaction-v1-core.'
+                            properties:
+                              host:
+                                type: string
+                              port:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                x-kubernetes-int-or-string: true
+                            required:
+                            - port
+                            type: object
+                          timeoutSeconds:
+                            format: int32
                             type: integer
                         type: object
                       volumeMounts:
@@ -3916,6 +4103,19 @@ spec:
                   successThreshold:
                     format: int32
                     type: integer
+                  tcpSocket:
+                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#tcpsocketaction-v1-core.'
+                    properties:
+                      host:
+                        type: string
+                      port:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        x-kubernetes-int-or-string: true
+                    required:
+                    - port
+                    type: object
                   timeoutSeconds:
                     format: int32
                     type: integer
@@ -5101,6 +5301,123 @@ spec:
                       - router
                       type: object
                     type: array
+                  tls:
+                    description: TLS defines the PKI to be used with MaxScale.
+                    properties:
+                      adminCASecretRef:
+                        description: |-
+                          AdminCASecretRef is a reference to a Secret containing the admin certificate authority keypair. It is used to establish trust and issue certificates for the MaxScale's administrative REST API and GUI.
+                          One of:
+                          - Secret containing both the 'ca.crt' and 'ca.key' keys. This allows you to bring your own CA to Kubernetes to issue certificates.
+                          - Secret containing only the 'ca.crt' in order to establish trust. In this case, either adminCertSecretRef or adminCertIssuerRef fields must be provided.
+                          If not provided, a self-signed CA will be provisioned to issue the server certificate.
+                        properties:
+                          name:
+                            default: ""
+                            type: string
+                        type: object
+                      adminCertIssuerRef:
+                        description: |-
+                          AdminCertIssuerRef is a reference to a cert-manager issuer object used to issue the MaxScale's administrative REST API and GUI certificate. cert-manager must be installed previously in the cluster.
+                          It is mutually exclusive with adminCertSecretRef.
+                          By default, the Secret field 'ca.crt' provisioned by cert-manager will be added to the trust chain. A custom trust bundle may be specified via adminCASecretRef.
+                        properties:
+                          group:
+                            description: Group of the resource being referred to.
+                            type: string
+                          kind:
+                            description: Kind of the resource being referred to.
+                            type: string
+                          name:
+                            description: Name of the resource being referred to.
+                            type: string
+                        required:
+                        - name
+                        type: object
+                      adminCertSecretRef:
+                        description: AdminCertSecretRef is a reference to a TLS Secret
+                          used by the MaxScale's administrative REST API and GUI.
+                        properties:
+                          name:
+                            default: ""
+                            type: string
+                        type: object
+                      enabled:
+                        description: Enabled is a flag to enable TLS.
+                        type: boolean
+                      listenerCASecretRef:
+                        description: |-
+                          ListenerCASecretRef is a reference to a Secret containing the listener certificate authority keypair. It is used to establish trust and issue certificates for the MaxScale's listeners.
+                          One of:
+                          - Secret containing both the 'ca.crt' and 'ca.key' keys. This allows you to bring your own CA to Kubernetes to issue certificates.
+                          - Secret containing only the 'ca.crt' in order to establish trust. In this case, either listenerCertSecretRef or listenerCertIssuerRef fields must be provided.
+                          If not provided, a self-signed CA will be provisioned to issue the listener certificate.
+                        properties:
+                          name:
+                            default: ""
+                            type: string
+                        type: object
+                      listenerCertIssuerRef:
+                        description: |-
+                          ListenerCertIssuerRef is a reference to a cert-manager issuer object used to issue the MaxScale's listeners certificate. cert-manager must be installed previously in the cluster.
+                          It is mutually exclusive with listenerCertSecretRef.
+                          By default, the Secret field 'ca.crt' provisioned by cert-manager will be added to the trust chain. A custom trust bundle may be specified via listenerCASecretRef.
+                        properties:
+                          group:
+                            description: Group of the resource being referred to.
+                            type: string
+                          kind:
+                            description: Kind of the resource being referred to.
+                            type: string
+                          name:
+                            description: Name of the resource being referred to.
+                            type: string
+                        required:
+                        - name
+                        type: object
+                      listenerCertSecretRef:
+                        description: ListenerCertSecretRef is a reference to a TLS
+                          Secret used by the MaxScale's listeners.
+                        properties:
+                          name:
+                            default: ""
+                            type: string
+                        type: object
+                      replicationSSLEnabled:
+                        description: |-
+                          ReplicationSSLEnabled specifies whether the replication SSL is enabled. If enabled, the SSL options will be added to the server configuration.
+                          This field is automatically set when a reference to a MariaDB via the 'mariaDbRef' field is provided.
+                          If the MariaDB servers are manually provided by the user via the 'servers' field, this must be set by the user as well.
+                        type: boolean
+                      serverCASecretRef:
+                        description: |-
+                          ServerCASecretRef is a reference to a Secret containing the MariaDB server CA certificates. It is used to establish trust with MariaDB servers.
+                          The Secret should contain a 'ca.crt' key in order to establish trust.
+                          If not provided, and the reference to a MariaDB resource is set (mariaDbRef), it will be defaulted to the referred MariaDB CA bundle.
+                        properties:
+                          name:
+                            default: ""
+                            type: string
+                        type: object
+                      serverCertSecretRef:
+                        description: |-
+                          ServerCertSecretRef is a reference to a TLS Secret used by MaxScale to connect to the MariaDB servers.
+                          If not provided, and the reference to a MariaDB resource is set (mariaDbRef), it will be defaulted to the referred MariaDB client certificate (clientCertSecretRef).
+                        properties:
+                          name:
+                            default: ""
+                            type: string
+                        type: object
+                      verifyPeerCertificate:
+                        description: VerifyPeerCertificate specifies whether the peer
+                          certificate's signature should be validated against the
+                          CA. It is enabled by default.
+                        type: boolean
+                      verifyPeerHost:
+                        description: VerifyPeerHost specifies whether the peer certificate's
+                          SANs should match the peer host. It is disabled by default.
+                        type: boolean
+                    type: object
                   updateStrategy:
                     description: UpdateStrategy defines the update strategy for the
                       StatefulSet object.
@@ -6075,6 +6392,19 @@ spec:
                   successThreshold:
                     format: int32
                     type: integer
+                  tcpSocket:
+                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#tcpsocketaction-v1-core.'
+                    properties:
+                      host:
+                        type: string
+                      port:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        x-kubernetes-int-or-string: true
+                    required:
+                    - port
+                    type: object
                   timeoutSeconds:
                     format: int32
                     type: integer
@@ -6578,6 +6908,66 @@ spec:
                   - image
                   type: object
                 type: array
+              startupProbe:
+                description: StartupProbe to be used in the Container.
+                properties:
+                  exec:
+                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#execaction-v1-core.'
+                    properties:
+                      command:
+                        items:
+                          type: string
+                        type: array
+                        x-kubernetes-list-type: atomic
+                    type: object
+                  failureThreshold:
+                    format: int32
+                    type: integer
+                  httpGet:
+                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#httpgetaction-v1-core.'
+                    properties:
+                      host:
+                        type: string
+                      path:
+                        type: string
+                      port:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        x-kubernetes-int-or-string: true
+                      scheme:
+                        description: URIScheme identifies the scheme used for connection
+                          to a host for Get actions
+                        type: string
+                    required:
+                    - port
+                    type: object
+                  initialDelaySeconds:
+                    format: int32
+                    type: integer
+                  periodSeconds:
+                    format: int32
+                    type: integer
+                  successThreshold:
+                    format: int32
+                    type: integer
+                  tcpSocket:
+                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#tcpsocketaction-v1-core.'
+                    properties:
+                      host:
+                        type: string
+                      port:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        x-kubernetes-int-or-string: true
+                    required:
+                    - port
+                    type: object
+                  timeoutSeconds:
+                    format: int32
+                    type: integer
+                type: object
               storage:
                 description: Storage defines the storage options to be used for provisioning
                   the PVCs mounted by MariaDB.
@@ -6725,6 +7115,91 @@ spec:
                 description: TimeZone sets the default timezone. If not provided,
                   it defaults to SYSTEM and the timezone data is not loaded.
                 type: string
+              tls:
+                description: TLS defines the PKI to be used with MariaDB.
+                properties:
+                  clientCASecretRef:
+                    description: |-
+                      ClientCASecretRef is a reference to a Secret containing the client certificate authority keypair. It is used to establish trust and issue client certificates.
+                      One of:
+                      - Secret containing both the 'ca.crt' and 'ca.key' keys. This allows you to bring your own CA to Kubernetes to issue certificates.
+                      - Secret containing only the 'ca.crt' in order to establish trust. In this case, either clientCertSecretRef or clientCertIssuerRef fields must be provided.
+                      If not provided, a self-signed CA will be provisioned to issue the client certificate.
+                    properties:
+                      name:
+                        default: ""
+                        type: string
+                    type: object
+                  clientCertIssuerRef:
+                    description: |-
+                      ClientCertIssuerRef is a reference to a cert-manager issuer object used to issue the client certificate. cert-manager must be installed previously in the cluster.
+                      It is mutually exclusive with clientCertSecretRef.
+                      By default, the Secret field 'ca.crt' provisioned by cert-manager will be added to the trust chain. A custom trust bundle may be specified via clientCASecretRef.
+                    properties:
+                      group:
+                        description: Group of the resource being referred to.
+                        type: string
+                      kind:
+                        description: Kind of the resource being referred to.
+                        type: string
+                      name:
+                        description: Name of the resource being referred to.
+                        type: string
+                    required:
+                    - name
+                    type: object
+                  clientCertSecretRef:
+                    description: |-
+                      ClientCertSecretRef is a reference to a TLS Secret containing the client certificate.
+                      It is mutually exclusive with clientCertIssuerRef.
+                    properties:
+                      name:
+                        default: ""
+                        type: string
+                    type: object
+                  enabled:
+                    description: Enabled is a flag to enable TLS.
+                    type: boolean
+                  serverCASecretRef:
+                    description: |-
+                      ServerCASecretRef is a reference to a Secret containing the server certificate authority keypair. It is used to establish trust and issue server certificates.
+                      One of:
+                      - Secret containing both the 'ca.crt' and 'ca.key' keys. This allows you to bring your own CA to Kubernetes to issue certificates.
+                      - Secret containing only the 'ca.crt' in order to establish trust. In this case, either serverCertSecretRef or serverCertIssuerRef must be provided.
+                      If not provided, a self-signed CA will be provisioned to issue the server certificate.
+                    properties:
+                      name:
+                        default: ""
+                        type: string
+                    type: object
+                  serverCertIssuerRef:
+                    description: |-
+                      ServerCertIssuerRef is a reference to a cert-manager issuer object used to issue the server certificate. cert-manager must be installed previously in the cluster.
+                      It is mutually exclusive with serverCertSecretRef.
+                      By default, the Secret field 'ca.crt' provisioned by cert-manager will be added to the trust chain. A custom trust bundle may be specified via serverCASecretRef.
+                    properties:
+                      group:
+                        description: Group of the resource being referred to.
+                        type: string
+                      kind:
+                        description: Kind of the resource being referred to.
+                        type: string
+                      name:
+                        description: Name of the resource being referred to.
+                        type: string
+                    required:
+                    - name
+                    type: object
+                  serverCertSecretRef:
+                    description: |-
+                      ServerCertSecretRef is a reference to a TLS Secret containing the server certificate.
+                      It is mutually exclusive with serverCertIssuerRef.
+                    properties:
+                      name:
+                        default: ""
+                        type: string
+                    type: object
+                type: object
               tolerations:
                 description: Tolerations to be used in the Pod.
                 items:
@@ -7078,6 +7553,12 @@ spec:
               currentPrimaryPodIndex:
                 description: CurrentPrimaryPodIndex is the primary Pod index.
                 type: integer
+              defaultVersion:
+                description: |-
+                  DefaultVersion is the MariaDB version used by the operator when it cannot infer the version
+                  from spec.image. This can happen if the image uses a digest (e.g. sha256) instead
+                  of a version tag.
+                type: string
               galeraRecovery:
                 description: GaleraRecovery is the Galera recovery current state.
                 properties:
@@ -7139,6 +7620,85 @@ spec:
                   type: string
                 description: ReplicationStatus is the replication current state for
                   each Pod.
+                type: object
+              tls:
+                description: TLS aggregates the status of the certificates used by
+                  the MariaDB instance.
+                properties:
+                  caBundle:
+                    description: CABundle is the status of the Certificate Authority
+                      bundle.
+                    items:
+                      description: CertificateStatus represents the current status
+                        of a TLS certificate.
+                      properties:
+                        issuer:
+                          description: Issuer is the issuer of the current certificate.
+                          type: string
+                        notAfter:
+                          description: NotAfter indicates that the certificate is
+                            not valid after the given date.
+                          format: date-time
+                          type: string
+                        notBefore:
+                          description: NotBefore indicates that the certificate is
+                            not valid before the given date.
+                          format: date-time
+                          type: string
+                        subject:
+                          description: Subject is the subject of the current certificate.
+                          type: string
+                      required:
+                      - issuer
+                      - subject
+                      type: object
+                    type: array
+                  clientCert:
+                    description: ClientCert is the status of the client certificate.
+                    properties:
+                      issuer:
+                        description: Issuer is the issuer of the current certificate.
+                        type: string
+                      notAfter:
+                        description: NotAfter indicates that the certificate is not
+                          valid after the given date.
+                        format: date-time
+                        type: string
+                      notBefore:
+                        description: NotBefore indicates that the certificate is not
+                          valid before the given date.
+                        format: date-time
+                        type: string
+                      subject:
+                        description: Subject is the subject of the current certificate.
+                        type: string
+                    required:
+                    - issuer
+                    - subject
+                    type: object
+                  serverCert:
+                    description: ServerCert is the status of the server certificate.
+                    properties:
+                      issuer:
+                        description: Issuer is the issuer of the current certificate.
+                        type: string
+                      notAfter:
+                        description: NotAfter indicates that the certificate is not
+                          valid after the given date.
+                        format: date-time
+                        type: string
+                      notBefore:
+                        description: NotBefore indicates that the certificate is not
+                          valid before the given date.
+                        format: date-time
+                        type: string
+                      subject:
+                        description: Subject is the subject of the current certificate.
+                        type: string
+                    required:
+                    - issuer
+                    - subject
+                    type: object
                 type: object
             type: object
         required:
@@ -8097,6 +8657,19 @@ spec:
                   successThreshold:
                     format: int32
                     type: integer
+                  tcpSocket:
+                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#tcpsocketaction-v1-core.'
+                    properties:
+                      host:
+                        type: string
+                      port:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        x-kubernetes-int-or-string: true
+                    required:
+                    - port
+                    type: object
                   timeoutSeconds:
                     format: int32
                     type: integer
@@ -8851,6 +9424,19 @@ spec:
                   successThreshold:
                     format: int32
                     type: integer
+                  tcpSocket:
+                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#tcpsocketaction-v1-core.'
+                    properties:
+                      host:
+                        type: string
+                      port:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        x-kubernetes-int-or-string: true
+                    required:
+                    - port
+                    type: object
                   timeoutSeconds:
                     format: int32
                     type: integer
@@ -9044,12 +9630,189 @@ spec:
                   - router
                   type: object
                 type: array
+              startupProbe:
+                description: StartupProbe to be used in the Container.
+                properties:
+                  exec:
+                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#execaction-v1-core.'
+                    properties:
+                      command:
+                        items:
+                          type: string
+                        type: array
+                        x-kubernetes-list-type: atomic
+                    type: object
+                  failureThreshold:
+                    format: int32
+                    type: integer
+                  httpGet:
+                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#httpgetaction-v1-core.'
+                    properties:
+                      host:
+                        type: string
+                      path:
+                        type: string
+                      port:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        x-kubernetes-int-or-string: true
+                      scheme:
+                        description: URIScheme identifies the scheme used for connection
+                          to a host for Get actions
+                        type: string
+                    required:
+                    - port
+                    type: object
+                  initialDelaySeconds:
+                    format: int32
+                    type: integer
+                  periodSeconds:
+                    format: int32
+                    type: integer
+                  successThreshold:
+                    format: int32
+                    type: integer
+                  tcpSocket:
+                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#tcpsocketaction-v1-core.'
+                    properties:
+                      host:
+                        type: string
+                      port:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        x-kubernetes-int-or-string: true
+                    required:
+                    - port
+                    type: object
+                  timeoutSeconds:
+                    format: int32
+                    type: integer
+                type: object
               suspend:
                 default: false
                 description: |-
                   Suspend indicates whether the current resource should be suspended or not.
                   This can be useful for maintenance, as disabling the reconciliation prevents the operator from interfering with user operations during maintenance activities.
                 type: boolean
+              tls:
+                description: TLS defines the PKI to be used with MaxScale.
+                properties:
+                  adminCASecretRef:
+                    description: |-
+                      AdminCASecretRef is a reference to a Secret containing the admin certificate authority keypair. It is used to establish trust and issue certificates for the MaxScale's administrative REST API and GUI.
+                      One of:
+                      - Secret containing both the 'ca.crt' and 'ca.key' keys. This allows you to bring your own CA to Kubernetes to issue certificates.
+                      - Secret containing only the 'ca.crt' in order to establish trust. In this case, either adminCertSecretRef or adminCertIssuerRef fields must be provided.
+                      If not provided, a self-signed CA will be provisioned to issue the server certificate.
+                    properties:
+                      name:
+                        default: ""
+                        type: string
+                    type: object
+                  adminCertIssuerRef:
+                    description: |-
+                      AdminCertIssuerRef is a reference to a cert-manager issuer object used to issue the MaxScale's administrative REST API and GUI certificate. cert-manager must be installed previously in the cluster.
+                      It is mutually exclusive with adminCertSecretRef.
+                      By default, the Secret field 'ca.crt' provisioned by cert-manager will be added to the trust chain. A custom trust bundle may be specified via adminCASecretRef.
+                    properties:
+                      group:
+                        description: Group of the resource being referred to.
+                        type: string
+                      kind:
+                        description: Kind of the resource being referred to.
+                        type: string
+                      name:
+                        description: Name of the resource being referred to.
+                        type: string
+                    required:
+                    - name
+                    type: object
+                  adminCertSecretRef:
+                    description: AdminCertSecretRef is a reference to a TLS Secret
+                      used by the MaxScale's administrative REST API and GUI.
+                    properties:
+                      name:
+                        default: ""
+                        type: string
+                    type: object
+                  enabled:
+                    description: Enabled is a flag to enable TLS.
+                    type: boolean
+                  listenerCASecretRef:
+                    description: |-
+                      ListenerCASecretRef is a reference to a Secret containing the listener certificate authority keypair. It is used to establish trust and issue certificates for the MaxScale's listeners.
+                      One of:
+                      - Secret containing both the 'ca.crt' and 'ca.key' keys. This allows you to bring your own CA to Kubernetes to issue certificates.
+                      - Secret containing only the 'ca.crt' in order to establish trust. In this case, either listenerCertSecretRef or listenerCertIssuerRef fields must be provided.
+                      If not provided, a self-signed CA will be provisioned to issue the listener certificate.
+                    properties:
+                      name:
+                        default: ""
+                        type: string
+                    type: object
+                  listenerCertIssuerRef:
+                    description: |-
+                      ListenerCertIssuerRef is a reference to a cert-manager issuer object used to issue the MaxScale's listeners certificate. cert-manager must be installed previously in the cluster.
+                      It is mutually exclusive with listenerCertSecretRef.
+                      By default, the Secret field 'ca.crt' provisioned by cert-manager will be added to the trust chain. A custom trust bundle may be specified via listenerCASecretRef.
+                    properties:
+                      group:
+                        description: Group of the resource being referred to.
+                        type: string
+                      kind:
+                        description: Kind of the resource being referred to.
+                        type: string
+                      name:
+                        description: Name of the resource being referred to.
+                        type: string
+                    required:
+                    - name
+                    type: object
+                  listenerCertSecretRef:
+                    description: ListenerCertSecretRef is a reference to a TLS Secret
+                      used by the MaxScale's listeners.
+                    properties:
+                      name:
+                        default: ""
+                        type: string
+                    type: object
+                  replicationSSLEnabled:
+                    description: |-
+                      ReplicationSSLEnabled specifies whether the replication SSL is enabled. If enabled, the SSL options will be added to the server configuration.
+                      This field is automatically set when a reference to a MariaDB via the 'mariaDbRef' field is provided.
+                      If the MariaDB servers are manually provided by the user via the 'servers' field, this must be set by the user as well.
+                    type: boolean
+                  serverCASecretRef:
+                    description: |-
+                      ServerCASecretRef is a reference to a Secret containing the MariaDB server CA certificates. It is used to establish trust with MariaDB servers.
+                      The Secret should contain a 'ca.crt' key in order to establish trust.
+                      If not provided, and the reference to a MariaDB resource is set (mariaDbRef), it will be defaulted to the referred MariaDB CA bundle.
+                    properties:
+                      name:
+                        default: ""
+                        type: string
+                    type: object
+                  serverCertSecretRef:
+                    description: |-
+                      ServerCertSecretRef is a reference to a TLS Secret used by MaxScale to connect to the MariaDB servers.
+                      If not provided, and the reference to a MariaDB resource is set (mariaDbRef), it will be defaulted to the referred MariaDB client certificate (clientCertSecretRef).
+                    properties:
+                      name:
+                        default: ""
+                        type: string
+                    type: object
+                  verifyPeerCertificate:
+                    description: VerifyPeerCertificate specifies whether the peer
+                      certificate's signature should be validated against the CA.
+                      It is enabled by default.
+                    type: boolean
+                  verifyPeerHost:
+                    description: VerifyPeerHost specifies whether the peer certificate's
+                      SANs should match the peer host. It is disabled by default.
+                    type: boolean
+                type: object
               tolerations:
                 description: Tolerations to be used in the Pod.
                 items:
@@ -9363,6 +10126,108 @@ spec:
                   - state
                   type: object
                 type: array
+              tls:
+                description: TLS aggregates the status of the certificates used by
+                  the MaxScale instance.
+                properties:
+                  adminCert:
+                    description: AdminCert is the status of the admin certificate.
+                    properties:
+                      issuer:
+                        description: Issuer is the issuer of the current certificate.
+                        type: string
+                      notAfter:
+                        description: NotAfter indicates that the certificate is not
+                          valid after the given date.
+                        format: date-time
+                        type: string
+                      notBefore:
+                        description: NotBefore indicates that the certificate is not
+                          valid before the given date.
+                        format: date-time
+                        type: string
+                      subject:
+                        description: Subject is the subject of the current certificate.
+                        type: string
+                    required:
+                    - issuer
+                    - subject
+                    type: object
+                  caBundle:
+                    description: CABundle is the status of the Certificate Authority
+                      bundle.
+                    items:
+                      description: CertificateStatus represents the current status
+                        of a TLS certificate.
+                      properties:
+                        issuer:
+                          description: Issuer is the issuer of the current certificate.
+                          type: string
+                        notAfter:
+                          description: NotAfter indicates that the certificate is
+                            not valid after the given date.
+                          format: date-time
+                          type: string
+                        notBefore:
+                          description: NotBefore indicates that the certificate is
+                            not valid before the given date.
+                          format: date-time
+                          type: string
+                        subject:
+                          description: Subject is the subject of the current certificate.
+                          type: string
+                      required:
+                      - issuer
+                      - subject
+                      type: object
+                    type: array
+                  listenerCert:
+                    description: ListenerCert is the status of the listener certificate.
+                    properties:
+                      issuer:
+                        description: Issuer is the issuer of the current certificate.
+                        type: string
+                      notAfter:
+                        description: NotAfter indicates that the certificate is not
+                          valid after the given date.
+                        format: date-time
+                        type: string
+                      notBefore:
+                        description: NotBefore indicates that the certificate is not
+                          valid before the given date.
+                        format: date-time
+                        type: string
+                      subject:
+                        description: Subject is the subject of the current certificate.
+                        type: string
+                    required:
+                    - issuer
+                    - subject
+                    type: object
+                  serverCert:
+                    description: ServerCert is the status of the MariaDB server certificate.
+                    properties:
+                      issuer:
+                        description: Issuer is the issuer of the current certificate.
+                        type: string
+                      notAfter:
+                        description: NotAfter indicates that the certificate is not
+                          valid after the given date.
+                        format: date-time
+                        type: string
+                      notBefore:
+                        description: NotBefore indicates that the certificate is not
+                          valid before the given date.
+                        format: date-time
+                        type: string
+                      subject:
+                        description: Subject is the subject of the current certificate.
+                        type: string
+                    required:
+                    - issuer
+                    - subject
+                    type: object
+                type: object
             type: object
         type: object
     served: true
@@ -9953,10 +10818,8 @@ spec:
                         type: boolean
                     type: object
                 required:
-                - accessKeyIdSecretKeyRef
                 - bucket
                 - endpoint
-                - secretAccessKeySecretKeyRef
                 type: object
               securityContext:
                 description: SecurityContext holds security configuration that will
@@ -11208,6 +12071,26 @@ spec:
               requeueInterval:
                 description: RequeueInterval is used to perform requeue reconciliations.
                 type: string
+              require:
+                description: 'Require specifies TLS requirements for the user to connect.
+                  See: https://mariadb.com/kb/en/securing-connections-for-client-and-server/#requiring-tls.'
+                properties:
+                  issuer:
+                    description: Issuer indicates that the TLS certificate provided
+                      by the user must be issued by a specific issuer.
+                    type: string
+                  ssl:
+                    description: SSL indicates that the user must connect via TLS.
+                    type: boolean
+                  subject:
+                    description: Subject indicates that the TLS certificate provided
+                      by the user must have a specific subject.
+                    type: string
+                  x509:
+                    description: X509 indicates that the user must provide a valid
+                      x509 certificate to connect.
+                    type: boolean
+                type: object
               retryInterval:
                 description: RetryInterval is the interval used to perform retries.
                 type: string
