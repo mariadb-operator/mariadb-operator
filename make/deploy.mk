@@ -150,10 +150,15 @@ undeploy-ent: cluster-ctx ## Undeploy enterprise controller.
 
 ##@ Sysbench
 
-.PHONY: sysbench-prepare
-sysbench-prepare: ## Prepare sysbench tests for standalone.
-	$(KUBECTL) apply -f ./hack/manifests/sysbench/standalone/sbtest_database.yaml
+.PHONY: sysbench-sql
+sysbench-sql: ## Prepare sysbench SQL resources for standalone.
+	$(KUBECTL) apply -f ./hack/manifests/sysbench/sql
 	$(KUBECTL) wait --for=condition=ready database sbtest
+	$(KUBECTL) wait --for=condition=ready user sbtest
+	$(KUBECTL) wait --for=condition=ready grant sbtest
+
+.PHONY: sysbench-prepare
+sysbench-prepare: sysbench-sql ## Prepare sysbench tests for standalone.
 	$(KUBECTL) apply -f ./hack/manifests/sysbench/standalone/sysbench-prepare_job.yaml
 
 .PHONY: sysbench

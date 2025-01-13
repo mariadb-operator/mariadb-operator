@@ -11,25 +11,48 @@ spec:
         spec:
           restartPolicy: OnFailure
           containers:
-          - name: sysbench
+          - name: sysbench-prepare
             image: zyclonite/sysbench:1.0.21
             command:
-              - sysbench 
-              - oltp_read_write 
-              - --tables=5 
+              - sysbench
+              - oltp_read_write
+              - --tables=5
               - --table_size=1000000
               - --mysql-host=mariadb.default.svc.cluster.local
               - --mysql-port=3306
-              - --mysql-user=root
+              - --mysql-user=sbtest
               - --mysql-password=MariaDB11!
               - --mysql-db=sbtest
+              - --mysql-ssl=on
+              - --mysql-ssl-cipher=AES256
               - --time=300 
               - --threads=64
               - --report-interval=1
               - run
+            volumeMounts:
+              - name: pki
+                mountPath: /etc/pki
+                readOnly: true
+            workingDir: /etc/pki
             resources:
               requests:
                 cpu: 500m
                 memory: 128Mi
               limits:
                 memory: 512Mi
+          volumes:
+            - name: pki
+              projected:
+                sources:
+                  - secret:
+                      name: mariadb-ca-bundle
+                      items:
+                        - key: ca.crt
+                          path: cacert.pem
+                  - secret:
+                      name: mariadb-client-cert
+                      items:
+                        - key: tls.crt
+                          path: client-cert.pem
+                        - key: tls.key
+                          path: client-key.pem
