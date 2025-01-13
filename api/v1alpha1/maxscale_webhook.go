@@ -194,18 +194,22 @@ func (r *MaxScale) validateTLS() error {
 	}
 	validationItems := []tlsValidationItem{
 		{
-			tlsValue:      r.Spec.TLS,
-			caSecretRef:   tls.AdminCASecretRef,
-			caFieldPath:   "spec.tls.adminCASecretRef",
-			certSecretRef: tls.AdminCertSecretRef,
-			certFieldPath: "spec.tls.adminCertSecretRef",
+			tlsValue:            r.Spec.TLS,
+			caSecretRef:         tls.AdminCASecretRef,
+			caFieldPath:         "spec.tls.adminCASecretRef",
+			certSecretRef:       tls.AdminCertSecretRef,
+			certFieldPath:       "spec.tls.adminCertSecretRef",
+			certIssuerRef:       tls.AdminCertIssuerRef,
+			certIssuerFieldPath: "spec.tls.adminCertIssuerRef",
 		},
 		{
-			tlsValue:      r.Spec.TLS,
-			caSecretRef:   tls.ListenerCASecretRef,
-			caFieldPath:   "spec.tls.listenerCASecretRef",
-			certSecretRef: tls.ListenerCertSecretRef,
-			certFieldPath: "spec.tls.listenerCertSecretRef",
+			tlsValue:            r.Spec.TLS,
+			caSecretRef:         tls.ListenerCASecretRef,
+			caFieldPath:         "spec.tls.listenerCASecretRef",
+			certSecretRef:       tls.ListenerCertSecretRef,
+			certFieldPath:       "spec.tls.listenerCertSecretRef",
+			certIssuerRef:       tls.ListenerCertIssuerRef,
+			certIssuerFieldPath: "spec.tls.listenerCertIssuerRef",
 		},
 		{
 			tlsValue:      r.Spec.TLS,
