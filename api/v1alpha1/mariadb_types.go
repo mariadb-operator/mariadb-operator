@@ -801,11 +801,9 @@ func (m *MariaDB) IsSuspended() bool {
 func (m *MariaDB) TLSServerDNSNames() []string {
 	var names []string
 	names = append(names, statefulset.ServiceNameVariants(m.ObjectMeta, m.Name)...)
-	if m.IsHAEnabled() {
-		names = append(names, statefulset.HeadlessServiceNameVariants(m.ObjectMeta, "*", m.InternalServiceKey().Name)...)
-		names = append(names, statefulset.ServiceNameVariants(m.ObjectMeta, m.PrimaryServiceKey().Name)...)
-		names = append(names, statefulset.ServiceNameVariants(m.ObjectMeta, m.SecondaryServiceKey().Name)...)
-	}
+	names = append(names, statefulset.HeadlessServiceNameVariants(m.ObjectMeta, "*", m.InternalServiceKey().Name)...)
+	names = append(names, statefulset.ServiceNameVariants(m.ObjectMeta, m.PrimaryServiceKey().Name)...)
+	names = append(names, statefulset.ServiceNameVariants(m.ObjectMeta, m.SecondaryServiceKey().Name)...)
 	names = append(names, "localhost")
 	return names
 }
