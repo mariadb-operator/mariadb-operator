@@ -1,0 +1,14 @@
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: Grant
+metadata:
+  name: sbtest-galera
+spec:
+  mariaDbRef:
+    name: mariadb-galera
+  privileges:
+    - "ALL PRIVILEGES"
+  database: sbtest-galera
+  table: "*"
+  username: sbtest-galera
+  grantOption: false
+  host: "%"
