@@ -2,7 +2,9 @@
 
 set -eo pipefail
 
-CONFIG="$( dirname "${BASH_SOURCE[0]}" )"/config
+CURDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+CONFIG="$CURDIR/config"
+MANIFESTS="$CURDIR/manifests/cert-manager"
 if [ -z "$CERT_MANAGER_VERSION" ]; then
   echo "CERT_MANAGER_VERSION environment variable is mandatory"
   exit 1
@@ -16,3 +18,15 @@ helm upgrade --install \
   -n cert-manager --create-namespace \
   -f $CONFIG/cert-manager.yaml \
   cert-manager jetstack/cert-manager
+
+kubectl apply -f "$MANIFESTS/selfsigned-clusterissuer.yaml"
+
+kubectl apply -f "$MANIFESTS/root-certificate.yaml"
+kubectl wait --for=condition=Ready certificate root-ca --timeout=30s
+kubectl apply -f "$MANIFESTS/root-clusterissuer.yaml"
+kubectl wait --for=condition=Ready clusterissuer root-ca --timeout=30s
+
+kubectl apply -f "$MANIFESTS/intermediate-certificate.yaml"
+kubectl wait --for=condition=Ready certificate intermediate-ca --timeout=30s
+kubectl apply -f "$MANIFESTS/intermediate-clusterissuer.yaml"
+kubectl wait --for=condition=Ready clusterissuer intermediate-ca --timeout=30s

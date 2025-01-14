@@ -3,7 +3,6 @@ package controller
 import (
 	"bytes"
 	"context"
-	"crypto/sha256"
 	"errors"
 	"fmt"
 	"time"
@@ -11,9 +10,9 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
+	builderpki "github.com/mariadb-operator/mariadb-operator/pkg/builder/pki"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/auth"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
-	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -123,17 +122,31 @@ func (r *MariaDBReconciler) reconcileExporterConfig(ctx context.Context, mariadb
 		return fmt.Errorf("error getting metrics password Secret: %v", err)
 	}
 
-	type tplOpts struct {
-		User     string
-		Password string
-	}
 	tpl := createTpl(secretKeyRef.Key, `[client]
 user={{ .User }}
-password={{ .Password }}`)
+password={{ .Password }}
+{{- if .SSLEnabled }}
+tls=true
+ssl-cert={{ .SSLCert }}
+ssl-key={{ .SSLKey }}
+ssl-ca={{ .SSLCA }}
+{{- end }}
+`)
 	buf := new(bytes.Buffer)
-	err = tpl.Execute(buf, tplOpts{
-		User:     mariadb.Spec.Metrics.Username,
-		Password: password,
+	err = tpl.Execute(buf, struct {
+		User       string
+		Password   string
+		SSLEnabled bool
+		SSLCert    string
+		SSLKey     string
+		SSLCA      string
+	}{
+		User:       mariadb.Spec.Metrics.Username,
+		Password:   password,
+		SSLEnabled: mariadb.IsTLSEnabled(),
+		SSLCert:    builderpki.ClientCertPath,
+		SSLKey:     builderpki.ClientKeyPath,
+		SSLCA:      builderpki.CACertPath,
 	})
 	if err != nil {
 		return fmt.Errorf("error rendering exporter config: %v", err)
@@ -154,7 +167,7 @@ password={{ .Password }}`)
 }
 
 func (r *MariaDBReconciler) reconcileExporterDeployment(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
-	podAnnotations, err := r.getExporterPodAnnotations(ctx, mariadb)
+	podAnnotations, err := r.getExporterUpdateAnnotations(ctx, mariadb)
 	if err != nil {
 		return fmt.Errorf("error getting exporter Pod annotations: %v", err)
 	}
@@ -163,17 +176,6 @@ func (r *MariaDBReconciler) reconcileExporterDeployment(ctx context.Context, mar
 		return fmt.Errorf("error building exporter Deployment: %v", err)
 	}
 	return r.DeploymentReconciler.Reconcile(ctx, desiredDeploy)
-}
-
-func (r *MariaDBReconciler) getExporterPodAnnotations(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) (map[string]string, error) {
-	config, err := r.RefResolver.SecretKeyRef(ctx, mdb.MetricsConfigSecretKeyRef().SecretKeySelector, mdb.Namespace)
-	if err != nil {
-		return nil, fmt.Errorf("error getting metrics config Secret: %v", err)
-	}
-	podAnnotations := map[string]string{
-		metadata.ConfigAnnotation: fmt.Sprintf("%x", sha256.Sum256([]byte(config))),
-	}
-	return podAnnotations, nil
 }
 
 func (r *MariaDBReconciler) reconcileExporterService(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {

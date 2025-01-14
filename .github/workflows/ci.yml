@@ -125,6 +125,7 @@ jobs:
           make cluster
           make install
           make install-minio
+          make install-cert-manager
           make net
 
       - name: Test
@@ -160,6 +161,7 @@ jobs:
           make registry
           make install-ent
           make install-minio
+          make install-cert-manager
           make net
 
       - name: Test

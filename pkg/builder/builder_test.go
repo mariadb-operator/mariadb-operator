@@ -4,6 +4,7 @@ import (
 	"reflect"
 	"testing"
 
+	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/discovery"
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
@@ -19,13 +20,14 @@ func newTestBuilder(discovery *discovery.Discovery) *Builder {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(mariadbv1alpha1.AddToScheme(scheme))
 	utilruntime.Must(monitoringv1.AddToScheme(scheme))
+	utilruntime.Must(certmanagerv1.AddToScheme(scheme))
 
 	env := &environment.OperatorEnv{
 		MariadbOperatorName:      "mariadb-operator",
 		MariadbOperatorNamespace: "test",
 		MariadbOperatorSAPath:    "/var/run/secrets/kubernetes.io/serviceaccount/token",
 		MariadbOperatorImage:     "mariadb-operator:test",
-		RelatedMariadbImage:      "mariadb:11.2.2:test",
+		RelatedMariadbImage:      "mariadb:test",
 		RelatedMaxscaleImage:     "maxscale:test",
 		RelatedExporterImage:     "mysql-exporter:test",
 		MariadbGaleraLibPath:     "/usr/lib/galera/libgalera_smm.so",

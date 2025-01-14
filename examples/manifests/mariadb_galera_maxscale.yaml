@@ -45,6 +45,9 @@ spec:
     metrics:
       enabled: true
 
+    tls:
+      enabled: true
+
   galera:
     enabled: true
 
@@ -67,4 +70,7 @@ spec:
         metallb.universe.tf/loadBalancerIPs: 172.18.0.161
 
   metrics:
+    enabled: true
+
+  tls:
     enabled: true

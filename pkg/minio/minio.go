@@ -2,6 +2,7 @@ package minio
 
 import (
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -59,8 +60,18 @@ func getMinioOptions(opts MinioOpts) (*minio.Options, error) {
 		return nil, fmt.Errorf("error getting transport: %v", err)
 	}
 
+	// Use a chained credentials provider to support multiple sources:
+	// 1. Environment variables (set by custom resource)
+	// 2. IAM role (for EC2 Meta Data, EKS service accounts when environment variables are not set)
+	chainedCreds := credentials.NewChainCredentials(
+		[]credentials.Provider{
+			&credentials.EnvAWS{},
+			&credentials.IAM{},
+		},
+	)
+
 	minioOpts := &minio.Options{
-		Creds:     credentials.NewEnvAWS(),
+		Creds:     chainedCreds,
 		Region:    opts.Region,
 		Secure:    opts.TLS,
 		Transport: transport,
@@ -92,7 +103,7 @@ func getTransport(opts *MinioOpts) (*http.Transport, error) {
 			return nil, fmt.Errorf("error reading CA cert: %v", err)
 		}
 		if ok := transport.TLSClientConfig.RootCAs.AppendCertsFromPEM(caBytes); !ok {
-			return nil, fmt.Errorf("error parsing CA cert : %s", err)
+			return nil, errors.New("unable to add CA cert to pool")
 		}
 	}
 

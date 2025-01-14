@@ -3,10 +3,13 @@ package builder
 import (
 	"fmt"
 	"reflect"
+	"sort"
 	"strconv"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	builderpki "github.com/mariadb-operator/mariadb-operator/pkg/builder/pki"
 	"github.com/mariadb-operator/mariadb-operator/pkg/command"
 	"github.com/mariadb-operator/mariadb-operator/pkg/datastructures"
 	"github.com/mariadb-operator/mariadb-operator/pkg/discovery"
@@ -15,6 +18,341 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/utils/ptr"
 )
+
+func TestMariadbStartupProbe(t *testing.T) {
+	tests := []struct {
+		name      string
+		mariadb   *mariadbv1alpha1.MariaDB
+		wantProbe *corev1.Probe
+	}{
+		{
+			name:    "MariaDB empty",
+			mariadb: &mariadbv1alpha1.MariaDB{},
+			wantProbe: &corev1.Probe{
+				ProbeHandler: corev1.ProbeHandler{
+					Exec: &corev1.ExecAction{
+						Command: []string{
+							"bash",
+							"-c",
+							"mariadb -u root -p\"${MARIADB_ROOT_PASSWORD}\" -e \"SELECT 1;\"",
+						},
+					},
+				},
+				InitialDelaySeconds: 20,
+				TimeoutSeconds:      5,
+				PeriodSeconds:       5,
+			},
+		},
+		{
+			name: "MariaDB partial",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
+						StartupProbe: &mariadbv1alpha1.Probe{
+							FailureThreshold: 10,
+							TimeoutSeconds:   5,
+							PeriodSeconds:    5,
+						},
+					},
+				},
+			},
+			wantProbe: &corev1.Probe{
+				ProbeHandler: corev1.ProbeHandler{
+					Exec: &corev1.ExecAction{
+						Command: []string{
+							"bash",
+							"-c",
+							"mariadb -u root -p\"${MARIADB_ROOT_PASSWORD}\" -e \"SELECT 1;\"",
+						},
+					},
+				},
+				InitialDelaySeconds: 20,
+				TimeoutSeconds:      5,
+				PeriodSeconds:       5,
+				FailureThreshold:    10,
+			},
+		},
+		{
+			name: "MariaDB full",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
+						StartupProbe: &mariadbv1alpha1.Probe{
+							ProbeHandler: mariadbv1alpha1.ProbeHandler{
+								Exec: &mariadbv1alpha1.ExecAction{
+									Command: []string{
+										"bash",
+										"-c",
+										"mysqladmin ping -u root -p\"${MARIADB_ROOT_PASSWORD}\" -e \"SELECT 1;\"",
+									},
+								},
+							},
+							FailureThreshold: 10,
+							TimeoutSeconds:   10,
+							PeriodSeconds:    5,
+						},
+					},
+				},
+			},
+			wantProbe: &corev1.Probe{
+				ProbeHandler: corev1.ProbeHandler{
+					Exec: &corev1.ExecAction{
+						Command: []string{
+							"bash",
+							"-c",
+							"mysqladmin ping -u root -p\"${MARIADB_ROOT_PASSWORD}\" -e \"SELECT 1;\"",
+						},
+					},
+				},
+				FailureThreshold: 10,
+				TimeoutSeconds:   10,
+				PeriodSeconds:    5,
+			},
+		},
+		{
+			name: "MariaDB replication empty without probes",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Replication: &mariadbv1alpha1.Replication{
+						Enabled: true,
+						ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
+							ProbesEnabled: ptr.To(false),
+						},
+					},
+				},
+			},
+			wantProbe: &corev1.Probe{
+				ProbeHandler: corev1.ProbeHandler{
+					Exec: &corev1.ExecAction{
+						Command: []string{
+							"bash",
+							"-c",
+							"mariadb -u root -p\"${MARIADB_ROOT_PASSWORD}\" -e \"SELECT 1;\"",
+						},
+					},
+				},
+				InitialDelaySeconds: 20,
+				TimeoutSeconds:      5,
+				PeriodSeconds:       5,
+			},
+		},
+		{
+			name: "MariaDB replication empty",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Replication: &mariadbv1alpha1.Replication{
+						Enabled: true,
+						ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
+							ProbesEnabled: ptr.To(true),
+						},
+					},
+				},
+			},
+			wantProbe: &corev1.Probe{
+				ProbeHandler: corev1.ProbeHandler{
+					Exec: &corev1.ExecAction{
+						Command: []string{
+							"bash",
+							"-c",
+							"/etc/probes/replication.sh",
+						},
+					},
+				},
+				InitialDelaySeconds: 20,
+				TimeoutSeconds:      5,
+				PeriodSeconds:       5,
+			},
+		},
+		{
+			name: "MariaDB replication partial",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Replication: &mariadbv1alpha1.Replication{
+						Enabled: true,
+						ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
+							ProbesEnabled: ptr.To(true),
+						},
+					},
+					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
+						StartupProbe: &mariadbv1alpha1.Probe{
+							FailureThreshold: 10,
+							TimeoutSeconds:   10,
+							PeriodSeconds:    5,
+						},
+					},
+				},
+			},
+			wantProbe: &corev1.Probe{
+				ProbeHandler: corev1.ProbeHandler{
+					Exec: &corev1.ExecAction{
+						Command: []string{
+							"bash",
+							"-c",
+							"/etc/probes/replication.sh",
+						},
+					},
+				},
+				InitialDelaySeconds: 20,
+				FailureThreshold:    10,
+				TimeoutSeconds:      10,
+				PeriodSeconds:       5,
+			},
+		},
+		{
+			name: "MariaDB replication full",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Replication: &mariadbv1alpha1.Replication{
+						Enabled: true,
+						ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
+							ProbesEnabled: ptr.To(true),
+						},
+					},
+					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
+						StartupProbe: &mariadbv1alpha1.Probe{
+							ProbeHandler: mariadbv1alpha1.ProbeHandler{
+								Exec: &mariadbv1alpha1.ExecAction{
+									Command: []string{
+										"bash",
+										"-c",
+										"/etc/probes/replication-custom.sh",
+									},
+								},
+							},
+							FailureThreshold: 10,
+							TimeoutSeconds:   10,
+							PeriodSeconds:    5,
+						},
+					},
+				},
+			},
+			wantProbe: &corev1.Probe{
+				ProbeHandler: corev1.ProbeHandler{
+					Exec: &corev1.ExecAction{
+						Command: []string{
+							"bash",
+							"-c",
+							"/etc/probes/replication.sh",
+						},
+					},
+				},
+				InitialDelaySeconds: 20,
+				FailureThreshold:    10,
+				TimeoutSeconds:      10,
+				PeriodSeconds:       5,
+			},
+		},
+		{
+			name: "MariaDB Galera empty",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							Agent: mariadbv1alpha1.GaleraAgent{
+								ProbePort: 5555,
+							},
+						},
+					},
+				},
+			},
+			wantProbe: &corev1.Probe{
+				ProbeHandler: corev1.ProbeHandler{
+					HTTPGet: &corev1.HTTPGetAction{
+						Path: "/liveness",
+						Port: intstr.FromInt(5555),
+					},
+				},
+				InitialDelaySeconds: 20,
+				TimeoutSeconds:      5,
+				PeriodSeconds:       5,
+			},
+		},
+		{
+			name: "MariaDB Galera partial",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							Agent: mariadbv1alpha1.GaleraAgent{
+								ProbePort: 5555,
+							},
+						},
+					},
+					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
+						StartupProbe: &mariadbv1alpha1.Probe{
+							FailureThreshold: 10,
+							TimeoutSeconds:   10,
+							PeriodSeconds:    5,
+						},
+					},
+				},
+			},
+			wantProbe: &corev1.Probe{
+				ProbeHandler: corev1.ProbeHandler{
+					HTTPGet: &corev1.HTTPGetAction{
+						Path: "/liveness",
+						Port: intstr.FromInt(5555),
+					},
+				},
+				InitialDelaySeconds: 20,
+				FailureThreshold:    10,
+				TimeoutSeconds:      10,
+				PeriodSeconds:       5,
+			},
+		},
+		{
+			name: "MariaDB Galera full",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							Agent: mariadbv1alpha1.GaleraAgent{
+								ProbePort: 5555,
+							},
+						},
+					},
+					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
+						StartupProbe: &mariadbv1alpha1.Probe{
+							ProbeHandler: mariadbv1alpha1.ProbeHandler{
+								HTTPGet: &mariadbv1alpha1.HTTPGetAction{
+									Path: "/liveness-custom",
+									Port: intstr.FromInt(5555),
+								},
+							},
+							FailureThreshold: 10,
+							TimeoutSeconds:   10,
+							PeriodSeconds:    5,
+						},
+					},
+				},
+			},
+			wantProbe: &corev1.Probe{
+				ProbeHandler: corev1.ProbeHandler{
+					HTTPGet: &corev1.HTTPGetAction{
+						Path: "/liveness",
+						Port: intstr.FromInt(5555),
+					},
+				},
+				InitialDelaySeconds: 20,
+				FailureThreshold:    10,
+				TimeoutSeconds:      10,
+				PeriodSeconds:       5,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			probe := mariadbStartupProbe(tt.mariadb)
+			if diff := cmp.Diff(tt.wantProbe, probe); diff != "" {
+				t.Errorf("unexpected probe (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
 
 func TestMariadbLivenessProbe(t *testing.T) {
 	tests := []struct {
@@ -244,7 +582,7 @@ func TestMariadbLivenessProbe(t *testing.T) {
 						Enabled: true,
 						GaleraSpec: mariadbv1alpha1.GaleraSpec{
 							Agent: mariadbv1alpha1.GaleraAgent{
-								Port: 5555,
+								ProbePort: 5566,
 							},
 						},
 					},
@@ -254,7 +592,7 @@ func TestMariadbLivenessProbe(t *testing.T) {
 				ProbeHandler: corev1.ProbeHandler{
 					HTTPGet: &corev1.HTTPGetAction{
 						Path: "/liveness",
-						Port: intstr.FromInt(5555),
+						Port: intstr.FromInt(5566),
 					},
 				},
 				InitialDelaySeconds: 20,
@@ -270,7 +608,7 @@ func TestMariadbLivenessProbe(t *testing.T) {
 						Enabled: true,
 						GaleraSpec: mariadbv1alpha1.GaleraSpec{
 							Agent: mariadbv1alpha1.GaleraAgent{
-								Port: 5555,
+								ProbePort: 5566,
 							},
 						},
 					},
@@ -287,7 +625,7 @@ func TestMariadbLivenessProbe(t *testing.T) {
 				ProbeHandler: corev1.ProbeHandler{
 					HTTPGet: &corev1.HTTPGetAction{
 						Path: "/liveness",
-						Port: intstr.FromInt(5555),
+						Port: intstr.FromInt(5566),
 					},
 				},
 				InitialDelaySeconds: 10,
@@ -303,7 +641,7 @@ func TestMariadbLivenessProbe(t *testing.T) {
 						Enabled: true,
 						GaleraSpec: mariadbv1alpha1.GaleraSpec{
 							Agent: mariadbv1alpha1.GaleraAgent{
-								Port: 5555,
+								ProbePort: 5566,
 							},
 						},
 					},
@@ -312,7 +650,7 @@ func TestMariadbLivenessProbe(t *testing.T) {
 							ProbeHandler: mariadbv1alpha1.ProbeHandler{
 								HTTPGet: &mariadbv1alpha1.HTTPGetAction{
 									Path: "/liveness-custom",
-									Port: intstr.FromInt(5555),
+									Port: intstr.FromInt(5566),
 								},
 							},
 							InitialDelaySeconds: 10,
@@ -326,7 +664,7 @@ func TestMariadbLivenessProbe(t *testing.T) {
 				ProbeHandler: corev1.ProbeHandler{
 					HTTPGet: &corev1.HTTPGetAction{
 						Path: "/liveness",
-						Port: intstr.FromInt(5555),
+						Port: intstr.FromInt(5566),
 					},
 				},
 				InitialDelaySeconds: 10,
@@ -339,8 +677,8 @@ func TestMariadbLivenessProbe(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			probe := mariadbLivenessProbe(tt.mariadb)
-			if !reflect.DeepEqual(tt.wantProbe, probe) {
-				t.Errorf("unexpected result:\nexpected:\n%s\ngot:\n%s\n", tt.wantProbe, probe)
+			if diff := cmp.Diff(tt.wantProbe, probe); diff != "" {
+				t.Errorf("unexpected probe (-want +got):\n%s", diff)
 			}
 		})
 	}
@@ -574,7 +912,7 @@ func TestMariadbReadinessProbe(t *testing.T) {
 						Enabled: true,
 						GaleraSpec: mariadbv1alpha1.GaleraSpec{
 							Agent: mariadbv1alpha1.GaleraAgent{
-								Port: 5555,
+								ProbePort: 5566,
 							},
 						},
 					},
@@ -584,7 +922,7 @@ func TestMariadbReadinessProbe(t *testing.T) {
 				ProbeHandler: corev1.ProbeHandler{
 					HTTPGet: &corev1.HTTPGetAction{
 						Path: "/readiness",
-						Port: intstr.FromInt(5555),
+						Port: intstr.FromInt(5566),
 					},
 				},
 				InitialDelaySeconds: 20,
@@ -600,7 +938,7 @@ func TestMariadbReadinessProbe(t *testing.T) {
 						Enabled: true,
 						GaleraSpec: mariadbv1alpha1.GaleraSpec{
 							Agent: mariadbv1alpha1.GaleraAgent{
-								Port: 5555,
+								ProbePort: 5566,
 							},
 						},
 					},
@@ -617,7 +955,7 @@ func TestMariadbReadinessProbe(t *testing.T) {
 				ProbeHandler: corev1.ProbeHandler{
 					HTTPGet: &corev1.HTTPGetAction{
 						Path: "/readiness",
-						Port: intstr.FromInt(5555),
+						Port: intstr.FromInt(5566),
 					},
 				},
 				InitialDelaySeconds: 10,
@@ -633,7 +971,7 @@ func TestMariadbReadinessProbe(t *testing.T) {
 						Enabled: true,
 						GaleraSpec: mariadbv1alpha1.GaleraSpec{
 							Agent: mariadbv1alpha1.GaleraAgent{
-								Port: 5555,
+								ProbePort: 5566,
 							},
 						},
 					},
@@ -642,7 +980,7 @@ func TestMariadbReadinessProbe(t *testing.T) {
 							ProbeHandler: mariadbv1alpha1.ProbeHandler{
 								HTTPGet: &mariadbv1alpha1.HTTPGetAction{
 									Path: "/readiness-custom",
-									Port: intstr.FromInt(5555),
+									Port: intstr.FromInt(5566),
 								},
 							},
 							InitialDelaySeconds: 10,
@@ -656,7 +994,7 @@ func TestMariadbReadinessProbe(t *testing.T) {
 				ProbeHandler: corev1.ProbeHandler{
 					HTTPGet: &corev1.HTTPGetAction{
 						Path: "/readiness",
-						Port: intstr.FromInt(5555),
+						Port: intstr.FromInt(5566),
 					},
 				},
 				InitialDelaySeconds: 10,
@@ -669,8 +1007,8 @@ func TestMariadbReadinessProbe(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			probe := mariadbReadinessProbe(tt.mariadb)
-			if !reflect.DeepEqual(tt.wantProbe, probe) {
-				t.Errorf("unexpected result:\nexpected:\n%s\ngot:\n%s\n", tt.wantProbe, probe)
+			if diff := cmp.Diff(tt.wantProbe, probe); diff != "" {
+				t.Errorf("unexpected probe (-want +got):\n%s", diff)
 			}
 		})
 	}
@@ -695,8 +1033,7 @@ func TestMaxScaleProbe(t *testing.T) {
 			probe: &mariadbv1alpha1.Probe{},
 			wantProbe: &corev1.Probe{
 				ProbeHandler: corev1.ProbeHandler{
-					HTTPGet: &corev1.HTTPGetAction{
-						Path: "/",
+					TCPSocket: &corev1.TCPSocketAction{
 						Port: intstr.FromInt(8989),
 					},
 				},
@@ -721,8 +1058,7 @@ func TestMaxScaleProbe(t *testing.T) {
 			},
 			wantProbe: &corev1.Probe{
 				ProbeHandler: corev1.ProbeHandler{
-					HTTPGet: &corev1.HTTPGetAction{
-						Path: "/",
+					TCPSocket: &corev1.TCPSocketAction{
 						Port: intstr.FromInt(8989),
 					},
 				},
@@ -742,11 +1078,44 @@ func TestMaxScaleProbe(t *testing.T) {
 			},
 			probe: &mariadbv1alpha1.Probe{
 				ProbeHandler: mariadbv1alpha1.ProbeHandler{
+					TCPSocket: &mariadbv1alpha1.TCPSocketAction{
+						Host: "custom",
+						Port: intstr.FromInt(8989),
+					},
+				},
+				InitialDelaySeconds: 10,
+				TimeoutSeconds:      10,
+				PeriodSeconds:       5,
+			},
+			wantProbe: &corev1.Probe{
+				ProbeHandler: corev1.ProbeHandler{
+					TCPSocket: &corev1.TCPSocketAction{
+						Host: "custom",
+						Port: intstr.FromInt(8989),
+					},
+				},
+				InitialDelaySeconds: 10,
+				TimeoutSeconds:      10,
+				PeriodSeconds:       5,
+			},
+		},
+		{
+			name: "MaxScale Probe with Failure Threshold",
+			maxScale: &mariadbv1alpha1.MaxScale{
+				Spec: mariadbv1alpha1.MaxScaleSpec{
+					Admin: mariadbv1alpha1.MaxScaleAdmin{
+						Port: 8989,
+					},
+				},
+			},
+			probe: &mariadbv1alpha1.Probe{
+				ProbeHandler: mariadbv1alpha1.ProbeHandler{
 					HTTPGet: &mariadbv1alpha1.HTTPGetAction{
 						Path: "/custom",
 						Port: intstr.FromInt(8989),
 					},
 				},
+				FailureThreshold:    10,
 				InitialDelaySeconds: 10,
 				TimeoutSeconds:      10,
 				PeriodSeconds:       5,
@@ -758,6 +1127,7 @@ func TestMaxScaleProbe(t *testing.T) {
 						Port: intstr.FromInt(8989),
 					},
 				},
+				FailureThreshold:    10,
 				InitialDelaySeconds: 10,
 				TimeoutSeconds:      10,
 				PeriodSeconds:       5,
@@ -768,8 +1138,8 @@ func TestMaxScaleProbe(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			probe := maxscaleProbe(tt.maxScale, tt.probe)
-			if !reflect.DeepEqual(tt.wantProbe, probe) {
-				t.Errorf("unexpected result:\nexpected:\n%s\ngot:\n%s\n", tt.wantProbe, probe)
+			if diff := cmp.Diff(tt.wantProbe, probe); diff != "" {
+				t.Errorf("unexpected probe (-want +got):\n%s", diff)
 			}
 		})
 	}
@@ -958,6 +1328,96 @@ func TestMariadbEnv(t *testing.T) {
 			wantEnv: removeEnv(defaultEnv(nil), "MYSQL_INITDB_SKIP_TZINFO"),
 		},
 		{
+			name: "MariaDB TLS",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					TLS: &mariadbv1alpha1.TLS{
+						Enabled: true,
+					},
+				},
+			},
+			wantEnv: append(defaultEnv(nil),
+				[]corev1.EnvVar{
+					{
+						Name:  "TLS_ENABLED",
+						Value: strconv.FormatBool(true),
+					},
+					{
+						Name:  "TLS_CA_CERT_PATH",
+						Value: builderpki.CACertPath,
+					},
+					{
+						Name:  "TLS_SERVER_CERT_PATH",
+						Value: builderpki.ServerCertPath,
+					},
+					{
+						Name:  "TLS_SERVER_KEY_PATH",
+						Value: builderpki.ServerKeyPath,
+					},
+					{
+						Name:  "TLS_CLIENT_CERT_PATH",
+						Value: builderpki.ClientCertPath,
+					},
+					{
+						Name:  "TLS_CLIENT_KEY_PATH",
+						Value: builderpki.ClientKeyPath,
+					},
+				}...),
+		},
+		{
+			name: "MariaDB Galera TLS",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "mariadb-galera",
+				},
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+					},
+					TLS: &mariadbv1alpha1.TLS{
+						Enabled: true,
+					},
+				},
+			},
+			wantEnv: append(
+				defaultEnv([]corev1.EnvVar{
+					{
+						Name:  "MARIADB_NAME",
+						Value: "mariadb-galera",
+					},
+				}),
+				[]corev1.EnvVar{
+					{
+						Name:  "TLS_ENABLED",
+						Value: strconv.FormatBool(true),
+					},
+					{
+						Name:  "TLS_CA_CERT_PATH",
+						Value: builderpki.CACertPath,
+					},
+					{
+						Name:  "TLS_SERVER_CERT_PATH",
+						Value: builderpki.ServerCertPath,
+					},
+					{
+						Name:  "TLS_SERVER_KEY_PATH",
+						Value: builderpki.ServerKeyPath,
+					},
+					{
+						Name:  "TLS_CLIENT_CERT_PATH",
+						Value: builderpki.ClientCertPath,
+					},
+					{
+						Name:  "TLS_CLIENT_KEY_PATH",
+						Value: builderpki.ClientKeyPath,
+					},
+					{
+						Name:  "WSREP_SST_OPT_REMOTE_AUTH",
+						Value: "mariadb-galera-client:",
+					},
+				}...),
+		},
+		{
 			name: "MariaDB env append",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
@@ -1069,8 +1529,11 @@ func TestMariadbEnv(t *testing.T) {
 				t.Setenv("CLUSTER_NAME", "example.com")
 			}
 			env := mariadbEnv(tt.mariadb)
-			if !reflect.DeepEqual(tt.wantEnv, env) {
-				t.Errorf("unexpected result:\nexpected:\n%s\ngot:\n%s\n", tt.wantEnv, env)
+			sortedWantEnv := sortEnvVars(tt.wantEnv)
+			sortedEnv := sortEnvVars(env)
+
+			if diff := cmp.Diff(sortedWantEnv, sortedEnv); diff != "" {
+				t.Errorf("unexpected env (-want +got):\n%s", diff)
 			}
 		})
 	}
@@ -1547,4 +2010,13 @@ func removeEnv(env []corev1.EnvVar, key string) []corev1.EnvVar {
 		}
 	}
 	return result
+}
+
+func sortEnvVars(env []corev1.EnvVar) []corev1.EnvVar {
+	sortedEnv := make([]corev1.EnvVar, len(env))
+	copy(sortedEnv, env)
+	sort.SliceStable(sortedEnv, func(i, j int) bool {
+		return sortedEnv[i].Name < sortedEnv[j].Name
+	})
+	return sortedEnv
 }

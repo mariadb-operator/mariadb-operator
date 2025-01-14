@@ -518,6 +518,61 @@ var _ = Describe("MariaDB webhook", func() {
 				},
 				false,
 			),
+			Entry(
+				"Invalid TLS",
+				&MariaDB{
+					ObjectMeta: meta,
+					Spec: MariaDBSpec{
+						RootPasswordSecretKeyRef: GeneratedSecretKeyRef{
+							SecretKeySelector: SecretKeySelector{
+								LocalObjectReference: LocalObjectReference{
+									Name: "secret",
+								},
+								Key: "root-password",
+							},
+						},
+						Storage: Storage{
+							Size: ptr.To(resource.MustParse("100Mi")),
+						},
+						TLS: &TLS{
+							Enabled: true,
+							ServerCertSecretRef: &LocalObjectReference{
+								Name: "server-cert",
+							},
+						},
+					},
+				},
+				true,
+			),
+			Entry(
+				"Valid TLS",
+				&MariaDB{
+					ObjectMeta: meta,
+					Spec: MariaDBSpec{
+						RootPasswordSecretKeyRef: GeneratedSecretKeyRef{
+							SecretKeySelector: SecretKeySelector{
+								LocalObjectReference: LocalObjectReference{
+									Name: "secret",
+								},
+								Key: "root-password",
+							},
+						},
+						Storage: Storage{
+							Size: ptr.To(resource.MustParse("100Mi")),
+						},
+						TLS: &TLS{
+							Enabled: true,
+							ServerCASecretRef: &LocalObjectReference{
+								Name: "server-ca",
+							},
+							ServerCertSecretRef: &LocalObjectReference{
+								Name: "server-cert",
+							},
+						},
+					},
+				},
+				false,
+			),
 		)
 
 		It("Should default replication", func() {
@@ -799,6 +854,33 @@ var _ = Describe("MariaDB webhook", func() {
 							ConfigMapRef: &LocalObjectReference{
 								Name: "mariadb",
 							},
+						},
+					}
+				},
+				false,
+			),
+			Entry(
+				"Updating to invalid TLS",
+				func(mdb *MariaDB) {
+					mdb.Spec.TLS = &TLS{
+						Enabled: true,
+						ServerCertSecretRef: &LocalObjectReference{
+							Name: "server-cert",
+						},
+					}
+				},
+				true,
+			),
+			Entry(
+				"Updating to valid TLS",
+				func(mdb *MariaDB) {
+					mdb.Spec.TLS = &TLS{
+						Enabled: true,
+						ServerCASecretRef: &LocalObjectReference{
+							Name: "server-ca",
+						},
+						ServerCertSecretRef: &LocalObjectReference{
+							Name: "server-cert",
 						},
 					}
 				},

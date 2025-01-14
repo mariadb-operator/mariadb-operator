@@ -50,8 +50,17 @@ var (
 	testPwdSecretKey        = "passsword"
 	testPwdMetricsSecretKey = "metrics"
 	testUser                = "test"
-	testDatabase            = "test"
-	testConnKey             = types.NamespacedName{
+	testPasswordSecretRef   = mariadbv1alpha1.SecretKeySelector{
+		LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+			Name: testPwdKey.Name,
+		},
+		Key: testPwdSecretKey,
+	}
+	testTLSClientCARef   *mariadbv1alpha1.LocalObjectReference
+	testTLSClientCertRef *mariadbv1alpha1.LocalObjectReference
+	testTLSRequirements  *mariadbv1alpha1.TLSRequirements
+	testDatabase         = "test"
+	testConnKey          = types.NamespacedName{
 		Name:      "conn",
 		Namespace: testNamespace,
 	}
@@ -134,12 +143,7 @@ func testCreateInitialData(ctx context.Context, env environment.OperatorEnv) {
 			},
 			Username: &testUser,
 			PasswordSecretKeyRef: &mariadbv1alpha1.GeneratedSecretKeyRef{
-				SecretKeySelector: mariadbv1alpha1.SecretKeySelector{
-					LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
-						Name: testPwdKey.Name,
-					},
-					Key: testPwdSecretKey,
-				},
+				SecretKeySelector: testPasswordSecretRef,
 			},
 			Database: &testDatabase,
 			Connection: &mariadbv1alpha1.ConnectionTemplate{
@@ -196,6 +200,17 @@ max_allowed_packet=256M`),
 	}
 	applyMariadbTestConfig(&mdb)
 
+	testTLSClientCARef = &mariadbv1alpha1.LocalObjectReference{
+		Name: mdb.TLSClientCASecretKey().Name,
+	}
+	testTLSClientCertRef = &mariadbv1alpha1.LocalObjectReference{
+		Name: mdb.TLSClientCertSecretKey().Name,
+	}
+	testTLSRequirements = &mariadbv1alpha1.TLSRequirements{
+		Issuer:  ptr.To(fmt.Sprintf("/CN=%s", testTLSClientCARef.Name)),
+		Subject: ptr.To(fmt.Sprintf("/CN=%s", testTLSClientCertRef.Name)),
+	}
+
 	Expect(k8sClient.Create(ctx, &mdb)).To(Succeed())
 	expectMariadbReady(ctx, k8sClient, testMdbkey)
 }
@@ -204,7 +219,7 @@ func testCleanupInitialData(ctx context.Context) {
 	var password corev1.Secret
 	Expect(k8sClient.Get(ctx, testPwdKey, &password)).To(Succeed())
 	Expect(k8sClient.Delete(ctx, &password)).To(Succeed())
-	deleteMariadb(testMdbkey)
+	deleteMariadb(testMdbkey, false)
 }
 
 func testMariadbUpdate(mdb *mariadbv1alpha1.MariaDB) {
@@ -497,7 +512,8 @@ func testMaxscale(mdb *mariadbv1alpha1.MariaDB, mxs *mariadbv1alpha1.MaxScale) {
 	}
 }
 
-func testConnection(username string, passwordSecretKeyRef mariadbv1alpha1.SecretKeySelector, database string, isValid bool) {
+func testConnection(username string, password mariadbv1alpha1.SecretKeySelector, clientCert *mariadbv1alpha1.LocalObjectReference,
+	database string, isValid bool) {
 	key := types.NamespacedName{
 		Name:      fmt.Sprintf("test-creds-conn-%s", uuid.New().String()),
 		Namespace: testNamespace,
@@ -518,9 +534,10 @@ func testConnection(username string, passwordSecretKeyRef mariadbv1alpha1.Secret
 				},
 				WaitForIt: true,
 			},
-			Username:             username,
-			PasswordSecretKeyRef: passwordSecretKeyRef,
-			Database:             &database,
+			Username:               username,
+			PasswordSecretKeyRef:   password,
+			TLSClientCertSecretRef: clientCert,
+			Database:               &database,
 		},
 	}
 	By("Creating Connection")
@@ -580,19 +597,19 @@ func getS3WithBucket(bucket, prefix string) *mariadbv1alpha1.S3 {
 		Prefix:   prefix,
 		Endpoint: "minio.minio.svc.cluster.local:9000",
 		Region:   "us-east-1",
-		AccessKeyIdSecretKeyRef: mariadbv1alpha1.SecretKeySelector{
+		AccessKeyIdSecretKeyRef: &mariadbv1alpha1.SecretKeySelector{
 			LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
 				Name: "minio",
 			},
 			Key: "access-key-id",
 		},
-		SecretAccessKeySecretKeyRef: mariadbv1alpha1.SecretKeySelector{
+		SecretAccessKeySecretKeyRef: &mariadbv1alpha1.SecretKeySelector{
 			LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
 				Name: "minio",
 			},
 			Key: "secret-access-key",
 		},
-		TLS: &mariadbv1alpha1.TLS{
+		TLS: &mariadbv1alpha1.TLSS3{
 			Enabled: true,
 			CASecretKeyRef: &mariadbv1alpha1.SecretKeySelector{
 				LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
@@ -707,7 +724,7 @@ func deploymentReady(deploy *appsv1.Deployment) bool {
 	return false
 }
 
-func deleteMariadb(key types.NamespacedName) {
+func deleteMariadb(key types.NamespacedName, assertPVCDeletion bool) {
 	var mdb mariadbv1alpha1.MariaDB
 	By("Deleting MariaDB")
 	Expect(k8sClient.Get(testCtx, key, &mdb)).To(Succeed())
@@ -724,6 +741,25 @@ func deleteMariadb(key types.NamespacedName) {
 	}
 	Expect(k8sClient.DeleteAllOf(testCtx, &corev1.PersistentVolumeClaim{}, opts...)).To(Succeed())
 
+	if !assertPVCDeletion {
+		return
+	}
+	Eventually(func(g Gomega) bool {
+		listOpts := &client.ListOptions{
+			LabelSelector: klabels.SelectorFromSet(
+				labels.NewLabelsBuilder().
+					WithMariaDBSelectorLabels(&mdb).
+					Build(),
+			),
+			Namespace: mdb.GetNamespace(),
+		}
+		pvcList := &corev1.PersistentVolumeClaimList{}
+		err := k8sClient.List(testCtx, pvcList, listOpts)
+		if err != nil && !apierrors.IsNotFound(err) {
+			g.Expect(err).ToNot(HaveOccurred())
+		}
+		return len(pvcList.Items) == 0
+	}, testHighTimeout, testInterval).Should(BeTrue())
 }
 
 func deleteMaxScale(key types.NamespacedName, assertPVCDeletion bool) {

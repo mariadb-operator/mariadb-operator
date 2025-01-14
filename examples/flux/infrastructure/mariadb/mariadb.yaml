@@ -37,14 +37,17 @@ spec:
       memory: 1Gi
 
   livenessProbe:
-    initialDelaySeconds: 20
     periodSeconds: 10
     timeoutSeconds: 10
 
   readinessProbe:
-    initialDelaySeconds: 20
     periodSeconds: 10
     timeoutSeconds: 10
+
+  startupProbe:
+    failureThreshold: 10
+    periodSeconds: 5
+    timeoutSeconds: 5
 
   metrics:
     enabled: true

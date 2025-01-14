@@ -7,11 +7,11 @@ spec:
     - name: 01-users
   mariaDbRef:
     name: mariadb
-  username: mariadb
+  username: sqljob
   passwordSecretKeyRef:
-    name: mariadb-password
+    name: mariadb
     key: password
-  database: mariadb
+  database: sqljob
   sql: |
     CREATE TABLE IF NOT EXISTS repos (
       id bigint PRIMARY KEY AUTO_INCREMENT,

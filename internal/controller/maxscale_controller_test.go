@@ -49,7 +49,8 @@ var _ = Describe("MaxScale", func() {
 				return false
 			}
 			return testDefaultMxs.Spec.Image != "" && len(testDefaultMxs.Spec.Servers) > 0 &&
-				len(testDefaultMxs.Spec.Services) > 0 && testDefaultMxs.Spec.Monitor.Module != ""
+				len(testDefaultMxs.Spec.Services) > 0 && testDefaultMxs.Spec.Monitor.Module != "" &&
+				testDefaultMxs.Spec.TLS != nil && testDefaultMxs.Spec.TLS.Enabled
 		}, testTimeout, testInterval).Should(BeTrue())
 	})
 
@@ -70,6 +71,9 @@ var _ = Describe("MaxScale", func() {
 						Name:      testMdbkey.Name,
 						Namespace: testMdbkey.Namespace,
 					},
+				},
+				TLS: &mariadbv1alpha1.MaxScaleTLS{
+					Enabled: true,
 				},
 			},
 		}
@@ -139,6 +143,9 @@ var _ = Describe("MaxScale", func() {
 						Name:      testMdbkey.Name,
 						Namespace: testMdbkey.Namespace,
 					},
+				},
+				TLS: &mariadbv1alpha1.MaxScaleTLS{
+					Enabled: true,
 				},
 				Metrics: &mariadbv1alpha1.MaxScaleMetrics{
 					Enabled: true,

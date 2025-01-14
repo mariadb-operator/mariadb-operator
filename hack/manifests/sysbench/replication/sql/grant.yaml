@@ -1,0 +1,14 @@
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: Grant
+metadata:
+  name: sbtest-repl
+spec:
+  mariaDbRef:
+    name: mariadb-repl
+  privileges:
+    - "ALL PRIVILEGES"
+  database: sbtest-repl
+  table: "*"
+  username: sbtest-repl
+  grantOption: false
+  host: "%"

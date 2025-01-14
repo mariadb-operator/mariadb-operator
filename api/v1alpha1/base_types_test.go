@@ -1,6 +1,7 @@
 package v1alpha1
 
 import (
+	cmmeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -624,6 +625,66 @@ var _ = Describe("Base types", func() {
 						"database.myorg.io": "mydb",
 					},
 				},
+			),
+		)
+	})
+
+	Context("When validating TLS", func() {
+		DescribeTable(
+			"Should validate",
+			func(
+				item *tlsValidationItem,
+				wantErr bool,
+			) {
+				err := validateTLSCert(item)
+				if wantErr {
+					Expect(err).To(HaveOccurred())
+				} else {
+					Expect(err).ToNot(HaveOccurred())
+				}
+			},
+			Entry(
+				"empty",
+				&tlsValidationItem{},
+				false,
+			),
+			Entry(
+				"certSecretRef and caSecretRef",
+				&tlsValidationItem{
+					certSecretRef: &LocalObjectReference{Name: "cert-secret"},
+					caSecretRef:   &LocalObjectReference{Name: "ca-secret"},
+				},
+				false,
+			),
+			Entry(
+				"certIssuerRef",
+				&tlsValidationItem{
+					certIssuerRef: &cmmeta.ObjectReference{Name: "cert-issuer"},
+				},
+				false,
+			),
+			Entry(
+				"certIssuerRef and caSecretRef",
+				&tlsValidationItem{
+					certIssuerRef: &cmmeta.ObjectReference{Name: "cert-issuer"},
+					caSecretRef:   &LocalObjectReference{Name: "ca-secret"},
+				},
+				false,
+			),
+			Entry(
+				"certSecretRef set without caSecretRef",
+				&tlsValidationItem{
+					certSecretRef: &LocalObjectReference{Name: "cert-secret"},
+				},
+				true,
+			),
+			Entry(
+				"certSecretRef and certIssuerRef",
+				&tlsValidationItem{
+					certSecretRef: &LocalObjectReference{Name: "cert-secret"},
+					certIssuerRef: &cmmeta.ObjectReference{Name: "cert-issuer"},
+				},
+				true,
 			),
 		)
 	})

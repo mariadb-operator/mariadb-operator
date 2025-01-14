@@ -92,7 +92,7 @@ install-prometheus-crds: cluster-ctx  ## Install Prometheus CRDs.
 install-prometheus: cluster-ctx ## Install kube-prometheus-stack helm chart.
 	@PROMETHEUS_VERSION=$(PROMETHEUS_VERSION) ./hack/install_prometheus.sh
 
-CERT_MANAGER_VERSION ?= "v1.14.5"
+CERT_MANAGER_VERSION ?= "v1.16.2"
 .PHONY: install-cert-manager
 install-cert-manager: cluster-ctx ## Install cert-manager helm chart.
 	@CERT_MANAGER_VERSION=$(CERT_MANAGER_VERSION) ./hack/install_cert_manager.sh
@@ -132,10 +132,10 @@ storageclass: cluster-ctx  ## Create StorageClass that allows volume expansion.
 	$(KUBECTL) apply -f ./hack/manifests/storageclass.yaml
 
 .PHONY: install
-install: cluster-ctx install-crds install-config install-prometheus-crds serviceaccount storageclass cert docker-dev ## Install everything you need for local development.
+install: cluster-ctx install-crds install-config install-prometheus-crds serviceaccount storageclass docker-dev ## Install everything you need for local development.
 
 .PHONY: install-ent
-install-ent: cluster-ctx install-crds install-config install-prometheus-crds serviceaccount storageclass cert docker-dev-ent ## Install everything you need for local enterprise development.
+install-ent: cluster-ctx install-crds install-config install-prometheus-crds serviceaccount storageclass docker-dev-ent ## Install everything you need for local enterprise development.
 
 ##@ Deploy
 
@@ -148,12 +148,17 @@ deploy-ent: manifests kustomize cluster-ctx ## Deploy enterprise controller.
 undeploy-ent: cluster-ctx ## Undeploy enterprise controller.
 	$(KUSTOMIZE) build config/default | $(KUBECTL) delete --ignore-not-found=$(ignore-not-found) -f -
 
-##@ Sysbench
+##@ Sysbench - Standalone
+
+.PHONY: sysbench-sql
+sysbench-sql: ## Prepare sysbench SQL resources for standalone.
+	$(KUBECTL) apply -f ./hack/manifests/sysbench/standalone/sql
+	$(KUBECTL) wait --for=condition=ready database sbtest
+	$(KUBECTL) wait --for=condition=ready user sbtest
+	$(KUBECTL) wait --for=condition=ready grant sbtest
 
 .PHONY: sysbench-prepare
-sysbench-prepare: ## Prepare sysbench tests for standalone.
-	$(KUBECTL) apply -f ./hack/manifests/sysbench/standalone/sbtest_database.yaml
-	$(KUBECTL) wait --for=condition=ready database sbtest
+sysbench-prepare: sysbench-sql ## Prepare sysbench tests for standalone.
 	$(KUBECTL) apply -f ./hack/manifests/sysbench/standalone/sysbench-prepare_job.yaml
 
 .PHONY: sysbench
@@ -161,9 +166,17 @@ sysbench: ## Run sysbench tests for standalone.
 	$(KUBECTL) apply -f ./hack/manifests/sysbench/standalone/sysbench_cronjob.yaml
 	$(KUBECTL) create job sysbench --from cronjob/sysbench
 
+##@ Sysbench - Replication
+
+.PHONY: sysbench-sql-repl
+sysbench-sql-repl: ## Prepare sysbench SQL resources for replication.
+	$(KUBECTL) apply -f ./hack/manifests/sysbench/replication/sql
+	$(KUBECTL) wait --for=condition=ready database sbtest-repl
+	$(KUBECTL) wait --for=condition=ready user sbtest-repl
+	$(KUBECTL) wait --for=condition=ready grant sbtest-repl
+
 .PHONY: sysbench-prepare-repl
-sysbench-prepare-repl: ## Prepare sysbench tests for replication.
-	$(KUBECTL) apply -f ./hack/manifests/sysbench/replication/sbtest-repl_database.yaml
+sysbench-prepare-repl: sysbench-sql-repl ## Prepare sysbench tests for replication.
 	$(KUBECTL) wait --for=condition=ready database sbtest-repl
 	$(KUBECTL) apply -f ./hack/manifests/sysbench/replication/sysbench-prepare-repl_job.yaml
 
@@ -172,9 +185,17 @@ sysbench-repl: ## Run sysbench tests for replication.
 	$(KUBECTL) apply -f ./hack/manifests/sysbench/replication/sysbench-repl_cronjob.yaml
 	$(KUBECTL) create job sysbench-repl --from cronjob/sysbench-repl
 
+##@ Sysbench - Galera
+
+.PHONY: sysbench-sql-galera
+sysbench-sql-galera: ## Prepare sysbench SQL resources for Galera.
+	$(KUBECTL) apply -f ./hack/manifests/sysbench/galera/sql
+	$(KUBECTL) wait --for=condition=ready database sbtest-galera
+	$(KUBECTL) wait --for=condition=ready user sbtest-galera
+	$(KUBECTL) wait --for=condition=ready grant sbtest-galera
+
 .PHONY: sysbench-prepare-galera
-sysbench-prepare-galera: ## Prepare sysbench tests for Galera.
-	$(KUBECTL) apply -f ./hack/manifests/sysbench/galera/sbtest-galera_database.yaml
+sysbench-prepare-galera: sysbench-sql-galera ## Prepare sysbench tests for Galera.
 	$(KUBECTL) wait --for=condition=ready database sbtest-galera
 	$(KUBECTL) apply -f ./hack/manifests/sysbench/galera/sysbench-prepare-galera_job.yaml
 

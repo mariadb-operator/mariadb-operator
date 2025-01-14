@@ -77,17 +77,13 @@ var _ = Describe("Connection", func() {
 						},
 						WaitForIt: true,
 					},
-					Username: testUser,
-					PasswordSecretKeyRef: mariadbv1alpha1.SecretKeySelector{
-						LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
-							Name: testPwdKey.Name,
-						},
-						Key: testPwdSecretKey,
-					},
-					Database: &testDatabase,
+					Username:             testUser,
+					PasswordSecretKeyRef: testPasswordSecretRef,
+					Database:             &testDatabase,
 				},
 			},
-			"test:MariaDB11!@tcp(mdb-test.default.svc.cluster.local:3306)/test?timeout=5s&parseTime=true",
+			"test:MariaDB11!@tcp(mdb-test.default.svc.cluster.local:3306)/test"+
+				"?timeout=5s&tls=mariadb-mdb-test-default-client-mdb-test-client-cert&parseTime=true",
 		),
 		Entry(
 			"Creating a Connection providing ServiceName",
@@ -122,17 +118,36 @@ var _ = Describe("Connection", func() {
 						},
 						WaitForIt: true,
 					},
-					Username: testUser,
-					PasswordSecretKeyRef: mariadbv1alpha1.SecretKeySelector{
-						LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
-							Name: testPwdKey.Name,
-						},
-						Key: testPwdSecretKey,
-					},
-					Database: &testDatabase,
+					Username:             testUser,
+					PasswordSecretKeyRef: testPasswordSecretRef,
+					Database:             &testDatabase,
 				},
 			},
-			"test:MariaDB11!@tcp(mdb-test.default.svc.cluster.local:3306)/test?timeout=5s&parseTime=true",
+			"test:MariaDB11!@tcp(mdb-test.default.svc.cluster.local:3306)/test"+
+				"?timeout=5s&tls=mariadb-mdb-test-default-client-mdb-test-client-cert&parseTime=true",
+		),
+		Entry(
+			"Creating a Connection providing TLS client cert",
+			&mariadbv1alpha1.Connection{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "conn-tls",
+					Namespace: testNamespace,
+				},
+				Spec: mariadbv1alpha1.ConnectionSpec{
+					MariaDBRef: &mariadbv1alpha1.MariaDBRef{
+						ObjectReference: mariadbv1alpha1.ObjectReference{
+							Name: testMdbkey.Name,
+						},
+						WaitForIt: true,
+					},
+					Username:               testUser,
+					PasswordSecretKeyRef:   testPasswordSecretRef,
+					TLSClientCertSecretRef: testTLSClientCertRef,
+					Database:               &testDatabase,
+				},
+			},
+			"test:MariaDB11!@tcp(mdb-test.default.svc.cluster.local:3306)/test"+
+				"?timeout=5s&tls=mariadb-mdb-test-default-client-mdb-test-client-cert",
 		),
 		Entry(
 			"Creating a Connection providing DSN Format",
@@ -170,14 +185,9 @@ var _ = Describe("Connection", func() {
 						},
 						WaitForIt: true,
 					},
-					Username: testUser,
-					PasswordSecretKeyRef: mariadbv1alpha1.SecretKeySelector{
-						LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
-							Name: testPwdKey.Name,
-						},
-						Key: testPwdSecretKey,
-					},
-					Database: &testDatabase,
+					Username:             testUser,
+					PasswordSecretKeyRef: testPasswordSecretRef,
+					Database:             &testDatabase,
 				},
 			},
 			"mysql://test:MariaDB11!@mdb-test.default.svc.cluster.local:3306/test?timeout=5s",
@@ -372,7 +382,8 @@ var _ = Describe("Connection", func() {
 				return false
 			}
 			g.Expect(secret.Data[secretKey]).To(
-				BeEquivalentTo("test:MariaDB11!@tcp(mdb-test.default.svc.cluster.local:3306)/test?timeout=5s"),
+				BeEquivalentTo("test:MariaDB11!@tcp(mdb-test.default.svc.cluster.local:3306)/test" +
+					"?timeout=5s&tls=mariadb-mdb-test-default-client-mdb-test-client-cert"),
 			)
 			return true
 		}, testTimeout, testInterval).Should(BeTrue())
@@ -395,7 +406,8 @@ var _ = Describe("Connection", func() {
 				return false
 			}
 			g.Expect(secret.Data[secretKey]).To(
-				BeEquivalentTo("updated-test:MariaDB11!@tcp(mdb-test.default.svc.cluster.local:3306)/test?timeout=5s"),
+				BeEquivalentTo("updated-test:MariaDB11!@tcp(mdb-test.default.svc.cluster.local:3306)/test" +
+					"?timeout=5s&tls=mariadb-mdb-test-default-client-mdb-test-client-cert"),
 			)
 			return true
 		}, testTimeout, testInterval).Should(BeTrue())
@@ -417,7 +429,8 @@ var _ = Describe("Connection", func() {
 				return false
 			}
 			g.Expect(secret.Data[secretKey]).To(
-				BeEquivalentTo("updated-test:MariaDB-updated11!@tcp(mdb-test.default.svc.cluster.local:3306)/test?timeout=5s"),
+				BeEquivalentTo("updated-test:MariaDB-updated11!@tcp(mdb-test.default.svc.cluster.local:3306)/test" +
+					"?timeout=5s&tls=mariadb-mdb-test-default-client-mdb-test-client-cert"),
 			)
 			return true
 		}, testTimeout, testInterval).Should(BeTrue())

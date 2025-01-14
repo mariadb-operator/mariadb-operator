@@ -78,9 +78,40 @@ spec:
         enabled: true
         caSecretKeyRef:
           name: minio-ca
-          key: ca.crt
+          key: tls.crt
 ```
 By providing the authentication details and the TLS configuration via references to `Secret` keys, this example will store the backups in a local Minio instance.
+
+Alternatively you can use dynamic credentials from an EKS Service Account using EKS Pod Identity or IRSA:
+
+```yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: mariadb-backup
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::<<account_id>>:role/my-role-irsa
+```
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: Backup
+metadata:
+  name: backup
+spec:
+  mariaDbRef:
+    name: mariadb
+  serviceAccountName: mariadb-backup
+  storage:
+    s3:
+      bucket: backups
+      prefix: mariadb
+      endpoint: s3.us-east-1.amazonaws.com
+      region:  us-east-1
+      tls:
+        enabled: true
+```
+By leaving out `accessKeyIdSecretKeyRef` and `secretAccessKeySecretKeyRef` the credentials and pointing to the correct `serviceAccountName`, the backup Job will use the dynamic credentials from EKS.
 
 #### Scheduling
 
@@ -183,7 +214,7 @@ spec:
       enabled: true
       caSecretKeyRef:
         name: minio-ca
-        key: ca.crt
+        key: tls.crt
 ```
 
 #### Target recovery time
@@ -250,7 +281,7 @@ spec:
         enabled: true
         caSecretKeyRef:
           name: minio-ca
-          key: ca.crt
+          key: tls.crt
     targetRecoveryTime: 2023-12-19T09:00:00Z
 ```
 
@@ -523,7 +554,7 @@ spec:
         enabled: true
         caSecretKeyRef:
           name: minio-ca
-          key: ca.crt
+          key: tls.crt
     targetRecoveryTime: 2024-08-26T12:24:34Z
 ```
 5. If you are using Galera in your new instance, migrate your previous users and grants to use the `User` and `Grant` CRs. Refer to the [SQL resource documentation](./SQL_RESOURCES.md) for further detail.

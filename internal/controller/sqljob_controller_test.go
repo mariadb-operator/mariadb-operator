@@ -50,7 +50,9 @@ var _ = Describe("SqlJob", func() {
 					},
 					Key: testPwdSecretKey,
 				},
-				Database: &testDatabase,
+				Database:               &testDatabase,
+				TLSCACertSecretRef:     testTLSClientCARef,
+				TLSClientCertSecretRef: testTLSClientCertRef,
 				Sql: func() *string {
 					sql := `CREATE TABLE IF NOT EXISTS users (
 							id bigint PRIMARY KEY AUTO_INCREMENT,

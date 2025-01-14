@@ -9,6 +9,7 @@ import (
 	"strconv"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	builderpki "github.com/mariadb-operator/mariadb-operator/pkg/builder/pki"
 	"github.com/mariadb-operator/mariadb-operator/pkg/command"
 	galeraresources "github.com/mariadb-operator/mariadb-operator/pkg/controller/galera/resources"
 	kadapter "github.com/mariadb-operator/mariadb-operator/pkg/kubernetes/adapter"
@@ -46,7 +47,7 @@ var (
 			ProbeHandler: corev1.ProbeHandler{
 				HTTPGet: &corev1.HTTPGetAction{
 					Path: "/health",
-					Port: intstr.FromInt(int(galera.Agent.Port)),
+					Port: intstr.FromInt(int(galera.Agent.ProbePort)),
 				},
 			},
 		}
@@ -73,6 +74,7 @@ func (b *Builder) mariadbContainers(mariadb *mariadbv1alpha1.MariaDB, opts ...ma
 		mariadbContainer.Ports = mariadbPorts(mariadb)
 	}
 	if mariadbOpts.includeProbes {
+		mariadbContainer.StartupProbe = mariadbStartupProbe(mariadb)
 		mariadbContainer.LivenessProbe = mariadbLivenessProbe(mariadb)
 		mariadbContainer.ReadinessProbe = mariadbReadinessProbe(mariadb)
 	}
@@ -135,6 +137,7 @@ func (b *Builder) maxscaleContainers(mxs *mariadbv1alpha1.MaxScale) ([]corev1.Co
 	container.VolumeMounts = maxscaleVolumeMounts(mxs)
 	container.LivenessProbe = maxscaleProbe(mxs, mxs.Spec.LivenessProbe)
 	container.ReadinessProbe = maxscaleProbe(mxs, mxs.Spec.ReadinessProbe)
+	container.StartupProbe = maxscaleProbe(mxs, mxs.Spec.StartupProbe)
 
 	return []corev1.Container{*container}, nil
 }
@@ -184,12 +187,17 @@ func (b *Builder) galeraAgentContainer(mariadb *mariadbv1alpha1.MariaDB) (*corev
 			Name:          galeraresources.AgentPortName,
 			ContainerPort: agent.Port,
 		},
+		{
+			Name:          galeraresources.AgentProbePortName,
+			ContainerPort: agent.ProbePort,
+		},
 	}
 	container.Args = func() []string {
-		args := container.Args
+		var args []string
 		args = append(args, []string{
 			"agent",
 			fmt.Sprintf("--addr=:%d", agent.Port),
+			fmt.Sprintf("--probe-addr=:%d", agent.ProbePort),
 			fmt.Sprintf("--config-dir=%s", galeraresources.GaleraConfigMountPath),
 			fmt.Sprintf("--state-dir=%s", MariadbStorageMountPath),
 		}...)
@@ -214,6 +222,7 @@ func (b *Builder) galeraAgentContainer(mariadb *mariadbv1alpha1.MariaDB) (*corev
 			}...)
 		}
 
+		args = append(args, container.Args...)
 		return args
 	}()
 	container.Env = mariadbEnv(mariadb)
@@ -397,6 +406,49 @@ func mariadbEnv(mariadb *mariadbv1alpha1.MariaDB) []corev1.EnvVar {
 		},
 	}
 
+	if mariadb.IsTLSEnabled() {
+		env = append(env, []corev1.EnvVar{
+			{
+				Name:  "TLS_ENABLED",
+				Value: strconv.FormatBool(mariadb.IsTLSEnabled()),
+			},
+			{
+				Name:  "TLS_CA_CERT_PATH",
+				Value: builderpki.CACertPath,
+			},
+			{
+				Name:  "TLS_SERVER_CERT_PATH",
+				Value: builderpki.ServerCertPath,
+			},
+			{
+				Name:  "TLS_SERVER_KEY_PATH",
+				Value: builderpki.ServerKeyPath,
+			},
+			{
+				Name:  "TLS_CLIENT_CERT_PATH",
+				Value: builderpki.ClientCertPath,
+			},
+			{
+				Name:  "TLS_CLIENT_KEY_PATH",
+				Value: builderpki.ClientKeyPath,
+			},
+		}...)
+
+		// By default, wsrep_sst_mariabackup.sh validates the client certificate commonName against the Pod IP.
+		// This doesn't work with Kubernetes, we cannot issue a certificate for a specific IP, as Pod IPs are ephemeral and unpredictable.
+		// Instead, we could configure wsrep_sst_mariabackup.sh to validate the certificate against the expected commonName:
+		// See:
+		// https://github.com/codership/mariadb-server/blob/16394f1aa1b4097f897b8ab01ea2064726cca059/scripts/wsrep_sst_common.sh#L1064
+		// https://github.com/codership/mariadb-server/blob/16394f1aa1b4097f897b8ab01ea2064726cca059/scripts/wsrep_sst_mariabackup.sh#L407
+		clientNames := mariadb.TLSClientNames()
+		if mariadb.IsGaleraEnabled() && len(clientNames) > 0 {
+			env = append(env, corev1.EnvVar{
+				Name:  "WSREP_SST_OPT_REMOTE_AUTH",
+				Value: fmt.Sprintf("%s:", clientNames[0]),
+			})
+		}
+	}
+
 	if mariadb.IsRootPasswordEmpty() {
 		env = append(env, corev1.EnvVar{
 			Name:  "MARIADB_ALLOW_EMPTY_ROOT_PASSWORD",
@@ -443,6 +495,12 @@ func mariadbVolumeMounts(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt
 			MountPath: MariadbConfigMountPath,
 		},
 	}
+
+	if mariadb.IsTLSEnabled() {
+		_, tlsVolumeMounts := mariadbTLSVolumes(mariadb)
+		volumeMounts = append(volumeMounts, tlsVolumeMounts...)
+	}
+
 	galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
 	reuseStorageVolume := ptr.Deref(galera.Config.ReuseStorageVolume, false)
 
@@ -520,6 +578,10 @@ func maxscaleVolumeMounts(maxscale *mariadbv1alpha1.MaxScale) []corev1.VolumeMou
 			MountPath: MaxScaleCacheMountPath,
 		},
 	}
+	if maxscale.IsTLSEnabled() {
+		_, tlsVolumeMounts := maxscaleTLSVolumes(maxscale)
+		volumeMounts = append(volumeMounts, tlsVolumeMounts...)
+	}
 	if maxscale.Spec.VolumeMounts != nil {
 		volumeMounts = append(volumeMounts, kadapter.ToKubernetesSlice(maxscale.Spec.VolumeMounts)...)
 	}
@@ -557,6 +619,13 @@ func mariadbLivenessProbe(mariadb *mariadbv1alpha1.MariaDB) *corev1.Probe {
 		return mariadbGaleraProbe(mariadb, "/liveness", mariadb.Spec.LivenessProbe)
 	}
 	return mariadbProbe(mariadb, mariadb.Spec.LivenessProbe)
+}
+
+func mariadbStartupProbe(mariadb *mariadbv1alpha1.MariaDB) *corev1.Probe {
+	if mariadb.IsGaleraEnabled() {
+		return mariadbGaleraProbe(mariadb, "/liveness", mariadb.Spec.StartupProbe)
+	}
+	return mariadbProbe(mariadb, mariadb.Spec.StartupProbe)
 }
 
 func mariadbReadinessProbe(mariadb *mariadbv1alpha1.MariaDB) *corev1.Probe {
@@ -612,7 +681,7 @@ func mariadbGaleraProbe(mdb *mariadbv1alpha1.MariaDB, path string, probe *mariad
 		ProbeHandler: corev1.ProbeHandler{
 			HTTPGet: &corev1.HTTPGetAction{
 				Path: path,
-				Port: intstr.FromInt(int(agent.Port)),
+				Port: intstr.FromInt(int(agent.ProbePort)),
 			},
 		},
 		InitialDelaySeconds: 20,
@@ -631,8 +700,7 @@ func maxscaleProbe(mxs *mariadbv1alpha1.MaxScale, probe *mariadbv1alpha1.Probe) 
 	}
 	mxsProbe := corev1.Probe{
 		ProbeHandler: corev1.ProbeHandler{
-			HTTPGet: &corev1.HTTPGetAction{
-				Path: "/",
+			TCPSocket: &corev1.TCPSocketAction{
 				Port: intstr.FromInt(int(mxs.Spec.Admin.Port)),
 			},
 		},

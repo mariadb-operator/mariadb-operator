@@ -14,6 +14,7 @@ import (
 	certctrl "github.com/mariadb-operator/mariadb-operator/pkg/controller/certificate"
 	"github.com/mariadb-operator/mariadb-operator/pkg/health"
 	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
+	"github.com/mariadb-operator/mariadb-operator/pkg/pki"
 	"github.com/mariadb-operator/mariadb-operator/pkg/predicate"
 	admissionregistration "k8s.io/api/admissionregistration/v1"
 	v1 "k8s.io/api/core/v1"
@@ -32,6 +33,7 @@ type WebhookConfigReconciler struct {
 	scheme          *runtime.Scheme
 	recorder        record.EventRecorder
 	certReconciler  *certctrl.CertReconciler
+	certOpts        []certctrl.CertReconcilerOpt
 	serviceKey      types.NamespacedName
 	requeueDuration time.Duration
 	leaderChan      <-chan struct{}
@@ -41,26 +43,31 @@ type WebhookConfigReconciler struct {
 }
 
 func NewWebhookConfigReconciler(client client.Client, scheme *runtime.Scheme, recorder record.EventRecorder, leaderChan <-chan struct{},
-	caSecretKey types.NamespacedName, caCommonName string, caValidity time.Duration,
-	certSecretKey types.NamespacedName, certValidity time.Duration, lookaheadValidity time.Duration,
+	caSecretKey types.NamespacedName, caCommonName string, caLifetime time.Duration,
+	certSecretKey types.NamespacedName, certLifetime time.Duration, renewBeforePercentage int32,
 	serviceKey types.NamespacedName, requeueDuration time.Duration) *WebhookConfigReconciler {
 
-	certDNSnames := serviceDNSNames(serviceKey)
-	return &WebhookConfigReconciler{
-		Client:   client,
-		scheme:   scheme,
-		recorder: recorder,
-		certReconciler: certctrl.NewCertReconciler(
-			client,
-			caSecretKey,
-			caCommonName,
-			certSecretKey,
-			certDNSnames.CommonName,
-			certDNSnames.Names,
-			certctrl.WithCAValidity(caValidity),
-			certctrl.WithCertValidity(certValidity),
-			certctrl.WithLookaheadValidity(lookaheadValidity),
+	certOpts := []certctrl.CertReconcilerOpt{
+		certctrl.WithCA(true, caSecretKey),
+		certctrl.WithCACommonName(caCommonName),
+		certctrl.WithCALifetime(caLifetime),
+		certctrl.WithCASecretType(certctrl.SecretTypeTLS),
+		certctrl.WithCert(true, certSecretKey, serviceDNSNames(serviceKey).Names),
+		certctrl.WithCertLifetime(certLifetime),
+		certctrl.WithServerCertKeyUsage(),
+		certctrl.WithSupportedPrivateKeys(
+			pki.PrivateKeyTypeECDSA,
+			pki.PrivateKeyTypeRSA, // backwards compatibility with webhook certs from previous versions
 		),
+		certctrl.WithRenewBeforePercentage(renewBeforePercentage),
+	}
+
+	return &WebhookConfigReconciler{
+		Client:          client,
+		scheme:          scheme,
+		recorder:        recorder,
+		certReconciler:  certctrl.NewCertReconciler(client, scheme, recorder, nil, nil),
+		certOpts:        certOpts,
 		serviceKey:      serviceKey,
 		requeueDuration: requeueDuration,
 		leaderChan:      leaderChan,
@@ -71,7 +78,7 @@ func NewWebhookConfigReconciler(client client.Client, scheme *runtime.Scheme, re
 }
 
 func (r *WebhookConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	certResult, err := r.certReconciler.Reconcile(ctx)
+	certResult, err := r.certReconciler.Reconcile(ctx, r.certOpts...)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("Error reconciling webhook certificate: %v", err)
 	}

@@ -1,0 +1,14 @@
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: User
+metadata:
+  name: sbtest-repl
+spec:
+  mariaDbRef:
+    name: mariadb-repl
+  passwordSecretKeyRef:
+    name: mariadb
+    key: password
+  require:
+    x509: true
+  host: "%"
+  maxUserConnections: 1000000000

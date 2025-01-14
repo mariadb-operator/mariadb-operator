@@ -9,7 +9,10 @@ import (
 
 type SqlOpts struct {
 	CommandOpts
-	SqlFile string
+	SSLCAPath   *string
+	SSLCertPath *string
+	SSLKeyPath  *string
+	SqlFile     string
 }
 
 type SqlOpt func(*SqlOpts)
@@ -38,6 +41,14 @@ func WithSqlDatabase(d string) SqlOpt {
 	}
 }
 
+func WithSSL(caPath, certPath, keyPath string) SqlOpt {
+	return func(o *SqlOpts) {
+		o.SSLCAPath = &caPath
+		o.SSLCertPath = &certPath
+		o.SSLKeyPath = &keyPath
+	}
+}
+
 type SqlCommand struct {
 	*SqlOpts
 }
@@ -48,11 +59,20 @@ func (s *SqlCommand) ExecCommand(mariadb *mariadbv1alpha1.MariaDB) *Command {
 		"echo '⚙️ Executing SQL script'",
 		fmt.Sprintf(
 			"mariadb %s < %s",
-			ConnectionFlags(&s.SqlOpts.CommandOpts, mariadb),
+			s.SqlFlags(mariadb),
 			s.SqlFile,
 		),
 	}
 	return NewBashCommand(cmds)
+}
+
+func (s *SqlCommand) SqlFlags(mdb *mariadbv1alpha1.MariaDB) string {
+	flags := ConnectionFlags(&s.SqlOpts.CommandOpts, mdb)
+	if s.SSLCAPath != nil && s.SSLCertPath != nil && s.SSLKeyPath != nil {
+		flags += fmt.Sprintf(" --ssl --ssl-ca=%s --ssl-cert=%s --ssl-key=%s --ssl-verify-server-cert",
+			*s.SSLCAPath, *s.SSLCertPath, *s.SSLKeyPath)
+	}
+	return flags
 }
 
 func NewSqlCommand(userOpts ...SqlOpt) (*SqlCommand, error) {

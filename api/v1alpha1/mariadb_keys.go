@@ -3,7 +3,9 @@ package v1alpha1
 import (
 	"fmt"
 
+	"github.com/mariadb-operator/mariadb-operator/pkg/pki"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 )
 
 // RootPasswordSecretKeyRef defines the key selector for the root password Secret.
@@ -49,6 +51,104 @@ func (m *MariaDB) MyCnfConfigMapKeyRef() ConfigMapKeySelector {
 			Name: fmt.Sprintf("%s-config", m.Name),
 		},
 		Key: "my.cnf",
+	}
+}
+
+// TLSCABundleSecretKeyRef defines the key selector for the TLS Secret trust bundle
+func (m *MariaDB) TLSCABundleSecretKeyRef() SecretKeySelector {
+	return SecretKeySelector{
+		LocalObjectReference: LocalObjectReference{
+			Name: fmt.Sprintf("%s-ca-bundle", m.Name),
+		},
+		Key: pki.CACertKey,
+	}
+}
+
+// TLSConfigMapKeyRef defines the key selector for the TLS ConfigMap
+func (m *MariaDB) TLSConfigMapKeyRef() ConfigMapKeySelector {
+	return ConfigMapKeySelector{
+		LocalObjectReference: LocalObjectReference{
+			Name: fmt.Sprintf("%s-config-tls", m.Name),
+		},
+		Key: "1-tls.cnf",
+	}
+}
+
+// TLSServerCASecretKey defines the key for the TLS server CA.
+func (m *MariaDB) TLSServerCASecretKey() types.NamespacedName {
+	tls := ptr.Deref(m.Spec.TLS, TLS{})
+	if tls.Enabled {
+		if tls.ServerCASecretRef != nil {
+			return types.NamespacedName{
+				Name:      tls.ServerCASecretRef.Name,
+				Namespace: m.Namespace,
+			}
+		}
+		if tls.ServerCertIssuerRef != nil {
+			// Secret issued by cert-manager containing the ca.crt field.
+			return types.NamespacedName{
+				Name:      m.TLSServerCertSecretKey().Name,
+				Namespace: m.Namespace,
+			}
+		}
+	}
+	return types.NamespacedName{
+		Name:      fmt.Sprintf("%s-ca", m.Name),
+		Namespace: m.Namespace,
+	}
+}
+
+// TLSServerCertSecretKey defines the key for the TLS server cert.
+func (m *MariaDB) TLSServerCertSecretKey() types.NamespacedName {
+	tls := ptr.Deref(m.Spec.TLS, TLS{})
+	if tls.Enabled && tls.ServerCertSecretRef != nil {
+		return types.NamespacedName{
+			Name:      tls.ServerCertSecretRef.Name,
+			Namespace: m.Namespace,
+		}
+	}
+	return types.NamespacedName{
+		Name:      fmt.Sprintf("%s-server-cert", m.Name),
+		Namespace: m.Namespace,
+	}
+}
+
+// TLSClientCASecretKey defines the key for the TLS client CA.
+func (m *MariaDB) TLSClientCASecretKey() types.NamespacedName {
+	tls := ptr.Deref(m.Spec.TLS, TLS{})
+	if tls.Enabled {
+		if tls.ClientCASecretRef != nil {
+			return types.NamespacedName{
+				Name:      tls.ClientCASecretRef.Name,
+				Namespace: m.Namespace,
+			}
+		}
+		if tls.ClientCertIssuerRef != nil {
+			// Secret issued by cert-manager containing the ca.crt field.
+			return types.NamespacedName{
+				Name:      m.TLSClientCertSecretKey().Name,
+				Namespace: m.Namespace,
+			}
+		}
+	}
+	return types.NamespacedName{
+		Name:      fmt.Sprintf("%s-ca", m.Name),
+		Namespace: m.Namespace,
+	}
+}
+
+// TLSClientCertSecretKey defines the key for the TLS client cert.
+func (m *MariaDB) TLSClientCertSecretKey() types.NamespacedName {
+	tls := ptr.Deref(m.Spec.TLS, TLS{})
+	if tls.Enabled && tls.ClientCertSecretRef != nil {
+		return types.NamespacedName{
+			Name:      tls.ClientCertSecretRef.Name,
+			Namespace: m.Namespace,
+		}
+	}
+	return types.NamespacedName{
+		Name:      fmt.Sprintf("%s-client-cert", m.Name),
+		Namespace: m.Namespace,
 	}
 }
 

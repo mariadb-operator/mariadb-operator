@@ -278,7 +278,7 @@ func (r *GaleraReconciler) getGaleraState(ctx context.Context, mariadb *mariadbv
 			defer cancelRecovery()
 
 			err = wait.PollWithMariaDB(recoveryCtx, mariadbKey, r.Client, stateLogger, func(ctx context.Context) error {
-				if err := r.ensurePodRunning(ctx, mariadbKey, ctrlclient.ObjectKeyFromObject(&pod), logger); err != nil {
+				if err := r.ensurePodHealthy(ctx, mariadbKey, ctrlclient.ObjectKeyFromObject(&pod), clientSet, logger); err != nil {
 					return err
 				}
 				galeraState, err := client.Galera.GetState(ctx)
@@ -429,7 +429,7 @@ func (r *GaleraReconciler) enableBootstrapWithSource(ctx context.Context, mariad
 	}
 
 	if err = wait.PollWithMariaDB(ctx, mariadbKey, r.Client, logger, func(ctx context.Context) error {
-		if err := r.ensurePodRunning(ctx, mariadbKey, podKey, logger); err != nil {
+		if err := r.ensurePodHealthy(ctx, mariadbKey, podKey, clientSet, logger); err != nil {
 			return err
 		}
 		return client.Galera.EnableBootstrap(ctx, src.bootstrap)
@@ -451,7 +451,7 @@ func (r *GaleraReconciler) disableBootstrapInPod(ctx context.Context, mariadbKey
 	}
 
 	if err = wait.PollWithMariaDB(ctx, mariadbKey, r.Client, logger, func(ctx context.Context) error {
-		if err := r.ensurePodRunning(ctx, mariadbKey, podKey, logger); err != nil {
+		if err := r.ensurePodHealthy(ctx, mariadbKey, podKey, clientSet, logger); err != nil {
 			return err
 		}
 		if err := client.Galera.DisableBootstrap(ctx); err != nil && !galeraerrors.IsNotFound(err) {
@@ -489,16 +489,17 @@ func (r *GaleraReconciler) patchStatefulSetReplicas(ctx context.Context, key typ
 	})
 }
 
-func (r *GaleraReconciler) ensurePodRunning(ctx context.Context, mariadbKey, podKey types.NamespacedName, logger logr.Logger) error {
+func (r *GaleraReconciler) ensurePodHealthy(ctx context.Context, mariadbKey, podKey types.NamespacedName, clientSet *agentClientSet,
+	logger logr.Logger) error {
 	initialCtx, initialCancel := context.WithTimeout(ctx, 30*time.Second)
 	defer initialCancel()
-	if err := r.pollUntilPodRunning(initialCtx, mariadbKey, podKey, logger); err != nil {
+	if err := r.pollUntilPodHealthy(initialCtx, mariadbKey, podKey, clientSet, logger); err != nil {
 		logger.V(1).Info("Initial wait for Pod timed out", "pod", podKey.Name, "err", err)
 	} else {
 		return nil
 	}
 
-	logger.V(1).Info("Pod not running. Recreating...", "pod", podKey.Name)
+	logger.V(1).Info("Pod not healthy. Recreating...", "pod", podKey.Name)
 	var pod corev1.Pod
 	if err := r.Get(ctx, podKey, &pod); err != nil {
 		return fmt.Errorf("error getting Pod '%s': %v", podKey.Name, err)
@@ -506,7 +507,7 @@ func (r *GaleraReconciler) ensurePodRunning(ctx context.Context, mariadbKey, pod
 	if err := r.Delete(ctx, &pod); err != nil {
 		return fmt.Errorf("error deleting Pod '%s': %v", podKey.Name, err)
 	}
-	return r.pollUntilPodRunning(ctx, mariadbKey, podKey, logger)
+	return r.pollUntilPodHealthy(ctx, mariadbKey, podKey, clientSet, logger)
 }
 
 func (r *GaleraReconciler) ensureJob(ctx context.Context, recoveryJob *batchv1.Job) error {
@@ -520,16 +521,34 @@ func (r *GaleraReconciler) ensureJob(ctx context.Context, recoveryJob *batchv1.J
 	return nil
 }
 
-func (r *GaleraReconciler) pollUntilPodRunning(ctx context.Context, mariadbKey, podKey types.NamespacedName, logger logr.Logger) error {
+func (r *GaleraReconciler) pollUntilPodHealthy(ctx context.Context, mariadbKey, podKey types.NamespacedName, clientSet *agentClientSet,
+	logger logr.Logger) error {
+	i, err := statefulset.PodIndex(podKey.Name)
+	if err != nil {
+		return fmt.Errorf("error getting index for Pod '%s': %v", podKey.Name, err)
+	}
+	client, err := clientSet.clientForIndex(*i)
+	if err != nil {
+		return fmt.Errorf("error getting client for Pod '%s': %v", podKey.Name, err)
+	}
+
 	return wait.PollWithMariaDB(ctx, mariadbKey, r.Client, logger, func(ctx context.Context) error {
 		var pod corev1.Pod
 		if err := r.Get(ctx, podKey, &pod); err != nil {
 			return fmt.Errorf("error getting Pod '%s': %v", podKey.Name, err)
 		}
-		if pod.Status.Phase == corev1.PodRunning {
-			return nil
+		if pod.Status.Phase != corev1.PodRunning {
+			return errors.New("Pod not running")
 		}
-		return errors.New("Pod not running")
+
+		healthy, err := client.Galera.Health(ctx)
+		if err != nil {
+			return fmt.Errorf("error getting Galera health: %v", err)
+		}
+		if !healthy {
+			return errors.New("Galera not healthy")
+		}
+		return nil
 	})
 }
 

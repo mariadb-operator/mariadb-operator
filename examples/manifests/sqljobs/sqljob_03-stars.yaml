@@ -12,11 +12,11 @@ spec:
     cron: "*/1 * * * *"
     suspend: false
   timeZone: "UTC"
-  username: mariadb
+  username: sqljob
   passwordSecretKeyRef:
-    name: mariadb-password
+    name: mariadb
     key: password
-  database: mariadb
+  database: sqljob
   sql: |
     CREATE TABLE IF NOT EXISTS stars (
       id bigint PRIMARY KEY AUTO_INCREMENT,

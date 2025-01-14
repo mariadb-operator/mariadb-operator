@@ -30,28 +30,40 @@ func (r *MariaDBReconciler) reconcileStatus(ctx context.Context, mdb *mariadbv1a
 			return nil
 		})
 	}
+	logger := log.FromContext(ctx).WithName("status").V(1)
 
 	var sts appsv1.StatefulSet
 	if err := r.Get(ctx, client.ObjectKeyFromObject(mdb), &sts); err != nil {
-		log.FromContext(ctx).V(1).Info("error getting StatefulSet", "err", err)
+		logger.Info("error getting StatefulSet", "err", err)
 	}
 
 	replicationStatus, replErr := r.getReplicationStatus(ctx, mdb)
 	if replErr != nil {
-		log.FromContext(ctx).V(1).Info("error getting replication status", "err", replErr)
+		logger.Info("error getting replication status", "err", replErr)
 	}
+
 	mxsPrimaryPodIndex, mxsErr := r.getMaxScalePrimaryPod(ctx, mdb)
 	if mxsErr != nil {
-		log.FromContext(ctx).V(1).Info("error getting MaxScale primary Pod", "err", mxsErr)
+		logger.Info("error getting MaxScale primary Pod", "err", mxsErr)
+	}
+
+	tlsStatus, err := r.getTLSStatus(ctx, mdb)
+	if err != nil {
+		logger.Info("error getting TLS status", "err", err)
 	}
 
 	return ctrl.Result{}, r.patchStatus(ctx, mdb, func(status *mariadbv1alpha1.MariaDBStatus) error {
+		status.DefaultVersion = r.Environment.MariadbDefaultVersion
 		status.Replicas = sts.Status.ReadyReplicas
 		defaultPrimary(mdb)
 		setMaxScalePrimary(mdb, mxsPrimaryPodIndex)
 
 		if replicationStatus != nil {
 			status.ReplicationStatus = replicationStatus
+		}
+
+		if tlsStatus != nil {
+			status.TLS = tlsStatus
 		}
 
 		if apierrors.IsNotFound(mxsErr) && !ptr.Deref(mdb.Spec.MaxScale, mariadbv1alpha1.MariaDBMaxScaleSpec{}).Enabled {

@@ -579,10 +579,8 @@ spec:
                         type: boolean
                     type: object
                 required:
-                - accessKeyIdSecretKeyRef
                 - bucket
                 - endpoint
-                - secretAccessKeySecretKeyRef
                 type: object
               securityContext:
                 description: SecurityContext holds security configuration that will

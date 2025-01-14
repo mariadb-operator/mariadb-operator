@@ -10,8 +10,10 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	galeraresources "github.com/mariadb-operator/mariadb-operator/pkg/controller/galera/resources"
+	"github.com/mariadb-operator/mariadb-operator/pkg/discovery"
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	galerakeys "github.com/mariadb-operator/mariadb-operator/pkg/galera/config/keys"
 	"github.com/mariadb-operator/mariadb-operator/pkg/galera/recovery"
@@ -28,12 +30,16 @@ var BootstrapFile = []byte(`[galera]
 wsrep_new_cluster="ON"`)
 
 type ConfigFile struct {
-	mariadb *mariadbv1alpha1.MariaDB
+	mariadb   *mariadbv1alpha1.MariaDB
+	discovery *discovery.Discovery
+	logger    logr.Logger
 }
 
-func NewConfigFile(mariadb *mariadbv1alpha1.MariaDB) *ConfigFile {
+func NewConfigFile(mariadb *mariadbv1alpha1.MariaDB, discovery *discovery.Discovery, logger logr.Logger) *ConfigFile {
 	return &ConfigFile{
-		mariadb: mariadb,
+		mariadb:   mariadb,
+		discovery: discovery,
+		logger:    logger,
 	}
 }
 
@@ -59,16 +65,23 @@ wsrep_slave_threads={{ .Threads }}
 {{ .NodeAddressKey }}="{{ .NodeAddress }}"
 wsrep_node_name="{{ .NodeName }}"
 
+# Provider
+wsrep_provider={{ .GaleraLibPath }}
+{{ .ProviderOptsKey }}="{{ .ProviderOpts }}"
+
 # SST
 wsrep_sst_method="{{ .SST }}"
 {{- if .SSTAuth }}
 wsrep_sst_auth="root:{{ .RootPassword }}"
 {{- end }}
 {{ .SSTReceiveAddressKey }}="{{ .SSTReceiveAddress }}"
-
-# Provider
-wsrep_provider={{ .GaleraLibPath }}
-{{ .ProviderOptsKey }}="{{ .ProviderOpts }}"
+{{- if .SSLEnabled }}
+[sst]
+encrypt=3
+tca={{ .SSLCAPath }}
+tcert={{ .SSLCertPath }}
+tkey={{ .SSLKeyPath }}
+{{- end }}
 `)
 	buf := new(bytes.Buffer)
 	clusterAddr, err := c.clusterAddress()
@@ -85,7 +98,7 @@ wsrep_provider={{ .GaleraLibPath }}
 		return nil, fmt.Errorf("error getting SST receive address: %v", err)
 	}
 
-	providerOptions, err := getProviderOptions(podEnv.PodIP, galera.ProviderOptions)
+	providerOptions, err := c.getProviderOptions(podEnv, galera.ProviderOptions)
 	if err != nil {
 		return nil, fmt.Errorf("error getting provider options: %v", err)
 	}
@@ -98,15 +111,20 @@ wsrep_provider={{ .GaleraLibPath }}
 		NodeAddress    string
 		NodeName       string
 
+		GaleraLibPath   string
+		ProviderOptsKey string
+		ProviderOpts    string
+
 		SST                  string
 		SSTAuth              bool
 		RootPassword         string
 		SSTReceiveAddressKey string
 		SSTReceiveAddress    string
 
-		GaleraLibPath   string
-		ProviderOptsKey string
-		ProviderOpts    string
+		SSLEnabled  bool
+		SSLCAPath   string
+		SSLCertPath string
+		SSLKeyPath  string
 	}{
 		ClusterAddress: clusterAddr,
 		Threads:        galera.ReplicaThreads,
@@ -115,15 +133,20 @@ wsrep_provider={{ .GaleraLibPath }}
 		NodeAddress:    podEnv.PodIP,
 		NodeName:       podEnv.PodName,
 
+		GaleraLibPath:   galera.GaleraLibPath,
+		ProviderOptsKey: galerakeys.WsrepProviderOptionsKey,
+		ProviderOpts:    providerOptions,
+
 		SST:                  sst,
 		SSTAuth:              galera.SST == mariadbv1alpha1.SSTMariaBackup || galera.SST == mariadbv1alpha1.SSTMysqldump,
 		RootPassword:         podEnv.MariadbRootPassword,
 		SSTReceiveAddressKey: galerakeys.WsrepSSTReceiveAddressKey,
 		SSTReceiveAddress:    sstReceiveAddress,
 
-		GaleraLibPath:   galera.GaleraLibPath,
-		ProviderOptsKey: galerakeys.WsrepProviderOptionsKey,
-		ProviderOpts:    providerOptions,
+		SSLEnabled:  c.mariadb.IsTLSEnabled(),
+		SSLCAPath:   podEnv.TLSCACertPath,
+		SSLCertPath: podEnv.TLSClientCertPath,
+		SSLKeyPath:  podEnv.TLSClientKeyPath,
 	})
 	if err != nil {
 		return nil, err
@@ -146,6 +169,42 @@ func (c *ConfigFile) clusterAddress() (string, error) {
 	return fmt.Sprintf("gcomm://%s", strings.Join(pods, ",")), nil
 }
 
+func (c *ConfigFile) getProviderOptions(env *environment.PodEnvironment, options map[string]string) (string, error) {
+	gmcastListenAddress, err := getGmcastListenAddress(env.PodIP)
+	if err != nil {
+		return "", fmt.Errorf("error getting gcomm listden address: %v", err)
+	}
+	istReceiveAddress, err := getISTReceiveAddress(env.PodIP)
+	if err != nil {
+		return "", fmt.Errorf("error getting IST receive address: %v", err)
+	}
+
+	wsrepOpts := map[string]string{
+		galerakeys.WsrepOptGmcastListAddr: gmcastListenAddress,
+		galerakeys.WsrepOptISTRecvAddr:    istReceiveAddress,
+	}
+
+	if c.mariadb.IsTLSEnabled() {
+		wsrepOpts[galerakeys.WsrepOptSocketSSL] = "true"
+		if env.TLSCACertPath != "" {
+			wsrepOpts[galerakeys.WsrepOptSocketSSLCA] = env.TLSCACertPath
+		}
+		if env.TLSServerCertPath != "" {
+			wsrepOpts[galerakeys.WsrepOptSocketSSLCert] = env.TLSServerCertPath
+		}
+		if env.TLSServerKeyPath != "" {
+			wsrepOpts[galerakeys.WsrepOptSocketSSLKey] = env.TLSServerKeyPath
+		}
+	} else {
+		wsrepOpts[galerakeys.WsrepOptSocketSSL] = "false"
+	}
+
+	maps.Copy(wsrepOpts, options)
+
+	providerOpts := newProviderOptions(wsrepOpts)
+	return providerOpts.marshal(), nil
+}
+
 func UpdateConfig(configBytes []byte, podEnv *environment.PodEnvironment) ([]byte, error) {
 	fileScanner := bufio.NewScanner(bytes.NewReader(configBytes))
 	fileScanner.Split(bufio.ScanLines)
@@ -164,26 +223,6 @@ func UpdateConfig(configBytes []byte, podEnv *environment.PodEnvironment) ([]byt
 
 	updatedConfig := []byte(strings.Join(updatedLines, "\n"))
 	return updatedConfig, nil
-}
-
-func getProviderOptions(podIP string, options map[string]string) (string, error) {
-	gmcastListenAddress, err := getGmcastListenAddress(podIP)
-	if err != nil {
-		return "", fmt.Errorf("error getting gcomm listden address: %v", err)
-	}
-	istReceiveAddress, err := getISTReceiveAddress(podIP)
-	if err != nil {
-		return "", fmt.Errorf("error getting IST receive address: %v", err)
-	}
-
-	wsrepOpts := map[string]string{
-		galerakeys.WsrepOptGmcastListAddr: gmcastListenAddress,
-		galerakeys.WsrepOptISTRecvAddr:    istReceiveAddress,
-	}
-	maps.Copy(wsrepOpts, options)
-
-	providerOpts := newProviderOptions(wsrepOpts)
-	return providerOpts.marshal(), nil
 }
 
 func getSSTReceiveAddress(podIP string) (string, error) {

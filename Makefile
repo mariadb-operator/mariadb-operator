@@ -12,7 +12,7 @@ endif
 SHELL = /usr/bin/env bash -o pipefail
 .SHELLFLAGS = -ec
 
-VERSION ?= 0.37.0-dev
+VERSION ?= 0.37.0
 
 # mariadb-operator
 IMG_NAME ?= docker-registry3.mariadb.com/mariadb-operator/mariadb-operator
@@ -23,7 +23,7 @@ IMG_ENT ?= $(IMG_ENT_NAME):$(VERSION)
 
 # mariadb
 RELATED_IMAGE_MARIADB_NAME ?= docker-registry1.mariadb.com/library/mariadb
-RELATED_IMAGE_MARIADB_VERSION ?= 11.4.3
+RELATED_IMAGE_MARIADB_VERSION ?= 11.4.4
 RELATED_IMAGE_MARIADB ?= $(RELATED_IMAGE_MARIADB_NAME):$(RELATED_IMAGE_MARIADB_VERSION)
 
 RELATED_IMAGE_MARIADB_ENT_NAME ?= docker-registry.mariadb.com/enterprise-server
@@ -66,8 +66,8 @@ MARIADB_DOCKER_REPO ?= https://github.com/MariaDB/mariadb-docker
 MARIADB_DOCKER_COMMIT_HASH ?= a6b360fc45b1a8fcd63b87ab69d4ce43566a7c06
 MARIADB_ENTRYPOINT_PATH ?= pkg/embed/mariadb-docker
 
-MARIADB_ENTRYPOINT_VERSION ?= 11.4
-MARIADB_ENTRYPOINT_VERSION_ENT ?= 10.6
+MARIADB_DEFAULT_VERSION ?= 11.4
+MARIADB_DEFAULT_VERSION_ENT ?= 10.6
 
 DOCKER_CONFIG ?= $(HOME)/.docker/config.json 
 

@@ -116,6 +116,15 @@ rules:
   - patch
   - watch
 - apiGroups:
+  - cert-manager.io
+  resources:
+  - certificates
+  verbs:
+  - create
+  - list
+  - patch
+  - watch
+- apiGroups:
   - k8s.mariadb.com
   resources:
   - backups

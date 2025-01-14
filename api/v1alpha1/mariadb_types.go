@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	cmmeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	appsv1 "k8s.io/api/apps/v1"
@@ -224,6 +225,10 @@ type MariaDBMaxScaleSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Metrics *MaxScaleMetrics `json:"metrics,omitempty"`
+	// TLS defines the PKI to be used with MaxScale.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	TLS *MaxScaleTLS `json:"tls,omitempty"`
 	// Connection provides a template to define the Connection for MaxScale.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -314,6 +319,52 @@ func (u *UpdateStrategy) SetDefaults() {
 	}
 }
 
+// TLS defines the PKI to be used with MariaDB.
+type TLS struct {
+	// Enabled is a flag to enable TLS.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
+	Enabled bool `json:"enabled"`
+	// ServerCASecretRef is a reference to a Secret containing the server certificate authority keypair. It is used to establish trust and issue server certificates.
+	// One of:
+	// - Secret containing both the 'ca.crt' and 'ca.key' keys. This allows you to bring your own CA to Kubernetes to issue certificates.
+	// - Secret containing only the 'ca.crt' in order to establish trust. In this case, either serverCertSecretRef or serverCertIssuerRef must be provided.
+	// If not provided, a self-signed CA will be provisioned to issue the server certificate.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	ServerCASecretRef *LocalObjectReference `json:"serverCASecretRef,omitempty"`
+	// ServerCertSecretRef is a reference to a TLS Secret containing the server certificate.
+	// It is mutually exclusive with serverCertIssuerRef.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	ServerCertSecretRef *LocalObjectReference `json:"serverCertSecretRef,omitempty"`
+	// ServerCertIssuerRef is a reference to a cert-manager issuer object used to issue the server certificate. cert-manager must be installed previously in the cluster.
+	// It is mutually exclusive with serverCertSecretRef.
+	// By default, the Secret field 'ca.crt' provisioned by cert-manager will be added to the trust chain. A custom trust bundle may be specified via serverCASecretRef.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	ServerCertIssuerRef *cmmeta.ObjectReference `json:"serverCertIssuerRef,omitempty"`
+	// ClientCASecretRef is a reference to a Secret containing the client certificate authority keypair. It is used to establish trust and issue client certificates.
+	// One of:
+	// - Secret containing both the 'ca.crt' and 'ca.key' keys. This allows you to bring your own CA to Kubernetes to issue certificates.
+	// - Secret containing only the 'ca.crt' in order to establish trust. In this case, either clientCertSecretRef or clientCertIssuerRef fields must be provided.
+	// If not provided, a self-signed CA will be provisioned to issue the client certificate.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	ClientCASecretRef *LocalObjectReference `json:"clientCASecretRef,omitempty"`
+	// ClientCertSecretRef is a reference to a TLS Secret containing the client certificate.
+	// It is mutually exclusive with clientCertIssuerRef.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	ClientCertSecretRef *LocalObjectReference `json:"clientCertSecretRef,omitempty"`
+	// ClientCertIssuerRef is a reference to a cert-manager issuer object used to issue the client certificate. cert-manager must be installed previously in the cluster.
+	// It is mutually exclusive with clientCertSecretRef.
+	// By default, the Secret field 'ca.crt' provisioned by cert-manager will be added to the trust chain. A custom trust bundle may be specified via clientCASecretRef.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	ClientCertIssuerRef *cmmeta.ObjectReference `json:"clientCertIssuerRef,omitempty"`
+}
+
 // MariaDBSpec defines the desired state of MariaDB
 type MariaDBSpec struct {
 	// ContainerTemplate defines templates to configure Container objects.
@@ -397,6 +448,10 @@ type MariaDBSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Metrics *MariadbMetrics `json:"metrics,omitempty"`
+	// TLS defines the PKI to be used with MariaDB.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	TLS *TLS `json:"tls,omitempty"`
 	// Replication configures high availability via replication. This feature is still in alpha, use Galera if you are looking for a more production-ready HA.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -475,6 +530,22 @@ type MariaDBSpec struct {
 	SecondaryConnection *ConnectionTemplate `json:"secondaryConnection,omitempty" webhook:"inmutable"`
 }
 
+// MariaDBTLSStatus aggregates the status of the certificates used by the MariaDB instance.
+type MariaDBTLSStatus struct {
+	// CABundle is the status of the Certificate Authority bundle.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	CABundle []CertificateStatus `json:"caBundle,omitempty"`
+	// ServerCert is the status of the server certificate.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	ServerCert *CertificateStatus `json:"serverCert,omitempty"`
+	// ClientCert is the status of the client certificate.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	ClientCert *CertificateStatus `json:"clientCert,omitempty"`
+}
+
 // MariaDBStatus defines the observed state of MariaDB
 type MariaDBStatus struct {
 	// Conditions for the Mariadb object.
@@ -500,6 +571,16 @@ type MariaDBStatus struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	ReplicationStatus ReplicationStatus `json:"replicationStatus,omitempty"`
+	// DefaultVersion is the MariaDB version used by the operator when it cannot infer the version
+	// from spec.image. This can happen if the image uses a digest (e.g. sha256) instead
+	// of a version tag.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	DefaultVersion string `json:"defaultVersion,omitempty"`
+	// TLS aggregates the status of the certificates used by the MariaDB instance.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	TLS *MariaDBTLSStatus `json:"tls,omitempty"`
 }
 
 // SetCondition sets a status condition to MariaDB
@@ -580,6 +661,12 @@ func (m *MariaDB) SetDefaults(env *environment.OperatorEnv) error {
 			m.Spec.Metrics.PasswordSecretKeyRef = m.MetricsPasswordSecretKeyRef()
 		}
 	}
+	if m.Spec.TLS == nil {
+		m.Spec.TLS = &TLS{
+			Enabled: true,
+		}
+	}
+
 	if ptr.Deref(m.Spec.MaxScale, MariaDBMaxScaleSpec{}).Enabled && m.Spec.MaxScaleRef == nil {
 		m.Spec.MaxScaleRef = &ObjectReference{
 			Name:      m.MaxScaleKey().Name,
@@ -653,6 +740,11 @@ func (m *MariaDB) IsEphemeralStorageEnabled() bool {
 	return ptr.Deref(m.Spec.Storage.Ephemeral, false)
 }
 
+// IsTLSEnabled indicates whether the MariaDB instance has TLS enabled
+func (m *MariaDB) IsTLSEnabled() bool {
+	return ptr.Deref(m.Spec.TLS, TLS{}).Enabled
+}
+
 // IsReady indicates whether the MariaDB instance is ready
 func (m *MariaDB) IsReady() bool {
 	return meta.IsStatusConditionTrue(m.Status.Conditions, ConditionTypeReady)
@@ -705,41 +797,20 @@ func (m *MariaDB) IsSuspended() bool {
 	return m.Spec.Suspend
 }
 
-const (
-	// MariadbMyCnfConfigMapFieldPath is the path related to the my.cnf ConfigMap field.
-	MariadbMyCnfConfigMapFieldPath = ".spec.myCnfConfigMapKeyRef.name"
-	// MariadbMetricsPasswordSecretFieldPath is the path related to the metrics password Secret field.
-	MariadbMetricsPasswordSecretFieldPath = ".spec.metrics.passwordSecretKeyRef"
-)
+// ServerDNSNames are the Service DNS names used by server TLS certificates.
+func (m *MariaDB) TLSServerDNSNames() []string {
+	var names []string
+	names = append(names, statefulset.ServiceNameVariants(m.ObjectMeta, m.Name)...)
+	names = append(names, statefulset.HeadlessServiceNameVariants(m.ObjectMeta, "*", m.InternalServiceKey().Name)...)
+	names = append(names, statefulset.ServiceNameVariants(m.ObjectMeta, m.PrimaryServiceKey().Name)...)
+	names = append(names, statefulset.ServiceNameVariants(m.ObjectMeta, m.SecondaryServiceKey().Name)...)
+	names = append(names, "localhost")
+	return names
+}
 
-// IndexerFuncForFieldPath returns an indexer function for a given field path.
-func (m *MariaDB) IndexerFuncForFieldPath(fieldPath string) (client.IndexerFunc, error) {
-	switch fieldPath {
-	case MariadbMyCnfConfigMapFieldPath:
-		return func(obj client.Object) []string {
-			mdb, ok := obj.(*MariaDB)
-			if !ok {
-				return nil
-			}
-			if mdb.Spec.MyCnfConfigMapKeyRef != nil && mdb.Spec.MyCnfConfigMapKeyRef.LocalObjectReference.Name != "" {
-				return []string{mdb.Spec.MyCnfConfigMapKeyRef.LocalObjectReference.Name}
-			}
-			return nil
-		}, nil
-	case MariadbMetricsPasswordSecretFieldPath:
-		return func(obj client.Object) []string {
-			mdb, ok := obj.(*MariaDB)
-			if !ok {
-				return nil
-			}
-			if mdb.AreMetricsEnabled() && mdb.Spec.Metrics != nil && mdb.Spec.Metrics.PasswordSecretKeyRef.Name != "" {
-				return []string{mdb.Spec.Metrics.PasswordSecretKeyRef.Name}
-			}
-			return nil
-		}, nil
-	default:
-		return nil, fmt.Errorf("unsupported field path: %s", fieldPath)
-	}
+// TLSClientNames are the names used by client TLS certificates.
+func (m *MariaDB) TLSClientNames() []string {
+	return []string{fmt.Sprintf("%s-client", m.Name)}
 }
 
 // +kubebuilder:object:root=true

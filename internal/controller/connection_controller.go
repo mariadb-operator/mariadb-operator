@@ -16,16 +16,13 @@ import (
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
 	"github.com/mariadb-operator/mariadb-operator/pkg/health"
-	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
-	"github.com/mariadb-operator/mariadb-operator/pkg/predicate"
+	"github.com/mariadb-operator/mariadb-operator/pkg/pki"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	clientsql "github.com/mariadb-operator/mariadb-operator/pkg/sql"
-	"github.com/mariadb-operator/mariadb-operator/pkg/watch"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
-	ctrlbuilder "sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -91,21 +88,6 @@ func (r *ConnectionReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 }
 
 func (r *ConnectionReconciler) getRefs(ctx context.Context, conn *mariadbv1alpha1.Connection) (*mariadbv1alpha1.ConnectionRefs, error) {
-	if conn.Spec.MariaDBRef != nil {
-		mdb, refErr := r.RefResolver.MariaDB(ctx, conn.Spec.MariaDBRef, conn.Namespace)
-		if refErr != nil {
-			var mariaDbErr *multierror.Error
-			mariaDbErr = multierror.Append(mariaDbErr, refErr)
-
-			patchErr := r.patchStatus(ctx, conn, r.ConditionReady.PatcherRefResolver(refErr, mdb))
-			mariaDbErr = multierror.Append(mariaDbErr, patchErr)
-
-			return nil, fmt.Errorf("error getting MariaDB: %v", mariaDbErr)
-		}
-		return &mariadbv1alpha1.ConnectionRefs{
-			MariaDB: mdb,
-		}, nil
-	}
 	if conn.Spec.MaxScaleRef != nil {
 		mxs, refErr := r.RefResolver.MaxScale(ctx, conn.Spec.MaxScaleRef, conn.Namespace)
 		if refErr != nil {
@@ -115,13 +97,50 @@ func (r *ConnectionReconciler) getRefs(ctx context.Context, conn *mariadbv1alpha
 			patchErr := r.patchStatus(ctx, conn, r.ConditionReady.PatcherRefResolver(refErr, mxs))
 			mariaDbErr = multierror.Append(mariaDbErr, patchErr)
 
-			return nil, fmt.Errorf("error getting MaxScale: %v", mariaDbErr)
+			return nil, fmt.Errorf("error getting MaxScale: %w", mariaDbErr)
 		}
+
+		var mdb *mariadbv1alpha1.MariaDB
+		var err error
+		if mxs.Spec.MariaDBRef != nil {
+			mdb, err = r.getMariadb(ctx, mxs.Spec.MariaDBRef, conn)
+			if err != nil {
+				return nil, err
+			}
+		}
+
 		return &mariadbv1alpha1.ConnectionRefs{
 			MaxScale: mxs,
+			MariaDB:  mdb,
 		}, nil
 	}
+
+	if conn.Spec.MariaDBRef != nil {
+		mdb, err := r.getMariadb(ctx, conn.Spec.MariaDBRef, conn)
+		if err != nil {
+			return nil, err
+		}
+		return &mariadbv1alpha1.ConnectionRefs{
+			MariaDB: mdb,
+		}, nil
+	}
+
 	return nil, errors.New("no references found")
+}
+
+func (r *ConnectionReconciler) getMariadb(ctx context.Context, ref *mariadbv1alpha1.MariaDBRef,
+	conn *mariadbv1alpha1.Connection) (*mariadbv1alpha1.MariaDB, error) {
+	mdb, refErr := r.RefResolver.MariaDB(ctx, ref, conn.Namespace)
+	if refErr != nil {
+		var mariaDbErr *multierror.Error
+		mariaDbErr = multierror.Append(mariaDbErr, refErr)
+
+		patchErr := r.patchStatus(ctx, conn, r.ConditionReady.PatcherRefResolver(refErr, mdb))
+		mariaDbErr = multierror.Append(mariaDbErr, patchErr)
+
+		return nil, fmt.Errorf("error getting MariaDB: %w", mariaDbErr)
+	}
+	return mdb, nil
 }
 
 func (r *ConnectionReconciler) waitForRefs(ctx context.Context, conn *mariadbv1alpha1.Connection,
@@ -197,7 +216,7 @@ func (r *ConnectionReconciler) checkHealth(ctx context.Context, conn *mariadbv1a
 
 func (r *ConnectionReconciler) reconcileSecret(ctx context.Context, conn *mariadbv1alpha1.Connection,
 	refs *mariadbv1alpha1.ConnectionRefs) error {
-	sqlOpts, err := r.getSqlOpts(ctx, conn)
+	sqlOpts, err := r.getSqlOpts(ctx, conn, refs)
 	if err != nil {
 		return fmt.Errorf("error getting SQL options: %v", err)
 	}
@@ -281,7 +300,8 @@ func (r *ConnectionReconciler) reconcileSecret(ctx context.Context, conn *mariad
 	return nil
 }
 
-func (r *ConnectionReconciler) getSqlOpts(ctx context.Context, conn *mariadbv1alpha1.Connection) (clientsql.Opts, error) {
+func (r *ConnectionReconciler) getSqlOpts(ctx context.Context, conn *mariadbv1alpha1.Connection,
+	refs *mariadbv1alpha1.ConnectionRefs) (clientsql.Opts, error) {
 	password, err := r.RefResolver.SecretKeyRef(ctx, conn.Spec.PasswordSecretKeyRef, conn.Namespace)
 	if err != nil {
 		return clientsql.Opts{}, fmt.Errorf("error getting password for connection DSN: %v", err)
@@ -296,7 +316,79 @@ func (r *ConnectionReconciler) getSqlOpts(ctx context.Context, conn *mariadbv1al
 	if conn.Spec.Database != nil {
 		sqlOpts.Database = *conn.Spec.Database
 	}
+	if mxs := refs.MaxScale; mxs != nil && mxs.IsTLSEnabled() {
+		caBundle, err := r.RefResolver.SecretKeyRef(ctx, mxs.TLSCABundleSecretKeyRef(), mxs.Namespace)
+		if err != nil {
+			return clientsql.Opts{}, fmt.Errorf("error getting MaxScale CA bundle: %v", err)
+		}
+		sqlOpts.TLSCACert = []byte(caBundle)
+		sqlOpts.MaxscaleName = mxs.Name
+		sqlOpts.Namespace = mxs.Namespace
+
+	} else if mdb := refs.MariaDB; mdb != nil && mdb.IsTLSEnabled() {
+		caBundle, err := r.RefResolver.SecretKeyRef(ctx, mdb.TLSCABundleSecretKeyRef(), mdb.Namespace)
+		if err != nil {
+			return clientsql.Opts{}, fmt.Errorf("error getting MariaDB CA bundle: %v", err)
+		}
+		sqlOpts.TLSCACert = []byte(caBundle)
+		sqlOpts.MariadbName = mdb.Name
+		sqlOpts.Namespace = mdb.Namespace
+	}
+
+	if err := r.addSqlClientOpts(ctx, conn, refs.MariaDB, &sqlOpts); err != nil {
+		return clientsql.Opts{}, fmt.Errorf("error adding SQL client opts: %v", err)
+	}
 	return sqlOpts, nil
+}
+
+func (r *ConnectionReconciler) addSqlClientOpts(ctx context.Context, conn *mariadbv1alpha1.Connection, mdb *mariadbv1alpha1.MariaDB,
+	opts *clientsql.Opts) error {
+	secretKey := r.clientCertSecretKey(conn, mdb)
+	if secretKey == nil {
+		return nil
+	}
+	opts.ClientName = secretKey.Name
+
+	clientCertSelector := mariadbv1alpha1.SecretKeySelector{
+		LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+			Name: secretKey.Name,
+		},
+		Key: pki.TLSCertKey,
+	}
+	clientCert, err := r.RefResolver.SecretKeyRef(ctx, clientCertSelector, secretKey.Namespace)
+	if err != nil {
+		return fmt.Errorf("error getting client certificate: %v", err)
+	}
+	opts.TLSClientCert = []byte(clientCert)
+
+	clientPrivateKeySelector := mariadbv1alpha1.SecretKeySelector{
+		LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+			Name: secretKey.Name,
+		},
+		Key: pki.TLSKeyKey,
+	}
+	clientPrivateKey, err := r.RefResolver.SecretKeyRef(ctx, clientPrivateKeySelector, secretKey.Namespace)
+	if err != nil {
+		return fmt.Errorf("error getting client certificate: %v", err)
+	}
+	opts.TLSClientPrivateKey = []byte(clientPrivateKey)
+
+	return nil
+}
+func (r *ConnectionReconciler) clientCertSecretKey(conn *mariadbv1alpha1.Connection, mdb *mariadbv1alpha1.MariaDB) *types.NamespacedName {
+	if conn != nil && conn.Spec.TLSClientCertSecretRef != nil {
+		return &types.NamespacedName{
+			Name:      conn.Spec.TLSClientCertSecretRef.Name,
+			Namespace: conn.Namespace,
+		}
+	}
+	if mdb != nil && mdb.IsTLSEnabled() {
+		return &types.NamespacedName{
+			Name:      mdb.TLSClientCertSecretKey().Name,
+			Namespace: mdb.Namespace,
+		}
+	}
+	return nil
 }
 
 func (r *ConnectionReconciler) healthCheck(ctx context.Context, conn *mariadbv1alpha1.Connection, clientOpts clientsql.Opts) error {
@@ -367,18 +459,8 @@ func (r *ConnectionReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 		For(&mariadbv1alpha1.Connection{}).
 		Owns(&corev1.Secret{})
 
-	watcherIndexer := watch.NewWatcherIndexer(mgr, builder, r.Client)
-	if err := watcherIndexer.Watch(
-		ctx,
-		&corev1.Secret{},
-		&mariadbv1alpha1.Connection{},
-		&mariadbv1alpha1.ConnectionList{},
-		mariadbv1alpha1.ConnectionPasswordSecretFieldPath,
-		ctrlbuilder.WithPredicates(
-			predicate.PredicateWithLabel(metadata.WatchLabel),
-		),
-	); err != nil {
-		return fmt.Errorf("error watching: %v", err)
+	if err := mariadbv1alpha1.IndexConnection(ctx, mgr, builder, r.Client); err != nil {
+		return fmt.Errorf("error indexing Connection: %v", err)
 	}
 
 	return builder.Complete(r)

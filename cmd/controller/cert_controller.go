@@ -1,11 +1,13 @@
 package main
 
 import (
+	"errors"
 	"os"
 	"time"
 
 	"github.com/mariadb-operator/mariadb-operator/internal/controller"
 	"github.com/mariadb-operator/mariadb-operator/pkg/log"
+	"github.com/mariadb-operator/mariadb-operator/pkg/pki"
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -14,10 +16,10 @@ import (
 
 var (
 	caSecretName, caSecretNamespace, caCommonName string
-	caValidity                                    time.Duration
+	caLifetime                                    time.Duration
 	certSecretName, certSecretNamespace           string
-	certValidity                                  time.Duration
-	lookaheadValidity                             time.Duration
+	certLifetime                                  time.Duration
+	renewBeforePercentage                         int32
 	serviceName, serviceNamespace                 string
 	requeueDuration                               time.Duration
 )
@@ -28,17 +30,20 @@ func init() {
 	certControllerCmd.Flags().StringVar(&caSecretNamespace, "ca-secret-namespace", "default",
 		"Namespace of the Secret to store the CA certificate for webhook")
 	certControllerCmd.Flags().StringVar(&caCommonName, "ca-common-name", "mariadb-operator", "CA certificate common name")
-	certControllerCmd.Flags().DurationVar(&caValidity, "ca-validity", 4*365*24*time.Hour, "CA certificate validity")
+	certControllerCmd.Flags().DurationVar(&caLifetime, "ca-lifetime", pki.DefaultCALifetime, "CA certificate lifetime")
 	certControllerCmd.Flags().StringVar(&certSecretName, "cert-secret-name", "mariadb-operator-webhook-cert",
 		"Secret to store the certificate for webhook")
 	certControllerCmd.Flags().StringVar(&certSecretNamespace, "cert-secret-namespace", "default",
 		"Namespace of the Secret to store the certificate for webhook")
-	certControllerCmd.Flags().DurationVar(&certValidity, "cert-validity", 365*24*time.Hour, "Certificate validity")
-	certControllerCmd.Flags().DurationVar(&lookaheadValidity, "lookahead-validity", 90*24*time.Hour,
-		"Lookahead validity used to determine whether a certificate is valid or not")
+	certControllerCmd.Flags().DurationVar(&certLifetime, "cert-lifetime", pki.DefaultCertLifetime, "Certificate lifetime")
+	certControllerCmd.Flags().Int32Var(&renewBeforePercentage, "renew-before-percentage", pki.DefaultRenewBeforePercentage,
+		"How long before the certificate expiration should the renewal process be triggered."+
+			"For example, if a certificate is valid for 60 minutes, and renew-before-percentage=25, "+
+			"cert-controller will begin to attempt to renew the certificate 45 minutes after it was issued"+
+			"(i.e. when there are 15 minutes (25%) remaining until the certificate is no longer valid).")
 	certControllerCmd.Flags().StringVar(&serviceName, "service-name", "mariadb-operator-webhook", "Webhook service name")
 	certControllerCmd.Flags().StringVar(&serviceNamespace, "service-namespace", "default", "Webhook service namespace")
-	certControllerCmd.Flags().DurationVar(&requeueDuration, "requeue-duration", time.Minute*5,
+	certControllerCmd.Flags().DurationVar(&requeueDuration, "requeue-duration", 5*time.Minute,
 		"Time duration between reconciling webhook config for new certs")
 }
 
@@ -48,6 +53,15 @@ var certControllerCmd = &cobra.Command{
 	Long:  `Issues and injects certificates for validation and mutation webhooks.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		log.SetupLogger(logLevel, logTimeEncoder, logDev)
+
+		if !(renewBeforePercentage >= 10 && renewBeforePercentage <= 90) {
+			setupLog.Error(errors.New(
+				"renew-before-percentage must be between [10, 90]"),
+				"invalid renew-before-percentage",
+				"value", renewBeforePercentage,
+			)
+			os.Exit(1)
+		}
 
 		mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 			Scheme: scheme,
@@ -73,13 +87,13 @@ var certControllerCmd = &cobra.Command{
 				Namespace: caSecretNamespace,
 			},
 			caCommonName,
-			caValidity,
+			caLifetime,
 			types.NamespacedName{
 				Name:      certSecretName,
 				Namespace: certSecretNamespace,
 			},
-			certValidity,
-			lookaheadValidity,
+			certLifetime,
+			renewBeforePercentage,
 			types.NamespacedName{
 				Name:      serviceName,
 				Namespace: serviceNamespace,

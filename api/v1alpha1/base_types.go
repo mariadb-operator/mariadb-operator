@@ -5,12 +5,14 @@ import (
 	"fmt"
 	"time"
 
+	cmmeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/webhook"
 	cron "github.com/robfig/cron/v3"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/utils/ptr"
 )
 
@@ -101,6 +103,10 @@ type ContainerTemplate struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	ReadinessProbe *Probe `json:"readinessProbe,omitempty"`
+	// StartupProbe to be used in the Container.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:resourceRequirements"}
+	StartupProbe *Probe `json:"startupProbe,omitempty"`
 	// Resouces describes the compute resource requirements.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:resourceRequirements"}
@@ -516,7 +522,7 @@ type SQLTemplate struct {
 	CleanupPolicy *CleanupPolicy `json:"cleanupPolicy,omitempty"`
 }
 
-type TLS struct {
+type TLSS3 struct {
 	// Enabled is a flag to enable TLS.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
@@ -546,13 +552,13 @@ type S3 struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Prefix string `json:"prefix" webhook:"inmutable"`
 	// AccessKeyIdSecretKeyRef is a reference to a Secret key containing the S3 access key id.
-	// +kubebuilder:validation:Required
+	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	AccessKeyIdSecretKeyRef SecretKeySelector `json:"accessKeyIdSecretKeyRef"`
+	AccessKeyIdSecretKeyRef *SecretKeySelector `json:"accessKeyIdSecretKeyRef,omitempty"`
 	// AccessKeyIdSecretKeyRef is a reference to a Secret key containing the S3 secret key.
-	// +kubebuilder:validation:Required
+	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	SecretAccessKeySecretKeyRef SecretKeySelector `json:"secretAccessKeySecretKeyRef"`
+	SecretAccessKeySecretKeyRef *SecretKeySelector `json:"secretAccessKeySecretKeyRef,omitempty"`
 	// SessionTokenSecretKeyRef is a reference to a Secret key containing the S3 session token.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
@@ -560,7 +566,7 @@ type S3 struct {
 	// TLS provides the configuration required to establish TLS connections with S3.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	TLS *TLS `json:"tls,omitempty"`
+	TLS *TLSS3 `json:"tls,omitempty"`
 }
 
 // Metadata defines the metadata to added to resources.
@@ -831,4 +837,52 @@ type Exporter struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	PriorityClassName *string `json:"priorityClassName,omitempty" webhook:"inmutable"`
+}
+
+// CertificateStatus represents the current status of a TLS certificate.
+type CertificateStatus struct {
+	// NotAfter indicates that the certificate is not valid after the given date.
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	NotAfter metav1.Time `json:"notAfter,omitempty"`
+	// NotBefore indicates that the certificate is not valid before the given date.
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	NotBefore metav1.Time `json:"notBefore,omitempty"`
+	// Subject is the subject of the current certificate.
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	Subject string `json:"subject"`
+	// Issuer is the issuer of the current certificate.
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	Issuer string `json:"issuer"`
+}
+
+type tlsValidationItem struct {
+	tlsValue            interface{}
+	caSecretRef         *LocalObjectReference
+	caFieldPath         string
+	certSecretRef       *LocalObjectReference
+	certFieldPath       string
+	certIssuerRef       *cmmeta.ObjectReference
+	certIssuerFieldPath string
+}
+
+func validateTLSCert(item *tlsValidationItem) error {
+	if item.certSecretRef != nil && item.certIssuerRef != nil {
+		return field.Invalid(
+			field.NewPath("spec").Child("tls"),
+			item.tlsValue,
+			fmt.Sprintf(
+				"'%s' and '%s' are mutually exclusive. Only one of them must be set at a time.",
+				item.certFieldPath,
+				item.certIssuerFieldPath,
+			),
+		)
+	}
+	if item.caSecretRef == nil && item.certSecretRef != nil {
+		return field.Invalid(
+			field.NewPath("spec").Child("tls"),
+			item.tlsValue,
+			fmt.Sprintf("'%s' must be set when '%s' is set", item.caFieldPath, item.certFieldPath),
+		)
+	}
+	return nil
 }
