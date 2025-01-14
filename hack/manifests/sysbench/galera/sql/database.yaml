@@ -3,10 +3,7 @@ kind: Database
 metadata:
   name: sbtest-galera
 spec:
-  name: sbtest
   mariaDbRef:
     name: mariadb-galera
   characterSet: utf8
   collate: utf8_general_ci
-  requeueInterval: 30s
-  retryInterval: 5s

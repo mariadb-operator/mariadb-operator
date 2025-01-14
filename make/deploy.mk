@@ -148,11 +148,11 @@ deploy-ent: manifests kustomize cluster-ctx ## Deploy enterprise controller.
 undeploy-ent: cluster-ctx ## Undeploy enterprise controller.
 	$(KUSTOMIZE) build config/default | $(KUBECTL) delete --ignore-not-found=$(ignore-not-found) -f -
 
-##@ Sysbench
+##@ Sysbench - Standalone
 
 .PHONY: sysbench-sql
 sysbench-sql: ## Prepare sysbench SQL resources for standalone.
-	$(KUBECTL) apply -f ./hack/manifests/sysbench/sql
+	$(KUBECTL) apply -f ./hack/manifests/sysbench/standalone/sql
 	$(KUBECTL) wait --for=condition=ready database sbtest
 	$(KUBECTL) wait --for=condition=ready user sbtest
 	$(KUBECTL) wait --for=condition=ready grant sbtest
@@ -166,6 +166,8 @@ sysbench: ## Run sysbench tests for standalone.
 	$(KUBECTL) apply -f ./hack/manifests/sysbench/standalone/sysbench_cronjob.yaml
 	$(KUBECTL) create job sysbench --from cronjob/sysbench
 
+##@ Sysbench - Replication
+
 .PHONY: sysbench-prepare-repl
 sysbench-prepare-repl: ## Prepare sysbench tests for replication.
 	$(KUBECTL) apply -f ./hack/manifests/sysbench/replication/sbtest-repl_database.yaml
@@ -177,9 +179,17 @@ sysbench-repl: ## Run sysbench tests for replication.
 	$(KUBECTL) apply -f ./hack/manifests/sysbench/replication/sysbench-repl_cronjob.yaml
 	$(KUBECTL) create job sysbench-repl --from cronjob/sysbench-repl
 
+##@ Sysbench - Galera
+
+.PHONY: sysbench-sql-galera
+sysbench-sql-galera: ## Prepare sysbench SQL resources for Galera.
+	$(KUBECTL) apply -f ./hack/manifests/sysbench/galera/sql
+	$(KUBECTL) wait --for=condition=ready database sbtest-galera
+	$(KUBECTL) wait --for=condition=ready user sbtest-galera
+	$(KUBECTL) wait --for=condition=ready grant sbtest-galera
+
 .PHONY: sysbench-prepare-galera
-sysbench-prepare-galera: ## Prepare sysbench tests for Galera.
-	$(KUBECTL) apply -f ./hack/manifests/sysbench/galera/sbtest-galera_database.yaml
+sysbench-prepare-galera: sysbench-sql-galera ## Prepare sysbench tests for Galera.
 	$(KUBECTL) wait --for=condition=ready database sbtest-galera
 	$(KUBECTL) apply -f ./hack/manifests/sysbench/galera/sysbench-prepare-galera_job.yaml
 
