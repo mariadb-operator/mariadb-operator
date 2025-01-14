@@ -7,6 +7,7 @@ import (
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	metadata "github.com/mariadb-operator/mariadb-operator/pkg/builder/metadata"
+	builderpki "github.com/mariadb-operator/mariadb-operator/pkg/builder/pki"
 	"github.com/mariadb-operator/mariadb-operator/pkg/command"
 	galeraresources "github.com/mariadb-operator/mariadb-operator/pkg/controller/galera/resources"
 	kadapter "github.com/mariadb-operator/mariadb-operator/pkg/kubernetes/adapter"
@@ -452,12 +453,19 @@ func (b *Builder) BuildSqlJob(key types.NamespacedName, sqlJob *mariadbv1alpha1.
 	if sqlJob.Spec.Database != nil {
 		sqlOpts = append(sqlOpts, command.WithSqlDatabase(*sqlJob.Spec.Database))
 	}
+	if (sqlJob.Spec.TLSCACertSecretRef != nil && sqlJob.Spec.TLSClientCertSecretRef != nil) || mariadb.IsTLSEnabled() {
+		sqlOpts = append(sqlOpts, command.WithSSL(
+			builderpki.CACertPath,
+			builderpki.ClientCertPath,
+			builderpki.ClientKeyPath,
+		))
+	}
 	cmd, err := command.NewSqlCommand(sqlOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("error building sql command: %v", err)
 	}
 
-	volumes, volumeMounts := sqlJobvolumes(sqlJob)
+	volumes, volumeMounts := sqlJobvolumes(sqlJob, mariadb)
 	affinity := ptr.Deref(sqlJob.Spec.Affinity, mariadbv1alpha1.AffinityConfig{}).Affinity
 	var resources *corev1.ResourceRequirements
 	if sqlJob.Spec.Resources != nil {

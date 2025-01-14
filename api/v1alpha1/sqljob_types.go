@@ -33,6 +33,16 @@ type SqlJobSpec struct {
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	PasswordSecretKeyRef SecretKeySelector `json:"passwordSecretKeyRef" webhook:"inmutable"`
+	// TLSCACertSecretRef is a reference toa CA Secret used to establish trust when executing the SqlJob.
+	// If not provided, the CA bundle provided by the referred MariaDB is used.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	TLSCACertSecretRef *LocalObjectReference `json:"tlsCASecretRef,omitempty"`
+	// TLSClientCertSecretRef is a reference to a Kubernetes TLS Secret used as authentication when executing the SqlJob.
+	// If not provided, the client certificate provided by the referred MariaDB is used.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	TLSClientCertSecretRef *LocalObjectReference `json:"tlsClientCertSecretRef,omitempty"`
 	// Username to be used when executing the SqlJob.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
