@@ -4305,8 +4305,6 @@ spec:
   maintainers:
     - email: martin.montes@mariadb.com
       name: Martin Montes
-    - email: pieter.humphrey@mariadb.com
-      name: Pieter Humphrey
   maturity: beta
   minKubeVersion: 1.26.0
   provider:
