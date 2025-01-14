@@ -185,6 +185,7 @@ func (r *BatchReconciler) reconcileCronJob(ctx context.Context, key types.Namesp
 	existingCronJob.Spec.Schedule = desiredCronJob.Spec.Schedule
 	existingCronJob.Spec.Suspend = desiredCronJob.Spec.Suspend
 	existingCronJob.Spec.JobTemplate.Spec.BackoffLimit = desiredCronJob.Spec.JobTemplate.Spec.BackoffLimit
+	existingCronJob.Spec.JobTemplate.Spec.Template = desiredCronJob.Spec.JobTemplate.Spec.Template
 
 	if err := r.Patch(ctx, &existingCronJob, patch); err != nil {
 		return fmt.Errorf("error patching CronJob: %v", err)
