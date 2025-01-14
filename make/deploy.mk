@@ -168,9 +168,15 @@ sysbench: ## Run sysbench tests for standalone.
 
 ##@ Sysbench - Replication
 
+.PHONY: sysbench-sql-repl
+sysbench-sql-repl: ## Prepare sysbench SQL resources for replication.
+	$(KUBECTL) apply -f ./hack/manifests/sysbench/replication/sql
+	$(KUBECTL) wait --for=condition=ready database sbtest-repl
+	$(KUBECTL) wait --for=condition=ready user sbtest-repl
+	$(KUBECTL) wait --for=condition=ready grant sbtest-repl
+
 .PHONY: sysbench-prepare-repl
-sysbench-prepare-repl: ## Prepare sysbench tests for replication.
-	$(KUBECTL) apply -f ./hack/manifests/sysbench/replication/sbtest-repl_database.yaml
+sysbench-prepare-repl: sysbench-sql-repl ## Prepare sysbench tests for replication.
 	$(KUBECTL) wait --for=condition=ready database sbtest-repl
 	$(KUBECTL) apply -f ./hack/manifests/sysbench/replication/sysbench-prepare-repl_job.yaml
 
