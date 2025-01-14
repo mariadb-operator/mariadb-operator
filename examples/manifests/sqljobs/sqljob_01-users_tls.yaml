@@ -12,11 +12,15 @@ spec:
     labels:
       sidecar.istio.io/inject: "false"
   serviceAccountName: sqljob
-  username: mariadb
+  username: sqljob
   passwordSecretKeyRef:
-    name: mariadb-password
+    name: mariadb
     key: password
-  database: mariadb
+  tlsCASecretRef:
+    name: mariadb-ca-bundle
+  tlsClientCertSecretRef:
+    name: mariadb-client-cert
+  database: sqljob
   sql: |
     CREATE TABLE IF NOT EXISTS users (
       id bigint PRIMARY KEY AUTO_INCREMENT,

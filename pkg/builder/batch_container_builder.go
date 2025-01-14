@@ -2,8 +2,10 @@ package builder
 
 import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	builderpki "github.com/mariadb-operator/mariadb-operator/pkg/builder/pki"
 	cmd "github.com/mariadb-operator/mariadb-operator/pkg/command"
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
+	"github.com/mariadb-operator/mariadb-operator/pkg/pki"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/utils/ptr"
@@ -138,28 +140,85 @@ func jobResources(resources *mariadbv1alpha1.ResourceRequirements) *corev1.Resou
 	return nil
 }
 
-func sqlJobvolumes(sqlJob *mariadbv1alpha1.SqlJob) ([]corev1.Volume, []corev1.VolumeMount) {
-	return []corev1.Volume{
+func sqlJobvolumes(sqlJob *mariadbv1alpha1.SqlJob, mariadb *mariadbv1alpha1.MariaDB) ([]corev1.Volume, []corev1.VolumeMount) {
+	volumes := []corev1.Volume{
+		{
+			Name: batchScriptsVolume,
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: sqlJob.Spec.SqlConfigMapKeyRef.LocalObjectReference.ToKubernetesType(),
+					Items: []corev1.KeyToPath{
+						{
+							Key:  sqlJob.Spec.SqlConfigMapKeyRef.Key,
+							Path: batchScriptsSqlFile,
+						},
+					},
+				},
+			},
+		},
+	}
+	volumeMounts := []corev1.VolumeMount{
+		{
+			Name:      batchScriptsVolume,
+			MountPath: batchScriptsMountPath,
+		},
+	}
+
+	if sqlJob.Spec.TLSCACertSecretRef != nil && sqlJob.Spec.TLSClientCertSecretRef != nil {
+		volumes = append(volumes, []corev1.Volume{
 			{
-				Name: batchScriptsVolume,
+				Name: builderpki.PKIVolume,
 				VolumeSource: corev1.VolumeSource{
-					ConfigMap: &corev1.ConfigMapVolumeSource{
-						LocalObjectReference: sqlJob.Spec.SqlConfigMapKeyRef.LocalObjectReference.ToKubernetesType(),
-						Items: []corev1.KeyToPath{
+					Projected: &corev1.ProjectedVolumeSource{
+						Sources: []corev1.VolumeProjection{
 							{
-								Key:  sqlJob.Spec.SqlConfigMapKeyRef.Key,
-								Path: batchScriptsSqlFile,
+								Secret: &corev1.SecretProjection{
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: sqlJob.Spec.TLSCACertSecretRef.Name,
+									},
+									Items: []corev1.KeyToPath{
+										{
+											Key:  pki.CACertKey,
+											Path: pki.CACertKey,
+										},
+									},
+								},
+							},
+							{
+								Secret: &corev1.SecretProjection{
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: sqlJob.Spec.TLSClientCertSecretRef.Name,
+									},
+									Items: []corev1.KeyToPath{
+										{
+											Key:  pki.TLSCertKey,
+											Path: builderpki.ClientCertKey,
+										},
+										{
+											Key:  pki.TLSKeyKey,
+											Path: builderpki.ClientKeyKey,
+										},
+									},
+								},
 							},
 						},
 					},
 				},
 			},
-		}, []corev1.VolumeMount{
+		}...)
+		volumeMounts = append(volumeMounts, []corev1.VolumeMount{
 			{
-				Name:      batchScriptsVolume,
-				MountPath: batchScriptsMountPath,
+				Name:      builderpki.PKIVolume,
+				MountPath: builderpki.PKIMountPath,
 			},
-		}
+		}...)
+	} else if mariadb.IsTLSEnabled() {
+		tlsVolumes, tlsVolumeMounts := mariadbTLSVolumes(mariadb)
+		volumes = append(volumes, tlsVolumes...)
+		volumeMounts = append(volumeMounts, tlsVolumeMounts...)
+	}
+
+	return volumes, volumeMounts
 }
 
 func sqlJobEnv(sqlJob *mariadbv1alpha1.SqlJob) []v1.EnvVar {

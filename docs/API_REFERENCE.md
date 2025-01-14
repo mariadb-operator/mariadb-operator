@@ -2457,6 +2457,8 @@ _Appears in:_
 | `schedule` _[Schedule](#schedule)_ | Schedule defines when the SqlJob will be executed. |  |  |
 | `username` _string_ | Username to be impersonated when executing the SqlJob. |  | Required: \{\} <br /> |
 | `passwordSecretKeyRef` _[SecretKeySelector](#secretkeyselector)_ | UserPasswordSecretKeyRef is a reference to the impersonated user's password to be used when executing the SqlJob. |  | Required: \{\} <br /> |
+| `tlsCASecretRef` _[LocalObjectReference](#localobjectreference)_ | TLSCACertSecretRef is a reference toa CA Secret used to establish trust when executing the SqlJob.<br />If not provided, the CA bundle provided by the referred MariaDB is used. |  |  |
+| `tlsClientCertSecretRef` _[LocalObjectReference](#localobjectreference)_ | TLSClientCertSecretRef is a reference to a Kubernetes TLS Secret used as authentication when executing the SqlJob.<br />If not provided, the client certificate provided by the referred MariaDB is used. |  |  |
 | `database` _string_ | Username to be used when executing the SqlJob. |  |  |
 | `dependsOn` _[LocalObjectReference](#localobjectreference) array_ | DependsOn defines dependencies with other SqlJob objectecs. |  |  |
 | `sql` _string_ | Sql is the script to be executed by the SqlJob. |  |  |

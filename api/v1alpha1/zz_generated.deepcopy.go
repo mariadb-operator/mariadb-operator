@@ -3981,6 +3981,16 @@ func (in *SqlJobSpec) DeepCopyInto(out *SqlJobSpec) {
 		**out = **in
 	}
 	out.PasswordSecretKeyRef = in.PasswordSecretKeyRef
+	if in.TLSCACertSecretRef != nil {
+		in, out := &in.TLSCACertSecretRef, &out.TLSCACertSecretRef
+		*out = new(LocalObjectReference)
+		**out = **in
+	}
+	if in.TLSClientCertSecretRef != nil {
+		in, out := &in.TLSClientCertSecretRef, &out.TLSClientCertSecretRef
+		*out = new(LocalObjectReference)
+		**out = **in
+	}
 	if in.Database != nil {
 		in, out := &in.Database, &out.Database
 		*out = new(string)
