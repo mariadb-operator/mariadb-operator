@@ -556,7 +556,16 @@ type DatabaseOpts struct {
 }
 
 func (c *Client) CreateDatabase(ctx context.Context, database string, opts DatabaseOpts) error {
-	query := fmt.Sprintf("CREATE DATABASE IF NOT EXISTS `%s` ", database)
+	sql := fmt.Sprintf("SELECT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = '%s')", database)
+	row := c.db.QueryRowContext(ctx, sql)
+	var dbExists string
+	if err := row.Scan(&dbExists); err != nil {
+		return err
+	}
+	if dbExists == "1" {
+		return nil
+	}
+	query := fmt.Sprintf("CREATE DATABASE `%s` ", database)
 	if opts.CharacterSet != "" {
 		query += fmt.Sprintf("CHARACTER SET = '%s' ", opts.CharacterSet)
 	}
