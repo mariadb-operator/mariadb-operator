@@ -2,7 +2,7 @@
 
 This guide illustrates, step by step, how to migrate to `0.37.0` from previous versions. We have introduced support for __TLS__ in this release, and it __is enabled by default__, please refer to the migration steps to make use of it or disable it.
 
-> [!NOTE]  
+> [!WARNING]
 > Do not attempt to skip intermediate version upgrades. Upgrade progressively through each version.
 
 For example, if upgrading from `0.0.33` to `0.37.0`:
