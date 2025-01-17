@@ -7,7 +7,26 @@ Secure by default, TLS enabled by default.
 
 ## Table of contents
 <!-- toc -->
+- [Configuration](#configuration)
+- [`MariaDB` CAs and certificates](#mariadb-cas-and-certificates)
+- [`MaxScale` CAs and certificates](#maxscale-cas-and-certificates)
+- [CA bundle](#ca-bundle)
+- [Issuing certificates with mariadb-operator](#issuing-certificates-with-mariadb-operator)
+- [Issuing certificates with cert-manager](#issuing-certificates-with-cert-manager)
+- [Issuing certificates manually](#issuing-certificates-manually)
+- [Bring your own CA](#bring-your-own-ca)
+- [Intermediate CAs](#intermediate-cas)
+- [Custom trust](#custom-trust)
+- [CA renewal](#ca-renewal)
+- [Certificate renewal](#certificate-renewal)
+- [Certificate status](#certificate-status)
+- [TLS requirements for `Users`](#tls-requirements-for-users)
+- [Testing TLS with `Connections`](#testing-tls-with-connections)
+- [Connecting applications with TLS](#connecting-applications-with-tls)
+- [Limitations](#limitations)
 <!-- /toc -->
+
+## Configuration
 
 ## `MariaDB` CAs and certificates
 
@@ -27,16 +46,37 @@ Contains non expired CAs. When renewing a CA, the new CA is appended to the bund
 
 ## Issuing certificates with cert-manager
 
-## TLS requirements for `Users`
+> [!IMPORTANT]
+> [cert-manager](https://cert-manager.io/) must be previously installed in the cluster in order to use this feature.
 
-## Connecting applications with TLS
+## Issuing certificates manually
 
-## Certificate status
+## Bring your own CA
+
+## Intermediate CAs
+
+## Custom trust
 
 ## CA renewal
 
+mariadb-operator and cert-manager
+
+upgrades
+
 ## Certificate renewal
+
+mariadb-operator and cert-manager
+
+upgrades
 
 Wait for CA rolling upgrade.
 
-## Galera limitations
+## Certificate status
+
+## TLS requirements for `Users`
+
+## Testing TLS with `Connections`
+
+## Connecting applications with TLS
+
+## Limitations
