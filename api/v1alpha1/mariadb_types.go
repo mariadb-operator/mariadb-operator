@@ -363,6 +363,10 @@ type TLS struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	ClientCertIssuerRef *cmmeta.ObjectReference `json:"clientCertIssuerRef,omitempty"`
+	// GaleraSSTEnabled determines whether Galera SST connections should use SSL. It enabled with Galera by default.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	GaleraSSTEnabled *bool `json:"galeraSSTEnabled,omitempty"`
 }
 
 // MariaDBSpec defines the desired state of MariaDB

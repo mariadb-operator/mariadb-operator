@@ -48,6 +48,8 @@ func (c *ConfigFile) Marshal(podEnv *environment.PodEnvironment) ([]byte, error)
 		return nil, errors.New("MariaDB Galera not enabled, unable to render config file")
 	}
 	galera := ptr.Deref(c.mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
+	tls := ptr.Deref(c.mariadb.Spec.TLS, mariadbv1alpha1.TLS{})
+	sstSSLEnabled := ptr.Deref(tls.GaleraSSTEnabled, true)
 
 	tpl := createTpl("galera", `[mariadb]
 bind_address=*
@@ -75,12 +77,12 @@ wsrep_sst_method="{{ .SST }}"
 wsrep_sst_auth="root:{{ .RootPassword }}"
 {{- end }}
 {{ .SSTReceiveAddressKey }}="{{ .SSTReceiveAddress }}"
-{{- if .SSLEnabled }}
+{{- if .SSTSSLEnabled }}
 [sst]
 encrypt=3
-tca={{ .SSLCAPath }}
-tcert={{ .SSLCertPath }}
-tkey={{ .SSLKeyPath }}
+tca={{ .SSTSSLCAPath }}
+tcert={{ .SSTSSLCertPath }}
+tkey={{ .SSTSSLKeyPath }}
 {{- end }}
 `)
 	buf := new(bytes.Buffer)
@@ -121,10 +123,10 @@ tkey={{ .SSLKeyPath }}
 		SSTReceiveAddressKey string
 		SSTReceiveAddress    string
 
-		SSLEnabled  bool
-		SSLCAPath   string
-		SSLCertPath string
-		SSLKeyPath  string
+		SSTSSLEnabled  bool
+		SSTSSLCAPath   string
+		SSTSSLCertPath string
+		SSTSSLKeyPath  string
 	}{
 		ClusterAddress: clusterAddr,
 		Threads:        galera.ReplicaThreads,
@@ -143,10 +145,10 @@ tkey={{ .SSLKeyPath }}
 		SSTReceiveAddressKey: galerakeys.WsrepSSTReceiveAddressKey,
 		SSTReceiveAddress:    sstReceiveAddress,
 
-		SSLEnabled:  c.mariadb.IsTLSEnabled(),
-		SSLCAPath:   podEnv.TLSCACertPath,
-		SSLCertPath: podEnv.TLSClientCertPath,
-		SSLKeyPath:  podEnv.TLSClientKeyPath,
+		SSTSSLEnabled:  tls.Enabled && sstSSLEnabled,
+		SSTSSLCAPath:   podEnv.TLSCACertPath,
+		SSTSSLCertPath: podEnv.TLSClientCertPath,
+		SSTSSLKeyPath:  podEnv.TLSClientKeyPath,
 	})
 	if err != nil {
 		return nil, err

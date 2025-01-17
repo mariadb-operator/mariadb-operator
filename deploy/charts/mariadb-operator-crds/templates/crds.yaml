@@ -7160,6 +7160,10 @@ spec:
                   enabled:
                     description: Enabled is a flag to enable TLS.
                     type: boolean
+                  galeraSSTEnabled:
+                    description: GaleraSSTEnabled determines whether Galera SST connections
+                      should use SSL. It enabled with Galera by default.
+                    type: boolean
                   serverCASecretRef:
                     description: |-
                       ServerCASecretRef is a reference to a Secret containing the server certificate authority keypair. It is used to establish trust and issue server certificates.
