@@ -9,6 +9,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/discovery"
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 )
 
 func TestGaleraConfigMarshal(t *testing.T) {
@@ -326,7 +327,8 @@ wsrep_sst_receive_address="[2001:db8::a1]:4444"
 						},
 					},
 					TLS: &mariadbv1alpha1.TLS{
-						Enabled: true,
+						Enabled:          true,
+						GaleraSSTEnabled: ptr.To(true),
 					},
 					Replicas: 3,
 				},
@@ -377,14 +379,14 @@ tkey=/etc/pki/client.key
 			wantErr: false,
 		},
 		{
-			name: "TLS enterprise",
+			name: "TLS with client SSL disabled",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "mariadb-galera",
 					Namespace: "default",
 				},
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Image: "docker.mariadb.com/enterprise-server:10.6",
+					Image: "mariadb:10.11.8",
 					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
 						GaleraSpec: mariadbv1alpha1.GaleraSpec{
@@ -394,7 +396,8 @@ tkey=/etc/pki/client.key
 						},
 					},
 					TLS: &mariadbv1alpha1.TLS{
-						Enabled: true,
+						Enabled:          true,
+						GaleraSSTEnabled: ptr.To(false),
 					},
 					Replicas: 3,
 				},
@@ -410,7 +413,7 @@ tkey=/etc/pki/client.key
 				TLSClientCertPath:   "/etc/pki/client.crt",
 				TLSClientKeyPath:    "/etc/pki/client.key",
 			},
-			isEnterprise: true,
+			isEnterprise: false,
 			//nolint:lll
 			wantConfig: `[mariadb]
 bind_address=*
@@ -436,11 +439,6 @@ wsrep_provider_options="gmcast.listen_addr=tcp://0.0.0.0:4567;ist.recv_addr=10.2
 wsrep_sst_method="mariabackup"
 wsrep_sst_auth="root:mariadb"
 wsrep_sst_receive_address="10.244.0.32:4444"
-[sst]
-encrypt=3
-tca=/etc/pki/ca.crt
-tcert=/etc/pki/client.crt
-tkey=/etc/pki/client.key
 `,
 			wantErr: false,
 		},

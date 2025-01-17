@@ -54,3 +54,4 @@ spec:
       name: mariadb-client-ca
     clientCertSecretRef:
       name: mariadb-galera-client-tls
+    galeraSSTEnabled: true
