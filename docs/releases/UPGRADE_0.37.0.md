@@ -1,6 +1,6 @@
 # Upgrade guide 0.37.0
 
-This guide illustrates, step by step, how to migrate previous versions from both the operator and `MariaDB` instances to `0.37.0`. We have introduced support for __TLS__ in this release, and it __is enabled by default__, please refer to the migration steps to make use of it or alternatively disable it.
+This guide illustrates, step by step, how to migrate to 0.36.0 from previous versions. We have introduced support for __TLS__ in this release, and it __is enabled by default__, please refer to the migration steps to make use of it or alternatively disable it.
 
 > [!WARNING]
 > Do not attempt to skip intermediate version upgrades. Upgrade progressively through each version.
