@@ -1044,6 +1044,7 @@ func (r *MariaDBReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manag
 func defaultConfig(mariadb *mariadbv1alpha1.MariaDB) (string, error) {
 	tpl := createTpl("0-default.cnf", `[mariadb]
 skip-name-resolve
+temp-pool
 {{- with .TimeZone }}
 default_time_zone = {{ . }}
 {{- end }}
