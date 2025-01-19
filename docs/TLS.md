@@ -95,7 +95,8 @@ The server certificate contains the following Subject Alternative Names (SANs):
 - `<mariadb-name>-secondary.<namespace>.svc.<cluster-name>`  
 - `<mariadb-name>-secondary.<namespace>.svc`  
 - `<mariadb-name>-secondary.<namespace>`  
-- `<mariadb-name>-secondary`  
+- `<mariadb-name>-secondary`
+- `localhost`
 
 Whereas the client certificate is only valid for the `<mariadb-name>-client` SAN.
 
