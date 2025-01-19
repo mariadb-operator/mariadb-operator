@@ -170,7 +170,12 @@ The advantage of this approach is the operator fully manages the `Secrets` that 
 
 ## Provide certificates manually
 
+CA Secret structure
+TLS secret structure
+
 ## Bring your own CA
+
+CA Secret structure
 
 ## Intermediate CAs
 
