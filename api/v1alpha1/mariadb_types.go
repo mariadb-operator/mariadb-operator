@@ -808,6 +808,7 @@ func (m *MariaDB) TLSServerDNSNames() []string {
 	names = append(names, statefulset.HeadlessServiceNameVariants(m.ObjectMeta, "*", m.InternalServiceKey().Name)...)
 	names = append(names, statefulset.ServiceNameVariants(m.ObjectMeta, m.PrimaryServiceKey().Name)...)
 	names = append(names, statefulset.ServiceNameVariants(m.ObjectMeta, m.SecondaryServiceKey().Name)...)
+	names = append(names, "localhost")
 	return names
 }
 
