@@ -8,12 +8,12 @@
 ## Table of contents
 <!-- toc -->
 - [Configuration](#configuration)
-- [`MariaDB` CAs and certificates](#mariadb-cas-and-certificates)
-- [`MaxScale` CAs and certificates](#maxscale-cas-and-certificates)
+- [`MariaDB` certificate specification](#mariadb-certificate-specification)
+- [`MaxScale` certificate specification](#maxscale-certificate-specification)
 - [CA bundle](#ca-bundle)
-- [Issuing certificates with mariadb-operator](#issuing-certificates-with-mariadb-operator)
-- [Issuing certificates with cert-manager](#issuing-certificates-with-cert-manager)
-- [Issuing certificates manually](#issuing-certificates-manually)
+- [Issue certificates with mariadb-operator](#issue-certificates-with-mariadb-operator)
+- [Issue certificates with cert-manager](#issue-certificates-with-cert-manager)
+- [Provide certificates manually](#provide-certificates-manually)
 - [Bring your own CA](#bring-your-own-ca)
 - [Intermediate CAs](#intermediate-cas)
 - [Custom trust](#custom-trust)
@@ -135,8 +135,33 @@ As you could appreciate in [`MariaDB` certificate specification](#mariadb-certif
 
 These trust bundles contain the non expired CAs needed to connect to the instances. New CAs are automatically added to the bundle after [renewal](#ca-renewal), whilst old CAs will be removed after they expire. It is important to note that both the new and old CA will remain in the bundle for a while to ensure a smooth rolling upgrade when the new certificates are issued by the new CA.
 
-
 ## Issue certificates with mariadb-operator
+
+By setting `tls.enabled=true`, mariadb-operator will generate a root CA for each instance, which will be used to issue the certificates described in the [`MariaDB` cert spec](#mariadb-certificate-specification) and [`MaxScale` cert spec](#maxscale-certificate-specification) sections:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb
+spec:
+  ...
+  tls:
+    enabled: true
+```
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MaxScale
+metadata:
+  name: maxscale
+spec:
+  ...
+  tls:
+    enabled: true
+```
+
+The advantage of this approach is the operator fully manages the `Secrets` that contain the certificates without depending on any third party dependency.
 
 ## Issue certificates with cert-manager
 
