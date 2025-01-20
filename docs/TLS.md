@@ -161,12 +161,102 @@ spec:
     enabled: true
 ```
 
+To establish trust with the instances, the public key of the CA will be added to the [CA bundle](#ca-bundle). If you need a different trust chain, please refer to the [custom trust](#custom-trust) section.
+
 The advantage of this approach is the operator fully manages the `Secrets` that contain the certificates without depending on any third party dependency.
 
 ## Issue certificates with cert-manager
 
 > [!IMPORTANT]
 > [cert-manager](https://cert-manager.io/) must be previously installed in the cluster in order to use this feature.
+
+cert-manager is the de-facto standard for managing certificates in Kubernetes. It is a Kubernetes native certificate management controller that allows you to automatically provision, manage, and renew certificates. It supports multiple certificate backends, which are configured as `Issuers` or `ClusterIssuers`.
+
+As an example, we are going to setup an in-cluster root CA `ClusterIssuer`:
+
+```yaml
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: selfsigned
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: root-ca
+  namespace: default
+spec:
+  duration: 52596h # 6 years
+  commonName: root-ca
+  usages:
+  - digital signature
+  - key encipherment
+  - cert sign
+  issuerRef:
+    name: selfsigned
+    kind: ClusterIssuer
+  isCA: true
+  privateKey:
+    encoding: PKCS1
+    algorithm: ECDSA
+    size: 256
+  secretTemplate:
+    labels:
+      k8s.mariadb.com/watch: ""
+  secretName: root-ca
+  revisionHistoryLimit: 10
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: root-ca
+spec:
+  ca:
+    secretName: root-ca
+```
+
+Then, you can reference the `ClusterIssuer` in the `MariaDB` and `MaxScale` resources:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+spec:
+  ...
+  tls:
+    enabled: true
+    serverCertIssuerRef:
+      name: root-ca
+      kind: ClusterIssuer
+    clientCertIssuerRef:
+      name: root-ca
+      kind: ClusterIssuer
+```
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MaxScale
+metadata:
+  name: maxscale-galera
+spec:
+  ...
+  tls:
+    enabled: true
+    adminCertIssuerRef:
+      name: root-ca
+      kind: ClusterIssuer
+    listenerCertIssuerRef:
+      name: root-ca
+      kind: ClusterIssuer
+``` 
+
+The operator will create cert-manager's [`Certificate` resources](https://cert-manager.io/docs/reference/api-docs/#cert-manager.io/v1.Certificate) for each certificate, and will mount the resulting certificates in the instances. The TLS `Secrets` containing the certificates will be managed by cert-manager as well as its renewal process.
+
+To establish trust with the instances, the `ca.crt` field provided by cert-managed in the certificate `Secret` will be added to the [CA bundle](#ca-bundle). If you need a different trust chain, please refer to the [custom trust](#custom-trust) section.
+
+The advantage of this approach is that you can easily reuse the same CA for multiple resources, and make use any of the supported certificate backends, such as HashiCorp Vault or Let's Encrypt.
 
 ## Provide certificates manually
 
