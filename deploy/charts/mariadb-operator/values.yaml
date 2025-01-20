@@ -88,6 +88,8 @@ resources: {}
 nodeSelector: {}
 # -- Tolerations to add to controller Pod
 tolerations: []
+# -- topologySpreadConstraints to add to controller Pod
+topologySpreadConstraints: []
 # -- priorityClassName to add to controller Pod
 priorityClassName: ""
 # -- Affinity to add to controller Pod
@@ -205,6 +207,8 @@ webhook:
   nodeSelector: {}
   # -- Tolerations to add to webhook Pod
   tolerations: []
+  # -- topologySpreadConstraints to add to webhook Pod
+  topologySpreadConstraints: []
   # -- priorityClassName to add to webhook Pod
   priorityClassName: ""
   # -- Affinity to add to webhook Pod
@@ -269,7 +273,7 @@ certController:
   podAnnotations: {}
   # -- Security context to add to cert-controller Pod
   podSecurityContext: {}
-  # -- Security context to add to cert-controller container
+  # -- Security context to add to cert-controller Pod
   securityContext: {}
   # -- Resources to add to cert-controller container
   resources: {}
@@ -280,6 +284,8 @@ certController:
   nodeSelector: {}
   # -- Tolerations to add to cert-controller container
   tolerations: []
+  # -- topologySpreadConstraints to add to cert-controller container
+  topologySpreadConstraints: []
   # -- priorityClassName to add to cert-controller container
   priorityClassName: ""
   # -- Affinity to add to cert-controller container
