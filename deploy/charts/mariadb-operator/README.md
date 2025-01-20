@@ -43,7 +43,7 @@ Refer to the [helm documentation](https://github.com/mariadb-operator/mariadb-op
 | certController.renewBeforePercentage | int | `33` | How long before the certificate expiration should the renewal process be triggered. For example, if a certificate is valid for 60 minutes, and renewBeforePercentage=25, cert-controller will begin to attempt to renew the certificate 45 minutes after it was issued (i.e. when there are 15 minutes (25%) remaining until the certificate is no longer valid). |
 | certController.requeueDuration | string | `"5m"` | Requeue duration to ensure that certificate gets renewed. |
 | certController.resources | object | `{}` | Resources to add to cert-controller container |
-| certController.securityContext | object | `{}` | Security context to add to cert-controller container |
+| certController.securityContext | object | `{}` | Security context to add to cert-controller Pod |
 | certController.serviceAccount.annotations | object | `{}` | Annotations to add to the service account |
 | certController.serviceAccount.automount | bool | `true` | Automounts the service account token in all containers of the Pod |
 | certController.serviceAccount.enabled | bool | `true` | Specifies whether a service account should be created |
@@ -56,6 +56,7 @@ Refer to the [helm documentation](https://github.com/mariadb-operator/mariadb-op
 | certController.serviceMonitor.relabelings | list | `[]` |  |
 | certController.serviceMonitor.scrapeTimeout | string | `"25s"` | Timeout if metrics can't be retrieved in given time interval |
 | certController.tolerations | list | `[]` | Tolerations to add to cert-controller container |
+| certController.topologySpreadConstraints | list | `[]` | topologySpreadConstraints to add to cert-controller container |
 | clusterName | string | `"cluster.local"` | Cluster DNS name |
 | config | object | `{"exporterImage":"prom/mysqld-exporter:v0.15.1","exporterMaxscaleImage":"docker-registry2.mariadb.com/mariadb/maxscale-prometheus-exporter-ubi:v0.0.1","galeraLibPath":"/usr/lib/galera/libgalera_smm.so","mariadbDefaultVersion":"11.4","mariadbImage":"docker-registry1.mariadb.com/library/mariadb:11.4.4","maxscaleImage":"docker-registry2.mariadb.com/mariadb/maxscale:23.08.5"}` | Operator configuration |
 | config.exporterImage | string | `"prom/mysqld-exporter:v0.15.1"` | Default MariaDB exporter image |
@@ -104,6 +105,7 @@ Refer to the [helm documentation](https://github.com/mariadb-operator/mariadb-op
 | serviceAccount.extraLabels | object | `{}` | Extra Labels to add to the service account |
 | serviceAccount.name | string | `""` | The name of the service account to use. If not set and enabled is true, a name is generated using the fullname template |
 | tolerations | list | `[]` | Tolerations to add to controller Pod |
+| topologySpreadConstraints | list | `[]` | topologySpreadConstraints to add to controller Pod |
 | webhook.affinity | object | `{}` | Affinity to add to webhook Pod |
 | webhook.annotations | object | `{}` | Annotations for webhook configurations. |
 | webhook.cert.ca.key | string | `""` | File under 'ca.path' that contains the full CA trust chain. |
@@ -146,3 +148,4 @@ Refer to the [helm documentation](https://github.com/mariadb-operator/mariadb-op
 | webhook.serviceMonitor.relabelings | list | `[]` |  |
 | webhook.serviceMonitor.scrapeTimeout | string | `"25s"` | Timeout if metrics can't be retrieved in given time interval |
 | webhook.tolerations | list | `[]` | Tolerations to add to webhook Pod |
+| webhook.topologySpreadConstraints | list | `[]` | topologySpreadConstraints to add to webhook Pod |
