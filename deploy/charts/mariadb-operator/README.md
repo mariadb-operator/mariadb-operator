@@ -23,7 +23,7 @@ Refer to the [helm documentation](https://github.com/mariadb-operator/mariadb-op
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | affinity | object | `{}` | Affinity to add to controller Pod |
-| certController.affinity | object | `{}` | Affinity to add to controller Pod |
+| certController.affinity | object | `{}` | Affinity to add to cert-controller container |
 | certController.caLifetime | string | `"26280h"` | CA certificate lifetime. It must be greater than certLifetime. |
 | certController.certLifetime | string | `"2160h"` | Certificate lifetime. |
 | certController.enabled | bool | `true` | Specifies whether the cert-controller should be created. |
@@ -36,9 +36,10 @@ Refer to the [helm documentation](https://github.com/mariadb-operator/mariadb-op
 | certController.image.repository | string | `"docker-registry3.mariadb.com/mariadb-operator/mariadb-operator"` |  |
 | certController.image.tag | string | `""` | Image tag to use. By default the chart appVersion is used |
 | certController.imagePullSecrets | list | `[]` |  |
-| certController.nodeSelector | object | `{}` | Node selectors to add to controller Pod |
+| certController.nodeSelector | object | `{}` | Node selectors to add to cert-controller container |
 | certController.podAnnotations | object | `{}` | Annotations to add to cert-controller Pod |
 | certController.podSecurityContext | object | `{}` | Security context to add to cert-controller Pod |
+| certController.priorityClassName | string | `""` | priorityClassName to add to cert-controller container |
 | certController.renewBeforePercentage | int | `33` | How long before the certificate expiration should the renewal process be triggered. For example, if a certificate is valid for 60 minutes, and renewBeforePercentage=25, cert-controller will begin to attempt to renew the certificate 45 minutes after it was issued (i.e. when there are 15 minutes (25%) remaining until the certificate is no longer valid). |
 | certController.requeueDuration | string | `"5m"` | Requeue duration to ensure that certificate gets renewed. |
 | certController.resources | object | `{}` | Resources to add to cert-controller container |
@@ -54,7 +55,7 @@ Refer to the [helm documentation](https://github.com/mariadb-operator/mariadb-op
 | certController.serviceMonitor.metricRelabelings | list | `[]` |  |
 | certController.serviceMonitor.relabelings | list | `[]` |  |
 | certController.serviceMonitor.scrapeTimeout | string | `"25s"` | Timeout if metrics can't be retrieved in given time interval |
-| certController.tolerations | list | `[]` | Tolerations to add to controller Pod |
+| certController.tolerations | list | `[]` | Tolerations to add to cert-controller container |
 | clusterName | string | `"cluster.local"` | Cluster DNS name |
 | config | object | `{"exporterImage":"prom/mysqld-exporter:v0.15.1","exporterMaxscaleImage":"docker-registry2.mariadb.com/mariadb/maxscale-prometheus-exporter-ubi:v0.0.1","galeraLibPath":"/usr/lib/galera/libgalera_smm.so","mariadbDefaultVersion":"11.4","mariadbImage":"docker-registry1.mariadb.com/library/mariadb:11.4.4","maxscaleImage":"docker-registry2.mariadb.com/mariadb/maxscale:23.08.5"}` | Operator configuration |
 | config.exporterImage | string | `"prom/mysqld-exporter:v0.15.1"` | Default MariaDB exporter image |
@@ -92,6 +93,7 @@ Refer to the [helm documentation](https://github.com/mariadb-operator/mariadb-op
 | pdb.maxUnavailable | int | `1` | Maximum number of unavailable Pods. You may also give a percentage, like `50%` |
 | podAnnotations | object | `{}` | Annotations to add to controller Pod |
 | podSecurityContext | object | `{}` | Security context to add to controller Pod |
+| priorityClassName | string | `""` | priorityClassName to add to controller Pod |
 | rbac.aggregation.enabled | bool | `true` | Specifies whether the cluster roles aggrate to view and edit predefinied roles |
 | rbac.enabled | bool | `true` | Specifies whether RBAC resources should be created |
 | resources | object | `{}` | Resources to add to controller container |
@@ -102,7 +104,7 @@ Refer to the [helm documentation](https://github.com/mariadb-operator/mariadb-op
 | serviceAccount.extraLabels | object | `{}` | Extra Labels to add to the service account |
 | serviceAccount.name | string | `""` | The name of the service account to use. If not set and enabled is true, a name is generated using the fullname template |
 | tolerations | list | `[]` | Tolerations to add to controller Pod |
-| webhook.affinity | object | `{}` | Affinity to add to controller Pod |
+| webhook.affinity | object | `{}` | Affinity to add to webhook Pod |
 | webhook.annotations | object | `{}` | Annotations for webhook configurations. |
 | webhook.cert.ca.key | string | `""` | File under 'ca.path' that contains the full CA trust chain. |
 | webhook.cert.ca.path | string | `""` | Path that contains the full CA trust chain. |
@@ -125,10 +127,11 @@ Refer to the [helm documentation](https://github.com/mariadb-operator/mariadb-op
 | webhook.image.repository | string | `"docker-registry3.mariadb.com/mariadb-operator/mariadb-operator"` |  |
 | webhook.image.tag | string | `""` | Image tag to use. By default the chart appVersion is used |
 | webhook.imagePullSecrets | list | `[]` |  |
-| webhook.nodeSelector | object | `{}` | Node selectors to add to controller Pod |
+| webhook.nodeSelector | object | `{}` | Node selectors to add to webhook Pod |
 | webhook.podAnnotations | object | `{}` | Annotations to add to webhook Pod |
 | webhook.podSecurityContext | object | `{}` | Security context to add to webhook Pod |
 | webhook.port | int | `9443` | Port to be used by the webhook server |
+| webhook.priorityClassName | string | `""` | priorityClassName to add to webhook Pod |
 | webhook.resources | object | `{}` | Resources to add to webhook container |
 | webhook.securityContext | object | `{}` | Security context to add to webhook container |
 | webhook.serviceAccount.annotations | object | `{}` | Annotations to add to the service account |
@@ -142,4 +145,4 @@ Refer to the [helm documentation](https://github.com/mariadb-operator/mariadb-op
 | webhook.serviceMonitor.metricRelabelings | list | `[]` |  |
 | webhook.serviceMonitor.relabelings | list | `[]` |  |
 | webhook.serviceMonitor.scrapeTimeout | string | `"25s"` | Timeout if metrics can't be retrieved in given time interval |
-| webhook.tolerations | list | `[]` | Tolerations to add to controller Pod |
+| webhook.tolerations | list | `[]` | Tolerations to add to webhook Pod |
