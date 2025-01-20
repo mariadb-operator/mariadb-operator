@@ -164,7 +164,7 @@ spec:
 
 To establish trust with the instances, the public key of the CA will be added to the [CA bundle](#ca-bundle). If you need a different trust chain, please refer to the [custom trust](#custom-trust) section.
 
-The advantage of this approach is the operator fully manages the `Secrets` that contain the certificates without depending on any third party dependency.
+The advantage of this approach is the operator fully manages the `Secrets` that contain the certificates without depending on any third party dependency. Also, since the operator fully controls the renewal process, it is able to pause a leaf certificate renewal if the CA is being updated at that moment, as described in [cert](#certificate-renewal). 
 
 ## Issue certificates with cert-manager
 
@@ -455,17 +455,23 @@ If your application is in a different namespace, you can copy the CA bundle to t
 
 ## CA renewal
 
-mariadb-operator and cert-manager
+Depending on the setup, CAs can be managed and renewed by either mariadb-operator or cert-manager. 
 
-upgrades
+When managed by mariadb-operator, CAs have a lifetime of 3 years and will be marked for renewal after 66% of its lifetime has passed i.e. ~2 years. After being renewed, the operator will trigger an update of the instances to include the new CA in the bundle. 
+
+When managed by cert-manager, the renewal process is fully controlled by cert-manager, but the operator will also update the CA bundle after the CA is renewed.
+
+You may choose any of the available [update strategies](./UPDATES.md) to control the instance update process.
 
 ## Certificate renewal
 
-mariadb-operator and cert-manager
+Depending on the setup, certificates can be managed and renewed by mariadb-operator or cert-manager. In either case, certificates have a lifetime of 90 days and will be marked for renewwal after 66% of its lifetime has passed i.e. ~60 days.
 
-upgrades
+When the [certificates are issued by the mariadb-operator](#issue-certificates-with-mariadb-operator), the operator is able to pause a leaf certificate renewal if the CA is being updated at that same moment. This is done to ensure a smooth update when the new certificates are issued by the new CA.
 
-Wait for CA rolling upgrade.
+When the [certificates are issued by cert-manager](#issue-certificates-with-cert-manager), the renewal process is fully managed by cert-manager, and the operator will not interfere with it. The operator will only update the CA bundle with the new CA when the certificates are renewed.
+
+You may choose any of the available [update strategies](./UPDATES.md) to control the instance update process.
 
 ## Certificate status
 
