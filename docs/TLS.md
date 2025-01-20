@@ -636,7 +636,7 @@ Before proceeding, make sure you have completed the following steps:
 - [Distribute CA bundle](#distributing-trust) to your application namespace
 - [Test TLS certificates](#test-tls-certificates-with-connections) with the `Connection` resource
 
-In this guide, we are going to configure an application user to access a `MariaDB` instance with TLS. The first step is to create a `User` resource and grant the necessary permissions:
+In this guide, we are going to configure an application `User` to access a `MariaDB` instance with TLS. The first step is to create a `User` resource and grant the necessary permissions:
 
 ```yaml
 apiVersion: k8s.mariadb.com/v1alpha1
@@ -644,12 +644,8 @@ kind: User
 metadata:
   name: app
 spec:
-  name: app
   mariaDbRef:
     name: mariadb-galera
-  passwordSecretKeyRef:
-    name: mariadb
-    key: password
   require:
     issuer: "/CN=mariadb-galera-ca"
     subject: "/CN=mariadb-galera-client"
@@ -670,7 +666,7 @@ spec:
   host: "%"
 ```
 
-The user `app` will be able to connect to the `MariaDB` instance by providing a certificate with subject `mariadb-galera-client` and issued by the `mariadb-galera-ca` CA 
+The `app` user will be able to connect to the `MariaDB` instance by providing a certificate with subject `mariadb-galera-client` and issued by the `mariadb-galera-ca` CA 
 
 We are now going to define the application that connects to the `MariaDB` instance using the `app` user. We are assuming that the following `Secrets` are available in your application namespace:
 - `mariadb-galera-ca-bundle`: Contains the CA bundle for the `MariaDB` instance
@@ -695,10 +691,10 @@ spec:
         args:
           - -c
           - >
-            mariadb -u app -h mariadb-galera-primary.default.svc.cluster.local -p'MariaDB11!'
+            mariadb -u app -h mariadb-galera-primary.default.svc.cluster.local
             --ssl-ca=/etc/pki/ca.crt --ssl-cert=/etc/pki/tls.crt
             --ssl-key=/etc/pki/tls.key --ssl-verify-server-cert
-            -e "SELECT 'Database connection successful!' AS Status;"
+            -e "SELECT 'Database connection successful!' AS Status;" -t
         volumeMounts:
         - name: pki
           mountPath: /etc/pki
@@ -722,15 +718,17 @@ spec:
       restartPolicy: Never
 ```
 
-The job will connect to the `MariaDB` instance using the `app` user, and will execute a simple query to check the connection status. The `--ssl-ca`, `--ssl-cert`, `--ssl-key` and `--ssl-verify-server-cert` flags are used to provide the CA bundle, client certificate and key, and to verify the server certificate respectively. 
+The application will connect to the `MariaDB` instance using the `app` user, and will execute a simple query to check the connection status. The `--ssl-ca`, `--ssl-cert`, `--ssl-key` and `--ssl-verify-server-cert` flags are used to provide the CA bundle, client certificate and key, and to verify the server certificate respectively. 
 
 If the connection is successful, the output should be:
 
 ```bash
 kubectl logs job/mariadb-client
-
-Status
-Database connection successful!
++---------------------------------+
+| Status                          |
++---------------------------------+
+| Database connection successful! |
++---------------------------------+
 ``` 
 
 ## Limitations
