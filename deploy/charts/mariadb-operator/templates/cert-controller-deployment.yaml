@@ -35,6 +35,10 @@ spec:
       tolerations:
         {{ toYaml . | nindent 8 }}
       {{- end }}
+      {{- with .Values.certController.topologySpreadConstraints }}
+      topologySpreadConstraints:
+        {{ toYaml . | nindent 8 }}
+      {{- end }}
       {{- with .Values.certController.priorityClassName  }}
       priorityClassName: {{ . | quote }}
       {{- end }}
