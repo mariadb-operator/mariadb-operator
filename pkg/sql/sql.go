@@ -419,7 +419,7 @@ func (c *Client) CreateUser(ctx context.Context, accountName string, createUserO
 	}
 
 	query += fmt.Sprintf("WITH MAX_USER_CONNECTIONS %d ", opts.MaxUserConnections)
-	if opts.IdentifiedBy == "" && opts.IdentifiedByPassword == "" && opts.IdentifiedVia == "" {
+	if opts.IdentifiedBy == "" && opts.IdentifiedByPassword == "" && opts.IdentifiedVia == "" && opts.Require == nil {
 		query += "ACCOUNT LOCK PASSWORD EXPIRE "
 	}
 	query += ";"
@@ -448,7 +448,7 @@ func (c *Client) AlterUser(ctx context.Context, accountName string, createUserOp
 		}
 	} else if opts.IdentifiedByPassword != "" {
 		query += fmt.Sprintf("IDENTIFIED BY PASSWORD '%s' ", opts.IdentifiedByPassword)
-	} else {
+	} else if opts.IdentifiedBy != "" {
 		query += fmt.Sprintf("IDENTIFIED BY '%s' ", opts.IdentifiedBy)
 	}
 
