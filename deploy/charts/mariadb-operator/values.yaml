@@ -88,6 +88,8 @@ resources: {}
 nodeSelector: {}
 # -- Tolerations to add to controller Pod
 tolerations: []
+# -- priorityClassName to add to controller Pod
+priorityClassName: ""
 # -- Affinity to add to controller Pod
 affinity: {}
 #  Sample on how to create an antiAffinity rule that place
@@ -199,11 +201,13 @@ webhook:
   # requests:
   #   cpu: 10m
   #   memory: 32Mi
-  # -- Node selectors to add to controller Pod
+  # -- Node selectors to add to webhook Pod
   nodeSelector: {}
-  # -- Tolerations to add to controller Pod
+  # -- Tolerations to add to webhook Pod
   tolerations: []
-  # -- Affinity to add to controller Pod
+  # -- priorityClassName to add to webhook Pod
+  priorityClassName: ""
+  # -- Affinity to add to webhook Pod
   affinity: {}
 certController:
   # -- Specifies whether the cert-controller should be created.
@@ -272,11 +276,13 @@ certController:
   # requests:
   #   cpu: 10m
   #   memory: 32Mi
-  # -- Node selectors to add to controller Pod
+  # -- Node selectors to add to cert-controller container
   nodeSelector: {}
-  # -- Tolerations to add to controller Pod
+  # -- Tolerations to add to cert-controller container
   tolerations: []
-  # -- Affinity to add to controller Pod
+  # -- priorityClassName to add to cert-controller container
+  priorityClassName: ""
+  # -- Affinity to add to cert-controller container
   affinity: {}
 # -- Operator configuration
 config:
