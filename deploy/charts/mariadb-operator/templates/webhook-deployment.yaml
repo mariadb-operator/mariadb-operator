@@ -36,6 +36,9 @@ spec:
       tolerations:
         {{ toYaml . | nindent 8 }}
       {{- end }}
+      {{- with .Values.webhook.priorityClassName  }}
+      priorityClassName: {{ . | quote }}
+      {{- end }}
       {{- with .Values.webhook.affinity }}
       affinity:
         {{ toYaml . | nindent 8 }}
