@@ -260,8 +260,98 @@ The advantage of this approach is that you can easily reuse the same CA for mult
 
 ## Provide certificates manually
 
-CA Secret structure
-TLS secret structure
+Providing your own certificates is as simple as creating the `Secrets` with the appropriate structure and referencing them in the `MariaDB` and `MaxScale` resources. The certificates must be compliant with the [`MariaDB` cert spec](#mariadb-certificate-specification) and [`MaxScale` cert spec](#maxscale-certificate-specification) sections.
+
+The CA certificate must be provided as a `Secret` with the following structure:
+```yaml
+apiVersion: v1
+kind: Secret
+type: Opaque
+metadata:
+  name: mariadb-galera-server-ca
+  labels:
+    k8s.mariadb.com/watch: ""
+data:
+  ca.crt:
+  -----BEGIN CERTIFICATE-----
+  <public-key>
+  -----END CERTIFICATE-----
+  ca.key:
+  -----BEGIN EC PRIVATE KEY-----
+  <private-key>
+  -----END EC PRIVATE KEY-----
+```
+
+The `ca.key` field is only required if you want to the operator to automatically re-issue certificates with this CA, see [bring your own CA](#bring-your-own-ca) for further detail. In other words, if only `ca.crt` is provided, the operator will trust this CA by adding `ca.crt` to the [CA bundle](#ca-bundle), but no certificates will be issued with it, the user will responsible for upating the certificate `Secret` manually with renewed certificates.
+
+The `k8s.mariadb.com/watch` label is required only if you want the operator to trigger a rolling update when the CA is renewed, see [CA renewal](#ca-renewal) for more detail.
+
+The leaf certificate must match the previous CA's public key, and it should provided as a [TLS `Secret`](https://kubernetes.io/docs/concepts/configuration/secret/#tls-secrets) with the following structure:
+
+```yaml
+apiVersion: v1
+kind: Secret
+type: kubernetes.io/tls  
+metadata:
+  name: mariadb-galera-server-tls 
+  labels:
+    k8s.mariadb.com/watch: ""
+data:
+  tls.crt:
+  -----BEGIN CERTIFICATE-----
+  <public-key>
+  -----END CERTIFICATE-----
+  tls.key:
+  -----BEGIN EC PRIVATE KEY-----
+  <private-key>
+  -----END EC PRIVATE KEY-----
+```
+
+The `k8s.mariadb.com/watch` label is required only if you want the operator to trigger a rolling update when the certificate is renewed, see [cert renewal](#certificate-renewal) for more detail.
+
+Once the certificate `Secrets` are available in the cluster, you can create the `MariaDB` and `MaxScale` resources referencing them:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+spec:
+  ...
+  tls:
+    enabled: true
+    serverCASecretRef:
+      name: mariadb-server-ca
+    serverCertSecretRef:
+      name: mariadb-galera-server-tls
+    clientCASecretRef:
+      name: mariadb-client-ca
+    clientCertSecretRef:
+      name: mariadb-galera-client-tls
+```
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MaxScale
+metadata:
+  name: maxscale-galera
+spec:
+  ...
+  tls:
+    enabled: true
+    adminCASecretRef:
+      name: maxscale-admin-ca
+    adminCertSecretRef:
+      name: maxscale-galera-admin-tls
+    listenerCASecretRef:
+      name: maxscale-listener-ca
+    listenerCertSecretRef:
+      name: maxscale-galera-listener-tls
+    serverCASecretRef:
+      name: mariadb-galera-ca-bundle
+    serverCertSecretRef:
+      name: mariadb-galera-client-tls
+``` 
 
 ## Bring your own CA
 
