@@ -14,4 +14,3 @@ spec:
   database: mariadb
   healthCheck:
     interval: 30s
-    retryInterval: 3s
