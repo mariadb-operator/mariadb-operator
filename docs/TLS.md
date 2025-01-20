@@ -17,6 +17,7 @@
 - [Bring your own CA](#bring-your-own-ca)
 - [Intermediate CAs](#intermediate-cas)
 - [Custom trust](#custom-trust)
+- [Distributing trust](#distributing-trust)
 - [CA renewal](#ca-renewal)
 - [Certificate renewal](#certificate-renewal)
 - [Certificate status](#certificate-status)
@@ -445,6 +446,12 @@ spec:
 ```
 
 This is specially useful when issuing certificates with an intermediate CA, see [intermediate CAs](#intermediate-cas) section for further detail.
+
+## Distributing trust
+
+Distributing the [CA bundle](#ca-bundle) to your application namespace it out of the scope of this operator, the bundles will remain in the same namespace as the `MariaDB` and `MaxScale` instances.
+
+If your application is in a different namespace, you can copy the CA bundle to the application namespace. Projects like [trust-manager](https://github.com/cert-manager/trust-manager) can help you to automate this process.
 
 ## CA renewal
 
