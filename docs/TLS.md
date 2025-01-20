@@ -254,7 +254,7 @@ spec:
 
 The operator will create cert-manager's [`Certificate` resources](https://cert-manager.io/docs/reference/api-docs/#cert-manager.io/v1.Certificate) for each certificate, and will mount the resulting certificates in the instances. The TLS `Secrets` containing the certificates will be managed by cert-manager as well as its renewal process.
 
-To establish trust with the instances, the `ca.crt` field provided by cert-managed in the certificate `Secret` will be added to the [CA bundle](#ca-bundle). If you need a different trust chain, please refer to the [custom trust](#custom-trust) section.
+To establish trust with the instances, the [`ca.crt` field provided by cert-managed](https://cert-manager.io/docs/faq/#why-isnt-my-certificates-chain-in-my-issued-secrets-cacrt) in the certificate `Secret` will be added to the [CA bundle](#ca-bundle). If you need a different trust chain, please refer to the [custom trust](#custom-trust) section.
 
 The advantage of this approach is that you can easily reuse the same CA for multiple resources, and make use any of the supported certificate backends, such as HashiCorp Vault or Let's Encrypt.
 
@@ -355,9 +355,49 @@ spec:
 
 ## Bring your own CA
 
-CA Secret structure
+If you already have a CA setup outside of Kubernetes, you can use it with the operator by providing the CA certificate as a `Secret` with the following structure:
+
+```yaml
+apiVersion: v1
+kind: Secret
+type: Opaque
+metadata:
+  name: mariadb-ca
+  labels:
+    k8s.mariadb.com/watch: ""
+data:
+  ca.crt:
+  -----BEGIN CERTIFICATE-----
+  <public-key>
+  -----END CERTIFICATE-----
+  ca.key:
+  -----BEGIN EC PRIVATE KEY-----
+  <private-key>
+  -----END EC PRIVATE KEY-----
+```
+
+Just by providing a reference to this `Secret`, the operator will use it to issue leaf certificates instead of provisioning a new CA:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+spec:
+  ...
+  tls:
+    enabled: true
+    serverCASecretRef:
+      name: mariadb-server-ca
+    clientCASecretRef:
+      name: mariadb-client-ca
+```
 
 ## Intermediate CAs
+
+Intermediate CAs are supported by the operator with [some limitations](#limitations). In some cases, the leaf certificates issued by the intermediate CA are slightly different, and include the intermediate CA public key as part of the leaf certificate, in the following order: `Leaf certificate -> Intermediate CA`. This is a common practise to easily establish trust in complex PKI setups, where multiple CA are involved. 
+
+Many applications support this `Leaf certificate -> Intermediate CA` structure as a valid leaf certificate, and are able to establish trust with the intermediate CA. Normally, the intermediate CA will not be directly trusted, but used as a path to the root CA, which should be trusted by the application. If not trusted already, you can add the root CA to the [CA bundle](#ca-bundle) by using a [custom trust](#custom-trust).
 
 ## Custom trust
 
