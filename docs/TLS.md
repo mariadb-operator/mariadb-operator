@@ -401,6 +401,51 @@ Many applications support this `Leaf certificate -> Intermediate CA` structure a
 
 ## Custom trust
 
+You are able to provide a set of CA public keys to be added to the [CA bundle](#ca-bundle) by creating a `Secret` with the following structure:
+
+```yaml
+apiVersion: v1
+kind: Secret
+type: Opaque
+metadata:
+  name: custom-trust
+  labels:
+    k8s.mariadb.com/watch: ""
+data:
+  ca.crt:
+  -----BEGIN CERTIFICATE-----
+  <my-org-root-ca>
+  -----END CERTIFICATE-----
+  -----BEGIN CERTIFICATE-----
+  <root-ca>
+  -----END CERTIFICATE-----
+```
+
+And referencing it in the `MariaDB` and `MaxScale` resources, for instance:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MaxScale
+metadata:
+  name: maxscale-galera
+spec:
+  ...
+  tls:
+    enabled: true
+    adminCASecretRef:
+      name: custom-trust
+    adminCertIssuerRef:
+      name: my-org-intermediate-ca
+      kind: ClusterIssuer
+    listenerCASecretRef:
+      name: custom-trust
+    listenerCertIssuerRef:
+      name: intermediate-ca
+      kind: ClusterIssuer
+```
+
+This is specially useful when issuing certificates with an intermediate CA, see [intermediate CAs](#intermediate-cas) section for further detail.
+
 ## CA renewal
 
 mariadb-operator and cert-manager
