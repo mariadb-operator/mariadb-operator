@@ -53,7 +53,7 @@ spec:
     enabled: true
 ```
 
-By doing so, the operator will issue a CA for each `MariaDB` and `MaxScale` resource, and use it to issue leaf certificates mounted by the instances. This also the default behaviour when no `tls` field is specified. 
+By doing so, the operator will generate a CA for each `MariaDB` and `MaxScale` resource, and use it to issue leaf certificates mounted by the instances. This is also the default behaviour when no `tls` field is specified. 
 
 You can opt-out from TLS and use unencrypted connections just by setting `tls.enabled=false`:
 
@@ -68,17 +68,17 @@ spec:
     enabled: false
 ```
 
-Refer to the following sections for a more advanced TLS configuration.
+Refer to the sections below for a more advanced TLS configuration.
 
 ## `MariaDB` certificate specification
 
 The `MariaDB` TLS setup consists of the following certificates:
 - Certificate Authority (CA) keypair to issue the server certificate
-- Server leaf certificate: Used to encrypt server connections
+- Server leaf certificate used to encrypt server connections
 - Certificate Authority (CA) keypair to issue the client certificate
-- Client leaf certificate: Used to encrypt and authenticate client connections.
+- Client leaf certificate used to encrypt and authenticate client connections.
 
-As a default behaviour, the operator issues a single CA to be used for issuing both the server and client certificates, but the user can decide to use dedicated CAs for each case. Root CAs, and [intermedicate CAs](#intermediate-cas) in some cases,  are supported, see [limitations](#intermediate-cas) for further detail. 
+As a default behaviour, the operator generates a single CA to be used for issuing both the server and client certificates, but the user can decide to use dedicated CAs for each case. Root CAs, and [intermedicate CAs](#intermediate-cas) in some cases are supported, see [limitations](#limitations) for further detail. 
 
 The server certificate contains the following Subject Alternative Names (SANs):
 - `<mariadb-name>.<namespace>.svc.<cluster-name>`  
@@ -105,13 +105,13 @@ Whereas the client certificate is only valid for the `<mariadb-name>-client` SAN
 
 The `MaxScale` TLS setup consists of the following certificates:
 - Certificate Authority (CA) keypair to issue the admin certificate.
-- Admin leaf certificate: Used to encrypt the administrative REST API and GUI.
+- Admin leaf certificate used to encrypt the administrative REST API and GUI.
 - Certificate Authority (CA) keypair to issue the listener certificate.
-- Listener leaf certificate: Used to encrypt database connections to the listener.
-- Server CA bundle: Used to establish trust with the MariaDB server.
-- Server leaf certificate: Used to connect to the MariaDB server.
+- Listener leaf certificate used to encrypt database connections to the listener.
+- Server CA bundle used to establish trust with the MariaDB server.
+- Server leaf certificate used to connect to the MariaDB server.
 
-As a default behaviour, the operator issues a CA to be used for issuing both the admin and the listener certificates, but the user can decide use dedicated CAs for each case. Client certificate and CA bundle configured in the referred MariaDB are used as Server certificates by default, but the user is able to provide its own certificates. Root CAs, and [intermedicate CAs](#intermediate-cas) in some cases,  are supported, see [limitations](#intermediate-cas) for further detail.
+As a default behaviour, the operator issues a CA to be used for issuing both the admin and the listener certificates, but the user can decide to use dedicated CAs for each case. Client certificate and CA bundle configured in the referred MariaDB are used as server certificates by default, but the user is able to provide its own certificates. Root CAs, and [intermedicate CAs](#intermediate-cas) in some cases are supported, see [limitations](#intermediate-cas) for further detail.
 
 Both the admin and listener certificates contain the following Subject Alternative Names (SANs):
 - `<maxscale-name>.<namespace>.svc.<clusername>`  
@@ -134,11 +134,11 @@ For details about the server certificate, see [`MariaDB` certificate specificati
 
 As you could appreciate in [`MariaDB` certificate specification](#mariadb-certificate-specification) and [`MaxScale` certificate specification](#maxscale-certificate-specification), the TLS setup involves multiple CAs. In order to establish trust in a more convenient way, the operator groups the CAs together in a CA bundle that will need to be specified when [securely connecting from your applications](#connecting-applications-with-tls). Every `MariaDB` and `MaxScale` resources have a dedicated bundle of its own available in a `Secret` named `<instance-name>-ca-bundle`. 
 
-These trust bundles contain the non expired CAs needed to connect to the instances. New CAs are automatically added to the bundle after [renewal](#ca-renewal), whilst old CAs will be removed after they expire. It is important to note that both the new and old CA will remain in the bundle for a while to ensure a smooth rolling upgrade when the new certificates are issued by the new CA.
+These trust bundles contain non expired CAs needed to connect to the instances. New CAs are automatically added to the bundle after [renewal](#ca-renewal), whilst old CAs will be removed after they expire. It is important to note that both the new and old CA will remain in the bundle for a while to ensure a smooth update when the new certificates are issued by the new CA.
 
 ## Issue certificates with mariadb-operator
 
-By setting `tls.enabled=true`, mariadb-operator will generate a root CA for each instance, which will be used to issue the certificates described in the [`MariaDB` cert spec](#mariadb-certificate-specification) and [`MaxScale` cert spec](#maxscale-certificate-specification) sections:
+By setting `tls.enabled=true`, the operator will generate a root CA for each instance, which will be used to issue the certificates described in the [`MariaDB` cert spec](#mariadb-certificate-specification) and [`MaxScale` cert spec](#maxscale-certificate-specification) sections:
 
 ```yaml
 apiVersion: k8s.mariadb.com/v1alpha1
@@ -162,16 +162,16 @@ spec:
     enabled: true
 ```
 
-To establish trust with the instances, the public key of the CA will be added to the [CA bundle](#ca-bundle). If you need a different trust chain, please refer to the [custom trust](#custom-trust) section.
+To establish trust with the instances, the CA's public key will be added to the [CA bundle](#ca-bundle). If you need a different trust chain, please refer to the [custom trust](#custom-trust) section.
 
-The advantage of this approach is the operator fully manages the `Secrets` that contain the certificates without depending on any third party dependency. Also, since the operator fully controls the renewal process, it is able to pause a leaf certificate renewal if the CA is being updated at that moment, as described in [cert](#certificate-renewal). 
+The advantage of this approach is the operator fully manages the `Secrets` that contain the certificates without depending on any third party dependency. Also, since the operator fully controls the renewal process, it is able to pause a leaf certificate renewal if the CA is being updated at that moment, as described in the [cert renewal](#certificate-renewal) section. 
 
 ## Issue certificates with cert-manager
 
 > [!IMPORTANT]
 > [cert-manager](https://cert-manager.io/) must be previously installed in the cluster in order to use this feature.
 
-cert-manager is the de-facto standard for managing certificates in Kubernetes. It is a Kubernetes native certificate management controller that allows you to automatically provision, manage, and renew certificates. It supports multiple certificate backends, which are configured as `Issuers` or `ClusterIssuers`.
+cert-manager is the de-facto standard for managing certificates in Kubernetes. It is a Kubernetes native certificate management controller that allows you to automatically provision, manage and renew certificates. It supports multiple [certificate backends](https://cert-manager.io/docs/configuration/issuers/) (in-cluster, Hashicorp Vault...) which are configured as `Issuer` or `ClusterIssuer` objects.
 
 As an example, we are going to setup an in-cluster root CA `ClusterIssuer`:
 
@@ -253,15 +253,15 @@ spec:
       kind: ClusterIssuer
 ``` 
 
-The operator will create cert-manager's [`Certificate` resources](https://cert-manager.io/docs/reference/api-docs/#cert-manager.io/v1.Certificate) for each certificate, and will mount the resulting certificates in the instances. The TLS `Secrets` containing the certificates will be managed by cert-manager as well as its renewal process.
+The operator will create cert-manager's [`Certificate` resources](https://cert-manager.io/docs/reference/api-docs/#cert-manager.io/v1.Certificate) for each certificate, and will mount the resulting [TLS `Secrets`](https://kubernetes.io/docs/concepts/configuration/secret/#tls-secrets) in the instances. These `Secrets` containing the certificates will be managed by cert-manager as well as its renewal process.
 
-To establish trust with the instances, the [`ca.crt` field provided by cert-managed](https://cert-manager.io/docs/faq/#why-isnt-my-certificates-chain-in-my-issued-secrets-cacrt) in the certificate `Secret` will be added to the [CA bundle](#ca-bundle). If you need a different trust chain, please refer to the [custom trust](#custom-trust) section.
+To establish trust with the instances, the [`ca.crt` field provided by cert-managed](https://cert-manager.io/docs/faq/#why-isnt-my-certificates-chain-in-my-issued-secrets-cacrt) in the `Secret` will be added to the [CA bundle](#ca-bundle). If you need a different trust chain, please refer to the [custom trust](#custom-trust) section.
 
-The advantage of this approach is that you can easily reuse the same CA for multiple resources, and make use any of the supported certificate backends, such as HashiCorp Vault or Let's Encrypt.
+The advantage of this approach is that you can use any of the [cert-manager's certificate backends](https://cert-manager.io/docs/configuration/issuers/), such as the in-cluster CA or HashiCorp Vault, and potentially reuse the same `Issuer`/`ClusterIssuer` with multiple instances.
 
 ## Provide certificates manually
 
-Providing your own certificates is as simple as creating the `Secrets` with the appropriate structure and referencing them in the `MariaDB` and `MaxScale` resources. The certificates must be compliant with the [`MariaDB` cert spec](#mariadb-certificate-specification) and [`MaxScale` cert spec](#maxscale-certificate-specification) sections.
+Providing your own certificates is as simple as creating the `Secrets` with the appropriate structure and referencing them in the `MariaDB` and `MaxScale` resources. The certificates must be compliant with the [`MariaDB` cert spec](#mariadb-certificate-specification) and [`MaxScale` cert spec](#maxscale-certificate-specification).
 
 The CA certificate must be provided as a `Secret` with the following structure:
 ```yaml
@@ -283,9 +283,9 @@ data:
   -----END EC PRIVATE KEY-----
 ```
 
-The `ca.key` field is only required if you want to the operator to automatically re-issue certificates with this CA, see [bring your own CA](#bring-your-own-ca) for further detail. In other words, if only `ca.crt` is provided, the operator will trust this CA by adding `ca.crt` to the [CA bundle](#ca-bundle), but no certificates will be issued with it, the user will responsible for upating the certificate `Secret` manually with renewed certificates.
+The `ca.key` field is only required if you want to the operator to automatically re-issue certificates with this CA, see [bring your own CA](#bring-your-own-ca) for further detail. In other words, if only `ca.crt` is provided, the operator will trust this CA by adding it to the [CA bundle](#ca-bundle), but no certificates will be issued with it, the user will responsible for upating the certificate `Secret` manually with renewed certificates.
 
-The `k8s.mariadb.com/watch` label is required only if you want the operator to trigger a rolling update when the CA is renewed, see [CA renewal](#ca-renewal) for more detail.
+The `k8s.mariadb.com/watch` label is required only if you want the operator to automatically trigger an update when the CA is renewed, see [CA renewal](#ca-renewal) for more detail.
 
 The leaf certificate must match the previous CA's public key, and it should provided as a [TLS `Secret`](https://kubernetes.io/docs/concepts/configuration/secret/#tls-secrets) with the following structure:
 
@@ -308,7 +308,7 @@ data:
   -----END EC PRIVATE KEY-----
 ```
 
-The `k8s.mariadb.com/watch` label is required only if you want the operator to trigger a rolling update when the certificate is renewed, see [cert renewal](#certificate-renewal) for more detail.
+The `k8s.mariadb.com/watch` label is required only if you want the operator to automatically trigger an update when the certificate is renewed, see [cert renewal](#certificate-renewal) for more detail.
 
 Once the certificate `Secrets` are available in the cluster, you can create the `MariaDB` and `MaxScale` resources referencing them:
 
@@ -377,7 +377,7 @@ data:
   -----END EC PRIVATE KEY-----
 ```
 
-Just by providing a reference to this `Secret`, the operator will use it to issue leaf certificates instead of provisioning a new CA:
+Just by providing a reference to this `Secret`, the operator will use it to issue leaf certificates instead of generating a new CA:
 
 ```yaml
 apiVersion: k8s.mariadb.com/v1alpha1
@@ -396,7 +396,7 @@ spec:
 
 ## Intermediate CAs
 
-Intermediate CAs are supported by the operator with [some limitations](#limitations). In some cases, the leaf certificates issued by the intermediate CA are slightly different, and include the intermediate CA public key as part of the leaf certificate, in the following order: `Leaf certificate -> Intermediate CA`. This is a common practise to easily establish trust in complex PKI setups, where multiple CA are involved. 
+Intermediate CAs are supported by the operator with [some limitations](#limitations). Leaf certificates issued by the intermediate CAs are slightly different, and include the intermediate CA public key as part of the certificate, in the following order: `Leaf certificate -> Intermediate CA`. This is a common practise to easily establish trust in complex PKI setups, where multiple CA are involved. 
 
 Many applications support this `Leaf certificate -> Intermediate CA` structure as a valid leaf certificate, and are able to establish trust with the intermediate CA. Normally, the intermediate CA will not be directly trusted, but used as a path to the root CA, which should be trusted by the application. If not trusted already, you can add the root CA to the [CA bundle](#ca-bundle) by using a [custom trust](#custom-trust).
 
@@ -449,9 +449,9 @@ This is specially useful when issuing certificates with an intermediate CA, see 
 
 ## Distributing trust
 
-Distributing the [CA bundle](#ca-bundle) to your application namespace it out of the scope of this operator, the bundles will remain in the same namespace as the `MariaDB` and `MaxScale` instances.
+Distributing the [CA bundle](#ca-bundle) to your application namespace is out of the scope of this operator, the bundles will remain in the same namespace as the `MariaDB` and `MaxScale` instances.
 
-If your application is in a different namespace, you can copy the CA bundle to the application namespace. Projects like [trust-manager](https://github.com/cert-manager/trust-manager) can help you to automate this process.
+If your application is in a different namespace, you can copy the CA bundle to the application namespace. Projects like [trust-manager](https://github.com/cert-manager/trust-manager) can help you to automate this process and continously reconcile bundle changes.
 
 TODO: double check trust-manager
 
@@ -459,7 +459,7 @@ TODO: double check trust-manager
 
 Depending on the setup, CAs can be managed and renewed by either mariadb-operator or cert-manager. 
 
-When managed by mariadb-operator, CAs have a lifetime of 3 years and will be marked for renewal after 66% of its lifetime has passed i.e. ~2 years. After being renewed, the operator will trigger an update of the instances to include the new CA in the bundle. 
+When managed by mariadb-operator, CAs have a lifetime of 3 years and marked for renewal after 66% of its lifetime has passed i.e. ~2 years. After being renewed, the operator will trigger an update of the instances to include the new CA in the bundle. 
 
 When managed by cert-manager, the renewal process is fully controlled by cert-manager, but the operator will also update the CA bundle after the CA is renewed.
 
@@ -467,11 +467,11 @@ You may choose any of the available [update strategies](./UPDATES.md) to control
 
 ## Certificate renewal
 
-Depending on the setup, certificates can be managed and renewed by mariadb-operator or cert-manager. In either case, certificates have a lifetime of 90 days and will be marked for renewwal after 66% of its lifetime has passed i.e. ~60 days.
+Depending on the setup, certificates can be managed and renewed by mariadb-operator or cert-manager. In either case, certificates have a lifetime of 90 days and marked for renewal after 66% of its lifetime has passed i.e. ~60 days.
 
 When the [certificates are issued by the mariadb-operator](#issue-certificates-with-mariadb-operator), the operator is able to pause a leaf certificate renewal if the CA is being updated at that same moment. This is done to ensure a smooth update when the new certificates are issued by the new CA.
 
-When the [certificates are issued by cert-manager](#issue-certificates-with-cert-manager), the renewal process is fully managed by cert-manager, and the operator will not interfere with it. The operator will only update the CA bundle with the new CA when the certificates are renewed.
+When the [certificates are issued by cert-manager](#issue-certificates-with-cert-manager), the renewal process is fully managed by cert-manager, and the operator will not interfere with it. The operator will only update the instances whenever the CA or the certificates get renewed.
 
 You may choose any of the available [update strategies](./UPDATES.md) to control the instance update process.
 
@@ -573,12 +573,16 @@ spec:
     issuer: "/CN=mariadb-galera-ca"
     subject: "/CN=mariadb-galera-client"
 ```
+When any of the TLS requirements are not met, the user will not be able to connect to the instance.
+
 
 See [MariaDB docs](https://mariadb.com/kb/en/securing-connections-for-client-and-server/#requiring-tls) and the [API reference](./API_REFERENCE.md) for further detail.
 
 ## Test TLS certificates with `Connections`
 
-In order to validate your TLS setup, an to ensure that you TLS certificates are correctly issued and configured, you can use the `Connections` resource to test the connection to your both your `MariaDB` and `MaxScale` instances:
+In order to validate your TLS setup, and to ensure that you TLS certificates are correctly issued and configured, you can use the `Connection` resource to test the connection to your both your `MariaDB` and `MaxScale` instances:
+
+TODO: passwordSecretKeyRef optional? Validate that either passwordSecretKeyRef or tlsClientCertSecretRef are set.
 
 ```yaml
 apiVersion: k8s.mariadb.com/v1alpha1
@@ -625,10 +629,7 @@ kubectl get connections
 NAME                         READY   STATUS    SECRET                AGE
 connection                   True    Healthy   connection            2m8s
 connection-maxscale          True    Healthy   connection-maxscale   97s
-``` 
-
-At this point, you may proceed to [connect your applications with TLS](#connect-applications-with-tls).
-
+```
 
 ## Connect applications with TLS
 
@@ -669,8 +670,8 @@ spec:
 The `app` user will be able to connect to the `MariaDB` instance by providing a certificate with subject `mariadb-galera-client` and issued by the `mariadb-galera-ca` CA 
 
 We are now going to define the application that connects to the `MariaDB` instance using the `app` user. We are assuming that the following `Secrets` are available in your application namespace:
-- `mariadb-galera-ca-bundle`: Contains the CA bundle for the `MariaDB` instance
-- `mariadb-galera-client-cert`: Contains the client certificate to connect to the `MariaDB` instance
+- `mariadb-galera-ca-bundle`: Contains the CA bundle for the `MariaDB` instance.
+- `mariadb-galera-client-cert`: Contains the client certificate to connect to the `MariaDB` instance.
 
 ```yaml
 apiVersion: batch/v1
@@ -678,7 +679,6 @@ kind: Job
 metadata:
   name: mariadb-client
 spec:
-  backoffLimit: 4
   template:
     metadata:
       name: mariadb-client
