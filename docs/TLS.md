@@ -737,4 +737,4 @@ kubectl logs job/mariadb-client
 
 Leaf certificates issued by [intermediate CAs](#intermediate-cas) are not supported by Galera, see [MDEV-35812](https://jira.mariadb.org/browse/MDEV-35812). This implies that a root CA must be used to issue the `MariaDB` certificates.
 
-This doesn't affect `MaxScale`, as it is able to establish trust with intermediate CAs, and therefore you can still issue your application facing certificates (MaxScale listeners) with an intermediate CA, giving you more flexibility in your PKI setup.
+This doesn't affect `MaxScale`, as it is able to establish trust with intermediate CAs, and therefore you can still issue your application facing certificates (MaxScale listeners) with an intermediate CA, giving you more flexibility in your PKI setup. You can find a practical [example here](./../examples/manifests/maxscale_galera_tls_cert_manager_intermediate_ca.yaml).
