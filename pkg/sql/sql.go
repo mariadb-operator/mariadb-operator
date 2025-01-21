@@ -253,8 +253,10 @@ func BuildDSN(opts Opts) (string, error) {
 	} else {
 		config.Timeout = 5 * time.Second
 	}
-	if opts.Username != "" && opts.Password != "" {
+	if opts.Username != "" {
 		config.User = opts.Username
+	}
+	if opts.Password != "" {
 		config.Passwd = opts.Password
 	}
 	if opts.Database != "" {

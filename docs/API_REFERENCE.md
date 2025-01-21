@@ -342,8 +342,8 @@ _Appears in:_
 | `mariaDbRef` _[MariaDBRef](#mariadbref)_ | MariaDBRef is a reference to the MariaDB to connect to. Either MariaDBRef or MaxScaleRef must be provided. |  |  |
 | `maxScaleRef` _[ObjectReference](#objectreference)_ | MaxScaleRef is a reference to the MaxScale to connect to. Either MariaDBRef or MaxScaleRef must be provided. |  |  |
 | `username` _string_ | Username to use for configuring the Connection. |  | Required: \{\} <br /> |
-| `passwordSecretKeyRef` _[SecretKeySelector](#secretkeyselector)_ | PasswordSecretKeyRef is a reference to the password to use for configuring the Connection.<br />If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password. |  | Required: \{\} <br /> |
-| `tlsClientCertSecretRef` _[LocalObjectReference](#localobjectreference)_ | TLSClientCertSecretRef is a reference to a Kubernetes TLS Secret used as authentication when checking the connection health.<br />If not provided, the client certificate provided by the referred MariaDB is used. |  |  |
+| `passwordSecretKeyRef` _[SecretKeySelector](#secretkeyselector)_ | PasswordSecretKeyRef is a reference to the password to use for configuring the Connection.<br />Either passwordSecretKeyRef or tlsClientCertSecretRef must be provided as client credentials.<br />If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password. |  |  |
+| `tlsClientCertSecretRef` _[LocalObjectReference](#localobjectreference)_ | TLSClientCertSecretRef is a reference to a Kubernetes TLS Secret used as authentication when checking the connection health.<br />Either passwordSecretKeyRef or tlsClientCertSecretRef must be provided as client credentials.<br />If not provided, the client certificate provided by the referred MariaDB is used if TLS is enabled. |  |  |
 | `host` _string_ | Host to connect to. If not provided, it defaults to the MariaDB host or to the MaxScale host. |  |  |
 | `database` _string_ | Database to use when configuring the Connection. |  |  |
 

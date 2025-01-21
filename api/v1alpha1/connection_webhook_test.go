@@ -34,7 +34,7 @@ var _ = Describe("Connection webhook", func() {
 					ObjectMeta: meta,
 					Spec: ConnectionSpec{
 						Username: "foo",
-						PasswordSecretKeyRef: SecretKeySelector{
+						PasswordSecretKeyRef: &SecretKeySelector{
 							LocalObjectReference: LocalObjectReference{
 								Name: "foo",
 							},
@@ -42,6 +42,39 @@ var _ = Describe("Connection webhook", func() {
 					},
 				},
 				true,
+			),
+			Entry(
+				"No creds",
+				&Connection{
+					ObjectMeta: meta,
+					Spec: ConnectionSpec{
+						MariaDBRef: &MariaDBRef{
+							ObjectReference: ObjectReference{
+								Name: "foo",
+							},
+						},
+						Username: "foo",
+					},
+				},
+				true,
+			),
+			Entry(
+				"TLS creds",
+				&Connection{
+					ObjectMeta: meta,
+					Spec: ConnectionSpec{
+						MariaDBRef: &MariaDBRef{
+							ObjectReference: ObjectReference{
+								Name: "foo",
+							},
+						},
+						Username: "foo",
+						TLSClientCertSecretRef: &LocalObjectReference{
+							Name: "mariadb-client-tls",
+						},
+					},
+				},
+				false,
 			),
 			Entry(
 				"MariaDB ref",
@@ -54,7 +87,7 @@ var _ = Describe("Connection webhook", func() {
 							},
 						},
 						Username: "foo",
-						PasswordSecretKeyRef: SecretKeySelector{
+						PasswordSecretKeyRef: &SecretKeySelector{
 							LocalObjectReference: LocalObjectReference{
 								Name: "foo",
 							},
@@ -72,7 +105,7 @@ var _ = Describe("Connection webhook", func() {
 							Name: "foo",
 						},
 						Username: "foo",
-						PasswordSecretKeyRef: SecretKeySelector{
+						PasswordSecretKeyRef: &SecretKeySelector{
 							LocalObjectReference: LocalObjectReference{
 								Name: "foo",
 							},
@@ -95,7 +128,7 @@ var _ = Describe("Connection webhook", func() {
 							},
 						},
 						Username: "foo",
-						PasswordSecretKeyRef: SecretKeySelector{
+						PasswordSecretKeyRef: &SecretKeySelector{
 							LocalObjectReference: LocalObjectReference{
 								Name: "foo",
 							},
@@ -139,7 +172,7 @@ var _ = Describe("Connection webhook", func() {
 						WaitForIt: true,
 					},
 					Username: "test",
-					PasswordSecretKeyRef: SecretKeySelector{
+					PasswordSecretKeyRef: &SecretKeySelector{
 						LocalObjectReference: LocalObjectReference{
 							Name: "test",
 						},

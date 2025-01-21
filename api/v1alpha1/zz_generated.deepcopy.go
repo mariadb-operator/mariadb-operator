@@ -492,7 +492,11 @@ func (in *ConnectionSpec) DeepCopyInto(out *ConnectionSpec) {
 		*out = new(ObjectReference)
 		**out = **in
 	}
-	out.PasswordSecretKeyRef = in.PasswordSecretKeyRef
+	if in.PasswordSecretKeyRef != nil {
+		in, out := &in.PasswordSecretKeyRef, &out.PasswordSecretKeyRef
+		*out = new(SecretKeySelector)
+		**out = **in
+	}
 	if in.TLSClientCertSecretRef != nil {
 		in, out := &in.TLSClientCertSecretRef, &out.TLSClientCertSecretRef
 		*out = new(LocalObjectReference)

@@ -42,13 +42,18 @@ func (r *Connection) ValidateDelete() (admission.Warnings, error) {
 }
 
 func (r *Connection) validate() (admission.Warnings, error) {
-	if err := r.validateRefs(); err != nil {
-		return nil, err
+	validateFuncs := []func() error{
+		r.validateRefs,
+		r.validateClientCreds,
+		r.validateHealthCheck,
+		r.validateCustomDSNFormat,
 	}
-	if err := r.validateHealthCheck(); err != nil {
-		return nil, err
+	for _, validateFn := range validateFuncs {
+		if err := validateFn(); err != nil {
+			return nil, err
+		}
 	}
-	return nil, r.validateCustomDSNFormat()
+	return nil, nil
 }
 
 func (r *Connection) validateRefs() error {
@@ -64,6 +69,17 @@ func (r *Connection) validateRefs() error {
 			field.NewPath("spec").Child("mariaDbRef"),
 			r.Spec.MariaDBRef,
 			"'spec.mariaDbRef' and 'spec.maxScaleRef' cannot be specified simultaneously",
+		)
+	}
+	return nil
+}
+
+func (r *Connection) validateClientCreds() error {
+	if r.Spec.PasswordSecretKeyRef == nil && r.Spec.TLSClientCertSecretRef == nil {
+		return field.Invalid(
+			field.NewPath("spec"),
+			r.Spec,
+			"'spec.passwordSecretKeyRef' or 'spec.tlsClientCertSecretRef' must be defined",
 		)
 	}
 	return nil

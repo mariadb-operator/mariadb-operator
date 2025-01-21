@@ -75,12 +75,14 @@ type ConnectionSpec struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Username string `json:"username"`
 	// PasswordSecretKeyRef is a reference to the password to use for configuring the Connection.
+	// Either passwordSecretKeyRef or tlsClientCertSecretRef must be provided as client credentials.
 	// If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password.
-	// +kubebuilder:validation:Required
+	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	PasswordSecretKeyRef SecretKeySelector `json:"passwordSecretKeyRef"`
+	PasswordSecretKeyRef *SecretKeySelector `json:"passwordSecretKeyRef,omitempty"`
 	// TLSClientCertSecretRef is a reference to a Kubernetes TLS Secret used as authentication when checking the connection health.
-	// If not provided, the client certificate provided by the referred MariaDB is used.
+	// Either passwordSecretKeyRef or tlsClientCertSecretRef must be provided as client credentials.
+	// If not provided, the client certificate provided by the referred MariaDB is used if TLS is enabled.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	TLSClientCertSecretRef *LocalObjectReference `json:"tlsClientCertSecretRef,omitempty"`
