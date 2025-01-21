@@ -632,8 +632,8 @@ connection-maxscale          True    Healthy   connection-maxscale   97s
 Before proceeding, make sure you have completed the following steps:
 - [Distribute CA bundle](#distributing-trust) to the `app` namespace
 - [Test TLS certificates](#test-tls-certificates-with-connections) with the `Connection` resource
-- Deploy a [`MariaDB` Galera](../examples/manifest/mariadb_galera.yaml) in the `default` namespace
-- Deploy a [`MaxScale` Galera](../examples/manifest/maxscale_galera.yaml) in the `default` namespace
+- Deploy a [`MariaDB` Galera](../examples/manifests/mariadb_galera.yaml) in the `default` namespace
+- Deploy a [`MaxScale` Galera](../examples/manifests/maxscale_galera.yaml) in the `default` namespace
 
 In this guide, we are going to configure an application `User` to access a `MariaDB` instance with TLS from the `app` namespace. The first step is to create a `User` resource and grant the necessary permissions:
 
