@@ -1,6 +1,8 @@
 clusterResourceNamespace: default
 
-installCRDs: true
+crds: 
+  enabled: true
+  keep: true
 
 prometheus:
   enabled: true
