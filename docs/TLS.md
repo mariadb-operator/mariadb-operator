@@ -73,12 +73,12 @@ Refer to the sections below for a more advanced TLS configuration.
 ## `MariaDB` certificate specification
 
 The `MariaDB` TLS setup consists of the following certificates:
-- Certificate Authority (CA) keypair to issue the server certificate
-- Server leaf certificate used to encrypt server connections
-- Certificate Authority (CA) keypair to issue the client certificate
+- Certificate Authority (CA) keypair to issue the server certificate.
+- Server leaf certificate used to encrypt server connections.
+- Certificate Authority (CA) keypair to issue the client certificate.
 - Client leaf certificate used to encrypt and authenticate client connections.
 
-As a default behaviour, the operator generates a single CA to be used for issuing both the server and client certificates, but the user can decide to use dedicated CAs for each case. Root CAs, and [intermedicate CAs](#intermediate-cas) in some cases are supported, see [limitations](#limitations) for further detail. 
+As a default behaviour, the operator generates a single CA to be used for issuing both the server and client certificates, but the user can decide to use dedicated CAs for each case. Root CAs, and [intermedicate CAs](#intermediate-cas) in some cases, are supported, see [limitations](#limitations) for further detail. 
 
 The server certificate contains the following Subject Alternative Names (SANs):
 - `<mariadb-name>.<namespace>.svc.<cluster-name>`  
@@ -111,7 +111,7 @@ The `MaxScale` TLS setup consists of the following certificates:
 - Server CA bundle used to establish trust with the MariaDB server.
 - Server leaf certificate used to connect to the MariaDB server.
 
-As a default behaviour, the operator issues a CA to be used for issuing both the admin and the listener certificates, but the user can decide to use dedicated CAs for each case. Client certificate and CA bundle configured in the referred MariaDB are used as server certificates by default, but the user is able to provide its own certificates. Root CAs, and [intermedicate CAs](#intermediate-cas) in some cases are supported, see [limitations](#intermediate-cas) for further detail.
+As a default behaviour, the operator generates a single CA to be used for issuing both the admin and the listener certificates, but the user can decide to use dedicated CAs for each case. Client certificate and CA bundle configured in the referred MariaDB are used as server certificates by default, but the user is able to provide its own certificates. Root CAs, and [intermedicate CAs](#intermediate-cas) in some cases, are supported, see [limitations](#intermediate-cas) for further detail.
 
 Both the admin and listener certificates contain the following Subject Alternative Names (SANs):
 - `<maxscale-name>.<namespace>.svc.<clusername>`  
@@ -134,7 +134,7 @@ For details about the server certificate, see [`MariaDB` certificate specificati
 
 As you could appreciate in [`MariaDB` certificate specification](#mariadb-certificate-specification) and [`MaxScale` certificate specification](#maxscale-certificate-specification), the TLS setup involves multiple CAs. In order to establish trust in a more convenient way, the operator groups the CAs together in a CA bundle that will need to be specified when [securely connecting from your applications](#connecting-applications-with-tls). Every `MariaDB` and `MaxScale` resources have a dedicated bundle of its own available in a `Secret` named `<instance-name>-ca-bundle`. 
 
-These trust bundles contain non expired CAs needed to connect to the instances. New CAs are automatically added to the bundle after [renewal](#ca-renewal), whilst old CAs will be removed after they expire. It is important to note that both the new and old CA will remain in the bundle for a while to ensure a smooth update when the new certificates are issued by the new CA.
+These trust bundles contain non expired CAs needed to connect to the instances. New CAs are automatically added to the bundle after [renewal](#ca-renewal), whilst old CAs are removed after they expire. It is important to note that both the new and old CAs remain in the bundle for a while to ensure a smooth update when the new certificates are issued by the new CA.
 
 ## Issue certificates with mariadb-operator
 
