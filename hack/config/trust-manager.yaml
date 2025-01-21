@@ -1,0 +1,11 @@
+crds: 
+  enabled: true
+  keep: true
+
+secretTargets:
+  enabled: true
+  authorizedSecretsAll: true
+
+app:
+  trust:
+    namespace: default

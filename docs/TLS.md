@@ -453,8 +453,6 @@ Distributing the [CA bundle](#ca-bundle) to your application namespace is out of
 
 If your application is in a different namespace, you can copy the CA bundle to the application namespace. Projects like [trust-manager](https://github.com/cert-manager/trust-manager) can help you to automate this process and continously reconcile bundle changes.
 
-TODO: double check trust-manager
-
 ## CA renewal
 
 Depending on the setup, CAs can be managed and renewed by either mariadb-operator or cert-manager. 
@@ -632,19 +630,23 @@ connection-maxscale          True    Healthy   connection-maxscale   97s
 ## Connect applications with TLS
 
 Before proceeding, make sure you have completed the following steps:
-- [Distribute CA bundle](#distributing-trust) to your application namespace
+- [Distribute CA bundle](#distributing-trust) to the `app` namespace
 - [Test TLS certificates](#test-tls-certificates-with-connections) with the `Connection` resource
+- Deploy a [`MariaDB` Galera](../examples/manifest/mariadb_galera.yaml) in the `default` namespace
+- Deploy a [`MaxScale` Galera](../examples/manifest/maxscale_galera.yaml) in the `default` namespace
 
-In this guide, we are going to configure an application `User` to access a `MariaDB` instance with TLS. The first step is to create a `User` resource and grant the necessary permissions:
+In this guide, we are going to configure an application `User` to access a `MariaDB` instance with TLS from the `app` namespace. The first step is to create a `User` resource and grant the necessary permissions:
 
 ```yaml
 apiVersion: k8s.mariadb.com/v1alpha1
 kind: User
 metadata:
   name: app
+  namespace: app
 spec:
   mariaDbRef:
     name: mariadb-galera
+    namespace: default
   require:
     issuer: "/CN=mariadb-galera-ca"
     subject: "/CN=mariadb-galera-client"
@@ -654,9 +656,11 @@ apiVersion: k8s.mariadb.com/v1alpha1
 kind: Grant
 metadata:
   name: grant-app
+  namespace: app
 spec:
   mariaDbRef:
     name: mariadb-galera
+    namespace: default
   privileges:
     - "ALL PRIVILEGES"
   database: "*"
@@ -665,21 +669,20 @@ spec:
   host: "%"
 ```
 
-The `app` user will be able to connect to the `MariaDB` instance by providing a certificate with subject `mariadb-galera-client` and issued by the `mariadb-galera-ca` CA 
+The `app` user will be able to connect to the `MariaDB` instance from the `app` namespace by providing a certificate with subject `mariadb-galera-client` and issued by the `mariadb-galera-ca` CA 
 
-We are now going to define the application that connects to the `MariaDB` instance using the `app` user. We are assuming that the following `Secrets` are available in your application namespace:
-- `mariadb-galera-ca-bundle`: Contains the CA bundle for the `MariaDB` instance.
-- `mariadb-galera-client-cert`: Contains the client certificate to connect to the `MariaDB` instance.
+We are now going to define the application that connects to the `MariaDB` instance using the `app` user. We are assuming that the following `Secrets` are available in the `app` namespace:
+- `mariadb-bundle`: Contains the CA bundle for the `MariaDB` instance.
+- `mariadb-client-cert`: Contains the client certificate to connect to the `MariaDB` instance.
 
 ```yaml
 apiVersion: batch/v1
 kind: Job
 metadata:
   name: mariadb-client
+  namespace: app
 spec:
   template:
-    metadata:
-      name: mariadb-client
     spec:
       containers:
       - name: mariadb-client
@@ -692,7 +695,7 @@ spec:
             mariadb -u app -h mariadb-galera-primary.default.svc.cluster.local
             --ssl-ca=/etc/pki/ca.crt --ssl-cert=/etc/pki/tls.crt
             --ssl-key=/etc/pki/tls.key --ssl-verify-server-cert
-            -e "SELECT 'Database connection successful!' AS Status;" -t
+            -e "SELECT 'MariaDB connection successful!' AS Status;" -t
         volumeMounts:
         - name: pki
           mountPath: /etc/pki
@@ -702,12 +705,12 @@ spec:
         projected:
           sources:
           - secret:
-              name: mariadb-galera-ca-bundle
+              name: mariadb-bundle
               items:
               - key: ca.crt
                 path: ca.crt
           - secret:
-              name: mariadb-galera-client-cert
+              name: mariadb-client-cert
               items:
               - key: tls.crt
                 path: tls.crt
@@ -719,15 +722,70 @@ spec:
 The application will connect to the `MariaDB` instance using the `app` user, and will execute a simple query to check the connection status. The `--ssl-ca`, `--ssl-cert`, `--ssl-key` and `--ssl-verify-server-cert` flags are used to provide the CA bundle, client certificate and key, and to verify the server certificate respectively. 
 
 If the connection is successful, the output should be:
-
 ```bash
-kubectl logs job/mariadb-client
+kubectl logs job/mariadb-client -n app
 +---------------------------------+
 | Status                          |
 +---------------------------------+
-| Database connection successful! |
+| MariaDB connection successful!  |
 +---------------------------------+
-``` 
+```
+
+You can also point the application to the `MaxScale` instance by updating the host to `maxscale-galera.default.svc.cluster.local`:
+
+```yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: maxscale-client
+  namespace: app
+spec:
+  template:
+    spec:
+      containers:
+      - name: maxscale-client
+        image: mariadb:11.4.4
+        command:
+          - bash
+        args:
+          - -c
+          - >
+            mariadb -u app -h maxscale-galera.default.svc.cluster.local
+            --ssl-ca=/etc/pki/ca.crt --ssl-cert=/etc/pki/tls.crt
+            --ssl-key=/etc/pki/tls.key --ssl-verify-server-cert
+            -e "SELECT 'MaxScale connection successful!' AS Status;" -t
+        volumeMounts:
+        - name: pki
+          mountPath: /etc/pki
+          readOnly: true
+      volumes:
+      - name: pki
+        projected:
+          sources:
+          - secret:
+              name: mariadb-bundle
+              items:
+              - key: ca.crt
+                path: ca.crt
+          - secret:
+              name: mariadb-client-cert
+              items:
+              - key: tls.crt
+                path: tls.crt
+              - key: tls.key
+                path: tls.key
+      restartPolicy: Never
+```
+
+If successful, the expected output is:
+```bash
+kubectl logs job/maxscale-client -n app
++---------------------------------+
+| Status                          |
++---------------------------------+
+| MaxScale connection successful! |
++---------------------------------+
+```
 
 ## Limitations
 

@@ -1,0 +1,15 @@
+apiVersion: trust.cert-manager.io/v1alpha1
+kind: Bundle
+metadata:
+  name: mariadb-bundle
+spec:
+  sources:
+  - secret:
+      name: mariadb-galera-ca-bundle
+      key: ca.crt
+  - secret:
+      name: maxscale-galera-ca-bundle
+      key: ca.crt
+  target:
+    secret:
+      key: ca.crt
