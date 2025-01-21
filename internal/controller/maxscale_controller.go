@@ -1370,7 +1370,7 @@ func (r *MaxScaleReconciler) reconcileConnection(ctx context.Context, req *reque
 		MaxScale:             req.mxs,
 		Key:                  key,
 		Username:             req.mxs.Spec.Auth.ClientUsername,
-		PasswordSecretKeyRef: req.mxs.Spec.Auth.ClientPasswordSecretKeyRef.SecretKeySelector,
+		PasswordSecretKeyRef: &req.mxs.Spec.Auth.ClientPasswordSecretKeyRef.SecretKeySelector,
 		Template:             req.mxs.Spec.Connection,
 	}
 	conn, err := r.Builder.BuildConnection(connOpts, req.mxs)

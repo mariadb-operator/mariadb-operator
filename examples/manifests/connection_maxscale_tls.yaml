@@ -1,16 +1,38 @@
 apiVersion: k8s.mariadb.com/v1alpha1
+kind: User
+metadata:
+  name: app
+spec:
+  mariaDbRef:
+    name: mariadb-galera
+  require:
+    issuer: "/CN=mariadb-galera-ca"
+    subject: "/CN=mariadb-galera-client"
+  host: "%"
+---
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: Grant
+metadata:
+  name: grant-app
+spec:
+  mariaDbRef:
+    name: mariadb-galera
+  privileges:
+    - "ALL PRIVILEGES"
+  database: "*"
+  table: "*"
+  username: app
+  host: "%"
+---
+apiVersion: k8s.mariadb.com/v1alpha1
 kind: Connection
 metadata:
   name: connection-maxscale
 spec:
   maxScaleRef:
     name: maxscale-galera
-  username: mariadb
-  passwordSecretKeyRef:
-    name: mariadb
-    key: password
+  username: app
   tlsClientCertSecretRef:
     name: mariadb-galera-client-cert
-  database: mariadb
   healthCheck:
     interval: 30s

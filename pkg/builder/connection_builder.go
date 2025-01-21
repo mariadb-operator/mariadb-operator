@@ -16,7 +16,7 @@ type ConnectionOpts struct {
 	MaxScale             *mariadbv1alpha1.MaxScale
 	Key                  types.NamespacedName
 	Username             string
-	PasswordSecretKeyRef mariadbv1alpha1.SecretKeySelector
+	PasswordSecretKeyRef *mariadbv1alpha1.SecretKeySelector
 	Database             *string
 	Template             *mariadbv1alpha1.ConnectionTemplate
 }

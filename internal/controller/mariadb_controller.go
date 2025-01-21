@@ -940,7 +940,7 @@ func (r *MariaDBReconciler) reconcileConnectionTemplate(ctx context.Context, key
 		MariaDB:              mariadb,
 		Key:                  key,
 		Username:             *mariadb.Spec.Username,
-		PasswordSecretKeyRef: mariadb.Spec.PasswordSecretKeyRef.SecretKeySelector,
+		PasswordSecretKeyRef: &mariadb.Spec.PasswordSecretKeyRef.SecretKeySelector,
 		Database:             mariadb.Spec.Database,
 		Template:             connTpl,
 	}
@@ -975,7 +975,7 @@ func (r *MariaDBReconciler) reconcileDefaultConnection(ctx context.Context, mari
 		MariaDB:              mariadb,
 		Key:                  key,
 		Username:             *mariadb.Spec.Username,
-		PasswordSecretKeyRef: mariadb.Spec.PasswordSecretKeyRef.SecretKeySelector,
+		PasswordSecretKeyRef: &mariadb.Spec.PasswordSecretKeyRef.SecretKeySelector,
 		Database:             mariadb.Spec.Database,
 		Template:             mariadb.Spec.Connection,
 	}

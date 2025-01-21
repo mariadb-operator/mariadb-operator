@@ -582,8 +582,6 @@ See [MariaDB docs](https://mariadb.com/kb/en/securing-connections-for-client-and
 
 In order to validate your TLS setup, and to ensure that you TLS certificates are correctly issued and configured, you can use the `Connection` resource to test the connection to your both your `MariaDB` and `MaxScale` instances:
 
-TODO: passwordSecretKeyRef optional? Validate that either passwordSecretKeyRef or tlsClientCertSecretRef are set.
-
 ```yaml
 apiVersion: k8s.mariadb.com/v1alpha1
 kind: Connection

@@ -78,7 +78,7 @@ var _ = Describe("Connection", func() {
 						WaitForIt: true,
 					},
 					Username:             testUser,
-					PasswordSecretKeyRef: testPasswordSecretRef,
+					PasswordSecretKeyRef: &testPasswordSecretRef,
 					Database:             &testDatabase,
 				},
 			},
@@ -119,7 +119,7 @@ var _ = Describe("Connection", func() {
 						WaitForIt: true,
 					},
 					Username:             testUser,
-					PasswordSecretKeyRef: testPasswordSecretRef,
+					PasswordSecretKeyRef: &testPasswordSecretRef,
 					Database:             &testDatabase,
 				},
 			},
@@ -141,7 +141,7 @@ var _ = Describe("Connection", func() {
 						WaitForIt: true,
 					},
 					Username:               testUser,
-					PasswordSecretKeyRef:   testPasswordSecretRef,
+					PasswordSecretKeyRef:   &testPasswordSecretRef,
 					TLSClientCertSecretRef: testTLSClientCertRef,
 					Database:               &testDatabase,
 				},
@@ -186,7 +186,7 @@ var _ = Describe("Connection", func() {
 						WaitForIt: true,
 					},
 					Username:             testUser,
-					PasswordSecretKeyRef: testPasswordSecretRef,
+					PasswordSecretKeyRef: &testPasswordSecretRef,
 					Database:             &testDatabase,
 				},
 			},
@@ -212,7 +212,7 @@ var _ = Describe("Connection", func() {
 					WaitForIt: true,
 				},
 				Username: testUser,
-				PasswordSecretKeyRef: mariadbv1alpha1.SecretKeySelector{
+				PasswordSecretKeyRef: &mariadbv1alpha1.SecretKeySelector{
 					LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
 						Name: testPwdKey.Name,
 					},
@@ -267,7 +267,7 @@ var _ = Describe("Connection", func() {
 					WaitForIt: true,
 				},
 				Username: testUser,
-				PasswordSecretKeyRef: mariadbv1alpha1.SecretKeySelector{
+				PasswordSecretKeyRef: &mariadbv1alpha1.SecretKeySelector{
 					LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
 						Name: testPwdKey.Name,
 					},
@@ -360,7 +360,7 @@ var _ = Describe("Connection", func() {
 					WaitForIt: true,
 				},
 				Username: testUser,
-				PasswordSecretKeyRef: mariadbv1alpha1.SecretKeySelector{
+				PasswordSecretKeyRef: &mariadbv1alpha1.SecretKeySelector{
 					LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
 						Name: passwordSecret.Name,
 					},

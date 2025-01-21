@@ -302,17 +302,20 @@ func (r *ConnectionReconciler) reconcileSecret(ctx context.Context, conn *mariad
 
 func (r *ConnectionReconciler) getSqlOpts(ctx context.Context, conn *mariadbv1alpha1.Connection,
 	refs *mariadbv1alpha1.ConnectionRefs) (clientsql.Opts, error) {
-	password, err := r.RefResolver.SecretKeyRef(ctx, conn.Spec.PasswordSecretKeyRef, conn.Namespace)
-	if err != nil {
-		return clientsql.Opts{}, fmt.Errorf("error getting password for connection DSN: %v", err)
-	}
 	sqlOpts := clientsql.Opts{
 		Username: conn.Spec.Username,
-		Password: password,
 		Host:     conn.Spec.Host,
 		Port:     conn.Spec.Port,
 		Params:   conn.Spec.Params,
 	}
+	if conn.Spec.PasswordSecretKeyRef != nil {
+		password, err := r.RefResolver.SecretKeyRef(ctx, *conn.Spec.PasswordSecretKeyRef, conn.Namespace)
+		if err != nil {
+			return clientsql.Opts{}, fmt.Errorf("error getting password for connection DSN: %v", err)
+		}
+		sqlOpts.Password = password
+	}
+
 	if conn.Spec.Database != nil {
 		sqlOpts.Database = *conn.Spec.Database
 	}
@@ -335,13 +338,13 @@ func (r *ConnectionReconciler) getSqlOpts(ctx context.Context, conn *mariadbv1al
 		sqlOpts.Namespace = mdb.Namespace
 	}
 
-	if err := r.addSqlClientOpts(ctx, conn, refs.MariaDB, &sqlOpts); err != nil {
+	if err := r.addSqlClientCertOpts(ctx, conn, refs.MariaDB, &sqlOpts); err != nil {
 		return clientsql.Opts{}, fmt.Errorf("error adding SQL client opts: %v", err)
 	}
 	return sqlOpts, nil
 }
 
-func (r *ConnectionReconciler) addSqlClientOpts(ctx context.Context, conn *mariadbv1alpha1.Connection, mdb *mariadbv1alpha1.MariaDB,
+func (r *ConnectionReconciler) addSqlClientCertOpts(ctx context.Context, conn *mariadbv1alpha1.Connection, mdb *mariadbv1alpha1.MariaDB,
 	opts *clientsql.Opts) error {
 	secretKey := r.clientCertSecretKey(conn, mdb)
 	if secretKey == nil {
