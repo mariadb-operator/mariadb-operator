@@ -7,13 +7,14 @@
 
 ## Table of contents
 <!-- toc -->
+- [Table of contents](#table-of-contents)
 - [Configuration](#configuration)
 - [`MariaDB` certificate specification](#mariadb-certificate-specification)
 - [`MaxScale` certificate specification](#maxscale-certificate-specification)
 - [CA bundle](#ca-bundle)
 - [Issue certificates with mariadb-operator](#issue-certificates-with-mariadb-operator)
 - [Issue certificates with cert-manager](#issue-certificates-with-cert-manager)
-- [Provide certificates manually](#provide-certificates-manually)
+- [Provide your own certificates](#provide-your-own-certificates)
 - [Bring your own CA](#bring-your-own-ca)
 - [Intermediate CAs](#intermediate-cas)
 - [Custom trust](#custom-trust)
@@ -259,7 +260,7 @@ To establish trust with the instances, the [`ca.crt` field provided by cert-mana
 
 The advantage of this approach is that you can use any of the [cert-manager's certificate backends](https://cert-manager.io/docs/configuration/issuers/), such as the in-cluster CA or HashiCorp Vault, and potentially reuse the same `Issuer`/`ClusterIssuer` with multiple instances.
 
-## Provide certificates manually
+## Provide your own certificates
 
 Providing your own certificates is as simple as creating the `Secrets` with the appropriate structure and referencing them in the `MariaDB` and `MaxScale` resources. The certificates must be compliant with the [`MariaDB` cert spec](#mariadb-certificate-specification) and [`MaxScale` cert spec](#maxscale-certificate-specification).
 
@@ -626,6 +627,8 @@ NAME                         READY   STATUS    SECRET                AGE
 connection                   True    Healthy   connection            2m8s
 connection-maxscale          True    Healthy   connection-maxscale   97s
 ```
+
+This could be specially useful when [providing your own certificates](#provide-your-own-certificates).
 
 ## Connect applications with TLS
 
