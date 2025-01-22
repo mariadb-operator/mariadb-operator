@@ -467,7 +467,7 @@ You may choose any of the available [update strategies](./UPDATES.md) to control
 
 Depending on the setup, certificates can be managed and renewed by mariadb-operator or cert-manager. In either case, certificates have a lifetime of 90 days and marked for renewal after 66% of its lifetime has passed i.e. ~60 days.
 
-When the [certificates are issued by the mariadb-operator](#issue-certificates-with-mariadb-operator), the operator is able to pause a leaf certificate renewal if the CA is being updated at that same moment. This is done to ensure a smooth update when the new certificates are issued by the new CA.
+When the [certificates are issued by the mariadb-operator](#issue-certificates-with-mariadb-operator), the operator is able to pause a leaf certificate renewal if the CA is being updated at that same moment. This approach ensures a smooth update by avoiding the simultaneous rollout of the new CA and its associated certificates. Rolling them out together could be problematic, as all Pods need to trust the new CA before its issued certificates can be utilized.
 
 When the [certificates are issued by cert-manager](#issue-certificates-with-cert-manager), the renewal process is fully managed by cert-manager, and the operator will not interfere with it. The operator will only update the instances whenever the CA or the certificates get renewed.
 
