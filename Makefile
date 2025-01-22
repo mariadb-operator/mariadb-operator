@@ -92,5 +92,4 @@ include make/docs.mk
 include make/gen.mk
 include make/helm.mk
 include make/net.mk
-include make/openshift.mk
 include make/pki.mk
