@@ -83,6 +83,7 @@ type ConnectionSpec struct {
 	// TLSClientCertSecretRef is a reference to a Kubernetes TLS Secret used as authentication when checking the connection health.
 	// Either passwordSecretKeyRef or tlsClientCertSecretRef must be provided as client credentials.
 	// If not provided, the client certificate provided by the referred MariaDB is used if TLS is enabled.
+	// If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the client certificate.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	TLSClientCertSecretRef *LocalObjectReference `json:"tlsClientCertSecretRef,omitempty"`

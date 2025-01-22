@@ -13,7 +13,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
-const connectionPasswordSecretFieldPath = ".spec.passwordSecretKeyRef.name"
+const (
+	connectionPasswordSecretFieldPath      = ".spec.passwordSecretKeyRef.name"
+	connectionTLSClientCertSecretFieldPath = ".spec.tlsClientCertSecretRef.name"
+)
 
 // IndexerFuncForFieldPath returns an indexer function for a given field path.
 func (c *Connection) IndexerFuncForFieldPath(fieldPath string) (client.IndexerFunc, error) {
@@ -29,6 +32,17 @@ func (c *Connection) IndexerFuncForFieldPath(fieldPath string) (client.IndexerFu
 			}
 			return nil
 		}, nil
+	case connectionTLSClientCertSecretFieldPath:
+		return func(obj client.Object) []string {
+			connection, ok := obj.(*Connection)
+			if !ok {
+				return nil
+			}
+			if connection.Spec.TLSClientCertSecretRef != nil && connection.Spec.TLSClientCertSecretRef.Name != "" {
+				return []string{connection.Spec.TLSClientCertSecretRef.Name}
+			}
+			return nil
+		}, nil
 	default:
 		return nil, fmt.Errorf("unsupported field path: %s", fieldPath)
 	}
@@ -38,17 +52,23 @@ func (c *Connection) IndexerFuncForFieldPath(fieldPath string) (client.IndexerFu
 func IndexConnection(ctx context.Context, mgr manager.Manager, builder *ctrlbuilder.Builder, client client.Client) error {
 	watcherIndexer := watch.NewWatcherIndexer(mgr, builder, client)
 
-	if err := watcherIndexer.Watch(
-		ctx,
-		&corev1.Secret{},
-		&Connection{},
-		&ConnectionList{},
+	secretFieldPaths := []string{
 		connectionPasswordSecretFieldPath,
-		ctrlbuilder.WithPredicates(
-			predicate.PredicateWithLabel(metadata.WatchLabel),
-		),
-	); err != nil {
-		return fmt.Errorf("error watching: %v", err)
+		connectionTLSClientCertSecretFieldPath,
+	}
+	for _, fieldPath := range secretFieldPaths {
+		if err := watcherIndexer.Watch(
+			ctx,
+			&corev1.Secret{},
+			&Connection{},
+			&ConnectionList{},
+			fieldPath,
+			ctrlbuilder.WithPredicates(
+				predicate.PredicateWithLabel(metadata.WatchLabel),
+			),
+		); err != nil {
+			return fmt.Errorf("error watching '%s': %v", fieldPath, err)
+		}
 	}
 
 	return nil
