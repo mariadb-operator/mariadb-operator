@@ -116,3 +116,7 @@ We welcome and encourage contributions to this project! Please check our [contri
 ## Get in touch
 
 Join us on Slack: **[MariaDB Community Slack](https://r.mariadb.com/join-community-slack)**.
+
+## Star history
+
+[![Star history](https://api.star-history.com/svg?repos=mariadb-operator/mariadb-operator&type=Date)](https://star-history.com/#mariadb-operator/mariadb-operator&Date)
