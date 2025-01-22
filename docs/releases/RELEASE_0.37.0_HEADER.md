@@ -5,9 +5,11 @@ We are introducing __[TLS](https://github.com/mariadb-operator/mariadb-operator/
 > [!WARNING]
 > Follow the __[UPGRADE GUIDE](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/releases/UPGRADE_0.37.0.md)__ to ensure a smooth transition from previous versions.
 
-### Issue TLS certificates for `MariaDB` and `MaxScale`
+### Issue certificates for `MariaDB` and `MaxScale`
 
 ### Native integration with cert-manager
+
+### CA and certificate rotation
 
 ### TLS requirements for `Users`
  
