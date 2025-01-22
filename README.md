@@ -35,7 +35,10 @@ Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB
 - Automated [data-plane updates](./docs/UPDATES.md#auto-update-data-plane).
 - [my.cnf change detection](./docs/CONFIGURATION.md#mycnf). Automatically trigger [updates](./docs/UPDATES.md) when my.cnf changes.
 - [Suspend](./docs/SUSPEND.md) operator reconciliation for maintenance operations.
+- Issue, configure and rotate CAs and [TLS certificates](./docs/TLS.md).
+- Native integration with [cert-manager](https://github.com/cert-manager/cert-manager). Automatically create `Certificate` resources.
 - [Prometheus metrics](./docs/METRICS.md) via [mysqld-exporter](https://github.com/prometheus/mysqld_exporter) and maxscale-exporter.
+- Native integration with [prometheus-operator](https://github.com/prometheus-operator/prometheus-operator). Automatically create `ServiceMonitor` resources.
 - Declaratively manage [SQL resources](./docs/SQL_RESOURCES.md): [users](./examples/manifests/user.yaml), [grants](./examples/manifests/grant.yaml) and logical [databases](./examples/manifests/database.yaml).
 - Configure [connections](./examples/manifests/connection.yaml) for your applications.
 - Orchestrate and schedule [sql scripts](./examples/manifests/sqljobs).
