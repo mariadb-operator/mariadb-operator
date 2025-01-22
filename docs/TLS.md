@@ -172,7 +172,7 @@ The advantage of this approach is that the operator fully manages the `Secrets` 
 > [!IMPORTANT]
 > [cert-manager](https://cert-manager.io/) must be previously installed in the cluster in order to use this feature.
 
-cert-manager is the de-facto standard for managing certificates in Kubernetes. It is a Kubernetes native certificate management controller that allows you to automatically provision, manage and renew certificates. It supports multiple [certificate backends](https://cert-manager.io/docs/configuration/issuers/) (in-cluster, Hashicorp Vault...) which are configured as `Issuer` or `ClusterIssuer` objects.
+cert-manager is the de-facto standard for managing certificates in Kubernetes. It is a Kubernetes native certificate management controller that allows you to automatically provision, manage and renew certificates. It supports multiple [certificate backends](https://cert-manager.io/docs/configuration/issuers/) (in-cluster, Hashicorp Vault...) which are configured as `Issuer` or `ClusterIssuer` resources.
 
 As an example, we are going to setup an in-cluster root CA `ClusterIssuer`:
 
@@ -572,8 +572,8 @@ spec:
     issuer: "/CN=mariadb-galera-ca"
     subject: "/CN=mariadb-galera-client"
 ```
-When any of the TLS requirements are not met, the user will not be able to connect to the instance.
 
+When any of these TLS requirements are not met, the user will not be able to connect to the instance.
 
 See [MariaDB docs](https://mariadb.com/kb/en/securing-connections-for-client-and-server/#requiring-tls) and the [API reference](./API_REFERENCE.md) for further detail.
 
