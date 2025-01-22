@@ -111,7 +111,7 @@ The `MaxScale` TLS setup consists of the following certificates:
 - Server CA bundle used to establish trust with the MariaDB server.
 - Server leaf certificate used to connect to the MariaDB server.
 
-As a default behaviour, the operator generates a single CA to be used for issuing both the admin and the listener certificates, but the user can decide to use dedicated CAs for each case. Client certificate and CA bundle configured in the referred MariaDB are used as server certificates by default, but the user is able to provide its own certificates. Root CAs, and [intermedicate CAs](#intermediate-cas) in some cases, are supported, see [limitations](#intermediate-cas) for further detail.
+As a default behaviour, the operator generates a single CA to be used for issuing both the admin and the listener certificates, but the user can decide to use dedicated CAs for each case. Client certificate and CA bundle configured in the referred MariaDB are used as server certificates by default, but the user is able to provide its own certificates. Root CAs, and [intermedicate CAs](#intermediate-cas) in some cases, are supported, see [limitations](#limitations) for further detail.
 
 Both the admin and listener certificates contain the following Subject Alternative Names (SANs):
 - `<maxscale-name>.<namespace>.svc.<clusername>`  
@@ -132,7 +132,7 @@ For details about the server certificate, see [`MariaDB` certificate specificati
 
 ## CA bundle
 
-As you could appreciate in [`MariaDB` certificate specification](#mariadb-certificate-specification) and [`MaxScale` certificate specification](#maxscale-certificate-specification), the TLS setup involves multiple CAs. In order to establish trust in a more convenient way, the operator groups the CAs together in a CA bundle that will need to be specified when [securely connecting from your applications](#connecting-applications-with-tls). Every `MariaDB` and `MaxScale` resources have a dedicated bundle of its own available in a `Secret` named `<instance-name>-ca-bundle`. 
+As you could appreciate in [`MariaDB` certificate specification](#mariadb-certificate-specification) and [`MaxScale` certificate specification](#maxscale-certificate-specification), the TLS setup involves multiple CAs. In order to establish trust in a more convenient way, the operator groups the CAs together in a CA bundle that will need to be specified when [securely connecting from your applications](#connect-applications-with-tls). Every `MariaDB` and `MaxScale` resources have a dedicated bundle of its own available in a `Secret` named `<instance-name>-ca-bundle`. 
 
 These trust bundles contain non expired CAs needed to connect to the instances. New CAs are automatically added to the bundle after [renewal](#ca-renewal), whilst old CAs are removed after they expire. It is important to note that both the new and old CAs remain in the bundle for a while to ensure a smooth update when the new certificates are issued by the new CA.
 
@@ -164,7 +164,7 @@ spec:
 
 To establish trust with the instances, the CA's public key will be added to the [CA bundle](#ca-bundle). If you need a different trust chain, please refer to the [custom trust](#custom-trust) section.
 
-The advantage of this approach is the operator fully manages the `Secrets` that contain the certificates without depending on any third party dependency. Also, since the operator fully controls the renewal process, it is able to pause a leaf certificate renewal if the CA is being updated at that moment, as described in the [cert renewal](#certificate-renewal) section. 
+The advantage of this approach is that the operator fully manages the `Secrets` that contain the certificates without depending on any third party dependency. Also, since the operator fully controls the renewal process, it is able to pause a leaf certificate renewal if the CA is being updated at that moment, as described in the [cert renewal](#certificate-renewal) section. 
 
 ## Issue certificates with cert-manager
 
@@ -578,7 +578,7 @@ See [MariaDB docs](https://mariadb.com/kb/en/securing-connections-for-client-and
 
 ## Test TLS certificates with `Connections`
 
-In order to validate your TLS setup, and to ensure that you TLS certificates are correctly issued and configured, you can use the `Connection` resource to test the connection to your both your `MariaDB` and `MaxScale` instances:
+In order to validate your TLS setup, and to ensure that you TLS certificates are correctly issued and configured, you can use the `Connection` resource to test the connection to both your `MariaDB` and `MaxScale` instances:
 
 ```yaml
 apiVersion: k8s.mariadb.com/v1alpha1
@@ -630,10 +630,10 @@ connection-maxscale          True    Healthy   connection-maxscale   97s
 ## Connect applications with TLS
 
 Before proceeding, make sure you have completed the following steps:
-- [Distribute CA bundle](#distributing-trust) to the `app` namespace
-- [Test TLS certificates](#test-tls-certificates-with-connections) with the `Connection` resource
-- Deploy a [`MariaDB` Galera](../examples/manifests/mariadb_galera.yaml) in the `default` namespace
-- Deploy a [`MaxScale` Galera](../examples/manifests/maxscale_galera.yaml) in the `default` namespace
+- Deploy a [`MariaDB` Galera](../examples/manifests/mariadb_galera.yaml) in the `default` namespace.
+- Deploy a [`MaxScale` Galera](../examples/manifests/maxscale_galera.yaml) in the `default` namespace.
+- [Distribute CA bundle](#distributing-trust) to the `app` namespace.
+- [Test TLS certificates](#test-tls-certificates-with-connections) with the `Connection` resource.
 
 In this guide, we are going to configure an application `User` to access a `MariaDB` instance with TLS from the `app` namespace. The first step is to create a `User` resource and grant the necessary permissions:
 
@@ -672,7 +672,7 @@ spec:
 The `app` user will be able to connect to the `MariaDB` instance from the `app` namespace by providing a certificate with subject `mariadb-galera-client` and issued by the `mariadb-galera-ca` CA 
 
 We are now going to define the application that connects to the `MariaDB` instance using the `app` user. We are assuming that the following `Secrets` are available in the `app` namespace:
-- `mariadb-bundle`: Contains the CA bundle for the `MariaDB` instance.
+- `mariadb-bundle`: Contains the CA bundle for the `MariaDB` and `MaxScale` instances. See a [trust-manager's `Bundle` example](../hack/manifests/trust-manager/bundle.yaml) to achieve this.
 - `mariadb-client-cert`: Contains the client certificate to connect to the `MariaDB` instance.
 
 ```yaml
