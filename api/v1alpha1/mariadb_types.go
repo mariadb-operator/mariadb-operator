@@ -363,7 +363,7 @@ type TLS struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	ClientCertIssuerRef *cmmeta.ObjectReference `json:"clientCertIssuerRef,omitempty"`
-	// GaleraSSTEnabled determines whether Galera SST connections should use SSL. It enabled with Galera by default.
+	// GaleraSSTEnabled determines whether Galera SST connections should use SSL. It is enabled with Galera by default.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	GaleraSSTEnabled *bool `json:"galeraSSTEnabled,omitempty"`
@@ -406,7 +406,7 @@ type MariaDBSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Database *string `json:"database,omitempty" webhook:"inmutable"`
-	// Username is the initial username to be created by the operator once MariaDB is ready. It has all privileges on the initial database.
+	// Username is the initial username to be created by the operator once MariaDB is ready.
 	// The initial User will have ALL PRIVILEGES in the initial Database.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}

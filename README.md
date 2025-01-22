@@ -76,7 +76,6 @@ The Openshift installation is managed separately in the [mariadb-operator-helm](
 
 ## MariaDB compatibility
 - MariaDB Community >= 10.5
-- MariaDB Enterprise >= 10.5
 
 ## MaxScale compatibility
 - MaxScale >= 23.08 

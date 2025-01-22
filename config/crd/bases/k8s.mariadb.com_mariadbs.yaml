@@ -5456,7 +5456,7 @@ spec:
                     type: boolean
                   galeraSSTEnabled:
                     description: GaleraSSTEnabled determines whether Galera SST connections
-                      should use SSL. It enabled with Galera by default.
+                      should use SSL. It is enabled with Galera by default.
                     type: boolean
                   serverCASecretRef:
                     description: |-
@@ -5667,7 +5667,7 @@ spec:
                 type: object
               username:
                 description: |-
-                  Username is the initial username to be created by the operator once MariaDB is ready. It has all privileges on the initial database.
+                  Username is the initial username to be created by the operator once MariaDB is ready.
                   The initial User will have ALL PRIVILEGES in the initial Database.
                 type: string
               volumeMounts:
