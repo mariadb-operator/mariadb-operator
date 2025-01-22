@@ -1,7 +1,6 @@
 **`{{ .ProjectName }}` [0.37.0](https://github.com/mariadb-operator/mariadb-operator/releases/tag/0.37.0) is here!** 🦭
 
-
-We're excited to introduce __[TLS](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/TLS.m)__ 🔐 support in this release, one of the major features of `mariadb-operator` so far!✨ Check out the __[TLS docs](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/TLS.md)__, our [example catalog](https://github.com/mariadb-operator/mariadb-operator/tree/main/examples/manifests) and the release notes below to start using it.
+We're excited to introduce __[TLS](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/TLS.md)__ 🔐 support in this release, one of the major features of `mariadb-operator` so far! ✨ Check out the __[TLS docs](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/TLS.md)__, our [example catalog](https://github.com/mariadb-operator/mariadb-operator/tree/main/examples/manifests) and the release notes below to start using it.
 
 > [!WARNING]
 > Be sure to follow the __[UPGRADE GUIDE](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/releases/UPGRADE_0.37.0.md)__ to ensure a seamless transition from previous versions.
@@ -34,7 +33,7 @@ spec:
 
 A self-signed Certificate Authority (CA) will be automatically generated to issue leaf certificates for your instances. The operator will also manage a CA bundle that your applications can use in order to establish trust. 
 
-To ensure security by default, TLS will now be enabled by default. However, you can choose to disable TLS and use unencrypted connections by setting `tls.enabled=false`.
+To ensure security by default, TLS will now be enabled by default. However, you can choose to disable it and use unencrypted connections by setting `tls.enabled=false`.
 
 ### Native integration with cert-manager
 
