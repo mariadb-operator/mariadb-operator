@@ -40,7 +40,7 @@ var (
 		},
 		InitialDelaySeconds: 20,
 		TimeoutSeconds:      5,
-		PeriodSeconds:       5,
+		PeriodSeconds:       10,
 	}
 	defaultGaleraAgentProbe = func(galera mariadbv1alpha1.Galera) *corev1.Probe {
 		return &corev1.Probe{
@@ -667,7 +667,7 @@ func mariadbReplProbe(mariadb *mariadbv1alpha1.MariaDB, probe *mariadbv1alpha1.P
 		},
 		InitialDelaySeconds: 20,
 		TimeoutSeconds:      5,
-		PeriodSeconds:       5,
+		PeriodSeconds:       10,
 	}
 	if probe != nil {
 		setProbeThresholds(replProbe, ptr.To(probe.ToKubernetesType()))
@@ -686,7 +686,7 @@ func mariadbGaleraProbe(mdb *mariadbv1alpha1.MariaDB, path string, probe *mariad
 		},
 		InitialDelaySeconds: 20,
 		TimeoutSeconds:      5,
-		PeriodSeconds:       5,
+		PeriodSeconds:       10,
 	}
 	if probe != nil {
 		setProbeThresholds(&galeraProbe, ptr.To(probe.ToKubernetesType()))
@@ -706,7 +706,7 @@ func maxscaleProbe(mxs *mariadbv1alpha1.MaxScale, probe *mariadbv1alpha1.Probe) 
 		},
 		InitialDelaySeconds: 20,
 		TimeoutSeconds:      5,
-		PeriodSeconds:       5,
+		PeriodSeconds:       10,
 	}
 	if probe != nil {
 		setProbeThresholds(&mxsProbe, ptr.To(probe.ToKubernetesType()))
