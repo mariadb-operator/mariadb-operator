@@ -671,10 +671,8 @@ spec:
                             type: boolean
                         type: object
                     required:
-                    - accessKeyIdSecretKeyRef
                     - bucket
                     - endpoint
-                    - secretAccessKeySecretKeyRef
                     type: object
                   stagingStorage:
                     description: |-

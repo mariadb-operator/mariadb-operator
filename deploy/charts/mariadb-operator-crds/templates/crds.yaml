@@ -903,10 +903,8 @@ spec:
                             type: boolean
                         type: object
                     required:
-                    - accessKeyIdSecretKeyRef
                     - bucket
                     - endpoint
-                    - secretAccessKeySecretKeyRef
                     type: object
                   volume:
                     description: Volume is a Kubernetes volume specification.
@@ -2370,10 +2368,8 @@ spec:
                             type: boolean
                         type: object
                     required:
-                    - accessKeyIdSecretKeyRef
                     - bucket
                     - endpoint
-                    - secretAccessKeySecretKeyRef
                     type: object
                   stagingStorage:
                     description: |-
@@ -10145,10 +10141,8 @@ spec:
                         type: boolean
                     type: object
                 required:
-                - accessKeyIdSecretKeyRef
                 - bucket
                 - endpoint
-                - secretAccessKeySecretKeyRef
                 type: object
               securityContext:
                 description: SecurityContext holds security configuration that will
