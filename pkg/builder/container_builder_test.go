@@ -40,7 +40,7 @@ func TestMariadbStartupProbe(t *testing.T) {
 				},
 				InitialDelaySeconds: 20,
 				TimeoutSeconds:      5,
-				PeriodSeconds:       5,
+				PeriodSeconds:       10,
 			},
 		},
 		{
@@ -51,7 +51,7 @@ func TestMariadbStartupProbe(t *testing.T) {
 						StartupProbe: &mariadbv1alpha1.Probe{
 							FailureThreshold: 10,
 							TimeoutSeconds:   5,
-							PeriodSeconds:    5,
+							PeriodSeconds:    10,
 						},
 					},
 				},
@@ -68,7 +68,7 @@ func TestMariadbStartupProbe(t *testing.T) {
 				},
 				InitialDelaySeconds: 20,
 				TimeoutSeconds:      5,
-				PeriodSeconds:       5,
+				PeriodSeconds:       10,
 				FailureThreshold:    10,
 			},
 		},
@@ -89,7 +89,7 @@ func TestMariadbStartupProbe(t *testing.T) {
 							},
 							FailureThreshold: 10,
 							TimeoutSeconds:   10,
-							PeriodSeconds:    5,
+							PeriodSeconds:    10,
 						},
 					},
 				},
@@ -106,7 +106,7 @@ func TestMariadbStartupProbe(t *testing.T) {
 				},
 				FailureThreshold: 10,
 				TimeoutSeconds:   10,
-				PeriodSeconds:    5,
+				PeriodSeconds:    10,
 			},
 		},
 		{
@@ -133,7 +133,7 @@ func TestMariadbStartupProbe(t *testing.T) {
 				},
 				InitialDelaySeconds: 20,
 				TimeoutSeconds:      5,
-				PeriodSeconds:       5,
+				PeriodSeconds:       10,
 			},
 		},
 		{
@@ -160,7 +160,7 @@ func TestMariadbStartupProbe(t *testing.T) {
 				},
 				InitialDelaySeconds: 20,
 				TimeoutSeconds:      5,
-				PeriodSeconds:       5,
+				PeriodSeconds:       10,
 			},
 		},
 		{
@@ -177,7 +177,7 @@ func TestMariadbStartupProbe(t *testing.T) {
 						StartupProbe: &mariadbv1alpha1.Probe{
 							FailureThreshold: 10,
 							TimeoutSeconds:   10,
-							PeriodSeconds:    5,
+							PeriodSeconds:    10,
 						},
 					},
 				},
@@ -195,7 +195,7 @@ func TestMariadbStartupProbe(t *testing.T) {
 				InitialDelaySeconds: 20,
 				FailureThreshold:    10,
 				TimeoutSeconds:      10,
-				PeriodSeconds:       5,
+				PeriodSeconds:       10,
 			},
 		},
 		{
@@ -221,7 +221,7 @@ func TestMariadbStartupProbe(t *testing.T) {
 							},
 							FailureThreshold: 10,
 							TimeoutSeconds:   10,
-							PeriodSeconds:    5,
+							PeriodSeconds:    10,
 						},
 					},
 				},
@@ -239,7 +239,7 @@ func TestMariadbStartupProbe(t *testing.T) {
 				InitialDelaySeconds: 20,
 				FailureThreshold:    10,
 				TimeoutSeconds:      10,
-				PeriodSeconds:       5,
+				PeriodSeconds:       10,
 			},
 		},
 		{
@@ -265,7 +265,7 @@ func TestMariadbStartupProbe(t *testing.T) {
 				},
 				InitialDelaySeconds: 20,
 				TimeoutSeconds:      5,
-				PeriodSeconds:       5,
+				PeriodSeconds:       10,
 			},
 		},
 		{
@@ -284,7 +284,7 @@ func TestMariadbStartupProbe(t *testing.T) {
 						StartupProbe: &mariadbv1alpha1.Probe{
 							FailureThreshold: 10,
 							TimeoutSeconds:   10,
-							PeriodSeconds:    5,
+							PeriodSeconds:    10,
 						},
 					},
 				},
@@ -299,7 +299,7 @@ func TestMariadbStartupProbe(t *testing.T) {
 				InitialDelaySeconds: 20,
 				FailureThreshold:    10,
 				TimeoutSeconds:      10,
-				PeriodSeconds:       5,
+				PeriodSeconds:       10,
 			},
 		},
 		{
@@ -324,7 +324,7 @@ func TestMariadbStartupProbe(t *testing.T) {
 							},
 							FailureThreshold: 10,
 							TimeoutSeconds:   10,
-							PeriodSeconds:    5,
+							PeriodSeconds:    10,
 						},
 					},
 				},
@@ -339,7 +339,7 @@ func TestMariadbStartupProbe(t *testing.T) {
 				InitialDelaySeconds: 20,
 				FailureThreshold:    10,
 				TimeoutSeconds:      10,
-				PeriodSeconds:       5,
+				PeriodSeconds:       10,
 			},
 		},
 	}
@@ -375,7 +375,7 @@ func TestMariadbLivenessProbe(t *testing.T) {
 				},
 				InitialDelaySeconds: 20,
 				TimeoutSeconds:      5,
-				PeriodSeconds:       5,
+				PeriodSeconds:       10,
 			},
 		},
 		{
@@ -386,7 +386,7 @@ func TestMariadbLivenessProbe(t *testing.T) {
 						LivenessProbe: &mariadbv1alpha1.Probe{
 							InitialDelaySeconds: 10,
 							TimeoutSeconds:      10,
-							PeriodSeconds:       5,
+							PeriodSeconds:       10,
 						},
 					},
 				},
@@ -403,7 +403,7 @@ func TestMariadbLivenessProbe(t *testing.T) {
 				},
 				InitialDelaySeconds: 10,
 				TimeoutSeconds:      10,
-				PeriodSeconds:       5,
+				PeriodSeconds:       10,
 			},
 		},
 		{
@@ -423,7 +423,7 @@ func TestMariadbLivenessProbe(t *testing.T) {
 							},
 							InitialDelaySeconds: 10,
 							TimeoutSeconds:      10,
-							PeriodSeconds:       5,
+							PeriodSeconds:       10,
 						},
 					},
 				},
@@ -440,7 +440,7 @@ func TestMariadbLivenessProbe(t *testing.T) {
 				},
 				InitialDelaySeconds: 10,
 				TimeoutSeconds:      10,
-				PeriodSeconds:       5,
+				PeriodSeconds:       10,
 			},
 		},
 		{
@@ -467,7 +467,7 @@ func TestMariadbLivenessProbe(t *testing.T) {
 				},
 				InitialDelaySeconds: 20,
 				TimeoutSeconds:      5,
-				PeriodSeconds:       5,
+				PeriodSeconds:       10,
 			},
 		},
 		{
@@ -494,7 +494,7 @@ func TestMariadbLivenessProbe(t *testing.T) {
 				},
 				InitialDelaySeconds: 20,
 				TimeoutSeconds:      5,
-				PeriodSeconds:       5,
+				PeriodSeconds:       10,
 			},
 		},
 		{
@@ -511,7 +511,7 @@ func TestMariadbLivenessProbe(t *testing.T) {
 						LivenessProbe: &mariadbv1alpha1.Probe{
 							InitialDelaySeconds: 10,
 							TimeoutSeconds:      10,
-							PeriodSeconds:       5,
+							PeriodSeconds:       10,
 						},
 					},
 				},
@@ -528,7 +528,7 @@ func TestMariadbLivenessProbe(t *testing.T) {
 				},
 				InitialDelaySeconds: 10,
 				TimeoutSeconds:      10,
-				PeriodSeconds:       5,
+				PeriodSeconds:       10,
 			},
 		},
 		{
@@ -554,7 +554,7 @@ func TestMariadbLivenessProbe(t *testing.T) {
 							},
 							InitialDelaySeconds: 10,
 							TimeoutSeconds:      10,
-							PeriodSeconds:       5,
+							PeriodSeconds:       10,
 						},
 					},
 				},
@@ -571,7 +571,7 @@ func TestMariadbLivenessProbe(t *testing.T) {
 				},
 				InitialDelaySeconds: 10,
 				TimeoutSeconds:      10,
-				PeriodSeconds:       5,
+				PeriodSeconds:       10,
 			},
 		},
 		{
@@ -597,7 +597,7 @@ func TestMariadbLivenessProbe(t *testing.T) {
 				},
 				InitialDelaySeconds: 20,
 				TimeoutSeconds:      5,
-				PeriodSeconds:       5,
+				PeriodSeconds:       10,
 			},
 		},
 		{
@@ -616,7 +616,7 @@ func TestMariadbLivenessProbe(t *testing.T) {
 						LivenessProbe: &mariadbv1alpha1.Probe{
 							InitialDelaySeconds: 10,
 							TimeoutSeconds:      10,
-							PeriodSeconds:       5,
+							PeriodSeconds:       10,
 						},
 					},
 				},
@@ -630,7 +630,7 @@ func TestMariadbLivenessProbe(t *testing.T) {
 				},
 				InitialDelaySeconds: 10,
 				TimeoutSeconds:      10,
-				PeriodSeconds:       5,
+				PeriodSeconds:       10,
 			},
 		},
 		{
@@ -655,7 +655,7 @@ func TestMariadbLivenessProbe(t *testing.T) {
 							},
 							InitialDelaySeconds: 10,
 							TimeoutSeconds:      10,
-							PeriodSeconds:       5,
+							PeriodSeconds:       10,
 						},
 					},
 				},
@@ -669,7 +669,7 @@ func TestMariadbLivenessProbe(t *testing.T) {
 				},
 				InitialDelaySeconds: 10,
 				TimeoutSeconds:      10,
-				PeriodSeconds:       5,
+				PeriodSeconds:       10,
 			},
 		},
 	}
@@ -705,7 +705,7 @@ func TestMariadbReadinessProbe(t *testing.T) {
 				},
 				InitialDelaySeconds: 20,
 				TimeoutSeconds:      5,
-				PeriodSeconds:       5,
+				PeriodSeconds:       10,
 			},
 		},
 		{
@@ -716,7 +716,7 @@ func TestMariadbReadinessProbe(t *testing.T) {
 						ReadinessProbe: &mariadbv1alpha1.Probe{
 							InitialDelaySeconds: 10,
 							TimeoutSeconds:      10,
-							PeriodSeconds:       5,
+							PeriodSeconds:       10,
 						},
 					},
 				},
@@ -733,7 +733,7 @@ func TestMariadbReadinessProbe(t *testing.T) {
 				},
 				InitialDelaySeconds: 10,
 				TimeoutSeconds:      10,
-				PeriodSeconds:       5,
+				PeriodSeconds:       10,
 			},
 		},
 		{
@@ -753,7 +753,7 @@ func TestMariadbReadinessProbe(t *testing.T) {
 							},
 							InitialDelaySeconds: 10,
 							TimeoutSeconds:      10,
-							PeriodSeconds:       5,
+							PeriodSeconds:       10,
 						},
 					},
 				},
@@ -770,7 +770,7 @@ func TestMariadbReadinessProbe(t *testing.T) {
 				},
 				InitialDelaySeconds: 10,
 				TimeoutSeconds:      10,
-				PeriodSeconds:       5,
+				PeriodSeconds:       10,
 			},
 		},
 		{
@@ -797,7 +797,7 @@ func TestMariadbReadinessProbe(t *testing.T) {
 				},
 				InitialDelaySeconds: 20,
 				TimeoutSeconds:      5,
-				PeriodSeconds:       5,
+				PeriodSeconds:       10,
 			},
 		},
 		{
@@ -824,7 +824,7 @@ func TestMariadbReadinessProbe(t *testing.T) {
 				},
 				InitialDelaySeconds: 20,
 				TimeoutSeconds:      5,
-				PeriodSeconds:       5,
+				PeriodSeconds:       10,
 			},
 		},
 		{
@@ -841,7 +841,7 @@ func TestMariadbReadinessProbe(t *testing.T) {
 						ReadinessProbe: &mariadbv1alpha1.Probe{
 							InitialDelaySeconds: 10,
 							TimeoutSeconds:      10,
-							PeriodSeconds:       5,
+							PeriodSeconds:       10,
 						},
 					},
 				},
@@ -858,7 +858,7 @@ func TestMariadbReadinessProbe(t *testing.T) {
 				},
 				InitialDelaySeconds: 10,
 				TimeoutSeconds:      10,
-				PeriodSeconds:       5,
+				PeriodSeconds:       10,
 			},
 		},
 		{
@@ -884,7 +884,7 @@ func TestMariadbReadinessProbe(t *testing.T) {
 							},
 							InitialDelaySeconds: 10,
 							TimeoutSeconds:      10,
-							PeriodSeconds:       5,
+							PeriodSeconds:       10,
 						},
 					},
 				},
@@ -901,7 +901,7 @@ func TestMariadbReadinessProbe(t *testing.T) {
 				},
 				InitialDelaySeconds: 10,
 				TimeoutSeconds:      10,
-				PeriodSeconds:       5,
+				PeriodSeconds:       10,
 			},
 		},
 		{
@@ -927,7 +927,7 @@ func TestMariadbReadinessProbe(t *testing.T) {
 				},
 				InitialDelaySeconds: 20,
 				TimeoutSeconds:      5,
-				PeriodSeconds:       5,
+				PeriodSeconds:       10,
 			},
 		},
 		{
@@ -946,7 +946,7 @@ func TestMariadbReadinessProbe(t *testing.T) {
 						ReadinessProbe: &mariadbv1alpha1.Probe{
 							InitialDelaySeconds: 10,
 							TimeoutSeconds:      10,
-							PeriodSeconds:       5,
+							PeriodSeconds:       10,
 						},
 					},
 				},
@@ -960,7 +960,7 @@ func TestMariadbReadinessProbe(t *testing.T) {
 				},
 				InitialDelaySeconds: 10,
 				TimeoutSeconds:      10,
-				PeriodSeconds:       5,
+				PeriodSeconds:       10,
 			},
 		},
 		{
@@ -985,7 +985,7 @@ func TestMariadbReadinessProbe(t *testing.T) {
 							},
 							InitialDelaySeconds: 10,
 							TimeoutSeconds:      10,
-							PeriodSeconds:       5,
+							PeriodSeconds:       10,
 						},
 					},
 				},
@@ -999,7 +999,7 @@ func TestMariadbReadinessProbe(t *testing.T) {
 				},
 				InitialDelaySeconds: 10,
 				TimeoutSeconds:      10,
-				PeriodSeconds:       5,
+				PeriodSeconds:       10,
 			},
 		},
 	}
@@ -1039,7 +1039,7 @@ func TestMaxScaleProbe(t *testing.T) {
 				},
 				InitialDelaySeconds: 20,
 				TimeoutSeconds:      5,
-				PeriodSeconds:       5,
+				PeriodSeconds:       10,
 			},
 		},
 		{
@@ -1054,7 +1054,7 @@ func TestMaxScaleProbe(t *testing.T) {
 			probe: &mariadbv1alpha1.Probe{
 				InitialDelaySeconds: 10,
 				TimeoutSeconds:      10,
-				PeriodSeconds:       5,
+				PeriodSeconds:       10,
 			},
 			wantProbe: &corev1.Probe{
 				ProbeHandler: corev1.ProbeHandler{
@@ -1064,7 +1064,7 @@ func TestMaxScaleProbe(t *testing.T) {
 				},
 				InitialDelaySeconds: 10,
 				TimeoutSeconds:      10,
-				PeriodSeconds:       5,
+				PeriodSeconds:       10,
 			},
 		},
 		{
@@ -1085,7 +1085,7 @@ func TestMaxScaleProbe(t *testing.T) {
 				},
 				InitialDelaySeconds: 10,
 				TimeoutSeconds:      10,
-				PeriodSeconds:       5,
+				PeriodSeconds:       10,
 			},
 			wantProbe: &corev1.Probe{
 				ProbeHandler: corev1.ProbeHandler{
@@ -1096,7 +1096,7 @@ func TestMaxScaleProbe(t *testing.T) {
 				},
 				InitialDelaySeconds: 10,
 				TimeoutSeconds:      10,
-				PeriodSeconds:       5,
+				PeriodSeconds:       10,
 			},
 		},
 		{
@@ -1118,7 +1118,7 @@ func TestMaxScaleProbe(t *testing.T) {
 				FailureThreshold:    10,
 				InitialDelaySeconds: 10,
 				TimeoutSeconds:      10,
-				PeriodSeconds:       5,
+				PeriodSeconds:       10,
 			},
 			wantProbe: &corev1.Probe{
 				ProbeHandler: corev1.ProbeHandler{
@@ -1130,7 +1130,7 @@ func TestMaxScaleProbe(t *testing.T) {
 				FailureThreshold:    10,
 				InitialDelaySeconds: 10,
 				TimeoutSeconds:      10,
-				PeriodSeconds:       5,
+				PeriodSeconds:       10,
 			},
 		},
 	}
