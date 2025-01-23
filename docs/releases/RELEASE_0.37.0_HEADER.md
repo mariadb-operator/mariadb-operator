@@ -120,6 +120,12 @@ If any of these TLS requirements are not satisfied, the user will be unable to c
 Whenever Galera options are changed, for example, adding `providerOptions`:
 
 ```diff
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+spec:
+  ...
   galera:
     enabled: true
 +   providerOptions:
