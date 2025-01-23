@@ -1,5 +1,4 @@
-
-{{ if  .Values.pdb.enabled }}
+{{- if  .Values.pdb.enabled }}
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
@@ -11,4 +10,4 @@ spec:
   selector:
     matchLabels:
       {{ include "mariadb-operator.selectorLabels" . | nindent 6 }}
-{{ end }}
+{{- end }}

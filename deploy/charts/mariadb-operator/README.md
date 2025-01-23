@@ -37,6 +37,8 @@ Refer to the [helm documentation](https://github.com/mariadb-operator/mariadb-op
 | certController.image.tag | string | `""` | Image tag to use. By default the chart appVersion is used |
 | certController.imagePullSecrets | list | `[]` |  |
 | certController.nodeSelector | object | `{}` | Node selectors to add to cert-controller container |
+| certController.pdb.enabled | bool | `false` | Enable PodDisruptionBudget for the controller. |
+| certController.pdb.maxUnavailable | int | `1` | Maximum number of unavailable Pods. You may also give a percentage, like `50%` |
 | certController.podAnnotations | object | `{}` | Annotations to add to cert-controller Pod |
 | certController.podSecurityContext | object | `{}` | Security context to add to cert-controller Pod |
 | certController.priorityClassName | string | `""` | priorityClassName to add to cert-controller container |
@@ -130,6 +132,8 @@ Refer to the [helm documentation](https://github.com/mariadb-operator/mariadb-op
 | webhook.image.tag | string | `""` | Image tag to use. By default the chart appVersion is used |
 | webhook.imagePullSecrets | list | `[]` |  |
 | webhook.nodeSelector | object | `{}` | Node selectors to add to webhook Pod |
+| webhook.pdb.enabled | bool | `false` | Enable PodDisruptionBudget for the controller. |
+| webhook.pdb.maxUnavailable | int | `1` | Maximum number of unavailable Pods. You may also give a percentage, like `50%` |
 | webhook.podAnnotations | object | `{}` | Annotations to add to webhook Pod |
 | webhook.podSecurityContext | object | `{}` | Security context to add to webhook Pod |
 | webhook.port | int | `9443` | Port to be used by the webhook server |
