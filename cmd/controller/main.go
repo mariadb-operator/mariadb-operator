@@ -103,7 +103,7 @@ func init() {
 	rootCmd.Flags().DurationVar(&requeueConnection, "requeue-connection", 30*time.Second, "The interval at which Connections are requeued.")
 	rootCmd.Flags().DurationVar(&requeueSql, "requeue-sql", 30*time.Second, "The interval at which SQL objects are requeued.")
 	rootCmd.Flags().DurationVar(&requeueSqlJob, "requeue-sqljob", 5*time.Second, "The interval at which SqlJobs are requeued.")
-	rootCmd.Flags().DurationVar(&requeueMaxScale, "requeue-maxscale", 10*time.Second, "The interval at which MaxScales are requeued.")
+	rootCmd.Flags().DurationVar(&requeueMaxScale, "requeue-maxscale", 30*time.Second, "The interval at which MaxScales are requeued.")
 
 	rootCmd.Flags().BoolVar(&featureMaxScaleSuspend, "feature-maxscale-suspend", false, "Feature flag to enable MaxScale resource suspension.")
 }
