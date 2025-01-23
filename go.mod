@@ -1,6 +1,6 @@
 module github.com/mariadb-operator/mariadb-operator
 
-go 1.23.4
+go 1.23.5
 
 require (
 	github.com/distribution/reference v0.6.0
