@@ -28,7 +28,7 @@ func TestHelmExtraEnvFrom(t *testing.T) {
 		},
 	}
 
-	deploymentData := helm.RenderTemplate(t, opts, helmChartPath, helmReleaseName, []string{"templates/deployment.yaml"})
+	deploymentData := helm.RenderTemplate(t, opts, helmChartPath, helmReleaseName, []string{"templates/operator/deployment.yaml"})
 	var deployment appsv1.Deployment
 	helm.UnmarshalK8SYaml(t, deploymentData, &deployment)
 
@@ -65,7 +65,7 @@ func TestHelmCurrentNamespaceOnly(t *testing.T) {
 		},
 	}
 
-	deploymentData := helm.RenderTemplate(t, opts, helmChartPath, helmReleaseName, []string{"templates/deployment.yaml"})
+	deploymentData := helm.RenderTemplate(t, opts, helmChartPath, helmReleaseName, []string{"templates/operator/deployment.yaml"})
 	var deployment appsv1.Deployment
 	helm.UnmarshalK8SYaml(t, deploymentData, &deployment)
 
@@ -79,22 +79,22 @@ func TestHelmCurrentNamespaceOnly(t *testing.T) {
 	Expect(container.Env).To(ContainElement(env))
 
 	expectedTemplates := []string{
-		"templates/rbac-namespace.yaml",
+		"templates/operator/rbac-namespace.yaml",
 	}
 	unexpectedTemplates := []string{
-		"templates/cert-controller-deployment.yaml",
-		"templates/cert-controller-rbac.yaml",
-		"templates/cert-controller-serviceaccount.yaml",
-		"templates/cert-controller-servicemonitor.yaml",
-		"templates/rbac-user.yaml",
-		"templates/rbac.yaml",
-		"templates/webhook-certificate.yaml",
-		"templates/webhook-config.yaml",
-		"templates/webhook-deployment.yaml",
-		"templates/webhook-secret.yaml",
-		"templates/webhook-service.yaml",
-		"templates/webhook-serviceaccount.yaml",
-		"templates/webhook-servicemonitor.yaml",
+		"templates/cert-controller/deployment.yaml",
+		"templates/cert-controller/rbac.yaml",
+		"templates/cert-controller/serviceaccount.yaml",
+		"templates/cert-controller/servicemonitor.yaml",
+		"templates/operator/rbac-user.yaml",
+		"templates/operator/rbac.yaml",
+		"templates/webhook/certificate.yaml",
+		"templates/webhook/config.yaml",
+		"templates/webhook/deployment.yaml",
+		"templates/webhook/secret.yaml",
+		"templates/webhook/service.yaml",
+		"templates/webhook/serviceaccount.yaml",
+		"templates/webhook/servicemonitor.yaml",
 	}
 	testHelmTemplates(t, opts, expectedTemplates, unexpectedTemplates)
 }
@@ -111,7 +111,7 @@ func TestHelmClusterWide(t *testing.T) {
 		},
 	}
 
-	deploymentData := helm.RenderTemplate(t, opts, helmChartPath, helmReleaseName, []string{"templates/deployment.yaml"})
+	deploymentData := helm.RenderTemplate(t, opts, helmChartPath, helmReleaseName, []string{"templates/operator/deployment.yaml"})
 	var deployment appsv1.Deployment
 	helm.UnmarshalK8SYaml(t, deploymentData, &deployment)
 
@@ -125,17 +125,17 @@ func TestHelmClusterWide(t *testing.T) {
 	Expect(container.Env).ToNot(ContainElement(env))
 
 	expectedTemplates := []string{
-		"templates/rbac-user.yaml",
-		"templates/rbac.yaml",
-		"templates/webhook-certificate.yaml",
-		"templates/webhook-config.yaml",
-		"templates/webhook-deployment.yaml",
-		"templates/webhook-secret.yaml",
-		"templates/webhook-service.yaml",
-		"templates/webhook-serviceaccount.yaml",
+		"templates/operator/rbac-user.yaml",
+		"templates/operator/rbac.yaml",
+		"templates/webhook/certificate.yaml",
+		"templates/webhook/config.yaml",
+		"templates/webhook/deployment.yaml",
+		"templates/webhook/secret.yaml",
+		"templates/webhook/service.yaml",
+		"templates/webhook/serviceaccount.yaml",
 	}
 	unexpectedTemplates := []string{
-		"templates/rbac-namespace.yaml",
+		"templates/operator/rbac-namespace.yaml",
 	}
 	testHelmTemplates(t, opts, expectedTemplates, unexpectedTemplates)
 }
@@ -149,13 +149,13 @@ func TestHelmCertManager(t *testing.T) {
 	}
 
 	expectedTemplates := []string{
-		"templates/webhook-certificate.yaml",
-		"templates/webhook-secret.yaml",
+		"templates/webhook/certificate.yaml",
+		"templates/webhook/secret.yaml",
 	}
 	unexpectedTemplates := []string{
-		"templates/cert-controller-deployment.yaml",
-		"templates/cert-controller-rbac.yaml",
-		"templates/cert-controller-serviceaccount.yaml",
+		"templates/cert-controller/deployment.yaml",
+		"templates/cert-controller/rbac.yaml",
+		"templates/cert-controller/serviceaccount.yaml",
 	}
 	testHelmTemplates(t, opts, expectedTemplates, unexpectedTemplates)
 }
@@ -169,8 +169,8 @@ func TestHelmMetrics(t *testing.T) {
 	}
 
 	expectedTemplates := []string{
-		"templates/cert-controller-servicemonitor.yaml",
-		"templates/webhook-servicemonitor.yaml",
+		"templates/cert-controller/servicemonitor.yaml",
+		"templates/webhook/servicemonitor.yaml",
 	}
 	testHelmTemplates(t, opts, expectedTemplates, nil)
 }
@@ -183,10 +183,10 @@ func TestHelmWebhook(t *testing.T) {
 		},
 	}
 	expectedTemplates := []string{
-		"templates/webhook-config.yaml",
-		"templates/webhook-deployment.yaml",
-		"templates/webhook-service.yaml",
-		"templates/webhook-serviceaccount.yaml",
+		"templates/webhook/config.yaml",
+		"templates/webhook/deployment.yaml",
+		"templates/webhook/service.yaml",
+		"templates/webhook/serviceaccount.yaml",
 	}
 	unexpectedTemplates := []string{}
 	testHelmTemplates(t, opts, expectedTemplates, unexpectedTemplates)
@@ -198,10 +198,11 @@ func TestHelmWebhook(t *testing.T) {
 	}
 	expectedTemplates = []string{}
 	unexpectedTemplates = []string{
-		"templates/webhook-config.yaml",
-		"templates/webhook-deployment.yaml",
-		"templates/webhook-service.yaml",
-		"templates/webhook-serviceaccount.yaml",
+		"templates/webhook/config.yaml",
+		"templates/webhook/deployment.yaml",
+		"templates/webhook/service.yaml",
+		"templates/webhook/serviceaccount.yaml",
+		"templates/webhook/pdb.yaml",
 	}
 	testHelmTemplates(t, opts, expectedTemplates, unexpectedTemplates)
 }
@@ -214,9 +215,9 @@ func TestHelmCertController(t *testing.T) {
 		},
 	}
 	expectedTemplates := []string{
-		"templates/cert-controller-deployment.yaml",
-		"templates/cert-controller-rbac.yaml",
-		"templates/cert-controller-serviceaccount.yaml",
+		"templates/cert-controller/deployment.yaml",
+		"templates/cert-controller/rbac.yaml",
+		"templates/cert-controller/serviceaccount.yaml",
 	}
 	unexpectedTemplates := []string{}
 	testHelmTemplates(t, opts, expectedTemplates, unexpectedTemplates)
@@ -228,9 +229,10 @@ func TestHelmCertController(t *testing.T) {
 	}
 	expectedTemplates = []string{}
 	unexpectedTemplates = []string{
-		"templates/cert-controller-deployment.yaml",
-		"templates/cert-controller-rbac.yaml",
-		"templates/cert-controller-serviceaccount.yaml",
+		"templates/cert-controller/deployment.yaml",
+		"templates/cert-controller/rbac.yaml",
+		"templates/cert-controller/serviceaccount.yaml",
+		"templates/cert-controller/pdb.yaml",
 	}
 	testHelmTemplates(t, opts, expectedTemplates, unexpectedTemplates)
 }
@@ -246,7 +248,7 @@ func TestHelmHaEnabled(t *testing.T) {
 		},
 	}
 
-	deploymentData := helm.RenderTemplate(t, opts, helmChartPath, helmReleaseName, []string{"templates/deployment.yaml"})
+	deploymentData := helm.RenderTemplate(t, opts, helmChartPath, helmReleaseName, []string{"templates/operator/deployment.yaml"})
 	var deployment appsv1.Deployment
 	helm.UnmarshalK8SYaml(t, deploymentData, &deployment)
 
@@ -268,7 +270,7 @@ func TestHelmPDBEnabled(t *testing.T) {
 			Namespace: testNamespace,
 		},
 	}
-	pdbData := helm.RenderTemplate(t, opts, helmChartPath, helmReleaseName, []string{"templates/pdb.yaml"})
+	pdbData := helm.RenderTemplate(t, opts, helmChartPath, helmReleaseName, []string{"templates/operator/pdb.yaml"})
 	var pdb policyv1.PodDisruptionBudget
 	helm.UnmarshalK8SYaml(t, pdbData, &pdb)
 	maxUnavailable := pdb.Spec.MaxUnavailable.IntValue()
@@ -283,13 +285,13 @@ func TestHelmPDBEnabled(t *testing.T) {
 			Namespace: testNamespace,
 		},
 	}
-	pdbData = helm.RenderTemplate(t, opts, helmChartPath, helmReleaseName, []string{"templates/pdb.yaml"})
+	pdbData = helm.RenderTemplate(t, opts, helmChartPath, helmReleaseName, []string{"templates/operator/pdb.yaml"})
 	helm.UnmarshalK8SYaml(t, pdbData, &pdb)
 	maxUnavailablePercent := pdb.Spec.MaxUnavailable.String()
 	Expect(maxUnavailablePercent).To(Equal("50%"))
 
 	expectedTemplates := []string{
-		"templates/pdb.yaml",
+		"templates/operator/pdb.yaml",
 	}
 	unexpectedTemplates := []string{}
 	testHelmTemplates(t, opts, expectedTemplates, unexpectedTemplates)
@@ -304,7 +306,7 @@ func TestHelmPDBEnabled(t *testing.T) {
 	}
 	expectedTemplates = []string{}
 	unexpectedTemplates = []string{
-		"templates/pdb.yaml",
+		"templates/operator/pdb.yaml",
 	}
 	testHelmTemplates(t, opts, expectedTemplates, unexpectedTemplates)
 }
@@ -336,7 +338,7 @@ func TestHelmImageTagAndDigest(t *testing.T) {
 		},
 	}
 
-	renderedData := helm.RenderTemplate(t, opts, helmChartPath, helmReleaseName, []string{"templates/deployment.yaml"})
+	renderedData := helm.RenderTemplate(t, opts, helmChartPath, helmReleaseName, []string{"templates/operator/deployment.yaml"})
 	var deployment appsv1.Deployment
 	helm.UnmarshalK8SYaml(t, renderedData, &deployment)
 
@@ -351,7 +353,7 @@ func TestHelmImageTagAndDigest(t *testing.T) {
 		},
 	}
 
-	renderedData = helm.RenderTemplate(t, opts, helmChartPath, helmReleaseName, []string{"templates/deployment.yaml"})
+	renderedData = helm.RenderTemplate(t, opts, helmChartPath, helmReleaseName, []string{"templates/operator/deployment.yaml"})
 	helm.UnmarshalK8SYaml(t, renderedData, &deployment)
 
 	container = deployment.Spec.Template.Spec.Containers[0]
@@ -375,7 +377,7 @@ func TestHelmConfigMap(t *testing.T) {
 			"config.exporterMaxscaleImage": "exporter-maxscale:1.0",
 		},
 	}
-	configMapData := helm.RenderTemplate(t, opts, helmChartPath, helmReleaseName, []string{"templates/configmap.yaml"})
+	configMapData := helm.RenderTemplate(t, opts, helmChartPath, helmReleaseName, []string{"templates/operator/configmap.yaml"})
 	var configMap corev1.ConfigMap
 	helm.UnmarshalK8SYaml(t, configMapData, &configMap)
 	Expect(configMap.Name).To(Equal("mariadb-operator-env"))
