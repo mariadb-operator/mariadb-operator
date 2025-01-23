@@ -213,6 +213,11 @@ webhook:
   priorityClassName: ""
   # -- Affinity to add to webhook Pod
   affinity: {}
+  pdb:
+    # -- Enable PodDisruptionBudget for the controller.
+    enabled: false
+    # -- Maximum number of unavailable Pods. You may also give a percentage, like `50%`
+    maxUnavailable: 1
 certController:
   # -- Specifies whether the cert-controller should be created.
   enabled: true
@@ -290,6 +295,11 @@ certController:
   priorityClassName: ""
   # -- Affinity to add to cert-controller container
   affinity: {}
+  pdb:
+    # -- Enable PodDisruptionBudget for the controller.
+    enabled: false
+    # -- Maximum number of unavailable Pods. You may also give a percentage, like `50%`
+    maxUnavailable: 1
 # -- Operator configuration
 config:
   # -- Galera library path to be used with MariaDB Galera
