@@ -28,25 +28,47 @@ func (r *MaxScaleReconciler) reconcileStatus(ctx context.Context, req *requestMa
 	}
 	logger := log.FromContext(ctx).WithName("status")
 
-	var sts appsv1.StatefulSet
-	if err := r.Get(ctx, client.ObjectKeyFromObject(req.mxs), &sts); err != nil {
-		return ctrl.Result{}, err
+	var (
+		errBundle                 *multierror.Error
+		sts                       *appsv1.StatefulSet
+		srvStatus                 *serverStatus
+		monitorStatus             *mariadbv1alpha1.MaxScaleResourceStatus
+		svcStatus, listenerStatus []mariadbv1alpha1.MaxScaleResourceStatus
+		configSync                *mariadbv1alpha1.MaxScaleConfigSyncStatus
+		tlsStatus                 *mariadbv1alpha1.MaxScaleTLSStatus
+	)
+
+	if err := r.Get(ctx, client.ObjectKeyFromObject(req.mxs), sts); err != nil {
+		logger.V(1).Info("error getting StatefulSet", "err", err)
 	}
 
 	client, err := r.client(ctx, req.mxs)
 	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error getting client: %v", err)
+		logger.V(1).Info("error getting client", "err", err)
+	}
+	if client != nil {
+		srvStatus, err = r.getServerStatus(ctx, req.mxs, client)
+		errBundle = multierror.Append(errBundle, err)
+
+		monitorStatus, err = r.getMonitorStatus(ctx, req.mxs, client)
+		errBundle = multierror.Append(errBundle, err)
+
+		svcStatus, err = r.getServiceStatus(ctx, req.mxs, client)
+		errBundle = multierror.Append(errBundle, err)
+
+		listenerStatus, err = r.getListenerStatus(ctx, req.mxs, client)
+		errBundle = multierror.Append(errBundle, err)
+
+		configSync, err = r.getConfigSyncStatus(ctx, req.mxs, client)
+		errBundle = multierror.Append(errBundle, err)
+
+		tlsStatus, err = r.getTLSStatus(ctx, req.mxs)
+		errBundle = multierror.Append(errBundle, err)
 	}
 
-	var (
-		errBundle                 *multierror.Error
-		srvStatus                 *serverStatus
-		monitorStatus             *mariadbv1alpha1.MaxScaleResourceStatus
-		svcStatus, listenerStatus []mariadbv1alpha1.MaxScaleResourceStatus
-	)
-
-	srvStatus, err = r.getServerStatus(ctx, req.mxs, client)
-	errBundle = multierror.Append(errBundle, err)
+	if err := errBundle.ErrorOrNil(); err != nil {
+		logger.V(1).Info("error getting status", "err", err)
+	}
 
 	currentPrimary := ptr.Deref(req.mxs.Status.PrimaryServer, "")
 	newPrimary := ptr.Deref(srvStatus, serverStatus{}).primary
@@ -65,27 +87,7 @@ func (r *MaxScaleReconciler) reconcileStatus(ctx context.Context, req *requestMa
 		)
 	}
 
-	monitorStatus, err = r.getMonitorStatus(ctx, req.mxs, client)
-	errBundle = multierror.Append(errBundle, err)
-
-	svcStatus, err = r.getServiceStatus(ctx, req.mxs, client)
-	errBundle = multierror.Append(errBundle, err)
-
-	listenerStatus, err = r.getListenerStatus(ctx, req.mxs, client)
-	errBundle = multierror.Append(errBundle, err)
-
-	configSync, err := r.getConfigSyncStatus(ctx, req.mxs, client)
-	errBundle = multierror.Append(errBundle, err)
-
-	tlsStatus, err := r.getTLSStatus(ctx, req.mxs)
-	errBundle = multierror.Append(errBundle, err)
-
-	if err := errBundle.ErrorOrNil(); err != nil {
-		logger.V(1).Info("error getting status", "err", err)
-	}
-
 	return ctrl.Result{}, r.patchStatus(ctx, req.mxs, func(mss *mariadbv1alpha1.MaxScaleStatus) error {
-		mss.Replicas = sts.Status.ReadyReplicas
 		if srvStatus != nil {
 			if srvStatus.primary != "" {
 				mss.PrimaryServer = &srvStatus.primary
@@ -110,9 +112,13 @@ func (r *MaxScaleReconciler) reconcileStatus(ctx context.Context, req *requestMa
 			mss.TLS = tlsStatus
 		}
 
-		condition.SetReadyWithStatefulSet(mss, &sts)
-		if r.isStatefulSetReady(&sts, req.mxs) {
-			condition.SetReadyWithMaxScaleStatus(mss, mss)
+		if sts != nil {
+			mss.Replicas = sts.Status.ReadyReplicas
+
+			condition.SetReadyWithStatefulSet(mss, sts)
+			if r.isStatefulSetReady(sts, req.mxs) {
+				condition.SetReadyWithMaxScaleStatus(mss, mss)
+			}
 		}
 		return nil
 	})
