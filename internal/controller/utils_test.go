@@ -580,13 +580,13 @@ func getS3WithBucket(bucket, prefix string) *mariadbv1alpha1.S3 {
 		Prefix:   prefix,
 		Endpoint: "minio.minio.svc.cluster.local:9000",
 		Region:   "us-east-1",
-		AccessKeyIdSecretKeyRef: mariadbv1alpha1.SecretKeySelector{
+		AccessKeyIdSecretKeyRef: &mariadbv1alpha1.SecretKeySelector{
 			LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
 				Name: "minio",
 			},
 			Key: "access-key-id",
 		},
-		SecretAccessKeySecretKeyRef: mariadbv1alpha1.SecretKeySelector{
+		SecretAccessKeySecretKeyRef: &mariadbv1alpha1.SecretKeySelector{
 			LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
 				Name: "minio",
 			},

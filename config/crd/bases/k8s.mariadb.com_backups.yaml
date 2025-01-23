@@ -904,10 +904,8 @@ spec:
                             type: boolean
                         type: object
                     required:
-                    - accessKeyIdSecretKeyRef
                     - bucket
                     - endpoint
-                    - secretAccessKeySecretKeyRef
                     type: object
                   volume:
                     description: Volume is a Kubernetes volume specification.

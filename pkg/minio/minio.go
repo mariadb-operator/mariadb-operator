@@ -59,8 +59,18 @@ func getMinioOptions(opts MinioOpts) (*minio.Options, error) {
 		return nil, fmt.Errorf("error getting transport: %v", err)
 	}
 
+	// Use a chained credentials provider to support multiple sources:
+	// 1. Environment variables (set by custom resource)
+	// 2. IAM role (for EC2 Meta Data, EKS service accounts when environment variables are not set)
+	chainedCreds := credentials.NewChainCredentials(
+		[]credentials.Provider{
+			&credentials.EnvAWS{},
+			&credentials.IAM{},
+		},
+	)
+
 	minioOpts := &minio.Options{
-		Creds:     credentials.NewEnvAWS(),
+		Creds:     chainedCreds,
 		Region:    opts.Region,
 		Secure:    opts.TLS,
 		Transport: transport,
