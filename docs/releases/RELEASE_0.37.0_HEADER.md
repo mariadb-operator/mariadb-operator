@@ -114,6 +114,19 @@ spec:
 ```
 
 If any of these TLS requirements are not satisfied, the user will be unable to connect to the instance.
+
+### Automatic updates when Galera options are changed
+
+Whenever Galera options are changed, for example, adding `providerOptions`:
+
+```diff
+  galera:
+    enabled: true
++   providerOptions:
++     gcs.fc_limit: '64'
+```
+
+An update is now automatically triggered, and the `Pods` are restarted according to the configured [update strategy](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/UPDATES.md).
  
 ### Community contributions
 
