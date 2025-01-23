@@ -120,6 +120,7 @@ If any of these TLS requirements are not satisfied, the user will be unable to c
 - [Support startupProbe in MariaDB and MaxScale](https://github.com/mariadb-operator/mariadb-operator/pull/1053) by @vixns 
 - [Operator configuration via helm](https://github.com/mariadb-operator/mariadb-operator/pull/1098) by @sakazuki and @indigo-saito
 - [Support EKS Service Accounts in S3](https://github.com/mariadb-operator/mariadb-operator/pull/1115) by @Skaronator
+- [Add support for configuring priorityClassName, topologySpreadConstraints, PDB in Helm Chart](https://github.com/mariadb-operator/mariadb-operator/pull/1133) by @Skaronator
 - [Fix examples SqlJob secret reference](https://github.com/mariadb-operator/mariadb-operator/pull/1090) by @driv 
 
 Huge thanks to our awesome contributors! 🙇
