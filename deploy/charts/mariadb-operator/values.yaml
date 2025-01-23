@@ -214,7 +214,7 @@ webhook:
   # -- Affinity to add to webhook Pod
   affinity: {}
   pdb:
-    # -- Enable PodDisruptionBudget for the controller.
+    # -- Enable PodDisruptionBudget for the webhook.
     enabled: false
     # -- Maximum number of unavailable Pods. You may also give a percentage, like `50%`
     maxUnavailable: 1
@@ -296,7 +296,7 @@ certController:
   # -- Affinity to add to cert-controller container
   affinity: {}
   pdb:
-    # -- Enable PodDisruptionBudget for the controller.
+    # -- Enable PodDisruptionBudget for the cert-controller.
     enabled: false
     # -- Maximum number of unavailable Pods. You may also give a percentage, like `50%`
     maxUnavailable: 1
