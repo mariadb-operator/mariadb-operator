@@ -136,7 +136,9 @@ An update is now automatically triggered, and the `Pods` are restarted according
  
 ### Community contributions
 
-- [Support startupProbe in MariaDB and MaxScale](https://github.com/mariadb-operator/mariadb-operator/pull/1053) by @vixns 
+- [Support startupProbe in MariaDB and MaxScale](https://github.com/mariadb-operator/mariadb-operator/pull/1053) by @vixns
+- [Prevent deadlocks on Database reconcile while transactions are running](https://github.com/mariadb-operator/mariadb-operator/pull/1127) by @vixns
+- [Update CronJob template on reconcile](https://github.com/mariadb-operator/mariadb-operator/pull/1124) by @vixns
 - [Operator configuration via helm](https://github.com/mariadb-operator/mariadb-operator/pull/1098) by @sakazuki and @indigo-saito
 - [Support EKS Service Accounts in S3](https://github.com/mariadb-operator/mariadb-operator/pull/1115) by @Skaronator
 - [Add support for configuring priorityClassName, topologySpreadConstraints, PDB in Helm Chart](https://github.com/mariadb-operator/mariadb-operator/pull/1133) by @Skaronator
