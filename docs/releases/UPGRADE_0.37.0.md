@@ -84,7 +84,7 @@ spec:
 +   enabled: false
 ```
 
-- If you are planning to use TLS and are currently using Galera, please set the following options to enable it:
+- If you are planning to use TLS and you are currently using Galera, please set the following options to enable it:
 ```diff
 apiVersion: k8s.mariadb.com/v1alpha1
 kind: MariaDB
