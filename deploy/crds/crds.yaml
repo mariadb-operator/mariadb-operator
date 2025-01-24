@@ -5345,7 +5345,9 @@ spec:
                             type: string
                         type: object
                       enabled:
-                        description: Enabled is a flag to enable TLS.
+                        description: Enabled indicates whether TLS is enabled, determining
+                          if certificates should be issued and mounted to the MaxScale
+                          instance.
                         type: boolean
                       listenerCASecretRef:
                         description: |-
@@ -7160,11 +7162,19 @@ spec:
                         type: string
                     type: object
                   enabled:
-                    description: Enabled is a flag to enable TLS.
+                    description: Enabled indicates whether TLS is enabled, determining
+                      if certificates should be issued and mounted to the MariaDB
+                      instance.
                     type: boolean
                   galeraSSTEnabled:
                     description: GaleraSSTEnabled determines whether Galera SST connections
                       should use SSL. It is enabled with Galera by default.
+                    type: boolean
+                  required:
+                    description: |-
+                      Required specifies whether TLS must be enforced for all connections.
+                      User TLS requirements take precedence over this.
+                      It is enabled by default.
                     type: boolean
                   serverCASecretRef:
                     description: |-
@@ -9744,7 +9754,9 @@ spec:
                         type: string
                     type: object
                   enabled:
-                    description: Enabled is a flag to enable TLS.
+                    description: Enabled indicates whether TLS is enabled, determining
+                      if certificates should be issued and mounted to the MaxScale
+                      instance.
                     type: boolean
                   listenerCASecretRef:
                     description: |-

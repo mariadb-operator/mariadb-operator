@@ -321,10 +321,16 @@ func (u *UpdateStrategy) SetDefaults() {
 
 // TLS defines the PKI to be used with MariaDB.
 type TLS struct {
-	// Enabled is a flag to enable TLS.
+	// Enabled indicates whether TLS is enabled, determining if certificates should be issued and mounted to the MariaDB instance.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
 	Enabled bool `json:"enabled"`
+	// Required specifies whether TLS must be enforced for all connections.
+	// User TLS requirements take precedence over this.
+	// It is enabled by default.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
+	Required *bool `json:"required,omitempty"`
 	// ServerCASecretRef is a reference to a Secret containing the server certificate authority keypair. It is used to establish trust and issue server certificates.
 	// One of:
 	// - Secret containing both the 'ca.crt' and 'ca.key' keys. This allows you to bring your own CA to Kubernetes to issue certificates.

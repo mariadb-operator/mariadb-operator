@@ -2025,7 +2025,9 @@ spec:
                         type: string
                     type: object
                   enabled:
-                    description: Enabled is a flag to enable TLS.
+                    description: Enabled indicates whether TLS is enabled, determining
+                      if certificates should be issued and mounted to the MaxScale
+                      instance.
                     type: boolean
                   listenerCASecretRef:
                     description: |-
