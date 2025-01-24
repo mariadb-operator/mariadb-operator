@@ -3,7 +3,7 @@ kind: MaxScale
 metadata:
   name: maxscale
 spec:
-  replicas: 3
+  replicas: 2
 
   mariaDbRef:
     name: mariadb
