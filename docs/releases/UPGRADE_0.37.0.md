@@ -158,7 +158,7 @@ spec:
 +   autoUpdateDataPlane: false
 -   autoUpdateDataPlane: true
 ```
-- At this point, both `MariaDB` and `MaxScale` accept TLS connections. You may now migrate your applications to use TLS connections.
+- At this point, both `MariaDB` and `MaxScale` accept TLS connections. You must now migrate your applications to use TLS connections. Make sure all your applications are using TLS connections before proceeding to the next step.
 - If you are using `MaxScale`, you may point your applications back to the [`MaxScale Services`](../MAXSCALE.md#kubernetes-services).
 - Finally, for enhanced security, it is recommended to enforce TLS in all `MariaDB` connections by setting:
 
