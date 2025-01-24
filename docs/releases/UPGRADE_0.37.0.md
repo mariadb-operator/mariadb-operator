@@ -74,6 +74,15 @@ spec:
 +  tls:
 +    enabled: false
 ```
+```diff
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MaxScale
+metadata:
+  name: maxscale
+spec:
++ tls:
++   enabled: false
+```
 
 - If you are planning to use TLS, and are currently using Galera, please set the following options to enable it:
 ```diff
@@ -82,14 +91,23 @@ kind: MariaDB
 metadata:
   name: mariadb-galera
 spec:
-  galera:
-    enabled: true
-+   providerOptions:
-+     socket.dynamic: 'true'
-
   tls:
 +   enabled: true
++   required: false
 +   galeraSSTEnabled: false
+```
+By setting these options, the operator will issue and configure certificates for `MariaDB`, but TLS will not be enforced in the connections.
+
+- If you are using `MaxScale`, although you can enable TLS, but there is no option to disable enforcement. For this reason it is recommended to temporarily point your apps to `MariaDB` directly during the migration.
+
+```diff
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MaxScale
+metadata:
+  name: maxscale
+spec:
++ tls:
++   enabled: false
 ```
 
 -  Upgrade `mariadb-operator` to `0.37.0`:
@@ -135,12 +153,20 @@ metadata:
 spec:
   galera:
     enabled: true
--   providerOptions:
--     socket.dynamic: 'true'
 
   updateStrategy:
 +   autoUpdateDataPlane: false
 -   autoUpdateDataPlane: true
 ```
 
-Removing the `socket.dynamic=true` provider option will enforce SSL connections within the Galera cluster.
+- Finally, after all your applications have been migrated to TLS, you can enforce TLS in all connections by setting:
+
+```diff
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+spec:
+  tls:
++   required: true
+```
