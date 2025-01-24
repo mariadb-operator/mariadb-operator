@@ -46,6 +46,7 @@ spec:
 
   tls:
     enabled: true
+    required: true
     serverCASecretRef:
       name: mariadb-server-ca
     serverCertSecretRef:

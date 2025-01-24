@@ -460,7 +460,7 @@ func (m *MaxScaleAuth) SetDefaults(mxs *MaxScale) {
 
 // TLS defines the PKI to be used with MaxScale.
 type MaxScaleTLS struct {
-	// Enabled is a flag to enable TLS.
+	// Enabled indicates whether TLS is enabled, determining if certificates should be issued and mounted to the MaxScale instance.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
 	Enabled bool `json:"enabled"`
