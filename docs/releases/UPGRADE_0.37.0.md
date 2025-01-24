@@ -98,7 +98,7 @@ spec:
 ```
 By setting these options, the operator will issue and configure certificates for `MariaDB`, but TLS will not be enforced in the connections i.e. both TLS and non TLS connections will be accepted.
 
-- If you are planning to use TLS and you are currently using MaxScale, it is important to note that, unlike MariaDB, [it does not support TLS and non TLS connections simultaneously](https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/#tlsssl-encryption). For this reason, it is recommended to temporarily point your applications to `MariaDB` during the migration. You can achieve this by configuring your application to use the [`MariaDB` `Services`](../HA.md#kubernetes-services). After doing so, you can safely enable TLS in `MaxScale` by setting:
+- If you are planning to use TLS and you are currently using MaxScale, it is important to note that, unlike MariaDB, [it does not support TLS and non TLS connections simultaneously](https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/#tlsssl-encryption). For this reason, it is recommended to temporarily point your applications to `MariaDB` during the migration. You can achieve this by configuring your application to use the [`MariaDB Services`](../HA.md#kubernetes-services). After doing so, you can safely enable TLS in `MaxScale` by setting:
 
 ```diff
 apiVersion: k8s.mariadb.com/v1alpha1
@@ -159,7 +159,7 @@ spec:
 -   autoUpdateDataPlane: true
 ```
 - At this point, both `MariaDB` and `MaxScale` accept TLS connections. You may now migrate your applications to use TLS connections.
-- If you are using `MaxScale`, you may point your applications back to the [`MaxScale` `Services`](../MAXSCALE.md#kubernetes-services).
+- If you are using `MaxScale`, you may point your applications back to the [`MaxScale Services`](../MAXSCALE.md#kubernetes-services).
 - Finally, for enhanced security, it is recommended to enforce TLS in all `MariaDB` connections by setting:
 
 ```diff
