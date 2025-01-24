@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"maps"
 	"net"
+	"strconv"
 	"strings"
 	"text/template"
 
@@ -197,6 +198,7 @@ func (c *ConfigFile) getProviderOptions(env *environment.PodEnvironment, options
 		if env.TLSServerKeyPath != "" {
 			wsrepOpts[galerakeys.WsrepOptSocketSSLKey] = env.TLSServerKeyPath
 		}
+		wsrepOpts[galerakeys.WsrepOptSocketDynamic] = strconv.FormatBool(!c.mariadb.IsTLSRequired())
 	} else {
 		wsrepOpts[galerakeys.WsrepOptSocketSSL] = "false"
 	}

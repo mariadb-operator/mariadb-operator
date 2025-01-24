@@ -755,6 +755,12 @@ func (m *MariaDB) IsTLSEnabled() bool {
 	return ptr.Deref(m.Spec.TLS, TLS{}).Enabled
 }
 
+// IsTLSRequired indicates whether TLS must be enforced for all connections.
+func (m *MariaDB) IsTLSRequired() bool {
+	tls := ptr.Deref(m.Spec.TLS, TLS{})
+	return ptr.Deref(tls.Required, true)
+}
+
 // IsReady indicates whether the MariaDB instance is ready
 func (m *MariaDB) IsReady() bool {
 	return meta.IsStatusConditionTrue(m.Status.Conditions, ConditionTypeReady)

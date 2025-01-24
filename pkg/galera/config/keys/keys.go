@@ -13,4 +13,5 @@ var (
 	WsrepOptSocketSSLCert = "socket.ssl_cert"
 	WsrepOptSocketSSLKey  = "socket.ssl_key"
 	WsrepOptSocketSSLCA   = "socket.ssl_ca"
+	WsrepOptSocketDynamic = "socket.dynamic"
 )

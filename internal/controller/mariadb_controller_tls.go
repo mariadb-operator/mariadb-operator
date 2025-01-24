@@ -157,9 +157,6 @@ func (r *MariaDBReconciler) reconcileTLSCABundle(ctx context.Context, mdb *maria
 }
 
 func (r *MariaDBReconciler) reconcileTLSConfig(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
-	tls := ptr.Deref(mariadb.Spec.TLS, mariadbv1alpha1.TLS{})
-	required := ptr.Deref(tls.Required, true)
-
 	configMapKeyRef := mariadb.TLSConfigMapKeyRef()
 
 	tpl := createTpl("tls", `[mariadb]
@@ -179,7 +176,7 @@ tls_version = TLSv1.3
 		SSLCert:                builderpki.ServerCertPath,
 		SSLKey:                 builderpki.ServerKeyPath,
 		SSLCA:                  builderpki.CACertPath,
-		RequireSecureTransport: required,
+		RequireSecureTransport: mariadb.IsTLSRequired(),
 	})
 	if err != nil {
 		return fmt.Errorf("error rendering TLS config: %v", err)

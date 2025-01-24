@@ -20,8 +20,6 @@ spec:
 
   galera:
     enabled: true
-    # providerOptions:
-    #   socket.dynamic: 'true'
 
   service:
     type: LoadBalancer
