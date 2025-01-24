@@ -221,6 +221,13 @@ func (r *MariaDBReconciler) getTLSAnnotations(ctx context.Context, mariadb *mari
 	}
 	annotations[metadata.TLSServerCertAnnotation] = hash(serverCert)
 
+	configMapKeyRef := mariadb.TLSConfigMapKeyRef()
+	config, err := r.RefResolver.ConfigMapKeyRef(ctx, &configMapKeyRef, mariadb.Namespace)
+	if err != nil {
+		return nil, fmt.Errorf("error getting TLS config: %v", err)
+	}
+	annotations[metadata.ConfigTLSAnnotation] = hash(config)
+
 	return annotations, nil
 }
 

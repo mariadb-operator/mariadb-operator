@@ -8,6 +8,7 @@ var (
 	MariadbAnnotation     = "k8s.mariadb.com/mariadb"
 
 	ConfigAnnotation       = "k8s.mariadb.com/config"
+	ConfigTLSAnnotation    = "k8s.mariadb.com/config-tls"
 	ConfigGaleraAnnotation = "k8s.mariadb.com/config-galera"
 
 	TLSCAAnnotation           = "k8s.mariadb.com/ca"
