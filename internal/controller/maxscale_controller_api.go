@@ -287,6 +287,7 @@ func (m *maxScaleAPI) listenerAttributes(listener *mariadbv1alpha1.MaxScaleListe
 		attrs.Parameters.SSLCert = builderpki.ListenerCertPath
 		attrs.Parameters.SSLKey = builderpki.ListenerKeyPath
 		attrs.Parameters.SSLCA = builderpki.CACertPath
+		attrs.Parameters.SSLVersion = "TLSv13"
 		attrs.Parameters.SSLVerifyPeerCertificate = ptr.Deref(tls.VerifyPeerCertificate, true)
 		attrs.Parameters.SSLVerifyPeerHost = ptr.Deref(tls.VerifyPeerHost, false)
 	}

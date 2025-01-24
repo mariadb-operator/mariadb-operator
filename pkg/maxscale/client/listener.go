@@ -13,6 +13,7 @@ type ListenerParameters struct {
 	SSLCert                  string    `json:"ssl_cert,omitempty"`
 	SSLKey                   string    `json:"ssl_key,omitempty"`
 	SSLCA                    string    `json:"ssl_ca,omitempty"`
+	SSLVersion               string    `json:"ssl_version,omitempty"`
 	SSLVerifyPeerCertificate bool      `json:"ssl_verify_peer_certificate,omitempty"`
 	SSLVerifyPeerHost        bool      `json:"ssl_verify_peer_host,omitempty"`
 	Params                   MapParams `json:"-"`
