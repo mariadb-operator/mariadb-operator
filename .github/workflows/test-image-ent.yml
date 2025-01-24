@@ -30,7 +30,14 @@ jobs:
           registry: gcr.io
           username: _json_key
           password: ${{ secrets.GCR_JSON_KEY }}
-  
+
+      - name: Login GAR
+        uses: docker/login-action@v3
+        with:
+          registry: us-central1-docker.pkg.dev
+          username: _json_key
+          password: ${{ secrets.GAR_JSON_KEY }}
+
       - name: Login DockerHub
         uses: docker/login-action@v3
         with:
