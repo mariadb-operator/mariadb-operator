@@ -530,7 +530,7 @@ metadata:
   name: maxscale-galera
 spec:
 ...
-  replicas: 3
+  replicas: 2
 
   monitor:
     name: mariadb-monitor

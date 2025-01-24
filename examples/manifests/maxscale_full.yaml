@@ -21,7 +21,7 @@ spec:
      annotations:
         sidecar.istio.io/inject: "false"
 
-  replicas: 3
+  replicas: 2
 
   servers:
     - name: mariadb-0
