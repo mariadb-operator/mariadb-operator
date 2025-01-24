@@ -328,6 +328,7 @@ wsrep_sst_receive_address="[2001:db8::a1]:4444"
 					},
 					TLS: &mariadbv1alpha1.TLS{
 						Enabled:          true,
+						Required:         ptr.To(true),
 						GaleraSSTEnabled: ptr.To(true),
 					},
 					Replicas: 3,
@@ -364,7 +365,7 @@ wsrep_node_name="mariadb-galera-1"
 
 # Provider
 wsrep_provider=/usr/lib/galera/libgalera_enterprise_smm.so
-wsrep_provider_options="gmcast.listen_addr=tcp://0.0.0.0:4567;ist.recv_addr=10.244.0.32:4568;socket.ssl=true;socket.ssl_ca=/etc/pki/ca.crt;socket.ssl_cert=/etc/pki/server.crt;socket.ssl_key=/etc/pki/server.key"
+wsrep_provider_options="gmcast.listen_addr=tcp://0.0.0.0:4567;ist.recv_addr=10.244.0.32:4568;socket.dynamic=false;socket.ssl=true;socket.ssl_ca=/etc/pki/ca.crt;socket.ssl_cert=/etc/pki/server.crt;socket.ssl_key=/etc/pki/server.key"
 
 # SST
 wsrep_sst_method="mariabackup"
@@ -379,7 +380,7 @@ tkey=/etc/pki/client.key
 			wantErr: false,
 		},
 		{
-			name: "TLS with client SSL disabled",
+			name: "TLS with Galera SST disabled",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "mariadb-galera",
@@ -397,6 +398,7 @@ tkey=/etc/pki/client.key
 					},
 					TLS: &mariadbv1alpha1.TLS{
 						Enabled:          true,
+						Required:         ptr.To(true),
 						GaleraSSTEnabled: ptr.To(false),
 					},
 					Replicas: 3,
@@ -433,12 +435,82 @@ wsrep_node_name="mariadb-galera-1"
 
 # Provider
 wsrep_provider=/usr/lib/galera/libgalera_enterprise_smm.so
-wsrep_provider_options="gmcast.listen_addr=tcp://0.0.0.0:4567;ist.recv_addr=10.244.0.32:4568;socket.ssl=true;socket.ssl_ca=/etc/pki/ca.crt;socket.ssl_cert=/etc/pki/server.crt;socket.ssl_key=/etc/pki/server.key"
+wsrep_provider_options="gmcast.listen_addr=tcp://0.0.0.0:4567;ist.recv_addr=10.244.0.32:4568;socket.dynamic=false;socket.ssl=true;socket.ssl_ca=/etc/pki/ca.crt;socket.ssl_cert=/etc/pki/server.crt;socket.ssl_key=/etc/pki/server.key"
 
 # SST
 wsrep_sst_method="mariabackup"
 wsrep_sst_auth="root:mariadb"
 wsrep_sst_receive_address="10.244.0.32:4444"
+`,
+			wantErr: false,
+		},
+		{
+			name: "TLS with required disabled",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      "mariadb-galera",
+					Namespace: "default",
+				},
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Image: "mariadb:10.11.8",
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							SST:            mariadbv1alpha1.SSTMariaBackup,
+							GaleraLibPath:  "/usr/lib/galera/libgalera_enterprise_smm.so",
+							ReplicaThreads: 2,
+						},
+					},
+					TLS: &mariadbv1alpha1.TLS{
+						Enabled:          true,
+						Required:         ptr.To(false),
+						GaleraSSTEnabled: ptr.To(true),
+					},
+					Replicas: 3,
+				},
+			},
+			podEnv: &environment.PodEnvironment{
+				PodName:             "mariadb-galera-1",
+				PodIP:               "10.244.0.32",
+				MariadbRootPassword: "mariadb",
+				TLSEnabled:          "true",
+				TLSCACertPath:       "/etc/pki/ca.crt",
+				TLSServerCertPath:   "/etc/pki/server.crt",
+				TLSServerKeyPath:    "/etc/pki/server.key",
+				TLSClientCertPath:   "/etc/pki/client.crt",
+				TLSClientKeyPath:    "/etc/pki/client.key",
+			},
+			isEnterprise: false,
+			//nolint:lll
+			wantConfig: `[mariadb]
+bind_address=*
+default_storage_engine=InnoDB
+binlog_format=row
+innodb_autoinc_lock_mode=2
+
+# Cluster
+wsrep_on=ON
+wsrep_cluster_address="gcomm://mariadb-galera-0.mariadb-galera-internal.default.svc.cluster.local,mariadb-galera-1.mariadb-galera-internal.default.svc.cluster.local,mariadb-galera-2.mariadb-galera-internal.default.svc.cluster.local"
+wsrep_cluster_name=mariadb-operator
+wsrep_slave_threads=2
+
+# Node
+wsrep_node_address="10.244.0.32"
+wsrep_node_name="mariadb-galera-1"
+
+# Provider
+wsrep_provider=/usr/lib/galera/libgalera_enterprise_smm.so
+wsrep_provider_options="gmcast.listen_addr=tcp://0.0.0.0:4567;ist.recv_addr=10.244.0.32:4568;socket.dynamic=true;socket.ssl=true;socket.ssl_ca=/etc/pki/ca.crt;socket.ssl_cert=/etc/pki/server.crt;socket.ssl_key=/etc/pki/server.key"
+
+# SST
+wsrep_sst_method="mariabackup"
+wsrep_sst_auth="root:mariadb"
+wsrep_sst_receive_address="10.244.0.32:4444"
+[sst]
+encrypt=3
+tca=/etc/pki/ca.crt
+tcert=/etc/pki/client.crt
+tkey=/etc/pki/client.key
 `,
 			wantErr: false,
 		},
