@@ -28,20 +28,19 @@ func (r *MaxScaleReconciler) reconcileStatus(ctx context.Context, req *requestMa
 	}
 	logger := log.FromContext(ctx).WithName("status")
 
+	var sts appsv1.StatefulSet
+	if err := r.Get(ctx, client.ObjectKeyFromObject(req.mxs), &sts); err != nil {
+		return ctrl.Result{}, err
+	}
+
 	var (
 		errBundle                 *multierror.Error
-		sts                       *appsv1.StatefulSet
 		srvStatus                 *serverStatus
 		monitorStatus             *mariadbv1alpha1.MaxScaleResourceStatus
 		svcStatus, listenerStatus []mariadbv1alpha1.MaxScaleResourceStatus
 		configSync                *mariadbv1alpha1.MaxScaleConfigSyncStatus
 		tlsStatus                 *mariadbv1alpha1.MaxScaleTLSStatus
 	)
-
-	if err := r.Get(ctx, client.ObjectKeyFromObject(req.mxs), sts); err != nil {
-		logger.V(1).Info("error getting StatefulSet", "err", err)
-	}
-
 	client, err := r.client(ctx, req.mxs)
 	if err != nil {
 		logger.V(1).Info("error getting client", "err", err)
@@ -112,13 +111,11 @@ func (r *MaxScaleReconciler) reconcileStatus(ctx context.Context, req *requestMa
 			mss.TLS = tlsStatus
 		}
 
-		if sts != nil {
-			mss.Replicas = sts.Status.ReadyReplicas
+		mss.Replicas = sts.Status.ReadyReplicas
 
-			condition.SetReadyWithStatefulSet(mss, sts)
-			if r.isStatefulSetReady(sts, req.mxs) {
-				condition.SetReadyWithMaxScaleStatus(mss, mss)
-			}
+		condition.SetReadyWithStatefulSet(mss, &sts)
+		if r.isStatefulSetReady(&sts, req.mxs) {
+			condition.SetReadyWithMaxScaleStatus(mss, mss)
 		}
 		return nil
 	})
