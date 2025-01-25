@@ -84,7 +84,7 @@ spec:
 +   enabled: false
 ```
 
-- If you are planning to use TLS and you are currently using Galera, please set the following options to enable it:
+- If you are planning to use TLS, and you are currently using Galera, please set the following options to enable it:
 ```diff
 apiVersion: k8s.mariadb.com/v1alpha1
 kind: MariaDB
@@ -96,9 +96,9 @@ spec:
 +   required: false
 +   galeraSSTEnabled: false
 ```
-By setting these options, the operator will issue and configure certificates for `MariaDB`, but TLS will not be enforced in the connections i.e. both TLS and non TLS connections will be accepted. TLS enforcement will optionally be configured at the end of the migration process.
+By setting these options, the operator will issue and configure certificates for `MariaDB`, but TLS will not be enforced in the connections i.e. both TLS and non TLS connections will be accepted. TLS enforcement will be optionally configured at the end of the migration process.
 
-- If you are planning to use TLS, and you are currently using `MaxScale`, it is important to note that, unlike `MariaDB`, it does not support TLS and non-TLS connections simultaneously (see [limitations](../TLS.md#limitations)). For this reason, you must temporarily point your applications to `MariaDB` during the migration. You can achieve this by configuring your application to use the [`MariaDB Services`](../HA.md#kubernetes-services). At the end of the `MariaDB` migration process, the `MaxScale` instance will need to be recreated in order to use TLS, and then you will be able to point your application back to `MaxScale`.
+- If you are planning to use TLS, and you are currently using `MaxScale`, it is important to note that, unlike `MariaDB`, it does not support TLS and non-TLS connections simultaneously (see [limitations](../TLS.md#limitations)). For this reason, you must temporarily point your applications to `MariaDB` during the migration process. You can achieve this by configuring your application to use the [`MariaDB Services`](../HA.md#kubernetes-services). At the end of the `MariaDB` migration process, the `MaxScale` instance will need to be recreated in order to use TLS, and then you will be able to point your application back to `MaxScale`. Ensure all applications are pointing to `MariaDB` before moving on to the next step.
 
 -  Upgrade `mariadb-operator` to `0.37.0`:
 ```bash 
@@ -157,7 +157,13 @@ spec:
 +   required: true
 ```
 This will trigger a rolling upgrade, make sure it finishes successfully before proceeding with the next step.
-- If you are using `MaxScale`, now that the `MariaDB` setup migration is completed, you should now recreate your `MaxScale` instance with TLS enabled:
+- If you are using `MaxScale`, now that the `MariaDB` migration is completed, you should follow these steos ti recreate your `MaxScale` instance with TLS:
+
+Delete your previous `MaxScale` instance. It is very important that you wait until your old `MaxScale` instance is fully terminated to make sure that the old configuration is cleaned up by the operator:
+```bash
+kubectl delete mxs maxscale-galera
+```
+Create a new `MaxScale` instance with `tls.enabled=true`:
 ```diff
 apiVersion: k8s.mariadb.com/v1alpha1
 kind: MaxScale
@@ -167,6 +173,5 @@ spec:
 + tls:
 +   enabled: false
 ```
-It is very important that you wait until your old `MaxScale` instance is fully terminated before creating the new one. This is to make sure that the old configuration is cleaned up by the operator.
 
 - `MaxScale` is now accepting TLS connections. Next, you need to [migrate your applications to use TLS](../TLS.md#secure-application-connections-with-tls) by pointing them to connect to `MaxScale` securely. If you have done this previously for `MariaDB`, you just need to update your application configuration to use the [`MaxScale Service`](../MAXSCALE.md#kubernetes-services) and its CA bundle.
