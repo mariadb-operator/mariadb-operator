@@ -142,7 +142,9 @@ An update is now automatically triggered, and the `Pods` are restarted according
 - [Operator configuration via helm](https://github.com/mariadb-operator/mariadb-operator/pull/1098) by @sakazuki and @indigo-saito
 - [Support EKS Service Accounts in S3](https://github.com/mariadb-operator/mariadb-operator/pull/1115) by @Skaronator
 - [Add support for configuring priorityClassName, topologySpreadConstraints, PDB in Helm Chart](https://github.com/mariadb-operator/mariadb-operator/pull/1133) by @Skaronator
-- [Fix examples SqlJob secret reference](https://github.com/mariadb-operator/mariadb-operator/pull/1090) by @driv 
+- [Exclude dollar signs from generated passwords](https://github.com/mariadb-operator/mariadb-operator/pull/1135) by @simonhammes
+- [Fix examples SqlJob secret reference](https://github.com/mariadb-operator/mariadb-operator/pull/1090) by @driv
+- [FLUSH PRIVILEGES unnecessary for user/grant manipulation](https://github.com/mariadb-operator/mariadb-operator/pull/1083) by @grooverdan
 
 Huge thanks to our awesome contributors! 🙇
 
