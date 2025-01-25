@@ -22,7 +22,7 @@
 - [Certificate renewal](#certificate-renewal)
 - [Certificate status](#certificate-status)
 - [TLS requirements for `Users`](#tls-requirements-for-users)
-- [Secure application connections with TLS](#secure-applications-connections-with-tls)
+- [Secure application connections with TLS](#secure-applications-connection-with-tls)
 - [Test TLS certificates with `Connections`](#test-tls-certificates-with-connections)
 - [Limitations](#limitations)
 <!-- /toc -->
@@ -41,7 +41,6 @@ spec:
   tls:
     enabled: true
 ```
-
 ```yaml
 apiVersion: k8s.mariadb.com/v1alpha1
 kind: MaxScale
@@ -53,15 +52,39 @@ spec:
     enabled: true
 ```
 
-By doing so, the operator will generate a CA for each `MariaDB` and `MaxScale` resource, and use it to issue leaf certificates mounted by the instances. This is also the default behaviour when no `tls` field is specified. 
+As a result, the operator will generate a CA for each `MariaDB` and `MaxScale` resource, and use it to issue leaf certificates mounted by the instances. It is important to note that the TLS connections will be enforced in this case. This is the default behaviour when no `tls` field is specified.
 
-You can opt-out from TLS and use unencrypted connections just by setting `tls.enabled=false`:
+If you want to issue and mount certificates in your `MariaDB` instance, but not enforcing TLS connections, for instance, to [migrate your application to TLS](#secure-application-connections-with-tls), you may set:
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb
+spec:
+  ...
+  tls:
+    enabled: true
+    required: false
+```
+It is worth mentioning that [MaxScale does not support TLS and non TLS connections simultaneously](https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/#tlsssl-encryption). As a result, the `tls.required` option is not available in the `MaxScale` resource.
+
+If you want to fully opt-out from TLS and use unencrypted connections, you can set `tls.enabled=false`, this applies to both `MariaDB` and `MaxScale`:
 
 ```yaml
 apiVersion: k8s.mariadb.com/v1alpha1
 kind: MariaDB
 metadata:
   name: mariadb
+spec:
+  ...
+  tls:
+    enabled: false
+```
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MaxScale
+metadata:
+  name: maxscale
 spec:
   ...
   tls:
