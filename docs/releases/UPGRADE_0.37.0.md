@@ -116,7 +116,7 @@ helm repo update mariadb-operator
 helm upgrade --install mariadb-operator mariadb-operator/mariadb-operator --version 0.37.0 
 ```
 
-Alternatively, if you previously decided to downscale the operator, make sure you upscale it back:
+If you previously decided to downscale the operator, make sure you upscale it back:
 ```bash
 kubectl scale deployment mariadb-operator --replicas=1
 kubectl scale deployment mariadb-operator-webhook --replicas=1
@@ -158,7 +158,7 @@ spec:
 +   autoUpdateDataPlane: false
 -   autoUpdateDataPlane: true
 ```
-- At this point, both `MariaDB` and `MaxScale` accept TLS connections. You must now migrate your applications to use TLS connections. Make sure all your applications are using TLS connections before proceeding to the next step.
+- At this point, both `MariaDB` and `MaxScale` accept TLS connections. You must now [migrate your applications to use TLS](../TLS.md#secure-application-connections-with-tls). Make sure all your applications connections are using TLS before proceeding to the next step.
 - If you are using `MaxScale`, you may point your applications back to the [`MaxScale Services`](../MAXSCALE.md#kubernetes-services).
 - Finally, for enhanced security, it is recommended to enforce TLS in all `MariaDB` connections by setting:
 
