@@ -1,6 +1,6 @@
 # Upgrade guide 0.37.0
 
-This guide illustrates, step by step, how to migrate to 0.36.0 from previous versions. We have introduced support for __TLS__ in this release, and it is __enabled and enforced by default__. Please follow the steps to avoid any issues.
+This guide illustrates, step by step, how to migrate to 0.37.0 from previous versions. We have introduced support for __TLS__ in this release, and it is __enabled and enforced by default__. Please follow the steps to avoid any issues.
 
 > [!WARNING]
 > Do not attempt to skip intermediate version upgrades. Upgrade progressively through each version.
@@ -14,7 +14,7 @@ An attempt to upgrade from `0.0.33` to `0.34.0`, then `0.35.0`, and then `0.37.0
 > TLS is enabled and enforced by default, not following the migration steps may result in unexpected behavior.
 
 > [!CAUTION]
-> With the introduction of TLS, breaking changes in the Galera data-plane have been introduced. Make sure you follow the migration steps to avoid any issues.
+> With the introduction of TLS, breaking changes in the Galera data-plane have been introduced. Make sure you follow the migration steps to upgrade without any issues.
 
 
 ### Migration steps
@@ -22,13 +22,6 @@ An attempt to upgrade from `0.0.33` to `0.34.0`, then `0.35.0`, and then `0.37.0
 - Uninstall you current `mariadb-operator` for preventing conflicts:
 ```bash
 helm uninstall mariadb-operator
-```
-Alternatively, you may only downscale and delete the webhook configurations:
-```bash
-kubectl scale deployment mariadb-operator --replicas=0
-kubectl scale deployment mariadb-operator-webhook --replicas=0
-kubectl delete validatingwebhookconfiguration mariadb-operator-webhook
-kubectl delete mutatingwebhookconfiguration mariadb-operator-webhook
 ```
 
 - Upgrade `mariadb-operator-crds` to `0.37.0`:
@@ -106,12 +99,6 @@ helm repo update mariadb-operator
 helm upgrade --install mariadb-operator mariadb-operator/mariadb-operator --version 0.37.0 
 ```
 
-If you previously decided to downscale the operator, make sure you upscale it back:
-```bash
-kubectl scale deployment mariadb-operator --replicas=1
-kubectl scale deployment mariadb-operator-webhook --replicas=1
-```
-
 - Wait until the rolling upgrade has finished. If you are using the `OnDelete` or `Never` update strategies, you will need to manually delete the Pods to trigger the rolling upgrade. More information can be found in the [update strategies](../UPDATES.md) documentation.
 
 - Optionally, if you are willing to enable SSL for the Galera SSTs, follow these steps in order:
@@ -145,6 +132,7 @@ spec:
 +   autoUpdateDataPlane: false
 -   autoUpdateDataPlane: true
 ```
+
 - `MariaDB` is now accepting TLS connections. Next, you need to [migrate your applications to use TLS](../TLS.md#secure-application-connections-with-tls) by pointing them to connect to `MariaDB` securely. Ensure all application connections are using TLS before moving on to the next step.
 - For enhanced security, it is recommended to enforce TLS in all `MariaDB` connections by setting:
 ```diff
@@ -157,6 +145,7 @@ spec:
 +   required: true
 ```
 This will trigger a rolling upgrade, make sure it finishes successfully before proceeding with the next step.
+
 - If you are using `MaxScale`, now that the `MariaDB` migration is completed, you should follow these steos ti recreate your `MaxScale` instance with TLS:
 
 Delete your previous `MaxScale` instance. It is very important that you wait until your old `MaxScale` instance is fully terminated to make sure that the old configuration is cleaned up by the operator:
