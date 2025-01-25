@@ -22,7 +22,7 @@
 - [Certificate renewal](#certificate-renewal)
 - [Certificate status](#certificate-status)
 - [TLS requirements for `Users`](#tls-requirements-for-users)
-- [Secure application connections with TLS](#secure-applications-connection-with-tls)
+- [Secure application connections with TLS](#secure-application-connection-with-tls)
 - [Test TLS certificates with `Connections`](#test-tls-certificates-with-connections)
 - [Limitations](#limitations)
 <!-- /toc -->
