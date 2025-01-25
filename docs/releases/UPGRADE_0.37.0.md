@@ -96,19 +96,9 @@ spec:
 +   required: false
 +   galeraSSTEnabled: false
 ```
-By setting these options, the operator will issue and configure certificates for `MariaDB`, but TLS will not be enforced in the connections i.e. both TLS and non TLS connections will be accepted.
+By setting these options, the operator will issue and configure certificates for `MariaDB`, but TLS will not be enforced in the connections i.e. both TLS and non TLS connections will be accepted. TLS enforcement will optionally be configured at the end of the migration process.
 
-- If you are planning to use TLS and you are currently using MaxScale, it is important to note that, unlike MariaDB, [it does not support TLS and non TLS connections simultaneously](https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/#tlsssl-encryption). For this reason, it is recommended to temporarily point your applications to `MariaDB` during the migration. You can achieve this by configuring your application to use the [`MariaDB Services`](../HA.md#kubernetes-services). After doing so, you can safely enable TLS in `MaxScale` by setting:
-
-```diff
-apiVersion: k8s.mariadb.com/v1alpha1
-kind: MaxScale
-metadata:
-  name: maxscale-galera
-spec:
-  tls:
-+   enabled: true
-```
+- If you are planning to use TLS, and you are currently using `MaxScale`, it is important to note that, unlike `MariaDB`, it does not support TLS and non-TLS connections simultaneously (see [limitations](../TLS.md#limitations)). For this reason, you must temporarily point your applications to `MariaDB` during the migration. You can achieve this by configuring your application to use the [`MariaDB Services`](../HA.md#kubernetes-services). At the end of the `MariaDB` migration process, the `MaxScale` instance will need to be recreated in order to use TLS, and then you will be able to point your application back to `MaxScale`.
 
 -  Upgrade `mariadb-operator` to `0.37.0`:
 ```bash 
@@ -151,17 +141,12 @@ kind: MariaDB
 metadata:
   name: mariadb-galera
 spec:
-  galera:
-    enabled: true
-
   updateStrategy:
 +   autoUpdateDataPlane: false
 -   autoUpdateDataPlane: true
 ```
-- At this point, both `MariaDB` and `MaxScale` accept TLS connections. You must now [migrate your applications to use TLS](../TLS.md#secure-application-connections-with-tls). Make sure all your applications connections are using TLS before proceeding to the next step.
-- If you are using `MaxScale`, you may point your applications back to the [`MaxScale Services`](../MAXSCALE.md#kubernetes-services).
-- Finally, for enhanced security, it is recommended to enforce TLS in all `MariaDB` connections by setting:
-
+- `MariaDB` is now accepting TLS connections. Next, you need to [migrate your applications to use TLS](../TLS.md#secure-application-connections-with-tls) by pointing them to connect to `MariaDB` securely. Ensure all application connections are using TLS before moving on to the next step.
+- For enhanced security, it is recommended to enforce TLS in all `MariaDB` connections by setting:
 ```diff
 apiVersion: k8s.mariadb.com/v1alpha1
 kind: MariaDB
@@ -171,3 +156,17 @@ spec:
   tls:
 +   required: true
 ```
+This will trigger a rolling upgrade, make sure it finishes successfully before proceeding with the next step.
+- If you are using `MaxScale`, now that the `MariaDB` setup migration is completed, you should now recreate your `MaxScale` instance with TLS enabled:
+```diff
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MaxScale
+metadata:
+  name: maxscale
+spec:
++ tls:
++   enabled: false
+```
+It is very important that you wait until your old `MaxScale` instance is fully terminated before creating the new one. This is to make sure that the old configuration is cleaned up by the operator.
+
+- `MaxScale` is now accepting TLS connections. Next, you need to [migrate your applications to use TLS](../TLS.md#secure-application-connections-with-tls) by pointing them to connect to `MaxScale` securely. If you have done this previously for `MariaDB`, you just need to update your application configuration to use the [`MaxScale Service`](../MAXSCALE.md#kubernetes-services) and its CA bundle.
