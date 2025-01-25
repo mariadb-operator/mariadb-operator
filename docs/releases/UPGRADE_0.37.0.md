@@ -128,7 +128,7 @@ spec:
 
 This will trigger a rolling upgrade, make sure it finishes successfully before proceeding with the next step.
 
-- `MariaDB` is now accepting TLS connections. The next step is [migrating your applications to use TLS](../TLS.md#secure-application-connections-with-tls) by poiting them to `MariaDB` securely. Ensure that all application are connecting to `MariaDB` via TLS before proceeding to the next step.
+- `MariaDB` is now accepting TLS connections. The next step is [migrating your applications to use TLS](../TLS.md#secure-application-connections-with-tls) by pointing them to `MariaDB` securely. Ensure that all application are connecting to `MariaDB` via TLS before proceeding to the next step.
 
 - For enhanced security, it is recommended to enforce TLS in all `MariaDB` connections by setting:
 ```diff
@@ -159,4 +159,4 @@ spec:
 +   enabled: true
 ```
 
-- `MaxScale` is now accepting TLS connections. Next, you need to [migrate your applications to use TLS](../TLS.md#secure-application-connections-with-tls) by poiting them back to `MaxScale` securely. You have done this previously for `MariaDB`, you just need to update your application configuration to use the [`MaxScale Service`](../MAXSCALE.md#kubernetes-services) and its CA bundle.
+- `MaxScale` is now accepting TLS connections. Next, you need to [migrate your applications to use TLS](../TLS.md#secure-application-connections-with-tls) by pointing them back to `MaxScale` securely. You have done this previously for `MariaDB`, you just need to update your application configuration to use the [`MaxScale Service`](../MAXSCALE.md#kubernetes-services) and its CA bundle.

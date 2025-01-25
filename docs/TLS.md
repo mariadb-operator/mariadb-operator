@@ -30,6 +30,9 @@
 
 ## Configuration
 
+> [!IMPORTANT]  
+> This section covers TLS configuration in new instances. If you are looking to migrate an existing instance, please refer to [this section](#enabling-tls-in-existing-instances) instead.
+
 The easieast way to configure TLS in both `MariaDB` and `MaxScale` is by setting `tls.enabled=true`:
 
 ```yaml
