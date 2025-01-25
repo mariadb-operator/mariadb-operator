@@ -1,7 +1,7 @@
 #!/bin/bash
 
 if [ "$#" -ne 1 ]; then
-  echo "Usage: $0 <mariadb-instance>"
+  echo "Usage: $0 <mariadb-name>"
   exit 1
 fi
 
