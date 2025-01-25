@@ -606,8 +606,8 @@ See [MariaDB docs](https://mariadb.com/kb/en/securing-connections-for-client-and
 ## Secure application connections with TLS
 
 In this guide, we will configure TLS for an application running in the `app` namespace to connect with `MariaDB` and `MaxScale` instances deployed in the `default` namespace. We assume that the following resources are already present in the `default` namespace:  
-- [`MariaDB` Galera](../examples/manifests/mariadb_galera.yaml)  
-- [`MaxScale` Galera](../examples/manifests/maxscale_galera.yaml)  
+- [`MariaDB` Galera](../examples/manifests/mariadb_galera_tls.yaml)  
+- [`MaxScale` Galera](../examples/manifests/maxscale_galera_tls.yaml)  
 
 The first step is to create a `User` resource and grant the necessary permissions:
 
@@ -647,7 +647,7 @@ The `app` user will be able to connect to the `MariaDB` instance from the `app` 
 
 With the permissions in place, the next step is to prepare the certificates required for the application to connect:
 - **CA Bundle**: The trust bundle for `MariaDB` and `MaxScale` is available as a `Secret` named `<instance-name>-ca-bundle` in the `default` namespace. For more details, refer to the sections on [CA bundle](#ca-bundle) and [distributing trust](#distributing-trust). Additionally, check out the [trust-manager `Bundle` example](../hack/manifests/trust-manager/bundle.yaml), which demonstrates copying the bundle to the `app` namespace.  
-- **Client Certificate**: `MariaDB` provides a default client certificate stored in a `Secret` named `<mariadb-name>-client-cert` in the `default` namespace. You can either use this `Secret` or generate a new one with the subject `mariadb-galera-client`, signed by the `mariadb-galera-ca` CA. While issuing client certificates for applications falls outside the scope of this operator, you can [test them using `Connection` resources](#test-tls-certificates-with-connections).
+- **Client Certificate**: `MariaDB` provides a default client certificate stored in a `Secret` named `<mariadb-name>-client-cert` in the `default` namespace. You can either use this `Secret` or generate a new one with the subject `mariadb-galera-client`, issued by the `mariadb-galera-ca` CA. While issuing client certificates for applications falls outside the scope of this operator, you can [test them using `Connection` resources](#test-tls-certificates-with-connections).
 
 In this example, we assume that the following `Secrets` are available in the `app` namespace:  
 - `mariadb-bundle`: CA bundle for the `MariaDB` and `MaxScale` instances.  
