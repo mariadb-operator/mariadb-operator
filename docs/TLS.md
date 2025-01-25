@@ -24,6 +24,7 @@
 - [TLS requirements for `Users`](#tls-requirements-for-users)
 - [Secure application connections with TLS](#secure-application-connections-with-tls)
 - [Test TLS certificates with `Connections`](#test-tls-certificates-with-connections)
+- [Enabling TLS in existing instances](#enabling-tls-in-existing-instances)
 - [Limitations](#limitations)
 <!-- /toc -->
 
@@ -820,6 +821,11 @@ connection-maxscale          True    Healthy   connection-maxscale   97s
 
 This could be specially useful when [providing your own certificates](#provide-your-own-certificates) and issuing certificates for your applications.
 
+## Enabling TLS in existing instances
+
+Please follow [this migration guide](./releases/UPGRADE_0.37.0.md) step by step.
+
+
 ## Limitations
 
 ### Galera and intermediate CAs
@@ -827,3 +833,11 @@ This could be specially useful when [providing your own certificates](#provide-y
 Leaf certificates issued by [intermediate CAs](#intermediate-cas) are not supported by Galera, see [MDEV-35812](https://jira.mariadb.org/browse/MDEV-35812). This implies that a root CA must be used to issue the `MariaDB` certificates.
 
 This doesn't affect `MaxScale`, as it is able to establish trust with intermediate CAs, and therefore you can still issue your application facing certificates (MaxScale listeners) with an intermediate CA, giving you more flexibility in your PKI setup. You can find a practical [example here](./../examples/manifests/maxscale_galera_tls_cert_manager_intermediate_ca.yaml).
+
+
+### MaxScale
+
+- Unlike `MariaDB`, TLS and non-TLS connections on the same are not supported simultanously.
+- TLS encryption must be enabled for listeners when they are created. For servers, the TLS can be enabled after creation but it cannot be disabled or altered.
+
+Refer to the [MaxScale documentation ](https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/#tlsssl-encryption)for further detail.
