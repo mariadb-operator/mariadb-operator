@@ -142,7 +142,7 @@ spec:
 ```
 This will trigger a rolling upgrade, make sure it finishes successfully before proceeding with the next step.
 
-- If you are using `MaxScale`, now that the `MariaDB` migration is completed, you should follow these stepss to recreate your `MaxScale` instance with TLS:
+- If you are using `MaxScale`, now that the `MariaDB` migration is completed, you should follow these steps to recreate your `MaxScale` instance with TLS:
 
 Delete your previous `MaxScale` instance. It is very important that you wait until your old `MaxScale` instance is fully terminated to make sure that the old configuration is cleaned up by the operator:
 ```bash
