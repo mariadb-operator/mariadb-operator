@@ -3,12 +3,7 @@
 This guide illustrates, step by step, how to migrate to 0.37.0 from previous versions. We have introduced support for __TLS__ in this release, and it is __enabled and enforced by default__. Please follow the steps to avoid any issues.
 
 > [!WARNING]
-> Do not attempt to skip intermediate version upgrades. Upgrade progressively through each version.
-
-For example, if upgrading from `0.0.33` to `0.37.0`:
-An attempt to upgrade from `0.0.33` directly to `0.37.0` will result in unpredictable behavior.
-An attempt to upgrade from `0.0.33` to `0.34.0`, then `0.35.0`, and then `0.37.0` will result in success.
-
+> Avoid skipping intermediate version upgrades. Always upgrade progressively, one version at a time, and follow the upgrade guide step by step.
 
 > [!CAUTION]
 > TLS is enabled and enforced by default, not following the migration steps may result in unexpected behavior.
@@ -57,7 +52,7 @@ spec:
 +      image: docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:0.37.0
 ```
 
-- If you prefer not to use TLS, you can safely disable it by setting:
+- If you prefer not to use TLS, you can safely disable it in both your `MariaDB` and `MaxScale` resources by setting:
 ```diff
 apiVersion: k8s.mariadb.com/v1alpha1
 kind: MariaDB
@@ -115,7 +110,7 @@ spec:
 
 - Optionally, if you are willing to enable TLS for the Galera SSTs, follow these steps in order:
 
-First, run __[this migration script](../../hack/migrate_galera_sst_ssl.sh)__:
+First, run [this migration script](../../hack/migrate_galera_sst_ssl.sh):
 ```bash
  ./hack/migrate_galera_sst_ssl.sh <mariadb-name> # e.g. ./migrate_galera_sst_ssl.sh mariadb-galera
 ```
@@ -133,7 +128,7 @@ spec:
 
 This will trigger a rolling upgrade, make sure it finishes successfully before proceeding with the next step.
 
-- `MariaDB` now accepting TLS connections. The next step is [migrating your applications to use TLS](../TLS.md#secure-application-connections-with-tls) by poiting them to `MariaDB` securely. Ensure that all application are connecting to `MariaDB` via TLS before proceeding to the next step.
+- `MariaDB` is now accepting TLS connections. The next step is [migrating your applications to use TLS](../TLS.md#secure-application-connections-with-tls) by poiting them to `MariaDB` securely. Ensure that all application are connecting to `MariaDB` via TLS before proceeding to the next step.
 
 - For enhanced security, it is recommended to enforce TLS in all `MariaDB` connections by setting:
 ```diff
@@ -158,10 +153,10 @@ Create a new `MaxScale` instance with `tls.enabled=true`:
 apiVersion: k8s.mariadb.com/v1alpha1
 kind: MaxScale
 metadata:
-  name: mariadb-galera
+  name: maxscale-galera
 spec:
 + tls:
 +   enabled: true
 ```
 
-- `MaxScale` is now accepting TLS connections. Next, you need to [migrate your applications to use TLS](../TLS.md#secure-application-connections-with-tls) by poiting them back to `MaxScale` securely. If you have done this previously for `MariaDB`, you just need to update your application configuration to use the [`MaxScale Service`](../MAXSCALE.md#kubernetes-services) and its CA bundle.
+- `MaxScale` is now accepting TLS connections. Next, you need to [migrate your applications to use TLS](../TLS.md#secure-application-connections-with-tls) by poiting them back to `MaxScale` securely. You have done this previously for `MariaDB`, you just need to update your application configuration to use the [`MaxScale Service`](../MAXSCALE.md#kubernetes-services) and its CA bundle.
