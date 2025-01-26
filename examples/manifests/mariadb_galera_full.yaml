@@ -50,6 +50,9 @@ spec:
     metrics:
       enabled: true
 
+    tls:
+      enabled: true
+
   galera:
     enabled: true
     primary:
@@ -186,5 +189,9 @@ spec:
 
   metrics:
     enabled: true
+
+  tls:
+    enabled: true
+    required: true
 
   suspend: false

@@ -49,8 +49,6 @@ func (c *ConfigFile) Marshal(podEnv *environment.PodEnvironment) ([]byte, error)
 		return nil, errors.New("MariaDB Galera not enabled, unable to render config file")
 	}
 	galera := ptr.Deref(c.mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
-	tls := ptr.Deref(c.mariadb.Spec.TLS, mariadbv1alpha1.TLS{})
-	sstSSLEnabled := ptr.Deref(tls.GaleraSSTEnabled, true)
 
 	tpl := createTpl("galera", `[mariadb]
 bind_address=*
@@ -146,7 +144,7 @@ tkey={{ .SSTSSLKeyPath }}
 		SSTReceiveAddressKey: galerakeys.WsrepSSTReceiveAddressKey,
 		SSTReceiveAddress:    sstReceiveAddress,
 
-		SSTSSLEnabled:  tls.Enabled && sstSSLEnabled,
+		SSTSSLEnabled:  c.mariadb.IsTLSForGaleraSSTEnabled(),
 		SSTSSLCAPath:   podEnv.TLSCACertPath,
 		SSTSSLCertPath: podEnv.TLSClientCertPath,
 		SSTSSLKeyPath:  podEnv.TLSClientKeyPath,

@@ -92,17 +92,17 @@ func (m *maxScaleAPI) serverAttributes(srv *mariadbv1alpha1.MaxScaleServer) (*mx
 			Params:   mxsclient.NewMapParams(srv.Params),
 		},
 	}
-	tls := ptr.Deref(m.mxs.Spec.TLS, mariadbv1alpha1.MaxScaleTLS{})
-	if tls.Enabled {
+	if m.mxs.IsTLSEnabled() {
 		attrs.Parameters.SSL = true
 		attrs.Parameters.SSLCert = builderpki.ServerCertPath
 		attrs.Parameters.SSLKey = builderpki.ServerKeyPath
 		attrs.Parameters.SSLCA = builderpki.CACertPath
 		attrs.Parameters.SSLVersion = "TLSv13"
-		attrs.Parameters.SSLVerifyPeerCertificate = ptr.Deref(tls.VerifyPeerCertificate, true)
-		attrs.Parameters.SSLVerifyPeerHost = ptr.Deref(tls.VerifyPeerHost, false)
+		attrs.Parameters.SSLVerifyPeerCertificate = m.mxs.ShouldVerifyPeerCertificate()
+		attrs.Parameters.SSLVerifyPeerHost = m.mxs.ShouldVerifyPeerHost()
 
-		if ptr.Deref(tls.ReplicationSSLEnabled, false) {
+		if m.mxs.IsReplicationSSLEnabled() {
+			tls := ptr.Deref(m.mxs.Spec.TLS, mariadbv1alpha1.MaxScaleTLS{})
 			replicationCustomOptions, err := maxScaleReplicationCustomOptions(&tls)
 			if err != nil {
 				return nil, err
@@ -281,15 +281,14 @@ func (m *maxScaleAPI) listenerAttributes(listener *mariadbv1alpha1.MaxScaleListe
 			Params:   mxsclient.NewMapParams(listener.Params),
 		},
 	}
-	tls := ptr.Deref(m.mxs.Spec.TLS, mariadbv1alpha1.MaxScaleTLS{})
-	if tls.Enabled {
+	if m.mxs.IsTLSEnabled() {
 		attrs.Parameters.SSL = true
 		attrs.Parameters.SSLCert = builderpki.ListenerCertPath
 		attrs.Parameters.SSLKey = builderpki.ListenerKeyPath
 		attrs.Parameters.SSLCA = builderpki.CACertPath
 		attrs.Parameters.SSLVersion = "TLSv13"
-		attrs.Parameters.SSLVerifyPeerCertificate = ptr.Deref(tls.VerifyPeerCertificate, true)
-		attrs.Parameters.SSLVerifyPeerHost = ptr.Deref(tls.VerifyPeerHost, false)
+		attrs.Parameters.SSLVerifyPeerCertificate = m.mxs.ShouldVerifyPeerCertificate()
+		attrs.Parameters.SSLVerifyPeerHost = m.mxs.ShouldVerifyPeerHost()
 	}
 	return attrs
 }

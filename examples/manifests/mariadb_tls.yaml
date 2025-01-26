@@ -30,3 +30,4 @@ spec:
 
   tls:
     enabled: true
+    required: true

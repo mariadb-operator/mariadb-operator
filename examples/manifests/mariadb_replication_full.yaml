@@ -50,6 +50,9 @@ spec:
     metrics:
       enabled: true
 
+    tls:
+      enabled: true
+
   replication:
     enabled: true
     primary:
@@ -141,5 +144,9 @@ spec:
 
   metrics:
     enabled: true
+
+  tls:
+    enabled: true
+    required: true
 
   suspend: false

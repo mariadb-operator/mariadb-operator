@@ -461,6 +461,7 @@ func (m *MaxScaleAuth) SetDefaults(mxs *MaxScale) {
 // TLS defines the PKI to be used with MaxScale.
 type MaxScaleTLS struct {
 	// Enabled indicates whether TLS is enabled, determining if certificates should be issued and mounted to the MaxScale instance.
+	// It is enabled by default when the referred MariaDB instance (via mariaDbRef) has TLS enabled and enforced.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
 	Enabled bool `json:"enabled"`
@@ -511,16 +512,18 @@ type MaxScaleTLS struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	ServerCertSecretRef *LocalObjectReference `json:"serverCertSecretRef,omitempty"`
-	// VerifyPeerCertificate specifies whether the peer certificate's signature should be validated against the CA. It is enabled by default.
+	// VerifyPeerCertificate specifies whether the peer certificate's signature should be validated against the CA.
+	// It is disabled by default.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
 	VerifyPeerCertificate *bool `json:"verifyPeerCertificate,omitempty"`
-	// VerifyPeerHost specifies whether the peer certificate's SANs should match the peer host. It is disabled by default.
+	// VerifyPeerHost specifies whether the peer certificate's SANs should match the peer host.
+	// It is disabled by default.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
 	VerifyPeerHost *bool `json:"verifyPeerHost,omitempty"`
 	// ReplicationSSLEnabled specifies whether the replication SSL is enabled. If enabled, the SSL options will be added to the server configuration.
-	// This field is automatically set when a reference to a MariaDB via the 'mariaDbRef' field is provided.
+	// It is enabled by default when the referred MariaDB instance (via mariaDbRef) has replication enabled.
 	// If the MariaDB servers are manually provided by the user via the 'servers' field, this must be set by the user as well.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
@@ -529,7 +532,8 @@ type MaxScaleTLS struct {
 
 // SetDefaults sets reasonable defaults.
 func (m *MaxScaleTLS) SetDefaults(mdb *MariaDB) {
-	if !m.Enabled || mdb == nil || !mdb.IsTLSEnabled() {
+	// TLS should be enforced in MariaDB to be enabled in MaxScale by default
+	if !m.Enabled || mdb == nil || !mdb.IsTLSRequired() {
 		return
 	}
 
@@ -909,7 +913,8 @@ func (m *MaxScale) SetDefaults(env *environment.OperatorEnv, mariadb *MariaDB) {
 		}
 	}
 
-	if m.Spec.TLS == nil {
+	// TLS should be enforced in MariaDB to be enabled in MaxScale by default
+	if m.Spec.TLS == nil && mariadb != nil && mariadb.IsTLSRequired() {
 		m.Spec.TLS = &MaxScaleTLS{
 			Enabled: true,
 		}
@@ -958,9 +963,36 @@ func (m *MaxScale) AreMetricsEnabled() bool {
 	return ptr.Deref(m.Spec.Metrics, MaxScaleMetrics{}).Enabled
 }
 
-// IsTLSEnabled indicates whether the MaxScale instance has TLS enabled
+// IsTLSEnabled  indicates whether TLS is enabled
 func (m *MaxScale) IsTLSEnabled() bool {
 	return ptr.Deref(m.Spec.TLS, MaxScaleTLS{}).Enabled
+}
+
+// ShouldVerifyPeerCertificate indicates whether peer certificate should be verified
+func (m *MaxScale) ShouldVerifyPeerCertificate() bool {
+	if !m.IsTLSEnabled() {
+		return false
+	}
+	tls := ptr.Deref(m.Spec.TLS, MaxScaleTLS{})
+	return ptr.Deref(tls.VerifyPeerCertificate, false)
+}
+
+// ShouldVerifyPeerHost indicates whether peer host should be verified
+func (m *MaxScale) ShouldVerifyPeerHost() bool {
+	if !m.IsTLSEnabled() {
+		return false
+	}
+	tls := ptr.Deref(m.Spec.TLS, MaxScaleTLS{})
+	return ptr.Deref(tls.VerifyPeerHost, false)
+}
+
+// IsReplicationSSLEnabled indicates whether TLS for replication should be enabled
+func (m *MaxScale) IsReplicationSSLEnabled() bool {
+	if !m.IsTLSEnabled() {
+		return false
+	}
+	tls := ptr.Deref(m.Spec.TLS, MaxScaleTLS{})
+	return ptr.Deref(tls.ReplicationSSLEnabled, false)
 }
 
 // APIUrl returns the URL of the admin API pointing to the Kubernetes Service.

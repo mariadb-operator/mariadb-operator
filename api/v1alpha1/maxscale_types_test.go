@@ -159,9 +159,6 @@ var _ = Describe("MaxScale types", func() {
 							},
 							MonitorMaxConnections: 30,
 						},
-						TLS: &MaxScaleTLS{
-							Enabled: true,
-						},
 					},
 				},
 				env,
@@ -295,9 +292,6 @@ var _ = Describe("MaxScale types", func() {
 							},
 							MonitorMaxConnections: 30,
 						},
-						TLS: &MaxScaleTLS{
-							Enabled: true,
-						},
 					},
 				},
 				env,
@@ -373,6 +367,8 @@ var _ = Describe("MaxScale types", func() {
 							ListenerCertSecretRef: &LocalObjectReference{
 								Name: "listener-cert",
 							},
+							VerifyPeerCertificate: ptr.To(true),
+							VerifyPeerHost:        ptr.To(true),
 						},
 						Metrics: &MaxScaleMetrics{
 							Enabled: true,
@@ -582,6 +578,8 @@ var _ = Describe("MaxScale types", func() {
 							ListenerCertSecretRef: &LocalObjectReference{
 								Name: "listener-cert",
 							},
+							VerifyPeerCertificate: ptr.To(true),
+							VerifyPeerHost:        ptr.To(true),
 						},
 						Metrics: &MaxScaleMetrics{
 							Enabled: true,
@@ -632,7 +630,8 @@ var _ = Describe("MaxScale types", func() {
 				},
 				Spec: MariaDBSpec{
 					TLS: &TLS{
-						Enabled: true,
+						Enabled:  true,
+						Required: ptr.To(true),
 						ClientCertSecretRef: &LocalObjectReference{
 							Name: "client-cert",
 						},
@@ -659,6 +658,30 @@ var _ = Describe("MaxScale types", func() {
 
 			tls := &MaxScaleTLS{
 				Enabled: false,
+			}
+			tls.SetDefaults(mariadb)
+
+			Expect(tls.ReplicationSSLEnabled).To(BeNil())
+			Expect(tls.ServerCASecretRef).To(BeNil())
+			Expect(tls.ServerCertSecretRef).To(BeNil())
+		})
+
+		It("should not set defaults when TLS is not enforced", func() {
+			mariadb := &MariaDB{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "mdb",
+					Namespace: testNamespace,
+				},
+				Spec: MariaDBSpec{
+					TLS: &TLS{
+						Enabled:  true,
+						Required: ptr.To(false),
+					},
+				},
+			}
+
+			tls := &MaxScaleTLS{
+				Enabled: true,
 			}
 			tls.SetDefaults(mariadb)
 

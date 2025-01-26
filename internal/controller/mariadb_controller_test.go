@@ -466,6 +466,10 @@ var _ = Describe("MariaDB", func() {
 				innodb_buffer_pool_size=1024M
 				max_allowed_packet=256M
 				`),
+				TLS: &mariadbv1alpha1.TLS{
+					Enabled:  true,
+					Required: ptr.To(true),
+				},
 			},
 		}
 		applyMariadbTestConfig(&mdb)
@@ -550,6 +554,10 @@ var _ = Describe("MariaDB", func() {
 						Name: configMap.Name,
 					},
 					Key: configMapKey,
+				},
+				TLS: &mariadbv1alpha1.TLS{
+					Enabled:  true,
+					Required: ptr.To(true),
 				},
 			},
 		}
@@ -731,6 +739,10 @@ func testMariadbBootstrap(key types.NamespacedName, source mariadbv1alpha1.Resto
 			},
 			Storage: mariadbv1alpha1.Storage{
 				Size: ptr.To(resource.MustParse("100Mi")),
+			},
+			TLS: &mariadbv1alpha1.TLS{
+				Enabled:  true,
+				Required: ptr.To(true),
 			},
 		},
 	}
