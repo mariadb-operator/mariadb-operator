@@ -322,12 +322,13 @@ func (u *UpdateStrategy) SetDefaults() {
 // TLS defines the PKI to be used with MariaDB.
 type TLS struct {
 	// Enabled indicates whether TLS is enabled, determining if certificates should be issued and mounted to the MariaDB instance.
+	// It is enabled by default.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
 	Enabled bool `json:"enabled"`
 	// Required specifies whether TLS must be enforced for all connections.
 	// User TLS requirements take precedence over this.
-	// It is enabled by default.
+	// It disabled by default.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
 	Required *bool `json:"required,omitempty"`
@@ -369,7 +370,8 @@ type TLS struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	ClientCertIssuerRef *cmmeta.ObjectReference `json:"clientCertIssuerRef,omitempty"`
-	// GaleraSSTEnabled determines whether Galera SST connections should use SSL. It is enabled with Galera by default.
+	// GaleraSSTEnabled determines whether Galera SST connections should use TLS.
+	// It disabled by default.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	GaleraSSTEnabled *bool `json:"galeraSSTEnabled,omitempty"`
@@ -750,15 +752,27 @@ func (m *MariaDB) IsEphemeralStorageEnabled() bool {
 	return ptr.Deref(m.Spec.Storage.Ephemeral, false)
 }
 
-// IsTLSEnabled indicates whether the MariaDB instance has TLS enabled
+// IsTLSEnabled indicates whether TLS is enabled
 func (m *MariaDB) IsTLSEnabled() bool {
 	return ptr.Deref(m.Spec.TLS, TLS{}).Enabled
 }
 
-// IsTLSRequired indicates whether TLS must be enforced for all connections.
+// IsTLSRequired indicates whether TLS is enabled and must be enforced for all connections.
 func (m *MariaDB) IsTLSRequired() bool {
+	if !m.IsTLSEnabled() {
+		return false
+	}
 	tls := ptr.Deref(m.Spec.TLS, TLS{})
-	return ptr.Deref(tls.Required, true)
+	return ptr.Deref(tls.Required, false)
+}
+
+// IsTLSForGaleraSSTEnabled indicates whether TLS for Galera SSTs is enabled.
+func (m *MariaDB) IsTLSForGaleraSSTEnabled() bool {
+	if !m.IsGaleraEnabled() || !m.IsTLSEnabled() {
+		return false
+	}
+	tls := ptr.Deref(m.Spec.TLS, TLS{})
+	return ptr.Deref(tls.GaleraSSTEnabled, false)
 }
 
 // IsReady indicates whether the MariaDB instance is ready

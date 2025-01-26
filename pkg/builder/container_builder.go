@@ -441,7 +441,7 @@ func mariadbEnv(mariadb *mariadbv1alpha1.MariaDB) []corev1.EnvVar {
 		// https://github.com/codership/mariadb-server/blob/16394f1aa1b4097f897b8ab01ea2064726cca059/scripts/wsrep_sst_common.sh#L1064
 		// https://github.com/codership/mariadb-server/blob/16394f1aa1b4097f897b8ab01ea2064726cca059/scripts/wsrep_sst_mariabackup.sh#L407
 		clientNames := mariadb.TLSClientNames()
-		if mariadb.IsGaleraEnabled() && len(clientNames) > 0 {
+		if mariadb.IsTLSForGaleraSSTEnabled() && len(clientNames) > 0 {
 			env = append(env, corev1.EnvVar{
 				Name:  "WSREP_SST_OPT_REMOTE_AUTH",
 				Value: fmt.Sprintf("%s:", clientNames[0]),

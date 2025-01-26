@@ -178,7 +178,8 @@ var _ = Describe("MariaDB Galera use cases", Ordered, func() {
 					Size: ptr.To(resource.MustParse("300Mi")),
 				},
 				TLS: &mariadbv1alpha1.TLS{
-					Enabled: true,
+					Enabled:  true,
+					Required: ptr.To(true),
 					ServerCertIssuerRef: &cmmeta.ObjectReference{
 						Name: "root-ca",
 						Kind: "ClusterIssuer",
@@ -187,6 +188,7 @@ var _ = Describe("MariaDB Galera use cases", Ordered, func() {
 						Name: "root-ca",
 						Kind: "ClusterIssuer",
 					},
+					GaleraSSTEnabled: ptr.To(true),
 				},
 				Service: &mariadbv1alpha1.ServiceTemplate{
 					Type: corev1.ServiceTypeLoadBalancer,
@@ -315,7 +317,9 @@ var _ = Describe("MariaDB Galera", Ordered, func() {
 					WaitForVolumeResize: ptr.To(true),
 				},
 				TLS: &mariadbv1alpha1.TLS{
-					Enabled: true,
+					Enabled:          true,
+					Required:         ptr.To(true),
+					GaleraSSTEnabled: ptr.To(true),
 				},
 				Service: &mariadbv1alpha1.ServiceTemplate{
 					Type: corev1.ServiceTypeLoadBalancer,
@@ -553,7 +557,7 @@ var _ = Describe("MariaDB Galera", Ordered, func() {
 				Namespace: testNamespace,
 			},
 			Spec: mariadbv1alpha1.MaxScaleSpec{
-				Replicas: 3,
+				Replicas: 2,
 				KubernetesService: &mariadbv1alpha1.ServiceTemplate{
 					Type: corev1.ServiceTypeLoadBalancer,
 					Metadata: &mariadbv1alpha1.Metadata{
@@ -589,7 +593,9 @@ var _ = Describe("MariaDB Galera", Ordered, func() {
 					},
 				},
 				TLS: &mariadbv1alpha1.MaxScaleTLS{
-					Enabled: true,
+					Enabled:               true,
+					VerifyPeerCertificate: ptr.To(true),
+					VerifyPeerHost:        ptr.To(false),
 				},
 				Metrics: &mariadbv1alpha1.MaxScaleMetrics{
 					Enabled: true,

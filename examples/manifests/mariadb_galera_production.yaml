@@ -57,8 +57,10 @@ spec:
   metrics:
     enabled: true
 
+  # Issue and configure TLS certificates. For enhanced security, TLS will be enforced in all connections .
   tls:
     enabled: true
+    required: true
 
   updateStrategy:
     type: ReplicasFirstPrimaryLast

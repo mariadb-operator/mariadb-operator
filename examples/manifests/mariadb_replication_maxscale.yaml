@@ -45,9 +45,6 @@ spec:
     metrics:
       enabled: true
 
-    tls:
-      enabled: true
-
   replication:
     enabled: true
 
@@ -70,7 +67,4 @@ spec:
         metallb.universe.tf/loadBalancerIPs: 172.18.0.131
 
   metrics:
-    enabled: true
-
-  tls:
     enabled: true

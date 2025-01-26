@@ -3637,9 +3637,9 @@ spec:
                             type: string
                         type: object
                       enabled:
-                        description: Enabled indicates whether TLS is enabled, determining
-                          if certificates should be issued and mounted to the MaxScale
-                          instance.
+                        description: |-
+                          Enabled indicates whether TLS is enabled, determining if certificates should be issued and mounted to the MaxScale instance.
+                          It is enabled by default when the referred MariaDB instance (via mariaDbRef) has TLS enabled and enforced.
                         type: boolean
                       listenerCASecretRef:
                         description: |-
@@ -3682,7 +3682,7 @@ spec:
                       replicationSSLEnabled:
                         description: |-
                           ReplicationSSLEnabled specifies whether the replication SSL is enabled. If enabled, the SSL options will be added to the server configuration.
-                          This field is automatically set when a reference to a MariaDB via the 'mariaDbRef' field is provided.
+                          It is enabled by default when the referred MariaDB instance (via mariaDbRef) has replication enabled.
                           If the MariaDB servers are manually provided by the user via the 'servers' field, this must be set by the user as well.
                         type: boolean
                       serverCASecretRef:
@@ -3705,13 +3705,14 @@ spec:
                             type: string
                         type: object
                       verifyPeerCertificate:
-                        description: VerifyPeerCertificate specifies whether the peer
-                          certificate's signature should be validated against the
-                          CA. It is enabled by default.
+                        description: |-
+                          VerifyPeerCertificate specifies whether the peer certificate's signature should be validated against the CA.
+                          It is disabled by default.
                         type: boolean
                       verifyPeerHost:
-                        description: VerifyPeerHost specifies whether the peer certificate's
-                          SANs should match the peer host. It is disabled by default.
+                        description: |-
+                          VerifyPeerHost specifies whether the peer certificate's SANs should match the peer host.
+                          It is disabled by default.
                         type: boolean
                     type: object
                   updateStrategy:
@@ -5454,19 +5455,20 @@ spec:
                         type: string
                     type: object
                   enabled:
-                    description: Enabled indicates whether TLS is enabled, determining
-                      if certificates should be issued and mounted to the MariaDB
-                      instance.
+                    description: |-
+                      Enabled indicates whether TLS is enabled, determining if certificates should be issued and mounted to the MariaDB instance.
+                      It is enabled by default.
                     type: boolean
                   galeraSSTEnabled:
-                    description: GaleraSSTEnabled determines whether Galera SST connections
-                      should use SSL. It is enabled with Galera by default.
+                    description: |-
+                      GaleraSSTEnabled determines whether Galera SST connections should use TLS.
+                      It disabled by default.
                     type: boolean
                   required:
                     description: |-
                       Required specifies whether TLS must be enforced for all connections.
                       User TLS requirements take precedence over this.
-                      It is enabled by default.
+                      It disabled by default.
                     type: boolean
                   serverCASecretRef:
                     description: |-

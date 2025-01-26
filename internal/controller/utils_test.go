@@ -193,6 +193,10 @@ max_allowed_packet=256M`),
 					},
 				},
 			},
+			TLS: &mariadbv1alpha1.TLS{
+				Enabled:  true,
+				Required: ptr.To(true),
+			},
 			Storage: mariadbv1alpha1.Storage{
 				Size: ptr.To(resource.MustParse("300Mi")),
 			},

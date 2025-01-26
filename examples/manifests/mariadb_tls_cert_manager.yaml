@@ -30,6 +30,7 @@ spec:
 
   tls:
     enabled: true
+    required: true
     serverCertIssuerRef:
       name: root-ca
       kind: ClusterIssuer

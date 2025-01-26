@@ -71,7 +71,8 @@ var _ = Describe("MariaDB replication", Ordered, func() {
 					WaitForVolumeResize: ptr.To(true),
 				},
 				TLS: &mariadbv1alpha1.TLS{
-					Enabled: true,
+					Enabled:  true,
+					Required: ptr.To(true),
 				},
 				Service: &mariadbv1alpha1.ServiceTemplate{
 					Type: corev1.ServiceTypeLoadBalancer,
@@ -324,7 +325,7 @@ var _ = Describe("MariaDB replication", Ordered, func() {
 				Namespace: testNamespace,
 			},
 			Spec: mariadbv1alpha1.MaxScaleSpec{
-				Replicas: 3,
+				Replicas: 2,
 				KubernetesService: &mariadbv1alpha1.ServiceTemplate{
 					Type: corev1.ServiceTypeLoadBalancer,
 					Metadata: &mariadbv1alpha1.Metadata{
@@ -360,7 +361,10 @@ var _ = Describe("MariaDB replication", Ordered, func() {
 					},
 				},
 				TLS: &mariadbv1alpha1.MaxScaleTLS{
-					Enabled: true,
+					Enabled:               true,
+					VerifyPeerCertificate: ptr.To(true),
+					VerifyPeerHost:        ptr.To(false),
+					ReplicationSSLEnabled: ptr.To(true),
 				},
 				Metrics: &mariadbv1alpha1.MaxScaleMetrics{
 					Enabled: true,
