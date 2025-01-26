@@ -7,7 +7,8 @@
 
 ## Table of contents
 <!-- toc -->
-- [Configuration](#configuration)
+- [`MariaDB` Configuration](#mariadb-configuration)
+- [`MaxScale` Configuration](#maxscale-configuration)
 - [`MariaDB` certificate specification](#mariadb-certificate-specification)
 - [`MaxScale` certificate specification](#maxscale-certificate-specification)
 - [CA bundle](#ca-bundle)
@@ -28,74 +29,97 @@
 - [Limitations](#limitations)
 <!-- /toc -->
 
-## Configuration
+## `MariaDB` Configuration
 
 > [!IMPORTANT]  
-> This section covers TLS configuration in new instances. If you are looking to migrate an existing instance, please refer to [this section](#enabling-tls-in-existing-instances) instead.
+> This section covers TLS configuration in new instances. If you are looking to migrate an existing instance, please refer to [Enabling TLS in existing instances](#enabling-tls-in-existing-instances) instead.
 
-The easieast way to configure TLS in both `MariaDB` and `MaxScale` is by setting `tls.enabled=true`:
+
+TLS can be configured in `MariaDB` resources by setting `tls.enabled=true`:
 
 ```yaml
 apiVersion: k8s.mariadb.com/v1alpha1
 kind: MariaDB
 metadata:
-  name: mariadb
+  name: mariadb-galera
 spec:
   ...
   tls:
     enabled: true
 ```
-```yaml
-apiVersion: k8s.mariadb.com/v1alpha1
-kind: MaxScale
-metadata:
-  name: maxscale
-spec:
-  ...
-  tls:
-    enabled: true
-```
+As a result, the operator will generate a Certificate Authority (CA) and use it to issue the leaf certificates mounted by the instance. It is important to note that the TLS connections are not enforced in this case i.e. both TLS and non-TLS connections will be accepted. This is the default behaviour when no `tls` field is specified.
 
-As a result, the operator will generate a CA for each `MariaDB` and `MaxScale` resource, and use it to issue leaf certificates mounted by the instances. It is important to note that the TLS connections will be enforced in this case. This is the default behaviour when no `tls` field is specified.
-
-If you want to issue and mount certificates in your `MariaDB` instance, but not enforcing TLS connections, for instance, to [migrate your application to TLS](#secure-application-connections-with-tls), you may set:
+If you want to enforce TLS connections, you can set `tls.required=true`:
 ```yaml
 apiVersion: k8s.mariadb.com/v1alpha1
 kind: MariaDB
 metadata:
-  name: mariadb
+  name: mariadb-galera
 spec:
   ...
   tls:
     enabled: true
     required: false
 ```
-It is worth mentioning that [MaxScale does not support TLS and non TLS connections simultaneously](https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/#tlsssl-encryption). As a result, the `tls.required` option is not available in the `MaxScale` resource.
+This approach ensures that any unencrypted connection will fail, effectively enforcing security best practices.
 
-If you want to fully opt-out from TLS and use unencrypted connections, you can set `tls.enabled=false`, this applies to both `MariaDB` and `MaxScale`:
+If you want to fully opt-out from TLS, you can set `tls.enabled=false`:
 
 ```yaml
 apiVersion: k8s.mariadb.com/v1alpha1
 kind: MariaDB
 metadata:
-  name: mariadb
-spec:
-  ...
-  tls:
-    enabled: false
-```
-```yaml
-apiVersion: k8s.mariadb.com/v1alpha1
-kind: MaxScale
-metadata:
-  name: maxscale
+  name: mariadb-galera
 spec:
   ...
   tls:
     enabled: false
 ```
 
-Refer to the sections below for a more advanced TLS configuration.
+This will disable certificate issuance, resulting in all connections being unencrypted.
+
+
+Refer to further sections for a more advanced TLS configuration.
+
+## `MaxScale` Configuration
+
+> [!IMPORTANT]  
+> This section covers TLS configuration in new instances. If you are looking to migrate an existing instance, please refer to [Enabling TLS in existing instances](#enabling-tls-in-existing-instances) instead.
+
+TLS will be automatically enabled in `MaxScale` when the referred `MariaDB` (via `mariaDbRef`) has TLS enabled and enforced. Alternatively, you can explicitly enable TLS by setting `tls.enabled=true`:
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MaxScale
+metadata:
+  name: maxscale-galera
+spec:
+  ...
+  mariaDbRef:
+    name: mariadb-galera
+  tls:
+    enabled: true
+```
+
+As a result, the operator will generate a Certificate Authority (CA) and use it to issue the leaf certificates mounted by the instance. It is important to note that, unlike `MariaDB`, `MaxScale` does not support TLS and non-TLS connections simultaneously (see [limitations](#limitations)). Therefore, TLS connections will be enforced in this case i.e. unencrypted connections will fail, ensuring security best practises.
+
+If you want to fully opt-out from TLS, you can set `tls.enabled=false`. This should only be done when `MariaDB` TLS is not enforced or disabled:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MaxScale
+metadata:
+  name: maxscale-galera
+spec:
+  ...
+  mariaDbRef:
+    name: mariadb-galera
+  tls:
+    enabled: false
+```
+
+This will disable certificate issuance, resulting in all connections being unencrypted.
+
+Refer to further sections for a more advanced TLS configuration.
 
 ## `MariaDB` certificate specification
 
