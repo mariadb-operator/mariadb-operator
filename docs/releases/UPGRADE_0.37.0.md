@@ -16,13 +16,13 @@ This guide illustrates, step by step, how to migrate to `0.37.0` from previous v
 helm uninstall mariadb-operator
 ```
 
-1. Upgrade `mariadb-operator-crds` to `0.37.0`:
+2. Upgrade `mariadb-operator-crds` to `0.37.0`:
 ```bash
 helm repo update mariadb-operator
 helm upgrade --install mariadb-operator-crds  mariadb-operator/mariadb-operator-crds --version 0.37.0
 ```
 
-1. The Galera data-plane must be updated, even if you are not planning to use TLS. By setting `updateStrategy.autoUpdateDataPlane=true` in your `MariaDB` resources, the operator will automatically update the data-plane for you as part of the rolling upgrade.
+3. The Galera data-plane must be updated, even if you are not planning to use TLS. By setting `updateStrategy.autoUpdateDataPlane=true` in your `MariaDB` resources, the operator will automatically update the data-plane for you as part of the rolling upgrade.
 ```diff
 apiVersion: k8s.mariadb.com/v1alpha1
 kind: MariaDB
@@ -49,13 +49,13 @@ spec:
 +      image: docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:0.37.0
 ```
 
-1. Upgrade `mariadb-operator` to `0.37.0`. This will trigger a rolling upgrade, make sure it finishes successfully before proceeding with the next step. Refer to the [updates documentation](../UPDATES.md) for further information about update strategies:
+4. Upgrade `mariadb-operator` to `0.37.0`. This will trigger a rolling upgrade, make sure it finishes successfully before proceeding with the next step. Refer to the [updates documentation](../UPDATES.md) for further information about update strategies:
 ```bash 
 helm repo update mariadb-operator
 helm upgrade --install mariadb-operator mariadb-operator/mariadb-operator --version 0.37.0 
 ```
 
-1. If needed, set back `autoUpdateDataPlane=false` in `MariaDB` to avoid unexpected data-plane updates in the future:
+5. If needed, set back `autoUpdateDataPlane=false` in `MariaDB` to avoid unexpected data-plane updates in the future:
 ```diff
 apiVersion: k8s.mariadb.com/v1alpha1
 kind: MariaDB
@@ -67,4 +67,4 @@ spec:
 -   autoUpdateDataPlane: true
 ```
 
-1. If you plan to use TLS, please refer to the __[TLS documentation](../TLS.md)__. 
+6. If you plan to use TLS, please refer to the __[TLS documentation](../TLS.md)__. 
