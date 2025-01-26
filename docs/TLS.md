@@ -7,8 +7,8 @@
 
 ## Table of contents
 <!-- toc -->
-- [`MariaDB` Configuration](#mariadb-configuration)
-- [`MaxScale` Configuration](#maxscale-configuration)
+- [`MariaDB` configuration](#mariadb-configuration)
+- [`MaxScale` configuration](#maxscale-configuration)
 - [`MariaDB` certificate specification](#mariadb-certificate-specification)
 - [`MaxScale` certificate specification](#maxscale-certificate-specification)
 - [CA bundle](#ca-bundle)
@@ -29,7 +29,7 @@
 - [Limitations](#limitations)
 <!-- /toc -->
 
-## `MariaDB` Configuration
+## `MariaDB` configuration
 
 > [!IMPORTANT]  
 > This section covers TLS configuration in new instances. If you are looking to migrate an existing instance to use TLS, please refer to [Enabling TLS in existing instances](#enabling-tls-in-existing-instances) instead.
@@ -81,7 +81,7 @@ This will disable certificate issuance, resulting in all connections being unenc
 
 Refer to further sections for a more advanced TLS configuration.
 
-## `MaxScale` Configuration
+## `MaxScale` configuration
 
 > [!IMPORTANT]  
 > This section covers TLS configuration in new instances. If you are looking to migrate an existing instance to use TLS, please refer to [Enabling TLS in existing instances](#enabling-tls-in-existing-instances) instead.
@@ -850,7 +850,77 @@ This could be specially useful when [providing your own certificates](#provide-y
 
 ## Enabling TLS in existing instances
 
-Please follow [this migration guide](./releases/UPGRADE_0.37.0.md) step by step.
+Follow these steps to migrate existing `MariaDB` Galera and `MaxScale` instances to TLS without downtime:
+
+1. Ensure that `MariaDB` has TLS enabled and not enforced. Set the following options if needed:
+```diff
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+spec:
+  tls:
++   enabled: true
++   required: false
++   galeraSSTEnabled: false
+```
+
+By setting these options, the operator will issue and configure certificates for `MariaDB`, but TLS will not be enforced in the connections i.e. both TLS and non-TLS connections will be accepted. TLS enforcement will be optionally configured at the end of the migration process.
+
+This will trigger a rolling upgrade, make sure it finishes successfully before proceeding with the next step. Refer to the [updates documentation](./UPDATES.md) for further information about update strategies.
+
+2. Optionally, if you are willing to enable TLS for the Galera SSTs:
+
+  - Run [this migration script](../hack/migrate_galera_sst_ssl.sh):
+```bash
+ ./hack/migrate_galera_sst_ssl.sh <mariadb-name> # e.g. ./migrate_galera_sst_ssl.sh mariadb-galera
+```
+
+  - Set the following option to enable TLS for Galera SSTs. This will trigger a rolling upgrade, make sure it finishes successfully before proceeding with the next step:
+```diff
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+spec:
+  tls:
++   galeraSSTEnabled: true
+```
+
+3. If you are currently using `MaxScale`, it is important to note that, unlike `MariaDB`, it does not support TLS and non-TLS connections simultaneously (see [limitations](#limitations)). For this reason, you must temporarily point your applications to `MariaDB` during the migration process. You can achieve this by configuring your application to use the [`MariaDB Services`](./HA.md#kubernetes-services). At the end of the `MariaDB` migration process, the `MaxScale` instance will need to be recreated in order to use TLS, and then you will be able to point your application back to `MaxScale`. Ensure that all applications are pointing to `MariaDB` before moving on to the next step.
+
+4. `MariaDB` is now accepting TLS connections. The next step is [migrating your applications to use TLS](#secure-application-connections-with-tls) by pointing them to `MariaDB` securely. Ensure that all application are connecting to `MariaDB` via TLS before proceeding to the next step.
+
+5. For enhanced security, it is recommended to enforce TLS in all `MariaDB` connections by the setting following option. This will trigger a rolling upgrade, make sure it finishes successfully before proceeding with the next step:
+```diff
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+spec:
+  tls:
++   required: true
+```
+
+6. If you are using `MaxScale`, now that the `MariaDB` migration is completed, you should follow these steps to recreate your `MaxScale` instance with TLS:
+
+  - Delete your previous `MaxScale` instance. It is very important that you wait until your old `MaxScale` instance is fully terminated to make sure that the old configuration is cleaned up by the operator:
+```bash
+kubectl delete mxs maxscale-galera
+```
+
+  - Create a new `MaxScale` instance with `tls.enabled=true`:
+```diff
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MaxScale
+metadata:
+  name: maxscale-galera
+spec:
++ tls:
++   enabled: true
+```
+
+7. `MaxScale` is now accepting TLS connections. Next, you need to [migrate your applications to use TLS](#secure-application-connections-with-tls) by pointing them back to `MaxScale` securely. You have done this previously for `MariaDB`, you just need to update your application configuration to use the [`MaxScale Service`](./MAXSCALE.md#kubernetes-services) and its CA bundle.
 
 
 ## Limitations
