@@ -668,7 +668,7 @@ spec:
 The `app` user will be able to connect to the `MariaDB` instance from the `app` namespace by providing a certificate with subject `mariadb-galera-client` and issued by the `mariadb-galera-ca` CA.
 
 With the permissions in place, the next step is to prepare the certificates required for the application to connect:
-- **CA Bundle**: The trust bundle for `MariaDB` and `MaxScale` is available as a `Secret` named `<instance-name>-ca-bundle` in the `default` namespace. For more details, refer to the sections on [CA bundle](#ca-bundle) and [distributing trust](#distributing-trust). Additionally, check out the [trust-manager `Bundle` example](../hack/manifests/trust-manager/bundle.yaml), which demonstrates copying the bundle to the `app` namespace.  
+- **CA Bundle**: The trust bundle for `MariaDB` and `MaxScale` is available as a `Secret` named `<instance-name>-ca-bundle` in the `default` namespace. For more details, refer to the sections on [CA bundle](#ca-bundle) and [distributing trust](#distributing-trust). Additionally, check out the [trust-manager `Bundle` example](../hack/manifests/trust-manager/bundle.yaml), which demonstrates how to copy a bundle to the `app` namespace.  
 - **Client Certificate**: `MariaDB` provides a default client certificate stored in a `Secret` named `<mariadb-name>-client-cert` in the `default` namespace. You can either use this `Secret` or generate a new one with the subject `mariadb-galera-client`, issued by the `mariadb-galera-ca` CA. While issuing client certificates for applications falls outside the scope of this operator, you can [test them using `Connection` resources](#test-tls-certificates-with-connections).
 
 In this example, we assume that the following `Secrets` are available in the `app` namespace:  
@@ -867,7 +867,23 @@ By setting these options, the operator will issue and configure certificates for
 
 This will trigger a rolling upgrade, make sure it finishes successfully before proceeding with the next step. Refer to the [updates documentation](./UPDATES.md) for further information about update strategies.
 
-2. Optionally, if you are willing to enable TLS for the Galera SSTs:
+2. If you are currently using `MaxScale`, it is important to note that, unlike `MariaDB`, it does not support TLS and non-TLS connections simultaneously (see [limitations](#limitations)). For this reason, you must temporarily point your applications to `MariaDB` during the migration process. You can achieve this by configuring your application to use the [`MariaDB Services`](./HA.md#kubernetes-services). At the end of the `MariaDB` migration process, the `MaxScale` instance will need to be recreated in order to use TLS, and then you will be able to point your application back to `MaxScale`. Ensure that all applications are pointing to `MariaDB` before moving on to the next step.
+
+3. `MariaDB` is now accepting TLS connections. The next step is [migrating your applications to use TLS](#secure-application-connections-with-tls) by pointing them to `MariaDB` securely. Ensure that all applicatiosn are connecting to `MariaDB` via TLS before proceeding to the next step.
+
+4. For enhanced security, it is recommended to enforce TLS in all `MariaDB` connections by the setting the following option:
+```diff
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+spec:
+  tls:
++   required: true
+```
+This will trigger a rolling upgrade, make sure it finishes successfully before proceeding with the next step
+
+5. For improved security, you can optionally configure TLS for Galera SSTs by following the steps below:
 
   - Run [this migration script](../hack/migrate_galera_sst_ssl.sh):
 ```bash
@@ -884,21 +900,7 @@ spec:
   tls:
 +   galeraSSTEnabled: true
 ```
-
-3. If you are currently using `MaxScale`, it is important to note that, unlike `MariaDB`, it does not support TLS and non-TLS connections simultaneously (see [limitations](#limitations)). For this reason, you must temporarily point your applications to `MariaDB` during the migration process. You can achieve this by configuring your application to use the [`MariaDB Services`](./HA.md#kubernetes-services). At the end of the `MariaDB` migration process, the `MaxScale` instance will need to be recreated in order to use TLS, and then you will be able to point your application back to `MaxScale`. Ensure that all applications are pointing to `MariaDB` before moving on to the next step.
-
-4. `MariaDB` is now accepting TLS connections. The next step is [migrating your applications to use TLS](#secure-application-connections-with-tls) by pointing them to `MariaDB` securely. Ensure that all application are connecting to `MariaDB` via TLS before proceeding to the next step.
-
-5. For enhanced security, it is recommended to enforce TLS in all `MariaDB` connections by the setting following option. This will trigger a rolling upgrade, make sure it finishes successfully before proceeding with the next step:
-```diff
-apiVersion: k8s.mariadb.com/v1alpha1
-kind: MariaDB
-metadata:
-  name: mariadb-galera
-spec:
-  tls:
-+   required: true
-```
+This will trigger a rolling upgrade, make sure it finishes successfully before proceeding with the next step
 
 6. If you are using `MaxScale`, now that the `MariaDB` migration is completed, you should follow these steps to recreate your `MaxScale` instance with TLS:
 
