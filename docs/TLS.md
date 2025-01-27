@@ -879,7 +879,7 @@ kubectl delete mxs maxscale-galera
 ```
 It is very important that you wait until your old `MaxScale` instance is fully terminated to make sure that the old configuration is cleaned up by the operator.
 
-1. For enhanced security, it is recommended to enforce TLS in all `MariaDB` connections by setting the following option. This will trigger a rolling upgrade, make sure it finishes successfully before proceeding with the next step:
+5. For enhanced security, it is recommended to enforce TLS in all `MariaDB` connections by setting the following option. This will trigger a rolling upgrade, make sure it finishes successfully before proceeding with the next step:
 
 ```diff
 apiVersion: k8s.mariadb.com/v1alpha1
