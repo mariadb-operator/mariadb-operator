@@ -99,7 +99,7 @@ install-cert-manager: cluster-ctx ## Install cert-manager helm chart.
 
 TRUST_MANAGER_VERSION ?= "v0.15.0"
 .PHONY: install-trust-manager
-install-trust-manager: cluster-ctx ## Install trust-manager helm chart.
+install-trust-manager: cluster-ctx install-cert-manager ## Install trust-manager helm chart.
 	@TRUST_MANAGER_VERSION=$(TRUST_MANAGER_VERSION) ./hack/install_trust_manager.sh
 
 METALLB_VERSION ?= "0.14.5"
