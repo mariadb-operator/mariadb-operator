@@ -1375,8 +1375,7 @@ func TestMariadbEnv(t *testing.T) {
 						Enabled: true,
 					},
 					TLS: &mariadbv1alpha1.TLS{
-						Enabled:          true,
-						GaleraSSTEnabled: ptr.To(true),
+						Enabled: true,
 					},
 				},
 			},
