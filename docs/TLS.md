@@ -869,9 +869,17 @@ This will trigger a rolling upgrade, make sure it finishes successfully before p
 
 2. If you are currently using `MaxScale`, it is important to note that, unlike `MariaDB`, it does not support TLS and non-TLS connections simultaneously (see [limitations](#limitations)). For this reason, you must temporarily point your applications to `MariaDB` during the migration process. You can achieve this by configuring your application to use the [`MariaDB Services`](./HA.md#kubernetes-services). At the end of the `MariaDB` migration process, the `MaxScale` instance will need to be recreated in order to use TLS, and then you will be able to point your application back to `MaxScale`. Ensure that all applications are pointing to `MariaDB` before moving on to the next step.
 
-3. `MariaDB` is now accepting TLS connections. The next step is [migrating your applications to use TLS](#secure-application-connections-with-tls) by pointing them to `MariaDB` securely. Ensure that all applicatiosn are connecting to `MariaDB` via TLS before proceeding to the next step.
+3. `MariaDB` is now accepting TLS connections. The next step is [migrating your applications to use TLS](#secure-application-connections-with-tls) by pointing them to `MariaDB` securely. Ensure that all applications are connecting to `MariaDB` via TLS before proceeding to the next step.
 
-4. For enhanced security, it is recommended to enforce TLS in all `MariaDB` connections by the setting the following option. This will trigger a rolling upgrade, make sure it finishes successfully before proceeding with the next step:
+4. If you are currently using `MaxScale`, and you are planning to connect via TLS through it, you should now delete your `MaxScale` instance. If needed, keep a copy of the `MaxScale` manifest, as we will need to recreate it with TLS enabled in further steps: 
+
+```bash
+kubecl get mxs maxscale-galera -o yaml > maxscale-galera.yaml
+kubectl delete mxs maxscale-galera
+```
+It is very important that you wait until your old `MaxScale` instance is fully terminated to make sure that the old configuration is cleaned up by the operator.
+
+1. For enhanced security, it is recommended to enforce TLS in all `MariaDB` connections by setting the following option. This will trigger a rolling upgrade, make sure it finishes successfully before proceeding with the next step:
 
 ```diff
 apiVersion: k8s.mariadb.com/v1alpha1
@@ -883,7 +891,7 @@ spec:
 +   required: true
 ```
 
-5. For improved security, you can optionally configure TLS for Galera SSTs by following the steps below:
+6. For improved security, you can optionally configure TLS for Galera SSTs by following the steps below:
 
   - Run [this migration script](../hack/migrate_galera_sst_ssl.sh):
 ```bash
@@ -902,14 +910,7 @@ spec:
 ```
 This will trigger a rolling upgrade, make sure it finishes successfully before proceeding with the next step
 
-6. If you are using `MaxScale`, now that the `MariaDB` migration is completed, you should follow these steps to recreate your `MaxScale` instance with TLS:
-
-  - Delete your previous `MaxScale` instance. It is very important that you wait until your old `MaxScale` instance is fully terminated to make sure that the old configuration is cleaned up by the operator:
-```bash
-kubectl delete mxs maxscale-galera
-```
-
-  - Create a new `MaxScale` instance with `tls.enabled=true`:
+7. As mentioned in step `4.`, recreate your `MaxScale` instance with `tls.enabled=true` if needed:
 ```diff
 apiVersion: k8s.mariadb.com/v1alpha1
 kind: MaxScale
@@ -920,7 +921,7 @@ spec:
 +   enabled: true
 ```
 
-7. `MaxScale` is now accepting TLS connections. Next, you need to [migrate your applications to use TLS](#secure-application-connections-with-tls) by pointing them back to `MaxScale` securely. You have done this previously for `MariaDB`, you just need to update your application configuration to use the [`MaxScale Service`](./MAXSCALE.md#kubernetes-services) and its CA bundle.
+8. `MaxScale` is now accepting TLS connections. Next, you need to [migrate your applications to use TLS](#secure-application-connections-with-tls) by pointing them back to `MaxScale` securely. You have done this previously for `MariaDB`, you just need to update your application configuration to use the [`MaxScale Service`](./MAXSCALE.md#kubernetes-services) and its CA bundle.
 
 
 ## Limitations
