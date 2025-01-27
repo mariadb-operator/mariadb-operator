@@ -13,7 +13,7 @@ Issuing and configuring TLS certificates for your instances has never been easie
 apiVersion: k8s.mariadb.com/v1alpha1
 kind: MariaDB
 metadata:
-  name: mariadb
+  name: mariadb-galera
 spec:
   ...
   tls:
@@ -27,13 +27,16 @@ metadata:
   name: maxscale
 spec:
   ...
+  mariaDbRef:
+    name: mariadb-galera
   tls:
     enabled: true
 ```
 
 A self-signed Certificate Authority (CA) will be automatically generated to issue leaf certificates for your instances. The operator will also manage a CA bundle that your applications can use in order to establish trust. 
 
-To ensure security by default, TLS will now be enabled by default. However, you can choose to disable it and use unencrypted connections by setting `tls.enabled=false`.
+TLS will be enabled by default in `MariaDB`, but it will not enforced. You can enforce TLS connections by setting `tls.required=true` to ensure that all connections are encrypted. In the case of `MaxScale`, TLS will only be enabled if you explicitly set `tls.enabled=true` or the referred `MariaDB` (via `mariaDbRef`) instance enforces TLS.
+
 
 ### Native integration with cert-manager
 
