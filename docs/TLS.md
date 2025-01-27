@@ -871,7 +871,8 @@ This will trigger a rolling upgrade, make sure it finishes successfully before p
 
 3. `MariaDB` is now accepting TLS connections. The next step is [migrating your applications to use TLS](#secure-application-connections-with-tls) by pointing them to `MariaDB` securely. Ensure that all applicatiosn are connecting to `MariaDB` via TLS before proceeding to the next step.
 
-4. For enhanced security, it is recommended to enforce TLS in all `MariaDB` connections by the setting the following option:
+4. For enhanced security, it is recommended to enforce TLS in all `MariaDB` connections by the setting the following option. This will trigger a rolling upgrade, make sure it finishes successfully before proceeding with the next step:
+
 ```diff
 apiVersion: k8s.mariadb.com/v1alpha1
 kind: MariaDB
@@ -881,7 +882,6 @@ spec:
   tls:
 +   required: true
 ```
-This will trigger a rolling upgrade, make sure it finishes successfully before proceeding with the next step
 
 5. For improved security, you can optionally configure TLS for Galera SSTs by following the steps below:
 
@@ -890,7 +890,7 @@ This will trigger a rolling upgrade, make sure it finishes successfully before p
  ./hack/migrate_galera_sst_ssl.sh <mariadb-name> # e.g. ./migrate_galera_sst_ssl.sh mariadb-galera
 ```
 
-  - Set the following option to enable TLS for Galera SSTs. This will trigger a rolling upgrade, make sure it finishes successfully before proceeding with the next step:
+  - Set the following option to enable TLS for Galera SSTs:
 ```diff
 apiVersion: k8s.mariadb.com/v1alpha1
 kind: MariaDB
