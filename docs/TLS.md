@@ -874,7 +874,7 @@ This will trigger a rolling upgrade, make sure it finishes successfully before p
 4. If you are currently using `MaxScale`, and you are planning to connect via TLS through it, you should now delete your `MaxScale` instance. If needed, keep a copy of the `MaxScale` manifest, as we will need to recreate it with TLS enabled in further steps: 
 
 ```bash
-kubecl get mxs maxscale-galera -o yaml > maxscale-galera.yaml
+kubectl get mxs maxscale-galera -o yaml > maxscale-galera.yaml
 kubectl delete mxs maxscale-galera
 ```
 It is very important that you wait until your old `MaxScale` instance is fully terminated to make sure that the old configuration is cleaned up by the operator.
