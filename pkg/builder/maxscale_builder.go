@@ -43,6 +43,7 @@ func (b *Builder) BuildMaxScale(key types.NamespacedName, mdb *mariadbv1alpha1.M
 			RequeueInterval:      mdbmxs.RequeueInterval,
 		},
 	}
+	// TLS should be enforced in MariaDB to be enabled in MaxScale by default
 	if mxs.Spec.TLS == nil && mdb != nil && mdb.IsTLSRequired() {
 		mxs.Spec.TLS = &mariadbv1alpha1.MaxScaleTLS{
 			Enabled: true,
