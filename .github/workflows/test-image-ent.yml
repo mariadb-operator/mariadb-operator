@@ -63,6 +63,7 @@ jobs:
           make registry
           make install-ent
           make install-minio
+          make install-cert-manager
           make net
 
       - name: Integration tests enterprise

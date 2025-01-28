@@ -35,6 +35,7 @@ jobs:
           make cluster
           make install
           make install-minio
+          make install-cert-manager
           make net
 
       - name: Integration tests
