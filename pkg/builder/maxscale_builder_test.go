@@ -5,6 +5,7 @@ import (
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 )
 
 func TestMaxScaleMeta(t *testing.T) {
@@ -73,18 +74,6 @@ func TestMaxScaleTLS(t *testing.T) {
 		wantTLS *mariadbv1alpha1.MaxScaleTLS
 	}{
 		{
-			name: "tls enabled in MariaDB",
-			mariadb: &mariadbv1alpha1.MariaDB{
-				Spec: mariadbv1alpha1.MariaDBSpec{
-					TLS: &mariadbv1alpha1.TLS{
-						Enabled: true,
-					},
-				},
-			},
-			mdbmxs:  &mariadbv1alpha1.MariaDBMaxScaleSpec{},
-			wantTLS: &mariadbv1alpha1.MaxScaleTLS{Enabled: true},
-		},
-		{
 			name: "tls not enabled in MariaDB",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
@@ -94,7 +83,32 @@ func TestMaxScaleTLS(t *testing.T) {
 				},
 			},
 			mdbmxs:  &mariadbv1alpha1.MariaDBMaxScaleSpec{},
-			wantTLS: &mariadbv1alpha1.MaxScaleTLS{Enabled: false},
+			wantTLS: nil,
+		},
+		{
+			name: "tls enabled in MariaDB",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					TLS: &mariadbv1alpha1.TLS{
+						Enabled: true,
+					},
+				},
+			},
+			mdbmxs:  &mariadbv1alpha1.MariaDBMaxScaleSpec{},
+			wantTLS: nil,
+		},
+		{
+			name: "tls required in MariaDB",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					TLS: &mariadbv1alpha1.TLS{
+						Enabled:  true,
+						Required: ptr.To(true),
+					},
+				},
+			},
+			mdbmxs:  &mariadbv1alpha1.MariaDBMaxScaleSpec{},
+			wantTLS: &mariadbv1alpha1.MaxScaleTLS{Enabled: true},
 		},
 		{
 			name: "tls explicitly set in MaxScaleSpec",
