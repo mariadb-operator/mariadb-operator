@@ -37,6 +37,11 @@ func (r *StatefulSetReconciler) ReconcileWithUpdates(ctx context.Context, desire
 		return nil
 	}
 
+	// If StatefulSet is being deleted, don't update it
+	if !existingSts.DeletionTimestamp.IsZero() {
+		return nil
+	}
+
 	if shouldUpdate {
 		patch := client.MergeFrom(existingSts.DeepCopy())
 		existingSts.Spec.Template = desiredSts.Spec.Template

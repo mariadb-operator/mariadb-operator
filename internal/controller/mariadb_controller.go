@@ -122,6 +122,13 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	if err := r.Get(ctx, req.NamespacedName, &mariadb); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
+
+	// Skip reconciliation if the MariaDB CR is being deleted
+	if !mariadb.DeletionTimestamp.IsZero() {
+		log.FromContext(ctx).Info("MariaDB is being deleted, skipping reconciliation")
+		return ctrl.Result{}, nil
+	}
+
 	phases := []reconcilePhaseMariaDB{
 		{
 			Name:      "Spec",
