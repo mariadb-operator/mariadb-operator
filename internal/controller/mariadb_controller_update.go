@@ -127,7 +127,7 @@ func (r *MariaDBReconciler) getUpdateAnnotations(ctx context.Context, mariadb *m
 			TLSClientCertPath:   builderpki.ClientCertPath,
 			TLSClientKeyPath:    builderpki.ClientKeyPath,
 		}
-		config, err := galeraconfig.NewConfigFile(mariadb, r.Discovery, logger).Marshal(env)
+		config, err := galeraconfig.NewConfigFile(mariadb, logger).Marshal(env)
 		if err != nil {
 			return nil, fmt.Errorf("error rendering Galera config file: %v", err)
 		}

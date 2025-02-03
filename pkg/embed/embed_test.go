@@ -115,10 +115,10 @@ func TestReadEntrypoint(t *testing.T) {
 			wantErr:   false,
 		},
 		{
-			name: "supported enterprise version",
+			name: "supported registry version",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Image: "docker.mariadb.com/enterprise-server:10.6.18-14",
+					Image: "registry-1.docker.io/v2/library/mariadb:10.6.18-14",
 				},
 			},
 			wantBytes: true,

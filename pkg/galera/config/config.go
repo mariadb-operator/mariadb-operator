@@ -14,7 +14,6 @@ import (
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	galeraresources "github.com/mariadb-operator/mariadb-operator/pkg/controller/galera/resources"
-	"github.com/mariadb-operator/mariadb-operator/pkg/discovery"
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	galerakeys "github.com/mariadb-operator/mariadb-operator/pkg/galera/config/keys"
 	"github.com/mariadb-operator/mariadb-operator/pkg/galera/recovery"
@@ -31,16 +30,14 @@ var BootstrapFile = []byte(`[galera]
 wsrep_new_cluster="ON"`)
 
 type ConfigFile struct {
-	mariadb   *mariadbv1alpha1.MariaDB
-	discovery *discovery.Discovery
-	logger    logr.Logger
+	mariadb *mariadbv1alpha1.MariaDB
+	logger  logr.Logger
 }
 
-func NewConfigFile(mariadb *mariadbv1alpha1.MariaDB, discovery *discovery.Discovery, logger logr.Logger) *ConfigFile {
+func NewConfigFile(mariadb *mariadbv1alpha1.MariaDB, logger logr.Logger) *ConfigFile {
 	return &ConfigFile{
-		mariadb:   mariadb,
-		discovery: discovery,
-		logger:    logger,
+		mariadb: mariadb,
+		logger:  logger,
 	}
 }
 

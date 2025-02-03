@@ -14,8 +14,7 @@ import (
 )
 
 type Discovery struct {
-	client       discovery.DiscoveryInterface
-	isEnterprise bool
+	client discovery.DiscoveryInterface
 }
 
 type DiscoveryOpt func(*Discovery)
@@ -23,12 +22,6 @@ type DiscoveryOpt func(*Discovery)
 func WithClient(client discovery.DiscoveryInterface) DiscoveryOpt {
 	return func(d *Discovery) {
 		d.client = client
-	}
-}
-
-func WithEnterprise(isEnterprise bool) DiscoveryOpt {
-	return func(d *Discovery) {
-		d.isEnterprise = isEnterprise
 	}
 }
 
@@ -53,15 +46,7 @@ func NewDiscovery(opts ...DiscoveryOpt) (*Discovery, error) {
 	return &discovery, nil
 }
 
-func NewDiscoveryEnterprise(opts ...DiscoveryOpt) (*Discovery, error) {
-	discoveryOpts := []DiscoveryOpt{
-		WithEnterprise(true),
-	}
-	discoveryOpts = append(discoveryOpts, opts...)
-	return NewDiscovery(discoveryOpts...)
-}
-
-func NewFakeDiscovery(isEnterprise bool, resources ...*metav1.APIResourceList) (*Discovery, error) {
+func NewFakeDiscovery(resources ...*metav1.APIResourceList) (*Discovery, error) {
 	client := fakeClient.NewSimpleClientset()
 	fakeDiscovery, ok := client.Discovery().(*fakeDiscovery.FakeDiscovery)
 	if !ok {
@@ -71,13 +56,8 @@ func NewFakeDiscovery(isEnterprise bool, resources ...*metav1.APIResourceList) (
 		fakeDiscovery.Resources = resources
 	}
 	return NewDiscovery(
-		WithEnterprise(isEnterprise),
 		WithClient(fakeDiscovery),
 	)
-}
-
-func (c *Discovery) IsEnterprise() bool {
-	return c.isEnterprise
 }
 
 func (c *Discovery) ServiceMonitorExist() (bool, error) {
@@ -94,8 +74,11 @@ func (c *Discovery) SecurityContextConstrainstsExist() (bool, error) {
 
 func (c *Discovery) LogInfo(logger logr.Logger) error {
 	logger.Info("Discovery info")
-	logger.Info("Enterprise", "enterprise", c.IsEnterprise())
 	svcMonitor, err := c.ServiceMonitorExist()
+	if err != nil {
+		return err
+	}
+	cert, err := c.CertificateExist()
 	if err != nil {
 		return err
 	}
@@ -105,6 +88,7 @@ func (c *Discovery) LogInfo(logger logr.Logger) error {
 	}
 	logger.Info("Resources",
 		"ServiceMonitor", svcMonitor,
+		"Certificate", cert,
 		"SecurityContextConstrainsts", scc,
 	)
 	return nil

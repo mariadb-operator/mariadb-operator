@@ -104,15 +104,15 @@ var _ = Describe("MariaDB Galera types", func() {
 					Enabled: true,
 					GaleraSpec: GaleraSpec{
 						SST:           SSTRsync,
-						GaleraLibPath: "/usr/lib/galera/libgalera_enterprise_smm.so",
+						GaleraLibPath: "/usr/lib/galera/libgalera_smm.so",
 						Primary: PrimaryGalera{
 							AutomaticFailover: ptr.To(false),
 						},
 						InitContainer: GaleraInit{
-							Image: "mariadb/mariadb-operator-enterprise:v0.0.26",
+							Image: "mariadb-operator:v0.0.26",
 						},
 						Agent: GaleraAgent{
-							Image: "mariadb/mariadb-operator-enterprise:v0.0.26",
+							Image: "mariadb-operator:v0.0.26",
 							KubernetesAuth: &KubernetesAuth{
 								Enabled: false,
 							},
@@ -129,10 +129,10 @@ var _ = Describe("MariaDB Galera types", func() {
 					Enabled: true,
 					GaleraSpec: GaleraSpec{
 						SST:            SSTRsync,
-						GaleraLibPath:  "/usr/lib/galera/libgalera_enterprise_smm.so",
+						GaleraLibPath:  "/usr/lib/galera/libgalera_smm.so",
 						ReplicaThreads: 1,
 						InitContainer: GaleraInit{
-							Image: "mariadb/mariadb-operator-enterprise:v0.0.26",
+							Image: "mariadb-operator:v0.0.26",
 						},
 						AvailableWhenDonor: ptr.To(true),
 						Config: GaleraConfig{
@@ -155,7 +155,7 @@ var _ = Describe("MariaDB Galera types", func() {
 							AutomaticFailover: ptr.To(false),
 						},
 						Agent: GaleraAgent{
-							Image:     "mariadb/mariadb-operator-enterprise:v0.0.26",
+							Image:     "mariadb-operator:v0.0.26",
 							Port:      5555,
 							ProbePort: 5566,
 							KubernetesAuth: &KubernetesAuth{

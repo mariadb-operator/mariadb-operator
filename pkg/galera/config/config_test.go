@@ -6,7 +6,6 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/google/go-cmp/cmp"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	"github.com/mariadb-operator/mariadb-operator/pkg/discovery"
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
@@ -14,12 +13,11 @@ import (
 
 func TestGaleraConfigMarshal(t *testing.T) {
 	tests := []struct {
-		name         string
-		mariadb      *mariadbv1alpha1.MariaDB
-		podEnv       *environment.PodEnvironment
-		isEnterprise bool
-		wantConfig   string
-		wantErr      bool
+		name       string
+		mariadb    *mariadbv1alpha1.MariaDB
+		podEnv     *environment.PodEnvironment
+		wantConfig string
+		wantErr    bool
 	}{
 		{
 			name: "no replicas",
@@ -44,9 +42,8 @@ func TestGaleraConfigMarshal(t *testing.T) {
 				PodIP:               "10.244.0.32",
 				MariadbRootPassword: "mariadb",
 			},
-			isEnterprise: false,
-			wantConfig:   "",
-			wantErr:      true,
+			wantConfig: "",
+			wantErr:    true,
 		},
 		{
 			name: "Galera not enabled",
@@ -67,9 +64,8 @@ func TestGaleraConfigMarshal(t *testing.T) {
 				PodIP:               "10.244.0.32",
 				MariadbRootPassword: "mariadb",
 			},
-			isEnterprise: false,
-			wantConfig:   "",
-			wantErr:      true,
+			wantConfig: "",
+			wantErr:    true,
 		},
 		{
 			name: "invalid IP",
@@ -90,9 +86,8 @@ func TestGaleraConfigMarshal(t *testing.T) {
 				PodIP:               "foo",
 				MariadbRootPassword: "mariadb",
 			},
-			isEnterprise: false,
-			wantConfig:   "",
-			wantErr:      true,
+			wantConfig: "",
+			wantErr:    true,
 		},
 		{
 			name: "rsync",
@@ -118,7 +113,6 @@ func TestGaleraConfigMarshal(t *testing.T) {
 				PodIP:               "10.244.0.32",
 				MariadbRootPassword: "mariadb",
 			},
-			isEnterprise: false,
 			//nolint:lll
 			wantConfig: `[mariadb]
 bind_address=*
@@ -158,7 +152,7 @@ wsrep_sst_receive_address="10.244.0.32:4444"
 						Enabled: true,
 						GaleraSpec: mariadbv1alpha1.GaleraSpec{
 							SST:            mariadbv1alpha1.SSTMariaBackup,
-							GaleraLibPath:  "/usr/lib/galera/libgalera_enterprise_smm.so",
+							GaleraLibPath:  "/usr/lib/galera/libgalera_smm.so",
 							ReplicaThreads: 2,
 						},
 					},
@@ -170,7 +164,6 @@ wsrep_sst_receive_address="10.244.0.32:4444"
 				PodIP:               "10.244.0.32",
 				MariadbRootPassword: "mariadb",
 			},
-			isEnterprise: false,
 			//nolint:lll
 			wantConfig: `[mariadb]
 bind_address=*
@@ -189,7 +182,7 @@ wsrep_node_address="10.244.0.32"
 wsrep_node_name="mariadb-galera-1"
 
 # Provider
-wsrep_provider=/usr/lib/galera/libgalera_enterprise_smm.so
+wsrep_provider=/usr/lib/galera/libgalera_smm.so
 wsrep_provider_options="gmcast.listen_addr=tcp://0.0.0.0:4567;ist.recv_addr=10.244.0.32:4568;socket.ssl=false"
 
 # SST
@@ -211,7 +204,7 @@ wsrep_sst_receive_address="10.244.0.32:4444"
 						Enabled: true,
 						GaleraSpec: mariadbv1alpha1.GaleraSpec{
 							SST:            mariadbv1alpha1.SSTMariaBackup,
-							GaleraLibPath:  "/usr/lib/galera/libgalera_enterprise_smm.so",
+							GaleraLibPath:  "/usr/lib/galera/libgalera_smm.so",
 							ReplicaThreads: 1,
 						},
 					},
@@ -223,7 +216,6 @@ wsrep_sst_receive_address="10.244.0.32:4444"
 				PodIP:               "2001:db8::a1",
 				MariadbRootPassword: "mariadb",
 			},
-			isEnterprise: false,
 			//nolint:lll
 			wantConfig: `[mariadb]
 bind_address=*
@@ -242,7 +234,7 @@ wsrep_node_address="2001:db8::a1"
 wsrep_node_name="mariadb-galera-1"
 
 # Provider
-wsrep_provider=/usr/lib/galera/libgalera_enterprise_smm.so
+wsrep_provider=/usr/lib/galera/libgalera_smm.so
 wsrep_provider_options="gmcast.listen_addr=tcp://[::]:4567;ist.recv_addr=[2001:db8::a1]:4568;socket.ssl=false"
 
 # SST
@@ -264,7 +256,7 @@ wsrep_sst_receive_address="[2001:db8::a1]:4444"
 						Enabled: true,
 						GaleraSpec: mariadbv1alpha1.GaleraSpec{
 							SST:            mariadbv1alpha1.SSTMariaBackup,
-							GaleraLibPath:  "/usr/lib/galera/libgalera_enterprise_smm.so",
+							GaleraLibPath:  "/usr/lib/galera/libgalera_smm.so",
 							ReplicaThreads: 1,
 							ProviderOptions: map[string]string{
 								"gcache.size":  "1G",
@@ -280,7 +272,6 @@ wsrep_sst_receive_address="[2001:db8::a1]:4444"
 				PodIP:               "2001:db8::a1",
 				MariadbRootPassword: "mariadb",
 			},
-			isEnterprise: false,
 			//nolint:lll
 			wantConfig: `[mariadb]
 bind_address=*
@@ -299,7 +290,7 @@ wsrep_node_address="2001:db8::a1"
 wsrep_node_name="mariadb-galera-1"
 
 # Provider
-wsrep_provider=/usr/lib/galera/libgalera_enterprise_smm.so
+wsrep_provider=/usr/lib/galera/libgalera_smm.so
 wsrep_provider_options="gcache.size=1G;gcs.fc_limit=128;gmcast.listen_addr=tcp://[::]:4567;ist.recv_addr=[2001:db8::a1]:4568;socket.ssl=false"
 
 # SST
@@ -322,7 +313,7 @@ wsrep_sst_receive_address="[2001:db8::a1]:4444"
 						Enabled: true,
 						GaleraSpec: mariadbv1alpha1.GaleraSpec{
 							SST:            mariadbv1alpha1.SSTMariaBackup,
-							GaleraLibPath:  "/usr/lib/galera/libgalera_enterprise_smm.so",
+							GaleraLibPath:  "/usr/lib/galera/libgalera_smm.so",
 							ReplicaThreads: 2,
 						},
 					},
@@ -345,7 +336,6 @@ wsrep_sst_receive_address="[2001:db8::a1]:4444"
 				TLSClientCertPath:   "/etc/pki/client.crt",
 				TLSClientKeyPath:    "/etc/pki/client.key",
 			},
-			isEnterprise: false,
 			//nolint:lll
 			wantConfig: `[mariadb]
 bind_address=*
@@ -364,7 +354,7 @@ wsrep_node_address="10.244.0.32"
 wsrep_node_name="mariadb-galera-1"
 
 # Provider
-wsrep_provider=/usr/lib/galera/libgalera_enterprise_smm.so
+wsrep_provider=/usr/lib/galera/libgalera_smm.so
 wsrep_provider_options="gmcast.listen_addr=tcp://0.0.0.0:4567;ist.recv_addr=10.244.0.32:4568;socket.dynamic=false;socket.ssl=true;socket.ssl_ca=/etc/pki/ca.crt;socket.ssl_cert=/etc/pki/server.crt;socket.ssl_key=/etc/pki/server.key"
 
 # SST
@@ -392,7 +382,7 @@ tkey=/etc/pki/client.key
 						Enabled: true,
 						GaleraSpec: mariadbv1alpha1.GaleraSpec{
 							SST:            mariadbv1alpha1.SSTMariaBackup,
-							GaleraLibPath:  "/usr/lib/galera/libgalera_enterprise_smm.so",
+							GaleraLibPath:  "/usr/lib/galera/libgalera_smm.so",
 							ReplicaThreads: 2,
 						},
 					},
@@ -415,7 +405,6 @@ tkey=/etc/pki/client.key
 				TLSClientCertPath:   "/etc/pki/client.crt",
 				TLSClientKeyPath:    "/etc/pki/client.key",
 			},
-			isEnterprise: false,
 			//nolint:lll
 			wantConfig: `[mariadb]
 bind_address=*
@@ -434,7 +423,7 @@ wsrep_node_address="10.244.0.32"
 wsrep_node_name="mariadb-galera-1"
 
 # Provider
-wsrep_provider=/usr/lib/galera/libgalera_enterprise_smm.so
+wsrep_provider=/usr/lib/galera/libgalera_smm.so
 wsrep_provider_options="gmcast.listen_addr=tcp://0.0.0.0:4567;ist.recv_addr=10.244.0.32:4568;socket.dynamic=false;socket.ssl=true;socket.ssl_ca=/etc/pki/ca.crt;socket.ssl_cert=/etc/pki/server.crt;socket.ssl_key=/etc/pki/server.key"
 
 # SST
@@ -457,7 +446,7 @@ wsrep_sst_receive_address="10.244.0.32:4444"
 						Enabled: true,
 						GaleraSpec: mariadbv1alpha1.GaleraSpec{
 							SST:            mariadbv1alpha1.SSTMariaBackup,
-							GaleraLibPath:  "/usr/lib/galera/libgalera_enterprise_smm.so",
+							GaleraLibPath:  "/usr/lib/galera/libgalera_smm.so",
 							ReplicaThreads: 2,
 						},
 					},
@@ -480,7 +469,6 @@ wsrep_sst_receive_address="10.244.0.32:4444"
 				TLSClientCertPath:   "/etc/pki/client.crt",
 				TLSClientKeyPath:    "/etc/pki/client.key",
 			},
-			isEnterprise: false,
 			//nolint:lll
 			wantConfig: `[mariadb]
 bind_address=*
@@ -499,7 +487,7 @@ wsrep_node_address="10.244.0.32"
 wsrep_node_name="mariadb-galera-1"
 
 # Provider
-wsrep_provider=/usr/lib/galera/libgalera_enterprise_smm.so
+wsrep_provider=/usr/lib/galera/libgalera_smm.so
 wsrep_provider_options="gmcast.listen_addr=tcp://0.0.0.0:4567;ist.recv_addr=10.244.0.32:4568;socket.dynamic=true;socket.ssl=true;socket.ssl_ca=/etc/pki/ca.crt;socket.ssl_cert=/etc/pki/server.crt;socket.ssl_key=/etc/pki/server.key"
 
 # SST
@@ -518,12 +506,7 @@ tkey=/etc/pki/client.key
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			discovery, err := discovery.NewFakeDiscovery(tt.isEnterprise)
-			if err != nil {
-				t.Fatalf("unexpected error creating discovery: %v", err)
-			}
-
-			bytes, err := NewConfigFile(tt.mariadb, discovery, logr.Discard()).Marshal(tt.podEnv)
+			bytes, err := NewConfigFile(tt.mariadb, logr.Discard()).Marshal(tt.podEnv)
 
 			if tt.wantErr && err == nil {
 				t.Error("expect error to have occurred, got nil")
@@ -565,7 +548,7 @@ wsrep_node_address="10.244.0.32"
 wsrep_node_name="mariadb-galera-1"
 
 # Provider
-wsrep_provider=/usr/lib/galera/libgalera_enterprise_smm.so
+wsrep_provider=/usr/lib/galera/libgalera_smm.so
 wsrep_provider_options="gmcast.listen_addr=tcp://0.0.0.0:4567;ist.recv_addr=10.244.0.32:4568"
 
 # SST
@@ -597,7 +580,7 @@ wsrep_node_address="10.244.0.32"
 wsrep_node_name="mariadb-galera-1"
 
 # Provider
-wsrep_provider=/usr/lib/galera/libgalera_enterprise_smm.so
+wsrep_provider=/usr/lib/galera/libgalera_smm.so
 wsrep_provider_options="gmcast.listen_addr=tcp://0.0.0.0:4567;ist.recv_addr=10.244.0.32:4568"
 
 # SST
@@ -624,7 +607,7 @@ wsrep_node_address="10.244.0.33"
 wsrep_node_name="mariadb-galera-1"
 
 # Provider
-wsrep_provider=/usr/lib/galera/libgalera_enterprise_smm.so
+wsrep_provider=/usr/lib/galera/libgalera_smm.so
 wsrep_provider_options="gmcast.listen_addr=tcp://0.0.0.0:4567;ist.recv_addr=10.244.0.33:4568"
 
 # SST
@@ -652,7 +635,7 @@ wsrep_node_address="2001:db8::a1"
 wsrep_node_name="mariadb-galera-1"
 
 # Provider
-wsrep_provider=/usr/lib/galera/libgalera_enterprise_smm.so
+wsrep_provider=/usr/lib/galera/libgalera_smm.so
 wsrep_provider_options="gcache.size=1G;gcs.fc_limit=128;gmcast.listen_addr=tcp://[::]:4567;ist.recv_addr=[2001:db8::a1]:4568"
 
 # SST
@@ -679,7 +662,7 @@ wsrep_node_address="2001:db8::a2"
 wsrep_node_name="mariadb-galera-1"
 
 # Provider
-wsrep_provider=/usr/lib/galera/libgalera_enterprise_smm.so
+wsrep_provider=/usr/lib/galera/libgalera_smm.so
 wsrep_provider_options="gcache.size=1G;gcs.fc_limit=128;gmcast.listen_addr=tcp://[::]:4567;ist.recv_addr=[2001:db8::a2]:4568"
 
 # SST

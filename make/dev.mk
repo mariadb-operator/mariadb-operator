@@ -18,24 +18,8 @@ ENV ?= \
 	WATCH_NAMESPACE=$(WATCH_NAMESPACE) \
 	KUBEBUILDER_ASSETS=$(KUBEBUILDER_ASSETS)
 
-ENV_ENT ?= \
-	RELATED_IMAGE_MARIADB=$(RELATED_IMAGE_MARIADB_ENT) \
-	RELATED_IMAGE_MAXSCALE=$(RELATED_IMAGE_MAXSCALE_ENT) \
-	RELATED_IMAGE_EXPORTER=$(RELATED_IMAGE_EXPORTER_ENT) \
-	RELATED_IMAGE_EXPORTER_MAXSCALE=$(RELATED_IMAGE_EXPORTER_MAXSCALE_ENT) \
-	MARIADB_GALERA_LIB_PATH=$(MARIADB_GALERA_LIB_PATH_ENT) \
-	MARIADB_OPERATOR_IMAGE=$(IMG_ENT) \
-	MARIADB_OPERATOR_NAME=$(MARIADB_OPERATOR_NAME) \
-	MARIADB_OPERATOR_NAMESPACE=$(MARIADB_OPERATOR_NAMESPACE) \
-	MARIADB_OPERATOR_SA_PATH=$(MARIADB_OPERATOR_SA_PATH) \
-	MARIADB_DEFAULT_VERSION=$(MARIADB_DEFAULT_VERSION_ENT) \
-	WATCH_NAMESPACE=$(WATCH_NAMESPACE) \
-	TEST_ENTERPRISE=true \
-	KUBEBUILDER_ASSETS=$(KUBEBUILDER_ASSETS)
-
 TEST_ARGS ?= --coverprofile=cover.out
 TEST ?= $(ENV) $(GINKGO) $(TEST_ARGS) --timeout 30m
-TEST_ENT ?= $(ENV_ENT) $(GINKGO) $(TEST_ARGS) --timeout 40m
 
 GOCOVERDIR ?= .
 
@@ -61,10 +45,6 @@ test-helm: envtest ginkgo ## Run helm unit tests.
 test-int: envtest ginkgo ## Run integration tests.
 	$(TEST) ./internal/controller/...
 
-.PHONY: test-int-ent
-test-int-ent: envtest ginkgo ## Run enterprise integration tests.
-	$(TEST_ENT) ./internal/controller/...
-
 .PHONY: cover
 cover: ## Generate and view coverage report.
 	@$(GO) tool cover -html=cover.out -o=cover.html
@@ -89,10 +69,6 @@ RUN_FLAGS ?= --log-dev --log-level=info --log-time-encoder=iso8601
 .PHONY: run
 run: lint ## Run a controller from your host.
 	$(ENV) $(GO) run cmd/controller/*.go $(RUN_FLAGS)
-
-.PHONY: run-ent
-run-ent: lint cert-webhook ## Run a enterprise controllers from your host.
-	$(ENV_ENT) $(GO) run cmd/enterprise/*.go $(RUN_FLAGS)
 
 WEBHOOK_FLAGS ?= --log-dev --log-level=debug --log-time-encoder=iso8601 \
 	--ca-cert-path=$(CA_CERT) --cert-dir=$(WEBHOOK_PKI_DIR) \

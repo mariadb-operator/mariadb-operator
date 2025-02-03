@@ -1169,7 +1169,7 @@ func TestMariadbPodBuilderSidecarContainers(t *testing.T) {
 }
 
 func TestMaxscalePodBuilder(t *testing.T) {
-	d, err := discovery.NewFakeDiscovery(false)
+	d, err := discovery.NewFakeDiscovery()
 	if err != nil {
 		t.Fatalf("unexpected error getting discovery: %v", err)
 	}
@@ -1200,42 +1200,6 @@ func TestMaxscalePodBuilder(t *testing.T) {
 		t.Errorf("expected to run as maxscale group, got group: %d", runAsGroup)
 	}
 	if fsGroup != maxscaleGroup {
-		t.Errorf("expected to run as maxscale fsGroup, got fsGroup: %d", fsGroup)
-	}
-}
-
-func TestMaxscaleEnterprisePodBuilder(t *testing.T) {
-	d, err := discovery.NewFakeDiscovery(true)
-	if err != nil {
-		t.Fatalf("unexpected error getting discovery: %v", err)
-	}
-	builder := newTestBuilder(d)
-	mxs := &mariadbv1alpha1.MaxScale{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "test-maxscale-builder",
-		},
-	}
-
-	podTpl, err := builder.maxscalePodTemplate(mxs, nil)
-	if err != nil {
-		t.Fatalf("unexpected error building MaxScale Pod template: %v", err)
-	}
-
-	if podTpl.Spec.SecurityContext == nil {
-		t.Error("expected podSecurityContext to have been set")
-	}
-	sc := ptr.Deref(podTpl.Spec.SecurityContext, corev1.PodSecurityContext{})
-	runAsUser := ptr.Deref(sc.RunAsUser, 0)
-	runAsGroup := ptr.Deref(sc.RunAsGroup, 0)
-	fsGroup := ptr.Deref(sc.FSGroup, 0)
-
-	if runAsUser != maxscaleEnterpriseUser {
-		t.Errorf("expected to run as maxscale user, got user: %d", runAsUser)
-	}
-	if runAsGroup != maxscaleEnterpriseGroup {
-		t.Errorf("expected to run as maxscale group, got group: %d", runAsGroup)
-	}
-	if fsGroup != maxscaleEnterpriseGroup {
 		t.Errorf("expected to run as maxscale fsGroup, got fsGroup: %d", fsGroup)
 	}
 }

@@ -36,26 +36,6 @@ func TestDiscoverySecurityContextConstraints(t *testing.T) {
 		})
 }
 
-func TestDiscoveryEnterprise(t *testing.T) {
-	discovery, err := NewFakeDiscovery(false)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	isEnterprise := discovery.IsEnterprise()
-	if isEnterprise {
-		t.Errorf("expected to be non Enterprise, got: %v", isEnterprise)
-	}
-
-	discovery, err = NewFakeDiscovery(true)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	isEnterprise = discovery.IsEnterprise()
-	if !isEnterprise {
-		t.Errorf("expected to be Enterprise, got: %v", isEnterprise)
-	}
-}
-
 func testDiscoveryResource(t *testing.T, name, group, kind string, discoveryFn func(d *Discovery) (bool, error)) {
 	resource := &metav1.APIResourceList{
 		GroupVersion: group,
@@ -65,7 +45,7 @@ func testDiscoveryResource(t *testing.T, name, group, kind string, discoveryFn f
 			},
 		},
 	}
-	discovery, err := NewFakeDiscovery(false, resource)
+	discovery, err := NewFakeDiscovery(resource)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -78,7 +58,7 @@ func testDiscoveryResource(t *testing.T, name, group, kind string, discoveryFn f
 		t.Errorf("expected to have discovered '%s'", name)
 	}
 
-	discovery, err = NewFakeDiscovery(false)
+	discovery, err = NewFakeDiscovery()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

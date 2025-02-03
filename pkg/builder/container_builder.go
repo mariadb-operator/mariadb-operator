@@ -117,10 +117,19 @@ func (b *Builder) maxscaleContainers(mxs *mariadbv1alpha1.MaxScale) ([]corev1.Co
 	if err != nil {
 		return nil, err
 	}
-	command, err := b.maxscaleCommand(mxs)
-	if err != nil {
-		return nil, err
-	}
+	command := command.NewCommand(
+		[]string{
+			"maxscale",
+		},
+		[]string{
+			"--config",
+			fmt.Sprintf("%s/%s", MaxscaleConfigMountPath, mxs.ConfigSecretKeyRef().Key),
+			"-dU",
+			"maxscale",
+			"-l",
+			"stdout",
+		},
+	)
 
 	container.Name = MaxScaleContainerName
 	container.Command = command.Command
@@ -140,36 +149,6 @@ func (b *Builder) maxscaleContainers(mxs *mariadbv1alpha1.MaxScale) ([]corev1.Co
 	container.StartupProbe = maxscaleProbe(mxs, mxs.Spec.StartupProbe)
 
 	return []corev1.Container{*container}, nil
-}
-
-func (b *Builder) maxscaleCommand(mxs *mariadbv1alpha1.MaxScale) (*command.Command, error) {
-	sccExists, err := b.discovery.SecurityContextConstrainstsExist()
-	if err != nil {
-		return nil, err
-	}
-	if sccExists && b.discovery.IsEnterprise() {
-		return command.NewBashCommand(
-			[]string{
-				fmt.Sprintf(
-					"maxscale --config %s -dU $(id -u) -l stdout",
-					fmt.Sprintf("%s/%s", MaxscaleConfigMountPath, mxs.ConfigSecretKeyRef().Key),
-				),
-			},
-		), nil
-	}
-	return command.NewCommand(
-		[]string{
-			"maxscale",
-		},
-		[]string{
-			"--config",
-			fmt.Sprintf("%s/%s", MaxscaleConfigMountPath, mxs.ConfigSecretKeyRef().Key),
-			"-dU",
-			"maxscale",
-			"-l",
-			"stdout",
-		},
-	), nil
 }
 
 func (b *Builder) galeraAgentContainer(mariadb *mariadbv1alpha1.MariaDB) (*corev1.Container, error) {

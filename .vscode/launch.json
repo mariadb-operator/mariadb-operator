@@ -30,31 +30,6 @@
       }
     },
     {
-      "name": "Enterprise",
-      "type": "go",
-      "request": "launch",
-      "mode": "auto",
-      "program": "cmd/enterprise",
-      "args": [
-        "--log-dev",
-        "--log-level=info",
-        "--log-time-encoder=iso8601",
-      ],
-      "env": {
-        "MARIADB_OPERATOR_NAME": "mariadb-operator",
-        "MARIADB_OPERATOR_NAMESPACE": "default",
-        "MARIADB_OPERATOR_SA_PATH": "/tmp/mariadb-operator/token",
-        "MARIADB_OPERATOR_IMAGE": "docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:0.37.0",
-        "RELATED_IMAGE_MARIADB": "docker-registry.mariadb.com/enterprise-server:10.6.18-14",
-        "RELATED_IMAGE_MAXSCALE": "mariadb/maxscale:23.08",
-        "RELATED_IMAGE_EXPORTER": "prom/mysqld-exporter:v0.15.1",
-        "RELATED_IMAGE_EXPORTER_MAXSCALE": "mariadb/maxscale-prometheus-exporter-ubi:latest",
-        "MARIADB_GALERA_LIB_PATH": "/usr/lib/galera/libgalera_enterprise_smm.so",
-        "MARIADB_DEFAULT_VERSION": "10.6",
-        "WATCH_NAMESPACE": "",
-      }
-    },
-    {
       "name": "Webhook",
       "type": "go",
       "request": "launch",

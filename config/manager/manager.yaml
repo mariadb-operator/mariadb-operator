@@ -19,7 +19,7 @@ spec:
   template:
     metadata:
       annotations:
-        kubectl.kubernetes.io/default-container: mariadb-operator-enterprise
+        kubectl.kubernetes.io/default-container: mariadb-operator
       labels:
         control-plane: mariadb-operator-controller-manager
     spec:
@@ -32,7 +32,7 @@ spec:
             - --webhook-cert-dir=/tmp/k8s-webhook-server/serving-certs
             - --webhook-port=9443
           image: controller:latest
-          name: mariadb-operator-enterprise
+          name: mariadb-operator
           ports:
             - containerPort: 9443
               protocol: TCP
@@ -45,19 +45,19 @@ spec:
               name: health
           env:
             - name: RELATED_IMAGE_MARIADB
-              value: docker-registry.mariadb.com/enterprise-server:10.6.18-14.1
+              value: docker-registry1.mariadb.com/library/mariadb:11.4.4
             - name: RELATED_IMAGE_MAXSCALE
-              value: docker-registry2.mariadb.com/mariadb/maxscale:23.08.6-ubi-1
+              value: docker-registry2.mariadb.com/mariadb/maxscale:23.08.5
             - name: RELATED_IMAGE_EXPORTER
-              value: docker-registry2.mariadb.com/mariadb/mariadb-prometheus-exporter-ubi:v0.0.1
+              value: prom/mysqld-exporter:v0.15.1
             - name: RELATED_IMAGE_EXPORTER_MAXSCALE
               value: docker-registry2.mariadb.com/mariadb/maxscale-prometheus-exporter-ubi:v0.0.1
             - name: MARIADB_OPERATOR_IMAGE
-              value: docker-registry2.mariadb.com/mariadb/mariadb-operator-enterprise:0.34.0
+              value: docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:0.34.0
             - name: MARIADB_GALERA_LIB_PATH
               value: /usr/lib64/galera/libgalera_smm.so
             - name: MARIADB_DEFAULT_VERSION
-              value: "10.6"
+              value: "11.4"
             - name: WATCH_NAMESPACE
               valueFrom:
                 fieldRef:

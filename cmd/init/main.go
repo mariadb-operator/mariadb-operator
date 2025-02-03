@@ -12,7 +12,6 @@ import (
 
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	"github.com/mariadb-operator/mariadb-operator/pkg/discovery"
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	"github.com/mariadb-operator/mariadb-operator/pkg/galera/config"
 	"github.com/mariadb-operator/mariadb-operator/pkg/galera/filemanager"
@@ -46,101 +45,88 @@ const (
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(mariadbv1alpha1.AddToScheme(scheme))
+
+	RootCmd.Flags().StringVar(&configDir, "config-dir", "/etc/mysql/mariadb.conf.d",
+		"The directory that contains MariaDB configuration files")
+	RootCmd.Flags().StringVar(&stateDir, "state-dir", "/var/lib/mysql", "The directory that contains MariaDB state files")
 }
 
-func NewInitCommand(newDiscoveryFn discovery.NewDiscoveryFn) *cobra.Command {
-	command := &cobra.Command{
-		Use:   "init",
-		Short: "Init.",
-		Long:  `Init container for Galera that co-operates with mariadb-operator.`,
-		Args:  cobra.NoArgs,
-		Run: func(cmd *cobra.Command, args []string) {
-			if err := log.SetupLoggerWithCommand(cmd); err != nil {
-				fmt.Printf("error setting up logger: %v\n", err)
-				os.Exit(1)
-			}
-			logger.Info("Starting init")
+var RootCmd = &cobra.Command{
+	Use:   "init",
+	Short: "Init.",
+	Long:  `Init container for Galera that co-operates with mariadb-operator.`,
+	Args:  cobra.NoArgs,
+	Run: func(cmd *cobra.Command, args []string) {
+		if err := log.SetupLoggerWithCommand(cmd); err != nil {
+			fmt.Printf("error setting up logger: %v\n", err)
+			os.Exit(1)
+		}
+		logger.Info("Starting init")
 
-			ctx, cancel := newContext()
-			defer cancel()
+		ctx, cancel := newContext()
+		defer cancel()
 
-			env, err := environment.GetPodEnv(ctx)
-			if err != nil {
-				logger.Error(err, "Error getting environment variables")
-				os.Exit(1)
-			}
-			fileManager, err := filemanager.NewFileManager(configDir, stateDir)
-			if err != nil {
-				logger.Error(err, "Error creating file manager")
-				os.Exit(1)
-			}
-			state := state.NewState(stateDir)
-			k8sClient, err := getK8sClient()
-			if err != nil {
-				logger.Error(err, "Error getting Kubernetes client")
-				os.Exit(1)
-			}
+		env, err := environment.GetPodEnv(ctx)
+		if err != nil {
+			logger.Error(err, "Error getting environment variables")
+			os.Exit(1)
+		}
+		fileManager, err := filemanager.NewFileManager(configDir, stateDir)
+		if err != nil {
+			logger.Error(err, "Error creating file manager")
+			os.Exit(1)
+		}
+		state := state.NewState(stateDir)
+		k8sClient, err := getK8sClient()
+		if err != nil {
+			logger.Error(err, "Error getting Kubernetes client")
+			os.Exit(1)
+		}
 
-			discovery, err := newDiscoveryFn()
-			if err != nil {
-				logger.Error(err, "Error creating discovery")
-				os.Exit(1)
-			}
-			if err := discovery.LogInfo(logger); err != nil {
-				logger.Error(err, "Error discovering")
-				os.Exit(1)
-			}
+		hasGaleraState, err := state.HasGaleraState()
+		if err != nil {
+			logger.Error(err, "Error checking Galera init state")
+			os.Exit(1)
+		}
+		podIndex, err := statefulset.PodIndex(env.PodName)
+		if err != nil {
+			logger.Error(err, "error getting index from Pod", "pod", env.PodName)
+			os.Exit(1)
+		}
 
-			hasGaleraState, err := state.HasGaleraState()
-			if err != nil {
-				logger.Error(err, "Error checking Galera init state")
-				os.Exit(1)
-			}
-			podIndex, err := statefulset.PodIndex(env.PodName)
-			if err != nil {
-				logger.Error(err, "error getting index from Pod", "pod", env.PodName)
-				os.Exit(1)
-			}
+		key := types.NamespacedName{
+			Name:      env.MariadbName,
+			Namespace: env.PodNamespace,
+		}
+		var mdb mariadbv1alpha1.MariaDB
+		if err := k8sClient.Get(ctx, key, &mdb); err != nil {
+			logger.Error(err, "Error getting MariaDB")
 
-			key := types.NamespacedName{
-				Name:      env.MariadbName,
-				Namespace: env.PodNamespace,
-			}
-			var mdb mariadbv1alpha1.MariaDB
-			if err := k8sClient.Get(ctx, key, &mdb); err != nil {
-				logger.Error(err, "Error getting MariaDB")
-
-				if err := updateGaleraConfig(fileManager, env); err != nil {
-					logger.Error(err, "Error updating Galera config")
-					os.Exit(1)
-				}
-				logger.Info("Updated Galera config")
-				os.Exit(0)
-			}
-
-			if err := configureGalera(fileManager, env, &mdb, discovery, logger); err != nil {
-				logger.Error(err, "error configuring Galera")
+			if err := updateGaleraConfig(fileManager, env); err != nil {
+				logger.Error(err, "Error updating Galera config")
 				os.Exit(1)
 			}
-			if err := configureGaleraBootstrap(fileManager, &mdb, hasGaleraState, *podIndex); err != nil {
-				logger.Error(err, "error configuring Galera bootstrap")
-			}
-			if err := waitForPreviousPod(ctx, k8sClient, env, &mdb, hasGaleraState, *podIndex); err != nil {
-				logger.Error(err, "error waiting for previous Pod")
-				os.Exit(1)
-			}
-			if err := cleanupPreviousSST(fileManager); err != nil {
-				logger.Error(err, "error cleaning up previous SST")
-				os.Exit(1)
-			}
-			logger.Info("Init done")
-		},
-	}
-	command.Flags().StringVar(&configDir, "config-dir", "/etc/mysql/mariadb.conf.d",
-		"The directory that contains MariaDB configuration files")
-	command.Flags().StringVar(&stateDir, "state-dir", "/var/lib/mysql", "The directory that contains MariaDB state files")
+			logger.Info("Updated Galera config")
+			os.Exit(0)
+		}
 
-	return command
+		if err := configureGalera(fileManager, env, &mdb, logger); err != nil {
+			logger.Error(err, "error configuring Galera")
+			os.Exit(1)
+		}
+		if err := configureGaleraBootstrap(fileManager, &mdb, hasGaleraState, *podIndex); err != nil {
+			logger.Error(err, "error configuring Galera bootstrap")
+		}
+		if err := waitForPreviousPod(ctx, k8sClient, env, &mdb, hasGaleraState, *podIndex); err != nil {
+			logger.Error(err, "error waiting for previous Pod")
+			os.Exit(1)
+		}
+		if err := cleanupPreviousSST(fileManager); err != nil {
+			logger.Error(err, "error cleaning up previous SST")
+			os.Exit(1)
+		}
+		logger.Info("Init done")
+	},
 }
 
 func newContext() (context.Context, context.CancelFunc) {
@@ -165,11 +151,10 @@ func getK8sClient() (client.Client, error) {
 	return k8sClient, nil
 }
 
-func configureGalera(fm *filemanager.FileManager, env *environment.PodEnvironment, mdb *mariadbv1alpha1.MariaDB,
-	discovery *discovery.Discovery, logger logr.Logger) error {
+func configureGalera(fm *filemanager.FileManager, env *environment.PodEnvironment, mdb *mariadbv1alpha1.MariaDB, logger logr.Logger) error {
 	logger.Info("Configuring Galera")
 
-	configBytes, err := config.NewConfigFile(mdb, discovery, logger).Marshal(env)
+	configBytes, err := config.NewConfigFile(mdb, logger).Marshal(env)
 	if err != nil {
 		return fmt.Errorf("error getting Galera config: %v", err)
 	}

@@ -48,12 +48,10 @@ manifests-bundle: manifests-crds manifests-bundle-helm manifests-bundle-helm-min
 .PHONY: examples-operator
 examples-operator: ## Update mariadb-operator version in examples
 	@./hack/bump_version_examples.sh examples/manifests $(IMG_NAME) $(VERSION)
-	@./hack/bump_version_examples.sh config/samples $(IMG_ENT_NAME) $(VERSION)
 
 .PHONY: examples-mariadb
 examples-mariadb: ## Update mariadb version in examples
 	@./hack/bump_version_examples.sh examples/manifests $(RELATED_IMAGE_MARIADB_NAME) $(RELATED_IMAGE_MARIADB_VERSION)
-	@./hack/bump_version_examples.sh config/samples $(RELATED_IMAGE_MARIADB_ENT_NAME) $(RELATED_IMAGE_MARIADB_ENT_VERSION)
 
 .PHONY: examples-maxscale
 examples-maxscale: ## Update maxscale version in examples
@@ -70,12 +68,9 @@ examples: examples-operator examples-mariadb examples-maxscale examples-exporter
 
 ##@ Generate
 
-.PHONY: generate
-ifneq ($(findstring -dev,$(VERSION)),)
-generate: manifests code embed-entrypoint helm-crds 
-else
-generate: manifests code embed-entrypoint helm-gen manifests-bundle docs-gen examples
-endif
-
 .PHONY: gen
-gen: generate ## Generate alias.
+ifneq ($(findstring -dev,$(VERSION)),)
+gen: manifests code embed-entrypoint helm-crds 
+else
+gen: manifests code embed-entrypoint helm-gen manifests-bundle docs examples
+endif
