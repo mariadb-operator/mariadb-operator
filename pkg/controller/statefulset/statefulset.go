@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/caarlos0/log"
 	appsv1 "k8s.io/api/apps/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 type StatefulSetReconciler struct {
