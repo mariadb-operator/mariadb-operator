@@ -45,7 +45,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/config"
 	ctrlcontroller "sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
 
 var (
@@ -70,6 +72,10 @@ var (
 	requeueSql        time.Duration
 	requeueSqlJob     time.Duration
 	requeueMaxScale   time.Duration
+
+	webhookEnabled bool
+	webhookPort    int
+	webhookCertDir string
 
 	featureMaxScaleSuspend bool
 )
@@ -104,6 +110,13 @@ func init() {
 	rootCmd.Flags().DurationVar(&requeueSql, "requeue-sql", 30*time.Second, "The interval at which SQL objects are requeued.")
 	rootCmd.Flags().DurationVar(&requeueSqlJob, "requeue-sqljob", 5*time.Second, "The interval at which SqlJobs are requeued.")
 	rootCmd.Flags().DurationVar(&requeueMaxScale, "requeue-maxscale", 30*time.Second, "The interval at which MaxScales are requeued.")
+
+	rootCmd.Flags().BoolVar(&webhookEnabled, "webhook", false, "Enable the webhook server.")
+	rootCmd.Flags().IntVar(&webhookPort, "webhook-port", 9443, "Port to be used by the webhook server."+
+		"This only applies if the webhook server is enabled.")
+	rootCmd.Flags().StringVar(&webhookCertDir, "webhook-cert-dir", "/tmp/k8s-webhook-server/serving-certs",
+		"Directory containing the TLS certificate for the webhook server. 'tls.crt' and 'tls.key' must be present in this directory."+
+			"This only applies if the webhook server is enabled.")
 
 	rootCmd.Flags().BoolVar(&featureMaxScaleSuspend, "feature-maxscale-suspend", false, "Feature flag to enable MaxScale resource suspension.")
 }
@@ -147,6 +160,13 @@ var rootCmd = &cobra.Command{
 			Controller: config.Controller{
 				MaxConcurrentReconciles: maxConcurrentReconciles,
 			},
+		}
+		if webhookEnabled {
+			setupLog.Info("Enabling webhook")
+			mgrOpts.WebhookServer = webhook.NewServer(webhook.Options{
+				CertDir: webhookCertDir,
+				Port:    webhookPort,
+			})
 		}
 		if env.WatchNamespace != "" {
 			namespaces, err := env.WatchNamespaces()
@@ -403,6 +423,54 @@ var rootCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
+		if webhookEnabled {
+			if err = (&mariadbv1alpha1.MariaDB{}).SetupWebhookWithManager(mgr); err != nil {
+				setupLog.Error(err, "Unable to create webhook", "webhook", "MariaDB")
+				os.Exit(1)
+			}
+			if err = (&mariadbv1alpha1.MaxScale{}).SetupWebhookWithManager(mgr); err != nil {
+				setupLog.Error(err, "Unable to create webhook", "webhook", "MaxScale")
+				os.Exit(1)
+			}
+			if err = (&mariadbv1alpha1.Backup{}).SetupWebhookWithManager(mgr); err != nil {
+				setupLog.Error(err, "Unable to create webhook", "webhook", "Backup")
+				os.Exit(1)
+			}
+			if err = (&mariadbv1alpha1.Restore{}).SetupWebhookWithManager(mgr); err != nil {
+				setupLog.Error(err, "Unable to create webhook", "webhook", "restore")
+				os.Exit(1)
+			}
+			if err = (&mariadbv1alpha1.User{}).SetupWebhookWithManager(mgr); err != nil {
+				setupLog.Error(err, "Unable to create webhook", "webhook", "User")
+				os.Exit(1)
+			}
+			if err = (&mariadbv1alpha1.Grant{}).SetupWebhookWithManager(mgr); err != nil {
+				setupLog.Error(err, "Unable to create webhook", "webhook", "Grant")
+				os.Exit(1)
+			}
+			if err = (&mariadbv1alpha1.Database{}).SetupWebhookWithManager(mgr); err != nil {
+				setupLog.Error(err, "Unable to create webhook", "webhook", "Database")
+				os.Exit(1)
+			}
+			if err = (&mariadbv1alpha1.Connection{}).SetupWebhookWithManager(mgr); err != nil {
+				setupLog.Error(err, "Unable to create webhook", "webhook", "Connection")
+				os.Exit(1)
+			}
+			if err = (&mariadbv1alpha1.SqlJob{}).SetupWebhookWithManager(mgr); err != nil {
+				setupLog.Error(err, "Unable to create webhook", "webhook", "SqlJob")
+				os.Exit(1)
+			}
+
+			if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
+				setupLog.Error(err, "Unable to set up health check")
+				os.Exit(1)
+			}
+			if err := mgr.AddReadyzCheck("readyz", healthz.Ping); err != nil {
+				setupLog.Error(err, "Unable to set up ready check")
+				os.Exit(1)
+			}
+		}
+
 		setupLog.Info("Starting manager")
 		if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 			setupLog.Error(err, "Error running manager")
@@ -415,7 +483,7 @@ func main() {
 	rootCmd.AddCommand(certControllerCmd)
 	rootCmd.AddCommand(webhookCmd)
 	rootCmd.AddCommand(backupcmd.RootCmd)
-	rootCmd.AddCommand(initcmd.NewInitCommand(discovery.NewDiscovery))
+	rootCmd.AddCommand(initcmd.RootCmd)
 	rootCmd.AddCommand(agentcmd.RootCmd)
 
 	cobra.CheckErr(rootCmd.Execute())

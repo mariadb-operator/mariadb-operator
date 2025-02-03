@@ -39,7 +39,7 @@ func newTestBuilder(discovery *discovery.Discovery) *Builder {
 }
 
 func newDefaultTestBuilder(t *testing.T) *Builder {
-	discovery, err := discovery.NewFakeDiscovery(false)
+	discovery, err := discovery.NewFakeDiscovery()
 	if err != nil {
 		t.Fatalf("unexpected error creating discovery: %v", err)
 	}

@@ -12,43 +12,5 @@ docs-api: crd-ref-docs ## Generate API reference docs.
 docs-docker: ## Generate Docker docs.
 	VERSION=$(VERSION) $(GO) run ./hack/render_docker_docs/main.go
 
-.PHONY: docs-gen
-docs-gen: docs-api docs-docker ## Generate documentation.
-
-DOCS_IMG ?= mariadb-operator/docs:0.0.1
-DOCS_RUN ?= $(DOCKER) run --rm \
-	-u $(shell id -u):$(shell id -g) \
-	-v $(shell pwd):/docs \
-	-p 8000:8000 \
-	-e "GIT_COMMITTER_NAME=$(shell git config user.name)" \
-	-e "GIT_COMMITTER_EMAIL=$(shell git config user.email)" \
-	$(DOCS_IMG)
-MKDOCS ?= $(DOCS_RUN) mkdocs
-MIKE ?= $(DOCS_RUN) mike
-
-.PHONY: docs-image
-docs-image: ## Build a new docs image
-	$(DOCKER) build -t $(DOCS_IMG) -f docs/Dockerfile docs
-
-.PHONY: docs-new
-docs-new: docs-image ## Create new documentation site.
-	$(MKDOCS) new .
-
-.PHONY: docs-serve
-docs-serve: docs-image ## Serve documentation site locally for development.
-	$(MKDOCS) serve --dev-addr=0.0.0.0:8000
-
-.PHONY: docs-build
-docs-build: docs-image ## Build documentation site.
-	$(MKDOCS) build
-
-DOCS_VERSION ?= main
-DOCS_ALIAS ?= unstable
-.PHONY: docs-publish
-docs-publish: docs-image ## Publish documentation site.
-	$(MIKE) deploy --push --update-aliases $(DOCS_VERSION) $(DOCS_ALIAS)
-
-DOCS_DEFAULT ?= latest
-.PHONY: docs-set-default
-docs-set-default: docs-image ## Set documentation default version.
-	$(MIKE) set-default --push $(DOCS_DEFAULT)
+.PHONY: docs
+docs: docs-api docs-docker ## Generate documentation.

@@ -28,7 +28,7 @@ metadata:
   name: mariadb
 spec:
   ...
-  image: docker.mariadb.com/enterprise-server:10.6
+  image: harbor.mycompany.com/mariadb:10.6
   imagePullPolicy: IfNotPresent
   imagePullSecrets:
     - name: registry
@@ -48,7 +48,7 @@ spec:
   metrics:
     enabled: true
     exporter:
-      image: prom/mysqld-exporter:v0.15.1
+      image: harbor.mycompany.com/mysqld-exporter:v0.15.1
       imagePullPolicy: IfNotPresent
       imagePullSecrets:
         - name: registry
@@ -67,7 +67,7 @@ metadata:
   name: maxscale
 spec:
   ...
-  image: mariadb/maxscale:23.08
+  image: harbor.mycompany.com/maxscale:23.08
   imagePullPolicy: IfNotPresent
   imagePullSecrets:
     - name: registry
@@ -85,7 +85,7 @@ metadata:
   name: mariadb
 spec:
   ...
-  image: docker.mariadb.com/enterprise-server:10.6
+  image: harbor.mycompany.com/mariadb:10.6
   imagePullPolicy: IfNotPresent
   imagePullSecrets:
     - name: registry

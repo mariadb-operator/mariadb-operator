@@ -45,7 +45,7 @@ jobs:
           MARIADB_ENTRYPOINT_VERSION: "${{ inputs.mariadb_version }}"
 
       - name: Tell the MariaDB Folks that failed
-        if: ${{ failure() }}
+        if: ${{ failure() && contains(inputs.mariadb_image, 'mariadb-foundation') }}
         uses: zulip/github-actions-zulip/send-message@v1
         with:
           api-key: ${{ secrets.MARIADB_ZULIP_API_KEY }}

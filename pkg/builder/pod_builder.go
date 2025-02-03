@@ -237,7 +237,7 @@ func (b *Builder) maxscalePodTemplate(mxs *mariadbv1alpha1.MaxScale, annotations
 			WithLabels(selectorLabels).
 			Build()
 
-	securityContext, err := b.maxscalePodSecurityContext(mxs)
+	securityContext, err := b.buildPodSecurityContextWithUserGroup(mxs.Spec.PodSecurityContext, maxscaleUser, maxscaleGroup)
 	if err != nil {
 		return nil, err
 	}
@@ -259,13 +259,6 @@ func (b *Builder) maxscalePodTemplate(mxs *mariadbv1alpha1.MaxScale, annotations
 			TopologySpreadConstraints:    kadapter.ToKubernetesSlice(mxs.Spec.TopologySpreadConstraints),
 		},
 	}, nil
-}
-
-func (b *Builder) maxscalePodSecurityContext(mxs *mariadbv1alpha1.MaxScale) (*corev1.PodSecurityContext, error) {
-	if b.discovery.IsEnterprise() {
-		return b.buildPodSecurityContextWithUserGroup(mxs.Spec.PodSecurityContext, maxscaleEnterpriseUser, maxscaleEnterpriseGroup)
-	}
-	return b.buildPodSecurityContextWithUserGroup(mxs.Spec.PodSecurityContext, maxscaleUser, maxscaleGroup)
 }
 
 func mariadbAffinity(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt) *corev1.Affinity {

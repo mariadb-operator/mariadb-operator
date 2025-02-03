@@ -139,18 +139,15 @@ storageclass: cluster-ctx  ## Create StorageClass that allows volume expansion.
 .PHONY: install
 install: cluster-ctx install-crds install-config install-prometheus-crds serviceaccount storageclass docker-dev ## Install everything you need for local development.
 
-.PHONY: install-ent
-install-ent: cluster-ctx install-crds install-config install-prometheus-crds serviceaccount storageclass docker-dev-ent ## Install everything you need for local enterprise development.
-
 ##@ Deploy
 
-.PHONY: deploy-ent
-deploy-ent: manifests kustomize cluster-ctx ## Deploy enterprise controller.
-	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG_ENT}
+.PHONY: deploy
+deploy: manifests kustomize cluster-ctx ## Deploy controller using Kustomize.
+	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
 	$(KUSTOMIZE) build config/default | $(KUBECTL) apply --server-side=true -f -
 
-.PHONY: undeploy-ent
-undeploy-ent: cluster-ctx ## Undeploy enterprise controller.
+.PHONY: undeploy
+undeploy: cluster-ctx ## Undeploy controller using Kustomize.
 	$(KUSTOMIZE) build config/default | $(KUBECTL) delete --ignore-not-found=$(ignore-not-found) -f -
 
 ##@ Sysbench - Standalone

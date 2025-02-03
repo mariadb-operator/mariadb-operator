@@ -2,7 +2,6 @@ package controller
 
 import (
 	"context"
-	"os"
 	"path/filepath"
 	"testing"
 	"time"
@@ -119,12 +118,7 @@ var _ = BeforeSuite(func() {
 	kubeClientset, err := kubernetes.NewForConfig(cfg)
 	Expect(err).ToNot(HaveOccurred())
 
-	var disc *discovery.Discovery
-	if os.Getenv("TEST_ENTERPRISE") != "" {
-		disc, err = discovery.NewDiscoveryEnterprise()
-	} else {
-		disc, err = discovery.NewDiscovery()
-	}
+	disc, err := discovery.NewDiscovery()
 	Expect(err).ToNot(HaveOccurred())
 	Expect(disc.LogInfo(testLogger)).To(Succeed())
 

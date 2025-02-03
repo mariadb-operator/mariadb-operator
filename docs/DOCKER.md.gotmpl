@@ -17,17 +17,17 @@
       <td><code>amd64</code> <code>arm64</code></td>
     </tr>
 	  <tr>
-      <td>MariaDB MaxScale</td>
+      <td>MaxScale</td>
       <td><code>docker-registry2.mariadb.com/mariadb/maxscale:23.08.5</code></td>
       <td><code>amd64</code> <code>arm64</code></td>
     </tr>
     <tr>
-      <td>MariaDB Prometheus Exporter</td>
-	    <td><code>docker-registry2.mariadb.com/mariadb/mariadb-prometheus-exporter-ubi:v0.0.1</code></td>
+      <td>Mysqld Exporter</td>
+	    <td><code>prom/mysqld-exporter:v0.15.1</code></td>
       <td><code>amd64</code> <code>arm64</code></td>
     </tr>
     <tr>
-      <td>MariaDB MaxScale prometheus exporter</td>
+      <td>MaxScale Prometheus exporter</td>
 	    <td><code>docker-registry2.mariadb.com/mariadb/maxscale-prometheus-exporter-ubi:v0.0.1</code></td>
       <td><code>amd64</code> <code>arm64</code></td>
     </tr>

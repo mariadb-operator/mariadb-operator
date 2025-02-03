@@ -6,5 +6,5 @@ configurations:
 - kustomizeconfig.yaml
 images:
 - name: catalog
-  newName: mariadb/mariadb-operator-enterprise-catalog
+  newName: mariadb/mariadb-operator-catalog
   newTag: v0.0.31-dev

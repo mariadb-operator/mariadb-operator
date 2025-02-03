@@ -51,7 +51,7 @@ func TestJobContainerSecurityContext(t *testing.T) {
 			},
 		},
 	}
-	discovery, err := discovery.NewFakeDiscovery(false, resource)
+	discovery, err := discovery.NewFakeDiscovery(resource)
 	if err != nil {
 		t.Fatalf("unexpected error getting discovery: %v", err)
 	}

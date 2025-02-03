@@ -1,5 +1,0 @@
-FROM scratch
-
-COPY deploy/olm/manifests /manifests/
-COPY deploy/olm/metadata /metadata/
-COPY deploy/olm/tests/scorecard /tests/scorecard/
