@@ -122,13 +122,6 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	if err := r.Get(ctx, req.NamespacedName, &mariadb); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
-
-	// Skip reconciliation if the MariaDB CR is being deleted
-	if !mariadb.DeletionTimestamp.IsZero() {
-		log.FromContext(ctx).Info("MariaDB is being deleted, skipping reconciliation")
-		return ctrl.Result{}, nil
-	}
-
 	phases := []reconcilePhaseMariaDB{
 		{
 			Name:      "Spec",
@@ -891,6 +884,11 @@ func (r *MariaDBReconciler) setSpecDefaults(ctx context.Context, mariadb *mariad
 func (r *MariaDBReconciler) reconcileSuspend(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
 	if mariadb.IsSuspended() {
 		log.FromContext(ctx).V(1).Info("MariaDB is suspended. Skipping...")
+		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
+	}
+	// Skip reconciliation if the MariaDB CR is being deleted
+	if !mariadb.DeletionTimestamp.IsZero() {
+		log.FromContext(ctx).Info("MariaDB is being deleted. Skipping...")
 		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 	}
 	return ctrl.Result{}, nil

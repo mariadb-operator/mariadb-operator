@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/caarlos0/log"
 	appsv1 "k8s.io/api/apps/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -39,6 +40,7 @@ func (r *StatefulSetReconciler) ReconcileWithUpdates(ctx context.Context, desire
 
 	// If StatefulSet is being deleted, don't update it
 	if !existingSts.DeletionTimestamp.IsZero() {
+		log.FromContext(ctx).V(1).Info("StatefulSet is being deleted. Skipping...")
 		return nil
 	}
 
