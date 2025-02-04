@@ -18,10 +18,11 @@ assignees:
 
 **Environment details**:
 - Kubernetes version: [Version number]
-- Kubernetes distribution: [Vanilla, EKS, GKE, AKS, Rancher, OpenShift, k3s, KIND...]
-- mariadb-operator version: [Version number]
-- Install method: [helm, OLM, or static manifests]
-- Install flavor: [minimal, recommended, or custom]
+- Kubernetes distribution: [Vanilla Kubernetes, OpenShift, EKS, GKE, AKS, Rancher, k3s, KIND...]
+- MariaDB Operator version: [Version number]
+- MariaDB Server version: [Version number]
+- MaxScale version: [Version number]
+- Install method: [Helm, OLM]
 
 **Additional context**
 <!--Add any other context  here.-->
