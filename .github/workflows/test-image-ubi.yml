@@ -43,7 +43,7 @@ jobs:
         env:
           MARIADB_GALERA_LIB_PATH: /usr/lib64/galera/libgalera_smm.so
           RELATED_IMAGE_MARIADB: "${{ inputs.mariadb_image }}"
-          MARIADB_ENTRYPOINT_VERSION: "${{ inputs.mariadb_version }}"
+          MARIADB_DEFAULT_VERSION: "${{ inputs.mariadb_version }}"
 
       - name: Tell the MariaDB Folks that failed
         if: ${{ failure() && contains(inputs.mariadb_image, 'mariadb-foundation') }}
