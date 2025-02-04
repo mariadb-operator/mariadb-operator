@@ -42,7 +42,7 @@ jobs:
         run: make test-int
         env:
           RELATED_IMAGE_MARIADB: "${{ inputs.mariadb_image }}"
-          MARIADB_ENTRYPOINT_VERSION: "${{ inputs.mariadb_version }}"
+          MARIADB_DEFAULT_VERSION: "${{ inputs.mariadb_version }}"
 
       - name: Tell the MariaDB Folks that failed
         if: ${{ failure() && contains(inputs.mariadb_image, 'mariadb-foundation') }}
