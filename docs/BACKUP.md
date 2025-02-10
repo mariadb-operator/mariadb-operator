@@ -317,7 +317,7 @@ spec:
     name: mariadb
   backupRef:
     name: backup
-  databases: db1
+  database: db1
 ```
 
 There are a couple of points to consider here:
