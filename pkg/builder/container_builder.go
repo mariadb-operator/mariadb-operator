@@ -133,9 +133,12 @@ func (b *Builder) maxscaleContainers(mxs *mariadbv1alpha1.MaxScale) ([]corev1.Co
 
 	container.Name = MaxScaleContainerName
 	container.Command = command.Command
+	if tpl.Command != nil {
+		container.Command = tpl.Command
+	}
 	container.Args = command.Args
 	if len(tpl.Args) > 0 {
-		container.Args = append(container.Args, tpl.Args...)
+		container.Args = tpl.Args
 	}
 	container.Ports = []corev1.ContainerPort{
 		{
