@@ -1865,6 +1865,72 @@ func TestMariadbInitContainers(t *testing.T) {
 	}
 }
 
+func TestMaxscaleContainers(t *testing.T) {
+	tests := []struct {
+		name        string
+		maxscale    *mariadbv1alpha1.MaxScale
+		wantCommand []string
+		wantArgs    []string
+	}{
+		{
+			name: "Without custom command and args",
+			maxscale: &mariadbv1alpha1.MaxScale{
+				Spec: mariadbv1alpha1.MaxScaleSpec{
+					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{},
+				},
+			},
+			wantCommand: []string{"maxscale"},
+			wantArgs:    []string{"--config", "/etc/config/maxscale.cnf", "-dU", "maxscale", "-l", "stdout"},
+		},
+		{
+			name: "With custom command",
+			maxscale: &mariadbv1alpha1.MaxScale{
+				Spec: mariadbv1alpha1.MaxScaleSpec{
+					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
+						Command: []string{"maxscale-test"},
+					},
+				},
+			},
+			wantCommand: []string{"maxscale-test"},
+			wantArgs:    []string{"--config", "/etc/config/maxscale.cnf", "-dU", "maxscale", "-l", "stdout"},
+		},
+		{
+			name: "With custom command and args",
+			maxscale: &mariadbv1alpha1.MaxScale{
+				Spec: mariadbv1alpha1.MaxScaleSpec{
+					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
+						Command: []string{"maxscale-test"},
+						Args:    []string{"--test", "--unit"},
+					},
+				},
+			},
+			wantCommand: []string{"maxscale-test"},
+			wantArgs:    []string{"--test", "--unit"},
+		},
+	}
+
+	builder := newDefaultTestBuilder(t)
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			containers, err := builder.maxscaleContainers(tt.maxscale)
+			if err != nil {
+				t.Fatalf("unexpected error building containers: %v", err)
+			}
+
+			container := containers[0]
+
+			if !reflect.DeepEqual(container.Command[0], tt.wantCommand[0]) {
+				t.Errorf("unexpected result:\nexpected:\n%s\ngot:\n%s\n", tt.wantCommand[0], container.Command[0])
+			}
+
+			if !reflect.DeepEqual(tt.wantArgs, container.Args) {
+				t.Errorf("expected env keys \"%v\" to exist\n got:\"%v\"", tt.wantArgs, container.Args)
+			}
+		})
+	}
+}
+
 func defaultEnv(overrides []corev1.EnvVar) []corev1.EnvVar {
 	mysqlTcpPort := corev1.EnvVar{
 		Name:  "MYSQL_TCP_PORT",
