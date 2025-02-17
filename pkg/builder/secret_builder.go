@@ -29,8 +29,12 @@ func (b *Builder) BuildSecret(opts SecretOpts, owner metav1.Object) (*corev1.Sec
 		ObjectMeta: objMeta,
 		Data:       opts.Data,
 	}
-	if err := controllerutil.SetControllerReference(owner, secret, b.scheme); err != nil {
-		return nil, fmt.Errorf("error setting controller reference to Secret: %v", err)
+
+	if owner != nil {
+		if err := controllerutil.SetControllerReference(owner, secret, b.scheme); err != nil {
+			return nil, fmt.Errorf("error setting controller reference to Secret: %v", err)
+		}
 	}
+
 	return secret, nil
 }
