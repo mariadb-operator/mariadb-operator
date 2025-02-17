@@ -69,7 +69,13 @@ func (r *SecretReconciler) ReconcilePassword(ctx context.Context, req PasswordRe
 			req.SecretKey: []byte(password),
 		},
 	}
-	secret, err := r.Builder.BuildSecret(opts, req.Owner)
+
+	var owner metav1.Object = req.Owner
+	if req.Generate {
+		owner = nil
+	}
+
+	secret, err := r.Builder.BuildSecret(opts, owner)
 	if err != nil {
 		return "", fmt.Errorf("error building password Secret: %v", err)
 	}
