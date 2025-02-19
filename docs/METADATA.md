@@ -78,7 +78,7 @@ spec:
       sidecar.istio.io/inject: "false"
 ```
 
-It is important to note that the `podMetadata` field superseeds the `inheritMetadata` field, therefore the labels and annotations provided in the former will override the ones in the latter.
+It is important to note that the `podMetadata` field supersedes the `inheritMetadata` field, therefore the labels and annotations provided in the former will override the ones in the latter.
 
 ## `Service` metadata
 

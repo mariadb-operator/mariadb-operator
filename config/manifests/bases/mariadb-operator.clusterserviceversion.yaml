@@ -212,7 +212,7 @@ spec:
           PVC template.
         displayName: Size
         path: storage.size
-      - description: StorageClass to use for the database storage. It superseeds the
+      - description: StorageClass to use for the database storage. It supersedes the
           storage class provided in the PVC template. Default storage class is used
           if not provided.
         displayName: Storage Class
@@ -2846,12 +2846,12 @@ spec:
         - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
         - urn:alm:descriptor:com.tectonic.ui:advanced
       - description: Size of the PVCs to be mounted by MariaDB. Required if not provided
-          in 'VolumeClaimTemplate'. It superseeds the storage size specified in 'VolumeClaimTemplate'.
+          in 'VolumeClaimTemplate'. It supersedes the storage size specified in 'VolumeClaimTemplate'.
         displayName: Size
         path: storage.size
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:text
-      - description: StorageClassName to be used to provision the PVCS. It superseeds
+      - description: StorageClassName to be used to provision the PVCS. It supersedes
           the 'StorageClassName' specified in 'VolumeClaimTemplate'. If not provided,
           the default 'StorageClass' configured in the cluster is used.
         displayName: Storage Class Name
