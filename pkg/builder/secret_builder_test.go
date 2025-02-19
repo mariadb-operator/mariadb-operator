@@ -4,6 +4,9 @@ import (
 	"testing"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/pkg/discovery"
+	"github.com/stretchr/testify/assert"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -103,6 +106,69 @@ func TestSecretBuilder(t *testing.T) {
 				t.Fatalf("unexpected error building Secret: %v", err)
 			}
 			assertObjectMeta(t, &configMap.ObjectMeta, tt.wantMeta.Labels, tt.wantMeta.Annotations)
+		})
+	}
+}
+
+func TestBuildSecret(t *testing.T) {
+	discovery, err := discovery.NewDiscovery()
+	if err != nil {
+		t.Fatalf("unexpected error creating discovery: %v", err)
+	}
+	builder := newTestBuilder(discovery)
+	tests := []struct {
+		name    string
+		opts    SecretOpts
+		owner   metav1.Object
+		wantErr bool
+	}{
+		{
+			name: "no owner",
+			opts: SecretOpts{
+				Metadata: []*mariadbv1alpha1.Metadata{},
+				Key: types.NamespacedName{
+					Name:      "test-secret",
+					Namespace: "default",
+				},
+				Data: map[string][]byte{
+					"key": []byte("value"),
+				},
+			},
+			owner:   nil,
+			wantErr: false,
+		},
+		{
+			name: "with owner",
+			opts: SecretOpts{
+				Metadata: []*mariadbv1alpha1.Metadata{},
+				Key: types.NamespacedName{
+					Name:      "test-secret",
+					Namespace: "default",
+				},
+				Data: map[string][]byte{
+					"key": []byte("value"),
+				},
+			},
+			owner: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-mariadb",
+					Namespace: "default",
+				},
+			},
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			secret, err := builder.BuildSecret(tt.opts, tt.owner)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("BuildSecret() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			assert.Equal(t, tt.opts.Data, secret.Data)
+			assert.Equal(t, tt.opts.Key.Name, secret.Name)
+			assert.Equal(t, tt.opts.Key.Namespace, secret.Namespace)
 		})
 	}
 }
