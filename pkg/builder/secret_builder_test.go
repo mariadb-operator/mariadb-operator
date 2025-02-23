@@ -4,10 +4,10 @@ import (
 	"testing"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	"github.com/mariadb-operator/mariadb-operator/pkg/discovery"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 func TestSecretBuilder(t *testing.T) {
@@ -111,11 +111,7 @@ func TestSecretBuilder(t *testing.T) {
 }
 
 func TestBuildSecret(t *testing.T) {
-	discovery, err := discovery.NewDiscovery()
-	if err != nil {
-		t.Fatalf("unexpected error creating discovery: %v", err)
-	}
-	builder := newTestBuilder(discovery)
+	builder := newDefaultTestBuilder(t)
 	tests := []struct {
 		name    string
 		opts    SecretOpts
@@ -169,6 +165,9 @@ func TestBuildSecret(t *testing.T) {
 			assert.Equal(t, tt.opts.Data, secret.Data)
 			assert.Equal(t, tt.opts.Key.Name, secret.Name)
 			assert.Equal(t, tt.opts.Key.Namespace, secret.Namespace)
+			if tt.owner != nil {
+				assert.True(t, controllerutil.HasControllerReference(secret))
+			}
 		})
 	}
 }
