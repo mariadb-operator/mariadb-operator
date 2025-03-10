@@ -945,6 +945,25 @@ _Appears in:_
 | `retryInterval` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#duration-v1-meta)_ | RetryInterval is the interval used to perform health check retries. |  |  |
 
 
+#### HostPathVolumeSource
+
+
+
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#hostpathvolumesource-v1-core
+
+
+
+_Appears in:_
+- [StorageVolumeSource](#storagevolumesource)
+- [Volume](#volume)
+- [VolumeSource](#volumesource)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `path` _string_ |  |  |  |
+| `type` _string_ |  |  |  |
+
+
 #### Job
 
 
@@ -2511,6 +2530,7 @@ _Appears in:_
 | `emptyDir` _[EmptyDirVolumeSource](#emptydirvolumesource)_ |  |  |  |
 | `nfs` _[NFSVolumeSource](#nfsvolumesource)_ |  |  |  |
 | `csi` _[CSIVolumeSource](#csivolumesource)_ |  |  |  |
+| `hostPath` _[HostPathVolumeSource](#hostpathvolumesource)_ |  |  |  |
 | `persistentVolumeClaim` _[PersistentVolumeClaimVolumeSource](#persistentvolumeclaimvolumesource)_ |  |  |  |
 
 
@@ -2737,6 +2757,7 @@ _Appears in:_
 | `emptyDir` _[EmptyDirVolumeSource](#emptydirvolumesource)_ |  |  |  |
 | `nfs` _[NFSVolumeSource](#nfsvolumesource)_ |  |  |  |
 | `csi` _[CSIVolumeSource](#csivolumesource)_ |  |  |  |
+| `hostPath` _[HostPathVolumeSource](#hostpathvolumesource)_ |  |  |  |
 | `persistentVolumeClaim` _[PersistentVolumeClaimVolumeSource](#persistentvolumeclaimvolumesource)_ |  |  |  |
 | `secret` _[SecretVolumeSource](#secretvolumesource)_ |  |  |  |
 | `configMap` _[ConfigMapVolumeSource](#configmapvolumesource)_ |  |  |  |
@@ -2804,6 +2825,7 @@ _Appears in:_
 | `emptyDir` _[EmptyDirVolumeSource](#emptydirvolumesource)_ |  |  |  |
 | `nfs` _[NFSVolumeSource](#nfsvolumesource)_ |  |  |  |
 | `csi` _[CSIVolumeSource](#csivolumesource)_ |  |  |  |
+| `hostPath` _[HostPathVolumeSource](#hostpathvolumesource)_ |  |  |  |
 | `persistentVolumeClaim` _[PersistentVolumeClaimVolumeSource](#persistentvolumeclaimvolumesource)_ |  |  |  |
 | `secret` _[SecretVolumeSource](#secretvolumesource)_ |  |  |  |
 | `configMap` _[ConfigMapVolumeSource](#configmapvolumesource)_ |  |  |  |
