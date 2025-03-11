@@ -64,6 +64,25 @@ func (v CSIVolumeSource) ToKubernetesType() corev1.CSIVolumeSource {
 	return volumeSource
 }
 
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#hostpathvolumesource-v1-core
+type HostPathVolumeSource struct {
+	Path string `json:"path"`
+	// +optional
+	Type *string `json:"type,omitempty"`
+}
+
+func (v HostPathVolumeSource) ToKubernetesType() corev1.HostPathVolumeSource {
+	hostPathType := corev1.HostPathType(corev1.HostPathUnset)
+	if v.Type != nil {
+		hostPathType = corev1.HostPathType(*v.Type)
+	}
+
+	return corev1.HostPathVolumeSource{
+		Path: v.Path,
+		Type: ptr.To(hostPathType),
+	}
+}
+
 // Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#persistentvolumeclaimvolumesource-v1-core.
 type PersistentVolumeClaimVolumeSource struct {
 	ClaimName string `json:"claimName"`
@@ -115,6 +134,8 @@ type StorageVolumeSource struct {
 	NFS *NFSVolumeSource `json:"nfs,omitempty"`
 	// +optional
 	CSI *CSIVolumeSource `json:"csi,omitempty"`
+	// +optional
+	HostPath *HostPathVolumeSource `json:"hostPath,omitempty"`
 	// +optional
 	PersistentVolumeClaim *PersistentVolumeClaimVolumeSource `json:"persistentVolumeClaim,omitempty"`
 }
