@@ -691,7 +691,7 @@ spec:
         spec:
           containers:
           - name: mariadb-client
-            image: mariadb:11.4.4
+            image: mariadb:11.4.5
             command:
               - bash
             args:
@@ -751,7 +751,7 @@ spec:
         spec:
           containers:
           - name: maxscale-client
-            image: mariadb:11.4.4
+            image: mariadb:11.4.5
             command:
               - bash
             args:
