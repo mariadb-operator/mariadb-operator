@@ -1,6 +1,6 @@
 module github.com/mariadb-operator/mariadb-operator
 
-go 1.23.5
+go 1.24.0
 
 require (
 	github.com/cert-manager/cert-manager v1.17.1
