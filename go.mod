@@ -6,7 +6,7 @@ require (
 	github.com/cert-manager/cert-manager v1.17.1
 	github.com/distribution/reference v0.6.0
 	github.com/dsnet/compress v0.0.1
-	github.com/go-chi/chi/v5 v5.2.0
+	github.com/go-chi/chi/v5 v5.2.1
 	github.com/go-chi/httprate v0.14.1
 	github.com/go-logr/logr v1.4.2
 	github.com/go-sql-driver/mysql v1.9.0
