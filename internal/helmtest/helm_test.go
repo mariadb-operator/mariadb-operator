@@ -91,7 +91,6 @@ func TestHelmCurrentNamespaceOnly(t *testing.T) {
 		"templates/webhook/certificate.yaml",
 		"templates/webhook/config.yaml",
 		"templates/webhook/deployment.yaml",
-		"templates/webhook/secret.yaml",
 		"templates/webhook/service.yaml",
 		"templates/webhook/serviceaccount.yaml",
 		"templates/webhook/servicemonitor.yaml",
@@ -130,7 +129,6 @@ func TestHelmClusterWide(t *testing.T) {
 		"templates/webhook/certificate.yaml",
 		"templates/webhook/config.yaml",
 		"templates/webhook/deployment.yaml",
-		"templates/webhook/secret.yaml",
 		"templates/webhook/service.yaml",
 		"templates/webhook/serviceaccount.yaml",
 	}
@@ -150,7 +148,6 @@ func TestHelmCertManager(t *testing.T) {
 
 	expectedTemplates := []string{
 		"templates/webhook/certificate.yaml",
-		"templates/webhook/secret.yaml",
 	}
 	unexpectedTemplates := []string{
 		"templates/cert-controller/deployment.yaml",
