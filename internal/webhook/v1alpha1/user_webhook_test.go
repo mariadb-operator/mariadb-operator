@@ -1,6 +1,7 @@
 package v1alpha1
 
 import (
+	"github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -9,11 +10,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var _ = Describe("User webhook", func() {
-	Context("When creating a User", func() {
+var _ = Describe("v1alpha1.User webhook", func() {
+	Context("When creating a v1alpha1.User", func() {
 		DescribeTable(
 			"Should validate",
-			func(user *User, wantErr bool) {
+			func(user *v1alpha1.User, wantErr bool) {
 				err := k8sClient.Create(testCtx, user)
 				if wantErr {
 					Expect(err).To(HaveOccurred())
@@ -23,23 +24,23 @@ var _ = Describe("User webhook", func() {
 			},
 			Entry(
 				"Valid cleanupPolicy",
-				&User{
+				&v1alpha1.User{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "test-user-valid-cleanuppolicy",
 						Namespace: testNamespace,
 					},
-					Spec: UserSpec{
-						SQLTemplate: SQLTemplate{
-							CleanupPolicy: ptr.To(CleanupPolicyDelete),
+					Spec: v1alpha1.UserSpec{
+						SQLTemplate: v1alpha1.SQLTemplate{
+							CleanupPolicy: ptr.To(v1alpha1.CleanupPolicyDelete),
 						},
-						MariaDBRef: MariaDBRef{
-							ObjectReference: ObjectReference{
+						MariaDBRef: v1alpha1.MariaDBRef{
+							ObjectReference: v1alpha1.ObjectReference{
 								Name: "mariadb-webhook",
 							},
 							WaitForIt: true,
 						},
-						PasswordSecretKeyRef: &SecretKeySelector{
-							LocalObjectReference: LocalObjectReference{
+						PasswordSecretKeyRef: &v1alpha1.SecretKeySelector{
+							LocalObjectReference: v1alpha1.LocalObjectReference{
 								Name: "user-mariadb-webhook-root",
 							},
 							Key: "password",
@@ -51,23 +52,23 @@ var _ = Describe("User webhook", func() {
 			),
 			Entry(
 				"Invalid cleanupPolicy",
-				&User{
+				&v1alpha1.User{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "test-user-invalid-cleanuppolicy",
 						Namespace: testNamespace,
 					},
-					Spec: UserSpec{
-						SQLTemplate: SQLTemplate{
-							CleanupPolicy: ptr.To(CleanupPolicy("")),
+					Spec: v1alpha1.UserSpec{
+						SQLTemplate: v1alpha1.SQLTemplate{
+							CleanupPolicy: ptr.To(v1alpha1.CleanupPolicy("")),
 						},
-						MariaDBRef: MariaDBRef{
-							ObjectReference: ObjectReference{
+						MariaDBRef: v1alpha1.MariaDBRef{
+							ObjectReference: v1alpha1.ObjectReference{
 								Name: "mariadb-webhook",
 							},
 							WaitForIt: true,
 						},
-						PasswordSecretKeyRef: &SecretKeySelector{
-							LocalObjectReference: LocalObjectReference{
+						PasswordSecretKeyRef: &v1alpha1.SecretKeySelector{
+							LocalObjectReference: v1alpha1.LocalObjectReference{
 								Name: "user-mariadb-webhook-root",
 							},
 							Key: "password",
@@ -79,25 +80,25 @@ var _ = Describe("User webhook", func() {
 			),
 			Entry(
 				"Valid require",
-				&User{
+				&v1alpha1.User{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "test-user-valid-require",
 						Namespace: testNamespace,
 					},
-					Spec: UserSpec{
-						MariaDBRef: MariaDBRef{
-							ObjectReference: ObjectReference{
+					Spec: v1alpha1.UserSpec{
+						MariaDBRef: v1alpha1.MariaDBRef{
+							ObjectReference: v1alpha1.ObjectReference{
 								Name: "mariadb-webhook",
 							},
 							WaitForIt: true,
 						},
-						PasswordSecretKeyRef: &SecretKeySelector{
-							LocalObjectReference: LocalObjectReference{
+						PasswordSecretKeyRef: &v1alpha1.SecretKeySelector{
+							LocalObjectReference: v1alpha1.LocalObjectReference{
 								Name: "user-mariadb-webhook-root",
 							},
 							Key: "password",
 						},
-						Require: &TLSRequirements{
+						Require: &v1alpha1.TLSRequirements{
 							Issuer:  ptr.To("/CN=mariadb-galera-ca"),
 							Subject: ptr.To("/CN=mariadb-galera-ca"),
 						},
@@ -108,25 +109,25 @@ var _ = Describe("User webhook", func() {
 			),
 			Entry(
 				"Invalid require",
-				&User{
+				&v1alpha1.User{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "test-user-invalid-require",
 						Namespace: testNamespace,
 					},
-					Spec: UserSpec{
-						MariaDBRef: MariaDBRef{
-							ObjectReference: ObjectReference{
+					Spec: v1alpha1.UserSpec{
+						MariaDBRef: v1alpha1.MariaDBRef{
+							ObjectReference: v1alpha1.ObjectReference{
 								Name: "mariadb-webhook",
 							},
 							WaitForIt: true,
 						},
-						PasswordSecretKeyRef: &SecretKeySelector{
-							LocalObjectReference: LocalObjectReference{
+						PasswordSecretKeyRef: &v1alpha1.SecretKeySelector{
+							LocalObjectReference: v1alpha1.LocalObjectReference{
 								Name: "user-mariadb-webhook-root",
 							},
 							Key: "password",
 						},
-						Require: &TLSRequirements{
+						Require: &v1alpha1.TLSRequirements{
 							X509:    ptr.To(true),
 							Issuer:  ptr.To("/CN=mariadb-galera-ca"),
 							Subject: ptr.To("/CN=mariadb-galera-ca"),
@@ -139,40 +140,40 @@ var _ = Describe("User webhook", func() {
 		)
 	})
 
-	Context("When updating a User", Ordered, func() {
+	Context("When updating a v1alpha1.User", Ordered, func() {
 		key := types.NamespacedName{
 			Name:      "user-update-webhook",
 			Namespace: testNamespace,
 		}
-		PasswordPlugin := PasswordPlugin{
-			PluginNameSecretKeyRef: &SecretKeySelector{
-				LocalObjectReference: LocalObjectReference{
+		PasswordPlugin := v1alpha1.PasswordPlugin{
+			PluginNameSecretKeyRef: &v1alpha1.SecretKeySelector{
+				LocalObjectReference: v1alpha1.LocalObjectReference{
 					Name: "user-mariadb-webhook-root",
 				},
 				Key: "pluginName",
 			},
-			PluginArgSecretKeyRef: &SecretKeySelector{
-				LocalObjectReference: LocalObjectReference{
+			PluginArgSecretKeyRef: &v1alpha1.SecretKeySelector{
+				LocalObjectReference: v1alpha1.LocalObjectReference{
 					Name: "user-mariadb-webhook-root",
 				},
 				Key: "pluginArg",
 			},
 		}
 		BeforeAll(func() {
-			user := User{
+			user := v1alpha1.User{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      key.Name,
 					Namespace: key.Namespace,
 				},
-				Spec: UserSpec{
-					MariaDBRef: MariaDBRef{
-						ObjectReference: ObjectReference{
+				Spec: v1alpha1.UserSpec{
+					MariaDBRef: v1alpha1.MariaDBRef{
+						ObjectReference: v1alpha1.ObjectReference{
 							Name: "mariadb-webhook",
 						},
 						WaitForIt: true,
 					},
-					PasswordSecretKeyRef: &SecretKeySelector{
-						LocalObjectReference: LocalObjectReference{
+					PasswordSecretKeyRef: &v1alpha1.SecretKeySelector{
+						LocalObjectReference: v1alpha1.LocalObjectReference{
 							Name: "user-mariadb-webhook-root",
 						},
 						Key: "password",
@@ -184,8 +185,8 @@ var _ = Describe("User webhook", func() {
 		})
 		DescribeTable(
 			"Should validate",
-			func(patchFn func(u *User), wantErr bool) {
-				var user User
+			func(patchFn func(u *v1alpha1.User), wantErr bool) {
+				var user v1alpha1.User
 				Expect(k8sClient.Get(testCtx, key, &user)).To(Succeed())
 
 				patch := client.MergeFrom(user.DeepCopy())
@@ -200,42 +201,42 @@ var _ = Describe("User webhook", func() {
 			},
 			Entry(
 				"Updating MariaDBRef",
-				func(umdb *User) {
+				func(umdb *v1alpha1.User) {
 					umdb.Spec.MariaDBRef.Name = "another-mariadb"
 				},
 				true,
 			),
 			Entry(
 				"Updating PasswordSecretKeyRef",
-				func(umdb *User) {
+				func(umdb *v1alpha1.User) {
 					umdb.Spec.PasswordSecretKeyRef.Name = "another-secret"
 				},
 				false,
 			),
 			Entry(
 				"Updating MaxUserConnections",
-				func(umdb *User) {
+				func(umdb *v1alpha1.User) {
 					umdb.Spec.MaxUserConnections = 20
 				},
 				false,
 			),
 			Entry(
 				"Duplicate authentication methods",
-				func(umdb *User) {
+				func(umdb *v1alpha1.User) {
 					umdb.Spec.PasswordHashSecretKeyRef = umdb.Spec.PasswordSecretKeyRef
 				},
 				true,
 			),
 			Entry(
 				"Duplicate authentication methods",
-				func(umdb *User) {
+				func(umdb *v1alpha1.User) {
 					umdb.Spec.PasswordPlugin = PasswordPlugin
 				},
 				true,
 			),
 			Entry(
 				"Updating PasswordPlugin",
-				func(umdb *User) {
+				func(umdb *v1alpha1.User) {
 					umdb.Spec.PasswordSecretKeyRef = nil
 					umdb.Spec.PasswordPlugin = PasswordPlugin
 				},
@@ -243,7 +244,7 @@ var _ = Describe("User webhook", func() {
 			),
 			Entry(
 				"Updating PasswordPlugin.PluginArgSecretKeyRef",
-				func(umdb *User) {
+				func(umdb *v1alpha1.User) {
 					umdb.Spec.PasswordSecretKeyRef = nil
 					umdb.Spec.PasswordPlugin = PasswordPlugin
 					umdb.Spec.PasswordPlugin.PluginArgSecretKeyRef.Name = "another-secret"
@@ -252,15 +253,15 @@ var _ = Describe("User webhook", func() {
 			),
 			Entry(
 				"Updating CleanupPolicy",
-				func(umdb *User) {
-					umdb.Spec.CleanupPolicy = ptr.To(CleanupPolicySkip)
+				func(umdb *v1alpha1.User) {
+					umdb.Spec.CleanupPolicy = ptr.To(v1alpha1.CleanupPolicySkip)
 				},
 				false,
 			),
 			Entry(
 				"Updating TLSRequirements",
-				func(umdb *User) {
-					umdb.Spec.Require = &TLSRequirements{
+				func(umdb *v1alpha1.User) {
+					umdb.Spec.Require = &v1alpha1.TLSRequirements{
 						X509: ptr.To(true),
 					}
 				},
