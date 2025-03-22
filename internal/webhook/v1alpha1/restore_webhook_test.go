@@ -3,6 +3,7 @@ package v1alpha1
 import (
 	"time"
 
+	"github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -13,14 +14,14 @@ import (
 )
 
 var _ = Describe("Restore webhook", func() {
-	Context("When creating a Restore", func() {
+	Context("When creating a v1alpha1.Restore", func() {
 		objMeta := metav1.ObjectMeta{
 			Name:      "restore-create-webhook",
 			Namespace: testNamespace,
 		}
 		DescribeTable(
 			"Should validate",
-			func(restore *Restore, wantErr bool) {
+			func(restore *v1alpha1.Restore, wantErr bool) {
 				_ = k8sClient.Delete(testCtx, restore)
 				err := k8sClient.Create(testCtx, restore)
 				if wantErr {
@@ -31,14 +32,14 @@ var _ = Describe("Restore webhook", func() {
 			},
 			Entry(
 				"No source",
-				&Restore{
+				&v1alpha1.Restore{
 					ObjectMeta: objMeta,
-					Spec: RestoreSpec{
-						RestoreSource: RestoreSource{
+					Spec: v1alpha1.RestoreSpec{
+						RestoreSource: v1alpha1.RestoreSource{
 							TargetRecoveryTime: &metav1.Time{Time: time.Now()},
 						},
-						MariaDBRef: MariaDBRef{
-							ObjectReference: ObjectReference{
+						MariaDBRef: v1alpha1.MariaDBRef{
+							ObjectReference: v1alpha1.ObjectReference{
 								Name: "mariadb-webhook",
 							},
 							WaitForIt: true,
@@ -50,16 +51,16 @@ var _ = Describe("Restore webhook", func() {
 			),
 			Entry(
 				"BackupRef source",
-				&Restore{
+				&v1alpha1.Restore{
 					ObjectMeta: objMeta,
-					Spec: RestoreSpec{
-						RestoreSource: RestoreSource{
-							BackupRef: &LocalObjectReference{
+					Spec: v1alpha1.RestoreSpec{
+						RestoreSource: v1alpha1.RestoreSource{
+							BackupRef: &v1alpha1.LocalObjectReference{
 								Name: "backup-webhook",
 							},
 						},
-						MariaDBRef: MariaDBRef{
-							ObjectReference: ObjectReference{
+						MariaDBRef: v1alpha1.MariaDBRef{
+							ObjectReference: v1alpha1.ObjectReference{
 								Name: "mariadb-webhook",
 							},
 							WaitForIt: true,
@@ -71,17 +72,17 @@ var _ = Describe("Restore webhook", func() {
 			),
 			Entry(
 				"S3 source",
-				&Restore{
+				&v1alpha1.Restore{
 					ObjectMeta: objMeta,
-					Spec: RestoreSpec{
-						RestoreSource: RestoreSource{
-							S3: &S3{
+					Spec: v1alpha1.RestoreSpec{
+						RestoreSource: v1alpha1.RestoreSource{
+							S3: &v1alpha1.S3{
 								Bucket:   "test",
 								Endpoint: "test",
 							},
 						},
-						MariaDBRef: MariaDBRef{
-							ObjectReference: ObjectReference{
+						MariaDBRef: v1alpha1.MariaDBRef{
+							ObjectReference: v1alpha1.ObjectReference{
 								Name: "mariadb-webhook",
 							},
 							WaitForIt: true,
@@ -93,18 +94,18 @@ var _ = Describe("Restore webhook", func() {
 			),
 			Entry(
 				"Volume source",
-				&Restore{
+				&v1alpha1.Restore{
 					ObjectMeta: objMeta,
-					Spec: RestoreSpec{
-						RestoreSource: RestoreSource{
-							Volume: &StorageVolumeSource{
-								PersistentVolumeClaim: &PersistentVolumeClaimVolumeSource{
+					Spec: v1alpha1.RestoreSpec{
+						RestoreSource: v1alpha1.RestoreSource{
+							Volume: &v1alpha1.StorageVolumeSource{
+								PersistentVolumeClaim: &v1alpha1.PersistentVolumeClaimVolumeSource{
 									ClaimName: "pvc-webhook",
 								},
 							},
 						},
-						MariaDBRef: MariaDBRef{
-							ObjectReference: ObjectReference{
+						MariaDBRef: v1alpha1.MariaDBRef{
+							ObjectReference: v1alpha1.ObjectReference{
 								Name: "mariadb-webhook",
 							},
 							WaitForIt: true,
@@ -116,20 +117,20 @@ var _ = Describe("Restore webhook", func() {
 			),
 			Entry(
 				"S3 and Volume source",
-				&Restore{
+				&v1alpha1.Restore{
 					ObjectMeta: objMeta,
-					Spec: RestoreSpec{
-						RestoreSource: RestoreSource{
-							S3: &S3{
+					Spec: v1alpha1.RestoreSpec{
+						RestoreSource: v1alpha1.RestoreSource{
+							S3: &v1alpha1.S3{
 								Bucket:   "test",
 								Endpoint: "test",
 							},
-							Volume: &StorageVolumeSource{
-								EmptyDir: &EmptyDirVolumeSource{},
+							Volume: &v1alpha1.StorageVolumeSource{
+								EmptyDir: &v1alpha1.EmptyDirVolumeSource{},
 							},
 						},
-						MariaDBRef: MariaDBRef{
-							ObjectReference: ObjectReference{
+						MariaDBRef: v1alpha1.MariaDBRef{
+							ObjectReference: v1alpha1.ObjectReference{
 								Name: "mariadb-webhook",
 							},
 							WaitForIt: true,
@@ -141,23 +142,23 @@ var _ = Describe("Restore webhook", func() {
 			),
 			Entry(
 				"BackupRef, S3 and Volume source",
-				&Restore{
+				&v1alpha1.Restore{
 					ObjectMeta: objMeta,
-					Spec: RestoreSpec{
-						RestoreSource: RestoreSource{
-							BackupRef: &LocalObjectReference{
+					Spec: v1alpha1.RestoreSpec{
+						RestoreSource: v1alpha1.RestoreSource{
+							BackupRef: &v1alpha1.LocalObjectReference{
 								Name: "backup-webhook",
 							},
-							S3: &S3{
+							S3: &v1alpha1.S3{
 								Bucket:   "test",
 								Endpoint: "test",
 							},
-							Volume: &StorageVolumeSource{
-								EmptyDir: &EmptyDirVolumeSource{},
+							Volume: &v1alpha1.StorageVolumeSource{
+								EmptyDir: &v1alpha1.EmptyDirVolumeSource{},
 							},
 						},
-						MariaDBRef: MariaDBRef{
-							ObjectReference: ObjectReference{
+						MariaDBRef: v1alpha1.MariaDBRef{
+							ObjectReference: v1alpha1.ObjectReference{
 								Name: "mariadb-webhook",
 							},
 							WaitForIt: true,
@@ -169,16 +170,16 @@ var _ = Describe("Restore webhook", func() {
 			),
 			Entry(
 				"S3 and staging storage",
-				&Restore{
+				&v1alpha1.Restore{
 					ObjectMeta: objMeta,
-					Spec: RestoreSpec{
-						RestoreSource: RestoreSource{
-							S3: &S3{
+					Spec: v1alpha1.RestoreSpec{
+						RestoreSource: v1alpha1.RestoreSource{
+							S3: &v1alpha1.S3{
 								Bucket:   "test",
 								Endpoint: "test",
 							},
-							StagingStorage: &BackupStagingStorage{
-								PersistentVolumeClaim: &PersistentVolumeClaimSpec{
+							StagingStorage: &v1alpha1.BackupStagingStorage{
+								PersistentVolumeClaim: &v1alpha1.PersistentVolumeClaimSpec{
 									AccessModes: []corev1.PersistentVolumeAccessMode{
 										corev1.ReadWriteOnce,
 									},
@@ -190,8 +191,8 @@ var _ = Describe("Restore webhook", func() {
 								},
 							},
 						},
-						MariaDBRef: MariaDBRef{
-							ObjectReference: ObjectReference{
+						MariaDBRef: v1alpha1.MariaDBRef{
+							ObjectReference: v1alpha1.ObjectReference{
 								Name: "mariadb-webhook",
 							},
 							WaitForIt: true,
@@ -203,15 +204,15 @@ var _ = Describe("Restore webhook", func() {
 			),
 			Entry(
 				"Volume and stagingStorage",
-				&Restore{
+				&v1alpha1.Restore{
 					ObjectMeta: objMeta,
-					Spec: RestoreSpec{
-						RestoreSource: RestoreSource{
-							Volume: &StorageVolumeSource{
-								EmptyDir: &EmptyDirVolumeSource{},
+					Spec: v1alpha1.RestoreSpec{
+						RestoreSource: v1alpha1.RestoreSource{
+							Volume: &v1alpha1.StorageVolumeSource{
+								EmptyDir: &v1alpha1.EmptyDirVolumeSource{},
 							},
-							StagingStorage: &BackupStagingStorage{
-								PersistentVolumeClaim: &PersistentVolumeClaimSpec{
+							StagingStorage: &v1alpha1.BackupStagingStorage{
+								PersistentVolumeClaim: &v1alpha1.PersistentVolumeClaimSpec{
 									AccessModes: []corev1.PersistentVolumeAccessMode{
 										corev1.ReadWriteOnce,
 									},
@@ -223,8 +224,8 @@ var _ = Describe("Restore webhook", func() {
 								},
 							},
 						},
-						MariaDBRef: MariaDBRef{
-							ObjectReference: ObjectReference{
+						MariaDBRef: v1alpha1.MariaDBRef{
+							ObjectReference: v1alpha1.ObjectReference{
 								Name: "mariadb-webhook",
 							},
 							WaitForIt: true,
@@ -237,32 +238,32 @@ var _ = Describe("Restore webhook", func() {
 		)
 	})
 
-	Context("When updating a Restore", Ordered, func() {
+	Context("When updating a v1alpha1.Restore", Ordered, func() {
 		key := types.NamespacedName{
 			Name:      "restore-update-webhook",
 			Namespace: testNamespace,
 		}
 		BeforeAll(func() {
-			restore := Restore{
+			restore := v1alpha1.Restore{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      key.Name,
 					Namespace: key.Namespace,
 				},
-				Spec: RestoreSpec{
-					JobContainerTemplate: JobContainerTemplate{
-						Resources: &ResourceRequirements{
+				Spec: v1alpha1.RestoreSpec{
+					JobContainerTemplate: v1alpha1.JobContainerTemplate{
+						Resources: &v1alpha1.ResourceRequirements{
 							Requests: corev1.ResourceList{
 								"cpu": resource.MustParse("100m"),
 							},
 						},
 					},
-					RestoreSource: RestoreSource{
-						S3: &S3{
+					RestoreSource: v1alpha1.RestoreSource{
+						S3: &v1alpha1.S3{
 							Bucket:   "test",
 							Endpoint: "test",
 						},
-						StagingStorage: &BackupStagingStorage{
-							PersistentVolumeClaim: &PersistentVolumeClaimSpec{
+						StagingStorage: &v1alpha1.BackupStagingStorage{
+							PersistentVolumeClaim: &v1alpha1.PersistentVolumeClaimSpec{
 								AccessModes: []corev1.PersistentVolumeAccessMode{
 									corev1.ReadWriteOnce,
 								},
@@ -275,8 +276,8 @@ var _ = Describe("Restore webhook", func() {
 						},
 						TargetRecoveryTime: &metav1.Time{Time: time.Now()},
 					},
-					MariaDBRef: MariaDBRef{
-						ObjectReference: ObjectReference{
+					MariaDBRef: v1alpha1.MariaDBRef{
+						ObjectReference: v1alpha1.ObjectReference{
 							Name: "mariadb-webhook",
 						},
 						WaitForIt: true,
@@ -289,8 +290,8 @@ var _ = Describe("Restore webhook", func() {
 		})
 		DescribeTable(
 			"Should validate",
-			func(patchFn func(restore *Restore), wantErr bool) {
-				var restore Restore
+			func(patchFn func(restore *v1alpha1.Restore), wantErr bool) {
+				var restore v1alpha1.Restore
 				Expect(k8sClient.Get(testCtx, key, &restore)).To(Succeed())
 
 				patch := client.MergeFrom(restore.DeepCopy())
@@ -305,22 +306,22 @@ var _ = Describe("Restore webhook", func() {
 			},
 			Entry(
 				"Updating BackoffLimit",
-				func(rmdb *Restore) {
+				func(rmdb *v1alpha1.Restore) {
 					rmdb.Spec.BackoffLimit = 20
 				},
 				false,
 			),
 			Entry(
 				"Updating RestartPolicy",
-				func(rmdb *Restore) {
+				func(rmdb *v1alpha1.Restore) {
 					rmdb.Spec.RestartPolicy = corev1.RestartPolicyNever
 				},
 				true,
 			),
 			Entry(
 				"Updating Resources",
-				func(rmdb *Restore) {
-					rmdb.Spec.Resources = &ResourceRequirements{
+				func(rmdb *v1alpha1.Restore) {
+					rmdb.Spec.Resources = &v1alpha1.ResourceRequirements{
 						Requests: corev1.ResourceList{
 							"cpu": resource.MustParse("200m"),
 						},
@@ -330,15 +331,15 @@ var _ = Describe("Restore webhook", func() {
 			),
 			Entry(
 				"Updating MariaDBRef",
-				func(rmdb *Restore) {
+				func(rmdb *v1alpha1.Restore) {
 					rmdb.Spec.MariaDBRef.Name = "another-mariadb"
 				},
 				true,
 			),
 			Entry(
 				"Updating BackupRef source",
-				func(rmdb *Restore) {
-					rmdb.Spec.RestoreSource.BackupRef = &LocalObjectReference{
+				func(rmdb *v1alpha1.Restore) {
+					rmdb.Spec.RestoreSource.BackupRef = &v1alpha1.LocalObjectReference{
 						Name: "backup",
 					}
 				},
@@ -346,8 +347,8 @@ var _ = Describe("Restore webhook", func() {
 			),
 			Entry(
 				"Update S3 source",
-				func(rmdb *Restore) {
-					rmdb.Spec.RestoreSource.S3 = &S3{
+				func(rmdb *v1alpha1.Restore) {
+					rmdb.Spec.RestoreSource.S3 = &v1alpha1.S3{
 						Bucket:   "another-bucket",
 						Endpoint: "another-endpoint",
 					}
@@ -356,23 +357,23 @@ var _ = Describe("Restore webhook", func() {
 			),
 			Entry(
 				"Init Volume source",
-				func(rmdb *Restore) {
-					rmdb.Spec.RestoreSource.Volume = &StorageVolumeSource{
-						EmptyDir: &EmptyDirVolumeSource{},
+				func(rmdb *v1alpha1.Restore) {
+					rmdb.Spec.RestoreSource.Volume = &v1alpha1.StorageVolumeSource{
+						EmptyDir: &v1alpha1.EmptyDirVolumeSource{},
 					}
 				},
 				false,
 			),
 			Entry(
 				"Init TargetRecoveryTime source",
-				func(rmdb *Restore) {
+				func(rmdb *v1alpha1.Restore) {
 					rmdb.Spec.RestoreSource.TargetRecoveryTime = &metav1.Time{Time: time.Now().Add(1 * time.Hour)}
 				},
 				true,
 			),
 			Entry(
 				"Update StagingStorage",
-				func(rmdb *Restore) {
+				func(rmdb *v1alpha1.Restore) {
 					rmdb.Spec.StagingStorage = nil
 				},
 				true,

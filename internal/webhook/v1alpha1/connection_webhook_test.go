@@ -3,6 +3,7 @@ package v1alpha1
 import (
 	"time"
 
+	"github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -11,15 +12,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var _ = Describe("Connection webhook", func() {
-	Context("When creating a Connection", func() {
+var _ = Describe("v1alpha1.Connection webhook", func() {
+	Context("When creating a v1alpha1.Connection", func() {
 		meta := metav1.ObjectMeta{
 			Name:      "connection-create-webhook",
 			Namespace: testNamespace,
 		}
 		DescribeTable(
 			"Should validate",
-			func(conn *Connection, wantErr bool) {
+			func(conn *v1alpha1.Connection, wantErr bool) {
 				_ = k8sClient.Delete(testCtx, conn)
 				err := k8sClient.Create(testCtx, conn)
 				if wantErr {
@@ -30,12 +31,12 @@ var _ = Describe("Connection webhook", func() {
 			},
 			Entry(
 				"No refs",
-				&Connection{
+				&v1alpha1.Connection{
 					ObjectMeta: meta,
-					Spec: ConnectionSpec{
+					Spec: v1alpha1.ConnectionSpec{
 						Username: "foo",
-						PasswordSecretKeyRef: &SecretKeySelector{
-							LocalObjectReference: LocalObjectReference{
+						PasswordSecretKeyRef: &v1alpha1.SecretKeySelector{
+							LocalObjectReference: v1alpha1.LocalObjectReference{
 								Name: "foo",
 							},
 						},
@@ -45,11 +46,11 @@ var _ = Describe("Connection webhook", func() {
 			),
 			Entry(
 				"No creds",
-				&Connection{
+				&v1alpha1.Connection{
 					ObjectMeta: meta,
-					Spec: ConnectionSpec{
-						MariaDBRef: &MariaDBRef{
-							ObjectReference: ObjectReference{
+					Spec: v1alpha1.ConnectionSpec{
+						MariaDBRef: &v1alpha1.MariaDBRef{
+							ObjectReference: v1alpha1.ObjectReference{
 								Name: "foo",
 							},
 						},
@@ -60,16 +61,16 @@ var _ = Describe("Connection webhook", func() {
 			),
 			Entry(
 				"TLS creds",
-				&Connection{
+				&v1alpha1.Connection{
 					ObjectMeta: meta,
-					Spec: ConnectionSpec{
-						MariaDBRef: &MariaDBRef{
-							ObjectReference: ObjectReference{
+					Spec: v1alpha1.ConnectionSpec{
+						MariaDBRef: &v1alpha1.MariaDBRef{
+							ObjectReference: v1alpha1.ObjectReference{
 								Name: "foo",
 							},
 						},
 						Username: "foo",
-						TLSClientCertSecretRef: &LocalObjectReference{
+						TLSClientCertSecretRef: &v1alpha1.LocalObjectReference{
 							Name: "mariadb-client-tls",
 						},
 					},
@@ -78,17 +79,17 @@ var _ = Describe("Connection webhook", func() {
 			),
 			Entry(
 				"MariaDB ref",
-				&Connection{
+				&v1alpha1.Connection{
 					ObjectMeta: meta,
-					Spec: ConnectionSpec{
-						MariaDBRef: &MariaDBRef{
-							ObjectReference: ObjectReference{
+					Spec: v1alpha1.ConnectionSpec{
+						MariaDBRef: &v1alpha1.MariaDBRef{
+							ObjectReference: v1alpha1.ObjectReference{
 								Name: "foo",
 							},
 						},
 						Username: "foo",
-						PasswordSecretKeyRef: &SecretKeySelector{
-							LocalObjectReference: LocalObjectReference{
+						PasswordSecretKeyRef: &v1alpha1.SecretKeySelector{
+							LocalObjectReference: v1alpha1.LocalObjectReference{
 								Name: "foo",
 							},
 						},
@@ -98,15 +99,15 @@ var _ = Describe("Connection webhook", func() {
 			),
 			Entry(
 				"MaxScale ref",
-				&Connection{
+				&v1alpha1.Connection{
 					ObjectMeta: meta,
-					Spec: ConnectionSpec{
-						MaxScaleRef: &ObjectReference{
+					Spec: v1alpha1.ConnectionSpec{
+						MaxScaleRef: &v1alpha1.ObjectReference{
 							Name: "foo",
 						},
 						Username: "foo",
-						PasswordSecretKeyRef: &SecretKeySelector{
-							LocalObjectReference: LocalObjectReference{
+						PasswordSecretKeyRef: &v1alpha1.SecretKeySelector{
+							LocalObjectReference: v1alpha1.LocalObjectReference{
 								Name: "foo",
 							},
 						},
@@ -116,20 +117,20 @@ var _ = Describe("Connection webhook", func() {
 			),
 			Entry(
 				"MariaDB and MaxScale refs",
-				&Connection{
+				&v1alpha1.Connection{
 					ObjectMeta: meta,
-					Spec: ConnectionSpec{
-						MaxScaleRef: &ObjectReference{
+					Spec: v1alpha1.ConnectionSpec{
+						MaxScaleRef: &v1alpha1.ObjectReference{
 							Name: "foo",
 						},
-						MariaDBRef: &MariaDBRef{
-							ObjectReference: ObjectReference{
+						MariaDBRef: &v1alpha1.MariaDBRef{
+							ObjectReference: v1alpha1.ObjectReference{
 								Name: "foo",
 							},
 						},
 						Username: "foo",
-						PasswordSecretKeyRef: &SecretKeySelector{
-							LocalObjectReference: LocalObjectReference{
+						PasswordSecretKeyRef: &v1alpha1.SecretKeySelector{
+							LocalObjectReference: v1alpha1.LocalObjectReference{
 								Name: "foo",
 							},
 						},
@@ -139,41 +140,41 @@ var _ = Describe("Connection webhook", func() {
 			),
 		)
 	})
-	Context("When updating a Connection", Ordered, func() {
+	Context("When updating a v1alpha1.Connection", Ordered, func() {
 		key := types.NamespacedName{
 			Name:      "conn-update",
 			Namespace: testNamespace,
 		}
 		BeforeAll(func() {
-			conn := Connection{
+			conn := v1alpha1.Connection{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      key.Name,
 					Namespace: key.Namespace,
 				},
-				Spec: ConnectionSpec{
-					ConnectionTemplate: ConnectionTemplate{
+				Spec: v1alpha1.ConnectionSpec{
+					ConnectionTemplate: v1alpha1.ConnectionTemplate{
 						SecretName: func() *string { t := "test"; return &t }(),
-						SecretTemplate: &SecretTemplate{
-							Metadata: &Metadata{
+						SecretTemplate: &v1alpha1.SecretTemplate{
+							Metadata: &v1alpha1.Metadata{
 								Labels: map[string]string{
 									"foo": "bar",
 								},
 							},
 						},
-						HealthCheck: &HealthCheck{
+						HealthCheck: &v1alpha1.HealthCheck{
 							Interval:      &metav1.Duration{Duration: 1 * time.Second},
 							RetryInterval: &metav1.Duration{Duration: 1 * time.Second},
 						},
 					},
-					MariaDBRef: &MariaDBRef{
-						ObjectReference: ObjectReference{
+					MariaDBRef: &v1alpha1.MariaDBRef{
+						ObjectReference: v1alpha1.ObjectReference{
 							Name: "mariadb-webhook",
 						},
 						WaitForIt: true,
 					},
 					Username: "test",
-					PasswordSecretKeyRef: &SecretKeySelector{
-						LocalObjectReference: LocalObjectReference{
+					PasswordSecretKeyRef: &v1alpha1.SecretKeySelector{
+						LocalObjectReference: v1alpha1.LocalObjectReference{
 							Name: "test",
 						},
 						Key: "dsn",
@@ -186,8 +187,8 @@ var _ = Describe("Connection webhook", func() {
 
 		DescribeTable(
 			"Should validate",
-			func(patchFn func(conn *Connection), wantErr bool) {
-				var conn Connection
+			func(patchFn func(conn *v1alpha1.Connection), wantErr bool) {
+				var conn v1alpha1.Connection
 				Expect(k8sClient.Get(testCtx, key, &conn)).To(Succeed())
 
 				patch := client.MergeFrom(conn.DeepCopy())
@@ -202,42 +203,42 @@ var _ = Describe("Connection webhook", func() {
 			},
 			Entry(
 				"Updating MariaDBRef",
-				func(conn *Connection) {
+				func(conn *v1alpha1.Connection) {
 					conn.Spec.MariaDBRef.Name = "foo"
 				},
 				false,
 			),
 			Entry(
 				"Updating Username",
-				func(conn *Connection) {
+				func(conn *v1alpha1.Connection) {
 					conn.Spec.Username = "foo"
 				},
 				false,
 			),
 			Entry(
 				"Updating PasswordSecretKeyRef",
-				func(conn *Connection) {
+				func(conn *v1alpha1.Connection) {
 					conn.Spec.PasswordSecretKeyRef.Key = "foo"
 				},
 				false,
 			),
 			Entry(
 				"Updating Database",
-				func(conn *Connection) {
+				func(conn *v1alpha1.Connection) {
 					conn.Spec.Database = func() *string { t := "foo"; return &t }()
 				},
 				false,
 			),
 			Entry(
 				"Updating SecretName",
-				func(conn *Connection) {
+				func(conn *v1alpha1.Connection) {
 					conn.Spec.SecretName = func() *string { s := "foo"; return &s }()
 				},
 				true,
 			),
 			Entry(
 				"Updating SecretTemplate",
-				func(conn *Connection) {
+				func(conn *v1alpha1.Connection) {
 					conn.Spec.SecretTemplate.Metadata.Labels = map[string]string{
 						"foo": "foo",
 					}
@@ -246,7 +247,7 @@ var _ = Describe("Connection webhook", func() {
 			),
 			Entry(
 				"Updating HealthCheck",
-				func(conn *Connection) {
+				func(conn *v1alpha1.Connection) {
 					conn.Spec.HealthCheck.Interval = &metav1.Duration{Duration: 3 * time.Second}
 					conn.Spec.HealthCheck.RetryInterval = &metav1.Duration{Duration: 3 * time.Second}
 				},

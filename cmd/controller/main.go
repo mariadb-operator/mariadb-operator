@@ -13,6 +13,7 @@ import (
 	backupcmd "github.com/mariadb-operator/mariadb-operator/cmd/backup"
 	initcmd "github.com/mariadb-operator/mariadb-operator/cmd/init"
 	"github.com/mariadb-operator/mariadb-operator/internal/controller"
+	webhookv1alpha1 "github.com/mariadb-operator/mariadb-operator/internal/webhook/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/auth"
@@ -424,27 +425,27 @@ var rootCmd = &cobra.Command{
 		}
 
 		if webhookEnabled {
-			if err = (&mariadbv1alpha1.MariaDB{}).SetupWebhookWithManager(mgr); err != nil {
+			if err = webhookv1alpha1.SetupMariaDBWebhookWithManager(mgr); err != nil {
 				setupLog.Error(err, "Unable to create webhook", "webhook", "MariaDB")
 				os.Exit(1)
 			}
-			if err = (&mariadbv1alpha1.MaxScale{}).SetupWebhookWithManager(mgr); err != nil {
+			if err = webhookv1alpha1.SetupMaxScaleWebhookWithManager(mgr); err != nil {
 				setupLog.Error(err, "Unable to create webhook", "webhook", "MaxScale")
 				os.Exit(1)
 			}
-			if err = (&mariadbv1alpha1.Backup{}).SetupWebhookWithManager(mgr); err != nil {
+			if err = webhookv1alpha1.SetupBackupWebhookWithManager(mgr); err != nil {
 				setupLog.Error(err, "Unable to create webhook", "webhook", "Backup")
 				os.Exit(1)
 			}
-			if err = (&mariadbv1alpha1.Restore{}).SetupWebhookWithManager(mgr); err != nil {
+			if err = webhookv1alpha1.SetupRestoreWebhookWithManager(mgr); err != nil {
 				setupLog.Error(err, "Unable to create webhook", "webhook", "restore")
 				os.Exit(1)
 			}
-			if err = (&mariadbv1alpha1.User{}).SetupWebhookWithManager(mgr); err != nil {
+			if err = webhookv1alpha1.SetupUserWebhookWithManager(mgr); err != nil {
 				setupLog.Error(err, "Unable to create webhook", "webhook", "User")
 				os.Exit(1)
 			}
-			if err = (&mariadbv1alpha1.Grant{}).SetupWebhookWithManager(mgr); err != nil {
+			if err = webhookv1alpha1.SetupGrantWebhookWithManager(mgr); err != nil {
 				setupLog.Error(err, "Unable to create webhook", "webhook", "Grant")
 				os.Exit(1)
 			}
@@ -452,7 +453,7 @@ var rootCmd = &cobra.Command{
 				setupLog.Error(err, "Unable to create webhook", "webhook", "Database")
 				os.Exit(1)
 			}
-			if err = (&mariadbv1alpha1.Connection{}).SetupWebhookWithManager(mgr); err != nil {
+			if err = webhookv1alpha1.SetupConnectionWebhookWithManager(mgr); err != nil {
 				setupLog.Error(err, "Unable to create webhook", "webhook", "Connection")
 				os.Exit(1)
 			}

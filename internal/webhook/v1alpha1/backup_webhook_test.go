@@ -3,6 +3,7 @@ package v1alpha1
 import (
 	"time"
 
+	"github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -14,10 +15,10 @@ import (
 )
 
 var _ = Describe("Backup webhook", func() {
-	Context("When creating a Backup", func() {
+	Context("When creating a v1alpha1.Backup", func() {
 		DescribeTable(
 			"Should validate",
-			func(backup *Backup, wantErr bool) {
+			func(backup *v1alpha1.Backup, wantErr bool) {
 				err := k8sClient.Create(testCtx, backup)
 				if wantErr {
 					Expect(err).To(HaveOccurred())
@@ -27,23 +28,23 @@ var _ = Describe("Backup webhook", func() {
 			},
 			Entry(
 				"No storage",
-				&Backup{
+				&v1alpha1.Backup{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "backup-invalid-storage",
 						Namespace: testNamespace,
 					},
-					Spec: BackupSpec{
-						JobContainerTemplate: JobContainerTemplate{
-							Resources: &ResourceRequirements{
+					Spec: v1alpha1.BackupSpec{
+						JobContainerTemplate: v1alpha1.JobContainerTemplate{
+							Resources: &v1alpha1.ResourceRequirements{
 								Requests: corev1.ResourceList{
 									"cpu": resource.MustParse("100m"),
 								},
 							},
 						},
-						Compression: CompressGzip,
-						Storage:     BackupStorage{},
-						MariaDBRef: MariaDBRef{
-							ObjectReference: ObjectReference{
+						Compression: v1alpha1.CompressGzip,
+						Storage:     v1alpha1.BackupStorage{},
+						MariaDBRef: v1alpha1.MariaDBRef{
+							ObjectReference: v1alpha1.ObjectReference{
 								Name: "mariadb-webhook",
 							},
 							WaitForIt: true,
@@ -56,33 +57,33 @@ var _ = Describe("Backup webhook", func() {
 			),
 			Entry(
 				"Multiple storages",
-				&Backup{
+				&v1alpha1.Backup{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "backup-invalid-storage",
 						Namespace: testNamespace,
 					},
-					Spec: BackupSpec{
-						JobContainerTemplate: JobContainerTemplate{
-							Resources: &ResourceRequirements{
+					Spec: v1alpha1.BackupSpec{
+						JobContainerTemplate: v1alpha1.JobContainerTemplate{
+							Resources: &v1alpha1.ResourceRequirements{
 								Requests: corev1.ResourceList{
 									"cpu": resource.MustParse("100m"),
 								},
 							},
 						},
-						Compression: CompressGzip,
-						Storage: BackupStorage{
-							S3: &S3{
+						Compression: v1alpha1.CompressGzip,
+						Storage: v1alpha1.BackupStorage{
+							S3: &v1alpha1.S3{
 								Bucket:   "test",
 								Endpoint: "test",
 							},
-							Volume: &StorageVolumeSource{
-								PersistentVolumeClaim: &PersistentVolumeClaimVolumeSource{
+							Volume: &v1alpha1.StorageVolumeSource{
+								PersistentVolumeClaim: &v1alpha1.PersistentVolumeClaimVolumeSource{
 									ClaimName: "TEST",
 								},
 							},
 						},
-						MariaDBRef: MariaDBRef{
-							ObjectReference: ObjectReference{
+						MariaDBRef: v1alpha1.MariaDBRef{
+							ObjectReference: v1alpha1.ObjectReference{
 								Name: "mariadb-webhook",
 							},
 							WaitForIt: true,
@@ -95,28 +96,28 @@ var _ = Describe("Backup webhook", func() {
 			),
 			Entry(
 				"Single storage",
-				&Backup{
+				&v1alpha1.Backup{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "backup-invalid-storage",
 						Namespace: testNamespace,
 					},
-					Spec: BackupSpec{
-						JobContainerTemplate: JobContainerTemplate{
-							Resources: &ResourceRequirements{
+					Spec: v1alpha1.BackupSpec{
+						JobContainerTemplate: v1alpha1.JobContainerTemplate{
+							Resources: &v1alpha1.ResourceRequirements{
 								Requests: corev1.ResourceList{
 									"cpu": resource.MustParse("100m"),
 								},
 							},
 						},
-						Compression: CompressGzip,
-						Storage: BackupStorage{
-							S3: &S3{
+						Compression: v1alpha1.CompressGzip,
+						Storage: v1alpha1.BackupStorage{
+							S3: &v1alpha1.S3{
 								Bucket:   "test",
 								Endpoint: "test",
 							},
 						},
-						MariaDBRef: MariaDBRef{
-							ObjectReference: ObjectReference{
+						MariaDBRef: v1alpha1.MariaDBRef{
+							ObjectReference: v1alpha1.ObjectReference{
 								Name: "mariadb-webhook",
 							},
 							WaitForIt: true,
@@ -129,28 +130,28 @@ var _ = Describe("Backup webhook", func() {
 			),
 			Entry(
 				"Invalid compression",
-				&Backup{
+				&v1alpha1.Backup{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "backup-invalid-storage",
 						Namespace: testNamespace,
 					},
-					Spec: BackupSpec{
-						JobContainerTemplate: JobContainerTemplate{
-							Resources: &ResourceRequirements{
+					Spec: v1alpha1.BackupSpec{
+						JobContainerTemplate: v1alpha1.JobContainerTemplate{
+							Resources: &v1alpha1.ResourceRequirements{
 								Requests: corev1.ResourceList{
 									"cpu": resource.MustParse("100m"),
 								},
 							},
 						},
-						Compression: CompressAlgorithm("foo"),
-						Storage: BackupStorage{
-							S3: &S3{
+						Compression: v1alpha1.CompressAlgorithm("foo"),
+						Storage: v1alpha1.BackupStorage{
+							S3: &v1alpha1.S3{
 								Bucket:   "test",
 								Endpoint: "test",
 							},
 						},
-						MariaDBRef: MariaDBRef{
-							ObjectReference: ObjectReference{
+						MariaDBRef: v1alpha1.MariaDBRef{
+							ObjectReference: v1alpha1.ObjectReference{
 								Name: "mariadb-webhook",
 							},
 							WaitForIt: true,
@@ -163,31 +164,31 @@ var _ = Describe("Backup webhook", func() {
 			),
 			Entry(
 				"Invalid schedule",
-				&Backup{
+				&v1alpha1.Backup{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "backup-invalid-schedule",
 						Namespace: testNamespace,
 					},
-					Spec: BackupSpec{
-						JobContainerTemplate: JobContainerTemplate{
-							Resources: &ResourceRequirements{
+					Spec: v1alpha1.BackupSpec{
+						JobContainerTemplate: v1alpha1.JobContainerTemplate{
+							Resources: &v1alpha1.ResourceRequirements{
 								Requests: corev1.ResourceList{
 									"cpu": resource.MustParse("100m"),
 								},
 							},
 						},
-						Schedule: &Schedule{
+						Schedule: &v1alpha1.Schedule{
 							Cron: "foo",
 						},
-						Compression: CompressGzip,
-						Storage: BackupStorage{
-							S3: &S3{
+						Compression: v1alpha1.CompressGzip,
+						Storage: v1alpha1.BackupStorage{
+							S3: &v1alpha1.S3{
 								Bucket:   "test",
 								Endpoint: "test",
 							},
 						},
-						MariaDBRef: MariaDBRef{
-							ObjectReference: ObjectReference{
+						MariaDBRef: v1alpha1.MariaDBRef{
+							ObjectReference: v1alpha1.ObjectReference{
 								Name: "mariadb-webhook",
 							},
 							WaitForIt: true,
@@ -200,38 +201,38 @@ var _ = Describe("Backup webhook", func() {
 			),
 			Entry(
 				"Invalid history limits",
-				&Backup{
+				&v1alpha1.Backup{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "backup-invalid-history-limits",
 						Namespace: testNamespace,
 					},
-					Spec: BackupSpec{
-						JobContainerTemplate: JobContainerTemplate{
-							Resources: &ResourceRequirements{
+					Spec: v1alpha1.BackupSpec{
+						JobContainerTemplate: v1alpha1.JobContainerTemplate{
+							Resources: &v1alpha1.ResourceRequirements{
 								Requests: corev1.ResourceList{
 									"cpu": resource.MustParse("100m"),
 								},
 							},
 						},
-						Schedule: &Schedule{
+						Schedule: &v1alpha1.Schedule{
 							Cron: "*/1 * * * *",
 						},
-						Compression: CompressGzip,
-						Storage: BackupStorage{
-							S3: &S3{
+						Compression: v1alpha1.CompressGzip,
+						Storage: v1alpha1.BackupStorage{
+							S3: &v1alpha1.S3{
 								Bucket:   "test",
 								Endpoint: "test",
 							},
 						},
-						MariaDBRef: MariaDBRef{
-							ObjectReference: ObjectReference{
+						MariaDBRef: v1alpha1.MariaDBRef{
+							ObjectReference: v1alpha1.ObjectReference{
 								Name: "mariadb-webhook",
 							},
 							WaitForIt: true,
 						},
 						BackoffLimit:  10,
 						RestartPolicy: corev1.RestartPolicyOnFailure,
-						CronJobTemplate: CronJobTemplate{
+						CronJobTemplate: v1alpha1.CronJobTemplate{
 							SuccessfulJobsHistoryLimit: ptr.To[int32](-5),
 							FailedJobsHistoryLimit:     ptr.To[int32](-5),
 						},
@@ -241,30 +242,30 @@ var _ = Describe("Backup webhook", func() {
 			),
 			Entry(
 				"Invalid staging storage",
-				&Backup{
+				&v1alpha1.Backup{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "backup-invalid-staging-storage",
 						Namespace: testNamespace,
 					},
-					Spec: BackupSpec{
-						JobContainerTemplate: JobContainerTemplate{
-							Resources: &ResourceRequirements{
+					Spec: v1alpha1.BackupSpec{
+						JobContainerTemplate: v1alpha1.JobContainerTemplate{
+							Resources: &v1alpha1.ResourceRequirements{
 								Requests: corev1.ResourceList{
 									"cpu": resource.MustParse("100m"),
 								},
 							},
 						},
-						Schedule: &Schedule{
+						Schedule: &v1alpha1.Schedule{
 							Cron: "*/1 * * * *",
 						},
-						Compression: CompressGzip,
-						Storage: BackupStorage{
-							Volume: &StorageVolumeSource{
-								EmptyDir: &EmptyDirVolumeSource{},
+						Compression: v1alpha1.CompressGzip,
+						Storage: v1alpha1.BackupStorage{
+							Volume: &v1alpha1.StorageVolumeSource{
+								EmptyDir: &v1alpha1.EmptyDirVolumeSource{},
 							},
 						},
-						StagingStorage: &BackupStagingStorage{
-							PersistentVolumeClaim: &PersistentVolumeClaimSpec{
+						StagingStorage: &v1alpha1.BackupStagingStorage{
+							PersistentVolumeClaim: &v1alpha1.PersistentVolumeClaimSpec{
 								AccessModes: []corev1.PersistentVolumeAccessMode{
 									corev1.ReadWriteOnce,
 								},
@@ -275,8 +276,8 @@ var _ = Describe("Backup webhook", func() {
 								},
 							},
 						},
-						MariaDBRef: MariaDBRef{
-							ObjectReference: ObjectReference{
+						MariaDBRef: v1alpha1.MariaDBRef{
+							ObjectReference: v1alpha1.ObjectReference{
 								Name: "mariadb-webhook",
 							},
 							WaitForIt: true,
@@ -289,31 +290,31 @@ var _ = Describe("Backup webhook", func() {
 			),
 			Entry(
 				"Valid",
-				&Backup{
+				&v1alpha1.Backup{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "backup-valid",
 						Namespace: testNamespace,
 					},
-					Spec: BackupSpec{
-						JobContainerTemplate: JobContainerTemplate{
-							Resources: &ResourceRequirements{
+					Spec: v1alpha1.BackupSpec{
+						JobContainerTemplate: v1alpha1.JobContainerTemplate{
+							Resources: &v1alpha1.ResourceRequirements{
 								Requests: corev1.ResourceList{
 									"cpu": resource.MustParse("100m"),
 								},
 							},
 						},
-						Schedule: &Schedule{
+						Schedule: &v1alpha1.Schedule{
 							Cron: "*/1 * * * *",
 						},
-						Compression: CompressGzip,
-						Storage: BackupStorage{
-							S3: &S3{
+						Compression: v1alpha1.CompressGzip,
+						Storage: v1alpha1.BackupStorage{
+							S3: &v1alpha1.S3{
 								Bucket:   "test",
 								Endpoint: "test",
 							},
 						},
-						StagingStorage: &BackupStagingStorage{
-							PersistentVolumeClaim: &PersistentVolumeClaimSpec{
+						StagingStorage: &v1alpha1.BackupStagingStorage{
+							PersistentVolumeClaim: &v1alpha1.PersistentVolumeClaimSpec{
 								AccessModes: []corev1.PersistentVolumeAccessMode{
 									corev1.ReadWriteOnce,
 								},
@@ -324,15 +325,15 @@ var _ = Describe("Backup webhook", func() {
 								},
 							},
 						},
-						MariaDBRef: MariaDBRef{
-							ObjectReference: ObjectReference{
+						MariaDBRef: v1alpha1.MariaDBRef{
+							ObjectReference: v1alpha1.ObjectReference{
 								Name: "mariadb-webhook",
 							},
 							WaitForIt: true,
 						},
 						BackoffLimit:  10,
 						RestartPolicy: corev1.RestartPolicyOnFailure,
-						CronJobTemplate: CronJobTemplate{
+						CronJobTemplate: v1alpha1.CronJobTemplate{
 							SuccessfulJobsHistoryLimit: ptr.To[int32](5),
 							FailedJobsHistoryLimit:     ptr.To[int32](5),
 						},
@@ -343,35 +344,35 @@ var _ = Describe("Backup webhook", func() {
 		)
 	})
 
-	Context("When updating a Backup", Ordered, func() {
+	Context("When updating a v1alpha1.Backup", Ordered, func() {
 		key := types.NamespacedName{
 			Name:      "backup-update",
 			Namespace: testNamespace,
 		}
 		BeforeAll(func() {
-			backup := Backup{
+			backup := v1alpha1.Backup{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      key.Name,
 					Namespace: key.Namespace,
 				},
-				Spec: BackupSpec{
-					JobContainerTemplate: JobContainerTemplate{
-						Resources: &ResourceRequirements{
+				Spec: v1alpha1.BackupSpec{
+					JobContainerTemplate: v1alpha1.JobContainerTemplate{
+						Resources: &v1alpha1.ResourceRequirements{
 							Requests: corev1.ResourceList{
 								"cpu": resource.MustParse("100m"),
 							},
 						},
 					},
 					MaxRetention: metav1.Duration{Duration: 12 * time.Hour},
-					Compression:  CompressNone,
-					Storage: BackupStorage{
-						S3: &S3{
+					Compression:  v1alpha1.CompressNone,
+					Storage: v1alpha1.BackupStorage{
+						S3: &v1alpha1.S3{
 							Bucket:   "test",
 							Endpoint: "test",
 						},
 					},
-					StagingStorage: &BackupStagingStorage{
-						PersistentVolumeClaim: &PersistentVolumeClaimSpec{
+					StagingStorage: &v1alpha1.BackupStagingStorage{
+						PersistentVolumeClaim: &v1alpha1.PersistentVolumeClaimSpec{
 							AccessModes: []corev1.PersistentVolumeAccessMode{
 								corev1.ReadWriteOnce,
 							},
@@ -382,8 +383,8 @@ var _ = Describe("Backup webhook", func() {
 							},
 						},
 					},
-					MariaDBRef: MariaDBRef{
-						ObjectReference: ObjectReference{
+					MariaDBRef: v1alpha1.MariaDBRef{
+						ObjectReference: v1alpha1.ObjectReference{
 							Name: "mariadb-webhook",
 						},
 						WaitForIt: true,
@@ -397,8 +398,8 @@ var _ = Describe("Backup webhook", func() {
 
 		DescribeTable(
 			"Should validate",
-			func(patchFn func(backup *Backup), wantErr bool) {
-				var backup Backup
+			func(patchFn func(backup *v1alpha1.Backup), wantErr bool) {
+				var backup v1alpha1.Backup
 				Expect(k8sClient.Get(testCtx, key, &backup)).To(Succeed())
 
 				patch := client.MergeFrom(backup.DeepCopy())
@@ -413,15 +414,15 @@ var _ = Describe("Backup webhook", func() {
 			},
 			Entry(
 				"Updating BackoffLimit",
-				func(bmdb *Backup) {
+				func(bmdb *v1alpha1.Backup) {
 					bmdb.Spec.BackoffLimit = 20
 				},
 				false,
 			),
 			Entry(
 				"Updating Schedule",
-				func(bmdb *Backup) {
-					bmdb.Spec.Schedule = &Schedule{
+				func(bmdb *v1alpha1.Backup) {
+					bmdb.Spec.Schedule = &v1alpha1.Schedule{
 						Cron: "*/1 * * * *",
 					}
 				},
@@ -429,78 +430,78 @@ var _ = Describe("Backup webhook", func() {
 			),
 			Entry(
 				"Updating SuccessfulJobsHistoryLimit",
-				func(bmdb *Backup) {
+				func(bmdb *v1alpha1.Backup) {
 					bmdb.Spec.SuccessfulJobsHistoryLimit = ptr.To[int32](5)
 				},
 				false,
 			),
 			Entry(
 				"Updating with wrong SuccessfulJobsHistoryLimit",
-				func(bmdb *Backup) {
+				func(bmdb *v1alpha1.Backup) {
 					bmdb.Spec.SuccessfulJobsHistoryLimit = ptr.To[int32](-5)
 				},
 				true,
 			),
 			Entry(
 				"Updating FailedJobsHistoryLimit",
-				func(bmdb *Backup) {
+				func(bmdb *v1alpha1.Backup) {
 					bmdb.Spec.FailedJobsHistoryLimit = ptr.To[int32](5)
 				},
 				false,
 			),
 			Entry(
 				"Updating with wrong FailedJobsHistoryLimit",
-				func(bmdb *Backup) {
+				func(bmdb *v1alpha1.Backup) {
 					bmdb.Spec.FailedJobsHistoryLimit = ptr.To[int32](-5)
 				},
 				true,
 			),
 			Entry(
 				"Updating MaxRetention",
-				func(bmdb *Backup) {
+				func(bmdb *v1alpha1.Backup) {
 					bmdb.Spec.MaxRetention = metav1.Duration{Duration: 24 * time.Hour}
 				},
 				true,
 			),
 			Entry(
 				"Updating Compression",
-				func(bmdb *Backup) {
-					bmdb.Spec.Compression = CompressBzip2
+				func(bmdb *v1alpha1.Backup) {
+					bmdb.Spec.Compression = v1alpha1.CompressBzip2
 				},
 				false,
 			),
 			Entry(
 				"Updating Storage",
-				func(bmdb *Backup) {
+				func(bmdb *v1alpha1.Backup) {
 					bmdb.Spec.Storage.S3.Bucket = "another-bucket"
 				},
 				true,
 			),
 			Entry(
 				"Updating StagingStorage",
-				func(bmdb *Backup) {
+				func(bmdb *v1alpha1.Backup) {
 					bmdb.Spec.StagingStorage = nil
 				},
 				true,
 			),
 			Entry(
 				"Updating MariaDBRef",
-				func(bmdb *Backup) {
+				func(bmdb *v1alpha1.Backup) {
 					bmdb.Spec.MariaDBRef.Name = "another-mariadb"
 				},
 				true,
 			),
 			Entry(
 				"Updating RestartPolicy",
-				func(bmdb *Backup) {
+				func(bmdb *v1alpha1.Backup) {
 					bmdb.Spec.RestartPolicy = corev1.RestartPolicyNever
 				},
 				true,
 			),
 			Entry(
 				"Updating Resources",
-				func(bmdb *Backup) {
-					bmdb.Spec.Resources = &ResourceRequirements{
+				func(bmdb *v1alpha1.Backup) {
+					bmdb.Spec.Resources = &v1alpha1.ResourceRequirements{
 						Requests: corev1.ResourceList{
 							"cpu": resource.MustParse("200m"),
 						},
