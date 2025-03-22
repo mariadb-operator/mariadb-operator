@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"reflect"
 
-	cmmeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	"github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	galerakeys "github.com/mariadb-operator/mariadb-operator/pkg/galera/config/keys"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -372,38 +371,6 @@ func validateTLS(mariadb *v1alpha1.MariaDB) error {
 		if err := validateTLSCert(&item); err != nil {
 			return err
 		}
-	}
-	return nil
-}
-
-type tlsValidationItem struct {
-	tlsValue            interface{}
-	caSecretRef         *v1alpha1.LocalObjectReference
-	caFieldPath         string
-	certSecretRef       *v1alpha1.LocalObjectReference
-	certFieldPath       string
-	certIssuerRef       *cmmeta.ObjectReference
-	certIssuerFieldPath string
-}
-
-func validateTLSCert(item *tlsValidationItem) error {
-	if item.certSecretRef != nil && item.certIssuerRef != nil {
-		return field.Invalid(
-			field.NewPath("spec").Child("tls"),
-			item.tlsValue,
-			fmt.Sprintf(
-				"'%s' and '%s' are mutually exclusive. Only one of them must be set at a time.",
-				item.certFieldPath,
-				item.certIssuerFieldPath,
-			),
-		)
-	}
-	if item.caSecretRef == nil && item.certSecretRef != nil {
-		return field.Invalid(
-			field.NewPath("spec").Child("tls"),
-			item.tlsValue,
-			fmt.Sprintf("'%s' must be set when '%s' is set", item.caFieldPath, item.certFieldPath),
-		)
 	}
 	return nil
 }
