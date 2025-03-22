@@ -1,6 +1,7 @@
 package v1alpha1
 
 import (
+	"github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -9,15 +10,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var _ = Describe("Grant webhook", func() {
-	Context("When creating a Grant", func() {
+var _ = Describe("v1alpha1.Grant webhook", func() {
+	Context("When creating a v1alpha1.Grant", func() {
 		key := types.NamespacedName{
 			Name:      "grant-create-webhook",
 			Namespace: testNamespace,
 		}
 		DescribeTable(
 			"Should validate",
-			func(grant *Grant, wantErr bool) {
+			func(grant *v1alpha1.Grant, wantErr bool) {
 				err := k8sClient.Create(testCtx, grant)
 				if wantErr {
 					Expect(err).To(HaveOccurred())
@@ -27,17 +28,17 @@ var _ = Describe("Grant webhook", func() {
 			},
 			Entry(
 				"Valid cleanupPolicy",
-				&Grant{
+				&v1alpha1.Grant{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      key.Name,
 						Namespace: key.Namespace,
 					},
-					Spec: GrantSpec{
-						SQLTemplate: SQLTemplate{
-							CleanupPolicy: ptr.To(CleanupPolicyDelete),
+					Spec: v1alpha1.GrantSpec{
+						SQLTemplate: v1alpha1.SQLTemplate{
+							CleanupPolicy: ptr.To(v1alpha1.CleanupPolicyDelete),
 						},
-						MariaDBRef: MariaDBRef{
-							ObjectReference: ObjectReference{
+						MariaDBRef: v1alpha1.MariaDBRef{
+							ObjectReference: v1alpha1.ObjectReference{
 								Name: "mariadb-webhook",
 							},
 							WaitForIt: true,
@@ -55,17 +56,17 @@ var _ = Describe("Grant webhook", func() {
 			),
 			Entry(
 				"Invalid cleanupPolicy",
-				&Grant{
+				&v1alpha1.Grant{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      key.Name,
 						Namespace: key.Namespace,
 					},
-					Spec: GrantSpec{
-						SQLTemplate: SQLTemplate{
-							CleanupPolicy: ptr.To(CleanupPolicy("")),
+					Spec: v1alpha1.GrantSpec{
+						SQLTemplate: v1alpha1.SQLTemplate{
+							CleanupPolicy: ptr.To(v1alpha1.CleanupPolicy("")),
 						},
-						MariaDBRef: MariaDBRef{
-							ObjectReference: ObjectReference{
+						MariaDBRef: v1alpha1.MariaDBRef{
+							ObjectReference: v1alpha1.ObjectReference{
 								Name: "mariadb-webhook",
 							},
 							WaitForIt: true,
@@ -84,20 +85,20 @@ var _ = Describe("Grant webhook", func() {
 		)
 	})
 
-	Context("When updating a Grant", Ordered, func() {
+	Context("When updating a v1alpha1.Grant", Ordered, func() {
 		key := types.NamespacedName{
 			Name:      "grant-update-webhook",
 			Namespace: testNamespace,
 		}
 		BeforeAll(func() {
-			grant := Grant{
+			grant := v1alpha1.Grant{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      key.Name,
 					Namespace: key.Namespace,
 				},
-				Spec: GrantSpec{
-					MariaDBRef: MariaDBRef{
-						ObjectReference: ObjectReference{
+				Spec: v1alpha1.GrantSpec{
+					MariaDBRef: v1alpha1.MariaDBRef{
+						ObjectReference: v1alpha1.ObjectReference{
 							Name: "mariadb-webhook",
 						},
 						WaitForIt: true,
@@ -116,8 +117,8 @@ var _ = Describe("Grant webhook", func() {
 
 		DescribeTable(
 			"Should validate",
-			func(patchFn func(grant *Grant), wantErr bool) {
-				var grant Grant
+			func(patchFn func(grant *v1alpha1.Grant), wantErr bool) {
+				var grant v1alpha1.Grant
 				Expect(k8sClient.Get(testCtx, key, &grant)).To(Succeed())
 
 				patch := client.MergeFrom(grant.DeepCopy())
@@ -132,14 +133,14 @@ var _ = Describe("Grant webhook", func() {
 			},
 			Entry(
 				"Updating MariaDBRef",
-				func(grant *Grant) {
+				func(grant *v1alpha1.Grant) {
 					grant.Spec.MariaDBRef.Name = "another-mariadb"
 				},
 				true,
 			),
 			Entry(
 				"Updating Privileges",
-				func(grant *Grant) {
+				func(grant *v1alpha1.Grant) {
 					grant.Spec.Privileges = []string{
 						"SELECT",
 						"UPDATE",
@@ -149,43 +150,43 @@ var _ = Describe("Grant webhook", func() {
 			),
 			Entry(
 				"Updating Database",
-				func(grant *Grant) {
+				func(grant *v1alpha1.Grant) {
 					grant.Spec.Database = "bar"
 				},
 				true,
 			),
 			Entry(
 				"Updating Table",
-				func(grant *Grant) {
+				func(grant *v1alpha1.Grant) {
 					grant.Spec.Table = "bar"
 				},
 				true,
 			),
 			Entry(
 				"Updating Username",
-				func(grant *Grant) {
+				func(grant *v1alpha1.Grant) {
 					grant.Spec.Username = "bar"
 				},
 				true,
 			),
 			Entry(
 				"Updating GrantOption",
-				func(grant *Grant) {
+				func(grant *v1alpha1.Grant) {
 					grant.Spec.GrantOption = true
 				},
 				true,
 			),
 			Entry(
 				"Updating to valid CleanupPolicy",
-				func(grant *Grant) {
-					grant.Spec.CleanupPolicy = ptr.To(CleanupPolicySkip)
+				func(grant *v1alpha1.Grant) {
+					grant.Spec.CleanupPolicy = ptr.To(v1alpha1.CleanupPolicySkip)
 				},
 				false,
 			),
 			Entry(
 				"Updating to invalid CleanupPolicy",
-				func(grant *Grant) {
-					grant.Spec.CleanupPolicy = ptr.To(CleanupPolicy(""))
+				func(grant *v1alpha1.Grant) {
+					grant.Spec.CleanupPolicy = ptr.To(v1alpha1.CleanupPolicy(""))
 				},
 				true,
 			),
