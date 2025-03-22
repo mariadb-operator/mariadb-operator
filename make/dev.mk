@@ -27,23 +27,23 @@ GOCOVERDIR ?= .
 
 .PHONY: test
 test: envtest ginkgo ## Run unit tests.
-	$(TEST) ./pkg/... ./api/... ./internal/helmtest/...
+	$(TEST) ./pkg/... ./internal/helmtest/... ./internal/webhook/...
 
 .PHONY: test-pkg
 test-pkg: envtest ginkgo ## Run pkg unit tests.
 	$(TEST) ./pkg/...
 
-.PHONY: test-api
-test-api: envtest ginkgo ## Run api unit tests.
-	$(TEST) ./api/...
+.PHONY: test-int
+test-int: envtest ginkgo ## Run integration tests.
+	$(TEST) ./internal/controller/...
 
 .PHONY: test-helm
 test-helm: envtest ginkgo ## Run helm unit tests.
 	$(TEST) ./internal/helmtest/...
 
-.PHONY: test-int
-test-int: envtest ginkgo ## Run integration tests.
-	$(TEST) ./internal/controller/...
+.PHONY: test-webhook
+test-webhook: envtest ginkgo ## Run webhook unit tests.
+	$(TEST) ./internal/webhook/...
 
 .PHONY: cover
 cover: ## Generate and view coverage report.
