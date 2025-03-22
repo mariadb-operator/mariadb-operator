@@ -50,7 +50,7 @@ func (v *SqlJobCustomValidator) ValidateUpdate(ctx context.Context, oldObj, newO
 	if !ok {
 		return nil, fmt.Errorf("expected a SqlJob object for the newObj but got %T", newObj)
 	}
-	oldSqljob, ok := newObj.(*k8sv1alpha1.SqlJob)
+	oldSqljob, ok := oldObj.(*k8sv1alpha1.SqlJob)
 	if !ok {
 		return nil, fmt.Errorf("expected a SqlJob object for the newObj but got %T", newObj)
 	}

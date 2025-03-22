@@ -52,7 +52,7 @@ func (v *GrantCustomValidator) ValidateUpdate(ctx context.Context, oldObj, newOb
 	if !ok {
 		return nil, fmt.Errorf("expected a Grant object for the newObj but got %T", newObj)
 	}
-	oldGrant, ok := newObj.(*v1alpha1.Grant)
+	oldGrant, ok := oldObj.(*v1alpha1.Grant)
 	if !ok {
 		return nil, fmt.Errorf("expected a Grant object for the newObj but got %T", newObj)
 	}
