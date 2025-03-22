@@ -6,7 +6,6 @@ import (
 	"time"
 
 	cmmeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
-	"github.com/mariadb-operator/mariadb-operator/pkg/webhook"
 	cron "github.com/robfig/cron/v3"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -16,13 +15,8 @@ import (
 	"k8s.io/utils/ptr"
 )
 
-var (
-	inmutableWebhook = webhook.NewInmutableWebhook(
-		webhook.WithTagName("webhook"),
-	)
-	cronParser = cron.NewParser(
-		cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow,
-	)
+var cronParser = cron.NewParser(
+	cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow,
 )
 
 // MariaDBRef is a reference to a MariaDB object.

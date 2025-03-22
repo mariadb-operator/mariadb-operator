@@ -18,7 +18,6 @@ import (
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	admissionv1 "k8s.io/api/admission/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/rest"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -37,7 +36,6 @@ var (
 	ctx           context.Context
 	cancel        context.CancelFunc
 	k8sClient     client.Client
-	cfg           *rest.Config
 	testEnv       *envtest.Environment
 	testCtx       = context.Background()
 	testNamespace = "default"
