@@ -44,7 +44,7 @@ func (v *UserCustomValidator) ValidateCreate(ctx context.Context, obj runtime.Ob
 
 	validateFns := []func(user *v1alpha1.User) error{
 		validatePassword,
-		validateCleanupPolicy,
+		validateUserCleanupPolicy,
 		validateRequire,
 	}
 	for _, fn := range validateFns {
@@ -72,7 +72,7 @@ func (v *UserCustomValidator) ValidateUpdate(ctx context.Context, oldObj, newObj
 	}
 	validateFns := []func(user *v1alpha1.User) error{
 		validatePassword,
-		validateCleanupPolicy,
+		validateUserCleanupPolicy,
 		validateRequire,
 	}
 	for _, fn := range validateFns {
@@ -131,7 +131,7 @@ func validatePassword(user *v1alpha1.User) error {
 	return nil
 }
 
-func validateCleanupPolicy(user *v1alpha1.User) error {
+func validateUserCleanupPolicy(user *v1alpha1.User) error {
 	if user.Spec.CleanupPolicy != nil {
 		if err := user.Spec.CleanupPolicy.Validate(); err != nil {
 			return field.Invalid(
