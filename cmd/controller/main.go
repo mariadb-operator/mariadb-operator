@@ -429,7 +429,7 @@ var rootCmd = &cobra.Command{
 				setupLog.Error(err, "Unable to create webhook", "webhook", "MariaDB")
 				os.Exit(1)
 			}
-			if err = (&mariadbv1alpha1.MaxScale{}).SetupWebhookWithManager(mgr); err != nil {
+			if err = webhookv1alpha1.SetupMaxScaleWebhookWithManager(mgr); err != nil {
 				setupLog.Error(err, "Unable to create webhook", "webhook", "MaxScale")
 				os.Exit(1)
 			}
