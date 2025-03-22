@@ -117,6 +117,9 @@ var _ = BeforeSuite(func() {
 	err = SetupRestoreWebhookWithManager(mgr)
 	Expect(err).NotTo(HaveOccurred())
 
+	err = SetupConnectionWebhookWithManager(mgr)
+	Expect(err).NotTo(HaveOccurred())
+
 	// +kubebuilder:scaffold:webhook
 
 	go func() {
