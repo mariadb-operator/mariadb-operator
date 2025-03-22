@@ -53,7 +53,7 @@ func (v *DatabaseCustomValidator) ValidateUpdate(ctx context.Context, oldObj, ne
 	if !ok {
 		return nil, fmt.Errorf("expected a Database object for the newObj but got %T", newObj)
 	}
-	oldDatabase, ok := newObj.(*k8sv1alpha1.Database)
+	oldDatabase, ok := oldObj.(*k8sv1alpha1.Database)
 	if !ok {
 		return nil, fmt.Errorf("expected a Database object for the newObj but got %T", newObj)
 	}
