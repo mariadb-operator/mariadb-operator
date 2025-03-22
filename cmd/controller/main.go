@@ -457,7 +457,7 @@ var rootCmd = &cobra.Command{
 				setupLog.Error(err, "Unable to create webhook", "webhook", "Connection")
 				os.Exit(1)
 			}
-			if err = (&mariadbv1alpha1.SqlJob{}).SetupWebhookWithManager(mgr); err != nil {
+			if err = webhookv1alpha1.SetupSqlJobWebhookWithManager(mgr); err != nil {
 				setupLog.Error(err, "Unable to create webhook", "webhook", "SqlJob")
 				os.Exit(1)
 			}

@@ -1,6 +1,7 @@
 package v1alpha1
 
 import (
+	"github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -11,15 +12,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var _ = Describe("SqlJob webhook", func() {
-	Context("When creating a SqlJob", func() {
+var _ = Describe("v1alpha1.SqlJob webhook", func() {
+	Context("When creating a v1alpha1.SqlJob", func() {
 		objMeta := metav1.ObjectMeta{
 			Name:      "sqljob-create-webhook",
 			Namespace: testNamespace,
 		}
 		DescribeTable(
 			"Should validate",
-			func(s *SqlJob, wantErr bool) {
+			func(s *v1alpha1.SqlJob, wantErr bool) {
 				_ = k8sClient.Delete(testCtx, s)
 				err := k8sClient.Create(testCtx, s)
 				if wantErr {
@@ -30,17 +31,17 @@ var _ = Describe("SqlJob webhook", func() {
 			},
 			Entry(
 				"No SQL",
-				&SqlJob{
+				&v1alpha1.SqlJob{
 					ObjectMeta: objMeta,
-					Spec: SqlJobSpec{
-						MariaDBRef: MariaDBRef{
-							ObjectReference: ObjectReference{
+					Spec: v1alpha1.SqlJobSpec{
+						MariaDBRef: v1alpha1.MariaDBRef{
+							ObjectReference: v1alpha1.ObjectReference{
 								Name: "foo",
 							},
 						},
 						Username: "foo",
-						PasswordSecretKeyRef: SecretKeySelector{
-							LocalObjectReference: LocalObjectReference{
+						PasswordSecretKeyRef: v1alpha1.SecretKeySelector{
+							LocalObjectReference: v1alpha1.LocalObjectReference{
 								Name: "foo",
 							},
 							Key: "foo",
@@ -51,20 +52,20 @@ var _ = Describe("SqlJob webhook", func() {
 			),
 			Entry(
 				"Invalid schedule",
-				&SqlJob{
+				&v1alpha1.SqlJob{
 					ObjectMeta: objMeta,
-					Spec: SqlJobSpec{
-						MariaDBRef: MariaDBRef{
-							ObjectReference: ObjectReference{
+					Spec: v1alpha1.SqlJobSpec{
+						MariaDBRef: v1alpha1.MariaDBRef{
+							ObjectReference: v1alpha1.ObjectReference{
 								Name: "foo",
 							},
 						},
-						Schedule: &Schedule{
+						Schedule: &v1alpha1.Schedule{
 							Cron: "foo",
 						},
 						Username: "foo",
-						PasswordSecretKeyRef: SecretKeySelector{
-							LocalObjectReference: LocalObjectReference{
+						PasswordSecretKeyRef: v1alpha1.SecretKeySelector{
+							LocalObjectReference: v1alpha1.LocalObjectReference{
 								Name: "foo",
 							},
 							Key: "foo",
@@ -75,26 +76,26 @@ var _ = Describe("SqlJob webhook", func() {
 			),
 			Entry(
 				"Invalid history limits",
-				&SqlJob{
+				&v1alpha1.SqlJob{
 					ObjectMeta: objMeta,
-					Spec: SqlJobSpec{
-						MariaDBRef: MariaDBRef{
-							ObjectReference: ObjectReference{
+					Spec: v1alpha1.SqlJobSpec{
+						MariaDBRef: v1alpha1.MariaDBRef{
+							ObjectReference: v1alpha1.ObjectReference{
 								Name: "foo",
 							},
 						},
-						Schedule: &Schedule{
+						Schedule: &v1alpha1.Schedule{
 							Cron: "foo",
 						},
 						Username: "foo",
-						PasswordSecretKeyRef: SecretKeySelector{
-							LocalObjectReference: LocalObjectReference{
+						PasswordSecretKeyRef: v1alpha1.SecretKeySelector{
+							LocalObjectReference: v1alpha1.LocalObjectReference{
 								Name: "foo",
 							},
 							Key: "foo",
 						},
 						Sql: func() *string { s := "foo"; return &s }(),
-						CronJobTemplate: CronJobTemplate{
+						CronJobTemplate: v1alpha1.CronJobTemplate{
 							SuccessfulJobsHistoryLimit: ptr.To[int32](-5),
 							FailedJobsHistoryLimit:     ptr.To[int32](-5),
 						},
@@ -104,17 +105,17 @@ var _ = Describe("SqlJob webhook", func() {
 			),
 			Entry(
 				"Valid",
-				&SqlJob{
+				&v1alpha1.SqlJob{
 					ObjectMeta: objMeta,
-					Spec: SqlJobSpec{
-						MariaDBRef: MariaDBRef{
-							ObjectReference: ObjectReference{
+					Spec: v1alpha1.SqlJobSpec{
+						MariaDBRef: v1alpha1.MariaDBRef{
+							ObjectReference: v1alpha1.ObjectReference{
 								Name: "foo",
 							},
 						},
 						Username: "foo",
-						PasswordSecretKeyRef: SecretKeySelector{
-							LocalObjectReference: LocalObjectReference{
+						PasswordSecretKeyRef: v1alpha1.SecretKeySelector{
+							LocalObjectReference: v1alpha1.LocalObjectReference{
 								Name: "foo",
 							},
 							Key: "foo",
@@ -126,20 +127,20 @@ var _ = Describe("SqlJob webhook", func() {
 			),
 			Entry(
 				"Valid with schedule",
-				&SqlJob{
+				&v1alpha1.SqlJob{
 					ObjectMeta: objMeta,
-					Spec: SqlJobSpec{
-						MariaDBRef: MariaDBRef{
-							ObjectReference: ObjectReference{
+					Spec: v1alpha1.SqlJobSpec{
+						MariaDBRef: v1alpha1.MariaDBRef{
+							ObjectReference: v1alpha1.ObjectReference{
 								Name: "foo",
 							},
 						},
-						Schedule: &Schedule{
+						Schedule: &v1alpha1.Schedule{
 							Cron: "*/1 * * * *",
 						},
 						Username: "foo",
-						PasswordSecretKeyRef: SecretKeySelector{
-							LocalObjectReference: LocalObjectReference{
+						PasswordSecretKeyRef: v1alpha1.SecretKeySelector{
+							LocalObjectReference: v1alpha1.LocalObjectReference{
 								Name: "foo",
 							},
 							Key: "foo",
@@ -151,26 +152,26 @@ var _ = Describe("SqlJob webhook", func() {
 			),
 			Entry(
 				"Valid with schedule and history limits",
-				&SqlJob{
+				&v1alpha1.SqlJob{
 					ObjectMeta: objMeta,
-					Spec: SqlJobSpec{
-						MariaDBRef: MariaDBRef{
-							ObjectReference: ObjectReference{
+					Spec: v1alpha1.SqlJobSpec{
+						MariaDBRef: v1alpha1.MariaDBRef{
+							ObjectReference: v1alpha1.ObjectReference{
 								Name: "foo",
 							},
 						},
-						Schedule: &Schedule{
+						Schedule: &v1alpha1.Schedule{
 							Cron: "foo",
 						},
 						Username: "foo",
-						PasswordSecretKeyRef: SecretKeySelector{
-							LocalObjectReference: LocalObjectReference{
+						PasswordSecretKeyRef: v1alpha1.SecretKeySelector{
+							LocalObjectReference: v1alpha1.LocalObjectReference{
 								Name: "foo",
 							},
 							Key: "foo",
 						},
 						Sql: func() *string { s := "foo"; return &s }(),
-						CronJobTemplate: CronJobTemplate{
+						CronJobTemplate: v1alpha1.CronJobTemplate{
 							SuccessfulJobsHistoryLimit: ptr.To[int32](5),
 							FailedJobsHistoryLimit:     ptr.To[int32](5),
 						},
@@ -181,32 +182,32 @@ var _ = Describe("SqlJob webhook", func() {
 		)
 	})
 
-	Context("When updating a SqlJob", Ordered, func() {
+	Context("When updating a v1alpha1.SqlJob", Ordered, func() {
 		key := types.NamespacedName{
 			Name:      "sqljob-update-webhook",
 			Namespace: testNamespace,
 		}
 		BeforeAll(func() {
-			sqlJob := SqlJob{
+			sqlJob := v1alpha1.SqlJob{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      key.Name,
 					Namespace: key.Namespace,
 				},
-				Spec: SqlJobSpec{
-					DependsOn: []LocalObjectReference{
+				Spec: v1alpha1.SqlJobSpec{
+					DependsOn: []v1alpha1.LocalObjectReference{
 						{
 							Name: "sqljob-webhook",
 						},
 					},
-					MariaDBRef: MariaDBRef{
-						ObjectReference: ObjectReference{
+					MariaDBRef: v1alpha1.MariaDBRef{
+						ObjectReference: v1alpha1.ObjectReference{
 							Name: "mariadb-webhook",
 						},
 						WaitForIt: true,
 					},
 					Username: "test",
-					PasswordSecretKeyRef: SecretKeySelector{
-						LocalObjectReference: LocalObjectReference{
+					PasswordSecretKeyRef: v1alpha1.SecretKeySelector{
+						LocalObjectReference: v1alpha1.LocalObjectReference{
 							Name: "test",
 						},
 						Key: "test",
@@ -228,8 +229,8 @@ var _ = Describe("SqlJob webhook", func() {
 		})
 		DescribeTable(
 			"Should validate",
-			func(patchFn func(job *SqlJob), wantErr bool) {
-				var sqlJob SqlJob
+			func(patchFn func(job *v1alpha1.SqlJob), wantErr bool) {
+				var sqlJob v1alpha1.SqlJob
 				Expect(k8sClient.Get(testCtx, key, &sqlJob)).To(Succeed())
 
 				patch := client.MergeFrom(sqlJob.DeepCopy())
@@ -244,22 +245,22 @@ var _ = Describe("SqlJob webhook", func() {
 			},
 			Entry(
 				"Updating BackoffLimit",
-				func(job *SqlJob) {
+				func(job *v1alpha1.SqlJob) {
 					job.Spec.BackoffLimit = 20
 				},
 				false,
 			),
 			Entry(
 				"Updating RestartPolicy",
-				func(job *SqlJob) {
+				func(job *v1alpha1.SqlJob) {
 					job.Spec.RestartPolicy = corev1.RestartPolicyNever
 				},
 				true,
 			),
 			Entry(
 				"Updating Resources",
-				func(job *SqlJob) {
-					job.Spec.Resources = &ResourceRequirements{
+				func(job *v1alpha1.SqlJob) {
+					job.Spec.Resources = &v1alpha1.ResourceRequirements{
 						Requests: corev1.ResourceList{
 							"cpu": resource.MustParse("200m"),
 						},
@@ -269,51 +270,51 @@ var _ = Describe("SqlJob webhook", func() {
 			),
 			Entry(
 				"Updating MariaDBRef",
-				func(job *SqlJob) {
+				func(job *v1alpha1.SqlJob) {
 					job.Spec.MariaDBRef.Name = "another-mariadb"
 				},
 				true,
 			),
 			Entry(
 				"Updating Username",
-				func(job *SqlJob) {
+				func(job *v1alpha1.SqlJob) {
 					job.Spec.Username = "foo"
 				},
 				true,
 			),
 			Entry(
 				"Updating PasswordSecretKeyRef",
-				func(job *SqlJob) {
+				func(job *v1alpha1.SqlJob) {
 					job.Spec.PasswordSecretKeyRef.Name = "foo"
 				},
 				true,
 			),
 			Entry(
 				"Updating Database",
-				func(job *SqlJob) {
+				func(job *v1alpha1.SqlJob) {
 					job.Spec.Database = func() *string { d := "foo"; return &d }()
 				},
 				true,
 			),
 			Entry(
 				"Updating DependsOn",
-				func(job *SqlJob) {
+				func(job *v1alpha1.SqlJob) {
 					job.Spec.DependsOn = nil
 				},
 				true,
 			),
 			Entry(
 				"Updating Sql",
-				func(job *SqlJob) {
+				func(job *v1alpha1.SqlJob) {
 					job.Spec.Sql = func() *string { d := "foo"; return &d }()
 				},
 				true,
 			),
 			Entry(
 				"Updating SqlConfigMapKeyRef",
-				func(job *SqlJob) {
-					job.Spec.SqlConfigMapKeyRef = &ConfigMapKeySelector{
-						LocalObjectReference: LocalObjectReference{
+				func(job *v1alpha1.SqlJob) {
+					job.Spec.SqlConfigMapKeyRef = &v1alpha1.ConfigMapKeySelector{
+						LocalObjectReference: v1alpha1.LocalObjectReference{
 							Name: "foo",
 						},
 					}
@@ -322,8 +323,8 @@ var _ = Describe("SqlJob webhook", func() {
 			),
 			Entry(
 				"Updating Schedule",
-				func(job *SqlJob) {
-					job.Spec.Schedule = &Schedule{
+				func(job *v1alpha1.SqlJob) {
+					job.Spec.Schedule = &v1alpha1.Schedule{
 						Cron:    "*/1 * * * *",
 						Suspend: false,
 					}
@@ -332,8 +333,8 @@ var _ = Describe("SqlJob webhook", func() {
 			),
 			Entry(
 				"Updating with wrong Schedule",
-				func(job *SqlJob) {
-					job.Spec.Schedule = &Schedule{
+				func(job *v1alpha1.SqlJob) {
+					job.Spec.Schedule = &v1alpha1.Schedule{
 						Cron:    "foo",
 						Suspend: false,
 					}
@@ -342,35 +343,35 @@ var _ = Describe("SqlJob webhook", func() {
 			),
 			Entry(
 				"Updating SuccessfulJobsHistoryLimit",
-				func(job *SqlJob) {
+				func(job *v1alpha1.SqlJob) {
 					job.Spec.SuccessfulJobsHistoryLimit = ptr.To[int32](5)
 				},
 				false,
 			),
 			Entry(
 				"Updating with wrong SuccessfulJobsHistoryLimit",
-				func(job *SqlJob) {
+				func(job *v1alpha1.SqlJob) {
 					job.Spec.SuccessfulJobsHistoryLimit = ptr.To[int32](-5)
 				},
 				true,
 			),
 			Entry(
 				"Updating FailedJobsHistoryLimit",
-				func(job *SqlJob) {
+				func(job *v1alpha1.SqlJob) {
 					job.Spec.FailedJobsHistoryLimit = ptr.To[int32](5)
 				},
 				false,
 			),
 			Entry(
 				"Updating with wrong FailedJobsHistoryLimit",
-				func(job *SqlJob) {
+				func(job *v1alpha1.SqlJob) {
 					job.Spec.FailedJobsHistoryLimit = ptr.To[int32](-5)
 				},
 				true,
 			),
 			Entry(
 				"Removing SQL",
-				func(job *SqlJob) {
+				func(job *v1alpha1.SqlJob) {
 					job.Spec.Sql = nil
 					job.Spec.SqlConfigMapKeyRef = nil
 				},
