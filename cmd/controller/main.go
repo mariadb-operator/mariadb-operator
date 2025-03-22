@@ -445,7 +445,7 @@ var rootCmd = &cobra.Command{
 				setupLog.Error(err, "Unable to create webhook", "webhook", "User")
 				os.Exit(1)
 			}
-			if err = (&mariadbv1alpha1.Grant{}).SetupWebhookWithManager(mgr); err != nil {
+			if err = webhookv1alpha1.SetupGrantWebhookWithManager(mgr); err != nil {
 				setupLog.Error(err, "Unable to create webhook", "webhook", "Grant")
 				os.Exit(1)
 			}
