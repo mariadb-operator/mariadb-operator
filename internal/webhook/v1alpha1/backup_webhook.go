@@ -40,7 +40,7 @@ func (v *BackupCustomValidator) ValidateCreate(ctx context.Context, obj runtime.
 	}
 	backuplog.Info("Validation for Backup upon creation", "name", backup.GetName())
 
-	return validate(backup)
+	return validateBackup(backup)
 }
 
 // ValidateUpdate implements webhook.CustomValidator so a webhook will be registered for the type Backup.
@@ -58,7 +58,7 @@ func (v *BackupCustomValidator) ValidateUpdate(ctx context.Context, oldObj, newO
 	if err := inmutableWebhook.ValidateUpdate(backup, oldBackup); err != nil {
 		return nil, err
 	}
-	return validate(backup)
+	return validateBackup(backup)
 }
 
 // ValidateDelete implements webhook.CustomValidator so a webhook will be registered for the type Backup.
@@ -72,7 +72,7 @@ func (v *BackupCustomValidator) ValidateDelete(ctx context.Context, obj runtime.
 	return nil, nil
 }
 
-func validate(backup *v1alpha1.Backup) (admission.Warnings, error) {
+func validateBackup(backup *v1alpha1.Backup) (admission.Warnings, error) {
 	if err := backup.Validate(); err != nil {
 		return nil, field.Invalid(
 			field.NewPath("spec"),

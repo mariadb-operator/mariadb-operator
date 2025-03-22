@@ -80,7 +80,7 @@ var webhookCmd = &cobra.Command{
 			setupLog.Error(err, "Unable to create webhook", "webhook", "Backup")
 			os.Exit(1)
 		}
-		if err = (&mariadbv1alpha1.Restore{}).SetupWebhookWithManager(mgr); err != nil {
+		if err = webhookv1alpha1.SetupRestoreWebhookWithManager(mgr); err != nil {
 			setupLog.Error(err, "Unable to create webhook", "webhook", "restore")
 			os.Exit(1)
 		}
