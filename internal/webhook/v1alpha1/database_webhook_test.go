@@ -1,6 +1,7 @@
 package v1alpha1
 
 import (
+	"github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -9,15 +10,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var _ = Describe("Database webhook", func() {
-	Context("When creating a Database", func() {
+var _ = Describe("v1alpha1.Database webhook", func() {
+	Context("When creating a v1alpha1.Database", func() {
 		key := types.NamespacedName{
 			Name:      "database-create-webhook",
 			Namespace: testNamespace,
 		}
 		DescribeTable(
 			"Should validate",
-			func(database *Database, wantErr bool) {
+			func(database *v1alpha1.Database, wantErr bool) {
 				err := k8sClient.Create(testCtx, database)
 				if wantErr {
 					Expect(err).To(HaveOccurred())
@@ -27,17 +28,17 @@ var _ = Describe("Database webhook", func() {
 			},
 			Entry(
 				"Valid cleanupPolicy",
-				&Database{
+				&v1alpha1.Database{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      key.Name,
 						Namespace: key.Namespace,
 					},
-					Spec: DatabaseSpec{
-						SQLTemplate: SQLTemplate{
-							CleanupPolicy: ptr.To(CleanupPolicyDelete),
+					Spec: v1alpha1.DatabaseSpec{
+						SQLTemplate: v1alpha1.SQLTemplate{
+							CleanupPolicy: ptr.To(v1alpha1.CleanupPolicyDelete),
 						},
-						MariaDBRef: MariaDBRef{
-							ObjectReference: ObjectReference{
+						MariaDBRef: v1alpha1.MariaDBRef{
+							ObjectReference: v1alpha1.ObjectReference{
 								Name: "mariadb-webhook",
 							},
 							WaitForIt: true,
@@ -50,17 +51,17 @@ var _ = Describe("Database webhook", func() {
 			),
 			Entry(
 				"Invalid cleanupPolicy",
-				&Database{
+				&v1alpha1.Database{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      key.Name,
 						Namespace: key.Namespace,
 					},
-					Spec: DatabaseSpec{
-						SQLTemplate: SQLTemplate{
-							CleanupPolicy: ptr.To(CleanupPolicy("")),
+					Spec: v1alpha1.DatabaseSpec{
+						SQLTemplate: v1alpha1.SQLTemplate{
+							CleanupPolicy: ptr.To(v1alpha1.CleanupPolicy("")),
 						},
-						MariaDBRef: MariaDBRef{
-							ObjectReference: ObjectReference{
+						MariaDBRef: v1alpha1.MariaDBRef{
+							ObjectReference: v1alpha1.ObjectReference{
 								Name: "mariadb-webhook",
 							},
 							WaitForIt: true,
@@ -74,20 +75,20 @@ var _ = Describe("Database webhook", func() {
 		)
 	})
 
-	Context("When updating a Database", Ordered, func() {
+	Context("When updating a v1alpha1.Database", Ordered, func() {
 		key := types.NamespacedName{
 			Name:      "database-update-webhook",
 			Namespace: testNamespace,
 		}
 		BeforeAll(func() {
-			database := Database{
+			database := v1alpha1.Database{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      key.Name,
 					Namespace: key.Namespace,
 				},
-				Spec: DatabaseSpec{
-					MariaDBRef: MariaDBRef{
-						ObjectReference: ObjectReference{
+				Spec: v1alpha1.DatabaseSpec{
+					MariaDBRef: v1alpha1.MariaDBRef{
+						ObjectReference: v1alpha1.ObjectReference{
 							Name: "mariadb-webhook",
 						},
 						WaitForIt: true,
@@ -101,8 +102,8 @@ var _ = Describe("Database webhook", func() {
 
 		DescribeTable(
 			"Should validate",
-			func(patchFn func(db *Database), wantErr bool) {
-				var db Database
+			func(patchFn func(db *v1alpha1.Database), wantErr bool) {
+				var db v1alpha1.Database
 				Expect(k8sClient.Get(testCtx, key, &db)).To(Succeed())
 
 				patch := client.MergeFrom(db.DeepCopy())
@@ -117,36 +118,36 @@ var _ = Describe("Database webhook", func() {
 			},
 			Entry(
 				"Updating MariaDBRef",
-				func(db *Database) {
+				func(db *v1alpha1.Database) {
 					db.Spec.MariaDBRef.Name = "another-mariadb"
 				},
 				true,
 			),
 			Entry(
 				"Updating CharacterSet",
-				func(db *Database) {
+				func(db *v1alpha1.Database) {
 					db.Spec.CharacterSet = "utf16"
 				},
 				true,
 			),
 			Entry(
 				"Updating Collate",
-				func(db *Database) {
+				func(db *v1alpha1.Database) {
 					db.Spec.Collate = "latin2_general_ci"
 				},
 				true,
 			),
 			Entry(
 				"Updating to valid CleanupPolicy",
-				func(database *Database) {
-					database.Spec.CleanupPolicy = ptr.To(CleanupPolicySkip)
+				func(database *v1alpha1.Database) {
+					database.Spec.CleanupPolicy = ptr.To(v1alpha1.CleanupPolicySkip)
 				},
 				false,
 			),
 			Entry(
 				"Updating to invalid CleanupPolicy",
-				func(database *Database) {
-					database.Spec.CleanupPolicy = ptr.To(CleanupPolicy(""))
+				func(database *v1alpha1.Database) {
+					database.Spec.CleanupPolicy = ptr.To(v1alpha1.CleanupPolicy(""))
 				},
 				true,
 			),
