@@ -24,7 +24,7 @@ webhooks:
       namespace: {{ .Release.Namespace }}
       path: /mutate-k8s-mariadb-com-v1alpha1-mariadb
   failurePolicy: Fail
-  name: mmariadb.kb.io
+  name: mmariadb-v1alpha1.kb.io
   rules:
   - apiGroups:
     - k8s.mariadb.com
@@ -61,7 +61,7 @@ webhooks:
         namespace: {{ .Release.Namespace }}
         path: /validate-k8s-mariadb-com-v1alpha1-backup
     failurePolicy: Fail
-    name: vbackup.kb.io
+    name: vbackup-v1alpha1.kb.io
     rules:
       - apiGroups:
           - k8s.mariadb.com
@@ -81,7 +81,7 @@ webhooks:
         namespace: {{ .Release.Namespace }}
         path: /validate-k8s-mariadb-com-v1alpha1-connection
     failurePolicy: Fail
-    name: vconnection.kb.io
+    name: vconnection-v1alpha1.kb.io
     rules:
       - apiGroups:
           - k8s.mariadb.com
@@ -101,7 +101,7 @@ webhooks:
         namespace: {{ .Release.Namespace }}
         path: /validate-k8s-mariadb-com-v1alpha1-database
     failurePolicy: Fail
-    name: vdatabase.kb.io
+    name: vdatabase-v1alpha1.kb.io
     rules:
       - apiGroups:
           - k8s.mariadb.com
@@ -121,7 +121,7 @@ webhooks:
         namespace: {{ .Release.Namespace }}
         path: /validate-k8s-mariadb-com-v1alpha1-grant
     failurePolicy: Fail
-    name: vgrant.kb.io
+    name: vgrant-v1alpha1.kb.io
     rules:
       - apiGroups:
           - k8s.mariadb.com
@@ -141,7 +141,7 @@ webhooks:
         namespace: {{ .Release.Namespace }}
         path: /validate-k8s-mariadb-com-v1alpha1-mariadb
     failurePolicy: Fail
-    name: vmariadb.kb.io
+    name: vmariadb-v1alpha1.kb.io
     rules:
       - apiGroups:
           - k8s.mariadb.com
@@ -161,7 +161,7 @@ webhooks:
         namespace: {{ .Release.Namespace }}
         path: /validate-k8s-mariadb-com-v1alpha1-maxscale
     failurePolicy: Fail
-    name: vmaxscale.kb.io
+    name: vmaxscale-v1alpha1.kb.io
     rules:
     - apiGroups:
       - k8s.mariadb.com
@@ -181,7 +181,7 @@ webhooks:
         namespace: {{ .Release.Namespace }}
         path: /validate-k8s-mariadb-com-v1alpha1-restore
     failurePolicy: Fail
-    name: vrestore.kb.io
+    name: vrestore-v1alpha1.kb.io
     rules:
       - apiGroups:
           - k8s.mariadb.com
@@ -201,7 +201,7 @@ webhooks:
         namespace: {{ .Release.Namespace }}
         path: /validate-k8s-mariadb-com-v1alpha1-sqljob
     failurePolicy: Fail
-    name: vsqljob.kb.io
+    name: vsqljob-v1alpha1.kb.io
     rules:
       - apiGroups:
           - k8s.mariadb.com
@@ -221,7 +221,7 @@ webhooks:
         namespace: {{ .Release.Namespace }}
         path: /validate-k8s-mariadb-com-v1alpha1-user
     failurePolicy: Fail
-    name: vuser.kb.io
+    name: vuser-v1alpha1.kb.io
     rules:
       - apiGroups:
           - k8s.mariadb.com
