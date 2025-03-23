@@ -20,10 +20,6 @@ GO_LICENSES = $(LOCALBIN)/go-licenses
 CRD_REF_DOCS = $(LOCALBIN)/crd-ref-docs
 FLUX ?= $(LOCALBIN)/flux
 YQ ?= $(LOCALBIN)/yq
-OPERATOR_SDK ?= $(LOCALBIN)/operator-sdk
-OPM ?= $(LOCALBIN)/opm
-OC ?= $(LOCALBIN)/oc
-PREFLIGHT ?= $(LOCALBIN)/preflight
 
 ## Tool Versions
 KUBERNETES_VERSION ?= 1.32.x
@@ -39,10 +35,6 @@ CRD_REF_DOCS_VERSION ?= v0.1.0
 FLUX_VERSION ?= 0.40.1
 JQ_VERSION ?= jq-1.7
 YQ_VERSION ?= v4.18.1
-OPERATOR_SDK_VERSION ?= v1.35.0
-OPM_VERSION ?= v1.37.0
-OC_TAR_GZ_URL ?= https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/latest-4.9/openshift-client-linux-4.9.59.tar.gz
-PREFLIGHT_VERSION ?= 1.10.1
 
 .PHONY: kind
 kind: $(KIND) ## Download kind locally if necessary.
@@ -149,70 +141,5 @@ ifeq (,$(shell which yq 2>/dev/null))
 	}
 else
 YQ = $(shell which yq)
-endif
-endif
-
-.PHONY: operator-sdk
-operator-sdk: ## Download operator-sdk locally if necessary.
-ifeq (,$(wildcard $(OPERATOR_SDK)))
-ifeq (, $(shell which operator-sdk 2>/dev/null))
-	@{ \
-	set -e ;\
-	mkdir -p $(dir $(OPERATOR_SDK)) ;\
-	OS=$(shell $(GO) env GOOS) && ARCH=$(shell $(GO) env GOARCH) && \
-	curl -sSLo $(OPERATOR_SDK) https://github.com/operator-framework/operator-sdk/releases/download/$(OPERATOR_SDK_VERSION)/operator-sdk_$${OS}_$${ARCH} ;\
-	chmod +x $(OPERATOR_SDK) ;\
-	}
-else
-OPERATOR_SDK = $(shell which operator-sdk)
-endif
-endif
-
-.PHONY: opm
-opm: ## Download opm locally if necessary.
-ifeq (,$(wildcard $(OPM)))
-ifeq (,$(shell which opm 2>/dev/null))
-	@{ \
-	set -e ;\
-	mkdir -p $(dir $(OPM)) ;\
-	OS=$(shell $(GO) env GOOS) && ARCH=$(shell $(GO) env GOARCH) && \
-	curl -sSLo $(OPM) https://github.com/operator-framework/operator-registry/releases/download/$(OPM_VERSION)/$${OS}-$${ARCH}-opm ;\
-	chmod +x $(OPM) ;\
-	}
-else
-OPM = $(shell which opm)
-endif
-endif
-
-.PHONY: oc
-oc: ## Download oc locally if necessary.
-ifeq (,$(wildcard $(OC)))
-ifeq (,$(shell which oc 2>/dev/null))
-	@{ \
-	set -e ;\
-	mkdir -p $(dir $(OC)) ;\
-	curl -sSLo $(OC).tar.gz $(OC_TAR_GZ_URL) ;\
-	tar -C $(LOCALBIN) -zxvf $(OC).tar.gz ;\
-	chmod +x $(OC) ;\
-	rm $(OC).tar.gz ;\
-	}
-else
-OC = $(shell which oc)
-endif
-endif
-
-.PHONY: preflight
-preflight: ## Download preflight locally if necessary.
-ifeq (,$(wildcard $(PREFLIGHT)))
-ifeq (,$(shell which preflight 2>/dev/null))
-	@{ \
-	set -e ;\
-	mkdir -p $(dir $(PREFLIGHT)) ;\
-	OS=$(shell $(GO) env GOOS) && ARCH=$(shell $(GO) env GOARCH) && \
-	curl -sSLo $(PREFLIGHT) https://github.com/redhat-openshift-ecosystem/openshift-preflight/releases/download/$(PREFLIGHT_VERSION)/preflight-$${OS}-$${ARCH} ;\
-	chmod +x $(PREFLIGHT) ;\
-	}
-else
-PREFLIGHT = $(shell which preflight)
 endif
 endif
