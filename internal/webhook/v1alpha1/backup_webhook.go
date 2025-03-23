@@ -38,7 +38,7 @@ func (v *BackupCustomValidator) ValidateCreate(ctx context.Context, obj runtime.
 	if !ok {
 		return nil, fmt.Errorf("expected a Backup object but got %T", obj)
 	}
-	backuplog.Info("Validation for Backup upon creation", "name", backup.GetName())
+	backuplog.V(1).Info("Validation for Backup upon creation", "name", backup.GetName())
 
 	return validateBackup(backup)
 }
@@ -53,7 +53,7 @@ func (v *BackupCustomValidator) ValidateUpdate(ctx context.Context, oldObj, newO
 	if !ok {
 		return nil, fmt.Errorf("expected a Backup object for the newObj but got %T", newObj)
 	}
-	backuplog.Info("Validation for Backup upon update", "name", backup.GetName())
+	backuplog.V(1).Info("Validation for Backup upon update", "name", backup.GetName())
 
 	if err := inmutableWebhook.ValidateUpdate(backup, oldBackup); err != nil {
 		return nil, err
@@ -63,12 +63,6 @@ func (v *BackupCustomValidator) ValidateUpdate(ctx context.Context, oldObj, newO
 
 // ValidateDelete implements webhook.CustomValidator so a webhook will be registered for the type Backup.
 func (v *BackupCustomValidator) ValidateDelete(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
-	backup, ok := obj.(*v1alpha1.Backup)
-	if !ok {
-		return nil, fmt.Errorf("expected a Backup object but got %T", obj)
-	}
-	backuplog.Info("Validation for Backup upon deletion", "name", backup.GetName())
-
 	return nil, nil
 }
 

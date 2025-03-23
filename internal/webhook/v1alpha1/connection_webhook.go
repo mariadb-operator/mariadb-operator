@@ -41,7 +41,7 @@ func (v *ConnectionCustomValidator) ValidateCreate(ctx context.Context, obj runt
 	if !ok {
 		return nil, fmt.Errorf("expected a Connection object but got %T", obj)
 	}
-	connectionlog.Info("Validation for Connection upon creation", "name", connection.GetName())
+	connectionlog.V(1).Info("Validation for Connection upon creation", "name", connection.GetName())
 
 	return validateConnection(connection)
 }
@@ -56,7 +56,7 @@ func (v *ConnectionCustomValidator) ValidateUpdate(ctx context.Context, oldObj, 
 	if !ok {
 		return nil, fmt.Errorf("expected a Connection object for the newObj but got %T", newObj)
 	}
-	connectionlog.Info("Validation for Connection upon update", "name", connection.GetName())
+	connectionlog.V(1).Info("Validation for Connection upon update", "name", connection.GetName())
 
 	if err := inmutableWebhook.ValidateUpdate(connection, oldConnection); err != nil {
 		return nil, err
@@ -66,14 +66,6 @@ func (v *ConnectionCustomValidator) ValidateUpdate(ctx context.Context, oldObj, 
 
 // ValidateDelete implements webhook.CustomValidator so a webhook will be registered for the type Connection.
 func (v *ConnectionCustomValidator) ValidateDelete(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
-	connection, ok := obj.(*k8sv1alpha1.Connection)
-	if !ok {
-		return nil, fmt.Errorf("expected a Connection object but got %T", obj)
-	}
-	connectionlog.Info("Validation for Connection upon deletion", "name", connection.GetName())
-
-	// TODO(user): fill in your validation logic upon object deletion.
-
 	return nil, nil
 }
 

@@ -42,14 +42,13 @@ func (d *MariaDBCustomDefaulter) Default(ctx context.Context, obj runtime.Object
 	if !ok {
 		return fmt.Errorf("expected an MariaDB object but got %T", obj)
 	}
-	mariadblog.Info("Defaulting for MariaDB", "name", mariadb.GetName())
+	mariadblog.V(1).Info("Defaulting for MariaDB", "name", mariadb.GetName())
 
 	if mariadb.Spec.Replication != nil && mariadb.Spec.Replication.Enabled {
 		mariadblog.V(1).Info("Defaulting spec.replication", "mariadb", mariadb.Name)
 		mariadb.Spec.Replication.FillWithDefaults()
 		return nil
 	}
-
 	return nil
 }
 
@@ -67,7 +66,7 @@ func (v *MariaDBCustomValidator) ValidateCreate(ctx context.Context, obj runtime
 	if !ok {
 		return nil, fmt.Errorf("expected a MariaDB object but got %T", obj)
 	}
-	mariadblog.Info("Validation for MariaDB upon creation", "name", mariadb.GetName())
+	mariadblog.V(1).Info("Validation for MariaDB upon creation", "name", mariadb.GetName())
 
 	validateFns := []func(*v1alpha1.MariaDB) error{
 		validateHA,
@@ -99,7 +98,7 @@ func (v *MariaDBCustomValidator) ValidateUpdate(ctx context.Context, oldObj, new
 		return nil, fmt.Errorf("expected a MariaDB object for the newObj but got %T", newObj)
 
 	}
-	mariadblog.Info("Validation for MariaDB upon update", "name", mariadb.GetName())
+	mariadblog.V(1).Info("Validation for MariaDB upon update", "name", mariadb.GetName())
 
 	if err := inmutableWebhook.ValidateUpdate(mariadb, oldMariadb); err != nil {
 		return nil, err
@@ -128,12 +127,6 @@ func (v *MariaDBCustomValidator) ValidateUpdate(ctx context.Context, oldObj, new
 
 // ValidateDelete implements webhook.CustomValidator so a webhook will be registered for the type MariaDB.
 func (v *MariaDBCustomValidator) ValidateDelete(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
-	mariadb, ok := obj.(*v1alpha1.MariaDB)
-	if !ok {
-		return nil, fmt.Errorf("expected a MariaDB object but got %T", obj)
-	}
-	mariadblog.Info("Validation for MariaDB upon deletion", "name", mariadb.GetName())
-
 	return nil, nil
 }
 

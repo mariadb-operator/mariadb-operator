@@ -39,7 +39,7 @@ func (v *DatabaseCustomValidator) ValidateCreate(ctx context.Context, obj runtim
 	if !ok {
 		return nil, fmt.Errorf("expected a Database object but got %T", obj)
 	}
-	databaselog.Info("Validation for Database upon creation", "name", database.GetName())
+	databaselog.V(1).Info("Validation for Database upon creation", "name", database.GetName())
 
 	if err := validateDatabaseCleanupPolicy(database); err != nil {
 		return nil, err
@@ -57,7 +57,7 @@ func (v *DatabaseCustomValidator) ValidateUpdate(ctx context.Context, oldObj, ne
 	if !ok {
 		return nil, fmt.Errorf("expected a Database object for the newObj but got %T", newObj)
 	}
-	databaselog.Info("Validation for Database upon update", "name", database.GetName())
+	databaselog.V(1).Info("Validation for Database upon update", "name", database.GetName())
 
 	if err := inmutableWebhook.ValidateUpdate(database, oldDatabase); err != nil {
 		return nil, err
@@ -70,12 +70,6 @@ func (v *DatabaseCustomValidator) ValidateUpdate(ctx context.Context, oldObj, ne
 
 // ValidateDelete implements webhook.CustomValidator so a webhook will be registered for the type Database.
 func (v *DatabaseCustomValidator) ValidateDelete(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
-	database, ok := obj.(*k8sv1alpha1.Database)
-	if !ok {
-		return nil, fmt.Errorf("expected a Database object but got %T", obj)
-	}
-	databaselog.Info("Validation for Database upon deletion", "name", database.GetName())
-
 	return nil, nil
 }
 

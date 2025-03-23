@@ -39,7 +39,7 @@ func (v *SqlJobCustomValidator) ValidateCreate(ctx context.Context, obj runtime.
 	if !ok {
 		return nil, fmt.Errorf("expected a SqlJob object but got %T", obj)
 	}
-	sqljoblog.Info("Validation for SqlJob upon creation", "name", sqljob.GetName())
+	sqljoblog.V(1).Info("Validation for SqlJob upon creation", "name", sqljob.GetName())
 
 	return validateSqlJob(sqljob)
 }
@@ -54,7 +54,7 @@ func (v *SqlJobCustomValidator) ValidateUpdate(ctx context.Context, oldObj, newO
 	if !ok {
 		return nil, fmt.Errorf("expected a SqlJob object for the newObj but got %T", newObj)
 	}
-	sqljoblog.Info("Validation for SqlJob upon update", "name", sqljob.GetName())
+	sqljoblog.V(1).Info("Validation for SqlJob upon update", "name", sqljob.GetName())
 
 	if err := inmutableWebhook.ValidateUpdate(sqljob, oldSqljob); err != nil {
 		return nil, err
@@ -64,12 +64,6 @@ func (v *SqlJobCustomValidator) ValidateUpdate(ctx context.Context, oldObj, newO
 
 // ValidateDelete implements webhook.CustomValidator so a webhook will be registered for the type SqlJob.
 func (v *SqlJobCustomValidator) ValidateDelete(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
-	sqljob, ok := obj.(*k8sv1alpha1.SqlJob)
-	if !ok {
-		return nil, fmt.Errorf("expected a SqlJob object but got %T", obj)
-	}
-	sqljoblog.Info("Validation for SqlJob upon deletion", "name", sqljob.GetName())
-
 	return nil, nil
 }
 

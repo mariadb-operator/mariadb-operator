@@ -38,7 +38,7 @@ func (v *GrantCustomValidator) ValidateCreate(ctx context.Context, obj runtime.O
 	if !ok {
 		return nil, fmt.Errorf("expected a Grant object but got %T", obj)
 	}
-	grantlog.Info("Validation for Grant upon creation", "name", grant.GetName())
+	grantlog.V(1).Info("Validation for Grant upon creation", "name", grant.GetName())
 
 	if err := validateGrantCleanupPolicy(grant); err != nil {
 		return nil, err
@@ -56,7 +56,7 @@ func (v *GrantCustomValidator) ValidateUpdate(ctx context.Context, oldObj, newOb
 	if !ok {
 		return nil, fmt.Errorf("expected a Grant object for the newObj but got %T", newObj)
 	}
-	grantlog.Info("Validation for Grant upon update", "name", grant.GetName())
+	grantlog.V(1).Info("Validation for Grant upon update", "name", grant.GetName())
 
 	if err := inmutableWebhook.ValidateUpdate(grant, oldGrant); err != nil {
 		return nil, err
@@ -69,12 +69,6 @@ func (v *GrantCustomValidator) ValidateUpdate(ctx context.Context, oldObj, newOb
 
 // ValidateDelete implements webhook.CustomValidator so a webhook will be registered for the type Grant.
 func (v *GrantCustomValidator) ValidateDelete(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
-	grant, ok := obj.(*v1alpha1.Grant)
-	if !ok {
-		return nil, fmt.Errorf("expected a Grant object but got %T", obj)
-	}
-	grantlog.Info("Validation for Grant upon deletion", "name", grant.GetName())
-
 	return nil, nil
 }
 

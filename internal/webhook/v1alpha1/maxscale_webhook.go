@@ -39,7 +39,7 @@ func (v *MaxScaleCustomValidator) ValidateCreate(ctx context.Context, obj runtim
 	if !ok {
 		return nil, fmt.Errorf("expected a MaxScale object but got %T", obj)
 	}
-	maxscalelog.Info("Validation for MaxScale upon creation", "name", maxscale.GetName())
+	maxscalelog.V(1).Info("Validation for MaxScale upon creation", "name", maxscale.GetName())
 
 	validateFns := []func(*v1alpha1.MaxScale) error{
 		validateAuth,
@@ -68,7 +68,7 @@ func (v *MaxScaleCustomValidator) ValidateUpdate(ctx context.Context, oldObj, ne
 	if !ok {
 		return nil, fmt.Errorf("expected a MaxScale object for the newObj but got %T", newObj)
 	}
-	maxscalelog.Info("Validation for MaxScale upon update", "name", maxscale.GetName())
+	maxscalelog.V(1).Info("Validation for MaxScale upon update", "name", maxscale.GetName())
 
 	if err := inmutableWebhook.ValidateUpdate(maxscale, oldMaxscale); err != nil {
 		return nil, err
@@ -93,12 +93,6 @@ func (v *MaxScaleCustomValidator) ValidateUpdate(ctx context.Context, oldObj, ne
 
 // ValidateDelete implements webhook.CustomValidator so a webhook will be registered for the type MaxScale.
 func (v *MaxScaleCustomValidator) ValidateDelete(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
-	maxscale, ok := obj.(*k8sv1alpha1.MaxScale)
-	if !ok {
-		return nil, fmt.Errorf("expected a MaxScale object but got %T", obj)
-	}
-	maxscalelog.Info("Validation for MaxScale upon deletion", "name", maxscale.GetName())
-
 	return nil, nil
 }
 

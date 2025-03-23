@@ -40,7 +40,7 @@ func (v *UserCustomValidator) ValidateCreate(ctx context.Context, obj runtime.Ob
 	if !ok {
 		return nil, fmt.Errorf("expected a User object but got %T", obj)
 	}
-	userlog.Info("Validation for User upon creation", "name", user.GetName())
+	userlog.V(1).Info("Validation for User upon creation", "name", user.GetName())
 
 	validateFns := []func(user *v1alpha1.User) error{
 		validatePassword,
@@ -65,7 +65,7 @@ func (v *UserCustomValidator) ValidateUpdate(ctx context.Context, oldObj, newObj
 	if !ok {
 		return nil, fmt.Errorf("expected a User object for the newObj but got %T", newObj)
 	}
-	userlog.Info("Validation for User upon update", "name", user.GetName())
+	userlog.V(1).Info("Validation for User upon update", "name", user.GetName())
 
 	if err := inmutableWebhook.ValidateUpdate(user, oldUser); err != nil {
 		return nil, err
@@ -85,14 +85,6 @@ func (v *UserCustomValidator) ValidateUpdate(ctx context.Context, oldObj, newObj
 
 // ValidateDelete implements webhook.CustomValidator so a webhook will be registered for the type User.
 func (v *UserCustomValidator) ValidateDelete(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
-	user, ok := obj.(*k8sv1alpha1.User)
-	if !ok {
-		return nil, fmt.Errorf("expected a User object but got %T", obj)
-	}
-	userlog.Info("Validation for User upon deletion", "name", user.GetName())
-
-	// TODO(user): fill in your validation logic upon object deletion.
-
 	return nil, nil
 }
 

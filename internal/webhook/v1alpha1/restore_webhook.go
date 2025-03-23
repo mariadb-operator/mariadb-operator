@@ -38,7 +38,7 @@ func (v *RestoreCustomValidator) ValidateCreate(ctx context.Context, obj runtime
 	if !ok {
 		return nil, fmt.Errorf("expected a Restore object but got %T", obj)
 	}
-	restorelog.Info("Validation for Restore upon creation", "name", restore.GetName())
+	restorelog.V(1).Info("Validation for Restore upon creation", "name", restore.GetName())
 
 	return validateRestore(restore)
 }
@@ -53,7 +53,7 @@ func (v *RestoreCustomValidator) ValidateUpdate(ctx context.Context, oldObj, new
 	if !ok {
 		return nil, fmt.Errorf("expected a Restore object for the newObj but got %T", newObj)
 	}
-	restorelog.Info("Validation for Restore upon update", "name", restore.GetName())
+	restorelog.V(1).Info("Validation for Restore upon update", "name", restore.GetName())
 
 	if err := inmutableWebhook.ValidateUpdate(restore, oldRestore); err != nil {
 		return nil, err
@@ -63,12 +63,6 @@ func (v *RestoreCustomValidator) ValidateUpdate(ctx context.Context, oldObj, new
 
 // ValidateDelete implements webhook.CustomValidator so a webhook will be registered for the type Restore.
 func (v *RestoreCustomValidator) ValidateDelete(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
-	restore, ok := obj.(*k8sv1alpha1.Restore)
-	if !ok {
-		return nil, fmt.Errorf("expected a Restore object but got %T", obj)
-	}
-	restorelog.Info("Validation for Restore upon deletion", "name", restore.GetName())
-
 	return nil, nil
 }
 
