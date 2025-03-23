@@ -92,12 +92,12 @@ install-prometheus-crds: cluster-ctx  ## Install Prometheus CRDs.
 install-prometheus: cluster-ctx ## Install kube-prometheus-stack helm chart.
 	@PROMETHEUS_VERSION=$(PROMETHEUS_VERSION) ./hack/install_prometheus.sh
 
-CERT_MANAGER_VERSION ?= "v1.16.2"
+CERT_MANAGER_VERSION ?= "v1.17.1"
 .PHONY: install-cert-manager
 install-cert-manager: cluster-ctx ## Install cert-manager helm chart.
 	@CERT_MANAGER_VERSION=$(CERT_MANAGER_VERSION) ./hack/install_cert_manager.sh
 
-TRUST_MANAGER_VERSION ?= "v0.15.0"
+TRUST_MANAGER_VERSION ?= "v0.16.0"
 .PHONY: install-trust-manager
 install-trust-manager: cluster-ctx install-cert-manager ## Install trust-manager helm chart.
 	@TRUST_MANAGER_VERSION=$(TRUST_MANAGER_VERSION) ./hack/install_trust_manager.sh
