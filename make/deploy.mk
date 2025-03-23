@@ -107,7 +107,7 @@ METALLB_VERSION ?= "0.14.9"
 install-metallb: cluster-ctx ## Install metallb helm chart.
 	@METALLB_VERSION=$(METALLB_VERSION) ./hack/install_metallb.sh
 
-MINIO_VERSION ?= "5.2.0"
+MINIO_VERSION ?= "5.4.0"
 .PHONY: install-minio
 install-minio: cert-minio ## Install minio helm chart.
 	@MINIO_VERSION=$(MINIO_VERSION) ./hack/install_minio.sh
