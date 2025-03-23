@@ -15,14 +15,6 @@ spec:
     port: 3306
     protocol: TCP
     targetPort: 3306
-  - name: rconn-master-router-listener
-    port: 3307
-    protocol: TCP
-    targetPort: 3307
-  - name: rconn-slave-router-listener
-    port: 3308
-    protocol: TCP
-    targetPort: 3308
   selector:
     app.kubernetes.io/instance: maxscale-repl
     app.kubernetes.io/name: maxscale
@@ -46,14 +38,6 @@ spec:
     port: 3306
     protocol: TCP
     targetPort: 3306
-  - name: rconn-master-router-listener
-    port: 3307
-    protocol: TCP
-    targetPort: 3307
-  - name: rconn-slave-router-listener
-    port: 3308
-    protocol: TCP
-    targetPort: 3308
   selector:
     app.kubernetes.io/instance: maxscale-repl
     app.kubernetes.io/name: maxscale
@@ -77,14 +61,6 @@ spec:
     port: 3306
     protocol: TCP
     targetPort: 3306
-  - name: rconn-master-router-listener
-    port: 3307
-    protocol: TCP
-    targetPort: 3307
-  - name: rconn-slave-router-listener
-    port: 3308
-    protocol: TCP
-    targetPort: 3308
   selector:
     app.kubernetes.io/instance: maxscale-repl
     app.kubernetes.io/name: maxscale
@@ -108,14 +84,6 @@ spec:
     port: 3306
     protocol: TCP
     targetPort: 3306
-  - name: rconn-master-router-listener
-    port: 3307
-    protocol: TCP
-    targetPort: 3307
-  - name: rconn-slave-router-listener
-    port: 3308
-    protocol: TCP
-    targetPort: 3308
   selector:
     app.kubernetes.io/instance: maxscale-repl
     app.kubernetes.io/name: maxscale
@@ -139,14 +107,6 @@ spec:
     port: 3306
     protocol: TCP
     targetPort: 3306
-  - name: rconn-master-router-listener
-    port: 3307
-    protocol: TCP
-    targetPort: 3307
-  - name: rconn-slave-router-listener
-    port: 3308
-    protocol: TCP
-    targetPort: 3308
   selector:
     app.kubernetes.io/instance: mariadb-repl-maxscale
     app.kubernetes.io/name: maxscale
@@ -170,14 +130,6 @@ spec:
     port: 3306
     protocol: TCP
     targetPort: 3306
-  - name: rconn-master-router-listener
-    port: 3307
-    protocol: TCP
-    targetPort: 3307
-  - name: rconn-slave-router-listener
-    port: 3308
-    protocol: TCP
-    targetPort: 3308
   selector:
     app.kubernetes.io/instance: mariadb-repl-maxscale
     app.kubernetes.io/name: maxscale
@@ -201,14 +153,6 @@ spec:
     port: 3306
     protocol: TCP
     targetPort: 3306
-  - name: rconn-master-router-listener
-    port: 3307
-    protocol: TCP
-    targetPort: 3307
-  - name: rconn-slave-router-listener
-    port: 3308
-    protocol: TCP
-    targetPort: 3308
   selector:
     app.kubernetes.io/instance: mariadb-repl-maxscale
     app.kubernetes.io/name: maxscale
@@ -232,14 +176,6 @@ spec:
     port: 3306
     protocol: TCP
     targetPort: 3306
-  - name: rconn-master-router-listener
-    port: 3307
-    protocol: TCP
-    targetPort: 3307
-  - name: rconn-slave-router-listener
-    port: 3308
-    protocol: TCP
-    targetPort: 3308
   selector:
     app.kubernetes.io/instance: mariadb-repl-maxscale
     app.kubernetes.io/name: maxscale

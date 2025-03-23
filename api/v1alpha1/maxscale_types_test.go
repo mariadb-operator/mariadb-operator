@@ -329,26 +329,6 @@ var _ = Describe("MaxScale types", func() {
 									Port: 3306,
 								},
 							},
-							{
-								Name:   "rconn-master-router",
-								Router: ServiceRouterReadConnRoute,
-								Listener: MaxScaleListener{
-									Port: 3307,
-									Params: map[string]string{
-										"router_options": "master",
-									},
-								},
-							},
-							{
-								Name:   "rconn-slave-router",
-								Router: ServiceRouterReadConnRoute,
-								Listener: MaxScaleListener{
-									Port: 3308,
-									Params: map[string]string{
-										"router_options": "slave",
-									},
-								},
-							},
 						},
 						Monitor: MaxScaleMonitor{
 							Module: MonitorModuleMariadb,
@@ -421,30 +401,6 @@ var _ = Describe("MaxScale types", func() {
 									Name:     "rw-router-listener",
 									Port:     3306,
 									Protocol: "MariaDBProtocol",
-								},
-							},
-							{
-								Name:   "rconn-master-router",
-								Router: ServiceRouterReadConnRoute,
-								Listener: MaxScaleListener{
-									Name:     "rconn-master-router-listener",
-									Port:     3307,
-									Protocol: "MariaDBProtocol",
-									Params: map[string]string{
-										"router_options": "master",
-									},
-								},
-							},
-							{
-								Name:   "rconn-slave-router",
-								Router: ServiceRouterReadConnRoute,
-								Listener: MaxScaleListener{
-									Name:     "rconn-slave-router-listener",
-									Port:     3308,
-									Protocol: "MariaDBProtocol",
-									Params: map[string]string{
-										"router_options": "slave",
-									},
 								},
 							},
 						},
