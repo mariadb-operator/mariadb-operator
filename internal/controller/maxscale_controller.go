@@ -879,7 +879,23 @@ func monitorGrantOpts(key types.NamespacedName, mxs *mariadbv1alpha1.MaxScale) [
 			},
 		}
 	}
-	return nil
+	return []auth.GrantOpts{
+		{
+			Key: key,
+			GrantOpts: builder.GrantOpts{
+				Privileges: []string{
+					"SLAVE MONITOR",
+				},
+				Database:    "*",
+				Table:       "*",
+				Username:    mxs.Spec.Auth.MonitorUsername,
+				Host:        "%",
+				GrantOption: false,
+				Metadata:    mxs.Spec.InheritMetadata,
+				MariaDBRef:  *mxs.Spec.MariaDBRef,
+			},
+		},
+	}
 }
 
 func (r *MaxScaleReconciler) reconcileAdmin(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
