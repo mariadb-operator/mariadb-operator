@@ -93,33 +93,8 @@ spec:
   services:
     - name: rw-router
       router: readwritesplit
-      params:
-        transaction_replay: "true"
-        transaction_replay_attempts: "10"
-        transaction_replay_timeout: "5s"
-        max_slave_connections: "255"
-        max_replication_lag: "3s"
-        master_accept_reads: "true"
       listener:
         port: 3306
-        protocol: MariaDBProtocol
-        params:
-          connection_metadata: "tx_isolation=auto"
-    - name: rconn-master-router
-      router: readconnroute
-      params:
-        router_options: "master"
-        max_replication_lag: "3s"
-        master_accept_reads: "true"
-      listener:
-        port: 3307
-    - name: rconn-slave-router
-      router: readconnroute
-      params:
-        router_options: "slave"
-        max_replication_lag: "3s"
-      listener:
-        port: 3308
 
   monitor:
     interval: 2s
@@ -255,10 +230,7 @@ Refer to the [Reference](#reference) section for further detail.
 - `spec.servers` are inferred from `spec.mariaDbRef`.
 - `spec.monitor.module` is inferred from the `spec.mariaDbRef`.
 - `spec.monitor.cooperativeMonitoring` is set if [high availability](#high-availability) is enabled.
-- If `spec.services` is not provided, the following are configured by default:
-  - `readwritesplit` service on port `3306`.
-  - `readconnroute` service pointing to the primary node on port `3307`.
-  - `readconnroute` service pointing to the replica nodes on port `3308`.
+- If `spec.services` is not provided, a `readwritesplit` service is configured on port `3306` by default.
 
 ## Server configuration
 
@@ -467,12 +439,6 @@ spec:
   - name: rw-router-listener
     port: 3306
     targetPort: 3306
-  - name: rconn-master-router-listener
-    port: 3307
-    targetPort: 3307
-  - name: rconn-slave-router-listener
-    port: 3308
-    targetPort: 3308
   selector:
     app.kubernetes.io/instance: maxscale-galera
     app.kubernetes.io/name: maxscale
@@ -633,10 +599,6 @@ status:
     databaseVersion: 20
     maxScaleVersion: 20
   listeners:
-  - name: rconn-master-router-listener
-    state: Running
-  - name: rconn-slave-router-listener
-    state: Running
   - name: rw-router-listener
     state: Running
   monitor:
@@ -652,10 +614,6 @@ status:
   - name: mariadb-galera-2
     state: Slave, Synced, Running
   services:
-  - name: rconn-master-router
-    state: Started
-  - name: rconn-slave-router
-    state: Started
   - name: rw-router
     state: Started
 ```

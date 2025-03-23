@@ -863,31 +863,6 @@ func (m *MaxScale) SetDefaults(env *environment.OperatorEnv, mariadb *MariaDB) {
 				Listener: MaxScaleListener{
 					Port: 3306,
 				},
-				Params: map[string]string{
-					"transaction_replay":  "true",
-					"master_accept_reads": "true",
-				},
-			},
-			{
-				Name:   "rconn-master-router",
-				Router: ServiceRouterReadConnRoute,
-				Listener: MaxScaleListener{
-					Port: 3307,
-				},
-				Params: map[string]string{
-					"router_options":      "master",
-					"master_accept_reads": "true",
-				},
-			},
-			{
-				Name:   "rconn-slave-router",
-				Router: ServiceRouterReadConnRoute,
-				Listener: MaxScaleListener{
-					Port: 3308,
-				},
-				Params: map[string]string{
-					"router_options": "slave",
-				},
 			},
 		}
 	}
