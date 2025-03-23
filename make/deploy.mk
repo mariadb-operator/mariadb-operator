@@ -82,7 +82,7 @@ delete-pod: ## Continiously delete a Pod.
 
 ##@ Install
 
-PROMETHEUS_VERSION ?= "58.3.1"
+PROMETHEUS_VERSION ?= "70.0.2"
 
 .PHONY: install-prometheus-crds
 install-prometheus-crds: cluster-ctx  ## Install Prometheus CRDs.
