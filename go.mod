@@ -18,7 +18,7 @@ require (
 	github.com/minio/minio-go/v7 v7.0.87
 	github.com/onsi/ginkgo/v2 v2.22.2
 	github.com/onsi/gomega v1.36.2
-	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.79.2
+	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.81.0
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/sethvargo/go-envconfig v1.1.1
 	github.com/sethvargo/go-password v0.3.1
@@ -164,7 +164,7 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/apiextensions-apiserver v0.32.1 // indirect
+	k8s.io/apiextensions-apiserver v0.32.2 // indirect
 	k8s.io/klog/v2 v2.130.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20241212222426-2c72e554b1e7 // indirect
 	sigs.k8s.io/gateway-api v1.1.0 // indirect
