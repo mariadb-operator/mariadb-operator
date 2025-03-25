@@ -1,13 +1,9 @@
-# Upgrade guide 0.36.0
+# Upgrade guide 0.38.0
 
-This guide illustrates, step by step, how to migrate to `0.36.0` from previous versions. 
+This guide illustrates, step by step, how to migrate to `0.38.0` from previous versions. 
 
 > [!NOTE]  
 > Do not attempt to skip intermediate version upgrades. Upgrade progressively through each version.
-
-For example, if upgrading from `0.0.33` to `0.36.0`:
-An attempt to upgrade from `0.0.33` directly to `0.36.0` will result in unpredictable behavior.
-An attempt to upgrade from `0.0.33` to `0.34.0`, then `0.35.0`, and then `0.36.0` will result in success.
 
 - Uninstall you current `mariadb-operator` for preventing conflicts:
 ```bash
@@ -21,14 +17,14 @@ kubectl delete validatingwebhookconfiguration mariadb-operator-webhook
 kubectl delete mutatingwebhookconfiguration mariadb-operator-webhook
 ```
 
-- Upgrade `mariadb-operator-crds` to `0.36.0`:
+- Upgrade `mariadb-operator-crds` to `0.38.0`:
 
 ```bash
 helm repo update mariadb-operator
-helm upgrade --install mariadb-operator-crds  mariadb-operator/mariadb-operator-crds --version 0.36.0
+helm upgrade --install mariadb-operator-crds  mariadb-operator/mariadb-operator-crds --version 0.38.0
 ```
 
-- If you are using Galera, and you want the operator to automatically update the data-plane (i.e. init and agent containers) to `0.36.0`, you can set `updateStrategy.autoUpdateDataPlane=true` in your `MariaDB` resources:
+- If you are using Galera, and you want the operator to automatically update the data-plane (i.e. init and agent containers) to `0.38.0`, you can set `updateStrategy.autoUpdateDataPlane=true` in your `MariaDB` resources:
 
 ```diff
 apiVersion: k8s.mariadb.com/v1alpha1
@@ -50,17 +46,17 @@ metadata:
 spec:
   galera:
     agent:
--      image: docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:0.35.0
-+      image: docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:0.36.0
+-      image: docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:0.37.1
++      image: docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:0.38.0
     initContainer:
--      image: docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:0.35.0
-+      image: docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:0.36.0
+-      image: docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:0.37.1
++      image: docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:0.38.0
 ```
 
--  Upgrade `mariadb-operator` to `0.36.0`:
+-  Upgrade `mariadb-operator` to `0.38.0`:
 ```bash 
 helm repo update mariadb-operator
-helm upgrade --install mariadb-operator mariadb-operator/mariadb-operator --version 0.36.0 
+helm upgrade --install mariadb-operator mariadb-operator/mariadb-operator --version 0.38.0 
 ```
 
 - If you previously decided to downscale the operator, make sure you upscale it back:

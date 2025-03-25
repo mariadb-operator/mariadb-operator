@@ -1,25 +1,19 @@
-**`{{ .ProjectName }}` [0.36.0](https://github.com/mariadb-operator/mariadb-operator/releases/tag/0.36.0) is here!** 🦭
+**`{{ .ProjectName }}` [0.38.0](https://github.com/mariadb-operator/mariadb-operator/releases/tag/0.38.0) is here!** 🦭
 
-We're thrilled to announce this new release packed with multiple enhancements contributed by our community members. A community-driven release like this one is the best way to celebrate that we are already **more than 50 contributors 🎉**:
-- https://github.com/mariadb-operator/mariadb-operator/graphs/contributors
+We're thrilled to announce this new release packed with multiple enhancements contributed by our community members. A community-driven release like this one is the best way to celebrate that we have now __600+ stars and 60+ contributors! 🎉__ 
 
-If you're upgrading from previous versions, don't miss the __[UPGRADE GUIDE](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/releases/UPGRADE_0.36.0.md)__ for a smooth transition.
+If you're upgrading from previous versions, don't miss the __[UPGRADE GUIDE](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/releases/UPGRADE_0.38.0.md)__ for a smooth transition.
 
-**Replication (alpha)**
-- [#967](https://github.com/mariadb-operator/mariadb-operator/pull/967)
-- [#974](https://github.com/mariadb-operator/mariadb-operator/pull/974)
+- Avoid reconciling `MariaDB` if it's marked for deletion (#1146 by @lsoica)
+- Support for `command` and `args` on `MaxScale` resource (#1160 by @wfelipew)
+- Preserve randomly generated `Secrets` (#1168 by @AlPepino)
+- Support for `HostPath` in `VolumeSource` (#1192 by @kevinvalk)
+- Remove `Secret` webhook template in helm chart (see #1203)
+- MariaDB 11.4.5 is now the default version
+- Kubernetes 1.32 and controller-runtime 0.32.2 support
+- Go 1.24 support
 
-**Backup**
-- [#1008](https://github.com/mariadb-operator/mariadb-operator/pull/1008)
-- [#1013](https://github.com/mariadb-operator/mariadb-operator/pull/1013)
-
-**Services**
-- [#1009](https://github.com/mariadb-operator/mariadb-operator/pull/1009)
-
-**SQL**
-- [#1026](https://github.com/mariadb-operator/mariadb-operator/pull/1026)
-
-Huge thanks to our awesome contributors @hedgieinsocks, @onesolpark, @johanjk, and @P4sca1 for making this release possible! 🙇
+Huge thanks to our awesome contributors @lsoica, @wfelipew, @AlPepino and @kevinvalk! 🙇
 
 ---
 
