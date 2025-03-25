@@ -185,17 +185,21 @@ kind: MariaDB
 metadata:
   name: mariadb-galera
 spec:
+  # Tune your liveness probe accordingly to avoid Pod restarts.
   livenessProbe:
-    periodSeconds: 5
+    periodSeconds: 10
     timeoutSeconds: 5
 
+  # Tune your readiness probe accordingly to prevent disruptions in network traffic.
   readinessProbe:
-    periodSeconds: 5
+    periodSeconds: 10
     timeoutSeconds: 5
 
+  # Tune your startup probe accordingly to ensure that the SST completes with a large amount of data.
+  # failureThreshold × periodSeconds = 30 × 10 = 300s = 5m until the container gets restarted if unhealthy
   startupProbe:
-    failureThreshold: 10
-    periodSeconds: 5
+    failureThreshold: 30
+    periodSeconds: 10
     timeoutSeconds: 5
 ```
 
