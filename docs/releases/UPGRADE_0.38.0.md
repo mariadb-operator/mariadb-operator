@@ -154,14 +154,14 @@ done
 echo "Replication migration completed successfully on $MARIADB_NAME instance."
 ```
 
-For better convenience, you can run:
+For better convenience, replace the variables and run:
 
 ```bash
 curl -sLO https://raw.githubusercontent.com/mariadb-operator/mariadb-operator/refs/heads/main/hack/migrate_repl_conn.sh
 chmod +x migrate_repl_conn.sh
 
-MARIADB_NAME="<mariadb-name>" \
-MARIADB_NAMESPACE="<mariadb-namespace>" \
-MARIADB_ROOT_PASSWORD="<mariadb-root-password>" \
+MARIADB_NAME='<mariadb-name>' \
+MARIADB_NAMESPACE='<mariadb-namespace>' \
+MARIADB_ROOT_PASSWORD='<mariadb-root-password>' \
 ./migrate_repl_conn.sh
 ```
