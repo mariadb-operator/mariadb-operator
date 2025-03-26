@@ -2,15 +2,15 @@
 
 set -eo pipefail
 
-if [[ -z "$MARIADB_NAME" || -z "$MARIADB_ROOT_PASSWORD" ]]; then
-  echo "Error: MARIADB_NAME and MARIADB_ROOT_PASSWORD env vars must be set."
+if [[ -z "$MARIADB_NAME" || -z "$MARIADB_NAMESPACE" || -z "$MARIADB_ROOT_PASSWORD" ]]; then
+  echo "Error: MARIADB_NAME, MARIADB_NAMESPACE and MARIADB_ROOT_PASSWORD env vars must be set."
   exit 1
 fi
 
 function exec_sql {
   local pod=$1
   local sql=$2
-  kubectl exec "$pod" -- mariadb -u root -p"$MARIADB_ROOT_PASSWORD" -e "$sql"
+  kubectl exec -n "$MARIADB_NAMESPACE" "$pod" -- mariadb -u root -p"$MARIADB_ROOT_PASSWORD" -e "$sql"
 }
 
 function wait_for_ready_replication {
@@ -42,8 +42,8 @@ function wait_for_ready_replication {
 
 echo "Migrating replication on $MARIADB_NAME instance..."
 
-PODS=$(kubectl get pods -l app.kubernetes.io/instance=$MARIADB_NAME -o jsonpath="{.items[*].metadata.name}")
-PRIMARY_POD=$(kubectl get mariadb "$MARIADB_NAME" -o jsonpath="{.status.currentPrimary}")
+PODS=$(kubectl get pods -n "$MARIADB_NAMESPACE" -l app.kubernetes.io/instance=$MARIADB_NAME -o jsonpath="{.items[*].metadata.name}")
+PRIMARY_POD=$(kubectl get mariadb "$MARIADB_NAME" -n "$MARIADB_NAMESPACE" -o jsonpath="{.status.currentPrimary}")
 echo "Primary pod detected: $PRIMARY_POD"
 echo "Replica pods: $PODS"
 
@@ -56,13 +56,13 @@ for POD in $PODS; do
 
   echo "Resetting replication on $POD..."
   exec_sql "$POD" "STOP SLAVE 'mariadb-operator';"
-  exec_sql "$POD" "RESET SLAVE 'mariadb-operator';"
+  exec_sql "$POD" "RESET SLAVE 'mariadb-operator' ALL;"
 
   echo "Deleting pod $POD..."
-  kubectl delete pod "$POD"
+  kubectl delete pod "$POD" -n "$MARIADB_NAMESPACE"
 
   echo "Waiting for pod $POD to become ready..."
-  kubectl wait --for=condition=Ready pod/"$POD" --timeout=5m
+  kubectl wait --for=condition=Ready pod/"$POD" -n "$MARIADB_NAMESPACE" --timeout=5m
   echo "Pod $POD is ready."
 
   wait_for_ready_replication "$POD"
