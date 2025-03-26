@@ -259,6 +259,10 @@ func (b *Builder) exporterContainer(exporter *mariadbv1alpha1.Exporter, args []s
 		resources = exporter.Resources.ToKubernetesType()
 	}
 
+	if exporter.CollectorFlags != nil {
+		args = append(args, exporter.CollectorFlags...)
+	}
+
 	probe := &corev1.Probe{
 		ProbeHandler: corev1.ProbeHandler{
 			HTTPGet: &corev1.HTTPGetAction{
