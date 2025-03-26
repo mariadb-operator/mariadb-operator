@@ -20,9 +20,8 @@ import (
 )
 
 var (
-	replUser       = "repl"
-	replUserHost   = "%"
-	connectionName = "mariadb-operator"
+	replUser     = "repl"
+	replUserHost = "%"
 )
 
 type ReplicationConfig struct {
@@ -89,7 +88,7 @@ func (r *ReplicationConfig) ConfigureReplica(ctx context.Context, mariadb *maria
 	if err := r.changeMaster(ctx, mariadb, client, primaryPodIndex); err != nil {
 		return fmt.Errorf("error changing master: %v", err)
 	}
-	if err := client.StartSlave(ctx, connectionName); err != nil {
+	if err := client.StartSlave(ctx); err != nil {
 		return fmt.Errorf("error starting slave: %v", err)
 	}
 	return nil
@@ -158,7 +157,6 @@ func (r *ReplicationConfig) changeMaster(ctx context.Context, mariadb *mariadbv1
 
 	changeMasterOpts := []sql.ChangeMasterOpt{
 		changeMasterHostOpt,
-		sql.WithChangeMasterConnection(connectionName),
 		sql.WithChangeMasterPort(mariadb.Spec.Port),
 		sql.WithChangeMasterCredentials(replUser, password),
 		sql.WithChangeMasterGtid(gtidString),

@@ -360,7 +360,7 @@ func (r *ReplicationReconciler) resetSlave(ctx context.Context, client *sqlClien
 	if err := client.ResetSlavePos(ctx); err != nil {
 		return fmt.Errorf("error resetting slave position: %v", err)
 	}
-	return client.StartSlave(ctx, connectionName)
+	return client.StartSlave(ctx)
 }
 
 func (r *ReplicationReconciler) currentPrimaryReady(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (bool, error) {

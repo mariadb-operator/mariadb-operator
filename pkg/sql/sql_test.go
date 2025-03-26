@@ -41,7 +41,7 @@ func TestBuildChangeMasterQuery(t *testing.T) {
 				WithChangeMasterCredentials("repl", "password"),
 				WithChangeMasterGtid("CurrentPos"),
 			},
-			wantQuery: `CHANGE MASTER 'mariadb-operator' TO
+			wantQuery: `CHANGE MASTER TO
 MASTER_HOST='127.0.0.1',
 MASTER_PORT=3306,
 MASTER_USER='repl',
@@ -71,7 +71,7 @@ MASTER_CONNECT_RETRY=10;
 				WithChangeMasterGtid("CurrentPos"),
 				WithChangeMasterSSL("/etc/pki/client.crt", "/etc/pki/client.key", "/etc/pki/ca.crt"),
 			},
-			wantQuery: `CHANGE MASTER 'mariadb-operator' TO
+			wantQuery: `CHANGE MASTER TO
 MASTER_HOST='127.0.0.1',
 MASTER_PORT=3306,
 MASTER_USER='repl',

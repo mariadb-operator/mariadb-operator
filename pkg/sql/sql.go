@@ -634,9 +634,8 @@ func (c *Client) ResetMaster(ctx context.Context) error {
 	return c.Exec(ctx, "RESET MASTER;")
 }
 
-func (c *Client) StartSlave(ctx context.Context, connName string) error {
-	sql := fmt.Sprintf("START SLAVE '%s';", connName)
-	return c.Exec(ctx, sql)
+func (c *Client) StartSlave(ctx context.Context) error {
+	return c.Exec(ctx, "START SLAVE;")
 }
 
 func (c *Client) StopAllSlaves(ctx context.Context) error {
@@ -667,13 +666,12 @@ func (c *Client) WaitForReplicaGtid(ctx context.Context, gtid string, timeout ti
 }
 
 type ChangeMasterOpts struct {
-	Connection string
-	Host       string
-	Port       int32
-	User       string
-	Password   string
-	Gtid       string
-	Retries    int
+	Host     string
+	Port     int32
+	User     string
+	Password string
+	Gtid     string
+	Retries  int
 
 	SSLEnabled  bool
 	SSLCertPath string
@@ -682,12 +680,6 @@ type ChangeMasterOpts struct {
 }
 
 type ChangeMasterOpt func(*ChangeMasterOpts)
-
-func WithChangeMasterConnection(connection string) ChangeMasterOpt {
-	return func(cmo *ChangeMasterOpts) {
-		cmo.Connection = connection
-	}
-}
 
 func WithChangeMasterHost(host string) ChangeMasterOpt {
 	return func(cmo *ChangeMasterOpts) {
@@ -739,10 +731,9 @@ func (c *Client) ChangeMaster(ctx context.Context, changeMasterOpts ...ChangeMas
 
 func buildChangeMasterQuery(changeMasterOpts ...ChangeMasterOpt) (string, error) {
 	opts := ChangeMasterOpts{
-		Connection: "mariadb-operator",
-		Port:       3306,
-		Gtid:       "CurrentPos",
-		Retries:    10,
+		Port:    3306,
+		Gtid:    "CurrentPos",
+		Retries: 10,
 	}
 	for _, setOpt := range changeMasterOpts {
 		setOpt(&opts)
@@ -757,7 +748,7 @@ func buildChangeMasterQuery(changeMasterOpts ...ChangeMasterOpt) (string, error)
 		return "", errors.New("all SSL paths must be provided when SSL is enabled")
 	}
 
-	tpl := createTpl("change-master.sql", `CHANGE MASTER '{{ .Connection }}' TO
+	tpl := createTpl("change-master.sql", `CHANGE MASTER TO
 MASTER_HOST='{{ .Host }}',
 MASTER_PORT={{ .Port }},
 MASTER_USER='{{ .User }}',
