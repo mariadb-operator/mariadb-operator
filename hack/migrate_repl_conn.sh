@@ -47,10 +47,10 @@ PRIMARY_POD=$(kubectl get mariadb "$MARIADB_NAME" -n "$MARIADB_NAMESPACE" -o jso
 
 for POD in $PODS; do
   if [[ "$POD" == "$PRIMARY_POD" ]]; then
-    printf "Skipping primary pod: $POD\n"
+    printf "\nSkipping primary pod: $POD\n"
     continue
   fi
-  printf "Processing replica pod: $POD\n\n"
+  printf "\nProcessing replica pod: $POD\n"
 
   echo "Resetting replication on $POD..."
   exec_sql "$POD" "STOP SLAVE 'mariadb-operator';"
