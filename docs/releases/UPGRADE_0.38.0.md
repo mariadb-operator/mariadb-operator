@@ -106,10 +106,10 @@ function wait_for_ready_replication {
 
   while [[ $elapsed -lt $timeout ]]; do
     local status
-    status=$(exec_sql "$pod" "SHOW REPLICA STATUS\G" | tee /tmp/replication_status_$pod.txt)
+    status=$(exec_sql "$pod" "SHOW REPLICA STATUS\G" | tee /tmp/replication_status_$pod_$MARIADB_NAMESPACE.txt)
 
-    if grep -q "Slave_IO_Running: Yes" /tmp/replication_status_$pod.txt && \
-       grep -q "Slave_SQL_Running: Yes" /tmp/replication_status_$pod.txt; then
+    if grep -q "Slave_IO_Running: Yes" /tmp/replication_status_$pod_$MARIADB_NAMESPACE.txt && \
+       grep -q "Slave_SQL_Running: Yes" /tmp/replication_status_$pod_$MARIADB_NAMESPACE.txt; then
       echo "Replication is ready on $pod."
       return 0
     fi
@@ -127,15 +127,13 @@ echo "Migrating replication on $MARIADB_NAME instance..."
 
 PODS=$(kubectl get pods -n "$MARIADB_NAMESPACE" -l app.kubernetes.io/instance=$MARIADB_NAME -o jsonpath="{.items[*].metadata.name}")
 PRIMARY_POD=$(kubectl get mariadb "$MARIADB_NAME" -n "$MARIADB_NAMESPACE" -o jsonpath="{.status.currentPrimary}")
-echo "Primary pod detected: $PRIMARY_POD"
-echo "Replica pods: $PODS"
 
 for POD in $PODS; do
   if [[ "$POD" == "$PRIMARY_POD" ]]; then
-    printf "Skipping primary pod: $POD\n"
+    printf "\nSkipping primary pod: $POD\n"
     continue
   fi
-  printf "Processing replica pod: $POD\n\n"
+  printf "\nProcessing replica pod: $POD\n"
 
   echo "Resetting replication on $POD..."
   exec_sql "$POD" "STOP SLAVE 'mariadb-operator';"
