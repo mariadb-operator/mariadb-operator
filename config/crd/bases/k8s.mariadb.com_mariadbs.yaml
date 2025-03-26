@@ -3204,6 +3204,13 @@ spec:
                                     x-kubernetes-list-type: atomic
                                 type: object
                             type: object
+                          collectorFlags:
+                            description: |-
+                              CollectorFlags is the list of mysqld-exporter collector flags.
+                              See available flags: https://github.com/prometheus/mysqld_exporter?tab=readme-ov-file#collector-flags
+                            items:
+                              type: string
+                            type: array
                           image:
                             description: |-
                               Image name to be used as metrics exporter. The supported format is `<image>:<tag>`.
@@ -4030,6 +4037,13 @@ spec:
                                 x-kubernetes-list-type: atomic
                             type: object
                         type: object
+                      collectorFlags:
+                        description: |-
+                          CollectorFlags is the list of mysqld-exporter collector flags.
+                          See available flags: https://github.com/prometheus/mysqld_exporter?tab=readme-ov-file#collector-flags
+                        items:
+                          type: string
+                        type: array
                       image:
                         description: |-
                           Image name to be used as metrics exporter. The supported format is `<image>:<tag>`.

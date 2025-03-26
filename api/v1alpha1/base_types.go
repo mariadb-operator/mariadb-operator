@@ -795,6 +795,11 @@ type Exporter struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	ImagePullSecrets []LocalObjectReference `json:"imagePullSecrets,omitempty" webhook:"inmutable"`
+	// CollectorFlags is the list of mysqld-exporter collector flags.
+	// See available flags: https://github.com/prometheus/mysqld_exporter?tab=readme-ov-file#collector-flags
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	CollectorFlags []string `json:"collectorFlags,omitempty"`
 	// Port where the exporter will be listening for connections.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
