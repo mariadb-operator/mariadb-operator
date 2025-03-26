@@ -259,8 +259,8 @@ func (b *Builder) exporterContainer(exporter *mariadbv1alpha1.Exporter, args []s
 		resources = exporter.Resources.ToKubernetesType()
 	}
 
-	if exporter.CollectorFlags != nil {
-		args = append(args, exporter.CollectorFlags...)
+	if exporter.Args != nil {
+		args = append(args, exporter.Args...)
 	}
 
 	probe := &corev1.Probe{

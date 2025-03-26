@@ -945,8 +945,8 @@ func (in *Exporter) DeepCopyInto(out *Exporter) {
 		*out = make([]LocalObjectReference, len(*in))
 		copy(*out, *in)
 	}
-	if in.CollectorFlags != nil {
-		in, out := &in.CollectorFlags, &out.CollectorFlags
+	if in.Args != nil {
+		in, out := &in.Args, &out.Args
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}

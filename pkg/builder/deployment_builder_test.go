@@ -858,3 +858,68 @@ func TestExporterVolumes(t *testing.T) {
 		})
 	}
 }
+
+func TestExporterArgs(t *testing.T) {
+	builder := newDefaultTestBuilder(t)
+	objMeta := metav1.ObjectMeta{
+		Name:      "mariadb-metrics-resources",
+		Namespace: "test",
+	}
+
+	tests := []struct {
+		name     string
+		mariadb  *mariadbv1alpha1.MariaDB
+		wantArgs []string
+	}{
+		{
+			name: "Without args",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Metrics: &mariadbv1alpha1.MariadbMetrics{
+						Enabled: true,
+					},
+				},
+			},
+			wantArgs: []string{
+				"--config.my-cnf=/etc/config/exporter.cnf",
+			},
+		},
+		{
+			name: "With args",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Metrics: &mariadbv1alpha1.MariadbMetrics{
+						Enabled: true,
+						Exporter: mariadbv1alpha1.Exporter{
+							Args: []string{
+								"--no-collect.auto_increment.columns",
+								"--collect.sys.user_summary",
+							},
+						},
+					},
+				},
+			},
+			wantArgs: []string{
+				"--config.my-cnf=/etc/config/exporter.cnf",
+				"--no-collect.auto_increment.columns",
+				"--collect.sys.user_summary",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			deploy, err := builder.BuildExporterDeployment(tt.mariadb, nil)
+			if err != nil {
+				t.Fatalf("unexpected error building Deployment: %v", err)
+			}
+
+			args := deploy.Spec.Template.Spec.Containers[0].Args
+			if !reflect.DeepEqual(tt.wantArgs, args) {
+				t.Errorf("unexpected Args, want: %v got: %v", tt.wantArgs, args)
+			}
+		})
+	}
+}
