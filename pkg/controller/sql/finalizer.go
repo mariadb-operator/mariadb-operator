@@ -66,6 +66,14 @@ func (tf *SqlFinalizer) Finalize(ctx context.Context, resource Resource) (ctrl.R
 		return ctrl.Result{}, fmt.Errorf("error getting MariaDB: %v", err)
 	}
 
+	// If MariaDB is being deleted, remove the finalizer
+	if !mariadb.DeletionTimestamp.IsZero() {
+		if err := tf.WrappedFinalizer.RemoveFinalizer(ctx); err != nil {
+			return ctrl.Result{}, fmt.Errorf("error removing %s finalizer: %v", resource.GetName(), err)
+		}
+		return ctrl.Result{}, nil
+	}
+
 	if result, err := waitForMariaDB(ctx, tf.Client, mariadb, tf.LogSql); !result.IsZero() || err != nil {
 		return result, err
 	}
