@@ -151,6 +151,9 @@ func (v StorageVolumeSource) ToKubernetesType() corev1.VolumeSource {
 	if v.CSI != nil {
 		volumeSource.CSI = ptr.To(v.CSI.ToKubernetesType())
 	}
+	if v.HostPath != nil {
+		volumeSource.HostPath = ptr.To(v.HostPath.ToKubernetesType())
+	}
 	if v.PersistentVolumeClaim != nil {
 		volumeSource.PersistentVolumeClaim = ptr.To(v.PersistentVolumeClaim.ToKubernetesType())
 	}
