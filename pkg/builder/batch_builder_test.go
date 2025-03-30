@@ -6,6 +6,7 @@ import (
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	galeraresources "github.com/mariadb-operator/mariadb-operator/pkg/controller/galera/resources"
+	v1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -169,6 +170,90 @@ func TestBackupJobImagePullSecrets(t *testing.T) {
 			}
 		})
 	}
+}
+
+// While this test tests mainly the kubernetes_volume_types.go implementation, it still makes a lot of sense to do it
+// here as we get the bonus test coverage if the job building code correctly creates our volume sources. Because of this
+// we only need to do this for backup and not restore.
+// NOTE: We are using a lot of reflection to also capture cases in which a new field is added to the StorageVolumeSource
+// but simply not properly implemented in any of the remaining code. If we would only test for static fields, this test
+// would still pass while this new field would not be properly covered by a test.
+func TestBackupJobVolumeSource(t *testing.T) {
+	builder := newDefaultTestBuilder(t)
+	objMeta := metav1.ObjectMeta{
+		Name:      "backup-volume-source",
+		Namespace: "test",
+	}
+
+	mariadb := &mariadbv1alpha1.MariaDB{
+		ObjectMeta: objMeta,
+		Spec:       mariadbv1alpha1.MariaDBSpec{},
+	}
+
+	// To make our testing easier (see our reflection code below), we define a single volume source that has ALL volume
+	// source fields set!
+	// NOTE: Our test does NOT check if the actual values are correct in the final job and corev1.VolumeSource.
+	volumeSources := mariadbv1alpha1.StorageVolumeSource{
+		EmptyDir: &mariadbv1alpha1.EmptyDirVolumeSource{},
+		NFS: &mariadbv1alpha1.NFSVolumeSource{
+			Server:   "test",
+			Path:     "/some/thing",
+			ReadOnly: true,
+		},
+		CSI: &mariadbv1alpha1.CSIVolumeSource{
+			Driver: "test",
+		},
+		HostPath: &mariadbv1alpha1.HostPathVolumeSource{
+			Path: "/some/path",
+			Type: ptr.To(string(corev1.HostPathDirectoryOrCreate)),
+		},
+		PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimVolumeSource{
+			ClaimName: "test-pvc",
+		},
+	}
+
+	storageVolumeSourceType := reflect.TypeOf(volumeSources)
+	storageVolumeSourceValue := reflect.ValueOf(volumeSources)
+
+	for i := 0; i < storageVolumeSourceType.NumField(); i++ {
+		field := storageVolumeSourceType.Field(i)
+
+		// To prevent our code from being too fragile (as many of the copy code uses ifs without early aborts), we want
+		// to create a plain StorageVolumeSource with only a single field set. So we need to "dynamically" copy over
+		// from our volumeSources into this new volume source.
+		volumeSource := mariadbv1alpha1.StorageVolumeSource{}
+		reflect.ValueOf(&volumeSource).Elem().FieldByName(field.Name).Set(storageVolumeSourceValue.FieldByName(field.Name))
+
+		t.Run(field.Name, func(t *testing.T) {
+			backup := &mariadbv1alpha1.Backup{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.BackupSpec{
+					MariaDBRef: mariadbv1alpha1.MariaDBRef{
+						ObjectReference: mariadbv1alpha1.ObjectReference{
+							Name: objMeta.Name,
+						},
+					},
+					Storage: mariadbv1alpha1.BackupStorage{
+						Volume: &volumeSource,
+					},
+				},
+			}
+
+			job, err := builder.BuildBackupJob(client.ObjectKeyFromObject(backup), backup, mariadb)
+			if err != nil {
+				t.Fatalf("unexpected error building Job: %v", err)
+			}
+
+			coreVolumeSourceValue := reflect.ValueOf(*getVolumeSource(batchStorageVolume, job))
+			if coreVolumeSourceValue.FieldByName(field.Name).IsNil() {
+				// NOTE: Ensure, the field is copied in `func (v StorageVolumeSource) ToKubernetesType()
+				// corev1.VolumeSource`.
+				t.Fatalf("The volume source field '%s' is not properly implemented as it is nil in corev1.VolumeSource.", field.Name)
+			}
+
+		})
+	}
+
 }
 
 func TestBackupJobMeta(t *testing.T) {
@@ -2215,4 +2300,13 @@ func hasVolumePVC(volumes []corev1.Volume, volumeName string) bool {
 		}
 	}
 	return false
+}
+
+func getVolumeSource(name string, job *v1.Job) *corev1.VolumeSource {
+	for _, volume := range job.Spec.Template.Spec.Volumes {
+		if volume.Name == name {
+			return &volume.VolumeSource
+		}
+	}
+	return nil
 }
