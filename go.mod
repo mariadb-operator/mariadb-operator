@@ -1,7 +1,6 @@
 module github.com/mariadb-operator/mariadb-operator
 
 go 1.24.1
-
 require (
 	github.com/cert-manager/cert-manager v1.17.1
 	github.com/distribution/reference v0.6.0
@@ -9,7 +8,7 @@ require (
 	github.com/go-chi/chi/v5 v5.2.1
 	github.com/go-chi/httprate v0.14.1
 	github.com/go-logr/logr v1.4.2
-	github.com/go-sql-driver/mysql v1.9.0
+	github.com/go-sql-driver/mysql v1.9.1
 	github.com/google/go-cmp v0.7.0
 	github.com/google/uuid v1.6.0
 	github.com/gruntwork-io/terratest v0.48.2
