@@ -1,7 +1,6 @@
 module github.com/mariadb-operator/mariadb-operator
 
 go 1.24.1
-
 require (
 	github.com/cert-manager/cert-manager v1.17.1
 	github.com/distribution/reference v0.6.0
@@ -30,7 +29,7 @@ require (
 	k8s.io/apimachinery v0.32.2
 	k8s.io/client-go v0.32.2
 	k8s.io/utils v0.0.0-20241210054802-24370beab758
-	sigs.k8s.io/controller-runtime v0.20.3
+	sigs.k8s.io/controller-runtime v0.20.4
 )
 
 require (
