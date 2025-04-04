@@ -285,7 +285,7 @@ type PodTemplate struct {
 	// PriorityClassName to be used in the Pod.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	PriorityClassName *string `json:"priorityClassName,omitempty" webhook:"inmutable"`
+	PriorityClassName *string `json:"priorityClassName,omitempty"`
 	// TopologySpreadConstraints to be used in the Pod.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
