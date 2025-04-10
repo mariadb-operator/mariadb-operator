@@ -74,6 +74,8 @@ var (
 	requeueSqlJob     time.Duration
 	requeueMaxScale   time.Duration
 
+	requeueSqlMaxOffset time.Duration
+
 	webhookEnabled bool
 	webhookPort    int
 	webhookCertDir string
@@ -111,6 +113,9 @@ func init() {
 	rootCmd.Flags().DurationVar(&requeueSql, "requeue-sql", 30*time.Second, "The interval at which SQL objects are requeued.")
 	rootCmd.Flags().DurationVar(&requeueSqlJob, "requeue-sqljob", 5*time.Second, "The interval at which SqlJobs are requeued.")
 	rootCmd.Flags().DurationVar(&requeueMaxScale, "requeue-maxscale", 30*time.Second, "The interval at which MaxScales are requeued.")
+
+	rootCmd.Flags().DurationVar(&requeueSqlMaxOffset, "requeue-sql-max-offset", 0,
+		"Maximum offset added to the interval at which SQL objects are requeued.")
 
 	rootCmd.Flags().BoolVar(&webhookEnabled, "webhook", false, "Enable the webhook server.")
 	rootCmd.Flags().IntVar(&webhookPort, "webhook-port", 9443, "Port to be used by the webhook server."+
@@ -368,6 +373,7 @@ var rootCmd = &cobra.Command{
 
 		sqlOpts := []sql.SqlOpt{
 			sql.WithRequeueInterval(requeueSql),
+			sql.WithRequeueMaxOffset(requeueSqlMaxOffset),
 			sql.WithLogSql(logSql),
 		}
 		if err = controller.NewUserReconciler(client, refResolver, conditionReady, sqlOpts...).SetupWithManager(ctx, mgr); err != nil {
