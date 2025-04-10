@@ -3,6 +3,7 @@ package sql
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"time"
 
 	"github.com/hashicorp/go-multierror"
@@ -18,8 +19,9 @@ import (
 )
 
 type SqlOptions struct {
-	RequeueInterval time.Duration
-	LogSql          bool
+	RequeueInterval  time.Duration
+	RequeueMaxOffset time.Duration
+	LogSql           bool
 }
 
 type SqlOpt func(*SqlOptions)
@@ -27,6 +29,12 @@ type SqlOpt func(*SqlOptions)
 func WithRequeueInterval(interval time.Duration) SqlOpt {
 	return func(opts *SqlOptions) {
 		opts.RequeueInterval = interval
+	}
+}
+
+func WithRequeueMaxOffset(offset time.Duration) SqlOpt {
+	return func(opts *SqlOptions) {
+		opts.RequeueMaxOffset = offset
 	}
 }
 
@@ -56,8 +64,9 @@ func NewSqlReconciler(client client.Client, cr *condition.Ready, wr WrappedRecon
 		WrappedReconciler: wr,
 		Finalizer:         f,
 		SqlOptions: SqlOptions{
-			RequeueInterval: 30 * time.Second,
-			LogSql:          false,
+			RequeueInterval:  30 * time.Second,
+			RequeueMaxOffset: 0,
+			LogSql:           false,
 		},
 	}
 	for _, setOpt := range opts {
@@ -160,12 +169,20 @@ func (r *SqlReconciler) requeueResult(ctx context.Context, resource Resource, er
 		return ctrl.Result{RequeueAfter: resource.RequeueInterval().Duration}, nil
 	}
 	if r.RequeueInterval > 0 {
+		requeueInterval := r.requeueIntervalWithOffset()
 		if r.LogSql {
 			log.FromContext(ctx).V(1).Info("Requeuing SQL resource")
 		}
-		return ctrl.Result{RequeueAfter: r.RequeueInterval}, nil
+		return ctrl.Result{RequeueAfter: requeueInterval}, nil
 	}
 	return ctrl.Result{}, nil
+}
+
+func (r *SqlReconciler) requeueIntervalWithOffset() time.Duration {
+	if r.RequeueMaxOffset > 0 {
+		return r.RequeueInterval + time.Duration(rand.Int63()%int64(r.RequeueMaxOffset))
+	}
+	return r.RequeueInterval
 }
 
 func waitForMariaDB(ctx context.Context, client client.Client, mdb *mariadbv1alpha1.MariaDB,
