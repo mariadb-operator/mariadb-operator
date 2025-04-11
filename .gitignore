@@ -46,3 +46,6 @@ cover.*
 
 # Documentation site
 /site
+
+# pprof
+pprof.out
