@@ -163,13 +163,14 @@ func (r *SqlReconciler) requeueResult(ctx context.Context, resource Resource, er
 		return ctrl.Result{Requeue: true}, nil
 	}
 	if resource.RequeueInterval() != nil {
+		requeueInterval := r.addRequeueIntervalOffset(resource.RequeueInterval().Duration)
 		if r.LogSql {
 			log.FromContext(ctx).V(1).Info("Requeuing SQL resource")
 		}
-		return ctrl.Result{RequeueAfter: resource.RequeueInterval().Duration}, nil
+		return ctrl.Result{RequeueAfter: requeueInterval}, nil
 	}
 	if r.RequeueInterval > 0 {
-		requeueInterval := r.requeueIntervalWithOffset()
+		requeueInterval := r.addRequeueIntervalOffset(r.RequeueInterval)
 		if r.LogSql {
 			log.FromContext(ctx).V(1).Info("Requeuing SQL resource")
 		}
@@ -178,11 +179,11 @@ func (r *SqlReconciler) requeueResult(ctx context.Context, resource Resource, er
 	return ctrl.Result{}, nil
 }
 
-func (r *SqlReconciler) requeueIntervalWithOffset() time.Duration {
+func (r *SqlReconciler) addRequeueIntervalOffset(duration time.Duration) time.Duration {
 	if r.RequeueMaxOffset > 0 {
-		return r.RequeueInterval + time.Duration(rand.Int63()%int64(r.RequeueMaxOffset))
+		return duration + time.Duration(rand.Int63()%int64(r.RequeueMaxOffset))
 	}
-	return r.RequeueInterval
+	return duration
 }
 
 func waitForMariaDB(ctx context.Context, client client.Client, mdb *mariadbv1alpha1.MariaDB,
