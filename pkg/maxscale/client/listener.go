@@ -51,12 +51,12 @@ type ListenerAttributes struct {
 }
 
 type ListenerClient struct {
-	GenericClient[ListenerAttributes]
+	GenericClient[*ListenerAttributes]
 }
 
 func NewListenerClient(client *mdbhttp.Client) *ListenerClient {
 	return &ListenerClient{
-		GenericClient: NewGenericClient[ListenerAttributes](
+		GenericClient: NewGenericClient[*ListenerAttributes](
 			client,
 			"listeners",
 			ObjectTypeListeners,

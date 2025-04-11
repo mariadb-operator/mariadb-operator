@@ -49,12 +49,12 @@ type MonitorAttributes struct {
 }
 
 type MonitorClient struct {
-	GenericClient[MonitorAttributes]
+	GenericClient[*MonitorAttributes]
 }
 
 func NewMonitorClient(client *mdbhttp.Client) *MonitorClient {
 	return &MonitorClient{
-		GenericClient: NewGenericClient[MonitorAttributes](
+		GenericClient: NewGenericClient[*MonitorAttributes](
 			client,
 			"monitors",
 			ObjectTypeMonitors,

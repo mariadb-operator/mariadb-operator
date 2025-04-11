@@ -63,12 +63,12 @@ func (s *ServerAttributes) IsMaster() bool {
 }
 
 type ServerClient struct {
-	GenericClient[ServerAttributes]
+	GenericClient[*ServerAttributes]
 }
 
 func NewServerClient(client *mdbhttp.Client) *ServerClient {
 	return &ServerClient{
-		GenericClient: NewGenericClient[ServerAttributes](
+		GenericClient: NewGenericClient[*ServerAttributes](
 			client,
 			"servers",
 			ObjectTypeServers,

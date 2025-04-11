@@ -67,7 +67,7 @@ func (c *GenericClient[T]) ListIndex(ctx context.Context, options ...Option) (ds
 	if err != nil {
 		return nil, err
 	}
-	return ds.NewIndex[Data[T]](list, func(d Data[T]) string {
+	return ds.NewIndex(list, func(d Data[T]) string {
 		return d.ID
 	}), nil
 }
@@ -77,7 +77,7 @@ func (c *GenericClient[T]) AllExists(ctx context.Context, ids []string, options 
 	if err != nil {
 		return false, nil
 	}
-	return ds.AllExists[Data[T]](index, ids...), nil
+	return ds.AllExists(index, ids...), nil
 }
 
 func (c *GenericClient[T]) Get(ctx context.Context, name string, options ...Option) (*Data[T], error) {

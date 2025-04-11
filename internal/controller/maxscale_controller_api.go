@@ -44,14 +44,14 @@ func (m *maxScaleAPI) createAdminUser(ctx context.Context, username, password st
 		Account:  mxsclient.UserAccountAdmin,
 		Password: &password,
 	}
-	return m.client.User.Create(ctx, username, attrs)
+	return m.client.User.Create(ctx, username, &attrs)
 }
 
 func (m *maxScaleAPI) patchUser(ctx context.Context, username, password string) error {
 	attrs := mxsclient.UserAttributes{
 		Password: &password,
 	}
-	return m.client.User.Patch(ctx, username, attrs)
+	return m.client.User.Patch(ctx, username, &attrs)
 }
 
 // MaxScale API - Servers
@@ -61,7 +61,7 @@ func (m *maxScaleAPI) createServer(ctx context.Context, srv *mariadbv1alpha1.Max
 	if err != nil {
 		return fmt.Errorf("error getting server attributes: %v", err)
 	}
-	return m.client.Server.Create(ctx, srv.Name, *serverAttrs)
+	return m.client.Server.Create(ctx, srv.Name, serverAttrs)
 }
 
 func (m *maxScaleAPI) deleteServer(ctx context.Context, name string) error {
@@ -73,7 +73,7 @@ func (m *maxScaleAPI) patchServer(ctx context.Context, srv *mariadbv1alpha1.MaxS
 	if err != nil {
 		return fmt.Errorf("error getting server attributes: %v", err)
 	}
-	return m.client.Server.Patch(ctx, srv.Name, *serverAttrs)
+	return m.client.Server.Patch(ctx, srv.Name, serverAttrs)
 }
 
 func (m *maxScaleAPI) updateServerState(ctx context.Context, srv *mariadbv1alpha1.MaxScaleServer) error {
@@ -160,7 +160,7 @@ func (m *maxScaleAPI) createMonitor(ctx context.Context, rels *mxsclient.Relatio
 		return fmt.Errorf("error getting monitor attributes: %v", err)
 	}
 
-	return m.client.Monitor.Create(ctx, m.mxs.Spec.Monitor.Name, *attrs, mxsclient.WithRelationships(rels))
+	return m.client.Monitor.Create(ctx, m.mxs.Spec.Monitor.Name, attrs, mxsclient.WithRelationships(rels))
 }
 
 func (m *maxScaleAPI) patchMonitor(ctx context.Context, rels *mxsclient.Relationships) error {
@@ -168,7 +168,7 @@ func (m *maxScaleAPI) patchMonitor(ctx context.Context, rels *mxsclient.Relation
 	if err != nil {
 		return fmt.Errorf("error getting monitor attributes: %v", err)
 	}
-	return m.client.Monitor.Patch(ctx, m.mxs.Spec.Monitor.Name, *attrs, mxsclient.WithRelationships(rels))
+	return m.client.Monitor.Patch(ctx, m.mxs.Spec.Monitor.Name, attrs, mxsclient.WithRelationships(rels))
 }
 
 func (m *maxScaleAPI) updateMonitorState(ctx context.Context) error {
@@ -209,7 +209,7 @@ func (m *maxScaleAPI) createService(ctx context.Context, svc *mariadbv1alpha1.Ma
 	if err != nil {
 		return fmt.Errorf("error getting service attributes: %v", err)
 	}
-	return m.client.Service.Create(ctx, svc.Name, *attrs, mxsclient.WithRelationships(rels))
+	return m.client.Service.Create(ctx, svc.Name, attrs, mxsclient.WithRelationships(rels))
 }
 
 func (m *maxScaleAPI) deleteService(ctx context.Context, name string) error {
@@ -221,7 +221,7 @@ func (m *maxScaleAPI) patchService(ctx context.Context, svc *mariadbv1alpha1.Max
 	if err != nil {
 		return fmt.Errorf("error getting service attributes: %v", err)
 	}
-	return m.client.Service.Patch(ctx, svc.Name, *attrs, mxsclient.WithRelationships(rels))
+	return m.client.Service.Patch(ctx, svc.Name, attrs, mxsclient.WithRelationships(rels))
 }
 
 func (m *maxScaleAPI) updateServiceState(ctx context.Context, svc *mariadbv1alpha1.MaxScaleService) error {
@@ -273,7 +273,7 @@ func (m *maxScaleAPI) updateListenerState(ctx context.Context, listener *mariadb
 	return m.client.Listener.Start(ctx, listener.Name)
 }
 
-func (m *maxScaleAPI) listenerAttributes(listener *mariadbv1alpha1.MaxScaleListener) mxsclient.ListenerAttributes {
+func (m *maxScaleAPI) listenerAttributes(listener *mariadbv1alpha1.MaxScaleListener) *mxsclient.ListenerAttributes {
 	attrs := mxsclient.ListenerAttributes{
 		Parameters: mxsclient.ListenerParameters{
 			Port:     listener.Port,
@@ -290,7 +290,7 @@ func (m *maxScaleAPI) listenerAttributes(listener *mariadbv1alpha1.MaxScaleListe
 		attrs.Parameters.SSLVerifyPeerCertificate = m.mxs.ShouldVerifyPeerCertificate()
 		attrs.Parameters.SSLVerifyPeerHost = m.mxs.ShouldVerifyPeerHost()
 	}
-	return attrs
+	return &attrs
 }
 
 // MaxScale API - MaxScale
@@ -329,7 +329,7 @@ func (m *maxScaleAPI) patchMaxScaleConfigSync(ctx context.Context) error {
 		},
 	}
 
-	return m.client.MaxScale.Patch(ctx, attrs)
+	return m.client.MaxScale.Patch(ctx, &attrs)
 }
 
 // MaxScale client
