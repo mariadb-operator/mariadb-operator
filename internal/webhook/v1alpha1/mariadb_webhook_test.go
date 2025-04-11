@@ -657,6 +657,9 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 				Spec: v1alpha1.MariaDBSpec{
 					Image:           "mariadb:11.3.3",
 					ImagePullPolicy: corev1.PullIfNotPresent,
+					PodTemplate: v1alpha1.PodTemplate{
+						PriorityClassName: ptr.To("PriorityClassName"),
+					},
 					ContainerTemplate: v1alpha1.ContainerTemplate{
 						Resources: &v1alpha1.ResourceRequirements{
 							Requests: corev1.ResourceList{
@@ -884,6 +887,13 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 							Name: "server-cert",
 						},
 					}
+				},
+				false,
+			),
+			Entry(
+				"Updating PriorityClassName",
+				func(mdb *v1alpha1.MariaDB) {
+					mdb.Spec.PriorityClassName = ptr.To("new-PriorityClassName")
 				},
 				false,
 			),
