@@ -80,6 +80,9 @@ var (
 	webhookPort    int
 	webhookCertDir string
 
+	pprofEnabled bool
+	pprofAddr    string
+
 	featureMaxScaleSuspend bool
 )
 
@@ -123,6 +126,9 @@ func init() {
 	rootCmd.Flags().StringVar(&webhookCertDir, "webhook-cert-dir", "/tmp/k8s-webhook-server/serving-certs",
 		"Directory containing the TLS certificate for the webhook server. 'tls.crt' and 'tls.key' must be present in this directory."+
 			"This only applies if the webhook server is enabled.")
+
+	rootCmd.Flags().BoolVar(&pprofEnabled, "pprof", false, "Enable the pprof server.")
+	rootCmd.Flags().StringVar(&pprofAddr, "pprof-addr", ":6060", "The address the pprof endpoint binds to.")
 
 	rootCmd.Flags().BoolVar(&featureMaxScaleSuspend, "feature-maxscale-suspend", false, "Feature flag to enable MaxScale resource suspension.")
 }
@@ -174,6 +180,11 @@ var rootCmd = &cobra.Command{
 				Port:    webhookPort,
 			})
 		}
+		if pprofEnabled {
+			setupLog.Info("Enabling pprof")
+			mgrOpts.PprofBindAddress = pprofAddr
+		}
+
 		if env.WatchNamespace != "" {
 			namespaces, err := env.WatchNamespaces()
 			if err != nil {

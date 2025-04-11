@@ -23,6 +23,8 @@ TEST ?= $(ENV) $(GINKGO) $(TEST_ARGS) --timeout 30m
 
 GOCOVERDIR ?= .
 
+PPROF_ADDR ?= ":6060"
+
 ##@ Test
 
 .PHONY: test
@@ -69,6 +71,7 @@ release: goreleaser ## Test release locally.
 ##@ Run
 
 RUN_FLAGS ?= --log-dev --log-level=info --log-time-encoder=iso8601
+# RUN_FLAGS ?= --log-dev --log-level=info --log-time-encoder=iso8601 --pprof --pprof-addr=$(PPROF_ADDR)
 
 .PHONY: run
 run: lint ## Run a controller from your host.
@@ -130,3 +133,17 @@ AGENT_FLAGS ?= $(RUN_FLAGS) $(AGENT_AUTH_FLAGS) --config-dir=mariadb/config --st
 .PHONY: agent
 agent: local-dir ## Run agent from your host.
 	$(POD_ENV) $(GO) run cmd/controller/*.go agent $(AGENT_FLAGS)
+
+##@ Profile
+
+PPROF_SAMPLE ?= heap
+PPROF_FILE ?= pprof.out
+PPROF_HTTP_ADDR ?= ":6061"
+
+.PHONY: pprof-sample
+pprof-sample: ## Get pprof sample.
+	curl -s http://localhost$(PPROF_ADDR)/debug/pprof/$(PPROF_SAMPLE) > $(PPROF_FILE)
+
+.PHONY: pprof
+pprof: pprof-sample ## Start pprof HTTP server.
+	$(GO) tool pprof -http=$(PPROF_HTTP_ADDR) $(PPROF_FILE)
