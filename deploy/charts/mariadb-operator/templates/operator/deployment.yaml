@@ -62,7 +62,7 @@ spec:
             {{- end }}
             {{- if .Values.pprof.enabled }}
             - --pprof
-            - --pprof-addr={{ printf ":%d" .Values.pprof.port }}
+            - --pprof-addr=:{{ .Values.pprof.port | int }}
             {{- end }}
             {{- range .Values.extraArgs }}
             - {{ . }}
