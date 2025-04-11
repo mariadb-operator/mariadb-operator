@@ -115,6 +115,11 @@ pdb:
   enabled: false
   # -- Maximum number of unavailable Pods. You may also give a percentage, like `50%`
   maxUnavailable: 1
+pprof:
+  # -- Enable the pprof HTTP server.
+  enabled: false
+  # -- The port where the pprof HTTP server listens.
+  port: 6060
 webhook:
   # -- Specifies whether the webhook should be created.
   enabled: true
