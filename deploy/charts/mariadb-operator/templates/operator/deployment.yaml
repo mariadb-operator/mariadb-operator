@@ -60,6 +60,10 @@ spec:
             {{- if .Values.ha.enabled }}
             - --leader-elect
             {{- end }}
+            {{- if .Values.pprof.enabled }}
+            - --pprof
+            - --pprof-addr={{ printf ":%d" .Values.pprof.port }}
+            {{- end }}
             {{- range .Values.extraArgs }}
             - {{ . }}
             {{- end }}
@@ -67,6 +71,11 @@ spec:
             - containerPort: 8080
               protocol: TCP
               name: metrics
+          {{- if .Values.pprof.enabled }}
+            - containerPort: {{ .Values.pprof.port }}
+              protocol: TCP
+              name: pprof
+          {{- end }}
           envFrom:
             - configMapRef:
                 name: mariadb-operator-env

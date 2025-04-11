@@ -96,6 +96,8 @@ Refer to the [helm documentation](https://github.com/mariadb-operator/mariadb-op
 | pdb.maxUnavailable | int | `1` | Maximum number of unavailable Pods. You may also give a percentage, like `50%` |
 | podAnnotations | object | `{}` | Annotations to add to controller Pod |
 | podSecurityContext | object | `{}` | Security context to add to controller Pod |
+| pprof.enabled | bool | `false` | Enable the pprof HTTP server. |
+| pprof.port | int | `6060` | The port where the pprof HTTP server listens. |
 | priorityClassName | string | `""` | priorityClassName to add to controller Pod |
 | rbac.aggregation.enabled | bool | `true` | Specifies whether the cluster roles aggrate to view and edit predefinied roles |
 | rbac.enabled | bool | `true` | Specifies whether RBAC resources should be created |

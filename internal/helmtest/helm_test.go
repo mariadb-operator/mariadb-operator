@@ -386,3 +386,30 @@ func TestHelmConfigMap(t *testing.T) {
 	Expect(configMap.Data["RELATED_IMAGE_EXPORTER"]).To(Equal("exporter:1.0"))
 	Expect(configMap.Data["RELATED_IMAGE_EXPORTER_MAXSCALE"]).To(Equal("exporter-maxscale:1.0"))
 }
+
+func TestHelmPprof(t *testing.T) {
+	RegisterTestingT(t)
+	opts := &helm.Options{
+		SetValues: map[string]string{
+			"pprof.enabled": `true`,
+			"pprof.port":    `6060`,
+		},
+		KubectlOptions: &k8s.KubectlOptions{
+			Namespace: testNamespace,
+		},
+	}
+
+	deploymentData := helm.RenderTemplate(t, opts, helmChartPath, helmReleaseName, []string{"templates/operator/deployment.yaml"})
+	var deployment appsv1.Deployment
+	helm.UnmarshalK8SYaml(t, deploymentData, &deployment)
+
+	container := deployment.Spec.Template.Spec.Containers[0]
+	Expect(container.Name).To(Equal("controller"))
+	Expect(container.Args).To(ContainElement("--pprof"))
+	Expect(container.Args).To(ContainElement("--pprof-addr=:6060"))
+	Expect(container.Ports).To(ContainElement(corev1.ContainerPort{
+		Name:          "pprof",
+		Protocol:      "TCP",
+		ContainerPort: 6060,
+	}))
+}
