@@ -19,12 +19,12 @@ type UserAttributes struct {
 }
 
 type UserClient struct {
-	GenericClient[UserAttributes]
+	GenericClient[*UserAttributes]
 }
 
 func NewUserClient(client *mdbhttp.Client) *UserClient {
 	return &UserClient{
-		GenericClient: NewGenericClient[UserAttributes](
+		GenericClient: NewGenericClient[*UserAttributes](
 			client,
 			"users/inet",
 			ObjectTypeUsers,

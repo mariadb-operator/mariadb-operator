@@ -46,12 +46,12 @@ type ServiceAttributes struct {
 }
 
 type ServiceClient struct {
-	GenericClient[ServiceAttributes]
+	GenericClient[*ServiceAttributes]
 }
 
 func NewServiceClient(client *mdbhttp.Client) *ServiceClient {
 	return &ServiceClient{
-		GenericClient: NewGenericClient[ServiceAttributes](
+		GenericClient: NewGenericClient[*ServiceAttributes](
 			client,
 			"services",
 			ObjectTypeServices,
