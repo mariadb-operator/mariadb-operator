@@ -984,26 +984,26 @@ func (m *MaxScale) PodAPIUrl(podIndex int) string {
 
 // ServerIDs returns the servers indexed by ID.
 func (m *MaxScale) ServerIndex() ds.Index[MaxScaleServer] {
-	return ds.NewIndex[MaxScaleServer](m.Spec.Servers, func(mss MaxScaleServer) string {
+	return ds.NewIndex(m.Spec.Servers, func(mss MaxScaleServer) string {
 		return mss.Name
 	})
 }
 
 // ServerIDs returns the IDs of the servers.
 func (m *MaxScale) ServerIDs() []string {
-	return ds.Keys[MaxScaleServer](m.ServerIndex())
+	return ds.Keys(m.ServerIndex())
 }
 
 // ServiceIndex returns the services indexed by ID.
 func (m *MaxScale) ServiceIndex() ds.Index[MaxScaleService] {
-	return ds.NewIndex[MaxScaleService](m.Spec.Services, func(mss MaxScaleService) string {
+	return ds.NewIndex(m.Spec.Services, func(mss MaxScaleService) string {
 		return mss.Name
 	})
 }
 
 // ServiceIDs returns the IDs of the services.
 func (m *MaxScale) ServiceIDs() []string {
-	return ds.Keys[MaxScaleService](m.ServiceIndex())
+	return ds.Keys(m.ServiceIndex())
 }
 
 // ServiceForListener finds the service for a given listener
@@ -1027,14 +1027,14 @@ func (m *MaxScale) Listeners() []MaxScaleListener {
 
 // ListenerIndex returns the listeners indexed by ID.
 func (m *MaxScale) ListenerIndex() ds.Index[MaxScaleListener] {
-	return ds.NewIndex[MaxScaleListener](m.Listeners(), func(mss MaxScaleListener) string {
+	return ds.NewIndex(m.Listeners(), func(mss MaxScaleListener) string {
 		return mss.Name
 	})
 }
 
 // ListenerIDs returns the IDs of the listeners.
 func (m *MaxScale) ListenerIDs() []string {
-	return ds.Keys[MaxScaleListener](m.ListenerIndex())
+	return ds.Keys(m.ListenerIndex())
 }
 
 // DefaultPort returns the default port.
