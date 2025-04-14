@@ -17,6 +17,7 @@ import (
 	mxsclient "github.com/mariadb-operator/mariadb-operator/pkg/maxscale/client"
 	"github.com/mariadb-operator/mariadb-operator/pkg/pki"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
+	stsobj "github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -355,6 +356,20 @@ func (r *MaxScaleReconciler) defaultClientWithPodIndex(ctx context.Context, mxs 
 
 func (r *MaxScaleReconciler) client(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) (*mxsclient.Client, error) {
 	return r.clientWithAPIUrl(ctx, mxs, mxs.APIUrl())
+}
+
+func (r *MaxScaleReconciler) clientSetByPod(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) (map[string]*mxsclient.Client, error) {
+	clientSet := make(map[string]*mxsclient.Client, mxs.Spec.Replicas)
+	for i := 0; i < int(mxs.Spec.Replicas); i++ {
+		pod := stsobj.PodName(mxs.ObjectMeta, i)
+
+		client, err := r.clientWithAPIUrl(ctx, mxs, mxs.PodAPIUrl(i))
+		if err != nil {
+			return nil, fmt.Errorf("error getting client for Pod '%s': %w", pod, err)
+		}
+		clientSet[pod] = client
+	}
+	return clientSet, nil
 }
 
 func (r *MaxScaleReconciler) clientWitHealthyPod(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) (*mxsclient.Client, error) {
