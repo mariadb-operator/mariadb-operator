@@ -77,8 +77,9 @@ type MaxScaleReconciler struct {
 }
 
 type requestMaxScale struct {
-	mxs       *mariadbv1alpha1.MaxScale
-	podClient *mxsclient.Client
+	mxs          *mariadbv1alpha1.MaxScale
+	podClient    *mxsclient.Client
+	podClientSet map[string]*mxsclient.Client
 }
 
 type reconcileFnMaxScale func(context.Context, *requestMaxScale) (ctrl.Result, error)
@@ -110,13 +111,8 @@ func (r *MaxScaleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	if err := r.Get(ctx, req.NamespacedName, &mxs); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
-	podClient, err := r.clientWitHealthyPod(ctx, &mxs)
-	if err != nil {
-		log.FromContext(ctx).V(1).Info("unable to get healthy Pod client", "err", err)
-	}
 	request := &requestMaxScale{
-		mxs:       &mxs,
-		podClient: podClient,
+		mxs: &mxs,
 	}
 
 	phases := []reconcilePhaseMaxScale{
@@ -167,6 +163,10 @@ func (r *MaxScaleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		{
 			name:      "StatefulSet Ready",
 			reconcile: r.ensureStatefulSetReady,
+		},
+		{
+			name:      "Client",
+			reconcile: r.setupClients,
 		},
 		{
 			name:      "Admin",
@@ -897,7 +897,7 @@ func monitorGrantOpts(key types.NamespacedName, mxs *mariadbv1alpha1.MaxScale) [
 }
 
 func (r *MaxScaleReconciler) reconcileAdmin(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
-	result, err := r.forEachPod(ctx, req.mxs, func(podIndex int, podName string, client *mxsclient.Client) (ctrl.Result, error) {
+	result, err := r.forEachPod(req, func(podIndex int, podName string, client *mxsclient.Client) (ctrl.Result, error) {
 		if err := r.reconcileAdminInPod(ctx, req.mxs, podIndex, podName, client); err != nil {
 			return ctrl.Result{}, fmt.Errorf("error reconciling API admin in Pod '%s': %v", podName, err)
 		}
@@ -947,7 +947,7 @@ func (r *MaxScaleReconciler) reconcileMetricsAdmin(ctx context.Context, req *req
 		return ctrl.Result{}, nil
 	}
 
-	result, err := r.forEachPod(ctx, req.mxs, func(podIndex int, podName string, client *mxsclient.Client) (ctrl.Result, error) {
+	result, err := r.forEachPod(req, func(podIndex int, podName string, client *mxsclient.Client) (ctrl.Result, error) {
 		if err := r.reconcileMetricsAdminInPod(ctx, req.mxs, client); err != nil {
 			return ctrl.Result{}, fmt.Errorf("error reconciling metrics admin in Pod '%s': %v", podName, err)
 		}
@@ -1002,7 +1002,7 @@ func (r *MaxScaleReconciler) patchUser(ctx context.Context, mxs *mariadbv1alpha1
 }
 
 func (r *MaxScaleReconciler) reconcileInit(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
-	return r.forEachPod(ctx, req.mxs, func(podIndex int, podName string, client *mxsclient.Client) (ctrl.Result, error) {
+	return r.forEachPod(req, func(podIndex int, podName string, client *mxsclient.Client) (ctrl.Result, error) {
 		result, err := r.reconcileInitInPod(ctx, req.mxs, podName, client)
 		if err != nil {
 			return ctrl.Result{}, fmt.Errorf("error initializing Pod '%s': %v", podName, err)
@@ -1069,7 +1069,7 @@ func (r *MaxScaleReconciler) reconcileSync(ctx context.Context, req *requestMaxS
 	if !req.mxs.IsHAEnabled() {
 		return ctrl.Result{}, nil
 	}
-	return r.forEachPod(ctx, req.mxs, func(podIndex int, podName string, client *mxsclient.Client) (ctrl.Result, error) {
+	return r.forEachPod(req, func(podIndex int, podName string, client *mxsclient.Client) (ctrl.Result, error) {
 		isSynced, err := r.reconcileSyncInPod(ctx, req.mxs, podName, client)
 		if err != nil {
 			return ctrl.Result{}, fmt.Errorf("error reconciling config sync in Pod '%s': %v", podName, err)
@@ -1251,7 +1251,7 @@ func (r *MaxScaleReconciler) reconcileMonitorState(ctx context.Context, req *req
 		return ctrl.Result{}, nil
 	}
 	// MaxScale config sync does not handle object state, we need to update all Pods.
-	return r.forEachPod(ctx, req.mxs, func(podIndex int, podName string, client *mxsclient.Client) (ctrl.Result, error) {
+	return r.forEachPod(req, func(podIndex int, podName string, client *mxsclient.Client) (ctrl.Result, error) {
 		mxsApi := newMaxScaleAPI(req.mxs, client, r.RefResolver)
 
 		if err := mxsApi.updateMonitorState(ctx); err != nil {
@@ -1353,7 +1353,7 @@ func (r *MaxScaleReconciler) reconcileServiceState(ctx context.Context, req *req
 		return ctrl.Result{}, nil
 	}
 	// MaxScale config sync does not handle object state, we need to update all Pods.
-	return r.forEachPod(ctx, req.mxs, func(podIndex int, podName string, client *mxsclient.Client) (ctrl.Result, error) {
+	return r.forEachPod(req, func(podIndex int, podName string, client *mxsclient.Client) (ctrl.Result, error) {
 		mxsApi := newMaxScaleAPI(req.mxs, client, r.RefResolver)
 
 		for _, svc := range req.mxs.Spec.Services {
@@ -1438,7 +1438,7 @@ func (r *MaxScaleReconciler) reconcileListenerState(ctx context.Context, req *re
 		return ctrl.Result{}, nil
 	}
 	// MaxScale config sync does not handle object state, we need to update all Pods.
-	return r.forEachPod(ctx, req.mxs, func(podIndex int, podName string, client *mxsclient.Client) (ctrl.Result, error) {
+	return r.forEachPod(req, func(podIndex int, podName string, client *mxsclient.Client) (ctrl.Result, error) {
 		mxsApi := newMaxScaleAPI(req.mxs, client, r.RefResolver)
 
 		for _, listener := range req.mxs.Listeners() {
@@ -1474,16 +1474,35 @@ func (r *MaxScaleReconciler) reconcileConnection(ctx context.Context, req *reque
 	return ctrl.Result{}, r.Create(ctx, conn)
 }
 
-func (r *MaxScaleReconciler) forEachPod(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,
+func (r *MaxScaleReconciler) setupClients(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
+	podClient, err := r.clientWitHealthyPod(ctx, req.mxs)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("unable to get healthy Pod client: %v", err)
+	}
+	req.podClient = podClient
+
+	podClientSet, err := r.clientSetByPod(ctx, req.mxs)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error getting Pod client set: %v", err)
+	}
+	req.podClientSet = podClientSet
+
+	return ctrl.Result{}, nil
+}
+
+func (r *MaxScaleReconciler) forEachPod(req *requestMaxScale,
 	fn func(podIndex int, podName string, client *mxsclient.Client) (ctrl.Result, error)) (ctrl.Result, error) {
+	if req.podClientSet == nil {
+		return ctrl.Result{}, errors.New("podClientSet must be set in request")
+	}
 
-	for i := 0; i < int(mxs.Spec.Replicas); i++ {
-		pod := stsobj.PodName(mxs.ObjectMeta, i)
-		client, err := r.clientWithPodIndex(ctx, mxs, i)
-		if err != nil {
-			return ctrl.Result{}, fmt.Errorf("error getting MaxScale client for Pod '%s': %v", pod, err)
+	for i := 0; i < int(req.mxs.Spec.Replicas); i++ {
+		pod := stsobj.PodName(req.mxs.ObjectMeta, i)
+
+		client, ok := req.podClientSet[pod]
+		if !ok {
+			return ctrl.Result{}, fmt.Errorf("MaxScale client for Pod '%s' not found", pod)
 		}
-
 		if result, err := fn(i, pod, client); !result.IsZero() || err != nil {
 			return result, err
 		}
