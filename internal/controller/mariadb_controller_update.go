@@ -2,7 +2,6 @@ package controller
 
 import (
 	"context"
-	"crypto/sha256"
 	"errors"
 	"fmt"
 	"sort"
@@ -15,6 +14,7 @@ import (
 	builderpki "github.com/mariadb-operator/mariadb-operator/pkg/builder/pki"
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	galeraconfig "github.com/mariadb-operator/mariadb-operator/pkg/galera/config"
+	"github.com/mariadb-operator/mariadb-operator/pkg/hash"
 	"github.com/mariadb-operator/mariadb-operator/pkg/health"
 	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
 	podpkg "github.com/mariadb-operator/mariadb-operator/pkg/pod"
@@ -108,7 +108,7 @@ func (r *MariaDBReconciler) getUpdateAnnotations(ctx context.Context, mariadb *m
 		if err != nil {
 			return nil, fmt.Errorf("error getting my.cnf from ConfigMap: %v", err)
 		}
-		podAnnotations[metadata.ConfigAnnotation] = hash(config)
+		podAnnotations[metadata.ConfigAnnotation] = hash.Hash(config)
 	}
 
 	if mariadb.IsGaleraEnabled() {
@@ -131,7 +131,7 @@ func (r *MariaDBReconciler) getUpdateAnnotations(ctx context.Context, mariadb *m
 		if err != nil {
 			return nil, fmt.Errorf("error rendering Galera config file: %v", err)
 		}
-		podAnnotations[metadata.ConfigGaleraAnnotation] = hash(string(config))
+		podAnnotations[metadata.ConfigGaleraAnnotation] = hash.Hash(string(config))
 	}
 
 	if mariadb.IsTLSEnabled() {
@@ -153,7 +153,7 @@ func (r *MariaDBReconciler) getExporterUpdateAnnotations(ctx context.Context, md
 		return nil, fmt.Errorf("error getting metrics config Secret: %v", err)
 	}
 	podAnnotations := map[string]string{
-		metadata.ConfigAnnotation: hash(config),
+		metadata.ConfigAnnotation: hash.Hash(config),
 	}
 
 	if mdb.IsTLSEnabled() {
@@ -350,8 +350,4 @@ func shouldTriggerSwitchover(mariadb *mariadbv1alpha1.MariaDB) bool {
 	}
 	primaryRepl := ptr.Deref(mariadb.Replication().Primary, mariadbv1alpha1.PrimaryReplication{})
 	return mariadb.Replication().Enabled && *primaryRepl.AutomaticFailover && mariadb.IsReplicationConfigured()
-}
-
-func hash(config string) string {
-	return fmt.Sprintf("%x", sha256.Sum256([]byte(config)))
 }
