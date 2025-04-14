@@ -862,7 +862,7 @@ func (m *MaxScale) SetDefaults(env *environment.OperatorEnv, mariadb *MariaDB) {
 		m.Spec.Image = env.RelatedMaxscaleImage
 	}
 	if m.Spec.RequeueInterval == nil {
-		m.Spec.RequeueInterval = &metav1.Duration{Duration: 10 * time.Second}
+		m.Spec.RequeueInterval = &metav1.Duration{Duration: 30 * time.Second}
 	}
 	for i := range m.Spec.Servers {
 		m.Spec.Servers[i].SetDefaults()

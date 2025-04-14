@@ -78,7 +78,7 @@ var _ = Describe("MaxScale types", func() {
 								Protocol: "MariaDBBackend",
 							},
 						},
-						RequeueInterval: &metav1.Duration{Duration: 10 * time.Second},
+						RequeueInterval: &metav1.Duration{Duration: 30 * time.Second},
 						Services: []MaxScaleService{
 							{
 								Name:   "rw-router",
@@ -210,7 +210,7 @@ var _ = Describe("MaxScale types", func() {
 								Protocol: "MariaDBBackend",
 							},
 						},
-						RequeueInterval: &metav1.Duration{Duration: 10 * time.Second},
+						RequeueInterval: &metav1.Duration{Duration: 30 * time.Second},
 						Services: []MaxScaleService{
 							{
 								Name:   "rw-router",
@@ -392,7 +392,7 @@ var _ = Describe("MaxScale types", func() {
 						},
 						Image:           env.RelatedMaxscaleImage,
 						Replicas:        3,
-						RequeueInterval: &metav1.Duration{Duration: 10 * time.Second},
+						RequeueInterval: &metav1.Duration{Duration: 30 * time.Second},
 						Services: []MaxScaleService{
 							{
 								Name:   "rw-router",
