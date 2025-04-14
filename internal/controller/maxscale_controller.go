@@ -186,11 +186,11 @@ func (r *MaxScaleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		},
 		{
 			name:      "Servers",
-			reconcile: r.reconcileServers,
+			reconcile: r.reconcileChangedServers,
 		},
 		{
 			name:      "Monitor",
-			reconcile: r.reconcileMonitor,
+			reconcile: r.reconcileChangedMonitor,
 		},
 		{
 			name:      "Monitor State",
@@ -198,7 +198,7 @@ func (r *MaxScaleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		},
 		{
 			name:      "Services and Listeners",
-			reconcile: r.reconcileServicesAndListeners,
+			reconcile: r.reconcileChangedServicesAndListeners,
 		},
 		{
 			name:      "Service State",
@@ -1026,9 +1026,17 @@ func (r *MaxScaleReconciler) reconcileInitInPod(ctx context.Context, mxs *mariad
 		mxs:       mxs,
 		podClient: client,
 	}
+	logger := log.FromContext(ctx)
+	reconcileServers := func(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
+		return r.reconcileServers(ctx, req, logger)
+	}
+	reconcileMonitor := func(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
+		return r.reconcileMonitor(ctx, req, logger)
+	}
+
 	reconcileFns := []reconcileFnMaxScale{
-		r.reconcileServers,
-		r.reconcileMonitor,
+		reconcileServers,
+		reconcileMonitor,
 	}
 	for _, reconcileFn := range reconcileFns {
 		if result, err := reconcileFn(ctx, req); !result.IsZero() || err != nil {
@@ -1100,7 +1108,7 @@ func (r *MaxScaleReconciler) ensurePrimaryServer(ctx context.Context, req *reque
 	return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 }
 
-func (r *MaxScaleReconciler) reconcileServers(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
+func (r *MaxScaleReconciler) reconcileChangedServers(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
 	serversHash, err := hash.HashJSON(req.mxs.Spec.Servers)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error hashing spec.Servers: %v", err)
@@ -1111,6 +1119,17 @@ func (r *MaxScaleReconciler) reconcileServers(ctx context.Context, req *requestM
 		return ctrl.Result{}, nil
 	}
 
+	if result, err := r.reconcileServers(ctx, req, logger); !result.IsZero() || err != nil {
+		return result, err
+	}
+
+	return ctrl.Result{}, r.patchStatus(ctx, req.mxs, func(mss *mariadbv1alpha1.MaxScaleStatus) error {
+		mss.ServersSpec = serversHash
+		return nil
+	})
+}
+
+func (r *MaxScaleReconciler) reconcileServers(ctx context.Context, req *requestMaxScale, logger logr.Logger) (ctrl.Result, error) {
 	if req.podClient == nil {
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
@@ -1171,14 +1190,10 @@ func (r *MaxScaleReconciler) reconcileServers(ctx context.Context, req *requestM
 			return ctrl.Result{}, fmt.Errorf("error updating server state: %v", err)
 		}
 	}
-
-	return ctrl.Result{}, r.patchStatus(ctx, req.mxs, func(mss *mariadbv1alpha1.MaxScaleStatus) error {
-		mss.ServersSpec = serversHash
-		return nil
-	})
+	return ctrl.Result{}, err
 }
 
-func (r *MaxScaleReconciler) reconcileMonitor(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
+func (r *MaxScaleReconciler) reconcileChangedMonitor(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
 	monitorHash, err := hash.HashJSON(req.mxs.Spec.Monitor)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error hashing spec.Monitor: %v", err)
@@ -1189,13 +1204,24 @@ func (r *MaxScaleReconciler) reconcileMonitor(ctx context.Context, req *requestM
 		return ctrl.Result{}, nil
 	}
 
+	if result, err := r.reconcileMonitor(ctx, req, logger); !result.IsZero() || err != nil {
+		return result, err
+	}
+
+	return ctrl.Result{}, r.patchStatus(ctx, req.mxs, func(mss *mariadbv1alpha1.MaxScaleStatus) error {
+		mss.MonitorSpec = monitorHash
+		return nil
+	})
+}
+
+func (r *MaxScaleReconciler) reconcileMonitor(ctx context.Context, req *requestMaxScale, logger logr.Logger) (ctrl.Result, error) {
 	if req.podClient == nil {
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
 	logger.Info("Reconciling monitor")
 	mxsApi := newMaxScaleAPI(req.mxs, req.podClient, r.RefResolver)
 
-	_, err = req.podClient.Monitor.Get(ctx, req.mxs.Spec.Monitor.Name)
+	_, err := req.podClient.Monitor.Get(ctx, req.mxs.Spec.Monitor.Name)
 	if err != nil {
 		if !mxsclient.IsNotFound(err) {
 			return ctrl.Result{}, fmt.Errorf("error getting monitor: %v", err)
@@ -1217,11 +1243,7 @@ func (r *MaxScaleReconciler) reconcileMonitor(ctx context.Context, req *requestM
 			return ctrl.Result{}, fmt.Errorf("error patching monitor: %v", err)
 		}
 	}
-
-	return ctrl.Result{}, r.patchStatus(ctx, req.mxs, func(mss *mariadbv1alpha1.MaxScaleStatus) error {
-		mss.MonitorSpec = monitorHash
-		return nil
-	})
+	return ctrl.Result{}, nil
 }
 
 func (r *MaxScaleReconciler) reconcileMonitorState(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
@@ -1239,7 +1261,7 @@ func (r *MaxScaleReconciler) reconcileMonitorState(ctx context.Context, req *req
 	})
 }
 
-func (r *MaxScaleReconciler) reconcileServicesAndListeners(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
+func (r *MaxScaleReconciler) reconcileChangedServicesAndListeners(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
 	servicesHash, err := hash.HashJSON(req.mxs.Spec.Services)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error hashing spec.Services: %v", err)
