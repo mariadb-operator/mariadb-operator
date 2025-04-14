@@ -2383,6 +2383,10 @@ spec:
                 - name
                 - state
                 type: object
+              monitorSpec:
+                description: MonitorSpec is a hashed version of spec.monitor to be
+                  able to track changes during reconciliation.
+                type: string
               primaryServer:
                 description: PrimaryServer is the primary server in the MaxScale API.
                 type: string
@@ -2405,6 +2409,10 @@ spec:
                   - state
                   type: object
                 type: array
+              serversSpec:
+                description: ServersSpec is a hashed version of spec.servers to be
+                  able to track changes during reconciliation.
+                type: string
               services:
                 description: Services is the state of the services in the MaxScale
                   API.
@@ -2421,6 +2429,10 @@ spec:
                   - state
                   type: object
                 type: array
+              servicesSpec:
+                description: ServicesSpec is a hashed version of spec.services to
+                  be able to track changes during reconciliation.
+                type: string
               tls:
                 description: TLS aggregates the status of the certificates used by
                   the MaxScale instance.

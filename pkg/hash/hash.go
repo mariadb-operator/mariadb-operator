@@ -7,8 +7,8 @@ import (
 )
 
 // Hash computes a hash from the given input string.
-func Hash(config string) string {
-	return fmt.Sprintf("%x", sha256.Sum256([]byte(config)))
+func Hash(v string) string {
+	return fmt.Sprintf("%x", sha256.Sum256([]byte(v)))
 }
 
 // HashJSON computes the hash from a JSON object.
