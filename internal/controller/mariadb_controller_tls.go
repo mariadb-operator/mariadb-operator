@@ -13,6 +13,7 @@ import (
 	certctrl "github.com/mariadb-operator/mariadb-operator/pkg/controller/certificate"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/configmap"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
+	"github.com/mariadb-operator/mariadb-operator/pkg/hash"
 	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
 	"github.com/mariadb-operator/mariadb-operator/pkg/pki"
 	"github.com/mariadb-operator/mariadb-operator/pkg/pod"
@@ -216,14 +217,14 @@ func (r *MariaDBReconciler) getTLSAnnotations(ctx context.Context, mariadb *mari
 	if err != nil {
 		return nil, fmt.Errorf("error getting server cert: %v", err)
 	}
-	annotations[metadata.TLSServerCertAnnotation] = hash(serverCert)
+	annotations[metadata.TLSServerCertAnnotation] = hash.Hash(serverCert)
 
 	configMapKeyRef := mariadb.TLSConfigMapKeyRef()
 	config, err := r.RefResolver.ConfigMapKeyRef(ctx, &configMapKeyRef, mariadb.Namespace)
 	if err != nil {
 		return nil, fmt.Errorf("error getting TLS config: %v", err)
 	}
-	annotations[metadata.ConfigTLSAnnotation] = hash(config)
+	annotations[metadata.ConfigTLSAnnotation] = hash.Hash(config)
 
 	return annotations, nil
 }
@@ -238,7 +239,7 @@ func (r *MariaDBReconciler) getTLSClientAnnotations(ctx context.Context, mariadb
 	if err != nil {
 		return nil, fmt.Errorf("error getting CA bundle: %v", err)
 	}
-	annotations[metadata.TLSCAAnnotation] = hash(ca)
+	annotations[metadata.TLSCAAnnotation] = hash.Hash(ca)
 
 	clientCertKeySelector := mariadbv1alpha1.SecretKeySelector{
 		LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
@@ -250,7 +251,7 @@ func (r *MariaDBReconciler) getTLSClientAnnotations(ctx context.Context, mariadb
 	if err != nil {
 		return nil, fmt.Errorf("error getting client cert: %v", err)
 	}
-	annotations[metadata.TLSClientCertAnnotation] = hash(clientCert)
+	annotations[metadata.TLSClientCertAnnotation] = hash.Hash(clientCert)
 
 	return annotations, nil
 }
@@ -340,7 +341,7 @@ func (h *certHandler) ShouldRenewCert(ctx context.Context, caKeyPair *pki.KeyPai
 		return false, fmt.Sprintf("Missing CA with serial number '%s' in CA bundle", serialNo.String()), nil
 	}
 
-	allPodsTrustingCA, err := h.ensureAllPodsTrustingCABundle(ctx, h.mdb, hash(caBundleBytes))
+	allPodsTrustingCA, err := h.ensureAllPodsTrustingCABundle(ctx, h.mdb, hash.Hash(caBundleBytes))
 	if err != nil {
 		return false, "", fmt.Errorf("error checking pod CAs: %v", err)
 	}

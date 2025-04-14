@@ -8,6 +8,7 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	certctrl "github.com/mariadb-operator/mariadb-operator/pkg/controller/certificate"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
+	"github.com/mariadb-operator/mariadb-operator/pkg/hash"
 	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
 	"github.com/mariadb-operator/mariadb-operator/pkg/pki"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -173,7 +174,7 @@ func (r *MaxScaleReconciler) getTLSAnnotations(ctx context.Context, mxs *mariadb
 		if err != nil {
 			return nil, fmt.Errorf("error getting Secret \"%s\": %v", secretKeySelector.Name, err)
 		}
-		annotations[annotation] = hash(cert)
+		annotations[annotation] = hash.Hash(cert)
 	}
 
 	return annotations, nil
@@ -189,7 +190,7 @@ func (r *MaxScaleReconciler) getTLSAdminAnnotations(ctx context.Context, mxs *ma
 	if err != nil {
 		return nil, fmt.Errorf("error getting CA bundle: %v", err)
 	}
-	annotations[metadata.TLSCAAnnotation] = hash(ca)
+	annotations[metadata.TLSCAAnnotation] = hash.Hash(ca)
 
 	adminCertKeySelector := mariadbv1alpha1.SecretKeySelector{
 		LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
@@ -201,7 +202,7 @@ func (r *MaxScaleReconciler) getTLSAdminAnnotations(ctx context.Context, mxs *ma
 	if err != nil {
 		return nil, fmt.Errorf("error getting admin cert: %v", err)
 	}
-	annotations[metadata.TLSAdminCertAnnotation] = hash(adminCert)
+	annotations[metadata.TLSAdminCertAnnotation] = hash.Hash(adminCert)
 
 	return annotations, nil
 }

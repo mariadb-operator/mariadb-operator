@@ -12,6 +12,7 @@ import (
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	builderpki "github.com/mariadb-operator/mariadb-operator/pkg/builder/pki"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
+	"github.com/mariadb-operator/mariadb-operator/pkg/hash"
 	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -122,7 +123,7 @@ func (r *MaxScaleReconciler) getExporterPodAnnotations(ctx context.Context, mxs 
 		return nil, fmt.Errorf("error getting metrics config Secret: %v", err)
 	}
 	podAnnotations := map[string]string{
-		metadata.ConfigAnnotation: hash(config),
+		metadata.ConfigAnnotation: hash.Hash(config),
 	}
 
 	if mxs.IsTLSEnabled() {
