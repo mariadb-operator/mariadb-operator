@@ -7,6 +7,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/go-logr/logr"
 	"github.com/hashicorp/go-multierror"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
@@ -23,6 +24,7 @@ import (
 	ds "github.com/mariadb-operator/mariadb-operator/pkg/datastructures"
 	"github.com/mariadb-operator/mariadb-operator/pkg/discovery"
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
+	"github.com/mariadb-operator/mariadb-operator/pkg/hash"
 	mxsclient "github.com/mariadb-operator/mariadb-operator/pkg/maxscale/client"
 	mxsconfig "github.com/mariadb-operator/mariadb-operator/pkg/maxscale/config"
 	"github.com/mariadb-operator/mariadb-operator/pkg/pod"
@@ -195,16 +197,12 @@ func (r *MaxScaleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			reconcile: r.reconcileMonitorState,
 		},
 		{
-			name:      "Services",
-			reconcile: r.reconcileServices,
+			name:      "Services and Listeners",
+			reconcile: r.reconcileServicesAndListeners,
 		},
 		{
 			name:      "Service State",
 			reconcile: r.reconcileServiceState,
-		},
-		{
-			name:      "Listeners",
-			reconcile: r.reconcileListeners,
 		},
 		{
 			name:      "Listener State",
@@ -1103,9 +1101,21 @@ func (r *MaxScaleReconciler) ensurePrimaryServer(ctx context.Context, req *reque
 }
 
 func (r *MaxScaleReconciler) reconcileServers(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
+	serversHash, err := hash.HashJSON(req.mxs.Spec.Servers)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error hashing spec.Servers: %v", err)
+	}
+	logger := log.FromContext(ctx)
+	if serversHash == req.mxs.Status.ServersSpec {
+		logger.V(1).Info("Servers spec did not change. Skipping reconciliation...")
+		return ctrl.Result{}, nil
+	}
+
 	if req.podClient == nil {
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
+	logger.Info("Reconciling servers")
+
 	currentIdx := req.mxs.ServerIndex()
 	previousIdx, err := req.podClient.Server.ListIndex(ctx)
 	if err != nil {
@@ -1161,16 +1171,31 @@ func (r *MaxScaleReconciler) reconcileServers(ctx context.Context, req *requestM
 			return ctrl.Result{}, fmt.Errorf("error updating server state: %v", err)
 		}
 	}
-	return ctrl.Result{}, nil
+
+	return ctrl.Result{}, r.patchStatus(ctx, req.mxs, func(mss *mariadbv1alpha1.MaxScaleStatus) error {
+		mss.ServersSpec = serversHash
+		return nil
+	})
 }
 
 func (r *MaxScaleReconciler) reconcileMonitor(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
+	monitorHash, err := hash.HashJSON(req.mxs.Spec.Monitor)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error hashing spec.Monitor: %v", err)
+	}
+	logger := log.FromContext(ctx)
+	if monitorHash == req.mxs.Status.MonitorSpec {
+		logger.V(1).Info("Monitor spec did not change. Skipping reconciliation...")
+		return ctrl.Result{}, nil
+	}
+
 	if req.podClient == nil {
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
+	logger.Info("Reconciling monitor")
 	mxsApi := newMaxScaleAPI(req.mxs, req.podClient, r.RefResolver)
 
-	_, err := req.podClient.Monitor.Get(ctx, req.mxs.Spec.Monitor.Name)
+	_, err = req.podClient.Monitor.Get(ctx, req.mxs.Spec.Monitor.Name)
 	if err != nil {
 		if !mxsclient.IsNotFound(err) {
 			return ctrl.Result{}, fmt.Errorf("error getting monitor: %v", err)
@@ -1193,7 +1218,10 @@ func (r *MaxScaleReconciler) reconcileMonitor(ctx context.Context, req *requestM
 		}
 	}
 
-	return ctrl.Result{}, nil
+	return ctrl.Result{}, r.patchStatus(ctx, req.mxs, func(mss *mariadbv1alpha1.MaxScaleStatus) error {
+		mss.MonitorSpec = monitorHash
+		return nil
+	})
 }
 
 func (r *MaxScaleReconciler) reconcileMonitorState(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
@@ -1211,10 +1239,36 @@ func (r *MaxScaleReconciler) reconcileMonitorState(ctx context.Context, req *req
 	})
 }
 
-func (r *MaxScaleReconciler) reconcileServices(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
+func (r *MaxScaleReconciler) reconcileServicesAndListeners(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
+	servicesHash, err := hash.HashJSON(req.mxs.Spec.Services)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error hashing spec.Services: %v", err)
+	}
+	logger := log.FromContext(ctx)
+	if servicesHash == req.mxs.Status.ServicesSpec {
+		logger.V(1).Info("Services spec did not change. Skipping reconciliation...")
+		return ctrl.Result{}, nil
+	}
+
+	if result, err := r.reconcileServices(ctx, req, logger); !result.IsZero() || err != nil {
+		return result, err
+	}
+	if result, err := r.reconcileListeners(ctx, req, logger); !result.IsZero() || err != nil {
+		return result, err
+	}
+
+	return ctrl.Result{}, r.patchStatus(ctx, req.mxs, func(mss *mariadbv1alpha1.MaxScaleStatus) error {
+		mss.ServicesSpec = servicesHash
+		return nil
+	})
+}
+
+func (r *MaxScaleReconciler) reconcileServices(ctx context.Context, req *requestMaxScale, logger logr.Logger) (ctrl.Result, error) {
 	if req.podClient == nil {
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
+	logger.Info("Reconciling services")
+
 	currentIdx := req.mxs.ServiceIndex()
 	previousIdx, err := req.podClient.Service.ListIndex(ctx)
 	if err != nil {
@@ -1289,10 +1343,12 @@ func (r *MaxScaleReconciler) reconcileServiceState(ctx context.Context, req *req
 	})
 }
 
-func (r *MaxScaleReconciler) reconcileListeners(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
+func (r *MaxScaleReconciler) reconcileListeners(ctx context.Context, req *requestMaxScale, logger logr.Logger) (ctrl.Result, error) {
 	if req.podClient == nil {
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
+	logger.Info("Reconciling listeners")
+
 	currentIdx := req.mxs.ListenerIndex()
 	previousIdx, err := req.podClient.Listener.ListIndex(ctx)
 	if err != nil {

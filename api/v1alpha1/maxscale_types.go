@@ -805,6 +805,18 @@ type MaxScaleStatus struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	TLS *MaxScaleTLSStatus `json:"tls,omitempty"`
+	// MonitorSpec is a hashed version of spec.monitor to be able to track changes during reconciliation.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	MonitorSpec string `json:"monitorSpec,omitempty"`
+	// ServersSpec is a hashed version of spec.servers to be able to track changes during reconciliation.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	ServersSpec string `json:"serversSpec,omitempty"`
+	// ServicesSpec is a hashed version of spec.services to be able to track changes during reconciliation.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	ServicesSpec string `json:"servicesSpec,omitempty"`
 }
 
 // SetCondition sets a status condition to MaxScale
