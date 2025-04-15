@@ -79,7 +79,6 @@ The Openshift installation is managed separately in the [mariadb-operator-helm](
 
 ## MaxScale compatibility
 - MaxScale >= 23.08 
-- MaxScale >= 24.02
 
 ## Kubernetes compatibility
 - Kubernetes >= 1.26
