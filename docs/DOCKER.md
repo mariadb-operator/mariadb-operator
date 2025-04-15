@@ -33,7 +33,7 @@
     </tr>
     <tr>
       <td>MariaDB Operator</td>
-	    <td><code>docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:0.38.0</code></td>
+	    <td><code>docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:0.38.1</code></td>
       <td><code>amd64</code> <code>arm64</code></td>
     </tr>
   </tbody>
