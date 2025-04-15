@@ -83,7 +83,7 @@ The Openshift installation is managed separately in the [mariadb-operator-helm](
 
 ## Kubernetes compatibility
 - Kubernetes >= 1.26
-- OpenShift >= 1.13
+- OpenShift >= 4.15
 
 ## Migrate your MariaDB instance to Kubernetes
 
