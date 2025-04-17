@@ -34,7 +34,7 @@ var (
 				Command: []string{
 					"bash",
 					"-c",
-					"mariadb -u root -p\"${MARIADB_ROOT_PASSWORD}\" -e \"SELECT 1;\"",
+					"mariadb-admin -u root -p\"${MARIADB_ROOT_PASSWORD}\" ping",
 				},
 			},
 		},
