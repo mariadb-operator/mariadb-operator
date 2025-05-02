@@ -112,6 +112,9 @@ var _ = BeforeSuite(func() {
 	err = SetupBackupWebhookWithManager(mgr)
 	Expect(err).NotTo(HaveOccurred())
 
+	err = SetupPhysicalBackupWebhookWithManager(mgr)
+	Expect(err).NotTo(HaveOccurred())
+
 	err = SetupRestoreWebhookWithManager(mgr)
 	Expect(err).NotTo(HaveOccurred())
 
