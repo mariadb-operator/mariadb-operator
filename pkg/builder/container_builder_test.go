@@ -33,7 +33,7 @@ func TestMariadbStartupProbe(t *testing.T) {
 						Command: []string{
 							"bash",
 							"-c",
-							"mariadb-admin -u root -p\"${MARIADB_ROOT_PASSWORD}\" ping",
+							"mariadb -u root -p\"${MARIADB_ROOT_PASSWORD}\" -e \"SELECT 1;\"",
 						},
 					},
 				},
@@ -61,7 +61,7 @@ func TestMariadbStartupProbe(t *testing.T) {
 						Command: []string{
 							"bash",
 							"-c",
-							"mariadb-admin -u root -p\"${MARIADB_ROOT_PASSWORD}\" ping",
+							"mariadb -u root -p\"${MARIADB_ROOT_PASSWORD}\" -e \"SELECT 1;\"",
 						},
 					},
 				},
@@ -82,7 +82,7 @@ func TestMariadbStartupProbe(t *testing.T) {
 									Command: []string{
 										"bash",
 										"-c",
-										"mariadb-admin -u root -p\"${MARIADB_ROOT_PASSWORD}\" ping",
+										"mysqladmin ping -u root -p\"${MARIADB_ROOT_PASSWORD}\" -e \"SELECT 1;\"",
 									},
 								},
 							},
@@ -99,7 +99,7 @@ func TestMariadbStartupProbe(t *testing.T) {
 						Command: []string{
 							"bash",
 							"-c",
-							"mariadb-admin -u root -p\"${MARIADB_ROOT_PASSWORD}\" ping",
+							"mysqladmin ping -u root -p\"${MARIADB_ROOT_PASSWORD}\" -e \"SELECT 1;\"",
 						},
 					},
 				},
@@ -126,7 +126,7 @@ func TestMariadbStartupProbe(t *testing.T) {
 						Command: []string{
 							"bash",
 							"-c",
-							"mariadb-admin -u root -p\"${MARIADB_ROOT_PASSWORD}\" ping",
+							"mariadb -u root -p\"${MARIADB_ROOT_PASSWORD}\" -e \"SELECT 1;\"",
 						},
 					},
 				},
@@ -368,7 +368,7 @@ func TestMariadbLivenessProbe(t *testing.T) {
 						Command: []string{
 							"bash",
 							"-c",
-							"mariadb-admin -u root -p\"${MARIADB_ROOT_PASSWORD}\" ping",
+							"mariadb -u root -p\"${MARIADB_ROOT_PASSWORD}\" -e \"SELECT 1;\"",
 						},
 					},
 				},
@@ -396,7 +396,7 @@ func TestMariadbLivenessProbe(t *testing.T) {
 						Command: []string{
 							"bash",
 							"-c",
-							"mariadb-admin -u root -p\"${MARIADB_ROOT_PASSWORD}\" ping",
+							"mariadb -u root -p\"${MARIADB_ROOT_PASSWORD}\" -e \"SELECT 1;\"",
 						},
 					},
 				},
@@ -416,7 +416,7 @@ func TestMariadbLivenessProbe(t *testing.T) {
 									Command: []string{
 										"bash",
 										"-c",
-										"mariadb-admin -u root -p\"${MARIADB_ROOT_PASSWORD}\" ping",
+										"mysqladmin ping -u root -p\"${MARIADB_ROOT_PASSWORD}\" -e \"SELECT 1;\"",
 									},
 								},
 							},
@@ -433,7 +433,7 @@ func TestMariadbLivenessProbe(t *testing.T) {
 						Command: []string{
 							"bash",
 							"-c",
-							"mariadb-admin -u root -p\"${MARIADB_ROOT_PASSWORD}\" ping",
+							"mysqladmin ping -u root -p\"${MARIADB_ROOT_PASSWORD}\" -e \"SELECT 1;\"",
 						},
 					},
 				},
@@ -460,7 +460,7 @@ func TestMariadbLivenessProbe(t *testing.T) {
 						Command: []string{
 							"bash",
 							"-c",
-							"mariadb-admin -u root -p\"${MARIADB_ROOT_PASSWORD}\" ping",
+							"mariadb -u root -p\"${MARIADB_ROOT_PASSWORD}\" -e \"SELECT 1;\"",
 						},
 					},
 				},
@@ -698,7 +698,7 @@ func TestMariadbReadinessProbe(t *testing.T) {
 						Command: []string{
 							"bash",
 							"-c",
-							"mariadb-admin -u root -p\"${MARIADB_ROOT_PASSWORD}\" ping",
+							"mariadb -u root -p\"${MARIADB_ROOT_PASSWORD}\" -e \"SELECT 1;\"",
 						},
 					},
 				},
@@ -726,7 +726,7 @@ func TestMariadbReadinessProbe(t *testing.T) {
 						Command: []string{
 							"bash",
 							"-c",
-							"mariadb-admin -u root -p\"${MARIADB_ROOT_PASSWORD}\" ping",
+							"mariadb -u root -p\"${MARIADB_ROOT_PASSWORD}\" -e \"SELECT 1;\"",
 						},
 					},
 				},
@@ -746,7 +746,7 @@ func TestMariadbReadinessProbe(t *testing.T) {
 									Command: []string{
 										"bash",
 										"-c",
-										"mariadb-admin -u root -p\"${MARIADB_ROOT_PASSWORD}\" ping",
+										"mysqladmin ping -u root -p\"${MARIADB_ROOT_PASSWORD}\" -e \"SELECT 1;\"",
 									},
 								},
 							},
@@ -763,7 +763,7 @@ func TestMariadbReadinessProbe(t *testing.T) {
 						Command: []string{
 							"bash",
 							"-c",
-							"mariadb-admin -u root -p\"${MARIADB_ROOT_PASSWORD}\" ping",
+							"mysqladmin ping -u root -p\"${MARIADB_ROOT_PASSWORD}\" -e \"SELECT 1;\"",
 						},
 					},
 				},
@@ -790,7 +790,7 @@ func TestMariadbReadinessProbe(t *testing.T) {
 						Command: []string{
 							"bash",
 							"-c",
-							"mariadb-admin -u root -p\"${MARIADB_ROOT_PASSWORD}\" ping",
+							"mariadb -u root -p\"${MARIADB_ROOT_PASSWORD}\" -e \"SELECT 1;\"",
 						},
 					},
 				},
