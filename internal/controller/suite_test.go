@@ -257,6 +257,12 @@ var _ = BeforeSuite(func() {
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
+	err = (&PhysicalBackupReconciler{
+		Client: client,
+		Scheme: scheme,
+	}).SetupWithManager(k8sManager)
+	Expect(err).ToNot(HaveOccurred())
+
 	err = (&RestoreReconciler{
 		Client:            client,
 		Scheme:            scheme,

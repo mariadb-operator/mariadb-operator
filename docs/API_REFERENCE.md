@@ -19,6 +19,7 @@ nolint:lll
 - [Grant](#grant)
 - [MariaDB](#mariadb)
 - [MaxScale](#maxscale)
+- [PhysicalBackup](#physicalbackup)
 - [Restore](#restore)
 - [SqlJob](#sqljob)
 - [User](#user)
@@ -1791,6 +1792,40 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `claimName` _string_ |  |  |  |
 | `readOnly` _boolean_ |  |  |  |
+
+
+#### PhysicalBackup
+
+
+
+PhysicalBackup is the Schema for the physicalbackups API.
+
+
+
+
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `apiVersion` _string_ | `k8s.mariadb.com/v1alpha1` | | |
+| `kind` _string_ | `PhysicalBackup` | | |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.32/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `spec` _[PhysicalBackupSpec](#physicalbackupspec)_ |  |  |  |
+
+
+#### PhysicalBackupSpec
+
+
+
+PhysicalBackupSpec defines the desired state of PhysicalBackup.
+
+
+
+_Appears in:_
+- [PhysicalBackup](#physicalbackup)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `foo` _string_ | Foo is an example field of PhysicalBackup. Edit physicalbackup_types.go to remove/update |  |  |
 
 
 #### PodAffinityTerm

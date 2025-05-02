@@ -368,6 +368,13 @@ var rootCmd = &cobra.Command{
 			setupLog.Error(err, "Unable to create controller", "controller", "Backup")
 			os.Exit(1)
 		}
+		if err = (&controller.PhysicalBackupReconciler{
+			Client: client,
+			Scheme: scheme,
+		}).SetupWithManager(mgr); err != nil {
+			setupLog.Error(err, "Unable to create controller", "controller", "PhysicalBackup")
+			os.Exit(1)
+		}
 		if err = (&controller.RestoreReconciler{
 			Client:            client,
 			Scheme:            scheme,
