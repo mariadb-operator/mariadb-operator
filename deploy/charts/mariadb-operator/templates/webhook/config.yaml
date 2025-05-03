@@ -81,7 +81,7 @@ webhooks:
         namespace: {{ .Release.Namespace }}
         path: /validate-k8s-mariadb-com-v1alpha1-physicalbackup
     failurePolicy: Fail
-    name: vbackup-v1alpha1.kb.io
+    name: vphysicalbackup-v1alpha1.kb.io
     rules:
       - apiGroups:
           - k8s.mariadb.com
