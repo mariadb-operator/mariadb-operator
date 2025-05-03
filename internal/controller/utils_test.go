@@ -469,11 +469,18 @@ func testMaxscale(mdb *mariadbv1alpha1.MariaDB, mxs *mariadbv1alpha1.MaxScale) {
 	}
 
 	By("Expecting Connection to be ready eventually")
-	Eventually(func() bool {
+	Eventually(func(g Gomega) bool {
 		var conn mariadbv1alpha1.Connection
 		if err := k8sClient.Get(testCtx, mxs.ConnectionKey(), &conn); err != nil {
 			return false
 		}
+
+		g.Expect(conn.Spec.Host).To(Equal(stsobj.ServiceFQDN(mxs.ObjectMeta)))
+		port, err := mxs.DefaultPort()
+		g.Expect(port).ToNot(BeNil())
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(conn.Spec.Port).To(Equal(*port))
+
 		return conn.IsReady()
 	}, testHighTimeout, testInterval).Should(BeTrue())
 
