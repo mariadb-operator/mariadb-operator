@@ -142,6 +142,7 @@ rules:
   - grants
   - mariadbs
   - maxscales
+  - physicalbackups
   - restores
   - sqljobs
   - users
@@ -162,6 +163,7 @@ rules:
   - grants/finalizers
   - mariadbs/finalizers
   - maxscales/finalizers
+  - physicalbackups/finalizers
   - restores/finalizers
   - sqljobs/finalizers
   - users/finalizers
@@ -176,6 +178,7 @@ rules:
   - grants/status
   - mariadbs/status
   - maxscales/status
+  - physicalbackups/status
   - restores/status
   - sqljobs/status
   - users/status
