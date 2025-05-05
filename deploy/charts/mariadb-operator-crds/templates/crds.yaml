@@ -10397,10 +10397,24 @@ spec:
     singular: physicalbackup
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .status.conditions[?(@.type=="Complete")].status
+      name: Complete
+      type: string
+    - jsonPath: .status.conditions[?(@.type=="Complete")].message
+      name: Status
+      type: string
+    - jsonPath: .spec.mariaDbRef.name
+      name: MariaDB
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: PhysicalBackup is the Schema for the physicalbackups API.
+        description: PhysicalBackup is the Schema for the physicalbackups API. It
+          is used to define physical backup jobs and its storage.
         properties:
           apiVersion:
             description: |-
@@ -10422,13 +10436,1023 @@ spec:
           spec:
             description: PhysicalBackupSpec defines the desired state of PhysicalBackup.
             properties:
-              foo:
-                description: Foo is an example field of PhysicalBackup. Edit physicalbackup_types.go
-                  to remove/update
+              affinity:
+                description: Affinity to be used in the Pod.
+                properties:
+                  antiAffinityEnabled:
+                    description: |-
+                      AntiAffinityEnabled configures PodAntiAffinity so each Pod is scheduled in a different Node, enabling HA.
+                      Make sure you have at least as many Nodes available as the replicas to not end up with unscheduled Pods.
+                    type: boolean
+                  nodeAffinity:
+                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#nodeaffinity-v1-core'
+                    properties:
+                      preferredDuringSchedulingIgnoredDuringExecution:
+                        items:
+                          description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#preferredschedulingterm-v1-core'
+                          properties:
+                            preference:
+                              description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#nodeselectorterm-v1-core'
+                              properties:
+                                matchExpressions:
+                                  items:
+                                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#nodeselectorrequirement-v1-core'
+                                    properties:
+                                      key:
+                                        type: string
+                                      operator:
+                                        description: |-
+                                          A node selector operator is the set of operators that can be used in
+                                          a node selector requirement.
+                                        type: string
+                                      values:
+                                        items:
+                                          type: string
+                                        type: array
+                                        x-kubernetes-list-type: atomic
+                                    required:
+                                    - key
+                                    - operator
+                                    type: object
+                                  type: array
+                                  x-kubernetes-list-type: atomic
+                                matchFields:
+                                  items:
+                                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#nodeselectorrequirement-v1-core'
+                                    properties:
+                                      key:
+                                        type: string
+                                      operator:
+                                        description: |-
+                                          A node selector operator is the set of operators that can be used in
+                                          a node selector requirement.
+                                        type: string
+                                      values:
+                                        items:
+                                          type: string
+                                        type: array
+                                        x-kubernetes-list-type: atomic
+                                    required:
+                                    - key
+                                    - operator
+                                    type: object
+                                  type: array
+                                  x-kubernetes-list-type: atomic
+                              type: object
+                            weight:
+                              format: int32
+                              type: integer
+                          required:
+                          - preference
+                          - weight
+                          type: object
+                        type: array
+                        x-kubernetes-list-type: atomic
+                      requiredDuringSchedulingIgnoredDuringExecution:
+                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#nodeselector-v1-core'
+                        properties:
+                          nodeSelectorTerms:
+                            items:
+                              description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#nodeselectorterm-v1-core'
+                              properties:
+                                matchExpressions:
+                                  items:
+                                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#nodeselectorrequirement-v1-core'
+                                    properties:
+                                      key:
+                                        type: string
+                                      operator:
+                                        description: |-
+                                          A node selector operator is the set of operators that can be used in
+                                          a node selector requirement.
+                                        type: string
+                                      values:
+                                        items:
+                                          type: string
+                                        type: array
+                                        x-kubernetes-list-type: atomic
+                                    required:
+                                    - key
+                                    - operator
+                                    type: object
+                                  type: array
+                                  x-kubernetes-list-type: atomic
+                                matchFields:
+                                  items:
+                                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#nodeselectorrequirement-v1-core'
+                                    properties:
+                                      key:
+                                        type: string
+                                      operator:
+                                        description: |-
+                                          A node selector operator is the set of operators that can be used in
+                                          a node selector requirement.
+                                        type: string
+                                      values:
+                                        items:
+                                          type: string
+                                        type: array
+                                        x-kubernetes-list-type: atomic
+                                    required:
+                                    - key
+                                    - operator
+                                    type: object
+                                  type: array
+                                  x-kubernetes-list-type: atomic
+                              type: object
+                            type: array
+                            x-kubernetes-list-type: atomic
+                        required:
+                        - nodeSelectorTerms
+                        type: object
+                    type: object
+                  podAntiAffinity:
+                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#podantiaffinity-v1-core.'
+                    properties:
+                      preferredDuringSchedulingIgnoredDuringExecution:
+                        items:
+                          description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#weightedpodaffinityterm-v1-core.'
+                          properties:
+                            podAffinityTerm:
+                              description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#podaffinityterm-v1-core.'
+                              properties:
+                                labelSelector:
+                                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#labelselector-v1-meta'
+                                  properties:
+                                    matchExpressions:
+                                      items:
+                                        description: 'Refer to the Kubernetes docs:
+                                          https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#labelselectorrequirement-v1-meta'
+                                        properties:
+                                          key:
+                                            type: string
+                                          operator:
+                                            description: A label selector operator
+                                              is the set of operators that can be
+                                              used in a selector requirement.
+                                            type: string
+                                          values:
+                                            items:
+                                              type: string
+                                            type: array
+                                            x-kubernetes-list-type: atomic
+                                        required:
+                                        - key
+                                        - operator
+                                        type: object
+                                      type: array
+                                      x-kubernetes-list-type: atomic
+                                    matchLabels:
+                                      additionalProperties:
+                                        type: string
+                                      type: object
+                                  type: object
+                                topologyKey:
+                                  type: string
+                              required:
+                              - topologyKey
+                              type: object
+                            weight:
+                              format: int32
+                              type: integer
+                          required:
+                          - podAffinityTerm
+                          - weight
+                          type: object
+                        type: array
+                        x-kubernetes-list-type: atomic
+                      requiredDuringSchedulingIgnoredDuringExecution:
+                        items:
+                          description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#podaffinityterm-v1-core.'
+                          properties:
+                            labelSelector:
+                              description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#labelselector-v1-meta'
+                              properties:
+                                matchExpressions:
+                                  items:
+                                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#labelselectorrequirement-v1-meta'
+                                    properties:
+                                      key:
+                                        type: string
+                                      operator:
+                                        description: A label selector operator is
+                                          the set of operators that can be used in
+                                          a selector requirement.
+                                        type: string
+                                      values:
+                                        items:
+                                          type: string
+                                        type: array
+                                        x-kubernetes-list-type: atomic
+                                    required:
+                                    - key
+                                    - operator
+                                    type: object
+                                  type: array
+                                  x-kubernetes-list-type: atomic
+                                matchLabels:
+                                  additionalProperties:
+                                    type: string
+                                  type: object
+                              type: object
+                            topologyKey:
+                              type: string
+                          required:
+                          - topologyKey
+                          type: object
+                        type: array
+                        x-kubernetes-list-type: atomic
+                    type: object
+                type: object
+              args:
+                description: Args to be used in the Container.
+                items:
+                  type: string
+                type: array
+              backoffLimit:
+                description: BackoffLimit defines the maximum number of attempts to
+                  successfully take a PhysicalBackup.
+                format: int32
+                type: integer
+              compression:
+                description: Compression algorithm to be used in the Backup.
+                enum:
+                - none
+                - bzip2
+                - gzip
                 type: string
+              imagePullSecrets:
+                description: ImagePullSecrets is the list of pull Secrets to be used
+                  to pull the image.
+                items:
+                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#localobjectreference-v1-core.'
+                  properties:
+                    name:
+                      default: ""
+                      type: string
+                  type: object
+                type: array
+              inheritMetadata:
+                description: InheritMetadata defines the metadata to be inherited
+                  by children resources.
+                properties:
+                  annotations:
+                    additionalProperties:
+                      type: string
+                    description: Annotations to be added to children resources.
+                    type: object
+                  labels:
+                    additionalProperties:
+                      type: string
+                    description: Labels to be added to children resources.
+                    type: object
+                type: object
+              mariaDbRef:
+                description: MariaDBRef is a reference to a MariaDB object.
+                properties:
+                  name:
+                    type: string
+                  namespace:
+                    type: string
+                  waitForIt:
+                    default: true
+                    description: WaitForIt indicates whether the controller using
+                      this reference should wait for MariaDB to be ready.
+                    type: boolean
+                type: object
+              maxRetention:
+                description: |-
+                  MaxRetention defines the retention policy for backups. Old backups will be cleaned up by the Backup Job.
+                  It defaults to 30 days.
+                type: string
+              nodeSelector:
+                additionalProperties:
+                  type: string
+                description: NodeSelector to be used in the Pod.
+                type: object
+              podMetadata:
+                description: PodMetadata defines extra metadata for the Pod.
+                properties:
+                  annotations:
+                    additionalProperties:
+                      type: string
+                    description: Annotations to be added to children resources.
+                    type: object
+                  labels:
+                    additionalProperties:
+                      type: string
+                    description: Labels to be added to children resources.
+                    type: object
+                type: object
+              podSecurityContext:
+                description: SecurityContext holds pod-level security attributes and
+                  common container settings.
+                properties:
+                  appArmorProfile:
+                    description: AppArmorProfile defines a pod or container's AppArmor
+                      settings.
+                    properties:
+                      localhostProfile:
+                        description: |-
+                          localhostProfile indicates a profile loaded on the node that should be used.
+                          The profile must be preconfigured on the node to work.
+                          Must match the loaded name of the profile.
+                          Must be set if and only if type is "Localhost".
+                        type: string
+                      type:
+                        description: |-
+                          type indicates which kind of AppArmor profile will be applied.
+                          Valid options are:
+                            Localhost - a profile pre-loaded on the node.
+                            RuntimeDefault - the container runtime's default profile.
+                            Unconfined - no AppArmor enforcement.
+                        type: string
+                    required:
+                    - type
+                    type: object
+                  fsGroup:
+                    format: int64
+                    type: integer
+                  fsGroupChangePolicy:
+                    description: |-
+                      PodFSGroupChangePolicy holds policies that will be used for applying fsGroup to a volume
+                      when volume is mounted.
+                    type: string
+                  runAsGroup:
+                    format: int64
+                    type: integer
+                  runAsNonRoot:
+                    type: boolean
+                  runAsUser:
+                    format: int64
+                    type: integer
+                  seLinuxOptions:
+                    description: SELinuxOptions are the labels to be applied to the
+                      container
+                    properties:
+                      level:
+                        description: Level is SELinux level label that applies to
+                          the container.
+                        type: string
+                      role:
+                        description: Role is a SELinux role label that applies to
+                          the container.
+                        type: string
+                      type:
+                        description: Type is a SELinux type label that applies to
+                          the container.
+                        type: string
+                      user:
+                        description: User is a SELinux user label that applies to
+                          the container.
+                        type: string
+                    type: object
+                  seccompProfile:
+                    description: |-
+                      SeccompProfile defines a pod/container's seccomp profile settings.
+                      Only one profile source may be set.
+                    properties:
+                      localhostProfile:
+                        description: |-
+                          localhostProfile indicates a profile defined in a file on the node should be used.
+                          The profile must be preconfigured on the node to work.
+                          Must be a descending path, relative to the kubelet's configured seccomp profile location.
+                          Must be set if type is "Localhost". Must NOT be set for any other type.
+                        type: string
+                      type:
+                        description: |-
+                          type indicates which kind of seccomp profile will be applied.
+                          Valid options are:
+
+                          Localhost - a profile defined in a file on the node should be used.
+                          RuntimeDefault - the container runtime default profile should be used.
+                          Unconfined - no profile should be applied.
+                        type: string
+                    required:
+                    - type
+                    type: object
+                  supplementalGroups:
+                    items:
+                      format: int64
+                      type: integer
+                    type: array
+                    x-kubernetes-list-type: atomic
+                type: object
+              priorityClassName:
+                description: PriorityClassName to be used in the Pod.
+                type: string
+              resources:
+                description: Resouces describes the compute resource requirements.
+                properties:
+                  limits:
+                    additionalProperties:
+                      anyOf:
+                      - type: integer
+                      - type: string
+                      pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                      x-kubernetes-int-or-string: true
+                    description: ResourceList is a set of (resource name, quantity)
+                      pairs.
+                    type: object
+                  requests:
+                    additionalProperties:
+                      anyOf:
+                      - type: integer
+                      - type: string
+                      pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                      x-kubernetes-int-or-string: true
+                    description: ResourceList is a set of (resource name, quantity)
+                      pairs.
+                    type: object
+                type: object
+              restartPolicy:
+                default: OnFailure
+                description: RestartPolicy to be added to the PhysicalBackup Pod.
+                enum:
+                - Always
+                - OnFailure
+                - Never
+                type: string
+              schedule:
+                description: Schedule defines when the PhysicalBackup will be taken.
+                properties:
+                  cron:
+                    description: Cron is a cron expression that defines the schedule.
+                    type: string
+                  suspend:
+                    default: false
+                    description: Suspend defines whether the schedule is active or
+                      not.
+                    type: boolean
+                required:
+                - cron
+                type: object
+              securityContext:
+                description: SecurityContext holds security configuration that will
+                  be applied to a container.
+                properties:
+                  allowPrivilegeEscalation:
+                    type: boolean
+                  capabilities:
+                    description: Adds and removes POSIX capabilities from running
+                      containers.
+                    properties:
+                      add:
+                        description: Added capabilities
+                        items:
+                          description: Capability represent POSIX capabilities type
+                          type: string
+                        type: array
+                        x-kubernetes-list-type: atomic
+                      drop:
+                        description: Removed capabilities
+                        items:
+                          description: Capability represent POSIX capabilities type
+                          type: string
+                        type: array
+                        x-kubernetes-list-type: atomic
+                    type: object
+                  privileged:
+                    type: boolean
+                  readOnlyRootFilesystem:
+                    type: boolean
+                  runAsGroup:
+                    format: int64
+                    type: integer
+                  runAsNonRoot:
+                    type: boolean
+                  runAsUser:
+                    format: int64
+                    type: integer
+                type: object
+              serviceAccountName:
+                description: ServiceAccountName is the name of the ServiceAccount
+                  to be used by the Pods.
+                type: string
+              stagingStorage:
+                description: |-
+                  StagingStorage defines the temporary storage used to keep external backups (i.e. S3) while they are being processed.
+                  It defaults to an emptyDir volume, meaning that the backups will be temporarily stored in the node where the PhysicalBackup Job is scheduled.
+                  The staging area gets cleaned up after each backup is completed, consider this for sizing it appropriately.
+                properties:
+                  persistentVolumeClaim:
+                    description: PersistentVolumeClaim is a Kubernetes PVC specification.
+                    properties:
+                      accessModes:
+                        items:
+                          type: string
+                        type: array
+                        x-kubernetes-list-type: atomic
+                      resources:
+                        description: VolumeResourceRequirements describes the storage
+                          resource requirements for a volume.
+                        properties:
+                          limits:
+                            additionalProperties:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                            description: |-
+                              Limits describes the maximum amount of compute resources allowed.
+                              More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                            type: object
+                          requests:
+                            additionalProperties:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                            description: |-
+                              Requests describes the minimum amount of compute resources required.
+                              If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+                              otherwise to an implementation-defined value. Requests cannot exceed Limits.
+                              More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                            type: object
+                        type: object
+                      selector:
+                        description: |-
+                          A label selector is a label query over a set of resources. The result of matchLabels and
+                          matchExpressions are ANDed. An empty label selector matches all objects. A null
+                          label selector matches no objects.
+                        properties:
+                          matchExpressions:
+                            description: matchExpressions is a list of label selector
+                              requirements. The requirements are ANDed.
+                            items:
+                              description: |-
+                                A label selector requirement is a selector that contains values, a key, and an operator that
+                                relates the key and values.
+                              properties:
+                                key:
+                                  description: key is the label key that the selector
+                                    applies to.
+                                  type: string
+                                operator:
+                                  description: |-
+                                    operator represents a key's relationship to a set of values.
+                                    Valid operators are In, NotIn, Exists and DoesNotExist.
+                                  type: string
+                                values:
+                                  description: |-
+                                    values is an array of string values. If the operator is In or NotIn,
+                                    the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                    the values array must be empty. This array is replaced during a strategic
+                                    merge patch.
+                                  items:
+                                    type: string
+                                  type: array
+                                  x-kubernetes-list-type: atomic
+                              required:
+                              - key
+                              - operator
+                              type: object
+                            type: array
+                            x-kubernetes-list-type: atomic
+                          matchLabels:
+                            additionalProperties:
+                              type: string
+                            description: |-
+                              matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                              map is equivalent to an element of matchExpressions, whose key field is "key", the
+                              operator is "In", and the values array contains only "value". The requirements are ANDed.
+                            type: object
+                        type: object
+                        x-kubernetes-map-type: atomic
+                      storageClassName:
+                        type: string
+                    type: object
+                  volume:
+                    description: Volume is a Kubernetes volume specification.
+                    properties:
+                      csi:
+                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#csivolumesource-v1-core.'
+                        properties:
+                          driver:
+                            type: string
+                          fsType:
+                            type: string
+                          nodePublishSecretRef:
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#localobjectreference-v1-core.'
+                            properties:
+                              name:
+                                default: ""
+                                type: string
+                            type: object
+                          readOnly:
+                            type: boolean
+                          volumeAttributes:
+                            additionalProperties:
+                              type: string
+                            type: object
+                        required:
+                        - driver
+                        type: object
+                      emptyDir:
+                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#emptydirvolumesource-v1-core.'
+                        properties:
+                          medium:
+                            description: StorageMedium defines ways that storage can
+                              be allocated to a volume.
+                            type: string
+                          sizeLimit:
+                            anyOf:
+                            - type: integer
+                            - type: string
+                            pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                            x-kubernetes-int-or-string: true
+                        type: object
+                      hostPath:
+                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#hostpathvolumesource-v1-core'
+                        properties:
+                          path:
+                            type: string
+                          type:
+                            type: string
+                        required:
+                        - path
+                        type: object
+                      nfs:
+                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#nfsvolumesource-v1-core.'
+                        properties:
+                          path:
+                            type: string
+                          readOnly:
+                            type: boolean
+                          server:
+                            type: string
+                        required:
+                        - path
+                        - server
+                        type: object
+                      persistentVolumeClaim:
+                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#persistentvolumeclaimvolumesource-v1-core.'
+                        properties:
+                          claimName:
+                            type: string
+                          readOnly:
+                            type: boolean
+                        required:
+                        - claimName
+                        type: object
+                    type: object
+                type: object
+              storage:
+                description: Storage defines the final storage for backups.
+                properties:
+                  persistentVolumeClaim:
+                    description: PersistentVolumeClaim is a Kubernetes PVC specification.
+                    properties:
+                      accessModes:
+                        items:
+                          type: string
+                        type: array
+                        x-kubernetes-list-type: atomic
+                      resources:
+                        description: VolumeResourceRequirements describes the storage
+                          resource requirements for a volume.
+                        properties:
+                          limits:
+                            additionalProperties:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                            description: |-
+                              Limits describes the maximum amount of compute resources allowed.
+                              More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                            type: object
+                          requests:
+                            additionalProperties:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                            description: |-
+                              Requests describes the minimum amount of compute resources required.
+                              If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+                              otherwise to an implementation-defined value. Requests cannot exceed Limits.
+                              More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                            type: object
+                        type: object
+                      selector:
+                        description: |-
+                          A label selector is a label query over a set of resources. The result of matchLabels and
+                          matchExpressions are ANDed. An empty label selector matches all objects. A null
+                          label selector matches no objects.
+                        properties:
+                          matchExpressions:
+                            description: matchExpressions is a list of label selector
+                              requirements. The requirements are ANDed.
+                            items:
+                              description: |-
+                                A label selector requirement is a selector that contains values, a key, and an operator that
+                                relates the key and values.
+                              properties:
+                                key:
+                                  description: key is the label key that the selector
+                                    applies to.
+                                  type: string
+                                operator:
+                                  description: |-
+                                    operator represents a key's relationship to a set of values.
+                                    Valid operators are In, NotIn, Exists and DoesNotExist.
+                                  type: string
+                                values:
+                                  description: |-
+                                    values is an array of string values. If the operator is In or NotIn,
+                                    the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                    the values array must be empty. This array is replaced during a strategic
+                                    merge patch.
+                                  items:
+                                    type: string
+                                  type: array
+                                  x-kubernetes-list-type: atomic
+                              required:
+                              - key
+                              - operator
+                              type: object
+                            type: array
+                            x-kubernetes-list-type: atomic
+                          matchLabels:
+                            additionalProperties:
+                              type: string
+                            description: |-
+                              matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                              map is equivalent to an element of matchExpressions, whose key field is "key", the
+                              operator is "In", and the values array contains only "value". The requirements are ANDed.
+                            type: object
+                        type: object
+                        x-kubernetes-map-type: atomic
+                      storageClassName:
+                        type: string
+                    type: object
+                  s3:
+                    description: S3 defines the configuration to store backups in
+                      a S3 compatible storage.
+                    properties:
+                      accessKeyIdSecretKeyRef:
+                        description: AccessKeyIdSecretKeyRef is a reference to a Secret
+                          key containing the S3 access key id.
+                        properties:
+                          key:
+                            type: string
+                          name:
+                            default: ""
+                            type: string
+                        required:
+                        - key
+                        type: object
+                        x-kubernetes-map-type: atomic
+                      bucket:
+                        description: Bucket is the name Name of the bucket to store
+                          backups.
+                        type: string
+                      endpoint:
+                        description: Endpoint is the S3 API endpoint without scheme.
+                        type: string
+                      prefix:
+                        description: 'Prefix indicates a folder/subfolder in the bucket.
+                          For example: mariadb/ or mariadb/backups. A trailing slash
+                          ''/'' is added if not provided.'
+                        type: string
+                      region:
+                        description: Region is the S3 region name to use.
+                        type: string
+                      secretAccessKeySecretKeyRef:
+                        description: AccessKeyIdSecretKeyRef is a reference to a Secret
+                          key containing the S3 secret key.
+                        properties:
+                          key:
+                            type: string
+                          name:
+                            default: ""
+                            type: string
+                        required:
+                        - key
+                        type: object
+                        x-kubernetes-map-type: atomic
+                      sessionTokenSecretKeyRef:
+                        description: SessionTokenSecretKeyRef is a reference to a
+                          Secret key containing the S3 session token.
+                        properties:
+                          key:
+                            type: string
+                          name:
+                            default: ""
+                            type: string
+                        required:
+                        - key
+                        type: object
+                        x-kubernetes-map-type: atomic
+                      tls:
+                        description: TLS provides the configuration required to establish
+                          TLS connections with S3.
+                        properties:
+                          caSecretKeyRef:
+                            description: |-
+                              CASecretKeyRef is a reference to a Secret key containing a CA bundle in PEM format used to establish TLS connections with S3.
+                              By default, the system trust chain will be used, but you can use this field to add more CAs to the bundle.
+                            properties:
+                              key:
+                                type: string
+                              name:
+                                default: ""
+                                type: string
+                            required:
+                            - key
+                            type: object
+                            x-kubernetes-map-type: atomic
+                          enabled:
+                            description: Enabled is a flag to enable TLS.
+                            type: boolean
+                        type: object
+                    required:
+                    - bucket
+                    - endpoint
+                    type: object
+                  volume:
+                    description: Volume is a Kubernetes volume specification.
+                    properties:
+                      csi:
+                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#csivolumesource-v1-core.'
+                        properties:
+                          driver:
+                            type: string
+                          fsType:
+                            type: string
+                          nodePublishSecretRef:
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#localobjectreference-v1-core.'
+                            properties:
+                              name:
+                                default: ""
+                                type: string
+                            type: object
+                          readOnly:
+                            type: boolean
+                          volumeAttributes:
+                            additionalProperties:
+                              type: string
+                            type: object
+                        required:
+                        - driver
+                        type: object
+                      emptyDir:
+                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#emptydirvolumesource-v1-core.'
+                        properties:
+                          medium:
+                            description: StorageMedium defines ways that storage can
+                              be allocated to a volume.
+                            type: string
+                          sizeLimit:
+                            anyOf:
+                            - type: integer
+                            - type: string
+                            pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                            x-kubernetes-int-or-string: true
+                        type: object
+                      hostPath:
+                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#hostpathvolumesource-v1-core'
+                        properties:
+                          path:
+                            type: string
+                          type:
+                            type: string
+                        required:
+                        - path
+                        type: object
+                      nfs:
+                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#nfsvolumesource-v1-core.'
+                        properties:
+                          path:
+                            type: string
+                          readOnly:
+                            type: boolean
+                          server:
+                            type: string
+                        required:
+                        - path
+                        - server
+                        type: object
+                      persistentVolumeClaim:
+                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#persistentvolumeclaimvolumesource-v1-core.'
+                        properties:
+                          claimName:
+                            type: string
+                          readOnly:
+                            type: boolean
+                        required:
+                        - claimName
+                        type: object
+                    type: object
+                type: object
+              tolerations:
+                description: Tolerations to be used in the Pod.
+                items:
+                  description: |-
+                    The pod this Toleration is attached to tolerates any taint that matches
+                    the triple <key,value,effect> using the matching operator <operator>.
+                  properties:
+                    effect:
+                      description: |-
+                        Effect indicates the taint effect to match. Empty means match all taint effects.
+                        When specified, allowed values are NoSchedule, PreferNoSchedule and NoExecute.
+                      type: string
+                    key:
+                      description: |-
+                        Key is the taint key that the toleration applies to. Empty means match all taint keys.
+                        If the key is empty, operator must be Exists; this combination means to match all values and all keys.
+                      type: string
+                    operator:
+                      description: |-
+                        Operator represents a key's relationship to the value.
+                        Valid operators are Exists and Equal. Defaults to Equal.
+                        Exists is equivalent to wildcard for value, so that a pod can
+                        tolerate all taints of a particular category.
+                      type: string
+                    tolerationSeconds:
+                      description: |-
+                        TolerationSeconds represents the period of time the toleration (which must be
+                        of effect NoExecute, otherwise this field is ignored) tolerates the taint. By default,
+                        it is not set, which means tolerate the taint forever (do not evict). Zero and
+                        negative values will be treated as 0 (evict immediately) by the system.
+                      format: int64
+                      type: integer
+                    value:
+                      description: |-
+                        Value is the taint value the toleration matches to.
+                        If the operator is Exists, the value should be empty, otherwise just a regular string.
+                      type: string
+                  type: object
+                type: array
+            required:
+            - mariaDbRef
+            - storage
             type: object
           status:
             description: PhysicalBackupStatus defines the observed state of PhysicalBackup.
+            properties:
+              conditions:
+                description: Conditions for the PhysicalBackup object.
+                items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
             type: object
         type: object
     served: true

@@ -3,6 +3,7 @@ package v1alpha1
 import (
 	"errors"
 	"fmt"
+	"reflect"
 	"time"
 
 	cmmeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
@@ -601,6 +602,58 @@ func MergeMetadata(metas ...*Metadata) *Metadata {
 		}
 	}
 	return &meta
+}
+
+// CompressAlgorithm defines the compression algorithm for a Backup resource.
+type CompressAlgorithm string
+
+const (
+	// No compression
+	CompressNone CompressAlgorithm = "none"
+	// Bzip2 compression. Good compression ratio, but slower compression/decompression speed compared to gzip.
+	CompressBzip2 CompressAlgorithm = "bzip2"
+	// Gzip compression. Good compression/decompression speed, but worse compression ratio compared to bzip2.
+	CompressGzip CompressAlgorithm = "gzip"
+)
+
+func (c CompressAlgorithm) Validate() error {
+	switch c {
+	case CompressAlgorithm(""), CompressNone, CompressBzip2, CompressGzip:
+		return nil
+	default:
+		return fmt.Errorf("invalid compression: %v, supported agorithms: [%v|%v|%v]", c, CompressNone, CompressBzip2, CompressGzip)
+	}
+}
+
+// BackupStorage defines the final storage for backups.
+type BackupStorage struct {
+	// S3 defines the configuration to store backups in a S3 compatible storage.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	S3 *S3 `json:"s3,omitempty"`
+	// PersistentVolumeClaim is a Kubernetes PVC specification.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	PersistentVolumeClaim *PersistentVolumeClaimSpec `json:"persistentVolumeClaim,omitempty"`
+	// Volume is a Kubernetes volume specification.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Volume *StorageVolumeSource `json:"volume,omitempty"`
+}
+
+func (b *BackupStorage) Validate() error {
+	storageTypes := 0
+	fields := reflect.ValueOf(b).Elem()
+	for i := 0; i < fields.NumField(); i++ {
+		field := fields.Field(i)
+		if !field.IsNil() {
+			storageTypes++
+		}
+	}
+	if storageTypes != 1 {
+		return errors.New("exactly one storage type should be provided")
+	}
+	return nil
 }
 
 // BackupStagingStorage defines the temporary storage used to keep external backups (i.e. S3) while they are being processed.
