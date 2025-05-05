@@ -43,6 +43,12 @@ manifests-bundle-helm-min: manifests manifests-crds ## Generate minimal manifest
 .PHONY: manifests-bundle
 manifests-bundle: manifests-crds manifests-bundle-helm manifests-bundle-helm-min ## Generate manifests.
 
+##@ Generate - Clientset
+
+.PHONY: clientset
+clientset: ## Generate the versioned clientset
+	@CODEGEN_PKG=$(CLIENT_GEN) ./hack/update-codegen.sh
+
 ##@ Generate - Examples
 
 .PHONY: examples-operator
@@ -70,7 +76,7 @@ examples: examples-operator examples-mariadb examples-maxscale examples-exporter
 
 .PHONY: gen
 ifneq ($(findstring -dev,$(VERSION)),)
-gen: manifests code embed-entrypoint helm-crds 
+gen: manifests code embed-entrypoint helm-crds clientset
 else
-gen: manifests code embed-entrypoint helm-gen manifests-bundle docs examples
+gen: manifests code embed-entrypoint helm-gen clientset manifests-bundle docs examples
 endif
