@@ -120,6 +120,7 @@ func (u *UserStatus) SetCondition(condition metav1.Condition) {
 // +kubebuilder:printcolumn:name="MariaDB",type="string",JSONPath=".spec.mariaDbRef.name"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 // +operator-sdk:csv:customresourcedefinitions:resources={{User,v1alpha1}}
+// +genclient
 
 // User is the Schema for the users API.  It is used to define grants as if you were running a 'CREATE USER' statement.
 type User struct {

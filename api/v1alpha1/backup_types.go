@@ -157,6 +157,7 @@ func (b *BackupStatus) SetCondition(condition metav1.Condition) {
 // +kubebuilder:printcolumn:name="MariaDB",type="string",JSONPath=".spec.mariaDbRef.name"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 // +operator-sdk:csv:customresourcedefinitions:resources={{Backup,v1alpha1},{CronJob,v1},{Job,v1},{PersistentVolumeClaim,v1},{ServiceAccount,v1}}
+// +genclient
 
 // Backup is the Schema for the backups API. It is used to define backup jobs and its storage.
 type Backup struct {
