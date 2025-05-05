@@ -1,9 +1,10 @@
 package v1alpha1
 
 import (
+	v1alpha2 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"time"
 
-	"github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -23,7 +24,7 @@ var _ = Describe("MaxScale webhook", func() {
 		}
 		DescribeTable(
 			"Should validate",
-			func(mxs *v1alpha1.MaxScale, wantErr bool) {
+			func(mxs *v1alpha2.MaxScale, wantErr bool) {
 				_ = k8sClient.Delete(testCtx, mxs)
 				err := k8sClient.Create(testCtx, mxs)
 				if wantErr {
@@ -34,10 +35,10 @@ var _ = Describe("MaxScale webhook", func() {
 			},
 			Entry(
 				"Invalid server names",
-				&v1alpha1.MaxScale{
+				&v1alpha2.MaxScale{
 					ObjectMeta: meta,
-					Spec: v1alpha1.MaxScaleSpec{
-						Servers: []v1alpha1.MaxScaleServer{
+					Spec: v1alpha2.MaxScaleSpec{
+						Servers: []v1alpha2.MaxScaleServer{
 							{
 								Name:    "mariadb-0",
 								Address: "mariadb-repl-0.mariadb-repl-internal.default.svc.cluster.local",
@@ -47,17 +48,17 @@ var _ = Describe("MaxScale webhook", func() {
 								Address: "mariadb-repl-1.mariadb-repl-internal.default.svc.cluster.local",
 							},
 						},
-						Services: []v1alpha1.MaxScaleService{
+						Services: []v1alpha2.MaxScaleService{
 							{
 								Name:   "rw-router",
-								Router: v1alpha1.ServiceRouterReadWriteSplit,
-								Listener: v1alpha1.MaxScaleListener{
+								Router: v1alpha2.ServiceRouterReadWriteSplit,
+								Listener: v1alpha2.MaxScaleListener{
 									Port: 3306,
 								},
 							},
 						},
-						Monitor: v1alpha1.MaxScaleMonitor{
-							Module: v1alpha1.MonitorModuleMariadb,
+						Monitor: v1alpha2.MaxScaleMonitor{
+							Module: v1alpha2.MonitorModuleMariadb,
 						},
 					},
 				},
@@ -65,10 +66,10 @@ var _ = Describe("MaxScale webhook", func() {
 			),
 			Entry(
 				"Invalid server addresses",
-				&v1alpha1.MaxScale{
+				&v1alpha2.MaxScale{
 					ObjectMeta: meta,
-					Spec: v1alpha1.MaxScaleSpec{
-						Servers: []v1alpha1.MaxScaleServer{
+					Spec: v1alpha2.MaxScaleSpec{
+						Servers: []v1alpha2.MaxScaleServer{
 							{
 								Name:    "mariadb-0",
 								Address: "mariadb-repl-0.mariadb-repl-internal.default.svc.cluster.local",
@@ -78,17 +79,17 @@ var _ = Describe("MaxScale webhook", func() {
 								Address: "mariadb-repl-0.mariadb-repl-internal.default.svc.cluster.local",
 							},
 						},
-						Services: []v1alpha1.MaxScaleService{
+						Services: []v1alpha2.MaxScaleService{
 							{
 								Name:   "rw-router",
-								Router: v1alpha1.ServiceRouterReadWriteSplit,
-								Listener: v1alpha1.MaxScaleListener{
+								Router: v1alpha2.ServiceRouterReadWriteSplit,
+								Listener: v1alpha2.MaxScaleListener{
 									Port: 3306,
 								},
 							},
 						},
-						Monitor: v1alpha1.MaxScaleMonitor{
-							Module: v1alpha1.MonitorModuleMariadb,
+						Monitor: v1alpha2.MaxScaleMonitor{
+							Module: v1alpha2.MonitorModuleMariadb,
 						},
 					},
 				},
@@ -96,20 +97,20 @@ var _ = Describe("MaxScale webhook", func() {
 			),
 			Entry(
 				"No server sources",
-				&v1alpha1.MaxScale{
+				&v1alpha2.MaxScale{
 					ObjectMeta: meta,
-					Spec: v1alpha1.MaxScaleSpec{
-						Services: []v1alpha1.MaxScaleService{
+					Spec: v1alpha2.MaxScaleSpec{
+						Services: []v1alpha2.MaxScaleService{
 							{
 								Name:   "rw-router",
-								Router: v1alpha1.ServiceRouterReadWriteSplit,
-								Listener: v1alpha1.MaxScaleListener{
+								Router: v1alpha2.ServiceRouterReadWriteSplit,
+								Listener: v1alpha2.MaxScaleListener{
 									Port: 3306,
 								},
 							},
 						},
-						Monitor: v1alpha1.MaxScaleMonitor{
-							Module: v1alpha1.MonitorModuleMariadb,
+						Monitor: v1alpha2.MaxScaleMonitor{
+							Module: v1alpha2.MonitorModuleMariadb,
 						},
 					},
 				},
@@ -117,31 +118,31 @@ var _ = Describe("MaxScale webhook", func() {
 			),
 			Entry(
 				"Multiple server sources",
-				&v1alpha1.MaxScale{
+				&v1alpha2.MaxScale{
 					ObjectMeta: meta,
-					Spec: v1alpha1.MaxScaleSpec{
-						MariaDBRef: &v1alpha1.MariaDBRef{
+					Spec: v1alpha2.MaxScaleSpec{
+						MariaDBRef: &v1alpha2.MariaDBRef{
 							ObjectReference: v1alpha1.ObjectReference{
 								Name: "mariadb",
 							},
 						},
-						Servers: []v1alpha1.MaxScaleServer{
+						Servers: []v1alpha2.MaxScaleServer{
 							{
 								Name:    "mariadb-0",
 								Address: "mariadb-repl-0.mariadb-repl-internal.default.svc.cluster.local",
 							},
 						},
-						Services: []v1alpha1.MaxScaleService{
+						Services: []v1alpha2.MaxScaleService{
 							{
 								Name:   "rw-router",
-								Router: v1alpha1.ServiceRouterReadWriteSplit,
-								Listener: v1alpha1.MaxScaleListener{
+								Router: v1alpha2.ServiceRouterReadWriteSplit,
+								Listener: v1alpha2.MaxScaleListener{
 									Port: 3306,
 								},
 							},
 						},
-						Monitor: v1alpha1.MaxScaleMonitor{
-							Module: v1alpha1.MonitorModuleMariadb,
+						Monitor: v1alpha2.MaxScaleMonitor{
+							Module: v1alpha2.MonitorModuleMariadb,
 						},
 					},
 				},
@@ -149,20 +150,20 @@ var _ = Describe("MaxScale webhook", func() {
 			),
 			Entry(
 				"No monitor",
-				&v1alpha1.MaxScale{
+				&v1alpha2.MaxScale{
 					ObjectMeta: meta,
-					Spec: v1alpha1.MaxScaleSpec{
-						Servers: []v1alpha1.MaxScaleServer{
+					Spec: v1alpha2.MaxScaleSpec{
+						Servers: []v1alpha2.MaxScaleServer{
 							{
 								Name:    "mariadb-0",
 								Address: "mariadb-repl-0.mariadb-repl-internal.default.svc.cluster.local",
 							},
 						},
-						Services: []v1alpha1.MaxScaleService{
+						Services: []v1alpha2.MaxScaleService{
 							{
 								Name:   "rw-router",
-								Router: v1alpha1.ServiceRouterReadWriteSplit,
-								Listener: v1alpha1.MaxScaleListener{
+								Router: v1alpha2.ServiceRouterReadWriteSplit,
+								Listener: v1alpha2.MaxScaleListener{
 									Port: 3306,
 								},
 							},
@@ -173,15 +174,15 @@ var _ = Describe("MaxScale webhook", func() {
 			),
 			Entry(
 				"Invalid monitor",
-				&v1alpha1.MaxScale{
+				&v1alpha2.MaxScale{
 					ObjectMeta: meta,
-					Spec: v1alpha1.MaxScaleSpec{
+					Spec: v1alpha2.MaxScaleSpec{
 						MariaDBRef: &v1alpha1.MariaDBRef{
 							ObjectReference: v1alpha1.ObjectReference{
 								Name: "mariadb",
 							},
 						},
-						Monitor: v1alpha1.MaxScaleMonitor{
+						Monitor: v1alpha2.MaxScaleMonitor{
 							Module: "foo",
 						},
 					},
@@ -190,33 +191,33 @@ var _ = Describe("MaxScale webhook", func() {
 			),
 			Entry(
 				"Invalid service names",
-				&v1alpha1.MaxScale{
+				&v1alpha2.MaxScale{
 					ObjectMeta: meta,
-					Spec: v1alpha1.MaxScaleSpec{
-						Servers: []v1alpha1.MaxScaleServer{
+					Spec: v1alpha2.MaxScaleSpec{
+						Servers: []v1alpha2.MaxScaleServer{
 							{
 								Name:    "mariadb-0",
 								Address: "mariadb-repl-0.mariadb-repl-internal.default.svc.cluster.local",
 							},
 						},
-						Services: []v1alpha1.MaxScaleService{
+						Services: []v1alpha2.MaxScaleService{
 							{
 								Name:   "rw-router",
-								Router: v1alpha1.ServiceRouterReadWriteSplit,
-								Listener: v1alpha1.MaxScaleListener{
+								Router: v1alpha2.ServiceRouterReadWriteSplit,
+								Listener: v1alpha2.MaxScaleListener{
 									Port: 3306,
 								},
 							},
 							{
 								Name:   "rw-router",
-								Router: v1alpha1.ServiceRouterReadConnRoute,
-								Listener: v1alpha1.MaxScaleListener{
+								Router: v1alpha2.ServiceRouterReadConnRoute,
+								Listener: v1alpha2.MaxScaleListener{
 									Port: 3307,
 								},
 							},
 						},
-						Monitor: v1alpha1.MaxScaleMonitor{
-							Module: v1alpha1.MonitorModuleMariadb,
+						Monitor: v1alpha2.MaxScaleMonitor{
+							Module: v1alpha2.MonitorModuleMariadb,
 						},
 					},
 				},
@@ -224,33 +225,33 @@ var _ = Describe("MaxScale webhook", func() {
 			),
 			Entry(
 				"Invalid service ports",
-				&v1alpha1.MaxScale{
+				&v1alpha2.MaxScale{
 					ObjectMeta: meta,
-					Spec: v1alpha1.MaxScaleSpec{
-						Servers: []v1alpha1.MaxScaleServer{
+					Spec: v1alpha2.MaxScaleSpec{
+						Servers: []v1alpha2.MaxScaleServer{
 							{
 								Name:    "mariadb-0",
 								Address: "mariadb-repl-0.mariadb-repl-internal.default.svc.cluster.local",
 							},
 						},
-						Services: []v1alpha1.MaxScaleService{
+						Services: []v1alpha2.MaxScaleService{
 							{
 								Name:   "rw-router",
-								Router: v1alpha1.ServiceRouterReadWriteSplit,
-								Listener: v1alpha1.MaxScaleListener{
+								Router: v1alpha2.ServiceRouterReadWriteSplit,
+								Listener: v1alpha2.MaxScaleListener{
 									Port: 3306,
 								},
 							},
 							{
 								Name:   "conn-router",
-								Router: v1alpha1.ServiceRouterReadConnRoute,
-								Listener: v1alpha1.MaxScaleListener{
+								Router: v1alpha2.ServiceRouterReadConnRoute,
+								Listener: v1alpha2.MaxScaleListener{
 									Port: 3306,
 								},
 							},
 						},
-						Monitor: v1alpha1.MaxScaleMonitor{
-							Module: v1alpha1.MonitorModuleMariadb,
+						Monitor: v1alpha2.MaxScaleMonitor{
+							Module: v1alpha2.MonitorModuleMariadb,
 						},
 					},
 				},
@@ -258,28 +259,28 @@ var _ = Describe("MaxScale webhook", func() {
 			),
 			Entry(
 				"Invalid auth generate",
-				&v1alpha1.MaxScale{
+				&v1alpha2.MaxScale{
 					ObjectMeta: meta,
-					Spec: v1alpha1.MaxScaleSpec{
-						Servers: []v1alpha1.MaxScaleServer{
+					Spec: v1alpha2.MaxScaleSpec{
+						Servers: []v1alpha2.MaxScaleServer{
 							{
 								Name:    "mariadb-0",
 								Address: "mariadb-repl-0.mariadb-repl-internal.default.svc.cluster.local",
 							},
 						},
-						Services: []v1alpha1.MaxScaleService{
+						Services: []v1alpha2.MaxScaleService{
 							{
 								Name:   "rw-router",
-								Router: v1alpha1.ServiceRouterReadWriteSplit,
-								Listener: v1alpha1.MaxScaleListener{
+								Router: v1alpha2.ServiceRouterReadWriteSplit,
+								Listener: v1alpha2.MaxScaleListener{
 									Port: 3306,
 								},
 							},
 						},
-						Monitor: v1alpha1.MaxScaleMonitor{
-							Module: v1alpha1.MonitorModuleMariadb,
+						Monitor: v1alpha2.MaxScaleMonitor{
+							Module: v1alpha2.MonitorModuleMariadb,
 						},
-						Auth: v1alpha1.MaxScaleAuth{
+						Auth: v1alpha2.MaxScaleAuth{
 							Generate: ptr.To(true),
 						},
 					},
@@ -288,26 +289,26 @@ var _ = Describe("MaxScale webhook", func() {
 			),
 			Entry(
 				"Invalid PodDisruptionBudget",
-				&v1alpha1.MaxScale{
+				&v1alpha2.MaxScale{
 					ObjectMeta: meta,
-					Spec: v1alpha1.MaxScaleSpec{
-						Servers: []v1alpha1.MaxScaleServer{
+					Spec: v1alpha2.MaxScaleSpec{
+						Servers: []v1alpha2.MaxScaleServer{
 							{
 								Name:    "mariadb-0",
 								Address: "mariadb-repl-0.mariadb-repl-internal.default.svc.cluster.local",
 							},
 						},
-						Services: []v1alpha1.MaxScaleService{
+						Services: []v1alpha2.MaxScaleService{
 							{
 								Name:   "rw-router",
-								Router: v1alpha1.ServiceRouterReadWriteSplit,
-								Listener: v1alpha1.MaxScaleListener{
+								Router: v1alpha2.ServiceRouterReadWriteSplit,
+								Listener: v1alpha2.MaxScaleListener{
 									Port: 3306,
 								},
 							},
 						},
-						Monitor: v1alpha1.MaxScaleMonitor{
-							Module: v1alpha1.MonitorModuleMariadb,
+						Monitor: v1alpha2.MaxScaleMonitor{
+							Module: v1alpha2.MonitorModuleMariadb,
 						},
 						PodDisruptionBudget: &v1alpha1.PodDisruptionBudget{
 							MaxUnavailable: ptr.To(intstr.FromString("50%")),
@@ -319,19 +320,19 @@ var _ = Describe("MaxScale webhook", func() {
 			),
 			Entry(
 				"Valid with MariaDB reference",
-				&v1alpha1.MaxScale{
+				&v1alpha2.MaxScale{
 					ObjectMeta: meta,
-					Spec: v1alpha1.MaxScaleSpec{
+					Spec: v1alpha2.MaxScaleSpec{
 						MariaDBRef: &v1alpha1.MariaDBRef{
 							ObjectReference: v1alpha1.ObjectReference{
 								Name: "mariadb",
 							},
 						},
-						Services: []v1alpha1.MaxScaleService{
+						Services: []v1alpha2.MaxScaleService{
 							{
 								Name:   "rw-router",
-								Router: v1alpha1.ServiceRouterReadWriteSplit,
-								Listener: v1alpha1.MaxScaleListener{
+								Router: v1alpha2.ServiceRouterReadWriteSplit,
+								Listener: v1alpha2.MaxScaleListener{
 									Port: 3306,
 								},
 							},
@@ -345,26 +346,26 @@ var _ = Describe("MaxScale webhook", func() {
 			),
 			Entry(
 				"Valid with servers",
-				&v1alpha1.MaxScale{
+				&v1alpha2.MaxScale{
 					ObjectMeta: meta,
-					Spec: v1alpha1.MaxScaleSpec{
-						Servers: []v1alpha1.MaxScaleServer{
+					Spec: v1alpha2.MaxScaleSpec{
+						Servers: []v1alpha2.MaxScaleServer{
 							{
 								Name:    "mariadb-0",
 								Address: "mariadb-repl-0.mariadb-repl-internal.default.svc.cluster.local",
 							},
 						},
-						Services: []v1alpha1.MaxScaleService{
+						Services: []v1alpha2.MaxScaleService{
 							{
 								Name:   "rw-router",
-								Router: v1alpha1.ServiceRouterReadWriteSplit,
-								Listener: v1alpha1.MaxScaleListener{
+								Router: v1alpha2.ServiceRouterReadWriteSplit,
+								Listener: v1alpha2.MaxScaleListener{
 									Port: 3306,
 								},
 							},
 						},
-						Monitor: v1alpha1.MaxScaleMonitor{
-							Module: v1alpha1.MonitorModuleMariadb,
+						Monitor: v1alpha2.MaxScaleMonitor{
+							Module: v1alpha2.MonitorModuleMariadb,
 						},
 						PodDisruptionBudget: &v1alpha1.PodDisruptionBudget{
 							MaxUnavailable: ptr.To(intstr.FromString("50%")),
@@ -375,15 +376,15 @@ var _ = Describe("MaxScale webhook", func() {
 			),
 			Entry(
 				"Invalid TLS",
-				&v1alpha1.MaxScale{
+				&v1alpha2.MaxScale{
 					ObjectMeta: meta,
-					Spec: v1alpha1.MaxScaleSpec{
+					Spec: v1alpha2.MaxScaleSpec{
 						MariaDBRef: &v1alpha1.MariaDBRef{
 							ObjectReference: v1alpha1.ObjectReference{
 								Name: "mariadb",
 							},
 						},
-						TLS: &v1alpha1.MaxScaleTLS{
+						TLS: &v1alpha2.MaxScaleTLS{
 							Enabled: true,
 							ListenerCertSecretRef: &v1alpha1.LocalObjectReference{
 								Name: "listener-cert",
@@ -395,15 +396,15 @@ var _ = Describe("MaxScale webhook", func() {
 			),
 			Entry(
 				"Valid TLS",
-				&v1alpha1.MaxScale{
+				&v1alpha2.MaxScale{
 					ObjectMeta: meta,
-					Spec: v1alpha1.MaxScaleSpec{
+					Spec: v1alpha2.MaxScaleSpec{
 						MariaDBRef: &v1alpha1.MariaDBRef{
 							ObjectReference: v1alpha1.ObjectReference{
 								Name: "mariadb",
 							},
 						},
-						TLS: &v1alpha1.MaxScaleTLS{
+						TLS: &v1alpha2.MaxScaleTLS{
 							Enabled: true,
 							ListenerCASecretRef: &v1alpha1.LocalObjectReference{
 								Name: "listener-ca",
@@ -425,29 +426,29 @@ var _ = Describe("MaxScale webhook", func() {
 			Namespace: testNamespace,
 		}
 		BeforeAll(func() {
-			mxs := v1alpha1.MaxScale{
+			mxs := v1alpha2.MaxScale{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      key.Name,
 					Namespace: key.Namespace,
 				},
-				Spec: v1alpha1.MaxScaleSpec{
+				Spec: v1alpha2.MaxScaleSpec{
 					MariaDBRef: &v1alpha1.MariaDBRef{
 						ObjectReference: v1alpha1.ObjectReference{
 							Name: "mariadb",
 						},
 					},
-					Services: []v1alpha1.MaxScaleService{
+					Services: []v1alpha2.MaxScaleService{
 						{
 							Name:   "rw-router",
-							Router: v1alpha1.ServiceRouterReadWriteSplit,
-							Listener: v1alpha1.MaxScaleListener{
+							Router: v1alpha2.ServiceRouterReadWriteSplit,
+							Listener: v1alpha2.MaxScaleListener{
 								Port: 3306,
 							},
 						},
 						{
 							Name:   "rconn-master-router",
-							Router: v1alpha1.ServiceRouterReadConnRoute,
-							Listener: v1alpha1.MaxScaleListener{
+							Router: v1alpha2.ServiceRouterReadConnRoute,
+							Listener: v1alpha2.MaxScaleListener{
 								Port: 3307,
 								Params: map[string]string{
 									"router_options": "master",
@@ -456,8 +457,8 @@ var _ = Describe("MaxScale webhook", func() {
 						},
 						{
 							Name:   "rconn-slave-router",
-							Router: v1alpha1.ServiceRouterReadConnRoute,
-							Listener: v1alpha1.MaxScaleListener{
+							Router: v1alpha2.ServiceRouterReadConnRoute,
+							Listener: v1alpha2.MaxScaleListener{
 								Port: 3308,
 								Params: map[string]string{
 									"router_options": "slave",
@@ -465,10 +466,10 @@ var _ = Describe("MaxScale webhook", func() {
 							},
 						},
 					},
-					Admin: v1alpha1.MaxScaleAdmin{
+					Admin: v1alpha2.MaxScaleAdmin{
 						Port: 8989,
 					},
-					Auth: v1alpha1.MaxScaleAuth{
+					Auth: v1alpha2.MaxScaleAuth{
 						Generate:      ptr.To(true),
 						AdminUsername: "foo",
 					},
@@ -486,8 +487,8 @@ var _ = Describe("MaxScale webhook", func() {
 		})
 		DescribeTable(
 			"Should validate",
-			func(patchFn func(mxs *v1alpha1.MaxScale), wantErr bool) {
-				var mxs v1alpha1.MaxScale
+			func(patchFn func(mxs *v1alpha2.MaxScale), wantErr bool) {
+				var mxs v1alpha2.MaxScale
 				Expect(k8sClient.Get(testCtx, key, &mxs)).To(Succeed())
 
 				patch := client.MergeFrom(mxs.DeepCopy())
@@ -502,15 +503,15 @@ var _ = Describe("MaxScale webhook", func() {
 			},
 			Entry(
 				"Updating Image",
-				func(mxs *v1alpha1.MaxScale) {
+				func(mxs *v1alpha2.MaxScale) {
 					mxs.Spec.Image = "mariadb/maxscale:23.07"
 				},
 				false,
 			),
 			Entry(
 				"Adding Servers",
-				func(mxs *v1alpha1.MaxScale) {
-					servers := []v1alpha1.MaxScaleServer{
+				func(mxs *v1alpha2.MaxScale) {
+					servers := []v1alpha2.MaxScaleServer{
 						{
 							Name:    "mariadb-0",
 							Address: "mariadb-repl-0.mariadb-repl-internal.default.svc.cluster.local",
@@ -530,11 +531,11 @@ var _ = Describe("MaxScale webhook", func() {
 			),
 			Entry(
 				"Adding Service",
-				func(mxs *v1alpha1.MaxScale) {
-					mxs.Spec.Services = append(mxs.Spec.Services, v1alpha1.MaxScaleService{
+				func(mxs *v1alpha2.MaxScale) {
+					mxs.Spec.Services = append(mxs.Spec.Services, v1alpha2.MaxScaleService{
 						Name:   "rconn-router",
-						Router: v1alpha1.ServiceRouterReadConnRoute,
-						Listener: v1alpha1.MaxScaleListener{
+						Router: v1alpha2.ServiceRouterReadConnRoute,
+						Listener: v1alpha2.MaxScaleListener{
 							Port: 3309,
 						}},
 					)
@@ -543,35 +544,35 @@ var _ = Describe("MaxScale webhook", func() {
 			),
 			Entry(
 				"Updating Service",
-				func(mxs *v1alpha1.MaxScale) {
+				func(mxs *v1alpha2.MaxScale) {
 					mxs.Spec.Services[0].Listener.Port = 1111
 				},
 				true,
 			),
 			Entry(
 				"Updating Monitor interval",
-				func(mxs *v1alpha1.MaxScale) {
+				func(mxs *v1alpha2.MaxScale) {
 					mxs.Spec.Monitor.Interval = metav1.Duration{Duration: 1 * time.Second}
 				},
 				false,
 			),
 			Entry(
 				"Updating Monitor module",
-				func(mxs *v1alpha1.MaxScale) {
-					mxs.Spec.Monitor.Module = v1alpha1.MonitorModuleMariadb
+				func(mxs *v1alpha2.MaxScale) {
+					mxs.Spec.Monitor.Module = v1alpha2.MonitorModuleMariadb
 				},
 				false,
 			),
 			Entry(
 				"Updating Admin",
-				func(mxs *v1alpha1.MaxScale) {
+				func(mxs *v1alpha2.MaxScale) {
 					mxs.Spec.Admin.Port = 9090
 				},
 				false,
 			),
 			Entry(
 				"Updating Config",
-				func(mxs *v1alpha1.MaxScale) {
+				func(mxs *v1alpha2.MaxScale) {
 					mxs.Spec.Config.Params = map[string]string{
 						"foo": "bar",
 					}
@@ -580,28 +581,28 @@ var _ = Describe("MaxScale webhook", func() {
 			),
 			Entry(
 				"Updating Auth generate",
-				func(mxs *v1alpha1.MaxScale) {
+				func(mxs *v1alpha2.MaxScale) {
 					mxs.Spec.Auth.Generate = ptr.To(false)
 				},
 				true,
 			),
 			Entry(
 				"Updating Auth",
-				func(mxs *v1alpha1.MaxScale) {
+				func(mxs *v1alpha2.MaxScale) {
 					mxs.Spec.Auth.AdminUsername = "bar"
 				},
 				true,
 			),
 			Entry(
 				"Updating Replicas",
-				func(mxs *v1alpha1.MaxScale) {
+				func(mxs *v1alpha2.MaxScale) {
 					mxs.Spec.Replicas = 3
 				},
 				false,
 			),
 			Entry(
 				"Updating Resources",
-				func(mxs *v1alpha1.MaxScale) {
+				func(mxs *v1alpha2.MaxScale) {
 					mxs.Spec.Resources = &v1alpha1.ResourceRequirements{
 						Requests: corev1.ResourceList{
 							"cpu": resource.MustParse("200m"),
@@ -612,8 +613,8 @@ var _ = Describe("MaxScale webhook", func() {
 			),
 			Entry(
 				"Updating to invalid TLS",
-				func(mxs *v1alpha1.MaxScale) {
-					mxs.Spec.TLS = &v1alpha1.MaxScaleTLS{
+				func(mxs *v1alpha2.MaxScale) {
+					mxs.Spec.TLS = &v1alpha2.MaxScaleTLS{
 						Enabled: true,
 						ListenerCertSecretRef: &v1alpha1.LocalObjectReference{
 							Name: "server-cert",
@@ -624,8 +625,8 @@ var _ = Describe("MaxScale webhook", func() {
 			),
 			Entry(
 				"Updating to valid TLS",
-				func(mxs *v1alpha1.MaxScale) {
-					mxs.Spec.TLS = &v1alpha1.MaxScaleTLS{
+				func(mxs *v1alpha2.MaxScale) {
+					mxs.Spec.TLS = &v1alpha2.MaxScaleTLS{
 						Enabled: true,
 						ListenerCASecretRef: &v1alpha1.LocalObjectReference{
 							Name: "server-ca",

@@ -3,8 +3,9 @@ package secret
 import (
 	"context"
 	"fmt"
+	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	"github.com/sethvargo/go-password/password"
 	corev1 "k8s.io/api/core/v1"
@@ -37,7 +38,7 @@ func NewSecretReconciler(client client.Client, builder *builder.Builder) (*Secre
 
 type PasswordRequest struct {
 	Owner     metav1.Object
-	Metadata  *mariadbv1alpha1.Metadata
+	Metadata  *v1alpha1.Metadata
 	Key       types.NamespacedName
 	SecretKey string
 	Generate  bool
@@ -63,7 +64,7 @@ func (r *SecretReconciler) ReconcilePassword(ctx context.Context, req PasswordRe
 	}
 
 	opts := builder.SecretOpts{
-		Metadata: []*mariadbv1alpha1.Metadata{req.Metadata},
+		Metadata: []*v1alpha1.Metadata{req.Metadata},
 		Key:      req.Key,
 		Data: map[string][]byte{
 			req.SecretKey: []byte(password),
@@ -88,7 +89,7 @@ func (r *SecretReconciler) ReconcilePassword(ctx context.Context, req PasswordRe
 
 type SecretRequest struct {
 	Owner    metav1.Object
-	Metadata []*mariadbv1alpha1.Metadata
+	Metadata []*v1alpha1.Metadata
 	Key      types.NamespacedName
 	Data     map[string][]byte
 }

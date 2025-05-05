@@ -5,9 +5,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"time"
 
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	builderpki "github.com/mariadb-operator/mariadb-operator/pkg/builder/pki"
@@ -93,7 +94,7 @@ tls_key_cert_file={{ .TLSCertPath }}
 
 	secretReq := secret.SecretRequest{
 		Owner:    req.mxs,
-		Metadata: []*mariadbv1alpha1.Metadata{req.mxs.Spec.InheritMetadata},
+		Metadata: []*v1alpha1.Metadata{req.mxs.Spec.InheritMetadata},
 		Key: types.NamespacedName{
 			Name:      secretKeyRef.Name,
 			Namespace: req.mxs.Namespace,
@@ -105,7 +106,7 @@ tls_key_cert_file={{ .TLSCertPath }}
 	return r.SecretReconciler.Reconcile(ctx, &secretReq)
 }
 
-func (r *MaxScaleReconciler) reconcileExporterDeployment(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) error {
+func (r *MaxScaleReconciler) reconcileExporterDeployment(ctx context.Context, mxs *v1alpha1.MaxScale) error {
 	podAnnotations, err := r.getExporterPodAnnotations(ctx, mxs)
 	if err != nil {
 		return fmt.Errorf("error getting exporter Pod annotations: %v", err)
@@ -117,7 +118,7 @@ func (r *MaxScaleReconciler) reconcileExporterDeployment(ctx context.Context, mx
 	return r.DeploymentReconciler.Reconcile(ctx, desiredDeploy)
 }
 
-func (r *MaxScaleReconciler) getExporterPodAnnotations(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) (map[string]string, error) {
+func (r *MaxScaleReconciler) getExporterPodAnnotations(ctx context.Context, mxs *v1alpha1.MaxScale) (map[string]string, error) {
 	config, err := r.RefResolver.SecretKeyRef(ctx, mxs.MetricsConfigSecretKeyRef().SecretKeySelector, mxs.Namespace)
 	if err != nil {
 		return nil, fmt.Errorf("error getting metrics config Secret: %v", err)
@@ -139,7 +140,7 @@ func (r *MaxScaleReconciler) getExporterPodAnnotations(ctx context.Context, mxs 
 	return podAnnotations, nil
 }
 
-func (r *MaxScaleReconciler) reconcileExporterService(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) error {
+func (r *MaxScaleReconciler) reconcileExporterService(ctx context.Context, mxs *v1alpha1.MaxScale) error {
 	key := mxs.MetricsKey()
 	selectorLabels :=
 		labels.NewLabelsBuilder().
@@ -168,7 +169,7 @@ func (r *MaxScaleReconciler) reconcileExporterService(ctx context.Context, mxs *
 	return r.ServiceReconciler.Reconcile(ctx, desiredSvc)
 }
 
-func (r *MaxScaleReconciler) reconcileServiceMonitor(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) error {
+func (r *MaxScaleReconciler) reconcileServiceMonitor(ctx context.Context, mxs *v1alpha1.MaxScale) error {
 	desiredSvcMonitor, err := r.Builder.BuildMaxScaleServiceMonitor(mxs)
 	if err != nil {
 		return fmt.Errorf("error building Service Monitor: %v", err)

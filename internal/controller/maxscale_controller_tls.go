@@ -4,8 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	certctrl "github.com/mariadb-operator/mariadb-operator/pkg/controller/certificate"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
 	"github.com/mariadb-operator/mariadb-operator/pkg/hash"
@@ -31,8 +32,8 @@ func (r *MaxScaleReconciler) reconcileTLS(ctx context.Context, req *requestMaxSc
 	return ctrl.Result{}, nil
 }
 
-func (r *MaxScaleReconciler) reconcileTLSCerts(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) error {
-	tls := ptr.Deref(mxs.Spec.TLS, mariadbv1alpha1.MaxScaleTLS{})
+func (r *MaxScaleReconciler) reconcileTLSCerts(ctx context.Context, mxs *v1alpha1.MaxScale) error {
+	tls := ptr.Deref(mxs.Spec.TLS, v1alpha1.MaxScaleTLS{})
 
 	// MaxScale TLS can't communicate with a non-TLS MariaDB server
 	if tls.ServerCASecretRef == nil || tls.ServerCertSecretRef == nil {
@@ -81,7 +82,7 @@ func (r *MaxScaleReconciler) reconcileTLSCerts(ctx context.Context, mxs *mariadb
 	return nil
 }
 
-func (r *MaxScaleReconciler) reconcileTLSCABundle(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) error {
+func (r *MaxScaleReconciler) reconcileTLSCABundle(ctx context.Context, mxs *v1alpha1.MaxScale) error {
 	logger := log.FromContext(ctx).WithName("ca-bundle")
 
 	caBundleKeySelector := mxs.TLSCABundleSecretKeyRef()
@@ -145,7 +146,7 @@ func (r *MaxScaleReconciler) reconcileTLSCABundle(ctx context.Context, mxs *mari
 	return r.SecretReconciler.Reconcile(ctx, &secretReq)
 }
 
-func (r *MaxScaleReconciler) getTLSAnnotations(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) (map[string]string, error) {
+func (r *MaxScaleReconciler) getTLSAnnotations(ctx context.Context, mxs *v1alpha1.MaxScale) (map[string]string, error) {
 	if !mxs.IsTLSEnabled() {
 		return nil, nil
 	}
@@ -180,7 +181,7 @@ func (r *MaxScaleReconciler) getTLSAnnotations(ctx context.Context, mxs *mariadb
 	return annotations, nil
 }
 
-func (r *MaxScaleReconciler) getTLSAdminAnnotations(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) (map[string]string, error) {
+func (r *MaxScaleReconciler) getTLSAdminAnnotations(ctx context.Context, mxs *v1alpha1.MaxScale) (map[string]string, error) {
 	if !mxs.IsTLSEnabled() {
 		return nil, nil
 	}
@@ -207,11 +208,11 @@ func (r *MaxScaleReconciler) getTLSAdminAnnotations(ctx context.Context, mxs *ma
 	return annotations, nil
 }
 
-func (r *MaxScaleReconciler) getTLSStatus(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) (*mariadbv1alpha1.MaxScaleTLSStatus, error) {
+func (r *MaxScaleReconciler) getTLSStatus(ctx context.Context, mxs *v1alpha1.MaxScale) (*v1alpha1.MaxScaleTLSStatus, error) {
 	if !mxs.IsTLSEnabled() {
 		return nil, nil
 	}
-	var tlsStatus mariadbv1alpha1.MaxScaleTLSStatus
+	var tlsStatus v1alpha1.MaxScaleTLSStatus
 
 	certStatus, err := getCertificateStatus(ctx, r.RefResolver, mxs.TLSCABundleSecretKeyRef(), mxs.Namespace)
 	if err != nil {

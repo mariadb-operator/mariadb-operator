@@ -8,7 +8,7 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/hashicorp/go-multierror"
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	mariadbpod "github.com/mariadb-operator/mariadb-operator/pkg/pod"
 	sqlClient "github.com/mariadb-operator/mariadb-operator/pkg/sql"

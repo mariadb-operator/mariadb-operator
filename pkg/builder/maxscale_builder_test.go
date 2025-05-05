@@ -1,9 +1,10 @@
 package builder
 
 import (
+	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"testing"
 
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 )
@@ -16,12 +17,12 @@ func TestMaxScaleMeta(t *testing.T) {
 	tests := []struct {
 		name     string
 		mariadb  *mariadbv1alpha1.MariaDB
-		wantMeta *mariadbv1alpha1.Metadata
+		wantMeta *v1alpha1.Metadata
 	}{
 		{
 			name:    "no meta",
 			mariadb: &mariadbv1alpha1.MariaDB{},
-			wantMeta: &mariadbv1alpha1.Metadata{
+			wantMeta: &v1alpha1.Metadata{
 				Labels:      map[string]string{},
 				Annotations: map[string]string{},
 			},
@@ -30,7 +31,7 @@ func TestMaxScaleMeta(t *testing.T) {
 			name: "meta",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					InheritMetadata: &mariadbv1alpha1.Metadata{
+					InheritMetadata: &v1alpha1.Metadata{
 						Labels: map[string]string{
 							"database.myorg.io": "mariadb",
 						},
@@ -40,7 +41,7 @@ func TestMaxScaleMeta(t *testing.T) {
 					},
 				},
 			},
-			wantMeta: &mariadbv1alpha1.Metadata{
+			wantMeta: &v1alpha1.Metadata{
 				Labels: map[string]string{
 					"database.myorg.io": "mariadb",
 				},
@@ -71,7 +72,7 @@ func TestMaxScaleTLS(t *testing.T) {
 		name    string
 		mariadb *mariadbv1alpha1.MariaDB
 		mdbmxs  *mariadbv1alpha1.MariaDBMaxScaleSpec
-		wantTLS *mariadbv1alpha1.MaxScaleTLS
+		wantTLS *v1alpha1.MaxScaleTLS
 	}{
 		{
 			name: "tls not enabled in MariaDB",
@@ -108,7 +109,7 @@ func TestMaxScaleTLS(t *testing.T) {
 				},
 			},
 			mdbmxs:  &mariadbv1alpha1.MariaDBMaxScaleSpec{},
-			wantTLS: &mariadbv1alpha1.MaxScaleTLS{Enabled: true},
+			wantTLS: &v1alpha1.MaxScaleTLS{Enabled: true},
 		},
 		{
 			name: "tls explicitly set in MaxScaleSpec",
@@ -116,9 +117,9 @@ func TestMaxScaleTLS(t *testing.T) {
 				Spec: mariadbv1alpha1.MariaDBSpec{},
 			},
 			mdbmxs: &mariadbv1alpha1.MariaDBMaxScaleSpec{
-				TLS: &mariadbv1alpha1.MaxScaleTLS{Enabled: true},
+				TLS: &v1alpha1.MaxScaleTLS{Enabled: true},
 			},
-			wantTLS: &mariadbv1alpha1.MaxScaleTLS{Enabled: true},
+			wantTLS: &v1alpha1.MaxScaleTLS{Enabled: true},
 		},
 	}
 

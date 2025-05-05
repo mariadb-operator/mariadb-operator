@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	"github.com/mariadb-operator/mariadb-operator/pkg/discovery"
 	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"

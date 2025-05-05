@@ -1,10 +1,11 @@
 package builder
 
 import (
+	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"reflect"
 	"testing"
 
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	builderpki "github.com/mariadb-operator/mariadb-operator/pkg/builder/pki"
 	"github.com/mariadb-operator/mariadb-operator/pkg/datastructures"
 	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
@@ -43,7 +44,7 @@ func TestExporterImagePullSecrets(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					PodTemplate: v1alpha1.PodTemplate{
 						ImagePullSecrets: []mariadbv1alpha1.LocalObjectReference{
 							{
 								Name: "mariadb-registry",
@@ -68,7 +69,7 @@ func TestExporterImagePullSecrets(t *testing.T) {
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Metrics: &mariadbv1alpha1.MariadbMetrics{
 						Enabled: true,
-						Exporter: mariadbv1alpha1.Exporter{
+						Exporter: v1alpha1.Exporter{
 							ImagePullSecrets: []mariadbv1alpha1.LocalObjectReference{
 								{
 									Name: "exporter-registry",
@@ -89,7 +90,7 @@ func TestExporterImagePullSecrets(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					PodTemplate: v1alpha1.PodTemplate{
 						ImagePullSecrets: []mariadbv1alpha1.LocalObjectReference{
 							{
 								Name: "mariadb-registry",
@@ -98,7 +99,7 @@ func TestExporterImagePullSecrets(t *testing.T) {
 					},
 					Metrics: &mariadbv1alpha1.MariadbMetrics{
 						Enabled: true,
-						Exporter: mariadbv1alpha1.Exporter{
+						Exporter: v1alpha1.Exporter{
 							ImagePullSecrets: []mariadbv1alpha1.LocalObjectReference{
 								{
 									Name: "exporter-registry",
@@ -141,15 +142,15 @@ func TestExporterMaxScaleImagePullSecrets(t *testing.T) {
 
 	tests := []struct {
 		name            string
-		maxscale        *mariadbv1alpha1.MaxScale
+		maxscale        *v1alpha1.MaxScale
 		wantPullSecrets []corev1.LocalObjectReference
 	}{
 		{
 			name: "No Secrets",
-			maxscale: &mariadbv1alpha1.MaxScale{
+			maxscale: &v1alpha1.MaxScale{
 				ObjectMeta: objMeta,
-				Spec: mariadbv1alpha1.MaxScaleSpec{
-					Metrics: &mariadbv1alpha1.MaxScaleMetrics{
+				Spec: v1alpha1.MaxScaleSpec{
+					Metrics: &v1alpha1.MaxScaleMetrics{
 						Enabled: true,
 					},
 				},
@@ -158,17 +159,17 @@ func TestExporterMaxScaleImagePullSecrets(t *testing.T) {
 		},
 		{
 			name: "Secrets in MaxScale",
-			maxscale: &mariadbv1alpha1.MaxScale{
+			maxscale: &v1alpha1.MaxScale{
 				ObjectMeta: objMeta,
-				Spec: mariadbv1alpha1.MaxScaleSpec{
-					MaxScalePodTemplate: mariadbv1alpha1.MaxScalePodTemplate{
+				Spec: v1alpha1.MaxScaleSpec{
+					MaxScalePodTemplate: v1alpha1.MaxScalePodTemplate{
 						ImagePullSecrets: []mariadbv1alpha1.LocalObjectReference{
 							{
 								Name: "maxscale-registry",
 							},
 						},
 					},
-					Metrics: &mariadbv1alpha1.MaxScaleMetrics{
+					Metrics: &v1alpha1.MaxScaleMetrics{
 						Enabled: true,
 					},
 				},
@@ -181,10 +182,10 @@ func TestExporterMaxScaleImagePullSecrets(t *testing.T) {
 		},
 		{
 			name: "Secrets in MaxScale",
-			maxscale: &mariadbv1alpha1.MaxScale{
+			maxscale: &v1alpha1.MaxScale{
 				ObjectMeta: objMeta,
-				Spec: mariadbv1alpha1.MaxScaleSpec{
-					Metrics: &mariadbv1alpha1.MaxScaleMetrics{
+				Spec: v1alpha1.MaxScaleSpec{
+					Metrics: &v1alpha1.MaxScaleMetrics{
 						Enabled: true,
 						Exporter: mariadbv1alpha1.Exporter{
 							ImagePullSecrets: []mariadbv1alpha1.LocalObjectReference{
@@ -204,17 +205,17 @@ func TestExporterMaxScaleImagePullSecrets(t *testing.T) {
 		},
 		{
 			name: "Secrets in MariaDB and Exporter",
-			maxscale: &mariadbv1alpha1.MaxScale{
+			maxscale: &v1alpha1.MaxScale{
 				ObjectMeta: objMeta,
-				Spec: mariadbv1alpha1.MaxScaleSpec{
-					MaxScalePodTemplate: mariadbv1alpha1.MaxScalePodTemplate{
+				Spec: v1alpha1.MaxScaleSpec{
+					MaxScalePodTemplate: v1alpha1.MaxScalePodTemplate{
 						ImagePullSecrets: []mariadbv1alpha1.LocalObjectReference{
 							{
 								Name: "maxscale-registry",
 							},
 						},
 					},
-					Metrics: &mariadbv1alpha1.MaxScaleMetrics{
+					Metrics: &v1alpha1.MaxScaleMetrics{
 						Enabled: true,
 						Exporter: mariadbv1alpha1.Exporter{
 							ImagePullSecrets: []mariadbv1alpha1.LocalObjectReference{
@@ -623,17 +624,17 @@ func TestExporterMaxScaleDeploymentMeta(t *testing.T) {
 	}
 	tests := []struct {
 		name           string
-		maxscale       *mariadbv1alpha1.MaxScale
+		maxscale       *v1alpha1.MaxScale
 		podAnnotations map[string]string
 		wantDeployMeta *mariadbv1alpha1.Metadata
 		wantPodMeta    *mariadbv1alpha1.Metadata
 	}{
 		{
 			name: "no meta",
-			maxscale: &mariadbv1alpha1.MaxScale{
+			maxscale: &v1alpha1.MaxScale{
 				ObjectMeta: mxsObjMeta,
-				Spec: mariadbv1alpha1.MaxScaleSpec{
-					Metrics: &mariadbv1alpha1.MaxScaleMetrics{
+				Spec: v1alpha1.MaxScaleSpec{
+					Metrics: &v1alpha1.MaxScaleMetrics{
 						Enabled: true,
 					},
 				},
@@ -653,10 +654,10 @@ func TestExporterMaxScaleDeploymentMeta(t *testing.T) {
 		},
 		{
 			name: "inherit meta",
-			maxscale: &mariadbv1alpha1.MaxScale{
+			maxscale: &v1alpha1.MaxScale{
 				ObjectMeta: mxsObjMeta,
-				Spec: mariadbv1alpha1.MaxScaleSpec{
-					Metrics: &mariadbv1alpha1.MaxScaleMetrics{
+				Spec: v1alpha1.MaxScaleSpec{
+					Metrics: &v1alpha1.MaxScaleMetrics{
 						Enabled: true,
 					},
 					InheritMetadata: &mariadbv1alpha1.Metadata{
@@ -691,10 +692,10 @@ func TestExporterMaxScaleDeploymentMeta(t *testing.T) {
 		},
 		{
 			name: "pod meta",
-			maxscale: &mariadbv1alpha1.MaxScale{
+			maxscale: &v1alpha1.MaxScale{
 				ObjectMeta: mxsObjMeta,
-				Spec: mariadbv1alpha1.MaxScaleSpec{
-					Metrics: &mariadbv1alpha1.MaxScaleMetrics{
+				Spec: v1alpha1.MaxScaleSpec{
+					Metrics: &v1alpha1.MaxScaleMetrics{
 						Enabled: true,
 						Exporter: mariadbv1alpha1.Exporter{
 							PodMetadata: &mariadbv1alpha1.Metadata{
@@ -730,9 +731,9 @@ func TestExporterMaxScaleDeploymentMeta(t *testing.T) {
 		},
 		{
 			name: "all",
-			maxscale: &mariadbv1alpha1.MaxScale{
+			maxscale: &v1alpha1.MaxScale{
 				ObjectMeta: mxsObjMeta,
-				Spec: mariadbv1alpha1.MaxScaleSpec{
+				Spec: v1alpha1.MaxScaleSpec{
 					InheritMetadata: &mariadbv1alpha1.Metadata{
 						Labels: map[string]string{
 							"database.myorg.io": "mariadb",
@@ -741,7 +742,7 @@ func TestExporterMaxScaleDeploymentMeta(t *testing.T) {
 							"database.myorg.io": "mariadb",
 						},
 					},
-					Metrics: &mariadbv1alpha1.MaxScaleMetrics{
+					Metrics: &v1alpha1.MaxScaleMetrics{
 						Enabled: true,
 						Exporter: mariadbv1alpha1.Exporter{
 							PodMetadata: &mariadbv1alpha1.Metadata{

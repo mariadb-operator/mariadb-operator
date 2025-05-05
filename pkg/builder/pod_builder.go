@@ -2,9 +2,10 @@ package builder
 
 import (
 	"fmt"
+	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"reflect"
 
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	metadata "github.com/mariadb-operator/mariadb-operator/pkg/builder/metadata"
 	builderpki "github.com/mariadb-operator/mariadb-operator/pkg/builder/pki"
@@ -17,7 +18,7 @@ import (
 )
 
 type mariadbPodOpts struct {
-	meta                         *mariadbv1alpha1.Metadata
+	meta                         *v1alpha1.Metadata
 	command                      []string
 	args                         []string
 	restartPolicy                *corev1.RestartPolicy
@@ -57,7 +58,7 @@ func newMariadbPodOpts(userOpts ...mariadbPodOpt) *mariadbPodOpts {
 
 type mariadbPodOpt func(opts *mariadbPodOpts)
 
-func withMeta(meta *mariadbv1alpha1.Metadata) mariadbPodOpt {
+func withMeta(meta *v1alpha1.Metadata) mariadbPodOpt {
 	return func(opts *mariadbPodOpts) {
 		opts.meta = meta
 	}
@@ -219,7 +220,7 @@ func (b *Builder) mariadbPodTemplate(mariadb *mariadbv1alpha1.MariaDB, opts ...m
 	}, nil
 }
 
-func (b *Builder) maxscalePodTemplate(mxs *mariadbv1alpha1.MaxScale, annotations map[string]string) (*corev1.PodTemplateSpec, error) {
+func (b *Builder) maxscalePodTemplate(mxs *v1alpha1.MaxScale, annotations map[string]string) (*corev1.PodTemplateSpec, error) {
 	containers, err := b.maxscaleContainers(mxs)
 	if err != nil {
 		return nil, err
@@ -325,10 +326,10 @@ func mariadbVolumes(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt) []c
 		})
 	}
 
-	galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
+	galera := ptr.Deref(mariadb.Spec.Galera, v1alpha1.Galera{})
 
 	if galera.Enabled {
-		basicAuth := ptr.Deref(galera.Agent.BasicAuth, mariadbv1alpha1.BasicAuth{})
+		basicAuth := ptr.Deref(galera.Agent.BasicAuth, v1alpha1.BasicAuth{})
 
 		if mariadbOpts.includeGaleraConfig && basicAuth.Enabled && !reflect.ValueOf(basicAuth.PasswordSecretKeyRef).IsZero() {
 			volumes = append(volumes, corev1.Volume{
@@ -528,7 +529,7 @@ func mariadbTLSVolumes(mariadb *mariadbv1alpha1.MariaDB) ([]corev1.Volume, []cor
 		}
 }
 
-func maxscaleVolumes(maxscale *mariadbv1alpha1.MaxScale) []corev1.Volume {
+func maxscaleVolumes(maxscale *v1alpha1.MaxScale) []corev1.Volume {
 	volumes := []corev1.Volume{
 		{
 			Name: ConfigVolume,
@@ -564,7 +565,7 @@ func maxscaleVolumes(maxscale *mariadbv1alpha1.MaxScale) []corev1.Volume {
 	return volumes
 }
 
-func maxscaleTLSVolumes(mxs *mariadbv1alpha1.MaxScale) ([]corev1.Volume, []corev1.VolumeMount) {
+func maxscaleTLSVolumes(mxs *v1alpha1.MaxScale) ([]corev1.Volume, []corev1.VolumeMount) {
 	if !mxs.IsTLSEnabled() {
 		return nil, nil
 	}

@@ -1,9 +1,10 @@
 package v1alpha1
 
 import (
+	v1alpha2 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"time"
 
-	"github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -49,7 +50,7 @@ var _ = Describe("v1alpha1.Connection webhook", func() {
 				&v1alpha1.Connection{
 					ObjectMeta: meta,
 					Spec: v1alpha1.ConnectionSpec{
-						MariaDBRef: &v1alpha1.MariaDBRef{
+						MariaDBRef: &v1alpha2.MariaDBRef{
 							ObjectReference: v1alpha1.ObjectReference{
 								Name: "foo",
 							},
@@ -64,7 +65,7 @@ var _ = Describe("v1alpha1.Connection webhook", func() {
 				&v1alpha1.Connection{
 					ObjectMeta: meta,
 					Spec: v1alpha1.ConnectionSpec{
-						MariaDBRef: &v1alpha1.MariaDBRef{
+						MariaDBRef: &v1alpha2.MariaDBRef{
 							ObjectReference: v1alpha1.ObjectReference{
 								Name: "foo",
 							},
@@ -82,7 +83,7 @@ var _ = Describe("v1alpha1.Connection webhook", func() {
 				&v1alpha1.Connection{
 					ObjectMeta: meta,
 					Spec: v1alpha1.ConnectionSpec{
-						MariaDBRef: &v1alpha1.MariaDBRef{
+						MariaDBRef: &v1alpha2.MariaDBRef{
 							ObjectReference: v1alpha1.ObjectReference{
 								Name: "foo",
 							},
@@ -123,7 +124,7 @@ var _ = Describe("v1alpha1.Connection webhook", func() {
 						MaxScaleRef: &v1alpha1.ObjectReference{
 							Name: "foo",
 						},
-						MariaDBRef: &v1alpha1.MariaDBRef{
+						MariaDBRef: &v1alpha2.MariaDBRef{
 							ObjectReference: v1alpha1.ObjectReference{
 								Name: "foo",
 							},

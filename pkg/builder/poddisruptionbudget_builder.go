@@ -2,8 +2,9 @@ package builder
 
 import (
 	"fmt"
+	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	metadata "github.com/mariadb-operator/mariadb-operator/pkg/builder/metadata"
 	policyv1 "k8s.io/api/policy/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -13,7 +14,7 @@ import (
 )
 
 type PodDisruptionBudgetOpts struct {
-	Metadata       *mariadbv1alpha1.Metadata
+	Metadata       *v1alpha1.Metadata
 	Key            types.NamespacedName
 	MinAvailable   *intstr.IntOrString
 	MaxUnavailable *intstr.IntOrString

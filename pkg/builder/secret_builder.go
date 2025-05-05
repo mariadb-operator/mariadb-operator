@@ -2,8 +2,9 @@ package builder
 
 import (
 	"fmt"
+	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	metadata "github.com/mariadb-operator/mariadb-operator/pkg/builder/metadata"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -12,7 +13,7 @@ import (
 )
 
 type SecretOpts struct {
-	Metadata []*mariadbv1alpha1.Metadata
+	Metadata []*v1alpha1.Metadata
 	Key      types.NamespacedName
 	Data     map[string][]byte
 }

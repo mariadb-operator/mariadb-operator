@@ -1,11 +1,12 @@
 package builder
 
 import (
+	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"reflect"
 	"testing"
 
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/discovery"
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
@@ -58,7 +59,7 @@ func assertObjectMeta(t *testing.T, objMeta *metav1.ObjectMeta, wantLabels, want
 	}
 }
 
-func assertMeta(t *testing.T, meta *mariadbv1alpha1.Metadata, wantLabels, wantAnnotations map[string]string) {
+func assertMeta(t *testing.T, meta *v1alpha1.Metadata, wantLabels, wantAnnotations map[string]string) {
 	if meta == nil {
 		t.Fatal("expecting metadata to not be nil")
 	}

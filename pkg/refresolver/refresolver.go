@@ -4,8 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -28,7 +29,7 @@ func New(client client.Client) *RefResolver {
 	}
 }
 
-func (r *RefResolver) MariaDB(ctx context.Context, ref *mariadbv1alpha1.MariaDBRef,
+func (r *RefResolver) MariaDB(ctx context.Context, ref *v1alpha1.MariaDBRef,
 	namespace string) (*mariadbv1alpha1.MariaDB, error) {
 	key := types.NamespacedName{
 		Name:      ref.Name,
@@ -66,7 +67,7 @@ func (r *RefResolver) MariaDBFromAnnotation(ctx context.Context, objMeta metav1.
 }
 
 func (r *RefResolver) MaxScale(ctx context.Context, ref *mariadbv1alpha1.ObjectReference,
-	namespace string) (*mariadbv1alpha1.MaxScale, error) {
+	namespace string) (*v1alpha1.MaxScale, error) {
 	key := types.NamespacedName{
 		Name:      ref.Name,
 		Namespace: namespace,
@@ -75,7 +76,7 @@ func (r *RefResolver) MaxScale(ctx context.Context, ref *mariadbv1alpha1.ObjectR
 		key.Namespace = ref.Namespace
 	}
 
-	var mxs mariadbv1alpha1.MaxScale
+	var mxs v1alpha1.MaxScale
 	if err := r.client.Get(ctx, key, &mxs); err != nil {
 		return nil, err
 	}

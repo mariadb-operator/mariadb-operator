@@ -1,9 +1,10 @@
 package controller
 
 import (
+	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"reflect"
 
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
@@ -354,7 +355,7 @@ func decorateBackupWithBzip2Compression(backup *mariadbv1alpha1.Backup) *mariadb
 
 func decorateBackupWithStagingStorage(backup *mariadbv1alpha1.Backup) *mariadbv1alpha1.Backup {
 	backup.Spec.StagingStorage = &mariadbv1alpha1.BackupStagingStorage{
-		PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimSpec{
+		PersistentVolumeClaim: &v1alpha1.PersistentVolumeClaimSpec{
 			AccessModes: []corev1.PersistentVolumeAccessMode{
 				corev1.ReadWriteOnce,
 			},

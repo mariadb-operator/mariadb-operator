@@ -1,9 +1,10 @@
 package config
 
 import (
+	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"testing"
 
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 )
@@ -11,14 +12,14 @@ import (
 func TestThreads(t *testing.T) {
 	tests := []struct {
 		name       string
-		mxs        *mariadbv1alpha1.MaxScale
+		mxs        *v1alpha1.MaxScale
 		wantString string
 	}{
 		{
 			name: "cpu limit defined",
-			mxs: &mariadbv1alpha1.MaxScale{
-				Spec: mariadbv1alpha1.MaxScaleSpec{
-					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
+			mxs: &v1alpha1.MaxScale{
+				Spec: v1alpha1.MaxScaleSpec{
+					ContainerTemplate: v1alpha1.ContainerTemplate{
 						Resources: &mariadbv1alpha1.ResourceRequirements{
 							Limits: corev1.ResourceList{
 								"cpu": resource.MustParse("1"),
@@ -31,9 +32,9 @@ func TestThreads(t *testing.T) {
 		},
 		{
 			name: "cpu limit defined round up",
-			mxs: &mariadbv1alpha1.MaxScale{
-				Spec: mariadbv1alpha1.MaxScaleSpec{
-					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
+			mxs: &v1alpha1.MaxScale{
+				Spec: v1alpha1.MaxScaleSpec{
+					ContainerTemplate: v1alpha1.ContainerTemplate{
 						Resources: &mariadbv1alpha1.ResourceRequirements{
 							Limits: corev1.ResourceList{
 								"cpu": resource.MustParse("200m"),
@@ -46,16 +47,16 @@ func TestThreads(t *testing.T) {
 		},
 		{
 			name: "resources not defined",
-			mxs: &mariadbv1alpha1.MaxScale{
-				Spec: mariadbv1alpha1.MaxScaleSpec{},
+			mxs: &v1alpha1.MaxScale{
+				Spec: v1alpha1.MaxScaleSpec{},
 			},
 			wantString: "auto",
 		},
 		{
 			name: "only requests defined",
-			mxs: &mariadbv1alpha1.MaxScale{
-				Spec: mariadbv1alpha1.MaxScaleSpec{
-					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
+			mxs: &v1alpha1.MaxScale{
+				Spec: v1alpha1.MaxScaleSpec{
+					ContainerTemplate: v1alpha1.ContainerTemplate{
 						Resources: &mariadbv1alpha1.ResourceRequirements{
 							Requests: corev1.ResourceList{
 								"cpu": resource.MustParse("200m"),
@@ -68,9 +69,9 @@ func TestThreads(t *testing.T) {
 		},
 		{
 			name: "other limit defined",
-			mxs: &mariadbv1alpha1.MaxScale{
-				Spec: mariadbv1alpha1.MaxScaleSpec{
-					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
+			mxs: &v1alpha1.MaxScale{
+				Spec: v1alpha1.MaxScaleSpec{
+					ContainerTemplate: v1alpha1.ContainerTemplate{
 						Resources: &mariadbv1alpha1.ResourceRequirements{
 							Limits: corev1.ResourceList{
 								"memory": resource.MustParse("1Gi"),
@@ -96,14 +97,14 @@ func TestThreads(t *testing.T) {
 func TestQueryClassifierCacheSize(t *testing.T) {
 	tests := []struct {
 		name       string
-		mxs        *mariadbv1alpha1.MaxScale
+		mxs        *v1alpha1.MaxScale
 		wantString string
 	}{
 		{
 			name: "memory limit defined",
-			mxs: &mariadbv1alpha1.MaxScale{
-				Spec: mariadbv1alpha1.MaxScaleSpec{
-					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
+			mxs: &v1alpha1.MaxScale{
+				Spec: v1alpha1.MaxScaleSpec{
+					ContainerTemplate: v1alpha1.ContainerTemplate{
 						Resources: &mariadbv1alpha1.ResourceRequirements{
 							Limits: corev1.ResourceList{
 								"memory": resource.MustParse("1G"),
@@ -116,16 +117,16 @@ func TestQueryClassifierCacheSize(t *testing.T) {
 		},
 		{
 			name: "resources not defined",
-			mxs: &mariadbv1alpha1.MaxScale{
-				Spec: mariadbv1alpha1.MaxScaleSpec{},
+			mxs: &v1alpha1.MaxScale{
+				Spec: v1alpha1.MaxScaleSpec{},
 			},
 			wantString: "",
 		},
 		{
 			name: "only requests defined",
-			mxs: &mariadbv1alpha1.MaxScale{
-				Spec: mariadbv1alpha1.MaxScaleSpec{
-					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
+			mxs: &v1alpha1.MaxScale{
+				Spec: v1alpha1.MaxScaleSpec{
+					ContainerTemplate: v1alpha1.ContainerTemplate{
 						Resources: &mariadbv1alpha1.ResourceRequirements{
 							Requests: corev1.ResourceList{
 								"memory": resource.MustParse("2Gi"),
@@ -138,9 +139,9 @@ func TestQueryClassifierCacheSize(t *testing.T) {
 		},
 		{
 			name: "other limit defined",
-			mxs: &mariadbv1alpha1.MaxScale{
-				Spec: mariadbv1alpha1.MaxScaleSpec{
-					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
+			mxs: &v1alpha1.MaxScale{
+				Spec: v1alpha1.MaxScaleSpec{
+					ContainerTemplate: v1alpha1.ContainerTemplate{
 						Resources: &mariadbv1alpha1.ResourceRequirements{
 							Limits: corev1.ResourceList{
 								"cpu": resource.MustParse("100m"),

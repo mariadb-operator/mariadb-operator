@@ -1,9 +1,10 @@
 package builder
 
 import (
+	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"testing"
 
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -15,12 +16,12 @@ func TestSecretBuilder(t *testing.T) {
 	tests := []struct {
 		name     string
 		opts     SecretOpts
-		wantMeta *mariadbv1alpha1.Metadata
+		wantMeta *v1alpha1.Metadata
 	}{
 		{
 			name: "no meta",
 			opts: SecretOpts{
-				Metadata: []*mariadbv1alpha1.Metadata{},
+				Metadata: []*v1alpha1.Metadata{},
 				Key: types.NamespacedName{
 					Name: "configmap",
 				},
@@ -28,7 +29,7 @@ func TestSecretBuilder(t *testing.T) {
 					"password": []byte("test"),
 				},
 			},
-			wantMeta: &mariadbv1alpha1.Metadata{
+			wantMeta: &v1alpha1.Metadata{
 				Labels:      map[string]string{},
 				Annotations: map[string]string{},
 			},
@@ -36,7 +37,7 @@ func TestSecretBuilder(t *testing.T) {
 		{
 			name: "single meta",
 			opts: SecretOpts{
-				Metadata: []*mariadbv1alpha1.Metadata{
+				Metadata: []*v1alpha1.Metadata{
 					{
 						Labels: map[string]string{
 							"database.myorg.io": "mariadb",
@@ -53,7 +54,7 @@ func TestSecretBuilder(t *testing.T) {
 					"password": []byte("test"),
 				},
 			},
-			wantMeta: &mariadbv1alpha1.Metadata{
+			wantMeta: &v1alpha1.Metadata{
 				Labels: map[string]string{
 					"database.myorg.io": "mariadb",
 				},
@@ -65,7 +66,7 @@ func TestSecretBuilder(t *testing.T) {
 		{
 			name: "multiple meta",
 			opts: SecretOpts{
-				Metadata: []*mariadbv1alpha1.Metadata{
+				Metadata: []*v1alpha1.Metadata{
 					{
 						Labels: map[string]string{
 							"database.myorg.io": "mariadb",
@@ -87,7 +88,7 @@ func TestSecretBuilder(t *testing.T) {
 					"password": []byte("test"),
 				},
 			},
-			wantMeta: &mariadbv1alpha1.Metadata{
+			wantMeta: &v1alpha1.Metadata{
 				Labels: map[string]string{
 					"database.myorg.io":       "mariadb",
 					"sidecar.istio.io/inject": "false",
@@ -121,7 +122,7 @@ func TestBuildSecret(t *testing.T) {
 		{
 			name: "no owner",
 			opts: SecretOpts{
-				Metadata: []*mariadbv1alpha1.Metadata{},
+				Metadata: []*v1alpha1.Metadata{},
 				Key: types.NamespacedName{
 					Name:      "test-secret",
 					Namespace: "default",
@@ -136,7 +137,7 @@ func TestBuildSecret(t *testing.T) {
 		{
 			name: "with owner",
 			opts: SecretOpts{
-				Metadata: []*mariadbv1alpha1.Metadata{},
+				Metadata: []*v1alpha1.Metadata{},
 				Key: types.NamespacedName{
 					Name:      "test-secret",
 					Namespace: "default",

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"

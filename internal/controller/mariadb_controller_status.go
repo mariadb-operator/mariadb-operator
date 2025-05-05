@@ -4,9 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 
 	"github.com/hashicorp/go-multierror"
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	conditions "github.com/mariadb-operator/mariadb-operator/pkg/condition"
@@ -67,7 +68,7 @@ func (r *MariaDBReconciler) reconcileStatus(ctx context.Context, mdb *mariadbv1a
 		}
 
 		if apierrors.IsNotFound(mxsErr) && !ptr.Deref(mdb.Spec.MaxScale, mariadbv1alpha1.MariaDBMaxScaleSpec{}).Enabled {
-			r.ConditionReady.PatcherRefResolver(mxsErr, mariadbv1alpha1.MaxScale{})(&mdb.Status)
+			r.ConditionReady.PatcherRefResolver(mxsErr, v1alpha1.MaxScale{})(&mdb.Status)
 			return nil
 		}
 		if mdb.IsRestoringBackup() || mdb.IsResizingStorage() || mdb.IsSwitchingPrimary() || mdb.HasGaleraNotReadyCondition() {
@@ -83,7 +84,7 @@ func (r *MariaDBReconciler) reconcileStatus(ctx context.Context, mdb *mariadbv1a
 }
 
 func (r *MariaDBReconciler) getReplicationStatus(ctx context.Context,
-	mdb *mariadbv1alpha1.MariaDB) (mariadbv1alpha1.ReplicationStatus, error) {
+	mdb *mariadbv1alpha1.MariaDB) (v1alpha1.ReplicationStatus, error) {
 	if !mdb.Replication().Enabled {
 		return nil, nil
 	}
@@ -94,7 +95,7 @@ func (r *MariaDBReconciler) getReplicationStatus(ctx context.Context,
 	}
 	defer clientSet.Close()
 
-	replicationStatus := make(mariadbv1alpha1.ReplicationStatus)
+	replicationStatus := make(v1alpha1.ReplicationStatus)
 	logger := log.FromContext(ctx)
 	for i := 0; i < int(mdb.Spec.Replicas); i++ {
 		pod := stspkg.PodName(mdb.ObjectMeta, i)
@@ -117,11 +118,11 @@ func (r *MariaDBReconciler) getReplicationStatus(ctx context.Context,
 			continue
 		}
 
-		state := mariadbv1alpha1.ReplicationStateNotConfigured
+		state := v1alpha1.ReplicationStateNotConfigured
 		if masterEnabled {
-			state = mariadbv1alpha1.ReplicationStateMaster
+			state = v1alpha1.ReplicationStateMaster
 		} else if slaveEnabled {
-			state = mariadbv1alpha1.ReplicationStateSlave
+			state = v1alpha1.ReplicationStateSlave
 		}
 		replicationStatus[pod] = state
 	}
@@ -199,8 +200,8 @@ func (r *MariaDBReconciler) getStatefulSetRevision(ctx context.Context, mdb *mar
 	return sts.Status.UpdateRevision, nil
 }
 
-func podIndexForServer(serverName string, mxs *mariadbv1alpha1.MaxScale, mdb *mariadbv1alpha1.MariaDB) (*int, error) {
-	var server *mariadbv1alpha1.MaxScaleServer
+func podIndexForServer(serverName string, mxs *v1alpha1.MaxScale, mdb *mariadbv1alpha1.MariaDB) (*int, error) {
+	var server *v1alpha1.MaxScaleServer
 	for _, srv := range mxs.Spec.Servers {
 		if serverName == srv.Name {
 			server = &srv
@@ -226,11 +227,11 @@ func defaultPrimary(mdb *mariadbv1alpha1.MariaDB) {
 	}
 	podIndex := 0
 	if mdb.IsGaleraEnabled() {
-		galera := ptr.Deref(mdb.Spec.Galera, mariadbv1alpha1.Galera{})
+		galera := ptr.Deref(mdb.Spec.Galera, v1alpha1.Galera{})
 		podIndex = ptr.Deref(galera.Primary.PodIndex, 0)
 	}
 	if mdb.Replication().Enabled {
-		primaryReplication := ptr.Deref(mdb.Replication().Primary, mariadbv1alpha1.PrimaryReplication{})
+		primaryReplication := ptr.Deref(mdb.Replication().Primary, v1alpha1.PrimaryReplication{})
 		podIndex = ptr.Deref(primaryReplication.PodIndex, 0)
 	}
 	mdb.Status.CurrentPrimaryPodIndex = &podIndex

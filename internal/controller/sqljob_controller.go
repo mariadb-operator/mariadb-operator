@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-multierror"
-	"github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/configmap"

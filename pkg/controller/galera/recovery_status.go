@@ -3,12 +3,13 @@ package galera
 import (
 	"errors"
 	"fmt"
+	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"reflect"
 	"sync"
 	"time"
 
 	"github.com/go-logr/logr"
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/datastructures"
 	"github.com/mariadb-operator/mariadb-operator/pkg/galera/recovery"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
@@ -17,7 +18,7 @@ import (
 )
 
 type recoveryStatus struct {
-	inner mariadbv1alpha1.GaleraRecoveryStatus
+	inner v1alpha1.GaleraRecoveryStatus
 	mux   *sync.RWMutex
 }
 
@@ -36,8 +37,8 @@ func (b *bootstrapSource) String() string {
 }
 
 func newRecoveryStatus(mariadb *mariadbv1alpha1.MariaDB) *recoveryStatus {
-	inner := mariadbv1alpha1.GaleraRecoveryStatus{}
-	galeraRecovery := ptr.Deref(mariadb.Status.GaleraRecovery, mariadbv1alpha1.GaleraRecoveryStatus{})
+	inner := v1alpha1.GaleraRecoveryStatus{}
+	galeraRecovery := ptr.Deref(mariadb.Status.GaleraRecovery, v1alpha1.GaleraRecoveryStatus{})
 
 	if galeraRecovery.State != nil {
 		inner.State = galeraRecovery.State
@@ -57,7 +58,7 @@ func newRecoveryStatus(mariadb *mariadbv1alpha1.MariaDB) *recoveryStatus {
 		mux:   &sync.RWMutex{},
 	}
 }
-func (rs *recoveryStatus) galeraRecoveryStatus() mariadbv1alpha1.GaleraRecoveryStatus {
+func (rs *recoveryStatus) galeraRecoveryStatus() v1alpha1.GaleraRecoveryStatus {
 	rs.mux.RLock()
 	defer rs.mux.RUnlock()
 
@@ -104,14 +105,14 @@ func (rs *recoveryStatus) reset() {
 	rs.mux.Lock()
 	defer rs.mux.Unlock()
 
-	rs.inner = mariadbv1alpha1.GaleraRecoveryStatus{}
+	rs.inner = v1alpha1.GaleraRecoveryStatus{}
 }
 
 func (rs *recoveryStatus) setBootstrapping(pod string) {
 	rs.mux.Lock()
 	defer rs.mux.Unlock()
 
-	rs.inner.Bootstrap = &mariadbv1alpha1.GaleraBootstrapStatus{
+	rs.inner.Bootstrap = &v1alpha1.GaleraBootstrapStatus{
 		Time: ptr.To(metav1.NewTime(time.Now())),
 		Pod:  &pod,
 	}
@@ -135,8 +136,8 @@ func (rs *recoveryStatus) bootstrapTimeout(mdb *mariadbv1alpha1.MariaDB) bool {
 		return false
 	}
 
-	galera := ptr.Deref(mdb.Spec.Galera, mariadbv1alpha1.Galera{})
-	recovery := ptr.Deref(galera.Recovery, mariadbv1alpha1.GaleraRecovery{})
+	galera := ptr.Deref(mdb.Spec.Galera, v1alpha1.Galera{})
+	recovery := ptr.Deref(galera.Recovery, v1alpha1.GaleraRecovery{})
 	timeout := ptr.Deref(recovery.ClusterBootstrapTimeout, metav1.Duration{Duration: 10 * time.Minute}).Duration
 
 	deadline := rs.inner.Bootstrap.Time.Add(timeout)

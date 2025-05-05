@@ -4,9 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"sort"
 
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	"github.com/mariadb-operator/mariadb-operator/pkg/pod"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
@@ -131,7 +132,7 @@ func HealthyMariaDBReplica(ctx context.Context, client client.Client, mariadb *m
 	return nil, ErrNoHealthyInstancesAvailable
 }
 
-func HealthyMaxScalePod(ctx context.Context, client client.Client, maxscale *mariadbv1alpha1.MaxScale) (*int, error) {
+func HealthyMaxScalePod(ctx context.Context, client client.Client, maxscale *v1alpha1.MaxScale) (*int, error) {
 	podList := corev1.PodList{}
 	listOpts := &ctrlclient.ListOptions{
 		LabelSelector: klabels.SelectorFromSet(

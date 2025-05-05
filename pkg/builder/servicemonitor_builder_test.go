@@ -1,9 +1,10 @@
 package builder
 
 import (
+	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"testing"
 
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 )
 
 func TestServiceMonitorMeta(t *testing.T) {
@@ -11,7 +12,7 @@ func TestServiceMonitorMeta(t *testing.T) {
 	tests := []struct {
 		name     string
 		mariadb  *mariadbv1alpha1.MariaDB
-		wantMeta *mariadbv1alpha1.Metadata
+		wantMeta *v1alpha1.Metadata
 	}{
 		{
 			name: "no meta",
@@ -22,7 +23,7 @@ func TestServiceMonitorMeta(t *testing.T) {
 					},
 				},
 			},
-			wantMeta: &mariadbv1alpha1.Metadata{
+			wantMeta: &v1alpha1.Metadata{
 				Labels:      map[string]string{},
 				Annotations: map[string]string{},
 			},
@@ -34,7 +35,7 @@ func TestServiceMonitorMeta(t *testing.T) {
 					Metrics: &mariadbv1alpha1.MariadbMetrics{
 						Enabled: true,
 					},
-					InheritMetadata: &mariadbv1alpha1.Metadata{
+					InheritMetadata: &v1alpha1.Metadata{
 						Labels: map[string]string{
 							"database.myorg.io": "mariadb",
 						},
@@ -44,7 +45,7 @@ func TestServiceMonitorMeta(t *testing.T) {
 					},
 				},
 			},
-			wantMeta: &mariadbv1alpha1.Metadata{
+			wantMeta: &v1alpha1.Metadata{
 				Labels: map[string]string{
 					"database.myorg.io": "mariadb",
 				},

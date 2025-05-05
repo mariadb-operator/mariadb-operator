@@ -5,11 +5,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"sort"
 	"time"
 
 	"github.com/go-logr/logr"
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	builderpki "github.com/mariadb-operator/mariadb-operator/pkg/builder/pki"
 	ds "github.com/mariadb-operator/mariadb-operator/pkg/datastructures"
 	"github.com/mariadb-operator/mariadb-operator/pkg/health"
@@ -25,12 +26,12 @@ import (
 // MaxScale API
 
 type maxScaleAPI struct {
-	mxs         *mariadbv1alpha1.MaxScale
+	mxs         *v1alpha1.MaxScale
 	client      *mxsclient.Client
 	refResolver *refresolver.RefResolver
 }
 
-func newMaxScaleAPI(mxs *mariadbv1alpha1.MaxScale, client *mxsclient.Client, refResolver *refresolver.RefResolver) *maxScaleAPI {
+func newMaxScaleAPI(mxs *v1alpha1.MaxScale, client *mxsclient.Client, refResolver *refresolver.RefResolver) *maxScaleAPI {
 	return &maxScaleAPI{
 		mxs:         mxs,
 		client:      client,
@@ -57,7 +58,7 @@ func (m *maxScaleAPI) patchUser(ctx context.Context, username, password string) 
 
 // MaxScale API - Servers
 
-func (m *maxScaleAPI) createServer(ctx context.Context, srv *mariadbv1alpha1.MaxScaleServer) error {
+func (m *maxScaleAPI) createServer(ctx context.Context, srv *v1alpha1.MaxScaleServer) error {
 	serverAttrs, err := m.serverAttributes(srv)
 	if err != nil {
 		return fmt.Errorf("error getting server attributes: %v", err)
@@ -69,7 +70,7 @@ func (m *maxScaleAPI) deleteServer(ctx context.Context, name string) error {
 	return m.client.Server.Delete(ctx, name, mxsclient.WithForceQuery())
 }
 
-func (m *maxScaleAPI) patchServer(ctx context.Context, srv *mariadbv1alpha1.MaxScaleServer) error {
+func (m *maxScaleAPI) patchServer(ctx context.Context, srv *v1alpha1.MaxScaleServer) error {
 	serverAttrs, err := m.serverAttributes(srv)
 	if err != nil {
 		return fmt.Errorf("error getting server attributes: %v", err)
@@ -77,14 +78,14 @@ func (m *maxScaleAPI) patchServer(ctx context.Context, srv *mariadbv1alpha1.MaxS
 	return m.client.Server.Patch(ctx, srv.Name, serverAttrs)
 }
 
-func (m *maxScaleAPI) updateServerState(ctx context.Context, srv *mariadbv1alpha1.MaxScaleServer) error {
+func (m *maxScaleAPI) updateServerState(ctx context.Context, srv *v1alpha1.MaxScaleServer) error {
 	if srv.Maintenance {
 		return m.client.Server.SetMaintenance(ctx, srv.Name)
 	}
 	return m.client.Server.ClearMaintenance(ctx, srv.Name)
 }
 
-func (m *maxScaleAPI) serverAttributes(srv *mariadbv1alpha1.MaxScaleServer) (*mxsclient.ServerAttributes, error) {
+func (m *maxScaleAPI) serverAttributes(srv *v1alpha1.MaxScaleServer) (*mxsclient.ServerAttributes, error) {
 	attrs := mxsclient.ServerAttributes{
 		Parameters: mxsclient.ServerParameters{
 			Address:  srv.Address,
@@ -103,7 +104,7 @@ func (m *maxScaleAPI) serverAttributes(srv *mariadbv1alpha1.MaxScaleServer) (*mx
 		attrs.Parameters.SSLVerifyPeerHost = m.mxs.ShouldVerifyPeerHost()
 
 		if m.mxs.IsReplicationSSLEnabled() {
-			tls := ptr.Deref(m.mxs.Spec.TLS, mariadbv1alpha1.MaxScaleTLS{})
+			tls := ptr.Deref(m.mxs.Spec.TLS, v1alpha1.MaxScaleTLS{})
 			replicationCustomOptions, err := maxScaleReplicationCustomOptions(&tls)
 			if err != nil {
 				return nil, err
@@ -114,7 +115,7 @@ func (m *maxScaleAPI) serverAttributes(srv *mariadbv1alpha1.MaxScaleServer) (*mx
 	return &attrs, nil
 }
 
-func maxScaleReplicationCustomOptions(tls *mariadbv1alpha1.MaxScaleTLS) (string, error) {
+func maxScaleReplicationCustomOptions(tls *v1alpha1.MaxScaleTLS) (string, error) {
 	if !tls.Enabled {
 		return "", errors.New("MaxScale TLS must be enabled")
 	}
@@ -193,11 +194,11 @@ func (m *maxScaleAPI) monitorAttributes(ctx context.Context) (*mxsclient.Monitor
 			Params:          mxsclient.NewMapParams(m.mxs.Spec.Monitor.Params),
 		},
 	}
-	if m.mxs.IsHAEnabled() && m.mxs.Spec.Monitor.Module == mariadbv1alpha1.MonitorModuleMariadb {
+	if m.mxs.IsHAEnabled() && m.mxs.Spec.Monitor.Module == v1alpha1.MonitorModuleMariadb {
 		if m.mxs.Spec.Monitor.CooperativeMonitoring != nil {
 			attrs.Parameters.CooperativeMonitoringLocks = m.mxs.Spec.Monitor.CooperativeMonitoring
 		} else {
-			attrs.Parameters.CooperativeMonitoringLocks = ptr.To(mariadbv1alpha1.CooperativeMonitoringMajorityOfAll)
+			attrs.Parameters.CooperativeMonitoringLocks = ptr.To(v1alpha1.CooperativeMonitoringMajorityOfAll)
 		}
 	}
 	return attrs, nil
@@ -205,7 +206,7 @@ func (m *maxScaleAPI) monitorAttributes(ctx context.Context) (*mxsclient.Monitor
 
 // MaxScale API - Services
 
-func (m *maxScaleAPI) createService(ctx context.Context, svc *mariadbv1alpha1.MaxScaleService, rels *mxsclient.Relationships) error {
+func (m *maxScaleAPI) createService(ctx context.Context, svc *v1alpha1.MaxScaleService, rels *mxsclient.Relationships) error {
 	attrs, err := m.serviceAttributes(ctx, svc)
 	if err != nil {
 		return fmt.Errorf("error getting service attributes: %v", err)
@@ -217,7 +218,7 @@ func (m *maxScaleAPI) deleteService(ctx context.Context, name string) error {
 	return m.client.Service.Delete(ctx, name, mxsclient.WithForceQuery())
 }
 
-func (m *maxScaleAPI) patchService(ctx context.Context, svc *mariadbv1alpha1.MaxScaleService, rels *mxsclient.Relationships) error {
+func (m *maxScaleAPI) patchService(ctx context.Context, svc *v1alpha1.MaxScaleService, rels *mxsclient.Relationships) error {
 	attrs, err := m.serviceAttributes(ctx, svc)
 	if err != nil {
 		return fmt.Errorf("error getting service attributes: %v", err)
@@ -225,14 +226,14 @@ func (m *maxScaleAPI) patchService(ctx context.Context, svc *mariadbv1alpha1.Max
 	return m.client.Service.Patch(ctx, svc.Name, attrs, mxsclient.WithRelationships(rels))
 }
 
-func (m *maxScaleAPI) updateServiceState(ctx context.Context, svc *mariadbv1alpha1.MaxScaleService) error {
+func (m *maxScaleAPI) updateServiceState(ctx context.Context, svc *v1alpha1.MaxScaleService) error {
 	if svc.Suspend {
 		return m.client.Service.Stop(ctx, svc.Name)
 	}
 	return m.client.Service.Start(ctx, svc.Name)
 }
 
-func (m *maxScaleAPI) serviceAttributes(ctx context.Context, svc *mariadbv1alpha1.MaxScaleService) (*mxsclient.ServiceAttributes, error) {
+func (m *maxScaleAPI) serviceAttributes(ctx context.Context, svc *v1alpha1.MaxScaleService) (*mxsclient.ServiceAttributes, error) {
 	password, err := m.refResolver.SecretKeyRef(ctx, m.mxs.Spec.Auth.ServerPasswordSecretKeyRef.SecretKeySelector, m.mxs.Namespace)
 	if err != nil {
 		return nil, fmt.Errorf("error getting server password: %v", err)
@@ -255,7 +256,7 @@ func (m *maxScaleAPI) serviceRelationships(service string) *mxsclient.Relationsh
 
 // MaxScale API - Listeners
 
-func (m *maxScaleAPI) createListener(ctx context.Context, listener *mariadbv1alpha1.MaxScaleListener, rels *mxsclient.Relationships) error {
+func (m *maxScaleAPI) createListener(ctx context.Context, listener *v1alpha1.MaxScaleListener, rels *mxsclient.Relationships) error {
 	return m.client.Listener.Create(ctx, listener.Name, m.listenerAttributes(listener), mxsclient.WithRelationships(rels))
 }
 
@@ -263,18 +264,18 @@ func (m *maxScaleAPI) deleteListener(ctx context.Context, name string) error {
 	return m.client.Listener.Delete(ctx, name, mxsclient.WithForceQuery())
 }
 
-func (m *maxScaleAPI) patchListener(ctx context.Context, listener *mariadbv1alpha1.MaxScaleListener, rels *mxsclient.Relationships) error {
+func (m *maxScaleAPI) patchListener(ctx context.Context, listener *v1alpha1.MaxScaleListener, rels *mxsclient.Relationships) error {
 	return m.client.Listener.Patch(ctx, listener.Name, m.listenerAttributes(listener), mxsclient.WithRelationships(rels))
 }
 
-func (m *maxScaleAPI) updateListenerState(ctx context.Context, listener *mariadbv1alpha1.MaxScaleListener) error {
+func (m *maxScaleAPI) updateListenerState(ctx context.Context, listener *v1alpha1.MaxScaleListener) error {
 	if listener.Suspend {
 		return m.client.Listener.Stop(ctx, listener.Name)
 	}
 	return m.client.Listener.Start(ctx, listener.Name)
 }
 
-func (m *maxScaleAPI) listenerAttributes(listener *mariadbv1alpha1.MaxScaleListener) *mxsclient.ListenerAttributes {
+func (m *maxScaleAPI) listenerAttributes(listener *v1alpha1.MaxScaleListener) *mxsclient.ListenerAttributes {
 	attrs := mxsclient.ListenerAttributes{
 		Parameters: mxsclient.ListenerParameters{
 			Port:     listener.Port,
@@ -335,7 +336,7 @@ func (m *maxScaleAPI) patchMaxScaleConfigSync(ctx context.Context) error {
 
 // MaxScale client
 
-func (r *MaxScaleReconciler) defaultClientWithPodIndex(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,
+func (r *MaxScaleReconciler) defaultClientWithPodIndex(ctx context.Context, mxs *v1alpha1.MaxScale,
 	podIndex int) (*mxsclient.Client, error) {
 	opts := []mdbhttp.Option{
 		mdbhttp.WithTimeout(10 * time.Second),
@@ -354,11 +355,11 @@ func (r *MaxScaleReconciler) defaultClientWithPodIndex(ctx context.Context, mxs 
 	return mxsclient.NewClientWithDefaultCredentials(mxs.PodAPIUrl(podIndex), opts...)
 }
 
-func (r *MaxScaleReconciler) client(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) (*mxsclient.Client, error) {
+func (r *MaxScaleReconciler) client(ctx context.Context, mxs *v1alpha1.MaxScale) (*mxsclient.Client, error) {
 	return r.clientWithAPIUrl(ctx, mxs, mxs.APIUrl())
 }
 
-func (r *MaxScaleReconciler) clientSetByPod(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) (map[string]*mxsclient.Client, error) {
+func (r *MaxScaleReconciler) clientSetByPod(ctx context.Context, mxs *v1alpha1.MaxScale) (map[string]*mxsclient.Client, error) {
 	clientSet := make(map[string]*mxsclient.Client, mxs.Spec.Replicas)
 	for i := 0; i < int(mxs.Spec.Replicas); i++ {
 		pod := stsobj.PodName(mxs.ObjectMeta, i)
@@ -372,7 +373,7 @@ func (r *MaxScaleReconciler) clientSetByPod(ctx context.Context, mxs *mariadbv1a
 	return clientSet, nil
 }
 
-func (r *MaxScaleReconciler) clientWitHealthyPod(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) (*mxsclient.Client, error) {
+func (r *MaxScaleReconciler) clientWitHealthyPod(ctx context.Context, mxs *v1alpha1.MaxScale) (*mxsclient.Client, error) {
 	podIndex, err := health.HealthyMaxScalePod(ctx, r.Client, mxs)
 	if err != nil {
 		return nil, fmt.Errorf("error getting healthy Pod: %v", err)
@@ -380,12 +381,12 @@ func (r *MaxScaleReconciler) clientWitHealthyPod(ctx context.Context, mxs *maria
 	return r.clientWithPodIndex(ctx, mxs, *podIndex)
 }
 
-func (r *MaxScaleReconciler) clientWithPodIndex(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,
+func (r *MaxScaleReconciler) clientWithPodIndex(ctx context.Context, mxs *v1alpha1.MaxScale,
 	podIndex int) (*mxsclient.Client, error) {
 	return r.clientWithAPIUrl(ctx, mxs, mxs.PodAPIUrl(podIndex))
 }
 
-func (r *MaxScaleReconciler) clientWithAPIUrl(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,
+func (r *MaxScaleReconciler) clientWithAPIUrl(ctx context.Context, mxs *v1alpha1.MaxScale,
 	apiUrl string) (*mxsclient.Client, error) {
 	password, err := r.RefResolver.SecretKeyRef(ctx, mxs.Spec.Auth.AdminPasswordSecretKeyRef.SecretKeySelector, mxs.Namespace)
 	if err != nil {
@@ -410,7 +411,7 @@ func (r *MaxScaleReconciler) clientWithAPIUrl(ctx context.Context, mxs *mariadbv
 	return mxsclient.NewClient(apiUrl, opts...)
 }
 
-func (r *MaxScaleReconciler) getClientTLSOptions(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) ([]mdbhttp.Option, error) {
+func (r *MaxScaleReconciler) getClientTLSOptions(ctx context.Context, mxs *v1alpha1.MaxScale) ([]mdbhttp.Option, error) {
 	if !mxs.IsTLSEnabled() {
 		return nil, nil
 	}

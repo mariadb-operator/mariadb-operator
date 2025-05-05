@@ -5,12 +5,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"reflect"
 	"text/template"
 	"time"
 
 	"github.com/hashicorp/go-multierror"
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
@@ -262,8 +263,8 @@ func (r *MariaDBReconciler) reconcileSecret(ctx context.Context, mariadb *mariad
 	if mariadb.Spec.PasswordSecretKeyRef != nil {
 		secretKeyRefs = append(secretKeyRefs, *mariadb.Spec.PasswordSecretKeyRef)
 	}
-	galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
-	basicAuth := ptr.Deref(galera.Agent.BasicAuth, mariadbv1alpha1.BasicAuth{})
+	galera := ptr.Deref(mariadb.Spec.Galera, v1alpha1.Galera{})
+	basicAuth := ptr.Deref(galera.Agent.BasicAuth, v1alpha1.BasicAuth{})
 	if galera.Enabled && basicAuth.Enabled && !reflect.ValueOf(galera.Agent.BasicAuth.PasswordSecretKeyRef).IsZero() {
 		secretKeyRefs = append(secretKeyRefs, galera.Agent.BasicAuth.PasswordSecretKeyRef)
 	}
@@ -611,7 +612,7 @@ func (r *MariaDBReconciler) reconcileInternalService(ctx context.Context, mariad
 		ports = append(ports, kadapter.ToKubernetesSlice(mariadb.Spec.ServicePorts)...)
 	}
 	if mariadb.IsGaleraEnabled() {
-		agent := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{}).Agent
+		agent := ptr.Deref(mariadb.Spec.Galera, v1alpha1.Galera{}).Agent
 		ports = append(ports, []corev1.ServicePort{
 			{
 				Name: galeraresources.GaleraClusterPortName,
@@ -1014,7 +1015,7 @@ func (r *MariaDBReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manag
 	opts controller.Options) error {
 	builder := ctrl.NewControllerManagedBy(mgr).
 		For(&mariadbv1alpha1.MariaDB{}).
-		Owns(&mariadbv1alpha1.MaxScale{}).
+		Owns(&v1alpha1.MaxScale{}).
 		Owns(&mariadbv1alpha1.Connection{}).
 		Owns(&mariadbv1alpha1.Restore{}).
 		Owns(&mariadbv1alpha1.User{}).

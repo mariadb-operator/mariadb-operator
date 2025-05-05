@@ -3,8 +3,9 @@ package replication
 import (
 	"context"
 	"fmt"
+	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	builderpki "github.com/mariadb-operator/mariadb-operator/pkg/builder/pki"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
@@ -141,7 +142,7 @@ func (r *ReplicationConfig) changeMaster(ctx context.Context, mariadb *mariadbv1
 		return fmt.Errorf("error getting replication password: %v", err)
 	}
 
-	gtid := mariadbv1alpha1.GtidCurrentPos
+	gtid := v1alpha1.GtidCurrentPos
 	if mariadb.Replication().Replica.Gtid != nil {
 		gtid = *mariadb.Replication().Replica.Gtid
 	}

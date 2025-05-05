@@ -1,10 +1,11 @@
 package controller
 
 import (
+	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"os"
 	"time"
 
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
 	stsobj "github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	. "github.com/onsi/ginkgo/v2"
@@ -123,11 +124,11 @@ var _ = Describe("MariaDB", func() {
 
 		By("Expecting MariaDB to eventually be suspended")
 		expectMariadbFn(testCtx, k8sClient, key, func(mdb *mariadbv1alpha1.MariaDB) bool {
-			condition := meta.FindStatusCondition(mdb.Status.Conditions, mariadbv1alpha1.ConditionTypeReady)
+			condition := meta.FindStatusCondition(mdb.Status.Conditions, v1alpha1.ConditionTypeReady)
 			if condition == nil {
 				return false
 			}
-			return condition.Status == metav1.ConditionFalse && condition.Reason == mariadbv1alpha1.ConditionReasonSuspended
+			return condition.Status == metav1.ConditionFalse && condition.Reason == v1alpha1.ConditionReasonSuspended
 		})
 	})
 
@@ -701,7 +702,7 @@ var _ = Describe("MariaDB", func() {
 		restoreSource := mariadbv1alpha1.RestoreSource{
 			S3: getS3WithBucket("test-mariadb", "s3"),
 			StagingStorage: &mariadbv1alpha1.BackupStagingStorage{
-				PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimSpec{
+				PersistentVolumeClaim: &v1alpha1.PersistentVolumeClaimSpec{
 					AccessModes: []corev1.PersistentVolumeAccessMode{
 						corev1.ReadWriteOnce,
 					},

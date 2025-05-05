@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"github.com/go-sql-driver/mysql"
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	"github.com/mariadb-operator/mariadb-operator/pkg/pki"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"

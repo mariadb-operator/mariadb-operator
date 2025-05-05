@@ -4,9 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	v1alpha2 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"reflect"
 
-	"github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	galerakeys "github.com/mariadb-operator/mariadb-operator/pkg/galera/config/keys"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -163,7 +164,7 @@ func validateMaxScale(mariadb *v1alpha1.MariaDB) error {
 }
 
 func validateGalera(mariadb *v1alpha1.MariaDB) error {
-	galera := ptr.Deref(mariadb.Spec.Galera, v1alpha1.Galera{})
+	galera := ptr.Deref(mariadb.Spec.Galera, v1alpha2.Galera{})
 	if !galera.Enabled {
 		return nil
 	}

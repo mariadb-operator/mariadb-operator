@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/sql"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"

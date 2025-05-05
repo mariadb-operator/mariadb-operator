@@ -3,8 +3,9 @@ package builder
 import (
 	"errors"
 	"fmt"
+	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	metadata "github.com/mariadb-operator/mariadb-operator/pkg/builder/metadata"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
@@ -39,12 +40,12 @@ func ValidateServicePorts(ports []corev1.ServicePort) error {
 }
 
 type ServiceOpts struct {
-	mariadbv1alpha1.ServiceTemplate
+	v1alpha1.ServiceTemplate
 	SelectorLabels        map[string]string
 	ExcludeSelectorLabels bool
 	Ports                 []corev1.ServicePort
 	Headless              bool
-	ExtraMeta             *mariadbv1alpha1.Metadata
+	ExtraMeta             *v1alpha1.Metadata
 }
 
 func (b *Builder) BuildService(key types.NamespacedName, owner metav1.Object, opts ServiceOpts) (*corev1.Service, error) {

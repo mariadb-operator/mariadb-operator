@@ -8,7 +8,7 @@ import (
 	"time"
 
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	agentcmd "github.com/mariadb-operator/mariadb-operator/cmd/agent"
 	backupcmd "github.com/mariadb-operator/mariadb-operator/cmd/backup"
 	initcmd "github.com/mariadb-operator/mariadb-operator/cmd/init"

@@ -1,9 +1,10 @@
 package builder
 
 import (
+	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"testing"
 
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -16,15 +17,15 @@ func TestServiceMeta(t *testing.T) {
 	tests := []struct {
 		name     string
 		opts     ServiceOpts
-		wantMeta *mariadbv1alpha1.Metadata
+		wantMeta *v1alpha1.Metadata
 	}{
 		{
 			name: "no meta",
 			opts: ServiceOpts{
-				ExtraMeta:             &mariadbv1alpha1.Metadata{},
+				ExtraMeta:             &v1alpha1.Metadata{},
 				ExcludeSelectorLabels: true,
 			},
-			wantMeta: &mariadbv1alpha1.Metadata{
+			wantMeta: &v1alpha1.Metadata{
 				Labels:      map[string]string{},
 				Annotations: map[string]string{},
 			},
@@ -32,8 +33,8 @@ func TestServiceMeta(t *testing.T) {
 		{
 			name: "meta",
 			opts: ServiceOpts{
-				ServiceTemplate: mariadbv1alpha1.ServiceTemplate{
-					Metadata: &mariadbv1alpha1.Metadata{
+				ServiceTemplate: v1alpha1.ServiceTemplate{
+					Metadata: &v1alpha1.Metadata{
 						Labels: map[string]string{
 							"database.myorg.io": "mariadb",
 						},
@@ -44,7 +45,7 @@ func TestServiceMeta(t *testing.T) {
 				},
 				ExcludeSelectorLabels: true,
 			},
-			wantMeta: &mariadbv1alpha1.Metadata{
+			wantMeta: &v1alpha1.Metadata{
 				Labels: map[string]string{
 					"database.myorg.io": "mariadb",
 				},
@@ -56,7 +57,7 @@ func TestServiceMeta(t *testing.T) {
 		{
 			name: "extra meta",
 			opts: ServiceOpts{
-				ExtraMeta: &mariadbv1alpha1.Metadata{
+				ExtraMeta: &v1alpha1.Metadata{
 					Labels: map[string]string{
 						"database.myorg.io": "mariadb",
 					},
@@ -66,7 +67,7 @@ func TestServiceMeta(t *testing.T) {
 				},
 				ExcludeSelectorLabels: true,
 			},
-			wantMeta: &mariadbv1alpha1.Metadata{
+			wantMeta: &v1alpha1.Metadata{
 				Labels: map[string]string{
 					"database.myorg.io": "mariadb",
 				},
@@ -78,8 +79,8 @@ func TestServiceMeta(t *testing.T) {
 		{
 			name: "meta and extra meta",
 			opts: ServiceOpts{
-				ServiceTemplate: mariadbv1alpha1.ServiceTemplate{
-					Metadata: &mariadbv1alpha1.Metadata{
+				ServiceTemplate: v1alpha1.ServiceTemplate{
+					Metadata: &v1alpha1.Metadata{
 						Labels: map[string]string{
 							"database.myorg.io": "mariadb",
 						},
@@ -88,7 +89,7 @@ func TestServiceMeta(t *testing.T) {
 						},
 					},
 				},
-				ExtraMeta: &mariadbv1alpha1.Metadata{
+				ExtraMeta: &v1alpha1.Metadata{
 					Labels: map[string]string{
 						"database.myorg.io": "mariadb",
 					},
@@ -98,7 +99,7 @@ func TestServiceMeta(t *testing.T) {
 				},
 				ExcludeSelectorLabels: true,
 			},
-			wantMeta: &mariadbv1alpha1.Metadata{
+			wantMeta: &v1alpha1.Metadata{
 				Labels: map[string]string{
 					"database.myorg.io": "mariadb",
 				},

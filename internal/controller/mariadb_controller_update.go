@@ -4,12 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"sort"
 	"strconv"
 	"time"
 
 	"github.com/go-logr/logr"
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	builderpki "github.com/mariadb-operator/mariadb-operator/pkg/builder/pki"
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
@@ -348,6 +349,6 @@ func shouldTriggerSwitchover(mariadb *mariadbv1alpha1.MariaDB) bool {
 	if mariadb.IsMaxScaleEnabled() || mariadb.IsRestoringBackup() {
 		return false
 	}
-	primaryRepl := ptr.Deref(mariadb.Replication().Primary, mariadbv1alpha1.PrimaryReplication{})
+	primaryRepl := ptr.Deref(mariadb.Replication().Primary, v1alpha1.PrimaryReplication{})
 	return mariadb.Replication().Enabled && *primaryRepl.AutomaticFailover && mariadb.IsReplicationConfigured()
 }

@@ -2,8 +2,9 @@ package builder
 
 import (
 	"fmt"
+	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	metadata "github.com/mariadb-operator/mariadb-operator/pkg/builder/metadata"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -13,7 +14,7 @@ import (
 )
 
 func (b *Builder) BuildServiceAccount(key types.NamespacedName, owner metav1.Object,
-	meta *mariadbv1alpha1.Metadata) (*corev1.ServiceAccount, error) {
+	meta *v1alpha1.Metadata) (*corev1.ServiceAccount, error) {
 	objMeta :=
 		metadata.NewMetadataBuilder(key).
 			WithMetadata(meta).

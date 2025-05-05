@@ -2,8 +2,8 @@ package client
 
 import (
 	"encoding/json"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	mdbhttp "github.com/mariadb-operator/mariadb-operator/pkg/http"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -43,8 +43,8 @@ func (m MonitorParameters) MarshalJSON() ([]byte, error) {
 }
 
 type MonitorAttributes struct {
-	Module     mariadbv1alpha1.MonitorModule `json:"module"`
-	State      string                        `json:"state,omitempty"`
+	Module mariadbv1alpha1.MonitorModule `json:"module"`
+	State  string                        `json:"state,omitempty"`
 	Parameters MonitorParameters             `json:"parameters"`
 }
 

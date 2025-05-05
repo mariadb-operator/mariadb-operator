@@ -1,9 +1,10 @@
 package builder
 
 import (
+	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"testing"
 
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -19,17 +20,17 @@ func TestRestoreMeta(t *testing.T) {
 	tests := []struct {
 		name            string
 		mariadb         *mariadbv1alpha1.MariaDB
-		wantRestoreMeta *mariadbv1alpha1.Metadata
-		wantPodMeta     *mariadbv1alpha1.Metadata
+		wantRestoreMeta *v1alpha1.Metadata
+		wantPodMeta     *v1alpha1.Metadata
 	}{
 		{
 			name:    "no meta",
 			mariadb: &mariadbv1alpha1.MariaDB{},
-			wantRestoreMeta: &mariadbv1alpha1.Metadata{
+			wantRestoreMeta: &v1alpha1.Metadata{
 				Labels:      map[string]string{},
 				Annotations: map[string]string{},
 			},
-			wantPodMeta: &mariadbv1alpha1.Metadata{
+			wantPodMeta: &v1alpha1.Metadata{
 				Labels:      map[string]string{},
 				Annotations: map[string]string{},
 			},
@@ -38,7 +39,7 @@ func TestRestoreMeta(t *testing.T) {
 			name: "inherit meta",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					InheritMetadata: &mariadbv1alpha1.Metadata{
+					InheritMetadata: &v1alpha1.Metadata{
 						Labels: map[string]string{
 							"database.myorg.io": "mariadb",
 						},
@@ -48,7 +49,7 @@ func TestRestoreMeta(t *testing.T) {
 					},
 				},
 			},
-			wantRestoreMeta: &mariadbv1alpha1.Metadata{
+			wantRestoreMeta: &v1alpha1.Metadata{
 				Labels: map[string]string{
 					"database.myorg.io": "mariadb",
 				},
@@ -56,7 +57,7 @@ func TestRestoreMeta(t *testing.T) {
 					"database.myorg.io": "mariadb",
 				},
 			},
-			wantPodMeta: &mariadbv1alpha1.Metadata{
+			wantPodMeta: &v1alpha1.Metadata{
 				Labels: map[string]string{
 					"database.myorg.io": "mariadb",
 				},
@@ -70,8 +71,8 @@ func TestRestoreMeta(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					BootstrapFrom: &mariadbv1alpha1.BootstrapFrom{
-						RestoreJob: &mariadbv1alpha1.Job{
-							Metadata: &mariadbv1alpha1.Metadata{
+						RestoreJob: &v1alpha1.Job{
+							Metadata: &v1alpha1.Metadata{
 								Labels: map[string]string{
 									"database.myorg.io": "job",
 								},
@@ -83,11 +84,11 @@ func TestRestoreMeta(t *testing.T) {
 					},
 				},
 			},
-			wantRestoreMeta: &mariadbv1alpha1.Metadata{
+			wantRestoreMeta: &v1alpha1.Metadata{
 				Labels:      map[string]string{},
 				Annotations: map[string]string{},
 			},
-			wantPodMeta: &mariadbv1alpha1.Metadata{
+			wantPodMeta: &v1alpha1.Metadata{
 				Labels: map[string]string{
 					"database.myorg.io": "job",
 				},
@@ -100,7 +101,7 @@ func TestRestoreMeta(t *testing.T) {
 			name: "all",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					InheritMetadata: &mariadbv1alpha1.Metadata{
+					InheritMetadata: &v1alpha1.Metadata{
 						Labels: map[string]string{
 							"database.myorg.io": "mariadb",
 						},
@@ -109,8 +110,8 @@ func TestRestoreMeta(t *testing.T) {
 						},
 					},
 					BootstrapFrom: &mariadbv1alpha1.BootstrapFrom{
-						RestoreJob: &mariadbv1alpha1.Job{
-							Metadata: &mariadbv1alpha1.Metadata{
+						RestoreJob: &v1alpha1.Job{
+							Metadata: &v1alpha1.Metadata{
 								Labels: map[string]string{
 									"database.myorg.io": "job",
 								},
@@ -122,7 +123,7 @@ func TestRestoreMeta(t *testing.T) {
 					},
 				},
 			},
-			wantRestoreMeta: &mariadbv1alpha1.Metadata{
+			wantRestoreMeta: &v1alpha1.Metadata{
 				Labels: map[string]string{
 					"database.myorg.io": "mariadb",
 				},
@@ -130,7 +131,7 @@ func TestRestoreMeta(t *testing.T) {
 					"database.myorg.io": "mariadb",
 				},
 			},
-			wantPodMeta: &mariadbv1alpha1.Metadata{
+			wantPodMeta: &v1alpha1.Metadata{
 				Labels: map[string]string{
 					"database.myorg.io": "job",
 				},

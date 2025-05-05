@@ -2,8 +2,9 @@ package builder
 
 import (
 	"fmt"
+	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	metadata "github.com/mariadb-operator/mariadb-operator/pkg/builder/metadata"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -11,14 +12,14 @@ import (
 )
 
 type ConnectionOpts struct {
-	Metadata             *mariadbv1alpha1.Metadata
+	Metadata             *v1alpha1.Metadata
 	MariaDB              *mariadbv1alpha1.MariaDB
-	MaxScale             *mariadbv1alpha1.MaxScale
+	MaxScale             *v1alpha1.MaxScale
 	Key                  types.NamespacedName
 	Username             string
 	PasswordSecretKeyRef *mariadbv1alpha1.SecretKeySelector
 	Database             *string
-	Template             *mariadbv1alpha1.ConnectionTemplate
+	Template             *v1alpha1.ConnectionTemplate
 }
 
 func (b *Builder) BuildConnection(opts ConnectionOpts, owner metav1.Object) (*mariadbv1alpha1.Connection, error) {
@@ -35,7 +36,7 @@ func (b *Builder) BuildConnection(opts ConnectionOpts, owner metav1.Object) (*ma
 		},
 	}
 	if opts.MariaDB != nil {
-		conn.Spec.MariaDBRef = &mariadbv1alpha1.MariaDBRef{
+		conn.Spec.MariaDBRef = &v1alpha1.MariaDBRef{
 			ObjectReference: mariadbv1alpha1.ObjectReference{
 				Name: opts.MariaDB.Name,
 			},

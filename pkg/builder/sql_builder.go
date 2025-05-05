@@ -2,8 +2,9 @@ package builder
 
 import (
 	"fmt"
+	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	metadata "github.com/mariadb-operator/mariadb-operator/pkg/builder/metadata"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -15,11 +16,11 @@ type UserOpts struct {
 	Host                     string
 	PasswordSecretKeyRef     *mariadbv1alpha1.SecretKeySelector
 	PasswordHashSecretKeyRef *mariadbv1alpha1.SecretKeySelector
-	PasswordPlugin           *mariadbv1alpha1.PasswordPlugin
+	PasswordPlugin           *v1alpha1.PasswordPlugin
 	MaxUserConnections       int32
-	CleanupPolicy            *mariadbv1alpha1.CleanupPolicy
-	Metadata                 *mariadbv1alpha1.Metadata
-	MariaDBRef               mariadbv1alpha1.MariaDBRef
+	CleanupPolicy            *v1alpha1.CleanupPolicy
+	Metadata                 *v1alpha1.Metadata
+	MariaDBRef               v1alpha1.MariaDBRef
 }
 
 func (b *Builder) BuildUser(key types.NamespacedName, owner metav1.Object, opts UserOpts) (*mariadbv1alpha1.User, error) {
@@ -59,9 +60,9 @@ type GrantOpts struct {
 	Username      string
 	Host          string
 	GrantOption   bool
-	CleanupPolicy *mariadbv1alpha1.CleanupPolicy
-	Metadata      *mariadbv1alpha1.Metadata
-	MariaDBRef    mariadbv1alpha1.MariaDBRef
+	CleanupPolicy *v1alpha1.CleanupPolicy
+	Metadata      *v1alpha1.Metadata
+	MariaDBRef    v1alpha1.MariaDBRef
 }
 
 func (b *Builder) BuildGrant(key types.NamespacedName, owner metav1.Object, opts GrantOpts) (*mariadbv1alpha1.Grant, error) {
@@ -94,8 +95,8 @@ func (b *Builder) BuildGrant(key types.NamespacedName, owner metav1.Object, opts
 
 type DatabaseOpts struct {
 	Name       string
-	Metadata   *mariadbv1alpha1.Metadata
-	MariaDBRef mariadbv1alpha1.MariaDBRef
+	Metadata   *v1alpha1.Metadata
+	MariaDBRef v1alpha1.MariaDBRef
 }
 
 func (b *Builder) BuildDatabase(key types.NamespacedName, owner metav1.Object, opts DatabaseOpts) (*mariadbv1alpha1.Database, error) {

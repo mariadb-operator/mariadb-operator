@@ -2,13 +2,14 @@ package builder
 
 import (
 	"fmt"
+	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"reflect"
 	"sort"
 	"strconv"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	builderpki "github.com/mariadb-operator/mariadb-operator/pkg/builder/pki"
 	"github.com/mariadb-operator/mariadb-operator/pkg/datastructures"
 	"github.com/mariadb-operator/mariadb-operator/pkg/discovery"
@@ -46,7 +47,7 @@ func TestMariadbStartupProbe(t *testing.T) {
 			name: "MariaDB partial",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
+					ContainerTemplate: v1alpha1.ContainerTemplate{
 						StartupProbe: &mariadbv1alpha1.Probe{
 							FailureThreshold: 10,
 							TimeoutSeconds:   5,
@@ -75,7 +76,7 @@ func TestMariadbStartupProbe(t *testing.T) {
 			name: "MariaDB full",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
+					ContainerTemplate: v1alpha1.ContainerTemplate{
 						StartupProbe: &mariadbv1alpha1.Probe{
 							ProbeHandler: mariadbv1alpha1.ProbeHandler{
 								Exec: &mariadbv1alpha1.ExecAction{
@@ -112,9 +113,9 @@ func TestMariadbStartupProbe(t *testing.T) {
 			name: "MariaDB replication empty without probes",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Replication: &mariadbv1alpha1.Replication{
+					Replication: &v1alpha1.Replication{
 						Enabled: true,
-						ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
+						ReplicationSpec: v1alpha1.ReplicationSpec{
 							ProbesEnabled: ptr.To(false),
 						},
 					},
@@ -139,9 +140,9 @@ func TestMariadbStartupProbe(t *testing.T) {
 			name: "MariaDB replication empty",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Replication: &mariadbv1alpha1.Replication{
+					Replication: &v1alpha1.Replication{
 						Enabled: true,
-						ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
+						ReplicationSpec: v1alpha1.ReplicationSpec{
 							ProbesEnabled: ptr.To(true),
 						},
 					},
@@ -166,9 +167,9 @@ func TestMariadbStartupProbe(t *testing.T) {
 			name: "MariaDB replication partial",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Replication: &mariadbv1alpha1.Replication{
+					Replication: &v1alpha1.Replication{
 						Enabled: true,
-						ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
+						ReplicationSpec: v1alpha1.ReplicationSpec{
 							ProbesEnabled: ptr.To(true),
 						},
 					},
@@ -201,9 +202,9 @@ func TestMariadbStartupProbe(t *testing.T) {
 			name: "MariaDB replication full",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Replication: &mariadbv1alpha1.Replication{
+					Replication: &v1alpha1.Replication{
 						Enabled: true,
-						ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
+						ReplicationSpec: v1alpha1.ReplicationSpec{
 							ProbesEnabled: ptr.To(true),
 						},
 					},
@@ -245,10 +246,10 @@ func TestMariadbStartupProbe(t *testing.T) {
 			name: "MariaDB Galera empty",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Galera: &mariadbv1alpha1.Galera{
+					Galera: &v1alpha1.Galera{
 						Enabled: true,
-						GaleraSpec: mariadbv1alpha1.GaleraSpec{
-							Agent: mariadbv1alpha1.GaleraAgent{
+						GaleraSpec: v1alpha1.GaleraSpec{
+							Agent: v1alpha1.GaleraAgent{
 								ProbePort: 5555,
 							},
 						},
@@ -271,10 +272,10 @@ func TestMariadbStartupProbe(t *testing.T) {
 			name: "MariaDB Galera partial",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Galera: &mariadbv1alpha1.Galera{
+					Galera: &v1alpha1.Galera{
 						Enabled: true,
-						GaleraSpec: mariadbv1alpha1.GaleraSpec{
-							Agent: mariadbv1alpha1.GaleraAgent{
+						GaleraSpec: v1alpha1.GaleraSpec{
+							Agent: v1alpha1.GaleraAgent{
 								ProbePort: 5555,
 							},
 						},
@@ -305,10 +306,10 @@ func TestMariadbStartupProbe(t *testing.T) {
 			name: "MariaDB Galera full",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Galera: &mariadbv1alpha1.Galera{
+					Galera: &v1alpha1.Galera{
 						Enabled: true,
-						GaleraSpec: mariadbv1alpha1.GaleraSpec{
-							Agent: mariadbv1alpha1.GaleraAgent{
+						GaleraSpec: v1alpha1.GaleraSpec{
+							Agent: v1alpha1.GaleraAgent{
 								ProbePort: 5555,
 							},
 						},
@@ -446,9 +447,9 @@ func TestMariadbLivenessProbe(t *testing.T) {
 			name: "MariaDB replication empty without probes",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Replication: &mariadbv1alpha1.Replication{
+					Replication: &v1alpha1.Replication{
 						Enabled: true,
-						ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
+						ReplicationSpec: v1alpha1.ReplicationSpec{
 							ProbesEnabled: ptr.To(false),
 						},
 					},
@@ -473,9 +474,9 @@ func TestMariadbLivenessProbe(t *testing.T) {
 			name: "MariaDB replication empty",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Replication: &mariadbv1alpha1.Replication{
+					Replication: &v1alpha1.Replication{
 						Enabled: true,
-						ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
+						ReplicationSpec: v1alpha1.ReplicationSpec{
 							ProbesEnabled: ptr.To(true),
 						},
 					},
@@ -500,9 +501,9 @@ func TestMariadbLivenessProbe(t *testing.T) {
 			name: "MariaDB replication partial",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Replication: &mariadbv1alpha1.Replication{
+					Replication: &v1alpha1.Replication{
 						Enabled: true,
-						ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
+						ReplicationSpec: v1alpha1.ReplicationSpec{
 							ProbesEnabled: ptr.To(true),
 						},
 					},
@@ -534,9 +535,9 @@ func TestMariadbLivenessProbe(t *testing.T) {
 			name: "MariaDB replication full",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Replication: &mariadbv1alpha1.Replication{
+					Replication: &v1alpha1.Replication{
 						Enabled: true,
-						ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
+						ReplicationSpec: v1alpha1.ReplicationSpec{
 							ProbesEnabled: ptr.To(true),
 						},
 					},
@@ -577,10 +578,10 @@ func TestMariadbLivenessProbe(t *testing.T) {
 			name: "MariaDB Galera empty",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Galera: &mariadbv1alpha1.Galera{
+					Galera: &v1alpha1.Galera{
 						Enabled: true,
-						GaleraSpec: mariadbv1alpha1.GaleraSpec{
-							Agent: mariadbv1alpha1.GaleraAgent{
+						GaleraSpec: v1alpha1.GaleraSpec{
+							Agent: v1alpha1.GaleraAgent{
 								ProbePort: 5566,
 							},
 						},
@@ -603,10 +604,10 @@ func TestMariadbLivenessProbe(t *testing.T) {
 			name: "MariaDB Galera partial",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Galera: &mariadbv1alpha1.Galera{
+					Galera: &v1alpha1.Galera{
 						Enabled: true,
-						GaleraSpec: mariadbv1alpha1.GaleraSpec{
-							Agent: mariadbv1alpha1.GaleraAgent{
+						GaleraSpec: v1alpha1.GaleraSpec{
+							Agent: v1alpha1.GaleraAgent{
 								ProbePort: 5566,
 							},
 						},
@@ -636,10 +637,10 @@ func TestMariadbLivenessProbe(t *testing.T) {
 			name: "MariaDB Galera full",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Galera: &mariadbv1alpha1.Galera{
+					Galera: &v1alpha1.Galera{
 						Enabled: true,
-						GaleraSpec: mariadbv1alpha1.GaleraSpec{
-							Agent: mariadbv1alpha1.GaleraAgent{
+						GaleraSpec: v1alpha1.GaleraSpec{
+							Agent: v1alpha1.GaleraAgent{
 								ProbePort: 5566,
 							},
 						},
@@ -776,9 +777,9 @@ func TestMariadbReadinessProbe(t *testing.T) {
 			name: "MariaDB replication empty without probes",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Replication: &mariadbv1alpha1.Replication{
+					Replication: &v1alpha1.Replication{
 						Enabled: true,
-						ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
+						ReplicationSpec: v1alpha1.ReplicationSpec{
 							ProbesEnabled: ptr.To(false),
 						},
 					},
@@ -803,9 +804,9 @@ func TestMariadbReadinessProbe(t *testing.T) {
 			name: "MariaDB replication empty",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Replication: &mariadbv1alpha1.Replication{
+					Replication: &v1alpha1.Replication{
 						Enabled: true,
-						ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
+						ReplicationSpec: v1alpha1.ReplicationSpec{
 							ProbesEnabled: ptr.To(true),
 						},
 					},
@@ -830,9 +831,9 @@ func TestMariadbReadinessProbe(t *testing.T) {
 			name: "MariaDB replication partial",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Replication: &mariadbv1alpha1.Replication{
+					Replication: &v1alpha1.Replication{
 						Enabled: true,
-						ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
+						ReplicationSpec: v1alpha1.ReplicationSpec{
 							ProbesEnabled: ptr.To(true),
 						},
 					},
@@ -864,9 +865,9 @@ func TestMariadbReadinessProbe(t *testing.T) {
 			name: "MariaDB replication full",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Replication: &mariadbv1alpha1.Replication{
+					Replication: &v1alpha1.Replication{
 						Enabled: true,
-						ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
+						ReplicationSpec: v1alpha1.ReplicationSpec{
 							ProbesEnabled: ptr.To(true),
 						},
 					},
@@ -907,10 +908,10 @@ func TestMariadbReadinessProbe(t *testing.T) {
 			name: "MariaDB Galera empty",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Galera: &mariadbv1alpha1.Galera{
+					Galera: &v1alpha1.Galera{
 						Enabled: true,
-						GaleraSpec: mariadbv1alpha1.GaleraSpec{
-							Agent: mariadbv1alpha1.GaleraAgent{
+						GaleraSpec: v1alpha1.GaleraSpec{
+							Agent: v1alpha1.GaleraAgent{
 								ProbePort: 5566,
 							},
 						},
@@ -933,10 +934,10 @@ func TestMariadbReadinessProbe(t *testing.T) {
 			name: "MariaDB Galera partial",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Galera: &mariadbv1alpha1.Galera{
+					Galera: &v1alpha1.Galera{
 						Enabled: true,
-						GaleraSpec: mariadbv1alpha1.GaleraSpec{
-							Agent: mariadbv1alpha1.GaleraAgent{
+						GaleraSpec: v1alpha1.GaleraSpec{
+							Agent: v1alpha1.GaleraAgent{
 								ProbePort: 5566,
 							},
 						},
@@ -966,10 +967,10 @@ func TestMariadbReadinessProbe(t *testing.T) {
 			name: "MariaDB Galera full",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Galera: &mariadbv1alpha1.Galera{
+					Galera: &v1alpha1.Galera{
 						Enabled: true,
-						GaleraSpec: mariadbv1alpha1.GaleraSpec{
-							Agent: mariadbv1alpha1.GaleraAgent{
+						GaleraSpec: v1alpha1.GaleraSpec{
+							Agent: v1alpha1.GaleraAgent{
 								ProbePort: 5566,
 							},
 						},
@@ -1016,15 +1017,15 @@ func TestMariadbReadinessProbe(t *testing.T) {
 func TestMaxScaleProbe(t *testing.T) {
 	tests := []struct {
 		name      string
-		maxScale  *mariadbv1alpha1.MaxScale
+		maxScale  *v1alpha1.MaxScale
 		probe     *mariadbv1alpha1.Probe
 		wantProbe *corev1.Probe
 	}{
 		{
 			name: "MaxScale empty",
-			maxScale: &mariadbv1alpha1.MaxScale{
-				Spec: mariadbv1alpha1.MaxScaleSpec{
-					Admin: mariadbv1alpha1.MaxScaleAdmin{
+			maxScale: &v1alpha1.MaxScale{
+				Spec: v1alpha1.MaxScaleSpec{
+					Admin: v1alpha1.MaxScaleAdmin{
 						Port: 8989,
 					},
 				},
@@ -1043,9 +1044,9 @@ func TestMaxScaleProbe(t *testing.T) {
 		},
 		{
 			name: "MaxScale partial",
-			maxScale: &mariadbv1alpha1.MaxScale{
-				Spec: mariadbv1alpha1.MaxScaleSpec{
-					Admin: mariadbv1alpha1.MaxScaleAdmin{
+			maxScale: &v1alpha1.MaxScale{
+				Spec: v1alpha1.MaxScaleSpec{
+					Admin: v1alpha1.MaxScaleAdmin{
 						Port: 8989,
 					},
 				},
@@ -1068,9 +1069,9 @@ func TestMaxScaleProbe(t *testing.T) {
 		},
 		{
 			name: "MaxScale full",
-			maxScale: &mariadbv1alpha1.MaxScale{
-				Spec: mariadbv1alpha1.MaxScaleSpec{
-					Admin: mariadbv1alpha1.MaxScaleAdmin{
+			maxScale: &v1alpha1.MaxScale{
+				Spec: v1alpha1.MaxScaleSpec{
+					Admin: v1alpha1.MaxScaleAdmin{
 						Port: 8989,
 					},
 				},
@@ -1100,9 +1101,9 @@ func TestMaxScaleProbe(t *testing.T) {
 		},
 		{
 			name: "MaxScale Probe with Failure Threshold",
-			maxScale: &mariadbv1alpha1.MaxScale{
-				Spec: mariadbv1alpha1.MaxScaleSpec{
-					Admin: mariadbv1alpha1.MaxScaleAdmin{
+			maxScale: &v1alpha1.MaxScale{
+				Spec: v1alpha1.MaxScaleSpec{
+					Admin: v1alpha1.MaxScaleAdmin{
 						Port: 8989,
 					},
 				},
@@ -1310,7 +1311,7 @@ func TestMariadbEnv(t *testing.T) {
 					Name: "mariadb-galera",
 				},
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Galera: &mariadbv1alpha1.Galera{
+					Galera: &v1alpha1.Galera{
 						Enabled: true,
 					},
 					TLS: &mariadbv1alpha1.TLS{
@@ -1512,7 +1513,7 @@ func TestContainerArgs(t *testing.T) {
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
 						Args: []string{"--verbose"},
 					},
-					Replication: &mariadbv1alpha1.Replication{
+					Replication: &v1alpha1.Replication{
 						Enabled: true,
 					},
 				},
@@ -1641,7 +1642,7 @@ func TestMariadbContainers(t *testing.T) {
 									"-c",
 									"sleep 1",
 								},
-								VolumeMounts: []mariadbv1alpha1.VolumeMount{
+								VolumeMounts: []v1alpha1.VolumeMount{
 									{
 										Name:      "TEST",
 										MountPath: "/test",
@@ -1806,7 +1807,7 @@ func TestMariadbInitContainers(t *testing.T) {
 									"-c",
 									"sleep 1",
 								},
-								VolumeMounts: []mariadbv1alpha1.VolumeMount{
+								VolumeMounts: []v1alpha1.VolumeMount{
 									{
 										Name:      "TEST",
 										MountPath: "/test",
@@ -1868,14 +1869,14 @@ func TestMariadbInitContainers(t *testing.T) {
 func TestMaxscaleContainers(t *testing.T) {
 	tests := []struct {
 		name        string
-		maxscale    *mariadbv1alpha1.MaxScale
+		maxscale    *v1alpha1.MaxScale
 		wantCommand []string
 		wantArgs    []string
 	}{
 		{
 			name: "Without custom command and args",
-			maxscale: &mariadbv1alpha1.MaxScale{
-				Spec: mariadbv1alpha1.MaxScaleSpec{
+			maxscale: &v1alpha1.MaxScale{
+				Spec: v1alpha1.MaxScaleSpec{
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{},
 				},
 			},
@@ -1884,8 +1885,8 @@ func TestMaxscaleContainers(t *testing.T) {
 		},
 		{
 			name: "With custom command",
-			maxscale: &mariadbv1alpha1.MaxScale{
-				Spec: mariadbv1alpha1.MaxScaleSpec{
+			maxscale: &v1alpha1.MaxScale{
+				Spec: v1alpha1.MaxScaleSpec{
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
 						Command: []string{"maxscale-test"},
 					},
@@ -1896,8 +1897,8 @@ func TestMaxscaleContainers(t *testing.T) {
 		},
 		{
 			name: "With custom command and args",
-			maxscale: &mariadbv1alpha1.MaxScale{
-				Spec: mariadbv1alpha1.MaxScaleSpec{
+			maxscale: &v1alpha1.MaxScale{
+				Spec: v1alpha1.MaxScaleSpec{
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
 						Command: []string{"maxscale-test"},
 						Args:    []string{"--test", "--unit"},

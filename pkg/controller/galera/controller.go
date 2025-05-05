@@ -3,10 +3,11 @@ package galera
 import (
 	"context"
 	"fmt"
+	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"reflect"
 
 	"github.com/go-logr/logr"
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/configmap"
@@ -89,7 +90,7 @@ func shouldReconcileSwitchover(mdb *mariadbv1alpha1.MariaDB) bool {
 		return false
 	}
 	currentPodIndex := ptr.Deref(mdb.Status.CurrentPrimaryPodIndex, 0)
-	desiredPodIndex := ptr.Deref(ptr.Deref(mdb.Spec.Galera, mariadbv1alpha1.Galera{}).Primary.PodIndex, 0)
+	desiredPodIndex := ptr.Deref(ptr.Deref(mdb.Spec.Galera, v1alpha1.Galera{}).Primary.PodIndex, 0)
 	return currentPodIndex != desiredPodIndex
 }
 
@@ -126,7 +127,7 @@ func (r *GaleraReconciler) Reconcile(ctx context.Context, mariadb *mariadbv1alph
 
 	if shouldReconcileSwitchover(mariadb) {
 		fromIndex := *mariadb.Status.CurrentPrimaryPodIndex
-		toIndex := ptr.Deref(ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{}).Primary.PodIndex, 0)
+		toIndex := ptr.Deref(ptr.Deref(mariadb.Spec.Galera, v1alpha1.Galera{}).Primary.PodIndex, 0)
 
 		if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
 			status.UpdateCurrentPrimary(mariadb, toIndex)
@@ -165,9 +166,9 @@ func (r *GaleraReconciler) newAgentClientSet(ctx context.Context, mariadb *maria
 	opts := []mdbhttp.Option{}
 	opts = append(opts, clientOpts...)
 
-	agent := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{}).Agent
-	kubernetesAuth := ptr.Deref(agent.KubernetesAuth, mariadbv1alpha1.KubernetesAuth{})
-	basicAuth := ptr.Deref(agent.BasicAuth, mariadbv1alpha1.BasicAuth{})
+	agent := ptr.Deref(mariadb.Spec.Galera, v1alpha1.Galera{}).Agent
+	kubernetesAuth := ptr.Deref(agent.KubernetesAuth, v1alpha1.KubernetesAuth{})
+	basicAuth := ptr.Deref(agent.BasicAuth, v1alpha1.BasicAuth{})
 
 	if kubernetesAuth.Enabled {
 		opts = append(opts,

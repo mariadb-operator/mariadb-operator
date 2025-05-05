@@ -3,9 +3,10 @@ package maxscale
 import (
 	"context"
 	"fmt"
+	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"reflect"
 
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -39,7 +40,7 @@ func (r *MaxScaleReconciler) Reconcile(ctx context.Context, mdb *mariadbv1alpha1
 		return ctrl.Result{}, fmt.Errorf("error building MaxScale: %v", err)
 	}
 
-	var existingMxs mariadbv1alpha1.MaxScale
+	var existingMxs v1alpha1.MaxScale
 	if err := r.Get(ctx, key, &existingMxs); err != nil {
 		if !apierrors.IsNotFound(err) {
 			return ctrl.Result{}, err

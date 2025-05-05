@@ -2,8 +2,9 @@ package builder
 
 import (
 	"fmt"
+	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	metadata "github.com/mariadb-operator/mariadb-operator/pkg/builder/metadata"
 	galeraresources "github.com/mariadb-operator/mariadb-operator/pkg/controller/galera/resources"
@@ -73,7 +74,7 @@ func (b *Builder) BuildMariadbStatefulSet(mariadb *mariadbv1alpha1.MariaDB, key 
 	var mariadbPodOpts []mariadbPodOpt
 	if podAnnotations != nil {
 		mariadbPodOpts = append(mariadbPodOpts,
-			withMeta(&mariadbv1alpha1.Metadata{
+			withMeta(&v1alpha1.Metadata{
 				Annotations: podAnnotations,
 			}),
 		)
@@ -103,7 +104,7 @@ func (b *Builder) BuildMariadbStatefulSet(mariadb *mariadbv1alpha1.MariaDB, key 
 	return sts, nil
 }
 
-func (b *Builder) BuildMaxscaleStatefulSet(maxscale *mariadbv1alpha1.MaxScale, key types.NamespacedName,
+func (b *Builder) BuildMaxscaleStatefulSet(maxscale *v1alpha1.MaxScale, key types.NamespacedName,
 	podAnnotations map[string]string) (*appsv1.StatefulSet, error) {
 	objMeta :=
 		metadata.NewMetadataBuilder(key).
@@ -192,7 +193,7 @@ func mariadbVolumeClaimTemplates(mariadb *mariadbv1alpha1.MariaDB) []corev1.Pers
 		}
 	}
 
-	galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
+	galera := ptr.Deref(mariadb.Spec.Galera, v1alpha1.Galera{})
 	reuseStorageVolume := ptr.Deref(galera.Config.ReuseStorageVolume, false)
 	vctpl = galera.Config.VolumeClaimTemplate
 
@@ -215,7 +216,7 @@ func mariadbVolumeClaimTemplates(mariadb *mariadbv1alpha1.MariaDB) []corev1.Pers
 	return pvcs
 }
 
-func maxscaleVolumeClaimTemplates(maxscale *mariadbv1alpha1.MaxScale) []corev1.PersistentVolumeClaim {
+func maxscaleVolumeClaimTemplates(maxscale *v1alpha1.MaxScale) []corev1.PersistentVolumeClaim {
 	vctpl := maxscale.Spec.Config.VolumeClaimTemplate
 	meta := ptr.Deref(vctpl.Metadata, mariadbv1alpha1.Metadata{})
 	pvcs := []corev1.PersistentVolumeClaim{
