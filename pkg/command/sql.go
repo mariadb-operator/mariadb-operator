@@ -53,26 +53,33 @@ type SqlCommand struct {
 	*SqlOpts
 }
 
-func (s *SqlCommand) ExecCommand(mariadb *mariadbv1alpha1.MariaDB) *Command {
+func (s *SqlCommand) ExecCommand(mariadb *mariadbv1alpha1.MariaDB) (*Command, error) {
+	sqlFlags, err := s.SqlFlags(mariadb)
+	if err != nil {
+		return nil, fmt.Errorf("error getting SQL flags: %v", err)
+	}
 	cmds := []string{
 		"set -euo pipefail",
 		"echo '⚙️ Executing SQL script'",
 		fmt.Sprintf(
 			"mariadb %s < %s",
-			s.SqlFlags(mariadb),
+			sqlFlags,
 			s.SqlFile,
 		),
 	}
-	return NewBashCommand(cmds)
+	return NewBashCommand(cmds), nil
 }
 
-func (s *SqlCommand) SqlFlags(mdb *mariadbv1alpha1.MariaDB) string {
-	flags := ConnectionFlags(&s.SqlOpts.CommandOpts, mdb)
+func (s *SqlCommand) SqlFlags(mdb *mariadbv1alpha1.MariaDB) (string, error) {
+	flags, err := ConnectionFlags(&s.SqlOpts.CommandOpts, mdb)
+	if err != nil {
+		return "", fmt.Errorf("error getting connection flags: %v", err)
+	}
 	if s.SSLCAPath != nil && s.SSLCertPath != nil && s.SSLKeyPath != nil {
 		flags += fmt.Sprintf(" --ssl --ssl-ca=%s --ssl-cert=%s --ssl-key=%s --ssl-verify-server-cert",
 			*s.SSLCAPath, *s.SSLCertPath, *s.SSLKeyPath)
 	}
-	return flags
+	return flags, nil
 }
 
 func NewSqlCommand(userOpts ...SqlOpt) (*SqlCommand, error) {

@@ -1,6 +1,7 @@
 package command
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -33,7 +34,14 @@ func NewBashCommand(args []string) *Command {
 	}
 }
 
-func ConnectionFlags(co *CommandOpts, mariadb *mariadbv1alpha1.MariaDB) string {
+func ConnectionFlags(co *CommandOpts, mariadb *mariadbv1alpha1.MariaDB) (string, error) {
+	if co.UserEnv == "" {
+		return "", errors.New("UserEnv must be set")
+	}
+	if co.PasswordEnv == "" {
+		return "", errors.New("PasswordEnv must be set")
+	}
+
 	flags := fmt.Sprintf(
 		"--user=${%s} --password=${%s} --host=%s --port=%d",
 		co.UserEnv,
@@ -44,11 +52,11 @@ func ConnectionFlags(co *CommandOpts, mariadb *mariadbv1alpha1.MariaDB) string {
 	if co.Database != nil {
 		flags += fmt.Sprintf(" --database=%s", *co.Database)
 	}
-	return flags
+	return flags, nil
 }
 
 func host(mariadb *mariadbv1alpha1.MariaDB) string {
-	if mariadb.Replication().Enabled {
+	if mariadb.IsHAEnabled() {
 		return statefulset.ServiceFQDNWithService(
 			mariadb.ObjectMeta,
 			mariadb.PrimaryServiceKey().Name,

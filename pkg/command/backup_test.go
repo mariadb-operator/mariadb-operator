@@ -34,7 +34,7 @@ func TestMariadbDumpArgs(t *testing.T) {
 			name: "extra args",
 			backupCmd: &BackupCommand{
 				BackupOpts{
-					DumpOpts: []string{
+					ExtraOpts: []string{
 						"--verbose",
 						"--add-drop-table",
 					},
@@ -117,7 +117,7 @@ func TestMariadbDumpArgs(t *testing.T) {
 			name: "duplicated args",
 			backupCmd: &BackupCommand{
 				BackupOpts{
-					DumpOpts: []string{
+					ExtraOpts: []string{
 						"--events",
 						"--all-databases",
 						"--skip-add-locks",
@@ -150,7 +150,7 @@ func TestMariadbDumpArgs(t *testing.T) {
 			name: "databases via args",
 			backupCmd: &BackupCommand{
 				BackupOpts{
-					DumpOpts: []string{
+					ExtraOpts: []string{
 						"--databases db1 db2 db3",
 					},
 				},
@@ -188,7 +188,7 @@ func TestMariadbDumpArgs(t *testing.T) {
 			name: "override databases via args with spec.databases",
 			backupCmd: &BackupCommand{
 				BackupOpts{
-					DumpOpts: []string{
+					ExtraOpts: []string{
 						"--databases foo bar",
 					},
 				},
@@ -214,7 +214,7 @@ func TestMariadbDumpArgs(t *testing.T) {
 			name: "override malformed databases via args with spec.databases",
 			backupCmd: &BackupCommand{
 				BackupOpts{
-					DumpOpts: []string{
+					ExtraOpts: []string{
 						"      --databases    foo bar",
 					},
 				},
@@ -240,7 +240,7 @@ func TestMariadbDumpArgs(t *testing.T) {
 			name: "all",
 			backupCmd: &BackupCommand{
 				BackupOpts{
-					DumpOpts: []string{
+					ExtraOpts: []string{
 						"--databases foo bar",
 						"--verbose",
 						"--add-drop-table",
@@ -439,7 +439,7 @@ func TestMariadbArgs(t *testing.T) {
 			name: "args",
 			backupCmd: &BackupCommand{
 				BackupOpts: BackupOpts{
-					DumpOpts: []string{
+					ExtraOpts: []string{
 						"--verbose",
 						"--one-database db1",
 					},
@@ -456,7 +456,7 @@ func TestMariadbArgs(t *testing.T) {
 			name: "duplicate args",
 			backupCmd: &BackupCommand{
 				BackupOpts: BackupOpts{
-					DumpOpts: []string{
+					ExtraOpts: []string{
 						"--verbose",
 						"--verbose",
 						"--one-database db1",
@@ -487,7 +487,7 @@ func TestMariadbArgs(t *testing.T) {
 			name: "database and args",
 			backupCmd: &BackupCommand{
 				BackupOpts: BackupOpts{
-					DumpOpts: []string{
+					ExtraOpts: []string{
 						"--verbose",
 					},
 				},
