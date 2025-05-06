@@ -59,7 +59,7 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alph
 		command.WithBackupUserEnv(batchUserEnv),
 		command.WithBackupPasswordEnv(batchPasswordEnv),
 		command.WithBackupLogLevel(backup.Spec.LogLevel),
-		command.WithBackupDumpOpts(backup.Spec.Args),
+		command.WithExtraOpts(backup.Spec.Args),
 	}
 	cmdOpts = append(cmdOpts, s3Opts(backup.Spec.Storage.S3)...)
 
@@ -75,8 +75,13 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alph
 	volumes, volumeSources := jobBatchStorageVolume(volume, backup.Spec.Storage.S3, mariadb)
 	affinity := ptr.Deref(backup.Spec.Affinity, mariadbv1alpha1.AffinityConfig{}).Affinity
 
+	dumpCmd, err := cmd.MariadbDump(backup, mariadb)
+	if err != nil {
+		return nil, fmt.Errorf("error getting mariadb-dump command: %v", err)
+	}
+
 	mariadbContainer, err := b.jobMariadbContainer(
-		cmd.MariadbDump(backup, mariadb),
+		dumpCmd,
 		volumeSources,
 		jobEnv(mariadb),
 		jobResources(backup.Spec.Resources),
@@ -132,6 +137,19 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alph
 	}
 	return job, nil
 }
+
+// func (b *Builder) BuildPhysicalBackupJob(key types.NamespacedName, backup *mariadbv1alpha1.PhysicalBackup,
+// 	mariadb *mariadbv1alpha1.MariaDB, pod *corev1.Pod) (*batchv1.Job, error) {
+
+// 	podIndex, err := statefulset.PodIndex(pod.Name)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("error getting index for Pod '%s': %v", pod.Name, err)
+// 	}
+// 	if pod.Spec.NodeName == "" {
+// 		return nil, errors.New("Pod must be scheduled: spec.nodeName is empty")
+// 	}
+
+// }
 
 func (b *Builder) BuildBackupCronJob(key types.NamespacedName, backup *mariadbv1alpha1.Backup,
 	mariadb *mariadbv1alpha1.MariaDB) (*batchv1.CronJob, error) {
@@ -189,7 +207,7 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 		command.WithBackupUserEnv(batchUserEnv),
 		command.WithBackupPasswordEnv(batchPasswordEnv),
 		command.WithBackupLogLevel(restore.Spec.LogLevel),
-		command.WithBackupDumpOpts(restore.Spec.Args),
+		command.WithExtraOpts(restore.Spec.Args),
 	}
 	cmdOpts = append(cmdOpts, s3Opts(restore.Spec.S3)...)
 
@@ -215,8 +233,13 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 		return nil, err
 	}
 
+	restoreCmd, err := cmd.MariadbRestore(restore, mariadb)
+	if err != nil {
+		return nil, fmt.Errorf("error getting mariadb restore command: %v", err)
+	}
+
 	mariadbContainer, err := b.jobMariadbContainer(
-		cmd.MariadbRestore(restore, mariadb),
+		restoreCmd,
 		volumeSources,
 		jobEnv(mariadb),
 		jobResources(restore.Spec.Resources),
@@ -472,8 +495,13 @@ func (b *Builder) BuildSqlJob(key types.NamespacedName, sqlJob *mariadbv1alpha1.
 		resources = ptr.To(sqlJob.Spec.Resources.ToKubernetesType())
 	}
 
+	execCmd, err := cmd.ExecCommand(mariadb)
+	if err != nil {
+		return nil, fmt.Errorf("error building exec command: %v", err)
+	}
+
 	container, err := b.jobMariadbContainer(
-		cmd.ExecCommand(mariadb),
+		execCmd,
 		volumeMounts,
 		sqlJobEnv(sqlJob),
 		resources,
