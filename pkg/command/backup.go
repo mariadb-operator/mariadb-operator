@@ -16,6 +16,7 @@ import (
 
 type BackupOpts struct {
 	CommandOpts
+	BackupFileEnv        string
 	Path                 string
 	TargetFilePath       string
 	CleanupTargetFile    bool
@@ -30,10 +31,16 @@ type BackupOpts struct {
 	S3CACertPath         string
 	S3Prefix             string
 	LogLevel             string
-	DumpOpts             []string
+	ExtraOpts            []string
 }
 
 type BackupOpt func(*BackupOpts)
+
+func WithBackupFileEnv(backupFileEnv string) BackupOpt {
+	return func(bo *BackupOpts) {
+		bo.BackupFileEnv = backupFileEnv
+	}
+}
 
 func WithBackup(path string, targetFilePath string) BackupOpt {
 	return func(bo *BackupOpts) {
@@ -88,9 +95,9 @@ func WithS3CACertPath(caCertPath string) BackupOpt {
 	}
 }
 
-func WithBackupDumpOpts(opts []string) BackupOpt {
+func WithExtraOpts(opts []string) BackupOpt {
 	return func(o *BackupOpts) {
-		o.DumpOpts = opts
+		o.ExtraOpts = opts
 	}
 }
 
@@ -149,8 +156,13 @@ func NewBackupCommand(userOpts ...BackupOpt) (*BackupCommand, error) {
 }
 
 func (b *BackupCommand) MariadbDump(backup *mariadbv1alpha1.Backup,
-	mariadb *mariadbv1alpha1.MariaDB) *Command {
+	mariadb *mariadbv1alpha1.MariaDB) (*Command, error) {
+	connFlags, err := ConnectionFlags(&b.BackupOpts.CommandOpts, mariadb)
+	if err != nil {
+		return nil, fmt.Errorf("error getting connection flags: %v", err)
+	}
 	args := strings.Join(b.mariadbDumpArgs(backup, mariadb), " ")
+
 	cmds := []string{
 		"set -euo pipefail",
 		"echo 💾 Exporting env",
@@ -172,12 +184,54 @@ func (b *BackupCommand) MariadbDump(backup *mariadbv1alpha1.Backup,
 		),
 		fmt.Sprintf(
 			"mariadb-dump %s %s > %s",
-			ConnectionFlags(&b.BackupOpts.CommandOpts, mariadb),
+			connFlags,
 			args,
 			b.getTargetFilePath(),
 		),
 	}
-	return NewBashCommand(cmds)
+	return NewBashCommand(cmds), nil
+}
+
+func (b *BackupCommand) MariadbBackup(mariadb *mariadbv1alpha1.MariaDB) (*Command, error) {
+	if b.BackupFileEnv == "" {
+		return nil, errors.New("BackupFileEnv must be set")
+	}
+	if b.TargetFilePath == "" {
+		return nil, errors.New("TargetFilePath must be set")
+	}
+	if b.Database != nil {
+		return nil, errors.New("Database option not supported in physical backups")
+	}
+
+	connFlags, err := ConnectionFlags(&b.BackupOpts.CommandOpts, mariadb)
+	if err != nil {
+		return nil, fmt.Errorf("error getting connection flags: %v", err)
+	}
+	args := strings.Join(b.mariadbBackupArgs(mariadb), " ")
+
+	cmds := []string{
+		"set -euo pipefail",
+		fmt.Sprintf(
+			"echo 💾 Writing target file: %s",
+			b.TargetFilePath,
+		),
+		fmt.Sprintf(
+			"printf \"${%s}\" > %s",
+			b.BackupFileEnv,
+			b.TargetFilePath,
+		),
+		fmt.Sprintf(
+			"echo 💾 Taking backup: %s",
+			b.getTargetFilePath(),
+		),
+		fmt.Sprintf(
+			"mariadb-backup %s %s > %s",
+			connFlags,
+			args,
+			b.getTargetFilePath(),
+		),
+	}
+	return NewBashCommand(cmds), nil
 }
 
 func (b *BackupCommand) MariadbOperatorBackup() *Command {
@@ -219,7 +273,11 @@ func (b *BackupCommand) MariadbOperatorRestore() *Command {
 }
 
 func (b *BackupCommand) MariadbRestore(restore *mariadbv1alpha1.Restore,
-	mariadb *mariadbv1alpha1.MariaDB) *Command {
+	mariadb *mariadbv1alpha1.MariaDB) (*Command, error) {
+	connFlags, err := ConnectionFlags(&b.BackupOpts.CommandOpts, mariadb)
+	if err != nil {
+		return nil, fmt.Errorf("error getting connection flags: %v", err)
+	}
 	args := strings.Join(b.mariadbArgs(restore, mariadb), " ")
 	cmds := []string{
 		"set -euo pipefail",
@@ -229,12 +287,12 @@ func (b *BackupCommand) MariadbRestore(restore *mariadbv1alpha1.Restore,
 		),
 		fmt.Sprintf(
 			"mariadb %s %s < %s",
-			ConnectionFlags(&b.BackupOpts.CommandOpts, mariadb),
+			connFlags,
 			args,
 			b.getTargetFilePath(),
 		),
 	}
-	return NewBashCommand(cmds)
+	return NewBashCommand(cmds), nil
 }
 
 func (b *BackupCommand) newBackupFile() string {
@@ -259,8 +317,8 @@ func (b *BackupCommand) getTargetFilePath() string {
 }
 
 func (b *BackupCommand) mariadbDumpArgs(backup *mariadbv1alpha1.Backup, mariadb *mariadbv1alpha1.MariaDB) []string {
-	dumpOpts := make([]string, len(b.BackupOpts.DumpOpts))
-	copy(dumpOpts, b.BackupOpts.DumpOpts)
+	dumpOpts := make([]string, len(b.BackupOpts.ExtraOpts))
+	copy(dumpOpts, b.BackupOpts.ExtraOpts)
 
 	args := []string{
 		"--single-transaction",
@@ -302,9 +360,25 @@ func (b *BackupCommand) mariadbDumpArgs(backup *mariadbv1alpha1.Backup, mariadb 
 	return ds.Unique(ds.Merge(args, dumpOpts)...)
 }
 
+func (b *BackupCommand) mariadbBackupArgs(mariadb *mariadbv1alpha1.MariaDB) []string {
+	backupOpts := make([]string, len(b.BackupOpts.ExtraOpts))
+	copy(backupOpts, b.BackupOpts.ExtraOpts)
+
+	args := []string{
+		"--backup ",
+		"--stream=xbstream",
+	}
+
+	if mariadb.IsTLSEnabled() {
+		args = append(args, b.tlsArgs(mariadb)...)
+	}
+
+	return ds.Unique(ds.Merge(args, backupOpts)...)
+}
+
 func (b *BackupCommand) mariadbArgs(restore *mariadbv1alpha1.Restore, mariadb *mariadbv1alpha1.MariaDB) []string {
-	args := make([]string, len(b.BackupOpts.DumpOpts))
-	copy(args, b.BackupOpts.DumpOpts)
+	args := make([]string, len(b.BackupOpts.ExtraOpts))
+	copy(args, b.BackupOpts.ExtraOpts)
 
 	if restore.Spec.Database != "" {
 		args = append(args, fmt.Sprintf("--one-database %s", restore.Spec.Database))
