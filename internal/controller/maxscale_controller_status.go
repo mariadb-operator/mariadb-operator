@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 
 	"github.com/hashicorp/go-multierror"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
@@ -22,7 +21,7 @@ import (
 
 func (r *MaxScaleReconciler) reconcileStatus(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
 	if req.mxs.IsSuspended() {
-		return ctrl.Result{}, r.patchStatus(ctx, req.mxs, func(mss *v1alpha1.MaxScaleStatus) error {
+		return ctrl.Result{}, r.patchStatus(ctx, req.mxs, func(mss *mariadbv1alpha1.MaxScaleStatus) error {
 			condition.SetReadySuspended(&req.mxs.Status)
 			return nil
 		})
@@ -37,10 +36,10 @@ func (r *MaxScaleReconciler) reconcileStatus(ctx context.Context, req *requestMa
 	var (
 		errBundle                 *multierror.Error
 		srvStatus                 *serverStatus
-		monitorStatus             *v1alpha1.MaxScaleResourceStatus
-		svcStatus, listenerStatus []v1alpha1.MaxScaleResourceStatus
-		configSync                *v1alpha1.MaxScaleConfigSyncStatus
-		tlsStatus                 *v1alpha1.MaxScaleTLSStatus
+		monitorStatus             *mariadbv1alpha1.MaxScaleResourceStatus
+		svcStatus, listenerStatus []mariadbv1alpha1.MaxScaleResourceStatus
+		configSync                *mariadbv1alpha1.MaxScaleConfigSyncStatus
+		tlsStatus                 *mariadbv1alpha1.MaxScaleTLSStatus
 	)
 	client, err := r.client(ctx, req.mxs)
 	if err != nil {
@@ -87,7 +86,7 @@ func (r *MaxScaleReconciler) reconcileStatus(ctx context.Context, req *requestMa
 		)
 	}
 
-	return ctrl.Result{}, r.patchStatus(ctx, req.mxs, func(mss *v1alpha1.MaxScaleStatus) error {
+	return ctrl.Result{}, r.patchStatus(ctx, req.mxs, func(mss *mariadbv1alpha1.MaxScaleStatus) error {
 		if srvStatus != nil {
 			if srvStatus.primary != "" {
 				mss.PrimaryServer = &srvStatus.primary
@@ -122,13 +121,13 @@ func (r *MaxScaleReconciler) reconcileStatus(ctx context.Context, req *requestMa
 	})
 }
 
-func (r *MaxScaleReconciler) handleConfigSyncConflict(ctx context.Context, mxs *v1alpha1.MaxScale,
+func (r *MaxScaleReconciler) handleConfigSyncConflict(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,
 	err error) error {
 	if err == nil || !mxs.IsHAEnabled() {
 		return nil
 	}
 
-	configSync := ptr.Deref(mxs.Status.ConfigSync, v1alpha1.MaxScaleConfigSyncStatus{})
+	configSync := ptr.Deref(mxs.Status.ConfigSync, mariadbv1alpha1.MaxScaleConfigSyncStatus{})
 	if configSync.MaxScaleVersion <= configSync.DatabaseVersion {
 		return nil
 	}
@@ -150,10 +149,10 @@ func (r *MaxScaleReconciler) handleConfigSyncConflict(ctx context.Context, mxs *
 
 type serverStatus struct {
 	primary string
-	servers []v1alpha1.MaxScaleServerStatus
+	servers []mariadbv1alpha1.MaxScaleServerStatus
 }
 
-func (r *MaxScaleReconciler) getServerStatus(ctx context.Context, mxs *v1alpha1.MaxScale,
+func (r *MaxScaleReconciler) getServerStatus(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,
 	client *mxsclient.Client) (*serverStatus, error) {
 	serverIdx, err := client.Server.ListIndex(ctx)
 	if err != nil {
@@ -161,10 +160,10 @@ func (r *MaxScaleReconciler) getServerStatus(ctx context.Context, mxs *v1alpha1.
 	}
 	serverIdx = ds.Filter(serverIdx, mxs.ServerIDs()...)
 
-	serverStatuses := make([]v1alpha1.MaxScaleServerStatus, len(serverIdx))
+	serverStatuses := make([]mariadbv1alpha1.MaxScaleServerStatus, len(serverIdx))
 	i := 0
 	for _, srv := range serverIdx {
-		serverStatuses[i] = v1alpha1.MaxScaleServerStatus{
+		serverStatuses[i] = mariadbv1alpha1.MaxScaleServerStatus{
 			Name:  srv.ID,
 			State: srv.Attributes.State,
 		}
@@ -184,30 +183,30 @@ func (r *MaxScaleReconciler) getServerStatus(ctx context.Context, mxs *v1alpha1.
 	}, nil
 }
 
-func (r *MaxScaleReconciler) getMonitorStatus(ctx context.Context, mxs *v1alpha1.MaxScale,
-	client *mxsclient.Client) (*v1alpha1.MaxScaleResourceStatus, error) {
+func (r *MaxScaleReconciler) getMonitorStatus(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,
+	client *mxsclient.Client) (*mariadbv1alpha1.MaxScaleResourceStatus, error) {
 	monitor, err := client.Monitor.Get(ctx, mxs.Spec.Monitor.Name)
 	if err != nil {
 		return nil, fmt.Errorf("error getting monitor: %v", err)
 	}
-	return &v1alpha1.MaxScaleResourceStatus{
+	return &mariadbv1alpha1.MaxScaleResourceStatus{
 		Name:  monitor.ID,
 		State: monitor.Attributes.State,
 	}, nil
 }
 
-func (r *MaxScaleReconciler) getServiceStatus(ctx context.Context, mxs *v1alpha1.MaxScale,
-	client *mxsclient.Client) ([]v1alpha1.MaxScaleResourceStatus, error) {
+func (r *MaxScaleReconciler) getServiceStatus(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,
+	client *mxsclient.Client) ([]mariadbv1alpha1.MaxScaleResourceStatus, error) {
 	serviceIdx, err := client.Service.ListIndex(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("error getting services: %v", err)
 	}
 	serviceIdx = ds.Filter(serviceIdx, mxs.ServiceIDs()...)
 
-	serviceStatuses := make([]v1alpha1.MaxScaleResourceStatus, len(serviceIdx))
+	serviceStatuses := make([]mariadbv1alpha1.MaxScaleResourceStatus, len(serviceIdx))
 	i := 0
 	for _, svc := range serviceIdx {
-		serviceStatuses[i] = v1alpha1.MaxScaleResourceStatus{
+		serviceStatuses[i] = mariadbv1alpha1.MaxScaleResourceStatus{
 			Name:  svc.ID,
 			State: svc.Attributes.State,
 		}
@@ -216,18 +215,18 @@ func (r *MaxScaleReconciler) getServiceStatus(ctx context.Context, mxs *v1alpha1
 	return serviceStatuses, nil
 }
 
-func (r *MaxScaleReconciler) getListenerStatus(ctx context.Context, mxs *v1alpha1.MaxScale,
-	client *mxsclient.Client) ([]v1alpha1.MaxScaleResourceStatus, error) {
+func (r *MaxScaleReconciler) getListenerStatus(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,
+	client *mxsclient.Client) ([]mariadbv1alpha1.MaxScaleResourceStatus, error) {
 	listenerIdx, err := client.Listener.ListIndex(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("error getting listeners: %v", err)
 	}
 	listenerIdx = ds.Filter(listenerIdx, mxs.ListenerIDs()...)
 
-	listenerStatuses := make([]v1alpha1.MaxScaleResourceStatus, len(listenerIdx))
+	listenerStatuses := make([]mariadbv1alpha1.MaxScaleResourceStatus, len(listenerIdx))
 	i := 0
 	for _, listener := range listenerIdx {
-		listenerStatuses[i] = v1alpha1.MaxScaleResourceStatus{
+		listenerStatuses[i] = mariadbv1alpha1.MaxScaleResourceStatus{
 			Name:  listener.ID,
 			State: listener.Attributes.State,
 		}
@@ -236,8 +235,8 @@ func (r *MaxScaleReconciler) getListenerStatus(ctx context.Context, mxs *v1alpha
 	return listenerStatuses, nil
 }
 
-func (r *MaxScaleReconciler) getConfigSyncStatus(ctx context.Context, mxs *v1alpha1.MaxScale,
-	client *mxsclient.Client) (*v1alpha1.MaxScaleConfigSyncStatus, error) {
+func (r *MaxScaleReconciler) getConfigSyncStatus(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,
+	client *mxsclient.Client) (*mariadbv1alpha1.MaxScaleConfigSyncStatus, error) {
 	if !mxs.IsHAEnabled() {
 		return nil, nil
 	}
@@ -253,7 +252,7 @@ func (r *MaxScaleReconciler) getConfigSyncStatus(ctx context.Context, mxs *v1alp
 		return nil, err
 	}
 
-	return &v1alpha1.MaxScaleConfigSyncStatus{
+	return &mariadbv1alpha1.MaxScaleConfigSyncStatus{
 		MaxScaleVersion: mxsVersion,
 		DatabaseVersion: dbVersion,
 	}, nil
@@ -270,7 +269,7 @@ func (r *MaxScaleReconciler) getMaxScaleConfigSyncVersion(ctx context.Context, c
 	return mxsStatus.Attributes.ConfigSync.Version, nil
 }
 
-func (r *MaxScaleReconciler) getDatabaseConfigSyncVersion(ctx context.Context, mxs *v1alpha1.MaxScale) (int, error) {
+func (r *MaxScaleReconciler) getDatabaseConfigSyncVersion(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) (int, error) {
 	client, err := r.getReadySqlClient(ctx, mxs)
 	if err != nil {
 		return 0, fmt.Errorf("error getting primary SQL client: %v", err)
@@ -283,7 +282,7 @@ func (r *MaxScaleReconciler) getDatabaseConfigSyncVersion(ctx context.Context, m
 	return client.MaxScaleConfigSyncVersion(ctx)
 }
 
-func (r *MaxScaleReconciler) getPrimarySqlClient(ctx context.Context, mxs *v1alpha1.MaxScale) (*sql.Client, error) {
+func (r *MaxScaleReconciler) getPrimarySqlClient(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) (*sql.Client, error) {
 	primaryName := mxs.Status.GetPrimaryServer()
 	if primaryName == nil {
 		return nil, errors.New("primary server not found in status")
@@ -291,7 +290,7 @@ func (r *MaxScaleReconciler) getPrimarySqlClient(ctx context.Context, mxs *v1alp
 	return r.getSqlClient(ctx, mxs, *primaryName)
 }
 
-func (r *MaxScaleReconciler) getReadySqlClient(ctx context.Context, mxs *v1alpha1.MaxScale) (*sql.Client, error) {
+func (r *MaxScaleReconciler) getReadySqlClient(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) (*sql.Client, error) {
 	var readyServer string
 	for _, srv := range mxs.Status.Servers {
 		if srv.IsReady() {
@@ -305,7 +304,7 @@ func (r *MaxScaleReconciler) getReadySqlClient(ctx context.Context, mxs *v1alpha
 	return r.getSqlClient(ctx, mxs, readyServer)
 }
 
-func (r *MaxScaleReconciler) getSqlClient(ctx context.Context, mxs *v1alpha1.MaxScale,
+func (r *MaxScaleReconciler) getSqlClient(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,
 	serverName string) (*sql.Client, error) {
 	if mxs.Spec.Config.Sync == nil {
 		return nil, errors.New("config sync must be enabled")
@@ -342,8 +341,8 @@ func (r *MaxScaleReconciler) getSqlClient(ctx context.Context, mxs *v1alpha1.Max
 	return sql.NewClient(opts...)
 }
 
-func (r *MaxScaleReconciler) patchStatus(ctx context.Context, maxscale *v1alpha1.MaxScale,
-	patcher func(*v1alpha1.MaxScaleStatus) error) error {
+func (r *MaxScaleReconciler) patchStatus(ctx context.Context, maxscale *mariadbv1alpha1.MaxScale,
+	patcher func(*mariadbv1alpha1.MaxScaleStatus) error) error {
 	patch := client.MergeFrom(maxscale.DeepCopy())
 	if err := patcher(&maxscale.Status); err != nil {
 		return err

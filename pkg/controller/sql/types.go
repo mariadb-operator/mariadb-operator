@@ -2,7 +2,6 @@ package sql
 
 import (
 	"context"
-	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
@@ -14,11 +13,11 @@ import (
 
 type Resource interface {
 	v1.Object
-	MariaDBRef() *v1alpha1.MariaDBRef
+	MariaDBRef() *mariadbv1alpha1.MariaDBRef
 	IsBeingDeleted() bool
 	RequeueInterval() *metav1.Duration
 	RetryInterval() *metav1.Duration
-	CleanupPolicy() *v1alpha1.CleanupPolicy
+	CleanupPolicy() *mariadbv1alpha1.CleanupPolicy
 }
 
 type Reconciler interface {

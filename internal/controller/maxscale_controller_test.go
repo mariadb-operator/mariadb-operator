@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
 	. "github.com/onsi/ginkgo/v2"
@@ -25,13 +24,13 @@ var _ = Describe("MaxScale", func() {
 			Name:      "test-maxscale-default",
 			Namespace: testNamespace,
 		}
-		testDefaultMxs := v1alpha1.MaxScale{
+		testDefaultMxs := mariadbv1alpha1.MaxScale{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      testDefaultMxsKey.Name,
 				Namespace: testDefaultMxsKey.Namespace,
 			},
-			Spec: v1alpha1.MaxScaleSpec{
-				MariaDBRef: &v1alpha1.MariaDBRef{
+			Spec: mariadbv1alpha1.MaxScaleSpec{
+				MariaDBRef: &mariadbv1alpha1.MariaDBRef{
 					ObjectReference: mariadbv1alpha1.ObjectReference{
 						Name:      testMdbkey.Name,
 						Namespace: testMdbkey.Namespace,
@@ -61,19 +60,19 @@ var _ = Describe("MaxScale", func() {
 			Name:      "test-maxscale-suspend",
 			Namespace: testNamespace,
 		}
-		testSuspendMxs := v1alpha1.MaxScale{
+		testSuspendMxs := mariadbv1alpha1.MaxScale{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      testSuspendMxsKey.Name,
 				Namespace: testSuspendMxsKey.Namespace,
 			},
-			Spec: v1alpha1.MaxScaleSpec{
-				MariaDBRef: &v1alpha1.MariaDBRef{
+			Spec: mariadbv1alpha1.MaxScaleSpec{
+				MariaDBRef: &mariadbv1alpha1.MariaDBRef{
 					ObjectReference: mariadbv1alpha1.ObjectReference{
 						Name:      testMdbkey.Name,
 						Namespace: testMdbkey.Namespace,
 					},
 				},
-				TLS: &v1alpha1.MaxScaleTLS{
+				TLS: &mariadbv1alpha1.MaxScaleTLS{
 					Enabled: true,
 				},
 			},
@@ -98,11 +97,11 @@ var _ = Describe("MaxScale", func() {
 			if err := k8sClient.Get(testCtx, testSuspendMxsKey, &testSuspendMxs); err != nil {
 				return false
 			}
-			condition := meta.FindStatusCondition(testSuspendMxs.Status.Conditions, v1alpha1.ConditionTypeReady)
+			condition := meta.FindStatusCondition(testSuspendMxs.Status.Conditions, mariadbv1alpha1.ConditionTypeReady)
 			if condition == nil {
 				return false
 			}
-			return condition.Status == metav1.ConditionFalse && condition.Reason == v1alpha1.ConditionReasonSuspended
+			return condition.Status == metav1.ConditionFalse && condition.Reason == mariadbv1alpha1.ConditionReasonSuspended
 		}, testTimeout, testInterval).Should(BeTrue())
 	})
 
@@ -133,25 +132,25 @@ var _ = Describe("MaxScale", func() {
 		})
 
 		By("Creating MaxScale")
-		mxs := v1alpha1.MaxScale{
+		mxs := mariadbv1alpha1.MaxScale{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      key.Name,
 				Namespace: key.Namespace,
 			},
-			Spec: v1alpha1.MaxScaleSpec{
+			Spec: mariadbv1alpha1.MaxScaleSpec{
 				MariaDBRef: &mariadbv1alpha1.MariaDBRef{
 					ObjectReference: mariadbv1alpha1.ObjectReference{
 						Name:      testMdbkey.Name,
 						Namespace: testMdbkey.Namespace,
 					},
 				},
-				TLS: &v1alpha1.MaxScaleTLS{
+				TLS: &mariadbv1alpha1.MaxScaleTLS{
 					Enabled: true,
 				},
-				Metrics: &v1alpha1.MaxScaleMetrics{
+				Metrics: &mariadbv1alpha1.MaxScaleMetrics{
 					Enabled: true,
 				},
-				Auth: v1alpha1.MaxScaleAuth{
+				Auth: mariadbv1alpha1.MaxScaleAuth{
 					MetricsUsername: "metrics",
 					MetricsPasswordSecretKeyRef: mariadbv1alpha1.GeneratedSecretKeyRef{
 						SecretKeySelector: mariadbv1alpha1.SecretKeySelector{
@@ -180,7 +179,7 @@ var _ = Describe("MaxScale", func() {
 
 		By("Expecting MaxScale to be ready eventually")
 		Eventually(func() bool {
-			var mxs v1alpha1.MaxScale
+			var mxs mariadbv1alpha1.MaxScale
 			if err := k8sClient.Get(testCtx, key, &mxs); err != nil {
 				return false
 			}

@@ -1,7 +1,6 @@
 package metadata
 
 import (
-	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -31,7 +30,7 @@ func (b *MetadataBuilder) WithReleaseLabel(release string) *MetadataBuilder {
 	})
 }
 
-func (b *MetadataBuilder) WithMetadata(meta *v1alpha1.Metadata) *MetadataBuilder {
+func (b *MetadataBuilder) WithMetadata(meta *mariadbv1alpha1.Metadata) *MetadataBuilder {
 	if meta == nil {
 		return b
 	}

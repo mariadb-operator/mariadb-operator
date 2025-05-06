@@ -3,7 +3,6 @@ package controller
 import (
 	"context"
 	"fmt"
-	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/health"
@@ -118,7 +117,7 @@ func (r *PodGaleraController) shouldReconcile(mariadb *mariadbv1alpha1.MariaDB) 
 	if !mariadb.IsGaleraEnabled() || mariadb.IsMaxScaleEnabled() || mariadb.IsRestoringBackup() {
 		return false
 	}
-	primaryGalera := ptr.Deref(mariadb.Spec.Galera, v1alpha1.Galera{}).Primary
+	primaryGalera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{}).Primary
 	automaticFailover := ptr.Deref(primaryGalera.AutomaticFailover, false)
 
 	return automaticFailover && mariadb.HasGaleraConfiguredCondition() && mariadb.HasGaleraReadyCondition()

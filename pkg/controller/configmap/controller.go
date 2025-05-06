@@ -3,7 +3,6 @@ package configmap
 import (
 	"context"
 	"fmt"
-	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
@@ -27,7 +26,7 @@ func NewConfigMapReconciler(client client.Client, builder *builder.Builder) *Con
 }
 
 type ReconcileRequest struct {
-	Metadata *v1alpha1.Metadata
+	Metadata *mariadbv1alpha1.Metadata
 	Owner    metav1.Object
 	Key      types.NamespacedName
 	Data     map[string]string

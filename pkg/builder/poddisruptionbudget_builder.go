@@ -2,7 +2,6 @@ package builder
 
 import (
 	"fmt"
-	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	metadata "github.com/mariadb-operator/mariadb-operator/pkg/builder/metadata"
@@ -14,7 +13,7 @@ import (
 )
 
 type PodDisruptionBudgetOpts struct {
-	Metadata       *v1alpha1.Metadata
+	Metadata       *mariadbv1alpha1.Metadata
 	Key            types.NamespacedName
 	MinAvailable   *intstr.IntOrString
 	MaxUnavailable *intstr.IntOrString

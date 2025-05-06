@@ -1,7 +1,6 @@
 package builder
 
 import (
-	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"testing"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
@@ -13,7 +12,7 @@ func TestConfigMapMeta(t *testing.T) {
 	tests := []struct {
 		name     string
 		opts     ConfigMapOpts
-		wantMeta *v1alpha1.Metadata
+		wantMeta *mariadbv1alpha1.Metadata
 	}{
 		{
 			name: "no meta",
@@ -25,7 +24,7 @@ func TestConfigMapMeta(t *testing.T) {
 					"my.cnf": "test",
 				},
 			},
-			wantMeta: &v1alpha1.Metadata{
+			wantMeta: &mariadbv1alpha1.Metadata{
 				Labels:      map[string]string{},
 				Annotations: map[string]string{},
 			},
@@ -39,7 +38,7 @@ func TestConfigMapMeta(t *testing.T) {
 				Data: map[string]string{
 					"my.cnf": "test",
 				},
-				Metadata: &v1alpha1.Metadata{
+				Metadata: &mariadbv1alpha1.Metadata{
 					Labels: map[string]string{
 						"database.myorg.io": "mariadb",
 					},
@@ -48,7 +47,7 @@ func TestConfigMapMeta(t *testing.T) {
 					},
 				},
 			},
-			wantMeta: &v1alpha1.Metadata{
+			wantMeta: &mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"database.myorg.io": "mariadb",
 				},

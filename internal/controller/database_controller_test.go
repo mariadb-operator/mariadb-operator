@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -28,7 +27,7 @@ var _ = Describe("Database", func() {
 				Namespace: databaseKey.Namespace,
 			},
 			Spec: mariadbv1alpha1.DatabaseSpec{
-				MariaDBRef: v1alpha1.MariaDBRef{
+				MariaDBRef: mariadbv1alpha1.MariaDBRef{
 					ObjectReference: mariadbv1alpha1.ObjectReference{
 						Name: testMdbkey.Name,
 					},

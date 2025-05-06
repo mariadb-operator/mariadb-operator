@@ -1,7 +1,6 @@
 package config
 
 import (
-	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"testing"
 
 	"github.com/go-logr/logr"
@@ -28,10 +27,10 @@ func TestGaleraConfigMarshal(t *testing.T) {
 					Namespace: "default",
 				},
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Galera: &v1alpha1.Galera{
+					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
-						GaleraSpec: v1alpha1.GaleraSpec{
-							SST:            v1alpha1.SSTRsync,
+						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							SST:            mariadbv1alpha1.SSTRsync,
 							ReplicaThreads: 1,
 						},
 					},
@@ -54,7 +53,7 @@ func TestGaleraConfigMarshal(t *testing.T) {
 					Namespace: "default",
 				},
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Galera: &v1alpha1.Galera{
+					Galera: &mariadbv1alpha1.Galera{
 						Enabled: false,
 					},
 					Replicas: 0,
@@ -76,7 +75,7 @@ func TestGaleraConfigMarshal(t *testing.T) {
 					Namespace: "default",
 				},
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Galera: &v1alpha1.Galera{
+					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
 					},
 					Replicas: 0,
@@ -98,10 +97,10 @@ func TestGaleraConfigMarshal(t *testing.T) {
 					Namespace: "default",
 				},
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Galera: &v1alpha1.Galera{
+					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
-						GaleraSpec: v1alpha1.GaleraSpec{
-							SST:            v1alpha1.SSTRsync,
+						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							SST:            mariadbv1alpha1.SSTRsync,
 							GaleraLibPath:  "/usr/lib/galera/libgalera_smm.so",
 							ReplicaThreads: 1,
 						},
@@ -149,10 +148,10 @@ wsrep_sst_receive_address="10.244.0.32:4444"
 					Namespace: "default",
 				},
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Galera: &v1alpha1.Galera{
+					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
-						GaleraSpec: v1alpha1.GaleraSpec{
-							SST:            v1alpha1.SSTMariaBackup,
+						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							SST:            mariadbv1alpha1.SSTMariaBackup,
 							GaleraLibPath:  "/usr/lib/galera/libgalera_smm.so",
 							ReplicaThreads: 2,
 						},
@@ -201,10 +200,10 @@ wsrep_sst_receive_address="10.244.0.32:4444"
 					Namespace: "default",
 				},
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Galera: &v1alpha1.Galera{
+					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
-						GaleraSpec: v1alpha1.GaleraSpec{
-							SST:            v1alpha1.SSTMariaBackup,
+						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							SST:            mariadbv1alpha1.SSTMariaBackup,
 							GaleraLibPath:  "/usr/lib/galera/libgalera_smm.so",
 							ReplicaThreads: 1,
 						},
@@ -253,10 +252,10 @@ wsrep_sst_receive_address="[2001:db8::a1]:4444"
 					Namespace: "default",
 				},
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Galera: &v1alpha1.Galera{
+					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
-						GaleraSpec: v1alpha1.GaleraSpec{
-							SST:            v1alpha1.SSTMariaBackup,
+						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							SST:            mariadbv1alpha1.SSTMariaBackup,
 							GaleraLibPath:  "/usr/lib/galera/libgalera_smm.so",
 							ReplicaThreads: 1,
 							ProviderOptions: map[string]string{
@@ -310,10 +309,10 @@ wsrep_sst_receive_address="[2001:db8::a1]:4444"
 				},
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Image: "mariadb:10.11.8",
-					Galera: &v1alpha1.Galera{
+					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
-						GaleraSpec: v1alpha1.GaleraSpec{
-							SST:            v1alpha1.SSTMariaBackup,
+						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							SST:            mariadbv1alpha1.SSTMariaBackup,
 							GaleraLibPath:  "/usr/lib/galera/libgalera_smm.so",
 							ReplicaThreads: 2,
 						},
@@ -379,10 +378,10 @@ tkey=/etc/pki/client.key
 				},
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Image: "mariadb:10.11.8",
-					Galera: &v1alpha1.Galera{
+					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
-						GaleraSpec: v1alpha1.GaleraSpec{
-							SST:            v1alpha1.SSTMariaBackup,
+						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							SST:            mariadbv1alpha1.SSTMariaBackup,
 							GaleraLibPath:  "/usr/lib/galera/libgalera_smm.so",
 							ReplicaThreads: 2,
 						},
@@ -443,10 +442,10 @@ wsrep_sst_receive_address="10.244.0.32:4444"
 				},
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Image: "mariadb:10.11.8",
-					Galera: &v1alpha1.Galera{
+					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
-						GaleraSpec: v1alpha1.GaleraSpec{
-							SST:            v1alpha1.SSTMariaBackup,
+						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							SST:            mariadbv1alpha1.SSTMariaBackup,
 							GaleraLibPath:  "/usr/lib/galera/libgalera_smm.so",
 							ReplicaThreads: 2,
 						},

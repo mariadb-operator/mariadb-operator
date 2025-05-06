@@ -1,7 +1,6 @@
 package command
 
 import (
-	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"testing"
 	"time"
 
@@ -58,7 +57,7 @@ func TestMariadbDumpArgs(t *testing.T) {
 			backup:    &mariadbv1alpha1.Backup{},
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Galera: &v1alpha1.Galera{
+					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
 					},
 				},
@@ -131,7 +130,7 @@ func TestMariadbDumpArgs(t *testing.T) {
 			backup: &mariadbv1alpha1.Backup{},
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Galera: &v1alpha1.Galera{
+					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
 					},
 				},
@@ -260,7 +259,7 @@ func TestMariadbDumpArgs(t *testing.T) {
 			},
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Galera: &v1alpha1.Galera{
+					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
 					},
 				},

@@ -1,7 +1,6 @@
 package builder
 
 import (
-	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"testing"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
@@ -16,12 +15,12 @@ func TestSecretBuilder(t *testing.T) {
 	tests := []struct {
 		name     string
 		opts     SecretOpts
-		wantMeta *v1alpha1.Metadata
+		wantMeta *mariadbv1alpha1.Metadata
 	}{
 		{
 			name: "no meta",
 			opts: SecretOpts{
-				Metadata: []*v1alpha1.Metadata{},
+				Metadata: []*mariadbv1alpha1.Metadata{},
 				Key: types.NamespacedName{
 					Name: "configmap",
 				},
@@ -29,7 +28,7 @@ func TestSecretBuilder(t *testing.T) {
 					"password": []byte("test"),
 				},
 			},
-			wantMeta: &v1alpha1.Metadata{
+			wantMeta: &mariadbv1alpha1.Metadata{
 				Labels:      map[string]string{},
 				Annotations: map[string]string{},
 			},
@@ -37,7 +36,7 @@ func TestSecretBuilder(t *testing.T) {
 		{
 			name: "single meta",
 			opts: SecretOpts{
-				Metadata: []*v1alpha1.Metadata{
+				Metadata: []*mariadbv1alpha1.Metadata{
 					{
 						Labels: map[string]string{
 							"database.myorg.io": "mariadb",
@@ -54,7 +53,7 @@ func TestSecretBuilder(t *testing.T) {
 					"password": []byte("test"),
 				},
 			},
-			wantMeta: &v1alpha1.Metadata{
+			wantMeta: &mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"database.myorg.io": "mariadb",
 				},
@@ -66,7 +65,7 @@ func TestSecretBuilder(t *testing.T) {
 		{
 			name: "multiple meta",
 			opts: SecretOpts{
-				Metadata: []*v1alpha1.Metadata{
+				Metadata: []*mariadbv1alpha1.Metadata{
 					{
 						Labels: map[string]string{
 							"database.myorg.io": "mariadb",
@@ -88,7 +87,7 @@ func TestSecretBuilder(t *testing.T) {
 					"password": []byte("test"),
 				},
 			},
-			wantMeta: &v1alpha1.Metadata{
+			wantMeta: &mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"database.myorg.io":       "mariadb",
 					"sidecar.istio.io/inject": "false",
@@ -122,7 +121,7 @@ func TestBuildSecret(t *testing.T) {
 		{
 			name: "no owner",
 			opts: SecretOpts{
-				Metadata: []*v1alpha1.Metadata{},
+				Metadata: []*mariadbv1alpha1.Metadata{},
 				Key: types.NamespacedName{
 					Name:      "test-secret",
 					Namespace: "default",
@@ -137,7 +136,7 @@ func TestBuildSecret(t *testing.T) {
 		{
 			name: "with owner",
 			opts: SecretOpts{
-				Metadata: []*v1alpha1.Metadata{},
+				Metadata: []*mariadbv1alpha1.Metadata{},
 				Key: types.NamespacedName{
 					Name:      "test-secret",
 					Namespace: "default",

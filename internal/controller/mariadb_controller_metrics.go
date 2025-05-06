@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
@@ -88,7 +87,7 @@ func (r *MariaDBReconciler) reconcileMetricsPassword(ctx context.Context, mariad
 
 func (r *MariaDBReconciler) reconcileAuth(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
 	key := mariadb.MetricsKey()
-	ref := v1alpha1.MariaDBRef{
+	ref := mariadbv1alpha1.MariaDBRef{
 		ObjectReference: mariadbv1alpha1.ObjectReference{
 			Name:      mariadb.Name,
 			Namespace: mariadb.Namespace,

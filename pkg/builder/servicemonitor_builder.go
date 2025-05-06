@@ -3,7 +3,6 @@ package builder
 import (
 	"errors"
 	"fmt"
-	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
@@ -60,12 +59,12 @@ func (b *Builder) BuildServiceMonitor(mariadb *mariadbv1alpha1.MariaDB) (*monito
 	return serviceMonitor, nil
 }
 
-func (b *Builder) BuildMaxScaleServiceMonitor(mxs *v1alpha1.MaxScale) (*monitoringv1.ServiceMonitor, error) {
+func (b *Builder) BuildMaxScaleServiceMonitor(mxs *mariadbv1alpha1.MaxScale) (*monitoringv1.ServiceMonitor, error) {
 	if !mxs.AreMetricsEnabled() {
 		return nil, errors.New("MaxScale instance does not specify Metrics")
 	}
 	key := mxs.MetricsKey()
-	metrics := ptr.Deref(mxs.Spec.Metrics, v1alpha1.MaxScaleMetrics{})
+	metrics := ptr.Deref(mxs.Spec.Metrics, mariadbv1alpha1.MaxScaleMetrics{})
 	objMeta :=
 		metadata.NewMetadataBuilder(key).
 			WithMetadata(mxs.Spec.InheritMetadata).

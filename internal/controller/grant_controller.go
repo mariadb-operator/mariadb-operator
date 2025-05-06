@@ -3,7 +3,6 @@ package controller
 import (
 	"context"
 	"fmt"
-	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
@@ -62,7 +61,7 @@ func (r *GrantReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager
 	builder := ctrl.NewControllerManagedBy(mgr).
 		For(&mariadbv1alpha1.Grant{})
 
-	if err := v1alpha1.IndexGrant(ctx, mgr, builder, r.Client); err != nil {
+	if err := mariadbv1alpha1.IndexGrant(ctx, mgr, builder, r.Client); err != nil {
 		return fmt.Errorf("error indexing Grant: %v", err)
 	}
 

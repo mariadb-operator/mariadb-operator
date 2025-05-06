@@ -1,7 +1,6 @@
 package builder
 
 import (
-	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"testing"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
@@ -17,20 +16,20 @@ func TestServiceAccountMeta(t *testing.T) {
 	}
 	tests := []struct {
 		name     string
-		meta     *v1alpha1.Metadata
-		wantMeta *v1alpha1.Metadata
+		meta     *mariadbv1alpha1.Metadata
+		wantMeta *mariadbv1alpha1.Metadata
 	}{
 		{
 			name: "no meta",
 			meta: nil,
-			wantMeta: &v1alpha1.Metadata{
+			wantMeta: &mariadbv1alpha1.Metadata{
 				Labels:      map[string]string{},
 				Annotations: map[string]string{},
 			},
 		},
 		{
 			name: "meta",
-			meta: &v1alpha1.Metadata{
+			meta: &mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"database.myorg.io": "mariadb",
 				},
@@ -38,7 +37,7 @@ func TestServiceAccountMeta(t *testing.T) {
 					"database.myorg.io": "mariadb",
 				},
 			},
-			wantMeta: &v1alpha1.Metadata{
+			wantMeta: &mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"database.myorg.io": "mariadb",
 				},
@@ -70,12 +69,12 @@ func TestRoleMeta(t *testing.T) {
 	tests := []struct {
 		name     string
 		mariadb  *mariadbv1alpha1.MariaDB
-		wantMeta *v1alpha1.Metadata
+		wantMeta *mariadbv1alpha1.Metadata
 	}{
 		{
 			name:    "no meta",
 			mariadb: &mariadbv1alpha1.MariaDB{},
-			wantMeta: &v1alpha1.Metadata{
+			wantMeta: &mariadbv1alpha1.Metadata{
 				Labels:      map[string]string{},
 				Annotations: map[string]string{},
 			},
@@ -84,7 +83,7 @@ func TestRoleMeta(t *testing.T) {
 			name: "meta",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					InheritMetadata: &v1alpha1.Metadata{
+					InheritMetadata: &mariadbv1alpha1.Metadata{
 						Labels: map[string]string{
 							"database.myorg.io": "mariadb",
 						},
@@ -94,7 +93,7 @@ func TestRoleMeta(t *testing.T) {
 					},
 				},
 			},
-			wantMeta: &v1alpha1.Metadata{
+			wantMeta: &mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"database.myorg.io": "mariadb",
 				},
@@ -127,12 +126,12 @@ func TestRoleBindingMeta(t *testing.T) {
 	tests := []struct {
 		name     string
 		mariadb  *mariadbv1alpha1.MariaDB
-		wantMeta *v1alpha1.Metadata
+		wantMeta *mariadbv1alpha1.Metadata
 	}{
 		{
 			name:    "no meta",
 			mariadb: &mariadbv1alpha1.MariaDB{},
-			wantMeta: &v1alpha1.Metadata{
+			wantMeta: &mariadbv1alpha1.Metadata{
 				Labels:      map[string]string{},
 				Annotations: map[string]string{},
 			},
@@ -141,7 +140,7 @@ func TestRoleBindingMeta(t *testing.T) {
 			name: "meta",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					InheritMetadata: &v1alpha1.Metadata{
+					InheritMetadata: &mariadbv1alpha1.Metadata{
 						Labels: map[string]string{
 							"database.myorg.io": "mariadb",
 						},

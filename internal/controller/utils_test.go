@@ -3,7 +3,6 @@ package controller
 import (
 	"context"
 	"fmt"
-	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"os"
 	"time"
 
@@ -106,7 +105,7 @@ func testCreateInitialData(ctx context.Context, env environment.OperatorEnv) {
 			Namespace: testMdbkey.Namespace,
 		},
 		Spec: mariadbv1alpha1.MariaDBSpec{
-			ContainerTemplate: v1alpha1.ContainerTemplate{
+			ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
 				SecurityContext: &mariadbv1alpha1.SecurityContext{
 					AllowPrivilegeEscalation: ptr.To(false),
 				},
@@ -248,7 +247,7 @@ func testMariadbUpdate(mdb *mariadbv1alpha1.MariaDB) {
 		if err := k8sClient.Get(testCtx, key, mdb); err != nil {
 			return false
 		}
-		return mdb.IsReady() && meta.IsStatusConditionTrue(mdb.Status.Conditions, v1alpha1.ConditionTypeUpdated)
+		return mdb.IsReady() && meta.IsStatusConditionTrue(mdb.Status.Conditions, mariadbv1alpha1.ConditionTypeUpdated)
 	}, testHighTimeout, testInterval).Should(BeTrue())
 }
 
@@ -264,7 +263,7 @@ func testMariadbVolumeResize(mdb *mariadbv1alpha1.MariaDB, newVolumeSize string)
 		if err := k8sClient.Get(testCtx, key, mdb); err != nil {
 			return false
 		}
-		return mdb.IsReady() && meta.IsStatusConditionTrue(mdb.Status.Conditions, v1alpha1.ConditionTypeStorageResized)
+		return mdb.IsReady() && meta.IsStatusConditionTrue(mdb.Status.Conditions, mariadbv1alpha1.ConditionTypeStorageResized)
 	}, testHighTimeout, testInterval).Should(BeTrue())
 
 	By("Expecting StatefulSet storage to have been resized")
@@ -294,7 +293,7 @@ func testMariadbVolumeResize(mdb *mariadbv1alpha1.MariaDB, newVolumeSize string)
 	}
 }
 
-func testMaxscale(mdb *mariadbv1alpha1.MariaDB, mxs *v1alpha1.MaxScale) {
+func testMaxscale(mdb *mariadbv1alpha1.MariaDB, mxs *mariadbv1alpha1.MaxScale) {
 	mdbKey := client.ObjectKeyFromObject(mdb)
 	mxsKey := client.ObjectKeyFromObject(mxs)
 
@@ -586,7 +585,7 @@ func applyMariadbTestConfig(mdb *mariadbv1alpha1.MariaDB) *mariadbv1alpha1.Maria
 }
 
 // See: https://docs.github.com/en/actions/using-github-hosted-runners/using-github-hosted-runners/about-github-hosted-runners#standard-github-hosted-runners-for-public-repositories
-func applyMaxscaleTestConfig(mxs *v1alpha1.MaxScale) *v1alpha1.MaxScale {
+func applyMaxscaleTestConfig(mxs *mariadbv1alpha1.MaxScale) *mariadbv1alpha1.MaxScale {
 	mxs.Spec.Resources = &mariadbv1alpha1.ResourceRequirements{
 		Requests: corev1.ResourceList{
 			"cpu":    resource.MustParse("250m"),
@@ -657,7 +656,7 @@ func getBackupWithStorage(key types.NamespacedName, storage mariadbv1alpha1.Back
 
 func getBackupWithPVCStorage(key types.NamespacedName) *mariadbv1alpha1.Backup {
 	return getBackupWithStorage(key, mariadbv1alpha1.BackupStorage{
-		PersistentVolumeClaim: &v1alpha1.PersistentVolumeClaimSpec{
+		PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimSpec{
 			Resources: corev1.VolumeResourceRequirements{
 				Requests: corev1.ResourceList{
 					"storage": resource.MustParse("100Mi"),
@@ -678,8 +677,8 @@ func getBackupWithS3Storage(key types.NamespacedName, bucket, prefix string) *ma
 
 func getBackupWithVolumeStorage(key types.NamespacedName) *mariadbv1alpha1.Backup {
 	return getBackupWithStorage(key, mariadbv1alpha1.BackupStorage{
-		Volume: &v1alpha1.StorageVolumeSource{
-			EmptyDir: &v1alpha1.EmptyDirVolumeSource{},
+		Volume: &mariadbv1alpha1.StorageVolumeSource{
+			EmptyDir: &mariadbv1alpha1.EmptyDirVolumeSource{},
 		},
 	})
 }
@@ -771,7 +770,7 @@ func deleteMariadb(key types.NamespacedName, assertPVCDeletion bool) {
 }
 
 func deleteMaxScale(key types.NamespacedName, assertPVCDeletion bool) {
-	mxs := v1alpha1.MaxScale{
+	mxs := mariadbv1alpha1.MaxScale{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      key.Name,
 			Namespace: key.Namespace,

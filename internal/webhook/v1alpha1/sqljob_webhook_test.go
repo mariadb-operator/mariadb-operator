@@ -1,7 +1,6 @@
 package v1alpha1
 
 import (
-	v1alpha2 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -35,7 +34,7 @@ var _ = Describe("v1alpha1.SqlJob webhook", func() {
 				&v1alpha1.SqlJob{
 					ObjectMeta: objMeta,
 					Spec: v1alpha1.SqlJobSpec{
-						MariaDBRef: v1alpha2.MariaDBRef{
+						MariaDBRef: v1alpha1.MariaDBRef{
 							ObjectReference: v1alpha1.ObjectReference{
 								Name: "foo",
 							},
@@ -56,12 +55,12 @@ var _ = Describe("v1alpha1.SqlJob webhook", func() {
 				&v1alpha1.SqlJob{
 					ObjectMeta: objMeta,
 					Spec: v1alpha1.SqlJobSpec{
-						MariaDBRef: v1alpha2.MariaDBRef{
+						MariaDBRef: v1alpha1.MariaDBRef{
 							ObjectReference: v1alpha1.ObjectReference{
 								Name: "foo",
 							},
 						},
-						Schedule: &v1alpha2.Schedule{
+						Schedule: &v1alpha1.Schedule{
 							Cron: "foo",
 						},
 						Username: "foo",
@@ -80,12 +79,12 @@ var _ = Describe("v1alpha1.SqlJob webhook", func() {
 				&v1alpha1.SqlJob{
 					ObjectMeta: objMeta,
 					Spec: v1alpha1.SqlJobSpec{
-						MariaDBRef: v1alpha2.MariaDBRef{
+						MariaDBRef: v1alpha1.MariaDBRef{
 							ObjectReference: v1alpha1.ObjectReference{
 								Name: "foo",
 							},
 						},
-						Schedule: &v1alpha2.Schedule{
+						Schedule: &v1alpha1.Schedule{
 							Cron: "foo",
 						},
 						Username: "foo",
@@ -96,7 +95,7 @@ var _ = Describe("v1alpha1.SqlJob webhook", func() {
 							Key: "foo",
 						},
 						Sql: func() *string { s := "foo"; return &s }(),
-						CronJobTemplate: v1alpha2.CronJobTemplate{
+						CronJobTemplate: v1alpha1.CronJobTemplate{
 							SuccessfulJobsHistoryLimit: ptr.To[int32](-5),
 							FailedJobsHistoryLimit:     ptr.To[int32](-5),
 						},
@@ -109,7 +108,7 @@ var _ = Describe("v1alpha1.SqlJob webhook", func() {
 				&v1alpha1.SqlJob{
 					ObjectMeta: objMeta,
 					Spec: v1alpha1.SqlJobSpec{
-						MariaDBRef: v1alpha2.MariaDBRef{
+						MariaDBRef: v1alpha1.MariaDBRef{
 							ObjectReference: v1alpha1.ObjectReference{
 								Name: "foo",
 							},
@@ -131,12 +130,12 @@ var _ = Describe("v1alpha1.SqlJob webhook", func() {
 				&v1alpha1.SqlJob{
 					ObjectMeta: objMeta,
 					Spec: v1alpha1.SqlJobSpec{
-						MariaDBRef: v1alpha2.MariaDBRef{
+						MariaDBRef: v1alpha1.MariaDBRef{
 							ObjectReference: v1alpha1.ObjectReference{
 								Name: "foo",
 							},
 						},
-						Schedule: &v1alpha2.Schedule{
+						Schedule: &v1alpha1.Schedule{
 							Cron: "*/1 * * * *",
 						},
 						Username: "foo",

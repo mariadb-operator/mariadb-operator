@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"sort"
 	"strconv"
 	"time"
@@ -349,6 +348,6 @@ func shouldTriggerSwitchover(mariadb *mariadbv1alpha1.MariaDB) bool {
 	if mariadb.IsMaxScaleEnabled() || mariadb.IsRestoringBackup() {
 		return false
 	}
-	primaryRepl := ptr.Deref(mariadb.Replication().Primary, v1alpha1.PrimaryReplication{})
+	primaryRepl := ptr.Deref(mariadb.Replication().Primary, mariadbv1alpha1.PrimaryReplication{})
 	return mariadb.Replication().Enabled && *primaryRepl.AutomaticFailover && mariadb.IsReplicationConfigured()
 }

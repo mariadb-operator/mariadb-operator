@@ -3,7 +3,6 @@ package replication
 import (
 	"context"
 	"fmt"
-	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -187,7 +186,7 @@ func (r *ReplicationReconciler) reconcileReplication(ctx context.Context, req *r
 		}
 
 		state, ok := req.mariadb.Status.ReplicationStatus[pod]
-		if !ok || state == v1alpha1.ReplicationStateNotConfigured {
+		if !ok || state == mariadbv1alpha1.ReplicationStateNotConfigured {
 			if err := r.reconcileReplicationInPod(ctx, req, logger, i); err != nil {
 				return ctrl.Result{}, fmt.Errorf("error configuring replication in Pod '%s': %v", pod, err)
 			}

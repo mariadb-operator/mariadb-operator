@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"maps"
 	"net"
 	"strconv"
@@ -46,7 +45,7 @@ func (c *ConfigFile) Marshal(podEnv *environment.PodEnvironment) ([]byte, error)
 	if !c.mariadb.IsGaleraEnabled() {
 		return nil, errors.New("MariaDB Galera not enabled, unable to render config file")
 	}
-	galera := ptr.Deref(c.mariadb.Spec.Galera, v1alpha1.Galera{})
+	galera := ptr.Deref(c.mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
 
 	tpl := createTpl("galera", `[mariadb]
 bind_address=*
@@ -137,7 +136,7 @@ tkey={{ .SSTSSLKeyPath }}
 		ProviderOpts:    providerOptions,
 
 		SST:                  sst,
-		SSTAuth:              galera.SST == v1alpha1.SSTMariaBackup || galera.SST == v1alpha1.SSTMysqldump,
+		SSTAuth:              galera.SST == mariadbv1alpha1.SSTMariaBackup || galera.SST == mariadbv1alpha1.SSTMysqldump,
 		RootPassword:         podEnv.MariadbRootPassword,
 		SSTReceiveAddressKey: galerakeys.WsrepSSTReceiveAddressKey,
 		SSTReceiveAddress:    sstReceiveAddress,

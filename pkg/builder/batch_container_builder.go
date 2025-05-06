@@ -1,7 +1,6 @@
 package builder
 
 import (
-	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	builderpki "github.com/mariadb-operator/mariadb-operator/pkg/builder/pki"
 	cmd "github.com/mariadb-operator/mariadb-operator/pkg/command"
@@ -50,8 +49,8 @@ func (b *Builder) jobMariadbContainer(cmd *cmd.Command, volumeMounts []corev1.Vo
 	return b.jobContainer("mariadb", cmd, mariadb.Spec.Image, volumeMounts, envVar, resources, mariadb, securityContext)
 }
 
-func jobBatchStorageVolume(storageVolume v1alpha1.StorageVolumeSource,
-	s3 *v1alpha1.S3, mariadb *mariadbv1alpha1.MariaDB) ([]corev1.Volume, []corev1.VolumeMount) {
+func jobBatchStorageVolume(storageVolume mariadbv1alpha1.StorageVolumeSource,
+	s3 *mariadbv1alpha1.S3, mariadb *mariadbv1alpha1.MariaDB) ([]corev1.Volume, []corev1.VolumeMount) {
 	volumes :=
 		[]corev1.Volume{
 			{

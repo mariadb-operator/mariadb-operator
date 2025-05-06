@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
@@ -30,7 +29,7 @@ var _ = Describe("Grant", func() {
 				Namespace: userKey.Namespace,
 			},
 			Spec: mariadbv1alpha1.UserSpec{
-				MariaDBRef: v1alpha1.MariaDBRef{
+				MariaDBRef: mariadbv1alpha1.MariaDBRef{
 					ObjectReference: mariadbv1alpha1.ObjectReference{
 						Name: testMdbkey.Name,
 					},
@@ -69,10 +68,10 @@ var _ = Describe("Grant", func() {
 				Namespace: grantKey.Namespace,
 			},
 			Spec: mariadbv1alpha1.GrantSpec{
-				SQLTemplate: v1alpha1.SQLTemplate{
+				SQLTemplate: mariadbv1alpha1.SQLTemplate{
 					RetryInterval: &metav1.Duration{Duration: 1 * time.Second},
 				},
-				MariaDBRef: v1alpha1.MariaDBRef{
+				MariaDBRef: mariadbv1alpha1.MariaDBRef{
 					ObjectReference: mariadbv1alpha1.ObjectReference{
 						Name: testMdbkey.Name,
 					},

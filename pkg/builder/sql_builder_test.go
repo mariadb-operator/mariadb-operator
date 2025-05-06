@@ -1,7 +1,6 @@
 package builder
 
 import (
-	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"reflect"
 	"testing"
 
@@ -18,12 +17,12 @@ func TestUserMeta(t *testing.T) {
 	tests := []struct {
 		name     string
 		opts     UserOpts
-		wantMeta *v1alpha1.Metadata
+		wantMeta *mariadbv1alpha1.Metadata
 	}{
 		{
 			name: "no meta",
 			opts: UserOpts{},
-			wantMeta: &v1alpha1.Metadata{
+			wantMeta: &mariadbv1alpha1.Metadata{
 				Labels:      map[string]string{},
 				Annotations: map[string]string{},
 			},
@@ -31,7 +30,7 @@ func TestUserMeta(t *testing.T) {
 		{
 			name: "meta",
 			opts: UserOpts{
-				Metadata: &v1alpha1.Metadata{
+				Metadata: &mariadbv1alpha1.Metadata{
 					Labels: map[string]string{
 						"database.myorg.io": "mariadb",
 					},
@@ -40,7 +39,7 @@ func TestUserMeta(t *testing.T) {
 					},
 				},
 			},
-			wantMeta: &v1alpha1.Metadata{
+			wantMeta: &mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"database.myorg.io": "mariadb",
 				},
@@ -69,7 +68,7 @@ func TestUserCleanupPolicy(t *testing.T) {
 	tests := []struct {
 		name              string
 		opts              UserOpts
-		wantCleanupPolicy *v1alpha1.CleanupPolicy
+		wantCleanupPolicy *mariadbv1alpha1.CleanupPolicy
 	}{
 		{
 			name:              "no cleanupPolicy",
@@ -79,9 +78,9 @@ func TestUserCleanupPolicy(t *testing.T) {
 		{
 			name: "cleanupPolicy",
 			opts: UserOpts{
-				CleanupPolicy: ptr.To(v1alpha1.CleanupPolicySkip),
+				CleanupPolicy: ptr.To(mariadbv1alpha1.CleanupPolicySkip),
 			},
-			wantCleanupPolicy: ptr.To(v1alpha1.CleanupPolicySkip),
+			wantCleanupPolicy: ptr.To(mariadbv1alpha1.CleanupPolicySkip),
 		},
 	}
 	for _, tt := range tests {
@@ -105,12 +104,12 @@ func TestGrantMeta(t *testing.T) {
 	tests := []struct {
 		name     string
 		opts     GrantOpts
-		wantMeta *v1alpha1.Metadata
+		wantMeta *mariadbv1alpha1.Metadata
 	}{
 		{
 			name: "no meta",
 			opts: GrantOpts{},
-			wantMeta: &v1alpha1.Metadata{
+			wantMeta: &mariadbv1alpha1.Metadata{
 				Labels:      map[string]string{},
 				Annotations: map[string]string{},
 			},
@@ -118,7 +117,7 @@ func TestGrantMeta(t *testing.T) {
 		{
 			name: "meta",
 			opts: GrantOpts{
-				Metadata: &v1alpha1.Metadata{
+				Metadata: &mariadbv1alpha1.Metadata{
 					Labels: map[string]string{
 						"database.myorg.io": "mariadb",
 					},
@@ -127,7 +126,7 @@ func TestGrantMeta(t *testing.T) {
 					},
 				},
 			},
-			wantMeta: &v1alpha1.Metadata{
+			wantMeta: &mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"database.myorg.io": "mariadb",
 				},

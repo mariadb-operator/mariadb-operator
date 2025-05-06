@@ -1,12 +1,12 @@
 package config
 
 import (
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"reflect"
 	"sort"
 	"strings"
 	"testing"
 
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"k8s.io/utils/ptr"
 )
 

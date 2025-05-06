@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	v1alpha2 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"reflect"
 
 	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
@@ -164,7 +163,7 @@ func validateMaxScale(mariadb *v1alpha1.MariaDB) error {
 }
 
 func validateGalera(mariadb *v1alpha1.MariaDB) error {
-	galera := ptr.Deref(mariadb.Spec.Galera, v1alpha2.Galera{})
+	galera := ptr.Deref(mariadb.Spec.Galera, v1alpha1.Galera{})
 	if !galera.Enabled {
 		return nil
 	}

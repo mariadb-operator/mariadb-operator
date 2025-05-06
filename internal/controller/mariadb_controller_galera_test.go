@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"time"
 
 	cmmeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
@@ -35,7 +34,7 @@ var _ = Describe("MariaDB Galera spec", func() {
 				Namespace: key.Namespace,
 			},
 			Spec: mariadbv1alpha1.MariaDBSpec{
-				Galera: &v1alpha1.Galera{
+				Galera: &mariadbv1alpha1.Galera{
 					Enabled: true,
 				},
 				Replicas: 3,
@@ -80,7 +79,7 @@ var _ = Describe("MariaDB Galera use cases", Ordered, func() {
 				Namespace: key.Namespace,
 			},
 			Spec: mariadbv1alpha1.MariaDBSpec{
-				RootPasswordSecretKeyRef: v1alpha1.GeneratedSecretKeyRef{
+				RootPasswordSecretKeyRef: mariadbv1alpha1.GeneratedSecretKeyRef{
 					SecretKeySelector: mariadbv1alpha1.SecretKeySelector{
 						LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
 							Name: testPwdKey.Name,
@@ -88,11 +87,11 @@ var _ = Describe("MariaDB Galera use cases", Ordered, func() {
 						Key: testPwdSecretKey,
 					},
 				},
-				Galera: &v1alpha1.Galera{
+				Galera: &mariadbv1alpha1.Galera{
 					Enabled: true,
-					GaleraSpec: v1alpha1.GaleraSpec{
-						Agent: v1alpha1.GaleraAgent{
-							BasicAuth: &v1alpha1.BasicAuth{
+					GaleraSpec: mariadbv1alpha1.GaleraSpec{
+						Agent: mariadbv1alpha1.GaleraAgent{
+							BasicAuth: &mariadbv1alpha1.BasicAuth{
 								Enabled: true,
 							},
 						},
@@ -102,15 +101,15 @@ var _ = Describe("MariaDB Galera use cases", Ordered, func() {
 				Storage: mariadbv1alpha1.Storage{
 					Size: ptr.To(resource.MustParse("300Mi")),
 				},
-				Service: &v1alpha1.ServiceTemplate{
+				Service: &mariadbv1alpha1.ServiceTemplate{
 					Type: corev1.ServiceTypeLoadBalancer,
-					Metadata: &v1alpha1.Metadata{
+					Metadata: &mariadbv1alpha1.Metadata{
 						Annotations: map[string]string{
 							"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.168",
 						},
 					},
 				},
-				PrimaryService: &v1alpha1.ServiceTemplate{
+				PrimaryService: &mariadbv1alpha1.ServiceTemplate{
 					Type: corev1.ServiceTypeLoadBalancer,
 					Metadata: &mariadbv1alpha1.Metadata{
 						Annotations: map[string]string{
@@ -139,9 +138,9 @@ var _ = Describe("MariaDB Galera use cases", Ordered, func() {
 			if err := k8sClient.Get(testCtx, key, mdb); err != nil {
 				return false
 			}
-			galera := ptr.Deref(mdb.Spec.Galera, v1alpha1.Galera{})
-			basicAuth := ptr.Deref(galera.Agent.BasicAuth, v1alpha1.BasicAuth{})
-			kubernetesAuth := ptr.Deref(galera.Agent.KubernetesAuth, v1alpha1.KubernetesAuth{})
+			galera := ptr.Deref(mdb.Spec.Galera, mariadbv1alpha1.Galera{})
+			basicAuth := ptr.Deref(galera.Agent.BasicAuth, mariadbv1alpha1.BasicAuth{})
+			kubernetesAuth := ptr.Deref(galera.Agent.KubernetesAuth, mariadbv1alpha1.KubernetesAuth{})
 
 			return basicAuth.Enabled && !kubernetesAuth.Enabled
 		}, testHighTimeout, testInterval).Should(BeTrue())
@@ -171,7 +170,7 @@ var _ = Describe("MariaDB Galera use cases", Ordered, func() {
 						Key: testPwdSecretKey,
 					},
 				},
-				Galera: &v1alpha1.Galera{
+				Galera: &mariadbv1alpha1.Galera{
 					Enabled: true,
 				},
 				Replicas: 3,
@@ -275,21 +274,21 @@ var _ = Describe("MariaDB Galera", Ordered, func() {
 					innodb_autoinc_lock_mode=2
 					max_allowed_packet=256M
 					`),
-				Galera: &v1alpha1.Galera{
+				Galera: &mariadbv1alpha1.Galera{
 					Enabled: true,
-					GaleraSpec: v1alpha1.GaleraSpec{
-						Primary: v1alpha1.PrimaryGalera{
+					GaleraSpec: mariadbv1alpha1.GaleraSpec{
+						Primary: mariadbv1alpha1.PrimaryGalera{
 							PodIndex:          ptr.To(0),
 							AutomaticFailover: ptr.To(true),
 						},
-						Recovery: &v1alpha1.GaleraRecovery{
+						Recovery: &mariadbv1alpha1.GaleraRecovery{
 							Enabled:               true,
 							ClusterHealthyTimeout: ptr.To(metav1.Duration{Duration: 10 * time.Second}),
 						},
-						Config: v1alpha1.GaleraConfig{
+						Config: mariadbv1alpha1.GaleraConfig{
 							ReuseStorageVolume: ptr.To(false),
 							VolumeClaimTemplate: &mariadbv1alpha1.VolumeClaimTemplate{
-								PersistentVolumeClaimSpec: v1alpha1.PersistentVolumeClaimSpec{
+								PersistentVolumeClaimSpec: mariadbv1alpha1.PersistentVolumeClaimSpec{
 									Resources: corev1.VolumeResourceRequirements{
 										Requests: corev1.ResourceList{
 											"storage": resource.MustParse("100Mi"),
@@ -301,7 +300,7 @@ var _ = Describe("MariaDB Galera", Ordered, func() {
 								},
 							},
 						},
-						InitJob: &v1alpha1.GaleraInitJob{
+						InitJob: &mariadbv1alpha1.GaleraInitJob{
 							Metadata: &mariadbv1alpha1.Metadata{
 								Labels: map[string]string{
 									"sidecar.istio.io/inject": "false",
@@ -552,12 +551,12 @@ var _ = Describe("MariaDB Galera", Ordered, func() {
 	})
 
 	It("should reconcile with MaxScale", func() {
-		mxs := &v1alpha1.MaxScale{
+		mxs := &mariadbv1alpha1.MaxScale{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "maxscale-galera",
 				Namespace: testNamespace,
 			},
-			Spec: v1alpha1.MaxScaleSpec{
+			Spec: mariadbv1alpha1.MaxScaleSpec{
 				Replicas: 2,
 				KubernetesService: &mariadbv1alpha1.ServiceTemplate{
 					Type: corev1.ServiceTypeLoadBalancer,
@@ -581,7 +580,7 @@ var _ = Describe("MariaDB Galera", Ordered, func() {
 						Interval: ptr.To(metav1.Duration{Duration: 1 * time.Second}),
 					},
 				},
-				Auth: v1alpha1.MaxScaleAuth{
+				Auth: mariadbv1alpha1.MaxScaleAuth{
 					Generate: ptr.To(true),
 					AdminPasswordSecretKeyRef: mariadbv1alpha1.GeneratedSecretKeyRef{
 						SecretKeySelector: mariadbv1alpha1.SecretKeySelector{
@@ -593,12 +592,12 @@ var _ = Describe("MariaDB Galera", Ordered, func() {
 						Generate: false,
 					},
 				},
-				TLS: &v1alpha1.MaxScaleTLS{
+				TLS: &mariadbv1alpha1.MaxScaleTLS{
 					Enabled:               true,
 					VerifyPeerCertificate: ptr.To(true),
 					VerifyPeerHost:        ptr.To(false),
 				},
-				Metrics: &v1alpha1.MaxScaleMetrics{
+				Metrics: &mariadbv1alpha1.MaxScaleMetrics{
 					Enabled: true,
 				},
 			},

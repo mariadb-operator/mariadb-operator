@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
@@ -34,7 +33,7 @@ var _ = Describe("MariaDB replication", Ordered, func() {
 			},
 			Spec: mariadbv1alpha1.MariaDBSpec{
 				Username: &testUser,
-				PasswordSecretKeyRef: &v1alpha1.GeneratedSecretKeyRef{
+				PasswordSecretKeyRef: &mariadbv1alpha1.GeneratedSecretKeyRef{
 					SecretKeySelector: mariadbv1alpha1.SecretKeySelector{
 						LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
 							Name: testPwdKey.Name,
@@ -50,15 +49,15 @@ var _ = Describe("MariaDB replication", Ordered, func() {
 				innodb_autoinc_lock_mode=2
 				max_allowed_packet=256M`,
 				),
-				Replication: &v1alpha1.Replication{
-					ReplicationSpec: v1alpha1.ReplicationSpec{
-						Primary: &v1alpha1.PrimaryReplication{
+				Replication: &mariadbv1alpha1.Replication{
+					ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
+						Primary: &mariadbv1alpha1.PrimaryReplication{
 							PodIndex:          func() *int { i := 0; return &i }(),
 							AutomaticFailover: func() *bool { f := true; return &f }(),
 						},
-						Replica: &v1alpha1.ReplicaReplication{
-							WaitPoint: func() *v1alpha1.WaitPoint { w := v1alpha1.WaitPointAfterSync; return &w }(),
-							Gtid:      func() *v1alpha1.Gtid { g := v1alpha1.GtidCurrentPos; return &g }(),
+						Replica: &mariadbv1alpha1.ReplicaReplication{
+							WaitPoint: func() *mariadbv1alpha1.WaitPoint { w := mariadbv1alpha1.WaitPointAfterSync; return &w }(),
+							Gtid:      func() *mariadbv1alpha1.Gtid { g := mariadbv1alpha1.GtidCurrentPos; return &g }(),
 						},
 						SyncBinlog: func() *bool { s := true; return &s }(),
 					},
@@ -75,37 +74,37 @@ var _ = Describe("MariaDB replication", Ordered, func() {
 					Enabled:  true,
 					Required: ptr.To(true),
 				},
-				Service: &v1alpha1.ServiceTemplate{
+				Service: &mariadbv1alpha1.ServiceTemplate{
 					Type: corev1.ServiceTypeLoadBalancer,
-					Metadata: &v1alpha1.Metadata{
+					Metadata: &mariadbv1alpha1.Metadata{
 						Annotations: map[string]string{
 							"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.120",
 						},
 					},
 				},
-				Connection: &v1alpha1.ConnectionTemplate{
+				Connection: &mariadbv1alpha1.ConnectionTemplate{
 					SecretName: func() *string {
 						s := "mdb-repl-conn"
 						return &s
 					}(),
-					SecretTemplate: &v1alpha1.SecretTemplate{
+					SecretTemplate: &mariadbv1alpha1.SecretTemplate{
 						Key: &testConnSecretKey,
 					},
 				},
-				PrimaryService: &v1alpha1.ServiceTemplate{
+				PrimaryService: &mariadbv1alpha1.ServiceTemplate{
 					Type: corev1.ServiceTypeLoadBalancer,
-					Metadata: &v1alpha1.Metadata{
+					Metadata: &mariadbv1alpha1.Metadata{
 						Annotations: map[string]string{
 							"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.130",
 						},
 					},
 				},
-				PrimaryConnection: &v1alpha1.ConnectionTemplate{
+				PrimaryConnection: &mariadbv1alpha1.ConnectionTemplate{
 					SecretName: func() *string {
 						s := "mdb-repl-conn-primary"
 						return &s
 					}(),
-					SecretTemplate: &v1alpha1.SecretTemplate{
+					SecretTemplate: &mariadbv1alpha1.SecretTemplate{
 						Key: &testConnSecretKey,
 					},
 				},
@@ -320,12 +319,12 @@ var _ = Describe("MariaDB replication", Ordered, func() {
 	It("should reconcile with MaxScale", func() {
 		Skip("TODO: re-evaluate this test when productionizing replication. See https://github.com/mariadb-operator/mariadb-operator/issues/738")
 
-		mxs := &v1alpha1.MaxScale{
+		mxs := &mariadbv1alpha1.MaxScale{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "maxscale-repl",
 				Namespace: testNamespace,
 			},
-			Spec: v1alpha1.MaxScaleSpec{
+			Spec: mariadbv1alpha1.MaxScaleSpec{
 				Replicas: 2,
 				KubernetesService: &mariadbv1alpha1.ServiceTemplate{
 					Type: corev1.ServiceTypeLoadBalancer,
@@ -349,7 +348,7 @@ var _ = Describe("MariaDB replication", Ordered, func() {
 						Interval: ptr.To(metav1.Duration{Duration: 1 * time.Second}),
 					},
 				},
-				Auth: v1alpha1.MaxScaleAuth{
+				Auth: mariadbv1alpha1.MaxScaleAuth{
 					Generate: ptr.To(true),
 					AdminPasswordSecretKeyRef: mariadbv1alpha1.GeneratedSecretKeyRef{
 						SecretKeySelector: mariadbv1alpha1.SecretKeySelector{
@@ -361,13 +360,13 @@ var _ = Describe("MariaDB replication", Ordered, func() {
 						Generate: false,
 					},
 				},
-				TLS: &v1alpha1.MaxScaleTLS{
+				TLS: &mariadbv1alpha1.MaxScaleTLS{
 					Enabled:               true,
 					VerifyPeerCertificate: ptr.To(true),
 					VerifyPeerHost:        ptr.To(false),
 					ReplicationSSLEnabled: ptr.To(true),
 				},
-				Metrics: &v1alpha1.MaxScaleMetrics{
+				Metrics: &mariadbv1alpha1.MaxScaleMetrics{
 					Enabled: true,
 				},
 			},

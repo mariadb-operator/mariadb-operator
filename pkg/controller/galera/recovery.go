@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"io"
 	"net/http"
 	"reflect"
@@ -88,8 +87,8 @@ func (r *GaleraReconciler) reconcileRecovery(ctx context.Context, mariadb *maria
 
 func (r *GaleraReconciler) recoverCluster(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, pods []corev1.Pod,
 	rs *recoveryStatus, clientSet *agentClientSet, logger logr.Logger) error {
-	galera := ptr.Deref(mariadb.Spec.Galera, v1alpha1.Galera{})
-	recovery := ptr.Deref(galera.Recovery, v1alpha1.GaleraRecovery{})
+	galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
+	recovery := ptr.Deref(galera.Recovery, mariadbv1alpha1.GaleraRecovery{})
 
 	if recovery.ForceClusterBootstrapInPod != nil {
 		logger.Info("Starting forceful bootstrap ")
@@ -147,8 +146,8 @@ func (r *GaleraReconciler) recoverCluster(ctx context.Context, mariadb *mariadbv
 
 func (r *GaleraReconciler) restartPods(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, rs *recoveryStatus,
 	agentClientSet *agentClientSet, sqlClientSet *sqlclientset.ClientSet, logger logr.Logger) error {
-	galera := ptr.Deref(mariadb.Spec.Galera, v1alpha1.Galera{})
-	recovery := ptr.Deref(galera.Recovery, v1alpha1.GaleraRecovery{})
+	galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
+	recovery := ptr.Deref(galera.Recovery, mariadbv1alpha1.GaleraRecovery{})
 
 	src, err := rs.bootstrapSource(mariadb, recovery.ForceClusterBootstrapInPod, logger)
 	if err != nil {
@@ -269,8 +268,8 @@ func (r *GaleraReconciler) getGaleraState(ctx context.Context, mariadb *mariadbv
 				return fmt.Errorf("error getting client for Pod '%s': %v", pod.Name, err)
 			}
 
-			galera := ptr.Deref(mariadb.Spec.Galera, v1alpha1.Galera{})
-			recovery := ptr.Deref(galera.Recovery, v1alpha1.GaleraRecovery{})
+			galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
+			recovery := ptr.Deref(galera.Recovery, mariadbv1alpha1.GaleraRecovery{})
 			mariadbKey := ctrlclient.ObjectKeyFromObject(mariadb)
 			stateLogger := logger.WithValues("pod", pod.Name)
 
@@ -315,8 +314,8 @@ func (r *GaleraReconciler) getGaleraState(ctx context.Context, mariadb *mariadbv
 
 func (r *GaleraReconciler) recoverGaleraState(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, pods []corev1.Pod, rs *recoveryStatus,
 	logger logr.Logger) error {
-	galera := ptr.Deref(mariadb.Spec.Galera, v1alpha1.Galera{})
-	recovery := ptr.Deref(galera.Recovery, v1alpha1.GaleraRecovery{})
+	galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
+	recovery := ptr.Deref(galera.Recovery, mariadbv1alpha1.GaleraRecovery{})
 
 	stsKey := client.ObjectKeyFromObject(mariadb)
 

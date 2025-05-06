@@ -2,7 +2,6 @@ package conditions
 
 import (
 	"fmt"
-	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
@@ -12,24 +11,24 @@ import (
 func SetPrimarySwitching(c Conditioner, mariadb *mariadbv1alpha1.MariaDB) {
 	msg := switchingPrimaryMessage(mariadb)
 	c.SetCondition(metav1.Condition{
-		Type:    v1alpha1.ConditionTypeReady,
+		Type:    mariadbv1alpha1.ConditionTypeReady,
 		Status:  metav1.ConditionFalse,
-		Reason:  v1alpha1.ConditionReasonSwitchPrimary,
+		Reason:  mariadbv1alpha1.ConditionReasonSwitchPrimary,
 		Message: msg,
 	})
 	c.SetCondition(metav1.Condition{
-		Type:    v1alpha1.ConditionTypePrimarySwitched,
+		Type:    mariadbv1alpha1.ConditionTypePrimarySwitched,
 		Status:  metav1.ConditionFalse,
-		Reason:  v1alpha1.ConditionReasonSwitchPrimary,
+		Reason:  mariadbv1alpha1.ConditionReasonSwitchPrimary,
 		Message: msg,
 	})
 }
 
 func SetPrimarySwitched(c Conditioner) {
 	c.SetCondition(metav1.Condition{
-		Type:    v1alpha1.ConditionTypePrimarySwitched,
+		Type:    mariadbv1alpha1.ConditionTypePrimarySwitched,
 		Status:  metav1.ConditionTrue,
-		Reason:  v1alpha1.ConditionReasonSwitchPrimary,
+		Reason:  mariadbv1alpha1.ConditionReasonSwitchPrimary,
 		Message: "Switchover complete",
 	})
 }

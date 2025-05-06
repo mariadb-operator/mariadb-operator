@@ -1,7 +1,6 @@
 package builder
 
 import (
-	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"testing"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
@@ -12,12 +11,12 @@ func TestPodDisruptionBudgetMeta(t *testing.T) {
 	tests := []struct {
 		name     string
 		opts     PodDisruptionBudgetOpts
-		wantMeta *v1alpha1.Metadata
+		wantMeta *mariadbv1alpha1.Metadata
 	}{
 		{
 			name: "no meta",
 			opts: PodDisruptionBudgetOpts{},
-			wantMeta: &v1alpha1.Metadata{
+			wantMeta: &mariadbv1alpha1.Metadata{
 				Labels:      map[string]string{},
 				Annotations: map[string]string{},
 			},
@@ -25,7 +24,7 @@ func TestPodDisruptionBudgetMeta(t *testing.T) {
 		{
 			name: "meta",
 			opts: PodDisruptionBudgetOpts{
-				Metadata: &v1alpha1.Metadata{
+				Metadata: &mariadbv1alpha1.Metadata{
 					Labels: map[string]string{
 						"database.myorg.io": "mariadb",
 					},
@@ -34,7 +33,7 @@ func TestPodDisruptionBudgetMeta(t *testing.T) {
 					},
 				},
 			},
-			wantMeta: &v1alpha1.Metadata{
+			wantMeta: &mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"database.myorg.io": "mariadb",
 				},

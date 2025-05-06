@@ -1,7 +1,6 @@
 package v1alpha1
 
 import (
-	v1alpha2 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"time"
 
 	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
@@ -52,7 +51,7 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 					ObjectMeta: meta,
 					Spec: v1alpha1.MariaDBSpec{
 						BootstrapFrom: &v1alpha1.BootstrapFrom{
-							RestoreSource: v1alpha2.RestoreSource{
+							RestoreSource: v1alpha1.RestoreSource{
 								BackupRef: &v1alpha1.LocalObjectReference{
 									Name: "backup-webhook",
 								},
@@ -71,7 +70,7 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 					ObjectMeta: meta,
 					Spec: v1alpha1.MariaDBSpec{
 						BootstrapFrom: &v1alpha1.BootstrapFrom{
-							RestoreSource: v1alpha2.RestoreSource{
+							RestoreSource: v1alpha1.RestoreSource{
 								TargetRecoveryTime: &metav1.Time{Time: time.Now()},
 							},
 						},
@@ -87,10 +86,10 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 				&v1alpha1.MariaDB{
 					ObjectMeta: meta,
 					Spec: v1alpha1.MariaDBSpec{
-						Galera: &v1alpha2.Galera{
+						Galera: &v1alpha1.Galera{
 							Enabled: true,
-							GaleraSpec: v1alpha2.GaleraSpec{
-								SST:            v1alpha2.SSTMariaBackup,
+							GaleraSpec: v1alpha1.GaleraSpec{
+								SST:            v1alpha1.SSTMariaBackup,
 								ReplicaThreads: 1,
 							},
 						},
@@ -107,9 +106,9 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 				&v1alpha1.MariaDB{
 					ObjectMeta: meta,
 					Spec: v1alpha1.MariaDBSpec{
-						Replication: &v1alpha2.Replication{
-							ReplicationSpec: v1alpha2.ReplicationSpec{
-								Primary: &v1alpha2.PrimaryReplication{
+						Replication: &v1alpha1.Replication{
+							ReplicationSpec: v1alpha1.ReplicationSpec{
+								Primary: &v1alpha1.PrimaryReplication{
 									PodIndex: func() *int { i := 0; return &i }(),
 								},
 								SyncBinlog: func() *bool { f := true; return &f }(),
@@ -129,19 +128,19 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 				&v1alpha1.MariaDB{
 					ObjectMeta: meta,
 					Spec: v1alpha1.MariaDBSpec{
-						Replication: &v1alpha2.Replication{
-							ReplicationSpec: v1alpha2.ReplicationSpec{
-								Primary: &v1alpha2.PrimaryReplication{
+						Replication: &v1alpha1.Replication{
+							ReplicationSpec: v1alpha1.ReplicationSpec{
+								Primary: &v1alpha1.PrimaryReplication{
 									PodIndex: func() *int { i := 0; return &i }(),
 								},
 								SyncBinlog: func() *bool { f := true; return &f }(),
 							},
 							Enabled: true,
 						},
-						Galera: &v1alpha2.Galera{
+						Galera: &v1alpha1.Galera{
 							Enabled: true,
-							GaleraSpec: v1alpha2.GaleraSpec{
-								SST:            v1alpha2.SSTMariaBackup,
+							GaleraSpec: v1alpha1.GaleraSpec{
+								SST:            v1alpha1.SSTMariaBackup,
 								ReplicaThreads: 1,
 							},
 						},
@@ -171,10 +170,10 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 				&v1alpha1.MariaDB{
 					ObjectMeta: meta,
 					Spec: v1alpha1.MariaDBSpec{
-						Galera: &v1alpha2.Galera{
+						Galera: &v1alpha1.Galera{
 							Enabled: true,
-							GaleraSpec: v1alpha2.GaleraSpec{
-								SST: v1alpha2.SSTMariaBackup,
+							GaleraSpec: v1alpha1.GaleraSpec{
+								SST: v1alpha1.SSTMariaBackup,
 							},
 						},
 						Replicas: 1,
@@ -190,11 +189,11 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 				&v1alpha1.MariaDB{
 					ObjectMeta: meta,
 					Spec: v1alpha1.MariaDBSpec{
-						Galera: &v1alpha2.Galera{
+						Galera: &v1alpha1.Galera{
 							Enabled: true,
-							GaleraSpec: v1alpha2.GaleraSpec{
-								SST: v1alpha2.SSTMariaBackup,
-								Recovery: &v1alpha2.GaleraRecovery{
+							GaleraSpec: v1alpha1.GaleraSpec{
+								SST: v1alpha1.SSTMariaBackup,
+								Recovery: &v1alpha1.GaleraRecovery{
 									Enabled:        true,
 									MinClusterSize: ptr.To(intstr.FromInt(4)),
 								},
@@ -213,11 +212,11 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 				&v1alpha1.MariaDB{
 					ObjectMeta: meta,
 					Spec: v1alpha1.MariaDBSpec{
-						Galera: &v1alpha2.Galera{
+						Galera: &v1alpha1.Galera{
 							Enabled: true,
-							GaleraSpec: v1alpha2.GaleraSpec{
-								SST: v1alpha2.SSTMariaBackup,
-								Recovery: &v1alpha2.GaleraRecovery{
+							GaleraSpec: v1alpha1.GaleraSpec{
+								SST: v1alpha1.SSTMariaBackup,
+								Recovery: &v1alpha1.GaleraRecovery{
 									Enabled:                    true,
 									ForceClusterBootstrapInPod: ptr.To("foo"),
 								},
@@ -236,10 +235,10 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 				&v1alpha1.MariaDB{
 					ObjectMeta: meta,
 					Spec: v1alpha1.MariaDBSpec{
-						Galera: &v1alpha2.Galera{
+						Galera: &v1alpha1.Galera{
 							Enabled: true,
-							GaleraSpec: v1alpha2.GaleraSpec{
-								SST:            v1alpha2.SST("foo"),
+							GaleraSpec: v1alpha1.GaleraSpec{
+								SST:            v1alpha1.SST("foo"),
 								ReplicaThreads: 1,
 							},
 						},
@@ -256,10 +255,10 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 				&v1alpha1.MariaDB{
 					ObjectMeta: meta,
 					Spec: v1alpha1.MariaDBSpec{
-						Galera: &v1alpha2.Galera{
+						Galera: &v1alpha1.Galera{
 							Enabled: true,
-							GaleraSpec: v1alpha2.GaleraSpec{
-								SST:            v1alpha2.SSTMariaBackup,
+							GaleraSpec: v1alpha1.GaleraSpec{
+								SST:            v1alpha1.SSTMariaBackup,
 								ReplicaThreads: -1,
 							},
 						},
@@ -276,10 +275,10 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 				&v1alpha1.MariaDB{
 					ObjectMeta: meta,
 					Spec: v1alpha1.MariaDBSpec{
-						Galera: &v1alpha2.Galera{
+						Galera: &v1alpha1.Galera{
 							Enabled: true,
-							GaleraSpec: v1alpha2.GaleraSpec{
-								SST: v1alpha2.SSTMariaBackup,
+							GaleraSpec: v1alpha1.GaleraSpec{
+								SST: v1alpha1.SSTMariaBackup,
 								ProviderOptions: map[string]string{
 									"ist.recv_addr": "1.2.3.4:4568",
 								},
@@ -298,14 +297,14 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 				&v1alpha1.MariaDB{
 					ObjectMeta: meta,
 					Spec: v1alpha1.MariaDBSpec{
-						Galera: &v1alpha2.Galera{
+						Galera: &v1alpha1.Galera{
 							Enabled: true,
-							GaleraSpec: v1alpha2.GaleraSpec{
-								Agent: v1alpha2.GaleraAgent{
-									BasicAuth: &v1alpha2.BasicAuth{
+							GaleraSpec: v1alpha1.GaleraSpec{
+								Agent: v1alpha1.GaleraAgent{
+									BasicAuth: &v1alpha1.BasicAuth{
 										Enabled: true,
 									},
-									KubernetesAuth: &v1alpha2.KubernetesAuth{
+									KubernetesAuth: &v1alpha1.KubernetesAuth{
 										Enabled: true,
 									},
 								},
@@ -324,13 +323,13 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 				&v1alpha1.MariaDB{
 					ObjectMeta: meta,
 					Spec: v1alpha1.MariaDBSpec{
-						Replication: &v1alpha2.Replication{
-							ReplicationSpec: v1alpha2.ReplicationSpec{
-								Primary: &v1alpha2.PrimaryReplication{
+						Replication: &v1alpha1.Replication{
+							ReplicationSpec: v1alpha1.ReplicationSpec{
+								Primary: &v1alpha1.PrimaryReplication{
 									PodIndex: func() *int { i := 4; return &i }(),
 								},
-								Replica: &v1alpha2.ReplicaReplication{
-									WaitPoint:         ptr.To(v1alpha2.WaitPointAfterCommit),
+								Replica: &v1alpha1.ReplicaReplication{
+									WaitPoint:         ptr.To(v1alpha1.WaitPointAfterCommit),
 									ConnectionTimeout: &metav1.Duration{Duration: time.Duration(1 * time.Second)},
 									ConnectionRetries: func() *int { r := 3; return &r }(),
 								},
@@ -350,9 +349,9 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 				&v1alpha1.MariaDB{
 					ObjectMeta: meta,
 					Spec: v1alpha1.MariaDBSpec{
-						Galera: &v1alpha2.Galera{
-							GaleraSpec: v1alpha2.GaleraSpec{
-								Primary: v1alpha2.PrimaryGalera{
+						Galera: &v1alpha1.Galera{
+							GaleraSpec: v1alpha1.GaleraSpec{
+								Primary: v1alpha1.PrimaryGalera{
 									PodIndex: ptr.To(4),
 								},
 							},
@@ -371,10 +370,10 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 				&v1alpha1.MariaDB{
 					ObjectMeta: meta,
 					Spec: v1alpha1.MariaDBSpec{
-						Replication: &v1alpha2.Replication{
-							ReplicationSpec: v1alpha2.ReplicationSpec{
-								Replica: &v1alpha2.ReplicaReplication{
-									WaitPoint: ptr.To(v1alpha2.WaitPoint("foo")),
+						Replication: &v1alpha1.Replication{
+							ReplicationSpec: v1alpha1.ReplicationSpec{
+								Replica: &v1alpha1.ReplicaReplication{
+									WaitPoint: ptr.To(v1alpha1.WaitPoint("foo")),
 								},
 							},
 							Enabled: true,
@@ -392,10 +391,10 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 				&v1alpha1.MariaDB{
 					ObjectMeta: meta,
 					Spec: v1alpha1.MariaDBSpec{
-						Replication: &v1alpha2.Replication{
-							ReplicationSpec: v1alpha2.ReplicationSpec{
-								Replica: &v1alpha2.ReplicaReplication{
-									Gtid: ptr.To(v1alpha2.Gtid("foo")),
+						Replication: &v1alpha1.Replication{
+							ReplicationSpec: v1alpha1.ReplicationSpec{
+								Replica: &v1alpha1.ReplicaReplication{
+									Gtid: ptr.To(v1alpha1.Gtid("foo")),
 								},
 							},
 							Enabled: true,
@@ -585,7 +584,7 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 				},
 				Spec: v1alpha1.MariaDBSpec{
 					Replicas: 3,
-					Replication: &v1alpha2.Replication{
+					Replication: &v1alpha1.Replication{
 						Enabled: true,
 					},
 					Storage: v1alpha1.Storage{
@@ -597,7 +596,7 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 			Expect(k8sClient.Get(testCtx, client.ObjectKeyFromObject(&mariadb), &mariadb)).To(Succeed())
 
 			By("Expect v1alpha1.MariaDB replication spec to be defaulted")
-			Expect(mariadb.Spec.Replication.ReplicationSpec).To(Equal(v1alpha2.DefaultReplicationSpec))
+			Expect(mariadb.Spec.Replication.ReplicationSpec).To(Equal(v1alpha1.DefaultReplicationSpec))
 		})
 
 		It("Should partially default replication", func() {
@@ -608,21 +607,21 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 				},
 				Spec: v1alpha1.MariaDBSpec{
 					Replicas: 3,
-					Replication: &v1alpha2.Replication{
+					Replication: &v1alpha1.Replication{
 						Enabled: true,
-						ReplicationSpec: v1alpha2.ReplicationSpec{
-							Primary: &v1alpha2.PrimaryReplication{
+						ReplicationSpec: v1alpha1.ReplicationSpec{
+							Primary: &v1alpha1.PrimaryReplication{
 								PodIndex: ptr.To(0),
 							},
-							Replica: &v1alpha2.ReplicaReplication{
-								WaitPoint: ptr.To(v1alpha2.WaitPointAfterSync),
+							Replica: &v1alpha1.ReplicaReplication{
+								WaitPoint: ptr.To(v1alpha1.WaitPointAfterSync),
 							},
 						},
 					},
 					Storage: v1alpha1.Storage{
 						Size: ptr.To(resource.MustParse("100Mi")),
 						VolumeClaimTemplate: &v1alpha1.VolumeClaimTemplate{
-							PersistentVolumeClaimSpec: v1alpha2.PersistentVolumeClaimSpec{
+							PersistentVolumeClaimSpec: v1alpha1.PersistentVolumeClaimSpec{
 								Resources: corev1.VolumeResourceRequirements{
 									Requests: corev1.ResourceList{
 										corev1.ResourceStorage: resource.MustParse("100Mi"),
@@ -640,7 +639,7 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 			Expect(k8sClient.Get(testCtx, client.ObjectKeyFromObject(&mariadb), &mariadb)).To(Succeed())
 
 			By("Expect v1alpha1.MariaDB replication spec to be defaulted")
-			Expect(mariadb.Spec.Replication.ReplicationSpec).To(Equal(v1alpha2.DefaultReplicationSpec))
+			Expect(mariadb.Spec.Replication.ReplicationSpec).To(Equal(v1alpha1.DefaultReplicationSpec))
 		})
 	})
 
@@ -928,9 +927,9 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 							Key: "password",
 						},
 					},
-					Replication: &v1alpha2.Replication{
-						ReplicationSpec: v1alpha2.ReplicationSpec{
-							Primary: &v1alpha2.PrimaryReplication{
+					Replication: &v1alpha1.Replication{
+						ReplicationSpec: v1alpha1.ReplicationSpec{
+							Primary: &v1alpha1.PrimaryReplication{
 								PodIndex:          func() *int { i := 0; return &i }(),
 								AutomaticFailover: func() *bool { f := false; return &f }(),
 							},
@@ -959,9 +958,9 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 							Key: "password",
 						},
 					},
-					Replication: &v1alpha2.Replication{
-						ReplicationSpec: v1alpha2.ReplicationSpec{
-							Primary: &v1alpha2.PrimaryReplication{
+					Replication: &v1alpha1.Replication{
+						ReplicationSpec: v1alpha1.ReplicationSpec{
+							Primary: &v1alpha1.PrimaryReplication{
 								PodIndex:          func() *int { i := 0; return &i }(),
 								AutomaticFailover: func() *bool { f := false; return &f }(),
 							},
@@ -976,9 +975,9 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 				Status: v1alpha1.MariaDBStatus{
 					Conditions: []metav1.Condition{
 						{
-							Type:    v1alpha2.ConditionTypePrimarySwitched,
+							Type:    v1alpha1.ConditionTypePrimarySwitched,
 							Status:  metav1.ConditionFalse,
-							Reason:  v1alpha2.ConditionReasonSwitchPrimary,
+							Reason:  v1alpha1.ConditionReasonSwitchPrimary,
 							Message: "Switching primary",
 						},
 					},
@@ -991,9 +990,9 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 			Expect(k8sClient.Get(testCtx, switchoverKey, &mariaDbSwitchover)).To(Succeed())
 			mariaDbSwitchover.Status.Conditions = []metav1.Condition{
 				{
-					Type:               v1alpha2.ConditionTypePrimarySwitched,
+					Type:               v1alpha1.ConditionTypePrimarySwitched,
 					Status:             metav1.ConditionFalse,
-					Reason:             v1alpha2.ConditionReasonSwitchPrimary,
+					Reason:             v1alpha1.ConditionReasonSwitchPrimary,
 					Message:            "Switching primary",
 					LastTransitionTime: metav1.Now(),
 				},

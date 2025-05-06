@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -61,8 +60,8 @@ func (r *StatefulSetGaleraReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	logger := log.FromContext(ctx).WithName("galera").WithName("health")
 	logger.V(1).Info("Checking Galera cluster health")
 
-	galera := ptr.Deref(mariadb.Spec.Galera, v1alpha1.Galera{})
-	recovery := ptr.Deref(galera.Recovery, v1alpha1.GaleraRecovery{})
+	galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
+	recovery := ptr.Deref(galera.Recovery, mariadbv1alpha1.GaleraRecovery{})
 
 	clusterHealthyTimeout := ptr.Deref(recovery.ClusterHealthyTimeout, metav1.Duration{Duration: 30 * time.Second}).Duration
 	healthyCtx, cancelHealthy := context.WithTimeout(ctx, clusterHealthyTimeout)
@@ -144,8 +143,8 @@ func (r *StatefulSetGaleraReconciler) isHealthy(ctx context.Context, stsObjMeta 
 		return false, err
 	}
 
-	galera := ptr.Deref(mdb.Spec.Galera, v1alpha1.Galera{})
-	recovery := ptr.Deref(galera.Recovery, v1alpha1.GaleraRecovery{})
+	galera := ptr.Deref(mdb.Spec.Galera, mariadbv1alpha1.Galera{})
+	recovery := ptr.Deref(galera.Recovery, mariadbv1alpha1.GaleraRecovery{})
 	clusterHasMinSize, err := recovery.HasMinClusterSize(size, mdb)
 	if err != nil {
 		return false, fmt.Errorf("error checking min cluster size: %v", err)
@@ -193,8 +192,8 @@ func (r *StatefulSetGaleraReconciler) patchStatus(ctx context.Context, mariadb *
 }
 
 func (r *StatefulSetGaleraReconciler) monitorResult(mdb *mariadbv1alpha1.MariaDB) ctrl.Result {
-	galera := ptr.Deref(mdb.Spec.Galera, v1alpha1.Galera{})
-	recovery := ptr.Deref(galera.Recovery, v1alpha1.GaleraRecovery{})
+	galera := ptr.Deref(mdb.Spec.Galera, mariadbv1alpha1.Galera{})
+	recovery := ptr.Deref(galera.Recovery, mariadbv1alpha1.GaleraRecovery{})
 	if !recovery.Enabled {
 		return ctrl.Result{}
 	}
@@ -203,8 +202,8 @@ func (r *StatefulSetGaleraReconciler) monitorResult(mdb *mariadbv1alpha1.MariaDB
 }
 
 func shouldPerformClusterRecovery(mdb *mariadbv1alpha1.MariaDB) bool {
-	galera := ptr.Deref(mdb.Spec.Galera, v1alpha1.Galera{})
-	recovery := ptr.Deref(galera.Recovery, v1alpha1.GaleraRecovery{})
+	galera := ptr.Deref(mdb.Spec.Galera, mariadbv1alpha1.Galera{})
+	recovery := ptr.Deref(galera.Recovery, mariadbv1alpha1.GaleraRecovery{})
 	if !galera.Enabled || !recovery.Enabled {
 		return false
 	}

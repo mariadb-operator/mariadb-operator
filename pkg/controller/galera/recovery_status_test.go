@@ -1,7 +1,6 @@
 package galera
 
 import (
-	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"reflect"
 	"testing"
 	"time"
@@ -85,7 +84,7 @@ func TestRecoveryStatusGetSet(t *testing.T) {
 		t.Errorf("unexpected recovered value: expected: %v, got: %v", nil, gotRecovered)
 	}
 
-	expectedRecoveryStatus := v1alpha1.GaleraRecoveryStatus{
+	expectedRecoveryStatus := mariadbv1alpha1.GaleraRecoveryStatus{
 		State: map[string]*recovery.GaleraState{
 			"mariadb-galera-0": state0,
 			"mariadb-galera-1": state1,
@@ -103,7 +102,7 @@ func TestRecoveryStatusGetSet(t *testing.T) {
 	}
 
 	rs.setPodsRestarted(true)
-	expectedRecoveryStatus = v1alpha1.GaleraRecoveryStatus{
+	expectedRecoveryStatus = mariadbv1alpha1.GaleraRecoveryStatus{
 		State: map[string]*recovery.GaleraState{
 			"mariadb-galera-0": state0,
 			"mariadb-galera-1": state1,
@@ -145,7 +144,7 @@ func TestRecoveryStatusIsComplete(t *testing.T) {
 					Replicas: 3,
 				},
 				Status: mariadbv1alpha1.MariaDBStatus{
-					GaleraRecovery: &v1alpha1.GaleraRecoveryStatus{
+					GaleraRecovery: &mariadbv1alpha1.GaleraRecoveryStatus{
 						State: map[string]*recovery.GaleraState{
 							"mariadb-galera-0": {
 								Version:         "2.1",
@@ -183,7 +182,7 @@ func TestRecoveryStatusIsComplete(t *testing.T) {
 					Replicas: 3,
 				},
 				Status: mariadbv1alpha1.MariaDBStatus{
-					GaleraRecovery: &v1alpha1.GaleraRecoveryStatus{
+					GaleraRecovery: &mariadbv1alpha1.GaleraRecoveryStatus{
 						State: map[string]*recovery.GaleraState{
 							"mariadb-galera-0": {
 								Version:         "2.1",
@@ -217,7 +216,7 @@ func TestRecoveryStatusIsComplete(t *testing.T) {
 					Replicas: 3,
 				},
 				Status: mariadbv1alpha1.MariaDBStatus{
-					GaleraRecovery: &v1alpha1.GaleraRecoveryStatus{
+					GaleraRecovery: &mariadbv1alpha1.GaleraRecoveryStatus{
 						State: map[string]*recovery.GaleraState{
 							"mariadb-galera-0": {
 								Version:         "2.1",
@@ -251,7 +250,7 @@ func TestRecoveryStatusIsComplete(t *testing.T) {
 					Replicas: 3,
 				},
 				Status: mariadbv1alpha1.MariaDBStatus{
-					GaleraRecovery: &v1alpha1.GaleraRecoveryStatus{
+					GaleraRecovery: &mariadbv1alpha1.GaleraRecoveryStatus{
 						State: map[string]*recovery.GaleraState{
 							"mariadb-galera-0": {
 								Version:         "2.1",
@@ -299,7 +298,7 @@ func TestRecoveryStatusIsComplete(t *testing.T) {
 					Replicas: 3,
 				},
 				Status: mariadbv1alpha1.MariaDBStatus{
-					GaleraRecovery: &v1alpha1.GaleraRecoveryStatus{
+					GaleraRecovery: &mariadbv1alpha1.GaleraRecoveryStatus{
 						State: map[string]*recovery.GaleraState{
 							"mariadb-galera-0": {
 								Version:         "2.1",
@@ -327,7 +326,7 @@ func TestRecoveryStatusIsComplete(t *testing.T) {
 					Replicas: 3,
 				},
 				Status: mariadbv1alpha1.MariaDBStatus{
-					GaleraRecovery: &v1alpha1.GaleraRecoveryStatus{
+					GaleraRecovery: &mariadbv1alpha1.GaleraRecoveryStatus{
 						State: map[string]*recovery.GaleraState{
 							"mariadb-galera-0": {
 								Version:         "2.1",
@@ -361,7 +360,7 @@ func TestRecoveryStatusIsComplete(t *testing.T) {
 					Replicas: 3,
 				},
 				Status: mariadbv1alpha1.MariaDBStatus{
-					GaleraRecovery: &v1alpha1.GaleraRecoveryStatus{
+					GaleraRecovery: &mariadbv1alpha1.GaleraRecoveryStatus{
 						Recovered: map[string]*recovery.Bootstrap{
 							"mariadb-galera-0": {
 								UUID:  "f7f695b6-5000-11ef-8b0d-87e9e0e7b347",
@@ -385,7 +384,7 @@ func TestRecoveryStatusIsComplete(t *testing.T) {
 					Replicas: 3,
 				},
 				Status: mariadbv1alpha1.MariaDBStatus{
-					GaleraRecovery: &v1alpha1.GaleraRecoveryStatus{
+					GaleraRecovery: &mariadbv1alpha1.GaleraRecoveryStatus{
 						Recovered: map[string]*recovery.Bootstrap{
 							"mariadb-galera-0": {
 								UUID:  "f7f695b6-5000-11ef-8b0d-87e9e0e7b347",
@@ -413,7 +412,7 @@ func TestRecoveryStatusIsComplete(t *testing.T) {
 					Replicas: 3,
 				},
 				Status: mariadbv1alpha1.MariaDBStatus{
-					GaleraRecovery: &v1alpha1.GaleraRecoveryStatus{
+					GaleraRecovery: &mariadbv1alpha1.GaleraRecoveryStatus{
 						State: map[string]*recovery.GaleraState{
 							"mariadb-galera-0": {
 								Version:         "2.1",
@@ -447,7 +446,7 @@ func TestRecoveryStatusIsComplete(t *testing.T) {
 					Replicas: 3,
 				},
 				Status: mariadbv1alpha1.MariaDBStatus{
-					GaleraRecovery: &v1alpha1.GaleraRecoveryStatus{
+					GaleraRecovery: &mariadbv1alpha1.GaleraRecoveryStatus{
 						State: map[string]*recovery.GaleraState{
 							"mariadb-galera-0": {
 								Version:         "2.1",
@@ -481,7 +480,7 @@ func TestRecoveryStatusIsComplete(t *testing.T) {
 					Replicas: 3,
 				},
 				Status: mariadbv1alpha1.MariaDBStatus{
-					GaleraRecovery: &v1alpha1.GaleraRecoveryStatus{
+					GaleraRecovery: &mariadbv1alpha1.GaleraRecoveryStatus{
 						State: map[string]*recovery.GaleraState{
 							"mariadb-galera-0": {
 								Version:         "2.1",
@@ -515,7 +514,7 @@ func TestRecoveryStatusIsComplete(t *testing.T) {
 					Replicas: 3,
 				},
 				Status: mariadbv1alpha1.MariaDBStatus{
-					GaleraRecovery: &v1alpha1.GaleraRecoveryStatus{
+					GaleraRecovery: &mariadbv1alpha1.GaleraRecoveryStatus{
 						State: map[string]*recovery.GaleraState{
 							"mariadb-galera-0": {
 								Version:         "2.1",
@@ -553,7 +552,7 @@ func TestRecoveryStatusIsComplete(t *testing.T) {
 					Replicas: 3,
 				},
 				Status: mariadbv1alpha1.MariaDBStatus{
-					GaleraRecovery: &v1alpha1.GaleraRecoveryStatus{
+					GaleraRecovery: &mariadbv1alpha1.GaleraRecoveryStatus{
 						State: map[string]*recovery.GaleraState{
 							"mariadb-galera-0": {
 								Version:         "2.1",
@@ -601,7 +600,7 @@ func TestRecoveryStatusIsComplete(t *testing.T) {
 					Replicas: 3,
 				},
 				Status: mariadbv1alpha1.MariaDBStatus{
-					GaleraRecovery: &v1alpha1.GaleraRecoveryStatus{
+					GaleraRecovery: &mariadbv1alpha1.GaleraRecoveryStatus{
 						State: map[string]*recovery.GaleraState{
 							"mariadb-galera-0": {
 								Version:         "2.1",
@@ -649,7 +648,7 @@ func TestRecoveryStatusIsComplete(t *testing.T) {
 					Replicas: 3,
 				},
 				Status: mariadbv1alpha1.MariaDBStatus{
-					GaleraRecovery: &v1alpha1.GaleraRecoveryStatus{
+					GaleraRecovery: &mariadbv1alpha1.GaleraRecoveryStatus{
 						State: map[string]*recovery.GaleraState{
 							"mariadb-galera-0": {
 								Version:         "2.1",
@@ -697,7 +696,7 @@ func TestRecoveryStatusIsComplete(t *testing.T) {
 					Replicas: 3,
 				},
 				Status: mariadbv1alpha1.MariaDBStatus{
-					GaleraRecovery: &v1alpha1.GaleraRecoveryStatus{
+					GaleraRecovery: &mariadbv1alpha1.GaleraRecoveryStatus{
 						State: map[string]*recovery.GaleraState{
 							"mariadb-galera-0": {
 								Version:         "2.1",
@@ -745,7 +744,7 @@ func TestRecoveryStatusIsComplete(t *testing.T) {
 					Replicas: 3,
 				},
 				Status: mariadbv1alpha1.MariaDBStatus{
-					GaleraRecovery: &v1alpha1.GaleraRecoveryStatus{
+					GaleraRecovery: &mariadbv1alpha1.GaleraRecoveryStatus{
 						State: map[string]*recovery.GaleraState{
 							"mariadb-galera-0": {
 								Version:         "2.1",
@@ -793,7 +792,7 @@ func TestRecoveryStatusIsComplete(t *testing.T) {
 					Replicas: 3,
 				},
 				Status: mariadbv1alpha1.MariaDBStatus{
-					GaleraRecovery: &v1alpha1.GaleraRecoveryStatus{
+					GaleraRecovery: &mariadbv1alpha1.GaleraRecoveryStatus{
 						State: map[string]*recovery.GaleraState{
 							"mariadb-galera-0": {
 								Version:         "2.1",
@@ -875,7 +874,7 @@ func TestRecoveryStatusBootstrapSource(t *testing.T) {
 					Replicas: 3,
 				},
 				Status: mariadbv1alpha1.MariaDBStatus{
-					GaleraRecovery: &v1alpha1.GaleraRecoveryStatus{
+					GaleraRecovery: &mariadbv1alpha1.GaleraRecoveryStatus{
 						State: map[string]*recovery.GaleraState{
 							"mariadb-galera-0": {
 								Version:         "2.1",
@@ -915,7 +914,7 @@ func TestRecoveryStatusBootstrapSource(t *testing.T) {
 					Replicas: 3,
 				},
 				Status: mariadbv1alpha1.MariaDBStatus{
-					GaleraRecovery: &v1alpha1.GaleraRecoveryStatus{
+					GaleraRecovery: &mariadbv1alpha1.GaleraRecoveryStatus{
 						State: map[string]*recovery.GaleraState{
 							"mariadb-galera-0": {
 								Version:         "2.1",
@@ -957,7 +956,7 @@ func TestRecoveryStatusBootstrapSource(t *testing.T) {
 					Replicas: 3,
 				},
 				Status: mariadbv1alpha1.MariaDBStatus{
-					GaleraRecovery: &v1alpha1.GaleraRecoveryStatus{
+					GaleraRecovery: &mariadbv1alpha1.GaleraRecoveryStatus{
 						State: map[string]*recovery.GaleraState{
 							"mariadb-galera-0": {
 								Version:         "2.1",
@@ -997,7 +996,7 @@ func TestRecoveryStatusBootstrapSource(t *testing.T) {
 					Replicas: 3,
 				},
 				Status: mariadbv1alpha1.MariaDBStatus{
-					GaleraRecovery: &v1alpha1.GaleraRecoveryStatus{
+					GaleraRecovery: &mariadbv1alpha1.GaleraRecoveryStatus{
 						State: map[string]*recovery.GaleraState{
 							"mariadb-galera-0": {
 								Version:         "2.1",
@@ -1039,7 +1038,7 @@ func TestRecoveryStatusBootstrapSource(t *testing.T) {
 					Replicas: 3,
 				},
 				Status: mariadbv1alpha1.MariaDBStatus{
-					GaleraRecovery: &v1alpha1.GaleraRecoveryStatus{
+					GaleraRecovery: &mariadbv1alpha1.GaleraRecoveryStatus{
 						State: map[string]*recovery.GaleraState{
 							"mariadb-galera-0": {
 								Version:         "2.1",
@@ -1075,7 +1074,7 @@ func TestRecoveryStatusBootstrapSource(t *testing.T) {
 					Replicas: 3,
 				},
 				Status: mariadbv1alpha1.MariaDBStatus{
-					GaleraRecovery: &v1alpha1.GaleraRecoveryStatus{
+					GaleraRecovery: &mariadbv1alpha1.GaleraRecoveryStatus{
 						State: map[string]*recovery.GaleraState{
 							"mariadb-galera-0": {
 								Version:         "2.1",
@@ -1117,7 +1116,7 @@ func TestRecoveryStatusBootstrapSource(t *testing.T) {
 					Replicas: 3,
 				},
 				Status: mariadbv1alpha1.MariaDBStatus{
-					GaleraRecovery: &v1alpha1.GaleraRecoveryStatus{
+					GaleraRecovery: &mariadbv1alpha1.GaleraRecoveryStatus{
 						State: map[string]*recovery.GaleraState{
 							"mariadb-galera-0": {
 								Version:         "2.1",
@@ -1159,7 +1158,7 @@ func TestRecoveryStatusBootstrapSource(t *testing.T) {
 					Replicas: 3,
 				},
 				Status: mariadbv1alpha1.MariaDBStatus{
-					GaleraRecovery: &v1alpha1.GaleraRecoveryStatus{
+					GaleraRecovery: &mariadbv1alpha1.GaleraRecoveryStatus{
 						State: map[string]*recovery.GaleraState{
 							"mariadb-galera-0": {
 								Version:         "2.1",
@@ -1201,7 +1200,7 @@ func TestRecoveryStatusBootstrapSource(t *testing.T) {
 					Replicas: 3,
 				},
 				Status: mariadbv1alpha1.MariaDBStatus{
-					GaleraRecovery: &v1alpha1.GaleraRecoveryStatus{
+					GaleraRecovery: &mariadbv1alpha1.GaleraRecoveryStatus{
 						State: map[string]*recovery.GaleraState{
 							"mariadb-galera-0": {
 								Version:         "2.1",
@@ -1253,7 +1252,7 @@ func TestRecoveryStatusBootstrapSource(t *testing.T) {
 					Replicas: 3,
 				},
 				Status: mariadbv1alpha1.MariaDBStatus{
-					GaleraRecovery: &v1alpha1.GaleraRecoveryStatus{
+					GaleraRecovery: &mariadbv1alpha1.GaleraRecoveryStatus{
 						State: map[string]*recovery.GaleraState{
 							"mariadb-galera-0": {
 								Version:         "2.1",
@@ -1309,7 +1308,7 @@ func TestRecoveryStatusBootstrapSource(t *testing.T) {
 					Replicas: 3,
 				},
 				Status: mariadbv1alpha1.MariaDBStatus{
-					GaleraRecovery: &v1alpha1.GaleraRecoveryStatus{
+					GaleraRecovery: &mariadbv1alpha1.GaleraRecoveryStatus{
 						State: map[string]*recovery.GaleraState{
 							"mariadb-galera-0": {
 								Version:         "2.1",
@@ -1365,7 +1364,7 @@ func TestRecoveryStatusBootstrapSource(t *testing.T) {
 					Replicas: 3,
 				},
 				Status: mariadbv1alpha1.MariaDBStatus{
-					GaleraRecovery: &v1alpha1.GaleraRecoveryStatus{
+					GaleraRecovery: &mariadbv1alpha1.GaleraRecoveryStatus{
 						State: map[string]*recovery.GaleraState{
 							"mariadb-galera-0": {
 								Version:         "2.1",
@@ -1421,7 +1420,7 @@ func TestRecoveryStatusBootstrapSource(t *testing.T) {
 					Replicas: 3,
 				},
 				Status: mariadbv1alpha1.MariaDBStatus{
-					GaleraRecovery: &v1alpha1.GaleraRecoveryStatus{
+					GaleraRecovery: &mariadbv1alpha1.GaleraRecoveryStatus{
 						State: map[string]*recovery.GaleraState{
 							"mariadb-galera-0": {
 								Version:         "2.1",
@@ -1477,7 +1476,7 @@ func TestRecoveryStatusBootstrapSource(t *testing.T) {
 					Replicas: 3,
 				},
 				Status: mariadbv1alpha1.MariaDBStatus{
-					GaleraRecovery: &v1alpha1.GaleraRecoveryStatus{
+					GaleraRecovery: &mariadbv1alpha1.GaleraRecoveryStatus{
 						State: map[string]*recovery.GaleraState{
 							"mariadb-galera-0": {
 								Version:         "2.1",
@@ -1533,7 +1532,7 @@ func TestRecoveryStatusBootstrapSource(t *testing.T) {
 					Replicas: 3,
 				},
 				Status: mariadbv1alpha1.MariaDBStatus{
-					GaleraRecovery: &v1alpha1.GaleraRecoveryStatus{
+					GaleraRecovery: &mariadbv1alpha1.GaleraRecoveryStatus{
 						State: map[string]*recovery.GaleraState{
 							"mariadb-galera-0": {
 								Version:         "2.1",
@@ -1605,10 +1604,10 @@ func TestRecoveryStatusPodsRestarted(t *testing.T) {
 	duration := metav1.Duration{Duration: timeout}
 	mdb := &mariadbv1alpha1.MariaDB{
 		Spec: mariadbv1alpha1.MariaDBSpec{
-			Galera: &v1alpha1.Galera{
+			Galera: &mariadbv1alpha1.Galera{
 				Enabled: true,
-				GaleraSpec: v1alpha1.GaleraSpec{
-					Recovery: &v1alpha1.GaleraRecovery{
+				GaleraSpec: mariadbv1alpha1.GaleraSpec{
+					Recovery: &mariadbv1alpha1.GaleraRecovery{
 						Enabled:                 true,
 						ClusterHealthyTimeout:   &duration,
 						ClusterBootstrapTimeout: &duration,

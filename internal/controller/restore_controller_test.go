@@ -2,7 +2,6 @@ package controller
 
 import (
 	"fmt"
-	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
@@ -52,16 +51,16 @@ var _ = Describe("Restore", func() {
 				Namespace: key.Namespace,
 			},
 			Spec: mariadbv1alpha1.RestoreSpec{
-				JobContainerTemplate: v1alpha1.JobContainerTemplate{
+				JobContainerTemplate: mariadbv1alpha1.JobContainerTemplate{
 					Args: []string{"--verbose"},
 				},
-				MariaDBRef: v1alpha1.MariaDBRef{
+				MariaDBRef: mariadbv1alpha1.MariaDBRef{
 					ObjectReference: mariadbv1alpha1.ObjectReference{
 						Name: testMdbkey.Name,
 					},
 					WaitForIt: true,
 				},
-				InheritMetadata: &v1alpha1.Metadata{
+				InheritMetadata: &mariadbv1alpha1.Metadata{
 					Labels: map[string]string{
 						"k8s.mariadb.com/test": "test",
 					},
@@ -69,7 +68,7 @@ var _ = Describe("Restore", func() {
 						"k8s.mariadb.com/test": "test",
 					},
 				},
-				RestoreSource: v1alpha1.RestoreSource{
+				RestoreSource: mariadbv1alpha1.RestoreSource{
 					BackupRef: &mariadbv1alpha1.LocalObjectReference{
 						Name: backup.Name,
 					},
@@ -170,8 +169,8 @@ var _ = Describe("Restore", func() {
 					WaitForIt: true,
 				},
 				RestoreSource: mariadbv1alpha1.RestoreSource{
-					Volume: &v1alpha1.StorageVolumeSource{
-						PersistentVolumeClaim: &v1alpha1.PersistentVolumeClaimVolumeSource{
+					Volume: &mariadbv1alpha1.StorageVolumeSource{
+						PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimVolumeSource{
 							ClaimName: backupKey.Name,
 						},
 					},
@@ -230,8 +229,8 @@ var _ = Describe("Restore", func() {
 					WaitForIt: true,
 				},
 				RestoreSource: mariadbv1alpha1.RestoreSource{
-					Volume: &v1alpha1.StorageVolumeSource{
-						PersistentVolumeClaim: &v1alpha1.PersistentVolumeClaimVolumeSource{
+					Volume: &mariadbv1alpha1.StorageVolumeSource{
+						PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimVolumeSource{
 							ClaimName: backupKey.Name,
 						},
 					},
@@ -290,8 +289,8 @@ var _ = Describe("Restore", func() {
 					WaitForIt: true,
 				},
 				RestoreSource: mariadbv1alpha1.RestoreSource{
-					Volume: &v1alpha1.StorageVolumeSource{
-						PersistentVolumeClaim: &v1alpha1.PersistentVolumeClaimVolumeSource{
+					Volume: &mariadbv1alpha1.StorageVolumeSource{
+						PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimVolumeSource{
 							ClaimName: backupKey.Name,
 						},
 					},

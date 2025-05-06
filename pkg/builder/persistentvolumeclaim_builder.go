@@ -3,7 +3,6 @@ package builder
 import (
 	"errors"
 	"fmt"
-	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
@@ -28,8 +27,8 @@ func (b *Builder) BuildBackupStoragePVC(key types.NamespacedName, backup *mariad
 	}, nil
 }
 
-func (b *Builder) BuildBackupStagingPVC(key types.NamespacedName, pvcSpec *v1alpha1.PersistentVolumeClaimSpec,
-	meta *v1alpha1.Metadata, owner metav1.Object) (*corev1.PersistentVolumeClaim, error) {
+func (b *Builder) BuildBackupStagingPVC(key types.NamespacedName, pvcSpec *mariadbv1alpha1.PersistentVolumeClaimSpec,
+	meta *mariadbv1alpha1.Metadata, owner metav1.Object) (*corev1.PersistentVolumeClaim, error) {
 	objMeta :=
 		metadata.NewMetadataBuilder(key).
 			WithMetadata(meta).
@@ -44,7 +43,7 @@ func (b *Builder) BuildBackupStagingPVC(key types.NamespacedName, pvcSpec *v1alp
 	return &pvc, nil
 }
 
-func (b *Builder) BuildStoragePVC(key types.NamespacedName, tpl *v1alpha1.VolumeClaimTemplate,
+func (b *Builder) BuildStoragePVC(key types.NamespacedName, tpl *mariadbv1alpha1.VolumeClaimTemplate,
 	mariadb *mariadbv1alpha1.MariaDB) (*corev1.PersistentVolumeClaim, error) {
 	if tpl == nil {
 		return nil, errors.New("Template must not be nil")

@@ -1,7 +1,6 @@
 package builder
 
 import (
-	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"reflect"
 	"testing"
 
@@ -59,7 +58,7 @@ func assertObjectMeta(t *testing.T, objMeta *metav1.ObjectMeta, wantLabels, want
 	}
 }
 
-func assertMeta(t *testing.T, meta *v1alpha1.Metadata, wantLabels, wantAnnotations map[string]string) {
+func assertMeta(t *testing.T, meta *mariadbv1alpha1.Metadata, wantLabels, wantAnnotations map[string]string) {
 	if meta == nil {
 		t.Fatal("expecting metadata to not be nil")
 	}

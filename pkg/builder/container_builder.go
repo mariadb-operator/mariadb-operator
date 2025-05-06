@@ -3,7 +3,6 @@ package builder
 import (
 	"errors"
 	"fmt"
-	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"os"
 	"path"
 	"reflect"
@@ -43,7 +42,7 @@ var (
 		TimeoutSeconds:      5,
 		PeriodSeconds:       10,
 	}
-	defaultGaleraAgentProbe = func(galera v1alpha1.Galera) *corev1.Probe {
+	defaultGaleraAgentProbe = func(galera mariadbv1alpha1.Galera) *corev1.Probe {
 		return &corev1.Probe{
 			ProbeHandler: corev1.ProbeHandler{
 				HTTPGet: &corev1.HTTPGetAction{
@@ -112,7 +111,7 @@ func (b *Builder) mariadbContainers(mariadb *mariadbv1alpha1.MariaDB, opts ...ma
 	return containers, nil
 }
 
-func (b *Builder) maxscaleContainers(mxs *v1alpha1.MaxScale) ([]corev1.Container, error) {
+func (b *Builder) maxscaleContainers(mxs *mariadbv1alpha1.MaxScale) ([]corev1.Container, error) {
 	tpl := mxs.Spec.ContainerTemplate
 	container, err := b.buildContainerWithTemplate(mxs.Spec.Image, mxs.Spec.ImagePullPolicy, &tpl)
 	if err != nil {
@@ -156,7 +155,7 @@ func (b *Builder) maxscaleContainers(mxs *v1alpha1.MaxScale) ([]corev1.Container
 }
 
 func (b *Builder) galeraAgentContainer(mariadb *mariadbv1alpha1.MariaDB) (*corev1.Container, error) {
-	galera := ptr.Deref(mariadb.Spec.Galera, v1alpha1.Galera{})
+	galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
 	agent := galera.Agent
 
 	container, err := b.buildContainerWithTemplate(agent.Image, agent.ImagePullPolicy, &agent.ContainerTemplate)
@@ -188,8 +187,8 @@ func (b *Builder) galeraAgentContainer(mariadb *mariadbv1alpha1.MariaDB) (*corev
 			args = append(args, fmt.Sprintf("--graceful-shutdown-timeout=%s", agent.GracefulShutdownTimeout.Duration))
 		}
 
-		kubernetesAuth := ptr.Deref(agent.KubernetesAuth, v1alpha1.KubernetesAuth{})
-		basicAuth := ptr.Deref(agent.BasicAuth, v1alpha1.BasicAuth{})
+		kubernetesAuth := ptr.Deref(agent.KubernetesAuth, mariadbv1alpha1.KubernetesAuth{})
+		basicAuth := ptr.Deref(agent.BasicAuth, mariadbv1alpha1.BasicAuth{})
 
 		if kubernetesAuth.Enabled {
 			args = append(args, []string{
@@ -248,7 +247,7 @@ func (b *Builder) mariadbInitContainers(mariadb *mariadbv1alpha1.MariaDB, opts .
 }
 
 func (b *Builder) galeraInitContainer(mariadb *mariadbv1alpha1.MariaDB) (*corev1.Container, error) {
-	galera := ptr.Deref(mariadb.Spec.Galera, v1alpha1.Galera{})
+	galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
 	if !galera.Enabled {
 		return nil, errors.New("Galera is not enabled")
 	}
@@ -484,7 +483,7 @@ func mariadbVolumeMounts(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt
 		volumeMounts = append(volumeMounts, tlsVolumeMounts...)
 	}
 
-	galera := ptr.Deref(mariadb.Spec.Galera, v1alpha1.Galera{})
+	galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
 	reuseStorageVolume := ptr.Deref(galera.Config.ReuseStorageVolume, false)
 
 	storageVolumeMount := corev1.VolumeMount{
@@ -519,7 +518,7 @@ func mariadbVolumeMounts(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt
 			galeraConfigVolumeMount.Name = galeraresources.GaleraConfigVolume
 		}
 
-		basicAuth := ptr.Deref(galera.Agent.BasicAuth, v1alpha1.BasicAuth{})
+		basicAuth := ptr.Deref(galera.Agent.BasicAuth, mariadbv1alpha1.BasicAuth{})
 		if basicAuth.Enabled {
 			volumeMounts = append(volumeMounts, corev1.VolumeMount{
 				Name:      galeraresources.AgentAuthVolume,
@@ -538,7 +537,7 @@ func mariadbVolumeMounts(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt
 	return volumeMounts
 }
 
-func maxscaleVolumeMounts(maxscale *v1alpha1.MaxScale) []corev1.VolumeMount {
+func maxscaleVolumeMounts(maxscale *mariadbv1alpha1.MaxScale) []corev1.VolumeMount {
 	volumeMounts := []corev1.VolumeMount{
 		{
 			Name:      StorageVolume,
@@ -659,7 +658,7 @@ func mariadbReplProbe(mariadb *mariadbv1alpha1.MariaDB, probe *mariadbv1alpha1.P
 }
 
 func mariadbGaleraProbe(mdb *mariadbv1alpha1.MariaDB, path string, probe *mariadbv1alpha1.Probe) *corev1.Probe {
-	agent := ptr.Deref(mdb.Spec.Galera, v1alpha1.Galera{}).Agent
+	agent := ptr.Deref(mdb.Spec.Galera, mariadbv1alpha1.Galera{}).Agent
 	galeraProbe := corev1.Probe{
 		ProbeHandler: corev1.ProbeHandler{
 			HTTPGet: &corev1.HTTPGetAction{
@@ -677,7 +676,7 @@ func mariadbGaleraProbe(mdb *mariadbv1alpha1.MariaDB, path string, probe *mariad
 	return &galeraProbe
 }
 
-func maxscaleProbe(mxs *v1alpha1.MaxScale, probe *mariadbv1alpha1.Probe) *corev1.Probe {
+func maxscaleProbe(mxs *mariadbv1alpha1.MaxScale, probe *mariadbv1alpha1.Probe) *corev1.Probe {
 	if probe != nil && probe.ProbeHandler != (mariadbv1alpha1.ProbeHandler{}) {
 		return ptr.To(probe.ToKubernetesType())
 	}

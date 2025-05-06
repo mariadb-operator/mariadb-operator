@@ -2,8 +2,8 @@ package client
 
 import (
 	"encoding/json"
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	mdbhttp "github.com/mariadb-operator/mariadb-operator/pkg/http"
 )
 
@@ -40,8 +40,8 @@ func (s ServiceParameters) MarshalJSON() ([]byte, error) {
 }
 
 type ServiceAttributes struct {
-	Router mariadbv1alpha1.ServiceRouter `json:"router"`
-	State  string                        `json:"state,omitempty"`
+	Router     mariadbv1alpha1.ServiceRouter `json:"router"`
+	State      string                        `json:"state,omitempty"`
 	Parameters ServiceParameters             `json:"parameters"`
 }
 

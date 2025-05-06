@@ -1,7 +1,6 @@
 package builder
 
 import (
-	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"reflect"
 	"testing"
 
@@ -47,7 +46,7 @@ func TestMariadbImagePullSecrets(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					PodTemplate: v1alpha1.PodTemplate{
+					PodTemplate: mariadbv1alpha1.PodTemplate{
 						ImagePullSecrets: []mariadbv1alpha1.LocalObjectReference{
 							{
 								Name: "mariadb-registry",
@@ -89,23 +88,23 @@ func TestMaxScaleImagePullSecrets(t *testing.T) {
 
 	tests := []struct {
 		name            string
-		maxScale        *v1alpha1.MaxScale
+		maxScale        *mariadbv1alpha1.MaxScale
 		wantPullSecrets []corev1.LocalObjectReference
 	}{
 		{
 			name: "No Secrets",
-			maxScale: &v1alpha1.MaxScale{
+			maxScale: &mariadbv1alpha1.MaxScale{
 				ObjectMeta: objMeta,
-				Spec:       v1alpha1.MaxScaleSpec{},
+				Spec:       mariadbv1alpha1.MaxScaleSpec{},
 			},
 			wantPullSecrets: nil,
 		},
 		{
 			name: "Secrets in MaxScale",
-			maxScale: &v1alpha1.MaxScale{
+			maxScale: &mariadbv1alpha1.MaxScale{
 				ObjectMeta: objMeta,
-				Spec: v1alpha1.MaxScaleSpec{
-					MaxScalePodTemplate: v1alpha1.MaxScalePodTemplate{
+				Spec: mariadbv1alpha1.MaxScaleSpec{
+					MaxScalePodTemplate: mariadbv1alpha1.MaxScalePodTemplate{
 						ImagePullSecrets: []mariadbv1alpha1.LocalObjectReference{
 							{
 								Name: "maxscale-registry",
@@ -216,7 +215,7 @@ func TestMariaDBStatefulSetMeta(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Galera: &v1alpha1.Galera{
+					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
 					},
 					UpdateStrategy: mariadbv1alpha1.UpdateStrategy{
@@ -291,7 +290,7 @@ func TestMariaDBStatefulSetMeta(t *testing.T) {
 							"database.myorg.io": "mariadb",
 						},
 					},
-					Galera: &v1alpha1.Galera{
+					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
 					},
 					PodTemplate: mariadbv1alpha1.PodTemplate{
@@ -458,14 +457,14 @@ func TestMaxScaleStatefulSetMeta(t *testing.T) {
 	}
 	tests := []struct {
 		name           string
-		maxscale       *v1alpha1.MaxScale
+		maxscale       *mariadbv1alpha1.MaxScale
 		podAnnotations map[string]string
 		wantMeta       *mariadbv1alpha1.Metadata
 		wantPodMeta    *mariadbv1alpha1.Metadata
 	}{
 		{
 			name: "empty",
-			maxscale: &v1alpha1.MaxScale{
+			maxscale: &mariadbv1alpha1.MaxScale{
 				ObjectMeta: objMeta,
 			},
 			podAnnotations: nil,
@@ -483,9 +482,9 @@ func TestMaxScaleStatefulSetMeta(t *testing.T) {
 		},
 		{
 			name: "inherit meta",
-			maxscale: &v1alpha1.MaxScale{
+			maxscale: &mariadbv1alpha1.MaxScale{
 				ObjectMeta: objMeta,
-				Spec: v1alpha1.MaxScaleSpec{
+				Spec: mariadbv1alpha1.MaxScaleSpec{
 					InheritMetadata: &mariadbv1alpha1.Metadata{
 						Labels: map[string]string{
 							"sidecar.istio.io/inject": "false",
@@ -518,7 +517,7 @@ func TestMaxScaleStatefulSetMeta(t *testing.T) {
 		},
 		{
 			name: "Pod annotations",
-			maxscale: &v1alpha1.MaxScale{
+			maxscale: &mariadbv1alpha1.MaxScale{
 				ObjectMeta: objMeta,
 			},
 			podAnnotations: map[string]string{
@@ -581,7 +580,7 @@ func TestMariaDBVolumeClaimTemplates(t *testing.T) {
 					Storage: mariadbv1alpha1.Storage{
 						Size: ptr.To(resource.MustParse("1Gi")),
 						VolumeClaimTemplate: &mariadbv1alpha1.VolumeClaimTemplate{
-							PersistentVolumeClaimSpec: v1alpha1.PersistentVolumeClaimSpec{
+							PersistentVolumeClaimSpec: mariadbv1alpha1.PersistentVolumeClaimSpec{
 								Resources: corev1.VolumeResourceRequirements{
 									Requests: corev1.ResourceList{
 										"storage": resource.MustParse("1Gi"),
@@ -605,7 +604,7 @@ func TestMariaDBVolumeClaimTemplates(t *testing.T) {
 					Storage: mariadbv1alpha1.Storage{
 						Size: ptr.To(resource.MustParse("1Gi")),
 						VolumeClaimTemplate: &mariadbv1alpha1.VolumeClaimTemplate{
-							PersistentVolumeClaimSpec: v1alpha1.PersistentVolumeClaimSpec{
+							PersistentVolumeClaimSpec: mariadbv1alpha1.PersistentVolumeClaimSpec{
 								Resources: corev1.VolumeResourceRequirements{
 									Requests: corev1.ResourceList{
 										"storage": resource.MustParse("1Gi"),
@@ -617,7 +616,7 @@ func TestMariaDBVolumeClaimTemplates(t *testing.T) {
 							},
 						},
 					},
-					Replication: &v1alpha1.Replication{
+					Replication: &mariadbv1alpha1.Replication{
 						Enabled: true,
 					},
 				},
@@ -632,7 +631,7 @@ func TestMariaDBVolumeClaimTemplates(t *testing.T) {
 					Storage: mariadbv1alpha1.Storage{
 						Size: ptr.To(resource.MustParse("1Gi")),
 						VolumeClaimTemplate: &mariadbv1alpha1.VolumeClaimTemplate{
-							PersistentVolumeClaimSpec: v1alpha1.PersistentVolumeClaimSpec{
+							PersistentVolumeClaimSpec: mariadbv1alpha1.PersistentVolumeClaimSpec{
 								Resources: corev1.VolumeResourceRequirements{
 									Requests: corev1.ResourceList{
 										"storage": resource.MustParse("1Gi"),
@@ -644,12 +643,12 @@ func TestMariaDBVolumeClaimTemplates(t *testing.T) {
 							},
 						},
 					},
-					Galera: &v1alpha1.Galera{
+					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
-						GaleraSpec: v1alpha1.GaleraSpec{
-							Config: v1alpha1.GaleraConfig{
+						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							Config: mariadbv1alpha1.GaleraConfig{
 								VolumeClaimTemplate: &mariadbv1alpha1.VolumeClaimTemplate{
-									PersistentVolumeClaimSpec: v1alpha1.PersistentVolumeClaimSpec{
+									PersistentVolumeClaimSpec: mariadbv1alpha1.PersistentVolumeClaimSpec{
 										Resources: corev1.VolumeResourceRequirements{
 											Requests: corev1.ResourceList{
 												"storage": resource.MustParse("1Gi"),
@@ -675,7 +674,7 @@ func TestMariaDBVolumeClaimTemplates(t *testing.T) {
 					Storage: mariadbv1alpha1.Storage{
 						Size: ptr.To(resource.MustParse("1Gi")),
 						VolumeClaimTemplate: &mariadbv1alpha1.VolumeClaimTemplate{
-							PersistentVolumeClaimSpec: v1alpha1.PersistentVolumeClaimSpec{
+							PersistentVolumeClaimSpec: mariadbv1alpha1.PersistentVolumeClaimSpec{
 								Resources: corev1.VolumeResourceRequirements{
 									Requests: corev1.ResourceList{
 										"storage": resource.MustParse("1Gi"),
@@ -687,10 +686,10 @@ func TestMariaDBVolumeClaimTemplates(t *testing.T) {
 							},
 						},
 					},
-					Galera: &v1alpha1.Galera{
+					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
-						GaleraSpec: v1alpha1.GaleraSpec{
-							Config: v1alpha1.GaleraConfig{
+						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							Config: mariadbv1alpha1.GaleraConfig{
 								ReuseStorageVolume: ptr.To(true),
 							},
 						},

@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"net/http"
 	"time"
 
@@ -138,7 +137,7 @@ func (p *Probe) Readiness(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	galera := ptr.Deref(mdb.Spec.Galera, v1alpha1.Galera{})
+	galera := ptr.Deref(mdb.Spec.Galera, mariadbv1alpha1.Galera{})
 	availableWhenDonor := ptr.Deref(galera.AvailableWhenDonor, false)
 
 	if availableWhenDonor && state == galeraclient.GaleraStateDonor {

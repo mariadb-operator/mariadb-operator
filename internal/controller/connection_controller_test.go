@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
@@ -54,17 +53,17 @@ var _ = Describe("Connection", func() {
 					Namespace: testNamespace,
 				},
 				Spec: mariadbv1alpha1.ConnectionSpec{
-					ConnectionTemplate: v1alpha1.ConnectionTemplate{
+					ConnectionTemplate: mariadbv1alpha1.ConnectionTemplate{
 						SecretName: func() *string { t := "conn-test"; return &t }(),
-						SecretTemplate: &v1alpha1.SecretTemplate{
-							Metadata: &v1alpha1.Metadata{
+						SecretTemplate: &mariadbv1alpha1.SecretTemplate{
+							Metadata: &mariadbv1alpha1.Metadata{
 								Labels: map[string]string{
 									"foo": "bar",
 								},
 							},
 							Key: func() *string { k := "dsn"; return &k }(),
 						},
-						HealthCheck: &v1alpha1.HealthCheck{
+						HealthCheck: &mariadbv1alpha1.HealthCheck{
 							Interval:      &metav1.Duration{Duration: 1 * time.Second},
 							RetryInterval: &metav1.Duration{Duration: 1 * time.Second},
 						},
@@ -72,7 +71,7 @@ var _ = Describe("Connection", func() {
 							"parseTime": "true",
 						},
 					},
-					MariaDBRef: &v1alpha1.MariaDBRef{
+					MariaDBRef: &mariadbv1alpha1.MariaDBRef{
 						ObjectReference: mariadbv1alpha1.ObjectReference{
 							Name: testMdbkey.Name,
 						},
@@ -94,17 +93,17 @@ var _ = Describe("Connection", func() {
 					Namespace: testNamespace,
 				},
 				Spec: mariadbv1alpha1.ConnectionSpec{
-					ConnectionTemplate: v1alpha1.ConnectionTemplate{
+					ConnectionTemplate: mariadbv1alpha1.ConnectionTemplate{
 						SecretName: func() *string { t := "conn-test-pod-0"; return &t }(),
-						SecretTemplate: &v1alpha1.SecretTemplate{
-							Metadata: &v1alpha1.Metadata{
+						SecretTemplate: &mariadbv1alpha1.SecretTemplate{
+							Metadata: &mariadbv1alpha1.Metadata{
 								Labels: map[string]string{
 									"foo": "bar",
 								},
 							},
 							Key: func() *string { k := "dsn"; return &k }(),
 						},
-						HealthCheck: &v1alpha1.HealthCheck{
+						HealthCheck: &mariadbv1alpha1.HealthCheck{
 							Interval:      &metav1.Duration{Duration: 1 * time.Second},
 							RetryInterval: &metav1.Duration{Duration: 1 * time.Second},
 						},

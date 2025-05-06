@@ -1,7 +1,6 @@
 package webhook_test
 
 import (
-	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"reflect"
 	"testing"
 	"time"
@@ -62,18 +61,18 @@ func TestInmutableWebhook(t *testing.T) {
 		},
 		{
 			name: "mutable nested struct",
-			old: &v1alpha1.MaxScale{
+			old: &mariadbv1alpha1.MaxScale{
 				ObjectMeta: objectMeta,
-				Spec: v1alpha1.MaxScaleSpec{
-					Monitor: v1alpha1.MaxScaleMonitor{
+				Spec: mariadbv1alpha1.MaxScaleSpec{
+					Monitor: mariadbv1alpha1.MaxScaleMonitor{
 						Interval: metav1.Duration{Duration: 2 * time.Second},
 					},
 				},
 			},
-			new: &v1alpha1.MaxScale{
+			new: &mariadbv1alpha1.MaxScale{
 				ObjectMeta: objectMeta,
-				Spec: v1alpha1.MaxScaleSpec{
-					Monitor: v1alpha1.MaxScaleMonitor{
+				Spec: mariadbv1alpha1.MaxScaleSpec{
+					Monitor: mariadbv1alpha1.MaxScaleMonitor{
 						Interval: metav1.Duration{Duration: 5 * time.Second},
 					},
 				},
@@ -82,19 +81,19 @@ func TestInmutableWebhook(t *testing.T) {
 		},
 		{
 			name: "inmutable nested struct",
-			old: &v1alpha1.MaxScale{
+			old: &mariadbv1alpha1.MaxScale{
 				ObjectMeta: objectMeta,
-				Spec: v1alpha1.MaxScaleSpec{
-					Monitor: v1alpha1.MaxScaleMonitor{
-						Module: v1alpha1.MonitorModuleMariadb,
+				Spec: mariadbv1alpha1.MaxScaleSpec{
+					Monitor: mariadbv1alpha1.MaxScaleMonitor{
+						Module: mariadbv1alpha1.MonitorModuleMariadb,
 					},
 				},
 			},
-			new: &v1alpha1.MaxScale{
+			new: &mariadbv1alpha1.MaxScale{
 				ObjectMeta: objectMeta,
-				Spec: v1alpha1.MaxScaleSpec{
-					Monitor: v1alpha1.MaxScaleMonitor{
-						Module: v1alpha1.MonitorModuleGalera,
+				Spec: mariadbv1alpha1.MaxScaleSpec{
+					Monitor: mariadbv1alpha1.MaxScaleMonitor{
+						Module: mariadbv1alpha1.MonitorModuleGalera,
 					},
 				},
 			},
@@ -142,10 +141,10 @@ func TestInmutableWebhook(t *testing.T) {
 		},
 		{
 			name: "mutable nested slice",
-			old: &v1alpha1.MaxScale{
+			old: &mariadbv1alpha1.MaxScale{
 				ObjectMeta: objectMeta,
-				Spec: v1alpha1.MaxScaleSpec{
-					Services: []v1alpha1.MaxScaleService{
+				Spec: mariadbv1alpha1.MaxScaleSpec{
+					Services: []mariadbv1alpha1.MaxScaleService{
 						{
 							Name: "foo",
 							Params: map[string]string{
@@ -155,10 +154,10 @@ func TestInmutableWebhook(t *testing.T) {
 					},
 				},
 			},
-			new: &v1alpha1.MaxScale{
+			new: &mariadbv1alpha1.MaxScale{
 				ObjectMeta: objectMeta,
-				Spec: v1alpha1.MaxScaleSpec{
-					Services: []v1alpha1.MaxScaleService{
+				Spec: mariadbv1alpha1.MaxScaleSpec{
+					Services: []mariadbv1alpha1.MaxScaleService{
 						{
 							Name: "foo",
 							Params: map[string]string{
@@ -172,24 +171,24 @@ func TestInmutableWebhook(t *testing.T) {
 		},
 		{
 			name: "inmutable nested slice",
-			old: &v1alpha1.MaxScale{
+			old: &mariadbv1alpha1.MaxScale{
 				ObjectMeta: objectMeta,
-				Spec: v1alpha1.MaxScaleSpec{
-					Services: []v1alpha1.MaxScaleService{
+				Spec: mariadbv1alpha1.MaxScaleSpec{
+					Services: []mariadbv1alpha1.MaxScaleService{
 						{
 							Name:   "foo",
-							Router: v1alpha1.ServiceRouterReadConnRoute,
+							Router: mariadbv1alpha1.ServiceRouterReadConnRoute,
 						},
 					},
 				},
 			},
-			new: &v1alpha1.MaxScale{
+			new: &mariadbv1alpha1.MaxScale{
 				ObjectMeta: objectMeta,
-				Spec: v1alpha1.MaxScaleSpec{
-					Services: []v1alpha1.MaxScaleService{
+				Spec: mariadbv1alpha1.MaxScaleSpec{
+					Services: []mariadbv1alpha1.MaxScaleService{
 						{
 							Name:   "foo",
-							Router: v1alpha1.ServiceRouterReadWriteSplit,
+							Router: mariadbv1alpha1.ServiceRouterReadWriteSplit,
 						},
 					},
 				},
@@ -198,28 +197,28 @@ func TestInmutableWebhook(t *testing.T) {
 		},
 		{
 			name: "inmutable nested slice adding elements",
-			old: &v1alpha1.MaxScale{
+			old: &mariadbv1alpha1.MaxScale{
 				ObjectMeta: objectMeta,
-				Spec: v1alpha1.MaxScaleSpec{
-					Services: []v1alpha1.MaxScaleService{
+				Spec: mariadbv1alpha1.MaxScaleSpec{
+					Services: []mariadbv1alpha1.MaxScaleService{
 						{
 							Name:   "foo",
-							Router: v1alpha1.ServiceRouterReadConnRoute,
+							Router: mariadbv1alpha1.ServiceRouterReadConnRoute,
 						},
 					},
 				},
 			},
-			new: &v1alpha1.MaxScale{
+			new: &mariadbv1alpha1.MaxScale{
 				ObjectMeta: objectMeta,
-				Spec: v1alpha1.MaxScaleSpec{
-					Services: []v1alpha1.MaxScaleService{
+				Spec: mariadbv1alpha1.MaxScaleSpec{
+					Services: []mariadbv1alpha1.MaxScaleService{
 						{
 							Name:   "foo",
-							Router: v1alpha1.ServiceRouterReadWriteSplit,
+							Router: mariadbv1alpha1.ServiceRouterReadWriteSplit,
 						},
 						{
 							Name:   "bar",
-							Router: v1alpha1.ServiceRouterReadWriteSplit,
+							Router: mariadbv1alpha1.ServiceRouterReadWriteSplit,
 						},
 					},
 				},
@@ -228,26 +227,26 @@ func TestInmutableWebhook(t *testing.T) {
 		},
 		{
 			name: "mutable nested struct in slice",
-			old: &v1alpha1.MaxScale{
+			old: &mariadbv1alpha1.MaxScale{
 				ObjectMeta: objectMeta,
-				Spec: v1alpha1.MaxScaleSpec{
-					Services: []v1alpha1.MaxScaleService{
+				Spec: mariadbv1alpha1.MaxScaleSpec{
+					Services: []mariadbv1alpha1.MaxScaleService{
 						{
 							Name: "foo",
-							Listener: v1alpha1.MaxScaleListener{
+							Listener: mariadbv1alpha1.MaxScaleListener{
 								Protocol: "foo",
 							},
 						},
 					},
 				},
 			},
-			new: &v1alpha1.MaxScale{
+			new: &mariadbv1alpha1.MaxScale{
 				ObjectMeta: objectMeta,
-				Spec: v1alpha1.MaxScaleSpec{
-					Services: []v1alpha1.MaxScaleService{
+				Spec: mariadbv1alpha1.MaxScaleSpec{
+					Services: []mariadbv1alpha1.MaxScaleService{
 						{
 							Name: "foo",
-							Listener: v1alpha1.MaxScaleListener{
+							Listener: mariadbv1alpha1.MaxScaleListener{
 								Protocol: "bar",
 							},
 						},
@@ -258,26 +257,26 @@ func TestInmutableWebhook(t *testing.T) {
 		},
 		{
 			name: "inmutable nested struct in slice",
-			old: &v1alpha1.MaxScale{
+			old: &mariadbv1alpha1.MaxScale{
 				ObjectMeta: objectMeta,
-				Spec: v1alpha1.MaxScaleSpec{
-					Services: []v1alpha1.MaxScaleService{
+				Spec: mariadbv1alpha1.MaxScaleSpec{
+					Services: []mariadbv1alpha1.MaxScaleService{
 						{
 							Name: "foo",
-							Listener: v1alpha1.MaxScaleListener{
+							Listener: mariadbv1alpha1.MaxScaleListener{
 								Port: 1234,
 							},
 						},
 					},
 				},
 			},
-			new: &v1alpha1.MaxScale{
+			new: &mariadbv1alpha1.MaxScale{
 				ObjectMeta: objectMeta,
-				Spec: v1alpha1.MaxScaleSpec{
-					Services: []v1alpha1.MaxScaleService{
+				Spec: mariadbv1alpha1.MaxScaleSpec{
+					Services: []mariadbv1alpha1.MaxScaleService{
 						{
 							Name: "foo",
-							Listener: v1alpha1.MaxScaleListener{
+							Listener: mariadbv1alpha1.MaxScaleListener{
 								Port: 5678,
 							},
 						},
@@ -434,8 +433,8 @@ func TestInmutableInitWebhook(t *testing.T) {
 						BackupRef: &mariadbv1alpha1.LocalObjectReference{
 							Name: "foo",
 						},
-						Volume: &v1alpha1.StorageVolumeSource{
-							NFS: &v1alpha1.NFSVolumeSource{
+						Volume: &mariadbv1alpha1.StorageVolumeSource{
+							NFS: &mariadbv1alpha1.NFSVolumeSource{
 								Server: "nas.local",
 								Path:   "/volume/foo",
 							},
@@ -494,19 +493,19 @@ func TestInmutableWebhookError(t *testing.T) {
 		},
 		{
 			name: "nested struct",
-			old: &v1alpha1.MaxScale{
+			old: &mariadbv1alpha1.MaxScale{
 				ObjectMeta: objectMeta,
-				Spec: v1alpha1.MaxScaleSpec{
-					Monitor: v1alpha1.MaxScaleMonitor{
-						Module: v1alpha1.MonitorModuleMariadb,
+				Spec: mariadbv1alpha1.MaxScaleSpec{
+					Monitor: mariadbv1alpha1.MaxScaleMonitor{
+						Module: mariadbv1alpha1.MonitorModuleMariadb,
 					},
 				},
 			},
-			new: &v1alpha1.MaxScale{
+			new: &mariadbv1alpha1.MaxScale{
 				ObjectMeta: objectMeta,
-				Spec: v1alpha1.MaxScaleSpec{
-					Monitor: v1alpha1.MaxScaleMonitor{
-						Module: v1alpha1.MonitorModuleGalera,
+				Spec: mariadbv1alpha1.MaxScaleSpec{
+					Monitor: mariadbv1alpha1.MaxScaleMonitor{
+						Module: mariadbv1alpha1.MonitorModuleGalera,
 					},
 				},
 			},
@@ -516,24 +515,24 @@ func TestInmutableWebhookError(t *testing.T) {
 		},
 		{
 			name: "nested slice",
-			old: &v1alpha1.MaxScale{
+			old: &mariadbv1alpha1.MaxScale{
 				ObjectMeta: objectMeta,
-				Spec: v1alpha1.MaxScaleSpec{
-					Services: []v1alpha1.MaxScaleService{
+				Spec: mariadbv1alpha1.MaxScaleSpec{
+					Services: []mariadbv1alpha1.MaxScaleService{
 						{
 							Name:   "foo",
-							Router: v1alpha1.ServiceRouterReadConnRoute,
+							Router: mariadbv1alpha1.ServiceRouterReadConnRoute,
 						},
 					},
 				},
 			},
-			new: &v1alpha1.MaxScale{
+			new: &mariadbv1alpha1.MaxScale{
 				ObjectMeta: objectMeta,
-				Spec: v1alpha1.MaxScaleSpec{
-					Services: []v1alpha1.MaxScaleService{
+				Spec: mariadbv1alpha1.MaxScaleSpec{
+					Services: []mariadbv1alpha1.MaxScaleService{
 						{
 							Name:   "foo",
-							Router: v1alpha1.ServiceRouterReadWriteSplit,
+							Router: mariadbv1alpha1.ServiceRouterReadWriteSplit,
 						},
 					},
 				},
@@ -544,26 +543,26 @@ func TestInmutableWebhookError(t *testing.T) {
 		},
 		{
 			name: "nested struct in slice",
-			old: &v1alpha1.MaxScale{
+			old: &mariadbv1alpha1.MaxScale{
 				ObjectMeta: objectMeta,
-				Spec: v1alpha1.MaxScaleSpec{
-					Services: []v1alpha1.MaxScaleService{
+				Spec: mariadbv1alpha1.MaxScaleSpec{
+					Services: []mariadbv1alpha1.MaxScaleService{
 						{
 							Name: "foo",
-							Listener: v1alpha1.MaxScaleListener{
+							Listener: mariadbv1alpha1.MaxScaleListener{
 								Port: 1234,
 							},
 						},
 					},
 				},
 			},
-			new: &v1alpha1.MaxScale{
+			new: &mariadbv1alpha1.MaxScale{
 				ObjectMeta: objectMeta,
-				Spec: v1alpha1.MaxScaleSpec{
-					Services: []v1alpha1.MaxScaleService{
+				Spec: mariadbv1alpha1.MaxScaleSpec{
+					Services: []mariadbv1alpha1.MaxScaleService{
 						{
 							Name: "foo",
-							Listener: v1alpha1.MaxScaleListener{
+							Listener: mariadbv1alpha1.MaxScaleListener{
 								Port: 5678,
 							},
 						},

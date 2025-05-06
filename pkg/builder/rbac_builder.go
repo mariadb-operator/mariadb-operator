@@ -2,7 +2,6 @@ package builder
 
 import (
 	"fmt"
-	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	metadata "github.com/mariadb-operator/mariadb-operator/pkg/builder/metadata"
@@ -14,7 +13,7 @@ import (
 )
 
 func (b *Builder) BuildServiceAccount(key types.NamespacedName, owner metav1.Object,
-	meta *v1alpha1.Metadata) (*corev1.ServiceAccount, error) {
+	meta *mariadbv1alpha1.Metadata) (*corev1.ServiceAccount, error) {
 	objMeta :=
 		metadata.NewMetadataBuilder(key).
 			WithMetadata(meta).

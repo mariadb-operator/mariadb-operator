@@ -3,7 +3,6 @@ package batch
 import (
 	"context"
 	"fmt"
-	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
@@ -54,7 +53,7 @@ func (r *BatchReconciler) reconcileStorage(ctx context.Context, parentObj client
 			}
 		}
 
-		stagingStorage := ptr.Deref(backup.Spec.StagingStorage, v1alpha1.BackupStagingStorage{})
+		stagingStorage := ptr.Deref(backup.Spec.StagingStorage, mariadbv1alpha1.BackupStagingStorage{})
 		if stagingStorage.PersistentVolumeClaim != nil {
 			pvc, err := r.builder.BuildBackupStagingPVC(
 				backup.StagingPVCKey(),
@@ -73,7 +72,7 @@ func (r *BatchReconciler) reconcileStorage(ctx context.Context, parentObj client
 	}
 
 	if restore, ok := parentObj.(*mariadbv1alpha1.Restore); ok {
-		stagingStorage := ptr.Deref(restore.Spec.StagingStorage, v1alpha1.BackupStagingStorage{})
+		stagingStorage := ptr.Deref(restore.Spec.StagingStorage, mariadbv1alpha1.BackupStagingStorage{})
 		if stagingStorage.PersistentVolumeClaim != nil {
 			pvc, err := r.builder.BuildBackupStagingPVC(
 				restore.StagingPVCKey(),

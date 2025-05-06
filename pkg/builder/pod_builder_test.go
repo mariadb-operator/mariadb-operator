@@ -1,7 +1,6 @@
 package builder
 
 import (
-	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"reflect"
 	"testing"
 
@@ -24,7 +23,7 @@ func TestMariadbPodMeta(t *testing.T) {
 		name     string
 		mariadb  *mariadbv1alpha1.MariaDB
 		opts     []mariadbPodOpt
-		wantMeta *v1alpha1.Metadata
+		wantMeta *mariadbv1alpha1.Metadata
 	}{
 		{
 			name: "empty",
@@ -32,7 +31,7 @@ func TestMariadbPodMeta(t *testing.T) {
 				ObjectMeta: objMeta,
 			},
 			opts: nil,
-			wantMeta: &v1alpha1.Metadata{
+			wantMeta: &mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"app.kubernetes.io/name":     "mariadb",
 					"app.kubernetes.io/instance": "mariadb-obj",
@@ -45,7 +44,7 @@ func TestMariadbPodMeta(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					InheritMetadata: &v1alpha1.Metadata{
+					InheritMetadata: &mariadbv1alpha1.Metadata{
 						Labels: map[string]string{
 							"sidecar.istio.io/inject": "false",
 						},
@@ -56,7 +55,7 @@ func TestMariadbPodMeta(t *testing.T) {
 				},
 			},
 			opts: nil,
-			wantMeta: &v1alpha1.Metadata{
+			wantMeta: &mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"app.kubernetes.io/name":     "mariadb",
 					"app.kubernetes.io/instance": "mariadb-obj",
@@ -72,13 +71,13 @@ func TestMariadbPodMeta(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Galera: &v1alpha1.Galera{
+					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
 					},
 				},
 			},
 			opts: nil,
-			wantMeta: &v1alpha1.Metadata{
+			wantMeta: &mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"app.kubernetes.io/name":     "mariadb",
 					"app.kubernetes.io/instance": "mariadb-obj",
@@ -94,8 +93,8 @@ func TestMariadbPodMeta(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					PodTemplate: v1alpha1.PodTemplate{
-						PodMetadata: &v1alpha1.Metadata{
+					PodTemplate: mariadbv1alpha1.PodTemplate{
+						PodMetadata: &mariadbv1alpha1.Metadata{
 							Labels: map[string]string{
 								"sidecar.istio.io/inject": "false",
 							},
@@ -107,7 +106,7 @@ func TestMariadbPodMeta(t *testing.T) {
 				},
 			},
 			opts: nil,
-			wantMeta: &v1alpha1.Metadata{
+			wantMeta: &mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"app.kubernetes.io/name":     "mariadb",
 					"app.kubernetes.io/instance": "mariadb-obj",
@@ -124,7 +123,7 @@ func TestMariadbPodMeta(t *testing.T) {
 				ObjectMeta: objMeta,
 			},
 			opts: []mariadbPodOpt{
-				withMeta(&v1alpha1.Metadata{
+				withMeta(&mariadbv1alpha1.Metadata{
 					Labels: map[string]string{
 						"sidecar.istio.io/inject": "false",
 					},
@@ -268,7 +267,7 @@ func TestMariadbPodMeta(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Galera: &v1alpha1.Galera{
+					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
 					},
 					PodTemplate: mariadbv1alpha1.PodTemplate{
@@ -307,7 +306,7 @@ func TestMariadbPodMeta(t *testing.T) {
 							"database.myorg.io": "mariadb",
 						},
 					},
-					Galera: &v1alpha1.Galera{
+					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
 					},
 					PodTemplate: mariadbv1alpha1.PodTemplate{
@@ -360,13 +359,13 @@ func TestMaxScalePodMeta(t *testing.T) {
 	}
 	tests := []struct {
 		name        string
-		maxscale    *v1alpha1.MaxScale
+		maxscale    *mariadbv1alpha1.MaxScale
 		annotations map[string]string
 		wantMeta    *mariadbv1alpha1.Metadata
 	}{
 		{
 			name: "empty",
-			maxscale: &v1alpha1.MaxScale{
+			maxscale: &mariadbv1alpha1.MaxScale{
 				ObjectMeta: objMeta,
 			},
 			annotations: nil,
@@ -380,9 +379,9 @@ func TestMaxScalePodMeta(t *testing.T) {
 		},
 		{
 			name: "inherit meta",
-			maxscale: &v1alpha1.MaxScale{
+			maxscale: &mariadbv1alpha1.MaxScale{
 				ObjectMeta: objMeta,
-				Spec: v1alpha1.MaxScaleSpec{
+				Spec: mariadbv1alpha1.MaxScaleSpec{
 					InheritMetadata: &mariadbv1alpha1.Metadata{
 						Labels: map[string]string{
 							"sidecar.istio.io/inject": "false",
@@ -407,10 +406,10 @@ func TestMaxScalePodMeta(t *testing.T) {
 		},
 		{
 			name: "Pod meta",
-			maxscale: &v1alpha1.MaxScale{
+			maxscale: &mariadbv1alpha1.MaxScale{
 				ObjectMeta: objMeta,
-				Spec: v1alpha1.MaxScaleSpec{
-					MaxScalePodTemplate: v1alpha1.MaxScalePodTemplate{
+				Spec: mariadbv1alpha1.MaxScaleSpec{
+					MaxScalePodTemplate: mariadbv1alpha1.MaxScalePodTemplate{
 						PodMetadata: &mariadbv1alpha1.Metadata{
 							Labels: map[string]string{
 								"sidecar.istio.io/inject": "false",
@@ -436,7 +435,7 @@ func TestMaxScalePodMeta(t *testing.T) {
 		},
 		{
 			name: "annotations",
-			maxscale: &v1alpha1.MaxScale{
+			maxscale: &mariadbv1alpha1.MaxScale{
 				ObjectMeta: objMeta,
 			},
 			annotations: map[string]string{
@@ -454,15 +453,15 @@ func TestMaxScalePodMeta(t *testing.T) {
 		},
 		{
 			name: "inherit and Pod meta",
-			maxscale: &v1alpha1.MaxScale{
+			maxscale: &mariadbv1alpha1.MaxScale{
 				ObjectMeta: objMeta,
-				Spec: v1alpha1.MaxScaleSpec{
+				Spec: mariadbv1alpha1.MaxScaleSpec{
 					InheritMetadata: &mariadbv1alpha1.Metadata{
 						Annotations: map[string]string{
 							"database.myorg.io": "mariadb",
 						},
 					},
-					MaxScalePodTemplate: v1alpha1.MaxScalePodTemplate{
+					MaxScalePodTemplate: mariadbv1alpha1.MaxScalePodTemplate{
 						PodMetadata: &mariadbv1alpha1.Metadata{
 							Labels: map[string]string{
 								"sidecar.istio.io/inject": "false",
@@ -485,9 +484,9 @@ func TestMaxScalePodMeta(t *testing.T) {
 		},
 		{
 			name: "Pod override inherit meta",
-			maxscale: &v1alpha1.MaxScale{
+			maxscale: &mariadbv1alpha1.MaxScale{
 				ObjectMeta: objMeta,
-				Spec: v1alpha1.MaxScaleSpec{
+				Spec: mariadbv1alpha1.MaxScaleSpec{
 					InheritMetadata: &mariadbv1alpha1.Metadata{
 						Labels: map[string]string{
 							"sidecar.istio.io/inject": "true",
@@ -496,7 +495,7 @@ func TestMaxScalePodMeta(t *testing.T) {
 							"database.myorg.io": "mariadb",
 						},
 					},
-					MaxScalePodTemplate: v1alpha1.MaxScalePodTemplate{
+					MaxScalePodTemplate: mariadbv1alpha1.MaxScalePodTemplate{
 						PodMetadata: &mariadbv1alpha1.Metadata{
 							Labels: map[string]string{
 								"sidecar.istio.io/inject": "false",
@@ -519,9 +518,9 @@ func TestMaxScalePodMeta(t *testing.T) {
 		},
 		{
 			name: "all",
-			maxscale: &v1alpha1.MaxScale{
+			maxscale: &mariadbv1alpha1.MaxScale{
 				ObjectMeta: objMeta,
-				Spec: v1alpha1.MaxScaleSpec{
+				Spec: mariadbv1alpha1.MaxScaleSpec{
 					InheritMetadata: &mariadbv1alpha1.Metadata{
 						Labels: map[string]string{
 							"k8s.mariadb.com": "test",
@@ -530,7 +529,7 @@ func TestMaxScalePodMeta(t *testing.T) {
 							"k8s.mariadb.com": "test",
 						},
 					},
-					MaxScalePodTemplate: v1alpha1.MaxScalePodTemplate{
+					MaxScalePodTemplate: mariadbv1alpha1.MaxScalePodTemplate{
 						PodMetadata: &mariadbv1alpha1.Metadata{
 							Labels: map[string]string{
 								"sidecar.istio.io/inject": "false",
@@ -742,7 +741,7 @@ func TestMariadbPodBuilderServiceAccount(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Galera: &v1alpha1.Galera{
+					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
 					},
 				},
@@ -755,7 +754,7 @@ func TestMariadbPodBuilderServiceAccount(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Galera: &v1alpha1.Galera{
+					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
 					},
 				},
@@ -1175,7 +1174,7 @@ func TestMaxscalePodBuilder(t *testing.T) {
 		t.Fatalf("unexpected error getting discovery: %v", err)
 	}
 	builder := newTestBuilder(d)
-	mxs := &v1alpha1.MaxScale{
+	mxs := &mariadbv1alpha1.MaxScale{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "test-maxscale-builder",
 		},

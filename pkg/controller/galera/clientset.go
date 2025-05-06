@@ -3,7 +3,6 @@ package galera
 import (
 	"errors"
 	"fmt"
-	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"sync"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
@@ -71,6 +70,6 @@ func baseUrl(mariadb *mariadbv1alpha1.MariaDB, index int) string {
 			index,
 			mariadb.InternalServiceKey().Name,
 		),
-		ptr.Deref(mariadb.Spec.Galera, v1alpha1.Galera{}).Agent.Port,
+		ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{}).Agent.Port,
 	)
 }

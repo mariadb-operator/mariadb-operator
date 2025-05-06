@@ -1,7 +1,6 @@
 package builder
 
 import (
-	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"testing"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
@@ -31,7 +30,7 @@ func TestInvalidBackupPVC(t *testing.T) {
 			backup: &mariadbv1alpha1.Backup{
 				Spec: mariadbv1alpha1.BackupSpec{
 					Storage: mariadbv1alpha1.BackupStorage{
-						PersistentVolumeClaim: &v1alpha1.PersistentVolumeClaimSpec{
+						PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimSpec{
 							Resources: corev1.VolumeResourceRequirements{
 								Requests: corev1.ResourceList{
 									corev1.ResourceStorage: resource.MustParse("100Mi"),
@@ -69,14 +68,14 @@ func TestBackupPVCMeta(t *testing.T) {
 	tests := []struct {
 		name     string
 		backup   *mariadbv1alpha1.Backup
-		wantMeta *v1alpha1.Metadata
+		wantMeta *mariadbv1alpha1.Metadata
 	}{
 		{
 			name: "PVC",
 			backup: &mariadbv1alpha1.Backup{
 				Spec: mariadbv1alpha1.BackupSpec{
 					Storage: mariadbv1alpha1.BackupStorage{
-						PersistentVolumeClaim: &v1alpha1.PersistentVolumeClaimSpec{
+						PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimSpec{
 							Resources: corev1.VolumeResourceRequirements{
 								Requests: corev1.ResourceList{
 									corev1.ResourceStorage: resource.MustParse("100Mi"),
@@ -89,7 +88,7 @@ func TestBackupPVCMeta(t *testing.T) {
 					},
 				},
 			},
-			wantMeta: &v1alpha1.Metadata{
+			wantMeta: &mariadbv1alpha1.Metadata{
 				Labels:      map[string]string{},
 				Annotations: map[string]string{},
 			},
@@ -99,7 +98,7 @@ func TestBackupPVCMeta(t *testing.T) {
 			backup: &mariadbv1alpha1.Backup{
 				Spec: mariadbv1alpha1.BackupSpec{
 					Storage: mariadbv1alpha1.BackupStorage{
-						PersistentVolumeClaim: &v1alpha1.PersistentVolumeClaimSpec{
+						PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimSpec{
 							Resources: corev1.VolumeResourceRequirements{
 								Requests: corev1.ResourceList{
 									corev1.ResourceStorage: resource.MustParse("100Mi"),
@@ -110,7 +109,7 @@ func TestBackupPVCMeta(t *testing.T) {
 							},
 						},
 					},
-					InheritMetadata: &v1alpha1.Metadata{
+					InheritMetadata: &mariadbv1alpha1.Metadata{
 						Labels: map[string]string{
 							"database.myorg.io": "mariadb",
 						},
@@ -120,7 +119,7 @@ func TestBackupPVCMeta(t *testing.T) {
 					},
 				},
 			},
-			wantMeta: &v1alpha1.Metadata{
+			wantMeta: &mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"database.myorg.io": "mariadb",
 				},

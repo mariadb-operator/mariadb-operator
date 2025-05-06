@@ -2,7 +2,6 @@ package v1alpha1
 
 import (
 	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
-	v1alpha2 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -31,10 +30,10 @@ var _ = Describe("v1alpha1.User webhook", func() {
 						Namespace: testNamespace,
 					},
 					Spec: v1alpha1.UserSpec{
-						SQLTemplate: v1alpha2.SQLTemplate{
-							CleanupPolicy: ptr.To(v1alpha2.CleanupPolicyDelete),
+						SQLTemplate: v1alpha1.SQLTemplate{
+							CleanupPolicy: ptr.To(v1alpha1.CleanupPolicyDelete),
 						},
-						MariaDBRef: v1alpha2.MariaDBRef{
+						MariaDBRef: v1alpha1.MariaDBRef{
 							ObjectReference: v1alpha1.ObjectReference{
 								Name: "mariadb-webhook",
 							},
@@ -59,10 +58,10 @@ var _ = Describe("v1alpha1.User webhook", func() {
 						Namespace: testNamespace,
 					},
 					Spec: v1alpha1.UserSpec{
-						SQLTemplate: v1alpha2.SQLTemplate{
-							CleanupPolicy: ptr.To(v1alpha2.CleanupPolicy("")),
+						SQLTemplate: v1alpha1.SQLTemplate{
+							CleanupPolicy: ptr.To(v1alpha1.CleanupPolicy("")),
 						},
-						MariaDBRef: v1alpha2.MariaDBRef{
+						MariaDBRef: v1alpha1.MariaDBRef{
 							ObjectReference: v1alpha1.ObjectReference{
 								Name: "mariadb-webhook",
 							},
@@ -87,7 +86,7 @@ var _ = Describe("v1alpha1.User webhook", func() {
 						Namespace: testNamespace,
 					},
 					Spec: v1alpha1.UserSpec{
-						MariaDBRef: v1alpha2.MariaDBRef{
+						MariaDBRef: v1alpha1.MariaDBRef{
 							ObjectReference: v1alpha1.ObjectReference{
 								Name: "mariadb-webhook",
 							},
@@ -116,7 +115,7 @@ var _ = Describe("v1alpha1.User webhook", func() {
 						Namespace: testNamespace,
 					},
 					Spec: v1alpha1.UserSpec{
-						MariaDBRef: v1alpha2.MariaDBRef{
+						MariaDBRef: v1alpha1.MariaDBRef{
 							ObjectReference: v1alpha1.ObjectReference{
 								Name: "mariadb-webhook",
 							},

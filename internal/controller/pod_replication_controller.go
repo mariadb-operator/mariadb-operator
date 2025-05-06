@@ -3,7 +3,6 @@ package controller
 import (
 	"context"
 	"fmt"
-	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 
 	"github.com/hashicorp/go-multierror"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
@@ -95,7 +94,7 @@ func shouldReconcile(mariadb *mariadbv1alpha1.MariaDB) bool {
 	if mariadb.IsMaxScaleEnabled() || mariadb.IsRestoringBackup() {
 		return false
 	}
-	primaryRepl := ptr.Deref(mariadb.Replication().Primary, v1alpha1.PrimaryReplication{})
+	primaryRepl := ptr.Deref(mariadb.Replication().Primary, mariadbv1alpha1.PrimaryReplication{})
 	return mariadb.Replication().Enabled && *primaryRepl.AutomaticFailover && mariadb.IsReplicationConfigured()
 }
 

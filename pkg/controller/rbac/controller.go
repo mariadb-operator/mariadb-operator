@@ -3,7 +3,6 @@ package rbac
 import (
 	"context"
 	"fmt"
-	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
@@ -29,7 +28,7 @@ func NewRBACReconiler(client client.Client, builder *builder.Builder) *RBACRecon
 }
 
 func (r *RBACReconciler) ReconcileServiceAccount(ctx context.Context, key types.NamespacedName, owner metav1.Object,
-	meta *v1alpha1.Metadata) (*corev1.ServiceAccount, error) {
+	meta *mariadbv1alpha1.Metadata) (*corev1.ServiceAccount, error) {
 	var existingSA corev1.ServiceAccount
 	err := r.Get(ctx, key, &existingSA)
 	if err == nil {
@@ -72,8 +71,8 @@ func (r *RBACReconciler) ReconcileMariadbRBAC(ctx context.Context, mariadb *mari
 		return fmt.Errorf("error reconciling RoleBinding: %v", err)
 	}
 
-	agent := ptr.Deref(mariadb.Spec.Galera, v1alpha1.Galera{}).Agent
-	k8sAuth := ptr.Deref(agent.KubernetesAuth, v1alpha1.KubernetesAuth{})
+	agent := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{}).Agent
+	k8sAuth := ptr.Deref(agent.KubernetesAuth, mariadbv1alpha1.KubernetesAuth{})
 	if k8sAuth.Enabled {
 		authDelegatorRoleRef := rbacv1.RoleRef{
 			APIGroup: rbacv1.GroupName,

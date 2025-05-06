@@ -3,7 +3,6 @@ package builder
 import (
 	"errors"
 	"fmt"
-	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
@@ -81,7 +80,7 @@ func (b *Builder) BuildExporterDeployment(mariadb *mariadbv1alpha1.MariaDB,
 	return deployment, nil
 }
 
-func (b *Builder) BuildMaxScaleExporterDeployment(mxs *v1alpha1.MaxScale,
+func (b *Builder) BuildMaxScaleExporterDeployment(mxs *mariadbv1alpha1.MaxScale,
 	podAnnotations map[string]string) (*appsv1.Deployment, error) {
 	if !mxs.AreMetricsEnabled() {
 		return nil, errors.New("MaxScale instance does not specify Metrics")
@@ -96,7 +95,7 @@ func (b *Builder) BuildMaxScaleExporterDeployment(mxs *v1alpha1.MaxScale,
 		labels.NewLabelsBuilder().
 			WithMetricsSelectorLabels(key).
 			Build()
-	exporter := ptr.Deref(mxs.Spec.Metrics, v1alpha1.MaxScaleMetrics{}).Exporter
+	exporter := ptr.Deref(mxs.Spec.Metrics, mariadbv1alpha1.MaxScaleMetrics{}).Exporter
 	podObjMeta :=
 		metadata.NewMetadataBuilder(key).
 			WithMetadata(mxs.Spec.InheritMetadata).
@@ -162,7 +161,7 @@ func (b *Builder) mariadbExporterVolumes(mariadb *mariadbv1alpha1.MariaDB) ([]co
 	return volumes, volumeMounts
 }
 
-func (b *Builder) maxscaleExporterVolumes(mxs *v1alpha1.MaxScale) ([]corev1.Volume, []corev1.VolumeMount) {
+func (b *Builder) maxscaleExporterVolumes(mxs *mariadbv1alpha1.MaxScale) ([]corev1.Volume, []corev1.VolumeMount) {
 	volumes := []corev1.Volume{
 		{
 			Name: deployConfigVolume,

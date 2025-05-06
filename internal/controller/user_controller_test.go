@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
 	. "github.com/onsi/ginkgo/v2"
@@ -30,7 +29,7 @@ var _ = Describe("User", func() {
 				Namespace: userKey.Namespace,
 			},
 			Spec: mariadbv1alpha1.UserSpec{
-				MariaDBRef: v1alpha1.MariaDBRef{
+				MariaDBRef: mariadbv1alpha1.MariaDBRef{
 					ObjectReference: mariadbv1alpha1.ObjectReference{
 						Name: testMdbkey.Name,
 					},
@@ -98,7 +97,7 @@ var _ = Describe("User", func() {
 				Namespace: key.Namespace,
 			},
 			Spec: mariadbv1alpha1.UserSpec{
-				MariaDBRef: v1alpha1.MariaDBRef{
+				MariaDBRef: mariadbv1alpha1.MariaDBRef{
 					ObjectReference: mariadbv1alpha1.ObjectReference{
 						Name: testMdbkey.Name,
 					},

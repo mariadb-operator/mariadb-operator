@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"reflect"
 	"time"
 
@@ -30,13 +29,13 @@ var _ = Describe("SqlJob", func() {
 				Namespace: testNamespace,
 			},
 			Spec: mariadbv1alpha1.SqlJobSpec{
-				MariaDBRef: v1alpha1.MariaDBRef{
+				MariaDBRef: mariadbv1alpha1.MariaDBRef{
 					ObjectReference: mariadbv1alpha1.ObjectReference{
 						Name: testMdbkey.Name,
 					},
 					WaitForIt: true,
 				},
-				InheritMetadata: &v1alpha1.Metadata{
+				InheritMetadata: &mariadbv1alpha1.Metadata{
 					Labels: map[string]string{
 						"k8s.mariadb.com/test": "test",
 					},
@@ -78,13 +77,13 @@ var _ = Describe("SqlJob", func() {
 						Name: createUsersJob.Name,
 					},
 				},
-				MariaDBRef: v1alpha1.MariaDBRef{
+				MariaDBRef: mariadbv1alpha1.MariaDBRef{
 					ObjectReference: mariadbv1alpha1.ObjectReference{
 						Name: testMdbkey.Name,
 					},
 					WaitForIt: true,
 				},
-				InheritMetadata: &v1alpha1.Metadata{
+				InheritMetadata: &mariadbv1alpha1.Metadata{
 					Labels: map[string]string{
 						"k8s.mariadb.com/test": "test",
 					},
@@ -119,7 +118,7 @@ var _ = Describe("SqlJob", func() {
 						Name: createUsersJob.Name,
 					},
 				},
-				MariaDBRef: v1alpha1.MariaDBRef{
+				MariaDBRef: mariadbv1alpha1.MariaDBRef{
 					ObjectReference: mariadbv1alpha1.ObjectReference{
 						Name: testMdbkey.Name,
 					},

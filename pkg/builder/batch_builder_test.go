@@ -1,7 +1,6 @@
 package builder
 
 import (
-	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"reflect"
 	"testing"
 
@@ -34,13 +33,13 @@ func TestBackupJobImagePullSecrets(t *testing.T) {
 			backup: &mariadbv1alpha1.Backup{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.BackupSpec{
-					MariaDBRef: v1alpha1.MariaDBRef{
+					MariaDBRef: mariadbv1alpha1.MariaDBRef{
 						ObjectReference: mariadbv1alpha1.ObjectReference{
 							Name: objMeta.Name,
 						},
 					},
 					Storage: mariadbv1alpha1.BackupStorage{
-						S3: &v1alpha1.S3{},
+						S3: &mariadbv1alpha1.S3{},
 					},
 				},
 			},
@@ -55,20 +54,20 @@ func TestBackupJobImagePullSecrets(t *testing.T) {
 			backup: &mariadbv1alpha1.Backup{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.BackupSpec{
-					MariaDBRef: v1alpha1.MariaDBRef{
+					MariaDBRef: mariadbv1alpha1.MariaDBRef{
 						ObjectReference: mariadbv1alpha1.ObjectReference{
 							Name: objMeta.Name,
 						},
 					},
 					Storage: mariadbv1alpha1.BackupStorage{
-						S3: &v1alpha1.S3{},
+						S3: &mariadbv1alpha1.S3{},
 					},
 				},
 			},
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					PodTemplate: v1alpha1.PodTemplate{
+					PodTemplate: mariadbv1alpha1.PodTemplate{
 						ImagePullSecrets: []mariadbv1alpha1.LocalObjectReference{
 							{
 								Name: "mariadb-registry",
@@ -88,20 +87,20 @@ func TestBackupJobImagePullSecrets(t *testing.T) {
 			backup: &mariadbv1alpha1.Backup{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.BackupSpec{
-					JobPodTemplate: v1alpha1.JobPodTemplate{
+					JobPodTemplate: mariadbv1alpha1.JobPodTemplate{
 						ImagePullSecrets: []mariadbv1alpha1.LocalObjectReference{
 							{
 								Name: "backup-registry",
 							},
 						},
 					},
-					MariaDBRef: v1alpha1.MariaDBRef{
+					MariaDBRef: mariadbv1alpha1.MariaDBRef{
 						ObjectReference: mariadbv1alpha1.ObjectReference{
 							Name: objMeta.Name,
 						},
 					},
 					Storage: mariadbv1alpha1.BackupStorage{
-						S3: &v1alpha1.S3{},
+						S3: &mariadbv1alpha1.S3{},
 					},
 				},
 			},
@@ -120,14 +119,14 @@ func TestBackupJobImagePullSecrets(t *testing.T) {
 			backup: &mariadbv1alpha1.Backup{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.BackupSpec{
-					JobPodTemplate: v1alpha1.JobPodTemplate{
+					JobPodTemplate: mariadbv1alpha1.JobPodTemplate{
 						ImagePullSecrets: []mariadbv1alpha1.LocalObjectReference{
 							{
 								Name: "backup-registry",
 							},
 						},
 					},
-					MariaDBRef: v1alpha1.MariaDBRef{
+					MariaDBRef: mariadbv1alpha1.MariaDBRef{
 						ObjectReference: mariadbv1alpha1.ObjectReference{
 							Name: objMeta.Name,
 						},
@@ -194,21 +193,21 @@ func TestBackupJobVolumeSource(t *testing.T) {
 	// To make our testing easier (see our reflection code below), we define a single volume source that has ALL volume
 	// source fields set!
 	// NOTE: Our test does NOT check if the actual values are correct in the final job and corev1.VolumeSource.
-	volumeSources := v1alpha1.StorageVolumeSource{
-		EmptyDir: &v1alpha1.EmptyDirVolumeSource{},
-		NFS: &v1alpha1.NFSVolumeSource{
+	volumeSources := mariadbv1alpha1.StorageVolumeSource{
+		EmptyDir: &mariadbv1alpha1.EmptyDirVolumeSource{},
+		NFS: &mariadbv1alpha1.NFSVolumeSource{
 			Server:   "test",
 			Path:     "/some/thing",
 			ReadOnly: true,
 		},
-		CSI: &v1alpha1.CSIVolumeSource{
+		CSI: &mariadbv1alpha1.CSIVolumeSource{
 			Driver: "test",
 		},
-		HostPath: &v1alpha1.HostPathVolumeSource{
+		HostPath: &mariadbv1alpha1.HostPathVolumeSource{
 			Path: "/some/path",
 			Type: ptr.To(string(corev1.HostPathDirectoryOrCreate)),
 		},
-		PersistentVolumeClaim: &v1alpha1.PersistentVolumeClaimVolumeSource{
+		PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimVolumeSource{
 			ClaimName: "test-pvc",
 		},
 	}
@@ -222,7 +221,7 @@ func TestBackupJobVolumeSource(t *testing.T) {
 		// To prevent our code from being too fragile (as many of the copy code uses ifs without early aborts), we want
 		// to create a plain StorageVolumeSource with only a single field set. So we need to "dynamically" copy over
 		// from our volumeSources into this new volume source.
-		volumeSource := v1alpha1.StorageVolumeSource{}
+		volumeSource := mariadbv1alpha1.StorageVolumeSource{}
 		reflect.ValueOf(&volumeSource).Elem().FieldByName(field.Name).Set(storageVolumeSourceValue.FieldByName(field.Name))
 
 		t.Run(field.Name, func(t *testing.T) {
@@ -273,7 +272,7 @@ func TestBackupJobMeta(t *testing.T) {
 			backup: &mariadbv1alpha1.Backup{
 				Spec: mariadbv1alpha1.BackupSpec{
 					Storage: mariadbv1alpha1.BackupStorage{
-						PersistentVolumeClaim: &v1alpha1.PersistentVolumeClaimSpec{},
+						PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimSpec{},
 					},
 				},
 			},
@@ -291,7 +290,7 @@ func TestBackupJobMeta(t *testing.T) {
 			backup: &mariadbv1alpha1.Backup{
 				Spec: mariadbv1alpha1.BackupSpec{
 					Storage: mariadbv1alpha1.BackupStorage{
-						PersistentVolumeClaim: &v1alpha1.PersistentVolumeClaimSpec{},
+						PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimSpec{},
 					},
 					InheritMetadata: &mariadbv1alpha1.Metadata{
 						Labels: map[string]string{
@@ -325,7 +324,7 @@ func TestBackupJobMeta(t *testing.T) {
 			backup: &mariadbv1alpha1.Backup{
 				Spec: mariadbv1alpha1.BackupSpec{
 					Storage: mariadbv1alpha1.BackupStorage{
-						PersistentVolumeClaim: &v1alpha1.PersistentVolumeClaimSpec{},
+						PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimSpec{},
 					},
 					JobPodTemplate: mariadbv1alpha1.JobPodTemplate{
 						PodMetadata: &mariadbv1alpha1.Metadata{
@@ -357,7 +356,7 @@ func TestBackupJobMeta(t *testing.T) {
 			backup: &mariadbv1alpha1.Backup{
 				Spec: mariadbv1alpha1.BackupSpec{
 					Storage: mariadbv1alpha1.BackupStorage{
-						PersistentVolumeClaim: &v1alpha1.PersistentVolumeClaimSpec{},
+						PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimSpec{},
 					},
 					InheritMetadata: &mariadbv1alpha1.Metadata{
 						Labels: map[string]string{
@@ -401,7 +400,7 @@ func TestBackupJobMeta(t *testing.T) {
 			backup: &mariadbv1alpha1.Backup{
 				Spec: mariadbv1alpha1.BackupSpec{
 					Storage: mariadbv1alpha1.BackupStorage{
-						PersistentVolumeClaim: &v1alpha1.PersistentVolumeClaimSpec{},
+						PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimSpec{},
 					},
 					InheritMetadata: &mariadbv1alpha1.Metadata{
 						Annotations: map[string]string{
@@ -470,7 +469,7 @@ func TestRestoreJobImagePullSecrets(t *testing.T) {
 						},
 					},
 					RestoreSource: mariadbv1alpha1.RestoreSource{
-						Volume: &v1alpha1.StorageVolumeSource{},
+						Volume: &mariadbv1alpha1.StorageVolumeSource{},
 					},
 				},
 			},
@@ -491,7 +490,7 @@ func TestRestoreJobImagePullSecrets(t *testing.T) {
 						},
 					},
 					RestoreSource: mariadbv1alpha1.RestoreSource{
-						Volume: &v1alpha1.StorageVolumeSource{},
+						Volume: &mariadbv1alpha1.StorageVolumeSource{},
 					},
 				},
 			},
@@ -526,7 +525,7 @@ func TestRestoreJobImagePullSecrets(t *testing.T) {
 						},
 					},
 					RestoreSource: mariadbv1alpha1.RestoreSource{
-						Volume: &v1alpha1.StorageVolumeSource{},
+						Volume: &mariadbv1alpha1.StorageVolumeSource{},
 					},
 					MariaDBRef: mariadbv1alpha1.MariaDBRef{
 						ObjectReference: mariadbv1alpha1.ObjectReference{
@@ -558,7 +557,7 @@ func TestRestoreJobImagePullSecrets(t *testing.T) {
 						},
 					},
 					RestoreSource: mariadbv1alpha1.RestoreSource{
-						Volume: &v1alpha1.StorageVolumeSource{},
+						Volume: &mariadbv1alpha1.StorageVolumeSource{},
 					},
 					MariaDBRef: mariadbv1alpha1.MariaDBRef{
 						ObjectReference: mariadbv1alpha1.ObjectReference{
@@ -619,8 +618,8 @@ func TestRestoreJobMeta(t *testing.T) {
 			restore: &mariadbv1alpha1.Restore{
 				Spec: mariadbv1alpha1.RestoreSpec{
 					RestoreSource: mariadbv1alpha1.RestoreSource{
-						Volume: &v1alpha1.StorageVolumeSource{
-							PersistentVolumeClaim: &v1alpha1.PersistentVolumeClaimVolumeSource{},
+						Volume: &mariadbv1alpha1.StorageVolumeSource{
+							PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimVolumeSource{},
 						},
 						S3: &mariadbv1alpha1.S3{},
 					},
@@ -640,8 +639,8 @@ func TestRestoreJobMeta(t *testing.T) {
 			restore: &mariadbv1alpha1.Restore{
 				Spec: mariadbv1alpha1.RestoreSpec{
 					RestoreSource: mariadbv1alpha1.RestoreSource{
-						Volume: &v1alpha1.StorageVolumeSource{
-							PersistentVolumeClaim: &v1alpha1.PersistentVolumeClaimVolumeSource{},
+						Volume: &mariadbv1alpha1.StorageVolumeSource{
+							PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimVolumeSource{},
 						},
 						S3: &mariadbv1alpha1.S3{},
 					},
@@ -677,8 +676,8 @@ func TestRestoreJobMeta(t *testing.T) {
 			restore: &mariadbv1alpha1.Restore{
 				Spec: mariadbv1alpha1.RestoreSpec{
 					RestoreSource: mariadbv1alpha1.RestoreSource{
-						Volume: &v1alpha1.StorageVolumeSource{
-							PersistentVolumeClaim: &v1alpha1.PersistentVolumeClaimVolumeSource{},
+						Volume: &mariadbv1alpha1.StorageVolumeSource{
+							PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimVolumeSource{},
 						},
 						S3: &mariadbv1alpha1.S3{},
 					},
@@ -712,8 +711,8 @@ func TestRestoreJobMeta(t *testing.T) {
 			restore: &mariadbv1alpha1.Restore{
 				Spec: mariadbv1alpha1.RestoreSpec{
 					RestoreSource: mariadbv1alpha1.RestoreSource{
-						Volume: &v1alpha1.StorageVolumeSource{
-							PersistentVolumeClaim: &v1alpha1.PersistentVolumeClaimVolumeSource{},
+						Volume: &mariadbv1alpha1.StorageVolumeSource{
+							PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimVolumeSource{},
 						},
 						S3: &mariadbv1alpha1.S3{},
 					},
@@ -759,8 +758,8 @@ func TestRestoreJobMeta(t *testing.T) {
 			restore: &mariadbv1alpha1.Restore{
 				Spec: mariadbv1alpha1.RestoreSpec{
 					RestoreSource: mariadbv1alpha1.RestoreSource{
-						Volume: &v1alpha1.StorageVolumeSource{
-							PersistentVolumeClaim: &v1alpha1.PersistentVolumeClaimVolumeSource{},
+						Volume: &mariadbv1alpha1.StorageVolumeSource{
+							PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimVolumeSource{},
 						},
 						S3: &mariadbv1alpha1.S3{},
 					},
@@ -823,7 +822,7 @@ func TestGaleraInitJobImagePullSecrets(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Galera: &v1alpha1.Galera{
+					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
 					},
 				},
@@ -835,7 +834,7 @@ func TestGaleraInitJobImagePullSecrets(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Galera: &v1alpha1.Galera{
+					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
 					},
 					PodTemplate: mariadbv1alpha1.PodTemplate{
@@ -887,7 +886,7 @@ func TestGaleraInitJobMeta(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: mariadbObjMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Galera: &v1alpha1.Galera{
+					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
 					},
 				},
@@ -906,7 +905,7 @@ func TestGaleraInitJobMeta(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: mariadbObjMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Galera: &v1alpha1.Galera{
+					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
 					},
 					InheritMetadata: &mariadbv1alpha1.Metadata{
@@ -941,10 +940,10 @@ func TestGaleraInitJobMeta(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: mariadbObjMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Galera: &v1alpha1.Galera{
+					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
-						GaleraSpec: v1alpha1.GaleraSpec{
-							InitJob: &v1alpha1.GaleraInitJob{
+						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							InitJob: &mariadbv1alpha1.GaleraInitJob{
 								Metadata: &mariadbv1alpha1.Metadata{
 									Labels: map[string]string{
 										"sidecar.istio.io/inject": "false",
@@ -980,7 +979,7 @@ func TestGaleraInitJobMeta(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: mariadbObjMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Galera: &v1alpha1.Galera{
+					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
 					},
 					PodTemplate: mariadbv1alpha1.PodTemplate{
@@ -1013,10 +1012,10 @@ func TestGaleraInitJobMeta(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: mariadbObjMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Galera: &v1alpha1.Galera{
+					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
-						GaleraSpec: v1alpha1.GaleraSpec{
-							InitJob: &v1alpha1.GaleraInitJob{
+						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							InitJob: &mariadbv1alpha1.GaleraInitJob{
 								Metadata: &mariadbv1alpha1.Metadata{
 									Labels: map[string]string{
 										"sidecar.istio.io/inject": "true",
@@ -1057,10 +1056,10 @@ func TestGaleraInitJobMeta(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: mariadbObjMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Galera: &v1alpha1.Galera{
+					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
-						GaleraSpec: v1alpha1.GaleraSpec{
-							InitJob: &v1alpha1.GaleraInitJob{
+						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							InitJob: &mariadbv1alpha1.GaleraInitJob{
 								Metadata: &mariadbv1alpha1.Metadata{
 									Annotations: map[string]string{
 										"sidecar.istio.io/inject": "false",
@@ -1132,7 +1131,7 @@ func TestGaleraInitJobResources(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Galera: &v1alpha1.Galera{
+					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
 					},
 				},
@@ -1144,7 +1143,7 @@ func TestGaleraInitJobResources(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Galera: &v1alpha1.Galera{
+					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
 					},
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
@@ -1163,10 +1162,10 @@ func TestGaleraInitJobResources(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Galera: &v1alpha1.Galera{
+					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
-						GaleraSpec: v1alpha1.GaleraSpec{
-							InitJob: &v1alpha1.GaleraInitJob{
+						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							InitJob: &mariadbv1alpha1.GaleraInitJob{
 								Resources: &mariadbv1alpha1.ResourceRequirements{
 									Requests: corev1.ResourceList{
 										"cpu": resource.MustParse("100m"),
@@ -1229,10 +1228,10 @@ func TestGaleraRecoveryJobImagePullSecrets(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Galera: &v1alpha1.Galera{
+					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
-						GaleraSpec: v1alpha1.GaleraSpec{
-							Recovery: &v1alpha1.GaleraRecovery{
+						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							Recovery: &mariadbv1alpha1.GaleraRecovery{
 								Enabled: true,
 							},
 						},
@@ -1246,10 +1245,10 @@ func TestGaleraRecoveryJobImagePullSecrets(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Galera: &v1alpha1.Galera{
+					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
-						GaleraSpec: v1alpha1.GaleraSpec{
-							Recovery: &v1alpha1.GaleraRecovery{
+						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							Recovery: &mariadbv1alpha1.GaleraRecovery{
 								Enabled: true,
 							},
 						},
@@ -1311,10 +1310,10 @@ func TestGaleraRecoveryJobMeta(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: mariadbObjMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Galera: &v1alpha1.Galera{
+					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
-						GaleraSpec: v1alpha1.GaleraSpec{
-							Recovery: &v1alpha1.GaleraRecovery{
+						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							Recovery: &mariadbv1alpha1.GaleraRecovery{
 								Enabled: true,
 							},
 						},
@@ -1335,10 +1334,10 @@ func TestGaleraRecoveryJobMeta(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: mariadbObjMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Galera: &v1alpha1.Galera{
+					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
-						GaleraSpec: v1alpha1.GaleraSpec{
-							Recovery: &v1alpha1.GaleraRecovery{
+						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							Recovery: &mariadbv1alpha1.GaleraRecovery{
 								Enabled: true,
 							},
 						},
@@ -1375,12 +1374,12 @@ func TestGaleraRecoveryJobMeta(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: mariadbObjMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Galera: &v1alpha1.Galera{
+					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
-						GaleraSpec: v1alpha1.GaleraSpec{
-							Recovery: &v1alpha1.GaleraRecovery{
+						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							Recovery: &mariadbv1alpha1.GaleraRecovery{
 								Enabled: true,
-								Job: &v1alpha1.GaleraRecoveryJob{
+								Job: &mariadbv1alpha1.GaleraRecoveryJob{
 									Metadata: &mariadbv1alpha1.Metadata{
 										Labels: map[string]string{
 											"sidecar.istio.io/inject": "false",
@@ -1417,10 +1416,10 @@ func TestGaleraRecoveryJobMeta(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: mariadbObjMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Galera: &v1alpha1.Galera{
+					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
-						GaleraSpec: v1alpha1.GaleraSpec{
-							Recovery: &v1alpha1.GaleraRecovery{
+						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							Recovery: &mariadbv1alpha1.GaleraRecovery{
 								Enabled: true,
 							},
 						},
@@ -1455,12 +1454,12 @@ func TestGaleraRecoveryJobMeta(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: mariadbObjMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Galera: &v1alpha1.Galera{
+					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
-						GaleraSpec: v1alpha1.GaleraSpec{
-							Recovery: &v1alpha1.GaleraRecovery{
+						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							Recovery: &mariadbv1alpha1.GaleraRecovery{
 								Enabled: true,
-								Job: &v1alpha1.GaleraRecoveryJob{
+								Job: &mariadbv1alpha1.GaleraRecoveryJob{
 									Metadata: &mariadbv1alpha1.Metadata{
 										Labels: map[string]string{
 											"sidecar.istio.io/inject": "true",
@@ -1502,12 +1501,12 @@ func TestGaleraRecoveryJobMeta(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: mariadbObjMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Galera: &v1alpha1.Galera{
+					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
-						GaleraSpec: v1alpha1.GaleraSpec{
-							Recovery: &v1alpha1.GaleraRecovery{
+						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							Recovery: &mariadbv1alpha1.GaleraRecovery{
 								Enabled: true,
-								Job: &v1alpha1.GaleraRecoveryJob{
+								Job: &mariadbv1alpha1.GaleraRecoveryJob{
 									Metadata: &mariadbv1alpha1.Metadata{
 										Annotations: map[string]string{
 											"sidecar.istio.io/inject": "false",
@@ -1588,15 +1587,15 @@ func TestGaleraRecoveryJobVolumes(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Galera: &v1alpha1.Galera{
+					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
-						GaleraSpec: v1alpha1.GaleraSpec{
-							Recovery: &v1alpha1.GaleraRecovery{
+						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							Recovery: &mariadbv1alpha1.GaleraRecovery{
 								Enabled: true,
 							},
-							Config: v1alpha1.GaleraConfig{
+							Config: mariadbv1alpha1.GaleraConfig{
 								VolumeClaimTemplate: &mariadbv1alpha1.VolumeClaimTemplate{
-									PersistentVolumeClaimSpec: v1alpha1.PersistentVolumeClaimSpec{
+									PersistentVolumeClaimSpec: mariadbv1alpha1.PersistentVolumeClaimSpec{
 										Resources: corev1.VolumeResourceRequirements{
 											Requests: corev1.ResourceList{
 												"storage": resource.MustParse("1Gi"),
@@ -1613,7 +1612,7 @@ func TestGaleraRecoveryJobVolumes(t *testing.T) {
 					Storage: mariadbv1alpha1.Storage{
 						Size: ptr.To(resource.MustParse("1Gi")),
 						VolumeClaimTemplate: &mariadbv1alpha1.VolumeClaimTemplate{
-							PersistentVolumeClaimSpec: v1alpha1.PersistentVolumeClaimSpec{
+							PersistentVolumeClaimSpec: mariadbv1alpha1.PersistentVolumeClaimSpec{
 								Resources: corev1.VolumeResourceRequirements{
 									Requests: corev1.ResourceList{
 										"storage": resource.MustParse("1Gi"),
@@ -1634,13 +1633,13 @@ func TestGaleraRecoveryJobVolumes(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Galera: &v1alpha1.Galera{
+					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
-						GaleraSpec: v1alpha1.GaleraSpec{
-							Recovery: &v1alpha1.GaleraRecovery{
+						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							Recovery: &mariadbv1alpha1.GaleraRecovery{
 								Enabled: true,
 							},
-							Config: v1alpha1.GaleraConfig{
+							Config: mariadbv1alpha1.GaleraConfig{
 								ReuseStorageVolume: ptr.To(true),
 							},
 						},
@@ -1648,7 +1647,7 @@ func TestGaleraRecoveryJobVolumes(t *testing.T) {
 					Storage: mariadbv1alpha1.Storage{
 						Size: ptr.To(resource.MustParse("1Gi")),
 						VolumeClaimTemplate: &mariadbv1alpha1.VolumeClaimTemplate{
-							PersistentVolumeClaimSpec: v1alpha1.PersistentVolumeClaimSpec{
+							PersistentVolumeClaimSpec: mariadbv1alpha1.PersistentVolumeClaimSpec{
 								Resources: corev1.VolumeResourceRequirements{
 									Requests: corev1.ResourceList{
 										"storage": resource.MustParse("1Gi"),
@@ -1701,12 +1700,12 @@ func TestGaleraRecoveryJobNodeSelector(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Galera: &v1alpha1.Galera{
+					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
-						GaleraSpec: v1alpha1.GaleraSpec{
-							Recovery: &v1alpha1.GaleraRecovery{
+						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							Recovery: &mariadbv1alpha1.GaleraRecovery{
 								Enabled: true,
-								Job: &v1alpha1.GaleraRecoveryJob{
+								Job: &mariadbv1alpha1.GaleraRecoveryJob{
 									PodAffinity: ptr.To(true),
 								},
 							},
@@ -1733,12 +1732,12 @@ func TestGaleraRecoveryJobNodeSelector(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Galera: &v1alpha1.Galera{
+					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
-						GaleraSpec: v1alpha1.GaleraSpec{
-							Recovery: &v1alpha1.GaleraRecovery{
+						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							Recovery: &mariadbv1alpha1.GaleraRecovery{
 								Enabled: true,
-								Job: &v1alpha1.GaleraRecoveryJob{
+								Job: &mariadbv1alpha1.GaleraRecoveryJob{
 									PodAffinity: ptr.To(true),
 								},
 							},
@@ -1763,12 +1762,12 @@ func TestGaleraRecoveryJobNodeSelector(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Galera: &v1alpha1.Galera{
+					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
-						GaleraSpec: v1alpha1.GaleraSpec{
-							Recovery: &v1alpha1.GaleraRecovery{
+						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							Recovery: &mariadbv1alpha1.GaleraRecovery{
 								Enabled: true,
-								Job: &v1alpha1.GaleraRecoveryJob{
+								Job: &mariadbv1alpha1.GaleraRecoveryJob{
 									PodAffinity: ptr.To(false),
 								},
 							},
@@ -1795,12 +1794,12 @@ func TestGaleraRecoveryJobNodeSelector(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Galera: &v1alpha1.Galera{
+					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
-						GaleraSpec: v1alpha1.GaleraSpec{
-							Recovery: &v1alpha1.GaleraRecovery{
+						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							Recovery: &mariadbv1alpha1.GaleraRecovery{
 								Enabled: true,
-								Job: &v1alpha1.GaleraRecoveryJob{
+								Job: &mariadbv1alpha1.GaleraRecoveryJob{
 									PodAffinity: ptr.To(true),
 								},
 							},
@@ -1874,10 +1873,10 @@ func TestGaleraRecoveryJobResources(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Galera: &v1alpha1.Galera{
+					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
-						GaleraSpec: v1alpha1.GaleraSpec{
-							Recovery: &v1alpha1.GaleraRecovery{
+						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							Recovery: &mariadbv1alpha1.GaleraRecovery{
 								Enabled: true,
 							},
 						},
@@ -1891,10 +1890,10 @@ func TestGaleraRecoveryJobResources(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Galera: &v1alpha1.Galera{
+					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
-						GaleraSpec: v1alpha1.GaleraSpec{
-							Recovery: &v1alpha1.GaleraRecovery{
+						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							Recovery: &mariadbv1alpha1.GaleraRecovery{
 								Enabled: true,
 							},
 						},
@@ -1915,12 +1914,12 @@ func TestGaleraRecoveryJobResources(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					Galera: &v1alpha1.Galera{
+					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
-						GaleraSpec: v1alpha1.GaleraSpec{
-							Recovery: &v1alpha1.GaleraRecovery{
+						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							Recovery: &mariadbv1alpha1.GaleraRecovery{
 								Enabled: true,
-								Job: &v1alpha1.GaleraRecoveryJob{
+								Job: &mariadbv1alpha1.GaleraRecoveryJob{
 									Resources: &mariadbv1alpha1.ResourceRequirements{
 										Requests: corev1.ResourceList{
 											"cpu": resource.MustParse("100m"),

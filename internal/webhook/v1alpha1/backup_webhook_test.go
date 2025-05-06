@@ -1,7 +1,6 @@
 package v1alpha1
 
 import (
-	v1alpha2 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"time"
 
 	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
@@ -35,7 +34,7 @@ var _ = Describe("Backup webhook", func() {
 						Namespace: testNamespace,
 					},
 					Spec: v1alpha1.BackupSpec{
-						JobContainerTemplate: v1alpha2.JobContainerTemplate{
+						JobContainerTemplate: v1alpha1.JobContainerTemplate{
 							Resources: &v1alpha1.ResourceRequirements{
 								Requests: corev1.ResourceList{
 									"cpu": resource.MustParse("100m"),
@@ -44,7 +43,7 @@ var _ = Describe("Backup webhook", func() {
 						},
 						Compression: v1alpha1.CompressGzip,
 						Storage:     v1alpha1.BackupStorage{},
-						MariaDBRef: v1alpha2.MariaDBRef{
+						MariaDBRef: v1alpha1.MariaDBRef{
 							ObjectReference: v1alpha1.ObjectReference{
 								Name: "mariadb-webhook",
 							},
@@ -64,7 +63,7 @@ var _ = Describe("Backup webhook", func() {
 						Namespace: testNamespace,
 					},
 					Spec: v1alpha1.BackupSpec{
-						JobContainerTemplate: v1alpha2.JobContainerTemplate{
+						JobContainerTemplate: v1alpha1.JobContainerTemplate{
 							Resources: &v1alpha1.ResourceRequirements{
 								Requests: corev1.ResourceList{
 									"cpu": resource.MustParse("100m"),
@@ -73,17 +72,17 @@ var _ = Describe("Backup webhook", func() {
 						},
 						Compression: v1alpha1.CompressGzip,
 						Storage: v1alpha1.BackupStorage{
-							S3: &v1alpha2.S3{
+							S3: &v1alpha1.S3{
 								Bucket:   "test",
 								Endpoint: "test",
 							},
-							Volume: &v1alpha2.StorageVolumeSource{
-								PersistentVolumeClaim: &v1alpha2.PersistentVolumeClaimVolumeSource{
+							Volume: &v1alpha1.StorageVolumeSource{
+								PersistentVolumeClaim: &v1alpha1.PersistentVolumeClaimVolumeSource{
 									ClaimName: "TEST",
 								},
 							},
 						},
-						MariaDBRef: v1alpha2.MariaDBRef{
+						MariaDBRef: v1alpha1.MariaDBRef{
 							ObjectReference: v1alpha1.ObjectReference{
 								Name: "mariadb-webhook",
 							},
@@ -103,7 +102,7 @@ var _ = Describe("Backup webhook", func() {
 						Namespace: testNamespace,
 					},
 					Spec: v1alpha1.BackupSpec{
-						JobContainerTemplate: v1alpha2.JobContainerTemplate{
+						JobContainerTemplate: v1alpha1.JobContainerTemplate{
 							Resources: &v1alpha1.ResourceRequirements{
 								Requests: corev1.ResourceList{
 									"cpu": resource.MustParse("100m"),
@@ -112,12 +111,12 @@ var _ = Describe("Backup webhook", func() {
 						},
 						Compression: v1alpha1.CompressGzip,
 						Storage: v1alpha1.BackupStorage{
-							S3: &v1alpha2.S3{
+							S3: &v1alpha1.S3{
 								Bucket:   "test",
 								Endpoint: "test",
 							},
 						},
-						MariaDBRef: v1alpha2.MariaDBRef{
+						MariaDBRef: v1alpha1.MariaDBRef{
 							ObjectReference: v1alpha1.ObjectReference{
 								Name: "mariadb-webhook",
 							},
@@ -261,12 +260,12 @@ var _ = Describe("Backup webhook", func() {
 						},
 						Compression: v1alpha1.CompressGzip,
 						Storage: v1alpha1.BackupStorage{
-							Volume: &v1alpha2.StorageVolumeSource{
-								EmptyDir: &v1alpha2.EmptyDirVolumeSource{},
+							Volume: &v1alpha1.StorageVolumeSource{
+								EmptyDir: &v1alpha1.EmptyDirVolumeSource{},
 							},
 						},
 						StagingStorage: &v1alpha1.BackupStagingStorage{
-							PersistentVolumeClaim: &v1alpha2.PersistentVolumeClaimSpec{
+							PersistentVolumeClaim: &v1alpha1.PersistentVolumeClaimSpec{
 								AccessModes: []corev1.PersistentVolumeAccessMode{
 									corev1.ReadWriteOnce,
 								},
@@ -315,7 +314,7 @@ var _ = Describe("Backup webhook", func() {
 							},
 						},
 						StagingStorage: &v1alpha1.BackupStagingStorage{
-							PersistentVolumeClaim: &v1alpha2.PersistentVolumeClaimSpec{
+							PersistentVolumeClaim: &v1alpha1.PersistentVolumeClaimSpec{
 								AccessModes: []corev1.PersistentVolumeAccessMode{
 									corev1.ReadWriteOnce,
 								},
@@ -373,7 +372,7 @@ var _ = Describe("Backup webhook", func() {
 						},
 					},
 					StagingStorage: &v1alpha1.BackupStagingStorage{
-						PersistentVolumeClaim: &v1alpha2.PersistentVolumeClaimSpec{
+						PersistentVolumeClaim: &v1alpha1.PersistentVolumeClaimSpec{
 							AccessModes: []corev1.PersistentVolumeAccessMode{
 								corev1.ReadWriteOnce,
 							},

@@ -2,7 +2,6 @@ package builder
 
 import (
 	"fmt"
-	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	metadata "github.com/mariadb-operator/mariadb-operator/pkg/builder/metadata"
@@ -17,17 +16,17 @@ func (b *Builder) BuildRestore(mariadb *mariadbv1alpha1.MariaDB, key types.Names
 			WithMetadata(mariadb.Spec.InheritMetadata).
 			Build()
 	bootstrapFrom := ptr.Deref(mariadb.Spec.BootstrapFrom, mariadbv1alpha1.BootstrapFrom{})
-	restoreJob := ptr.Deref(bootstrapFrom.RestoreJob, v1alpha1.Job{})
+	restoreJob := ptr.Deref(bootstrapFrom.RestoreJob, mariadbv1alpha1.Job{})
 
-	podTpl := v1alpha1.JobPodTemplate{}
+	podTpl := mariadbv1alpha1.JobPodTemplate{}
 	podTpl.FromPodTemplate(mariadb.Spec.PodTemplate.DeepCopy())
 	podTpl.Affinity = restoreJob.Affinity
-	podTpl.PodMetadata = v1alpha1.MergeMetadata(
+	podTpl.PodMetadata = mariadbv1alpha1.MergeMetadata(
 		mariadb.Spec.InheritMetadata,
 		restoreJob.Metadata,
 	)
 
-	containerTpl := v1alpha1.JobContainerTemplate{}
+	containerTpl := mariadbv1alpha1.JobContainerTemplate{}
 	containerTpl.FromContainerTemplate(mariadb.Spec.ContainerTemplate.DeepCopy())
 	containerTpl.Resources = restoreJob.Resources
 	containerTpl.Args = restoreJob.Args
@@ -38,7 +37,7 @@ func (b *Builder) BuildRestore(mariadb *mariadbv1alpha1.MariaDB, key types.Names
 			JobContainerTemplate: containerTpl,
 			JobPodTemplate:       podTpl,
 			RestoreSource:        bootstrapFrom.RestoreSource,
-			MariaDBRef: v1alpha1.MariaDBRef{
+			MariaDBRef: mariadbv1alpha1.MariaDBRef{
 				ObjectReference: mariadbv1alpha1.ObjectReference{
 					Name: mariadb.Name,
 				},

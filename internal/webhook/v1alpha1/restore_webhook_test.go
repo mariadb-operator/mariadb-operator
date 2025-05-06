@@ -1,7 +1,6 @@
 package v1alpha1
 
 import (
-	v1alpha2 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"time"
 
 	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
@@ -36,10 +35,10 @@ var _ = Describe("Restore webhook", func() {
 				&v1alpha1.Restore{
 					ObjectMeta: objMeta,
 					Spec: v1alpha1.RestoreSpec{
-						RestoreSource: v1alpha2.RestoreSource{
+						RestoreSource: v1alpha1.RestoreSource{
 							TargetRecoveryTime: &metav1.Time{Time: time.Now()},
 						},
-						MariaDBRef: v1alpha2.MariaDBRef{
+						MariaDBRef: v1alpha1.MariaDBRef{
 							ObjectReference: v1alpha1.ObjectReference{
 								Name: "mariadb-webhook",
 							},
@@ -55,12 +54,12 @@ var _ = Describe("Restore webhook", func() {
 				&v1alpha1.Restore{
 					ObjectMeta: objMeta,
 					Spec: v1alpha1.RestoreSpec{
-						RestoreSource: v1alpha2.RestoreSource{
+						RestoreSource: v1alpha1.RestoreSource{
 							BackupRef: &v1alpha1.LocalObjectReference{
 								Name: "backup-webhook",
 							},
 						},
-						MariaDBRef: v1alpha2.MariaDBRef{
+						MariaDBRef: v1alpha1.MariaDBRef{
 							ObjectReference: v1alpha1.ObjectReference{
 								Name: "mariadb-webhook",
 							},
@@ -76,13 +75,13 @@ var _ = Describe("Restore webhook", func() {
 				&v1alpha1.Restore{
 					ObjectMeta: objMeta,
 					Spec: v1alpha1.RestoreSpec{
-						RestoreSource: v1alpha2.RestoreSource{
-							S3: &v1alpha2.S3{
+						RestoreSource: v1alpha1.RestoreSource{
+							S3: &v1alpha1.S3{
 								Bucket:   "test",
 								Endpoint: "test",
 							},
 						},
-						MariaDBRef: v1alpha2.MariaDBRef{
+						MariaDBRef: v1alpha1.MariaDBRef{
 							ObjectReference: v1alpha1.ObjectReference{
 								Name: "mariadb-webhook",
 							},
@@ -98,14 +97,14 @@ var _ = Describe("Restore webhook", func() {
 				&v1alpha1.Restore{
 					ObjectMeta: objMeta,
 					Spec: v1alpha1.RestoreSpec{
-						RestoreSource: v1alpha2.RestoreSource{
-							Volume: &v1alpha2.StorageVolumeSource{
-								PersistentVolumeClaim: &v1alpha2.PersistentVolumeClaimVolumeSource{
+						RestoreSource: v1alpha1.RestoreSource{
+							Volume: &v1alpha1.StorageVolumeSource{
+								PersistentVolumeClaim: &v1alpha1.PersistentVolumeClaimVolumeSource{
 									ClaimName: "pvc-webhook",
 								},
 							},
 						},
-						MariaDBRef: v1alpha2.MariaDBRef{
+						MariaDBRef: v1alpha1.MariaDBRef{
 							ObjectReference: v1alpha1.ObjectReference{
 								Name: "mariadb-webhook",
 							},
@@ -121,16 +120,16 @@ var _ = Describe("Restore webhook", func() {
 				&v1alpha1.Restore{
 					ObjectMeta: objMeta,
 					Spec: v1alpha1.RestoreSpec{
-						RestoreSource: v1alpha2.RestoreSource{
-							S3: &v1alpha2.S3{
+						RestoreSource: v1alpha1.RestoreSource{
+							S3: &v1alpha1.S3{
 								Bucket:   "test",
 								Endpoint: "test",
 							},
-							Volume: &v1alpha2.StorageVolumeSource{
-								EmptyDir: &v1alpha2.EmptyDirVolumeSource{},
+							Volume: &v1alpha1.StorageVolumeSource{
+								EmptyDir: &v1alpha1.EmptyDirVolumeSource{},
 							},
 						},
-						MariaDBRef: v1alpha2.MariaDBRef{
+						MariaDBRef: v1alpha1.MariaDBRef{
 							ObjectReference: v1alpha1.ObjectReference{
 								Name: "mariadb-webhook",
 							},
@@ -154,8 +153,8 @@ var _ = Describe("Restore webhook", func() {
 								Bucket:   "test",
 								Endpoint: "test",
 							},
-							Volume: &v1alpha2.StorageVolumeSource{
-								EmptyDir: &v1alpha2.EmptyDirVolumeSource{},
+							Volume: &v1alpha1.StorageVolumeSource{
+								EmptyDir: &v1alpha1.EmptyDirVolumeSource{},
 							},
 						},
 						MariaDBRef: v1alpha1.MariaDBRef{
@@ -180,7 +179,7 @@ var _ = Describe("Restore webhook", func() {
 								Endpoint: "test",
 							},
 							StagingStorage: &v1alpha1.BackupStagingStorage{
-								PersistentVolumeClaim: &v1alpha2.PersistentVolumeClaimSpec{
+								PersistentVolumeClaim: &v1alpha1.PersistentVolumeClaimSpec{
 									AccessModes: []corev1.PersistentVolumeAccessMode{
 										corev1.ReadWriteOnce,
 									},
@@ -209,11 +208,11 @@ var _ = Describe("Restore webhook", func() {
 					ObjectMeta: objMeta,
 					Spec: v1alpha1.RestoreSpec{
 						RestoreSource: v1alpha1.RestoreSource{
-							Volume: &v1alpha2.StorageVolumeSource{
-								EmptyDir: &v1alpha2.EmptyDirVolumeSource{},
+							Volume: &v1alpha1.StorageVolumeSource{
+								EmptyDir: &v1alpha1.EmptyDirVolumeSource{},
 							},
 							StagingStorage: &v1alpha1.BackupStagingStorage{
-								PersistentVolumeClaim: &v1alpha2.PersistentVolumeClaimSpec{
+								PersistentVolumeClaim: &v1alpha1.PersistentVolumeClaimSpec{
 									AccessModes: []corev1.PersistentVolumeAccessMode{
 										corev1.ReadWriteOnce,
 									},
@@ -264,7 +263,7 @@ var _ = Describe("Restore webhook", func() {
 							Endpoint: "test",
 						},
 						StagingStorage: &v1alpha1.BackupStagingStorage{
-							PersistentVolumeClaim: &v1alpha2.PersistentVolumeClaimSpec{
+							PersistentVolumeClaim: &v1alpha1.PersistentVolumeClaimSpec{
 								AccessModes: []corev1.PersistentVolumeAccessMode{
 									corev1.ReadWriteOnce,
 								},
@@ -359,8 +358,8 @@ var _ = Describe("Restore webhook", func() {
 			Entry(
 				"Init Volume source",
 				func(rmdb *v1alpha1.Restore) {
-					rmdb.Spec.RestoreSource.Volume = &v1alpha2.StorageVolumeSource{
-						EmptyDir: &v1alpha2.EmptyDirVolumeSource{},
+					rmdb.Spec.RestoreSource.Volume = &v1alpha1.StorageVolumeSource{
+						EmptyDir: &v1alpha1.EmptyDirVolumeSource{},
 					}
 				},
 				false,

@@ -3,7 +3,6 @@ package sql
 import (
 	"context"
 	"fmt"
-	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
@@ -86,8 +85,8 @@ func (tf *SqlFinalizer) Finalize(ctx context.Context, resource Resource) (ctrl.R
 	}
 	defer mdbClient.Close()
 
-	cleanupPolicy := ptr.Deref(resource.CleanupPolicy(), v1alpha1.CleanupPolicyDelete)
-	if cleanupPolicy == v1alpha1.CleanupPolicyDelete {
+	cleanupPolicy := ptr.Deref(resource.CleanupPolicy(), mariadbv1alpha1.CleanupPolicyDelete)
+	if cleanupPolicy == mariadbv1alpha1.CleanupPolicyDelete {
 		log.FromContext(ctx).Info("Cleaning up SQL resource")
 
 		if err := tf.WrappedFinalizer.Reconcile(ctx, mdbClient); err != nil {

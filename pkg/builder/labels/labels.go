@@ -1,7 +1,6 @@
 package builder
 
 import (
-	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -61,7 +60,7 @@ func (b *LabelsBuilder) WithMetricsSelectorLabels(metricsKey types.NamespacedNam
 		WithInstance(metricsKey.Name)
 }
 
-func (b *LabelsBuilder) WithMaxScaleSelectorLabels(mxs *v1alpha1.MaxScale) *LabelsBuilder {
+func (b *LabelsBuilder) WithMaxScaleSelectorLabels(mxs *mariadbv1alpha1.MaxScale) *LabelsBuilder {
 	return b.WithApp(appMaxScale).
 		WithInstance(mxs.Name)
 }

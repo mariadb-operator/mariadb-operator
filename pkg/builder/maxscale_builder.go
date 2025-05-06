@@ -2,7 +2,6 @@ package builder
 
 import (
 	"fmt"
-	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	metadata "github.com/mariadb-operator/mariadb-operator/pkg/builder/metadata"
@@ -12,15 +11,15 @@ import (
 )
 
 func (b *Builder) BuildMaxScale(key types.NamespacedName, mdb *mariadbv1alpha1.MariaDB,
-	mdbmxs *mariadbv1alpha1.MariaDBMaxScaleSpec) (*v1alpha1.MaxScale, error) {
+	mdbmxs *mariadbv1alpha1.MariaDBMaxScaleSpec) (*mariadbv1alpha1.MaxScale, error) {
 	objMeta :=
 		metadata.NewMetadataBuilder(key).
 			WithMetadata(mdb.Spec.InheritMetadata).
 			Build()
-	mxs := v1alpha1.MaxScale{
+	mxs := mariadbv1alpha1.MaxScale{
 		ObjectMeta: objMeta,
-		Spec: v1alpha1.MaxScaleSpec{
-			MariaDBRef: &v1alpha1.MariaDBRef{
+		Spec: mariadbv1alpha1.MaxScaleSpec{
+			MariaDBRef: &mariadbv1alpha1.MariaDBRef{
 				ObjectReference: mariadbv1alpha1.ObjectReference{
 					Name:      mdb.Name,
 					Namespace: mdb.Namespace,
@@ -29,9 +28,9 @@ func (b *Builder) BuildMaxScale(key types.NamespacedName, mdb *mariadbv1alpha1.M
 			Image:                mdbmxs.Image,
 			ImagePullPolicy:      mdbmxs.ImagePullPolicy,
 			Services:             mdbmxs.Services,
-			Monitor:              ptr.Deref(mdbmxs.Monitor, v1alpha1.MaxScaleMonitor{}),
-			Admin:                ptr.Deref(mdbmxs.Admin, v1alpha1.MaxScaleAdmin{}),
-			Config:               ptr.Deref(mdbmxs.Config, v1alpha1.MaxScaleConfig{}),
+			Monitor:              ptr.Deref(mdbmxs.Monitor, mariadbv1alpha1.MaxScaleMonitor{}),
+			Admin:                ptr.Deref(mdbmxs.Admin, mariadbv1alpha1.MaxScaleAdmin{}),
+			Config:               ptr.Deref(mdbmxs.Config, mariadbv1alpha1.MaxScaleConfig{}),
 			Auth:                 ptr.Deref(mdbmxs.Auth, v1alpha1.MaxScaleAuth{}),
 			Connection:           mdbmxs.Connection,
 			Metrics:              mdbmxs.Metrics,
@@ -46,7 +45,7 @@ func (b *Builder) BuildMaxScale(key types.NamespacedName, mdb *mariadbv1alpha1.M
 	}
 	// TLS should be enforced in MariaDB to be enabled in MaxScale by default
 	if mxs.Spec.TLS == nil && mdb != nil && mdb.IsTLSRequired() {
-		mxs.Spec.TLS = &v1alpha1.MaxScaleTLS{
+		mxs.Spec.TLS = &mariadbv1alpha1.MaxScaleTLS{
 			Enabled: true,
 		}
 	}

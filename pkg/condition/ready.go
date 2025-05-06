@@ -2,7 +2,6 @@ package conditions
 
 import (
 	"fmt"
-	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	jobpkg "github.com/mariadb-operator/mariadb-operator/pkg/job"
@@ -13,27 +12,27 @@ import (
 
 func SetReadyHealthy(c Conditioner) {
 	c.SetCondition(metav1.Condition{
-		Type:    v1alpha1.ConditionTypeReady,
+		Type:    mariadbv1alpha1.ConditionTypeReady,
 		Status:  metav1.ConditionTrue,
-		Reason:  v1alpha1.ConditionReasonHealthy,
+		Reason:  mariadbv1alpha1.ConditionReasonHealthy,
 		Message: "Healthy",
 	})
 }
 
 func SetReadyUnhealthyWithError(c Conditioner, err error) {
 	c.SetCondition(metav1.Condition{
-		Type:    v1alpha1.ConditionTypeReady,
+		Type:    mariadbv1alpha1.ConditionTypeReady,
 		Status:  metav1.ConditionFalse,
-		Reason:  v1alpha1.ConditionReasonHealthy,
+		Reason:  mariadbv1alpha1.ConditionReasonHealthy,
 		Message: err.Error(),
 	})
 }
 
 func SetReadyCreatedWithMessage(c Conditioner, message string) {
 	c.SetCondition(metav1.Condition{
-		Type:    v1alpha1.ConditionTypeReady,
+		Type:    mariadbv1alpha1.ConditionTypeReady,
 		Status:  metav1.ConditionTrue,
-		Reason:  v1alpha1.ConditionReasonCreated,
+		Reason:  mariadbv1alpha1.ConditionReasonCreated,
 		Message: message,
 	})
 }
@@ -44,9 +43,9 @@ func SetReadyCreated(c Conditioner) {
 
 func SetReadyFailedWithMessage(c Conditioner, message string) {
 	c.SetCondition(metav1.Condition{
-		Type:    v1alpha1.ConditionTypeReady,
+		Type:    mariadbv1alpha1.ConditionTypeReady,
 		Status:  metav1.ConditionFalse,
-		Reason:  v1alpha1.ConditionReasonFailed,
+		Reason:  mariadbv1alpha1.ConditionReasonFailed,
 		Message: message,
 	})
 }
@@ -58,17 +57,17 @@ func SetReadyFailed(c Conditioner) {
 func SetReadyWithStatefulSet(c Conditioner, sts *appsv1.StatefulSet) {
 	if sts.Status.Replicas == 0 || sts.Status.ReadyReplicas != sts.Status.Replicas {
 		c.SetCondition(metav1.Condition{
-			Type:    v1alpha1.ConditionTypeReady,
+			Type:    mariadbv1alpha1.ConditionTypeReady,
 			Status:  metav1.ConditionFalse,
-			Reason:  v1alpha1.ConditionReasonStatefulSetNotReady,
+			Reason:  mariadbv1alpha1.ConditionReasonStatefulSetNotReady,
 			Message: "Not ready",
 		})
 		return
 	}
 	c.SetCondition(metav1.Condition{
-		Type:    v1alpha1.ConditionTypeReady,
+		Type:    mariadbv1alpha1.ConditionTypeReady,
 		Status:  metav1.ConditionTrue,
-		Reason:  v1alpha1.ConditionReasonStatefulSetReady,
+		Reason:  mariadbv1alpha1.ConditionReasonStatefulSetReady,
 		Message: "Running",
 	})
 }
@@ -76,27 +75,27 @@ func SetReadyWithStatefulSet(c Conditioner, sts *appsv1.StatefulSet) {
 func SetReadyWithMariaDB(c Conditioner, sts *appsv1.StatefulSet, mdb *mariadbv1alpha1.MariaDB) {
 	if mdb.IsGaleraEnabled() && mdb.IsGaleraInitializing() {
 		c.SetCondition(metav1.Condition{
-			Type:    v1alpha1.ConditionTypeReady,
+			Type:    mariadbv1alpha1.ConditionTypeReady,
 			Status:  metav1.ConditionFalse,
-			Reason:  v1alpha1.ConditionReasonInitializing,
+			Reason:  mariadbv1alpha1.ConditionReasonInitializing,
 			Message: "Initializing",
 		})
 		return
 	}
 	if mdb.IsUpdating() {
 		c.SetCondition(metav1.Condition{
-			Type:    v1alpha1.ConditionTypeReady,
+			Type:    mariadbv1alpha1.ConditionTypeReady,
 			Status:  metav1.ConditionFalse,
-			Reason:  v1alpha1.ConditionReasonUpdating,
+			Reason:  mariadbv1alpha1.ConditionReasonUpdating,
 			Message: "Updating",
 		})
 		return
 	}
 	if sts.Status.Replicas == 0 || sts.Status.ReadyReplicas != sts.Status.Replicas {
 		c.SetCondition(metav1.Condition{
-			Type:    v1alpha1.ConditionTypeReady,
+			Type:    mariadbv1alpha1.ConditionTypeReady,
 			Status:  metav1.ConditionFalse,
-			Reason:  v1alpha1.ConditionReasonStatefulSetNotReady,
+			Reason:  mariadbv1alpha1.ConditionReasonStatefulSetNotReady,
 			Message: "Not ready",
 		})
 		return
@@ -104,17 +103,17 @@ func SetReadyWithMariaDB(c Conditioner, sts *appsv1.StatefulSet, mdb *mariadbv1a
 
 	if mdb.HasPendingUpdate() {
 		c.SetCondition(metav1.Condition{
-			Type:    v1alpha1.ConditionTypeReady,
+			Type:    mariadbv1alpha1.ConditionTypeReady,
 			Status:  metav1.ConditionTrue,
-			Reason:  v1alpha1.ConditionReasonPendingUpdate,
+			Reason:  mariadbv1alpha1.ConditionReasonPendingUpdate,
 			Message: "Pending update",
 		})
 		return
 	}
 	c.SetCondition(metav1.Condition{
-		Type:    v1alpha1.ConditionTypeReady,
+		Type:    mariadbv1alpha1.ConditionTypeReady,
 		Status:  metav1.ConditionTrue,
-		Reason:  v1alpha1.ConditionReasonStatefulSetReady,
+		Reason:  mariadbv1alpha1.ConditionReasonStatefulSetReady,
 		Message: "Running",
 	})
 }
@@ -122,38 +121,38 @@ func SetReadyWithMariaDB(c Conditioner, sts *appsv1.StatefulSet, mdb *mariadbv1a
 func SetReadyWithInitJob(c Conditioner, job *batchv1.Job) {
 	if jobpkg.IsJobComplete(job) {
 		c.SetCondition(metav1.Condition{
-			Type:    v1alpha1.ConditionTypeReady,
+			Type:    mariadbv1alpha1.ConditionTypeReady,
 			Status:  metav1.ConditionTrue,
-			Reason:  v1alpha1.ConditionReasonInitializing,
+			Reason:  mariadbv1alpha1.ConditionReasonInitializing,
 			Message: "Initialized",
 		})
 	} else {
 		c.SetCondition(metav1.Condition{
-			Type:    v1alpha1.ConditionTypeReady,
+			Type:    mariadbv1alpha1.ConditionTypeReady,
 			Status:  metav1.ConditionFalse,
-			Reason:  v1alpha1.ConditionReasonInitializing,
+			Reason:  mariadbv1alpha1.ConditionReasonInitializing,
 			Message: "Initializing",
 		})
 	}
 }
 
-func SetReadyWithMaxScaleStatus(c Conditioner, mss *v1alpha1.MaxScaleStatus) {
+func SetReadyWithMaxScaleStatus(c Conditioner, mss *mariadbv1alpha1.MaxScaleStatus) {
 	for _, srv := range mss.Servers {
 		if srv.IsReady() {
 			continue
 		}
 		if srv.InMaintenance() {
 			c.SetCondition(metav1.Condition{
-				Type:    v1alpha1.ConditionTypeReady,
+				Type:    mariadbv1alpha1.ConditionTypeReady,
 				Status:  metav1.ConditionFalse,
-				Reason:  v1alpha1.ConditionReasonMaxScaleNotReady,
+				Reason:  mariadbv1alpha1.ConditionReasonMaxScaleNotReady,
 				Message: fmt.Sprintf("Server %s in maintenance", srv.Name),
 			})
 		} else {
 			c.SetCondition(metav1.Condition{
-				Type:    v1alpha1.ConditionTypeReady,
+				Type:    mariadbv1alpha1.ConditionTypeReady,
 				Status:  metav1.ConditionFalse,
-				Reason:  v1alpha1.ConditionReasonMaxScaleNotReady,
+				Reason:  mariadbv1alpha1.ConditionReasonMaxScaleNotReady,
 				Message: fmt.Sprintf("Server %s not ready", srv.Name),
 			})
 		}
@@ -161,9 +160,9 @@ func SetReadyWithMaxScaleStatus(c Conditioner, mss *v1alpha1.MaxScaleStatus) {
 	}
 
 	c.SetCondition(metav1.Condition{
-		Type:    v1alpha1.ConditionTypeReady,
+		Type:    mariadbv1alpha1.ConditionTypeReady,
 		Status:  metav1.ConditionTrue,
-		Reason:  v1alpha1.ConditionReasonMaxScaleReady,
+		Reason:  mariadbv1alpha1.ConditionReasonMaxScaleReady,
 		Message: "Running",
 	})
 }
@@ -171,15 +170,15 @@ func SetReadyWithMaxScaleStatus(c Conditioner, mss *v1alpha1.MaxScaleStatus) {
 func SetReadyStorageResizing(c Conditioner) {
 	msg := "Resizing storage"
 	c.SetCondition(metav1.Condition{
-		Type:    v1alpha1.ConditionTypeReady,
+		Type:    mariadbv1alpha1.ConditionTypeReady,
 		Status:  metav1.ConditionFalse,
-		Reason:  v1alpha1.ConditionReasonResizingStorage,
+		Reason:  mariadbv1alpha1.ConditionReasonResizingStorage,
 		Message: msg,
 	})
 	c.SetCondition(metav1.Condition{
-		Type:    v1alpha1.ConditionTypeStorageResized,
+		Type:    mariadbv1alpha1.ConditionTypeStorageResized,
 		Status:  metav1.ConditionFalse,
-		Reason:  v1alpha1.ConditionReasonResizingStorage,
+		Reason:  mariadbv1alpha1.ConditionReasonResizingStorage,
 		Message: msg,
 	})
 }
@@ -187,33 +186,33 @@ func SetReadyStorageResizing(c Conditioner) {
 func SetReadyWaitingStorageResize(c Conditioner) {
 	msg := "Waiting for storage resize"
 	c.SetCondition(metav1.Condition{
-		Type:    v1alpha1.ConditionTypeReady,
+		Type:    mariadbv1alpha1.ConditionTypeReady,
 		Status:  metav1.ConditionFalse,
-		Reason:  v1alpha1.ConditionReasonWaitStorageResize,
+		Reason:  mariadbv1alpha1.ConditionReasonWaitStorageResize,
 		Message: msg,
 	})
 	c.SetCondition(metav1.Condition{
-		Type:    v1alpha1.ConditionTypeStorageResized,
+		Type:    mariadbv1alpha1.ConditionTypeStorageResized,
 		Status:  metav1.ConditionFalse,
-		Reason:  v1alpha1.ConditionReasonWaitStorageResize,
+		Reason:  mariadbv1alpha1.ConditionReasonWaitStorageResize,
 		Message: msg,
 	})
 }
 
 func SetReadyStorageResized(c Conditioner) {
 	c.SetCondition(metav1.Condition{
-		Type:    v1alpha1.ConditionTypeStorageResized,
+		Type:    mariadbv1alpha1.ConditionTypeStorageResized,
 		Status:  metav1.ConditionTrue,
-		Reason:  v1alpha1.ConditionReasonStorageResized,
+		Reason:  mariadbv1alpha1.ConditionReasonStorageResized,
 		Message: "Storage resized",
 	})
 }
 
 func SetReadySuspended(c Conditioner) {
 	c.SetCondition(metav1.Condition{
-		Type:    v1alpha1.ConditionTypeReady,
+		Type:    mariadbv1alpha1.ConditionTypeReady,
 		Status:  metav1.ConditionFalse,
-		Reason:  v1alpha1.ConditionReasonSuspended,
+		Reason:  mariadbv1alpha1.ConditionReasonSuspended,
 		Message: "Suspended",
 	})
 }
