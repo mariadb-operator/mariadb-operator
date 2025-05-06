@@ -104,7 +104,7 @@ func (r *RBACReconciler) reconcileRole(ctx context.Context, key types.Namespaced
 	rules := []rbacv1.PolicyRule{
 		{
 			APIGroups: []string{
-				mariadbv1alpha1.GroupVersion.Group,
+				mariadbv1alpha1.SchemeGroupVersion.Group,
 			},
 			Resources: []string{
 				"mariadbs",
