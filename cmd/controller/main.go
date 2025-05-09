@@ -369,8 +369,13 @@ var rootCmd = &cobra.Command{
 			os.Exit(1)
 		}
 		if err = (&controller.PhysicalBackupReconciler{
-			Client: client,
-			Scheme: scheme,
+			Client:            client,
+			Scheme:            scheme,
+			Builder:           builder,
+			RefResolver:       refResolver,
+			ConditionComplete: conditionComplete,
+			RBACReconciler:    rbacReconciler,
+			BatchReconciler:   batchReconciler,
 		}).SetupWithManager(ctx, mgr); err != nil {
 			setupLog.Error(err, "Unable to create controller", "controller", "PhysicalBackup")
 			os.Exit(1)

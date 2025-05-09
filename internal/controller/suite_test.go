@@ -258,8 +258,13 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred())
 
 	err = (&PhysicalBackupReconciler{
-		Client: client,
-		Scheme: scheme,
+		Client:            client,
+		Scheme:            scheme,
+		Builder:           builder,
+		RefResolver:       refResolver,
+		ConditionComplete: conditionComplete,
+		RBACReconciler:    rbacReconciler,
+		BatchReconciler:   batchReconciler,
 	}).SetupWithManager(testCtx, k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
