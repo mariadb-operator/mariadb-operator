@@ -11,6 +11,8 @@ spec:
     kind: PhysicalBackup
     listKind: PhysicalBackupList
     plural: physicalbackups
+    shortNames:
+    - pbmdb
     singular: physicalbackup
   scope: Namespaced
   versions:
