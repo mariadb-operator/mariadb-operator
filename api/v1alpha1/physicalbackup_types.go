@@ -80,6 +80,7 @@ func (b *PhysicalBackupStatus) SetCondition(condition metav1.Condition) {
 }
 
 // +kubebuilder:object:root=true
+// +kubebuilder:resource:shortName=pbmdb
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Complete",type="string",JSONPath=".status.conditions[?(@.type==\"Complete\")].status"
 // +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.conditions[?(@.type==\"Complete\")].message"

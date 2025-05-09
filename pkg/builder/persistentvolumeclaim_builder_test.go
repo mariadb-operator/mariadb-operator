@@ -49,7 +49,11 @@ func TestInvalidBackupPVC(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := builder.BuildBackupStoragePVC(key, tt.backup)
+			_, err := builder.BuildBackupStoragePVC(
+				key,
+				tt.backup.Spec.Storage.PersistentVolumeClaim,
+				tt.backup.Spec.InheritMetadata,
+			)
 			if tt.wantErr && err == nil {
 				t.Error("expect error to have occurred, got nil")
 			}
@@ -132,7 +136,11 @@ func TestBackupPVCMeta(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			pvc, err := builder.BuildBackupStoragePVC(key, tt.backup)
+			pvc, err := builder.BuildBackupStoragePVC(
+				key,
+				tt.backup.Spec.Storage.PersistentVolumeClaim,
+				tt.backup.Spec.InheritMetadata,
+			)
 			if err != nil {
 				t.Fatalf("unexpected error building Backup PVC: %v", err)
 			}

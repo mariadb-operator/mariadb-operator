@@ -1,0 +1,23 @@
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: PhysicalBackup
+metadata:
+  name: physicalbackup
+spec:
+  mariaDbRef:
+    name: mariadb
+  serviceAccountName: backup
+  compression: bzip2
+  storage:
+    persistentVolumeClaim:
+      resources:
+        requests:
+          storage: 100Mi
+      accessModes:
+        - ReadWriteOnce
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 300m
+      memory: 512Mi

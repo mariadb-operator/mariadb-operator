@@ -213,8 +213,8 @@ func (b *BackupCommand) MariadbBackup(mariadb *mariadbv1alpha1.MariaDB) (*Comman
 			b.TargetFilePath,
 		),
 		fmt.Sprintf(
-			"printf \"${%s}\" > %s",
-			b.BackupFileEnv,
+			"printf \"%s\" > %s",
+			b.getBackupFileFromEnv(),
 			b.TargetFilePath,
 		),
 		fmt.Sprintf(
@@ -324,6 +324,10 @@ func (b *BackupCommand) newBackupFile() string {
 	return filepath.Join(b.Path, fileName)
 }
 
+func (b *BackupCommand) getBackupFileFromEnv() string {
+	return fmt.Sprintf("%s/${%s}", b.Path, b.BackupFileEnv)
+}
+
 func (b *BackupCommand) getTargetFilePath() string {
 	return fmt.Sprintf("$(cat '%s')", b.TargetFilePath)
 }
@@ -377,7 +381,7 @@ func (b *BackupCommand) mariadbBackupArgs(mariadb *mariadbv1alpha1.MariaDB) []st
 	copy(backupOpts, b.BackupOpts.ExtraOpts)
 
 	args := []string{
-		"--backup ",
+		"--backup",
 		"--stream=xbstream",
 	}
 

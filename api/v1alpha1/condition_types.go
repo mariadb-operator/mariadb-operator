@@ -41,10 +41,11 @@ const (
 	ConditionReasonRestoreNotComplete string = "RestoreNotComplete"
 	ConditionReasonRestoreComplete    string = "RestoreComplete"
 
-	ConditionReasonJobComplete  string = "JobComplete"
-	ConditionReasonJobSuspended string = "JobSuspended"
-	ConditionReasonJobFailed    string = "JobFailed"
-	ConditionReasonJobRunning   string = "JobRunning"
+	ConditionReasonJobComplete    string = "JobComplete"
+	ConditionReasonJobSuspended   string = "JobSuspended"
+	ConditionReasonJobFailed      string = "JobFailed"
+	ConditionReasonJobRunning     string = "JobRunning"
+	ConditionReasonJobNotComplete string = "JobNotComplete"
 
 	ConditionReasonCronJobScheduled string = "CronJobScheduled"
 	ConditionReasonCronJobFailed    string = "CronJobScheduled"
