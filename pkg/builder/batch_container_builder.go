@@ -86,6 +86,26 @@ func jobBatchStorageVolume(storageVolume mariadbv1alpha1.StorageVolumeSource,
 	return volumes, volumeMounts
 }
 
+func jobPhysicalBackupVolumes(storageVolume mariadbv1alpha1.StorageVolumeSource,
+	s3 *mariadbv1alpha1.S3, mariadb *mariadbv1alpha1.MariaDB, podIndex *int) ([]corev1.Volume, []corev1.VolumeMount) {
+	volumes, volumeMounts := jobBatchStorageVolume(storageVolume, s3, mariadb)
+
+	volumes = append(volumes, corev1.Volume{
+		Name: StorageVolume,
+		VolumeSource: corev1.VolumeSource{
+			PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+				ClaimName: mariadb.PVCKey(StorageVolume, *podIndex).Name,
+			},
+		},
+	})
+	volumeMounts = append(volumeMounts, corev1.VolumeMount{
+		Name:      StorageVolume,
+		MountPath: MariadbStorageMountPath,
+	})
+
+	return volumes, volumeMounts
+}
+
 func jobEnv(mariadb *mariadbv1alpha1.MariaDB) []v1.EnvVar {
 	return []v1.EnvVar{
 		{
@@ -99,6 +119,17 @@ func jobEnv(mariadb *mariadbv1alpha1.MariaDB) []v1.EnvVar {
 			},
 		},
 	}
+}
+
+func jobPhysicalBackupEnv(mariadb *mariadbv1alpha1.MariaDB, backupFile string) []v1.EnvVar {
+	env := jobEnv(mariadb)
+
+	env = append(env, v1.EnvVar{
+		Name:  batchBackupFileEnv,
+		Value: backupFile,
+	})
+
+	return env
 }
 
 func jobS3Env(s3 *mariadbv1alpha1.S3) []v1.EnvVar {
