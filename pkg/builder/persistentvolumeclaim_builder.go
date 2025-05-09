@@ -13,22 +13,26 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-func (b *Builder) BuildBackupStoragePVC(key types.NamespacedName, backup *mariadbv1alpha1.Backup) (*corev1.PersistentVolumeClaim, error) {
-	if backup.Spec.Storage.PersistentVolumeClaim == nil {
-		return nil, errors.New("Backup spec does not have a PVC spec")
+func (b *Builder) BuildBackupStoragePVC(key types.NamespacedName, pvcSpec *mariadbv1alpha1.PersistentVolumeClaimSpec,
+	meta *mariadbv1alpha1.Metadata) (*corev1.PersistentVolumeClaim, error) {
+	if pvcSpec == nil {
+		return nil, errors.New("PVC spec must be set")
 	}
 	objMeta :=
 		metadata.NewMetadataBuilder(key).
-			WithMetadata(backup.Spec.InheritMetadata).
+			WithMetadata(meta).
 			Build()
 	return &corev1.PersistentVolumeClaim{
 		ObjectMeta: objMeta,
-		Spec:       backup.Spec.Storage.PersistentVolumeClaim.ToKubernetesType(),
+		Spec:       pvcSpec.ToKubernetesType(),
 	}, nil
 }
 
 func (b *Builder) BuildBackupStagingPVC(key types.NamespacedName, pvcSpec *mariadbv1alpha1.PersistentVolumeClaimSpec,
 	meta *mariadbv1alpha1.Metadata, owner metav1.Object) (*corev1.PersistentVolumeClaim, error) {
+	if pvcSpec == nil {
+		return nil, errors.New("PVC spec must be set")
+	}
 	objMeta :=
 		metadata.NewMetadataBuilder(key).
 			WithMetadata(meta).
