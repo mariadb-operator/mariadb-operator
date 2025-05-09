@@ -196,9 +196,6 @@ func (b *BackupCommand) MariadbBackup(mariadb *mariadbv1alpha1.MariaDB) (*Comman
 	if b.BackupFileEnv == "" {
 		return nil, errors.New("BackupFileEnv must be set")
 	}
-	if b.TargetFilePath == "" {
-		return nil, errors.New("TargetFilePath must be set")
-	}
 	if b.Database != nil {
 		return nil, errors.New("Database option not supported in physical backups")
 	}
@@ -243,15 +240,25 @@ func (b *BackupCommand) MariadbOperatorBackup() *Command {
 		b.TargetFilePath,
 		"--max-retention",
 		b.MaxRetentionDuration.String(),
-		"--compression",
-		string(b.Compression),
-		"--log-level",
-		b.LogLevel,
 	}
+	if b.Compression != "" {
+		args = append(args, []string{
+			"--compression",
+			string(b.Compression),
+		}...)
+	}
+	if b.LogLevel != "" {
+		args = append(args, []string{
+			"--log-level",
+			b.LogLevel,
+		}...)
+	}
+
 	args = append(args, b.s3Args()...)
 	if b.S3 && b.CleanupTargetFile {
 		args = append(args, "--cleanup-target-file")
 	}
+
 	return NewCommand(nil, args)
 }
 
@@ -265,9 +272,14 @@ func (b *BackupCommand) MariadbOperatorRestore() *Command {
 		backuppkg.FormatBackupDate(b.TargetTime),
 		"--target-file-path",
 		b.TargetFilePath,
-		"--log-level",
-		b.LogLevel,
 	}
+	if b.LogLevel != "" {
+		args = append(args, []string{
+			"--log-level",
+			b.LogLevel,
+		}...)
+	}
+
 	args = append(args, b.s3Args()...)
 	return NewCommand(nil, args)
 }
