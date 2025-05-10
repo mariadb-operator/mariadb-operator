@@ -9,16 +9,17 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
-	"github.com/mariadb-operator/mariadb-operator/pkg/controller/batch"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/rbac"
 	jobpkg "github.com/mariadb-operator/mariadb-operator/pkg/job"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
+	"github.com/robfig/cron/v3"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -33,10 +34,10 @@ type PhysicalBackupReconciler struct {
 	client.Client
 	Scheme            *runtime.Scheme
 	Builder           *builder.Builder
+	Recorder          record.EventRecorder
 	RefResolver       *refresolver.RefResolver
 	ConditionComplete *condition.Complete
 	RBACReconciler    *rbac.RBACReconciler
-	BatchReconciler   *batch.BatchReconciler
 }
 
 // +kubebuilder:rbac:groups=k8s.mariadb.com,resources=physicalbackups,verbs=get;list;watch;create;update;patch;delete
@@ -55,7 +56,6 @@ func (r *PhysicalBackupReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error listing Jobs: %v", err)
 	}
-
 	if err := r.reconcileStatus(ctx, &backup, jobList); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error reconciling status: %v", err)
 	}
@@ -65,30 +65,38 @@ func (r *PhysicalBackupReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		var mariaDbErr *multierror.Error
 		mariaDbErr = multierror.Append(mariaDbErr, err)
 
-		err = r.patchStatus(ctx, &backup, r.ConditionComplete.PatcherRefResolver(err, mariadb))
+		err = r.patchStatus(ctx, &backup, func(status *mariadbv1alpha1.PhysicalBackupStatus) {
+			r.ConditionComplete.PatcherRefResolver(err, mariadb)(status)
+		})
 		mariaDbErr = multierror.Append(mariaDbErr, err)
 
 		return ctrl.Result{}, fmt.Errorf("error getting MariaDB: %v", mariaDbErr)
 	}
 	if backup.Spec.MariaDBRef.WaitForIt && !mariadb.IsReady() {
-		if err := r.patchStatus(ctx, &backup, r.ConditionComplete.PatcherFailed("MariaDB not ready")); err != nil {
+		if err := r.patchStatus(ctx, &backup, func(status *mariadbv1alpha1.PhysicalBackupStatus) {
+			r.ConditionComplete.PatcherFailed("MariaDB not ready")(status)
+		}); err != nil {
 			return ctrl.Result{}, fmt.Errorf("error patching Backup: %v", err)
 		}
+		r.Recorder.Event(
+			&backup,
+			corev1.EventTypeWarning,
+			mariadbv1alpha1.ReasonMariaDBNotReady,
+			"Pausing backup: MariaDB not ready",
+		)
+
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 
 	if err := r.setDefaults(ctx, &backup, mariadb); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error defaulting PhysicalBackup: %v", err)
 	}
-
 	if err := r.reconcileServiceAccount(ctx, &backup); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error reconciling ServiceAccount: %v", err)
 	}
-
 	if err := r.reconcileStorage(ctx, &backup); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error reconciling storage: %v", err)
 	}
-
 	return r.reconcileJobs(ctx, &backup, jobList, mariadb)
 }
 
@@ -132,13 +140,28 @@ func (r *PhysicalBackupReconciler) indexJobs(ctx context.Context, mgr manager.Ma
 func (r *PhysicalBackupReconciler) reconcileStatus(ctx context.Context, backup *mariadbv1alpha1.PhysicalBackup,
 	jobList *batchv1.JobList) error {
 	logger := log.FromContext(ctx).WithName("status").V(1)
+	schedule := ptr.Deref(backup.Spec.Schedule, mariadbv1alpha1.PhysicalBackupSchedule{})
+
+	if schedule.Suspend {
+		if err := r.patchStatus(ctx, backup, func(status *mariadbv1alpha1.PhysicalBackupStatus) {
+			status.SetCondition(metav1.Condition{
+				Type:    mariadbv1alpha1.ConditionTypeComplete,
+				Status:  metav1.ConditionFalse,
+				Reason:  mariadbv1alpha1.ConditionReasonJobSuspended,
+				Message: "Suspended",
+			})
+		}); err != nil {
+			logger.Info("error patching status", "err", err)
+		}
+		return nil
+	}
 
 	numRunning := 0
 	numComplete := 0
 	for _, job := range jobList.Items {
 		if jobpkg.IsJobFailed(&job) {
-			if err := r.patchStatus(ctx, backup, func(c condition.Conditioner) {
-				backup.Status.SetCondition(metav1.Condition{
+			if err := r.patchStatus(ctx, backup, func(status *mariadbv1alpha1.PhysicalBackupStatus) {
+				status.SetCondition(metav1.Condition{
 					Type:    mariadbv1alpha1.ConditionTypeComplete,
 					Status:  metav1.ConditionTrue,
 					Reason:  mariadbv1alpha1.ConditionReasonJobFailed,
@@ -154,9 +177,9 @@ func (r *PhysicalBackupReconciler) reconcileStatus(ctx context.Context, backup *
 		}
 	}
 
-	if numComplete == len(jobList.Items) {
-		if err := r.patchStatus(ctx, backup, func(c condition.Conditioner) {
-			backup.Status.SetCondition(metav1.Condition{
+	if len(jobList.Items) > 0 && numComplete == len(jobList.Items) {
+		if err := r.patchStatus(ctx, backup, func(status *mariadbv1alpha1.PhysicalBackupStatus) {
+			status.SetCondition(metav1.Condition{
 				Type:    mariadbv1alpha1.ConditionTypeComplete,
 				Status:  metav1.ConditionTrue,
 				Reason:  mariadbv1alpha1.ConditionReasonJobComplete,
@@ -165,9 +188,9 @@ func (r *PhysicalBackupReconciler) reconcileStatus(ctx context.Context, backup *
 		}); err != nil {
 			logger.Info("error patching status", "err", err)
 		}
-	} else if numRunning > 0 {
-		if err := r.patchStatus(ctx, backup, func(c condition.Conditioner) {
-			backup.Status.SetCondition(metav1.Condition{
+	} else if len(jobList.Items) > 0 && numRunning > 0 {
+		if err := r.patchStatus(ctx, backup, func(status *mariadbv1alpha1.PhysicalBackupStatus) {
+			status.SetCondition(metav1.Condition{
 				Type:    mariadbv1alpha1.ConditionTypeComplete,
 				Status:  metav1.ConditionFalse,
 				Reason:  mariadbv1alpha1.ConditionReasonJobRunning,
@@ -177,12 +200,17 @@ func (r *PhysicalBackupReconciler) reconcileStatus(ctx context.Context, backup *
 			logger.Info("error patching status", "err", err)
 		}
 	} else {
-		if err := r.patchStatus(ctx, backup, func(c condition.Conditioner) {
-			backup.Status.SetCondition(metav1.Condition{
+		message := "Not complete"
+		if backup.Spec.Schedule != nil {
+			message = "Scheduled"
+		}
+
+		if err := r.patchStatus(ctx, backup, func(status *mariadbv1alpha1.PhysicalBackupStatus) {
+			status.SetCondition(metav1.Condition{
 				Type:    mariadbv1alpha1.ConditionTypeComplete,
 				Status:  metav1.ConditionFalse,
 				Reason:  mariadbv1alpha1.ConditionReasonJobNotComplete,
-				Message: "Not complete",
+				Message: message,
 			})
 		}); err != nil {
 			logger.Info("error patching status", "err", err)
@@ -253,14 +281,63 @@ func (r *PhysicalBackupReconciler) createPVC(ctx context.Context, pvc *corev1.Pe
 
 func (r *PhysicalBackupReconciler) reconcileJobs(ctx context.Context, backup *mariadbv1alpha1.PhysicalBackup,
 	jobList *batchv1.JobList, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
+	if backup.Spec.Schedule != nil {
+		return r.reconcileScheduledJobs(ctx, backup, jobList, mariadb)
+	}
 	if len(jobList.Items) == 0 {
-		return r.createJob(ctx, backup, mariadb)
+		return r.createJob(ctx, backup, jobList, mariadb, time.Now(), nil)
 	}
 	return ctrl.Result{}, nil
 }
 
+func (r *PhysicalBackupReconciler) reconcileScheduledJobs(ctx context.Context, backup *mariadbv1alpha1.PhysicalBackup,
+	jobList *batchv1.JobList, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
+	schedule := ptr.Deref(backup.Spec.Schedule, mariadbv1alpha1.PhysicalBackupSchedule{})
+
+	if schedule.Suspend {
+		return ctrl.Result{}, nil
+	}
+	isImmediate := ptr.Deref(schedule.Immediate, false)
+	cronSchedule, err := mariadbv1alpha1.CronParser.Parse(schedule.Cron)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error parsing cron schedule: %v", err)
+	}
+
+	now := time.Now()
+	beforeNext := time.Now()
+	if backup.Status.LastScheduleTime != nil {
+		beforeNext = backup.Status.LastScheduleTime.Time
+	}
+	nextTime := cronSchedule.Next(beforeNext)
+
+	if isImmediate && backup.Status.LastScheduleTime == nil {
+		return r.createJob(ctx, backup, jobList, mariadb, now, cronSchedule)
+	}
+	if backup.Status.LastScheduleTime == nil {
+		if err := r.patchStatus(ctx, backup, func(status *mariadbv1alpha1.PhysicalBackupStatus) {
+			status.LastScheduleTime = &metav1.Time{
+				Time: now,
+			}
+			status.NextScheduleTime = &metav1.Time{
+				Time: nextTime,
+			}
+		}); err != nil {
+			return ctrl.Result{}, fmt.Errorf("error patching status: %v", err)
+		}
+		return ctrl.Result{RequeueAfter: nextTime.Sub(now)}, nil
+	}
+
+	if now.Before(nextTime) {
+		return ctrl.Result{RequeueAfter: nextTime.Sub(now)}, nil
+	}
+	return r.createJob(ctx, backup, jobList, mariadb, now, cronSchedule)
+}
+
 func (r *PhysicalBackupReconciler) createJob(ctx context.Context, backup *mariadbv1alpha1.PhysicalBackup,
-	mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
+	jobList *batchv1.JobList, mariadb *mariadbv1alpha1.MariaDB, now time.Time, schedule cron.Schedule) (ctrl.Result, error) {
+	if result, err := r.waitForRunningJobs(ctx, jobList); !result.IsZero() || err != nil {
+		return result, err
+	}
 	if mariadb.Status.CurrentPrimary == nil {
 		log.FromContext(ctx).V(1).Info("Current primary not set. Requeuing...")
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
@@ -288,7 +365,38 @@ func (r *PhysicalBackupReconciler) createJob(ctx context.Context, backup *mariad
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error building Job: %v", err)
 	}
+
+	if err := r.patchStatus(ctx, backup, func(status *mariadbv1alpha1.PhysicalBackupStatus) {
+		status.LastScheduleTime = &metav1.Time{
+			Time: now,
+		}
+		if schedule != nil {
+			status.NextScheduleTime = &metav1.Time{
+				Time: schedule.Next(now),
+			}
+		}
+	}); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error patching status: %v", err)
+	}
+	r.Recorder.Eventf(
+		backup,
+		corev1.EventTypeNormal,
+		mariadbv1alpha1.ReasonJobScheduled,
+		"Job %s scheduled",
+		job.Name,
+	)
+
 	return ctrl.Result{}, r.Create(ctx, job)
+}
+
+func (r *PhysicalBackupReconciler) waitForRunningJobs(ctx context.Context, jobList *batchv1.JobList) (ctrl.Result, error) {
+	for _, job := range jobList.Items {
+		if !jobpkg.IsJobComplete(&job) {
+			log.FromContext(ctx).Info("PhysicalBackup Job is not complete. Requeuing...", "job", job.Name)
+			return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+		}
+	}
+	return ctrl.Result{}, nil
 }
 
 func (r *PhysicalBackupReconciler) getBackupFilename(backup *mariadbv1alpha1.PhysicalBackup) (string, error) {
@@ -313,7 +421,7 @@ func (r *PhysicalBackupReconciler) patch(ctx context.Context, backup *mariadbv1a
 }
 
 func (r *PhysicalBackupReconciler) patchStatus(ctx context.Context, backup *mariadbv1alpha1.PhysicalBackup,
-	patcher condition.Patcher) error {
+	patcher func(*mariadbv1alpha1.PhysicalBackupStatus)) error {
 	patch := client.MergeFrom(backup.DeepCopy())
 	patcher(&backup.Status)
 	return r.Client.Status().Patch(ctx, backup, patch)

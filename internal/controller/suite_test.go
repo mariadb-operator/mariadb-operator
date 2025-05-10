@@ -260,11 +260,11 @@ var _ = BeforeSuite(func() {
 	err = (&PhysicalBackupReconciler{
 		Client:            client,
 		Scheme:            scheme,
+		Recorder:          k8sManager.GetEventRecorderFor("physicalbackup"),
 		Builder:           builder,
 		RefResolver:       refResolver,
 		ConditionComplete: conditionComplete,
 		RBACReconciler:    rbacReconciler,
-		BatchReconciler:   batchReconciler,
 	}).SetupWithManager(testCtx, k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
