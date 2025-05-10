@@ -498,6 +498,10 @@ spec:
                   cron:
                     description: Cron is a cron expression that defines the schedule.
                     type: string
+                  immediate:
+                    description: Immediate indicates whether the first backup should
+                      be taken immediately after creating the PhysicalBackup.
+                    type: boolean
                   suspend:
                     default: false
                     description: Suspend defines whether the schedule is active or
@@ -1072,6 +1076,15 @@ spec:
                   - type
                   type: object
                 type: array
+              lastScheduleTime:
+                description: LastScheduleTime is the last time that a Job was scheduled.
+                format: date-time
+                type: string
+              nextScheduleTime:
+                description: NextScheduleTime is the next time that a Job will be
+                  scheduled.
+                format: date-time
+                type: string
             type: object
         type: object
     served: true
