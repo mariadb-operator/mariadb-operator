@@ -28,6 +28,7 @@ spec:
         caSecretKeyRef:
           name: minio-ca
           key: ca.crt
+  podAffinity: true
   resources:
     requests:
       cpu: 100m

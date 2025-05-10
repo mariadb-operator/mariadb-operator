@@ -8,9 +8,75 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
+
+// PhysicalBackupPodTemplate defines a template to configure Container objects that run in a PhysicalBackup.
+type PhysicalBackupPodTemplate struct {
+	// PodMetadata defines extra metadata for the Pod.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	PodMetadata *Metadata `json:"podMetadata,omitempty"`
+	// ImagePullSecrets is the list of pull Secrets to be used to pull the image.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	ImagePullSecrets []LocalObjectReference `json:"imagePullSecrets,omitempty" webhook:"inmutable"`
+	// SecurityContext holds pod-level security attributes and common container settings.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	PodSecurityContext *PodSecurityContext `json:"podSecurityContext,omitempty"`
+	// ServiceAccountName is the name of the ServiceAccount to be used by the Pods.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	ServiceAccountName *string `json:"serviceAccountName,omitempty" webhook:"inmutableinit"`
+	// Tolerations to be used in the Pod.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
+	// PriorityClassName to be used in the Pod.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	PriorityClassName *string `json:"priorityClassName,omitempty" webhook:"inmutable"`
+}
+
+// FromPodTemplate sets the PodTemplate fields in the current JobPodTemplate.
+func (j *PhysicalBackupPodTemplate) FromPodTemplate(ptpl *PhysicalBackupPodTemplate) {
+	if j.PodMetadata == nil {
+		j.PodMetadata = ptpl.PodMetadata
+	}
+	if j.ImagePullSecrets == nil {
+		j.ImagePullSecrets = ptpl.ImagePullSecrets
+	}
+	if j.PodSecurityContext == nil {
+		j.PodSecurityContext = ptpl.PodSecurityContext
+	}
+	if j.ServiceAccountName == nil {
+		j.ServiceAccountName = ptpl.ServiceAccountName
+	}
+	if j.Tolerations == nil {
+		j.Tolerations = ptpl.Tolerations
+	}
+	if j.PriorityClassName == nil {
+		j.PriorityClassName = ptpl.PriorityClassName
+	}
+}
+
+// SetDefaults sets reasonable defaults.
+func (p *PhysicalBackupPodTemplate) SetDefaults(objMeta, mariadbObjMeta metav1.ObjectMeta) {
+	if p.ServiceAccountName == nil {
+		p.ServiceAccountName = ptr.To(p.ServiceAccountKey(objMeta).Name)
+	}
+}
+
+// ServiceAccountKey defines the key for the ServiceAccount object.
+func (p *PhysicalBackupPodTemplate) ServiceAccountKey(objMeta metav1.ObjectMeta) types.NamespacedName {
+	return types.NamespacedName{
+		Name:      ptr.Deref(p.ServiceAccountName, objMeta.Name),
+		Namespace: objMeta.Namespace,
+	}
+}
 
 // PhysicalBackupSchedule defines when the PhysicalBackup will be taken.
 type PhysicalBackupSchedule struct {
@@ -19,7 +85,7 @@ type PhysicalBackupSchedule struct {
 	Schedule `json:",inline"`
 	// Immediate indicates whether the first backup should be taken immediately after creating the PhysicalBackup.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
 	Immediate *bool `json:"immediate,omitempty"`
 }
 
@@ -28,9 +94,9 @@ type PhysicalBackupSpec struct {
 	// JobContainerTemplate defines templates to configure Container objects.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	JobContainerTemplate `json:",inline"`
-	// JobPodTemplate defines templates to configure Pod objects.
+	// PhysicalBackupPodTemplate defines templates to configure Pod objects.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	JobPodTemplate `json:",inline"`
+	PhysicalBackupPodTemplate `json:",inline"`
 	// MariaDBRef is a reference to a MariaDB object.
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -59,6 +125,10 @@ type PhysicalBackupSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	MaxRetention metav1.Duration `json:"maxRetention,omitempty" webhook:"inmutableinit"`
+	// PodAffinity indicates whether the Jobs should run in the same Node as the MariaDB Pods. It defaults to true.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
+	PodAffinity *bool `json:"podAffinity,omitempty"`
 	// BackoffLimit defines the maximum number of attempts to successfully take a PhysicalBackup.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number","urn:alm:descriptor:com.tectonic.ui:advanced"}
@@ -148,7 +218,7 @@ func (b *PhysicalBackup) SetDefaults(mariadb *MariaDB) {
 	if b.Spec.BackoffLimit == 0 {
 		b.Spec.BackoffLimit = 5
 	}
-	b.Spec.JobPodTemplate.SetDefaults(b.ObjectMeta, mariadb.ObjectMeta)
+	b.Spec.PhysicalBackupPodTemplate.SetDefaults(b.ObjectMeta, mariadb.ObjectMeta)
 }
 
 func (b *PhysicalBackup) Volume() (StorageVolumeSource, error) {
