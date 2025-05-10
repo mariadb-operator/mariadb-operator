@@ -187,7 +187,6 @@ func (b *Builder) BuildPhysicalBackupJob(key types.NamespacedName, backup *maria
 		return nil, fmt.Errorf("error getting volume from Backup: %v", err)
 	}
 	volumes, volumeMounts := jobPhysicalBackupVolumes(volume, backup.Spec.Storage.S3, mariadb, podIndex)
-	affinity := ptr.Deref(backup.Spec.Affinity, mariadbv1alpha1.AffinityConfig{}).Affinity
 
 	mariadbContainer, err := b.jobMariadbContainer(
 		backupCmd,
@@ -214,6 +213,13 @@ func (b *Builder) BuildPhysicalBackupJob(key types.NamespacedName, backup *maria
 		return nil, err
 	}
 
+	var nodeSelector map[string]string
+	if ptr.Deref(backup.Spec.PodAffinity, true) {
+		nodeSelector = map[string]string{
+			"kubernetes.io/hostname": pod.Spec.NodeName,
+		}
+	}
+
 	securityContext, err := b.buildPodSecurityContextWithUserGroup(backup.Spec.PodSecurityContext, mysqlUser, mysqlGroup)
 	if err != nil {
 		return nil, err
@@ -231,8 +237,7 @@ func (b *Builder) BuildPhysicalBackupJob(key types.NamespacedName, backup *maria
 					Volumes:            volumes,
 					InitContainers:     []corev1.Container{*mariadbContainer},
 					Containers:         []corev1.Container{*operatorContainer},
-					Affinity:           ptr.To(affinity.ToKubernetesType()),
-					NodeSelector:       physicalBackupNodeSelector(backup, pod.Spec.NodeName),
+					NodeSelector:       nodeSelector,
 					Tolerations:        backup.Spec.Tolerations,
 					SecurityContext:    securityContext,
 					ServiceAccountName: ptr.Deref(backup.Spec.ServiceAccountName, "default"),
@@ -679,15 +684,6 @@ func backupShouldCleanupTargetFile(backup *mariadbv1alpha1.Backup) bool {
 
 func pyhsicalBackupShouldCleanupTargetFile(pyhisicalBackup *mariadbv1alpha1.PhysicalBackup) bool {
 	return pyhisicalBackup.Spec.Storage.S3 != nil && pyhisicalBackup.Spec.StagingStorage != nil
-}
-
-func physicalBackupNodeSelector(pyhisicalBackup *mariadbv1alpha1.PhysicalBackup, nodeName string) map[string]string {
-	if pyhisicalBackup.Spec.NodeSelector != nil {
-		return pyhisicalBackup.Spec.NodeSelector
-	}
-	return map[string]string{
-		"kubernetes.io/hostname": nodeName,
-	}
 }
 
 func s3Opts(s3 *mariadbv1alpha1.S3) []command.BackupOpt {
