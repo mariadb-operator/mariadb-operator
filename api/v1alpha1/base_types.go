@@ -16,7 +16,7 @@ import (
 	"k8s.io/utils/ptr"
 )
 
-var cronParser = cron.NewParser(
+var CronParser = cron.NewParser(
 	cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow,
 )
 
@@ -775,7 +775,7 @@ type Schedule struct {
 }
 
 func (s *Schedule) Validate() error {
-	_, err := cronParser.Parse(s.Cron)
+	_, err := CronParser.Parse(s.Cron)
 	return err
 }
 

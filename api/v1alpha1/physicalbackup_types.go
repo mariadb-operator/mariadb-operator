@@ -12,6 +12,17 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// PhysicalBackupSchedule defines when the PhysicalBackup will be taken.
+type PhysicalBackupSchedule struct {
+	// Schedule contains parameters to define a schedule.
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Schedule `json:",inline"`
+	// Immediate indicates whether the first backup should be taken immediately after creating the PhysicalBackup.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Immediate *bool `json:"immediate,omitempty"`
+}
+
 // PhysicalBackupSpec defines the desired state of PhysicalBackup.
 type PhysicalBackupSpec struct {
 	// JobContainerTemplate defines templates to configure Container objects.
@@ -42,7 +53,7 @@ type PhysicalBackupSpec struct {
 	// Schedule defines when the PhysicalBackup will be taken.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Schedule *Schedule `json:"schedule,omitempty"`
+	Schedule *PhysicalBackupSchedule `json:"schedule,omitempty"`
 	// MaxRetention defines the retention policy for backups. Old backups will be cleaned up by the Backup Job.
 	// It defaults to 30 days.
 	// +optional
@@ -70,6 +81,14 @@ type PhysicalBackupStatus struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status,xDescriptors={"urn:alm:descriptor:io.kubernetes.conditions"}
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
+	// LastScheduleTime is the last time that a Job was scheduled.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	LastScheduleTime *metav1.Time `json:"lastScheduleTime,omitempty"`
+	// NextScheduleTime is the next time that a Job will be scheduled.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	NextScheduleTime *metav1.Time `json:"nextScheduleTime,omitempty"`
 }
 
 func (b *PhysicalBackupStatus) SetCondition(condition metav1.Condition) {
