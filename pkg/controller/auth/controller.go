@@ -99,14 +99,14 @@ func (r *AuthReconciler) waitForUser(ctx context.Context, key types.NamespacedNa
 	if err := r.Get(ctx, key, &user); err != nil {
 		if apierrors.IsNotFound(err) {
 			logger.V(1).Info("User not found. Requeuing", "user", key.Name)
-			return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+			return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 		}
 		return ctrl.Result{}, err
 	}
 
 	if !user.IsReady() {
 		logger.V(1).Info("User not ready. Requeuing", "user", key.Name)
-		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 	}
 	return ctrl.Result{}, nil
 }
