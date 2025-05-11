@@ -1,0 +1,101 @@
+nameOverride: ""
+fullnameOverride: ""
+
+# -- MariaDB CR
+# https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/API_REFERENCE.md#mariadbspec
+mariadb:
+  affinity: {}
+  args: []
+  bootstrapFrom: {}
+  command: []
+  connection: {}
+  database: ""
+  env: []
+  envFrom: []
+  galera: {}
+  image: ""
+  imagePullPolicy: IfNotPresent
+  imagePullSecrets: []
+  inheritMetadata: {}
+  initContainers: []
+  livenessProbe: {}
+  maxScale: {}
+  maxScaleRef: {}
+  metrics: {}
+  myCnf: ""
+  myCnfConfigMapKeyRef: {}
+  nodeSelector: {}
+  passwordPlugin: {}
+  passwordSecretKeyRef: {}
+  podDisruptionBudget: {}
+  podMetadata: {}
+  podSecurityContext: {}
+  port: 3306
+  primaryConnection: {}
+  primaryService: {}
+  priorityClassName: ""
+  readinessProbe: {}
+  replicas: 1
+  replicasAllowEvenNumber: false
+  replication: {}
+  resources: {}
+  rootPasswordSecretKeyRef: {}
+  secondaryConnection: {}
+  secondaryService: {}
+  securityContext: {}
+  service: {}
+  serviceAccountName: ""
+  servicePorts: []
+  sidecarContainers: []
+  startupProbe: {}
+  storage: {}
+  suspend: false
+  timeZone: ""
+  tls: {}
+  tolerations: []
+  topologySpreadConstraints: []
+  updateStrategy: {}
+  username: ""
+  volumeMounts: []
+  volumes: []
+
+# -- The list of Database CRs. The `.name` key is required. The `.mariaDbRef` key will be ignored.
+# https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/API_REFERENCE.md#databasespec
+databases:
+  []
+  # - characterSet: utf8
+  #   cleanupPolicy: Delete
+  #   collate: utf8_general_ci
+  #   name: foo
+  #   requeueInterval: 1h
+  #   retryInterval: 3m
+
+# -- The list of User CRs. The `.name` key is required. The `.mariaDbRef` key will be ignored.
+# https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/API_REFERENCE.md#userspec
+users:
+  []
+  # - cleanupPolicy: Delete
+  #   host: "%"
+  #   maxUserConnections: 100
+  #   name: foo
+  #   passwordHashSecretKeyRef: {}
+  #   passwordPlugin: {}
+  #   passwordSecretKeyRef: {}
+  #   requeueInterval: 1h
+  #   require: {}
+  #   retryInterval: 3m
+
+# -- The list of Grant CRs. The `.mariaDbRef` key will be ignored.
+# https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/API_REFERENCE.md#grantspec
+grants:
+  []
+  # - cleanupPolicy: Delete
+  #   database: foo
+  #   host: "%"
+  #   grantOption: false
+  #   username: foo
+  #   privileges:
+  #     - ALL PRIVILEGES
+  #   requeueInterval: 1h
+  #   retryInterval: 3m
+  #   table: "*"
