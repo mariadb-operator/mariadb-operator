@@ -604,6 +604,25 @@ func MergeMetadata(metas ...*Metadata) *Metadata {
 	return &meta
 }
 
+// BackupType defines the backup type.
+type BackupType string
+
+const (
+	// BackupTypeLogical represents a logical backup created using mariadb-dump.
+	BackupTypeLogical BackupType = "logical"
+	// BackupTypePhysical represents a physical backup created using mariadb-backup.
+	BackupTypePhysical BackupType = "physical"
+)
+
+func (b BackupType) Validate() error {
+	switch b {
+	case BackupTypeLogical, BackupTypePhysical:
+		return nil
+	default:
+		return fmt.Errorf("invalid backup type: %v, supported types: [%v|%v]", b, BackupTypeLogical, BackupTypePhysical)
+	}
+}
+
 // CompressAlgorithm defines the compression algorithm for a Backup resource.
 type CompressAlgorithm string
 
