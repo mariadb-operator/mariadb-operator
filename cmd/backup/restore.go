@@ -32,7 +32,9 @@ var restoreCommand = &cobra.Command{
 		ctx, cancel := newContext()
 		defer cancel()
 
-		backupStorage, err := getBackupStorage()
+		backupProcessor := getBackupProcessor()
+
+		backupStorage, err := getBackupStorage(backupProcessor)
 		if err != nil {
 			logger.Error(err, "error getting backup storage")
 			os.Exit(1)
@@ -51,7 +53,7 @@ var restoreCommand = &cobra.Command{
 			os.Exit(1)
 		}
 
-		backupTargetFile, err := backup.GetBackupTargetFile(backupFileNames, targetTime, logger.WithName("target-recovery-time"))
+		backupTargetFile, err := backupProcessor.GetBackupTargetFile(backupFileNames, targetTime, logger.WithName("target-recovery-time"))
 		if err != nil {
 			logger.Error(err, "error reading getting target backup")
 			os.Exit(1)
@@ -64,7 +66,7 @@ var restoreCommand = &cobra.Command{
 			os.Exit(1)
 		}
 
-		backupCompressor, err := getBackupCompressorWithFile(backupTargetFile)
+		backupCompressor, err := getBackupCompressorWithFile(backupTargetFile, backupProcessor)
 		if err != nil {
 			logger.Error(err, "error getting backup compressor")
 			os.Exit(1)
@@ -94,10 +96,10 @@ func writeTargetFile(backupTargetFile string) error {
 	return os.WriteFile(targetFilePath, []byte(backupTargetFile), 0777)
 }
 
-func getBackupCompressorWithFile(fileName string) (backup.BackupCompressor, error) {
-	calg, err := backup.ParseCompressionAlgorithm(fileName)
+func getBackupCompressorWithFile(fileName string, processor backup.BackupProcessor) (backup.BackupCompressor, error) {
+	calg, err := processor.ParseCompressionAlgorithm(fileName)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing compression algorithm: %v", err)
 	}
-	return getBackupCompressorWithAlgorithm(calg)
+	return getBackupCompressorWithAlgorithm(calg, processor)
 }
