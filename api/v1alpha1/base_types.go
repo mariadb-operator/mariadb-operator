@@ -657,6 +657,19 @@ func (c CompressAlgorithm) Extension() (string, error) {
 	}
 }
 
+func CompressionFromExtension(ext string) (CompressAlgorithm, error) {
+	switch ext {
+	case "":
+		return CompressNone, nil
+	case "bz2":
+		return CompressBzip2, nil
+	case "gz":
+		return CompressGzip, nil
+	default:
+		return "", fmt.Errorf("unknown compression extension: %q, supported extensions: [bz2|gz]", ext)
+	}
+}
+
 // BackupStorage defines the final storage for backups.
 type BackupStorage struct {
 	// S3 defines the configuration to store backups in a S3 compatible storage.
