@@ -32,7 +32,11 @@ var restoreCommand = &cobra.Command{
 		ctx, cancel := newContext()
 		defer cancel()
 
-		backupProcessor := getBackupProcessor()
+		backupProcessor, err := getBackupProcessor()
+		if err != nil {
+			logger.Error(err, "error getting backup processor")
+			os.Exit(1)
+		}
 
 		backupStorage, err := getBackupStorage(backupProcessor)
 		if err != nil {

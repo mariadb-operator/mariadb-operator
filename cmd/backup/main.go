@@ -21,6 +21,7 @@ var (
 
 	path              string
 	targetFilePath    string
+	backupType        string
 	cleanupTargetFile bool
 
 	s3           bool
@@ -49,6 +50,8 @@ func init() {
 		fmt.Printf("error marking 'target-file-path' flag as required: %v", err)
 		os.Exit(1)
 	}
+	RootCmd.PersistentFlags().StringVar(&backupType, "backup-type", string(mariadbv1alpha1.BackupTypeLogical),
+		"Backup type: logical(mariadb-dump) or physical(mariadb-backup).")
 	RootCmd.PersistentFlags().BoolVar(&cleanupTargetFile, "cleanup-target-file", false,
 		"Whether to clean up the target file after S3 backups are completed."+
 			"This option should be used exclusively with external backups, such as S3.")
@@ -62,7 +65,7 @@ func init() {
 	RootCmd.PersistentFlags().StringVar(&s3Prefix, "s3-prefix", "", "S3 bucket prefix name to use.")
 
 	RootCmd.PersistentFlags().StringVar(&compression, "compression", string(mariadbv1alpha1.CompressNone),
-		"Compression algorithm, none, gzip or bzip2.")
+		"Compression algorithm: none, gzip or bzip2.")
 
 	RootCmd.Flags().DurationVar(&maxRetention, "max-retention", 30*24*time.Hour,
 		"Defines the retention policy for backups. Older backups will be deleted.")
@@ -85,7 +88,11 @@ var RootCmd = &cobra.Command{
 		ctx, cancel := newContext()
 		defer cancel()
 
-		backupProcessor := getBackupProcessor()
+		backupProcessor, err := getBackupProcessor()
+		if err != nil {
+			logger.Error(err, "error getting backup processor")
+			os.Exit(1)
+		}
 		backupStorage, err := getBackupStorage(backupProcessor)
 		if err != nil {
 			logger.Error(err, "error getting backup storage")
@@ -148,9 +155,18 @@ func newContext() (context.Context, context.CancelFunc) {
 	)
 }
 
-func getBackupProcessor() backup.BackupProcessor {
-	logger.Info("configuring logical backup processor")
-	return backup.NewLogicalBackupProcessor()
+func getBackupProcessor() (backup.BackupProcessor, error) {
+	backType := mariadbv1alpha1.BackupType(backupType)
+	if err := backType.Validate(); err != nil {
+		return nil, fmt.Errorf("backup type not supported: %v", err)
+	}
+	switch backType {
+	case mariadbv1alpha1.BackupTypeLogical:
+		logger.Info("configuring logical backup processor")
+		return backup.NewLogicalBackupProcessor(), nil
+	default:
+		return nil, fmt.Errorf("unsupported backup type: %v", backType)
+	}
 }
 
 func getBackupStorage(processor backup.BackupProcessor) (backup.BackupStorage, error) {
