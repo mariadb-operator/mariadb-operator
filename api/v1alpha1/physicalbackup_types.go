@@ -143,6 +143,11 @@ type PhysicalBackupSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	InheritMetadata *Metadata `json:"inheritMetadata,omitempty"`
+	// SuccessfulJobsHistoryLimit defines the maximum number of successful Jobs to be displayed. It defaults to 5.
+	// +optional
+	// +kubebuilder:validation:Minimum=0
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	SuccessfulJobsHistoryLimit *int32 `json:"successfulJobsHistoryLimit,omitempty"`
 }
 
 // PhysicalBackupStatus defines the observed state of PhysicalBackup.
@@ -217,6 +222,9 @@ func (b *PhysicalBackup) SetDefaults(mariadb *MariaDB) {
 	}
 	if b.Spec.BackoffLimit == 0 {
 		b.Spec.BackoffLimit = 5
+	}
+	if b.Spec.SuccessfulJobsHistoryLimit == nil {
+		b.Spec.SuccessfulJobsHistoryLimit = ptr.To(int32(5))
 	}
 	b.Spec.PhysicalBackupPodTemplate.SetDefaults(b.ObjectMeta, mariadb.ObjectMeta)
 }
