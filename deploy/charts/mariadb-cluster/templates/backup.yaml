@@ -1,0 +1,15 @@
+{{- include "mariadb-cluster.validateBackups" . -}}
+{{- range $i, $backup := .Values.backups }}
+---
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: Backup
+metadata:
+  name: {{ include "mariadb-cluster.fullname" $ }}-{{ $i }}
+  labels:
+    {{- include "mariadb-cluster.labels" $ | nindent 4 }}
+spec:
+  mariaDbRef:
+    name: {{ include "mariadb-cluster.fullname" $ }}
+    namespace: {{ $.Release.Namespace }}
+  {{- toYaml (unset (deepCopy $backup) "mariaDbRef" ) | nindent 2 }}
+{{- end }}

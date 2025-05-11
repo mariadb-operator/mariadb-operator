@@ -1,0 +1,15 @@
+{{- include "mariadb-cluster.validateUsers" . -}}
+{{- range .Values.users }}
+---
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: User
+metadata:
+  name: {{ include "mariadb-cluster.fullname" $ }}-{{ .name }}
+  labels:
+    {{- include "mariadb-cluster.labels" $ | nindent 4 }}
+spec:
+  mariaDbRef:
+    name: {{ include "mariadb-cluster.fullname" $ }}
+    namespace: {{ $.Release.Namespace }}
+  {{- toYaml (unset (deepCopy .) "mariaDbRef" ) | nindent 2 }}
+{{- end }}

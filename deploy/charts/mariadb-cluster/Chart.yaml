@@ -1,0 +1,19 @@
+apiVersion: v2
+name: mariadb-cluster
+description: Create MariaDB cluster managed by mariadb-operator
+home: https://github.com/mariadb-operator/mariadb-operator
+icon: https://mariadb-operator.github.io/mariadb-operator/assets/mariadb_profile.svg
+type: application
+version: 0.38.1
+appVersion: "0.38.1"
+kubeVersion: ">=1.26.0-0"
+maintainers:
+  - email: martin.montes@mariadb.com
+    name: mmontes11
+keywords:
+  - mariadb
+  - mysql
+  - operator
+  - mariadb-operator
+  - database
+  - maxscale
