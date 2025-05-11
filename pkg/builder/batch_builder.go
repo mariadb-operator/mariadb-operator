@@ -93,7 +93,7 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alph
 	}
 
 	operatorContainer, err := b.jobMariadbOperatorContainer(
-		cmd.MariadbOperatorBackup(),
+		cmd.MariadbOperatorBackup(mariadbv1alpha1.BackupTypeLogical),
 		volumeMounts,
 		jobS3Env(backup.Spec.Storage.S3),
 		jobResources(backup.Spec.Resources),
@@ -201,7 +201,7 @@ func (b *Builder) BuildPhysicalBackupJob(key types.NamespacedName, backup *maria
 	}
 
 	operatorContainer, err := b.jobMariadbOperatorContainer(
-		cmd.MariadbOperatorBackup(),
+		cmd.MariadbOperatorBackup(mariadbv1alpha1.BackupTypePhysical),
 		volumeMounts,
 		jobS3Env(backup.Spec.Storage.S3),
 		jobResources(backup.Spec.Resources),

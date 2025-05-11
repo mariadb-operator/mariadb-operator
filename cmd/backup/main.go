@@ -164,6 +164,9 @@ func getBackupProcessor() (backup.BackupProcessor, error) {
 	case mariadbv1alpha1.BackupTypeLogical:
 		logger.Info("configuring logical backup processor")
 		return backup.NewLogicalBackupProcessor(), nil
+	case mariadbv1alpha1.BackupTypePhysical:
+		logger.Info("configuring physical backup processor")
+		return backup.NewPhysicalBackupProcessor(), nil
 	default:
 		return nil, fmt.Errorf("unsupported backup type: %v", backType)
 	}
