@@ -289,12 +289,13 @@ func TestMariadbDumpArgs(t *testing.T) {
 
 func TestMariadbOperatorBackup(t *testing.T) {
 	tests := []struct {
-		name      string
-		backupCmd *BackupCommand
-		wantArgs  []string
+		name       string
+		backupCmd  *BackupCommand
+		backupType mariadbv1alpha1.BackupType
+		wantArgs   []string
 	}{
 		{
-			name: "no S3 no cleanupTargetFile",
+			name: "logical no S3 no cleanupTargetFile",
 			backupCmd: &BackupCommand{
 				BackupOpts: BackupOpts{
 					Path:                 "/backups",
@@ -304,12 +305,15 @@ func TestMariadbOperatorBackup(t *testing.T) {
 					LogLevel:             "info",
 				},
 			},
+			backupType: mariadbv1alpha1.BackupTypeLogical,
 			wantArgs: []string{
 				"backup",
 				"--path",
 				"/backups",
 				"--target-file-path",
 				"/backups/0-backup-target.txt",
+				"--backup-type",
+				"logical",
 				"--max-retention",
 				"24h0m0s",
 				"--compression",
@@ -319,7 +323,35 @@ func TestMariadbOperatorBackup(t *testing.T) {
 			},
 		},
 		{
-			name: "S3",
+			name: "physical no S3 no cleanupTargetFile",
+			backupCmd: &BackupCommand{
+				BackupOpts: BackupOpts{
+					Path:                 "/backups",
+					TargetFilePath:       "/backups/0-backup-target.txt",
+					MaxRetentionDuration: 24 * time.Hour,
+					Compression:          mariadbv1alpha1.CompressGzip,
+					LogLevel:             "info",
+				},
+			},
+			backupType: mariadbv1alpha1.BackupTypePhysical,
+			wantArgs: []string{
+				"backup",
+				"--path",
+				"/backups",
+				"--target-file-path",
+				"/backups/0-backup-target.txt",
+				"--backup-type",
+				"physical",
+				"--max-retention",
+				"24h0m0s",
+				"--compression",
+				"gzip",
+				"--log-level",
+				"info",
+			},
+		},
+		{
+			name: "logical S3",
 			backupCmd: &BackupCommand{
 				BackupOpts: BackupOpts{
 					Path:                 "/backups",
@@ -336,12 +368,15 @@ func TestMariadbOperatorBackup(t *testing.T) {
 					S3Prefix:             "mariadb",
 				},
 			},
+			backupType: mariadbv1alpha1.BackupTypeLogical,
 			wantArgs: []string{
 				"backup",
 				"--path",
 				"/backups",
 				"--target-file-path",
 				"/backups/0-backup-target.txt",
+				"--backup-type",
+				"logical",
 				"--max-retention",
 				"24h0m0s",
 				"--compression",
@@ -363,7 +398,54 @@ func TestMariadbOperatorBackup(t *testing.T) {
 			},
 		},
 		{
-			name: "S3 and cleanup target file",
+			name: "physical S3",
+			backupCmd: &BackupCommand{
+				BackupOpts: BackupOpts{
+					Path:                 "/backups",
+					TargetFilePath:       "/backups/0-backup-target.txt",
+					MaxRetentionDuration: 24 * time.Hour,
+					Compression:          mariadbv1alpha1.CompressGzip,
+					LogLevel:             "info",
+					S3:                   true,
+					S3Bucket:             "backups",
+					S3Endpoint:           "s3.amazonaws.com",
+					S3Region:             "us-east-1",
+					S3TLS:                true,
+					S3CACertPath:         "/etc/ssl/ca.crt",
+					S3Prefix:             "mariadb",
+				},
+			},
+			backupType: mariadbv1alpha1.BackupTypePhysical,
+			wantArgs: []string{
+				"backup",
+				"--path",
+				"/backups",
+				"--target-file-path",
+				"/backups/0-backup-target.txt",
+				"--backup-type",
+				"physical",
+				"--max-retention",
+				"24h0m0s",
+				"--compression",
+				"gzip",
+				"--log-level",
+				"info",
+				"--s3",
+				"--s3-bucket",
+				"backups",
+				"--s3-endpoint",
+				"s3.amazonaws.com",
+				"--s3-region",
+				"us-east-1",
+				"--s3-tls",
+				"--s3-ca-cert-path",
+				"/etc/ssl/ca.crt",
+				"--s3-prefix",
+				"mariadb",
+			},
+		},
+		{
+			name: "logical S3 and cleanup target file",
 			backupCmd: &BackupCommand{
 				BackupOpts: BackupOpts{
 					Path:                 "/backups",
@@ -381,12 +463,64 @@ func TestMariadbOperatorBackup(t *testing.T) {
 					CleanupTargetFile:    true,
 				},
 			},
+			backupType: mariadbv1alpha1.BackupTypeLogical,
 			wantArgs: []string{
 				"backup",
 				"--path",
 				"/backups",
 				"--target-file-path",
 				"/backups/0-backup-target.txt",
+				"--backup-type",
+				"logical",
+				"--max-retention",
+				"24h0m0s",
+				"--compression",
+				"gzip",
+				"--log-level",
+				"info",
+				"--s3",
+				"--s3-bucket",
+				"backups",
+				"--s3-endpoint",
+				"s3.amazonaws.com",
+				"--s3-region",
+				"us-east-1",
+				"--s3-tls",
+				"--s3-ca-cert-path",
+				"/etc/ssl/ca.crt",
+				"--s3-prefix",
+				"mariadb",
+				"--cleanup-target-file",
+			},
+		},
+		{
+			name: "physical S3 and cleanup target file",
+			backupCmd: &BackupCommand{
+				BackupOpts: BackupOpts{
+					Path:                 "/backups",
+					TargetFilePath:       "/backups/0-backup-target.txt",
+					MaxRetentionDuration: 24 * time.Hour,
+					Compression:          mariadbv1alpha1.CompressGzip,
+					LogLevel:             "info",
+					S3:                   true,
+					S3Bucket:             "backups",
+					S3Endpoint:           "s3.amazonaws.com",
+					S3Region:             "us-east-1",
+					S3TLS:                true,
+					S3CACertPath:         "/etc/ssl/ca.crt",
+					S3Prefix:             "mariadb",
+					CleanupTargetFile:    true,
+				},
+			},
+			backupType: mariadbv1alpha1.BackupTypePhysical,
+			wantArgs: []string{
+				"backup",
+				"--path",
+				"/backups",
+				"--target-file-path",
+				"/backups/0-backup-target.txt",
+				"--backup-type",
+				"physical",
 				"--max-retention",
 				"24h0m0s",
 				"--compression",
@@ -412,7 +546,7 @@ func TestMariadbOperatorBackup(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			command := tt.backupCmd.MariadbOperatorBackup()
+			command := tt.backupCmd.MariadbOperatorBackup(tt.backupType)
 			if diff := cmp.Diff(command.Args, tt.wantArgs); diff != "" {
 				t.Errorf("unexpected args (-want +got):\n%s", diff)
 			}

@@ -11,6 +11,7 @@ spec:
     immediate: true
   serviceAccountName: backup
   compression: bzip2
+  maxRetention: 720h # 30 days
   storage:
     s3:
       bucket: physicalbackups
