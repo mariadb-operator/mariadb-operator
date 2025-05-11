@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/hashicorp/go-multierror"
@@ -10,6 +11,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/rbac"
+	"github.com/mariadb-operator/mariadb-operator/pkg/galera/errors"
 	jobpkg "github.com/mariadb-operator/mariadb-operator/pkg/job"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	"github.com/robfig/cron/v3"
@@ -58,6 +60,9 @@ func (r *PhysicalBackupReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	}
 	if err := r.reconcileStatus(ctx, &backup, jobList); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error reconciling status: %v", err)
+	}
+	if err := r.cleanupJobs(ctx, &backup, jobList); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error cleaning up Jobs: %v", err)
 	}
 
 	mariadb, err := r.RefResolver.MariaDB(ctx, &backup.Spec.MariaDBRef, backup.Namespace)
@@ -397,6 +402,41 @@ func (r *PhysicalBackupReconciler) waitForRunningJobs(ctx context.Context, jobLi
 		}
 	}
 	return ctrl.Result{}, nil
+}
+
+func (r *PhysicalBackupReconciler) cleanupJobs(ctx context.Context, backup *mariadbv1alpha1.PhysicalBackup,
+	jobList *batchv1.JobList) error {
+	if backup.Spec.Schedule == nil {
+		return nil
+	}
+
+	var completeJobs []batchv1.Job
+	for _, job := range jobList.Items {
+		if jobpkg.IsJobComplete(&job) {
+			completeJobs = append(completeJobs, job)
+		}
+	}
+	sort.Slice(completeJobs, func(i, j int) bool {
+		return completeJobs[i].CreationTimestamp.Time.After(completeJobs[j].CreationTimestamp.Time)
+	})
+	maxHistory := int(ptr.Deref(backup.Spec.SuccessfulJobsHistoryLimit, 5))
+
+	if len(completeJobs) <= maxHistory {
+		return nil
+	}
+	logger := log.FromContext(ctx)
+
+	for i := maxHistory; i < len(completeJobs); i++ {
+		job := &completeJobs[i]
+
+		err := r.Delete(ctx, job, &client.DeleteOptions{PropagationPolicy: ptr.To(metav1.DeletePropagationBackground)})
+		if err != nil && !errors.IsNotFound(err) {
+			return err
+		}
+		logger.V(1).Info("Deleted old Job", "job", job.Name, "backup", backup.Name)
+	}
+
+	return nil
 }
 
 func (r *PhysicalBackupReconciler) getBackupFilename(backup *mariadbv1alpha1.PhysicalBackup) (string, error) {

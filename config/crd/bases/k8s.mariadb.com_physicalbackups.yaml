@@ -744,6 +744,12 @@ spec:
                         type: object
                     type: object
                 type: object
+              successfulJobsHistoryLimit:
+                description: SuccessfulJobsHistoryLimit defines the maximum number
+                  of successful Jobs to be displayed. It defaults to 5.
+                format: int32
+                minimum: 0
+                type: integer
               tolerations:
                 description: Tolerations to be used in the Pod.
                 items:
