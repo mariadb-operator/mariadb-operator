@@ -231,13 +231,15 @@ func (b *BackupCommand) MariadbBackup(mariadb *mariadbv1alpha1.MariaDB) (*Comman
 	return NewBashCommand(cmds), nil
 }
 
-func (b *BackupCommand) MariadbOperatorBackup() *Command {
+func (b *BackupCommand) MariadbOperatorBackup(backupType mariadbv1alpha1.BackupType) *Command {
 	args := []string{
 		"backup",
 		"--path",
 		b.Path,
 		"--target-file-path",
 		b.TargetFilePath,
+		"--backup-type",
+		string(backupType),
 		"--max-retention",
 		b.MaxRetentionDuration.String(),
 	}
