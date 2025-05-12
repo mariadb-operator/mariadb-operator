@@ -4,65 +4,69 @@ fullnameOverride: ""
 # -- MariaDB CR
 # https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/API_REFERENCE.md#mariadbspec
 mariadb:
-  affinity: {}
-  args: []
-  bootstrapFrom: {}
-  command: []
-  connection: {}
-  database: ""
-  env: []
-  envFrom: []
-  galera: {}
-  image: ""
-  imagePullPolicy: IfNotPresent
-  imagePullSecrets: []
-  inheritMetadata: {}
-  initContainers: []
-  livenessProbe: {}
-  maxScale: {}
-  maxScaleRef: {}
-  metrics: {}
-  myCnf: ""
-  myCnfConfigMapKeyRef: {}
-  nodeSelector: {}
-  passwordPlugin: {}
-  passwordSecretKeyRef: {}
-  podDisruptionBudget: {}
-  podMetadata: {}
-  podSecurityContext: {}
-  port: 3306
-  primaryConnection: {}
-  primaryService: {}
-  priorityClassName: ""
-  readinessProbe: {}
-  replicas: 1
-  replicasAllowEvenNumber: false
-  replication: {}
-  resources: {}
-  rootPasswordSecretKeyRef: {}
-  secondaryConnection: {}
-  secondaryService: {}
-  securityContext: {}
-  service: {}
-  serviceAccountName: ""
-  servicePorts: []
-  sidecarContainers: []
-  startupProbe: {}
-  storage: {}
-  suspend: false
-  timeZone: ""
-  tls: {}
-  tolerations: []
-  topologySpreadConstraints: []
-  updateStrategy: {}
-  username: ""
-  volumeMounts: []
-  volumes: []
+  # affinity: {}
+  # args: []
+  # bootstrapFrom: {}
+  # command: []
+  # connection: {}
+  # database: ""
+  # env: []
+  # envFrom: []
+  galera:
+    enabled: true
+  # image: ""
+  # imagePullPolicy: ""
+  # imagePullSecrets: []
+  # inheritMetadata: {}
+  # initContainers: []
+  # livenessProbe: {}
+  # maxScale: {}
+  # maxScaleRef: {}
+  metrics:
+    enabled: true
+  # myCnf: ""
+  # myCnfConfigMapKeyRef: {}
+  # nodeSelector: {}
+  # passwordPlugin: {}
+  # passwordSecretKeyRef: {}
+  # podDisruptionBudget: {}
+  # podMetadata: {}
+  # podSecurityContext: {}
+  # port: ""
+  # primaryConnection: {}
+  # primaryService: {}
+  # priorityClassName: ""
+  # readinessProbe: {}
+  replicas: 3
+  # replicasAllowEvenNumber: false
+  # replication: {}
+  # resources: {}
+  rootPasswordSecretKeyRef:
+    name: mariadb-cluster-root-password
+    key: ROOT_PASSWORD
+  # secondaryConnection: {}
+  # secondaryService: {}
+  # securityContext: {}
+  # service: {}
+  # serviceAccountName: ""
+  # servicePorts: []
+  # sidecarContainers: []
+  # startupProbe: {}
+  storage:
+    size: 1Gi
+  # suspend: false
+  # timeZone: ""
+  # tls: {}
+  # tolerations: []
+  # topologySpreadConstraints: []
+  # updateStrategy: {}
+  # username: ""
+  # volumeMounts: []
+  # volumes: []
 
 # -- The list of Database CRs. The `.name` key is required. The `.mariaDbRef` key will be ignored.
 # https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/API_REFERENCE.md#databasespec
-databases:
-  []
+databases: []
   # - characterSet: utf8
   #   cleanupPolicy: Delete
   #   collate: utf8_general_ci
@@ -72,8 +76,7 @@ databases:
 
 # -- The list of User CRs. The `.name` key is required. The `.mariaDbRef` key will be ignored.
 # https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/API_REFERENCE.md#userspec
-users:
-  []
+users: []
   # - cleanupPolicy: Delete
   #   host: "%"
   #   maxUserConnections: 100
@@ -87,8 +90,7 @@ users:
 
 # -- The list of Grant CRs. The `.mariaDbRef` key will be ignored.
 # https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/API_REFERENCE.md#grantspec
-grants:
-  []
+grants: []
   # - cleanupPolicy: Delete
   #   database: foo
   #   host: "%"

@@ -8,23 +8,8 @@ metadata:
   labels:
     {{- include "mariadb-cluster.labels" $ | nindent 4 }}
 spec:
-  {{- with .characterSet }}
-  characterSet: {{ . }}
-  {{- end }}
-  {{- with .cleanupPolicy }}
-  cleanupPolicy: {{ . }}
-  {{- end }}
-  {{- with .collate }}
-  collate: {{ . }}
-  {{- end }}
   mariaDbRef:
     name: {{ include "mariadb-cluster.fullname" $ }}
     namespace: {{ $.Release.Namespace }}
-  name: {{ .name }}
-  {{- with .requeueInterval }}
-  requeueInterval: {{ . }}
-  {{- end }}
-  {{- with .retryInterval }}
-  retryInterval: {{ . }}
-  {{- end }}
+  {{- toYaml (unset (deepCopy .) "mariaDbRef" ) | nindent 2 }}
 {{- end }}
