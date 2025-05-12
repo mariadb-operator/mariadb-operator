@@ -170,6 +170,10 @@ func TestBuildRestore(t *testing.T) {
 						AntiAffinityEnabled: ptr.To(true),
 						Affinity:            mariadbv1alpha1.Affinity{},
 					},
+					NodeSelector: map[string]string{
+						"kubernetes.io/hostname": "compute-0",
+					},
+					Tolerations: []corev1.Toleration{},
 					Resources: &mariadbv1alpha1.ResourceRequirements{
 						Requests: corev1.ResourceList{
 							"cpu": resource.MustParse("100m"),
@@ -191,6 +195,12 @@ func TestBuildRestore(t *testing.T) {
 
 	if restore.Spec.JobPodTemplate.Affinity == nil {
 		t.Error("expected affinity to have been set")
+	}
+	if restore.Spec.NodeSelector == nil || len(restore.Spec.NodeSelector) <= 0 {
+		t.Error("expected nodeSelector to have been set")
+	}
+	if restore.Spec.Tolerations == nil {
+		t.Error("expected Tolerations to have been set")
 	}
 	if restore.Spec.JobContainerTemplate.Resources == nil {
 		t.Error("expected resources to have been set")
