@@ -196,7 +196,7 @@ func TestBuildRestore(t *testing.T) {
 	if restore.Spec.JobPodTemplate.Affinity == nil {
 		t.Error("expected affinity to have been set")
 	}
-	if restore.Spec.NodeSelector == nil || len(restore.Spec.NodeSelector) <= 0 {
+	if len(restore.Spec.NodeSelector) <= 0 {
 		t.Error("expected nodeSelector to have been set")
 	}
 	if restore.Spec.Tolerations == nil {
