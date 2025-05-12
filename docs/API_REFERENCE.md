@@ -980,6 +980,8 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `metadata` _[Metadata](#metadata)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
 | `affinity` _[AffinityConfig](#affinityconfig)_ | Affinity to be used in the Pod. |  |  |
+| `nodeSelector` _object (keys:string, values:string)_ | NodeSelector to be used in the Pod. |  |  |
+| `tolerations` _[Toleration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.32/#toleration-v1-core) array_ | Tolerations to be used in the Pod. |  |  |
 | `resources` _[ResourceRequirements](#resourcerequirements)_ | Resouces describes the compute resource requirements. |  |  |
 | `args` _string array_ | Args to be used in the Container. |  |  |
 

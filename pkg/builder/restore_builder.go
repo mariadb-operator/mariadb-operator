@@ -26,6 +26,15 @@ func (b *Builder) BuildRestore(mariadb *mariadbv1alpha1.MariaDB, key types.Names
 		restoreJob.Metadata,
 	)
 
+	// Allow the restoreJob to overwrite tolerations and node selector to ensure we allow the restore job to run
+	// differently than the mariadb pods.
+	if restoreJob.NodeSelector != nil {
+		podTpl.NodeSelector = restoreJob.NodeSelector
+	}
+	if restoreJob.Tolerations != nil {
+		podTpl.Tolerations = restoreJob.Tolerations
+	}
+
 	containerTpl := mariadbv1alpha1.JobContainerTemplate{}
 	containerTpl.FromContainerTemplate(mariadb.Spec.ContainerTemplate.DeepCopy())
 	containerTpl.Resources = restoreJob.Resources
