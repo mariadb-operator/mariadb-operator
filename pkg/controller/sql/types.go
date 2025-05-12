@@ -3,7 +3,7 @@ package sql
 import (
 	"context"
 
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	sqlClient "github.com/mariadb-operator/mariadb-operator/pkg/sql"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

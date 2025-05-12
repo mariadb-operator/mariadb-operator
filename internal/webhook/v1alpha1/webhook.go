@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	cmmeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
-	"github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/webhook"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 )

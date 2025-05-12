@@ -620,6 +620,7 @@ func (s *MariaDBStatus) UpdateCurrentPrimary(mariadb *MariaDB, index int) {
 // +kubebuilder:printcolumn:name="Updates",type="string",JSONPath=".spec.updateStrategy.type"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 // +operator-sdk:csv:customresourcedefinitions:resources={{MariaDB,v1alpha1},{MaxScale,v1alpha1},{Connection,v1alpha1},{Restore,v1alpha1},{User,v1alpha1},{Grant,v1alpha1},{ConfigMap,v1},{Service,v1},{Secret,v1},{Event,v1},{ServiceAccount,v1},{StatefulSet,v1},{Deployment,v1},{Job,v1},{PodDisruptionBudget,v1},{Role,v1},{RoleBinding,v1},{ClusterRoleBinding,v1}}
+// +genclient
 
 // MariaDB is the Schema for the mariadbs API. It is used to define MariaDB clusters.
 type MariaDB struct {

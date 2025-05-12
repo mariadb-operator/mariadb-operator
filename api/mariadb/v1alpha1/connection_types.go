@@ -120,6 +120,7 @@ func (c *ConnectionStatus) SetCondition(condition metav1.Condition) {
 // +kubebuilder:printcolumn:name="Secret",type="string",JSONPath=".spec.secretName"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 // +operator-sdk:csv:customresourcedefinitions:resources={{Connection,v1alpha1},{Secret,v1}}
+// +genclient
 
 // Connection is the Schema for the connections API. It is used to configure connection strings for the applications connecting to MariaDB.
 type Connection struct {

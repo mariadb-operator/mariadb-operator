@@ -58,6 +58,7 @@ func (d *DatabaseStatus) SetCondition(condition metav1.Condition) {
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:printcolumn:name="Name",type="string",JSONPath=".spec.name"
 // +operator-sdk:csv:customresourcedefinitions:resources={{Database,v1alpha1}}
+// +genclient
 
 // Database is the Schema for the databases API. It is used to define a logical database as if you were running a 'CREATE DATABASE' statement.
 type Database struct {

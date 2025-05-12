@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	backuppkg "github.com/mariadb-operator/mariadb-operator/pkg/backup"
 	builderpki "github.com/mariadb-operator/mariadb-operator/pkg/builder/pki"
 	ds "github.com/mariadb-operator/mariadb-operator/pkg/datastructures"

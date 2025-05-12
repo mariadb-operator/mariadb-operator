@@ -846,6 +846,7 @@ func (s *MaxScaleStatus) GetPrimaryServer() *string {
 // +kubebuilder:printcolumn:name="Primary",type="string",JSONPath=".status.primaryServer"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 // +operator-sdk:csv:customresourcedefinitions:resources={{MaxScale,v1alpha1},{User,v1alpha1},{Grant,v1alpha1},{Connection,v1alpha1},{Event,v1},{Service,v1},{Secret,v1},{ServiceAccount,v1},{StatefulSet,v1},{Deployment,v1},{PodDisruptionBudget,v1}}
+// +genclient
 
 // MaxScale is the Schema for the maxscales API. It is used to define MaxScale clusters.
 type MaxScale struct {

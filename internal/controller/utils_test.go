@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	"github.com/mariadb-operator/mariadb-operator/pkg/docker"
@@ -367,7 +367,7 @@ func testMaxscale(mdb *mariadbv1alpha1.MariaDB, mxs *mariadbv1alpha1.MaxScale) {
 		}
 		g.Expect(ptr.Deref(
 			mxs.Status.Monitor,
-			mariadbv1alpha1.MaxScaleResourceStatus{},
+			v1alpha1.MaxScaleResourceStatus{},
 		).State).To(Equal("Running"))
 		return true
 	}, testTimeout, testInterval).Should(BeTrue())

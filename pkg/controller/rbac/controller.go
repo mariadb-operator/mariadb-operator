@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -104,7 +104,7 @@ func (r *RBACReconciler) reconcileRole(ctx context.Context, key types.Namespaced
 	rules := []rbacv1.PolicyRule{
 		{
 			APIGroups: []string{
-				mariadbv1alpha1.GroupVersion.Group,
+				mariadbv1alpha1.SchemeGroupVersion.Group,
 			},
 			Resources: []string{
 				"mariadbs",

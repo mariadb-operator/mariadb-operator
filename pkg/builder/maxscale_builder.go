@@ -3,7 +3,7 @@ package builder
 import (
 	"fmt"
 
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	metadata "github.com/mariadb-operator/mariadb-operator/pkg/builder/metadata"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
@@ -31,7 +31,7 @@ func (b *Builder) BuildMaxScale(key types.NamespacedName, mdb *mariadbv1alpha1.M
 			Monitor:              ptr.Deref(mdbmxs.Monitor, mariadbv1alpha1.MaxScaleMonitor{}),
 			Admin:                ptr.Deref(mdbmxs.Admin, mariadbv1alpha1.MaxScaleAdmin{}),
 			Config:               ptr.Deref(mdbmxs.Config, mariadbv1alpha1.MaxScaleConfig{}),
-			Auth:                 ptr.Deref(mdbmxs.Auth, mariadbv1alpha1.MaxScaleAuth{}),
+			Auth:                 ptr.Deref(mdbmxs.Auth, v1alpha1.MaxScaleAuth{}),
 			Connection:           mdbmxs.Connection,
 			Metrics:              mdbmxs.Metrics,
 			TLS:                  mdbmxs.TLS,

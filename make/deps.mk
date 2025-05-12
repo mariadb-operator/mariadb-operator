@@ -12,6 +12,7 @@ KIND ?= $(LOCALBIN)/kind
 KUBECTL ?= $(LOCALBIN)/kubectl
 KUSTOMIZE ?= $(LOCALBIN)/kustomize
 CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
+CLIENT_GEN ?= $(LOCALBIN)/code-generator
 ENVTEST ?= $(LOCALBIN)/setup-envtest
 GINKGO ?= $(LOCALBIN)/ginkgo
 GOLANGCI_LINT ?= $(LOCALBIN)/golangci-lint
@@ -27,6 +28,7 @@ KIND_VERSION ?= v0.27.0
 KUBECTL_VERSION ?= v1.32.0
 KUSTOMIZE_VERSION ?= v5.4.3
 CONTROLLER_GEN_VERSION ?= v0.17.2
+CLIENT_GEN_VERSION ?= v0.32.3
 GINKGO_VERSION ?= v2.23.3
 GOLANGCI_LINT_VERSION ?= v1.64.8
 GORELEASER_VERSION ?= v2.8.1
@@ -66,6 +68,17 @@ $(KUSTOMIZE): $(LOCALBIN)
 controller-gen: $(CONTROLLER_GEN) ## Download controller-gen locally if necessary.
 $(CONTROLLER_GEN): $(LOCALBIN)
 	GOBIN=$(LOCALBIN) $(GO) install sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_GEN_VERSION)
+
+.PHONY: client-gen
+client-gen: ## download client-gen locally if necessary
+ifeq (,$(wildcard $(CLIENT_GEN)))
+	@{ \
+	set -e ;\
+	mkdir -p $(CLIENT_GEN) ;\
+	curl -sSLo - https://github.com/kubernetes/code-generator/archive/refs/tags/$(CLIENT_GEN_VERSION).tar.gz |\
+	tar -xvf - -C $(CLIENT_GEN) --strip-components=1 ;\
+	}
+endif
 
 .PHONY: envtest
 envtest: $(ENVTEST) ## Download envtest-setup locally if necessary.

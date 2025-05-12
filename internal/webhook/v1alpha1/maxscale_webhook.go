@@ -4,8 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	k8sv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/api/mariadb/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/utils/ptr"
@@ -20,7 +19,7 @@ var maxscalelog = logf.Log.WithName("maxscale-resource")
 
 // SetupMaxScaleWebhookWithManager registers the webhook for MaxScale in the manager.
 func SetupMaxScaleWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).For(&k8sv1alpha1.MaxScale{}).
+	return ctrl.NewWebhookManagedBy(mgr).For(&v1alpha1.MaxScale{}).
 		WithValidator(&MaxScaleCustomValidator{}).
 		Complete()
 }
@@ -35,7 +34,7 @@ var _ webhook.CustomValidator = &MaxScaleCustomValidator{}
 
 // ValidateCreate implements webhook.CustomValidator so a webhook will be registered for the type MaxScale.
 func (v *MaxScaleCustomValidator) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
-	maxscale, ok := obj.(*k8sv1alpha1.MaxScale)
+	maxscale, ok := obj.(*v1alpha1.MaxScale)
 	if !ok {
 		return nil, fmt.Errorf("expected a MaxScale object but got %T", obj)
 	}
@@ -60,11 +59,11 @@ func (v *MaxScaleCustomValidator) ValidateCreate(ctx context.Context, obj runtim
 
 // ValidateUpdate implements webhook.CustomValidator so a webhook will be registered for the type MaxScale.
 func (v *MaxScaleCustomValidator) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
-	maxscale, ok := newObj.(*k8sv1alpha1.MaxScale)
+	maxscale, ok := newObj.(*v1alpha1.MaxScale)
 	if !ok {
 		return nil, fmt.Errorf("expected a MaxScale object for the newObj but got %T", newObj)
 	}
-	oldMaxscale, ok := oldObj.(*k8sv1alpha1.MaxScale)
+	oldMaxscale, ok := oldObj.(*v1alpha1.MaxScale)
 	if !ok {
 		return nil, fmt.Errorf("expected a MaxScale object for the newObj but got %T", newObj)
 	}
