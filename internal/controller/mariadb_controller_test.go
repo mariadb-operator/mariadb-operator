@@ -723,22 +723,22 @@ var _ = Describe("MariaDB", func() {
 })
 
 func testMariadbBootstrap(key types.NamespacedName, source mariadbv1alpha1.RestoreSource) {
+	bootstrapFrom := mariadbv1alpha1.NewBootstrapFromRestoreSource(source)
+	bootstrapFrom.RestoreJob = &mariadbv1alpha1.Job{
+		Metadata: &mariadbv1alpha1.Metadata{
+			Labels: map[string]string{
+				"sidecar.istio.io/inject": "false",
+			},
+		},
+	}
+
 	mdb := mariadbv1alpha1.MariaDB{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      key.Name,
 			Namespace: key.Namespace,
 		},
 		Spec: mariadbv1alpha1.MariaDBSpec{
-			BootstrapFrom: &mariadbv1alpha1.BootstrapFrom{
-				RestoreSource: source,
-				RestoreJob: &mariadbv1alpha1.Job{
-					Metadata: &mariadbv1alpha1.Metadata{
-						Labels: map[string]string{
-							"sidecar.istio.io/inject": "false",
-						},
-					},
-				},
-			},
+			BootstrapFrom: &bootstrapFrom,
 			Storage: mariadbv1alpha1.Storage{
 				Size: ptr.To(resource.MustParse("100Mi")),
 			},
