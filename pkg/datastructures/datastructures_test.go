@@ -12,7 +12,7 @@ import (
 func TestDataStructures(t *testing.T) {
 	idx := newIndex("a", "b", "b", "c", "d", "e")
 	if !reflect.DeepEqual(idx, newIndex("a", "b", "c", "d", "e")) {
-		t.Error("expeting index to remove duplicates")
+		t.Error("expecting index to remove duplicates")
 	}
 
 	item, err := Get(idx, "b")
@@ -21,7 +21,7 @@ func TestDataStructures(t *testing.T) {
 		t.Errorf("expecting error to not have occurred: %v", err)
 	}
 	if item != expectedItem {
-		t.Errorf("expeting item to be %s, got %s", "a", item)
+		t.Errorf("expecting item to be %s, got %s", "a", item)
 	}
 
 	keys := Keys(idx)

@@ -115,7 +115,7 @@ type MaxScaleMonitor struct {
 	// Params defines extra parameters to pass to the monitor.
 	// Any parameter supported by MaxScale may be specified here. See reference:
 	// https://mariadb.com/kb/en/mariadb-maxscale-2308-common-monitor-parameters/.
-	// Monitor specific parameter are also suported:
+	// Monitor specific parameter are also supported:
 	// https://mariadb.com/kb/en/mariadb-maxscale-2308-galera-monitor/#galera-monitor-optional-parameters.
 	// https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-monitor/#configuration.
 	// +optional
@@ -202,7 +202,7 @@ type MaxScaleService struct {
 	// Params defines extra parameters to pass to the service.
 	// Any parameter supported by MaxScale may be specified here. See reference:
 	// https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/#service_1.
-	// Router specific parameter are also suported:
+	// Router specific parameter are also supported:
 	// https://mariadb.com/kb/en/mariadb-maxscale-2308-readwritesplit/#configuration.
 	// https://mariadb.com/kb/en/mariadb-maxscale-2308-readconnroute/#configuration.
 	// +optional

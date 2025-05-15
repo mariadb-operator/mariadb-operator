@@ -47,7 +47,7 @@ var (
 		Name:      "password",
 		Namespace: testNamespace,
 	}
-	testPwdSecretKey        = "passsword"
+	testPwdSecretKey        = "password"
 	testPwdMetricsSecretKey = "metrics"
 	testUser                = "test"
 	testPasswordSecretRef   = mariadbv1alpha1.SecretKeySelector{

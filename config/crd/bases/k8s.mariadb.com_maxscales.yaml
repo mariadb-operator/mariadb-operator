@@ -1375,7 +1375,7 @@ spec:
                         description: PriorityClassName to be used in the Pod.
                         type: string
                       resources:
-                        description: Resouces describes the compute resource requirements.
+                        description: Resources describes the compute resource requirements.
                         properties:
                           limits:
                             additionalProperties:
@@ -1528,7 +1528,7 @@ spec:
                       Params defines extra parameters to pass to the monitor.
                       Any parameter supported by MaxScale may be specified here. See reference:
                       https://mariadb.com/kb/en/mariadb-maxscale-2308-common-monitor-parameters/.
-                      Monitor specific parameter are also suported:
+                      Monitor specific parameter are also supported:
                       https://mariadb.com/kb/en/mariadb-maxscale-2308-galera-monitor/#galera-monitor-optional-parameters.
                       https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-monitor/#configuration.
                     type: object
@@ -1743,7 +1743,7 @@ spec:
                   If not defined, it defaults to 10s.
                 type: string
               resources:
-                description: Resouces describes the compute resource requirements.
+                description: Resources describes the compute resource requirements.
                 properties:
                   limits:
                     additionalProperties:
@@ -1900,7 +1900,7 @@ spec:
                         Params defines extra parameters to pass to the service.
                         Any parameter supported by MaxScale may be specified here. See reference:
                         https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/#service_1.
-                        Router specific parameter are also suported:
+                        Router specific parameter are also supported:
                         https://mariadb.com/kb/en/mariadb-maxscale-2308-readwritesplit/#configuration.
                         https://mariadb.com/kb/en/mariadb-maxscale-2308-readconnroute/#configuration.
                       type: object

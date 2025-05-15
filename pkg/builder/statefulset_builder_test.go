@@ -433,15 +433,15 @@ func TestMariaDBUpdateStrategy(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			stsStategy, err := mariadbUpdateStrategy(tt.mariadb)
+			stsStrategy, err := mariadbUpdateStrategy(tt.mariadb)
 			if !tt.wantErr && err != nil {
 				t.Errorf("unexpected error building update strategy: %v", err)
 			}
 			if tt.wantErr && err == nil {
 				t.Errorf("expected error building update strategy, got nil")
 			}
-			if !reflect.DeepEqual(tt.wantUpdateStrategy, stsStategy) {
-				t.Errorf("expecting mariadbUpdateStrategy returned value to be:\n%v\ngot:\n%v\n", tt.wantUpdateStrategy, stsStategy)
+			if !reflect.DeepEqual(tt.wantUpdateStrategy, stsStrategy) {
+				t.Errorf("expecting mariadbUpdateStrategy returned value to be:\n%v\ngot:\n%v\n", tt.wantUpdateStrategy, stsStrategy)
 			}
 		})
 	}

@@ -251,7 +251,7 @@ func (r *ReplicationConfig) reconcileUserSql(ctx context.Context, mariadb *maria
 	}
 	replPassword, err := r.secretReconciler.ReconcilePassword(ctx, req)
 	if err != nil {
-		return fmt.Errorf("error reconciling replication passsword: %v", err)
+		return fmt.Errorf("error reconciling replication password: %v", err)
 	}
 
 	accountName := formatAccountName(opts.username, opts.host)

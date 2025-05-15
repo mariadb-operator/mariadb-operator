@@ -49,7 +49,7 @@ const (
 	ConditionReasonCronJobScheduled string = "CronJobScheduled"
 	ConditionReasonCronJobFailed    string = "CronJobScheduled"
 	ConditionReasonCronJobRunning   string = "CronJobRunning"
-	ConditionReasonCronJobSuccess   string = "CronJobSucess"
+	ConditionReasonCronJobSuccess   string = "CronJobSuccess"
 
 	ConditionReasonConnectionFailed string = "ConnectionFailed"
 

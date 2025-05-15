@@ -94,7 +94,7 @@ func TestBackupPVCMeta(t *testing.T) {
 			},
 		},
 		{
-			name: "PVC and interit meta",
+			name: "PVC and inherit meta",
 			backup: &mariadbv1alpha1.Backup{
 				Spec: mariadbv1alpha1.BackupSpec{
 					Storage: mariadbv1alpha1.BackupStorage{

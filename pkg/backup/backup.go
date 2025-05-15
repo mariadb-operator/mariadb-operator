@@ -14,7 +14,7 @@ import (
 
 const timeLayout = time.RFC3339
 
-// time.Now cannot be mocked globablly, this is to allow overriding the now func from tests
+// time.Now cannot be mocked globally, this is to allow overriding the now func from tests
 var now = time.Now
 
 type backupDiff struct {

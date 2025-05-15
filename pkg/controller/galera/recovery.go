@@ -390,7 +390,7 @@ func (r *GaleraReconciler) recoverGaleraState(ctx context.Context, mariadb *mari
 
 					var bootstrap galerarecovery.Bootstrap
 					if err := bootstrap.Unmarshal([]byte(logs)); err != nil {
-						return fmt.Errorf("error unmarshaling recovery logs from Job '%s': %v", job.Name, err)
+						return fmt.Errorf("error unmarshalling recovery logs from Job '%s': %v", job.Name, err)
 					}
 
 					recoveryLogger.Info(

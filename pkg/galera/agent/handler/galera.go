@@ -56,7 +56,7 @@ func (g *Galera) GetState(w http.ResponseWriter, r *http.Request) {
 
 	var galeraState recovery.GaleraState
 	if err := galeraState.Unmarshal(bytes); err != nil {
-		g.responseWriter.WriteErrorf(w, "error unmarshaling galera state: %v", err)
+		g.responseWriter.WriteErrorf(w, "error unmarshalling galera state: %v", err)
 		return
 	}
 	g.responseWriter.WriteOK(w, galeraState)
@@ -142,7 +142,7 @@ func (b *Galera) setSafeToBootstrap(bootstrap *recovery.Bootstrap) error {
 
 	var galeraState recovery.GaleraState
 	if err := galeraState.Unmarshal(bytes); err != nil {
-		return fmt.Errorf("error unmarshaling galera state: %v", err)
+		return fmt.Errorf("error unmarshalling galera state: %v", err)
 	}
 
 	galeraState.SafeToBootstrap = true

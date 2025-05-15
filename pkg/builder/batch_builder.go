@@ -260,7 +260,7 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 	return job, nil
 }
 
-func (b *Builder) BuilGaleraInitJob(key types.NamespacedName, mariadb *mariadbv1alpha1.MariaDB) (*batchv1.Job, error) {
+func (b *Builder) BuildGaleraInitJob(key types.NamespacedName, mariadb *mariadbv1alpha1.MariaDB) (*batchv1.Job, error) {
 	galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
 	if !galera.Enabled {
 		return nil, errors.New("Galera must be enabled")

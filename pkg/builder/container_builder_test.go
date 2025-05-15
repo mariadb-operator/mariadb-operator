@@ -1950,7 +1950,7 @@ func defaultEnv(overrides []corev1.EnvVar) []corev1.EnvVar {
 			SecretKeyRef: &corev1.SecretKeySelector{},
 		},
 	}
-	mysqlInitdbSkupTzinfo := corev1.EnvVar{
+	mysqlInitdbSkipTzinfo := corev1.EnvVar{
 		Name:  "MYSQL_INITDB_SKIP_TZINFO",
 		Value: "1",
 	}
@@ -1959,7 +1959,7 @@ func defaultEnv(overrides []corev1.EnvVar) []corev1.EnvVar {
 		clusterName.Name:           clusterName,
 		mariadbName.Name:           mariadbName,
 		mariadbRootPassword.Name:   mariadbRootPassword,
-		mysqlInitdbSkupTzinfo.Name: mysqlInitdbSkupTzinfo,
+		mysqlInitdbSkipTzinfo.Name: mysqlInitdbSkipTzinfo,
 	}
 	for _, override := range overrides {
 		if _, ok := defaults[override.Name]; ok {
@@ -2003,7 +2003,7 @@ func defaultEnv(overrides []corev1.EnvVar) []corev1.EnvVar {
 		},
 		defaults[mariadbName.Name],
 		defaults[mariadbRootPassword.Name],
-		defaults[mysqlInitdbSkupTzinfo.Name],
+		defaults[mysqlInitdbSkipTzinfo.Name],
 	}
 }
 

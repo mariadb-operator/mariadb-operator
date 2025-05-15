@@ -101,7 +101,7 @@ func (r *StatefulSetGaleraReconciler) pollUntilHealthyWithTimeout(ctx context.Co
 }
 
 func (r *StatefulSetGaleraReconciler) isHealthy(ctx context.Context, stsObjMeta metav1.ObjectMeta, logger logr.Logger) (bool, error) {
-	// Kubenetes requests should not determine whether MariaDB is healthy or not.
+	// Kubernetes requests should not determine whether MariaDB is healthy or not.
 	// For example: control-plane down should not trigger a cluster recovery.
 	// Thus, an independent context is used so the pollUntilHealthyWithTimeout logic is not affected.
 	kubeCtx, kubeCancel := context.WithTimeout(context.Background(), 5*time.Second)

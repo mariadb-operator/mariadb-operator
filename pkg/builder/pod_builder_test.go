@@ -816,12 +816,12 @@ func TestMariadbPodBuilderAffinity(t *testing.T) {
 		Name: "test-mariadb-builder-affinity",
 	}
 	tests := []struct {
-		name                         string
-		mariadb                      *mariadbv1alpha1.MariaDB
-		opts                         []mariadbPodOpt
-		wantAffinity                 bool
-		wantTopologySpreadContraints bool
-		wantNodeAffinity             bool
+		name                          string
+		mariadb                       *mariadbv1alpha1.MariaDB
+		opts                          []mariadbPodOpt
+		wantAffinity                  bool
+		wantTopologySpreadConstraints bool
+		wantNodeAffinity              bool
 	}{
 		{
 			name: "no affinity",
@@ -833,10 +833,10 @@ func TestMariadbPodBuilderAffinity(t *testing.T) {
 					},
 				},
 			},
-			opts:                         nil,
-			wantAffinity:                 false,
-			wantTopologySpreadContraints: false,
-			wantNodeAffinity:             false,
+			opts:                          nil,
+			wantAffinity:                  false,
+			wantTopologySpreadConstraints: false,
+			wantNodeAffinity:              false,
 		},
 		{
 			name: "mariadb affinity",
@@ -853,10 +853,10 @@ func TestMariadbPodBuilderAffinity(t *testing.T) {
 					},
 				},
 			},
-			opts:                         nil,
-			wantAffinity:                 true,
-			wantTopologySpreadContraints: false,
-			wantNodeAffinity:             false,
+			opts:                          nil,
+			wantAffinity:                  true,
+			wantTopologySpreadConstraints: false,
+			wantNodeAffinity:              false,
 		},
 		{
 			name: "mariadb topologyspreadconstraints",
@@ -876,10 +876,10 @@ func TestMariadbPodBuilderAffinity(t *testing.T) {
 					},
 				},
 			},
-			opts:                         nil,
-			wantAffinity:                 false,
-			wantTopologySpreadContraints: true,
-			wantNodeAffinity:             false,
+			opts:                          nil,
+			wantAffinity:                  false,
+			wantTopologySpreadConstraints: true,
+			wantNodeAffinity:              false,
 		},
 		{
 			name: "opt affinity",
@@ -895,9 +895,9 @@ func TestMariadbPodBuilderAffinity(t *testing.T) {
 				withAffinity(&corev1.Affinity{}),
 				withAffinityEnabled(true),
 			},
-			wantAffinity:                 true,
-			wantTopologySpreadContraints: false,
-			wantNodeAffinity:             false,
+			wantAffinity:                  true,
+			wantTopologySpreadConstraints: false,
+			wantNodeAffinity:              false,
 		},
 		{
 			name: "mariadb and opt affinity",
@@ -924,9 +924,9 @@ func TestMariadbPodBuilderAffinity(t *testing.T) {
 				withAffinity(&corev1.Affinity{}),
 				withAffinityEnabled(true),
 			},
-			wantAffinity:                 true,
-			wantTopologySpreadContraints: true,
-			wantNodeAffinity:             false,
+			wantAffinity:                  true,
+			wantTopologySpreadConstraints: true,
+			wantNodeAffinity:              false,
 		},
 		{
 			name: "disable affinity",
@@ -953,9 +953,9 @@ func TestMariadbPodBuilderAffinity(t *testing.T) {
 				withAffinity(&corev1.Affinity{}),
 				withAffinityEnabled(false),
 			},
-			wantAffinity:                 false,
-			wantTopologySpreadContraints: false,
-			wantNodeAffinity:             false,
+			wantAffinity:                  false,
+			wantTopologySpreadConstraints: false,
+			wantNodeAffinity:              false,
 		},
 		{
 			name: "mariadb with node affinity",
@@ -989,10 +989,10 @@ func TestMariadbPodBuilderAffinity(t *testing.T) {
 					},
 				},
 			},
-			opts:                         nil,
-			wantAffinity:                 true,
-			wantTopologySpreadContraints: false,
-			wantNodeAffinity:             true,
+			opts:                          nil,
+			wantAffinity:                  true,
+			wantTopologySpreadConstraints: false,
+			wantNodeAffinity:              true,
 		},
 	}
 
@@ -1009,10 +1009,10 @@ func TestMariadbPodBuilderAffinity(t *testing.T) {
 				t.Error("expected affinity to not have been set")
 			}
 
-			if tt.wantTopologySpreadContraints && podTpl.Spec.TopologySpreadConstraints == nil {
+			if tt.wantTopologySpreadConstraints && podTpl.Spec.TopologySpreadConstraints == nil {
 				t.Error("expected topologySpreadConstraints to have been set")
 			}
-			if !tt.wantTopologySpreadContraints && podTpl.Spec.TopologySpreadConstraints != nil {
+			if !tt.wantTopologySpreadConstraints && podTpl.Spec.TopologySpreadConstraints != nil {
 				t.Error("expected topologySpreadConstraints to not have been set")
 			}
 

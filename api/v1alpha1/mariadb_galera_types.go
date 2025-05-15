@@ -246,7 +246,7 @@ type GaleraInitJob struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Metadata *Metadata `json:"metadata,omitempty"`
-	// Resouces describes the compute resource requirements.
+	// Resources describes the compute resource requirements.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:resourceRequirements"}
 	Resources *ResourceRequirements `json:"resources,omitempty"`
@@ -258,7 +258,7 @@ type GaleraRecoveryJob struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Metadata *Metadata `json:"metadata,omitempty"`
-	// Resouces describes the compute resource requirements.
+	// Resources describes the compute resource requirements.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:resourceRequirements"}
 	Resources *ResourceRequirements `json:"resources,omitempty"`

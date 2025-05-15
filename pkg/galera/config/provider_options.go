@@ -47,7 +47,7 @@ func (p *providerOptions) unmarshal(text string) error {
 	for _, opt := range opts {
 		var kvOpt kvOption
 		if err := kvOpt.unmarshal(opt); err != nil {
-			return fmt.Errorf("error unmarshaling option: %v", err)
+			return fmt.Errorf("error unmarshalling option: %v", err)
 		}
 
 		p.opts[kvOpt.key] = kvOpt.value

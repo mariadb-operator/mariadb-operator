@@ -14,7 +14,7 @@ func Hash(v string) string {
 // HashJSON computes the hash from a JSON object.
 func HashJSON(v any) (string, error) {
 	// IMPORTANT: Map values are sorted in order to obtain a canonical representation.
-	// From the json.Marhsal docs: https://pkg.go.dev/encoding/json#Marshal
+	// From the json.Marshal docs: https://pkg.go.dev/encoding/json#Marshal
 	// Map values encode as JSON objects. The map's key type must either be a string, an integer type, or implement encoding.TextMarshaler.
 	// The map keys are sorted and used as JSON object keys by applying the following rules, subject to the UTF-8 coercion described
 	// for string values above:

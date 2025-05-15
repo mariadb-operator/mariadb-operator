@@ -211,7 +211,7 @@ func ValidateCert(
 	validateCertOpts ...ValidateCertOpt,
 ) (bool, error) {
 	if len(caCerts) == 0 {
-		return false, errors.New("CA certicates should be provided to establish trust")
+		return false, errors.New("CA certificates should be provided to establish trust")
 	}
 	if err := certKeyPair.Validate(); err != nil {
 		return false, fmt.Errorf("invalid keypair: %v", err)

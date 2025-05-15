@@ -404,7 +404,7 @@ func (h *certHandler) ensureAllPodsTrustingCABundle(ctx context.Context, mdb *ma
 			return false, nil
 		}
 		if caAnnotation != caBundleHash {
-			logger.V(1).Info("CA annotation mistmatch", "pod", p.Name, "pod-hash", caAnnotation)
+			logger.V(1).Info("CA annotation mismatch", "pod", p.Name, "pod-hash", caAnnotation)
 			return false, nil
 		}
 	}
