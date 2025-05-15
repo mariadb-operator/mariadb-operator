@@ -101,7 +101,7 @@ type ContainerTemplate struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:resourceRequirements"}
 	StartupProbe *Probe `json:"startupProbe,omitempty"`
-	// Resouces describes the compute resource requirements.
+	// Resources describes the compute resource requirements.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:resourceRequirements"}
 	Resources *ResourceRequirements `json:"resources,omitempty"`
@@ -117,7 +117,7 @@ type JobContainerTemplate struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Args []string `json:"args,omitempty"`
-	// Resouces describes the compute resource requirements.
+	// Resources describes the compute resource requirements.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:resourceRequirements"}
 	Resources *ResourceRequirements `json:"resources,omitempty"`
@@ -171,7 +171,7 @@ type Container struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	VolumeMounts []VolumeMount `json:"volumeMounts,omitempty" webhook:"inmutable"`
-	// Resouces describes the compute resource requirements.
+	// Resources describes the compute resource requirements.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:resourceRequirements"}
 	Resources *ResourceRequirements `json:"resources,omitempty"`
@@ -187,7 +187,7 @@ type Job struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Affinity *AffinityConfig `json:"affinity,omitempty"`
-	// Resouces describes the compute resource requirements.
+	// Resources describes the compute resource requirements.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:resourceRequirements"}
 	Resources *ResourceRequirements `json:"resources,omitempty"`
@@ -575,7 +575,7 @@ type Metadata struct {
 	Annotations map[string]string `json:"annotations,omitempty"`
 }
 
-// MergeMetadata merges multiple Metadta instances into one
+// MergeMetadata merges multiple Metadata instances into one
 func MergeMetadata(metas ...*Metadata) *Metadata {
 	meta := Metadata{
 		Labels:      map[string]string{},
@@ -803,7 +803,7 @@ type Exporter struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
 	Port int32 `json:"port,omitempty"`
-	// Resouces describes the compute resource requirements.
+	// Resources describes the compute resource requirements.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:resourceRequirements"}
 	Resources *ResourceRequirements `json:"resources,omitempty"`

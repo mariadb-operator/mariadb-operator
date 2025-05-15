@@ -118,7 +118,7 @@ func (r *GaleraReconciler) listPVCs(ctx context.Context, mariadb *mariadbv1alpha
 }
 
 func (r *GaleraReconciler) createJob(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
-	job, err := r.builder.BuilGaleraInitJob(mariadb.InitKey(), mariadb)
+	job, err := r.builder.BuildGaleraInitJob(mariadb.InitKey(), mariadb)
 	if err != nil {
 		return err
 	}

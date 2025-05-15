@@ -92,7 +92,7 @@ type Storage struct {
 	VolumeClaimTemplate *VolumeClaimTemplate `json:"volumeClaimTemplate,omitempty"`
 }
 
-// Storate determines whether a Storage object is valid.
+// Storage determines whether a Storage object is valid.
 func (s *Storage) Validate(mdb *MariaDB) error {
 	if s.Ephemeral != nil {
 		if *s.Ephemeral && mdb.IsHAEnabled() {

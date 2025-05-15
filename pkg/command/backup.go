@@ -42,9 +42,9 @@ func WithBackup(path string, targetFilePath string) BackupOpt {
 	}
 }
 
-func WithCleanupTargetFile(shoudlCleanup bool) BackupOpt {
+func WithCleanupTargetFile(shouldCleanup bool) BackupOpt {
 	return func(bo *BackupOpts) {
-		bo.CleanupTargetFile = shoudlCleanup
+		bo.CleanupTargetFile = shouldCleanup
 	}
 }
 

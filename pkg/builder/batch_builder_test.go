@@ -352,7 +352,7 @@ func TestBackupJobMeta(t *testing.T) {
 			},
 		},
 		{
-			name: "override interit metadata",
+			name: "override inherit metadata",
 			backup: &mariadbv1alpha1.Backup{
 				Spec: mariadbv1alpha1.BackupSpec{
 					Storage: mariadbv1alpha1.BackupStorage{
@@ -856,7 +856,7 @@ func TestGaleraInitJobImagePullSecrets(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			job, err := builder.BuilGaleraInitJob(tt.mariadb.InitKey(), tt.mariadb)
+			job, err := builder.BuildGaleraInitJob(tt.mariadb.InitKey(), tt.mariadb)
 			if err != nil {
 				t.Fatalf("unexpected error building Job: %v", err)
 			}
@@ -1103,7 +1103,7 @@ func TestGaleraInitJobMeta(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			job, err := builder.BuilGaleraInitJob(key, tt.mariadb)
+			job, err := builder.BuildGaleraInitJob(key, tt.mariadb)
 			if err != nil {
 				t.Fatalf("unexpected error building init Job: %v", err)
 			}
@@ -1186,7 +1186,7 @@ func TestGaleraInitJobResources(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			job, err := builder.BuilGaleraInitJob(key, tt.mariadb)
+			job, err := builder.BuildGaleraInitJob(key, tt.mariadb)
 			if err != nil {
 				t.Fatalf("unexpected error building Galera init Job: %v", err)
 			}
@@ -1629,7 +1629,7 @@ func TestGaleraRecoveryJobVolumes(t *testing.T) {
 			wantVolumes: []string{StorageVolume, galeraresources.GaleraConfigVolume},
 		},
 		{
-			name: "resuse storage",
+			name: "reuse storage",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
@@ -2204,7 +2204,7 @@ func TestSqlJobMeta(t *testing.T) {
 			},
 		},
 		{
-			name: "override interit metadata",
+			name: "override inherit metadata",
 			sqlJob: &mariadbv1alpha1.SqlJob{
 				Spec: mariadbv1alpha1.SqlJobSpec{
 					SqlConfigMapKeyRef: &mariadbv1alpha1.ConfigMapKeySelector{},

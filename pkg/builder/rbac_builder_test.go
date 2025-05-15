@@ -52,7 +52,7 @@ func TestServiceAccountMeta(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			sa, err := builder.BuildServiceAccount(key, &mariadbv1alpha1.MariaDB{}, tt.meta)
 			if err != nil {
-				t.Fatalf("unexpected error building ServiceAccunt: %v", err)
+				t.Fatalf("unexpected error building ServiceAccount: %v", err)
 			}
 			assertObjectMeta(t, &sa.ObjectMeta, tt.wantMeta.Labels, tt.wantMeta.Annotations)
 		})

@@ -484,7 +484,7 @@ spec:
                 description: PriorityClassName to be used in the Pod.
                 type: string
               resources:
-                description: Resouces describes the compute resource requirements.
+                description: Resources describes the compute resource requirements.
                 properties:
                   limits:
                     additionalProperties:

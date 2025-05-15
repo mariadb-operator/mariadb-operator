@@ -68,7 +68,7 @@ func (c *Discovery) CertificateExist() (bool, error) {
 	return c.resourceExist("cert-manager.io/v1", "certificates")
 }
 
-func (c *Discovery) SecurityContextConstrainstsExist() (bool, error) {
+func (c *Discovery) SecurityContextConstraintsExist() (bool, error) {
 	return c.resourceExist("security.openshift.io/v1", "securitycontextconstraints")
 }
 
@@ -82,14 +82,14 @@ func (c *Discovery) LogInfo(logger logr.Logger) error {
 	if err != nil {
 		return err
 	}
-	scc, err := c.SecurityContextConstrainstsExist()
+	scc, err := c.SecurityContextConstraintsExist()
 	if err != nil {
 		return err
 	}
 	logger.Info("Resources",
 		"ServiceMonitor", svcMonitor,
 		"Certificate", cert,
-		"SecurityContextConstrainsts", scc,
+		"SecurityContextConstraints", scc,
 	)
 	return nil
 }

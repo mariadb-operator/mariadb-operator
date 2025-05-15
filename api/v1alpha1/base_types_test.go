@@ -25,12 +25,12 @@ var _ = Describe("Base types", func() {
 				backup *Backup,
 				wantRestoreSource *RestoreSource,
 				wantDefaulted bool,
-				wantBackupDefaulErr bool,
+				wantBackupDefaultErr bool,
 			) {
 				rs.SetDefaults(&restore)
 				if backup != nil {
 					err := rs.SetDefaultsWithBackup(backup)
-					if wantBackupDefaulErr {
+					if wantBackupDefaultErr {
 						Expect(err).To(HaveOccurred())
 					} else {
 						Expect(err).ToNot(HaveOccurred())

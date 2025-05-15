@@ -69,7 +69,7 @@ func TestIsValidBackupFile(t *testing.T) {
 	}
 }
 
-func TestGetTargerRecoveryFile(t *testing.T) {
+func TestGetTargetRecoveryFile(t *testing.T) {
 	tests := []struct {
 		name           string
 		backupFiles    []string

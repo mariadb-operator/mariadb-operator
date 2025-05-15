@@ -1,0 +1,15 @@
+[default.extend-words]
+# HashiCorp
+hashi = "hashi"
+# Incremental State Transfers
+ist = "ist"
+# TO DO: fix => immutable
+inmutable = "inmutable"
+
+[files]
+extend-exclude = [
+    # comes from external source
+    "pkg/embed/mariadb-docker/**",
+    # false-postitives in certs
+    "pkg/pki/*test.go",
+]

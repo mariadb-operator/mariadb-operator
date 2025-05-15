@@ -32,7 +32,7 @@ func TestDiscoverySecurityContextConstraints(t *testing.T) {
 		"security.openshift.io/v1",
 		"securitycontextconstraints",
 		func(d *Discovery) (bool, error) {
-			return d.SecurityContextConstrainstsExist()
+			return d.SecurityContextConstraintsExist()
 		})
 }
 

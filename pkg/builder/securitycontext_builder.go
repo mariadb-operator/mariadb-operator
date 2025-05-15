@@ -9,11 +9,11 @@ import (
 )
 
 func (b *Builder) buildContainerSecurityContext(securityContext *mariadbv1alpha1.SecurityContext) (*corev1.SecurityContext, error) {
-	sccExists, err := b.discovery.SecurityContextConstrainstsExist()
+	sccExists, err := b.discovery.SecurityContextConstraintsExist()
 	if err != nil {
 		return nil, fmt.Errorf("error discovering SecurityContextConstraints: %v", err)
 	}
-	// Delegate SecurityContext assigment to OpenShift.
+	// Delegate SecurityContext assignment to OpenShift.
 	// A SecurityContext is created based on SecurityContextConstraints.
 	// See: https://redhat-connect.gitbook.io/certified-operator-guide/troubleshooting-and-resources/sccs
 	if sccExists {
@@ -26,11 +26,11 @@ func (b *Builder) buildContainerSecurityContext(securityContext *mariadbv1alpha1
 }
 
 func (b *Builder) buildPodSecurityContext(podSecurityContext *mariadbv1alpha1.PodSecurityContext) (*corev1.PodSecurityContext, error) {
-	sccExists, err := b.discovery.SecurityContextConstrainstsExist()
+	sccExists, err := b.discovery.SecurityContextConstraintsExist()
 	if err != nil {
 		return nil, fmt.Errorf("error discovering SecurityContextConstraints: %v", err)
 	}
-	// Delegate SecurityContext assigment to OpenShift.
+	// Delegate SecurityContext assignment to OpenShift.
 	// A SecurityContext is created based on SecurityContextConstraints.
 	// See: https://redhat-connect.gitbook.io/certified-operator-guide/troubleshooting-and-resources/sccs
 	if sccExists {
@@ -44,11 +44,11 @@ func (b *Builder) buildPodSecurityContext(podSecurityContext *mariadbv1alpha1.Po
 
 func (b *Builder) buildPodSecurityContextWithUserGroup(podSecurityContext *mariadbv1alpha1.PodSecurityContext,
 	user, group int64) (*corev1.PodSecurityContext, error) {
-	sccExists, err := b.discovery.SecurityContextConstrainstsExist()
+	sccExists, err := b.discovery.SecurityContextConstraintsExist()
 	if err != nil {
 		return nil, fmt.Errorf("error discovering SecurityContextConstraints: %v", err)
 	}
-	// Delegate SecurityContext assigment to OpenShift.
+	// Delegate SecurityContext assignment to OpenShift.
 	// A SecurityContext is created based on SecurityContextConstraints.
 	// See: https://redhat-connect.gitbook.io/certified-operator-guide/troubleshooting-and-resources/sccs
 	if sccExists {
