@@ -302,9 +302,25 @@ spec:
                         default: ""
                         type: string
                     type: object
+                  backupType:
+                    description: BackupType is the type of backup to bootstrap from.
+                      It is defaulted based on BackupRef and PhysicalBackupRef. If
+                      none of them are set, it defaults to Logical.
+                    enum:
+                    - Logical
+                    - Physical
+                    type: string
+                  physicalBackupRef:
+                    description: PhysicalBackupRef is a reference to a PhysicalBackup
+                      object. It has priority over S3 and Volume.
+                    properties:
+                      name:
+                        default: ""
+                        type: string
+                    type: object
                   restoreJob:
                     description: RestoreJob defines additional properties for the
-                      Job used to perform the Restore.
+                      Job used to perform the restoration.
                     properties:
                       affinity:
                         description: Affinity to be used in the Pod.
@@ -721,7 +737,7 @@ spec:
                   stagingStorage:
                     description: |-
                       StagingStorage defines the temporary storage used to keep external backups (i.e. S3) while they are being processed.
-                      It defaults to an emptyDir volume, meaning that the backups will be temporarily stored in the node where the Restore Job is scheduled.
+                      It defaults to an emptyDir volume, meaning that the backups will be temporarily stored in the node where the Job is scheduled.
                     properties:
                       persistentVolumeClaim:
                         description: PersistentVolumeClaim is a Kubernetes PVC specification.
