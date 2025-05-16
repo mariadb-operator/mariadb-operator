@@ -41,8 +41,10 @@ func (b *Builder) BuildBackupStagingPVC(key types.NamespacedName, pvcSpec *maria
 		ObjectMeta: objMeta,
 		Spec:       pvcSpec.ToKubernetesType(),
 	}
-	if err := controllerutil.SetControllerReference(owner, &pvc, b.scheme); err != nil {
-		return nil, fmt.Errorf("error setting controller to PVC %v", err)
+	if owner != nil {
+		if err := controllerutil.SetControllerReference(owner, &pvc, b.scheme); err != nil {
+			return nil, fmt.Errorf("error setting controller to PVC %v", err)
+		}
 	}
 	return &pvc, nil
 }

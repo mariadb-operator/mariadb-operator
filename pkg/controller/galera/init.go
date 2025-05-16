@@ -27,7 +27,7 @@ import (
 )
 
 func (r *GaleraReconciler) ReconcileInit(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
-	if mariadb.HasGaleraConfiguredCondition() || mariadb.IsGaleraInitialized() {
+	if mariadb.HasGaleraConfiguredCondition() || mariadb.IsGaleraInitialized() || mariadb.IsInitialized() {
 		return ctrl.Result{}, nil
 	}
 
@@ -84,7 +84,7 @@ func (r *GaleraReconciler) ReconcileInit(ctx context.Context, mariadb *mariadbv1
 	}
 
 	if !jobpkg.IsJobComplete(&initJob) {
-		log.FromContext(ctx).V(1).Info("Init job not completed. Requeuing")
+		log.FromContext(ctx).V(1).Info("Galera init job not completed. Requeuing")
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
 
@@ -203,21 +203,11 @@ docker_mariadb_init "mariadbd"
 
 func (r *GaleraReconciler) reconcilePVC(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
 	key := mariadb.PVCKey(builder.StorageVolume, 0)
-
-	var existingPVC corev1.PersistentVolumeClaim
-	err := r.Get(ctx, key, &existingPVC)
-	if err == nil {
-		return nil
-	}
-	if !apierrors.IsNotFound(err) {
-		return err
-	}
-
 	pvc, err := r.builder.BuildStoragePVC(key, mariadb.Spec.Storage.VolumeClaimTemplate, mariadb)
 	if err != nil {
 		return err
 	}
-	return r.Create(ctx, pvc)
+	return r.pvcReconciler.Reconcile(ctx, key, pvc)
 }
 
 func (r *GaleraReconciler) initCleanup(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {

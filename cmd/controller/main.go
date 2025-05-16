@@ -24,6 +24,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/endpoints"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/galera"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/maxscale"
+	"github.com/mariadb-operator/mariadb-operator/pkg/controller/pvc"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/rbac"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/replication"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
@@ -243,6 +244,7 @@ var rootCmd = &cobra.Command{
 		rbacReconciler := rbac.NewRBACReconiler(client, builder)
 		authReconciler := auth.NewAuthReconciler(client, builder)
 		deployReconciler := deployment.NewDeploymentReconciler(client)
+		pvcReconciler := pvc.NewPVCReconciler(client)
 		svcMonitorReconciler := servicemonitor.NewServiceMonitorReconciler(client)
 		certReconciler := certctrl.NewCertReconciler(client, scheme, mgr.GetEventRecorderFor("cert"), discovery, builder)
 
@@ -318,6 +320,7 @@ var rootCmd = &cobra.Command{
 			RBACReconciler:           rbacReconciler,
 			AuthReconciler:           authReconciler,
 			DeploymentReconciler:     deployReconciler,
+			PVCReconciler:            pvcReconciler,
 			ServiceMonitorReconciler: svcMonitorReconciler,
 			CertReconciler:           certReconciler,
 

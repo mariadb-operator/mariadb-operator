@@ -121,7 +121,7 @@ func jobEnv(mariadb *mariadbv1alpha1.MariaDB) []v1.EnvVar {
 	}
 }
 
-func jobPhysicalBackupEnv(mariadb *mariadbv1alpha1.MariaDB, backupFile string) []v1.EnvVar {
+func jobEnvWithBackupFile(mariadb *mariadbv1alpha1.MariaDB, backupFile string) []v1.EnvVar {
 	env := jobEnv(mariadb)
 
 	env = append(env, v1.EnvVar{
