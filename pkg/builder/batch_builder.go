@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	metadata "github.com/mariadb-operator/mariadb-operator/pkg/builder/metadata"
 	builderpki "github.com/mariadb-operator/mariadb-operator/pkg/builder/pki"
 	"github.com/mariadb-operator/mariadb-operator/pkg/command"
@@ -30,6 +31,8 @@ const (
 	batchUserEnv           = "MARIADB_OPERATOR_USER"
 	batchPasswordEnv       = "MARIADB_OPERATOR_PASSWORD"
 	batchBackupFileEnv     = "MARIADB_OPERATOR_BACKUP_FILE"
+	batchBackupDirEnv      = "MARIADB_OPERATOR_BACKUP_DIR"
+	batchBackupDirFull     = "full"
 	batchS3AccessKeyId     = "AWS_ACCESS_KEY_ID"
 	batchS3SecretAccessKey = "AWS_SECRET_ACCESS_KEY"
 	batchS3SessionTokenKey = "AWS_SESSION_TOKEN"
@@ -163,7 +166,7 @@ func (b *Builder) BuildPhysicalBackupJob(key types.NamespacedName, backup *maria
 			batchStorageMountPath,
 			batchBackupTargetFilePath,
 		),
-		command.WithCleanupTargetFile(pyhsicalBackupShouldCleanupTargetFile(backup)),
+		command.WithCleanupTargetFile(physicalBackupShouldCleanupTargetFile(backup)),
 		command.WithBackupMaxRetention(backup.Spec.MaxRetention.Duration),
 		command.WithBackupCompression(backup.Spec.Compression),
 		command.WithBackupUserEnv(batchUserEnv),
@@ -191,7 +194,7 @@ func (b *Builder) BuildPhysicalBackupJob(key types.NamespacedName, backup *maria
 	mariadbContainer, err := b.jobMariadbContainer(
 		backupCmd,
 		volumeMounts,
-		jobPhysicalBackupEnv(mariadb, backupFile),
+		jobEnvWithBackupFile(mariadb, backupFile),
 		jobResources(backup.Spec.Resources),
 		mariadb,
 		backup.Spec.SecurityContext,
@@ -326,7 +329,7 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 	affinity := ptr.Deref(restore.Spec.Affinity, mariadbv1alpha1.AffinityConfig{}).Affinity
 
 	operatorContainer, err := b.jobMariadbOperatorContainer(
-		cmd.MariadbOperatorRestore(),
+		cmd.MariadbOperatorRestore(mariadbv1alpha1.BackupTypeLogical),
 		volumeMounts,
 		jobS3Env(restore.Spec.S3),
 		jobResources(restore.Spec.Resources),
@@ -378,6 +381,122 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 		},
 	}
 	if err := controllerutil.SetControllerReference(restore, job, b.scheme); err != nil {
+		return nil, fmt.Errorf("error setting controller reference to Job: %v", err)
+	}
+	return job, nil
+}
+
+func (b *Builder) BuildPhysicalBackupInitJob(key types.NamespacedName, mariadb *mariadbv1alpha1.MariaDB,
+	podIndex *int) (*batchv1.Job, error) {
+	if mariadb.Spec.BootstrapFrom == nil {
+		return nil, errors.New("spec.bootstrapFrom must be set")
+	}
+	if mariadb.Spec.BootstrapFrom.Volume == nil {
+		return nil, errors.New("spec.bootstrapFrom.volume must be set")
+	}
+
+	jobMeta :=
+		metadata.NewMetadataBuilder(key).
+			WithMetadata(mariadb.Spec.InheritMetadata).
+			Build()
+	selectorLabels :=
+		labels.NewLabelsBuilder().
+			WithMariaDBSelectorLabels(mariadb).
+			Build()
+	podMeta :=
+		metadata.NewMetadataBuilder(key).
+			WithMetadata(mariadb.Spec.InheritMetadata).
+			WithMetadata(mariadb.Spec.PodMetadata).
+			WithLabels(selectorLabels). // include MariaDB Pod selector labels to match anti-affinity
+			Build()
+
+	cmdOpts := []command.BackupOpt{
+		command.WithBackup(
+			batchStorageMountPath,
+			batchBackupTargetFilePath,
+		),
+		command.WithBackupTargetTime(mariadb.Spec.BootstrapFrom.TargetRecoveryTimeOrDefault()),
+		command.WithOmitCredentials(true),
+		command.WithBackupFileEnv(batchBackupFileEnv),
+		command.WithBackupDirEnv(batchBackupDirEnv),
+	}
+	cmdOpts = append(cmdOpts, s3Opts(mariadb.Spec.BootstrapFrom.S3)...)
+
+	cmd, err := command.NewBackupCommand(cmdOpts...)
+	if err != nil {
+		return nil, fmt.Errorf("error building backup command: %v", err)
+	}
+	restoreCmd, err := cmd.MariadbBackupRestore(mariadb)
+	if err != nil {
+		return nil, fmt.Errorf("error getting mariadb-backup restore command: %v", err)
+	}
+
+	volumes, volumeMounts := jobPhysicalBackupVolumes(*mariadb.Spec.BootstrapFrom.Volume, mariadb.Spec.BootstrapFrom.S3, mariadb, podIndex)
+	restoreJob := ptr.Deref(mariadb.Spec.BootstrapFrom.RestoreJob, mariadbv1alpha1.Job{})
+
+	operatorContainer, err := b.jobMariadbOperatorContainer(
+		cmd.MariadbOperatorRestore(mariadbv1alpha1.BackupTypePhysical),
+		volumeMounts,
+		jobS3Env(mariadb.Spec.BootstrapFrom.S3),
+		jobResources(restoreJob.Resources),
+		mariadb,
+		b.env,
+		mariadb.Spec.SecurityContext,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	mariadbContainer, err := b.jobMariadbContainer(
+		restoreCmd,
+		volumeMounts,
+		[]corev1.EnvVar{
+			{
+				Name:  batchBackupDirEnv,
+				Value: batchBackupDirFull,
+			},
+		},
+		jobResources(restoreJob.Resources),
+		mariadb,
+		mariadb.Spec.SecurityContext,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	var affinity *corev1.Affinity
+	if mariadb.Spec.Affinity != nil {
+		affinity = ptr.To(mariadb.Spec.Affinity.ToKubernetesType())
+	}
+
+	securityContext, err := b.buildPodSecurityContextWithUserGroup(mariadb.Spec.PodSecurityContext, mysqlUser, mysqlGroup)
+	if err != nil {
+		return nil, err
+	}
+
+	job := &batchv1.Job{
+		ObjectMeta: jobMeta,
+		Spec: batchv1.JobSpec{
+			BackoffLimit: ptr.To(int32(5)),
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: podMeta,
+				Spec: corev1.PodSpec{
+					RestartPolicy:      corev1.RestartPolicyOnFailure,
+					ImagePullSecrets:   kadapter.ToKubernetesSlice(mariadb.Spec.ImagePullSecrets),
+					Volumes:            volumes,
+					InitContainers:     []corev1.Container{*operatorContainer},
+					Containers:         []corev1.Container{*mariadbContainer},
+					Affinity:           affinity,
+					NodeSelector:       mariadb.Spec.NodeSelector,
+					Tolerations:        mariadb.Spec.Tolerations,
+					SecurityContext:    securityContext,
+					ServiceAccountName: ptr.Deref(mariadb.Spec.ServiceAccountName, "default"),
+					PriorityClassName:  ptr.Deref(mariadb.Spec.PriorityClassName, ""),
+				},
+			},
+		},
+	}
+	if err := controllerutil.SetControllerReference(mariadb, job, b.scheme); err != nil {
 		return nil, fmt.Errorf("error setting controller reference to Job: %v", err)
 	}
 	return job, nil
@@ -682,7 +801,7 @@ func backupShouldCleanupTargetFile(backup *mariadbv1alpha1.Backup) bool {
 	return backup.Spec.Storage.S3 != nil && backup.Spec.StagingStorage != nil
 }
 
-func pyhsicalBackupShouldCleanupTargetFile(pyhisicalBackup *mariadbv1alpha1.PhysicalBackup) bool {
+func physicalBackupShouldCleanupTargetFile(pyhisicalBackup *mariadbv1alpha1.PhysicalBackup) bool {
 	return pyhisicalBackup.Spec.Storage.S3 != nil && pyhisicalBackup.Spec.StagingStorage != nil
 }
 

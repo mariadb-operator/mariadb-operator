@@ -17,6 +17,8 @@ import (
 type BackupOpts struct {
 	CommandOpts
 	BackupFileEnv        string
+	BackupDirEnv         string
+	OmitCredentials      bool
 	Path                 string
 	TargetFilePath       string
 	CleanupTargetFile    bool
@@ -42,10 +44,22 @@ func WithBackupFileEnv(backupFileEnv string) BackupOpt {
 	}
 }
 
+func WithBackupDirEnv(backupDirEnv string) BackupOpt {
+	return func(bo *BackupOpts) {
+		bo.BackupDirEnv = backupDirEnv
+	}
+}
+
 func WithBackup(path string, targetFilePath string) BackupOpt {
 	return func(bo *BackupOpts) {
 		bo.Path = path
 		bo.TargetFilePath = targetFilePath
+	}
+}
+
+func WithOmitCredentials(omit bool) BackupOpt {
+	return func(bo *BackupOpts) {
+		bo.OmitCredentials = omit
 	}
 }
 
@@ -146,11 +160,13 @@ func NewBackupCommand(userOpts ...BackupOpt) (*BackupCommand, error) {
 	if opts.TargetTime == (time.Time{}) {
 		opts.TargetTime = time.Now()
 	}
-	if opts.UserEnv == "" {
-		return nil, errors.New("user environment variable not provided")
-	}
-	if opts.PasswordEnv == "" {
-		return nil, errors.New("password environment variable not provided")
+	if !opts.OmitCredentials {
+		if opts.UserEnv == "" {
+			return nil, errors.New("user environment variable not provided")
+		}
+		if opts.PasswordEnv == "" {
+			return nil, errors.New("password environment variable not provided")
+		}
 	}
 	return &BackupCommand{opts}, nil
 }
@@ -264,7 +280,7 @@ func (b *BackupCommand) MariadbOperatorBackup(backupType mariadbv1alpha1.BackupT
 	return NewCommand(nil, args)
 }
 
-func (b *BackupCommand) MariadbOperatorRestore() *Command {
+func (b *BackupCommand) MariadbOperatorRestore(backupType mariadbv1alpha1.BackupType) *Command {
 	args := []string{
 		"backup",
 		"restore",
@@ -274,6 +290,8 @@ func (b *BackupCommand) MariadbOperatorRestore() *Command {
 		backuppkg.FormatBackupDate(b.TargetTime),
 		"--target-file-path",
 		b.TargetFilePath,
+		"--backup-type",
+		string(backupType),
 	}
 	if b.LogLevel != "" {
 		args = append(args, []string{
@@ -309,6 +327,43 @@ func (b *BackupCommand) MariadbRestore(restore *mariadbv1alpha1.Restore,
 	return NewBashCommand(cmds), nil
 }
 
+func (b *BackupCommand) MariadbBackupRestore(mariadb *mariadbv1alpha1.MariaDB) (*Command, error) {
+	if b.BackupFileEnv == "" {
+		return nil, errors.New("BackupFileEnv must be set")
+	}
+	if b.BackupDirEnv == "" {
+		return nil, errors.New("BackupDirEnv must be set")
+	}
+	if b.Database != nil {
+		return nil, errors.New("Database option not supported in physical backups")
+	}
+
+	cmds := []string{
+		"set -euo pipefail",
+		"echo 💾 Extracting backup",
+		fmt.Sprintf(
+			"mkdir %s",
+			b.getBackupDirFromEnv(),
+		),
+		fmt.Sprintf(
+			"mbstream -x -C %s < %s",
+			b.getBackupDirFromEnv(),
+			b.getTargetFilePath(),
+		),
+		"echo 💾 Preparing backup",
+		fmt.Sprintf(
+			"mariadb-backup --prepare --target-dir=%s",
+			b.getBackupDirFromEnv(),
+		),
+		"echo 💾 Moving backup to data directory",
+		fmt.Sprintf(
+			"mariadb-backup --copy-back --target-dir=%s",
+			b.getBackupDirFromEnv(),
+		),
+	}
+	return NewBashCommand(cmds), nil
+}
+
 func (b *BackupCommand) newBackupFile() string {
 	var fileName string
 	if b.Compression == mariadbv1alpha1.CompressNone {
@@ -328,6 +383,10 @@ func (b *BackupCommand) newBackupFile() string {
 
 func (b *BackupCommand) getBackupFileFromEnv() string {
 	return fmt.Sprintf("%s/${%s}", b.Path, b.BackupFileEnv)
+}
+
+func (b *BackupCommand) getBackupDirFromEnv() string {
+	return fmt.Sprintf("%s/${%s}", b.Path, b.BackupDirEnv)
 }
 
 func (b *BackupCommand) getTargetFilePath() string {
