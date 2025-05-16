@@ -28,7 +28,9 @@ func TestOperatorHelmExtraEnvFrom(t *testing.T) {
 		},
 	}
 
-	deploymentData := helm.RenderTemplate(t, opts, operatorHelmChartPath, operatorHelmReleaseName, []string{"templates/operator/deployment.yaml"})
+	deploymentData := helm.RenderTemplate(t, opts,
+		operatorHelmChartPath, operatorHelmReleaseName,
+		[]string{"templates/operator/deployment.yaml"})
 	var deployment appsv1.Deployment
 	helm.UnmarshalK8SYaml(t, deploymentData, &deployment)
 
@@ -65,7 +67,9 @@ func TestOperatorHelmCurrentNamespaceOnly(t *testing.T) {
 		},
 	}
 
-	deploymentData := helm.RenderTemplate(t, opts, operatorHelmChartPath, operatorHelmReleaseName, []string{"templates/operator/deployment.yaml"})
+	deploymentData := helm.RenderTemplate(t, opts,
+		operatorHelmChartPath, operatorHelmReleaseName,
+		[]string{"templates/operator/deployment.yaml"})
 	var deployment appsv1.Deployment
 	helm.UnmarshalK8SYaml(t, deploymentData, &deployment)
 
@@ -110,7 +114,9 @@ func TestOperatorHelmClusterWide(t *testing.T) {
 		},
 	}
 
-	deploymentData := helm.RenderTemplate(t, opts, operatorHelmChartPath, operatorHelmReleaseName, []string{"templates/operator/deployment.yaml"})
+	deploymentData := helm.RenderTemplate(t, opts,
+		operatorHelmChartPath, operatorHelmReleaseName,
+		[]string{"templates/operator/deployment.yaml"})
 	var deployment appsv1.Deployment
 	helm.UnmarshalK8SYaml(t, deploymentData, &deployment)
 
@@ -245,7 +251,9 @@ func TestOperatorHelmHaEnabled(t *testing.T) {
 		},
 	}
 
-	deploymentData := helm.RenderTemplate(t, opts, operatorHelmChartPath, operatorHelmReleaseName, []string{"templates/operator/deployment.yaml"})
+	deploymentData := helm.RenderTemplate(t, opts,
+		operatorHelmChartPath, operatorHelmReleaseName,
+		[]string{"templates/operator/deployment.yaml"})
 	var deployment appsv1.Deployment
 	helm.UnmarshalK8SYaml(t, deploymentData, &deployment)
 
@@ -335,7 +343,9 @@ func TestOperatorHelmImageTagAndDigest(t *testing.T) {
 		},
 	}
 
-	renderedData := helm.RenderTemplate(t, opts, operatorHelmChartPath, operatorHelmReleaseName, []string{"templates/operator/deployment.yaml"})
+	renderedData := helm.RenderTemplate(t, opts,
+		operatorHelmChartPath, operatorHelmReleaseName,
+		[]string{"templates/operator/deployment.yaml"})
 	var deployment appsv1.Deployment
 	helm.UnmarshalK8SYaml(t, renderedData, &deployment)
 
@@ -374,7 +384,9 @@ func TestOperatorHelmConfigMap(t *testing.T) {
 			"config.exporterMaxscaleImage": "exporter-maxscale:1.0",
 		},
 	}
-	configMapData := helm.RenderTemplate(t, opts, operatorHelmChartPath, operatorHelmReleaseName, []string{"templates/operator/configmap.yaml"})
+	configMapData := helm.RenderTemplate(t, opts,
+		operatorHelmChartPath, operatorHelmReleaseName,
+		[]string{"templates/operator/configmap.yaml"})
 	var configMap corev1.ConfigMap
 	helm.UnmarshalK8SYaml(t, configMapData, &configMap)
 	Expect(configMap.Name).To(Equal("mariadb-operator-env"))
@@ -399,7 +411,9 @@ func TestOperatorHelmPprof(t *testing.T) {
 		},
 	}
 
-	deploymentData := helm.RenderTemplate(t, opts, operatorHelmChartPath, operatorHelmReleaseName, []string{"templates/operator/deployment.yaml"})
+	deploymentData := helm.RenderTemplate(t, opts,
+		operatorHelmChartPath, operatorHelmReleaseName,
+		[]string{"templates/operator/deployment.yaml"})
 	var deployment appsv1.Deployment
 	helm.UnmarshalK8SYaml(t, deploymentData, &deployment)
 

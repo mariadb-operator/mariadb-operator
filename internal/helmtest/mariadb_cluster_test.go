@@ -40,8 +40,8 @@ func TestClusterHelmMariaDB(t *testing.T) {
 	var mariadb v1alpha1.MariaDB
 	helm.UnmarshalK8SYaml(t, renderedData, &mariadb)
 
-	Expect(mariadb.Spec.Galera.Enabled).To(Equal(true))
-	Expect(mariadb.Spec.Metrics.Enabled).To(Equal(true))
+	Expect(mariadb.Spec.Galera.Enabled).To(BeTrue())
+	Expect(mariadb.Spec.Metrics.Enabled).To(BeTrue())
 	Expect(mariadb.Spec.Replicas).To(Equal(int32(replicas)))
 	Expect(mariadb.Spec.Storage.Size.String()).To(Equal(storageSize))
 	Expect(mariadb.Spec.RootPasswordSecretKeyRef.Key).To(Equal(rootPasswordSecretKeyRefKey))
@@ -190,7 +190,7 @@ func TestClusterHelmGrant(t *testing.T) {
 	Expect(*grant.Spec.CleanupPolicy).To(Equal(v1alpha1.CleanupPolicy(cleanupPolicy)))
 	Expect(grant.Spec.Database).To(Equal(database))
 	Expect(*grant.Spec.Host).To(Equal(host))
-	Expect(grant.Spec.GrantOption).To(Equal(false))
+	Expect(grant.Spec.GrantOption).To(BeFalse())
 	Expect(grant.Spec.Username).To(Equal(username))
 	Expect(grant.Spec.Privileges[0]).To(Equal(privilegeSelect))
 	Expect(grant.Spec.Privileges[1]).To(Equal(privilegeProcess))
