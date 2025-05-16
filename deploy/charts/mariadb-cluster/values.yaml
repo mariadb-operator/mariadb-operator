@@ -24,7 +24,11 @@ mariadb:
   # maxScaleRef: {}
   metrics:
     enabled: true
-  # myCnf: ""
+  # myCnf: |
+  #   [mariadb]
+  #   innodb_buffer_pool_size=1024M
+  #   ignore_db_dirs=lost+found
+  #   max_allowed_packet=256M
   # myCnfConfigMapKeyRef: {}
   # nodeSelector: {}
   # passwordPlugin: {}
@@ -39,7 +43,8 @@ mariadb:
   # readinessProbe: {}
   replicas: 3
   # replicasAllowEvenNumber: false
-  # replication: {}
+  # replication:
+  #   enabled: true 
   # resources: {}
   rootPasswordSecretKeyRef:
     name: mariadb-cluster-root-password
