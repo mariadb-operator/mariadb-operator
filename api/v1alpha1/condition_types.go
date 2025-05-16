@@ -15,6 +15,8 @@ const (
 	ConditionTypeStorageResized string = "StorageResized"
 	// ConditionTypeUpdated indicates that an update has been successfully completed.
 	ConditionTypeUpdated string = "Updated"
+	// ConditionTypeInitialized indicates that the cluster has been successfully initialized.
+	ConditionTypeInitialized string = "Initialized"
 
 	ConditionReasonStatefulSetNotReady string = "StatefulSetNotReady"
 	ConditionReasonStatefulSetReady    string = "StatefulSetReady"

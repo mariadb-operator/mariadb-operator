@@ -3,6 +3,7 @@ package v1alpha1
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	cmmeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
@@ -265,6 +266,15 @@ type BootstrapFrom struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	BackupRef *LocalObjectReference `json:"backupRef,omitempty" webhook:"inmutableinit"`
+	// PhysicalBackupRef is a reference to a PhysicalBackup object. It has priority over S3 and Volume.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	PhysicalBackupRef *LocalObjectReference `json:"physicalBackupRef,omitempty" webhook:"inmutableinit"`
+	// BackupType is the type of backup to bootstrap from. It is defaulted based on BackupRef and PhysicalBackupRef. If none of them are set, it defaults to Logical.
+	// +optional
+	// +kubebuilder:validation:Enum=Logical;Physical
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	BackupType BackupType `json:"backupType,omitempty"`
 	// S3 defines the configuration to restore backups from a S3 compatible storage. It has priority over Volume.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -279,24 +289,76 @@ type BootstrapFrom struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	TargetRecoveryTime *metav1.Time `json:"targetRecoveryTime,omitempty" webhook:"inmutable"`
 	// StagingStorage defines the temporary storage used to keep external backups (i.e. S3) while they are being processed.
-	// It defaults to an emptyDir volume, meaning that the backups will be temporarily stored in the node where the Restore Job is scheduled.
+	// It defaults to an emptyDir volume, meaning that the backups will be temporarily stored in the node where the Job is scheduled.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch","urn:alm:descriptor:com.tectonic.ui:advanced"}
 	StagingStorage *BackupStagingStorage `json:"stagingStorage,omitempty" webhook:"inmutable"`
-	// RestoreJob defines additional properties for the Job used to perform the Restore.
+	// RestoreJob defines additional properties for the Job used to perform the restoration.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	RestoreJob *Job `json:"restoreJob,omitempty"`
 }
 
 func (b *BootstrapFrom) Validate() error {
-	if b.BackupRef == nil && b.S3 == nil && b.Volume == nil {
-		return errors.New("unable to determine restore source")
+	if b.BackupRef == nil && b.PhysicalBackupRef == nil && b.S3 == nil && b.Volume == nil {
+		return errors.New("unable to determine bootstrap source")
+	}
+	if b.BackupType != "" {
+		if err := b.BackupType.Validate(); err != nil {
+			return fmt.Errorf("invalid 'spec.backupType': %v", err)
+		}
+	}
+	if b.BackupRef != nil && b.BackupType == BackupTypePhysical {
+		return errors.New("inconsistent 'spec.backupRef' and 'spec.backupType' fields. Logical type must be set in this case.")
+	}
+	if b.PhysicalBackupRef != nil && b.BackupType == BackupTypeLogical {
+		return errors.New("inconsistent 'spec.physicalBackupRef' and 'spec.backupType' fields. Physical type must be set in this case.")
 	}
 	if b.S3 == nil && b.StagingStorage != nil {
 		return errors.New("'spec.stagingStorage' may only be specified when 'spec.s3' is set")
 	}
 	return nil
+}
+
+func (b *BootstrapFrom) IsDefaulted() bool {
+	return b.Volume != nil
+}
+
+func (b *BootstrapFrom) SetDefaults(mariadb *MariaDB) {
+	if b.BackupRef != nil && b.BackupType == "" {
+		b.BackupType = BackupTypeLogical
+	}
+	if b.PhysicalBackupRef != nil && b.BackupType == "" {
+		b.BackupType = BackupTypePhysical
+	}
+	if b.BackupType == "" {
+		b.BackupType = BackupTypeLogical
+	}
+	if b.BackupType == BackupTypePhysical && b.S3 != nil {
+		stagingStorage := ptr.Deref(b.StagingStorage, BackupStagingStorage{})
+		b.Volume = ptr.To(stagingStorage.VolumeOrEmptyDir(mariadb.PhysicalBackupStagingPVCKey()))
+	}
+}
+
+func (b *BootstrapFrom) ShouldProvisionPhysicalBackupStagingPVC() bool {
+	return b.BackupType == BackupTypePhysical && b.S3 != nil && b.StagingStorage != nil && b.StagingStorage.PersistentVolumeClaim != nil
+}
+
+func (b *BootstrapFrom) SetDefaultsWithPhysicalBackup(physicalBackup *PhysicalBackup) error {
+	volume, err := physicalBackup.Volume()
+	if err != nil {
+		return fmt.Errorf("error getting BackupSource volume: %v", err)
+	}
+	b.Volume = &volume
+	b.S3 = physicalBackup.Spec.Storage.S3
+	return nil
+}
+
+func (r *BootstrapFrom) TargetRecoveryTimeOrDefault() time.Time {
+	if r.TargetRecoveryTime != nil {
+		return r.TargetRecoveryTime.Time
+	}
+	return time.Now()
 }
 
 func (b *BootstrapFrom) RestoreSource() RestoreSource {
@@ -740,6 +802,9 @@ func (m *MariaDB) SetDefaults(env *environment.OperatorEnv) error {
 			return fmt.Errorf("error setting Galera defaults: %v", err)
 		}
 	}
+	if m.Spec.BootstrapFrom != nil && !m.Spec.BootstrapFrom.IsDefaulted() {
+		m.Spec.BootstrapFrom.SetDefaults(m)
+	}
 
 	if m.Spec.UpdateStrategy == (UpdateStrategy{}) {
 		m.Spec.UpdateStrategy.SetDefaults()
@@ -874,6 +939,16 @@ func (m *MariaDB) IsUpdating() bool {
 // IsSuspended whether a MariaDB is suspended.
 func (m *MariaDB) IsSuspended() bool {
 	return m.Spec.Suspend
+}
+
+// IsGaleraInitialized indicates that the MariaDB instance has been successfully initialized.
+func (m *MariaDB) IsInitialized() bool {
+	return meta.IsStatusConditionTrue(m.Status.Conditions, ConditionTypeInitialized)
+}
+
+// IsGaleraInitialized indicates that the MariaDB instance is being initialized.
+func (m *MariaDB) IsInitializing() bool {
+	return meta.IsStatusConditionFalse(m.Status.Conditions, ConditionTypeInitialized)
 }
 
 // ServerDNSNames are the Service DNS names used by server TLS certificates.

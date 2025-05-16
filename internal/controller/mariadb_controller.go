@@ -22,6 +22,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/galera"
 	galeraresources "github.com/mariadb-operator/mariadb-operator/pkg/controller/galera/resources"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/maxscale"
+	"github.com/mariadb-operator/mariadb-operator/pkg/controller/pvc"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/rbac"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/replication"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
@@ -76,6 +77,7 @@ type MariaDBReconciler struct {
 	RBACReconciler           *rbac.RBACReconciler
 	AuthReconciler           *auth.AuthReconciler
 	DeploymentReconciler     *deployment.DeploymentReconciler
+	PVCReconciler            *pvc.PVCReconciler
 	ServiceMonitorReconciler *servicemonitor.ServiceMonitorReconciler
 	CertReconciler           *certctrl.CertReconciler
 
@@ -340,15 +342,6 @@ func (r *MariaDBReconciler) reconcileRBAC(ctx context.Context, mariadb *mariadbv
 	return ctrl.Result{}, r.RBACReconciler.ReconcileMariadbRBAC(ctx, mariadb)
 }
 
-func (r *MariaDBReconciler) reconcileInit(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
-	if mariadb.IsGaleraEnabled() {
-		if result, err := r.GaleraReconciler.ReconcileInit(ctx, mariadb); !result.IsZero() || err != nil {
-			return result, err
-		}
-	}
-	return ctrl.Result{}, nil
-}
-
 func (r *MariaDBReconciler) reconcileStatefulSet(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
 	key := client.ObjectKeyFromObject(mariadb)
 	updateAnnotations, err := r.getUpdateAnnotations(ctx, mariadb)
@@ -452,7 +445,7 @@ func shouldReconcileRestore(mdb *mariadbv1alpha1.MariaDB) bool {
 	if mdb.IsUpdating() || mdb.IsResizingStorage() || mdb.IsSwitchingPrimary() || mdb.HasGaleraNotReadyCondition() {
 		return false
 	}
-	if mdb.HasRestoredBackup() || mdb.Spec.BootstrapFrom == nil {
+	if mdb.HasRestoredBackup() || mdb.Spec.BootstrapFrom == nil || mdb.Spec.BootstrapFrom.BackupType != mariadbv1alpha1.BackupTypeLogical {
 		return false
 	}
 	return true
@@ -877,7 +870,18 @@ func (r *MariaDBReconciler) reconcileUsers(ctx context.Context, mariadb *mariadb
 
 func (r *MariaDBReconciler) setSpecDefaults(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
 	return ctrl.Result{}, r.patch(ctx, mariadb, func(mdb *mariadbv1alpha1.MariaDB) error {
-		return mdb.SetDefaults(r.Environment)
+		if err := mdb.SetDefaults(r.Environment); err != nil {
+			return err
+		}
+
+		if mdb.Spec.BootstrapFrom == nil || mdb.Spec.BootstrapFrom.PhysicalBackupRef == nil || mdb.Spec.BootstrapFrom.IsDefaulted() {
+			return nil
+		}
+		physicalBackup, err := r.RefResolver.PhysicalBackupBackup(ctx, mdb.Spec.BootstrapFrom.PhysicalBackupRef, mdb.Namespace)
+		if err != nil {
+			return err
+		}
+		return mdb.Spec.BootstrapFrom.SetDefaultsWithPhysicalBackup(physicalBackup)
 	})
 }
 

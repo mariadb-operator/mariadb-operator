@@ -19,6 +19,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/endpoints"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/galera"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/maxscale"
+	"github.com/mariadb-operator/mariadb-operator/pkg/controller/pvc"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/rbac"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/replication"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
@@ -138,6 +139,7 @@ var _ = BeforeSuite(func() {
 	authReconciler := auth.NewAuthReconciler(client, builder)
 	rbacReconciler := rbac.NewRBACReconiler(client, builder)
 	deployReconciler := deployment.NewDeploymentReconciler(client)
+	pvcReconciler := pvc.NewPVCReconciler(client)
 	svcMonitorReconciler := servicemonitor.NewServiceMonitorReconciler(client)
 	certReconciler := certctrl.NewCertReconciler(client, scheme, k8sManager.GetEventRecorderFor("cert"), disc, builder)
 
@@ -210,6 +212,7 @@ var _ = BeforeSuite(func() {
 		RBACReconciler:           rbacReconciler,
 		AuthReconciler:           authReconciler,
 		DeploymentReconciler:     deployReconciler,
+		PVCReconciler:            pvcReconciler,
 		ServiceMonitorReconciler: svcMonitorReconciler,
 		CertReconciler:           certReconciler,
 

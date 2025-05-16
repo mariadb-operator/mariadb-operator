@@ -608,9 +608,9 @@ type BackupType string
 
 const (
 	// BackupTypeLogical represents a logical backup created using mariadb-dump.
-	BackupTypeLogical BackupType = "logical"
+	BackupTypeLogical BackupType = "Logical"
 	// BackupTypePhysical represents a physical backup created using mariadb-backup.
-	BackupTypePhysical BackupType = "physical"
+	BackupTypePhysical BackupType = "Physical"
 )
 
 func (b BackupType) Validate() error {
