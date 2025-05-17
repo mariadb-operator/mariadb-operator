@@ -51,7 +51,7 @@ func init() {
 		os.Exit(1)
 	}
 	RootCmd.PersistentFlags().StringVar(&backupType, "backup-type", string(mariadbv1alpha1.BackupTypeLogical),
-		"Backup type: logical(mariadb-dump) or physical(mariadb-backup).")
+		"Backup type: Logical (mariadb-dump) or Physical (mariadb-backup).")
 	RootCmd.PersistentFlags().BoolVar(&cleanupTargetFile, "cleanup-target-file", false,
 		"Whether to clean up the target file after S3 backups are completed."+
 			"This option should be used exclusively with external backups, such as S3.")
