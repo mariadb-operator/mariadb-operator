@@ -293,6 +293,13 @@ func (b *BackupCommand) MariadbOperatorRestore(backupType mariadbv1alpha1.Backup
 		"--backup-type",
 		string(backupType),
 	}
+	if backupType == mariadbv1alpha1.BackupTypePhysical {
+		// TODO: pass it via an argument
+		args = append(args, []string{
+			"--physical-backup-dir-path",
+			"/backup/full",
+		}...)
+	}
 	if b.LogLevel != "" {
 		args = append(args, []string{
 			"--log-level",
