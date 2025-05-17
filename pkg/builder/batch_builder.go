@@ -28,17 +28,20 @@ const (
 	batchS3PKIMountPath    = "/s3/pki"
 	batchScriptsMountPath  = "/opt"
 	batchScriptsSqlFile    = "job.sql"
+	batchBackupDirFull     = "full"
 	batchUserEnv           = "MARIADB_OPERATOR_USER"
 	batchPasswordEnv       = "MARIADB_OPERATOR_PASSWORD"
 	batchBackupFileEnv     = "MARIADB_OPERATOR_BACKUP_FILE"
 	batchBackupDirEnv      = "MARIADB_OPERATOR_BACKUP_DIR"
-	batchBackupDirFull     = "full"
 	batchS3AccessKeyId     = "AWS_ACCESS_KEY_ID"
 	batchS3SecretAccessKey = "AWS_SECRET_ACCESS_KEY"
 	batchS3SessionTokenKey = "AWS_SESSION_TOKEN"
 )
 
-var batchBackupTargetFilePath = fmt.Sprintf("%s/0-backup-target.txt", batchStorageMountPath)
+var (
+	batchBackupTargetFilePath  = filepath.Join(batchStorageMountPath, "0-backup-target.txt")
+	batchPhysicalBackupDirpath = filepath.Join(batchStorageMountPath, batchBackupDirFull)
+)
 
 func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alpha1.Backup,
 	mariadb *mariadbv1alpha1.MariaDB) (*batchv1.Job, error) {
@@ -329,7 +332,7 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 	affinity := ptr.Deref(restore.Spec.Affinity, mariadbv1alpha1.AffinityConfig{}).Affinity
 
 	operatorContainer, err := b.jobMariadbOperatorContainer(
-		cmd.MariadbOperatorRestore(mariadbv1alpha1.BackupTypeLogical),
+		cmd.MariadbOperatorRestore(mariadbv1alpha1.BackupTypeLogical, nil),
 		volumeMounts,
 		jobS3Env(restore.Spec.S3),
 		jobResources(restore.Spec.Resources),
@@ -435,7 +438,7 @@ func (b *Builder) BuildPhysicalBackupRestoreJob(key types.NamespacedName, mariad
 	restoreJob := ptr.Deref(mariadb.Spec.BootstrapFrom.RestoreJob, mariadbv1alpha1.Job{})
 
 	operatorContainer, err := b.jobMariadbOperatorContainer(
-		cmd.MariadbOperatorRestore(mariadbv1alpha1.BackupTypePhysical),
+		cmd.MariadbOperatorRestore(mariadbv1alpha1.BackupTypePhysical, &batchPhysicalBackupDirpath),
 		volumeMounts,
 		jobS3Env(mariadb.Spec.BootstrapFrom.S3),
 		jobResources(restoreJob.Resources),
