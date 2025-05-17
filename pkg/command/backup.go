@@ -338,8 +338,19 @@ func (b *BackupCommand) MariadbBackupRestore(mariadb *mariadbv1alpha1.MariaDB) (
 		return nil, errors.New("Database option not supported in physical backups")
 	}
 
+	copyBackupCmd := fmt.Sprintf(
+		"mariadb-backup --copy-back --target-dir=%s",
+		b.getBackupDirFromEnv(),
+	)
+
 	cmds := []string{
 		"set -euo pipefail",
+		"echo 💾 Checking existing backup",
+		fmt.Sprintf(
+			"if [ -d %s ]; then echo '💾 Existing backup directory found. Copying backup to data directory'; %s && exit 0; fi",
+			b.getBackupDirFromEnv(),
+			copyBackupCmd,
+		),
 		"echo 💾 Extracting backup",
 		fmt.Sprintf(
 			"mkdir %s",
@@ -355,11 +366,8 @@ func (b *BackupCommand) MariadbBackupRestore(mariadb *mariadbv1alpha1.MariaDB) (
 			"mariadb-backup --prepare --target-dir=%s",
 			b.getBackupDirFromEnv(),
 		),
-		"echo 💾 Moving backup to data directory",
-		fmt.Sprintf(
-			"mariadb-backup --copy-back --target-dir=%s",
-			b.getBackupDirFromEnv(),
-		),
+		"echo 💾 Copying backup to data directory",
+		copyBackupCmd,
 	}
 	return NewBashCommand(cmds), nil
 }
