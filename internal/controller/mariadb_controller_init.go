@@ -68,7 +68,7 @@ func (r *MariaDBReconciler) reconcilePhysicalBackupInit(ctx context.Context, mar
 func (r *MariaDBReconciler) reconcilePVCs(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
 	for i := 0; i < int(mariadb.Spec.Replicas); i++ {
 		key := mariadb.PVCKey(builder.StorageVolume, i)
-		pvc, err := r.Builder.BuildStoragePVC(key, mariadb.Spec.Storage.VolumeClaimTemplate, nil)
+		pvc, err := r.Builder.BuildStoragePVC(key, mariadb.Spec.Storage.VolumeClaimTemplate, mariadb)
 		if err != nil {
 			return err
 		}

@@ -881,7 +881,11 @@ func (r *MariaDBReconciler) setSpecDefaults(ctx context.Context, mariadb *mariad
 		if err != nil {
 			return err
 		}
-		return mdb.Spec.BootstrapFrom.SetDefaultsWithPhysicalBackup(physicalBackup)
+		if err := mdb.Spec.BootstrapFrom.SetDefaultsWithPhysicalBackup(physicalBackup); err != nil {
+			return err
+		}
+		mdb.Spec.BootstrapFrom.SetDefaults(mdb)
+		return nil
 	})
 }
 
