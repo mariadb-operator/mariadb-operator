@@ -5,6 +5,7 @@ import (
 	"os"
 	"time"
 
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/backup"
 	"github.com/mariadb-operator/mariadb-operator/pkg/log"
 	"github.com/spf13/cobra"
@@ -31,6 +32,16 @@ var restoreCommand = &cobra.Command{
 
 		ctx, cancel := newContext()
 		defer cancel()
+
+		physicalBackupExists, err := checkPhysicalBackupDir()
+		if err != nil {
+			logger.Error(err, "error checking physical backup directory")
+			os.Exit(1)
+		}
+		if physicalBackupExists {
+			logger.Info("physical backup directory already exists.")
+			os.Exit(0)
+		}
 
 		backupProcessor, err := getBackupProcessor()
 		if err != nil {
@@ -87,6 +98,24 @@ var restoreCommand = &cobra.Command{
 			os.Exit(1)
 		}
 	},
+}
+
+func checkPhysicalBackupDir() (bool, error) {
+	// TODO: pass it via a flag
+	physicalBackupDirPath := "/backup/full"
+	if backupType != string(mariadbv1alpha1.BackupTypePhysical) || physicalBackupDirPath == "" {
+		return false, nil
+	}
+	logger.Info("checking existing physical backup directory", "dir-path", physicalBackupDirPath)
+
+	entries, err := os.ReadDir(physicalBackupDirPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return false, nil
+		}
+		return false, fmt.Errorf("error reading physical backup directory path (%s): %v", physicalBackupDirPath, err)
+	}
+	return len(entries) > 0, nil
 }
 
 func getTargetTime() (time.Time, error) {
