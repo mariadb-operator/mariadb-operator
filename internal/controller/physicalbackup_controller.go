@@ -398,7 +398,7 @@ func (r *PhysicalBackupReconciler) waitForRunningJobs(ctx context.Context, jobLi
 	for _, job := range jobList.Items {
 		if !jobpkg.IsJobComplete(&job) {
 			log.FromContext(ctx).Info("PhysicalBackup Job is not complete. Requeuing...", "job", job.Name)
-			return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+			return ctrl.Result{Requeue: true}, nil
 		}
 	}
 	return ctrl.Result{}, nil
