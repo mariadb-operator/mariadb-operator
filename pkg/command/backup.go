@@ -280,7 +280,7 @@ func (b *BackupCommand) MariadbOperatorBackup(backupType mariadbv1alpha1.BackupT
 	return NewCommand(nil, args)
 }
 
-func (b *BackupCommand) MariadbOperatorRestore(backupType mariadbv1alpha1.BackupType) *Command {
+func (b *BackupCommand) MariadbOperatorRestore(backupType mariadbv1alpha1.BackupType, physicalBackupDirpath *string) *Command {
 	args := []string{
 		"backup",
 		"restore",
@@ -293,11 +293,10 @@ func (b *BackupCommand) MariadbOperatorRestore(backupType mariadbv1alpha1.Backup
 		"--backup-type",
 		string(backupType),
 	}
-	if backupType == mariadbv1alpha1.BackupTypePhysical {
-		// TODO: pass it via an argument
+	if backupType == mariadbv1alpha1.BackupTypePhysical && physicalBackupDirpath != nil {
 		args = append(args, []string{
 			"--physical-backup-dir-path",
-			"/backup/full",
+			*physicalBackupDirpath,
 		}...)
 	}
 	if b.LogLevel != "" {
