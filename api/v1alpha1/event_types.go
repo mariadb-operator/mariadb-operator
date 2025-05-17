@@ -59,4 +59,7 @@ const (
 
 	// ReasonMariaDBNotReady indicates that the MariaDB resource is not ready.
 	ReasonMariaDBNotReady = "MariaDBNotReady"
+
+	// ReasonMariaDBInitError indicates that an error has occurred during the MariaDB instance initialization.
+	ReasonMariaDBInitError = "MariaDBInitError"
 )

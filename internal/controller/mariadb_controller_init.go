@@ -9,6 +9,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	jobpkg "github.com/mariadb-operator/mariadb-operator/pkg/job"
+	"github.com/mariadb-operator/mariadb-operator/pkg/pvc"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -34,6 +35,27 @@ func (r *MariaDBReconciler) reconcileInit(ctx context.Context, mariadb *mariadbv
 func (r *MariaDBReconciler) reconcilePhysicalBackupInit(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
 	if mariadb.IsInitialized() {
 		return ctrl.Result{}, nil
+	}
+
+	if !mariadb.IsInitializing() || mariadb.InitError() != nil {
+		pvcs, err := pvc.ListStoragePVCs(ctx, r.Client, mariadb)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("error listing PVCs: %v", err)
+		}
+		if len(pvcs) > 0 {
+			r.Recorder.Eventf(mariadb, corev1.EventTypeWarning, mariadbv1alpha1.ReasonMariaDBInitError,
+				"Unable to init MariaDB: storage PVCs already exist")
+
+			if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
+				condition.SetInitError(status, "storage PVCs already exist")
+				return nil
+			}); err != nil {
+				return ctrl.Result{}, fmt.Errorf("error patching MariaDB status: %v", err)
+			}
+
+			log.FromContext(ctx).Info("Unable to init MariaDB: storage PVCs already exist. Requeuing...")
+			return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+		}
 	}
 
 	if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {

@@ -32,6 +32,7 @@ const (
 	ConditionReasonStorageResized      string = "StorageResized"
 	ConditionReasonInitializing        string = "Initializing"
 	ConditionReasonInitialized         string = "Initialized"
+	ConditionReasonInitError           string = "InitError"
 	ConditionReasonPendingUpdate       string = "PendingUpdate"
 	ConditionReasonUpdating            string = "Updating"
 	ConditionReasonUpdated             string = "Updated"

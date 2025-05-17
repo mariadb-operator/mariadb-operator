@@ -951,6 +951,18 @@ func (m *MariaDB) IsInitializing() bool {
 	return meta.IsStatusConditionFalse(m.Status.Conditions, ConditionTypeInitialized)
 }
 
+// HasInitError indicates that the MariaDB instance has an initialization error.
+func (m *MariaDB) InitError() error {
+	c := meta.FindStatusCondition(m.Status.Conditions, ConditionTypeInitialized)
+	if c == nil {
+		return nil
+	}
+	if c.Status == metav1.ConditionFalse && c.Reason == ConditionReasonInitError {
+		return errors.New(c.Message)
+	}
+	return nil
+}
+
 // ServerDNSNames are the Service DNS names used by server TLS certificates.
 func (m *MariaDB) TLSServerDNSNames() []string {
 	var names []string
