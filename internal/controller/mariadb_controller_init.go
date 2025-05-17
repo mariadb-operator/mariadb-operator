@@ -141,7 +141,7 @@ func (r *MariaDBReconciler) reconcileAndWaitForInitJobs(ctx context.Context, mar
 
 func (r *MariaDBReconciler) createInitJob(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 	key types.NamespacedName, podIndex int) error {
-	job, err := r.Builder.BuildPhysicalBackupInitJob(key, mariadb, &podIndex)
+	job, err := r.Builder.BuildPhysicalBackupRestoreJob(key, mariadb, &podIndex)
 	if err != nil {
 		return fmt.Errorf("error building PhysicalBackup init Job: %v", err)
 	}

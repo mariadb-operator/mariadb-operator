@@ -11,12 +11,16 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var targetTimeRaw string
+var (
+	physicalBackupDirPath string
+	targetTimeRaw         string
+)
 
 func init() {
+	restoreCommand.Flags().StringVar(&physicalBackupDirPath, "physical-backup-dir-path", "",
+		"Directory path where the physical backup has been prepared. Only considered when backup-type is Physical.")
 	restoreCommand.Flags().StringVar(&targetTimeRaw, "target-time", "",
 		"RFC3339 (1970-01-01T00:00:00Z) date and time that defines the backup target time.")
-	restoreCommand.Flags().StringVar(&path, "path", "/backup", "Directory path where the backup files are located.")
 }
 
 var restoreCommand = &cobra.Command{
@@ -101,8 +105,6 @@ var restoreCommand = &cobra.Command{
 }
 
 func checkPhysicalBackupDir() (bool, error) {
-	// TODO: pass it via a flag
-	physicalBackupDirPath := "/backup/full"
 	if backupType != string(mariadbv1alpha1.BackupTypePhysical) || physicalBackupDirPath == "" {
 		return false, nil
 	}
