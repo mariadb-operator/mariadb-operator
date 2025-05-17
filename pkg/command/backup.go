@@ -18,7 +18,6 @@ type BackupOpts struct {
 	CommandOpts
 	Path                 string
 	TargetFilePath       string
-	BackupFileEnv        string
 	OmitCredentials      bool
 	CleanupTargetFile    bool
 	MaxRetentionDuration time.Duration
@@ -41,11 +40,6 @@ func WithBackup(path string, targetFilePath string) BackupOpt {
 	return func(bo *BackupOpts) {
 		bo.Path = path
 		bo.TargetFilePath = targetFilePath
-	}
-}
-func WithBackupFileEnv(backupFileEnv string) BackupOpt {
-	return func(bo *BackupOpts) {
-		bo.BackupFileEnv = backupFileEnv
 	}
 }
 
@@ -200,10 +194,7 @@ func (b *BackupCommand) MariadbDump(backup *mariadbv1alpha1.Backup,
 	return NewBashCommand(cmds), nil
 }
 
-func (b *BackupCommand) MariadbBackup(mariadb *mariadbv1alpha1.MariaDB) (*Command, error) {
-	if b.BackupFileEnv == "" {
-		return nil, errors.New("BackupFileEnv must be set")
-	}
+func (b *BackupCommand) MariadbBackup(mariadb *mariadbv1alpha1.MariaDB, backupFilePath string) (*Command, error) {
 	if b.Database != nil {
 		return nil, errors.New("Database option not supported in physical backups")
 	}
@@ -222,7 +213,7 @@ func (b *BackupCommand) MariadbBackup(mariadb *mariadbv1alpha1.MariaDB) (*Comman
 		),
 		fmt.Sprintf(
 			"printf \"%s\" > %s",
-			b.getBackupFileFromEnv(),
+			backupFilePath,
 			b.TargetFilePath,
 		),
 		fmt.Sprintf(
@@ -326,9 +317,6 @@ func (b *BackupCommand) MariadbRestore(restore *mariadbv1alpha1.Restore,
 }
 
 func (b *BackupCommand) MariadbBackupRestore(mariadb *mariadbv1alpha1.MariaDB, physicalBackupDirPath string) (*Command, error) {
-	if b.BackupFileEnv == "" {
-		return nil, errors.New("BackupFileEnv must be set")
-	}
 	if b.Database != nil {
 		return nil, errors.New("Database option not supported in physical backups")
 	}
@@ -382,10 +370,6 @@ func (b *BackupCommand) newBackupFile() string {
 		)
 	}
 	return filepath.Join(b.Path, fileName)
-}
-
-func (b *BackupCommand) getBackupFileFromEnv() string {
-	return fmt.Sprintf("%s/${%s}", b.Path, b.BackupFileEnv)
 }
 
 func (b *BackupCommand) getTargetFilePath() string {
