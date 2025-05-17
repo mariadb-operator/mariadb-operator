@@ -1,6 +1,17 @@
 package pvc
 
-import corev1 "k8s.io/api/core/v1"
+import (
+	"context"
+	"fmt"
+
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
+	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
+	corev1 "k8s.io/api/core/v1"
+	klabels "k8s.io/apimachinery/pkg/labels"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
+)
 
 // IsResizing returns true if the PVC is resizing
 func IsResizing(pvc *corev1.PersistentVolumeClaim) bool {
@@ -32,4 +43,22 @@ func IsPersistentVolumeClaimResizing(pvc *corev1.PersistentVolumeClaim) bool {
 		}
 	}
 	return false
+}
+
+// ListStoragePVCs lists the storage PVCs of a given MariaDB instance
+func ListStoragePVCs(ctx context.Context, client client.Client, mariadb *mariadbv1alpha1.MariaDB) ([]corev1.PersistentVolumeClaim, error) {
+	list := corev1.PersistentVolumeClaimList{}
+	listOpts := &ctrlclient.ListOptions{
+		LabelSelector: klabels.SelectorFromSet(
+			labels.NewLabelsBuilder().
+				WithMariaDBSelectorLabels(mariadb).
+				WithPVCRole(builder.StorageVolumeRole).
+				Build(),
+		),
+		Namespace: mariadb.GetNamespace(),
+	}
+	if err := client.List(ctx, &list, listOpts); err != nil {
+		return nil, fmt.Errorf("error listing PVCs: %v", err)
+	}
+	return list.Items, nil
 }

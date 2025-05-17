@@ -9,20 +9,18 @@ import (
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
-	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/configmap"
 	mdbembed "github.com/mariadb-operator/mariadb-operator/pkg/embed"
 	jobpkg "github.com/mariadb-operator/mariadb-operator/pkg/job"
+	"github.com/mariadb-operator/mariadb-operator/pkg/pvc"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	klabels "k8s.io/apimachinery/pkg/labels"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -32,7 +30,7 @@ func (r *GaleraReconciler) ReconcileInit(ctx context.Context, mariadb *mariadbv1
 	}
 
 	if !mariadb.IsGaleraInitializing() {
-		pvcs, err := r.listPVCs(ctx, mariadb)
+		pvcs, err := pvc.ListStoragePVCs(ctx, r.Client, mariadb)
 		if err != nil {
 			return ctrl.Result{}, fmt.Errorf("error listing PVCs: %v", err)
 		}
@@ -98,23 +96,6 @@ func (r *GaleraReconciler) ReconcileInit(ctx context.Context, mariadb *mariadbv1
 		return ctrl.Result{}, fmt.Errorf("error patching MariaDB status: %v", err)
 	}
 	return ctrl.Result{}, nil
-}
-
-func (r *GaleraReconciler) listPVCs(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) ([]corev1.PersistentVolumeClaim, error) {
-	list := corev1.PersistentVolumeClaimList{}
-	listOpts := &ctrlclient.ListOptions{
-		LabelSelector: klabels.SelectorFromSet(
-			labels.NewLabelsBuilder().
-				WithMariaDBSelectorLabels(mariadb).
-				WithPVCRole(builder.StorageVolumeRole).
-				Build(),
-		),
-		Namespace: mariadb.GetNamespace(),
-	}
-	if err := r.List(ctx, &list, listOpts); err != nil {
-		return nil, fmt.Errorf("error listing PVCs: %v", err)
-	}
-	return list.Items, nil
 }
 
 func (r *GaleraReconciler) createJob(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
