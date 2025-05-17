@@ -132,7 +132,7 @@ func (r *MariaDBReconciler) reconcileAndWaitForInitJobs(ctx context.Context, mar
 
 		if !jobpkg.IsJobComplete(&job) {
 			log.FromContext(ctx).V(1).Info("PhysicalBackup init job not completed. Requeuing")
-			return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+			return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 		}
 
 		return ctrl.Result{}, nil
