@@ -131,8 +131,6 @@ jobs:
     runs-on: ubuntu-latest
     needs: detect-noop
     if: ${{ needs.detect-noop.outputs.noop != 'true' }}
-    env:
-      CRD_FILE: deploy/charts/mariadb-operator-crds/templates/crds.yaml
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -145,16 +143,5 @@ jobs:
         with:
           message: Generated artifacts are not up to date. Run 'make gen' and commit the changes.
 
-      - name: Verify CRD size
-        shell: bash
-        run: |
-          crd_file="$CRD_FILE"
-          max_size=$((900 * 1024))
-          crd_size=$(stat -c%s "$crd_file")
-
-          echo "Current CRD size: $((crd_size / 1024)) KB"
-
-          if [ "$crd_size" -ge "$max_size" ]; then
-            echo "Error: CRDs exceed 900KB (current size: $((crd_size / 1024)) KB)"
-            exit 1
-          fi
+      - name: Check CRD size
+        run: make crd-size

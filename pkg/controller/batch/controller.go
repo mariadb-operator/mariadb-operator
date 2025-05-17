@@ -43,7 +43,11 @@ func (r *BatchReconciler) Reconcile(ctx context.Context, parentObj client.Object
 func (r *BatchReconciler) reconcileStorage(ctx context.Context, parentObj client.Object) error {
 	if backup, ok := parentObj.(*mariadbv1alpha1.Backup); ok {
 		if backup.Spec.Storage.PersistentVolumeClaim != nil {
-			pvc, err := r.builder.BuildBackupStoragePVC(backup.StoragePVCKey(), backup)
+			pvc, err := r.builder.BuildBackupStoragePVC(
+				backup.StoragePVCKey(),
+				backup.Spec.Storage.PersistentVolumeClaim,
+				backup.Spec.InheritMetadata,
+			)
 			if err != nil {
 				return fmt.Errorf("error building Backup storage PVC: %v", err)
 			}

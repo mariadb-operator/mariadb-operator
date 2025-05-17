@@ -21,14 +21,16 @@ type BackupStorage interface {
 }
 
 type FileSystemBackupStorage struct {
-	basePath string
-	logger   logr.Logger
+	basePath  string
+	processor BackupProcessor
+	logger    logr.Logger
 }
 
-func NewFileSystemBackupStorage(basePath string, logger logr.Logger) BackupStorage {
+func NewFileSystemBackupStorage(basePath string, processor BackupProcessor, logger logr.Logger) BackupStorage {
 	return &FileSystemBackupStorage{
-		basePath: basePath,
-		logger:   logger,
+		basePath:  basePath,
+		processor: processor,
+		logger:    logger,
 	}
 }
 
@@ -61,7 +63,7 @@ func (f *FileSystemBackupStorage) Delete(ctx context.Context, fileName string) e
 
 func (f *FileSystemBackupStorage) shouldProcessBackupFile(fileName string, logger logr.Logger) bool {
 	logger.V(1).Info("processing backup file", "file", fileName)
-	if IsValidBackupFile(fileName) {
+	if f.processor.IsValidBackupFile(fileName) {
 		return true
 	}
 	logger.V(1).Info("ignoring file", "file", fileName)
@@ -103,13 +105,15 @@ func WithPrefix(prefix string) S3BackupStorageOpt {
 
 type S3BackupStorage struct {
 	S3BackupStorageOpts
-	basePath string
-	bucket   string
-	logger   logr.Logger
-	client   *minio.Client
+	basePath  string
+	bucket    string
+	processor BackupProcessor
+	logger    logr.Logger
+	client    *minio.Client
 }
 
-func NewS3BackupStorage(basePath, bucket, endpoint string, logger logr.Logger, s3Opts ...S3BackupStorageOpt) (BackupStorage, error) {
+func NewS3BackupStorage(basePath, bucket, endpoint string, processor BackupProcessor, logger logr.Logger,
+	s3Opts ...S3BackupStorageOpt) (BackupStorage, error) {
 	opts := S3BackupStorageOpts{}
 	for _, setOpt := range s3Opts {
 		setOpt(&opts)
@@ -130,6 +134,7 @@ func NewS3BackupStorage(basePath, bucket, endpoint string, logger logr.Logger, s
 		basePath:            basePath,
 		bucket:              bucket,
 		client:              client,
+		processor:           processor,
 		logger:              logger,
 	}, nil
 }
@@ -170,7 +175,7 @@ func (s *S3BackupStorage) Delete(ctx context.Context, fileName string) error {
 
 func (s *S3BackupStorage) shouldProcessBackupFile(fileName string, logger logr.Logger) bool {
 	logger.V(1).Info("processing backup file", "file", fileName)
-	if IsValidBackupFile(s.unprefixedFilename(fileName)) {
+	if s.processor.IsValidBackupFile(s.unprefixedFilename(fileName)) {
 		return true
 	}
 	logger.V(1).Info("ignoring file", "file", fileName)

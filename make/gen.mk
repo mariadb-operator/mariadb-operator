@@ -66,6 +66,20 @@ examples-exporter: ## Update exporter version in examples
 .PHONY: examples
 examples: examples-operator examples-mariadb examples-maxscale examples-exporter ## Update versions in examples
 
+##@ Generate - CRD size
+
+CRD_FILE ?= deploy/charts/mariadb-operator-crds/templates/crds.yaml
+CRD_MAX_SIZE ?= 900 # in KB
+.PHONY: crd-size
+crd-size: ## Check CRD size and fail if it exceeds 900KB (hard limit 1MB).
+	@max_size=$$((${CRD_MAX_SIZE} * 1024)); \
+	crd_size=$$(stat -c%s "${CRD_FILE}"); \
+	echo "Current CRD size: $$((crd_size / 1024)) KB"; \
+	if [ "$$crd_size" -ge "$$max_size" ]; then \
+		echo "Error: CRDs exceed 900KB (current size: $$((crd_size / 1024)) KB)"; \
+		exit 1; \
+	fi
+
 ##@ Generate
 
 .PHONY: gen

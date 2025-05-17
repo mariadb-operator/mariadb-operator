@@ -26,6 +26,13 @@ func IsJobComplete(job *batchv1.Job) bool {
 	return IsStatusConditionTrue(job.Status.Conditions, batchv1.JobComplete)
 }
 
+func IsJobRunning(job *batchv1.Job) bool {
+	if job == nil {
+		return false
+	}
+	return !IsJobFailed(job) && !IsJobSuspended(job) && !IsJobComplete(job)
+}
+
 func IsStatusConditionTrue(conditions []batchv1.JobCondition, conditionType batchv1.JobConditionType) bool {
 	for _, c := range conditions {
 		if c.Type == conditionType && c.Status == corev1.ConditionTrue {

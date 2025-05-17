@@ -15,6 +15,8 @@ const (
 	ConditionTypeStorageResized string = "StorageResized"
 	// ConditionTypeUpdated indicates that an update has been successfully completed.
 	ConditionTypeUpdated string = "Updated"
+	// ConditionTypeInitialized indicates that the cluster has been successfully initialized.
+	ConditionTypeInitialized string = "Initialized"
 
 	ConditionReasonStatefulSetNotReady string = "StatefulSetNotReady"
 	ConditionReasonStatefulSetReady    string = "StatefulSetReady"
@@ -30,6 +32,7 @@ const (
 	ConditionReasonStorageResized      string = "StorageResized"
 	ConditionReasonInitializing        string = "Initializing"
 	ConditionReasonInitialized         string = "Initialized"
+	ConditionReasonInitError           string = "InitError"
 	ConditionReasonPendingUpdate       string = "PendingUpdate"
 	ConditionReasonUpdating            string = "Updating"
 	ConditionReasonUpdated             string = "Updated"
@@ -41,10 +44,11 @@ const (
 	ConditionReasonRestoreNotComplete string = "RestoreNotComplete"
 	ConditionReasonRestoreComplete    string = "RestoreComplete"
 
-	ConditionReasonJobComplete  string = "JobComplete"
-	ConditionReasonJobSuspended string = "JobSuspended"
-	ConditionReasonJobFailed    string = "JobFailed"
-	ConditionReasonJobRunning   string = "JobRunning"
+	ConditionReasonJobComplete    string = "JobComplete"
+	ConditionReasonJobSuspended   string = "JobSuspended"
+	ConditionReasonJobFailed      string = "JobFailed"
+	ConditionReasonJobRunning     string = "JobRunning"
+	ConditionReasonJobNotComplete string = "JobNotComplete"
 
 	ConditionReasonCronJobScheduled string = "CronJobScheduled"
 	ConditionReasonCronJobFailed    string = "CronJobScheduled"

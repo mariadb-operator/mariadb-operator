@@ -45,7 +45,7 @@ func (b *Builder) BuildRestore(mariadb *mariadbv1alpha1.MariaDB, key types.Names
 		Spec: mariadbv1alpha1.RestoreSpec{
 			JobContainerTemplate: containerTpl,
 			JobPodTemplate:       podTpl,
-			RestoreSource:        bootstrapFrom.RestoreSource,
+			RestoreSource:        bootstrapFrom.RestoreSource(),
 			MariaDBRef: mariadbv1alpha1.MariaDBRef{
 				ObjectReference: mariadbv1alpha1.ObjectReference{
 					Name: mariadb.Name,
