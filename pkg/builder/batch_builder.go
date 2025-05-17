@@ -386,7 +386,7 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 	return job, nil
 }
 
-func (b *Builder) BuildPhysicalBackupInitJob(key types.NamespacedName, mariadb *mariadbv1alpha1.MariaDB,
+func (b *Builder) BuildPhysicalBackupRestoreJob(key types.NamespacedName, mariadb *mariadbv1alpha1.MariaDB,
 	podIndex *int) (*batchv1.Job, error) {
 	if mariadb.Spec.BootstrapFrom == nil {
 		return nil, errors.New("spec.bootstrapFrom must be set")
