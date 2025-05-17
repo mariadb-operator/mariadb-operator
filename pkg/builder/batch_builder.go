@@ -32,7 +32,6 @@ const (
 	batchUserEnv           = "MARIADB_OPERATOR_USER"
 	batchPasswordEnv       = "MARIADB_OPERATOR_PASSWORD"
 	batchBackupFileEnv     = "MARIADB_OPERATOR_BACKUP_FILE"
-	batchBackupDirEnv      = "MARIADB_OPERATOR_BACKUP_DIR"
 	batchS3AccessKeyId     = "AWS_ACCESS_KEY_ID"
 	batchS3SecretAccessKey = "AWS_SECRET_ACCESS_KEY"
 	batchS3SessionTokenKey = "AWS_SESSION_TOKEN"
@@ -40,7 +39,7 @@ const (
 
 var (
 	batchBackupTargetFilePath  = filepath.Join(batchStorageMountPath, "0-backup-target.txt")
-	batchPhysicalBackupDirpath = filepath.Join(batchStorageMountPath, batchBackupDirFull)
+	batchPhysicalBackupDirPath = filepath.Join(batchStorageMountPath, batchBackupDirFull)
 )
 
 func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alpha1.Backup,
@@ -194,10 +193,16 @@ func (b *Builder) BuildPhysicalBackupJob(key types.NamespacedName, backup *maria
 	}
 	volumes, volumeMounts := jobPhysicalBackupVolumes(volume, backup.Spec.Storage.S3, mariadb, podIndex)
 
+	mariadbEnv := jobEnv(mariadb)
+	mariadbEnv = append(mariadbEnv, corev1.EnvVar{
+		Name:  batchBackupFileEnv,
+		Value: backupFile,
+	})
+
 	mariadbContainer, err := b.jobMariadbContainer(
 		backupCmd,
 		volumeMounts,
-		jobEnvWithBackupFile(mariadb, backupFile),
+		mariadbEnv,
 		jobResources(backup.Spec.Resources),
 		mariadb,
 		backup.Spec.SecurityContext,
@@ -421,7 +426,6 @@ func (b *Builder) BuildPhysicalBackupRestoreJob(key types.NamespacedName, mariad
 		command.WithBackupTargetTime(mariadb.Spec.BootstrapFrom.TargetRecoveryTimeOrDefault()),
 		command.WithOmitCredentials(true),
 		command.WithBackupFileEnv(batchBackupFileEnv),
-		command.WithBackupDirEnv(batchBackupDirEnv),
 	}
 	cmdOpts = append(cmdOpts, s3Opts(mariadb.Spec.BootstrapFrom.S3)...)
 
@@ -429,7 +433,7 @@ func (b *Builder) BuildPhysicalBackupRestoreJob(key types.NamespacedName, mariad
 	if err != nil {
 		return nil, fmt.Errorf("error building backup command: %v", err)
 	}
-	restoreCmd, err := cmd.MariadbBackupRestore(mariadb)
+	restoreCmd, err := cmd.MariadbBackupRestore(mariadb, batchPhysicalBackupDirPath)
 	if err != nil {
 		return nil, fmt.Errorf("error getting mariadb-backup restore command: %v", err)
 	}
@@ -438,7 +442,7 @@ func (b *Builder) BuildPhysicalBackupRestoreJob(key types.NamespacedName, mariad
 	restoreJob := ptr.Deref(mariadb.Spec.BootstrapFrom.RestoreJob, mariadbv1alpha1.Job{})
 
 	operatorContainer, err := b.jobMariadbOperatorContainer(
-		cmd.MariadbOperatorRestore(mariadbv1alpha1.BackupTypePhysical, &batchPhysicalBackupDirpath),
+		cmd.MariadbOperatorRestore(mariadbv1alpha1.BackupTypePhysical, &batchPhysicalBackupDirPath),
 		volumeMounts,
 		jobS3Env(mariadb.Spec.BootstrapFrom.S3),
 		jobResources(restoreJob.Resources),
@@ -453,12 +457,7 @@ func (b *Builder) BuildPhysicalBackupRestoreJob(key types.NamespacedName, mariad
 	mariadbContainer, err := b.jobMariadbContainer(
 		restoreCmd,
 		volumeMounts,
-		[]corev1.EnvVar{
-			{
-				Name:  batchBackupDirEnv,
-				Value: batchBackupDirFull,
-			},
-		},
+		nil,
 		jobResources(restoreJob.Resources),
 		mariadb,
 		mariadb.Spec.SecurityContext,

@@ -16,11 +16,10 @@ import (
 
 type BackupOpts struct {
 	CommandOpts
-	BackupFileEnv        string
-	BackupDirEnv         string
-	OmitCredentials      bool
 	Path                 string
 	TargetFilePath       string
+	BackupFileEnv        string
+	OmitCredentials      bool
 	CleanupTargetFile    bool
 	MaxRetentionDuration time.Duration
 	TargetTime           time.Time
@@ -38,22 +37,15 @@ type BackupOpts struct {
 
 type BackupOpt func(*BackupOpts)
 
-func WithBackupFileEnv(backupFileEnv string) BackupOpt {
-	return func(bo *BackupOpts) {
-		bo.BackupFileEnv = backupFileEnv
-	}
-}
-
-func WithBackupDirEnv(backupDirEnv string) BackupOpt {
-	return func(bo *BackupOpts) {
-		bo.BackupDirEnv = backupDirEnv
-	}
-}
-
 func WithBackup(path string, targetFilePath string) BackupOpt {
 	return func(bo *BackupOpts) {
 		bo.Path = path
 		bo.TargetFilePath = targetFilePath
+	}
+}
+func WithBackupFileEnv(backupFileEnv string) BackupOpt {
+	return func(bo *BackupOpts) {
+		bo.BackupFileEnv = backupFileEnv
 	}
 }
 
@@ -333,12 +325,9 @@ func (b *BackupCommand) MariadbRestore(restore *mariadbv1alpha1.Restore,
 	return NewBashCommand(cmds), nil
 }
 
-func (b *BackupCommand) MariadbBackupRestore(mariadb *mariadbv1alpha1.MariaDB) (*Command, error) {
+func (b *BackupCommand) MariadbBackupRestore(mariadb *mariadbv1alpha1.MariaDB, physicalBackupDirPath string) (*Command, error) {
 	if b.BackupFileEnv == "" {
 		return nil, errors.New("BackupFileEnv must be set")
-	}
-	if b.BackupDirEnv == "" {
-		return nil, errors.New("BackupDirEnv must be set")
 	}
 	if b.Database != nil {
 		return nil, errors.New("Database option not supported in physical backups")
@@ -346,7 +335,7 @@ func (b *BackupCommand) MariadbBackupRestore(mariadb *mariadbv1alpha1.MariaDB) (
 
 	copyBackupCmd := fmt.Sprintf(
 		"mariadb-backup --copy-back --target-dir=%s",
-		b.getBackupDirFromEnv(),
+		physicalBackupDirPath,
 	)
 
 	cmds := []string{
@@ -354,23 +343,23 @@ func (b *BackupCommand) MariadbBackupRestore(mariadb *mariadbv1alpha1.MariaDB) (
 		"echo 💾 Checking existing backup",
 		fmt.Sprintf(
 			"if [ -d %s ]; then echo '💾 Existing backup directory found. Copying backup to data directory'; %s && exit 0; fi",
-			b.getBackupDirFromEnv(),
+			physicalBackupDirPath,
 			copyBackupCmd,
 		),
 		"echo 💾 Extracting backup",
 		fmt.Sprintf(
 			"mkdir %s",
-			b.getBackupDirFromEnv(),
+			physicalBackupDirPath,
 		),
 		fmt.Sprintf(
 			"mbstream -x -C %s < %s",
-			b.getBackupDirFromEnv(),
+			physicalBackupDirPath,
 			b.getTargetFilePath(),
 		),
 		"echo 💾 Preparing backup",
 		fmt.Sprintf(
 			"mariadb-backup --prepare --target-dir=%s",
-			b.getBackupDirFromEnv(),
+			physicalBackupDirPath,
 		),
 		"echo 💾 Copying backup to data directory",
 		copyBackupCmd,
@@ -397,10 +386,6 @@ func (b *BackupCommand) newBackupFile() string {
 
 func (b *BackupCommand) getBackupFileFromEnv() string {
 	return fmt.Sprintf("%s/${%s}", b.Path, b.BackupFileEnv)
-}
-
-func (b *BackupCommand) getBackupDirFromEnv() string {
-	return fmt.Sprintf("%s/${%s}", b.Path, b.BackupDirEnv)
 }
 
 func (b *BackupCommand) getTargetFilePath() string {
