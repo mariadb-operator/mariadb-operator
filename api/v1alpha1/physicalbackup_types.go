@@ -156,11 +156,11 @@ type PhysicalBackupStatus struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status,xDescriptors={"urn:alm:descriptor:io.kubernetes.conditions"}
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
-	// LastScheduleTime is the last time that a Job was scheduled.
+	// LastScheduleTime is the last time that a backup was scheduled.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	LastScheduleTime *metav1.Time `json:"lastScheduleTime,omitempty"`
-	// NextScheduleTime is the next time that a Job will be scheduled.
+	// NextScheduleTime is the next time that a backup will be scheduled.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	NextScheduleTime *metav1.Time `json:"nextScheduleTime,omitempty"`
@@ -179,8 +179,9 @@ func (b *PhysicalBackupStatus) SetCondition(condition metav1.Condition) {
 // +kubebuilder:printcolumn:name="Complete",type="string",JSONPath=".status.conditions[?(@.type==\"Complete\")].status"
 // +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.conditions[?(@.type==\"Complete\")].message"
 // +kubebuilder:printcolumn:name="MariaDB",type="string",JSONPath=".spec.mariaDbRef.name"
+// +kubebuilder:printcolumn:name="Last Scheduled",type="date",JSONPath=".status.lastScheduleTime"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
-// +operator-sdk:csv:customresourcedefinitions:resources={{Backup,v1alpha1},{Job,v1},{PersistentVolumeClaim,v1},{ServiceAccount,v1}}
+// +operator-sdk:csv:customresourcedefinitions:resources={{PhysicalBackup,v1alpha1}}
 
 // PhysicalBackup is the Schema for the physicalbackups API. It is used to define physical backup jobs and its storage.
 type PhysicalBackup struct {
