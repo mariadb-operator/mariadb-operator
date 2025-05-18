@@ -9,7 +9,9 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	jobpkg "github.com/mariadb-operator/mariadb-operator/pkg/job"
+	podpkg "github.com/mariadb-operator/mariadb-operator/pkg/pod"
 	"github.com/mariadb-operator/mariadb-operator/pkg/pvc"
+	stsobj "github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -68,7 +70,7 @@ func (r *MariaDBReconciler) reconcilePhysicalBackupInit(ctx context.Context, mar
 	if err := r.reconcilePVCs(ctx, mariadb); err != nil {
 		return ctrl.Result{}, err
 	}
-	if result, err := r.reconcileAndWaitForInitJobs(ctx, mariadb); !result.IsZero() || err != nil {
+	if result, err := r.reconcileRollingInit(ctx, mariadb); !result.IsZero() || err != nil {
 		return result, err
 	}
 	if err := r.cleanupInitJobs(ctx, mariadb); err != nil {
@@ -118,25 +120,40 @@ func (r *MariaDBReconciler) reconcilePVCs(ctx context.Context, mariadb *mariadbv
 	return nil
 }
 
-func (r *MariaDBReconciler) reconcileAndWaitForInitJobs(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
-	return r.forEachPhysicalBackupKey(mariadb, func(key types.NamespacedName, podIndex int) (ctrl.Result, error) {
-		var job batchv1.Job
-		if err := r.Get(ctx, key, &job); err != nil {
-			if apierrors.IsNotFound(err) {
-				if err := r.createInitJob(ctx, mariadb, key, podIndex); err != nil {
-					return ctrl.Result{}, err
-				}
-				return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
-			}
+func (r *MariaDBReconciler) reconcileRollingInit(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
+	return r.forEachPhysicalBackupInit(mariadb, func(key types.NamespacedName, podIndex int) (ctrl.Result, error) {
+		if result, err := r.reconcileAndWaitForInitJob(ctx, mariadb, key, podIndex); !result.IsZero() || err != nil {
+			return result, err
 		}
 
-		if !jobpkg.IsJobComplete(&job) {
-			log.FromContext(ctx).V(1).Info("PhysicalBackup init job not completed. Requeuing")
-			return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+		if err := r.upscaleStatefulSet(ctx, mariadb, int32(podIndex+1)); err != nil {
+			return ctrl.Result{}, fmt.Errorf("error upscaling StatefulSet: %v", err)
 		}
+		if result, err := r.waitForPodScheduled(ctx, mariadb, podIndex); !result.IsZero() || err != nil {
+			return result, err
+		}
+		log.FromContext(ctx).V(1).Info("Pod successfully initialized", "pod", stsobj.PodName(mariadb.ObjectMeta, podIndex))
 
 		return ctrl.Result{}, nil
 	})
+}
+
+func (r *MariaDBReconciler) reconcileAndWaitForInitJob(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+	key types.NamespacedName, podIndex int) (ctrl.Result, error) {
+	var job batchv1.Job
+	if err := r.Get(ctx, key, &job); err != nil {
+		if apierrors.IsNotFound(err) {
+			if err := r.createInitJob(ctx, mariadb, key, podIndex); err != nil {
+				return ctrl.Result{}, err
+			}
+			return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+		}
+	}
+	if !jobpkg.IsJobComplete(&job) {
+		log.FromContext(ctx).V(1).Info("PhysicalBackup init job not completed. Requeuing")
+		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+	}
+	return ctrl.Result{}, nil
 }
 
 func (r *MariaDBReconciler) createInitJob(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
@@ -148,8 +165,50 @@ func (r *MariaDBReconciler) createInitJob(ctx context.Context, mariadb *mariadbv
 	return r.Create(ctx, job)
 }
 
+func (r *MariaDBReconciler) upscaleStatefulSet(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, replicas int32) error {
+	key := client.ObjectKeyFromObject(mariadb)
+	updateAnnotations, err := r.getUpdateAnnotations(ctx, mariadb)
+	if err != nil {
+		return fmt.Errorf("error getting Pod annotations: %v", err)
+	}
+
+	sts, err := r.Builder.BuildMariadbStatefulSet(mariadb, key, updateAnnotations)
+	if err != nil {
+		return fmt.Errorf("error building StatefulSet: %v", err)
+	}
+	if sts.Status.Replicas >= replicas {
+		return nil
+	}
+	sts.Spec.Replicas = &replicas
+
+	if err := r.StatefulSetReconciler.Reconcile(ctx, sts); err != nil {
+		return fmt.Errorf("error reconciling StatefulSet with %d replicas : %v", replicas, err)
+	}
+	return nil
+}
+
+func (r *MariaDBReconciler) waitForPodScheduled(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, podIndex int) (ctrl.Result, error) {
+	podKey := types.NamespacedName{
+		Name:      stsobj.PodName(mariadb.ObjectMeta, podIndex),
+		Namespace: mariadb.Namespace,
+	}
+	var pod corev1.Pod
+	if err := r.Get(ctx, podKey, &pod); err != nil {
+		if apierrors.IsNotFound(err) {
+			return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+		}
+		return ctrl.Result{}, fmt.Errorf("error getting Pod: %v", err)
+	}
+
+	if !podpkg.PodScheduled(&pod) {
+		log.FromContext(ctx).V(1).Info("Pod has not been scheduled. Requeuing...", "pod", pod.Name)
+		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+	}
+	return ctrl.Result{}, nil
+}
+
 func (r *MariaDBReconciler) cleanupInitJobs(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
-	_, err := r.forEachPhysicalBackupKey(mariadb, func(key types.NamespacedName, podIndex int) (ctrl.Result, error) {
+	_, err := r.forEachPhysicalBackupInit(mariadb, func(key types.NamespacedName, podIndex int) (ctrl.Result, error) {
 		var job batchv1.Job
 		if err := r.Get(ctx, key, &job); err == nil {
 			if err := r.Delete(ctx, &job, &client.DeleteOptions{PropagationPolicy: ptr.To(metav1.DeletePropagationBackground)}); err != nil {
@@ -178,7 +237,7 @@ func (r *MariaDBReconciler) cleanupStagingPVC(ctx context.Context, mariadb *mari
 	return r.Delete(ctx, &pvc)
 }
 
-func (r *MariaDBReconciler) forEachPhysicalBackupKey(mariadb *mariadbv1alpha1.MariaDB,
+func (r *MariaDBReconciler) forEachPhysicalBackupInit(mariadb *mariadbv1alpha1.MariaDB,
 	fn func(key types.NamespacedName, podIndex int) (ctrl.Result, error)) (ctrl.Result, error) {
 	for i := 0; i < int(mariadb.Spec.Replicas); i++ {
 		if result, err := fn(mariadb.PhysicalBackupInitJobKey(i), i); !result.IsZero() || err != nil {
