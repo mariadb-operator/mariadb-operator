@@ -112,13 +112,18 @@ MINIO_VERSION ?= "5.4.0"
 install-minio: cert-minio ## Install minio helm chart.
 	@MINIO_VERSION=$(MINIO_VERSION) ./hack/install_minio.sh
 
+.PHONY: install-snapshotter
+install-snapshotter: ## Install external-snapshotter.
+	$(KUBECTL) create namespace external-snapshotter --dry-run=client -o yaml | $(KUBECTL) apply -f -
+	$(KUSTOMIZE) build hack/manifests/external-snapshotter | $(KUBECTL)  apply --server-side=true --force-conflicts -f -
+
 .PHONY: install-crds
 install-crds: cluster-ctx manifests kustomize ## Install CRDs.
-	$(KUSTOMIZE) build config/crd | kubectl apply --server-side=true --force-conflicts -f -
+	$(KUSTOMIZE) build config/crd | $(KUBECTL) apply --server-side=true --force-conflicts -f -
 
 .PHONY: uninstall-crds
 uninstall-crds: cluster-ctx manifests kustomize ## Uninstall CRDs.
-	$(KUSTOMIZE) build config/crd | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
+	$(KUSTOMIZE) build config/crd | $(KUBECTL)  delete --ignore-not-found=$(ignore-not-found) -f -
 
 .PHONY: install-config
 install-config: cluster-ctx  ## Install common configuration.
