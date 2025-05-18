@@ -10,6 +10,7 @@ import (
 
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	mdbtime "github.com/mariadb-operator/mariadb-operator/pkg/time"
 )
 
 type BackupProcessor interface {
@@ -251,5 +252,5 @@ func (p *PhysicalBackupProcessor) parseDateInBackupFile(fileName string) (time.T
 		return time.Time{}, fmt.Errorf("invalid physical backup prefix: %s", fileName)
 	}
 	date := strings.TrimPrefix(base, "physicalbackup-")
-	return ParseBackupDate(date)
+	return mdbtime.Parse(date)
 }
