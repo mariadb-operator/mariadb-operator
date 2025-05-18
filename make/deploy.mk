@@ -117,6 +117,10 @@ install-snapshotter: ## Install external-snapshotter.
 	$(KUBECTL) create namespace external-snapshotter --dry-run=client -o yaml | $(KUBECTL) apply -f -
 	$(KUSTOMIZE) build hack/manifests/external-snapshotter | $(KUBECTL)  apply --server-side=true --force-conflicts -f -
 
+.PHONY: install-csi-hostpath
+install-csi-hostpath: install-snapshotter ## Install csi-hostpath.
+	@./hack/install_csi_driver_host_path.sh
+
 .PHONY: install-crds
 install-crds: cluster-ctx manifests kustomize ## Install CRDs.
 	$(KUSTOMIZE) build config/crd | $(KUBECTL) apply --server-side=true --force-conflicts -f -
