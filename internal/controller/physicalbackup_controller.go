@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/go-multierror"
@@ -14,6 +15,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/galera/errors"
 	jobpkg "github.com/mariadb-operator/mariadb-operator/pkg/job"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
+	mdbtime "github.com/mariadb-operator/mariadb-operator/pkg/time"
 	"github.com/robfig/cron/v3"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -358,10 +360,10 @@ func (r *PhysicalBackupReconciler) createJob(ctx context.Context, backup *mariad
 	}
 
 	backupKey := types.NamespacedName{
-		Name:      fmt.Sprintf("%s-%d", backup.Name, time.Now().UnixMilli()),
+		Name:      getObjectName(backup, now),
 		Namespace: mariadb.Namespace,
 	}
-	backupFileName, err := r.getBackupFilename(backup)
+	backupFileName, err := getBackupFileName(backup, now)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error getting backup file name: %v", err)
 	}
@@ -410,15 +412,15 @@ func (r *PhysicalBackupReconciler) cleanupJobs(ctx context.Context, backup *mari
 		return nil
 	}
 
-	var completeJobs []batchv1.Job
+	var completeJobs []*batchv1.Job
 	for _, job := range jobList.Items {
 		if jobpkg.IsJobComplete(&job) {
-			completeJobs = append(completeJobs, job)
+			completeJobs = append(completeJobs, &job)
 		}
 	}
-	sort.Slice(completeJobs, func(i, j int) bool {
-		return completeJobs[i].CreationTimestamp.Time.After(completeJobs[j].CreationTimestamp.Time)
-	})
+	if err := sortByObjectTime(completeJobs); err != nil {
+		return err
+	}
 	maxHistory := int(ptr.Deref(backup.Spec.SuccessfulJobsHistoryLimit, 5))
 
 	if len(completeJobs) <= maxHistory {
@@ -427,7 +429,7 @@ func (r *PhysicalBackupReconciler) cleanupJobs(ctx context.Context, backup *mari
 	logger := log.FromContext(ctx)
 
 	for i := maxHistory; i < len(completeJobs); i++ {
-		job := &completeJobs[i]
+		job := completeJobs[i]
 
 		err := r.Delete(ctx, job, &client.DeleteOptions{PropagationPolicy: ptr.To(metav1.DeletePropagationBackground)})
 		if err != nil && !errors.IsNotFound(err) {
@@ -437,20 +439,6 @@ func (r *PhysicalBackupReconciler) cleanupJobs(ctx context.Context, backup *mari
 	}
 
 	return nil
-}
-
-func (r *PhysicalBackupReconciler) getBackupFilename(backup *mariadbv1alpha1.PhysicalBackup) (string, error) {
-	timestamp := time.Now().UTC().Format(time.RFC3339)
-	backupFile := fmt.Sprintf("physicalbackup-%s.xb", timestamp)
-
-	if backup.Spec.Compression != "" && backup.Spec.Compression != mariadbv1alpha1.CompressNone {
-		ext, err := backup.Spec.Compression.Extension()
-		if err != nil {
-			return "", fmt.Errorf("error getting compression algorithm extension: %v", err)
-		}
-		backupFile = fmt.Sprintf("%s.%s", backupFile, ext)
-	}
-	return backupFile, nil
 }
 
 func (r *PhysicalBackupReconciler) patch(ctx context.Context, backup *mariadbv1alpha1.PhysicalBackup,
@@ -478,4 +466,52 @@ func (r *PhysicalBackupReconciler) SetupWithManager(ctx context.Context, mgr ctr
 	}
 
 	return builder.Complete(r)
+}
+
+func getObjectName(obj client.Object, now time.Time) string {
+	return fmt.Sprintf("%s-%s", obj.GetName(), mdbtime.Format(now))
+}
+
+func parseObjectTime(obj client.Object) (time.Time, error) {
+	parts := strings.Split(obj.GetName(), "-")
+	if len(parts) != 2 {
+		return time.Time{}, fmt.Errorf("invalid object name \"%s\"", obj.GetName())
+	}
+	return mdbtime.Parse(parts[1])
+}
+
+func sortByObjectTime[T client.Object](objList []T) error {
+	var parseErr error
+	sort.Slice(objList, func(i, j int) bool {
+		if parseErr != nil {
+			return false
+		}
+
+		objTime, err := parseObjectTime(objList[i])
+		if err != nil {
+			parseErr = fmt.Errorf("error parsing object time: %v", err)
+			return false
+		}
+		anotherObjTime, err := parseObjectTime(objList[j])
+		if err != nil {
+			parseErr = fmt.Errorf("error parsing object time: %v", err)
+			return false
+		}
+
+		return objTime.After(anotherObjTime)
+	})
+	return parseErr
+}
+
+func getBackupFileName(backup *mariadbv1alpha1.PhysicalBackup, now time.Time) (string, error) {
+	backupFile := fmt.Sprintf("physicalbackup-%s.xb", mdbtime.Format(now))
+
+	if backup.Spec.Compression != "" && backup.Spec.Compression != mariadbv1alpha1.CompressNone {
+		ext, err := backup.Spec.Compression.Extension()
+		if err != nil {
+			return "", fmt.Errorf("error getting compression algorithm extension: %v", err)
+		}
+		backupFile = fmt.Sprintf("%s.%s", backupFile, ext)
+	}
+	return backupFile, nil
 }
