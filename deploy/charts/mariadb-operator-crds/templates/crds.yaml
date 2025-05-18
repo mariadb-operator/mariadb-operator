@@ -10425,6 +10425,9 @@ spec:
     - jsonPath: .spec.mariaDbRef.name
       name: MariaDB
       type: string
+    - jsonPath: .status.lastScheduleTime
+      name: Last Scheduled
+      type: date
     - jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
@@ -11253,12 +11256,12 @@ spec:
                   type: object
                 type: array
               lastScheduleTime:
-                description: LastScheduleTime is the last time that a Job was scheduled.
+                description: LastScheduleTime is the last time that a backup was scheduled.
                 format: date-time
                 type: string
               nextScheduleTime:
-                description: NextScheduleTime is the next time that a Job will be
-                  scheduled.
+                description: NextScheduleTime is the next time that a backup will
+                  be scheduled.
                 format: date-time
                 type: string
             type: object
