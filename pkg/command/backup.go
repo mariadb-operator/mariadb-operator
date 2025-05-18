@@ -263,7 +263,7 @@ func (b *BackupCommand) MariadbOperatorBackup(backupType mariadbv1alpha1.BackupT
 	return NewCommand(nil, args)
 }
 
-func (b *BackupCommand) MariadbOperatorRestore(backupType mariadbv1alpha1.BackupType, physicalBackupDirpath *string) *Command {
+func (b *BackupCommand) MariadbOperatorRestore(backupType mariadbv1alpha1.BackupType, backupDirPath *string) *Command {
 	args := []string{
 		"backup",
 		"restore",
@@ -276,10 +276,10 @@ func (b *BackupCommand) MariadbOperatorRestore(backupType mariadbv1alpha1.Backup
 		"--backup-type",
 		string(backupType),
 	}
-	if backupType == mariadbv1alpha1.BackupTypePhysical && physicalBackupDirpath != nil {
+	if backupType == mariadbv1alpha1.BackupTypePhysical && backupDirPath != nil {
 		args = append(args, []string{
 			"--physical-backup-dir-path",
-			*physicalBackupDirpath,
+			*backupDirPath,
 		}...)
 	}
 	if b.LogLevel != "" {
@@ -293,8 +293,7 @@ func (b *BackupCommand) MariadbOperatorRestore(backupType mariadbv1alpha1.Backup
 	return NewCommand(nil, args)
 }
 
-func (b *BackupCommand) MariadbRestore(restore *mariadbv1alpha1.Restore,
-	mariadb *mariadbv1alpha1.MariaDB) (*Command, error) {
+func (b *BackupCommand) MariadbRestore(restore *mariadbv1alpha1.Restore, mariadb *mariadbv1alpha1.MariaDB) (*Command, error) {
 	connFlags, err := ConnectionFlags(&b.BackupOpts.CommandOpts, mariadb)
 	if err != nil {
 		return nil, fmt.Errorf("error getting connection flags: %v", err)
@@ -316,14 +315,14 @@ func (b *BackupCommand) MariadbRestore(restore *mariadbv1alpha1.Restore,
 	return NewBashCommand(cmds), nil
 }
 
-func (b *BackupCommand) MariadbBackupRestore(mariadb *mariadbv1alpha1.MariaDB, physicalBackupDirPath string) (*Command, error) {
+func (b *BackupCommand) MariadbBackupRestore(mariadb *mariadbv1alpha1.MariaDB, backupDirPath string) (*Command, error) {
 	if b.Database != nil {
 		return nil, errors.New("Database option not supported in physical backups")
 	}
 
 	copyBackupCmd := fmt.Sprintf(
 		"mariadb-backup --copy-back --target-dir=%s",
-		physicalBackupDirPath,
+		backupDirPath,
 	)
 
 	cmds := []string{
@@ -331,23 +330,23 @@ func (b *BackupCommand) MariadbBackupRestore(mariadb *mariadbv1alpha1.MariaDB, p
 		"echo 💾 Checking existing backup",
 		fmt.Sprintf(
 			"if [ -d %s ]; then echo '💾 Existing backup directory found. Copying backup to data directory'; %s && exit 0; fi",
-			physicalBackupDirPath,
+			backupDirPath,
 			copyBackupCmd,
 		),
 		"echo 💾 Extracting backup",
 		fmt.Sprintf(
 			"mkdir %s",
-			physicalBackupDirPath,
+			backupDirPath,
 		),
 		fmt.Sprintf(
 			"mbstream -x -C %s < %s",
-			physicalBackupDirPath,
+			backupDirPath,
 			b.getTargetFilePath(),
 		),
 		"echo 💾 Preparing backup",
 		fmt.Sprintf(
 			"mariadb-backup --prepare --target-dir=%s",
-			physicalBackupDirPath,
+			backupDirPath,
 		),
 		"echo 💾 Copying backup to data directory",
 		copyBackupCmd,
