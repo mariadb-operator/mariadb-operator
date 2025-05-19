@@ -8,6 +8,7 @@ import (
 	"time"
 
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
+	volumesnapshotv1 "github.com/kubernetes-csi/external-snapshotter/client/v8/apis/volumesnapshot/v1"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	agentcmd "github.com/mariadb-operator/mariadb-operator/cmd/agent"
 	backupcmd "github.com/mariadb-operator/mariadb-operator/cmd/backup"
@@ -92,6 +93,7 @@ func init() {
 	utilruntime.Must(mariadbv1alpha1.AddToScheme(scheme))
 	utilruntime.Must(monitoringv1.AddToScheme(scheme))
 	utilruntime.Must(certmanagerv1.AddToScheme(scheme))
+	utilruntime.Must(volumesnapshotv1.AddToScheme(scheme))
 
 	rootCmd.PersistentFlags().StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	rootCmd.PersistentFlags().StringVar(&healthAddr, "health-addr", ":8081", "The address the probe endpoint binds to.")
@@ -376,9 +378,11 @@ var rootCmd = &cobra.Command{
 			Scheme:            scheme,
 			Recorder:          mgr.GetEventRecorderFor("physicalbackup"),
 			Builder:           builder,
+			Discovery:         discovery,
 			RefResolver:       refResolver,
 			ConditionComplete: conditionComplete,
 			RBACReconciler:    rbacReconciler,
+			PVCReconciler:     pvcReconciler,
 		}).SetupWithManager(ctx, mgr); err != nil {
 			setupLog.Error(err, "Unable to create controller", "controller", "PhysicalBackup")
 			os.Exit(1)

@@ -24,6 +24,7 @@ spec:
         caSecretKeyRef:
           name: minio-ca
           key: ca.crt
+  podAffinity: true
   resources:
     requests:
       cpu: 100m
@@ -31,3 +32,11 @@ spec:
     limits:
       cpu: 300m
       memory: 512Mi
+  # Define a PVC to use as staging area for keeping the backups while they are being processed.
+  stagingStorage:
+    persistentVolumeClaim:
+      resources:
+        requests:
+          storage: 1Gi
+      accessModes:
+        - ReadWriteOnce
