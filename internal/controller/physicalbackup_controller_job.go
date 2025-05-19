@@ -60,6 +60,13 @@ func (r *PhysicalBackupReconciler) listJobs(ctx context.Context, backup *mariadb
 }
 
 func (r *PhysicalBackupReconciler) indexJobs(ctx context.Context, mgr manager.Manager) error {
+	log.FromContext(ctx).
+		WithName("indexer").
+		WithValues(
+			"kind", "Job",
+			"field", metaCtrlFieldPath,
+		).
+		Info("Watching field")
 	return mgr.GetFieldIndexer().IndexField(
 		ctx,
 		&batchv1.Job{},
