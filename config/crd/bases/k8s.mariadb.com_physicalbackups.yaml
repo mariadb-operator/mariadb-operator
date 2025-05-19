@@ -746,6 +746,31 @@ spec:
                         - claimName
                         type: object
                     type: object
+                  volumeSnapshot:
+                    description: VolumeSnapshot is a Kubernetes VolumeSnapshot specification.
+                    properties:
+                      metadata:
+                        description: Metadata is extra metadata to the added to the
+                          VolumeSnapshot objects.
+                        properties:
+                          annotations:
+                            additionalProperties:
+                              type: string
+                            description: Annotations to be added to children resources.
+                            type: object
+                          labels:
+                            additionalProperties:
+                              type: string
+                            description: Labels to be added to children resources.
+                            type: object
+                        type: object
+                      volumeSnapshotClassName:
+                        description: VolumeSnapshotClassName is the VolumeSnapshot
+                          class to be used to take snapshots.
+                        type: string
+                    required:
+                    - volumeSnapshotClassName
+                    type: object
                 type: object
               successfulJobsHistoryLimit:
                 description: SuccessfulJobsHistoryLimit defines the maximum number

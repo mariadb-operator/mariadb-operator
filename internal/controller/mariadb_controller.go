@@ -881,9 +881,17 @@ func (r *MariaDBReconciler) setSpecDefaults(ctx context.Context, mariadb *mariad
 		if err != nil {
 			return err
 		}
-		if err := mdb.Spec.BootstrapFrom.SetDefaultsWithPhysicalBackup(physicalBackup); err != nil {
+		if !physicalBackup.IsComplete() {
+			return fmt.Errorf("PhysicalBackup \"%s\" is not complete", physicalBackup.Name)
+		}
+
+		if physicalBackup.Spec.Storage.VolumeSnapshot != nil {
+			// TODO: match VolumeSnapshot from PhysicalBackup using mdb.Spec.TargetRecoveryTime
+			// mdb.Spec.BootstrapFrom.SetDefaultsWithVolumeSnapshotRef(ref)
+		} else if err := mdb.Spec.BootstrapFrom.SetDefaultsWithPhysicalBackup(physicalBackup); err != nil {
 			return err
 		}
+
 		mdb.Spec.BootstrapFrom.SetDefaults(mdb)
 		return nil
 	})
