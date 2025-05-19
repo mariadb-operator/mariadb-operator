@@ -15,6 +15,8 @@ import (
 	"go.uber.org/zap/zapcore"
 
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
+	volumesnapshotv1 "github.com/kubernetes-csi/external-snapshotter/client/v8/apis/volumesnapshot/v1"
+	"github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	admissionv1 "k8s.io/api/admission/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -27,8 +29,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
-
-	"github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -63,6 +63,7 @@ var _ = BeforeSuite(func() {
 	Expect(admissionv1.AddToScheme(scheme)).NotTo(HaveOccurred())
 	Expect(monitoringv1.AddToScheme(scheme)).NotTo(HaveOccurred())
 	Expect(certmanagerv1.AddToScheme(scheme)).NotTo(HaveOccurred())
+	Expect(volumesnapshotv1.AddToScheme(scheme)).NotTo(HaveOccurred())
 
 	// +kubebuilder:scaffold:scheme
 

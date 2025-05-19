@@ -8,6 +8,7 @@ import (
 
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/go-logr/logr"
+	volumesnapshotv1 "github.com/kubernetes-csi/external-snapshotter/client/v8/apis/volumesnapshot/v1"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
@@ -78,6 +79,7 @@ var _ = BeforeSuite(func() {
 	Expect(mariadbv1alpha1.AddToScheme(scheme.Scheme)).NotTo(HaveOccurred())
 	Expect(monitoringv1.AddToScheme(scheme.Scheme)).NotTo(HaveOccurred())
 	Expect(certmanagerv1.AddToScheme(scheme.Scheme)).NotTo(HaveOccurred())
+	Expect(volumesnapshotv1.AddToScheme(scheme.Scheme)).NotTo(HaveOccurred())
 
 	//+kubebuilder:scaffold:scheme
 
@@ -265,9 +267,11 @@ var _ = BeforeSuite(func() {
 		Scheme:            scheme,
 		Recorder:          k8sManager.GetEventRecorderFor("physicalbackup"),
 		Builder:           builder,
+		Discovery:         disc,
 		RefResolver:       refResolver,
 		ConditionComplete: conditionComplete,
 		RBACReconciler:    rbacReconciler,
+		PVCReconciler:     pvcReconciler,
 	}).SetupWithManager(testCtx, k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 

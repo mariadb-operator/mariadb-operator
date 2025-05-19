@@ -15,6 +15,7 @@ require (
 	github.com/gruntwork-io/terratest v0.48.2
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/go-version v1.7.0
+	github.com/kubernetes-csi/external-snapshotter/client/v8 v8.2.0
 	github.com/minio/minio-go/v7 v7.0.87
 	github.com/onsi/ginkgo/v2 v2.23.3
 	github.com/onsi/gomega v1.36.3
