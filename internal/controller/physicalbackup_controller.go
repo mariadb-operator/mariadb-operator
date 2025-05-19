@@ -100,7 +100,7 @@ func (r *PhysicalBackupReconciler) setDefaults(ctx context.Context, backup *mari
 func (r *PhysicalBackupReconciler) reconcile(ctx context.Context, backup *mariadbv1alpha1.PhysicalBackup,
 	mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
 	if backup.Spec.Storage.VolumeSnapshot != nil {
-		return r.reconcileVolumeSnapshots(ctx, backup, mariadb)
+		return r.reconcileSnapshots(ctx, backup, mariadb)
 	}
 	return r.reconcileJobs(ctx, backup, mariadb)
 }
@@ -190,7 +190,7 @@ func (r *PhysicalBackupReconciler) SetupWithManager(ctx context.Context, mgr ctr
 	}
 	if volumeSnapshotExists {
 		builder = builder.Owns(&volumesnapshotv1.VolumeSnapshot{})
-		if err := r.indexVolumeSnapshots(ctx, mgr); err != nil {
+		if err := r.indexSnapshots(ctx, mgr); err != nil {
 			return fmt.Errorf("error indexing PhysicalBackup VolumeSnapshots: %v", err)
 		}
 	}
