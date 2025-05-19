@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-multierror"
-	volumesnapshotv1 "github.com/kubernetes-csi/external-snapshotter/client/v8/apis/volumesnapshot/v1"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
@@ -181,8 +180,7 @@ func (r *PhysicalBackupReconciler) patchStatus(ctx context.Context, backup *mari
 func (r *PhysicalBackupReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
 	builder := ctrl.NewControllerManagedBy(mgr).
 		For(&mariadbv1alpha1.PhysicalBackup{}).
-		Owns(&batchv1.Job{}).
-		Owns(&volumesnapshotv1.VolumeSnapshot{})
+		Owns(&batchv1.Job{})
 	if err := r.indexJobs(ctx, mgr); err != nil {
 		return fmt.Errorf("error indexing PhysicalBackup Jobs: %v", err)
 	}
