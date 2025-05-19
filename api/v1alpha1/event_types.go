@@ -57,6 +57,9 @@ const (
 	// ReasonJobScheduled indicates that a Job has been scheduled.
 	ReasonJobScheduled = "JobScheduled"
 
+	// ReasonVolumeSnapshotCreated indicates that a VolumeSnapshot has been scheduled.
+	ReasonVolumeSnapshotCreated = "VolumeSnapshotCreated"
+
 	// ReasonMariaDBNotReady indicates that the MariaDB resource is not ready.
 	ReasonMariaDBNotReady = "MariaDBNotReady"
 
