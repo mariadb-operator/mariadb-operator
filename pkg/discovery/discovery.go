@@ -68,6 +68,10 @@ func (c *Discovery) CertificateExist() (bool, error) {
 	return c.resourceExist("cert-manager.io/v1", "certificates")
 }
 
+func (c *Discovery) VolumeSnapshotExist() (bool, error) {
+	return c.resourceExist("snapshot.storage.k8s.io/v1", "volumesnapshots")
+}
+
 func (c *Discovery) SecurityContextConstraintsExist() (bool, error) {
 	return c.resourceExist("security.openshift.io/v1", "securitycontextconstraints")
 }

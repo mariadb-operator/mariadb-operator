@@ -984,6 +984,14 @@ spec:
                         - claimName
                         type: object
                     type: object
+                  volumeSnapshotRef:
+                    description: VolumeSnapshotRef is a reference to a VolumeSnapshot
+                      object. It has priority over S3 and Volume.
+                    properties:
+                      name:
+                        default: ""
+                        type: string
+                    type: object
                 type: object
               command:
                 description: Command to be used in the Container.

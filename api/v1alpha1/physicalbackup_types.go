@@ -3,6 +3,7 @@ package v1alpha1
 import (
 	"errors"
 	"fmt"
+	"reflect"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -89,6 +90,53 @@ type PhysicalBackupSchedule struct {
 	Immediate *bool `json:"immediate,omitempty"`
 }
 
+// PhysicalBackupVolumeSnapshot defines parameters for the VolumeSnapshots used as physical backups.
+type PhysicalBackupVolumeSnapshot struct {
+	// Metadata is extra metadata to the added to the VolumeSnapshot objects.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Metadata *Metadata `json:"metadata,omitempty"`
+	// VolumeSnapshotClassName is the VolumeSnapshot class to be used to take snapshots.
+	// +kubebuilder:validation:Required
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	VolumeSnapshotClassName string `json:"volumeSnapshotClassName"`
+}
+
+// PhysicalBackupStorage defines the storage for physical backups.
+type PhysicalBackupStorage struct {
+	// S3 defines the configuration to store backups in a S3 compatible storage.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	S3 *S3 `json:"s3,omitempty"`
+	// PersistentVolumeClaim is a Kubernetes PVC specification.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	PersistentVolumeClaim *PersistentVolumeClaimSpec `json:"persistentVolumeClaim,omitempty"`
+	// Volume is a Kubernetes volume specification.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Volume *StorageVolumeSource `json:"volume,omitempty"`
+	// VolumeSnapshot is a Kubernetes VolumeSnapshot specification.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	VolumeSnapshot *PhysicalBackupVolumeSnapshot `json:"volumeSnapshot,omitempty"`
+}
+
+func (b *PhysicalBackupStorage) Validate() error {
+	storageTypes := 0
+	fields := reflect.ValueOf(b).Elem()
+	for i := 0; i < fields.NumField(); i++ {
+		field := fields.Field(i)
+		if !field.IsNil() {
+			storageTypes++
+		}
+	}
+	if storageTypes != 1 {
+		return errors.New("exactly one storage type should be provided")
+	}
+	return nil
+}
+
 // PhysicalBackupSpec defines the desired state of PhysicalBackup.
 type PhysicalBackupSpec struct {
 	// JobContainerTemplate defines templates to configure Container objects.
@@ -115,7 +163,7 @@ type PhysicalBackupSpec struct {
 	// Storage defines the final storage for backups.
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Storage BackupStorage `json:"storage" webhook:"inmutable"`
+	Storage PhysicalBackupStorage `json:"storage" webhook:"inmutable"`
 	// Schedule defines when the PhysicalBackup will be taken.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -231,6 +279,9 @@ func (b *PhysicalBackup) SetDefaults(mariadb *MariaDB) {
 }
 
 func (b *PhysicalBackup) Volume() (StorageVolumeSource, error) {
+	if b.Spec.Storage.VolumeSnapshot != nil {
+		return StorageVolumeSource{}, errors.New("VolumeSnapshot does not require a volume")
+	}
 	if b.Spec.Storage.S3 != nil {
 		stagingStorage := ptr.Deref(b.Spec.StagingStorage, BackupStagingStorage{})
 		return stagingStorage.VolumeOrEmptyDir(b.StagingPVCKey()), nil
@@ -245,7 +296,7 @@ func (b *PhysicalBackup) Volume() (StorageVolumeSource, error) {
 	if b.Spec.Storage.Volume != nil {
 		return *b.Spec.Storage.Volume, nil
 	}
-	return StorageVolumeSource{}, errors.New("unable to get volume for Backup")
+	return StorageVolumeSource{}, errors.New("unable to get volume for PhysicalBackup")
 }
 
 // +kubebuilder:object:root=true

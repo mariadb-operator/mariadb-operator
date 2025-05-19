@@ -26,6 +26,16 @@ func TestDiscoveryCertificates(t *testing.T) {
 		})
 }
 
+func TestDiscoveryVolumeSnapshots(t *testing.T) {
+	testDiscoveryResource(t,
+		"VolumeSnapshots",
+		"snapshot.storage.k8s.io/v1",
+		"volumesnapshots",
+		func(d *Discovery) (bool, error) {
+			return d.VolumeSnapshotExist()
+		})
+}
+
 func TestDiscoverySecurityContextConstraints(t *testing.T) {
 	testDiscoveryResource(t,
 		"SecurityContextConstraints",
