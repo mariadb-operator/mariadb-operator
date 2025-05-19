@@ -14,6 +14,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+var defaultMaxRetention = metav1.Duration{Duration: 30 * 24 * time.Hour}
+
 // PhysicalBackupPodTemplate defines a template to configure Container objects that run in a PhysicalBackup.
 type PhysicalBackupPodTemplate struct {
 	// PodMetadata defines extra metadata for the Pod.
@@ -263,11 +265,17 @@ func (b *PhysicalBackup) Validate() error {
 }
 
 func (b *PhysicalBackup) SetDefaults(mariadb *MariaDB) {
+	if b.Spec.Storage.VolumeSnapshot != nil {
+		if b.Spec.MaxRetention == (metav1.Duration{}) {
+			b.Spec.MaxRetention = defaultMaxRetention
+		}
+	}
+
 	if b.Spec.Compression == CompressAlgorithm("") {
 		b.Spec.Compression = CompressNone
 	}
 	if b.Spec.MaxRetention == (metav1.Duration{}) {
-		b.Spec.MaxRetention = metav1.Duration{Duration: 30 * 24 * time.Hour}
+		b.Spec.MaxRetention = defaultMaxRetention
 	}
 	if b.Spec.BackoffLimit == 0 {
 		b.Spec.BackoffLimit = 5
