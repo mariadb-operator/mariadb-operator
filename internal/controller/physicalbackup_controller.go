@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-multierror"
+	volumesnapshotv1 "github.com/kubernetes-csi/external-snapshotter/client/v8/apis/volumesnapshot/v1"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
@@ -98,10 +99,8 @@ func (r *PhysicalBackupReconciler) setDefaults(ctx context.Context, backup *mari
 
 func (r *PhysicalBackupReconciler) reconcile(ctx context.Context, backup *mariadbv1alpha1.PhysicalBackup,
 	mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
-
 	if backup.Spec.Storage.VolumeSnapshot != nil {
-		// TODO: support for VolumeSnapshot
-		return ctrl.Result{}, nil
+		return r.reconcileVolumeSnapshots(ctx, backup, mariadb)
 	}
 	return r.reconcileJobs(ctx, backup, mariadb)
 }
@@ -178,11 +177,22 @@ func (r *PhysicalBackupReconciler) patchStatus(ctx context.Context, backup *mari
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *PhysicalBackupReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
+	volumeSnapshotExists, err := r.Discovery.VolumeSnapshotExist()
+	if err != nil {
+		return fmt.Errorf("error discovering VolumeSnapshot: %v", err)
+	}
+
 	builder := ctrl.NewControllerManagedBy(mgr).
 		For(&mariadbv1alpha1.PhysicalBackup{}).
 		Owns(&batchv1.Job{})
 	if err := r.indexJobs(ctx, mgr); err != nil {
 		return fmt.Errorf("error indexing PhysicalBackup Jobs: %v", err)
+	}
+	if volumeSnapshotExists {
+		builder = builder.Owns(&volumesnapshotv1.VolumeSnapshot{})
+		if err := r.indexVolumeSnapshots(ctx, mgr); err != nil {
+			return fmt.Errorf("error indexing PhysicalBackup VolumeSnapshots: %v", err)
+		}
 	}
 	return builder.Complete(r)
 }
