@@ -5,6 +5,7 @@ import (
 
 	volumesnapshotv1 "github.com/kubernetes-csi/external-snapshotter/client/v8/apis/volumesnapshot/v1"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	metadata "github.com/mariadb-operator/mariadb-operator/pkg/builder/metadata"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -19,6 +20,11 @@ func (b *Builder) BuildVolumeSnapshot(key types.NamespacedName, backup *mariadbv
 		metadata.NewMetadataBuilder(key).
 			WithMetadata(backup.Spec.InheritMetadata).
 			WithMetadata(snapshotSpec.Metadata).
+			WithLabels(
+				labels.NewLabelsBuilder().
+					WithPhysicalBackupSelectorLabels(backup).
+					Build(),
+			).
 			Build()
 
 	return &volumesnapshotv1.VolumeSnapshot{

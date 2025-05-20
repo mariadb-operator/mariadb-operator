@@ -50,6 +50,12 @@ const (
 	ConditionReasonJobRunning     string = "JobRunning"
 	ConditionReasonJobNotComplete string = "JobNotComplete"
 
+	ConditionReasonSnapshotComplete    string = "SnapshotComplete"
+	ConditionReasonSnapshotSuspended   string = "SnapshotSuspended"
+	ConditionReasonSnapshotFailed      string = "SnapshotFailed"
+	ConditionReasonSnapshotInProgress  string = "SnapshotInProgress"
+	ConditionReasonSnapshotNotComplete string = "SnapshotNotComplete"
+
 	ConditionReasonCronJobScheduled string = "CronJobScheduled"
 	ConditionReasonCronJobFailed    string = "CronJobScheduled"
 	ConditionReasonCronJobRunning   string = "CronJobRunning"
