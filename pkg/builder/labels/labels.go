@@ -8,6 +8,7 @@ import (
 )
 
 const (
+	PhysicalBackupName = "physicalbackup.k8s.mariadb.com/name"
 	appLabel           = "app.kubernetes.io/name"
 	instanceLabel      = "app.kubernetes.io/instance"
 	statefulSetPodName = "statefulset.kubernetes.io/pod-name"
@@ -63,6 +64,11 @@ func (b *LabelsBuilder) WithMetricsSelectorLabels(metricsKey types.NamespacedNam
 func (b *LabelsBuilder) WithMaxScaleSelectorLabels(mxs *mariadbv1alpha1.MaxScale) *LabelsBuilder {
 	return b.WithApp(appMaxScale).
 		WithInstance(mxs.Name)
+}
+
+func (b *LabelsBuilder) WithPhysicalBackupSelectorLabels(backup *mariadbv1alpha1.PhysicalBackup) *LabelsBuilder {
+	b.labels[PhysicalBackupName] = backup.Name
+	return b
 }
 
 func (b *LabelsBuilder) WithPVCRole(role string) *LabelsBuilder {

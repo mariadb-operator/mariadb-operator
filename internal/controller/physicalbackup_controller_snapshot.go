@@ -9,6 +9,8 @@ import (
 	volumesnapshotv1 "github.com/kubernetes-csi/external-snapshotter/client/v8/apis/volumesnapshot/v1"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
+	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
+	"github.com/mariadb-operator/mariadb-operator/pkg/predicate"
 	"github.com/mariadb-operator/mariadb-operator/pkg/sql"
 	"github.com/robfig/cron/v3"
 	corev1 "k8s.io/api/core/v1"
@@ -17,9 +19,11 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
+	ctrlbuilder "sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 func (r *PhysicalBackupReconciler) reconcileSnapshots(ctx context.Context, backup *mariadbv1alpha1.PhysicalBackup,
@@ -28,6 +32,10 @@ func (r *PhysicalBackupReconciler) reconcileSnapshots(ctx context.Context, backu
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error listing VolumeSnapshots: %v", err)
 	}
+	if err := r.reconcileSnapshotStatus(ctx, backup, snapshotList); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error reconciling status: %v", err)
+	}
+
 	return r.reconcileTemplate(ctx, backup, len(snapshotList.Items), func(now time.Time, cronSchedule cron.Schedule) (ctrl.Result, error) {
 		return r.scheduleSnapshot(ctx, backup, mariadb, snapshotList, now, cronSchedule)
 	})
@@ -40,42 +48,140 @@ func (r *PhysicalBackupReconciler) listSnapshots(ctx context.Context,
 		ctx,
 		&volumeSnapshotList,
 		client.InNamespace(backup.Namespace),
-		client.MatchingFields{metaCtrlFieldPath: backup.Name},
+		client.MatchingLabels(
+			labels.NewLabelsBuilder().
+				WithPhysicalBackupSelectorLabels(backup).
+				Build(),
+		),
 	); err != nil {
 		return nil, err
 	}
 	return &volumeSnapshotList, nil
 }
 
-func (r *PhysicalBackupReconciler) indexSnapshots(ctx context.Context, mgr manager.Manager) error {
-	log.FromContext(ctx).
-		WithName("indexer").
-		WithValues(
-			"kind", "VolumeSnapshot",
-			"field", metaCtrlFieldPath,
-		).
-		Info("Watching field")
-	return mgr.GetFieldIndexer().IndexField(
-		ctx,
-		&volumesnapshotv1.VolumeSnapshot{},
-		metaCtrlFieldPath,
-		func(o client.Object) []string {
-			volumeSnapshot, ok := o.(*volumesnapshotv1.VolumeSnapshot)
-			if !ok {
-				return nil
+func (r *PhysicalBackupReconciler) watchSnapshots(ctx context.Context, builder *ctrlbuilder.Builder) error {
+	volumeSnapshotExists, err := r.Discovery.VolumeSnapshotExist()
+	if err != nil {
+		return fmt.Errorf("error discovering VolumeSnapshot: %v", err)
+	}
+	if volumeSnapshotExists {
+		log.FromContext(ctx).
+			WithName("watcher").
+			WithValues(
+				"kind", "VolumeSnapshot",
+				"label", labels.PhysicalBackupName,
+			).
+			Info("Watching labeled VolumeSnapshots")
+		builder.Watches(
+			&volumesnapshotv1.VolumeSnapshot{},
+			handler.EnqueueRequestsFromMapFunc(r.mapVolumeSnapshotsToRequests),
+			ctrlbuilder.WithPredicates(
+				predicate.PredicateWithLabel(labels.PhysicalBackupName),
+			),
+		)
+	}
+	return nil
+}
+
+func (r *PhysicalBackupReconciler) mapVolumeSnapshotsToRequests(ctx context.Context, obj client.Object) []reconcile.Request {
+	physicalBackupName, ok := obj.GetLabels()[labels.PhysicalBackupName]
+	if !ok {
+		return nil
+	}
+	return []reconcile.Request{
+		{
+			NamespacedName: types.NamespacedName{
+				Name:      physicalBackupName,
+				Namespace: obj.GetNamespace(),
+			},
+		},
+	}
+}
+
+func (r *PhysicalBackupReconciler) reconcileSnapshotStatus(ctx context.Context, backup *mariadbv1alpha1.PhysicalBackup,
+	snapshotList *volumesnapshotv1.VolumeSnapshotList) error {
+	logger := log.FromContext(ctx).WithName("status").V(1)
+	schedule := ptr.Deref(backup.Spec.Schedule, mariadbv1alpha1.PhysicalBackupSchedule{})
+
+	if schedule.Suspend {
+		if err := r.patchStatus(ctx, backup, func(status *mariadbv1alpha1.PhysicalBackupStatus) {
+			status.SetCondition(metav1.Condition{
+				Type:    mariadbv1alpha1.ConditionTypeComplete,
+				Status:  metav1.ConditionFalse,
+				Reason:  mariadbv1alpha1.ConditionReasonSnapshotSuspended,
+				Message: "Suspended",
+			})
+		}); err != nil {
+			logger.Info("error patching status", "err", err)
+		}
+		return nil
+	}
+
+	numReady := 0
+	for _, snapshot := range snapshotList.Items {
+		status := ptr.Deref(snapshot.Status, volumesnapshotv1.VolumeSnapshotStatus{})
+		ready := ptr.Deref(status.ReadyToUse, false)
+
+		if err := status.Error; err != nil {
+			message := ptr.Deref(err.Message, "Error")
+
+			if err := r.patchStatus(ctx, backup, func(status *mariadbv1alpha1.PhysicalBackupStatus) {
+				status.SetCondition(metav1.Condition{
+					Type:    mariadbv1alpha1.ConditionTypeComplete,
+					Status:  metav1.ConditionTrue,
+					Reason:  mariadbv1alpha1.ConditionReasonJobFailed,
+					Message: message,
+				})
+			}); err != nil {
+				logger.Info("error patching status", "err", err)
 			}
-			owner := metav1.GetControllerOf(volumeSnapshot)
-			if owner == nil {
-				return nil
-			}
-			if owner.Kind != mariadbv1alpha1.PhysicalBackupKind {
-				return nil
-			}
-			if owner.APIVersion != mariadbv1alpha1.GroupVersion.String() {
-				return nil
-			}
-			return []string{owner.Name}
-		})
+			return nil
+		} else if ready {
+			numReady++
+		}
+	}
+
+	if len(snapshotList.Items) > 0 && numReady == len(snapshotList.Items) {
+		if err := r.patchStatus(ctx, backup, func(status *mariadbv1alpha1.PhysicalBackupStatus) {
+			status.SetCondition(metav1.Condition{
+				Type:    mariadbv1alpha1.ConditionTypeComplete,
+				Status:  metav1.ConditionTrue,
+				Reason:  mariadbv1alpha1.ConditionReasonSnapshotComplete,
+				Message: "Success",
+			})
+		}); err != nil {
+			logger.Info("error patching status", "err", err)
+		}
+	} else if len(snapshotList.Items) > 0 && numReady > 0 {
+		if err := r.patchStatus(ctx, backup, func(status *mariadbv1alpha1.PhysicalBackupStatus) {
+			status.SetCondition(metav1.Condition{
+				Type:    mariadbv1alpha1.ConditionTypeComplete,
+				Status:  metav1.ConditionFalse,
+				Reason:  mariadbv1alpha1.ConditionReasonSnapshotInProgress,
+				Message: "In progress",
+			})
+		}); err != nil {
+			logger.Info("error patching status", "err", err)
+		}
+	} else {
+		message := "Not complete"
+		if backup.Spec.Schedule != nil {
+			message = "Scheduled"
+		}
+
+		if err := r.patchStatus(ctx, backup, func(status *mariadbv1alpha1.PhysicalBackupStatus) {
+			status.SetCondition(metav1.Condition{
+				Type:    mariadbv1alpha1.ConditionTypeComplete,
+				Status:  metav1.ConditionFalse,
+				Reason:  mariadbv1alpha1.ConditionReasonSnapshotNotComplete,
+				Message: message,
+			})
+		}); err != nil {
+			logger.Info("error patching status", "err", err)
+		}
+	}
+
+	return nil
 }
 
 func (r *PhysicalBackupReconciler) scheduleSnapshot(ctx context.Context, backup *mariadbv1alpha1.PhysicalBackup,
