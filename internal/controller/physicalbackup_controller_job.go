@@ -123,6 +123,7 @@ func (r *PhysicalBackupReconciler) reconcileJobStatus(ctx context.Context, backu
 			}); err != nil {
 				logger.Info("error patching status", "err", err)
 			}
+			return nil
 		} else if jobpkg.IsJobRunning(&job) {
 			numRunning++
 		} else if jobpkg.IsJobComplete(&job) {
