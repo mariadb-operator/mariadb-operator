@@ -8,12 +8,14 @@ import (
 	"time"
 
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
+	volumesnapshotv1 "github.com/kubernetes-csi/external-snapshotter/client/v8/apis/volumesnapshot/v1"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	agentcmd "github.com/mariadb-operator/mariadb-operator/cmd/agent"
 	backupcmd "github.com/mariadb-operator/mariadb-operator/cmd/backup"
 	initcmd "github.com/mariadb-operator/mariadb-operator/cmd/init"
 	"github.com/mariadb-operator/mariadb-operator/internal/controller"
 	webhookv1alpha1 "github.com/mariadb-operator/mariadb-operator/internal/webhook/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/pkg/backup"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/auth"
@@ -24,6 +26,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/endpoints"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/galera"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/maxscale"
+	"github.com/mariadb-operator/mariadb-operator/pkg/controller/pvc"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/rbac"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/replication"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
@@ -91,6 +94,7 @@ func init() {
 	utilruntime.Must(mariadbv1alpha1.AddToScheme(scheme))
 	utilruntime.Must(monitoringv1.AddToScheme(scheme))
 	utilruntime.Must(certmanagerv1.AddToScheme(scheme))
+	utilruntime.Must(volumesnapshotv1.AddToScheme(scheme))
 
 	rootCmd.PersistentFlags().StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	rootCmd.PersistentFlags().StringVar(&healthAddr, "health-addr", ":8081", "The address the probe endpoint binds to.")
@@ -230,6 +234,11 @@ var rootCmd = &cobra.Command{
 		conditionReady := condition.NewReady()
 		conditionComplete := condition.NewComplete(client)
 
+		backupProcessor := backup.NewPhysicalBackupProcessor(
+			backup.WithPhysicalBackupValidationFn(mariadbv1alpha1.IsValidPhysicalBackup),
+			backup.WithPhysicalBackupParseDateFn(mariadbv1alpha1.ParsePhysicalBackupTime),
+		)
+
 		secretReconciler, err := secret.NewSecretReconciler(client, builder)
 		if err != nil {
 			setupLog.Error(err, "Error creating Secret reconciler")
@@ -243,6 +252,7 @@ var rootCmd = &cobra.Command{
 		rbacReconciler := rbac.NewRBACReconiler(client, builder)
 		authReconciler := auth.NewAuthReconciler(client, builder)
 		deployReconciler := deployment.NewDeploymentReconciler(client)
+		pvcReconciler := pvc.NewPVCReconciler(client)
 		svcMonitorReconciler := servicemonitor.NewServiceMonitorReconciler(client)
 		certReconciler := certctrl.NewCertReconciler(client, scheme, mgr.GetEventRecorderFor("cert"), discovery, builder)
 
@@ -304,11 +314,12 @@ var rootCmd = &cobra.Command{
 			Scheme:   scheme,
 			Recorder: mgr.GetEventRecorderFor("mariadb"),
 
-			Environment:    env,
-			Builder:        builder,
-			RefResolver:    refResolver,
-			ConditionReady: conditionReady,
-			Discovery:      discovery,
+			Environment:     env,
+			Builder:         builder,
+			RefResolver:     refResolver,
+			ConditionReady:  conditionReady,
+			Discovery:       discovery,
+			BackupProcessor: backupProcessor,
 
 			ConfigMapReconciler:      configMapReconciler,
 			SecretReconciler:         secretReconciler,
@@ -318,6 +329,7 @@ var rootCmd = &cobra.Command{
 			RBACReconciler:           rbacReconciler,
 			AuthReconciler:           authReconciler,
 			DeploymentReconciler:     deployReconciler,
+			PVCReconciler:            pvcReconciler,
 			ServiceMonitorReconciler: svcMonitorReconciler,
 			CertReconciler:           certReconciler,
 
@@ -366,6 +378,21 @@ var rootCmd = &cobra.Command{
 			BatchReconciler:   batchReconciler,
 		}).SetupWithManager(mgr); err != nil {
 			setupLog.Error(err, "Unable to create controller", "controller", "Backup")
+			os.Exit(1)
+		}
+		if err = (&controller.PhysicalBackupReconciler{
+			Client:            client,
+			Scheme:            scheme,
+			Recorder:          mgr.GetEventRecorderFor("physicalbackup"),
+			Builder:           builder,
+			Discovery:         discovery,
+			RefResolver:       refResolver,
+			ConditionComplete: conditionComplete,
+			RBACReconciler:    rbacReconciler,
+			PVCReconciler:     pvcReconciler,
+			BackupProcessor:   backupProcessor,
+		}).SetupWithManager(ctx, mgr); err != nil {
+			setupLog.Error(err, "Unable to create controller", "controller", "PhysicalBackup")
 			os.Exit(1)
 		}
 		if err = (&controller.RestoreReconciler{

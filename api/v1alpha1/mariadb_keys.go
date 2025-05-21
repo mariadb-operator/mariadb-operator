@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/mariadb-operator/mariadb-operator/pkg/pki"
+	stsobj "github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 )
@@ -261,6 +262,22 @@ func (m *MariaDB) ReplConfigMapKeyRef() ConfigMapKeySelector {
 func (m *MariaDB) InitKey() types.NamespacedName {
 	return types.NamespacedName{
 		Name:      fmt.Sprintf("%s-init", m.Name),
+		Namespace: m.Namespace,
+	}
+}
+
+// PhysicalBackupInitJobKey defines the keys for the PhysicalBackup init Job objects.
+func (m *MariaDB) PhysicalBackupInitJobKey(podIndex int) types.NamespacedName {
+	return types.NamespacedName{
+		Name:      fmt.Sprintf("%s-physicalbackup-init", stsobj.PodName(m.ObjectMeta, podIndex)),
+		Namespace: m.Namespace,
+	}
+}
+
+// PhysicalBackupStagingPVCKey defines the key for the PhysicalBackup staging PVC object.
+func (m *MariaDB) PhysicalBackupStagingPVCKey() types.NamespacedName {
+	return types.NamespacedName{
+		Name:      fmt.Sprintf("%s-physicalbackup-staging", m.ObjectMeta.Name),
 		Namespace: m.Namespace,
 	}
 }

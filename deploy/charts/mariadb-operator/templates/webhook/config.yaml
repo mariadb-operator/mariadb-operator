@@ -79,6 +79,26 @@ webhooks:
       service:
         name: {{ $fullName }}-webhook
         namespace: {{ .Release.Namespace }}
+        path: /validate-k8s-mariadb-com-v1alpha1-physicalbackup
+    failurePolicy: Fail
+    name: vphysicalbackup-v1alpha1.kb.io
+    rules:
+      - apiGroups:
+          - k8s.mariadb.com
+        apiVersions:
+          - v1alpha1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - physicalbackups
+    sideEffects: None
+  - admissionReviewVersions:
+      - v1
+    clientConfig:
+      service:
+        name: {{ $fullName }}-webhook
+        namespace: {{ .Release.Namespace }}
         path: /validate-k8s-mariadb-com-v1alpha1-connection
     failurePolicy: Fail
     name: vconnection-v1alpha1.kb.io

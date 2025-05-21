@@ -3,7 +3,7 @@ package v1alpha1
 import (
 	"errors"
 	"fmt"
-	"time"
+	"reflect"
 
 	cmmeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	cron "github.com/robfig/cron/v3"
@@ -15,7 +15,7 @@ import (
 	"k8s.io/utils/ptr"
 )
 
-var cronParser = cron.NewParser(
+var CronParser = cron.NewParser(
 	cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow,
 )
 
@@ -603,6 +603,103 @@ func MergeMetadata(metas ...*Metadata) *Metadata {
 	return &meta
 }
 
+// BackupType defines the backup type.
+type BackupType string
+
+const (
+	// BackupTypeLogical represents a logical backup created using mariadb-dump.
+	BackupTypeLogical BackupType = "Logical"
+	// BackupTypePhysical represents a physical backup created using mariadb-backup.
+	BackupTypePhysical BackupType = "Physical"
+)
+
+func (b BackupType) Validate() error {
+	switch b {
+	case BackupTypeLogical, BackupTypePhysical:
+		return nil
+	default:
+		return fmt.Errorf("invalid backup type: %v, supported types: [%v|%v]", b, BackupTypeLogical, BackupTypePhysical)
+	}
+}
+
+// CompressAlgorithm defines the compression algorithm for a Backup resource.
+type CompressAlgorithm string
+
+const (
+	// No compression
+	CompressNone CompressAlgorithm = "none"
+	// Bzip2 compression. Good compression ratio, but slower compression/decompression speed compared to gzip.
+	CompressBzip2 CompressAlgorithm = "bzip2"
+	// Gzip compression. Good compression/decompression speed, but worse compression ratio compared to bzip2.
+	CompressGzip CompressAlgorithm = "gzip"
+)
+
+func (c CompressAlgorithm) Validate() error {
+	switch c {
+	case CompressAlgorithm(""), CompressNone, CompressBzip2, CompressGzip:
+		return nil
+	default:
+		return fmt.Errorf("invalid compression: %v, supported agorithms: [%v|%v|%v]", c, CompressNone, CompressBzip2, CompressGzip)
+	}
+}
+
+func (c CompressAlgorithm) Extension() (string, error) {
+	switch c {
+	case CompressAlgorithm(""), CompressNone:
+		return "", nil
+	case CompressBzip2:
+		return "bz2", nil
+	case CompressGzip:
+		return "gz", nil
+	default:
+		return "", fmt.Errorf("invalid compression: %v, supported agorithms: [%v|%v|%v]", c, CompressNone, CompressBzip2, CompressGzip)
+	}
+}
+
+func CompressionFromExtension(ext string) (CompressAlgorithm, error) {
+	switch ext {
+	case "":
+		return CompressNone, nil
+	case "bz2":
+		return CompressBzip2, nil
+	case "gz":
+		return CompressGzip, nil
+	default:
+		return "", fmt.Errorf("unknown compression extension: %q, supported extensions: [bz2|gz]", ext)
+	}
+}
+
+// BackupStorage defines the final storage for backups.
+type BackupStorage struct {
+	// S3 defines the configuration to store backups in a S3 compatible storage.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	S3 *S3 `json:"s3,omitempty"`
+	// PersistentVolumeClaim is a Kubernetes PVC specification.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	PersistentVolumeClaim *PersistentVolumeClaimSpec `json:"persistentVolumeClaim,omitempty"`
+	// Volume is a Kubernetes volume specification.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Volume *StorageVolumeSource `json:"volume,omitempty"`
+}
+
+func (b *BackupStorage) Validate() error {
+	storageTypes := 0
+	fields := reflect.ValueOf(b).Elem()
+	for i := 0; i < fields.NumField(); i++ {
+		field := fields.Field(i)
+		if !field.IsNil() {
+			storageTypes++
+		}
+	}
+	if storageTypes != 1 {
+		return errors.New("exactly one storage type should be provided")
+	}
+	return nil
+}
+
 // BackupStagingStorage defines the temporary storage used to keep external backups (i.e. S3) while they are being processed.
 type BackupStagingStorage struct {
 	// PersistentVolumeClaim is a Kubernetes PVC specification.
@@ -631,70 +728,6 @@ func (s *BackupStagingStorage) VolumeOrEmptyDir(pvcKey types.NamespacedName) Sto
 	}
 }
 
-// RestoreSource defines a source for restoring a MariaDB.
-type RestoreSource struct {
-	// BackupRef is a reference to a Backup object. It has priority over S3 and Volume.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	BackupRef *LocalObjectReference `json:"backupRef,omitempty" webhook:"inmutableinit"`
-	// S3 defines the configuration to restore backups from a S3 compatible storage. It has priority over Volume.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	S3 *S3 `json:"s3,omitempty" webhook:"inmutableinit"`
-	// Volume is a Kubernetes Volume object that contains a backup.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Volume *StorageVolumeSource `json:"volume,omitempty" webhook:"inmutableinit"`
-	// TargetRecoveryTime is a RFC3339 (1970-01-01T00:00:00Z) date and time that defines the point in time recovery objective.
-	// It is used to determine the closest restoration source in time.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	TargetRecoveryTime *metav1.Time `json:"targetRecoveryTime,omitempty" webhook:"inmutable"`
-	// StagingStorage defines the temporary storage used to keep external backups (i.e. S3) while they are being processed.
-	// It defaults to an emptyDir volume, meaning that the backups will be temporarily stored in the node where the Restore Job is scheduled.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch","urn:alm:descriptor:com.tectonic.ui:advanced"}
-	StagingStorage *BackupStagingStorage `json:"stagingStorage,omitempty" webhook:"inmutable"`
-}
-
-func (r *RestoreSource) Validate() error {
-	if r.BackupRef == nil && r.S3 == nil && r.Volume == nil {
-		return errors.New("unable to determine restore source")
-	}
-	if r.S3 == nil && r.StagingStorage != nil {
-		return errors.New("'spec.stagingStorage' may only be specified when 'spec.s3' is set")
-	}
-	return nil
-}
-
-func (r *RestoreSource) IsDefaulted() bool {
-	return r.Volume != nil
-}
-
-func (r *RestoreSource) SetDefaults(restore *Restore) {
-	if r.S3 != nil {
-		stagingStorage := ptr.Deref(r.StagingStorage, BackupStagingStorage{})
-		r.Volume = ptr.To(stagingStorage.VolumeOrEmptyDir(restore.StagingPVCKey()))
-	}
-}
-
-func (r *RestoreSource) SetDefaultsWithBackup(backup *Backup) error {
-	volume, err := backup.Volume()
-	if err != nil {
-		return fmt.Errorf("error getting Backup volume: %v", err)
-	}
-	r.Volume = &volume
-	r.S3 = backup.Spec.Storage.S3
-	return nil
-}
-
-func (r *RestoreSource) TargetRecoveryTimeOrDefault() time.Time {
-	if r.TargetRecoveryTime != nil {
-		return r.TargetRecoveryTime.Time
-	}
-	return time.Now()
-}
-
 // Schedule contains parameters to define a schedule
 type Schedule struct {
 	// Cron is a cron expression that defines the schedule.
@@ -709,7 +742,7 @@ type Schedule struct {
 }
 
 func (s *Schedule) Validate() error {
-	_, err := cronParser.Parse(s.Cron)
+	_, err := CronParser.Parse(s.Cron)
 	return err
 }
 

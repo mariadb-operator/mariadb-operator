@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
+	volumesnapshotv1 "github.com/kubernetes-csi/external-snapshotter/client/v8/apis/volumesnapshot/v1"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/discovery"
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
@@ -21,6 +22,7 @@ func newTestBuilder(discovery *discovery.Discovery) *Builder {
 	utilruntime.Must(mariadbv1alpha1.AddToScheme(scheme))
 	utilruntime.Must(monitoringv1.AddToScheme(scheme))
 	utilruntime.Must(certmanagerv1.AddToScheme(scheme))
+	utilruntime.Must(volumesnapshotv1.AddToScheme(scheme))
 
 	env := &environment.OperatorEnv{
 		MariadbOperatorName:      "mariadb-operator",

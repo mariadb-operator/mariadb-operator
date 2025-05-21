@@ -11,6 +11,7 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/pkg/backup"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
@@ -22,6 +23,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/galera"
 	galeraresources "github.com/mariadb-operator/mariadb-operator/pkg/controller/galera/resources"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/maxscale"
+	"github.com/mariadb-operator/mariadb-operator/pkg/controller/pvc"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/rbac"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/replication"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
@@ -35,11 +37,13 @@ import (
 	mdbpod "github.com/mariadb-operator/mariadb-operator/pkg/pod"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	sts "github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
+	mdbsnapshot "github.com/mariadb-operator/mariadb-operator/pkg/volumesnapshot"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	klabels "k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -62,11 +66,12 @@ type MariaDBReconciler struct {
 	Scheme   *runtime.Scheme
 	Recorder record.EventRecorder
 
-	Builder        *builder.Builder
-	RefResolver    *refresolver.RefResolver
-	ConditionReady *condition.Ready
-	Environment    *environment.OperatorEnv
-	Discovery      *discovery.Discovery
+	Builder         *builder.Builder
+	RefResolver     *refresolver.RefResolver
+	ConditionReady  *condition.Ready
+	Environment     *environment.OperatorEnv
+	Discovery       *discovery.Discovery
+	BackupProcessor backup.BackupProcessor
 
 	ConfigMapReconciler      *configmap.ConfigMapReconciler
 	SecretReconciler         *secret.SecretReconciler
@@ -76,6 +81,7 @@ type MariaDBReconciler struct {
 	RBACReconciler           *rbac.RBACReconciler
 	AuthReconciler           *auth.AuthReconciler
 	DeploymentReconciler     *deployment.DeploymentReconciler
+	PVCReconciler            *pvc.PVCReconciler
 	ServiceMonitorReconciler *servicemonitor.ServiceMonitorReconciler
 	CertReconciler           *certctrl.CertReconciler
 
@@ -340,15 +346,6 @@ func (r *MariaDBReconciler) reconcileRBAC(ctx context.Context, mariadb *mariadbv
 	return ctrl.Result{}, r.RBACReconciler.ReconcileMariadbRBAC(ctx, mariadb)
 }
 
-func (r *MariaDBReconciler) reconcileInit(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
-	if mariadb.IsGaleraEnabled() {
-		if result, err := r.GaleraReconciler.ReconcileInit(ctx, mariadb); !result.IsZero() || err != nil {
-			return result, err
-		}
-	}
-	return ctrl.Result{}, nil
-}
-
 func (r *MariaDBReconciler) reconcileStatefulSet(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
 	key := client.ObjectKeyFromObject(mariadb)
 	updateAnnotations, err := r.getUpdateAnnotations(ctx, mariadb)
@@ -452,7 +449,7 @@ func shouldReconcileRestore(mdb *mariadbv1alpha1.MariaDB) bool {
 	if mdb.IsUpdating() || mdb.IsResizingStorage() || mdb.IsSwitchingPrimary() || mdb.HasGaleraNotReadyCondition() {
 		return false
 	}
-	if mdb.HasRestoredBackup() || mdb.Spec.BootstrapFrom == nil {
+	if mdb.HasRestoredBackup() || mdb.Spec.BootstrapFrom == nil || mdb.Spec.BootstrapFrom.BackupType != mariadbv1alpha1.BackupTypeLogical {
 		return false
 	}
 	return true
@@ -877,8 +874,58 @@ func (r *MariaDBReconciler) reconcileUsers(ctx context.Context, mariadb *mariadb
 
 func (r *MariaDBReconciler) setSpecDefaults(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
 	return ctrl.Result{}, r.patch(ctx, mariadb, func(mdb *mariadbv1alpha1.MariaDB) error {
-		return mdb.SetDefaults(r.Environment)
+		if err := mdb.SetDefaults(r.Environment); err != nil {
+			return err
+		}
+
+		if mdb.Spec.BootstrapFrom == nil || mdb.Spec.BootstrapFrom.PhysicalBackupRef == nil || mdb.Spec.BootstrapFrom.IsDefaulted() {
+			return nil
+		}
+		physicalBackup, err := r.RefResolver.PhysicalBackupBackup(ctx, mdb.Spec.BootstrapFrom.PhysicalBackupRef, mdb.Namespace)
+		if err != nil {
+			return err
+		}
+
+		if physicalBackup.Spec.Storage.VolumeSnapshot != nil {
+			targetSnapshot, err := r.getTargetVolumeSnapshot(ctx, physicalBackup, mdb.Spec.BootstrapFrom.TargetRecoveryTime)
+			if err != nil {
+				return fmt.Errorf("error getting target VolumeSnapshot: %v", err)
+			}
+			mdb.Spec.BootstrapFrom.SetDefaultsWithVolumeSnapshotRef(&mariadbv1alpha1.LocalObjectReference{
+				Name: targetSnapshot,
+			})
+		} else if err := mdb.Spec.BootstrapFrom.SetDefaultsWithPhysicalBackup(physicalBackup); err != nil {
+			return err
+		}
+
+		mdb.Spec.BootstrapFrom.SetDefaults(mdb)
+		return nil
 	})
+}
+
+func (r *MariaDBReconciler) getTargetVolumeSnapshot(ctx context.Context, backup *mariadbv1alpha1.PhysicalBackup,
+	targetRecoveryTime *metav1.Time) (string, error) {
+	if backup.Spec.Storage.VolumeSnapshot == nil {
+		return "", errors.New("VolumeSnapshot must be used as storage in PhysicalBackup")
+	}
+
+	snapshotList, err := mdbsnapshot.ListReadyVolumeSnapshots(ctx, r.Client, backup)
+	if err != nil {
+		return "", fmt.Errorf("error listing ready VolumeSnapshots: %v", err)
+	}
+	snapshotNames := make([]string, len(snapshotList.Items))
+	for i, snapshot := range snapshotList.Items {
+		snapshotNames[i] = snapshot.Name
+	}
+
+	recoveryTime := ptr.Deref(targetRecoveryTime, metav1.Time{Time: time.Now()})
+	logger := log.FromContext(ctx).WithName("snapshot")
+
+	targetSnapshot, err := r.BackupProcessor.GetBackupTargetFile(snapshotNames, recoveryTime.Time, logger)
+	if err != nil {
+		return "", fmt.Errorf("error getting target VolumeSnapshot: %v", err)
+	}
+	return targetSnapshot, nil
 }
 
 func (r *MariaDBReconciler) reconcileSuspend(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
