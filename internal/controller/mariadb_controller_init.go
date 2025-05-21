@@ -70,14 +70,18 @@ func (r *MariaDBReconciler) reconcilePhysicalBackupInit(ctx context.Context, mar
 	if err := r.reconcilePVCs(ctx, mariadb); err != nil {
 		return ctrl.Result{}, err
 	}
-	if result, err := r.reconcileRollingInit(ctx, mariadb); !result.IsZero() || err != nil {
-		return result, err
-	}
-	if err := r.cleanupInitJobs(ctx, mariadb); err != nil {
-		return ctrl.Result{}, err
-	}
-	if err := r.cleanupStagingPVC(ctx, mariadb); err != nil {
-		return ctrl.Result{}, err
+
+	bootstrapFrom := ptr.Deref(mariadb.Spec.BootstrapFrom, mariadbv1alpha1.BootstrapFrom{})
+	if bootstrapFrom.VolumeSnapshotRef == nil {
+		if result, err := r.reconcileRollingInit(ctx, mariadb); !result.IsZero() || err != nil {
+			return result, err
+		}
+		if err := r.cleanupInitJobs(ctx, mariadb); err != nil {
+			return ctrl.Result{}, err
+		}
+		if err := r.cleanupStagingPVC(ctx, mariadb); err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 
 	if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
@@ -90,9 +94,18 @@ func (r *MariaDBReconciler) reconcilePhysicalBackupInit(ctx context.Context, mar
 }
 
 func (r *MariaDBReconciler) reconcilePVCs(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
+	var pvcOpts []builder.PVCOption
+	bootstrapFrom := ptr.Deref(mariadb.Spec.BootstrapFrom, mariadbv1alpha1.BootstrapFrom{})
+	if volumeSnapshotRef := bootstrapFrom.VolumeSnapshotRef; volumeSnapshotRef != nil {
+		pvcOpts = append(
+			pvcOpts,
+			builder.WithVolumeSnapshotDataSource(volumeSnapshotRef.Name),
+		)
+	}
+
 	for i := 0; i < int(mariadb.Spec.Replicas); i++ {
 		key := mariadb.PVCKey(builder.StorageVolume, i)
-		pvc, err := r.Builder.BuildStoragePVC(key, mariadb.Spec.Storage.VolumeClaimTemplate, mariadb)
+		pvc, err := r.Builder.BuildStoragePVC(key, mariadb.Spec.Storage.VolumeClaimTemplate, mariadb, pvcOpts...)
 		if err != nil {
 			return err
 		}
