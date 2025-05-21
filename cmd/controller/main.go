@@ -234,6 +234,11 @@ var rootCmd = &cobra.Command{
 		conditionReady := condition.NewReady()
 		conditionComplete := condition.NewComplete(client)
 
+		backupProcessor := backup.NewPhysicalBackupProcessor(
+			backup.WithPhysicalBackupValidationFn(mariadbv1alpha1.IsValidPhysicalBackup),
+			backup.WithPhysicalBackupParseDateFn(mariadbv1alpha1.ParsePhysicalBackupTime),
+		)
+
 		secretReconciler, err := secret.NewSecretReconciler(client, builder)
 		if err != nil {
 			setupLog.Error(err, "Error creating Secret reconciler")
@@ -309,11 +314,12 @@ var rootCmd = &cobra.Command{
 			Scheme:   scheme,
 			Recorder: mgr.GetEventRecorderFor("mariadb"),
 
-			Environment:    env,
-			Builder:        builder,
-			RefResolver:    refResolver,
-			ConditionReady: conditionReady,
-			Discovery:      discovery,
+			Environment:     env,
+			Builder:         builder,
+			RefResolver:     refResolver,
+			ConditionReady:  conditionReady,
+			Discovery:       discovery,
+			BackupProcessor: backupProcessor,
 
 			ConfigMapReconciler:      configMapReconciler,
 			SecretReconciler:         secretReconciler,
@@ -384,10 +390,7 @@ var rootCmd = &cobra.Command{
 			ConditionComplete: conditionComplete,
 			RBACReconciler:    rbacReconciler,
 			PVCReconciler:     pvcReconciler,
-			BackupProcessor: backup.NewPhysicalBackupProcessor(
-				backup.WithPhysicalBackupValidationFn(mariadbv1alpha1.IsValidPhysicalBackup),
-				backup.WithPhysicalBackupParseDateFn(mariadbv1alpha1.ParsePhysicalBackupTime),
-			),
+			BackupProcessor:   backupProcessor,
 		}).SetupWithManager(ctx, mgr); err != nil {
 			setupLog.Error(err, "Unable to create controller", "controller", "PhysicalBackup")
 			os.Exit(1)
