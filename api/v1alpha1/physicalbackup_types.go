@@ -4,8 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"strings"
 	"time"
 
+	mdbtime "github.com/mariadb-operator/mariadb-operator/pkg/time"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -14,7 +16,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var defaultMaxRetention = metav1.Duration{Duration: 30 * 24 * time.Hour}
+// DefaultMaxRetention defines the default maximum PhysicalBackup retetion policy.
+var DefaultMaxRetention = metav1.Duration{Duration: 30 * 24 * time.Hour}
 
 // PhysicalBackupPodTemplate defines a template to configure Container objects that run in a PhysicalBackup.
 type PhysicalBackupPodTemplate struct {
@@ -267,7 +270,7 @@ func (b *PhysicalBackup) Validate() error {
 func (b *PhysicalBackup) SetDefaults(mariadb *MariaDB) {
 	if b.Spec.Storage.VolumeSnapshot != nil {
 		if b.Spec.MaxRetention == (metav1.Duration{}) {
-			b.Spec.MaxRetention = defaultMaxRetention
+			b.Spec.MaxRetention = DefaultMaxRetention
 		}
 	}
 
@@ -275,7 +278,7 @@ func (b *PhysicalBackup) SetDefaults(mariadb *MariaDB) {
 		b.Spec.Compression = CompressNone
 	}
 	if b.Spec.MaxRetention == (metav1.Duration{}) {
-		b.Spec.MaxRetention = defaultMaxRetention
+		b.Spec.MaxRetention = DefaultMaxRetention
 	}
 	if b.Spec.BackoffLimit == 0 {
 		b.Spec.BackoffLimit = 5
@@ -305,6 +308,21 @@ func (b *PhysicalBackup) Volume() (StorageVolumeSource, error) {
 		return *b.Spec.Storage.Volume, nil
 	}
 	return StorageVolumeSource{}, errors.New("unable to get volume for PhysicalBackup")
+}
+
+// IsValidPhysicalBackup determines whether a PhysicalBackup name is valid
+func IsValidPhysicalBackup(name string) bool {
+	_, err := ParsePhysicalBackupTime(name)
+	return err == nil
+}
+
+// ParsePhysicalBackupTime parses the time from a PhysicalBackup name
+func ParsePhysicalBackupTime(name string) (time.Time, error) {
+	parts := strings.Split(name, "-")
+	if len(parts) < 2 {
+		return time.Time{}, fmt.Errorf("invalid object name \"%s\"", name)
+	}
+	return mdbtime.Parse(parts[len(parts)-1])
 }
 
 // +kubebuilder:object:root=true

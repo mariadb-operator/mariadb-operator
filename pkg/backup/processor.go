@@ -134,11 +134,35 @@ func (p *LogicalBackupProcessor) parseDateInBackupFile(fileName string) (time.Ti
 }
 
 // PhysicalBackupProcessor processes physical backups.
-type PhysicalBackupProcessor struct{}
+type PhysicalBackupProcessor struct {
+	isValidBackupFileFn     func(fileName string) bool
+	parseDateInBackupFileFn func(fileName string) (time.Time, error)
+}
+
+// PhysicalBackupProcsssorOpt is an option to modify PhysicalBackupProcessor behavior.
+type PhysicalBackupProcsssorOpt func(*PhysicalBackupProcessor)
+
+// WithPhysicalBackupValidationFn configures a custom backup name validation function.
+func WithPhysicalBackupValidationFn(validationFn func(fileName string) bool) PhysicalBackupProcsssorOpt {
+	return func(pbp *PhysicalBackupProcessor) {
+		pbp.isValidBackupFileFn = validationFn
+	}
+}
+
+// WithPhysicalBackupParseDateFn configures a custom backup parse date validation function.
+func WithPhysicalBackupParseDateFn(parseDateFn func(fileName string) (time.Time, error)) PhysicalBackupProcsssorOpt {
+	return func(pbp *PhysicalBackupProcessor) {
+		pbp.parseDateInBackupFileFn = parseDateFn
+	}
+}
 
 // NewPhysicalBackupProcessor creates a new PhysicalBackupProcessor.
-func NewPhysicalBackupProcessor() BackupProcessor {
-	return &PhysicalBackupProcessor{}
+func NewPhysicalBackupProcessor(opts ...PhysicalBackupProcsssorOpt) BackupProcessor {
+	processor := &PhysicalBackupProcessor{}
+	for _, setOpt := range opts {
+		setOpt(processor)
+	}
+	return processor
 }
 
 // GetBackupTargetFile finds the backup file with the closest date to the target recovery time.
@@ -189,6 +213,9 @@ func (p *PhysicalBackupProcessor) GetOldBackupFiles(backupFileNames []string, ma
 
 // IsValidBackupFile determines whether a backup file name is valid.
 func (p *PhysicalBackupProcessor) IsValidBackupFile(fileName string) bool {
+	if validationFn := p.isValidBackupFileFn; validationFn != nil {
+		return validationFn(fileName)
+	}
 	baseName := path.Base(fileName)
 
 	if !strings.HasPrefix(baseName, "physicalbackup-") {
@@ -241,6 +268,9 @@ func (p *PhysicalBackupProcessor) GetUncompressedBackupFile(compressedBackupFile
 }
 
 func (p *PhysicalBackupProcessor) parseDateInBackupFile(fileName string) (time.Time, error) {
+	if parseDateFn := p.parseDateInBackupFileFn; parseDateFn != nil {
+		return parseDateFn(fileName)
+	}
 	baseName := path.Base(fileName)
 
 	parts := strings.Split(baseName, ".")

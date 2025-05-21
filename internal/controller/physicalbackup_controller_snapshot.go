@@ -35,6 +35,9 @@ func (r *PhysicalBackupReconciler) reconcileSnapshots(ctx context.Context, backu
 	if err := r.reconcileSnapshotStatus(ctx, backup, snapshotList); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error reconciling status: %v", err)
 	}
+	if err := r.cleanupSnapshots(ctx, backup, snapshotList); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error cleaning up Jobs: %v", err)
+	}
 
 	return r.reconcileTemplate(ctx, backup, len(snapshotList.Items), func(now time.Time, cronSchedule cron.Schedule) (ctrl.Result, error) {
 		return r.scheduleSnapshot(ctx, backup, mariadb, snapshotList, now, cronSchedule)
@@ -179,6 +182,48 @@ func (r *PhysicalBackupReconciler) reconcileSnapshotStatus(ctx context.Context, 
 		}); err != nil {
 			logger.Info("error patching status", "err", err)
 		}
+	}
+
+	return nil
+}
+
+func (r *PhysicalBackupReconciler) cleanupSnapshots(ctx context.Context, backup *mariadbv1alpha1.PhysicalBackup,
+	snapshotList *volumesnapshotv1.VolumeSnapshotList) error {
+	if backup.Spec.Schedule == nil {
+		return nil
+	}
+
+	var readySnapshotNames []string
+	for _, snapshot := range snapshotList.Items {
+		if isSnapshotReady(&snapshot) {
+			readySnapshotNames = append(readySnapshotNames, snapshot.Name)
+		}
+	}
+	maxRetention := backup.Spec.MaxRetention
+	if maxRetention == (metav1.Duration{}) {
+		maxRetention = mariadbv1alpha1.DefaultMaxRetention
+	}
+	logger := log.FromContext(ctx).WithName("snapshot")
+
+	oldSnapshotNames := r.BackupProcessor.GetOldBackupFiles(readySnapshotNames, maxRetention.Duration, logger)
+	for _, snapshotName := range oldSnapshotNames {
+		key := types.NamespacedName{
+			Name:      snapshotName,
+			Namespace: backup.Namespace,
+		}
+		var snapshot volumesnapshotv1.VolumeSnapshot
+		if err := r.Get(ctx, key, &snapshot); err != nil {
+			if apierrors.IsNotFound(err) {
+				continue
+			}
+			return fmt.Errorf("error getting VolumeSnapshot \"%s\": %v", key.Name, err)
+		}
+
+		err := r.Delete(ctx, &snapshot)
+		if err != nil && !apierrors.IsNotFound(err) {
+			return fmt.Errorf("error deleting VolumeSnapshot \"%s\": %v", snapshot.Name, err)
+		}
+		logger.V(1).Info("Deleted old Snapshot", "snapshot", key.Name, "physicalbackup", backup.Name)
 	}
 
 	return nil

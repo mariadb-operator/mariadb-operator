@@ -15,6 +15,7 @@ import (
 	initcmd "github.com/mariadb-operator/mariadb-operator/cmd/init"
 	"github.com/mariadb-operator/mariadb-operator/internal/controller"
 	webhookv1alpha1 "github.com/mariadb-operator/mariadb-operator/internal/webhook/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/pkg/backup"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/auth"
@@ -383,6 +384,10 @@ var rootCmd = &cobra.Command{
 			ConditionComplete: conditionComplete,
 			RBACReconciler:    rbacReconciler,
 			PVCReconciler:     pvcReconciler,
+			BackupProcessor: backup.NewPhysicalBackupProcessor(
+				backup.WithPhysicalBackupValidationFn(mariadbv1alpha1.IsValidPhysicalBackup),
+				backup.WithPhysicalBackupParseDateFn(mariadbv1alpha1.ParsePhysicalBackupTime),
+			),
 		}).SetupWithManager(ctx, mgr); err != nil {
 			setupLog.Error(err, "Unable to create controller", "controller", "PhysicalBackup")
 			os.Exit(1)

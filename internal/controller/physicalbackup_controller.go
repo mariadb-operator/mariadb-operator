@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 	"sort"
-	"strings"
 	"time"
 
 	"github.com/hashicorp/go-multierror"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/pkg/backup"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/pvc"
@@ -32,15 +32,15 @@ const metaCtrlFieldPath = ".metadata.controller"
 // PhysicalBackupReconciler reconciles a PhysicalBackup object
 type PhysicalBackupReconciler struct {
 	client.Client
-	Scheme    *runtime.Scheme
-	Builder   *builder.Builder
-	Recorder  record.EventRecorder
-	Discovery *discovery.Discovery
-
+	Scheme            *runtime.Scheme
+	Builder           *builder.Builder
+	Recorder          record.EventRecorder
+	Discovery         *discovery.Discovery
 	RefResolver       *refresolver.RefResolver
 	ConditionComplete *condition.Complete
 	RBACReconciler    *rbac.RBACReconciler
 	PVCReconciler     *pvc.PVCReconciler
+	BackupProcessor   backup.BackupProcessor
 }
 
 // +kubebuilder:rbac:groups=k8s.mariadb.com,resources=physicalbackups,verbs=get;list;watch;create;update;patch;delete
@@ -193,11 +193,7 @@ func getObjectName(obj client.Object, now time.Time) string {
 }
 
 func parseObjectTime(obj client.Object) (time.Time, error) {
-	parts := strings.Split(obj.GetName(), "-")
-	if len(parts) != 2 {
-		return time.Time{}, fmt.Errorf("invalid object name \"%s\"", obj.GetName())
-	}
-	return mdbtime.Parse(parts[1])
+	return mariadbv1alpha1.ParsePhysicalBackupTime(obj.GetName())
 }
 
 func sortByObjectTime[T client.Object](objList []T) error {
