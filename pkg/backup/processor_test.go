@@ -963,6 +963,295 @@ func TestPhysicalGetUncompressedBackupFile(t *testing.T) {
 	}
 }
 
+func TestSnapshotGetTargetFile(t *testing.T) {
+	p := NewPhysicalBackupProcessor(
+		WithPhysicalBackupValidationFn(mariadbv1alpha1.IsValidPhysicalBackup),
+		WithPhysicalBackupParseDateFn(mariadbv1alpha1.ParsePhysicalBackupTime),
+	)
+	tests := []struct {
+		name           string
+		backupFiles    []string
+		targetRecovery time.Time
+		wantFile       string
+		wantErr        bool
+	}{
+		{
+			name:           "no backups",
+			backupFiles:    []string{},
+			targetRecovery: time.Now(),
+			wantFile:       "",
+			wantErr:        true,
+		},
+		{
+			name: "invalid backups",
+			backupFiles: []string{
+				"snapshot.foo",
+				"snapshot.bar",
+				"snapshot",
+			},
+			targetRecovery: time.Now(),
+			wantFile:       "",
+			wantErr:        true,
+		},
+		{
+			name: "single backup",
+			backupFiles: []string{
+				"snapshot-20231218155800",
+			},
+			targetRecovery: time.UnixMilli(0),
+			wantFile:       "snapshot-20231218155800",
+			wantErr:        false,
+		},
+		{
+			name: "multiple backups with invalid",
+			backupFiles: []string{
+				"snapshot-20231218155800",
+				"snapshot.foo",
+				"snapshot.bar",
+			},
+			targetRecovery: mustParseMariadbDate(t, "20231218155900"),
+			wantFile:       "snapshot-20231218155800",
+			wantErr:        false,
+		},
+		{
+			name: "fine grained",
+			backupFiles: []string{
+				"snapshot-20231218155800",
+				"snapshot-20231218155801",
+				"snapshot-20231218160000",
+			},
+			targetRecovery: mustParseMariadbDate(t, "20231218155900"),
+			wantFile:       "snapshot-20231218155801",
+			wantErr:        false,
+		},
+		{
+			name: "target before backups",
+			backupFiles: []string{
+				"snapshot-20231218155800",
+				"snapshot-20231218155900",
+			},
+			targetRecovery: time.UnixMilli(0),
+			wantFile:       "snapshot-20231218155800",
+			wantErr:        false,
+		},
+		{
+			name: "target after backups",
+			backupFiles: []string{
+				"snapshot-20231218155800",
+				"snapshot-20231218161300",
+			},
+			targetRecovery: time.Now(),
+			wantFile:       "snapshot-20231218161300",
+			wantErr:        false,
+		},
+		{
+			name: "exact target",
+			backupFiles: []string{
+				"snapshot-20231218155800",
+				"snapshot-20231218160700",
+			},
+			targetRecovery: mustParseMariadbDate(t, "20231218160700"),
+			wantFile:       "snapshot-20231218160700",
+			wantErr:        false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			file, err := p.GetBackupTargetFile(tt.backupFiles, tt.targetRecovery, logger)
+			if err != nil && !tt.wantErr {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if tt.wantFile != file {
+				t.Fatalf("unexpected file, expected: %s got: %s", tt.wantFile, file)
+			}
+			if tt.wantErr && err == nil {
+				t.Error("expected error but got nil")
+			}
+			if !tt.wantErr && err != nil {
+				t.Errorf("unexpected error: %v", err)
+			}
+		})
+	}
+}
+
+func TestSnapshotGetOldBackupFiles(t *testing.T) {
+	p := NewPhysicalBackupProcessor(
+		WithPhysicalBackupValidationFn(mariadbv1alpha1.IsValidPhysicalBackup),
+		WithPhysicalBackupParseDateFn(mariadbv1alpha1.ParsePhysicalBackupTime),
+	)
+	previousNowFn := now
+	tests := []struct {
+		name         string
+		nowFn        func() time.Time
+		backupFiles  []string
+		maxRetention time.Duration
+		wantBackups  []string
+	}{
+		{
+			name:         "no backups",
+			nowFn:        testTimeFn(mustParseMariadbDate(t, "20231222221000")),
+			backupFiles:  nil,
+			maxRetention: 1 * time.Hour,
+			wantBackups:  nil,
+		},
+		{
+			name:  "invalid backups",
+			nowFn: testTimeFn(mustParseMariadbDate(t, "20231222221000")),
+			backupFiles: []string{
+				"snapshot.foo",
+				"snapshot.bar",
+				"snapshot",
+			},
+			maxRetention: 1 * time.Hour,
+			wantBackups:  nil,
+		},
+		{
+			name:  "no old backups",
+			nowFn: testTimeFn(mustParseMariadbDate(t, "20231222221000")),
+			backupFiles: []string{
+				"snapshot-20231222130000",
+				"snapshot-20231222140000",
+				"snapshot-20231222150000",
+				"snapshot-20231222160000",
+				"snapshot-20231222170000",
+				"snapshot-20231222180000",
+				"snapshot-20231222190000",
+				"snapshot-20231222200000",
+			},
+			maxRetention: 24 * time.Hour,
+			wantBackups:  nil,
+		},
+		{
+			name:  "multiple old backups",
+			nowFn: testTimeFn(mustParseMariadbDate(t, "20231222221000")),
+			backupFiles: []string{
+				"snapshot-20231222130000",
+				"snapshot-20231222140000",
+				"snapshot-20231222150000",
+				"snapshot-20231222160000",
+				"snapshot-20231222170000",
+				"snapshot-20231222180000",
+				"snapshot-20231222190000",
+				"snapshot-20231222200000",
+			},
+			maxRetention: 8 * time.Hour,
+			wantBackups: []string{
+				"snapshot-20231222130000",
+				"snapshot-20231222140000",
+			},
+		},
+		{
+			name:  "multiple old backups with invalid",
+			nowFn: testTimeFn(mustParseMariadbDate(t, "20231222221000")),
+			backupFiles: []string{
+				"snapshot-20231222130000",
+				"snapshot-20231222140000",
+				"snapshot-20231222150000",
+				"snapshot-20231222160000",
+				"snapshot-20231222170000",
+				"snapshot-20231222180000",
+				"snapshot-20231222190000",
+				"snapshot-20231222200000",
+				"snapshot-foo",
+				"snapshot-bar",
+				"snapshot-sql",
+			},
+			maxRetention: 8 * time.Hour,
+			wantBackups: []string{
+				"snapshot-20231222130000",
+				"snapshot-20231222140000",
+			},
+		},
+		{
+			name:  "all old backups",
+			nowFn: testTimeFn(mustParseMariadbDate(t, "20231222221000")),
+			backupFiles: []string{
+				"snapshot-20231222130000",
+				"snapshot-20231222140000",
+				"snapshot-20231222150000",
+				"snapshot-20231222160000",
+				"snapshot-20231222170000",
+				"snapshot-20231222180000",
+				"snapshot-20231222190000",
+				"snapshot-20231222200000",
+			},
+			maxRetention: 1 * time.Hour,
+			wantBackups: []string{
+				"snapshot-20231222130000",
+				"snapshot-20231222140000",
+				"snapshot-20231222150000",
+				"snapshot-20231222160000",
+				"snapshot-20231222170000",
+				"snapshot-20231222180000",
+				"snapshot-20231222190000",
+				"snapshot-20231222200000",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			now = tt.nowFn
+			t.Cleanup(func() {
+				now = previousNowFn
+			})
+
+			backups := p.GetOldBackupFiles(tt.backupFiles, tt.maxRetention, logger)
+			if !reflect.DeepEqual(tt.wantBackups, backups) {
+				t.Fatalf("unexpected backup files, expected: %v got: %v", tt.wantBackups, backups)
+			}
+		})
+	}
+}
+
+func TestSnapshotIsValidBackupFile(t *testing.T) {
+	p := NewPhysicalBackupProcessor(
+		WithPhysicalBackupValidationFn(mariadbv1alpha1.IsValidPhysicalBackup),
+		WithPhysicalBackupParseDateFn(mariadbv1alpha1.ParsePhysicalBackupTime),
+	)
+	tests := []struct {
+		name       string
+		backupFile string
+		wantValid  bool
+	}{
+		{
+			name:       "empty",
+			backupFile: "",
+			wantValid:  false,
+		},
+		{
+			name:       "no date",
+			backupFile: "snapshot",
+			wantValid:  false,
+		},
+		{
+			name:       "no prefix",
+			backupFile: "202312181614",
+			wantValid:  false,
+		},
+		{
+			name:       "invalid date",
+			backupFile: "snapshot-202312181614",
+			wantValid:  false,
+		},
+		{
+			name:       "valid",
+			backupFile: "snapshot-20231218161400",
+			wantValid:  true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			valid := p.IsValidBackupFile(tt.backupFile)
+			if tt.wantValid != valid {
+				t.Fatalf("unexpected backup file validity, expected: %v got: %v", tt.wantValid, valid)
+			}
+		})
+	}
+}
+
 func testTimeFn(t time.Time) func() time.Time {
 	return func() time.Time { return t }
 }
