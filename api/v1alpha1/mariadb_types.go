@@ -841,7 +841,7 @@ func (m *MariaDB) SetDefaults(env *environment.OperatorEnv) error {
 			return fmt.Errorf("error setting Galera defaults: %v", err)
 		}
 	}
-	if m.Spec.BootstrapFrom != nil && !m.Spec.BootstrapFrom.IsDefaulted() {
+	if m.Spec.BootstrapFrom != nil {
 		m.Spec.BootstrapFrom.SetDefaults(m)
 	}
 
