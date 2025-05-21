@@ -6,12 +6,12 @@ import (
 	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	"github.com/mariadb-operator/mariadb-operator/pkg/galera/errors"
 	jobpkg "github.com/mariadb-operator/mariadb-operator/pkg/job"
 	mdbtime "github.com/mariadb-operator/mariadb-operator/pkg/time"
 	"github.com/robfig/cron/v3"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
@@ -185,24 +185,24 @@ func (r *PhysicalBackupReconciler) cleanupJobs(ctx context.Context, backup *mari
 			completeJobs = append(completeJobs, &job)
 		}
 	}
-	if err := sortByObjectTime(completeJobs); err != nil {
-		return err
-	}
 	maxHistory := int(ptr.Deref(backup.Spec.SuccessfulJobsHistoryLimit, 5))
-
 	if len(completeJobs) <= maxHistory {
 		return nil
 	}
-	logger := log.FromContext(ctx)
+
+	if err := sortByObjectTime(completeJobs); err != nil {
+		return err
+	}
+	logger := log.FromContext(ctx).WithName("job")
 
 	for i := maxHistory; i < len(completeJobs); i++ {
 		job := completeJobs[i]
 
 		err := r.Delete(ctx, job, &client.DeleteOptions{PropagationPolicy: ptr.To(metav1.DeletePropagationBackground)})
-		if err != nil && !errors.IsNotFound(err) {
-			return err
+		if err != nil && !apierrors.IsNotFound(err) {
+			return fmt.Errorf("error deleting Job \"%s\": %v", job.Name, err)
 		}
-		logger.V(1).Info("Deleted old Job", "job", job.Name, "backup", backup.Name)
+		logger.V(1).Info("Deleted old Job", "job", job.Name, "physicalbackup", backup.Name)
 	}
 
 	return nil
