@@ -132,6 +132,11 @@ var _ = BeforeSuite(func() {
 	conditionReady := condition.NewReady()
 	conditionComplete := condition.NewComplete(client)
 
+	backupProcessor := backup.NewPhysicalBackupProcessor(
+		backup.WithPhysicalBackupValidationFn(mariadbv1alpha1.IsValidPhysicalBackup),
+		backup.WithPhysicalBackupParseDateFn(mariadbv1alpha1.ParsePhysicalBackupTime),
+	)
+
 	secretReconciler, err := secret.NewSecretReconciler(client, builder)
 	Expect(err).ToNot(HaveOccurred())
 	configMapReconciler := configmap.NewConfigMapReconciler(client, builder)
@@ -201,11 +206,12 @@ var _ = BeforeSuite(func() {
 		Scheme:   scheme,
 		Recorder: k8sManager.GetEventRecorderFor("mariadb"),
 
-		Environment:    env,
-		Builder:        builder,
-		RefResolver:    refResolver,
-		ConditionReady: conditionReady,
-		Discovery:      disc,
+		Environment:     env,
+		Builder:         builder,
+		RefResolver:     refResolver,
+		ConditionReady:  conditionReady,
+		Discovery:       disc,
+		BackupProcessor: backupProcessor,
 
 		ConfigMapReconciler:      configMapReconciler,
 		SecretReconciler:         secretReconciler,
@@ -273,10 +279,7 @@ var _ = BeforeSuite(func() {
 		ConditionComplete: conditionComplete,
 		RBACReconciler:    rbacReconciler,
 		PVCReconciler:     pvcReconciler,
-		BackupProcessor: backup.NewPhysicalBackupProcessor(
-			backup.WithPhysicalBackupValidationFn(mariadbv1alpha1.IsValidPhysicalBackup),
-			backup.WithPhysicalBackupParseDateFn(mariadbv1alpha1.ParsePhysicalBackupTime),
-		),
+		BackupProcessor:   backupProcessor,
 	}).SetupWithManager(testCtx, k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 

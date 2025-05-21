@@ -12,6 +12,7 @@ import (
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	"github.com/mariadb-operator/mariadb-operator/pkg/predicate"
 	"github.com/mariadb-operator/mariadb-operator/pkg/sql"
+	mdbsnapshot "github.com/mariadb-operator/mariadb-operator/pkg/volumesnapshot"
 	"github.com/robfig/cron/v3"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -28,7 +29,7 @@ import (
 
 func (r *PhysicalBackupReconciler) reconcileSnapshots(ctx context.Context, backup *mariadbv1alpha1.PhysicalBackup,
 	mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
-	snapshotList, err := r.listSnapshots(ctx, backup)
+	snapshotList, err := mdbsnapshot.ListVolumeSnapshots(ctx, r.Client, backup)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error listing VolumeSnapshots: %v", err)
 	}
@@ -42,24 +43,6 @@ func (r *PhysicalBackupReconciler) reconcileSnapshots(ctx context.Context, backu
 	return r.reconcileTemplate(ctx, backup, len(snapshotList.Items), func(now time.Time, cronSchedule cron.Schedule) (ctrl.Result, error) {
 		return r.scheduleSnapshot(ctx, backup, mariadb, snapshotList, now, cronSchedule)
 	})
-}
-
-func (r *PhysicalBackupReconciler) listSnapshots(ctx context.Context,
-	backup *mariadbv1alpha1.PhysicalBackup) (*volumesnapshotv1.VolumeSnapshotList, error) {
-	var volumeSnapshotList volumesnapshotv1.VolumeSnapshotList
-	if err := r.List(
-		ctx,
-		&volumeSnapshotList,
-		client.InNamespace(backup.Namespace),
-		client.MatchingLabels(
-			labels.NewLabelsBuilder().
-				WithPhysicalBackupSelectorLabels(backup).
-				Build(),
-		),
-	); err != nil {
-		return nil, err
-	}
-	return &volumeSnapshotList, nil
 }
 
 func (r *PhysicalBackupReconciler) watchSnapshots(ctx context.Context, builder *ctrlbuilder.Builder) error {
@@ -195,7 +178,7 @@ func (r *PhysicalBackupReconciler) cleanupSnapshots(ctx context.Context, backup 
 
 	var readySnapshotNames []string
 	for _, snapshot := range snapshotList.Items {
-		if isSnapshotReady(&snapshot) {
+		if mdbsnapshot.IsVolumeSnapshotReady(&snapshot) {
 			readySnapshotNames = append(readySnapshotNames, snapshot.Name)
 		}
 	}
@@ -310,7 +293,7 @@ func (r *PhysicalBackupReconciler) createVolumeSnapshot(ctx context.Context, sna
 func (r *PhysicalBackupReconciler) waitForReadySnapshots(ctx context.Context,
 	snapthotList *volumesnapshotv1.VolumeSnapshotList) (ctrl.Result, error) {
 	for _, snapshot := range snapthotList.Items {
-		if !isSnapshotReady(&snapshot) {
+		if !mdbsnapshot.IsVolumeSnapshotReady(&snapshot) {
 			status := ptr.Deref(snapshot.Status, volumesnapshotv1.VolumeSnapshotStatus{})
 			log.FromContext(ctx).Info(
 				"PhysicalBackup VolumeSnapshot is not ready. Requeuing...",
@@ -322,11 +305,4 @@ func (r *PhysicalBackupReconciler) waitForReadySnapshots(ctx context.Context,
 		}
 	}
 	return ctrl.Result{}, nil
-}
-
-func isSnapshotReady(snapshot *volumesnapshotv1.VolumeSnapshot) bool {
-	status := ptr.Deref(snapshot.Status, volumesnapshotv1.VolumeSnapshotStatus{})
-	ready := ptr.Deref(status.ReadyToUse, false)
-
-	return ready && status.Error == nil
 }
