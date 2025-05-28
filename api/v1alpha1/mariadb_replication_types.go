@@ -88,6 +88,10 @@ type PrimaryReplication struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
 	AutomaticFailover *bool `json:"automaticFailover,omitempty"`
+	// AutomaticFailoverDelay indicates the delay before performing an automatic primary failover.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	AutomaticFailoverDelay *metav1.Duration `json:"automaticFailoverDelay,omitempty"`
 }
 
 // FillWithDefaults fills the current PrimaryReplication object with DefaultReplicationSpec.
@@ -100,6 +104,10 @@ func (r *PrimaryReplication) FillWithDefaults() {
 	if r.AutomaticFailover == nil {
 		failover := *DefaultReplicationSpec.Primary.AutomaticFailover
 		r.AutomaticFailover = &failover
+	}
+	if r.AutomaticFailoverDelay == nil {
+		failoverDelay := *DefaultReplicationSpec.Primary.AutomaticFailoverDelay
+		r.AutomaticFailoverDelay = &failoverDelay
 	}
 }
 
@@ -241,8 +249,9 @@ var (
 	// DefaultReplicationSpec provides sensible defaults for the ReplicationSpec.
 	DefaultReplicationSpec = ReplicationSpec{
 		Primary: &PrimaryReplication{
-			PodIndex:          ptr.To(0),
-			AutomaticFailover: ptr.To(true),
+			PodIndex:               ptr.To(0),
+			AutomaticFailover:      ptr.To(true),
+			AutomaticFailoverDelay: ptr.To(metav1.Duration{}),
 		},
 		Replica: &ReplicaReplication{
 			WaitPoint:         ptr.To(WaitPointAfterSync),
