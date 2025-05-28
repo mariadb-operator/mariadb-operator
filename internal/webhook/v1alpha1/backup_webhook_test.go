@@ -15,7 +15,7 @@ import (
 )
 
 var _ = Describe("Backup webhook", func() {
-	Context("When creating a v1alpha1.Backup", func() {
+	Context("When creating a Backup", func() {
 		DescribeTable(
 			"Should validate",
 			func(backup *v1alpha1.Backup, wantErr bool) {
@@ -59,7 +59,7 @@ var _ = Describe("Backup webhook", func() {
 				"Multiple storages",
 				&v1alpha1.Backup{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "backup-invalid-storage",
+						Name:      "backup-multiple-storages",
 						Namespace: testNamespace,
 					},
 					Spec: v1alpha1.BackupSpec{
@@ -98,7 +98,7 @@ var _ = Describe("Backup webhook", func() {
 				"Single storage",
 				&v1alpha1.Backup{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "backup-invalid-storage",
+						Name:      "backup-single-storage",
 						Namespace: testNamespace,
 					},
 					Spec: v1alpha1.BackupSpec{
@@ -132,7 +132,7 @@ var _ = Describe("Backup webhook", func() {
 				"Invalid compression",
 				&v1alpha1.Backup{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "backup-invalid-storage",
+						Name:      "backup-invalid-compression",
 						Namespace: testNamespace,
 					},
 					Spec: v1alpha1.BackupSpec{
@@ -344,7 +344,7 @@ var _ = Describe("Backup webhook", func() {
 		)
 	})
 
-	Context("When updating a v1alpha1.Backup", Ordered, func() {
+	Context("When updating a Backup", Ordered, func() {
 		key := types.NamespacedName{
 			Name:      "backup-update",
 			Namespace: testNamespace,
