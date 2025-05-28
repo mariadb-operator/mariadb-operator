@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"errors"
+	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	mariadbpod "github.com/mariadb-operator/mariadb-operator/pkg/pod"
@@ -64,6 +65,10 @@ func (r *PodController) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 		}
 	} else {
 		if err := r.podReadinessController.ReconcilePodNotReady(ctx, pod, mariadb); err != nil {
+			if errors.Is(err, ErrDeferAutomaticFailover) {
+				log.FromContext(ctx).V(1).Info("Defer reconciling Pod in non Ready state", "pod", pod.Name)
+				return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+			}
 			log.FromContext(ctx).V(1).Info("Error reconciling Pod in non Ready state", "pod", pod.Name)
 			return ctrl.Result{Requeue: true}, nil
 		}

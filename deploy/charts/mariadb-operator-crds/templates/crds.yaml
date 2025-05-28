@@ -6559,6 +6559,10 @@ spec:
                           should automatically update PodIndex to perform an automatic
                           primary failover.
                         type: boolean
+                      automaticFailoverDeferral:
+                        description: AutomaticFailoverDeferral indicates the duration
+                          before re-evaluating the need for an automatic primary failover.
+                        type: string
                       podIndex:
                         description: PodIndex is the StatefulSet index of the primary
                           node. The user may change this field to perform a manual
@@ -7696,6 +7700,11 @@ spec:
                 type: array
               currentPrimary:
                 description: CurrentPrimary is the primary Pod.
+                type: string
+              currentPrimaryFailingSince:
+                description: CurrentPrimaryFailingSince is the timestamp of the moment
+                  when the primary became not ready.
+                format: date-time
                 type: string
               currentPrimaryPodIndex:
                 description: CurrentPrimaryPodIndex is the primary Pod index.

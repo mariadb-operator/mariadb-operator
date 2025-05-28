@@ -79,17 +79,19 @@ func (r *MariaDBReconciler) reconcileUpdates(ctx context.Context, mdb *mariadbv1
 		return ctrl.Result{Requeue: true}, nil
 	}
 
-	if result, err := r.waitForConfiguredReplication(mdb, logger); !result.IsZero() || err != nil {
-		return result, err
-	}
-
 	primaryPod := podsByRole.primary
 	if podpkg.PodUpdated(&primaryPod, stsUpdateRevision) {
 		logger.V(1).Info("Primary Pod up to date", "pod", primaryPod.Name)
 		return ctrl.Result{}, nil
 	}
 
+	if err := r.waitForConfiguredReplica(mdb, logger); err != nil {
+		// returns ErrSkipReconciliationPhase if no configured replica detected
+		return ctrl.Result{}, err
+	}
+
 	if err := r.triggerSwitchover(ctx, mdb, logger); err != nil {
+		// returns ErrSkipReconciliationPhase if switchover was triggered
 		return ctrl.Result{}, err
 	}
 
@@ -192,21 +194,20 @@ func (r *MariaDBReconciler) waitForReadyStatus(ctx context.Context, mdb *mariadb
 	return ctrl.Result{}, nil
 }
 
-func (r *MariaDBReconciler) waitForConfiguredReplication(mdb *mariadbv1alpha1.MariaDB, logger logr.Logger) (ctrl.Result, error) {
+func (r *MariaDBReconciler) waitForConfiguredReplica(mdb *mariadbv1alpha1.MariaDB, logger logr.Logger) error {
 	if !mdb.Replication().Enabled {
-		return ctrl.Result{}, nil
+		return nil
 	}
 
-	if !mdb.IsReplicationConfigured() {
-		logger.V(1).Info("Waiting for Pods to have configured replication.")
+	if !mdb.HasConfiguredReplica() {
+		logger.V(1).Info("Waiting for at least one configured replica.")
 		// To configure replication we must reach the 'Replication' phase that runs after the 'StatefulSet' phase.
 		// When the 'MariaDBReconciler' controller receives the 'ErrSkipReconciliationPhase' error, it continues the reconciliation loop.
 		// See: https://github.com/mariadb-operator/mariadb-operator/pull/947
-		return ctrl.Result{}, ErrSkipReconciliationPhase
+		return ErrSkipReconciliationPhase
 	}
-	logger.V(1).Info("Pods have configured replication.")
-
-	return ctrl.Result{}, nil
+	logger.V(1).Info("Detected at least one configured replica.")
+	return nil
 }
 
 func (r *MariaDBReconciler) updatePod(ctx context.Context, mariadbKey types.NamespacedName, pod *corev1.Pod, updateRevision string,
@@ -349,5 +350,5 @@ func shouldTriggerSwitchover(mariadb *mariadbv1alpha1.MariaDB) bool {
 		return false
 	}
 	primaryRepl := ptr.Deref(mariadb.Replication().Primary, mariadbv1alpha1.PrimaryReplication{})
-	return mariadb.Replication().Enabled && *primaryRepl.AutomaticFailover && mariadb.IsReplicationConfigured()
+	return mariadb.Replication().Enabled && *primaryRepl.AutomaticFailover && mariadb.HasConfiguredReplica()
 }

@@ -88,6 +88,10 @@ type PrimaryReplication struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
 	AutomaticFailover *bool `json:"automaticFailover,omitempty"`
+	// AutomaticFailoverDeferral indicates the duration before re-evaluating the need for an automatic primary failover.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	AutomaticFailoverDeferral *metav1.Duration `json:"automaticFailoverDeferral,omitempty"`
 }
 
 // FillWithDefaults fills the current PrimaryReplication object with DefaultReplicationSpec.
@@ -100,6 +104,10 @@ func (r *PrimaryReplication) FillWithDefaults() {
 	if r.AutomaticFailover == nil {
 		failover := *DefaultReplicationSpec.Primary.AutomaticFailover
 		r.AutomaticFailover = &failover
+	}
+	if r.AutomaticFailoverDeferral == nil {
+		failoverDeferral := *DefaultReplicationSpec.Primary.AutomaticFailoverDeferral
+		r.AutomaticFailoverDeferral = &failoverDeferral
 	}
 }
 
@@ -241,8 +249,9 @@ var (
 	// DefaultReplicationSpec provides sensible defaults for the ReplicationSpec.
 	DefaultReplicationSpec = ReplicationSpec{
 		Primary: &PrimaryReplication{
-			PodIndex:          ptr.To(0),
-			AutomaticFailover: ptr.To(true),
+			PodIndex:                  ptr.To(0),
+			AutomaticFailover:         ptr.To(true),
+			AutomaticFailoverDeferral: ptr.To(metav1.Duration{}),
 		},
 		Replica: &ReplicaReplication{
 			WaitPoint:         ptr.To(WaitPointAfterSync),
@@ -256,9 +265,19 @@ var (
 	}
 )
 
-// IsReplicationConfigured indicates whether replication has been configured.
-func (m *MariaDB) IsReplicationConfigured() bool {
-	return m.Status.ReplicationStatus.IsReplicationConfigured()
+// GetAutomaticFailoverDeferral returns the duration of automatic failover deferral.
+func (m *MariaDB) GetAutomaticFailoverDeferral() time.Duration {
+	return m.Spec.Replication.Primary.AutomaticFailoverDeferral.Duration
+}
+
+// HasConfiguredReplica indicates whether the cluster has a configured replica.
+func (m *MariaDB) HasConfiguredReplica() bool {
+	return m.Status.ReplicationStatus.HasConfiguredReplica()
+}
+
+// IsConfiguredReplica indicates whether the given pod is a configured replica.
+func (m *MariaDB) IsConfiguredReplica(podName string) bool {
+	return m.Status.ReplicationStatus.IsConfiguredReplica(podName)
 }
 
 // IsSwitchingPrimary indicates whether the primary is being switched.
@@ -276,17 +295,20 @@ const (
 
 type ReplicationStatus map[string]ReplicationState
 
-func (r ReplicationStatus) IsReplicationConfigured() bool {
-	anyReplicaConfigured := false
+func (r ReplicationStatus) HasConfiguredReplica() bool {
 	for _, state := range r {
-		if state == ReplicationStateNotConfigured {
-			return false
-		}
 		if state == ReplicationStateSlave {
-			anyReplicaConfigured = true
+			return true
 		}
 	}
-	// make sure at least one replica is configured. For example, this ensures that
-	// a switchover/failover operation will not start if no replica has been configured.
-	return anyReplicaConfigured
+	return false
+}
+
+func (r ReplicationStatus) IsConfiguredReplica(podName string) bool {
+	for pod, state := range r {
+		if pod == podName && state == ReplicationStateSlave {
+			return true
+		}
+	}
+	return false
 }
