@@ -122,7 +122,7 @@ func HealthyMariaDBReplica(ctx context.Context, client ctrlclient.Client, mariad
 		if *index == *mariadb.Status.CurrentPrimaryPodIndex {
 			continue
 		}
-		if pod.PodReady(&p) {
+		if pod.PodReady(&p) && mariadb.IsConfiguredReplica(p.Name) {
 			return index, nil
 		}
 	}
