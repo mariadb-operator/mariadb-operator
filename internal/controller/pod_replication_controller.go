@@ -91,7 +91,7 @@ func (r *PodReplicationController) ReconcilePodNotReady(ctx context.Context, pod
 }
 
 func shouldReconcile(mariadb *mariadbv1alpha1.MariaDB) bool {
-	if mariadb.IsMaxScaleEnabled() || mariadb.IsRestoringBackup() {
+	if mariadb.IsMaxScaleEnabled() || mariadb.IsRestoringBackup() || mariadb.IsSuspended() {
 		return false
 	}
 	primaryRepl := ptr.Deref(mariadb.Replication().Primary, mariadbv1alpha1.PrimaryReplication{})
