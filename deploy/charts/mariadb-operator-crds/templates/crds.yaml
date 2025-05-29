@@ -6536,9 +6536,9 @@ spec:
                           should automatically update PodIndex to perform an automatic
                           primary failover.
                         type: boolean
-                      automaticFailoverDelay:
-                        description: AutomaticFailoverDelay indicates the delay before
-                          performing an automatic primary failover.
+                      automaticFailoverDeferral:
+                        description: AutomaticFailoverDeferral indicates the duration
+                          before re-evaluating the need for an automatic primary failover.
                         type: string
                       podIndex:
                         description: PodIndex is the StatefulSet index of the primary
