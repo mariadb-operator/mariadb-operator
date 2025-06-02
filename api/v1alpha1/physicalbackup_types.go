@@ -268,17 +268,14 @@ func (b *PhysicalBackup) Validate() error {
 }
 
 func (b *PhysicalBackup) SetDefaults(mariadb *MariaDB) {
-	if b.Spec.Storage.VolumeSnapshot != nil {
-		if b.Spec.MaxRetention == (metav1.Duration{}) {
-			b.Spec.MaxRetention = DefaultMaxRetention
-		}
-	}
-
-	if b.Spec.Compression == CompressAlgorithm("") {
-		b.Spec.Compression = CompressNone
-	}
 	if b.Spec.MaxRetention == (metav1.Duration{}) {
 		b.Spec.MaxRetention = DefaultMaxRetention
+	}
+	if b.Spec.Storage.VolumeSnapshot != nil {
+		return // VolumeSnapshot does not use the rest of the fields, defaulting can be skipped
+	}
+	if b.Spec.Compression == CompressAlgorithm("") {
+		b.Spec.Compression = CompressNone
 	}
 	if b.Spec.BackoffLimit == 0 {
 		b.Spec.BackoffLimit = 5
