@@ -104,6 +104,9 @@ spec:
               mariaDbRef:
                 description: MariaDBRef is a reference to a MariaDB object.
                 properties:
+                  kind:
+                    description: ObjectReference is a reference to a object.
+                    type: string
                   name:
                     type: string
                   namespace:

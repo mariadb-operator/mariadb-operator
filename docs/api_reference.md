@@ -14,6 +14,7 @@ Package v1alpha1 contains API Schema definitions for the v1alpha1 API group
 - [Backup](#backup)
 - [Connection](#connection)
 - [Database](#database)
+- [ExternalMariaDB](#externalmariadb)
 - [Grant](#grant)
 - [MariaDB](#mariadb)
 - [MaxScale](#maxscale)
@@ -378,6 +379,7 @@ ConnectionTemplate defines a template to customize Connection objects.
 
 _Appears in:_
 - [ConnectionSpec](#connectionspec)
+- [ExternalMariaDBSpec](#externalmariadbspec)
 - [MariaDBMaxScaleSpec](#mariadbmaxscalespec)
 - [MariaDBSpec](#mariadbspec)
 - [MaxScaleSpec](#maxscalespec)
@@ -647,6 +649,47 @@ _Appears in:_
 | `nodeSelector` _object (keys:string, values:string)_ | NodeSelector to be used in the Pod. |  |  |
 | `tolerations` _[Toleration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#toleration-v1-core) array_ | Tolerations to be used in the Pod. |  |  |
 | `priorityClassName` _string_ | PriorityClassName to be used in the Pod. |  |  |
+
+
+#### ExternalMariaDB
+
+
+
+ExternalMariaDB is the Schema for the external mariadbs API. It is used to define external MariaDB server.
+
+
+
+
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `apiVersion` _string_ | `k8s.mariadb.com/v1alpha1` | | |
+| `kind` _string_ | `ExternalMariaDB` | | |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `spec` _[ExternalMariaDBSpec](#externalmariadbspec)_ |  |  |  |
+
+
+#### ExternalMariaDBSpec
+
+
+
+ExternalMariaDBSpec defines the desired state of an External MariaDB
+
+
+
+_Appears in:_
+- [ExternalMariaDB](#externalmariadb)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `host` _string_ | Hostname of the external MariaDB service. |  |  |
+| `port` _integer_ | Port of the external MariaDB. | 3306 |  |
+| `username` _string_ | Username is the username to connect to the external MariaDB. |  |  |
+| `passwordSecretKeyRef` _[SecretKeySelector](#secretkeyselector)_ | PasswordSecretKeyRef is a reference to the password to be used by the User.<br />If not provided, the account will be locked and the password will expire.<br />If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password. |  |  |
+| `inheritMetadata` _[Metadata](#metadata)_ | InheritMetadata defines the metadata to be inherited by children resources. |  |  |
+| `tls` _[TLS](#tls)_ | TLS defines the PKI to be used with MariaDB. |  |  |
+| `connection` _[ConnectionTemplate](#connectiontemplate)_ | Connection defines a template to configure the general Connection object.<br />This Connection provides the initial User access to the initial Database.<br />It will make use of the Service to route network traffic to all Pods. |  |  |
+| `version` _string_ | External MariaDB Version |  |  |
 
 
 #### Galera
@@ -1195,6 +1238,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `name` _string_ |  |  |  |
 | `namespace` _string_ |  |  |  |
+| `kind` _string_ | ObjectReference is a reference to a object. |  |  |
 | `waitForIt` _boolean_ | WaitForIt indicates whether the controller using this reference should wait for MariaDB to be ready. | true |  |
 
 
@@ -1616,6 +1660,7 @@ Metadata defines the metadata to added to resources.
 _Appears in:_
 - [BackupSpec](#backupspec)
 - [Exporter](#exporter)
+- [ExternalMariaDBSpec](#externalmariadbspec)
 - [GaleraInitJob](#galerainitjob)
 - [GaleraRecoveryJob](#galerarecoveryjob)
 - [Job](#job)
@@ -2426,6 +2471,7 @@ Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kub
 _Appears in:_
 - [ConnectionSpec](#connectionspec)
 - [EnvVarSource](#envvarsource)
+- [ExternalMariaDBSpec](#externalmariadbspec)
 - [GeneratedSecretKeyRef](#generatedsecretkeyref)
 - [MariaDBSpec](#mariadbspec)
 - [PasswordPlugin](#passwordplugin)
@@ -2747,6 +2793,7 @@ TLS defines the PKI to be used with MariaDB.
 
 
 _Appears in:_
+- [ExternalMariaDBSpec](#externalmariadbspec)
 - [MariaDBSpec](#mariadbspec)
 
 | Field | Description | Default | Validation |
