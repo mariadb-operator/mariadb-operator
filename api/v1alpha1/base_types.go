@@ -24,6 +24,9 @@ type MariaDBRef struct {
 	// ObjectReference is a reference to a object.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	ObjectReference `json:",inline"`
+	// ObjectReference is a reference to a object.
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Kind string `json:"kind,omitempty"`
 	// WaitForIt indicates whether the controller using this reference should wait for MariaDB to be ready.
 	// +optional
 	// +kubebuilder:default=true
@@ -408,6 +411,13 @@ func (j *JobPodTemplate) SetDefaults(objMeta, mariadbObjMeta metav1.ObjectMeta) 
 	}
 	if j.Affinity != nil {
 		j.Affinity.SetDefaults(mariadbObjMeta.Name)
+	}
+}
+
+// SetExternalDefaults sets reasonable defaults.
+func (j *JobPodTemplate) SetExternalDefaults(objMeta metav1.ObjectMeta) {
+	if j.ServiceAccountName == nil {
+		j.ServiceAccountName = ptr.To(j.ServiceAccountKey(objMeta).Name)
 	}
 }
 
