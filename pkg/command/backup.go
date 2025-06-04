@@ -11,6 +11,7 @@ import (
 	backuppkg "github.com/mariadb-operator/mariadb-operator/v25/pkg/backup"
 	builderpki "github.com/mariadb-operator/mariadb-operator/v25/pkg/builder/pki"
 	ds "github.com/mariadb-operator/mariadb-operator/v25/pkg/datastructures"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/interfaces"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/statefulset"
 	"k8s.io/utils/ptr"
 )
@@ -159,11 +160,12 @@ func NewBackupCommand(userOpts ...BackupOpt) (*BackupCommand, error) {
 }
 
 func (b *BackupCommand) MariadbDump(backup *mariadbv1alpha1.Backup,
-	mariadb *mariadbv1alpha1.MariaDB) (*Command, error) {
+	mariadb interfaces.MariaDBGenericInterface) (*Command, error) {
 	connFlags, err := ConnectionFlags(&b.CommandOpts, mariadb)
 	if err != nil {
 		return nil, fmt.Errorf("error getting connection flags: %v", err)
 	}
+
 	args := strings.Join(b.mariadbDumpArgs(backup, mariadb), " ")
 
 	cmds := []string{
@@ -300,11 +302,13 @@ func (b *BackupCommand) MariadbOperatorRestore(backupContentType mariadbv1alpha1
 	return NewCommand(nil, args)
 }
 
-func (b *BackupCommand) MariadbRestore(restore *mariadbv1alpha1.Restore, mariadb *mariadbv1alpha1.MariaDB) (*Command, error) {
+func (b *BackupCommand) MariadbRestore(restore *mariadbv1alpha1.Restore,
+	mariadb interfaces.MariaDBGenericInterface) (*Command, error) {
 	connFlags, err := ConnectionFlags(&b.CommandOpts, mariadb)
 	if err != nil {
 		return nil, fmt.Errorf("error getting connection flags: %v", err)
 	}
+
 	args := strings.Join(b.mariadbArgs(restore, mariadb), " ")
 	cmds := []string{
 		"set -euo pipefail",
@@ -385,7 +389,7 @@ func (b *BackupCommand) getTargetFilePath() string {
 	return fmt.Sprintf("$(cat '%s')", b.TargetFilePath)
 }
 
-func (b *BackupCommand) mariadbDumpArgs(backup *mariadbv1alpha1.Backup, mariadb *mariadbv1alpha1.MariaDB) []string {
+func (b *BackupCommand) mariadbDumpArgs(backup *mariadbv1alpha1.Backup, mariadb interfaces.MariaDBGenericInterface) []string {
 	dumpOpts := make([]string, len(b.ExtraOpts))
 	copy(dumpOpts, b.ExtraOpts)
 
@@ -429,7 +433,7 @@ func (b *BackupCommand) mariadbDumpArgs(backup *mariadbv1alpha1.Backup, mariadb 
 	return ds.Unique(ds.Merge(args, dumpOpts)...)
 }
 
-func (b *BackupCommand) mariadbBackupArgs(mariadb *mariadbv1alpha1.MariaDB) []string {
+func (b *BackupCommand) mariadbBackupArgs(mariadb interfaces.TLSAwareInterface) []string {
 	backupOpts := make([]string, len(b.ExtraOpts))
 	copy(backupOpts, b.ExtraOpts)
 
@@ -448,7 +452,7 @@ func (b *BackupCommand) mariadbBackupArgs(mariadb *mariadbv1alpha1.MariaDB) []st
 	return ds.Unique(ds.Merge(args, backupOpts)...)
 }
 
-func (b *BackupCommand) mariadbArgs(restore *mariadbv1alpha1.Restore, mariadb *mariadbv1alpha1.MariaDB) []string {
+func (b *BackupCommand) mariadbArgs(restore *mariadbv1alpha1.Restore, mariadb interfaces.TLSAwareInterface) []string {
 	args := make([]string, len(b.ExtraOpts))
 	copy(args, b.ExtraOpts)
 
@@ -500,7 +504,7 @@ func (b *BackupCommand) s3Args() []string {
 	return args
 }
 
-func (b *BackupCommand) tlsArgs(mariadb *mariadbv1alpha1.MariaDB) []string {
+func (b *BackupCommand) tlsArgs(mariadb interfaces.TLSAwareInterface) []string {
 	if !mariadb.IsTLSEnabled() {
 		return nil
 	}

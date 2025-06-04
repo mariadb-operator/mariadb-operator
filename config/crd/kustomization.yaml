@@ -1,5 +1,6 @@
 resources:
 - bases/k8s.mariadb.com_mariadbs.yaml
+- bases/k8s.mariadb.com_externalmariadbs.yaml
 - bases/k8s.mariadb.com_backups.yaml
 - bases/k8s.mariadb.com_restores.yaml
 - bases/k8s.mariadb.com_users.yaml

@@ -1509,6 +1509,29 @@ var _ = Describe("MariaDB types", func() {
 		)
 	})
 
+	Context("When creating a ExternalMariaDB object", func() {
+		DescribeTable(
+			"Should default",
+			func(emdb, expected *ExternalMariaDB, env *environment.OperatorEnv) {
+				Expect(emdb.SetDefaults(env)).To(Succeed())
+				Expect(emdb).To(BeEquivalentTo(expected))
+			},
+			Entry(
+				"Empty",
+				&ExternalMariaDB{
+					ObjectMeta: objMeta,
+				},
+				&ExternalMariaDB{
+					ObjectMeta: objMeta,
+					Spec: ExternalMariaDBSpec{
+						Port: 3306,
+					},
+				},
+				env,
+			),
+		)
+	})
+
 	Context("When creating a BootstrapFrom object", func() {
 		DescribeTable(
 			"Should validate",

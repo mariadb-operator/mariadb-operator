@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/interfaces"
 )
 
 type SqlOpts struct {
@@ -53,11 +53,12 @@ type SqlCommand struct {
 	*SqlOpts
 }
 
-func (s *SqlCommand) ExecCommand(mariadb *mariadbv1alpha1.MariaDB) (*Command, error) {
+func (s *SqlCommand) ExecCommand(mariadb interfaces.ConnectionParamsAwareInterface) (*Command, error) {
 	sqlFlags, err := s.SqlFlags(mariadb)
 	if err != nil {
 		return nil, fmt.Errorf("error getting SQL flags: %v", err)
 	}
+
 	cmds := []string{
 		"set -euo pipefail",
 		"echo '⚙️ Executing SQL script'",
@@ -70,11 +71,12 @@ func (s *SqlCommand) ExecCommand(mariadb *mariadbv1alpha1.MariaDB) (*Command, er
 	return NewBashCommand(cmds), nil
 }
 
-func (s *SqlCommand) SqlFlags(mdb *mariadbv1alpha1.MariaDB) (string, error) {
+func (s *SqlCommand) SqlFlags(mdb interfaces.ConnectionParamsAwareInterface) (string, error) {
 	flags, err := ConnectionFlags(&s.CommandOpts, mdb)
 	if err != nil {
 		return "", fmt.Errorf("error getting connection flags: %v", err)
 	}
+
 	if s.SSLCAPath != nil && s.SSLCertPath != nil && s.SSLKeyPath != nil {
 		flags += fmt.Sprintf(" --ssl --ssl-ca=%s --ssl-cert=%s --ssl-key=%s --ssl-verify-server-cert",
 			*s.SSLCAPath, *s.SSLCertPath, *s.SSLKeyPath)

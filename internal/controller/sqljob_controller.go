@@ -11,6 +11,7 @@ import (
 	condition "github.com/mariadb-operator/mariadb-operator/v25/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/configmap"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/rbac"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/interfaces"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/refresolver"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -58,7 +59,7 @@ func (r *SqlJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return result, err
 	}
 
-	mariadb, err := r.RefResolver.MariaDB(ctx, &sqlJob.Spec.MariaDBRef, sqlJob.Namespace)
+	mariadb, err := r.RefResolver.GenericMariaDB(ctx, &sqlJob.Spec.MariaDBRef, sqlJob.Namespace)
 	if err != nil {
 		var mariaDbErr *multierror.Error
 		mariaDbErr = multierror.Append(mariaDbErr, err)
@@ -169,7 +170,7 @@ func (r *SqlJobReconciler) reconcileConfigMap(ctx context.Context, sqlJob *maria
 }
 
 func (r *SqlJobReconciler) reconcileBatch(ctx context.Context, sqlJob *mariadbv1alpha1.SqlJob,
-	mariadb *mariadbv1alpha1.MariaDB, key types.NamespacedName) error {
+	mariadb interfaces.MariaDBGenericInterface, key types.NamespacedName) error {
 	if sqlJob.Spec.Schedule != nil {
 		return r.reconcileCronJob(ctx, sqlJob, mariadb, key)
 	}
@@ -185,7 +186,7 @@ func (r *SqlJobReconciler) patcher(ctx context.Context, sqlJob *mariadbv1alpha1.
 }
 
 func (r *SqlJobReconciler) reconcileJob(ctx context.Context, sqlJob *mariadbv1alpha1.SqlJob,
-	mariadb *mariadbv1alpha1.MariaDB, key types.NamespacedName) error {
+	mariadb interfaces.MariaDBGenericInterface, key types.NamespacedName) error {
 	desiredJob, err := r.Builder.BuildSqlJob(key, sqlJob, mariadb)
 	if err != nil {
 		return fmt.Errorf("error building Job: %v", err)
@@ -213,7 +214,7 @@ func (r *SqlJobReconciler) reconcileJob(ctx context.Context, sqlJob *mariadbv1al
 }
 
 func (r *SqlJobReconciler) reconcileCronJob(ctx context.Context, sqlJob *mariadbv1alpha1.SqlJob,
-	mariadb *mariadbv1alpha1.MariaDB, key types.NamespacedName) error {
+	mariadb interfaces.MariaDBGenericInterface, key types.NamespacedName) error {
 	desiredCronJob, err := r.Builder.BuildSqlCronJob(key, sqlJob, mariadb)
 	if err != nil {
 		return fmt.Errorf("error building CronJob: %v", err)
@@ -246,9 +247,13 @@ func (r *SqlJobReconciler) reconcileCronJob(ctx context.Context, sqlJob *mariadb
 }
 
 func (r *SqlJobReconciler) setDefaults(ctx context.Context, sqlJob *mariadbv1alpha1.SqlJob,
-	mariadb *mariadbv1alpha1.MariaDB) error {
+	mariadb interfaces.MariaDBGenericInterface) error {
 	return r.patch(ctx, sqlJob, func(s *mariadbv1alpha1.SqlJob) {
-		s.SetDefaults(mariadb)
+		if mariaDBObj, ok := mariadb.(*mariadbv1alpha1.MariaDB); ok {
+			s.SetDefaults(mariaDBObj)
+		} else {
+			s.SetExternalDefaults()
+		}
 	})
 }
 
