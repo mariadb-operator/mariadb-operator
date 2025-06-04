@@ -1,0 +1,16 @@
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: ExternalMariaDB
+metadata:
+  name: external-mariadb
+spec:
+  host: mariadb-1.example.com
+  username: root
+  port: 3309
+  passwordSecretKeyRef:
+    name: mariadb-1-su-secret
+    key: password
+  connection:
+    secretName: external-mariadb-dba-secret
+    healthCheck:
+      interval: 5s
+      retryInterval: 10s

@@ -20,6 +20,10 @@ host-mdb-test: ## Add MariaDB test hosts to /etc/hosts.
 	@./hack/add_host.sh 45 mdb-test-0.mdb-test-internal.default.svc.cluster.local
 	@./hack/add_host.sh 46 mdb-test.default.svc.cluster.local
 
+.PHONY: host-mdb-emulated-external-test
+host-mdb-emulated-external-test: ## Add MariaDB test hosts to /etc/hosts.
+	@./hack/add_host.sh 47 mdb-emulate-external-test.default.svc.cluster.local
+
 .PHONY: host-mxs-test
 host-mxs-test: ## Add MaxScale test hosts to /etc/hosts.
 	@./hack/add_host.sh 50 mxs-test-0.mxs-test-internal.default.svc.cluster.local
@@ -96,7 +100,7 @@ host-maxscale-gui: ## Add maxscale GUI hosts to /etc/hosts.
 	@./hack/add_host.sh 231 maxscale-galera-gui.default.svc.cluster.local
 
 .PHONY: host
-host: host-mariadb host-mdb-test host-mxs-test host-mariadb-repl host-mariadb-galera host-mariadb-galera-test host-monitoring host-minio host-maxscale-repl host-maxscale-galera host-maxscale-gui ## Configure hosts for local development.
+host: host-mariadb host-mdb-test host-mdb-emulated-external-test host-mxs-test host-mariadb-repl host-mariadb-galera host-mariadb-galera-test host-monitoring host-minio host-maxscale-repl host-maxscale-galera host-maxscale-gui ## Configure hosts for local development.
 
 .PHONY: net
 net: install-metallb host ## Configure networking for local development.

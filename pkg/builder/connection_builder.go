@@ -13,6 +13,7 @@ import (
 type ConnectionOpts struct {
 	Metadata             *mariadbv1alpha1.Metadata
 	MariaDB              *mariadbv1alpha1.MariaDB
+	ExternalMariaDB      *mariadbv1alpha1.ExternalMariaDB
 	MaxScale             *mariadbv1alpha1.MaxScale
 	Key                  types.NamespacedName
 	Username             string
@@ -34,6 +35,16 @@ func (b *Builder) BuildConnection(opts ConnectionOpts, owner metav1.Object) (*ma
 			Database:             opts.Database,
 		},
 	}
+
+	if opts.ExternalMariaDB != nil {
+		conn.Spec.MariaDBRef = &mariadbv1alpha1.MariaDBRef{
+			ObjectReference: mariadbv1alpha1.ObjectReference{
+				Name: opts.ExternalMariaDB.Name,
+			},
+			Kind:      mariadbv1alpha1.ExternalMariaDBKind,
+			WaitForIt: true,
+		}
+	}
 	if opts.MariaDB != nil {
 		conn.Spec.MariaDBRef = &mariadbv1alpha1.MariaDBRef{
 			ObjectReference: mariadbv1alpha1.ObjectReference{
@@ -49,6 +60,11 @@ func (b *Builder) BuildConnection(opts ConnectionOpts, owner metav1.Object) (*ma
 	if opts.Template != nil {
 		conn.Spec.ConnectionTemplate = *opts.Template
 	}
+
+	if b.scheme == nil {
+		return nil, fmt.Errorf("b.scheme is null")
+	}
+
 	if err := controllerutil.SetControllerReference(owner, conn, b.scheme); err != nil {
 		return nil, fmt.Errorf("error setting controller reference to Connection: %v", err)
 	}
