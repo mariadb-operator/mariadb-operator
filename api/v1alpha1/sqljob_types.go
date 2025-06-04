@@ -121,6 +121,13 @@ func (s *SqlJob) SetDefaults(mariadb *MariaDB) {
 	s.Spec.SetDefaults(s.ObjectMeta, mariadb.ObjectMeta)
 }
 
+func (s *SqlJob) SetExternalDefaults() {
+	if s.Spec.BackoffLimit == 0 {
+		s.Spec.BackoffLimit = 5
+	}
+	s.Spec.SetExternalDefaults(s.ObjectMeta)
+}
+
 //+kubebuilder:object:root=true
 
 // SqlJobList contains a list of SqlJob

@@ -201,6 +201,94 @@ var _ = Describe("Backup", Label("basic"), func() {
 	)
 })
 
+var _ = Describe("Backup from external MariaDB", func() {
+	BeforeEach(func() {
+		By("Waiting for External MariaDB to be ready")
+		expectExternalMariadbReady(testCtx, k8sClient, testEMdbkey)
+	})
+
+	DescribeTable("Creating a Backup",
+		func(
+			resourceName string,
+			builderFn func(types.NamespacedName) *mariadbv1alpha1.Backup,
+			testFn func(*mariadbv1alpha1.Backup),
+		) {
+			key := types.NamespacedName{
+				Name:      resourceName,
+				Namespace: testNamespace,
+			}
+			backup := builderFn(key)
+			testFn(backup)
+		},
+		Entry("should reconcile a Job with PVC storage",
+			"backup-pvc-test",
+			getBackupFromExternalWithPVCStorage,
+			testBackup,
+		),
+
+		Entry("should reconcile a Job with Volume storage",
+			"backup-volume-test",
+			getBackupFromExternalWithVolumeStorage,
+			testBackup,
+		),
+		Entry("should reconcile a Job with Volume storage and gzip compression",
+			"backup-volume-gzip-test",
+			applyDecoratorChain(
+				getBackupFromExternalWithVolumeStorage,
+				decorateBackupWithGzipCompression,
+			),
+			testBackup,
+		),
+
+		Entry("should reconcile a CronJob with PVC storage",
+			"backup-pvc-scheduled-test",
+			getBackupFromExternalWithPVCStorage,
+			testBackup,
+		),
+		Entry("should reconcile a CronJob with Volume storage",
+			"backup-volume-scheduled-test",
+			getBackupFromExternalWithVolumeStorage,
+			testBackup,
+		),
+		Entry("should reconcile a CronJob with PVC storage and history limits",
+			"backup-pvc-scheduled-with-limits-test",
+			applyDecoratorChain(
+				getBackupFromExternalWithPVCStorage,
+				decorateBackupWithSchedule,
+				decorateBackupWithHistoryLimits,
+			),
+			testBackup,
+		),
+		Entry("should reconcile a CronJob with Volume storage and history limits",
+			"backup-volume-scheduled-with-limits-test",
+			applyDecoratorChain(
+				getBackupFromExternalWithVolumeStorage,
+				decorateBackupWithSchedule,
+				decorateBackupWithHistoryLimits,
+			),
+			testBackup,
+		),
+		Entry("should reconcile a CronJob with PVC storage and time zone setting",
+			"backup-pvc-scheduled-with-tz-test",
+			applyDecoratorChain(
+				getBackupFromExternalWithPVCStorage,
+				decorateBackupWithSchedule,
+				decorateBackupWithTimeZone,
+			),
+			testBackup,
+		),
+		Entry("should reconcile a CronJob with Volume storage and time zone setting",
+			"backup-volume-scheduled-with-tz-test",
+			applyDecoratorChain(
+				getBackupFromExternalWithVolumeStorage,
+				decorateBackupWithSchedule,
+				decorateBackupWithTimeZone,
+			),
+			testBackup,
+		),
+	)
+})
+
 func testBackup(backup *mariadbv1alpha1.Backup) {
 	key := client.ObjectKeyFromObject(backup)
 
