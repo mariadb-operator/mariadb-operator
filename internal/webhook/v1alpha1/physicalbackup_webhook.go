@@ -24,6 +24,8 @@ func SetupPhysicalBackupWebhookWithManager(mgr ctrl.Manager) error {
 		Complete()
 }
 
+// +kubebuilder:webhook:path=/validate-k8s-mariadb-com-v1alpha1-physicalbackup,mutating=false,failurePolicy=fail,sideEffects=None,groups=k8s.mariadb.com,resources=physicalbackups,verbs=create;update,versions=v1alpha1,name=vphysicalbackup-v1alpha1.kb.io,admissionReviewVersions=v1
+
 // PhysicalBackupCustomValidator struct is responsible for validating the PhysicalBackup resource
 // when it is created, updated, or deleted.
 type PhysicalBackupCustomValidator struct{}
