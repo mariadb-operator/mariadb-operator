@@ -1518,7 +1518,7 @@ var _ = Describe("MariaDB types", func() {
 				}
 			},
 			Entry(
-				"No boostrap source",
+				"No bootstrap source",
 				&BootstrapFrom{},
 				true,
 			),
@@ -1582,6 +1582,16 @@ var _ = Describe("MariaDB types", func() {
 							ClaimName: "test",
 						},
 					},
+				},
+				true,
+			),
+			Entry(
+				"VolumeSnapshot and RestoreJob mutually exclusive",
+				&BootstrapFrom{
+					VolumeSnapshotRef: &LocalObjectReference{
+						Name: "test",
+					},
+					RestoreJob: &Job{},
 				},
 				true,
 			),

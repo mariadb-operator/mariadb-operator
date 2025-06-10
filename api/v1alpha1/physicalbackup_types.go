@@ -261,7 +261,12 @@ func (b *PhysicalBackup) Validate() error {
 	if err := b.Spec.Compression.Validate(); err != nil {
 		return fmt.Errorf("invalid Compression: %v", err)
 	}
-	if b.Spec.Storage.S3 == nil && b.Spec.StagingStorage != nil {
+
+	storage := b.Spec.Storage
+	if storage.VolumeSnapshot != nil && (storage.S3 != nil || storage.Volume != nil) {
+		return errors.New("'s3' and 'volume' storage types may not be set when 'volumeSnapshotRef' is set")
+	}
+	if storage.S3 == nil && b.Spec.StagingStorage != nil {
 		return errors.New("'spec.stagingStorage' may only be specified when 'spec.storage.s3' is set")
 	}
 	return nil
