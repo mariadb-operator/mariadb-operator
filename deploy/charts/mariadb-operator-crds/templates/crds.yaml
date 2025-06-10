@@ -11288,6 +11288,11 @@ spec:
                   - type
                   type: object
                 type: array
+              lastScheduleCheckTime:
+                description: LastScheduleCheckTime is the last time that the schedule
+                  was checked.
+                format: date-time
+                type: string
               lastScheduleTime:
                 description: LastScheduleTime is the last time that a backup was scheduled.
                 format: date-time

@@ -209,6 +209,10 @@ type PhysicalBackupStatus struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status,xDescriptors={"urn:alm:descriptor:io.kubernetes.conditions"}
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
+	// LastScheduleCheckTime is the last time that the schedule was checked.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	LastScheduleCheckTime *metav1.Time `json:"lastScheduleCheckTime,omitempty"`
 	// LastScheduleTime is the last time that a backup was scheduled.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
