@@ -246,13 +246,6 @@ func (r *PhysicalBackupReconciler) scheduleSnapshot(ctx context.Context, backup 
 	}); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error patching status: %v", err)
 	}
-	r.Recorder.Eventf(
-		backup,
-		corev1.EventTypeNormal,
-		mariadbv1alpha1.ReasonVolumeSnapshotCreated,
-		"VolumeSnapthot %s created",
-		snapshotKey.Name,
-	)
 
 	return ctrl.Result{}, nil
 }
@@ -262,18 +255,28 @@ func (r *PhysicalBackupReconciler) createVolumeSnapshot(ctx context.Context, sna
 	if mariadb.Status.CurrentPrimaryPodIndex == nil {
 		return errors.New("CurrentPrimaryPodIndex must be set")
 	}
-	client, err := sql.NewClientWithMariaDB(ctx, mariadb, r.RefResolver)
+	podIndex := *mariadb.Status.CurrentPrimaryPodIndex
+	logger := log.FromContext(ctx).
+		WithName("snapshot").
+		WithValues(
+			"mariadb", mariadb.Name,
+			"pod-index", podIndex,
+		)
+
+	client, err := sql.NewInternalClientWithPodIndex(ctx, mariadb, r.RefResolver, podIndex)
 	if err != nil {
 		return fmt.Errorf("error getting SQL client: %v", err)
 	}
 	defer client.Close()
 
+	logger.V(1).Info("Locking tables with read lock")
 	if err := client.LockTablesWithReadLock(ctx); err != nil {
-		return fmt.Errorf("error locking with read lock: %v", err)
+		return fmt.Errorf("error locking tables with read lock: %v", err)
 	}
 	defer func() {
+		logger.V(1).Info("Unlocking tables with read lock")
 		if err := client.UnlockTables(ctx); err != nil {
-			log.FromContext(ctx).Error(err, "error unlocking tables")
+			logger.Error(err, "error unlocking tables")
 		}
 	}()
 
@@ -285,10 +288,19 @@ func (r *PhysicalBackupReconciler) createVolumeSnapshot(ctx context.Context, sna
 
 	var snapshot volumesnapshotv1.VolumeSnapshot
 	if err = r.Get(ctx, snapshotKey, &snapshot); err != nil {
-		if apierrors.IsNotFound(err) {
-			return r.Create(ctx, desiredSnapshot)
+		if !apierrors.IsNotFound(err) {
+			return fmt.Errorf("error getting VolumeSnapshot: %v", err)
 		}
-		return fmt.Errorf("error getting VolumeSnapshot: %v", err)
+		if err := r.Create(ctx, desiredSnapshot); err != nil {
+			return fmt.Errorf("error creating VolumeSnapshot: %v", err)
+		}
+		r.Recorder.Eventf(
+			backup,
+			corev1.EventTypeNormal,
+			mariadbv1alpha1.ReasonVolumeSnapshotCreated,
+			"VolumeSnapshot %s scheduled",
+			desiredSnapshot.Name,
+		)
 	}
 	return nil // TODO: handle already exists
 }

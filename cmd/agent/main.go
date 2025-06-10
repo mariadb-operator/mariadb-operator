@@ -16,7 +16,6 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/galera/agent/router"
 	"github.com/mariadb-operator/mariadb-operator/pkg/galera/agent/server"
 	"github.com/mariadb-operator/mariadb-operator/pkg/galera/filemanager"
-	"github.com/mariadb-operator/mariadb-operator/pkg/galera/state"
 	mdbhttp "github.com/mariadb-operator/mariadb-operator/pkg/http"
 	kubeauth "github.com/mariadb-operator/mariadb-operator/pkg/kubernetes/auth"
 	"github.com/mariadb-operator/mariadb-operator/pkg/log"
@@ -99,7 +98,6 @@ var RootCmd = &cobra.Command{
 			logger.Error(err, "Error creating file manager")
 			os.Exit(1)
 		}
-		state := state.NewState(stateDir)
 		k8sClient, err := getK8sClient()
 		if err != nil {
 			logger.Error(err, "Error getting Kubernetes client")
@@ -110,7 +108,6 @@ var RootCmd = &cobra.Command{
 			env,
 			fileManager,
 			k8sClient,
-			state,
 			logger,
 		)
 		if err != nil {
@@ -168,14 +165,13 @@ func getK8sClient() (client.Client, error) {
 	return k8sClient, nil
 }
 
-func getAPIServer(env *environment.PodEnvironment, fileManager *filemanager.FileManager, k8sClient client.Client, state *state.State,
+func getAPIServer(env *environment.PodEnvironment, fileManager *filemanager.FileManager, k8sClient client.Client,
 	logger logr.Logger) (*server.Server, error) {
 	apiLogger := logger.WithName("api")
 	mux := &sync.RWMutex{}
 
 	handler := handler.NewGalera(
 		fileManager,
-		state,
 		mdbhttp.NewResponseWriter(&apiLogger),
 		mux,
 		&apiLogger,
