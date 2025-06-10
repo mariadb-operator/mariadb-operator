@@ -1510,11 +1510,11 @@ var _ = Describe("MariaDB types", func() {
 	Context("When creating a BootstrapFrom object", func() {
 		DescribeTable(
 			"Should validate",
-			func(boostrapFrom *BootstrapFrom, wantErr bool) {
+			func(bootstrapFrom *BootstrapFrom, wantErr bool) {
 				if wantErr {
-					Expect(boostrapFrom.Validate()).ToNot(Succeed())
+					Expect(bootstrapFrom.Validate()).ToNot(Succeed())
 				} else {
-					Expect(boostrapFrom.Validate()).To(Succeed())
+					Expect(bootstrapFrom.Validate()).To(Succeed())
 				}
 			},
 			Entry(
