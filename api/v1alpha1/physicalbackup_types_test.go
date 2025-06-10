@@ -83,6 +83,68 @@ var _ = Describe("PhysicalBackup types", func() {
 			),
 		)
 		DescribeTable(
+			"Should default VolumeSnapshot",
+			func(backup *PhysicalBackup, mariadb *MariaDB, expectedBackup *PhysicalBackup) {
+				backup.SetDefaults(mariadb)
+				Expect(backup).To(BeEquivalentTo(expectedBackup))
+			},
+			Entry(
+				"Empty",
+				&PhysicalBackup{
+					ObjectMeta: objMeta,
+					Spec: PhysicalBackupSpec{
+						Storage: PhysicalBackupStorage{
+							VolumeSnapshot: &PhysicalBackupVolumeSnapshot{
+								VolumeSnapshotClassName: "test",
+							},
+						},
+					},
+				},
+				&MariaDB{
+					ObjectMeta: mdbObjMeta,
+				},
+				&PhysicalBackup{
+					ObjectMeta: objMeta,
+					Spec: PhysicalBackupSpec{
+						Storage: PhysicalBackupStorage{
+							VolumeSnapshot: &PhysicalBackupVolumeSnapshot{
+								VolumeSnapshotClassName: "test",
+							},
+						},
+						MaxRetention: metav1.Duration{Duration: 30 * 24 * time.Hour},
+					},
+				},
+			),
+			Entry(
+				"Already defaulted",
+				&PhysicalBackup{
+					ObjectMeta: objMeta,
+					Spec: PhysicalBackupSpec{
+						Storage: PhysicalBackupStorage{
+							VolumeSnapshot: &PhysicalBackupVolumeSnapshot{
+								VolumeSnapshotClassName: "test",
+							},
+						},
+						MaxRetention: metav1.Duration{Duration: 10 * 24 * time.Hour},
+					},
+				},
+				&MariaDB{
+					ObjectMeta: mdbObjMeta,
+				},
+				&PhysicalBackup{
+					ObjectMeta: objMeta,
+					Spec: PhysicalBackupSpec{
+						Storage: PhysicalBackupStorage{
+							VolumeSnapshot: &PhysicalBackupVolumeSnapshot{
+								VolumeSnapshotClassName: "test",
+							},
+						},
+						MaxRetention: metav1.Duration{Duration: 10 * 24 * time.Hour},
+					},
+				},
+			),
+		)
+		DescribeTable(
 			"Should return a volume",
 			func(backup *PhysicalBackup, expectedVolume StorageVolumeSource, wantErr bool) {
 				volume, err := backup.Volume()
@@ -99,6 +161,21 @@ var _ = Describe("PhysicalBackup types", func() {
 					ObjectMeta: objMeta,
 					Spec: PhysicalBackupSpec{
 						Storage: PhysicalBackupStorage{},
+					},
+				},
+				nil,
+				true,
+			),
+			Entry(
+				"VolumeSnapshot not compatible with volumes",
+				&PhysicalBackup{
+					ObjectMeta: objMeta,
+					Spec: PhysicalBackupSpec{
+						Storage: PhysicalBackupStorage{
+							VolumeSnapshot: &PhysicalBackupVolumeSnapshot{
+								VolumeSnapshotClassName: "test",
+							},
+						},
 					},
 				},
 				nil,
