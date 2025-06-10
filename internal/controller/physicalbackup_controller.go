@@ -124,7 +124,7 @@ func (r *PhysicalBackupReconciler) reconcileTemplateScheduled(ctx context.Contex
 	if schedule.Suspend {
 		return ctrl.Result{}, nil
 	}
-	isImmediate := ptr.Deref(schedule.Immediate, false)
+	isImmediate := ptr.Deref(schedule.Immediate, true)
 	cronSchedule, err := mariadbv1alpha1.CronParser.Parse(schedule.Cron)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error parsing cron schedule: %v", err)
