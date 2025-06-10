@@ -129,20 +129,16 @@ func (r *PhysicalBackupReconciler) reconcileTemplateScheduled(ctx context.Contex
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error parsing cron schedule: %v", err)
 	}
-
 	now := time.Now()
-	beforeNext := time.Now()
-	if backup.Status.LastScheduleTime != nil {
-		beforeNext = backup.Status.LastScheduleTime.Time
-	}
-	nextTime := cronSchedule.Next(beforeNext)
 
-	if isImmediate && backup.Status.LastScheduleTime == nil {
+	if isImmediate && backup.Status.LastScheduleCheckTime == nil {
 		return scheduleFn(now, cronSchedule)
 	}
-	if backup.Status.LastScheduleTime == nil {
+	if backup.Status.LastScheduleCheckTime == nil {
+		nextTime := cronSchedule.Next(now)
+
 		if err := r.patchStatus(ctx, backup, func(status *mariadbv1alpha1.PhysicalBackupStatus) {
-			status.LastScheduleTime = &metav1.Time{
+			status.LastScheduleCheckTime = &metav1.Time{
 				Time: now,
 			}
 			status.NextScheduleTime = &metav1.Time{
@@ -153,6 +149,8 @@ func (r *PhysicalBackupReconciler) reconcileTemplateScheduled(ctx context.Contex
 		}
 		return ctrl.Result{RequeueAfter: nextTime.Sub(now)}, nil
 	}
+
+	nextTime := cronSchedule.Next(backup.Status.LastScheduleCheckTime.Time)
 
 	if now.Before(nextTime) {
 		return ctrl.Result{RequeueAfter: nextTime.Sub(now)}, nil

@@ -282,6 +282,9 @@ func (r *PhysicalBackupReconciler) createJob(ctx context.Context, backup *mariad
 	}
 
 	if err := r.patchStatus(ctx, backup, func(status *mariadbv1alpha1.PhysicalBackupStatus) {
+		status.LastScheduleCheckTime = &metav1.Time{
+			Time: now,
+		}
 		status.LastScheduleTime = &metav1.Time{
 			Time: now,
 		}
