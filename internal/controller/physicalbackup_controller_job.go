@@ -296,6 +296,10 @@ func (r *PhysicalBackupReconciler) createJob(ctx context.Context, backup *mariad
 	}); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error patching status: %v", err)
 	}
+
+	if err := r.Create(ctx, job); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error creating Job: %v", err)
+	}
 	r.Recorder.Eventf(
 		backup,
 		corev1.EventTypeNormal,
@@ -303,8 +307,7 @@ func (r *PhysicalBackupReconciler) createJob(ctx context.Context, backup *mariad
 		"Job %s scheduled",
 		job.Name,
 	)
-
-	return ctrl.Result{}, r.Create(ctx, job)
+	return ctrl.Result{}, nil
 }
 
 func (r *PhysicalBackupReconciler) waitForRunningJobs(ctx context.Context, jobList *batchv1.JobList) (ctrl.Result, error) {

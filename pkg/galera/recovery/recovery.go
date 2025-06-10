@@ -12,9 +12,8 @@ import (
 )
 
 const (
-	GaleraStateFileName = "grastate.dat"
-	BootstrapFileName   = "1-bootstrap.cnf"
-	BootstrapFile       = `[galera]
+	BootstrapFileName = "1-bootstrap.cnf"
+	BootstrapFile     = `[galera]
 wsrep_new_cluster="ON"`
 )
 
