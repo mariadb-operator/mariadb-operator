@@ -3248,6 +3248,10 @@ func (in *PhysicalBackupStatus) DeepCopyInto(out *PhysicalBackupStatus) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
+	if in.LastScheduleCheckTime != nil {
+		in, out := &in.LastScheduleCheckTime, &out.LastScheduleCheckTime
+		*out = (*in).DeepCopy()
+	}
 	if in.LastScheduleTime != nil {
 		in, out := &in.LastScheduleTime, &out.LastScheduleTime
 		*out = (*in).DeepCopy()
