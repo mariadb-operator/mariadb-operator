@@ -157,6 +157,58 @@ var _ = Describe("MariaDB types", func() {
 				env,
 			),
 			Entry(
+				"Bootstrap from",
+				&MariaDB{
+					ObjectMeta: objMeta,
+					Spec: MariaDBSpec{
+						BootstrapFrom: &BootstrapFrom{
+							PhysicalBackupRef: &LocalObjectReference{
+								Name: "test",
+							},
+						},
+					},
+				},
+				&MariaDB{
+					ObjectMeta: objMeta,
+					Spec: MariaDBSpec{
+						PodTemplate: PodTemplate{
+							ServiceAccountName: &objMeta.Name,
+						},
+						Image:             env.RelatedMariadbImage,
+						RootEmptyPassword: ptr.To(false),
+						RootPasswordSecretKeyRef: GeneratedSecretKeyRef{
+							SecretKeySelector: SecretKeySelector{
+								LocalObjectReference: LocalObjectReference{
+									Name: "mariadb-obj-root",
+								},
+								Key: "password",
+							},
+							Generate: true,
+						},
+						BootstrapFrom: &BootstrapFrom{
+							PhysicalBackupRef: &LocalObjectReference{
+								Name: "test",
+							},
+							BackupType: BackupTypePhysical,
+						},
+						Port: 3306,
+						Storage: Storage{
+							Ephemeral:           ptr.To(false),
+							ResizeInUseVolumes:  ptr.To(true),
+							WaitForVolumeResize: ptr.To(true),
+						},
+						TLS: &TLS{
+							Enabled: true,
+						},
+						UpdateStrategy: UpdateStrategy{
+							Type:                ReplicasFirstPrimaryLastUpdateType,
+							AutoUpdateDataPlane: ptr.To(false),
+						},
+					},
+				},
+				env,
+			),
+			Entry(
 				"my.cnf",
 				&MariaDB{
 					ObjectMeta: objMeta,
@@ -1451,6 +1503,295 @@ var _ = Describe("MariaDB types", func() {
 					},
 				},
 				ptr.To(resource.MustParse("100Mi")),
+			),
+		)
+	})
+
+	Context("When creating a BootstrapFrom object", func() {
+		DescribeTable(
+			"Should validate",
+			func(boostrapFrom *BootstrapFrom, wantErr bool) {
+				if wantErr {
+					Expect(boostrapFrom.Validate()).ToNot(Succeed())
+				} else {
+					Expect(boostrapFrom.Validate()).To(Succeed())
+				}
+			},
+			Entry(
+				"No boostrap source",
+				&BootstrapFrom{},
+				true,
+			),
+			Entry(
+				"Invalid backup type",
+				&BootstrapFrom{
+					BackupType: BackupType("test"),
+				},
+				true,
+			),
+			Entry(
+				"Inconsistent backup type 1",
+				&BootstrapFrom{
+					PhysicalBackupRef: &LocalObjectReference{
+						Name: "test",
+					},
+					BackupType: BackupTypeLogical,
+				},
+				true,
+			),
+			Entry(
+				"Inconsistent backup type 2",
+				&BootstrapFrom{
+					BackupRef: &LocalObjectReference{
+						Name: "test",
+					},
+					BackupType: BackupTypePhysical,
+				},
+				true,
+			),
+			Entry(
+				"Inconsistent backup type 3",
+				&BootstrapFrom{
+					VolumeSnapshotRef: &LocalObjectReference{
+						Name: "test",
+					},
+					BackupType: BackupTypeLogical,
+				},
+				true,
+			),
+			Entry(
+				"VolumeSnapshot and S3 mutually exclusive",
+				&BootstrapFrom{
+					VolumeSnapshotRef: &LocalObjectReference{
+						Name: "test",
+					},
+					S3: &S3{
+						Bucket: "test",
+					},
+				},
+				true,
+			),
+			Entry(
+				"VolumeSnapshot and Volume mutually exclusive",
+				&BootstrapFrom{
+					VolumeSnapshotRef: &LocalObjectReference{
+						Name: "test",
+					},
+					Volume: &StorageVolumeSource{
+						PersistentVolumeClaim: &PersistentVolumeClaimVolumeSource{
+							ClaimName: "test",
+						},
+					},
+				},
+				true,
+			),
+			Entry(
+				"Invalid StagingStorage",
+				&BootstrapFrom{
+					StagingStorage: &BackupStagingStorage{
+						PersistentVolumeClaim: &PersistentVolumeClaimSpec{
+							StorageClassName: ptr.To("test"),
+						},
+					},
+				},
+				true,
+			),
+			Entry(
+				"Valid 1",
+				&BootstrapFrom{
+					PhysicalBackupRef: &LocalObjectReference{
+						Name: "test",
+					},
+					BackupType: BackupTypePhysical,
+				},
+				false,
+			),
+			Entry(
+				"Valid 2",
+				&BootstrapFrom{
+					BackupRef: &LocalObjectReference{
+						Name: "test",
+					},
+					BackupType: BackupTypeLogical,
+				},
+				false,
+			),
+			Entry(
+				"Valid 3",
+				&BootstrapFrom{
+					VolumeSnapshotRef: &LocalObjectReference{
+						Name: "test",
+					},
+					BackupType: BackupTypePhysical,
+				},
+				false,
+			),
+			Entry(
+				"Valid 4",
+				&BootstrapFrom{
+					S3: &S3{
+						Bucket: "test",
+					},
+					BackupType: BackupTypePhysical,
+				},
+				false,
+			),
+			Entry(
+				"Valid 5",
+				&BootstrapFrom{
+					S3: &S3{
+						Bucket: "test",
+					},
+					BackupType: BackupTypeLogical,
+				},
+				false,
+			),
+			Entry(
+				"Valid 6",
+				&BootstrapFrom{
+					Volume: &StorageVolumeSource{
+						NFS: &NFSVolumeSource{
+							Server: "nas.local",
+						},
+					},
+					BackupType: BackupTypeLogical,
+				},
+				false,
+			),
+			Entry(
+				"Valid 7",
+				&BootstrapFrom{
+					Volume: &StorageVolumeSource{
+						NFS: &NFSVolumeSource{
+							Server: "nas.local",
+						},
+					},
+					BackupType: BackupTypePhysical,
+				},
+				false,
+			),
+		)
+
+		DescribeTable(
+			"Should default",
+			func(bootstrapFrom *BootstrapFrom, mariadb *MariaDB, expected *BootstrapFrom) {
+				bootstrapFrom.SetDefaults(mariadb)
+				Expect(bootstrapFrom).To(BeEquivalentTo(expected))
+			},
+			Entry(
+				"Empty",
+				&BootstrapFrom{},
+				&MariaDB{
+					ObjectMeta: objMeta,
+				},
+				&BootstrapFrom{
+					BackupType: BackupTypeLogical,
+				},
+			),
+			Entry(
+				"Logical backup",
+				&BootstrapFrom{
+					BackupRef: &LocalObjectReference{
+						Name: "test",
+					},
+				},
+				&MariaDB{
+					ObjectMeta: objMeta,
+				},
+				&BootstrapFrom{
+					BackupRef: &LocalObjectReference{
+						Name: "test",
+					},
+					BackupType: BackupTypeLogical,
+				},
+			),
+			Entry(
+				"Physical backup",
+				&BootstrapFrom{
+					PhysicalBackupRef: &LocalObjectReference{
+						Name: "test",
+					},
+				},
+				&MariaDB{
+					ObjectMeta: objMeta,
+				},
+				&BootstrapFrom{
+					PhysicalBackupRef: &LocalObjectReference{
+						Name: "test",
+					},
+					BackupType: BackupTypePhysical,
+				},
+			),
+			Entry(
+				"Volume snapshot",
+				&BootstrapFrom{
+					VolumeSnapshotRef: &LocalObjectReference{
+						Name: "test",
+					},
+				},
+				&MariaDB{
+					ObjectMeta: objMeta,
+				},
+				&BootstrapFrom{
+					VolumeSnapshotRef: &LocalObjectReference{
+						Name: "test",
+					},
+					BackupType: BackupTypePhysical,
+				},
+			),
+			Entry(
+				"PhysicalBackup in S3",
+				&BootstrapFrom{
+					S3: &S3{
+						Bucket: "test",
+					},
+					BackupType: BackupTypePhysical,
+				},
+				&MariaDB{
+					ObjectMeta: objMeta,
+				},
+				&BootstrapFrom{
+					S3: &S3{
+						Bucket: "test",
+					},
+					BackupType: BackupTypePhysical,
+					Volume: &StorageVolumeSource{
+						EmptyDir: &EmptyDirVolumeSource{},
+					},
+				},
+			),
+			Entry(
+				"PhysicalBackup in S3 with staging storage",
+				&BootstrapFrom{
+					S3: &S3{
+						Bucket: "test",
+					},
+					BackupType: BackupTypePhysical,
+					StagingStorage: &BackupStagingStorage{
+						PersistentVolumeClaim: &PersistentVolumeClaimSpec{
+							StorageClassName: ptr.To("test"),
+						},
+					},
+				},
+				&MariaDB{
+					ObjectMeta: objMeta,
+				},
+				&BootstrapFrom{
+					S3: &S3{
+						Bucket: "test",
+					},
+					BackupType: BackupTypePhysical,
+					StagingStorage: &BackupStagingStorage{
+						PersistentVolumeClaim: &PersistentVolumeClaimSpec{
+							StorageClassName: ptr.To("test"),
+						},
+					},
+					Volume: &StorageVolumeSource{
+						PersistentVolumeClaim: &PersistentVolumeClaimVolumeSource{
+							ClaimName: "mariadb-obj-physicalbackup-staging",
+						},
+					},
+				},
 			),
 		)
 	})
