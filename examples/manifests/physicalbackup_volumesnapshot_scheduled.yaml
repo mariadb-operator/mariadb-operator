@@ -9,6 +9,7 @@ spec:
     cron: "*/1 * * * *"
     suspend: false
     immediate: true
+  maxRetention: 720h # 30 days
   storage:
     volumeSnapshot:
       volumeSnapshotClassName: csi-hostpath-snapclass 
