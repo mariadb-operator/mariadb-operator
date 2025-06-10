@@ -18,17 +18,15 @@ import (
 
 type Galera struct {
 	fileManager    *filemanager.FileManager
-	state          *state.State
 	responseWriter *mdbhttp.ResponseWriter
 	locker         sync.Locker
 	logger         *logr.Logger
 }
 
-func NewGalera(fileManager *filemanager.FileManager, state *state.State, responseWriter *mdbhttp.ResponseWriter, locker sync.Locker,
+func NewGalera(fileManager *filemanager.FileManager, responseWriter *mdbhttp.ResponseWriter, locker sync.Locker,
 	logger *logr.Logger) *Galera {
 	return &Galera{
 		fileManager:    fileManager,
-		state:          state,
 		responseWriter: responseWriter,
 		locker:         locker,
 		logger:         logger,
@@ -40,7 +38,7 @@ func (g *Galera) GetState(w http.ResponseWriter, r *http.Request) {
 	defer g.locker.Unlock()
 	g.logger.V(1).Info("getting galera state")
 
-	bytes, err := g.fileManager.ReadStateFile(recovery.GaleraStateFileName)
+	bytes, err := g.fileManager.ReadStateFile(state.GaleraStateFileName)
 	if err != nil {
 		if os.IsNotExist(err) {
 			g.responseWriter.Write(w, http.StatusNotFound, galeraErrors.NewAPIError("galera state not found"))
@@ -132,7 +130,7 @@ func (b *Galera) decodeAndValidateBootstrap(r *http.Request) (*recovery.Bootstra
 }
 
 func (b *Galera) setSafeToBootstrap(bootstrap *recovery.Bootstrap) error {
-	bytes, err := b.fileManager.ReadStateFile(recovery.GaleraStateFileName)
+	bytes, err := b.fileManager.ReadStateFile(state.GaleraStateFileName)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return errors.New("galera state does not exist")
@@ -155,7 +153,7 @@ func (b *Galera) setSafeToBootstrap(bootstrap *recovery.Bootstrap) error {
 		return fmt.Errorf("error marshaling galera state: %v", err)
 	}
 
-	if err := b.fileManager.WriteStateFile(recovery.GaleraStateFileName, bytes); err != nil {
+	if err := b.fileManager.WriteStateFile(state.GaleraStateFileName, bytes); err != nil {
 		return fmt.Errorf("error writing galera state: %v", err)
 	}
 	return nil
