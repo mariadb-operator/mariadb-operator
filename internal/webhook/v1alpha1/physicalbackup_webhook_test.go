@@ -242,6 +242,63 @@ var _ = Describe("PhysicalBackup webhook", func() {
 				true,
 			),
 			Entry(
+				"Invalid volume snapshot 1",
+				&v1alpha1.PhysicalBackup{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "physicalbackup-invalid-volumesnapshot-1",
+						Namespace: testNamespace,
+					},
+					Spec: v1alpha1.PhysicalBackupSpec{
+						Compression: v1alpha1.CompressGzip,
+						Storage: v1alpha1.PhysicalBackupStorage{
+							S3: &v1alpha1.S3{
+								Bucket:   "test",
+								Endpoint: "test",
+							},
+							VolumeSnapshot: &v1alpha1.PhysicalBackupVolumeSnapshot{
+								VolumeSnapshotClassName: "test",
+							},
+						},
+						MariaDBRef: v1alpha1.MariaDBRef{
+							ObjectReference: v1alpha1.ObjectReference{
+								Name: "mariadb-webhook",
+							},
+							WaitForIt: true,
+						},
+					},
+				},
+				true,
+			),
+			Entry(
+				"Invalid volume snapshot 2",
+				&v1alpha1.PhysicalBackup{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "physicalbackup-invalid-volumesnapshot-2",
+						Namespace: testNamespace,
+					},
+					Spec: v1alpha1.PhysicalBackupSpec{
+						Compression: v1alpha1.CompressGzip,
+						Storage: v1alpha1.PhysicalBackupStorage{
+							Volume: &v1alpha1.StorageVolumeSource{
+								PersistentVolumeClaim: &v1alpha1.PersistentVolumeClaimVolumeSource{
+									ClaimName: "test",
+								},
+							},
+							VolumeSnapshot: &v1alpha1.PhysicalBackupVolumeSnapshot{
+								VolumeSnapshotClassName: "test",
+							},
+						},
+						MariaDBRef: v1alpha1.MariaDBRef{
+							ObjectReference: v1alpha1.ObjectReference{
+								Name: "mariadb-webhook",
+							},
+							WaitForIt: true,
+						},
+					},
+				},
+				true,
+			),
+			Entry(
 				"Invalid staging storage",
 				&v1alpha1.PhysicalBackup{
 					ObjectMeta: metav1.ObjectMeta{

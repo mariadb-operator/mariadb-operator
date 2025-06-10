@@ -307,7 +307,7 @@ func (b *BootstrapFrom) Validate() error {
 	if b.BackupRef == nil && b.PhysicalBackupRef == nil && b.VolumeSnapshotRef == nil && b.S3 == nil && b.Volume == nil {
 		return errors.New("unable to determine bootstrap source")
 	}
-	if err := b.validateRefs(); err != nil {
+	if err := b.validateBootstrapSource(); err != nil {
 		return err
 	}
 
@@ -326,8 +326,8 @@ func (b *BootstrapFrom) Validate() error {
 		return errors.New("inconsistent 'volumeSnapshotRef' and 'backupType' fields. Physical type must be set in this case.")
 	}
 
-	if b.VolumeSnapshotRef != nil && (b.S3 != nil || b.Volume != nil) {
-		return errors.New("'s3' and 'volume' may not be set when 'volumeSnapshotRef' is set")
+	if b.VolumeSnapshotRef != nil && (b.S3 != nil || b.Volume != nil || b.RestoreJob != nil) {
+		return errors.New("'s3', 'volume' and 'restoreJob' may not be set when 'volumeSnapshotRef' is set")
 	}
 	if b.S3 == nil && b.StagingStorage != nil {
 		return errors.New("'stagingStorage' may only be specified when 's3' is set")
@@ -335,7 +335,7 @@ func (b *BootstrapFrom) Validate() error {
 	return nil
 }
 
-func (b *BootstrapFrom) validateRefs() error {
+func (b *BootstrapFrom) validateBootstrapSource() error {
 	numRefs := 0
 	if b.BackupRef != nil {
 		numRefs++
