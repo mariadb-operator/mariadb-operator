@@ -3211,6 +3211,11 @@ func (in *PhysicalBackupSpec) DeepCopyInto(out *PhysicalBackupSpec) {
 		(*in).DeepCopyInto(*out)
 	}
 	out.MaxRetention = in.MaxRetention
+	if in.Timeout != nil {
+		in, out := &in.Timeout, &out.Timeout
+		*out = new(v1.Duration)
+		**out = **in
+	}
 	if in.PodAffinity != nil {
 		in, out := &in.PodAffinity, &out.PodAffinity
 		*out = new(bool)

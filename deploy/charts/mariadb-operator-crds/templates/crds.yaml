@@ -10527,8 +10527,9 @@ spec:
                   It defaults to 30 days.
                 type: string
               podAffinity:
-                description: PodAffinity indicates whether the Jobs should run in
-                  the same Node as the MariaDB Pods. It defaults to true.
+                description: |-
+                  PodAffinity indicates whether the Jobs should run in the same Node as the MariaDB Pods to be able to attach the PVC.
+                  It defaults to true.
                 type: boolean
               podMetadata:
                 description: PodMetadata defines extra metadata for the Pod.
@@ -11185,6 +11186,13 @@ spec:
                 format: int32
                 minimum: 0
                 type: integer
+              timeout:
+                description: |-
+                  Timeout defines the maximum duration of a PhysicalBackup job or snapshot.
+                  If this duration is exceeded, the job or snapshot is considered expired and is deleted by the operator.
+                  A new job or snapshot will then be created according to the schedule.
+                  It defaults to 10 minutes. To disable this feature, set the field to null.
+                type: string
               tolerations:
                 description: Tolerations to be used in the Pod.
                 items:
