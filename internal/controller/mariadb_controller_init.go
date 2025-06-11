@@ -12,6 +12,7 @@ import (
 	podpkg "github.com/mariadb-operator/mariadb-operator/pkg/pod"
 	"github.com/mariadb-operator/mariadb-operator/pkg/pvc"
 	stsobj "github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
+	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -180,21 +181,29 @@ func (r *MariaDBReconciler) createInitJob(ctx context.Context, mariadb *mariadbv
 
 func (r *MariaDBReconciler) upscaleStatefulSet(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, replicas int32) error {
 	key := client.ObjectKeyFromObject(mariadb)
-	updateAnnotations, err := r.getUpdateAnnotations(ctx, mariadb)
-	if err != nil {
-		return fmt.Errorf("error getting Pod annotations: %v", err)
-	}
 
-	sts, err := r.Builder.BuildMariadbStatefulSet(mariadb, key, updateAnnotations)
-	if err != nil {
-		return fmt.Errorf("error building StatefulSet: %v", err)
+	var sts appsv1.StatefulSet
+	if err := r.Get(ctx, key, &sts); err != nil {
+		if !apierrors.IsNotFound(err) {
+			return fmt.Errorf("error getting StatefulSet: %v", err)
+		}
+
+		updateAnnotations, err := r.getUpdateAnnotations(ctx, mariadb)
+		if err != nil {
+			return fmt.Errorf("error getting Pod annotations: %v", err)
+		}
+		desiredSts, err := r.Builder.BuildMariadbStatefulSet(mariadb, key, updateAnnotations)
+		if err != nil {
+			return fmt.Errorf("error building StatefulSet: %v", err)
+		}
+		sts = *desiredSts
 	}
 	if sts.Status.Replicas >= replicas {
 		return nil
 	}
 	sts.Spec.Replicas = &replicas
 
-	if err := r.StatefulSetReconciler.Reconcile(ctx, sts); err != nil {
+	if err := r.StatefulSetReconciler.Reconcile(ctx, &sts); err != nil {
 		return fmt.Errorf("error reconciling StatefulSet with %d replicas : %v", replicas, err)
 	}
 	return nil
