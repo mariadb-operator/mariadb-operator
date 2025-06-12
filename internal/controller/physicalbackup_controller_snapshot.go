@@ -152,7 +152,7 @@ func (r *PhysicalBackupReconciler) reconcileSnapshotStatus(ctx context.Context, 
 		}); err != nil {
 			logger.Info("error patching status", "err", err)
 		}
-	} else if len(snapshotList.Items) > 0 && numReady > 0 {
+	} else if len(snapshotList.Items) > 0 {
 		if err := r.patchStatus(ctx, backup, func(status *mariadbv1alpha1.PhysicalBackupStatus) {
 			status.SetCondition(metav1.Condition{
 				Type:    mariadbv1alpha1.ConditionTypeComplete,
