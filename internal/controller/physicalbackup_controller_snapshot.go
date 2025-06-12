@@ -39,9 +39,12 @@ func (r *PhysicalBackupReconciler) reconcileSnapshots(ctx context.Context, backu
 	if err := r.cleanupSnapshots(ctx, backup, snapshotList); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error cleaning up Jobs: %v", err)
 	}
+	if result, err := r.waitForInProgressSnapshots(ctx, backup, snapshotList); !result.IsZero() || err != nil {
+		return result, err
+	}
 
 	return r.reconcileTemplate(ctx, backup, len(snapshotList.Items), func(now time.Time, cronSchedule cron.Schedule) (ctrl.Result, error) {
-		return r.scheduleSnapshot(ctx, backup, mariadb, snapshotList, now, cronSchedule)
+		return r.scheduleSnapshot(ctx, backup, mariadb, now, cronSchedule)
 	})
 }
 
@@ -213,11 +216,7 @@ func (r *PhysicalBackupReconciler) cleanupSnapshots(ctx context.Context, backup 
 }
 
 func (r *PhysicalBackupReconciler) scheduleSnapshot(ctx context.Context, backup *mariadbv1alpha1.PhysicalBackup,
-	mariadb *mariadbv1alpha1.MariaDB, snapshotList *volumesnapshotv1.VolumeSnapshotList,
-	now time.Time, schedule cron.Schedule) (ctrl.Result, error) {
-	if result, err := r.waitForReadySnapshots(ctx, snapshotList); !result.IsZero() || err != nil {
-		return result, err
-	}
+	mariadb *mariadbv1alpha1.MariaDB, now time.Time, schedule cron.Schedule) (ctrl.Result, error) {
 	if mariadb.Status.CurrentPrimaryPodIndex == nil {
 		log.FromContext(ctx).V(1).Info("Current primary not set. Requeuing...")
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
@@ -305,10 +304,20 @@ func (r *PhysicalBackupReconciler) createVolumeSnapshot(ctx context.Context, sna
 	return nil // TODO: handle already exists
 }
 
-func (r *PhysicalBackupReconciler) waitForReadySnapshots(ctx context.Context,
-	snapthotList *volumesnapshotv1.VolumeSnapshotList) (ctrl.Result, error) {
-	for _, snapshot := range snapthotList.Items {
+func (r *PhysicalBackupReconciler) waitForInProgressSnapshots(ctx context.Context, backup *mariadbv1alpha1.PhysicalBackup,
+	snapshotList *volumesnapshotv1.VolumeSnapshotList) (ctrl.Result, error) {
+	for _, snapshot := range snapshotList.Items {
 		if !mdbsnapshot.IsVolumeSnapshotReady(&snapshot) {
+			if backup.Spec.Timeout != nil && !snapshot.CreationTimestamp.IsZero() &&
+				time.Since(snapshot.CreationTimestamp.Time) > backup.Spec.Timeout.Duration {
+
+				log.FromContext(ctx).Info("PhysicalBackup VolumeSnapshot timed out. Deleting...", "snapshot", snapshot.Name)
+				if err := r.Delete(ctx, &snapshot); err != nil {
+					return ctrl.Result{}, fmt.Errorf("error deleting expired VolumeSnapshot: %v", err)
+				}
+				return ctrl.Result{Requeue: true}, nil
+			}
+
 			status := ptr.Deref(snapshot.Status, volumesnapshotv1.VolumeSnapshotStatus{})
 			log.FromContext(ctx).Info(
 				"PhysicalBackup VolumeSnapshot is not ready. Requeuing...",
@@ -316,7 +325,7 @@ func (r *PhysicalBackupReconciler) waitForReadySnapshots(ctx context.Context,
 				"ready", ptr.Deref(status.ReadyToUse, false),
 				"error", status.Error,
 			)
-			return ctrl.Result{Requeue: true}, nil
+			return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 		}
 	}
 	return ctrl.Result{}, nil
