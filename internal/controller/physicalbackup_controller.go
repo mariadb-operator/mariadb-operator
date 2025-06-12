@@ -43,9 +43,14 @@ type PhysicalBackupReconciler struct {
 	BackupProcessor   backup.BackupProcessor
 }
 
-// +kubebuilder:rbac:groups=k8s.mariadb.com,resources=physicalbackups,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=k8s.mariadb.com,resources=physicalbackups/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=k8s.mariadb.com,resources=physicalbackups/finalizers,verbs=update
+//+kubebuilder:rbac:groups=k8s.mariadb.com,resources=physicalbackups,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=k8s.mariadb.com,resources=physicalbackups/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=k8s.mariadb.com,resources=physicalbackups/finalizers,verbs=update
+//+kubebuilder:rbac:groups="",resources=events,verbs=list;watch;create;patch
+//+kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=list;watch;create;patch
+//+kubebuilder:rbac:groups="",resources=persistentvolumeclaims,verbs=list;watch;create;patch
+//+kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch;create;patch;delete
+//+kubebuilder:rbac:groups=snapshot.storage.k8s.io,resources=volumesnapshots,verbs=get;list;watch;create;patch;delete
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -176,7 +181,9 @@ func (r *PhysicalBackupReconciler) patchStatus(ctx context.Context, backup *mari
 func (r *PhysicalBackupReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
 	builder := ctrl.NewControllerManagedBy(mgr).
 		For(&mariadbv1alpha1.PhysicalBackup{}).
-		Owns(&batchv1.Job{})
+		Owns(&batchv1.Job{}).
+		Owns(&corev1.ServiceAccount{}).
+		Owns(&corev1.PersistentVolumeClaim{})
 	if err := r.indexJobs(ctx, mgr); err != nil {
 		return fmt.Errorf("error indexing PhysicalBackup Jobs: %v", err)
 	}
