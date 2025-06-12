@@ -1596,17 +1596,6 @@ var _ = Describe("MariaDB types", func() {
 				true,
 			),
 			Entry(
-				"Invalid StagingStorage",
-				&BootstrapFrom{
-					StagingStorage: &BackupStagingStorage{
-						PersistentVolumeClaim: &PersistentVolumeClaimSpec{
-							StorageClassName: ptr.To("test"),
-						},
-					},
-				},
-				true,
-			),
-			Entry(
 				"Valid 1",
 				&BootstrapFrom{
 					PhysicalBackupRef: &LocalObjectReference{

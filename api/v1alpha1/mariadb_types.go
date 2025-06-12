@@ -329,9 +329,6 @@ func (b *BootstrapFrom) Validate() error {
 	if b.VolumeSnapshotRef != nil && (b.S3 != nil || b.Volume != nil || b.RestoreJob != nil) {
 		return errors.New("'s3', 'volume' and 'restoreJob' may not be set when 'volumeSnapshotRef' is set")
 	}
-	if b.S3 == nil && b.StagingStorage != nil {
-		return errors.New("'stagingStorage' may only be specified when 's3' is set")
-	}
 	return nil
 }
 
