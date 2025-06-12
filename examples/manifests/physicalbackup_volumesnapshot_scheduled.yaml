@@ -12,4 +12,5 @@ spec:
   maxRetention: 720h # 30 days
   storage:
     volumeSnapshot:
-      volumeSnapshotClassName: csi-hostpath-snapclass 
+      volumeSnapshotClassName: csi-hostpath-snapclass
+  timeout: 15m

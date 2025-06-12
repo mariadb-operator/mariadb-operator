@@ -5,7 +5,6 @@ metadata:
 spec:
   mariaDbRef:
     name: mariadb
-  serviceAccountName: backup
   compression: bzip2
   storage:
     s3:
@@ -24,14 +23,6 @@ spec:
         caSecretKeyRef:
           name: minio-ca
           key: ca.crt
-  podAffinity: true
-  resources:
-    requests:
-      cpu: 100m
-      memory: 128Mi
-    limits:
-      cpu: 300m
-      memory: 512Mi
   # Define a PVC to use as staging area for keeping the backups while they are being processed.
   stagingStorage:
     persistentVolumeClaim:
@@ -40,3 +31,13 @@ spec:
           storage: 1Gi
       accessModes:
         - ReadWriteOnce
+  timeout: 15m
+  podAffinity: true
+  serviceAccountName: backup
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 300m
+      memory: 512Mi

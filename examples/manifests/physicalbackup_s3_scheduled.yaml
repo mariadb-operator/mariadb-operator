@@ -9,7 +9,6 @@ spec:
     cron: "*/1 * * * *"
     suspend: false
     immediate: true
-  serviceAccountName: backup
   compression: bzip2
   maxRetention: 720h # 30 days
   storage:
@@ -29,7 +28,17 @@ spec:
         caSecretKeyRef:
           name: minio-ca
           key: ca.crt
+  # Define a PVC to use as staging area for keeping the backups while they are being processed.
+  stagingStorage:
+    persistentVolumeClaim:
+      resources:
+        requests:
+          storage: 1Gi
+      accessModes:
+        - ReadWriteOnce
+  timeout: 15m
   podAffinity: true
+  serviceAccountName: backup
   resources:
     requests:
       cpu: 100m
