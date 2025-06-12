@@ -65,6 +65,7 @@ rules:
   - persistentvolumeclaims
   verbs:
   - create
+  - delete
   - deletecollection
   - list
   - patch
@@ -121,6 +122,7 @@ rules:
   verbs:
   - create
   - delete
+  - get
   - list
   - patch
   - watch
@@ -220,6 +222,17 @@ rules:
   - roles
   verbs:
   - create
+  - list
+  - patch
+  - watch
+- apiGroups:
+  - snapshot.storage.k8s.io
+  resources:
+  - volumesnapshots
+  verbs:
+  - create
+  - delete
+  - get
   - list
   - patch
   - watch
