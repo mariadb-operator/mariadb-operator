@@ -11191,7 +11191,7 @@ spec:
                   Timeout defines the maximum duration of a PhysicalBackup job or snapshot.
                   If this duration is exceeded, the job or snapshot is considered expired and is deleted by the operator.
                   A new job or snapshot will then be created according to the schedule.
-                  It defaults to 10 minutes. To disable this feature, set the field to null.
+                  It defaults to 15 minutes.
                 type: string
               tolerations:
                 description: Tolerations to be used in the Pod.

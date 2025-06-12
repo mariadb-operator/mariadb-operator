@@ -7,4 +7,4 @@ spec:
     name: mariadb
   storage:
     volumeSnapshot:
-      volumeSnapshotClassName: csi-hostpath-snapclass 
+      volumeSnapshotClassName: csi-hostpath-snapclass
