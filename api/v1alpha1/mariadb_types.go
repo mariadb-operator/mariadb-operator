@@ -340,14 +340,11 @@ func (b *BootstrapFrom) validateBootstrapSource() error {
 	if b.BackupRef != nil {
 		numRefs++
 	}
-	if b.PhysicalBackupRef != nil {
-		numRefs++
-	}
-	if b.VolumeSnapshotRef != nil {
+	if b.PhysicalBackupRef != nil || b.VolumeSnapshotRef != nil {
 		numRefs++
 	}
 	if numRefs > 1 {
-		return fmt.Errorf("only one reference can be set: 'backupRef', 'physicalBackupRef' or 'volumeSnapshotRef'")
+		return fmt.Errorf("only one bootstrap source can be set: either 'backupRef' or any of ('physicalBackupRef', 'volumeSnapshotRef')")
 	}
 	return nil
 }
