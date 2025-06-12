@@ -110,6 +110,7 @@ func (r *ReplicationReconciler) lockPrimaryWithReadLock(ctx context.Context, mar
 		return fmt.Errorf("error getting current primary readiness: %v", err)
 	}
 	if !ready {
+		logger.Info("Skipped locking primary with read lock due primary's non ready status")
 		return nil
 	}
 	client, err := clientSet.currentPrimaryClient(ctx)
@@ -130,6 +131,7 @@ func (r *ReplicationReconciler) setPrimaryReadOnly(ctx context.Context, mariadb 
 		return fmt.Errorf("error getting current primary readiness: %v", err)
 	}
 	if !ready {
+		logger.Info("Skipped enabling readonly mode in primary due to its non ready status")
 		return nil
 	}
 	client, err := clientSet.currentPrimaryClient(ctx)
@@ -153,6 +155,7 @@ func (r *ReplicationReconciler) waitForReplicaSync(ctx context.Context, mariadb 
 		return fmt.Errorf("error getting current primary readiness: %v", err)
 	}
 	if !ready {
+		logger.Info("Skipped waiting for replicas to be synced with primary due to its non ready status")
 		return nil
 	}
 	client, err := clientSet.currentPrimaryClient(ctx)
@@ -324,6 +327,7 @@ func (r *ReplicationReconciler) changePrimaryToReplica(ctx context.Context, mari
 		return fmt.Errorf("error getting current primary readiness: %v", err)
 	}
 	if !ready {
+		logger.Info("Skipped changing primary to be a replica due to primary's non ready status")
 		return nil
 	}
 	currentPrimaryClient, err := clientSet.currentPrimaryClient(ctx)
