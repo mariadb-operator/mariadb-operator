@@ -1680,6 +1680,19 @@ var _ = Describe("MariaDB types", func() {
 				},
 				false,
 			),
+			Entry(
+				"Valid 9",
+				&BootstrapFrom{
+					PhysicalBackupRef: &LocalObjectReference{
+						Name: "test",
+					},
+					VolumeSnapshotRef: &LocalObjectReference{
+						Name: "test",
+					},
+					BackupType: BackupTypePhysical,
+				},
+				false,
+			),
 		)
 
 		DescribeTable(
