@@ -21,6 +21,13 @@ spec:
     physicalBackupRef:
       name: physicalbackup
     targetRecoveryTime: 2025-06-17T08:07:00Z
+    stagingStorage:
+      persistentVolumeClaim:
+        resources:
+          requests:
+            storage: 1Gi
+        accessModes:
+          - ReadWriteOnce
 
   service:
     type: LoadBalancer
