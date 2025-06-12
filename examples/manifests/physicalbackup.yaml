@@ -5,7 +5,6 @@ metadata:
 spec:
   mariaDbRef:
     name: mariadb
-  serviceAccountName: backup
   compression: bzip2
   storage:
     persistentVolumeClaim:
@@ -14,7 +13,9 @@ spec:
           storage: 100Mi
       accessModes:
         - ReadWriteOnce
+  timeout: 15m
   podAffinity: true
+  serviceAccountName: backup
   resources:
     requests:
       cpu: 100m

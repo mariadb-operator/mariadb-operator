@@ -181,7 +181,7 @@ type PhysicalBackupSpec struct {
 	// Timeout defines the maximum duration of a PhysicalBackup job or snapshot.
 	// If this duration is exceeded, the job or snapshot is considered expired and is deleted by the operator.
 	// A new job or snapshot will then be created according to the schedule.
-	// It defaults to 10 minutes. To disable this feature, set the field to null.
+	// It defaults to 15 minutes.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Timeout *metav1.Duration `json:"timeout,omitempty"`
@@ -286,7 +286,7 @@ func (b *PhysicalBackup) Validate() error {
 
 func (b *PhysicalBackup) SetDefaults(mariadb *MariaDB) {
 	if b.Spec.Timeout == nil {
-		b.Spec.Timeout = &metav1.Duration{Duration: 10 * time.Minute}
+		b.Spec.Timeout = &metav1.Duration{Duration: 15 * time.Minute}
 	}
 	if b.Spec.MaxRetention == (metav1.Duration{}) {
 		b.Spec.MaxRetention = DefaultMaxRetention
