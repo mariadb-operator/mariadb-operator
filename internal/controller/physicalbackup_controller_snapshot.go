@@ -29,6 +29,17 @@ import (
 
 func (r *PhysicalBackupReconciler) reconcileSnapshots(ctx context.Context, backup *mariadbv1alpha1.PhysicalBackup,
 	mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
+	exist, err := r.Discovery.VolumeSnapshotExist()
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if !exist {
+		r.Recorder.Event(backup, corev1.EventTypeWarning, mariadbv1alpha1.ReasonCRDNotFound,
+			"Unable to reconcile PhysicalBackup: VolumeSnapshot CRD not installed in the cluster")
+		log.FromContext(ctx).Error(errors.New("VolumeSnapshot CRD not installed in the cluster"), "Unable to reconcile PhysicalBackup")
+		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
+	}
+
 	snapshotList, err := mdbsnapshot.ListVolumeSnapshots(ctx, r.Client, backup)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error listing VolumeSnapshots: %v", err)
@@ -117,8 +128,8 @@ func (r *PhysicalBackupReconciler) reconcileSnapshotStatus(ctx context.Context, 
 			if err := r.patchStatus(ctx, backup, func(status *mariadbv1alpha1.PhysicalBackupStatus) {
 				status.SetCondition(metav1.Condition{
 					Type:    mariadbv1alpha1.ConditionTypeComplete,
-					Status:  metav1.ConditionTrue,
-					Reason:  mariadbv1alpha1.ConditionReasonJobFailed,
+					Status:  metav1.ConditionFalse,
+					Reason:  mariadbv1alpha1.ConditionReasonSnapshotFailed,
 					Message: message,
 				})
 			}); err != nil {
