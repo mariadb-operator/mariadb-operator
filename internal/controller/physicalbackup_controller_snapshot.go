@@ -198,7 +198,7 @@ func (r *PhysicalBackupReconciler) cleanupSnapshots(ctx context.Context, backup 
 	}
 	maxRetention := backup.Spec.MaxRetention
 	if maxRetention == (metav1.Duration{}) {
-		maxRetention = mariadbv1alpha1.DefaultMaxRetention
+		maxRetention = mariadbv1alpha1.DefaultPhysicalBackupMaxRetention
 	}
 	logger := log.FromContext(ctx).WithName("snapshot")
 
