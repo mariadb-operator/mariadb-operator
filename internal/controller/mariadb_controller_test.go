@@ -65,6 +65,7 @@ var _ = Describe("MariaDB spec", func() {
 			`[mariadb]
 skip-name-resolve
 temp-pool
+ignore_db_dir = 'lost+found'
 `,
 		),
 		Entry(
@@ -77,6 +78,7 @@ temp-pool
 			`[mariadb]
 skip-name-resolve
 temp-pool
+ignore_db_dir = 'lost+found'
 default_time_zone = UTC
 `,
 		),
