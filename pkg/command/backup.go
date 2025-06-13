@@ -429,6 +429,9 @@ func (b *BackupCommand) mariadbBackupArgs(mariadb *mariadbv1alpha1.MariaDB) []st
 	args := []string{
 		"--backup",
 		"--stream=xbstream",
+		// The ext4 filesystem creates a lost+found directory by default,
+		// which causes mariadb-backup to include it in the backup file as a database.
+		"--databases-exclude='lost+found'",
 	}
 
 	if mariadb.IsTLSEnabled() {
