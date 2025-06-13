@@ -59,25 +59,21 @@ func (r *PodController) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	isPodReady := mariadbpod.PodReady(&pod)
-
-	if !isPodReady {
-		if automaticFailoverDeferral := mariadb.GetAutomaticFailoverDeferral(); automaticFailoverDeferral > 0 {
-			log.FromContext(ctx).V(1).Info("Deferring Pod reconciliation in non Ready state", "pod", pod.Name, "time", automaticFailoverDeferral)
-			time.Sleep(automaticFailoverDeferral)
-			isPodReady = mariadbpod.PodReady(&pod)
-			if isPodReady {
-				log.FromContext(ctx).V(1).Info("Pod is now in Ready state", "pod", pod.Name)
-			}
-		}
-	}
-
-	if isPodReady {
+	if mariadbpod.PodReady(&pod) {
 		if err := r.podReadinessController.ReconcilePodReady(ctx, pod, mariadb); err != nil {
 			log.FromContext(ctx).V(1).Info("Error reconciling Pod in Ready state", "pod", pod.Name)
 			return ctrl.Result{Requeue: true}, nil
 		}
 	} else {
+		if automaticFailoverDeferral := mariadb.GetAutomaticFailoverDeferral(); automaticFailoverDeferral > 0 {
+			if podReadyLastTransitionTime := mariadbpod.PodReadyLastTransitionTime(&pod); !podReadyLastTransitionTime.IsZero() {
+				if failoverTime := podReadyLastTransitionTime.Add(automaticFailoverDeferral); failoverTime.Before(time.Now()) {
+					log.FromContext(ctx).V(1).Info("Deferring Pod reconciliation in non Ready state",
+						"pod", pod.Name, "duration", automaticFailoverDeferral)
+					return ctrl.Result{Requeue: true, RequeueAfter: automaticFailoverDeferral}, nil
+				}
+			}
+		}
 		if err := r.podReadinessController.ReconcilePodNotReady(ctx, pod, mariadb); err != nil {
 			log.FromContext(ctx).V(1).Info("Error reconciling Pod in non Ready state", "pod", pod.Name)
 			return ctrl.Result{Requeue: true}, nil
