@@ -320,8 +320,11 @@ func (b *BackupCommand) MariadbBackupRestore(mariadb *mariadbv1alpha1.MariaDB, b
 		return nil, errors.New("Database option not supported in physical backups")
 	}
 
+	// The ext4 filesystem creates a lost+found directory by default, which causes mariadb-backup to fail with:
+	// "Original data directory /var/lib/mysql is not empty!"
+	// Since we already check the PVC existence earlier, it should be safe to use --force-non-empty-directories.
 	copyBackupCmd := fmt.Sprintf(
-		"mariadb-backup --copy-back --target-dir=%s",
+		"mariadb-backup --copy-back --target-dir=%s --force-non-empty-directories",
 		backupDirPath,
 	)
 
