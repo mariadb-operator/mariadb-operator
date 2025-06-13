@@ -27,8 +27,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-const metaCtrlFieldPath = ".metadata.controller"
-
 // PhysicalBackupReconciler reconciles a PhysicalBackup object
 type PhysicalBackupReconciler struct {
 	client.Client

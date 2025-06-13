@@ -330,7 +330,7 @@ func (r *PhysicalBackupReconciler) waitForInProgressSnapshots(ctx context.Contex
 			}
 
 			status := ptr.Deref(snapshot.Status, volumesnapshotv1.VolumeSnapshotStatus{})
-			log.FromContext(ctx).Info(
+			log.FromContext(ctx).V(1).Info(
 				"PhysicalBackup VolumeSnapshot is not ready. Requeuing...",
 				"snapshot", snapshot.Name,
 				"ready", ptr.Deref(status.ReadyToUse, false),
