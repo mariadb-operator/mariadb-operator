@@ -1050,6 +1050,7 @@ func defaultConfig(mariadb *mariadbv1alpha1.MariaDB) (string, error) {
 	tpl := createTpl("0-default.cnf", `[mariadb]
 skip-name-resolve
 temp-pool
+ignore_db_dir = 'lost+found'
 {{- with .TimeZone }}
 default_time_zone = {{ . }}
 {{- end }}
