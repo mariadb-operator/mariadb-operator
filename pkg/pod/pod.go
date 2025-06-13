@@ -26,3 +26,7 @@ func PodUpdated(pod *corev1.Pod, updateRevision string) bool {
 	}
 	return false
 }
+
+func PodScheduled(pod *corev1.Pod) bool {
+	return pod.Spec.NodeName != ""
+}

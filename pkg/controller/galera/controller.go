@@ -10,6 +10,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/configmap"
+	"github.com/mariadb-operator/mariadb-operator/pkg/controller/pvc"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/service"
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	"github.com/mariadb-operator/mariadb-operator/pkg/galera/errors"
@@ -55,6 +56,7 @@ type GaleraReconciler struct {
 	refResolver         *refresolver.RefResolver
 	configMapReconciler *configmap.ConfigMapReconciler
 	serviceReconciler   *service.ServiceReconciler
+	pvcReconciler       *pvc.PVCReconciler
 }
 
 func NewGaleraReconciler(client client.Client, kubeClientset *kubernetes.Clientset, recorder record.EventRecorder,
@@ -77,6 +79,9 @@ func NewGaleraReconciler(client client.Client, kubeClientset *kubernetes.Clients
 	}
 	if r.serviceReconciler == nil {
 		r.serviceReconciler = service.NewServiceReconciler(client)
+	}
+	if r.pvcReconciler == nil {
+		r.pvcReconciler = pvc.NewPVCReconciler(client)
 	}
 	return r
 }

@@ -3,6 +3,10 @@ kind: MariaDB
 metadata:
   name: mariadb-from-backup-scheduled
 spec:
+  rootPasswordSecretKeyRef:
+    name: mariadb
+    key: password
+
   storage:
     size: 1Gi
 
