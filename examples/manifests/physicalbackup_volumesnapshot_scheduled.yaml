@@ -13,4 +13,4 @@ spec:
   storage:
     volumeSnapshot:
       volumeSnapshotClassName: csi-hostpath-snapclass
-  timeout: 15m
+  timeout: 1h
