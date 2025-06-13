@@ -23,6 +23,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
+const metaCtrlFieldPath = ".metadata.controller"
+
 func (r *PhysicalBackupReconciler) reconcileJobs(ctx context.Context, backup *mariadbv1alpha1.PhysicalBackup,
 	mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
 	jobList, err := r.listJobs(ctx, backup)
@@ -227,12 +229,12 @@ func (r *PhysicalBackupReconciler) waitForRunningJobs(ctx context.Context, backu
 				return ctrl.Result{Requeue: true}, nil
 			}
 
-			log.FromContext(ctx).Info("PhysicalBackup Job is still running. Requeuing...", "job", job.Name)
+			log.FromContext(ctx).V(1).Info("PhysicalBackup Job is still running. Requeuing...", "job", job.Name)
 			return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 		}
 
 		if !jobpkg.IsJobComplete(&job) {
-			log.FromContext(ctx).Info("PhysicalBackup Job is not complete. Requeuing...", "job", job.Name)
+			log.FromContext(ctx).V(1).Info("PhysicalBackup Job is not complete. Requeuing...", "job", job.Name)
 			return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 		}
 	}
