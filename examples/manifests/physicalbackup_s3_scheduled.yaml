@@ -36,7 +36,7 @@ spec:
           storage: 1Gi
       accessModes:
         - ReadWriteOnce
-  timeout: 15m
+  timeout: 1h
   podAffinity: true
   serviceAccountName: backup
   resources:
