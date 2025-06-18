@@ -115,7 +115,7 @@ func (r *MariaDBReconciler) reconcilePVCs(ctx context.Context, mariadb *mariadbv
 		}
 	}
 
-	if mariadb.Spec.BootstrapFrom.ShouldProvisionPhysicalBackupStagingPVC() {
+	if shouldProvisionPhysicalBackupStagingPVC(mariadb) {
 		key := mariadb.PhysicalBackupStagingPVCKey()
 		pvc, err := r.Builder.BuildBackupStagingPVC(
 			key,
@@ -245,7 +245,7 @@ func (r *MariaDBReconciler) cleanupInitJobs(ctx context.Context, mariadb *mariad
 }
 
 func (r *MariaDBReconciler) cleanupStagingPVC(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
-	if !mariadb.Spec.BootstrapFrom.ShouldProvisionPhysicalBackupStagingPVC() {
+	if !shouldProvisionPhysicalBackupStagingPVC(mariadb) {
 		return nil
 	}
 	key := mariadb.PhysicalBackupStagingPVCKey()
@@ -267,4 +267,13 @@ func (r *MariaDBReconciler) forEachPhysicalBackupInit(mariadb *mariadbv1alpha1.M
 		}
 	}
 	return ctrl.Result{}, nil
+}
+
+func shouldProvisionPhysicalBackupStagingPVC(mariadb *mariadbv1alpha1.MariaDB) bool {
+	b := mariadb.Spec.BootstrapFrom
+	if b == nil {
+		return false
+	}
+	return b.BackupType == mariadbv1alpha1.BackupTypePhysical &&
+		b.S3 != nil && b.StagingStorage != nil && b.StagingStorage.PersistentVolumeClaim != nil
 }

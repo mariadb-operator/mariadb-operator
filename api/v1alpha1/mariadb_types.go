@@ -369,10 +369,6 @@ func (b *BootstrapFrom) SetDefaults(mariadb *MariaDB) {
 	}
 }
 
-func (b *BootstrapFrom) ShouldProvisionPhysicalBackupStagingPVC() bool {
-	return b.BackupType == BackupTypePhysical && b.S3 != nil && b.StagingStorage != nil && b.StagingStorage.PersistentVolumeClaim != nil
-}
-
 func (b *BootstrapFrom) SetDefaultsWithPhysicalBackup(physicalBackup *PhysicalBackup) error {
 	volume, err := physicalBackup.Volume()
 	if err != nil {
