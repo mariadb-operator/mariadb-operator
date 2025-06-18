@@ -51,28 +51,6 @@ type PhysicalBackupPodTemplate struct {
 	PriorityClassName *string `json:"priorityClassName,omitempty" webhook:"inmutable"`
 }
 
-// FromPodTemplate sets the PodTemplate fields in the current JobPodTemplate.
-func (j *PhysicalBackupPodTemplate) FromPodTemplate(ptpl *PhysicalBackupPodTemplate) {
-	if j.PodMetadata == nil {
-		j.PodMetadata = ptpl.PodMetadata
-	}
-	if j.ImagePullSecrets == nil {
-		j.ImagePullSecrets = ptpl.ImagePullSecrets
-	}
-	if j.PodSecurityContext == nil {
-		j.PodSecurityContext = ptpl.PodSecurityContext
-	}
-	if j.ServiceAccountName == nil {
-		j.ServiceAccountName = ptpl.ServiceAccountName
-	}
-	if j.Tolerations == nil {
-		j.Tolerations = ptpl.Tolerations
-	}
-	if j.PriorityClassName == nil {
-		j.PriorityClassName = ptpl.PriorityClassName
-	}
-}
-
 // SetDefaults sets reasonable defaults.
 func (p *PhysicalBackupPodTemplate) SetDefaults(objMeta, mariadbObjMeta metav1.ObjectMeta) {
 	if p.ServiceAccountName == nil {
@@ -250,7 +228,7 @@ func (b *PhysicalBackupStatus) SetCondition(condition metav1.Condition) {
 // +kubebuilder:printcolumn:name="MariaDB",type="string",JSONPath=".spec.mariaDbRef.name"
 // +kubebuilder:printcolumn:name="Last Scheduled",type="date",JSONPath=".status.lastScheduleTime"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
-// +operator-sdk:csv:customresourcedefinitions:resources={{PhysicalBackup,v1alpha1}}
+// +operator-sdk:csv:customresourcedefinitions:resources={{PhysicalBackup,v1alpha1},{Job,v1},{ServiceAccount,v1},{PersistentVolumeClaim,v1}}
 
 // PhysicalBackup is the Schema for the physicalbackups API. It is used to define physical backup jobs and its storage.
 type PhysicalBackup struct {
