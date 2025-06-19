@@ -142,6 +142,7 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alph
 	return job, nil
 }
 
+// TODO: test
 func (b *Builder) BuildPhysicalBackupJob(key types.NamespacedName, backup *mariadbv1alpha1.PhysicalBackup,
 	mariadb *mariadbv1alpha1.MariaDB, pod *corev1.Pod, backupFile string) (*batchv1.Job, error) {
 	podIndex, err := statefulset.PodIndex(pod.Name)
@@ -220,6 +221,8 @@ func (b *Builder) BuildPhysicalBackupJob(key types.NamespacedName, backup *maria
 
 	var nodeSelector map[string]string
 	if ptr.Deref(backup.Spec.PodAffinity, true) {
+		// Schedule the Job is in the same node as the MariaDB Pod.
+		// Required for ReadWriteOnce storage.
 		nodeSelector = map[string]string{
 			"kubernetes.io/hostname": pod.Spec.NodeName,
 		}
@@ -388,6 +391,7 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 	return job, nil
 }
 
+// TODO: test
 func (b *Builder) BuildPhysicalBackupRestoreJob(key types.NamespacedName, mariadb *mariadbv1alpha1.MariaDB,
 	podIndex *int) (*batchv1.Job, error) {
 	if mariadb.Spec.BootstrapFrom == nil {
@@ -409,7 +413,9 @@ func (b *Builder) BuildPhysicalBackupRestoreJob(key types.NamespacedName, mariad
 		metadata.NewMetadataBuilder(key).
 			WithMetadata(mariadb.Spec.InheritMetadata).
 			WithMetadata(mariadb.Spec.PodMetadata).
-			WithLabels(selectorLabels). // include MariaDB Pod selector labels to match anti-affinity
+			// MariaDB Pod may have not been created yet.
+			// Include MariaDB selector labels to match anti-affinity.
+			WithLabels(selectorLabels).
 			Build()
 
 	cmdOpts := []command.BackupOpt{

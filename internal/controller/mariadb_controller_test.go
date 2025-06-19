@@ -723,7 +723,7 @@ var _ = Describe("MariaDB", func() {
 })
 
 func testMariadbBootstrap(key types.NamespacedName, source mariadbv1alpha1.RestoreSource) {
-	bootstrapFrom := mariadbv1alpha1.NewBootstrapFromRestoreSource(source)
+	bootstrapFrom := newBootstrapFromRestoreSource(source)
 	bootstrapFrom.RestoreJob = &mariadbv1alpha1.Job{
 		Metadata: &mariadbv1alpha1.Metadata{
 			Labels: map[string]string{
@@ -771,4 +771,21 @@ func testMariadbBootstrap(key types.NamespacedName, source mariadbv1alpha1.Resto
 		}
 		return mdb.HasRestoredBackup()
 	}, testTimeout, testInterval).Should(BeTrue())
+}
+
+func newBootstrapFromRestoreSource(source mariadbv1alpha1.RestoreSource) mariadbv1alpha1.BootstrapFrom {
+	var typedBackupRef *mariadbv1alpha1.TypedLocalObjectReference
+	if source.BackupRef != nil {
+		typedBackupRef = &mariadbv1alpha1.TypedLocalObjectReference{
+			Name: source.BackupRef.Name,
+			Kind: mariadbv1alpha1.BackupKind,
+		}
+	}
+	return mariadbv1alpha1.BootstrapFrom{
+		BackupRef:          typedBackupRef,
+		S3:                 source.S3,
+		Volume:             source.Volume,
+		TargetRecoveryTime: source.TargetRecoveryTime,
+		StagingStorage:     source.StagingStorage,
+	}
 }

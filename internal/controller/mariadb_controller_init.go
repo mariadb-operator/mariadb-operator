@@ -96,11 +96,10 @@ func (r *MariaDBReconciler) reconcilePhysicalBackupInit(ctx context.Context, mar
 
 func (r *MariaDBReconciler) reconcilePVCs(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
 	var pvcOpts []builder.PVCOption
-	bootstrapFrom := ptr.Deref(mariadb.Spec.BootstrapFrom, mariadbv1alpha1.BootstrapFrom{})
-	if volumeSnapshotRef := bootstrapFrom.VolumeSnapshotRef; volumeSnapshotRef != nil {
+	if mariadb.Spec.BootstrapFrom != nil && mariadb.Spec.BootstrapFrom.VolumeSnapshotRef != nil {
 		pvcOpts = append(
 			pvcOpts,
-			builder.WithVolumeSnapshotDataSource(volumeSnapshotRef.Name),
+			builder.WithVolumeSnapshotDataSource(mariadb.Spec.BootstrapFrom.VolumeSnapshotRef.Name),
 		)
 	}
 
