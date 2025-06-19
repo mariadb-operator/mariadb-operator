@@ -397,17 +397,17 @@ func (r *BootstrapFrom) TargetRecoveryTimeOrDefault() time.Time {
 	return time.Now()
 }
 
+// TODO: test
 func (b *BootstrapFrom) RestoreSource() (*RestoreSource, error) {
 	var backupRef *LocalObjectReference
-	if bootstrapFromBackupRef := b.BackupRef; bootstrapFromBackupRef != nil {
-		if bootstrapFromBackupRef.Kind == PhysicalBackupKind {
+	if b.BackupRef != nil {
+		if b.BackupRef.Kind == PhysicalBackupKind {
 			return nil, errors.New("restoration from physical backups via RestoreSource is not supported")
 		}
 		backupRef = &LocalObjectReference{
-			Name: bootstrapFromBackupRef.Name,
+			Name: b.BackupRef.Name,
 		}
 	}
-
 	return &RestoreSource{
 		BackupRef:          backupRef,
 		S3:                 b.S3,
@@ -415,24 +415,6 @@ func (b *BootstrapFrom) RestoreSource() (*RestoreSource, error) {
 		TargetRecoveryTime: b.TargetRecoveryTime,
 		StagingStorage:     b.StagingStorage,
 	}, nil
-}
-
-func NewBootstrapFromRestoreSource(source RestoreSource) BootstrapFrom {
-	var typedBackupRef *TypedLocalObjectReference
-	if source.BackupRef != nil {
-		typedBackupRef = &TypedLocalObjectReference{
-			Name: source.BackupRef.Name,
-			Kind: BackupKind,
-		}
-	}
-
-	return BootstrapFrom{
-		BackupRef:          typedBackupRef,
-		S3:                 source.S3,
-		Volume:             source.Volume,
-		TargetRecoveryTime: source.TargetRecoveryTime,
-		StagingStorage:     source.StagingStorage,
-	}
 }
 
 // UpdateType defines the type of update for a MariaDB resource.

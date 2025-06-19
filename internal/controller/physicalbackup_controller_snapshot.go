@@ -122,8 +122,8 @@ func (r *PhysicalBackupReconciler) reconcileSnapshotStatus(ctx context.Context, 
 		status := ptr.Deref(snapshot.Status, volumesnapshotv1.VolumeSnapshotStatus{})
 		ready := ptr.Deref(status.ReadyToUse, false)
 
-		if err := status.Error; err != nil {
-			message := ptr.Deref(err.Message, "Error")
+		if status.Error != nil {
+			message := ptr.Deref(status.Error.Message, "Error")
 
 			if err := r.patchStatus(ctx, backup, func(status *mariadbv1alpha1.PhysicalBackupStatus) {
 				status.SetCondition(metav1.Condition{

@@ -30,6 +30,7 @@ func (b *Builder) BuildBackupStoragePVC(key types.NamespacedName, pvcSpec *maria
 	}, nil
 }
 
+// TODO: test
 func (b *Builder) BuildBackupStagingPVC(key types.NamespacedName, pvcSpec *mariadbv1alpha1.PersistentVolumeClaimSpec,
 	meta *mariadbv1alpha1.Metadata, owner metav1.Object) (*corev1.PersistentVolumeClaim, error) {
 	if pvcSpec == nil {
@@ -53,6 +54,7 @@ func (b *Builder) BuildBackupStagingPVC(key types.NamespacedName, pvcSpec *maria
 
 type PVCOption func(*corev1.PersistentVolumeClaimSpec)
 
+// TODO: test
 func WithVolumeSnapshotDataSource(snapshotName string) PVCOption {
 	return func(pvcSpec *corev1.PersistentVolumeClaimSpec) {
 		pvcSpec.DataSource = &corev1.TypedLocalObjectReference{
@@ -63,6 +65,7 @@ func WithVolumeSnapshotDataSource(snapshotName string) PVCOption {
 	}
 }
 
+// TODO: test
 func (b *Builder) BuildStoragePVC(key types.NamespacedName, tpl *mariadbv1alpha1.VolumeClaimTemplate,
 	mariadb *mariadbv1alpha1.MariaDB, opts ...PVCOption) (*corev1.PersistentVolumeClaim, error) {
 	if tpl == nil {
