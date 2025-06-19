@@ -51,7 +51,7 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 					ObjectMeta: meta,
 					Spec: v1alpha1.MariaDBSpec{
 						BootstrapFrom: &v1alpha1.BootstrapFrom{
-							BackupRef: &v1alpha1.LocalObjectReference{
+							BackupRef: &v1alpha1.TypedLocalObjectReference{
 								Name: "backup-webhook",
 							},
 						},
@@ -696,7 +696,7 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 					},
 					MyCnf: ptr.To("foo"),
 					BootstrapFrom: &v1alpha1.BootstrapFrom{
-						BackupRef: &v1alpha1.LocalObjectReference{
+						BackupRef: &v1alpha1.TypedLocalObjectReference{
 							Name: "backup",
 						},
 					},

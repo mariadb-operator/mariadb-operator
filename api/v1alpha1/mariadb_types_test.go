@@ -162,8 +162,9 @@ var _ = Describe("MariaDB types", func() {
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
 						BootstrapFrom: &BootstrapFrom{
-							PhysicalBackupRef: &LocalObjectReference{
+							BackupRef: &TypedLocalObjectReference{
 								Name: "test",
+								Kind: PhysicalBackupKind,
 							},
 						},
 					},
@@ -186,10 +187,11 @@ var _ = Describe("MariaDB types", func() {
 							Generate: true,
 						},
 						BootstrapFrom: &BootstrapFrom{
-							PhysicalBackupRef: &LocalObjectReference{
+							BackupRef: &TypedLocalObjectReference{
 								Name: "test",
+								Kind: PhysicalBackupKind,
 							},
-							BackupType: BackupTypePhysical,
+							BackupContentType: BackupContentTypePhysical,
 						},
 						Port: 3306,
 						Storage: Storage{
@@ -1523,39 +1525,61 @@ var _ = Describe("MariaDB types", func() {
 				true,
 			),
 			Entry(
-				"Invalid backup type",
+				"Invalid backup kind",
 				&BootstrapFrom{
-					BackupType: BackupType("test"),
+					BackupRef: &TypedLocalObjectReference{
+						Name: "test",
+						Kind: "test",
+					},
+				},
+				true,
+			),
+			Entry(
+				"Invalid backup content type",
+				&BootstrapFrom{
+					BackupContentType: BackupContentType("test"),
 				},
 				true,
 			),
 			Entry(
 				"Inconsistent backup type 1",
 				&BootstrapFrom{
-					PhysicalBackupRef: &LocalObjectReference{
+					BackupRef: &TypedLocalObjectReference{
 						Name: "test",
 					},
-					BackupType: BackupTypeLogical,
+					BackupContentType: BackupContentTypePhysical,
 				},
 				true,
 			),
 			Entry(
 				"Inconsistent backup type 2",
 				&BootstrapFrom{
-					BackupRef: &LocalObjectReference{
+					BackupRef: &TypedLocalObjectReference{
 						Name: "test",
+						Kind: BackupKind,
 					},
-					BackupType: BackupTypePhysical,
+					BackupContentType: BackupContentTypePhysical,
 				},
 				true,
 			),
 			Entry(
 				"Inconsistent backup type 3",
 				&BootstrapFrom{
+					BackupRef: &TypedLocalObjectReference{
+						Name: "test",
+						Kind: PhysicalBackupKind,
+					},
+					BackupContentType: BackupContentTypeLogical,
+				},
+				true,
+			),
+			Entry(
+				"Inconsistent backup type 4",
+				&BootstrapFrom{
 					VolumeSnapshotRef: &LocalObjectReference{
 						Name: "test",
 					},
-					BackupType: BackupTypeLogical,
+					BackupContentType: BackupContentTypeLogical,
 				},
 				true,
 			),
@@ -1598,40 +1622,42 @@ var _ = Describe("MariaDB types", func() {
 			Entry(
 				"Valid 1",
 				&BootstrapFrom{
-					PhysicalBackupRef: &LocalObjectReference{
+					BackupRef: &TypedLocalObjectReference{
 						Name: "test",
 					},
-					BackupType: BackupTypePhysical,
+					BackupContentType: BackupContentTypeLogical,
 				},
 				false,
 			),
 			Entry(
 				"Valid 2",
 				&BootstrapFrom{
-					BackupRef: &LocalObjectReference{
+					BackupRef: &TypedLocalObjectReference{
 						Name: "test",
+						Kind: BackupKind,
 					},
-					BackupType: BackupTypeLogical,
+					BackupContentType: BackupContentTypeLogical,
 				},
 				false,
 			),
 			Entry(
 				"Valid 3",
 				&BootstrapFrom{
-					VolumeSnapshotRef: &LocalObjectReference{
+					BackupRef: &TypedLocalObjectReference{
 						Name: "test",
+						Kind: PhysicalBackupKind,
 					},
-					BackupType: BackupTypePhysical,
+					BackupContentType: BackupContentTypePhysical,
 				},
 				false,
 			),
 			Entry(
 				"Valid 4",
 				&BootstrapFrom{
-					S3: &S3{
-						Bucket: "test",
+					VolumeSnapshotRef: &LocalObjectReference{
+						Name: "test",
 					},
-					BackupType: BackupTypePhysical,
+					BackupContentType: BackupContentTypePhysical,
 				},
 				false,
 			),
@@ -1641,19 +1667,17 @@ var _ = Describe("MariaDB types", func() {
 					S3: &S3{
 						Bucket: "test",
 					},
-					BackupType: BackupTypeLogical,
+					BackupContentType: BackupContentTypePhysical,
 				},
 				false,
 			),
 			Entry(
 				"Valid 6",
 				&BootstrapFrom{
-					Volume: &StorageVolumeSource{
-						NFS: &NFSVolumeSource{
-							Server: "nas.local",
-						},
+					S3: &S3{
+						Bucket: "test",
 					},
-					BackupType: BackupTypeLogical,
+					BackupContentType: BackupContentTypeLogical,
 				},
 				false,
 			),
@@ -1665,20 +1689,33 @@ var _ = Describe("MariaDB types", func() {
 							Server: "nas.local",
 						},
 					},
-					BackupType: BackupTypePhysical,
+					BackupContentType: BackupContentTypeLogical,
+				},
+				false,
+			),
+			Entry(
+				"Valid 8",
+				&BootstrapFrom{
+					Volume: &StorageVolumeSource{
+						NFS: &NFSVolumeSource{
+							Server: "nas.local",
+						},
+					},
+					BackupContentType: BackupContentTypePhysical,
 				},
 				false,
 			),
 			Entry(
 				"Valid 9",
 				&BootstrapFrom{
-					PhysicalBackupRef: &LocalObjectReference{
+					BackupRef: &TypedLocalObjectReference{
 						Name: "test",
+						Kind: PhysicalBackupKind,
 					},
 					VolumeSnapshotRef: &LocalObjectReference{
 						Name: "test",
 					},
-					BackupType: BackupTypePhysical,
+					BackupContentType: BackupContentTypePhysical,
 				},
 				false,
 			),
@@ -1697,13 +1734,13 @@ var _ = Describe("MariaDB types", func() {
 					ObjectMeta: objMeta,
 				},
 				&BootstrapFrom{
-					BackupType: BackupTypeLogical,
+					BackupContentType: BackupContentTypeLogical,
 				},
 			),
 			Entry(
 				"Logical backup",
 				&BootstrapFrom{
-					BackupRef: &LocalObjectReference{
+					BackupRef: &TypedLocalObjectReference{
 						Name: "test",
 					},
 				},
@@ -1711,27 +1748,48 @@ var _ = Describe("MariaDB types", func() {
 					ObjectMeta: objMeta,
 				},
 				&BootstrapFrom{
-					BackupRef: &LocalObjectReference{
+					BackupRef: &TypedLocalObjectReference{
 						Name: "test",
 					},
-					BackupType: BackupTypeLogical,
+					BackupContentType: BackupContentTypeLogical,
+				},
+			),
+			Entry(
+				"Logical backup with kind",
+				&BootstrapFrom{
+					BackupRef: &TypedLocalObjectReference{
+						Name: "test",
+						Kind: BackupKind,
+					},
+				},
+				&MariaDB{
+					ObjectMeta: objMeta,
+				},
+				&BootstrapFrom{
+					BackupRef: &TypedLocalObjectReference{
+						Name: "test",
+						Kind: BackupKind,
+					},
+					BackupContentType: BackupContentTypeLogical,
 				},
 			),
 			Entry(
 				"Physical backup",
 				&BootstrapFrom{
-					PhysicalBackupRef: &LocalObjectReference{
+					BackupRef: &TypedLocalObjectReference{
 						Name: "test",
+						Kind: PhysicalBackupKind,
 					},
 				},
 				&MariaDB{
 					ObjectMeta: objMeta,
 				},
 				&BootstrapFrom{
-					PhysicalBackupRef: &LocalObjectReference{
+					BackupRef: &TypedLocalObjectReference{
 						Name: "test",
+						Kind: PhysicalBackupKind,
 					},
-					BackupType: BackupTypePhysical,
+					BackupContentType: BackupContentTypePhysical,
 				},
 			),
 			Entry(
@@ -1748,7 +1806,7 @@ var _ = Describe("MariaDB types", func() {
 					VolumeSnapshotRef: &LocalObjectReference{
 						Name: "test",
 					},
-					BackupType: BackupTypePhysical,
+					BackupContentType: BackupContentTypePhysical,
 				},
 			),
 			Entry(
@@ -1757,7 +1815,7 @@ var _ = Describe("MariaDB types", func() {
 					S3: &S3{
 						Bucket: "test",
 					},
-					BackupType: BackupTypePhysical,
+					BackupContentType: BackupContentTypePhysical,
 				},
 				&MariaDB{
 					ObjectMeta: objMeta,
@@ -1766,7 +1824,7 @@ var _ = Describe("MariaDB types", func() {
 					S3: &S3{
 						Bucket: "test",
 					},
-					BackupType: BackupTypePhysical,
+					BackupContentType: BackupContentTypePhysical,
 					Volume: &StorageVolumeSource{
 						EmptyDir: &EmptyDirVolumeSource{},
 					},
@@ -1778,7 +1836,7 @@ var _ = Describe("MariaDB types", func() {
 					S3: &S3{
 						Bucket: "test",
 					},
-					BackupType: BackupTypePhysical,
+					BackupContentType: BackupContentTypePhysical,
 					StagingStorage: &BackupStagingStorage{
 						PersistentVolumeClaim: &PersistentVolumeClaimSpec{
 							StorageClassName: ptr.To("test"),
@@ -1792,7 +1850,7 @@ var _ = Describe("MariaDB types", func() {
 					S3: &S3{
 						Bucket: "test",
 					},
-					BackupType: BackupTypePhysical,
+					BackupContentType: BackupContentTypePhysical,
 					StagingStorage: &BackupStagingStorage{
 						PersistentVolumeClaim: &PersistentVolumeClaimSpec{
 							StorageClassName: ptr.To("test"),

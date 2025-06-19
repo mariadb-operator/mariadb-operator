@@ -25,7 +25,7 @@ import (
 )
 
 func (r *MariaDBReconciler) reconcileInit(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
-	if mariadb.Spec.BootstrapFrom != nil && mariadb.Spec.BootstrapFrom.BackupType == mariadbv1alpha1.BackupTypePhysical {
+	if mariadb.Spec.BootstrapFrom != nil && mariadb.Spec.BootstrapFrom.BackupContentType == mariadbv1alpha1.BackupContentTypePhysical {
 		return r.reconcilePhysicalBackupInit(ctx, mariadb)
 	} else if mariadb.IsGaleraEnabled() {
 		if result, err := r.GaleraReconciler.ReconcileInit(ctx, mariadb); !result.IsZero() || err != nil {
@@ -274,6 +274,6 @@ func shouldProvisionPhysicalBackupStagingPVC(mariadb *mariadbv1alpha1.MariaDB) b
 	if b == nil {
 		return false
 	}
-	return b.BackupType == mariadbv1alpha1.BackupTypePhysical &&
+	return b.BackupContentType == mariadbv1alpha1.BackupContentTypePhysical &&
 		b.S3 != nil && b.StagingStorage != nil && b.StagingStorage.PersistentVolumeClaim != nil
 }

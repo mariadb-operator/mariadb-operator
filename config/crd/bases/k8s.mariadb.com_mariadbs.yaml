@@ -294,28 +294,25 @@ spec:
               bootstrapFrom:
                 description: BootstrapFrom defines a source to bootstrap from.
                 properties:
-                  backupRef:
-                    description: BackupRef is a reference to a Backup object. It has
-                      priority over S3 and Volume.
-                    properties:
-                      name:
-                        default: ""
-                        type: string
-                    type: object
-                  backupType:
-                    description: BackupType is the type of backup to bootstrap from.
-                      It is defaulted based on BackupRef and PhysicalBackupRef. If
-                      none of them are set, it defaults to Logical.
+                  backupContentType:
+                    description: |-
+                      BackupContentType is the backup content type available in the source to bootstrap from.
+                      It is inferred based on the BackupRef and VolumeSnapshotRef fields. If inference is not possible, it defaults to Logical.
+                      Set this field explicitly when using physical backups from S3 or Volume sources.
                     enum:
                     - Logical
                     - Physical
                     type: string
-                  physicalBackupRef:
-                    description: PhysicalBackupRef is a reference to a PhysicalBackup
-                      object. It has priority over S3 and Volume.
+                  backupRef:
+                    description: |-
+                      BackupRef is reference to a backup object. If the Kind is not specified, a logical Backup is assumed.
+                      This field takes precedence over S3 and Volume sources.
                     properties:
+                      kind:
+                        description: Kind of the referent.
+                        type: string
                       name:
-                        default: ""
+                        description: Name of the referent.
                         type: string
                     type: object
                   restoreJob:
@@ -651,8 +648,9 @@ spec:
                         type: array
                     type: object
                   s3:
-                    description: S3 defines the configuration to restore backups from
-                      a S3 compatible storage. It has priority over Volume.
+                    description: |-
+                      S3 defines the configuration to restore backups from a S3 compatible storage.
+                      This field takes precedence over the Volume source.
                     properties:
                       accessKeyIdSecretKeyRef:
                         description: AccessKeyIdSecretKeyRef is a reference to a Secret
@@ -985,8 +983,9 @@ spec:
                         type: object
                     type: object
                   volumeSnapshotRef:
-                    description: VolumeSnapshotRef is a reference to a VolumeSnapshot
-                      object. It has priority over S3 and Volume.
+                    description: |-
+                      VolumeSnapshotRef is a reference to a VolumeSnapshot object.
+                      This field takes precedence over S3 and Volume sources.
                     properties:
                       name:
                         default: ""

@@ -262,24 +262,25 @@ type MariaDBMaxScaleSpec struct {
 
 // BootstrapFrom defines a source to bootstrap MariaDB from.
 type BootstrapFrom struct {
-	// BackupRef is a reference to a Backup object. It has priority over S3 and Volume.
+	// BackupRef is reference to a backup object. If the Kind is not specified, a logical Backup is assumed.
+	// This field takes precedence over S3 and Volume sources.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	BackupRef *LocalObjectReference `json:"backupRef,omitempty" webhook:"inmutableinit"`
-	// PhysicalBackupRef is a reference to a PhysicalBackup object. It has priority over S3 and Volume.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	PhysicalBackupRef *LocalObjectReference `json:"physicalBackupRef,omitempty" webhook:"inmutableinit"`
-	// VolumeSnapshotRef is a reference to a VolumeSnapshot object. It has priority over S3 and Volume.
+	BackupRef *TypedLocalObjectReference `json:"backupRef,omitempty" webhook:"inmutableinit"`
+	// VolumeSnapshotRef is a reference to a VolumeSnapshot object.
+	// This field takes precedence over S3 and Volume sources.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	VolumeSnapshotRef *LocalObjectReference `json:"volumeSnapshotRef,omitempty" webhook:"inmutableinit"`
-	// BackupType is the type of backup to bootstrap from. It is defaulted based on BackupRef and PhysicalBackupRef. If none of them are set, it defaults to Logical.
+	// BackupContentType is the backup content type available in the source to bootstrap from.
+	// It is inferred based on the BackupRef and VolumeSnapshotRef fields. If inference is not possible, it defaults to Logical.
+	// Set this field explicitly when using physical backups from S3 or Volume sources.
 	// +optional
 	// +kubebuilder:validation:Enum=Logical;Physical
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	BackupType BackupType `json:"backupType,omitempty"`
-	// S3 defines the configuration to restore backups from a S3 compatible storage. It has priority over Volume.
+	BackupContentType BackupContentType `json:"backupContentType,omitempty" webhook:"inmutableinit"`
+	// S3 defines the configuration to restore backups from a S3 compatible storage.
+	// This field takes precedence over the Volume source.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	S3 *S3 `json:"s3,omitempty" webhook:"inmutableinit"`
@@ -304,44 +305,48 @@ type BootstrapFrom struct {
 }
 
 func (b *BootstrapFrom) Validate() error {
-	if b.BackupRef == nil && b.PhysicalBackupRef == nil && b.VolumeSnapshotRef == nil && b.S3 == nil && b.Volume == nil {
+	if b.BackupRef == nil && b.VolumeSnapshotRef == nil && b.S3 == nil && b.Volume == nil {
 		return errors.New("unable to determine bootstrap source")
 	}
-	if err := b.validateBootstrapSource(); err != nil {
-		return err
-	}
 
-	if b.BackupType != "" {
-		if err := b.BackupType.Validate(); err != nil {
-			return fmt.Errorf("invalid 'backupType': %v", err)
+	if b.BackupContentType != "" {
+		if err := b.BackupContentType.Validate(); err != nil {
+			return fmt.Errorf("invalid 'backupContentType': %v", err)
 		}
 	}
-	if b.BackupRef != nil && b.BackupType == BackupTypePhysical {
-		return errors.New("inconsistent 'backupRef' and 'backupType' fields. Logical type must be set in this case.")
-	}
-	if b.PhysicalBackupRef != nil && b.BackupType == BackupTypeLogical {
-		return errors.New("inconsistent 'physicalBackupRef' and 'backupType' fields. Physical type must be set in this case.")
-	}
-	if b.VolumeSnapshotRef != nil && b.BackupType == BackupTypeLogical {
-		return errors.New("inconsistent 'volumeSnapshotRef' and 'backupType' fields. Physical type must be set in this case.")
-	}
 
-	if b.VolumeSnapshotRef != nil && (b.S3 != nil || b.Volume != nil || b.RestoreJob != nil) {
-		return errors.New("'s3', 'volume' and 'restoreJob' may not be set when 'volumeSnapshotRef' is set")
-	}
-	return nil
-}
-
-func (b *BootstrapFrom) validateBootstrapSource() error {
-	numRefs := 0
 	if b.BackupRef != nil {
-		numRefs++
+		kind := b.BackupRef.Kind
+
+		switch kind {
+		case "", BackupKind:
+			if b.BackupContentType != "" && b.BackupContentType != BackupContentTypeLogical {
+				return fmt.Errorf(
+					"inconsistent 'backupRef.kind'='%s' and 'backupContentType'='%s' fields. Logical type must be set in this case.",
+					kind,
+					b.BackupContentType,
+				)
+			}
+		case PhysicalBackupKind:
+			if b.BackupContentType != BackupContentTypePhysical {
+				return fmt.Errorf(
+					"inconsistent 'backupRef.kind'='%s' and 'backupContentType'='%s' fields. Physical type must be set in this case.",
+					kind,
+					b.BackupContentType,
+				)
+			}
+		default:
+			return fmt.Errorf("unsupported backup kind: '%v', supported kinds: [%v|%v]", kind, BackupKind, PhysicalBackupKind)
+		}
 	}
-	if b.PhysicalBackupRef != nil || b.VolumeSnapshotRef != nil {
-		numRefs++
-	}
-	if numRefs > 1 {
-		return fmt.Errorf("only one bootstrap source can be set: either 'backupRef' or any of ('physicalBackupRef', 'volumeSnapshotRef')")
+
+	if b.VolumeSnapshotRef != nil {
+		if b.BackupContentType != BackupContentTypePhysical {
+			return errors.New("inconsistent 'volumeSnapshotRef' and 'backupContentType' fields. Physical type must be set in this case.")
+		}
+		if b.S3 != nil || b.Volume != nil || b.RestoreJob != nil {
+			return errors.New("'s3', 'volume' and 'restoreJob' may not be set when 'volumeSnapshotRef' is set")
+		}
 	}
 	return nil
 }
@@ -351,19 +356,21 @@ func (b *BootstrapFrom) IsDefaulted() bool {
 }
 
 func (b *BootstrapFrom) SetDefaults(mariadb *MariaDB) {
-	if b.BackupRef != nil && b.BackupType == "" {
-		b.BackupType = BackupTypeLogical
+	if b.BackupRef != nil && b.BackupContentType == "" {
+		switch b.BackupRef.Kind {
+		case BackupKind:
+			b.BackupContentType = BackupContentTypeLogical
+		case PhysicalBackupKind:
+			b.BackupContentType = BackupContentTypePhysical
+		}
 	}
-	if b.PhysicalBackupRef != nil && b.BackupType == "" {
-		b.BackupType = BackupTypePhysical
+	if b.VolumeSnapshotRef != nil && b.BackupContentType == "" {
+		b.BackupContentType = BackupContentTypePhysical
 	}
-	if b.VolumeSnapshotRef != nil && b.BackupType == "" {
-		b.BackupType = BackupTypePhysical
+	if b.BackupContentType == "" {
+		b.BackupContentType = BackupContentTypeLogical
 	}
-	if b.BackupType == "" {
-		b.BackupType = BackupTypeLogical
-	}
-	if b.BackupType == BackupTypePhysical && b.S3 != nil {
+	if b.BackupContentType == BackupContentTypePhysical && b.S3 != nil {
 		stagingStorage := ptr.Deref(b.StagingStorage, BackupStagingStorage{})
 		b.Volume = ptr.To(stagingStorage.VolumeOrEmptyDir(mariadb.PhysicalBackupStagingPVCKey()))
 	}
@@ -390,19 +397,37 @@ func (r *BootstrapFrom) TargetRecoveryTimeOrDefault() time.Time {
 	return time.Now()
 }
 
-func (b *BootstrapFrom) RestoreSource() RestoreSource {
-	return RestoreSource{
-		BackupRef:          b.BackupRef,
+func (b *BootstrapFrom) RestoreSource() (*RestoreSource, error) {
+	var backupRef *LocalObjectReference
+	if bootstrapFromBackupRef := b.BackupRef; bootstrapFromBackupRef != nil {
+		if bootstrapFromBackupRef.Kind == PhysicalBackupKind {
+			return nil, errors.New("restoration from physical backups via RestoreSource is not supported")
+		}
+		backupRef = &LocalObjectReference{
+			Name: bootstrapFromBackupRef.Name,
+		}
+	}
+
+	return &RestoreSource{
+		BackupRef:          backupRef,
 		S3:                 b.S3,
 		Volume:             b.Volume,
 		TargetRecoveryTime: b.TargetRecoveryTime,
 		StagingStorage:     b.StagingStorage,
-	}
+	}, nil
 }
 
 func NewBootstrapFromRestoreSource(source RestoreSource) BootstrapFrom {
+	var typedBackupRef *TypedLocalObjectReference
+	if source.BackupRef != nil {
+		typedBackupRef = &TypedLocalObjectReference{
+			Name: source.BackupRef.Name,
+			Kind: BackupKind,
+		}
+	}
+
 	return BootstrapFrom{
-		BackupRef:          source.BackupRef,
+		BackupRef:          typedBackupRef,
 		S3:                 source.S3,
 		Volume:             source.Volume,
 		TargetRecoveryTime: source.TargetRecoveryTime,

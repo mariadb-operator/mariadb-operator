@@ -16,7 +16,6 @@ spec:
     enabled: true
 
   bootstrapFrom:
-    backupType: Physical
     s3:
       bucket: physicalbackups
       prefix: mariadb
@@ -32,6 +31,7 @@ spec:
         caSecretKeyRef:
           name: minio-ca
           key: ca.crt
+    backupContentType: Physical
     targetRecoveryTime: 2025-06-17T08:07:00Z
     stagingStorage:
       persistentVolumeClaim:

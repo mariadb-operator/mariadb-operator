@@ -31,6 +31,25 @@ type MariaDBRef struct {
 	WaitForIt bool `json:"waitForIt"`
 }
 
+// TypedLocalObjectReference is a reference to a specific object type.
+type TypedLocalObjectReference struct {
+	// Name of the referent.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Name string `json:"name,omitempty"`
+	// Kind of the referent.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Kind string `json:"kind,omitempty"`
+}
+
+// LocalReference returns a Kubernetes LocalObjectReference.
+func (r *TypedLocalObjectReference) LocalReference() *LocalObjectReference {
+	return &LocalObjectReference{
+		Name: r.Name,
+	}
+}
+
 // SecretTemplate defines a template to customize Secret objects.
 type SecretTemplate struct {
 	// Metadata to be added to the Secret object.
@@ -603,22 +622,22 @@ func MergeMetadata(metas ...*Metadata) *Metadata {
 	return &meta
 }
 
-// BackupType defines the backup type.
-type BackupType string
+// BackupContentType defines the backup content type.
+type BackupContentType string
 
 const (
-	// BackupTypeLogical represents a logical backup created using mariadb-dump.
-	BackupTypeLogical BackupType = "Logical"
-	// BackupTypePhysical represents a physical backup created using mariadb-backup.
-	BackupTypePhysical BackupType = "Physical"
+	// BackupContentTypeLogical represents a logical backup created using mariadb-dump.
+	BackupContentTypeLogical BackupContentType = "Logical"
+	// BackupContentTypePhysical represents a physical backup created using mariadb-backup.
+	BackupContentTypePhysical BackupContentType = "Physical"
 )
 
-func (b BackupType) Validate() error {
+func (b BackupContentType) Validate() error {
 	switch b {
-	case BackupTypeLogical, BackupTypePhysical:
+	case BackupContentTypeLogical, BackupContentTypePhysical:
 		return nil
 	default:
-		return fmt.Errorf("invalid backup type: %v, supported types: [%v|%v]", b, BackupTypeLogical, BackupTypePhysical)
+		return fmt.Errorf("invalid backup content type: %v, supported types: [%v|%v]", b, BackupContentTypeLogical, BackupContentTypePhysical)
 	}
 }
 

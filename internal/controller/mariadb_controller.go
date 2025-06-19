@@ -449,7 +449,10 @@ func shouldReconcileRestore(mdb *mariadbv1alpha1.MariaDB) bool {
 	if mdb.IsUpdating() || mdb.IsResizingStorage() || mdb.IsSwitchingPrimary() || mdb.HasGaleraNotReadyCondition() {
 		return false
 	}
-	if mdb.HasRestoredBackup() || mdb.Spec.BootstrapFrom == nil || mdb.Spec.BootstrapFrom.BackupType != mariadbv1alpha1.BackupTypeLogical {
+	if mdb.HasRestoredBackup() {
+		return false
+	}
+	if mdb.Spec.BootstrapFrom == nil || mdb.Spec.BootstrapFrom.BackupContentType != mariadbv1alpha1.BackupContentTypeLogical {
 		return false
 	}
 	return true
@@ -878,10 +881,18 @@ func (r *MariaDBReconciler) setSpecDefaults(ctx context.Context, mariadb *mariad
 			return err
 		}
 
-		if mdb.Spec.BootstrapFrom == nil || mdb.Spec.BootstrapFrom.PhysicalBackupRef == nil || mdb.Spec.BootstrapFrom.IsDefaulted() {
+		if mdb.Spec.BootstrapFrom == nil {
 			return nil
 		}
-		physicalBackup, err := r.RefResolver.PhysicalBackupBackup(ctx, mdb.Spec.BootstrapFrom.PhysicalBackupRef, mdb.Namespace)
+		bootstrapFrom := ptr.Deref(mdb.Spec.BootstrapFrom, mariadbv1alpha1.BootstrapFrom{})
+		backupRef := ptr.Deref(bootstrapFrom.BackupRef, mariadbv1alpha1.TypedLocalObjectReference{})
+		// BackupKind (logical backup) is managed by the Restore resource
+		if backupRef.Kind != mariadbv1alpha1.PhysicalBackupKind ||
+			bootstrapFrom.IsDefaulted() {
+			return nil
+		}
+
+		physicalBackup, err := r.RefResolver.PhysicalBackupBackup(ctx, backupRef.LocalReference(), mdb.Namespace)
 		if err != nil {
 			return err
 		}

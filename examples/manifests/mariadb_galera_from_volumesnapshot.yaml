@@ -17,7 +17,6 @@ spec:
     enabled: true
 
   bootstrapFrom:
-    backupType: Physical
     volumeSnapshotRef:
       name: physicalbackup-20250611163352
 
