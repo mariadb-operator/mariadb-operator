@@ -881,17 +881,15 @@ func (r *MariaDBReconciler) setSpecDefaults(ctx context.Context, mariadb *mariad
 			return err
 		}
 
-		if mdb.Spec.BootstrapFrom == nil {
+		if mdb.Spec.BootstrapFrom == nil || mdb.Spec.BootstrapFrom.IsDefaulted() {
 			return nil
 		}
 		bootstrapFrom := ptr.Deref(mdb.Spec.BootstrapFrom, mariadbv1alpha1.BootstrapFrom{})
 		backupRef := ptr.Deref(bootstrapFrom.BackupRef, mariadbv1alpha1.TypedLocalObjectReference{})
 		// BackupKind (logical backup) is managed by the Restore resource
-		if backupRef.Kind != mariadbv1alpha1.PhysicalBackupKind ||
-			bootstrapFrom.IsDefaulted() {
+		if backupRef.Kind != mariadbv1alpha1.PhysicalBackupKind {
 			return nil
 		}
-
 		physicalBackup, err := r.RefResolver.PhysicalBackupBackup(ctx, backupRef.LocalReference(), mdb.Namespace)
 		if err != nil {
 			return err
