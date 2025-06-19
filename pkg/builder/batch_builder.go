@@ -97,7 +97,7 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alph
 	}
 
 	operatorContainer, err := b.jobMariadbOperatorContainer(
-		cmd.MariadbOperatorBackup(mariadbv1alpha1.BackupTypeLogical),
+		cmd.MariadbOperatorBackup(mariadbv1alpha1.BackupContentTypeLogical),
 		volumeMounts,
 		jobS3Env(backup.Spec.Storage.S3),
 		jobResources(backup.Spec.Resources),
@@ -206,7 +206,7 @@ func (b *Builder) BuildPhysicalBackupJob(key types.NamespacedName, backup *maria
 	}
 
 	operatorContainer, err := b.jobMariadbOperatorContainer(
-		cmd.MariadbOperatorBackup(mariadbv1alpha1.BackupTypePhysical),
+		cmd.MariadbOperatorBackup(mariadbv1alpha1.BackupContentTypePhysical),
 		volumeMounts,
 		jobS3Env(backup.Spec.Storage.S3),
 		jobResources(backup.Spec.Resources),
@@ -331,7 +331,7 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 	affinity := ptr.Deref(restore.Spec.Affinity, mariadbv1alpha1.AffinityConfig{}).Affinity
 
 	operatorContainer, err := b.jobMariadbOperatorContainer(
-		cmd.MariadbOperatorRestore(mariadbv1alpha1.BackupTypeLogical, nil),
+		cmd.MariadbOperatorRestore(mariadbv1alpha1.BackupContentTypeLogical, nil),
 		volumeMounts,
 		jobS3Env(restore.Spec.S3),
 		jobResources(restore.Spec.Resources),
@@ -435,7 +435,7 @@ func (b *Builder) BuildPhysicalBackupRestoreJob(key types.NamespacedName, mariad
 	restoreJob := ptr.Deref(mariadb.Spec.BootstrapFrom.RestoreJob, mariadbv1alpha1.Job{})
 
 	operatorContainer, err := b.jobMariadbOperatorContainer(
-		cmd.MariadbOperatorRestore(mariadbv1alpha1.BackupTypePhysical, &batchPhysicalBackupDirFullPath),
+		cmd.MariadbOperatorRestore(mariadbv1alpha1.BackupContentTypePhysical, &batchPhysicalBackupDirFullPath),
 		volumeMounts,
 		jobS3Env(mariadb.Spec.BootstrapFrom.S3),
 		jobResources(restoreJob.Resources),

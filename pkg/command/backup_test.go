@@ -289,10 +289,10 @@ func TestMariadbDumpArgs(t *testing.T) {
 
 func TestMariadbOperatorBackup(t *testing.T) {
 	tests := []struct {
-		name       string
-		backupCmd  *BackupCommand
-		backupType mariadbv1alpha1.BackupType
-		wantArgs   []string
+		name              string
+		backupCmd         *BackupCommand
+		backupContentType mariadbv1alpha1.BackupContentType
+		wantArgs          []string
 	}{
 		{
 			name: "logical no S3 no cleanupTargetFile",
@@ -305,15 +305,15 @@ func TestMariadbOperatorBackup(t *testing.T) {
 					LogLevel:             "info",
 				},
 			},
-			backupType: mariadbv1alpha1.BackupTypeLogical,
+			backupContentType: mariadbv1alpha1.BackupContentTypeLogical,
 			wantArgs: []string{
 				"backup",
 				"--path",
 				"/backups",
 				"--target-file-path",
 				"/backups/0-backup-target.txt",
-				"--backup-type",
-				string(mariadbv1alpha1.BackupTypeLogical),
+				"--backup-content-type",
+				string(mariadbv1alpha1.BackupContentTypeLogical),
 				"--max-retention",
 				"24h0m0s",
 				"--compression",
@@ -333,15 +333,15 @@ func TestMariadbOperatorBackup(t *testing.T) {
 					LogLevel:             "info",
 				},
 			},
-			backupType: mariadbv1alpha1.BackupTypePhysical,
+			backupContentType: mariadbv1alpha1.BackupContentTypePhysical,
 			wantArgs: []string{
 				"backup",
 				"--path",
 				"/backups",
 				"--target-file-path",
 				"/backups/0-backup-target.txt",
-				"--backup-type",
-				string(mariadbv1alpha1.BackupTypePhysical),
+				"--backup-content-type",
+				string(mariadbv1alpha1.BackupContentTypePhysical),
 				"--max-retention",
 				"24h0m0s",
 				"--compression",
@@ -368,15 +368,15 @@ func TestMariadbOperatorBackup(t *testing.T) {
 					S3Prefix:             "mariadb",
 				},
 			},
-			backupType: mariadbv1alpha1.BackupTypeLogical,
+			backupContentType: mariadbv1alpha1.BackupContentTypeLogical,
 			wantArgs: []string{
 				"backup",
 				"--path",
 				"/backups",
 				"--target-file-path",
 				"/backups/0-backup-target.txt",
-				"--backup-type",
-				string(mariadbv1alpha1.BackupTypeLogical),
+				"--backup-content-type",
+				string(mariadbv1alpha1.BackupContentTypeLogical),
 				"--max-retention",
 				"24h0m0s",
 				"--compression",
@@ -415,15 +415,15 @@ func TestMariadbOperatorBackup(t *testing.T) {
 					S3Prefix:             "mariadb",
 				},
 			},
-			backupType: mariadbv1alpha1.BackupTypePhysical,
+			backupContentType: mariadbv1alpha1.BackupContentTypePhysical,
 			wantArgs: []string{
 				"backup",
 				"--path",
 				"/backups",
 				"--target-file-path",
 				"/backups/0-backup-target.txt",
-				"--backup-type",
-				string(mariadbv1alpha1.BackupTypePhysical),
+				"--backup-content-type",
+				string(mariadbv1alpha1.BackupContentTypePhysical),
 				"--max-retention",
 				"24h0m0s",
 				"--compression",
@@ -463,15 +463,15 @@ func TestMariadbOperatorBackup(t *testing.T) {
 					CleanupTargetFile:    true,
 				},
 			},
-			backupType: mariadbv1alpha1.BackupTypeLogical,
+			backupContentType: mariadbv1alpha1.BackupContentTypeLogical,
 			wantArgs: []string{
 				"backup",
 				"--path",
 				"/backups",
 				"--target-file-path",
 				"/backups/0-backup-target.txt",
-				"--backup-type",
-				string(mariadbv1alpha1.BackupTypeLogical),
+				"--backup-content-type",
+				string(mariadbv1alpha1.BackupContentTypeLogical),
 				"--max-retention",
 				"24h0m0s",
 				"--compression",
@@ -512,15 +512,15 @@ func TestMariadbOperatorBackup(t *testing.T) {
 					CleanupTargetFile:    true,
 				},
 			},
-			backupType: mariadbv1alpha1.BackupTypePhysical,
+			backupContentType: mariadbv1alpha1.BackupContentTypePhysical,
 			wantArgs: []string{
 				"backup",
 				"--path",
 				"/backups",
 				"--target-file-path",
 				"/backups/0-backup-target.txt",
-				"--backup-type",
-				string(mariadbv1alpha1.BackupTypePhysical),
+				"--backup-content-type",
+				string(mariadbv1alpha1.BackupContentTypePhysical),
 				"--max-retention",
 				"24h0m0s",
 				"--compression",
@@ -546,7 +546,7 @@ func TestMariadbOperatorBackup(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			command := tt.backupCmd.MariadbOperatorBackup(tt.backupType)
+			command := tt.backupCmd.MariadbOperatorBackup(tt.backupContentType)
 			if diff := cmp.Diff(command.Args, tt.wantArgs); diff != "" {
 				t.Errorf("unexpected args (-want +got):\n%s", diff)
 			}

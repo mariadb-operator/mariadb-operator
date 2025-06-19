@@ -230,15 +230,15 @@ func (b *BackupCommand) MariadbBackup(mariadb *mariadbv1alpha1.MariaDB, backupFi
 	return NewBashCommand(cmds), nil
 }
 
-func (b *BackupCommand) MariadbOperatorBackup(backupType mariadbv1alpha1.BackupType) *Command {
+func (b *BackupCommand) MariadbOperatorBackup(backupContentType mariadbv1alpha1.BackupContentType) *Command {
 	args := []string{
 		"backup",
 		"--path",
 		b.Path,
 		"--target-file-path",
 		b.TargetFilePath,
-		"--backup-type",
-		string(backupType),
+		"--backup-content-type",
+		string(backupContentType),
 		"--max-retention",
 		b.MaxRetentionDuration.String(),
 	}
@@ -263,7 +263,7 @@ func (b *BackupCommand) MariadbOperatorBackup(backupType mariadbv1alpha1.BackupT
 	return NewCommand(nil, args)
 }
 
-func (b *BackupCommand) MariadbOperatorRestore(backupType mariadbv1alpha1.BackupType, backupDirPath *string) *Command {
+func (b *BackupCommand) MariadbOperatorRestore(backupContentType mariadbv1alpha1.BackupContentType, backupDirPath *string) *Command {
 	args := []string{
 		"backup",
 		"restore",
@@ -273,10 +273,10 @@ func (b *BackupCommand) MariadbOperatorRestore(backupType mariadbv1alpha1.Backup
 		backuppkg.FormatBackupDate(b.TargetTime),
 		"--target-file-path",
 		b.TargetFilePath,
-		"--backup-type",
-		string(backupType),
+		"--backup-content-type",
+		string(backupContentType),
 	}
-	if backupType == mariadbv1alpha1.BackupTypePhysical && backupDirPath != nil {
+	if backupContentType == mariadbv1alpha1.BackupContentTypePhysical && backupDirPath != nil {
 		args = append(args, []string{
 			"--physical-backup-dir-path",
 			*backupDirPath,

@@ -17,9 +17,9 @@ spec:
     enabled: true
 
   bootstrapFrom:
-    backupType: Physical
-    physicalBackupRef:
+    backupRef:
       name: physicalbackup
+      kind: PhysicalBackup
     targetRecoveryTime: 2025-06-17T08:07:00Z
     stagingStorage:
       persistentVolumeClaim:

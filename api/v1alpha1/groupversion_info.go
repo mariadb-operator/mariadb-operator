@@ -9,7 +9,9 @@ import (
 )
 
 const (
-	// ClusterKind is the kind name of PhysicalBackup
+	// BackupKind is the kind name of Backup
+	BackupKind = "Backup"
+	// PhysicalBackupKind is the kind name of PhysicalBackup
 	PhysicalBackupKind = "PhysicalBackup"
 )
 

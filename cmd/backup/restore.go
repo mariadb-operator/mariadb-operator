@@ -18,7 +18,7 @@ var (
 
 func init() {
 	restoreCommand.Flags().StringVar(&physicalBackupDirPath, "physical-backup-dir-path", "",
-		"Directory path where the physical backup has been prepared. Only considered when backup-type is Physical.")
+		"Directory path where the physical backup has been prepared. Only considered when backup-content-type is Physical.")
 	restoreCommand.Flags().StringVar(&targetTimeRaw, "target-time", "",
 		"RFC3339 (1970-01-01T00:00:00Z) date and time that defines the backup target time.")
 }
@@ -105,7 +105,7 @@ var restoreCommand = &cobra.Command{
 }
 
 func checkPhysicalBackupDir() (bool, error) {
-	if backupType != string(mariadbv1alpha1.BackupTypePhysical) || physicalBackupDirPath == "" {
+	if backupContentType != string(mariadbv1alpha1.BackupContentTypePhysical) || physicalBackupDirPath == "" {
 		return false, nil
 	}
 	logger.Info("checking existing physical backup directory", "dir-path", physicalBackupDirPath)

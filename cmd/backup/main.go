@@ -21,7 +21,7 @@ var (
 
 	path              string
 	targetFilePath    string
-	backupType        string
+	backupContentType string
 	cleanupTargetFile bool
 
 	s3           bool
@@ -50,7 +50,7 @@ func init() {
 		fmt.Printf("error marking 'target-file-path' flag as required: %v", err)
 		os.Exit(1)
 	}
-	RootCmd.PersistentFlags().StringVar(&backupType, "backup-type", string(mariadbv1alpha1.BackupTypeLogical),
+	RootCmd.PersistentFlags().StringVar(&backupContentType, "backup-content-type", string(mariadbv1alpha1.BackupContentTypeLogical),
 		"Backup type: Logical (mariadb-dump) or Physical (mariadb-backup).")
 	RootCmd.PersistentFlags().BoolVar(&cleanupTargetFile, "cleanup-target-file", false,
 		"Whether to clean up the target file after S3 backups are completed."+
@@ -156,15 +156,15 @@ func newContext() (context.Context, context.CancelFunc) {
 }
 
 func getBackupProcessor() (backup.BackupProcessor, error) {
-	backType := mariadbv1alpha1.BackupType(backupType)
+	backType := mariadbv1alpha1.BackupContentType(backupContentType)
 	if err := backType.Validate(); err != nil {
 		return nil, fmt.Errorf("backup type not supported: %v", err)
 	}
 	switch backType {
-	case mariadbv1alpha1.BackupTypeLogical:
+	case mariadbv1alpha1.BackupContentTypeLogical:
 		logger.Info("configuring logical backup processor")
 		return backup.NewLogicalBackupProcessor(), nil
-	case mariadbv1alpha1.BackupTypePhysical:
+	case mariadbv1alpha1.BackupContentTypePhysical:
 		logger.Info("configuring physical backup processor")
 		return backup.NewPhysicalBackupProcessor(), nil
 	default:

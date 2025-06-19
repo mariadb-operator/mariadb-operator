@@ -40,12 +40,17 @@ func (b *Builder) BuildRestore(mariadb *mariadbv1alpha1.MariaDB, key types.Names
 	containerTpl.Resources = restoreJob.Resources
 	containerTpl.Args = restoreJob.Args
 
+	restoreSource, err := bootstrapFrom.RestoreSource()
+	if err != nil {
+		return nil, fmt.Errorf("error getting restore source: %v", err)
+	}
+
 	restore := &mariadbv1alpha1.Restore{
 		ObjectMeta: objMeta,
 		Spec: mariadbv1alpha1.RestoreSpec{
 			JobContainerTemplate: containerTpl,
 			JobPodTemplate:       podTpl,
-			RestoreSource:        bootstrapFrom.RestoreSource(),
+			RestoreSource:        *restoreSource,
 			MariaDBRef: mariadbv1alpha1.MariaDBRef{
 				ObjectReference: mariadbv1alpha1.ObjectReference{
 					Name: mariadb.Name,
