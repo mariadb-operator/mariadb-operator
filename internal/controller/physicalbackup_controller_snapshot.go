@@ -9,7 +9,7 @@ import (
 	volumesnapshotv1 "github.com/kubernetes-csi/external-snapshotter/client/v8/apis/volumesnapshot/v1"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
-	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
+	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
 	"github.com/mariadb-operator/mariadb-operator/pkg/predicate"
 	"github.com/mariadb-operator/mariadb-operator/pkg/sql"
 	mdbsnapshot "github.com/mariadb-operator/mariadb-operator/pkg/volumesnapshot"
@@ -69,14 +69,14 @@ func (r *PhysicalBackupReconciler) watchSnapshots(ctx context.Context, builder *
 			WithName("watcher").
 			WithValues(
 				"kind", "VolumeSnapshot",
-				"label", labels.PhysicalBackupName,
+				"label", metadata.PhysicalBackupNameLabel,
 			).
 			Info("Watching labeled VolumeSnapshots")
 		builder.Watches(
 			&volumesnapshotv1.VolumeSnapshot{},
 			handler.EnqueueRequestsFromMapFunc(r.mapVolumeSnapshotsToRequests),
 			ctrlbuilder.WithPredicates(
-				predicate.PredicateWithLabel(labels.PhysicalBackupName),
+				predicate.PredicateWithLabel(metadata.PhysicalBackupNameLabel),
 			),
 		)
 	}
@@ -84,7 +84,7 @@ func (r *PhysicalBackupReconciler) watchSnapshots(ctx context.Context, builder *
 }
 
 func (r *PhysicalBackupReconciler) mapVolumeSnapshotsToRequests(ctx context.Context, obj client.Object) []reconcile.Request {
-	physicalBackupName, ok := obj.GetLabels()[labels.PhysicalBackupName]
+	physicalBackupName, ok := obj.GetLabels()[metadata.PhysicalBackupNameLabel]
 	if !ok {
 		return nil
 	}

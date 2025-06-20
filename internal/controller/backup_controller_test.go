@@ -83,17 +83,26 @@ var _ = Describe("Backup", func() {
 		),
 		Entry("should reconcile a CronJob with PVC storage",
 			"backup-pvc-scheduled-test",
-			getBackupWithPVCStorage,
+			applyDecoratorChain(
+				getBackupWithPVCStorage,
+				decorateBackupWithSchedule,
+			),
 			testBackup,
 		),
 		Entry("should reconcile a CronJob with Volume storage",
 			"backup-volume-scheduled-test",
-			getBackupWithPVCStorage,
+			applyDecoratorChain(
+				getBackupWithVolumeStorage,
+				decorateBackupWithSchedule,
+			),
 			testBackup,
 		),
 		Entry("should reconcile a CronJob with S3 storage",
 			"backup-s3-scheduled-test",
-			buildBackupWithS3Storage("test-backup", ""),
+			applyDecoratorChain(
+				buildBackupWithS3Storage("test-backup", ""),
+				decorateBackupWithSchedule,
+			),
 			testS3Backup,
 		),
 		Entry(
@@ -287,7 +296,7 @@ func testBackupCronJob(backup *mariadbv1alpha1.Backup) {
 	patch := client.MergeFrom(backup.DeepCopy())
 	backup.Spec.SuccessfulJobsHistoryLimit = ptr.To[int32](7)
 	backup.Spec.FailedJobsHistoryLimit = ptr.To[int32](7)
-	backup.Spec.TimeZone = ptr.To[string]("Europe/Madrid")
+	backup.Spec.TimeZone = ptr.To("Europe/Madrid")
 	By("Updating a CronJob's history limits and time zone")
 	Expect(k8sClient.Patch(testCtx, backup, patch)).To(Succeed())
 
@@ -333,7 +342,7 @@ func decorateBackupWithHistoryLimits(backup *mariadbv1alpha1.Backup) *mariadbv1a
 }
 
 func decorateBackupWithTimeZone(backup *mariadbv1alpha1.Backup) *mariadbv1alpha1.Backup {
-	backup.Spec.TimeZone = ptr.To[string]("Europe/Sofia")
+	backup.Spec.TimeZone = ptr.To("Europe/Sofia")
 	return backup
 }
 

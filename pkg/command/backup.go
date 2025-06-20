@@ -43,7 +43,6 @@ func WithBackup(path string, targetFilePath string) BackupOpt {
 	}
 }
 
-// TODO: test
 func WithOmitCredentials(omit bool) BackupOpt {
 	return func(bo *BackupOpts) {
 		bo.OmitCredentials = omit
@@ -423,7 +422,6 @@ func (b *BackupCommand) mariadbDumpArgs(backup *mariadbv1alpha1.Backup, mariadb 
 	return ds.Unique(ds.Merge(args, dumpOpts)...)
 }
 
-// TODO: test
 func (b *BackupCommand) mariadbBackupArgs(mariadb *mariadbv1alpha1.MariaDB) []string {
 	backupOpts := make([]string, len(b.BackupOpts.ExtraOpts))
 	copy(backupOpts, b.BackupOpts.ExtraOpts)

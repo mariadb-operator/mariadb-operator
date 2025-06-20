@@ -105,15 +105,7 @@ func testCreateInitialData(ctx context.Context, env environment.OperatorEnv) {
 			Namespace: testMdbkey.Namespace,
 		},
 		Spec: mariadbv1alpha1.MariaDBSpec{
-			ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
-				SecurityContext: &mariadbv1alpha1.SecurityContext{
-					AllowPrivilegeEscalation: ptr.To(false),
-				},
-			},
 			PodTemplate: mariadbv1alpha1.PodTemplate{
-				PodSecurityContext: &mariadbv1alpha1.PodSecurityContext{
-					RunAsUser: ptr.To(int64(999)),
-				},
 				PodMetadata: &mariadbv1alpha1.Metadata{
 					Labels: map[string]string{
 						"sidecar.istio.io/inject": "false",
@@ -194,7 +186,8 @@ max_allowed_packet=256M`),
 				Required: ptr.To(true),
 			},
 			Storage: mariadbv1alpha1.Storage{
-				Size: ptr.To(resource.MustParse("300Mi")),
+				Size:             ptr.To(resource.MustParse("300Mi")),
+				StorageClassName: "csi-hostpath-sc",
 			},
 		},
 	}

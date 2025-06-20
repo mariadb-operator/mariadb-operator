@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	labelsbuilder "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
+	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -107,7 +107,7 @@ func TestVolumeSnapshotMetadata(t *testing.T) {
 				},
 			},
 			wantLabels: map[string]string{
-				labelsbuilder.PhysicalBackupName: "backup-obj",
+				metadata.PhysicalBackupNameLabel: "backup-obj",
 			},
 			wantAnnotations: map[string]string{},
 		},
@@ -138,7 +138,7 @@ func TestVolumeSnapshotMetadata(t *testing.T) {
 			},
 			wantLabels: map[string]string{
 				"snapshot-label":                 "snapshot-value",
-				labelsbuilder.PhysicalBackupName: "backup-obj",
+				metadata.PhysicalBackupNameLabel: "backup-obj",
 			},
 			wantAnnotations: map[string]string{
 				"snapshot-annotation": "snapshot-annotation-value",
@@ -171,7 +171,7 @@ func TestVolumeSnapshotMetadata(t *testing.T) {
 			},
 			wantLabels: map[string]string{
 				"custom-label":                   "custom-value",
-				labelsbuilder.PhysicalBackupName: "backup-obj",
+				metadata.PhysicalBackupNameLabel: "backup-obj",
 			},
 			wantAnnotations: map[string]string{
 				"custom-annotation": "custom-annotation-value",
@@ -208,7 +208,7 @@ func TestVolumeSnapshotMetadata(t *testing.T) {
 			wantLabels: map[string]string{
 				"custom-label":                   "custom-value",
 				"snapshot-label":                 "snapshot-value",
-				labelsbuilder.PhysicalBackupName: "backup-obj",
+				metadata.PhysicalBackupNameLabel: "backup-obj",
 			},
 			wantAnnotations: map[string]string{
 				"custom-annotation":   "custom-annotation-value",
