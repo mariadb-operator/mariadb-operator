@@ -142,7 +142,6 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alph
 	return job, nil
 }
 
-// TODO: test
 func (b *Builder) BuildPhysicalBackupJob(key types.NamespacedName, backup *mariadbv1alpha1.PhysicalBackup,
 	mariadb *mariadbv1alpha1.MariaDB, pod *corev1.Pod, backupFile string) (*batchv1.Job, error) {
 	podIndex, err := statefulset.PodIndex(pod.Name)
@@ -391,7 +390,6 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 	return job, nil
 }
 
-// TODO: test
 func (b *Builder) BuildPhysicalBackupRestoreJob(key types.NamespacedName, mariadb *mariadbv1alpha1.MariaDB,
 	podIndex *int) (*batchv1.Job, error) {
 	if mariadb.Spec.BootstrapFrom == nil {

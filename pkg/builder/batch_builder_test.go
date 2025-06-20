@@ -1,11 +1,15 @@
 package builder
 
 import (
+	"errors"
+	"fmt"
 	"reflect"
 	"testing"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	galeraresources "github.com/mariadb-operator/mariadb-operator/pkg/controller/galera/resources"
+	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -445,6 +449,503 @@ func TestBackupJobMeta(t *testing.T) {
 	}
 }
 
+func TestPhysicalBackupJobNodeSelector(t *testing.T) {
+	builder := newDefaultTestBuilder(t)
+	podObjMeta := metav1.ObjectMeta{
+		Name: "mariadb-0",
+	}
+	mariadb := &mariadbv1alpha1.MariaDB{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "physicalbackup-test",
+		},
+		Spec: mariadbv1alpha1.MariaDBSpec{},
+	}
+
+	tests := []struct {
+		name             string
+		backup           *mariadbv1alpha1.PhysicalBackup
+		pod              *corev1.Pod
+		wantErr          bool
+		wantNodeSelector bool
+	}{
+		{
+			name:   "error when pod nodeName is empty",
+			backup: &mariadbv1alpha1.PhysicalBackup{},
+			pod: &corev1.Pod{
+				ObjectMeta: podObjMeta,
+				Spec: corev1.PodSpec{
+					NodeName: "",
+				},
+			},
+			wantErr:          true,
+			wantNodeSelector: false,
+		},
+		{
+			name: "nodeSelector set when podAffinity is true (default)",
+			backup: &mariadbv1alpha1.PhysicalBackup{
+				Spec: mariadbv1alpha1.PhysicalBackupSpec{
+					Storage: mariadbv1alpha1.PhysicalBackupStorage{
+						Volume: &mariadbv1alpha1.StorageVolumeSource{
+							EmptyDir: &mariadbv1alpha1.EmptyDirVolumeSource{},
+						},
+					},
+				},
+			},
+			pod: &corev1.Pod{
+				ObjectMeta: podObjMeta,
+				Spec: corev1.PodSpec{
+					NodeName: "node-1",
+				},
+			},
+			wantErr:          false,
+			wantNodeSelector: true,
+		},
+		{
+			name: "nodeSelector set when podAffinity is true (explicit)",
+			backup: &mariadbv1alpha1.PhysicalBackup{
+				Spec: mariadbv1alpha1.PhysicalBackupSpec{
+					PodAffinity: ptr.To(true),
+					Storage: mariadbv1alpha1.PhysicalBackupStorage{
+						Volume: &mariadbv1alpha1.StorageVolumeSource{
+							EmptyDir: &mariadbv1alpha1.EmptyDirVolumeSource{},
+						},
+					},
+				},
+			},
+			pod: &corev1.Pod{
+				ObjectMeta: podObjMeta,
+				Spec: corev1.PodSpec{
+					NodeName: "node-1",
+				},
+			},
+			wantErr:          false,
+			wantNodeSelector: true,
+		},
+		{
+			name: "nodeSelector not set when podAffinity is false",
+			backup: &mariadbv1alpha1.PhysicalBackup{
+				Spec: mariadbv1alpha1.PhysicalBackupSpec{
+					PodAffinity: ptr.To(false),
+					Storage: mariadbv1alpha1.PhysicalBackupStorage{
+						Volume: &mariadbv1alpha1.StorageVolumeSource{
+							EmptyDir: &mariadbv1alpha1.EmptyDirVolumeSource{},
+						},
+					},
+				},
+			},
+			pod: &corev1.Pod{
+				ObjectMeta: podObjMeta,
+				Spec: corev1.PodSpec{
+					NodeName: "node-1",
+				},
+			},
+			wantErr:          false,
+			wantNodeSelector: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			job, err := builder.BuildPhysicalBackupJob(
+				client.ObjectKeyFromObject(tt.backup),
+				tt.backup,
+				mariadb,
+				tt.pod,
+				"backupfile",
+			)
+			if tt.wantErr {
+				if err == nil {
+					t.Fatalf("expected error but got none")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			nodeSelector := job.Spec.Template.Spec.NodeSelector
+			if tt.wantNodeSelector {
+				assert.NotNil(t, nodeSelector, "expected nodeSelector to be set")
+				assert.Equal(
+					t,
+					tt.pod.Spec.NodeName,
+					nodeSelector["kubernetes.io/hostname"],
+					errors.New("expected nodeSelector to be set to pod's nodeName"),
+				)
+			} else {
+				assert.True(
+					t,
+					nodeSelector == nil || nodeSelector["kubernetes.io/hostname"] == "",
+					fmt.Errorf("expected nodeSelector to be nil or not set, got %v", nodeSelector),
+				)
+			}
+		})
+	}
+}
+
+func TestPhysicalBackupJobMeta(t *testing.T) {
+	builder := newDefaultTestBuilder(t)
+	key := types.NamespacedName{
+		Name: "physical-backup-job",
+	}
+	pod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "mariadb-0",
+		},
+		Spec: corev1.PodSpec{
+			NodeName: "node-1",
+		},
+	}
+	tests := []struct {
+		name        string
+		backup      *mariadbv1alpha1.PhysicalBackup
+		wantJobMeta *mariadbv1alpha1.Metadata
+		wantPodMeta *mariadbv1alpha1.Metadata
+	}{
+		{
+			name: "empty",
+			backup: &mariadbv1alpha1.PhysicalBackup{
+				Spec: mariadbv1alpha1.PhysicalBackupSpec{
+					Storage: mariadbv1alpha1.PhysicalBackupStorage{
+						Volume: &mariadbv1alpha1.StorageVolumeSource{
+							PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimVolumeSource{},
+						},
+					},
+				},
+			},
+			wantJobMeta: &mariadbv1alpha1.Metadata{
+				Labels:      map[string]string{},
+				Annotations: map[string]string{},
+			},
+			wantPodMeta: &mariadbv1alpha1.Metadata{
+				Labels:      map[string]string{},
+				Annotations: map[string]string{},
+			},
+		},
+		{
+			name: "inherit metadata",
+			backup: &mariadbv1alpha1.PhysicalBackup{
+				Spec: mariadbv1alpha1.PhysicalBackupSpec{
+					Storage: mariadbv1alpha1.PhysicalBackupStorage{
+						Volume: &mariadbv1alpha1.StorageVolumeSource{
+							PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimVolumeSource{},
+						},
+					},
+					InheritMetadata: &mariadbv1alpha1.Metadata{
+						Labels: map[string]string{
+							"sidecar.istio.io/inject": "false",
+						},
+						Annotations: map[string]string{
+							"database.myorg.io": "mariadb",
+						},
+					},
+				},
+			},
+			wantJobMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{
+					"sidecar.istio.io/inject": "false",
+				},
+				Annotations: map[string]string{
+					"database.myorg.io": "mariadb",
+				},
+			},
+			wantPodMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{
+					"sidecar.istio.io/inject": "false",
+				},
+				Annotations: map[string]string{
+					"database.myorg.io": "mariadb",
+				},
+			},
+		},
+		{
+			name: "Pod meta",
+			backup: &mariadbv1alpha1.PhysicalBackup{
+				Spec: mariadbv1alpha1.PhysicalBackupSpec{
+					Storage: mariadbv1alpha1.PhysicalBackupStorage{
+						Volume: &mariadbv1alpha1.StorageVolumeSource{
+							PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimVolumeSource{},
+						},
+					},
+					PhysicalBackupPodTemplate: mariadbv1alpha1.PhysicalBackupPodTemplate{
+						PodMetadata: &mariadbv1alpha1.Metadata{
+							Labels: map[string]string{
+								"sidecar.istio.io/inject": "false",
+							},
+							Annotations: map[string]string{
+								"database.myorg.io": "mariadb",
+							},
+						},
+					},
+				},
+			},
+			wantJobMeta: &mariadbv1alpha1.Metadata{
+				Labels:      map[string]string{},
+				Annotations: map[string]string{},
+			},
+			wantPodMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{
+					"sidecar.istio.io/inject": "false",
+				},
+				Annotations: map[string]string{
+					"database.myorg.io": "mariadb",
+				},
+			},
+		},
+		{
+			name: "override inherit metadata",
+			backup: &mariadbv1alpha1.PhysicalBackup{
+				Spec: mariadbv1alpha1.PhysicalBackupSpec{
+					Storage: mariadbv1alpha1.PhysicalBackupStorage{
+						Volume: &mariadbv1alpha1.StorageVolumeSource{
+							PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimVolumeSource{},
+						},
+					},
+					InheritMetadata: &mariadbv1alpha1.Metadata{
+						Labels: map[string]string{
+							"sidecar.istio.io/inject": "true",
+						},
+						Annotations: map[string]string{
+							"database.myorg.io": "mariadb",
+						},
+					},
+					PhysicalBackupPodTemplate: mariadbv1alpha1.PhysicalBackupPodTemplate{
+						PodMetadata: &mariadbv1alpha1.Metadata{
+							Labels: map[string]string{
+								"sidecar.istio.io/inject": "false",
+							},
+							Annotations: map[string]string{
+								"database.myorg.io": "mariadb",
+							},
+						},
+					},
+				},
+			},
+			wantJobMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{
+					"sidecar.istio.io/inject": "true",
+				},
+				Annotations: map[string]string{
+					"database.myorg.io": "mariadb",
+				},
+			},
+			wantPodMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{
+					"sidecar.istio.io/inject": "false",
+				},
+				Annotations: map[string]string{
+					"database.myorg.io": "mariadb",
+				},
+			},
+		},
+		{
+			name: "all",
+			backup: &mariadbv1alpha1.PhysicalBackup{
+				Spec: mariadbv1alpha1.PhysicalBackupSpec{
+					Storage: mariadbv1alpha1.PhysicalBackupStorage{
+						Volume: &mariadbv1alpha1.StorageVolumeSource{
+							PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimVolumeSource{},
+						},
+					},
+					InheritMetadata: &mariadbv1alpha1.Metadata{
+						Annotations: map[string]string{
+							"database.myorg.io": "mariadb",
+						},
+					},
+					PhysicalBackupPodTemplate: mariadbv1alpha1.PhysicalBackupPodTemplate{
+						PodMetadata: &mariadbv1alpha1.Metadata{
+							Labels: map[string]string{
+								"sidecar.istio.io/inject": "false",
+							},
+						},
+					},
+				},
+			},
+			wantJobMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{},
+				Annotations: map[string]string{
+					"database.myorg.io": "mariadb",
+				},
+			},
+			wantPodMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{
+					"sidecar.istio.io/inject": "false",
+				},
+				Annotations: map[string]string{
+					"database.myorg.io": "mariadb",
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			job, err := builder.BuildPhysicalBackupJob(key, tt.backup, &mariadbv1alpha1.MariaDB{}, pod, "backupfile")
+			if err != nil {
+				t.Fatalf("unexpected error building PhysicalBackup Job: %v", err)
+			}
+			assertObjectMeta(t, &job.ObjectMeta, tt.wantJobMeta.Labels, tt.wantJobMeta.Annotations)
+			assertObjectMeta(t, &job.Spec.Template.ObjectMeta, tt.wantPodMeta.Labels, tt.wantPodMeta.Annotations)
+		})
+	}
+}
+
+func TestPhysicalBackupJobImagePullSecrets(t *testing.T) {
+	builder := newDefaultTestBuilder(t)
+	objMeta := metav1.ObjectMeta{
+		Name:      "physical-backup-image-pull-secrets",
+		Namespace: "test",
+	}
+	mariadb := &mariadbv1alpha1.MariaDB{
+		ObjectMeta: objMeta,
+		Spec:       mariadbv1alpha1.MariaDBSpec{},
+	}
+	pod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "mariadb-0",
+		},
+		Spec: corev1.PodSpec{
+			NodeName: "node-1",
+		},
+	}
+
+	tests := []struct {
+		name            string
+		backup          *mariadbv1alpha1.PhysicalBackup
+		mariadb         *mariadbv1alpha1.MariaDB
+		wantPullSecrets []corev1.LocalObjectReference
+	}{
+		{
+			name: "No Secrets",
+			backup: &mariadbv1alpha1.PhysicalBackup{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.PhysicalBackupSpec{
+					Storage: mariadbv1alpha1.PhysicalBackupStorage{
+						Volume: &mariadbv1alpha1.StorageVolumeSource{
+							EmptyDir: &mariadbv1alpha1.EmptyDirVolumeSource{},
+						},
+					},
+				},
+			},
+			mariadb:         mariadb,
+			wantPullSecrets: nil,
+		},
+		{
+			name: "Secrets in MariaDB",
+			backup: &mariadbv1alpha1.PhysicalBackup{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.PhysicalBackupSpec{
+					Storage: mariadbv1alpha1.PhysicalBackupStorage{
+						Volume: &mariadbv1alpha1.StorageVolumeSource{
+							EmptyDir: &mariadbv1alpha1.EmptyDirVolumeSource{},
+						},
+					},
+				},
+			},
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					PodTemplate: mariadbv1alpha1.PodTemplate{
+						ImagePullSecrets: []mariadbv1alpha1.LocalObjectReference{
+							{
+								Name: "mariadb-registry",
+							},
+						},
+					},
+				},
+			},
+			wantPullSecrets: []corev1.LocalObjectReference{
+				{
+					Name: "mariadb-registry",
+				},
+			},
+		},
+		{
+			name: "Secrets in PhysicalBackup",
+			backup: &mariadbv1alpha1.PhysicalBackup{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.PhysicalBackupSpec{
+					PhysicalBackupPodTemplate: mariadbv1alpha1.PhysicalBackupPodTemplate{
+						ImagePullSecrets: []mariadbv1alpha1.LocalObjectReference{
+							{
+								Name: "physicalbackup-registry",
+							},
+						},
+					},
+					Storage: mariadbv1alpha1.PhysicalBackupStorage{
+						Volume: &mariadbv1alpha1.StorageVolumeSource{
+							EmptyDir: &mariadbv1alpha1.EmptyDirVolumeSource{},
+						},
+					},
+				},
+			},
+			mariadb: mariadb,
+			wantPullSecrets: []corev1.LocalObjectReference{
+				{
+					Name: "physicalbackup-registry",
+				},
+			},
+		},
+		{
+			name: "Secrets in MariaDB and PhysicalBackup",
+			backup: &mariadbv1alpha1.PhysicalBackup{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.PhysicalBackupSpec{
+					PhysicalBackupPodTemplate: mariadbv1alpha1.PhysicalBackupPodTemplate{
+						ImagePullSecrets: []mariadbv1alpha1.LocalObjectReference{
+							{
+								Name: "physicalbackup-registry",
+							},
+						},
+					},
+					Storage: mariadbv1alpha1.PhysicalBackupStorage{
+						Volume: &mariadbv1alpha1.StorageVolumeSource{
+							EmptyDir: &mariadbv1alpha1.EmptyDirVolumeSource{},
+						},
+					},
+				},
+			},
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					PodTemplate: mariadbv1alpha1.PodTemplate{
+						ImagePullSecrets: []mariadbv1alpha1.LocalObjectReference{
+							{
+								Name: "mariadb-registry",
+							},
+						},
+					},
+				},
+			},
+			wantPullSecrets: []corev1.LocalObjectReference{
+				{
+					Name: "mariadb-registry",
+				},
+				{
+					Name: "physicalbackup-registry",
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			job, err := builder.BuildPhysicalBackupJob(
+				client.ObjectKeyFromObject(tt.backup),
+				tt.backup,
+				tt.mariadb,
+				pod,
+				"backupfile",
+			)
+			if err != nil {
+				t.Fatalf("unexpected error building Job: %v", err)
+			}
+			if !reflect.DeepEqual(tt.wantPullSecrets, job.Spec.Template.Spec.ImagePullSecrets) {
+				t.Errorf("unexpected ImagePullSecrets, want: %v  got: %v", tt.wantPullSecrets, job.Spec.Template.Spec.ImagePullSecrets)
+			}
+		})
+	}
+}
+
 func TestRestoreJobImagePullSecrets(t *testing.T) {
 	builder := newDefaultTestBuilder(t)
 	objMeta := metav1.ObjectMeta{
@@ -802,6 +1303,338 @@ func TestRestoreJobMeta(t *testing.T) {
 			}
 			assertObjectMeta(t, &job.ObjectMeta, tt.wantJobMeta.Labels, tt.wantJobMeta.Annotations)
 			assertObjectMeta(t, &job.Spec.Template.ObjectMeta, tt.wantPodMeta.Labels, tt.wantPodMeta.Annotations)
+		})
+	}
+}
+
+func TestPhysicalBackupRestoreJobSelectorLabels(t *testing.T) {
+	builder := newDefaultTestBuilder(t)
+	key := types.NamespacedName{
+		Name:      "physical-backup-restore-job",
+		Namespace: "test",
+	}
+
+	// Setup MariaDB with BootstrapFrom and selector labels
+	mariadb := &mariadbv1alpha1.MariaDB{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "mariadb-test",
+			Namespace: "test",
+		},
+		Spec: mariadbv1alpha1.MariaDBSpec{
+			BootstrapFrom: &mariadbv1alpha1.BootstrapFrom{
+				Volume: &mariadbv1alpha1.StorageVolumeSource{
+					EmptyDir: &mariadbv1alpha1.EmptyDirVolumeSource{},
+				},
+			},
+		},
+	}
+	podIndex := ptr.To(0)
+
+	job, err := builder.BuildPhysicalBackupRestoreJob(key, mariadb, podIndex)
+	if err != nil {
+		t.Fatalf("unexpected error building PhysicalBackupRestoreJob: %v", err)
+	}
+
+	// The selector labels should be present in the pod template metadata
+	selectorLabels := labels.NewLabelsBuilder().WithMariaDBSelectorLabels(mariadb).Build()
+	for k, v := range selectorLabels {
+		got := job.Spec.Template.ObjectMeta.Labels[k]
+		if got != v {
+			t.Errorf("expected selector label %q=%q, got %q", k, v, got)
+		}
+	}
+}
+
+func TestPhysicalBackupRestoreJobMeta(t *testing.T) {
+	builder := newDefaultTestBuilder(t)
+	objMeta := metav1.ObjectMeta{
+		Name: "mariadb-obj",
+	}
+	key := types.NamespacedName{
+		Name:      "physical-backup-restore-job-meta",
+		Namespace: "test",
+	}
+
+	tests := []struct {
+		name        string
+		mariadb     *mariadbv1alpha1.MariaDB
+		wantJobMeta *mariadbv1alpha1.Metadata
+		wantPodMeta *mariadbv1alpha1.Metadata
+	}{
+		{
+			name: "empty",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					BootstrapFrom: &mariadbv1alpha1.BootstrapFrom{
+						Volume: &mariadbv1alpha1.StorageVolumeSource{
+							PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimVolumeSource{},
+						},
+					},
+				},
+			},
+			wantJobMeta: &mariadbv1alpha1.Metadata{
+				Labels:      map[string]string{},
+				Annotations: map[string]string{},
+			},
+			wantPodMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{
+					"app.kubernetes.io/name":     "mariadb",
+					"app.kubernetes.io/instance": "mariadb-obj",
+				},
+				Annotations: map[string]string{},
+			},
+		},
+		{
+			name: "inherit metadata",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					BootstrapFrom: &mariadbv1alpha1.BootstrapFrom{
+						Volume: &mariadbv1alpha1.StorageVolumeSource{
+							PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimVolumeSource{},
+						},
+					},
+					InheritMetadata: &mariadbv1alpha1.Metadata{
+						Labels: map[string]string{
+							"sidecar.istio.io/inject": "false",
+						},
+						Annotations: map[string]string{
+							"database.myorg.io": "mariadb",
+						},
+					},
+				},
+			},
+			wantJobMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{
+					"sidecar.istio.io/inject": "false",
+				},
+				Annotations: map[string]string{
+					"database.myorg.io": "mariadb",
+				},
+			},
+			wantPodMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{
+					"sidecar.istio.io/inject":    "false",
+					"app.kubernetes.io/name":     "mariadb",
+					"app.kubernetes.io/instance": "mariadb-obj",
+				},
+				Annotations: map[string]string{
+					"database.myorg.io": "mariadb",
+				},
+			},
+		},
+		{
+			name: "Pod meta",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					BootstrapFrom: &mariadbv1alpha1.BootstrapFrom{
+						Volume: &mariadbv1alpha1.StorageVolumeSource{
+							PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimVolumeSource{},
+						},
+					},
+					PodTemplate: mariadbv1alpha1.PodTemplate{
+						PodMetadata: &mariadbv1alpha1.Metadata{
+							Labels: map[string]string{
+								"sidecar.istio.io/inject": "false",
+							},
+							Annotations: map[string]string{
+								"database.myorg.io": "mariadb",
+							},
+						},
+					},
+				},
+			},
+			wantJobMeta: &mariadbv1alpha1.Metadata{
+				Labels:      map[string]string{},
+				Annotations: map[string]string{},
+			},
+			wantPodMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{
+					"sidecar.istio.io/inject":    "false",
+					"app.kubernetes.io/name":     "mariadb",
+					"app.kubernetes.io/instance": "mariadb-obj",
+				},
+				Annotations: map[string]string{
+					"database.myorg.io": "mariadb",
+				},
+			},
+		},
+		{
+			name: "override inherit metadata",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					BootstrapFrom: &mariadbv1alpha1.BootstrapFrom{
+						Volume: &mariadbv1alpha1.StorageVolumeSource{
+							PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimVolumeSource{},
+						},
+					},
+					InheritMetadata: &mariadbv1alpha1.Metadata{
+						Labels: map[string]string{
+							"sidecar.istio.io/inject": "true",
+						},
+						Annotations: map[string]string{
+							"database.myorg.io": "mariadb",
+						},
+					},
+					PodTemplate: mariadbv1alpha1.PodTemplate{
+						PodMetadata: &mariadbv1alpha1.Metadata{
+							Labels: map[string]string{
+								"sidecar.istio.io/inject":    "false",
+								"app.kubernetes.io/name":     "mariadb",
+								"app.kubernetes.io/instance": "mariadb-obj",
+							},
+							Annotations: map[string]string{
+								"database.myorg.io": "mariadb",
+							},
+						},
+					},
+				},
+			},
+			wantJobMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{
+					"sidecar.istio.io/inject": "true",
+				},
+				Annotations: map[string]string{
+					"database.myorg.io": "mariadb",
+				},
+			},
+			wantPodMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{
+					"sidecar.istio.io/inject":    "false",
+					"app.kubernetes.io/name":     "mariadb",
+					"app.kubernetes.io/instance": "mariadb-obj",
+				},
+				Annotations: map[string]string{
+					"database.myorg.io": "mariadb",
+				},
+			},
+		},
+		{
+			name: "all",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					BootstrapFrom: &mariadbv1alpha1.BootstrapFrom{
+						Volume: &mariadbv1alpha1.StorageVolumeSource{
+							PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimVolumeSource{},
+						},
+					},
+					InheritMetadata: &mariadbv1alpha1.Metadata{
+						Annotations: map[string]string{
+							"database.myorg.io": "mariadb",
+						},
+					},
+					PodTemplate: mariadbv1alpha1.PodTemplate{
+						PodMetadata: &mariadbv1alpha1.Metadata{
+							Labels: map[string]string{
+								"sidecar.istio.io/inject": "false",
+							},
+						},
+					},
+				},
+			},
+			wantJobMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{},
+				Annotations: map[string]string{
+					"database.myorg.io": "mariadb",
+				},
+			},
+			wantPodMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{
+					"sidecar.istio.io/inject":    "false",
+					"app.kubernetes.io/name":     "mariadb",
+					"app.kubernetes.io/instance": "mariadb-obj",
+				},
+				Annotations: map[string]string{
+					"database.myorg.io": "mariadb",
+				},
+			},
+		},
+	}
+
+	podIndex := ptr.To(0)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			job, err := builder.BuildPhysicalBackupRestoreJob(key, tt.mariadb, podIndex)
+			if err != nil {
+				t.Fatalf("unexpected error building PhysicalBackupRestoreJob: %v", err)
+			}
+			assertObjectMeta(t, &job.ObjectMeta, tt.wantJobMeta.Labels, tt.wantJobMeta.Annotations)
+			assertObjectMeta(t, &job.Spec.Template.ObjectMeta, tt.wantPodMeta.Labels, tt.wantPodMeta.Annotations)
+		})
+	}
+}
+
+func TestPhysicalBackupRestoreJobImagePullSecrets(t *testing.T) {
+	builder := newDefaultTestBuilder(t)
+	objMeta := metav1.ObjectMeta{
+		Name:      "physical-backup-restore-image-pull-secrets",
+		Namespace: "test",
+	}
+	key := types.NamespacedName{
+		Name:      "physical-backup-restore-job",
+		Namespace: "test",
+	}
+
+	tests := []struct {
+		name            string
+		mariadb         *mariadbv1alpha1.MariaDB
+		wantPullSecrets []corev1.LocalObjectReference
+	}{
+		{
+			name: "No Secrets",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					BootstrapFrom: &mariadbv1alpha1.BootstrapFrom{
+						Volume: &mariadbv1alpha1.StorageVolumeSource{
+							EmptyDir: &mariadbv1alpha1.EmptyDirVolumeSource{},
+						},
+					},
+				},
+			},
+			wantPullSecrets: nil,
+		},
+		{
+			name: "Secrets in MariaDB",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					BootstrapFrom: &mariadbv1alpha1.BootstrapFrom{
+						Volume: &mariadbv1alpha1.StorageVolumeSource{
+							EmptyDir: &mariadbv1alpha1.EmptyDirVolumeSource{},
+						},
+					},
+					PodTemplate: mariadbv1alpha1.PodTemplate{
+						ImagePullSecrets: []mariadbv1alpha1.LocalObjectReference{
+							{
+								Name: "mariadb-registry",
+							},
+						},
+					},
+				},
+			},
+			wantPullSecrets: []corev1.LocalObjectReference{
+				{
+					Name: "mariadb-registry",
+				},
+			},
+		},
+	}
+
+	podIndex := ptr.To(0)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			job, err := builder.BuildPhysicalBackupRestoreJob(key, tt.mariadb, podIndex)
+			if err != nil {
+				t.Fatalf("unexpected error building PhysicalBackupRestoreJob: %v", err)
+			}
+			if !reflect.DeepEqual(tt.wantPullSecrets, job.Spec.Template.Spec.ImagePullSecrets) {
+				t.Errorf("unexpected ImagePullSecrets, want: %v  got: %v", tt.wantPullSecrets, job.Spec.Template.Spec.ImagePullSecrets)
+			}
 		})
 	}
 }

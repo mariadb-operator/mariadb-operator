@@ -397,7 +397,6 @@ func (r *BootstrapFrom) TargetRecoveryTimeOrDefault() time.Time {
 	return time.Now()
 }
 
-// TODO: test
 func (b *BootstrapFrom) RestoreSource() (*RestoreSource, error) {
 	var backupRef *LocalObjectReference
 	if b.BackupRef != nil {
