@@ -130,7 +130,6 @@ type BackupCommand struct {
 	BackupOpts
 }
 
-// TODO: test
 func NewBackupCommand(userOpts ...BackupOpt) (*BackupCommand, error) {
 	opts := BackupOpts{}
 	for _, setOpt := range userOpts {
@@ -196,7 +195,6 @@ func (b *BackupCommand) MariadbDump(backup *mariadbv1alpha1.Backup,
 	return NewBashCommand(cmds), nil
 }
 
-// TODO: test
 func (b *BackupCommand) MariadbBackup(mariadb *mariadbv1alpha1.MariaDB, backupFilePath string) (*Command, error) {
 	if b.Database != nil {
 		return nil, errors.New("Database option not supported in physical backups")
@@ -233,7 +231,6 @@ func (b *BackupCommand) MariadbBackup(mariadb *mariadbv1alpha1.MariaDB, backupFi
 	return NewBashCommand(cmds), nil
 }
 
-// TODO: test
 func (b *BackupCommand) MariadbOperatorBackup(backupContentType mariadbv1alpha1.BackupContentType) *Command {
 	args := []string{
 		"backup",
@@ -319,7 +316,6 @@ func (b *BackupCommand) MariadbRestore(restore *mariadbv1alpha1.Restore, mariadb
 	return NewBashCommand(cmds), nil
 }
 
-// TODO: test
 func (b *BackupCommand) MariadbBackupRestore(mariadb *mariadbv1alpha1.MariaDB, backupDirPath string) (*Command, error) {
 	if b.Database != nil {
 		return nil, errors.New("Database option not supported in physical backups")
