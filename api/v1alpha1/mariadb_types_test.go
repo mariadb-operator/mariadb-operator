@@ -1667,15 +1667,14 @@ var _ = Describe("MariaDB types", func() {
 					VolumeSnapshotRef: &LocalObjectReference{
 						Name: "test",
 					},
-					BackupContentType: BackupContentTypePhysical,
 				},
 				false,
 			),
 			Entry(
 				"Valid 6",
 				&BootstrapFrom{
-					S3: &S3{
-						Bucket: "test",
+					VolumeSnapshotRef: &LocalObjectReference{
+						Name: "test",
 					},
 					BackupContentType: BackupContentTypePhysical,
 				},
@@ -1687,17 +1686,15 @@ var _ = Describe("MariaDB types", func() {
 					S3: &S3{
 						Bucket: "test",
 					},
-					BackupContentType: BackupContentTypeLogical,
+					BackupContentType: BackupContentTypePhysical,
 				},
 				false,
 			),
 			Entry(
 				"Valid 8",
 				&BootstrapFrom{
-					Volume: &StorageVolumeSource{
-						NFS: &NFSVolumeSource{
-							Server: "nas.local",
-						},
+					S3: &S3{
+						Bucket: "test",
 					},
 					BackupContentType: BackupContentTypeLogical,
 				},
@@ -1711,12 +1708,24 @@ var _ = Describe("MariaDB types", func() {
 							Server: "nas.local",
 						},
 					},
-					BackupContentType: BackupContentTypePhysical,
+					BackupContentType: BackupContentTypeLogical,
 				},
 				false,
 			),
 			Entry(
 				"Valid 10",
+				&BootstrapFrom{
+					Volume: &StorageVolumeSource{
+						NFS: &NFSVolumeSource{
+							Server: "nas.local",
+						},
+					},
+					BackupContentType: BackupContentTypePhysical,
+				},
+				false,
+			),
+			Entry(
+				"Valid 11",
 				&BootstrapFrom{
 					BackupRef: &TypedLocalObjectReference{
 						Name: "test",
