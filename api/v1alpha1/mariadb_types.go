@@ -328,7 +328,7 @@ func (b *BootstrapFrom) Validate() error {
 				)
 			}
 		case PhysicalBackupKind:
-			if b.BackupContentType != BackupContentTypePhysical {
+			if b.BackupContentType != "" && b.BackupContentType != BackupContentTypePhysical {
 				return fmt.Errorf(
 					"inconsistent 'backupRef.kind'='%s' and 'backupContentType'='%s' fields. Physical type must be set in this case.",
 					kind,
