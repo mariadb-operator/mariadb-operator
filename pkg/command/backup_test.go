@@ -7,8 +7,73 @@ import (
 	"github.com/google/go-cmp/cmp"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	builderpki "github.com/mariadb-operator/mariadb-operator/pkg/builder/pki"
+	"github.com/stretchr/testify/assert"
 	"k8s.io/utils/ptr"
 )
+
+func TestNewBackupCommand(t *testing.T) {
+	tests := []struct {
+		name    string
+		opts    []BackupOpt
+		wantErr bool
+	}{
+		{
+			name: "missing path",
+			opts: []BackupOpt{
+				WithBackup("", "/target/file"),
+				WithBackupUserEnv("USER_ENV"),
+				WithBackupPasswordEnv("PASS_ENV"),
+			},
+			wantErr: true,
+		},
+		{
+			name: "missing target file",
+			opts: []BackupOpt{
+				WithBackup("/backups", ""),
+				WithBackupUserEnv("USER_ENV"),
+				WithBackupPasswordEnv("PASS_ENV"),
+			},
+			wantErr: true,
+		},
+		{
+			name: "missing user env",
+			opts: []BackupOpt{
+				WithBackup("/backups", "/target/file"),
+				WithBackupPasswordEnv("PASS_ENV"),
+			},
+			wantErr: true,
+		},
+		{
+			name: "missing password env",
+			opts: []BackupOpt{
+				WithBackup("/backups", "/target/file"),
+				WithBackupUserEnv("USER_ENV"),
+			},
+			wantErr: true,
+		},
+		{
+			name: "omit credentials skips user/password check",
+			opts: []BackupOpt{
+				WithBackup("/backups", "/target/file"),
+				WithOmitCredentials(true),
+			},
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cmd, err := NewBackupCommand(tt.opts...)
+			if tt.wantErr {
+				assert.Error(t, err)
+				assert.Nil(t, cmd)
+			} else {
+				assert.NoError(t, err)
+				assert.NotNil(t, cmd)
+			}
+		})
+	}
+}
 
 func TestMariadbDumpArgs(t *testing.T) {
 	tests := []struct {
@@ -280,6 +345,116 @@ func TestMariadbDumpArgs(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			args := tt.backupCmd.mariadbDumpArgs(tt.backup, tt.mariadb)
+			if diff := cmp.Diff(args, tt.wantArgs); diff != "" {
+				t.Errorf("unexpected args (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestMariadbBackupArgs(t *testing.T) {
+	tests := []struct {
+		name      string
+		backupCmd *BackupCommand
+		mariadb   *mariadbv1alpha1.MariaDB
+		wantArgs  []string
+	}{
+		{
+			name:      "default",
+			backupCmd: &BackupCommand{},
+			mariadb:   &mariadbv1alpha1.MariaDB{},
+			wantArgs: []string{
+				"--backup",
+				"--stream=xbstream",
+				"--databases-exclude='lost+found'",
+			},
+		},
+		{
+			name: "with extra opts",
+			backupCmd: &BackupCommand{
+				BackupOpts: BackupOpts{
+					ExtraOpts: []string{"--compress", "--parallel=2"},
+				},
+			},
+			mariadb: &mariadbv1alpha1.MariaDB{},
+			wantArgs: []string{
+				"--backup",
+				"--stream=xbstream",
+				"--databases-exclude='lost+found'",
+				"--compress",
+				"--parallel=2",
+			},
+		},
+		{
+			name:      "with TLS",
+			backupCmd: &BackupCommand{},
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					TLS: &mariadbv1alpha1.TLS{Enabled: true},
+				},
+			},
+			wantArgs: []string{
+				"--backup",
+				"--stream=xbstream",
+				"--databases-exclude='lost+found'",
+				"--ssl",
+				"--ssl-ca",
+				builderpki.CACertPath,
+				"--ssl-cert",
+				builderpki.ClientCertPath,
+				"--ssl-key",
+				builderpki.ClientKeyPath,
+				"--ssl-verify-server-cert",
+			},
+		},
+		{
+			name: "with TLS and extra opts",
+			backupCmd: &BackupCommand{
+				BackupOpts: BackupOpts{
+					ExtraOpts: []string{"--compress", "--parallel=2"},
+				},
+			},
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					TLS: &mariadbv1alpha1.TLS{Enabled: true},
+				},
+			},
+			wantArgs: []string{
+				"--backup",
+				"--stream=xbstream",
+				"--databases-exclude='lost+found'",
+				"--ssl",
+				"--ssl-ca",
+				builderpki.CACertPath,
+				"--ssl-cert",
+				builderpki.ClientCertPath,
+				"--ssl-key",
+				builderpki.ClientKeyPath,
+				"--ssl-verify-server-cert",
+				"--compress",
+				"--parallel=2",
+			},
+		},
+		{
+			name: "duplicate extra opts",
+			backupCmd: &BackupCommand{
+				BackupOpts: BackupOpts{
+					ExtraOpts: []string{"--compress", "--compress"},
+				},
+			},
+			mariadb: &mariadbv1alpha1.MariaDB{},
+			wantArgs: []string{
+				"--backup",
+				"--stream=xbstream",
+				"--databases-exclude='lost+found'",
+				"--compress",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			args := tt.backupCmd.mariadbBackupArgs(tt.mariadb)
 			if diff := cmp.Diff(args, tt.wantArgs); diff != "" {
 				t.Errorf("unexpected args (-want +got):\n%s", diff)
 			}
@@ -666,6 +841,55 @@ func TestMariadbArgs(t *testing.T) {
 			args := tt.backupCmd.mariadbArgs(tt.restore, tt.mariadb)
 			if diff := cmp.Diff(args, tt.wantArgs); diff != "" {
 				t.Errorf("unexpected args (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestMariadbBackupRestore(t *testing.T) {
+	tests := []struct {
+		name      string
+		backupCmd *BackupCommand
+		mariadb   *mariadbv1alpha1.MariaDB
+		backupDir string
+		wantErr   bool
+	}{
+		{
+			name: "with database option (should error)",
+			backupCmd: &BackupCommand{
+				BackupOpts: BackupOpts{
+					CommandOpts: CommandOpts{
+						Database: ptr.To("somedb"),
+					},
+					TargetFilePath: "/backups/target.sql",
+				},
+			},
+			mariadb:   &mariadbv1alpha1.MariaDB{},
+			backupDir: "/restore/dir",
+			wantErr:   true,
+		},
+		{
+			name: "basic physical restore",
+			backupCmd: &BackupCommand{
+				BackupOpts: BackupOpts{
+					TargetFilePath: "/backups/target.sql",
+				},
+			},
+			mariadb:   &mariadbv1alpha1.MariaDB{},
+			backupDir: "/restore/dir",
+			wantErr:   false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cmd, err := tt.backupCmd.MariadbBackupRestore(tt.mariadb, tt.backupDir)
+			if tt.wantErr {
+				assert.Error(t, err)
+				assert.Nil(t, cmd)
+			} else {
+				assert.NoError(t, err)
+				assert.NotNil(t, cmd)
 			}
 		})
 	}
