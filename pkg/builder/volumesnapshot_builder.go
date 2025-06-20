@@ -10,7 +10,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-// TODO: test
 func (b *Builder) BuildVolumeSnapshot(key types.NamespacedName, backup *mariadbv1alpha1.PhysicalBackup,
 	pvcKey types.NamespacedName) (*volumesnapshotv1.VolumeSnapshot, error) {
 	if backup.Spec.Storage.VolumeSnapshot == nil {
