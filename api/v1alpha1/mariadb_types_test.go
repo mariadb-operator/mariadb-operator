@@ -1865,4 +1865,118 @@ var _ = Describe("MariaDB types", func() {
 			),
 		)
 	})
+
+	Context("RestoreSource", func() {
+		DescribeTable("Should return a source",
+			func(bootstrap BootstrapFrom, wantErr bool, wantRestoreSource *RestoreSource) {
+				got, err := bootstrap.RestoreSource()
+				if wantErr {
+					Expect(err).To(HaveOccurred())
+				} else {
+					Expect(err).ToNot(HaveOccurred())
+					Expect(got).To(Equal(wantRestoreSource))
+				}
+			},
+			Entry(
+				"nil BackupRef, S3, Volume returns RestoreSource with nil BackupRef",
+				BootstrapFrom{},
+				false,
+				&RestoreSource{},
+			),
+			Entry(
+				"logical backupRef returns RestoreSource",
+				BootstrapFrom{
+					BackupRef: &TypedLocalObjectReference{
+						Name: "test",
+					},
+				},
+				false,
+				&RestoreSource{
+					BackupRef: &LocalObjectReference{
+						Name: "test",
+					},
+				},
+			),
+			Entry(
+				"logical backupRef with kind returns RestoreSource",
+				BootstrapFrom{
+					BackupRef: &TypedLocalObjectReference{
+						Name: "test",
+						Kind: BackupKind,
+					},
+				},
+				false,
+				&RestoreSource{
+					BackupRef: &LocalObjectReference{
+						Name: "test",
+					},
+				},
+			),
+			Entry(
+				"physical backupRef returns error",
+				BootstrapFrom{
+					BackupRef: &TypedLocalObjectReference{
+						Name: "backup2",
+						Kind: PhysicalBackupKind,
+					},
+				},
+				true,
+				nil,
+			),
+			Entry(
+				"S3 and Volume set returns RestoreSource",
+				BootstrapFrom{
+					S3: &S3{
+						Bucket: "test",
+					},
+					Volume: &StorageVolumeSource{
+						PersistentVolumeClaim: &PersistentVolumeClaimVolumeSource{
+							ClaimName: "test",
+						},
+					},
+				},
+				false,
+				&RestoreSource{
+					S3: &S3{
+						Bucket: "test",
+					},
+					Volume: &StorageVolumeSource{
+						PersistentVolumeClaim: &PersistentVolumeClaimVolumeSource{
+							ClaimName: "test",
+						},
+					},
+				},
+			),
+			Entry(
+				"all fields set returns RestoreSource",
+				BootstrapFrom{
+					BackupRef: &TypedLocalObjectReference{
+						Name: "test",
+					},
+					S3: &S3{
+						Bucket: "test",
+					},
+					Volume: &StorageVolumeSource{
+						PersistentVolumeClaim: &PersistentVolumeClaimVolumeSource{
+							ClaimName: "test",
+						},
+					},
+				},
+				false,
+				&RestoreSource{
+					BackupRef: &LocalObjectReference{
+						Name: "test",
+					},
+					S3: &S3{
+						Bucket: "test",
+					},
+					Volume: &StorageVolumeSource{
+						PersistentVolumeClaim: &PersistentVolumeClaimVolumeSource{
+							ClaimName: "test",
+						},
+					},
+				},
+			),
+		)
+	})
 })
