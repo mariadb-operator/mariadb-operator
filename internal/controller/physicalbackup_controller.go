@@ -153,8 +153,6 @@ func (r *PhysicalBackupReconciler) reconcileTemplateScheduled(ctx context.Contex
 		return ctrl.Result{RequeueAfter: nextTime.Sub(now)}, nil
 	}
 
-	// TODO: detect changes in cron and update schedule. Alternatively mark 'schedule.cron' as immutable.
-
 	nextTime := cronSchedule.Next(backup.Status.LastScheduleCheckTime.Time)
 
 	if now.Before(nextTime) {

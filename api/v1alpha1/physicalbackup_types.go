@@ -68,13 +68,25 @@ func (p *PhysicalBackupPodTemplate) ServiceAccountKey(objMeta metav1.ObjectMeta)
 
 // PhysicalBackupSchedule defines when the PhysicalBackup will be taken.
 type PhysicalBackupSchedule struct {
-	// Schedule contains parameters to define a schedule.
+	// Cron is a cron expression that defines the schedule.
+	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Schedule `json:",inline"`
+	Cron string `json:"cron" webhook:"inmutable"`
+	// Suspend defines whether the schedule is active or not.
+	// +optional
+	// +kubebuilder:default=false
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch","urn:alm:descriptor:com.tectonic.ui:advanced"}
+	Suspend bool `json:"suspend"`
 	// Immediate indicates whether the first backup should be taken immediately after creating the PhysicalBackup.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
 	Immediate *bool `json:"immediate,omitempty"`
+}
+
+// Validate determines whether a PhysicalBackupSchedule is valid.
+func (s *PhysicalBackupSchedule) Validate() error {
+	_, err := CronParser.Parse(s.Cron)
+	return err
 }
 
 // PhysicalBackupVolumeSnapshot defines parameters for the VolumeSnapshots used as physical backups.

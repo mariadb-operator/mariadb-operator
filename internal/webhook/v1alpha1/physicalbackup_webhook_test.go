@@ -178,9 +178,7 @@ var _ = Describe("PhysicalBackup webhook", func() {
 							},
 						},
 						Schedule: &v1alpha1.PhysicalBackupSchedule{
-							Schedule: v1alpha1.Schedule{
-								Cron: "foo",
-							},
+							Cron: "foo",
 						},
 						Compression: v1alpha1.CompressGzip,
 						Storage: v1alpha1.PhysicalBackupStorage{
@@ -217,9 +215,7 @@ var _ = Describe("PhysicalBackup webhook", func() {
 							},
 						},
 						Schedule: &v1alpha1.PhysicalBackupSchedule{
-							Schedule: v1alpha1.Schedule{
-								Cron: "*/1 * * * *",
-							},
+							Cron: "*/1 * * * *",
 						},
 						Compression: v1alpha1.CompressGzip,
 						Storage: v1alpha1.PhysicalBackupStorage{
@@ -314,9 +310,7 @@ var _ = Describe("PhysicalBackup webhook", func() {
 							},
 						},
 						Schedule: &v1alpha1.PhysicalBackupSchedule{
-							Schedule: v1alpha1.Schedule{
-								Cron: "*/1 * * * *",
-							},
+							Cron: "*/1 * * * *",
 						},
 						Compression: v1alpha1.CompressGzip,
 						Storage: v1alpha1.PhysicalBackupStorage{
@@ -364,9 +358,7 @@ var _ = Describe("PhysicalBackup webhook", func() {
 							},
 						},
 						Schedule: &v1alpha1.PhysicalBackupSchedule{
-							Schedule: v1alpha1.Schedule{
-								Cron: "*/1 * * * *",
-							},
+							Cron: "*/1 * * * *",
 						},
 						Compression: v1alpha1.CompressGzip,
 						Storage: v1alpha1.PhysicalBackupStorage{
@@ -430,6 +422,9 @@ var _ = Describe("PhysicalBackup webhook", func() {
 							Endpoint: "test",
 						},
 					},
+					Schedule: &v1alpha1.PhysicalBackupSchedule{
+						Cron: "* */1 * * *",
+					},
 					StagingStorage: &v1alpha1.BackupStagingStorage{
 						PersistentVolumeClaim: &v1alpha1.PersistentVolumeClaimSpec{
 							AccessModes: []corev1.PersistentVolumeAccessMode{
@@ -482,12 +477,10 @@ var _ = Describe("PhysicalBackup webhook", func() {
 				"Updating Schedule",
 				func(bmdb *v1alpha1.PhysicalBackup) {
 					bmdb.Spec.Schedule = &v1alpha1.PhysicalBackupSchedule{
-						Schedule: v1alpha1.Schedule{
-							Cron: "*/1 * * * *",
-						},
+						Cron: "*/1 * * * *",
 					}
 				},
-				false,
+				true,
 			),
 			Entry(
 				"Updating SuccessfulJobsHistoryLimit",
