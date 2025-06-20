@@ -341,7 +341,7 @@ func (b *BootstrapFrom) Validate() error {
 	}
 
 	if b.VolumeSnapshotRef != nil {
-		if b.BackupContentType != BackupContentTypePhysical {
+		if b.BackupContentType != "" && b.BackupContentType != BackupContentTypePhysical {
 			return errors.New("inconsistent 'volumeSnapshotRef' and 'backupContentType' fields. Physical type must be set in this case.")
 		}
 		if b.S3 != nil || b.Volume != nil || b.RestoreJob != nil {
