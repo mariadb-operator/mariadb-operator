@@ -2,13 +2,13 @@ package builder
 
 import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
 
 const (
-	PhysicalBackupName = "physicalbackup.k8s.mariadb.com/name"
 	appLabel           = "app.kubernetes.io/name"
 	instanceLabel      = "app.kubernetes.io/instance"
 	statefulSetPodName = "statefulset.kubernetes.io/pod-name"
@@ -67,7 +67,7 @@ func (b *LabelsBuilder) WithMaxScaleSelectorLabels(mxs *mariadbv1alpha1.MaxScale
 }
 
 func (b *LabelsBuilder) WithPhysicalBackupSelectorLabels(backup *mariadbv1alpha1.PhysicalBackup) *LabelsBuilder {
-	b.labels[PhysicalBackupName] = backup.Name
+	b.labels[metadata.PhysicalBackupNameLabel] = backup.Name
 	return b
 }
 

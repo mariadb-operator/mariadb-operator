@@ -102,10 +102,6 @@ var _ = BeforeSuite(func() {
 	Expect(cfg).NotTo(BeNil())
 	DeferCleanup(testEnv.Stop)
 
-	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
-	Expect(err).NotTo(HaveOccurred())
-	Expect(k8sClient).NotTo(BeNil())
-
 	k8sManager, err := ctrl.NewManager(cfg, ctrl.Options{
 		Scheme: scheme.Scheme,
 		Controller: config.Controller{
@@ -113,6 +109,7 @@ var _ = BeforeSuite(func() {
 		},
 	})
 	Expect(err).ToNot(HaveOccurred())
+	k8sClient = k8sManager.GetClient()
 
 	client := k8sManager.GetClient()
 	scheme := k8sManager.GetScheme()

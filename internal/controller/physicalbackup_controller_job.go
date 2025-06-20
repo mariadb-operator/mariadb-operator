@@ -7,7 +7,9 @@ import (
 	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/pkg/job"
 	jobpkg "github.com/mariadb-operator/mariadb-operator/pkg/job"
+	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
 	mdbtime "github.com/mariadb-operator/mariadb-operator/pkg/time"
 	"github.com/mariadb-operator/mariadb-operator/pkg/wait"
 	"github.com/robfig/cron/v3"
@@ -23,11 +25,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
-const metaCtrlFieldPath = ".metadata.controller"
-
 func (r *PhysicalBackupReconciler) reconcileJobs(ctx context.Context, backup *mariadbv1alpha1.PhysicalBackup,
 	mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
-	jobList, err := r.listJobs(ctx, backup)
+	jobList, err := job.ListJobs(ctx, r.Client, backup)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error listing Jobs: %v", err)
 	}
@@ -53,31 +53,18 @@ func (r *PhysicalBackupReconciler) reconcileJobs(ctx context.Context, backup *ma
 	})
 }
 
-func (r *PhysicalBackupReconciler) listJobs(ctx context.Context, backup *mariadbv1alpha1.PhysicalBackup) (*batchv1.JobList, error) {
-	var jobList batchv1.JobList
-	if err := r.List(
-		ctx,
-		&jobList,
-		client.InNamespace(backup.Namespace),
-		client.MatchingFields{metaCtrlFieldPath: backup.Name},
-	); err != nil {
-		return nil, err
-	}
-	return &jobList, nil
-}
-
 func (r *PhysicalBackupReconciler) indexJobs(ctx context.Context, mgr manager.Manager) error {
 	log.FromContext(ctx).
 		WithName("indexer").
 		WithValues(
 			"kind", "Job",
-			"field", metaCtrlFieldPath,
+			"field", metadata.MetaCtrlFieldPath,
 		).
 		Info("Watching field")
 	return mgr.GetFieldIndexer().IndexField(
 		ctx,
 		&batchv1.Job{},
-		metaCtrlFieldPath,
+		metadata.MetaCtrlFieldPath,
 		func(o client.Object) []string {
 			job, ok := o.(*batchv1.Job)
 			if !ok {
