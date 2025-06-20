@@ -8,6 +8,7 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	metadata "github.com/mariadb-operator/mariadb-operator/pkg/builder/metadata"
+	mdbreflect "github.com/mariadb-operator/mariadb-operator/pkg/reflect"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -30,7 +31,6 @@ func (b *Builder) BuildBackupStoragePVC(key types.NamespacedName, pvcSpec *maria
 	}, nil
 }
 
-// TODO: test
 func (b *Builder) BuildBackupStagingPVC(key types.NamespacedName, pvcSpec *mariadbv1alpha1.PersistentVolumeClaimSpec,
 	meta *mariadbv1alpha1.Metadata, owner metav1.Object) (*corev1.PersistentVolumeClaim, error) {
 	if pvcSpec == nil {
@@ -44,7 +44,7 @@ func (b *Builder) BuildBackupStagingPVC(key types.NamespacedName, pvcSpec *maria
 		ObjectMeta: objMeta,
 		Spec:       pvcSpec.ToKubernetesType(),
 	}
-	if owner != nil {
+	if !mdbreflect.IsNil(owner) {
 		if err := controllerutil.SetControllerReference(owner, &pvc, b.scheme); err != nil {
 			return nil, fmt.Errorf("error setting controller to PVC %v", err)
 		}
@@ -54,7 +54,6 @@ func (b *Builder) BuildBackupStagingPVC(key types.NamespacedName, pvcSpec *maria
 
 type PVCOption func(*corev1.PersistentVolumeClaimSpec)
 
-// TODO: test
 func WithVolumeSnapshotDataSource(snapshotName string) PVCOption {
 	return func(pvcSpec *corev1.PersistentVolumeClaimSpec) {
 		pvcSpec.DataSource = &corev1.TypedLocalObjectReference{
@@ -65,7 +64,6 @@ func WithVolumeSnapshotDataSource(snapshotName string) PVCOption {
 	}
 }
 
-// TODO: test
 func (b *Builder) BuildStoragePVC(key types.NamespacedName, tpl *mariadbv1alpha1.VolumeClaimTemplate,
 	mariadb *mariadbv1alpha1.MariaDB, opts ...PVCOption) (*corev1.PersistentVolumeClaim, error) {
 	if tpl == nil {

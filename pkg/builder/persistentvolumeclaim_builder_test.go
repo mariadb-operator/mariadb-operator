@@ -4,13 +4,14 @@ import (
 	"testing"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
 
-func TestInvalidBackupPVC(t *testing.T) {
+func TestInvalidBackupStoragePVC(t *testing.T) {
 	builder := newDefaultTestBuilder(t)
 	key := types.NamespacedName{
 		Name: "invalid-backup-pvc",
@@ -64,7 +65,7 @@ func TestInvalidBackupPVC(t *testing.T) {
 	}
 }
 
-func TestBackupPVCMeta(t *testing.T) {
+func TestBackupStoragePVCMeta(t *testing.T) {
 	builder := newDefaultTestBuilder(t)
 	key := types.NamespacedName{
 		Name: "backup-pvc",
@@ -145,6 +146,71 @@ func TestBackupPVCMeta(t *testing.T) {
 				t.Fatalf("unexpected error building Backup PVC: %v", err)
 			}
 			assertObjectMeta(t, &pvc.ObjectMeta, tt.wantMeta.Labels, tt.wantMeta.Annotations)
+		})
+	}
+}
+
+func TestBackupStagingPVCOwnerReference(t *testing.T) {
+	builder := newDefaultTestBuilder(t)
+	key := types.NamespacedName{
+		Name:      "staging-pvc",
+		Namespace: "test",
+	}
+	pvcSpec := &mariadbv1alpha1.PersistentVolumeClaimSpec{
+		Resources: corev1.VolumeResourceRequirements{
+			Requests: corev1.ResourceList{
+				corev1.ResourceStorage: resource.MustParse("500Mi"),
+			},
+		},
+		AccessModes: []corev1.PersistentVolumeAccessMode{
+			corev1.ReadWriteOnce,
+		},
+	}
+	meta := &mariadbv1alpha1.Metadata{
+		Labels: map[string]string{
+			"test-label": "test",
+		},
+	}
+	owner := &mariadbv1alpha1.MariaDB{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-mariadb",
+			Namespace: "test",
+			UID:       types.UID("test-uid"),
+		},
+	}
+
+	tests := []struct {
+		name         string
+		owner        *mariadbv1alpha1.MariaDB
+		wantOwnerRef bool
+	}{
+		{
+			name:         "with owner",
+			owner:        owner,
+			wantOwnerRef: true,
+		},
+		{
+			name:         "without owner",
+			owner:        nil,
+			wantOwnerRef: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pvc, err := builder.BuildBackupStagingPVC(key, pvcSpec, meta, tt.owner)
+			assert.NoError(t, err, "unexpected error building Backup Staging PVC")
+			assert.NotNil(t, pvc, "expected PVC to be created")
+
+			found := false
+			for _, ref := range pvc.OwnerReferences {
+				if tt.owner != nil && ref.UID == tt.owner.UID && ref.Name == tt.owner.Name && ref.Kind == "MariaDB" {
+					found = true
+					assert.True(t, *ref.Controller, "expected Controller to be true")
+					break
+				}
+			}
+			assert.Equal(t, tt.wantOwnerRef, found, "unexpected owner reference presence")
 		})
 	}
 }
@@ -328,6 +394,66 @@ func TestStoragePVCMeta(t *testing.T) {
 			}
 			if pvc != nil {
 				assertObjectMeta(t, &pvc.ObjectMeta, tt.wantMeta.Labels, tt.wantMeta.Annotations)
+			}
+		})
+	}
+}
+
+func TestStoragePVCDataSource(t *testing.T) {
+	builder := newDefaultTestBuilder(t)
+	key := types.NamespacedName{Name: "snapshot-pvc"}
+	tpl := &mariadbv1alpha1.VolumeClaimTemplate{
+		PersistentVolumeClaimSpec: mariadbv1alpha1.PersistentVolumeClaimSpec{
+			Resources: corev1.VolumeResourceRequirements{
+				Requests: corev1.ResourceList{
+					corev1.ResourceStorage: resource.MustParse("1Gi"),
+				},
+			},
+			AccessModes: []corev1.PersistentVolumeAccessMode{
+				corev1.ReadWriteOnce,
+			},
+		},
+	}
+	mariadb := &mariadbv1alpha1.MariaDB{}
+
+	tests := []struct {
+		name             string
+		opts             []PVCOption
+		wantDataSource   bool
+		wantSnapshotName string
+	}{
+		{
+			name:           "without WithVolumeSnapshotDataSource",
+			opts:           []PVCOption{},
+			wantDataSource: false,
+		},
+		{
+			name:             "with WithVolumeSnapshotDataSource",
+			opts:             []PVCOption{WithVolumeSnapshotDataSource("my-snapshot")},
+			wantDataSource:   true,
+			wantSnapshotName: "my-snapshot",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pvc, err := builder.BuildStoragePVC(key, tpl, mariadb, tt.opts...)
+			assert.NoError(t, err, "unexpected error building Storage PVC")
+
+			if tt.wantDataSource {
+				assert.NotNil(t, pvc.Spec.DataSource, "expected DataSource to be set")
+				assert.Equal(t, "VolumeSnapshot", pvc.Spec.DataSource.Kind, "expected DataSource.Kind to be 'VolumeSnapshot'")
+
+				assert.Equal(t, tt.wantSnapshotName, pvc.Spec.DataSource.Name, "expected DataSource.Name to match")
+				assert.NotNil(t, pvc.Spec.DataSource.APIGroup, "expected DataSource.APIGroup to be set")
+				assert.Equal(
+					t,
+					"snapshot.storage.k8s.io",
+					*pvc.Spec.DataSource.APIGroup,
+					"expected DataSource.APIGroup to be 'snapshot.storage.k8s.io'",
+				)
+			} else {
+				assert.Nil(t, pvc.Spec.DataSource, "expected DataSource to be nil")
 			}
 		})
 	}
