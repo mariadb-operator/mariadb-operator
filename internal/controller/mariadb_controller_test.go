@@ -723,22 +723,22 @@ var _ = Describe("MariaDB", func() {
 })
 
 func testMariadbBootstrap(key types.NamespacedName, source mariadbv1alpha1.RestoreSource) {
+	bootstrapFrom := newBootstrapFromRestoreSource(source)
+	bootstrapFrom.RestoreJob = &mariadbv1alpha1.Job{
+		Metadata: &mariadbv1alpha1.Metadata{
+			Labels: map[string]string{
+				"sidecar.istio.io/inject": "false",
+			},
+		},
+	}
+
 	mdb := mariadbv1alpha1.MariaDB{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      key.Name,
 			Namespace: key.Namespace,
 		},
 		Spec: mariadbv1alpha1.MariaDBSpec{
-			BootstrapFrom: &mariadbv1alpha1.BootstrapFrom{
-				RestoreSource: source,
-				RestoreJob: &mariadbv1alpha1.Job{
-					Metadata: &mariadbv1alpha1.Metadata{
-						Labels: map[string]string{
-							"sidecar.istio.io/inject": "false",
-						},
-					},
-				},
-			},
+			BootstrapFrom: &bootstrapFrom,
 			Storage: mariadbv1alpha1.Storage{
 				Size: ptr.To(resource.MustParse("100Mi")),
 			},
@@ -771,4 +771,21 @@ func testMariadbBootstrap(key types.NamespacedName, source mariadbv1alpha1.Resto
 		}
 		return mdb.HasRestoredBackup()
 	}, testTimeout, testInterval).Should(BeTrue())
+}
+
+func newBootstrapFromRestoreSource(source mariadbv1alpha1.RestoreSource) mariadbv1alpha1.BootstrapFrom {
+	var typedBackupRef *mariadbv1alpha1.TypedLocalObjectReference
+	if source.BackupRef != nil {
+		typedBackupRef = &mariadbv1alpha1.TypedLocalObjectReference{
+			Name: source.BackupRef.Name,
+			Kind: mariadbv1alpha1.BackupKind,
+		}
+	}
+	return mariadbv1alpha1.BootstrapFrom{
+		BackupRef:          typedBackupRef,
+		S3:                 source.S3,
+		Volume:             source.Volume,
+		TargetRecoveryTime: source.TargetRecoveryTime,
+		StagingStorage:     source.StagingStorage,
+	}
 }

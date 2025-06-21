@@ -21,6 +21,7 @@ var (
 
 	path              string
 	targetFilePath    string
+	backupContentType string
 	cleanupTargetFile bool
 
 	s3           bool
@@ -49,6 +50,8 @@ func init() {
 		fmt.Printf("error marking 'target-file-path' flag as required: %v", err)
 		os.Exit(1)
 	}
+	RootCmd.PersistentFlags().StringVar(&backupContentType, "backup-content-type", string(mariadbv1alpha1.BackupContentTypeLogical),
+		"Backup type: Logical (mariadb-dump) or Physical (mariadb-backup).")
 	RootCmd.PersistentFlags().BoolVar(&cleanupTargetFile, "cleanup-target-file", false,
 		"Whether to clean up the target file after S3 backups are completed."+
 			"This option should be used exclusively with external backups, such as S3.")
@@ -62,7 +65,7 @@ func init() {
 	RootCmd.PersistentFlags().StringVar(&s3Prefix, "s3-prefix", "", "S3 bucket prefix name to use.")
 
 	RootCmd.PersistentFlags().StringVar(&compression, "compression", string(mariadbv1alpha1.CompressNone),
-		"Compression algorithm, none, gzip or bzip2.")
+		"Compression algorithm: none, gzip or bzip2.")
 
 	RootCmd.Flags().DurationVar(&maxRetention, "max-retention", 30*24*time.Hour,
 		"Defines the retention policy for backups. Older backups will be deleted.")
@@ -85,12 +88,17 @@ var RootCmd = &cobra.Command{
 		ctx, cancel := newContext()
 		defer cancel()
 
-		backupStorage, err := getBackupStorage()
+		backupProcessor, err := getBackupProcessor()
+		if err != nil {
+			logger.Error(err, "error getting backup processor")
+			os.Exit(1)
+		}
+		backupStorage, err := getBackupStorage(backupProcessor)
 		if err != nil {
 			logger.Error(err, "error getting backup storage")
 			os.Exit(1)
 		}
-		backupCompressor, err := getBackupCompressor()
+		backupCompressor, err := getBackupCompressor(backupProcessor)
 		if err != nil {
 			logger.Error(err, "error getting backup compressor")
 			os.Exit(1)
@@ -121,7 +129,7 @@ var RootCmd = &cobra.Command{
 			logger.Error(err, "error listing backup files")
 			os.Exit(1)
 		}
-		oldBackups := backup.GetOldBackupFiles(backupNames, maxRetention, logger.WithName("backup-cleanup"))
+		oldBackups := backupProcessor.GetOldBackupFiles(backupNames, maxRetention, logger.WithName("backup-cleanup"))
 		logger.Info("old backups to delete", "backups", len(oldBackups))
 		for _, backup := range oldBackups {
 			logger.V(1).Info("deleting old backup", "backup", backup)
@@ -147,13 +155,31 @@ func newContext() (context.Context, context.CancelFunc) {
 	)
 }
 
-func getBackupStorage() (backup.BackupStorage, error) {
+func getBackupProcessor() (backup.BackupProcessor, error) {
+	backType := mariadbv1alpha1.BackupContentType(backupContentType)
+	if err := backType.Validate(); err != nil {
+		return nil, fmt.Errorf("backup type not supported: %v", err)
+	}
+	switch backType {
+	case mariadbv1alpha1.BackupContentTypeLogical:
+		logger.Info("configuring logical backup processor")
+		return backup.NewLogicalBackupProcessor(), nil
+	case mariadbv1alpha1.BackupContentTypePhysical:
+		logger.Info("configuring physical backup processor")
+		return backup.NewPhysicalBackupProcessor(), nil
+	default:
+		return nil, fmt.Errorf("unsupported backup type: %v", backType)
+	}
+}
+
+func getBackupStorage(processor backup.BackupProcessor) (backup.BackupStorage, error) {
 	if s3 {
 		logger.Info("configuring S3 backup storage")
 		return backup.NewS3BackupStorage(
 			path,
 			s3Bucket,
 			s3Endpoint,
+			processor,
 			logger.WithName("s3-storage"),
 			backup.WithTLS(s3TLS),
 			backup.WithCACertPath(s3CACertPath),
@@ -162,25 +188,26 @@ func getBackupStorage() (backup.BackupStorage, error) {
 		)
 	}
 	logger.Info("configuring filesystem backup storage")
-	return backup.NewFileSystemBackupStorage(path, logger.WithName("file-system-storage")), nil
+	return backup.NewFileSystemBackupStorage(path, processor, logger.WithName("file-system-storage")), nil
 }
 
-func getBackupCompressor() (backup.BackupCompressor, error) {
+func getBackupCompressor(processor backup.BackupProcessor) (backup.BackupCompressor, error) {
 	calg := mariadbv1alpha1.CompressAlgorithm(compression)
 	if err := calg.Validate(); err != nil {
 		return nil, fmt.Errorf("compression algorithm not supported: %v", err)
 	}
-	return getBackupCompressorWithAlgorithm(calg)
+	return getBackupCompressorWithAlgorithm(calg, processor)
 }
 
-func getBackupCompressorWithAlgorithm(calg mariadbv1alpha1.CompressAlgorithm) (backup.BackupCompressor, error) {
+func getBackupCompressorWithAlgorithm(calg mariadbv1alpha1.CompressAlgorithm,
+	processor backup.BackupProcessor) (backup.BackupCompressor, error) {
 	switch calg {
 	case mariadbv1alpha1.CompressNone:
-		return backup.NewNopCompressor(path, logger.WithName("nop-compressor")), nil
+		return backup.NewNopCompressor(path, processor, logger.WithName("nop-compressor")), nil
 	case mariadbv1alpha1.CompressGzip:
-		return backup.NewGzipBackupCompressor(path, logger.WithName("gzip-compressor")), nil
+		return backup.NewGzipBackupCompressor(path, processor, logger.WithName("gzip-compressor")), nil
 	case mariadbv1alpha1.CompressBzip2:
-		return backup.NewBzip2BackupCompressor(path, logger.WithName("bzip2-compressor")), nil
+		return backup.NewBzip2BackupCompressor(path, processor, logger.WithName("bzip2-compressor")), nil
 	default:
 		return nil, fmt.Errorf("unsupported compression algorithm: %v", calg)
 	}

@@ -8,6 +8,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/scheme"
 )
 
+const (
+	// BackupKind is the kind name of Backup
+	BackupKind = "Backup"
+	// PhysicalBackupKind is the kind name of PhysicalBackup
+	PhysicalBackupKind = "PhysicalBackup"
+)
+
 var (
 	// GroupVersion is group version used to register these objects
 	GroupVersion = schema.GroupVersion{Group: "k8s.mariadb.com", Version: "v1alpha1"}

@@ -264,7 +264,7 @@ type GaleraRecoveryJob struct {
 	Resources *ResourceRequirements `json:"resources,omitempty"`
 	// PodAffinity indicates whether the recovery Jobs should run in the same Node as the MariaDB Pods. It defaults to true.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:resourceRequirements"}
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
 	PodAffinity *bool `json:"podAffinity,omitempty"`
 }
 

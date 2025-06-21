@@ -294,17 +294,30 @@ spec:
               bootstrapFrom:
                 description: BootstrapFrom defines a source to bootstrap from.
                 properties:
+                  backupContentType:
+                    description: |-
+                      BackupContentType is the backup content type available in the source to bootstrap from.
+                      It is inferred based on the BackupRef and VolumeSnapshotRef fields. If inference is not possible, it defaults to Logical.
+                      Set this field explicitly when using physical backups from S3 or Volume sources.
+                    enum:
+                    - Logical
+                    - Physical
+                    type: string
                   backupRef:
-                    description: BackupRef is a reference to a Backup object. It has
-                      priority over S3 and Volume.
+                    description: |-
+                      BackupRef is reference to a backup object. If the Kind is not specified, a logical Backup is assumed.
+                      This field takes precedence over S3 and Volume sources.
                     properties:
+                      kind:
+                        description: Kind of the referent.
+                        type: string
                       name:
-                        default: ""
+                        description: Name of the referent.
                         type: string
                     type: object
                   restoreJob:
                     description: RestoreJob defines additional properties for the
-                      Job used to perform the Restore.
+                      Job used to perform the restoration.
                     properties:
                       affinity:
                         description: Affinity to be used in the Pod.
@@ -635,8 +648,9 @@ spec:
                         type: array
                     type: object
                   s3:
-                    description: S3 defines the configuration to restore backups from
-                      a S3 compatible storage. It has priority over Volume.
+                    description: |-
+                      S3 defines the configuration to restore backups from a S3 compatible storage.
+                      This field takes precedence over the Volume source.
                     properties:
                       accessKeyIdSecretKeyRef:
                         description: AccessKeyIdSecretKeyRef is a reference to a Secret
@@ -721,7 +735,7 @@ spec:
                   stagingStorage:
                     description: |-
                       StagingStorage defines the temporary storage used to keep external backups (i.e. S3) while they are being processed.
-                      It defaults to an emptyDir volume, meaning that the backups will be temporarily stored in the node where the Restore Job is scheduled.
+                      It defaults to an emptyDir volume, meaning that the backups will be temporarily stored in the node where the Job is scheduled.
                     properties:
                       persistentVolumeClaim:
                         description: PersistentVolumeClaim is a Kubernetes PVC specification.
@@ -967,6 +981,15 @@ spec:
                         required:
                         - claimName
                         type: object
+                    type: object
+                  volumeSnapshotRef:
+                    description: |-
+                      VolumeSnapshotRef is a reference to a VolumeSnapshot object.
+                      This field takes precedence over S3 and Volume sources.
+                    properties:
+                      name:
+                        default: ""
+                        type: string
                     type: object
                 type: object
               command:

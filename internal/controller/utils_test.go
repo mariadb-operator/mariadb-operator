@@ -105,15 +105,7 @@ func testCreateInitialData(ctx context.Context, env environment.OperatorEnv) {
 			Namespace: testMdbkey.Namespace,
 		},
 		Spec: mariadbv1alpha1.MariaDBSpec{
-			ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
-				SecurityContext: &mariadbv1alpha1.SecurityContext{
-					AllowPrivilegeEscalation: ptr.To(false),
-				},
-			},
 			PodTemplate: mariadbv1alpha1.PodTemplate{
-				PodSecurityContext: &mariadbv1alpha1.PodSecurityContext{
-					RunAsUser: ptr.To(int64(999)),
-				},
 				PodMetadata: &mariadbv1alpha1.Metadata{
 					Labels: map[string]string{
 						"sidecar.istio.io/inject": "false",
@@ -163,7 +155,7 @@ max_allowed_packet=256M`),
 				Type: corev1.ServiceTypeLoadBalancer,
 				Metadata: &mariadbv1alpha1.Metadata{
 					Annotations: map[string]string{
-						"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.45",
+						"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.46",
 					},
 				},
 			},
@@ -194,7 +186,8 @@ max_allowed_packet=256M`),
 				Required: ptr.To(true),
 			},
 			Storage: mariadbv1alpha1.Storage{
-				Size: ptr.To(resource.MustParse("300Mi")),
+				Size:             ptr.To(resource.MustParse("300Mi")),
+				StorageClassName: "csi-hostpath-sc",
 			},
 		},
 	}
@@ -255,8 +248,14 @@ func testMariadbVolumeResize(mdb *mariadbv1alpha1.MariaDB, newVolumeSize string)
 	key := client.ObjectKeyFromObject(mdb)
 
 	By("Updating storage")
-	mdb.Spec.Storage.Size = ptr.To(resource.MustParse(newVolumeSize))
-	Expect(k8sClient.Update(testCtx, mdb)).To(Succeed())
+	Eventually(func() bool {
+		if err := k8sClient.Get(testCtx, key, mdb); err != nil {
+			return false
+		}
+		mdb.Spec.Storage.Size = ptr.To(resource.MustParse(newVolumeSize))
+
+		return k8sClient.Update(testCtx, mdb) == nil
+	}, testHighTimeout, testInterval).Should(BeTrue())
 
 	By("Expecting MariaDB to have resized storage eventually")
 	Eventually(func() bool {

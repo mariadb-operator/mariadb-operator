@@ -3,6 +3,7 @@ package v1alpha1
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	cmmeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
@@ -261,13 +262,158 @@ type MariaDBMaxScaleSpec struct {
 
 // BootstrapFrom defines a source to bootstrap MariaDB from.
 type BootstrapFrom struct {
-	// RestoreSource indicates where the initial data to bootstrap MariaDB with is located.
+	// BackupRef is reference to a backup object. If the Kind is not specified, a logical Backup is assumed.
+	// This field takes precedence over S3 and Volume sources.
+	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	RestoreSource `json:",inline"`
-	// RestoreJob defines additional properties for the Job used to perform the Restore.
+	BackupRef *TypedLocalObjectReference `json:"backupRef,omitempty" webhook:"inmutableinit"`
+	// VolumeSnapshotRef is a reference to a VolumeSnapshot object.
+	// This field takes precedence over S3 and Volume sources.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	VolumeSnapshotRef *LocalObjectReference `json:"volumeSnapshotRef,omitempty" webhook:"inmutableinit"`
+	// BackupContentType is the backup content type available in the source to bootstrap from.
+	// It is inferred based on the BackupRef and VolumeSnapshotRef fields. If inference is not possible, it defaults to Logical.
+	// Set this field explicitly when using physical backups from S3 or Volume sources.
+	// +optional
+	// +kubebuilder:validation:Enum=Logical;Physical
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	BackupContentType BackupContentType `json:"backupContentType,omitempty" webhook:"inmutableinit"`
+	// S3 defines the configuration to restore backups from a S3 compatible storage.
+	// This field takes precedence over the Volume source.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	S3 *S3 `json:"s3,omitempty" webhook:"inmutableinit"`
+	// Volume is a Kubernetes Volume object that contains a backup.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Volume *StorageVolumeSource `json:"volume,omitempty" webhook:"inmutableinit"`
+	// TargetRecoveryTime is a RFC3339 (1970-01-01T00:00:00Z) date and time that defines the point in time recovery objective.
+	// It is used to determine the closest restoration source in time.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	TargetRecoveryTime *metav1.Time `json:"targetRecoveryTime,omitempty" webhook:"inmutable"`
+	// StagingStorage defines the temporary storage used to keep external backups (i.e. S3) while they are being processed.
+	// It defaults to an emptyDir volume, meaning that the backups will be temporarily stored in the node where the Job is scheduled.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch","urn:alm:descriptor:com.tectonic.ui:advanced"}
+	StagingStorage *BackupStagingStorage `json:"stagingStorage,omitempty" webhook:"inmutable"`
+	// RestoreJob defines additional properties for the Job used to perform the restoration.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	RestoreJob *Job `json:"restoreJob,omitempty"`
+}
+
+func (b *BootstrapFrom) Validate() error {
+	if b.BackupRef == nil && b.VolumeSnapshotRef == nil && b.S3 == nil && b.Volume == nil {
+		return errors.New("unable to determine bootstrap source")
+	}
+
+	if b.BackupContentType != "" {
+		if err := b.BackupContentType.Validate(); err != nil {
+			return fmt.Errorf("invalid 'backupContentType': %v", err)
+		}
+	}
+
+	if b.BackupRef != nil {
+		kind := b.BackupRef.Kind
+
+		switch kind {
+		case "", BackupKind:
+			if b.BackupContentType != "" && b.BackupContentType != BackupContentTypeLogical {
+				return fmt.Errorf(
+					"inconsistent 'backupRef.kind'='%s' and 'backupContentType'='%s' fields. Logical type must be set in this case.",
+					kind,
+					b.BackupContentType,
+				)
+			}
+		case PhysicalBackupKind:
+			if b.BackupContentType != "" && b.BackupContentType != BackupContentTypePhysical {
+				return fmt.Errorf(
+					"inconsistent 'backupRef.kind'='%s' and 'backupContentType'='%s' fields. Physical type must be set in this case.",
+					kind,
+					b.BackupContentType,
+				)
+			}
+		default:
+			return fmt.Errorf("unsupported backup kind: '%v', supported kinds: [%v|%v]", kind, BackupKind, PhysicalBackupKind)
+		}
+	}
+
+	if b.VolumeSnapshotRef != nil {
+		if b.BackupContentType != "" && b.BackupContentType != BackupContentTypePhysical {
+			return errors.New("inconsistent 'volumeSnapshotRef' and 'backupContentType' fields. Physical type must be set in this case.")
+		}
+		if b.S3 != nil || b.Volume != nil || b.RestoreJob != nil {
+			return errors.New("'s3', 'volume' and 'restoreJob' may not be set when 'volumeSnapshotRef' is set")
+		}
+	}
+	return nil
+}
+
+func (b *BootstrapFrom) IsDefaulted() bool {
+	return b.Volume != nil || b.VolumeSnapshotRef != nil
+}
+
+func (b *BootstrapFrom) SetDefaults(mariadb *MariaDB) {
+	if b.BackupRef != nil && b.BackupContentType == "" {
+		switch b.BackupRef.Kind {
+		case BackupKind:
+			b.BackupContentType = BackupContentTypeLogical
+		case PhysicalBackupKind:
+			b.BackupContentType = BackupContentTypePhysical
+		}
+	}
+	if b.VolumeSnapshotRef != nil && b.BackupContentType == "" {
+		b.BackupContentType = BackupContentTypePhysical
+	}
+	if b.BackupContentType == "" {
+		b.BackupContentType = BackupContentTypeLogical
+	}
+	if b.BackupContentType == BackupContentTypePhysical && b.S3 != nil {
+		stagingStorage := ptr.Deref(b.StagingStorage, BackupStagingStorage{})
+		b.Volume = ptr.To(stagingStorage.VolumeOrEmptyDir(mariadb.PhysicalBackupStagingPVCKey()))
+	}
+}
+
+func (b *BootstrapFrom) SetDefaultsWithPhysicalBackup(physicalBackup *PhysicalBackup) error {
+	volume, err := physicalBackup.Volume()
+	if err != nil {
+		return fmt.Errorf("error getting BackupSource volume: %v", err)
+	}
+	b.Volume = &volume
+	b.S3 = physicalBackup.Spec.Storage.S3
+	return nil
+}
+
+func (b *BootstrapFrom) SetDefaultsWithVolumeSnapshotRef(ref *LocalObjectReference) {
+	b.VolumeSnapshotRef = ref
+}
+
+func (r *BootstrapFrom) TargetRecoveryTimeOrDefault() time.Time {
+	if r.TargetRecoveryTime != nil {
+		return r.TargetRecoveryTime.Time
+	}
+	return time.Now()
+}
+
+func (b *BootstrapFrom) RestoreSource() (*RestoreSource, error) {
+	var backupRef *LocalObjectReference
+	if b.BackupRef != nil {
+		if b.BackupRef.Kind == PhysicalBackupKind {
+			return nil, errors.New("restoration from physical backups via RestoreSource is not supported")
+		}
+		backupRef = &LocalObjectReference{
+			Name: b.BackupRef.Name,
+		}
+	}
+	return &RestoreSource{
+		BackupRef:          backupRef,
+		S3:                 b.S3,
+		Volume:             b.Volume,
+		TargetRecoveryTime: b.TargetRecoveryTime,
+		StagingStorage:     b.StagingStorage,
+	}, nil
 }
 
 // UpdateType defines the type of update for a MariaDB resource.
@@ -691,6 +837,9 @@ func (m *MariaDB) SetDefaults(env *environment.OperatorEnv) error {
 			return fmt.Errorf("error setting Galera defaults: %v", err)
 		}
 	}
+	if m.Spec.BootstrapFrom != nil {
+		m.Spec.BootstrapFrom.SetDefaults(m)
+	}
 
 	if m.Spec.UpdateStrategy == (UpdateStrategy{}) {
 		m.Spec.UpdateStrategy.SetDefaults()
@@ -825,6 +974,28 @@ func (m *MariaDB) IsUpdating() bool {
 // IsSuspended whether a MariaDB is suspended.
 func (m *MariaDB) IsSuspended() bool {
 	return m.Spec.Suspend
+}
+
+// IsGaleraInitialized indicates that the MariaDB instance has been successfully initialized.
+func (m *MariaDB) IsInitialized() bool {
+	return meta.IsStatusConditionTrue(m.Status.Conditions, ConditionTypeInitialized)
+}
+
+// IsGaleraInitialized indicates that the MariaDB instance is being initialized.
+func (m *MariaDB) IsInitializing() bool {
+	return meta.IsStatusConditionFalse(m.Status.Conditions, ConditionTypeInitialized)
+}
+
+// HasInitError indicates that the MariaDB instance has an initialization error.
+func (m *MariaDB) InitError() error {
+	c := meta.FindStatusCondition(m.Status.Conditions, ConditionTypeInitialized)
+	if c == nil {
+		return nil
+	}
+	if c.Status == metav1.ConditionFalse && c.Reason == ConditionReasonInitError {
+		return errors.New(c.Message)
+	}
+	return nil
 }
 
 // ServerDNSNames are the Service DNS names used by server TLS certificates.

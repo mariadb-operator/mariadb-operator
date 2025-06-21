@@ -4,31 +4,38 @@ import (
 	"errors"
 	"fmt"
 
+	volumesnapshotv1 "github.com/kubernetes-csi/external-snapshotter/client/v8/apis/volumesnapshot/v1"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	metadata "github.com/mariadb-operator/mariadb-operator/pkg/builder/metadata"
+	mdbreflect "github.com/mariadb-operator/mariadb-operator/pkg/reflect"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-func (b *Builder) BuildBackupStoragePVC(key types.NamespacedName, backup *mariadbv1alpha1.Backup) (*corev1.PersistentVolumeClaim, error) {
-	if backup.Spec.Storage.PersistentVolumeClaim == nil {
-		return nil, errors.New("Backup spec does not have a PVC spec")
+func (b *Builder) BuildBackupStoragePVC(key types.NamespacedName, pvcSpec *mariadbv1alpha1.PersistentVolumeClaimSpec,
+	meta *mariadbv1alpha1.Metadata) (*corev1.PersistentVolumeClaim, error) {
+	if pvcSpec == nil {
+		return nil, errors.New("PVC spec must be set")
 	}
 	objMeta :=
 		metadata.NewMetadataBuilder(key).
-			WithMetadata(backup.Spec.InheritMetadata).
+			WithMetadata(meta).
 			Build()
 	return &corev1.PersistentVolumeClaim{
 		ObjectMeta: objMeta,
-		Spec:       backup.Spec.Storage.PersistentVolumeClaim.ToKubernetesType(),
+		Spec:       pvcSpec.ToKubernetesType(),
 	}, nil
 }
 
 func (b *Builder) BuildBackupStagingPVC(key types.NamespacedName, pvcSpec *mariadbv1alpha1.PersistentVolumeClaimSpec,
 	meta *mariadbv1alpha1.Metadata, owner metav1.Object) (*corev1.PersistentVolumeClaim, error) {
+	if pvcSpec == nil {
+		return nil, errors.New("PVC spec must be set")
+	}
 	objMeta :=
 		metadata.NewMetadataBuilder(key).
 			WithMetadata(meta).
@@ -37,14 +44,28 @@ func (b *Builder) BuildBackupStagingPVC(key types.NamespacedName, pvcSpec *maria
 		ObjectMeta: objMeta,
 		Spec:       pvcSpec.ToKubernetesType(),
 	}
-	if err := controllerutil.SetControllerReference(owner, &pvc, b.scheme); err != nil {
-		return nil, fmt.Errorf("error setting controller to PVC %v", err)
+	if !mdbreflect.IsNil(owner) {
+		if err := controllerutil.SetControllerReference(owner, &pvc, b.scheme); err != nil {
+			return nil, fmt.Errorf("error setting controller to PVC %v", err)
+		}
 	}
 	return &pvc, nil
 }
 
+type PVCOption func(*corev1.PersistentVolumeClaimSpec)
+
+func WithVolumeSnapshotDataSource(snapshotName string) PVCOption {
+	return func(pvcSpec *corev1.PersistentVolumeClaimSpec) {
+		pvcSpec.DataSource = &corev1.TypedLocalObjectReference{
+			APIGroup: ptr.To(volumesnapshotv1.GroupName),
+			Kind:     "VolumeSnapshot",
+			Name:     snapshotName,
+		}
+	}
+}
+
 func (b *Builder) BuildStoragePVC(key types.NamespacedName, tpl *mariadbv1alpha1.VolumeClaimTemplate,
-	mariadb *mariadbv1alpha1.MariaDB) (*corev1.PersistentVolumeClaim, error) {
+	mariadb *mariadbv1alpha1.MariaDB, opts ...PVCOption) (*corev1.PersistentVolumeClaim, error) {
 	if tpl == nil {
 		return nil, errors.New("Template must not be nil")
 	}
@@ -58,8 +79,14 @@ func (b *Builder) BuildStoragePVC(key types.NamespacedName, tpl *mariadbv1alpha1
 			WithMetadata(tpl.Metadata).
 			WithLabels(labels).
 			Build()
+
+	pvcSpec := tpl.PersistentVolumeClaimSpec.ToKubernetesType()
+	for _, setOpt := range opts {
+		setOpt(&pvcSpec)
+	}
+
 	return &corev1.PersistentVolumeClaim{
 		ObjectMeta: objMeta,
-		Spec:       tpl.PersistentVolumeClaimSpec.ToKubernetesType(),
+		Spec:       pvcSpec,
 	}, nil
 }

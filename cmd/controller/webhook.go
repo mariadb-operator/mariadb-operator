@@ -79,8 +79,12 @@ var webhookCmd = &cobra.Command{
 			setupLog.Error(err, "Unable to create webhook", "webhook", "Backup")
 			os.Exit(1)
 		}
+		if err = webhookv1alpha1.SetupPhysicalBackupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "Unable to create webhook", "webhook", "PhysicalBackup")
+			os.Exit(1)
+		}
 		if err = webhookv1alpha1.SetupRestoreWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "Unable to create webhook", "webhook", "restore")
+			setupLog.Error(err, "Unable to create webhook", "webhook", "Restore")
 			os.Exit(1)
 		}
 		if err = webhookv1alpha1.SetupUserWebhookWithManager(mgr); err != nil {

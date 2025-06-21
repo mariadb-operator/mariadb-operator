@@ -18,6 +18,7 @@ type BackupOpts struct {
 	CommandOpts
 	Path                 string
 	TargetFilePath       string
+	OmitCredentials      bool
 	CleanupTargetFile    bool
 	MaxRetentionDuration time.Duration
 	TargetTime           time.Time
@@ -30,7 +31,7 @@ type BackupOpts struct {
 	S3CACertPath         string
 	S3Prefix             string
 	LogLevel             string
-	DumpOpts             []string
+	ExtraOpts            []string
 }
 
 type BackupOpt func(*BackupOpts)
@@ -39,6 +40,12 @@ func WithBackup(path string, targetFilePath string) BackupOpt {
 	return func(bo *BackupOpts) {
 		bo.Path = path
 		bo.TargetFilePath = targetFilePath
+	}
+}
+
+func WithOmitCredentials(omit bool) BackupOpt {
+	return func(bo *BackupOpts) {
+		bo.OmitCredentials = omit
 	}
 }
 
@@ -88,9 +95,9 @@ func WithS3CACertPath(caCertPath string) BackupOpt {
 	}
 }
 
-func WithBackupDumpOpts(opts []string) BackupOpt {
+func WithExtraOpts(opts []string) BackupOpt {
 	return func(o *BackupOpts) {
-		o.DumpOpts = opts
+		o.ExtraOpts = opts
 	}
 }
 
@@ -139,18 +146,25 @@ func NewBackupCommand(userOpts ...BackupOpt) (*BackupCommand, error) {
 	if opts.TargetTime == (time.Time{}) {
 		opts.TargetTime = time.Now()
 	}
-	if opts.UserEnv == "" {
-		return nil, errors.New("user environment variable not provided")
-	}
-	if opts.PasswordEnv == "" {
-		return nil, errors.New("password environment variable not provided")
+	if !opts.OmitCredentials {
+		if opts.UserEnv == "" {
+			return nil, errors.New("user environment variable not provided")
+		}
+		if opts.PasswordEnv == "" {
+			return nil, errors.New("password environment variable not provided")
+		}
 	}
 	return &BackupCommand{opts}, nil
 }
 
 func (b *BackupCommand) MariadbDump(backup *mariadbv1alpha1.Backup,
-	mariadb *mariadbv1alpha1.MariaDB) *Command {
+	mariadb *mariadbv1alpha1.MariaDB) (*Command, error) {
+	connFlags, err := ConnectionFlags(&b.BackupOpts.CommandOpts, mariadb)
+	if err != nil {
+		return nil, fmt.Errorf("error getting connection flags: %v", err)
+	}
 	args := strings.Join(b.mariadbDumpArgs(backup, mariadb), " ")
+
 	cmds := []string{
 		"set -euo pipefail",
 		"echo 💾 Exporting env",
@@ -172,36 +186,84 @@ func (b *BackupCommand) MariadbDump(backup *mariadbv1alpha1.Backup,
 		),
 		fmt.Sprintf(
 			"mariadb-dump %s %s > %s",
-			ConnectionFlags(&b.BackupOpts.CommandOpts, mariadb),
+			connFlags,
 			args,
 			b.getTargetFilePath(),
 		),
 	}
-	return NewBashCommand(cmds)
+	return NewBashCommand(cmds), nil
 }
 
-func (b *BackupCommand) MariadbOperatorBackup() *Command {
+func (b *BackupCommand) MariadbBackup(mariadb *mariadbv1alpha1.MariaDB, backupFilePath string) (*Command, error) {
+	if b.Database != nil {
+		return nil, errors.New("Database option not supported in physical backups")
+	}
+
+	connFlags, err := ConnectionFlags(&b.BackupOpts.CommandOpts, mariadb)
+	if err != nil {
+		return nil, fmt.Errorf("error getting connection flags: %v", err)
+	}
+	args := strings.Join(b.mariadbBackupArgs(mariadb), " ")
+
+	cmds := []string{
+		"set -euo pipefail",
+		fmt.Sprintf(
+			"echo 💾 Writing target file: %s",
+			b.TargetFilePath,
+		),
+		fmt.Sprintf(
+			"printf \"%s\" > %s",
+			backupFilePath,
+			b.TargetFilePath,
+		),
+		fmt.Sprintf(
+			"echo 💾 Taking backup: %s",
+			b.getTargetFilePath(),
+		),
+		fmt.Sprintf(
+			"mariadb-backup %s %s > %s",
+			connFlags,
+			args,
+			b.getTargetFilePath(),
+		),
+	}
+	return NewBashCommand(cmds), nil
+}
+
+func (b *BackupCommand) MariadbOperatorBackup(backupContentType mariadbv1alpha1.BackupContentType) *Command {
 	args := []string{
 		"backup",
 		"--path",
 		b.Path,
 		"--target-file-path",
 		b.TargetFilePath,
+		"--backup-content-type",
+		string(backupContentType),
 		"--max-retention",
 		b.MaxRetentionDuration.String(),
-		"--compression",
-		string(b.Compression),
-		"--log-level",
-		b.LogLevel,
 	}
+	if b.Compression != "" {
+		args = append(args, []string{
+			"--compression",
+			string(b.Compression),
+		}...)
+	}
+	if b.LogLevel != "" {
+		args = append(args, []string{
+			"--log-level",
+			b.LogLevel,
+		}...)
+	}
+
 	args = append(args, b.s3Args()...)
 	if b.S3 && b.CleanupTargetFile {
 		args = append(args, "--cleanup-target-file")
 	}
+
 	return NewCommand(nil, args)
 }
 
-func (b *BackupCommand) MariadbOperatorRestore() *Command {
+func (b *BackupCommand) MariadbOperatorRestore(backupContentType mariadbv1alpha1.BackupContentType, backupDirPath *string) *Command {
 	args := []string{
 		"backup",
 		"restore",
@@ -211,15 +273,31 @@ func (b *BackupCommand) MariadbOperatorRestore() *Command {
 		backuppkg.FormatBackupDate(b.TargetTime),
 		"--target-file-path",
 		b.TargetFilePath,
-		"--log-level",
-		b.LogLevel,
+		"--backup-content-type",
+		string(backupContentType),
 	}
+	if backupContentType == mariadbv1alpha1.BackupContentTypePhysical && backupDirPath != nil {
+		args = append(args, []string{
+			"--physical-backup-dir-path",
+			*backupDirPath,
+		}...)
+	}
+	if b.LogLevel != "" {
+		args = append(args, []string{
+			"--log-level",
+			b.LogLevel,
+		}...)
+	}
+
 	args = append(args, b.s3Args()...)
 	return NewCommand(nil, args)
 }
 
-func (b *BackupCommand) MariadbRestore(restore *mariadbv1alpha1.Restore,
-	mariadb *mariadbv1alpha1.MariaDB) *Command {
+func (b *BackupCommand) MariadbRestore(restore *mariadbv1alpha1.Restore, mariadb *mariadbv1alpha1.MariaDB) (*Command, error) {
+	connFlags, err := ConnectionFlags(&b.BackupOpts.CommandOpts, mariadb)
+	if err != nil {
+		return nil, fmt.Errorf("error getting connection flags: %v", err)
+	}
 	args := strings.Join(b.mariadbArgs(restore, mariadb), " ")
 	cmds := []string{
 		"set -euo pipefail",
@@ -229,12 +307,54 @@ func (b *BackupCommand) MariadbRestore(restore *mariadbv1alpha1.Restore,
 		),
 		fmt.Sprintf(
 			"mariadb %s %s < %s",
-			ConnectionFlags(&b.BackupOpts.CommandOpts, mariadb),
+			connFlags,
 			args,
 			b.getTargetFilePath(),
 		),
 	}
-	return NewBashCommand(cmds)
+	return NewBashCommand(cmds), nil
+}
+
+func (b *BackupCommand) MariadbBackupRestore(mariadb *mariadbv1alpha1.MariaDB, backupDirPath string) (*Command, error) {
+	if b.Database != nil {
+		return nil, errors.New("Database option not supported in physical backups")
+	}
+
+	// The ext4 filesystem creates a lost+found directory by default, which causes mariadb-backup to fail with:
+	// "Original data directory /var/lib/mysql is not empty!"
+	// Since we already check the PVC existence earlier, it should be safe to use --force-non-empty-directories.
+	copyBackupCmd := fmt.Sprintf(
+		"mariadb-backup --copy-back --target-dir=%s --force-non-empty-directories",
+		backupDirPath,
+	)
+
+	cmds := []string{
+		"set -euo pipefail",
+		"echo 💾 Checking existing backup",
+		fmt.Sprintf(
+			"if [ -d %s ]; then echo '💾 Existing backup directory found. Copying backup to data directory'; %s && exit 0; fi",
+			backupDirPath,
+			copyBackupCmd,
+		),
+		"echo 💾 Extracting backup",
+		fmt.Sprintf(
+			"mkdir %s",
+			backupDirPath,
+		),
+		fmt.Sprintf(
+			"mbstream -x -C %s < %s",
+			backupDirPath,
+			b.getTargetFilePath(),
+		),
+		"echo 💾 Preparing backup",
+		fmt.Sprintf(
+			"mariadb-backup --prepare --target-dir=%s",
+			backupDirPath,
+		),
+		"echo 💾 Copying backup to data directory",
+		copyBackupCmd,
+	}
+	return NewBashCommand(cmds), nil
 }
 
 func (b *BackupCommand) newBackupFile() string {
@@ -259,8 +379,8 @@ func (b *BackupCommand) getTargetFilePath() string {
 }
 
 func (b *BackupCommand) mariadbDumpArgs(backup *mariadbv1alpha1.Backup, mariadb *mariadbv1alpha1.MariaDB) []string {
-	dumpOpts := make([]string, len(b.BackupOpts.DumpOpts))
-	copy(dumpOpts, b.BackupOpts.DumpOpts)
+	dumpOpts := make([]string, len(b.BackupOpts.ExtraOpts))
+	copy(dumpOpts, b.BackupOpts.ExtraOpts)
 
 	args := []string{
 		"--single-transaction",
@@ -302,9 +422,28 @@ func (b *BackupCommand) mariadbDumpArgs(backup *mariadbv1alpha1.Backup, mariadb 
 	return ds.Unique(ds.Merge(args, dumpOpts)...)
 }
 
+func (b *BackupCommand) mariadbBackupArgs(mariadb *mariadbv1alpha1.MariaDB) []string {
+	backupOpts := make([]string, len(b.BackupOpts.ExtraOpts))
+	copy(backupOpts, b.BackupOpts.ExtraOpts)
+
+	args := []string{
+		"--backup",
+		"--stream=xbstream",
+		// The ext4 filesystem creates a lost+found directory by default,
+		// which causes mariadb-backup to include it in the backup file as a database.
+		"--databases-exclude='lost+found'",
+	}
+
+	if mariadb.IsTLSEnabled() {
+		args = append(args, b.tlsArgs(mariadb)...)
+	}
+
+	return ds.Unique(ds.Merge(args, backupOpts)...)
+}
+
 func (b *BackupCommand) mariadbArgs(restore *mariadbv1alpha1.Restore, mariadb *mariadbv1alpha1.MariaDB) []string {
-	args := make([]string, len(b.BackupOpts.DumpOpts))
-	copy(args, b.BackupOpts.DumpOpts)
+	args := make([]string, len(b.BackupOpts.ExtraOpts))
+	copy(args, b.BackupOpts.ExtraOpts)
 
 	if restore.Spec.Database != "" {
 		args = append(args, fmt.Sprintf("--one-database %s", restore.Spec.Database))

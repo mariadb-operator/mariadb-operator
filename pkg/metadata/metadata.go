@@ -1,7 +1,8 @@
 package metadata
 
 var (
-	WatchLabel = "k8s.mariadb.com/watch"
+	WatchLabel              = "k8s.mariadb.com/watch"
+	PhysicalBackupNameLabel = "physicalbackup.k8s.mariadb.com/name"
 
 	ReplicationAnnotation = "k8s.mariadb.com/replication"
 	GaleraAnnotation      = "k8s.mariadb.com/galera"
@@ -18,4 +19,6 @@ var (
 	TLSListenerCertAnnotation = "k8s.mariadb.com/listener-cert"
 
 	WebhookConfigAnnotation = "k8s.mariadb.com/webhook"
+
+	MetaCtrlFieldPath = ".metadata.controller"
 )

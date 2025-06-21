@@ -5,17 +5,22 @@ import (
 	"os"
 	"time"
 
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/backup"
 	"github.com/mariadb-operator/mariadb-operator/pkg/log"
 	"github.com/spf13/cobra"
 )
 
-var targetTimeRaw string
+var (
+	physicalBackupDirPath string
+	targetTimeRaw         string
+)
 
 func init() {
+	restoreCommand.Flags().StringVar(&physicalBackupDirPath, "physical-backup-dir-path", "",
+		"Directory path where the physical backup has been prepared. Only considered when backup-content-type is Physical.")
 	restoreCommand.Flags().StringVar(&targetTimeRaw, "target-time", "",
 		"RFC3339 (1970-01-01T00:00:00Z) date and time that defines the backup target time.")
-	restoreCommand.Flags().StringVar(&path, "path", "/backup", "Directory path where the backup files are located.")
 }
 
 var restoreCommand = &cobra.Command{
@@ -32,7 +37,23 @@ var restoreCommand = &cobra.Command{
 		ctx, cancel := newContext()
 		defer cancel()
 
-		backupStorage, err := getBackupStorage()
+		physicalBackupExists, err := checkPhysicalBackupDir()
+		if err != nil {
+			logger.Error(err, "error checking physical backup directory")
+			os.Exit(1)
+		}
+		if physicalBackupExists {
+			logger.Info("physical backup directory already exists.")
+			os.Exit(0)
+		}
+
+		backupProcessor, err := getBackupProcessor()
+		if err != nil {
+			logger.Error(err, "error getting backup processor")
+			os.Exit(1)
+		}
+
+		backupStorage, err := getBackupStorage(backupProcessor)
 		if err != nil {
 			logger.Error(err, "error getting backup storage")
 			os.Exit(1)
@@ -51,7 +72,7 @@ var restoreCommand = &cobra.Command{
 			os.Exit(1)
 		}
 
-		backupTargetFile, err := backup.GetBackupTargetFile(backupFileNames, targetTime, logger.WithName("target-recovery-time"))
+		backupTargetFile, err := backupProcessor.GetBackupTargetFile(backupFileNames, targetTime, logger.WithName("target-recovery-time"))
 		if err != nil {
 			logger.Error(err, "error reading getting target backup")
 			os.Exit(1)
@@ -64,7 +85,7 @@ var restoreCommand = &cobra.Command{
 			os.Exit(1)
 		}
 
-		backupCompressor, err := getBackupCompressorWithFile(backupTargetFile)
+		backupCompressor, err := getBackupCompressorWithFile(backupTargetFile, backupProcessor)
 		if err != nil {
 			logger.Error(err, "error getting backup compressor")
 			os.Exit(1)
@@ -83,6 +104,22 @@ var restoreCommand = &cobra.Command{
 	},
 }
 
+func checkPhysicalBackupDir() (bool, error) {
+	if backupContentType != string(mariadbv1alpha1.BackupContentTypePhysical) || physicalBackupDirPath == "" {
+		return false, nil
+	}
+	logger.Info("checking existing physical backup directory", "dir-path", physicalBackupDirPath)
+
+	entries, err := os.ReadDir(physicalBackupDirPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return false, nil
+		}
+		return false, fmt.Errorf("error reading physical backup directory path (%s): %v", physicalBackupDirPath, err)
+	}
+	return len(entries) > 0, nil
+}
+
 func getTargetTime() (time.Time, error) {
 	if targetTimeRaw == "" {
 		return time.Now(), nil
@@ -94,10 +131,10 @@ func writeTargetFile(backupTargetFile string) error {
 	return os.WriteFile(targetFilePath, []byte(backupTargetFile), 0777)
 }
 
-func getBackupCompressorWithFile(fileName string) (backup.BackupCompressor, error) {
-	calg, err := backup.ParseCompressionAlgorithm(fileName)
+func getBackupCompressorWithFile(fileName string, processor backup.BackupProcessor) (backup.BackupCompressor, error) {
+	calg, err := processor.ParseCompressionAlgorithm(fileName)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing compression algorithm: %v", err)
 	}
-	return getBackupCompressorWithAlgorithm(calg)
+	return getBackupCompressorWithAlgorithm(calg, processor)
 }

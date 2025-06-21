@@ -8,7 +8,9 @@ import (
 
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/go-logr/logr"
+	volumesnapshotv1 "github.com/kubernetes-csi/external-snapshotter/client/v8/apis/volumesnapshot/v1"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/pkg/backup"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/auth"
@@ -19,6 +21,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/endpoints"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/galera"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/maxscale"
+	"github.com/mariadb-operator/mariadb-operator/pkg/controller/pvc"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/rbac"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/replication"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
@@ -77,6 +80,7 @@ var _ = BeforeSuite(func() {
 	Expect(mariadbv1alpha1.AddToScheme(scheme.Scheme)).NotTo(HaveOccurred())
 	Expect(monitoringv1.AddToScheme(scheme.Scheme)).NotTo(HaveOccurred())
 	Expect(certmanagerv1.AddToScheme(scheme.Scheme)).NotTo(HaveOccurred())
+	Expect(volumesnapshotv1.AddToScheme(scheme.Scheme)).NotTo(HaveOccurred())
 
 	//+kubebuilder:scaffold:scheme
 
@@ -98,10 +102,6 @@ var _ = BeforeSuite(func() {
 	Expect(cfg).NotTo(BeNil())
 	DeferCleanup(testEnv.Stop)
 
-	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
-	Expect(err).NotTo(HaveOccurred())
-	Expect(k8sClient).NotTo(BeNil())
-
 	k8sManager, err := ctrl.NewManager(cfg, ctrl.Options{
 		Scheme: scheme.Scheme,
 		Controller: config.Controller{
@@ -109,6 +109,7 @@ var _ = BeforeSuite(func() {
 		},
 	})
 	Expect(err).ToNot(HaveOccurred())
+	k8sClient = k8sManager.GetClient()
 
 	client := k8sManager.GetClient()
 	scheme := k8sManager.GetScheme()
@@ -128,6 +129,11 @@ var _ = BeforeSuite(func() {
 	conditionReady := condition.NewReady()
 	conditionComplete := condition.NewComplete(client)
 
+	backupProcessor := backup.NewPhysicalBackupProcessor(
+		backup.WithPhysicalBackupValidationFn(mariadbv1alpha1.IsValidPhysicalBackup),
+		backup.WithPhysicalBackupParseDateFn(mariadbv1alpha1.ParsePhysicalBackupTime),
+	)
+
 	secretReconciler, err := secret.NewSecretReconciler(client, builder)
 	Expect(err).ToNot(HaveOccurred())
 	configMapReconciler := configmap.NewConfigMapReconciler(client, builder)
@@ -138,6 +144,7 @@ var _ = BeforeSuite(func() {
 	authReconciler := auth.NewAuthReconciler(client, builder)
 	rbacReconciler := rbac.NewRBACReconiler(client, builder)
 	deployReconciler := deployment.NewDeploymentReconciler(client)
+	pvcReconciler := pvc.NewPVCReconciler(client)
 	svcMonitorReconciler := servicemonitor.NewServiceMonitorReconciler(client)
 	certReconciler := certctrl.NewCertReconciler(client, scheme, k8sManager.GetEventRecorderFor("cert"), disc, builder)
 
@@ -196,11 +203,12 @@ var _ = BeforeSuite(func() {
 		Scheme:   scheme,
 		Recorder: k8sManager.GetEventRecorderFor("mariadb"),
 
-		Environment:    env,
-		Builder:        builder,
-		RefResolver:    refResolver,
-		ConditionReady: conditionReady,
-		Discovery:      disc,
+		Environment:     env,
+		Builder:         builder,
+		RefResolver:     refResolver,
+		ConditionReady:  conditionReady,
+		Discovery:       disc,
+		BackupProcessor: backupProcessor,
 
 		ConfigMapReconciler:      configMapReconciler,
 		SecretReconciler:         secretReconciler,
@@ -210,6 +218,7 @@ var _ = BeforeSuite(func() {
 		RBACReconciler:           rbacReconciler,
 		AuthReconciler:           authReconciler,
 		DeploymentReconciler:     deployReconciler,
+		PVCReconciler:            pvcReconciler,
 		ServiceMonitorReconciler: svcMonitorReconciler,
 		CertReconciler:           certReconciler,
 
@@ -255,6 +264,20 @@ var _ = BeforeSuite(func() {
 		RBACReconciler:    rbacReconciler,
 		BatchReconciler:   batchReconciler,
 	}).SetupWithManager(k8sManager)
+	Expect(err).ToNot(HaveOccurred())
+
+	err = (&PhysicalBackupReconciler{
+		Client:            client,
+		Scheme:            scheme,
+		Recorder:          k8sManager.GetEventRecorderFor("physicalbackup"),
+		Builder:           builder,
+		Discovery:         disc,
+		RefResolver:       refResolver,
+		ConditionComplete: conditionComplete,
+		RBACReconciler:    rbacReconciler,
+		PVCReconciler:     pvcReconciler,
+		BackupProcessor:   backupProcessor,
+	}).SetupWithManager(testCtx, k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
 	err = (&RestoreReconciler{

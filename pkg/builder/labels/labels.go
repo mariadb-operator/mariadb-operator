@@ -2,6 +2,7 @@ package builder
 
 import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -63,6 +64,11 @@ func (b *LabelsBuilder) WithMetricsSelectorLabels(metricsKey types.NamespacedNam
 func (b *LabelsBuilder) WithMaxScaleSelectorLabels(mxs *mariadbv1alpha1.MaxScale) *LabelsBuilder {
 	return b.WithApp(appMaxScale).
 		WithInstance(mxs.Name)
+}
+
+func (b *LabelsBuilder) WithPhysicalBackupSelectorLabels(backup *mariadbv1alpha1.PhysicalBackup) *LabelsBuilder {
+	b.labels[metadata.PhysicalBackupNameLabel] = backup.Name
+	return b
 }
 
 func (b *LabelsBuilder) WithPVCRole(role string) *LabelsBuilder {
