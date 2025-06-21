@@ -155,7 +155,7 @@ max_allowed_packet=256M`),
 				Type: corev1.ServiceTypeLoadBalancer,
 				Metadata: &mariadbv1alpha1.Metadata{
 					Annotations: map[string]string{
-						"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.45",
+						"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.46",
 					},
 				},
 			},
