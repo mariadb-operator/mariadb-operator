@@ -1,0 +1,33 @@
+# TODO: delete this file after testing
+logLevel: DEBUG
+extraArgs:
+- --requeue-connection=1h
+- --requeue-sql=10h
+- --requeue-sql-max-offset=1h
+- --requeue-sqljob=30s
+- --requeue-maxscale=1h
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+pprof:
+  enabled: true
+image:
+  repository: mmontes11/mariadb-operator
+  tag: 0.39.0-dev8
+webhook:
+  image:
+    repository: mmontes11/mariadb-operator
+    tag: 0.39.0-dev8
+  cert:
+    certManager:
+      enabled: true
+      issuerRef:
+        kind: ClusterIssuer
+        name: homelab
+  serviceMonitor:
+    enabled: true
+certController:
+  image:
+    repository: mmontes11/mariadb-operator
+    tag: 0.39.0-dev8
