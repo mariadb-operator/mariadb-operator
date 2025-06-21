@@ -248,8 +248,14 @@ func testMariadbVolumeResize(mdb *mariadbv1alpha1.MariaDB, newVolumeSize string)
 	key := client.ObjectKeyFromObject(mdb)
 
 	By("Updating storage")
-	mdb.Spec.Storage.Size = ptr.To(resource.MustParse(newVolumeSize))
-	Expect(k8sClient.Update(testCtx, mdb)).To(Succeed())
+	Eventually(func() bool {
+		if err := k8sClient.Get(testCtx, key, mdb); err != nil {
+			return false
+		}
+		mdb.Spec.Storage.Size = ptr.To(resource.MustParse(newVolumeSize))
+
+		return k8sClient.Update(testCtx, mdb) == nil
+	}, testHighTimeout, testInterval).Should(BeTrue())
 
 	By("Expecting MariaDB to have resized storage eventually")
 	Eventually(func() bool {
