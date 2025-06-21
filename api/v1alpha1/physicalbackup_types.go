@@ -171,7 +171,7 @@ type PhysicalBackupSpec struct {
 	// It defaults to 30 days.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	MaxRetention metav1.Duration `json:"maxRetention,omitempty" webhook:"inmutableinit"`
+	MaxRetention metav1.Duration `json:"maxRetention,omitempty"`
 	// Timeout defines the maximum duration of a PhysicalBackup job or snapshot.
 	// If this duration is exceeded, the job or snapshot is considered expired and is deleted by the operator.
 	// A new job or snapshot will then be created according to the schedule.

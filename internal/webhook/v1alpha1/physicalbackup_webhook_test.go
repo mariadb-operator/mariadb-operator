@@ -501,7 +501,7 @@ var _ = Describe("PhysicalBackup webhook", func() {
 				func(bmdb *v1alpha1.PhysicalBackup) {
 					bmdb.Spec.MaxRetention = metav1.Duration{Duration: 24 * time.Hour}
 				},
-				true,
+				false,
 			),
 			Entry(
 				"Updating Compression",
