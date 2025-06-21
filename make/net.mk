@@ -17,7 +17,8 @@ host-mariadb: ## Add mariadb hosts to /etc/hosts.
 
 .PHONY: host-mdb-test
 host-mdb-test: ## Add MariaDB test hosts to /etc/hosts.
-	@./hack/add_host.sh 45 mdb-test.default.svc.cluster.local
+	@./hack/add_host.sh 45 mdb-test-0.mdb-test-internal.default.svc.cluster.local
+	@./hack/add_host.sh 46 mdb-test.default.svc.cluster.local
 
 .PHONY: host-mxs-test
 host-mxs-test: ## Add MaxScale test hosts to /etc/hosts.
