@@ -682,6 +682,61 @@ func getBackupWithVolumeStorage(key types.NamespacedName) *mariadbv1alpha1.Backu
 	})
 }
 
+func getPhysicalBackupWithStorage(key types.NamespacedName, storage mariadbv1alpha1.PhysicalBackupStorage) *mariadbv1alpha1.PhysicalBackup {
+	return &mariadbv1alpha1.PhysicalBackup{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      key.Name,
+			Namespace: key.Namespace,
+		},
+		Spec: mariadbv1alpha1.PhysicalBackupSpec{
+			MariaDBRef: mariadbv1alpha1.MariaDBRef{
+				ObjectReference: mariadbv1alpha1.ObjectReference{
+					Name: testMdbkey.Name,
+				},
+				WaitForIt: true,
+			},
+			Storage: storage,
+		},
+	}
+}
+
+func getPhysicalBackupWithPVCStorage(key types.NamespacedName) *mariadbv1alpha1.PhysicalBackup {
+	return getPhysicalBackupWithStorage(key, mariadbv1alpha1.PhysicalBackupStorage{
+		PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimSpec{
+			Resources: corev1.VolumeResourceRequirements{
+				Requests: corev1.ResourceList{
+					"storage": resource.MustParse("100Mi"),
+				},
+			},
+			AccessModes: []corev1.PersistentVolumeAccessMode{
+				corev1.ReadWriteOnce,
+			},
+		},
+	})
+}
+
+func getPhysicalBackupWithS3Storage(key types.NamespacedName, bucket, prefix string) *mariadbv1alpha1.PhysicalBackup {
+	return getPhysicalBackupWithStorage(key, mariadbv1alpha1.PhysicalBackupStorage{
+		S3: getS3WithBucket(bucket, prefix),
+	})
+}
+
+func getPhysicalBackupWithVolumeStorage(key types.NamespacedName) *mariadbv1alpha1.PhysicalBackup {
+	return getPhysicalBackupWithStorage(key, mariadbv1alpha1.PhysicalBackupStorage{
+		Volume: &mariadbv1alpha1.StorageVolumeSource{
+			EmptyDir: &mariadbv1alpha1.EmptyDirVolumeSource{},
+		},
+	})
+}
+
+func getPhysicalBackupWithVolumeSnapshotStorage(key types.NamespacedName) *mariadbv1alpha1.PhysicalBackup {
+	return getPhysicalBackupWithStorage(key, mariadbv1alpha1.PhysicalBackupStorage{
+		VolumeSnapshot: &mariadbv1alpha1.PhysicalBackupVolumeSnapshot{
+			VolumeSnapshotClassName: "csi-hostpath-snapclass",
+		},
+	})
+}
+
 func expectMariadbReady(ctx context.Context, k8sClient client.Client, key types.NamespacedName) {
 	By("Expecting MariaDB to be ready eventually")
 	expectMariadbFn(ctx, k8sClient, key, func(mdb *mariadbv1alpha1.MariaDB) bool {

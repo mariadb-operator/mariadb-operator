@@ -658,7 +658,7 @@ var _ = Describe("MariaDB", func() {
 				Expect(k8sClient.Delete(testCtx, backup)).To(Succeed())
 			})
 
-			By("Bootstrapping MariaDB from backup")
+			By("Bootstrapping MariaDB from Backup")
 			testMariadbBootstrap(mariadbKey, &bootstrapFrom)
 		},
 		Entry(
@@ -683,7 +683,7 @@ var _ = Describe("MariaDB", func() {
 			},
 		),
 		Entry(
-			"S3",
+			"Backup S3",
 			getBackupWithS3Storage(
 				types.NamespacedName{
 					Name:      "test-backup-from-s3",
@@ -714,6 +714,72 @@ var _ = Describe("MariaDB", func() {
 			},
 		),
 	)
+
+	DescribeTable("should bootstrap from physical backup",
+		func(backup *mariadbv1alpha1.PhysicalBackup, bootstrapFrom mariadbv1alpha1.BootstrapFrom,
+			mariadbKey types.NamespacedName) {
+			backupKey := client.ObjectKeyFromObject(backup)
+
+			By("Creating PhysicalBackup")
+			Expect(k8sClient.Create(testCtx, backup)).To(Succeed())
+
+			By("Expecting PhysicalBackup to complete eventually")
+			Eventually(func() bool {
+				if err := k8sClient.Get(testCtx, backupKey, backup); err != nil {
+					return false
+				}
+				return backup.IsComplete()
+			}, testTimeout, testInterval).Should(BeTrue())
+			DeferCleanup(func() {
+				Expect(k8sClient.Delete(testCtx, backup)).To(Succeed())
+			})
+
+			By("Bootstrapping MariaDB from PhysicalBackup")
+			testMariadbBootstrap(mariadbKey, &bootstrapFrom)
+		},
+		Entry(
+			"PhysicalBackup",
+			getPhysicalBackupWithS3Storage(
+				types.NamespacedName{
+					Name:      "test-physicalbackup",
+					Namespace: testNamespace,
+				},
+				"test-mariadb-physical",
+				"",
+			),
+			mariadbv1alpha1.BootstrapFrom{
+				BackupRef: &mariadbv1alpha1.TypedLocalObjectReference{
+					Name: "test-physicalbackup",
+					Kind: mariadbv1alpha1.PhysicalBackupKind,
+				},
+				TargetRecoveryTime: &metav1.Time{Time: time.Now()},
+			},
+			types.NamespacedName{
+				Name:      "test-mariadb-from-physicalbackup",
+				Namespace: testNamespace,
+			},
+		),
+		Entry(
+			"PhysicalBackup VolumeSnapshot",
+			getPhysicalBackupWithVolumeSnapshotStorage(
+				types.NamespacedName{
+					Name:      "test-physicalbackup-volumesnapshot",
+					Namespace: testNamespace,
+				},
+			),
+			mariadbv1alpha1.BootstrapFrom{
+				BackupRef: &mariadbv1alpha1.TypedLocalObjectReference{
+					Name: "test-physicalbackup-volumesnapshot",
+					Kind: mariadbv1alpha1.PhysicalBackupKind,
+				},
+				TargetRecoveryTime: &metav1.Time{Time: time.Now()},
+			},
+			types.NamespacedName{
+				Name:      "test-mariadb-from-physicalbackup-volumesnapshot",
+				Namespace: testNamespace,
+			},
+		),
+	)
 })
 
 func testMariadbBootstrap(key types.NamespacedName, bootstrapFrom *mariadbv1alpha1.BootstrapFrom) {
@@ -723,6 +789,14 @@ func testMariadbBootstrap(key types.NamespacedName, bootstrapFrom *mariadbv1alph
 			Namespace: key.Namespace,
 		},
 		Spec: mariadbv1alpha1.MariaDBSpec{
+			RootPasswordSecretKeyRef: mariadbv1alpha1.GeneratedSecretKeyRef{
+				SecretKeySelector: mariadbv1alpha1.SecretKeySelector{
+					LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+						Name: testPwdKey.Name,
+					},
+					Key: testPwdSecretKey,
+				},
+			},
 			BootstrapFrom: bootstrapFrom,
 			Storage: mariadbv1alpha1.Storage{
 				Size: ptr.To(resource.MustParse("100Mi")),
