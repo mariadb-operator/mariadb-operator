@@ -639,106 +639,91 @@ var _ = Describe("MariaDB", func() {
 		}, testTimeout, testInterval).Should(BeTrue())
 	})
 
-	It("should bootstrap from Backup", func() {
-		backupKey := types.NamespacedName{
-			Name:      "backup-mdb-from-backup",
-			Namespace: testNamespace,
-		}
-		backup := getBackupWithS3Storage(backupKey, "test-mariadb", "")
+	DescribeTable("should bootstrap from logical backup",
+		func(backup *mariadbv1alpha1.Backup, bootstrapFrom mariadbv1alpha1.BootstrapFrom,
+			mariadbKey types.NamespacedName) {
+			backupKey := client.ObjectKeyFromObject(backup)
 
-		By("Creating Backup")
-		Expect(k8sClient.Create(testCtx, backup)).To(Succeed())
+			By("Creating Backup")
+			Expect(k8sClient.Create(testCtx, backup)).To(Succeed())
 
-		By("Expecting Backup to complete eventually")
-		Eventually(func() bool {
-			if err := k8sClient.Get(testCtx, backupKey, backup); err != nil {
-				return false
-			}
-			return backup.IsComplete()
-		}, testTimeout, testInterval).Should(BeTrue())
-		DeferCleanup(func() {
-			Expect(k8sClient.Delete(testCtx, backup)).To(Succeed())
-		})
+			By("Expecting Backup to complete eventually")
+			Eventually(func() bool {
+				if err := k8sClient.Get(testCtx, backupKey, backup); err != nil {
+					return false
+				}
+				return backup.IsComplete()
+			}, testTimeout, testInterval).Should(BeTrue())
+			DeferCleanup(func() {
+				Expect(k8sClient.Delete(testCtx, backup)).To(Succeed())
+			})
 
-		key := types.NamespacedName{
-			Name:      "mariadb-from-backup",
-			Namespace: testNamespace,
-		}
-		restoreSource := mariadbv1alpha1.RestoreSource{
-			BackupRef: &mariadbv1alpha1.LocalObjectReference{
-				Name: backupKey.Name,
+			By("Bootstrapping MariaDB from backup")
+			testMariadbBootstrap(mariadbKey, &bootstrapFrom)
+		},
+		Entry(
+			"Backup",
+			getBackupWithS3Storage(
+				types.NamespacedName{
+					Name:      "test-backup",
+					Namespace: testNamespace,
+				},
+				"test-mariadb",
+				"",
+			),
+			newBootstrapFromRestoreSource(mariadbv1alpha1.RestoreSource{
+				BackupRef: &mariadbv1alpha1.LocalObjectReference{
+					Name: "test-backup",
+				},
+				TargetRecoveryTime: &metav1.Time{Time: time.Now()},
+			}),
+			types.NamespacedName{
+				Name:      "test-mariadb-from-backup",
+				Namespace: testNamespace,
 			},
-			TargetRecoveryTime: &metav1.Time{Time: time.Now()},
-		}
-
-		By("Bootstrapping MariaDB from backup")
-		testMariadbBootstrap(key, restoreSource)
-	})
-
-	It("should bootstrap from S3", func() {
-		backupKey := types.NamespacedName{
-			Name:      "backup-mdb-from-s3",
-			Namespace: testNamespace,
-		}
-		backup := getBackupWithS3Storage(backupKey, "test-mariadb", "s3")
-
-		By("Creating Backup")
-		Expect(k8sClient.Create(testCtx, backup)).To(Succeed())
-
-		By("Expecting Backup to complete eventually")
-		Eventually(func() bool {
-			if err := k8sClient.Get(testCtx, backupKey, backup); err != nil {
-				return false
-			}
-			return backup.IsComplete()
-		}, testTimeout, testInterval).Should(BeTrue())
-		DeferCleanup(func() {
-			Expect(k8sClient.Delete(testCtx, backup)).To(Succeed())
-		})
-
-		key := types.NamespacedName{
-			Name:      "mariadb-from-s3",
-			Namespace: testNamespace,
-		}
-		restoreSource := mariadbv1alpha1.RestoreSource{
-			S3: getS3WithBucket("test-mariadb", "s3"),
-			StagingStorage: &mariadbv1alpha1.BackupStagingStorage{
-				PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimSpec{
-					AccessModes: []corev1.PersistentVolumeAccessMode{
-						corev1.ReadWriteOnce,
-					},
-					Resources: corev1.VolumeResourceRequirements{
-						Requests: corev1.ResourceList{
-							"storage": resource.MustParse("500Mi"),
+		),
+		Entry(
+			"S3",
+			getBackupWithS3Storage(
+				types.NamespacedName{
+					Name:      "test-backup-from-s3",
+					Namespace: testNamespace,
+				},
+				"test-mariadb",
+				"",
+			),
+			newBootstrapFromRestoreSource(mariadbv1alpha1.RestoreSource{
+				S3: getS3WithBucket("test-mariadb", ""),
+				StagingStorage: &mariadbv1alpha1.BackupStagingStorage{
+					PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimSpec{
+						AccessModes: []corev1.PersistentVolumeAccessMode{
+							corev1.ReadWriteOnce,
+						},
+						Resources: corev1.VolumeResourceRequirements{
+							Requests: corev1.ResourceList{
+								"storage": resource.MustParse("500Mi"),
+							},
 						},
 					},
 				},
+				TargetRecoveryTime: &metav1.Time{Time: time.Now()},
+			}),
+			types.NamespacedName{
+				Name:      "test-mariadb-from-s3",
+				Namespace: testNamespace,
 			},
-			TargetRecoveryTime: &metav1.Time{Time: time.Now()},
-		}
-
-		By("Bootstrapping MariaDB from S3")
-		testMariadbBootstrap(key, restoreSource)
-	})
+		),
+	)
 })
 
-func testMariadbBootstrap(key types.NamespacedName, source mariadbv1alpha1.RestoreSource) {
-	bootstrapFrom := newBootstrapFromRestoreSource(source)
-	bootstrapFrom.RestoreJob = &mariadbv1alpha1.Job{
-		Metadata: &mariadbv1alpha1.Metadata{
-			Labels: map[string]string{
-				"sidecar.istio.io/inject": "false",
-			},
-		},
-	}
-
+func testMariadbBootstrap(key types.NamespacedName, bootstrapFrom *mariadbv1alpha1.BootstrapFrom) {
 	mdb := mariadbv1alpha1.MariaDB{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      key.Name,
 			Namespace: key.Namespace,
 		},
 		Spec: mariadbv1alpha1.MariaDBSpec{
-			BootstrapFrom: &bootstrapFrom,
+			BootstrapFrom: bootstrapFrom,
 			Storage: mariadbv1alpha1.Storage{
 				Size: ptr.To(resource.MustParse("100Mi")),
 			},
