@@ -86,95 +86,23 @@ var _ = Describe("PhysicalBackup", func() {
 			testPhysicalBackup,
 		),
 		Entry(
+			"should reconcile a scheduled Job with S3 storage",
+			"physicalbackup-scheduled-job-s3-test",
+			applyDecoratorChain(
+				buildPhysicalBackupWithS3Storage("test-physicalbackup", ""),
+				decoratePhysicalBackupWithSchedule,
+			),
+			testPhysicalBackup,
+		),
+		Entry(
 			"should reconcile a VolumeSnapshot",
 			"physicalbackup-volumesnapshot-test",
 			getPhysicalBackupWithVolumeSnapshotStorage,
 			testPhysicalBackup,
 		),
-	)
-
-	DescribeTable("Creating a scheduled PhysicalBackup",
-		func(
-			resourceName string,
-			builderFn func(types.NamespacedName) *mariadbv1alpha1.PhysicalBackup,
-			testFn func(*mariadbv1alpha1.PhysicalBackup),
-		) {
-			key := types.NamespacedName{
-				Name:      resourceName,
-				Namespace: testNamespace,
-			}
-			backup := builderFn(key)
-			testFn(backup)
-		},
-		Entry(
-			"should reconcile a scheduled Job with PVC storage",
-			"physicalbackup-job-pvc-test-scheduled",
-			applyDecoratorChain(
-				getPhysicalBackupWithPVCStorage,
-				decoratePhysicalBackupWithSchedule,
-			),
-			testPhysicalBackup,
-		),
-		Entry(
-			"should reconcile a scheduled Job with Volume storage",
-			"physicalbackup-job-volume-test-scheduled",
-			applyDecoratorChain(
-				getPhysicalBackupWithVolumeStorage,
-				decoratePhysicalBackupWithSchedule,
-			),
-			testPhysicalBackup,
-		),
-		Entry(
-			"should reconcile a scheduled Job with S3 storage",
-			"physicalbackup-job-s3-test-scheduled",
-			applyDecoratorChain(
-				buildPhysicalBackupWithS3Storage("test-physicalbackup", ""),
-				decoratePhysicalBackupWithSchedule,
-			),
-			testPhysicalBackup,
-		),
-		Entry(
-			"should reconcile a scheduled Job with S3 storage with prefix",
-			"physicalbackup-job-s3-prefix-test-scheduled",
-			applyDecoratorChain(
-				buildPhysicalBackupWithS3Storage("test-physicalbackup", "mariadb"),
-				decoratePhysicalBackupWithSchedule,
-			),
-			testPhysicalBackup,
-		),
-		Entry(
-			"should reconcile a scheduled Job with S3 storage and bzip2 compression",
-			"physicalbackup-job-s3-bzip2-test-scheduled",
-			applyDecoratorChain(
-				buildPhysicalBackupWithS3Storage("test-physicalbackup", ""),
-				decoratePhysicalBackupWithBzip2Compression,
-				decoratePhysicalBackupWithSchedule,
-			),
-			testPhysicalBackup,
-		),
-		Entry(
-			"should reconcile a scheduled Job with S3 storage and gzip compression",
-			"physicalbackup-job-s3-gzip-test-scheduled",
-			applyDecoratorChain(
-				buildPhysicalBackupWithS3Storage("test-physicalbackup", ""),
-				decoratePhysicalBackupWithGzipCompression,
-				decoratePhysicalBackupWithSchedule,
-			),
-			testPhysicalBackup,
-		),
-		Entry(
-			"should reconcile a scheduled Job with S3 storage and staging storage",
-			"physicalbackup-job-s3-staging-test-scheduled",
-			applyDecoratorChain(
-				buildPhysicalBackupWithS3Storage("test-physicalbackup", ""),
-				decoratePhysicalBackupWithStagingStorage,
-				decoratePhysicalBackupWithSchedule,
-			),
-			testPhysicalBackup,
-		),
 		Entry(
 			"should reconcile a scheduled VolumeSnapshot",
-			"physicalbackup-volumesnapshot-test-scheduled",
+			"physicalbackup-scheduled-volumesnapshot-test",
 			applyDecoratorChain(
 				getPhysicalBackupWithVolumeSnapshotStorage,
 				decoratePhysicalBackupWithSchedule,
