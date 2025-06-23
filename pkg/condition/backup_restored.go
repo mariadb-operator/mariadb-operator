@@ -34,6 +34,6 @@ func SetRestoredPhysicalBackup(c Conditioner) {
 		Type:    mariadbv1alpha1.ConditionTypeBackupRestored,
 		Status:  metav1.ConditionTrue,
 		Reason:  mariadbv1alpha1.ConditionReasonRestorePhysicalBackup,
-		Message: "Restored phyical backup",
+		Message: "Restored physical backup",
 	})
 }
