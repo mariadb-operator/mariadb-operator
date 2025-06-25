@@ -231,6 +231,102 @@ var _ = Describe("MariaDB Galera use cases", Ordered, func() {
 			return mdb.IsReady() && mdb.HasGaleraConfiguredCondition() && mdb.HasGaleraReadyCondition()
 		}, testHighTimeout, testInterval).Should(BeTrue())
 	})
+
+	It("bootstrap from PhysicalBackup", Focus, func() {
+		backupKey := types.NamespacedName{
+			Name:      "test-bootstrap-galera-from-physicalbackup",
+			Namespace: testNamespace,
+		}
+		backup := getPhysicalBackupWithS3Storage(
+			backupKey,
+			"test-mariadb-physical",
+			"",
+		)
+
+		By("Creating PhysicalBackup")
+		Expect(k8sClient.Create(testCtx, backup)).To(Succeed())
+
+		By("Expecting PhysicalBackup to complete eventually")
+		Eventually(func() bool {
+			if err := k8sClient.Get(testCtx, backupKey, backup); err != nil {
+				return false
+			}
+			return backup.IsComplete()
+		}, testTimeout, testInterval).Should(BeTrue())
+		DeferCleanup(func() {
+			Expect(k8sClient.Delete(testCtx, backup)).To(Succeed())
+		})
+
+		By("Creating MariaDB")
+		mdb := &mariadbv1alpha1.MariaDB{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      key.Name,
+				Namespace: key.Namespace,
+			},
+			Spec: mariadbv1alpha1.MariaDBSpec{
+				RootPasswordSecretKeyRef: mariadbv1alpha1.GeneratedSecretKeyRef{
+					SecretKeySelector: mariadbv1alpha1.SecretKeySelector{
+						LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+							Name: testPwdKey.Name,
+						},
+						Key: testPwdSecretKey,
+					},
+				},
+				Galera: &mariadbv1alpha1.Galera{
+					Enabled: true,
+				},
+				BootstrapFrom: &mariadbv1alpha1.BootstrapFrom{
+					BackupRef: &mariadbv1alpha1.TypedLocalObjectReference{
+						Name: backupKey.Name,
+						Kind: mariadbv1alpha1.PhysicalBackupKind,
+					},
+					TargetRecoveryTime: &metav1.Time{Time: time.Now()},
+				},
+				Replicas: 3,
+				Storage: mariadbv1alpha1.Storage{
+					Size: ptr.To(resource.MustParse("300Mi")),
+				},
+				Service: &mariadbv1alpha1.ServiceTemplate{
+					Type: corev1.ServiceTypeLoadBalancer,
+					Metadata: &mariadbv1alpha1.Metadata{
+						Annotations: map[string]string{
+							"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.168",
+						},
+					},
+				},
+				PrimaryService: &mariadbv1alpha1.ServiceTemplate{
+					Type: corev1.ServiceTypeLoadBalancer,
+					Metadata: &mariadbv1alpha1.Metadata{
+						Annotations: map[string]string{
+							"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.169",
+						},
+					},
+				},
+				SecondaryService: &mariadbv1alpha1.ServiceTemplate{
+					Type: corev1.ServiceTypeLoadBalancer,
+					Metadata: &mariadbv1alpha1.Metadata{
+						Annotations: map[string]string{
+							"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.170",
+						},
+					},
+				},
+			},
+		}
+		applyMariadbTestConfig(mdb)
+
+		Expect(k8sClient.Create(testCtx, mdb)).To(Succeed())
+		DeferCleanup(func() {
+			deleteMariadb(key, true)
+		})
+
+		By("Expecting MariaDB to be ready eventually")
+		Eventually(func() bool {
+			if err := k8sClient.Get(testCtx, key, mdb); err != nil {
+				return false
+			}
+			return mdb.IsReady() && mdb.IsInitialized() && mdb.HasRestoredBackup()
+		}, testHighTimeout, testInterval).Should(BeTrue())
+	})
 })
 
 var _ = Describe("MariaDB Galera", Ordered, func() {
