@@ -484,6 +484,63 @@ var _ = Describe("MariaDB Galera", Ordered, func() {
 		}, testTimeout, testInterval).Should(BeTrue())
 	})
 
+	It("should bootstrap from PhysicalBackup", func() {
+		backupKey := types.NamespacedName{
+			Name:      "test-bootstrap-galera-from-physicalbackup",
+			Namespace: testNamespace,
+		}
+		backup := buildPhysicalBackupWithS3Storage(
+			key,
+			"test-mariadb-galera-physical",
+			"",
+		)(backupKey)
+
+		By("Creating PhysicalBackup")
+		Expect(k8sClient.Create(testCtx, backup)).To(Succeed())
+		DeferCleanup(func() {
+			Expect(k8sClient.Delete(testCtx, backup)).To(Succeed())
+		})
+
+		By("Expecting PhysicalBackup to complete eventually")
+		Eventually(func() bool {
+			if err := k8sClient.Get(testCtx, backupKey, backup); err != nil {
+				return false
+			}
+			return backup.IsComplete()
+		}, testTimeout, testInterval).Should(BeTrue())
+
+		By("Creating MariaDB")
+		bootstrapFromKey := types.NamespacedName{
+			Name:      "mariadb-galera-test",
+			Namespace: testNamespace,
+		}
+		bootstrapFrom := mdb.DeepCopy()
+		bootstrapFrom.ObjectMeta = metav1.ObjectMeta{
+			Name:      bootstrapFromKey.Name,
+			Namespace: bootstrapFromKey.Namespace,
+		}
+		bootstrapFrom.Spec.BootstrapFrom = &mariadbv1alpha1.BootstrapFrom{
+			BackupRef: &mariadbv1alpha1.TypedLocalObjectReference{
+				Name: backupKey.Name,
+				Kind: mariadbv1alpha1.PhysicalBackupKind,
+			},
+			TargetRecoveryTime: &metav1.Time{Time: time.Now()},
+		}
+
+		Expect(k8sClient.Create(testCtx, bootstrapFrom)).To(Succeed())
+		DeferCleanup(func() {
+			deleteMariadb(bootstrapFromKey, true)
+		})
+
+		By("Expecting MariaDB to be ready eventually")
+		Eventually(func() bool {
+			if err := k8sClient.Get(testCtx, bootstrapFromKey, bootstrapFrom); err != nil {
+				return false
+			}
+			return bootstrapFrom.IsReady() && bootstrapFrom.IsInitialized() && bootstrapFrom.HasRestoredBackup()
+		}, testHighTimeout, testInterval).Should(BeTrue())
+	})
+
 	It("should recover after Galera cluster crash", func() {
 		By("Tearing down all Pods")
 		opts := []client.DeleteAllOfOption{
@@ -605,63 +662,6 @@ var _ = Describe("MariaDB Galera", Ordered, func() {
 
 		By("Using MariaDB with MaxScale")
 		testMaxscale(mdb, mxs)
-	})
-
-	It("should bootstrap from PhysicalBackup", func() {
-		backupKey := types.NamespacedName{
-			Name:      "test-bootstrap-galera-from-physicalbackup",
-			Namespace: testNamespace,
-		}
-		backup := buildPhysicalBackupWithS3Storage(
-			key,
-			"test-mariadb-physical",
-			"",
-		)(backupKey)
-
-		By("Creating PhysicalBackup")
-		Expect(k8sClient.Create(testCtx, backup)).To(Succeed())
-		DeferCleanup(func() {
-			Expect(k8sClient.Delete(testCtx, backup)).To(Succeed())
-		})
-
-		By("Expecting PhysicalBackup to complete eventually")
-		Eventually(func() bool {
-			if err := k8sClient.Get(testCtx, backupKey, backup); err != nil {
-				return false
-			}
-			return backup.IsComplete()
-		}, testTimeout, testInterval).Should(BeTrue())
-
-		By("Creating MariaDB")
-		bootstrapFromKey := types.NamespacedName{
-			Name:      "mariadb-galera-test",
-			Namespace: testNamespace,
-		}
-		bootstrapFrom := mdb.DeepCopy()
-		bootstrapFrom.ObjectMeta = metav1.ObjectMeta{
-			Name:      bootstrapFromKey.Name,
-			Namespace: bootstrapFromKey.Namespace,
-		}
-		bootstrapFrom.Spec.BootstrapFrom = &mariadbv1alpha1.BootstrapFrom{
-			BackupRef: &mariadbv1alpha1.TypedLocalObjectReference{
-				Name: backupKey.Name,
-				Kind: mariadbv1alpha1.PhysicalBackupKind,
-			},
-			TargetRecoveryTime: &metav1.Time{Time: time.Now()},
-		}
-
-		Expect(k8sClient.Create(testCtx, bootstrapFrom)).To(Succeed())
-		DeferCleanup(func() {
-			deleteMariadb(bootstrapFromKey, true)
-		})
-
-		By("Expecting MariaDB to be ready eventually")
-		Eventually(func() bool {
-			if err := k8sClient.Get(testCtx, bootstrapFromKey, bootstrapFrom); err != nil {
-				return false
-			}
-			return bootstrapFrom.IsReady() && bootstrapFrom.IsInitialized() && bootstrapFrom.HasRestoredBackup()
-		}, testHighTimeout, testInterval).Should(BeTrue())
 	})
 })
 

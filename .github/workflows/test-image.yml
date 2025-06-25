@@ -56,3 +56,6 @@ jobs:
           topic: "CI - MariaDB Operator"
           content: "There was an error running MariaDB Operator integration tests on ${{ inputs.mariadb_image }} version(${{ inputs.mariadb_version }}) - URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}."
 
+      - name: Post Test Debugging (on failure)
+        if: failure()
+        run: make dump
