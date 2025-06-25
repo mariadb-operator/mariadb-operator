@@ -739,13 +739,15 @@ var _ = Describe("MariaDB", func() {
 		},
 		Entry(
 			"PhysicalBackup",
-			getPhysicalBackupWithS3Storage(
+			buildPhysicalBackupWithS3Storage(
+				testMdbkey,
+				"test-mariadb-physical",
+				"",
+			)(
 				types.NamespacedName{
 					Name:      "test-physicalbackup",
 					Namespace: testNamespace,
 				},
-				"test-mariadb-physical",
-				"",
 			),
 			mariadbv1alpha1.BootstrapFrom{
 				BackupRef: &mariadbv1alpha1.TypedLocalObjectReference{
@@ -761,7 +763,7 @@ var _ = Describe("MariaDB", func() {
 		),
 		Entry(
 			"PhysicalBackup VolumeSnapshot",
-			getPhysicalBackupWithVolumeSnapshotStorage(
+			buildPhysicalBackupWithVolumeSnapshotStorage(testMdbkey)(
 				types.NamespacedName{
 					Name:      "test-physicalbackup-volumesnapshot",
 					Namespace: testNamespace,
