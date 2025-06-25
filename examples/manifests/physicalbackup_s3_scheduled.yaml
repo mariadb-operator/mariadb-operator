@@ -1,20 +1,22 @@
 apiVersion: k8s.mariadb.com/v1alpha1
-kind: Backup
+kind: PhysicalBackup
 metadata:
-  name: backup
+  name: physicalbackup
 spec:
   mariaDbRef:
     name: mariadb
   schedule:
     cron: "*/1 * * * *"
     suspend: false
-  timeZone: "UTC"
-  maxRetention: 720h # 30 days
+    immediate: true
   compression: bzip2
+  maxRetention: 720h # 30 days
   storage:
     s3:
-      bucket: backups
+      bucket: physicalbackups
+      prefix: mariadb
       endpoint: minio.minio.svc.cluster.local:9000
+      region:  us-east-1
       accessKeyIdSecretKeyRef:
         name: minio
         key: access-key-id
@@ -31,13 +33,12 @@ spec:
     persistentVolumeClaim:
       resources:
         requests:
-          storage: 10Gi
+          storage: 1Gi
       accessModes:
         - ReadWriteOnce
-  args:
-    - --single-transaction
-    - --all-databases
-  logLevel: info
+  timeout: 1h
+  podAffinity: true
+  serviceAccountName: backup
   resources:
     requests:
       cpu: 100m
