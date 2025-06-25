@@ -232,7 +232,7 @@ var _ = Describe("MariaDB Galera use cases", Ordered, func() {
 		}, testHighTimeout, testInterval).Should(BeTrue())
 	})
 
-	It("bootstrap from PhysicalBackup", Focus, func() {
+	It("bootstrap from PhysicalBackup", func() {
 		backupKey := types.NamespacedName{
 			Name:      "test-bootstrap-galera-from-physicalbackup",
 			Namespace: testNamespace,
