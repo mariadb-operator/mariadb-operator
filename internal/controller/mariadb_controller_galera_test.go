@@ -377,7 +377,7 @@ var _ = Describe("MariaDB Galera", Ordered, func() {
 		})
 	})
 
-	It("should reconcile", Focus, func() {
+	It("should reconcile", func() {
 		By("Expecting MariaDB to be ready eventually")
 		Eventually(func() bool {
 			if err := k8sClient.Get(testCtx, key, mdb); err != nil {
@@ -607,7 +607,7 @@ var _ = Describe("MariaDB Galera", Ordered, func() {
 		testMaxscale(mdb, mxs)
 	})
 
-	It("should bootstrap from PhysicalBackup", Focus, func() {
+	It("should bootstrap from PhysicalBackup", func() {
 		backupKey := types.NamespacedName{
 			Name:      "test-bootstrap-galera-from-physicalbackup",
 			Namespace: testNamespace,
