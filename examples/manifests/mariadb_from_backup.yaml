@@ -3,6 +3,10 @@ kind: MariaDB
 metadata:
   name: mariadb-from-backup
 spec:
+  rootPasswordSecretKeyRef:
+    name: mariadb
+    key: password
+
   storage:
     size: 1Gi
 
