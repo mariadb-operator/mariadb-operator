@@ -646,6 +646,9 @@ var _ = Describe("MariaDB", func() {
 
 			By("Creating Backup")
 			Expect(k8sClient.Create(testCtx, backup)).To(Succeed())
+			DeferCleanup(func() {
+				Expect(k8sClient.Delete(testCtx, backup)).To(Succeed())
+			})
 
 			By("Expecting Backup to complete eventually")
 			Eventually(func() bool {
@@ -654,9 +657,6 @@ var _ = Describe("MariaDB", func() {
 				}
 				return backup.IsComplete()
 			}, testTimeout, testInterval).Should(BeTrue())
-			DeferCleanup(func() {
-				Expect(k8sClient.Delete(testCtx, backup)).To(Succeed())
-			})
 
 			By("Bootstrapping MariaDB from Backup")
 			testMariadbBootstrap(mariadbKey, &bootstrapFrom)
@@ -722,6 +722,9 @@ var _ = Describe("MariaDB", func() {
 
 			By("Creating PhysicalBackup")
 			Expect(k8sClient.Create(testCtx, backup)).To(Succeed())
+			DeferCleanup(func() {
+				Expect(k8sClient.Delete(testCtx, backup)).To(Succeed())
+			})
 
 			By("Expecting PhysicalBackup to complete eventually")
 			Eventually(func() bool {
@@ -730,9 +733,6 @@ var _ = Describe("MariaDB", func() {
 				}
 				return backup.IsComplete()
 			}, testTimeout, testInterval).Should(BeTrue())
-			DeferCleanup(func() {
-				Expect(k8sClient.Delete(testCtx, backup)).To(Succeed())
-			})
 
 			By("Bootstrapping MariaDB from PhysicalBackup")
 			testMariadbBootstrap(mariadbKey, &bootstrapFrom)

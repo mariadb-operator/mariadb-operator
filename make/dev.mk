@@ -134,6 +134,69 @@ AGENT_FLAGS ?= $(RUN_FLAGS) $(AGENT_AUTH_FLAGS) --config-dir=mariadb/config --st
 agent: local-dir ## Run agent from your host.
 	$(POD_ENV) $(GO) run cmd/controller/*.go agent $(AGENT_FLAGS)
 
+##@ Dump
+
+DUMP_NAMESPACE ?= default
+.PHONY: dump
+dump:  ## Dump cluster state for debugging purposes
+	@printf "\n========================================\n"
+	@printf "                SERVICES\n"
+	@printf "========================================\n\n"
+	@$(KUBECTL) get svc -n $(DUMP_NAMESPACE)
+
+	@printf "\n========================================\n"
+	@printf "                  PODS\n"
+	@printf "========================================\n\n"
+	@$(KUBECTL) get pods -n $(DUMP_NAMESPACE) -o wide
+
+	@printf "\n========================================\n"
+	@printf "                 EVENTS\n"
+	@printf "========================================\n\n"
+	@$(KUBECTL) get events -n $(DUMP_NAMESPACE) --sort-by=.metadata.creationTimestamp
+
+	@printf "\n========================================\n"
+	@printf "           DESCRIBING MARIADBS\n"
+	@printf "========================================\n\n"
+	@for mdb in $$($(KUBECTL) get mdb -n $(DUMP_NAMESPACE) -o jsonpath='{.items[*].metadata.name}'); do \
+		printf "\n---- Describing MariaDB: $$mdb ----\n\n"; \
+		$(KUBECTL) describe mdb $$mdb -n $(DUMP_NAMESPACE); \
+	done
+
+	@printf "\n========================================\n"
+	@printf "           DESCRIBING MAXSCALES\n"
+	@printf "========================================\n\n"
+	@for maxscale in $$($(KUBECTL) get maxscale -n $(DUMP_NAMESPACE) -o jsonpath='{.items[*].metadata.name}'); do \
+		printf "\n---- Describing MaxScale: $$maxscale ----\n\n"; \
+		$(KUBECTL) describe maxscale $$maxscale -n $(DUMP_NAMESPACE); \
+	done
+
+	@printf "\n========================================\n"
+	@printf "         DESCRIBING STATEFULSETS\n"
+	@printf "========================================\n\n"
+	@for sts in $$($(KUBECTL) get statefulset -n $(DUMP_NAMESPACE) -o jsonpath='{.items[*].metadata.name}'); do \
+		if [[ "$$sts" == csi* ]]; then continue; fi; \
+		printf "\n---- Describing StatefulSet: $$sts ----\n\n"; \
+		$(KUBECTL) describe statefulset $$sts -n $(DUMP_NAMESPACE); \
+	done
+
+	@printf "\n========================================\n"
+	@printf "           DESCRIBING PODS\n"
+	@printf "========================================\n\n"
+	@for pod in $$($(KUBECTL) get pods -n $(DUMP_NAMESPACE) -o jsonpath='{.items[*].metadata.name}'); do \
+		if [[ "$$pod" == csi* ]]; then continue; fi; \
+		printf "\n---- Describing Pod: $$pod ----\n\n"; \
+		$(KUBECTL) describe pod $$pod -n $(DUMP_NAMESPACE); \
+	done
+
+	@printf "\n========================================\n"
+	@printf "                LOGS\n"
+	@printf "========================================\n\n"
+	@for pod in $$($(KUBECTL) get pods -n $(DUMP_NAMESPACE) -o jsonpath='{.items[*].metadata.name}'); do \
+		if [[ "$$pod" == csi* ]]; then continue; fi; \
+		printf "\n---- Logs for $$pod ----\n\n"; \
+		$(KUBECTL) logs $$pod -n $(DUMP_NAMESPACE) --all-containers=true; \
+	done
+
 ##@ Profile
 
 PPROF_SAMPLE ?= heap

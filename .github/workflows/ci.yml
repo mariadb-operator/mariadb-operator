@@ -127,6 +127,10 @@ jobs:
       - name: Test
         run: make test-int
 
+      - name: Post Test Debugging (on failure)
+        if: failure()
+        run: make dump
+
   artifacts:
     name: Artifacts
     runs-on: ubuntu-latest
