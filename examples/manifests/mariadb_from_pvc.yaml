@@ -3,10 +3,6 @@ kind: MariaDB
 metadata:
   name: mariadb-from-pvc
 spec:
-  rootPasswordSecretKeyRef:
-    name: mariadb
-    key: password
-
   storage:
     size: 1Gi
 
