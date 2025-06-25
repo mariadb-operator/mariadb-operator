@@ -9,9 +9,7 @@ import (
 	. "github.com/onsi/gomega/gstruct"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -24,7 +22,7 @@ var _ = Describe("PhysicalBackup", func() {
 	DescribeTable("Creating a PhysicalBackup",
 		func(
 			resourceName string,
-			builderFn func(types.NamespacedName) *mariadbv1alpha1.PhysicalBackup,
+			builderFn physicalBackupBuilder,
 			testFn func(*mariadbv1alpha1.PhysicalBackup),
 		) {
 			key := types.NamespacedName{
@@ -37,32 +35,32 @@ var _ = Describe("PhysicalBackup", func() {
 		Entry(
 			"should reconcile a Job with PVC storage",
 			"physicalbackup-job-pvc-test",
-			getPhysicalBackupWithPVCStorage,
+			buildPhysicalBackupWithPVCStorage(testMdbkey),
 			testPhysicalBackup,
 		),
 		Entry(
 			"should reconcile a Job with Volume storage",
 			"physicalbackup-job-volume-test",
-			getPhysicalBackupWithVolumeStorage,
+			buildPhysicalBackupWithVolumeStorage(testMdbkey),
 			testPhysicalBackup,
 		),
 		Entry(
 			"should reconcile a Job with S3 storage",
 			"physicalbackup-job-s3-test",
-			buildPhysicalBackupWithS3Storage("test-physicalbackup", ""),
+			buildPhysicalBackupWithS3Storage(testMdbkey, "test-physicalbackup", ""),
 			testPhysicalBackup,
 		),
 		Entry(
 			"should reconcile a Job with S3 storage with prefix",
 			"physicalbackup-job-s3-prefix-test",
-			buildPhysicalBackupWithS3Storage("test-physicalbackup", "mariadb"),
+			buildPhysicalBackupWithS3Storage(testMdbkey, "test-physicalbackup", "mariadb"),
 			testPhysicalBackup,
 		),
 		Entry(
 			"should reconcile a Job with S3 storage and bzip2 compression",
 			"physicalbackup-job-s3-bzip2-test",
 			applyDecoratorChain(
-				buildPhysicalBackupWithS3Storage("test-physicalbackup", ""),
+				buildPhysicalBackupWithS3Storage(testMdbkey, "test-physicalbackup", ""),
 				decoratePhysicalBackupWithBzip2Compression,
 			),
 			testPhysicalBackup,
@@ -71,7 +69,7 @@ var _ = Describe("PhysicalBackup", func() {
 			"should reconcile a Job with S3 storage and gzip compression",
 			"physicalbackup-job-s3-gzip-test",
 			applyDecoratorChain(
-				buildPhysicalBackupWithS3Storage("test-physicalbackup", ""),
+				buildPhysicalBackupWithS3Storage(testMdbkey, "test-physicalbackup", ""),
 				decoratePhysicalBackupWithGzipCompression,
 			),
 			testPhysicalBackup,
@@ -80,7 +78,7 @@ var _ = Describe("PhysicalBackup", func() {
 			"should reconcile a Job with S3 storage and staging storage",
 			"physicalbackup-job-s3-staging-test",
 			applyDecoratorChain(
-				buildPhysicalBackupWithS3Storage("test-physicalbackup", ""),
+				buildPhysicalBackupWithS3Storage(testMdbkey, "test-physicalbackup", ""),
 				decoratePhysicalBackupWithStagingStorage,
 			),
 			testPhysicalBackup,
@@ -89,7 +87,7 @@ var _ = Describe("PhysicalBackup", func() {
 			"should reconcile a scheduled Job with S3 storage",
 			"physicalbackup-scheduled-job-s3-test",
 			applyDecoratorChain(
-				buildPhysicalBackupWithS3Storage("test-physicalbackup", ""),
+				buildPhysicalBackupWithS3Storage(testMdbkey, "test-physicalbackup", ""),
 				decoratePhysicalBackupWithSchedule,
 			),
 			testPhysicalBackup,
@@ -97,14 +95,14 @@ var _ = Describe("PhysicalBackup", func() {
 		Entry(
 			"should reconcile a VolumeSnapshot",
 			"physicalbackup-volumesnapshot-test",
-			getPhysicalBackupWithVolumeSnapshotStorage,
+			buildPhysicalBackupWithVolumeSnapshotStorage(testMdbkey),
 			testPhysicalBackup,
 		),
 		Entry(
 			"should reconcile a scheduled VolumeSnapshot",
 			"physicalbackup-scheduled-volumesnapshot-test",
 			applyDecoratorChain(
-				getPhysicalBackupWithVolumeSnapshotStorage,
+				buildPhysicalBackupWithVolumeSnapshotStorage(testMdbkey),
 				decoratePhysicalBackupWithSchedule,
 			),
 			testPhysicalBackup,
@@ -190,42 +188,4 @@ func testPhysicalBackupVolumeSnapshot(backup *mariadbv1alpha1.PhysicalBackup) {
 		}
 		return backup.IsComplete()
 	}, testTimeout, testInterval).Should(BeTrue())
-}
-
-func decoratePhysicalBackupWithSchedule(backup *mariadbv1alpha1.PhysicalBackup) *mariadbv1alpha1.PhysicalBackup {
-	backup.Spec.Schedule = &mariadbv1alpha1.PhysicalBackupSchedule{Cron: "* */5 * * *"}
-	backup.Spec.Schedule.Immediate = ptr.To(true)
-	return backup
-}
-
-func decoratePhysicalBackupWithGzipCompression(backup *mariadbv1alpha1.PhysicalBackup) *mariadbv1alpha1.PhysicalBackup {
-	backup.Spec.Compression = mariadbv1alpha1.CompressGzip
-	return backup
-}
-
-func decoratePhysicalBackupWithBzip2Compression(backup *mariadbv1alpha1.PhysicalBackup) *mariadbv1alpha1.PhysicalBackup {
-	backup.Spec.Compression = mariadbv1alpha1.CompressBzip2
-	return backup
-}
-
-func decoratePhysicalBackupWithStagingStorage(backup *mariadbv1alpha1.PhysicalBackup) *mariadbv1alpha1.PhysicalBackup {
-	backup.Spec.StagingStorage = &mariadbv1alpha1.BackupStagingStorage{
-		PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimSpec{
-			AccessModes: []corev1.PersistentVolumeAccessMode{
-				corev1.ReadWriteOnce,
-			},
-			Resources: corev1.VolumeResourceRequirements{
-				Requests: corev1.ResourceList{
-					"storage": resource.MustParse("300Mi"),
-				},
-			},
-		},
-	}
-	return backup
-}
-
-func buildPhysicalBackupWithS3Storage(bucket, prefix string) func(key types.NamespacedName) *mariadbv1alpha1.PhysicalBackup {
-	return func(key types.NamespacedName) *mariadbv1alpha1.PhysicalBackup {
-		return getPhysicalBackupWithS3Storage(key, bucket, prefix)
-	}
 }
