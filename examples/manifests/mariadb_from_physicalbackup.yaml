@@ -1,0 +1,25 @@
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-from-physicalbackup
+spec:
+  rootPasswordSecretKeyRef:
+    name: mariadb
+    key: password
+
+  storage:
+    size: 1Gi
+    storageClassName: csi-hostpath-sc
+
+  bootstrapFrom:
+    backupRef:
+      name: physicalbackup
+      kind: PhysicalBackup
+    targetRecoveryTime: 2025-06-17T08:07:00Z
+    stagingStorage:
+      persistentVolumeClaim:
+        resources:
+          requests:
+            storage: 1Gi
+        accessModes:
+          - ReadWriteOnce
