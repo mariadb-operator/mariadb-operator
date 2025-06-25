@@ -102,7 +102,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `args` _string array_ | Args to be used in the Container. |  |  |
-| `resources` _[ResourceRequirements](#resourcerequirements)_ | Resouces describes the compute resource requirements. |  |  |
+| `resources` _[ResourceRequirements](#resourcerequirements)_ | Resources describes the compute resource requirements. |  |  |
 | `securityContext` _[SecurityContext](#securitycontext)_ | SecurityContext holds security configuration that will be applied to a container. |  |  |
 | `podMetadata` _[Metadata](#metadata)_ | PodMetadata defines extra metadata for the Pod. |  |  |
 | `imagePullSecrets` _[LocalObjectReference](#localobjectreference) array_ | ImagePullSecrets is the list of pull Secrets to be used to pull the image. |  |  |
@@ -394,7 +394,7 @@ _Appears in:_
 | `args` _string array_ | Args to be used in the Container. |  |  |
 | `env` _[EnvVar](#envvar) array_ | Env represents the environment variables to be injected in a container. |  |  |
 | `volumeMounts` _[VolumeMount](#volumemount) array_ | VolumeMounts to be used in the Container. |  |  |
-| `resources` _[ResourceRequirements](#resourcerequirements)_ | Resouces describes the compute resource requirements. |  |  |
+| `resources` _[ResourceRequirements](#resourcerequirements)_ | Resources describes the compute resource requirements. |  |  |
 
 
 #### ContainerTemplate
@@ -421,7 +421,7 @@ _Appears in:_
 | `livenessProbe` _[Probe](#probe)_ | LivenessProbe to be used in the Container. |  |  |
 | `readinessProbe` _[Probe](#probe)_ | ReadinessProbe to be used in the Container. |  |  |
 | `startupProbe` _[Probe](#probe)_ | StartupProbe to be used in the Container. |  |  |
-| `resources` _[ResourceRequirements](#resourcerequirements)_ | Resouces describes the compute resource requirements. |  |  |
+| `resources` _[ResourceRequirements](#resourcerequirements)_ | Resources describes the compute resource requirements. |  |  |
 | `securityContext` _[SecurityContext](#securitycontext)_ | SecurityContext holds security configuration that will be applied to a container. |  |  |
 
 
@@ -620,7 +620,7 @@ _Appears in:_
 | `imagePullSecrets` _[LocalObjectReference](#localobjectreference) array_ | ImagePullSecrets is the list of pull Secrets to be used to pull the image. |  |  |
 | `args` _string array_ | Args to be used in the Container. |  |  |
 | `port` _integer_ | Port where the exporter will be listening for connections. |  |  |
-| `resources` _[ResourceRequirements](#resourcerequirements)_ | Resouces describes the compute resource requirements. |  |  |
+| `resources` _[ResourceRequirements](#resourcerequirements)_ | Resources describes the compute resource requirements. |  |  |
 | `podMetadata` _[Metadata](#metadata)_ | PodMetadata defines extra metadata for the Pod. |  |  |
 | `securityContext` _[SecurityContext](#securitycontext)_ | SecurityContext holds container-level security attributes. |  |  |
 | `podSecurityContext` _[PodSecurityContext](#podsecuritycontext)_ | SecurityContext holds pod-level security attributes and common container settings. |  |  |
@@ -679,7 +679,7 @@ _Appears in:_
 | `livenessProbe` _[Probe](#probe)_ | LivenessProbe to be used in the Container. |  |  |
 | `readinessProbe` _[Probe](#probe)_ | ReadinessProbe to be used in the Container. |  |  |
 | `startupProbe` _[Probe](#probe)_ | StartupProbe to be used in the Container. |  |  |
-| `resources` _[ResourceRequirements](#resourcerequirements)_ | Resouces describes the compute resource requirements. |  |  |
+| `resources` _[ResourceRequirements](#resourcerequirements)_ | Resources describes the compute resource requirements. |  |  |
 | `securityContext` _[SecurityContext](#securitycontext)_ | SecurityContext holds security configuration that will be applied to a container. |  |  |
 | `image` _string_ | Image name to be used by the MariaDB instances. The supported format is `<image>:<tag>`. |  |  |
 | `imagePullPolicy` _[PullPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.32/#pullpolicy-v1-core)_ | ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`. |  | Enum: [Always Never IfNotPresent] <br /> |
@@ -730,7 +730,7 @@ _Appears in:_
 | `livenessProbe` _[Probe](#probe)_ | LivenessProbe to be used in the Container. |  |  |
 | `readinessProbe` _[Probe](#probe)_ | ReadinessProbe to be used in the Container. |  |  |
 | `startupProbe` _[Probe](#probe)_ | StartupProbe to be used in the Container. |  |  |
-| `resources` _[ResourceRequirements](#resourcerequirements)_ | Resouces describes the compute resource requirements. |  |  |
+| `resources` _[ResourceRequirements](#resourcerequirements)_ | Resources describes the compute resource requirements. |  |  |
 | `securityContext` _[SecurityContext](#securitycontext)_ | SecurityContext holds security configuration that will be applied to a container. |  |  |
 | `image` _string_ | Image name to be used by the MariaDB instances. The supported format is `<image>:<tag>`. |  | Required: \{\} <br /> |
 | `imagePullPolicy` _[PullPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.32/#pullpolicy-v1-core)_ | ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`. |  | Enum: [Always Never IfNotPresent] <br /> |
@@ -751,7 +751,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `metadata` _[Metadata](#metadata)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
-| `resources` _[ResourceRequirements](#resourcerequirements)_ | Resouces describes the compute resource requirements. |  |  |
+| `resources` _[ResourceRequirements](#resourcerequirements)_ | Resources describes the compute resource requirements. |  |  |
 
 
 #### GaleraRecovery
@@ -796,7 +796,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `metadata` _[Metadata](#metadata)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
-| `resources` _[ResourceRequirements](#resourcerequirements)_ | Resouces describes the compute resource requirements. |  |  |
+| `resources` _[ResourceRequirements](#resourcerequirements)_ | Resources describes the compute resource requirements. |  |  |
 | `podAffinity` _boolean_ | PodAffinity indicates whether the recovery Jobs should run in the same Node as the MariaDB Pods. It defaults to true. |  |  |
 
 
@@ -983,7 +983,7 @@ _Appears in:_
 | `affinity` _[AffinityConfig](#affinityconfig)_ | Affinity to be used in the Pod. |  |  |
 | `nodeSelector` _object (keys:string, values:string)_ | NodeSelector to be used in the Pod. |  |  |
 | `tolerations` _[Toleration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.32/#toleration-v1-core) array_ | Tolerations to be used in the Pod. |  |  |
-| `resources` _[ResourceRequirements](#resourcerequirements)_ | Resouces describes the compute resource requirements. |  |  |
+| `resources` _[ResourceRequirements](#resourcerequirements)_ | Resources describes the compute resource requirements. |  |  |
 | `args` _string array_ | Args to be used in the Container. |  |  |
 
 
@@ -1003,7 +1003,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `args` _string array_ | Args to be used in the Container. |  |  |
-| `resources` _[ResourceRequirements](#resourcerequirements)_ | Resouces describes the compute resource requirements. |  |  |
+| `resources` _[ResourceRequirements](#resourcerequirements)_ | Resources describes the compute resource requirements. |  |  |
 | `securityContext` _[SecurityContext](#securitycontext)_ | SecurityContext holds security configuration that will be applied to a container. |  |  |
 
 
@@ -1196,7 +1196,7 @@ _Appears in:_
 | `livenessProbe` _[Probe](#probe)_ | LivenessProbe to be used in the Container. |  |  |
 | `readinessProbe` _[Probe](#probe)_ | ReadinessProbe to be used in the Container. |  |  |
 | `startupProbe` _[Probe](#probe)_ | StartupProbe to be used in the Container. |  |  |
-| `resources` _[ResourceRequirements](#resourcerequirements)_ | Resouces describes the compute resource requirements. |  |  |
+| `resources` _[ResourceRequirements](#resourcerequirements)_ | Resources describes the compute resource requirements. |  |  |
 | `securityContext` _[SecurityContext](#securitycontext)_ | SecurityContext holds security configuration that will be applied to a container. |  |  |
 | `podMetadata` _[Metadata](#metadata)_ | PodMetadata defines extra metadata for the Pod. |  |  |
 | `imagePullSecrets` _[LocalObjectReference](#localobjectreference) array_ | ImagePullSecrets is the list of pull Secrets to be used to pull the image. |  |  |
@@ -1431,7 +1431,7 @@ _Appears in:_
 | `module` _[MonitorModule](#monitormodule)_ | Module is the module to use to monitor MariaDB servers. It is mandatory when no MariaDB reference is provided. |  |  |
 | `interval` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.32/#duration-v1-meta)_ | Interval used to monitor MariaDB servers. It is defaulted if not provided. |  |  |
 | `cooperativeMonitoring` _[CooperativeMonitoring](#cooperativemonitoring)_ | CooperativeMonitoring enables coordination between multiple MaxScale instances running monitors. It is defaulted when HA is enabled. |  | Enum: [majority_of_all majority_of_running] <br /> |
-| `params` _object (keys:string, values:string)_ | Params defines extra parameters to pass to the monitor.<br />Any parameter supported by MaxScale may be specified here. See reference:<br />https://mariadb.com/kb/en/mariadb-maxscale-2308-common-monitor-parameters/.<br />Monitor specific parameter are also suported:<br />https://mariadb.com/kb/en/mariadb-maxscale-2308-galera-monitor/#galera-monitor-optional-parameters.<br />https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-monitor/#configuration. |  |  |
+| `params` _object (keys:string, values:string)_ | Params defines extra parameters to pass to the monitor.<br />Any parameter supported by MaxScale may be specified here. See reference:<br />https://mariadb.com/kb/en/mariadb-maxscale-2308-common-monitor-parameters/.<br />Monitor specific parameter are also supported:<br />https://mariadb.com/kb/en/mariadb-maxscale-2308-galera-monitor/#galera-monitor-optional-parameters.<br />https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-monitor/#configuration. |  |  |
 
 
 #### MaxScalePodTemplate
@@ -1497,7 +1497,7 @@ _Appears in:_
 | `name` _string_ | Name is the identifier of the MaxScale service. |  | Required: \{\} <br /> |
 | `router` _[ServiceRouter](#servicerouter)_ | Router is the type of router to use. |  | Enum: [readwritesplit readconnroute] <br />Required: \{\} <br /> |
 | `listener` _[MaxScaleListener](#maxscalelistener)_ | MaxScaleListener defines how the MaxScale server will listen for connections. |  | Required: \{\} <br /> |
-| `params` _object (keys:string, values:string)_ | Params defines extra parameters to pass to the service.<br />Any parameter supported by MaxScale may be specified here. See reference:<br />https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/#service_1.<br />Router specific parameter are also suported:<br />https://mariadb.com/kb/en/mariadb-maxscale-2308-readwritesplit/#configuration.<br />https://mariadb.com/kb/en/mariadb-maxscale-2308-readconnroute/#configuration. |  |  |
+| `params` _object (keys:string, values:string)_ | Params defines extra parameters to pass to the service.<br />Any parameter supported by MaxScale may be specified here. See reference:<br />https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/#service_1.<br />Router specific parameter are also supported:<br />https://mariadb.com/kb/en/mariadb-maxscale-2308-readwritesplit/#configuration.<br />https://mariadb.com/kb/en/mariadb-maxscale-2308-readconnroute/#configuration. |  |  |
 
 
 #### MaxScaleSpec
@@ -1521,7 +1521,7 @@ _Appears in:_
 | `livenessProbe` _[Probe](#probe)_ | LivenessProbe to be used in the Container. |  |  |
 | `readinessProbe` _[Probe](#probe)_ | ReadinessProbe to be used in the Container. |  |  |
 | `startupProbe` _[Probe](#probe)_ | StartupProbe to be used in the Container. |  |  |
-| `resources` _[ResourceRequirements](#resourcerequirements)_ | Resouces describes the compute resource requirements. |  |  |
+| `resources` _[ResourceRequirements](#resourcerequirements)_ | Resources describes the compute resource requirements. |  |  |
 | `securityContext` _[SecurityContext](#securitycontext)_ | SecurityContext holds security configuration that will be applied to a container. |  |  |
 | `podMetadata` _[Metadata](#metadata)_ | PodMetadata defines extra metadata for the Pod. |  |  |
 | `imagePullSecrets` _[LocalObjectReference](#localobjectreference) array_ | ImagePullSecrets is the list of pull Secrets to be used to pull the image. |  |  |
@@ -2182,7 +2182,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `args` _string array_ | Args to be used in the Container. |  |  |
-| `resources` _[ResourceRequirements](#resourcerequirements)_ | Resouces describes the compute resource requirements. |  |  |
+| `resources` _[ResourceRequirements](#resourcerequirements)_ | Resources describes the compute resource requirements. |  |  |
 | `securityContext` _[SecurityContext](#securitycontext)_ | SecurityContext holds security configuration that will be applied to a container. |  |  |
 | `podMetadata` _[Metadata](#metadata)_ | PodMetadata defines extra metadata for the Pod. |  |  |
 | `imagePullSecrets` _[LocalObjectReference](#localobjectreference) array_ | ImagePullSecrets is the list of pull Secrets to be used to pull the image. |  |  |
@@ -2497,7 +2497,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `args` _string array_ | Args to be used in the Container. |  |  |
-| `resources` _[ResourceRequirements](#resourcerequirements)_ | Resouces describes the compute resource requirements. |  |  |
+| `resources` _[ResourceRequirements](#resourcerequirements)_ | Resources describes the compute resource requirements. |  |  |
 | `securityContext` _[SecurityContext](#securitycontext)_ | SecurityContext holds security configuration that will be applied to a container. |  |  |
 | `podMetadata` _[Metadata](#metadata)_ | PodMetadata defines extra metadata for the Pod. |  |  |
 | `imagePullSecrets` _[LocalObjectReference](#localobjectreference) array_ | ImagePullSecrets is the list of pull Secrets to be used to pull the image. |  |  |
