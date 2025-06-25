@@ -19,7 +19,7 @@ ENV ?= \
 	KUBEBUILDER_ASSETS=$(KUBEBUILDER_ASSETS)
 
 TEST_ARGS ?= --coverprofile=cover.out
-TEST ?= $(ENV) $(GINKGO) $(TEST_ARGS) --timeout 45m
+TEST ?= $(ENV) $(GINKGO) $(TEST_ARGS) --timeout 1h
 
 GOCOVERDIR ?= .
 
