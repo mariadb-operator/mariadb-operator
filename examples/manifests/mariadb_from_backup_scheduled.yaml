@@ -1,15 +1,15 @@
 apiVersion: k8s.mariadb.com/v1alpha1
 kind: MariaDB
 metadata:
-  name: mariadb-from-backup
+  name: mariadb-from-backup-scheduled
 spec:
   storage:
     size: 1Gi
 
   bootstrapFrom:
     backupRef:
-      name: backup
-    targetRecoveryTime: 2023-12-19T09:00:00Z
+      name: backup-scheduled
+    targetRecoveryTime: 2023-12-28T09:00:00Z
     restoreJob:
       metadata:
         labels:

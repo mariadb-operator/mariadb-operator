@@ -3,10 +3,6 @@ kind: MariaDB
 metadata:
   name: mariadb-from-nfs
 spec:
-  rootPasswordSecretKeyRef:
-    name: mariadb
-    key: password
-
   storage:
     size: 1Gi
 
