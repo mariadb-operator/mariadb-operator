@@ -88,6 +88,23 @@ Backup is the Schema for the backups API. It is used to define backup jobs and i
 | `spec` _[BackupSpec](#backupspec)_ |  |  |  |
 
 
+#### BackupContentType
+
+_Underlying type:_ _string_
+
+BackupContentType defines the backup content type.
+
+
+
+_Appears in:_
+- [BootstrapFrom](#bootstrapfrom)
+
+| Field | Description |
+| --- | --- |
+| `Logical` | BackupContentTypeLogical represents a logical backup created using mariadb-dump.<br /> |
+| `Physical` | BackupContentTypePhysical represents a physical backup created using mariadb-backup.<br /> |
+
+
 #### BackupSpec
 
 
@@ -140,6 +157,7 @@ BackupStagingStorage defines the temporary storage used to keep external backups
 _Appears in:_
 - [BackupSpec](#backupspec)
 - [BootstrapFrom](#bootstrapfrom)
+- [PhysicalBackupSpec](#physicalbackupspec)
 - [RestoreSource](#restoresource)
 - [RestoreSpec](#restorespec)
 
@@ -198,12 +216,14 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `backupRef` _[LocalObjectReference](#localobjectreference)_ | BackupRef is a reference to a Backup object. It has priority over S3 and Volume. |  |  |
-| `s3` _[S3](#s3)_ | S3 defines the configuration to restore backups from a S3 compatible storage. It has priority over Volume. |  |  |
+| `backupRef` _[TypedLocalObjectReference](#typedlocalobjectreference)_ | BackupRef is reference to a backup object. If the Kind is not specified, a logical Backup is assumed.<br />This field takes precedence over S3 and Volume sources. |  |  |
+| `volumeSnapshotRef` _[LocalObjectReference](#localobjectreference)_ | VolumeSnapshotRef is a reference to a VolumeSnapshot object.<br />This field takes precedence over S3 and Volume sources. |  |  |
+| `backupContentType` _[BackupContentType](#backupcontenttype)_ | BackupContentType is the backup content type available in the source to bootstrap from.<br />It is inferred based on the BackupRef and VolumeSnapshotRef fields. If inference is not possible, it defaults to Logical.<br />Set this field explicitly when using physical backups from S3 or Volume sources. |  | Enum: [Logical Physical] <br /> |
+| `s3` _[S3](#s3)_ | S3 defines the configuration to restore backups from a S3 compatible storage.<br />This field takes precedence over the Volume source. |  |  |
 | `volume` _[StorageVolumeSource](#storagevolumesource)_ | Volume is a Kubernetes Volume object that contains a backup. |  |  |
 | `targetRecoveryTime` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.32/#time-v1-meta)_ | TargetRecoveryTime is a RFC3339 (1970-01-01T00:00:00Z) date and time that defines the point in time recovery objective.<br />It is used to determine the closest restoration source in time. |  |  |
-| `stagingStorage` _[BackupStagingStorage](#backupstagingstorage)_ | StagingStorage defines the temporary storage used to keep external backups (i.e. S3) while they are being processed.<br />It defaults to an emptyDir volume, meaning that the backups will be temporarily stored in the node where the Restore Job is scheduled. |  |  |
-| `restoreJob` _[Job](#job)_ | RestoreJob defines additional properties for the Job used to perform the Restore. |  |  |
+| `stagingStorage` _[BackupStagingStorage](#backupstagingstorage)_ | StagingStorage defines the temporary storage used to keep external backups (i.e. S3) while they are being processed.<br />It defaults to an emptyDir volume, meaning that the backups will be temporarily stored in the node where the Job is scheduled. |  |  |
+| `restoreJob` _[Job](#job)_ | RestoreJob defines additional properties for the Job used to perform the restoration. |  |  |
 
 
 #### CSIVolumeSource
@@ -258,6 +278,7 @@ CompressAlgorithm defines the compression algorithm for a Backup resource.
 
 _Appears in:_
 - [BackupSpec](#backupspec)
+- [PhysicalBackupSpec](#physicalbackupspec)
 
 | Field | Description |
 | --- | --- |
@@ -997,6 +1018,7 @@ JobContainerTemplate defines a template to configure Container objects that run 
 
 _Appears in:_
 - [BackupSpec](#backupspec)
+- [PhysicalBackupSpec](#physicalbackupspec)
 - [RestoreSpec](#restorespec)
 - [SqlJobSpec](#sqljobspec)
 
@@ -1088,6 +1110,8 @@ _Appears in:_
 - [MaxScalePodTemplate](#maxscalepodtemplate)
 - [MaxScaleSpec](#maxscalespec)
 - [MaxScaleTLS](#maxscaletls)
+- [PhysicalBackupPodTemplate](#physicalbackuppodtemplate)
+- [PhysicalBackupSpec](#physicalbackupspec)
 - [PodTemplate](#podtemplate)
 - [RestoreSource](#restoresource)
 - [RestoreSpec](#restorespec)
@@ -1164,6 +1188,7 @@ _Appears in:_
 - [DatabaseSpec](#databasespec)
 - [GrantSpec](#grantspec)
 - [MaxScaleSpec](#maxscalespec)
+- [PhysicalBackupSpec](#physicalbackupspec)
 - [RestoreSpec](#restorespec)
 - [SqlJobSpec](#sqljobspec)
 - [UserSpec](#userspec)
@@ -1600,6 +1625,9 @@ _Appears in:_
 - [MariaDBSpec](#mariadbspec)
 - [MaxScalePodTemplate](#maxscalepodtemplate)
 - [MaxScaleSpec](#maxscalespec)
+- [PhysicalBackupPodTemplate](#physicalbackuppodtemplate)
+- [PhysicalBackupSpec](#physicalbackupspec)
+- [PhysicalBackupVolumeSnapshot](#physicalbackupvolumesnapshot)
 - [PodTemplate](#podtemplate)
 - [RestoreSpec](#restorespec)
 - [SecretTemplate](#secrettemplate)
@@ -1765,6 +1793,7 @@ Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kub
 _Appears in:_
 - [BackupStagingStorage](#backupstagingstorage)
 - [BackupStorage](#backupstorage)
+- [PhysicalBackupStorage](#physicalbackupstorage)
 - [VolumeClaimTemplate](#volumeclaimtemplate)
 
 | Field | Description | Default | Validation |
@@ -1798,7 +1827,7 @@ _Appears in:_
 
 
 
-PhysicalBackup is the Schema for the physicalbackups API.
+PhysicalBackup is the Schema for the physicalbackups API. It is used to define physical backup jobs and its storage.
 
 
 
@@ -1810,6 +1839,45 @@ PhysicalBackup is the Schema for the physicalbackups API.
 | `kind` _string_ | `PhysicalBackup` | | |
 | `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.32/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
 | `spec` _[PhysicalBackupSpec](#physicalbackupspec)_ |  |  |  |
+
+
+#### PhysicalBackupPodTemplate
+
+
+
+PhysicalBackupPodTemplate defines a template to configure Container objects that run in a PhysicalBackup.
+
+
+
+_Appears in:_
+- [PhysicalBackupSpec](#physicalbackupspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `podMetadata` _[Metadata](#metadata)_ | PodMetadata defines extra metadata for the Pod. |  |  |
+| `imagePullSecrets` _[LocalObjectReference](#localobjectreference) array_ | ImagePullSecrets is the list of pull Secrets to be used to pull the image. |  |  |
+| `podSecurityContext` _[PodSecurityContext](#podsecuritycontext)_ | SecurityContext holds pod-level security attributes and common container settings. |  |  |
+| `serviceAccountName` _string_ | ServiceAccountName is the name of the ServiceAccount to be used by the Pods. |  |  |
+| `tolerations` _[Toleration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.32/#toleration-v1-core) array_ | Tolerations to be used in the Pod. |  |  |
+| `priorityClassName` _string_ | PriorityClassName to be used in the Pod. |  |  |
+
+
+#### PhysicalBackupSchedule
+
+
+
+PhysicalBackupSchedule defines when the PhysicalBackup will be taken.
+
+
+
+_Appears in:_
+- [PhysicalBackupSpec](#physicalbackupspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `cron` _string_ | Cron is a cron expression that defines the schedule. |  | Required: \{\} <br /> |
+| `suspend` _boolean_ | Suspend defines whether the schedule is active or not. | false |  |
+| `immediate` _boolean_ | Immediate indicates whether the first backup should be taken immediately after creating the PhysicalBackup. |  |  |
 
 
 #### PhysicalBackupSpec
@@ -1825,7 +1893,63 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `foo` _string_ | Foo is an example field of PhysicalBackup. Edit physicalbackup_types.go to remove/update |  |  |
+| `args` _string array_ | Args to be used in the Container. |  |  |
+| `resources` _[ResourceRequirements](#resourcerequirements)_ | Resources describes the compute resource requirements. |  |  |
+| `securityContext` _[SecurityContext](#securitycontext)_ | SecurityContext holds security configuration that will be applied to a container. |  |  |
+| `podMetadata` _[Metadata](#metadata)_ | PodMetadata defines extra metadata for the Pod. |  |  |
+| `imagePullSecrets` _[LocalObjectReference](#localobjectreference) array_ | ImagePullSecrets is the list of pull Secrets to be used to pull the image. |  |  |
+| `podSecurityContext` _[PodSecurityContext](#podsecuritycontext)_ | SecurityContext holds pod-level security attributes and common container settings. |  |  |
+| `serviceAccountName` _string_ | ServiceAccountName is the name of the ServiceAccount to be used by the Pods. |  |  |
+| `tolerations` _[Toleration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.32/#toleration-v1-core) array_ | Tolerations to be used in the Pod. |  |  |
+| `priorityClassName` _string_ | PriorityClassName to be used in the Pod. |  |  |
+| `mariaDbRef` _[MariaDBRef](#mariadbref)_ | MariaDBRef is a reference to a MariaDB object. |  | Required: \{\} <br /> |
+| `compression` _[CompressAlgorithm](#compressalgorithm)_ | Compression algorithm to be used in the Backup. |  | Enum: [none bzip2 gzip] <br /> |
+| `stagingStorage` _[BackupStagingStorage](#backupstagingstorage)_ | StagingStorage defines the temporary storage used to keep external backups (i.e. S3) while they are being processed.<br />It defaults to an emptyDir volume, meaning that the backups will be temporarily stored in the node where the PhysicalBackup Job is scheduled.<br />The staging area gets cleaned up after each backup is completed, consider this for sizing it appropriately. |  |  |
+| `storage` _[PhysicalBackupStorage](#physicalbackupstorage)_ | Storage defines the final storage for backups. |  | Required: \{\} <br /> |
+| `schedule` _[PhysicalBackupSchedule](#physicalbackupschedule)_ | Schedule defines when the PhysicalBackup will be taken. |  |  |
+| `maxRetention` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.32/#duration-v1-meta)_ | MaxRetention defines the retention policy for backups. Old backups will be cleaned up by the Backup Job.<br />It defaults to 30 days. |  |  |
+| `timeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.32/#duration-v1-meta)_ | Timeout defines the maximum duration of a PhysicalBackup job or snapshot.<br />If this duration is exceeded, the job or snapshot is considered expired and is deleted by the operator.<br />A new job or snapshot will then be created according to the schedule.<br />It defaults to 1 hour. |  |  |
+| `podAffinity` _boolean_ | PodAffinity indicates whether the Jobs should run in the same Node as the MariaDB Pods to be able to attach the PVC.<br />It defaults to true. |  |  |
+| `backoffLimit` _integer_ | BackoffLimit defines the maximum number of attempts to successfully take a PhysicalBackup. |  |  |
+| `restartPolicy` _[RestartPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.32/#restartpolicy-v1-core)_ | RestartPolicy to be added to the PhysicalBackup Pod. | OnFailure | Enum: [Always OnFailure Never] <br /> |
+| `inheritMetadata` _[Metadata](#metadata)_ | InheritMetadata defines the metadata to be inherited by children resources. |  |  |
+| `successfulJobsHistoryLimit` _integer_ | SuccessfulJobsHistoryLimit defines the maximum number of successful Jobs to be displayed. It defaults to 5. |  | Minimum: 0 <br /> |
+
+
+#### PhysicalBackupStorage
+
+
+
+PhysicalBackupStorage defines the storage for physical backups.
+
+
+
+_Appears in:_
+- [PhysicalBackupSpec](#physicalbackupspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `s3` _[S3](#s3)_ | S3 defines the configuration to store backups in a S3 compatible storage. |  |  |
+| `persistentVolumeClaim` _[PersistentVolumeClaimSpec](#persistentvolumeclaimspec)_ | PersistentVolumeClaim is a Kubernetes PVC specification. |  |  |
+| `volume` _[StorageVolumeSource](#storagevolumesource)_ | Volume is a Kubernetes volume specification. |  |  |
+| `volumeSnapshot` _[PhysicalBackupVolumeSnapshot](#physicalbackupvolumesnapshot)_ | VolumeSnapshot is a Kubernetes VolumeSnapshot specification. |  |  |
+
+
+#### PhysicalBackupVolumeSnapshot
+
+
+
+PhysicalBackupVolumeSnapshot defines parameters for the VolumeSnapshots used as physical backups.
+
+
+
+_Appears in:_
+- [PhysicalBackupStorage](#physicalbackupstorage)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `metadata` _[Metadata](#metadata)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `volumeSnapshotClassName` _string_ | VolumeSnapshotClassName is the VolumeSnapshot class to be used to take snapshots. |  | Required: \{\} <br /> |
 
 
 #### PodAffinityTerm
@@ -1898,6 +2022,8 @@ _Appears in:_
 - [MariaDBSpec](#mariadbspec)
 - [MaxScalePodTemplate](#maxscalepodtemplate)
 - [MaxScaleSpec](#maxscalespec)
+- [PhysicalBackupPodTemplate](#physicalbackuppodtemplate)
+- [PhysicalBackupSpec](#physicalbackupspec)
 - [PodTemplate](#podtemplate)
 - [RestoreSpec](#restorespec)
 - [SqlJobSpec](#sqljobspec)
@@ -2124,6 +2250,7 @@ _Appears in:_
 - [JobContainerTemplate](#jobcontainertemplate)
 - [MariaDBSpec](#mariadbspec)
 - [MaxScaleSpec](#maxscalespec)
+- [PhysicalBackupSpec](#physicalbackupspec)
 - [RestoreSpec](#restorespec)
 - [SqlJobSpec](#sqljobspec)
 
@@ -2151,12 +2278,11 @@ Restore is the Schema for the restores API. It is used to define restore jobs an
 
 
 
-RestoreSource defines a source for restoring a MariaDB.
+RestoreSource defines a source for restoring a logical backup.
 
 
 
 _Appears in:_
-- [BootstrapFrom](#bootstrapfrom)
 - [RestoreSpec](#restorespec)
 
 | Field | Description | Default | Validation |
@@ -2216,6 +2342,7 @@ _Appears in:_
 _Appears in:_
 - [BackupStorage](#backupstorage)
 - [BootstrapFrom](#bootstrapfrom)
+- [PhysicalBackupStorage](#physicalbackupstorage)
 - [RestoreSource](#restoresource)
 - [RestoreSpec](#restorespec)
 
@@ -2373,6 +2500,7 @@ _Appears in:_
 - [JobContainerTemplate](#jobcontainertemplate)
 - [MariaDBSpec](#mariadbspec)
 - [MaxScaleSpec](#maxscalespec)
+- [PhysicalBackupSpec](#physicalbackupspec)
 - [RestoreSpec](#restorespec)
 - [SqlJobSpec](#sqljobspec)
 
@@ -2558,6 +2686,7 @@ _Appears in:_
 - [BackupStagingStorage](#backupstagingstorage)
 - [BackupStorage](#backupstorage)
 - [BootstrapFrom](#bootstrapfrom)
+- [PhysicalBackupStorage](#physicalbackupstorage)
 - [RestoreSource](#restoresource)
 - [RestoreSpec](#restorespec)
 - [Volume](#volume)
@@ -2694,6 +2823,23 @@ _Appears in:_
 | `nodeAffinityPolicy` _[NodeInclusionPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.32/#nodeinclusionpolicy-v1-core)_ |  |  |  |
 | `nodeTaintsPolicy` _[NodeInclusionPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.32/#nodeinclusionpolicy-v1-core)_ |  |  |  |
 | `matchLabelKeys` _string array_ |  |  |  |
+
+
+#### TypedLocalObjectReference
+
+
+
+TypedLocalObjectReference is a reference to a specific object type.
+
+
+
+_Appears in:_
+- [BootstrapFrom](#bootstrapfrom)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `name` _string_ | Name of the referent. |  |  |
+| `kind` _string_ | Kind of the referent. |  |  |
 
 
 #### UpdateStrategy
