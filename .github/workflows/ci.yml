@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - release-*
   pull_request: {}
 
 env:
@@ -115,6 +116,16 @@ jobs:
           go-version-file: "go.mod"
           cache: true
 
+      - name: Determine test
+        id: test
+        run: |
+          if [[ "${{ github.event_name }}" == "push" && 
+                 ("${{ github.ref }}" == "refs/heads/main" || "${{ github.ref }}" == refs/heads/release-*) ]]; then
+            echo "type=full" >> "$GITHUB_OUTPUT"
+          else
+            echo "type=basic" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Cluster
         run: |
           make cluster
@@ -124,8 +135,13 @@ jobs:
           make install-cert-manager
           make net
 
-      - name: Test
+      - name: Run integration tests
+        if: ${{ steps.test.outputs.type == 'full' }}
         run: make test-int
+
+      - name: Run basic integration tests
+        if: ${{ steps.test.outputs.type == 'basic' }}
+        run: make test-int-basic
 
       - name: Post Test Debugging (on failure)
         if: failure()

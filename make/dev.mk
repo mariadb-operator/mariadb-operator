@@ -18,19 +18,17 @@ ENV ?= \
 	WATCH_NAMESPACE=$(WATCH_NAMESPACE) \
 	KUBEBUILDER_ASSETS=$(KUBEBUILDER_ASSETS)
 
-TEST_ARGS ?= --coverprofile=cover.out
+TEST_ARGS ?=
 TEST_TIMEOUT ?= 1h
-TEST ?= $(ENV) $(GINKGO) $(TEST_ARGS) --timeout $(TEST_TIMEOUT) --label-filter=basic
+TEST ?= $(ENV) $(GINKGO) --coverprofile=cover.out --timeout $(TEST_TIMEOUT) $(TEST_ARGS)
 
 GOCOVERDIR ?= .
 
 PPROF_ADDR ?= ":6060"
 
-##@ Test
-
-.PHONY: test
-test: envtest ginkgo ## Run unit tests.
-	$(TEST) ./api/... ./pkg/... ./internal/helmtest/... ./internal/webhook/...
+.PHONY: test-int-basic
+test-int-basic: envtest ginkgo ## Run integration tests with label 'basic'
+	$(MAKE) TEST_ARGS="--label-filter=basic" test-int
 
 .PHONY: test-int
 test-int: envtest ginkgo ## Run integration tests.
