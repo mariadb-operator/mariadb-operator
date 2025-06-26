@@ -831,8 +831,13 @@ func deploymentReady(deploy *appsv1.Deployment) bool {
 func deleteMariadb(key types.NamespacedName, assertPVCDeletion bool) {
 	var mdb mariadbv1alpha1.MariaDB
 	By("Deleting MariaDB")
-	Expect(k8sClient.Get(testCtx, key, &mdb)).To(Succeed())
-	Expect(k8sClient.Delete(testCtx, &mdb)).To(Succeed())
+	err := k8sClient.Get(testCtx, key, &mdb)
+	if err == nil {
+		Expect(k8sClient.Delete(testCtx, &mdb)).To(Succeed())
+	}
+	if !apierrors.IsNotFound(err) {
+		Expect(err).ToNot(HaveOccurred())
+	}
 
 	By("Deleting PVCs")
 	opts := []client.DeleteAllOfOption{
@@ -897,6 +902,18 @@ func deleteMaxScale(key types.NamespacedName, assertPVCDeletion bool) {
 		}
 		return len(pvcList.Items) == 0
 	}, testHighTimeout, testInterval).Should(BeTrue())
+}
+
+func deletePhysicalBackup(key types.NamespacedName) {
+	var backup mariadbv1alpha1.PhysicalBackup
+	By("Deleting PhysicalBackup")
+	err := k8sClient.Get(testCtx, key, &backup)
+	if err == nil {
+		Expect(k8sClient.Delete(testCtx, &backup)).To(Succeed())
+	}
+	if !apierrors.IsNotFound(err) {
+		Expect(err).ToNot(HaveOccurred())
+	}
 }
 
 func removeFinalizerAndDelete(obj client.Object) error {

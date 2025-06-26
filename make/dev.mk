@@ -150,9 +150,9 @@ dump:  ## Dump cluster state for debugging purposes
 	@$(KUBECTL) get pods -n $(DUMP_NAMESPACE) -o wide
 
 	@printf "\n========================================\n"
-	@printf "                 EVENTS\n"
+	@printf "               CUSTOM RESOURCES\n"
 	@printf "========================================\n\n"
-	@$(KUBECTL) get events -n $(DUMP_NAMESPACE) --sort-by=.metadata.creationTimestamp
+	@$(KUBECTL) get mariadbs,maxscales,backups,physicalbackups -n $(DUMP_NAMESPACE) -o wide
 
 	@printf "\n========================================\n"
 	@printf "           DESCRIBING MARIADBS\n"
@@ -168,6 +168,22 @@ dump:  ## Dump cluster state for debugging purposes
 	@for maxscale in $$($(KUBECTL) get maxscale -n $(DUMP_NAMESPACE) -o jsonpath='{.items[*].metadata.name}'); do \
 		printf "\n---- Describing MaxScale: $$maxscale ----\n\n"; \
 		$(KUBECTL) describe maxscale $$maxscale -n $(DUMP_NAMESPACE); \
+	done
+
+	@printf "\n========================================\n"
+	@printf "           DESCRIBING BACKUPS\n"
+	@printf "========================================\n\n"
+	@for backup in $$($(KUBECTL) get backups -n $(DUMP_NAMESPACE) -o jsonpath='{.items[*].metadata.name}'); do \
+		printf "\n---- Describing Backup: $$backup ----\n\n"; \
+		$(KUBECTL) describe backups $$backup -n $(DUMP_NAMESPACE); \
+	done
+
+	@printf "\n========================================\n"
+	@printf "        DESCRIBING PHYSICAL BACKUPS\n"
+	@printf "========================================\n\n"
+	@for backup in $$($(KUBECTL) get physicalbackups -n $(DUMP_NAMESPACE) -o jsonpath='{.items[*].metadata.name}'); do \
+		printf "\n---- Describing Physical Backup: $$backup ----\n\n"; \
+		$(KUBECTL) describe physicalbackup $$backup -n $(DUMP_NAMESPACE); \
 	done
 
 	@printf "\n========================================\n"
@@ -187,6 +203,11 @@ dump:  ## Dump cluster state for debugging purposes
 		printf "\n---- Describing Pod: $$pod ----\n\n"; \
 		$(KUBECTL) describe pod $$pod -n $(DUMP_NAMESPACE); \
 	done
+
+	@printf "\n========================================\n"
+	@printf "                 EVENTS\n"
+	@printf "========================================\n\n"
+	@$(KUBECTL) get events -n $(DUMP_NAMESPACE) --sort-by=.metadata.creationTimestamp
 
 	@printf "\n========================================\n"
 	@printf "                LOGS\n"
