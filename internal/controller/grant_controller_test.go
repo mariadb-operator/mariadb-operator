@@ -11,7 +11,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-var _ = Describe("Grant", func() {
+var _ = Describe("Grant", Label("basic"), func() {
 	BeforeEach(func() {
 		By("Waiting for MariaDB to be ready")
 		expectMariadbReady(testCtx, k8sClient, testMdbkey)

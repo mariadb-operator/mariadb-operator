@@ -21,7 +21,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var _ = Describe("MariaDB Galera spec", func() {
+var _ = Describe("MariaDB Galera spec", Label("basic"), func() {
 	It("should default", func() {
 		By("Creating MariaDB")
 		key := types.NamespacedName{

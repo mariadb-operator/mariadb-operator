@@ -13,7 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-var _ = Describe("WebhookConfig", func() {
+var _ = Describe("WebhookConfig", Label("basic"), func() {
 	It("should reconcile webhook configurations", func() {
 		key := types.NamespacedName{
 			Name:      "test-mutating",
