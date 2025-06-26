@@ -21,7 +21,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var _ = Describe("MariaDB spec", func() {
+var _ = Describe("MariaDB spec", Label("basic"), func() {
 	It("should default", func() {
 		By("Creating MariaDB")
 		key := types.NamespacedName{
@@ -85,7 +85,7 @@ default_time_zone = UTC
 	)
 })
 
-var _ = Describe("MariaDB", func() {
+var _ = Describe("MariaDB", Label("basic"), func() {
 	BeforeEach(func() {
 		By("Waiting for MariaDB to be ready")
 		expectMariadbReady(testCtx, k8sClient, testMdbkey)
