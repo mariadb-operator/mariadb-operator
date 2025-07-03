@@ -68,6 +68,9 @@ var (
 	logMaxScale    bool
 	logSql         bool
 
+	kubeApiQps   float32
+	kubeApiBurst int
+
 	maxConcurrentReconciles         int
 	mariadbMaxConcurrentReconciles  int
 	maxscaleMaxConcurrentReconciles int
@@ -110,6 +113,10 @@ func init() {
 	rootCmd.PersistentFlags().BoolVar(&logDev, "log-dev", false, "Enable development logs.")
 	rootCmd.Flags().BoolVar(&logMaxScale, "log-maxscale", false, "Enable MaxScale API request logs.")
 	rootCmd.Flags().BoolVar(&logSql, "log-sql", false, "Enable SQL resource logs.")
+
+	rootCmd.Flags().Float32Var(&kubeApiQps, "kube-api-qps", 20.0,
+		"QPS limit for requests to Kubernetes API server (set to `-1` to disable client-side ratelimit).")
+	rootCmd.Flags().IntVar(&kubeApiBurst, "kube-api-burst", 30, "Burst limit for requests to Kubernetes API server.")
 
 	rootCmd.Flags().IntVar(&maxConcurrentReconciles, "max-concurrent-reconciles", 1,
 		"Global maximum number of concurrent reconciles per resource.")
@@ -162,6 +169,9 @@ var rootCmd = &cobra.Command{
 			setupLog.Error(err, "Unable to get config")
 			os.Exit(1)
 		}
+		restConfig.QPS = kubeApiQps
+		restConfig.Burst = kubeApiBurst
+
 		env, err := environment.GetOperatorEnv(ctx)
 		if err != nil {
 			setupLog.Error(err, "Error getting environment")
