@@ -79,6 +79,8 @@ var (
 
 	requeueSqlMaxOffset time.Duration
 
+	syncPeriod time.Duration
+
 	webhookEnabled bool
 	webhookPort    int
 	webhookCertDir string
@@ -122,6 +124,8 @@ func init() {
 		"Maximum offset added to the interval at which SQL objects are requeued.")
 	rootCmd.Flags().DurationVar(&requeueSqlJob, "requeue-sqljob", 5*time.Second, "The interval at which SqlJobs are requeued.")
 	rootCmd.Flags().DurationVar(&requeueMaxScale, "requeue-maxscale", 30*time.Second, "The interval at which MaxScales are requeued.")
+
+	rootCmd.Flags().DurationVar(&syncPeriod, "sync-period", 10*time.Hour, "The interval at which watched resources are reconciled.")
 
 	rootCmd.Flags().BoolVar(&webhookEnabled, "webhook", false, "Enable the webhook server.")
 	rootCmd.Flags().IntVar(&webhookPort, "webhook-port", 9443, "Port to be used by the webhook server."+
@@ -174,6 +178,9 @@ var rootCmd = &cobra.Command{
 			LeaderElectionID:       "mariadb-operator.mariadb.com",
 			Controller: config.Controller{
 				MaxConcurrentReconciles: maxConcurrentReconciles,
+			},
+			Cache: cache.Options{
+				SyncPeriod: &syncPeriod,
 			},
 		}
 		if webhookEnabled {
