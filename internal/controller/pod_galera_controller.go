@@ -114,7 +114,7 @@ func (r *PodGaleraController) ReconcilePodNotReady(ctx context.Context, pod core
 }
 
 func (r *PodGaleraController) shouldReconcile(mariadb *mariadbv1alpha1.MariaDB) bool {
-	if !mariadb.IsGaleraEnabled() || mariadb.IsMaxScaleEnabled() || mariadb.IsRestoringBackup() {
+	if !mariadb.IsGaleraEnabled() || mariadb.IsMaxScaleEnabled() || mariadb.IsRestoringBackup() || mariadb.IsSuspended() {
 		return false
 	}
 	primaryGalera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{}).Primary
