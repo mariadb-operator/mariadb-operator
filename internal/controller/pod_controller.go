@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"errors"
+	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/pod"
@@ -64,6 +65,15 @@ func (r *PodController) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 			return ctrl.Result{Requeue: true}, nil
 		}
 	} else {
+		if automaticFailoverDeferral := mariadb.GetAutomaticFailoverDeferral(); automaticFailoverDeferral > 0 {
+			if podReadyLastTransitionTime := mariadbpod.PodReadyLastTransitionTime(&pod); !podReadyLastTransitionTime.IsZero() {
+				if failoverTime := podReadyLastTransitionTime.Add(automaticFailoverDeferral); failoverTime.Before(time.Now()) {
+					log.FromContext(ctx).V(1).Info("Deferring Pod reconciliation in non Ready state",
+						"pod", pod.Name, "duration", automaticFailoverDeferral)
+					return ctrl.Result{Requeue: true, RequeueAfter: automaticFailoverDeferral}, nil
+				}
+			}
+		}
 		if err := r.podReadinessController.ReconcilePodNotReady(ctx, pod, mariadb); err != nil {
 			log.FromContext(ctx).V(1).Info("Error reconciling Pod in non Ready state", "pod", pod.Name)
 			return ctrl.Result{Requeue: true}, nil

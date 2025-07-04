@@ -2,6 +2,7 @@ package pod
 
 import (
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func PodReadyCondition(pod *corev1.Pod) *corev1.PodCondition {
@@ -18,6 +19,13 @@ func PodReady(pod *corev1.Pod) bool {
 		return c.Status == corev1.ConditionTrue
 	}
 	return false
+}
+
+func PodReadyLastTransitionTime(pod *corev1.Pod) v1.Time {
+	if c := PodReadyCondition(pod); c != nil {
+		return c.LastTransitionTime
+	}
+	return v1.Time{}
 }
 
 func PodUpdated(pod *corev1.Pod, updateRevision string) bool {
