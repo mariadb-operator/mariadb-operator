@@ -59,3 +59,55 @@ var _ = Describe("Database", Label("basic"), func() {
 		}, testTimeout, testInterval).Should(BeTrue())
 	})
 })
+
+var _ = Describe("Database on external MariaDB", func() {
+	BeforeEach(func() {
+		By("Waiting for External MariaDB to be ready")
+		expectExternalMariadbReady(testCtx, k8sClient, testEMdbkey)
+	})
+
+	It("should reconcile", func() {
+		By("Creating a Database")
+		databaseKey := types.NamespacedName{
+			Name:      "database-create-test",
+			Namespace: testNamespace,
+		}
+		database := mariadbv1alpha1.Database{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      databaseKey.Name,
+				Namespace: databaseKey.Namespace,
+			},
+			Spec: mariadbv1alpha1.DatabaseSpec{
+				MariaDBRef: mariadbv1alpha1.MariaDBRef{
+					ObjectReference: mariadbv1alpha1.ObjectReference{
+						Name: testEMdbkey.Name,
+					},
+					Kind:      "ExternalMariaDB",
+					WaitForIt: true,
+				},
+				CharacterSet: "utf8",
+				Collate:      "utf8_general_ci",
+			},
+		}
+		Expect(k8sClient.Create(testCtx, &database)).To(Succeed())
+		DeferCleanup(func() {
+			Expect(k8sClient.Delete(testCtx, &database)).To(Succeed())
+		})
+
+		By("Expecting Database to be ready eventually")
+		Eventually(func() bool {
+			if err := k8sClient.Get(testCtx, databaseKey, &database); err != nil {
+				return false
+			}
+			return database.IsReady()
+		}, testTimeout, testInterval).Should(BeTrue())
+
+		By("Expecting Database to eventually have finalizer")
+		Eventually(func() bool {
+			if err := k8sClient.Get(testCtx, databaseKey, &database); err != nil {
+				return false
+			}
+			return controllerutil.ContainsFinalizer(&database, databaseFinalizerName)
+		}, testTimeout, testInterval).Should(BeTrue())
+	})
+})

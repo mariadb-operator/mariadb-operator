@@ -132,6 +132,7 @@ rules:
   - backups
   - connections
   - databases
+  - externalmariadbs
   - grants
   - mariadbs
   - maxscales
@@ -153,6 +154,7 @@ rules:
   - backups/finalizers
   - connections/finalizers
   - databases/finalizers
+  - externalmariadbs/finalizers
   - grants/finalizers
   - mariadbs/finalizers
   - maxscales/finalizers
@@ -168,6 +170,7 @@ rules:
   - backups/status
   - connections/status
   - databases/status
+  - externalmariadbs/status
   - grants/status
   - mariadbs/status
   - maxscales/status

@@ -65,6 +65,25 @@ func (m *MariaDB) TLSCABundleSecretKeyRef() SecretKeySelector {
 	}
 }
 
+// TLSCABundleSecretKeyRef defines the key selector for the TLS Secret trust bundle
+func (m *ExternalMariaDB) TLSCABundleSecretKeyRef() SecretKeySelector {
+
+	if m.Spec.TLS.ServerCASecretRef == nil {
+		return SecretKeySelector{
+			LocalObjectReference: LocalObjectReference{
+				Name: fmt.Sprintf("%s-ca-bundle", m.Name),
+			},
+			Key: pki.CACertKey,
+		}
+	}
+	return SecretKeySelector{
+		LocalObjectReference: LocalObjectReference{
+			Name: m.Spec.TLS.ServerCASecretRef.Name,
+		},
+		Key: pki.CACertKey,
+	}
+}
+
 // TLSConfigMapKeyRef defines the key selector for the TLS ConfigMap
 func (m *MariaDB) TLSConfigMapKeyRef() ConfigMapKeySelector {
 	return ConfigMapKeySelector{
@@ -114,6 +133,21 @@ func (m *MariaDB) TLSServerCertSecretKey() types.NamespacedName {
 	}
 }
 
+// TLSServerCertSecretKey defines the key for the TLS server cert.
+func (m *ExternalMariaDB) TLSServerCertSecretKey() types.NamespacedName {
+	tls := ptr.Deref(m.Spec.TLS, TLS{})
+	if tls.Enabled && tls.ServerCertSecretRef != nil {
+		return types.NamespacedName{
+			Name:      tls.ServerCertSecretRef.Name,
+			Namespace: m.Namespace,
+		}
+	}
+	return types.NamespacedName{
+		Name:      fmt.Sprintf("%s-server-cert", m.Name),
+		Namespace: m.Namespace,
+	}
+}
+
 // TLSClientCASecretKey defines the key for the TLS client CA.
 func (m *MariaDB) TLSClientCASecretKey() types.NamespacedName {
 	tls := ptr.Deref(m.Spec.TLS, TLS{})
@@ -140,6 +174,21 @@ func (m *MariaDB) TLSClientCASecretKey() types.NamespacedName {
 
 // TLSClientCertSecretKey defines the key for the TLS client cert.
 func (m *MariaDB) TLSClientCertSecretKey() types.NamespacedName {
+	tls := ptr.Deref(m.Spec.TLS, TLS{})
+	if tls.Enabled && tls.ClientCertSecretRef != nil {
+		return types.NamespacedName{
+			Name:      tls.ClientCertSecretRef.Name,
+			Namespace: m.Namespace,
+		}
+	}
+	return types.NamespacedName{
+		Name:      fmt.Sprintf("%s-client-cert", m.Name),
+		Namespace: m.Namespace,
+	}
+}
+
+// TLSClientCertSecretKey defines the key for the TLS client cert.
+func (m *ExternalMariaDB) TLSClientCertSecretKey() types.NamespacedName {
 	tls := ptr.Deref(m.Spec.TLS, TLS{})
 	if tls.Enabled && tls.ClientCertSecretRef != nil {
 		return types.NamespacedName{

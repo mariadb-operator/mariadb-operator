@@ -16,6 +16,7 @@ import (
 	"github.com/go-sql-driver/mysql"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
+	"github.com/mariadb-operator/mariadb-operator/pkg/interfaces"
 	"github.com/mariadb-operator/mariadb-operator/pkg/pki"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
@@ -33,10 +34,11 @@ type Opts struct {
 	Port     int32
 	Database string
 
-	MariadbName  string
-	MaxscaleName string
-	Namespace    string
-	ClientName   string
+	MariadbName         string
+	MaxscaleName        string
+	ExternalMariadbName string
+	Namespace           string
+	ClientName          string
 
 	TLSCACert           []byte
 	TLSClientCert       []byte
@@ -136,37 +138,49 @@ func NewClient(clientOpts ...Opt) (*Client, error) {
 	}, nil
 }
 
-func NewClientWithMariaDB(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, refResolver *refresolver.RefResolver,
+func NewClientWithMariaDB(ctx context.Context, mariadb interfaces.MariaDBGenericInterface, refResolver *refresolver.RefResolver,
 	clientOpts ...Opt) (*Client, error) {
-	password, err := refResolver.SecretKeyRef(ctx, mariadb.Spec.RootPasswordSecretKeyRef.SecretKeySelector, mariadb.Namespace)
+	password, err := refResolver.SecretKeyRef(ctx, mariadb.GetSUCredential(), mariadb.GetNamespace())
+	var opts []Opt
 	if err != nil {
 		return nil, fmt.Errorf("error reading root password secret: %v", err)
 	}
-	opts := []Opt{
-		WithUsername("root"),
-		WithPassword(password),
-		WitHost(func() string {
-			if mariadb.IsHAEnabled() {
-				return statefulset.ServiceFQDNWithService(
-					mariadb.ObjectMeta,
-					mariadb.PrimaryServiceKey().Name,
-				)
-			}
-			return statefulset.ServiceFQDN(mariadb.ObjectMeta)
-		}()),
-		WithPort(mariadb.Spec.Port),
+	if mariadb.GetObjectKind().GroupVersionKind().Kind == mariadbv1alpha1.ExternalMariaDBKind {
+		opts = []Opt{
+			WithUsername(*mariadb.GetSUName()),
+			WithPassword(password),
+			WitHost(mariadb.GetHost()),
+			WithPort(mariadb.GetPort()),
+		}
+	} else {
+		mariadb_obj := mariadb.(*mariadbv1alpha1.MariaDB)
+		opts = []Opt{
+			WithUsername("root"),
+			WithPassword(password),
+			WitHost(func() string {
+				// mariadbObjMeta := mariadb_obj.(interface{ GetObjectMeta() v1.ObjectMeta })
+				if mariadb_obj.IsHAEnabled() {
+					return statefulset.ServiceFQDNWithService(
+						mariadb_obj.ObjectMeta,
+						mariadb_obj.PrimaryServiceKey().Name,
+					)
+				}
+				return statefulset.ServiceFQDN(mariadb_obj.ObjectMeta)
+			}()),
+			WithPort(mariadb.GetPort()),
+		}
 	}
 
 	if mariadb.IsTLSEnabled() {
-		caCert, err := refResolver.SecretKeyRef(ctx, mariadb.TLSCABundleSecretKeyRef(), mariadb.Namespace)
+		caCert, err := refResolver.SecretKeyRef(ctx, mariadb.TLSCABundleSecretKeyRef(), mariadb.GetNamespace())
 		if err != nil {
 			return nil, fmt.Errorf("error getting CA certificate: %v", err)
 		}
-		opts = append(opts, WithMariadbTLS(mariadb.Name, mariadb.Namespace, []byte(caCert)))
+		opts = append(opts, WithMariadbTLS(mariadb.GetName(), mariadb.GetNamespace(), []byte(caCert)))
 
 		clientSecretKey := types.NamespacedName{
 			Name:      mariadb.TLSClientCertSecretKey().Name,
-			Namespace: mariadb.Namespace,
+			Namespace: mariadb.GetNamespace(),
 		}
 		clientCertSelector := mariadbv1alpha1.SecretKeySelector{
 			LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
@@ -265,7 +279,7 @@ func BuildDSN(opts Opts) (string, error) {
 	if opts.Params != nil {
 		config.Params = opts.Params
 	}
-	if (opts.MariadbName != "" || opts.MaxscaleName != "") && opts.Namespace != "" && opts.TLSCACert != nil {
+	if (opts.MariadbName != "" || opts.MaxscaleName != "" || opts.ExternalMariadbName != "") && opts.Namespace != "" && opts.TLSCACert != nil {
 		configName, err := configureTLS(opts)
 		if err != nil {
 			return "", fmt.Errorf("error configuring TLS: %v", err)
@@ -309,6 +323,8 @@ func configTLSName(opts Opts) (string, error) {
 		configName = fmt.Sprintf("mariadb-%s-%s", opts.MariadbName, opts.Namespace)
 	} else if opts.MaxscaleName != "" {
 		configName = fmt.Sprintf("maxscale-%s-%s", opts.MaxscaleName, opts.Namespace)
+	} else if opts.ExternalMariadbName != "" {
+		configName = fmt.Sprintf("mariadb-%s-%s", opts.ExternalMariadbName, opts.Namespace)
 	} else {
 		return "", errors.New("unable to create config name: either MariaDB or MaxScale names must be set")
 	}

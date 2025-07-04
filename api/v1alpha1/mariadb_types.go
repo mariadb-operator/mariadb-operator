@@ -688,6 +688,47 @@ type MariaDBSpec struct {
 	SecondaryConnection *ConnectionTemplate `json:"secondaryConnection,omitempty" webhook:"inmutable"`
 }
 
+const (
+	// ExternalMariaDBKind
+	ExternalMariaDBKind = "ExternalMariaDB"
+)
+
+// ExternalMariaDBSpec defines the desired state of an External MariaDB
+type ExternalMariaDBSpec struct {
+
+	// Hostname of the external MariaDB service.
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	Host string `json:"host"`
+	// Port of the external MariaDB.
+	// +optional
+	// +kubebuilder:default=3306
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number","urn:alm:descriptor:com.tectonic.ui:advanced"}
+	Port int32 `json:"port,omitempty"`
+	// Username is the username to connect to the external MariaDB.
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	Username *string `json:"username"`
+	// PasswordSecretKeyRef is a reference to the password to be used by the User.
+	// If not provided, the account will be locked and the password will expire.
+	// If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	PasswordSecretKeyRef *SecretKeySelector `json:"passwordSecretKeyRef,omitempty"`
+	// InheritMetadata defines the metadata to be inherited by children resources.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	InheritMetadata *Metadata `json:"inheritMetadata,omitempty"`
+	// TLS defines the PKI to be used with MariaDB.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	TLS *TLS `json:"tls,omitempty"`
+	// Connection defines a template to configure the general Connection object.
+	// This Connection provides the initial User access to the initial Database.
+	// It will make use of the Service to route network traffic to all Pods.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Connection *ConnectionTemplate `json:"connection,omitempty" webhook:"inmutable"`
+}
+
 // MariaDBTLSStatus aggregates the status of the certificates used by the MariaDB instance.
 type MariaDBTLSStatus struct {
 	// CABundle is the status of the Certificate Authority bundle.
@@ -739,6 +780,37 @@ type MariaDBStatus struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	TLS *MariaDBTLSStatus `json:"tls,omitempty"`
+}
+
+// ExternalMariaDBStatus defines the observed state of MariaDB
+type ExternalMariaDBStatus struct {
+
+	// Conditions for the ExternalMariadb object.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status,xDescriptors={"urn:alm:descriptor:io.kubernetes.conditions"}
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+	// Version of the external MariaDB server
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	Version string `json:"version,omitempty"`
+
+	// // ReplicationStatus is the replication current state for each Pod.
+	// // +optional
+	// // +operator-sdk:csv:customresourcedefinitions:type=status
+	// Status ConnectionStatus `json:"Status,omitempty"`
+}
+
+// SetCondition sets a status condition to ExternalMariaDB
+func (s *ExternalMariaDBStatus) SetCondition(condition metav1.Condition) {
+	if s.Conditions == nil {
+		s.Conditions = make([]metav1.Condition, 0)
+	}
+	meta.SetStatusCondition(&s.Conditions, condition)
+}
+
+// SetCondition sets a status condition to MariaDB
+func (s *ExternalMariaDBStatus) SetVersion(version string) {
+	s.Version = version
 }
 
 // SetCondition sets a status condition to MariaDB
@@ -1014,6 +1086,53 @@ func (m *MariaDB) TLSClientNames() []string {
 	return []string{fmt.Sprintf("%s-client", m.Name)}
 }
 
+// Get image pull policy
+func (m *MariaDB) GetImagePullPolicy() corev1.PullPolicy {
+	return m.Spec.ImagePullPolicy
+}
+
+// Get image pull secrets
+func (m *MariaDB) GetImagePullSecrets() []LocalObjectReference {
+	return m.Spec.ImagePullSecrets
+}
+
+// Get image
+func (m *MariaDB) GetImage() string {
+	return m.Spec.Image
+}
+
+// Get MariaDB hostname
+func (m *MariaDB) GetHost() string {
+	if m.Replication().Enabled {
+		return statefulset.ServiceFQDNWithService(
+			m.ObjectMeta,
+			m.PrimaryServiceKey().Name,
+		)
+	}
+	return statefulset.ServiceFQDN(m.ObjectMeta)
+}
+
+// Get MariaDB port
+func (m *MariaDB) GetPort() int32 {
+	return m.Spec.Port
+}
+
+// Get MariaDB replicas
+func (m *MariaDB) GetReplicas() int32 {
+	return m.Spec.Replicas
+}
+
+// Get MariaDB Superuser name
+func (m *MariaDB) GetSUName() *string {
+	username := "root"
+	return &username
+}
+
+// Get MariaDB Superuser credentials
+func (m *MariaDB) GetSUCredential() SecretKeySelector {
+	return m.Spec.RootPasswordSecretKeyRef.SecretKeySelector
+}
+
 // +kubebuilder:object:root=true
 
 // MariaDBList contains a list of MariaDB
@@ -1032,6 +1151,125 @@ func (m *MariaDBList) ListItems() []client.Object {
 	return items
 }
 
+// IsHAEnabled indicates whether the MariaDB instance has Galera enabled
+func (m *ExternalMariaDB) IsGaleraEnabled() bool {
+	return false
+}
+
+// +kubebuilder:object:root=true
+// +kubebuilder:resource:shortName=emdb
+// +kubebuilder:subresource:status
+// +kubebuilder:subresource:scale:specpath=.spec.replicas,statuspath=.status.replicas
+// +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.conditions[?(@.type==\"Ready\")].status"
+// +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.conditions[?(@.type==\"Ready\")].message"
+// +kubebuilder:printcolumn:name="Primary",type="string",JSONPath=".status.currentPrimary"
+// +kubebuilder:printcolumn:name="Updates",type="string",JSONPath=".spec.updateStrategy.type"
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
+// +operator-sdk:csv:customresourcedefinitions:resources={{ExternalMariaDB,v1alpha1},{MariaDB,v1alpha1},{MaxScale,v1alpha1},{Connection,v1alpha1},{Restore,v1alpha1},{User,v1alpha1},{Grant,v1alpha1},{ConfigMap,v1},{Service,v1},{Secret,v1},{Event,v1},{ServiceAccount,v1},{StatefulSet,v1},{Deployment,v1},{Job,v1},{PodDisruptionBudget,v1},{Role,v1},{RoleBinding,v1},{ClusterRoleBinding,v1}}
+
+// ExternalMariaDB is the Schema for the external mariadbs API. It is used to define external MariaDB server.
+type ExternalMariaDB struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec   ExternalMariaDBSpec   `json:"spec"`
+	Status ExternalMariaDBStatus `json:"status,omitempty"`
+}
+
+// nolint:gocyclo
+// SetDefaults sets reasonable defaults.
+func (m *ExternalMariaDB) SetDefaults(env *environment.OperatorEnv) error {
+	if m.Spec.Port == 0 {
+		m.Spec.Port = 3306
+	}
+
+	return nil
+}
+
+// IsReady indicates whether the External MariaDB instance is ready
+func (m *ExternalMariaDB) IsReady() bool {
+	return meta.IsStatusConditionTrue(m.Status.Conditions, ConditionTypeReady)
+}
+
+// Get image pull policy
+func (m *ExternalMariaDB) GetImagePullPolicy() corev1.PullPolicy {
+	var pp corev1.PullPolicy = corev1.PullIfNotPresent
+	return pp
+}
+
+// Get image pull secrets
+func (m *ExternalMariaDB) GetImagePullSecrets() []LocalObjectReference {
+	return nil
+}
+
+// Get image
+func (m *ExternalMariaDB) GetImage() string {
+	return fmt.Sprintf("mariadb:%s", m.Status.Version)
+}
+
+// IsTLSRequired indicates whether TLS is enabled and must be enforced for all connections.
+func (m *ExternalMariaDB) IsTLSRequired() bool {
+	// if !m.IsTLSEnabled() {
+	// 	return false
+	// }
+	// tls := ptr.Deref(m.Spec.TLS, TLS{})
+	// return ptr.Deref(tls.Required, false)
+	return false
+}
+
+// IsTLSEnabled indicates whether TLS is enabled
+func (m *ExternalMariaDB) IsTLSEnabled() bool {
+	return ptr.Deref(m.Spec.TLS, TLS{}).Enabled
+}
+
+// Get MariaDB hostname
+func (m *ExternalMariaDB) GetHost() string {
+	return m.Spec.Host
+}
+
+// Get MariaDB port
+func (m *ExternalMariaDB) GetPort() int32 {
+	return m.Spec.Port
+}
+
+// Get MariaDB replicas
+func (m *ExternalMariaDB) GetReplicas() int32 {
+	return 1
+}
+
+// IsHAEnabled indicates whether the MariaDB instance has HA enabled (Always false for external MariaDB)
+func (m *ExternalMariaDB) IsHAEnabled() bool {
+	return false
+}
+
+// Get MariaDB Superuser name
+func (m *ExternalMariaDB) GetSUName() *string {
+	return m.Spec.Username
+}
+
+// Get MariaDB Superuser credentials
+func (m *ExternalMariaDB) GetSUCredential() SecretKeySelector {
+	return *m.Spec.PasswordSecretKeyRef
+}
+
+// +kubebuilder:object:root=true
+
+// External MariaDBList contains a list of ExternalMariaDB
+type ExternalMariaDBList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []ExternalMariaDB `json:"items"`
+}
+
+// ListItems gets a copy of the Items slice.
+func (m *ExternalMariaDBList) ListItems() []client.Object {
+	items := make([]client.Object, len(m.Items))
+	for i, item := range m.Items {
+		items[i] = item.DeepCopy()
+	}
+	return items
+}
+
 func init() {
-	SchemeBuilder.Register(&MariaDB{}, &MariaDBList{})
+	SchemeBuilder.Register(&MariaDB{}, &MariaDBList{}, &ExternalMariaDB{}, &ExternalMariaDBList{})
 }

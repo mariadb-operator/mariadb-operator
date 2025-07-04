@@ -11,6 +11,7 @@ import (
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/batch"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/rbac"
+	"github.com/mariadb-operator/mariadb-operator/pkg/interfaces"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -47,8 +48,7 @@ func (r *BackupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	if err := r.Get(ctx, req.NamespacedName, &backup); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
-
-	mariaDb, err := r.RefResolver.MariaDB(ctx, &backup.Spec.MariaDBRef, backup.Namespace)
+	mariaDb, err := r.RefResolver.GenericMariaDB(ctx, &backup.Spec.MariaDBRef, backup.Namespace)
 	if err != nil {
 		var mariaDbErr *multierror.Error
 		mariaDbErr = multierror.Append(mariaDbErr, err)
@@ -95,9 +95,16 @@ func (r *BackupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	return ctrl.Result{}, nil
 }
 
-func (r *BackupReconciler) setDefaults(ctx context.Context, backup *mariadbv1alpha1.Backup, mariadb *mariadbv1alpha1.MariaDB) error {
+func (r *BackupReconciler) setDefaults(ctx context.Context, backup *mariadbv1alpha1.Backup,
+	mariadb interfaces.MariaDBGenericInterface) error {
 	return r.patch(ctx, backup, func(b *mariadbv1alpha1.Backup) {
-		backup.SetDefaults(mariadb)
+		if backup.Spec.MariaDBRef.Kind == mariadbv1alpha1.ExternalMariaDBKind {
+			mariadb_obj := mariadb.(*mariadbv1alpha1.ExternalMariaDB)
+			backup.SetExternalDefaults(mariadb_obj)
+		} else {
+			mariadb_obj := mariadb.(*mariadbv1alpha1.MariaDB)
+			backup.SetDefaults(mariadb_obj)
+		}
 	})
 }
 
