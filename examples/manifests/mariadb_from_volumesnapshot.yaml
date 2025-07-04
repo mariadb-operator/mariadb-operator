@@ -1,0 +1,16 @@
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-from-volumesnapshot
+spec:
+  rootPasswordSecretKeyRef:
+    name: mariadb
+    key: password
+
+  storage:
+    size: 1Gi
+    storageClassName: csi-hostpath-sc
+
+  bootstrapFrom:
+    volumeSnapshotRef:
+      name: physicalbackup-20250610165200 
