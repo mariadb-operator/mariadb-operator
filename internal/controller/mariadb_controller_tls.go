@@ -411,11 +411,11 @@ func (h *certHandler) ensureAllPodsTrustingCABundle(ctx context.Context, mdb *ma
 	return true, nil
 }
 
-func (r *certHandler) patchStatus(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+func (h *certHandler) patchStatus(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 	patcher func(*mariadbv1alpha1.MariaDBStatus)) error {
 	patch := client.MergeFrom(mariadb.DeepCopy())
 	patcher(&mariadb.Status)
-	return r.Status().Patch(ctx, mariadb, patch)
+	return h.Status().Patch(ctx, mariadb, patch)
 }
 
 func getCertificateStatus(ctx context.Context, refResolver *refresolver.RefResolver, selector mariadbv1alpha1.SecretKeySelector,

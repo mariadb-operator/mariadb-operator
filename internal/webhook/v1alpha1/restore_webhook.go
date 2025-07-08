@@ -4,14 +4,12 @@ import (
 	"context"
 	"fmt"
 
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
-
-	"github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	k8sv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 )
 
 // log is for logging in this package.
@@ -19,7 +17,7 @@ var restorelog = logf.Log.WithName("restore-resource")
 
 // SetupRestoreWebhookWithManager registers the webhook for Restore in the manager.
 func SetupRestoreWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).For(&k8sv1alpha1.Restore{}).
+	return ctrl.NewWebhookManagedBy(mgr).For(&mariadbv1alpha1.Restore{}).
 		WithValidator(&RestoreCustomValidator{}).
 		Complete()
 }
@@ -34,7 +32,7 @@ var _ webhook.CustomValidator = &RestoreCustomValidator{}
 
 // ValidateCreate implements webhook.CustomValidator so a webhook will be registered for the type Restore.
 func (v *RestoreCustomValidator) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
-	restore, ok := obj.(*k8sv1alpha1.Restore)
+	restore, ok := obj.(*mariadbv1alpha1.Restore)
 	if !ok {
 		return nil, fmt.Errorf("expected a Restore object but got %T", obj)
 	}
@@ -45,11 +43,11 @@ func (v *RestoreCustomValidator) ValidateCreate(ctx context.Context, obj runtime
 
 // ValidateUpdate implements webhook.CustomValidator so a webhook will be registered for the type Restore.
 func (v *RestoreCustomValidator) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
-	restore, ok := newObj.(*k8sv1alpha1.Restore)
+	restore, ok := newObj.(*mariadbv1alpha1.Restore)
 	if !ok {
 		return nil, fmt.Errorf("expected a Restore object for the newObj but got %T", newObj)
 	}
-	oldRestore, ok := oldObj.(*k8sv1alpha1.Restore)
+	oldRestore, ok := oldObj.(*mariadbv1alpha1.Restore)
 	if !ok {
 		return nil, fmt.Errorf("expected a Restore object for the newObj but got %T", newObj)
 	}
@@ -66,7 +64,7 @@ func (v *RestoreCustomValidator) ValidateDelete(ctx context.Context, obj runtime
 	return nil, nil
 }
 
-func validateRestore(restore *v1alpha1.Restore) (admission.Warnings, error) {
+func validateRestore(restore *mariadbv1alpha1.Restore) (admission.Warnings, error) {
 	if err := restore.Spec.RestoreSource.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid restore: %v", err)
 	}

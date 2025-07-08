@@ -4,15 +4,13 @@ import (
 	"context"
 	"fmt"
 
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
-
-	"github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	k8sv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 )
 
 // log is for logging in this package.
@@ -20,7 +18,7 @@ var sqljoblog = logf.Log.WithName("sqljob-resource")
 
 // SetupSqlJobWebhookWithManager registers the webhook for SqlJob in the manager.
 func SetupSqlJobWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).For(&k8sv1alpha1.SqlJob{}).
+	return ctrl.NewWebhookManagedBy(mgr).For(&mariadbv1alpha1.SqlJob{}).
 		WithValidator(&SqlJobCustomValidator{}).
 		Complete()
 }
@@ -35,7 +33,7 @@ var _ webhook.CustomValidator = &SqlJobCustomValidator{}
 
 // ValidateCreate implements webhook.CustomValidator so a webhook will be registered for the type SqlJob.
 func (v *SqlJobCustomValidator) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
-	sqljob, ok := obj.(*k8sv1alpha1.SqlJob)
+	sqljob, ok := obj.(*mariadbv1alpha1.SqlJob)
 	if !ok {
 		return nil, fmt.Errorf("expected a SqlJob object but got %T", obj)
 	}
@@ -46,11 +44,11 @@ func (v *SqlJobCustomValidator) ValidateCreate(ctx context.Context, obj runtime.
 
 // ValidateUpdate implements webhook.CustomValidator so a webhook will be registered for the type SqlJob.
 func (v *SqlJobCustomValidator) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
-	sqljob, ok := newObj.(*k8sv1alpha1.SqlJob)
+	sqljob, ok := newObj.(*mariadbv1alpha1.SqlJob)
 	if !ok {
 		return nil, fmt.Errorf("expected a SqlJob object for the newObj but got %T", newObj)
 	}
-	oldSqljob, ok := oldObj.(*k8sv1alpha1.SqlJob)
+	oldSqljob, ok := oldObj.(*mariadbv1alpha1.SqlJob)
 	if !ok {
 		return nil, fmt.Errorf("expected a SqlJob object for the newObj but got %T", newObj)
 	}
@@ -67,7 +65,7 @@ func (v *SqlJobCustomValidator) ValidateDelete(ctx context.Context, obj runtime.
 	return nil, nil
 }
 
-func validateSqlJob(sqlJob *v1alpha1.SqlJob) (admission.Warnings, error) {
+func validateSqlJob(sqlJob *mariadbv1alpha1.SqlJob) (admission.Warnings, error) {
 	if err := validateSql(sqlJob); err != nil {
 		return nil, err
 	}
@@ -77,7 +75,7 @@ func validateSqlJob(sqlJob *v1alpha1.SqlJob) (admission.Warnings, error) {
 	return nil, nil
 }
 
-func validateSql(sqlJob *v1alpha1.SqlJob) error {
+func validateSql(sqlJob *mariadbv1alpha1.SqlJob) error {
 	if sqlJob.Spec.Sql == nil && sqlJob.Spec.SqlConfigMapKeyRef == nil {
 		return field.Invalid(
 			field.NewPath("spec"),
@@ -88,7 +86,7 @@ func validateSql(sqlJob *v1alpha1.SqlJob) error {
 	return nil
 }
 
-func validateSqlJobSchedule(sqlJob *v1alpha1.SqlJob) error {
+func validateSqlJobSchedule(sqlJob *mariadbv1alpha1.SqlJob) error {
 	if sqlJob.Spec.Schedule == nil {
 		return nil
 	}

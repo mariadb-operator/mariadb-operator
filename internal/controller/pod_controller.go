@@ -5,7 +5,6 @@ import (
 	"errors"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	"github.com/mariadb-operator/mariadb-operator/pkg/pod"
 	mariadbpod "github.com/mariadb-operator/mariadb-operator/pkg/pod"
 	"github.com/mariadb-operator/mariadb-operator/pkg/predicate"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
@@ -95,5 +94,5 @@ func podHasChanged(old, new client.Object) bool {
 	if !ok {
 		return false
 	}
-	return pod.PodReady(oldPod) != pod.PodReady(newPod)
+	return mariadbpod.PodReady(oldPod) != mariadbpod.PodReady(newPod)
 }

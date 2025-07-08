@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-multierror"
-	"github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
@@ -109,7 +108,7 @@ func (r *SqlJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	return ctrl.Result{}, nil
 }
 
-func (r *SqlJobReconciler) waitForDependencies(ctx context.Context, sqlJob *v1alpha1.SqlJob) (bool, ctrl.Result, error) {
+func (r *SqlJobReconciler) waitForDependencies(ctx context.Context, sqlJob *mariadbv1alpha1.SqlJob) (bool, ctrl.Result, error) {
 	if sqlJob.Spec.DependsOn == nil {
 		return true, ctrl.Result{}, nil
 	}

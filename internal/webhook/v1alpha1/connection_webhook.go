@@ -6,15 +6,13 @@ import (
 	"html/template"
 	"time"
 
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
-
-	"github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	k8sv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 )
 
 // log is for logging in this package.
@@ -22,7 +20,7 @@ var connectionlog = logf.Log.WithName("connection-resource")
 
 // SetupConnectionWebhookWithManager registers the webhook for Connection in the manager.
 func SetupConnectionWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).For(&k8sv1alpha1.Connection{}).
+	return ctrl.NewWebhookManagedBy(mgr).For(&mariadbv1alpha1.Connection{}).
 		WithValidator(&ConnectionCustomValidator{}).
 		Complete()
 }
@@ -37,7 +35,7 @@ var _ webhook.CustomValidator = &ConnectionCustomValidator{}
 
 // ValidateCreate implements webhook.CustomValidator so a webhook will be registered for the type Connection.
 func (v *ConnectionCustomValidator) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
-	connection, ok := obj.(*k8sv1alpha1.Connection)
+	connection, ok := obj.(*mariadbv1alpha1.Connection)
 	if !ok {
 		return nil, fmt.Errorf("expected a Connection object but got %T", obj)
 	}
@@ -48,11 +46,11 @@ func (v *ConnectionCustomValidator) ValidateCreate(ctx context.Context, obj runt
 
 // ValidateUpdate implements webhook.CustomValidator so a webhook will be registered for the type Connection.
 func (v *ConnectionCustomValidator) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
-	connection, ok := newObj.(*k8sv1alpha1.Connection)
+	connection, ok := newObj.(*mariadbv1alpha1.Connection)
 	if !ok {
 		return nil, fmt.Errorf("expected a Connection object for the newObj but got %T", newObj)
 	}
-	oldConnection, ok := oldObj.(*k8sv1alpha1.Connection)
+	oldConnection, ok := oldObj.(*mariadbv1alpha1.Connection)
 	if !ok {
 		return nil, fmt.Errorf("expected a Connection object for the newObj but got %T", newObj)
 	}
@@ -69,8 +67,8 @@ func (v *ConnectionCustomValidator) ValidateDelete(ctx context.Context, obj runt
 	return nil, nil
 }
 
-func validateConnection(conn *v1alpha1.Connection) (admission.Warnings, error) {
-	validateFuncs := []func(*v1alpha1.Connection) error{
+func validateConnection(conn *mariadbv1alpha1.Connection) (admission.Warnings, error) {
+	validateFuncs := []func(*mariadbv1alpha1.Connection) error{
 		validateRefs,
 		validateClientCreds,
 		validateHealthCheck,
@@ -84,7 +82,7 @@ func validateConnection(conn *v1alpha1.Connection) (admission.Warnings, error) {
 	return nil, nil
 }
 
-func validateRefs(conn *v1alpha1.Connection) error {
+func validateRefs(conn *mariadbv1alpha1.Connection) error {
 	if conn.Spec.MariaDBRef == nil && conn.Spec.MaxScaleRef == nil {
 		return field.Invalid(
 			field.NewPath("spec").Child("mariaDbRef"),
@@ -102,7 +100,7 @@ func validateRefs(conn *v1alpha1.Connection) error {
 	return nil
 }
 
-func validateClientCreds(conn *v1alpha1.Connection) error {
+func validateClientCreds(conn *mariadbv1alpha1.Connection) error {
 	if conn.Spec.PasswordSecretKeyRef == nil && conn.Spec.TLSClientCertSecretRef == nil {
 		return field.Invalid(
 			field.NewPath("spec"),
@@ -113,7 +111,7 @@ func validateClientCreds(conn *v1alpha1.Connection) error {
 	return nil
 }
 
-func validateHealthCheck(conn *v1alpha1.Connection) error {
+func validateHealthCheck(conn *mariadbv1alpha1.Connection) error {
 	if conn.Spec.HealthCheck == nil {
 		return nil
 	}
@@ -140,7 +138,7 @@ func validateHealthCheck(conn *v1alpha1.Connection) error {
 	return nil
 }
 
-func validateCustomDSNFormat(conn *v1alpha1.Connection) error {
+func validateCustomDSNFormat(conn *mariadbv1alpha1.Connection) error {
 	if conn.Spec.SecretTemplate == nil || conn.Spec.SecretTemplate.Format == nil {
 		return nil
 	}

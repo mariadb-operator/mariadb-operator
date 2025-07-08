@@ -11,7 +11,6 @@ import (
 	sqlClient "github.com/mariadb-operator/mariadb-operator/pkg/sql"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	ctrlClient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -42,7 +41,7 @@ func NewUserReconciler(client client.Client, refResolver *refresolver.RefResolve
 func (r *UserReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	var user mariadbv1alpha1.User
 	if err := r.Get(ctx, req.NamespacedName, &user); err != nil {
-		return ctrl.Result{}, ctrlClient.IgnoreNotFound(err)
+		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
 	wr := newWrapperUserReconciler(r.Client, r.RefResolver, &user)
