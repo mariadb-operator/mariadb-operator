@@ -28,7 +28,7 @@ KUBECTL_VERSION ?= v1.32.0
 KUSTOMIZE_VERSION ?= v5.4.3
 CONTROLLER_GEN_VERSION ?= v0.17.2
 GINKGO_VERSION ?= v2.23.4
-GOLANGCI_LINT_VERSION ?= v1.64.8
+GOLANGCI_LINT_VERSION ?= v2.2.1
 GORELEASER_VERSION ?= v2.8.1
 GO_LICENSES_VERSION ?= v1.0.0
 CRD_REF_DOCS_VERSION ?= v0.1.0
@@ -80,7 +80,7 @@ $(GINKGO): $(LOCALBIN)
 .PHONY: golangci-lint
 golangci-lint: $(GOLANGCI_LINT) ## Download golangci-lint locally if necessary.
 $(GOLANGCI_LINT): $(LOCALBIN)
-	GOBIN=$(LOCALBIN) $(GO) install github.com/golangci/golangci-lint/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
+	GOBIN=$(LOCALBIN) $(GO) install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
 
 .PHONY: goreleaser
 goreleaser: $(GORELEASER) ## Download goreleaser locally if necessary.
