@@ -24,7 +24,7 @@ func SetupMaxScaleWebhookWithManager(mgr ctrl.Manager) error {
 		Complete()
 }
 
-// +kubebuilder:webhook:path=/validate-k8s-mariadb-com-mariadbv1alpha1-maxscale,mutating=false,failurePolicy=fail,sideEffects=None,groups=k8s.mariadb.com,resources=maxscales,verbs=create;update,versions=mariadbv1alpha1,name=vmaxscale-mariadbv1alpha1.kb.io,admissionReviewVersions=v1
+// +kubebuilder:webhook:path=/validate-k8s-mariadb-com-v1alpha1-maxscale,mutating=false,failurePolicy=fail,sideEffects=None,groups=k8s.mariadb.com,resources=maxscales,verbs=create;update,versions=v1alpha1,name=vmaxscale-v1alpha1.kb.io,admissionReviewVersions=v1
 
 // MaxScaleCustomValidator struct is responsible for validating the MaxScale resource
 // when it is created, updated, or deleted.
