@@ -1,0 +1,253 @@
+package controller
+
+import (
+	"context"
+	"fmt"
+	"strings"
+	"time"
+
+	"github.com/hashicorp/go-multierror"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
+	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
+	"github.com/mariadb-operator/mariadb-operator/pkg/controller/configmap"
+	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
+	"github.com/mariadb-operator/mariadb-operator/pkg/controller/sql"
+	"github.com/mariadb-operator/mariadb-operator/pkg/discovery"
+	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
+	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
+	sqlClient "github.com/mariadb-operator/mariadb-operator/pkg/sql"
+	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/record"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/log"
+)
+
+// ExternalMariaDBReconciler reconciles a ExternalMariaDB object
+type ExternalMariaDBReconciler struct {
+	client.Client
+	Scheme   *runtime.Scheme
+	Recorder record.EventRecorder
+
+	Builder        *builder.Builder
+	RefResolver    *refresolver.RefResolver
+	ConditionReady *condition.Ready
+	Environment    *environment.OperatorEnv
+	Discovery      *discovery.Discovery
+
+	ConfigMapReconciler *configmap.ConfigMapReconciler
+	SecretReconciler    *secret.SecretReconciler
+}
+
+type patcherExternalMariaDB func(*mariadbv1alpha1.ExternalMariaDBStatus) error
+
+type reconcilePhaseExternalMariaDB struct {
+	Name      string
+	Reconcile func(context.Context, *mariadbv1alpha1.ExternalMariaDB) (ctrl.Result, error)
+}
+
+//+kubebuilder:rbac:groups=k8s.mariadb.com,resources=externalmariadbs,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=k8s.mariadb.com,resources=externalmariadbs/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=k8s.mariadb.com,resources=externalmariadbs/finalizers,verbs=update
+//+kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;patch;delete
+//+kubebuilder:rbac:groups="",resources=secrets,verbs=list;watch;create;patch
+//+kubebuilder:rbac:groups="",resources=events,verbs=list;watch;create;patch
+//+kubebuilder:rbac:groups=authorization.k8s.io,resources=subjectaccessreviews,verbs=create
+//+kubebuilder:rbac:groups=authentication.k8s.io,resources=tokenreviews,verbs=create
+//+kubebuilder:rbac:groups=monitoring.coreos.com,resources=servicemonitors,verbs=list;watch;create;patch
+//+kubebuilder:rbac:groups=cert-manager.io,resources=certificates,verbs=list;watch;create;patch
+
+// Reconcile is part of the main kubernetes reconciliation loop which aims to
+// move the current state of the cluster closer to the desired state.
+func (r *ExternalMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	var external_mariadb mariadbv1alpha1.ExternalMariaDB
+	if err := r.Get(ctx, req.NamespacedName, &external_mariadb); err != nil {
+		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
+	phases := []reconcilePhaseExternalMariaDB{
+		{
+			Name:      "Spec",
+			Reconcile: r.setSpecDefaults,
+		},
+		{
+			Name:      "Status",
+			Reconcile: r.reconcileStatus,
+		},
+		{
+			Name:      "Connection",
+			Reconcile: r.reconcileConnection,
+		},
+	}
+
+	for _, p := range phases {
+		result, err := p.Reconcile(ctx, &external_mariadb)
+		if err != nil {
+
+			log.FromContext(ctx).V(1).Info("Phase name", "name", p.Name)
+
+			var errBundle *multierror.Error
+			errBundle = multierror.Append(errBundle, err)
+
+			msg := fmt.Sprintf("Error reconciling %s: %v", p.Name, err)
+			patchErr := r.patchStatus(ctx, &external_mariadb, func(s *mariadbv1alpha1.ExternalMariaDBStatus) error {
+				patcher := r.ConditionReady.PatcherFailed(msg)
+				patcher(s)
+				return nil
+			})
+			if !apierrors.IsNotFound(patchErr) {
+				errBundle = multierror.Append(errBundle, patchErr)
+			}
+
+			if err := errBundle.ErrorOrNil(); err != nil {
+				return ctrl.Result{}, fmt.Errorf("error reconciling %s: %v", p.Name, err)
+			}
+		}
+		if !result.IsZero() {
+			patchErr := r.patchStatus(ctx, &external_mariadb, func(s *mariadbv1alpha1.ExternalMariaDBStatus) error {
+				patcher := r.ConditionReady.PatcherHealthy(err)
+				patcher(s)
+				return nil
+			})
+
+			if patchErr != nil {
+				return result, err
+			}
+			return result, err
+		}
+
+	}
+
+	return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+}
+
+func (r *ExternalMariaDBReconciler) setSpecDefaults(ctx context.Context,
+	external_mariadb *mariadbv1alpha1.ExternalMariaDB) (ctrl.Result, error) {
+	return ctrl.Result{}, r.patch(ctx, external_mariadb, func(emdb *mariadbv1alpha1.ExternalMariaDB) error {
+		return emdb.SetDefaults(r.Environment)
+	})
+}
+
+func (r *ExternalMariaDBReconciler) reconcileConnection(ctx context.Context,
+	external_mariadb *mariadbv1alpha1.ExternalMariaDB) (ctrl.Result, error) {
+
+	if external_mariadb.Spec.Connection == nil {
+		return ctrl.Result{}, nil
+	}
+
+	if !external_mariadb.IsReady() {
+		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+	}
+
+	key := types.NamespacedName{
+		Name:      external_mariadb.Name,
+		Namespace: external_mariadb.Namespace,
+	}
+
+	var existingConn mariadbv1alpha1.Connection
+	if err := r.Get(ctx, key, &existingConn); err == nil {
+		return ctrl.Result{}, nil
+	}
+
+	connOpts := builder.ConnectionOpts{
+		Metadata:             external_mariadb.Spec.InheritMetadata,
+		ExternalMariaDB:      external_mariadb,
+		Key:                  key,
+		Username:             *external_mariadb.Spec.Username,
+		PasswordSecretKeyRef: external_mariadb.Spec.PasswordSecretKeyRef,
+		Template:             external_mariadb.Spec.Connection,
+	}
+	conn, err := r.Builder.BuildConnection(connOpts, external_mariadb)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error building Connection: %v", err)
+	}
+
+	return ctrl.Result{}, r.Create(ctx, conn)
+
+}
+
+func (r *ExternalMariaDBReconciler) reconcileStatus(ctx context.Context,
+	external_mariadb *mariadbv1alpha1.ExternalMariaDB) (ctrl.Result, error) {
+
+	if !external_mariadb.IsReady() {
+		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+	}
+
+	client, err := sqlClient.NewClientWithMariaDB(ctx, external_mariadb, r.RefResolver)
+	if err != nil {
+		return ctrl.Result{RequeueAfter: 3 * time.Second}, fmt.Errorf("error connecting to MariaDB: %v", err)
+	}
+	defer client.Close()
+
+	raw_version, err := client.SystemVariable(ctx, "version")
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("unable to get MariaDB version: %v", err)
+	}
+
+	split_version := strings.Split(raw_version, "-")
+	version := split_version[0]
+
+	return ctrl.Result{}, r.patchStatus(ctx, external_mariadb, func(status *mariadbv1alpha1.ExternalMariaDBStatus) error {
+		status.SetVersion(version)
+		status.Version = version
+		condition.SetReadyHealthy(&external_mariadb.Status)
+		return nil
+	})
+
+}
+
+func (r *ExternalMariaDBReconciler) patchStatus(ctx context.Context, external_mariadb *mariadbv1alpha1.ExternalMariaDB,
+	patcher patcherExternalMariaDB) error {
+	patch := client.MergeFrom(external_mariadb.DeepCopy())
+	if err := patcher(&external_mariadb.Status); err != nil {
+		return err
+	}
+	return r.Status().Patch(ctx, external_mariadb, patch)
+}
+
+func (r *ExternalMariaDBReconciler) patch(ctx context.Context,
+	external_mariadb *mariadbv1alpha1.ExternalMariaDB, patcher func(*mariadbv1alpha1.ExternalMariaDB) error) error {
+	patch := client.MergeFrom(external_mariadb.DeepCopy())
+	if err := patcher(external_mariadb); err != nil {
+		return err
+	}
+
+	return r.Patch(ctx, external_mariadb, patch)
+}
+
+// SetupWithManager sets up the controller with the Manager.
+func (r *ExternalMariaDBReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, env *environment.OperatorEnv,
+) error {
+	builder := ctrl.NewControllerManagedBy(mgr).
+		For(&mariadbv1alpha1.ExternalMariaDB{}).
+		Owns(&mariadbv1alpha1.Connection{}).
+		Owns(&corev1.ConfigMap{}).
+		Owns(&corev1.Secret{})
+
+	currentNamespaceOnly, err := env.CurrentNamespaceOnly()
+	if err != nil {
+		return fmt.Errorf("error checking operator watch scope: %v", err)
+	}
+	if !currentNamespaceOnly {
+		builder = builder.Owns(&rbacv1.ClusterRoleBinding{})
+	}
+
+	return builder.Complete(r)
+}
+
+func NewExternalMariaDBReconciler(client client.Client, refResolver *refresolver.RefResolver, conditionReady *condition.Ready,
+	builder *builder.Builder, scheme *runtime.Scheme,
+	sqlOpts ...sql.SqlOpt) *ExternalMariaDBReconciler {
+	return &ExternalMariaDBReconciler{
+		Client:         client,
+		RefResolver:    refResolver,
+		ConditionReady: conditionReady,
+		Builder:        builder,
+		Scheme:         scheme,
+		// SqlOpts:        sqlOpts,
+	}
+}

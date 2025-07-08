@@ -965,6 +965,9 @@ spec:
                 description: MariaDBRef is a reference to the MariaDB that MaxScale
                   points to. It is used to initialize the servers field.
                 properties:
+                  kind:
+                    description: ObjectReference is a reference to a object.
+                    type: string
                   name:
                     type: string
                   namespace:

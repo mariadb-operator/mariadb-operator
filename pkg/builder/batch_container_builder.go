@@ -5,6 +5,7 @@ import (
 	builderpki "github.com/mariadb-operator/mariadb-operator/pkg/builder/pki"
 	cmd "github.com/mariadb-operator/mariadb-operator/pkg/command"
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
+	"github.com/mariadb-operator/mariadb-operator/pkg/interfaces"
 	"github.com/mariadb-operator/mariadb-operator/pkg/pki"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
@@ -12,7 +13,7 @@ import (
 )
 
 func (b *Builder) jobContainer(name string, cmd *cmd.Command, image string, volumeMounts []corev1.VolumeMount, env []v1.EnvVar,
-	resources *corev1.ResourceRequirements, mariadb *mariadbv1alpha1.MariaDB,
+	resources *corev1.ResourceRequirements, mariadb interfaces.ImageAwareInterface,
 	securityContext *mariadbv1alpha1.SecurityContext) (*corev1.Container, error) {
 	sc, err := b.buildContainerSecurityContext(securityContext)
 	if err != nil {
@@ -22,7 +23,7 @@ func (b *Builder) jobContainer(name string, cmd *cmd.Command, image string, volu
 	container := corev1.Container{
 		Name:            name,
 		Image:           image,
-		ImagePullPolicy: mariadb.Spec.ImagePullPolicy,
+		ImagePullPolicy: mariadb.GetImagePullPolicy(),
 		Command:         cmd.Command,
 		Args:            cmd.Args,
 		Env:             env,
@@ -36,21 +37,21 @@ func (b *Builder) jobContainer(name string, cmd *cmd.Command, image string, volu
 }
 
 func (b *Builder) jobMariadbOperatorContainer(cmd *cmd.Command, volumeMounts []corev1.VolumeMount, envVar []v1.EnvVar,
-	resources *corev1.ResourceRequirements, mariadb *mariadbv1alpha1.MariaDB, env *environment.OperatorEnv,
+	resources *corev1.ResourceRequirements, mariadb interfaces.ImageAwareInterface, env *environment.OperatorEnv,
 	securityContext *mariadbv1alpha1.SecurityContext) (*corev1.Container, error) {
 
 	return b.jobContainer("mariadb-operator", cmd, env.MariadbOperatorImage, volumeMounts, envVar, resources, mariadb, securityContext)
 }
 
 func (b *Builder) jobMariadbContainer(cmd *cmd.Command, volumeMounts []corev1.VolumeMount, envVar []v1.EnvVar,
-	resources *corev1.ResourceRequirements, mariadb *mariadbv1alpha1.MariaDB,
+	resources *corev1.ResourceRequirements, mariadb interfaces.ImageAwareInterface,
 	securityContext *mariadbv1alpha1.SecurityContext) (*corev1.Container, error) {
 
-	return b.jobContainer("mariadb", cmd, mariadb.Spec.Image, volumeMounts, envVar, resources, mariadb, securityContext)
+	return b.jobContainer("mariadb", cmd, mariadb.GetImage(), volumeMounts, envVar, resources, mariadb, securityContext)
 }
 
 func jobBatchStorageVolume(storageVolume mariadbv1alpha1.StorageVolumeSource,
-	s3 *mariadbv1alpha1.S3, mariadb *mariadbv1alpha1.MariaDB) ([]corev1.Volume, []corev1.VolumeMount) {
+	s3 *mariadbv1alpha1.S3, mariadb interfaces.TLSAwareInterface) ([]corev1.Volume, []corev1.VolumeMount) {
 	volumes :=
 		[]corev1.Volume{
 			{
@@ -106,16 +107,16 @@ func jobPhysicalBackupVolumes(storageVolume mariadbv1alpha1.StorageVolumeSource,
 	return volumes, volumeMounts
 }
 
-func jobEnv(mariadb *mariadbv1alpha1.MariaDB) []v1.EnvVar {
+func jobEnv(mariadb interfaces.ConnectionParamsAwareInterface) []v1.EnvVar {
 	return []v1.EnvVar{
 		{
 			Name:  batchUserEnv,
-			Value: "root",
+			Value: *mariadb.GetSUName(),
 		},
 		{
 			Name: batchPasswordEnv,
 			ValueFrom: &v1.EnvVarSource{
-				SecretKeyRef: ptr.To(mariadb.Spec.RootPasswordSecretKeyRef.SecretKeySelector.ToKubernetesType()),
+				SecretKeyRef: ptr.To(mariadb.GetSUCredential().ToKubernetesType()),
 			},
 		},
 	}
@@ -160,7 +161,7 @@ func jobResources(resources *mariadbv1alpha1.ResourceRequirements) *corev1.Resou
 	return nil
 }
 
-func sqlJobvolumes(sqlJob *mariadbv1alpha1.SqlJob, mariadb *mariadbv1alpha1.MariaDB) ([]corev1.Volume, []corev1.VolumeMount) {
+func sqlJobvolumes(sqlJob *mariadbv1alpha1.SqlJob, mariadb interfaces.TLSAwareInterface) ([]corev1.Volume, []corev1.VolumeMount) {
 	volumes := []corev1.Volume{
 		{
 			Name: batchScriptsVolume,

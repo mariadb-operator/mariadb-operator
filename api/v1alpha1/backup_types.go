@@ -152,6 +152,20 @@ func (b *Backup) SetDefaults(mariadb *MariaDB) {
 	b.Spec.JobPodTemplate.SetDefaults(b.ObjectMeta, mariadb.ObjectMeta)
 }
 
+func (b *Backup) SetExternalDefaults(mariadb *ExternalMariaDB) {
+	if b.Spec.Compression == CompressAlgorithm("") {
+		b.Spec.Compression = CompressNone
+	}
+	if b.Spec.MaxRetention == (metav1.Duration{}) {
+		b.Spec.MaxRetention = metav1.Duration{Duration: 30 * 24 * time.Hour}
+	}
+	if b.Spec.BackoffLimit == 0 {
+		b.Spec.BackoffLimit = 5
+	}
+
+	b.Spec.JobPodTemplate.SetExternalDefaults(b.ObjectMeta)
+}
+
 func (b *Backup) Volume() (StorageVolumeSource, error) {
 	if b.Spec.Storage.S3 != nil {
 		stagingStorage := ptr.Deref(b.Spec.StagingStorage, BackupStagingStorage{})

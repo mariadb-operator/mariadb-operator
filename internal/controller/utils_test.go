@@ -43,16 +43,37 @@ var (
 		Name:      "mdb-test",
 		Namespace: testNamespace,
 	}
+	testEmulateExternalMdbkey = types.NamespacedName{
+		Name:      "mdb-emulate-external-test",
+		Namespace: testNamespace,
+	}
+	testEMdbkey = types.NamespacedName{
+		Name:      "emdb-test",
+		Namespace: testNamespace,
+	}
+
 	testPwdKey = types.NamespacedName{
 		Name:      "password",
 		Namespace: testNamespace,
 	}
+
+	testEmulatedExternalPwdKey = types.NamespacedName{
+		Name:      "password-emulated-external",
+		Namespace: testNamespace,
+	}
+
 	testPwdSecretKey        = "password"
 	testPwdMetricsSecretKey = "metrics"
 	testUser                = "test"
 	testPasswordSecretRef   = mariadbv1alpha1.SecretKeySelector{
 		LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
 			Name: testPwdKey.Name,
+		},
+		Key: testPwdSecretKey,
+	}
+	testEmulatedExternalPasswordSecretRef = mariadbv1alpha1.SecretKeySelector{
+		LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+			Name: testEmulatedExternalPwdKey.Name,
 		},
 		Key: testPwdSecretKey,
 	}
@@ -206,13 +227,158 @@ max_allowed_packet=256M`),
 
 	Expect(k8sClient.Create(ctx, &mdb)).To(Succeed())
 	expectMariadbReady(ctx, k8sClient, testMdbkey)
+
+	external_password := v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      testEmulatedExternalPwdKey.Name,
+			Namespace: testEmulatedExternalPwdKey.Namespace,
+			Labels: map[string]string{
+				metadata.WatchLabel: "",
+			},
+		},
+		Data: map[string][]byte{
+			testPwdSecretKey:        []byte("MariaDB11!"),
+			testPwdMetricsSecretKey: []byte("MariaDB11!"),
+		},
+	}
+	Expect(k8sClient.Create(ctx, &external_password)).To(Succeed())
+
+	emulate_external_mdb := mariadbv1alpha1.MariaDB{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      testEmulateExternalMdbkey.Name,
+			Namespace: testEmulateExternalMdbkey.Namespace,
+		},
+		Spec: mariadbv1alpha1.MariaDBSpec{
+			ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
+				SecurityContext: &mariadbv1alpha1.SecurityContext{
+					AllowPrivilegeEscalation: ptr.To(false),
+				},
+			},
+			PodTemplate: mariadbv1alpha1.PodTemplate{
+				PodSecurityContext: &mariadbv1alpha1.PodSecurityContext{
+					RunAsUser: ptr.To(int64(999)),
+				},
+				PodMetadata: &mariadbv1alpha1.Metadata{
+					Labels: map[string]string{
+						"sidecar.istio.io/inject": "false",
+					},
+					Annotations: map[string]string{
+						"sidecar.istio.io/inject": "false",
+					},
+				},
+			},
+			Image:           env.RelatedMariadbImage,
+			ImagePullPolicy: corev1.PullIfNotPresent,
+			InheritMetadata: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{
+					"k8s.mariadb.com/test": "test",
+				},
+				Annotations: map[string]string{
+					"k8s.mariadb.com/test": "test",
+				},
+			},
+			RootPasswordSecretKeyRef: mariadbv1alpha1.GeneratedSecretKeyRef{
+				SecretKeySelector: mariadbv1alpha1.SecretKeySelector{
+					LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+						Name: testEmulatedExternalPwdKey.Name,
+					},
+					Key: testPwdSecretKey,
+				},
+			},
+			Username: &testUser,
+			PasswordSecretKeyRef: &mariadbv1alpha1.GeneratedSecretKeyRef{
+				SecretKeySelector: testEmulatedExternalPasswordSecretRef,
+			},
+			Database: &testDatabase,
+			Connection: &mariadbv1alpha1.ConnectionTemplate{
+				SecretName: &testConnKey.Name,
+				SecretTemplate: &mariadbv1alpha1.SecretTemplate{
+					Key: &testConnSecretKey,
+				},
+			},
+			MyCnf: ptr.To(`[mariadb]
+bind-address=*
+default_storage_engine=InnoDB
+binlog_format=row
+innodb_autoinc_lock_mode=2
+max_allowed_packet=256M`),
+			Port: 3306,
+			Service: &mariadbv1alpha1.ServiceTemplate{
+				Type: corev1.ServiceTypeLoadBalancer,
+				Metadata: &mariadbv1alpha1.Metadata{
+					Annotations: map[string]string{
+						"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.46",
+					},
+				},
+			},
+			TLS: &mariadbv1alpha1.TLS{
+				Enabled:  true,
+				Required: ptr.To(true),
+			},
+			Storage: mariadbv1alpha1.Storage{
+				Size: ptr.To(resource.MustParse("300Mi")),
+			},
+		},
+	}
+	applyMariadbTestConfig(&emulate_external_mdb)
+	Expect(k8sClient.Create(ctx, &emulate_external_mdb)).To(Succeed())
+	expectMariadbReady(ctx, k8sClient, testEmulateExternalMdbkey)
+
+	emdb := mariadbv1alpha1.ExternalMariaDB{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      testEMdbkey.Name,
+			Namespace: testEMdbkey.Namespace,
+		},
+		Spec: mariadbv1alpha1.ExternalMariaDBSpec{
+			Host:     testEmulateExternalMdbHost,
+			Username: ptr.To("root"),
+			PasswordSecretKeyRef: &mariadbv1alpha1.SecretKeySelector{
+				LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+					Name: testEmulatedExternalPwdKey.Name,
+				},
+				Key: testPwdSecretKey,
+			},
+			InheritMetadata: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{
+					"k8s.mariadb.com/test": "test",
+				},
+				Annotations: map[string]string{
+					"k8s.mariadb.com/test": "test",
+				},
+			},
+			TLS: &mariadbv1alpha1.TLS{
+				Enabled:  true,
+				Required: ptr.To(false),
+				ServerCASecretRef: &mariadbv1alpha1.LocalObjectReference{
+					Name: "mdb-emulate-external-test-ca",
+				},
+				ClientCertSecretRef: &mariadbv1alpha1.LocalObjectReference{
+					Name: "mdb-emulate-external-test-client-cert",
+				},
+				ServerCertSecretRef: &mariadbv1alpha1.LocalObjectReference{
+					Name: "mdb-emulate-external-test-server-cert",
+				},
+			},
+		},
+	}
+
+	Expect(k8sClient.Create(ctx, &emdb)).To(Succeed())
+	expectExternalMariadbReady(ctx, k8sClient, testEMdbkey)
+
 }
 
 func testCleanupInitialData(ctx context.Context) {
 	var password corev1.Secret
+	var external_password corev1.Secret
+	var emdb mariadbv1alpha1.ExternalMariaDB
 	Expect(k8sClient.Get(ctx, testPwdKey, &password)).To(Succeed())
 	Expect(k8sClient.Delete(ctx, &password)).To(Succeed())
 	deleteMariadb(testMdbkey, false)
+	Expect(k8sClient.Get(ctx, testEMdbkey, &emdb)).To(Succeed())
+	Expect(k8sClient.Delete(ctx, &emdb)).To(Succeed())
+	deleteMariadb(testEmulateExternalMdbkey, false)
+	Expect(k8sClient.Get(ctx, testEmulatedExternalPwdKey, &external_password)).To(Succeed())
+	Expect(k8sClient.Delete(ctx, &external_password)).To(Succeed())
 }
 
 func testMariadbUpdate(mdb *mariadbv1alpha1.MariaDB) {
@@ -569,6 +735,58 @@ func testConnection(username string, password mariadbv1alpha1.SecretKeySelector,
 	}, testTimeout, testInterval).Should(BeTrue())
 }
 
+func testExternalConnection(username string, password mariadbv1alpha1.SecretKeySelector, clientCert *mariadbv1alpha1.LocalObjectReference,
+	database string, isValid bool) {
+	key := types.NamespacedName{
+		Name:      fmt.Sprintf("test-creds-conn-%s", uuid.New().String()),
+		Namespace: testNamespace,
+	}
+
+	conn := mariadbv1alpha1.Connection{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      key.Name,
+			Namespace: key.Namespace,
+		},
+		Spec: mariadbv1alpha1.ConnectionSpec{
+			ConnectionTemplate: mariadbv1alpha1.ConnectionTemplate{
+				SecretName: ptr.To(key.Name),
+			},
+			MariaDBRef: &mariadbv1alpha1.MariaDBRef{
+				ObjectReference: mariadbv1alpha1.ObjectReference{
+					Name: testEMdbkey.Name,
+				},
+				Kind:      "ExternalMariaDB",
+				WaitForIt: true,
+			},
+			Username:             username,
+			PasswordSecretKeyRef: &password,
+			// TLSClientCertSecretRef: clientCert,
+			Database: &database,
+		},
+	}
+	By("Creating Connection")
+	Expect(k8sClient.Create(testCtx, &conn)).To(Succeed())
+	DeferCleanup(func() {
+		Expect(k8sClient.Delete(testCtx, &conn)).To(Succeed())
+	})
+
+	if isValid {
+		By("Expecting Connection to be valid eventually")
+	} else {
+		By("Expecting Connection to be invalid eventually")
+	}
+	Eventually(func() bool {
+		if err := k8sClient.Get(testCtx, key, &conn); err != nil {
+			return false
+		}
+		if isValid {
+			return conn.IsReady()
+		} else {
+			return !conn.IsReady()
+		}
+	}, testTimeout, testInterval).Should(BeTrue())
+}
+
 // See: https://docs.github.com/en/actions/using-github-hosted-runners/using-github-hosted-runners/about-github-hosted-runners#standard-github-hosted-runners-for-public-repositories
 func applyMariadbTestConfig(mdb *mariadbv1alpha1.MariaDB) *mariadbv1alpha1.MariaDB {
 	mdb.Spec.Resources = &mariadbv1alpha1.ResourceRequirements{
@@ -653,6 +871,48 @@ func getBackupWithStorage(key types.NamespacedName, storage mariadbv1alpha1.Back
 	}
 }
 
+func getBackupFromExternalMariaDB(key types.NamespacedName, storage mariadbv1alpha1.BackupStorage) *mariadbv1alpha1.Backup {
+	return &mariadbv1alpha1.Backup{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      key.Name,
+			Namespace: key.Namespace,
+		},
+		Spec: mariadbv1alpha1.BackupSpec{
+			MariaDBRef: mariadbv1alpha1.MariaDBRef{
+				ObjectReference: mariadbv1alpha1.ObjectReference{
+					Name: testEMdbkey.Name,
+				},
+				Kind:      "ExternalMariaDB",
+				WaitForIt: true,
+			},
+			InheritMetadata: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{
+					"k8s.mariadb.com/test": "test",
+				},
+				Annotations: map[string]string{
+					"k8s.mariadb.com/test": "test",
+				},
+			},
+			Storage: storage,
+		},
+	}
+}
+
+func getBackupFromExternalWithPVCStorage(key types.NamespacedName) *mariadbv1alpha1.Backup {
+	return getBackupFromExternalMariaDB(key, mariadbv1alpha1.BackupStorage{
+		PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimSpec{
+			Resources: corev1.VolumeResourceRequirements{
+				Requests: corev1.ResourceList{
+					"storage": resource.MustParse("100Mi"),
+				},
+			},
+			AccessModes: []corev1.PersistentVolumeAccessMode{
+				corev1.ReadWriteOnce,
+			},
+		},
+	})
+}
+
 func getBackupWithPVCStorage(key types.NamespacedName) *mariadbv1alpha1.Backup {
 	return getBackupWithStorage(key, mariadbv1alpha1.BackupStorage{
 		PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimSpec{
@@ -671,6 +931,14 @@ func getBackupWithPVCStorage(key types.NamespacedName) *mariadbv1alpha1.Backup {
 func getBackupWithS3Storage(key types.NamespacedName, bucket, prefix string) *mariadbv1alpha1.Backup {
 	return getBackupWithStorage(key, mariadbv1alpha1.BackupStorage{
 		S3: getS3WithBucket(bucket, prefix),
+	})
+}
+
+func getBackupFromExternalWithVolumeStorage(key types.NamespacedName) *mariadbv1alpha1.Backup {
+	return getBackupFromExternalMariaDB(key, mariadbv1alpha1.BackupStorage{
+		Volume: &mariadbv1alpha1.StorageVolumeSource{
+			EmptyDir: &mariadbv1alpha1.EmptyDirVolumeSource{},
+		},
 	})
 }
 
@@ -787,8 +1055,24 @@ func expectMariadbReady(ctx context.Context, k8sClient client.Client, key types.
 	})
 }
 
+func expectExternalMariadbReady(ctx context.Context, k8sClient client.Client, key types.NamespacedName) {
+	By("Expecting MariaDB to be ready eventually")
+	expectExternalMariadbFn(ctx, k8sClient, key, func(mdb *mariadbv1alpha1.ExternalMariaDB) bool {
+		return mdb.IsReady()
+	})
+}
+
 func expectMariadbFn(ctx context.Context, k8sClient client.Client, key types.NamespacedName, fn func(mdb *mariadbv1alpha1.MariaDB) bool) {
 	var mdb mariadbv1alpha1.MariaDB
+	Eventually(func(g Gomega) bool {
+		g.Expect(k8sClient.Get(ctx, key, &mdb)).To(Succeed())
+		return fn(&mdb)
+	}, testHighTimeout, testInterval).Should(BeTrue())
+}
+
+func expectExternalMariadbFn(ctx context.Context, k8sClient client.Client, key types.NamespacedName,
+	fn func(mdb *mariadbv1alpha1.ExternalMariaDB) bool) {
+	var mdb mariadbv1alpha1.ExternalMariaDB
 	Eventually(func(g Gomega) bool {
 		g.Expect(k8sClient.Get(ctx, key, &mdb)).To(Succeed())
 		return fn(&mdb)
@@ -869,6 +1153,13 @@ func deleteMariadb(key types.NamespacedName, assertPVCDeletion bool) {
 		}
 		return len(pvcList.Items) == 0
 	}, testHighTimeout, testInterval).Should(BeTrue())
+}
+
+func deleteExternalMariadb(key types.NamespacedName, assertPVCDeletion bool) {
+	var mdb mariadbv1alpha1.ExternalMariaDB
+	By("Deleting MariaDB")
+	Expect(k8sClient.Get(testCtx, key, &mdb)).To(Succeed())
+	Expect(k8sClient.Delete(testCtx, &mdb)).To(Succeed())
 }
 
 func deleteMaxScale(key types.NamespacedName, assertPVCDeletion bool) {
