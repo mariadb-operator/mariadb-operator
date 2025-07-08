@@ -1,0 +1,39 @@
+linters-settings:
+  gocyclo:
+    min-complexity: 22
+  lll:
+    line-length: 140
+  nestif:
+    min-complexity: 12
+  misspell:
+    locale: US
+
+linters:
+  disable-all: true
+  enable:
+    - unused
+    - errcheck
+    - ginkgolinter
+    - gocyclo
+    - gofmt
+    - goimports
+    - gosimple
+    - govet
+    - ineffassign
+    - lll
+    - misspell
+    - nestif
+    - staticcheck
+    - typecheck
+    - unused
+    - bodyclose
+    - noctx
+
+issues:
+  exclude-rules:
+    - linters:
+        - lll
+      source: "//"
+
+run:
+  timeout: 5m

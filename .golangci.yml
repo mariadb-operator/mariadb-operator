@@ -1,39 +1,50 @@
-linters-settings:
-  gocyclo:
-    min-complexity: 22
-  lll:
-    line-length: 140
-  nestif:
-    min-complexity: 12
-  misspell:
-    locale: US
-
+version: "2"
 linters:
-  disable-all: true
+  default: none
   enable:
-    - unused
+    - bodyclose
     - errcheck
     - ginkgolinter
     - gocyclo
-    - gofmt
-    - goimports
-    - gosimple
     - govet
     - ineffassign
     - lll
     - misspell
     - nestif
-    - staticcheck
-    - typecheck
-    - unused
-    - bodyclose
     - noctx
-
-issues:
-  exclude-rules:
-    - linters:
-        - lll
-      source: "//"
-
-run:
-  timeout: 5m
+    - staticcheck
+    - unused
+  settings:
+    gocyclo:
+      min-complexity: 22
+    lll:
+      line-length: 140
+    misspell:
+      locale: US
+    nestif:
+      min-complexity: 12
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    rules:
+      - linters:
+          - lll
+        source: //
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
