@@ -13,7 +13,7 @@
   <tbody>
     <tr>
       <td>MariaDB Community Server</td>
-      <td><code>docker-registry1.mariadb.com/library/mariadb:11.4.5</code></td>
+      <td><code>docker-registry1.mariadb.com/library/mariadb:11.8.2</code></td>
       <td><code>amd64</code> <code>arm64</code></td>
     </tr>
 	  <tr>
