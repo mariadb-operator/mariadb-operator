@@ -9,7 +9,6 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
-	conditions "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/replication"
 	podpkg "github.com/mariadb-operator/mariadb-operator/pkg/pod"
 	stspkg "github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
@@ -183,10 +182,10 @@ func (r *MariaDBReconciler) setUpdatedCondition(ctx context.Context, mdb *mariad
 		condition.SetUpdated(&mdb.Status)
 	} else if podsUpdated > 0 {
 		logger.V(1).Info("MariaDB update in progress")
-		conditions.SetUpdating(&mdb.Status)
+		condition.SetUpdating(&mdb.Status)
 	} else {
 		logger.V(1).Info("MariaDB has a pending update")
-		conditions.SetPendingUpdate(&mdb.Status)
+		condition.SetPendingUpdate(&mdb.Status)
 	}
 	return nil
 }

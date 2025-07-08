@@ -402,19 +402,19 @@ func (j *JobPodTemplate) FromPodTemplate(ptpl *PodTemplate) {
 }
 
 // SetDefaults sets reasonable defaults.
-func (p *JobPodTemplate) SetDefaults(objMeta, mariadbObjMeta metav1.ObjectMeta) {
-	if p.ServiceAccountName == nil {
-		p.ServiceAccountName = ptr.To(p.ServiceAccountKey(objMeta).Name)
+func (j *JobPodTemplate) SetDefaults(objMeta, mariadbObjMeta metav1.ObjectMeta) {
+	if j.ServiceAccountName == nil {
+		j.ServiceAccountName = ptr.To(j.ServiceAccountKey(objMeta).Name)
 	}
-	if p.Affinity != nil {
-		p.Affinity.SetDefaults(mariadbObjMeta.Name)
+	if j.Affinity != nil {
+		j.Affinity.SetDefaults(mariadbObjMeta.Name)
 	}
 }
 
 // ServiceAccountKey defines the key for the ServiceAccount object.
-func (p *JobPodTemplate) ServiceAccountKey(objMeta metav1.ObjectMeta) types.NamespacedName {
+func (j *JobPodTemplate) ServiceAccountKey(objMeta metav1.ObjectMeta) types.NamespacedName {
 	return types.NamespacedName{
-		Name:      ptr.Deref(p.ServiceAccountName, objMeta.Name),
+		Name:      ptr.Deref(j.ServiceAccountName, objMeta.Name),
 		Namespace: objMeta.Namespace,
 	}
 }

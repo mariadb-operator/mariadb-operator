@@ -154,11 +154,11 @@ func (r *Restore) IsComplete() bool {
 	return meta.IsStatusConditionTrue(r.Status.Conditions, ConditionTypeComplete)
 }
 
-func (b *Restore) SetDefaults(mariadb *MariaDB) {
-	if b.Spec.BackoffLimit == 0 {
-		b.Spec.BackoffLimit = 5
+func (r *Restore) SetDefaults(mariadb *MariaDB) {
+	if r.Spec.BackoffLimit == 0 {
+		r.Spec.BackoffLimit = 5
 	}
-	b.Spec.JobPodTemplate.SetDefaults(b.ObjectMeta, mariadb.ObjectMeta)
+	r.Spec.JobPodTemplate.SetDefaults(r.ObjectMeta, mariadb.ObjectMeta)
 }
 
 // +kubebuilder:object:root=true

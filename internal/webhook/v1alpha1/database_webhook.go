@@ -4,15 +4,13 @@ import (
 	"context"
 	"fmt"
 
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
-
-	"github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	k8sv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 )
 
 // log is for logging in this package.
@@ -20,7 +18,7 @@ var databaselog = logf.Log.WithName("database-resource")
 
 // SetupDatabaseWebhookWithManager registers the webhook for Database in the manager.
 func SetupDatabaseWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).For(&k8sv1alpha1.Database{}).
+	return ctrl.NewWebhookManagedBy(mgr).For(&mariadbv1alpha1.Database{}).
 		WithValidator(&DatabaseCustomValidator{}).
 		Complete()
 }
@@ -35,7 +33,7 @@ var _ webhook.CustomValidator = &DatabaseCustomValidator{}
 
 // ValidateCreate implements webhook.CustomValidator so a webhook will be registered for the type Database.
 func (v *DatabaseCustomValidator) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
-	database, ok := obj.(*k8sv1alpha1.Database)
+	database, ok := obj.(*mariadbv1alpha1.Database)
 	if !ok {
 		return nil, fmt.Errorf("expected a Database object but got %T", obj)
 	}
@@ -49,11 +47,11 @@ func (v *DatabaseCustomValidator) ValidateCreate(ctx context.Context, obj runtim
 
 // ValidateUpdate implements webhook.CustomValidator so a webhook will be registered for the type Database.
 func (v *DatabaseCustomValidator) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
-	database, ok := newObj.(*k8sv1alpha1.Database)
+	database, ok := newObj.(*mariadbv1alpha1.Database)
 	if !ok {
 		return nil, fmt.Errorf("expected a Database object for the newObj but got %T", newObj)
 	}
-	oldDatabase, ok := oldObj.(*k8sv1alpha1.Database)
+	oldDatabase, ok := oldObj.(*mariadbv1alpha1.Database)
 	if !ok {
 		return nil, fmt.Errorf("expected a Database object for the newObj but got %T", newObj)
 	}
@@ -73,7 +71,7 @@ func (v *DatabaseCustomValidator) ValidateDelete(ctx context.Context, obj runtim
 	return nil, nil
 }
 
-func validateDatabaseCleanupPolicy(database *v1alpha1.Database) error {
+func validateDatabaseCleanupPolicy(database *mariadbv1alpha1.Database) error {
 	if database.Spec.CleanupPolicy != nil {
 		if err := database.Spec.CleanupPolicy.Validate(); err != nil {
 			return field.Invalid(
