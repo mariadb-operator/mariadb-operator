@@ -31,23 +31,23 @@ func newAgentClientSet(mariadb *mariadbv1alpha1.MariaDB, opts ...mdbhttp.Option)
 	}, nil
 }
 
-func (a *agentClientSet) clientForIndex(index int) (*client.Client, error) {
-	if err := a.validateIndex(index); err != nil {
+func (c *agentClientSet) clientForIndex(index int) (*client.Client, error) {
+	if err := c.validateIndex(index); err != nil {
 		return nil, fmt.Errorf("invalid index. %v", err)
 	}
-	a.mux.Lock()
-	defer a.mux.Unlock()
-	if c, ok := a.clientByIndex[index]; ok {
-		return c, nil
+	c.mux.Lock()
+	defer c.mux.Unlock()
+	if client, ok := c.clientByIndex[index]; ok {
+		return client, nil
 	}
 
-	c, err := client.NewClient(baseUrl(a.mariadb, index), a.clientOpts...)
+	client, err := client.NewClient(baseUrl(c.mariadb, index), c.clientOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("error creating client: %v", err)
 	}
-	a.clientByIndex[index] = c
+	c.clientByIndex[index] = client
 
-	return c, nil
+	return client, nil
 }
 
 func (c *agentClientSet) validateIndex(index int) error {

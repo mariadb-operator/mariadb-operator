@@ -12,11 +12,9 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
 	klabels "k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -98,7 +96,7 @@ func IsStatefulSetHealthy(ctx context.Context, client ctrlclient.Client, key typ
 	return false, nil
 }
 
-func HealthyMariaDBReplica(ctx context.Context, client client.Client, mariadb *mariadbv1alpha1.MariaDB) (*int, error) {
+func HealthyMariaDBReplica(ctx context.Context, client ctrlclient.Client, mariadb *mariadbv1alpha1.MariaDB) (*int, error) {
 	if mariadb.Status.CurrentPrimaryPodIndex == nil {
 		return nil, errors.New("'status.currentPrimaryPodIndex' must be set")
 	}
@@ -131,7 +129,7 @@ func HealthyMariaDBReplica(ctx context.Context, client client.Client, mariadb *m
 	return nil, ErrNoHealthyInstancesAvailable
 }
 
-func HealthyMaxScalePod(ctx context.Context, client client.Client, maxscale *mariadbv1alpha1.MaxScale) (*int, error) {
+func HealthyMaxScalePod(ctx context.Context, client ctrlclient.Client, maxscale *mariadbv1alpha1.MaxScale) (*int, error) {
 	podList := corev1.PodList{}
 	listOpts := &ctrlclient.ListOptions{
 		LabelSelector: klabels.SelectorFromSet(
@@ -158,8 +156,8 @@ func HealthyMaxScalePod(ctx context.Context, client client.Client, maxscale *mar
 	return nil, ErrNoHealthyInstancesAvailable
 }
 
-func IsServiceHealthy(ctx context.Context, client client.Client, serviceKey types.NamespacedName) (bool, error) {
-	var endpoints v1.Endpoints
+func IsServiceHealthy(ctx context.Context, client ctrlclient.Client, serviceKey types.NamespacedName) (bool, error) {
+	var endpoints corev1.Endpoints
 	err := client.Get(ctx, serviceKey, &endpoints)
 	if err != nil {
 		return false, err

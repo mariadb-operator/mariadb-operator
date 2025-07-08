@@ -149,14 +149,14 @@ func (b *Bootstrap) GetSeqno() int {
 	return b.Seqno
 }
 
-func (g *Bootstrap) Compare(other GaleraRecoverer) int {
+func (b *Bootstrap) Compare(other GaleraRecoverer) int {
 	if other == nil {
 		return 1
 	}
-	if g.GetSeqno() < other.GetSeqno() {
+	if b.GetSeqno() < other.GetSeqno() {
 		return -1
 	}
-	if g.GetSeqno() > other.GetSeqno() {
+	if b.GetSeqno() > other.GetSeqno() {
 		return 1
 	}
 	return 0
@@ -169,7 +169,7 @@ func (b *Bootstrap) Validate() error {
 	return nil
 }
 
-func (r *Bootstrap) Unmarshal(text []byte) error {
+func (b *Bootstrap) Unmarshal(text []byte) error {
 	fileScanner := bufio.NewScanner(bytes.NewReader(text))
 	fileScanner.Split(bufio.ScanLines)
 
@@ -203,8 +203,8 @@ func (r *Bootstrap) Unmarshal(text []byte) error {
 			uuid, seqno,
 		)
 	}
-	r.UUID = *uuid
-	r.Seqno = *seqno
+	b.UUID = *uuid
+	b.Seqno = *seqno
 	return nil
 }
 

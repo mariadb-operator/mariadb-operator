@@ -7,12 +7,11 @@ import (
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	sqlClient "github.com/mariadb-operator/mariadb-operator/pkg/sql"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 type Resource interface {
-	v1.Object
+	metav1.Object
 	MariaDBRef() *mariadbv1alpha1.MariaDBRef
 	IsBeingDeleted() bool
 	RequeueInterval() *metav1.Duration

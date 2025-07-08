@@ -143,7 +143,7 @@ func NewBackupCommand(userOpts ...BackupOpt) (*BackupCommand, error) {
 	if opts.MaxRetentionDuration == 0 {
 		opts.MaxRetentionDuration = 30 * 24 * time.Hour
 	}
-	if opts.TargetTime == (time.Time{}) {
+	if opts.TargetTime.Equal(time.Time{}) {
 		opts.TargetTime = time.Now()
 	}
 	if !opts.OmitCredentials {

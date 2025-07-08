@@ -6,7 +6,6 @@ import (
 	"github.com/go-logr/logr"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/discovery"
 	discoverypkg "k8s.io/client-go/discovery"
 	fakeDiscovery "k8s.io/client-go/discovery/fake"
 	fakeClient "k8s.io/client-go/kubernetes/fake"
@@ -14,12 +13,12 @@ import (
 )
 
 type Discovery struct {
-	client discovery.DiscoveryInterface
+	client discoverypkg.DiscoveryInterface
 }
 
 type DiscoveryOpt func(*Discovery)
 
-func WithClient(client discovery.DiscoveryInterface) DiscoveryOpt {
+func WithClient(client discoverypkg.DiscoveryInterface) DiscoveryOpt {
 	return func(d *Discovery) {
 		d.client = client
 	}

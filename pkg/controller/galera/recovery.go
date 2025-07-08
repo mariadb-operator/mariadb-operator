@@ -33,7 +33,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -317,7 +316,7 @@ func (r *GaleraReconciler) recoverGaleraState(ctx context.Context, mariadb *mari
 	galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
 	recovery := ptr.Deref(galera.Recovery, mariadbv1alpha1.GaleraRecovery{})
 
-	stsKey := client.ObjectKeyFromObject(mariadb)
+	stsKey := ctrlclient.ObjectKeyFromObject(mariadb)
 
 	logger.Info("Downscaling cluster")
 	downscaleTimeout := ptr.Deref(recovery.ClusterDownscaleTimeout, metav1.Duration{Duration: 5 * time.Minute}).Duration
@@ -362,7 +361,7 @@ func (r *GaleraReconciler) recoverGaleraState(ctx context.Context, mariadb *mari
 				if err := r.Delete(
 					ctx,
 					recoveryJob,
-					&client.DeleteOptions{PropagationPolicy: ptr.To(metav1.DeletePropagationBackground)},
+					&ctrlclient.DeleteOptions{PropagationPolicy: ptr.To(metav1.DeletePropagationBackground)},
 				); err != nil {
 					recoveryLogger.Error(err, "Error deleting recovery Job")
 				}
@@ -471,7 +470,7 @@ func (r *GaleraReconciler) patchStatefulSetReplicas(ctx context.Context, key typ
 		return fmt.Errorf("error getting StatefulSet: %v", err)
 	}
 
-	patch := client.MergeFrom(sts.DeepCopy())
+	patch := ctrlclient.MergeFrom(sts.DeepCopy())
 	sts.Spec.Replicas = ptr.To(replicas)
 	if err := r.Patch(ctx, &sts, patch); err != nil {
 		return fmt.Errorf("error patching StatefulSet: %v", err)
@@ -601,7 +600,7 @@ func (r *GaleraReconciler) getJobLogs(ctx context.Context, key types.NamespacedN
 
 	podList := &corev1.PodList{}
 	labelSelector := klabels.SelectorFromSet(job.Spec.Selector.MatchLabels)
-	listOptions := &client.ListOptions{
+	listOptions := &ctrlclient.ListOptions{
 		Namespace:     job.Namespace,
 		LabelSelector: labelSelector,
 	}

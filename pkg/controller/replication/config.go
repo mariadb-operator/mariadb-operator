@@ -11,7 +11,6 @@ import (
 	env "github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	"github.com/mariadb-operator/mariadb-operator/pkg/sql"
-	sqlClient "github.com/mariadb-operator/mariadb-operator/pkg/sql"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	"github.com/mariadb-operator/mariadb-operator/pkg/version"
 	"k8s.io/apimachinery/pkg/types"
@@ -43,7 +42,7 @@ func NewReplicationConfig(client client.Client, builder *builder.Builder, secret
 	}
 }
 
-func (r *ReplicationConfig) ConfigurePrimary(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *sqlClient.Client,
+func (r *ReplicationConfig) ConfigurePrimary(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *sql.Client,
 	podIndex int) error {
 	if err := client.StopAllSlaves(ctx); err != nil {
 		return fmt.Errorf("error stopping slaves: %v", err)
@@ -66,7 +65,7 @@ func (r *ReplicationConfig) ConfigurePrimary(ctx context.Context, mariadb *maria
 	return nil
 }
 
-func (r *ReplicationConfig) ConfigureReplica(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *sqlClient.Client,
+func (r *ReplicationConfig) ConfigureReplica(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *sql.Client,
 	replicaPodIndex, primaryPodIndex int, resetSlavePos bool) error {
 	if err := client.ResetMaster(ctx); err != nil {
 		return fmt.Errorf("error resetting master: %v", err)
@@ -94,7 +93,7 @@ func (r *ReplicationConfig) ConfigureReplica(ctx context.Context, mariadb *maria
 	return nil
 }
 
-func (r *ReplicationConfig) configurePrimaryVars(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *sqlClient.Client,
+func (r *ReplicationConfig) configurePrimaryVars(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *sql.Client,
 	primaryPodIndex int) error {
 	kv := map[string]string{
 		"sync_binlog":                  binaryFromBool(mariadb.Replication().SyncBinlog),
@@ -119,7 +118,7 @@ func (r *ReplicationConfig) configurePrimaryVars(ctx context.Context, mariadb *m
 }
 
 func (r *ReplicationConfig) configureReplicaVars(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	client *sqlClient.Client, ordinal int) error {
+	client *sql.Client, ordinal int) error {
 	kv := map[string]string{
 		"sync_binlog":                  binaryFromBool(mariadb.Replication().SyncBinlog),
 		"rpl_semi_sync_master_enabled": "OFF",
@@ -132,7 +131,7 @@ func (r *ReplicationConfig) configureReplicaVars(ctx context.Context, mariadb *m
 	return nil
 }
 
-func (r *ReplicationConfig) changeMaster(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *sqlClient.Client,
+func (r *ReplicationConfig) changeMaster(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *sql.Client,
 	primaryPodIndex int) error {
 	replPasswordRef := newReplPasswordRef(mariadb)
 
@@ -216,7 +215,7 @@ func (r *ReplicationConfig) getChangeMasterHost(ctx context.Context, mariadb *ma
 	), nil
 }
 
-func (r *ReplicationConfig) reconcilePrimarySql(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *sqlClient.Client) error {
+func (r *ReplicationConfig) reconcilePrimarySql(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *sql.Client) error {
 	opts := userSqlOpts{
 		username:   replUser,
 		host:       replUserHost,
@@ -234,7 +233,7 @@ type userSqlOpts struct {
 	privileges []string
 }
 
-func (r *ReplicationConfig) reconcileUserSql(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *sqlClient.Client,
+func (r *ReplicationConfig) reconcileUserSql(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *sql.Client,
 	opts *userSqlOpts) error {
 	replPasswordRef := newReplPasswordRef(mariadb)
 	var replPassword string
@@ -260,11 +259,11 @@ func (r *ReplicationConfig) reconcileUserSql(ctx context.Context, mariadb *maria
 		return fmt.Errorf("error checking if replication user exists: %v", err)
 	}
 	if exists {
-		if err := client.AlterUser(ctx, accountName, sqlClient.WithIdentifiedBy(replPassword)); err != nil {
+		if err := client.AlterUser(ctx, accountName, sql.WithIdentifiedBy(replPassword)); err != nil {
 			return fmt.Errorf("error altering replication user: %v", err)
 		}
 	} else {
-		if err := client.CreateUser(ctx, accountName, sqlClient.WithIdentifiedBy(replPassword)); err != nil {
+		if err := client.CreateUser(ctx, accountName, sql.WithIdentifiedBy(replPassword)); err != nil {
 			return fmt.Errorf("error creating replication user: %v", err)
 		}
 	}
