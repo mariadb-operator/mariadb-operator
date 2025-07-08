@@ -39,8 +39,8 @@ func (g *Galera) GetState(ctx context.Context) (*recovery.GaleraState, error) {
 	return &galeraState, nil
 }
 
-func (b *Galera) IsBootstrapEnabled(ctx context.Context) (bool, error) {
-	res, err := b.client.Get(ctx, "/api/galera/bootstrap", nil)
+func (g *Galera) IsBootstrapEnabled(ctx context.Context) (bool, error) {
+	res, err := g.client.Get(ctx, "/api/galera/bootstrap", nil)
 	if err != nil {
 		return false, err
 	}
@@ -53,16 +53,16 @@ func (b *Galera) IsBootstrapEnabled(ctx context.Context) (bool, error) {
 	return false, handleResponse(res, nil)
 }
 
-func (b *Galera) EnableBootstrap(ctx context.Context, bootstrap *recovery.Bootstrap) error {
-	res, err := b.client.Put(ctx, "/api/galera/bootstrap", bootstrap, nil)
+func (g *Galera) EnableBootstrap(ctx context.Context, bootstrap *recovery.Bootstrap) error {
+	res, err := g.client.Put(ctx, "/api/galera/bootstrap", bootstrap, nil)
 	if err != nil {
 		return err
 	}
 	return handleResponse(res, nil)
 }
 
-func (b *Galera) DisableBootstrap(ctx context.Context) error {
-	res, err := b.client.Delete(ctx, "/api/galera/bootstrap", nil, nil)
+func (g *Galera) DisableBootstrap(ctx context.Context) error {
+	res, err := g.client.Delete(ctx, "/api/galera/bootstrap", nil, nil)
 	if err != nil {
 		return err
 	}

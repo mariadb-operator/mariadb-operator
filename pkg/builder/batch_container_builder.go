@@ -7,11 +7,10 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
 	"github.com/mariadb-operator/mariadb-operator/pkg/pki"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
 	"k8s.io/utils/ptr"
 )
 
-func (b *Builder) jobContainer(name string, cmd *cmd.Command, image string, volumeMounts []corev1.VolumeMount, env []v1.EnvVar,
+func (b *Builder) jobContainer(name string, cmd *cmd.Command, image string, volumeMounts []corev1.VolumeMount, env []corev1.EnvVar,
 	resources *corev1.ResourceRequirements, mariadb *mariadbv1alpha1.MariaDB,
 	securityContext *mariadbv1alpha1.SecurityContext) (*corev1.Container, error) {
 	sc, err := b.buildContainerSecurityContext(securityContext)
@@ -35,14 +34,14 @@ func (b *Builder) jobContainer(name string, cmd *cmd.Command, image string, volu
 	return &container, nil
 }
 
-func (b *Builder) jobMariadbOperatorContainer(cmd *cmd.Command, volumeMounts []corev1.VolumeMount, envVar []v1.EnvVar,
+func (b *Builder) jobMariadbOperatorContainer(cmd *cmd.Command, volumeMounts []corev1.VolumeMount, envVar []corev1.EnvVar,
 	resources *corev1.ResourceRequirements, mariadb *mariadbv1alpha1.MariaDB, env *environment.OperatorEnv,
 	securityContext *mariadbv1alpha1.SecurityContext) (*corev1.Container, error) {
 
 	return b.jobContainer("mariadb-operator", cmd, env.MariadbOperatorImage, volumeMounts, envVar, resources, mariadb, securityContext)
 }
 
-func (b *Builder) jobMariadbContainer(cmd *cmd.Command, volumeMounts []corev1.VolumeMount, envVar []v1.EnvVar,
+func (b *Builder) jobMariadbContainer(cmd *cmd.Command, volumeMounts []corev1.VolumeMount, envVar []corev1.EnvVar,
 	resources *corev1.ResourceRequirements, mariadb *mariadbv1alpha1.MariaDB,
 	securityContext *mariadbv1alpha1.SecurityContext) (*corev1.Container, error) {
 
@@ -68,12 +67,12 @@ func jobBatchStorageVolume(storageVolume mariadbv1alpha1.StorageVolumeSource,
 		volumes = append(volumes, corev1.Volume{
 			Name: batchS3PKI,
 			VolumeSource: corev1.VolumeSource{
-				Secret: &v1.SecretVolumeSource{
+				Secret: &corev1.SecretVolumeSource{
 					SecretName: s3.TLS.CASecretKeyRef.Name,
 				},
 			},
 		})
-		volumeMounts = append(volumeMounts, v1.VolumeMount{
+		volumeMounts = append(volumeMounts, corev1.VolumeMount{
 			Name:      batchS3PKI,
 			MountPath: batchS3PKIMountPath,
 		})
@@ -106,46 +105,46 @@ func jobPhysicalBackupVolumes(storageVolume mariadbv1alpha1.StorageVolumeSource,
 	return volumes, volumeMounts
 }
 
-func jobEnv(mariadb *mariadbv1alpha1.MariaDB) []v1.EnvVar {
-	return []v1.EnvVar{
+func jobEnv(mariadb *mariadbv1alpha1.MariaDB) []corev1.EnvVar {
+	return []corev1.EnvVar{
 		{
 			Name:  batchUserEnv,
 			Value: "root",
 		},
 		{
 			Name: batchPasswordEnv,
-			ValueFrom: &v1.EnvVarSource{
+			ValueFrom: &corev1.EnvVarSource{
 				SecretKeyRef: ptr.To(mariadb.Spec.RootPasswordSecretKeyRef.SecretKeySelector.ToKubernetesType()),
 			},
 		},
 	}
 }
 
-func jobS3Env(s3 *mariadbv1alpha1.S3) []v1.EnvVar {
+func jobS3Env(s3 *mariadbv1alpha1.S3) []corev1.EnvVar {
 	if s3 == nil {
 		return nil
 	}
-	var env []v1.EnvVar
+	var env []corev1.EnvVar
 	if s3.AccessKeyIdSecretKeyRef != nil {
-		env = append(env, v1.EnvVar{
+		env = append(env, corev1.EnvVar{
 			Name: batchS3AccessKeyId,
-			ValueFrom: &v1.EnvVarSource{
+			ValueFrom: &corev1.EnvVarSource{
 				SecretKeyRef: ptr.To(s3.AccessKeyIdSecretKeyRef.ToKubernetesType()),
 			},
 		})
 	}
 	if s3.AccessKeyIdSecretKeyRef != nil {
-		env = append(env, v1.EnvVar{
+		env = append(env, corev1.EnvVar{
 			Name: batchS3SecretAccessKey,
-			ValueFrom: &v1.EnvVarSource{
+			ValueFrom: &corev1.EnvVarSource{
 				SecretKeyRef: ptr.To(s3.SecretAccessKeySecretKeyRef.ToKubernetesType()),
 			},
 		})
 	}
 	if s3.SessionTokenSecretKeyRef != nil {
-		env = append(env, v1.EnvVar{
+		env = append(env, corev1.EnvVar{
 			Name: batchS3SessionTokenKey,
-			ValueFrom: &v1.EnvVarSource{
+			ValueFrom: &corev1.EnvVarSource{
 				SecretKeyRef: ptr.To(s3.SessionTokenSecretKeyRef.ToKubernetesType()),
 			},
 		})
@@ -241,15 +240,15 @@ func sqlJobvolumes(sqlJob *mariadbv1alpha1.SqlJob, mariadb *mariadbv1alpha1.Mari
 	return volumes, volumeMounts
 }
 
-func sqlJobEnv(sqlJob *mariadbv1alpha1.SqlJob) []v1.EnvVar {
-	return []v1.EnvVar{
+func sqlJobEnv(sqlJob *mariadbv1alpha1.SqlJob) []corev1.EnvVar {
+	return []corev1.EnvVar{
 		{
 			Name:  batchUserEnv,
 			Value: sqlJob.Spec.Username,
 		},
 		{
 			Name: batchPasswordEnv,
-			ValueFrom: &v1.EnvVarSource{
+			ValueFrom: &corev1.EnvVarSource{
 				SecretKeyRef: ptr.To(sqlJob.Spec.PasswordSecretKeyRef.ToKubernetesType()),
 			},
 		},

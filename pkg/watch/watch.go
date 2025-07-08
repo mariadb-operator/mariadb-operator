@@ -10,7 +10,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -18,8 +17,8 @@ import (
 )
 
 type Indexer interface {
-	client.Object
-	IndexerFuncForFieldPath(fieldPath string) (client.IndexerFunc, error)
+	ctrlclient.Object
+	IndexerFuncForFieldPath(fieldPath string) (ctrlclient.IndexerFunc, error)
 }
 
 type ItemLister interface {
@@ -46,7 +45,7 @@ func NewWatcherIndexer(mgr ctrl.Manager, builder *builder.Builder, client ctrlcl
 	}
 }
 
-func (i *WatcherIndexer) Watch(ctx context.Context, obj client.Object, indexer Indexer, indexerList ItemLister,
+func (i *WatcherIndexer) Watch(ctx context.Context, obj ctrlclient.Object, indexer Indexer, indexerList ItemLister,
 	indexerFieldPath string, opts ...builder.WatchesOption) error {
 
 	logger := log.FromContext(ctx).
@@ -104,7 +103,7 @@ func (i *WatcherIndexer) mapWatchedObjectToRequests(ctx context.Context, obj ctr
 	return requests
 }
 
-func getKind(obj client.Object) string {
+func getKind(obj ctrlclient.Object) string {
 	kind := obj.GetObjectKind().GroupVersionKind().Kind
 	if kind != "" {
 		return kind

@@ -390,9 +390,9 @@ func (b *BootstrapFrom) SetDefaultsWithVolumeSnapshotRef(ref *LocalObjectReferen
 	b.VolumeSnapshotRef = ref
 }
 
-func (r *BootstrapFrom) TargetRecoveryTimeOrDefault() time.Time {
-	if r.TargetRecoveryTime != nil {
-		return r.TargetRecoveryTime.Time
+func (b *BootstrapFrom) TargetRecoveryTimeOrDefault() time.Time {
+	if b.TargetRecoveryTime != nil {
+		return b.TargetRecoveryTime.Time
 	}
 	return time.Now()
 }

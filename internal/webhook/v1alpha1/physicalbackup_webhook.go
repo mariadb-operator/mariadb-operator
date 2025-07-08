@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -49,7 +48,7 @@ func (v *PhysicalBackupCustomValidator) ValidateUpdate(ctx context.Context, oldO
 	if !ok {
 		return nil, fmt.Errorf("expected a PhysicalBackup object for the newObj but got %T", newObj)
 	}
-	oldPhysicalBackup, ok := oldObj.(*v1alpha1.PhysicalBackup)
+	oldPhysicalBackup, ok := oldObj.(*mariadbv1alpha1.PhysicalBackup)
 	if !ok {
 		return nil, fmt.Errorf("expected a PhysicalBackup object for the newObj but got %T", newObj)
 	}
