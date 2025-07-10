@@ -23,7 +23,7 @@ import (
 )
 
 var (
-	ErrDeferAutomaticFailover = errors.New("deferring automatic failover")
+	ErrDelayAutomaticFailover = errors.New("delaying automatic failover")
 )
 
 // PodReplicationController reconciles a Pod object
@@ -101,13 +101,14 @@ func (r *PodReplicationController) ReconcilePodNotReady(ctx context.Context, pod
 		}
 	}
 
-	automaticFailoverDeferral := mariadb.GetAutomaticFailoverDeferral()
-	if automaticFailoverDeferral > 0 {
-		failoverTime := mariadb.Status.CurrentPrimaryFailingSince.Add(automaticFailoverDeferral)
+	automaticFailoverDelay := mariadb.GetAutomaticFailoverDelay()
+	if automaticFailoverDelay > 0 {
+		failoverTime := mariadb.Status.CurrentPrimaryFailingSince.Add(automaticFailoverDelay)
 		if failoverTime.After(now) {
-			// To defer automatic failover we must abort and requeue later.
+			// To delay automatic failover we must abort and requeue later.
+			// When the 'PodController' controller receives the 'ErrDelayAutomaticFailover' error, it requeues without error.
 			// See: https://github.com/mariadb-operator/mariadb-operator/pull/1287
-			return ErrDeferAutomaticFailover
+			return ErrDelayAutomaticFailover
 		}
 	}
 

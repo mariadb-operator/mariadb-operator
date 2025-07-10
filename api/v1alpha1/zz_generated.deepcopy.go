@@ -3605,8 +3605,8 @@ func (in *PrimaryReplication) DeepCopyInto(out *PrimaryReplication) {
 		*out = new(bool)
 		**out = **in
 	}
-	if in.AutomaticFailoverDeferral != nil {
-		in, out := &in.AutomaticFailoverDeferral, &out.AutomaticFailoverDeferral
+	if in.AutomaticFailoverDelay != nil {
+		in, out := &in.AutomaticFailoverDelay, &out.AutomaticFailoverDelay
 		*out = new(v1.Duration)
 		**out = **in
 	}
