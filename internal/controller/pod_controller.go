@@ -65,8 +65,8 @@ func (r *PodController) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 		}
 	} else {
 		if err := r.podReadinessController.ReconcilePodNotReady(ctx, pod, mariadb); err != nil {
-			if errors.Is(err, ErrDeferAutomaticFailover) {
-				log.FromContext(ctx).V(1).Info("Defer reconciling Pod in non Ready state", "pod", pod.Name)
+			if errors.Is(err, ErrDelayAutomaticFailover) {
+				log.FromContext(ctx).V(1).Info("Delaying primary switchover. Skipping reconciliation of Pod in non Ready state", "pod", pod.Name)
 				return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 			}
 			log.FromContext(ctx).V(1).Info("Error reconciling Pod in non Ready state", "pod", pod.Name)
