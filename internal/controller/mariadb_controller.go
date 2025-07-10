@@ -721,7 +721,9 @@ func (r *MariaDBReconciler) reconcileSecondaryService(ctx context.Context, maria
 	if err := r.ServiceReconciler.Reconcile(ctx, desiredSvc); err != nil {
 		return ctrl.Result{}, err
 	}
-	return r.EndpointsReconciler.Reconcile(ctx, mariadb.SecondaryServiceKey(), mariadb)
+
+	secondaryServiceKey := mariadb.SecondaryServiceKey()
+	return r.EndpointsReconciler.Reconcile(ctx, secondaryServiceKey, mariadb, secondaryServiceKey.Name)
 }
 
 func (r *MariaDBReconciler) reconcileSQL(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
