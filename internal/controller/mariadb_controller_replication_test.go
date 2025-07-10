@@ -8,6 +8,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	discoveryv1 "k8s.io/api/discovery/v1"
 	policyv1 "k8s.io/api/policy/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -201,10 +202,13 @@ var _ = Describe("MariaDB replication", Ordered, func() {
 		}, testTimeout, testInterval).Should(BeTrue())
 
 		By("Expecting to create secondary Endpoints")
-		var endpoints corev1.Endpoints
-		Expect(k8sClient.Get(testCtx, mdb.SecondaryServiceKey(), &endpoints)).To(Succeed())
-		Expect(endpoints.Subsets).To(HaveLen(1))
-		Expect(endpoints.Subsets[0].Addresses).To(HaveLen(int(mdb.Spec.Replicas) - 1))
+		var endpointSlice discoveryv1.EndpointSlice
+		Expect(k8sClient.Get(testCtx, mdb.SecondaryServiceKey(), &endpointSlice)).To(Succeed())
+		Expect(endpointSlice.Ports).To(HaveLen(1))
+		Expect(endpointSlice.Ports[0].Port).ToNot(BeNil())
+		Expect(*endpointSlice.Ports[0].Port).ToNot(Equal(mdb.Spec.Port))
+		Expect(endpointSlice.Endpoints).To(HaveLen(1))
+		Expect(endpointSlice.Endpoints[0].Addresses).To(HaveLen(int(mdb.Spec.Replicas) - 1))
 
 		By("Expecting to create a PodDisruptionBudget")
 		var pdb policyv1.PodDisruptionBudget

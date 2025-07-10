@@ -12,6 +12,7 @@ import (
 	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	discoveryv1 "k8s.io/api/discovery/v1"
 	policyv1 "k8s.io/api/policy/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -274,11 +275,14 @@ var _ = Describe("MariaDB Galera lifecycle", Ordered, func() {
 			return conn.IsReady()
 		}, testTimeout, testInterval).Should(BeTrue())
 
-		By("Expecting to create secondary Endpoints")
-		var endpoints corev1.Endpoints
-		Expect(k8sClient.Get(testCtx, mdb.SecondaryServiceKey(), &endpoints)).To(Succeed())
-		Expect(endpoints.Subsets).To(HaveLen(1))
-		Expect(endpoints.Subsets[0].Addresses).To(HaveLen(int(mdb.Spec.Replicas) - 1))
+		By("Expecting to create secondary EndpointSlice")
+		var endpointSlice discoveryv1.EndpointSlice
+		Expect(k8sClient.Get(testCtx, mdb.SecondaryServiceKey(), &endpointSlice)).To(Succeed())
+		Expect(endpointSlice.Ports).To(HaveLen(1))
+		Expect(endpointSlice.Ports[0].Port).ToNot(BeNil())
+		Expect(*endpointSlice.Ports[0].Port).ToNot(Equal(mdb.Spec.Port))
+		Expect(endpointSlice.Endpoints).To(HaveLen(1))
+		Expect(endpointSlice.Endpoints[0].Addresses).To(HaveLen(int(mdb.Spec.Replicas) - 1))
 
 		By("Expecting to create a PodDisruptionBudget")
 		var pdb policyv1.PodDisruptionBudget

@@ -4,7 +4,8 @@ import (
 	"testing"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	corev1 "k8s.io/api/core/v1"
+	discoveryv1 "k8s.io/api/discovery/v1"
+
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -13,7 +14,10 @@ func TestEndpointsMeta(t *testing.T) {
 	key := types.NamespacedName{
 		Name: "endpoints",
 	}
-	subsets := []corev1.EndpointSubset{}
+	addressType := discoveryv1.AddressTypeIPv4
+	endpoints := []discoveryv1.Endpoint{}
+	ports := []discoveryv1.EndpointPort{}
+	serviceName := "test"
 	tests := []struct {
 		name     string
 		mariadb  *mariadbv1alpha1.MariaDB
@@ -23,7 +27,9 @@ func TestEndpointsMeta(t *testing.T) {
 			name:    "no meta",
 			mariadb: &mariadbv1alpha1.MariaDB{},
 			wantMeta: &mariadbv1alpha1.Metadata{
-				Labels:      map[string]string{},
+				Labels: map[string]string{
+					"kubernetes.io/service-name": serviceName,
+				},
 				Annotations: map[string]string{},
 			},
 		},
@@ -43,7 +49,8 @@ func TestEndpointsMeta(t *testing.T) {
 			},
 			wantMeta: &mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
-					"database.myorg.io": "mariadb",
+					"kubernetes.io/service-name": serviceName,
+					"database.myorg.io":          "mariadb",
 				},
 				Annotations: map[string]string{
 					"database.myorg.io": "mariadb",
@@ -54,7 +61,7 @@ func TestEndpointsMeta(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			endpoints, err := builder.BuildEndpoints(key, tt.mariadb, subsets)
+			endpoints, err := builder.BuildEndpointSlice(key, tt.mariadb, addressType, endpoints, ports, serviceName)
 			if err != nil {
 				t.Fatalf("unexpected error building Endpoints: %v", err)
 			}
