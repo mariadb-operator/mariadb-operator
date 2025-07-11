@@ -2,7 +2,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.17.2
+    controller-gen.kubebuilder.io/version: v0.18.0
   name: backups.k8s.mariadb.com
 spec:
   group: k8s.mariadb.com
@@ -1115,7 +1115,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.17.2
+    controller-gen.kubebuilder.io/version: v0.18.0
   name: connections.k8s.mariadb.com
 spec:
   group: k8s.mariadb.com
@@ -1366,7 +1366,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.17.2
+    controller-gen.kubebuilder.io/version: v0.18.0
   name: databases.k8s.mariadb.com
 spec:
   group: k8s.mariadb.com
@@ -1540,7 +1540,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.17.2
+    controller-gen.kubebuilder.io/version: v0.18.0
   name: grants.k8s.mariadb.com
 spec:
   group: k8s.mariadb.com
@@ -1731,7 +1731,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.17.2
+    controller-gen.kubebuilder.io/version: v0.18.0
   name: mariadbs.k8s.mariadb.com
 spec:
   group: k8s.mariadb.com
@@ -6559,6 +6559,11 @@ spec:
                           should automatically update PodIndex to perform an automatic
                           primary failover.
                         type: boolean
+                      automaticFailoverDelay:
+                        description: AutomaticFailoverDelay indicates the duration
+                          before performing an automatic primary failover. By default,
+                          no extra delay is added.
+                        type: string
                       podIndex:
                         description: PodIndex is the StatefulSet index of the primary
                           node. The user may change this field to perform a manual
@@ -7697,6 +7702,11 @@ spec:
               currentPrimary:
                 description: CurrentPrimary is the primary Pod.
                 type: string
+              currentPrimaryFailingSince:
+                description: CurrentPrimaryFailingSince is the timestamp of the moment
+                  when the primary became not ready.
+                format: date-time
+                type: string
               currentPrimaryPodIndex:
                 description: CurrentPrimaryPodIndex is the primary Pod index.
                 type: integer
@@ -7863,7 +7873,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.17.2
+    controller-gen.kubebuilder.io/version: v0.18.0
   name: maxscales.k8s.mariadb.com
 spec:
   group: k8s.mariadb.com
@@ -10409,7 +10419,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.17.2
+    controller-gen.kubebuilder.io/version: v0.18.0
   name: physicalbackups.k8s.mariadb.com
 spec:
   group: k8s.mariadb.com
@@ -11320,7 +11330,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.17.2
+    controller-gen.kubebuilder.io/version: v0.18.0
   name: restores.k8s.mariadb.com
 spec:
   group: k8s.mariadb.com
@@ -12304,7 +12314,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.17.2
+    controller-gen.kubebuilder.io/version: v0.18.0
   name: sqljobs.k8s.mariadb.com
 spec:
   group: k8s.mariadb.com
@@ -13033,7 +13043,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.17.2
+    controller-gen.kubebuilder.io/version: v0.18.0
   name: users.k8s.mariadb.com
 spec:
   group: k8s.mariadb.com
