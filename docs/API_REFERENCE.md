@@ -8,9 +8,7 @@
 
 Package v1alpha1 contains API Schema definitions for the v1alpha1 API group
 
-nolint:lll
 
-nolint:lll
 
 ### Resource Types
 - [Backup](#backup)
@@ -30,7 +28,7 @@ nolint:lll
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#affinity-v1-core.
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#affinity-v1-core.
 
 
 
@@ -230,7 +228,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#csivolumesource-v1-core.
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#csivolumesource-v1-core.
 
 
 
@@ -291,7 +289,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#configmapkeyselector-v1-core.
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#configmapkeyselector-v1-core.
 
 
 
@@ -310,7 +308,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#configmapvolumesource-v1-core.
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#configmapvolumesource-v1-core.
 
 
 
@@ -527,7 +525,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#emptydirvolumesource-v1-core.
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#emptydirvolumesource-v1-core.
 
 
 
@@ -546,7 +544,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#envfromsource-v1-core.
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#envfromsource-v1-core.
 
 
 
@@ -568,7 +566,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#envvarsource-v1-core.
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#envvarsource-v1-core.
 
 
 
@@ -591,7 +589,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#envvarsource-v1-core.
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#envvarsource-v1-core.
 
 
 
@@ -609,7 +607,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#execaction-v1-core.
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#execaction-v1-core.
 
 
 
@@ -934,7 +932,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#httpgetaction-v1-core.
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#httpgetaction-v1-core.
 
 
 
@@ -972,7 +970,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#hostpathvolumesource-v1-core
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#hostpathvolumesource-v1-core
 
 
 
@@ -1076,7 +1074,7 @@ _Appears in:_
 
 _Underlying type:_ _[struct{MatchLabels map[string]string "json:\"matchLabels,omitempty\""; MatchExpressions []LabelSelectorRequirement "json:\"matchExpressions,omitempty\""}](#struct{matchlabels-map[string]string-"json:\"matchlabels,omitempty\"";-matchexpressions-[]labelselectorrequirement-"json:\"matchexpressions,omitempty\""})_
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#labelselector-v1-meta
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#labelselector-v1-meta
 
 
 
@@ -1091,7 +1089,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#localobjectreference-v1-core.
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#localobjectreference-v1-core.
 
 
 
@@ -1662,7 +1660,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#nfsvolumesource-v1-core.
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nfsvolumesource-v1-core.
 
 
 
@@ -1682,7 +1680,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#nodeaffinity-v1-core
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeaffinity-v1-core
 
 
 
@@ -1700,7 +1698,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#nodeselector-v1-core
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeselector-v1-core
 
 
 
@@ -1718,7 +1716,7 @@ _Appears in:_
 
 _Underlying type:_ _[struct{MatchExpressions []NodeSelectorRequirement "json:\"matchExpressions,omitempty\""; MatchFields []NodeSelectorRequirement "json:\"matchFields,omitempty\""}](#struct{matchexpressions-[]nodeselectorrequirement-"json:\"matchexpressions,omitempty\"";-matchfields-[]nodeselectorrequirement-"json:\"matchfields,omitempty\""})_
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#nodeselectorterm-v1-core
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeselectorterm-v1-core
 
 
 
@@ -1732,7 +1730,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#objectfieldselector-v1-core.
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#objectfieldselector-v1-core.
 
 
 
@@ -1749,7 +1747,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#objectreference-v1-core.
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#objectreference-v1-core.
 
 
 
@@ -1786,7 +1784,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#persistentvolumeclaimspec-v1-core.
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#persistentvolumeclaimspec-v1-core.
 
 
 
@@ -1808,7 +1806,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#persistentvolumeclaimvolumesource-v1-core.
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#persistentvolumeclaimvolumesource-v1-core.
 
 
 
@@ -1956,7 +1954,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#podaffinityterm-v1-core.
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#podaffinityterm-v1-core.
 
 
 
@@ -1974,7 +1972,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#podantiaffinity-v1-core.
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#podantiaffinity-v1-core.
 
 
 
@@ -2011,7 +2009,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#podsecuritycontext-v1-core
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#podsecuritycontext-v1-core
 
 
 
@@ -2072,7 +2070,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#preferredschedulingterm-v1-core
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#preferredschedulingterm-v1-core
 
 
 
@@ -2126,7 +2124,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#probe-v1-core.
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#probe-v1-core.
 
 
 
@@ -2153,7 +2151,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#probe-v1-core.
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#probe-v1-core.
 
 
 
@@ -2234,7 +2232,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#resourcerequirements-v1-core.
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#resourcerequirements-v1-core.
 
 
 
@@ -2421,7 +2419,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#secretkeyselector-v1-core.
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#secretkeyselector-v1-core.
 
 
 
@@ -2470,7 +2468,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#secretvolumesource-v1-core.
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#secretvolumesource-v1-core.
 
 
 
@@ -2488,7 +2486,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#securitycontext-v1-core.
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#securitycontext-v1-core.
 
 
 
@@ -2540,7 +2538,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#serviceport-v1-core
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#serviceport-v1-core
 
 
 
@@ -2679,7 +2677,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#volume-v1-core.
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#volume-v1-core.
 
 
 
@@ -2726,7 +2724,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#tcpsocketaction-v1-core.
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#tcpsocketaction-v1-core.
 
 
 
@@ -2804,7 +2802,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#topologyspreadconstraint-v1-core.
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#topologyspreadconstraint-v1-core.
 
 
 
@@ -2928,7 +2926,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#volume-v1-core.
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#volume-v1-core.
 
 
 
@@ -2974,7 +2972,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#volumemount-v1-core.
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#volumemount-v1-core.
 
 
 
@@ -2998,7 +2996,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#volume-v1-core.
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#volume-v1-core.
 
 
 
@@ -3038,7 +3036,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#weightedpodaffinityterm-v1-core.
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#weightedpodaffinityterm-v1-core.
 
 
 
