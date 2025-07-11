@@ -4,8 +4,9 @@ on:
   push:
     branches:
       - main
-      - release-*
-  pull_request: {}
+  pull_request:
+    branches:
+      - main
 
 env:
   GOLANGCI_VERSION: "v2.2.1"
