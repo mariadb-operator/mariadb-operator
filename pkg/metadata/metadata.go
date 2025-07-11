@@ -1,8 +1,11 @@
 package metadata
 
 var (
-	WatchLabel              = "k8s.mariadb.com/watch"
-	PhysicalBackupNameLabel = "physicalbackup.k8s.mariadb.com/name"
+	WatchLabel                            = "k8s.mariadb.com/watch"
+	PhysicalBackupNameLabel               = "physicalbackup.k8s.mariadb.com/name"
+	KubernetesServiceLabel                = "kubernetes.io/service-name"
+	KubernetesEndpointSliceManagedByLabel = "endpointslice.kubernetes.io/managed-by"
+	KubernetesEndpointSliceManagedByValue = "mariadb-operator.k8s.mariadb.com"
 
 	ReplicationAnnotation = "k8s.mariadb.com/replication"
 	GaleraAnnotation      = "k8s.mariadb.com/galera"

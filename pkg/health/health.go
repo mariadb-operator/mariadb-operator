@@ -8,6 +8,7 @@ import (
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
+	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
 	"github.com/mariadb-operator/mariadb-operator/pkg/pod"
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	appsv1 "k8s.io/api/apps/v1"
@@ -80,7 +81,7 @@ func IsStatefulSetHealthy(ctx context.Context, client ctrlclient.Client, service
 	listOpts := &ctrlclient.ListOptions{
 		LabelSelector: klabels.SelectorFromSet(
 			map[string]string{
-				"kubernetes.io/service-name": serviceKey.Name,
+				metadata.KubernetesServiceLabel: serviceKey.Name,
 			},
 		),
 		Namespace: serviceKey.Namespace,
@@ -183,7 +184,7 @@ func IsServiceHealthy(ctx context.Context, client ctrlclient.Client, serviceKey 
 	listOpts := &ctrlclient.ListOptions{
 		LabelSelector: klabels.SelectorFromSet(
 			map[string]string{
-				"kubernetes.io/service-name": serviceKey.Name,
+				metadata.KubernetesServiceLabel: serviceKey.Name,
 			},
 		),
 		Namespace: serviceKey.Namespace,

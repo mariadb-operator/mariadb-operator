@@ -8,6 +8,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
@@ -41,13 +42,16 @@ func NewEndpointsReconciler(client client.Client, builder *builder.Builder) *End
 
 func (r *EndpointsReconciler) Reconcile(ctx context.Context, key types.NamespacedName,
 	mariadb *mariadbv1alpha1.MariaDB, serviceName string) (ctrl.Result, error) {
+	logger := log.FromContext(ctx).V(1).WithName("endpoints")
+
 	if mariadb.Status.CurrentPrimaryPodIndex == nil {
-		log.FromContext(ctx).V(1).Info("'status.currentPrimaryPodIndex' must be set")
+		logger.Info("'status.currentPrimaryPodIndex' must be set")
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
-	desiredEndpoints, err := r.endpointSlice(ctx, key, mariadb, serviceName)
+	desiredEndpointSlice, err := r.endpointSlice(ctx, key, mariadb, serviceName, logger)
 	if err != nil {
 		if errors.Is(err, errNoEndpointsAvailable) {
+			logger.Info("No endpoints available. Requeing...")
 			return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 		}
 		return ctrl.Result{}, fmt.Errorf("error building desired EndpointSlice: %v", err)
@@ -58,20 +62,20 @@ func (r *EndpointsReconciler) Reconcile(ctx context.Context, key types.Namespace
 		if !apierrors.IsNotFound(err) {
 			return ctrl.Result{}, fmt.Errorf("error getting EndpointSlice: %v", err)
 		}
-		if err := r.Create(ctx, desiredEndpoints); err != nil {
+		if err := r.Create(ctx, desiredEndpointSlice); err != nil {
 			return ctrl.Result{}, fmt.Errorf("error creating EndpointSlice: %v", err)
 		}
 		return ctrl.Result{}, nil
 	}
 
 	patch := client.MergeFrom(existingEndpointSlice.DeepCopy())
-	existingEndpointSlice.Endpoints = desiredEndpoints.Endpoints
-	existingEndpointSlice.Ports = desiredEndpoints.Ports
+	existingEndpointSlice.Endpoints = desiredEndpointSlice.Endpoints
+	existingEndpointSlice.Ports = desiredEndpointSlice.Ports
 	return ctrl.Result{}, r.Patch(ctx, &existingEndpointSlice, patch)
 }
 
 func (r *EndpointsReconciler) endpointSlice(ctx context.Context, key types.NamespacedName,
-	mariadb *mariadbv1alpha1.MariaDB, serviceName string) (*discoveryv1.EndpointSlice, error) {
+	mariadb *mariadbv1alpha1.MariaDB, serviceName string, logger logr.Logger) (*discoveryv1.EndpointSlice, error) {
 	podList := corev1.PodList{}
 	listOpts := &client.ListOptions{
 		LabelSelector: klabels.SelectorFromSet(
@@ -93,14 +97,15 @@ func (r *EndpointsReconciler) endpointSlice(ctx context.Context, key types.Names
 
 	addressType, err := getAddressType(&podList.Items[0])
 	if err != nil {
-		return nil, fmt.Errorf("error getting address type: %v", err)
+		logger.Info("error getting address type", "err", err)
+		return nil, errNoEndpointsAvailable
 	}
 
 	endpoints := []discoveryv1.Endpoint{}
 	for _, pod := range podList.Items {
 		endpoint, err := buildEndpoint(&pod)
 		if err != nil {
-			log.FromContext(ctx).V(1).Info("error building Endpoint", "err", err)
+			logger.Info("error building Endpoint", "err", err)
 			continue
 		}
 
