@@ -120,10 +120,14 @@ jobs:
       - name: Determine test
         id: test
         run: |
-          if [[ "${{ github.event_name }}" == "push" && 
-                 ("${{ github.ref }}" == "refs/heads/main" || "${{ github.ref }}" == refs/heads/release-*) ]]; then
+          if [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == "refs/heads/main" ]]; then
+            echo "Detected push to main. Running full tests."
+            echo "type=full" >> "$GITHUB_OUTPUT"
+          elif [[ "${{ github.event_name }}" == "pull_request" && "${{ github.head_ref }}" =~ ^release-.* ]]; then
+            echo "Detected PR from release branch. Running full tests."
             echo "type=full" >> "$GITHUB_OUTPUT"
           else
+            echo "Defaulting to basic tests"
             echo "type=basic" >> "$GITHUB_OUTPUT"
           fi
 
