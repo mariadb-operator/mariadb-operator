@@ -125,12 +125,12 @@ func init() {
 	rootCmd.Flags().IntVar(&maxscaleMaxConcurrentReconciles, "maxscale-max-concurrent-reconciles", 10,
 		"Maximum number of concurrent reconciles per MaxScale.")
 
-	rootCmd.Flags().DurationVar(&requeueConnection, "requeue-connection", 30*time.Second, "The interval at which Connections are requeued.")
-	rootCmd.Flags().DurationVar(&requeueSql, "requeue-sql", 30*time.Second, "The interval at which SQL objects are requeued.")
-	rootCmd.Flags().DurationVar(&requeueSqlMaxOffset, "requeue-sql-max-offset", 0,
+	rootCmd.Flags().DurationVar(&requeueConnection, "requeue-connection", 1*time.Hour, "The interval at which Connections are requeued.")
+	rootCmd.Flags().DurationVar(&requeueSql, "requeue-sql", 10*time.Hour, "The interval at which SQL objects are requeued.")
+	rootCmd.Flags().DurationVar(&requeueSqlMaxOffset, "requeue-sql-max-offset", 1*time.Hour,
 		"Maximum offset added to the interval at which SQL objects are requeued.")
-	rootCmd.Flags().DurationVar(&requeueSqlJob, "requeue-sqljob", 5*time.Second, "The interval at which SqlJobs are requeued.")
-	rootCmd.Flags().DurationVar(&requeueMaxScale, "requeue-maxscale", 30*time.Second, "The interval at which MaxScales are requeued.")
+	rootCmd.Flags().DurationVar(&requeueSqlJob, "requeue-sqljob", 30*time.Second, "The interval at which SqlJobs are requeued.")
+	rootCmd.Flags().DurationVar(&requeueMaxScale, "requeue-maxscale", 1*time.Hour, "The interval at which MaxScales are requeued.")
 
 	rootCmd.Flags().DurationVar(&syncPeriod, "sync-period", 10*time.Hour, "The interval at which watched resources are reconciled.")
 
