@@ -24,8 +24,8 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           paths_ignore: '["*.md","*.md.gotmpl",".github/**","docs/**","examples/**"]'
-          do_not_skip: '["pull_request", "workflow_dispatch", "schedule", "merge_group"]'
           concurrent_skipping: false
+
   lint:
     name: Lint
     runs-on: ubuntu-latest
