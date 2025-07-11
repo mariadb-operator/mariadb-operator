@@ -56,17 +56,6 @@ rules:
 - apiGroups:
   - ""
   resources:
-  - endpoints
-  - endpoints/restricted
-  verbs:
-  - create
-  - get
-  - list
-  - patch
-  - watch
-- apiGroups:
-  - ""
-  resources:
   - events
   - secrets
   - serviceaccounts
@@ -161,6 +150,17 @@ rules:
   - certificates
   verbs:
   - create
+  - list
+  - patch
+  - watch
+- apiGroups:
+  - discovery.k8s.io
+  resources:
+  - endpointslices
+  - endpointslices/restricted
+  verbs:
+  - create
+  - get
   - list
   - patch
   - watch
