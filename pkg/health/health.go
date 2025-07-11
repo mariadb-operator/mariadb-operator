@@ -94,6 +94,7 @@ func IsStatefulSetHealthy(ctx context.Context, client ctrlclient.Client, service
 		for _, port := range endpointSlice.Ports {
 			if port.Port != nil && *port.Port == *healthOpts.Port {
 				matchesPort = true
+				break
 			}
 		}
 		if !matchesPort {
