@@ -25,6 +25,7 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           paths_ignore: '["*.md","*.md.gotmpl",".github/**","docs/**","examples/**"]'
           concurrent_skipping: false
+          skip_after_successful_duplicate: false
 
   lint:
     name: Lint
