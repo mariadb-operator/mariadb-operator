@@ -8,7 +8,7 @@ import (
 	"k8s.io/utils/ptr"
 )
 
-// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#labelselectorrequirement-v1-meta
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#labelselectorrequirement-v1-meta
 type LabelSelectorRequirement struct {
 	Key      string                       `json:"key"`
 	Operator metav1.LabelSelectorOperator `json:"operator"`
@@ -25,7 +25,7 @@ func (s LabelSelectorRequirement) ToKubernetesType() metav1.LabelSelectorRequire
 	}
 }
 
-// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#labelselector-v1-meta
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#labelselector-v1-meta
 type LabelSelector struct {
 	// +optional
 	MatchLabels map[string]string `json:"matchLabels,omitempty"`
@@ -41,7 +41,7 @@ func (s LabelSelector) ToKubernetesType() metav1.LabelSelector {
 	}
 }
 
-// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#podaffinityterm-v1-core.
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#podaffinityterm-v1-core.
 type PodAffinityTerm struct {
 	// +optional
 	LabelSelector *LabelSelector `json:"labelSelector,omitempty"`
@@ -58,7 +58,7 @@ func (p PodAffinityTerm) ToKubernetesType() corev1.PodAffinityTerm {
 	return affinityTerm
 }
 
-// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#weightedpodaffinityterm-v1-core.
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#weightedpodaffinityterm-v1-core.
 type WeightedPodAffinityTerm struct {
 	Weight          int32           `json:"weight"`
 	PodAffinityTerm PodAffinityTerm `json:"podAffinityTerm"`
@@ -71,7 +71,7 @@ func (p WeightedPodAffinityTerm) ToKubernetesType() corev1.WeightedPodAffinityTe
 	}
 }
 
-// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#podantiaffinity-v1-core.
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#podantiaffinity-v1-core.
 type PodAntiAffinity struct {
 	// +optional
 	// +listType=atomic
@@ -88,7 +88,7 @@ func (p PodAntiAffinity) ToKubernetesType() corev1.PodAntiAffinity {
 	}
 }
 
-// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#nodeselectorrequirement-v1-core
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeselectorrequirement-v1-core
 type NodeSelectorRequirement struct {
 	Key      string                      `json:"key"`
 	Operator corev1.NodeSelectorOperator `json:"operator"`
@@ -105,7 +105,7 @@ func (s NodeSelectorRequirement) ToKubernetesType() corev1.NodeSelectorRequireme
 	}
 }
 
-// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#nodeselectorterm-v1-core
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeselectorterm-v1-core
 type NodeSelectorTerm struct {
 	// +optional
 	// +listType=atomic
@@ -122,7 +122,7 @@ func (s NodeSelectorTerm) ToKubernetesType() corev1.NodeSelectorTerm {
 	}
 }
 
-// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#nodeselector-v1-core
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeselector-v1-core
 type NodeSelector struct {
 	// +listType=atomic
 	NodeSelectorTerms []NodeSelectorTerm `json:"nodeSelectorTerms"`
@@ -134,7 +134,7 @@ func (p NodeSelector) ToKubernetesType() corev1.NodeSelector {
 	}
 }
 
-// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#preferredschedulingterm-v1-core
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#preferredschedulingterm-v1-core
 type PreferredSchedulingTerm struct {
 	Weight     int32            `json:"weight"`
 	Preference NodeSelectorTerm `json:"preference"`
@@ -147,7 +147,7 @@ func (p PreferredSchedulingTerm) ToKubernetesType() corev1.PreferredSchedulingTe
 	}
 }
 
-// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#nodeaffinity-v1-core
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeaffinity-v1-core
 type NodeAffinity struct {
 	// +optional
 	RequiredDuringSchedulingIgnoredDuringExecution *NodeSelector `json:"requiredDuringSchedulingIgnoredDuringExecution,omitempty"`
@@ -166,7 +166,7 @@ func (p NodeAffinity) ToKubernetesType() corev1.NodeAffinity {
 	return nodeAffinity
 }
 
-// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#affinity-v1-core.
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#affinity-v1-core.
 type Affinity struct {
 	// +optional
 	PodAntiAffinity *PodAntiAffinity `json:"podAntiAffinity,omitempty"`
@@ -185,7 +185,7 @@ func (a Affinity) ToKubernetesType() corev1.Affinity {
 	return affinity
 }
 
-// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.31/#topologyspreadconstraint-v1-core.
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#topologyspreadconstraint-v1-core.
 type TopologySpreadConstraint struct {
 	MaxSkew           int32                                `json:"maxSkew"`
 	TopologyKey       string                               `json:"topologyKey"`

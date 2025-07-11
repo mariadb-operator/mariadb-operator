@@ -1,5 +1,10 @@
 ##@ Generate - Controller gen
 
+KUBE_API_VERSION ?= v1.33
+.PHONY: kube-api-version
+kube-api-version: ## Update Kubernetes version in links available in API docs.
+	@KUBE_API_VERSION=$(KUBE_API_VERSION) ./hack/kube_api_version.sh
+
 .PHONY: manifests
 manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
 	$(CONTROLLER_GEN) rbac:roleName=manager-role crd webhook paths="./..." output:crd:artifacts:config=config/crd/bases
@@ -84,7 +89,7 @@ crd-size: ## Check CRD size and fail if it exceeds 900KB (hard limit 1MB).
 
 .PHONY: gen
 ifneq ($(findstring -dev,$(VERSION)),)
-gen: manifests code embed-entrypoint helm-crds 
+gen: kube-api-version manifests code embed-entrypoint helm-crds 
 else
-gen: manifests code embed-entrypoint helm-gen manifests-bundle docs examples
+gen: kube-api-version manifests code embed-entrypoint helm-gen manifests-bundle docs examples
 endif
