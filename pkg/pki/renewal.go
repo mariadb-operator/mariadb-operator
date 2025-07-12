@@ -38,7 +38,7 @@ func RenewalTime(notBefore, notAfter time.Time, renewBeforePercentage int32) (*t
 }
 
 func validateRenewBeforePercentage(renewBeforePercentage int32) error {
-	if renewBeforePercentage < 10 && renewBeforePercentage > 90 {
+	if renewBeforePercentage < 10 || renewBeforePercentage > 90 {
 		return fmt.Errorf("invalid renewBeforePercentage %v, it must be between [10, 90]", renewBeforePercentage)
 	}
 	return nil

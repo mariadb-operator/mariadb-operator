@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
 	discoveryv1 "k8s.io/api/discovery/v1"
 
 	"k8s.io/apimachinery/pkg/types"
@@ -28,7 +29,8 @@ func TestEndpointsMeta(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{},
 			wantMeta: &mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
-					"kubernetes.io/service-name": serviceName,
+					metadata.KubernetesEndpointSliceManagedByLabel: metadata.KubernetesEndpointSliceManagedByValue,
+					metadata.KubernetesServiceLabel:                serviceName,
 				},
 				Annotations: map[string]string{},
 			},
@@ -49,8 +51,9 @@ func TestEndpointsMeta(t *testing.T) {
 			},
 			wantMeta: &mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
-					"kubernetes.io/service-name": serviceName,
-					"database.myorg.io":          "mariadb",
+					metadata.KubernetesEndpointSliceManagedByLabel: metadata.KubernetesEndpointSliceManagedByValue,
+					metadata.KubernetesServiceLabel:                serviceName,
+					"database.myorg.io":                            "mariadb",
 				},
 				Annotations: map[string]string{
 					"database.myorg.io": "mariadb",
