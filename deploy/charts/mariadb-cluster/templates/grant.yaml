@@ -1,0 +1,15 @@
+{{- include "mariadb-cluster.validateGrants" . -}}
+{{- range .Values.grants }}
+---
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: Grant
+metadata:
+  name: {{ include "mariadb-cluster.fullname" $ }}-{{ .username }}
+  labels:
+    {{- include "mariadb-cluster.labels" $ | nindent 4 }}
+spec:
+  mariaDbRef:
+    name: {{ include "mariadb-cluster.fullname" $ }}
+    namespace: {{ $.Release.Namespace }}
+  {{- toYaml (unset (deepCopy .) "mariaDbRef" ) | nindent 2 }}
+{{- end }}
