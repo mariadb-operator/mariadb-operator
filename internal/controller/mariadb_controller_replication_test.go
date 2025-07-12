@@ -60,7 +60,7 @@ var _ = Describe("MariaDB replication", Ordered, func() {
 							WaitPoint: func() *mariadbv1alpha1.WaitPoint { w := mariadbv1alpha1.WaitPointAfterSync; return &w }(),
 							Gtid:      func() *mariadbv1alpha1.Gtid { g := mariadbv1alpha1.GtidCurrentPos; return &g }(),
 						},
-						SyncBinlog: func() *bool { s := true; return &s }(),
+						SyncBinlog: func() *int { i := 1; return &i }(),
 					},
 					Enabled: true,
 				},
