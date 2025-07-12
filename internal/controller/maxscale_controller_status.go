@@ -310,7 +310,7 @@ func (r *MaxScaleReconciler) getSqlClient(ctx context.Context, mxs *mariadbv1alp
 		return nil, errors.New("config sync must be enabled")
 	}
 	if mxs.Spec.Auth.SyncUsername == nil || mxs.Spec.Auth.SyncPasswordSecretKeyRef == nil {
-		return nil, errors.New("Config sync credentials must be set")
+		return nil, errors.New("config sync credentials must be set")
 	}
 
 	serverIdx := mxs.ServerIndex()

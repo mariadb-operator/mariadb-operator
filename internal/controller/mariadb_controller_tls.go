@@ -394,7 +394,7 @@ func (h *certHandler) ensureAllPodsTrustingCABundle(ctx context.Context, mdb *ma
 			return false, nil
 		}
 
-		annotations := p.ObjectMeta.Annotations
+		annotations := p.Annotations
 		if annotations == nil {
 			return false, nil
 		}

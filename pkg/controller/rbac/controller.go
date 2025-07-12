@@ -49,7 +49,7 @@ func (r *RBACReconciler) ReconcileServiceAccount(ctx context.Context, key types.
 }
 
 func (r *RBACReconciler) ReconcileMariadbRBAC(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
-	key := mariadb.Spec.PodTemplate.ServiceAccountKey(mariadb.ObjectMeta)
+	key := mariadb.Spec.ServiceAccountKey(mariadb.ObjectMeta)
 	sa, err := r.ReconcileServiceAccount(ctx, key, mariadb, mariadb.Spec.InheritMetadata)
 	if err != nil {
 		return fmt.Errorf("error reconciling ServiceAccount: %v", err)
@@ -163,7 +163,7 @@ func (r *RBACReconciler) reconcileClusterRoleBinding(ctx context.Context, key ty
 	if err == nil {
 		if !isOwnedBy(mariadb, &existingCRB) {
 			return fmt.Errorf(
-				"ClusterRoleBinding '%s' already exists. Specify a different one via 'spec.galera.agent.kubernetesAuth.authDelegatorRoleName'.",
+				"ClusterRoleBinding '%s' already exists. Specify a different one via 'spec.galera.agent.kubernetesAuth.authDelegatorRoleName'",
 				existingCRB.Name,
 			)
 		}

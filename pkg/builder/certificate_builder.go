@@ -83,7 +83,7 @@ func (b *Builder) BuildCertificate(certOpts ...CertOpt) (*certmanagerv1.Certific
 	}
 	if opts.Key == nil || opts.Owner == nil || len(opts.DNSNames) == 0 ||
 		opts.Lifetime == nil || opts.RenewBeforePercentage == nil || opts.IssuerRef == nil {
-		return nil, errors.New("Key, Owner, DNSNames, Lifetime, RenewBeforePercentage and IssuerRef must be set")
+		return nil, errors.New("options Key, Owner, DNSNames, Lifetime, RenewBeforePercentage and IssuerRef must be set")
 	}
 
 	renewBefore, err := pki.RenewalDuration(*opts.Lifetime, *opts.RenewBeforePercentage)

@@ -339,7 +339,7 @@ var _ = Describe("Restore webhook", func() {
 			Entry(
 				"Updating BackupRef source",
 				func(rmdb *v1alpha1.Restore) {
-					rmdb.Spec.RestoreSource.BackupRef = &v1alpha1.LocalObjectReference{
+					rmdb.Spec.BackupRef = &v1alpha1.LocalObjectReference{
 						Name: "backup",
 					}
 				},
@@ -348,7 +348,7 @@ var _ = Describe("Restore webhook", func() {
 			Entry(
 				"Update S3 source",
 				func(rmdb *v1alpha1.Restore) {
-					rmdb.Spec.RestoreSource.S3 = &v1alpha1.S3{
+					rmdb.Spec.S3 = &v1alpha1.S3{
 						Bucket:   "another-bucket",
 						Endpoint: "another-endpoint",
 					}
@@ -358,7 +358,7 @@ var _ = Describe("Restore webhook", func() {
 			Entry(
 				"Init Volume source",
 				func(rmdb *v1alpha1.Restore) {
-					rmdb.Spec.RestoreSource.Volume = &v1alpha1.StorageVolumeSource{
+					rmdb.Spec.Volume = &v1alpha1.StorageVolumeSource{
 						EmptyDir: &v1alpha1.EmptyDirVolumeSource{},
 					}
 				},
@@ -367,7 +367,7 @@ var _ = Describe("Restore webhook", func() {
 			Entry(
 				"Init TargetRecoveryTime source",
 				func(rmdb *v1alpha1.Restore) {
-					rmdb.Spec.RestoreSource.TargetRecoveryTime = &metav1.Time{Time: time.Now().Add(1 * time.Hour)}
+					rmdb.Spec.TargetRecoveryTime = &metav1.Time{Time: time.Now().Add(1 * time.Hour)}
 				},
 				true,
 			),

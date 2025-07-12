@@ -118,7 +118,7 @@ func (s *SqlJob) SetDefaults(mariadb *MariaDB) {
 	if s.Spec.BackoffLimit == 0 {
 		s.Spec.BackoffLimit = 5
 	}
-	s.Spec.JobPodTemplate.SetDefaults(s.ObjectMeta, mariadb.ObjectMeta)
+	s.Spec.SetDefaults(s.ObjectMeta, mariadb.ObjectMeta)
 }
 
 //+kubebuilder:object:root=true

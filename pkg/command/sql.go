@@ -71,7 +71,7 @@ func (s *SqlCommand) ExecCommand(mariadb *mariadbv1alpha1.MariaDB) (*Command, er
 }
 
 func (s *SqlCommand) SqlFlags(mdb *mariadbv1alpha1.MariaDB) (string, error) {
-	flags, err := ConnectionFlags(&s.SqlOpts.CommandOpts, mdb)
+	flags, err := ConnectionFlags(&s.CommandOpts, mdb)
 	if err != nil {
 		return "", fmt.Errorf("error getting connection flags: %v", err)
 	}

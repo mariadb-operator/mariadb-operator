@@ -159,7 +159,7 @@ func NewBackupCommand(userOpts ...BackupOpt) (*BackupCommand, error) {
 
 func (b *BackupCommand) MariadbDump(backup *mariadbv1alpha1.Backup,
 	mariadb *mariadbv1alpha1.MariaDB) (*Command, error) {
-	connFlags, err := ConnectionFlags(&b.BackupOpts.CommandOpts, mariadb)
+	connFlags, err := ConnectionFlags(&b.CommandOpts, mariadb)
 	if err != nil {
 		return nil, fmt.Errorf("error getting connection flags: %v", err)
 	}
@@ -196,10 +196,10 @@ func (b *BackupCommand) MariadbDump(backup *mariadbv1alpha1.Backup,
 
 func (b *BackupCommand) MariadbBackup(mariadb *mariadbv1alpha1.MariaDB, backupFilePath string) (*Command, error) {
 	if b.Database != nil {
-		return nil, errors.New("Database option not supported in physical backups")
+		return nil, errors.New("database option not supported in physical backups")
 	}
 
-	connFlags, err := ConnectionFlags(&b.BackupOpts.CommandOpts, mariadb)
+	connFlags, err := ConnectionFlags(&b.CommandOpts, mariadb)
 	if err != nil {
 		return nil, fmt.Errorf("error getting connection flags: %v", err)
 	}
@@ -294,7 +294,7 @@ func (b *BackupCommand) MariadbOperatorRestore(backupContentType mariadbv1alpha1
 }
 
 func (b *BackupCommand) MariadbRestore(restore *mariadbv1alpha1.Restore, mariadb *mariadbv1alpha1.MariaDB) (*Command, error) {
-	connFlags, err := ConnectionFlags(&b.BackupOpts.CommandOpts, mariadb)
+	connFlags, err := ConnectionFlags(&b.CommandOpts, mariadb)
 	if err != nil {
 		return nil, fmt.Errorf("error getting connection flags: %v", err)
 	}
@@ -317,7 +317,7 @@ func (b *BackupCommand) MariadbRestore(restore *mariadbv1alpha1.Restore, mariadb
 
 func (b *BackupCommand) MariadbBackupRestore(mariadb *mariadbv1alpha1.MariaDB, backupDirPath string) (*Command, error) {
 	if b.Database != nil {
-		return nil, errors.New("Database option not supported in physical backups")
+		return nil, errors.New("database option not supported in physical backups")
 	}
 
 	// The ext4 filesystem creates a lost+found directory by default, which causes mariadb-backup to fail with:
@@ -379,8 +379,8 @@ func (b *BackupCommand) getTargetFilePath() string {
 }
 
 func (b *BackupCommand) mariadbDumpArgs(backup *mariadbv1alpha1.Backup, mariadb *mariadbv1alpha1.MariaDB) []string {
-	dumpOpts := make([]string, len(b.BackupOpts.ExtraOpts))
-	copy(dumpOpts, b.BackupOpts.ExtraOpts)
+	dumpOpts := make([]string, len(b.ExtraOpts))
+	copy(dumpOpts, b.ExtraOpts)
 
 	args := []string{
 		"--single-transaction",
@@ -423,8 +423,8 @@ func (b *BackupCommand) mariadbDumpArgs(backup *mariadbv1alpha1.Backup, mariadb 
 }
 
 func (b *BackupCommand) mariadbBackupArgs(mariadb *mariadbv1alpha1.MariaDB) []string {
-	backupOpts := make([]string, len(b.BackupOpts.ExtraOpts))
-	copy(backupOpts, b.BackupOpts.ExtraOpts)
+	backupOpts := make([]string, len(b.ExtraOpts))
+	copy(backupOpts, b.ExtraOpts)
 
 	args := []string{
 		"--backup",
@@ -442,8 +442,8 @@ func (b *BackupCommand) mariadbBackupArgs(mariadb *mariadbv1alpha1.MariaDB) []st
 }
 
 func (b *BackupCommand) mariadbArgs(restore *mariadbv1alpha1.Restore, mariadb *mariadbv1alpha1.MariaDB) []string {
-	args := make([]string, len(b.BackupOpts.ExtraOpts))
-	copy(args, b.BackupOpts.ExtraOpts)
+	args := make([]string, len(b.ExtraOpts))
+	copy(args, b.ExtraOpts)
 
 	if restore.Spec.Database != "" {
 		args = append(args, fmt.Sprintf("--one-database %s", restore.Spec.Database))

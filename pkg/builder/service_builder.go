@@ -18,7 +18,7 @@ func MariaDBPort(svc *corev1.Service) (*corev1.ServicePort, error) {
 			return &p, nil
 		}
 	}
-	return nil, fmt.Errorf("Service port not found")
+	return nil, fmt.Errorf("service port not found")
 }
 
 func ValidateServicePorts(ports []corev1.ServicePort) error {
@@ -26,11 +26,11 @@ func ValidateServicePorts(ports []corev1.ServicePort) error {
 	portMap := make(map[int32]bool, len(ports))
 	for _, p := range ports {
 		if nameMap[p.Name] {
-			return fmt.Errorf("Port name %s is already taken by another port", p.Name)
+			return fmt.Errorf("port name %s is already taken by another port", p.Name)
 		}
 		nameMap[p.Name] = true
 		if portMap[p.Port] {
-			return fmt.Errorf("Port number %d is already taken by another port", p.Port)
+			return fmt.Errorf("port number %d is already taken by another port", p.Port)
 		}
 		portMap[p.Port] = true
 	}

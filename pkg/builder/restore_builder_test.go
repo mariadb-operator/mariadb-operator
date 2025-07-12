@@ -193,7 +193,7 @@ func TestBuildRestore(t *testing.T) {
 		t.Errorf("unexpected error building Restore: %v", err)
 	}
 
-	if restore.Spec.JobPodTemplate.Affinity == nil {
+	if restore.Spec.Affinity == nil {
 		t.Error("expected affinity to have been set")
 	}
 	if len(restore.Spec.NodeSelector) <= 0 {
@@ -202,10 +202,10 @@ func TestBuildRestore(t *testing.T) {
 	if restore.Spec.Tolerations == nil {
 		t.Error("expected Tolerations to have been set")
 	}
-	if restore.Spec.JobContainerTemplate.Resources == nil {
+	if restore.Spec.Resources == nil {
 		t.Error("expected resources to have been set")
 	}
-	if restore.Spec.JobContainerTemplate.Args == nil {
+	if restore.Spec.Args == nil {
 		t.Error("expected args to have been set")
 	}
 }
