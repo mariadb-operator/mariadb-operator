@@ -814,7 +814,7 @@ func (m *MariaDB) SetDefaults(env *environment.OperatorEnv) error {
 			m.Spec.Metrics.Exporter.Port = 9104
 		}
 		if m.Spec.Metrics.Exporter.Affinity != nil {
-			m.Spec.Metrics.Exporter.Affinity.SetDefaults(m.ObjectMeta.Name)
+			m.Spec.Metrics.Exporter.Affinity.SetDefaults(m.Name)
 		}
 		if m.Spec.Metrics.Username == "" {
 			m.Spec.Metrics.Username = m.MetricsKey().Name
@@ -850,7 +850,7 @@ func (m *MariaDB) SetDefaults(env *environment.OperatorEnv) error {
 	}
 
 	m.Spec.Storage.SetDefaults()
-	m.Spec.PodTemplate.SetDefaults(m.ObjectMeta)
+	m.Spec.SetDefaults(m.ObjectMeta)
 
 	return nil
 }

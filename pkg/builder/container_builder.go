@@ -440,7 +440,7 @@ func mariadbEnv(mariadb *mariadbv1alpha1.MariaDB) []corev1.EnvVar {
 		env = append(env, corev1.EnvVar{
 			Name: "MARIADB_ROOT_PASSWORD",
 			ValueFrom: &corev1.EnvVarSource{
-				SecretKeyRef: ptr.To(mariadb.Spec.RootPasswordSecretKeyRef.SecretKeySelector.ToKubernetesType()),
+				SecretKeyRef: ptr.To(mariadb.Spec.RootPasswordSecretKeyRef.ToKubernetesType()),
 			},
 		})
 	}

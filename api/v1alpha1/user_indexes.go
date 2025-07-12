@@ -29,8 +29,8 @@ func (u *User) IndexerFuncForFieldPath(fieldPath string) (client.IndexerFunc, er
 			if !ok {
 				return nil
 			}
-			if user.Spec.PasswordSecretKeyRef != nil && user.Spec.PasswordSecretKeyRef.LocalObjectReference.Name != "" {
-				return []string{user.Spec.PasswordSecretKeyRef.LocalObjectReference.Name}
+			if user.Spec.PasswordSecretKeyRef != nil && user.Spec.PasswordSecretKeyRef.Name != "" {
+				return []string{user.Spec.PasswordSecretKeyRef.Name}
 			}
 			return nil
 		}, nil
@@ -40,8 +40,8 @@ func (u *User) IndexerFuncForFieldPath(fieldPath string) (client.IndexerFunc, er
 			if !ok {
 				return nil
 			}
-			if user.Spec.PasswordHashSecretKeyRef != nil && user.Spec.PasswordHashSecretKeyRef.LocalObjectReference.Name != "" {
-				return []string{user.Spec.PasswordHashSecretKeyRef.LocalObjectReference.Name}
+			if user.Spec.PasswordHashSecretKeyRef != nil && user.Spec.PasswordHashSecretKeyRef.Name != "" {
+				return []string{user.Spec.PasswordHashSecretKeyRef.Name}
 			}
 			return nil
 		}, nil
@@ -52,8 +52,8 @@ func (u *User) IndexerFuncForFieldPath(fieldPath string) (client.IndexerFunc, er
 				return nil
 			}
 			if user.Spec.PasswordPlugin.PluginNameSecretKeyRef != nil &&
-				user.Spec.PasswordPlugin.PluginNameSecretKeyRef.LocalObjectReference.Name != "" {
-				return []string{user.Spec.PasswordPlugin.PluginNameSecretKeyRef.LocalObjectReference.Name}
+				user.Spec.PasswordPlugin.PluginNameSecretKeyRef.Name != "" {
+				return []string{user.Spec.PasswordPlugin.PluginNameSecretKeyRef.Name}
 			}
 			return nil
 		}, nil
@@ -64,8 +64,8 @@ func (u *User) IndexerFuncForFieldPath(fieldPath string) (client.IndexerFunc, er
 				return nil
 			}
 			if user.Spec.PasswordPlugin.PluginArgSecretKeyRef != nil &&
-				user.Spec.PasswordPlugin.PluginArgSecretKeyRef.LocalObjectReference.Name != "" {
-				return []string{user.Spec.PasswordPlugin.PluginArgSecretKeyRef.LocalObjectReference.Name}
+				user.Spec.PasswordPlugin.PluginArgSecretKeyRef.Name != "" {
+				return []string{user.Spec.PasswordPlugin.PluginArgSecretKeyRef.Name}
 			}
 			return nil
 		}, nil

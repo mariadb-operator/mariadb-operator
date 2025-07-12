@@ -93,7 +93,7 @@ func (wf *wrappedGrantFinalizer) patch(ctx context.Context, grant *mariadbv1alph
 	patch := client.MergeFrom(grant.DeepCopy())
 	patchFn(grant)
 
-	if err := wf.Client.Patch(ctx, grant, patch); err != nil {
+	if err := wf.Patch(ctx, grant, patch); err != nil {
 		return fmt.Errorf("error patching Grant: %v", err)
 	}
 	return nil

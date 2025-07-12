@@ -112,10 +112,10 @@ func (r *RestoreReconciler) setDefaults(ctx context.Context, restore *mariadbv1a
 		return fmt.Errorf("error patching restore: %v", err)
 	}
 
-	if restore.Spec.RestoreSource.IsDefaulted() {
+	if restore.Spec.IsDefaulted() {
 		return nil
 	}
-	if restore.Spec.RestoreSource.BackupRef == nil {
+	if restore.Spec.BackupRef == nil {
 		var restoreErr *multierror.Error
 		restoreErr = multierror.Append(restoreErr, errors.New("unable to determine restore source, 'backupRef' is nil"))
 
@@ -125,7 +125,7 @@ func (r *RestoreReconciler) setDefaults(ctx context.Context, restore *mariadbv1a
 		return restoreErr
 	}
 
-	backup, err := r.RefResolver.Backup(ctx, restore.Spec.RestoreSource.BackupRef, restore.Namespace)
+	backup, err := r.RefResolver.Backup(ctx, restore.Spec.BackupRef, restore.Namespace)
 	if err != nil {
 		var backupErr *multierror.Error
 		backupErr = multierror.Append(backupErr, err)
@@ -147,7 +147,7 @@ func (r *RestoreReconciler) setDefaults(ctx context.Context, restore *mariadbv1a
 	}
 
 	if err := r.patch(ctx, restore, func(r *mariadbv1alpha1.Restore) error {
-		return r.Spec.RestoreSource.SetDefaultsWithBackup(backup)
+		return r.Spec.SetDefaultsWithBackup(backup)
 	}); err != nil {
 		return fmt.Errorf("error patching restore: %v", err)
 	}
@@ -177,7 +177,7 @@ func (r *RestoreReconciler) patch(ctx context.Context, restore *mariadbv1alpha1.
 	if err := patcher(restore); err != nil {
 		return err
 	}
-	return r.Client.Patch(ctx, restore, patch)
+	return r.Patch(ctx, restore, patch)
 }
 
 // SetupWithManager sets up the controller with the Manager.

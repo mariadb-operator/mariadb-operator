@@ -297,7 +297,7 @@ func (b *PhysicalBackup) SetDefaults(mariadb *MariaDB) {
 	if b.Spec.SuccessfulJobsHistoryLimit == nil {
 		b.Spec.SuccessfulJobsHistoryLimit = ptr.To(int32(5))
 	}
-	b.Spec.PhysicalBackupPodTemplate.SetDefaults(b.ObjectMeta, mariadb.ObjectMeta)
+	b.Spec.SetDefaults(b.ObjectMeta, mariadb.ObjectMeta)
 }
 
 func (b *PhysicalBackup) Volume() (StorageVolumeSource, error) {

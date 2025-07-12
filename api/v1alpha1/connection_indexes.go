@@ -27,8 +27,8 @@ func (c *Connection) IndexerFuncForFieldPath(fieldPath string) (client.IndexerFu
 			if !ok {
 				return nil
 			}
-			if connection.Spec.PasswordSecretKeyRef != nil && connection.Spec.PasswordSecretKeyRef.LocalObjectReference.Name != "" {
-				return []string{connection.Spec.PasswordSecretKeyRef.LocalObjectReference.Name}
+			if connection.Spec.PasswordSecretKeyRef != nil && connection.Spec.PasswordSecretKeyRef.Name != "" {
+				return []string{connection.Spec.PasswordSecretKeyRef.Name}
 			}
 			return nil
 		}, nil

@@ -274,7 +274,7 @@ func (r *SqlJobReconciler) patch(ctx context.Context, sqlJob *mariadbv1alpha1.Sq
 	patch := client.MergeFrom(sqlJob.DeepCopy())
 	patcher(sqlJob)
 
-	if err := r.Client.Patch(ctx, sqlJob, patch); err != nil {
+	if err := r.Patch(ctx, sqlJob, patch); err != nil {
 		return fmt.Errorf("error patching SqlJob: %v", err)
 	}
 	return nil

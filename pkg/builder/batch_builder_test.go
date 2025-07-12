@@ -1338,7 +1338,7 @@ func TestPhysicalBackupRestoreJobSelectorLabels(t *testing.T) {
 	// The selector labels should be present in the pod template metadata
 	selectorLabels := labels.NewLabelsBuilder().WithMariaDBSelectorLabels(mariadb).Build()
 	for k, v := range selectorLabels {
-		got := job.Spec.Template.ObjectMeta.Labels[k]
+		got := job.Spec.Template.Labels[k]
 		if got != v {
 			t.Errorf("expected selector label %q=%q, got %q", k, v, got)
 		}

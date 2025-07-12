@@ -89,7 +89,7 @@ func (r *AuthReconciler) createUser(ctx context.Context, key types.NamespacedNam
 	if err != nil {
 		return fmt.Errorf("error building User: %v", err)
 	}
-	return r.Client.Create(ctx, user)
+	return r.Create(ctx, user)
 }
 
 func (r *AuthReconciler) waitForUser(ctx context.Context, key types.NamespacedName) (ctrl.Result, error) {
@@ -117,5 +117,5 @@ func (r *AuthReconciler) createGrant(ctx context.Context, key types.NamespacedNa
 	if err != nil {
 		return fmt.Errorf("error building Grant: %v", err)
 	}
-	return r.Client.Create(ctx, user)
+	return r.Create(ctx, user)
 }
