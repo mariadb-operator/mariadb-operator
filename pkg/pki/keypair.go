@@ -23,7 +23,7 @@ var (
 )
 
 // ErrSecretKeyNotFound is returned when a CA/TLS key is not found in a Secret-
-var ErrSecretKeyNotFound = errors.New("Secret key not found")
+var ErrSecretKeyNotFound = errors.New("secret key not found")
 
 // KeyPairOpt is a function type used to configure a KeyPair.
 type KeyPairOpt func(*KeyPair)

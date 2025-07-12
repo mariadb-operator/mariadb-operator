@@ -40,15 +40,15 @@ func SetupLogger(level, timeEncoder string, development bool) {
 func SetupLoggerWithCommand(cmd *cobra.Command) error {
 	logLevel, err := cmd.Flags().GetString("log-level")
 	if err != nil {
-		return fmt.Errorf("error getting 'log-level' flag: %v\n", err)
+		return fmt.Errorf("error getting 'log-level' flag: %v", err)
 	}
 	logTimeEncoder, err := cmd.Flags().GetString("log-time-encoder")
 	if err != nil {
-		return fmt.Errorf("error getting 'log-time-encoder' flag: %v\n", err)
+		return fmt.Errorf("error getting 'log-time-encoder' flag: %v", err)
 	}
 	logDev, err := cmd.Flags().GetBool("log-dev")
 	if err != nil {
-		return fmt.Errorf("error getting 'log-dev' flag: %v\n", err)
+		return fmt.Errorf("error getting 'log-dev' flag: %v", err)
 	}
 	SetupLogger(logLevel, logTimeEncoder, logDev)
 	return nil

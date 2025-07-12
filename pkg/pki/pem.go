@@ -63,7 +63,7 @@ func BundleCertificatePEMs(pems [][]byte, bundleOpts ...BundleOption) ([]byte, e
 		}
 	}
 	if bundle == nil {
-		return nil, errors.New("No certificate PEMs were found")
+		return nil, errors.New("no certificate PEMs were found")
 	}
 	return bundle, nil
 }
@@ -73,7 +73,7 @@ func appendPEM(bundle []byte, pemBytes []byte, existingCerts map[string]struct{}
 	for len(pemBytes) > 0 {
 		block, pemBytes = pem.Decode(pemBytes)
 		if block == nil {
-			opts.logger.Error(errors.New("Invalid PEM block"), "Error decoding PEM block. Ignoring...")
+			opts.logger.Error(errors.New("invalid PEM block"), "Error decoding PEM block. Ignoring...")
 			break
 		}
 		if block.Type != string(pemBlockCertificate) {

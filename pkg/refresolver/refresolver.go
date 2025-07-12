@@ -134,7 +134,7 @@ func (r *RefResolver) SecretKeyRef(ctx context.Context, selector mariadbv1alpha1
 
 	data, ok := secret.Data[selector.Key]
 	if !ok {
-		return "", fmt.Errorf("Secret key \"%s\" not found", selector.Key)
+		return "", fmt.Errorf("secret key \"%s\" not found", selector.Key)
 	}
 	return string(data), nil
 }

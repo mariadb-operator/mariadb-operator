@@ -80,15 +80,15 @@ func NewWebhookConfigReconciler(client client.Client, scheme *runtime.Scheme, re
 func (r *WebhookConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	certResult, err := r.certReconciler.Reconcile(ctx, r.certOpts...)
 	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("Error reconciling webhook certificate: %v", err)
+		return ctrl.Result{}, fmt.Errorf("error reconciling webhook certificate: %v", err)
 	}
 
 	if err := r.reconcileValidatingWebhook(ctx, req.NamespacedName, certResult); err != nil {
-		return ctrl.Result{}, fmt.Errorf("Error reconciling ValidatingWebhookConfiguration: %v", err)
+		return ctrl.Result{}, fmt.Errorf("error reconciling ValidatingWebhookConfiguration: %v", err)
 	}
 
 	if err := r.reconcileMutatingWebhook(ctx, req.NamespacedName, certResult); err != nil {
-		return ctrl.Result{}, fmt.Errorf("Error reconciling MutatingWebhookConfiguration: %v", err)
+		return ctrl.Result{}, fmt.Errorf("error reconciling MutatingWebhookConfiguration: %v", err)
 	}
 
 	r.readyMux.Lock()
@@ -130,18 +130,18 @@ func (r *WebhookConfigReconciler) ReadyHandler(logger logr.Logger) func(_ *http.
 		r.readyMux.Lock()
 		defer r.readyMux.Unlock()
 		if !r.ready {
-			err := errors.New("Webhook not ready")
+			err := errors.New("webhook not ready")
 			logger.Error(err, "Readiness probe failed")
 			return err
 		}
 		healthy, err := health.IsServiceHealthy(context.Background(), r.Client, r.serviceKey)
 		if err != nil {
-			err := fmt.Errorf("Service not ready: %s", err)
+			err := fmt.Errorf("service not ready: %s", err)
 			logger.Error(err, "Readiness probe failed")
 			return err
 		}
 		if !healthy {
-			err := errors.New("Service not ready")
+			err := errors.New("service not ready")
 			logger.Error(err, "Readiness probe failed")
 			return err
 		}

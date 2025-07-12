@@ -67,7 +67,7 @@ func WithVolumeSnapshotDataSource(snapshotName string) PVCOption {
 func (b *Builder) BuildStoragePVC(key types.NamespacedName, tpl *mariadbv1alpha1.VolumeClaimTemplate,
 	mariadb *mariadbv1alpha1.MariaDB, opts ...PVCOption) (*corev1.PersistentVolumeClaim, error) {
 	if tpl == nil {
-		return nil, errors.New("Template must not be nil")
+		return nil, errors.New("template must not be nil")
 	}
 	labels := labels.NewLabelsBuilder().
 		WithMariaDBSelectorLabels(mariadb).

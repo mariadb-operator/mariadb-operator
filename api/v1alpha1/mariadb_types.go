@@ -97,20 +97,20 @@ type Storage struct {
 func (s *Storage) Validate(mdb *MariaDB) error {
 	if s.Ephemeral != nil {
 		if *s.Ephemeral && mdb.IsHAEnabled() {
-			return errors.New("Ephemeral storage is only compatible with non HA MariaDBs")
+			return errors.New("ephemeral storage is only compatible with non HA MariaDBs")
 		}
 		if *s.Ephemeral && (s.Size != nil || s.VolumeClaimTemplate != nil) {
-			return errors.New("Either ephemeral or regular storage must be provided")
+			return errors.New("either ephemeral or regular storage must be provided")
 		}
 		if *s.Ephemeral {
 			return nil
 		}
 	}
 	if s.Size != nil && s.Size.IsZero() {
-		return errors.New("Greater than zero storage size must be provided")
+		return errors.New("greater than zero storage size must be provided")
 	}
 	if s.Size == nil && s.VolumeClaimTemplate == nil {
-		return errors.New("Either storage size or volumeClaimTemplate must be provided")
+		return errors.New("either storage size or volumeClaimTemplate must be provided")
 	}
 	if s.Size != nil && s.VolumeClaimTemplate != nil {
 		vctplSize, ok := s.VolumeClaimTemplate.Resources.Requests[corev1.ResourceStorage]
@@ -118,7 +118,7 @@ func (s *Storage) Validate(mdb *MariaDB) error {
 			return nil
 		}
 		if s.Size.Cmp(vctplSize) < 0 {
-			return errors.New("Storage size cannot be decreased")
+			return errors.New("storage size cannot be decreased")
 		}
 	}
 	return nil
@@ -322,7 +322,7 @@ func (b *BootstrapFrom) Validate() error {
 		case "", BackupKind:
 			if b.BackupContentType != "" && b.BackupContentType != BackupContentTypeLogical {
 				return fmt.Errorf(
-					"inconsistent 'backupRef.kind'='%s' and 'backupContentType'='%s' fields. Logical type must be set in this case.",
+					"inconsistent 'backupRef.kind'='%s' and 'backupContentType'='%s' fields. Logical type must be set in this case",
 					kind,
 					b.BackupContentType,
 				)
@@ -330,7 +330,7 @@ func (b *BootstrapFrom) Validate() error {
 		case PhysicalBackupKind:
 			if b.BackupContentType != "" && b.BackupContentType != BackupContentTypePhysical {
 				return fmt.Errorf(
-					"inconsistent 'backupRef.kind'='%s' and 'backupContentType'='%s' fields. Physical type must be set in this case.",
+					"inconsistent 'backupRef.kind'='%s' and 'backupContentType'='%s' fields. Physical type must be set in this case",
 					kind,
 					b.BackupContentType,
 				)
@@ -342,7 +342,7 @@ func (b *BootstrapFrom) Validate() error {
 
 	if b.VolumeSnapshotRef != nil {
 		if b.BackupContentType != "" && b.BackupContentType != BackupContentTypePhysical {
-			return errors.New("inconsistent 'volumeSnapshotRef' and 'backupContentType' fields. Physical type must be set in this case.")
+			return errors.New("inconsistent 'volumeSnapshotRef' and 'backupContentType' fields. Physical type must be set in this case")
 		}
 		if b.S3 != nil || b.Volume != nil || b.RestoreJob != nil {
 			return errors.New("'s3', 'volume' and 'restoreJob' may not be set when 'volumeSnapshotRef' is set")
