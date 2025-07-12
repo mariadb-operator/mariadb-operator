@@ -247,8 +247,8 @@ type AffinityConfig struct {
 func (a *AffinityConfig) SetDefaults(antiAffinityInstances ...string) {
 	antiAffinityEnabled := ptr.Deref(a.AntiAffinityEnabled, false)
 
-	if antiAffinityEnabled && len(antiAffinityInstances) > 0 && a.Affinity.PodAntiAffinity == nil {
-		a.Affinity.PodAntiAffinity = &PodAntiAffinity{
+	if antiAffinityEnabled && len(antiAffinityInstances) > 0 && a.PodAntiAffinity == nil {
+		a.PodAntiAffinity = &PodAntiAffinity{
 			RequiredDuringSchedulingIgnoredDuringExecution: []PodAffinityTerm{
 				{
 					LabelSelector: &LabelSelector{

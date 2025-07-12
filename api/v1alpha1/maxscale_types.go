@@ -914,13 +914,13 @@ func (m *MaxScale) SetDefaults(env *environment.OperatorEnv, mariadb *MariaDB) {
 		m.Spec.Affinity.SetDefaults(antiAffinityInstances...)
 	}
 
-	m.Spec.MaxScalePodTemplate.SetDefaults(m.ObjectMeta)
+	m.Spec.SetDefaults(m.ObjectMeta)
 }
 
 func (m *MaxScale) getAntiAffinityInstances(mariadb *MariaDB) []string {
-	instances := []string{m.ObjectMeta.Name}
+	instances := []string{m.Name}
 	if mariadb != nil {
-		instances = append(instances, mariadb.ObjectMeta.Name)
+		instances = append(instances, mariadb.Name)
 	}
 	return instances
 }

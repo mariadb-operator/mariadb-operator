@@ -61,7 +61,7 @@ func (wf *wrappedUserFinalizer) patch(ctx context.Context, user *mariadbv1alpha1
 	patch := client.MergeFrom(user.DeepCopy())
 	patchFn(user)
 
-	if err := wf.Client.Patch(ctx, user, patch); err != nil {
+	if err := wf.Patch(ctx, user, patch); err != nil {
 		return fmt.Errorf("error removing finalizer to User: %v", err)
 	}
 	return nil

@@ -277,7 +277,7 @@ func (m *MariaDB) PhysicalBackupInitJobKey(podIndex int) types.NamespacedName {
 // PhysicalBackupStagingPVCKey defines the key for the PhysicalBackup staging PVC object.
 func (m *MariaDB) PhysicalBackupStagingPVCKey() types.NamespacedName {
 	return types.NamespacedName{
-		Name:      fmt.Sprintf("%s-physicalbackup-staging", m.ObjectMeta.Name),
+		Name:      fmt.Sprintf("%s-physicalbackup-staging", m.Name),
 		Namespace: m.Namespace,
 	}
 }

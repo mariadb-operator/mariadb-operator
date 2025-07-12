@@ -80,12 +80,12 @@ func (s *ServerClient) SetMaintenance(ctx context.Context, name string) error {
 	query := map[string]string{
 		"state": "maintenance",
 	}
-	return s.GenericClient.Put(ctx, fmt.Sprintf("%s/set", name), WithQuery(query))
+	return s.Put(ctx, fmt.Sprintf("%s/set", name), WithQuery(query))
 }
 
 func (s *ServerClient) ClearMaintenance(ctx context.Context, name string) error {
 	query := map[string]string{
 		"state": "maintenance",
 	}
-	return s.GenericClient.Put(ctx, fmt.Sprintf("%s/clear", name), WithQuery(query))
+	return s.Put(ctx, fmt.Sprintf("%s/clear", name), WithQuery(query))
 }

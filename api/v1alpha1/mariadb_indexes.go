@@ -34,8 +34,8 @@ func (m *MariaDB) IndexerFuncForFieldPath(fieldPath string) (client.IndexerFunc,
 			if !ok {
 				return nil
 			}
-			if mdb.Spec.MyCnfConfigMapKeyRef != nil && mdb.Spec.MyCnfConfigMapKeyRef.LocalObjectReference.Name != "" {
-				return []string{mdb.Spec.MyCnfConfigMapKeyRef.LocalObjectReference.Name}
+			if mdb.Spec.MyCnfConfigMapKeyRef != nil && mdb.Spec.MyCnfConfigMapKeyRef.Name != "" {
+				return []string{mdb.Spec.MyCnfConfigMapKeyRef.Name}
 			}
 			return nil
 		}, nil

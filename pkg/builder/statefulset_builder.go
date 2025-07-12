@@ -187,7 +187,7 @@ func mariadbVolumeClaimTemplates(mariadb *mariadbv1alpha1.MariaDB) []corev1.Pers
 					Labels:      labels,
 					Annotations: meta.Annotations,
 				},
-				Spec: vctpl.PersistentVolumeClaimSpec.ToKubernetesType(),
+				Spec: vctpl.ToKubernetesType(),
 			},
 		}
 	}
@@ -209,7 +209,7 @@ func mariadbVolumeClaimTemplates(mariadb *mariadbv1alpha1.MariaDB) []corev1.Pers
 				Labels:      labels,
 				Annotations: meta.Annotations,
 			},
-			Spec: vctpl.PersistentVolumeClaimSpec.ToKubernetesType(),
+			Spec: vctpl.ToKubernetesType(),
 		})
 	}
 	return pvcs
@@ -225,7 +225,7 @@ func maxscaleVolumeClaimTemplates(maxscale *mariadbv1alpha1.MaxScale) []corev1.P
 				Labels:      meta.Labels,
 				Annotations: meta.Annotations,
 			},
-			Spec: vctpl.PersistentVolumeClaimSpec.ToKubernetesType(),
+			Spec: vctpl.ToKubernetesType(),
 		},
 	}
 	return pvcs

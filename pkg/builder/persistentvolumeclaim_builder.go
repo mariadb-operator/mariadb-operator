@@ -80,7 +80,7 @@ func (b *Builder) BuildStoragePVC(key types.NamespacedName, tpl *mariadbv1alpha1
 			WithLabels(labels).
 			Build()
 
-	pvcSpec := tpl.PersistentVolumeClaimSpec.ToKubernetesType()
+	pvcSpec := tpl.ToKubernetesType()
 	for _, setOpt := range opts {
 		setOpt(&pvcSpec)
 	}

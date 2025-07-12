@@ -65,7 +65,7 @@ func (v *RestoreCustomValidator) ValidateDelete(ctx context.Context, obj runtime
 }
 
 func validateRestore(restore *mariadbv1alpha1.Restore) (admission.Warnings, error) {
-	if err := restore.Spec.RestoreSource.Validate(); err != nil {
+	if err := restore.Spec.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid restore: %v", err)
 	}
 	return nil, nil
