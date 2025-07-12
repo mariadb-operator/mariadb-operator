@@ -21,7 +21,7 @@ func PodReady(pod *corev1.Pod) bool {
 }
 
 func PodUpdated(pod *corev1.Pod, updateRevision string) bool {
-	if podUpdateRevision, ok := pod.ObjectMeta.Labels["controller-revision-hash"]; ok {
+	if podUpdateRevision, ok := pod.Labels["controller-revision-hash"]; ok {
 		return podUpdateRevision == updateRevision
 	}
 	return false

@@ -61,7 +61,7 @@ func (wf *wrappedDatabaseFinalizer) patch(ctx context.Context, database *mariadb
 	patch := client.MergeFrom(database.DeepCopy())
 	patchFn(database)
 
-	if err := wf.Client.Patch(ctx, database, patch); err != nil {
+	if err := wf.Patch(ctx, database, patch); err != nil {
 		return fmt.Errorf("error patching Database finalizer: %v", err)
 	}
 	return nil

@@ -449,7 +449,7 @@ func (r *ConnectionReconciler) patch(ctx context.Context, conn *mariadbv1alpha1.
 	if err := patcher(conn); err != nil {
 		return err
 	}
-	if err := r.Client.Patch(ctx, conn, patch); err != nil {
+	if err := r.Patch(ctx, conn, patch); err != nil {
 		return fmt.Errorf("error patching connection: %v", err)
 	}
 	return nil

@@ -311,7 +311,7 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 			batchStorageMountPath,
 			batchBackupTargetFilePath,
 		),
-		command.WithBackupTargetTime(restore.Spec.RestoreSource.TargetRecoveryTimeOrDefault()),
+		command.WithBackupTargetTime(restore.Spec.TargetRecoveryTimeOrDefault()),
 		command.WithBackupUserEnv(batchUserEnv),
 		command.WithBackupPasswordEnv(batchPasswordEnv),
 		command.WithBackupLogLevel(restore.Spec.LogLevel),
