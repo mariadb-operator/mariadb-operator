@@ -210,7 +210,7 @@ var _ = Describe("MariaDB Galera lifecycle", Ordered, func() {
 		})
 	})
 
-	It("should reconcile", func() {
+	It("should reconcile", Label("basic"), func() {
 		By("Expecting MariaDB to be ready eventually")
 		Eventually(func() bool {
 			if err := k8sClient.Get(testCtx, key, mdb); err != nil {
@@ -386,7 +386,7 @@ var _ = Describe("MariaDB Galera lifecycle", Ordered, func() {
 		testMariadbVolumeResize(mdb, "400Mi")
 	})
 
-	It("should reconcile with MaxScale", func() {
+	It("should reconcile with MaxScale", Label("basic"), func() {
 		mxs := &mariadbv1alpha1.MaxScale{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "maxscale-galera",
