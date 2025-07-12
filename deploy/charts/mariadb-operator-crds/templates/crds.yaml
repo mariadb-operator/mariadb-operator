@@ -6629,10 +6629,10 @@ spec:
                     type: object
                   syncBinlog:
                     description: |-
-                      SyncBinlog indicates whether the binary log should be synchronized to the disk after every event.
-                      It trades off performance for consistency.
+                      SyncBinlog indicates after how many events the binary log is synchronized to the disk.
+                      The default is 1, which trades off performance for consistency.
                       See: https://mariadb.com/kb/en/replication-and-binary-log-system-variables/#sync_binlog.
-                    type: boolean
+                    type: integer
                 type: object
               resources:
                 description: Resources describes the compute resource requirements.

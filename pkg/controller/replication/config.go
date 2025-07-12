@@ -96,7 +96,7 @@ func (r *ReplicationConfig) ConfigureReplica(ctx context.Context, mariadb *maria
 func (r *ReplicationConfig) configurePrimaryVars(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *sql.Client,
 	primaryPodIndex int) error {
 	kv := map[string]string{
-		"sync_binlog":                  binaryFromBool(mariadb.Replication().SyncBinlog),
+		"sync_binlog":                  fmt.Sprintf("%d", *mariadb.Replication().SyncBinlog),
 		"rpl_semi_sync_master_enabled": "ON",
 		"rpl_semi_sync_master_timeout": func() string {
 			return fmt.Sprint(mariadb.Replication().Replica.ConnectionTimeout.Milliseconds())
@@ -120,7 +120,7 @@ func (r *ReplicationConfig) configurePrimaryVars(ctx context.Context, mariadb *m
 func (r *ReplicationConfig) configureReplicaVars(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 	client *sql.Client, ordinal int) error {
 	kv := map[string]string{
-		"sync_binlog":                  binaryFromBool(mariadb.Replication().SyncBinlog),
+		"sync_binlog":                  fmt.Sprintf("%d", *mariadb.Replication().SyncBinlog),
 		"rpl_semi_sync_master_enabled": "OFF",
 		"rpl_semi_sync_slave_enabled":  "ON",
 		"server_id":                    serverId(ordinal),
@@ -296,13 +296,6 @@ func newReplPasswordRef(mariadb *mariadbv1alpha1.MariaDB) mariadbv1alpha1.Genera
 
 func serverId(index int) string {
 	return fmt.Sprint(10 + index)
-}
-
-func binaryFromBool(b *bool) string {
-	if b != nil && *b {
-		return "1"
-	}
-	return "0"
 }
 
 func formatAccountName(username, host string) string {
