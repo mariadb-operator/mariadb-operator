@@ -207,8 +207,8 @@ var _ = Describe("MariaDB replication", Ordered, func() {
 		Expect(endpointSlice.Ports).To(HaveLen(1))
 		Expect(endpointSlice.Ports[0].Port).ToNot(BeNil())
 		Expect(*endpointSlice.Ports[0].Port).ToNot(Equal(mdb.Spec.Port))
-		Expect(endpointSlice.Endpoints).To(HaveLen(1))
-		Expect(endpointSlice.Endpoints[0].Addresses).To(HaveLen(int(mdb.Spec.Replicas) - 1))
+		Expect(endpointSlice.Endpoints).To(HaveLen(int(mdb.Spec.Replicas) - 1))
+		Expect(endpointSlice.Endpoints[0].Addresses).To(HaveLen(int(1)))
 
 		By("Expecting to create a PodDisruptionBudget")
 		var pdb policyv1.PodDisruptionBudget
