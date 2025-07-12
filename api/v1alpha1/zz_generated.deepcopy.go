@@ -3744,7 +3744,7 @@ func (in *ReplicationSpec) DeepCopyInto(out *ReplicationSpec) {
 	}
 	if in.SyncBinlog != nil {
 		in, out := &in.SyncBinlog, &out.SyncBinlog
-		*out = new(bool)
+		*out = new(int)
 		**out = **in
 	}
 	if in.ProbesEnabled != nil {
