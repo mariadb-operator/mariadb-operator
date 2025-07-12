@@ -280,7 +280,7 @@ var _ = Describe("MariaDB Galera lifecycle", Ordered, func() {
 		Expect(k8sClient.Get(testCtx, mdb.SecondaryServiceKey(), &endpointSlice)).To(Succeed())
 		Expect(endpointSlice.Ports).To(HaveLen(1))
 		Expect(endpointSlice.Ports[0].Port).ToNot(BeNil())
-		Expect(*endpointSlice.Ports[0].Port).ToNot(BeEquivalentTo(mdb.Spec.Port))
+		Expect(*endpointSlice.Ports[0].Port).To(BeEquivalentTo(mdb.Spec.Port))
 		Expect(endpointSlice.Endpoints).To(HaveLen(int(mdb.Spec.Replicas) - 1))
 		Expect(endpointSlice.Endpoints[0].Addresses).To(HaveLen(int(1)))
 
