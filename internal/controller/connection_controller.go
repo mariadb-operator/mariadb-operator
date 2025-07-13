@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-multierror"
-	"github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/secret"
@@ -49,7 +48,7 @@ type ConnectionReconciler struct {
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
 func (r *ConnectionReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	var conn v1alpha1.Connection
+	var conn mariadbv1alpha1.Connection
 	if err := r.Get(ctx, req.NamespacedName, &conn); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}

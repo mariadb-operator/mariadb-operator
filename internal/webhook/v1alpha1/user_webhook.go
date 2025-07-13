@@ -5,15 +5,13 @@ import (
 	"fmt"
 	"slices"
 
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
-
-	"github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	k8sv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 )
 
 // log is for logging in this package.
@@ -21,7 +19,7 @@ var userlog = logf.Log.WithName("user-resource")
 
 // SetupUserWebhookWithManager registers the webhook for User in the manager.
 func SetupUserWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).For(&k8sv1alpha1.User{}).
+	return ctrl.NewWebhookManagedBy(mgr).For(&mariadbv1alpha1.User{}).
 		WithValidator(&UserCustomValidator{}).
 		Complete()
 }
@@ -36,13 +34,13 @@ var _ webhook.CustomValidator = &UserCustomValidator{}
 
 // ValidateCreate implements webhook.CustomValidator so a webhook will be registered for the type User.
 func (v *UserCustomValidator) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
-	user, ok := obj.(*k8sv1alpha1.User)
+	user, ok := obj.(*mariadbv1alpha1.User)
 	if !ok {
 		return nil, fmt.Errorf("expected a User object but got %T", obj)
 	}
 	userlog.V(1).Info("Validation for User upon creation", "name", user.GetName())
 
-	validateFns := []func(user *v1alpha1.User) error{
+	validateFns := []func(user *mariadbv1alpha1.User) error{
 		validatePassword,
 		validateUserCleanupPolicy,
 		validateRequire,
@@ -57,11 +55,11 @@ func (v *UserCustomValidator) ValidateCreate(ctx context.Context, obj runtime.Ob
 
 // ValidateUpdate implements webhook.CustomValidator so a webhook will be registered for the type User.
 func (v *UserCustomValidator) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
-	user, ok := newObj.(*k8sv1alpha1.User)
+	user, ok := newObj.(*mariadbv1alpha1.User)
 	if !ok {
 		return nil, fmt.Errorf("expected a User object for the newObj but got %T", newObj)
 	}
-	oldUser, ok := oldObj.(*k8sv1alpha1.User)
+	oldUser, ok := oldObj.(*mariadbv1alpha1.User)
 	if !ok {
 		return nil, fmt.Errorf("expected a User object for the newObj but got %T", newObj)
 	}
@@ -70,7 +68,7 @@ func (v *UserCustomValidator) ValidateUpdate(ctx context.Context, oldObj, newObj
 	if err := inmutableWebhook.ValidateUpdate(user, oldUser); err != nil {
 		return nil, err
 	}
-	validateFns := []func(user *v1alpha1.User) error{
+	validateFns := []func(user *mariadbv1alpha1.User) error{
 		validatePassword,
 		validateUserCleanupPolicy,
 		validateRequire,
@@ -88,7 +86,7 @@ func (v *UserCustomValidator) ValidateDelete(ctx context.Context, obj runtime.Ob
 	return nil, nil
 }
 
-func validatePasswordPlugin(user *v1alpha1.User) error {
+func validatePasswordPlugin(user *mariadbv1alpha1.User) error {
 	if user.Spec.PasswordPlugin.PluginArgSecretKeyRef != nil && user.Spec.PasswordPlugin.PluginNameSecretKeyRef == nil {
 		return field.Invalid(
 			field.NewPath("spec").Child("passwordPlugin").Child("pluginArgSecretKeyRef"),
@@ -100,7 +98,7 @@ func validatePasswordPlugin(user *v1alpha1.User) error {
 	return nil
 }
 
-func validatePassword(user *v1alpha1.User) error {
+func validatePassword(user *mariadbv1alpha1.User) error {
 	if err := validatePasswordPlugin(user); err != nil {
 		return err
 	}
@@ -123,7 +121,7 @@ func validatePassword(user *v1alpha1.User) error {
 	return nil
 }
 
-func validateUserCleanupPolicy(user *v1alpha1.User) error {
+func validateUserCleanupPolicy(user *mariadbv1alpha1.User) error {
 	if user.Spec.CleanupPolicy != nil {
 		if err := user.Spec.CleanupPolicy.Validate(); err != nil {
 			return field.Invalid(
@@ -136,7 +134,7 @@ func validateUserCleanupPolicy(user *v1alpha1.User) error {
 	return nil
 }
 
-func validateRequire(user *v1alpha1.User) error {
+func validateRequire(user *mariadbv1alpha1.User) error {
 	if require := user.Spec.Require; require != nil {
 		if err := require.Validate(); err != nil {
 			return field.Invalid(

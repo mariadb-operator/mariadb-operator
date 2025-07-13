@@ -104,8 +104,6 @@ type patcherMariaDB func(*mariadbv1alpha1.MariaDBStatus) error
 //+kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;patch;delete
 //+kubebuilder:rbac:groups="",resources=services,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups="",resources=secrets,verbs=list;watch;create;patch
-//+kubebuilder:rbac:groups="",resources=endpoints,verbs=create;patch;get;list;watch
-//+kubebuilder:rbac:groups="",resources=endpoints/restricted,verbs=create;patch;get;list;watch
 //+kubebuilder:rbac:groups="",resources=pods,verbs=get;patch;delete
 //+kubebuilder:rbac:groups="",resources=pods/log,verbs=get
 //+kubebuilder:rbac:groups="",resources=persistentvolumeclaims,verbs=list;delete
@@ -118,6 +116,8 @@ type patcherMariaDB func(*mariadbv1alpha1.MariaDBStatus) error
 //+kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=roles;rolebindings;clusterrolebindings,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups=authorization.k8s.io,resources=subjectaccessreviews,verbs=create
 //+kubebuilder:rbac:groups=authentication.k8s.io,resources=tokenreviews,verbs=create
+//+kubebuilder:rbac:groups=discovery.k8s.io,resources=endpointslices,verbs=create;patch;get;list;watch
+//+kubebuilder:rbac:groups=discovery.k8s.io,resources=endpointslices/restricted,verbs=create;patch;get;list;watch
 //+kubebuilder:rbac:groups=monitoring.coreos.com,resources=servicemonitors,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups=cert-manager.io,resources=certificates,verbs=list;watch;create;patch
 
@@ -721,7 +721,9 @@ func (r *MariaDBReconciler) reconcileSecondaryService(ctx context.Context, maria
 	if err := r.ServiceReconciler.Reconcile(ctx, desiredSvc); err != nil {
 		return ctrl.Result{}, err
 	}
-	return r.EndpointsReconciler.Reconcile(ctx, mariadb.SecondaryServiceKey(), mariadb)
+
+	secondaryServiceKey := mariadb.SecondaryServiceKey()
+	return r.EndpointsReconciler.Reconcile(ctx, secondaryServiceKey, mariadb, secondaryServiceKey.Name)
 }
 
 func (r *MariaDBReconciler) reconcileSQL(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {

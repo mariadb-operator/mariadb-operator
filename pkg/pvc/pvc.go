@@ -9,7 +9,6 @@ import (
 	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
 	corev1 "k8s.io/api/core/v1"
 	klabels "k8s.io/apimachinery/pkg/labels"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -46,7 +45,8 @@ func IsPersistentVolumeClaimResizing(pvc *corev1.PersistentVolumeClaim) bool {
 }
 
 // ListStoragePVCs lists the storage PVCs of a given MariaDB instance
-func ListStoragePVCs(ctx context.Context, client client.Client, mariadb *mariadbv1alpha1.MariaDB) ([]corev1.PersistentVolumeClaim, error) {
+func ListStoragePVCs(ctx context.Context, client ctrlclient.Client,
+	mariadb *mariadbv1alpha1.MariaDB) ([]corev1.PersistentVolumeClaim, error) {
 	list := corev1.PersistentVolumeClaimList{}
 	listOpts := &ctrlclient.ListOptions{
 		LabelSelector: klabels.SelectorFromSet(

@@ -89,16 +89,16 @@ func (g *Grant) IsBeingDeleted() bool {
 	return !g.DeletionTimestamp.IsZero()
 }
 
-func (m *Grant) IsReady() bool {
-	return meta.IsStatusConditionTrue(m.Status.Conditions, ConditionTypeReady)
+func (g *Grant) IsReady() bool {
+	return meta.IsStatusConditionTrue(g.Status.Conditions, ConditionTypeReady)
 }
 
 func (g *Grant) MariaDBRef() *MariaDBRef {
 	return &g.Spec.MariaDBRef
 }
 
-func (d *Grant) RequeueInterval() *metav1.Duration {
-	return d.Spec.RequeueInterval
+func (g *Grant) RequeueInterval() *metav1.Duration {
+	return g.Spec.RequeueInterval
 }
 
 func (g *Grant) RetryInterval() *metav1.Duration {

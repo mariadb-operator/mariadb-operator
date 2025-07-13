@@ -2094,6 +2094,10 @@ func (in *MariaDBStatus) DeepCopyInto(out *MariaDBStatus) {
 		*out = new(string)
 		**out = **in
 	}
+	if in.CurrentPrimaryFailingSince != nil {
+		in, out := &in.CurrentPrimaryFailingSince, &out.CurrentPrimaryFailingSince
+		*out = (*in).DeepCopy()
+	}
 	if in.GaleraRecovery != nil {
 		in, out := &in.GaleraRecovery, &out.GaleraRecovery
 		*out = new(GaleraRecoveryStatus)
@@ -3599,6 +3603,11 @@ func (in *PrimaryReplication) DeepCopyInto(out *PrimaryReplication) {
 	if in.AutomaticFailover != nil {
 		in, out := &in.AutomaticFailover, &out.AutomaticFailover
 		*out = new(bool)
+		**out = **in
+	}
+	if in.AutomaticFailoverDelay != nil {
+		in, out := &in.AutomaticFailoverDelay, &out.AutomaticFailoverDelay
+		*out = new(v1.Duration)
 		**out = **in
 	}
 }

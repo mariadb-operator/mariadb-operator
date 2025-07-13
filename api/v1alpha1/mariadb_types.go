@@ -390,9 +390,9 @@ func (b *BootstrapFrom) SetDefaultsWithVolumeSnapshotRef(ref *LocalObjectReferen
 	b.VolumeSnapshotRef = ref
 }
 
-func (r *BootstrapFrom) TargetRecoveryTimeOrDefault() time.Time {
-	if r.TargetRecoveryTime != nil {
-		return r.TargetRecoveryTime.Time
+func (b *BootstrapFrom) TargetRecoveryTimeOrDefault() time.Time {
+	if b.TargetRecoveryTime != nil {
+		return b.TargetRecoveryTime.Time
 	}
 	return time.Now()
 }
@@ -721,6 +721,10 @@ type MariaDBStatus struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status,xDescriptors={"urn:alm:descriptor:io.kubernetes:Pod"}
 	CurrentPrimary *string `json:"currentPrimary,omitempty"`
+	// CurrentPrimaryFailingSince is the timestamp of the moment when the primary became not ready.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	CurrentPrimaryFailingSince *metav1.Time `json:"currentPrimaryFailingSince,omitempty"`
 	// GaleraRecovery is the Galera recovery current state.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status

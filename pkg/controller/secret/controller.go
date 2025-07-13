@@ -70,7 +70,7 @@ func (r *SecretReconciler) ReconcilePassword(ctx context.Context, req PasswordRe
 		},
 	}
 
-	var owner metav1.Object = req.Owner
+	var owner = req.Owner
 	if req.Generate {
 		owner = nil
 	}

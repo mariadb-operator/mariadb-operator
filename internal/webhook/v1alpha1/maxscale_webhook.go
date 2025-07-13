@@ -4,8 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	k8sv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/utils/ptr"
@@ -20,7 +19,7 @@ var maxscalelog = logf.Log.WithName("maxscale-resource")
 
 // SetupMaxScaleWebhookWithManager registers the webhook for MaxScale in the manager.
 func SetupMaxScaleWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).For(&k8sv1alpha1.MaxScale{}).
+	return ctrl.NewWebhookManagedBy(mgr).For(&mariadbv1alpha1.MaxScale{}).
 		WithValidator(&MaxScaleCustomValidator{}).
 		Complete()
 }
@@ -35,13 +34,13 @@ var _ webhook.CustomValidator = &MaxScaleCustomValidator{}
 
 // ValidateCreate implements webhook.CustomValidator so a webhook will be registered for the type MaxScale.
 func (v *MaxScaleCustomValidator) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
-	maxscale, ok := obj.(*k8sv1alpha1.MaxScale)
+	maxscale, ok := obj.(*mariadbv1alpha1.MaxScale)
 	if !ok {
 		return nil, fmt.Errorf("expected a MaxScale object but got %T", obj)
 	}
 	maxscalelog.V(1).Info("Validation for MaxScale upon creation", "name", maxscale.GetName())
 
-	validateFns := []func(*v1alpha1.MaxScale) error{
+	validateFns := []func(*mariadbv1alpha1.MaxScale) error{
 		validateAuth,
 		validateCreateServerSources,
 		validateServers,
@@ -60,11 +59,11 @@ func (v *MaxScaleCustomValidator) ValidateCreate(ctx context.Context, obj runtim
 
 // ValidateUpdate implements webhook.CustomValidator so a webhook will be registered for the type MaxScale.
 func (v *MaxScaleCustomValidator) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
-	maxscale, ok := newObj.(*k8sv1alpha1.MaxScale)
+	maxscale, ok := newObj.(*mariadbv1alpha1.MaxScale)
 	if !ok {
 		return nil, fmt.Errorf("expected a MaxScale object for the newObj but got %T", newObj)
 	}
-	oldMaxscale, ok := oldObj.(*k8sv1alpha1.MaxScale)
+	oldMaxscale, ok := oldObj.(*mariadbv1alpha1.MaxScale)
 	if !ok {
 		return nil, fmt.Errorf("expected a MaxScale object for the newObj but got %T", newObj)
 	}
@@ -74,7 +73,7 @@ func (v *MaxScaleCustomValidator) ValidateUpdate(ctx context.Context, oldObj, ne
 		return nil, err
 	}
 
-	validateFns := []func(*v1alpha1.MaxScale) error{
+	validateFns := []func(*mariadbv1alpha1.MaxScale) error{
 		validateAuth,
 		validateServerSources,
 		validateServers,
@@ -96,7 +95,7 @@ func (v *MaxScaleCustomValidator) ValidateDelete(ctx context.Context, obj runtim
 	return nil, nil
 }
 
-func validateAuth(maxscale *v1alpha1.MaxScale) error {
+func validateAuth(maxscale *mariadbv1alpha1.MaxScale) error {
 	if ptr.Deref(maxscale.Spec.Auth.Generate, false) && maxscale.Spec.MariaDBRef == nil {
 		return field.Invalid(
 			field.NewPath("spec").Child("auth").Child("generate").Child("enabled"),
@@ -107,7 +106,7 @@ func validateAuth(maxscale *v1alpha1.MaxScale) error {
 	return nil
 }
 
-func validateCreateServerSources(maxscale *v1alpha1.MaxScale) error {
+func validateCreateServerSources(maxscale *mariadbv1alpha1.MaxScale) error {
 	if err := validateServerSources(maxscale); err != nil {
 		return err
 	}
@@ -121,7 +120,7 @@ func validateCreateServerSources(maxscale *v1alpha1.MaxScale) error {
 	return nil
 }
 
-func validateServerSources(maxscale *v1alpha1.MaxScale) error {
+func validateServerSources(maxscale *mariadbv1alpha1.MaxScale) error {
 	if maxscale.Spec.MariaDBRef == nil && maxscale.Spec.Servers == nil {
 		return field.Invalid(
 			field.NewPath("spec").Child("mariaDbRef"),
@@ -132,7 +131,7 @@ func validateServerSources(maxscale *v1alpha1.MaxScale) error {
 	return nil
 }
 
-func validateServers(maxscale *v1alpha1.MaxScale) error {
+func validateServers(maxscale *mariadbv1alpha1.MaxScale) error {
 	idx := maxscale.ServerIndex()
 	if len(idx) != len(maxscale.Spec.Servers) {
 		return field.Invalid(
@@ -155,7 +154,7 @@ func validateServers(maxscale *v1alpha1.MaxScale) error {
 	return nil
 }
 
-func validateMonitor(maxscale *v1alpha1.MaxScale) error {
+func validateMonitor(maxscale *mariadbv1alpha1.MaxScale) error {
 	if maxscale.Spec.MariaDBRef == nil && maxscale.Spec.Monitor.Module == "" {
 		return field.Invalid(
 			field.NewPath("spec").Child("monitor").Child("module"),
@@ -175,7 +174,7 @@ func validateMonitor(maxscale *v1alpha1.MaxScale) error {
 	return nil
 }
 
-func validateServices(maxscale *v1alpha1.MaxScale) error {
+func validateServices(maxscale *mariadbv1alpha1.MaxScale) error {
 	idx := maxscale.ServiceIndex()
 	if len(idx) != len(maxscale.Spec.Services) {
 		return field.Invalid(
@@ -198,7 +197,7 @@ func validateServices(maxscale *v1alpha1.MaxScale) error {
 	return nil
 }
 
-func validateMaxScalePodDisruptionBudget(maxscale *v1alpha1.MaxScale) error {
+func validateMaxScalePodDisruptionBudget(maxscale *mariadbv1alpha1.MaxScale) error {
 	if maxscale.Spec.PodDisruptionBudget == nil {
 		return nil
 	}
@@ -212,8 +211,8 @@ func validateMaxScalePodDisruptionBudget(maxscale *v1alpha1.MaxScale) error {
 	return nil
 }
 
-func validateMaxScaleTLS(maxscale *v1alpha1.MaxScale) error {
-	tls := ptr.Deref(maxscale.Spec.TLS, v1alpha1.MaxScaleTLS{})
+func validateMaxScaleTLS(maxscale *mariadbv1alpha1.MaxScale) error {
+	tls := ptr.Deref(maxscale.Spec.TLS, mariadbv1alpha1.MaxScaleTLS{})
 	if !tls.Enabled {
 		return nil
 	}

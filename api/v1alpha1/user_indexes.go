@@ -21,7 +21,7 @@ const (
 )
 
 // IndexerFuncForFieldPath returns an indexer function for a given field path.
-func (m *User) IndexerFuncForFieldPath(fieldPath string) (client.IndexerFunc, error) {
+func (u *User) IndexerFuncForFieldPath(fieldPath string) (client.IndexerFunc, error) {
 	switch fieldPath {
 	case userPasswordSecretFieldPath:
 		return func(obj client.Object) []string {

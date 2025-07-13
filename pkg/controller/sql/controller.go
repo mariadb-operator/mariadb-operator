@@ -13,8 +13,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
 	sqlClient "github.com/mariadb-operator/mariadb-operator/pkg/sql"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	clientpkg "sigs.k8s.io/controller-runtime/pkg/client"
+	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -45,7 +44,7 @@ func WithLogSql(logSql bool) SqlOpt {
 }
 
 type SqlReconciler struct {
-	Client         client.Client
+	Client         ctrlclient.Client
 	RefResolver    *refresolver.RefResolver
 	ConditionReady *condition.Ready
 
@@ -55,7 +54,7 @@ type SqlReconciler struct {
 	SqlOptions
 }
 
-func NewSqlReconciler(client client.Client, cr *condition.Ready, wr WrappedReconciler, f Finalizer,
+func NewSqlReconciler(client ctrlclient.Client, cr *condition.Ready, wr WrappedReconciler, f Finalizer,
 	opts ...SqlOpt) Reconciler {
 	reconciler := &SqlReconciler{
 		Client:            client,
@@ -186,12 +185,12 @@ func (r *SqlReconciler) addRequeueIntervalOffset(duration time.Duration) time.Du
 	return duration
 }
 
-func waitForMariaDB(ctx context.Context, client client.Client, mdb *mariadbv1alpha1.MariaDB,
+func waitForMariaDB(ctx context.Context, client ctrlclient.Client, mdb *mariadbv1alpha1.MariaDB,
 	logSql bool) (ctrl.Result, error) {
 	healthy, err := health.IsStatefulSetHealthy(
 		ctx,
 		client,
-		clientpkg.ObjectKeyFromObject(mdb),
+		ctrlclient.ObjectKeyFromObject(mdb),
 		health.WithDesiredReplicas(mdb.Spec.Replicas),
 		health.WithPort(mdb.Spec.Port),
 		health.WithEndpointPolicy(health.EndpointPolicyAll),

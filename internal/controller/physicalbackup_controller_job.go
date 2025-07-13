@@ -7,7 +7,6 @@ import (
 	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	"github.com/mariadb-operator/mariadb-operator/pkg/job"
 	jobpkg "github.com/mariadb-operator/mariadb-operator/pkg/job"
 	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
 	mdbtime "github.com/mariadb-operator/mariadb-operator/pkg/time"
@@ -27,7 +26,7 @@ import (
 
 func (r *PhysicalBackupReconciler) reconcileJobs(ctx context.Context, backup *mariadbv1alpha1.PhysicalBackup,
 	mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
-	jobList, err := job.ListJobs(ctx, r.Client, backup)
+	jobList, err := jobpkg.ListJobs(ctx, r.Client, backup)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error listing Jobs: %v", err)
 	}

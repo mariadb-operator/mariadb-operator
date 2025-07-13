@@ -54,7 +54,7 @@ var certControllerCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		log.SetupLogger(logLevel, logTimeEncoder, logDev)
 
-		if !(renewBeforePercentage >= 10 && renewBeforePercentage <= 90) {
+		if renewBeforePercentage < 10 || renewBeforePercentage > 90 {
 			setupLog.Error(errors.New(
 				"renew-before-percentage must be between [10, 90]"),
 				"invalid renew-before-percentage",

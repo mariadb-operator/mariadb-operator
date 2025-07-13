@@ -8,7 +8,6 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/controller/sql"
 	sqlClient "github.com/mariadb-operator/mariadb-operator/pkg/sql"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	ctrlClient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
@@ -46,8 +45,8 @@ func (wf *wrappedDatabaseFinalizer) RemoveFinalizer(ctx context.Context) error {
 	})
 }
 
-func (wr *wrappedDatabaseFinalizer) ContainsFinalizer() bool {
-	return controllerutil.ContainsFinalizer(wr.database, databaseFinalizerName)
+func (wf *wrappedDatabaseFinalizer) ContainsFinalizer() bool {
+	return controllerutil.ContainsFinalizer(wf.database, databaseFinalizerName)
 }
 
 func (wf *wrappedDatabaseFinalizer) Reconcile(ctx context.Context, mdbClient *sqlClient.Client) error {
@@ -57,12 +56,12 @@ func (wf *wrappedDatabaseFinalizer) Reconcile(ctx context.Context, mdbClient *sq
 	return nil
 }
 
-func (wr *wrappedDatabaseFinalizer) patch(ctx context.Context, database *mariadbv1alpha1.Database,
+func (wf *wrappedDatabaseFinalizer) patch(ctx context.Context, database *mariadbv1alpha1.Database,
 	patchFn func(*mariadbv1alpha1.Database)) error {
-	patch := ctrlClient.MergeFrom(database.DeepCopy())
+	patch := client.MergeFrom(database.DeepCopy())
 	patchFn(database)
 
-	if err := wr.Client.Patch(ctx, database, patch); err != nil {
+	if err := wf.Client.Patch(ctx, database, patch); err != nil {
 		return fmt.Errorf("error patching Database finalizer: %v", err)
 	}
 	return nil

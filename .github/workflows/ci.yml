@@ -4,11 +4,12 @@ on:
   push:
     branches:
       - main
-      - release-*
-  pull_request: {}
+  pull_request:
+    branches:
+      - main
 
 env:
-  GOLANGCI_VERSION: "v1.64.8"
+  GOLANGCI_VERSION: "v2.2.1"
 
 jobs:
   detect-noop:
@@ -24,6 +25,7 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           paths_ignore: '["*.md","*.md.gotmpl",".github/**","docs/**","examples/**"]'
           concurrent_skipping: false
+          skip_after_successful_duplicate: false
 
   lint:
     name: Lint
@@ -41,7 +43,7 @@ jobs:
           cache: true
 
       - name: GolangCI Lint
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@v8
         with:
           version: ${{ env.GOLANGCI_VERSION }}
 
@@ -55,7 +57,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Find typos
-        uses: crate-ci/typos@v1.32.0
+        uses: crate-ci/typos@v1.34.0
         with:
           files: ./api ./cmd ./internal ./pkg
           config: ./.typos.toml
@@ -119,10 +121,14 @@ jobs:
       - name: Determine test
         id: test
         run: |
-          if [[ "${{ github.event_name }}" == "push" && 
-                 ("${{ github.ref }}" == "refs/heads/main" || "${{ github.ref }}" == refs/heads/release-*) ]]; then
+          if [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == "refs/heads/main" ]]; then
+            echo "Detected push to main. Running full tests."
+            echo "type=full" >> "$GITHUB_OUTPUT"
+          elif [[ "${{ github.event_name }}" == "pull_request" && "${{ github.head_ref }}" =~ ^release-.* ]]; then
+            echo "Detected PR from release branch. Running full tests."
             echo "type=full" >> "$GITHUB_OUTPUT"
           else
+            echo "Defaulting to basic tests"
             echo "type=basic" >> "$GITHUB_OUTPUT"
           fi
 

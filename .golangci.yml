@@ -1,39 +1,58 @@
-linters-settings:
-  gocyclo:
-    min-complexity: 22
-  lll:
-    line-length: 140
-  nestif:
-    min-complexity: 12
-  misspell:
-    locale: US
-
+version: "2"
 linters:
-  disable-all: true
+  default: none
   enable:
-    - unused
+    - bodyclose
     - errcheck
     - ginkgolinter
     - gocyclo
-    - gofmt
-    - goimports
-    - gosimple
     - govet
     - ineffassign
     - lll
     - misspell
     - nestif
-    - staticcheck
-    - typecheck
-    - unused
-    - bodyclose
     - noctx
-
-issues:
-  exclude-rules:
-    - linters:
-        - lll
-      source: "//"
-
-run:
-  timeout: 5m
+    - staticcheck
+    - unused
+  settings:
+    gocyclo:
+      min-complexity: 22
+    lll:
+      line-length: 140
+    misspell:
+      locale: US
+    nestif:
+      min-complexity: 12
+    staticcheck:
+      # TODO: fix static check issues. Contributions are welcome!
+      checks:
+        - all
+        - '-ST1001' # Dot imports are discouraged: https://staticcheck.dev/docs/checks/#ST1001
+        - '-ST1003' # Poorly chosen identifier: https://staticcheck.dev/docs/checks/#ST1003
+        - '-ST1005' # Incorrectly formatted error string: https://staticcheck.dev/docs/checks/#ST1005
+        - '-QF1008' # Omit embedded fields from selector expression: https://staticcheck.dev/docs/checks/#QF1008
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    rules:
+      - linters:
+          - lll
+        source: //
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
