@@ -21,7 +21,7 @@ type GrantSpec struct {
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinItems=1
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Privileges []string `json:"privileges" webhook:"inmutable"`
+	Privileges []string `json:"privileges"`
 	// Database to use in the Grant.
 	// +optional
 	// +kubebuilder:default=*
@@ -54,6 +54,11 @@ type GrantStatus struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status,xDescriptors={"urn:alm:descriptor:io.kubernetes.conditions"}
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
+	// CurrentPrivileges is the list of current privileges used in the Grant.
+	// It allows to detect the divergence from the desired privileges.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	CurrentPrivileges []string `json:"currentPrivileges"`
 }
 
 func (g *GrantStatus) SetCondition(condition metav1.Condition) {

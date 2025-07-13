@@ -1720,6 +1720,13 @@ spec:
                   - type
                   type: object
                 type: array
+              currentPrivileges:
+                description: |-
+                  CurrentPrivileges is the list of current privileges used in the Grant.
+                  It allows to detect the divergence from the desired privileges.
+                items:
+                  type: string
+                type: array
             type: object
         type: object
     served: true
