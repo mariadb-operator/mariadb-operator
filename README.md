@@ -60,6 +60,7 @@ You can easily deploy the operator to your cluster by installing the `mariadb-op
 helm repo add mariadb-operator https://helm.mariadb.com/mariadb-operator
 helm install mariadb-operator-crds mariadb-operator/mariadb-operator-crds
 helm install mariadb-operator mariadb-operator/mariadb-operator
+helm install mariadb ./mariadb -f values.yaml
 ```
 
 Refer to the [helm documentation](./docs/HELM.md) for further detail.
