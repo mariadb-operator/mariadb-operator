@@ -248,7 +248,7 @@ func cleanupPreviousSST(fm *filemanager.FileManager) error {
 
 func getPreviousPodName(mdb *mariadbv1alpha1.MariaDB, podIndex int) (string, error) {
 	if podIndex == 0 {
-		return "", fmt.Errorf("Pod '%s' is the first Pod", statefulset.PodName(mdb.ObjectMeta, podIndex))
+		return "", fmt.Errorf("Pod '%s' is the first Pod", statefulset.PodName(mdb.ObjectMeta, podIndex)) //nolint:staticcheck
 	}
 	previousPodIndex := podIndex - 1
 	return statefulset.PodName(mdb.ObjectMeta, previousPodIndex), nil

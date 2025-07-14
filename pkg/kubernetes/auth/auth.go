@@ -78,7 +78,7 @@ func (a *KubernetesAuth) Handler(next http.Handler) http.Handler {
 func authToken(r *http.Request) (string, error) {
 	auth := r.Header.Get("Authorization")
 	if auth == "" {
-		return "", errors.New("Authorization header not found")
+		return "", errors.New("Authorization header not found") //nolint:staticcheck
 	}
 	parts := strings.Split(auth, "Bearer ")
 	if len(parts) != 2 {

@@ -99,7 +99,7 @@ func (s *Server) Start(ctx context.Context) error {
 	}()
 	go func() {
 		if err := s.listen(); err != nil {
-			errChan <- fmt.Errorf("Error starting server: %v", err)
+			errChan <- fmt.Errorf("error starting server: %v", err)
 		}
 	}()
 

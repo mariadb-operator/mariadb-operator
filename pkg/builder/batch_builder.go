@@ -149,7 +149,7 @@ func (b *Builder) BuildPhysicalBackupJob(key types.NamespacedName, backup *maria
 		return nil, fmt.Errorf("error getting index for Pod '%s': %v", pod.Name, err)
 	}
 	if pod.Spec.NodeName == "" {
-		return nil, errors.New("Pod must be scheduled: spec.nodeName is empty")
+		return nil, errors.New("Pod must be scheduled: spec.nodeName is empty") //nolint:staticcheck
 	}
 
 	jobMeta :=
@@ -504,7 +504,7 @@ func (b *Builder) BuildPhysicalBackupRestoreJob(key types.NamespacedName, mariad
 func (b *Builder) BuildGaleraInitJob(key types.NamespacedName, mariadb *mariadbv1alpha1.MariaDB) (*batchv1.Job, error) {
 	galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
 	if !galera.Enabled {
-		return nil, errors.New("Galera must be enabled")
+		return nil, errors.New("Galera must be enabled") //nolint:staticcheck
 	}
 	initJob := ptr.Deref(galera.InitJob, mariadbv1alpha1.GaleraInitJob{})
 	extraMeta := ptr.Deref(initJob.Metadata, mariadbv1alpha1.Metadata{})
@@ -582,11 +582,11 @@ func (b *Builder) BuildGaleraRecoveryJob(key types.NamespacedName, mariadb *mari
 	pod *corev1.Pod) (*batchv1.Job, error) {
 	galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
 	if !galera.Enabled {
-		return nil, errors.New("Galera must be enabled")
+		return nil, errors.New("Galera must be enabled") //nolint:staticcheck
 	}
 	recovery := ptr.Deref(galera.Recovery, mariadbv1alpha1.GaleraRecovery{})
 	if !recovery.Enabled {
-		return nil, errors.New("Galera recovery must be enabled")
+		return nil, errors.New("Galera recovery must be enabled") //nolint:staticcheck
 	}
 
 	podIndex, err := statefulset.PodIndex(pod.Name)
@@ -594,7 +594,7 @@ func (b *Builder) BuildGaleraRecoveryJob(key types.NamespacedName, mariadb *mari
 		return nil, fmt.Errorf("error getting index for Pod '%s': %v", pod.Name, err)
 	}
 	if pod.Spec.NodeName == "" {
-		return nil, errors.New("Pod must be scheduled: spec.nodeName is empty")
+		return nil, errors.New("Pod must be scheduled: spec.nodeName is empty") //nolint:staticcheck
 	}
 
 	recoveryJob := ptr.Deref(recovery.Job, mariadbv1alpha1.GaleraRecoveryJob{})

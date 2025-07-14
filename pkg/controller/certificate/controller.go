@@ -107,7 +107,7 @@ func (r *CertReconciler) reconcileCA(ctx context.Context, opts *CertReconcilerOp
 	createCA := r.createCAFn(opts)
 	caKeyPair, err := r.reconcileKeyPair(ctx, opts.caSecretKey, opts.caSecretType, false, opts, createCA)
 	if err != nil {
-		return nil, fmt.Errorf("Error reconciling CA keypair: %v", err)
+		return nil, fmt.Errorf("error reconciling CA keypair: %v", err)
 	}
 
 	caLeafCert, err := caKeyPair.LeafCertificate()
@@ -136,7 +136,7 @@ func (r *CertReconciler) reconcileCA(ctx context.Context, opts *CertReconcilerOp
 
 		caKeyPair, err = r.reconcileKeyPair(ctx, opts.caSecretKey, opts.caSecretType, true, opts, createCA)
 		if err != nil {
-			return nil, fmt.Errorf("Error reconciling CA keypair: %v", err)
+			return nil, fmt.Errorf("error reconciling CA keypair: %v", err)
 		}
 	}
 	return caKeyPair, nil
@@ -154,12 +154,12 @@ func (r *CertReconciler) reconcileCert(ctx context.Context, caKeyPair *pki.KeyPa
 	createCert := r.createCertFn(caKeyPair, opts)
 	certKeyPair, err := r.reconcileKeyPair(ctx, opts.certSecretKey, SecretTypeTLS, false, opts, createCert)
 	if err != nil {
-		return ctrl.Result{}, nil, fmt.Errorf("Error reconciling certificate keypair: %v", err)
+		return ctrl.Result{}, nil, fmt.Errorf("error reconciling certificate keypair: %v", err)
 	}
 
 	caCerts, err := r.getCABundle(ctx, caKeyPair, opts, logger)
 	if err != nil {
-		return ctrl.Result{}, nil, fmt.Errorf("Error getting CA bundle: %v", err)
+		return ctrl.Result{}, nil, fmt.Errorf("error getting CA bundle: %v", err)
 	}
 	leafCert, err := certKeyPair.LeafCertificate()
 	if err != nil {
@@ -340,7 +340,7 @@ func (r *CertReconciler) createSecret(ctx context.Context, key types.NamespacedN
 	}
 
 	if err := r.Create(ctx, secret); err != nil {
-		return fmt.Errorf("Error creating TLS Secret: %v", err)
+		return fmt.Errorf("error creating TLS Secret: %v", err)
 	}
 	return nil
 }
@@ -360,7 +360,7 @@ func (r *CertReconciler) patchSecret(ctx context.Context, secretType SecretType,
 	}
 
 	if err := r.Patch(ctx, secret, patch); err != nil {
-		return fmt.Errorf("Error patching TLS Secret: %v", err)
+		return fmt.Errorf("error patching TLS Secret: %v", err)
 	}
 	return nil
 }

@@ -132,7 +132,7 @@ func (v *MariaDBCustomValidator) ValidateDelete(ctx context.Context, obj runtime
 
 func validateHA(mariadb *v1alpha1.MariaDB) error {
 	if mariadb.Replication().Enabled && mariadb.IsGaleraEnabled() {
-		return errors.New("You may only enable one HA method at a time, either 'spec.replication' or 'spec.galera'")
+		return errors.New("you may only enable one HA method at a time, either 'spec.replication' or 'spec.galera'")
 	}
 	if !mariadb.IsHAEnabled() && mariadb.Spec.Replicas > 1 {
 		return field.Invalid(

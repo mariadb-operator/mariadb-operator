@@ -163,7 +163,7 @@ func (r *RBACReconciler) reconcileClusterRoleBinding(ctx context.Context, key ty
 	if err == nil {
 		if !isOwnedBy(mariadb, &existingCRB) {
 			return fmt.Errorf(
-				"ClusterRoleBinding '%s' already exists. Specify a different one via 'spec.galera.agent.kubernetesAuth.authDelegatorRoleName'.",
+				"ClusterRoleBinding '%s' already exists. Specify a different one via 'spec.galera.agent.kubernetesAuth.authDelegatorRoleName'",
 				existingCRB.Name,
 			)
 		}

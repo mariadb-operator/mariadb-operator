@@ -192,7 +192,7 @@ func (rs *recoveryStatus) bootstrapSource(mdb *mariadbv1alpha1.MariaDB, forceBoo
 				pod: *pod,
 			}, nil
 		}
-		return nil, fmt.Errorf("Pod '%s' used to forcefully bootstrap not found", *forceBootstrapInPod)
+		return nil, fmt.Errorf("Pod '%s' used to forcefully bootstrap not found", *forceBootstrapInPod) //nolint:staticcheck
 	}
 
 	if !rs.isComplete(mdb, logger) {
