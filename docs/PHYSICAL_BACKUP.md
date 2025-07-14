@@ -2,6 +2,24 @@
 
 ## Table of contents
 
+<!-- toc -->
+- [What is a physical backup?](#what-is-a-physical-backup)
+- [Backup strategies](#backup-strategies)
+- [Storage types](#storage-types)
+- [Scheduling](#scheduling)
+- [Compression](#compression)
+- [Retention policy](#retention-policy)
+- [Restoration](#restoration)
+- [Target recovery time](#target-recovery-time)
+- [Timeout](#timeout)
+- [Extra options](#extra-options)
+- [S3 credentials](#s3-credentials)
+- [Staging area](#staging-area)
+- [Volume Snapshots](#volume-snapshots)
+- [Important considerations and limitations](#important-considerations-and-limitations)
+- [Troubleshooting](#troubleshooting)
+<!-- /toc -->
+
 ## What is a physical backup?
 
 A physical backup is a snapshot of the entire data directory (`/var/lib/mysql`), including all data files. This type of backup captures the exact state of the database at a specific point in time, allowing for quick restoration in case of data loss or corruption.
@@ -368,7 +386,37 @@ This backup process is described in the [MariaDB documentation](https://mariadb.
 
 ## Important considerations and limitations
 
-Root password. Restore job. ReadwriteOncePod not supported: https://kubernetes.io/docs/concepts/storage/persistent-volumes/#access-modes
+Root password. Restore job. ReadwriteOncePod not supported: 
+
+### Root credentials
+
+When restoring a backup, the root credentials specified through the `spec.rootPasswordSecretKeyRef` field in the `MariaDB` resource must match the ones in the backup. These credentials are utilized by the liveness and readiness probes, and if they are invalid, the probes will fail, causing your `MariaDB` `Pods` to restart after the backup restoration.
+
+### Restore Job
+
+Restoring and uncompressing large backups can consume significant compute resources and may cause restoration `Jobs` to become stuck due to insufficient resources. To prevent this, you can define the compute resources allocated to the `Job`:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb
+spec:
+  bootstrapFrom:
+    restoreJob:
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          memory: 1Gi
+```
+
+### `ReadWriteOncePod` access mode not supported
+
+The data PVC used by the `MariaDB` `Pod` cannot make use of the [`ReadWriteOncePod` access mode](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#access-modes), since it will need to be mounted by the `MariaDB` `Pod` and the backup `Job` at the same time.
+
+Alternatively, please use the `ReadWriteOnce` or `ReadWriteMany` access modes.
 
 ## Troubleshooting
 
