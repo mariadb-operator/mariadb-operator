@@ -386,8 +386,6 @@ This backup process is described in the [MariaDB documentation](https://mariadb.
 
 ## Important considerations and limitations
 
-Root password. Restore job. ReadwriteOncePod not supported: 
-
 ### Root credentials
 
 When restoring a backup, the root credentials specified through the `spec.rootPasswordSecretKeyRef` field in the `MariaDB` resource must match the ones in the backup. These credentials are utilized by the liveness and readiness probes, and if they are invalid, the probes will fail, causing your `MariaDB` `Pods` to restart after the backup restoration.
