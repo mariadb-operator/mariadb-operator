@@ -107,7 +107,7 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 								Primary: &v1alpha1.PrimaryReplication{
 									PodIndex: func() *int { i := 0; return &i }(),
 								},
-								SyncBinlog: func() *int { i := 1; return &i }(),
+								SyncBinlog: ptr.To(1),
 							},
 							Enabled: true,
 						},
@@ -129,7 +129,7 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 								Primary: &v1alpha1.PrimaryReplication{
 									PodIndex: func() *int { i := 0; return &i }(),
 								},
-								SyncBinlog: func() *int { i := 1; return &i }(),
+								SyncBinlog: ptr.To(1),
 							},
 							Enabled: true,
 						},
