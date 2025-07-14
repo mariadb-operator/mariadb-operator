@@ -23,6 +23,8 @@ A logical backup is a backup that contains the logical structure of the database
 
 Logical backups serve not just as a source of restoration, but also enable data mobility between `MariaDB` instances. These backups are called "logical" because they are independent from the `MariaDB` topology, as they only contain DDLs and `INSERT` statements to populate data.
 
+Although logical backups are a great fit for data mobility and migrations, they are not as efficient as [physical backups](./PHYSICAL_BACKUP.md) for large databases. For this reason, physical backups are the recommended method for backing up `MariaDB` databases, especially in production environments.
+
 ## Storage types
 
 Currently, the following storage types are supported:
