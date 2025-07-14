@@ -14,6 +14,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
 	"github.com/mariadb-operator/mariadb-operator/pkg/version"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -96,7 +97,7 @@ func (r *ReplicationConfig) ConfigureReplica(ctx context.Context, mariadb *maria
 func (r *ReplicationConfig) configurePrimaryVars(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *sql.Client,
 	primaryPodIndex int) error {
 	kv := map[string]string{
-		"sync_binlog":                  fmt.Sprintf("%d", *mariadb.Replication().SyncBinlog),
+		"sync_binlog":                  fmt.Sprintf("%d", ptr.Deref(mariadb.Replication().SyncBinlog, 1)),
 		"rpl_semi_sync_master_enabled": "ON",
 		"rpl_semi_sync_master_timeout": func() string {
 			return fmt.Sprint(mariadb.Replication().Replica.ConnectionTimeout.Milliseconds())
@@ -120,7 +121,7 @@ func (r *ReplicationConfig) configurePrimaryVars(ctx context.Context, mariadb *m
 func (r *ReplicationConfig) configureReplicaVars(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 	client *sql.Client, ordinal int) error {
 	kv := map[string]string{
-		"sync_binlog":                  fmt.Sprintf("%d", *mariadb.Replication().SyncBinlog),
+		"sync_binlog":                  fmt.Sprintf("%d", ptr.Deref(mariadb.Replication().SyncBinlog, 1)),
 		"rpl_semi_sync_master_enabled": "OFF",
 		"rpl_semi_sync_slave_enabled":  "ON",
 		"server_id":                    serverId(ordinal),
