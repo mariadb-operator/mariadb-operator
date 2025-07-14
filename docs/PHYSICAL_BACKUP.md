@@ -89,25 +89,282 @@ If you want to suspend the schedule, you can set the `suspend` field to `true`. 
 
 ## Compression
 
+When using physical backups based on `mariadb-backup`, you are able to choose the compression algorithm used to compress the backup files. The available options are:
+- `bzip2`: Good compression ratio, but slower compression/decompression speed compared to gzip.
+- `gzip`: Good compression/decompression speed, but worse compression ratio compared to bzip2.
+- `none`: No compression.
+
+To specify the compression algorithm, you can use the `compression` field in the `PhysicalBackup` resource:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: PhysicalBackup
+metadata:
+  name: physicalbackup
+spec:
+  mariaDbRef:
+    name: mariadb
+  compression: bzip2
+```
+
+`compression` is defaulted to `none` by the operator.
+
 ## Retention policy
+
+You can define a retention policy both for backups based on `mariadb-backup` and for `VolumeSnapshots`. The retention policy allows you to specify how long backups should be retained before they are automatically deleted. This can be defined via the `maxRetention` field in the `PhysicalBackup` resource:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: PhysicalBackup
+metadata:
+  name: physicalbackup
+spec:
+  mariaDbRef:
+    name: mariadb
+  maxRetention: 720h # 30 days
+```
+
+When using physical backups based on `mariadb-backup`, the operator will automatically delete backups files in the specified storage older than the retention period.
+
+When using `VolumeSnapshots`, the operator will automatically delete the `VolumeSnapshot` resources via the Kubernetes API that are older than then retention periord.
 
 ## Restoration
 
-From PhysicalBackup, S3 (with backupContentType), NFS and VolumeSnapshot
+Physical backups can only be restored in brand new `MariaDB` instances without any existing data. This means that you cannot restore a physical backup into an existing `MariaDB` instance that already has data.
 
-RestoreJob
+To perform a restoration, you can specify a `PhysicalBackup` as restoration source under the `spec.bootstrapFrom` field in the `MariaDB` resource:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+spec:
+  bootstrapFrom:
+    backupRef:
+      name: physicalbackup
+      kind: PhysicalBackup
+```
+
+This will take into account the backup strategy used in the `PhysicalBackup`, and it will perform the restoration accordingly.
+
+As an alternative, you can also provide a reference to an S3 bucket that was previously used to store the physical backup files:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+spec:
+  bootstrapFrom:
+    s3:
+      bucket: physicalbackups
+      prefix: mariadb
+      endpoint: minio.minio.svc.cluster.local:9000
+      accessKeyIdSecretKeyRef:
+        name: minio
+        key: access-key-id
+      secretAccessKeySecretKeyRef:
+        name: minio
+        key: secret-access-key
+      tls:
+        enabled: true
+        caSecretKeyRef:
+          name: minio-ca
+          key: ca.crt
+    backupContentType: Physical
+```
+
+It is important to note that the `backupContentType` field must be set to `Physical` when restoring from a physical backup. This ensures that the operator uses the correct restoration method.
+
+To restore a `VolumeSnapshot`, you can provide a reference to a specific `VolumeSnapshot` resource in the `spec.bootstrapFrom` field:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+spec:
+  bootstrapFrom:
+    volumeSnapshotRef:
+      name: physicalbackup-20250611163352
+```
 
 ## Target recovery time
 
+By default, the operator will match the closest backup available to the current time. You can specify a different target recovery time by using the `targetRecoveryTime` field in the `PhysicalBackup` resource. This allows you to specify a specific time to which you want to recover:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+spec:
+  bootstrapFrom:
+    targetRecoveryTime: 2025-06-17T08:07:00Z
+``` 
+
 ## Timeout
+
+By default, both backups based on `mariadb-backup` and `VolumeSnapshots` will have a timeout of 1 hour. You can change this timeout by using the `timeout` field in the `PhysicalBackup` resource:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: PhysicalBackup
+metadata:
+  name: physicalbackup
+spec:
+  mariaDbRef:
+    name: mariadb
+  timeout: 2h
+```
+
+When timed out, the operator will delete the `Jobs` or `VolumeSnapshots` resources associated wit the `PhysicalBackup` resource. The operator will create new `Jobs` or `VolumeSnapshots` to retry the backup operation if the `PhysicalBackup` resource is still scheduled.
 
 ## Extra options
 
+When taking backups based on `mariadb-backup`, you can specify extra options to pass to the `mariadb-backup` command using the `args` field in the `PhysicalBackup` resource:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: PhysicalBackup
+metadata:
+  name: physicalbackup
+spec:
+  mariaDbRef:
+    name: mariadb
+  args:
+    - "--verbose"
+```
+
+Refer to the [mariadb-backup documentation](https://mariadb.com/docs/server/server-usage/backup-and-restore/mariadb-backup/mariadb-backup-options) for a list of available options.
+
 ## S3 credentials
+
+Credentials for accessing an S3 compatible storage can be provided via the `s3` key in the `storage` field of the `PhysicalBackup` resource. The credentials can be provided as a reference to a Kubernetes `Secret`:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: PhysicalBackup
+metadata:
+  name: physicalbackup
+spec:
+  mariaDbRef:
+    name: mariadb
+  storage:
+    s3:
+      bucket: physicalbackups
+      endpoint: minio.minio.svc.cluster.local:9000
+      accessKeyIdSecretKeyRef:
+        name: minio
+        key: access-key-id
+      secretAccessKeySecretKeyRef:
+        name: minio
+        key: secret-access-key
+      tls:
+        enabled: true
+        caSecretKeyRef:
+          name: minio-ca
+          key: ca.crt
+```
+
+Alternatively, if you are running in EKS, you can use dynamic credentials from an EKS Service Account using EKS Pod Identity or IRSA:
+
+```yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: mariadb-backup
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::<<account_id>>:role/my-role-irsa
+```
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: PhysicalBackup
+metadata:
+  name: physicalbackup
+spec:
+  mariaDbRef:
+    name: mariadb
+  serviceAccountName: mariadb-backup
+  storage:
+    s3:
+      bucket: physicalbackups
+      prefix: mariadb
+      endpoint: s3.us-east-1.amazonaws.com
+      region:  us-east-1
+      tls:
+        enabled: true
+```
+
+By leaving out `accessKeyIdSecretKeyRef` and `secretAccessKeySecretKeyRef` the credentials and pointing to the correct `serviceAccountName`, the backup Job will use the dynamic credentials from EKS.
 
 ## Staging area
 
+> [!NOTE]  
+> S3 backups based on `mariadb-backup` are the only sceneraio that requires a staging area.
+
+When using S3 storage for backups, a staging area is used for keeping the external backups while they are being processed. By default, this staging area is an `emptyDir` volume, which means that the backups are temporarily stored in the node's local storage where the `Backup`/`Restore` `Job` is scheduled. In production environments, large backups may lead to issues if the node doesn't have sufficient space, potentially causing the backup/restore process to fail.
+
+Additionally, when restoring these backups, the operator will pull the backup files from S3, uncompress them if needded, and restore them to each of the `MariaDB` `Pods` in the cluster individually. To save network bandwidth and compute resources, a staging area is used to keep the uncompressed backup files after they have been restored to the first `MariaDB` `Pod`. This allows the operator to restore the same backup to the other `MariaDB` `Pods` seamlessly, without needing to pull and uncompress them again.
+
+To configure the staging area, you can use the `stagingStorage` field in the `MariaDB` resource:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+spec:
+  mariaDbRef:
+    name: mariadb
+  bootstrapFrom:
+    s3:
+      bucket: physicalbackups
+      prefix: mariadb
+      endpoint: minio.minio.svc.cluster.local:9000
+      accessKeyIdSecretKeyRef:
+        name: minio
+        key: access-key-id
+      secretAccessKeySecretKeyRef:
+        name: minio
+        key: secret-access-key
+      tls:
+        enabled: true
+        caSecretKeyRef:
+          name: minio-ca
+          key: ca.crt
+    backupContentType: Physical
+    targetRecoveryTime: 2025-06-17T08:07:00Z
+    stagingStorage:
+      persistentVolumeClaim:
+        resources:
+          requests:
+            storage: 1Gi
+        accessModes:
+          - ReadWriteOnce
+``` 
+
 ## Volume Snapshots
+
+> [!IMPORTANT]
+> Before using this feature, ensure that you meet the following prerequisites :
+> - [external-snapshotter](https://github.com/kubernetes-csi/external-snapshotter) and its CRs are installed in the cluster.
+> - You have a compatible CSI driver that supports `VolumeSnapshots` installed in the cluster.
+> - You have a `VolumeSnapshotClass` configured configured for your CSI driver.
+
+The operator is capable of creating [`VolumeSnapshot` resources](https://kubernetes.io/docs/concepts/storage/volume-snapshots/) of the PVCs used by the `MariaDB` `Pods`. This allows you to create point-in-time snapshots of your data in a Kubernetes-native way, leveraging the capabilities of your storage provider.
+
+Most of the fields described in this documentation apply to `VolumeSnapshots`, including scheduling, retention policy, and compression. The main difference with the `mariadb-backup` based backups is that the operator will not create a `Job` to perform the backup, but instead will create a `VolumeSnapshot` resource directly.
+
+In order to create consistent, point-in-time snapshots of the `MariaDB` data, the operator will perform the following steps:
+1. Temporarily pause the `MariaDB` writes by executing a `FLUSH TABLES WITH READ LOCK` command on the `MariaDB` primary `Pod`
+2. Create a `VolumeSnapshot` resource of the `MariaDB` primary `Pod`
+3. Wait until the `VolumeSnapshot` resources becomes ready. When timing out, the operator will delete the `VolumeSnapshot` resource and retry the operation.
+4. Release the `MariaDB` writes by executing an `UNLOCK TABLES` command on the `MariaDB` primary `Pod`
+
+This backup process is described in the [MariaDB documentation](https://mariadb.com/docs/server/server-usage/backup-and-restore/backup-and-restore-with-mariadb-enterprise-server/backup-optimization#snapshotting-with-mariadb-community-server).
 
 ## Important considerations and limitations
 
