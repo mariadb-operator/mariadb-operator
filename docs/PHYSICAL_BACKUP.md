@@ -61,8 +61,8 @@ spec:
 Multiple storage types are supported for storing physical backups, including:
 - **S3 compatible storage**: Store backups in a S3 compatible storage, such as [AWS S3](https://aws.amazon.com/s3/) or [Minio](https://github.com/minio/minio).
 - **Persistent Volume Claims (PVC)**: Use any of the [StorageClasses](https://kubernetes.io/docs/concepts/storage/storage-classes/) available in your Kubernetes cluster to create a `PersistentVolumeClaim` (PVC) for storing backups.
-- **Kubernetes Volumes**: Store backups in any of the [in-tree storage provider](https://kubernetes.io/docs/concepts/storage/volumes/) supported by Kubernetes out of the box, such as NFS.
-- **Kubernetes Volume Snapshot**: Use [Kubernetes Volume Snapshots](https://kubernetes.io/docs/concepts/storage/volume-snapshots/) to create snapshots of the persistent volumes used by the `MariaDB` pods. This method relies on a compatible CSI (Container Storage Interface) driver that supports volume snapshots. See the [Volume Snapshots](#volume-snapshots) section for more details.
+- **Kubernetes Volumes**: Store backups in any of the [in-tree storage providers](https://kubernetes.io/docs/concepts/storage/volumes/) supported by Kubernetes out of the box, such as NFS.
+- **Kubernetes Volume Snapshots**: Use [Kubernetes Volume Snapshots](https://kubernetes.io/docs/concepts/storage/volume-snapshots/) to create snapshots of the persistent volumes used by the `MariaDB` pods. This method relies on a compatible CSI (Container Storage Interface) driver that supports volume snapshots. See the [Volume Snapshots](#volume-snapshots) section for more details.
 
 
 ## Scheduling
