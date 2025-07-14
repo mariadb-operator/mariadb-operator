@@ -138,7 +138,7 @@ func (r *RestoreReconciler) setDefaults(ctx context.Context, restore *mariadbv1a
 
 	if !backup.IsComplete() {
 		var errBundle *multierror.Error
-		errBundle = multierror.Append(errBundle, errors.New("Backup not complete"))
+		errBundle = multierror.Append(errBundle, errors.New("Backup not complete")) //nolint:staticcheck
 
 		err := r.patchStatus(ctx, restore, r.ConditionComplete.PatcherFailed("Backup not complete"))
 		errBundle = multierror.Append(errBundle, err)

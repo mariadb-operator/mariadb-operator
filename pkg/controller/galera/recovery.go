@@ -153,7 +153,7 @@ func (r *GaleraReconciler) restartPods(ctx context.Context, mariadb *mariadbv1al
 		return fmt.Errorf("error getting source to forcefully bootstrap: %v", err)
 	}
 	if src.pod == "" {
-		return errors.New("Unable to restart Pods. Cluster hasn't been bootstrapped")
+		return errors.New("unable to restart Pods. Cluster hasn't been bootstrapped")
 	}
 
 	mariadbKey := ctrlclient.ObjectKeyFromObject(mariadb)
@@ -537,7 +537,7 @@ func (r *GaleraReconciler) pollUntilPodHealthy(ctx context.Context, mariadbKey, 
 			return fmt.Errorf("error getting Pod '%s': %v", podKey.Name, err)
 		}
 		if pod.Status.Phase != corev1.PodRunning {
-			return errors.New("Pod not running")
+			return errors.New("Pod not running") //nolint:staticcheck
 		}
 
 		healthy, err := client.Galera.Health(ctx)
@@ -545,7 +545,7 @@ func (r *GaleraReconciler) pollUntilPodHealthy(ctx context.Context, mariadbKey, 
 			return fmt.Errorf("error getting Galera health: %v", err)
 		}
 		if !healthy {
-			return errors.New("Galera not healthy")
+			return errors.New("Galera not healthy") //nolint:staticcheck
 		}
 		return nil
 	})
@@ -586,7 +586,7 @@ func (r *GaleraReconciler) pollUntilPodSynced(ctx context.Context, mariadbKey, p
 			return fmt.Errorf("error checking Pod sync: %v", err)
 		}
 		if !synced {
-			return errors.New("Pod not synced")
+			return errors.New("Pod not synced") //nolint:staticcheck
 		}
 		return nil
 	})

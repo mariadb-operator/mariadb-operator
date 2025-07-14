@@ -30,7 +30,7 @@ func (r *CertReconciler) reconcileCertManagerCert(ctx context.Context, opts *Cer
 	if !certExists {
 		r.recorder.Event(opts.relatedObject, corev1.EventTypeWarning, mariadbv1alpha1.ReasonCRDNotFound,
 			"Unable to reconcile certificate: Certificate CRD not installed in the cluster")
-		logger.Error(errors.New("Certificate CRD not installed in the cluster"), "Unable to reconcile certificate")
+		logger.Error(errors.New("Certificate CRD not installed in the cluster"), "Unable to reconcile Certificate") //nolint:staticcheck
 		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 	}
 
@@ -101,10 +101,10 @@ func (r *CertReconciler) certManagerCertReady(ctx context.Context, opts *CertRec
 		if condition.Status == cmmeta.ConditionTrue {
 			return nil
 		} else {
-			return fmt.Errorf("Certificate '%s' not ready: %s", opts.certSecretKey.Name, condition.Message)
+			return fmt.Errorf("Certificate '%s' not ready: %s", opts.certSecretKey.Name, condition.Message) //nolint:staticcheck
 		}
 	}
-	return fmt.Errorf("Certificate '%s' not ready", opts.certSecretKey.Name)
+	return fmt.Errorf("Certificate '%s' not ready", opts.certSecretKey.Name) //nolint:staticcheck
 }
 
 func certManagerKeyUsages(opts *CertReconcilerOpts, logger logr.Logger) []certmanagerv1.KeyUsage {

@@ -148,7 +148,7 @@ func (r *EndpointsReconciler) endpointSlice(ctx context.Context, key types.Names
 
 func buildEndpoint(pod *corev1.Pod) (*discoveryv1.Endpoint, error) {
 	if pod.Status.PodIP == "" || pod.Spec.NodeName == "" {
-		return nil, errors.New("Pod IP and Nodename must be set")
+		return nil, errors.New("Pod IP and NodeName must be set") //nolint:staticcheck
 	}
 	return &discoveryv1.Endpoint{
 		Addresses: []string{pod.Status.PodIP},
@@ -167,7 +167,7 @@ func buildEndpoint(pod *corev1.Pod) (*discoveryv1.Endpoint, error) {
 
 func getAddressType(pod *corev1.Pod) (*discoveryv1.AddressType, error) {
 	if pod.Status.PodIP == "" {
-		return nil, errors.New("Pod IP and Nodename must be set")
+		return nil, errors.New("Pod IP and NodeName must be set") //nolint:staticcheck
 	}
 	parsedIp := net.ParseIP(pod.Status.PodIP)
 	if parsedIp == nil {

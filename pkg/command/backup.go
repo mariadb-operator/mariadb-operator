@@ -196,7 +196,7 @@ func (b *BackupCommand) MariadbDump(backup *mariadbv1alpha1.Backup,
 
 func (b *BackupCommand) MariadbBackup(mariadb *mariadbv1alpha1.MariaDB, backupFilePath string) (*Command, error) {
 	if b.Database != nil {
-		return nil, errors.New("Database option not supported in physical backups")
+		return nil, errors.New("database option not supported in physical backups")
 	}
 
 	connFlags, err := ConnectionFlags(&b.CommandOpts, mariadb)
@@ -317,7 +317,7 @@ func (b *BackupCommand) MariadbRestore(restore *mariadbv1alpha1.Restore, mariadb
 
 func (b *BackupCommand) MariadbBackupRestore(mariadb *mariadbv1alpha1.MariaDB, backupDirPath string) (*Command, error) {
 	if b.Database != nil {
-		return nil, errors.New("Database option not supported in physical backups")
+		return nil, errors.New("database option not supported in physical backups")
 	}
 
 	// The ext4 filesystem creates a lost+found directory by default, which causes mariadb-backup to fail with:

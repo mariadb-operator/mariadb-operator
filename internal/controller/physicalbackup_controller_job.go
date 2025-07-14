@@ -341,7 +341,7 @@ func (r *PhysicalBackupReconciler) deleteJobSync(ctx context.Context, job *batch
 		if err := r.Get(ctx, key, &j); apierrors.IsNotFound(err) {
 			return nil
 		}
-		return errors.New("Job still exists")
+		return errors.New("Job still exists") //nolint:staticcheck
 	})
 }
 

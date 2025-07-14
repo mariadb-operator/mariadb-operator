@@ -234,7 +234,7 @@ func (r *MariaDBReconciler) pollUntilPodUpdated(ctx context.Context, mariadbKey,
 		if podpkg.PodUpdated(&pod, updateRevision) {
 			return nil
 		}
-		return errors.New("Pod stale")
+		return errors.New("Pod stale") //nolint:staticcheck
 	})
 }
 

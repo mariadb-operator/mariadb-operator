@@ -235,7 +235,7 @@ func (r *GaleraAgent) Validate() error {
 	kubernetesAuth := ptr.Deref(r.KubernetesAuth, KubernetesAuth{})
 	basicAuth := ptr.Deref(r.BasicAuth, BasicAuth{})
 	if kubernetesAuth.Enabled && basicAuth.Enabled {
-		return errors.New("Only one authentication method must be enabled: kubernetes or basic auth")
+		return errors.New("only one authentication method must be enabled: kubernetes or basic auth")
 	}
 	return nil
 }
