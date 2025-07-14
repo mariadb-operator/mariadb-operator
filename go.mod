@@ -12,7 +12,7 @@ require (
 	github.com/go-sql-driver/mysql v1.9.2
 	github.com/google/go-cmp v0.7.0
 	github.com/google/uuid v1.6.0
-	github.com/gruntwork-io/terratest v0.48.2
+	github.com/gruntwork-io/terratest v0.50.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/go-version v1.7.0
 	github.com/kubernetes-csi/external-snapshotter/client/v8 v8.2.0
@@ -84,7 +84,6 @@ require (
 	github.com/evanphx/json-patch/v5 v5.9.11 // indirect
 	github.com/fsnotify/fsnotify v1.8.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.8.0 // indirect
-	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/go-errors/errors v1.4.2 // indirect
 	github.com/go-ini/ini v1.67.0 // indirect
 	github.com/go-logr/zapr v1.3.0 // indirect
