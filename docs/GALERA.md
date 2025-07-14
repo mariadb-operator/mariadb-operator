@@ -137,7 +137,7 @@ Unlike the [`ServiceAccount` based authentication](#serviceaccount-based-authent
 
 ## Backup and restore
 
-Please refer to the [backup documentation](./BACKUP.md) to understand how to backup and restore Galera clusters. Specially, make sure you understand the [Galera backup limitations](./BACKUP.md#galera-backup-limitations).
+Please refer to the [backup documentation](./LOGICAL_BACKUP.md) to understand how to backup and restore Galera clusters. Specially, make sure you understand the [Galera backup limitations](./LOGICAL_BACKUP.md#galera-backup-limitations).
 
 
 ## Galera cluster recovery
@@ -495,7 +495,7 @@ Alternatively, if you can afford some downtime and your PVCs are in healthy stat
 - Delete your existing `MariaDB`, this will leave your PVCs intact.
 - Create your `MariaDB` again, this will trigger a Galera recovery process as described in [this section](#bootstrap-galera-cluster-from-existing-pvcs).
 
-As a last resource, you can always delete the PVCs and bootstrap a new `MariaDB` from a backup as documented [here](./BACKUP.md#bootstrap-new-mariadb-instances).
+As a last resource, you can always delete the PVCs and bootstrap a new `MariaDB` from a backup as documented [here](./LOGICAL_BACKUP.md#bootstrap-new-mariadb-instances).
  
 #### Permission denied writing Galera configuration
 

@@ -1,7 +1,7 @@
 # Please, take a look at our HA guide to configure production-ready MariaDB instances:
 # https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/HA.md
 # Configure a backup and recovery strategy in case that something goes wrong:
-# https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/BACKUP.md
+# https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/LOGICAL_BACKUP.md
 # Roll out upgrades choosing the right upgrade strategy:
 # https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/UPDATES.md
 apiVersion: k8s.mariadb.com/v1alpha1
