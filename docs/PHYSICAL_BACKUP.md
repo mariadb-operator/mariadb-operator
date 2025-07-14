@@ -6,13 +6,13 @@
 
 A physical backup is a snapshot of the entire data directory (`/var/lib/mysql`), including all data files. This type of backup captures the exact state of the database at a specific point in time, allowing for quick restoration in case of data loss or corruption.
 
-Physical backups are the recommended method for backing up `MariaDB` databases, especially in production environments, as they are faster and more efficient than logical backups.
+Physical backups are the recommended method for backing up `MariaDB` databases, especially in production environments, as they are faster and more efficient than [logical backups](./LOGICAL_BACKUP.md).
 
 ## Backup strategies
 
 Multiple strategies are available for performing physical backups, including:
 - **mariadb-backup**: Taken using the [mariadb-backup](https://mariadb.com/docs/server/server-usage/backup-and-restore/mariadb-backup/full-backup-and-restore-with-mariadb-backup) utility, which is part of the `MariaDB` server package. The operator supports scheduling `Jobs` to perform backups using this utility.
-- **Kubernetes Volume Snapshot**: Leverage Kubernetes `VolumeSnapshot` feature to create snapshots of the persistent volumes used by the `MariaDB` pods. This method relies on a compatible CSI (Container Storage Interface) driver that supports volume snapshots. See the [Volume Snapshots](#volume-snapshots) section for more details.
+- **Kubernetes Volume Snapshot**: Leverage [Kubernetes Volume Snapshots](https://kubernetes.io/docs/concepts/storage/volume-snapshots/)  to create snapshots of the persistent volumes used by the `MariaDB` pods. This method relies on a compatible CSI (Container Storage Interface) driver that supports volume snapshots. See the [Volume Snapshots](#volume-snapshots) section for more details.
 
 In order to use `VolumeSnapshots`, you will need to provide a `VolumeSnapshotClass` that is compatible with your storage provider. The operator will use this class to create snapshots of the persistent volumes:
 
@@ -62,7 +62,7 @@ Multiple storage types are supported for storing physical backups, including:
 - **S3 compatible storage**: Store backups in a S3 compatible storage, such as [AWS S3](https://aws.amazon.com/s3/) or [Minio](https://github.com/minio/minio).
 - **Persistent Volume Claims (PVC)**: Use any of the [StorageClasses](https://kubernetes.io/docs/concepts/storage/storage-classes/) available in your Kubernetes cluster to create a `PersistentVolumeClaim` (PVC) for storing backups.
 - **Kubernetes Volumes**: Store backups in any of the [in-tree storage provider](https://kubernetes.io/docs/concepts/storage/volumes/) supported by Kubernetes out of the box, such as NFS.
-- **Kubernetes Volume Snapshot**: Use Kubernetes `VolumeSnapshot` feature to create snapshots of the persistent volumes used by the `MariaDB` pods. This method relies on a compatible CSI (Container Storage Interface) driver that supports volume snapshots. See the [Volume Snapshots](#volume-snapshots) section for more details.
+- **Kubernetes Volume Snapshot**: Use [Kubernetes Volume Snapshots](https://kubernetes.io/docs/concepts/storage/volume-snapshots/) to create snapshots of the persistent volumes used by the `MariaDB` pods. This method relies on a compatible CSI (Container Storage Interface) driver that supports volume snapshots. See the [Volume Snapshots](#volume-snapshots) section for more details.
 
 
 ## Scheduling
@@ -109,9 +109,9 @@ RestoreJob
 
 ## Volume Snapshots
 
-## Important considerations
+## Important considerations and limitations
 
-Root password. Restore job.
+Root password. Restore job. ReadwriteOncePod not supported: https://kubernetes.io/docs/concepts/storage/persistent-volumes/#access-modes
 
 ## Troubleshooting
 
@@ -124,7 +124,7 @@ NAME             COMPLETE   STATUS    MARIADB   LAST SCHEDULED   AGE
 physicalbackup   True       Success   mariadb   17s              17s
 ```
 
-To get higher level of detail, you can also check the `status` field directly::
+To get a higher level of detail, you can also check the `status` field directly::
 
 ```bash
 kubectl get physicalbackups physicalbackup -o json | jq -r '.status'
