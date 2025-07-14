@@ -3,7 +3,7 @@ Thank you for using `{{ .ProjectName }}`🦭!
 📣 Amazing news: The project just got a major boost – it's now officially **sponsored by [MariaDB Corporation](https://mariadb.com/)** 🎉 I'm absolutely thrilled about this collaboration and can't wait to dive in and work with them!
 
 🪣 More good news, but this time, something you've been waiting for a long time: ✨**S3 storage for backups**✨ is now officially supported, you can now store your backups in an S3 compatible storage like [AWS S3 ](https://aws.amazon.com/s3/) or [Minio](https://github.com/minio/minio). Refer to the documentation to see how to configure it:
-- [Backup and Restore](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/BACKUP.md)
+- [Backup and Restore](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/LOGICAL_BACKUP.md)
 
 📈 We have also introduced significant improvements on the metrics side, the newest version of [mysqld-exporter](https://github.com/prometheus/mysqld_exporter) has now been supported. This update facilitates the use of a single Deployment targeting all replicas, eliminating the need for a sidecar exporter per replica. For more details on this architectural modification, please refer to the documentation:
 - [Prometheus metrics](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/METRICS.md)

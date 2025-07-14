@@ -25,11 +25,11 @@ Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB
 - Automated Galera [primary failover](./docs/HA.md) and [cluster recovery](./docs/GALERA.md#galera-cluster-recovery).
 - Advanced HA with [MaxScale](./docs/MAXSCALE.md): a sophisticated database proxy, router, and load balancer for MariaDB.
 - Flexible [storage](./docs/STORAGE.md) configuration. [Volume expansion](./docs/STORAGE.md#volume-resize).
-- Take, restore and schedule [backups](./docs/BACKUP.md). 
-- Multiple [backup storage types](./docs/BACKUP.md#storage-types): S3 compatible, PVCs and Kubernetes volumes.
-- Policy-driven [backup](./docs/BACKUP.md#retention-policy) retention with bzip and gzip [compression options](./docs/BACKUP.md#compression).
-- [Target recovery time](./docs/BACKUP.md#target-recovery-time): restore the closest available backup to the specified time.
-- [Bootstrap new instances](./docs/BACKUP.md#bootstrap-new-mariadb-instances-from-backups) from: Backups, S3, PVCs ...
+- Take, restore and schedule [backups](./docs/LOGICAL_BACKUP.md). 
+- Multiple [backup storage types](./docs/LOGICAL_BACKUP.md#storage-types): S3 compatible, PVCs and Kubernetes volumes.
+- Policy-driven [backup](./docs/LOGICAL_BACKUP.md#retention-policy) retention with bzip and gzip [compression options](./docs/LOGICAL_BACKUP.md#compression).
+- [Target recovery time](./docs/LOGICAL_BACKUP.md#target-recovery-time): restore the closest available backup to the specified time.
+- [Bootstrap new instances](./docs/LOGICAL_BACKUP.md#bootstrap-new-mariadb-instances-from-backups) from: Backups, S3, PVCs ...
 - [Cluster-aware rolling update](./docs/UPDATES.md#replicasfirstprimarylast): roll out replica Pods one by one, wait for each of them to become ready, and then proceed with the primary Pod, using `ReplicasFirstPrimaryLast`.
 - Manual [update strategies](./docs/UPDATES.md#update-strategies): `OnDelete` and `Never`.
 - Automated [data-plane updates](./docs/UPDATES.md#auto-update-data-plane).
@@ -86,7 +86,7 @@ The Openshift installation is managed separately in the [mariadb-operator-helm](
 
 ## Migrate your MariaDB instance to Kubernetes
 
-This [migration guide](./docs/BACKUP.md#migrating-an-external-mariadb-to-a-mariadb-running-in-kubernetes) will streamline your onboarding process and assist you in migrating your data into a `MariaDB` instance running on Kubernetes.
+This [migration guide](./docs/LOGICAL_BACKUP.md#migrating-an-external-mariadb-to-a-mariadb-running-in-kubernetes) will streamline your onboarding process and assist you in migrating your data into a `MariaDB` instance running on Kubernetes.
 
 ## GitOps
 
