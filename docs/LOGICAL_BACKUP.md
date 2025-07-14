@@ -1,27 +1,27 @@
-# Backup and Restore
-
-> [!NOTE]  
-> This documentation applies to `mariadb-operator` version >= v0.0.28
-
-`mariadb-operator` allows you to declarativaly take backups by defining `Backup` resources and later on restore them by using their `Restore` counterpart. These resources get reconciled into `Job`/`CronJob` resources that automatically perform the backup/restore operations, so you don't need to manually script them.
+# Logical backups
 
 ## Table of contents
 <!-- toc -->
-- [Storage types](#storage-types)
-- [`Backup` CR](#backup-cr)
-- [`Restore` CR](#restore-cr)
-- [Bootstrap new `MariaDB` instances](#bootstrap-new-mariadb-instances)
-- [Backup and restore specific databases](#backup-and-restore-specific-databases)
-- [Extra options](#extra-options)
-- [Staging area](#staging-area)
-- [Important considerations and limitations](#important-considerations-and-limitations)
-- [Logical backups](#logical-backups)
-- [Migrating an external MariaDB to a `MariaDB` running in Kubernetes](#migrating-an-external-mariadb-to-a-mariadb-running-in-kubernetes)
-- [Migrating to a `MariaDB` with different topology](#migrating-to-a-mariadb-with-different-topology)
-- [Minio reference installation](#minio-reference-installation)
-- [Reference](#reference)
-- [Troubleshooting](#troubleshooting)
+  - [What is a logical backup?](#what-is-a-logical-backup)
+  - [Storage types](#storage-types)
+  - [`Backup` CR](#backup-cr)
+  - [`Restore` CR](#restore-cr)
+  - [Bootstrap new `MariaDB` instances](#bootstrap-new-mariadb-instances)
+  - [Backup and restore specific databases](#backup-and-restore-specific-databases)
+  - [Extra options](#extra-options)
+  - [Staging area](#staging-area)
+  - [Important considerations and limitations](#important-considerations-and-limitations)
+  - [Migrations using logical backups](#migrations-using-logical-backups)
+  - [Minio reference installation](#minio-reference-installation)
+  - [Reference](#reference)
+  - [Troubleshooting](#troubleshooting)
 <!-- /toc -->
+
+## What is a logical backup?
+
+A logical backup is a backup that contains the logical structure of the database, such as tables, indexes, and data, rather than the physical storage format. It is created using [mariadb-dump](https://mariadb.com/docs/server/clients-and-utilities/backup-restore-and-import-clients/mariadb-dump), which generates SQL statements that can be used to recreate the database schema and populate it with data.
+
+Logical backups serve not just as a source of restoration, but also enable data mobility between `MariaDB` instances. These backups are called "logical" because they are independent from the `MariaDB` topology, as they only contain DDLs and `INSERT` statements to populate data.
 
 ## Storage types
 
@@ -423,11 +423,11 @@ spec:
 
 ## Important considerations and limitations
 
-#### Root credentials
+### Root credentials
 
 When restoring a backup, the root credentials specified through the `spec.rootPasswordSecretKeyRef` field in the `MariaDB` resource must match the ones in the backup. These credentials are utilized by the liveness and readiness probes, and if they are invalid, the probes will fail, causing your `MariaDB` `Pods` to restart after the backup restoration.
 
-#### Restore job
+### Restore job
 
 Restoring large backups can consume significant compute resources and may cause `Restore` `Jobs` to become stuck due to insufficient resources. To prevent this, you can define the compute resources allocated to the `Job`:
 
@@ -451,7 +451,7 @@ spec:
           memory: 1Gi
 ``` 
 
-#### Galera backup limitations
+### Galera backup limitations
 
 #### `mysql.global_priv`
 
@@ -498,15 +498,11 @@ Galera is not compatible with the `LOCK TABLES` statement:
 
 For this reason, the operator automatically adds the `--skip-add-locks` option to the `Backup` to overcome this limitation.
 
-## Logical backups
+## Migrations using logical backups
 
-Logical backups serve not just as a source of restoration, but also enable data mobility between `MariaDB` instances. These backups are called "logical" because they are independent from the `MariaDB` topology, as they only contain DDLs and `INSERT` statements to populate data.
+### Migrating an external MariaDB to a `MariaDB` running in Kubernetes
 
-As of today, `mariadb-operator` only supports logical backups, but we have plans to implement Point-In-Time-Recovery(PITR) based on physical backups and binary logs. This will allow to restore the state of a `MariaDB` instance in a particular point in time, minimizing the RPO (data loss) and RTO (time to recover). See https://github.com/mariadb-operator/mariadb-operator/issues/507.
-
-## Migrating an external MariaDB to a `MariaDB` running in Kubernetes
-
-You can leverage [logical backups](#logical-backups) to bring your external MariaDB data into a new `MariaDB` instance running in Kubernetes. Follow this runbook for doing so:
+You can leverage logical backups to bring your external MariaDB data into a new `MariaDB` instance running in Kubernetes. Follow this runbook for doing so:
 
 1. Take a logical backup of your external MariaDB using one of the commands below:
 ```bash
@@ -559,9 +555,9 @@ spec:
 ```
 5. If you are using Galera in your new instance, migrate your previous users and grants to use the `User` and `Grant` CRs. Refer to the [SQL resource documentation](./SQL_RESOURCES.md) for further detail.
 
-## Migrating to a `MariaDB` with different topology
+### Migrating to a `MariaDB` with different topology
 
-Databa mobility between `MariaDB` instances with different topologies is possible with [logical backups](#logical-backups). However, there are a couple of technical details that you need to be aware of in the following scenarios:
+Databa mobility between `MariaDB` instances with different topologies is possible with logical backups. However, there are a couple of technical details that you need to be aware of in the following scenarios:
 
 #### Migrating between standalone and replicated `MariaDBs`
 
