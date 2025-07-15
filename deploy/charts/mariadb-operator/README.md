@@ -16,7 +16,7 @@ helm install mariadb-operator-crds mariadb-operator/mariadb-operator-crds
 helm install mariadb-operator mariadb-operator/mariadb-operator
 ```
 
-Refer to the [helm documentation](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/HELM.md) for further detail.
+Refer to the [helm documentation](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/helm.md) for further detail.
 
 ## Values
 

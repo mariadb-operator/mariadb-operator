@@ -21,37 +21,37 @@
 
 Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB using Kubernetes [CRDs](https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definitions/) rather than imperative commands.
 - [Easily provision](./examples/manifests/mariadb_minimal.yaml) and [configure](./examples/manifests/mariadb_full.yaml) MariaDB servers in Kubernetes.
-- Multiple [HA modes](./docs/HA.md): Galera Cluster or MariaDB Replication.
-- Automated Galera [primary failover](./docs/HA.md) and [cluster recovery](./docs/GALERA.md#galera-cluster-recovery).
-- Advanced HA with [MaxScale](./docs/MAXSCALE.md): a sophisticated database proxy, router, and load balancer for MariaDB.
-- Flexible [storage](./docs/STORAGE.md) configuration. [Volume expansion](./docs/STORAGE.md#volume-resize).
-- [Physical backups](./docs/PHYSICAL_BACKUP.md) based on [mariadb-backup](https://mariadb.com/docs/server/server-usage/backup-and-restore/mariadb-backup/full-backup-and-restore-with-mariadb-backup) and [Kubernetes VolumeSnapshots](https://kubernetes.io/docs/concepts/storage/volume-snapshots/).
-- [Logical backups](./docs/LOGICAL_BACKUP.md) based on [mariadb-dump](https://mariadb.com/docs/server/clients-and-utilities/backup-restore-and-import-clients/mariadb-dump). 
-- Multiple [backup storage types](./docs/PHYSICAL_BACKUP.md#storage-types): S3 compatible, PVCs, Kubernetes volumes and `VolumeSnapshots`.
-- Flexible backup configuration: [scheduling](./docs/PHYSICAL_BACKUP.md#scheduling), [compression](./docs/PHYSICAL_BACKUP.md#compression), [retention policy](./docs/PHYSICAL_BACKUP.md#retention-policy), [timeout](./docs/PHYSICAL_BACKUP.md#timeout), [staging area](./docs/PHYSICAL_BACKUP.md#staging-area)...
-- [Target recovery time](./docs/PHYSICAL_BACKUP.md#target-recovery-time): restore the closest available backup to the specified time.
-- [Bootstrap new instances](./docs/PHYSICAL_BACKUP.md#restoration) from: Physical backups, logical backups, S3, PVCs, `VolumeSnapshots`...
-- [Cluster-aware rolling update](./docs/UPDATES.md#replicasfirstprimarylast): roll out replica Pods one by one, wait for each of them to become ready, and then proceed with the primary Pod, using `ReplicasFirstPrimaryLast`.
-- Manual [update strategies](./docs/UPDATES.md#update-strategies): `OnDelete` and `Never`.
-- Automated [data-plane updates](./docs/UPDATES.md#auto-update-data-plane).
-- [my.cnf change detection](./docs/CONFIGURATION.md#mycnf). Automatically trigger [updates](./docs/UPDATES.md) when my.cnf changes.
-- [Suspend](./docs/SUSPEND.md) operator reconciliation for maintenance operations.
-- Issue, configure and rotate [TLS certificates](./docs/TLS.md) and CAs.
+- Multiple [HA modes](./docs/high_availability.md): Galera Cluster or MariaDB Replication.
+- Automated Galera [primary failover](./docs/high_availability.md) and [cluster recovery](./docs/galera.md#galera-cluster-recovery).
+- Advanced HA with [MaxScale](./docs/maxscale.md): a sophisticated database proxy, router, and load balancer for MariaDB.
+- Flexible [storage](./docs/storage.md) configuration. [Volume expansion](./docs/storage.md#volume-resize).
+- [Physical backups](./docs/physical_backup.md) based on [mariadb-backup](https://mariadb.com/docs/server/server-usage/backup-and-restore/mariadb-backup/full-backup-and-restore-with-mariadb-backup) and [Kubernetes VolumeSnapshots](https://kubernetes.io/docs/concepts/storage/volume-snapshots/).
+- [Logical backups](./docs/logical_backup.md) based on [mariadb-dump](https://mariadb.com/docs/server/clients-and-utilities/backup-restore-and-import-clients/mariadb-dump). 
+- Multiple [backup storage types](./docs/physical_backup.md#storage-types): S3 compatible, PVCs, Kubernetes volumes and `VolumeSnapshots`.
+- Flexible backup configuration: [scheduling](./docs/physical_backup.md#scheduling), [compression](./docs/physical_backup.md#compression), [retention policy](./docs/physical_backup.md#retention-policy), [timeout](./docs/physical_backup.md#timeout), [staging area](./docs/physical_backup.md#staging-area)...
+- [Target recovery time](./docs/physical_backup.md#target-recovery-time): restore the closest available backup to the specified time.
+- [Bootstrap new instances](./docs/physical_backup.md#restoration) from: Physical backups, logical backups, S3, PVCs, `VolumeSnapshots`...
+- [Cluster-aware rolling update](./docs/updates.md#replicasfirstprimarylast): roll out replica Pods one by one, wait for each of them to become ready, and then proceed with the primary Pod, using `ReplicasFirstPrimaryLast`.
+- Manual [update strategies](./docs/updates.md#update-strategies): `OnDelete` and `Never`.
+- Automated [data-plane updates](./docs/updates.md#auto-update-data-plane).
+- [my.cnf change detection](./docs/configuration.md#mycnf). Automatically trigger [updates](./docs/updates.md) when my.cnf changes.
+- [Suspend](./docs/suspend.md) operator reconciliation for maintenance operations.
+- Issue, configure and rotate [TLS certificates](./docs/tls.md) and CAs.
 - Native integration with [cert-manager](https://github.com/cert-manager/cert-manager). Automatically create `Certificate` resources.
-- [Prometheus metrics](./docs/METRICS.md) via [mysqld-exporter](https://github.com/prometheus/mysqld_exporter) and maxscale-exporter.
+- [Prometheus metrics](./docs/metrics.md) via [mysqld-exporter](https://github.com/prometheus/mysqld_exporter) and maxscale-exporter.
 - Native integration with [prometheus-operator](https://github.com/prometheus-operator/prometheus-operator). Automatically create `ServiceMonitor` resources.
-- Declaratively manage [SQL resources](./docs/SQL_RESOURCES.md): [users](./examples/manifests/user.yaml), [grants](./examples/manifests/grant.yaml) and logical [databases](./examples/manifests/database.yaml).
+- Declaratively manage [SQL resources](./docs/sql_resources.md): [users](./examples/manifests/user.yaml), [grants](./examples/manifests/grant.yaml) and logical [databases](./examples/manifests/database.yaml).
 - Configure [connections](./examples/manifests/connection.yaml) for your applications.
 - Orchestrate and schedule [sql scripts](./examples/manifests/sqljobs).
 - Validation webhooks to provide CRD immutability.
 - Additional printer columns to report the current CRD status.
 - CRDs designed according to the Kubernetes [API conventions](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md).
-- Install it using [helm](./docs/HELM.md), [OLM](https://operatorhub.io/operator/mariadb-operator) or [static manifests](./deploy/manifests).
-- Multiple [deployment modes](./docs/HELM.md#deployment-modes): cluster-wide and single namespace.
+- Install it using [helm](./docs/helm.md), [OLM](https://operatorhub.io/operator/mariadb-operator) or [static manifests](./deploy/manifests).
+- Multiple [deployment modes](./docs/helm.md#deployment-modes): cluster-wide and single namespace.
 - Multi-arch distroless [image](https://github.com/orgs/mariadb-operator/packages/container/package/mariadb-operator).
 - [GitOps](#gitops) friendly.
 
-Please, refer to the [documentation](./docs/), [release notes](https://github.com/mariadb-operator/mariadb-operator/releases), the [API reference](./docs/API_REFERENCE.md) and the [example catalog](./examples/) for further detail, or dive into the [quickstart](./docs/QUICKSTART.md).
+Please, refer to the [documentation](./docs/), [release notes](https://github.com/mariadb-operator/mariadb-operator/releases), the [API reference](./docs/api_reference.md) and the [example catalog](./examples/) for further detail, or dive into the [quickstart](./docs/quickstart.md).
 
 ## Helm installation
 
@@ -63,17 +63,17 @@ helm install mariadb-operator-crds mariadb-operator/mariadb-operator-crds
 helm install mariadb-operator mariadb-operator/mariadb-operator
 ```
 
-Refer to the [helm documentation](./docs/HELM.md) for further detail.
+Refer to the [helm documentation](./docs/helm.md) for further detail.
 
 ## Upgrading from older releases
-When upgrading from an older version of the operator, it’s important to understand how both operator and operand resources are affected.  Ensure you read both the [updates section of the helm docs](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/HELM.md#updates), and the [release notes](https://github.com/mariadb-operator/mariadb-operator/releases) for any additional version-specific steps that may be required. Do not attempt to skip intermediate version upgrades. Upgrade progressively through each version to the next.
+When upgrading from an older version of the operator, it’s important to understand how both operator and operand resources are affected.  Ensure you read both the [updates section of the helm docs](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/helm.md#updates), and the [release notes](https://github.com/mariadb-operator/mariadb-operator/releases) for any additional version-specific steps that may be required. Do not attempt to skip intermediate version upgrades. Upgrade progressively through each version to the next.
 
 ## Openshift installation
 
 The Openshift installation is managed separately in the [mariadb-operator-helm](https://github.com/mariadb-operator/mariadb-operator-helm) repository, which contains a [helm based operator](https://sdk.operatorframework.io/docs/building-operators/helm/) that allows you to install `mariadb-operator` via [OLM](https://olm.operatorframework.io/docs/).
 
 ## Image compatibility
-`mariadb-operator` is only compatible with official MariaDB images. Refer to the [images documentation](./docs/DOCKER.md) for further detail.
+`mariadb-operator` is only compatible with official MariaDB images. Refer to the [images documentation](./docs/docker.md) for further detail.
 
 ## MariaDB compatibility
 - MariaDB Community >= 10.6
@@ -87,7 +87,7 @@ The Openshift installation is managed separately in the [mariadb-operator-helm](
 
 ## Migrate your MariaDB instance to Kubernetes
 
-This [migration guide](./docs/LOGICAL_BACKUP.md#migrating-an-external-mariadb-to-a-mariadb-running-in-kubernetes) will streamline your onboarding process and assist you in migrating your data into a `MariaDB` instance running on Kubernetes.
+This [migration guide](./docs/logical_backup.md#migrating-an-external-mariadb-to-a-mariadb-running-in-kubernetes) will streamline your onboarding process and assist you in migrating your data into a `MariaDB` instance running on Kubernetes.
 
 ## GitOps
 
@@ -104,7 +104,7 @@ Please create a PR and add your company or project to our [ADOPTERS.md file](./A
 
 ## Contributing
 
-We welcome and encourage contributions to this project! Please check our [contributing](./CONTRIBUTING.md) and [development](./docs/DEVELOPMENT.md) guides. PRs welcome!
+We welcome and encourage contributions to this project! Please check our [contributing](./CONTRIBUTING.md) and [development](./docs/development.md) guides. PRs welcome!
 
 ## Community
 

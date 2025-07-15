@@ -23,7 +23,7 @@ A logical backup is a backup that contains the logical structure of the database
 
 Logical backups serve not just as a source of restoration, but also enable data mobility between `MariaDB` instances. These backups are called "logical" because they are independent from the `MariaDB` topology, as they only contain DDLs and `INSERT` statements to populate data.
 
-Although logical backups are a great fit for data mobility and migrations, they are not as efficient as [physical backups](./PHYSICAL_BACKUP.md) for large databases. For this reason, physical backups are the recommended method for backing up `MariaDB` databases, especially in production environments.
+Although logical backups are a great fit for data mobility and migrations, they are not as efficient as [physical backups](./physical_backup.md) for large databases. For this reason, physical backups are the recommended method for backing up `MariaDB` databases, especially in production environments.
 
 ## Storage types
 
@@ -401,7 +401,7 @@ spec:
         - ReadWriteOnce
 ``` 
 
-In the examples above, a PVC with the default `StorageClass` will be used as staging area. Refer to the [API reference](./API_REFERENCE.md) for more configuration options.
+In the examples above, a PVC with the default `StorageClass` will be used as staging area. Refer to the [API reference](./api_reference.md) for more configuration options.
 
 Similarly, you may also use a custom staging area when [bootstrapping from backup](#bootstrap-new-mariadb-instances):
 
@@ -490,7 +490,7 @@ spec:
 
 Also, to avoid situations where `mysql.global_priv` is unreplicated, all the entries in that table must be managed via DDLs. This is the recommended approach suggested in the [Galera docs](https://galeracluster.com/library/kb/user-changes.html). There are a couple of ways that we can guarantee this:
 - Use the `rootPasswordSecretKeyRef`, `username` and `passwordSecretKeyRef` fields of the `MariaDB` CR to create the root and initial user respectively. This fields will be translated into DDLs by the image entrypoint.
-- Rely on the [`User`](https://github.com/mariadb-operator/mariadb-operator/blob/main/examples/manifests/user.yaml) and [`Grant`](https://github.com/mariadb-operator/mariadb-operator/blob/main/examples/manifests/grant.yaml) CRs to create additional users and grants. Refer to the [SQL resource documentation](./SQL_RESOURCES.md) for further detail.
+- Rely on the [`User`](https://github.com/mariadb-operator/mariadb-operator/blob/main/examples/manifests/user.yaml) and [`Grant`](https://github.com/mariadb-operator/mariadb-operator/blob/main/examples/manifests/grant.yaml) CRs to create additional users and grants. Refer to the [SQL resource documentation](./sql_resources.md) for further detail.
 
 
 #### `LOCK TABLES` 
@@ -555,7 +555,7 @@ spec:
           key: tls.crt
     targetRecoveryTime: 2024-08-26T12:24:34Z
 ```
-5. If you are using Galera in your new instance, migrate your previous users and grants to use the `User` and `Grant` CRs. Refer to the [SQL resource documentation](./SQL_RESOURCES.md) for further detail.
+5. If you are using Galera in your new instance, migrate your previous users and grants to use the `User` and `Grant` CRs. Refer to the [SQL resource documentation](./sql_resources.md) for further detail.
 
 ### Migrating to a `MariaDB` with different topology
 
@@ -604,7 +604,7 @@ spec:
 
 The easiest way to get a S3 compatible storage is [Minio](https://github.com/minio/minio). You can install it by using their [helm chart](https://github.com/minio/minio/tree/master/helm/minio), or, if you are looking for a production-grade deployment, take a look at their [operator](https://github.com/minio/operator).
 
-In our case, we have have [configured](../hack/config/minio.yaml) a Minio instance for [development](./DEVELOPMENT.md) purposes, you can easily install it by running:
+In our case, we have have [configured](../hack/config/minio.yaml) a Minio instance for [development](./development.md) purposes, you can easily install it by running:
 
 ```bash
 make cluster
@@ -614,7 +614,7 @@ make net # to access the console via a MetalLB LoadBalancer: https://minio-conso
 As an alternative, you can also use [play.min.io](https://play.min.io/) using these [credentials](../examples/manifests/config/minio-secret.yaml).
 
 ## Reference
-- [API reference](./API_REFERENCE.md)
+- [API reference](./api_reference.md)
 - [Example suite](../examples/)
 - [`mariadb-dump` options](https://mariadb.com/kb/en/mariadb-dump/#options)
 - [`mariadb` options](https://mariadb.com/kb/en/mariadb-command-line-client/#options)

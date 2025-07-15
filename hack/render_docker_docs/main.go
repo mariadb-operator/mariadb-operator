@@ -13,7 +13,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	tplBytes, err := os.ReadFile("docs/DOCKER.md.gotmpl")
+	tplBytes, err := os.ReadFile("docs/docker.md.gotmpl")
 	if err != nil {
 		log.Printf("Error reading docs template: %v\n", err)
 		os.Exit(1)
@@ -26,7 +26,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	file, err := os.Create("docs/DOCKER.md")
+	file, err := os.Create("docs/docker.md")
 	if err != nil {
 		log.Printf("Error creating docs: %v\n", err)
 		os.Exit(1)

@@ -24,7 +24,7 @@
 
 A physical backup is a snapshot of the entire data directory (`/var/lib/mysql`), including all data files. This type of backup captures the exact state of the database at a specific point in time, allowing for quick restoration in case of data loss or corruption.
 
-Physical backups are the recommended method for backing up `MariaDB` databases, especially in production environments, as they are faster and more efficient than [logical backups](./LOGICAL_BACKUP.md).
+Physical backups are the recommended method for backing up `MariaDB` databases, especially in production environments, as they are faster and more efficient than [logical backups](./logical_backup.md).
 
 ## Backup strategies
 

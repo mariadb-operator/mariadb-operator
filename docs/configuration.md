@@ -50,7 +50,7 @@ spec:
     key: mycnf
 ```
 
-To ensure your configuration changes take effect, the operator triggers a [rolling update](./UPDATES.md) whenever the `myCnf` field or a `ConfigMap` is updated. For the operator to detect changes in a `ConfigMap`, it must be labeled with `k8s.mariadb.com/watch`. Refer to the [external resources](#external-resources) section for further detail.
+To ensure your configuration changes take effect, the operator triggers a [rolling update](./updates.md) whenever the `myCnf` field or a `ConfigMap` is updated. For the operator to detect changes in a `ConfigMap`, it must be labeled with `k8s.mariadb.com/watch`. Refer to the [external resources](#external-resources) section for further detail.
 
 ## Timezones
 
