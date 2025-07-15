@@ -29,7 +29,7 @@ Physical backups are the recommended method for backing up `MariaDB` databases, 
 ## Backup strategies
 
 Multiple strategies are available for performing physical backups, including:
-- **mariadb-backup**: Taken using the [mariadb-backup](https://mariadb.com/docs/server/server-usage/backup-and-restore/mariadb-backup/full-backup-and-restore-with-mariadb-backup) utility, which is part of the `MariaDB` server package. The operator supports scheduling `Jobs` to perform backups using this utility.
+- **mariadb-backup**: Taken using the [mariadb-backup](https://mariadb.com/docs/server/server-usage/backup-and-restore/mariadb-backup/full-backup-and-restore-with-mariadb-backup) utility, which is available in the `MariaDB` images. The operator supports scheduling `Jobs` to perform backups using this utility.
 - **Kubernetes VolumeSnapshot**: Leverage [Kubernetes VolumeSnapshots](https://kubernetes.io/docs/concepts/storage/volume-snapshots/)  to create snapshots of the persistent volumes used by the `MariaDB` `Pods`. This method relies on a compatible CSI (Container Storage Interface) driver that supports volume snapshots. See the [VolumeSnapshots](#volumesnapshots) section for more details.
 
 In order to use `VolumeSnapshots`, you will need to provide a `VolumeSnapshotClass` that is compatible with your storage provider. The operator will use this class to create snapshots of the persistent volumes:
