@@ -1,7 +1,7 @@
 # Please, take a look at our HA guide to configure production-ready MariaDB instances:
 # https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/high_availability.md
 # Configure a backup and recovery strategy in case that something goes wrong:
-# https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/logical_backup.md
+# https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/physical_backup.md
 # Roll out upgrades choosing the right upgrade strategy:
 # https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/updates.md
 apiVersion: k8s.mariadb.com/v1alpha1
@@ -16,10 +16,10 @@ spec:
   storage:
     size: 10Gi
 
-  # Recreate the MariaDB resource and bootstrap from a backup in S3.
+  # Recreate the MariaDB resource and bootstrap from a physical backup in S3.
   # bootstrapFrom:
   #   s3:
-  #     bucket: backups
+  #     bucket: physicalbackups
   #     prefix: mariadb
   #     endpoint: minio.minio.svc.cluster.local:9000
   #     accessKeyIdSecretKeyRef:
@@ -33,6 +33,7 @@ spec:
   #       caSecretKeyRef:
   #         name: minio-ca
   #         key: ca.crt
+  #   backupContentType: Physical
   #   targetRecoveryTime: 2023-12-19T09:00:00Z
   #   stagingStorage:
   #     persistentVolumeClaim:
