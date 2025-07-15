@@ -25,11 +25,12 @@ Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB
 - Automated Galera [primary failover](./docs/HA.md) and [cluster recovery](./docs/GALERA.md#galera-cluster-recovery).
 - Advanced HA with [MaxScale](./docs/MAXSCALE.md): a sophisticated database proxy, router, and load balancer for MariaDB.
 - Flexible [storage](./docs/STORAGE.md) configuration. [Volume expansion](./docs/STORAGE.md#volume-resize).
-- Take, restore and schedule [backups](./docs/LOGICAL_BACKUP.md). 
-- Multiple [backup storage types](./docs/LOGICAL_BACKUP.md#storage-types): S3 compatible, PVCs and Kubernetes volumes.
-- Policy-driven [backup](./docs/LOGICAL_BACKUP.md#retention-policy) retention with bzip and gzip [compression options](./docs/LOGICAL_BACKUP.md#compression).
-- [Target recovery time](./docs/LOGICAL_BACKUP.md#target-recovery-time): restore the closest available backup to the specified time.
-- [Bootstrap new instances](./docs/LOGICAL_BACKUP.md#bootstrap-new-mariadb-instances-from-backups) from: Backups, S3, PVCs ...
+- [Physical backups](./docs/PHYSICAL_BACKUP.md) based on [mariadb-backup](https://mariadb.com/docs/server/server-usage/backup-and-restore/mariadb-backup/full-backup-and-restore-with-mariadb-backup) and [Kubernetes VolumeSnapshots](https://kubernetes.io/docs/concepts/storage/volume-snapshots/).
+- [Logical backups](./docs/LOGICAL_BACKUP.md) based on [mariadb-dump](https://mariadb.com/docs/server/clients-and-utilities/backup-restore-and-import-clients/mariadb-dump). 
+- Multiple [backup storage types](./docs/PHYSICAL_BACKUP.md#storage-types): S3 compatible, PVCs, Kubernetes volumes and `VolumeSnapshots`.
+- Flexible backup configuration: scheduling, compression, retention policy, timeouts, staging area...
+- [Target recovery time](./docs/PHYSICAL_BACKUP.md#target-recovery-time): restore the closest available backup to the specified time.
+- [Bootstrap new instances](./docs/PHYSICAL_BACKUP.md#restoration) from: Physical backups, logical backups, S3, PVCs, `VolumeSnapshots`...
 - [Cluster-aware rolling update](./docs/UPDATES.md#replicasfirstprimarylast): roll out replica Pods one by one, wait for each of them to become ready, and then proceed with the primary Pod, using `ReplicasFirstPrimaryLast`.
 - Manual [update strategies](./docs/UPDATES.md#update-strategies): `OnDelete` and `Never`.
 - Automated [data-plane updates](./docs/UPDATES.md#auto-update-data-plane).
@@ -75,14 +76,14 @@ The Openshift installation is managed separately in the [mariadb-operator-helm](
 `mariadb-operator` is only compatible with official MariaDB images. Refer to the [images documentation](./docs/DOCKER.md) for further detail.
 
 ## MariaDB compatibility
-- MariaDB Community >= 10.5
+- MariaDB Community >= 10.6
 
 ## MaxScale compatibility
 - MaxScale >= 23.08 
 
 ## Kubernetes compatibility
-- Kubernetes >= 1.30
-- OpenShift >= 4.15
+- Kubernetes >= 1.31
+- OpenShift >= 4.18
 
 ## Migrate your MariaDB instance to Kubernetes
 
