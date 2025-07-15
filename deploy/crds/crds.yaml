@@ -1720,6 +1720,13 @@ spec:
                   - type
                   type: object
                 type: array
+              currentPrivileges:
+                description: |-
+                  CurrentPrivileges is the list of current privileges used in the Grant.
+                  It allows to detect the divergence from the desired privileges.
+                items:
+                  type: string
+                type: array
             type: object
         type: object
     served: true
@@ -6629,10 +6636,9 @@ spec:
                     type: object
                   syncBinlog:
                     description: |-
-                      SyncBinlog indicates whether the binary log should be synchronized to the disk after every event.
-                      It trades off performance for consistency.
-                      See: https://mariadb.com/kb/en/replication-and-binary-log-system-variables/#sync_binlog.
-                    type: boolean
+                      SyncBinlog indicates after how many events the binary log is synchronized to the disk.
+                      The default is 1, flushing the binary log to disk after every write, which trades off performance for consistency. See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/replication-and-binary-log-system-variables#sync_binlog
+                    type: integer
                 type: object
               resources:
                 description: Resources describes the compute resource requirements.
