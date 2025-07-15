@@ -410,11 +410,31 @@ spec:
           memory: 1Gi
 ```
 
-### `ReadWriteOncePod` access mode not supported
+### `ReadWriteOncePod` access mode partially supported
 
-The data PVC used by the `MariaDB` `Pod` cannot make use of the [`ReadWriteOncePod` access mode](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#access-modes), since it will need to be mounted by the `MariaDB` `Pod` and the backup `Job` at the same time.
+When using backups based on `mariadb-backup`, the data PVC used by the `MariaDB` `Pod` cannot use the [`ReadWriteOncePod`](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#access-modes) access mode, as it needs to be mounted at the same time by both the `MariaDB` `Pod` and the `PhysicalBackup` `Job`. In this case, please use either the `ReadWriteOnce` or `ReadWriteMany` access modes instead.
 
-Alternatively, please use the `ReadWriteOnce` or `ReadWriteMany` access modes.
+Alternatively, if you want to keep using the `ReadWriteOncePod` access mode, you must use backups based on `VolumeSnapshots`, which do not require creating a `Job` to perform the backup and therefore avoid the volume sharing limitation.
+
+
+### `PhysicalBackup` `Jobs` scheduling
+
+`PhysicalBackup` `Jobs` must mount the data PVC used by the primary `MariaDB` `Pods`. To avoid scheduling issues caused by the commonly used `ReadWriteOnce` access mode, the operator schedules backup `Jobs` on the same node as `MariaDB` by default.
+
+If you prefer to disable this behavior and allow `Jobs` to run on any node, you can set `podAffinity=false`:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: PhysicalBackup
+metadata:
+  name: physicalbackup
+spec:
+  mariaDbRef:
+    name: mariadb
+  podAffinity: false
+```
+
+This configuration may be suitable when using `ReadWriteMany` access mode, which allows multiple `Pods` across different nodes to mount the volume simultaneously.
 
 ## Troubleshooting
 
