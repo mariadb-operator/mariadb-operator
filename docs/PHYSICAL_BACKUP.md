@@ -80,7 +80,7 @@ Multiple storage types are supported for storing physical backups, including:
 - **S3 compatible storage**: Store backups in a S3 compatible storage, such as [AWS S3](https://aws.amazon.com/s3/) or [Minio](https://github.com/minio/minio).
 - **Persistent Volume Claims (PVC)**: Use any of the [StorageClasses](https://kubernetes.io/docs/concepts/storage/storage-classes/) available in your Kubernetes cluster to create a `PersistentVolumeClaim` (PVC) for storing backups.
 - **Kubernetes Volumes**: Store backups in any of the [in-tree storage providers](https://kubernetes.io/docs/concepts/storage/volumes/#volume-types) supported by Kubernetes out of the box, such as NFS.
-- **Kubernetes VolumeSnapshots**: Use [Kubernetes VolumeSnapshots](https://kubernetes.io/docs/concepts/storage/volume-snapshots/) to create snapshots of the persistent volumes used by the `MariaDB` pods. This method relies on a compatible CSI (Container Storage Interface) driver that supports volume snapshots. See the [VolumeSnapshots](#volume-snapshots) section for more details.
+- **Kubernetes VolumeSnapshots**: Use [Kubernetes VolumeSnapshots](https://kubernetes.io/docs/concepts/storage/volume-snapshots/) to create snapshots of the persistent volumes used by the `MariaDB` `Pods`. This method relies on a compatible CSI (Container Storage Interface) driver that supports volume snapshots. See the [VolumeSnapshots](#volume-snapshots) section for more details.
 
 
 ## Scheduling
@@ -241,7 +241,7 @@ When timed out, the operator will delete the `Jobs` or `VolumeSnapshots` resourc
 
 ## Extra options
 
-When taking backups based on `mariadb-backup`, you can specify extra options to pass to the `mariadb-backup` command using the `args` field in the `PhysicalBackup` resource:
+When taking backups based on `mariadb-backup`, you can specify extra options to be passed to the `mariadb-backup` command using the `args` field in the `PhysicalBackup` resource:
 
 ```yaml
 apiVersion: k8s.mariadb.com/v1alpha1
@@ -411,7 +411,7 @@ In the examples above, a PVC with the default `StorageClass` will be provisioned
 
 The operator is capable of creating [`VolumeSnapshot` resources](https://kubernetes.io/docs/concepts/storage/volume-snapshots/) of the PVCs used by the `MariaDB` `Pods`. This allows you to create point-in-time snapshots of your data in a Kubernetes-native way, leveraging the capabilities of your storage provider.
 
-Most of the fields described in this documentation apply to `VolumeSnapshots`, including scheduling, retention policy, and compression. The main difference with the `mariadb-backup` based backups is that the operator will not create a `Job` to perform the backup, but instead will create a `VolumeSnapshot` resource directly.
+Most of the fields described in this documentation apply to `VolumeSnapshots`, including scheduling, retention policy, and compression. The main difference with the `mariadb-backup` based backups is that the operator will not create a `Job` to perform the backup, but instead it will create a `VolumeSnapshot` resource directly.
 
 In order to create consistent, point-in-time snapshots of the `MariaDB` data, the operator will perform the following steps:
 1. Temporarily pause the `MariaDB` writes by executing a `FLUSH TABLES WITH READ LOCK` command on the `MariaDB` primary `Pod`.
@@ -471,7 +471,7 @@ spec:
   podAffinity: false
 ```
 
-This configuration may be suitable when using `ReadWriteMany` access mode, which allows multiple `Pods` across different nodes to mount the volume simultaneously.
+This configuration may be suitable when using the `ReadWriteMany` access mode, which allows multiple `Pods` across different nodes to mount the volume simultaneously.
 
 ## Troubleshooting
 
