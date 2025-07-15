@@ -2202,7 +2202,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `primary` _[PrimaryReplication](#primaryreplication)_ | Primary is the replication configuration for the primary node. |  |  |
 | `replica` _[ReplicaReplication](#replicareplication)_ | ReplicaReplication is the replication configuration for the replica nodes. |  |  |
-| `syncBinlog` _boolean_ | SyncBinlog indicates whether the binary log should be synchronized to the disk after every event.<br />It trades off performance for consistency.<br />See: https://mariadb.com/kb/en/replication-and-binary-log-system-variables/#sync_binlog. |  |  |
+| `syncBinlog` _integer_ | SyncBinlog indicates after how many events the binary log is synchronized to the disk.<br />The default is 1, flushing the binary log to disk after every write, which trades off performance for consistency. See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/replication-and-binary-log-system-variables#sync_binlog |  |  |
 | `probesEnabled` _boolean_ | ProbesEnabled indicates to use replication specific liveness and readiness probes.<br />This probes check that the primary can receive queries and that the replica has the replication thread running. |  |  |
 | `enabled` _boolean_ | Enabled is a flag to enable Replication. |  |  |
 
@@ -2222,7 +2222,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `primary` _[PrimaryReplication](#primaryreplication)_ | Primary is the replication configuration for the primary node. |  |  |
 | `replica` _[ReplicaReplication](#replicareplication)_ | ReplicaReplication is the replication configuration for the replica nodes. |  |  |
-| `syncBinlog` _boolean_ | SyncBinlog indicates whether the binary log should be synchronized to the disk after every event.<br />It trades off performance for consistency.<br />See: https://mariadb.com/kb/en/replication-and-binary-log-system-variables/#sync_binlog. |  |  |
+| `syncBinlog` _integer_ | SyncBinlog indicates after how many events the binary log is synchronized to the disk.<br />The default is 1, flushing the binary log to disk after every write, which trades off performance for consistency. See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/replication-and-binary-log-system-variables#sync_binlog |  |  |
 | `probesEnabled` _boolean_ | ProbesEnabled indicates to use replication specific liveness and readiness probes.<br />This probes check that the primary can receive queries and that the replica has the replication thread running. |  |  |
 
 
