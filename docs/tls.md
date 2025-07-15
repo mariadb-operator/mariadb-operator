@@ -510,7 +510,7 @@ When managed by mariadb-operator, CAs have a lifetime of 3 years and marked for 
 
 When managed by cert-manager, the renewal process is fully controlled by cert-manager, but the operator will also update the CA bundle after the CA is renewed.
 
-You may choose any of the available [update strategies](./UPDATES.md) to control the instance update process.
+You may choose any of the available [update strategies](./updates.md) to control the instance update process.
 
 ## Certificate renewal
 
@@ -520,7 +520,7 @@ When the [certificates are issued by the mariadb-operator](#issue-certificates-w
 
 When the [certificates are issued by cert-manager](#issue-certificates-with-cert-manager), the renewal process is fully managed by cert-manager, and the operator will not interfere with it. The operator will only update the instances whenever the CA or the certificates get renewed.
 
-You may choose any of the available [update strategies](./UPDATES.md) to control the instance update process.
+You may choose any of the available [update strategies](./updates.md) to control the instance update process.
 
 ## Certificate status
 
@@ -592,7 +592,7 @@ kubectl get maxscale maxscale-galera -o jsonpath="{.status.tls}" | jq
 
 ## TLS requirements for `Users`
 
-You are able to declaratively manage access to your `MariaDB` instances by creating [`User` SQL resources](./SQL_RESOURCES.md#user-cr). In particular, when TLS is enabled, you can provide additional requirements for the user when connecting over TLS.
+You are able to declaratively manage access to your `MariaDB` instances by creating [`User` SQL resources](./sql_resources.md#user-cr). In particular, when TLS is enabled, you can provide additional requirements for the user when connecting over TLS.
 
 For instance, if you want to require a valid x509 certificate for the user to be able o connect:
 
@@ -623,7 +623,7 @@ spec:
 
 When any of these TLS requirements are not met, the user will not be able to connect to the instance.
 
-See [MariaDB docs](https://mariadb.com/kb/en/securing-connections-for-client-and-server/#requiring-tls) and the [API reference](./API_REFERENCE.md) for further detail.
+See [MariaDB docs](https://mariadb.com/kb/en/securing-connections-for-client-and-server/#requiring-tls) and the [API reference](./api_reference.md) for further detail.
 
 ## Secure application connections with TLS
 
@@ -865,9 +865,9 @@ spec:
 
 By setting these options, the operator will issue and configure certificates for `MariaDB`, but TLS will not be enforced in the connections i.e. both TLS and non-TLS connections will be accepted. TLS enforcement will be optionally configured at the end of the migration process.
 
-This will trigger a rolling upgrade, make sure it finishes successfully before proceeding with the next step. Refer to the [updates documentation](./UPDATES.md) for further information about update strategies.
+This will trigger a rolling upgrade, make sure it finishes successfully before proceeding with the next step. Refer to the [updates documentation](./updates.md) for further information about update strategies.
 
-2. If you are currently using `MaxScale`, it is important to note that, unlike `MariaDB`, it does not support TLS and non-TLS connections simultaneously (see [limitations](#limitations)). For this reason, you must temporarily point your applications to `MariaDB` during the migration process. You can achieve this by configuring your application to use the [`MariaDB Services`](./HA.md#kubernetes-services). At the end of the `MariaDB` migration process, the `MaxScale` instance will need to be recreated in order to use TLS, and then you will be able to point your application back to `MaxScale`. Ensure that all applications are pointing to `MariaDB` before moving on to the next step.
+2. If you are currently using `MaxScale`, it is important to note that, unlike `MariaDB`, it does not support TLS and non-TLS connections simultaneously (see [limitations](#limitations)). For this reason, you must temporarily point your applications to `MariaDB` during the migration process. You can achieve this by configuring your application to use the [`MariaDB Services`](./high_availability.md#kubernetes-services). At the end of the `MariaDB` migration process, the `MaxScale` instance will need to be recreated in order to use TLS, and then you will be able to point your application back to `MaxScale`. Ensure that all applications are pointing to `MariaDB` before moving on to the next step.
 
 3. `MariaDB` is now accepting TLS connections. The next step is [migrating your applications to use TLS](#secure-application-connections-with-tls) by pointing them to `MariaDB` securely. Ensure that all applications are connecting to `MariaDB` via TLS before proceeding to the next step.
 
@@ -921,7 +921,7 @@ spec:
 +   enabled: true
 ```
 
-8. `MaxScale` is now accepting TLS connections. Next, you need to [migrate your applications to use TLS](#secure-application-connections-with-tls) by pointing them back to `MaxScale` securely. You have done this previously for `MariaDB`, you just need to update your application configuration to use the [`MaxScale Service`](./MAXSCALE.md#kubernetes-services) and its CA bundle.
+8. `MaxScale` is now accepting TLS connections. Next, you need to [migrate your applications to use TLS](#secure-application-connections-with-tls) by pointing them back to `MaxScale` securely. You have done this previously for `MariaDB`, you just need to update your application configuration to use the [`MaxScale Service`](./maxscale.md#kubernetes-services) and its CA bundle.
 
 
 ## Limitations

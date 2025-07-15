@@ -9,7 +9,7 @@ Before upgrading, be sure to consult the __[UPGRADE GUIDE](https://github.com/ma
 - Support for `ignoreGlobalPriv` in `Backup` resource: https://github.com/mariadb-operator/mariadb-operator/pull/557
 - Ignoring `mysql.global_priv` by default when Galera is enabled: https://github.com/mariadb-operator/mariadb-operator/pull/545
 
-Refer to the [backup documentation](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/LOGICAL_BACKUP.md) for further detail.
+Refer to the [backup documentation](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/logical_backup.md) for further detail.
 
 ### Galera
 - Support for IPv6: https://github.com/mariadb-operator/mariadb-operator/pull/461
@@ -19,7 +19,7 @@ Refer to the [backup documentation](https://github.com/mariadb-operator/mariadb-
 - Update Galera config when `MariaDB` request fails: https://github.com/mariadb-operator/mariadb-operator/pull/487
 - Avoid DNS resolution warnings by adding `skip_name_resolve` in default configuration: https://github.com/mariadb-operator/mariadb-operator/pull/581
 
-Refer to the [Galera documentation](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/GALERA.md) for further detail.
+Refer to the [Galera documentation](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/galera.md) for further detail.
 
 ### MaxScale
 - Dedicated `Service` to access GUI via `guiKubernetesService`: https://github.com/mariadb-operator/mariadb-operator/pull/578
@@ -28,14 +28,14 @@ Refer to the [Galera documentation](https://github.com/mariadb-operator/mariadb-
 - Requeue `Secrets` if they haven't been initialized: https://github.com/mariadb-operator/mariadb-operator/pull/506
 - Ensure `syncMaxConnections` is initialized before derefing the pointer: https://github.com/mariadb-operator/mariadb-operator/pull/492
 
-Refer to the [MaxScale documentation](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/MAXSCALE.md) for further detail.
+Refer to the [MaxScale documentation](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/maxscale.md) for further detail.
 
 ### Metadata
 - Support for `podMetadata` in `MariaDB`: https://github.com/mariadb-operator/mariadb-operator/pull/521
 - Support for `podMetadata` in batch `Jobs`: https://github.com/mariadb-operator/mariadb-operator/pull/523
 - Support for `interitMetadata` and `podMetadata` in `MaxScale`: https://github.com/mariadb-operator/mariadb-operator/pull/538
 
-Refer to the [metadata documentation](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/METADATA.md) for further detail.
+Refer to the [metadata documentation](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/metadata.md) for further detail.
 
 ### Anti-Affinity
 - `Job` and metrics `Pods` anti-affinity rules relative to `MariaDB`: https://github.com/mariadb-operator/mariadb-operator/pull/566
@@ -43,25 +43,25 @@ Refer to the [metadata documentation](https://github.com/mariadb-operator/mariad
 - Ability to specify `affinity` to initial `Restore` `Job`: https://github.com/mariadb-operator/mariadb-operator/pull/448
 - Fix metrics selector to avoid clashing with `MariaDB`: https://github.com/mariadb-operator/mariadb-operator/pull/446
 
-Refer to the [HA documentation](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/HA.md#pod-anti-affinity) for further detail.
+Refer to the [HA documentation](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/high_availability.md#pod-anti-affinity) for further detail.
 
 ### Password generation
 
 Ability to declare whether the password should be generated or instead wait for a `Secret` to be present eventually: https://github.com/mariadb-operator/mariadb-operator/pull/598
 
-Refer to the [configuration documentation](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/CONFIGURATION.md#passwords) for further detail.
+Refer to the [configuration documentation](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/configuration.md#passwords) for further detail.
 
 ### Probes
 
 Ability to partially define probes in order to configure thresholds: https://github.com/mariadb-operator/mariadb-operator/pull/509
 
-Refer to the [configuration documentation](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/CONFIGURATION.md#probes) for further detail.
+Refer to the [configuration documentation](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/configuration.md#probes) for further detail.
 
 ### Private registries
 
 Support for private registries in all CRs via `imagePullSecrets`: https://github.com/mariadb-operator/mariadb-operator/pull/459
 
-Refer to the [registry documentation](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/REGISTRY.md) for further detail.
+Refer to the [registry documentation](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/registry.md) for further detail.
 
 ### CRD size
 

@@ -79,7 +79,7 @@ spec:
 +      minClusterSize: 1
 ```
 
-If you are using a service mesh like Istio or Linkerd, make sure you add the corresponding metadata to make sure that the new recovery `Jobs` complete, more information can be found [here](./GALERA.md#galera-recovery-job):
+If you are using a service mesh like Istio or Linkerd, make sure you add the corresponding metadata to make sure that the new recovery `Jobs` complete, more information can be found [here](./galera.md#galera-recovery-job):
 
 ```diff
 apiVersion: k8s.mariadb.com/v1alpha1

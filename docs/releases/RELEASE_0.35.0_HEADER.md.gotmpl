@@ -44,7 +44,7 @@ spec:
         - ReadWriteOnce
 ```
 
-In the examples above, a PVC with the default `StorageClass` will be used as staging area. Refer to the [API reference](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/API_REFERENCE.md) for more configuration options.
+In the examples above, a PVC with the default `StorageClass` will be used as staging area. Refer to the [API reference](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/api_reference.md) for more configuration options.
 
 ### More flexibility configuring Kubernetes types
 
@@ -54,7 +54,7 @@ We have recently slimmed down our CRDs, resulting in a [~81% size decrease](http
 - `env` support for both `initContainers` and `sidecarContainers`
 - `resources` support in metrics exporter `Deployment`
 
-Refer to the [API reference](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/API_REFERENCE.md) for more details about this fields.
+Refer to the [API reference](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/api_reference.md) for more details about this fields.
 
 Kudos to @am6737 for helping with this! 🙏🏻
 
@@ -64,7 +64,7 @@ In previous releases, the MaxScale GUI `Service` used `sessionAffinity` to avoid
 
 When using an API gateway in front of the MaxScale GUI `Service` without `sessionAffinity` configured, users may experience unexpected logouts, as sessions from one server are invalid on another. To address this, we now point the MaxScale GUI `Service` to a specific `Pod`, dynamically updating the target if the selected `Pod` goes down. This approach ensures consistency and predictability, minimizing the chances of sending GUI requests to new MaxScale `Pods` whenever possible. See https://github.com/mariadb-operator/mariadb-operator/pull/956.
 
-Refer to the [MaxScale docs](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/MAXSCALE.md#maxscale-gui) for further detail.
+Refer to the [MaxScale docs](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/maxscale.md#maxscale-gui) for further detail.
 
 ### Support for image digests in Helm chart
 
