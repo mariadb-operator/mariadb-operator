@@ -1,10 +1,10 @@
 # High availability
 
-This section provide guidance on how to run `MariaDB` and `MaxScale` in high availability mode. If you are looking to run the operator in HA as well, please refer to the [Helm documentation](./HELM.md#high-availability).
+This section provide guidance on how to run `MariaDB` and `MaxScale` in high availability mode. If you are looking to run the operator in HA as well, please refer to the [Helm documentation](./helm.md#high-availability).
 
 Our recommended HA setup for production is:
-- **[Galera](./GALERA.md)** with at least 3 nodes. Always an odd number of nodes.
-- Load balance requests using **[MaxScale](./MAXSCALE.md)** as database proxy.
+- **[Galera](./galera.md)** with at least 3 nodes. Always an odd number of nodes.
+- Load balance requests using **[MaxScale](./maxscale.md)** as database proxy.
 - Use **[dedicated nodes](#dedicated-nodes)** to avoid noisy neighbours.
 - Define **[pod disruption budgets](#pod-disruption-budgets)**.
 
@@ -26,7 +26,7 @@ Refer to the following sections for further detail.
 > [!WARNING]  
 > SemiSync Replication is in alpha stage and not ready for production. Use it at your own risk.
 
-- **Multi master HA via [Galera](./GALERA.md)**: All nodes support reads and writes. We have a designated primary where the writes are performed.
+- **Multi master HA via [Galera](./galera.md)**: All nodes support reads and writes. We have a designated primary where the writes are performed.
 - **Single master HA via [SemiSync Replication](../examples/manifests/mariadb_replication.yaml)**: The primary node allows both reads and writes, while secondary nodes only allow reads.
 
 ## Kubernetes Services
@@ -42,7 +42,7 @@ The primary may be manually changed by the user at any point by updating the `sp
 
 ## MaxScale
 
-While Kubernetes `Services` can be utilized to dynamically address primary and secondary instances, the most robust high availability configuration we recommend relies on [MaxScale](https://mariadb.com/docs/server/products/mariadb-maxscale/). Please refer to [MaxScale docs](./MAXSCALE.md) for further details.
+While Kubernetes `Services` can be utilized to dynamically address primary and secondary instances, the most robust high availability configuration we recommend relies on [MaxScale](https://mariadb.com/docs/server/products/mariadb-maxscale/). Please refer to [MaxScale docs](./maxscale.md) for further details.
 
 ## Pod Anti-Affinity
 
@@ -199,5 +199,5 @@ spec:
 ```
 
 ## Reference
-- [API reference](./API_REFERENCE.md)
+- [API reference](./api_reference.md)
 - [Example suite](../examples/)

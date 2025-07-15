@@ -90,7 +90,7 @@ helm install mariadb-operator \
 ## Updates
 
 > [!IMPORTANT]  
-> Make sure you read and understand the [updates documentation](./UPDATES.md) before proceeding to update the operator.
+> Make sure you read and understand the [updates documentation](./updates.md) before proceeding to update the operator.
 
 The first step to perform an operator update is upgrading the CRDs:
 

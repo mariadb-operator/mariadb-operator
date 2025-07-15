@@ -10,13 +10,13 @@ To upgrade from older versions, be sure to follow the __[UPGRADE GUIDE](https://
 
 We've significantly refined the Galera recovery process, addressing issues and covering scenarios that previously caused the recovery to get stuck.
 
-The sequence numbers needed for recovery are now retrieved by `Jobs` that mount the `MariaDB` PVCs and execute `mariadbd --wsrep-recover`. This is a game changer for reliability and recovery speed, as it eliminates the need to restart `MariaDB` `Pods` just to fetch sequence numbers. For more details on these new `Jobs`, check out the [documentation](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/GALERA.md#galera-recovery-job).
+The sequence numbers needed for recovery are now retrieved by `Jobs` that mount the `MariaDB` PVCs and execute `mariadbd --wsrep-recover`. This is a game changer for reliability and recovery speed, as it eliminates the need to restart `MariaDB` `Pods` just to fetch sequence numbers. For more details on these new `Jobs`, check out the [documentation](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/galera.md#galera-recovery-job).
 
-To give you full control over the recovery process in exceptional situations, we are introducing the `forceClusterBootstrapInPod` field. This allows you to manually select which `Pod` to use for bootstrapping a new Galera cluster, bypassing the operator’s recovery process. For more details on how to use this feature, check out the [documentation](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/GALERA.md#force-cluster-bootstrap).
+To give you full control over the recovery process in exceptional situations, we are introducing the `forceClusterBootstrapInPod` field. This allows you to manually select which `Pod` to use for bootstrapping a new Galera cluster, bypassing the operator’s recovery process. For more details on how to use this feature, check out the [documentation](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/galera.md#force-cluster-bootstrap).
 
-Finally, we've added a [troubleshooting section](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/GALERA.md#galera-cluster-recovery-not-progressing) to assist you in diagnosing and managing the Galera recovery process.
+Finally, we've added a [troubleshooting section](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/galera.md#galera-cluster-recovery-not-progressing) to assist you in diagnosing and managing the Galera recovery process.
 
-Read more about this in the [Galera documentation](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/GALERA.md).
+Read more about this in the [Galera documentation](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/galera.md).
 
 ### Bootstrap Galera cluster from existing PVCs
 
@@ -24,7 +24,7 @@ Read more about this in the [Galera documentation](https://github.com/mariadb-op
 
 That said, the operator is able now to bootstrap a new `MariaDB` Galera cluster from previous PVCs. During the provisioning phase, the operator automatically triggers the Galera recovery process if pre-existing PVCs are detected. This is a massive improvement in terms of usability, as it enables seamless Galera cluster recreation without data loss.
 
-Read more about this in the [Galera documentation](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/GALERA.md).
+Read more about this in the [Galera documentation](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/galera.md).
 
 ### Suspend
 
@@ -37,7 +37,7 @@ This has multiple applications, including:
 - Operator upgrades
 - Maintenance
 
-Read more about this new feature in the [Suspend documentation](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/SUSPEND.md).
+Read more about this new feature in the [Suspend documentation](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/suspend.md).
 
 Kudos to @harunkucuk5 for this contribution! 🙏🏻
 
@@ -47,7 +47,7 @@ This operator enables you to manage SQL resources declaratively through CRs. By 
 
 We have introduced a new `cleanupPolicy` field to our SQL CRs (`User`, `Grant`, `Database`), giving you control over the termination logic for these resources. When a resource is deleted, the operator evaluates this field to decide whether the corresponding database resources should be deleted (`cleanupPolicy=Delete`) or preserved (`cleanupPolicy=Skip`).
 
-Read more about this new feature in the [SQL resources documentation](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/SQL_RESOURCES.md).
+Read more about this new feature in the [SQL resources documentation](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/sql_resources.md).
 
 Kudos to @ChrisHubinger for this contribution! 🙏🏻
 
@@ -57,7 +57,7 @@ User passwords can be provided using the `passwordSecretKeyRef` field in the `Us
 
 Alternatively, you can now use [MariaDB authentication plugins](https://mariadb.com/kb/en/authentication-plugins/) to supply passwords in a hashed format instead of plain text. This approach doesn't change the user experience, as users will still need to provide their passwords in plain text to authenticate.
 
-Read more about this new feature in the [SQL resources documentation](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/SQL_RESOURCES.md).
+Read more about this new feature in the [SQL resources documentation](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/sql_resources.md).
 
 Kudos to @NHellFire for this contribution! 🙏🏻
 
@@ -67,7 +67,7 @@ By default, MariaDB does not load timezone data on startup for performance reaso
 
 Additionally, `Backup` and `SqlJob` resources, which are reconciled into `CronJobs`, can also specify a `timeZone` for their cron expressions.
 
-Read more about this new feature [here](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/CONFIGURATION.md#timezones).
+Read more about this new feature [here](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/configuration.md#timezones).
 
 Kudos to @mbezhanov for this contribution! 🙏🏻
 
@@ -99,7 +99,7 @@ Kudos to @gprossliner and @kettil for all these contributions! 🙏🏻
 
 ### Migrate your MariaDB instance to Kubernetes
 
-This [migration guide](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/LOGICAL_BACKUP.md#migrating-an-external-mariadb-to-a-mariadb-running-in-kubernetes) will streamline your onboarding process and assist you in migrating your data into a `MariaDB` instance running on Kubernetes.
+This [migration guide](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/logical_backup.md#migrating-an-external-mariadb-to-a-mariadb-running-in-kubernetes) will streamline your onboarding process and assist you in migrating your data into a `MariaDB` instance running on Kubernetes.
 
 ---
 

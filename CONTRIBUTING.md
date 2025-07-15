@@ -10,7 +10,7 @@ All contributions are welcome. Ideas, code, documentation, production experience
 
 ### Development guide
 
-We have a [development guide](./docs/DEVELOPMENT.md) at your disposal so you can quickly setup an environment to develop locally.
+We have a [development guide](./docs/development.md) at your disposal so you can quickly setup an environment to develop locally.
 
 ### Issues
 

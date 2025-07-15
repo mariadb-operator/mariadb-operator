@@ -87,7 +87,7 @@ spec:
     waitForVolumeResize: true
 ```
 
-Depending on your storage provider, this operation might take a while, and you can decide to wait for this operation before the `MariaDB` becomes ready by setting `waitForVolumeResize = true`. Operations such as [cluster recovery](./GALERA.md#galera-cluster-recovery) and [primary switchover](./HA.md) will not be performed if the `MariaDB` resource is not ready.
+Depending on your storage provider, this operation might take a while, and you can decide to wait for this operation before the `MariaDB` becomes ready by setting `waitForVolumeResize = true`. Operations such as [cluster recovery](./galera.md#galera-cluster-recovery) and [primary switchover](./high_availability.md) will not be performed if the `MariaDB` resource is not ready.
 
 ## Ephemeral storage
 
@@ -107,5 +107,5 @@ spec:
 This may be useful more multiple use cases, like provisioning ephemeral `MariaDBs` for the integration tests of your CI.
 
 ## Reference
-- [API reference](./API_REFERENCE.md)
+- [API reference](./api_reference.md)
 - [Example suite](../examples/)

@@ -1,6 +1,6 @@
 ##@ Documentation
 
-DOCS_API_REFERENCE ?= ./docs/API_REFERENCE.md
+DOCS_API_REFERENCE ?= ./docs/api_reference.md
 .PHONY: docs-api
 docs-api: crd-ref-docs ## Generate API reference docs.
 	$(CRD_REF_DOCS) \
