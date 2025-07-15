@@ -316,7 +316,7 @@ spec:
         enabled: true
 ```
 
-By leaving out `accessKeyIdSecretKeyRef` and `secretAccessKeySecretKeyRef` the credentials and pointing to the correct `serviceAccountName`, the backup Job will use the dynamic credentials from EKS.
+By leaving out the `accessKeyIdSecretKeyRef` and `secretAccessKeySecretKeyRef` credentials and pointing to the correct `serviceAccountName`, the backup `Job` will use the dynamic credentials from EKS.
 
 ## Staging area
 
@@ -399,7 +399,7 @@ spec:
           - ReadWriteOnce
 ```
 
-In the example above, a PVC with the default `StorageClass` will be provisioned to be used as staging area.
+In the examples above, a PVC with the default `StorageClass` will be provisioned to be used as staging area.
 
 ## `VolumeSnapshots`
 
@@ -429,7 +429,7 @@ When restoring a backup, the root credentials specified through the `spec.rootPa
 
 ### Restore `Job`
 
-Restoring and uncompressing large backups can consume significant compute resources and may cause restoration `Jobs` to become stuck due to insufficient resources. To prevent this, you can define the compute resources allocated to the `Job`:
+When using backups based on `mariadb-backup`, restoring and uncompressing large backups can consume significant compute resources and may cause restoration `Jobs` to become stuck due to insufficient resources. To prevent this, you can define the compute resources allocated to the `Job`:
 
 ```yaml
 apiVersion: k8s.mariadb.com/v1alpha1
@@ -484,7 +484,7 @@ NAME             COMPLETE   STATUS    MARIADB   LAST SCHEDULED   AGE
 physicalbackup   True       Success   mariadb   17s              17s
 ```
 
-To get a higher level of detail, you can also check the `status` field directly::
+To get a higher level of detail, you can also check the `status` field directly:
 
 ```bash
 kubectl get physicalbackups physicalbackup -o json | jq -r '.status'
