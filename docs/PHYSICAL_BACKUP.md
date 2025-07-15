@@ -419,7 +419,7 @@ Alternatively, if you want to keep using the `ReadWriteOncePod` access mode, you
 
 ### `PhysicalBackup` `Jobs` scheduling
 
-`PhysicalBackup` `Jobs` must mount the data PVC used by the primary `MariaDB` `Pods`. To avoid scheduling issues caused by the commonly used `ReadWriteOnce` access mode, the operator schedules backup `Jobs` on the same node as `MariaDB` by default.
+`PhysicalBackup` `Jobs` must mount the data PVC used by the primary `MariaDB` `Pod`. To avoid scheduling issues caused by the commonly used `ReadWriteOnce` access mode, the operator schedules backup `Jobs` on the same node as `MariaDB` by default.
 
 If you prefer to disable this behavior and allow `Jobs` to run on any node, you can set `podAffinity=false`:
 
