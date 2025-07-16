@@ -55,8 +55,8 @@ var _ = Describe("WebhookConfig", Label("basic"), func() {
 		})
 
 		By("Expecting to eventually inject CA bundle")
-		Eventually(func() bool {
-			Expect(k8sClient.Get(testCtx, key, &mutatingConfig)).To(Succeed())
+		Eventually(func(g Gomega) bool {
+			g.Expect(k8sClient.Get(testCtx, key, &mutatingConfig)).To(Succeed())
 			for _, w := range mutatingConfig.Webhooks {
 				if w.ClientConfig.CABundle == nil {
 					return false
@@ -183,8 +183,8 @@ var _ = Describe("WebhookConfig", Label("basic"), func() {
 		})
 
 		By("Expecting to eventually inject CA bundle")
-		Eventually(func() bool {
-			Expect(k8sClient.Get(testCtx, key, &validatingConfig)).To(Succeed())
+		Eventually(func(g Gomega) bool {
+			g.Expect(k8sClient.Get(testCtx, key, &validatingConfig)).To(Succeed())
 			for _, w := range validatingConfig.Webhooks {
 				if w.ClientConfig.CABundle == nil {
 					return false
