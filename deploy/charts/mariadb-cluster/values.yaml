@@ -47,7 +47,7 @@ users: []
 grants: []
   # - name: mariadb
   #   privileges:
-  #     - "ALL PRIVILEGES"  
+  #     - "ALL PRIVILEGES"
   #   database: "*"
   #   table: "*"
   #   username: mariadb

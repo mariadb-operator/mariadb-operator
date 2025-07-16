@@ -7,9 +7,13 @@ HELM_VALUES_FILE ?= $(HELM_DIR)/values.yaml
 HELM_CRDS_DIR ?= deploy/charts/mariadb-operator-crds
 HELM_CRDS_CHART_FILE ?= $(HELM_CRDS_DIR)/Chart.yaml
 
-HELM_CT_IMG ?= quay.io/helmpack/chart-testing:v3.5.0 
+HELM_CLUSTER_DIR ?= deploy/charts/mariadb-cluster
+HELM_CLUSTER_CHART_FILE ?= $(HELM_CLUSTER_DIR)/Chart.yaml
+
+HELM_CT_IMG ?= quay.io/helmpack/chart-testing:v3.5.0
 HELM_CT_CONFIG ?= hack/config/chart-testing/mariadb-operator.yaml
 HELM_CRDS_CT_CONFIG ?= hack/config/chart-testing/mariadb-operator-crds.yaml
+HELM_CLUSTER_CT_CONFIG ?= hack/config/chart-testing/mariadb-cluster.yaml
 .PHONY: helm-lint
 helm-lint: ## Lint mariadb-operator helm chart.
 	$(DOCKER) run --rm --workdir /repo -v $(shell pwd):/repo $(HELM_CT_IMG) ct lint --config $(HELM_CT_CONFIG) 
@@ -17,6 +21,10 @@ helm-lint: ## Lint mariadb-operator helm chart.
 .PHONY: helm-crds-lint
 helm-crds-lint: ## Lint mariadb-operator-crds helm chart.
 	$(DOCKER) run --rm --workdir /repo -v $(shell pwd):/repo $(HELM_CT_IMG) ct lint --config $(HELM_CRDS_CT_CONFIG) 
+
+.PHONY: helm-cluster-lint
+helm-cluster-lint: ## Lint mariadb-cluster helm chart.
+	$(DOCKER) run --rm --workdir /repo -v $(shell pwd):/repo $(HELM_CT_IMG) ct lint --config $(HELM_CLUSTER_CT_CONFIG) 
 
 .PHONY: helm-crds 
 helm-crds: kustomize ## Generate CRDs for the Helm chart.
@@ -38,6 +46,10 @@ helm-docs: ## Generate Helm chart docs.
 	$(DOCKER) run --rm \
 		-u $(shell id -u) \
 		-v $(shell pwd)/$(HELM_DIR):/helm-docs \
+		$(HELM_DOCS_IMG)
+	$(DOCKER) run --rm \
+		-u $(shell id -u) \
+		-v $(shell pwd)/$(HELM_CLUSTER_DIR):/helm-docs \
 		$(HELM_DOCS_IMG)
 
 .PHONY: helm-gen
@@ -66,10 +78,15 @@ endif
 ifndef HELM_CRDS_CHART_FILE
 	$(error HELM_CRDS_CHART_FILE is not set. Please set it before running this target)
 endif
+ifndef HELM_CLUSTER_CHART_FILE
+	$(error HELM_CLUSTER_CHART_FILE is not set. Please set it before running this target)
+endif
 ifndef HELM_VERSION
 	$(error HELM_VERSION is not set. Please set it before running this target)
 endif
 	@$(YQ) e -i ".version = \"$(HELM_VERSION)\"" $(HELM_CHART_FILE); \
 	$(YQ) e -i ".appVersion = \"$(HELM_VERSION)\"" $(HELM_CHART_FILE); \
 	$(YQ) e -i ".dependencies |= map(select(.name == \"mariadb-operator-crds\").version = \"$(HELM_VERSION)\" // .)" $(HELM_CHART_FILE); \
-	$(YQ) e -i ".version = \"$(HELM_VERSION)\"" $(HELM_CRDS_CHART_FILE)
+	$(YQ) e -i ".version = \"$(HELM_VERSION)\"" $(HELM_CRDS_CHART_FILE); \
+	$(YQ) e -i ".version = \"$(HELM_VERSION)\"" $(HELM_CLUSTER_CHART_FILE); \
+	$(YQ) e -i ".dependencies |= map(select(.name == \"mariadb-operator-crds\").version = \"$(HELM_VERSION)\" // .)" $(HELM_CLUSTER_CHART_FILE);
