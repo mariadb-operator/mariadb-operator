@@ -134,14 +134,14 @@ var _ = Describe("MariaDB", Label("basic"), func() {
 	})
 
 	It("should reconcile", func() {
-		var testMariaDb mariadbv1alpha1.MariaDB
+		var testMariaDB mariadbv1alpha1.MariaDB
 		By("Getting MariaDB")
-		Expect(k8sClient.Get(testCtx, testMdbkey, &testMariaDb)).To(Succeed())
+		Expect(k8sClient.Get(testCtx, testMdbkey, &testMariaDB)).To(Succeed())
 
 		By("Expecting to create a ServiceAccount eventually")
 		Eventually(func(g Gomega) bool {
 			var svcAcc corev1.ServiceAccount
-			key := testMariaDb.Spec.PodTemplate.ServiceAccountKey(testMariaDb.ObjectMeta)
+			key := testMariaDB.Spec.PodTemplate.ServiceAccountKey(testMariaDB.ObjectMeta)
 			g.Expect(k8sClient.Get(testCtx, key, &svcAcc)).To(Succeed())
 
 			g.Expect(svcAcc.ObjectMeta.Labels).NotTo(BeNil())
@@ -155,8 +155,8 @@ var _ = Describe("MariaDB", Label("basic"), func() {
 		Eventually(func(g Gomega) bool {
 			var cm corev1.ConfigMap
 			key := types.NamespacedName{
-				Name:      testMariaDb.DefaultConfigMapKeyRef().Name,
-				Namespace: testMariaDb.Namespace,
+				Name:      testMariaDB.DefaultConfigMapKeyRef().Name,
+				Namespace: testMariaDB.Namespace,
 			}
 			if err := k8sClient.Get(testCtx, key, &cm); err != nil {
 				return false
@@ -171,13 +171,13 @@ var _ = Describe("MariaDB", Label("basic"), func() {
 
 		By("Expecting to create a ConfigMap eventually")
 		Eventually(func(g Gomega) bool {
-			if testMariaDb.Spec.MyCnfConfigMapKeyRef == nil {
+			if testMariaDB.Spec.MyCnfConfigMapKeyRef == nil {
 				return false
 			}
 			var cm corev1.ConfigMap
 			key := types.NamespacedName{
-				Name:      testMariaDb.Spec.MyCnfConfigMapKeyRef.Name,
-				Namespace: testMariaDb.Namespace,
+				Name:      testMariaDB.Spec.MyCnfConfigMapKeyRef.Name,
+				Namespace: testMariaDB.Namespace,
 			}
 			if err := k8sClient.Get(testCtx, key, &cm); err != nil {
 				return false
@@ -205,8 +205,8 @@ var _ = Describe("MariaDB", Label("basic"), func() {
 		By("Expecting Pod to have metadata")
 		Eventually(func(g Gomega) bool {
 			key := types.NamespacedName{
-				Name:      stsobj.PodName(testMariaDb.ObjectMeta, 0),
-				Namespace: testMariaDb.Namespace,
+				Name:      stsobj.PodName(testMariaDB.ObjectMeta, 0),
+				Namespace: testMariaDB.Namespace,
 			}
 			var pod corev1.Pod
 			if err := k8sClient.Get(testCtx, key, &pod); err != nil {
@@ -236,7 +236,7 @@ var _ = Describe("MariaDB", Label("basic"), func() {
 		By("Expecting Connection to be ready eventually")
 		Eventually(func(g Gomega) bool {
 			var conn mariadbv1alpha1.Connection
-			if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&testMariaDb), &conn); err != nil {
+			if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&testMariaDB), &conn); err != nil {
 				return false
 			}
 			g.Expect(conn.ObjectMeta.Labels).NotTo(BeNil())
@@ -249,7 +249,7 @@ var _ = Describe("MariaDB", Label("basic"), func() {
 		By("Expecting to create a exporter Deployment eventually")
 		Eventually(func(g Gomega) bool {
 			var deploy appsv1.Deployment
-			if err := k8sClient.Get(testCtx, testMariaDb.MetricsKey(), &deploy); err != nil {
+			if err := k8sClient.Get(testCtx, testMariaDB.MetricsKey(), &deploy); err != nil {
 				return false
 			}
 			expectedImage := os.Getenv("RELATED_IMAGE_EXPORTER")
@@ -270,7 +270,7 @@ var _ = Describe("MariaDB", Label("basic"), func() {
 		By("Expecting to create a ServiceMonitor eventually")
 		Eventually(func(g Gomega) bool {
 			var svcMonitor monitoringv1.ServiceMonitor
-			if err := k8sClient.Get(testCtx, testMariaDb.MetricsKey(), &svcMonitor); err != nil {
+			if err := k8sClient.Get(testCtx, testMariaDB.MetricsKey(), &svcMonitor); err != nil {
 				return false
 			}
 
@@ -281,21 +281,21 @@ var _ = Describe("MariaDB", Label("basic"), func() {
 
 			g.Expect(svcMonitor.Spec.Selector.MatchLabels).NotTo(BeEmpty())
 			g.Expect(svcMonitor.Spec.Selector.MatchLabels).To(HaveKeyWithValue("app.kubernetes.io/name", "exporter"))
-			g.Expect(svcMonitor.Spec.Selector.MatchLabels).To(HaveKeyWithValue("app.kubernetes.io/instance", testMariaDb.MetricsKey().Name))
+			g.Expect(svcMonitor.Spec.Selector.MatchLabels).To(HaveKeyWithValue("app.kubernetes.io/instance", testMariaDB.MetricsKey().Name))
 			g.Expect(svcMonitor.Spec.Endpoints).To(HaveLen(1))
 			return true
 		}).WithTimeout(testTimeout).WithPolling(testInterval).Should(BeTrue())
 	})
 
 	It("should reconcile SQL", func() {
-		var testMariaDb mariadbv1alpha1.MariaDB
+		var testMariaDB mariadbv1alpha1.MariaDB
 		By("Getting MariaDB")
-		Expect(k8sClient.Get(testCtx, testMdbkey, &testMariaDb)).To(Succeed())
+		Expect(k8sClient.Get(testCtx, testMdbkey, &testMariaDB)).To(Succeed())
 
 		By("Expecting initial Database to be ready eventually")
 		Eventually(func(g Gomega) bool {
 			var database mariadbv1alpha1.Database
-			if err := k8sClient.Get(testCtx, testMariaDb.MariadbDatabaseKey(), &database); err != nil {
+			if err := k8sClient.Get(testCtx, testMariaDB.MariadbDatabaseKey(), &database); err != nil {
 				return false
 			}
 			g.Expect(database.ObjectMeta.Labels).NotTo(BeNil())
@@ -308,7 +308,7 @@ var _ = Describe("MariaDB", Label("basic"), func() {
 		By("Expecting initial User to be ready eventually")
 		Eventually(func(g Gomega) bool {
 			var user mariadbv1alpha1.User
-			if err := k8sClient.Get(testCtx, testMariaDb.MariadbUserKey(), &user); err != nil {
+			if err := k8sClient.Get(testCtx, testMariaDB.MariadbUserKey(), &user); err != nil {
 				return false
 			}
 			g.Expect(user.ObjectMeta.Labels).NotTo(BeNil())
@@ -321,7 +321,7 @@ var _ = Describe("MariaDB", Label("basic"), func() {
 		By("Expecting initial Grant to be ready eventually")
 		Eventually(func(g Gomega) bool {
 			var grant mariadbv1alpha1.Grant
-			if err := k8sClient.Get(testCtx, testMariaDb.MariadbGrantKey(), &grant); err != nil {
+			if err := k8sClient.Get(testCtx, testMariaDB.MariadbGrantKey(), &grant); err != nil {
 				return false
 			}
 			g.Expect(grant.ObjectMeta.Labels).NotTo(BeNil())
@@ -334,7 +334,7 @@ var _ = Describe("MariaDB", Label("basic"), func() {
 		By("Expecting mariadb.sys User to be ready eventually")
 		Eventually(func(g Gomega) bool {
 			var user mariadbv1alpha1.User
-			if err := k8sClient.Get(testCtx, testMariaDb.MariadbSysUserKey(), &user); err != nil {
+			if err := k8sClient.Get(testCtx, testMariaDB.MariadbSysUserKey(), &user); err != nil {
 				return false
 			}
 			g.Expect(user.ObjectMeta.Labels).NotTo(BeNil())
@@ -347,7 +347,7 @@ var _ = Describe("MariaDB", Label("basic"), func() {
 		By("Expecting mariadb.sys Grant to be ready eventually")
 		Eventually(func(g Gomega) bool {
 			var grant mariadbv1alpha1.Grant
-			if err := k8sClient.Get(testCtx, testMariaDb.MariadbSysGrantKey(), &grant); err != nil {
+			if err := k8sClient.Get(testCtx, testMariaDB.MariadbSysGrantKey(), &grant); err != nil {
 				return false
 			}
 			g.Expect(grant.ObjectMeta.Labels).NotTo(BeNil())
@@ -360,7 +360,7 @@ var _ = Describe("MariaDB", Label("basic"), func() {
 		By("Expecting metrics User to be ready eventually")
 		Eventually(func(g Gomega) bool {
 			var user mariadbv1alpha1.User
-			if err := k8sClient.Get(testCtx, testMariaDb.MetricsKey(), &user); err != nil {
+			if err := k8sClient.Get(testCtx, testMariaDB.MetricsKey(), &user); err != nil {
 				return false
 			}
 			g.Expect(user.ObjectMeta.Labels).NotTo(BeNil())
@@ -373,7 +373,7 @@ var _ = Describe("MariaDB", Label("basic"), func() {
 		By("Expecting metrics Grant to be ready eventually")
 		Eventually(func(g Gomega) bool {
 			var grant mariadbv1alpha1.Grant
-			if err := k8sClient.Get(testCtx, testMariaDb.MetricsKey(), &grant); err != nil {
+			if err := k8sClient.Get(testCtx, testMariaDB.MetricsKey(), &grant); err != nil {
 				return false
 			}
 			g.Expect(grant.ObjectMeta.Labels).NotTo(BeNil())

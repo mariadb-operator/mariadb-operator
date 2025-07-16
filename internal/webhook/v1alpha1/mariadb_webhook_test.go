@@ -905,7 +905,7 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 		}
 		BeforeAll(func() {
 			test := "test"
-			mariaDb := v1alpha1.MariaDB{
+			mariaDB := v1alpha1.MariaDB{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      noSwitchoverKey.Name,
 					Namespace: noSwitchoverKey.Namespace,
@@ -936,7 +936,7 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 					},
 				},
 			}
-			mariaDbSwitchover := v1alpha1.MariaDB{
+			mariaDBSwitchover := v1alpha1.MariaDB{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      switchoverKey.Name,
 					Namespace: switchoverKey.Namespace,
@@ -977,12 +977,12 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 					},
 				},
 			}
-			Expect(k8sClient.Create(testCtx, &mariaDb)).To(Succeed())
-			Expect(k8sClient.Create(testCtx, &mariaDbSwitchover)).To(Succeed())
+			Expect(k8sClient.Create(testCtx, &mariaDB)).To(Succeed())
+			Expect(k8sClient.Create(testCtx, &mariaDBSwitchover)).To(Succeed())
 
 			By("Updating status conditions")
-			Expect(k8sClient.Get(testCtx, switchoverKey, &mariaDbSwitchover)).To(Succeed())
-			mariaDbSwitchover.Status.Conditions = []metav1.Condition{
+			Expect(k8sClient.Get(testCtx, switchoverKey, &mariaDBSwitchover)).To(Succeed())
+			mariaDBSwitchover.Status.Conditions = []metav1.Condition{
 				{
 					Type:               v1alpha1.ConditionTypePrimarySwitched,
 					Status:             metav1.ConditionFalse,
@@ -991,7 +991,7 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 					LastTransitionTime: metav1.Now(),
 				},
 			}
-			Expect(k8sClient.Status().Update(testCtx, &mariaDbSwitchover)).To(Succeed())
+			Expect(k8sClient.Status().Update(testCtx, &mariaDBSwitchover)).To(Succeed())
 		})
 		DescribeTable(
 			"Should validate",

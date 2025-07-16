@@ -20,7 +20,7 @@ var _ = Describe("v1alpha1.SqlJob webhook", func() {
 		}
 		DescribeTable(
 			"Should validate",
-			func(s *v1alpha1.SqlJob, wantErr bool) {
+			func(s *v1alpha1.SQLJob, wantErr bool) {
 				_ = k8sClient.Delete(testCtx, s)
 				err := k8sClient.Create(testCtx, s)
 				if wantErr {
@@ -31,9 +31,9 @@ var _ = Describe("v1alpha1.SqlJob webhook", func() {
 			},
 			Entry(
 				"No SQL",
-				&v1alpha1.SqlJob{
+				&v1alpha1.SQLJob{
 					ObjectMeta: objMeta,
-					Spec: v1alpha1.SqlJobSpec{
+					Spec: v1alpha1.SQLJobSpec{
 						MariaDBRef: v1alpha1.MariaDBRef{
 							ObjectReference: v1alpha1.ObjectReference{
 								Name: "foo",
@@ -52,9 +52,9 @@ var _ = Describe("v1alpha1.SqlJob webhook", func() {
 			),
 			Entry(
 				"Invalid schedule",
-				&v1alpha1.SqlJob{
+				&v1alpha1.SQLJob{
 					ObjectMeta: objMeta,
-					Spec: v1alpha1.SqlJobSpec{
+					Spec: v1alpha1.SQLJobSpec{
 						MariaDBRef: v1alpha1.MariaDBRef{
 							ObjectReference: v1alpha1.ObjectReference{
 								Name: "foo",
@@ -76,9 +76,9 @@ var _ = Describe("v1alpha1.SqlJob webhook", func() {
 			),
 			Entry(
 				"Invalid history limits",
-				&v1alpha1.SqlJob{
+				&v1alpha1.SQLJob{
 					ObjectMeta: objMeta,
-					Spec: v1alpha1.SqlJobSpec{
+					Spec: v1alpha1.SQLJobSpec{
 						MariaDBRef: v1alpha1.MariaDBRef{
 							ObjectReference: v1alpha1.ObjectReference{
 								Name: "foo",
@@ -94,7 +94,7 @@ var _ = Describe("v1alpha1.SqlJob webhook", func() {
 							},
 							Key: "foo",
 						},
-						Sql: func() *string { s := "foo"; return &s }(),
+						SQL: func() *string { s := "foo"; return &s }(),
 						CronJobTemplate: v1alpha1.CronJobTemplate{
 							SuccessfulJobsHistoryLimit: ptr.To[int32](-5),
 							FailedJobsHistoryLimit:     ptr.To[int32](-5),
@@ -105,9 +105,9 @@ var _ = Describe("v1alpha1.SqlJob webhook", func() {
 			),
 			Entry(
 				"Valid",
-				&v1alpha1.SqlJob{
+				&v1alpha1.SQLJob{
 					ObjectMeta: objMeta,
-					Spec: v1alpha1.SqlJobSpec{
+					Spec: v1alpha1.SQLJobSpec{
 						MariaDBRef: v1alpha1.MariaDBRef{
 							ObjectReference: v1alpha1.ObjectReference{
 								Name: "foo",
@@ -120,16 +120,16 @@ var _ = Describe("v1alpha1.SqlJob webhook", func() {
 							},
 							Key: "foo",
 						},
-						Sql: func() *string { s := "foo"; return &s }(),
+						SQL: func() *string { s := "foo"; return &s }(),
 					},
 				},
 				false,
 			),
 			Entry(
 				"Valid with schedule",
-				&v1alpha1.SqlJob{
+				&v1alpha1.SQLJob{
 					ObjectMeta: objMeta,
-					Spec: v1alpha1.SqlJobSpec{
+					Spec: v1alpha1.SQLJobSpec{
 						MariaDBRef: v1alpha1.MariaDBRef{
 							ObjectReference: v1alpha1.ObjectReference{
 								Name: "foo",
@@ -145,16 +145,16 @@ var _ = Describe("v1alpha1.SqlJob webhook", func() {
 							},
 							Key: "foo",
 						},
-						Sql: func() *string { s := "foo"; return &s }(),
+						SQL: func() *string { s := "foo"; return &s }(),
 					},
 				},
 				false,
 			),
 			Entry(
 				"Valid with schedule and history limits",
-				&v1alpha1.SqlJob{
+				&v1alpha1.SQLJob{
 					ObjectMeta: objMeta,
-					Spec: v1alpha1.SqlJobSpec{
+					Spec: v1alpha1.SQLJobSpec{
 						MariaDBRef: v1alpha1.MariaDBRef{
 							ObjectReference: v1alpha1.ObjectReference{
 								Name: "foo",
@@ -170,7 +170,7 @@ var _ = Describe("v1alpha1.SqlJob webhook", func() {
 							},
 							Key: "foo",
 						},
-						Sql: func() *string { s := "foo"; return &s }(),
+						SQL: func() *string { s := "foo"; return &s }(),
 						CronJobTemplate: v1alpha1.CronJobTemplate{
 							SuccessfulJobsHistoryLimit: ptr.To[int32](5),
 							FailedJobsHistoryLimit:     ptr.To[int32](5),
@@ -188,12 +188,12 @@ var _ = Describe("v1alpha1.SqlJob webhook", func() {
 			Namespace: testNamespace,
 		}
 		BeforeAll(func() {
-			sqlJob := v1alpha1.SqlJob{
+			sqlJob := v1alpha1.SQLJob{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      key.Name,
 					Namespace: key.Namespace,
 				},
-				Spec: v1alpha1.SqlJobSpec{
+				Spec: v1alpha1.SQLJobSpec{
 					DependsOn: []v1alpha1.LocalObjectReference{
 						{
 							Name: "sqljob-webhook",
@@ -213,7 +213,7 @@ var _ = Describe("v1alpha1.SqlJob webhook", func() {
 						Key: "test",
 					},
 					Database: func() *string { d := "test"; return &d }(),
-					Sql: func() *string {
+					SQL: func() *string {
 						sql := `CREATE TABLE IF NOT EXISTS users (
 							id bigint PRIMARY KEY AUTO_INCREMENT,
 							username varchar(255) NOT NULL,
@@ -229,8 +229,8 @@ var _ = Describe("v1alpha1.SqlJob webhook", func() {
 		})
 		DescribeTable(
 			"Should validate",
-			func(patchFn func(job *v1alpha1.SqlJob), wantErr bool) {
-				var sqlJob v1alpha1.SqlJob
+			func(patchFn func(job *v1alpha1.SQLJob), wantErr bool) {
+				var sqlJob v1alpha1.SQLJob
 				Expect(k8sClient.Get(testCtx, key, &sqlJob)).To(Succeed())
 
 				patch := client.MergeFrom(sqlJob.DeepCopy())
@@ -245,21 +245,21 @@ var _ = Describe("v1alpha1.SqlJob webhook", func() {
 			},
 			Entry(
 				"Updating BackoffLimit",
-				func(job *v1alpha1.SqlJob) {
+				func(job *v1alpha1.SQLJob) {
 					job.Spec.BackoffLimit = 20
 				},
 				false,
 			),
 			Entry(
 				"Updating RestartPolicy",
-				func(job *v1alpha1.SqlJob) {
+				func(job *v1alpha1.SQLJob) {
 					job.Spec.RestartPolicy = corev1.RestartPolicyNever
 				},
 				true,
 			),
 			Entry(
 				"Updating Resources",
-				func(job *v1alpha1.SqlJob) {
+				func(job *v1alpha1.SQLJob) {
 					job.Spec.Resources = &v1alpha1.ResourceRequirements{
 						Requests: corev1.ResourceList{
 							"cpu": resource.MustParse("200m"),
@@ -270,50 +270,50 @@ var _ = Describe("v1alpha1.SqlJob webhook", func() {
 			),
 			Entry(
 				"Updating MariaDBRef",
-				func(job *v1alpha1.SqlJob) {
+				func(job *v1alpha1.SQLJob) {
 					job.Spec.MariaDBRef.Name = "another-mariadb"
 				},
 				true,
 			),
 			Entry(
 				"Updating Username",
-				func(job *v1alpha1.SqlJob) {
+				func(job *v1alpha1.SQLJob) {
 					job.Spec.Username = "foo"
 				},
 				true,
 			),
 			Entry(
 				"Updating PasswordSecretKeyRef",
-				func(job *v1alpha1.SqlJob) {
+				func(job *v1alpha1.SQLJob) {
 					job.Spec.PasswordSecretKeyRef.Name = "foo"
 				},
 				true,
 			),
 			Entry(
 				"Updating Database",
-				func(job *v1alpha1.SqlJob) {
+				func(job *v1alpha1.SQLJob) {
 					job.Spec.Database = func() *string { d := "foo"; return &d }()
 				},
 				true,
 			),
 			Entry(
 				"Updating DependsOn",
-				func(job *v1alpha1.SqlJob) {
+				func(job *v1alpha1.SQLJob) {
 					job.Spec.DependsOn = nil
 				},
 				true,
 			),
 			Entry(
-				"Updating Sql",
-				func(job *v1alpha1.SqlJob) {
-					job.Spec.Sql = func() *string { d := "foo"; return &d }()
+				"Updating SQL",
+				func(job *v1alpha1.SQLJob) {
+					job.Spec.SQL = func() *string { d := "foo"; return &d }()
 				},
 				true,
 			),
 			Entry(
-				"Updating SqlConfigMapKeyRef",
-				func(job *v1alpha1.SqlJob) {
-					job.Spec.SqlConfigMapKeyRef = &v1alpha1.ConfigMapKeySelector{
+				"Updating SQLConfigMapKeyRef",
+				func(job *v1alpha1.SQLJob) {
+					job.Spec.SQLConfigMapKeyRef = &v1alpha1.ConfigMapKeySelector{
 						LocalObjectReference: v1alpha1.LocalObjectReference{
 							Name: "foo",
 						},
@@ -323,7 +323,7 @@ var _ = Describe("v1alpha1.SqlJob webhook", func() {
 			),
 			Entry(
 				"Updating Schedule",
-				func(job *v1alpha1.SqlJob) {
+				func(job *v1alpha1.SQLJob) {
 					job.Spec.Schedule = &v1alpha1.Schedule{
 						Cron:    "*/1 * * * *",
 						Suspend: false,
@@ -333,7 +333,7 @@ var _ = Describe("v1alpha1.SqlJob webhook", func() {
 			),
 			Entry(
 				"Updating with wrong Schedule",
-				func(job *v1alpha1.SqlJob) {
+				func(job *v1alpha1.SQLJob) {
 					job.Spec.Schedule = &v1alpha1.Schedule{
 						Cron:    "foo",
 						Suspend: false,
@@ -343,37 +343,37 @@ var _ = Describe("v1alpha1.SqlJob webhook", func() {
 			),
 			Entry(
 				"Updating SuccessfulJobsHistoryLimit",
-				func(job *v1alpha1.SqlJob) {
+				func(job *v1alpha1.SQLJob) {
 					job.Spec.SuccessfulJobsHistoryLimit = ptr.To[int32](5)
 				},
 				false,
 			),
 			Entry(
 				"Updating with wrong SuccessfulJobsHistoryLimit",
-				func(job *v1alpha1.SqlJob) {
+				func(job *v1alpha1.SQLJob) {
 					job.Spec.SuccessfulJobsHistoryLimit = ptr.To[int32](-5)
 				},
 				true,
 			),
 			Entry(
 				"Updating FailedJobsHistoryLimit",
-				func(job *v1alpha1.SqlJob) {
+				func(job *v1alpha1.SQLJob) {
 					job.Spec.FailedJobsHistoryLimit = ptr.To[int32](5)
 				},
 				false,
 			),
 			Entry(
 				"Updating with wrong FailedJobsHistoryLimit",
-				func(job *v1alpha1.SqlJob) {
+				func(job *v1alpha1.SQLJob) {
 					job.Spec.FailedJobsHistoryLimit = ptr.To[int32](-5)
 				},
 				true,
 			),
 			Entry(
 				"Removing SQL",
-				func(job *v1alpha1.SqlJob) {
-					job.Spec.Sql = nil
-					job.Spec.SqlConfigMapKeyRef = nil
+				func(job *v1alpha1.SQLJob) {
+					job.Spec.SQL = nil
+					job.Spec.SQLConfigMapKeyRef = nil
 				},
 				true,
 			),

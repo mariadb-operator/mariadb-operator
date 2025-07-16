@@ -18,16 +18,16 @@ type DatabaseReconciler struct {
 	client.Client
 	RefResolver    *refresolver.RefResolver
 	ConditionReady *condition.Ready
-	SqlOpts        []sql.SqlOpt
+	SQLOpts        []sql.SQLOpt
 }
 
 func NewDatabaseReconciler(client client.Client, refResolver *refresolver.RefResolver, conditionReady *condition.Ready,
-	sqlOpts ...sql.SqlOpt) *DatabaseReconciler {
+	sqlOpts ...sql.SQLOpt) *DatabaseReconciler {
 	return &DatabaseReconciler{
 		Client:         client,
 		RefResolver:    refResolver,
 		ConditionReady: conditionReady,
-		SqlOpts:        sqlOpts,
+		SQLOpts:        sqlOpts,
 	}
 }
 
@@ -45,8 +45,8 @@ func (r *DatabaseReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 	wr := newWrappedDatabaseReconciler(r.Client, r.RefResolver, &database)
 	wf := newWrappedDatabaseFinalizer(r.Client, &database)
-	tf := sql.NewSqlFinalizer(r.Client, wf, r.SqlOpts...)
-	tr := sql.NewSqlReconciler(r.Client, r.ConditionReady, wr, tf, r.SqlOpts...)
+	tf := sql.NewSQLFinalizer(r.Client, wf, r.SQLOpts...)
+	tr := sql.NewSQLReconciler(r.Client, r.ConditionReady, wr, tf, r.SQLOpts...)
 
 	result, err := tr.Reconcile(ctx, &database)
 	if err != nil {

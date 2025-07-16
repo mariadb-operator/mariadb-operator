@@ -6,8 +6,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// SqlJobSpec defines the desired state of SqlJob
-type SqlJobSpec struct {
+// SQLJobSpec defines the desired state of SqlJob
+type SQLJobSpec struct {
 	// JobContainerTemplate defines templates to configure Container objects.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	JobContainerTemplate `json:",inline"`
@@ -51,15 +51,15 @@ type SqlJobSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	DependsOn []LocalObjectReference `json:"dependsOn,omitempty" webhook:"inmutable"`
-	// Sql is the script to be executed by the SqlJob.
+	// SQL is the script to be executed by the SqlJob.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Sql *string `json:"sql,omitempty" webhook:"inmutable"`
-	// SqlConfigMapKeyRef is a reference to a ConfigMap containing the Sql script.
+	SQL *string `json:"sql,omitempty" webhook:"inmutable"`
+	// SQLConfigMapKeyRef is a reference to a ConfigMap containing the Sql script.
 	// It is defaulted to a ConfigMap with the contents of the Sql field.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	SqlConfigMapKeyRef *ConfigMapKeySelector `json:"sqlConfigMapKeyRef,omitempty" webhook:"inmutableinit"`
+	SQLConfigMapKeyRef *ConfigMapKeySelector `json:"sqlConfigMapKeyRef,omitempty" webhook:"inmutableinit"`
 	// BackoffLimit defines the maximum number of attempts to successfully execute a SqlJob.
 	// +optional
 	// +kubebuilder:default=5
@@ -77,15 +77,15 @@ type SqlJobSpec struct {
 	InheritMetadata *Metadata `json:"inheritMetadata,omitempty"`
 }
 
-// SqlJobStatus defines the observed state of SqlJob
-type SqlJobStatus struct {
+// SQLJobStatus defines the observed state of SqlJob
+type SQLJobStatus struct {
 	// Conditions for the SqlJob object.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status,xDescriptors={"urn:alm:descriptor:io.kubernetes.conditions"}
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
-func (s *SqlJobStatus) SetCondition(condition metav1.Condition) {
+func (s *SQLJobStatus) SetCondition(condition metav1.Condition) {
 	if s.Conditions == nil {
 		s.Conditions = make([]metav1.Condition, 0)
 	}
@@ -101,20 +101,20 @@ func (s *SqlJobStatus) SetCondition(condition metav1.Condition) {
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 // +operator-sdk:csv:customresourcedefinitions:resources={{SqlJob,v1alpha1},{ConfigMap,v1},{CronJob,v1},{Job,v1},{ServiceAccount,v1}}
 
-// SqlJob is the Schema for the sqljobs API. It is used to run sql scripts as jobs.
-type SqlJob struct {
+// SQLJob is the Schema for the sqljobs API. It is used to run sql scripts as jobs.
+type SQLJob struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   SqlJobSpec   `json:"spec,omitempty"`
-	Status SqlJobStatus `json:"status,omitempty"`
+	Spec   SQLJobSpec   `json:"spec,omitempty"`
+	Status SQLJobStatus `json:"status,omitempty"`
 }
 
-func (s *SqlJob) IsComplete() bool {
+func (s *SQLJob) IsComplete() bool {
 	return meta.IsStatusConditionTrue(s.Status.Conditions, ConditionTypeComplete)
 }
 
-func (s *SqlJob) SetDefaults(mariadb *MariaDB) {
+func (s *SQLJob) SetDefaults(mariadb *MariaDB) {
 	if s.Spec.BackoffLimit == 0 {
 		s.Spec.BackoffLimit = 5
 	}
@@ -123,13 +123,13 @@ func (s *SqlJob) SetDefaults(mariadb *MariaDB) {
 
 //+kubebuilder:object:root=true
 
-// SqlJobList contains a list of SqlJob
-type SqlJobList struct {
+// SQLJobList contains a list of SqlJob
+type SQLJobList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []SqlJob `json:"items"`
+	Items           []SQLJob `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&SqlJob{}, &SqlJobList{})
+	SchemeBuilder.Register(&SQLJob{}, &SQLJobList{})
 }

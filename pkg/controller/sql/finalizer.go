@@ -15,32 +15,32 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-type SqlFinalizer struct {
+type SQLFinalizer struct {
 	Client      client.Client
 	RefResolver *refresolver.RefResolver
 
 	WrappedFinalizer WrappedFinalizer
 
-	SqlOptions
+	SQLOptions
 }
 
-func NewSqlFinalizer(client client.Client, wf WrappedFinalizer, opts ...SqlOpt) Finalizer {
-	finalizer := &SqlFinalizer{
+func NewSQLFinalizer(client client.Client, wf WrappedFinalizer, opts ...SQLOpt) Finalizer {
+	finalizer := &SQLFinalizer{
 		Client:           client,
 		RefResolver:      refresolver.New(client),
 		WrappedFinalizer: wf,
-		SqlOptions: SqlOptions{
+		SQLOptions: SQLOptions{
 			RequeueInterval: 30 * time.Second,
-			LogSql:          false,
+			LogSQL:          false,
 		},
 	}
 	for _, setOpt := range opts {
-		setOpt(&finalizer.SqlOptions)
+		setOpt(&finalizer.SQLOptions)
 	}
 	return finalizer
 }
 
-func (tf *SqlFinalizer) AddFinalizer(ctx context.Context) error {
+func (tf *SQLFinalizer) AddFinalizer(ctx context.Context) error {
 	if tf.WrappedFinalizer.ContainsFinalizer() {
 		return nil
 	}
@@ -50,7 +50,7 @@ func (tf *SqlFinalizer) AddFinalizer(ctx context.Context) error {
 	return nil
 }
 
-func (tf *SqlFinalizer) Finalize(ctx context.Context, resource Resource) (ctrl.Result, error) {
+func (tf *SQLFinalizer) Finalize(ctx context.Context, resource Resource) (ctrl.Result, error) {
 	if !tf.WrappedFinalizer.ContainsFinalizer() {
 		return ctrl.Result{}, nil
 	}
@@ -74,7 +74,7 @@ func (tf *SqlFinalizer) Finalize(ctx context.Context, resource Resource) (ctrl.R
 		return ctrl.Result{}, nil
 	}
 
-	if result, err := waitForMariaDB(ctx, tf.Client, mariadb, tf.LogSql); !result.IsZero() || err != nil {
+	if result, err := waitForMariaDB(ctx, tf.Client, mariadb, tf.LogSQL); !result.IsZero() || err != nil {
 		return result, err
 	}
 

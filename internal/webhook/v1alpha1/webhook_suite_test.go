@@ -130,7 +130,7 @@ var _ = BeforeSuite(func() {
 	err = SetupDatabaseWebhookWithManager(mgr)
 	Expect(err).NotTo(HaveOccurred())
 
-	err = SetupSqlJobWebhookWithManager(mgr)
+	err = SetupSQLJobWebhookWithManager(mgr)
 	Expect(err).NotTo(HaveOccurred())
 
 	// +kubebuilder:scaffold:webhook

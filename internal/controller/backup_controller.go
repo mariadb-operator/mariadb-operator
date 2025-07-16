@@ -48,25 +48,25 @@ func (r *BackupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	mariaDb, err := r.RefResolver.MariaDB(ctx, &backup.Spec.MariaDBRef, backup.Namespace)
+	mariaDB, err := r.RefResolver.MariaDB(ctx, &backup.Spec.MariaDBRef, backup.Namespace)
 	if err != nil {
-		var mariaDbErr *multierror.Error
-		mariaDbErr = multierror.Append(mariaDbErr, err)
+		var mariaDBErr *multierror.Error
+		mariaDBErr = multierror.Append(mariaDBErr, err)
 
-		err = r.patchStatus(ctx, &backup, r.ConditionComplete.PatcherRefResolver(err, mariaDb))
-		mariaDbErr = multierror.Append(mariaDbErr, err)
+		err = r.patchStatus(ctx, &backup, r.ConditionComplete.PatcherRefResolver(err, mariaDB))
+		mariaDBErr = multierror.Append(mariaDBErr, err)
 
-		return ctrl.Result{}, fmt.Errorf("error getting MariaDB: %v", mariaDbErr)
+		return ctrl.Result{}, fmt.Errorf("error getting MariaDB: %v", mariaDBErr)
 	}
 
-	if backup.Spec.MariaDBRef.WaitForIt && !mariaDb.IsReady() {
+	if backup.Spec.MariaDBRef.WaitForIt && !mariaDB.IsReady() {
 		if err := r.patchStatus(ctx, &backup, r.ConditionComplete.PatcherFailed("MariaDB not ready")); err != nil {
 			return ctrl.Result{}, fmt.Errorf("error patching Backup: %v", err)
 		}
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 
-	if err := r.setDefaults(ctx, &backup, mariaDb); err != nil {
+	if err := r.setDefaults(ctx, &backup, mariaDB); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error defaulting Backup: %v", err)
 	}
 
@@ -75,7 +75,7 @@ func (r *BackupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	}
 
 	var batchErr *multierror.Error
-	err = r.BatchReconciler.Reconcile(ctx, &backup, mariaDb)
+	err = r.BatchReconciler.Reconcile(ctx, &backup, mariaDB)
 	batchErr = multierror.Append(batchErr, err)
 
 	patcher, err := r.patcher(ctx, err, req.NamespacedName, &backup)

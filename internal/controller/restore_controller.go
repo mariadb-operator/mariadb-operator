@@ -47,13 +47,13 @@ func (r *RestoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	mariadb, err := r.RefResolver.MariaDB(ctx, &restore.Spec.MariaDBRef, restore.Namespace)
 	if err != nil {
-		var mariaDbErr *multierror.Error
-		mariaDbErr = multierror.Append(mariaDbErr, err)
+		var mariaDBErr *multierror.Error
+		mariaDBErr = multierror.Append(mariaDBErr, err)
 
 		err = r.patchStatus(ctx, &restore, r.ConditionComplete.PatcherRefResolver(err, mariadb))
-		mariaDbErr = multierror.Append(mariaDbErr, err)
+		mariaDBErr = multierror.Append(mariaDBErr, err)
 
-		return ctrl.Result{}, fmt.Errorf("error getting MariaDB: %v", mariaDbErr)
+		return ctrl.Result{}, fmt.Errorf("error getting MariaDB: %v", mariaDBErr)
 	}
 
 	// We cannot check if mariaDb.IsReady() here and update the status accordingly

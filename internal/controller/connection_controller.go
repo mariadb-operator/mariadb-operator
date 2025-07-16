@@ -90,13 +90,13 @@ func (r *ConnectionReconciler) getRefs(ctx context.Context, conn *mariadbv1alpha
 	if conn.Spec.MaxScaleRef != nil {
 		mxs, refErr := r.RefResolver.MaxScale(ctx, conn.Spec.MaxScaleRef, conn.Namespace)
 		if refErr != nil {
-			var mariaDbErr *multierror.Error
-			mariaDbErr = multierror.Append(mariaDbErr, refErr)
+			var mariaDBErr *multierror.Error
+			mariaDBErr = multierror.Append(mariaDBErr, refErr)
 
 			patchErr := r.patchStatus(ctx, conn, r.ConditionReady.PatcherRefResolver(refErr, mxs))
-			mariaDbErr = multierror.Append(mariaDbErr, patchErr)
+			mariaDBErr = multierror.Append(mariaDBErr, patchErr)
 
-			return nil, fmt.Errorf("error getting MaxScale: %w", mariaDbErr)
+			return nil, fmt.Errorf("error getting MaxScale: %w", mariaDBErr)
 		}
 
 		var mdb *mariadbv1alpha1.MariaDB
@@ -131,13 +131,13 @@ func (r *ConnectionReconciler) getMariadb(ctx context.Context, ref *mariadbv1alp
 	conn *mariadbv1alpha1.Connection) (*mariadbv1alpha1.MariaDB, error) {
 	mdb, refErr := r.RefResolver.MariaDB(ctx, ref, conn.Namespace)
 	if refErr != nil {
-		var mariaDbErr *multierror.Error
-		mariaDbErr = multierror.Append(mariaDbErr, refErr)
+		var mariaDBErr *multierror.Error
+		mariaDBErr = multierror.Append(mariaDBErr, refErr)
 
 		patchErr := r.patchStatus(ctx, conn, r.ConditionReady.PatcherRefResolver(refErr, mdb))
-		mariaDbErr = multierror.Append(mariaDbErr, patchErr)
+		mariaDBErr = multierror.Append(mariaDBErr, patchErr)
 
-		return nil, fmt.Errorf("error getting MariaDB: %w", mariaDbErr)
+		return nil, fmt.Errorf("error getting MariaDB: %w", mariaDBErr)
 	}
 	return mdb, nil
 }
@@ -215,7 +215,7 @@ func (r *ConnectionReconciler) checkHealth(ctx context.Context, conn *mariadbv1a
 
 func (r *ConnectionReconciler) reconcileSecret(ctx context.Context, conn *mariadbv1alpha1.Connection,
 	refs *mariadbv1alpha1.ConnectionRefs) error {
-	sqlOpts, err := r.getSqlOpts(ctx, conn, refs)
+	sqlOpts, err := r.getSQLOpts(ctx, conn, refs)
 	if err != nil {
 		return fmt.Errorf("error getting SQL options: %v", err)
 	}
@@ -299,7 +299,7 @@ func (r *ConnectionReconciler) reconcileSecret(ctx context.Context, conn *mariad
 	return nil
 }
 
-func (r *ConnectionReconciler) getSqlOpts(ctx context.Context, conn *mariadbv1alpha1.Connection,
+func (r *ConnectionReconciler) getSQLOpts(ctx context.Context, conn *mariadbv1alpha1.Connection,
 	refs *mariadbv1alpha1.ConnectionRefs) (clientsql.Opts, error) {
 	sqlOpts := clientsql.Opts{
 		Username: conn.Spec.Username,
@@ -337,13 +337,13 @@ func (r *ConnectionReconciler) getSqlOpts(ctx context.Context, conn *mariadbv1al
 		sqlOpts.Namespace = mdb.Namespace
 	}
 
-	if err := r.addSqlClientCertOpts(ctx, conn, refs.MariaDB, &sqlOpts); err != nil {
+	if err := r.addSQLClientCertOpts(ctx, conn, refs.MariaDB, &sqlOpts); err != nil {
 		return clientsql.Opts{}, fmt.Errorf("error adding SQL client opts: %v", err)
 	}
 	return sqlOpts, nil
 }
 
-func (r *ConnectionReconciler) addSqlClientCertOpts(ctx context.Context, conn *mariadbv1alpha1.Connection, mdb *mariadbv1alpha1.MariaDB,
+func (r *ConnectionReconciler) addSQLClientCertOpts(ctx context.Context, conn *mariadbv1alpha1.Connection, mdb *mariadbv1alpha1.MariaDB,
 	opts *clientsql.Opts) error {
 	secretKey := r.clientCertSecretKey(conn, mdb)
 	if secretKey == nil {

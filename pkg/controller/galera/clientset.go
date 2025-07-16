@@ -41,7 +41,7 @@ func (c *agentClientSet) clientForIndex(index int) (*client.Client, error) {
 		return client, nil
 	}
 
-	client, err := client.NewClient(baseUrl(c.mariadb, index), c.clientOpts...)
+	client, err := client.NewClient(baseURL(c.mariadb, index), c.clientOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("error creating client: %v", err)
 	}
@@ -57,7 +57,7 @@ func (c *agentClientSet) validateIndex(index int) error {
 	return fmt.Errorf("index '%d' out of MariaDB replicas bounds [0, %d]", index, c.mariadb.Spec.Replicas-1)
 }
 
-func baseUrl(mariadb *mariadbv1alpha1.MariaDB, index int) string {
+func baseURL(mariadb *mariadbv1alpha1.MariaDB, index int) string {
 	scheme := "http"
 	if mariadb.IsTLSEnabled() {
 		scheme = "https"

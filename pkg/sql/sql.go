@@ -776,10 +776,10 @@ func (c *Client) ResetSlavePos(ctx context.Context) error {
 	return c.Exec(ctx, sql)
 }
 
-const statusVariableSql = "SELECT variable_value FROM information_schema.global_status WHERE variable_name=?;"
+const statusVariableSQL = "SELECT variable_value FROM information_schema.global_status WHERE variable_name=?;"
 
 func (c *Client) StatusVariable(ctx context.Context, variable string) (string, error) {
-	row := c.db.QueryRowContext(ctx, statusVariableSql, variable)
+	row := c.db.QueryRowContext(ctx, statusVariableSQL, variable)
 	var val string
 	if err := row.Scan(&val); err != nil {
 		return "", err
@@ -788,7 +788,7 @@ func (c *Client) StatusVariable(ctx context.Context, variable string) (string, e
 }
 
 func (c *Client) StatusVariableInt(ctx context.Context, variable string) (int, error) {
-	row := c.db.QueryRowContext(ctx, statusVariableSql, variable)
+	row := c.db.QueryRowContext(ctx, statusVariableSQL, variable)
 	var val int
 	if err := row.Scan(&val); err != nil {
 		return 0, err

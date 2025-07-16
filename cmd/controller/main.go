@@ -66,21 +66,21 @@ var (
 	logTimeEncoder string
 	logDev         bool
 	logMaxScale    bool
-	logSql         bool
+	logSQL         bool
 
-	kubeApiQps   float32
-	kubeApiBurst int
+	kubeAPIQps   float32
+	kubeAPIBurst int
 
 	maxConcurrentReconciles         int
 	mariadbMaxConcurrentReconciles  int
 	maxscaleMaxConcurrentReconciles int
 
 	requeueConnection time.Duration
-	requeueSql        time.Duration
-	requeueSqlJob     time.Duration
+	requeueSQL        time.Duration
+	requeueSQLJob     time.Duration
 	requeueMaxScale   time.Duration
 
-	requeueSqlMaxOffset time.Duration
+	requeueSQLMaxOffset time.Duration
 
 	syncPeriod time.Duration
 
@@ -112,11 +112,11 @@ func init() {
 		"epoch, millis, nano, iso8601, rfc3339 or rfc3339nano")
 	rootCmd.PersistentFlags().BoolVar(&logDev, "log-dev", false, "Enable development logs.")
 	rootCmd.Flags().BoolVar(&logMaxScale, "log-maxscale", false, "Enable MaxScale API request logs.")
-	rootCmd.Flags().BoolVar(&logSql, "log-sql", false, "Enable SQL resource logs.")
+	rootCmd.Flags().BoolVar(&logSQL, "log-sql", false, "Enable SQL resource logs.")
 
-	rootCmd.Flags().Float32Var(&kubeApiQps, "kube-api-qps", 20.0,
+	rootCmd.Flags().Float32Var(&kubeAPIQps, "kube-api-qps", 20.0,
 		"QPS limit for requests to Kubernetes API server (set to `-1` to disable client-side ratelimit).")
-	rootCmd.Flags().IntVar(&kubeApiBurst, "kube-api-burst", 30, "Burst limit for requests to Kubernetes API server.")
+	rootCmd.Flags().IntVar(&kubeAPIBurst, "kube-api-burst", 30, "Burst limit for requests to Kubernetes API server.")
 
 	rootCmd.Flags().IntVar(&maxConcurrentReconciles, "max-concurrent-reconciles", 1,
 		"Global maximum number of concurrent reconciles per resource.")
@@ -126,10 +126,10 @@ func init() {
 		"Maximum number of concurrent reconciles per MaxScale.")
 
 	rootCmd.Flags().DurationVar(&requeueConnection, "requeue-connection", 1*time.Hour, "The interval at which Connections are requeued.")
-	rootCmd.Flags().DurationVar(&requeueSql, "requeue-sql", 10*time.Hour, "The interval at which SQL objects are requeued.")
-	rootCmd.Flags().DurationVar(&requeueSqlMaxOffset, "requeue-sql-max-offset", 1*time.Hour,
+	rootCmd.Flags().DurationVar(&requeueSQL, "requeue-sql", 10*time.Hour, "The interval at which SQL objects are requeued.")
+	rootCmd.Flags().DurationVar(&requeueSQLMaxOffset, "requeue-sql-max-offset", 1*time.Hour,
 		"Maximum offset added to the interval at which SQL objects are requeued.")
-	rootCmd.Flags().DurationVar(&requeueSqlJob, "requeue-sqljob", 30*time.Second, "The interval at which SqlJobs are requeued.")
+	rootCmd.Flags().DurationVar(&requeueSQLJob, "requeue-sqljob", 30*time.Second, "The interval at which SqlJobs are requeued.")
 	rootCmd.Flags().DurationVar(&requeueMaxScale, "requeue-maxscale", 1*time.Hour, "The interval at which MaxScales are requeued.")
 
 	rootCmd.Flags().DurationVar(&syncPeriod, "sync-period", 10*time.Hour, "The interval at which watched resources are reconciled.")
@@ -169,8 +169,8 @@ var rootCmd = &cobra.Command{
 			setupLog.Error(err, "Unable to get config")
 			os.Exit(1)
 		}
-		restConfig.QPS = kubeApiQps
-		restConfig.Burst = kubeApiBurst
+		restConfig.QPS = kubeAPIQps
+		restConfig.Burst = kubeAPIBurst
 
 		env, err := environment.GetOperatorEnv(ctx)
 		if err != nil {
@@ -425,10 +425,10 @@ var rootCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		sqlOpts := []sql.SqlOpt{
-			sql.WithRequeueInterval(requeueSql),
-			sql.WithRequeueMaxOffset(requeueSqlMaxOffset),
-			sql.WithLogSql(logSql),
+		sqlOpts := []sql.SQLOpt{
+			sql.WithRequeueInterval(requeueSQL),
+			sql.WithRequeueMaxOffset(requeueSQLMaxOffset),
+			sql.WithLogSQL(logSQL),
 		}
 		if err = controller.NewUserReconciler(client, refResolver, conditionReady, sqlOpts...).SetupWithManager(ctx, mgr); err != nil {
 			setupLog.Error(err, "Unable to create controller", "controller", "User")
@@ -454,7 +454,7 @@ var rootCmd = &cobra.Command{
 			setupLog.Error(err, "Unable to create controller", "controller", "Connection")
 			os.Exit(1)
 		}
-		if err = (&controller.SqlJobReconciler{
+		if err = (&controller.SQLJobReconciler{
 			Client:              client,
 			Scheme:              scheme,
 			Builder:             builder,
@@ -462,7 +462,7 @@ var rootCmd = &cobra.Command{
 			ConfigMapReconciler: configMapReconciler,
 			ConditionComplete:   conditionComplete,
 			RBACReconciler:      rbacReconciler,
-			RequeueInterval:     requeueSqlJob,
+			RequeueInterval:     requeueSQLJob,
 		}).SetupWithManager(mgr); err != nil {
 			setupLog.Error(err, "Unable to create controller", "controller", "SqlJob")
 			os.Exit(1)
@@ -521,7 +521,7 @@ var rootCmd = &cobra.Command{
 				setupLog.Error(err, "Unable to create webhook", "webhook", "Connection")
 				os.Exit(1)
 			}
-			if err = webhookv1alpha1.SetupSqlJobWebhookWithManager(mgr); err != nil {
+			if err = webhookv1alpha1.SetupSQLJobWebhookWithManager(mgr); err != nil {
 				setupLog.Error(err, "Unable to create webhook", "webhook", "SqlJob")
 				os.Exit(1)
 			}

@@ -19,21 +19,21 @@ var _ = Describe("SqlJob types", func() {
 	Context("When creating a SqlJob object", func() {
 		DescribeTable(
 			"Should default",
-			func(sqlJob *SqlJob, mariadb *MariaDB, expectedSqlJob *SqlJob) {
+			func(sqlJob *SQLJob, mariadb *MariaDB, expectedSqlJob *SQLJob) {
 				sqlJob.SetDefaults(mariadb)
 				Expect(sqlJob).To(BeEquivalentTo(expectedSqlJob))
 			},
 			Entry(
 				"Empty",
-				&SqlJob{
+				&SQLJob{
 					ObjectMeta: objMeta,
 				},
 				&MariaDB{
 					ObjectMeta: mdbObjMeta,
 				},
-				&SqlJob{
+				&SQLJob{
 					ObjectMeta: objMeta,
-					Spec: SqlJobSpec{
+					Spec: SQLJobSpec{
 						JobPodTemplate: JobPodTemplate{
 							ServiceAccountName: &objMeta.Name,
 						},
@@ -43,9 +43,9 @@ var _ = Describe("SqlJob types", func() {
 			),
 			Entry(
 				"Anti affinity",
-				&SqlJob{
+				&SQLJob{
 					ObjectMeta: objMeta,
-					Spec: SqlJobSpec{
+					Spec: SQLJobSpec{
 						JobPodTemplate: JobPodTemplate{
 							Affinity: &AffinityConfig{
 								AntiAffinityEnabled: ptr.To(true),
@@ -56,9 +56,9 @@ var _ = Describe("SqlJob types", func() {
 				&MariaDB{
 					ObjectMeta: mdbObjMeta,
 				},
-				&SqlJob{
+				&SQLJob{
 					ObjectMeta: objMeta,
-					Spec: SqlJobSpec{
+					Spec: SQLJobSpec{
 						JobPodTemplate: JobPodTemplate{
 							ServiceAccountName: &objMeta.Name,
 							Affinity: &AffinityConfig{
@@ -91,9 +91,9 @@ var _ = Describe("SqlJob types", func() {
 			),
 			Entry(
 				"Full",
-				&SqlJob{
+				&SQLJob{
 					ObjectMeta: objMeta,
-					Spec: SqlJobSpec{
+					Spec: SQLJobSpec{
 						JobPodTemplate: JobPodTemplate{
 							ServiceAccountName: ptr.To("sqljob-test"),
 							Affinity: &AffinityConfig{
@@ -106,9 +106,9 @@ var _ = Describe("SqlJob types", func() {
 				&MariaDB{
 					ObjectMeta: mdbObjMeta,
 				},
-				&SqlJob{
+				&SQLJob{
 					ObjectMeta: objMeta,
-					Spec: SqlJobSpec{
+					Spec: SQLJobSpec{
 						JobPodTemplate: JobPodTemplate{
 							ServiceAccountName: ptr.To("sqljob-test"),
 							Affinity: &AffinityConfig{

@@ -20,8 +20,8 @@ type Client struct {
 	MaxScale *MaxScaleClient
 }
 
-func NewClient(baseUrl string, opts ...mdbhttp.Option) (*Client, error) {
-	httpClient, err := mdbhttp.NewClient(baseUrl, opts...)
+func NewClient(baseURL string, opts ...mdbhttp.Option) (*Client, error) {
+	httpClient, err := mdbhttp.NewClient(baseURL, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("error creating HTTP client: %v", err)
 	}
@@ -35,9 +35,9 @@ func NewClient(baseUrl string, opts ...mdbhttp.Option) (*Client, error) {
 	}, nil
 }
 
-func NewClientWithDefaultCredentials(baseUrl string, opts ...mdbhttp.Option) (*Client, error) {
+func NewClientWithDefaultCredentials(baseURL string, opts ...mdbhttp.Option) (*Client, error) {
 	opts = append(opts, mdbhttp.WithBasicAuth(defaultAdminUser, "mariadb"))
-	return NewClient(baseUrl, opts...)
+	return NewClient(baseURL, opts...)
 }
 
 func handleResponse(res *http.Response, v interface{}) error {

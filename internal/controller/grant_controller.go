@@ -20,16 +20,16 @@ type GrantReconciler struct {
 	client.Client
 	RefResolver    *refresolver.RefResolver
 	ConditionReady *condition.Ready
-	SqlOpts        []sql.SqlOpt
+	SQLOpts        []sql.SQLOpt
 }
 
 func NewGrantReconciler(client client.Client, refResolver *refresolver.RefResolver, conditionReady *condition.Ready,
-	sqlOpts ...sql.SqlOpt) *GrantReconciler {
+	sqlOpts ...sql.SQLOpt) *GrantReconciler {
 	return &GrantReconciler{
 		Client:         client,
 		RefResolver:    refResolver,
 		ConditionReady: conditionReady,
-		SqlOpts:        sqlOpts,
+		SQLOpts:        sqlOpts,
 	}
 }
 
@@ -47,8 +47,8 @@ func (r *GrantReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 
 	wr := newWrappedGrantReconciler(r.Client, *r.RefResolver, &grant)
 	wf := newWrappedGrantFinalizer(r.Client, &grant)
-	tf := sql.NewSqlFinalizer(r.Client, wf, r.SqlOpts...)
-	tr := sql.NewSqlReconciler(r.Client, r.ConditionReady, wr, tf, r.SqlOpts...)
+	tf := sql.NewSQLFinalizer(r.Client, wf, r.SQLOpts...)
+	tr := sql.NewSQLReconciler(r.Client, r.ConditionReady, wr, tf, r.SQLOpts...)
 
 	result, err := tr.Reconcile(ctx, &grant)
 	if err != nil {

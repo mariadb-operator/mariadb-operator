@@ -108,13 +108,13 @@ func (r *RefResolver) PhysicalBackupBackup(ctx context.Context, ref *mariadbv1al
 	return &backup, nil
 }
 
-func (r *RefResolver) SqlJob(ctx context.Context, ref *mariadbv1alpha1.LocalObjectReference,
-	namespace string) (*mariadbv1alpha1.SqlJob, error) {
+func (r *RefResolver) SQLJob(ctx context.Context, ref *mariadbv1alpha1.LocalObjectReference,
+	namespace string) (*mariadbv1alpha1.SQLJob, error) {
 	nn := types.NamespacedName{
 		Name:      ref.Name,
 		Namespace: namespace,
 	}
-	var sqlJob mariadbv1alpha1.SqlJob
+	var sqlJob mariadbv1alpha1.SQLJob
 	if err := r.client.Get(ctx, nn, &sqlJob); err != nil {
 		return nil, err
 	}

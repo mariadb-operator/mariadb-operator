@@ -386,7 +386,7 @@ func (r *MaxScaleReconciler) clientWithPodIndex(ctx context.Context, mxs *mariad
 }
 
 func (r *MaxScaleReconciler) clientWithAPIUrl(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,
-	apiUrl string) (*mxsclient.Client, error) {
+	apiURL string) (*mxsclient.Client, error) {
 	password, err := r.RefResolver.SecretKeyRef(ctx, mxs.Spec.Auth.AdminPasswordSecretKeyRef.SecretKeySelector, mxs.Namespace)
 	if err != nil {
 		return nil, fmt.Errorf("error getting admin password: %v", err)
@@ -407,7 +407,7 @@ func (r *MaxScaleReconciler) clientWithAPIUrl(ctx context.Context, mxs *mariadbv
 		}
 		opts = append(opts, tlsOpts...)
 	}
-	return mxsclient.NewClient(apiUrl, opts...)
+	return mxsclient.NewClient(apiURL, opts...)
 }
 
 func (r *MaxScaleReconciler) getClientTLSOptions(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) ([]mdbhttp.Option, error) {

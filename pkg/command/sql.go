@@ -7,54 +7,54 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
 )
 
-type SqlOpts struct {
+type SQLOpts struct {
 	CommandOpts
 	SSLCAPath   *string
 	SSLCertPath *string
 	SSLKeyPath  *string
-	SqlFile     string
+	SQLFile     string
 }
 
-type SqlOpt func(*SqlOpts)
+type SQLOpt func(*SQLOpts)
 
-func WithSqlFile(f string) SqlOpt {
-	return func(so *SqlOpts) {
-		so.SqlFile = f
+func WithSQLFile(f string) SQLOpt {
+	return func(so *SQLOpts) {
+		so.SQLFile = f
 	}
 }
 
-func WithSqlUserEnv(u string) SqlOpt {
-	return func(so *SqlOpts) {
+func WithSQLUserEnv(u string) SQLOpt {
+	return func(so *SQLOpts) {
 		so.UserEnv = u
 	}
 }
 
-func WithSqlPasswordEnv(p string) SqlOpt {
-	return func(so *SqlOpts) {
+func WithSQLPasswordEnv(p string) SQLOpt {
+	return func(so *SQLOpts) {
 		so.PasswordEnv = p
 	}
 }
 
-func WithSqlDatabase(d string) SqlOpt {
-	return func(so *SqlOpts) {
+func WithSQLDatabase(d string) SQLOpt {
+	return func(so *SQLOpts) {
 		so.Database = &d
 	}
 }
 
-func WithSSL(caPath, certPath, keyPath string) SqlOpt {
-	return func(o *SqlOpts) {
+func WithSSL(caPath, certPath, keyPath string) SQLOpt {
+	return func(o *SQLOpts) {
 		o.SSLCAPath = &caPath
 		o.SSLCertPath = &certPath
 		o.SSLKeyPath = &keyPath
 	}
 }
 
-type SqlCommand struct {
-	*SqlOpts
+type SQLCommand struct {
+	*SQLOpts
 }
 
-func (s *SqlCommand) ExecCommand(mariadb *mariadbv1alpha1.MariaDB) (*Command, error) {
-	sqlFlags, err := s.SqlFlags(mariadb)
+func (s *SQLCommand) ExecCommand(mariadb *mariadbv1alpha1.MariaDB) (*Command, error) {
+	sqlFlags, err := s.SQLFlags(mariadb)
 	if err != nil {
 		return nil, fmt.Errorf("error getting SQL flags: %v", err)
 	}
@@ -64,13 +64,13 @@ func (s *SqlCommand) ExecCommand(mariadb *mariadbv1alpha1.MariaDB) (*Command, er
 		fmt.Sprintf(
 			"mariadb %s < %s",
 			sqlFlags,
-			s.SqlFile,
+			s.SQLFile,
 		),
 	}
 	return NewBashCommand(cmds), nil
 }
 
-func (s *SqlCommand) SqlFlags(mdb *mariadbv1alpha1.MariaDB) (string, error) {
+func (s *SQLCommand) SQLFlags(mdb *mariadbv1alpha1.MariaDB) (string, error) {
 	flags, err := ConnectionFlags(&s.CommandOpts, mdb)
 	if err != nil {
 		return "", fmt.Errorf("error getting connection flags: %v", err)
@@ -82,8 +82,8 @@ func (s *SqlCommand) SqlFlags(mdb *mariadbv1alpha1.MariaDB) (string, error) {
 	return flags, nil
 }
 
-func NewSqlCommand(userOpts ...SqlOpt) (*SqlCommand, error) {
-	opts := &SqlOpts{}
+func NewSQLCommand(userOpts ...SQLOpt) (*SQLCommand, error) {
+	opts := &SQLOpts{}
 
 	for _, setOpt := range userOpts {
 		setOpt(opts)
@@ -94,9 +94,9 @@ func NewSqlCommand(userOpts ...SqlOpt) (*SqlCommand, error) {
 	if opts.PasswordEnv == "" {
 		return nil, errors.New("password environment variable not provided")
 	}
-	if opts.SqlFile == "" {
+	if opts.SQLFile == "" {
 		return nil, errors.New("sql file not provided")
 	}
 
-	return &SqlCommand{opts}, nil
+	return &SQLCommand{opts}, nil
 }

@@ -27,11 +27,11 @@ const (
 	batchS3PKI             = "s3-pki"
 	batchS3PKIMountPath    = "/s3/pki"
 	batchScriptsMountPath  = "/opt"
-	batchScriptsSqlFile    = "job.sql"
+	batchScriptsSQLFile    = "job.sql"
 	batchBackupDirFull     = "full"
 	batchUserEnv           = "MARIADB_OPERATOR_USER"
 	batchPasswordEnv       = "MARIADB_OPERATOR_PASSWORD"
-	batchS3AccessKeyId     = "AWS_ACCESS_KEY_ID"
+	batchS3AccessKeyID     = "AWS_ACCESS_KEY_ID"
 	batchS3SecretAccessKey = "AWS_SECRET_ACCESS_KEY"
 	batchS3SessionTokenKey = "AWS_SESSION_TOKEN"
 )
@@ -674,7 +674,7 @@ func (b *Builder) BuildGaleraRecoveryJob(key types.NamespacedName, mariadb *mari
 	return job, nil
 }
 
-func (b *Builder) BuildSqlJob(key types.NamespacedName, sqlJob *mariadbv1alpha1.SqlJob,
+func (b *Builder) BuildSQLJob(key types.NamespacedName, sqlJob *mariadbv1alpha1.SQLJob,
 	mariadb *mariadbv1alpha1.MariaDB) (*batchv1.Job, error) {
 	jobMeta :=
 		metadata.NewMetadataBuilder(key).
@@ -686,13 +686,13 @@ func (b *Builder) BuildSqlJob(key types.NamespacedName, sqlJob *mariadbv1alpha1.
 			WithMetadata(sqlJob.Spec.PodMetadata).
 			Build()
 
-	sqlOpts := []command.SqlOpt{
-		command.WithSqlUserEnv(batchUserEnv),
-		command.WithSqlPasswordEnv(batchPasswordEnv),
-		command.WithSqlFile(fmt.Sprintf("%s/%s", batchScriptsMountPath, batchScriptsSqlFile)),
+	sqlOpts := []command.SQLOpt{
+		command.WithSQLUserEnv(batchUserEnv),
+		command.WithSQLPasswordEnv(batchPasswordEnv),
+		command.WithSQLFile(fmt.Sprintf("%s/%s", batchScriptsMountPath, batchScriptsSQLFile)),
 	}
 	if sqlJob.Spec.Database != nil {
-		sqlOpts = append(sqlOpts, command.WithSqlDatabase(*sqlJob.Spec.Database))
+		sqlOpts = append(sqlOpts, command.WithSQLDatabase(*sqlJob.Spec.Database))
 	}
 	if (sqlJob.Spec.TLSCACertSecretRef != nil && sqlJob.Spec.TLSClientCertSecretRef != nil) || mariadb.IsTLSEnabled() {
 		sqlOpts = append(sqlOpts, command.WithSSL(
@@ -701,7 +701,7 @@ func (b *Builder) BuildSqlJob(key types.NamespacedName, sqlJob *mariadbv1alpha1.
 			builderpki.ClientKeyPath,
 		))
 	}
-	cmd, err := command.NewSqlCommand(sqlOpts...)
+	cmd, err := command.NewSQLCommand(sqlOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("error building sql command: %v", err)
 	}
@@ -761,7 +761,7 @@ func (b *Builder) BuildSqlJob(key types.NamespacedName, sqlJob *mariadbv1alpha1.
 	return job, nil
 }
 
-func (b *Builder) BuildSqlCronJob(key types.NamespacedName, sqlJob *mariadbv1alpha1.SqlJob,
+func (b *Builder) BuildSQLCronJob(key types.NamespacedName, sqlJob *mariadbv1alpha1.SQLJob,
 	mariadb *mariadbv1alpha1.MariaDB) (*batchv1.CronJob, error) {
 	if sqlJob.Spec.Schedule == nil {
 		return nil, errors.New("schedule field is mandatory when building a CronJob")
@@ -770,7 +770,7 @@ func (b *Builder) BuildSqlCronJob(key types.NamespacedName, sqlJob *mariadbv1alp
 		metadata.NewMetadataBuilder(key).
 			WithMetadata(sqlJob.Spec.InheritMetadata).
 			Build()
-	job, err := b.BuildSqlJob(key, sqlJob, mariadb)
+	job, err := b.BuildSQLJob(key, sqlJob, mariadb)
 	if err != nil {
 		return nil, fmt.Errorf("error building SqlJob: %v", err)
 	}

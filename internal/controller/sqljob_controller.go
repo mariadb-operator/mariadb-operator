@@ -27,7 +27,7 @@ var (
 )
 
 // SqlJobReconciler reconciles a SqlJob object
-type SqlJobReconciler struct {
+type SQLJobReconciler struct {
 	client.Client
 	Scheme              *runtime.Scheme
 	Builder             *builder.Builder
@@ -47,8 +47,8 @@ type SqlJobReconciler struct {
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
-func (r *SqlJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	var sqlJob mariadbv1alpha1.SqlJob
+func (r *SQLJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	var sqlJob mariadbv1alpha1.SQLJob
 	if err := r.Get(ctx, req.NamespacedName, &sqlJob); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
@@ -60,13 +60,13 @@ func (r *SqlJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 	mariadb, err := r.RefResolver.MariaDB(ctx, &sqlJob.Spec.MariaDBRef, sqlJob.Namespace)
 	if err != nil {
-		var mariaDbErr *multierror.Error
-		mariaDbErr = multierror.Append(mariaDbErr, err)
+		var mariaDBErr *multierror.Error
+		mariaDBErr = multierror.Append(mariaDBErr, err)
 
 		err = r.patchStatus(ctx, &sqlJob, r.ConditionComplete.PatcherRefResolver(err, mariadb))
-		mariaDbErr = multierror.Append(mariaDbErr, err)
+		mariaDBErr = multierror.Append(mariaDBErr, err)
 
-		return ctrl.Result{}, fmt.Errorf("error getting MariaDB: %v", mariaDbErr)
+		return ctrl.Result{}, fmt.Errorf("error getting MariaDB: %v", mariaDBErr)
 	}
 
 	if sqlJob.Spec.MariaDBRef.WaitForIt && !mariadb.IsReady() {
@@ -108,14 +108,14 @@ func (r *SqlJobReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	return ctrl.Result{}, nil
 }
 
-func (r *SqlJobReconciler) waitForDependencies(ctx context.Context, sqlJob *mariadbv1alpha1.SqlJob) (bool, ctrl.Result, error) {
+func (r *SQLJobReconciler) waitForDependencies(ctx context.Context, sqlJob *mariadbv1alpha1.SQLJob) (bool, ctrl.Result, error) {
 	if sqlJob.Spec.DependsOn == nil {
 		return true, ctrl.Result{}, nil
 	}
 	logger := log.FromContext(ctx)
 
 	for _, dep := range sqlJob.Spec.DependsOn {
-		sqlJobDep, err := r.RefResolver.SqlJob(ctx, &dep, sqlJob.Namespace)
+		sqlJobDep, err := r.RefResolver.SQLJob(ctx, &dep, sqlJob.Namespace)
 
 		if err != nil {
 			msg := fmt.Sprintf("Error getting SqlJob dependency: %v", err)
@@ -139,27 +139,27 @@ func (r *SqlJobReconciler) waitForDependencies(ctx context.Context, sqlJob *mari
 	return true, ctrl.Result{}, nil
 }
 
-func (r *SqlJobReconciler) reconcileConfigMap(ctx context.Context, sqlJob *mariadbv1alpha1.SqlJob) error {
-	key := configMapSqlJobKey(sqlJob)
-	if sqlJob.Spec.Sql != nil && sqlJob.Spec.SqlConfigMapKeyRef == nil {
+func (r *SQLJobReconciler) reconcileConfigMap(ctx context.Context, sqlJob *mariadbv1alpha1.SQLJob) error {
+	key := configMapSQLJobKey(sqlJob)
+	if sqlJob.Spec.SQL != nil && sqlJob.Spec.SQLConfigMapKeyRef == nil {
 		req := configmap.ReconcileRequest{
 			Metadata: sqlJob.Spec.InheritMetadata,
 			Owner:    sqlJob,
 			Key:      key,
 			Data: map[string]string{
-				jobConfigMapKey: *sqlJob.Spec.Sql,
+				jobConfigMapKey: *sqlJob.Spec.SQL,
 			},
 		}
 		if err := r.ConfigMapReconciler.Reconcile(ctx, &req); err != nil {
 			return err
 		}
 	}
-	if sqlJob.Spec.SqlConfigMapKeyRef != nil {
+	if sqlJob.Spec.SQLConfigMapKeyRef != nil {
 		return nil
 	}
 
-	return r.patch(ctx, sqlJob, func(sqlJob *mariadbv1alpha1.SqlJob) {
-		sqlJob.Spec.SqlConfigMapKeyRef = &mariadbv1alpha1.ConfigMapKeySelector{
+	return r.patch(ctx, sqlJob, func(sqlJob *mariadbv1alpha1.SQLJob) {
+		sqlJob.Spec.SQLConfigMapKeyRef = &mariadbv1alpha1.ConfigMapKeySelector{
 			LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
 				Name: key.Name,
 			},
@@ -168,7 +168,7 @@ func (r *SqlJobReconciler) reconcileConfigMap(ctx context.Context, sqlJob *maria
 	})
 }
 
-func (r *SqlJobReconciler) reconcileBatch(ctx context.Context, sqlJob *mariadbv1alpha1.SqlJob,
+func (r *SQLJobReconciler) reconcileBatch(ctx context.Context, sqlJob *mariadbv1alpha1.SQLJob,
 	mariadb *mariadbv1alpha1.MariaDB, key types.NamespacedName) error {
 	if sqlJob.Spec.Schedule != nil {
 		return r.reconcileCronJob(ctx, sqlJob, mariadb, key)
@@ -176,7 +176,7 @@ func (r *SqlJobReconciler) reconcileBatch(ctx context.Context, sqlJob *mariadbv1
 	return r.reconcileJob(ctx, sqlJob, mariadb, key)
 }
 
-func (r *SqlJobReconciler) patcher(ctx context.Context, sqlJob *mariadbv1alpha1.SqlJob, err error,
+func (r *SQLJobReconciler) patcher(ctx context.Context, sqlJob *mariadbv1alpha1.SQLJob, err error,
 	key types.NamespacedName) (condition.Patcher, error) {
 	if sqlJob.Spec.Schedule != nil {
 		return r.ConditionComplete.PatcherWithCronJob(ctx, err, key)
@@ -184,9 +184,9 @@ func (r *SqlJobReconciler) patcher(ctx context.Context, sqlJob *mariadbv1alpha1.
 	return r.ConditionComplete.PatcherWithJob(ctx, err, key)
 }
 
-func (r *SqlJobReconciler) reconcileJob(ctx context.Context, sqlJob *mariadbv1alpha1.SqlJob,
+func (r *SQLJobReconciler) reconcileJob(ctx context.Context, sqlJob *mariadbv1alpha1.SQLJob,
 	mariadb *mariadbv1alpha1.MariaDB, key types.NamespacedName) error {
-	desiredJob, err := r.Builder.BuildSqlJob(key, sqlJob, mariadb)
+	desiredJob, err := r.Builder.BuildSQLJob(key, sqlJob, mariadb)
 	if err != nil {
 		return fmt.Errorf("error building Job: %v", err)
 	}
@@ -212,9 +212,9 @@ func (r *SqlJobReconciler) reconcileJob(ctx context.Context, sqlJob *mariadbv1al
 	return nil
 }
 
-func (r *SqlJobReconciler) reconcileCronJob(ctx context.Context, sqlJob *mariadbv1alpha1.SqlJob,
+func (r *SQLJobReconciler) reconcileCronJob(ctx context.Context, sqlJob *mariadbv1alpha1.SQLJob,
 	mariadb *mariadbv1alpha1.MariaDB, key types.NamespacedName) error {
-	desiredCronJob, err := r.Builder.BuildSqlCronJob(key, sqlJob, mariadb)
+	desiredCronJob, err := r.Builder.BuildSQLCronJob(key, sqlJob, mariadb)
 	if err != nil {
 		return fmt.Errorf("error building CronJob: %v", err)
 	}
@@ -245,20 +245,20 @@ func (r *SqlJobReconciler) reconcileCronJob(ctx context.Context, sqlJob *mariadb
 	return nil
 }
 
-func (r *SqlJobReconciler) setDefaults(ctx context.Context, sqlJob *mariadbv1alpha1.SqlJob,
+func (r *SQLJobReconciler) setDefaults(ctx context.Context, sqlJob *mariadbv1alpha1.SQLJob,
 	mariadb *mariadbv1alpha1.MariaDB) error {
-	return r.patch(ctx, sqlJob, func(s *mariadbv1alpha1.SqlJob) {
+	return r.patch(ctx, sqlJob, func(s *mariadbv1alpha1.SQLJob) {
 		s.SetDefaults(mariadb)
 	})
 }
 
-func (r *SqlJobReconciler) reconcileServiceAccount(ctx context.Context, sqlJob *mariadbv1alpha1.SqlJob) error {
+func (r *SQLJobReconciler) reconcileServiceAccount(ctx context.Context, sqlJob *mariadbv1alpha1.SQLJob) error {
 	key := sqlJob.Spec.ServiceAccountKey(sqlJob.ObjectMeta)
 	_, err := r.RBACReconciler.ReconcileServiceAccount(ctx, key, sqlJob, sqlJob.Spec.InheritMetadata)
 	return err
 }
 
-func (r *SqlJobReconciler) patchStatus(ctx context.Context, sqlJob *mariadbv1alpha1.SqlJob,
+func (r *SQLJobReconciler) patchStatus(ctx context.Context, sqlJob *mariadbv1alpha1.SQLJob,
 	patcher condition.Patcher) error {
 	patch := client.MergeFrom(sqlJob.DeepCopy())
 	patcher(&sqlJob.Status)
@@ -269,8 +269,8 @@ func (r *SqlJobReconciler) patchStatus(ctx context.Context, sqlJob *mariadbv1alp
 	return nil
 }
 
-func (r *SqlJobReconciler) patch(ctx context.Context, sqlJob *mariadbv1alpha1.SqlJob,
-	patcher func(*mariadbv1alpha1.SqlJob)) error {
+func (r *SQLJobReconciler) patch(ctx context.Context, sqlJob *mariadbv1alpha1.SQLJob,
+	patcher func(*mariadbv1alpha1.SQLJob)) error {
 	patch := client.MergeFrom(sqlJob.DeepCopy())
 	patcher(sqlJob)
 
@@ -280,7 +280,7 @@ func (r *SqlJobReconciler) patch(ctx context.Context, sqlJob *mariadbv1alpha1.Sq
 	return nil
 }
 
-func configMapSqlJobKey(sqlJob *mariadbv1alpha1.SqlJob) types.NamespacedName {
+func configMapSQLJobKey(sqlJob *mariadbv1alpha1.SQLJob) types.NamespacedName {
 	return types.NamespacedName{
 		Name:      fmt.Sprintf("sql-%s", sqlJob.Name),
 		Namespace: sqlJob.Namespace,
@@ -288,9 +288,9 @@ func configMapSqlJobKey(sqlJob *mariadbv1alpha1.SqlJob) types.NamespacedName {
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *SqlJobReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *SQLJobReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&mariadbv1alpha1.SqlJob{}).
+		For(&mariadbv1alpha1.SQLJob{}).
 		Owns(&corev1.ConfigMap{}).
 		Owns(&batchv1.CronJob{}).
 		Owns(&batchv1.Job{}).

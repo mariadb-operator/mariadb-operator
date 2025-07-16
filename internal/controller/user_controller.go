@@ -19,16 +19,16 @@ type UserReconciler struct {
 	client.Client
 	RefResolver    *refresolver.RefResolver
 	ConditionReady *condition.Ready
-	SqlOpts        []sql.SqlOpt
+	SQLOpts        []sql.SQLOpt
 }
 
 func NewUserReconciler(client client.Client, refResolver *refresolver.RefResolver, conditionReady *condition.Ready,
-	sqlOpts ...sql.SqlOpt) *UserReconciler {
+	sqlOpts ...sql.SQLOpt) *UserReconciler {
 	return &UserReconciler{
 		Client:         client,
 		RefResolver:    refResolver,
 		ConditionReady: conditionReady,
-		SqlOpts:        sqlOpts,
+		SQLOpts:        sqlOpts,
 	}
 }
 
@@ -46,8 +46,8 @@ func (r *UserReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 
 	wr := newWrapperUserReconciler(r.Client, r.RefResolver, &user)
 	wf := newWrappedUserFinalizer(r.Client, &user)
-	tf := sql.NewSqlFinalizer(r.Client, wf, r.SqlOpts...)
-	tr := sql.NewSqlReconciler(r.Client, r.ConditionReady, wr, tf, r.SqlOpts...)
+	tf := sql.NewSQLFinalizer(r.Client, wf, r.SQLOpts...)
+	tr := sql.NewSQLReconciler(r.Client, r.ConditionReady, wr, tf, r.SQLOpts...)
 
 	result, err := tr.Reconcile(ctx, &user)
 	if err != nil {
