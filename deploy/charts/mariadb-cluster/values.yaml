@@ -56,11 +56,39 @@ backups: []
   #   schedule:
   #     cron: "0 0 * * *"
   #     suspend: false
-  #   maxRetention: 720h # 30 days
   #   compression: gzip
+  #   maxRetention: 720h # 30 days
   #   storage:
   #     s3:
   #       bucket: backups
+  #       prefix: mariadb
+  #       endpoint: minio.minio.svc.cluster.local:9000
+  #       region:  us-east-1
+  #       accessKeyIdSecretKeyRef:
+  #         name: minio
+  #         key: access-key-id
+  #       secretAccessKeySecretKeyRef:
+  #         name: minio
+  #         key: secret-access-key
+  #       tls:
+  #         enabled: true
+  #         caSecretKeyRef:
+  #           name: minio-ca
+  #           key: ca.crt
+
+# -- The list of PhysicalBackup CRs. The `.mariaDbRef` keys will be ignored. The `.name` keys are used to generate distinct CR names.
+# https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/api_reference.md#physicalbackup
+physicalBackups: []
+  # - name: physiccalbackup
+  #   schedule:
+  #     cron: "0 0 * * *"
+  #     suspend: false
+  #     immediate: true
+  #   compression: gzip
+  #   maxRetention: 720h
+  #   storage:
+  #     s3:
+  #       bucket: physicalbackups
   #       prefix: mariadb
   #       endpoint: minio.minio.svc.cluster.local:9000
   #       region:  us-east-1

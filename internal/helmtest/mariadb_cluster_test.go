@@ -279,3 +279,74 @@ func TestClusterHelmBackup(t *testing.T) {
 	_, err := helm.RenderTemplateE(t, opts, clusterHelmChartPath, clusterHelmReleaseName, []string{"templates/backup.yaml"})
 	Expect(err).To(HaveOccurred())
 }
+
+func TestClusterHelmPhysicalBackup(t *testing.T) {
+	RegisterTestingT(t)
+
+	name := "physicalbackup"
+	maxRetention := "720h"
+	compression := "gzip"
+	bucket := "backups"
+	endpoint := "minio.minio.svc.cluster.local:9000"
+	region := "us-east-1"
+	prefix := "mariadb-cluster"
+	accessKeyIdSecretKeyRefKey := "minio"
+	accessKeyIdSecretKeyRefName := "access-key-id"
+	secretAccessKeySecretKeyRefKey := "minio"
+	secretAccessKeySecretKeyRefName := "secret-access-key"
+	cron := "0 0 * * *"
+
+	durationMaxRetention, _ := time.ParseDuration(maxRetention)
+	durationMaxRetentionDuration := &v1.Duration{Duration: durationMaxRetention}
+
+	opts := &helm.Options{
+		SetValues: map[string]string{
+			"physicalBackups[0].name":                                        name,
+			"physicalBackups[0].maxRetention":                                maxRetention,
+			"physicalBackups[0].compression":                                 compression,
+			"physicalBackups[0].storage.s3.bucket":                           bucket,
+			"physicalBackups[0].storage.s3.prefix":                           prefix,
+			"physicalBackups[0].storage.s3.endpoint":                         endpoint,
+			"physicalBackups[0].storage.s3.region":                           region,
+			"physicalBackups[0].storage.s3.accessKeyIdSecretKeyRef.key":      accessKeyIdSecretKeyRefKey,
+			"physicalBackups[0].storage.s3.accessKeyIdSecretKeyRef.name":     accessKeyIdSecretKeyRefName,
+			"physicalBackups[0].storage.s3.secretAccessKeySecretKeyRef.key":  secretAccessKeySecretKeyRefKey,
+			"physicalBackups[0].storage.s3.secretAccessKeySecretKeyRef.name": secretAccessKeySecretKeyRefName,
+			"physicalBackups[0].schedule.cron":                               cron,
+			"physicalBackups[0].mariaDBRef.name":                             "cluster",
+			"physicalBackups[0].mariaDBRef.namespace":                        "namespace",
+		},
+	}
+
+	renderedData := helm.RenderTemplate(t, opts, clusterHelmChartPath, clusterHelmReleaseName, []string{"templates/physicalbackup.yaml"})
+	var backup v1alpha1.Backup
+	helm.UnmarshalK8SYaml(t, renderedData, &backup)
+
+	Expect(backup.Name).To(Equal(fmt.Sprintf("%s-%s", clusterHelmReleaseName, name)))
+	Expect(backup.Spec.MariaDBRef.Name).To(Equal(clusterHelmReleaseName))
+	Expect(backup.Spec.MariaDBRef.Namespace).To(Equal(clusterHelmNamespace))
+	Expect(&backup.Spec.MaxRetention).To(Equal(durationMaxRetentionDuration))
+	Expect(backup.Spec.Compression).To(Equal(v1alpha1.CompressAlgorithm(compression)))
+	Expect(backup.Spec.Storage.S3.Bucket).To(Equal(bucket))
+	Expect(backup.Spec.Storage.S3.Prefix).To(Equal(prefix))
+	Expect(backup.Spec.Storage.S3.Endpoint).To(Equal(endpoint))
+	Expect(backup.Spec.Storage.S3.Region).To(Equal(region))
+	Expect(backup.Spec.Storage.S3.AccessKeyIdSecretKeyRef.Key).To(Equal(accessKeyIdSecretKeyRefKey))
+	Expect(backup.Spec.Storage.S3.AccessKeyIdSecretKeyRef.Name).To(Equal(accessKeyIdSecretKeyRefName))
+	Expect(backup.Spec.Storage.S3.SecretAccessKeySecretKeyRef.Key).To(Equal(secretAccessKeySecretKeyRefKey))
+	Expect(backup.Spec.Storage.S3.SecretAccessKeySecretKeyRef.Name).To(Equal(secretAccessKeySecretKeyRefName))
+	Expect(backup.Spec.Schedule.Cron).To(Equal(cron))
+
+	delete(opts.SetValues, "physicalBackups[0].name")
+	delete(opts.SetValues, "physicalBackups[0].storage.s3.bucket")
+	delete(opts.SetValues, "physicalBackups[0].storage.s3.prefix")
+	delete(opts.SetValues, "physicalBackups[0].storage.s3.endpoint")
+	delete(opts.SetValues, "physicalBackups[0].storage.s3.region")
+	delete(opts.SetValues, "physicalBackups[0].storage.s3.accessKeyIdSecretKeyRef.key")
+	delete(opts.SetValues, "physicalBackups[0].storage.s3.accessKeyIdSecretKeyRef.name")
+	delete(opts.SetValues, "physicalBackups[0].storage.s3.secretAccessKeySecretKeyRef.key")
+	delete(opts.SetValues, "physicalBackups[0].storage.s3.secretAccessKeySecretKeyRef.name")
+
+	_, err := helm.RenderTemplateE(t, opts, clusterHelmChartPath, clusterHelmReleaseName, []string{"templates/physicalbackup.yaml"})
+	Expect(err).To(HaveOccurred())
+}

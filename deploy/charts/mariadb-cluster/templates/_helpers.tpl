@@ -93,3 +93,14 @@ Validate Backup CRs
 {{- end }}
 {{- end }}
 {{- end }}
+
+{{/*
+Validate PhysicalBackup CRs
+*/}}
+{{- define "mariadb-cluster.validatePhysicalBackups" -}}
+{{- range .Values.physicalBackups }}
+{{- if not .name }}
+{{- fail "It is required to specify `.name` for each PhysicalBackup" }}
+{{- end }}
+{{- end }}
+{{- end }}
