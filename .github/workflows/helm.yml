@@ -103,6 +103,49 @@ jobs:
         if: steps.list-changed.outputs.changed == 'true'
         run: ct install --config $CT_CONFIG --helm-extra-set-args "--set=crds.enabled=true"
 
+  lint-cluster:
+    name: Cluster
+    runs-on: ubuntu-latest
+    env:
+      CT_CONFIG: hack/config/chart-testing/mariadb-cluster.yaml
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: ${{ env.HELM_VERSION }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.9"
+
+      - name: Set up chart-testing
+        uses: helm/chart-testing-action@v2.7.0
+
+      - name: List changed
+        id: list-changed
+        run: |
+          changed=$(ct list-changed --config $CT_CONFIG)
+          if [[ -n "$changed" ]]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Lint
+        if: steps.list-changed.outputs.changed == 'true'
+        run: ct lint --config $CT_CONFIG
+      
+      - name: Cluster
+        if: steps.list-changed.outputs.changed == 'true'
+        run: make cluster
+
+      - name: Test install
+        if: steps.list-changed.outputs.changed == 'true'
+        run: ct install --config $CT_CONFIG --helm-extra-set-args "--set=crds.enabled=true"
+
   # TODO: enable before 25.08 release
   # release:
   #   runs-on: ubuntu-latest
