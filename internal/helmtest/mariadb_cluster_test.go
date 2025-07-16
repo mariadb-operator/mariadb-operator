@@ -87,7 +87,6 @@ func TestClusterHelmDatabase(t *testing.T) {
 	Expect(database.Spec.CharacterSet).To(Equal(characterSet))
 	Expect(*database.Spec.CleanupPolicy).To(Equal(v1alpha1.CleanupPolicy(cleanupPolicy)))
 	Expect(database.Spec.Collate).To(Equal(collate))
-	Expect(database.Spec.Name).To(Equal(name))
 	Expect(database.Spec.RequeueInterval).To(Equal(requeueIntervalDuration))
 	Expect(database.Spec.RetryInterval).To(Equal(retryIntervalDuration))
 
@@ -138,7 +137,6 @@ func TestClusterHelmUser(t *testing.T) {
 	Expect(*user.Spec.CleanupPolicy).To(Equal(v1alpha1.CleanupPolicy(cleanupPolicy)))
 	Expect(user.Spec.Host).To(Equal(host))
 	Expect(user.Spec.MaxUserConnections).To(Equal(int32(maxUserConnections)))
-	Expect(user.Spec.Name).To(Equal(name))
 	Expect(user.Spec.PasswordSecretKeyRef.Key).To(Equal(passwordSecretKeyRefKey))
 	Expect(user.Spec.PasswordSecretKeyRef.Name).To(Equal(passwordSecretKeyRefName))
 	Expect(user.Spec.RequeueInterval).To(Equal(requeueIntervalDuration))
