@@ -2,147 +2,76 @@ nameOverride: ""
 fullnameOverride: ""
 
 # -- MariaDB CR
-# https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/API_REFERENCE.md#mariadbspec
+# https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/api_reference.md#mariadbspec
 mariadb:
-  # affinity: {}
-  # args: []
-  # bootstrapFrom: {}
-  # command: []
-  # connection: {}
-  # database: ""
-  # env: []
-  # envFrom: []
-  galera:
-    enabled: true
-  # image: ""
-  # imagePullPolicy: ""
-  # imagePullSecrets: []
-  # inheritMetadata: {}
-  # initContainers: []
-  # livenessProbe: {}
-  # maxScale: {}
-  # maxScaleRef: {}
-  metrics:
-    enabled: true
-  # myCnf: |
-  #   [mariadb]
-  #   innodb_buffer_pool_size=1024M
-  #   ignore_db_dirs=lost+found
-  #   max_allowed_packet=256M
-  # myCnfConfigMapKeyRef: {}
-  # nodeSelector: {}
-  # passwordPlugin: {}
-  # passwordSecretKeyRef: {}
-  # podDisruptionBudget: {}
-  # podMetadata: {}
-  # podSecurityContext: {}
-  # port: ""
-  # primaryConnection: {}
-  # primaryService: {}
-  # priorityClassName: ""
-  # readinessProbe: {}
-  replicas: 3
-  # replicasAllowEvenNumber: false
-  # replication:
-  #   enabled: true
-  # resources: {}
   rootPasswordSecretKeyRef:
-    name: mariadb-cluster-root-password
-    key: ROOT_PASSWORD
-  # secondaryConnection: {}
-  # secondaryService: {}
-  # securityContext: {}
-  # service: {}
-  # serviceAccountName: ""
-  # servicePorts: []
-  # sidecarContainers: []
-  # startupProbe: {}
+    name: mariadb
+    key: root-password
   storage:
     size: 1Gi
-  # suspend: false
-  # timeZone: ""
-  # tls: {}
-  # tolerations: []
-  # topologySpreadConstraints: []
-  # updateStrategy: {}
-  # username: ""
-  # volumeMounts: []
-  # volumes: []
+  replicas: 3
+  galera:
+    enabled: true
 
 # -- The list of Database CRs. The `.mariaDbRef` keys will be ignored. The `.name` keys are required to generate distinct CR names.
-# https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/API_REFERENCE.md#databasespec
+# https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/api_reference.md#databasespec
 databases: []
-  # - characterSet: utf8
-  #   cleanupPolicy: Delete
+  # - name: mariadb
+  #   characterSet: utf8
   #   collate: utf8_general_ci
-  #   name: foo
-  #   requeueInterval: 1h
-  #   retryInterval: 3m
+  #   cleanupPolicy: Delete
+  #   requeueInterval: 10h
 
 # -- The list of User CRs. The `.mariaDbRef` keys will be ignored. The `.name` keys are required to generate distinct CR names.
-# https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/API_REFERENCE.md#userspec
+# https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/api_reference.md#userspec
 users: []
-  # - cleanupPolicy: Delete
+  # - name: mariadb
+  #   passwordSecretKeyRef:
+  #     name: mariadb
+  #     key: password
   #   host: "%"
-  #   maxUserConnections: 100
-  #   name: foo
-  #   passwordHashSecretKeyRef: {}
-  #   passwordPlugin: {}
-  #   passwordSecretKeyRef: {}
-  #   requeueInterval: 1h
-  #   require: {}
-  #   retryInterval: 3m
+  #   cleanupPolicy: Delete
+  #   requeueInterval: 10h
+  #   retryInterval: 30s
 
-# -- The list of Grant CRs. The `.mariaDbRef` keys will be ignored. The `.username` keys are used to generate distinct CR names.
-# https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/API_REFERENCE.md#grantspec
+# -- The list of Grant CRs. The `.mariaDbRef` keys will be ignored. The `.name` keys are used to generate distinct CR names.
+# https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/api_reference.md#grantspec
 grants: []
-  # - cleanupPolicy: Delete
-  #   database: foo
-  #   grantOption: false
-  #   host: "%"
+  # - name: mariadb
   #   privileges:
-  #     - ALL PRIVILEGES
-  #   requeueInterval: 1h
-  #   retryInterval: 3m
+  #     - "ALL PRIVILEGES"  
+  #   database: "*"
   #   table: "*"
-  #   username: foo
+  #   username: mariadb
+  #   grantOption: true
+  #   host: "%"
+  #   cleanupPolicy: Delete
+  #   requeueInterval: 10h
+  #   retryInterval: 30s
 
-# -- The list of Backup CRs. The `.mariaDbRef` keys will be ignored. The CR names will have list index suffixes.
-# https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/API_REFERENCE.md#backupspec
+# -- The list of Backup CRs. The `.mariaDbRef` keys will be ignored. The `.name` keys are used to generate distinct CR names.
+# https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/api_reference.md#backupspec
 backups: []
-  # - affinity: {}
-  #   args: []
-  #   backoffLimit: 2
-  #   compression: gzip
-  #   databases: []
-  #   failedJobsHistoryLimit: 3
-  #   ignoreGlobalPriv: true
-  #   imagePullSecrets: []
-  #   inheritMetadata: {}
-  #   logLevel: info
-  #   maxRetention: 336h
-  #   nodeSelector: {}
-  #   podMetadata: {}
-  #   podSecurityContext: {}
-  #   priorityClassName: ""
-  #   resources: {}
-  #   restartPolicy: OnFailure
+  # - name: backup
   #   schedule:
   #     cron: "0 0 * * *"
-  #   securityContext: {}
-  #   serviceAccountName: ""
-  #   stagingStorage: {}
+  #     suspend: false
+  #   maxRetention: 720h # 30 days
+  #   compression: gzip
   #   storage:
   #     s3:
   #       bucket: backups
-  #       endpoint: minio.minio.svc.cluster.local:9000
   #       prefix: mariadb
+  #       endpoint: minio.minio.svc.cluster.local:9000
+  #       region:  us-east-1
   #       accessKeyIdSecretKeyRef:
-  #         name: mariadb-cluster-aws-creds
-  #         key: AWS_ACCESS_KEY_ID
+  #         name: minio
+  #         key: access-key-id
   #       secretAccessKeySecretKeyRef:
-  #         name: mariadb-cluster-aws-creds
-  #         key: AWS_SECRET_ACCESS_KEY
-  #   successfulJobsHistoryLimit: 3
-  #   timeZone: ""
-  #   tolerations: []
+  #         name: minio
+  #         key: secret-access-key
+  #       tls:
+  #         enabled: true
+  #         caSecretKeyRef:
+  #           name: minio-ca
+  #           key: ca.crt
