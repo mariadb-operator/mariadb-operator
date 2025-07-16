@@ -4,7 +4,7 @@
 apiVersion: k8s.mariadb.com/v1alpha1
 kind: Grant
 metadata:
-  name: {{ include "mariadb-cluster.fullname" $ }}-{{ .username }}
+  name: {{ include "mariadb-cluster.fullname" $ }}-{{ .name }}
   labels:
     {{- include "mariadb-cluster.labels" $ | nindent 4 }}
 spec:

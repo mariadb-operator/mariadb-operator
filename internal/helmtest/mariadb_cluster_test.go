@@ -23,8 +23,8 @@ func TestClusterHelmMariaDB(t *testing.T) {
 
 	replicas := 3
 	storageSize := "1Gi"
-	rootPasswordSecretKeyRefKey := "ROOT_PASSWORD"
-	rootPasswordSecretKeyRefName := "mariadb-cluster-passwords"
+	rootPasswordSecretKeyRefKey := "mariadb"
+	rootPasswordSecretKeyRefName := "root-password"
 
 	opts := &helm.Options{
 		SetValues: map[string]string{
@@ -52,12 +52,12 @@ func TestClusterHelmMariaDB(t *testing.T) {
 func TestClusterHelmDatabase(t *testing.T) {
 	RegisterTestingT(t)
 
+	name := "mariadb"
 	characterSet := "utf8"
 	cleanupPolicy := "Delete"
 	collate := "utf8_general_ci"
-	name := "foo"
-	requeueInterval := "1h"
-	retryInterval := "3m"
+	requeueInterval := "10h"
+	retryInterval := "30s"
 
 	durationInterval, _ := time.ParseDuration(requeueInterval)
 	durationRetry, _ := time.ParseDuration(retryInterval)
@@ -66,10 +66,10 @@ func TestClusterHelmDatabase(t *testing.T) {
 
 	opts := &helm.Options{
 		SetValues: map[string]string{
+			"databases[0].name":                 name,
 			"databases[0].characterSet":         characterSet,
 			"databases[0].cleanupPolicy":        cleanupPolicy,
 			"databases[0].collate":              collate,
-			"databases[0].name":                 name,
 			"databases[0].requeueInterval":      requeueInterval,
 			"databases[0].retryInterval":        retryInterval,
 			"databases[0].mariaDBRef.name":      "cluster",
@@ -99,14 +99,14 @@ func TestClusterHelmDatabase(t *testing.T) {
 func TestClusterHelmUser(t *testing.T) {
 	RegisterTestingT(t)
 
+	name := "mariadb"
 	cleanupPolicy := "Delete"
 	host := "%"
 	maxUserConnections := 100
-	name := "foo"
-	passwordSecretKeyRefKey := "FOO_PASSWORD"
-	passwordSecretKeyRefName := "mariadb-cluster-passwords"
-	requeueInterval := "1h"
-	retryInterval := "3m"
+	passwordSecretKeyRefKey := "mariadb"
+	passwordSecretKeyRefName := "password"
+	requeueInterval := "10h"
+	retryInterval := "30s"
 
 	durationInterval, _ := time.ParseDuration(requeueInterval)
 	durationRetry, _ := time.ParseDuration(retryInterval)
@@ -115,10 +115,10 @@ func TestClusterHelmUser(t *testing.T) {
 
 	opts := &helm.Options{
 		SetValues: map[string]string{
+			"users[0].name":                      name,
 			"users[0].cleanupPolicy":             cleanupPolicy,
 			"users[0].host":                      host,
 			"users[0].maxUserConnections":        strconv.Itoa(maxUserConnections),
-			"users[0].name":                      name,
 			"users[0].passwordSecretKeyRef.key":  passwordSecretKeyRefKey,
 			"users[0].passwordSecretKeyRef.name": passwordSecretKeyRefName,
 			"users[0].requeueInterval":           requeueInterval,
@@ -152,10 +152,11 @@ func TestClusterHelmUser(t *testing.T) {
 func TestClusterHelmGrant(t *testing.T) {
 	RegisterTestingT(t)
 
+	name := "mariadb"
 	cleanupPolicy := "Delete"
-	database := "foo"
+	database := "mariadb"
 	host := "%"
-	username := "foo"
+	username := "mariadb"
 	privilegeSelect := "SELECT"
 	privilegeProcess := "PROCESS"
 	requeueInterval := "1h"
@@ -169,6 +170,7 @@ func TestClusterHelmGrant(t *testing.T) {
 
 	opts := &helm.Options{
 		SetValues: map[string]string{
+			"grants[0].name":                 name,
 			"grants[0].cleanupPolicy":        cleanupPolicy,
 			"grants[0].database":             database,
 			"grants[0].host":                 host,
@@ -202,7 +204,7 @@ func TestClusterHelmGrant(t *testing.T) {
 	Expect(grant.Spec.RetryInterval).To(Equal(retryIntervalDuration))
 	Expect(grant.Spec.Table).To(Equal(table))
 
-	delete(opts.SetValues, "grants[0].username")
+	delete(opts.SetValues, "grants[0].name")
 	_, err := helm.RenderTemplateE(t, opts, clusterHelmChartPath, clusterHelmReleaseName, []string{"templates/grant.yaml"})
 	Expect(err).To(HaveOccurred())
 }
@@ -210,16 +212,17 @@ func TestClusterHelmGrant(t *testing.T) {
 func TestClusterHelmBackup(t *testing.T) {
 	RegisterTestingT(t)
 
-	maxRetention := "336h"
+	name := "backup"
+	maxRetention := "720h"
 	compression := "gzip"
 	bucket := "backups"
 	endpoint := "minio.minio.svc.cluster.local:9000"
 	region := "us-east-1"
 	prefix := "mariadb-cluster"
-	accessKeyIdSecretKeyRefKey := "AWS_ACCESS_KEY_ID"
-	accessKeyIdSecretKeyRefName := "mariadb-cluster-passwords"
-	secretAccessKeySecretKeyRefKey := "AWS_SECRET_ACCESS_KEY"
-	secretAccessKeySecretKeyRefName := "mariadb-cluster-passwords"
+	accessKeyIdSecretKeyRefKey := "minio"
+	accessKeyIdSecretKeyRefName := "access-key-id"
+	secretAccessKeySecretKeyRefKey := "minio"
+	secretAccessKeySecretKeyRefName := "secret-access-key"
 	cron := "0 0 * * *"
 
 	durationMaxRetention, _ := time.ParseDuration(maxRetention)
@@ -227,6 +230,7 @@ func TestClusterHelmBackup(t *testing.T) {
 
 	opts := &helm.Options{
 		SetValues: map[string]string{
+			"backups[0].name":                                        name,
 			"backups[0].maxRetention":                                maxRetention,
 			"backups[0].compression":                                 compression,
 			"backups[0].storage.s3.bucket":                           bucket,
@@ -247,7 +251,7 @@ func TestClusterHelmBackup(t *testing.T) {
 	var backup v1alpha1.Backup
 	helm.UnmarshalK8SYaml(t, renderedData, &backup)
 
-	Expect(backup.Name).To(Equal(fmt.Sprintf("%s-%d", clusterHelmReleaseName, 0)))
+	Expect(backup.Name).To(Equal(fmt.Sprintf("%s-%s", clusterHelmReleaseName, name)))
 	Expect(backup.Spec.MariaDBRef.Name).To(Equal(clusterHelmReleaseName))
 	Expect(backup.Spec.MariaDBRef.Namespace).To(Equal(clusterHelmNamespace))
 	Expect(&backup.Spec.MaxRetention).To(Equal(durationMaxRetentionDuration))
@@ -262,6 +266,7 @@ func TestClusterHelmBackup(t *testing.T) {
 	Expect(backup.Spec.Storage.S3.SecretAccessKeySecretKeyRef.Name).To(Equal(secretAccessKeySecretKeyRefName))
 	Expect(backup.Spec.Schedule.Cron).To(Equal(cron))
 
+	delete(opts.SetValues, "backups[0].name")
 	delete(opts.SetValues, "backups[0].storage.s3.bucket")
 	delete(opts.SetValues, "backups[0].storage.s3.prefix")
 	delete(opts.SetValues, "backups[0].storage.s3.endpoint")

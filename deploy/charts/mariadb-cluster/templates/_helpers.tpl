@@ -77,8 +77,8 @@ Validate Grant CRs
 */}}
 {{- define "mariadb-cluster.validateGrants" -}}
 {{- range .Values.grants }}
-{{- if not .username }}
-{{- fail "It is required to specify `.username` for each Grant" }}
+{{- if not .name }}
+{{- fail "It is required to specify `.name` for each Grant" }}
 {{- end }}
 {{- end }}
 {{- end }}
@@ -88,8 +88,8 @@ Validate Backup CRs
 */}}
 {{- define "mariadb-cluster.validateBackups" -}}
 {{- range .Values.backups }}
-{{- if not .storage }}
-{{- fail "It is required to specify `.storage` for each Backup" }}
+{{- if not .name }}
+{{- fail "It is required to specify `.name` for each Backup" }}
 {{- end }}
 {{- end }}
 {{- end }}
