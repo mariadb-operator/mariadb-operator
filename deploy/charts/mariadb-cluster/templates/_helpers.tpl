@@ -51,6 +51,20 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{/*
+Render an object as YAML omitting specified keys and indent it.
+
+Usage:
+  {{ include "mariadb-cluster.omitKeys" (dict "object" . "keys" (list "name" "mariaDbRef") "nindent" 2) }}
+*/}}
+{{- define "mariadb-cluster.omitKeys" -}}
+{{- $obj := deepCopy .object -}}
+{{- range .keys }}
+  {{- $obj = unset $obj . }}
+{{- end }}
+{{- toYaml $obj | nindent (.nindent | default 0) }}
+{{- end }}
+
+{{/*
 Validate Database CRs
 */}}
 {{- define "mariadb-cluster.validateDatabases" -}}

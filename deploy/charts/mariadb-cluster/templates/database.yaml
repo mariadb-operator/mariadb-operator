@@ -11,5 +11,5 @@ spec:
   mariaDbRef:
     name: {{ include "mariadb-cluster.fullname" $ }}
     namespace: {{ $.Release.Namespace }}
-  {{- toYaml (unset (deepCopy .) "mariaDbRef" ) | nindent 2 }}
+  {{- include "mariadb-cluster.omitKeys" (dict "object" . "keys" (list "name" "mariaDbRef") "nindent" 2) }}
 {{- end }}
