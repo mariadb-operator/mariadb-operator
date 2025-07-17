@@ -30,7 +30,6 @@ helm-cluster-lint: ## Lint mariadb-cluster helm chart.
 helm-crds: kustomize ## Generate CRDs for the Helm chart.
 	$(KUSTOMIZE) build config/crd > $(HELM_CRDS_DIR)/templates/crds.yaml
 	helm dependency update deploy/charts/mariadb-operator
-	helm dependency update deploy/charts/mariadb-cluster
 
 .PHONY: helm-config
 helm-config: yq ## Update operator config in the Helm chart.
@@ -89,5 +88,4 @@ endif
 	$(YQ) e -i ".appVersion = \"$(HELM_VERSION)\"" $(HELM_CHART_FILE); \
 	$(YQ) e -i ".dependencies |= map(select(.name == \"mariadb-operator-crds\").version = \"$(HELM_VERSION)\" // .)" $(HELM_CHART_FILE); \
 	$(YQ) e -i ".version = \"$(HELM_VERSION)\"" $(HELM_CRDS_CHART_FILE); \
-	$(YQ) e -i ".version = \"$(HELM_VERSION)\"" $(HELM_CLUSTER_CHART_FILE); \
-	$(YQ) e -i ".dependencies |= map(select(.name == \"mariadb-operator-crds\").version = \"$(HELM_VERSION)\" // .)" $(HELM_CLUSTER_CHART_FILE);
+	$(YQ) e -i ".version = \"$(HELM_VERSION)\"" $(HELM_CLUSTER_CHART_FILE);
