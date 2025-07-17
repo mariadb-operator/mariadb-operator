@@ -20,7 +20,7 @@ Once the operator is deployed, you can provision a MariaDB cluster using the `ma
 
 ```bash
 helm install mariadb-cluster mariadb-operator/mariadb-cluster
-````
+```
 
 Refer to the [helm documentation](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/helm.md) for further detail.
 

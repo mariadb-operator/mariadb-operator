@@ -60,12 +60,12 @@ Refer to the [helm documentation](https://github.com/mariadb-operator/mariadb-op
 | certController.tolerations | list | `[]` | Tolerations to add to cert-controller container |
 | certController.topologySpreadConstraints | list | `[]` | topologySpreadConstraints to add to cert-controller container |
 | clusterName | string | `"cluster.local"` | Cluster DNS name |
-| config | object | `{"exporterImage":"prom/mysqld-exporter:v0.15.1","exporterMaxscaleImage":"docker-registry2.mariadb.com/mariadb/maxscale-prometheus-exporter-ubi:v0.0.1","galeraLibPath":"/usr/lib/galera/libgalera_smm.so","mariadbDefaultVersion":"11.4","mariadbImage":"docker-registry1.mariadb.com/library/mariadb:11.4.5","maxscaleImage":"docker-registry2.mariadb.com/mariadb/maxscale:23.08.5"}` | Operator configuration |
+| config | object | `{"exporterImage":"prom/mysqld-exporter:v0.15.1","exporterMaxscaleImage":"docker-registry2.mariadb.com/mariadb/maxscale-prometheus-exporter-ubi:v0.0.1","galeraLibPath":"/usr/lib/galera/libgalera_smm.so","mariadbDefaultVersion":"11.8","mariadbImage":"docker-registry1.mariadb.com/library/mariadb:11.8.2","maxscaleImage":"docker-registry2.mariadb.com/mariadb/maxscale:23.08.5"}` | Operator configuration |
 | config.exporterImage | string | `"prom/mysqld-exporter:v0.15.1"` | Default MariaDB exporter image |
 | config.exporterMaxscaleImage | string | `"docker-registry2.mariadb.com/mariadb/maxscale-prometheus-exporter-ubi:v0.0.1"` | Default MaxScale exporter image |
 | config.galeraLibPath | string | `"/usr/lib/galera/libgalera_smm.so"` | Galera library path to be used with MariaDB Galera |
-| config.mariadbDefaultVersion | string | `"11.4"` | Default MariaDB version to be used when unable to infer it via image tag |
-| config.mariadbImage | string | `"docker-registry1.mariadb.com/library/mariadb:11.4.5"` | Default MariaDB image |
+| config.mariadbDefaultVersion | string | `"11.8"` | Default MariaDB version to be used when unable to infer it via image tag |
+| config.mariadbImage | string | `"docker-registry1.mariadb.com/library/mariadb:11.8.2"` | Default MariaDB image |
 | config.maxscaleImage | string | `"docker-registry2.mariadb.com/mariadb/maxscale:23.08.5"` | Default MaxScale image |
 | crds | object | `{"enabled":false}` | CRDs |
 | crds.enabled | bool | `false` | Whether the helm chart should create and update the CRDs. It is false by default, which implies that the CRDs must be managed independently with the mariadb-operator-crds helm chart. **WARNING** This should only be set to true during the initial deployment. If this chart manages the CRDs and is later uninstalled, all MariaDB instances will be DELETED. |
