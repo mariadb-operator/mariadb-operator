@@ -291,9 +291,9 @@ var _ = BeforeSuite(func() {
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
-	sqlOpts := []sql.SqlOpt{
+	sqlOpts := []sql.SQLOpt{
 		sql.WithRequeueInterval(30 * time.Second),
-		sql.WithLogSql(false),
+		sql.WithLogSQL(false),
 	}
 	err = NewUserReconciler(client, refResolver, conditionReady, sqlOpts...).SetupWithManager(testCtx, k8sManager)
 	Expect(err).ToNot(HaveOccurred())
@@ -312,7 +312,7 @@ var _ = BeforeSuite(func() {
 	}).SetupWithManager(testCtx, k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
-	err = (&SqlJobReconciler{
+	err = (&SQLJobReconciler{
 		Client:              client,
 		Scheme:              scheme,
 		Builder:             builder,

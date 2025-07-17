@@ -17,33 +17,33 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-type SqlOptions struct {
+type SQLOptions struct {
 	RequeueInterval  time.Duration
 	RequeueMaxOffset time.Duration
-	LogSql           bool
+	LogSQL           bool
 }
 
-type SqlOpt func(*SqlOptions)
+type SQLOpt func(*SQLOptions)
 
-func WithRequeueInterval(interval time.Duration) SqlOpt {
-	return func(opts *SqlOptions) {
+func WithRequeueInterval(interval time.Duration) SQLOpt {
+	return func(opts *SQLOptions) {
 		opts.RequeueInterval = interval
 	}
 }
 
-func WithRequeueMaxOffset(offset time.Duration) SqlOpt {
-	return func(opts *SqlOptions) {
+func WithRequeueMaxOffset(offset time.Duration) SQLOpt {
+	return func(opts *SQLOptions) {
 		opts.RequeueMaxOffset = offset
 	}
 }
 
-func WithLogSql(logSql bool) SqlOpt {
-	return func(opts *SqlOptions) {
-		opts.LogSql = logSql
+func WithLogSQL(logSQL bool) SQLOpt {
+	return func(opts *SQLOptions) {
+		opts.LogSQL = logSQL
 	}
 }
 
-type SqlReconciler struct {
+type SQLReconciler struct {
 	Client         ctrlclient.Client
 	RefResolver    *refresolver.RefResolver
 	ConditionReady *condition.Ready
@@ -51,30 +51,30 @@ type SqlReconciler struct {
 	WrappedReconciler WrappedReconciler
 	Finalizer         Finalizer
 
-	SqlOptions
+	SQLOptions
 }
 
-func NewSqlReconciler(client ctrlclient.Client, cr *condition.Ready, wr WrappedReconciler, f Finalizer,
-	opts ...SqlOpt) Reconciler {
-	reconciler := &SqlReconciler{
+func NewSQLReconciler(client ctrlclient.Client, cr *condition.Ready, wr WrappedReconciler, f Finalizer,
+	opts ...SQLOpt) Reconciler {
+	reconciler := &SQLReconciler{
 		Client:            client,
 		RefResolver:       refresolver.New(client),
 		ConditionReady:    cr,
 		WrappedReconciler: wr,
 		Finalizer:         f,
-		SqlOptions: SqlOptions{
+		SQLOptions: SQLOptions{
 			RequeueInterval:  30 * time.Second,
 			RequeueMaxOffset: 0,
-			LogSql:           false,
+			LogSQL:           false,
 		},
 	}
 	for _, setOpt := range opts {
-		setOpt(&reconciler.SqlOptions)
+		setOpt(&reconciler.SQLOptions)
 	}
 	return reconciler
 }
 
-func (r *SqlReconciler) Reconcile(ctx context.Context, resource Resource) (ctrl.Result, error) {
+func (r *SQLReconciler) Reconcile(ctx context.Context, resource Resource) (ctrl.Result, error) {
 	if resource.IsBeingDeleted() {
 		if result, err := r.Finalizer.Finalize(ctx, resource); !result.IsZero() || err != nil {
 			return result, err
@@ -93,7 +93,7 @@ func (r *SqlReconciler) Reconcile(ctx context.Context, resource Resource) (ctrl.
 		return ctrl.Result{}, fmt.Errorf("error getting MariaDB: %v", errBundle)
 	}
 
-	if result, err := waitForMariaDB(ctx, r.Client, mariadb, r.LogSql); !result.IsZero() || err != nil {
+	if result, err := waitForMariaDB(ctx, r.Client, mariadb, r.LogSQL); !result.IsZero() || err != nil {
 		var errBundle *multierror.Error
 
 		if err != nil {
@@ -142,13 +142,13 @@ func (r *SqlReconciler) Reconcile(ctx context.Context, resource Resource) (ctrl.
 	return r.requeueResult(ctx, resource, errBundle.ErrorOrNil())
 }
 
-func (r *SqlReconciler) retryResult(ctx context.Context, resource Resource, err error) (ctrl.Result, error) {
+func (r *SQLReconciler) retryResult(ctx context.Context, resource Resource, err error) (ctrl.Result, error) {
 	if resource.RetryInterval() != nil {
 		log.FromContext(ctx).Error(err, "Error reconciling SQL resource", "resource", resource.GetName())
 		return ctrl.Result{RequeueAfter: resource.RetryInterval().Duration}, nil
 	}
 	if err != nil {
-		if r.LogSql {
+		if r.LogSQL {
 			log.FromContext(ctx).V(1).Info("Error reconciling SQL resource", "err", err)
 		}
 		return ctrl.Result{Requeue: true}, nil
@@ -156,21 +156,21 @@ func (r *SqlReconciler) retryResult(ctx context.Context, resource Resource, err 
 	return ctrl.Result{}, nil
 }
 
-func (r *SqlReconciler) requeueResult(ctx context.Context, resource Resource, err error) (ctrl.Result, error) {
+func (r *SQLReconciler) requeueResult(ctx context.Context, resource Resource, err error) (ctrl.Result, error) {
 	if err != nil {
 		log.FromContext(ctx).V(1).Info("Error reconciling SQL resource", "err", err)
 		return ctrl.Result{Requeue: true}, nil
 	}
 	if resource.RequeueInterval() != nil {
 		requeueInterval := r.addRequeueIntervalOffset(resource.RequeueInterval().Duration)
-		if r.LogSql {
+		if r.LogSQL {
 			log.FromContext(ctx).V(1).Info("Requeuing SQL resource")
 		}
 		return ctrl.Result{RequeueAfter: requeueInterval}, nil
 	}
 	if r.RequeueInterval > 0 {
 		requeueInterval := r.addRequeueIntervalOffset(r.RequeueInterval)
-		if r.LogSql {
+		if r.LogSQL {
 			log.FromContext(ctx).V(1).Info("Requeuing SQL resource")
 		}
 		return ctrl.Result{RequeueAfter: requeueInterval}, nil
@@ -178,7 +178,7 @@ func (r *SqlReconciler) requeueResult(ctx context.Context, resource Resource, er
 	return ctrl.Result{}, nil
 }
 
-func (r *SqlReconciler) addRequeueIntervalOffset(duration time.Duration) time.Duration {
+func (r *SQLReconciler) addRequeueIntervalOffset(duration time.Duration) time.Duration {
 	if r.RequeueMaxOffset > 0 {
 		return duration + time.Duration(rand.Int63()%int64(r.RequeueMaxOffset))
 	}
@@ -186,7 +186,7 @@ func (r *SqlReconciler) addRequeueIntervalOffset(duration time.Duration) time.Du
 }
 
 func waitForMariaDB(ctx context.Context, client ctrlclient.Client, mdb *mariadbv1alpha1.MariaDB,
-	logSql bool) (ctrl.Result, error) {
+	logSQL bool) (ctrl.Result, error) {
 	healthy, err := health.IsStatefulSetHealthy(
 		ctx,
 		client,
@@ -199,7 +199,7 @@ func waitForMariaDB(ctx context.Context, client ctrlclient.Client, mdb *mariadbv
 		return ctrl.Result{}, err
 	}
 	if !healthy {
-		if logSql {
+		if logSQL {
 			log.FromContext(ctx).V(1).Info("MariaDB unhealthy. Requeuing SQL resource")
 		}
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil

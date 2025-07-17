@@ -13,8 +13,8 @@ type Client struct {
 	Galera *Galera
 }
 
-func NewClient(baseUrl string, opts ...mdbhttp.Option) (*Client, error) {
-	httpClient, err := mdbhttp.NewClient(baseUrl, opts...)
+func NewClient(baseURL string, opts ...mdbhttp.Option) (*Client, error) {
+	httpClient, err := mdbhttp.NewClient(baseURL, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("error creating HTTP client: %v", err)
 	}

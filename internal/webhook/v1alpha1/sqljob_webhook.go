@@ -16,10 +16,10 @@ import (
 // log is for logging in this package.
 var sqljoblog = logf.Log.WithName("sqljob-resource")
 
-// SetupSqlJobWebhookWithManager registers the webhook for SqlJob in the manager.
-func SetupSqlJobWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).For(&mariadbv1alpha1.SqlJob{}).
-		WithValidator(&SqlJobCustomValidator{}).
+// SetupSQLJobWebhookWithManager registers the webhook for SqlJob in the manager.
+func SetupSQLJobWebhookWithManager(mgr ctrl.Manager) error {
+	return ctrl.NewWebhookManagedBy(mgr).For(&mariadbv1alpha1.SQLJob{}).
+		WithValidator(&SQLJobCustomValidator{}).
 		Complete()
 }
 
@@ -27,28 +27,28 @@ func SetupSqlJobWebhookWithManager(mgr ctrl.Manager) error {
 
 // SqlJobCustomValidator struct is responsible for validating the SqlJob resource
 // when it is created, updated, or deleted.
-type SqlJobCustomValidator struct{}
+type SQLJobCustomValidator struct{}
 
-var _ webhook.CustomValidator = &SqlJobCustomValidator{}
+var _ webhook.CustomValidator = &SQLJobCustomValidator{}
 
 // ValidateCreate implements webhook.CustomValidator so a webhook will be registered for the type SqlJob.
-func (v *SqlJobCustomValidator) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
-	sqljob, ok := obj.(*mariadbv1alpha1.SqlJob)
+func (v *SQLJobCustomValidator) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
+	sqljob, ok := obj.(*mariadbv1alpha1.SQLJob)
 	if !ok {
 		return nil, fmt.Errorf("expected a SqlJob object but got %T", obj)
 	}
 	sqljoblog.V(1).Info("Validation for SqlJob upon creation", "name", sqljob.GetName())
 
-	return validateSqlJob(sqljob)
+	return validateSQLJob(sqljob)
 }
 
 // ValidateUpdate implements webhook.CustomValidator so a webhook will be registered for the type SqlJob.
-func (v *SqlJobCustomValidator) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
-	sqljob, ok := newObj.(*mariadbv1alpha1.SqlJob)
+func (v *SQLJobCustomValidator) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
+	sqljob, ok := newObj.(*mariadbv1alpha1.SQLJob)
 	if !ok {
 		return nil, fmt.Errorf("expected a SqlJob object for the newObj but got %T", newObj)
 	}
-	oldSqljob, ok := oldObj.(*mariadbv1alpha1.SqlJob)
+	oldSqljob, ok := oldObj.(*mariadbv1alpha1.SQLJob)
 	if !ok {
 		return nil, fmt.Errorf("expected a SqlJob object for the newObj but got %T", newObj)
 	}
@@ -57,26 +57,26 @@ func (v *SqlJobCustomValidator) ValidateUpdate(ctx context.Context, oldObj, newO
 	if err := inmutableWebhook.ValidateUpdate(sqljob, oldSqljob); err != nil {
 		return nil, err
 	}
-	return validateSqlJob(sqljob)
+	return validateSQLJob(sqljob)
 }
 
 // ValidateDelete implements webhook.CustomValidator so a webhook will be registered for the type SqlJob.
-func (v *SqlJobCustomValidator) ValidateDelete(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
+func (v *SQLJobCustomValidator) ValidateDelete(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
 	return nil, nil
 }
 
-func validateSqlJob(sqlJob *mariadbv1alpha1.SqlJob) (admission.Warnings, error) {
-	if err := validateSql(sqlJob); err != nil {
+func validateSQLJob(sqlJob *mariadbv1alpha1.SQLJob) (admission.Warnings, error) {
+	if err := validateSQL(sqlJob); err != nil {
 		return nil, err
 	}
-	if err := validateSqlJobSchedule(sqlJob); err != nil {
+	if err := validateSQLJobSchedule(sqlJob); err != nil {
 		return nil, err
 	}
 	return nil, nil
 }
 
-func validateSql(sqlJob *mariadbv1alpha1.SqlJob) error {
-	if sqlJob.Spec.Sql == nil && sqlJob.Spec.SqlConfigMapKeyRef == nil {
+func validateSQL(sqlJob *mariadbv1alpha1.SQLJob) error {
+	if sqlJob.Spec.SQL == nil && sqlJob.Spec.SQLConfigMapKeyRef == nil {
 		return field.Invalid(
 			field.NewPath("spec"),
 			sqlJob.Spec,
@@ -86,7 +86,7 @@ func validateSql(sqlJob *mariadbv1alpha1.SqlJob) error {
 	return nil
 }
 
-func validateSqlJobSchedule(sqlJob *mariadbv1alpha1.SqlJob) error {
+func validateSQLJobSchedule(sqlJob *mariadbv1alpha1.SQLJob) error {
 	if sqlJob.Spec.Schedule == nil {
 		return nil
 	}

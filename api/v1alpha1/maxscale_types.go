@@ -985,13 +985,13 @@ func (m *MaxScale) IsReplicationSSLEnabled() bool {
 // APIUrl returns the URL of the admin API pointing to the Kubernetes Service.
 func (m *MaxScale) APIUrl() string {
 	fqdn := statefulset.ServiceFQDNWithService(m.ObjectMeta, m.Name)
-	return m.apiUrlWithAddress(fqdn)
+	return m.apiURLWithAddress(fqdn)
 }
 
 // PodAPIUrl returns the URL of the admin API pointing to a Pod.
 func (m *MaxScale) PodAPIUrl(podIndex int) string {
 	fqdn := statefulset.PodFQDNWithService(m.ObjectMeta, podIndex, m.InternalServiceKey().Name)
-	return m.apiUrlWithAddress(fqdn)
+	return m.apiURLWithAddress(fqdn)
 }
 
 // ServerIDs returns the servers indexed by ID.
@@ -1074,7 +1074,7 @@ func (m *MaxScale) TLSListenerDNSNames() []string {
 	return names
 }
 
-func (m *MaxScale) apiUrlWithAddress(addr string) string {
+func (m *MaxScale) apiURLWithAddress(addr string) string {
 	scheme := "http"
 	if m.IsTLSEnabled() {
 		scheme = "https"

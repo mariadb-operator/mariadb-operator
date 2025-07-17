@@ -2799,21 +2799,21 @@ func TestSqlJobImagePullSecrets(t *testing.T) {
 
 	tests := []struct {
 		name            string
-		sqlJob          *mariadbv1alpha1.SqlJob
+		sqlJob          *mariadbv1alpha1.SQLJob
 		mariadb         *mariadbv1alpha1.MariaDB
 		wantPullSecrets []corev1.LocalObjectReference
 	}{
 		{
 			name: "No Secrets",
-			sqlJob: &mariadbv1alpha1.SqlJob{
+			sqlJob: &mariadbv1alpha1.SQLJob{
 				ObjectMeta: objMeta,
-				Spec: mariadbv1alpha1.SqlJobSpec{
+				Spec: mariadbv1alpha1.SQLJobSpec{
 					MariaDBRef: mariadbv1alpha1.MariaDBRef{
 						ObjectReference: mariadbv1alpha1.ObjectReference{
 							Name: objMeta.Name,
 						},
 					},
-					SqlConfigMapKeyRef: &mariadbv1alpha1.ConfigMapKeySelector{
+					SQLConfigMapKeyRef: &mariadbv1alpha1.ConfigMapKeySelector{
 						LocalObjectReference: mariadbv1alpha1.LocalObjectReference{},
 					},
 				},
@@ -2826,15 +2826,15 @@ func TestSqlJobImagePullSecrets(t *testing.T) {
 		},
 		{
 			name: "Secrets in MariaDB",
-			sqlJob: &mariadbv1alpha1.SqlJob{
+			sqlJob: &mariadbv1alpha1.SQLJob{
 				ObjectMeta: objMeta,
-				Spec: mariadbv1alpha1.SqlJobSpec{
+				Spec: mariadbv1alpha1.SQLJobSpec{
 					MariaDBRef: mariadbv1alpha1.MariaDBRef{
 						ObjectReference: mariadbv1alpha1.ObjectReference{
 							Name: objMeta.Name,
 						},
 					},
-					SqlConfigMapKeyRef: &mariadbv1alpha1.ConfigMapKeySelector{
+					SQLConfigMapKeyRef: &mariadbv1alpha1.ConfigMapKeySelector{
 						LocalObjectReference: mariadbv1alpha1.LocalObjectReference{},
 					},
 				},
@@ -2859,9 +2859,9 @@ func TestSqlJobImagePullSecrets(t *testing.T) {
 		},
 		{
 			name: "Secrets in SqlJob",
-			sqlJob: &mariadbv1alpha1.SqlJob{
+			sqlJob: &mariadbv1alpha1.SQLJob{
 				ObjectMeta: objMeta,
-				Spec: mariadbv1alpha1.SqlJobSpec{
+				Spec: mariadbv1alpha1.SQLJobSpec{
 					JobPodTemplate: mariadbv1alpha1.JobPodTemplate{
 						ImagePullSecrets: []mariadbv1alpha1.LocalObjectReference{
 							{
@@ -2874,7 +2874,7 @@ func TestSqlJobImagePullSecrets(t *testing.T) {
 							Name: objMeta.Name,
 						},
 					},
-					SqlConfigMapKeyRef: &mariadbv1alpha1.ConfigMapKeySelector{
+					SQLConfigMapKeyRef: &mariadbv1alpha1.ConfigMapKeySelector{
 						LocalObjectReference: mariadbv1alpha1.LocalObjectReference{},
 					},
 				},
@@ -2891,9 +2891,9 @@ func TestSqlJobImagePullSecrets(t *testing.T) {
 		},
 		{
 			name: "Secrets in MariaDB and SqlJob",
-			sqlJob: &mariadbv1alpha1.SqlJob{
+			sqlJob: &mariadbv1alpha1.SQLJob{
 				ObjectMeta: objMeta,
-				Spec: mariadbv1alpha1.SqlJobSpec{
+				Spec: mariadbv1alpha1.SQLJobSpec{
 					JobPodTemplate: mariadbv1alpha1.JobPodTemplate{
 						ImagePullSecrets: []mariadbv1alpha1.LocalObjectReference{
 							{
@@ -2906,7 +2906,7 @@ func TestSqlJobImagePullSecrets(t *testing.T) {
 							Name: objMeta.Name,
 						},
 					},
-					SqlConfigMapKeyRef: &mariadbv1alpha1.ConfigMapKeySelector{
+					SQLConfigMapKeyRef: &mariadbv1alpha1.ConfigMapKeySelector{
 						LocalObjectReference: mariadbv1alpha1.LocalObjectReference{},
 					},
 				},
@@ -2936,7 +2936,7 @@ func TestSqlJobImagePullSecrets(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			job, err := builder.BuildSqlJob(client.ObjectKeyFromObject(tt.sqlJob), tt.sqlJob, tt.mariadb)
+			job, err := builder.BuildSQLJob(client.ObjectKeyFromObject(tt.sqlJob), tt.sqlJob, tt.mariadb)
 			if err != nil {
 				t.Fatalf("unexpected error building Job: %v", err)
 			}
@@ -2954,15 +2954,15 @@ func TestSqlJobMeta(t *testing.T) {
 	}
 	tests := []struct {
 		name        string
-		sqlJob      *mariadbv1alpha1.SqlJob
+		sqlJob      *mariadbv1alpha1.SQLJob
 		wantJobMeta *mariadbv1alpha1.Metadata
 		wantPodMeta *mariadbv1alpha1.Metadata
 	}{
 		{
 			name: "empty",
-			sqlJob: &mariadbv1alpha1.SqlJob{
-				Spec: mariadbv1alpha1.SqlJobSpec{
-					SqlConfigMapKeyRef: &mariadbv1alpha1.ConfigMapKeySelector{},
+			sqlJob: &mariadbv1alpha1.SQLJob{
+				Spec: mariadbv1alpha1.SQLJobSpec{
+					SQLConfigMapKeyRef: &mariadbv1alpha1.ConfigMapKeySelector{},
 				},
 			},
 			wantJobMeta: &mariadbv1alpha1.Metadata{
@@ -2976,9 +2976,9 @@ func TestSqlJobMeta(t *testing.T) {
 		},
 		{
 			name: "inherit metadata",
-			sqlJob: &mariadbv1alpha1.SqlJob{
-				Spec: mariadbv1alpha1.SqlJobSpec{
-					SqlConfigMapKeyRef: &mariadbv1alpha1.ConfigMapKeySelector{},
+			sqlJob: &mariadbv1alpha1.SQLJob{
+				Spec: mariadbv1alpha1.SQLJobSpec{
+					SQLConfigMapKeyRef: &mariadbv1alpha1.ConfigMapKeySelector{},
 					InheritMetadata: &mariadbv1alpha1.Metadata{
 						Labels: map[string]string{
 							"sidecar.istio.io/inject": "false",
@@ -3008,9 +3008,9 @@ func TestSqlJobMeta(t *testing.T) {
 		},
 		{
 			name: "Pod meta",
-			sqlJob: &mariadbv1alpha1.SqlJob{
-				Spec: mariadbv1alpha1.SqlJobSpec{
-					SqlConfigMapKeyRef: &mariadbv1alpha1.ConfigMapKeySelector{},
+			sqlJob: &mariadbv1alpha1.SQLJob{
+				Spec: mariadbv1alpha1.SQLJobSpec{
+					SQLConfigMapKeyRef: &mariadbv1alpha1.ConfigMapKeySelector{},
 					JobPodTemplate: mariadbv1alpha1.JobPodTemplate{
 						PodMetadata: &mariadbv1alpha1.Metadata{
 							Labels: map[string]string{
@@ -3038,9 +3038,9 @@ func TestSqlJobMeta(t *testing.T) {
 		},
 		{
 			name: "override inherit metadata",
-			sqlJob: &mariadbv1alpha1.SqlJob{
-				Spec: mariadbv1alpha1.SqlJobSpec{
-					SqlConfigMapKeyRef: &mariadbv1alpha1.ConfigMapKeySelector{},
+			sqlJob: &mariadbv1alpha1.SQLJob{
+				Spec: mariadbv1alpha1.SQLJobSpec{
+					SQLConfigMapKeyRef: &mariadbv1alpha1.ConfigMapKeySelector{},
 					InheritMetadata: &mariadbv1alpha1.Metadata{
 						Labels: map[string]string{
 							"sidecar.istio.io/inject": "true",
@@ -3080,9 +3080,9 @@ func TestSqlJobMeta(t *testing.T) {
 		},
 		{
 			name: "all",
-			sqlJob: &mariadbv1alpha1.SqlJob{
-				Spec: mariadbv1alpha1.SqlJobSpec{
-					SqlConfigMapKeyRef: &mariadbv1alpha1.ConfigMapKeySelector{},
+			sqlJob: &mariadbv1alpha1.SQLJob{
+				Spec: mariadbv1alpha1.SQLJobSpec{
+					SQLConfigMapKeyRef: &mariadbv1alpha1.ConfigMapKeySelector{},
 					InheritMetadata: &mariadbv1alpha1.Metadata{
 						Annotations: map[string]string{
 							"database.myorg.io": "mariadb",
@@ -3116,7 +3116,7 @@ func TestSqlJobMeta(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			job, err := builder.BuildSqlJob(key, tt.sqlJob, &mariadbv1alpha1.MariaDB{})
+			job, err := builder.BuildSQLJob(key, tt.sqlJob, &mariadbv1alpha1.MariaDB{})
 			if err != nil {
 				t.Fatalf("unexpected error building SqlJob Job: %v", err)
 			}

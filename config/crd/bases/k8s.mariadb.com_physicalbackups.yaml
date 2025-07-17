@@ -594,7 +594,7 @@ spec:
                       a S3 compatible storage.
                     properties:
                       accessKeyIdSecretKeyRef:
-                        description: AccessKeyIdSecretKeyRef is a reference to a Secret
+                        description: AccessKeyIDSecretKeyRef is a reference to a Secret
                           key containing the S3 access key id.
                         properties:
                           key:

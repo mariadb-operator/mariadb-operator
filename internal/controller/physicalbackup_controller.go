@@ -60,15 +60,15 @@ func (r *PhysicalBackupReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 	mariadb, err := r.RefResolver.MariaDB(ctx, &backup.Spec.MariaDBRef, backup.Namespace)
 	if err != nil {
-		var mariaDbErr *multierror.Error
-		mariaDbErr = multierror.Append(mariaDbErr, err)
+		var mariaDBErr *multierror.Error
+		mariaDBErr = multierror.Append(mariaDBErr, err)
 
 		err = r.patchStatus(ctx, &backup, func(status *mariadbv1alpha1.PhysicalBackupStatus) {
 			r.ConditionComplete.PatcherRefResolver(err, mariadb)(status)
 		})
-		mariaDbErr = multierror.Append(mariaDbErr, err)
+		mariaDBErr = multierror.Append(mariaDBErr, err)
 
-		return ctrl.Result{}, fmt.Errorf("error getting MariaDB: %v", mariaDbErr)
+		return ctrl.Result{}, fmt.Errorf("error getting MariaDB: %v", mariaDBErr)
 	}
 	if backup.Spec.MariaDBRef.WaitForIt && !mariadb.IsReady() {
 		if err := r.patchStatus(ctx, &backup, func(status *mariadbv1alpha1.PhysicalBackupStatus) {

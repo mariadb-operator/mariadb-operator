@@ -8,8 +8,8 @@ metadata:
 spec:
   group: k8s.mariadb.com
   names:
-    kind: SqlJob
-    listKind: SqlJobList
+    kind: SQLJob
+    listKind: SQLJobList
     plural: sqljobs
     shortNames:
     - smdb
@@ -32,7 +32,7 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: SqlJob is the Schema for the sqljobs API. It is used to run sql
+        description: SQLJob is the Schema for the sqljobs API. It is used to run sql
           scripts as jobs.
         properties:
           apiVersion:
@@ -53,7 +53,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: SqlJobSpec defines the desired state of SqlJob
+            description: SQLJobSpec defines the desired state of SqlJob
             properties:
               affinity:
                 description: Affinity to be used in the Pod.
@@ -570,11 +570,11 @@ spec:
                   to be used by the Pods.
                 type: string
               sql:
-                description: Sql is the script to be executed by the SqlJob.
+                description: SQL is the script to be executed by the SqlJob.
                 type: string
               sqlConfigMapKeyRef:
                 description: |-
-                  SqlConfigMapKeyRef is a reference to a ConfigMap containing the Sql script.
+                  SQLConfigMapKeyRef is a reference to a ConfigMap containing the Sql script.
                   It is defaulted to a ConfigMap with the contents of the Sql field.
                 properties:
                   key:
@@ -662,7 +662,7 @@ spec:
             - username
             type: object
           status:
-            description: SqlJobStatus defines the observed state of SqlJob
+            description: SQLJobStatus defines the observed state of SqlJob
             properties:
               conditions:
                 description: Conditions for the SqlJob object.

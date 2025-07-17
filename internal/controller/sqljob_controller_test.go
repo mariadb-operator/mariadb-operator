@@ -21,12 +21,12 @@ var _ = Describe("SqlJob", Label("basic"), func() {
 	})
 
 	It("should reconcile a Job", func() {
-		createUsersJob := mariadbv1alpha1.SqlJob{
+		createUsersJob := mariadbv1alpha1.SQLJob{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "sqljob-01-create-table-users",
 				Namespace: testNamespace,
 			},
-			Spec: mariadbv1alpha1.SqlJobSpec{
+			Spec: mariadbv1alpha1.SQLJobSpec{
 				MariaDBRef: mariadbv1alpha1.MariaDBRef{
 					ObjectReference: mariadbv1alpha1.ObjectReference{
 						Name: testMdbkey.Name,
@@ -51,7 +51,7 @@ var _ = Describe("SqlJob", Label("basic"), func() {
 				Database:               &testDatabase,
 				TLSCACertSecretRef:     testTLSClientCARef,
 				TLSClientCertSecretRef: testTLSClientCertRef,
-				Sql: func() *string {
+				SQL: func() *string {
 					sql := `CREATE TABLE IF NOT EXISTS users (
 							id bigint PRIMARY KEY AUTO_INCREMENT,
 							username varchar(255) NOT NULL,
@@ -64,12 +64,12 @@ var _ = Describe("SqlJob", Label("basic"), func() {
 			},
 		}
 
-		insertUsersJob := mariadbv1alpha1.SqlJob{
+		insertUsersJob := mariadbv1alpha1.SQLJob{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "sqljob-02-1-insert-users",
 				Namespace: testNamespace,
 			},
-			Spec: mariadbv1alpha1.SqlJobSpec{
+			Spec: mariadbv1alpha1.SQLJobSpec{
 				DependsOn: []mariadbv1alpha1.LocalObjectReference{
 					{
 						Name: createUsersJob.Name,
@@ -97,7 +97,7 @@ var _ = Describe("SqlJob", Label("basic"), func() {
 					Key: testPwdSecretKey,
 				},
 				Database: &testDatabase,
-				Sql: func() *string {
+				SQL: func() *string {
 					sql := `INSERT INTO users(username, email) VALUES('mmontes11','mariadb-operator@proton.me') 
 						ON DUPLICATE KEY UPDATE username='mmontes11';`
 					return &sql
@@ -105,12 +105,12 @@ var _ = Describe("SqlJob", Label("basic"), func() {
 			},
 		}
 
-		createReposJob := mariadbv1alpha1.SqlJob{
+		createReposJob := mariadbv1alpha1.SQLJob{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "sqljob-02-2-create-table-repos",
 				Namespace: testNamespace,
 			},
-			Spec: mariadbv1alpha1.SqlJobSpec{
+			Spec: mariadbv1alpha1.SQLJobSpec{
 				DependsOn: []mariadbv1alpha1.LocalObjectReference{
 					{
 						Name: createUsersJob.Name,
@@ -138,7 +138,7 @@ var _ = Describe("SqlJob", Label("basic"), func() {
 					Key: testPwdSecretKey,
 				},
 				Database: &testDatabase,
-				Sql: func() *string {
+				SQL: func() *string {
 					sql := `CREATE TABLE IF NOT EXISTS repos (
 							id bigint PRIMARY KEY AUTO_INCREMENT,
 							name varchar(255) NOT NULL,
@@ -150,7 +150,7 @@ var _ = Describe("SqlJob", Label("basic"), func() {
 				}(),
 			},
 		}
-		sqlJobs := []mariadbv1alpha1.SqlJob{
+		sqlJobs := []mariadbv1alpha1.SQLJob{
 			createUsersJob,
 			insertUsersJob,
 			createReposJob,
@@ -168,7 +168,7 @@ var _ = Describe("SqlJob", Label("basic"), func() {
 		By("Expecting SqlJobs to complete eventually")
 		for _, j := range sqlJobs {
 			Eventually(func() bool {
-				var sqlJob mariadbv1alpha1.SqlJob
+				var sqlJob mariadbv1alpha1.SQLJob
 				if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&j), &sqlJob); err != nil {
 					return false
 				}
@@ -178,7 +178,7 @@ var _ = Describe("SqlJob", Label("basic"), func() {
 
 		By("Expecting to create a Job")
 		for _, sj := range sqlJobs {
-			var sqlJob mariadbv1alpha1.SqlJob
+			var sqlJob mariadbv1alpha1.SQLJob
 			Expect(k8sClient.Get(testCtx, client.ObjectKeyFromObject(&sj), &sqlJob)).To(Succeed())
 			var job batchv1.Job
 			Expect(k8sClient.Get(testCtx, client.ObjectKeyFromObject(&sqlJob), &job)).To(Succeed())
@@ -204,46 +204,46 @@ var _ = Describe("SqlJob", Label("basic"), func() {
 	DescribeTable("Creating an SqlJob",
 		func(
 			resourceName string,
-			builderFn func(types.NamespacedName) mariadbv1alpha1.SqlJob,
+			builderFn func(types.NamespacedName) mariadbv1alpha1.SQLJob,
 		) {
 			key := types.NamespacedName{
 				Name:      resourceName,
 				Namespace: testNamespace,
 			}
-			scheduledSqlJob := builderFn(key)
-			testScheduledSqlJob(scheduledSqlJob)
+			scheduledSQLJob := builderFn(key)
+			testScheduledSQLJob(scheduledSQLJob)
 		},
 		Entry(
 			"should reconcile a CronJob",
 			"sqljob-scheduled",
-			buildScheduledSqlJob,
+			buildScheduledSQLJob,
 		),
 		Entry(
 			"should reconcile a CronJob with history limits",
 			"sqljob-scheduled-with-history-limits",
 			applyDecoratorChain(
-				buildScheduledSqlJob,
-				decorateSqlJobWithHistoryLimits,
+				buildScheduledSQLJob,
+				decorateSQLJobWithHistoryLimits,
 			),
 		),
 		Entry(
 			"should reconcile a CronJob with time zone setting",
 			"sqljob-scheduled-with-tz",
 			applyDecoratorChain(
-				buildScheduledSqlJob,
-				decorateSqlJobWithTimeZone,
+				buildScheduledSQLJob,
+				decorateSQLJobWithTimeZone,
 			),
 		),
 	)
 })
 
-func buildScheduledSqlJob(key types.NamespacedName) mariadbv1alpha1.SqlJob {
-	return mariadbv1alpha1.SqlJob{
+func buildScheduledSQLJob(key types.NamespacedName) mariadbv1alpha1.SQLJob {
+	return mariadbv1alpha1.SQLJob{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      key.Name,
 			Namespace: key.Namespace,
 		},
-		Spec: mariadbv1alpha1.SqlJobSpec{
+		Spec: mariadbv1alpha1.SQLJobSpec{
 			Schedule: &mariadbv1alpha1.Schedule{
 				Cron: "*/1 * * * *",
 			},
@@ -261,7 +261,7 @@ func buildScheduledSqlJob(key types.NamespacedName) mariadbv1alpha1.SqlJob {
 				Key: testPwdSecretKey,
 			},
 			Database: &testDatabase,
-			Sql: func() *string {
+			SQL: func() *string {
 				sql := `CREATE TABLE IF NOT EXISTS orders (
 							id bigint PRIMARY KEY AUTO_INCREMENT,
 							email varchar(255) NOT NULL,
@@ -273,64 +273,64 @@ func buildScheduledSqlJob(key types.NamespacedName) mariadbv1alpha1.SqlJob {
 	}
 }
 
-func decorateSqlJobWithHistoryLimits(backup mariadbv1alpha1.SqlJob) mariadbv1alpha1.SqlJob {
+func decorateSQLJobWithHistoryLimits(backup mariadbv1alpha1.SQLJob) mariadbv1alpha1.SQLJob {
 	backup.Spec.SuccessfulJobsHistoryLimit = ptr.To[int32](5)
 	backup.Spec.FailedJobsHistoryLimit = ptr.To[int32](5)
 	return backup
 }
 
-func decorateSqlJobWithTimeZone(backup mariadbv1alpha1.SqlJob) mariadbv1alpha1.SqlJob {
+func decorateSQLJobWithTimeZone(backup mariadbv1alpha1.SQLJob) mariadbv1alpha1.SQLJob {
 	backup.Spec.TimeZone = ptr.To[string]("Europe/Sofia")
 	return backup
 }
 
-func testScheduledSqlJob(scheduledSqlJob mariadbv1alpha1.SqlJob) {
+func testScheduledSQLJob(scheduledSQLJob mariadbv1alpha1.SQLJob) {
 	By("Creating a scheduled SqlJob")
-	Expect(k8sClient.Create(testCtx, &scheduledSqlJob)).To(Succeed())
+	Expect(k8sClient.Create(testCtx, &scheduledSQLJob)).To(Succeed())
 	DeferCleanup(func() {
-		Expect(k8sClient.Delete(testCtx, &scheduledSqlJob)).To(Succeed())
+		Expect(k8sClient.Delete(testCtx, &scheduledSQLJob)).To(Succeed())
 	})
 
 	By("Expecting to create a CronJob eventually")
 	Eventually(func() bool {
 		var cronJob batchv1.CronJob
-		err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&scheduledSqlJob), &cronJob)
+		err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&scheduledSQLJob), &cronJob)
 		if err != nil {
 			return false
 		}
-		isScheduleCorrect := cronJob.Spec.Schedule == scheduledSqlJob.Spec.Schedule.Cron
+		isScheduleCorrect := cronJob.Spec.Schedule == scheduledSQLJob.Spec.Schedule.Cron
 
-		if scheduledSqlJob.Spec.SuccessfulJobsHistoryLimit == nil {
+		if scheduledSQLJob.Spec.SuccessfulJobsHistoryLimit == nil {
 			// Kubernetes sets a default of 3 when no limit is specified.
-			scheduledSqlJob.Spec.SuccessfulJobsHistoryLimit = ptr.To[int32](3)
+			scheduledSQLJob.Spec.SuccessfulJobsHistoryLimit = ptr.To[int32](3)
 		}
 
-		if scheduledSqlJob.Spec.FailedJobsHistoryLimit == nil {
+		if scheduledSQLJob.Spec.FailedJobsHistoryLimit == nil {
 			// Kubernetes sets a default of 1 when no limit is specified.
-			scheduledSqlJob.Spec.FailedJobsHistoryLimit = ptr.To[int32](1)
+			scheduledSQLJob.Spec.FailedJobsHistoryLimit = ptr.To[int32](1)
 		}
 
-		return isScheduleCorrect && assertSqlJobCronJobTemplateSpecsEqual(cronJob, scheduledSqlJob)
+		return isScheduleCorrect && assertSQLJobCronJobTemplateSpecsEqual(cronJob, scheduledSQLJob)
 	}, testHighTimeout, testInterval).Should(BeTrue())
 
-	patch := client.MergeFrom(scheduledSqlJob.DeepCopy())
-	scheduledSqlJob.Spec.SuccessfulJobsHistoryLimit = ptr.To[int32](7)
-	scheduledSqlJob.Spec.FailedJobsHistoryLimit = ptr.To[int32](7)
-	scheduledSqlJob.Spec.TimeZone = ptr.To[string]("Europe/Madrid")
+	patch := client.MergeFrom(scheduledSQLJob.DeepCopy())
+	scheduledSQLJob.Spec.SuccessfulJobsHistoryLimit = ptr.To[int32](7)
+	scheduledSQLJob.Spec.FailedJobsHistoryLimit = ptr.To[int32](7)
+	scheduledSQLJob.Spec.TimeZone = ptr.To[string]("Europe/Madrid")
 	By("Updating a scheduled SqlJob's history limits and time zone")
-	Expect(k8sClient.Patch(testCtx, &scheduledSqlJob, patch)).To(Succeed())
+	Expect(k8sClient.Patch(testCtx, &scheduledSQLJob, patch)).To(Succeed())
 
 	By("Expecting to update the CronJob history limits and time zone eventually")
 	Eventually(func() bool {
 		var cronJob batchv1.CronJob
-		if k8sClient.Get(testCtx, client.ObjectKeyFromObject(&scheduledSqlJob), &cronJob) != nil {
+		if k8sClient.Get(testCtx, client.ObjectKeyFromObject(&scheduledSQLJob), &cronJob) != nil {
 			return false
 		}
-		return assertSqlJobCronJobTemplateSpecsEqual(cronJob, scheduledSqlJob)
+		return assertSQLJobCronJobTemplateSpecsEqual(cronJob, scheduledSQLJob)
 	}, testHighTimeout, testInterval).Should(BeTrue())
 }
 
-func assertSqlJobCronJobTemplateSpecsEqual(cronJob batchv1.CronJob, sqlJob mariadbv1alpha1.SqlJob) bool {
+func assertSQLJobCronJobTemplateSpecsEqual(cronJob batchv1.CronJob, sqlJob mariadbv1alpha1.SQLJob) bool {
 	isSuccessfulJobHistoryLimitCorrect :=
 		reflect.DeepEqual(cronJob.Spec.SuccessfulJobsHistoryLimit, sqlJob.Spec.SuccessfulJobsHistoryLimit)
 	isFailedJobHistoryLimitCorrect :=

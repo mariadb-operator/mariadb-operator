@@ -301,25 +301,25 @@ func getUpdatedConfigLine(line string, podIP string) (string, error) {
 }
 
 func wrapIPAddress(ip string) (string, error) {
-	parsedIp := net.ParseIP(ip)
-	if parsedIp == nil {
+	parsedIP := net.ParseIP(ip)
+	if parsedIP == nil {
 		return "", fmt.Errorf("error in parsing ip address: %v", ip)
 	}
 
-	if parsedIp.To4() == nil {
+	if parsedIP.To4() == nil {
 		ip = fmt.Sprintf("[%s]", ip)
 	}
 	return ip, nil
 }
 
 func thisHostIP(ip string) (string, error) {
-	parsedIp := net.ParseIP(ip)
-	if parsedIp == nil {
+	parsedIP := net.ParseIP(ip)
+	if parsedIP == nil {
 		return "", fmt.Errorf("error in parsing ip address: %v", ip)
 	}
 
 	hostIP := ""
-	if parsedIp.To4() != nil {
+	if parsedIP.To4() != nil {
 		hostIP = "0.0.0.0"
 	} else {
 		hostIP = "::"

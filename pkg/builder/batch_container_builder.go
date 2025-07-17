@@ -125,15 +125,15 @@ func jobS3Env(s3 *mariadbv1alpha1.S3) []corev1.EnvVar {
 		return nil
 	}
 	var env []corev1.EnvVar
-	if s3.AccessKeyIdSecretKeyRef != nil {
+	if s3.AccessKeyIDSecretKeyRef != nil {
 		env = append(env, corev1.EnvVar{
-			Name: batchS3AccessKeyId,
+			Name: batchS3AccessKeyID,
 			ValueFrom: &corev1.EnvVarSource{
-				SecretKeyRef: ptr.To(s3.AccessKeyIdSecretKeyRef.ToKubernetesType()),
+				SecretKeyRef: ptr.To(s3.AccessKeyIDSecretKeyRef.ToKubernetesType()),
 			},
 		})
 	}
-	if s3.AccessKeyIdSecretKeyRef != nil {
+	if s3.AccessKeyIDSecretKeyRef != nil {
 		env = append(env, corev1.EnvVar{
 			Name: batchS3SecretAccessKey,
 			ValueFrom: &corev1.EnvVarSource{
@@ -159,17 +159,17 @@ func jobResources(resources *mariadbv1alpha1.ResourceRequirements) *corev1.Resou
 	return nil
 }
 
-func sqlJobvolumes(sqlJob *mariadbv1alpha1.SqlJob, mariadb *mariadbv1alpha1.MariaDB) ([]corev1.Volume, []corev1.VolumeMount) {
+func sqlJobvolumes(sqlJob *mariadbv1alpha1.SQLJob, mariadb *mariadbv1alpha1.MariaDB) ([]corev1.Volume, []corev1.VolumeMount) {
 	volumes := []corev1.Volume{
 		{
 			Name: batchScriptsVolume,
 			VolumeSource: corev1.VolumeSource{
 				ConfigMap: &corev1.ConfigMapVolumeSource{
-					LocalObjectReference: sqlJob.Spec.SqlConfigMapKeyRef.LocalObjectReference.ToKubernetesType(),
+					LocalObjectReference: sqlJob.Spec.SQLConfigMapKeyRef.LocalObjectReference.ToKubernetesType(),
 					Items: []corev1.KeyToPath{
 						{
-							Key:  sqlJob.Spec.SqlConfigMapKeyRef.Key,
-							Path: batchScriptsSqlFile,
+							Key:  sqlJob.Spec.SQLConfigMapKeyRef.Key,
+							Path: batchScriptsSQLFile,
 						},
 					},
 				},
@@ -240,7 +240,7 @@ func sqlJobvolumes(sqlJob *mariadbv1alpha1.SqlJob, mariadb *mariadbv1alpha1.Mari
 	return volumes, volumeMounts
 }
 
-func sqlJobEnv(sqlJob *mariadbv1alpha1.SqlJob) []corev1.EnvVar {
+func sqlJobEnv(sqlJob *mariadbv1alpha1.SQLJob) []corev1.EnvVar {
 	return []corev1.EnvVar{
 		{
 			Name:  batchUserEnv,
