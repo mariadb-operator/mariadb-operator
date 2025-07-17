@@ -1,6 +1,6 @@
 nameOverride: ""
 fullnameOverride: ""
-# --- CRDs
+# -- CRDs
 crds:
   # -- Whether the helm chart should create and update the CRDs. It is false by default, which implies that the CRDs must be
   # managed independently with the mariadb-operator-crds helm chart.

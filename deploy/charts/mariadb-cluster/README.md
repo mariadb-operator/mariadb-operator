@@ -29,7 +29,7 @@ Refer to the [helm documentation](https://github.com/mariadb-operator/mariadb-op
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | backups | list | `[]` | The list of Backup CRs. The `.mariaDbRef` keys will be ignored. The `.name` keys are used to generate distinct CR names. https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/api_reference.md#backupspec |
-| crds | object | `{"enabled":false}` | - CRDs |
+| crds | object | `{"enabled":false}` | CRDs |
 | crds.enabled | bool | `false` | Whether the helm chart should create and update the CRDs. It is false by default, which implies that the CRDs must be managed independently with the mariadb-operator-crds helm chart. **WARNING** This should only be set to true during the initial deployment. If this chart manages the CRDs and is later uninstalled, all MariaDB instances will be DELETED. |
 | databases | list | `[]` | The list of Database CRs. The `.mariaDbRef` keys will be ignored. The `.name` keys are required to generate distinct CR names. https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/api_reference.md#databasespec |
 | fullnameOverride | string | `""` |  |

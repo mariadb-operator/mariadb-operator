@@ -67,7 +67,7 @@ Refer to the [helm documentation](https://github.com/mariadb-operator/mariadb-op
 | config.mariadbDefaultVersion | string | `"11.4"` | Default MariaDB version to be used when unable to infer it via image tag |
 | config.mariadbImage | string | `"docker-registry1.mariadb.com/library/mariadb:11.4.5"` | Default MariaDB image |
 | config.maxscaleImage | string | `"docker-registry2.mariadb.com/mariadb/maxscale:23.08.5"` | Default MaxScale image |
-| crds | object | `{"enabled":false}` | - CRDs |
+| crds | object | `{"enabled":false}` | CRDs |
 | crds.enabled | bool | `false` | Whether the helm chart should create and update the CRDs. It is false by default, which implies that the CRDs must be managed independently with the mariadb-operator-crds helm chart. **WARNING** This should only be set to true during the initial deployment. If this chart manages the CRDs and is later uninstalled, all MariaDB instances will be DELETED. |
 | currentNamespaceOnly | bool | `false` | Whether the operator should watch CRDs only in its own namespace or not. |
 | extrArgs | list | `[]` | Extra arguments to be passed to the controller entrypoint |
