@@ -88,7 +88,7 @@ backups: []
 # The `.namespace` keys are allowed to override `.Release.Namespace`.
 # https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/api_reference.md#physicalbackup
 physicalBackups: []
-  # - name: physiccalbackup
+  # - name: physicalbackup
   #   schedule:
   #     cron: "0 0 * * *"
   #     suspend: false
