@@ -54,11 +54,11 @@ Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB
 
 ## Documentation
 
-For the user manual, getting started, guides, and API reference, please see the [**📚 docs directory**](./docs/README.md).
+For the user manual, getting started, guides, and API reference, please see the [**📚docs directory**](./docs/README.md).
 
 ## Examples catalog
 
-For example Custom Resources (CRs) demonstrating how to use the operator, refer to the [**🛠️ examples directory**](./examples/).
+For example Custom Resources (CRs) demonstrating how to use the operator, refer to the [**🛠️examples directory**](./examples/manifests/).
 
 ## Helm installation
 
