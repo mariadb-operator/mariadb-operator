@@ -17,7 +17,7 @@ helm install mariadb-operator-crds mariadb-operator/mariadb-operator-crds
 helm install mariadb-operator mariadb-operator/mariadb-operator
 ```
 
-Once the operator is deployed, you can provision a MariaDB cluster using the `mariadb-cluster` Helm chart:
+Once the operator and CRDs are deployed, you can provision a `MariaDB` cluster using the `mariadb-cluster` Helm chart:
 
 ```bash
 helm install mariadb-cluster mariadb-operator/mariadb-cluster

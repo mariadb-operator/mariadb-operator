@@ -14,14 +14,16 @@ Helm is the preferred way to install `mariadb-operator` in vanilla Kubernetes cl
 - [Deployment modes](#deployment-modes)
 - [Updates](#updates)
 - [High availability](#high-availability)
+- [MariaDB cluster helm chart](#mariadb-cluster-helm-chart)
 - [Uninstalling](#uninstalling)
 <!-- /toc -->
 
 ## Charts
 
-The installation of `mariadb-operator` is splitted into two different helm charts for better convenience:
+The installation of `mariadb-operator` is splitted into multiple different helm charts for better convenience:
 - [`mariadb-operator-crds`](../deploy/charts/mariadb-operator-crds/): Bundles the [`CustomResourceDefinitions`](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/) required by the operator.
-- [`mariadb-operator`](../deploy/charts/mariadb-operator/): Contains all the template manifests required to install the operator.
+- [`mariadb-operator`](../deploy/charts/mariadb-operator/): Contains the template manifests required to install the operator.
+- [`mariadb-cluster`](../deploy/charts/mariadb-cluster/): Contains the template maniffests to deploy a `MariaDB` cluster based on the operator CRDs.
 
 ## Control-plane
 
@@ -145,6 +147,115 @@ pdb:
   enabled: true
   maxUnavailable: 1
 ```
+
+## MariaDB cluster helm chart
+
+> [!IMPORTANT]
+> Before installing this, make sure that the `mariadb-operator-crds` and `mariadb-operator` helm charts have been installed.
+
+This helm chart simplifies the deployment of a `MariaDB` cluster and its associated CRs managed by the operator. It allows you to manage all CRs in a single helm release, handling their relationships automatically so you don't need to configure the references manually.
+
+For example, by using the following `values.yaml` file to install the helm chart:
+
+```yaml
+mariadb:
+  rootPasswordSecretKeyRef:
+    name: mariadb
+    key: root-password
+  storage:
+    size: 1Gi
+  replicas: 3
+  galera:
+    enabled: true
+databases:
+  - name: mariadb
+    characterSet: utf8
+    collate: utf8_general_ci
+    cleanupPolicy: Delete
+    requeueInterval: 10h
+    retryInterval: 30s
+users:
+  - name: mariadb
+    passwordSecretKeyRef:
+      name: mariadb
+      key: password
+    host: "%"
+    cleanupPolicy: Delete
+    requeueInterval: 10h
+    retryInterval: 30s
+grants:
+  - name: mariadb
+    privileges:
+      - "ALL PRIVILEGES"
+    database: "*"
+    table: "*"
+    username: mariadb
+    grantOption: true
+    host: "%"
+    cleanupPolicy: Delete
+    requeueInterval: 10h
+    retryInterval: 30s
+physicalBackups:
+  - name: physicalbackup
+    schedule:
+      cron: "0 0 * * *"
+      suspend: false
+      immediate: true
+    compression: gzip
+    maxRetention: 720h
+    storage:
+      s3:
+        bucket: physicalbackups
+        prefix: mariadb
+        endpoint: minio.minio.svc.cluster.local:9000
+        region:  us-east-1
+        accessKeyIdSecretKeyRef:
+          name: minio
+          key: access-key-id
+        secretAccessKeySecretKeyRef:
+          name: minio
+          key: secret-access-key
+        tls:
+          enabled: true
+          caSecretKeyRef:
+            name: minio-ca
+            key: ca.crt
+```
+
+```bash
+helm install mariadb-cluster mariadb-operator/mariadb-cluster -f values.yaml
+``` 
+
+You would be creating the following resources:
+
+```bash
+helm ls
+NAME                    NAMESPACE       REVISION        UPDATED                                         STATUS    CHART                           APP VERSION
+mariadb-cluster         default         1               2025-07-17 16:46:15.446900698 +0200 CEST        deployed  mariadb-cluster-0.38.1          0.0.0
+
+kubectl get mariadbs
+NAME              READY   STATUS    PRIMARY             UPDATES                    AGE
+mariadb-cluster   True    Running   mariadb-cluster-0   ReplicasFirstPrimaryLast   6m56s
+
+kubectl get databases
+NAME                      READY   STATUS    CHARSET   COLLATE           MARIADB           AGE    NAME
+mariadb-cluster-mariadb   True    Created   utf8      utf8_general_ci   mariadb-cluster   7m2s   mariadb
+
+kubectl get users
+NAME                          READY   STATUS    MAXCONNS   MARIADB           AGE
+mariadb-cluster-mariadb       True    Created   10         mariadb-cluster   7m7s
+
+kubectl get grants
+NAME                                      READY   STATUS    DATABASE   TABLE         USERNAME      GRANTOPT   MARIADB           AGE
+mariadb-cluster-mariadb                   True    Created   *          *             mariadb       true       mariadb-cluster   7m11s
+
+kubectl get physicalbackups
+NAME                             COMPLETE   STATUS    MARIADB           LAST SCHEDULED   AGE
+mariadb-cluster-physicalbackup   True       Success   mariadb-cluster   5m9s             7m19s
+```
+
+Refer to the helm chart README for detailed information about all the supported [helm values](./../deploy/charts/mariadb-cluster/README.md).
+
 
 ## Uninstalling
 
