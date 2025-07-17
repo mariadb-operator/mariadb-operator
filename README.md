@@ -48,6 +48,7 @@ Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB
 - CRDs designed according to the Kubernetes [API conventions](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md).
 - Install it using [helm](./docs/helm.md), [OLM](https://operatorhub.io/operator/mariadb-operator) or [static manifests](./deploy/manifests).
 - Multiple [deployment modes](./docs/helm.md#deployment-modes): cluster-wide and single namespace.
+- Helm chart to deploy [MariaDB clusters](./docs/helm.md#mariadb-cluster-helm-chart) and its associated CRs.
 - Multi-arch distroless [image](https://github.com/orgs/mariadb-operator/packages/container/package/mariadb-operator).
 - [GitOps](#gitops) friendly.
 
