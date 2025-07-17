@@ -18,5 +18,5 @@ spec:
   # Delete the resource in the database whenever the CR gets deleted.
   # Alternatively, you can specify Skip in order to omit deletion.
   cleanupPolicy: Delete
-  requeueInterval: 30s
-  retryInterval: 5s
+  requeueInterval: 10h
+  retryInterval: 30s

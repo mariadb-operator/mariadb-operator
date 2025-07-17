@@ -83,4 +83,4 @@ spec:
   metrics:
     enabled: true
 
-  requeueInterval: 30s
+  requeueInterval: 1h
