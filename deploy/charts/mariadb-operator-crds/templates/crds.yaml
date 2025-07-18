@@ -351,6 +351,9 @@ spec:
               mariaDbRef:
                 description: MariaDBRef is a reference to a MariaDB object.
                 properties:
+                  kind:
+                    description: ObjectReference is a reference to a object.
+                    type: string
                   name:
                     type: string
                   namespace:
@@ -1189,6 +1192,9 @@ spec:
                 description: MariaDBRef is a reference to the MariaDB to connect to.
                   Either MariaDBRef or MaxScaleRef must be provided.
                 properties:
+                  kind:
+                    description: ObjectReference is a reference to a object.
+                    type: string
                   name:
                     type: string
                   namespace:
@@ -1445,6 +1451,9 @@ spec:
               mariaDbRef:
                 description: MariaDBRef is a reference to a MariaDB object.
                 properties:
+                  kind:
+                    description: ObjectReference is a reference to a object.
+                    type: string
                   name:
                     type: string
                   namespace:
@@ -1626,6 +1635,9 @@ spec:
               mariaDbRef:
                 description: MariaDBRef is a reference to a MariaDB object.
                 properties:
+                  kind:
+                    description: ObjectReference is a reference to a object.
+                    type: string
                   name:
                     type: string
                   namespace:
@@ -8841,6 +8853,9 @@ spec:
                 description: MariaDBRef is a reference to the MariaDB that MaxScale
                   points to. It is used to initialize the servers field.
                 properties:
+                  kind:
+                    description: ObjectReference is a reference to a object.
+                    type: string
                   name:
                     type: string
                   namespace:
@@ -10526,6 +10541,9 @@ spec:
               mariaDbRef:
                 description: MariaDBRef is a reference to a MariaDB object.
                 properties:
+                  kind:
+                    description: ObjectReference is a reference to a object.
+                    type: string
                   name:
                     type: string
                   namespace:
@@ -11674,6 +11692,9 @@ spec:
               mariaDbRef:
                 description: MariaDBRef is a reference to a MariaDB object.
                 properties:
+                  kind:
+                    description: ObjectReference is a reference to a object.
+                    type: string
                   name:
                     type: string
                   namespace:
@@ -12659,6 +12680,9 @@ spec:
               mariaDbRef:
                 description: MariaDBRef is a reference to a MariaDB object.
                 properties:
+                  kind:
+                    description: ObjectReference is a reference to a object.
+                    type: string
                   name:
                     type: string
                   namespace:
@@ -13118,6 +13142,9 @@ spec:
               mariaDbRef:
                 description: MariaDBRef is a reference to a MariaDB object.
                 properties:
+                  kind:
+                    description: ObjectReference is a reference to a object.
+                    type: string
                   name:
                     type: string
                   namespace:

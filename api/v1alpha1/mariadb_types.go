@@ -1018,6 +1018,53 @@ func (m *MariaDB) TLSClientNames() []string {
 	return []string{fmt.Sprintf("%s-client", m.Name)}
 }
 
+// Get image pull policy
+func (m *MariaDB) GetImagePullPolicy() corev1.PullPolicy {
+	return m.Spec.ImagePullPolicy
+}
+
+// Get image pull secrets
+func (m *MariaDB) GetImagePullSecrets() []LocalObjectReference {
+	return m.Spec.ImagePullSecrets
+}
+
+// Get image
+func (m *MariaDB) GetImage() string {
+	return m.Spec.Image
+}
+
+// Get MariaDB hostname
+func (m *MariaDB) GetHost() string {
+	if m.IsHAEnabled() {
+		return statefulset.ServiceFQDNWithService(
+			m.ObjectMeta,
+			m.PrimaryServiceKey().Name,
+		)
+	}
+	return statefulset.ServiceFQDN(m.ObjectMeta)
+}
+
+// Get MariaDB port
+func (m *MariaDB) GetPort() int32 {
+	return m.Spec.Port
+}
+
+// Get MariaDB replicas
+func (m *MariaDB) GetReplicas() int32 {
+	return m.Spec.Replicas
+}
+
+// Get MariaDB Superuser name
+func (m *MariaDB) GetSUName() string {
+	username := "root"
+	return username
+}
+
+// Get MariaDB Superuser credentials
+func (m *MariaDB) GetSUCredential() *SecretKeySelector {
+	return &m.Spec.RootPasswordSecretKeyRef.SecretKeySelector
+}
+
 // +kubebuilder:object:root=true
 
 // MariaDBList contains a list of MariaDB

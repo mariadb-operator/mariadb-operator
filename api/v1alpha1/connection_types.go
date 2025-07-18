@@ -16,12 +16,16 @@ var (
 
 // ConnectionRefs contains the resolved references of a Connection.
 type ConnectionRefs struct {
-	MariaDB  *MariaDB
-	MaxScale *MaxScale
+	MariaDB         *MariaDB
+	MaxScale        *MaxScale
+	ExternalMariaDB *ExternalMariaDB
 }
 
 // Host returns the host address to connect to.
 func (r *ConnectionRefs) Host(c *Connection) (*string, error) {
+	if r.ExternalMariaDB != nil {
+		return &r.ExternalMariaDB.Spec.Host, nil
+	}
 	objMeta, err := r.objectMeta()
 	if err != nil {
 		return nil, err
@@ -44,6 +48,9 @@ func (r *ConnectionRefs) Port() (*int32, error) {
 	if r.MariaDB != nil {
 		return &r.MariaDB.Spec.Port, nil
 	}
+	if r.ExternalMariaDB != nil {
+		return &r.ExternalMariaDB.Spec.Port, nil
+	}
 	return nil, errors.New("port not found")
 }
 
@@ -53,6 +60,9 @@ func (r *ConnectionRefs) objectMeta() (*metav1.ObjectMeta, error) {
 	}
 	if r.MariaDB != nil {
 		return &r.MariaDB.ObjectMeta, nil
+	}
+	if r.ExternalMariaDB != nil {
+		return &r.ExternalMariaDB.ObjectMeta, nil
 	}
 	return nil, errors.New("references not found")
 }

@@ -5,8 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
+	"github.com/mariadb-operator/mariadb-operator/pkg/interfaces"
 )
 
 type Command struct {
@@ -34,7 +33,8 @@ func NewBashCommand(args []string) *Command {
 	}
 }
 
-func ConnectionFlags(co *CommandOpts, mariadb *mariadbv1alpha1.MariaDB) (string, error) {
+func ConnectionFlags(co *CommandOpts, mariadb interfaces.ConnectionParamsAwareInterface) (string, error) {
+
 	if co.UserEnv == "" {
 		return "", errors.New("UserEnv must be set")
 	}
@@ -46,21 +46,11 @@ func ConnectionFlags(co *CommandOpts, mariadb *mariadbv1alpha1.MariaDB) (string,
 		"--user=${%s} --password=${%s} --host=%s --port=%d",
 		co.UserEnv,
 		co.PasswordEnv,
-		host(mariadb),
-		mariadb.Spec.Port,
+		mariadb.GetHost(),
+		mariadb.GetPort(),
 	)
 	if co.Database != nil {
 		flags += fmt.Sprintf(" --database=%s", *co.Database)
 	}
 	return flags, nil
-}
-
-func host(mariadb *mariadbv1alpha1.MariaDB) string {
-	if mariadb.IsHAEnabled() {
-		return statefulset.ServiceFQDNWithService(
-			mariadb.ObjectMeta,
-			mariadb.PrimaryServiceKey().Name,
-		)
-	}
-	return statefulset.ServiceFQDN(mariadb.ObjectMeta)
 }
