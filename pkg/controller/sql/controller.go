@@ -63,8 +63,8 @@ func NewSqlReconciler(client ctrlclient.Client, cr *condition.Ready, wr WrappedR
 		WrappedReconciler: wr,
 		Finalizer:         f,
 		SqlOptions: SqlOptions{
-			RequeueInterval:  30 * time.Second,
-			RequeueMaxOffset: 0,
+			RequeueInterval:  10 * time.Hour,
+			RequeueMaxOffset: 1 * time.Hour,
 			LogSql:           false,
 		},
 	}

@@ -17,7 +17,7 @@ spec:
 
   bootstrapFrom:
     s3:
-      bucket: backups
+      bucket: physicalbackups
       prefix: mariadb
       endpoint: minio.minio.svc.cluster.local:9000
       accessKeyIdSecretKeyRef:
@@ -31,7 +31,8 @@ spec:
         caSecretKeyRef:
           name: minio-ca
           key: ca.crt
-    targetRecoveryTime: 2023-12-19T09:00:00Z
+    backupContentType: Physical
+    targetRecoveryTime: 2025-06-17T08:07:00Z
     stagingStorage:
       persistentVolumeClaim:
         resources:
@@ -39,18 +40,6 @@ spec:
             storage: 1Gi
         accessModes:
           - ReadWriteOnce
-    restoreJob:
-      metadata:
-        labels:
-          sidecar.istio.io/inject: "false"
-      args:
-        - --verbose
-      resources:
-        requests:
-          cpu: 100m
-          memory: 128Mi
-        limits:
-          memory: 1Gi
 
   service:
     type: LoadBalancer

@@ -111,7 +111,7 @@ spec:
 
 In the case of `MaxScale`, you can also do this via the `kubernetesService` field.
 
-Refer to the [HA documentation](./HA.md) to know more about the `Service` fields and `MaxScale`.
+Refer to the [HA documentation](./high_availability.md) to know more about the `Service` fields and `MaxScale`.
 
 ## `PVC` metadata
 
@@ -177,5 +177,5 @@ spec:
 For instance, you probably don't want to inject the Istio sidecar to `Backup` `Pods`, as it will prevent the `Jobs` from finishing and therefore your backup process will hang.
 
 ## Reference
-- [API reference](./API_REFERENCE.md)
+- [API reference](./api_reference.md)
 - [Example suite](../examples/)

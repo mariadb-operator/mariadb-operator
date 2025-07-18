@@ -49,7 +49,7 @@ spec:
 +      image: docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:0.37.1
 ```
 
-4. Upgrade `mariadb-operator` to `0.37.1`. This will trigger a rolling upgrade, make sure it finishes successfully before proceeding with the next step. Refer to the [updates documentation](../UPDATES.md) for further information about update strategies:
+4. Upgrade `mariadb-operator` to `0.37.1`. This will trigger a rolling upgrade, make sure it finishes successfully before proceeding with the next step. Refer to the [updates documentation](../updates.md) for further information about update strategies:
 ```bash 
 helm repo update mariadb-operator
 helm upgrade --install mariadb-operator mariadb-operator/mariadb-operator --version 0.37.1 
@@ -67,4 +67,4 @@ spec:
 -   autoUpdateDataPlane: true
 ```
 
-6. If you plan to use TLS, please refer to the __[TLS documentation](../TLS.md)__. 
+6. If you plan to use TLS, please refer to the __[TLS documentation](../tls.md)__. 

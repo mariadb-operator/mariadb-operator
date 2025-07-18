@@ -223,5 +223,5 @@ spec:
 You can opt-out from this cleanup process using `cleanupPolicy=Skip`. Note that this resources will remain in the database.
 
 ## Reference
-- [API reference](./API_REFERENCE.md)
+- [API reference](./api_reference.md)
 - [Example suite](../examples/)

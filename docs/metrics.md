@@ -18,7 +18,7 @@
 
 ## Operator metrics
 
-In order to expose the operator internal metrics, you may install the operator Helm chart passing the `metrics.enabled = true` value. Refer to the [Helm documentation](./HELM.md) for further detail.
+In order to expose the operator internal metrics, you may install the operator Helm chart passing the `metrics.enabled = true` value. Refer to the [Helm documentation](./helm.md) for further detail.
 
 ## Exporter
 
@@ -50,7 +50,7 @@ spec:
     enabled: true
 ```
 
-The rest of the fields are defaulted by the operator. If you need a more fine grained configuration, refer to the [API reference](./API_REFERENCE.md) and take a look at this [example](../examples/manifests/mariadb_metrics_full.yaml):
+The rest of the fields are defaulted by the operator. If you need a more fine grained configuration, refer to the [API reference](./api_reference.md) and take a look at this [example](../examples/manifests/mariadb_metrics_full.yaml):
 
 ```yaml
 apiVersion: k8s.mariadb.com/v1alpha1
@@ -86,7 +86,7 @@ spec:
 
 The easiest way to spin up a Prometheus observability stack in Kubernetes is by installing the [kube-prometheus-stack](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack) helm chart.
 
-We leverage this chart in our local [development](./DEVELOPMENT.md) environment and we have [configured](../hack/config/kube-prometheus-stack.yaml) it to ensure quality interactions between `mariadb-operator` and Prometheus. Feel free to install it by running:
+We leverage this chart in our local [development](./development.md) environment and we have [configured](../hack/config/kube-prometheus-stack.yaml) it to ensure quality interactions between `mariadb-operator` and Prometheus. Feel free to install it by running:
 
 ```bash
 make cluster
@@ -109,5 +109,5 @@ __[MySQL Replication](https://grafana.com/grafana/dashboards/7371-mysql-replicat
 __[Galera/MariaDB - Overview](https://grafana.com/grafana/dashboards/13106-galera-mariadb-overview/)__
 
 ## Reference
-- [API reference](./API_REFERENCE.md)
+- [API reference](./api_reference.md)
 - [Example suite](../examples/)
