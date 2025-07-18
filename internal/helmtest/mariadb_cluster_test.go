@@ -53,6 +53,7 @@ func TestClusterHelmDatabase(t *testing.T) {
 	RegisterTestingT(t)
 
 	name := "mariadb"
+	namespace := "database"
 	characterSet := "utf8"
 	cleanupPolicy := "Delete"
 	collate := "utf8_general_ci"
@@ -67,6 +68,7 @@ func TestClusterHelmDatabase(t *testing.T) {
 	opts := &helm.Options{
 		SetValues: map[string]string{
 			"databases[0].name":                 name,
+			"databases[0].namespace":            namespace,
 			"databases[0].characterSet":         characterSet,
 			"databases[0].cleanupPolicy":        cleanupPolicy,
 			"databases[0].collate":              collate,
@@ -82,6 +84,7 @@ func TestClusterHelmDatabase(t *testing.T) {
 	helm.UnmarshalK8SYaml(t, renderedData, &database)
 
 	Expect(database.Name).To(Equal(fmt.Sprintf("%s-%s", clusterHelmReleaseName, name)))
+	Expect(database.Namespace).To(Equal(namespace))
 	Expect(database.Spec.MariaDBRef.Name).To(Equal(clusterHelmReleaseName))
 	Expect(database.Spec.MariaDBRef.Namespace).To(Equal(clusterHelmNamespace))
 	Expect(database.Spec.CharacterSet).To(Equal(characterSet))
@@ -100,6 +103,7 @@ func TestClusterHelmUser(t *testing.T) {
 	RegisterTestingT(t)
 
 	name := "mariadb"
+	namespace := "database"
 	cleanupPolicy := "Delete"
 	host := "%"
 	maxUserConnections := 100
@@ -116,6 +120,7 @@ func TestClusterHelmUser(t *testing.T) {
 	opts := &helm.Options{
 		SetValues: map[string]string{
 			"users[0].name":                      name,
+			"users[0].namespace":                 namespace,
 			"users[0].cleanupPolicy":             cleanupPolicy,
 			"users[0].host":                      host,
 			"users[0].maxUserConnections":        strconv.Itoa(maxUserConnections),
@@ -133,6 +138,7 @@ func TestClusterHelmUser(t *testing.T) {
 	helm.UnmarshalK8SYaml(t, renderedData, &user)
 
 	Expect(user.Name).To(Equal(fmt.Sprintf("%s-%s", clusterHelmReleaseName, name)))
+	Expect(user.Namespace).To(Equal(namespace))
 	Expect(user.Spec.MariaDBRef.Name).To(Equal(clusterHelmReleaseName))
 	Expect(user.Spec.MariaDBRef.Namespace).To(Equal(clusterHelmNamespace))
 	Expect(*user.Spec.CleanupPolicy).To(Equal(v1alpha1.CleanupPolicy(cleanupPolicy)))
@@ -153,6 +159,7 @@ func TestClusterHelmGrant(t *testing.T) {
 	RegisterTestingT(t)
 
 	name := "mariadb"
+	namespace := "database"
 	cleanupPolicy := "Delete"
 	database := "mariadb"
 	host := "%"
@@ -171,6 +178,7 @@ func TestClusterHelmGrant(t *testing.T) {
 	opts := &helm.Options{
 		SetValues: map[string]string{
 			"grants[0].name":                 name,
+			"grants[0].namespace":            namespace,
 			"grants[0].cleanupPolicy":        cleanupPolicy,
 			"grants[0].database":             database,
 			"grants[0].host":                 host,
@@ -191,6 +199,7 @@ func TestClusterHelmGrant(t *testing.T) {
 	helm.UnmarshalK8SYaml(t, renderedData, &grant)
 
 	Expect(grant.Name).To(Equal(fmt.Sprintf("%s-%s", clusterHelmReleaseName, username)))
+	Expect(grant.Namespace).To(Equal(namespace))
 	Expect(grant.Spec.MariaDBRef.Name).To(Equal(clusterHelmReleaseName))
 	Expect(grant.Spec.MariaDBRef.Namespace).To(Equal(clusterHelmNamespace))
 	Expect(*grant.Spec.CleanupPolicy).To(Equal(v1alpha1.CleanupPolicy(cleanupPolicy)))
@@ -213,6 +222,7 @@ func TestClusterHelmBackup(t *testing.T) {
 	RegisterTestingT(t)
 
 	name := "backup"
+	namespace := "database"
 	maxRetention := "720h"
 	compression := "gzip"
 	bucket := "backups"
@@ -231,6 +241,7 @@ func TestClusterHelmBackup(t *testing.T) {
 	opts := &helm.Options{
 		SetValues: map[string]string{
 			"backups[0].name":                                        name,
+			"backups[0].namespace":                                   namespace,
 			"backups[0].maxRetention":                                maxRetention,
 			"backups[0].compression":                                 compression,
 			"backups[0].storage.s3.bucket":                           bucket,
@@ -252,6 +263,7 @@ func TestClusterHelmBackup(t *testing.T) {
 	helm.UnmarshalK8SYaml(t, renderedData, &backup)
 
 	Expect(backup.Name).To(Equal(fmt.Sprintf("%s-%s", clusterHelmReleaseName, name)))
+	Expect(backup.Namespace).To(Equal(namespace))
 	Expect(backup.Spec.MariaDBRef.Name).To(Equal(clusterHelmReleaseName))
 	Expect(backup.Spec.MariaDBRef.Namespace).To(Equal(clusterHelmNamespace))
 	Expect(&backup.Spec.MaxRetention).To(Equal(durationMaxRetentionDuration))
@@ -284,6 +296,7 @@ func TestClusterHelmPhysicalBackup(t *testing.T) {
 	RegisterTestingT(t)
 
 	name := "physicalbackup"
+	namespace := "database"
 	maxRetention := "720h"
 	compression := "gzip"
 	bucket := "backups"
@@ -302,6 +315,7 @@ func TestClusterHelmPhysicalBackup(t *testing.T) {
 	opts := &helm.Options{
 		SetValues: map[string]string{
 			"physicalBackups[0].name":                                        name,
+			"physicalBackups[0].namespace":                                   namespace,
 			"physicalBackups[0].maxRetention":                                maxRetention,
 			"physicalBackups[0].compression":                                 compression,
 			"physicalBackups[0].storage.s3.bucket":                           bucket,
@@ -323,6 +337,7 @@ func TestClusterHelmPhysicalBackup(t *testing.T) {
 	helm.UnmarshalK8SYaml(t, renderedData, &backup)
 
 	Expect(backup.Name).To(Equal(fmt.Sprintf("%s-%s", clusterHelmReleaseName, name)))
+	Expect(backup.Namespace).To(Equal(namespace))
 	Expect(backup.Spec.MariaDBRef.Name).To(Equal(clusterHelmReleaseName))
 	Expect(backup.Spec.MariaDBRef.Namespace).To(Equal(clusterHelmNamespace))
 	Expect(&backup.Spec.MaxRetention).To(Equal(durationMaxRetentionDuration))
