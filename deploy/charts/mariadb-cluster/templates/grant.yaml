@@ -5,11 +5,12 @@ apiVersion: k8s.mariadb.com/v1alpha1
 kind: Grant
 metadata:
   name: {{ include "mariadb-cluster.fullname" $ }}-{{ .name }}
+  namespace: {{ default $.Release.Namespace .namespace }}
   labels:
     {{- include "mariadb-cluster.labels" $ | nindent 4 }}
 spec:
   mariaDbRef:
     name: {{ include "mariadb-cluster.fullname" $ }}
     namespace: {{ $.Release.Namespace }}
-  {{- include "mariadb-cluster.omitKeys" (dict "object" . "keys" (list "name" "mariaDbRef") "nindent" 2) }}
+  {{- include "mariadb-cluster.omitKeys" (dict "object" . "keys" (list "name" "namespace" "mariaDbRef") "nindent" 2) }}
 {{- end }}

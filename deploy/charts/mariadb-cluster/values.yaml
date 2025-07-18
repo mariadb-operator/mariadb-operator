@@ -11,7 +11,10 @@ mariadb:
   replicas: 3
   galera:
     enabled: true
-# -- The list of Database CRs. The `.mariaDbRef` keys will be ignored. The `.name` keys are required to generate distinct CR names.
+# -- The list of Database CRs.
+# The `.mariaDbRef` keys will be ignored.
+# The `.name` keys are required to generate distinct CR names.
+# The `.namespace` keys are allowed to override `.Release.Namespace`.
 # https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/api_reference.md#databasespec
 databases: []
   # - name: mariadb
@@ -19,7 +22,10 @@ databases: []
   #   collate: utf8_general_ci
   #   cleanupPolicy: Delete
   #   requeueInterval: 10h
-# -- The list of User CRs. The `.mariaDbRef` keys will be ignored. The `.name` keys are required to generate distinct CR names.
+# -- The list of User CRs.
+# The `.mariaDbRef` keys will be ignored.
+# The `.name` keys are required to generate distinct CR names.
+# The `.namespace` keys are allowed to override `.Release.Namespace`.
 # https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/api_reference.md#userspec
 users: []
   # - name: mariadb
@@ -30,7 +36,10 @@ users: []
   #   cleanupPolicy: Delete
   #   requeueInterval: 10h
   #   retryInterval: 30s
-# -- The list of Grant CRs. The `.mariaDbRef` keys will be ignored. The `.name` keys are used to generate distinct CR names.
+# -- The list of Grant CRs.
+# The `.mariaDbRef` keys will be ignored.
+# The `.name` keys are used to generate distinct CR names.
+# The `.namespace` keys are allowed to override `.Release.Namespace`.
 # https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/api_reference.md#grantspec
 grants: []
   # - name: mariadb
@@ -44,7 +53,10 @@ grants: []
   #   cleanupPolicy: Delete
   #   requeueInterval: 10h
   #   retryInterval: 30s
-# -- The list of Backup CRs. The `.mariaDbRef` keys will be ignored. The `.name` keys are used to generate distinct CR names.
+# -- The list of Backup CRs.
+# The `.mariaDbRef` keys will be ignored.
+# The `.name` keys are used to generate distinct CR names.
+# The `.namespace` keys are allowed to override `.Release.Namespace`.
 # https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/api_reference.md#backupspec
 backups: []
   # - name: backup
@@ -70,7 +82,10 @@ backups: []
   #         caSecretKeyRef:
   #           name: minio-ca
   #           key: ca.crt
-# -- The list of PhysicalBackup CRs. The `.mariaDbRef` keys will be ignored. The `.name` keys are used to generate distinct CR names.
+# -- The list of PhysicalBackup CRs.
+# The `.mariaDbRef` keys will be ignored.
+# The `.name` keys are used to generate distinct CR names.
+# The `.namespace` keys are allowed to override `.Release.Namespace`.
 # https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/api_reference.md#physicalbackup
 physicalBackups: []
   # - name: physiccalbackup
