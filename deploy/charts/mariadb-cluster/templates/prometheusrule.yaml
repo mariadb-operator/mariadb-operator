@@ -1,0 +1,19 @@
+{{- if .Values.prometheusRule.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "mariadb-cluster.fullname" . }}
+  labels:
+    {{- include "mariadb-cluster.labels" . | nindent 4 }}
+  namespace: {{ default .Release.Namespace .Values.prometheusRule.namespace }}
+spec:
+  groups:
+    - name: {{ include "mariadb-cluster.fullname" . }}
+      rules:
+      {{- range $ruleName, $ruleCfg := .Values.prometheusRule.rules }}
+      {{- if $ruleCfg.enabled }}
+        - alert: {{ $ruleName }}
+        {{- tpl (toYaml $ruleCfg.rule) $ | nindent 10 }}
+      {{- end }}
+      {{- end }}
+{{- end }}
