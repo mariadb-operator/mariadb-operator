@@ -325,6 +325,7 @@ func Connect(dsn string) (*sql.DB, error) {
 		return nil, err
 	}
 	if err := db.PingContext(context.Background()); err != nil {
+		db.Close()
 		return nil, err
 	}
 	return db, nil
