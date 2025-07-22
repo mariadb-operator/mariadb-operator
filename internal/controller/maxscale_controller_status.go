@@ -141,6 +141,8 @@ func (r *MaxScaleReconciler) handleConfigSyncConflict(ctx context.Context, mxs *
 	if err != nil {
 		return fmt.Errorf("error getting primary SQL client: %v", err)
 	}
+	defer client.Close()
+
 	if err := client.TruncateMaxScaleConfig(ctx); err != nil {
 		return fmt.Errorf("error truncating maxscale_config table: %v", err)
 	}

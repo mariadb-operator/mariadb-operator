@@ -292,6 +292,10 @@ func (r *MaxScaleReconciler) reconcileFinalizer(ctx context.Context, req *reques
 		if err != nil {
 			bundleErr = multierror.Append(bundleErr, fmt.Errorf("error getting primary SQL client: %v", err))
 		}
+		if err == nil {
+			defer sql.Close()
+		}
+
 		if sql != nil {
 			if err := sql.DropMaxScaleConfig(ctx); err != nil {
 				bundleErr = multierror.Append(bundleErr, fmt.Errorf("error dropping maxscale_config table: %v", err))
