@@ -122,7 +122,7 @@ Kudos to @hedgieinsocks for this initiative!
 
 ### Replication improvements
 
-We have made some progress towards making our asynchronous replication feature GA. Refer to the PRs below for more details:
+We have made some progress towards making our replication feature GA. Refer to the PRs below for more details:
 - [__BREAKING CHANGE__] Convert SyncBinlog to integer (https://github.com/mariadb-operator/mariadb-operator/pull/1324)
 - Add optional delay for automatic failover (https://github.com/mariadb-operator/mariadb-operator/pull/1287)
 - Do not trigger automatic failover when suspended (https://github.com/mariadb-operator/mariadb-operator/pull/1285)
