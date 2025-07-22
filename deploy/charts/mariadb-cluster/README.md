@@ -28,11 +28,11 @@ Refer to the [helm documentation](https://github.com/mariadb-operator/mariadb-op
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
-| backups | list | `[]` | The list of Backup CRs. The `.mariaDbRef` keys will be ignored. The `.name` keys are used to generate distinct CR names. https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/api_reference.md#backupspec |
-| databases | list | `[]` | The list of Database CRs. The `.mariaDbRef` keys will be ignored. The `.name` keys are required to generate distinct CR names. https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/api_reference.md#databasespec |
+| backups | list | `[]` | The list of Backup CRs. The `.mariaDbRef` keys will be ignored. The `.name` keys are used to generate distinct CR names. The `.namespace` keys are allowed to override `.Release.Namespace`. https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/api_reference.md#backupspec |
+| databases | list | `[]` | The list of Database CRs. The `.mariaDbRef` keys will be ignored. The `.name` keys are required to generate distinct CR names. The `.namespace` keys are allowed to override `.Release.Namespace`. https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/api_reference.md#databasespec |
 | fullnameOverride | string | `""` |  |
-| grants | list | `[]` | The list of Grant CRs. The `.mariaDbRef` keys will be ignored. The `.name` keys are used to generate distinct CR names. https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/api_reference.md#grantspec |
+| grants | list | `[]` | The list of Grant CRs. The `.mariaDbRef` keys will be ignored. The `.name` keys are used to generate distinct CR names. The `.namespace` keys are allowed to override `.Release.Namespace`. https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/api_reference.md#grantspec |
 | mariadb | object | `{"galera":{"enabled":true},"replicas":3,"rootPasswordSecretKeyRef":{"key":"root-password","name":"mariadb"},"storage":{"size":"1Gi"}}` | MariaDB CR https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/api_reference.md#mariadbspec |
 | nameOverride | string | `""` |  |
-| physicalBackups | list | `[]` | The list of PhysicalBackup CRs. The `.mariaDbRef` keys will be ignored. The `.name` keys are used to generate distinct CR names. https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/api_reference.md#physicalbackup |
-| users | list | `[]` | The list of User CRs. The `.mariaDbRef` keys will be ignored. The `.name` keys are required to generate distinct CR names. https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/api_reference.md#userspec |
+| physicalBackups | list | `[]` | The list of PhysicalBackup CRs. The `.mariaDbRef` keys will be ignored. The `.name` keys are used to generate distinct CR names. The `.namespace` keys are allowed to override `.Release.Namespace`. https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/api_reference.md#physicalbackup |
+| users | list | `[]` | The list of User CRs. The `.mariaDbRef` keys will be ignored. The `.name` keys are required to generate distinct CR names. The `.namespace` keys are allowed to override `.Release.Namespace`. https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/api_reference.md#userspec |
