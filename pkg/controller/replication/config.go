@@ -57,7 +57,7 @@ func (r *ReplicationConfig) ConfigurePrimary(ctx context.Context, mariadb *maria
 	if err := client.DisableReadOnly(ctx); err != nil {
 		return fmt.Errorf("error disabling read_only: %v", err)
 	}
-	if err := r.reconcilePrimarySql(ctx, mariadb, client); err != nil {
+	if err := r.reconcilePrimarySQL(ctx, mariadb, client); err != nil {
 		return fmt.Errorf("error reconciling primary SQL: %v", err)
 	}
 	if err := r.configurePrimaryVars(ctx, mariadb, client, podIndex); err != nil {
@@ -103,7 +103,7 @@ func (r *ReplicationConfig) configurePrimaryVars(ctx context.Context, mariadb *m
 			return fmt.Sprint(mariadb.Replication().Replica.ConnectionTimeout.Milliseconds())
 		}(),
 		"rpl_semi_sync_slave_enabled": "OFF",
-		"server_id":                   serverId(primaryPodIndex),
+		"server_id":                   serverID(primaryPodIndex),
 	}
 	if mariadb.Replication().Replica.WaitPoint != nil {
 		waitPoint, err := mariadb.Replication().Replica.WaitPoint.MariaDBFormat()
@@ -124,7 +124,7 @@ func (r *ReplicationConfig) configureReplicaVars(ctx context.Context, mariadb *m
 		"sync_binlog":                  fmt.Sprintf("%d", ptr.Deref(mariadb.Replication().SyncBinlog, 1)),
 		"rpl_semi_sync_master_enabled": "OFF",
 		"rpl_semi_sync_slave_enabled":  "ON",
-		"server_id":                    serverId(ordinal),
+		"server_id":                    serverID(ordinal),
 	}
 	if err := client.SetSystemVariables(ctx, kv); err != nil {
 		return fmt.Errorf("error setting replication vars: %v", err)
@@ -216,26 +216,26 @@ func (r *ReplicationConfig) getChangeMasterHost(ctx context.Context, mariadb *ma
 	), nil
 }
 
-func (r *ReplicationConfig) reconcilePrimarySql(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *sql.Client) error {
-	opts := userSqlOpts{
+func (r *ReplicationConfig) reconcilePrimarySQL(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *sql.Client) error {
+	opts := userSQLOpts{
 		username:   replUser,
 		host:       replUserHost,
 		privileges: []string{"REPLICATION REPLICA"},
 	}
-	if err := r.reconcileUserSql(ctx, mariadb, client, &opts); err != nil {
+	if err := r.reconcileUserSQL(ctx, mariadb, client, &opts); err != nil {
 		return fmt.Errorf("error reconciling '%s' SQL user: %v", replUser, err)
 	}
 	return nil
 }
 
-type userSqlOpts struct {
+type userSQLOpts struct {
 	username   string
 	host       string
 	privileges []string
 }
 
-func (r *ReplicationConfig) reconcileUserSql(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *sql.Client,
-	opts *userSqlOpts) error {
+func (r *ReplicationConfig) reconcileUserSQL(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *sql.Client,
+	opts *userSQLOpts) error {
 	replPasswordRef := newReplPasswordRef(mariadb)
 	var replPassword string
 
@@ -295,7 +295,7 @@ func newReplPasswordRef(mariadb *mariadbv1alpha1.MariaDB) mariadbv1alpha1.Genera
 	}
 }
 
-func serverId(index int) string {
+func serverID(index int) string {
 	return fmt.Sprint(10 + index)
 }
 

@@ -16,13 +16,13 @@ import (
 func (c *Client) NewRequestWithContext(ctx context.Context, method string, path string, body interface{},
 	query map[string]string) (*http.Request, error) {
 
-	baseUrl, err := c.buildUrl(path, query)
+	baseURL, err := c.buildURL(path, query)
 	if err != nil {
 		return nil, fmt.Errorf("error building URL: %v", err)
 	}
 
 	if method == http.MethodGet {
-		req, err := http.NewRequestWithContext(ctx, method, baseUrl.String(), nil)
+		req, err := http.NewRequestWithContext(ctx, method, baseURL.String(), nil)
 		if err != nil {
 			return nil, fmt.Errorf("error creating GET request: %v", err)
 		}
@@ -38,30 +38,30 @@ func (c *Client) NewRequestWithContext(ctx context.Context, method string, path 
 		bodyReader = bytes.NewReader(bodyBytes)
 	}
 
-	return http.NewRequestWithContext(ctx, method, baseUrl.String(), bodyReader)
+	return http.NewRequestWithContext(ctx, method, baseURL.String(), bodyReader)
 }
 
-func (c *Client) buildUrl(path string, query map[string]string) (*url.URL, error) {
-	baseUrl := *c.baseUrl
+func (c *Client) buildURL(path string, query map[string]string) (*url.URL, error) {
+	baseURL := *c.baseURL
 	if c.version != "" {
-		baseUrl.Path += fmt.Sprintf("/%s", c.version)
+		baseURL.Path += fmt.Sprintf("/%s", c.version)
 	}
-	if !strings.HasSuffix(baseUrl.Path, "/") {
-		baseUrl.Path += "/"
+	if !strings.HasSuffix(baseURL.Path, "/") {
+		baseURL.Path += "/"
 	}
-	baseUrl.Path += strings.TrimPrefix(path, "/")
+	baseURL.Path += strings.TrimPrefix(path, "/")
 
 	if query != nil {
-		q := baseUrl.Query()
+		q := baseURL.Query()
 		for k, v := range query {
 			q.Add(k, v)
 		}
-		baseUrl.RawQuery = q.Encode()
+		baseURL.RawQuery = q.Encode()
 	}
 
-	newUrl, err := url.Parse(baseUrl.String())
+	newURL, err := url.Parse(baseURL.String())
 	if err != nil {
 		return nil, err
 	}
-	return newUrl, nil
+	return newURL, nil
 }

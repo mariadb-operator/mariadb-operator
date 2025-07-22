@@ -169,11 +169,11 @@ func getAddressType(pod *corev1.Pod) (*discoveryv1.AddressType, error) {
 	if pod.Status.PodIP == "" {
 		return nil, errors.New("Pod IP and NodeName must be set") //nolint:staticcheck
 	}
-	parsedIp := net.ParseIP(pod.Status.PodIP)
-	if parsedIp == nil {
+	parsedIP := net.ParseIP(pod.Status.PodIP)
+	if parsedIP == nil {
 		return nil, fmt.Errorf("error parsing Pod IP address: %v", pod.Status.PodIP)
 	}
-	if parsedIp.To4() != nil {
+	if parsedIP.To4() != nil {
 		return ptr.To(discoveryv1.AddressTypeIPv4), nil
 	}
 	return ptr.To(discoveryv1.AddressTypeIPv6), nil

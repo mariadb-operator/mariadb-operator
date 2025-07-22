@@ -1932,7 +1932,7 @@ func TestMaxscaleContainers(t *testing.T) {
 }
 
 func defaultEnv(overrides []corev1.EnvVar) []corev1.EnvVar {
-	mysqlTcpPort := corev1.EnvVar{
+	mysqlTCPPort := corev1.EnvVar{
 		Name:  "MYSQL_TCP_PORT",
 		Value: strconv.Itoa(0),
 	}
@@ -1955,7 +1955,7 @@ func defaultEnv(overrides []corev1.EnvVar) []corev1.EnvVar {
 		Value: "1",
 	}
 	defaults := map[string]corev1.EnvVar{
-		mysqlTcpPort.Name:          mysqlTcpPort,
+		mysqlTCPPort.Name:          mysqlTCPPort,
 		clusterName.Name:           clusterName,
 		mariadbName.Name:           mariadbName,
 		mariadbRootPassword.Name:   mariadbRootPassword,
@@ -1971,7 +1971,7 @@ func defaultEnv(overrides []corev1.EnvVar) []corev1.EnvVar {
 	}
 
 	return []corev1.EnvVar{
-		defaults[mysqlTcpPort.Name],
+		defaults[mysqlTCPPort.Name],
 		{
 			Name:  "MARIADB_ROOT_HOST",
 			Value: "%",

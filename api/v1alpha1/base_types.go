@@ -572,10 +572,10 @@ type S3 struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Prefix string `json:"prefix" webhook:"inmutable"`
-	// AccessKeyIdSecretKeyRef is a reference to a Secret key containing the S3 access key id.
+	// AccessKeyIDSecretKeyRef is a reference to a Secret key containing the S3 access key id.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	AccessKeyIdSecretKeyRef *SecretKeySelector `json:"accessKeyIdSecretKeyRef,omitempty"`
+	AccessKeyIDSecretKeyRef *SecretKeySelector `json:"accessKeyIdSecretKeyRef,omitempty"`
 	// AccessKeyIdSecretKeyRef is a reference to a Secret key containing the S3 secret key.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec

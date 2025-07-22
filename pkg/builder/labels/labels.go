@@ -14,7 +14,7 @@ const (
 	statefulSetPodName = "statefulset.kubernetes.io/pod-name"
 	volumeRole         = "pvc.k8s.mariadb.com/role"
 	podRole            = "k8s.mariadb.com/role"
-	appMariaDb         = "mariadb"
+	appMariaDB         = "mariadb"
 	appExporter        = "exporter"
 	appMaxScale        = "maxscale"
 )
@@ -52,7 +52,7 @@ func (b *LabelsBuilder) WithLabels(labels map[string]string) *LabelsBuilder {
 }
 
 func (b *LabelsBuilder) WithMariaDBSelectorLabels(mdb *mariadbv1alpha1.MariaDB) *LabelsBuilder {
-	return b.WithApp(appMariaDb).
+	return b.WithApp(appMariaDB).
 		WithInstance(mdb.Name)
 }
 

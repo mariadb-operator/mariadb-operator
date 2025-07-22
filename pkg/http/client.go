@@ -117,15 +117,15 @@ func WithTLSKey(tlsKey []byte) Option {
 }
 
 type Client struct {
-	baseUrl    *url.URL
+	baseURL    *url.URL
 	httpClient *http.Client
 	headers    map[string]string
 	version    string
 	logger     *logr.Logger
 }
 
-func NewClient(baseUrl string, opts ...Option) (*Client, error) {
-	url, err := url.Parse(baseUrl)
+func NewClient(baseURL string, opts ...Option) (*Client, error) {
+	url, err := url.Parse(baseURL)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing base URL: %v", err)
 	}
@@ -143,7 +143,7 @@ func NewClient(baseUrl string, opts ...Option) (*Client, error) {
 	}
 
 	client := &Client{
-		baseUrl:    url,
+		baseURL:    url,
 		httpClient: clientOpts.httpClient,
 		headers:    clientOpts.headers,
 		version:    clientOpts.version,
