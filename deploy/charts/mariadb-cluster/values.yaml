@@ -112,19 +112,26 @@ physicalBackups: []
   #         caSecretKeyRef:
   #           name: minio-ca
   #           key: ca.crt
-# -- PrometheusRule configuration. Escape `{{ $labels }}` to avoid incorrect templating.
+# -- PrometheusRule configuration.
 prometheusRule:
   enabled: false
   namespace: ""
-  rules:
-    MariaDBDown:
-      enabled: true
-      rule:
-        expr: mysql_up{target=~"{{ include "mariadb-cluster.fullname" . }}.*"} == 0
-        for: 1m
-        labels:
-          severity: critical
-        annotations:
-          summary: MariaDB instance is down
-          description: |
-            MariaDB instance {{"`{{ $labels.target }}`"}} is down
+  # -- Disable or tune bundled alerts.
+  overrides: {}
+    # MariaDBDown:
+    #   disabled: true
+    # MariaDBDown:
+    #   for: 3m
+    #   labels:
+    #     severity: warning
+  # -- Declare your own custom alerts.
+  custom: {}
+    # MariaDBNotOk:
+    #   expr: mysql_arbitrary_metric{target=~"{{ include "mariadb-cluster.fullname" . }}.*"} > 0
+    #   for: 5m
+    #   labels:
+    #     severity: warning
+    #   annotations:
+    #     summary: MariaDB instance is not ok
+    #     description: |
+    #       MariaDB instance {{"`{{ $labels.target }}`"}} is not ok

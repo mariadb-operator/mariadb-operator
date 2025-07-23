@@ -1,0 +1,11 @@
+# The rules are helm templated, so we must escape labels:
+# {{ $labels.target }} => {{"{{ $labels.target }}"}}
+- alert: MariaDBDown
+  expr: mysql_up{target=~"{{ include "mariadb-cluster.fullname" . }}.*"} == 0
+  for: 1m
+  labels:
+    severity: critical
+  annotations:
+    summary: MariaDB instance is down
+    description: |
+      MariaDB instance {{"`{{ $labels.target }}`"}} is down
