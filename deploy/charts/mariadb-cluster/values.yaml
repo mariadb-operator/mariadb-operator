@@ -125,8 +125,8 @@ prometheusRule:
     #   labels:
     #     severity: warning
   # -- Declare your own custom alerts.
-  custom: {}
-    # MariaDBNotOk:
+  custom: []
+    # - alert: MariaDBNotOk
     #   expr: mysql_arbitrary_metric{target=~"{{ include "mariadb-cluster.fullname" . }}.*"} > 0
     #   for: 5m
     #   labels:
