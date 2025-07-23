@@ -1,0 +1,2 @@
+# The rules are helm templated, so we must escape labels:
+# {{ $labels.target }} => {{"{{ $labels.target }}"}}

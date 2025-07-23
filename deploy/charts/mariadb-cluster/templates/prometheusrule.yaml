@@ -8,12 +8,42 @@ metadata:
   namespace: {{ default .Release.Namespace .Values.prometheusRule.namespace }}
 spec:
   groups:
-    - name: {{ include "mariadb-cluster.fullname" . }}
+  {{- /* template bundled rules */ -}}
+  {{- range $ruleGroup := list "galera" "replication" "generic" }}
+  {{- if and (eq $ruleGroup "galera") (or (not $.Values.mariadb.galera) (not $.Values.mariadb.galera.enabled)) }}
+    {{- /* skip templating galera rules when galera is disabled */ -}}
+  {{- else if and (eq $ruleGroup "replication") (or (not $.Values.mariadb.replication) (not $.Values.mariadb.replication.enabled)) }}
+    {{- /* skip templating replication rules when replication is disabled */ -}}
+  {{- else }}
+    {{- $rulesFile := printf "prometheus/%s.yaml" $ruleGroup }}
+    {{- $rules := $.Files.Get $rulesFile | fromYamlArray }}
+    {{- $rulesToTemplate := list }}
+    {{- range $rule := $rules }}
+      {{- $ruleName := $rule.alert }}
+      {{- $ruleOverrides := get $.Values.prometheusRule.overrides $ruleName }}
+      {{- if $ruleOverrides }}
+        {{- if not $ruleOverrides.disabled }}
+          {{- $ruleWithOverrides := mergeOverwrite $rule $ruleOverrides }}
+          {{- $rulesToTemplate = append $rulesToTemplate $ruleWithOverrides }}
+        {{- end }}
+      {{- else }}
+        {{- $rulesToTemplate = append $rulesToTemplate $rule }}
+      {{- end }}
+    {{- end }}
+    {{- if gt (len $rulesToTemplate) 0 }}
+    - name: {{ include "mariadb-cluster.fullname" $ }}-{{ $ruleGroup }}
       rules:
-      {{- range $ruleName, $ruleCfg := .Values.prometheusRule.rules }}
-      {{- if $ruleCfg.enabled }}
+        {{- tpl (toYaml $rulesToTemplate | nindent 8) $ }}
+    {{- end }}
+  {{- end }}
+  {{- end }}
+  {{- /* template custom rules */ -}}
+  {{- if .Values.prometheusRule.custom }}
+    - name: {{ include "mariadb-cluster.fullname" $ }}-custom
+      rules:
+      {{- range $ruleName, $ruleConfig := .Values.prometheusRule.custom }}
         - alert: {{ $ruleName }}
-        {{- tpl (toYaml $ruleCfg.rule) $ | nindent 10 }}
+          {{- tpl (toYaml $ruleConfig | nindent 10) $ }}
       {{- end }}
-      {{- end }}
+  {{- end }}
 {{- end }}

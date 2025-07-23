@@ -1,0 +1,14 @@
+# The rules are helm templated, so we must escape labels:
+# {{ $labels.target }} => {{"{{ $labels.target }}"}}
+- alert: MariaDBReplicaSqlThreadNotRunning
+  expr: |
+    mysql_slave_status_master_server_id{target=~"{{ include "mariadb-cluster.fullname" . }}.*"} > 0
+    and
+    mysql_slave_status_slave_sql_running{target=~"{{ include "mariadb-cluster.fullname" . }}.*"} == 0
+  for: 1m
+  labels:
+    severity: critical
+  annotations:
+    summary: MariaDB replica SQL thread is not running
+    description: |
+      MariaDB replica SQL thread is not running on instance {{"`{{ $labels.target }}`"}}
