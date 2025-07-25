@@ -1,11 +1,26 @@
 # The rules are helm templated, so we must escape labels:
 # {{ $labels.target }} => {{"{{ $labels.target }}"}}
 - alert: MariaDBDown
-  expr: mysql_up{target=~"{{ include "mariadb-cluster.fullname" . }}.*"} == 0
+  expr: |
+    mysql_up{target=~"{{ include "mariadb-cluster.fullname" . }}.*"} == 0
   for: 1m
   labels:
     severity: critical
   annotations:
-    summary: MariaDB instance is down
+    summary: MariaDB instance is down or cannot be scraped
     description: |
-      MariaDB instance {{"`{{ $labels.target }}`"}} is down
+      MariaDB instance {{"`{{ $labels.target }}`"}} is down or cannot be scraped
+- alert: MariaDBTooManyConnections
+  expr: |
+    (
+      max_over_time(mysql_global_status_threads_connected{target=~"{{ include "mariadb-cluster.fullname" . }}.*"}[1m])
+      /
+      mysql_global_variables_max_connections{target=~"{{ include "mariadb-cluster.fullname" . }}.*"}
+    ) * 100 > 85
+  for: 3m
+  labels:
+    severity: warning
+  annotations:
+    summary: MariaDB instance has too many connections
+    description: |
+      MariaDB instance {{"`{{ $labels.target }}`"}} has too many connections
