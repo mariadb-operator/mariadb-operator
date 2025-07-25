@@ -12,11 +12,8 @@
       MariaDB instance {{"`{{ $labels.target }}`"}} is down or cannot be scraped
 - alert: MariaDBTooManyConnections
   expr: |
-    (
-      max_over_time(mysql_global_status_threads_connected{target=~"{{ include "mariadb-cluster.fullname" . }}.*"}[1m])
-      /
-      mysql_global_variables_max_connections{target=~"{{ include "mariadb-cluster.fullname" . }}.*"}
-    ) * 100 > 85
+    (100 * mysql_global_status_threads_connected{target=~"{{ include "mariadb-cluster.fullname" . }}.*"})
+    / mysql_global_variables_max_connections{target=~"{{ include "mariadb-cluster.fullname" . }}.*"} > 85
   for: 3m
   labels:
     severity: warning
@@ -24,3 +21,13 @@
     summary: MariaDB instance has too many connections
     description: |
       MariaDB instance {{"`{{ $labels.target }}`"}} has too many connections
+- alert: MariaDBSlowQueries
+  expr: |
+    increase(mysql_global_status_slow_queries{target=~"{{ include "mariadb-cluster.fullname" . }}.*"}[1m]) > 0
+  for: 5m
+  labels:
+    severity: warning
+  annotations:
+    summary: MariaDB instance has new recent slow queries
+    description: |
+      MariaDB instance {{"`{{ $labels.target }}`"}} has new recent slow queries
