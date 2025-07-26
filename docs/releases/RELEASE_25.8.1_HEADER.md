@@ -1,8 +1,8 @@
-**`{{ .ProjectName }}` [25.08.1](https://github.com/mariadb-operator/mariadb-operator/releases/tag/25.08.1) is here!** 🦭
+**`{{ .ProjectName }}` [25.08.1](https://github.com/mariadb-operator/mariadb-operator/releases/tag/25.8.1) is here!** 🦭
 
 We're thrilled to announce this new release fully loaded with exciting new features and bug fixes. This version is a significant step forward, enhancing the disaster recovery capabilities of the operator.
 
-If you're upgrading from previous versions, don't miss the __[UPGRADE GUIDE](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/releases/UPGRADE_25.08.1.md)__ for a smooth transition.
+If you're upgrading from previous versions, don't miss the __[UPGRADE GUIDE](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/releases/UPGRADE_25.8.1.md)__ for a smooth transition.
 
 > [!IMPORTANT]  
 > This is a patch version to make our versioning scheme compliant with semver, and therefore fully compatible with Kubernetes tooling.
