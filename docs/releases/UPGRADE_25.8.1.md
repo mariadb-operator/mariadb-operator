@@ -1,6 +1,6 @@
-# Upgrade guide 25.8.1
+# Upgrade guide 25.08.1
 
-This guide illustrates, step by step, how to migrate to `25.8.1` from previous versions. 
+This guide illustrates, step by step, how to migrate from previous versions. 
 
 > [!NOTE]  
 > Do not attempt to skip intermediate version upgrades. Upgrade progressively through each version.
