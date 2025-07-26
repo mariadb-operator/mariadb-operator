@@ -1,58 +1,43 @@
 # The rules are helm templated, so we must escape labels:
 # {{ $labels.target }} => {{"{{ $labels.target }}"}}
-- alert: MariaDBReplicaSqlThreadNotRunning
+- alert: MariaDBReplicationNotRunning
   expr: |
-    (
-      mysql_slave_status_slave_sql_running{target=~"{{ include "mariadb-cluster.fullname" . }}.*"}
-      and on (target)
-      (mysql_slave_status_master_server_id{target=~"{{ include "mariadb-cluster.fullname" . }}.*"} > 0)
-    ) == 0
+    mysql_slave_status_slave_sql_running{target=~"{{ include "mariadb-cluster.fullname" . }}.*"} == 0
+    or mysql_slave_status_slave_io_running{target=~"{{ include "mariadb-cluster.fullname" . }}.*"} == 0
   for: 1m
   labels:
     severity: critical
   annotations:
-    summary: MariaDB replica does not have a running SQL replication thread
+    summary: Replication on MariaDB replica is not running
     description: |
-      MariaDB replica {{"`{{ $labels.target }}`"}} does not have a running SQL replication thread
-- alert: MariaDBReplicaIOThreadNotRunning
+      Replication on MariaDB replica {{"`{{ $labels.target }}`"}} is not running
+- alert: MariaDBReplicationLagWarning
   expr: |
-    (
-      mysql_slave_status_slave_io_running{target=~"{{ include "mariadb-cluster.fullname" . }}.*"}
-      and on (target)
-      (mysql_slave_status_master_server_id{target=~"{{ include "mariadb-cluster.fullname" . }}.*"} > 0)
-    ) == 0
-  for: 1m
-  labels:
-    severity: critical
-  annotations:
-    summary: MariaDB replica does not have a running IO replication thread
-    description: |
-      MariaDB replica {{"`{{ $labels.target }}`"}} does not have a running IO replication thread
-- alert: MariaDBReplicationLag
-  expr: |
-    (
-      (
-        mysql_slave_status_seconds_behind_master{target=~"{{ include "mariadb-cluster.fullname" . }}.*"} - mysql_slave_status_sql_delay{target=~"{{ include "mariadb-cluster.fullname" . }}.*"}
-      )
-      and on (target)
-      (
-        mysql_slave_status_master_server_id{target=~"{{ include "mariadb-cluster.fullname" . }}.*"} > 0
-      )
-    ) > 30
+    mysql_slave_status_seconds_behind_master{target=~"{{ include "mariadb-cluster.fullname" . }}.*"} > 30
   for: 1m
   labels:
     severity: warning
   annotations:
     summary: MariaDB replica is lagging behind the primary
     description: |
-      MariaDB replica {{"`{{ $labels.target }}`"}} is lagging behind the primary
-- alert: MariaDBReplicaNotConfigured
+      MariaDB replica {{"`{{ $labels.target }}`"}} is lagging {{"`{{ humanizeDuration $value }}`"}} behind the primary
+- alert: MariaDBReplicationLagCritical
   expr: |
-    count(mysql_slave_status_master_server_id{target=~"{{ include "mariadb-cluster.fullname" . }}.*"}) != {{ sub .Values.mariadb.replicas 1 }}
-  for: 5m
+    mysql_slave_status_seconds_behind_master{target=~"{{ include "mariadb-cluster.fullname" . }}.*"} > 300
+  for: 1m
   labels:
     severity: critical
   annotations:
-    summary: MariaDB cluster has instance(s) not configured as replicas
+    summary: MariaDB replica is lagging behind the primary
     description: |
-      MariaDB cluster `{{ include "mariadb-cluster.fullname" . }}` has instance(s) not configured as replicas
+      MariaDB replica {{"`{{ $labels.target }}`"}} is lagging {{"`{{ humanizeDuration $value }}`"}} behind the primary
+- alert: MariaDBReplicaMissing
+  expr: |
+    count(mysql_slave_status_master_server_id{target=~"{{ include "mariadb-cluster.fullname" . }}.*"}) != {{ sub .Values.mariadb.replicas 1 }}
+  for: 1m
+  labels:
+    severity: critical
+  annotations:
+    summary: MariaDB cluster is missing replica(s)
+    description: |
+      MariaDB cluster `{{ include "mariadb-cluster.fullname" . }}` is missing replica(s)
