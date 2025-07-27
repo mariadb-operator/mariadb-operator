@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/pkg/interfaces"
 	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -43,6 +44,50 @@ func (r *RefResolver) MariaDB(ctx context.Context, ref *mariadbv1alpha1.MariaDBR
 		return nil, err
 	}
 	return &mariadb, nil
+}
+
+func (r *RefResolver) GenericMariaDB(ctx context.Context, ref *mariadbv1alpha1.MariaDBRef,
+	namespace string) (interfaces.MariaDBGenericInterface, error) {
+	key := types.NamespacedName{
+		Name:      ref.Name,
+		Namespace: namespace,
+	}
+	if ref.Namespace != "" {
+		key.Namespace = ref.Namespace
+	}
+
+	if ref.Kind == mariadbv1alpha1.ExternalMariaDBKind {
+		var mariadb mariadbv1alpha1.ExternalMariaDB
+		if err := r.client.Get(ctx, key, &mariadb); err != nil {
+			var emdb_nil *mariadbv1alpha1.ExternalMariaDB = nil
+			return emdb_nil, err
+		}
+		return &mariadb, nil
+	} else {
+		var mariadb mariadbv1alpha1.MariaDB
+		if err := r.client.Get(ctx, key, &mariadb); err != nil {
+			var mdb_nil *mariadbv1alpha1.MariaDB = nil
+			return mdb_nil, err
+		}
+		return &mariadb, nil
+	}
+}
+
+func (r *RefResolver) ExternalMariaDB(ctx context.Context, ref *mariadbv1alpha1.MariaDBRef,
+	namespace string) (*mariadbv1alpha1.ExternalMariaDB, error) {
+	key := types.NamespacedName{
+		Name:      ref.Name,
+		Namespace: namespace,
+	}
+	if ref.Namespace != "" {
+		key.Namespace = ref.Namespace
+	}
+
+	var external_mariadb mariadbv1alpha1.ExternalMariaDB
+	if err := r.client.Get(ctx, key, &external_mariadb); err != nil {
+		return nil, err
+	}
+	return &external_mariadb, nil
 }
 
 func (r *RefResolver) MariaDBFromAnnotation(ctx context.Context, objMeta metav1.ObjectMeta) (*mariadbv1alpha1.MariaDB, error) {

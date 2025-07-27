@@ -104,10 +104,11 @@ func TestBuildPodSecurityContextWithUserGroup(t *testing.T) {
 	}
 	if sc == nil {
 		t.Fatal("PodSecurityContext must be non nil")
-	}
-	runAsUser := ptr.Deref(sc.RunAsUser, 0)
-	if runAsUser != mysqlUser {
-		t.Errorf("expected to run as mysql user, got user: %d", runAsUser)
+	} else {
+		runAsUser := ptr.Deref(sc.RunAsUser, 0)
+		if runAsUser != mysqlUser {
+			t.Errorf("expected to run as mysql user, got user: %d", runAsUser)
+		}
 	}
 	runAsGroup := ptr.Deref(sc.RunAsGroup, 0)
 	if runAsGroup != mysqlGroup {
