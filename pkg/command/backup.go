@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	backuppkg "github.com/mariadb-operator/mariadb-operator/pkg/backup"
-	builderpki "github.com/mariadb-operator/mariadb-operator/pkg/builder/pki"
-	ds "github.com/mariadb-operator/mariadb-operator/pkg/datastructures"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
+	backuppkg "github.com/mariadb-operator/mariadb-operator/v25/pkg/backup"
+	builderpki "github.com/mariadb-operator/mariadb-operator/v25/pkg/builder/pki"
+	ds "github.com/mariadb-operator/mariadb-operator/v25/pkg/datastructures"
 	"k8s.io/utils/ptr"
 )
 
@@ -410,7 +410,7 @@ func (b *BackupCommand) mariadbDumpArgs(backup *mariadbv1alpha1.Backup, mariadb 
 	// Ignoring this table enables a clean restore without replicas getting restarted
 	// because the livenessProbe fails due to authentication errors.
 	// Users and grants should be created by the entrypoint or the User and Grant CRs.
-	// See: https://github.com/mariadb-operator/mariadb-operator/issues/556
+	// See: https://github.com/mariadb-operator/mariadb-operator/v25/issues/556
 	if ptr.Deref(backup.Spec.IgnoreGlobalPriv, false) {
 		args = append(args, "--ignore-table=mysql.global_priv")
 	}

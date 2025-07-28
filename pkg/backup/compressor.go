@@ -114,7 +114,7 @@ func compressFile(path, fileName string, logger logr.Logger, compressFn func(dst
 
 	compressedFilePath := filePath + ".tmp"
 
-	// compressedFilePath must be closed before renaming. See: https://github.com/mariadb-operator/mariadb-operator/issues/1007
+	// compressedFilePath must be closed before renaming. See: https://github.com/mariadb-operator/mariadb-operator/v25/issues/1007
 	if err := func() error {
 		plainFile, err := os.Open(filePath)
 		if err != nil {

@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/go-logr/logr"
-	mariadbminio "github.com/mariadb-operator/mariadb-operator/pkg/minio"
+	mariadbminio "github.com/mariadb-operator/mariadb-operator/v25/pkg/minio"
 	"github.com/minio/minio-go/v7"
 )
 

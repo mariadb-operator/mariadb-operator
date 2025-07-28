@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
-	"github.com/mariadb-operator/mariadb-operator/pkg/predicate"
-	"github.com/mariadb-operator/mariadb-operator/pkg/watch"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/metadata"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/predicate"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/watch"
 	corev1 "k8s.io/api/core/v1"
 	ctrlbuilder "sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"

@@ -1,4 +1,4 @@
-module github.com/mariadb-operator/mariadb-operator
+module github.com/mariadb-operator/mariadb-operator/v25
 
 go 1.24.5
 

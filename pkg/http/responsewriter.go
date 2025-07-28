@@ -5,8 +5,8 @@ import (
 	"net/http"
 
 	"github.com/go-logr/logr"
-	"github.com/mariadb-operator/mariadb-operator/pkg/galera/errors"
-	mdbreflect "github.com/mariadb-operator/mariadb-operator/pkg/reflect"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/galera/errors"
+	mdbreflect "github.com/mariadb-operator/mariadb-operator/v25/pkg/reflect"
 )
 
 type ResponseWriter struct {

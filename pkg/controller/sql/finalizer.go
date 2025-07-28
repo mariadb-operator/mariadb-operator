@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
-	sqlClient "github.com/mariadb-operator/mariadb-operator/pkg/sql"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/refresolver"
+	sqlClient "github.com/mariadb-operator/mariadb-operator/v25/pkg/sql"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -78,7 +78,7 @@ func (tf *SqlFinalizer) Finalize(ctx context.Context, resource Resource) (ctrl.R
 		return result, err
 	}
 
-	// TODO: connection pooling. See https://github.com/mariadb-operator/mariadb-operator/issues/7.
+	// TODO: connection pooling. See https://github.com/mariadb-operator/mariadb-operator/v25/issues/7.
 	mdbClient, err := sqlClient.NewClientWithMariaDB(ctx, mariadb, tf.RefResolver)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error connecting to MariaDB: %v", err)

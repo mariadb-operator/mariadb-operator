@@ -5,9 +5,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/mariadb-operator/mariadb-operator/internal/controller"
-	"github.com/mariadb-operator/mariadb-operator/pkg/log"
-	"github.com/mariadb-operator/mariadb-operator/pkg/pki"
+	"github.com/mariadb-operator/mariadb-operator/v25/internal/controller"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/log"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/pki"
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"

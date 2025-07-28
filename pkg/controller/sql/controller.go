@@ -7,11 +7,11 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-multierror"
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
-	"github.com/mariadb-operator/mariadb-operator/pkg/health"
-	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
-	sqlClient "github.com/mariadb-operator/mariadb-operator/pkg/sql"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
+	condition "github.com/mariadb-operator/mariadb-operator/v25/pkg/condition"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/health"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/refresolver"
+	sqlClient "github.com/mariadb-operator/mariadb-operator/v25/pkg/sql"
 	ctrl "sigs.k8s.io/controller-runtime"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -106,7 +106,7 @@ func (r *SqlReconciler) Reconcile(ctx context.Context, resource Resource) (ctrl.
 		return result, errBundle.ErrorOrNil()
 	}
 
-	// TODO: connection pooling. See https://github.com/mariadb-operator/mariadb-operator/issues/7.
+	// TODO: connection pooling. See https://github.com/mariadb-operator/mariadb-operator/v25/issues/7.
 	mdbClient, err := sqlClient.NewClientWithMariaDB(ctx, mariadb, r.RefResolver)
 	if err != nil {
 		var errBundle *multierror.Error

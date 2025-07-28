@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/mariadb-operator/mariadb-operator/pkg/galera/errors"
-	mdbhttp "github.com/mariadb-operator/mariadb-operator/pkg/http"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/galera/errors"
+	mdbhttp "github.com/mariadb-operator/mariadb-operator/v25/pkg/http"
 )
 
 type Client struct {

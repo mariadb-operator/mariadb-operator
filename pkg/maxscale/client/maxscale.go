@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
-	mdbhttp "github.com/mariadb-operator/mariadb-operator/pkg/http"
+	mdbhttp "github.com/mariadb-operator/mariadb-operator/v25/pkg/http"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 

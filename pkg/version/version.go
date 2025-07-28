@@ -5,7 +5,7 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/hashicorp/go-version"
-	"github.com/mariadb-operator/mariadb-operator/pkg/docker"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/docker"
 )
 
 // Option represents a function that applies a configuration to a Version instance.

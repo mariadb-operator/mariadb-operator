@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	builderpki "github.com/mariadb-operator/mariadb-operator/pkg/builder/pki"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
+	builderpki "github.com/mariadb-operator/mariadb-operator/v25/pkg/builder/pki"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/utils/ptr"
 )

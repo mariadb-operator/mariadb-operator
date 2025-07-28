@@ -9,16 +9,16 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
-	builderpki "github.com/mariadb-operator/mariadb-operator/pkg/builder/pki"
-	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
-	galeraconfig "github.com/mariadb-operator/mariadb-operator/pkg/galera/config"
-	"github.com/mariadb-operator/mariadb-operator/pkg/hash"
-	"github.com/mariadb-operator/mariadb-operator/pkg/health"
-	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
-	podpkg "github.com/mariadb-operator/mariadb-operator/pkg/pod"
-	"github.com/mariadb-operator/mariadb-operator/pkg/wait"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
+	labels "github.com/mariadb-operator/mariadb-operator/v25/pkg/builder/labels"
+	builderpki "github.com/mariadb-operator/mariadb-operator/v25/pkg/builder/pki"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/environment"
+	galeraconfig "github.com/mariadb-operator/mariadb-operator/v25/pkg/galera/config"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/hash"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/health"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/metadata"
+	podpkg "github.com/mariadb-operator/mariadb-operator/v25/pkg/pod"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/wait"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	klabels "k8s.io/apimachinery/pkg/labels"
@@ -203,7 +203,7 @@ func (r *MariaDBReconciler) waitForConfiguredReplica(mdb *mariadbv1alpha1.MariaD
 		logger.V(1).Info("Waiting for at least one configured replica.")
 		// To configure replication we must reach the 'Replication' phase that runs after the 'StatefulSet' phase.
 		// When the 'MariaDBReconciler' controller receives the 'ErrSkipReconciliationPhase' error, it continues the reconciliation loop.
-		// See: https://github.com/mariadb-operator/mariadb-operator/pull/947
+		// See: https://github.com/mariadb-operator/mariadb-operator/v25/pull/947
 		return ErrSkipReconciliationPhase
 	}
 	logger.V(1).Info("Detected at least one configured replica.")
@@ -341,7 +341,7 @@ func (r *MariaDBReconciler) triggerSwitchover(ctx context.Context, mariadb *mari
 	logger.Info("Switching primary", "from-index", fromIndex, "to-index", *toIndex)
 	// To perform switchover we must reach the 'Replication' phase that runs after the 'StatefulSet' phase.
 	// When the 'MariaDBReconciler' controller receives the 'ErrSkipReconciliationPhase' error, it continues the reconciliation loop.
-	// See: https://github.com/mariadb-operator/mariadb-operator/pull/967
+	// See: https://github.com/mariadb-operator/mariadb-operator/v25/pull/967
 	return ErrSkipReconciliationPhase
 }
 

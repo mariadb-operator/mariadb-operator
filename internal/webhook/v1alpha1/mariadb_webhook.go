@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	galerakeys "github.com/mariadb-operator/mariadb-operator/pkg/galera/config/keys"
+	"github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
+	galerakeys "github.com/mariadb-operator/mariadb-operator/v25/pkg/galera/config/keys"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/utils/ptr"

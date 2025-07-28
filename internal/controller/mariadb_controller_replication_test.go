@@ -3,8 +3,8 @@ package controller
 import (
 	"time"
 
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/statefulset"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -216,7 +216,7 @@ var _ = Describe("MariaDB replication", Ordered, func() {
 	})
 
 	It("should fail and switch over primary", func() {
-		Skip("TODO: re-evaluate this test when productionizing replication. See https://github.com/mariadb-operator/mariadb-operator/issues/738")
+		Skip("TODO: re-evaluate this test when productionizing replication. See https://github.com/mariadb-operator/mariadb-operator/v25/issues/738")
 
 		By("Expecting MariaDB primary to be set")
 		Eventually(func() bool {
@@ -321,7 +321,7 @@ var _ = Describe("MariaDB replication", Ordered, func() {
 	})
 
 	It("should reconcile with MaxScale", Label("basic"), func() {
-		Skip("TODO: re-evaluate this test when productionizing replication. See https://github.com/mariadb-operator/mariadb-operator/issues/738")
+		Skip("TODO: re-evaluate this test when productionizing replication. See https://github.com/mariadb-operator/mariadb-operator/v25/issues/738")
 
 		mxs := &mariadbv1alpha1.MaxScale{
 			ObjectMeta: metav1.ObjectMeta{

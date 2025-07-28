@@ -30,7 +30,7 @@ package v1alpha1
 
 import (
 	metav1 "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
-	"github.com/mariadb-operator/mariadb-operator/pkg/galera/recovery"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/galera/recovery"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"

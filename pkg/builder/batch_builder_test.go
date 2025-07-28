@@ -6,9 +6,9 @@ import (
 	"reflect"
 	"testing"
 
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	labels "github.com/mariadb-operator/mariadb-operator/pkg/builder/labels"
-	galeraresources "github.com/mariadb-operator/mariadb-operator/pkg/controller/galera/resources"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
+	labels "github.com/mariadb-operator/mariadb-operator/v25/pkg/builder/labels"
+	galeraresources "github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/galera/resources"
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"

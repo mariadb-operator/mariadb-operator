@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	mdbtime "github.com/mariadb-operator/mariadb-operator/pkg/time"
+	mdbtime "github.com/mariadb-operator/mariadb-operator/v25/pkg/time"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

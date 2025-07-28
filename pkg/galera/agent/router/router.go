@@ -8,8 +8,8 @@ import (
 	middleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/httprate"
 	"github.com/go-logr/logr"
-	"github.com/mariadb-operator/mariadb-operator/pkg/galera/agent/handler"
-	kubeauth "github.com/mariadb-operator/mariadb-operator/pkg/kubernetes/auth"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/galera/agent/handler"
+	kubeauth "github.com/mariadb-operator/mariadb-operator/v25/pkg/kubernetes/auth"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 

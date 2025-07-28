@@ -6,8 +6,8 @@ import (
 	"errors"
 	"fmt"
 
-	mdbhttp "github.com/mariadb-operator/mariadb-operator/pkg/http"
-	mxsstate "github.com/mariadb-operator/mariadb-operator/pkg/maxscale/state"
+	mdbhttp "github.com/mariadb-operator/mariadb-operator/v25/pkg/http"
+	mxsstate "github.com/mariadb-operator/mariadb-operator/v25/pkg/maxscale/state"
 )
 
 var ErrMasterServerNotFound = errors.New("master server not found")

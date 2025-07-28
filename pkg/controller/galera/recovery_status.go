@@ -8,10 +8,10 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	"github.com/mariadb-operator/mariadb-operator/pkg/datastructures"
-	"github.com/mariadb-operator/mariadb-operator/pkg/galera/recovery"
-	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/datastructures"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/galera/recovery"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/statefulset"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 )

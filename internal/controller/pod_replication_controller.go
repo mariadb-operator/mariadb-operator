@@ -7,13 +7,13 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-multierror"
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	"github.com/mariadb-operator/mariadb-operator/pkg/builder"
-	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
-	"github.com/mariadb-operator/mariadb-operator/pkg/controller/replication"
-	"github.com/mariadb-operator/mariadb-operator/pkg/health"
-	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
-	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/builder"
+	condition "github.com/mariadb-operator/mariadb-operator/v25/pkg/condition"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/replication"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/health"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/refresolver"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/statefulset"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/record"
@@ -107,7 +107,7 @@ func (r *PodReplicationController) ReconcilePodNotReady(ctx context.Context, pod
 		if failoverTime.After(now) {
 			// To delay automatic failover we must abort and requeue later.
 			// When the 'PodController' controller receives the 'ErrDelayAutomaticFailover' error, it requeues without error.
-			// See: https://github.com/mariadb-operator/mariadb-operator/pull/1287
+			// See: https://github.com/mariadb-operator/mariadb-operator/v25/pull/1287
 			return ErrDelayAutomaticFailover
 		}
 	}
