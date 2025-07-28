@@ -4,9 +4,9 @@ import (
 	"os"
 	"time"
 
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
-	stsobj "github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/metadata"
+	stsobj "github.com/mariadb-operator/mariadb-operator/v25/pkg/statefulset"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"

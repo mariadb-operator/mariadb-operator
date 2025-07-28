@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	ds "github.com/mariadb-operator/mariadb-operator/pkg/datastructures"
-	mdbhttp "github.com/mariadb-operator/mariadb-operator/pkg/http"
+	ds "github.com/mariadb-operator/mariadb-operator/v25/pkg/datastructures"
+	mdbhttp "github.com/mariadb-operator/mariadb-operator/v25/pkg/http"
 )
 
 type GenericClient[T any] struct {

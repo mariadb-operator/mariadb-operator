@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"sync"
 
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
-	"github.com/mariadb-operator/mariadb-operator/pkg/sql"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/refresolver"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/sql"
 )
 
 type ClientSet struct {

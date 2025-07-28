@@ -3,7 +3,7 @@ package v1alpha1
 import (
 	"fmt"
 
-	"github.com/mariadb-operator/mariadb-operator/pkg/pki"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/pki"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 )

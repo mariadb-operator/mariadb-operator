@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/environment"
 )
 
 func TestReadEntrypoint(t *testing.T) {

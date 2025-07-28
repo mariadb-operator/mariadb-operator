@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	"github.com/mariadb-operator/mariadb-operator/pkg/backup"
-	"github.com/mariadb-operator/mariadb-operator/pkg/log"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/backup"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/log"
 	"github.com/spf13/cobra"
 	ctrl "sigs.k8s.io/controller-runtime"
 )

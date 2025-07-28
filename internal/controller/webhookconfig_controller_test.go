@@ -3,8 +3,8 @@ package controller
 import (
 	"time"
 
-	"github.com/mariadb-operator/mariadb-operator/pkg/metadata"
-	"github.com/mariadb-operator/mariadb-operator/pkg/pki"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/metadata"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/pki"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	admissionregistration "k8s.io/api/admissionregistration/v1"

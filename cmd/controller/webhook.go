@@ -9,9 +9,9 @@ import (
 	"path/filepath"
 	"time"
 
-	webhookv1alpha1 "github.com/mariadb-operator/mariadb-operator/internal/webhook/v1alpha1"
-	"github.com/mariadb-operator/mariadb-operator/pkg/log"
-	"github.com/mariadb-operator/mariadb-operator/pkg/pki"
+	webhookv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/internal/webhook/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/log"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/pki"
 	"github.com/spf13/cobra"
 	ctrl "sigs.k8s.io/controller-runtime"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"

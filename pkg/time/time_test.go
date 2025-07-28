@@ -4,7 +4,7 @@ import (
 	"testing"
 	gotime "time"
 
-	"github.com/mariadb-operator/mariadb-operator/pkg/time"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/time"
 	"github.com/stretchr/testify/assert"
 )
 

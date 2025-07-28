@@ -12,12 +12,12 @@ import (
 	"text/template"
 
 	"github.com/go-logr/logr"
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	galeraresources "github.com/mariadb-operator/mariadb-operator/pkg/controller/galera/resources"
-	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
-	galerakeys "github.com/mariadb-operator/mariadb-operator/pkg/galera/config/keys"
-	"github.com/mariadb-operator/mariadb-operator/pkg/galera/recovery"
-	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
+	galeraresources "github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/galera/resources"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/environment"
+	galerakeys "github.com/mariadb-operator/mariadb-operator/v25/pkg/galera/config/keys"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/galera/recovery"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/statefulset"
 	"k8s.io/utils/ptr"
 )
 

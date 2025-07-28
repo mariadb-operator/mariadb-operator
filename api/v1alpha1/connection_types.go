@@ -3,7 +3,7 @@ package v1alpha1
 import (
 	"errors"
 
-	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/statefulset"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"

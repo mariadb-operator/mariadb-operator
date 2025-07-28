@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/mariadb-operator/mariadb-operator/pkg/watch"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/watch"
 	ctrlbuilder "sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
