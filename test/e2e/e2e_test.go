@@ -24,7 +24,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/mariadb-operator/mariadb-operator/test/utils"
+	"github.com/mariadb-operator/mariadb-operator/v25/test/utils"
 )
 
 // namespace where the project is deployed in

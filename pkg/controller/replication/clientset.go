@@ -5,10 +5,10 @@ import (
 	"errors"
 	"fmt"
 
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
-	sqlClient "github.com/mariadb-operator/mariadb-operator/pkg/sql"
-	sqlClientSet "github.com/mariadb-operator/mariadb-operator/pkg/sqlset"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/refresolver"
+	sqlClient "github.com/mariadb-operator/mariadb-operator/v25/pkg/sql"
+	sqlClientSet "github.com/mariadb-operator/mariadb-operator/v25/pkg/sqlset"
 )
 
 type ReplicationClientSet struct {

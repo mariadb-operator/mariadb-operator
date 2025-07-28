@@ -10,7 +10,7 @@ import (
 	"net/url"
 	"strings"
 
-	mdbreflect "github.com/mariadb-operator/mariadb-operator/pkg/reflect"
+	mdbreflect "github.com/mariadb-operator/mariadb-operator/v25/pkg/reflect"
 )
 
 func (c *Client) NewRequestWithContext(ctx context.Context, method string, path string, body interface{},

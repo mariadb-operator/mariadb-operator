@@ -1,11 +1,11 @@
 package builder
 
 import (
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	builderpki "github.com/mariadb-operator/mariadb-operator/pkg/builder/pki"
-	cmd "github.com/mariadb-operator/mariadb-operator/pkg/command"
-	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
-	"github.com/mariadb-operator/mariadb-operator/pkg/pki"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
+	builderpki "github.com/mariadb-operator/mariadb-operator/v25/pkg/builder/pki"
+	cmd "github.com/mariadb-operator/mariadb-operator/v25/pkg/command"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/environment"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/pki"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/ptr"
 )

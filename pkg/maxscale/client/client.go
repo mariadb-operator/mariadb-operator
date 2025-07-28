@@ -6,7 +6,7 @@ import (
 	"io"
 	"net/http"
 
-	mdbhttp "github.com/mariadb-operator/mariadb-operator/pkg/http"
+	mdbhttp "github.com/mariadb-operator/mariadb-operator/v25/pkg/http"
 )
 
 var defaultAdminUser = "admin"

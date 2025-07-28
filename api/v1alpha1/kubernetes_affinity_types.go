@@ -2,7 +2,7 @@
 package v1alpha1
 
 import (
-	kadapter "github.com/mariadb-operator/mariadb-operator/pkg/kubernetes/adapter"
+	kadapter "github.com/mariadb-operator/mariadb-operator/v25/pkg/kubernetes/adapter"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"

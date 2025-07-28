@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/go-logr/logr"
-	mdbhttp "github.com/mariadb-operator/mariadb-operator/pkg/http"
+	mdbhttp "github.com/mariadb-operator/mariadb-operator/v25/pkg/http"
 	authv1 "k8s.io/api/authentication/v1"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )

@@ -9,11 +9,11 @@ import (
 	"sync"
 
 	"github.com/go-logr/logr"
-	galeraErrors "github.com/mariadb-operator/mariadb-operator/pkg/galera/errors"
-	"github.com/mariadb-operator/mariadb-operator/pkg/galera/filemanager"
-	"github.com/mariadb-operator/mariadb-operator/pkg/galera/recovery"
-	"github.com/mariadb-operator/mariadb-operator/pkg/galera/state"
-	mdbhttp "github.com/mariadb-operator/mariadb-operator/pkg/http"
+	galeraErrors "github.com/mariadb-operator/mariadb-operator/v25/pkg/galera/errors"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/galera/filemanager"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/galera/recovery"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/galera/state"
+	mdbhttp "github.com/mariadb-operator/mariadb-operator/v25/pkg/http"
 )
 
 type Galera struct {

@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	condition "github.com/mariadb-operator/mariadb-operator/pkg/condition"
-	"github.com/mariadb-operator/mariadb-operator/pkg/controller/sql"
-	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
-	sqlClient "github.com/mariadb-operator/mariadb-operator/pkg/sql"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
+	condition "github.com/mariadb-operator/mariadb-operator/v25/pkg/condition"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/sql"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/refresolver"
+	sqlClient "github.com/mariadb-operator/mariadb-operator/v25/pkg/sql"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )

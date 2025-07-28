@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	mdbtime "github.com/mariadb-operator/mariadb-operator/pkg/time"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
+	mdbtime "github.com/mariadb-operator/mariadb-operator/v25/pkg/time"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 

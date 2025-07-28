@@ -3,7 +3,7 @@ package client
 import (
 	"encoding/json"
 
-	mdbhttp "github.com/mariadb-operator/mariadb-operator/pkg/http"
+	mdbhttp "github.com/mariadb-operator/mariadb-operator/v25/pkg/http"
 )
 
 type ListenerParameters struct {

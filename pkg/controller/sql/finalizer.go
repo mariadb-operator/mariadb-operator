@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
-	sqlClient "github.com/mariadb-operator/mariadb-operator/pkg/sql"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/refresolver"
+	sqlClient "github.com/mariadb-operator/mariadb-operator/v25/pkg/sql"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"

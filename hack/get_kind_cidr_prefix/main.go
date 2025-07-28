@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/mariadb-operator/mariadb-operator/pkg/docker"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/docker"
 )
 
 func main() {

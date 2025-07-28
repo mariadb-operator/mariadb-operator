@@ -14,11 +14,11 @@ import (
 	"time"
 
 	"github.com/go-sql-driver/mysql"
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/api/v1alpha1"
-	"github.com/mariadb-operator/mariadb-operator/pkg/environment"
-	"github.com/mariadb-operator/mariadb-operator/pkg/pki"
-	"github.com/mariadb-operator/mariadb-operator/pkg/refresolver"
-	"github.com/mariadb-operator/mariadb-operator/pkg/statefulset"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/environment"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/pki"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/refresolver"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/statefulset"
 	"k8s.io/apimachinery/pkg/types"
 )
 
