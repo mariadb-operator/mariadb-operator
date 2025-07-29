@@ -120,7 +120,20 @@ func IsStatefulSetHealthy(ctx context.Context, client ctrlclient.Client, service
 	return false, nil
 }
 
-func HealthyMariaDBReplica(ctx context.Context, client ctrlclient.Client, mariadb *mariadbv1alpha1.MariaDB) (*int, error) {
+func HealthyIndex(ctx context.Context, client ctrlclient.Client, mariadb *mariadbv1alpha1.MariaDB) (*int, error) {
+	return healthyPodIndex(ctx, client, mariadb, func(p *corev1.Pod) bool {
+		return pod.PodReady(p)
+	})
+}
+
+func HealthyReplicationIndex(ctx context.Context, client ctrlclient.Client, mariadb *mariadbv1alpha1.MariaDB) (*int, error) {
+	return healthyPodIndex(ctx, client, mariadb, func(p *corev1.Pod) bool {
+		return pod.PodReady(p) && mariadb.IsConfiguredReplica(p.Name)
+	})
+}
+
+func healthyPodIndex(ctx context.Context, client ctrlclient.Client, mariadb *mariadbv1alpha1.MariaDB,
+	isHealthy func(*corev1.Pod) bool) (*int, error) {
 	if mariadb.Status.CurrentPrimaryPodIndex == nil {
 		return nil, errors.New("'status.currentPrimaryPodIndex' must be set")
 	}
@@ -146,7 +159,7 @@ func HealthyMariaDBReplica(ctx context.Context, client ctrlclient.Client, mariad
 		if *index == *mariadb.Status.CurrentPrimaryPodIndex {
 			continue
 		}
-		if pod.PodReady(&p) && mariadb.IsConfiguredReplica(p.Name) {
+		if isHealthy(&p) {
 			return index, nil
 		}
 	}
