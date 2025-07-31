@@ -34,6 +34,7 @@ jobs:
         run: |
           make cluster
           make install
+          make install-csi-hostpath
           make install-minio
           make install-cert-manager
           make net
