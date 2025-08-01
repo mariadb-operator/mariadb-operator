@@ -116,10 +116,12 @@ func (wr *wrappedGrantReconciler) Reconcile(ctx context.Context, mdbClient *sqlC
 		return fmt.Errorf("error granting privileges in MariaDB: %v", err)
 	}
 
-	if err := wr.patchStatusWithFunc(ctx, func(status *mariadbv1alpha1.GrantStatus) {
-		wr.grant.Status.CurrentPrivileges = wr.grant.Spec.Privileges
-	}); err != nil {
-		return fmt.Errorf("error patching current privileges: %v", err)
+	if !slices.Equal(wr.grant.Status.CurrentPrivileges, wr.grant.Spec.Privileges) {
+		if err := wr.patchStatusWithFunc(ctx, func(status *mariadbv1alpha1.GrantStatus) {
+			wr.grant.Status.CurrentPrivileges = wr.grant.Spec.Privileges
+		}); err != nil {
+			return fmt.Errorf("error patching current privileges: %v", err)
+		}
 	}
 	return nil
 }
