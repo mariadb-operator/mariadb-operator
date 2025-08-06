@@ -182,7 +182,7 @@ func (b *Builder) BuildPhysicalBackupJob(key types.NamespacedName, backup *maria
 	if err != nil {
 		return nil, fmt.Errorf("error building backup command: %v", err)
 	}
-	backupCmd, err := cmd.MariadbBackup(mariadb, backupFilepath)
+	backupCmd, err := cmd.MariadbBackup(mariadb, backupFilepath, *podIndex)
 	if err != nil {
 		return nil, fmt.Errorf("error getting mariadb-backup command: %v", err)
 	}

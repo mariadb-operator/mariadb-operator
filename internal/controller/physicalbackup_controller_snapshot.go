@@ -229,8 +229,14 @@ func (r *PhysicalBackupReconciler) cleanupSnapshots(ctx context.Context, backup 
 
 func (r *PhysicalBackupReconciler) scheduleSnapshot(ctx context.Context, backup *mariadbv1alpha1.PhysicalBackup,
 	mariadb *mariadbv1alpha1.MariaDB, now time.Time, schedule cron.Schedule) (ctrl.Result, error) {
-	if mariadb.Status.CurrentPrimaryPodIndex == nil {
-		log.FromContext(ctx).V(1).Info("Current primary not set. Requeuing...")
+	logger := log.FromContext(ctx).
+		WithName("snapshot").
+		WithValues(
+			"mariadb", mariadb.Name,
+		)
+	_, err := r.physicalBackupTargetPodIndex(ctx, mariadb, logger)
+	if errors.Is(err, errPhysicalBackupNoTargetPodsAvailable) {
+		logger.V(1).Info("No target Pods available. Requeuing...")
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 
@@ -263,18 +269,24 @@ func (r *PhysicalBackupReconciler) scheduleSnapshot(ctx context.Context, backup 
 
 func (r *PhysicalBackupReconciler) createVolumeSnapshot(ctx context.Context, snapshotKey types.NamespacedName,
 	backup *mariadbv1alpha1.PhysicalBackup, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
-	if mariadb.Status.CurrentPrimaryPodIndex == nil {
-		return ctrl.Result{}, errors.New("CurrentPrimaryPodIndex must be set")
-	}
-	podIndex := *mariadb.Status.CurrentPrimaryPodIndex
 	logger := log.FromContext(ctx).
 		WithName("snapshot").
 		WithValues(
 			"mariadb", mariadb.Name,
-			"pod-index", podIndex,
 		)
+	podIndex, err := r.physicalBackupTargetPodIndex(ctx, mariadb, logger)
+	if err != nil {
+		if errors.Is(err, errPhysicalBackupNoTargetPodsAvailable) {
+			logger.V(1).Info("No target Pods available. Requeuing...")
+			return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+		}
+		return ctrl.Result{}, fmt.Errorf("error getting target Pod index: %v", err)
+	}
+	logger = logger.WithValues(
+		"target-pod-index", podIndex,
+	)
 
-	client, err := sql.NewInternalClientWithPodIndex(ctx, mariadb, r.RefResolver, podIndex)
+	client, err := sql.NewInternalClientWithPodIndex(ctx, mariadb, r.RefResolver, *podIndex)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error getting SQL client: %v", err)
 	}
@@ -291,8 +303,8 @@ func (r *PhysicalBackupReconciler) createVolumeSnapshot(ctx context.Context, sna
 		}
 	}()
 
-	primaryPvcKey := mariadb.PVCKey(builder.StorageVolume, *mariadb.Status.CurrentPrimaryPodIndex)
-	desiredSnapshot, err := r.Builder.BuildVolumeSnapshot(snapshotKey, backup, primaryPvcKey)
+	targetPVCKey := mariadb.PVCKey(builder.StorageVolume, *podIndex)
+	desiredSnapshot, err := r.Builder.BuildVolumeSnapshot(snapshotKey, backup, targetPVCKey)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error building VolumeSnapshot: %v", err)
 	}

@@ -34,7 +34,23 @@ func NewBashCommand(args []string) *Command {
 	}
 }
 
-func ConnectionFlags(co *CommandOpts, mariadb *mariadbv1alpha1.MariaDB) (string, error) {
+type ConnectionFlagsOpts struct {
+	Host string
+}
+
+type ConnectionFlagOpt func(*ConnectionFlagsOpts)
+
+func WithHostConnectionFlag(host string) ConnectionFlagOpt {
+	return func(o *ConnectionFlagsOpts) {
+		o.Host = host
+	}
+}
+
+func ConnectionFlags(co *CommandOpts, mariadb *mariadbv1alpha1.MariaDB, connectionFlagOpts ...ConnectionFlagOpt) (string, error) {
+	opts := &ConnectionFlagsOpts{}
+	for _, setOpt := range connectionFlagOpts {
+		setOpt(opts)
+	}
 	if co.UserEnv == "" {
 		return "", errors.New("UserEnv must be set")
 	}
@@ -46,7 +62,7 @@ func ConnectionFlags(co *CommandOpts, mariadb *mariadbv1alpha1.MariaDB) (string,
 		"--user=${%s} --password=${%s} --host=%s --port=%d",
 		co.UserEnv,
 		co.PasswordEnv,
-		host(mariadb),
+		host(mariadb, opts),
 		mariadb.Spec.Port,
 	)
 	if co.Database != nil {
@@ -55,7 +71,10 @@ func ConnectionFlags(co *CommandOpts, mariadb *mariadbv1alpha1.MariaDB) (string,
 	return flags, nil
 }
 
-func host(mariadb *mariadbv1alpha1.MariaDB) string {
+func host(mariadb *mariadbv1alpha1.MariaDB, opts *ConnectionFlagsOpts) string {
+	if opts.Host != "" {
+		return opts.Host
+	}
 	if mariadb.IsHAEnabled() {
 		return statefulset.ServiceFQDNWithService(
 			mariadb.ObjectMeta,
