@@ -25,6 +25,7 @@ import (
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 )
 
 // PhysicalBackupReconciler reconciles a PhysicalBackup object
@@ -176,12 +177,13 @@ func (r *PhysicalBackupReconciler) patchStatus(ctx context.Context, backup *mari
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *PhysicalBackupReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
+func (r *PhysicalBackupReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opts controller.Options) error {
 	builder := ctrl.NewControllerManagedBy(mgr).
 		For(&mariadbv1alpha1.PhysicalBackup{}).
 		Owns(&batchv1.Job{}).
 		Owns(&corev1.ServiceAccount{}).
-		Owns(&corev1.PersistentVolumeClaim{})
+		Owns(&corev1.PersistentVolumeClaim{}).
+		WithOptions(opts)
 	if err := r.indexJobs(ctx, mgr); err != nil {
 		return fmt.Errorf("error indexing PhysicalBackup Jobs: %v", err)
 	}

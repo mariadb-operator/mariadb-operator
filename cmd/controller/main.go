@@ -71,9 +71,10 @@ var (
 	kubeApiQps   float32
 	kubeApiBurst int
 
-	maxConcurrentReconciles         int
-	mariadbMaxConcurrentReconciles  int
-	maxscaleMaxConcurrentReconciles int
+	maxConcurrentReconciles               int
+	mariadbMaxConcurrentReconciles        int
+	maxscaleMaxConcurrentReconciles       int
+	physicalBackupMaxConcurrentReconciles int
 
 	requeueConnection time.Duration
 	requeueSql        time.Duration
@@ -124,6 +125,8 @@ func init() {
 		"Maximum number of concurrent reconciles per MariaDB.")
 	rootCmd.Flags().IntVar(&maxscaleMaxConcurrentReconciles, "maxscale-max-concurrent-reconciles", 10,
 		"Maximum number of concurrent reconciles per MaxScale.")
+	rootCmd.Flags().IntVar(&physicalBackupMaxConcurrentReconciles, "physicalbackup-max-concurrent-reconciles", 10,
+		"Maximum number of concurrent reconciles per PhysicalBackups.")
 
 	rootCmd.Flags().DurationVar(&requeueConnection, "requeue-connection", 1*time.Hour, "The interval at which Connections are requeued.")
 	rootCmd.Flags().DurationVar(&requeueSql, "requeue-sql", 10*time.Hour, "The interval at which SQL objects are requeued.")
@@ -408,7 +411,7 @@ var rootCmd = &cobra.Command{
 			RBACReconciler:    rbacReconciler,
 			PVCReconciler:     pvcReconciler,
 			BackupProcessor:   backupProcessor,
-		}).SetupWithManager(ctx, mgr); err != nil {
+		}).SetupWithManager(ctx, mgr, ctrlcontroller.Options{MaxConcurrentReconciles: physicalBackupMaxConcurrentReconciles}); err != nil {
 			setupLog.Error(err, "Unable to create controller", "controller", "PhysicalBackup")
 			os.Exit(1)
 		}

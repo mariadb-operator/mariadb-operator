@@ -13,6 +13,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/predicate"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/sql"
 	mdbsnapshot "github.com/mariadb-operator/mariadb-operator/v25/pkg/volumesnapshot"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/wait"
 	"github.com/robfig/cron/v3"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -237,8 +238,8 @@ func (r *PhysicalBackupReconciler) scheduleSnapshot(ctx context.Context, backup 
 		Name:      getObjectName(backup, now),
 		Namespace: mariadb.Namespace,
 	}
-	if err := r.createVolumeSnapshot(ctx, snapshotKey, backup, mariadb); err != nil {
-		return ctrl.Result{}, fmt.Errorf("error creating VolumeSnapshot: %v", err)
+	if result, err := r.createVolumeSnapshot(ctx, snapshotKey, backup, mariadb); !result.IsZero() || err != nil {
+		return result, err
 	}
 
 	if err := r.patchStatus(ctx, backup, func(status *mariadbv1alpha1.PhysicalBackupStatus) {
@@ -261,9 +262,9 @@ func (r *PhysicalBackupReconciler) scheduleSnapshot(ctx context.Context, backup 
 }
 
 func (r *PhysicalBackupReconciler) createVolumeSnapshot(ctx context.Context, snapshotKey types.NamespacedName,
-	backup *mariadbv1alpha1.PhysicalBackup, mariadb *mariadbv1alpha1.MariaDB) error {
+	backup *mariadbv1alpha1.PhysicalBackup, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
 	if mariadb.Status.CurrentPrimaryPodIndex == nil {
-		return errors.New("CurrentPrimaryPodIndex must be set")
+		return ctrl.Result{}, errors.New("CurrentPrimaryPodIndex must be set")
 	}
 	podIndex := *mariadb.Status.CurrentPrimaryPodIndex
 	logger := log.FromContext(ctx).
@@ -275,13 +276,13 @@ func (r *PhysicalBackupReconciler) createVolumeSnapshot(ctx context.Context, sna
 
 	client, err := sql.NewInternalClientWithPodIndex(ctx, mariadb, r.RefResolver, podIndex)
 	if err != nil {
-		return fmt.Errorf("error getting SQL client: %v", err)
+		return ctrl.Result{}, fmt.Errorf("error getting SQL client: %v", err)
 	}
 	defer client.Close()
 
 	logger.V(1).Info("Locking tables with read lock")
 	if err := client.LockTablesWithReadLock(ctx); err != nil {
-		return fmt.Errorf("error locking tables with read lock: %v", err)
+		return ctrl.Result{}, fmt.Errorf("error locking tables with read lock: %v", err)
 	}
 	defer func() {
 		logger.V(1).Info("Unlocking tables with read lock")
@@ -293,16 +294,16 @@ func (r *PhysicalBackupReconciler) createVolumeSnapshot(ctx context.Context, sna
 	primaryPvcKey := mariadb.PVCKey(builder.StorageVolume, *mariadb.Status.CurrentPrimaryPodIndex)
 	desiredSnapshot, err := r.Builder.BuildVolumeSnapshot(snapshotKey, backup, primaryPvcKey)
 	if err != nil {
-		return fmt.Errorf("error building VolumeSnapshot: %v", err)
+		return ctrl.Result{}, fmt.Errorf("error building VolumeSnapshot: %v", err)
 	}
 
 	var snapshot volumesnapshotv1.VolumeSnapshot
 	if err = r.Get(ctx, snapshotKey, &snapshot); err != nil {
 		if !apierrors.IsNotFound(err) {
-			return fmt.Errorf("error getting VolumeSnapshot: %v", err)
+			return ctrl.Result{}, fmt.Errorf("error getting VolumeSnapshot: %v", err)
 		}
 		if err := r.Create(ctx, desiredSnapshot); err != nil {
-			return fmt.Errorf("error creating VolumeSnapshot: %v", err)
+			return ctrl.Result{}, fmt.Errorf("error creating VolumeSnapshot: %v", err)
 		}
 		r.Recorder.Eventf(
 			backup,
@@ -312,7 +313,33 @@ func (r *PhysicalBackupReconciler) createVolumeSnapshot(ctx context.Context, sna
 			desiredSnapshot.Name,
 		)
 	}
-	return nil // TODO: handle already exists
+
+	snapshotTimeout := ptr.Deref(backup.Spec.Timeout, mariadbv1alpha1.DefaultPhysicalBackupTimeout)
+	snapshotCtx, cancel := context.WithTimeout(ctx, snapshotTimeout.Duration)
+	defer cancel()
+
+	return ctrl.Result{}, wait.PollUntilSuccessOrContextCancel(snapshotCtx, logger, func(ctx context.Context) error {
+		if err = r.Get(ctx, snapshotKey, &snapshot); err != nil {
+			return err
+		}
+		if mdbsnapshot.IsVolumeSnapshotReady(&snapshot) {
+			return nil
+		}
+
+		if backup.IsComplete() {
+			if err := r.patchStatus(ctx, backup, func(status *mariadbv1alpha1.PhysicalBackupStatus) {
+				status.SetCondition(metav1.Condition{
+					Type:    mariadbv1alpha1.ConditionTypeComplete,
+					Status:  metav1.ConditionFalse,
+					Reason:  mariadbv1alpha1.ConditionReasonSnapshotInProgress,
+					Message: "In progress",
+				})
+			}); err != nil {
+				logger.Info("error patching status", "err", err)
+			}
+		}
+		return errors.New("VolumeSnapshot not ready")
+	})
 }
 
 func (r *PhysicalBackupReconciler) waitForInProgressSnapshots(ctx context.Context, backup *mariadbv1alpha1.PhysicalBackup,
