@@ -419,8 +419,6 @@ In order to create consistent, point-in-time snapshots of the `MariaDB` data, th
 3. Wait until the `VolumeSnapshot` resources becomes ready. When timing out, the operator will delete the `VolumeSnapshot` resource and retry the operation.
 4. Release the `MariaDB` writes by executing an `UNLOCK TABLES` command on the `MariaDB` primary `Pod`.
 
-This backup process is described in the [MariaDB documentation](https://mariadb.com/docs/server/server-usage/backup-and-restore/backup-and-restore-with-mariadb-enterprise-server/backup-optimization#snapshotting-with-mariadb-community-server).
-
 ## Important considerations and limitations
 
 ### Root credentials
@@ -517,3 +515,31 @@ LAST SEEN   TYPE     REASON                  OBJECT                             
 116s        Normal   Provisioning            persistentvolumeclaim/physicalbackup   External provisioner is provisioning volume for claim "default/physicalbackup"
 113s        Normal   ProvisioningSucceeded   persistentvolumeclaim/physicalbackup   Successfully provisioned volume pvc-7b7c71f9-ea7e-4950-b612-2d41d7ab35b7
 ```
+
+### Common errors
+
+#### `mariadb-backup` log copy incomplete: consider increasing `innodb_log_file_size`
+
+In some situations, when using the `mariadb-backup` strategy, you may encounter the following error in the backup `Job` logs:
+
+```bash
+mariadb [00] 2025-08-04 09:15:57 Was only able to copy log from 58087 to 59916, not 68968; try increasing
+innodb_log_file_size
+mariadb mariabackup: Stopping log copying thread.[00] 2025-08-04 09:15:57 Retrying read of log at LSN=59916
+```
+
+This can be addressed by increasing the `innodb_log_file_size` in the `MariaDB` configuration. You can do this by adding the following to your `MariaDB` resource:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb
+spec:
+...
+  myCnf: |
+    [mariadb]
+    innodb_log_file_size=200M
+```
+
+Refer to [MDEV-36159](https://jira.mariadb.org/browse/MDEV-36237) for further details on this issue.
