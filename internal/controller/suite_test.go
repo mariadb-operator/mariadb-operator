@@ -277,7 +277,7 @@ var _ = BeforeSuite(func() {
 		RBACReconciler:    rbacReconciler,
 		PVCReconciler:     pvcReconciler,
 		BackupProcessor:   backupProcessor,
-	}).SetupWithManager(testCtx, k8sManager)
+	}).SetupWithManager(testCtx, k8sManager, ctrlcontroller.Options{MaxConcurrentReconciles: 10})
 	Expect(err).ToNot(HaveOccurred())
 
 	err = (&RestoreReconciler{
