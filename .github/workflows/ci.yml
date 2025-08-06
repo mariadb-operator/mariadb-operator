@@ -124,8 +124,8 @@ jobs:
           if [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == "refs/heads/main" ]]; then
             echo "Detected push to main. Running full tests."
             echo "type=full" >> "$GITHUB_OUTPUT"
-          elif [[ "${{ github.event_name }}" == "pull_request" && "${{ github.head_ref }}" =~ ^release-.* ]]; then
-            echo "Detected PR from release branch. Running full tests."
+          elif [[ "${{ github.event_name }}" == "pull_request" && "${{ github.head_ref }}" =~ ^(release|feature|fix)-.* ]]; then
+            echo "Detected PR from release, feature or fix branch. Running full tests."
             echo "type=full" >> "$GITHUB_OUTPUT"
           else
             echo "Defaulting to basic tests"
