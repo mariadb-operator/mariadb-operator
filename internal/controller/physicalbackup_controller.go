@@ -2,10 +2,12 @@ package controller
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sort"
 	"time"
 
+	"github.com/go-logr/logr"
 	"github.com/hashicorp/go-multierror"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/backup"
@@ -14,6 +16,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/pvc"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/rbac"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/discovery"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/health"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/refresolver"
 	mdbtime "github.com/mariadb-operator/mariadb-operator/v25/pkg/time"
 	"github.com/robfig/cron/v3"
@@ -27,6 +30,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 )
+
+var errPhysicalBackupNoTargetPodsAvailable = errors.New("no target Pods available")
 
 // PhysicalBackupReconciler reconciles a PhysicalBackup object
 type PhysicalBackupReconciler struct {
@@ -174,6 +179,26 @@ func (r *PhysicalBackupReconciler) patchStatus(ctx context.Context, backup *mari
 	patch := client.MergeFrom(backup.DeepCopy())
 	patcher(&backup.Status)
 	return r.Client.Status().Patch(ctx, backup, patch)
+}
+
+func (r *PhysicalBackupReconciler) physicalBackupTargetPodIndex(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+	logger logr.Logger) (*int, error) {
+	if mariadb.Status.CurrentPrimaryPodIndex == nil {
+		logger.V(1).Info("no target Pods Available: 'status.currentPrimaryPodIndex' not set")
+		return nil, errPhysicalBackupNoTargetPodsAvailable
+	}
+	if !mariadb.IsHAEnabled() {
+		return mariadb.Status.CurrentPrimaryPodIndex, nil
+	}
+	podIndex, err := health.SecondaryPodHealthyIndex(ctx, r.Client, mariadb)
+	if err != nil {
+		if errors.Is(err, health.ErrNoHealthyInstancesAvailable) {
+			logger.V(1).Info("no target Pods Available: no healthy secondary Pods available")
+			return nil, errPhysicalBackupNoTargetPodsAvailable
+		}
+		return nil, fmt.Errorf("error getting target Pod index: %v", err)
+	}
+	return podIndex, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.

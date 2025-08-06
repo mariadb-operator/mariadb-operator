@@ -326,7 +326,7 @@ func (r *MariaDBReconciler) triggerSwitchover(ctx context.Context, mariadb *mari
 	}
 
 	fromIndex := mariadb.Status.CurrentPrimaryPodIndex
-	toIndex, err := health.HealthyReplicationIndex(ctx, r.Client, mariadb)
+	toIndex, err := health.ReplicaPodHealthyIndex(ctx, r.Client, mariadb)
 	if err != nil {
 		return fmt.Errorf("error getting healthy replica: %v", err)
 	}

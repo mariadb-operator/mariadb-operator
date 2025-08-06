@@ -9,6 +9,7 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
 	jobpkg "github.com/mariadb-operator/mariadb-operator/v25/pkg/job"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/metadata"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/statefulset"
 	mdbtime "github.com/mariadb-operator/mariadb-operator/v25/pkg/time"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/wait"
 	"github.com/robfig/cron/v3"
@@ -269,18 +270,27 @@ func (r *PhysicalBackupReconciler) reconcileStorage(ctx context.Context, backup 
 
 func (r *PhysicalBackupReconciler) createJob(ctx context.Context, backup *mariadbv1alpha1.PhysicalBackup, mariadb *mariadbv1alpha1.MariaDB,
 	now time.Time, schedule cron.Schedule) (ctrl.Result, error) {
-	if mariadb.Status.CurrentPrimary == nil {
-		log.FromContext(ctx).V(1).Info("Current primary not set. Requeuing...")
-		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+	logger := log.FromContext(ctx).
+		WithName("physicalbackup-job").
+		WithValues(
+			"mariadb", mariadb.Name,
+		)
+	podIndex, err := r.physicalBackupTargetPodIndex(ctx, mariadb, logger)
+	if err != nil {
+		if errors.Is(err, errPhysicalBackupNoTargetPodsAvailable) {
+			logger.V(1).Info("No target Pods available. Requeuing...")
+			return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+		}
+		return ctrl.Result{}, fmt.Errorf("error getting target Pod index: %v", err)
 	}
 
-	primaryPodKey := types.NamespacedName{
-		Name:      *mariadb.Status.CurrentPrimary,
+	targetPodKey := types.NamespacedName{
+		Name:      statefulset.PodName(mariadb.ObjectMeta, *podIndex),
 		Namespace: mariadb.Namespace,
 	}
-	var primaryPod corev1.Pod
-	if err := r.Get(ctx, primaryPodKey, &primaryPod); err != nil {
-		return ctrl.Result{}, fmt.Errorf("error getting primary Pod: %v", err)
+	var targetPod corev1.Pod
+	if err := r.Get(ctx, targetPodKey, &targetPod); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error getting target Pod: %v", err)
 	}
 
 	backupKey := types.NamespacedName{
@@ -292,7 +302,7 @@ func (r *PhysicalBackupReconciler) createJob(ctx context.Context, backup *mariad
 		return ctrl.Result{}, fmt.Errorf("error getting backup file name: %v", err)
 	}
 
-	job, err := r.Builder.BuildPhysicalBackupJob(backupKey, backup, mariadb, &primaryPod, backupFileName)
+	job, err := r.Builder.BuildPhysicalBackupJob(backupKey, backup, mariadb, &targetPod, backupFileName)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error building Job: %v", err)
 	}

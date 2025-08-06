@@ -11,6 +11,7 @@ import (
 	backuppkg "github.com/mariadb-operator/mariadb-operator/v25/pkg/backup"
 	builderpki "github.com/mariadb-operator/mariadb-operator/v25/pkg/builder/pki"
 	ds "github.com/mariadb-operator/mariadb-operator/v25/pkg/datastructures"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/statefulset"
 	"k8s.io/utils/ptr"
 )
 
@@ -194,12 +195,18 @@ func (b *BackupCommand) MariadbDump(backup *mariadbv1alpha1.Backup,
 	return NewBashCommand(cmds), nil
 }
 
-func (b *BackupCommand) MariadbBackup(mariadb *mariadbv1alpha1.MariaDB, backupFilePath string) (*Command, error) {
+func (b *BackupCommand) MariadbBackup(mariadb *mariadbv1alpha1.MariaDB, backupFilePath string,
+	targetPodIndex int) (*Command, error) {
 	if b.Database != nil {
 		return nil, errors.New("database option not supported in physical backups")
 	}
 
-	connFlags, err := ConnectionFlags(&b.CommandOpts, mariadb)
+	host := statefulset.PodFQDNWithService(mariadb.ObjectMeta, targetPodIndex, mariadb.InternalServiceKey().Name)
+	connFlags, err := ConnectionFlags(
+		&b.CommandOpts,
+		mariadb,
+		WithHostConnectionFlag(host),
+	)
 	if err != nil {
 		return nil, fmt.Errorf("error getting connection flags: %v", err)
 	}
