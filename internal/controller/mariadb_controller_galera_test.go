@@ -464,69 +464,12 @@ var _ = Describe("MariaDB Galera disaster recovery", Ordered, func() {
 						Key: testPwdSecretKey,
 					},
 				},
-				Username: &testUser,
-				PasswordSecretKeyRef: &mariadbv1alpha1.GeneratedSecretKeyRef{
-					SecretKeySelector: mariadbv1alpha1.SecretKeySelector{
-						LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
-							Name: testPwdKey.Name,
-						},
-						Key: testPwdSecretKey,
-					},
-				},
-				Database: &testDatabase,
-				MyCnf: ptr.To(`[mariadb]
-					bind-address=*
-					default_storage_engine=InnoDB
-					binlog_format=row
-					innodb_autoinc_lock_mode=2
-					max_allowed_packet=256M
-					`),
 				Galera: &mariadbv1alpha1.Galera{
 					Enabled: true,
-					GaleraSpec: mariadbv1alpha1.GaleraSpec{
-						Primary: mariadbv1alpha1.PrimaryGalera{
-							PodIndex:          ptr.To(0),
-							AutomaticFailover: ptr.To(true),
-						},
-						Recovery: &mariadbv1alpha1.GaleraRecovery{
-							Enabled:               true,
-							ClusterHealthyTimeout: ptr.To(metav1.Duration{Duration: 10 * time.Second}),
-						},
-						Config: mariadbv1alpha1.GaleraConfig{
-							ReuseStorageVolume: ptr.To(false),
-							VolumeClaimTemplate: &mariadbv1alpha1.VolumeClaimTemplate{
-								PersistentVolumeClaimSpec: mariadbv1alpha1.PersistentVolumeClaimSpec{
-									Resources: corev1.VolumeResourceRequirements{
-										Requests: corev1.ResourceList{
-											"storage": resource.MustParse("100Mi"),
-										},
-									},
-									AccessModes: []corev1.PersistentVolumeAccessMode{
-										corev1.ReadWriteOnce,
-									},
-								},
-							},
-						},
-						InitJob: &mariadbv1alpha1.GaleraInitJob{
-							Metadata: &mariadbv1alpha1.Metadata{
-								Labels: map[string]string{
-									"sidecar.istio.io/inject": "false",
-								},
-							},
-						},
-					},
 				},
 				Replicas: 3,
 				Storage: mariadbv1alpha1.Storage{
-					Size:                ptr.To(resource.MustParse("300Mi")),
-					StorageClassName:    "standard-resize",
-					ResizeInUseVolumes:  ptr.To(true),
-					WaitForVolumeResize: ptr.To(true),
-				},
-				TLS: &mariadbv1alpha1.TLS{
-					Enabled:          true,
-					Required:         ptr.To(true),
-					GaleraSSTEnabled: ptr.To(true),
+					Size: ptr.To(resource.MustParse("1Gi")),
 				},
 				Service: &mariadbv1alpha1.ServiceTemplate{
 					Type: corev1.ServiceTypeLoadBalancer,
@@ -534,12 +477,6 @@ var _ = Describe("MariaDB Galera disaster recovery", Ordered, func() {
 						Annotations: map[string]string{
 							"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.150",
 						},
-					},
-				},
-				Connection: &mariadbv1alpha1.ConnectionTemplate{
-					SecretName: ptr.To("mdb-galera-conn"),
-					SecretTemplate: &mariadbv1alpha1.SecretTemplate{
-						Key: &testConnSecretKey,
 					},
 				},
 				PrimaryService: &mariadbv1alpha1.ServiceTemplate{
@@ -550,12 +487,6 @@ var _ = Describe("MariaDB Galera disaster recovery", Ordered, func() {
 						},
 					},
 				},
-				PrimaryConnection: &mariadbv1alpha1.ConnectionTemplate{
-					SecretName: ptr.To("mdb-galera-conn-primary"),
-					SecretTemplate: &mariadbv1alpha1.SecretTemplate{
-						Key: &testConnSecretKey,
-					},
-				},
 				SecondaryService: &mariadbv1alpha1.ServiceTemplate{
 					Type: corev1.ServiceTypeLoadBalancer,
 					Metadata: &mariadbv1alpha1.Metadata{
@@ -563,15 +494,6 @@ var _ = Describe("MariaDB Galera disaster recovery", Ordered, func() {
 							"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.161",
 						},
 					},
-				},
-				SecondaryConnection: &mariadbv1alpha1.ConnectionTemplate{
-					SecretName: ptr.To("mdb-galera-conn-secondary"),
-					SecretTemplate: &mariadbv1alpha1.SecretTemplate{
-						Key: &testConnSecretKey,
-					},
-				},
-				UpdateStrategy: mariadbv1alpha1.UpdateStrategy{
-					Type: mariadbv1alpha1.ReplicasFirstPrimaryLastUpdateType,
 				},
 			},
 		}
@@ -601,6 +523,7 @@ var _ = Describe("MariaDB Galera disaster recovery", Ordered, func() {
 			"test-mariadb-galera-physical",
 			"",
 		)(backupKey)
+
 		Expect(k8sClient.Create(testCtx, backup)).To(Succeed())
 		DeferCleanup(func() {
 			deletePhysicalBackup(backupKey)
