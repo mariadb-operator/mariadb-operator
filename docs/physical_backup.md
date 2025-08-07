@@ -414,10 +414,10 @@ The operator is capable of creating [`VolumeSnapshot` resources](https://kuberne
 Most of the fields described in this documentation apply to `VolumeSnapshots`, including scheduling, retention policy, and compression. The main difference with the `mariadb-backup` based backups is that the operator will not create a `Job` to perform the backup, but instead it will create a `VolumeSnapshot` resource directly.
 
 In order to create consistent, point-in-time snapshots of the `MariaDB` data, the operator will perform the following steps:
-1. Temporarily pause the `MariaDB` writes by executing a `FLUSH TABLES WITH READ LOCK` command on the `MariaDB` primary `Pod`.
+1. Temporarily pause the `MariaDB` writes by executing a `FLUSH TABLES WITH READ LOCK` command in one of the secondary `Pods`.
 2. Create a `VolumeSnapshot` resource of the data PVC mounted by the `MariaDB` primary `Pod`.
 3. Wait until the `VolumeSnapshot` resources becomes ready. When timing out, the operator will delete the `VolumeSnapshot` resource and retry the operation.
-4. Release the `MariaDB` writes by executing an `UNLOCK TABLES` command on the `MariaDB` primary `Pod`.
+4. Issue a `UNLOCK TABLE` statement.
 
 ## Important considerations and limitations
 
