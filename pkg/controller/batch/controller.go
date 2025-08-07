@@ -6,6 +6,7 @@ import (
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/builder"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/interfaces"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/refresolver"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -30,7 +31,7 @@ func NewBatchReconciler(client client.Client, builder *builder.Builder) *BatchRe
 }
 
 func (r *BatchReconciler) Reconcile(ctx context.Context, parentObj client.Object,
-	mariadb *mariadbv1alpha1.MariaDB) error {
+	mariadb interfaces.MariaDBGenericInterface) error {
 	if err := r.reconcileStorage(ctx, parentObj); err != nil {
 		return fmt.Errorf("error reconciling storage: %v", err)
 	}
@@ -110,7 +111,7 @@ func (r *BatchReconciler) createPVC(ctx context.Context, pvc *corev1.PersistentV
 	return r.Create(ctx, pvc)
 }
 
-func (r *BatchReconciler) reconcileBatch(ctx context.Context, parentObj client.Object, mariadb *mariadbv1alpha1.MariaDB) error {
+func (r *BatchReconciler) reconcileBatch(ctx context.Context, parentObj client.Object, mariadb interfaces.MariaDBGenericInterface) error {
 	key := client.ObjectKeyFromObject(parentObj)
 	desiredBatch, err := r.buildBatch(parentObj, mariadb)
 	if err != nil {
@@ -127,7 +128,7 @@ func (r *BatchReconciler) reconcileBatch(ctx context.Context, parentObj client.O
 	return fmt.Errorf("unable to reconcile batch object using type: '%T'", parentObj)
 }
 
-func (r *BatchReconciler) buildBatch(parentObj client.Object, mariadb *mariadbv1alpha1.MariaDB) (client.Object, error) {
+func (r *BatchReconciler) buildBatch(parentObj client.Object, mariadb interfaces.MariaDBGenericInterface) (client.Object, error) {
 	key := client.ObjectKeyFromObject(parentObj)
 	if backup, ok := parentObj.(*mariadbv1alpha1.Backup); ok {
 		if backup.Spec.Schedule != nil {

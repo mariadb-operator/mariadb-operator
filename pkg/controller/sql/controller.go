@@ -10,6 +10,7 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
 	condition "github.com/mariadb-operator/mariadb-operator/v25/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/health"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/interfaces"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/refresolver"
 	sqlClient "github.com/mariadb-operator/mariadb-operator/v25/pkg/sql"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -82,7 +83,7 @@ func (r *SqlReconciler) Reconcile(ctx context.Context, resource Resource) (ctrl.
 		return ctrl.Result{}, nil
 	}
 
-	mariadb, err := r.RefResolver.MariaDB(ctx, resource.MariaDBRef(), resource.GetNamespace())
+	mariadb, err := r.RefResolver.GenericMariaDB(ctx, resource.MariaDBRef(), resource.GetNamespace())
 	if err != nil {
 		var errBundle *multierror.Error
 		errBundle = multierror.Append(errBundle, err)
@@ -185,14 +186,21 @@ func (r *SqlReconciler) addRequeueIntervalOffset(duration time.Duration) time.Du
 	return duration
 }
 
-func waitForMariaDB(ctx context.Context, client ctrlclient.Client, mdb *mariadbv1alpha1.MariaDB,
+func waitForMariaDB(ctx context.Context, client ctrlclient.Client, mdb interfaces.MariaDBGenericInterface,
 	logSql bool) (ctrl.Result, error) {
+
+	kind := mdb.GetObjectKind()
+	if kind.GroupVersionKind().Kind == mariadbv1alpha1.ExternalMariaDBKind {
+
+		return ctrl.Result{}, nil
+	}
+
 	healthy, err := health.IsStatefulSetHealthy(
 		ctx,
 		client,
 		ctrlclient.ObjectKeyFromObject(mdb),
-		health.WithDesiredReplicas(mdb.Spec.Replicas),
-		health.WithPort(mdb.Spec.Port),
+		health.WithDesiredReplicas(mdb.GetReplicas()),
+		health.WithPort(mdb.GetPort()),
 		health.WithEndpointPolicy(health.EndpointPolicyAll),
 	)
 	if err != nil {

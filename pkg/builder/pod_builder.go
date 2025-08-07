@@ -9,6 +9,7 @@ import (
 	metadata "github.com/mariadb-operator/mariadb-operator/v25/pkg/builder/metadata"
 	builderpki "github.com/mariadb-operator/mariadb-operator/v25/pkg/builder/pki"
 	galeraresources "github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/galera/resources"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/interfaces"
 	kadapter "github.com/mariadb-operator/mariadb-operator/v25/pkg/kubernetes/adapter"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/pki"
 	corev1 "k8s.io/api/core/v1"
@@ -459,7 +460,7 @@ func mariadbConfigVolume(mariadb *mariadbv1alpha1.MariaDB) corev1.Volume {
 	}
 }
 
-func mariadbTLSVolumes(mariadb *mariadbv1alpha1.MariaDB) ([]corev1.Volume, []corev1.VolumeMount) {
+func mariadbTLSVolumes(mariadb interfaces.TLSAwareInterface) ([]corev1.Volume, []corev1.VolumeMount) {
 	if !mariadb.IsTLSEnabled() {
 		return nil, nil
 	}
