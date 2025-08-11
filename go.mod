@@ -19,7 +19,7 @@ require (
 	github.com/minio/minio-go/v7 v7.0.95
 	github.com/onsi/ginkgo/v2 v2.23.4
 	github.com/onsi/gomega v1.38.0
-	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.84.0
+	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.84.1
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/sethvargo/go-envconfig v1.3.0
 	github.com/sethvargo/go-password v0.3.1
