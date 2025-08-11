@@ -57,7 +57,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Find typos
-        uses: crate-ci/typos@v1.34.0
+        uses: crate-ci/typos@v1.35.3
         with:
           files: ./api ./cmd ./internal ./pkg
           config: ./.typos.toml
