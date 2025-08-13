@@ -143,6 +143,7 @@ rules:
   - databases
   - grants
   - mariadbs
+  - externalmariadbs
   - maxscales
   - physicalbackups
   - restores
@@ -164,6 +165,7 @@ rules:
   - databases/finalizers
   - grants/finalizers
   - mariadbs/finalizers
+  - externalmariadbs/finalizers
   - maxscales/finalizers
   - physicalbackups/finalizers
   - restores/finalizers
@@ -179,6 +181,7 @@ rules:
   - databases/status
   - grants/status
   - mariadbs/status
+  - externalmariadbs/status
   - maxscales/status
   - physicalbackups/status
   - restores/status

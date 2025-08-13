@@ -52,10 +52,11 @@ import (
 )
 
 var (
-	testCtx        = context.Background()
-	k8sClient      client.Client
-	testCidrPrefix string
-	testLogger     logr.Logger
+	testCtx                    = context.Background()
+	k8sClient                  client.Client
+	testCidrPrefix             string
+	testEmulateExternalMdbHost string = "mdb-emulate-external-test.default.svc.cluster.local"
+	testLogger                 logr.Logger
 )
 
 func TestAPIs(t *testing.T) {
@@ -147,6 +148,19 @@ var _ = BeforeSuite(func() {
 	pvcReconciler := pvc.NewPVCReconciler(client)
 	svcMonitorReconciler := servicemonitor.NewServiceMonitorReconciler(client)
 	certReconciler := certctrl.NewCertReconciler(client, scheme, k8sManager.GetEventRecorderFor("cert"), disc, builder)
+
+	err = (&ExternalMariaDBReconciler{
+		Client:   client,
+		Scheme:   scheme,
+		Recorder: k8sManager.GetEventRecorderFor("mariadb"),
+
+		Builder:        builder,
+		RefResolver:    refResolver,
+		ConditionReady: conditionReady,
+		Discovery:      disc,
+		Environment:    env,
+	}).SetupWithManager(testCtx, k8sManager, env)
+	Expect(err).ToNot(HaveOccurred())
 
 	mxsReconciler := maxscale.NewMaxScaleReconciler(client, builder, env)
 	replConfig := replication.NewReplicationConfig(client, builder, secretReconciler, env)

@@ -15,6 +15,7 @@ import (
 	condition "github.com/mariadb-operator/mariadb-operator/v25/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/secret"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/health"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/interfaces"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/pki"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/refresolver"
 	clientsql "github.com/mariadb-operator/mariadb-operator/v25/pkg/sql"
@@ -115,6 +116,16 @@ func (r *ConnectionReconciler) getRefs(ctx context.Context, conn *mariadbv1alpha
 	}
 
 	if conn.Spec.MariaDBRef != nil {
+		if conn.Spec.MariaDBRef.Kind == mariadbv1alpha1.ExternalMariaDBKind {
+			emdb, err := r.getExternalMariadb(ctx, conn.Spec.MariaDBRef, conn)
+			if err != nil {
+				return nil, err
+			}
+			return &mariadbv1alpha1.ConnectionRefs{
+				ExternalMariaDB: emdb,
+			}, nil
+		}
+
 		mdb, err := r.getMariadb(ctx, conn.Spec.MariaDBRef, conn)
 		if err != nil {
 			return nil, err
@@ -142,11 +153,34 @@ func (r *ConnectionReconciler) getMariadb(ctx context.Context, ref *mariadbv1alp
 	return mdb, nil
 }
 
+func (r *ConnectionReconciler) getExternalMariadb(ctx context.Context, ref *mariadbv1alpha1.MariaDBRef,
+	conn *mariadbv1alpha1.Connection) (*mariadbv1alpha1.ExternalMariaDB, error) {
+	emdb, refErr := r.RefResolver.ExternalMariaDB(ctx, ref, conn.Namespace)
+	if refErr != nil {
+		var mariaDbErr *multierror.Error
+		mariaDbErr = multierror.Append(mariaDbErr, refErr)
+
+		patchErr := r.patchStatus(ctx, conn, r.ConditionReady.PatcherRefResolver(refErr, emdb))
+		mariaDbErr = multierror.Append(mariaDbErr, patchErr)
+
+		return nil, fmt.Errorf("error getting MariaDB: %w", mariaDbErr)
+	}
+	return emdb, nil
+}
+
 func (r *ConnectionReconciler) waitForRefs(ctx context.Context, conn *mariadbv1alpha1.Connection,
 	refs *mariadbv1alpha1.ConnectionRefs) (ctrl.Result, error) {
 	if conn.Spec.MariaDBRef != nil && refs.MariaDB != nil {
 		if conn.Spec.MariaDBRef.WaitForIt && !refs.MariaDB.IsReady() {
 			if err := r.patchStatus(ctx, conn, r.ConditionReady.PatcherFailed("MariaDB not ready")); err != nil {
+				return ctrl.Result{}, fmt.Errorf("error patching Connection: %v", err)
+			}
+			return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+		}
+	}
+	if conn.Spec.MariaDBRef != nil && refs.ExternalMariaDB != nil {
+		if conn.Spec.MariaDBRef.WaitForIt && !refs.ExternalMariaDB.IsReady() {
+			if err := r.patchStatus(ctx, conn, r.ConditionReady.PatcherFailed("External MariaDB not ready")); err != nil {
 				return ctrl.Result{}, fmt.Errorf("error patching Connection: %v", err)
 			}
 			return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
@@ -335,6 +369,20 @@ func (r *ConnectionReconciler) getSqlOpts(ctx context.Context, conn *mariadbv1al
 		sqlOpts.TLSCACert = []byte(caBundle)
 		sqlOpts.MariadbName = mdb.Name
 		sqlOpts.Namespace = mdb.Namespace
+	} else if emdb := refs.ExternalMariaDB; emdb != nil && emdb.IsTLSEnabled() {
+		caBundle, err := r.RefResolver.SecretKeyRef(ctx, emdb.TLSCABundleSecretKeyRef(), emdb.Namespace)
+		if err != nil {
+			return clientsql.Opts{}, fmt.Errorf("error getting External MariaDB CA bundle: %v", err)
+		}
+		sqlOpts.TLSCACert = []byte(caBundle)
+		sqlOpts.ExternalMariadbName = emdb.Name
+		sqlOpts.Namespace = emdb.Namespace
+		if err := r.addSqlClientCertOpts(ctx, conn, refs.ExternalMariaDB, &sqlOpts); err != nil {
+			return clientsql.Opts{}, fmt.Errorf("error adding SQL client opts: %v", err)
+		}
+		return sqlOpts, nil
+	} else if emdb := refs.ExternalMariaDB; emdb != nil && !emdb.IsTLSEnabled() {
+		return sqlOpts, nil
 	}
 
 	if err := r.addSqlClientCertOpts(ctx, conn, refs.MariaDB, &sqlOpts); err != nil {
@@ -343,8 +391,8 @@ func (r *ConnectionReconciler) getSqlOpts(ctx context.Context, conn *mariadbv1al
 	return sqlOpts, nil
 }
 
-func (r *ConnectionReconciler) addSqlClientCertOpts(ctx context.Context, conn *mariadbv1alpha1.Connection, mdb *mariadbv1alpha1.MariaDB,
-	opts *clientsql.Opts) error {
+func (r *ConnectionReconciler) addSqlClientCertOpts(ctx context.Context, conn *mariadbv1alpha1.Connection,
+	mdb interfaces.MariaDBGenericInterface, opts *clientsql.Opts) error {
 	secretKey := r.clientCertSecretKey(conn, mdb)
 	if secretKey == nil {
 		return nil
@@ -377,7 +425,8 @@ func (r *ConnectionReconciler) addSqlClientCertOpts(ctx context.Context, conn *m
 
 	return nil
 }
-func (r *ConnectionReconciler) clientCertSecretKey(conn *mariadbv1alpha1.Connection, mdb *mariadbv1alpha1.MariaDB) *types.NamespacedName {
+func (r *ConnectionReconciler) clientCertSecretKey(conn *mariadbv1alpha1.Connection,
+	mdb interfaces.MariaDBGenericInterface) *types.NamespacedName {
 	if conn != nil && conn.Spec.TLSClientCertSecretRef != nil {
 		return &types.NamespacedName{
 			Name:      conn.Spec.TLSClientCertSecretRef.Name,
@@ -387,7 +436,7 @@ func (r *ConnectionReconciler) clientCertSecretKey(conn *mariadbv1alpha1.Connect
 	if mdb != nil && mdb.IsTLSEnabled() {
 		return &types.NamespacedName{
 			Name:      mdb.TLSClientCertSecretKey().Name,
-			Namespace: mdb.Namespace,
+			Namespace: mdb.GetNamespace(),
 		}
 	}
 	return nil
