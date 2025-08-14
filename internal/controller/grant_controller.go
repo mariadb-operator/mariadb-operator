@@ -10,7 +10,6 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/sql"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/refresolver"
 	sqlClient "github.com/mariadb-operator/mariadb-operator/v25/pkg/sql"
-	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -153,11 +152,4 @@ func (wr *wrappedGrantReconciler) privilegesToRevoke() []string {
 		}
 	}
 	return revokePrivileges
-}
-
-func userKey(grant *mariadbv1alpha1.Grant) types.NamespacedName {
-	return types.NamespacedName{
-		Name:      grant.Spec.Username,
-		Namespace: grant.Namespace,
-	}
 }

@@ -3,13 +3,10 @@ package controller
 import (
 	"context"
 	"fmt"
-	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/sql"
 	sqlClient "github.com/mariadb-operator/mariadb-operator/v25/pkg/sql"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
@@ -53,28 +50,19 @@ func (wf *wrappedGrantFinalizer) ContainsFinalizer() bool {
 }
 
 func (wf *wrappedGrantFinalizer) Reconcile(ctx context.Context, mdbClient *sqlClient.Client) error {
-	err := wait.PollUntilContextTimeout(ctx, 1*time.Second, 10*time.Second, true, func(ctx context.Context) (bool, error) {
-		var user mariadbv1alpha1.User
-		if err := wf.Get(ctx, userKey(wf.grant), &user); err != nil {
-			if apierrors.IsNotFound(err) {
-				return true, nil
-			}
-			return true, err
-		}
-		return false, nil
-	})
-	// User does not exist
-	if err == nil {
-		return nil
-	}
-	if !wait.Interrupted(err) {
+	exists, err := mdbClient.UserExists(ctx, wf.grant.Spec.Username, wf.grant.HostnameOrDefault())
+	if err != nil {
 		return fmt.Errorf("error checking if user exists in MariaDB: %v", err)
+	}
+	if !exists {
+		return nil
 	}
 
 	var opts []sqlClient.GrantOption
 	if wf.grant.Spec.GrantOption {
 		opts = append(opts, sqlClient.WithGrantOption())
 	}
+
 	if err := mdbClient.Revoke(
 		ctx,
 		wf.grant.Spec.Privileges,
