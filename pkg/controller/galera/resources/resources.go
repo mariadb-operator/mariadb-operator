@@ -7,6 +7,8 @@ var (
 	AgentAuthVolume      = "agent-auth"
 	AgentAuthVolumeMount = "/var/run/secrets/mariadb-operator/agent"
 
+	MysqlAppProtocol = "mysql"
+
 	GaleraSSTPortName     = "sst"
 	GaleraSSTPort         = int32(4444)
 	GaleraClusterPortName = "cluster"
