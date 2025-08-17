@@ -614,16 +614,21 @@ func (r *MariaDBReconciler) reconcileInternalService(ctx context.Context, mariad
 		agent := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{}).Agent
 		ports = append(ports, []corev1.ServicePort{
 			{
-				Name: galeraresources.GaleraClusterPortName,
-				Port: galeraresources.GaleraClusterPort,
+				// App protocol is a fix for istio to recognize protocol before attempting MariaDB Galera cluster Pod-to-Pod communication.
+				// See: https://github.com/istio/istio/issues/38655#issuecomment-1169819447
+				Name:        galeraresources.GaleraClusterPortName,
+				Port:        galeraresources.GaleraClusterPort,
+				AppProtocol: ptr.To[string](galeraresources.MysqlAppProtocol),
 			},
 			{
-				Name: galeraresources.GaleraISTPortName,
-				Port: galeraresources.GaleraISTPort,
+				Name:        galeraresources.GaleraISTPortName,
+				Port:        galeraresources.GaleraISTPort,
+				AppProtocol: ptr.To[string](galeraresources.MysqlAppProtocol),
 			},
 			{
-				Name: galeraresources.GaleraSSTPortName,
-				Port: galeraresources.GaleraSSTPort,
+				Name:        galeraresources.GaleraSSTPortName,
+				Port:        galeraresources.GaleraSSTPort,
+				AppProtocol: ptr.To[string](galeraresources.MysqlAppProtocol),
 			},
 			{
 				Name: galeraresources.AgentPortName,
