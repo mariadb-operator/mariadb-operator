@@ -34,7 +34,7 @@ jobs:
     if: ${{ needs.detect-noop.outputs.noop != 'true' }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Go
         uses: actions/setup-go@v5
@@ -54,7 +54,7 @@ jobs:
     if: ${{ needs.detect-noop.outputs.noop != 'true' }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Find typos
         uses: crate-ci/typos@v1.34.0
@@ -69,7 +69,7 @@ jobs:
     if: ${{ needs.detect-noop.outputs.noop != 'true' }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Go
         uses: actions/setup-go@v5
@@ -90,7 +90,7 @@ jobs:
     if: ${{ needs.detect-noop.outputs.noop != 'true' }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Go
         uses: actions/setup-go@v5
@@ -110,7 +110,7 @@ jobs:
     if: ${{ needs.detect-noop.outputs.noop != 'true' }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Go
         uses: actions/setup-go@v5
@@ -160,7 +160,7 @@ jobs:
     if: ${{ needs.detect-noop.outputs.noop != 'true' }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Generate
         run: make gen
