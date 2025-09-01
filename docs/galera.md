@@ -14,7 +14,6 @@ To accomplish this, after the MariaDB cluster has been provisioned, `mariadb-ope
 - [Wsrep provider](#wsrep-provider)
 - [IPv6 support](#ipv6-support)
 - [Agent auth methods](#agent-auth-methods)
-- [Backup and restore](#backup-and-restore)
 - [Galera cluster recovery](#galera-cluster-recovery)
 - [Bootstrap Galera cluster from existing PVCs](#bootstrap-galera-cluster-from-existing-pvcs)
 - [Quickstart](#quickstart)
@@ -134,11 +133,6 @@ spec:
 ```
 
 Unlike the [`ServiceAccount` based authentication](#serviceaccount-based-authentication), the operator needs to explicitly generate credentials to authenticate. The advantage of this approach is that it is entirely decoupled from Kubernetes and it does not require cluster-wide permissions on the Kubernetes API.
-
-## Backup and restore
-
-Please refer to the [backup documentation](./logical_backup.md) to understand how to backup and restore Galera clusters. Specially, make sure you understand the [Galera backup limitations](./logical_backup.md#galera-backup-limitations).
-
 
 ## Galera cluster recovery
 
