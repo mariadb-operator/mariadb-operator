@@ -588,6 +588,42 @@ type S3 struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	TLS *TLSS3 `json:"tls,omitempty"`
+	// StorageClass defines the S3 storage class to be used for backups.
+	// +optional
+	// +kubebuilder:default=STANDARD
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	StorageClass S3StorageClass `json:"storageClass,omitempty" webhook:"inmutable"`
+}
+
+// S3StorageClass defines the S3 storage class.
+// +kubebuilder:validation:Enum=STANDARD;REDUCED_REDUNDANCY;STANDARD_IA;ONEZONE_IA;INTELLIGENT_TIERING;GLACIER;DEEP_ARCHIVE;OUTPOSTS;GLACIER_IR
+type S3StorageClass string
+
+const (
+	S3StorageClassStandard           S3StorageClass = "STANDARD"
+	S3StorageClassReducedRedundancy  S3StorageClass = "REDUCED_REDUNDANCY"
+	S3StorageClassStandardIA         S3StorageClass = "STANDARD_IA"
+	S3StorageClassOneZoneIA          S3StorageClass = "ONEZONE_IA"
+	S3StorageClassIntelligentTiering S3StorageClass = "INTELLIGENT_TIERING"
+	S3StorageClassGlacier            S3StorageClass = "GLACIER"
+	S3StorageClassDeepArchive        S3StorageClass = "DEEP_ARCHIVE"
+	S3StorageClassOutposts           S3StorageClass = "OUTPOSTS"
+	S3StorageClassGlacierIR          S3StorageClass = "GLACIER_IR"
+)
+
+func (s S3StorageClass) Validate() error {
+	switch s {
+	case S3StorageClassStandard, S3StorageClassReducedRedundancy, S3StorageClassStandardIA, S3StorageClassOneZoneIA, S3StorageClassIntelligentTiering, S3StorageClassGlacier, S3StorageClassDeepArchive, S3StorageClassOutposts, S3StorageClassGlacierIR, "":
+		return nil
+	default:
+		return fmt.Errorf("invalid S3 storage class: %v", s)
+	}
+}
+
+func (s *S3) SetDefaults() {
+	if s.StorageClass == "" {
+		s.StorageClass = S3StorageClassStandard
+	}
 }
 
 // Metadata defines the metadata to added to resources.
@@ -716,7 +752,18 @@ func (b *BackupStorage) Validate() error {
 	if storageTypes != 1 {
 		return errors.New("exactly one storage type should be provided")
 	}
+	if b.S3 != nil {
+		if err := b.S3.StorageClass.Validate(); err != nil {
+			return err
+		}
+	}
 	return nil
+}
+
+func (b *BackupStorage) SetDefaults() {
+	if b.S3 != nil {
+		b.S3.SetDefaults()
+	}
 }
 
 // BackupStagingStorage defines the temporary storage used to keep external backups (i.e. S3) while they are being processed.

@@ -818,6 +818,7 @@ func s3Opts(s3 *mariadbv1alpha1.S3) []command.BackupOpt {
 			s3.Prefix,
 		),
 		command.WithS3TLS(tls.Enabled),
+		command.WithS3StorageClass(string(s3.StorageClass)),
 	}
 	if tls.Enabled && tls.CASecretKeyRef != nil {
 		caCertPath := filepath.Join(batchS3PKIMountPath, s3.TLS.CASecretKeyRef.Key)

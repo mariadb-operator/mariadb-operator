@@ -706,6 +706,21 @@ spec:
                         - key
                         type: object
                         x-kubernetes-map-type: atomic
+                      storageClass:
+                        default: STANDARD
+                        description: StorageClass defines the S3 storage class to
+                          be used for backups.
+                        enum:
+                        - STANDARD
+                        - REDUCED_REDUNDANCY
+                        - STANDARD_IA
+                        - ONEZONE_IA
+                        - INTELLIGENT_TIERING
+                        - GLACIER
+                        - DEEP_ARCHIVE
+                        - OUTPOSTS
+                        - GLACIER_IR
+                        type: string
                       tls:
                         description: TLS provides the configuration required to establish
                           TLS connections with S3.

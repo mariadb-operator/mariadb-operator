@@ -140,6 +140,7 @@ func (b *Backup) SetDefaults(mariadb *MariaDB) {
 	if b.Spec.Compression == CompressAlgorithm("") {
 		b.Spec.Compression = CompressNone
 	}
+	b.Spec.Storage.SetDefaults()
 	if b.Spec.MaxRetention == (metav1.Duration{}) {
 		b.Spec.MaxRetention = metav1.Duration{Duration: 30 * 24 * time.Hour}
 	}

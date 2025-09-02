@@ -124,6 +124,17 @@ var _ = Describe("Backup", Label("basic"), func() {
 			),
 			testS3Backup,
 		),
+		Entry("should reconcile a Job with S3 storage and storage class",
+			"backup-s3-storage-class-test",
+			applyDecoratorChain(
+				buildBackupWithS3Storage("test-backup", ""),
+				func(b *mariadbv1alpha1.Backup) *mariadbv1alpha1.Backup {
+					b.Spec.Storage.S3.StorageClass = mariadbv1alpha1.S3StorageClassStandardIA
+					return b
+				},
+			),
+			testS3Backup,
+		),
 		Entry("should reconcile a CronJob with PVC storage and history limits",
 			"backup-pvc-scheduled-with-limits-test",
 			applyDecoratorChain(
@@ -320,6 +331,31 @@ func testS3Backup(backup *mariadbv1alpha1.Backup) {
 	if backup.Spec.Schedule != nil {
 		testBackupCronJob(backup)
 	} else {
+		key := client.ObjectKeyFromObject(backup)
+		var job batchv1.Job
+		By("Expecting to create a Job eventually")
+		Eventually(func() bool {
+			if err := k8sClient.Get(testCtx, key, &job); err != nil {
+				return false
+			}
+			return true
+		}, testTimeout, testInterval).Should(BeTrue())
+
+		operatorContainer := getContainer(&job.Spec.Template.Spec, "mariadb-operator")
+		Expect(operatorContainer).ToNot(BeNil())
+
+		if backup.Spec.Storage.S3 != nil {
+			Expect(operatorContainer.Args).To(ContainElement("--s3"))
+			Expect(operatorContainer.Args).To(ContainElement("--s3-bucket"))
+			Expect(operatorContainer.Args).To(ContainElement(backup.Spec.Storage.S3.Bucket))
+			Expect(operatorContainer.Args).To(ContainElement("--s3-endpoint"))
+			Expect(operatorContainer.Args).To(ContainElement(backup.Spec.Storage.S3.Endpoint))
+			if backup.Spec.Storage.S3.StorageClass != "" {
+				Expect(operatorContainer.Args).To(ContainElement("--s3-storage-class"))
+				Expect(operatorContainer.Args).To(ContainElement(string(backup.Spec.Storage.S3.StorageClass)))
+			}
+		}
+
 		By("Expecting Backup to complete eventually")
 		Eventually(func() bool {
 			if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(backup), backup); err != nil {
@@ -328,6 +364,15 @@ func testS3Backup(backup *mariadbv1alpha1.Backup) {
 			return backup.IsComplete()
 		}, testTimeout, testInterval).Should(BeTrue())
 	}
+}
+
+func getContainer(podSpec *corev1.PodSpec, name string) *corev1.Container {
+	for _, c := range podSpec.Containers {
+		if c.Name == name {
+			return &c
+		}
+	}
+	return nil
 }
 
 func decorateBackupWithSchedule(backup *mariadbv1alpha1.Backup) *mariadbv1alpha1.Backup {

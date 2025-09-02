@@ -81,8 +81,22 @@ spec:
         caSecretKeyRef:
           name: minio-ca
           key: tls.crt
+      storageClass: STANDARD_IA
 ```
 By providing the authentication details and the TLS configuration via references to `Secret` keys, this example will store the backups in a local Minio instance.
+
+The `storageClass` field allows you to specify the S3 storage class for your backups. The following values are supported:
+- `STANDARD`
+- `REDUCED_REDUNDANCY`
+- `STANDARD_IA`
+- `ONEZONE_IA`
+- `INTELLIGENT_TIERING`
+- `GLACIER`
+- `DEEP_ARCHIVE`
+- `OUTPOSTS`
+- `GLACIER_IR`
+
+If not provided, it defaults to `STANDARD`.
 
 Alternatively you can use dynamic credentials from an EKS Service Account using EKS Pod Identity or IRSA:
 
