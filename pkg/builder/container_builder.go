@@ -490,13 +490,14 @@ func mariadbVolumeMounts(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt
 			Name:      ConfigVolume,
 			MountPath: MariadbConfigMountPath,
 		},
-		mariadbStorageVolumeMount(mariadb),
 	}
 
 	if mariadb.IsTLSEnabled() {
 		_, tlsVolumeMounts := mariadbTLSVolumes(mariadb)
 		volumeMounts = append(volumeMounts, tlsVolumeMounts...)
 	}
+
+	volumeMounts = append(volumeMounts, mariadbStorageVolumeMount(mariadb))
 
 	if mariadb.Replication().Enabled && ptr.Deref(mariadb.Replication().ProbesEnabled, false) {
 		volumeMounts = append(volumeMounts, corev1.VolumeMount{
