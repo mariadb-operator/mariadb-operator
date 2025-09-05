@@ -1931,6 +1931,61 @@ func TestMaxscaleContainers(t *testing.T) {
 	}
 }
 
+func TestMariadbStorageVolumeMount(t *testing.T) {
+	tests := []struct {
+		name        string
+		mariadb     *mariadbv1alpha1.MariaDB
+		wantSubPath string
+	}{
+		{
+			name:        "no galera configured",
+			mariadb:     &mariadbv1alpha1.MariaDB{Spec: mariadbv1alpha1.MariaDBSpec{}},
+			wantSubPath: "",
+		},
+		{
+			name: "galera enabled reuse disabled",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							Config: mariadbv1alpha1.GaleraConfig{
+								ReuseStorageVolume: ptr.To(false),
+							},
+						},
+					},
+				},
+			},
+			wantSubPath: "",
+		},
+		{
+			name: "galera enabled reuse enabled",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							Config: mariadbv1alpha1.GaleraConfig{
+								ReuseStorageVolume: ptr.To(true),
+							},
+						},
+					},
+				},
+			},
+			wantSubPath: StorageVolume,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			vm := mariadbStorageVolumeMount(tt.mariadb)
+			if vm.SubPath != tt.wantSubPath {
+				t.Fatalf("unexpected SubPath: want=%q got=%q", tt.wantSubPath, vm.SubPath)
+			}
+		})
+	}
+}
+
 func defaultEnv(overrides []corev1.EnvVar) []corev1.EnvVar {
 	mysqlTcpPort := corev1.EnvVar{
 		Name:  "MYSQL_TCP_PORT",

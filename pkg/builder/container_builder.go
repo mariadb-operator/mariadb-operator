@@ -469,20 +469,7 @@ func mariadbEnv(mariadb *mariadbv1alpha1.MariaDB) []corev1.EnvVar {
 	return env
 }
 
-func mariadbVolumeMounts(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt) []corev1.VolumeMount {
-	mariadbOpts := newMariadbPodOpts(opts...)
-	volumeMounts := []corev1.VolumeMount{
-		{
-			Name:      ConfigVolume,
-			MountPath: MariadbConfigMountPath,
-		},
-	}
-
-	if mariadb.IsTLSEnabled() {
-		_, tlsVolumeMounts := mariadbTLSVolumes(mariadb)
-		volumeMounts = append(volumeMounts, tlsVolumeMounts...)
-	}
-
+func mariadbStorageVolumeMount(mariadb *mariadbv1alpha1.MariaDB) corev1.VolumeMount {
 	galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
 	reuseStorageVolume := ptr.Deref(galera.Config.ReuseStorageVolume, false)
 
@@ -493,7 +480,23 @@ func mariadbVolumeMounts(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt
 	if mariadb.IsGaleraEnabled() && reuseStorageVolume {
 		storageVolumeMount.SubPath = StorageVolume
 	}
-	volumeMounts = append(volumeMounts, storageVolumeMount)
+	return storageVolumeMount
+}
+
+func mariadbVolumeMounts(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt) []corev1.VolumeMount {
+	mariadbOpts := newMariadbPodOpts(opts...)
+	volumeMounts := []corev1.VolumeMount{
+		{
+			Name:      ConfigVolume,
+			MountPath: MariadbConfigMountPath,
+		},
+		mariadbStorageVolumeMount(mariadb),
+	}
+
+	if mariadb.IsTLSEnabled() {
+		_, tlsVolumeMounts := mariadbTLSVolumes(mariadb)
+		volumeMounts = append(volumeMounts, tlsVolumeMounts...)
+	}
 
 	if mariadb.Replication().Enabled && ptr.Deref(mariadb.Replication().ProbesEnabled, false) {
 		volumeMounts = append(volumeMounts, corev1.VolumeMount{
@@ -511,6 +514,9 @@ func mariadbVolumeMounts(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt
 		galeraConfigVolumeMount := corev1.VolumeMount{
 			MountPath: galeraresources.GaleraConfigMountPath,
 		}
+		galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
+		reuseStorageVolume := ptr.Deref(galera.Config.ReuseStorageVolume, false)
+
 		if reuseStorageVolume {
 			galeraConfigVolumeMount.Name = StorageVolume
 			galeraConfigVolumeMount.SubPath = galeraresources.GaleraConfigVolume
