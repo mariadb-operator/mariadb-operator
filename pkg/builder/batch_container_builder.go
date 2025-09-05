@@ -97,10 +97,7 @@ func jobPhysicalBackupVolumes(storageVolume mariadbv1alpha1.StorageVolumeSource,
 			},
 		},
 	})
-	volumeMounts = append(volumeMounts, corev1.VolumeMount{
-		Name:      StorageVolume,
-		MountPath: MariadbStorageMountPath,
-	})
+	volumeMounts = append(volumeMounts, mariadbStorageVolumeMount(mariadb))
 
 	return volumes, volumeMounts
 }
