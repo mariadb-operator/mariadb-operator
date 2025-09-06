@@ -543,3 +543,9 @@ spec:
 ```
 
 Refer to [MDEV-36159](https://jira.mariadb.org/browse/MDEV-36237) for further details on this issue.
+
+#### `mariadb-backup` `Job` fails to start because the `Pod` cannot mount `MariaDB` PVC created with [openebs/lvm-localpv](https://github.com/openebs/lvm-localpv) `StorageClass` provider
+
+Without explicitly enabled [shared option](https://github.com/openebs/lvm-localpv/blob/develop/design%2Flvm%2Fstorageclass-parameters%2Fshared.md) the `ReadWriteOnce` access mode is treated as `ReadWriteOncePod`.
+
+Refer to [openebs/lvm-localpv#281](https://github.com/openebs/lvm-localpv/issues/281) for further details on this issue.
