@@ -210,7 +210,7 @@ func (r *ExternalMariaDBReconciler) patch(ctx context.Context,
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *ExternalMariaDBReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, env *environment.OperatorEnv) error {
+func (r *ExternalMariaDBReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&mariadbv1alpha1.ExternalMariaDB{}).
 		Owns(&mariadbv1alpha1.Connection{}).

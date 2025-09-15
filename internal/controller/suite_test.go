@@ -150,16 +150,6 @@ var _ = BeforeSuite(func() {
 	svcMonitorReconciler := servicemonitor.NewServiceMonitorReconciler(client)
 	certReconciler := certctrl.NewCertReconciler(client, scheme, k8sManager.GetEventRecorderFor("cert"), disc, builder)
 
-	err = (&ExternalMariaDBReconciler{
-		Client:         client,
-		Recorder:       k8sManager.GetEventRecorderFor("mariadb"),
-		Builder:        builder,
-		RefResolver:    refResolver,
-		ConditionReady: conditionReady,
-		Environment:    env,
-	}).SetupWithManager(testCtx, k8sManager, env)
-	Expect(err).ToNot(HaveOccurred())
-
 	mxsReconciler := maxscale.NewMaxScaleReconciler(client, builder, env)
 	replConfig := replication.NewReplicationConfig(client, builder, secretReconciler, env)
 	replicationReconciler, err := replication.NewReplicationReconciler(
@@ -312,6 +302,8 @@ var _ = BeforeSuite(func() {
 	err = NewGrantReconciler(client, refResolver, conditionReady, sqlOpts...).SetupWithManager(testCtx, k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 	err = NewDatabaseReconciler(client, refResolver, conditionReady, sqlOpts...).SetupWithManager(k8sManager)
+	Expect(err).ToNot(HaveOccurred())
+	err = NewExternalMariaDBReconciler(client, refResolver, conditionReady, builder).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
 	err = (&ConnectionReconciler{
