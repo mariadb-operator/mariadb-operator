@@ -11,16 +11,37 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-const (
-	// ExternalMariaDBKind
-	ExternalMariaDBKind = "ExternalMariaDB"
-)
-
 // ExternalMariaDBSpec defines the desired state of an External MariaDB
 type ExternalMariaDBSpec struct {
-
-	// Hostname of the external MariaDB service.
+	// Image name to be used to perform operations on the external MariaDB, for example, for taking backups.
+	// The supported format is `<image>:<tag>`. Only MariaDB official images are supported.
+	// It has priority over the Version field.
+	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	Image string `json:"image,omitempty"`
+	// ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`.
+	// +optional
+	// +kubebuilder:validation:Enum=Always;Never;IfNotPresent
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:imagePullPolicy","urn:alm:descriptor:com.tectonic.ui:advanced"}
+	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
+	// ImagePullSecrets is the list of pull Secrets to be used to pull the image.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	ImagePullSecrets []LocalObjectReference `json:"imagePullSecrets,omitempty" webhook:"inmutable"`
+	// Version is the MariaDB image version to be used to operate with MariaDB, for example, for taking backups.
+	// The MariaDB Community images will be used when providing this field.
+	// If not provided, the version will be inferred from the external MariaDB.
+	// The Image field has priority over this field.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	Version *string `json:"version,omitempty"`
+	// InheritMetadata defines the metadata to be inherited by children resources.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	InheritMetadata *Metadata `json:"inheritMetadata,omitempty"`
+	// Hostname of the external MariaDB service.
+	// +kubebuilder:validation:Required
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Host string `json:"host"`
 	// Port of the external MariaDB.
 	// +optional
@@ -28,7 +49,8 @@ type ExternalMariaDBSpec struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number","urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Port int32 `json:"port,omitempty"`
 	// Username is the username to connect to the external MariaDB.
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	// +kubebuilder:validation:Required
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Username *string `json:"username"`
 	// PasswordSecretKeyRef is a reference to the password to be used by the User.
 	// If not provided, the account will be locked and the password will expire.
@@ -36,29 +58,20 @@ type ExternalMariaDBSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	PasswordSecretKeyRef *SecretKeySelector `json:"passwordSecretKeyRef,omitempty"`
-	// InheritMetadata defines the metadata to be inherited by children resources.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	InheritMetadata *Metadata `json:"inheritMetadata,omitempty"`
 	// TLS defines the PKI to be used with MariaDB.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	TLS *TLS `json:"tls,omitempty"`
-	// Connection defines a template to configure the general Connection object.
+	// Connection defines a template to configure the Connection object.
 	// This Connection provides the initial User access to the initial Database.
 	// It will make use of the Service to route network traffic to all Pods.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Connection *ConnectionTemplate `json:"connection,omitempty" webhook:"inmutable"`
-	// External MariaDB Version
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	Version *string `json:"version,omitempty"`
 }
 
 // ExternalMariaDBStatus defines the observed state of MariaDB
 type ExternalMariaDBStatus struct {
-
 	// Conditions for the ExternalMariadb object.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status,xDescriptors={"urn:alm:descriptor:io.kubernetes.conditions"}
@@ -94,13 +107,12 @@ func (m *ExternalMariaDB) IsGaleraEnabled() bool {
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:shortName=emdb
 // +kubebuilder:subresource:status
-// +kubebuilder:subresource:scale:specpath=.spec.replicas,statuspath=.status.replicas
 // +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.conditions[?(@.type==\"Ready\")].status"
 // +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.conditions[?(@.type==\"Ready\")].message"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
-// +operator-sdk:csv:customresourcedefinitions:resources={{ExternalMariaDB,v1alpha1},{MariaDB,v1alpha1},{MaxScale,v1alpha1},{Connection,v1alpha1},{Restore,v1alpha1},{User,v1alpha1},{Grant,v1alpha1},{ConfigMap,v1},{Service,v1},{Secret,v1},{Event,v1},{ServiceAccount,v1},{StatefulSet,v1},{Deployment,v1},{Job,v1},{PodDisruptionBudget,v1},{Role,v1},{RoleBinding,v1},{ClusterRoleBinding,v1}}
+// +operator-sdk:csv:customresourcedefinitions:resources={{ExternalMariaDB,v1alpha1},{Connection,v1alpha1},{ConfigMap,v1},{Secret,v1}}
 
-// ExternalMariaDB is the Schema for the external mariadbs API. It is used to define external MariaDB server.
+// ExternalMariaDB is the Schema for the external MariaDBs API. It is used to define external MariaDB server.
 type ExternalMariaDB struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -126,23 +138,23 @@ func (m *ExternalMariaDB) IsReady() bool {
 
 // Get image pull policy
 func (m *ExternalMariaDB) GetImagePullPolicy() corev1.PullPolicy {
-	return corev1.PullIfNotPresent
+	return m.Spec.ImagePullPolicy
 }
 
 // Get image pull secrets
 func (m *ExternalMariaDB) GetImagePullSecrets() []LocalObjectReference {
-	return nil // ExternalMariaDB uses official MariaDB images (publicly available) for the Backups
+	return m.Spec.ImagePullSecrets
 }
 
 // Get image
 func (m *ExternalMariaDB) GetImage() string {
-	var version string
-	if m.Spec.Version != nil {
-		version = *m.Spec.Version
-	} else {
-		version = m.Status.Version
+	if image := m.Spec.Image; image != "" {
+		return image
 	}
-	return fmt.Sprintf("mariadb:%s", version) // ExternalMariaDB uses official MariaDB images (publicly available) for the Backups
+	version := ptr.Deref(m.Spec.Version, m.Status.Version)
+	// By default, ExternalMariaDB uses official MariaDB images (publicly available) for the Backups.
+	// This can be overridden by setting the Image field.
+	return fmt.Sprintf("mariadb:%s", version)
 }
 
 // IsTLSRequired indicates whether TLS is enabled and must be enforced for all connections.
@@ -167,7 +179,7 @@ func (m *ExternalMariaDB) GetPort() int32 {
 
 // Get MariaDB replicas
 func (m *ExternalMariaDB) GetReplicas() int32 {
-	return 1
+	return 0 // ExternalMariaDB does not make use of this
 }
 
 // Get MariaDB Superuser name

@@ -78,7 +78,7 @@ spec:
                   Either MariaDBRef or MaxScaleRef must be provided.
                 properties:
                   kind:
-                    description: ObjectReference is a reference to a object.
+                    description: Kind of the referent.
                     type: string
                   name:
                     type: string

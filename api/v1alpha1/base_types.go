@@ -24,7 +24,7 @@ type MariaDBRef struct {
 	// ObjectReference is a reference to a object.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	ObjectReference `json:",inline"`
-	// ObjectReference is a reference to a object.
+	// Kind of the referent.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Kind string `json:"kind,omitempty"`
 	// WaitForIt indicates whether the controller using this reference should wait for MariaDB to be ready.

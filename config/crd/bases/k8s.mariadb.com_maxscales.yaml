@@ -966,7 +966,7 @@ spec:
                   points to. It is used to initialize the servers field.
                 properties:
                   kind:
-                    description: ObjectReference is a reference to a object.
+                    description: Kind of the referent.
                     type: string
                   name:
                     type: string

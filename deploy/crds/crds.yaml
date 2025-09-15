@@ -352,7 +352,7 @@ spec:
                 description: MariaDBRef is a reference to a MariaDB object.
                 properties:
                   kind:
-                    description: ObjectReference is a reference to a object.
+                    description: Kind of the referent.
                     type: string
                   name:
                     type: string
@@ -1193,7 +1193,7 @@ spec:
                   Either MariaDBRef or MaxScaleRef must be provided.
                 properties:
                   kind:
-                    description: ObjectReference is a reference to a object.
+                    description: Kind of the referent.
                     type: string
                   name:
                     type: string
@@ -1452,7 +1452,7 @@ spec:
                 description: MariaDBRef is a reference to a MariaDB object.
                 properties:
                   kind:
-                    description: ObjectReference is a reference to a object.
+                    description: Kind of the referent.
                     type: string
                   name:
                     type: string
@@ -1575,7 +1575,7 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: ExternalMariaDB is the Schema for the external mariadbs API.
+        description: ExternalMariaDB is the Schema for the external MariaDBs API.
           It is used to define external MariaDB server.
         properties:
           apiVersion:
@@ -1601,7 +1601,7 @@ spec:
             properties:
               connection:
                 description: |-
-                  Connection defines a template to configure the general Connection object.
+                  Connection defines a template to configure the Connection object.
                   This Connection provides the initial User access to the initial Database.
                   It will make use of the Service to route network traffic to all Pods.
                 properties:
@@ -1675,6 +1675,31 @@ spec:
               host:
                 description: Hostname of the external MariaDB service.
                 type: string
+              image:
+                description: |-
+                  Image name to be used to perform operations on the external MariaDB, for example, for taking backups.
+                  The supported format is `<image>:<tag>`. Only MariaDB official images are supported.
+                  It has priority over the Version field.
+                type: string
+              imagePullPolicy:
+                description: ImagePullPolicy is the image pull policy. One of `Always`,
+                  `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`.
+                enum:
+                - Always
+                - Never
+                - IfNotPresent
+                type: string
+              imagePullSecrets:
+                description: ImagePullSecrets is the list of pull Secrets to be used
+                  to pull the image.
+                items:
+                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#localobjectreference-v1-core.'
+                  properties:
+                    name:
+                      default: ""
+                      type: string
+                  type: object
+                type: array
               inheritMetadata:
                 description: InheritMetadata defines the metadata to be inherited
                   by children resources.
@@ -1812,7 +1837,11 @@ spec:
                 description: Username is the username to connect to the external MariaDB.
                 type: string
               version:
-                description: External MariaDB Version
+                description: |-
+                  Version is the MariaDB image version to be used to operate with MariaDB, for example, for taking backups.
+                  The MariaDB Community images will be used when providing this field.
+                  If not provided, the version will be inferred from the external MariaDB.
+                  The Image field has priority over this field.
                 type: string
             required:
             - host
@@ -1891,9 +1920,6 @@ spec:
     served: true
     storage: true
     subresources:
-      scale:
-        specReplicasPath: .spec.replicas
-        statusReplicasPath: .status.replicas
       status: {}
 ---
 apiVersion: apiextensions.k8s.io/v1
@@ -1987,7 +2013,7 @@ spec:
                 description: MariaDBRef is a reference to a MariaDB object.
                 properties:
                   kind:
-                    description: ObjectReference is a reference to a object.
+                    description: Kind of the referent.
                     type: string
                   name:
                     type: string
@@ -9205,7 +9231,7 @@ spec:
                   points to. It is used to initialize the servers field.
                 properties:
                   kind:
-                    description: ObjectReference is a reference to a object.
+                    description: Kind of the referent.
                     type: string
                   name:
                     type: string
@@ -10893,7 +10919,7 @@ spec:
                 description: MariaDBRef is a reference to a MariaDB object.
                 properties:
                   kind:
-                    description: ObjectReference is a reference to a object.
+                    description: Kind of the referent.
                     type: string
                   name:
                     type: string
@@ -12044,7 +12070,7 @@ spec:
                 description: MariaDBRef is a reference to a MariaDB object.
                 properties:
                   kind:
-                    description: ObjectReference is a reference to a object.
+                    description: Kind of the referent.
                     type: string
                   name:
                     type: string
@@ -13032,7 +13058,7 @@ spec:
                 description: MariaDBRef is a reference to a MariaDB object.
                 properties:
                   kind:
-                    description: ObjectReference is a reference to a object.
+                    description: Kind of the referent.
                     type: string
                   name:
                     type: string
@@ -13494,7 +13520,7 @@ spec:
                 description: MariaDBRef is a reference to a MariaDB object.
                 properties:
                   kind:
-                    description: ObjectReference is a reference to a object.
+                    description: Kind of the referent.
                     type: string
                   name:
                     type: string
