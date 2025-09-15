@@ -392,7 +392,7 @@ func (r *ConnectionReconciler) getSqlOpts(ctx context.Context, conn *mariadbv1al
 }
 
 func (r *ConnectionReconciler) addSqlClientCertOpts(ctx context.Context, conn *mariadbv1alpha1.Connection,
-	mdb interfaces.MariaDBGenericInterface, opts *clientsql.Opts) error {
+	mdb interfaces.MariaDBObject, opts *clientsql.Opts) error {
 	secretKey := r.clientCertSecretKey(conn, mdb)
 	if secretKey == nil {
 		return nil
@@ -426,7 +426,7 @@ func (r *ConnectionReconciler) addSqlClientCertOpts(ctx context.Context, conn *m
 	return nil
 }
 func (r *ConnectionReconciler) clientCertSecretKey(conn *mariadbv1alpha1.Connection,
-	mdb interfaces.MariaDBGenericInterface) *types.NamespacedName {
+	mdb interfaces.MariaDBObject) *types.NamespacedName {
 	if conn != nil && conn.Spec.TLSClientCertSecretRef != nil {
 		return &types.NamespacedName{
 			Name:      conn.Spec.TLSClientCertSecretRef.Name,

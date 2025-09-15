@@ -45,7 +45,7 @@ func WithHostConnectionFlag(host string) ConnectionFlagOpt {
 	}
 }
 
-func ConnectionFlags(co *CommandOpts, mariadb interfaces.ConnectionParamsAwareInterface,
+func ConnectionFlags(co *CommandOpts, mariadb interfaces.Connector,
 	connectionFlagOpts ...ConnectionFlagOpt) (string, error) {
 	opts := &ConnectionFlagsOpts{}
 	for _, setOpt := range connectionFlagOpts {
@@ -72,7 +72,7 @@ func ConnectionFlags(co *CommandOpts, mariadb interfaces.ConnectionParamsAwareIn
 	return flags, nil
 }
 
-func host(mariadb interfaces.ConnectionParamsAwareInterface, opts *ConnectionFlagsOpts) string {
+func host(mariadb interfaces.Connector, opts *ConnectionFlagsOpts) string {
 	if opts.Host != "" {
 		return opts.Host
 	}
