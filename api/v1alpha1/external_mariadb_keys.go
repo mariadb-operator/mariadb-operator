@@ -10,7 +10,6 @@ import (
 
 // TLSCABundleSecretKeyRef defines the key selector for the TLS Secret trust bundle
 func (m *ExternalMariaDB) TLSCABundleSecretKeyRef() SecretKeySelector {
-
 	if m.Spec.TLS.ServerCASecretRef == nil {
 		return SecretKeySelector{
 			LocalObjectReference: LocalObjectReference{

@@ -1056,8 +1056,7 @@ func (m *MariaDB) GetReplicas() int32 {
 
 // Get MariaDB Superuser name
 func (m *MariaDB) GetSUName() string {
-	username := "root"
-	return username
+	return "root"
 }
 
 // Get MariaDB Superuser credentials

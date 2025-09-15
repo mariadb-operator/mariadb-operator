@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -55,10 +56,6 @@ type reconcilePhaseExternalMariaDB struct {
 //+kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;patch;delete
 //+kubebuilder:rbac:groups="",resources=secrets,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups="",resources=events,verbs=list;watch;create;patch
-//+kubebuilder:rbac:groups=authorization.k8s.io,resources=subjectaccessreviews,verbs=create
-//+kubebuilder:rbac:groups=authentication.k8s.io,resources=tokenreviews,verbs=create
-//+kubebuilder:rbac:groups=monitoring.coreos.com,resources=servicemonitors,verbs=list;watch;create;patch
-//+kubebuilder:rbac:groups=cert-manager.io,resources=certificates,verbs=list;watch;create;patch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -131,63 +128,66 @@ func (r *ExternalMariaDBReconciler) setSpecDefaults(ctx context.Context,
 }
 
 func (r *ExternalMariaDBReconciler) reconcileConnection(ctx context.Context,
-	external_mariadb *mariadbv1alpha1.ExternalMariaDB) (ctrl.Result, error) {
+	extMariaDB *mariadbv1alpha1.ExternalMariaDB) (ctrl.Result, error) {
 
-	if external_mariadb.Spec.Connection == nil {
+	if extMariaDB.Spec.Connection == nil {
 		return ctrl.Result{}, nil
 	}
-
-	if !external_mariadb.IsReady() {
+	if !extMariaDB.IsReady() {
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
 
 	key := types.NamespacedName{
-		Name:      external_mariadb.Name,
-		Namespace: external_mariadb.Namespace,
+		Name:      extMariaDB.Name,
+		Namespace: extMariaDB.Namespace,
 	}
-
 	var existingConn mariadbv1alpha1.Connection
 	if err := r.Get(ctx, key, &existingConn); err == nil {
 		return ctrl.Result{}, nil
 	}
 
 	connOpts := builder.ConnectionOpts{
-		Metadata:             external_mariadb.Spec.InheritMetadata,
-		ExternalMariaDB:      external_mariadb,
+		Metadata:             extMariaDB.Spec.InheritMetadata,
+		ExternalMariaDB:      extMariaDB,
 		Key:                  key,
-		Username:             *external_mariadb.Spec.Username,
-		PasswordSecretKeyRef: external_mariadb.Spec.PasswordSecretKeyRef,
-		Template:             external_mariadb.Spec.Connection,
+		Username:             *extMariaDB.Spec.Username,
+		PasswordSecretKeyRef: extMariaDB.Spec.PasswordSecretKeyRef,
+		Template:             extMariaDB.Spec.Connection,
 	}
-	conn, err := r.Builder.BuildConnection(connOpts, external_mariadb)
+	conn, err := r.Builder.BuildConnection(connOpts, extMariaDB)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error building Connection: %v", err)
 	}
-
 	return ctrl.Result{}, r.Create(ctx, conn)
 
 }
 
 func (r *ExternalMariaDBReconciler) reconcileStatus(ctx context.Context,
-	external_mariadb *mariadbv1alpha1.ExternalMariaDB) (ctrl.Result, error) {
+	extMariaDB *mariadbv1alpha1.ExternalMariaDB) (ctrl.Result, error) {
 
-	if !external_mariadb.IsReady() {
+	if !extMariaDB.IsReady() {
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
 
-	client, err := sqlClient.NewClientWithMariaDB(ctx, external_mariadb, r.RefResolver)
+	client, err := sqlClient.NewClientWithMariaDB(ctx, extMariaDB, r.RefResolver)
 	if err != nil {
 		return ctrl.Result{RequeueAfter: 3 * time.Second}, fmt.Errorf("error connecting to MariaDB: %v", err)
 	}
 	defer client.Close()
 
-	raw_version, err := client.SystemVariable(ctx, "version")
+	rawVersion, err := client.SystemVariable(ctx, "version")
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("unable to get MariaDB version: %v", err)
 	}
+	versionParts := strings.Split(rawVersion, "-")
 
-	split_version := strings.Split(raw_version, "-")
-	version := split_version[0]
+	var version string
+	if len(versionParts) > 0 {
+		version = versionParts[0]
+	} else {
+		msg := "MariaDB version could not be inferred"
+		log.FromContext(ctx).Error(errors.New(msg), msg, "version", rawVersion)
+	}
 
 	isGaleraEnabled, err := client.IsSystemVariableEnabled(ctx, "wsrep_on")
 	if err != nil {
@@ -195,11 +195,11 @@ func (r *ExternalMariaDBReconciler) reconcileStatus(ctx context.Context,
 		return ctrl.Result{}, fmt.Errorf("unable to determine if Galera cluster is enable on that cluster: %v", err)
 	}
 
-	return ctrl.Result{}, r.patchStatus(ctx, external_mariadb, func(status *mariadbv1alpha1.ExternalMariaDBStatus) error {
+	return ctrl.Result{}, r.patchStatus(ctx, extMariaDB, func(status *mariadbv1alpha1.ExternalMariaDBStatus) error {
 		status.SetVersion(version)
 		status.Version = version
 		status.IsGaleraEnabled = isGaleraEnabled
-		condition.SetReadyHealthy(&external_mariadb.Status)
+		condition.SetReadyHealthy(&extMariaDB.Status)
 		return nil
 	})
 
@@ -225,15 +225,13 @@ func (r *ExternalMariaDBReconciler) patch(ctx context.Context,
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *ExternalMariaDBReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, env *environment.OperatorEnv,
-) error {
-	builder := ctrl.NewControllerManagedBy(mgr).
+func (r *ExternalMariaDBReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, env *environment.OperatorEnv) error {
+	return ctrl.NewControllerManagedBy(mgr).
 		For(&mariadbv1alpha1.ExternalMariaDB{}).
 		Owns(&mariadbv1alpha1.Connection{}).
 		Owns(&corev1.ConfigMap{}).
-		Owns(&corev1.Secret{})
-
-	return builder.Complete(r)
+		Owns(&corev1.Secret{}).
+		Complete(r)
 }
 
 func NewExternalMariaDBReconciler(client client.Client, refResolver *refresolver.RefResolver, conditionReady *condition.Ready,

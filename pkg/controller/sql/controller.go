@@ -191,7 +191,6 @@ func waitForMariaDB(ctx context.Context, client ctrlclient.Client, mdb interface
 
 	kind := mdb.GetObjectKind()
 	if kind.GroupVersionKind().Kind == mariadbv1alpha1.ExternalMariaDBKind {
-
 		return ctrl.Result{}, nil
 	}
 
