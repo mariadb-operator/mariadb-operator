@@ -151,14 +151,11 @@ var _ = BeforeSuite(func() {
 	certReconciler := certctrl.NewCertReconciler(client, scheme, k8sManager.GetEventRecorderFor("cert"), disc, builder)
 
 	err = (&ExternalMariaDBReconciler{
-		Client:   client,
-		Scheme:   scheme,
-		Recorder: k8sManager.GetEventRecorderFor("mariadb"),
-
+		Client:         client,
+		Recorder:       k8sManager.GetEventRecorderFor("mariadb"),
 		Builder:        builder,
 		RefResolver:    refResolver,
 		ConditionReady: conditionReady,
-		Discovery:      disc,
 		Environment:    env,
 	}).SetupWithManager(testCtx, k8sManager, env)
 	Expect(err).ToNot(HaveOccurred())
