@@ -13,6 +13,8 @@ const (
 	BackupKind = "Backup"
 	// PhysicalBackupKind is the kind name of PhysicalBackup
 	PhysicalBackupKind = "PhysicalBackup"
+	// ExternalMariaDBKind is the kind name of ExternalMariaDB
+	ExternalMariaDBKind = "ExternalMariaDB"
 )
 
 var (

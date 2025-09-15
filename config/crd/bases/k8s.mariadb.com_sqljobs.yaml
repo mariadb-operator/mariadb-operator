@@ -343,7 +343,7 @@ spec:
                 description: MariaDBRef is a reference to a MariaDB object.
                 properties:
                   kind:
-                    description: ObjectReference is a reference to a object.
+                    description: Kind of the referent.
                     type: string
                   name:
                     type: string

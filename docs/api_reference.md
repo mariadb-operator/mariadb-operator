@@ -655,7 +655,7 @@ _Appears in:_
 
 
 
-ExternalMariaDB is the Schema for the external mariadbs API. It is used to define external MariaDB server.
+ExternalMariaDB is the Schema for the external MariaDBs API. It is used to define external MariaDB server.
 
 
 
@@ -682,14 +682,17 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `host` _string_ | Hostname of the external MariaDB service. |  |  |
-| `port` _integer_ | Port of the external MariaDB. | 3306 |  |
-| `username` _string_ | Username is the username to connect to the external MariaDB. |  |  |
-| `passwordSecretKeyRef` _[SecretKeySelector](#secretkeyselector)_ | PasswordSecretKeyRef is a reference to the password to be used by the User.<br />If not provided, the account will be locked and the password will expire.<br />If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password. |  |  |
+| `image` _string_ | Image name to be used to perform operations on the external MariaDB, for example, for taking backups.<br />The supported format is `<image>:<tag>`. Only MariaDB official images are supported.<br />It has priority over the Version field. |  |  |
+| `imagePullPolicy` _[PullPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#pullpolicy-v1-core)_ | ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`. |  | Enum: [Always Never IfNotPresent] <br /> |
+| `imagePullSecrets` _[LocalObjectReference](#localobjectreference) array_ | ImagePullSecrets is the list of pull Secrets to be used to pull the image. |  |  |
+| `version` _string_ | Version is the MariaDB image version to be used to operate with MariaDB, for example, for taking backups.<br />The MariaDB Community images will be used when providing this field.<br />If not provided, the version will be inferred from the external MariaDB.<br />The Image field has priority over this field. |  |  |
 | `inheritMetadata` _[Metadata](#metadata)_ | InheritMetadata defines the metadata to be inherited by children resources. |  |  |
+| `host` _string_ | Hostname of the external MariaDB service. |  | Required: \{\} <br /> |
+| `port` _integer_ | Port of the external MariaDB. | 3306 |  |
+| `username` _string_ | Username is the username to connect to the external MariaDB. |  | Required: \{\} <br /> |
+| `passwordSecretKeyRef` _[SecretKeySelector](#secretkeyselector)_ | PasswordSecretKeyRef is a reference to the password to be used by the User.<br />If not provided, the account will be locked and the password will expire.<br />If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password. |  |  |
 | `tls` _[TLS](#tls)_ | TLS defines the PKI to be used with MariaDB. |  |  |
-| `connection` _[ConnectionTemplate](#connectiontemplate)_ | Connection defines a template to configure the general Connection object.<br />This Connection provides the initial User access to the initial Database.<br />It will make use of the Service to route network traffic to all Pods. |  |  |
-| `version` _string_ | External MariaDB Version |  |  |
+| `connection` _[ConnectionTemplate](#connectiontemplate)_ | Connection defines a template to configure the Connection object.<br />This Connection provides the initial User access to the initial Database.<br />It will make use of the Service to route network traffic to all Pods. |  |  |
 
 
 #### Galera
@@ -1145,6 +1148,7 @@ _Appears in:_
 - [ConnectionSpec](#connectionspec)
 - [EnvFromSource](#envfromsource)
 - [Exporter](#exporter)
+- [ExternalMariaDBSpec](#externalmariadbspec)
 - [GeneratedSecretKeyRef](#generatedsecretkeyref)
 - [JobPodTemplate](#jobpodtemplate)
 - [MariaDBSpec](#mariadbspec)
@@ -1238,7 +1242,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `name` _string_ |  |  |  |
 | `namespace` _string_ |  |  |  |
-| `kind` _string_ | ObjectReference is a reference to a object. |  |  |
+| `kind` _string_ | Kind of the referent. |  |  |
 | `waitForIt` _boolean_ | WaitForIt indicates whether the controller using this reference should wait for MariaDB to be ready. | true |  |
 
 
