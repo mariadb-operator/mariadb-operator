@@ -160,7 +160,7 @@ func NewBackupCommand(userOpts ...BackupOpt) (*BackupCommand, error) {
 }
 
 func (b *BackupCommand) MariadbDump(backup *mariadbv1alpha1.Backup,
-	mariadb interfaces.MariaDBGenericInterface) (*Command, error) {
+	mariadb interfaces.MariaDBObject) (*Command, error) {
 	connFlags, err := ConnectionFlags(&b.CommandOpts, mariadb)
 	if err != nil {
 		return nil, fmt.Errorf("error getting connection flags: %v", err)
@@ -303,7 +303,7 @@ func (b *BackupCommand) MariadbOperatorRestore(backupContentType mariadbv1alpha1
 }
 
 func (b *BackupCommand) MariadbRestore(restore *mariadbv1alpha1.Restore,
-	mariadb interfaces.MariaDBGenericInterface) (*Command, error) {
+	mariadb interfaces.MariaDBObject) (*Command, error) {
 	connFlags, err := ConnectionFlags(&b.CommandOpts, mariadb)
 	if err != nil {
 		return nil, fmt.Errorf("error getting connection flags: %v", err)
@@ -389,7 +389,7 @@ func (b *BackupCommand) getTargetFilePath() string {
 	return fmt.Sprintf("$(cat '%s')", b.TargetFilePath)
 }
 
-func (b *BackupCommand) mariadbDumpArgs(backup *mariadbv1alpha1.Backup, mariadb interfaces.MariaDBGenericInterface) []string {
+func (b *BackupCommand) mariadbDumpArgs(backup *mariadbv1alpha1.Backup, mariadb interfaces.MariaDBObject) []string {
 	dumpOpts := make([]string, len(b.ExtraOpts))
 	copy(dumpOpts, b.ExtraOpts)
 
@@ -433,7 +433,7 @@ func (b *BackupCommand) mariadbDumpArgs(backup *mariadbv1alpha1.Backup, mariadb 
 	return ds.Unique(ds.Merge(args, dumpOpts)...)
 }
 
-func (b *BackupCommand) mariadbBackupArgs(mariadb interfaces.TLSAwareInterface) []string {
+func (b *BackupCommand) mariadbBackupArgs(mariadb interfaces.TLSProvider) []string {
 	backupOpts := make([]string, len(b.ExtraOpts))
 	copy(backupOpts, b.ExtraOpts)
 
@@ -452,7 +452,7 @@ func (b *BackupCommand) mariadbBackupArgs(mariadb interfaces.TLSAwareInterface) 
 	return ds.Unique(ds.Merge(args, backupOpts)...)
 }
 
-func (b *BackupCommand) mariadbArgs(restore *mariadbv1alpha1.Restore, mariadb interfaces.TLSAwareInterface) []string {
+func (b *BackupCommand) mariadbArgs(restore *mariadbv1alpha1.Restore, mariadb interfaces.TLSProvider) []string {
 	args := make([]string, len(b.ExtraOpts))
 	copy(args, b.ExtraOpts)
 
@@ -504,7 +504,7 @@ func (b *BackupCommand) s3Args() []string {
 	return args
 }
 
-func (b *BackupCommand) tlsArgs(mariadb interfaces.TLSAwareInterface) []string {
+func (b *BackupCommand) tlsArgs(mariadb interfaces.TLSProvider) []string {
 	if !mariadb.IsTLSEnabled() {
 		return nil
 	}

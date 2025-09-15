@@ -48,7 +48,7 @@ func (r *BackupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	if err := r.Get(ctx, req.NamespacedName, &backup); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
-	mariaDb, err := r.RefResolver.GenericMariaDB(ctx, &backup.Spec.MariaDBRef, backup.Namespace)
+	mariaDb, err := r.RefResolver.MariaDBObject(ctx, &backup.Spec.MariaDBRef, backup.Namespace)
 	if err != nil {
 		var mariaDbErr *multierror.Error
 		mariaDbErr = multierror.Append(mariaDbErr, err)
@@ -96,7 +96,7 @@ func (r *BackupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 }
 
 func (r *BackupReconciler) setDefaults(ctx context.Context, backup *mariadbv1alpha1.Backup,
-	mariadb interfaces.MariaDBGenericInterface) error {
+	mariadb interfaces.MariaDBObject) error {
 	return r.patch(ctx, backup, func(b *mariadbv1alpha1.Backup) {
 		if externalMariaDB, ok := mariadb.(*mariadbv1alpha1.ExternalMariaDB); ok {
 			backup.SetExternalDefaults(externalMariaDB)

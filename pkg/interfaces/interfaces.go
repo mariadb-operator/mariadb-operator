@@ -8,41 +8,42 @@ import (
 	clientpkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-type ImageAwareInterface interface {
+type Imager interface {
 	GetImagePullPolicy() corev1.PullPolicy
 	GetImagePullSecrets() []mariadbv1alpha1.LocalObjectReference
 	GetImage() string
 }
 
-type TLSAwareInterface interface {
+type TLSProvider interface {
 	IsTLSEnabled() bool
 	TLSCABundleSecretKeyRef() mariadbv1alpha1.SecretKeySelector
 	TLSClientCertSecretKey() types.NamespacedName
 	TLSServerCertSecretKey() types.NamespacedName
 }
 
-type ReplicationAwareInterface interface {
+type Replicator interface {
 	GetReplicas() int32
 }
 
-type ConnectionParamsAwareInterface interface {
+type Connector interface {
 	GetHost() string
 	GetPort() int32
 	GetSUName() string
 	GetSUCredential() *mariadbv1alpha1.SecretKeySelector
 }
 
-type GaleraAwareInterface interface {
+type GaleraProvider interface {
 	IsGaleraEnabled() bool
 }
 
-type MariaDBGenericInterface interface {
-	TLSAwareInterface
-	ImageAwareInterface
-	ConnectionParamsAwareInterface
-	GaleraAwareInterface
-	ReplicationAwareInterface
-	runtime.Object
-	IsReady() bool
+type MariaDBObject interface {
 	clientpkg.Object
+	runtime.Object
+	Connector
+	GaleraProvider
+	Imager
+	Replicator
+	TLSProvider
+
+	IsReady() bool
 }

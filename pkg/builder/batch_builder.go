@@ -43,7 +43,7 @@ var (
 )
 
 func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alpha1.Backup,
-	mariadb interfaces.MariaDBGenericInterface) (*batchv1.Job, error) {
+	mariadb interfaces.MariaDBObject) (*batchv1.Job, error) {
 	jobMeta :=
 		metadata.NewMetadataBuilder(key).
 			WithMetadata(backup.Spec.InheritMetadata).
@@ -261,7 +261,7 @@ func (b *Builder) BuildPhysicalBackupJob(key types.NamespacedName, backup *maria
 }
 
 func (b *Builder) BuildBackupCronJob(key types.NamespacedName, backup *mariadbv1alpha1.Backup,
-	mariadb interfaces.MariaDBGenericInterface) (*batchv1.CronJob, error) {
+	mariadb interfaces.MariaDBObject) (*batchv1.CronJob, error) {
 	if backup.Spec.Schedule == nil {
 		return nil, errors.New("schedule field is mandatory when building a CronJob")
 	}
@@ -296,7 +296,7 @@ func (b *Builder) BuildBackupCronJob(key types.NamespacedName, backup *mariadbv1
 }
 
 func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1alpha1.Restore,
-	mariadb interfaces.MariaDBGenericInterface) (*batchv1.Job, error) {
+	mariadb interfaces.MariaDBObject) (*batchv1.Job, error) {
 	jobMeta :=
 		metadata.NewMetadataBuilder(key).
 			WithMetadata(restore.Spec.InheritMetadata).
@@ -676,7 +676,7 @@ func (b *Builder) BuildGaleraRecoveryJob(key types.NamespacedName, mariadb *mari
 }
 
 func (b *Builder) BuildSqlJob(key types.NamespacedName, sqlJob *mariadbv1alpha1.SqlJob,
-	mariadb interfaces.MariaDBGenericInterface) (*batchv1.Job, error) {
+	mariadb interfaces.MariaDBObject) (*batchv1.Job, error) {
 	jobMeta :=
 		metadata.NewMetadataBuilder(key).
 			WithMetadata(sqlJob.Spec.InheritMetadata).
@@ -763,7 +763,7 @@ func (b *Builder) BuildSqlJob(key types.NamespacedName, sqlJob *mariadbv1alpha1.
 }
 
 func (b *Builder) BuildSqlCronJob(key types.NamespacedName, sqlJob *mariadbv1alpha1.SqlJob,
-	mariadb interfaces.MariaDBGenericInterface) (*batchv1.CronJob, error) {
+	mariadb interfaces.MariaDBObject) (*batchv1.CronJob, error) {
 	if sqlJob.Spec.Schedule == nil {
 		return nil, errors.New("schedule field is mandatory when building a CronJob")
 	}
@@ -827,7 +827,7 @@ func s3Opts(s3 *mariadbv1alpha1.S3) []command.BackupOpt {
 	return cmdOpts
 }
 
-func batchImagePullSecrets(mariadb interfaces.ImageAwareInterface,
+func batchImagePullSecrets(mariadb interfaces.Imager,
 	pullSecrets []mariadbv1alpha1.LocalObjectReference) []corev1.LocalObjectReference {
 	var secrets []mariadbv1alpha1.LocalObjectReference
 	secrets = append(secrets, mariadb.GetImagePullSecrets()...)

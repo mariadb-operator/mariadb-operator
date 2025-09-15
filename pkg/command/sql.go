@@ -53,7 +53,7 @@ type SqlCommand struct {
 	*SqlOpts
 }
 
-func (s *SqlCommand) ExecCommand(mariadb interfaces.ConnectionParamsAwareInterface) (*Command, error) {
+func (s *SqlCommand) ExecCommand(mariadb interfaces.Connector) (*Command, error) {
 	sqlFlags, err := s.SqlFlags(mariadb)
 	if err != nil {
 		return nil, fmt.Errorf("error getting SQL flags: %v", err)
@@ -71,7 +71,7 @@ func (s *SqlCommand) ExecCommand(mariadb interfaces.ConnectionParamsAwareInterfa
 	return NewBashCommand(cmds), nil
 }
 
-func (s *SqlCommand) SqlFlags(mdb interfaces.ConnectionParamsAwareInterface) (string, error) {
+func (s *SqlCommand) SqlFlags(mdb interfaces.Connector) (string, error) {
 	flags, err := ConnectionFlags(&s.CommandOpts, mdb)
 	if err != nil {
 		return "", fmt.Errorf("error getting connection flags: %v", err)

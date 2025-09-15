@@ -138,7 +138,7 @@ func NewClient(clientOpts ...Opt) (*Client, error) {
 	}, nil
 }
 
-func NewClientWithMariaDB(ctx context.Context, mariadb interfaces.MariaDBGenericInterface, refResolver *refresolver.RefResolver,
+func NewClientWithMariaDB(ctx context.Context, mariadb interfaces.MariaDBObject, refResolver *refresolver.RefResolver,
 	clientOpts ...Opt) (*Client, error) {
 	if mariadb.GetSUCredential() == nil {
 		return nil, fmt.Errorf("error: superuser credential is nil")
