@@ -437,16 +437,17 @@ var rootCmd = &cobra.Command{
 			setupLog.Error(err, "Unable to create controller", "controller", "User")
 			os.Exit(1)
 		}
-		if err = controller.NewExternalMariaDBReconciler(client, refResolver, conditionReady, builder).SetupWithManager(ctx, mgr, env); err != nil {
-			setupLog.Error(err, "Unable to create controller", "controller", mariadbv1alpha1.ExternalMariaDBKind)
-			os.Exit(1)
-		}
 		if err = controller.NewGrantReconciler(client, refResolver, conditionReady, sqlOpts...).SetupWithManager(ctx, mgr); err != nil {
 			setupLog.Error(err, "Unable to create controller", "controller", "Grant")
 			os.Exit(1)
 		}
 		if err = controller.NewDatabaseReconciler(client, refResolver, conditionReady, sqlOpts...).SetupWithManager(mgr); err != nil {
 			setupLog.Error(err, "Unable to create controller", "controller", "Database")
+			os.Exit(1)
+		}
+		if err = controller.NewExternalMariaDBReconciler(client, refResolver, conditionReady,
+			builder).SetupWithManager(mgr); err != nil {
+			setupLog.Error(err, "Unable to create controller", "controller", mariadbv1alpha1.ExternalMariaDBKind)
 			os.Exit(1)
 		}
 
