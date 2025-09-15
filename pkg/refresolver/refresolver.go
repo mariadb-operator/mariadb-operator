@@ -46,8 +46,8 @@ func (r *RefResolver) MariaDB(ctx context.Context, ref *mariadbv1alpha1.MariaDBR
 	return &mariadb, nil
 }
 
-func (r *RefResolver) GenericMariaDB(ctx context.Context, ref *mariadbv1alpha1.MariaDBRef,
-	namespace string) (interfaces.MariaDBGenericInterface, error) {
+func (r *RefResolver) MariaDBObject(ctx context.Context, ref *mariadbv1alpha1.MariaDBRef,
+	namespace string) (interfaces.MariaDBObject, error) {
 	key := types.NamespacedName{
 		Name:      ref.Name,
 		Namespace: namespace,

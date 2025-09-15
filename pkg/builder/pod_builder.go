@@ -460,7 +460,7 @@ func mariadbConfigVolume(mariadb *mariadbv1alpha1.MariaDB) corev1.Volume {
 	}
 }
 
-func mariadbTLSVolumes(mariadb interfaces.TLSAwareInterface) ([]corev1.Volume, []corev1.VolumeMount) {
+func mariadbTLSVolumes(mariadb interfaces.TLSProvider) ([]corev1.Volume, []corev1.VolumeMount) {
 	if !mariadb.IsTLSEnabled() {
 		return nil, nil
 	}

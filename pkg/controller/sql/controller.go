@@ -83,7 +83,7 @@ func (r *SqlReconciler) Reconcile(ctx context.Context, resource Resource) (ctrl.
 		return ctrl.Result{}, nil
 	}
 
-	mariadb, err := r.RefResolver.GenericMariaDB(ctx, resource.MariaDBRef(), resource.GetNamespace())
+	mariadb, err := r.RefResolver.MariaDBObject(ctx, resource.MariaDBRef(), resource.GetNamespace())
 	if err != nil {
 		var errBundle *multierror.Error
 		errBundle = multierror.Append(errBundle, err)
@@ -186,7 +186,7 @@ func (r *SqlReconciler) addRequeueIntervalOffset(duration time.Duration) time.Du
 	return duration
 }
 
-func waitForMariaDB(ctx context.Context, client ctrlclient.Client, mdb interfaces.MariaDBGenericInterface,
+func waitForMariaDB(ctx context.Context, client ctrlclient.Client, mdb interfaces.MariaDBObject,
 	logSql bool) (ctrl.Result, error) {
 
 	kind := mdb.GetObjectKind()

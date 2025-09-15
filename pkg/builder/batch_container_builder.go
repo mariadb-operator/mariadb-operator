@@ -12,7 +12,7 @@ import (
 )
 
 func (b *Builder) jobContainer(name string, cmd *cmd.Command, image string, volumeMounts []corev1.VolumeMount, env []corev1.EnvVar,
-	resources *corev1.ResourceRequirements, mariadb interfaces.ImageAwareInterface,
+	resources *corev1.ResourceRequirements, mariadb interfaces.Imager,
 	securityContext *mariadbv1alpha1.SecurityContext) (*corev1.Container, error) {
 	sc, err := b.buildContainerSecurityContext(securityContext)
 	if err != nil {
@@ -36,21 +36,21 @@ func (b *Builder) jobContainer(name string, cmd *cmd.Command, image string, volu
 }
 
 func (b *Builder) jobMariadbOperatorContainer(cmd *cmd.Command, volumeMounts []corev1.VolumeMount, envVar []corev1.EnvVar,
-	resources *corev1.ResourceRequirements, mariadb interfaces.ImageAwareInterface, env *environment.OperatorEnv,
+	resources *corev1.ResourceRequirements, mariadb interfaces.Imager, env *environment.OperatorEnv,
 	securityContext *mariadbv1alpha1.SecurityContext) (*corev1.Container, error) {
 
 	return b.jobContainer("mariadb-operator", cmd, env.MariadbOperatorImage, volumeMounts, envVar, resources, mariadb, securityContext)
 }
 
 func (b *Builder) jobMariadbContainer(cmd *cmd.Command, volumeMounts []corev1.VolumeMount, envVar []corev1.EnvVar,
-	resources *corev1.ResourceRequirements, mariadb interfaces.ImageAwareInterface,
+	resources *corev1.ResourceRequirements, mariadb interfaces.Imager,
 	securityContext *mariadbv1alpha1.SecurityContext) (*corev1.Container, error) {
 
 	return b.jobContainer("mariadb", cmd, mariadb.GetImage(), volumeMounts, envVar, resources, mariadb, securityContext)
 }
 
 func jobBatchStorageVolume(storageVolume mariadbv1alpha1.StorageVolumeSource,
-	s3 *mariadbv1alpha1.S3, mariadb interfaces.TLSAwareInterface) ([]corev1.Volume, []corev1.VolumeMount) {
+	s3 *mariadbv1alpha1.S3, mariadb interfaces.TLSProvider) ([]corev1.Volume, []corev1.VolumeMount) {
 	volumes :=
 		[]corev1.Volume{
 			{
@@ -103,7 +103,7 @@ func jobPhysicalBackupVolumes(storageVolume mariadbv1alpha1.StorageVolumeSource,
 	return volumes, volumeMounts
 }
 
-func jobEnv(mariadb interfaces.ConnectionParamsAwareInterface) []corev1.EnvVar {
+func jobEnv(mariadb interfaces.Connector) []corev1.EnvVar {
 	return []corev1.EnvVar{
 		{
 			Name:  batchUserEnv,
@@ -157,7 +157,7 @@ func jobResources(resources *mariadbv1alpha1.ResourceRequirements) *corev1.Resou
 	return nil
 }
 
-func sqlJobvolumes(sqlJob *mariadbv1alpha1.SqlJob, mariadb interfaces.TLSAwareInterface) ([]corev1.Volume, []corev1.VolumeMount) {
+func sqlJobvolumes(sqlJob *mariadbv1alpha1.SqlJob, mariadb interfaces.TLSProvider) ([]corev1.Volume, []corev1.VolumeMount) {
 	volumes := []corev1.Volume{
 		{
 			Name: batchScriptsVolume,
