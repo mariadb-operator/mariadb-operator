@@ -11,16 +11,11 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/builder"
 	condition "github.com/mariadb-operator/mariadb-operator/v25/pkg/condition"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/configmap"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/secret"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/discovery"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/environment"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/refresolver"
 	sqlClient "github.com/mariadb-operator/mariadb-operator/v25/pkg/sql"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -30,17 +25,11 @@ import (
 // ExternalMariaDBReconciler reconciles a ExternalMariaDB object
 type ExternalMariaDBReconciler struct {
 	client.Client
-	Scheme   *runtime.Scheme
-	Recorder record.EventRecorder
-
+	Recorder       record.EventRecorder
 	Builder        *builder.Builder
 	RefResolver    *refresolver.RefResolver
 	ConditionReady *condition.Ready
 	Environment    *environment.OperatorEnv
-	Discovery      *discovery.Discovery
-
-	ConfigMapReconciler *configmap.ConfigMapReconciler
-	SecretReconciler    *secret.SecretReconciler
 }
 
 type patcherExternalMariaDB func(*mariadbv1alpha1.ExternalMariaDBStatus) error
@@ -137,10 +126,7 @@ func (r *ExternalMariaDBReconciler) reconcileConnection(ctx context.Context,
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
 
-	key := types.NamespacedName{
-		Name:      extMariaDB.Name,
-		Namespace: extMariaDB.Namespace,
-	}
+	key := client.ObjectKeyFromObject(extMariaDB)
 	var existingConn mariadbv1alpha1.Connection
 	if err := r.Get(ctx, key, &existingConn); err == nil {
 		return ctrl.Result{}, nil
@@ -191,7 +177,6 @@ func (r *ExternalMariaDBReconciler) reconcileStatus(ctx context.Context,
 
 	isGaleraEnabled, err := client.IsSystemVariableEnabled(ctx, "wsrep_on")
 	if err != nil {
-		isGaleraEnabled = false
 		return ctrl.Result{}, fmt.Errorf("unable to determine if Galera cluster is enable on that cluster: %v", err)
 	}
 
@@ -235,12 +220,11 @@ func (r *ExternalMariaDBReconciler) SetupWithManager(ctx context.Context, mgr ct
 }
 
 func NewExternalMariaDBReconciler(client client.Client, refResolver *refresolver.RefResolver, conditionReady *condition.Ready,
-	builder *builder.Builder, scheme *runtime.Scheme) *ExternalMariaDBReconciler {
+	builder *builder.Builder) *ExternalMariaDBReconciler {
 	return &ExternalMariaDBReconciler{
 		Client:         client,
 		RefResolver:    refResolver,
 		ConditionReady: conditionReady,
 		Builder:        builder,
-		Scheme:         scheme,
 	}
 }

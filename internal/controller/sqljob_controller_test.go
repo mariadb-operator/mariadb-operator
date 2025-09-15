@@ -256,7 +256,7 @@ var _ = Describe("SqlJob on External MariaDB", func() {
 					ObjectReference: mariadbv1alpha1.ObjectReference{
 						Name: testEMdbkey.Name,
 					},
-					Kind:      "ExternalMariaDB",
+					Kind:      mariadbv1alpha1.ExternalMariaDBKind,
 					WaitForIt: true,
 				},
 				InheritMetadata: &mariadbv1alpha1.Metadata{
@@ -303,7 +303,7 @@ var _ = Describe("SqlJob on External MariaDB", func() {
 					ObjectReference: mariadbv1alpha1.ObjectReference{
 						Name: testEMdbkey.Name,
 					},
-					Kind:      "ExternalMariaDB",
+					Kind:      mariadbv1alpha1.ExternalMariaDBKind,
 					WaitForIt: true,
 				},
 				InheritMetadata: &mariadbv1alpha1.Metadata{
@@ -345,7 +345,7 @@ var _ = Describe("SqlJob on External MariaDB", func() {
 					ObjectReference: mariadbv1alpha1.ObjectReference{
 						Name: testEMdbkey.Name,
 					},
-					Kind:      "ExternalMariaDB",
+					Kind:      mariadbv1alpha1.ExternalMariaDBKind,
 					WaitForIt: true,
 				},
 				InheritMetadata: &mariadbv1alpha1.Metadata{
@@ -444,7 +444,7 @@ var _ = Describe("SqlJob on External MariaDB", func() {
 					ObjectReference: mariadbv1alpha1.ObjectReference{
 						Name: testEMdbkey.Name,
 					},
-					Kind:      "ExternalMariaDB",
+					Kind:      mariadbv1alpha1.ExternalMariaDBKind,
 					WaitForIt: true,
 				},
 				Username: testUser,

@@ -755,7 +755,7 @@ func testExternalConnection(username string, password mariadbv1alpha1.SecretKeyS
 				ObjectReference: mariadbv1alpha1.ObjectReference{
 					Name: testEMdbkey.Name,
 				},
-				Kind:      "ExternalMariaDB",
+				Kind:      mariadbv1alpha1.ExternalMariaDBKind,
 				WaitForIt: true,
 			},
 			Username:             username,
@@ -882,7 +882,7 @@ func getBackupFromExternalMariaDB(key types.NamespacedName, storage mariadbv1alp
 				ObjectReference: mariadbv1alpha1.ObjectReference{
 					Name: testEMdbkey.Name,
 				},
-				Kind:      "ExternalMariaDB",
+				Kind:      mariadbv1alpha1.ExternalMariaDBKind,
 				WaitForIt: true,
 			},
 			InheritMetadata: &mariadbv1alpha1.Metadata{

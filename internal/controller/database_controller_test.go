@@ -82,7 +82,7 @@ var _ = Describe("Database on external MariaDB", func() {
 					ObjectReference: mariadbv1alpha1.ObjectReference{
 						Name: testEMdbkey.Name,
 					},
-					Kind:      "ExternalMariaDB",
+					Kind:      mariadbv1alpha1.ExternalMariaDBKind,
 					WaitForIt: true,
 				},
 				CharacterSet: "utf8",

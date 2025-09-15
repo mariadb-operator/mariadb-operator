@@ -543,7 +543,7 @@ var _ = Describe("User on a external MariaDB", func() {
 					ObjectReference: mariadbv1alpha1.ObjectReference{
 						Name: testEMdbkey.Name,
 					},
-					Kind:      "ExternalMariaDB",
+					Kind:      mariadbv1alpha1.ExternalMariaDBKind,
 					WaitForIt: true,
 				},
 				PasswordSecretKeyRef: &testPasswordSecretRef,
@@ -612,7 +612,7 @@ var _ = Describe("User on a external MariaDB", func() {
 					ObjectReference: mariadbv1alpha1.ObjectReference{
 						Name: testEMdbkey.Name,
 					},
-					Kind:      "ExternalMariaDB",
+					Kind:      mariadbv1alpha1.ExternalMariaDBKind,
 					WaitForIt: true,
 				},
 				PasswordSecretKeyRef: &testPasswordSecretRef,
@@ -686,7 +686,7 @@ var _ = Describe("User on a external MariaDB", func() {
 					ObjectReference: mariadbv1alpha1.ObjectReference{
 						Name: testEMdbkey.Name,
 					},
-					Kind:      "ExternalMariaDB",
+					Kind:      mariadbv1alpha1.ExternalMariaDBKind,
 					WaitForIt: true,
 				},
 				PasswordSecretKeyRef: &testPasswordSecretRef,
@@ -831,7 +831,7 @@ var _ = Describe("User on a external MariaDB", func() {
 					ObjectReference: mariadbv1alpha1.ObjectReference{
 						Name: testEMdbkey.Name,
 					},
-					Kind:      "ExternalMariaDB",
+					Kind:      mariadbv1alpha1.ExternalMariaDBKind,
 					WaitForIt: true,
 				},
 				PasswordSecretKeyRef: &testPasswordSecretRef,
@@ -862,7 +862,7 @@ var _ = Describe("User on a external MariaDB", func() {
 					ObjectReference: mariadbv1alpha1.ObjectReference{
 						Name: testEMdbkey.Name,
 					},
-					Kind:      "ExternalMariaDB",
+					Kind:      mariadbv1alpha1.ExternalMariaDBKind,
 					WaitForIt: true,
 				},
 			},
@@ -890,7 +890,7 @@ var _ = Describe("User on a external MariaDB", func() {
 					ObjectReference: mariadbv1alpha1.ObjectReference{
 						Name: testEMdbkey.Name,
 					},
-					Kind:      "ExternalMariaDB",
+					Kind:      mariadbv1alpha1.ExternalMariaDBKind,
 					WaitForIt: true,
 				},
 				Privileges: []string{
@@ -945,7 +945,7 @@ var _ = Describe("User on a external MariaDB", func() {
 					ObjectReference: mariadbv1alpha1.ObjectReference{
 						Name: testEMdbkey.Name,
 					},
-					Kind:      "ExternalMariaDB",
+					Kind:      mariadbv1alpha1.ExternalMariaDBKind,
 					WaitForIt: true,
 				},
 				PasswordSecretKeyRef: &testPasswordSecretRef,
@@ -976,7 +976,7 @@ var _ = Describe("User on a external MariaDB", func() {
 					ObjectReference: mariadbv1alpha1.ObjectReference{
 						Name: testEMdbkey.Name,
 					},
-					Kind:      "ExternalMariaDB",
+					Kind:      mariadbv1alpha1.ExternalMariaDBKind,
 					WaitForIt: true,
 				},
 			},
@@ -1004,7 +1004,7 @@ var _ = Describe("User on a external MariaDB", func() {
 					ObjectReference: mariadbv1alpha1.ObjectReference{
 						Name: testEMdbkey.Name,
 					},
-					Kind:      "ExternalMariaDB",
+					Kind:      mariadbv1alpha1.ExternalMariaDBKind,
 					WaitForIt: true,
 				},
 				Privileges: []string{
