@@ -1,0 +1,14 @@
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: Database
+metadata:
+  name: database-external
+spec:
+  name: database
+  mariaDbRef:
+    name: external-mariadb
+    kind: ExternalMariaDB
+  characterSet: utf8
+  collate: utf8_general_ci
+  cleanupPolicy: Delete
+  requeueInterval: 10h
+  retryInterval: 30s

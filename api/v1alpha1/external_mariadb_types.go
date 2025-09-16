@@ -83,11 +83,6 @@ func (s *ExternalMariaDBStatus) SetCondition(condition metav1.Condition) {
 	meta.SetStatusCondition(&s.Conditions, condition)
 }
 
-// SetCondition sets a status condition to MariaDB
-func (s *ExternalMariaDBStatus) SetVersion(version string) {
-	s.Version = version
-}
-
 // IsHAEnabled indicates whether the MariaDB instance has Galera enabled
 func (m *ExternalMariaDB) IsGaleraEnabled() bool {
 	return m.Status.IsGaleraEnabled
