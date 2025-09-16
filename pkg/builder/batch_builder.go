@@ -87,6 +87,7 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alph
 
 	mariadbContainer, err := b.jobMariadbContainer(
 		dumpCmd,
+		b.env,
 		volumeMounts,
 		jobEnv(mariadb),
 		jobResources(backup.Spec.Resources),
@@ -196,6 +197,7 @@ func (b *Builder) BuildPhysicalBackupJob(key types.NamespacedName, backup *maria
 
 	mariadbContainer, err := b.jobMariadbContainer(
 		backupCmd,
+		b.env,
 		volumeMounts,
 		jobEnv(mariadb),
 		jobResources(backup.Spec.Resources),
@@ -348,6 +350,7 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 
 	mariadbContainer, err := b.jobMariadbContainer(
 		restoreCmd,
+		b.env,
 		volumeMounts,
 		jobEnv(mariadb),
 		jobResources(restore.Spec.Resources),
@@ -454,6 +457,7 @@ func (b *Builder) BuildPhysicalBackupRestoreJob(key types.NamespacedName, mariad
 
 	mariadbContainer, err := b.jobMariadbContainer(
 		restoreCmd,
+		b.env,
 		volumeMounts,
 		nil,
 		jobResources(restoreJob.Resources),
@@ -720,6 +724,7 @@ func (b *Builder) BuildSqlJob(key types.NamespacedName, sqlJob *mariadbv1alpha1.
 
 	container, err := b.jobMariadbContainer(
 		execCmd,
+		b.env,
 		volumeMounts,
 		sqlJobEnv(sqlJob),
 		resources,

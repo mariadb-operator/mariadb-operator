@@ -44,6 +44,7 @@ jobs:
         env:
           MARIADB_GALERA_LIB_PATH: /usr/lib64/galera/libgalera_smm.so
           RELATED_IMAGE_MARIADB: "${{ inputs.mariadb_image }}"
+          RELATED_IMAGE_MARIADB_NAME: "mariadb"
           MARIADB_DEFAULT_VERSION: "${{ inputs.mariadb_version }}"
 
       - name: Tell the MariaDB Folks that failed

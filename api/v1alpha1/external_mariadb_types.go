@@ -15,7 +15,7 @@ import (
 type ExternalMariaDBSpec struct {
 	// Image name to be used to perform operations on the external MariaDB, for example, for taking backups.
 	// The supported format is `<image>:<tag>`. Only MariaDB official images are supported.
-	// It has priority over the Version field.
+	// If not provided, the MariaDB image will be inferred by the operator in runtime. The default MariaDB registry will be used in this case,
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Image string `json:"image,omitempty"`
@@ -28,13 +28,6 @@ type ExternalMariaDBSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	ImagePullSecrets []LocalObjectReference `json:"imagePullSecrets,omitempty" webhook:"inmutable"`
-	// Version is the MariaDB image version to be used to operate with MariaDB, for example, for taking backups.
-	// The MariaDB Community images will be used when providing this field.
-	// If not provided, the version will be inferred from the external MariaDB.
-	// The Image field has priority over this field.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	Version *string `json:"version,omitempty"`
 	// InheritMetadata defines the metadata to be inherited by children resources.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
@@ -62,9 +55,7 @@ type ExternalMariaDBSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	TLS *TLS `json:"tls,omitempty"`
-	// Connection defines a template to configure the Connection object.
-	// This Connection provides the initial User access to the initial Database.
-	// It will make use of the Service to route network traffic to all Pods.
+	// Connection defines a template to configure a Connection for the external MariaDB.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Connection *ConnectionTemplate `json:"connection,omitempty" webhook:"inmutable"`
@@ -147,14 +138,15 @@ func (m *ExternalMariaDB) GetImagePullSecrets() []LocalObjectReference {
 }
 
 // Get image
-func (m *ExternalMariaDB) GetImage() string {
-	if image := m.Spec.Image; image != "" {
-		return image
+func (m *ExternalMariaDB) GetImage(env *environment.OperatorEnv) string {
+	if m.Spec.Image != "" {
+		return m.Spec.Image
 	}
-	version := ptr.Deref(m.Spec.Version, m.Status.Version)
-	// By default, ExternalMariaDB uses official MariaDB images (publicly available) for the Backups.
-	// This can be overridden by setting the Image field.
-	return fmt.Sprintf("mariadb:%s", version)
+	version := m.Status.Version
+	if version == "" {
+		version = "latest"
+	}
+	return fmt.Sprintf("%s:%s", env.RelatedMariadbImageName, version)
 }
 
 // IsTLSRequired indicates whether TLS is enabled and must be enforced for all connections.

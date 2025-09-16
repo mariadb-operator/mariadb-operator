@@ -2,7 +2,6 @@ package controller
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -165,14 +164,9 @@ func (r *ExternalMariaDBReconciler) reconcileStatus(ctx context.Context,
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("unable to get MariaDB version: %v", err)
 	}
-	versionParts := strings.Split(rawVersion, "-")
-
-	var version string
-	if len(versionParts) > 0 {
-		version = versionParts[0]
-	} else {
-		msg := "MariaDB version could not be inferred"
-		log.FromContext(ctx).Error(errors.New(msg), msg, "version", rawVersion)
+	version, err := r.getVersion(rawVersion)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error getting MariaDB version: %v", err)
 	}
 
 	isGaleraEnabled, err := client.IsSystemVariableEnabled(ctx, "wsrep_on")
@@ -188,6 +182,18 @@ func (r *ExternalMariaDBReconciler) reconcileStatus(ctx context.Context,
 		return nil
 	})
 
+}
+
+func (r *ExternalMariaDBReconciler) getVersion(rawVersion string) (string, error) {
+	versionParts := strings.Split(rawVersion, "-")
+	if len(versionParts) < 1 {
+		return "", fmt.Errorf("invalid MariaDB version: \"%s\"", rawVersion)
+	}
+	versionParts = strings.Split(versionParts[0], ".")
+	if len(versionParts) < 2 {
+		return "", fmt.Errorf("invalid MariaDB version: \"%s\"", rawVersion)
+	}
+	return fmt.Sprintf("%s.%s", versionParts[0], versionParts[1]), nil
 }
 
 func (r *ExternalMariaDBReconciler) patchStatus(ctx context.Context, external_mariadb *mariadbv1alpha1.ExternalMariaDB,

@@ -1106,11 +1106,6 @@ func (in *ExternalMariaDBSpec) DeepCopyInto(out *ExternalMariaDBSpec) {
 		*out = make([]LocalObjectReference, len(*in))
 		copy(*out, *in)
 	}
-	if in.Version != nil {
-		in, out := &in.Version, &out.Version
-		*out = new(string)
-		**out = **in
-	}
 	if in.InheritMetadata != nil {
 		in, out := &in.InheritMetadata, &out.InheritMetadata
 		*out = new(Metadata)
