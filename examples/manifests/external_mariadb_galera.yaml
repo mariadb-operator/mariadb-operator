@@ -1,15 +1,15 @@
 apiVersion: k8s.mariadb.com/v1alpha1
 kind: ExternalMariaDB
 metadata:
-  name: external-mariadb
+  name: external-mariadb-galera
 spec:
-  host: mariadb.default.svc.cluster.local
+  host: mariadb-galera-primary.default.svc.cluster.local
   port: 3306
   username: root
   passwordSecretKeyRef:
     name: mariadb
     key: password
   connection:
-    secretName: external-mariadb
+    secretName: external-mariadb-galera
     healthCheck:
       interval: 5s

@@ -1,0 +1,19 @@
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: SqlJob
+metadata:
+  name: sqljob-external
+spec:
+  mariaDbRef:
+    name: external-mariadb
+    kind: ExternalMariaDB
+  schedule:
+    cron: "*/1 * * * *"
+    suspend: false
+  timeZone: "UTC"
+  username: user
+  passwordSecretKeyRef:
+    name: mariadb
+    key: password
+  database: mariadb
+  sql: |
+    SELECT 1;

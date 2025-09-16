@@ -1,0 +1,17 @@
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: User
+metadata:
+  name: user-external
+spec:
+  name: user
+  mariaDbRef:
+    name: external-mariadb
+    kind: ExternalMariaDB
+  passwordSecretKeyRef:
+    name: mariadb
+    key: password
+  maxUserConnections: 20
+  host: "%"
+  cleanupPolicy: Delete
+  requeueInterval: 10h
+  retryInterval: 30s

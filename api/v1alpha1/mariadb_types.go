@@ -761,7 +761,7 @@ func (s *MariaDBStatus) UpdateCurrentPrimary(mariadb *MariaDB, index int) {
 }
 
 // +kubebuilder:object:root=true
-// +kubebuilder:resource:shortName=mdb
+// +kubebuilder:resource:shortName=emdb
 // +kubebuilder:subresource:status
 // +kubebuilder:subresource:scale:specpath=.spec.replicas,statuspath=.status.replicas
 // +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.conditions[?(@.type==\"Ready\")].status"
