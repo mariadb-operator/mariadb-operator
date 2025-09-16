@@ -682,15 +682,15 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `image` _string_ | Image name to be used to perform operations on the external MariaDB, for example, for taking backups.<br />The supported format is `<image>:<tag>`. Only MariaDB official images are supported.<br />If not provided, the MariaDB image will be inferred by the operator in runtime. The default MariaDB registry will be used in this case, |  |  |
+| `image` _string_ | Image name to be used to perform operations on the external MariaDB, for example, for taking backups.<br />The supported format is `<image>:<tag>`. Only MariaDB official images are supported.<br />If not provided, the MariaDB image version be inferred by the operator in runtime. The default MariaDB image will be used in this case, |  |  |
 | `imagePullPolicy` _[PullPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#pullpolicy-v1-core)_ | ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`. |  | Enum: [Always Never IfNotPresent] <br /> |
 | `imagePullSecrets` _[LocalObjectReference](#localobjectreference) array_ | ImagePullSecrets is the list of pull Secrets to be used to pull the image. |  |  |
 | `inheritMetadata` _[Metadata](#metadata)_ | InheritMetadata defines the metadata to be inherited by children resources. |  |  |
-| `host` _string_ | Hostname of the external MariaDB service. |  | Required: \{\} <br /> |
+| `host` _string_ | Hostname of the external MariaDB. |  | Required: \{\} <br /> |
 | `port` _integer_ | Port of the external MariaDB. | 3306 |  |
 | `username` _string_ | Username is the username to connect to the external MariaDB. |  | Required: \{\} <br /> |
-| `passwordSecretKeyRef` _[SecretKeySelector](#secretkeyselector)_ | PasswordSecretKeyRef is a reference to the password to be used by the User.<br />If not provided, the account will be locked and the password will expire.<br />If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password. |  |  |
-| `tls` _[TLS](#tls)_ | TLS defines the PKI to be used with MariaDB. |  |  |
+| `passwordSecretKeyRef` _[SecretKeySelector](#secretkeyselector)_ | PasswordSecretKeyRef is a reference to the password to connecto to the external MariaDB. |  |  |
+| `tls` _[TLS](#tls)_ | TLS defines the PKI to be used with the external MariaDB. |  |  |
 | `connection` _[ConnectionTemplate](#connectiontemplate)_ | Connection defines a template to configure a Connection for the external MariaDB. |  |  |
 
 
