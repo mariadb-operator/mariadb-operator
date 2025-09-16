@@ -2,6 +2,7 @@ package interfaces
 
 import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/environment"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -11,7 +12,7 @@ import (
 type Imager interface {
 	GetImagePullPolicy() corev1.PullPolicy
 	GetImagePullSecrets() []mariadbv1alpha1.LocalObjectReference
-	GetImage() string
+	GetImage(env *environment.OperatorEnv) string
 }
 
 type TLSProvider interface {

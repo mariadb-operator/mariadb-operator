@@ -16,6 +16,7 @@ type OperatorEnv struct {
 	MariadbOperatorSAPath        string `env:"MARIADB_OPERATOR_SA_PATH,required"`
 	MariadbOperatorImage         string `env:"MARIADB_OPERATOR_IMAGE,required"`
 	RelatedMariadbImage          string `env:"RELATED_IMAGE_MARIADB,required"`
+	RelatedMariadbImageName      string `env:"RELATED_IMAGE_MARIADB_NAME,required"`
 	RelatedMaxscaleImage         string `env:"RELATED_IMAGE_MAXSCALE,required"`
 	RelatedExporterImage         string `env:"RELATED_IMAGE_EXPORTER,required"`
 	RelatedExporterMaxscaleImage string `env:"RELATED_IMAGE_EXPORTER_MAXSCALE,required"`

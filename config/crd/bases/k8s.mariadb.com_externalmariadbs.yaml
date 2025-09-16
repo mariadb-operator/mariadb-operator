@@ -54,10 +54,8 @@ spec:
               MariaDB
             properties:
               connection:
-                description: |-
-                  Connection defines a template to configure the Connection object.
-                  This Connection provides the initial User access to the initial Database.
-                  It will make use of the Service to route network traffic to all Pods.
+                description: Connection defines a template to configure a Connection
+                  for the external MariaDB.
                 properties:
                   healthCheck:
                     description: HealthCheck to be used in the Connection.
@@ -133,7 +131,7 @@ spec:
                 description: |-
                   Image name to be used to perform operations on the external MariaDB, for example, for taking backups.
                   The supported format is `<image>:<tag>`. Only MariaDB official images are supported.
-                  It has priority over the Version field.
+                  If not provided, the MariaDB image will be inferred by the operator in runtime. The default MariaDB registry will be used in this case,
                 type: string
               imagePullPolicy:
                 description: ImagePullPolicy is the image pull policy. One of `Always`,
@@ -289,13 +287,6 @@ spec:
                 type: object
               username:
                 description: Username is the username to connect to the external MariaDB.
-                type: string
-              version:
-                description: |-
-                  Version is the MariaDB image version to be used to operate with MariaDB, for example, for taking backups.
-                  The MariaDB Community images will be used when providing this field.
-                  If not provided, the version will be inferred from the external MariaDB.
-                  The Image field has priority over this field.
                 type: string
             required:
             - host

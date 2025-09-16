@@ -379,6 +379,7 @@ func TestOperatorHelmConfigMap(t *testing.T) {
 			"config.galeraLibPath":         "/path/to/libgalera.so",
 			"config.mariadbDefaultVersion": "11.4",
 			"config.mariadbImage":          "mariadb:10.5",
+			"config.mariadbImageName":      "mariadb",
 			"config.maxscaleImage":         "maxscale:2.5",
 			"config.exporterImage":         "exporter:1.0",
 			"config.exporterMaxscaleImage": "exporter-maxscale:1.0",
@@ -394,6 +395,7 @@ func TestOperatorHelmConfigMap(t *testing.T) {
 	Expect(configMap.Data["MARIADB_GALERA_LIB_PATH"]).To(Equal("/path/to/libgalera.so"))
 	Expect(configMap.Data["MARIADB_DEFAULT_VERSION"]).To(Equal("11.4"))
 	Expect(configMap.Data["RELATED_IMAGE_MARIADB"]).To(Equal("mariadb:10.5"))
+	Expect(configMap.Data["RELATED_IMAGE_MARIADB_NAME"]).To(Equal("mariadb"))
 	Expect(configMap.Data["RELATED_IMAGE_MAXSCALE"]).To(Equal("maxscale:2.5"))
 	Expect(configMap.Data["RELATED_IMAGE_EXPORTER"]).To(Equal("exporter:1.0"))
 	Expect(configMap.Data["RELATED_IMAGE_EXPORTER_MAXSCALE"]).To(Equal("exporter-maxscale:1.0"))
