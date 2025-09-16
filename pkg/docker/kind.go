@@ -1,7 +1,9 @@
 package docker
 
-func GetKindCidrPrefix() (string, error) {
-	prefix, err := GetDockerCidrPrefix("kind")
+import "context"
+
+func GetKindCidrPrefix(ctx context.Context) (string, error) {
+	prefix, err := GetDockerCidrPrefix(ctx, "kind")
 	if err != nil {
 		return "", err
 	}

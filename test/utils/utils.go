@@ -19,6 +19,7 @@ package utils
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -61,17 +62,17 @@ func Run(cmd *exec.Cmd) (string, error) {
 }
 
 // InstallPrometheusOperator installs the prometheus Operator to be used to export the enabled metrics.
-func InstallPrometheusOperator() error {
+func InstallPrometheusOperator(ctx context.Context) error {
 	url := fmt.Sprintf(prometheusOperatorURL, prometheusOperatorVersion)
-	cmd := exec.Command("kubectl", "create", "-f", url)
+	cmd := exec.CommandContext(ctx, "kubectl", "create", "-f", url)
 	_, err := Run(cmd)
 	return err
 }
 
 // UninstallPrometheusOperator uninstalls the prometheus
-func UninstallPrometheusOperator() {
+func UninstallPrometheusOperator(ctx context.Context) {
 	url := fmt.Sprintf(prometheusOperatorURL, prometheusOperatorVersion)
-	cmd := exec.Command("kubectl", "delete", "-f", url)
+	cmd := exec.CommandContext(ctx, "kubectl", "delete", "-f", url)
 	if _, err := Run(cmd); err != nil {
 		warnError(err)
 	}
@@ -79,7 +80,7 @@ func UninstallPrometheusOperator() {
 
 // IsPrometheusCRDsInstalled checks if any Prometheus CRDs are installed
 // by verifying the existence of key CRDs related to Prometheus.
-func IsPrometheusCRDsInstalled() bool {
+func IsPrometheusCRDsInstalled(ctx context.Context) bool {
 	// List of common Prometheus CRDs
 	prometheusCRDs := []string{
 		"prometheuses.monitoring.coreos.com",
@@ -87,7 +88,7 @@ func IsPrometheusCRDsInstalled() bool {
 		"prometheusagents.monitoring.coreos.com",
 	}
 
-	cmd := exec.Command("kubectl", "get", "crds", "-o", "custom-columns=NAME:.metadata.name")
+	cmd := exec.CommandContext(ctx, "kubectl", "get", "crds", "-o", "custom-columns=NAME:.metadata.name")
 	output, err := Run(cmd)
 	if err != nil {
 		return false
@@ -105,24 +106,24 @@ func IsPrometheusCRDsInstalled() bool {
 }
 
 // UninstallCertManager uninstalls the cert manager
-func UninstallCertManager() {
+func UninstallCertManager(ctx context.Context) {
 	url := fmt.Sprintf(certmanagerURLTmpl, certmanagerVersion)
-	cmd := exec.Command("kubectl", "delete", "-f", url)
+	cmd := exec.CommandContext(ctx, "kubectl", "delete", "-f", url)
 	if _, err := Run(cmd); err != nil {
 		warnError(err)
 	}
 }
 
 // InstallCertManager installs the cert manager bundle.
-func InstallCertManager() error {
+func InstallCertManager(ctx context.Context) error {
 	url := fmt.Sprintf(certmanagerURLTmpl, certmanagerVersion)
-	cmd := exec.Command("kubectl", "apply", "-f", url)
+	cmd := exec.CommandContext(ctx, "kubectl", "apply", "-f", url)
 	if _, err := Run(cmd); err != nil {
 		return err
 	}
 	// Wait for cert-manager-webhook to be ready, which can take time if cert-manager
 	// was re-installed after uninstalling on a cluster.
-	cmd = exec.Command("kubectl", "wait", "deployment.apps/cert-manager-webhook",
+	cmd = exec.CommandContext(ctx, "kubectl", "wait", "deployment.apps/cert-manager-webhook",
 		"--for", "condition=Available",
 		"--namespace", "cert-manager",
 		"--timeout", "5m",
@@ -134,7 +135,7 @@ func InstallCertManager() error {
 
 // IsCertManagerCRDsInstalled checks if any Cert Manager CRDs are installed
 // by verifying the existence of key CRDs related to Cert Manager.
-func IsCertManagerCRDsInstalled() bool {
+func IsCertManagerCRDsInstalled(ctx context.Context) bool {
 	// List of common Cert Manager CRDs
 	certManagerCRDs := []string{
 		"certificates.cert-manager.io",
@@ -146,7 +147,7 @@ func IsCertManagerCRDsInstalled() bool {
 	}
 
 	// Execute the kubectl command to get all CRDs
-	cmd := exec.Command("kubectl", "get", "crds")
+	cmd := exec.CommandContext(ctx, "kubectl", "get", "crds")
 	output, err := Run(cmd)
 	if err != nil {
 		return false
@@ -166,13 +167,13 @@ func IsCertManagerCRDsInstalled() bool {
 }
 
 // LoadImageToKindClusterWithName loads a local docker image to the kind cluster
-func LoadImageToKindClusterWithName(name string) error {
+func LoadImageToKindClusterWithName(ctx context.Context, name string) error {
 	cluster := "kind"
 	if v, ok := os.LookupEnv("KIND_CLUSTER"); ok {
 		cluster = v
 	}
 	kindOptions := []string{"load", "docker-image", name, "--name", cluster}
-	cmd := exec.Command("kind", kindOptions...)
+	cmd := exec.CommandContext(ctx, "kind", kindOptions...)
 	_, err := Run(cmd)
 	return err
 }
@@ -247,5 +248,5 @@ func UncommentCode(filename, target, prefix string) error {
 	}
 	// false positive
 	// nolint:gosec
-	return os.WriteFile(filename, out.Bytes(), 0644)
+	return os.WriteFile(filename, out.Bytes(), 0o644)
 }

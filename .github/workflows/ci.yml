@@ -9,7 +9,7 @@ on:
       - main
 
 env:
-  GOLANGCI_VERSION: "v2.2.1"
+  GOLANGCI_VERSION: "v2.4.0"
 
 jobs:
   detect-noop:
@@ -172,3 +172,4 @@ jobs:
 
       - name: Check CRD size
         run: make crd-size
+

@@ -1,6 +1,7 @@
 package docker
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -30,8 +31,8 @@ func (ipam *IPAM) findConfigWithPrefix(prefix string) *Config {
 	return nil
 }
 
-func GetDockerCidr(network string) (string, error) {
-	command := exec.Command("docker", "network", "inspect", network)
+func GetDockerCidr(ctx context.Context, network string) (string, error) {
+	command := exec.CommandContext(ctx, "docker", "network", "inspect", network)
 	output, err := command.Output()
 	if err != nil {
 		return "", errors.New("could not execute docker command")
@@ -56,8 +57,8 @@ func GetCidrPrefix(cidr string) string {
 	return fmt.Sprintf("%s.%s", parts[0], parts[1])
 }
 
-func GetDockerCidrPrefix(network string) (string, error) {
-	cidr, err := GetDockerCidr(network)
+func GetDockerCidrPrefix(ctx context.Context, network string) (string, error) {
+	cidr, err := GetDockerCidr(ctx, network)
 	if err != nil {
 		return "", err
 	}

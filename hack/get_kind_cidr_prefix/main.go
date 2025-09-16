@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -8,9 +9,13 @@ import (
 )
 
 func main() {
-	prefix, err := docker.GetKindCidrPrefix()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	prefix, err := docker.GetKindCidrPrefix(ctx)
 	if err != nil {
 		fmt.Println(err)
+		cancel()
 		os.Exit(1)
 	}
 	fmt.Print(prefix)
