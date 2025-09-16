@@ -169,7 +169,7 @@ spec:
                 type: object
               passwordSecretKeyRef:
                 description: PasswordSecretKeyRef is a reference to the password to
-                  connecto to the external MariaDB.
+                  connect to the external MariaDB.
                 properties:
                   key:
                     type: string

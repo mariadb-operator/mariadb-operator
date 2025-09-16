@@ -45,7 +45,7 @@ type ExternalMariaDBSpec struct {
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Username *string `json:"username"`
-	// PasswordSecretKeyRef is a reference to the password to connecto to the external MariaDB.
+	// PasswordSecretKeyRef is a reference to the password to connect to the external MariaDB.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	PasswordSecretKeyRef *SecretKeySelector `json:"passwordSecretKeyRef,omitempty"`
