@@ -23,6 +23,9 @@ type ConnectionOpts struct {
 }
 
 func (b *Builder) BuildConnection(opts ConnectionOpts, owner metav1.Object) (*mariadbv1alpha1.Connection, error) {
+	if b.scheme == nil {
+		return nil, fmt.Errorf("b.scheme is nil")
+	}
 	objMeta :=
 		metadata.NewMetadataBuilder(opts.Key).
 			WithMetadata(opts.Metadata).
@@ -59,10 +62,6 @@ func (b *Builder) BuildConnection(opts ConnectionOpts, owner metav1.Object) (*ma
 	}
 	if opts.Template != nil {
 		conn.Spec.ConnectionTemplate = *opts.Template
-	}
-
-	if b.scheme == nil {
-		return nil, fmt.Errorf("b.scheme is null")
 	}
 
 	if err := controllerutil.SetControllerReference(owner, conn, b.scheme); err != nil {

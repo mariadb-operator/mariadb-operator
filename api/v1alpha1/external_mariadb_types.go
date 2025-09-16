@@ -15,7 +15,7 @@ import (
 type ExternalMariaDBSpec struct {
 	// Image name to be used to perform operations on the external MariaDB, for example, for taking backups.
 	// The supported format is `<image>:<tag>`. Only MariaDB official images are supported.
-	// If not provided, the MariaDB image will be inferred by the operator in runtime. The default MariaDB registry will be used in this case,
+	// If not provided, the MariaDB image version be inferred by the operator in runtime. The default MariaDB image will be used in this case,
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Image string `json:"image,omitempty"`
@@ -26,13 +26,13 @@ type ExternalMariaDBSpec struct {
 	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
 	// ImagePullSecrets is the list of pull Secrets to be used to pull the image.
 	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	ImagePullSecrets []LocalObjectReference `json:"imagePullSecrets,omitempty" webhook:"inmutable"`
 	// InheritMetadata defines the metadata to be inherited by children resources.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	InheritMetadata *Metadata `json:"inheritMetadata,omitempty"`
-	// Hostname of the external MariaDB service.
+	// Hostname of the external MariaDB.
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Host string `json:"host"`
@@ -45,13 +45,11 @@ type ExternalMariaDBSpec struct {
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Username *string `json:"username"`
-	// PasswordSecretKeyRef is a reference to the password to be used by the User.
-	// If not provided, the account will be locked and the password will expire.
-	// If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password.
+	// PasswordSecretKeyRef is a reference to the password to connecto to the external MariaDB.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	PasswordSecretKeyRef *SecretKeySelector `json:"passwordSecretKeyRef,omitempty"`
-	// TLS defines the PKI to be used with MariaDB.
+	// TLS defines the PKI to be used with the external MariaDB.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	TLS *TLS `json:"tls,omitempty"`
@@ -67,11 +65,11 @@ type ExternalMariaDBStatus struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status,xDescriptors={"urn:alm:descriptor:io.kubernetes.conditions"}
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
-	// Version of the external MariaDB server
+	// Version of the external MariaDB server.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	Version string `json:"version,omitempty"`
-	// Is Galera cluster enabled on that MariaDB server
+	// IsGaleraEnabled indicates that the external MariaDb has Galera enabled.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	IsGaleraEnabled bool `json:"isGaleraEnabled,omitempty"`

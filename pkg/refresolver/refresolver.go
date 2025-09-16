@@ -59,15 +59,15 @@ func (r *RefResolver) MariaDBObject(ctx context.Context, ref *mariadbv1alpha1.Ma
 	if ref.Kind == mariadbv1alpha1.ExternalMariaDBKind {
 		var mariadb mariadbv1alpha1.ExternalMariaDB
 		if err := r.client.Get(ctx, key, &mariadb); err != nil {
-			var emdb_nil *mariadbv1alpha1.ExternalMariaDB = nil
-			return emdb_nil, err
+			var emdbNil *mariadbv1alpha1.ExternalMariaDB = nil // To be able to infer the type with reflection
+			return emdbNil, err
 		}
 		return &mariadb, nil
 	} else {
 		var mariadb mariadbv1alpha1.MariaDB
 		if err := r.client.Get(ctx, key, &mariadb); err != nil {
-			var mdb_nil *mariadbv1alpha1.MariaDB = nil
-			return mdb_nil, err
+			var mdbNil *mariadbv1alpha1.MariaDB = nil // To be able to infer the type with reflection
+			return mdbNil, err
 		}
 		return &mariadb, nil
 	}
