@@ -12,7 +12,7 @@ spec:
     listKind: MariaDBList
     plural: mariadbs
     shortNames:
-    - mdb
+    - emdb
     singular: mariadb
   scope: Namespaced
   versions:

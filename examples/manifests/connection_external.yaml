@@ -1,0 +1,16 @@
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: Connection
+metadata:
+  name: connection-external
+spec:
+  mariaDbRef:
+    name: external-mariadb
+    kind: ExternalMariaDB
+  username: user
+  passwordSecretKeyRef:
+    name: mariadb
+    key: password
+  database: mariadb
+  secretName: connection-external
+  healthCheck:
+    interval: 5s

@@ -109,8 +109,8 @@ func (r *ExternalMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 }
 
 func (r *ExternalMariaDBReconciler) setSpecDefaults(ctx context.Context,
-	external_mariadb *mariadbv1alpha1.ExternalMariaDB) (ctrl.Result, error) {
-	return ctrl.Result{}, r.patch(ctx, external_mariadb, func(emdb *mariadbv1alpha1.ExternalMariaDB) error {
+	extMariadb *mariadbv1alpha1.ExternalMariaDB) (ctrl.Result, error) {
+	return ctrl.Result{}, r.patch(ctx, extMariadb, func(emdb *mariadbv1alpha1.ExternalMariaDB) error {
 		return emdb.SetDefaults(r.Environment)
 	})
 }
@@ -150,10 +150,6 @@ func (r *ExternalMariaDBReconciler) reconcileConnection(ctx context.Context,
 func (r *ExternalMariaDBReconciler) reconcileStatus(ctx context.Context,
 	extMariaDB *mariadbv1alpha1.ExternalMariaDB) (ctrl.Result, error) {
 
-	if !extMariaDB.IsReady() {
-		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
-	}
-
 	client, err := sqlClient.NewClientWithMariaDB(ctx, extMariaDB, r.RefResolver)
 	if err != nil {
 		return ctrl.Result{RequeueAfter: 3 * time.Second}, fmt.Errorf("error connecting to MariaDB: %v", err)
@@ -175,13 +171,11 @@ func (r *ExternalMariaDBReconciler) reconcileStatus(ctx context.Context,
 	}
 
 	return ctrl.Result{}, r.patchStatus(ctx, extMariaDB, func(status *mariadbv1alpha1.ExternalMariaDBStatus) error {
-		status.SetVersion(version)
 		status.Version = version
 		status.IsGaleraEnabled = isGaleraEnabled
 		condition.SetReadyHealthy(&extMariaDB.Status)
 		return nil
 	})
-
 }
 
 func (r *ExternalMariaDBReconciler) getVersion(rawVersion string) (string, error) {
