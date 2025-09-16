@@ -1029,8 +1029,11 @@ func (m *MariaDB) GetImagePullSecrets() []LocalObjectReference {
 }
 
 // Get image
-func (m *MariaDB) GetImage() string {
-	return m.Spec.Image
+func (m *MariaDB) GetImage(env *environment.OperatorEnv) string {
+	if m.Spec.Image != "" {
+		return m.Spec.Image
+	}
+	return env.RelatedMariadbImage
 }
 
 // Get MariaDB hostname

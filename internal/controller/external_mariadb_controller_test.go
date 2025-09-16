@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"testing"
 	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
@@ -92,3 +93,32 @@ var _ = Describe("External MariaDB spec", func() {
 	})
 
 })
+
+func TestGetVersion(t *testing.T) {
+	r := &ExternalMariaDBReconciler{}
+
+	tests := []struct {
+		name    string
+		raw     string
+		want    string
+		wantErr bool
+	}{
+		{"simple patch", "11.4.4-MariaDB", "11.4", false},
+		{"build version", "11.4.7-4.2", "11.4", false},
+		{"empty string", "", "", true},
+		{"no dot", "10", "", true},
+		{"nonsense", "bad-version", "", true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := r.getVersion(tt.raw)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("getVersion(%q) error = %v, wantErr %v", tt.raw, err, tt.wantErr)
+			}
+			if got != tt.want {
+				t.Fatalf("getVersion(%q) = %q, want %q", tt.raw, got, tt.want)
+			}
+		})
+	}
+}
