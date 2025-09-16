@@ -29,7 +29,7 @@ spec:
     healthCheck:
       interval: 5s
 ```
-If you need to use TLS to connect to the external MariaDB, you can provide the server CA certificate and the client certificate sercrets via the `tls` field:
+If you need to use TLS to connect to the external MariaDB, you can provide the server CA certificate and the client certificate `Secrets` via the `tls` field:
 
 ```yaml
 apiVersion: k8s.mariadb.com/v1alpha1
