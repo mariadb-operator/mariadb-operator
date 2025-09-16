@@ -41,6 +41,7 @@ Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB
 - [Prometheus metrics](./docs/metrics.md) via [mysqld-exporter](https://github.com/prometheus/mysqld_exporter) and maxscale-exporter.
 - Native integration with [prometheus-operator](https://github.com/prometheus-operator/prometheus-operator). Automatically create `ServiceMonitor` resources.
 - Declaratively manage [SQL resources](./docs/sql_resources.md): [users](./examples/manifests/user.yaml), [grants](./examples/manifests/grant.yaml) and logical [databases](./examples/manifests/database.yaml).
+- Declaratively manage resources in [external MariaDB instances](./docs/external_mariadb.md).
 - Configure [connections](./examples/manifests/connection.yaml) for your applications.
 - Orchestrate and schedule [sql scripts](./examples/manifests/sqljobs).
 - Validation webhooks to provide CRD immutability.
