@@ -18,7 +18,7 @@ kind: ExternalMariaDB
 metadata:
   name: external-mariadb
 spec:
-  host: mariadb.default.svc.cluster.local
+  host: mariadb.example.com
   port: 3306
   username: root
   passwordSecretKeyRef:
@@ -37,7 +37,7 @@ kind: ExternalMariaDB
 metadata:
   name: external-mariadb
 spec:
-  host: mariadb.default.svc.cluster.local
+  host: mariadb.example.com
   port: 3306
   username: root
   passwordSecretKeyRef:
