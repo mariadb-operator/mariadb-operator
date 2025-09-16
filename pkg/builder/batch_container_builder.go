@@ -104,18 +104,24 @@ func jobPhysicalBackupVolumes(storageVolume mariadbv1alpha1.StorageVolumeSource,
 }
 
 func jobEnv(mariadb interfaces.Connector) []corev1.EnvVar {
-	return []corev1.EnvVar{
+	env := []corev1.EnvVar{
 		{
 			Name:  batchUserEnv,
 			Value: mariadb.GetSUName(),
 		},
-		{
+	}
+
+	suCredential := mariadb.GetSUCredential()
+	if suCredential != nil {
+		env = append(env, corev1.EnvVar{
 			Name: batchPasswordEnv,
 			ValueFrom: &corev1.EnvVarSource{
-				SecretKeyRef: ptr.To(mariadb.GetSUCredential().ToKubernetesType()),
+				SecretKeyRef: ptr.To(suCredential.ToKubernetesType()),
 			},
-		},
+		})
 	}
+
+	return env
 }
 
 func jobS3Env(s3 *mariadbv1alpha1.S3) []corev1.EnvVar {

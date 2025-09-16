@@ -227,7 +227,7 @@ max_allowed_packet=256M`),
 	Expect(k8sClient.Create(ctx, &mdb)).To(Succeed())
 	expectMariadbReady(ctx, k8sClient, testMdbkey)
 
-	external_password := corev1.Secret{
+	externalPassword := corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      testEmulatedExternalPwdKey.Name,
 			Namespace: testEmulatedExternalPwdKey.Namespace,
@@ -240,9 +240,9 @@ max_allowed_packet=256M`),
 			testPwdMetricsSecretKey: []byte("MariaDB11!"),
 		},
 	}
-	Expect(k8sClient.Create(ctx, &external_password)).To(Succeed())
+	Expect(k8sClient.Create(ctx, &externalPassword)).To(Succeed())
 
-	emulate_external_mdb := mariadbv1alpha1.MariaDB{
+	emulateExternalMdb := mariadbv1alpha1.MariaDB{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      testEmulateExternalMdbkey.Name,
 			Namespace: testEmulateExternalMdbkey.Namespace,
@@ -319,8 +319,8 @@ max_allowed_packet=256M`),
 			},
 		},
 	}
-	applyMariadbTestConfig(&emulate_external_mdb)
-	Expect(k8sClient.Create(ctx, &emulate_external_mdb)).To(Succeed())
+	applyMariadbTestConfig(&emulateExternalMdb)
+	Expect(k8sClient.Create(ctx, &emulateExternalMdb)).To(Succeed())
 	expectMariadbReady(ctx, k8sClient, testEmulateExternalMdbkey)
 
 	emdb := mariadbv1alpha1.ExternalMariaDB{
@@ -368,7 +368,7 @@ max_allowed_packet=256M`),
 
 func testCleanupInitialData(ctx context.Context) {
 	var password corev1.Secret
-	var external_password corev1.Secret
+	var externalPassword corev1.Secret
 	var emdb mariadbv1alpha1.ExternalMariaDB
 	Expect(k8sClient.Get(ctx, testPwdKey, &password)).To(Succeed())
 	Expect(k8sClient.Delete(ctx, &password)).To(Succeed())
@@ -376,8 +376,8 @@ func testCleanupInitialData(ctx context.Context) {
 	Expect(k8sClient.Get(ctx, testEMdbkey, &emdb)).To(Succeed())
 	Expect(k8sClient.Delete(ctx, &emdb)).To(Succeed())
 	deleteMariadb(testEmulateExternalMdbkey, false)
-	Expect(k8sClient.Get(ctx, testEmulatedExternalPwdKey, &external_password)).To(Succeed())
-	Expect(k8sClient.Delete(ctx, &external_password)).To(Succeed())
+	Expect(k8sClient.Get(ctx, testEmulatedExternalPwdKey, &externalPassword)).To(Succeed())
+	Expect(k8sClient.Delete(ctx, &externalPassword)).To(Succeed())
 }
 
 func testMariadbUpdate(mdb *mariadbv1alpha1.MariaDB) {
