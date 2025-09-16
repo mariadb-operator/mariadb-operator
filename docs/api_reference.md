@@ -689,7 +689,7 @@ _Appears in:_
 | `host` _string_ | Hostname of the external MariaDB. |  | Required: \{\} <br /> |
 | `port` _integer_ | Port of the external MariaDB. | 3306 |  |
 | `username` _string_ | Username is the username to connect to the external MariaDB. |  | Required: \{\} <br /> |
-| `passwordSecretKeyRef` _[SecretKeySelector](#secretkeyselector)_ | PasswordSecretKeyRef is a reference to the password to connecto to the external MariaDB. |  |  |
+| `passwordSecretKeyRef` _[SecretKeySelector](#secretkeyselector)_ | PasswordSecretKeyRef is a reference to the password to connect to the external MariaDB. |  |  |
 | `tls` _[TLS](#tls)_ | TLS defines the PKI to be used with the external MariaDB. |  |  |
 | `connection` _[ConnectionTemplate](#connectiontemplate)_ | Connection defines a template to configure a Connection for the external MariaDB. |  |  |
 
