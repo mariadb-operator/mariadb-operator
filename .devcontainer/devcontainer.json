@@ -1,13 +1,12 @@
 {
     "name": "Go",
-    "image": "mcr.microsoft.com/devcontainers/go:1.24-bookworm",
+    "image": "mcr.microsoft.com/devcontainers/go:1.25-bookworm",
     "features": {
         "ghcr.io/devcontainers/features/docker-in-docker:2.12.3": {
             "moby": true,
             "installDockerBuildx": true,
             "version": "latest",
             "dockerDashComposeVersion": "v2"
-            
         },
         "ghcr.io/devcontainers/features/kubectl-helm-minikube:1.2.2": {
             "version": "latest",
@@ -15,7 +14,7 @@
             "minikube": "none"
         },
         "ghcr.io/rocker-org/devcontainer-features/apt-packages:1": {
-          "packages": "mariadb-client"
+            "packages": "mariadb-client"
         },
         "ghcr.io/dhoeric/features/k9s:1": {}
     },
@@ -33,22 +32,22 @@
         }
     },
     "forwardPorts": [
-      "prometheus:9090",
-      "grafana:3000",
-      "minio-console:9001"
+        "prometheus:9090",
+        "grafana:3000",
+        "minio-console:9001"
     ],
     "portsAttributes": {
-      "9090": {
-        "label": "prometheus",
-        "onAutoForward": "notify"
-      },
-      "3000": {
-        "label": "grafana",
-        "onAutoForward": "notify"
-      },
-      "9001": {
-        "label": "minio",
-        "onAutoForward": "notify"
-      }
+        "9090": {
+            "label": "prometheus",
+            "onAutoForward": "notify"
+        },
+        "3000": {
+            "label": "grafana",
+            "onAutoForward": "notify"
+        },
+        "9001": {
+            "label": "minio",
+            "onAutoForward": "notify"
+        }
     }
 }
