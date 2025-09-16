@@ -71,9 +71,10 @@ var _ = BeforeSuite(func() {
 		zap.Level(zapcore.InfoLevel),
 	)
 	log.SetLogger(testLogger)
+	ctx := context.Background()
 
 	var err error
-	testCidrPrefix, err = docker.GetKindCidrPrefix()
+	testCidrPrefix, err = docker.GetKindCidrPrefix(ctx)
 	Expect(err).NotTo(HaveOccurred())
 	Expect(testCidrPrefix).NotTo(BeEmpty())
 

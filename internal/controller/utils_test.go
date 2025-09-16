@@ -79,7 +79,7 @@ var (
 )
 
 func testCreateInitialData(ctx context.Context, env environment.OperatorEnv) {
-	var testCidrPrefix, err = docker.GetKindCidrPrefix()
+	testCidrPrefix, err := docker.GetKindCidrPrefix(ctx)
 	Expect(testCidrPrefix).ShouldNot(Equal(""))
 	Expect(err).ToNot(HaveOccurred())
 
@@ -518,7 +518,8 @@ func testMaxscale(mdb *mariadbv1alpha1.MariaDB, mxs *mariadbv1alpha1.MaxScale) {
 }
 
 func testConnection(username string, password mariadbv1alpha1.SecretKeySelector, clientCert *mariadbv1alpha1.LocalObjectReference,
-	database string, isValid bool) {
+	database string, isValid bool,
+) {
 	key := types.NamespacedName{
 		Name:      fmt.Sprintf("test-creds-conn-%s", uuid.New().String()),
 		Namespace: testNamespace,
@@ -682,7 +683,8 @@ func getBackupWithVolumeStorage(key types.NamespacedName) *mariadbv1alpha1.Backu
 }
 
 func getPhysicalBackupWithStorage(key, mariadbKey types.NamespacedName,
-	storage mariadbv1alpha1.PhysicalBackupStorage) *mariadbv1alpha1.PhysicalBackup {
+	storage mariadbv1alpha1.PhysicalBackupStorage,
+) *mariadbv1alpha1.PhysicalBackup {
 	return &mariadbv1alpha1.PhysicalBackup{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      key.Name,
