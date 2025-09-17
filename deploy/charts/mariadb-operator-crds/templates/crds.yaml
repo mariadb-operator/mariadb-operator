@@ -63,18 +63,18 @@ spec:
                       Make sure you have at least as many Nodes available as the replicas to not end up with unscheduled Pods.
                     type: boolean
                   nodeAffinity:
-                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeaffinity-v1-core'
+                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeaffinity-v1-core'
                     properties:
                       preferredDuringSchedulingIgnoredDuringExecution:
                         items:
-                          description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#preferredschedulingterm-v1-core'
+                          description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#preferredschedulingterm-v1-core'
                           properties:
                             preference:
-                              description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeselectorterm-v1-core'
+                              description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselectorterm-v1-core'
                               properties:
                                 matchExpressions:
                                   items:
-                                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeselectorrequirement-v1-core'
+                                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselectorrequirement-v1-core'
                                     properties:
                                       key:
                                         type: string
@@ -96,7 +96,7 @@ spec:
                                   x-kubernetes-list-type: atomic
                                 matchFields:
                                   items:
-                                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeselectorrequirement-v1-core'
+                                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselectorrequirement-v1-core'
                                     properties:
                                       key:
                                         type: string
@@ -127,15 +127,15 @@ spec:
                         type: array
                         x-kubernetes-list-type: atomic
                       requiredDuringSchedulingIgnoredDuringExecution:
-                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeselector-v1-core'
+                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselector-v1-core'
                         properties:
                           nodeSelectorTerms:
                             items:
-                              description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeselectorterm-v1-core'
+                              description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselectorterm-v1-core'
                               properties:
                                 matchExpressions:
                                   items:
-                                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeselectorrequirement-v1-core'
+                                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselectorrequirement-v1-core'
                                     properties:
                                       key:
                                         type: string
@@ -157,7 +157,7 @@ spec:
                                   x-kubernetes-list-type: atomic
                                 matchFields:
                                   items:
-                                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeselectorrequirement-v1-core'
+                                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselectorrequirement-v1-core'
                                     properties:
                                       key:
                                         type: string
@@ -185,22 +185,22 @@ spec:
                         type: object
                     type: object
                   podAntiAffinity:
-                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#podantiaffinity-v1-core.'
+                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#podantiaffinity-v1-core.'
                     properties:
                       preferredDuringSchedulingIgnoredDuringExecution:
                         items:
-                          description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#weightedpodaffinityterm-v1-core.'
+                          description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#weightedpodaffinityterm-v1-core.'
                           properties:
                             podAffinityTerm:
-                              description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#podaffinityterm-v1-core.'
+                              description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#podaffinityterm-v1-core.'
                               properties:
                                 labelSelector:
-                                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#labelselector-v1-meta'
+                                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#labelselector-v1-meta'
                                   properties:
                                     matchExpressions:
                                       items:
                                         description: 'Refer to the Kubernetes docs:
-                                          https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#labelselectorrequirement-v1-meta'
+                                          https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#labelselectorrequirement-v1-meta'
                                         properties:
                                           key:
                                             type: string
@@ -241,14 +241,14 @@ spec:
                         x-kubernetes-list-type: atomic
                       requiredDuringSchedulingIgnoredDuringExecution:
                         items:
-                          description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#podaffinityterm-v1-core.'
+                          description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#podaffinityterm-v1-core.'
                           properties:
                             labelSelector:
-                              description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#labelselector-v1-meta'
+                              description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#labelselector-v1-meta'
                               properties:
                                 matchExpressions:
                                   items:
-                                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#labelselectorrequirement-v1-meta'
+                                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#labelselectorrequirement-v1-meta'
                                     properties:
                                       key:
                                         type: string
@@ -321,7 +321,7 @@ spec:
                 description: ImagePullSecrets is the list of pull Secrets to be used
                   to pull the image.
                 items:
-                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#localobjectreference-v1-core.'
+                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core.'
                   properties:
                     name:
                       default: ""
@@ -669,14 +669,14 @@ spec:
                     description: Volume is a Kubernetes volume specification.
                     properties:
                       csi:
-                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#csivolumesource-v1-core.'
+                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#csivolumesource-v1-core.'
                         properties:
                           driver:
                             type: string
                           fsType:
                             type: string
                           nodePublishSecretRef:
-                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#localobjectreference-v1-core.'
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core.'
                             properties:
                               name:
                                 default: ""
@@ -692,7 +692,7 @@ spec:
                         - driver
                         type: object
                       emptyDir:
-                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#emptydirvolumesource-v1-core.'
+                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#emptydirvolumesource-v1-core.'
                         properties:
                           medium:
                             description: StorageMedium defines ways that storage can
@@ -706,7 +706,7 @@ spec:
                             x-kubernetes-int-or-string: true
                         type: object
                       hostPath:
-                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#hostpathvolumesource-v1-core'
+                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#hostpathvolumesource-v1-core'
                         properties:
                           path:
                             type: string
@@ -716,7 +716,7 @@ spec:
                         - path
                         type: object
                       nfs:
-                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nfsvolumesource-v1-core.'
+                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nfsvolumesource-v1-core.'
                         properties:
                           path:
                             type: string
@@ -729,7 +729,7 @@ spec:
                         - server
                         type: object
                       persistentVolumeClaim:
-                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#persistentvolumeclaimvolumesource-v1-core.'
+                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#persistentvolumeclaimvolumesource-v1-core.'
                         properties:
                           claimName:
                             type: string
@@ -920,14 +920,14 @@ spec:
                     description: Volume is a Kubernetes volume specification.
                     properties:
                       csi:
-                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#csivolumesource-v1-core.'
+                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#csivolumesource-v1-core.'
                         properties:
                           driver:
                             type: string
                           fsType:
                             type: string
                           nodePublishSecretRef:
-                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#localobjectreference-v1-core.'
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core.'
                             properties:
                               name:
                                 default: ""
@@ -943,7 +943,7 @@ spec:
                         - driver
                         type: object
                       emptyDir:
-                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#emptydirvolumesource-v1-core.'
+                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#emptydirvolumesource-v1-core.'
                         properties:
                           medium:
                             description: StorageMedium defines ways that storage can
@@ -957,7 +957,7 @@ spec:
                             x-kubernetes-int-or-string: true
                         type: object
                       hostPath:
-                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#hostpathvolumesource-v1-core'
+                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#hostpathvolumesource-v1-core'
                         properties:
                           path:
                             type: string
@@ -967,7 +967,7 @@ spec:
                         - path
                         type: object
                       nfs:
-                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nfsvolumesource-v1-core.'
+                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nfsvolumesource-v1-core.'
                         properties:
                           path:
                             type: string
@@ -980,7 +980,7 @@ spec:
                         - server
                         type: object
                       persistentVolumeClaim:
-                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#persistentvolumeclaimvolumesource-v1-core.'
+                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#persistentvolumeclaimvolumesource-v1-core.'
                         properties:
                           claimName:
                             type: string
@@ -1802,18 +1802,18 @@ spec:
                       Make sure you have at least as many Nodes available as the replicas to not end up with unscheduled Pods.
                     type: boolean
                   nodeAffinity:
-                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeaffinity-v1-core'
+                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeaffinity-v1-core'
                     properties:
                       preferredDuringSchedulingIgnoredDuringExecution:
                         items:
-                          description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#preferredschedulingterm-v1-core'
+                          description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#preferredschedulingterm-v1-core'
                           properties:
                             preference:
-                              description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeselectorterm-v1-core'
+                              description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselectorterm-v1-core'
                               properties:
                                 matchExpressions:
                                   items:
-                                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeselectorrequirement-v1-core'
+                                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselectorrequirement-v1-core'
                                     properties:
                                       key:
                                         type: string
@@ -1835,7 +1835,7 @@ spec:
                                   x-kubernetes-list-type: atomic
                                 matchFields:
                                   items:
-                                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeselectorrequirement-v1-core'
+                                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselectorrequirement-v1-core'
                                     properties:
                                       key:
                                         type: string
@@ -1866,15 +1866,15 @@ spec:
                         type: array
                         x-kubernetes-list-type: atomic
                       requiredDuringSchedulingIgnoredDuringExecution:
-                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeselector-v1-core'
+                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselector-v1-core'
                         properties:
                           nodeSelectorTerms:
                             items:
-                              description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeselectorterm-v1-core'
+                              description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselectorterm-v1-core'
                               properties:
                                 matchExpressions:
                                   items:
-                                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeselectorrequirement-v1-core'
+                                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselectorrequirement-v1-core'
                                     properties:
                                       key:
                                         type: string
@@ -1896,7 +1896,7 @@ spec:
                                   x-kubernetes-list-type: atomic
                                 matchFields:
                                   items:
-                                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeselectorrequirement-v1-core'
+                                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselectorrequirement-v1-core'
                                     properties:
                                       key:
                                         type: string
@@ -1924,22 +1924,22 @@ spec:
                         type: object
                     type: object
                   podAntiAffinity:
-                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#podantiaffinity-v1-core.'
+                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#podantiaffinity-v1-core.'
                     properties:
                       preferredDuringSchedulingIgnoredDuringExecution:
                         items:
-                          description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#weightedpodaffinityterm-v1-core.'
+                          description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#weightedpodaffinityterm-v1-core.'
                           properties:
                             podAffinityTerm:
-                              description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#podaffinityterm-v1-core.'
+                              description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#podaffinityterm-v1-core.'
                               properties:
                                 labelSelector:
-                                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#labelselector-v1-meta'
+                                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#labelselector-v1-meta'
                                   properties:
                                     matchExpressions:
                                       items:
                                         description: 'Refer to the Kubernetes docs:
-                                          https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#labelselectorrequirement-v1-meta'
+                                          https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#labelselectorrequirement-v1-meta'
                                         properties:
                                           key:
                                             type: string
@@ -1980,14 +1980,14 @@ spec:
                         x-kubernetes-list-type: atomic
                       requiredDuringSchedulingIgnoredDuringExecution:
                         items:
-                          description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#podaffinityterm-v1-core.'
+                          description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#podaffinityterm-v1-core.'
                           properties:
                             labelSelector:
-                              description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#labelselector-v1-meta'
+                              description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#labelselector-v1-meta'
                               properties:
                                 matchExpressions:
                                   items:
-                                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#labelselectorrequirement-v1-meta'
+                                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#labelselectorrequirement-v1-meta'
                                     properties:
                                       key:
                                         type: string
@@ -2063,20 +2063,20 @@ spec:
                               Make sure you have at least as many Nodes available as the replicas to not end up with unscheduled Pods.
                             type: boolean
                           nodeAffinity:
-                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeaffinity-v1-core'
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeaffinity-v1-core'
                             properties:
                               preferredDuringSchedulingIgnoredDuringExecution:
                                 items:
-                                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#preferredschedulingterm-v1-core'
+                                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#preferredschedulingterm-v1-core'
                                   properties:
                                     preference:
                                       description: 'Refer to the Kubernetes docs:
-                                        https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeselectorterm-v1-core'
+                                        https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselectorterm-v1-core'
                                       properties:
                                         matchExpressions:
                                           items:
                                             description: 'Refer to the Kubernetes
-                                              docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeselectorrequirement-v1-core'
+                                              docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselectorrequirement-v1-core'
                                             properties:
                                               key:
                                                 type: string
@@ -2099,7 +2099,7 @@ spec:
                                         matchFields:
                                           items:
                                             description: 'Refer to the Kubernetes
-                                              docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeselectorrequirement-v1-core'
+                                              docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselectorrequirement-v1-core'
                                             properties:
                                               key:
                                                 type: string
@@ -2130,17 +2130,17 @@ spec:
                                 type: array
                                 x-kubernetes-list-type: atomic
                               requiredDuringSchedulingIgnoredDuringExecution:
-                                description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeselector-v1-core'
+                                description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselector-v1-core'
                                 properties:
                                   nodeSelectorTerms:
                                     items:
                                       description: 'Refer to the Kubernetes docs:
-                                        https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeselectorterm-v1-core'
+                                        https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselectorterm-v1-core'
                                       properties:
                                         matchExpressions:
                                           items:
                                             description: 'Refer to the Kubernetes
-                                              docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeselectorrequirement-v1-core'
+                                              docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselectorrequirement-v1-core'
                                             properties:
                                               key:
                                                 type: string
@@ -2163,7 +2163,7 @@ spec:
                                         matchFields:
                                           items:
                                             description: 'Refer to the Kubernetes
-                                              docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeselectorrequirement-v1-core'
+                                              docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselectorrequirement-v1-core'
                                             properties:
                                               key:
                                                 type: string
@@ -2191,24 +2191,24 @@ spec:
                                 type: object
                             type: object
                           podAntiAffinity:
-                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#podantiaffinity-v1-core.'
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#podantiaffinity-v1-core.'
                             properties:
                               preferredDuringSchedulingIgnoredDuringExecution:
                                 items:
-                                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#weightedpodaffinityterm-v1-core.'
+                                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#weightedpodaffinityterm-v1-core.'
                                   properties:
                                     podAffinityTerm:
                                       description: 'Refer to the Kubernetes docs:
-                                        https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#podaffinityterm-v1-core.'
+                                        https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#podaffinityterm-v1-core.'
                                       properties:
                                         labelSelector:
                                           description: 'Refer to the Kubernetes docs:
-                                            https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#labelselector-v1-meta'
+                                            https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#labelselector-v1-meta'
                                           properties:
                                             matchExpressions:
                                               items:
                                                 description: 'Refer to the Kubernetes
-                                                  docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#labelselectorrequirement-v1-meta'
+                                                  docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#labelselectorrequirement-v1-meta'
                                                 properties:
                                                   key:
                                                     type: string
@@ -2250,16 +2250,16 @@ spec:
                                 x-kubernetes-list-type: atomic
                               requiredDuringSchedulingIgnoredDuringExecution:
                                 items:
-                                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#podaffinityterm-v1-core.'
+                                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#podaffinityterm-v1-core.'
                                   properties:
                                     labelSelector:
                                       description: 'Refer to the Kubernetes docs:
-                                        https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#labelselector-v1-meta'
+                                        https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#labelselector-v1-meta'
                                       properties:
                                         matchExpressions:
                                           items:
                                             description: 'Refer to the Kubernetes
-                                              docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#labelselectorrequirement-v1-meta'
+                                              docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#labelselectorrequirement-v1-meta'
                                             properties:
                                               key:
                                                 type: string
@@ -2565,14 +2565,14 @@ spec:
                         description: Volume is a Kubernetes volume specification.
                         properties:
                           csi:
-                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#csivolumesource-v1-core.'
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#csivolumesource-v1-core.'
                             properties:
                               driver:
                                 type: string
                               fsType:
                                 type: string
                               nodePublishSecretRef:
-                                description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#localobjectreference-v1-core.'
+                                description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core.'
                                 properties:
                                   name:
                                     default: ""
@@ -2588,7 +2588,7 @@ spec:
                             - driver
                             type: object
                           emptyDir:
-                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#emptydirvolumesource-v1-core.'
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#emptydirvolumesource-v1-core.'
                             properties:
                               medium:
                                 description: StorageMedium defines ways that storage
@@ -2602,7 +2602,7 @@ spec:
                                 x-kubernetes-int-or-string: true
                             type: object
                           hostPath:
-                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#hostpathvolumesource-v1-core'
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#hostpathvolumesource-v1-core'
                             properties:
                               path:
                                 type: string
@@ -2612,7 +2612,7 @@ spec:
                             - path
                             type: object
                           nfs:
-                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nfsvolumesource-v1-core.'
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nfsvolumesource-v1-core.'
                             properties:
                               path:
                                 type: string
@@ -2625,7 +2625,7 @@ spec:
                             - server
                             type: object
                           persistentVolumeClaim:
-                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#persistentvolumeclaimvolumesource-v1-core.'
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#persistentvolumeclaimvolumesource-v1-core.'
                             properties:
                               claimName:
                                 type: string
@@ -2647,14 +2647,14 @@ spec:
                       a backup.
                     properties:
                       csi:
-                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#csivolumesource-v1-core.'
+                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#csivolumesource-v1-core.'
                         properties:
                           driver:
                             type: string
                           fsType:
                             type: string
                           nodePublishSecretRef:
-                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#localobjectreference-v1-core.'
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core.'
                             properties:
                               name:
                                 default: ""
@@ -2670,7 +2670,7 @@ spec:
                         - driver
                         type: object
                       emptyDir:
-                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#emptydirvolumesource-v1-core.'
+                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#emptydirvolumesource-v1-core.'
                         properties:
                           medium:
                             description: StorageMedium defines ways that storage can
@@ -2684,7 +2684,7 @@ spec:
                             x-kubernetes-int-or-string: true
                         type: object
                       hostPath:
-                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#hostpathvolumesource-v1-core'
+                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#hostpathvolumesource-v1-core'
                         properties:
                           path:
                             type: string
@@ -2694,7 +2694,7 @@ spec:
                         - path
                         type: object
                       nfs:
-                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nfsvolumesource-v1-core.'
+                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nfsvolumesource-v1-core.'
                         properties:
                           path:
                             type: string
@@ -2707,7 +2707,7 @@ spec:
                         - server
                         type: object
                       persistentVolumeClaim:
-                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#persistentvolumeclaimvolumesource-v1-core.'
+                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#persistentvolumeclaimvolumesource-v1-core.'
                         properties:
                           claimName:
                             type: string
@@ -2812,7 +2812,7 @@ spec:
                 description: Env represents the environment variables to be injected
                   in a container.
                 items:
-                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#envvarsource-v1-core.'
+                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#envvarsource-v1-core.'
                   properties:
                     name:
                       description: Name of the environment variable. Must be a C_IDENTIFIER.
@@ -2820,10 +2820,10 @@ spec:
                     value:
                       type: string
                     valueFrom:
-                      description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#envvarsource-v1-core.'
+                      description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#envvarsource-v1-core.'
                       properties:
                         configMapKeyRef:
-                          description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#configmapkeyselector-v1-core.'
+                          description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#configmapkeyselector-v1-core.'
                           properties:
                             key:
                               type: string
@@ -2835,7 +2835,7 @@ spec:
                           type: object
                           x-kubernetes-map-type: atomic
                         fieldRef:
-                          description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#objectfieldselector-v1-core.'
+                          description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#objectfieldselector-v1-core.'
                           properties:
                             apiVersion:
                               type: string
@@ -2846,7 +2846,7 @@ spec:
                           type: object
                           x-kubernetes-map-type: atomic
                         secretKeyRef:
-                          description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#secretkeyselector-v1-core.'
+                          description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#secretkeyselector-v1-core.'
                           properties:
                             key:
                               type: string
@@ -2866,10 +2866,10 @@ spec:
                 description: EnvFrom represents the references (via ConfigMap and
                   Secrets) to environment variables to be injected in the container.
                 items:
-                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#envfromsource-v1-core.'
+                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#envfromsource-v1-core.'
                   properties:
                     configMapRef:
-                      description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#localobjectreference-v1-core.'
+                      description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core.'
                       properties:
                         name:
                           default: ""
@@ -2878,7 +2878,7 @@ spec:
                     prefix:
                       type: string
                     secretRef:
-                      description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#localobjectreference-v1-core.'
+                      description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core.'
                       properties:
                         name:
                           default: ""
@@ -2936,7 +2936,7 @@ spec:
                         description: Env represents the environment variables to be
                           injected in a container.
                         items:
-                          description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#envvarsource-v1-core.'
+                          description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#envvarsource-v1-core.'
                           properties:
                             name:
                               description: Name of the environment variable. Must
@@ -2945,10 +2945,10 @@ spec:
                             value:
                               type: string
                             valueFrom:
-                              description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#envvarsource-v1-core.'
+                              description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#envvarsource-v1-core.'
                               properties:
                                 configMapKeyRef:
-                                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#configmapkeyselector-v1-core.'
+                                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#configmapkeyselector-v1-core.'
                                   properties:
                                     key:
                                       type: string
@@ -2960,7 +2960,7 @@ spec:
                                   type: object
                                   x-kubernetes-map-type: atomic
                                 fieldRef:
-                                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#objectfieldselector-v1-core.'
+                                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#objectfieldselector-v1-core.'
                                   properties:
                                     apiVersion:
                                       type: string
@@ -2971,7 +2971,7 @@ spec:
                                   type: object
                                   x-kubernetes-map-type: atomic
                                 secretKeyRef:
-                                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#secretkeyselector-v1-core.'
+                                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#secretkeyselector-v1-core.'
                                   properties:
                                     key:
                                       type: string
@@ -2992,10 +2992,10 @@ spec:
                           and Secrets) to environment variables to be injected in
                           the container.
                         items:
-                          description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#envfromsource-v1-core.'
+                          description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#envfromsource-v1-core.'
                           properties:
                             configMapRef:
-                              description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#localobjectreference-v1-core.'
+                              description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core.'
                               properties:
                                 name:
                                   default: ""
@@ -3004,7 +3004,7 @@ spec:
                             prefix:
                               type: string
                             secretRef:
-                              description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#localobjectreference-v1-core.'
+                              description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core.'
                               properties:
                                 name:
                                   default: ""
@@ -3046,7 +3046,7 @@ spec:
                         description: LivenessProbe to be used in the Container.
                         properties:
                           exec:
-                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#execaction-v1-core.'
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#execaction-v1-core.'
                             properties:
                               command:
                                 items:
@@ -3058,7 +3058,7 @@ spec:
                             format: int32
                             type: integer
                           httpGet:
-                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#httpgetaction-v1-core.'
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#httpgetaction-v1-core.'
                             properties:
                               host:
                                 type: string
@@ -3086,7 +3086,7 @@ spec:
                             format: int32
                             type: integer
                           tcpSocket:
-                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#tcpsocketaction-v1-core.'
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#tcpsocketaction-v1-core.'
                             properties:
                               host:
                                 type: string
@@ -3116,7 +3116,7 @@ spec:
                         description: ReadinessProbe to be used in the Container.
                         properties:
                           exec:
-                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#execaction-v1-core.'
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#execaction-v1-core.'
                             properties:
                               command:
                                 items:
@@ -3128,7 +3128,7 @@ spec:
                             format: int32
                             type: integer
                           httpGet:
-                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#httpgetaction-v1-core.'
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#httpgetaction-v1-core.'
                             properties:
                               host:
                                 type: string
@@ -3156,7 +3156,7 @@ spec:
                             format: int32
                             type: integer
                           tcpSocket:
-                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#tcpsocketaction-v1-core.'
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#tcpsocketaction-v1-core.'
                             properties:
                               host:
                                 type: string
@@ -3240,7 +3240,7 @@ spec:
                         description: StartupProbe to be used in the Container.
                         properties:
                           exec:
-                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#execaction-v1-core.'
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#execaction-v1-core.'
                             properties:
                               command:
                                 items:
@@ -3252,7 +3252,7 @@ spec:
                             format: int32
                             type: integer
                           httpGet:
-                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#httpgetaction-v1-core.'
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#httpgetaction-v1-core.'
                             properties:
                               host:
                                 type: string
@@ -3280,7 +3280,7 @@ spec:
                             format: int32
                             type: integer
                           tcpSocket:
-                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#tcpsocketaction-v1-core.'
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#tcpsocketaction-v1-core.'
                             properties:
                               host:
                                 type: string
@@ -3299,7 +3299,7 @@ spec:
                       volumeMounts:
                         description: VolumeMounts to be used in the Container.
                         items:
-                          description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#volumemount-v1-core.'
+                          description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#volumemount-v1-core.'
                           properties:
                             mountPath:
                               type: string
@@ -3461,7 +3461,7 @@ spec:
                         description: Env represents the environment variables to be
                           injected in a container.
                         items:
-                          description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#envvarsource-v1-core.'
+                          description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#envvarsource-v1-core.'
                           properties:
                             name:
                               description: Name of the environment variable. Must
@@ -3470,10 +3470,10 @@ spec:
                             value:
                               type: string
                             valueFrom:
-                              description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#envvarsource-v1-core.'
+                              description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#envvarsource-v1-core.'
                               properties:
                                 configMapKeyRef:
-                                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#configmapkeyselector-v1-core.'
+                                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#configmapkeyselector-v1-core.'
                                   properties:
                                     key:
                                       type: string
@@ -3485,7 +3485,7 @@ spec:
                                   type: object
                                   x-kubernetes-map-type: atomic
                                 fieldRef:
-                                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#objectfieldselector-v1-core.'
+                                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#objectfieldselector-v1-core.'
                                   properties:
                                     apiVersion:
                                       type: string
@@ -3496,7 +3496,7 @@ spec:
                                   type: object
                                   x-kubernetes-map-type: atomic
                                 secretKeyRef:
-                                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#secretkeyselector-v1-core.'
+                                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#secretkeyselector-v1-core.'
                                   properties:
                                     key:
                                       type: string
@@ -3517,10 +3517,10 @@ spec:
                           and Secrets) to environment variables to be injected in
                           the container.
                         items:
-                          description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#envfromsource-v1-core.'
+                          description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#envfromsource-v1-core.'
                           properties:
                             configMapRef:
-                              description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#localobjectreference-v1-core.'
+                              description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core.'
                               properties:
                                 name:
                                   default: ""
@@ -3529,7 +3529,7 @@ spec:
                             prefix:
                               type: string
                             secretRef:
-                              description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#localobjectreference-v1-core.'
+                              description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core.'
                               properties:
                                 name:
                                   default: ""
@@ -3554,7 +3554,7 @@ spec:
                         description: LivenessProbe to be used in the Container.
                         properties:
                           exec:
-                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#execaction-v1-core.'
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#execaction-v1-core.'
                             properties:
                               command:
                                 items:
@@ -3566,7 +3566,7 @@ spec:
                             format: int32
                             type: integer
                           httpGet:
-                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#httpgetaction-v1-core.'
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#httpgetaction-v1-core.'
                             properties:
                               host:
                                 type: string
@@ -3594,7 +3594,7 @@ spec:
                             format: int32
                             type: integer
                           tcpSocket:
-                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#tcpsocketaction-v1-core.'
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#tcpsocketaction-v1-core.'
                             properties:
                               host:
                                 type: string
@@ -3614,7 +3614,7 @@ spec:
                         description: ReadinessProbe to be used in the Container.
                         properties:
                           exec:
-                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#execaction-v1-core.'
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#execaction-v1-core.'
                             properties:
                               command:
                                 items:
@@ -3626,7 +3626,7 @@ spec:
                             format: int32
                             type: integer
                           httpGet:
-                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#httpgetaction-v1-core.'
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#httpgetaction-v1-core.'
                             properties:
                               host:
                                 type: string
@@ -3654,7 +3654,7 @@ spec:
                             format: int32
                             type: integer
                           tcpSocket:
-                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#tcpsocketaction-v1-core.'
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#tcpsocketaction-v1-core.'
                             properties:
                               host:
                                 type: string
@@ -3738,7 +3738,7 @@ spec:
                         description: StartupProbe to be used in the Container.
                         properties:
                           exec:
-                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#execaction-v1-core.'
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#execaction-v1-core.'
                             properties:
                               command:
                                 items:
@@ -3750,7 +3750,7 @@ spec:
                             format: int32
                             type: integer
                           httpGet:
-                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#httpgetaction-v1-core.'
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#httpgetaction-v1-core.'
                             properties:
                               host:
                                 type: string
@@ -3778,7 +3778,7 @@ spec:
                             format: int32
                             type: integer
                           tcpSocket:
-                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#tcpsocketaction-v1-core.'
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#tcpsocketaction-v1-core.'
                             properties:
                               host:
                                 type: string
@@ -3797,7 +3797,7 @@ spec:
                       volumeMounts:
                         description: VolumeMounts to be used in the Container.
                         items:
-                          description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#volumemount-v1-core.'
+                          description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#volumemount-v1-core.'
                           properties:
                             mountPath:
                               type: string
@@ -4022,7 +4022,7 @@ spec:
                 description: ImagePullSecrets is the list of pull Secrets to be used
                   to pull the image.
                 items:
-                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#localobjectreference-v1-core.'
+                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core.'
                   properties:
                     name:
                       default: ""
@@ -4063,7 +4063,7 @@ spec:
                       description: Env represents the environment variables to be
                         injected in a container.
                       items:
-                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#envvarsource-v1-core.'
+                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#envvarsource-v1-core.'
                         properties:
                           name:
                             description: Name of the environment variable. Must be
@@ -4072,10 +4072,10 @@ spec:
                           value:
                             type: string
                           valueFrom:
-                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#envvarsource-v1-core.'
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#envvarsource-v1-core.'
                             properties:
                               configMapKeyRef:
-                                description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#configmapkeyselector-v1-core.'
+                                description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#configmapkeyselector-v1-core.'
                                 properties:
                                   key:
                                     type: string
@@ -4087,7 +4087,7 @@ spec:
                                 type: object
                                 x-kubernetes-map-type: atomic
                               fieldRef:
-                                description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#objectfieldselector-v1-core.'
+                                description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#objectfieldselector-v1-core.'
                                 properties:
                                   apiVersion:
                                     type: string
@@ -4098,7 +4098,7 @@ spec:
                                 type: object
                                 x-kubernetes-map-type: atomic
                               secretKeyRef:
-                                description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#secretkeyselector-v1-core.'
+                                description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#secretkeyselector-v1-core.'
                                 properties:
                                   key:
                                     type: string
@@ -4157,7 +4157,7 @@ spec:
                     volumeMounts:
                       description: VolumeMounts to be used in the Container.
                       items:
-                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#volumemount-v1-core.'
+                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#volumemount-v1-core.'
                         properties:
                           mountPath:
                             type: string
@@ -4181,7 +4181,7 @@ spec:
                 description: LivenessProbe to be used in the Container.
                 properties:
                   exec:
-                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#execaction-v1-core.'
+                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#execaction-v1-core.'
                     properties:
                       command:
                         items:
@@ -4193,7 +4193,7 @@ spec:
                     format: int32
                     type: integer
                   httpGet:
-                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#httpgetaction-v1-core.'
+                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#httpgetaction-v1-core.'
                     properties:
                       host:
                         type: string
@@ -4221,7 +4221,7 @@ spec:
                     format: int32
                     type: integer
                   tcpSocket:
-                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#tcpsocketaction-v1-core.'
+                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#tcpsocketaction-v1-core.'
                     properties:
                       host:
                         type: string
@@ -4773,21 +4773,21 @@ spec:
                                   Make sure you have at least as many Nodes available as the replicas to not end up with unscheduled Pods.
                                 type: boolean
                               nodeAffinity:
-                                description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeaffinity-v1-core'
+                                description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeaffinity-v1-core'
                                 properties:
                                   preferredDuringSchedulingIgnoredDuringExecution:
                                     items:
                                       description: 'Refer to the Kubernetes docs:
-                                        https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#preferredschedulingterm-v1-core'
+                                        https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#preferredschedulingterm-v1-core'
                                       properties:
                                         preference:
                                           description: 'Refer to the Kubernetes docs:
-                                            https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeselectorterm-v1-core'
+                                            https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselectorterm-v1-core'
                                           properties:
                                             matchExpressions:
                                               items:
                                                 description: 'Refer to the Kubernetes
-                                                  docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeselectorrequirement-v1-core'
+                                                  docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselectorrequirement-v1-core'
                                                 properties:
                                                   key:
                                                     type: string
@@ -4810,7 +4810,7 @@ spec:
                                             matchFields:
                                               items:
                                                 description: 'Refer to the Kubernetes
-                                                  docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeselectorrequirement-v1-core'
+                                                  docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselectorrequirement-v1-core'
                                                 properties:
                                                   key:
                                                     type: string
@@ -4841,17 +4841,17 @@ spec:
                                     type: array
                                     x-kubernetes-list-type: atomic
                                   requiredDuringSchedulingIgnoredDuringExecution:
-                                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeselector-v1-core'
+                                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselector-v1-core'
                                     properties:
                                       nodeSelectorTerms:
                                         items:
                                           description: 'Refer to the Kubernetes docs:
-                                            https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeselectorterm-v1-core'
+                                            https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselectorterm-v1-core'
                                           properties:
                                             matchExpressions:
                                               items:
                                                 description: 'Refer to the Kubernetes
-                                                  docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeselectorrequirement-v1-core'
+                                                  docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselectorrequirement-v1-core'
                                                 properties:
                                                   key:
                                                     type: string
@@ -4874,7 +4874,7 @@ spec:
                                             matchFields:
                                               items:
                                                 description: 'Refer to the Kubernetes
-                                                  docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeselectorrequirement-v1-core'
+                                                  docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselectorrequirement-v1-core'
                                                 properties:
                                                   key:
                                                     type: string
@@ -4902,25 +4902,25 @@ spec:
                                     type: object
                                 type: object
                               podAntiAffinity:
-                                description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#podantiaffinity-v1-core.'
+                                description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#podantiaffinity-v1-core.'
                                 properties:
                                   preferredDuringSchedulingIgnoredDuringExecution:
                                     items:
                                       description: 'Refer to the Kubernetes docs:
-                                        https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#weightedpodaffinityterm-v1-core.'
+                                        https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#weightedpodaffinityterm-v1-core.'
                                       properties:
                                         podAffinityTerm:
                                           description: 'Refer to the Kubernetes docs:
-                                            https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#podaffinityterm-v1-core.'
+                                            https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#podaffinityterm-v1-core.'
                                           properties:
                                             labelSelector:
                                               description: 'Refer to the Kubernetes
-                                                docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#labelselector-v1-meta'
+                                                docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#labelselector-v1-meta'
                                               properties:
                                                 matchExpressions:
                                                   items:
                                                     description: 'Refer to the Kubernetes
-                                                      docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#labelselectorrequirement-v1-meta'
+                                                      docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#labelselectorrequirement-v1-meta'
                                                     properties:
                                                       key:
                                                         type: string
@@ -4963,16 +4963,16 @@ spec:
                                   requiredDuringSchedulingIgnoredDuringExecution:
                                     items:
                                       description: 'Refer to the Kubernetes docs:
-                                        https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#podaffinityterm-v1-core.'
+                                        https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#podaffinityterm-v1-core.'
                                       properties:
                                         labelSelector:
                                           description: 'Refer to the Kubernetes docs:
-                                            https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#labelselector-v1-meta'
+                                            https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#labelselector-v1-meta'
                                           properties:
                                             matchExpressions:
                                               items:
                                                 description: 'Refer to the Kubernetes
-                                                  docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#labelselectorrequirement-v1-meta'
+                                                  docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#labelselectorrequirement-v1-meta'
                                                 properties:
                                                   key:
                                                     type: string
@@ -5030,7 +5030,7 @@ spec:
                             description: ImagePullSecrets is the list of pull Secrets
                               to be used to pull the image.
                             items:
-                              description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#localobjectreference-v1-core.'
+                              description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core.'
                               properties:
                                 name:
                                   default: ""
@@ -5609,20 +5609,20 @@ spec:
                               Make sure you have at least as many Nodes available as the replicas to not end up with unscheduled Pods.
                             type: boolean
                           nodeAffinity:
-                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeaffinity-v1-core'
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeaffinity-v1-core'
                             properties:
                               preferredDuringSchedulingIgnoredDuringExecution:
                                 items:
-                                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#preferredschedulingterm-v1-core'
+                                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#preferredschedulingterm-v1-core'
                                   properties:
                                     preference:
                                       description: 'Refer to the Kubernetes docs:
-                                        https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeselectorterm-v1-core'
+                                        https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselectorterm-v1-core'
                                       properties:
                                         matchExpressions:
                                           items:
                                             description: 'Refer to the Kubernetes
-                                              docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeselectorrequirement-v1-core'
+                                              docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselectorrequirement-v1-core'
                                             properties:
                                               key:
                                                 type: string
@@ -5645,7 +5645,7 @@ spec:
                                         matchFields:
                                           items:
                                             description: 'Refer to the Kubernetes
-                                              docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeselectorrequirement-v1-core'
+                                              docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselectorrequirement-v1-core'
                                             properties:
                                               key:
                                                 type: string
@@ -5676,17 +5676,17 @@ spec:
                                 type: array
                                 x-kubernetes-list-type: atomic
                               requiredDuringSchedulingIgnoredDuringExecution:
-                                description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeselector-v1-core'
+                                description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselector-v1-core'
                                 properties:
                                   nodeSelectorTerms:
                                     items:
                                       description: 'Refer to the Kubernetes docs:
-                                        https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeselectorterm-v1-core'
+                                        https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselectorterm-v1-core'
                                       properties:
                                         matchExpressions:
                                           items:
                                             description: 'Refer to the Kubernetes
-                                              docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeselectorrequirement-v1-core'
+                                              docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselectorrequirement-v1-core'
                                             properties:
                                               key:
                                                 type: string
@@ -5709,7 +5709,7 @@ spec:
                                         matchFields:
                                           items:
                                             description: 'Refer to the Kubernetes
-                                              docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeselectorrequirement-v1-core'
+                                              docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselectorrequirement-v1-core'
                                             properties:
                                               key:
                                                 type: string
@@ -5737,24 +5737,24 @@ spec:
                                 type: object
                             type: object
                           podAntiAffinity:
-                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#podantiaffinity-v1-core.'
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#podantiaffinity-v1-core.'
                             properties:
                               preferredDuringSchedulingIgnoredDuringExecution:
                                 items:
-                                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#weightedpodaffinityterm-v1-core.'
+                                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#weightedpodaffinityterm-v1-core.'
                                   properties:
                                     podAffinityTerm:
                                       description: 'Refer to the Kubernetes docs:
-                                        https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#podaffinityterm-v1-core.'
+                                        https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#podaffinityterm-v1-core.'
                                       properties:
                                         labelSelector:
                                           description: 'Refer to the Kubernetes docs:
-                                            https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#labelselector-v1-meta'
+                                            https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#labelselector-v1-meta'
                                           properties:
                                             matchExpressions:
                                               items:
                                                 description: 'Refer to the Kubernetes
-                                                  docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#labelselectorrequirement-v1-meta'
+                                                  docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#labelselectorrequirement-v1-meta'
                                                 properties:
                                                   key:
                                                     type: string
@@ -5796,16 +5796,16 @@ spec:
                                 x-kubernetes-list-type: atomic
                               requiredDuringSchedulingIgnoredDuringExecution:
                                 items:
-                                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#podaffinityterm-v1-core.'
+                                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#podaffinityterm-v1-core.'
                                   properties:
                                     labelSelector:
                                       description: 'Refer to the Kubernetes docs:
-                                        https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#labelselector-v1-meta'
+                                        https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#labelselector-v1-meta'
                                       properties:
                                         matchExpressions:
                                           items:
                                             description: 'Refer to the Kubernetes
-                                              docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#labelselectorrequirement-v1-meta'
+                                              docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#labelselectorrequirement-v1-meta'
                                             properties:
                                               key:
                                                 type: string
@@ -5862,7 +5862,7 @@ spec:
                         description: ImagePullSecrets is the list of pull Secrets
                           to be used to pull the image.
                         items:
-                          description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#localobjectreference-v1-core.'
+                          description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core.'
                           properties:
                             name:
                               default: ""
@@ -6484,7 +6484,7 @@ spec:
                 description: ReadinessProbe to be used in the Container.
                 properties:
                   exec:
-                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#execaction-v1-core.'
+                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#execaction-v1-core.'
                     properties:
                       command:
                         items:
@@ -6496,7 +6496,7 @@ spec:
                     format: int32
                     type: integer
                   httpGet:
-                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#httpgetaction-v1-core.'
+                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#httpgetaction-v1-core.'
                     properties:
                       host:
                         type: string
@@ -6524,7 +6524,7 @@ spec:
                     format: int32
                     type: integer
                   tcpSocket:
-                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#tcpsocketaction-v1-core.'
+                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#tcpsocketaction-v1-core.'
                     properties:
                       host:
                         type: string
@@ -6898,7 +6898,7 @@ spec:
                 description: ServicePorts is the list of additional named ports to
                   be added to the Services created by the operator.
                 items:
-                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#serviceport-v1-core'
+                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#serviceport-v1-core'
                   properties:
                     name:
                       type: string
@@ -6929,7 +6929,7 @@ spec:
                       description: Env represents the environment variables to be
                         injected in a container.
                       items:
-                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#envvarsource-v1-core.'
+                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#envvarsource-v1-core.'
                         properties:
                           name:
                             description: Name of the environment variable. Must be
@@ -6938,10 +6938,10 @@ spec:
                           value:
                             type: string
                           valueFrom:
-                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#envvarsource-v1-core.'
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#envvarsource-v1-core.'
                             properties:
                               configMapKeyRef:
-                                description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#configmapkeyselector-v1-core.'
+                                description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#configmapkeyselector-v1-core.'
                                 properties:
                                   key:
                                     type: string
@@ -6953,7 +6953,7 @@ spec:
                                 type: object
                                 x-kubernetes-map-type: atomic
                               fieldRef:
-                                description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#objectfieldselector-v1-core.'
+                                description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#objectfieldselector-v1-core.'
                                 properties:
                                   apiVersion:
                                     type: string
@@ -6964,7 +6964,7 @@ spec:
                                 type: object
                                 x-kubernetes-map-type: atomic
                               secretKeyRef:
-                                description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#secretkeyselector-v1-core.'
+                                description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#secretkeyselector-v1-core.'
                                 properties:
                                   key:
                                     type: string
@@ -7023,7 +7023,7 @@ spec:
                     volumeMounts:
                       description: VolumeMounts to be used in the Container.
                       items:
-                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#volumemount-v1-core.'
+                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#volumemount-v1-core.'
                         properties:
                           mountPath:
                             type: string
@@ -7047,7 +7047,7 @@ spec:
                 description: StartupProbe to be used in the Container.
                 properties:
                   exec:
-                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#execaction-v1-core.'
+                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#execaction-v1-core.'
                     properties:
                       command:
                         items:
@@ -7059,7 +7059,7 @@ spec:
                     format: int32
                     type: integer
                   httpGet:
-                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#httpgetaction-v1-core.'
+                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#httpgetaction-v1-core.'
                     properties:
                       host:
                         type: string
@@ -7087,7 +7087,7 @@ spec:
                     format: int32
                     type: integer
                   tcpSocket:
-                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#tcpsocketaction-v1-core.'
+                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#tcpsocketaction-v1-core.'
                     properties:
                       host:
                         type: string
@@ -7390,7 +7390,7 @@ spec:
               topologySpreadConstraints:
                 description: TopologySpreadConstraints to be used in the Pod.
                 items:
-                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#topologyspreadconstraint-v1-core.'
+                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#topologyspreadconstraint-v1-core.'
                   properties:
                     labelSelector:
                       description: |-
@@ -7523,7 +7523,7 @@ spec:
               volumeMounts:
                 description: VolumeMounts to be used in the Container.
                 items:
-                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#volumemount-v1-core.'
+                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#volumemount-v1-core.'
                   properties:
                     mountPath:
                       type: string
@@ -7542,10 +7542,10 @@ spec:
               volumes:
                 description: Volumes to be used in the Pod.
                 items:
-                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#volume-v1-core.'
+                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#volume-v1-core.'
                   properties:
                     configMap:
-                      description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#configmapvolumesource-v1-core.'
+                      description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#configmapvolumesource-v1-core.'
                       properties:
                         defaultMode:
                           format: int32
@@ -7555,14 +7555,14 @@ spec:
                           type: string
                       type: object
                     csi:
-                      description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#csivolumesource-v1-core.'
+                      description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#csivolumesource-v1-core.'
                       properties:
                         driver:
                           type: string
                         fsType:
                           type: string
                         nodePublishSecretRef:
-                          description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#localobjectreference-v1-core.'
+                          description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core.'
                           properties:
                             name:
                               default: ""
@@ -7578,7 +7578,7 @@ spec:
                       - driver
                       type: object
                     emptyDir:
-                      description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#emptydirvolumesource-v1-core.'
+                      description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#emptydirvolumesource-v1-core.'
                       properties:
                         medium:
                           description: StorageMedium defines ways that storage can
@@ -7592,7 +7592,7 @@ spec:
                           x-kubernetes-int-or-string: true
                       type: object
                     hostPath:
-                      description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#hostpathvolumesource-v1-core'
+                      description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#hostpathvolumesource-v1-core'
                       properties:
                         path:
                           type: string
@@ -7604,7 +7604,7 @@ spec:
                     name:
                       type: string
                     nfs:
-                      description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nfsvolumesource-v1-core.'
+                      description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nfsvolumesource-v1-core.'
                       properties:
                         path:
                           type: string
@@ -7617,7 +7617,7 @@ spec:
                       - server
                       type: object
                     persistentVolumeClaim:
-                      description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#persistentvolumeclaimvolumesource-v1-core.'
+                      description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#persistentvolumeclaimvolumesource-v1-core.'
                       properties:
                         claimName:
                           type: string
@@ -7627,7 +7627,7 @@ spec:
                       - claimName
                       type: object
                     secret:
-                      description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#secretvolumesource-v1-core.'
+                      description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#secretvolumesource-v1-core.'
                       properties:
                         defaultMode:
                           format: int32
@@ -7952,18 +7952,18 @@ spec:
                       Make sure you have at least as many Nodes available as the replicas to not end up with unscheduled Pods.
                     type: boolean
                   nodeAffinity:
-                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeaffinity-v1-core'
+                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeaffinity-v1-core'
                     properties:
                       preferredDuringSchedulingIgnoredDuringExecution:
                         items:
-                          description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#preferredschedulingterm-v1-core'
+                          description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#preferredschedulingterm-v1-core'
                           properties:
                             preference:
-                              description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeselectorterm-v1-core'
+                              description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselectorterm-v1-core'
                               properties:
                                 matchExpressions:
                                   items:
-                                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeselectorrequirement-v1-core'
+                                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselectorrequirement-v1-core'
                                     properties:
                                       key:
                                         type: string
@@ -7985,7 +7985,7 @@ spec:
                                   x-kubernetes-list-type: atomic
                                 matchFields:
                                   items:
-                                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeselectorrequirement-v1-core'
+                                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselectorrequirement-v1-core'
                                     properties:
                                       key:
                                         type: string
@@ -8016,15 +8016,15 @@ spec:
                         type: array
                         x-kubernetes-list-type: atomic
                       requiredDuringSchedulingIgnoredDuringExecution:
-                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeselector-v1-core'
+                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselector-v1-core'
                         properties:
                           nodeSelectorTerms:
                             items:
-                              description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeselectorterm-v1-core'
+                              description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselectorterm-v1-core'
                               properties:
                                 matchExpressions:
                                   items:
-                                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeselectorrequirement-v1-core'
+                                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselectorrequirement-v1-core'
                                     properties:
                                       key:
                                         type: string
@@ -8046,7 +8046,7 @@ spec:
                                   x-kubernetes-list-type: atomic
                                 matchFields:
                                   items:
-                                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeselectorrequirement-v1-core'
+                                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselectorrequirement-v1-core'
                                     properties:
                                       key:
                                         type: string
@@ -8074,22 +8074,22 @@ spec:
                         type: object
                     type: object
                   podAntiAffinity:
-                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#podantiaffinity-v1-core.'
+                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#podantiaffinity-v1-core.'
                     properties:
                       preferredDuringSchedulingIgnoredDuringExecution:
                         items:
-                          description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#weightedpodaffinityterm-v1-core.'
+                          description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#weightedpodaffinityterm-v1-core.'
                           properties:
                             podAffinityTerm:
-                              description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#podaffinityterm-v1-core.'
+                              description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#podaffinityterm-v1-core.'
                               properties:
                                 labelSelector:
-                                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#labelselector-v1-meta'
+                                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#labelselector-v1-meta'
                                   properties:
                                     matchExpressions:
                                       items:
                                         description: 'Refer to the Kubernetes docs:
-                                          https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#labelselectorrequirement-v1-meta'
+                                          https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#labelselectorrequirement-v1-meta'
                                         properties:
                                           key:
                                             type: string
@@ -8130,14 +8130,14 @@ spec:
                         x-kubernetes-list-type: atomic
                       requiredDuringSchedulingIgnoredDuringExecution:
                         items:
-                          description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#podaffinityterm-v1-core.'
+                          description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#podaffinityterm-v1-core.'
                           properties:
                             labelSelector:
-                              description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#labelselector-v1-meta'
+                              description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#labelselector-v1-meta'
                               properties:
                                 matchExpressions:
                                   items:
-                                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#labelselectorrequirement-v1-meta'
+                                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#labelselectorrequirement-v1-meta'
                                     properties:
                                       key:
                                         type: string
@@ -8574,7 +8574,7 @@ spec:
                 description: Env represents the environment variables to be injected
                   in a container.
                 items:
-                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#envvarsource-v1-core.'
+                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#envvarsource-v1-core.'
                   properties:
                     name:
                       description: Name of the environment variable. Must be a C_IDENTIFIER.
@@ -8582,10 +8582,10 @@ spec:
                     value:
                       type: string
                     valueFrom:
-                      description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#envvarsource-v1-core.'
+                      description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#envvarsource-v1-core.'
                       properties:
                         configMapKeyRef:
-                          description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#configmapkeyselector-v1-core.'
+                          description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#configmapkeyselector-v1-core.'
                           properties:
                             key:
                               type: string
@@ -8597,7 +8597,7 @@ spec:
                           type: object
                           x-kubernetes-map-type: atomic
                         fieldRef:
-                          description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#objectfieldselector-v1-core.'
+                          description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#objectfieldselector-v1-core.'
                           properties:
                             apiVersion:
                               type: string
@@ -8608,7 +8608,7 @@ spec:
                           type: object
                           x-kubernetes-map-type: atomic
                         secretKeyRef:
-                          description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#secretkeyselector-v1-core.'
+                          description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#secretkeyselector-v1-core.'
                           properties:
                             key:
                               type: string
@@ -8628,10 +8628,10 @@ spec:
                 description: EnvFrom represents the references (via ConfigMap and
                   Secrets) to environment variables to be injected in the container.
                 items:
-                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#envfromsource-v1-core.'
+                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#envfromsource-v1-core.'
                   properties:
                     configMapRef:
-                      description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#localobjectreference-v1-core.'
+                      description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core.'
                       properties:
                         name:
                           default: ""
@@ -8640,7 +8640,7 @@ spec:
                     prefix:
                       type: string
                     secretRef:
-                      description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#localobjectreference-v1-core.'
+                      description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core.'
                       properties:
                         name:
                           default: ""
@@ -8710,7 +8710,7 @@ spec:
                 description: ImagePullSecrets is the list of pull Secrets to be used
                   to pull the image.
                 items:
-                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#localobjectreference-v1-core.'
+                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core.'
                   properties:
                     name:
                       default: ""
@@ -8781,7 +8781,7 @@ spec:
                 description: LivenessProbe to be used in the Container.
                 properties:
                   exec:
-                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#execaction-v1-core.'
+                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#execaction-v1-core.'
                     properties:
                       command:
                         items:
@@ -8793,7 +8793,7 @@ spec:
                     format: int32
                     type: integer
                   httpGet:
-                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#httpgetaction-v1-core.'
+                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#httpgetaction-v1-core.'
                     properties:
                       host:
                         type: string
@@ -8821,7 +8821,7 @@ spec:
                     format: int32
                     type: integer
                   tcpSocket:
-                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#tcpsocketaction-v1-core.'
+                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#tcpsocketaction-v1-core.'
                     properties:
                       host:
                         type: string
@@ -8869,20 +8869,20 @@ spec:
                               Make sure you have at least as many Nodes available as the replicas to not end up with unscheduled Pods.
                             type: boolean
                           nodeAffinity:
-                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeaffinity-v1-core'
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeaffinity-v1-core'
                             properties:
                               preferredDuringSchedulingIgnoredDuringExecution:
                                 items:
-                                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#preferredschedulingterm-v1-core'
+                                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#preferredschedulingterm-v1-core'
                                   properties:
                                     preference:
                                       description: 'Refer to the Kubernetes docs:
-                                        https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeselectorterm-v1-core'
+                                        https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselectorterm-v1-core'
                                       properties:
                                         matchExpressions:
                                           items:
                                             description: 'Refer to the Kubernetes
-                                              docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeselectorrequirement-v1-core'
+                                              docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselectorrequirement-v1-core'
                                             properties:
                                               key:
                                                 type: string
@@ -8905,7 +8905,7 @@ spec:
                                         matchFields:
                                           items:
                                             description: 'Refer to the Kubernetes
-                                              docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeselectorrequirement-v1-core'
+                                              docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselectorrequirement-v1-core'
                                             properties:
                                               key:
                                                 type: string
@@ -8936,17 +8936,17 @@ spec:
                                 type: array
                                 x-kubernetes-list-type: atomic
                               requiredDuringSchedulingIgnoredDuringExecution:
-                                description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeselector-v1-core'
+                                description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselector-v1-core'
                                 properties:
                                   nodeSelectorTerms:
                                     items:
                                       description: 'Refer to the Kubernetes docs:
-                                        https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeselectorterm-v1-core'
+                                        https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselectorterm-v1-core'
                                       properties:
                                         matchExpressions:
                                           items:
                                             description: 'Refer to the Kubernetes
-                                              docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeselectorrequirement-v1-core'
+                                              docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselectorrequirement-v1-core'
                                             properties:
                                               key:
                                                 type: string
@@ -8969,7 +8969,7 @@ spec:
                                         matchFields:
                                           items:
                                             description: 'Refer to the Kubernetes
-                                              docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeselectorrequirement-v1-core'
+                                              docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselectorrequirement-v1-core'
                                             properties:
                                               key:
                                                 type: string
@@ -8997,24 +8997,24 @@ spec:
                                 type: object
                             type: object
                           podAntiAffinity:
-                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#podantiaffinity-v1-core.'
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#podantiaffinity-v1-core.'
                             properties:
                               preferredDuringSchedulingIgnoredDuringExecution:
                                 items:
-                                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#weightedpodaffinityterm-v1-core.'
+                                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#weightedpodaffinityterm-v1-core.'
                                   properties:
                                     podAffinityTerm:
                                       description: 'Refer to the Kubernetes docs:
-                                        https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#podaffinityterm-v1-core.'
+                                        https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#podaffinityterm-v1-core.'
                                       properties:
                                         labelSelector:
                                           description: 'Refer to the Kubernetes docs:
-                                            https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#labelselector-v1-meta'
+                                            https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#labelselector-v1-meta'
                                           properties:
                                             matchExpressions:
                                               items:
                                                 description: 'Refer to the Kubernetes
-                                                  docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#labelselectorrequirement-v1-meta'
+                                                  docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#labelselectorrequirement-v1-meta'
                                                 properties:
                                                   key:
                                                     type: string
@@ -9056,16 +9056,16 @@ spec:
                                 x-kubernetes-list-type: atomic
                               requiredDuringSchedulingIgnoredDuringExecution:
                                 items:
-                                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#podaffinityterm-v1-core.'
+                                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#podaffinityterm-v1-core.'
                                   properties:
                                     labelSelector:
                                       description: 'Refer to the Kubernetes docs:
-                                        https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#labelselector-v1-meta'
+                                        https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#labelselector-v1-meta'
                                       properties:
                                         matchExpressions:
                                           items:
                                             description: 'Refer to the Kubernetes
-                                              docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#labelselectorrequirement-v1-meta'
+                                              docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#labelselectorrequirement-v1-meta'
                                             properties:
                                               key:
                                                 type: string
@@ -9122,7 +9122,7 @@ spec:
                         description: ImagePullSecrets is the list of pull Secrets
                           to be used to pull the image.
                         items:
-                          description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#localobjectreference-v1-core.'
+                          description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core.'
                           properties:
                             name:
                               default: ""
@@ -9553,7 +9553,7 @@ spec:
                 description: ReadinessProbe to be used in the Container.
                 properties:
                   exec:
-                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#execaction-v1-core.'
+                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#execaction-v1-core.'
                     properties:
                       command:
                         items:
@@ -9565,7 +9565,7 @@ spec:
                     format: int32
                     type: integer
                   httpGet:
-                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#httpgetaction-v1-core.'
+                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#httpgetaction-v1-core.'
                     properties:
                       host:
                         type: string
@@ -9593,7 +9593,7 @@ spec:
                     format: int32
                     type: integer
                   tcpSocket:
-                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#tcpsocketaction-v1-core.'
+                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#tcpsocketaction-v1-core.'
                     properties:
                       host:
                         type: string
@@ -9802,7 +9802,7 @@ spec:
                 description: StartupProbe to be used in the Container.
                 properties:
                   exec:
-                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#execaction-v1-core.'
+                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#execaction-v1-core.'
                     properties:
                       command:
                         items:
@@ -9814,7 +9814,7 @@ spec:
                     format: int32
                     type: integer
                   httpGet:
-                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#httpgetaction-v1-core.'
+                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#httpgetaction-v1-core.'
                     properties:
                       host:
                         type: string
@@ -9842,7 +9842,7 @@ spec:
                     format: int32
                     type: integer
                   tcpSocket:
-                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#tcpsocketaction-v1-core.'
+                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#tcpsocketaction-v1-core.'
                     properties:
                       host:
                         type: string
@@ -10026,7 +10026,7 @@ spec:
               topologySpreadConstraints:
                 description: TopologySpreadConstraints to be used in the Pod.
                 items:
-                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#topologyspreadconstraint-v1-core.'
+                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#topologyspreadconstraint-v1-core.'
                   properties:
                     labelSelector:
                       description: |-
@@ -10144,7 +10144,7 @@ spec:
               volumeMounts:
                 description: VolumeMounts to be used in the Container.
                 items:
-                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#volumemount-v1-core.'
+                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#volumemount-v1-core.'
                   properties:
                     mountPath:
                       type: string
@@ -10501,7 +10501,7 @@ spec:
                 description: ImagePullSecrets is the list of pull Secrets to be used
                   to pull the image.
                 items:
-                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#localobjectreference-v1-core.'
+                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core.'
                   properties:
                     name:
                       default: ""
@@ -10848,14 +10848,14 @@ spec:
                     description: Volume is a Kubernetes volume specification.
                     properties:
                       csi:
-                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#csivolumesource-v1-core.'
+                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#csivolumesource-v1-core.'
                         properties:
                           driver:
                             type: string
                           fsType:
                             type: string
                           nodePublishSecretRef:
-                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#localobjectreference-v1-core.'
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core.'
                             properties:
                               name:
                                 default: ""
@@ -10871,7 +10871,7 @@ spec:
                         - driver
                         type: object
                       emptyDir:
-                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#emptydirvolumesource-v1-core.'
+                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#emptydirvolumesource-v1-core.'
                         properties:
                           medium:
                             description: StorageMedium defines ways that storage can
@@ -10885,7 +10885,7 @@ spec:
                             x-kubernetes-int-or-string: true
                         type: object
                       hostPath:
-                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#hostpathvolumesource-v1-core'
+                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#hostpathvolumesource-v1-core'
                         properties:
                           path:
                             type: string
@@ -10895,7 +10895,7 @@ spec:
                         - path
                         type: object
                       nfs:
-                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nfsvolumesource-v1-core.'
+                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nfsvolumesource-v1-core.'
                         properties:
                           path:
                             type: string
@@ -10908,7 +10908,7 @@ spec:
                         - server
                         type: object
                       persistentVolumeClaim:
-                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#persistentvolumeclaimvolumesource-v1-core.'
+                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#persistentvolumeclaimvolumesource-v1-core.'
                         properties:
                           claimName:
                             type: string
@@ -11099,14 +11099,14 @@ spec:
                     description: Volume is a Kubernetes volume specification.
                     properties:
                       csi:
-                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#csivolumesource-v1-core.'
+                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#csivolumesource-v1-core.'
                         properties:
                           driver:
                             type: string
                           fsType:
                             type: string
                           nodePublishSecretRef:
-                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#localobjectreference-v1-core.'
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core.'
                             properties:
                               name:
                                 default: ""
@@ -11122,7 +11122,7 @@ spec:
                         - driver
                         type: object
                       emptyDir:
-                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#emptydirvolumesource-v1-core.'
+                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#emptydirvolumesource-v1-core.'
                         properties:
                           medium:
                             description: StorageMedium defines ways that storage can
@@ -11136,7 +11136,7 @@ spec:
                             x-kubernetes-int-or-string: true
                         type: object
                       hostPath:
-                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#hostpathvolumesource-v1-core'
+                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#hostpathvolumesource-v1-core'
                         properties:
                           path:
                             type: string
@@ -11146,7 +11146,7 @@ spec:
                         - path
                         type: object
                       nfs:
-                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nfsvolumesource-v1-core.'
+                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nfsvolumesource-v1-core.'
                         properties:
                           path:
                             type: string
@@ -11159,7 +11159,7 @@ spec:
                         - server
                         type: object
                       persistentVolumeClaim:
-                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#persistentvolumeclaimvolumesource-v1-core.'
+                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#persistentvolumeclaimvolumesource-v1-core.'
                         properties:
                           claimName:
                             type: string
@@ -11397,18 +11397,18 @@ spec:
                       Make sure you have at least as many Nodes available as the replicas to not end up with unscheduled Pods.
                     type: boolean
                   nodeAffinity:
-                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeaffinity-v1-core'
+                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeaffinity-v1-core'
                     properties:
                       preferredDuringSchedulingIgnoredDuringExecution:
                         items:
-                          description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#preferredschedulingterm-v1-core'
+                          description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#preferredschedulingterm-v1-core'
                           properties:
                             preference:
-                              description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeselectorterm-v1-core'
+                              description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselectorterm-v1-core'
                               properties:
                                 matchExpressions:
                                   items:
-                                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeselectorrequirement-v1-core'
+                                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselectorrequirement-v1-core'
                                     properties:
                                       key:
                                         type: string
@@ -11430,7 +11430,7 @@ spec:
                                   x-kubernetes-list-type: atomic
                                 matchFields:
                                   items:
-                                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeselectorrequirement-v1-core'
+                                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselectorrequirement-v1-core'
                                     properties:
                                       key:
                                         type: string
@@ -11461,15 +11461,15 @@ spec:
                         type: array
                         x-kubernetes-list-type: atomic
                       requiredDuringSchedulingIgnoredDuringExecution:
-                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeselector-v1-core'
+                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselector-v1-core'
                         properties:
                           nodeSelectorTerms:
                             items:
-                              description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeselectorterm-v1-core'
+                              description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselectorterm-v1-core'
                               properties:
                                 matchExpressions:
                                   items:
-                                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeselectorrequirement-v1-core'
+                                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselectorrequirement-v1-core'
                                     properties:
                                       key:
                                         type: string
@@ -11491,7 +11491,7 @@ spec:
                                   x-kubernetes-list-type: atomic
                                 matchFields:
                                   items:
-                                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeselectorrequirement-v1-core'
+                                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselectorrequirement-v1-core'
                                     properties:
                                       key:
                                         type: string
@@ -11519,22 +11519,22 @@ spec:
                         type: object
                     type: object
                   podAntiAffinity:
-                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#podantiaffinity-v1-core.'
+                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#podantiaffinity-v1-core.'
                     properties:
                       preferredDuringSchedulingIgnoredDuringExecution:
                         items:
-                          description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#weightedpodaffinityterm-v1-core.'
+                          description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#weightedpodaffinityterm-v1-core.'
                           properties:
                             podAffinityTerm:
-                              description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#podaffinityterm-v1-core.'
+                              description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#podaffinityterm-v1-core.'
                               properties:
                                 labelSelector:
-                                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#labelselector-v1-meta'
+                                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#labelselector-v1-meta'
                                   properties:
                                     matchExpressions:
                                       items:
                                         description: 'Refer to the Kubernetes docs:
-                                          https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#labelselectorrequirement-v1-meta'
+                                          https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#labelselectorrequirement-v1-meta'
                                         properties:
                                           key:
                                             type: string
@@ -11575,14 +11575,14 @@ spec:
                         x-kubernetes-list-type: atomic
                       requiredDuringSchedulingIgnoredDuringExecution:
                         items:
-                          description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#podaffinityterm-v1-core.'
+                          description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#podaffinityterm-v1-core.'
                           properties:
                             labelSelector:
-                              description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#labelselector-v1-meta'
+                              description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#labelselector-v1-meta'
                               properties:
                                 matchExpressions:
                                   items:
-                                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#labelselectorrequirement-v1-meta'
+                                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#labelselectorrequirement-v1-meta'
                                     properties:
                                       key:
                                         type: string
@@ -11644,7 +11644,7 @@ spec:
                 description: ImagePullSecrets is the list of pull Secrets to be used
                   to pull the image.
                 items:
-                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#localobjectreference-v1-core.'
+                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core.'
                   properties:
                     name:
                       default: ""
@@ -12055,14 +12055,14 @@ spec:
                     description: Volume is a Kubernetes volume specification.
                     properties:
                       csi:
-                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#csivolumesource-v1-core.'
+                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#csivolumesource-v1-core.'
                         properties:
                           driver:
                             type: string
                           fsType:
                             type: string
                           nodePublishSecretRef:
-                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#localobjectreference-v1-core.'
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core.'
                             properties:
                               name:
                                 default: ""
@@ -12078,7 +12078,7 @@ spec:
                         - driver
                         type: object
                       emptyDir:
-                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#emptydirvolumesource-v1-core.'
+                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#emptydirvolumesource-v1-core.'
                         properties:
                           medium:
                             description: StorageMedium defines ways that storage can
@@ -12092,7 +12092,7 @@ spec:
                             x-kubernetes-int-or-string: true
                         type: object
                       hostPath:
-                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#hostpathvolumesource-v1-core'
+                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#hostpathvolumesource-v1-core'
                         properties:
                           path:
                             type: string
@@ -12102,7 +12102,7 @@ spec:
                         - path
                         type: object
                       nfs:
-                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nfsvolumesource-v1-core.'
+                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nfsvolumesource-v1-core.'
                         properties:
                           path:
                             type: string
@@ -12115,7 +12115,7 @@ spec:
                         - server
                         type: object
                       persistentVolumeClaim:
-                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#persistentvolumeclaimvolumesource-v1-core.'
+                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#persistentvolumeclaimvolumesource-v1-core.'
                         properties:
                           claimName:
                             type: string
@@ -12176,14 +12176,14 @@ spec:
                   backup.
                 properties:
                   csi:
-                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#csivolumesource-v1-core.'
+                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#csivolumesource-v1-core.'
                     properties:
                       driver:
                         type: string
                       fsType:
                         type: string
                       nodePublishSecretRef:
-                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#localobjectreference-v1-core.'
+                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core.'
                         properties:
                           name:
                             default: ""
@@ -12199,7 +12199,7 @@ spec:
                     - driver
                     type: object
                   emptyDir:
-                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#emptydirvolumesource-v1-core.'
+                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#emptydirvolumesource-v1-core.'
                     properties:
                       medium:
                         description: StorageMedium defines ways that storage can be
@@ -12213,7 +12213,7 @@ spec:
                         x-kubernetes-int-or-string: true
                     type: object
                   hostPath:
-                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#hostpathvolumesource-v1-core'
+                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#hostpathvolumesource-v1-core'
                     properties:
                       path:
                         type: string
@@ -12223,7 +12223,7 @@ spec:
                     - path
                     type: object
                   nfs:
-                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nfsvolumesource-v1-core.'
+                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nfsvolumesource-v1-core.'
                     properties:
                       path:
                         type: string
@@ -12236,7 +12236,7 @@ spec:
                     - server
                     type: object
                   persistentVolumeClaim:
-                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#persistentvolumeclaimvolumesource-v1-core.'
+                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#persistentvolumeclaimvolumesource-v1-core.'
                     properties:
                       claimName:
                         type: string
@@ -12381,18 +12381,18 @@ spec:
                       Make sure you have at least as many Nodes available as the replicas to not end up with unscheduled Pods.
                     type: boolean
                   nodeAffinity:
-                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeaffinity-v1-core'
+                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeaffinity-v1-core'
                     properties:
                       preferredDuringSchedulingIgnoredDuringExecution:
                         items:
-                          description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#preferredschedulingterm-v1-core'
+                          description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#preferredschedulingterm-v1-core'
                           properties:
                             preference:
-                              description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeselectorterm-v1-core'
+                              description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselectorterm-v1-core'
                               properties:
                                 matchExpressions:
                                   items:
-                                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeselectorrequirement-v1-core'
+                                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselectorrequirement-v1-core'
                                     properties:
                                       key:
                                         type: string
@@ -12414,7 +12414,7 @@ spec:
                                   x-kubernetes-list-type: atomic
                                 matchFields:
                                   items:
-                                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeselectorrequirement-v1-core'
+                                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselectorrequirement-v1-core'
                                     properties:
                                       key:
                                         type: string
@@ -12445,15 +12445,15 @@ spec:
                         type: array
                         x-kubernetes-list-type: atomic
                       requiredDuringSchedulingIgnoredDuringExecution:
-                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeselector-v1-core'
+                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselector-v1-core'
                         properties:
                           nodeSelectorTerms:
                             items:
-                              description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeselectorterm-v1-core'
+                              description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselectorterm-v1-core'
                               properties:
                                 matchExpressions:
                                   items:
-                                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeselectorrequirement-v1-core'
+                                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselectorrequirement-v1-core'
                                     properties:
                                       key:
                                         type: string
@@ -12475,7 +12475,7 @@ spec:
                                   x-kubernetes-list-type: atomic
                                 matchFields:
                                   items:
-                                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeselectorrequirement-v1-core'
+                                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselectorrequirement-v1-core'
                                     properties:
                                       key:
                                         type: string
@@ -12503,22 +12503,22 @@ spec:
                         type: object
                     type: object
                   podAntiAffinity:
-                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#podantiaffinity-v1-core.'
+                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#podantiaffinity-v1-core.'
                     properties:
                       preferredDuringSchedulingIgnoredDuringExecution:
                         items:
-                          description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#weightedpodaffinityterm-v1-core.'
+                          description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#weightedpodaffinityterm-v1-core.'
                           properties:
                             podAffinityTerm:
-                              description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#podaffinityterm-v1-core.'
+                              description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#podaffinityterm-v1-core.'
                               properties:
                                 labelSelector:
-                                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#labelselector-v1-meta'
+                                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#labelselector-v1-meta'
                                   properties:
                                     matchExpressions:
                                       items:
                                         description: 'Refer to the Kubernetes docs:
-                                          https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#labelselectorrequirement-v1-meta'
+                                          https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#labelselectorrequirement-v1-meta'
                                         properties:
                                           key:
                                             type: string
@@ -12559,14 +12559,14 @@ spec:
                         x-kubernetes-list-type: atomic
                       requiredDuringSchedulingIgnoredDuringExecution:
                         items:
-                          description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#podaffinityterm-v1-core.'
+                          description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#podaffinityterm-v1-core.'
                           properties:
                             labelSelector:
-                              description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#labelselector-v1-meta'
+                              description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#labelselector-v1-meta'
                               properties:
                                 matchExpressions:
                                   items:
-                                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#labelselectorrequirement-v1-meta'
+                                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#labelselectorrequirement-v1-meta'
                                     properties:
                                       key:
                                         type: string
@@ -12617,7 +12617,7 @@ spec:
               dependsOn:
                 description: DependsOn defines dependencies with other SqlJob objectecs.
                 items:
-                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#localobjectreference-v1-core.'
+                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core.'
                   properties:
                     name:
                       default: ""
@@ -12634,7 +12634,7 @@ spec:
                 description: ImagePullSecrets is the list of pull Secrets to be used
                   to pull the image.
                 items:
-                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#localobjectreference-v1-core.'
+                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core.'
                   properties:
                     name:
                       default: ""
