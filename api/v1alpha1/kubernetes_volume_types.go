@@ -7,7 +7,7 @@ import (
 	"k8s.io/utils/ptr"
 )
 
-// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#emptydirvolumesource-v1-core.
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#emptydirvolumesource-v1-core.
 type EmptyDirVolumeSource struct {
 	// +optional
 	Medium corev1.StorageMedium `json:"medium,omitempty"`
@@ -22,7 +22,7 @@ func (v EmptyDirVolumeSource) ToKubernetesType() corev1.EmptyDirVolumeSource {
 	}
 }
 
-// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nfsvolumesource-v1-core.
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nfsvolumesource-v1-core.
 type NFSVolumeSource struct {
 	Server string `json:"server"`
 	Path   string `json:"path"`
@@ -38,7 +38,7 @@ func (v NFSVolumeSource) ToKubernetesType() corev1.NFSVolumeSource {
 	}
 }
 
-// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#csivolumesource-v1-core.
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#csivolumesource-v1-core.
 type CSIVolumeSource struct {
 	Driver string `json:"driver"`
 	// +optional
@@ -64,7 +64,7 @@ func (v CSIVolumeSource) ToKubernetesType() corev1.CSIVolumeSource {
 	return volumeSource
 }
 
-// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#hostpathvolumesource-v1-core
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#hostpathvolumesource-v1-core
 type HostPathVolumeSource struct {
 	Path string `json:"path"`
 	// +optional
@@ -83,7 +83,7 @@ func (v HostPathVolumeSource) ToKubernetesType() corev1.HostPathVolumeSource {
 	}
 }
 
-// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#persistentvolumeclaimvolumesource-v1-core.
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#persistentvolumeclaimvolumesource-v1-core.
 type PersistentVolumeClaimVolumeSource struct {
 	ClaimName string `json:"claimName"`
 	// +optional
@@ -97,7 +97,7 @@ func (v PersistentVolumeClaimVolumeSource) ToKubernetesType() corev1.PersistentV
 	}
 }
 
-// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#secretvolumesource-v1-core.
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#secretvolumesource-v1-core.
 type SecretVolumeSource struct {
 	// +optional
 	SecretName string `json:"secretName,omitempty"`
@@ -112,7 +112,7 @@ func (v SecretVolumeSource) ToKubernetesType() corev1.SecretVolumeSource {
 	}
 }
 
-// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#configmapvolumesource-v1-core.
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#configmapvolumesource-v1-core.
 type ConfigMapVolumeSource struct {
 	LocalObjectReference `json:",inline"`
 	// +optional
@@ -126,7 +126,7 @@ func (v ConfigMapVolumeSource) ToKubernetesType() corev1.ConfigMapVolumeSource {
 	}
 }
 
-// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#volume-v1-core.
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#volume-v1-core.
 type StorageVolumeSource struct {
 	// +optional
 	EmptyDir *EmptyDirVolumeSource `json:"emptyDir,omitempty"`
@@ -160,7 +160,7 @@ func (v StorageVolumeSource) ToKubernetesType() corev1.VolumeSource {
 	return volumeSource
 }
 
-// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#volume-v1-core.
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#volume-v1-core.
 type VolumeSource struct {
 	StorageVolumeSource `json:",inline"`
 	// +optional
@@ -180,7 +180,7 @@ func (v VolumeSource) ToKubernetesType() corev1.VolumeSource {
 	return volumeSource
 }
 
-// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#volume-v1-core.
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#volume-v1-core.
 type Volume struct {
 	Name         string `json:"name"`
 	VolumeSource `json:",inline"`
@@ -193,7 +193,7 @@ func (v Volume) ToKubernetesType() corev1.Volume {
 	}
 }
 
-// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#volumemount-v1-core.
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#volumemount-v1-core.
 type VolumeMount struct {
 	// This must match the Name of a Volume.
 	Name string `json:"name"`
@@ -213,7 +213,7 @@ func (v VolumeMount) ToKubernetesType() corev1.VolumeMount {
 	}
 }
 
-// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#persistentvolumeclaimspec-v1-core.
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#persistentvolumeclaimspec-v1-core.
 type PersistentVolumeClaimSpec struct {
 	// +optional
 	// +listType=atomic
