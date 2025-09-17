@@ -4,7 +4,6 @@ import (
 	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/docker"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/metadata"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -507,14 +506,8 @@ var _ = Describe("Connection on external MariaDB", func() {
 					Database:             &testDatabase,
 				},
 			},
-			func() string {
-				var err error
-				testCidrPrefix, err = docker.GetKindCidrPrefix()
-				Expect(err).NotTo(HaveOccurred())
-				Expect(testCidrPrefix).NotTo(BeEmpty())
-				return "test:MariaDB11!@tcp(" + testEmulateExternalMdbHost + ":3306)/test" +
-					"?timeout=5s&tls=mariadb-emdb-test-default-client-mdb-emulate-external-test-client-cert&parseTime=true"
-			}(),
+			"test:MariaDB11!@tcp("+testEmulateExternalMdbHost+":3306)/test"+
+				"?timeout=5s&tls=mariadb-emdb-test-default-client-mdb-emulate-external-test-client-cert&parseTime=true",
 		),
 
 		Entry(
@@ -583,14 +576,7 @@ var _ = Describe("Connection on external MariaDB", func() {
 					Database:             &testDatabase,
 				},
 			},
-			func() string {
-				var err error
-				testCidrPrefix, err = docker.GetKindCidrPrefix()
-				Expect(err).NotTo(HaveOccurred())
-				Expect(testCidrPrefix).NotTo(BeEmpty())
-				return "mysql://test:MariaDB11!@" + testEmulateExternalMdbHost + ":3306/test" +
-					"?timeout=5s"
-			}(),
+			"mysql://test:MariaDB11!@"+testEmulateExternalMdbHost+":3306/test?timeout=5s",
 		),
 	)
 
