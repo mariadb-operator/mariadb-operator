@@ -48,8 +48,22 @@ func ListReadyVolumeSnapshots(ctx context.Context, client ctrlclient.Client,
 	}, nil
 }
 
+// IsVolumeSnapshotProvisioned determines whether a VolumeSnapshot has been provisioned by the storage system
+func IsVolumeSnapshotProvisioned(snapshot *volumesnapshotv1.VolumeSnapshot) bool {
+	status := ptr.Deref(snapshot.Status, volumesnapshotv1.VolumeSnapshotStatus{})
+	boundVolumeSnapshotContentName := ptr.Deref(status.BoundVolumeSnapshotContentName, "")
+
+	if boundVolumeSnapshotContentName == "" {
+		return false
+	}
+	return status.CreationTime != nil && status.Error == nil
+}
+
 // IsVolumeSnapshotReady determines whether a VolumeSnapshot is ready.
 func IsVolumeSnapshotReady(snapshot *volumesnapshotv1.VolumeSnapshot) bool {
+	if !IsVolumeSnapshotProvisioned(snapshot) {
+		return false
+	}
 	status := ptr.Deref(snapshot.Status, volumesnapshotv1.VolumeSnapshotStatus{})
 	ready := ptr.Deref(status.ReadyToUse, false)
 

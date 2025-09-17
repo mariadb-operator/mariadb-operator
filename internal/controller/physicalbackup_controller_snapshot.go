@@ -12,6 +12,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/metadata"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/predicate"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/sql"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/volumesnapshot"
 	mdbsnapshot "github.com/mariadb-operator/mariadb-operator/v25/pkg/volumesnapshot"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/wait"
 	"github.com/robfig/cron/v3"
@@ -51,7 +52,7 @@ func (r *PhysicalBackupReconciler) reconcileSnapshots(ctx context.Context, backu
 	if err := r.cleanupSnapshots(ctx, backup, snapshotList); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error cleaning up Jobs: %v", err)
 	}
-	if result, err := r.waitForInProgressSnapshots(ctx, backup, snapshotList); !result.IsZero() || err != nil {
+	if result, err := r.waitForProvisionedSnapshots(ctx, backup, snapshotList); !result.IsZero() || err != nil {
 		return result, err
 	}
 
@@ -121,7 +122,6 @@ func (r *PhysicalBackupReconciler) reconcileSnapshotStatus(ctx context.Context, 
 	numReady := 0
 	for _, snapshot := range snapshotList.Items {
 		status := ptr.Deref(snapshot.Status, volumesnapshotv1.VolumeSnapshotStatus{})
-		ready := ptr.Deref(status.ReadyToUse, false)
 
 		if status.Error != nil {
 			message := ptr.Deref(status.Error.Message, "Error")
@@ -137,7 +137,7 @@ func (r *PhysicalBackupReconciler) reconcileSnapshotStatus(ctx context.Context, 
 				logger.Info("error patching status", "err", err)
 			}
 			return nil
-		} else if ready {
+		} else if volumesnapshot.IsVolumeSnapshotReady(&snapshot) {
 			numReady++
 		}
 	}
@@ -334,7 +334,8 @@ func (r *PhysicalBackupReconciler) createVolumeSnapshot(ctx context.Context, sna
 		if err = r.Get(ctx, snapshotKey, &snapshot); err != nil {
 			return err
 		}
-		if mdbsnapshot.IsVolumeSnapshotReady(&snapshot) {
+		if mdbsnapshot.IsVolumeSnapshotProvisioned(&snapshot) {
+			logger.V(1).Info("Waiting for VolumeSnapshot to be provisioned...")
 			return nil
 		}
 
@@ -350,33 +351,32 @@ func (r *PhysicalBackupReconciler) createVolumeSnapshot(ctx context.Context, sna
 				logger.Info("error patching status", "err", err)
 			}
 		}
-		return errors.New("VolumeSnapshot not ready")
+		return errors.New("VolumeSnapshot not provisioned")
 	})
 }
 
-func (r *PhysicalBackupReconciler) waitForInProgressSnapshots(ctx context.Context, backup *mariadbv1alpha1.PhysicalBackup,
+func (r *PhysicalBackupReconciler) waitForProvisionedSnapshots(ctx context.Context, backup *mariadbv1alpha1.PhysicalBackup,
 	snapshotList *volumesnapshotv1.VolumeSnapshotList) (ctrl.Result, error) {
 	for _, snapshot := range snapshotList.Items {
-		if !mdbsnapshot.IsVolumeSnapshotReady(&snapshot) {
-			if backup.Spec.Timeout != nil && !snapshot.CreationTimestamp.IsZero() &&
-				time.Since(snapshot.CreationTimestamp.Time) > backup.Spec.Timeout.Duration {
-
-				log.FromContext(ctx).Info("PhysicalBackup VolumeSnapshot timed out. Deleting...", "snapshot", snapshot.Name)
-				if err := r.Delete(ctx, &snapshot); err != nil {
-					return ctrl.Result{}, fmt.Errorf("error deleting expired VolumeSnapshot: %v", err)
-				}
-				return ctrl.Result{Requeue: true}, nil
-			}
-
-			status := ptr.Deref(snapshot.Status, volumesnapshotv1.VolumeSnapshotStatus{})
-			log.FromContext(ctx).V(1).Info(
-				"PhysicalBackup VolumeSnapshot is not ready. Requeuing...",
-				"snapshot", snapshot.Name,
-				"ready", ptr.Deref(status.ReadyToUse, false),
-				"error", status.Error,
-			)
-			return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
+		if mdbsnapshot.IsVolumeSnapshotProvisioned(&snapshot) {
+			continue
 		}
+		if backup.Spec.Timeout != nil && !snapshot.CreationTimestamp.IsZero() &&
+			time.Since(snapshot.CreationTimestamp.Time) > backup.Spec.Timeout.Duration {
+
+			log.FromContext(ctx).Info("PhysicalBackup VolumeSnapshot timed out. Deleting...", "snapshot", snapshot.Name)
+			if err := r.Delete(ctx, &snapshot); err != nil {
+				return ctrl.Result{}, fmt.Errorf("error deleting expired VolumeSnapshot: %v", err)
+			}
+			return ctrl.Result{Requeue: true}, nil
+		}
+
+		log.FromContext(ctx).V(1).Info(
+			"PhysicalBackup VolumeSnapshot is not provisioned. Requeuing...",
+			"snapshot", snapshot.Name,
+			"status", snapshot.Status,
+		)
+		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 	}
 	return ctrl.Result{}, nil
 }
