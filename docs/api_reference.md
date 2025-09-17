@@ -1072,7 +1072,7 @@ _Appears in:_
 
 #### LabelSelector
 
-_Underlying type:_ _[struct{MatchLabels map[string]string "json:\"matchLabels,omitempty\""; MatchExpressions []LabelSelectorRequirement "json:\"matchExpressions,omitempty\""}](#struct{matchlabels-map[string]string-"json:\"matchlabels,omitempty\"";-matchexpressions-[]labelselectorrequirement-"json:\"matchexpressions,omitempty\""})_
+
 
 Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#labelselector-v1-meta
 
@@ -1081,8 +1081,28 @@ Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kub
 _Appears in:_
 - [PodAffinityTerm](#podaffinityterm)
 
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `matchLabels` _object (keys:string, values:string)_ |  |  |  |
+| `matchExpressions` _[LabelSelectorRequirement](#labelselectorrequirement) array_ |  |  |  |
 
 
+#### LabelSelectorRequirement
+
+
+
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#labelselectorrequirement-v1-meta
+
+
+
+_Appears in:_
+- [LabelSelector](#labelselector)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `key` _string_ |  |  |  |
+| `operator` _[LabelSelectorOperator](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#labelselectoroperator-v1-meta)_ |  |  |  |
+| `values` _string array_ |  |  |  |
 
 
 #### LocalObjectReference
@@ -1710,11 +1730,27 @@ _Appears in:_
 | `nodeSelectorTerms` _[NodeSelectorTerm](#nodeselectorterm) array_ |  |  |  |
 
 
+#### NodeSelectorRequirement
+
+
+
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselectorrequirement-v1-core
+
+
+
+_Appears in:_
+- [NodeSelectorTerm](#nodeselectorterm)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `key` _string_ |  |  |  |
+| `operator` _[NodeSelectorOperator](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#nodeselectoroperator-v1-core)_ |  |  |  |
+| `values` _string array_ |  |  |  |
 
 
 #### NodeSelectorTerm
 
-_Underlying type:_ _[struct{MatchExpressions []NodeSelectorRequirement "json:\"matchExpressions,omitempty\""; MatchFields []NodeSelectorRequirement "json:\"matchFields,omitempty\""}](#struct{matchexpressions-[]nodeselectorrequirement-"json:\"matchexpressions,omitempty\"";-matchfields-[]nodeselectorrequirement-"json:\"matchfields,omitempty\""})_
+
 
 Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselectorterm-v1-core
 
@@ -1724,6 +1760,10 @@ _Appears in:_
 - [NodeSelector](#nodeselector)
 - [PreferredSchedulingTerm](#preferredschedulingterm)
 
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `matchExpressions` _[NodeSelectorRequirement](#nodeselectorrequirement) array_ |  |  |  |
+| `matchFields` _[NodeSelectorRequirement](#nodeselectorrequirement) array_ |  |  |  |
 
 
 #### ObjectFieldSelector
