@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	volumesnapshotv1 "github.com/kubernetes-csi/external-snapshotter/client/v8/apis/volumesnapshot/v1"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/builder"
 	condition "github.com/mariadb-operator/mariadb-operator/v25/pkg/condition"
@@ -12,6 +13,7 @@ import (
 	podpkg "github.com/mariadb-operator/mariadb-operator/v25/pkg/pod"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/pvc"
 	stsobj "github.com/mariadb-operator/mariadb-operator/v25/pkg/statefulset"
+	mdbsnapshot "github.com/mariadb-operator/mariadb-operator/v25/pkg/volumesnapshot"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -68,8 +70,8 @@ func (r *MariaDBReconciler) reconcilePhysicalBackupInit(ctx context.Context, mar
 		return ctrl.Result{}, fmt.Errorf("error patching MariaDB status: %v", err)
 	}
 
-	if err := r.reconcilePVCs(ctx, mariadb); err != nil {
-		return ctrl.Result{}, err
+	if result, err := r.reconcilePVCs(ctx, mariadb); !result.IsZero() || err != nil {
+		return result, err
 	}
 
 	bootstrapFrom := ptr.Deref(mariadb.Spec.BootstrapFrom, mariadbv1alpha1.BootstrapFrom{})
@@ -95,12 +97,20 @@ func (r *MariaDBReconciler) reconcilePhysicalBackupInit(ctx context.Context, mar
 	return ctrl.Result{}, nil
 }
 
-func (r *MariaDBReconciler) reconcilePVCs(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
+func (r *MariaDBReconciler) reconcilePVCs(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
 	var pvcOpts []builder.PVCOption
 	if mariadb.Spec.BootstrapFrom != nil && mariadb.Spec.BootstrapFrom.VolumeSnapshotRef != nil {
+		snapshotKey := types.NamespacedName{
+			Name:      mariadb.Spec.BootstrapFrom.VolumeSnapshotRef.Name,
+			Namespace: mariadb.Namespace,
+		}
+		if result, err := r.waitForReadyVolumeSnapshot(ctx, snapshotKey); !result.IsZero() || err != nil {
+			return result, err
+		}
+
 		pvcOpts = append(
 			pvcOpts,
-			builder.WithVolumeSnapshotDataSource(mariadb.Spec.BootstrapFrom.VolumeSnapshotRef.Name),
+			builder.WithVolumeSnapshotDataSource(snapshotKey.Name),
 		)
 	}
 
@@ -108,10 +118,10 @@ func (r *MariaDBReconciler) reconcilePVCs(ctx context.Context, mariadb *mariadbv
 		key := mariadb.PVCKey(builder.StorageVolume, i)
 		pvc, err := r.Builder.BuildStoragePVC(key, mariadb.Spec.Storage.VolumeClaimTemplate, mariadb, pvcOpts...)
 		if err != nil {
-			return err
+			return ctrl.Result{}, err
 		}
 		if err := r.PVCReconciler.Reconcile(ctx, key, pvc); err != nil {
-			return err
+			return ctrl.Result{}, err
 		}
 	}
 
@@ -124,14 +134,26 @@ func (r *MariaDBReconciler) reconcilePVCs(ctx context.Context, mariadb *mariadbv
 			mariadb,
 		)
 		if err != nil {
-			return err
+			return ctrl.Result{}, err
 		}
 		if err := r.PVCReconciler.Reconcile(ctx, key, pvc); err != nil {
-			return err
+			return ctrl.Result{}, err
 		}
 	}
 
-	return nil
+	return ctrl.Result{}, nil
+}
+
+func (r *MariaDBReconciler) waitForReadyVolumeSnapshot(ctx context.Context, key types.NamespacedName) (ctrl.Result, error) {
+	var snapshot volumesnapshotv1.VolumeSnapshot
+	if err := r.Get(ctx, key, &snapshot); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error getting VolumeSnapshot: %v", err)
+	}
+	if !mdbsnapshot.IsVolumeSnapshotReady(&snapshot) {
+		log.FromContext(ctx).Info("VolumeSnapshot not ready. Requeuing...", "snapshot", snapshot.Name, "status", snapshot.Status)
+		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+	}
+	return ctrl.Result{}, nil
 }
 
 func (r *MariaDBReconciler) reconcileRollingInit(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {

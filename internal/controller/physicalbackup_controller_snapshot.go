@@ -12,7 +12,6 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/metadata"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/predicate"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/sql"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/volumesnapshot"
 	mdbsnapshot "github.com/mariadb-operator/mariadb-operator/v25/pkg/volumesnapshot"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/wait"
 	"github.com/robfig/cron/v3"
@@ -137,7 +136,7 @@ func (r *PhysicalBackupReconciler) reconcileSnapshotStatus(ctx context.Context, 
 				logger.Info("error patching status", "err", err)
 			}
 			return nil
-		} else if volumesnapshot.IsVolumeSnapshotReady(&snapshot) {
+		} else if mdbsnapshot.IsVolumeSnapshotReady(&snapshot) {
 			numReady++
 		}
 	}
