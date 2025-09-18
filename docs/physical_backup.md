@@ -416,7 +416,7 @@ Most of the fields described in this documentation apply to `VolumeSnapshots`, i
 In order to create consistent, point-in-time snapshots of the `MariaDB` data, the operator will perform the following steps:
 1. Temporarily pause the `MariaDB` writes by executing a `FLUSH TABLES WITH READ LOCK` command in one of the secondary `Pods`.
 2. Create a `VolumeSnapshot` resource of the data PVC mounted by the `MariaDB` primary `Pod`.
-3. Wait until the `VolumeSnapshot` resources becomes ready. When timing out, the operator will delete the `VolumeSnapshot` resource and retry the operation.
+3. Wait until the `VolumeSnapshot` is provisioned by the storage system. When timing out, the operator will delete the `VolumeSnapshot` resource and retry the operation.
 4. Issue a `UNLOCK TABLE` statement.
 
 ## Important considerations and limitations
