@@ -1,6 +1,6 @@
 # External MariaDB
 
-`mariadb-operator` supports managing resources in external MariaDB instances i.e running outside of the Kubernetes cluster where the operator runs. It allows to take backups, manage users, privileges, databases and to run SQL jobs declaratively, using the same CRs that you use to manage internal MariaDB instances
+`mariadb-operator` supports managing resources in external MariaDB instances i.e running outside of the Kubernetes cluster where the operator runs. This feature allows to manage users, privileges, databases, run SQL jobs declaratively and taking backups using the same CRs that you use to manage internal MariaDB instances.
 
 ## Table of contents
 <!-- toc -->
@@ -50,7 +50,7 @@ spec:
     serverCASecretRef:
       name: ca-cert-secret
   connection:
-    secretName: external-mariadb-dba-secret
+    secretName: external-mariadb
     healthCheck:
       interval: 5s
       retryInterval: 10s
