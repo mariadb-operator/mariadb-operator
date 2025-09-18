@@ -1,11 +1,11 @@
-**`{{ .ProjectName }}` [25.08.4](https://github.com/mariadb-operator/mariadb-operator/releases/tag/25.8.3) is here!** 🦭
+**`{{ .ProjectName }}` [25.08.4](https://github.com/mariadb-operator/mariadb-operator/releases/tag/25.8.4) is here!** 🦭
 
-[25.08.4](https://github.com/mariadb-operator/mariadb-operator/releases/tag/25.8.3) is a patch release limited in scope and focusing on
+[25.08.4](https://github.com/mariadb-operator/mariadb-operator/releases/tag/25.8.4) is a patch release limited in scope and focusing on
 bug fixes and optimizations, mostly related to `VolumeSnapshots`. Additionally, we have introduced support for managing resources in external MariaDBs, via the new `ExternalMariaDB` resource.
 
 ### `VolumeSnapshots` locking optimization
 
-When performing a `VolumeSnapshot`, the operator now locks only until the snapshot is created by the storage system, rather than waiting for the data to be fully replicated. This enhancement significantly reduces the time the database is locked, specially when handling large datasets. See [#1420](https://github.com/mariadb-operator/mariadb-operator/issues/1420).
+When performing a `VolumeSnapshot`, the operator now locks until the snapshot is created by the storage system, rather than waiting for the data to be fully replicated. See [#1420](https://github.com/mariadb-operator/mariadb-operator/issues/1420).
 
 ### `ExternalMariaDB` support
 
@@ -60,7 +60,7 @@ spec:
   retryInterval: 30s
 ```
 
-Massive kudos to @wfelipew for leading the development of this feature!
+Kudos to @wfelipew for contributing this feature! 🎖️
 
 For more details, please refer to the [`ExternalMariaDB` documentation](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/external_mariadb.md).
 

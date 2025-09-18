@@ -57,7 +57,7 @@ registry-secret: ## Configure registry pull secret.
 
 ##@ Failover
 
-MARIADB_INSTANCE ?= mariadb-galera
+MARIADB_INSTANCE ?= mariadb-repl
 
 stop-mariadb-%: ## Stop mariadb Node
 	$(DOCKER) stop $(shell kubectl get pod "$(MARIADB_INSTANCE)-$*" -o jsonpath="{.spec.nodeName}")
