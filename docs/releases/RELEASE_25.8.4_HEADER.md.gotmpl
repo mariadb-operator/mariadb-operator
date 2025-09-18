@@ -1,0 +1,75 @@
+**`{{ .ProjectName }}` [25.08.4](https://github.com/mariadb-operator/mariadb-operator/releases/tag/25.8.3) is here!** 🦭
+
+[25.08.4](https://github.com/mariadb-operator/mariadb-operator/releases/tag/25.8.3) is a patch release limited in scope and focusing on
+bug fixes and optimizations, mostly related to `VolumeSnapshots`. Additionally, we have introduced support for managing resources in external MariaDBs, via the new `ExternalMariaDB` resource.
+
+### `VolumeSnapshots` locking optimization
+
+When performing a `VolumeSnapshot`, the operator now locks only until the snapshot is created by the storage system, rather than waiting for the data to be fully replicated. This enhancement significantly reduces the time the database is locked, specially when handling large datasets. See [#1420](https://github.com/mariadb-operator/mariadb-operator/issues/1420).
+
+### `ExternalMariaDB` support
+
+This release introduces support for managing resources in external MariaDB instances through the new `ExternalMariaDB` CR. This feature allows to manage users, privileges, databases, run SQL jobs declaratively and taking backups using the same CRs that you use to manage internal MariaDB instances.
+
+For doing so, the first step is defining an `ExternalMariaDB`, which contains the connection details to the external database:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: ExternalMariaDB
+metadata:
+  name: external-mariadb
+spec:
+  host: mariadb.example.com
+  port: 3306
+  username: root
+  passwordSecretKeyRef:
+    name: mariadb
+    key: password
+  tls:
+    enabled: true
+    clientCertSecretRef:
+      name: client-cert-secret
+    serverCASecretRef:
+      name: ca-cert-secret
+  connection:
+    secretName: external-mariadb
+    healthCheck:
+      interval: 5s
+      retryInterval: 10s
+```
+
+Once defined, you can reference the `ExternalMariaDB` in other resources, such as `User`, `Database`, `Grant`, `SqlJob` and `Backup` just like you would do with an internal `MariaDB` resource:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: User
+metadata:
+  name: user-external
+spec:
+  name: user
+  mariaDbRef:
+    name: external-mariadb
+    kind: ExternalMariaDB
+  passwordSecretKeyRef:
+    name: mariadb
+    key: password
+  maxUserConnections: 20
+  host: "%"
+  cleanupPolicy: Delete
+  requeueInterval: 10h
+  retryInterval: 30s
+```
+
+Massive kudos to @wfelipew for leading the development of this feature!
+
+For more details, please refer to the [`ExternalMariaDB` documentation](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/external_mariadb.md).
+
+### Bump dependencies
+
+This version includes updates to our dependencies, specifically Go 1.25 and Kubernetes 1.34. Thanks to @Michaelpalacce for helping with this update!
+
+---
+
+We value your feedback! If you encounter any issues or have suggestions, please [open an issue on GitHub](https://github.com/mariadb-operator/mariadb-operator/issues/new/choose). Your input is crucial to improve `{{ .ProjectName }}`🦭.
+
+Join us on Slack: **[MariaDB Community Slack](https://r.mariadb.com/join-community-slack)**.
