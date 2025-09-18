@@ -27,8 +27,7 @@
         "MARIADB_GALERA_LIB_PATH": "/usr/lib/galera/libgalera_smm.so",
         "MARIADB_DEFAULT_VERSION": "11.8",
         "WATCH_NAMESPACE": "",
-      },
-      "dlvFlags": ["--check-go-version=false"] 
+      }
     },
     {
       "name": "Webhook",
@@ -42,7 +41,6 @@
         "--log-level=info",
         "--log-time-encoder=iso8601",
       ],
-      "dlvFlags": ["--check-go-version=false"] 
     },
     {
       "name": "Cert controller",
@@ -56,7 +54,6 @@
         "--log-level=info",
         "--log-time-encoder=iso8601",
       ],
-      "dlvFlags": ["--check-go-version=false"] 
     },
     {
       "name": "Backup",
@@ -85,8 +82,7 @@
         "AWS_ACCESS_KEY_ID": "mariadb-operator",
         "AWS_SECRET_ACCESS_KEY": "Minio11!",
       },
-      "cwd": "${workspaceRoot}",
-      "dlvFlags": ["--check-go-version=false"] 
+      "cwd": "${workspaceRoot}"
     },
     {
       "name": "Restore",
@@ -115,8 +111,7 @@
         "AWS_ACCESS_KEY_ID": "mariadb-operator",
         "AWS_SECRET_ACCESS_KEY": "Minio11!",
       },
-      "cwd": "${workspaceRoot}",
-      "dlvFlags": ["--check-go-version=false"] 
+      "cwd": "${workspaceRoot}"
     },
     {
       "name": "Init",
@@ -142,8 +137,7 @@
         "MYSQL_TCP_PORT": "3306",
         "KUBECONFIG": "${env:HOME}/.kube/config",
       },
-      "cwd": "${workspaceRoot}",
-      "dlvFlags": ["--check-go-version=false"] 
+      "cwd": "${workspaceRoot}"
     },
     {
       "name": "Agent",
@@ -169,8 +163,7 @@
         "MYSQL_TCP_PORT": "3306",
         "KUBECONFIG": "${env:HOME}/.kube/config",
       },
-      "cwd": "${workspaceRoot}",
-      "dlvFlags": ["--check-go-version=false"]
+      "cwd": "${workspaceRoot}"
     }
   ]
 }
