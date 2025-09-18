@@ -532,7 +532,7 @@ var _ = Describe("Connection on external MariaDB", func() {
 				},
 			},
 			"test:MariaDB11!@tcp("+testEmulateExternalMdbHost+":3306)/test"+
-				"?timeout=5s&mariadb-emdb-test-default-client-mdb-emulate-external-test-client-cert",
+				"?timeout=5s&tls=mariadb-emdb-test-default-client-mdb-emulate-external-test-client-cert",
 		),
 		Entry(
 			"Creating a Connection providing DSN Format",
