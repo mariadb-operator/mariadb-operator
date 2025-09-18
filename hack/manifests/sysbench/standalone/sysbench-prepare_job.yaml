@@ -8,7 +8,7 @@ spec:
       restartPolicy: OnFailure
       containers:
       - name: sysbench-prepare
-        image: zyclonite/sysbench:1.0.21
+        image: severalnines/sysbench
         command:
           - sysbench
           - oltp_read_write
@@ -19,13 +19,7 @@ spec:
           - --mysql-user=sbtest
           - --mysql-password=MariaDB11!
           - --mysql-db=sbtest
-          - --mysql-ssl=on
-          - --mysql-ssl-cipher=AES256
           - prepare
-        volumeMounts:
-          - name: pki
-            mountPath: /etc/pki
-            readOnly: true
         workingDir: /etc/pki
         resources:
           requests:
@@ -33,19 +27,3 @@ spec:
             memory: 128Mi
           limits:
             memory: 512Mi
-      volumes:
-        - name: pki
-          projected:
-            sources:
-              - secret:
-                  name: mariadb-ca-bundle
-                  items:
-                    - key: ca.crt
-                      path: cacert.pem
-              - secret:
-                  name: mariadb-client-cert
-                  items:
-                    - key: tls.crt
-                      path: client-cert.pem
-                    - key: tls.key
-                      path: client-key.pem
