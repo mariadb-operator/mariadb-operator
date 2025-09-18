@@ -3,10 +3,12 @@ package controller
 import (
 	"context"
 	"fmt"
+	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/sql"
 	sqlClient "github.com/mariadb-operator/mariadb-operator/v25/pkg/sql"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
@@ -50,12 +52,26 @@ func (wf *wrappedGrantFinalizer) ContainsFinalizer() bool {
 }
 
 func (wf *wrappedGrantFinalizer) Reconcile(ctx context.Context, mdbClient *sqlClient.Client) error {
-	exists, err := mdbClient.UserExists(ctx, wf.grant.Spec.Username, wf.grant.HostnameOrDefault())
-	if err != nil {
-		return fmt.Errorf("error checking if user exists in MariaDB: %v", err)
-	}
-	if !exists {
+	// When the User gets deleted first, there is nothing to be finalized in the Grant.
+	// We can exit the finalizer reconciliation after attempting to get the User for 10s.
+	// The rationale behind this is being able to delete invalid Grants pointing to an invalid user, without hanging in the finalizing logic.
+	err := wait.PollUntilContextTimeout(ctx, 1*time.Second, 10*time.Second, true, func(waitCtx context.Context) (bool, error) {
+		exists, err := mdbClient.UserExists(ctx, wf.grant.Spec.Username, wf.grant.HostnameOrDefault())
+		if err != nil {
+			return true, fmt.Errorf("error checking if user exists in MariaDB: %v", err)
+		}
+		if !exists {
+			return true, nil
+		}
+		return false, nil
+	})
+	// User does not exist after 10s, nothing to be finalized for this Grant.
+	if err == nil {
 		return nil
+	}
+	// An unexpected error occurred.
+	if !wait.Interrupted(err) {
+		return fmt.Errorf("error checking if user exists in MariaDB: %v", err)
 	}
 
 	var opts []sqlClient.GrantOption
