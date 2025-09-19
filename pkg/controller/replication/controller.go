@@ -11,6 +11,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/configmap"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/secret"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/service"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/health"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/refresolver"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/statefulset"
 	"k8s.io/apimachinery/pkg/types"
@@ -108,21 +109,20 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, mdb *mariadbv1alp
 		}
 		return ctrl.Result{}, r.reconcileSwitchover(ctx, &req, switchoverLogger)
 	}
-	// healthy, err := health.IsStatefulSetHealthy(
-	// 	ctx,
-	// 	r.Client,
-	// 	client.ObjectKeyFromObject(mdb),
-	// 	health.WithDesiredReplicas(mdb.Spec.Replicas),
-	// 	health.WithPort(mdb.Spec.Port),
-	// 	health.WithEndpointPolicy(health.EndpointPolicyAll),
-	// )
-	// if err != nil {
-	// 	return ctrl.Result{}, fmt.Errorf("error checking MariaDB health: %v", err)
-	// }
-	// if !healthy {
-	// 	logger.Info("StatefulSet not ready. Requeuing...")
-	// 	return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
-	// }
+	healthy, err := health.IsStatefulSetHealthy(
+		ctx,
+		r.Client,
+		client.ObjectKeyFromObject(mdb),
+		health.WithDesiredReplicas(mdb.Spec.Replicas),
+		health.WithPort(mdb.Spec.Port),
+		health.WithEndpointPolicy(health.EndpointPolicyAll),
+	)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error checking MariaDB health: %v", err)
+	}
+	if !healthy {
+		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+	}
 
 	clientSet, err := NewReplicationClientSet(mdb, r.refResolver)
 	if err != nil {
