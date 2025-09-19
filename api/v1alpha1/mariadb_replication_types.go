@@ -266,7 +266,10 @@ var (
 
 // GetAutomaticFailoverDelay returns the duration of the automatic failover delay.
 func (m *MariaDB) GetAutomaticFailoverDelay() time.Duration {
-	return m.Spec.Replication.Primary.AutomaticFailoverDelay.Duration
+	primary := ptr.Deref(m.Replication().Primary, PrimaryReplication{})
+	automaticFailoverDelay := ptr.Deref(primary.AutomaticFailoverDelay, *DefaultReplicationSpec.Primary.AutomaticFailoverDelay)
+
+	return automaticFailoverDelay.Duration
 }
 
 // HasConfiguredReplica indicates whether the cluster has a configured replica.
