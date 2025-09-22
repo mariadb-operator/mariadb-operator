@@ -6,12 +6,12 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	"github.com/hashicorp/go-multierror"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/builder"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/configmap"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/secret"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/service"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/health"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/refresolver"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/statefulset"
 	"k8s.io/apimachinery/pkg/types"
@@ -109,20 +109,6 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, mdb *mariadbv1alp
 		}
 		return ctrl.Result{}, r.reconcileSwitchover(ctx, &req, switchoverLogger)
 	}
-	healthy, err := health.IsStatefulSetHealthy(
-		ctx,
-		r.Client,
-		client.ObjectKeyFromObject(mdb),
-		health.WithDesiredReplicas(mdb.Spec.Replicas),
-		health.WithPort(mdb.Spec.Port),
-		health.WithEndpointPolicy(health.EndpointPolicyAll),
-	)
-	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error checking MariaDB health: %v", err)
-	}
-	if !healthy {
-		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
-	}
 
 	clientSet, err := NewReplicationClientSet(mdb, r.refResolver)
 	if err != nil {
@@ -175,32 +161,50 @@ func (r *ReplicationReconciler) reconcileReplication(ctx context.Context, req *r
 	if req.mariadb.Status.CurrentPrimaryPodIndex == nil {
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
+	var errBundle *multierror.Error
 
-	for i := 0; i < int(req.mariadb.Spec.Replicas); i++ {
+	for _, i := range r.replicationPodIndexes(ctx, req) {
 		pod := statefulset.PodName(req.mariadb.ObjectMeta, i)
 
 		if req.mariadb.Status.ReplicationStatus == nil {
 			if err := r.reconcileReplicationInPod(ctx, req, logger, i); err != nil {
-				return ctrl.Result{}, fmt.Errorf("error configuring replication in Pod '%s': %v", pod, err)
+				errBundle = multierror.Append(errBundle, fmt.Errorf("error configuring replication in Pod '%s': %v", pod, err))
+				continue
 			}
 		}
 
 		state, ok := req.mariadb.Status.ReplicationStatus[pod]
 		if !ok || state == mariadbv1alpha1.ReplicationStateNotConfigured {
 			if err := r.reconcileReplicationInPod(ctx, req, logger, i); err != nil {
-				return ctrl.Result{}, fmt.Errorf("error configuring replication in Pod '%s': %v", pod, err)
+				errBundle = multierror.Append(errBundle, fmt.Errorf("error configuring replication in Pod '%s': %v", pod, err))
+				continue
 			}
 		}
+	}
+
+	if err := errBundle.ErrorOrNil(); err != nil {
+		logger.V(1).Info("error configuring Replication", "err", err)
+		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 	return ctrl.Result{}, nil
 }
 
+func (r *ReplicationReconciler) replicationPodIndexes(ctx context.Context, req *reconcileRequest) []int {
+	podIndexes := []int{
+		*req.mariadb.Status.CurrentPrimaryPodIndex,
+	}
+	for i := 0; i < int(req.mariadb.Spec.Replicas); i++ {
+		if i != *req.mariadb.Status.CurrentPrimaryPodIndex {
+			podIndexes = append(podIndexes, i)
+		}
+	}
+	return podIndexes
+}
+
 func (r *ReplicationReconciler) reconcileReplicationInPod(ctx context.Context, req *reconcileRequest, logger logr.Logger, index int) error {
-	pod := statefulset.PodName(req.mariadb.ObjectMeta, index)
 	primaryPodIndex := *req.mariadb.Status.CurrentPrimaryPodIndex
 
 	if primaryPodIndex == index {
-		logger.Info("Configuring primary", "pod", pod)
 		client, err := req.clientSet.currentPrimaryClient(ctx)
 		if err != nil {
 			return fmt.Errorf("error getting current primary client: %v", err)
@@ -208,7 +212,6 @@ func (r *ReplicationReconciler) reconcileReplicationInPod(ctx context.Context, r
 		return r.replConfig.ConfigurePrimary(ctx, req.mariadb, client, index)
 	}
 
-	logger.Info("Configuring replica", "pod", pod)
 	client, err := req.clientSet.clientForIndex(ctx, index)
 	if err != nil {
 		return fmt.Errorf("error getting replica client: %v", err)
