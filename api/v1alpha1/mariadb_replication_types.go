@@ -282,9 +282,19 @@ func (m *MariaDB) IsConfiguredReplica(podName string) bool {
 	return m.Status.ReplicationStatus.IsConfiguredReplica(podName)
 }
 
-// IsSwitchingPrimary indicates whether the primary is being switched.
+// IsSwitchingPrimary indicates whether a primary swichover opertion is in progress.
 func (m *MariaDB) IsSwitchingPrimary() bool {
 	return meta.IsStatusConditionFalse(m.Status.Conditions, ConditionTypePrimarySwitched)
+}
+
+// IsSwitchoverRequired indicates that a primary switchover operation is required.
+func (m *MariaDB) IsSwitchoverRequired() bool {
+	if m.Status.CurrentPrimaryPodIndex == nil {
+		return false
+	}
+	currentPodIndex := ptr.Deref(m.Status.CurrentPrimaryPodIndex, 0)
+	desiredPodIndex := ptr.Deref(m.Replication().Primary.PodIndex, 0)
+	return currentPodIndex != desiredPodIndex
 }
 
 type ReplicationState string

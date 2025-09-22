@@ -16,7 +16,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/ptr"
 )
 
 type switchoverPhase struct {
@@ -31,12 +30,7 @@ func shouldReconcileSwitchover(mdb *mariadbv1alpha1.MariaDB) bool {
 	if !mdb.HasConfiguredReplica() {
 		return false
 	}
-	if mdb.Status.CurrentPrimaryPodIndex == nil {
-		return false
-	}
-	currentPodIndex := ptr.Deref(mdb.Status.CurrentPrimaryPodIndex, 0)
-	desiredPodIndex := ptr.Deref(mdb.Replication().Primary.PodIndex, 0)
-	return currentPodIndex != desiredPodIndex
+	return mdb.IsSwitchoverRequired()
 }
 
 func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *reconcileRequest, switchoverLogger logr.Logger) error {
