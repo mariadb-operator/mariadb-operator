@@ -7,6 +7,9 @@ spec:
     name: mariadb
     key: root-password
 
+  # maxScaleRef:
+  #   name: maxscale-repl
+
   storage:
     size: 1Gi
 
@@ -35,3 +38,6 @@ spec:
 
   metrics:
     enabled: true
+
+  # affinity:
+  #   antiAffinityEnabled: true
