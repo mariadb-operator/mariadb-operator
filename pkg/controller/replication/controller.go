@@ -95,7 +95,7 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, mdb *mariadbv1alp
 	logger := log.FromContext(ctx).WithName("replication")
 	switchoverLogger := log.FromContext(ctx).WithName("switchover")
 
-	if !mdb.IsMaxScaleEnabled() && mdb.IsSwitchingPrimary() {
+	if !mdb.IsMaxScaleEnabled() && mdb.IsSwitchoverRequired() {
 		clientSet, err := NewReplicationClientSet(mdb, r.refResolver)
 		if err != nil {
 			return ctrl.Result{}, fmt.Errorf("error creating mariadb clientset: %v", err)
