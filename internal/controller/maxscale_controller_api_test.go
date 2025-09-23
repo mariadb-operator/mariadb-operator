@@ -70,7 +70,7 @@ var _ = Describe("MaxScale Replication options", Label("basic"), func() {
 					},
 				},
 			},
-			want: "MASTER_CONNECT_RETRY=10,MASTER_USE_GTID=" + string(mariadbv1alpha1.GtidSlavePos),
+			want: "MASTER_CONNECT_RETRY=10",
 		}),
 		Entry("replication enabled (custom values)", test{
 			mxs: &mariadbv1alpha1.MaxScale{},
