@@ -610,7 +610,7 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 								PodIndex: ptr.To(0),
 							},
 							Replica: &v1alpha1.ReplicaReplication{
-								WaitPoint: ptr.To(v1alpha1.WaitPointAfterSync),
+								WaitPoint: ptr.To(v1alpha1.WaitPointAfterCommit),
 							},
 						},
 					},
