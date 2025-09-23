@@ -21,6 +21,7 @@ func TestRestoreMeta(t *testing.T) {
 		mariadb         *mariadbv1alpha1.MariaDB
 		wantRestoreMeta *mariadbv1alpha1.Metadata
 		wantPodMeta     *mariadbv1alpha1.Metadata
+		restoreOpts     RestoreOpts
 	}{
 		{
 			name:    "no meta",
@@ -33,6 +34,7 @@ func TestRestoreMeta(t *testing.T) {
 				Labels:      map[string]string{},
 				Annotations: map[string]string{},
 			},
+			restoreOpts: RestoreOpts{},
 		},
 		{
 			name: "inherit meta",
@@ -64,6 +66,7 @@ func TestRestoreMeta(t *testing.T) {
 					"database.myorg.io": "mariadb",
 				},
 			},
+			restoreOpts: RestoreOpts{},
 		},
 		{
 			name: "pod meta",
@@ -95,6 +98,7 @@ func TestRestoreMeta(t *testing.T) {
 					"database.myorg.io": "job",
 				},
 			},
+			restoreOpts: RestoreOpts{},
 		},
 		{
 			name: "all",
@@ -138,12 +142,13 @@ func TestRestoreMeta(t *testing.T) {
 					"database.myorg.io": "job",
 				},
 			},
+			restoreOpts: RestoreOpts{},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			restore, err := builder.BuildRestore(tt.mariadb, key)
+			restore, err := builder.BuildRestore(tt.mariadb, key, tt.restoreOpts)
 			if err != nil {
 				t.Fatalf("unexpected error building Restore: %v", err)
 			}
@@ -187,8 +192,8 @@ func TestBuildRestore(t *testing.T) {
 	key := types.NamespacedName{
 		Name: "test-restore",
 	}
-
-	restore, err := builder.BuildRestore(mariadb, key)
+	restoreOpts := RestoreOpts{}
+	restore, err := builder.BuildRestore(mariadb, key, restoreOpts)
 	if err != nil {
 		t.Errorf("unexpected error building Restore: %v", err)
 	}

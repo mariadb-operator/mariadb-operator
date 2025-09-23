@@ -1,0 +1,21 @@
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: external-replicas
+spec:
+  storage:
+    size: 10Gi
+  replicas: 3
+  replication:
+    enabled: true
+    replicaFromExternal:
+      mariaDbRef:
+        name: external-mariadb
+        kind: ExternalMariaDB
+      serverIdOffset: 30
+  service:
+    type: ClusterIP
+  primaryService:
+    type: ClusterIP
+  secondaryService:
+    type: ClusterIP

@@ -86,6 +86,7 @@ func (r *PodReplicationController) ReconcilePodNotReady(ctx context.Context, pod
 	if err != nil {
 		return fmt.Errorf("error getting Pod index: %v", err)
 	}
+
 	if *index != *mariadb.Status.CurrentPrimaryPodIndex {
 		return nil
 	}
@@ -142,7 +143,8 @@ func (r *PodReplicationController) ReconcilePodNotReady(ctx context.Context, pod
 }
 
 func shouldReconcile(mariadb *mariadbv1alpha1.MariaDB) bool {
-	if mariadb.IsMaxScaleEnabled() || mariadb.IsRestoringBackup() || mariadb.IsSuspended() {
+	if mariadb.IsMaxScaleEnabled() || mariadb.IsRestoringBackup() || mariadb.IsSuspended() ||
+		mariadb.Replication().ReplicaFromExternal != nil {
 		return false
 	}
 	primaryRepl := ptr.Deref(mariadb.Replication().Primary, mariadbv1alpha1.PrimaryReplication{})

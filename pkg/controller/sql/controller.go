@@ -107,23 +107,43 @@ func (r *SqlReconciler) Reconcile(ctx context.Context, resource Resource) (ctrl.
 		return result, errBundle.ErrorOrNil()
 	}
 
-	// TODO: connection pooling. See https://github.com/mariadb-operator/mariadb-operator/issues/7.
-	mdbClient, err := sqlClient.NewClientWithMariaDB(ctx, mariadb, r.RefResolver)
-	if err != nil {
-		var errBundle *multierror.Error
-		errBundle = multierror.Append(errBundle, err)
-
-		msg := fmt.Sprintf("Error connecting to MariaDB: %v", err)
-		err = r.WrappedReconciler.PatchStatus(ctx, r.ConditionReady.PatcherFailed(msg))
-		errBundle = multierror.Append(errBundle, err)
-
-		return r.retryResult(ctx, resource, errBundle)
-	}
-	defer mdbClient.Close()
-
-	err = r.WrappedReconciler.Reconcile(ctx, mdbClient)
 	var errBundle *multierror.Error
-	errBundle = multierror.Append(errBundle, err)
+	if (mariadb.IsHAEnabled() && mariadb.Replication().ReplicaFromExternal == nil) || !mariadb.IsHAEnabled() {
+		// TODO: connection pooling. See https://github.com/mariadb-operator/mariadb-operator/issues/7.
+		mdbClient, err := sqlClient.NewClientWithMariaDB(ctx, mariadb, r.RefResolver)
+		if err != nil {
+			var errBundle *multierror.Error
+			errBundle = multierror.Append(errBundle, err)
+
+			msg := fmt.Sprintf("Error connecting to MariaDB: %v", err)
+			err = r.WrappedReconciler.PatchStatus(ctx, r.ConditionReady.PatcherFailed(msg))
+			errBundle = multierror.Append(errBundle, err)
+
+			return r.retryResult(ctx, resource, errBundle)
+		}
+		defer mdbClient.Close()
+		err = r.WrappedReconciler.Reconcile(ctx, mdbClient)
+		errBundle = multierror.Append(errBundle, err)
+	} else {
+		for i := 0; i < int(mariadb.GetReplicas()); i++ {
+			mdbInternalClient, err := sqlClient.NewInternalClientWithPodIndex(ctx, mariadb, r.RefResolver, i)
+			if err != nil {
+				var errBundle *multierror.Error
+				errBundle = multierror.Append(errBundle, err)
+
+				msg := fmt.Sprintf("Error connecting to MariaDB: %v", err)
+				err = r.WrappedReconciler.PatchStatus(ctx, r.ConditionReady.PatcherFailed(msg))
+				errBundle = multierror.Append(errBundle, err)
+
+				return r.retryResult(ctx, resource, errBundle)
+			}
+			defer mdbInternalClient.Close()
+			err = r.WrappedReconciler.Reconcile(ctx, mdbInternalClient)
+
+			errBundle = multierror.Append(errBundle, err)
+		}
+
+	}
 
 	if err := errBundle.ErrorOrNil(); err != nil {
 		msg := fmt.Sprintf("Error creating %s: %v", resource.GetName(), err)

@@ -161,6 +161,14 @@ func (m *MariaDB) RestoreKey() types.NamespacedName {
 	}
 }
 
+// RestoreKey defines the key for the Restore resource used to bootstrap.
+func (m *MariaDB) RestoreKeyInPod(podIndex int) types.NamespacedName {
+	return types.NamespacedName{
+		Name:      fmt.Sprintf("%s-restore-%d", m.Name, podIndex),
+		Namespace: m.Namespace,
+	}
+}
+
 // InternalServiceKey defines the key for the internal headless Service
 func (m *MariaDB) InternalServiceKey() types.NamespacedName {
 	return types.NamespacedName{

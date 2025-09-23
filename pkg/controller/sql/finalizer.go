@@ -77,21 +77,40 @@ func (tf *SqlFinalizer) Finalize(ctx context.Context, resource Resource) (ctrl.R
 	if result, err := waitForMariaDB(ctx, tf.Client, mariadb, tf.LogSql); !result.IsZero() || err != nil {
 		return result, err
 	}
-
-	// TODO: connection pooling. See https://github.com/mariadb-operator/mariadb-operator/issues/7.
-	mdbClient, err := sqlClient.NewClientWithMariaDB(ctx, mariadb, tf.RefResolver)
-	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error connecting to MariaDB: %v", err)
-	}
-	defer mdbClient.Close()
-
-	cleanupPolicy := ptr.Deref(resource.CleanupPolicy(), mariadbv1alpha1.CleanupPolicyDelete)
-	if cleanupPolicy == mariadbv1alpha1.CleanupPolicyDelete {
-		log.FromContext(ctx).Info("Cleaning up SQL resource")
-
-		if err := tf.WrappedFinalizer.Reconcile(ctx, mdbClient); err != nil {
-			return ctrl.Result{}, fmt.Errorf("error reconciling in TemplateFinalizer: %v", err)
+	if (mariadb.IsHAEnabled() && mariadb.Replication().ReplicaFromExternal == nil) || !mariadb.IsHAEnabled() {
+		// TODO: connection pooling. See https://github.com/mariadb-operator/mariadb-operator/issues/7.
+		mdbClient, err := sqlClient.NewClientWithMariaDB(ctx, mariadb, tf.RefResolver)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("error connecting to MariaDB: %v", err)
 		}
+		defer mdbClient.Close()
+
+		cleanupPolicy := ptr.Deref(resource.CleanupPolicy(), mariadbv1alpha1.CleanupPolicyDelete)
+		if cleanupPolicy == mariadbv1alpha1.CleanupPolicyDelete {
+			log.FromContext(ctx).Info("Cleaning up SQL resource")
+
+			if err := tf.WrappedFinalizer.Reconcile(ctx, mdbClient); err != nil {
+				return ctrl.Result{}, fmt.Errorf("error reconciling in TemplateFinalizer: %v", err)
+			}
+		}
+	} else {
+		for i := 0; i < int(mariadb.GetReplicas()); i++ {
+			mdbInternalClient, err := sqlClient.NewInternalClientWithPodIndex(ctx, mariadb, tf.RefResolver, i)
+			if err != nil {
+				return ctrl.Result{}, fmt.Errorf("error connecting to MariaDB: %v", err)
+			}
+			defer mdbInternalClient.Close()
+
+			cleanupPolicy := ptr.Deref(resource.CleanupPolicy(), mariadbv1alpha1.CleanupPolicyDelete)
+			if cleanupPolicy == mariadbv1alpha1.CleanupPolicyDelete {
+				log.FromContext(ctx).Info("Cleaning up SQL resource")
+
+				if err := tf.WrappedFinalizer.Reconcile(ctx, mdbInternalClient); err != nil {
+					return ctrl.Result{}, fmt.Errorf("error reconciling in TemplateFinalizer: %v", err)
+				}
+			}
+		}
+
 	}
 
 	if err := tf.WrappedFinalizer.RemoveFinalizer(ctx); err != nil {

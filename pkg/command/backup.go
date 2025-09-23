@@ -304,7 +304,14 @@ func (b *BackupCommand) MariadbOperatorRestore(backupContentType mariadbv1alpha1
 
 func (b *BackupCommand) MariadbRestore(restore *mariadbv1alpha1.Restore,
 	mariadb interfaces.MariaDBObject) (*Command, error) {
-	connFlags, err := ConnectionFlags(&b.CommandOpts, mariadb)
+
+	var err error
+	var connFlags string
+	if restore.Spec.PodIndex != nil {
+		connFlags, err = PodConnectionFlags(&b.CommandOpts, mariadb, *restore.Spec.PodIndex)
+	} else {
+		connFlags, err = ConnectionFlags(&b.CommandOpts, mariadb)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("error getting connection flags: %v", err)
 	}
