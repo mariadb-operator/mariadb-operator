@@ -15,7 +15,7 @@ type WaitPoint string
 
 const (
 	// WaitPointAfterSync indicates that the primary waits for the replica ACK before committing the transaction to the storage engine.
-	// This is the default WaitPoint. It trades off performance for consistency.
+	// It trades off performance for consistency.
 	WaitPointAfterSync WaitPoint = "AfterSync"
 	// WaitPointAfterCommit indicates that the primary commits the transaction to the storage engine and waits for the replica ACK afterwards.
 	// It trades off consistency for performance.
@@ -50,7 +50,6 @@ type Gtid string
 
 const (
 	// GtidCurrentPos indicates the union of gtid_binlog_pos and gtid_slave_pos will be used when replicating from master.
-	// This is the default Gtid mode.
 	GtidCurrentPos Gtid = "CurrentPos"
 	// GtidSlavePos indicates that gtid_slave_pos will be used when replicating from master.
 	GtidSlavePos Gtid = "SlavePos"
@@ -254,8 +253,8 @@ var (
 			AutomaticFailoverDelay: ptr.To(metav1.Duration{}),
 		},
 		Replica: &ReplicaReplication{
-			WaitPoint:         ptr.To(WaitPointAfterSync),
-			Gtid:              ptr.To(GtidCurrentPos),
+			WaitPoint:         ptr.To(WaitPointAfterCommit),
+			Gtid:              ptr.To(GtidSlavePos),
 			ConnectionTimeout: ptr.To(tenSeconds),
 			ConnectionRetries: ptr.To(10),
 			SyncTimeout:       ptr.To(tenSeconds),

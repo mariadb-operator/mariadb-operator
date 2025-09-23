@@ -129,10 +129,7 @@ func (r *ReplicationConfig) changeMaster(ctx context.Context, mariadb *mariadbv1
 		return fmt.Errorf("error getting replication password: %v", err)
 	}
 
-	gtid := mariadbv1alpha1.GtidCurrentPos
-	if mariadb.Replication().Replica.Gtid != nil {
-		gtid = *mariadb.Replication().Replica.Gtid
-	}
+	gtid := ptr.Deref(mariadb.Replication().Replica.Gtid, mariadbv1alpha1.GtidSlavePos)
 	gtidString, err := gtid.MariaDBFormat()
 	if err != nil {
 		return fmt.Errorf("error getting GTID: %v", err)
