@@ -138,7 +138,8 @@ type ReplicaReplication struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
 	ConnectionRetries *int `json:"connectionRetries,omitempty"`
 	// SyncTimeout defines the timeout for a replica to be synced with the primary when performing a primary switchover.
-	// If the timeout is reached, the replica GTID will be reset and the switchover will continue.
+	// During a switchover, all replicas must be synced with the primary before promoting the new primary.
+	// During a failover, the primary will be down, therefore this sync step will be skipped.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	SyncTimeout *metav1.Duration `json:"syncTimeout,omitempty"`
