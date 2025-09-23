@@ -965,6 +965,7 @@ See: https://mariadb.com/kb/en/gtid/#using-current_pos-vs-slave_pos.
 
 
 _Appears in:_
+- [ReplicaFromExternal](#replicafromexternal)
 - [ReplicaReplication](#replicareplication)
 
 | Field | Description |
@@ -1253,6 +1254,7 @@ _Appears in:_
 - [GrantSpec](#grantspec)
 - [MaxScaleSpec](#maxscalespec)
 - [PhysicalBackupSpec](#physicalbackupspec)
+- [ReplicaFromExternal](#replicafromexternal)
 - [RestoreSpec](#restorespec)
 - [SqlJobSpec](#sqljobspec)
 - [UserSpec](#userspec)
@@ -2253,6 +2255,28 @@ _Appears in:_
 | `tcpSocket` _[TCPSocketAction](#tcpsocketaction)_ |  |  |  |
 
 
+#### ReplicaFromExternal
+
+
+
+ReplicaFromExternal is the replication configuration from external servers.
+
+
+
+_Appears in:_
+- [Replication](#replication)
+- [ReplicationSpec](#replicationspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `mariaDbRef` _[MariaDBRef](#mariadbref)_ | MariaDBRef is a reference to a MariaDB object. |  | Required: \{\} <br /> |
+| `gtid` _[Gtid](#gtid)_ | Gtid indicates which Global Transaction ID should be used when connecting a replica to the master.<br />See: https://mariadb.com/kb/en/gtid/#using-current_pos-vs-slave_pos. |  | Enum: [CurrentPos SlavePos] <br /> |
+| `connectionTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#duration-v1-meta)_ | ConnectionTimeout to be used when the replica connects to the primary. |  |  |
+| `connectionRetries` _integer_ | ConnectionRetries to be used when the replica connects to the primary. |  |  |
+| `healthCheckInterval` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#duration-v1-meta)_ | HealthCheckInterval to be used when the replica connects to the primary. |  |  |
+| `serverIdOffset` _integer_ | ServerIdOffset to be used on the replicas. |  |  |
+
+
 #### ReplicaReplication
 
 
@@ -2290,7 +2314,8 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `primary` _[PrimaryReplication](#primaryreplication)_ | Primary is the replication configuration for the primary node. |  |  |
 | `replica` _[ReplicaReplication](#replicareplication)_ | ReplicaReplication is the replication configuration for the replica nodes. |  |  |
-| `syncBinlog` _integer_ | SyncBinlog indicates after how many events the binary log is synchronized to the disk.<br />The default is 1, flushing the binary log to disk after every write, which trades off performance for consistency. See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/replication-and-binary-log-system-variables#sync_binlog |  |  |
+| `replicaFromExternal` _[ReplicaFromExternal](#replicafromexternal)_ | ReplicaReplication is the replication configuration for the replica nodes. |  |  |
+| `syncBinlog` _integer_ | SyncBinlog indicates whether the binary log should be synchronized to the disk after every event.<br />It trades off performance for consistency.<br />See: https://mariadb.com/kb/en/replication-and-binary-log-system-variables/#sync_binlog. |  |  |
 | `probesEnabled` _boolean_ | ProbesEnabled indicates to use replication specific liveness and readiness probes.<br />This probes check that the primary can receive queries and that the replica has the replication thread running. |  |  |
 | `enabled` _boolean_ | Enabled is a flag to enable Replication. |  |  |
 
@@ -2310,7 +2335,8 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `primary` _[PrimaryReplication](#primaryreplication)_ | Primary is the replication configuration for the primary node. |  |  |
 | `replica` _[ReplicaReplication](#replicareplication)_ | ReplicaReplication is the replication configuration for the replica nodes. |  |  |
-| `syncBinlog` _integer_ | SyncBinlog indicates after how many events the binary log is synchronized to the disk.<br />The default is 1, flushing the binary log to disk after every write, which trades off performance for consistency. See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/replication-and-binary-log-system-variables#sync_binlog |  |  |
+| `replicaFromExternal` _[ReplicaFromExternal](#replicafromexternal)_ | ReplicaReplication is the replication configuration for the replica nodes. |  |  |
+| `syncBinlog` _integer_ | SyncBinlog indicates whether the binary log should be synchronized to the disk after every event.<br />It trades off performance for consistency.<br />See: https://mariadb.com/kb/en/replication-and-binary-log-system-variables/#sync_binlog. |  |  |
 | `probesEnabled` _boolean_ | ProbesEnabled indicates to use replication specific liveness and readiness probes.<br />This probes check that the primary can receive queries and that the replica has the replication thread running. |  |  |
 
 
@@ -2411,6 +2437,7 @@ _Appears in:_
 | `targetRecoveryTime` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#time-v1-meta)_ | TargetRecoveryTime is a RFC3339 (1970-01-01T00:00:00Z) date and time that defines the point in time recovery objective.<br />It is used to determine the closest restoration source in time. |  |  |
 | `stagingStorage` _[BackupStagingStorage](#backupstagingstorage)_ | StagingStorage defines the temporary storage used to keep external backups (i.e. S3) while they are being processed.<br />It defaults to an emptyDir volume, meaning that the backups will be temporarily stored in the node where the Restore Job is scheduled. |  |  |
 | `mariaDbRef` _[MariaDBRef](#mariadbref)_ | MariaDBRef is a reference to a MariaDB object. |  | Required: \{\} <br /> |
+| `podIndex` _integer_ | PodIndex is the StatefulSet index of pod to restore. Used to bootstrap nodes on external replication. |  |  |
 | `database` _string_ | Database defines the logical database to be restored. If not provided, all databases available in the backup are restored.<br />IMPORTANT: The database must previously exist. |  |  |
 | `logLevel` _string_ | LogLevel to be used n the Backup Job. It defaults to 'info'. | info |  |
 | `backoffLimit` _integer_ | BackoffLimit defines the maximum number of attempts to successfully perform a Backup. | 5 |  |

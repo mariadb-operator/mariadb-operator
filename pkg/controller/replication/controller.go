@@ -14,6 +14,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/health"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/refresolver"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/statefulset"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -147,6 +148,27 @@ func (r *ReplicationReconciler) ReconcileProbeConfigMap(ctx context.Context, con
 	if !mdb.Replication().Enabled {
 		return nil
 	}
+	var probeScript string
+
+	if mdb.Replication().ReplicaFromExternal != nil {
+		probeScript = `#!/bin/bash
+
+if [[ $(mariadb -u root -p"${MARIADB_ROOT_PASSWORD}" -e "SHOW VARIABLES LIKE 'rpl_semi_sync_slave_enabled';" --skip-column-names | grep -c "ON") -eq 1 ]]; then
+	mariadb -u root -p"${MARIADB_ROOT_PASSWORD}" -e "SHOW SLAVE STATUS\G" | grep -c "Slave_IO_Running: Yes" &&	mariadb -u root -p"${MARIADB_ROOT_PASSWORD}" -e "SHOW SLAVE STATUS\G" | grep -c "Slave_SQL_Running: Yes"
+else
+	mariadb -u root -p"${MARIADB_ROOT_PASSWORD}" -e "SELECT 1;"
+fi
+`
+	} else {
+		probeScript = `#!/bin/bash
+
+if [[ $(mariadb -u root -p"${MARIADB_ROOT_PASSWORD}" -e "SHOW VARIABLES LIKE 'rpl_semi_sync_slave_enabled';" --skip-column-names | grep -c "ON") -eq 1 ]]; then
+	mariadb -u root -p"${MARIADB_ROOT_PASSWORD}" -e "SHOW SLAVE STATUS\G" | grep -c "Slave_IO_Running: Yes"
+else
+	mariadb -u root -p"${MARIADB_ROOT_PASSWORD}" -e "SELECT 1;"
+fi
+`
+	}
 	req := configmap.ReconcileRequest{
 		Metadata: mdb.Spec.InheritMetadata,
 		Owner:    mdb,
@@ -155,24 +177,21 @@ func (r *ReplicationReconciler) ReconcileProbeConfigMap(ctx context.Context, con
 			Namespace: mdb.Namespace,
 		},
 		Data: map[string]string{
-			configMapKeyRef.Key: `#!/bin/bash
-
-if [[ $(mariadb -u root -p"${MARIADB_ROOT_PASSWORD}" -e "SHOW VARIABLES LIKE 'rpl_semi_sync_slave_enabled';" --skip-column-names | grep -c "ON") -eq 1 ]]; then
-	mariadb -u root -p"${MARIADB_ROOT_PASSWORD}" -e "SHOW SLAVE STATUS\G" | grep -c "Slave_IO_Running: Yes"
-else
-	mariadb -u root -p"${MARIADB_ROOT_PASSWORD}" -e "SELECT 1;"
-fi
-`,
+			configMapKeyRef.Key: probeScript,
 		},
 	}
 	return r.configMapreconciler.Reconcile(ctx, &req)
 }
 
 func (r *ReplicationReconciler) reconcileReplication(ctx context.Context, req *reconcileRequest, logger logr.Logger) (ctrl.Result, error) {
+	replication := req.mariadb.Replication()
+	isExternalReplication := replication.IsExternalReplication()
+
 	if req.mariadb.IsSwitchingPrimary() {
 		return ctrl.Result{}, nil
 	}
-	if req.mariadb.Status.CurrentPrimaryPodIndex == nil {
+
+	if req.mariadb.Status.CurrentPrimaryPodIndex == nil && !isExternalReplication {
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
 
@@ -186,11 +205,59 @@ func (r *ReplicationReconciler) reconcileReplication(ctx context.Context, req *r
 		}
 
 		state, ok := req.mariadb.Status.ReplicationStatus[pod]
-		if !ok || state == mariadbv1alpha1.ReplicationStateNotConfigured {
+		if !ok || state == mariadbv1alpha1.ReplicationStateNotConfigured ||
+			state == mariadbv1alpha1.ReplicationStateSlaveBroken {
 			if err := r.reconcileReplicationInPod(ctx, req, logger, i); err != nil {
 				return ctrl.Result{}, fmt.Errorf("error configuring replication in Pod '%s': %v", pod, err)
 			}
 		}
+
+		// Delete POD if it is a permanent issue
+		if state == mariadbv1alpha1.ReplicationStateSlavePermanentBroken && isExternalReplication {
+
+			// Only one pod should be rebuild at time to avoid complete disruption
+			// if all cluster nodes reach the ReplicationStateSlavePermanentBroken status
+			for pod, status := range req.mariadb.Status.ReplicationStatus {
+				if pod == fmt.Sprintf("%s-%d", req.mariadb.Name, i) {
+					continue
+				}
+				if status == mariadbv1alpha1.ReplicationStateNotConfigured {
+					return ctrl.Result{},
+						fmt.Errorf("error removing Pod '%s': another Pod is currently being configured, it should works on the next attempts", pod)
+				}
+			}
+			if len(req.mariadb.Status.ReplicationStatus) != int(req.mariadb.Spec.Replicas) {
+				return ctrl.Result{}, fmt.Errorf("error removing Pod '%s': another Pod is missing, it should works on the next attempts", pod)
+			}
+
+			// Delete PVC
+			key := types.NamespacedName{
+				Name:      fmt.Sprintf("storage-%s-%d", req.mariadb.Name, i),
+				Namespace: req.mariadb.Namespace,
+			}
+			var existingPvc corev1.PersistentVolumeClaim
+			if err := r.Get(ctx, key, &existingPvc); err != nil {
+				return ctrl.Result{}, fmt.Errorf("error getting pvc from Pod '%s': %v", pod, err)
+			}
+			if err := r.Delete(ctx, &existingPvc); err != nil {
+				return ctrl.Result{}, fmt.Errorf("error deleting pvc from Pod '%s': %v", pod, err)
+			}
+
+			// Delete POD
+			key = types.NamespacedName{
+				Name:      fmt.Sprintf("%s-%d", req.mariadb.Name, i),
+				Namespace: req.mariadb.Namespace,
+			}
+			var existingPod corev1.Pod
+			if err := r.Get(ctx, key, &existingPod); err != nil {
+				return ctrl.Result{}, fmt.Errorf("error getting Pod '%s': %v", pod, err)
+			}
+			if err := r.Delete(ctx, &existingPod); err != nil {
+				return ctrl.Result{}, fmt.Errorf("error deleting Pod '%s': %v", pod, err)
+			}
+
+		}
+
 	}
 	return ctrl.Result{}, nil
 }
@@ -198,8 +265,10 @@ func (r *ReplicationReconciler) reconcileReplication(ctx context.Context, req *r
 func (r *ReplicationReconciler) reconcileReplicationInPod(ctx context.Context, req *reconcileRequest, logger logr.Logger, index int) error {
 	pod := statefulset.PodName(req.mariadb.ObjectMeta, index)
 	primaryPodIndex := *req.mariadb.Status.CurrentPrimaryPodIndex
+	replication := req.mariadb.Replication()
+	isExternalReplication := replication.IsExternalReplication()
 
-	if primaryPodIndex == index {
+	if primaryPodIndex == index && !isExternalReplication {
 		logger.Info("Configuring primary", "pod", pod)
 		client, err := req.clientSet.currentPrimaryClient(ctx)
 		if err != nil {

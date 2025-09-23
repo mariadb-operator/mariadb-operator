@@ -35,6 +35,10 @@ host-mariadb-repl: ## Add mariadb repl hosts to /etc/hosts.
 	@./hack/add_host.sh 111 mariadb-repl-1.mariadb-repl-internal.default.svc.cluster.local
 	@./hack/add_host.sh 112 mariadb-repl-2.mariadb-repl-internal.default.svc.cluster.local
 	@./hack/add_host.sh 113 mariadb-repl-3.mariadb-repl-internal.default.svc.cluster.local
+	@./hack/add_host.sh 180 mariadb-repl-external-0.mariadb-repl-external-internal.default.svc.cluster.local
+	@./hack/add_host.sh 181 mariadb-repl-external-1.mariadb-repl-external-internal.default.svc.cluster.local
+	@./hack/add_host.sh 182 mariadb-repl-external-2.mariadb-repl-external-internal.default.svc.cluster.local
+	@./hack/add_host.sh 183 mariadb-repl-external-3.mariadb-repl-external-internal.default.svc.cluster.local
 	@./hack/add_host.sh 120 mariadb-repl.default.svc.cluster.local
 	@./hack/add_host.sh 130 mariadb-repl-primary.default.svc.cluster.local
 	@./hack/add_host.sh 131 mariadb-repl-secondary.default.svc.cluster.local

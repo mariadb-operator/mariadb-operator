@@ -144,6 +144,37 @@ type ReplicaReplication struct {
 	SyncTimeout *metav1.Duration `json:"syncTimeout,omitempty"`
 }
 
+// ReplicaFromExternal is the replication configuration from external servers.
+type ReplicaFromExternal struct {
+
+	// MariaDBRef is a reference to a MariaDB object.
+	// +kubebuilder:validation:Required
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	MariaDBRef MariaDBRef `json:"mariaDbRef" webhook:"inmutable"`
+	// Gtid indicates which Global Transaction ID should be used when connecting a replica to the master.
+	// See: https://mariadb.com/kb/en/gtid/#using-current_pos-vs-slave_pos.
+	// +optional
+	// +kubebuilder:validation:Enum=CurrentPos;SlavePos
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Gtid *Gtid `json:"gtid,omitempty"`
+	// ConnectionTimeout to be used when the replica connects to the primary.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	ConnectionTimeout *metav1.Duration `json:"connectionTimeout,omitempty"`
+	// ConnectionRetries to be used when the replica connects to the primary.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
+	ConnectionRetries *int `json:"connectionRetries,omitempty"`
+	// HealthCheckInterval to be used when the replica connects to the primary.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
+	HealthCheckInterval *metav1.Duration `json:"healthCheckInterval,omitempty"`
+	// ServerIdOffset to be used on the replicas.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	ServerIdOffset *int `json:"serverIdOffset,omitempty"`
+}
+
 // FillWithDefaults fills the current ReplicaReplication object with DefaultReplicationSpec.
 // This enables having minimal ReplicaReplication objects and provides sensible defaults.
 func (r *ReplicaReplication) FillWithDefaults() {
@@ -205,8 +236,13 @@ type ReplicationSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Replica *ReplicaReplication `json:"replica,omitempty"`
-	// SyncBinlog indicates after how many events the binary log is synchronized to the disk.
-	// The default is 1, flushing the binary log to disk after every write, which trades off performance for consistency. See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/replication-and-binary-log-system-variables#sync_binlog
+	// ReplicaReplication is the replication configuration for the replica nodes.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	ReplicaFromExternal *ReplicaFromExternal `json:"replicaFromExternal,omitempty"`
+	// SyncBinlog indicates whether the binary log should be synchronized to the disk after every event.
+	// It trades off performance for consistency.
+	// See: https://mariadb.com/kb/en/replication-and-binary-log-system-variables/#sync_binlog.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
 	SyncBinlog *int `json:"syncBinlog,omitempty"`
@@ -232,6 +268,9 @@ func (r *ReplicationSpec) FillWithDefaults() {
 	} else {
 		r.Replica.FillWithDefaults()
 	}
+	if r.ReplicaFromExternal != nil {
+		r.ReplicaFromExternal.FillWithDefaults()
+	}
 	if r.SyncBinlog == nil {
 		syncBinlog := *DefaultReplicationSpec.SyncBinlog
 		r.SyncBinlog = &syncBinlog
@@ -240,6 +279,32 @@ func (r *ReplicationSpec) FillWithDefaults() {
 		probesEnabled := *DefaultReplicationSpec.ProbesEnabled
 		r.ProbesEnabled = &probesEnabled
 	}
+}
+
+// FillWithDefaults fills the current ReplicationSpec object with DefaultReplicationSpec.
+// This enables having minimal ReplicationSpec objects and provides sensible defaults.
+func (r *ReplicaFromExternal) FillWithDefaults() {
+	if r.HealthCheckInterval == nil {
+		r.HealthCheckInterval = &metav1.Duration{
+			Duration: 15 * time.Second,
+		}
+	}
+	if r.ServerIdOffset == nil {
+		r.ServerIdOffset = ptr.To(0)
+	}
+}
+
+// IsExternalReplication returns true is external replication is defined
+func (r *ReplicationSpec) IsExternalReplication() bool {
+	return r.ReplicaFromExternal != nil
+}
+
+// Return the MariaDB ref to the external primary MariaDB
+func (r *ReplicationSpec) GetExternalReplicationRef() MariaDBRef {
+	if r.IsExternalReplication() {
+		return r.ReplicaFromExternal.MariaDBRef
+	}
+	return MariaDBRef{}
 }
 
 var (
@@ -290,9 +355,11 @@ func (m *MariaDB) IsSwitchingPrimary() bool {
 type ReplicationState string
 
 const (
-	ReplicationStateMaster        ReplicationState = "Master"
-	ReplicationStateSlave         ReplicationState = "Slave"
-	ReplicationStateNotConfigured ReplicationState = "NotConfigured"
+	ReplicationStateMaster               ReplicationState = "Master"
+	ReplicationStateSlave                ReplicationState = "Slave"
+	ReplicationStateSlaveBroken          ReplicationState = "SlaveBroken"
+	ReplicationStateSlavePermanentBroken ReplicationState = "SlavePermanentBroken"
+	ReplicationStateNotConfigured        ReplicationState = "NotConfigured"
 )
 
 type ReplicationStatus map[string]ReplicationState
