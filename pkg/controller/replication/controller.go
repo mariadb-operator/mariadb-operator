@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"github.com/hashicorp/go-multierror"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/builder"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/configmap"
@@ -161,30 +160,11 @@ func (r *ReplicationReconciler) reconcileReplication(ctx context.Context, req *r
 	if req.mariadb.Status.CurrentPrimaryPodIndex == nil {
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
-	var errBundle *multierror.Error
 
 	for _, i := range r.replicationPodIndexes(ctx, req) {
-		pod := statefulset.PodName(req.mariadb.ObjectMeta, i)
-
-		if req.mariadb.Status.ReplicationStatus == nil {
-			if err := r.reconcileReplicationInPod(ctx, req, logger, i); err != nil {
-				errBundle = multierror.Append(errBundle, fmt.Errorf("error configuring replication in Pod '%s': %v", pod, err))
-				continue
-			}
+		if result, err := r.reconcileReplicationInPod(ctx, req, logger, i); !result.IsZero() || err != nil {
+			return result, err
 		}
-
-		state, ok := req.mariadb.Status.ReplicationStatus[pod]
-		if !ok || state == mariadbv1alpha1.ReplicationStateNotConfigured {
-			if err := r.reconcileReplicationInPod(ctx, req, logger, i); err != nil {
-				errBundle = multierror.Append(errBundle, fmt.Errorf("error configuring replication in Pod '%s': %v", pod, err))
-				continue
-			}
-		}
-	}
-
-	if err := errBundle.ErrorOrNil(); err != nil {
-		logger.V(1).Info("error configuring Replication", "err", err)
-		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 	return ctrl.Result{}, nil
 }
@@ -201,22 +181,37 @@ func (r *ReplicationReconciler) replicationPodIndexes(ctx context.Context, req *
 	return podIndexes
 }
 
-func (r *ReplicationReconciler) reconcileReplicationInPod(ctx context.Context, req *reconcileRequest, logger logr.Logger, index int) error {
+func (r *ReplicationReconciler) reconcileReplicationInPod(ctx context.Context, req *reconcileRequest, logger logr.Logger,
+	index int) (ctrl.Result, error) {
 	primaryPodIndex := *req.mariadb.Status.CurrentPrimaryPodIndex
+	replicationStatus := req.mariadb.Status.ReplicationStatus
+	pod := statefulset.PodName(req.mariadb.ObjectMeta, index)
 
 	if primaryPodIndex == index {
+		if rs, ok := replicationStatus[pod]; ok && rs == mariadbv1alpha1.ReplicationStateMaster {
+			return ctrl.Result{}, nil
+		}
+
 		client, err := req.clientSet.currentPrimaryClient(ctx)
 		if err != nil {
-			return fmt.Errorf("error getting current primary client: %v", err)
+			logger.V(1).Info("error getting current primary client", "err", err, "pod", pod)
+			return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 		}
-		return r.replConfig.ConfigurePrimary(ctx, req.mariadb, client, index)
+		logger.Info("Configuring replication in primary", "pod", pod)
+		return ctrl.Result{}, r.replConfig.ConfigurePrimary(ctx, req.mariadb, client, index)
+	}
+
+	if rs, ok := replicationStatus[pod]; ok && rs == mariadbv1alpha1.ReplicationStateSlave {
+		return ctrl.Result{}, nil
 	}
 
 	client, err := req.clientSet.clientForIndex(ctx, index)
 	if err != nil {
-		return fmt.Errorf("error getting replica client: %v", err)
+		logger.V(1).Info("error getting replica client", "err", err, "pod", pod)
+		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
-	return r.replConfig.ConfigureReplica(ctx, req.mariadb, client, index, primaryPodIndex, false)
+	logger.Info("Configuring replication in replica", "pod", pod)
+	return ctrl.Result{}, r.replConfig.ConfigureReplica(ctx, req.mariadb, client, index, primaryPodIndex, false)
 }
 
 func (r *ReplicationReconciler) patchStatus(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
