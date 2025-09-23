@@ -969,7 +969,7 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
-| `CurrentPos` | GtidCurrentPos indicates the union of gtid_binlog_pos and gtid_slave_pos will be used when replicating from master.<br />This is the default Gtid mode.<br /> |
+| `CurrentPos` | GtidCurrentPos indicates the union of gtid_binlog_pos and gtid_slave_pos will be used when replicating from master.<br /> |
 | `SlavePos` | GtidSlavePos indicates that gtid_slave_pos will be used when replicating from master.<br /> |
 
 
@@ -3118,7 +3118,7 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
-| `AfterSync` | WaitPointAfterSync indicates that the primary waits for the replica ACK before committing the transaction to the storage engine.<br />This is the default WaitPoint. It trades off performance for consistency.<br /> |
+| `AfterSync` | WaitPointAfterSync indicates that the primary waits for the replica ACK before committing the transaction to the storage engine.<br />It trades off performance for consistency.<br /> |
 | `AfterCommit` | WaitPointAfterCommit indicates that the primary commits the transaction to the storage engine and waits for the replica ACK afterwards.<br />It trades off consistency for performance.<br /> |
 
 
