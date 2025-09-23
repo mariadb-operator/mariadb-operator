@@ -60,7 +60,7 @@ func (r *ReplicationConfig) ConfigurePrimary(ctx context.Context, mariadb *maria
 	if err := r.reconcilePrimarySql(ctx, mariadb, client); err != nil {
 		return fmt.Errorf("error reconciling primary SQL: %v", err)
 	}
-	if err := r.configurePrimaryVars(ctx, mariadb, client, podIndex); err != nil {
+	if err := r.configureReplicationVars(ctx, mariadb, client, podIndex); err != nil {
 		return fmt.Errorf("error configuring replication variables: %v", err)
 	}
 	return nil
@@ -82,7 +82,7 @@ func (r *ReplicationConfig) ConfigureReplica(ctx context.Context, mariadb *maria
 	if err := client.EnableReadOnly(ctx); err != nil {
 		return fmt.Errorf("error enabling read_only: %v", err)
 	}
-	if err := r.configureReplicaVars(ctx, mariadb, client, replicaPodIndex); err != nil {
+	if err := r.configureReplicationVars(ctx, mariadb, client, replicaPodIndex); err != nil {
 		return fmt.Errorf("error configuring replication variables: %v", err)
 	}
 	if err := r.changeMaster(ctx, mariadb, client, primaryPodIndex); err != nil {
@@ -94,16 +94,18 @@ func (r *ReplicationConfig) ConfigureReplica(ctx context.Context, mariadb *maria
 	return nil
 }
 
-func (r *ReplicationConfig) configurePrimaryVars(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *sql.Client,
+func (r *ReplicationConfig) configureReplicationVars(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *sql.Client,
 	primaryPodIndex int) error {
 	kv := map[string]string{
-		"sync_binlog":                  fmt.Sprintf("%d", ptr.Deref(mariadb.Replication().SyncBinlog, 1)),
+		"sync_binlog": fmt.Sprintf("%d", ptr.Deref(mariadb.Replication().SyncBinlog, 1)),
+		// To facilitate switchover/failover and avoid clashing with MaxScale, this configuration allows any Pod to act as a primary or as a replica.
+		// See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/semisynchronous-replication#enabling-semisynchronous-replication
 		"rpl_semi_sync_master_enabled": "ON",
+		"rpl_semi_sync_slave_enabled":  "ON",
 		"rpl_semi_sync_master_timeout": func() string {
 			return fmt.Sprint(mariadb.Replication().Replica.ConnectionTimeout.Milliseconds())
 		}(),
-		"rpl_semi_sync_slave_enabled": "OFF",
-		"server_id":                   serverId(primaryPodIndex),
+		"server_id": serverId(primaryPodIndex),
 	}
 	if mariadb.Replication().Replica.WaitPoint != nil {
 		waitPoint, err := mariadb.Replication().Replica.WaitPoint.MariaDBFormat()
@@ -111,20 +113,6 @@ func (r *ReplicationConfig) configurePrimaryVars(ctx context.Context, mariadb *m
 			return fmt.Errorf("error getting wait point: %v", err)
 		}
 		kv["rpl_semi_sync_master_wait_point"] = waitPoint
-	}
-	if err := client.SetSystemVariables(ctx, kv); err != nil {
-		return fmt.Errorf("error setting replication vars: %v", err)
-	}
-	return nil
-}
-
-func (r *ReplicationConfig) configureReplicaVars(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	client *sql.Client, ordinal int) error {
-	kv := map[string]string{
-		"sync_binlog":                  fmt.Sprintf("%d", ptr.Deref(mariadb.Replication().SyncBinlog, 1)),
-		"rpl_semi_sync_master_enabled": "OFF",
-		"rpl_semi_sync_slave_enabled":  "ON",
-		"server_id":                    serverId(ordinal),
 	}
 	if err := client.SetSystemVariables(ctx, kv); err != nil {
 		return fmt.Errorf("error setting replication vars: %v", err)

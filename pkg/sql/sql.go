@@ -348,6 +348,15 @@ func (c *Client) Exec(ctx context.Context, sql string, args ...any) error {
 	return err
 }
 
+func (c Client) Exists(ctx context.Context, sql string, args ...any) (bool, error) {
+	rows, err := c.db.QueryContext(ctx, sql, args...)
+	if err != nil {
+		return false, err
+	}
+	defer rows.Close()
+	return rows.Next(), nil
+}
+
 type CreateUserOpts struct {
 	IdentifiedBy         string
 	IdentifiedByPassword string
@@ -664,6 +673,14 @@ func (c *Client) WaitForReplicaGtid(ctx context.Context, gtid string, timeout ti
 	default:
 		return fmt.Errorf("unexpected result: %d", result)
 	}
+}
+
+func (c Client) IsReplicationPrimary(ctx context.Context) (bool, error) {
+	return c.Exists(ctx, "SHOW MASTER STATUS")
+}
+
+func (c Client) IsReplicationReplica(ctx context.Context) (bool, error) {
+	return c.Exists(ctx, "SHOW REPLICA STATUS")
 }
 
 type ChangeMasterOpts struct {

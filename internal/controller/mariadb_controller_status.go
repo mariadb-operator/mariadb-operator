@@ -106,9 +106,9 @@ func (r *MariaDBReconciler) getReplicationStatus(ctx context.Context,
 
 		var aggErr *multierror.Error
 
-		masterEnabled, err := client.IsSystemVariableEnabled(ctx, "rpl_semi_sync_master_enabled")
+		isSlave, err := client.IsReplicationReplica(ctx)
 		aggErr = multierror.Append(aggErr, err)
-		slaveEnabled, err := client.IsSystemVariableEnabled(ctx, "rpl_semi_sync_slave_enabled")
+		isMaster, err := client.IsReplicationPrimary(ctx)
 		aggErr = multierror.Append(aggErr, err)
 
 		if err := aggErr.ErrorOrNil(); err != nil {
@@ -117,10 +117,10 @@ func (r *MariaDBReconciler) getReplicationStatus(ctx context.Context,
 		}
 
 		state := mariadbv1alpha1.ReplicationStateNotConfigured
-		if masterEnabled {
-			state = mariadbv1alpha1.ReplicationStateMaster
-		} else if slaveEnabled {
+		if isSlave {
 			state = mariadbv1alpha1.ReplicationStateSlave
+		} else if isMaster {
+			state = mariadbv1alpha1.ReplicationStateMaster
 		}
 		replicationStatus[pod] = state
 	}
