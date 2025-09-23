@@ -1,10 +1,8 @@
 package v1alpha1
 
 const (
-	// ReasonReplicationConfiguring indicates that replication is being configured.
-	ReasonReplicationConfiguring = "ReplicationConfiguring"
-	// ReasonReplicationConfigured indicates that replication has been configured.
-	ReasonReplicationConfigured = "ReplicationConfigured"
+	// ReasonReplicationResetStaleSwitchover indicates a stale switchover has been reset.
+	ReasonReplicationResetStaleSwitchover = "ResetStaleSwitchover"
 	// ReasonReplicationPrimaryLock indicates that primary tables have a read lock.
 	ReasonReplicationPrimaryLock = "PrimaryLock"
 	// ReasonReplicationPrimaryReadonly indicates that primary is being changed to readonly mode.

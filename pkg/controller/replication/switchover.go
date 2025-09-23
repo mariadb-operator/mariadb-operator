@@ -7,11 +7,9 @@ import (
 	"sync"
 
 	"github.com/go-logr/logr"
-	"github.com/hashicorp/go-multierror"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
 	condition "github.com/mariadb-operator/mariadb-operator/v25/pkg/condition"
 	mariadbpod "github.com/mariadb-operator/mariadb-operator/v25/pkg/pod"
-	sqlClient "github.com/mariadb-operator/mariadb-operator/v25/pkg/sql"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/statefulset"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -21,6 +19,10 @@ import (
 type switchoverPhase struct {
 	name      string
 	reconcile func(context.Context, *mariadbv1alpha1.MariaDB, *ReplicationClientSet, logr.Logger) error
+}
+
+func isSwitchoverStale(mdb *mariadbv1alpha1.MariaDB) bool {
+	return mdb.IsSwitchingPrimary() && !mdb.IsSwitchoverRequired()
 }
 
 func shouldReconcileSwitchover(mdb *mariadbv1alpha1.MariaDB) bool {
@@ -34,13 +36,18 @@ func shouldReconcileSwitchover(mdb *mariadbv1alpha1.MariaDB) bool {
 }
 
 func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *reconcileRequest, switchoverLogger logr.Logger) error {
+	logger := switchoverLogger.WithValues("mariadb", req.mariadb.Name)
+
+	if err := r.reconcileStaleSwitchover(ctx, req, logger); err != nil {
+		return fmt.Errorf("error reconciling stale switchover: %v", err)
+	}
 	if !shouldReconcileSwitchover(req.mariadb) {
 		return nil
 	}
 
 	fromIndex := req.mariadb.Status.CurrentPrimaryPodIndex
 	toIndex := *req.mariadb.Replication().Primary.PodIndex
-	logger := switchoverLogger.WithValues("mariadb", req.mariadb.Name, "from-index", fromIndex, "to-index", toIndex)
+	logger = logger.WithValues("from-index", fromIndex, "to-index", toIndex)
 
 	if err := r.patchStatus(ctx, req.mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
 		condition.SetPrimarySwitching(&req.mariadb.Status, req.mariadb)
@@ -97,6 +104,46 @@ func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *re
 	return nil
 }
 
+func (r *ReplicationReconciler) reconcileStaleSwitchover(ctx context.Context, req *reconcileRequest,
+	logger logr.Logger) error {
+	if !isSwitchoverStale(req.mariadb) {
+		return nil
+	}
+	ready, err := r.currentPrimaryReady(ctx, req.mariadb)
+	if err != nil {
+		return fmt.Errorf("error getting current primary readiness: %v", err)
+	}
+	if !ready {
+		logger.Info("Skipped stale switchover reconciliation due to primary's non ready status")
+		return nil
+	}
+	currentPrimaryClient, err := req.clientSet.currentPrimaryClient(ctx)
+	if err != nil {
+		return fmt.Errorf("error getting current primary client: %v", err)
+	}
+
+	logger.Info("Unlocking primary")
+	if err := currentPrimaryClient.UnlockTables(ctx); err != nil {
+		return fmt.Errorf("error unlocking primary: %v", err)
+	}
+
+	logger.Info("Disabling readonly in primary")
+	if err := currentPrimaryClient.DisableReadOnly(ctx); err != nil {
+		return fmt.Errorf("error disabling readonly in primary: %v", err)
+	}
+
+	if err := r.patchStatus(ctx, req.mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
+		condition.SetPrimarySwitched(&req.mariadb.Status)
+	}); err != nil {
+		return fmt.Errorf("error patching MariaDB status: %v", err)
+	}
+
+	logger.Info("Stale switchover has been reset")
+	r.recorder.Event(req.mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonReplicationResetStaleSwitchover,
+		"Stale switchover has been reset")
+	return nil
+}
+
 func (r *ReplicationReconciler) lockPrimaryWithReadLock(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 	clientSet *ReplicationClientSet, logger logr.Logger) error {
 	ready, err := r.currentPrimaryReady(ctx, mariadb)
@@ -104,7 +151,7 @@ func (r *ReplicationReconciler) lockPrimaryWithReadLock(ctx context.Context, mar
 		return fmt.Errorf("error getting current primary readiness: %v", err)
 	}
 	if !ready {
-		logger.Info("Skipped locking primary with read lock due primary's non ready status")
+		logger.Info("Skipped locking primary with read lock due to primary's non ready status")
 		return nil
 	}
 	client, err := clientSet.currentPrimaryClient(ctx)
@@ -125,7 +172,7 @@ func (r *ReplicationReconciler) setPrimaryReadOnly(ctx context.Context, mariadb 
 		return fmt.Errorf("error getting current primary readiness: %v", err)
 	}
 	if !ready {
-		logger.Info("Skipped enabling readonly mode in primary due to its non ready status")
+		logger.Info("Skipped enabling readonly mode in primary due to primary's non ready status")
 		return nil
 	}
 	client, err := clientSet.currentPrimaryClient(ctx)
@@ -149,9 +196,10 @@ func (r *ReplicationReconciler) waitForReplicaSync(ctx context.Context, mariadb 
 		return fmt.Errorf("error getting current primary readiness: %v", err)
 	}
 	if !ready {
-		logger.Info("Skipped waiting for replicas to be synced with primary due to its non ready status")
+		logger.Info("Skipped waiting for replicas to be synced with primary due to primary's non ready status")
 		return nil
 	}
+
 	client, err := clientSet.currentPrimaryClient(ctx)
 	if err != nil {
 		return fmt.Errorf("error getting current primary client: %v", err)
@@ -160,12 +208,15 @@ func (r *ReplicationReconciler) waitForReplicaSync(ctx context.Context, mariadb 
 	if err != nil {
 		return fmt.Errorf("error getting primary GTID binlog pos: %v", err)
 	}
+	if primaryGtid == "" {
+		return errors.New("primary GTID (gtid_binlog_pos) is empty")
+	}
 
 	var wg sync.WaitGroup
 	doneChan := make(chan struct{})
 	errChan := make(chan error)
 
-	logger.Info("Waiting for replicas to be synced with primary")
+	logger.Info("Waiting for replicas to be synced with primary", "gtid", primaryGtid)
 	r.recorder.Event(mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonReplicationReplicaSync,
 		"Waiting for replicas to be synced with primary")
 	for i := 0; i < int(mariadb.Spec.Replicas); i++ {
@@ -184,33 +235,15 @@ func (r *ReplicationReconciler) waitForReplicaSync(ctx context.Context, mariadb 
 			logger.V(1).Info("Syncing replica with primary GTID", "replica", i, "gtid", primaryGtid)
 			timeout := mariadb.Replication().Replica.SyncTimeout.Duration
 			if err := replClient.WaitForReplicaGtid(ctx, primaryGtid, timeout); err != nil {
-				var errBundle *multierror.Error
-				errBundle = multierror.Append(errBundle, fmt.Errorf("error waiting for GTID '%s' in replica '%d': %v", primaryGtid, i, err))
+				logger.Error(err, "Error waiting for GTID in replica", "gtid", primaryGtid, "replica", i)
+				r.recorder.Eventf(mariadb, corev1.EventTypeWarning, mariadbv1alpha1.ReasonReplicationReplicaSyncErr,
+					"Error waiting for GTID '%s' in replica '%d': %v", primaryGtid, i, err)
 
-				if errors.Is(err, sqlClient.ErrWaitReplicaTimeout) {
-					logger.Error(err, "Timeout waiting for GTID in replica", "gtid", primaryGtid, "replica", i, "timeout", timeout)
-					r.recorder.Eventf(mariadb, corev1.EventTypeWarning, mariadbv1alpha1.ReasonReplicationReplicaSyncErr,
-						"Timeout(%s) waiting for GTID '%s' in replica '%d': %v", timeout, primaryGtid, i, err)
-
-					if err := r.resetSlave(ctx, replClient); err != nil {
-						logger.Error(err, "Error resetting slave in replica after GTID timeout", "replica", i)
-						errBundle = multierror.Append(errBundle, fmt.Errorf("error resetting slave position in replica '%d': %v", i, err))
-					}
-				} else {
-					logger.Error(err, "Error waiting for GTID in replica", "gtid", primaryGtid, "replica", i)
-					r.recorder.Eventf(mariadb, corev1.EventTypeWarning, mariadbv1alpha1.ReasonReplicationReplicaSyncErr,
-						"Error waiting for GTID '%s' in replica '%d': %v", primaryGtid, i, err)
-				}
-
-				errChan <- errBundle.ErrorOrNil()
+				errChan <- err
 				return
 			}
 
-			logger.V(1).Info("Replica synced, resetting slave position", "replica", i, "gtid", primaryGtid)
-			if err := r.resetSlave(ctx, replClient); err != nil {
-				logger.Error(err, "Error resetting slave in replica after synced", "replica", i)
-				errChan <- fmt.Errorf("error resetting slave position in replica '%d' after being synced: %v", i, err)
-			}
+			logger.V(1).Info("Replica synced", "replica", i, "gtid", primaryGtid)
 		}(i)
 	}
 	go func() {
@@ -349,16 +382,6 @@ func (r *ReplicationReconciler) changePrimaryToReplica(ctx context.Context, mari
 		newPrimary,
 		true,
 	)
-}
-
-func (r *ReplicationReconciler) resetSlave(ctx context.Context, client *sqlClient.Client) error {
-	if err := client.StopAllSlaves(ctx); err != nil {
-		return fmt.Errorf("error stopping slaves: %v", err)
-	}
-	if err := client.ResetSlavePos(ctx); err != nil {
-		return fmt.Errorf("error resetting slave position: %v", err)
-	}
-	return client.StartSlave(ctx)
 }
 
 func (r *ReplicationReconciler) currentPrimaryReady(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (bool, error) {
