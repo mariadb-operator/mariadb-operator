@@ -74,87 +74,7 @@ func SetReadyWithStatefulSet(c Conditioner, sts *appsv1.StatefulSet) {
 }
 
 func SetReadyWithMariaDB(c Conditioner, sts *appsv1.StatefulSet, mdb *mariadbv1alpha1.MariaDB) {
-	if mdb.IsInitializing() || (mdb.IsGaleraEnabled() && mdb.IsGaleraInitializing()) {
-		if err := mdb.InitError(); err != nil {
-			c.SetCondition(metav1.Condition{
-				Type:    mariadbv1alpha1.ConditionTypeReady,
-				Status:  metav1.ConditionFalse,
-				Reason:  mariadbv1alpha1.ConditionReasonInitError,
-				Message: err.Error(),
-			})
-			return
-		}
-		c.SetCondition(metav1.Condition{
-			Type:    mariadbv1alpha1.ConditionTypeReady,
-			Status:  metav1.ConditionFalse,
-			Reason:  mariadbv1alpha1.ConditionReasonInitializing,
-			Message: "Initializing",
-		})
-		return
-	}
-	if mdb.IsPointInTimeRecoveryEnabled() {
-		if err := mdb.ArchiveBinlogsError(); err != nil {
-			c.SetCondition(metav1.Condition{
-				Type:    mariadbv1alpha1.ConditionTypeReady,
-				Status:  metav1.ConditionFalse,
-				Reason:  mariadbv1alpha1.ConditionReasonArchiveBinlogsError,
-				Message: err.Error(),
-			})
-			return
-		}
-	}
-	if mdb.IsReplayingBinlogs() {
-		if err := mdb.ReplayBinlogsError(); err != nil {
-			c.SetCondition(metav1.Condition{
-				Type:    mariadbv1alpha1.ConditionTypeReady,
-				Status:  metav1.ConditionFalse,
-				Reason:  mariadbv1alpha1.ConditionReasonReplayBinlogsError,
-				Message: err.Error(),
-			})
-			return
-		}
-		c.SetCondition(metav1.Condition{
-			Type:    mariadbv1alpha1.ConditionTypeReady,
-			Status:  metav1.ConditionFalse,
-			Reason:  mariadbv1alpha1.ConditionReasonReplayBinlogs,
-			Message: "Replaying binlogs",
-		})
-		return
-	}
-	if mdb.IsScalingOut() {
-		if err := mdb.ScalingOutError(); err != nil {
-			c.SetCondition(metav1.Condition{
-				Type:    mariadbv1alpha1.ConditionTypeReady,
-				Status:  metav1.ConditionFalse,
-				Reason:  mariadbv1alpha1.ConditionReasonScaleOutError,
-				Message: err.Error(),
-			})
-			return
-		}
-		c.SetCondition(metav1.Condition{
-			Type:    mariadbv1alpha1.ConditionTypeReady,
-			Status:  metav1.ConditionFalse,
-			Reason:  mariadbv1alpha1.ConditionReasonScalingOut,
-			Message: "Scaling out",
-		})
-		return
-	}
-	if mdb.IsRecoveringReplicas() {
-		if err := mdb.ReplicaRecoveryError(); err != nil {
-			c.SetCondition(metav1.Condition{
-				Type:    mariadbv1alpha1.ConditionTypeReady,
-				Status:  metav1.ConditionFalse,
-				Reason:  mariadbv1alpha1.ConditionReasonReplicaRecoverError,
-				Message: err.Error(),
-			})
-			return
-		}
-		c.SetCondition(metav1.Condition{
-			Type:    mariadbv1alpha1.ConditionTypeReady,
-			Status:  metav1.ConditionFalse,
-			Reason:  mariadbv1alpha1.ConditionReasonReplicaRecovering,
-			Message: "Recovering replicas",
-		})
+	if setReadyWithMariaDBPhase(c, mdb) {
 		return
 	}
 	if mdb.IsUpdating() {
@@ -190,6 +110,17 @@ func SetReadyWithMariaDB(c Conditioner, sts *appsv1.StatefulSet, mdb *mariadbv1a
 		SetReadyWithMaintenance(c, mdb)
 		return
 	}
+	replication := mdb.Replication()
+	// Pending External Replication initialization
+	if replication.IsExternalReplication() && !mdb.IsExternalReplInitialing() && !mdb.IsExternalReplInitialized() {
+		c.SetCondition(metav1.Condition{
+			Type:    mariadbv1alpha1.ConditionTypeReady,
+			Status:  metav1.ConditionFalse,
+			Reason:  mariadbv1alpha1.ConditionReasonPendingExternalReplInitialization,
+			Message: "Pending external replication initialization",
+		})
+		return
+	}
 
 	c.SetCondition(metav1.Condition{
 		Type:    mariadbv1alpha1.ConditionTypeReady,
@@ -197,6 +128,115 @@ func SetReadyWithMariaDB(c Conditioner, sts *appsv1.StatefulSet, mdb *mariadbv1a
 		Reason:  mariadbv1alpha1.ConditionReasonStatefulSetReady,
 		Message: "Running",
 	})
+}
+
+// setReadyWithMariaDBPhase handles the in-progress lifecycle phases of a MariaDB
+// (initializing, point-in-time recovery, binlog replay, scaling out, replica recovery
+// and external replication initialization). It returns true when a Ready condition was
+// set, signaling the caller to stop further processing.
+func setReadyWithMariaDBPhase(c Conditioner, mdb *mariadbv1alpha1.MariaDB) bool {
+	if mdb.IsInitializing() || (mdb.IsGaleraEnabled() && mdb.IsGaleraInitializing()) {
+		if err := mdb.InitError(); err != nil {
+			c.SetCondition(metav1.Condition{
+				Type:    mariadbv1alpha1.ConditionTypeReady,
+				Status:  metav1.ConditionFalse,
+				Reason:  mariadbv1alpha1.ConditionReasonInitError,
+				Message: err.Error(),
+			})
+			return true
+		}
+		c.SetCondition(metav1.Condition{
+			Type:    mariadbv1alpha1.ConditionTypeReady,
+			Status:  metav1.ConditionFalse,
+			Reason:  mariadbv1alpha1.ConditionReasonInitializing,
+			Message: "Initializing",
+		})
+		return true
+	}
+	if mdb.IsPointInTimeRecoveryEnabled() {
+		if err := mdb.ArchiveBinlogsError(); err != nil {
+			c.SetCondition(metav1.Condition{
+				Type:    mariadbv1alpha1.ConditionTypeReady,
+				Status:  metav1.ConditionFalse,
+				Reason:  mariadbv1alpha1.ConditionReasonArchiveBinlogsError,
+				Message: err.Error(),
+			})
+			return true
+		}
+	}
+	if mdb.IsReplayingBinlogs() {
+		if err := mdb.ReplayBinlogsError(); err != nil {
+			c.SetCondition(metav1.Condition{
+				Type:    mariadbv1alpha1.ConditionTypeReady,
+				Status:  metav1.ConditionFalse,
+				Reason:  mariadbv1alpha1.ConditionReasonReplayBinlogsError,
+				Message: err.Error(),
+			})
+			return true
+		}
+		c.SetCondition(metav1.Condition{
+			Type:    mariadbv1alpha1.ConditionTypeReady,
+			Status:  metav1.ConditionFalse,
+			Reason:  mariadbv1alpha1.ConditionReasonReplayBinlogs,
+			Message: "Replaying binlogs",
+		})
+		return true
+	}
+	if mdb.IsScalingOut() {
+		if err := mdb.ScalingOutError(); err != nil {
+			c.SetCondition(metav1.Condition{
+				Type:    mariadbv1alpha1.ConditionTypeReady,
+				Status:  metav1.ConditionFalse,
+				Reason:  mariadbv1alpha1.ConditionReasonScaleOutError,
+				Message: err.Error(),
+			})
+			return true
+		}
+		c.SetCondition(metav1.Condition{
+			Type:    mariadbv1alpha1.ConditionTypeReady,
+			Status:  metav1.ConditionFalse,
+			Reason:  mariadbv1alpha1.ConditionReasonScalingOut,
+			Message: "Scaling out",
+		})
+		return true
+	}
+	if mdb.IsRecoveringReplicas() {
+		if err := mdb.ReplicaRecoveryError(); err != nil {
+			c.SetCondition(metav1.Condition{
+				Type:    mariadbv1alpha1.ConditionTypeReady,
+				Status:  metav1.ConditionFalse,
+				Reason:  mariadbv1alpha1.ConditionReasonReplicaRecoverError,
+				Message: err.Error(),
+			})
+			return true
+		}
+		c.SetCondition(metav1.Condition{
+			Type:    mariadbv1alpha1.ConditionTypeReady,
+			Status:  metav1.ConditionFalse,
+			Reason:  mariadbv1alpha1.ConditionReasonReplicaRecovering,
+			Message: "Recovering replicas",
+		})
+		return true
+	}
+	if mdb.IsExternalReplInitialing() {
+		if err := mdb.ExternalReplInitError(); err != nil {
+			c.SetCondition(metav1.Condition{
+				Type:    mariadbv1alpha1.ConditionTypeReady,
+				Status:  metav1.ConditionFalse,
+				Reason:  mariadbv1alpha1.ConditionReasonExternalReplInitError,
+				Message: err.Error(),
+			})
+			return true
+		}
+		c.SetCondition(metav1.Condition{
+			Type:    mariadbv1alpha1.ConditionTypeReady,
+			Status:  metav1.ConditionFalse,
+			Reason:  mariadbv1alpha1.ConditionReasonExternalReplInitializing,
+			Message: "Initializing external replication",
+		})
+		return true
+	}
+	return false
 }
 
 func SetReadyWithInitJob(c Conditioner, job *batchv1.Job) {

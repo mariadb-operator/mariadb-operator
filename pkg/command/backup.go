@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -20,20 +21,21 @@ import (
 
 type BackupOpts struct {
 	CommandOpts
-	Path                 string
-	TargetFilePath       string
-	BackupFullDirPath    string
-	BackupContentType    mariadbv1alpha1.BackupContentType
-	PhysicalBackupMeta   bool
-	PhysicalBackupKey    *types.NamespacedName
-	OmitCredentials      bool
-	CleanupTargetFile    bool
-	MaxRetentionDuration time.Duration
-	StartGtid            *replication.Gtid
-	TargetTime           time.Time
-	Compression          mariadbv1alpha1.CompressAlgorithm
-	LogLevel             string
-	ExtraOpts            []string
+	Path                   string
+	TargetFilePath         string
+	BackupFullDirPath      string
+	BackupContentType      mariadbv1alpha1.BackupContentType
+	PhysicalBackupMeta     bool
+	PhysicalBackupKey      *types.NamespacedName
+	OmitCredentials        bool
+	CleanupTargetFile      bool
+	MaxRetentionDuration   time.Duration
+	StartGtid              *replication.Gtid
+	TargetTime             time.Time
+	TargetTimeAgeThreshold *time.Time
+	Compression            mariadbv1alpha1.CompressAlgorithm
+	LogLevel               string
+	ExtraOpts              []string
 
 	S3           bool
 	S3Bucket     string
@@ -107,6 +109,12 @@ func WithTargetTime(t time.Time) BackupOpt {
 func WithCompression(c mariadbv1alpha1.CompressAlgorithm) BackupOpt {
 	return func(bo *BackupOpts) {
 		bo.Compression = c
+	}
+}
+
+func WithBackupTargetTimeAgeThreshold(threshold *time.Time) BackupOpt {
+	return func(bo *BackupOpts) {
+		bo.TargetTimeAgeThreshold = threshold
 	}
 }
 
@@ -224,9 +232,11 @@ func (b *BackupCommand) MariadbDump(backup *mariadbv1alpha1.Backup,
 	if err != nil {
 		return nil, fmt.Errorf("error getting connection flags: %v", err)
 	}
-	dumpArgs := strings.Join(b.mariadbDumpArgs(backup, mariadb), " ")
+	args := strings.Join(b.mariadbDumpArgs(backup, mariadb), " ")
+	tablesBySchema := groupTablesBySchema(backup.Spec.Tables)
+	isMultiSchema := len(tablesBySchema) > 1
 
-	args := []string{
+	cmds := []string{
 		"set -euo pipefail",
 		"echo 💾 Exporting env",
 		fmt.Sprintf(
@@ -241,6 +251,25 @@ func (b *BackupCommand) MariadbDump(backup *mariadbv1alpha1.Backup,
 			"printf \"${BACKUP_FILE}\" > %s",
 			b.TargetFilePath,
 		),
+	}
+
+	dumpArgs := args
+	if isMultiSchema {
+		// mapfile reads each row as a separate array element so identifiers with spaces
+		// (e.g. `lerg`.`LERG 6 ATC`) survive intact; "${MARIADB_IGNORE_ARGS[@]}" expands
+		// each element as one shell word rather than word-splitting on whitespace.
+		cmds = append(cmds,
+			"echo 💾 Building ignore-table flags",
+			fmt.Sprintf(
+				`mapfile -t MARIADB_IGNORE_ARGS < <(mariadb %s -BNe "%s")`,
+				connFlags,
+				buildIgnoreTableQuery(tablesBySchema),
+			),
+		)
+		dumpArgs = args + ` "${MARIADB_IGNORE_ARGS[@]}"`
+	}
+
+	cmds = append(cmds,
 		fmt.Sprintf(
 			"echo 💾 Taking backup: %s",
 			b.getTargetFilePath(),
@@ -251,8 +280,8 @@ func (b *BackupCommand) MariadbDump(backup *mariadbv1alpha1.Backup,
 			dumpArgs,
 			b.getTargetFilePath(),
 		),
-	}
-	return NewBashCommand(args), nil
+	)
+	return NewBashCommand(cmds), nil
 }
 
 func (b *BackupCommand) MariadbBackup(mariadb *mariadbv1alpha1.MariaDB, backupFilePath string,
@@ -374,6 +403,14 @@ func (b *BackupCommand) MariadbOperatorRestore() (*Command, error) {
 		"--backup-content-type",
 		string(b.BackupContentType),
 	}
+
+	if b.TargetTimeAgeThreshold != nil {
+		args = append(args, []string{
+			"--target-time-age-threshold",
+			backuppkg.FormatBackupDate(*b.TargetTimeAgeThreshold),
+		}...)
+	}
+
 	if b.LogLevel != "" {
 		args = append(args, []string{
 			"--log-level",
@@ -390,7 +427,14 @@ func (b *BackupCommand) MariadbOperatorRestore() (*Command, error) {
 
 func (b *BackupCommand) MariadbRestore(restore *mariadbv1alpha1.Restore,
 	mariadb interfaces.MariaDBObject) (*Command, error) {
-	connFlags, err := ConnectionFlags(&b.CommandOpts, mariadb)
+
+	var err error
+	var connFlags string
+	if restore.Spec.PodIndex != nil {
+		connFlags, err = PodConnectionFlags(&b.CommandOpts, mariadb, *restore.Spec.PodIndex)
+	} else {
+		connFlags, err = ConnectionFlags(&b.CommandOpts, mariadb)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("error getting connection flags: %v", err)
 	}
@@ -402,13 +446,20 @@ func (b *BackupCommand) MariadbRestore(restore *mariadbv1alpha1.Restore,
 			"echo 💾 Restoring backup: %s",
 			b.getTargetFilePath(),
 		),
-		fmt.Sprintf(
-			"mariadb %s %s < %s",
-			connFlags,
-			args,
-			b.getTargetFilePath(),
-		),
 	}
+	if restore.Spec.Database != "" {
+		cmds = append(cmds, fmt.Sprintf(
+			"mariadb %s -e 'CREATE DATABASE IF NOT EXISTS `%s`;'",
+			connFlags,
+			restore.Spec.Database,
+		))
+	}
+	cmds = append(cmds, fmt.Sprintf(
+		"mariadb %s %s < %s",
+		connFlags,
+		args,
+		b.getTargetFilePath(),
+	))
 	return NewBashCommand(cmds), nil
 }
 
@@ -565,6 +616,24 @@ func (b *BackupCommand) mariadbDumpArgs(backup *mariadbv1alpha1.Backup, mariadb 
 		if hasDatabases {
 			dumpOpts = ds.Remove(dumpOpts, hasDatabasesOpt)
 		}
+	} else if len(backup.Spec.Tables) > 0 {
+		tablesBySchema := groupTablesBySchema(backup.Spec.Tables)
+		if len(tablesBySchema) > 1 {
+			// Multi-schema: list all target databases; per-table filtering is applied at
+			// runtime via --ignore-table flags built by querying information_schema.
+			schemas := make([]string, 0, len(tablesBySchema))
+			for s := range tablesBySchema {
+				schemas = append(schemas, s)
+			}
+			sort.Strings(schemas)
+			args = append(args, "--databases")
+			args = append(args, schemas...)
+		} else {
+			// Single schema: --databases db --tables tbl1 tbl2 includes CREATE DATABASE / USE
+			// statements (the plain positional form does not), required for a clean restore.
+			db, _ := tableSelectionArgs(backup.Spec.Tables)
+			args = append(args, "--databases", db)
+		}
 	} else if !hasDatabases {
 		args = append(args, "--all-databases")
 	}
@@ -586,7 +655,83 @@ func (b *BackupCommand) mariadbDumpArgs(backup *mariadbv1alpha1.Backup, mariadb 
 		args = append(args, b.tlsArgs(mariadb)...)
 	}
 
-	return ds.UniqueArgs(ds.Merge(args, dumpOpts)...)
+	result := ds.UniqueArgs(ds.Merge(args, dumpOpts)...)
+
+	// --tables must come after all other flags; it overrides --databases to limit
+	// which tables are dumped while still emitting the database context statements.
+	// Not used for multi-schema: ignore-table flags are injected at runtime instead.
+	if len(backup.Spec.Tables) > 0 && len(groupTablesBySchema(backup.Spec.Tables)) == 1 {
+		_, tables := tableSelectionArgs(backup.Spec.Tables)
+		result = append(result, "--tables")
+		result = append(result, tables...)
+	}
+
+	return result
+}
+
+// groupTablesBySchema groups "db.table" entries into a map of schema → []table.
+func groupTablesBySchema(tables []string) map[string][]string {
+	result := make(map[string][]string)
+	for _, t := range tables {
+		schema, table, found := strings.Cut(t, ".")
+		if !found {
+			continue
+		}
+		result[schema] = append(result[schema], table)
+	}
+	return result
+}
+
+// buildIgnoreTableQuery returns a SQL query that emits one "--ignore-table=schema.table"
+// token per row for every BASE TABLE or VIEW in the given schemas that is NOT in
+// tablesBySchema. Views are included so the dump doesn't try to recreate views that
+// reference tables excluded from the filtered backup.
+func buildIgnoreTableQuery(tablesBySchema map[string][]string) string {
+	schemas := make([]string, 0, len(tablesBySchema))
+	for s := range tablesBySchema {
+		schemas = append(schemas, s)
+	}
+	sort.Strings(schemas)
+
+	quotedSchemas := make([]string, len(schemas))
+	for i, s := range schemas {
+		quotedSchemas[i] = "'" + s + "'"
+	}
+
+	var pairs []string
+	for _, s := range schemas {
+		for _, t := range tablesBySchema[s] {
+			pairs = append(pairs, fmt.Sprintf("('%s','%s')", s, t))
+		}
+	}
+
+	return fmt.Sprintf(
+		"SELECT CONCAT('--ignore-table=', TABLE_SCHEMA, '.', TABLE_NAME)"+
+			" FROM information_schema.TABLES"+
+			" WHERE TABLE_SCHEMA IN (%s)"+
+			" AND TABLE_TYPE IN ('BASE TABLE','VIEW')"+
+			" AND (TABLE_SCHEMA, TABLE_NAME) NOT IN (%s)",
+		strings.Join(quotedSchemas, ","),
+		strings.Join(pairs, ","),
+	)
+}
+
+// tableSelectionArgs parses "db.table" entries into a database name and table list.
+// All entries are expected to share the same database.
+func tableSelectionArgs(tables []string) (string, []string) {
+	var db string
+	var tableNames []string
+	for _, t := range tables {
+		d, tbl, found := strings.Cut(t, ".")
+		if !found {
+			continue
+		}
+		if db == "" {
+			db = d
+		}
+		tableNames = append(tableNames, tbl)
+	}
+	return db, tableNames
 }
 
 func (b *BackupCommand) mariadbBinlogArgs(mariadb *mariadbv1alpha1.MariaDB) ([]string, error) {
@@ -650,11 +795,20 @@ func (b *BackupCommand) mariadbBackupArgs(mariadb *mariadbv1alpha1.MariaDB, targ
 	return ds.UniqueArgs(ds.Merge(args, backupOpts)...)
 }
 
-func (b *BackupCommand) mariadbRestoreArgs(restore *mariadbv1alpha1.Restore, mariadb interfaces.TLSProvider) []string {
+func (b *BackupCommand) mariadbRestoreArgs(restore *mariadbv1alpha1.Restore, mariadb interfaces.MariaDBObject) []string {
 	args := b.mariadbArgs(mariadb)
 
 	if restore.Spec.Database != "" {
-		args = append(args, fmt.Sprintf("--one-database %s", restore.Spec.Database))
+		repl := mariadb.Replication()
+		isFilteredReplication := repl.ReplicaFromExternal != nil &&
+			len(repl.ReplicaFromExternal.FilteredReplicaTables) > 0
+		if isFilteredReplication {
+			// Filtered-table dumps have no USE statements; --database sets the connection
+			// default database upfront so every statement runs in the right context.
+			args = append(args, fmt.Sprintf("--database %s", restore.Spec.Database))
+		} else {
+			args = append(args, fmt.Sprintf("--one-database %s", restore.Spec.Database))
+		}
 	}
 
 	return ds.UniqueArgs(args...)

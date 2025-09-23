@@ -300,8 +300,9 @@ spec:
                 - gzip
                 type: string
               databases:
-                description: Databases defines the logical databases to be backed
-                  up. If not provided, all databases are backed up.
+                description: |-
+                  Databases defines the logical databases to be backed up. If not provided, all databases are backed up.
+                  Mutually exclusive with Tables.
                 items:
                   type: string
                 type: array
@@ -1031,6 +1032,14 @@ spec:
                 format: int32
                 minimum: 0
                 type: integer
+              tables:
+                description: |-
+                  Tables defines specific tables to be backed up, in "database.table" format. Entries may span
+                  multiple databases; when they do, --ignore-table flags are built at runtime by querying
+                  information_schema so that the dump remains a single consistent transaction. Mutually exclusive with Databases.
+                items:
+                  type: string
+                type: array
               timeZone:
                 description: TimeZone defines the timezone associated with the cron
                   expression.
@@ -1631,6 +1640,12 @@ spec:
             description: ExternalMariaDBSpec defines the desired state of an External
               MariaDB
             properties:
+              binlogPort:
+                description: Binlog proxy router port of the external MariaDB. Useful
+                  when the external MariaDB is behind a Maxscale and using the Binlogrouter
+                  to expose the binlog stream.
+                format: int32
+                type: integer
               connection:
                 description: Connection defines a template to configure a Connection
                   for the external MariaDB.
@@ -5684,6 +5699,9 @@ spec:
                       to a member in the 'members' field, containing its full specification.
                     type: string
                 type: object
+              multiClusterReplicaConnectionName:
+                description: MultiCluster Connection name
+                type: string
               myCnf:
                 description: |-
                   MyCnf allows to specify the my.cnf file mounted by Mariadb.
@@ -7095,6 +7113,9 @@ spec:
                     required:
                     - image
                     type: object
+                  multiClusterReplicaConnectionName:
+                    description: MultiCluster Connection name
+                    type: string
                   primary:
                     description: Primary is the replication configuration for the
                       primary node.
@@ -7125,6 +7146,17 @@ spec:
                           This will be used as part of the scaling out and recovery operations, when new replicas are created.
                           If not provided, scale out and recovery operations will return an error.
                         properties:
+                          logicalBackupTemplateRef:
+                            description: |-
+                              LogicalBackupTemplateRef is a reference to a Backup object that will be used as template to create the logical Backup
+                              taken from the external MariaDB during external replication initialization and recovery. The template's Spec is copied
+                              over (resources, pod template, etc.) and the controller overrides the fields that are managed automatically
+                              (MariaDBRef, Storage, Args, Tables, Compression, MaxRetention).
+                            properties:
+                              name:
+                                default: ""
+                                type: string
+                            type: object
                           physicalBackupTemplateRef:
                             description: |-
                               PhysicalBackupTemplateRef is a reference to a PhysicalBackup object that will be used as template to create a new PhysicalBackup object
@@ -7492,6 +7524,21 @@ spec:
                         - CurrentPos
                         - SlavePos
                         type: string
+                      ignoreMaxLagSeconds:
+                        description: |-
+                          IgnoreMaxLagSeconds is to ignore the lag behind primary checks.
+                          It's useful on situations when is preferred to keep sending read queries on a delayed (or with connection issues)
+                          replica than stopping sending traffic. It could be useful when replicating from a external MariaDB when
+                          connection issues with primary could happen.
+                          If not provided, it defaults to false.
+                        type: boolean
+                      ignoreReplicationLivenessProbes:
+                        description: |-
+                          IgnoreReplicationLivenessProbes is to ignore liveness replication checks.
+                          It's useful on situations when is preferred to keep sending read queries on a broken replicas
+                          replica than stopping sending traffic.
+                          If not provided, it defaults to false.
+                        type: boolean
                       maxLagSeconds:
                         description: |-
                           MaxLagSeconds is the maximum number of seconds that replicas are allowed to lag behind the primary.
@@ -7550,6 +7597,61 @@ spec:
                           It defaults to 10s.
                           See: https://mariadb.com/docs/server/reference/sql-functions/secondary-functions/miscellaneous-functions/master_gtid_wait
                         type: string
+                    type: object
+                  replicaFromExternal:
+                    description: ReplicaFromExternal specifies whether the replica
+                      should be created from an external MariaDB instance.
+                    properties:
+                      connectionRetries:
+                        description: ConnectionRetries to be used when the replica
+                          connects to the primary.
+                        type: integer
+                      connectionTimeout:
+                        description: ConnectionTimeout to be used when the replica
+                          connects to the primary.
+                        type: string
+                      filteredReplicaTables:
+                        description: |-
+                          FilteredReplicaTables is an optional list of tables in "database.table" format to replicate.
+                          When set, the logical backup will only include these tables and the replication will be
+                          configured with replicate_do_table for each entry. GTID strict mode is automatically
+                          disabled when this field is set, as partial replication is incompatible with it.
+                        items:
+                          type: string
+                        type: array
+                      gtid:
+                        description: |-
+                          Gtid indicates which Global Transaction ID should be used when connecting a replica to the master.
+                          See: https://mariadb.com/kb/en/gtid/#using-current_pos-vs-slave_pos.
+                        enum:
+                        - CurrentPos
+                        - SlavePos
+                        type: string
+                      healthCheckInterval:
+                        description: HealthCheckInterval to be used when the replica
+                          connects to the primary.
+                        type: string
+                      mariaDbRef:
+                        description: MariaDBRef is a reference to a MariaDB object.
+                        properties:
+                          kind:
+                            description: Kind of the referent.
+                            type: string
+                          name:
+                            type: string
+                          namespace:
+                            type: string
+                          waitForIt:
+                            default: true
+                            description: WaitForIt indicates whether the controller
+                              using this reference should wait for MariaDB to be ready.
+                            type: boolean
+                        type: object
+                      serverIdOffset:
+                        description: ServerIdOffset to be used on the replicas.
+                        type: integer
+                    required:
+                    - mariaDbRef
                     type: object
                   semiSyncAckTimeout:
                     description: |-
@@ -8749,7 +8851,8 @@ spec:
                 is required to avoid split brain situations for Galera. Use ''mariadb.spec.replicasAllowEvenNumber:
                 true'' to disable this validation.'
               rule: '!has(self.galera) || !self.galera.enabled || (self.replicas %
-                2 == 1 || self.replicasAllowEvenNumber)'
+                2 == 1 || self.replicasAllowEvenNumber ) || ( has(self.replication)
+                && has(self.replication.replicaFromExternal) )'
           status:
             description: MariaDBStatus defines the observed state of MariaDB
             properties:
@@ -13443,6 +13546,10 @@ spec:
                   type: string
                 description: NodeSelector to be used in the Pod.
                 type: object
+              podIndex:
+                description: PodIndex is the StatefulSet index of pod to restore.
+                  Used to bootstrap nodes on external replication.
+                type: integer
               podMetadata:
                 description: PodMetadata defines extra metadata for the Pod.
                 properties:

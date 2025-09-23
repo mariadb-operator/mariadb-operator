@@ -3,6 +3,8 @@ package replication
 import (
 	"context"
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -152,6 +154,7 @@ func (r *ReplicationReconciler) reconcileReplication(ctx context.Context, req *R
 	if result, err := r.shouldReconcileReplication(ctx, req, logger); !result.IsZero() || err != nil {
 		return result, err
 	}
+
 	for _, i := range r.replicationPodIndexes(req) {
 		if result, err := r.ReconcileReplicationInPod(ctx, req, i, logger); !result.IsZero() || err != nil {
 			return result, err
@@ -169,12 +172,22 @@ func (r *ReplicationReconciler) reconcileReplication(ctx context.Context, req *R
 
 func (r *ReplicationReconciler) shouldReconcileReplication(ctx context.Context, req *ReconcileRequest,
 	logger logr.Logger) (ctrl.Result, error) {
-	if req.mariadb.Status.CurrentPrimaryPodIndex == nil {
+	replication := req.mariadb.Replication()
+	isExternalReplication := replication.IsExternalReplication()
+
+	if req.mariadb.Status.CurrentPrimaryPodIndex == nil && !isExternalReplication {
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
+
+	if isExternalReplication && !req.mariadb.IsExternalReplInitialized() {
+		logger.Info("external replication no initialized, trying again in 5s")
+		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+	}
+
 	if req.mariadb.IsSwitchingPrimary() {
 		return ctrl.Result{}, nil
 	}
+
 	if req.mariadb.IsMaxScaleEnabled() {
 		mxs, err := r.refResolver.MaxScale(ctx, req.mariadb.Spec.MaxScaleRef, req.mariadb.Namespace)
 		if err != nil {
@@ -235,8 +248,10 @@ func (r *ReplicationReconciler) ReconcileReplicationInPod(ctx context.Context, r
 	replRoles := replStatus.Roles
 	pod := statefulset.PodName(req.mariadb.ObjectMeta, podIndex)
 	topology := r.topologyManager.TopologyForMariaDB(req.mariadb, logger.WithValues("pod", pod))
+	replication := req.mariadb.Replication()
+	isExternalReplication := replication.IsExternalReplication()
 
-	if primaryPodIndex == podIndex {
+	if primaryPodIndex == podIndex && !isExternalReplication {
 		if shouldSkipPrimaryReconciliation(req.mariadb, replRoles, pod, logger) {
 			return ctrl.Result{}, nil
 		}
@@ -251,10 +266,35 @@ func (r *ReplicationReconciler) ReconcileReplicationInPod(ctx context.Context, r
 		}
 		return ctrl.Result{}, nil
 	}
-
 	if !opts.forceReplicaConfiguration {
 		role, ok := replRoles[pod]
 		if ok && role == mariadbv1alpha1.ReplicationRoleReplica {
+
+			// If not external or is in recovery, we can skip configuration drift checks
+			if !isExternalReplication || req.mariadb.IsRecoveringReplicas() {
+				return ctrl.Result{}, nil
+			}
+			// For external replication the master connection details live in the ExternalMariaDB
+			// resource and may change over time. Detect drift and re-point the replica without
+			// resetting the master/GTID position.
+			client, err := req.replClientSet.clientForIndex(ctx, podIndex)
+			if err != nil {
+				logger.V(1).Info("error getting replica client", "err", err, "pod", pod)
+				return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+			}
+			defer client.Close()
+			// convert topology to externalReplicationTopology to access external-replication specific methods
+			externalReplicationTopology, ok := topology.(*externalReplicationTopology)
+			if !ok {
+				logger.Error(nil, "error converting topology to externalReplicationTopology", "pod", pod)
+				return ctrl.Result{}, fmt.Errorf("error converting topology to externalReplicationTopology: %v", err)
+			}
+
+			if _, err := r.ReconcileExternalReplicaDrift(ctx, externalReplicationTopology,
+				req.mariadb, client, primaryPodIndex, logger); err != nil {
+				logger.Error(err, "error reconciling external replica drift", "pod", pod)
+				return ctrl.Result{}, fmt.Errorf("error reconciling external replica drift: %v", err)
+			}
 			return ctrl.Result{}, nil
 		}
 	}
@@ -264,12 +304,16 @@ func (r *ReplicationReconciler) ReconcileReplicationInPod(ctx context.Context, r
 		logger.V(1).Info("error getting replica client", "err", err, "pod", pod)
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
+	defer client.Close()
+	logger.Info("Configuring replica", "pod", pod)
 
 	replicaOpts, err := r.getReplicaOpts(ctx, req, pod, podIndex, logger, reconcilePodOpts...)
 	if err != nil {
+		logger.Error(err, "error getting replica opts", "error", err, "pod", pod)
 		return ctrl.Result{}, fmt.Errorf("error getting replica opts: %v", err)
 	}
 	if err := topology.ConfigureReplica(ctx, client, primaryPodIndex, replicaOpts...); err != nil {
+		logger.Error(err, "error configuring replica")
 		return ctrl.Result{}, fmt.Errorf("error configuring replica: %v", err)
 	}
 	return ctrl.Result{}, nil
@@ -336,6 +380,71 @@ func (r *ReplicationReconciler) patchStatus(ctx context.Context, mariadb *mariad
 	return r.Status().Patch(ctx, mariadb, patch)
 }
 
+// ReconcileExternalReplicaDrift re-points a replica that is already configured for external
+// replication at the current ExternalMariaDB connection details when it has drifted.
+//
+// It repairs in two cases:
+//   - The configured master host, port or user no longer matches the ExternalMariaDB endpoint.
+//   - The replica IO thread is failing with an authentication error. The configured password
+//     cannot be read back, so re-issuing CHANGE MASTER (which always re-sends the current secret
+//     value) is how a rotated replication password gets applied.
+//
+// Unlike ConfigureReplica, this performs a minimal, non-destructive repair: it does NOT reset the
+// master nor require a GTID position. It only stops the slave threads (when they are running),
+// issues CHANGE MASTER with the updated connection details (keeping MASTER_USE_GTID=current_pos)
+// and starts the slave again. It returns true when a repair was performed.
+func (r *ReplicationReconciler) ReconcileExternalReplicaDrift(ctx context.Context, topology *externalReplicationTopology,
+	mariadb *mariadbv1alpha1.MariaDB, client *sql.Client, primaryPodIndex int, logger logr.Logger) (bool, error) {
+	desiredHost, desiredPort, desiredUser, err := r.externalMasterEndpoint(ctx, mariadb)
+	if err != nil {
+		return false, fmt.Errorf("error getting external master endpoint: %v", err)
+	}
+
+	// Read SHOW REPLICA STATUS as a column map rather than via a positional scan so the check is
+	// resilient to column ordering changes across MariaDB versions.
+	status, err := client.QueryColumnMap(ctx, "SHOW REPLICA STATUS")
+	if err != nil {
+		return false, fmt.Errorf("error getting replica status: %v", err)
+	}
+	currentHost := status["Master_Host"]
+	currentPort := status["Master_Port"]
+	currentUser := status["Master_User"]
+	ioRunning := status["Slave_IO_Running"]
+	sqlRunning := status["Slave_SQL_Running"]
+
+	endpointDrift := currentHost != desiredHost ||
+		currentPort != strconv.Itoa(int(desiredPort)) ||
+		currentUser != desiredUser
+	authError := isReplicaAuthError(ioRunning, status["Last_IO_Errno"], status["Last_IO_Error"])
+
+	if !endpointDrift && !authError {
+		return false, nil
+	}
+
+	if endpointDrift {
+		logger.Info("external replica master drift detected, repairing",
+			"current-host", currentHost, "current-port", currentPort, "current-user", currentUser,
+			"desired-host", desiredHost, "desired-port", desiredPort, "desired-user", desiredUser)
+	}
+	if authError {
+		logger.Info("external replica authentication error detected, re-applying credentials",
+			"last-io-errno", status["Last_IO_Errno"], "last-io-error", status["Last_IO_Error"])
+	}
+
+	if ioRunning != "No" || sqlRunning != "No" {
+		if err := client.StopAllSlaves(ctx); err != nil {
+			return false, fmt.Errorf("error stopping slaves: %v", err)
+		}
+	}
+	if err := topology.changeMaster(ctx, client, primaryPodIndex); err != nil {
+		return false, fmt.Errorf("error changing master: %v", err)
+	}
+	if err := client.StartSlave(ctx); err != nil {
+		return false, fmt.Errorf("error starting slave: %v", err)
+	}
+	return true, nil
+}
+
 func shouldSkipPrimaryReconciliation(mariadb *mariadbv1alpha1.MariaDB, replRoles map[string]mariadbv1alpha1.ReplicationRole,
 	pod string, logger logr.Logger) bool {
 	role, ok := replRoles[pod]
@@ -347,4 +456,44 @@ func shouldSkipPrimaryReconciliation(mariadb *mariadbv1alpha1.MariaDB, replRoles
 		return role == mariadbv1alpha1.ReplicationRolePrimaryReplica
 	}
 	return role == mariadbv1alpha1.ReplicationRolePrimary
+}
+
+// isReplicaAuthError reports whether the replica IO thread is failing to authenticate against
+// the master. The password configured on the replica cannot be read back, so an access-denied
+// error is our only signal that a rotated password needs to be re-applied.
+func isReplicaAuthError(ioRunning, lastIOErrno, lastIOError string) bool {
+	if ioRunning == "Yes" {
+		return false
+	}
+	if errno, err := strconv.Atoi(lastIOErrno); err == nil {
+		if _, ok := replicaAuthErrnos[int32(errno)]; ok {
+			return true
+		}
+	}
+	return strings.Contains(strings.ToLower(lastIOError), "access denied")
+}
+
+// externalMasterEndpoint resolves the master connection details (host, port and user) that an
+// external replica should currently be replicating from, reading them from the referenced
+// ExternalMariaDB resource.
+func (r *ReplicationReconciler) externalMasterEndpoint(ctx context.Context,
+	mariadb *mariadbv1alpha1.MariaDB) (host string, port int32, user string, err error) {
+	replication := mariadb.Replication()
+	emdbRef := replication.GetExternalReplicationRef()
+	emdb, err := r.refResolver.ExternalMariaDB(ctx, &emdbRef, mariadb.Namespace)
+	if err != nil {
+		return "", 0, "", fmt.Errorf("error getting ExternalMariaDB: %v", err)
+	}
+	port = emdb.GetPort()
+	if emdb.GetBinlogProxyPort() != nil {
+		port = *emdb.GetBinlogProxyPort()
+	}
+	return emdb.GetHost(), port, emdb.GetSUName(), nil
+}
+
+// replicaAuthErrnos are the IO thread error codes MariaDB reports when the replica cannot
+// authenticate against the master, e.g. after the replication password has been rotated.
+var replicaAuthErrnos = map[int32]struct{}{
+	1045: {}, // ER_ACCESS_DENIED_ERROR
+	1698: {}, // ER_ACCESS_DENIED_NO_PASSWORD_ERROR
 }

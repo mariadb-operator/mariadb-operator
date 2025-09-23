@@ -63,6 +63,16 @@ func (p *ReplicationProbe) Liveness(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if isReplica {
+
+		k8sCtx, k8sCancel := context.WithTimeout(context.Background(), requestTimeout)
+		defer k8sCancel()
+
+		if p.getIgnoreReplicationLivenessProbes(k8sCtx) {
+			p.readinessLogger.V(1).Info("Ignoring liveness replication probe")
+			p.responseWriter.WriteOK(w, nil)
+			return
+		}
+
 		status, err := sqlClient.ReplicaStatus(sqlCtx, p.livenessLogger)
 		if err != nil {
 			p.livenessLogger.Error(err, "error getting replica status")
@@ -137,6 +147,13 @@ func (p *ReplicationProbe) Readiness(w http.ResponseWriter, r *http.Request) {
 			p.responseWriter.WriteErrorf(w, "error getting replica status: %v", err)
 			return
 		}
+
+		if p.getIgnoreMaxLagSeconds(k8sCtx) {
+			p.readinessLogger.V(1).Info("Ignoring max lag seconds check based on replica status")
+			p.responseWriter.WriteOK(w, nil)
+			return
+		}
+
 		if status.SecondsBehindMaster == nil {
 			p.readinessLogger.Error(nil, "could not determine replica lag")
 			p.responseWriter.WriteError(w, "could not determine replica lag")
@@ -184,4 +201,26 @@ func (p *ReplicationProbe) getMaxLagSeconds(ctx context.Context) int {
 	replication := ptr.Deref(mdb.Spec.Replication, mariadbv1alpha1.Replication{})
 	replica := replication.Replica
 	return ptr.Deref(replica.MaxLagSeconds, 0)
+}
+
+func (p *ReplicationProbe) getIgnoreMaxLagSeconds(ctx context.Context) bool {
+	var mdb mariadbv1alpha1.MariaDB
+	if err := p.k8sClient.Get(ctx, p.mariadbKey, &mdb); err != nil {
+		p.readinessLogger.Error(err, "error getting MariaDB. Using default ignore max lag seconds value")
+		return false
+	}
+	replication := ptr.Deref(mdb.Spec.Replication, mariadbv1alpha1.Replication{})
+	replica := replication.Replica
+	return ptr.Deref(replica.IgnoreMaxLagSeconds, false)
+}
+
+func (p *ReplicationProbe) getIgnoreReplicationLivenessProbes(ctx context.Context) bool {
+	var mdb mariadbv1alpha1.MariaDB
+	if err := p.k8sClient.Get(ctx, p.mariadbKey, &mdb); err != nil {
+		p.readinessLogger.Error(err, "error getting MariaDB. Using default behavior (Replication probe checks enabled)")
+		return false
+	}
+	replication := ptr.Deref(mdb.Spec.Replication, mariadbv1alpha1.Replication{})
+	replica := replication.Replica
+	return ptr.Deref(replica.IgnoreReplicationLivenessProbes, false)
 }

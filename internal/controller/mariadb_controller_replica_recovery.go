@@ -30,6 +30,73 @@ var recoverableIOErrorCodes = []int{
 	// Error 1236: Got fatal error from master when reading data from binary log.
 	// See: https://mariadb.com/docs/server/reference/error-codes/mariadb-error-codes-1200-to-1299/e1236
 	1236,
+	// Error 1945: Connecting slave requested to start from GTID, which is not in the master's binlog
+	// See: https://mariadb.com/docs/server/reference/error-codes/mariadb-error-codes-1900-to-1999/e1945
+	1945,
+	// Error 1947: Specified GTID conflicts with the binary log which contains a more recent GTID
+	// See: https://mariadb.com/docs/server/reference/error-codes/mariadb-error-codes-1900-to-1999/e1947
+	1947,
+	// Error 1951: The binlog on the master is missing the GTID requested by the slave
+	// https://mariadb.com/docs/server/reference/error-codes/mariadb-error-codes-1900-to-1999/e1951
+	1951,
+	// Error 1955: Connecting slave requested to start from GTID which is not in the master's binlog
+	// https://mariadb.com/docs/server/reference/error-codes/mariadb-error-codes-1900-to-1999/e1955
+	1955,
+}
+
+var recoverableSQLErrorCodes = []int{
+	// Error 1062: Duplicate entry for key.
+	// See: https://mariadb.com/docs/server/reference/error-codes/mariadb-error-codes-1000-to-1099/e1062
+	1062,
+	// Error 1032: Can't find record in
+	// See: https://mariadb.com/docs/server/reference/error-codes/mariadb-error-codes-1000-to-1099/e1032
+	1032,
+	// Error 1034: Incorrect key file for table; try to repair it
+	// See: https://mariadb.com/docs/server/reference/error-codes/mariadb-error-codes-1000-to-1099/e1034
+	1034,
+	// Error 1049: Unknown database
+	// See: https://mariadb.com/docs/server/reference/error-codes/mariadb-error-codes-1000-to-1099/e1049
+	1049,
+	// Error 1046: No database selected
+	// See: https://mariadb.com/docs/server/reference/error-codes/mariadb-error-codes-1000-to-1099/e1046
+	1146,
+}
+
+var externalUserPrivilegesSkippableSQLErrorCodes = []int{
+	// Error 1133: Can't find any matching row in the user table
+	// See: https://mariadb.com/docs/server/reference/error-codes/mariadb-error-codes-1100-to-1199/e1133
+	1133,
+	// Error 1269: Can't revoke all privileges for one or more of the requested users
+	// See: https://mariadb.com/docs/server/reference/error-codes/mariadb-error-codes-1200-to-1299/e1269
+	1269,
+	// Error 1396: Operation failed for
+	// See: https://mariadb.com/docs/server/reference/error-codes/mariadb-error-codes-1300-to-1399/e1396
+	1396,
+}
+
+// These errors will never trigger the recovery process
+var notRecoverableIOErrorCodes = []int{
+	// Error 2003: Can't connect to MariaDB server.
+	2003,
+	// Error 2013: Lost connection to the master during a query (TCP timeout or network blip).
+	2013,
+	// Error 1158: Got an error reading communication packets
+	// See: https://mariadb.com/docs/server/reference/error-codes/mariadb-error-codes-1100-to-1199/e1158
+	1158,
+	// Error 2026: TLS/SSL handshake failed (usually expired certificates)
+	2026,
+	// Error 1045: Access denied for user (using password)
+	// https://mariadb.com/docs/server/reference/error-codes/mariadb-error-codes-1000-to-1099/e1045
+	1045,
+	// Error 1130: Host is not allowed to connect to this MariaDB server
+	// https://mariadb.com/docs/server/reference/error-codes/mariadb-error-codes-1100-to-1199/e1130
+	1130,
+	// Error 1129: Host is blocked because of many connection errors
+	// https://mariadb.com/docs/server/reference/error-codes/mariadb-error-codes-1100-to-1199/e1129
+	1129,
+	// Error 1040: Too many connections
+	// https://mariadb.com/docs/server/reference/error-codes/mariadb-error-codes-1000-to-1099/e1040
+	1040,
 }
 
 func shouldReconcileReplicaRecovery(mdb *mariadbv1alpha1.MariaDB) bool {
@@ -48,31 +115,51 @@ func shouldReconcileReplicaRecovery(mdb *mariadbv1alpha1.MariaDB) bool {
 }
 
 func (r *MariaDBReconciler) reconcileReplicaRecovery(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
+
+	logger := log.FromContext(ctx).
+		WithName("replica-recovery")
+	logger.Info("ReconcileReplicaRecovery")
+
 	if !shouldReconcileReplicaRecovery(mariadb) {
+		logger.Info("Should not reconcile replica recovery")
 		return ctrl.Result{}, nil
 	}
 	if !mariadb.IsReplicaRecoveryEnabled() {
+		logger.Info("Replica recovery is not enabled")
 		if err := r.resetReplicaRecovery(ctx, mariadb); err != nil {
 			return ctrl.Result{}, err
 		}
 		return ctrl.Result{}, nil
 	}
-	logger := log.FromContext(ctx).
-		WithName("replica-recovery")
 
 	if !mariadb.IsRecoveringReplicas() || mariadb.ReplicaRecoveryError() != nil {
+		isRecovering := mariadb.IsRecoveringReplicas()
+		recoveryError := mariadb.ReplicaRecoveryError()
+		logger.Info("Is not recovering replicas or there is an error, so we can't reconcile replica recovery",
+			"isRecovering", isRecovering, "recoveryError", recoveryError)
 		if result, err := r.reconcileReplicaRecoveryError(ctx, mariadb, logger); !result.IsZero() || err != nil {
+			logger.Info("reconcile replica recovery error failed", "result", result, "err", err)
 			return result, err
 		}
 	}
+
+	replication := mariadb.Replication()
+
+	if replication.IsExternalReplication() {
+		//Check for skippable SQL Errors (user and privileges relates), and skip the error
+		replicasToSkipReplicationError := getReplicasToSkipReplicationError(mariadb, logger)
+		if _, err := r.reconcileSkippableReplicationError(ctx, replicasToSkipReplicationError, mariadb, logger); err != nil {
+			logger.Info("ExternalReplication, logical restore error", "error", err)
+			return ctrl.Result{}, err
+		}
+	}
+
 	replicasToRecover := getReplicasToRecover(mariadb, logger)
 	logger = logger.
 		WithValues("replicas", replicasToRecover)
 
+	logger.Info("Replicas to recover", "total replicas", replicasToRecover)
 	if len(replicasToRecover) == 0 {
-		if err := r.setReplicaRecoveredAndCleanup(ctx, mariadb); err != nil {
-			return ctrl.Result{}, err
-		}
 		return ctrl.Result{}, nil
 	}
 
@@ -86,8 +173,29 @@ func (r *MariaDBReconciler) reconcileReplicaRecovery(ctx context.Context, mariad
 	physicalBackupKey := mariadb.PhysicalBackupReplicaRecoveryKey()
 
 	if result, err := r.reconcileReplicaPhysicalBackup(ctx, physicalBackupKey, mariadb, logger); !result.IsZero() || err != nil {
+		if replication.IsExternalReplication() {
+
+			if err != nil && errors.Is(err, errPhysicalBackupJobLaunchTimeout) {
+				logger.Info("ExternalReplication, PhysicalBackup not able to launch jobs, trigger LogicalBackup", "error", err)
+				if result, err := r.reconcileLogicalBackup(ctx, mariadb, replication, logger); err != nil || !result.IsZero() {
+					return result, err
+				}
+				if _, err := r.reconcileLogicalBackupReplicaRecovery(ctx, replicasToRecover[0], mariadb, logger); err != nil {
+					logger.Info("ExternalReplication, logical restore error", "error", err)
+					return ctrl.Result{}, err
+				}
+
+				// Remove current physical backup as logical backup was required to avoid reaching the timeout again
+				_ = r.cleanupPhysicalBackup(ctx, mariadb.PhysicalBackupReplicaRecoveryKey())
+				logger.Info("ExternalReplication, logical restore finished - requeue in 1min")
+				return ctrl.Result{}, nil
+			}
+			logger.Info("ExternalReplication, logical restore not required")
+			return ctrl.Result{}, nil
+		}
 		return result, err
 	}
+	logger.Info("PhysicalBackup finished")
 	physicalBackup, err := r.getPhysicalBackup(ctx, physicalBackupKey, mariadb)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error getting PhysicalBackup: %v", err)
@@ -129,6 +237,7 @@ func (r *MariaDBReconciler) reconcileReplicaRecoveryError(ctx context.Context, m
 
 func (r *MariaDBReconciler) reconcileReplicasToRecover(ctx context.Context, replicas []string, mariadb *mariadbv1alpha1.MariaDB,
 	physicalBackup *mariadbv1alpha1.PhysicalBackup, snapshotKey *types.NamespacedName, logger logr.Logger) (ctrl.Result, error) {
+	logger.Info("Reconcile replicas to recover")
 	for _, replica := range replicas {
 		replicaLogger := logger.WithValues("replica", replica)
 		replicaLogger.V(1).Info("Recovering replica")
@@ -163,6 +272,11 @@ func (r *MariaDBReconciler) reconcileReplicasToRecover(ctx context.Context, repl
 			return ctrl.Result{}, fmt.Errorf("error ensuring replica %s recovered: %v", replica, err)
 		}
 	}
+	logger.Info("Replicas to recovered, cleaning up")
+	if err := r.setReplicaRecoveredAndCleanup(ctx, mariadb); err != nil {
+		return ctrl.Result{}, err
+	}
+
 	// Requeue to track replication status
 	return ctrl.Result{Requeue: true}, nil
 }
@@ -176,9 +290,14 @@ func (r *MariaDBReconciler) reconcileJobReplicaRecovery(ctx context.Context, rep
 
 	if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
 		mariadb.SetReplicaToRecover(&replica)
+		mariadb.Status.Replication.Roles[replica] = mariadbv1alpha1.ReplicationRoleUnknown
 		return nil
 	}); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error patching MariaDB status: %v", err)
+	}
+
+	if _, err := r.reconcileService(ctx, mariadb); err != nil {
+		return ctrl.Result{}, err
 	}
 
 	isPodInitializing, err := r.isPodInitializing(ctx, podKey)
@@ -201,13 +320,35 @@ func (r *MariaDBReconciler) reconcileJobReplicaRecovery(ctx context.Context, rep
 	); !result.IsZero() || err != nil {
 		return result, err
 	}
+	// Wait for pod get ready
 
 	if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
 		mariadb.SetReplicaToRecover(nil)
+		mariadb.Status.Replication.Roles[replica] = mariadbv1alpha1.ReplicationRoleReplica
 		return nil
 	}); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error patching MariaDB status: %v", err)
 	}
+	return ctrl.Result{}, nil
+}
+
+func (r *MariaDBReconciler) reconcileLogicalBackupReplicaRecovery(ctx context.Context, replica string,
+	mariadb *mariadbv1alpha1.MariaDB, logger logr.Logger) (ctrl.Result, error) {
+
+	podIndex, err := stsobj.PodIndex(replica)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error getting replica pod index: %v", err)
+	}
+
+	if _, err := r.reconcileRestoreInPod(ctx, mariadb, *podIndex, logger, true); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error reconciling restore in Pod: %v", err)
+	}
+
+	logger.Info("cleaning up the restore pod")
+	_ = r.cleanupRestoreInPod(ctx, mariadb, *podIndex, logger)
+
+	logger.Info("reconciling external logical restore finished")
+
 	return ctrl.Result{}, nil
 }
 
@@ -356,6 +497,38 @@ func (r *MariaDBReconciler) reconcileAndWaitForRecoveryJob(ctx context.Context, 
 	replication := ptr.Deref(mariadb.Spec.Replication, mariadbv1alpha1.Replication{})
 	bootstrapFrom := ptr.Deref(replication.Replica.ReplicaBootstrapFrom, mariadbv1alpha1.ReplicaBootstrapFrom{})
 
+	if replication.IsExternalReplication() {
+		emdb, err := r.RefResolver.ExternalMariaDB(ctx, &replication.ReplicaFromExternal.MariaDBRef.ObjectReference, mariadb.Namespace)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("error getting external MariaDB: %v", err)
+		}
+
+		var binlogExpireLogsDuration time.Duration
+
+		logger.Info("Getting the binlog_expire_logs_seconds on the external MariaDB")
+		if binlogExpireLogsDuration, err = getBinlogExpireLogsDuration(emdb, ctx, r.RefResolver, logger); err != nil {
+			return ctrl.Result{}, fmt.Errorf("unable to get binlog_expire_logs_seconds: %v", err)
+		}
+
+		ageThreshold := time.Now().Add(-binlogExpireLogsDuration)
+
+		return r.reconcileAndWaitForInitJob(
+			ctx,
+			mariadb,
+			mariadb.PhysicalBackupInitJobKey(*podIndex),
+			*podIndex,
+			logger,
+			builder.WithPhysicalBackup(
+				physicalBackup,
+				time.Now(),
+				bootstrapFrom.RestoreJob,
+				command.WithCleanupDataDir(true),
+			),
+			builder.WithReplicaRecovery(&pod),
+			builder.WithAgeThreshold(&ageThreshold),
+		)
+	}
+
 	return r.reconcileAndWaitForInitJob(
 		ctx,
 		mariadb,
@@ -370,6 +543,7 @@ func (r *MariaDBReconciler) reconcileAndWaitForRecoveryJob(ctx context.Context, 
 		),
 		builder.WithReplicaRecovery(&pod),
 	)
+
 }
 
 func (r *MariaDBReconciler) ensureReplicaRecovered(ctx context.Context, replica string, mariadb *mariadbv1alpha1.MariaDB,
@@ -394,6 +568,21 @@ func (r *MariaDBReconciler) ensureReplicaRecovered(ctx context.Context, replica 
 			return fmt.Errorf("error getting replica status: %v", err)
 		}
 
+		//ensure pod is on ready state
+		pod := corev1.Pod{}
+		podKey := types.NamespacedName{
+			Name:      replica,
+			Namespace: mariadb.Namespace,
+		}
+
+		if err := r.Get(ctx, podKey, &pod); err != nil {
+			return fmt.Errorf("error getting replica pod: %v", err)
+		}
+
+		if !podobj.PodReady(&pod) {
+			return errors.New("pod not ready")
+		}
+
 		if replStatus.LastIOErrno != nil && *replStatus.LastIOErrno == 0 &&
 			replStatus.LastSQLErrno != nil && *replStatus.LastSQLErrno == 0 {
 			logger.Info("Replica recovered")
@@ -415,9 +604,6 @@ func (r *MariaDBReconciler) setReplicaRecoveredAndCleanup(ctx context.Context, m
 		return fmt.Errorf("error patching MariaDB status: %v", err)
 	}
 
-	if err := r.cleanupPhysicalBackup(ctx, mariadb.PhysicalBackupReplicaRecoveryKey()); err != nil {
-		return err
-	}
 	if err := r.cleanupInitJobs(ctx, mariadb); err != nil {
 		return err
 	}
@@ -439,10 +625,32 @@ func getReplicasToRecover(mdb *mariadbv1alpha1.MariaDB, logger logr.Logger) []st
 	replication := ptr.Deref(mdb.Status.Replication, mariadbv1alpha1.ReplicationStatus{})
 	var replicas []string
 	for replica, err := range replication.Replicas {
+		logger.Info("Check if it is a recoverable error", "replica", replica)
 		if isRecoverableError(
 			mdb,
 			err,
 			recoverableIOErrorCodes,
+			recoverableSQLErrorCodes,
+			logger.WithValues("replica", replica),
+		) {
+			replicas = append(replicas, replica)
+		}
+	}
+	sort.Slice(replicas, func(i, j int) bool {
+		return replicas[i] < replicas[j]
+	})
+	return replicas
+}
+
+func getReplicasToSkipReplicationError(mdb *mariadbv1alpha1.MariaDB, logger logr.Logger) []string {
+	replication := ptr.Deref(mdb.Status.Replication, mariadbv1alpha1.ReplicationStatus{})
+	var replicas []string
+	for replica, err := range replication.Replicas {
+		logger.Info("Check if it is a skippable error", "replica", replica)
+		if isSkippableError(
+			mdb,
+			err,
+			externalUserPrivilegesSkippableSQLErrorCodes,
 			logger.WithValues("replica", replica),
 		) {
 			replicas = append(replicas, replica)
@@ -455,23 +663,42 @@ func getReplicasToRecover(mdb *mariadbv1alpha1.MariaDB, logger logr.Logger) []st
 }
 
 func isRecoverableError(mdb *mariadbv1alpha1.MariaDB, status mariadbv1alpha1.ReplicaStatus,
-	recoverableIOErrorCodes []int, logger logr.Logger) bool {
+	recoverableIOErrorCodes []int, recoverableSQLErrorCodes []int, logger logr.Logger) bool {
 	for _, code := range recoverableIOErrorCodes {
 		if status.LastIOErrno != nil && *status.LastIOErrno == code {
 			logger.V(1).Info("Recoverable IO error code detected", "io-errno", *status.LastIOErrno)
+			logger.Info("Recoverable IO error code detected", "io-errno", *status.LastIOErrno)
 			return true
 		}
 	}
+	for _, code := range recoverableSQLErrorCodes {
+		if status.LastSQLErrno != nil && *status.LastSQLErrno == code {
+			logger.V(1).Info("Recoverable SQL error code detected", "sql-errno", *status.LastSQLErrno)
+			logger.Info("Recoverable SQL error code detected", "sql-errno", *status.LastSQLErrno)
+			return true
+		}
+	}
+
+	for _, code := range notRecoverableIOErrorCodes {
+		if status.LastIOErrno != nil && *status.LastIOErrno == code {
+			logger.V(1).Info("Not recoverable IO error code detected", "io-errno", *status.LastIOErrno)
+			logger.Info("Not recoverable IO error code detected", "io-errno", *status.LastIOErrno)
+			return false
+		}
+	}
+
 	lastIOErrno := ptr.Deref(status.LastIOErrno, 0)
 	lastSQLErrno := ptr.Deref(status.LastSQLErrno, 0)
 
 	if (lastIOErrno != 0 || lastSQLErrno != 0) && !status.LastErrorTransitionTime.IsZero() {
+		logger.Info("Non recoverable error", "lastIOErrno", lastIOErrno,
+			"lastSQLErrno", lastSQLErrno, "LastErrorTransitionTime", status.LastErrorTransitionTime)
 		replication := ptr.Deref(mdb.Spec.Replication, mariadbv1alpha1.Replication{})
 		recovery := ptr.Deref(replication.Replica.ReplicaRecovery, mariadbv1alpha1.ReplicaRecovery{})
 		errThreshold := ptr.Deref(recovery.ErrorDurationThreshold, metav1.Duration{Duration: 5 * time.Minute})
 		age := time.Since(status.LastErrorTransitionTime.Time)
 
-		logger.V(1).Info(
+		logger.Info(
 			"Current error",
 			"io-errno", lastIOErrno,
 			"sql-errno", lastSQLErrno,
@@ -479,7 +706,7 @@ func isRecoverableError(mdb *mariadbv1alpha1.MariaDB, status mariadbv1alpha1.Rep
 			"threshold", errThreshold.Duration,
 		)
 		if age > errThreshold.Duration {
-			logger.V(1).Info(
+			logger.Info(
 				"Error surpassed threshold",
 				"io-errno", lastIOErrno,
 				"sql-errno", lastSQLErrno,
@@ -490,4 +717,46 @@ func isRecoverableError(mdb *mariadbv1alpha1.MariaDB, status mariadbv1alpha1.Rep
 		}
 	}
 	return false
+}
+
+func isSkippableError(mdb *mariadbv1alpha1.MariaDB, status mariadbv1alpha1.ReplicaStatus,
+	externalUserPrivilegesSkippableSQLErrorCodes []int, logger logr.Logger) bool {
+	for _, code := range externalUserPrivilegesSkippableSQLErrorCodes {
+		if status.LastSQLErrno != nil && *status.LastSQLErrno == code {
+			logger.V(1).Info("Skippable SQL error code detected", "sql-errno", *status.LastSQLErrno)
+			return true
+		}
+	}
+	return false
+}
+
+func (r *MariaDBReconciler) reconcileSkippableReplicationError(ctx context.Context, replicasToSkip []string,
+	mdb *mariadbv1alpha1.MariaDB, logger logr.Logger) (ctrl.Result, error) {
+
+	for _, replica := range replicasToSkip {
+		logger.V(1).Info("Skip SQL Replica Error on pod", "pod", replica)
+		podIndex, err := stsobj.PodIndex(replica)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("error getting replica pod index: %v", err)
+		}
+		client, err := sql.NewInternalClientWithPodIndex(ctx, mdb, r.RefResolver, *podIndex)
+		if err != nil {
+			logger.V(1).Info("error getting replica client", "err", err, "pod", *podIndex)
+			return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+		}
+		defer client.Close()
+
+		if err := client.StopSlave(ctx); err != nil {
+			return ctrl.Result{}, fmt.Errorf("error stopping slave: %v", err)
+		}
+
+		if err := client.SetSqlSlaveSkipCounter(ctx, 1); err != nil {
+			return ctrl.Result{}, fmt.Errorf("error setting skip counter: %v", err)
+		}
+
+		if err := client.StartSlave(ctx); err != nil {
+			return ctrl.Result{}, fmt.Errorf("error starting slave: %v", err)
+		}
+	}
+	return ctrl.Result{}, nil
 }

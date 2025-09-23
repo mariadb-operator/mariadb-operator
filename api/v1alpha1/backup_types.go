@@ -51,9 +51,16 @@ type BackupSpec struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	MaxRetention metav1.Duration `json:"maxRetention,omitempty" webhook:"inmutableinit"`
 	// Databases defines the logical databases to be backed up. If not provided, all databases are backed up.
+	// Mutually exclusive with Tables.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Databases []string `json:"databases,omitempty"`
+	// Tables defines specific tables to be backed up, in "database.table" format. Entries may span
+	// multiple databases; when they do, --ignore-table flags are built at runtime by querying
+	// information_schema so that the dump remains a single consistent transaction. Mutually exclusive with Databases.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Tables []string `json:"tables,omitempty"`
 	// IgnoreGlobalPriv indicates to ignore the mysql.global_priv in backups.
 	// If not provided, it will default to true when the referred MariaDB instance has Galera enabled and otherwise to false.
 	// See: https://github.com/mariadb-operator/mariadb-operator/issues/556
@@ -117,6 +124,11 @@ type Backup struct {
 
 func (b *Backup) IsComplete() bool {
 	return meta.IsStatusConditionTrue(b.Status.Conditions, ConditionTypeComplete)
+}
+
+func (b *Backup) IsFailed() bool {
+	condition := meta.FindStatusCondition(b.Status.Conditions, ConditionTypeComplete)
+	return condition != nil && condition.Status == metav1.ConditionTrue && condition.Reason == ConditionReasonJobFailed
 }
 
 func (b *Backup) Validate() error {
