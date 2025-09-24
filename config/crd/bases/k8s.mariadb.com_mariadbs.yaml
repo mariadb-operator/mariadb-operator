@@ -6417,11 +6417,13 @@ spec:
                 description: Replicas indicates the number of current instances.
                 format: int32
                 type: integer
-              replicationStatus:
+              replication:
                 additionalProperties:
+                  description: ReplicationState represents the observed replication
+                    states.
                   type: string
-                description: ReplicationStatus is the replication current state for
-                  each Pod.
+                description: Replication is the replication current status per each
+                  Pod.
                 type: object
               tls:
                 description: TLS aggregates the status of the certificates used by

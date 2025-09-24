@@ -301,12 +301,12 @@ func (m *MariaDB) GetAutomaticFailoverDelay() time.Duration {
 
 // HasConfiguredReplica indicates whether the cluster has a configured replica.
 func (m *MariaDB) HasConfiguredReplica() bool {
-	return m.Status.ReplicationStatus.HasConfiguredReplica()
+	return m.Status.Replication.HasConfiguredReplica()
 }
 
 // IsConfiguredReplica indicates whether the given pod is a configured replica.
 func (m *MariaDB) IsConfiguredReplica(podName string) bool {
-	return m.Status.ReplicationStatus.IsConfiguredReplica(podName)
+	return m.Status.Replication.IsConfiguredReplica(podName)
 }
 
 // IsSwitchingPrimary indicates whether a primary swichover operation is in progress.
@@ -324,28 +324,32 @@ func (m *MariaDB) IsSwitchoverRequired() bool {
 	return currentPodIndex != desiredPodIndex
 }
 
+// ReplicationState represents the observed replication states.
 type ReplicationState string
 
 const (
-	ReplicationStateMaster        ReplicationState = "Master"
-	ReplicationStateSlave         ReplicationState = "Slave"
+	ReplicationStatePrimary       ReplicationState = "Primary"
+	ReplicationStateReplica       ReplicationState = "Replica"
 	ReplicationStateNotConfigured ReplicationState = "NotConfigured"
 )
 
+// ReplicationStatus is the replication current status per each Pod.
 type ReplicationStatus map[string]ReplicationState
 
+// HasConfiguredReplica determines whether at least one replica has been configured.
 func (r ReplicationStatus) HasConfiguredReplica() bool {
 	for _, state := range r {
-		if state == ReplicationStateSlave {
+		if state == ReplicationStateReplica {
 			return true
 		}
 	}
 	return false
 }
 
+// HasConfiguredReplica determines whether if a specific replica has been configured.
 func (r ReplicationStatus) IsConfiguredReplica(podName string) bool {
 	for pod, state := range r {
-		if pod == podName && state == ReplicationStateSlave {
+		if pod == podName && state == ReplicationStateReplica {
 			return true
 		}
 	}

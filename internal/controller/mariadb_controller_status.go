@@ -58,7 +58,7 @@ func (r *MariaDBReconciler) reconcileStatus(ctx context.Context, mdb *mariadbv1a
 		setMaxScalePrimary(mdb, mxsPrimaryPodIndex)
 
 		if replicationStatus != nil {
-			status.ReplicationStatus = replicationStatus
+			status.Replication = replicationStatus
 		}
 
 		if tlsStatus != nil {
@@ -106,9 +106,9 @@ func (r *MariaDBReconciler) getReplicationStatus(ctx context.Context,
 
 		var aggErr *multierror.Error
 
-		isSlave, err := client.IsReplicationReplica(ctx)
+		isReplica, err := client.IsReplicationReplica(ctx)
 		aggErr = multierror.Append(aggErr, err)
-		isMaster, err := client.IsReplicationPrimary(ctx)
+		isPrimary, err := client.IsReplicationPrimary(ctx)
 		aggErr = multierror.Append(aggErr, err)
 
 		if err := aggErr.ErrorOrNil(); err != nil {
@@ -117,10 +117,10 @@ func (r *MariaDBReconciler) getReplicationStatus(ctx context.Context,
 		}
 
 		state := mariadbv1alpha1.ReplicationStateNotConfigured
-		if isSlave {
-			state = mariadbv1alpha1.ReplicationStateSlave
-		} else if isMaster {
-			state = mariadbv1alpha1.ReplicationStateMaster
+		if isReplica {
+			state = mariadbv1alpha1.ReplicationStateReplica
+		} else if isPrimary {
+			state = mariadbv1alpha1.ReplicationStatePrimary
 		}
 		replicationStatus[pod] = state
 	}
