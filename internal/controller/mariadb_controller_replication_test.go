@@ -53,8 +53,8 @@ var _ = Describe("MariaDB replication", Ordered, func() {
 				Replication: &mariadbv1alpha1.Replication{
 					ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
 						Primary: &mariadbv1alpha1.PrimaryReplication{
-							PodIndex:          func() *int { i := 0; return &i }(),
-							AutomaticFailover: func() *bool { f := true; return &f }(),
+							PodIndex:          ptr.To(0),
+							AutomaticFailover: ptr.To(true),
 						},
 						Replica: &mariadbv1alpha1.ReplicaReplication{
 							WaitPoint: ptr.To(mariadbv1alpha1.WaitPointAfterCommit),
@@ -67,7 +67,7 @@ var _ = Describe("MariaDB replication", Ordered, func() {
 				Replicas: 3,
 				Storage: mariadbv1alpha1.Storage{
 					Size:                ptr.To(resource.MustParse("300Mi")),
-					StorageClassName:    "standard-resize",
+					StorageClassName:    "csi-hostpath-sc",
 					ResizeInUseVolumes:  ptr.To(true),
 					WaitForVolumeResize: ptr.To(true),
 				},
@@ -216,8 +216,6 @@ var _ = Describe("MariaDB replication", Ordered, func() {
 	})
 
 	It("should fail and switch over primary", func() {
-		Skip("TODO: re-evaluate this test when productionizing replication. See https://github.com/mariadb-operator/mariadb-operator/issues/738")
-
 		By("Expecting MariaDB primary to be set")
 		Eventually(func() bool {
 			return mdb.Status.CurrentPrimary != nil
@@ -289,6 +287,14 @@ var _ = Describe("MariaDB replication", Ordered, func() {
 			return true
 		}, testTimeout, testInterval).Should(BeTrue())
 
+		By("Expecting MariaDB to be ready eventually")
+		Eventually(func() bool {
+			if err := k8sClient.Get(testCtx, key, mdb); err != nil {
+				return false
+			}
+			return mdb.IsReady()
+		}, testHighTimeout, testInterval).Should(BeTrue())
+
 		By("Expecting MariaDB to eventually change primary")
 		Eventually(func() bool {
 			if err := k8sClient.Get(testCtx, key, mdb); err != nil {
@@ -321,8 +327,6 @@ var _ = Describe("MariaDB replication", Ordered, func() {
 	})
 
 	It("should reconcile with MaxScale", Label("basic"), func() {
-		Skip("TODO: re-evaluate this test when productionizing replication. See https://github.com/mariadb-operator/mariadb-operator/issues/738")
-
 		mxs := &mariadbv1alpha1.MaxScale{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "maxscale-repl",
