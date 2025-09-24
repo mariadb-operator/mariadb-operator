@@ -314,6 +314,22 @@ func (m *MariaDB) MariadbSysGrantKey() types.NamespacedName {
 	}
 }
 
+// MariadbReplUserKey defines the key for the 'repl' User resource.
+func (m *MariaDB) MariadbReplUserKey() types.NamespacedName {
+	return types.NamespacedName{
+		Name:      fmt.Sprintf("%s-mariadb-repl", m.Name),
+		Namespace: m.Namespace,
+	}
+}
+
+// MariadbReplGrantKey defines the key for the 'repl' Grant resource.
+func (m *MariaDB) MariadbReplGrantKey() types.NamespacedName {
+	return types.NamespacedName{
+		Name:      fmt.Sprintf("%s-mariadb-repl-replication", m.Name),
+		Namespace: m.Namespace,
+	}
+}
+
 // MariadbDatabaseKey defines the key for the initial database
 func (m *MariaDB) MariadbDatabaseKey() types.NamespacedName {
 	return types.NamespacedName{
