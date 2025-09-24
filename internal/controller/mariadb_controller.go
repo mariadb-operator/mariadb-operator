@@ -58,6 +58,8 @@ import (
 
 var (
 	ErrSkipReconciliationPhase = errors.New("skipping reconciliation phase")
+	sysUser                    = "mariadb.sys"
+	sysUserHost                = "localhost"
 )
 
 // MariaDBReconciler reconciles a MariaDB object
@@ -787,8 +789,8 @@ func (r *MariaDBReconciler) reconcileUsers(ctx context.Context, mariadb *mariadb
 		},
 		Metadata:             mariadb.Spec.InheritMetadata,
 		MaxUserConnections:   20,
-		Name:                 "mariadb.sys",
-		Host:                 "localhost",
+		Name:                 sysUser,
+		Host:                 sysUserHost,
 		PasswordSecretKeyRef: nil,
 		CleanupPolicy:        ptr.To(mariadbv1alpha1.CleanupPolicySkip),
 	}
@@ -809,25 +811,25 @@ func (r *MariaDBReconciler) reconcileUsers(ctx context.Context, mariadb *mariadb
 			},
 			Database:      "mysql",
 			Table:         "global_priv",
-			Username:      "mariadb.sys",
-			Host:          "localhost",
+			Username:      sysUser,
+			Host:          sysUserHost,
 			CleanupPolicy: ptr.To(mariadbv1alpha1.CleanupPolicySkip),
 		},
 	}
 
 	if result, err := r.AuthReconciler.ReconcileUserGrant(ctx, sysUserKey, mariadb, userOpts, grantOpts); !result.IsZero() || err != nil {
 		if err != nil {
-			return ctrl.Result{}, fmt.Errorf("error reconciling mariadb.sys user auth: %v", err)
+			return ctrl.Result{}, fmt.Errorf("error reconciling %s user auth: %v", sysUser, err)
 		}
 		return result, err
 	}
 
 	var sysGrant mariadbv1alpha1.Grant
 	if err := r.Get(ctx, sysGrantKey, &sysGrant); err != nil {
-		return ctrl.Result{}, fmt.Errorf("error getting mariadb.sys Grant: %v", err)
+		return ctrl.Result{}, fmt.Errorf("error getting %s Grant: %v", sysUser, err)
 	}
 	if !sysGrant.IsReady() {
-		log.FromContext(ctx).V(1).Info("mariadb.sys Grant not ready. Requeuing...")
+		log.FromContext(ctx).V(1).Info("Grant not ready. Requeuing...", "user", sysUser)
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
 
