@@ -65,9 +65,13 @@ func (b *Builder) mariadbContainers(mariadb *mariadbv1alpha1.MariaDB, opts ...ma
 	if err != nil {
 		return nil, err
 	}
+	env, err := mariadbEnv(mariadb)
+	if err != nil {
+		return nil, err
+	}
 
 	mariadbContainer.Name = MariadbContainerName
-	mariadbContainer.Env = mariadbEnv(mariadb)
+	mariadbContainer.Env = env
 	mariadbContainer.VolumeMounts = mariadbVolumeMounts(mariadb, opts...)
 
 	if mariadbOpts.includePorts {
@@ -100,7 +104,10 @@ func (b *Builder) mariadbContainers(mariadb *mariadbv1alpha1.MariaDB, opts ...ma
 	}
 	if mariadb.Spec.SidecarContainers != nil {
 		for index, container := range mariadb.Spec.SidecarContainers {
-			sidecarContainer := b.buildContainer(mariadb, &container)
+			sidecarContainer, err := b.buildContainer(mariadb, &container)
+			if err != nil {
+				return nil, err
+			}
 			if sidecarContainer.Name == "" {
 				sidecarContainer.Name = fmt.Sprintf("sidecar-%d", index)
 			}
@@ -162,6 +169,10 @@ func (b *Builder) galeraAgentContainer(mariadb *mariadbv1alpha1.MariaDB) (*corev
 	if err != nil {
 		return nil, err
 	}
+	env, err := mariadbEnv(mariadb)
+	if err != nil {
+		return nil, err
+	}
 
 	container.Name = AgentContainerName
 	container.Ports = []corev1.ContainerPort{
@@ -207,7 +218,7 @@ func (b *Builder) galeraAgentContainer(mariadb *mariadbv1alpha1.MariaDB) (*corev
 		args = append(args, container.Args...)
 		return args
 	}()
-	container.Env = mariadbEnv(mariadb)
+	container.Env = env
 	container.VolumeMounts = mariadbVolumeMounts(mariadb)
 	container.LivenessProbe = func() *corev1.Probe {
 		if container.LivenessProbe != nil {
@@ -229,7 +240,10 @@ func (b *Builder) mariadbInitContainers(mariadb *mariadbv1alpha1.MariaDB, opts .
 	initContainers := []corev1.Container{}
 	if mariadb.Spec.InitContainers != nil {
 		for index, container := range mariadb.Spec.InitContainers {
-			initContainer := b.buildContainer(mariadb, &container)
+			initContainer, err := b.buildContainer(mariadb, &container)
+			if err != nil {
+				return nil, err
+			}
 			if initContainer.Name == "" {
 				initContainer.Name = fmt.Sprintf("init-%d", index)
 			}
@@ -237,11 +251,18 @@ func (b *Builder) mariadbInitContainers(mariadb *mariadbv1alpha1.MariaDB, opts .
 		}
 	}
 	if mariadb.IsGaleraEnabled() && mariadbOpts.includeGaleraContainers {
-		initContainer, err := b.galeraInitContainer(mariadb)
+		galeraInitContainer, err := b.galeraInitContainer(mariadb)
 		if err != nil {
 			return nil, err
 		}
-		initContainers = append(initContainers, *initContainer)
+		initContainers = append(initContainers, *galeraInitContainer)
+	}
+	if mariadb.Replication().Enabled && mariadbOpts.includeReplicationContainers {
+		replicationInitContainer, err := b.replicationInitContainer(mariadb)
+		if err != nil {
+			return nil, err
+		}
+		initContainers = append(initContainers, *replicationInitContainer)
 	}
 	return initContainers, nil
 }
@@ -256,18 +277,55 @@ func (b *Builder) galeraInitContainer(mariadb *mariadbv1alpha1.MariaDB) (*corev1
 	if err != nil {
 		return nil, err
 	}
+	env, err := mariadbEnv(mariadb)
+	if err != nil {
+		return nil, err
+	}
 
 	container.Name = InitContainerName
 	container.Args = func() []string {
 		args := container.Args
 		args = append(args, []string{
 			"init",
+			"galera",
 			fmt.Sprintf("--config-dir=%s", galeraresources.GaleraConfigMountPath),
 			fmt.Sprintf("--state-dir=%s", MariadbStorageMountPath),
 		}...)
 		return args
 	}()
-	container.Env = mariadbEnv(mariadb)
+	container.Env = env
+	container.VolumeMounts = mariadbVolumeMounts(mariadb)
+
+	return container, nil
+}
+
+func (b *Builder) replicationInitContainer(mariadb *mariadbv1alpha1.MariaDB) (*corev1.Container, error) {
+	replication := mariadb.Replication()
+	if !replication.Enabled {
+		return nil, errors.New("replication is not enabled")
+	}
+	init := replication.InitContainer
+	container, err := b.buildContainerWithTemplate(init.Image, init.ImagePullPolicy, &init.ContainerTemplate)
+	if err != nil {
+		return nil, err
+	}
+	env, err := mariadbEnv(mariadb)
+	if err != nil {
+		return nil, err
+	}
+
+	container.Name = InitContainerName
+	container.Args = func() []string {
+		args := container.Args
+		args = append(args, []string{
+			"init",
+			"replication",
+			fmt.Sprintf("--config-dir=%s", MariadbConfigMountPath),
+			fmt.Sprintf("--state-dir=%s", MariadbStorageMountPath),
+		}...)
+		return args
+	}()
+	container.Env = env
 	container.VolumeMounts = mariadbVolumeMounts(mariadb)
 
 	return container, nil
@@ -300,8 +358,11 @@ func (b *Builder) buildContainerWithTemplate(image string, pullPolicy corev1.Pul
 	return &container, nil
 }
 
-func (b *Builder) buildContainer(mdb *mariadbv1alpha1.MariaDB, mdbContainer *mariadbv1alpha1.Container) *corev1.Container {
-	env := mariadbEnv(mdb)
+func (b *Builder) buildContainer(mdb *mariadbv1alpha1.MariaDB, mdbContainer *mariadbv1alpha1.Container) (*corev1.Container, error) {
+	env, err := mariadbEnv(mdb)
+	if err != nil {
+		return nil, err
+	}
 	if mdbContainer.Env != nil {
 		env = append(env, kadapter.ToKubernetesSlice(mdbContainer.Env)...)
 	}
@@ -323,7 +384,7 @@ func (b *Builder) buildContainer(mdb *mariadbv1alpha1.MariaDB, mdbContainer *mar
 	if mdbContainer.Resources != nil {
 		container.Resources = mdbContainer.Resources.ToKubernetesType()
 	}
-	return &container
+	return &container, nil
 }
 
 func mariadbArgs(mariadb *mariadbv1alpha1.MariaDB) []string {
@@ -334,7 +395,7 @@ func mariadbArgs(mariadb *mariadbv1alpha1.MariaDB) []string {
 	return mariadbArgs
 }
 
-func mariadbEnv(mariadb *mariadbv1alpha1.MariaDB) []corev1.EnvVar {
+func mariadbEnv(mariadb *mariadbv1alpha1.MariaDB) ([]corev1.EnvVar, error) {
 	clusterName := os.Getenv("CLUSTER_NAME")
 	if clusterName == "" {
 		clusterName = "cluster.local"
@@ -426,6 +487,41 @@ func mariadbEnv(mariadb *mariadbv1alpha1.MariaDB) []corev1.EnvVar {
 		}
 	}
 
+	if mariadb.Replication().Enabled {
+		env = append(env, []corev1.EnvVar{
+			{
+				Name:  "MARIADB_REPL_ENABLED",
+				Value: "true",
+			},
+		}...)
+
+		replication := mariadb.Replication()
+		replica := ptr.Deref(replication.Replica, mariadbv1alpha1.ReplicaReplication{})
+
+		if replica.ConnectionTimeout != nil {
+			env = append(env, corev1.EnvVar{
+				Name:  "MARIADB_REPL_MASTER_TIMEOUT",
+				Value: fmt.Sprint(replica.ConnectionTimeout.Milliseconds()),
+			})
+		}
+		if replica.WaitPoint != nil {
+			waitPoint, err := replica.WaitPoint.MariaDBFormat()
+			if err != nil {
+				return nil, fmt.Errorf("error getting replication wait point: %v", err)
+			}
+			env = append(env, corev1.EnvVar{
+				Name:  "MARIADB_REPL_MASTER_WAIT_POINT",
+				Value: waitPoint,
+			})
+		}
+		if replication.SyncBinlog != nil {
+			env = append(env, corev1.EnvVar{
+				Name:  "MARIADB_REPL_MASTER_SYNC_BINLOG",
+				Value: fmt.Sprintf("%d", *replication.SyncBinlog),
+			})
+		}
+	}
+
 	if mariadb.IsRootPasswordEmpty() {
 		env = append(env, corev1.EnvVar{
 			Name:  "MARIADB_ALLOW_EMPTY_ROOT_PASSWORD",
@@ -461,7 +557,7 @@ func mariadbEnv(mariadb *mariadbv1alpha1.MariaDB) []corev1.EnvVar {
 		}
 	}
 
-	return env
+	return env, nil
 }
 
 func mariadbStorageVolumeMount(mariadb *mariadbv1alpha1.MariaDB) corev1.VolumeMount {
@@ -483,7 +579,7 @@ func mariadbVolumeMounts(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt
 	volumeMounts := []corev1.VolumeMount{
 		{
 			Name:      ConfigVolume,
-			MountPath: MariadbConfigMountPath,
+			MountPath: ConfigMountPath,
 		},
 	}
 
@@ -494,11 +590,17 @@ func mariadbVolumeMounts(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt
 
 	volumeMounts = append(volumeMounts, mariadbStorageVolumeMount(mariadb))
 
-	if mariadb.Replication().Enabled && ptr.Deref(mariadb.Replication().ProbesEnabled, false) {
+	if mariadb.Replication().Enabled {
 		volumeMounts = append(volumeMounts, corev1.VolumeMount{
-			Name:      ProbesVolume,
-			MountPath: ProbesMountPath,
+			Name:      MariadbConfigVolume,
+			MountPath: MariadbConfigMountPath,
 		})
+		if ptr.Deref(mariadb.Replication().ProbesEnabled, false) {
+			volumeMounts = append(volumeMounts, corev1.VolumeMount{
+				Name:      ProbesVolume,
+				MountPath: ProbesMountPath,
+			})
+		}
 	}
 	if mariadb.IsGaleraEnabled() && mariadbOpts.includeServiceAccount {
 		volumeMounts = append(volumeMounts, corev1.VolumeMount{
