@@ -2239,8 +2239,8 @@ func (in *MariaDBStatus) DeepCopyInto(out *MariaDBStatus) {
 		*out = new(GaleraRecoveryStatus)
 		(*in).DeepCopyInto(*out)
 	}
-	if in.ReplicationStatus != nil {
-		in, out := &in.ReplicationStatus, &out.ReplicationStatus
+	if in.Replication != nil {
+		in, out := &in.Replication, &out.Replication
 		*out = make(ReplicationStatus, len(*in))
 		for key, val := range *in {
 			(*out)[key] = val

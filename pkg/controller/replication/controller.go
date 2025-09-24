@@ -184,11 +184,11 @@ func (r *ReplicationReconciler) replicationPodIndexes(ctx context.Context, req *
 func (r *ReplicationReconciler) reconcileReplicationInPod(ctx context.Context, req *reconcileRequest, logger logr.Logger,
 	index int) (ctrl.Result, error) {
 	primaryPodIndex := *req.mariadb.Status.CurrentPrimaryPodIndex
-	replicationStatus := req.mariadb.Status.ReplicationStatus
+	replicationStatus := req.mariadb.Status.Replication
 	pod := statefulset.PodName(req.mariadb.ObjectMeta, index)
 
 	if primaryPodIndex == index {
-		if rs, ok := replicationStatus[pod]; ok && rs == mariadbv1alpha1.ReplicationStateMaster {
+		if rs, ok := replicationStatus[pod]; ok && rs == mariadbv1alpha1.ReplicationStatePrimary {
 			return ctrl.Result{}, nil
 		}
 
@@ -201,7 +201,7 @@ func (r *ReplicationReconciler) reconcileReplicationInPod(ctx context.Context, r
 		return ctrl.Result{}, r.replConfig.ConfigurePrimary(ctx, req.mariadb, client, index)
 	}
 
-	if rs, ok := replicationStatus[pod]; ok && rs == mariadbv1alpha1.ReplicationStateSlave {
+	if rs, ok := replicationStatus[pod]; ok && rs == mariadbv1alpha1.ReplicationStateReplica {
 		return ctrl.Result{}, nil
 	}
 
