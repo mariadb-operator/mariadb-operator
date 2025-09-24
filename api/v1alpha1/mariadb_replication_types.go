@@ -94,9 +94,9 @@ type PrimaryReplication struct {
 	AutomaticFailoverDelay *metav1.Duration `json:"automaticFailoverDelay,omitempty"`
 }
 
-// FillWithDefaults fills the current PrimaryReplication object with DefaultReplicationSpec.
+// SetDefaults fills the current PrimaryReplication object with DefaultReplicationSpec.
 // This enables having minimal PrimaryReplication objects and provides sensible defaults.
-func (r *PrimaryReplication) FillWithDefaults() {
+func (r *PrimaryReplication) SetDefaults() {
 	if r.PodIndex == nil {
 		index := *DefaultReplicationSpec.Primary.PodIndex
 		r.PodIndex = &index
@@ -144,9 +144,9 @@ type ReplicaReplication struct {
 	SyncTimeout *metav1.Duration `json:"syncTimeout,omitempty"`
 }
 
-// FillWithDefaults fills the current ReplicaReplication object with DefaultReplicationSpec.
+// SetDefaults fills the current ReplicaReplication object with DefaultReplicationSpec.
 // This enables having minimal ReplicaReplication objects and provides sensible defaults.
-func (r *ReplicaReplication) FillWithDefaults() {
+func (r *ReplicaReplication) SetDefaults() {
 	if r.WaitPoint == nil {
 		waitPoint := *DefaultReplicationSpec.Replica.WaitPoint
 		r.WaitPoint = &waitPoint
@@ -217,20 +217,20 @@ type ReplicationSpec struct {
 	ProbesEnabled *bool `json:"probesEnabled,omitempty"`
 }
 
-// FillWithDefaults fills the current ReplicationSpec object with DefaultReplicationSpec.
-// This enables having minimal ReplicationSpec objects and provides sensible defaults.
-func (r *ReplicationSpec) FillWithDefaults() {
+// SetDefaults fills the current Replication object with DefaultReplicationSpec.
+// This enables having minimal Replication objects and provides sensible defaults.
+func (r *Replication) SetDefaults() error {
 	if r.Primary == nil {
 		primary := *DefaultReplicationSpec.Primary
 		r.Primary = &primary
 	} else {
-		r.Primary.FillWithDefaults()
+		r.Primary.SetDefaults()
 	}
 	if r.Replica == nil {
 		replica := *DefaultReplicationSpec.Replica
 		r.Replica = &replica
 	} else {
-		r.Replica.FillWithDefaults()
+		r.Replica.SetDefaults()
 	}
 	if r.SyncBinlog == nil {
 		syncBinlog := *DefaultReplicationSpec.SyncBinlog
@@ -240,6 +240,8 @@ func (r *ReplicationSpec) FillWithDefaults() {
 		probesEnabled := *DefaultReplicationSpec.ProbesEnabled
 		r.ProbesEnabled = &probesEnabled
 	}
+
+	return nil
 }
 
 var (
