@@ -1466,7 +1466,11 @@ func TestMariadbEnv(t *testing.T) {
 			if tt.setClusterName {
 				t.Setenv("CLUSTER_NAME", "example.com")
 			}
-			env := mariadbEnv(tt.mariadb)
+			env, err := mariadbEnv(tt.mariadb)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
 			sortedWantEnv := sortEnvVars(tt.wantEnv)
 			sortedEnv := sortEnvVars(env)
 

@@ -2,8 +2,11 @@ package v1alpha1
 
 import (
 	"fmt"
+	"reflect"
 	"time"
 
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/docker"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/environment"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
@@ -195,6 +198,26 @@ type Replication struct {
 	Enabled bool `json:"enabled,omitempty"`
 }
 
+// SetDefaults sets reasonable defaults.
+func (r *Replication) SetDefaults(mdb *MariaDB, env *environment.OperatorEnv) error {
+	if reflect.ValueOf(r.InitContainer).IsZero() {
+		r.InitContainer = InitContainer{
+			Image: env.MariadbOperatorImage,
+		}
+	}
+
+	autoUpdateDataPlane := ptr.Deref(mdb.Spec.UpdateStrategy.AutoUpdateDataPlane, false)
+	if autoUpdateDataPlane {
+		initBumped, err := docker.SetTagOrDigest(env.MariadbOperatorImage, r.InitContainer.Image)
+		if err != nil {
+			return fmt.Errorf("error bumping replication init image: %v", err)
+		}
+		r.InitContainer.Image = initBumped
+	}
+
+	return nil
+}
+
 // ReplicationSpec is the Replication desired state specification.
 type ReplicationSpec struct {
 	// Primary is the replication configuration for the primary node.
@@ -215,6 +238,10 @@ type ReplicationSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch","urn:alm:descriptor:com.tectonic.ui:advanced"}
 	ProbesEnabled *bool `json:"probesEnabled,omitempty"`
+	// InitContainer is an init container that runs in the MariaDB Pod and co-operates with mariadb-operator.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	InitContainer InitContainer `json:"initContainer,omitempty"`
 }
 
 // FillWithDefaults fills the current ReplicationSpec object with DefaultReplicationSpec.

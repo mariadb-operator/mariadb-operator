@@ -31,6 +31,7 @@ type mariadbPodOpts struct {
 	includeMariadbSelectorLabels bool
 	includeGaleraContainers      bool
 	includeGaleraConfig          bool
+	includeReplicationContainers bool
 	includeServiceAccount        bool
 	includePorts                 bool
 	includeProbes                bool
@@ -44,6 +45,7 @@ func newMariadbPodOpts(userOpts ...mariadbPodOpt) *mariadbPodOpts {
 		includeMariadbSelectorLabels: true,
 		includeGaleraContainers:      true,
 		includeGaleraConfig:          true,
+		includeReplicationContainers: true,
 		includeServiceAccount:        true,
 		includePorts:                 true,
 		includeProbes:                true,
@@ -139,6 +141,12 @@ func withGaleraContainers(includeGaleraContainers bool) mariadbPodOpt {
 func withGaleraConfig(includeGaleraConfig bool) mariadbPodOpt {
 	return func(opts *mariadbPodOpts) {
 		opts.includeGaleraConfig = includeGaleraConfig
+	}
+}
+
+func withReplicationContainers(includeReplicationContainers bool) mariadbPodOpt {
+	return func(opts *mariadbPodOpts) {
+		opts.includeReplicationContainers = includeReplicationContainers
 	}
 }
 
@@ -312,18 +320,26 @@ func mariadbVolumes(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt) []c
 		tlsVolumes, _ := mariadbTLSVolumes(mariadb)
 		volumes = append(volumes, tlsVolumes...)
 	}
-	if mariadb.Replication().Enabled && ptr.Deref(mariadb.Replication().ProbesEnabled, false) {
+	if mariadb.Replication().Enabled {
 		volumes = append(volumes, corev1.Volume{
-			Name: ProbesVolume,
+			Name: MariadbConfigVolume,
 			VolumeSource: corev1.VolumeSource{
-				ConfigMap: &corev1.ConfigMapVolumeSource{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: mariadb.ReplConfigMapKeyRef().Name,
-					},
-					DefaultMode: ptr.To(int32(0777)),
-				},
+				EmptyDir: &corev1.EmptyDirVolumeSource{},
 			},
 		})
+		if ptr.Deref(mariadb.Replication().ProbesEnabled, false) {
+			volumes = append(volumes, corev1.Volume{
+				Name: ProbesVolume,
+				VolumeSource: corev1.VolumeSource{
+					ConfigMap: &corev1.ConfigMapVolumeSource{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: mariadb.ReplConfigMapKeyRef().Name,
+						},
+						DefaultMode: ptr.To(int32(0777)),
+					},
+				},
+			})
+		}
 	}
 
 	galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})

@@ -9,8 +9,8 @@ import (
 	"sync"
 
 	"github.com/go-logr/logr"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/filemanager"
 	galeraErrors "github.com/mariadb-operator/mariadb-operator/v25/pkg/galera/errors"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/galera/filemanager"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/galera/recovery"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/galera/state"
 	mdbhttp "github.com/mariadb-operator/mariadb-operator/v25/pkg/http"

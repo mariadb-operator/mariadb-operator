@@ -51,8 +51,8 @@ type ReplicationReconciler struct {
 	serviceReconciler   *service.ServiceReconciler
 }
 
-func NewReplicationReconciler(client client.Client, recorder record.EventRecorder, builder *builder.Builder, replConfig *ReplicationConfigClient,
-	opts ...Option) (*ReplicationReconciler, error) {
+func NewReplicationReconciler(client client.Client, recorder record.EventRecorder, builder *builder.Builder,
+	replConfig *ReplicationConfigClient, opts ...Option) (*ReplicationReconciler, error) {
 	r := &ReplicationReconciler{
 		Client:     client,
 		recorder:   recorder,
