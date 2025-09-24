@@ -4899,10 +4899,57 @@ spec:
                         - AfterCommit
                         type: string
                     type: object
+                  replicaFromExternal:
+                    description: ReplicaReplication is the replication configuration
+                      for the replica nodes.
+                    properties:
+                      connectionRetries:
+                        description: ConnectionRetries to be used when the replica
+                          connects to the primary.
+                        type: integer
+                      connectionTimeout:
+                        description: ConnectionTimeout to be used when the replica
+                          connects to the primary.
+                        type: string
+                      gtid:
+                        description: |-
+                          Gtid indicates which Global Transaction ID should be used when connecting a replica to the master.
+                          See: https://mariadb.com/kb/en/gtid/#using-current_pos-vs-slave_pos.
+                        enum:
+                        - CurrentPos
+                        - SlavePos
+                        type: string
+                      healthCheckInterval:
+                        description: HealthCheckInterval to be used when the replica
+                          connects to the primary.
+                        type: string
+                      mariaDbRef:
+                        description: MariaDBRef is a reference to a MariaDB object.
+                        properties:
+                          kind:
+                            description: Kind of the referent.
+                            type: string
+                          name:
+                            type: string
+                          namespace:
+                            type: string
+                          waitForIt:
+                            default: true
+                            description: WaitForIt indicates whether the controller
+                              using this reference should wait for MariaDB to be ready.
+                            type: boolean
+                        type: object
+                      serverIdOffset:
+                        description: ServerIdOffset to be used on the replicas.
+                        type: integer
+                    required:
+                    - mariaDbRef
+                    type: object
                   syncBinlog:
                     description: |-
-                      SyncBinlog indicates after how many events the binary log is synchronized to the disk.
-                      The default is 1, flushing the binary log to disk after every write, which trades off performance for consistency. See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/replication-and-binary-log-system-variables#sync_binlog
+                      SyncBinlog indicates whether the binary log should be synchronized to the disk after every event.
+                      It trades off performance for consistency.
+                      See: https://mariadb.com/kb/en/replication-and-binary-log-system-variables/#sync_binlog.
                     type: integer
                 type: object
               resources:
@@ -5909,7 +5956,7 @@ spec:
             - message: 'An odd number of MariaDB instances (mariadb.spec.replicas)
                 is required to avoid split brain situations. Use ''mariadb.spec.replicasAllowEvenNumber:
                 true'' to disable this validation.'
-              rule: self.replicas %2 == 1 || self.replicasAllowEvenNumber
+              rule: self.replicas %2 == 1 || self.replicasAllowEvenNumber || has(self.replication.replicaFromExternal)
           status:
             description: MariaDBStatus defines the observed state of MariaDB
             properties:

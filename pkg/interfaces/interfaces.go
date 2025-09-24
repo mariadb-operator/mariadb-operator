@@ -4,6 +4,7 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/environment"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	clientpkg "sigs.k8s.io/controller-runtime/pkg/client"
@@ -24,10 +25,17 @@ type TLSProvider interface {
 
 type Replicator interface {
 	GetReplicas() int32
+	IsHAEnabled() bool
+	Replication() mariadbv1alpha1.Replication
+}
+
+type ServiceAwareInterface interface {
+	InternalServiceKey() types.NamespacedName
 }
 
 type Connector interface {
 	GetHost() string
+	GetPodHost(podIndex int) string
 	GetPort() int32
 	GetSUName() string
 	GetSUCredential() *mariadbv1alpha1.SecretKeySelector
@@ -44,7 +52,8 @@ type MariaDBObject interface {
 	GaleraProvider
 	Imager
 	Replicator
+	ServiceAwareInterface
 	TLSProvider
-
+	GetObjectMeta() *v1.ObjectMeta
 	IsReady() bool
 }
