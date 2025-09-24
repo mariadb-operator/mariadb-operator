@@ -145,7 +145,7 @@ var _ = Describe("MariaDB Galera lifecycle", Ordered, func() {
 				Replicas: 3,
 				Storage: mariadbv1alpha1.Storage{
 					Size:                ptr.To(resource.MustParse("300Mi")),
-					StorageClassName:    "standard-resize",
+					StorageClassName:    "csi-hostpath-sc",
 					ResizeInUseVolumes:  ptr.To(true),
 					WaitForVolumeResize: ptr.To(true),
 				},
