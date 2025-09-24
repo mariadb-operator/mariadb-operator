@@ -277,7 +277,7 @@ var rootCmd = &cobra.Command{
 		certReconciler := certctrl.NewCertReconciler(client, scheme, mgr.GetEventRecorderFor("cert"), discovery, builder)
 
 		mxsReconciler := maxscale.NewMaxScaleReconciler(client, builder, env)
-		replConfig := replication.NewReplicationConfig(client, builder, secretReconciler, env)
+		replConfig := replication.NewReplicationConfigClient(client, builder, secretReconciler, env)
 		replicationReconciler, err := replication.NewReplicationReconciler(
 			client,
 			replRecorder,

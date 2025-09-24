@@ -1,7 +1,6 @@
 package builder
 
 import (
-	"fmt"
 	"reflect"
 	"sort"
 	"strconv"
@@ -1503,7 +1502,7 @@ func TestContainerArgs(t *testing.T) {
 			},
 		},
 		{
-			name: "MariaDB args verbose /w replication",
+			name: "MariaDB args verbose",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "mariadb-test",
@@ -1518,8 +1517,6 @@ func TestContainerArgs(t *testing.T) {
 				},
 			},
 			wantArgs: []string{
-				"--log-bin",
-				fmt.Sprintf("--log-basename=%s", "mariadb-test"),
 				"--verbose",
 			},
 		},

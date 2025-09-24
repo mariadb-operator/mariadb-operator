@@ -44,14 +44,14 @@ type ReplicationReconciler struct {
 	client.Client
 	recorder            record.EventRecorder
 	builder             *builder.Builder
-	replConfig          *ReplicationConfig
+	replConfig          *ReplicationConfigClient
 	refResolver         *refresolver.RefResolver
 	secretReconciler    *secret.SecretReconciler
 	configMapreconciler *configmap.ConfigMapReconciler
 	serviceReconciler   *service.ServiceReconciler
 }
 
-func NewReplicationReconciler(client client.Client, recorder record.EventRecorder, builder *builder.Builder, replConfig *ReplicationConfig,
+func NewReplicationReconciler(client client.Client, recorder record.EventRecorder, builder *builder.Builder, replConfig *ReplicationConfigClient,
 	opts ...Option) (*ReplicationReconciler, error) {
 	r := &ReplicationReconciler{
 		Client:     client,

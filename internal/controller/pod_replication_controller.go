@@ -31,11 +31,11 @@ type PodReplicationController struct {
 	recorder    record.EventRecorder
 	builder     *builder.Builder
 	refResolver *refresolver.RefResolver
-	replConfig  *replication.ReplicationConfig
+	replConfig  *replication.ReplicationConfigClient
 }
 
 func NewPodReplicationController(client client.Client, recorder record.EventRecorder, builder *builder.Builder,
-	refResolver *refresolver.RefResolver, replConfig *replication.ReplicationConfig) PodReadinessController {
+	refResolver *refresolver.RefResolver, replConfig *replication.ReplicationConfigClient) PodReadinessController {
 	return &PodReplicationController{
 		Client:      client,
 		recorder:    recorder,
