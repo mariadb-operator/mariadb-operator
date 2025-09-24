@@ -854,6 +854,12 @@ func (m *MariaDB) SetDefaults(env *environment.OperatorEnv) error {
 		m.Spec.UpdateStrategy.SetDefaults()
 	}
 
+	if m.IsReplicationEnabled() {
+		if err := m.Spec.Replication.SetDefaults(); err != nil {
+			return fmt.Errorf("error setting Replication defaults: %v", err)
+		}
+	}
+
 	m.Spec.Storage.SetDefaults()
 	m.Spec.SetDefaults(m.ObjectMeta)
 
@@ -862,16 +868,17 @@ func (m *MariaDB) SetDefaults(env *environment.OperatorEnv) error {
 
 // Replication with defaulting accessor
 func (m *MariaDB) Replication() Replication {
-	if m.Spec.Replication == nil {
-		m.Spec.Replication = &Replication{}
-	}
-	m.Spec.Replication.FillWithDefaults()
 	return *m.Spec.Replication
 }
 
-// IsHAEnabled indicates whether the MariaDB instance has Galera enabled
+// IsGaleraEnabled indicates whether the MariaDB instance has Galera enabled
 func (m *MariaDB) IsGaleraEnabled() bool {
 	return ptr.Deref(m.Spec.Galera, Galera{}).Enabled
+}
+
+// IsReplicationEnabled indicates whether the MariaDB instance has replication enabled
+func (m *MariaDB) IsReplicationEnabled() bool {
+	return ptr.Deref(m.Spec.Replication, Replication{}).Enabled
 }
 
 // IsHAEnabled indicates whether the MariaDB instance has HA enabled
@@ -953,7 +960,7 @@ func (m *MariaDB) IsResizingStorage() bool {
 	return meta.IsStatusConditionFalse(m.Status.Conditions, ConditionTypeStorageResized)
 }
 
-// IsResizingStorage indicates whether the MariaDB instance is waiting for storage resize
+// IsWaitingForStorageResize indicates whether the MariaDB instance is waiting for storage resize
 func (m *MariaDB) IsWaitingForStorageResize() bool {
 	condition := meta.FindStatusCondition(m.Status.Conditions, ConditionTypeStorageResized)
 	if condition == nil {
