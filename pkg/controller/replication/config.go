@@ -1,8 +1,11 @@
 package replication
 
 import (
+	"bytes"
 	"context"
+	"errors"
 	"fmt"
+	"html/template"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/builder"
@@ -24,7 +27,7 @@ var (
 	replUserHost = "%"
 )
 
-type ReplicationConfig struct {
+type ReplicationConfigClient struct {
 	client.Client
 	builder          *builder.Builder
 	refResolver      *refresolver.RefResolver
@@ -32,9 +35,9 @@ type ReplicationConfig struct {
 	env              *env.OperatorEnv
 }
 
-func NewReplicationConfig(client client.Client, builder *builder.Builder, secretReconciler *secret.SecretReconciler,
-	env *env.OperatorEnv) *ReplicationConfig {
-	return &ReplicationConfig{
+func NewReplicationConfigClient(client client.Client, builder *builder.Builder, secretReconciler *secret.SecretReconciler,
+	env *env.OperatorEnv) *ReplicationConfigClient {
+	return &ReplicationConfigClient{
 		Client:           client,
 		builder:          builder,
 		refResolver:      refresolver.New(client),
@@ -43,7 +46,7 @@ func NewReplicationConfig(client client.Client, builder *builder.Builder, secret
 	}
 }
 
-func (r *ReplicationConfig) ConfigurePrimary(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *sql.Client,
+func (r *ReplicationConfigClient) ConfigurePrimary(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *sql.Client,
 	podIndex int) error {
 	if err := client.StopAllSlaves(ctx); err != nil {
 		return fmt.Errorf("error stopping slaves: %v", err)
@@ -60,13 +63,10 @@ func (r *ReplicationConfig) ConfigurePrimary(ctx context.Context, mariadb *maria
 	if err := r.reconcilePrimarySql(ctx, mariadb, client); err != nil {
 		return fmt.Errorf("error reconciling primary SQL: %v", err)
 	}
-	if err := r.configureReplicationVars(ctx, mariadb, client, podIndex); err != nil {
-		return fmt.Errorf("error configuring replication variables: %v", err)
-	}
 	return nil
 }
 
-func (r *ReplicationConfig) ConfigureReplica(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *sql.Client,
+func (r *ReplicationConfigClient) ConfigureReplica(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *sql.Client,
 	replicaPodIndex, primaryPodIndex int, resetSlavePos bool) error {
 	if err := client.ResetMaster(ctx); err != nil {
 		return fmt.Errorf("error resetting master: %v", err)
@@ -82,9 +82,6 @@ func (r *ReplicationConfig) ConfigureReplica(ctx context.Context, mariadb *maria
 	if err := client.EnableReadOnly(ctx); err != nil {
 		return fmt.Errorf("error enabling read_only: %v", err)
 	}
-	if err := r.configureReplicationVars(ctx, mariadb, client, replicaPodIndex); err != nil {
-		return fmt.Errorf("error configuring replication variables: %v", err)
-	}
 	if err := r.changeMaster(ctx, mariadb, client, primaryPodIndex); err != nil {
 		return fmt.Errorf("error changing master: %v", err)
 	}
@@ -94,33 +91,7 @@ func (r *ReplicationConfig) ConfigureReplica(ctx context.Context, mariadb *maria
 	return nil
 }
 
-func (r *ReplicationConfig) configureReplicationVars(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *sql.Client,
-	primaryPodIndex int) error {
-	kv := map[string]string{
-		"sync_binlog": fmt.Sprintf("%d", ptr.Deref(mariadb.Replication().SyncBinlog, 1)),
-		// To facilitate switchover/failover and avoid clashing with MaxScale, this configuration allows any Pod to act as a primary or as a replica.
-		// See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/semisynchronous-replication#enabling-semisynchronous-replication
-		"rpl_semi_sync_master_enabled": "ON",
-		"rpl_semi_sync_slave_enabled":  "ON",
-		"rpl_semi_sync_master_timeout": func() string {
-			return fmt.Sprint(mariadb.Replication().Replica.ConnectionTimeout.Milliseconds())
-		}(),
-		"server_id": serverId(primaryPodIndex),
-	}
-	if mariadb.Replication().Replica.WaitPoint != nil {
-		waitPoint, err := mariadb.Replication().Replica.WaitPoint.MariaDBFormat()
-		if err != nil {
-			return fmt.Errorf("error getting wait point: %v", err)
-		}
-		kv["rpl_semi_sync_master_wait_point"] = waitPoint
-	}
-	if err := client.SetSystemVariables(ctx, kv); err != nil {
-		return fmt.Errorf("error setting replication vars: %v", err)
-	}
-	return nil
-}
-
-func (r *ReplicationConfig) changeMaster(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *sql.Client,
+func (r *ReplicationConfigClient) changeMaster(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *sql.Client,
 	primaryPodIndex int) error {
 	replPasswordRef := newReplPasswordRef(mariadb)
 
@@ -160,7 +131,7 @@ func (r *ReplicationConfig) changeMaster(ctx context.Context, mariadb *mariadbv1
 	return nil
 }
 
-func (r *ReplicationConfig) getChangeMasterHost(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+func (r *ReplicationConfigClient) getChangeMasterHost(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 	primaryPodIndex int) (sql.ChangeMasterOpt, error) {
 	logger := log.FromContext(ctx).
 		WithName("replication-config").
@@ -201,7 +172,7 @@ func (r *ReplicationConfig) getChangeMasterHost(ctx context.Context, mariadb *ma
 	), nil
 }
 
-func (r *ReplicationConfig) reconcilePrimarySql(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *sql.Client) error {
+func (r *ReplicationConfigClient) reconcilePrimarySql(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *sql.Client) error {
 	opts := userSqlOpts{
 		username:   replUser,
 		host:       replUserHost,
@@ -219,7 +190,7 @@ type userSqlOpts struct {
 	privileges []string
 }
 
-func (r *ReplicationConfig) reconcileUserSql(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *sql.Client,
+func (r *ReplicationConfigClient) reconcileUserSql(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *sql.Client,
 	opts *userSqlOpts) error {
 	replPasswordRef := newReplPasswordRef(mariadb)
 	var replPassword string
@@ -265,6 +236,65 @@ func (r *ReplicationConfig) reconcileUserSql(ctx context.Context, mariadb *maria
 	return nil
 }
 
+func NewReplicationConfig(env *env.PodEnvironment) ([]byte, error) {
+	replEnabled, err := env.IsReplEnabled()
+	if err != nil {
+		return nil, fmt.Errorf("error checking if replication is enabled: %v", err)
+	}
+	if !replEnabled {
+		return nil, errors.New("replication must be enabled")
+	}
+	masterTimeout, err := env.ReplMasterTimeout()
+	if err != nil {
+		return nil, fmt.Errorf("error getting master timeout: %v", err)
+	}
+	masterSyncBinlog, err := env.ReplMasterSyncBinlog()
+	if err != nil {
+		return nil, fmt.Errorf("error getting master sync binlog: %v", err)
+	}
+	serverId, err := serverId(env.PodName)
+	if err != nil {
+		return nil, fmt.Errorf("error getting server ID: %v", err)
+	}
+
+	// To facilitate switchover/failover and avoid clashing with MaxScale, this configuration allows any Pod to act either as a primary or a replica.
+	// See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/semisynchronous-replication#enabling-semisynchronous-replication
+	tpl := createTpl("replication", `[mariadb]
+log_bin
+log_basename={{.LogName}}
+rpl_semi_sync_master_enabled=ON
+rpl_semi_sync_slave_enabled=ON
+{{- with .MasterTimeout }}
+rpl_semi_sync_master_timeout={{ . }}
+{{- end }}
+{{- with .MasterWaitPoint }}
+rpl_semi_sync_master_wait_point={{ . }}
+{{- end }}
+{{- with .MasterSyncBinlog }}
+sync_binlog={{ . }}
+{{- end }}
+server_id={{ .ServerId }}
+`)
+	buf := new(bytes.Buffer)
+	err = tpl.Execute(buf, struct {
+		LogName          string
+		MasterTimeout    *int64
+		MasterWaitPoint  string
+		MasterSyncBinlog *int
+		ServerId         int
+	}{
+		LogName:          env.MariadbName,
+		MasterTimeout:    masterTimeout,
+		MasterWaitPoint:  env.MariaDBReplMasterWaitPoint,
+		MasterSyncBinlog: masterSyncBinlog,
+		ServerId:         serverId,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
 func newReplPasswordRef(mariadb *mariadbv1alpha1.MariaDB) mariadbv1alpha1.GeneratedSecretKeyRef {
 	if mariadb.Replication().Enabled && mariadb.Replication().Replica.ReplPasswordSecretKeyRef != nil {
 		return *mariadb.Replication().Replica.ReplPasswordSecretKeyRef
@@ -280,10 +310,18 @@ func newReplPasswordRef(mariadb *mariadbv1alpha1.MariaDB) mariadbv1alpha1.Genera
 	}
 }
 
-func serverId(index int) string {
-	return fmt.Sprint(10 + index)
+func serverId(podName string) (int, error) {
+	podIndex, err := statefulset.PodIndex(podName)
+	if err != nil {
+		return 0, fmt.Errorf("error getting Pod index: %v", err)
+	}
+	return 10 + *podIndex, nil
 }
 
 func formatAccountName(username, host string) string {
 	return fmt.Sprintf("'%s'@'%s'", username, host)
+}
+
+func createTpl(name, t string) *template.Template {
+	return template.Must(template.New(name).Parse(t))
 }

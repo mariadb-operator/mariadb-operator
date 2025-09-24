@@ -59,19 +59,26 @@ func GetOperatorEnv(ctx context.Context) (*OperatorEnv, error) {
 }
 
 type PodEnvironment struct {
-	ClusterName         string `env:"CLUSTER_NAME,required"`
-	PodName             string `env:"POD_NAME,required"`
-	PodNamespace        string `env:"POD_NAMESPACE,required"`
-	PodIP               string `env:"POD_IP,required"`
+	ClusterName  string `env:"CLUSTER_NAME,required"`
+	PodName      string `env:"POD_NAME,required"`
+	PodNamespace string `env:"POD_NAMESPACE,required"`
+	PodIP        string `env:"POD_IP,required"`
+
 	MariadbName         string `env:"MARIADB_NAME,required"`
 	MariadbRootPassword string `env:"MARIADB_ROOT_PASSWORD,required"`
 	MariadbPort         string `env:"MYSQL_TCP_PORT,required"`
-	TLSEnabled          string `env:"TLS_ENABLED"`
-	TLSCACertPath       string `env:"TLS_CA_CERT_PATH"`
-	TLSServerCertPath   string `env:"TLS_SERVER_CERT_PATH"`
-	TLSServerKeyPath    string `env:"TLS_SERVER_KEY_PATH"`
-	TLSClientCertPath   string `env:"TLS_CLIENT_CERT_PATH"`
-	TLSClientKeyPath    string `env:"TLS_CLIENT_KEY_PATH"`
+
+	MariaDBReplEnabled          string `env:"MARIADB_REPL_ENABLED"`
+	MariaDBReplMasterTimeout    string `env:"MARIADB_REPL_MASTER_TIMEOUT"`
+	MariaDBReplMasterWaitPoint  string `env:"MARIADB_REPL_MASTER_WAIT_POINT"`
+	MariaDBReplMasterSyncBinlog string `env:"MARIADB_REPL_MASTER_SYNC_BINLOG"`
+
+	TLSEnabled        string `env:"TLS_ENABLED"`
+	TLSCACertPath     string `env:"TLS_CA_CERT_PATH"`
+	TLSServerCertPath string `env:"TLS_SERVER_CERT_PATH"`
+	TLSServerKeyPath  string `env:"TLS_SERVER_KEY_PATH"`
+	TLSClientCertPath string `env:"TLS_CLIENT_CERT_PATH"`
+	TLSClientKeyPath  string `env:"TLS_CLIENT_KEY_PATH"`
 }
 
 func (e *PodEnvironment) Port() (int32, error) {
@@ -87,6 +94,51 @@ func (e *PodEnvironment) IsTLSEnabled() (bool, error) {
 		return false, nil
 	}
 	return strconv.ParseBool(e.TLSEnabled)
+}
+
+func (e *PodEnvironment) IsReplEnabled() (bool, error) {
+	if e.MariaDBReplEnabled == "" {
+		return false, nil
+	}
+	return strconv.ParseBool(e.MariaDBReplEnabled)
+}
+
+func (e *PodEnvironment) ReplMasterTimeout() (*int64, error) {
+	replEnabled, err := e.IsReplEnabled()
+	if err != nil {
+		return nil, err
+	}
+	if !replEnabled {
+		return nil, errors.New("replication must be enabled")
+	}
+
+	if e.MariaDBReplMasterTimeout == "" {
+		return nil, nil
+	}
+	timeout, err := strconv.ParseInt(e.MariaDBReplMasterTimeout, 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("invalid replication master timeout: %w", err)
+	}
+	return &timeout, nil
+}
+
+func (e *PodEnvironment) ReplMasterSyncBinlog() (*int, error) {
+	replEnabled, err := e.IsReplEnabled()
+	if err != nil {
+		return nil, err
+	}
+	if !replEnabled {
+		return nil, errors.New("replication must be enabled")
+	}
+
+	if e.MariaDBReplMasterSyncBinlog == "" {
+		return nil, nil
+	}
+	timeout, err := strconv.Atoi(e.MariaDBReplMasterSyncBinlog)
+	if err != nil {
+		return nil, fmt.Errorf("invalid replication master sync binlog: %w", err)
+	}
+	return &timeout, nil
 }
 
 func GetPodEnv(ctx context.Context) (*PodEnvironment, error) {

@@ -328,11 +328,6 @@ func (b *Builder) buildContainer(mdb *mariadbv1alpha1.MariaDB, mdbContainer *mar
 
 func mariadbArgs(mariadb *mariadbv1alpha1.MariaDB) []string {
 	var mariadbArgs []string
-	if mariadb.Replication().Enabled {
-		mariadbArgs = append(mariadbArgs, []string{
-			"--log-bin",
-			fmt.Sprintf("--log-basename=%s", mariadb.Name)}...)
-	}
 	if mariadb.Spec.Args != nil {
 		mariadbArgs = append(mariadbArgs, mariadb.Spec.Args...)
 	}
