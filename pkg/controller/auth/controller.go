@@ -35,6 +35,8 @@ type GrantOpts struct {
 	Key types.NamespacedName
 }
 
+// ReconcileUserGrant will reconcile a user and a grant. This involves multiple requeues
+// @WARN: We may want to add an option to wait for the grant too.
 func (r *AuthReconciler) ReconcileUserGrant(ctx context.Context, key types.NamespacedName, owner metav1.Object,
 	userOpts builder.UserOpts, grantOpts ...GrantOpts) (ctrl.Result, error) {
 	if err := r.ReconcileUser(ctx, key, owner, userOpts); err != nil {
@@ -59,6 +61,7 @@ func (r *AuthReconciler) ReconcileUser(ctx context.Context, key types.Namespaced
 	err := r.Get(ctx, key, &user)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
+			log.FromContext(ctx).V(1).Info("Creating User", "key", key, "owner", owner, "opts", userOpts)
 			return r.createUser(ctx, key, owner, userOpts)
 		}
 		return err
@@ -76,6 +79,7 @@ func (r *AuthReconciler) ReconcileGrant(ctx context.Context, key, userKey types.
 	var grant mariadbv1alpha1.Grant
 	if err := r.Get(ctx, key, &grant); err != nil {
 		if apierrors.IsNotFound(err) {
+			log.FromContext(ctx).V(1).Info("Creating User Grant", "key", key, "owner", owner, "opts", grantOpts)
 			return r.createGrant(ctx, key, owner, grantOpts)
 		}
 		return err

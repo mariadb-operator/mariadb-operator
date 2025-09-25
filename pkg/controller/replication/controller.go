@@ -108,7 +108,7 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, mdb *mariadbv1alp
 			clientSet:      clientSet,
 			replicasSynced: false,
 		}
-		return ctrl.Result{}, r.reconcileSwitchover(ctx, &req, switchoverLogger)
+		return r.reconcileSwitchover(ctx, &req, switchoverLogger)
 	}
 
 	clientSet, err := NewReplicationClientSet(mdb, r.refResolver)
@@ -125,7 +125,8 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, mdb *mariadbv1alp
 	if result, err := r.reconcileReplication(ctx, &req, logger); !result.IsZero() || err != nil {
 		return result, err
 	}
-	return ctrl.Result{}, r.reconcileSwitchover(ctx, &req, switchoverLogger)
+
+	return r.reconcileSwitchover(ctx, &req, switchoverLogger)
 }
 
 // nolint:lll
@@ -189,6 +190,7 @@ func (r *ReplicationReconciler) reconcileReplicationInPod(ctx context.Context, r
 	replicationStatus := req.mariadb.Status.Replication
 	pod := statefulset.PodName(req.mariadb.ObjectMeta, index)
 
+	logger.V(1).Info("Reconciling replication in pod", "primaryPodIndex", primaryPodIndex, "index", index)
 	if primaryPodIndex == index {
 		if rs, ok := replicationStatus[pod]; ok && rs == mariadbv1alpha1.ReplicationStatePrimary {
 			return ctrl.Result{}, nil
@@ -200,7 +202,7 @@ func (r *ReplicationReconciler) reconcileReplicationInPod(ctx context.Context, r
 			return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 		}
 		logger.Info("Configuring replication in primary", "pod", pod)
-		return ctrl.Result{}, r.replConfig.ConfigurePrimary(ctx, req.mariadb, client, index)
+		return r.replConfig.ConfigurePrimary(ctx, req.mariadb, client, index)
 	}
 
 	if rs, ok := replicationStatus[pod]; ok && rs == mariadbv1alpha1.ReplicationStateReplica {
