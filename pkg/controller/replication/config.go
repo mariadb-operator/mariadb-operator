@@ -65,6 +65,7 @@ func (r *ReplicationConfigClient) ConfigurePrimary(ctx context.Context, mariadb 
 	if err := client.DisableReadOnly(ctx); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error disabling read_only: %v", err)
 	}
+	// @TODO: This should probably be a functionality of the AuthReconciler. If it does not exist and Generate is true, we can create it
 	if err := r.reconcileReplUserPassword(ctx, mariadb); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error while creating password for replication user: %v", err)
 	}
