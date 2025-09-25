@@ -328,7 +328,7 @@ func (b *Builder) buildContainer(mdb *mariadbv1alpha1.MariaDB, mdbContainer *mar
 
 func mariadbArgs(mariadb *mariadbv1alpha1.MariaDB) []string {
 	var mariadbArgs []string
-	if mariadb.Replication().Enabled {
+	if mariadb.IsReplicationEnabled() {
 		mariadbArgs = append(mariadbArgs, []string{
 			"--log-bin",
 			fmt.Sprintf("--log-basename=%s", mariadb.Name)}...)
@@ -499,7 +499,7 @@ func mariadbVolumeMounts(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt
 
 	volumeMounts = append(volumeMounts, mariadbStorageVolumeMount(mariadb))
 
-	if mariadb.Replication().Enabled && ptr.Deref(mariadb.Replication().ProbesEnabled, false) {
+	if mariadb.IsReplicationEnabled() && ptr.Deref(mariadb.Replication().ProbesEnabled, false) {
 		volumeMounts = append(volumeMounts, corev1.VolumeMount{
 			Name:      ProbesVolume,
 			MountPath: ProbesMountPath,
@@ -625,7 +625,7 @@ func mariadbReadinessProbe(mariadb *mariadbv1alpha1.MariaDB) *corev1.Probe {
 }
 
 func mariadbProbe(mariadb *mariadbv1alpha1.MariaDB, probe *mariadbv1alpha1.Probe) *corev1.Probe {
-	if mariadb.Replication().Enabled && ptr.Deref(mariadb.Replication().ProbesEnabled, false) {
+	if mariadb.IsReplicationEnabled() && ptr.Deref(mariadb.Replication().ProbesEnabled, false) {
 		replProbe := mariadbReplProbe(mariadb, probe)
 		if probe != nil {
 			setProbeThresholds(replProbe, ptr.To(probe.ToKubernetesType()))

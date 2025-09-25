@@ -537,7 +537,7 @@ func (m *MaxScaleTLS) SetDefaults(mdb *MariaDB) {
 		return
 	}
 
-	if mdb.Replication().Enabled && m.ReplicationSSLEnabled == nil {
+	if mdb.IsReplicationEnabled() && m.ReplicationSSLEnabled == nil {
 		m.ReplicationSSLEnabled = ptr.To(true)
 	}
 	if m.ServerCASecretRef == nil {

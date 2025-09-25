@@ -89,7 +89,7 @@ type reconcileRequest struct {
 }
 
 func (r *ReplicationReconciler) Reconcile(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
-	if !mdb.Replication().Enabled {
+	if !mdb.IsReplicationEnabled() {
 		return ctrl.Result{}, nil
 	}
 	logger := log.FromContext(ctx).WithName("replication")
@@ -145,7 +145,7 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, mdb *mariadbv1alp
 // nolint:lll
 func (r *ReplicationReconciler) ReconcileProbeConfigMap(ctx context.Context, configMapKeyRef mariadbv1alpha1.ConfigMapKeySelector,
 	mdb *mariadbv1alpha1.MariaDB) error {
-	if !mdb.Replication().Enabled {
+	if !mdb.IsReplicationEnabled() {
 		return nil
 	}
 	req := configmap.ReconcileRequest{

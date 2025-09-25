@@ -195,7 +195,7 @@ func (r *MariaDBReconciler) waitForReadyStatus(ctx context.Context, mdb *mariadb
 }
 
 func (r *MariaDBReconciler) waitForConfiguredReplica(mdb *mariadbv1alpha1.MariaDB, logger logr.Logger) error {
-	if !mdb.Replication().Enabled {
+	if !mdb.IsReplicationEnabled() {
 		return nil
 	}
 
@@ -350,5 +350,5 @@ func shouldTriggerSwitchover(mariadb *mariadbv1alpha1.MariaDB) bool {
 		return false
 	}
 	primaryRepl := ptr.Deref(mariadb.Replication().Primary, mariadbv1alpha1.PrimaryReplication{})
-	return mariadb.Replication().Enabled && *primaryRepl.AutomaticFailover && mariadb.HasConfiguredReplica()
+	return mariadb.IsReplicationEnabled() && *primaryRepl.AutomaticFailover && mariadb.HasConfiguredReplica()
 }
