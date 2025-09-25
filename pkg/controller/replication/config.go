@@ -262,7 +262,7 @@ func (r *ReplicationConfig) reconcileSQL(ctx context.Context, mariadb *mariadbv1
 				},
 			},
 			Metadata:      mariadb.Spec.InheritMetadata,
-			Privileges:    []string{"REPLICATION SLAVE"},
+			Privileges:    []string{"REPLICATION REPLICA"},
 			Database:      "*",
 			Table:         "*",
 			Username:      replUser,
