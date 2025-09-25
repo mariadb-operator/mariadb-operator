@@ -28,11 +28,11 @@ var (
 	s3Bucket     string
 	s3Endpoint   string
 	s3Region     string
-	s3TLS        bool
-	s3CACertPath string
-	s3Prefix     string
-
-	maxRetention time.Duration
+	s3TLS           bool
+	s3CACertPath    string
+	s3Prefix        string
+	s3StorageClass  string
+	maxRetention    time.Duration
 
 	compression string
 )
@@ -63,6 +63,7 @@ func init() {
 	RootCmd.PersistentFlags().BoolVar(&s3TLS, "s3-tls", false, "Enable S3 TLS connections.")
 	RootCmd.PersistentFlags().StringVar(&s3CACertPath, "s3-ca-cert-path", "", "Path to the CA to be trusted when connecting to S3.")
 	RootCmd.PersistentFlags().StringVar(&s3Prefix, "s3-prefix", "", "S3 bucket prefix name to use.")
+	RootCmd.PersistentFlags().StringVar(&s3StorageClass, "s3-storage-class", "", "S3 storage class to use.")
 
 	RootCmd.PersistentFlags().StringVar(&compression, "compression", string(mariadbv1alpha1.CompressNone),
 		"Compression algorithm: none, gzip or bzip2.")
@@ -185,6 +186,7 @@ func getBackupStorage(processor backup.BackupProcessor) (backup.BackupStorage, e
 			backup.WithCACertPath(s3CACertPath),
 			backup.WithRegion(s3Region),
 			backup.WithPrefix(s3Prefix),
+			backup.WithStorageClass(s3StorageClass),
 		)
 	}
 	logger.Info("configuring filesystem backup storage")

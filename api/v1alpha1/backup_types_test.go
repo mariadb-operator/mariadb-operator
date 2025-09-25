@@ -189,6 +189,37 @@ var _ = Describe("Backup types", func() {
 					},
 				},
 			),
+			Entry(
+				"S3 storage class",
+				&Backup{
+					ObjectMeta: objMeta,
+					Spec: BackupSpec{
+						Storage: BackupStorage{
+							S3: &S3{},
+						},
+					},
+				},
+				&MariaDB{
+					ObjectMeta: mdbObjMeta,
+				},
+				&Backup{
+					ObjectMeta: objMeta,
+					Spec: BackupSpec{
+						JobPodTemplate: JobPodTemplate{
+							ServiceAccountName: &objMeta.Name,
+						},
+						Storage: BackupStorage{
+							S3: &S3{
+								StorageClass: S3StorageClassStandard,
+							},
+						},
+						Compression:      CompressNone,
+						MaxRetention:     metav1.Duration{Duration: 30 * 24 * time.Hour},
+						IgnoreGlobalPriv: ptr.To(false),
+						BackoffLimit:     5,
+					},
+				},
+			),
 		)
 		DescribeTable(
 			"Should return a volume",
