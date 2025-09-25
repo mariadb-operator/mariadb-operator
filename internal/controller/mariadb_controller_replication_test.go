@@ -58,7 +58,7 @@ var _ = Describe("MariaDB replication", Ordered, func() {
 						},
 						Replica: &mariadbv1alpha1.ReplicaReplication{
 							WaitPoint: ptr.To(mariadbv1alpha1.WaitPointAfterCommit),
-							Gtid:      ptr.To(mariadbv1alpha1.GtidSlavePos),
+							Gtid:      ptr.To(mariadbv1alpha1.GtidCurrentPos),
 						},
 						SyncBinlog: ptr.To(1),
 					},

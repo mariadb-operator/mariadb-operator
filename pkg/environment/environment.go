@@ -69,9 +69,10 @@ type PodEnvironment struct {
 	MariadbPort         string `env:"MYSQL_TCP_PORT,required"`
 
 	MariaDBReplEnabled          string `env:"MARIADB_REPL_ENABLED"`
+	MariaDBReplGtidStrictMode   string `env:"MARIADB_REPL_GTID_STRICT_MODE"`
 	MariaDBReplMasterTimeout    string `env:"MARIADB_REPL_MASTER_TIMEOUT"`
 	MariaDBReplMasterWaitPoint  string `env:"MARIADB_REPL_MASTER_WAIT_POINT"`
-	MariaDBReplMasterSyncBinlog string `env:"MARIADB_REPL_MASTER_SYNC_BINLOG"`
+	MariaDBReplMasterSyncBinlog string `env:"MARIADB_REPL_SYNC_BINLOG"`
 
 	TLSEnabled        string `env:"TLS_ENABLED"`
 	TLSCACertPath     string `env:"TLS_CA_CERT_PATH"`
@@ -103,6 +104,13 @@ func (e *PodEnvironment) IsReplEnabled() (bool, error) {
 	return strconv.ParseBool(e.MariaDBReplEnabled)
 }
 
+func (e *PodEnvironment) ReplGtidStrictMode() (bool, error) {
+	if e.MariaDBReplGtidStrictMode == "" {
+		return false, nil
+	}
+	return strconv.ParseBool(e.MariaDBReplGtidStrictMode)
+}
+
 func (e *PodEnvironment) ReplMasterTimeout() (*int64, error) {
 	replEnabled, err := e.IsReplEnabled()
 	if err != nil {
@@ -122,7 +130,7 @@ func (e *PodEnvironment) ReplMasterTimeout() (*int64, error) {
 	return &timeout, nil
 }
 
-func (e *PodEnvironment) ReplMasterSyncBinlog() (*int, error) {
+func (e *PodEnvironment) ReplSyncBinlog() (*int, error) {
 	replEnabled, err := e.IsReplEnabled()
 	if err != nil {
 		return nil, err

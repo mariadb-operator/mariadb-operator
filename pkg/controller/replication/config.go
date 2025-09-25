@@ -128,7 +128,7 @@ func (r *ReplicationConfigClient) changeMaster(ctx context.Context, mariadb *mar
 		return fmt.Errorf("error getting replication password: %v", err)
 	}
 
-	gtid := ptr.Deref(mariadb.Replication().Replica.Gtid, mariadbv1alpha1.GtidSlavePos)
+	gtid := ptr.Deref(mariadb.Replication().Replica.Gtid, mariadbv1alpha1.GtidCurrentPos)
 	gtidString, err := gtid.MariaDBFormat()
 	if err != nil {
 		return fmt.Errorf("error getting GTID: %v", err)
@@ -272,24 +272,31 @@ func NewReplicationConfig(env *env.PodEnvironment) ([]byte, error) {
 	if !replEnabled {
 		return nil, errors.New("replication must be enabled")
 	}
+	gtidStrictMode, err := env.ReplGtidStrictMode()
+	if err != nil {
+		return nil, fmt.Errorf("error getting GTID strict mode: %v", err)
+	}
 	masterTimeout, err := env.ReplMasterTimeout()
 	if err != nil {
 		return nil, fmt.Errorf("error getting master timeout: %v", err)
 	}
-	masterSyncBinlog, err := env.ReplMasterSyncBinlog()
-	if err != nil {
-		return nil, fmt.Errorf("error getting master sync binlog: %v", err)
-	}
 	serverId, err := serverId(env.PodName)
 	if err != nil {
 		return nil, fmt.Errorf("error getting server ID: %v", err)
+	}
+	syncBinlog, err := env.ReplSyncBinlog()
+	if err != nil {
+		return nil, fmt.Errorf("error getting master sync binlog: %v", err)
 	}
 
 	// To facilitate switchover/failover and avoid clashing with MaxScale, this configuration allows any Pod to act either as a primary or a replica.
 	// See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/semisynchronous-replication#enabling-semisynchronous-replication
 	tpl := createTpl("replication", `[mariadb]
 log_bin
-log_basename={{.LogName}}
+log_basename={{.LogName }}
+{{- with .GtidStrictMode }}
+gtid_strict_mode
+{{- end }}
 rpl_semi_sync_master_enabled=ON
 rpl_semi_sync_slave_enabled=ON
 {{- with .MasterTimeout }}
@@ -298,24 +305,26 @@ rpl_semi_sync_master_timeout={{ . }}
 {{- with .MasterWaitPoint }}
 rpl_semi_sync_master_wait_point={{ . }}
 {{- end }}
-{{- with .MasterSyncBinlog }}
+server_id={{ .ServerId }}
+{{- with .SyncBinlog }}
 sync_binlog={{ . }}
 {{- end }}
-server_id={{ .ServerId }}
 `)
 	buf := new(bytes.Buffer)
 	err = tpl.Execute(buf, struct {
-		LogName          string
-		MasterTimeout    *int64
-		MasterWaitPoint  string
-		MasterSyncBinlog *int
-		ServerId         int
+		LogName         string
+		GtidStrictMode  bool
+		MasterTimeout   *int64
+		MasterWaitPoint string
+		SyncBinlog      *int
+		ServerId        int
 	}{
-		LogName:          env.MariadbName,
-		MasterTimeout:    masterTimeout,
-		MasterWaitPoint:  env.MariaDBReplMasterWaitPoint,
-		MasterSyncBinlog: masterSyncBinlog,
-		ServerId:         serverId,
+		LogName:         env.MariadbName,
+		GtidStrictMode:  gtidStrictMode,
+		MasterTimeout:   masterTimeout,
+		MasterWaitPoint: env.MariaDBReplMasterWaitPoint,
+		ServerId:        serverId,
+		SyncBinlog:      syncBinlog,
 	})
 	if err != nil {
 		return nil, err
