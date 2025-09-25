@@ -25,12 +25,31 @@ func TestNewReplicationConfig(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name: "invalid GTID strict mode",
+			env: &env.PodEnvironment{
+				PodName:                   "mariadb-0",
+				MariadbName:               "mariadb",
+				MariaDBReplEnabled:        "true",
+				MariaDBReplGtidStrictMode: "foo",
+			},
+			wantErr: true,
+		},
+		{
 			name: "invalid master timeout",
 			env: &env.PodEnvironment{
 				PodName:                  "mariadb-0",
 				MariadbName:              "mariadb",
 				MariaDBReplEnabled:       "true",
 				MariaDBReplMasterTimeout: "foo",
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid server ID",
+			env: &env.PodEnvironment{
+				PodName:            "foo",
+				MariadbName:        "mariadb",
+				MariaDBReplEnabled: "true",
 			},
 			wantErr: true,
 		},
@@ -66,6 +85,7 @@ server_id=10
 				PodName:                     "mariadb-0",
 				MariadbName:                 "mariadb",
 				MariaDBReplEnabled:          "true",
+				MariaDBReplGtidStrictMode:   "true",
 				MariaDBReplMasterTimeout:    "5000",
 				MariaDBReplMasterWaitPoint:  "AFTER_SYNC",
 				MariaDBReplMasterSyncBinlog: "1",
@@ -73,12 +93,13 @@ server_id=10
 			wantConfig: `[mariadb]
 log_bin
 log_basename=mariadb
+gtid_strict_mode
 rpl_semi_sync_master_enabled=ON
 rpl_semi_sync_slave_enabled=ON
 rpl_semi_sync_master_timeout=5000
 rpl_semi_sync_master_wait_point=AFTER_SYNC
-sync_binlog=1
 server_id=10
+sync_binlog=1
 `,
 			wantErr: false,
 		},

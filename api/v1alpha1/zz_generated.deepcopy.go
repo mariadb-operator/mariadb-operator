@@ -3878,6 +3878,11 @@ func (in *ReplicationSpec) DeepCopyInto(out *ReplicationSpec) {
 		*out = new(ReplicaReplication)
 		(*in).DeepCopyInto(*out)
 	}
+	if in.GtidStrictMode != nil {
+		in, out := &in.GtidStrictMode, &out.GtidStrictMode
+		*out = new(bool)
+		**out = **in
+	}
 	if in.SyncBinlog != nil {
 		in, out := &in.SyncBinlog, &out.SyncBinlog
 		*out = new(int)

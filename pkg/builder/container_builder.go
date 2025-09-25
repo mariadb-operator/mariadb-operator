@@ -498,6 +498,12 @@ func mariadbEnv(mariadb *mariadbv1alpha1.MariaDB) ([]corev1.EnvVar, error) {
 		replication := mariadb.Replication()
 		replica := ptr.Deref(replication.Replica, mariadbv1alpha1.ReplicaReplication{})
 
+		if ptr.Deref(replication.GtidStrictMode, true) {
+			env = append(env, corev1.EnvVar{
+				Name:  "MARIADB_REPL_GTID_STRICT_MODE",
+				Value: fmt.Sprint(true),
+			})
+		}
 		if replica.ConnectionTimeout != nil {
 			env = append(env, corev1.EnvVar{
 				Name:  "MARIADB_REPL_MASTER_TIMEOUT",
@@ -516,7 +522,7 @@ func mariadbEnv(mariadb *mariadbv1alpha1.MariaDB) ([]corev1.EnvVar, error) {
 		}
 		if replication.SyncBinlog != nil {
 			env = append(env, corev1.EnvVar{
-				Name:  "MARIADB_REPL_MASTER_SYNC_BINLOG",
+				Name:  "MARIADB_REPL_SYNC_BINLOG",
 				Value: fmt.Sprintf("%d", *replication.SyncBinlog),
 			})
 		}

@@ -200,6 +200,9 @@ type Replication struct {
 
 // SetDefaults sets reasonable defaults.
 func (r *Replication) SetDefaults(mdb *MariaDB, env *environment.OperatorEnv) error {
+	if r.GtidStrictMode == nil {
+		r.GtidStrictMode = ptr.To(true)
+	}
 	if reflect.ValueOf(r.InitContainer).IsZero() {
 		r.InitContainer = InitContainer{
 			Image: env.MariadbOperatorImage,
@@ -228,6 +231,11 @@ type ReplicationSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Replica *ReplicaReplication `json:"replica,omitempty"`
+	// GtidStrictMode determines whether the strict mode for GTIDs is enabled. See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/gtid#gtid_strict_mode.
+	// It is enabled by default.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	GtidStrictMode *bool `json:"gtidStrictMode,omitempty"`
 	// SyncBinlog indicates after how many events the binary log is synchronized to the disk.
 	// The default is 1, flushing the binary log to disk after every write, which trades off performance for consistency. See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/replication-and-binary-log-system-variables#sync_binlog
 	// +optional
@@ -281,7 +289,7 @@ var (
 		},
 		Replica: &ReplicaReplication{
 			WaitPoint:         ptr.To(WaitPointAfterCommit),
-			Gtid:              ptr.To(GtidSlavePos),
+			Gtid:              ptr.To(GtidCurrentPos),
 			ConnectionTimeout: ptr.To(tenSeconds),
 			ConnectionRetries: ptr.To(10),
 			SyncTimeout:       ptr.To(tenSeconds),

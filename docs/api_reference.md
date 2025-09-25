@@ -2292,6 +2292,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `primary` _[PrimaryReplication](#primaryreplication)_ | Primary is the replication configuration for the primary node. |  |  |
 | `replica` _[ReplicaReplication](#replicareplication)_ | ReplicaReplication is the replication configuration for the replica nodes. |  |  |
+| `gtidStrictMode` _boolean_ | GtidStrictMode determines whether the strict mode for GTIDs is enabled. See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/gtid#gtid_strict_mode.<br />It is enabled by default. |  |  |
 | `syncBinlog` _integer_ | SyncBinlog indicates after how many events the binary log is synchronized to the disk.<br />The default is 1, flushing the binary log to disk after every write, which trades off performance for consistency. See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/replication-and-binary-log-system-variables#sync_binlog |  |  |
 | `probesEnabled` _boolean_ | ProbesEnabled indicates to use replication specific liveness and readiness probes.<br />This probes check that the primary can receive queries and that the replica has the replication thread running. |  |  |
 | `initContainer` _[InitContainer](#initcontainer)_ | InitContainer is an init container that runs in the MariaDB Pod and co-operates with mariadb-operator. |  |  |
@@ -2313,6 +2314,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `primary` _[PrimaryReplication](#primaryreplication)_ | Primary is the replication configuration for the primary node. |  |  |
 | `replica` _[ReplicaReplication](#replicareplication)_ | ReplicaReplication is the replication configuration for the replica nodes. |  |  |
+| `gtidStrictMode` _boolean_ | GtidStrictMode determines whether the strict mode for GTIDs is enabled. See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/gtid#gtid_strict_mode.<br />It is enabled by default. |  |  |
 | `syncBinlog` _integer_ | SyncBinlog indicates after how many events the binary log is synchronized to the disk.<br />The default is 1, flushing the binary log to disk after every write, which trades off performance for consistency. See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/replication-and-binary-log-system-variables#sync_binlog |  |  |
 | `probesEnabled` _boolean_ | ProbesEnabled indicates to use replication specific liveness and readiness probes.<br />This probes check that the primary can receive queries and that the replica has the replication thread running. |  |  |
 | `initContainer` _[InitContainer](#initcontainer)_ | InitContainer is an init container that runs in the MariaDB Pod and co-operates with mariadb-operator. |  |  |
