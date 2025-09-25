@@ -128,6 +128,7 @@ type ReplicaReplication struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Gtid *Gtid `json:"gtid,omitempty"`
 	// ReplPasswordSecretKeyRef provides a reference to the Secret to use as password for the replication user.
+	// If one isn't provided, a password will be generated for you as a secret with name "repl-password-MARIADB_NAME"
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	ReplPasswordSecretKeyRef *GeneratedSecretKeyRef `json:"replPasswordSecretKeyRef,omitempty"`
@@ -149,7 +150,7 @@ type ReplicaReplication struct {
 
 // SetDefaults fills the current ReplicaReplication object with DefaultReplicationSpec.
 // This enables having minimal ReplicaReplication objects and provides sensible defaults.
-func (r *ReplicaReplication) SetDefaults() {
+func (r *ReplicaReplication) SetDefaults(mariadb *MariaDB) {
 	if r.WaitPoint == nil {
 		waitPoint := *DefaultReplicationSpec.Replica.WaitPoint
 		r.WaitPoint = &waitPoint
@@ -169,6 +170,10 @@ func (r *ReplicaReplication) SetDefaults() {
 	if r.SyncTimeout == nil {
 		timeout := *DefaultReplicationSpec.Replica.SyncTimeout
 		r.SyncTimeout = &timeout
+	}
+
+	if r.ReplPasswordSecretKeyRef == nil {
+		r.ReplPasswordSecretKeyRef = mariadb.ReplPasswordSecretKeyRef()
 	}
 }
 
@@ -198,7 +203,8 @@ type Replication struct {
 	Enabled bool `json:"enabled,omitempty"`
 }
 
-// SetDefaults sets reasonable defaults.
+// SetDefaults fills the current Replication object with DefaultReplicationSpec.
+// This enables having minimal Replication objects and provides sensible defaults.
 func (r *Replication) SetDefaults(mdb *MariaDB, env *environment.OperatorEnv) error {
 	if r.GtidStrictMode == nil {
 		r.GtidStrictMode = ptr.To(true)
@@ -216,6 +222,27 @@ func (r *Replication) SetDefaults(mdb *MariaDB, env *environment.OperatorEnv) er
 			return fmt.Errorf("error bumping replication init image: %v", err)
 		}
 		r.InitContainer.Image = initBumped
+	}
+
+	if r.Primary == nil {
+		primary := *DefaultReplicationSpec.Primary
+		r.Primary = &primary
+	} else {
+		r.Primary.SetDefaults()
+	}
+	if r.Replica == nil {
+		replica := *DefaultReplicationSpec.Replica
+		r.Replica = &replica
+	} else {
+		r.Replica.SetDefaults(mdb)
+	}
+	if r.SyncBinlog == nil {
+		syncBinlog := *DefaultReplicationSpec.SyncBinlog
+		r.SyncBinlog = &syncBinlog
+	}
+	if r.ProbesEnabled == nil {
+		probesEnabled := *DefaultReplicationSpec.ProbesEnabled
+		r.ProbesEnabled = &probesEnabled
 	}
 
 	return nil
@@ -250,33 +277,6 @@ type ReplicationSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	InitContainer InitContainer `json:"initContainer,omitempty"`
-}
-
-// SetDefaults fills the current Replication object with DefaultReplicationSpec.
-// This enables having minimal Replication objects and provides sensible defaults.
-func (r *Replication) SetDefaults() error {
-	if r.Primary == nil {
-		primary := *DefaultReplicationSpec.Primary
-		r.Primary = &primary
-	} else {
-		r.Primary.SetDefaults()
-	}
-	if r.Replica == nil {
-		replica := *DefaultReplicationSpec.Replica
-		r.Replica = &replica
-	} else {
-		r.Replica.SetDefaults()
-	}
-	if r.SyncBinlog == nil {
-		syncBinlog := *DefaultReplicationSpec.SyncBinlog
-		r.SyncBinlog = &syncBinlog
-	}
-	if r.ProbesEnabled == nil {
-		probesEnabled := *DefaultReplicationSpec.ProbesEnabled
-		r.ProbesEnabled = &probesEnabled
-	}
-
-	return nil
 }
 
 var (
