@@ -17,11 +17,15 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
+
+type switchoverPhaseReconcileFuncNoResult func(context.Context, *mariadbv1alpha1.MariaDB, *ReplicationClientSet, logr.Logger) error
+type switchoverPhaseReconcileFunc func(context.Context, *mariadbv1alpha1.MariaDB, *ReplicationClientSet, logr.Logger) (ctrl.Result, error)
 
 type switchoverPhase struct {
 	name      string
-	reconcile func(context.Context, *mariadbv1alpha1.MariaDB, *ReplicationClientSet, logr.Logger) error
+	reconcile switchoverPhaseReconcileFunc
 }
 
 func shouldReconcileSwitchover(mdb *mariadbv1alpha1.MariaDB) bool {
@@ -39,9 +43,10 @@ func shouldReconcileSwitchover(mdb *mariadbv1alpha1.MariaDB) bool {
 	return currentPodIndex != desiredPodIndex
 }
 
-func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *reconcileRequest, switchoverLogger logr.Logger) error {
+func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *reconcileRequest,
+	switchoverLogger logr.Logger) (ctrl.Result, error) {
 	if !shouldReconcileSwitchover(req.mariadb) {
-		return nil
+		return ctrl.Result{}, nil
 	}
 
 	fromIndex := req.mariadb.Status.CurrentPrimaryPodIndex
@@ -51,21 +56,21 @@ func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *re
 	if err := r.patchStatus(ctx, req.mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
 		condition.SetPrimarySwitching(&req.mariadb.Status, req.mariadb)
 	}); err != nil {
-		return fmt.Errorf("error patching MariaDB status: %v", err)
+		return ctrl.Result{}, fmt.Errorf("error patching MariaDB status: %v", err)
 	}
 
 	phases := []switchoverPhase{
 		{
 			name:      "Lock primary with read lock",
-			reconcile: r.lockPrimaryWithReadLock,
+			reconcile: r.zeroReconcileResult(r.lockPrimaryWithReadLock),
 		},
 		{
 			name:      "Set read_only in primary",
-			reconcile: r.setPrimaryReadOnly,
+			reconcile: r.zeroReconcileResult(r.setPrimaryReadOnly),
 		},
 		{
 			name:      "Wait for replica sync",
-			reconcile: r.waitForReplicaSync,
+			reconcile: r.zeroReconcileResult(r.waitForReplicaSync),
 		},
 		{
 			name:      "Configure new primary",
@@ -73,20 +78,24 @@ func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *re
 		},
 		{
 			name:      "Connect replicas to new primary",
-			reconcile: r.connectReplicasToNewPrimary,
+			reconcile: r.zeroReconcileResult(r.connectReplicasToNewPrimary),
 		},
 		{
 			name:      "Change primary to replica",
-			reconcile: r.changePrimaryToReplica,
+			reconcile: r.zeroReconcileResult(r.changePrimaryToReplica),
 		},
 	}
 
 	for _, p := range phases {
-		if err := p.reconcile(ctx, req.mariadb, req.clientSet, logger); err != nil {
+		if result, err := p.reconcile(ctx, req.mariadb, req.clientSet, logger); !result.IsZero() || err != nil {
 			if apierrors.IsNotFound(err) {
-				return err
+				return ctrl.Result{}, err
 			}
-			return fmt.Errorf("error in '%s' switchover reconcile phase: %v", p.name, err)
+			if err != nil {
+				return ctrl.Result{}, fmt.Errorf("error in '%s' switchover reconcile phase: %v", p.name, err)
+			}
+
+			return result, err
 		}
 	}
 
@@ -94,13 +103,13 @@ func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *re
 		status.UpdateCurrentPrimary(req.mariadb, toIndex)
 		condition.SetPrimarySwitched(&req.mariadb.Status)
 	}); err != nil {
-		return fmt.Errorf("error patching MariaDB status: %v", err)
+		return ctrl.Result{}, fmt.Errorf("error patching MariaDB status: %v", err)
 	}
 
 	logger.Info("Primary switched")
 	r.recorder.Eventf(req.mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonPrimarySwitched,
 		"Primary switched from index '%d' to index '%d'", *fromIndex, toIndex)
-	return nil
+	return ctrl.Result{}, nil
 }
 
 func (r *ReplicationReconciler) lockPrimaryWithReadLock(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
@@ -235,10 +244,10 @@ func (r *ReplicationReconciler) waitForReplicaSync(ctx context.Context, mariadb 
 }
 
 func (r *ReplicationReconciler) configureNewPrimary(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	clientSet *ReplicationClientSet, logger logr.Logger) error {
+	clientSet *ReplicationClientSet, logger logr.Logger) (ctrl.Result, error) {
 	client, err := clientSet.newPrimaryClient(ctx)
 	if err != nil {
-		return fmt.Errorf("error getting new primary client: %v", err)
+		return ctrl.Result{}, fmt.Errorf("error getting new primary client: %v", err)
 	}
 
 	podIndex := *mariadb.Replication().Primary.PodIndex
@@ -246,10 +255,14 @@ func (r *ReplicationReconciler) configureNewPrimary(ctx context.Context, mariadb
 	r.recorder.Eventf(mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonReplicationPrimaryNew,
 		"Configuring new primary at index '%d'", podIndex)
 
-	if err := r.replConfig.ConfigurePrimary(ctx, mariadb, client, podIndex); err != nil {
-		return fmt.Errorf("error confguring new primary vars: %v", err)
+	if result, err := r.replConfig.ConfigurePrimary(ctx, mariadb, client, podIndex); !result.IsZero() || err != nil {
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("error confguring new primary vars: %v", err)
+		}
+
+		return result, err
 	}
-	return nil
+	return ctrl.Result{}, nil
 }
 
 func (r *ReplicationReconciler) connectReplicasToNewPrimary(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
@@ -381,4 +394,13 @@ func (r *ReplicationReconciler) currentPrimaryReady(ctx context.Context, mariadb
 		return false, err
 	}
 	return mariadbpod.PodReady(&pod), nil
+}
+
+// zeroReconcileResult will take a reconcileFunc as expected inside `reconcileSwitchover` and return an empty result.
+// We are preserving errors, so we can send them upstream.
+// This is needed as some reconcile actions don't need to return a result, while others do, to perform short sleeps for example
+func (r *ReplicationReconciler) zeroReconcileResult(reconcileFunc switchoverPhaseReconcileFuncNoResult) switchoverPhaseReconcileFunc {
+	return func(ctx context.Context, md *mariadbv1alpha1.MariaDB, rcs *ReplicationClientSet, l logr.Logger) (ctrl.Result, error) {
+		return ctrl.Result{}, reconcileFunc(ctx, md, rcs, l)
+	}
 }
