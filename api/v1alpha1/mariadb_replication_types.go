@@ -126,6 +126,7 @@ type ReplicaReplication struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Gtid *Gtid `json:"gtid,omitempty"`
 	// ReplPasswordSecretKeyRef provides a reference to the Secret to use as password for the replication user.
+	// If one isn't provided, a password will be generated for you as a secret with name "repl-password-MARIADB_NAME"
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	ReplPasswordSecretKeyRef *GeneratedSecretKeyRef `json:"replPasswordSecretKeyRef,omitempty"`
@@ -146,7 +147,7 @@ type ReplicaReplication struct {
 
 // SetDefaults fills the current ReplicaReplication object with DefaultReplicationSpec.
 // This enables having minimal ReplicaReplication objects and provides sensible defaults.
-func (r *ReplicaReplication) SetDefaults() {
+func (r *ReplicaReplication) SetDefaults(mariadb *MariaDB) {
 	if r.WaitPoint == nil {
 		waitPoint := *DefaultReplicationSpec.Replica.WaitPoint
 		r.WaitPoint = &waitPoint
@@ -166,6 +167,10 @@ func (r *ReplicaReplication) SetDefaults() {
 	if r.SyncTimeout == nil {
 		timeout := *DefaultReplicationSpec.Replica.SyncTimeout
 		r.SyncTimeout = &timeout
+	}
+
+	if r.ReplPasswordSecretKeyRef == nil {
+		r.ReplPasswordSecretKeyRef = mariadb.ReplPasswordSecretKeyRef()
 	}
 }
 
@@ -219,7 +224,7 @@ type ReplicationSpec struct {
 
 // SetDefaults fills the current Replication object with DefaultReplicationSpec.
 // This enables having minimal Replication objects and provides sensible defaults.
-func (r *Replication) SetDefaults() error {
+func (r *Replication) SetDefaults(mariadb *MariaDB) error {
 	if r.Primary == nil {
 		primary := *DefaultReplicationSpec.Primary
 		r.Primary = &primary
@@ -230,7 +235,7 @@ func (r *Replication) SetDefaults() error {
 		replica := *DefaultReplicationSpec.Replica
 		r.Replica = &replica
 	} else {
-		r.Replica.SetDefaults()
+		r.Replica.SetDefaults(mariadb)
 	}
 	if r.SyncBinlog == nil {
 		syncBinlog := *DefaultReplicationSpec.SyncBinlog

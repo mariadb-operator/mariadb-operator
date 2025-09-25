@@ -46,7 +46,7 @@ func (d *MariaDBCustomDefaulter) Default(ctx context.Context, obj runtime.Object
 
 	if mariadb.IsReplicationEnabled() {
 		mariadblog.V(1).Info("Defaulting spec.replication", "mariadb", mariadb.Name)
-		return mariadb.Spec.Replication.SetDefaults()
+		return mariadb.Spec.Replication.SetDefaults(mariadb)
 	}
 	return nil
 }

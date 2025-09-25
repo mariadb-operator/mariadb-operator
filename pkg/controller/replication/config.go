@@ -3,7 +3,6 @@ package replication
 import (
 	"context"
 	"fmt"
-	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/builder"
@@ -15,6 +14,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/sql"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/statefulset"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/version"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -62,6 +62,10 @@ func (r *ReplicationConfig) ConfigurePrimary(ctx context.Context, mariadb *maria
 	if err := client.DisableReadOnly(ctx); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error disabling read_only: %v", err)
 	}
+	if err := r.reconcileReplUserPassword(ctx, mariadb); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error while creating password for replication user: %v", err)
+	}
+
 	if result, err := r.reconcileSQL(ctx, mariadb, client); !result.IsZero() || err != nil {
 		if err != nil {
 			return ctrl.Result{}, fmt.Errorf("error reconciling primary SQL: %v", err)
@@ -149,8 +153,7 @@ func (r *ReplicationConfig) configureReplicaVars(ctx context.Context, mariadb *m
 
 func (r *ReplicationConfig) changeMaster(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *sql.Client,
 	primaryPodIndex int) error {
-	replPasswordRef := newReplPasswordRef(mariadb)
-
+	replPasswordRef := mariadb.Spec.Replication.Replica.ReplPasswordSecretKeyRef
 	password, err := r.refResolver.SecretKeyRef(ctx, replPasswordRef.SecretKeySelector, mariadb.Namespace)
 	if err != nil {
 		return fmt.Errorf("error getting replication password: %v", err)
@@ -248,7 +251,7 @@ func (r *ReplicationConfig) reconcileSQL(ctx context.Context, mariadb *mariadbv1
 		MaxUserConnections:   20,
 		Name:                 replUser,
 		Host:                 replUserHost,
-		PasswordSecretKeyRef: nil,
+		PasswordSecretKeyRef: &mariadb.Spec.Replication.Replica.ReplPasswordSecretKeyRef.SecretKeySelector,
 		CleanupPolicy:        ptr.To(mariadbv1alpha1.CleanupPolicySkip),
 	}
 
@@ -278,31 +281,31 @@ func (r *ReplicationConfig) reconcileSQL(ctx context.Context, mariadb *mariadbv1
 		return result, err
 	}
 
-	var replGrant mariadbv1alpha1.Grant
-	if err := r.Get(ctx, replGrantKey, &replGrant); err != nil {
-		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
-	}
-	if !replGrant.IsReady() {
-		log.FromContext(ctx).V(1).Info("Grant not ready. Requeuing...", "user", replUser)
-		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+	if result, err := r.authReconciler.WaitForGrant(ctx, replGrantKey); !result.IsZero() || err != nil {
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("error waiting for grant: %v", err)
+		}
+		return result, err
 	}
 
 	return ctrl.Result{}, nil
 }
 
-func newReplPasswordRef(mariadb *mariadbv1alpha1.MariaDB) mariadbv1alpha1.GeneratedSecretKeyRef {
-	if mariadb.Replication().Enabled && mariadb.Replication().Replica.ReplPasswordSecretKeyRef != nil {
-		return *mariadb.Replication().Replica.ReplPasswordSecretKeyRef
-	}
-	return mariadbv1alpha1.GeneratedSecretKeyRef{
-		SecretKeySelector: mariadbv1alpha1.SecretKeySelector{
-			LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
-				Name: fmt.Sprintf("repl-password-%s", mariadb.Name),
-			},
-			Key: "password",
+// reconcileReplUserPassword will create a new secret with repl user password if it does not already exists
+func (r *ReplicationConfig) reconcileReplUserPassword(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) error {
+	secretKeyRef := mdb.Spec.Replication.Replica.ReplPasswordSecretKeyRef
+	req := secret.PasswordRequest{
+		Metadata: mdb.Spec.InheritMetadata,
+		Owner:    mdb,
+		Key: types.NamespacedName{
+			Name:      secretKeyRef.Name,
+			Namespace: mdb.Namespace,
 		},
-		Generate: true,
+		SecretKey: secretKeyRef.Key,
+		Generate:  secretKeyRef.Generate,
 	}
+	_, err := r.secretReconciler.ReconcilePassword(ctx, req)
+	return err
 }
 
 func serverId(index int) string {

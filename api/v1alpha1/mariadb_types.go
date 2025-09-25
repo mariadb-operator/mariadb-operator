@@ -850,7 +850,7 @@ func (m *MariaDB) SetDefaults(env *environment.OperatorEnv) error {
 	}
 
 	if m.IsReplicationEnabled() {
-		if err := m.Spec.Replication.SetDefaults(); err != nil {
+		if err := m.Spec.Replication.SetDefaults(m); err != nil {
 			return fmt.Errorf("error setting Replication defaults: %v", err)
 		}
 	}

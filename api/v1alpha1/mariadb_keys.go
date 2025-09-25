@@ -248,13 +248,26 @@ func (m *MariaDB) MetricsConfigSecretKeyRef() GeneratedSecretKeyRef {
 	}
 }
 
-// ConfigMapKeySelector defines the key selector for the ConfigMap used for replication healthchecks.
+// ReplConfigMapKeyRef defines the key selector for the ConfigMap used for replication healthchecks.
 func (m *MariaDB) ReplConfigMapKeyRef() ConfigMapKeySelector {
 	return ConfigMapKeySelector{
 		LocalObjectReference: LocalObjectReference{
 			Name: fmt.Sprintf("%s-probes", m.Name),
 		},
 		Key: "replication.sh",
+	}
+}
+
+// ReplPasswordSecretKeyRef defines the key selector for for the password to be used by the replication "repl" user
+func (m *MariaDB) ReplPasswordSecretKeyRef() *GeneratedSecretKeyRef {
+	return &GeneratedSecretKeyRef{
+		SecretKeySelector: SecretKeySelector{
+			LocalObjectReference: LocalObjectReference{
+				Name: fmt.Sprintf("repl-password-%s", m.Name),
+			},
+			Key: "password",
+		},
+		Generate: true,
 	}
 }
 
