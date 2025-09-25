@@ -82,9 +82,10 @@ func NewReplicationReconciler(client client.Client, recorder record.EventRecorde
 }
 
 type reconcileRequest struct {
-	mariadb   *mariadbv1alpha1.MariaDB
-	key       types.NamespacedName
-	clientSet *ReplicationClientSet
+	mariadb        *mariadbv1alpha1.MariaDB
+	key            types.NamespacedName
+	clientSet      *ReplicationClientSet
+	replicasSynced bool
 }
 
 func (r *ReplicationReconciler) Reconcile(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
@@ -102,9 +103,10 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, mdb *mariadbv1alp
 		defer clientSet.close()
 
 		req := reconcileRequest{
-			mariadb:   mdb,
-			key:       client.ObjectKeyFromObject(mdb),
-			clientSet: clientSet,
+			mariadb:        mdb,
+			key:            client.ObjectKeyFromObject(mdb),
+			clientSet:      clientSet,
+			replicasSynced: false,
 		}
 		return ctrl.Result{}, r.reconcileSwitchover(ctx, &req, switchoverLogger)
 	}
@@ -211,7 +213,7 @@ func (r *ReplicationReconciler) reconcileReplicationInPod(ctx context.Context, r
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 	logger.Info("Configuring replication in replica", "pod", pod)
-	return ctrl.Result{}, r.replConfig.ConfigureReplica(ctx, req.mariadb, client, index, primaryPodIndex, false)
+	return ctrl.Result{}, r.replConfig.ConfigureReplica(ctx, req.mariadb, client, index, primaryPodIndex)
 }
 
 func (r *ReplicationReconciler) patchStatus(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,

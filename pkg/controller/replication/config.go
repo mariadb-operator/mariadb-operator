@@ -54,7 +54,7 @@ func (r *ReplicationConfigClient) ConfigurePrimary(ctx context.Context, mariadb 
 	if err := client.ResetAllSlaves(ctx); err != nil {
 		return fmt.Errorf("error resetting slave: %v", err)
 	}
-	if err := client.ResetSlavePos(ctx); err != nil {
+	if err := client.ResetGtidSlavePos(ctx); err != nil {
 		return fmt.Errorf("error resetting slave position: %v", err)
 	}
 	if err := client.DisableReadOnly(ctx); err != nil {
@@ -66,16 +66,44 @@ func (r *ReplicationConfigClient) ConfigurePrimary(ctx context.Context, mariadb 
 	return nil
 }
 
+type ConfigureReplicaOpts struct {
+	GtidSlavePos      *string
+	ResetGtidSlavePos bool
+}
+
+type ConfigureReplicaOpt func(*ConfigureReplicaOpts)
+
+func WithGtidSlavePos(gtid string) ConfigureReplicaOpt {
+	return func(cro *ConfigureReplicaOpts) {
+		cro.GtidSlavePos = &gtid
+	}
+}
+
+func WithResetGtidSlavePos() ConfigureReplicaOpt {
+	return func(cro *ConfigureReplicaOpts) {
+		cro.ResetGtidSlavePos = true
+	}
+}
+
 func (r *ReplicationConfigClient) ConfigureReplica(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *sql.Client,
-	replicaPodIndex, primaryPodIndex int, resetSlavePos bool) error {
+	replicaPodIndex, primaryPodIndex int, replicaOpts ...ConfigureReplicaOpt) error {
+	opts := ConfigureReplicaOpts{}
+	for _, setOpt := range replicaOpts {
+		setOpt(&opts)
+	}
+
 	if err := client.ResetMaster(ctx); err != nil {
 		return fmt.Errorf("error resetting master: %v", err)
 	}
 	if err := client.StopAllSlaves(ctx); err != nil {
 		return fmt.Errorf("error stopping slaves: %v", err)
 	}
-	if resetSlavePos {
-		if err := client.ResetSlavePos(ctx); err != nil {
+	if opts.GtidSlavePos != nil {
+		if err := client.SetGtidSlavePos(ctx, *opts.GtidSlavePos); err != nil {
+			return fmt.Errorf("error setting slave position \"%s\": %v", *opts.GtidSlavePos, err)
+		}
+	} else if opts.ResetGtidSlavePos {
+		if err := client.ResetGtidSlavePos(ctx); err != nil {
 			return fmt.Errorf("error resetting slave position: %v", err)
 		}
 	}
