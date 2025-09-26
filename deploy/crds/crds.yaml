@@ -7360,8 +7360,9 @@ spec:
                         - SlavePos
                         type: string
                       replPasswordSecretKeyRef:
-                        description: ReplPasswordSecretKeyRef provides a reference
-                          to the Secret to use as password for the replication user.
+                        description: |-
+                          ReplPasswordSecretKeyRef provides a reference to the Secret to use as password for the replication user.
+                          If one isn't provided, a password will be generated for you as a secret with name "repl-password-MARIADB_NAME"
                         properties:
                           generate:
                             default: false
