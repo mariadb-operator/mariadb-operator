@@ -70,7 +70,7 @@ func (r *ReplicationConfigClient) ConfigurePrimary(ctx context.Context, mariadb 
 		return ctrl.Result{}, fmt.Errorf("error while creating password for replication user: %v", err)
 	}
 
-	if result, err := r.reconcileSQL(ctx, mariadb, client); !result.IsZero() || err != nil {
+	if result, err := r.reconcileUsersAndGrants(ctx, mariadb, client); !result.IsZero() || err != nil {
 		if err != nil {
 			return ctrl.Result{}, fmt.Errorf("error reconciling primary SQL: %v", err)
 		}
@@ -213,8 +213,8 @@ func (r *ReplicationConfigClient) getChangeMasterHost(ctx context.Context, maria
 	), nil
 }
 
-// Creates a `User` and `Grant` resources with minimum required permissions for replication.
-func (r *ReplicationConfigClient) reconcileSQL(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+// reconcileUsersAndGrants Creates a `User` and `Grant` resources with minimum required permissions for replication.
+func (r *ReplicationConfigClient) reconcileUsersAndGrants(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 	client *sql.Client) (ctrl.Result, error) {
 	replUserKey := mariadb.MariadbReplUserKey()
 	replGrantKey := mariadb.MariadbReplGrantKey()
@@ -360,10 +360,6 @@ func serverId(podName string) (int, error) {
 		return 0, fmt.Errorf("error getting Pod index: %v", err)
 	}
 	return 10 + *podIndex, nil
-}
-
-func formatAccountName(username, host string) string {
-	return fmt.Sprintf("'%s'@'%s'", username, host)
 }
 
 func createTpl(name, t string) *template.Template {
