@@ -7,6 +7,7 @@ import (
 	"reflect"
 
 	"github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/environment"
 	galerakeys "github.com/mariadb-operator/mariadb-operator/v25/pkg/galera/config/keys"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -44,10 +45,14 @@ func (d *MariaDBCustomDefaulter) Default(ctx context.Context, obj runtime.Object
 	}
 	mariadblog.V(1).Info("Defaulting for MariaDB", "name", mariadb.GetName())
 
-	if mariadb.Spec.Replication != nil && mariadb.Spec.Replication.Enabled {
+	env, err := environment.GetOperatorEnv(ctx)
+	if err != nil {
+		return fmt.Errorf("error getting the environment: %v", err)
+	}
+
+	if mariadb.IsReplicationEnabled() {
 		mariadblog.V(1).Info("Defaulting spec.replication", "mariadb", mariadb.Name)
-		mariadb.Spec.Replication.FillWithDefaults()
-		return nil
+		return mariadb.Spec.Replication.SetDefaults(mariadb, env)
 	}
 	return nil
 }
@@ -131,7 +136,7 @@ func (v *MariaDBCustomValidator) ValidateDelete(ctx context.Context, obj runtime
 }
 
 func validateHA(mariadb *v1alpha1.MariaDB) error {
-	if mariadb.Replication().Enabled && mariadb.IsGaleraEnabled() {
+	if mariadb.IsReplicationEnabled() && mariadb.IsGaleraEnabled() {
 		return errors.New("you may only enable one HA method at a time, either 'spec.replication' or 'spec.galera'")
 	}
 	if !mariadb.IsHAEnabled() && mariadb.Spec.Replicas > 1 {
@@ -227,7 +232,7 @@ func validateGalera(mariadb *v1alpha1.MariaDB) error {
 }
 
 func validateReplication(mariadb *v1alpha1.MariaDB) error {
-	if !mariadb.Replication().Enabled {
+	if !mariadb.IsReplicationEnabled() {
 		return nil
 	}
 	if *mariadb.Replication().Primary.PodIndex < 0 || *mariadb.Replication().Primary.PodIndex >= int(mariadb.Spec.Replicas) {
@@ -248,7 +253,7 @@ func validateReplication(mariadb *v1alpha1.MariaDB) error {
 }
 
 func validatePrimarySwitchover(mariadb, old *v1alpha1.MariaDB) error {
-	if old.Replication().Enabled && old.IsSwitchingPrimary() {
+	if old.IsReplicationEnabled() && old.IsSwitchingPrimary() {
 		if *old.Replication().Primary.PodIndex != *mariadb.Replication().Primary.PodIndex {
 			return field.Invalid(
 				field.NewPath("spec").Child("replication").Child("primary").Child("podIndex"),

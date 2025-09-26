@@ -150,7 +150,7 @@ var _ = BeforeSuite(func() {
 	certReconciler := certctrl.NewCertReconciler(client, scheme, k8sManager.GetEventRecorderFor("cert"), disc, builder)
 
 	mxsReconciler := maxscale.NewMaxScaleReconciler(client, builder, env)
-	replConfig := replication.NewReplicationConfigClient(client, builder, secretReconciler, env)
+	replConfig := replication.NewReplicationConfigClient(client, builder, secretReconciler, authReconciler, env)
 	replicationReconciler, err := replication.NewReplicationReconciler(
 		client,
 		replRecorder,

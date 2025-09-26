@@ -47,3 +47,5 @@ pprof.out
 
 # Nvim config
 .nvim.lua
+
+.envrc
