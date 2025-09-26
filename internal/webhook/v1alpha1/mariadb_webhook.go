@@ -130,7 +130,7 @@ func (v *MariaDBCustomValidator) ValidateDelete(ctx context.Context, obj runtime
 }
 
 func validateHA(mariadb *v1alpha1.MariaDB) error {
-	if mariadb.Replication().Enabled && mariadb.IsGaleraEnabled() {
+	if mariadb.IsReplicationEnabled() && mariadb.IsGaleraEnabled() {
 		return errors.New("you may only enable one HA method at a time, either 'spec.replication' or 'spec.galera'")
 	}
 	if !mariadb.IsHAEnabled() && mariadb.Spec.Replicas > 1 {
@@ -226,7 +226,7 @@ func validateGalera(mariadb *v1alpha1.MariaDB) error {
 }
 
 func validateReplication(mariadb *v1alpha1.MariaDB) error {
-	if !mariadb.Replication().Enabled {
+	if !mariadb.IsReplicationEnabled() {
 		return nil
 	}
 	if *mariadb.Replication().Primary.PodIndex < 0 || *mariadb.Replication().Primary.PodIndex >= int(mariadb.Spec.Replicas) {
@@ -247,7 +247,7 @@ func validateReplication(mariadb *v1alpha1.MariaDB) error {
 }
 
 func validatePrimarySwitchover(mariadb, old *v1alpha1.MariaDB) error {
-	if old.Replication().Enabled && old.IsSwitchingPrimary() {
+	if old.IsReplicationEnabled() && old.IsSwitchingPrimary() {
 		if *old.Replication().Primary.PodIndex != *mariadb.Replication().Primary.PodIndex {
 			return field.Invalid(
 				field.NewPath("spec").Child("replication").Child("primary").Child("podIndex"),
