@@ -573,6 +573,18 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 		)
 
 		It("Should default replication", func() {
+			expected := *v1alpha1.DefaultReplicationSpec.DeepCopy()
+
+			expected.Replica.ReplPasswordSecretKeyRef = &v1alpha1.GeneratedSecretKeyRef{
+				SecretKeySelector: v1alpha1.SecretKeySelector{
+					LocalObjectReference: v1alpha1.LocalObjectReference{
+						Name: "repl-password-mariadb-repl-partial-default-webhook",
+					},
+					Key: "password",
+				},
+				Generate: true,
+			}
+
 			mariadb := v1alpha1.MariaDB{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "mariadb-repl-default-webhook",
@@ -582,6 +594,19 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 					Replicas: 3,
 					Replication: &v1alpha1.Replication{
 						Enabled: true,
+						ReplicationSpec: v1alpha1.ReplicationSpec{
+							Replica: &v1alpha1.ReplicaReplication{
+								ReplPasswordSecretKeyRef: &v1alpha1.GeneratedSecretKeyRef{
+									SecretKeySelector: v1alpha1.SecretKeySelector{
+										LocalObjectReference: v1alpha1.LocalObjectReference{
+											Name: "repl-password-mariadb-repl-partial-default-webhook",
+										},
+										Key: "password",
+									},
+									Generate: true,
+								},
+							},
+						},
 					},
 					Storage: v1alpha1.Storage{
 						Size: ptr.To(resource.MustParse("100Mi")),
@@ -592,10 +617,22 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 			Expect(k8sClient.Get(testCtx, client.ObjectKeyFromObject(&mariadb), &mariadb)).To(Succeed())
 
 			By("Expect v1alpha1.MariaDB replication spec to be defaulted")
-			Expect(mariadb.Spec.Replication.ReplicationSpec).To(Equal(v1alpha1.DefaultReplicationSpec))
+			Expect(mariadb.Spec.Replication.ReplicationSpec).To(Equal(expected))
 		})
 
 		It("Should partially default replication", func() {
+			expected := *v1alpha1.DefaultReplicationSpec.DeepCopy()
+
+			expected.Replica.ReplPasswordSecretKeyRef = &v1alpha1.GeneratedSecretKeyRef{
+				SecretKeySelector: v1alpha1.SecretKeySelector{
+					LocalObjectReference: v1alpha1.LocalObjectReference{
+						Name: "repl-password-mariadb-repl-partial-default-webhook",
+					},
+					Key: "password",
+				},
+				Generate: true,
+			}
+
 			mariadb := v1alpha1.MariaDB{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "mariadb-repl-partial-default-webhook",
@@ -610,6 +647,15 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 								PodIndex: ptr.To(0),
 							},
 							Replica: &v1alpha1.ReplicaReplication{
+								ReplPasswordSecretKeyRef: &v1alpha1.GeneratedSecretKeyRef{
+									SecretKeySelector: v1alpha1.SecretKeySelector{
+										LocalObjectReference: v1alpha1.LocalObjectReference{
+											Name: "repl-password-mariadb-repl-partial-default-webhook",
+										},
+										Key: "password",
+									},
+									Generate: true,
+								},
 								WaitPoint: ptr.To(v1alpha1.WaitPointAfterCommit),
 							},
 						},
@@ -635,7 +681,7 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 			Expect(k8sClient.Get(testCtx, client.ObjectKeyFromObject(&mariadb), &mariadb)).To(Succeed())
 
 			By("Expect v1alpha1.MariaDB replication spec to be defaulted")
-			Expect(mariadb.Spec.Replication.ReplicationSpec).To(Equal(v1alpha1.DefaultReplicationSpec))
+			Expect(mariadb.Spec.Replication.ReplicationSpec).To(Equal(expected))
 		})
 	})
 
