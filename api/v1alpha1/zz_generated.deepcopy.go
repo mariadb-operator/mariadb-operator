@@ -2719,6 +2719,11 @@ func (in *MaxScaleSpec) DeepCopyInto(out *MaxScaleSpec) {
 		*out = new(MariaDBRef)
 		**out = **in
 	}
+	if in.PrimaryServer != nil {
+		in, out := &in.PrimaryServer, &out.PrimaryServer
+		*out = new(string)
+		**out = **in
+	}
 	if in.Servers != nil {
 		in, out := &in.Servers, &out.Servers
 		*out = make([]MaxScaleServer, len(*in))
