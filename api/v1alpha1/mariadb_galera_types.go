@@ -135,22 +135,6 @@ func (b *BasicAuth) SetDefaults(mariadb *MariaDB) {
 	}
 }
 
-// GaleraInit is an init container that runs in the MariaDB Pod and co-operates with mariadb-operator.
-type GaleraInit struct {
-	// ContainerTemplate defines a template to configure Container objects.
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	ContainerTemplate `json:",inline"`
-	// Image name to be used by the MariaDB instances. The supported format is `<image>:<tag>`.
-	// +kubebuilder:validation:Required
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Image string `json:"image"`
-	// ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`.
-	// +optional
-	// +kubebuilder:validation:Enum=Always;Never;IfNotPresent
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:imagePullPolicy","urn:alm:descriptor:com.tectonic.ui:advanced"}
-	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
-}
-
 // GaleraAgent is a sidecar agent that co-operates with mariadb-operator.
 type GaleraAgent struct {
 	// ContainerTemplate defines a template to configure Container objects.
@@ -448,7 +432,7 @@ func (g *Galera) SetDefaults(mdb *MariaDB, env *environment.OperatorEnv) error {
 	}
 
 	if reflect.ValueOf(g.InitContainer).IsZero() {
-		g.InitContainer = GaleraInit{
+		g.InitContainer = InitContainer{
 			Image: env.MariadbOperatorImage,
 		}
 	}
@@ -528,7 +512,7 @@ type GaleraSpec struct {
 	// InitContainer is an init container that runs in the MariaDB Pod and co-operates with mariadb-operator.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	InitContainer GaleraInit `json:"initContainer,omitempty"`
+	InitContainer InitContainer `json:"initContainer,omitempty"`
 	// InitJob defines a Job that co-operates with mariadb-operator by performing initialization tasks.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}

@@ -9,7 +9,6 @@ import (
 	"github.com/hashicorp/go-multierror"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/builder"
-	condition "github.com/mariadb-operator/mariadb-operator/v25/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/replication"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/health"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/refresolver"
@@ -32,11 +31,11 @@ type PodReplicationController struct {
 	recorder    record.EventRecorder
 	builder     *builder.Builder
 	refResolver *refresolver.RefResolver
-	replConfig  *replication.ReplicationConfig
+	replConfig  *replication.ReplicationConfigClient
 }
 
 func NewPodReplicationController(client client.Client, recorder record.EventRecorder, builder *builder.Builder,
-	refResolver *refresolver.RefResolver, replConfig *replication.ReplicationConfig) PodReadinessController {
+	refResolver *refresolver.RefResolver, replConfig *replication.ReplicationConfigClient) PodReadinessController {
 	return &PodReplicationController{
 		Client:      client,
 		recorder:    recorder,
@@ -125,7 +124,6 @@ func (r *PodReplicationController) ReconcilePodNotReady(ctx context.Context, pod
 	errBundle = multierror.Append(errBundle, err)
 
 	err = r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
-		condition.SetPrimarySwitching(status, mariadb)
 		status.CurrentPrimaryFailingSince = nil
 	})
 	errBundle = multierror.Append(errBundle, err)

@@ -1,7 +1,6 @@
 package builder
 
 import (
-	"fmt"
 	"reflect"
 	"sort"
 	"strconv"
@@ -1467,7 +1466,11 @@ func TestMariadbEnv(t *testing.T) {
 			if tt.setClusterName {
 				t.Setenv("CLUSTER_NAME", "example.com")
 			}
-			env := mariadbEnv(tt.mariadb)
+			env, err := mariadbEnv(tt.mariadb)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
 			sortedWantEnv := sortEnvVars(tt.wantEnv)
 			sortedEnv := sortEnvVars(env)
 
@@ -1503,7 +1506,7 @@ func TestContainerArgs(t *testing.T) {
 			},
 		},
 		{
-			name: "MariaDB args verbose /w replication",
+			name: "MariaDB args verbose",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "mariadb-test",
@@ -1518,8 +1521,6 @@ func TestContainerArgs(t *testing.T) {
 				},
 			},
 			wantArgs: []string{
-				"--log-bin",
-				fmt.Sprintf("--log-basename=%s", "mariadb-test"),
 				"--verbose",
 			},
 		},

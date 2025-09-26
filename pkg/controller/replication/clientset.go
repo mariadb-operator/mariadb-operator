@@ -28,23 +28,23 @@ func (c *ReplicationClientSet) close() error {
 	return c.Close()
 }
 
-func (c *ReplicationClientSet) clientForIndex(ctx context.Context, index int) (*sqlClient.Client, error) {
-	return c.ClientForIndex(ctx, index)
+func (c *ReplicationClientSet) clientForIndex(ctx context.Context, index int, clientOpts ...sqlClient.Opt) (*sqlClient.Client, error) {
+	return c.ClientForIndex(ctx, index, clientOpts...)
 }
 
-func (c *ReplicationClientSet) currentPrimaryClient(ctx context.Context) (*sqlClient.Client, error) {
+func (c *ReplicationClientSet) currentPrimaryClient(ctx context.Context, clientOpts ...sqlClient.Opt) (*sqlClient.Client, error) {
 	if c.Mariadb.Status.CurrentPrimaryPodIndex == nil {
 		return nil, errors.New("'status.currentPrimaryPodIndex' must be set")
 	}
-	client, err := c.ClientForIndex(ctx, *c.Mariadb.Status.CurrentPrimaryPodIndex)
+	client, err := c.ClientForIndex(ctx, *c.Mariadb.Status.CurrentPrimaryPodIndex, clientOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("error getting current primary client: %v", err)
 	}
 	return client, nil
 }
 
-func (c *ReplicationClientSet) newPrimaryClient(ctx context.Context) (*sqlClient.Client, error) {
-	client, err := c.ClientForIndex(ctx, *c.Mariadb.Replication().Primary.PodIndex)
+func (c *ReplicationClientSet) newPrimaryClient(ctx context.Context, clientOpts ...sqlClient.Opt) (*sqlClient.Client, error) {
+	client, err := c.ClientForIndex(ctx, *c.Mariadb.Replication().Primary.PodIndex, clientOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("error getting new primary client: %v", err)
 	}

@@ -22,6 +22,8 @@ const (
 	maxscaleTLSListenerCertSecretFieldPath = ".spec.tls.listenerCertSecretRef"
 	maxscaleTLSServerCASecretFieldPath     = ".spec.tls.serverCASecretRef"
 	maxscaleTLSServerCertSecretFieldPath   = ".spec.tls.serverCertSecretRef"
+
+	maxscaleMariaDbRefNameFieldPath = ".spec.mariaDbRef.name"
 )
 
 // nolint:gocyclo
@@ -105,6 +107,17 @@ func (m *MaxScale) IndexerFuncForFieldPath(fieldPath string) (client.IndexerFunc
 			}
 			return nil
 		}, nil
+	case maxscaleMariaDbRefNameFieldPath:
+		return func(obj client.Object) []string {
+			maxscale, ok := obj.(*MaxScale)
+			if !ok {
+				return nil
+			}
+			if maxscale.Spec.MariaDBRef != nil {
+				return []string{maxscale.Spec.MariaDBRef.Name}
+			}
+			return nil
+		}, nil
 	default:
 		return nil, fmt.Errorf("unsupported field path: %s", fieldPath)
 	}
@@ -136,6 +149,16 @@ func IndexMaxScale(ctx context.Context, mgr manager.Manager, builder *ctrlbuilde
 		); err != nil {
 			return fmt.Errorf("error watching '%s': %v", fieldPath, err)
 		}
+	}
+
+	if err := watcherIndexer.Watch(
+		ctx,
+		&MariaDB{},
+		&MaxScale{},
+		&MaxScaleList{},
+		maxscaleMariaDbRefNameFieldPath,
+	); err != nil {
+		return fmt.Errorf("error watching '%s': %v", maxscaleMariaDbRefNameFieldPath, err)
 	}
 
 	return nil

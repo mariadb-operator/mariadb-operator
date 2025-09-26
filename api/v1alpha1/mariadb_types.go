@@ -729,10 +729,10 @@ type MariaDBStatus struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	GaleraRecovery *GaleraRecoveryStatus `json:"galeraRecovery,omitempty"`
-	// ReplicationStatus is the replication current state for each Pod.
+	// Replication is the replication current status per each Pod.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
-	ReplicationStatus ReplicationStatus `json:"replicationStatus,omitempty"`
+	Replication ReplicationStatus `json:"replication,omitempty"`
 	// DefaultVersion is the MariaDB version used by the operator when it cannot infer the version
 	// from spec.image. This can happen if the image uses a digest (e.g. sha256) instead
 	// of a version tag.
@@ -839,6 +839,11 @@ func (m *MariaDB) SetDefaults(env *environment.OperatorEnv) error {
 	if m.IsGaleraEnabled() {
 		if err := m.Spec.Galera.SetDefaults(m, env); err != nil {
 			return fmt.Errorf("error setting Galera defaults: %v", err)
+		}
+	}
+	if m.Spec.Replication != nil && m.Spec.Replication.Enabled {
+		if err := m.Spec.Replication.SetDefaults(m, env); err != nil {
+			return fmt.Errorf("error setting replication defaults: %v", err)
 		}
 	}
 	if m.Spec.BootstrapFrom != nil {

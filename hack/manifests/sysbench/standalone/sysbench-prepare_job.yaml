@@ -20,7 +20,6 @@ spec:
           - --mysql-password=MariaDB11!
           - --mysql-db=sbtest
           - prepare
-        workingDir: /etc/pki
         resources:
           requests:
             cpu: 500m

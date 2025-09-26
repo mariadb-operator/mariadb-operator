@@ -348,6 +348,15 @@ func (c *Client) Exec(ctx context.Context, sql string, args ...any) error {
 	return err
 }
 
+func (c Client) Exists(ctx context.Context, sql string, args ...any) (bool, error) {
+	rows, err := c.db.QueryContext(ctx, sql, args...)
+	if err != nil {
+		return false, err
+	}
+	defer rows.Close()
+	return rows.Next(), nil
+}
+
 type CreateUserOpts struct {
 	IdentifiedBy         string
 	IdentifiedByPassword string
@@ -606,15 +615,6 @@ func (c *Client) SetSystemVariable(ctx context.Context, variable string, value s
 	return c.Exec(ctx, sql)
 }
 
-func (c *Client) SetSystemVariables(ctx context.Context, keyVal map[string]string) error {
-	for k, v := range keyVal {
-		if err := c.SetSystemVariable(ctx, k, v); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 func (c *Client) LockTablesWithReadLock(ctx context.Context) error {
 	return c.Exec(ctx, "FLUSH TABLES WITH READ LOCK;")
 }
@@ -664,6 +664,29 @@ func (c *Client) WaitForReplicaGtid(ctx context.Context, gtid string, timeout ti
 	default:
 		return fmt.Errorf("unexpected result: %d", result)
 	}
+}
+
+func (c *Client) GtidBinlogPos(ctx context.Context) (string, error) {
+	return c.SystemVariable(ctx, "gtid_binlog_pos")
+}
+
+func (c *Client) SetGtidSlavePos(ctx context.Context, gtid string) error {
+	if gtid == "" {
+		return errors.New("gtid must not be empty")
+	}
+	return c.Exec(ctx, fmt.Sprintf("SET @@global.gtid_slave_pos='%s';", gtid))
+}
+
+func (c *Client) ResetGtidSlavePos(ctx context.Context) error {
+	return c.Exec(ctx, "SET @@global.gtid_slave_pos='';")
+}
+
+func (c Client) IsReplicationPrimary(ctx context.Context) (bool, error) {
+	return c.Exists(ctx, "SHOW MASTER STATUS")
+}
+
+func (c Client) IsReplicationReplica(ctx context.Context) (bool, error) {
+	return c.Exists(ctx, "SHOW REPLICA STATUS")
 }
 
 type ChangeMasterOpts struct {
@@ -770,11 +793,6 @@ MASTER_SSL_VERIFY_SERVER_CERT=1;
 		return "", fmt.Errorf("error rendering CHANGE MASTER template: %v", err)
 	}
 	return buf.String(), nil
-}
-
-func (c *Client) ResetSlavePos(ctx context.Context) error {
-	sql := fmt.Sprintf("SET @@global.%s='';", "gtid_slave_pos")
-	return c.Exec(ctx, sql)
 }
 
 const statusVariableSql = "SELECT variable_value FROM information_schema.global_status WHERE variable_name=?;"

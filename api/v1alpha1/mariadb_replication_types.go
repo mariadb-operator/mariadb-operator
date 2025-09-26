@@ -2,8 +2,11 @@ package v1alpha1
 
 import (
 	"fmt"
+	"reflect"
 	"time"
 
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/docker"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/environment"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
@@ -15,7 +18,7 @@ type WaitPoint string
 
 const (
 	// WaitPointAfterSync indicates that the primary waits for the replica ACK before committing the transaction to the storage engine.
-	// This is the default WaitPoint. It trades off performance for consistency.
+	// It trades off performance for consistency.
 	WaitPointAfterSync WaitPoint = "AfterSync"
 	// WaitPointAfterCommit indicates that the primary commits the transaction to the storage engine and waits for the replica ACK afterwards.
 	// It trades off consistency for performance.
@@ -50,7 +53,6 @@ type Gtid string
 
 const (
 	// GtidCurrentPos indicates the union of gtid_binlog_pos and gtid_slave_pos will be used when replicating from master.
-	// This is the default Gtid mode.
 	GtidCurrentPos Gtid = "CurrentPos"
 	// GtidSlavePos indicates that gtid_slave_pos will be used when replicating from master.
 	GtidSlavePos Gtid = "SlavePos"
@@ -138,7 +140,8 @@ type ReplicaReplication struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
 	ConnectionRetries *int `json:"connectionRetries,omitempty"`
 	// SyncTimeout defines the timeout for a replica to be synced with the primary when performing a primary switchover.
-	// If the timeout is reached, the replica GTID will be reset and the switchover will continue.
+	// During a switchover, all replicas must be synced with the primary before promoting the new primary.
+	// During a failover, the primary will be down, therefore this sync step will be skipped.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	SyncTimeout *metav1.Duration `json:"syncTimeout,omitempty"`
@@ -195,6 +198,29 @@ type Replication struct {
 	Enabled bool `json:"enabled,omitempty"`
 }
 
+// SetDefaults sets reasonable defaults.
+func (r *Replication) SetDefaults(mdb *MariaDB, env *environment.OperatorEnv) error {
+	if r.GtidStrictMode == nil {
+		r.GtidStrictMode = ptr.To(true)
+	}
+	if reflect.ValueOf(r.InitContainer).IsZero() {
+		r.InitContainer = InitContainer{
+			Image: env.MariadbOperatorImage,
+		}
+	}
+
+	autoUpdateDataPlane := ptr.Deref(mdb.Spec.UpdateStrategy.AutoUpdateDataPlane, false)
+	if autoUpdateDataPlane {
+		initBumped, err := docker.SetTagOrDigest(env.MariadbOperatorImage, r.InitContainer.Image)
+		if err != nil {
+			return fmt.Errorf("error bumping replication init image: %v", err)
+		}
+		r.InitContainer.Image = initBumped
+	}
+
+	return nil
+}
+
 // ReplicationSpec is the Replication desired state specification.
 type ReplicationSpec struct {
 	// Primary is the replication configuration for the primary node.
@@ -205,6 +231,11 @@ type ReplicationSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Replica *ReplicaReplication `json:"replica,omitempty"`
+	// GtidStrictMode determines whether the GTID strict mode is enabled. See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/gtid#gtid_strict_mode.
+	// It is enabled by default.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	GtidStrictMode *bool `json:"gtidStrictMode,omitempty"`
 	// SyncBinlog indicates after how many events the binary log is synchronized to the disk.
 	// The default is 1, flushing the binary log to disk after every write, which trades off performance for consistency. See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/replication-and-binary-log-system-variables#sync_binlog
 	// +optional
@@ -215,6 +246,10 @@ type ReplicationSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch","urn:alm:descriptor:com.tectonic.ui:advanced"}
 	ProbesEnabled *bool `json:"probesEnabled,omitempty"`
+	// InitContainer is an init container that runs in the MariaDB Pod and co-operates with mariadb-operator.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	InitContainer InitContainer `json:"initContainer,omitempty"`
 }
 
 // FillWithDefaults fills the current ReplicationSpec object with DefaultReplicationSpec.
@@ -253,7 +288,7 @@ var (
 			AutomaticFailoverDelay: ptr.To(metav1.Duration{}),
 		},
 		Replica: &ReplicaReplication{
-			WaitPoint:         ptr.To(WaitPointAfterSync),
+			WaitPoint:         ptr.To(WaitPointAfterCommit),
 			Gtid:              ptr.To(GtidCurrentPos),
 			ConnectionTimeout: ptr.To(tenSeconds),
 			ConnectionRetries: ptr.To(10),
@@ -274,41 +309,55 @@ func (m *MariaDB) GetAutomaticFailoverDelay() time.Duration {
 
 // HasConfiguredReplica indicates whether the cluster has a configured replica.
 func (m *MariaDB) HasConfiguredReplica() bool {
-	return m.Status.ReplicationStatus.HasConfiguredReplica()
+	return m.Status.Replication.HasConfiguredReplica()
 }
 
 // IsConfiguredReplica indicates whether the given pod is a configured replica.
 func (m *MariaDB) IsConfiguredReplica(podName string) bool {
-	return m.Status.ReplicationStatus.IsConfiguredReplica(podName)
+	return m.Status.Replication.IsConfiguredReplica(podName)
 }
 
-// IsSwitchingPrimary indicates whether the primary is being switched.
+// IsSwitchingPrimary indicates whether a primary swichover operation is in progress.
 func (m *MariaDB) IsSwitchingPrimary() bool {
 	return meta.IsStatusConditionFalse(m.Status.Conditions, ConditionTypePrimarySwitched)
 }
 
+// IsSwitchoverRequired indicates that a primary switchover operation is required.
+func (m *MariaDB) IsSwitchoverRequired() bool {
+	if m.Status.CurrentPrimaryPodIndex == nil {
+		return false
+	}
+	currentPodIndex := ptr.Deref(m.Status.CurrentPrimaryPodIndex, 0)
+	desiredPodIndex := ptr.Deref(m.Replication().Primary.PodIndex, 0)
+	return currentPodIndex != desiredPodIndex
+}
+
+// ReplicationState represents the observed replication states.
 type ReplicationState string
 
 const (
-	ReplicationStateMaster        ReplicationState = "Master"
-	ReplicationStateSlave         ReplicationState = "Slave"
+	ReplicationStatePrimary       ReplicationState = "Primary"
+	ReplicationStateReplica       ReplicationState = "Replica"
 	ReplicationStateNotConfigured ReplicationState = "NotConfigured"
 )
 
+// ReplicationStatus is the replication current status per each Pod.
 type ReplicationStatus map[string]ReplicationState
 
+// HasConfiguredReplica determines whether at least one replica has been configured.
 func (r ReplicationStatus) HasConfiguredReplica() bool {
 	for _, state := range r {
-		if state == ReplicationStateSlave {
+		if state == ReplicationStateReplica {
 			return true
 		}
 	}
 	return false
 }
 
+// HasConfiguredReplica determines whether if a specific replica has been configured.
 func (r ReplicationStatus) IsConfiguredReplica(podName string) bool {
 	for pod, state := range r {
-		if pod == podName && state == ReplicationStateSlave {
+		if pod == podName && state == ReplicationStateReplica {
 			return true
 		}
 	}

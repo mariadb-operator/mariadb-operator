@@ -22,8 +22,10 @@ const (
 	MaxscaleStorageMountPath = "/var/lib/maxscale"
 	StorageVolumeRole        = "storage"
 
+	MariadbConfigVolume     = "mariadb-config"
+	MariadbConfigMountPath  = "/etc/mysql/mariadb.conf.d"
 	ConfigVolume            = "config"
-	MariadbConfigMountPath  = "/etc/mysql/conf.d"
+	ConfigMountPath         = "/etc/mysql/conf.d"
 	MaxscaleConfigMountPath = "/etc/config"
 	ConfigVolumeRole        = "config"
 

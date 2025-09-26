@@ -199,6 +199,22 @@ type Container struct {
 	Resources *ResourceRequirements `json:"resources,omitempty"`
 }
 
+// InitContainer is an init container that runs in the MariaDB Pod and co-operates with mariadb-operator.
+type InitContainer struct {
+	// ContainerTemplate defines a template to configure Container objects.
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	ContainerTemplate `json:",inline"`
+	// Image name to be used by the MariaDB instances. The supported format is `<image>:<tag>`.
+	// +kubebuilder:validation:Required
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Image string `json:"image"`
+	// ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`.
+	// +optional
+	// +kubebuilder:validation:Enum=Always;Never;IfNotPresent
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:imagePullPolicy","urn:alm:descriptor:com.tectonic.ui:advanced"}
+	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
+}
+
 // Job defines a Job used to be used with MariaDB.
 type Job struct {
 	// Metadata defines additional metadata for the bootstrap Jobs.

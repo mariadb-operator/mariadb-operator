@@ -78,7 +78,7 @@ start-all-mariadb: ## Stop all mariadb Nodes
 POD ?= mariadb-repl-0
 .PHONY: delete-pod
 delete-pod: ## Continiously delete a Pod.
-	@while true; do kubectl delete pod $(POD); sleep 1; done;
+	@while true; do kubectl delete pod --force $(POD); sleep .5; done;
 
 ##@ Install
 
