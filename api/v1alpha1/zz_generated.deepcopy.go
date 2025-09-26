@@ -4650,6 +4650,11 @@ func (in *TLS) DeepCopyInto(out *TLS) {
 		*out = new(bool)
 		**out = **in
 	}
+	if in.Mutual != nil {
+		in, out := &in.Mutual, &out.Mutual
+		*out = new(bool)
+		**out = **in
+	}
 	if in.ServerCASecretRef != nil {
 		in, out := &in.ServerCASecretRef, &out.ServerCASecretRef
 		*out = new(LocalObjectReference)
