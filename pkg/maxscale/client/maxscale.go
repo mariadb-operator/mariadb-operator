@@ -3,6 +3,8 @@ package client
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"strings"
 
 	mdbhttp "github.com/mariadb-operator/mariadb-operator/v25/pkg/http"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -65,7 +67,7 @@ func NewMaxScaleClient(client *mdbhttp.Client) *MaxScaleClient {
 }
 
 func (m *MaxScaleClient) Get(ctx context.Context) (*Data[*MaxScaleAttributes], error) {
-	res, err := m.client.Get(ctx, "maxscale", nil)
+	res, err := m.client.Get(ctx, "maxscale", nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -83,7 +85,17 @@ func (m *MaxScaleClient) Patch(ctx context.Context, attributes *MaxScaleAttribut
 			Attributes: attributes,
 		},
 	}
-	res, err := m.client.Patch(ctx, "maxscale", object, nil)
+	res, err := m.client.Patch(ctx, "maxscale", object, nil, nil)
+	if err != nil {
+		return err
+	}
+	return handleResponse(res, nil)
+}
+
+func (m *MaxScaleClient) CallModule(ctx context.Context, module, operation string, args ...string) error {
+	path := fmt.Sprintf("maxscale/modules/%s/%s", module, operation)
+	rawQuery := strings.Join(args, "&")
+	res, err := m.client.Post(ctx, path, nil, nil, &rawQuery)
 	if err != nil {
 		return err
 	}

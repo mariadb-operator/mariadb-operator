@@ -209,6 +209,10 @@ func (r *MaxScaleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			reconcile: r.reconcileListenerState,
 		},
 		{
+			name:      "Switchover",
+			reconcile: r.reconcileSwitchover,
+		},
+		{
 			name:      "Connection",
 			reconcile: r.reconcileConnection,
 		},
@@ -1453,6 +1457,50 @@ func (r *MaxScaleReconciler) reconcileListenerState(ctx context.Context, req *re
 		return ctrl.Result{}, nil
 	})
 }
+
+func (r *MaxScaleReconciler) reconcileSwitchover(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
+	if req.mxs.Status.GetPrimaryServer() == nil ||
+		req.mxs.Spec.PrimaryServer == nil ||
+		req.mxs.Spec.Monitor.Module != mariadbv1alpha1.MonitorModuleMariadb {
+		return ctrl.Result{}, nil
+	}
+	logger := log.FromContext(ctx).WithName("switchover")
+	primary := *req.mxs.Status.GetPrimaryServer()
+	newPrimary := *req.mxs.Spec.PrimaryServer
+
+	if primary == newPrimary {
+		if req.mxs.IsSwitchingPrimary() {
+			if err := r.patchStatus(ctx, req.mxs, func(status *mariadbv1alpha1.MaxScaleStatus) error {
+				condition.SetPrimarySwitched(&req.mxs.Status)
+				return nil
+			}); err != nil {
+				return ctrl.Result{}, fmt.Errorf("error patching MaxScale status: %v", err)
+			}
+
+			logger.Info("Primary server switched")
+			r.Recorder.Eventf(req.mxs, corev1.EventTypeNormal, mariadbv1alpha1.ReasonPrimarySwitched,
+				"Primary server switched to '%s'", primary)
+		}
+		return ctrl.Result{}, nil
+	}
+	logger.Info("Switching primary server", "primary", primary, "new-primary", newPrimary)
+	r.Recorder.Eventf(req.mxs, corev1.EventTypeNormal, mariadbv1alpha1.ReasonPrimarySwitching,
+		"Switching primary server from '%s' to '%s'", primary, newPrimary)
+
+	if err := r.patchStatus(ctx, req.mxs, func(status *mariadbv1alpha1.MaxScaleStatus) error {
+		condition.SetPrimarySwitching(&req.mxs.Status, newPrimary)
+		return nil
+	}); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error patching MaxScale status: %v", err)
+	}
+
+	mxsApi := newMaxScaleAPI(req.mxs, req.podClient, r.RefResolver)
+	if err := mxsApi.mariadbMonSwitchover(ctx, primary, newPrimary); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error requesting MariaDB monitor switchover: %v", err)
+	}
+	return ctrl.Result{}, nil
+}
+
 func (r *MaxScaleReconciler) reconcileConnection(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
 	if req.mxs.Spec.Connection == nil {
 		return ctrl.Result{}, nil

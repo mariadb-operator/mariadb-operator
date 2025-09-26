@@ -353,6 +353,19 @@ func (m *maxScaleAPI) patchMaxScaleConfigSync(ctx context.Context) error {
 	return m.client.MaxScale.Patch(ctx, &attrs)
 }
 
+func (m *maxScaleAPI) mariadbMonSwitchover(ctx context.Context, primary, newPrimary string) error {
+	if m.mxs.Spec.Monitor.Module == "" {
+		return errors.New("monitor module must be set")
+	}
+	if m.mxs.Spec.Monitor.Module != mariadbv1alpha1.MonitorModuleMariadb {
+		return fmt.Errorf("unsupported monitor module: \"%v\"", m.mxs.Spec.Monitor.Module)
+	}
+	if m.mxs.Spec.Monitor.Name == "" {
+		return errors.New("monitor name must be set")
+	}
+	return m.client.MaxScale.CallModule(ctx, "mariadbmon", "switchover", m.mxs.Spec.Monitor.Name, newPrimary, primary)
+}
+
 // MaxScale client
 
 func (r *MaxScaleReconciler) defaultClientWithPodIndex(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,
