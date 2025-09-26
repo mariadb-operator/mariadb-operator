@@ -92,6 +92,50 @@ var _ = Describe("External MariaDB spec", func() {
 		}, testTimeout, testInterval).Should(BeTrue())
 	})
 
+	It("should handle mutual TLS disabled", func() {
+		By("Creating External MariaDB with mutual TLS disabled")
+		key := types.NamespacedName{
+			Name:      "test-external-mariadb-no-mutual-tls",
+			Namespace: testNamespace,
+		}
+		emdb := mariadbv1alpha1.ExternalMariaDB{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      key.Name,
+				Namespace: key.Namespace,
+			},
+			Spec: mariadbv1alpha1.ExternalMariaDBSpec{
+				Host:     testEmulateExternalMdbHost,
+				Username: ptr.To("root"),
+				PasswordSecretKeyRef: &mariadbv1alpha1.SecretKeySelector{
+					LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+						Name: testEmulatedExternalPwdKey.Name,
+					},
+					Key: testPwdSecretKey,
+				},
+				TLS: &mariadbv1alpha1.TLS{
+					Enabled:  true,
+					Required: ptr.To(false),
+					Mutual:   ptr.To(false),
+					ServerCASecretRef: &mariadbv1alpha1.LocalObjectReference{
+						Name: "mdb-emulate-external-test-ca",
+					},
+				},
+			},
+		}
+		Expect(k8sClient.Create(testCtx, &emdb)).To(Succeed())
+		DeferCleanup(func() {
+			deleteExternalMariadb(key, false)
+		})
+
+		By("Expecting IsTLSMutual to return false")
+		Eventually(func() bool {
+			if err := k8sClient.Get(testCtx, key, &emdb); err != nil {
+				return false
+			}
+			return !emdb.IsTLSMutual()
+		}, testTimeout, testInterval).Should(BeTrue())
+	})
+
 })
 
 func TestGetVersion(t *testing.T) {
