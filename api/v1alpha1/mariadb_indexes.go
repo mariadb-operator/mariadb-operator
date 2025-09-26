@@ -10,7 +10,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	ctrlbuilder "sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	ctrlpredicate "sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
 const (
@@ -22,6 +24,8 @@ const (
 	mariadbTLSServerCertSecretFieldPath = ".spec.tls.serverCertSecretRef"
 	mariadbTLSClientCASecretFieldPath   = ".spec.tls.clientCASecretRef"
 	mariadbTLSClientCertSecretFieldPath = ".spec.tls.clientCertSecretRef"
+
+	mariadbMaxScaleRefNameFieldPath = ".spec.maxScaleRef.name"
 )
 
 // nolint:gocyclo
@@ -94,6 +98,17 @@ func (m *MariaDB) IndexerFuncForFieldPath(fieldPath string) (client.IndexerFunc,
 			}
 			return nil
 		}, nil
+	case mariadbMaxScaleRefNameFieldPath:
+		return func(o client.Object) []string {
+			mdb, ok := o.(*MariaDB)
+			if !ok {
+				return nil
+			}
+			if mdb.Spec.MaxScaleRef != nil {
+				return []string{mdb.Spec.MaxScaleRef.Name}
+			}
+			return nil
+		}, nil
 	default:
 		return nil, fmt.Errorf("unsupported field path: %s", fieldPath)
 	}
@@ -138,5 +153,37 @@ func IndexMariaDB(ctx context.Context, mgr manager.Manager, builder *ctrlbuilder
 		}
 	}
 
+	if err := watcherIndexer.Watch(
+		ctx,
+		&MaxScale{},
+		&MariaDB{},
+		&MariaDBList{},
+		mariadbMaxScaleRefNameFieldPath,
+		ctrlbuilder.WithPredicates(maxScaleChangedPrimaryServer()),
+	); err != nil {
+		return fmt.Errorf("error watching '%s': %v", mariadbMaxScaleRefNameFieldPath, err)
+	}
+
 	return nil
+}
+
+func maxScaleChangedPrimaryServer() ctrlpredicate.Funcs {
+	return ctrlpredicate.Funcs{
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			oldObj, ok1 := e.ObjectOld.(*MaxScale)
+			newObj, ok2 := e.ObjectNew.(*MaxScale)
+			if !ok1 || !ok2 {
+				return false
+			}
+			oldPrimaryServer := oldObj.Status.PrimaryServer
+			newPrimaryServer := newObj.Status.PrimaryServer
+			if oldPrimaryServer == nil || newPrimaryServer == nil {
+				return false
+			}
+			return *oldPrimaryServer != *newPrimaryServer
+		},
+		CreateFunc:  func(e event.CreateEvent) bool { return false },
+		DeleteFunc:  func(e event.DeleteEvent) bool { return false },
+		GenericFunc: func(e event.GenericEvent) bool { return false },
+	}
 }

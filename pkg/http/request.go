@@ -14,9 +14,9 @@ import (
 )
 
 func (c *Client) NewRequestWithContext(ctx context.Context, method string, path string, body interface{},
-	query map[string]string) (*http.Request, error) {
+	query map[string]string, rawQuery *string) (*http.Request, error) {
 
-	baseUrl, err := c.buildUrl(path, query)
+	baseUrl, err := c.buildUrl(path, query, rawQuery)
 	if err != nil {
 		return nil, fmt.Errorf("error building URL: %v", err)
 	}
@@ -41,7 +41,7 @@ func (c *Client) NewRequestWithContext(ctx context.Context, method string, path 
 	return http.NewRequestWithContext(ctx, method, baseUrl.String(), bodyReader)
 }
 
-func (c *Client) buildUrl(path string, query map[string]string) (*url.URL, error) {
+func (c *Client) buildUrl(path string, query map[string]string, rawQuery *string) (*url.URL, error) {
 	baseUrl := *c.baseUrl
 	if c.version != "" {
 		baseUrl.Path += fmt.Sprintf("/%s", c.version)
@@ -57,6 +57,8 @@ func (c *Client) buildUrl(path string, query map[string]string) (*url.URL, error
 			q.Add(k, v)
 		}
 		baseUrl.RawQuery = q.Encode()
+	} else if rawQuery != nil && *rawQuery != "" {
+		baseUrl.RawQuery = *rawQuery
 	}
 
 	newUrl, err := url.Parse(baseUrl.String())

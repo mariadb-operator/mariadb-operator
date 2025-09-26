@@ -189,6 +189,24 @@ var _ = Describe("MaxScale webhook", func() {
 				true,
 			),
 			Entry(
+				"Invalid primaryServer",
+				&v1alpha1.MaxScale{
+					ObjectMeta: meta,
+					Spec: v1alpha1.MaxScaleSpec{
+						MariaDBRef: &v1alpha1.MariaDBRef{
+							ObjectReference: v1alpha1.ObjectReference{
+								Name: "mariadb",
+							},
+						},
+						PrimaryServer: ptr.To("mariadb-galera-0"),
+						Monitor: v1alpha1.MaxScaleMonitor{
+							Module: v1alpha1.MonitorModuleGalera,
+						},
+					},
+				},
+				true,
+			),
+			Entry(
 				"Invalid service names",
 				&v1alpha1.MaxScale{
 					ObjectMeta: meta,
