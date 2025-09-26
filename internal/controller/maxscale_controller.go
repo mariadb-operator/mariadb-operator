@@ -1459,13 +1459,13 @@ func (r *MaxScaleReconciler) reconcileListenerState(ctx context.Context, req *re
 }
 
 func (r *MaxScaleReconciler) reconcileSwitchover(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
-	if req.mxs.Status.GetPrimaryServer() == nil ||
+	if req.mxs.Status.PrimaryServer == nil ||
 		req.mxs.Spec.PrimaryServer == nil ||
 		req.mxs.Spec.Monitor.Module != mariadbv1alpha1.MonitorModuleMariadb {
 		return ctrl.Result{}, nil
 	}
 	logger := log.FromContext(ctx).WithName("switchover")
-	primary := *req.mxs.Status.GetPrimaryServer()
+	primary := *req.mxs.Status.PrimaryServer
 	newPrimary := *req.mxs.Spec.PrimaryServer
 
 	if primary == newPrimary {
