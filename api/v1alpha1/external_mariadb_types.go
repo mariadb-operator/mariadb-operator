@@ -152,6 +152,15 @@ func (m *ExternalMariaDB) IsTLSEnabled() bool {
 	return ptr.Deref(m.Spec.TLS, TLS{}).Enabled
 }
 
+// IsTLSMutual specifies whether TLS must be mutual between server and client.
+func (m *ExternalMariaDB) IsTLSMutual() bool {
+	if !m.IsTLSEnabled() {
+		return false
+	}
+	tls := ptr.Deref(m.Spec.TLS, TLS{})
+	return ptr.Deref(tls.Mutual, true)
+}
+
 // Get MariaDB hostname
 func (m *ExternalMariaDB) GetHost() string {
 	return m.Spec.Host

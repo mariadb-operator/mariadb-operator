@@ -4,8 +4,10 @@
 
 ## Table of contents
 <!-- toc -->
-- [`ExternalMariaDB` configuration](#externalmariadb-configuration)
-- [Supported objects](#supported-objects)
+- [External MariaDB](#external-mariadb)
+  - [Table of contents](#table-of-contents)
+  - [`ExternalMariaDB` configuration](#externalmariadb-configuration)
+  - [Supported objects](#supported-objects)
 <!-- /toc -->
 
 ## `ExternalMariaDB` configuration
@@ -56,6 +58,32 @@ spec:
       retryInterval: 10s
 ```
 As a result, you will be able to specify the `ExternalMariaDB` as a reference in [multiple objects](#supported-objects), the same way you would do for a internal `MariaDB` resource.
+
+If you need to use TLS to connect to the external MariaDB but don't want to send the client certificate, you can set the `tls.mutual` field to false and only set the client CA:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: ExternalMariaDB
+metadata:
+  name: external-mariadb
+spec:
+  host: mariadb.example.com
+  port: 3306
+  username: root
+  passwordSecretKeyRef:
+    name: mariadb
+    key: password
+  tls:
+    enabled: true
+    mutual: false
+    clientCASecretRef:
+      name: client-ca-secret
+  connection:
+    secretName: external-mariadb
+    healthCheck:
+      interval: 5s
+      retryInterval: 10s
+```
 
 As part of the `ExternalMariaDB` reconciliation, a `Connection` will be created whenever the `connection` template is specified. This could be handy to track the external connection status and declaratively create a connection string in a `Secret` to be consumed by applications to connect to the external `MariaDB`.
 

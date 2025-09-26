@@ -17,6 +17,7 @@ type Imager interface {
 
 type TLSProvider interface {
 	IsTLSEnabled() bool
+	IsTLSMutual() bool
 	TLSCABundleSecretKeyRef() mariadbv1alpha1.SecretKeySelector
 	TLSClientCertSecretKey() types.NamespacedName
 	TLSServerCertSecretKey() types.NamespacedName
