@@ -639,7 +639,7 @@ type MaxScaleSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	MariaDBRef *MariaDBRef `json:"mariaDbRef,omitempty" webhook:"inmutable"`
-	// PrimaryServer specifies the desired primary server. Setting this field triggers a swithcover operation in MaxScale to the desired server.
+	// PrimaryServer specifies the desired primary server. Setting this field triggers a switchover operation in MaxScale to the desired server.
 	// This option is only valid when using monitors that support switchover, currently limited to the MariaDB monitor.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status={"urn:alm:descriptor:com.tectonic.ui:advanced"}
