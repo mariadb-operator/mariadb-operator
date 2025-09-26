@@ -960,6 +960,11 @@ func (m *MaxScale) IsTLSEnabled() bool {
 	return ptr.Deref(m.Spec.TLS, MaxScaleTLS{}).Enabled
 }
 
+// IsSwitchingPrimary indicates whether a primary swichover operation is in progress.
+func (m *MaxScale) IsSwitchingPrimary() bool {
+	return meta.IsStatusConditionFalse(m.Status.Conditions, ConditionTypePrimarySwitched)
+}
+
 // ShouldVerifyPeerCertificate indicates whether peer certificate should be verified
 func (m *MaxScale) ShouldVerifyPeerCertificate() bool {
 	if !m.IsTLSEnabled() {

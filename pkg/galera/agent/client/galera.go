@@ -19,7 +19,7 @@ func NewGalera(client *mdbhttp.Client) *Galera {
 }
 
 func (g *Galera) Health(ctx context.Context) (bool, error) {
-	res, err := g.client.Get(ctx, "/health", nil)
+	res, err := g.client.Get(ctx, "/health", nil, nil)
 	if err != nil {
 		return false, err
 	}
@@ -28,7 +28,7 @@ func (g *Galera) Health(ctx context.Context) (bool, error) {
 }
 
 func (g *Galera) GetState(ctx context.Context) (*recovery.GaleraState, error) {
-	res, err := g.client.Get(ctx, "/api/galera/state", nil)
+	res, err := g.client.Get(ctx, "/api/galera/state", nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -40,7 +40,7 @@ func (g *Galera) GetState(ctx context.Context) (*recovery.GaleraState, error) {
 }
 
 func (g *Galera) IsBootstrapEnabled(ctx context.Context) (bool, error) {
-	res, err := g.client.Get(ctx, "/api/galera/bootstrap", nil)
+	res, err := g.client.Get(ctx, "/api/galera/bootstrap", nil, nil)
 	if err != nil {
 		return false, err
 	}
@@ -54,7 +54,7 @@ func (g *Galera) IsBootstrapEnabled(ctx context.Context) (bool, error) {
 }
 
 func (g *Galera) EnableBootstrap(ctx context.Context, bootstrap *recovery.Bootstrap) error {
-	res, err := g.client.Put(ctx, "/api/galera/bootstrap", bootstrap, nil)
+	res, err := g.client.Put(ctx, "/api/galera/bootstrap", bootstrap, nil, nil)
 	if err != nil {
 		return err
 	}
@@ -62,7 +62,7 @@ func (g *Galera) EnableBootstrap(ctx context.Context, bootstrap *recovery.Bootst
 }
 
 func (g *Galera) DisableBootstrap(ctx context.Context) error {
-	res, err := g.client.Delete(ctx, "/api/galera/bootstrap", nil, nil)
+	res, err := g.client.Delete(ctx, "/api/galera/bootstrap", nil, nil, nil)
 	if err != nil {
 		return err
 	}

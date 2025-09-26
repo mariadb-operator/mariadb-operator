@@ -111,15 +111,15 @@ func (r *PodReplicationController) ReconcilePodNotReady(ctx context.Context, pod
 		}
 	}
 
-	fromIndex := mariadb.Status.CurrentPrimaryPodIndex
-	toIndex, err := health.ReplicaPodHealthyIndex(ctx, r, mariadb)
+	primary := mariadb.Status.CurrentPrimaryPodIndex
+	newPrimary, err := health.ReplicaPodHealthyIndex(ctx, r, mariadb)
 	if err != nil {
 		return fmt.Errorf("error getting healthy replica: %v", err)
 	}
 
 	var errBundle *multierror.Error
 	err = r.patch(ctx, mariadb, func(mdb *mariadbv1alpha1.MariaDB) {
-		mdb.Replication().Primary.PodIndex = toIndex
+		mdb.Replication().Primary.PodIndex = newPrimary
 	})
 	errBundle = multierror.Append(errBundle, err)
 
@@ -132,9 +132,9 @@ func (r *PodReplicationController) ReconcilePodNotReady(ctx context.Context, pod
 		return fmt.Errorf("error patching MariaDB: %v", err)
 	}
 
-	logger.Info("Switching primary", "from-index", fromIndex, "to-index", *toIndex)
+	logger.Info("Switching primary", "primary", primary, "new-primary", *newPrimary)
 	r.recorder.Eventf(mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonPrimarySwitching,
-		"Switching primary from index '%d' to index '%d'", *fromIndex, *toIndex)
+		"Switching primary from index '%d' to index '%d'", *primary, *newPrimary)
 
 	return nil
 }
