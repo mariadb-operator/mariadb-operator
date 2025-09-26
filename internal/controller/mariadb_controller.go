@@ -261,6 +261,7 @@ func requeueResult(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) (ctrl.Resu
 	return ctrl.Result{}, nil
 }
 
+// @TODO: This needs to be moved
 func (r *MariaDBReconciler) reconcileSecret(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
 	var secretKeyRefs []mariadbv1alpha1.GeneratedSecretKeyRef
 
@@ -817,20 +818,21 @@ func (r *MariaDBReconciler) reconcileUsers(ctx context.Context, mariadb *mariadb
 		},
 	}
 
-	if result, err := r.AuthReconciler.ReconcileUserGrant(ctx, sysUserKey, mariadb, userOpts, grantOpts); !result.IsZero() || err != nil {
+	result, err := r.AuthReconciler.ReconcileUserGrant(
+		ctx,
+		sysUserKey,
+		mariadb,
+		userOpts,
+		[]auth.GrantOpts{grantOpts},
+		auth.WithWaitForGrant(true),
+		auth.WithWaitForUser(true),
+	)
+
+	if !result.IsZero() || err != nil {
 		if err != nil {
 			return ctrl.Result{}, fmt.Errorf("error reconciling %s user auth: %v", sysUser, err)
 		}
 		return result, err
-	}
-
-	var sysGrant mariadbv1alpha1.Grant
-	if err := r.Get(ctx, sysGrantKey, &sysGrant); err != nil {
-		return ctrl.Result{}, fmt.Errorf("error getting %s Grant: %v", sysUser, err)
-	}
-	if !sysGrant.IsReady() {
-		log.FromContext(ctx).V(1).Info("Grant not ready. Requeuing...", "user", sysUser)
-		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
 
 	if mariadb.IsInitialUserEnabled() {
@@ -874,7 +876,15 @@ func (r *MariaDBReconciler) reconcileUsers(ctx context.Context, mariadb *mariadb
 			},
 		}
 
-		if result, err := r.AuthReconciler.ReconcileUserGrant(ctx, userKey, mariadb, user, grant); !result.IsZero() || err != nil {
+		result, err := r.AuthReconciler.ReconcileUserGrant(
+			ctx,
+			userKey,
+			mariadb,
+			user,
+			[]auth.GrantOpts{grant},
+			auth.WithWaitForUser(true),
+		)
+		if !result.IsZero() || err != nil {
 			if err != nil {
 				return ctrl.Result{}, fmt.Errorf("error reconciling user auth: %v", err)
 			}

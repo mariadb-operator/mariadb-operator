@@ -48,9 +48,6 @@ func (r *MariaDBReconciler) reconcileMetrics(ctx context.Context, mariadb *maria
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
 
-	if err := r.reconcileMetricsPassword(ctx, mariadb); err != nil {
-		return ctrl.Result{}, err
-	}
 	if result, err := r.reconcileAuth(ctx, mariadb); !result.IsZero() || err != nil {
 		return result, err
 	}
@@ -67,22 +64,6 @@ func (r *MariaDBReconciler) reconcileMetrics(ctx context.Context, mariadb *maria
 		return ctrl.Result{}, err
 	}
 	return ctrl.Result{}, nil
-}
-
-func (r *MariaDBReconciler) reconcileMetricsPassword(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
-	secretKeyRef := mariadb.Spec.Metrics.PasswordSecretKeyRef
-	req := secret.PasswordRequest{
-		Owner:    mariadb,
-		Metadata: mariadb.Spec.InheritMetadata,
-		Key: types.NamespacedName{
-			Name:      secretKeyRef.Name,
-			Namespace: mariadb.Namespace,
-		},
-		SecretKey: secretKeyRef.Key,
-		Generate:  secretKeyRef.Generate,
-	}
-	_, err := r.SecretReconciler.ReconcilePassword(ctx, req)
-	return err
 }
 
 func (r *MariaDBReconciler) reconcileAuth(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
@@ -112,7 +93,15 @@ func (r *MariaDBReconciler) reconcileAuth(ctx context.Context, mariadb *mariadbv
 		},
 		Key: key,
 	}
-	return r.AuthReconciler.ReconcileUserGrant(ctx, key, mariadb, userOpts, grantOpts)
+	return r.AuthReconciler.ReconcileUserGrant(
+		ctx,
+		key,
+		mariadb,
+		userOpts,
+		[]auth.GrantOpts{grantOpts},
+		auth.WithWaitForUser(true),
+		auth.WithGeneratePassword(mariadb, &mariadb.Spec.Metrics.PasswordSecretKeyRef),
+	)
 }
 
 func (r *MariaDBReconciler) reconcileExporterConfig(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {

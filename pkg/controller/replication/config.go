@@ -14,7 +14,6 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/sql"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/statefulset"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/version"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -61,10 +60,6 @@ func (r *ReplicationConfig) ConfigurePrimary(ctx context.Context, mariadb *maria
 	}
 	if err := client.DisableReadOnly(ctx); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error disabling read_only: %v", err)
-	}
-	// @TODO: This should probably be a functionality of the AuthReconciler. If it does not exist and Generate is true, we can create it
-	if err := r.reconcileReplUserPassword(ctx, mariadb); err != nil {
-		return ctrl.Result{}, fmt.Errorf("error while creating password for replication user: %v", err)
 	}
 
 	if result, err := r.reconcileSQL(ctx, mariadb, client); !result.IsZero() || err != nil {
@@ -275,38 +270,25 @@ func (r *ReplicationConfig) reconcileSQL(ctx context.Context, mariadb *mariadbv1
 		},
 	}
 
-	if result, err := r.authReconciler.ReconcileUserGrant(ctx, replUserKey, mariadb, userOpts, grantOpts); !result.IsZero() || err != nil {
+	result, err := r.authReconciler.ReconcileUserGrant(
+		ctx,
+		replUserKey,
+		mariadb,
+		userOpts,
+		[]auth.GrantOpts{grantOpts},
+		auth.WithGeneratePassword(mariadb, mariadb.Spec.Replication.Replica.ReplPasswordSecretKeyRef),
+		auth.WithWaitForGrant(true),
+		auth.WithWaitForUser(true),
+	)
+
+	if !result.IsZero() || err != nil {
 		if err != nil {
 			return ctrl.Result{}, fmt.Errorf("error reconciling %s user auth: %v", replUser, err)
 		}
 		return result, err
 	}
 
-	if result, err := r.authReconciler.WaitForGrant(ctx, replGrantKey); !result.IsZero() || err != nil {
-		if err != nil {
-			return ctrl.Result{}, fmt.Errorf("error waiting for grant: %v", err)
-		}
-		return result, err
-	}
-
 	return ctrl.Result{}, nil
-}
-
-// reconcileReplUserPassword will create a new secret with repl user password if it does not already exists
-func (r *ReplicationConfig) reconcileReplUserPassword(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) error {
-	secretKeyRef := mdb.Spec.Replication.Replica.ReplPasswordSecretKeyRef
-	req := secret.PasswordRequest{
-		Metadata: mdb.Spec.InheritMetadata,
-		Owner:    mdb,
-		Key: types.NamespacedName{
-			Name:      secretKeyRef.Name,
-			Namespace: mdb.Namespace,
-		},
-		SecretKey: secretKeyRef.Key,
-		Generate:  secretKeyRef.Generate,
-	}
-	_, err := r.secretReconciler.ReconcilePassword(ctx, req)
-	return err
 }
 
 func serverId(index int) string {

@@ -425,40 +425,6 @@ func (r *MaxScaleReconciler) reconcileSecret(ctx context.Context, req *requestMa
 		return ctrl.Result{}, fmt.Errorf("error reconciling config Secret: %v", err)
 	}
 
-	randomPasswordKeys := []mariadbv1alpha1.GeneratedSecretKeyRef{
-		mxs.Spec.Auth.AdminPasswordSecretKeyRef,
-		mxs.Spec.Auth.ClientPasswordSecretKeyRef,
-		mxs.Spec.Auth.ServerPasswordSecretKeyRef,
-		mxs.Spec.Auth.MonitorPasswordSecretKeyRef,
-	}
-	if mxs.Spec.Auth.SyncPasswordSecretKeyRef != nil {
-		randomPasswordKeys = append(randomPasswordKeys, *mxs.Spec.Auth.SyncPasswordSecretKeyRef)
-	}
-	if mxs.AreMetricsEnabled() {
-		randomPasswordKeys = append(randomPasswordKeys, mxs.Spec.Auth.MetricsPasswordSecretKeyRef)
-	}
-
-	for _, secretKeyRef := range randomPasswordKeys {
-		if secretKeyRef.Name == "" || secretKeyRef.Key == "" {
-			log.FromContext(ctx).V(1).Info("Secret not initialized. Requeuing", "secret-name", secretKeyRef.Name, "secret-key", secretKeyRef.Key)
-			return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
-		}
-
-		randomSecretReq := secret.PasswordRequest{
-			Owner:    mxs,
-			Metadata: mxs.Spec.InheritMetadata,
-			Key: types.NamespacedName{
-				Name:      secretKeyRef.Name,
-				Namespace: mxs.Namespace,
-			},
-			SecretKey: secretKeyRef.Key,
-			Generate:  secretKeyRef.Generate,
-		}
-		if _, err := r.SecretReconciler.ReconcilePassword(ctx, randomSecretReq); err != nil {
-			return ctrl.Result{}, fmt.Errorf("error reconciling password: %v", err)
-		}
-	}
-
 	return ctrl.Result{}, nil
 }
 
@@ -680,9 +646,10 @@ func (r *MaxScaleReconciler) isStatefulSetReady(sts *appsv1.StatefulSet, mxs *ma
 }
 
 type maxscaleAuthReconcileItem struct {
-	key    types.NamespacedName
-	user   builder.UserOpts
-	grants []auth.GrantOpts
+	key         types.NamespacedName
+	passwordRef *mariadbv1alpha1.GeneratedSecretKeyRef
+	user        builder.UserOpts
+	grants      []auth.GrantOpts
 }
 
 func (r *MaxScaleReconciler) reconcileAuth(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
@@ -707,7 +674,8 @@ func (r *MaxScaleReconciler) reconcileAuth(ctx context.Context, req *requestMaxS
 
 	items := []maxscaleAuthReconcileItem{
 		{
-			key: clientKey,
+			passwordRef: &mxs.Spec.Auth.ClientPasswordSecretKeyRef,
+			key:         clientKey,
 			user: builder.UserOpts{
 				Name:                 mxs.Spec.Auth.ClientUsername,
 				PasswordSecretKeyRef: &mxs.Spec.Auth.ClientPasswordSecretKeyRef.SecretKeySelector,
@@ -737,7 +705,8 @@ func (r *MaxScaleReconciler) reconcileAuth(ctx context.Context, req *requestMaxS
 			},
 		},
 		{
-			key: serverKey,
+			passwordRef: &mxs.Spec.Auth.ServerPasswordSecretKeyRef,
+			key:         serverKey,
 			user: builder.UserOpts{
 				Name:                 mxs.Spec.Auth.ServerUsername,
 				PasswordSecretKeyRef: &mxs.Spec.Auth.ServerPasswordSecretKeyRef.SecretKeySelector,
@@ -785,7 +754,8 @@ func (r *MaxScaleReconciler) reconcileAuth(ctx context.Context, req *requestMaxS
 			},
 		},
 		{
-			key: monitorKey,
+			passwordRef: &mxs.Spec.Auth.MonitorPasswordSecretKeyRef,
+			key:         monitorKey,
 			user: builder.UserOpts{
 				Name:                 mxs.Spec.Auth.MonitorUsername,
 				PasswordSecretKeyRef: &mxs.Spec.Auth.MonitorPasswordSecretKeyRef.SecretKeySelector,
@@ -803,7 +773,8 @@ func (r *MaxScaleReconciler) reconcileAuth(ctx context.Context, req *requestMaxS
 			Namespace: mxs.Namespace,
 		}
 		items = append(items, maxscaleAuthReconcileItem{
-			key: syncKey,
+			passwordRef: mxs.Spec.Auth.SyncPasswordSecretKeyRef,
+			key:         syncKey,
 			user: builder.UserOpts{
 				Name:                 *mxs.Spec.Auth.SyncUsername,
 				PasswordSecretKeyRef: &mxs.Spec.Auth.SyncPasswordSecretKeyRef.SecretKeySelector,
@@ -836,7 +807,18 @@ func (r *MaxScaleReconciler) reconcileAuth(ctx context.Context, req *requestMaxS
 	}
 
 	for _, item := range items {
-		if result, err := r.AuthReconciler.ReconcileUserGrant(ctx, item.key, mxs, item.user, item.grants...); !result.IsZero() || err != nil {
+		result, err := r.AuthReconciler.ReconcileUserGrant(
+			ctx,
+			item.key,
+			mxs,
+			item.user,
+			item.grants,
+			auth.WithWaitForUser(true),
+			auth.WithWaitForGrant(true),
+			auth.WithGeneratePassword(mxs, item.passwordRef),
+		)
+
+		if !result.IsZero() || err != nil {
 			if err != nil {
 				return ctrl.Result{}, fmt.Errorf("error reconciling %s user auth: %v", item.key.Name, err)
 			}
