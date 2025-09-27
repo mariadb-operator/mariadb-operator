@@ -8,10 +8,17 @@ import (
 	"sync"
 	"syscall"
 
+	"github.com/go-logr/logr"
+	galerahandler "github.com/mariadb-operator/mariadb-operator/v25/pkg/agent/handler/galera"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/agent/router"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/agent/server"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/environment"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/filemanager"
+	mdbhttp "github.com/mariadb-operator/mariadb-operator/v25/pkg/http"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/log"
 	"github.com/spf13/cobra"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var galeraCommand = &cobra.Command{
@@ -42,17 +49,24 @@ var galeraCommand = &cobra.Command{
 			os.Exit(1)
 		}
 
-		apiServer, err := getAPIServer(
-			env,
+		apiLogger := logger.WithName("api")
+		apiHandler := galerahandler.NewGaleraHandler(
 			fileManager,
+			mdbhttp.NewResponseWriter(&apiLogger),
+			&apiLogger,
+		)
+		apiServer, err := getAPIServer(
+			apiHandler,
+			env,
 			k8sClient,
-			logger,
+			apiLogger,
 		)
 		if err != nil {
 			logger.Error(err, "Error creating API server")
 			os.Exit(1)
 		}
-		probeServer, err := getProbeServer(env, k8sClient)
+
+		probeServer, err := getGaleraProbeServer(env, k8sClient, logger.WithName("probe"))
 		if err != nil {
 			logger.Error(err, "Error creating probe server")
 			os.Exit(1)
@@ -89,4 +103,32 @@ var galeraCommand = &cobra.Command{
 		}
 		logger.Info("Galera agent stopped")
 	},
+}
+
+func getGaleraProbeServer(env *environment.PodEnvironment, k8sClient client.Client, logger logr.Logger) (*server.Server, error) {
+	mariadbKey := types.NamespacedName{
+		Name:      env.MariadbName,
+		Namespace: env.PodNamespace,
+	}
+
+	handler := galerahandler.NewGaleraProbe(
+		mariadbKey,
+		k8sClient,
+		mdbhttp.NewResponseWriter(&logger),
+		&logger,
+	)
+	router := router.NewProbeRouter(
+		handler,
+		logger,
+	)
+
+	server, err := server.NewServer(
+		probeAddr,
+		router,
+		&logger,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return server, nil
 }

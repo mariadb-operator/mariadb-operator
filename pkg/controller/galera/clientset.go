@@ -6,7 +6,7 @@ import (
 	"sync"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/galera/agent/client"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/agent/client"
 	mdbhttp "github.com/mariadb-operator/mariadb-operator/v25/pkg/http"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/statefulset"
 	"k8s.io/utils/ptr"

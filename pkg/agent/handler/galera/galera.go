@@ -1,4 +1,4 @@
-package handler
+package galera
 
 import (
 	"encoding/json"
@@ -8,7 +8,9 @@ import (
 	"os"
 	"sync"
 
+	chi "github.com/go-chi/chi/v5"
 	"github.com/go-logr/logr"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/agent/router"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/filemanager"
 	galeraErrors "github.com/mariadb-operator/mariadb-operator/v25/pkg/galera/errors"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/galera/recovery"
@@ -16,26 +18,36 @@ import (
 	mdbhttp "github.com/mariadb-operator/mariadb-operator/v25/pkg/http"
 )
 
-type Galera struct {
+type GaleraHandler struct {
 	fileManager    *filemanager.FileManager
 	responseWriter *mdbhttp.ResponseWriter
-	locker         sync.Locker
 	logger         *logr.Logger
+	mux            *sync.RWMutex
 }
 
-func NewGalera(fileManager *filemanager.FileManager, responseWriter *mdbhttp.ResponseWriter, locker sync.Locker,
-	logger *logr.Logger) *Galera {
-	return &Galera{
+func NewGaleraHandler(fileManager *filemanager.FileManager, responseWriter *mdbhttp.ResponseWriter, logger *logr.Logger) router.RouteHandler {
+	return &GaleraHandler{
 		fileManager:    fileManager,
 		responseWriter: responseWriter,
-		locker:         locker,
 		logger:         logger,
+		mux:            &sync.RWMutex{},
 	}
 }
 
-func (g *Galera) GetState(w http.ResponseWriter, r *http.Request) {
-	g.locker.Lock()
-	defer g.locker.Unlock()
+func (g *GaleraHandler) SetupRoutes(router *chi.Mux) {
+	router.Route("/galera", func(r chi.Router) {
+		r.Get("/state", g.GetState)
+		r.Route("/bootstrap", func(r chi.Router) {
+			r.Get("/", g.IsBootstrapEnabled)
+			r.Put("/", g.EnableBootstrap)
+			r.Delete("/", g.DisableBootstrap)
+		})
+	})
+}
+
+func (g *GaleraHandler) GetState(w http.ResponseWriter, r *http.Request) {
+	g.mux.Lock()
+	defer g.mux.Unlock()
 	g.logger.V(1).Info("getting galera state")
 
 	bytes, err := g.fileManager.ReadStateFile(state.GaleraStateFileName)
@@ -60,7 +72,7 @@ func (g *Galera) GetState(w http.ResponseWriter, r *http.Request) {
 	g.responseWriter.WriteOK(w, galeraState)
 }
 
-func (g *Galera) IsBootstrapEnabled(w http.ResponseWriter, r *http.Request) {
+func (g *GaleraHandler) IsBootstrapEnabled(w http.ResponseWriter, r *http.Request) {
 	exists, err := g.fileManager.ConfigFileExists(recovery.BootstrapFileName)
 	if err != nil {
 		g.responseWriter.WriteErrorf(w, "error checking bootstrap config: %v", err)
@@ -73,15 +85,15 @@ func (g *Galera) IsBootstrapEnabled(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (g *Galera) EnableBootstrap(w http.ResponseWriter, r *http.Request) {
+func (g *GaleraHandler) EnableBootstrap(w http.ResponseWriter, r *http.Request) {
 	bootstrap, err := g.decodeAndValidateBootstrap(r)
 	if err != nil {
 		g.responseWriter.Write(w, http.StatusBadRequest, err)
 		return
 	}
 
-	g.locker.Lock()
-	defer g.locker.Unlock()
+	g.mux.Lock()
+	defer g.mux.Unlock()
 	g.logger.V(1).Info("enabling bootstrap")
 
 	if err := g.setSafeToBootstrap(bootstrap); err != nil {
@@ -96,9 +108,9 @@ func (g *Galera) EnableBootstrap(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (g *Galera) DisableBootstrap(w http.ResponseWriter, r *http.Request) {
-	g.locker.Lock()
-	defer g.locker.Unlock()
+func (g *GaleraHandler) DisableBootstrap(w http.ResponseWriter, r *http.Request) {
+	g.mux.Lock()
+	defer g.mux.Unlock()
 	g.logger.V(1).Info("disabling bootstrap")
 
 	if err := g.fileManager.DeleteConfigFile(recovery.BootstrapFileName); err != nil {
@@ -112,7 +124,7 @@ func (g *Galera) DisableBootstrap(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (g *Galera) decodeAndValidateBootstrap(r *http.Request) (*recovery.Bootstrap, error) {
+func (g *GaleraHandler) decodeAndValidateBootstrap(r *http.Request) (*recovery.Bootstrap, error) {
 	if r.Body == nil || r.ContentLength <= 0 {
 		return nil, nil
 	}
@@ -129,7 +141,7 @@ func (g *Galera) decodeAndValidateBootstrap(r *http.Request) (*recovery.Bootstra
 	return &bootstrap, nil
 }
 
-func (g *Galera) setSafeToBootstrap(bootstrap *recovery.Bootstrap) error {
+func (g *GaleraHandler) setSafeToBootstrap(bootstrap *recovery.Bootstrap) error {
 	bytes, err := g.fileManager.ReadStateFile(state.GaleraStateFileName)
 	if err != nil {
 		if os.IsNotExist(err) {
