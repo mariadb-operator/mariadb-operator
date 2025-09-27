@@ -1,27 +1,18 @@
 package agent
 
 import (
-	"context"
 	"fmt"
 	"os"
-	"os/signal"
-	"sync"
-	"syscall"
 	"time"
 
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/agent/router"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/agent/server"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/environment"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/filemanager"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/galera/agent/handler"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/galera/agent/router"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/galera/agent/server"
-	mdbhttp "github.com/mariadb-operator/mariadb-operator/v25/pkg/http"
 	kubeauth "github.com/mariadb-operator/mariadb-operator/v25/pkg/kubernetes/auth"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/log"
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -74,83 +65,14 @@ func init() {
 	RootCmd.Flags().BoolVar(&basicAuth, "basic-auth", false, "Enable basic authentication")
 	RootCmd.Flags().StringVar(&basicAuthUsername, "basic-auth-username", "", "Basic authentication username")
 	RootCmd.Flags().StringVar(&basicAuthPasswordPath, "basic-auth-password-path", "", "Basic authentication password path")
+
+	RootCmd.AddCommand(galeraCommand)
 }
 
 var RootCmd = &cobra.Command{
 	Use:   "agent",
 	Short: "Agent.",
-	Long:  `Sidecar agent for Galera that co-operates with mariadb-operator.`,
-	Args:  cobra.NoArgs,
-	Run: func(cmd *cobra.Command, args []string) {
-		if err := log.SetupLoggerWithCommand(cmd); err != nil {
-			fmt.Printf("error setting up logger: %v\n", err)
-			os.Exit(1)
-		}
-		logger.Info("Agent starting")
-
-		env, err := environment.GetPodEnv(context.Background())
-		if err != nil {
-			logger.Error(err, "Error getting environment variables")
-			os.Exit(1)
-		}
-		fileManager, err := filemanager.NewFileManager(configDir, stateDir)
-		if err != nil {
-			logger.Error(err, "Error creating file manager")
-			os.Exit(1)
-		}
-		k8sClient, err := getK8sClient()
-		if err != nil {
-			logger.Error(err, "Error getting Kubernetes client")
-			os.Exit(1)
-		}
-
-		apiServer, err := getAPIServer(
-			env,
-			fileManager,
-			k8sClient,
-			logger,
-		)
-		if err != nil {
-			logger.Error(err, "Error creating API server")
-			os.Exit(1)
-		}
-		probeServer, err := getProbeServer(env, k8sClient)
-		if err != nil {
-			logger.Error(err, "Error creating probe server")
-			os.Exit(1)
-		}
-
-		ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
-		defer cancel()
-		errChan := make(chan error, 2)
-
-		var wg sync.WaitGroup
-		wg.Add(2)
-		go func() {
-			defer wg.Done()
-
-			if err := apiServer.Start(ctx); err != nil {
-				errChan <- fmt.Errorf("error starting API server: %v", err)
-			}
-		}()
-		go func() {
-			defer wg.Done()
-
-			if err := probeServer.Start(ctx); err != nil {
-				errChan <- fmt.Errorf("error starting probe server: %v", err)
-			}
-		}()
-		go func() {
-			wg.Wait()
-			close(errChan)
-		}()
-
-		if err, ok := <-errChan; ok {
-			logger.Error(err, "Server error")
-			os.Exit(1)
-		}
-		logger.Info("Agent stopped")
-	},
+	Long:  "Sidecar agent that co-operates with mariadb-operator.",
 }
 
 func getK8sClient() (client.Client, error) {
@@ -165,24 +87,42 @@ func getK8sClient() (client.Client, error) {
 	return k8sClient, nil
 }
 
-func getAPIServer(env *environment.PodEnvironment, fileManager *filemanager.FileManager, k8sClient client.Client,
+func getAPIServer(apiHandler router.RouteHandler, env *environment.PodEnvironment, k8sClient client.Client,
 	logger logr.Logger) (*server.Server, error) {
-	apiLogger := logger.WithName("api")
-	mux := &sync.RWMutex{}
-
-	handler := handler.NewGalera(
-		fileManager,
-		mdbhttp.NewResponseWriter(&apiLogger),
-		mux,
-		&apiLogger,
+	routerOpts, err := getRouterOpts(logger)
+	if err != nil {
+		return nil, err
+	}
+	router := router.NewRouter(
+		apiHandler,
+		k8sClient,
+		logger,
+		routerOpts...,
 	)
 
+	serverOpts, err := getServerOpts(env)
+	if err != nil {
+		return nil, err
+	}
+	server, err := server.NewServer(
+		addr,
+		router,
+		&logger,
+		serverOpts...,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return server, nil
+}
+
+func getRouterOpts(logger logr.Logger) ([]router.Option, error) {
 	routerOpts := []router.Option{
 		router.WithCompressLevel(compressLevel),
 		router.WithRateLimit(rateLimitRequests, rateLimitDuration),
 	}
 	if kubernetesAuth && kubernetesTrustedName != "" && kubernetesTrustedNamespace != "" {
-		apiLogger.Info("Configuring Kubernetes authentication")
+		logger.Info("Configuring Kubernetes authentication")
 
 		routerOpts = append(routerOpts, router.WithKubernetesAuth(
 			kubernetesAuth,
@@ -192,7 +132,7 @@ func getAPIServer(env *environment.PodEnvironment, fileManager *filemanager.File
 			},
 		))
 	} else if basicAuth && basicAuthUsername != "" && basicAuthPasswordPath != "" {
-		apiLogger.Info("Configuring basic authentication")
+		logger.Info("Configuring basic authentication")
 
 		basicAuthPassword, err := os.ReadFile(basicAuthPasswordPath)
 		if err != nil {
@@ -204,13 +144,10 @@ func getAPIServer(env *environment.PodEnvironment, fileManager *filemanager.File
 			string(basicAuthPassword),
 		))
 	}
-	router := router.NewGaleraRouter(
-		handler,
-		k8sClient,
-		apiLogger,
-		routerOpts...,
-	)
+	return routerOpts, nil
+}
 
+func getServerOpts(env *environment.PodEnvironment) ([]server.Option, error) {
 	serverOpts := []server.Option{
 		server.WithGracefulShutdownTimeout(gracefulShutdownTimeout),
 	}
@@ -226,44 +163,5 @@ func getAPIServer(env *environment.PodEnvironment, fileManager *filemanager.File
 			server.WithTLSKeyPath(env.TLSServerKeyPath),
 		}...)
 	}
-
-	server, err := server.NewServer(
-		addr,
-		router,
-		&apiLogger,
-		serverOpts...,
-	)
-	if err != nil {
-		return nil, err
-	}
-	return server, nil
-}
-
-func getProbeServer(env *environment.PodEnvironment, k8sClient client.Client) (*server.Server, error) {
-	probeLogger := logger.WithName("probe")
-	mariadbKey := types.NamespacedName{
-		Name:      env.MariadbName,
-		Namespace: env.PodNamespace,
-	}
-
-	handler := handler.NewProbe(
-		mariadbKey,
-		k8sClient,
-		mdbhttp.NewResponseWriter(&probeLogger),
-		&probeLogger,
-	)
-	router := router.NewProbeRouter(
-		handler,
-		probeLogger,
-	)
-
-	server, err := server.NewServer(
-		probeAddr,
-		router,
-		&probeLogger,
-	)
-	if err != nil {
-		return nil, err
-	}
-	return server, nil
+	return serverOpts, nil
 }

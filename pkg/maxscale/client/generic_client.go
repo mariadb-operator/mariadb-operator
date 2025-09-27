@@ -16,6 +16,7 @@ type GenericClient[T any] struct {
 
 type Options struct {
 	query         map[string]string
+	rawQuery      *string
 	relationships *Relationships
 }
 
@@ -51,7 +52,7 @@ func NewGenericClient[T any](client *mdbhttp.Client, path string, objectType Obj
 
 func (c *GenericClient[T]) List(ctx context.Context, options ...Option) ([]Data[T], error) {
 	opts := c.processOptions(options...)
-	res, err := c.client.Get(ctx, c.path, opts.query)
+	res, err := c.client.Get(ctx, c.path, opts.query, opts.rawQuery)
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +83,7 @@ func (c *GenericClient[T]) AllExists(ctx context.Context, ids []string, options 
 
 func (c *GenericClient[T]) Get(ctx context.Context, name string, options ...Option) (*Data[T], error) {
 	opts := c.processOptions(options...)
-	res, err := c.client.Get(ctx, c.resourcePath(name), opts.query)
+	res, err := c.client.Get(ctx, c.resourcePath(name), opts.query, opts.rawQuery)
 	if err != nil {
 		return nil, err
 	}
@@ -103,7 +104,7 @@ func (c *GenericClient[T]) Create(ctx context.Context, name string, attributes T
 			Relationships: opts.relationships,
 		},
 	}
-	res, err := c.client.Post(ctx, c.path, object, opts.query)
+	res, err := c.client.Post(ctx, c.path, object, opts.query, opts.rawQuery)
 	if err != nil {
 		return err
 	}
@@ -112,7 +113,7 @@ func (c *GenericClient[T]) Create(ctx context.Context, name string, attributes T
 
 func (c *GenericClient[T]) Delete(ctx context.Context, name string, options ...Option) error {
 	opts := c.processOptions(options...)
-	res, err := c.client.Delete(ctx, c.resourcePath(name), nil, opts.query)
+	res, err := c.client.Delete(ctx, c.resourcePath(name), nil, opts.query, opts.rawQuery)
 	if err != nil {
 		return err
 	}
@@ -129,7 +130,7 @@ func (c *GenericClient[T]) Patch(ctx context.Context, name string, attributes T,
 			Relationships: opts.relationships,
 		},
 	}
-	res, err := c.client.Patch(ctx, c.resourcePath(name), object, opts.query)
+	res, err := c.client.Patch(ctx, c.resourcePath(name), object, opts.query, opts.rawQuery)
 	if err != nil {
 		return err
 	}
@@ -138,7 +139,7 @@ func (c *GenericClient[T]) Patch(ctx context.Context, name string, attributes T,
 
 func (c *GenericClient[T]) Put(ctx context.Context, name string, options ...Option) error {
 	opts := c.processOptions(options...)
-	res, err := c.client.Put(ctx, c.resourcePath(name), nil, opts.query)
+	res, err := c.client.Put(ctx, c.resourcePath(name), nil, opts.query, opts.rawQuery)
 	if err != nil {
 		return err
 	}
@@ -147,7 +148,7 @@ func (c *GenericClient[T]) Put(ctx context.Context, name string, options ...Opti
 
 func (c *GenericClient[T]) Stop(ctx context.Context, name string, options ...Option) error {
 	opts := c.processOptions(options...)
-	res, err := c.client.Put(ctx, c.stopPath(name), nil, opts.query)
+	res, err := c.client.Put(ctx, c.stopPath(name), nil, opts.query, opts.rawQuery)
 	if err != nil {
 		return err
 	}
@@ -156,7 +157,7 @@ func (c *GenericClient[T]) Stop(ctx context.Context, name string, options ...Opt
 
 func (c *GenericClient[T]) Start(ctx context.Context, name string, options ...Option) error {
 	opts := c.processOptions(options...)
-	res, err := c.client.Put(ctx, c.startPath(name), nil, opts.query)
+	res, err := c.client.Put(ctx, c.startPath(name), nil, opts.query, opts.rawQuery)
 	if err != nil {
 		return err
 	}

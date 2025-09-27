@@ -173,36 +173,40 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 }
 
 func (c *Client) Request(ctx context.Context, method string, path string, body interface{},
-	query map[string]string) (*http.Response, error) {
-	req, err := c.NewRequestWithContext(ctx, method, path, body, query)
+	query map[string]string, rawQuery *string) (*http.Response, error) {
+	req, err := c.NewRequestWithContext(ctx, method, path, body, query, rawQuery)
 	if err != nil {
 		return nil, err
 	}
 	return c.Do(req)
 }
 
-func (c *Client) Get(ctx context.Context, path string, query map[string]string) (*http.Response, error) {
-	req, err := c.NewRequestWithContext(ctx, http.MethodGet, path, nil, query)
+func (c *Client) Get(ctx context.Context, path string, query map[string]string, rawQuery *string) (*http.Response, error) {
+	req, err := c.NewRequestWithContext(ctx, http.MethodGet, path, nil, query, rawQuery)
 	if err != nil {
 		return nil, err
 	}
 	return c.Do(req)
 }
 
-func (c *Client) Post(ctx context.Context, path string, body interface{}, query map[string]string) (*http.Response, error) {
-	return c.Request(ctx, http.MethodPost, path, body, query)
+func (c *Client) Post(ctx context.Context, path string, body interface{}, query map[string]string,
+	rawQuery *string) (*http.Response, error) {
+	return c.Request(ctx, http.MethodPost, path, body, query, rawQuery)
 }
 
-func (c *Client) Put(ctx context.Context, path string, body interface{}, query map[string]string) (*http.Response, error) {
-	return c.Request(ctx, http.MethodPut, path, body, query)
+func (c *Client) Put(ctx context.Context, path string, body interface{}, query map[string]string,
+	rawQuery *string) (*http.Response, error) {
+	return c.Request(ctx, http.MethodPut, path, body, query, rawQuery)
 }
 
-func (c *Client) Patch(ctx context.Context, path string, body interface{}, query map[string]string) (*http.Response, error) {
-	return c.Request(ctx, http.MethodPatch, path, body, query)
+func (c *Client) Patch(ctx context.Context, path string, body interface{}, query map[string]string,
+	rawQuery *string) (*http.Response, error) {
+	return c.Request(ctx, http.MethodPatch, path, body, query, rawQuery)
 }
 
-func (c *Client) Delete(ctx context.Context, path string, body interface{}, query map[string]string) (*http.Response, error) {
-	return c.Request(ctx, http.MethodDelete, path, body, query)
+func (c *Client) Delete(ctx context.Context, path string, body interface{}, query map[string]string,
+	rawQuery *string) (*http.Response, error) {
+	return c.Request(ctx, http.MethodDelete, path, body, query, rawQuery)
 }
 
 func (c *Client) logRequest(req *http.Request) error {

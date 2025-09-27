@@ -13,6 +13,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/service"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/refresolver"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/statefulset"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -156,16 +157,37 @@ fi
 }
 
 func (r *ReplicationReconciler) reconcileReplication(ctx context.Context, req *reconcileRequest, logger logr.Logger) (ctrl.Result, error) {
-	if req.mariadb.IsSwitchingPrimary() {
-		return ctrl.Result{}, nil
+	if result, err := r.shouldReconcileReplication(ctx, req, logger); !result.IsZero() || err != nil {
+		return result, err
 	}
-	if req.mariadb.Status.CurrentPrimaryPodIndex == nil {
-		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
-	}
-
 	for _, i := range r.replicationPodIndexes(ctx, req) {
 		if result, err := r.reconcileReplicationInPod(ctx, req, logger, i); !result.IsZero() || err != nil {
 			return result, err
+		}
+	}
+	return ctrl.Result{}, nil
+}
+
+func (r *ReplicationReconciler) shouldReconcileReplication(ctx context.Context, req *reconcileRequest,
+	logger logr.Logger) (ctrl.Result, error) {
+	if req.mariadb.Status.CurrentPrimaryPodIndex == nil {
+		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+	}
+	if req.mariadb.IsSwitchingPrimary() {
+		return ctrl.Result{}, nil
+	}
+	if req.mariadb.IsMaxScaleEnabled() {
+		mxs, err := r.refResolver.MaxScale(ctx, req.mariadb.Spec.MaxScaleRef, req.mariadb.Namespace)
+		if err != nil {
+			// MaxScale is not present, so no conflict can occur. Safe to proceed with replication reconciliation.
+			if apierrors.IsNotFound(err) {
+				return ctrl.Result{}, nil
+			}
+			return ctrl.Result{}, fmt.Errorf("error getting MaxScale: %v", err)
+		}
+		if mxs.IsSwitchingPrimary() {
+			logger.Info("MaxScale is switching primary. Requeuing..")
+			return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 		}
 	}
 	return ctrl.Result{}, nil

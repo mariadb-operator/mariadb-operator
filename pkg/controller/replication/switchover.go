@@ -49,10 +49,11 @@ func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *re
 
 	primary := req.mariadb.Status.CurrentPrimaryPodIndex
 	newPrimary := *req.mariadb.Replication().Primary.PodIndex
+	newPrimaryPodName := statefulset.PodName(req.mariadb.ObjectMeta, *req.mariadb.Replication().Primary.PodIndex)
 	logger = logger.WithValues("primary", primary, "new-primary", newPrimary)
 
 	if err := r.patchStatus(ctx, req.mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
-		condition.SetPrimarySwitching(&req.mariadb.Status, req.mariadb)
+		condition.SetPrimarySwitching(&req.mariadb.Status, newPrimaryPodName)
 	}); err != nil {
 		return fmt.Errorf("error patching MariaDB status: %v", err)
 	}
