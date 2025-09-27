@@ -35,7 +35,7 @@ func init() {
 var RootCmd = &cobra.Command{
 	Use:   "init",
 	Short: "Init.",
-	Long:  `Init container that co-operates with mariadb-operator.`,
+	Long:  "Init container that co-operates with mariadb-operator.",
 }
 
 func newContext() (context.Context, context.CancelFunc) {

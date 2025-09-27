@@ -189,6 +189,7 @@ func (b *Builder) galeraAgentContainer(mariadb *mariadbv1alpha1.MariaDB) (*corev
 		var args []string
 		args = append(args, []string{
 			"agent",
+			"galera",
 			fmt.Sprintf("--addr=:%d", agent.Port),
 			fmt.Sprintf("--probe-addr=:%d", agent.ProbePort),
 			fmt.Sprintf("--config-dir=%s", galeraresources.GaleraConfigMountPath),
