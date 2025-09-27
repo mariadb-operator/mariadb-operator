@@ -8,7 +8,6 @@ import (
 	middleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/httprate"
 	"github.com/go-logr/logr"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/galera/agent/handler"
 	kubeauth "github.com/mariadb-operator/mariadb-operator/v25/pkg/kubernetes/auth"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -56,7 +55,16 @@ func WithBasicAuth(auth bool, user, pass string) Option {
 	}
 }
 
-func NewGaleraRouter(handler *handler.Galera, k8sClient ctrlclient.Client, logger logr.Logger, opts ...Option) http.Handler {
+type RouteHandler interface {
+	SetupRoutes(*chi.Mux)
+}
+
+type ProbeHandler interface {
+	Liveness(w http.ResponseWriter, r *http.Request)
+	Readiness(w http.ResponseWriter, r *http.Request)
+}
+
+func NewRouter(apiHandlder RouteHandler, k8sClient ctrlclient.Client, logger logr.Logger, opts ...Option) http.Handler {
 	routerOpts := Options{
 		CompressLevel:  5,
 		KubernetesAuth: false,
@@ -72,12 +80,12 @@ func NewGaleraRouter(handler *handler.Galera, k8sClient ctrlclient.Client, logge
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
-	r.Mount("/api", apiRouter(handler, k8sClient, logger, &routerOpts))
+	r.Mount("/api", apiRouter(apiHandlder, k8sClient, logger, &routerOpts))
 
 	return r
 }
 
-func NewProbeRouter(handler *handler.Probe, logger logr.Logger, opts ...Option) http.Handler {
+func NewProbeRouter(handler ProbeHandler, logger logr.Logger, opts ...Option) http.Handler {
 	routerOpts := Options{
 		CompressLevel: 5,
 	}
@@ -100,7 +108,7 @@ func NewProbeRouter(handler *handler.Probe, logger logr.Logger, opts ...Option) 
 	return r
 }
 
-func apiRouter(h *handler.Galera, k8sClient ctrlclient.Client, logger logr.Logger, opts *Options) http.Handler {
+func apiRouter(handler RouteHandler, k8sClient ctrlclient.Client, logger logr.Logger, opts *Options) http.Handler {
 	r := chi.NewRouter()
 	if opts.RateLimitRequests != nil && opts.RateLimitDuration != nil {
 		r.Use(httprate.LimitAll(*opts.RateLimitRequests, *opts.RateLimitDuration))
@@ -113,14 +121,7 @@ func apiRouter(h *handler.Galera, k8sClient ctrlclient.Client, logger logr.Logge
 		r.Use(middleware.BasicAuth("mariadb-operator", opts.BasicAuthCreds))
 	}
 
-	r.Route("/galera", func(r chi.Router) {
-		r.Get("/state", h.GetState)
-		r.Route("/bootstrap", func(r chi.Router) {
-			r.Get("/", h.IsBootstrapEnabled)
-			r.Put("/", h.EnableBootstrap)
-			r.Delete("/", h.DisableBootstrap)
-		})
-	})
+	handler.SetupRoutes(r)
 
 	return r
 }

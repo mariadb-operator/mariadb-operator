@@ -1,4 +1,4 @@
-package handler
+package galera
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/agent/router"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/environment"
 	galeraclient "github.com/mariadb-operator/mariadb-operator/v25/pkg/galera/client"
 	mdbhttp "github.com/mariadb-operator/mariadb-operator/v25/pkg/http"
@@ -16,7 +17,7 @@ import (
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-type Probe struct {
+type GaleraProbe struct {
 	mariadbKey      types.NamespacedName
 	k8sClient       ctrlclient.Client
 	responseWriter  *mdbhttp.ResponseWriter
@@ -24,9 +25,9 @@ type Probe struct {
 	readinessLogger logr.Logger
 }
 
-func NewProbe(mariadbKey types.NamespacedName, k8sClient ctrlclient.Client, responseWriter *mdbhttp.ResponseWriter,
-	logger *logr.Logger) *Probe {
-	return &Probe{
+func NewGaleraProbe(mariadbKey types.NamespacedName, k8sClient ctrlclient.Client, responseWriter *mdbhttp.ResponseWriter,
+	logger *logr.Logger) router.ProbeHandler {
+	return &GaleraProbe{
 		mariadbKey:      mariadbKey,
 		k8sClient:       k8sClient,
 		responseWriter:  responseWriter,
@@ -35,7 +36,7 @@ func NewProbe(mariadbKey types.NamespacedName, k8sClient ctrlclient.Client, resp
 	}
 }
 
-func (p *Probe) Liveness(w http.ResponseWriter, r *http.Request) {
+func (p *GaleraProbe) Liveness(w http.ResponseWriter, r *http.Request) {
 	p.livenessLogger.V(1).Info("Probe started")
 
 	k8sCtx, k8sCancel := context.WithTimeout(context.Background(), 1*time.Second)
@@ -85,7 +86,7 @@ func (p *Probe) Liveness(w http.ResponseWriter, r *http.Request) {
 	p.responseWriter.WriteOK(w, nil)
 }
 
-func (p *Probe) Readiness(w http.ResponseWriter, r *http.Request) {
+func (p *GaleraProbe) Readiness(w http.ResponseWriter, r *http.Request) {
 	p.readinessLogger.V(1).Info("Probe started")
 
 	k8sCtx, k8sCancel := context.WithTimeout(context.Background(), 1*time.Second)
