@@ -13,9 +13,9 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/hashicorp/go-multierror"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
+	agenterrors "github.com/mariadb-operator/mariadb-operator/v25/pkg/agent/errors"
 	labels "github.com/mariadb-operator/mariadb-operator/v25/pkg/builder/labels"
 	galeraclient "github.com/mariadb-operator/mariadb-operator/v25/pkg/galera/client"
-	galeraerrors "github.com/mariadb-operator/mariadb-operator/v25/pkg/galera/errors"
 	galerarecovery "github.com/mariadb-operator/mariadb-operator/v25/pkg/galera/recovery"
 	mdbhttp "github.com/mariadb-operator/mariadb-operator/v25/pkg/http"
 	jobpkg "github.com/mariadb-operator/mariadb-operator/v25/pkg/job"
@@ -282,7 +282,7 @@ func (r *GaleraReconciler) getGaleraState(ctx context.Context, mariadb *mariadbv
 				}
 				galeraState, err := client.Galera.GetState(ctx)
 				if err != nil {
-					if galeraErr, ok := err.(*galeraerrors.Error); ok && galeraErr.HTTPCode == http.StatusNotFound {
+					if agentErr, ok := err.(*agenterrors.Error); ok && agentErr.HTTPCode == http.StatusNotFound {
 						stateLogger.Info("Galera state not found. Skipping Pod...")
 						return nil
 					}
@@ -453,7 +453,7 @@ func (r *GaleraReconciler) disableBootstrapInPod(ctx context.Context, mariadbKey
 		if err := r.ensurePodHealthy(ctx, mariadbKey, podKey, clientSet, logger); err != nil {
 			return err
 		}
-		if err := client.Galera.DisableBootstrap(ctx); err != nil && !galeraerrors.IsNotFound(err) {
+		if err := client.Galera.DisableBootstrap(ctx); err != nil && !agenterrors.IsNotFound(err) {
 			return err
 		}
 		return nil

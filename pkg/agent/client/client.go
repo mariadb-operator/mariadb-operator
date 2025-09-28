@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/galera/errors"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/agent/errors"
 	mdbhttp "github.com/mariadb-operator/mariadb-operator/v25/pkg/http"
 )
 

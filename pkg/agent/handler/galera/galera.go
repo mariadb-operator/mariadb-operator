@@ -10,9 +10,9 @@ import (
 
 	chi "github.com/go-chi/chi/v5"
 	"github.com/go-logr/logr"
+	agenterrors "github.com/mariadb-operator/mariadb-operator/v25/pkg/agent/errors"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/agent/router"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/filemanager"
-	galeraErrors "github.com/mariadb-operator/mariadb-operator/v25/pkg/galera/errors"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/galera/recovery"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/galera/state"
 	mdbhttp "github.com/mariadb-operator/mariadb-operator/v25/pkg/http"
@@ -53,14 +53,14 @@ func (g *GaleraHandler) GetState(w http.ResponseWriter, r *http.Request) {
 	bytes, err := g.fileManager.ReadStateFile(state.GaleraStateFileName)
 	if err != nil {
 		if os.IsNotExist(err) {
-			g.responseWriter.Write(w, http.StatusNotFound, galeraErrors.NewAPIError("galera state not found"))
+			g.responseWriter.Write(w, http.StatusNotFound, agenterrors.NewAPIError("galera state not found"))
 			return
 		}
 		g.responseWriter.WriteErrorf(w, "error reading galera state: %v", err)
 		return
 	}
 	if len(bytes) == 0 {
-		g.responseWriter.Write(w, http.StatusNotFound, galeraErrors.NewAPIError("galera state empty"))
+		g.responseWriter.Write(w, http.StatusNotFound, agenterrors.NewAPIError("galera state empty"))
 		return
 	}
 
@@ -115,7 +115,7 @@ func (g *GaleraHandler) DisableBootstrap(w http.ResponseWriter, r *http.Request)
 
 	if err := g.fileManager.DeleteConfigFile(recovery.BootstrapFileName); err != nil {
 		if os.IsNotExist(err) {
-			g.responseWriter.Write(w, http.StatusNotFound, galeraErrors.NewAPIError("bootstrap config not found"))
+			g.responseWriter.Write(w, http.StatusNotFound, agenterrors.NewAPIError("bootstrap config not found"))
 			return
 		}
 		g.responseWriter.WriteErrorf(w, "error deleting bootstrap config: %v", err)
@@ -132,11 +132,11 @@ func (g *GaleraHandler) decodeAndValidateBootstrap(r *http.Request) (*recovery.B
 
 	var bootstrap recovery.Bootstrap
 	if err := json.NewDecoder(r.Body).Decode(&bootstrap); err != nil {
-		return nil, galeraErrors.NewAPIErrorf("error decoding bootstrap: %v", err)
+		return nil, agenterrors.NewAPIErrorf("error decoding bootstrap: %v", err)
 	}
 
 	if err := bootstrap.Validate(); err != nil {
-		return nil, galeraErrors.NewAPIErrorf("invalid bootstrap: %v", err)
+		return nil, agenterrors.NewAPIErrorf("invalid bootstrap: %v", err)
 	}
 	return &bootstrap, nil
 }
