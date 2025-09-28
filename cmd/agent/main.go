@@ -45,26 +45,28 @@ func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(mariadbv1alpha1.AddToScheme(scheme))
 
-	RootCmd.Flags().StringVar(&addr, "addr", ":5555", "The address that the HTTP(s) API server binds to")
-	RootCmd.Flags().StringVar(&probeAddr, "probe-addr", ":5566", "The address that the HTTP probe server binds to")
+	RootCmd.PersistentFlags().StringVar(&addr, "addr", ":5555", "The address that the HTTP(s) API server binds to")
+	RootCmd.PersistentFlags().StringVar(&probeAddr, "probe-addr", ":5566", "The address that the HTTP probe server binds to")
 
-	RootCmd.Flags().StringVar(&configDir, "config-dir", "/etc/mysql/mariadb.conf.d", "The directory that contains MariaDB configuration files")
-	RootCmd.Flags().StringVar(&stateDir, "state-dir", "/var/lib/mysql", "The directory that contains MariaDB state files")
+	RootCmd.PersistentFlags().StringVar(&configDir, "config-dir", "/etc/mysql/mariadb.conf.d",
+		"The directory that contains MariaDB configuration files")
+	RootCmd.PersistentFlags().StringVar(&stateDir, "state-dir", "/var/lib/mysql", "The directory that contains MariaDB state files")
 
-	RootCmd.Flags().IntVar(&compressLevel, "compress-level", 5, "HTTP compression level")
-	RootCmd.Flags().IntVar(&rateLimitRequests, "rate-limit-requests", 0, "Number of requests to be used as rate limit")
-	RootCmd.Flags().DurationVar(&rateLimitDuration, "rate-limit-duration", 0, "Duration to be used as rate limit")
-	RootCmd.Flags().DurationVar(&gracefulShutdownTimeout, "graceful-shutdown-timeout", 5*time.Second, "Timeout to gracefully terminate "+
-		"in-flight requests")
+	RootCmd.PersistentFlags().IntVar(&compressLevel, "compress-level", 5, "HTTP compression level")
+	RootCmd.PersistentFlags().IntVar(&rateLimitRequests, "rate-limit-requests", 0, "Number of requests to be used as rate limit")
+	RootCmd.PersistentFlags().DurationVar(&rateLimitDuration, "rate-limit-duration", 0, "Duration to be used as rate limit")
+	RootCmd.PersistentFlags().DurationVar(&gracefulShutdownTimeout, "graceful-shutdown-timeout", 5*time.Second,
+		"Timeout to gracefully terminate in-flight requests")
 
-	RootCmd.Flags().BoolVar(&kubernetesAuth, "kubernetes-auth", false, "Enable Kubernetes authentication via the TokenReview API")
-	RootCmd.Flags().StringVar(&kubernetesTrustedName, "kubernetes-trusted-name", "", "Trusted Kubernetes ServiceAccount name to be verified")
-	RootCmd.Flags().StringVar(&kubernetesTrustedNamespace, "kubernetes-trusted-namespace", "", "Trusted Kubernetes ServiceAccount "+
-		"namespace to be verified")
+	RootCmd.PersistentFlags().BoolVar(&kubernetesAuth, "kubernetes-auth", false, "Enable Kubernetes authentication via the TokenReview API")
+	RootCmd.PersistentFlags().StringVar(&kubernetesTrustedName, "kubernetes-trusted-name", "",
+		"Trusted Kubernetes ServiceAccount name to be verified")
+	RootCmd.PersistentFlags().StringVar(&kubernetesTrustedNamespace, "kubernetes-trusted-namespace", "",
+		"Trusted Kubernetes ServiceAccount namespace to be verified")
 
-	RootCmd.Flags().BoolVar(&basicAuth, "basic-auth", false, "Enable basic authentication")
-	RootCmd.Flags().StringVar(&basicAuthUsername, "basic-auth-username", "", "Basic authentication username")
-	RootCmd.Flags().StringVar(&basicAuthPasswordPath, "basic-auth-password-path", "", "Basic authentication password path")
+	RootCmd.PersistentFlags().BoolVar(&basicAuth, "basic-auth", false, "Enable basic authentication")
+	RootCmd.PersistentFlags().StringVar(&basicAuthUsername, "basic-auth-username", "", "Basic authentication username")
+	RootCmd.PersistentFlags().StringVar(&basicAuthPasswordPath, "basic-auth-password-path", "", "Basic authentication password path")
 
 	RootCmd.AddCommand(galeraCommand)
 }
