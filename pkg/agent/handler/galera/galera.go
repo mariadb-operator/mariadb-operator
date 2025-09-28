@@ -25,7 +25,8 @@ type GaleraHandler struct {
 	mux            *sync.RWMutex
 }
 
-func NewGaleraHandler(fileManager *filemanager.FileManager, responseWriter *mdbhttp.ResponseWriter, logger *logr.Logger) router.RouteHandler {
+func NewGaleraHandler(fileManager *filemanager.FileManager, responseWriter *mdbhttp.ResponseWriter,
+	logger *logr.Logger) router.RouteHandler {
 	return &GaleraHandler{
 		fileManager:    fileManager,
 		responseWriter: responseWriter,
