@@ -131,11 +131,12 @@ func (m *maxScaleAPI) maxScaleReplicationCustomOptions(mdb *mariadbv1alpha1.Mari
 		kvOpts["MASTER_SSL_CA"] = builderpki.CACertPath
 	}
 
-	if mdb != nil && mdb.Replication().Enabled {
+	if mdb != nil && mdb.IsReplicationEnabled() {
 		if kvOpts == nil {
 			kvOpts = make(map[string]string)
 		}
-		kvOpts["MASTER_CONNECT_RETRY"] = strconv.Itoa(ptr.Deref(mdb.Replication().Replica.ConnectionRetries, 10))
+
+		kvOpts["MASTER_CONNECT_RETRY"] = strconv.Itoa(ptr.Deref(mdb.Replication().GetReplica().ConnectionRetries, 10))
 	}
 
 	pairs := make([]string, len(kvOpts))

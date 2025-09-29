@@ -203,6 +203,20 @@ type Replication struct {
 	Enabled bool `json:"enabled,omitempty"`
 }
 
+func (r *Replication) GetReplica() *ReplicaReplication {
+	if r.Replica == nil {
+		return &ReplicaReplication{}
+	}
+	return r.Replica
+}
+
+func (r *Replication) GetPrimary() *PrimaryReplication {
+	if r.Replica == nil {
+		return &PrimaryReplication{}
+	}
+	return r.Primary
+}
+
 // SetDefaults fills the current Replication object with DefaultReplicationSpec.
 // This enables having minimal Replication objects and provides sensible defaults.
 func (r *Replication) SetDefaults(mdb *MariaDB, env *environment.OperatorEnv) error {
@@ -330,7 +344,7 @@ func (m *MariaDB) IsSwitchoverRequired() bool {
 		return false
 	}
 	currentPodIndex := ptr.Deref(m.Status.CurrentPrimaryPodIndex, 0)
-	desiredPodIndex := ptr.Deref(m.Replication().Primary.PodIndex, 0)
+	desiredPodIndex := ptr.Deref(m.Replication().GetPrimary().PodIndex, 0)
 	return currentPodIndex != desiredPodIndex
 }
 
