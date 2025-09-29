@@ -917,6 +917,10 @@ func (m *MaxScale) SetDefaults(env *environment.OperatorEnv, mariadb *MariaDB) {
 	m.Spec.SetDefaults(m.ObjectMeta)
 }
 
+func (m *MaxScale) GetInheritMetadata() *Metadata {
+	return m.Spec.InheritMetadata
+}
+
 func (m *MaxScale) getAntiAffinityInstances(mariadb *MariaDB) []string {
 	instances := []string{m.Name}
 	if mariadb != nil {

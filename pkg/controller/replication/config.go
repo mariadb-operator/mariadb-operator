@@ -234,9 +234,8 @@ func (r *ReplicationConfigClient) reconcileUsersAndGrants(ctx context.Context, m
 		CleanupPolicy:        ptr.To(mariadbv1alpha1.CleanupPolicySkip),
 	}
 
-	grantOpts := auth.GrantOpts{
-		Key: replGrantKey,
-		GrantOpts: builder.GrantOpts{
+	grantOpts := []builder.GrantOpts{
+		{
 			MariaDBRef: mariadbv1alpha1.MariaDBRef{
 				ObjectReference: mariadbv1alpha1.ObjectReference{
 					Name:      mariadb.Name,
@@ -253,16 +252,22 @@ func (r *ReplicationConfigClient) reconcileUsersAndGrants(ctx context.Context, m
 		},
 	}
 
-	if result, err := r.authReconciler.ReconcileUserGrant(ctx, replUserKey, mariadb, userOpts, grantOpts); !result.IsZero() || err != nil {
-		if err != nil {
-			return ctrl.Result{}, fmt.Errorf("error reconciling %s user auth: %v", replUser, err)
-		}
-		return result, err
+	// @TODO: This needs to be another strategy for direct password
+	strategy, err := auth.NewCrdStrategy(
+		r.Client,
+		r.builder,
+		auth.WithUserKeys(replUserKey),
+		auth.WithGrantKeys(replGrantKey),
+		auth.WithOwner(mariadb),
+	)
+
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error creating crd strategy. Error was: %v", err)
 	}
 
-	if result, err := r.authReconciler.WaitForGrant(ctx, replGrantKey); !result.IsZero() || err != nil {
+	if result, err := r.authReconciler.ReconcileUserGrant(ctx, userOpts, grantOpts, strategy); !result.IsZero() || err != nil {
 		if err != nil {
-			return ctrl.Result{}, fmt.Errorf("error waiting for grant: %v", err)
+			return ctrl.Result{}, fmt.Errorf("error reconciling %s user auth: %v", replUser, err)
 		}
 		return result, err
 	}

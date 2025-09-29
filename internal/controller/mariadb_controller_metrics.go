@@ -100,19 +100,27 @@ func (r *MariaDBReconciler) reconcileAuth(ctx context.Context, mariadb *mariadbv
 		Metadata:             mariadb.Spec.InheritMetadata,
 		MariaDBRef:           ref,
 	}
-	grantOpts := auth.GrantOpts{
-		GrantOpts: builder.GrantOpts{
-			Privileges:  exporterPrivileges,
-			Database:    "*",
-			Table:       "*",
-			Username:    mariadb.Spec.Metrics.Username,
-			GrantOption: false,
-			Metadata:    mariadb.Spec.InheritMetadata,
-			MariaDBRef:  ref,
-		},
-		Key: key,
+	grantOpts := builder.GrantOpts{
+		Privileges:  exporterPrivileges,
+		Database:    "*",
+		Table:       "*",
+		Username:    mariadb.Spec.Metrics.Username,
+		GrantOption: false,
+		Metadata:    mariadb.Spec.InheritMetadata,
+		MariaDBRef:  ref,
 	}
-	return r.AuthReconciler.ReconcileUserGrant(ctx, key, mariadb, userOpts, grantOpts)
+
+	strategy, err := auth.NewCrdStrategy(
+		r.Client,
+		r.Builder,
+		auth.WithUserKeys(key),
+		auth.WithGrantKeys(key),
+		auth.WithOwner(mariadb),
+	)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error creating Auth Strategy: %v", err)
+	}
+	return r.AuthReconciler.ReconcileUserGrant(ctx, userOpts, []builder.GrantOpts{grantOpts}, strategy)
 }
 
 func (r *MariaDBReconciler) reconcileExporterConfig(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {

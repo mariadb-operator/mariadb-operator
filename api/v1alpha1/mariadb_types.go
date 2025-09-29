@@ -866,6 +866,10 @@ func (m *MariaDB) SetDefaults(env *environment.OperatorEnv) error {
 	return nil
 }
 
+func (m *MariaDB) GetInheritMetadata() *Metadata {
+	return m.Spec.InheritMetadata
+}
+
 // Replication with defaulting accessor
 func (m *MariaDB) Replication() Replication {
 	return *m.Spec.Replication

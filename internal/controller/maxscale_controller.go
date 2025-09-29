@@ -679,10 +679,16 @@ func (r *MaxScaleReconciler) isStatefulSetReady(sts *appsv1.StatefulSet, mxs *ma
 	return sts.Status.ReadyReplicas == sts.Status.Replicas && sts.Status.ReadyReplicas == mxs.Spec.Replicas
 }
 
+type grant struct {
+	Key       types.NamespacedName
+	GrantOpts builder.GrantOpts
+}
+
 type maxscaleAuthReconcileItem struct {
-	key    types.NamespacedName
-	user   builder.UserOpts
-	grants []auth.GrantOpts
+	key       types.NamespacedName
+	user      builder.UserOpts
+	grants    []builder.GrantOpts
+	grantKeys []types.NamespacedName
 }
 
 func (r *MaxScaleReconciler) reconcileAuth(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
@@ -715,24 +721,22 @@ func (r *MaxScaleReconciler) reconcileAuth(ctx context.Context, req *requestMaxS
 				Metadata:             mxs.Spec.InheritMetadata,
 				MariaDBRef:           *mxs.Spec.MariaDBRef,
 			},
-			grants: []auth.GrantOpts{
-				{
-					Key: clientKey,
-					GrantOpts: builder.GrantOpts{
-						Privileges: []string{
-							"SELECT",
-							"INSERT",
-							"UPDATE",
-							"DELETE",
-						},
-						Database:    "*",
-						Table:       "*",
-						Username:    mxs.Spec.Auth.ClientUsername,
-						Host:        "%",
-						GrantOption: false,
-						Metadata:    mxs.Spec.InheritMetadata,
-						MariaDBRef:  *mxs.Spec.MariaDBRef,
+			grantKeys: []types.NamespacedName{clientKey},
+			grants: []builder.GrantOpts{
+				builder.GrantOpts{
+					Privileges: []string{
+						"SELECT",
+						"INSERT",
+						"UPDATE",
+						"DELETE",
 					},
+					Database:    "*",
+					Table:       "*",
+					Username:    mxs.Spec.Auth.ClientUsername,
+					Host:        "%",
+					GrantOption: false,
+					Metadata:    mxs.Spec.InheritMetadata,
+					MariaDBRef:  *mxs.Spec.MariaDBRef,
 				},
 			},
 		},
@@ -745,42 +749,40 @@ func (r *MaxScaleReconciler) reconcileAuth(ctx context.Context, req *requestMaxS
 				Metadata:             mxs.Spec.InheritMetadata,
 				MariaDBRef:           *mxs.Spec.MariaDBRef,
 			},
-			grants: []auth.GrantOpts{
+			grantKeys: []types.NamespacedName{
 				{
-					Key: types.NamespacedName{
-						Name:      fmt.Sprintf("%s-mysql", serverKey.Name),
-						Namespace: serverKey.Namespace,
-					},
-					GrantOpts: builder.GrantOpts{
-						Privileges: []string{
-							"SELECT",
-						},
-						Database:    "mysql",
-						Table:       "*",
-						Username:    mxs.Spec.Auth.ServerUsername,
-						Host:        "%",
-						GrantOption: false,
-						Metadata:    mxs.Spec.InheritMetadata,
-						MariaDBRef:  *mxs.Spec.MariaDBRef,
-					},
+					Name:      fmt.Sprintf("%s-mysql", serverKey.Name),
+					Namespace: serverKey.Namespace,
 				},
 				{
-					Key: types.NamespacedName{
-						Name:      fmt.Sprintf("%s-databases", serverKey.Name),
-						Namespace: serverKey.Namespace,
+					Name:      fmt.Sprintf("%s-databases", serverKey.Name),
+					Namespace: serverKey.Namespace,
+				},
+			},
+			grants: []builder.GrantOpts{
+				{
+					Privileges: []string{
+						"SELECT",
 					},
-					GrantOpts: builder.GrantOpts{
-						Privileges: []string{
-							"SHOW DATABASES",
-						},
-						Database:    "*",
-						Table:       "*",
-						Username:    mxs.Spec.Auth.ServerUsername,
-						Host:        "%",
-						GrantOption: false,
-						Metadata:    mxs.Spec.InheritMetadata,
-						MariaDBRef:  *mxs.Spec.MariaDBRef,
+					Database:    "mysql",
+					Table:       "*",
+					Username:    mxs.Spec.Auth.ServerUsername,
+					Host:        "%",
+					GrantOption: false,
+					Metadata:    mxs.Spec.InheritMetadata,
+					MariaDBRef:  *mxs.Spec.MariaDBRef,
+				},
+				{
+					Privileges: []string{
+						"SHOW DATABASES",
 					},
+					Database:    "*",
+					Table:       "*",
+					Username:    mxs.Spec.Auth.ServerUsername,
+					Host:        "%",
+					GrantOption: false,
+					Metadata:    mxs.Spec.InheritMetadata,
+					MariaDBRef:  *mxs.Spec.MariaDBRef,
 				},
 			},
 		},
@@ -793,7 +795,8 @@ func (r *MaxScaleReconciler) reconcileAuth(ctx context.Context, req *requestMaxS
 				Metadata:             mxs.Spec.InheritMetadata,
 				MariaDBRef:           *mxs.Spec.MariaDBRef,
 			},
-			grants: monitorGrantOpts(monitorKey, mxs),
+			grantKeys: []types.NamespacedName{monitorKey},
+			grants:    monitorGrantOpts(mxs),
 		},
 	}
 	if mxs.Spec.Config.Sync != nil && mxs.Spec.Auth.SyncUsername != nil && mxs.Spec.Auth.SyncPasswordSecretKeyRef != nil &&
@@ -811,32 +814,41 @@ func (r *MaxScaleReconciler) reconcileAuth(ctx context.Context, req *requestMaxS
 				Metadata:             mxs.Spec.InheritMetadata,
 				MariaDBRef:           *mxs.Spec.MariaDBRef,
 			},
-			grants: []auth.GrantOpts{
-				{
-					Key: syncKey,
-					GrantOpts: builder.GrantOpts{
-						Privileges: []string{
-							"SELECT",
-							"INSERT",
-							"UPDATE",
-							"CREATE",
-							"DROP",
-						},
-						Database:    mxs.Spec.Config.Sync.Database,
-						Table:       "maxscale_config",
-						Username:    *mxs.Spec.Auth.SyncUsername,
-						Host:        "%",
-						GrantOption: false,
-						Metadata:    mxs.Spec.InheritMetadata,
-						MariaDBRef:  *mxs.Spec.MariaDBRef,
+			grantKeys: []types.NamespacedName{syncKey},
+			grants: []builder.GrantOpts{
+				builder.GrantOpts{
+					Privileges: []string{
+						"SELECT",
+						"INSERT",
+						"UPDATE",
+						"CREATE",
+						"DROP",
 					},
+					Database:    mxs.Spec.Config.Sync.Database,
+					Table:       "maxscale_config",
+					Username:    *mxs.Spec.Auth.SyncUsername,
+					Host:        "%",
+					GrantOption: false,
+					Metadata:    mxs.Spec.InheritMetadata,
+					MariaDBRef:  *mxs.Spec.MariaDBRef,
 				},
 			},
 		})
 	}
 
 	for _, item := range items {
-		if result, err := r.AuthReconciler.ReconcileUserGrant(ctx, item.key, mxs, item.user, item.grants...); !result.IsZero() || err != nil {
+		strategy, err := auth.NewCrdStrategy(
+			r.Client,
+			r.Builder,
+			auth.WithUserKeys(item.key),
+			auth.WithGrantKeys(item.grantKeys...),
+			auth.WithOwner(mxs),
+		)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("error creating Auth Strategy: %v", err)
+		}
+
+		if result, err := r.AuthReconciler.ReconcileUserGrant(ctx, item.user, item.grants, strategy); !result.IsZero() || err != nil {
 			if err != nil {
 				return ctrl.Result{}, fmt.Errorf("error reconciling %s user auth: %v", item.key.Name, err)
 			}
@@ -846,47 +858,27 @@ func (r *MaxScaleReconciler) reconcileAuth(ctx context.Context, req *requestMaxS
 	return ctrl.Result{}, nil
 }
 
-func monitorGrantOpts(key types.NamespacedName, mxs *mariadbv1alpha1.MaxScale) []auth.GrantOpts {
+func monitorGrantOpts(mxs *mariadbv1alpha1.MaxScale) []builder.GrantOpts {
 	if mxs.Spec.Monitor.Module == mariadbv1alpha1.MonitorModuleMariadb {
-		return []auth.GrantOpts{
-			{
-				Key: key,
-				GrantOpts: builder.GrantOpts{
-					Privileges: []string{
-						"BINLOG ADMIN",
-						"CONNECTION ADMIN",
-						"EVENT",
-						"PROCESS",
-						"PROCESS",
-						"READ_ONLY ADMIN",
-						"RELOAD",
-						"REPLICA MONITOR",
-						"REPLICATION CLIENT",
-						"REPLICATION SLAVE ADMIN",
-						"REPLICATION SLAVE",
-						"SELECT",
-						"SET USER",
-						"SHOW DATABASES",
-						"SLAVE MONITOR",
-						"SUPER",
-					},
-					Database:    "*",
-					Table:       "*",
-					Username:    mxs.Spec.Auth.MonitorUsername,
-					Host:        "%",
-					GrantOption: false,
-					Metadata:    mxs.Spec.InheritMetadata,
-					MariaDBRef:  *mxs.Spec.MariaDBRef,
-				},
-			},
-		}
-	}
-	return []auth.GrantOpts{
-		{
-			Key: key,
-			GrantOpts: builder.GrantOpts{
+		return []builder.GrantOpts{
+			builder.GrantOpts{
 				Privileges: []string{
+					"BINLOG ADMIN",
+					"CONNECTION ADMIN",
+					"EVENT",
+					"PROCESS",
+					"PROCESS",
+					"READ_ONLY ADMIN",
+					"RELOAD",
+					"REPLICA MONITOR",
+					"REPLICATION CLIENT",
+					"REPLICATION SLAVE ADMIN",
+					"REPLICATION SLAVE",
+					"SELECT",
+					"SET USER",
+					"SHOW DATABASES",
 					"SLAVE MONITOR",
+					"SUPER",
 				},
 				Database:    "*",
 				Table:       "*",
@@ -896,6 +888,20 @@ func monitorGrantOpts(key types.NamespacedName, mxs *mariadbv1alpha1.MaxScale) [
 				Metadata:    mxs.Spec.InheritMetadata,
 				MariaDBRef:  *mxs.Spec.MariaDBRef,
 			},
+		}
+	}
+	return []builder.GrantOpts{
+		builder.GrantOpts{
+			Privileges: []string{
+				"SLAVE MONITOR",
+			},
+			Database:    "*",
+			Table:       "*",
+			Username:    mxs.Spec.Auth.MonitorUsername,
+			Host:        "%",
+			GrantOption: false,
+			Metadata:    mxs.Spec.InheritMetadata,
+			MariaDBRef:  *mxs.Spec.MariaDBRef,
 		},
 	}
 }
