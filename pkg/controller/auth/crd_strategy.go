@@ -39,10 +39,9 @@ type CrdStrategy struct {
 }
 
 // NewCrdStrategy is used to setup some defaults.
-func NewCrdStrategy(client client.Client, builder *builder.Builder,
-	opts ...CrdStrategyOpts) (*CrdStrategy, error) {
+func NewCrdStrategy(apiClient client.Client, builder *builder.Builder, opts ...CrdStrategyOpts) (*CrdStrategy, error) {
 	strategy := &CrdStrategy{
-		Client:        client,
+		Client:        apiClient,
 		builder:       builder,
 		WaitForUser:   true, // Backwards compat
 		WaitForGrants: false,
@@ -50,14 +49,14 @@ func NewCrdStrategy(client client.Client, builder *builder.Builder,
 
 	for _, opt := range opts {
 		if err := opt(strategy); err != nil {
-			return nil, fmt.Errorf("error applying CrdStrategy options: %v", err)
+			return nil, fmt.Errorf("error applying CrdStrategy options: %w", err)
 		}
 	}
 
 	return strategy, nil
 }
 
-// WithWait is optional. If not given, will wait only for user (for backwards compatability)
+// WithWait is optional. If not given, will wait only for user (for backwards compatibility)
 func WithWait(waitForUser bool, waitForGrants bool) CrdStrategyOpts {
 	return func(strategy *CrdStrategy) error {
 		strategy.WaitForUser = waitForUser
@@ -101,53 +100,54 @@ func WithSecretKeyRef(secretKeyref *mariadbv1alpha1.GeneratedSecretKeyRef, secre
 	}
 }
 
-func (r *CrdStrategy) isReconcilePassword() bool {
-	return r.secretKeyRef != nil && r.secretReconciler != nil
+func (s *CrdStrategy) isReconcilePassword() bool {
+	return s.secretKeyRef != nil && s.secretReconciler != nil
 }
 
-func (r *CrdStrategy) reconcileUser(ctx context.Context, userOpts builder.UserOpts) (ctrl.Result, error) {
-	if r.userKey == (types.NamespacedName{}) || r.owner == nil {
-		return ctrl.Result{}, fmt.Errorf("userKey or owner is not specified when reconciling user.")
+func (s *CrdStrategy) reconcileUser(ctx context.Context, userOpts builder.UserOpts) (ctrl.Result, error) {
+	if s.userKey == (types.NamespacedName{}) || s.owner == nil {
+		return ctrl.Result{}, fmt.Errorf("userKey or owner is not specified when reconciling user")
 	}
-	key := r.userKey
+	key := s.userKey
 
-	if r.isReconcilePassword() {
-		if result, err := r.reconcileUserPassword(ctx); !result.IsZero() || err != nil {
-			return result, err
+	if s.isReconcilePassword() {
+		if _, err := s.reconcileUserPassword(ctx); err != nil {
+			return ctrl.Result{}, err
 		}
 	}
 
-	var user mariadbv1alpha1.User
-	err := r.Get(ctx, key, &user)
-	if err != nil {
-		if apierrors.IsNotFound(err) {
-			log.FromContext(ctx).V(1).Info("Creating User", "key", key, "owner", r.owner, "opts", userOpts)
-			return ctrl.Result{}, r.createUser(ctx, key, userOpts)
-		}
+	if err := s.createUser(ctx, key, userOpts); err != nil {
 		return ctrl.Result{}, err
 	}
 
-	if result, err := r.waitForUser(ctx, userOpts); !result.IsZero() || err != nil {
+	if result, err := s.waitForUser(ctx, userOpts); !result.IsZero() || err != nil {
 		return result, err
 	}
 	return ctrl.Result{}, nil
 }
 
-func (r *CrdStrategy) createUser(ctx context.Context, key types.NamespacedName, userOpts builder.UserOpts) error {
-	user, err := r.builder.BuildUser(key, r.owner, userOpts)
-	if err != nil {
-		return fmt.Errorf("error building User: %v", err)
+// createUser will create the `User` CustomResource
+func (s *CrdStrategy) createUser(ctx context.Context, key types.NamespacedName, userOpts builder.UserOpts) error {
+	var user mariadbv1alpha1.User
+	err := s.Get(ctx, key, &user)
+	if apierrors.IsNotFound(err) {
+		user, err := s.builder.BuildUser(key, s.owner, userOpts)
+		if err != nil {
+			return fmt.Errorf("error building User: %w", err)
+		}
+		return s.Create(ctx, user)
 	}
-	return r.Create(ctx, user)
+
+	return err
 }
 
-func (r *CrdStrategy) waitForUser(ctx context.Context, userOpts builder.UserOpts) (ctrl.Result, error) {
-	key := r.userKey
+func (s *CrdStrategy) waitForUser(ctx context.Context, userOpts builder.UserOpts) (ctrl.Result, error) {
+	key := s.userKey
 
 	logger := log.FromContext(ctx)
 
 	var user mariadbv1alpha1.User
-	if err := r.Get(ctx, key, &user); err != nil {
+	if err := s.Get(ctx, key, &user); err != nil {
 		if apierrors.IsNotFound(err) {
 			logger.V(1).Info("User not found. Requeuing", "user", key.Name)
 			return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
@@ -162,64 +162,66 @@ func (r *CrdStrategy) waitForUser(ctx context.Context, userOpts builder.UserOpts
 	return ctrl.Result{}, nil
 }
 
-func (r *CrdStrategy) reconcileGrant(ctx context.Context, grantOpts builder.GrantOpts) (ctrl.Result, error) {
+// reconcileGrant will create a new grant and potentially wait for it.
+func (s *CrdStrategy) reconcileGrant(ctx context.Context, userOpts builder.UserOpts, grantOpts builder.GrantOpts) (ctrl.Result, error) {
 	var grantKey types.NamespacedName
-	if len(r.grantKeys) == 0 {
+	if len(s.grantKeys) == 0 {
 		return ctrl.Result{}, fmt.Errorf("error getting Grant key for grant. Not enough grantKeys given")
 	}
-	grantKey, r.grantKeys = r.grantKeys[0], r.grantKeys[1:]
+	grantKey, s.grantKeys = s.grantKeys[0], s.grantKeys[1:]
 
-	if grantKey == (types.NamespacedName{}) || r.owner == nil {
-		return ctrl.Result{}, fmt.Errorf("grantKey or owner is not specified when reconciling user.")
+	if grantKey == (types.NamespacedName{}) || s.owner == nil {
+		return ctrl.Result{}, fmt.Errorf("grantKey or owner is not specified when reconciling user")
 	}
 
-	var grant mariadbv1alpha1.Grant
-	if err := r.Get(ctx, grantKey, &grant); err != nil {
-		if apierrors.IsNotFound(err) {
-			log.FromContext(ctx).V(1).Info("Creating User Grant", "key", grantKey, "owner", r.owner, "opts", grantOpts)
-			return r.createGrant(ctx, grantKey, grantOpts)
-		}
+	if err := s.createGrant(ctx, grantKey, grantOpts); err != nil {
 		return ctrl.Result{}, err
 	}
 
-	if result, err := r.waitForGrant(ctx, grantKey); !result.IsZero() || err != nil {
+	if result, err := s.waitForGrant(ctx, grantKey); !result.IsZero() || err != nil {
 		return result, err
 	}
 
 	return ctrl.Result{}, nil
 }
 
-func (r *CrdStrategy) createGrant(ctx context.Context, key types.NamespacedName, grantOpts builder.GrantOpts) (ctrl.Result, error) {
-	user, err := r.builder.BuildGrant(key, r.owner, grantOpts)
-	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error building Grant: %v", err)
+func (s *CrdStrategy) createGrant(ctx context.Context, key types.NamespacedName, grantOpts builder.GrantOpts) error {
+	var grant mariadbv1alpha1.Grant
+	err := s.Get(ctx, key, &grant)
+
+	if apierrors.IsNotFound(err) {
+		user, err := s.builder.BuildGrant(key, s.owner, grantOpts)
+		if err != nil {
+			return fmt.Errorf("error building Grant: %w", err)
+		}
+		return s.Create(ctx, user)
 	}
-	return ctrl.Result{}, r.Create(ctx, user)
+
+	return err
 }
 
 // ReconcileUserPassword will create a new secret with the user password if it does not already exists
-func (a *CrdStrategy) reconcileUserPassword(ctx context.Context) (ctrl.Result, error) {
+func (s *CrdStrategy) reconcileUserPassword(ctx context.Context) (string, error) {
 	req := secret.PasswordRequest{
-		Metadata: a.owner.GetInheritMetadata(),
-		Owner:    a.owner,
+		Metadata: s.owner.GetInheritMetadata(),
+		Owner:    s.owner,
 		Key: types.NamespacedName{
-			Name:      a.secretKeyRef.Name,
-			Namespace: a.owner.GetNamespace(),
+			Name:      s.secretKeyRef.Name,
+			Namespace: s.owner.GetNamespace(),
 		},
-		SecretKey: a.secretKeyRef.Key,
-		Generate:  a.secretKeyRef.Generate,
+		SecretKey: s.secretKeyRef.Key,
+		Generate:  s.secretKeyRef.Generate,
 	}
-	_, err := a.secretReconciler.ReconcilePassword(ctx, req)
-	return ctrl.Result{}, err
+	return s.secretReconciler.ReconcilePassword(ctx, req)
 }
 
 // waitForGrant allows us to wait for a Grant resource to be created.
 // Requeue accordingly to the result
-func (r *CrdStrategy) waitForGrant(ctx context.Context, grantKey types.NamespacedName) (ctrl.Result, error) {
+func (s *CrdStrategy) waitForGrant(ctx context.Context, grantKey types.NamespacedName) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 
 	var grant mariadbv1alpha1.Grant
-	if err := r.Get(ctx, grantKey, &grant); err != nil {
+	if err := s.Get(ctx, grantKey, &grant); err != nil {
 		if apierrors.IsNotFound(err) {
 			logger.V(1).Info("Grant not found. Requeuing", "grant", grantKey.Name)
 			return ctrl.Result{RequeueAfter: 5 * time.Second}, nil

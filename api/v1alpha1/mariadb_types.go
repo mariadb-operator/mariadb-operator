@@ -872,7 +872,7 @@ func (m *MariaDB) GetInheritMetadata() *Metadata {
 
 // Replication with defaulting accessor
 func (m *MariaDB) Replication() Replication {
-	return *m.Spec.Replication
+	return ptr.Deref(m.Spec.Replication, Replication{})
 }
 
 // IsGaleraEnabled indicates whether the MariaDB instance has Galera enabled

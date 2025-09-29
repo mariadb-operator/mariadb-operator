@@ -83,6 +83,9 @@ func (r *SecretReconciler) ReconcilePassword(ctx context.Context, req PasswordRe
 		return "", fmt.Errorf("error creating password Secret: %v", err)
 	}
 
+	// @NOTE: We can add a "re-fetch" of the secret here to make sure it's crated in case of issues where the password is not getting
+	// created
+
 	return password, nil
 }
 

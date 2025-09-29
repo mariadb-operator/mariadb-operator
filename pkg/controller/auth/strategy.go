@@ -9,6 +9,7 @@ import (
 
 type Strategy interface {
 	reconcileUser(ctx context.Context, userOpts builder.UserOpts) (ctrl.Result, error)
-	reconcileGrant(ctx context.Context, grantOpts builder.GrantOpts) (ctrl.Result, error)
-	reconcileUserPassword(ctx context.Context) (ctrl.Result, error)
+	// reconcileGrant will reconcile a new grant. userOpts are passed here to do associations only and should not be used to create
+	// resources.
+	reconcileGrant(ctx context.Context, userOpts builder.UserOpts, grantOpts builder.GrantOpts) (ctrl.Result, error)
 }

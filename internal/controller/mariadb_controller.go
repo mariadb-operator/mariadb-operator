@@ -824,7 +824,12 @@ func (r *MariaDBReconciler) reconcileUsers(ctx context.Context, mariadb *mariadb
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error creating Auth Strategy: %v", err)
 	}
-	if result, err := r.AuthReconciler.ReconcileUserGrant(ctx, userOpts, []builder.GrantOpts{grantOpts}, strategy); !result.IsZero() || err != nil {
+	if result, err := r.AuthReconciler.ReconcileUserGrant(
+		ctx,
+		userOpts,
+		[]builder.GrantOpts{grantOpts},
+		strategy,
+	); !result.IsZero() || err != nil {
 		if err != nil {
 			return ctrl.Result{}, fmt.Errorf("error reconciling %s user auth: %v", sysUser, err)
 		}

@@ -679,11 +679,6 @@ func (r *MaxScaleReconciler) isStatefulSetReady(sts *appsv1.StatefulSet, mxs *ma
 	return sts.Status.ReadyReplicas == sts.Status.Replicas && sts.Status.ReadyReplicas == mxs.Spec.Replicas
 }
 
-type grant struct {
-	Key       types.NamespacedName
-	GrantOpts builder.GrantOpts
-}
-
 type maxscaleAuthReconcileItem struct {
 	key       types.NamespacedName
 	user      builder.UserOpts
@@ -723,7 +718,7 @@ func (r *MaxScaleReconciler) reconcileAuth(ctx context.Context, req *requestMaxS
 			},
 			grantKeys: []types.NamespacedName{clientKey},
 			grants: []builder.GrantOpts{
-				builder.GrantOpts{
+				{
 					Privileges: []string{
 						"SELECT",
 						"INSERT",
@@ -816,7 +811,7 @@ func (r *MaxScaleReconciler) reconcileAuth(ctx context.Context, req *requestMaxS
 			},
 			grantKeys: []types.NamespacedName{syncKey},
 			grants: []builder.GrantOpts{
-				builder.GrantOpts{
+				{
 					Privileges: []string{
 						"SELECT",
 						"INSERT",
@@ -861,7 +856,7 @@ func (r *MaxScaleReconciler) reconcileAuth(ctx context.Context, req *requestMaxS
 func monitorGrantOpts(mxs *mariadbv1alpha1.MaxScale) []builder.GrantOpts {
 	if mxs.Spec.Monitor.Module == mariadbv1alpha1.MonitorModuleMariadb {
 		return []builder.GrantOpts{
-			builder.GrantOpts{
+			{
 				Privileges: []string{
 					"BINLOG ADMIN",
 					"CONNECTION ADMIN",
@@ -891,7 +886,7 @@ func monitorGrantOpts(mxs *mariadbv1alpha1.MaxScale) []builder.GrantOpts {
 		}
 	}
 	return []builder.GrantOpts{
-		builder.GrantOpts{
+		{
 			Privileges: []string{
 				"SLAVE MONITOR",
 			},

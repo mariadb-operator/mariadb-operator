@@ -252,8 +252,7 @@ func (r *ReplicationConfigClient) reconcileUsersAndGrants(ctx context.Context, m
 		},
 	}
 
-	// @TODO: This needs to be another strategy for direct password
-	strategy, err := auth.NewCrdStrategy(
+	crdStrategy, err := auth.NewCrdStrategy(
 		r.Client,
 		r.builder,
 		auth.WithUserKeys(replUserKey),
@@ -262,10 +261,16 @@ func (r *ReplicationConfigClient) reconcileUsersAndGrants(ctx context.Context, m
 	)
 
 	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error creating crd strategy. Error was: %v", err)
+		return ctrl.Result{}, fmt.Errorf("error creating crd strategy. Error was: %w", err)
 	}
 
-	if result, err := r.authReconciler.ReconcileUserGrant(ctx, userOpts, grantOpts, strategy); !result.IsZero() || err != nil {
+	sqlStrategy, err := auth.NewSqlStrategy(client, crdStrategy)
+
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error creating sql strategy. Error was: %w", err)
+	}
+
+	if result, err := r.authReconciler.ReconcileUserGrant(ctx, userOpts, grantOpts, sqlStrategy); !result.IsZero() || err != nil {
 		if err != nil {
 			return ctrl.Result{}, fmt.Errorf("error reconciling %s user auth: %v", replUser, err)
 		}
