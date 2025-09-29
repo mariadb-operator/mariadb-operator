@@ -206,36 +206,19 @@ type Replication struct {
 	Enabled bool `json:"enabled,omitempty"`
 }
 
-// SetDefaults sets reasonable defaults.
-func (r *Replication) SetDefaults(mdb *MariaDB, env *environment.OperatorEnv) error {
-	if r.GtidStrictMode == nil {
-		r.GtidStrictMode = ptr.To(true)
-	}
-	if reflect.ValueOf(r.InitContainer).IsZero() {
-		r.InitContainer = InitContainer{
-			Image: env.MariadbOperatorImage,
-		}
-	}
-	if err := r.Agent.SetDefaults(mdb, env); err != nil {
-		return fmt.Errorf("error setting agent defaults: %v", err)
+func (r *Replication) GetReplica() *ReplicaReplication {
+	if r.Replica == nil {
+		return &ReplicaReplication{}
 	}
 
-	autoUpdateDataPlane := ptr.Deref(mdb.Spec.UpdateStrategy.AutoUpdateDataPlane, false)
-	if autoUpdateDataPlane {
-		initBumped, err := docker.SetTagOrDigest(env.MariadbOperatorImage, r.InitContainer.Image)
-		if err != nil {
-			return fmt.Errorf("error bumping replication init image: %v", err)
-		}
-		r.InitContainer.Image = initBumped
+	return r.Replica
+}
 
-		agentBumped, err := docker.SetTagOrDigest(env.MariadbOperatorImage, r.Agent.Image)
-		if err != nil {
-			return fmt.Errorf("error bumping replication agent image: %v", err)
-		}
-		r.Agent.Image = agentBumped
+func (r *Replication) GetPrimary() *PrimaryReplication {
+	if r.Replica == nil {
+		return &PrimaryReplication{}
 	}
-
-	return nil
+	return r.Primary
 }
 
 // ReplicationSpec is the Replication desired state specification.
@@ -270,7 +253,34 @@ type ReplicationSpec struct {
 
 // SetDefaults fills the current Replication object with DefaultReplicationSpec.
 // This enables having minimal Replication objects and provides sensible defaults.
-func (r *Replication) SetDefaults() error {
+func (r *Replication) SetDefaults(mdb *MariaDB, env *environment.OperatorEnv) error {
+	if r.GtidStrictMode == nil {
+		r.GtidStrictMode = ptr.To(true)
+	}
+	if reflect.ValueOf(r.InitContainer).IsZero() {
+		r.InitContainer = InitContainer{
+			Image: env.MariadbOperatorImage,
+		}
+	}
+	if err := r.Agent.SetDefaults(mdb, env); err != nil {
+		return fmt.Errorf("error setting agent defaults: %v", err)
+	}
+
+	autoUpdateDataPlane := ptr.Deref(mdb.Spec.UpdateStrategy.AutoUpdateDataPlane, false)
+	if autoUpdateDataPlane {
+		initBumped, err := docker.SetTagOrDigest(env.MariadbOperatorImage, r.InitContainer.Image)
+		if err != nil {
+			return fmt.Errorf("error bumping replication init image: %v", err)
+		}
+		r.InitContainer.Image = initBumped
+
+		agentBumped, err := docker.SetTagOrDigest(env.MariadbOperatorImage, r.Agent.Image)
+		if err != nil {
+			return fmt.Errorf("error bumping replication agent image: %v", err)
+		}
+		r.Agent.Image = agentBumped
+	}
+
 	if r.Primary == nil {
 		primary := *DefaultReplicationSpec.Primary
 		r.Primary = &primary
@@ -341,7 +351,7 @@ func (m *MariaDB) IsSwitchoverRequired() bool {
 		return false
 	}
 	currentPodIndex := ptr.Deref(m.Status.CurrentPrimaryPodIndex, 0)
-	desiredPodIndex := ptr.Deref(m.Replication().Primary.PodIndex, 0)
+	desiredPodIndex := ptr.Deref(m.Replication().GetPrimary().PodIndex, 0)
 	return currentPodIndex != desiredPodIndex
 }
 
