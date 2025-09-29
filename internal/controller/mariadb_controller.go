@@ -333,12 +333,6 @@ func (r *MariaDBReconciler) reconcileConfigMap(ctx context.Context, mariadb *mar
 		}
 	}
 
-	if mariadb.Replication().Enabled && ptr.Deref(mariadb.Replication().ProbesEnabled, false) {
-		configMapKeyRef := mariadb.ReplConfigMapKeyRef()
-		if err := r.ReplicationReconciler.ReconcileProbeConfigMap(ctx, configMapKeyRef, mariadb); err != nil {
-			return ctrl.Result{}, err
-		}
-	}
 	return ctrl.Result{}, nil
 }
 

@@ -1072,6 +1072,30 @@ func (m *MariaDB) GetSUCredential() *SecretKeySelector {
 	return &m.Spec.RootPasswordSecretKeyRef.SecretKeySelector
 }
 
+// Topology refers to the MariaDB topology
+type Topology string
+
+var (
+	TopologyGalera      Topology = "galera"
+	TopologyReplication Topology = "replication"
+)
+
+// Get MariaDB Superuser credentials
+func (m *MariaDB) GetAgent() (*Topology, *Agent, error) {
+	if !m.IsHAEnabled() {
+		return nil, nil, errors.New("high availability must be enabled")
+	}
+	galera := ptr.Deref(m.Spec.Galera, Galera{})
+	if galera.Enabled {
+		return &TopologyGalera, &galera.Agent, nil
+	}
+	replication := ptr.Deref(m.Spec.Replication, Replication{})
+	if replication.Enabled {
+		return &TopologyReplication, &replication.Agent, nil
+	}
+	return nil, nil, errors.New("agent could not be found")
+}
+
 // +kubebuilder:object:root=true
 
 // MariaDBList contains a list of MariaDB

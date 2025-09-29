@@ -42,12 +42,12 @@ var (
 		TimeoutSeconds:      5,
 		PeriodSeconds:       10,
 	}
-	defaultGaleraAgentProbe = func(galera mariadbv1alpha1.Galera) *corev1.Probe {
+	defaultAgentProbe = func(agent *mariadbv1alpha1.Agent) *corev1.Probe {
 		return &corev1.Probe{
 			ProbeHandler: corev1.ProbeHandler{
 				HTTPGet: &corev1.HTTPGetAction{
 					Path: "/health",
-					Port: intstr.FromInt(int(galera.Agent.ProbePort)),
+					Port: intstr.FromInt(int(agent.ProbePort)),
 				},
 			},
 		}
@@ -78,9 +78,23 @@ func (b *Builder) mariadbContainers(mariadb *mariadbv1alpha1.MariaDB, opts ...ma
 		mariadbContainer.Ports = mariadbPorts(mariadb)
 	}
 	if mariadbOpts.includeProbes {
-		mariadbContainer.StartupProbe = mariadbStartupProbe(mariadb)
-		mariadbContainer.LivenessProbe = mariadbLivenessProbe(mariadb)
-		mariadbContainer.ReadinessProbe = mariadbReadinessProbe(mariadb)
+		startupProbe, err := mariadbStartupProbe(mariadb)
+		if err != nil {
+			return nil, err
+		}
+		mariadbContainer.StartupProbe = startupProbe
+
+		livenessProbe, err := mariadbLivenessProbe(mariadb)
+		if err != nil {
+			return nil, err
+		}
+		mariadbContainer.LivenessProbe = livenessProbe
+
+		readinessProbe, err := mariadbReadinessProbe(mariadb)
+		if err != nil {
+			return nil, err
+		}
+		mariadbContainer.ReadinessProbe = readinessProbe
 	}
 
 	if mariadbOpts.command != nil {
@@ -95,8 +109,8 @@ func (b *Builder) mariadbContainers(mariadb *mariadbv1alpha1.MariaDB, opts ...ma
 	var containers []corev1.Container
 	containers = append(containers, *mariadbContainer)
 
-	if mariadb.IsGaleraEnabled() && mariadbOpts.includeGaleraContainers {
-		agentContainer, err := b.galeraAgentContainer(mariadb)
+	if mariadb.IsHAEnabled() && mariadbOpts.includeDataPlaneContainers {
+		agentContainer, err := b.agentContainer(mariadb)
 		if err != nil {
 			return nil, err
 		}
@@ -161,9 +175,11 @@ func (b *Builder) maxscaleContainers(mxs *mariadbv1alpha1.MaxScale) ([]corev1.Co
 	return []corev1.Container{*container}, nil
 }
 
-func (b *Builder) galeraAgentContainer(mariadb *mariadbv1alpha1.MariaDB) (*corev1.Container, error) {
-	galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
-	agent := galera.Agent
+func (b *Builder) agentContainer(mariadb *mariadbv1alpha1.MariaDB) (*corev1.Container, error) {
+	topology, agent, err := mariadb.GetAgent()
+	if err != nil {
+		return nil, err
+	}
 
 	container, err := b.buildContainerWithTemplate(agent.Image, agent.ImagePullPolicy, &agent.ContainerTemplate)
 	if err != nil {
@@ -189,7 +205,7 @@ func (b *Builder) galeraAgentContainer(mariadb *mariadbv1alpha1.MariaDB) (*corev
 		var args []string
 		args = append(args, []string{
 			"agent",
-			"galera",
+			string(*topology),
 			fmt.Sprintf("--addr=:%d", agent.Port),
 			fmt.Sprintf("--probe-addr=:%d", agent.ProbePort),
 			fmt.Sprintf("--config-dir=%s", galeraresources.GaleraConfigMountPath),
@@ -225,13 +241,13 @@ func (b *Builder) galeraAgentContainer(mariadb *mariadbv1alpha1.MariaDB) (*corev
 		if container.LivenessProbe != nil {
 			return container.LivenessProbe
 		}
-		return defaultGaleraAgentProbe(galera)
+		return defaultAgentProbe(agent)
 	}()
 	container.ReadinessProbe = func() *corev1.Probe {
 		if container.ReadinessProbe != nil {
 			return container.ReadinessProbe
 		}
-		return defaultGaleraAgentProbe(galera)
+		return defaultAgentProbe(agent)
 	}()
 	return container, nil
 }
@@ -251,14 +267,15 @@ func (b *Builder) mariadbInitContainers(mariadb *mariadbv1alpha1.MariaDB, opts .
 			initContainers = append(initContainers, *initContainer)
 		}
 	}
-	if mariadb.IsGaleraEnabled() && mariadbOpts.includeGaleraContainers {
+	// TODO: unify galeraInitContainer and replicationInitContainer, like we did with agentContainer
+	if mariadb.IsGaleraEnabled() && mariadbOpts.includeDataPlaneContainers {
 		galeraInitContainer, err := b.galeraInitContainer(mariadb)
 		if err != nil {
 			return nil, err
 		}
 		initContainers = append(initContainers, *galeraInitContainer)
 	}
-	if mariadb.Replication().Enabled && mariadbOpts.includeReplicationContainers {
+	if mariadb.Replication().Enabled && mariadbOpts.includeDataPlaneContainers {
 		replicationInitContainer, err := b.replicationInitContainer(mariadb)
 		if err != nil {
 			return nil, err
@@ -602,12 +619,6 @@ func mariadbVolumeMounts(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt
 			Name:      MariadbConfigVolume,
 			MountPath: MariadbConfigMountPath,
 		})
-		if ptr.Deref(mariadb.Replication().ProbesEnabled, false) {
-			volumeMounts = append(volumeMounts, corev1.VolumeMount{
-				Name:      ProbesVolume,
-				MountPath: ProbesMountPath,
-			})
-		}
 	}
 	if mariadb.IsGaleraEnabled() && mariadbOpts.includeServiceAccount {
 		volumeMounts = append(volumeMounts, corev1.VolumeMount{
@@ -707,35 +718,28 @@ func mariadbPorts(mariadb *mariadbv1alpha1.MariaDB) []corev1.ContainerPort {
 	return ports
 }
 
-func mariadbLivenessProbe(mariadb *mariadbv1alpha1.MariaDB) *corev1.Probe {
-	if mariadb.IsGaleraEnabled() {
-		return mariadbGaleraProbe(mariadb, "/liveness", mariadb.Spec.LivenessProbe)
+func mariadbLivenessProbe(mariadb *mariadbv1alpha1.MariaDB) (*corev1.Probe, error) {
+	if mariadb.IsHAEnabled() {
+		return mariadbAgentProbe(mariadb, "/liveness", mariadb.Spec.LivenessProbe)
 	}
-	return mariadbProbe(mariadb, mariadb.Spec.LivenessProbe)
+	return mariadbProbe(mariadb, mariadb.Spec.LivenessProbe), nil
 }
 
-func mariadbStartupProbe(mariadb *mariadbv1alpha1.MariaDB) *corev1.Probe {
-	if mariadb.IsGaleraEnabled() {
-		return mariadbGaleraProbe(mariadb, "/liveness", mariadb.Spec.StartupProbe)
+func mariadbStartupProbe(mariadb *mariadbv1alpha1.MariaDB) (*corev1.Probe, error) {
+	if mariadb.IsHAEnabled() {
+		return mariadbAgentProbe(mariadb, "/liveness", mariadb.Spec.StartupProbe)
 	}
-	return mariadbProbe(mariadb, mariadb.Spec.StartupProbe)
+	return mariadbProbe(mariadb, mariadb.Spec.StartupProbe), nil
 }
 
-func mariadbReadinessProbe(mariadb *mariadbv1alpha1.MariaDB) *corev1.Probe {
-	if mariadb.IsGaleraEnabled() {
-		return mariadbGaleraProbe(mariadb, "/readiness", mariadb.Spec.ReadinessProbe)
+func mariadbReadinessProbe(mariadb *mariadbv1alpha1.MariaDB) (*corev1.Probe, error) {
+	if mariadb.IsHAEnabled() {
+		return mariadbAgentProbe(mariadb, "/readiness", mariadb.Spec.ReadinessProbe)
 	}
-	return mariadbProbe(mariadb, mariadb.Spec.ReadinessProbe)
+	return mariadbProbe(mariadb, mariadb.Spec.ReadinessProbe), nil
 }
 
 func mariadbProbe(mariadb *mariadbv1alpha1.MariaDB, probe *mariadbv1alpha1.Probe) *corev1.Probe {
-	if mariadb.Replication().Enabled && ptr.Deref(mariadb.Replication().ProbesEnabled, false) {
-		replProbe := mariadbReplProbe(mariadb, probe)
-		if probe != nil {
-			setProbeThresholds(replProbe, ptr.To(probe.ToKubernetesType()))
-		}
-		return replProbe
-	}
 	if probe != nil && probe.ProbeHandler != (mariadbv1alpha1.ProbeHandler{}) {
 		return ptr.To(probe.ToKubernetesType())
 	}
@@ -747,30 +751,12 @@ func mariadbProbe(mariadb *mariadbv1alpha1.MariaDB, probe *mariadbv1alpha1.Probe
 	return defaultProbe
 }
 
-func mariadbReplProbe(mariadb *mariadbv1alpha1.MariaDB, probe *mariadbv1alpha1.Probe) *corev1.Probe {
-	replProbe := &corev1.Probe{
-		ProbeHandler: corev1.ProbeHandler{
-			Exec: &corev1.ExecAction{
-				Command: []string{
-					"bash",
-					"-c",
-					fmt.Sprintf("%s/%s", ProbesMountPath, mariadb.ReplConfigMapKeyRef().Key),
-				},
-			},
-		},
-		InitialDelaySeconds: 20,
-		TimeoutSeconds:      5,
-		PeriodSeconds:       10,
+func mariadbAgentProbe(mariadb *mariadbv1alpha1.MariaDB, path string, probe *mariadbv1alpha1.Probe) (*corev1.Probe, error) {
+	_, agent, err := mariadb.GetAgent()
+	if err != nil {
+		return nil, fmt.Errorf("error getting agent: %v", err)
 	}
-	if probe != nil {
-		setProbeThresholds(replProbe, ptr.To(probe.ToKubernetesType()))
-	}
-	return replProbe
-}
-
-func mariadbGaleraProbe(mdb *mariadbv1alpha1.MariaDB, path string, probe *mariadbv1alpha1.Probe) *corev1.Probe {
-	agent := ptr.Deref(mdb.Spec.Galera, mariadbv1alpha1.Galera{}).Agent
-	galeraProbe := corev1.Probe{
+	agentProbe := corev1.Probe{
 		ProbeHandler: corev1.ProbeHandler{
 			HTTPGet: &corev1.HTTPGetAction{
 				Path: path,
@@ -782,9 +768,9 @@ func mariadbGaleraProbe(mdb *mariadbv1alpha1.MariaDB, path string, probe *mariad
 		PeriodSeconds:       10,
 	}
 	if probe != nil {
-		setProbeThresholds(&galeraProbe, ptr.To(probe.ToKubernetesType()))
+		setProbeThresholds(&agentProbe, ptr.To(probe.ToKubernetesType()))
 	}
-	return &galeraProbe
+	return &agentProbe, nil
 }
 
 func maxscaleProbe(mxs *mariadbv1alpha1.MaxScale, probe *mariadbv1alpha1.Probe) *corev1.Probe {

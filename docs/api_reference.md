@@ -69,6 +69,41 @@ _Appears in:_
 | `antiAffinityEnabled` _boolean_ | AntiAffinityEnabled configures PodAntiAffinity so each Pod is scheduled in a different Node, enabling HA.<br />Make sure you have at least as many Nodes available as the replicas to not end up with unscheduled Pods. |  |  |
 
 
+#### Agent
+
+
+
+Agent is a sidecar agent that co-operates with mariadb-operator.
+
+
+
+_Appears in:_
+- [Galera](#galera)
+- [GaleraSpec](#galeraspec)
+- [Replication](#replication)
+- [ReplicationSpec](#replicationspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `command` _string array_ | Command to be used in the Container. |  |  |
+| `args` _string array_ | Args to be used in the Container. |  |  |
+| `env` _[EnvVar](#envvar) array_ | Env represents the environment variables to be injected in a container. |  |  |
+| `envFrom` _[EnvFromSource](#envfromsource) array_ | EnvFrom represents the references (via ConfigMap and Secrets) to environment variables to be injected in the container. |  |  |
+| `volumeMounts` _[VolumeMount](#volumemount) array_ | VolumeMounts to be used in the Container. |  |  |
+| `livenessProbe` _[Probe](#probe)_ | LivenessProbe to be used in the Container. |  |  |
+| `readinessProbe` _[Probe](#probe)_ | ReadinessProbe to be used in the Container. |  |  |
+| `startupProbe` _[Probe](#probe)_ | StartupProbe to be used in the Container. |  |  |
+| `resources` _[ResourceRequirements](#resourcerequirements)_ | Resources describes the compute resource requirements. |  |  |
+| `securityContext` _[SecurityContext](#securitycontext)_ | SecurityContext holds security configuration that will be applied to a container. |  |  |
+| `image` _string_ | Image name to be used by the MariaDB instances. The supported format is `<image>:<tag>`. |  |  |
+| `imagePullPolicy` _[PullPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#pullpolicy-v1-core)_ | ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`. |  | Enum: [Always Never IfNotPresent] <br /> |
+| `port` _integer_ | Port where the agent will be listening for API connections. |  |  |
+| `probePort` _integer_ | Port where the agent will be listening for probe connections. |  |  |
+| `kubernetesAuth` _[KubernetesAuth](#kubernetesauth)_ | KubernetesAuth to be used by the agent container |  |  |
+| `basicAuth` _[BasicAuth](#basicauth)_ | BasicAuth to be used by the agent container |  |  |
+| `gracefulShutdownTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#duration-v1-meta)_ | GracefulShutdownTimeout is the time we give to the agent container in order to gracefully terminate in-flight requests. |  |  |
+
+
 #### Backup
 
 
@@ -188,12 +223,12 @@ _Appears in:_
 
 
 
-KubernetesAuth refers to the basic authentication mechanism utilized for establishing a connection from the operator to the agent.
+BasicAuth refers to the basic authentication mechanism utilized for establishing a connection from the operator to the agent.
 
 
 
 _Appears in:_
-- [GaleraAgent](#galeraagent)
+- [Agent](#agent)
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
@@ -427,7 +462,7 @@ ContainerTemplate defines a template to configure Container objects.
 
 
 _Appears in:_
-- [GaleraAgent](#galeraagent)
+- [Agent](#agent)
 - [InitContainer](#initcontainer)
 - [MariaDBSpec](#mariadbspec)
 - [MaxScaleSpec](#maxscalespec)
@@ -551,8 +586,8 @@ Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kub
 
 
 _Appears in:_
+- [Agent](#agent)
 - [ContainerTemplate](#containertemplate)
-- [GaleraAgent](#galeraagent)
 - [InitContainer](#initcontainer)
 - [MariaDBSpec](#mariadbspec)
 - [MaxScaleSpec](#maxscalespec)
@@ -573,9 +608,9 @@ Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kub
 
 
 _Appears in:_
+- [Agent](#agent)
 - [Container](#container)
 - [ContainerTemplate](#containertemplate)
-- [GaleraAgent](#galeraagent)
 - [InitContainer](#initcontainer)
 - [MariaDBSpec](#mariadbspec)
 - [MaxScaleSpec](#maxscalespec)
@@ -713,45 +748,12 @@ _Appears in:_
 | `galeraLibPath` _string_ | GaleraLibPath is a path inside the MariaDB image to the wsrep provider plugin. It is defaulted if not provided.<br />More info: https://galeracluster.com/library/documentation/mysql-wsrep-options.html#wsrep-provider. |  |  |
 | `replicaThreads` _integer_ | ReplicaThreads is the number of replica threads used to apply Galera write sets in parallel.<br />More info: https://mariadb.com/kb/en/galera-cluster-system-variables/#wsrep_slave_threads. |  |  |
 | `providerOptions` _object (keys:string, values:string)_ | ProviderOptions is map of Galera configuration parameters.<br />More info: https://mariadb.com/kb/en/galera-cluster-system-variables/#wsrep_provider_options. |  |  |
-| `agent` _[GaleraAgent](#galeraagent)_ | GaleraAgent is a sidecar agent that co-operates with mariadb-operator. |  |  |
+| `agent` _[Agent](#agent)_ | Agent is a sidecar agent that co-operates with mariadb-operator. |  |  |
 | `recovery` _[GaleraRecovery](#galerarecovery)_ | GaleraRecovery is the recovery process performed by the operator whenever the Galera cluster is not healthy.<br />More info: https://galeracluster.com/library/documentation/crash-recovery.html. |  |  |
 | `initContainer` _[InitContainer](#initcontainer)_ | InitContainer is an init container that runs in the MariaDB Pod and co-operates with mariadb-operator. |  |  |
 | `initJob` _[GaleraInitJob](#galerainitjob)_ | InitJob defines a Job that co-operates with mariadb-operator by performing initialization tasks. |  |  |
 | `config` _[GaleraConfig](#galeraconfig)_ | GaleraConfig defines storage options for the Galera configuration files. |  |  |
 | `enabled` _boolean_ | Enabled is a flag to enable Galera. |  |  |
-
-
-#### GaleraAgent
-
-
-
-GaleraAgent is a sidecar agent that co-operates with mariadb-operator.
-
-
-
-_Appears in:_
-- [Galera](#galera)
-- [GaleraSpec](#galeraspec)
-
-| Field | Description | Default | Validation |
-| --- | --- | --- | --- |
-| `command` _string array_ | Command to be used in the Container. |  |  |
-| `args` _string array_ | Args to be used in the Container. |  |  |
-| `env` _[EnvVar](#envvar) array_ | Env represents the environment variables to be injected in a container. |  |  |
-| `envFrom` _[EnvFromSource](#envfromsource) array_ | EnvFrom represents the references (via ConfigMap and Secrets) to environment variables to be injected in the container. |  |  |
-| `volumeMounts` _[VolumeMount](#volumemount) array_ | VolumeMounts to be used in the Container. |  |  |
-| `livenessProbe` _[Probe](#probe)_ | LivenessProbe to be used in the Container. |  |  |
-| `readinessProbe` _[Probe](#probe)_ | ReadinessProbe to be used in the Container. |  |  |
-| `startupProbe` _[Probe](#probe)_ | StartupProbe to be used in the Container. |  |  |
-| `resources` _[ResourceRequirements](#resourcerequirements)_ | Resources describes the compute resource requirements. |  |  |
-| `securityContext` _[SecurityContext](#securitycontext)_ | SecurityContext holds security configuration that will be applied to a container. |  |  |
-| `image` _string_ | Image name to be used by the MariaDB instances. The supported format is `<image>:<tag>`. |  |  |
-| `imagePullPolicy` _[PullPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#pullpolicy-v1-core)_ | ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`. |  | Enum: [Always Never IfNotPresent] <br /> |
-| `port` _integer_ | Port where the agent will be listening for API connections. |  |  |
-| `probePort` _integer_ | Port where the agent will be listening for probe connections. |  |  |
-| `kubernetesAuth` _[KubernetesAuth](#kubernetesauth)_ | KubernetesAuth to be used by the agent container |  |  |
-| `basicAuth` _[BasicAuth](#basicauth)_ | BasicAuth to be used by the agent container |  |  |
-| `gracefulShutdownTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#duration-v1-meta)_ | GracefulShutdownTimeout is the time we give to the agent container in order to gracefully terminate in-flight requests. |  |  |
 
 
 #### GaleraConfig
@@ -855,7 +857,7 @@ _Appears in:_
 | `galeraLibPath` _string_ | GaleraLibPath is a path inside the MariaDB image to the wsrep provider plugin. It is defaulted if not provided.<br />More info: https://galeracluster.com/library/documentation/mysql-wsrep-options.html#wsrep-provider. |  |  |
 | `replicaThreads` _integer_ | ReplicaThreads is the number of replica threads used to apply Galera write sets in parallel.<br />More info: https://mariadb.com/kb/en/galera-cluster-system-variables/#wsrep_slave_threads. |  |  |
 | `providerOptions` _object (keys:string, values:string)_ | ProviderOptions is map of Galera configuration parameters.<br />More info: https://mariadb.com/kb/en/galera-cluster-system-variables/#wsrep_provider_options. |  |  |
-| `agent` _[GaleraAgent](#galeraagent)_ | GaleraAgent is a sidecar agent that co-operates with mariadb-operator. |  |  |
+| `agent` _[Agent](#agent)_ | Agent is a sidecar agent that co-operates with mariadb-operator. |  |  |
 | `recovery` _[GaleraRecovery](#galerarecovery)_ | GaleraRecovery is the recovery process performed by the operator whenever the Galera cluster is not healthy.<br />More info: https://galeracluster.com/library/documentation/crash-recovery.html. |  |  |
 | `initContainer` _[InitContainer](#initcontainer)_ | InitContainer is an init container that runs in the MariaDB Pod and co-operates with mariadb-operator. |  |  |
 | `initJob` _[GaleraInitJob](#galerainitjob)_ | InitJob defines a Job that co-operates with mariadb-operator by performing initialization tasks. |  |  |
@@ -1109,7 +1111,7 @@ The agent validates the legitimacy of the service account token provided as an A
 
 
 _Appears in:_
-- [GaleraAgent](#galeraagent)
+- [Agent](#agent)
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
@@ -2220,8 +2222,8 @@ Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kub
 
 
 _Appears in:_
+- [Agent](#agent)
 - [ContainerTemplate](#containertemplate)
-- [GaleraAgent](#galeraagent)
 - [InitContainer](#initcontainer)
 - [MariaDBSpec](#mariadbspec)
 - [MaxScaleSpec](#maxscalespec)
@@ -2295,8 +2297,8 @@ _Appears in:_
 | `replica` _[ReplicaReplication](#replicareplication)_ | ReplicaReplication is the replication configuration for the replica nodes. |  |  |
 | `gtidStrictMode` _boolean_ | GtidStrictMode determines whether the GTID strict mode is enabled. See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/gtid#gtid_strict_mode.<br />It is enabled by default. |  |  |
 | `syncBinlog` _integer_ | SyncBinlog indicates after how many events the binary log is synchronized to the disk.<br />The default is 1, flushing the binary log to disk after every write, which trades off performance for consistency. See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/replication-and-binary-log-system-variables#sync_binlog |  |  |
-| `probesEnabled` _boolean_ | ProbesEnabled indicates to use replication specific liveness and readiness probes.<br />This probes check that the primary can receive queries and that the replica has the replication thread running. |  |  |
 | `initContainer` _[InitContainer](#initcontainer)_ | InitContainer is an init container that runs in the MariaDB Pod and co-operates with mariadb-operator. |  |  |
+| `agent` _[Agent](#agent)_ | Agent is a sidecar agent that co-operates with mariadb-operator. |  |  |
 | `enabled` _boolean_ | Enabled is a flag to enable Replication. |  |  |
 
 
@@ -2317,8 +2319,8 @@ _Appears in:_
 | `replica` _[ReplicaReplication](#replicareplication)_ | ReplicaReplication is the replication configuration for the replica nodes. |  |  |
 | `gtidStrictMode` _boolean_ | GtidStrictMode determines whether the GTID strict mode is enabled. See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/gtid#gtid_strict_mode.<br />It is enabled by default. |  |  |
 | `syncBinlog` _integer_ | SyncBinlog indicates after how many events the binary log is synchronized to the disk.<br />The default is 1, flushing the binary log to disk after every write, which trades off performance for consistency. See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/replication-and-binary-log-system-variables#sync_binlog |  |  |
-| `probesEnabled` _boolean_ | ProbesEnabled indicates to use replication specific liveness and readiness probes.<br />This probes check that the primary can receive queries and that the replica has the replication thread running. |  |  |
 | `initContainer` _[InitContainer](#initcontainer)_ | InitContainer is an init container that runs in the MariaDB Pod and co-operates with mariadb-operator. |  |  |
+| `agent` _[Agent](#agent)_ | Agent is a sidecar agent that co-operates with mariadb-operator. |  |  |
 
 
 
@@ -2332,11 +2334,11 @@ Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kub
 
 
 _Appears in:_
+- [Agent](#agent)
 - [BackupSpec](#backupspec)
 - [Container](#container)
 - [ContainerTemplate](#containertemplate)
 - [Exporter](#exporter)
-- [GaleraAgent](#galeraagent)
 - [GaleraInitJob](#galerainitjob)
 - [GaleraRecoveryJob](#galerarecoveryjob)
 - [InitContainer](#initcontainer)
@@ -2587,10 +2589,10 @@ Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kub
 
 
 _Appears in:_
+- [Agent](#agent)
 - [BackupSpec](#backupspec)
 - [ContainerTemplate](#containertemplate)
 - [Exporter](#exporter)
-- [GaleraAgent](#galeraagent)
 - [InitContainer](#initcontainer)
 - [JobContainerTemplate](#jobcontainertemplate)
 - [MariaDBSpec](#mariadbspec)
@@ -2895,6 +2897,8 @@ _Appears in:_
 | `caSecretKeyRef` _[SecretKeySelector](#secretkeyselector)_ | CASecretKeyRef is a reference to a Secret key containing a CA bundle in PEM format used to establish TLS connections with S3.<br />By default, the system trust chain will be used, but you can use this field to add more CAs to the bundle. |  |  |
 
 
+
+
 #### TopologySpreadConstraint
 
 
@@ -3074,9 +3078,9 @@ Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kub
 
 
 _Appears in:_
+- [Agent](#agent)
 - [Container](#container)
 - [ContainerTemplate](#containertemplate)
-- [GaleraAgent](#galeraagent)
 - [InitContainer](#initcontainer)
 - [MariaDBSpec](#mariadbspec)
 - [MaxScaleSpec](#maxscalespec)

@@ -3269,8 +3269,7 @@ spec:
                 description: Replication configures high availability via Galera.
                 properties:
                   agent:
-                    description: GaleraAgent is a sidecar agent that co-operates with
-                      mariadb-operator.
+                    description: Agent is a sidecar agent that co-operates with mariadb-operator.
                     properties:
                       args:
                         description: Args to be used in the Container.
@@ -6933,6 +6932,432 @@ spec:
                   This feature is still in alpha, use Galera if you are looking for
                   a more production-ready HA.
                 properties:
+                  agent:
+                    description: Agent is a sidecar agent that co-operates with mariadb-operator.
+                    properties:
+                      args:
+                        description: Args to be used in the Container.
+                        items:
+                          type: string
+                        type: array
+                      basicAuth:
+                        description: BasicAuth to be used by the agent container
+                        properties:
+                          enabled:
+                            description: Enabled is a flag to enable BasicAuth
+                            type: boolean
+                          passwordSecretKeyRef:
+                            description: PasswordSecretKeyRef to be used for basic
+                              authentication
+                            properties:
+                              generate:
+                                default: false
+                                description: Generate indicates whether the Secret
+                                  should be generated if the Secret referenced is
+                                  not present.
+                                type: boolean
+                              key:
+                                type: string
+                              name:
+                                default: ""
+                                type: string
+                            required:
+                            - key
+                            type: object
+                            x-kubernetes-map-type: atomic
+                          username:
+                            description: Username to be used for basic authentication
+                            type: string
+                        type: object
+                      command:
+                        description: Command to be used in the Container.
+                        items:
+                          type: string
+                        type: array
+                      env:
+                        description: Env represents the environment variables to be
+                          injected in a container.
+                        items:
+                          description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#envvarsource-v1-core.'
+                          properties:
+                            name:
+                              description: Name of the environment variable. Must
+                                be a C_IDENTIFIER.
+                              type: string
+                            value:
+                              type: string
+                            valueFrom:
+                              description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#envvarsource-v1-core.'
+                              properties:
+                                configMapKeyRef:
+                                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#configmapkeyselector-v1-core.'
+                                  properties:
+                                    key:
+                                      type: string
+                                    name:
+                                      default: ""
+                                      type: string
+                                  required:
+                                  - key
+                                  type: object
+                                  x-kubernetes-map-type: atomic
+                                fieldRef:
+                                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#objectfieldselector-v1-core.'
+                                  properties:
+                                    apiVersion:
+                                      type: string
+                                    fieldPath:
+                                      type: string
+                                  required:
+                                  - fieldPath
+                                  type: object
+                                  x-kubernetes-map-type: atomic
+                                secretKeyRef:
+                                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#secretkeyselector-v1-core.'
+                                  properties:
+                                    key:
+                                      type: string
+                                    name:
+                                      default: ""
+                                      type: string
+                                  required:
+                                  - key
+                                  type: object
+                                  x-kubernetes-map-type: atomic
+                              type: object
+                          required:
+                          - name
+                          type: object
+                        type: array
+                      envFrom:
+                        description: EnvFrom represents the references (via ConfigMap
+                          and Secrets) to environment variables to be injected in
+                          the container.
+                        items:
+                          description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#envfromsource-v1-core.'
+                          properties:
+                            configMapRef:
+                              description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core.'
+                              properties:
+                                name:
+                                  default: ""
+                                  type: string
+                              type: object
+                            prefix:
+                              type: string
+                            secretRef:
+                              description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core.'
+                              properties:
+                                name:
+                                  default: ""
+                                  type: string
+                              type: object
+                          type: object
+                        type: array
+                      gracefulShutdownTimeout:
+                        description: GracefulShutdownTimeout is the time we give to
+                          the agent container in order to gracefully terminate in-flight
+                          requests.
+                        type: string
+                      image:
+                        description: Image name to be used by the MariaDB instances.
+                          The supported format is `<image>:<tag>`.
+                        type: string
+                      imagePullPolicy:
+                        description: ImagePullPolicy is the image pull policy. One
+                          of `Always`, `Never` or `IfNotPresent`. If not defined,
+                          it defaults to `IfNotPresent`.
+                        enum:
+                        - Always
+                        - Never
+                        - IfNotPresent
+                        type: string
+                      kubernetesAuth:
+                        description: KubernetesAuth to be used by the agent container
+                        properties:
+                          authDelegatorRoleName:
+                            description: |-
+                              AuthDelegatorRoleName is the name of the ClusterRoleBinding that is associated with the "system:auth-delegator" ClusterRole.
+                              It is necessary for creating TokenReview objects in order for the agent to validate the service account token.
+                            type: string
+                          enabled:
+                            description: Enabled is a flag to enable KubernetesAuth
+                            type: boolean
+                        type: object
+                      livenessProbe:
+                        description: LivenessProbe to be used in the Container.
+                        properties:
+                          exec:
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#execaction-v1-core.'
+                            properties:
+                              command:
+                                items:
+                                  type: string
+                                type: array
+                                x-kubernetes-list-type: atomic
+                            type: object
+                          failureThreshold:
+                            format: int32
+                            type: integer
+                          httpGet:
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#httpgetaction-v1-core.'
+                            properties:
+                              host:
+                                type: string
+                              path:
+                                type: string
+                              port:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                x-kubernetes-int-or-string: true
+                              scheme:
+                                description: URIScheme identifies the scheme used
+                                  for connection to a host for Get actions
+                                type: string
+                            required:
+                            - port
+                            type: object
+                          initialDelaySeconds:
+                            format: int32
+                            type: integer
+                          periodSeconds:
+                            format: int32
+                            type: integer
+                          successThreshold:
+                            format: int32
+                            type: integer
+                          tcpSocket:
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#tcpsocketaction-v1-core.'
+                            properties:
+                              host:
+                                type: string
+                              port:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                x-kubernetes-int-or-string: true
+                            required:
+                            - port
+                            type: object
+                          timeoutSeconds:
+                            format: int32
+                            type: integer
+                        type: object
+                      port:
+                        description: Port where the agent will be listening for API
+                          connections.
+                        format: int32
+                        type: integer
+                      probePort:
+                        description: Port where the agent will be listening for probe
+                          connections.
+                        format: int32
+                        type: integer
+                      readinessProbe:
+                        description: ReadinessProbe to be used in the Container.
+                        properties:
+                          exec:
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#execaction-v1-core.'
+                            properties:
+                              command:
+                                items:
+                                  type: string
+                                type: array
+                                x-kubernetes-list-type: atomic
+                            type: object
+                          failureThreshold:
+                            format: int32
+                            type: integer
+                          httpGet:
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#httpgetaction-v1-core.'
+                            properties:
+                              host:
+                                type: string
+                              path:
+                                type: string
+                              port:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                x-kubernetes-int-or-string: true
+                              scheme:
+                                description: URIScheme identifies the scheme used
+                                  for connection to a host for Get actions
+                                type: string
+                            required:
+                            - port
+                            type: object
+                          initialDelaySeconds:
+                            format: int32
+                            type: integer
+                          periodSeconds:
+                            format: int32
+                            type: integer
+                          successThreshold:
+                            format: int32
+                            type: integer
+                          tcpSocket:
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#tcpsocketaction-v1-core.'
+                            properties:
+                              host:
+                                type: string
+                              port:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                x-kubernetes-int-or-string: true
+                            required:
+                            - port
+                            type: object
+                          timeoutSeconds:
+                            format: int32
+                            type: integer
+                        type: object
+                      resources:
+                        description: Resources describes the compute resource requirements.
+                        properties:
+                          limits:
+                            additionalProperties:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                            description: ResourceList is a set of (resource name,
+                              quantity) pairs.
+                            type: object
+                          requests:
+                            additionalProperties:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                            description: ResourceList is a set of (resource name,
+                              quantity) pairs.
+                            type: object
+                        type: object
+                      securityContext:
+                        description: SecurityContext holds security configuration
+                          that will be applied to a container.
+                        properties:
+                          allowPrivilegeEscalation:
+                            type: boolean
+                          capabilities:
+                            description: Adds and removes POSIX capabilities from
+                              running containers.
+                            properties:
+                              add:
+                                description: Added capabilities
+                                items:
+                                  description: Capability represent POSIX capabilities
+                                    type
+                                  type: string
+                                type: array
+                                x-kubernetes-list-type: atomic
+                              drop:
+                                description: Removed capabilities
+                                items:
+                                  description: Capability represent POSIX capabilities
+                                    type
+                                  type: string
+                                type: array
+                                x-kubernetes-list-type: atomic
+                            type: object
+                          privileged:
+                            type: boolean
+                          readOnlyRootFilesystem:
+                            type: boolean
+                          runAsGroup:
+                            format: int64
+                            type: integer
+                          runAsNonRoot:
+                            type: boolean
+                          runAsUser:
+                            format: int64
+                            type: integer
+                        type: object
+                      startupProbe:
+                        description: StartupProbe to be used in the Container.
+                        properties:
+                          exec:
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#execaction-v1-core.'
+                            properties:
+                              command:
+                                items:
+                                  type: string
+                                type: array
+                                x-kubernetes-list-type: atomic
+                            type: object
+                          failureThreshold:
+                            format: int32
+                            type: integer
+                          httpGet:
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#httpgetaction-v1-core.'
+                            properties:
+                              host:
+                                type: string
+                              path:
+                                type: string
+                              port:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                x-kubernetes-int-or-string: true
+                              scheme:
+                                description: URIScheme identifies the scheme used
+                                  for connection to a host for Get actions
+                                type: string
+                            required:
+                            - port
+                            type: object
+                          initialDelaySeconds:
+                            format: int32
+                            type: integer
+                          periodSeconds:
+                            format: int32
+                            type: integer
+                          successThreshold:
+                            format: int32
+                            type: integer
+                          tcpSocket:
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#tcpsocketaction-v1-core.'
+                            properties:
+                              host:
+                                type: string
+                              port:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                x-kubernetes-int-or-string: true
+                            required:
+                            - port
+                            type: object
+                          timeoutSeconds:
+                            format: int32
+                            type: integer
+                        type: object
+                      volumeMounts:
+                        description: VolumeMounts to be used in the Container.
+                        items:
+                          description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#volumemount-v1-core.'
+                          properties:
+                            mountPath:
+                              type: string
+                            name:
+                              description: This must match the Name of a Volume.
+                              type: string
+                            readOnly:
+                              type: boolean
+                            subPath:
+                              type: string
+                          required:
+                          - mountPath
+                          - name
+                          type: object
+                        type: array
+                    type: object
                   enabled:
                     description: Enabled is a flag to enable Replication.
                     type: boolean
@@ -7334,11 +7759,6 @@ spec:
                           switchover.
                         type: integer
                     type: object
-                  probesEnabled:
-                    description: |-
-                      ProbesEnabled indicates to use replication specific liveness and readiness probes.
-                      This probes check that the primary can receive queries and that the replica has the replication thread running.
-                    type: boolean
                   replica:
                     description: ReplicaReplication is the replication configuration
                       for the replica nodes.

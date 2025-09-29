@@ -69,7 +69,7 @@ var _ = Describe("MariaDB Galera types", func() {
 							PodIndex:          ptr.To(0),
 							AutomaticFailover: ptr.To(true),
 						},
-						Agent: GaleraAgent{
+						Agent: Agent{
 							Image:     "ghcr.io/mariadb-operator/mariadb-operator:v0.0.26",
 							Port:      5555,
 							ProbePort: 5566,
@@ -111,7 +111,7 @@ var _ = Describe("MariaDB Galera types", func() {
 						InitContainer: InitContainer{
 							Image: "mariadb-operator:v0.0.26",
 						},
-						Agent: GaleraAgent{
+						Agent: Agent{
 							Image: "mariadb-operator:v0.0.26",
 							KubernetesAuth: &KubernetesAuth{
 								Enabled: false,
@@ -154,7 +154,7 @@ var _ = Describe("MariaDB Galera types", func() {
 							PodIndex:          ptr.To(0),
 							AutomaticFailover: ptr.To(false),
 						},
-						Agent: GaleraAgent{
+						Agent: Agent{
 							Image:     "mariadb-operator:v0.0.26",
 							Port:      5555,
 							ProbePort: 5566,
@@ -222,7 +222,7 @@ var _ = Describe("MariaDB Galera types", func() {
 							PodIndex:          ptr.To(0),
 							AutomaticFailover: ptr.To(true),
 						},
-						Agent: GaleraAgent{
+						Agent: Agent{
 							Image:     "ghcr.io/mariadb-operator/mariadb-operator:v0.0.26",
 							Port:      5555,
 							ProbePort: 5566,
@@ -262,7 +262,7 @@ var _ = Describe("MariaDB Galera types", func() {
 				&Galera{
 					Enabled: true,
 					GaleraSpec: GaleraSpec{
-						Agent: GaleraAgent{
+						Agent: Agent{
 							Image: "docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:v0.0.1",
 						},
 						InitContainer: InitContainer{
@@ -288,7 +288,7 @@ var _ = Describe("MariaDB Galera types", func() {
 				&Galera{
 					Enabled: true,
 					GaleraSpec: GaleraSpec{
-						Agent: GaleraAgent{
+						Agent: Agent{
 							Image: "docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:v0.0.1",
 						},
 						InitContainer: InitContainer{

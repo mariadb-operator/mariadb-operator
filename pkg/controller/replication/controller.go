@@ -129,33 +129,6 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, mdb *mariadbv1alp
 	return ctrl.Result{}, r.reconcileSwitchover(ctx, &req, switchoverLogger)
 }
 
-// nolint:lll
-func (r *ReplicationReconciler) ReconcileProbeConfigMap(ctx context.Context, configMapKeyRef mariadbv1alpha1.ConfigMapKeySelector,
-	mdb *mariadbv1alpha1.MariaDB) error {
-	if !mdb.Replication().Enabled {
-		return nil
-	}
-	req := configmap.ReconcileRequest{
-		Metadata: mdb.Spec.InheritMetadata,
-		Owner:    mdb,
-		Key: types.NamespacedName{
-			Name:      configMapKeyRef.Name,
-			Namespace: mdb.Namespace,
-		},
-		Data: map[string]string{
-			configMapKeyRef.Key: `#!/bin/bash
-
-if [[ $(mariadb -u root -p"${MARIADB_ROOT_PASSWORD}" -e "SHOW VARIABLES LIKE 'rpl_semi_sync_slave_enabled';" --skip-column-names | grep -c "ON") -eq 1 ]]; then
-	mariadb -u root -p"${MARIADB_ROOT_PASSWORD}" -e "SHOW SLAVE STATUS\G" | grep -c "Slave_IO_Running: Yes"
-else
-	mariadb -u root -p"${MARIADB_ROOT_PASSWORD}" -e "SELECT 1;"
-fi
-`,
-		},
-	}
-	return r.configMapreconciler.Reconcile(ctx, &req)
-}
-
 func (r *ReplicationReconciler) reconcileReplication(ctx context.Context, req *reconcileRequest, logger logr.Logger) (ctrl.Result, error) {
 	if result, err := r.shouldReconcileReplication(ctx, req, logger); !result.IsZero() || err != nil {
 		return result, err

@@ -43,9 +43,6 @@ const (
 	InitLibKey        = "lib.sh"
 	InitEntrypointKey = "entrypoint.sh"
 
-	ProbesVolume    = "probes"
-	ProbesMountPath = "/etc/probes"
-
 	ServiceAccountVolume    = "serviceaccount"
 	ServiceAccountMountPath = "/var/run/secrets/kubernetes.io/serviceaccount"
 

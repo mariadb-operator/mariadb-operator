@@ -248,16 +248,6 @@ func (m *MariaDB) MetricsConfigSecretKeyRef() GeneratedSecretKeyRef {
 	}
 }
 
-// ConfigMapKeySelector defines the key selector for the ConfigMap used for replication healthchecks.
-func (m *MariaDB) ReplConfigMapKeyRef() ConfigMapKeySelector {
-	return ConfigMapKeySelector{
-		LocalObjectReference: LocalObjectReference{
-			Name: fmt.Sprintf("%s-probes", m.Name),
-		},
-		Key: "replication.sh",
-	}
-}
-
 // InitKey defines the keys for the init objects.
 func (m *MariaDB) InitKey() types.NamespacedName {
 	return types.NamespacedName{
