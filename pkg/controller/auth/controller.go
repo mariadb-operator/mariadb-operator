@@ -18,13 +18,20 @@ func (r *AuthReconciler) ReconcileUserGrant(ctx context.Context, userOpts builde
 	}
 
 	if result, err := strategy.reconcileUser(ctx, userOpts); !result.IsZero() || err != nil {
-		return ctrl.Result{}, fmt.Errorf("error reconciling User: %v", err)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("error reconciling User: %v", err)
+		}
+		return result, err
 	}
 
 	for _, gops := range grantOpts {
 		if len(gops.Privileges) > 0 {
 			if result, err := strategy.reconcileGrant(ctx, userOpts, gops); !result.IsZero() || err != nil {
-				return ctrl.Result{}, fmt.Errorf("error reconciling Grant: %v", err)
+				if err != nil {
+					return ctrl.Result{}, fmt.Errorf("error reconciling Grant: %v", err)
+				}
+
+				return result, err
 			}
 		}
 	}
