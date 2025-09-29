@@ -17,7 +17,6 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/sql"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/statefulset"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/version"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -336,22 +335,6 @@ sync_binlog={{ . }}
 		return nil, err
 	}
 	return buf.Bytes(), nil
-}
-
-func (r *ReplicationConfigClient) reconcileReplUserPassword(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) error {
-	secretKeyRef := mdb.Spec.Replication.Replica.ReplPasswordSecretKeyRef
-	req := secret.PasswordRequest{
-		Metadata: mdb.Spec.InheritMetadata,
-		Owner:    mdb,
-		Key: types.NamespacedName{
-			Name:      secretKeyRef.Name,
-			Namespace: mdb.Namespace,
-		},
-		SecretKey: secretKeyRef.Key,
-		Generate:  secretKeyRef.Generate,
-	}
-	_, err := r.secretReconciler.ReconcilePassword(ctx, req)
-	return err
 }
 
 func serverId(podName string) (int, error) {
