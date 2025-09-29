@@ -357,6 +357,73 @@ func (c Client) Exists(ctx context.Context, sql string, args ...any) (bool, erro
 	return rows.Next(), nil
 }
 
+func (c Client) QueryColumnMap(ctx context.Context, sql string) (map[string]string, error) {
+	rows, err := c.db.QueryContext(ctx, sql)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	if !rows.Next() {
+		return nil, fmt.Errorf("no rows returned for query %q", sql)
+	}
+
+	columns, err := rows.Columns()
+	if err != nil {
+		return nil, err
+	}
+
+	// raw holds the scanned values
+	raw := make([]interface{}, len(columns))
+	// dest holds pointers into raw
+	dest := make([]interface{}, len(columns))
+	for i := range raw {
+		dest[i] = &raw[i]
+	}
+	if err := rows.Scan(dest...); err != nil {
+		return nil, err
+	}
+
+	result := make(map[string]string, len(columns))
+	for i, col := range columns {
+		if raw[i] == nil {
+			continue
+		}
+		switch v := raw[i].(type) {
+		case []byte:
+			result[col] = string(v)
+		case string:
+			result[col] = v
+		case int64:
+			result[col] = fmt.Sprintf("%d", v)
+		default:
+			result[col] = fmt.Sprintf("%v", v)
+		}
+	}
+	return result, nil
+}
+
+func (c Client) QueryBoolColumn(ctx context.Context, sql, column string) (bool, error) {
+	row, err := c.QueryColumnMap(ctx, sql)
+	if err != nil {
+		return false, err
+	}
+	val, ok := row[column]
+	if !ok {
+		return false, fmt.Errorf("column %q not found", column)
+	}
+
+	switch strings.ToLower(val) {
+	case "yes", "on", "true", "1":
+		return true, nil
+	case "no", "off", "false", "0":
+		return false, nil
+	case "":
+		return false, fmt.Errorf("column %q is empty", column)
+	default:
+		return false, fmt.Errorf("unexpected bool value for %q: %q", column, val)
+	}
+}
+
 type CreateUserOpts struct {
 	IdentifiedBy         string
 	IdentifiedByPassword string
@@ -687,6 +754,10 @@ func (c Client) IsReplicationPrimary(ctx context.Context) (bool, error) {
 
 func (c Client) IsReplicationReplica(ctx context.Context) (bool, error) {
 	return c.Exists(ctx, "SHOW REPLICA STATUS")
+}
+
+func (c Client) ReplicaSlaveIORunning(ctx context.Context) (bool, error) {
+	return c.QueryBoolColumn(ctx, "SHOW REPLICA STATUS", "Slave_IO_Running")
 }
 
 type ChangeMasterOpts struct {
