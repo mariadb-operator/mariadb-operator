@@ -15,6 +15,7 @@ import (
 	mdbhttp "github.com/mariadb-operator/mariadb-operator/v25/pkg/http"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/log"
 	"github.com/spf13/cobra"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var replicationCommand = &cobra.Command{
@@ -34,8 +35,13 @@ var replicationCommand = &cobra.Command{
 			logger.Error(err, "Error getting environment variables")
 			os.Exit(1)
 		}
+		k8sClient, err := getK8sClient()
+		if err != nil {
+			logger.Error(err, "Error getting Kubernetes client")
+			os.Exit(1)
+		}
 
-		probeServer, err := getReplicationProbeServer(env, logger.WithName("probe"))
+		probeServer, err := getReplicationProbeServer(env, k8sClient, logger.WithName("probe"))
 		if err != nil {
 			logger.Error(err, "Error creating probe server")
 			os.Exit(1)
@@ -53,9 +59,10 @@ var replicationCommand = &cobra.Command{
 	},
 }
 
-func getReplicationProbeServer(env *environment.PodEnvironment, logger logr.Logger) (*server.Server, error) {
+func getReplicationProbeServer(env *environment.PodEnvironment, k8sClient client.Client, logger logr.Logger) (*server.Server, error) {
 	handler := replicationhandler.NewReplicationProbe(
 		env,
+		k8sClient,
 		mdbhttp.NewResponseWriter(&logger),
 		&logger,
 	)

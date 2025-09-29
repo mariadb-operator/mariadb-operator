@@ -26,10 +26,13 @@ type GaleraProbe struct {
 	readinessLogger logr.Logger
 }
 
-func NewGaleraProbe(mariadbKey types.NamespacedName, k8sClient ctrlclient.Client, env *environment.PodEnvironment,
+func NewGaleraProbe(env *environment.PodEnvironment, k8sClient ctrlclient.Client,
 	responseWriter *mdbhttp.ResponseWriter, logger *logr.Logger) router.ProbeHandler {
 	return &GaleraProbe{
-		mariadbKey:      mariadbKey,
+		mariadbKey: types.NamespacedName{
+			Name:      env.MariadbName,
+			Namespace: env.PodNamespace,
+		},
 		k8sClient:       k8sClient,
 		env:             env,
 		responseWriter:  responseWriter,

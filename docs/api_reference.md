@@ -2278,6 +2278,7 @@ _Appears in:_
 | `connectionTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#duration-v1-meta)_ | ConnectionTimeout to be used when the replica connects to the primary. |  |  |
 | `connectionRetries` _integer_ | ConnectionRetries to be used when the replica connects to the primary. |  |  |
 | `syncTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#duration-v1-meta)_ | SyncTimeout defines the timeout for a replica to be synced with the primary when performing a primary switchover.<br />During a switchover, all replicas must be synced with the primary before promoting the new primary.<br />During a failover, the primary will be down, therefore this sync step will be skipped. |  |  |
+| `maxLagSeconds` _integer_ | MaxLagSeconds is the maximum number of seconds that replicas are allowed to lag behind the primary.<br />If a replica exceeds this threshold, it is marked as not ready and queries will no longer be forwarded to it.<br />Replicas in non ready state will block operations such as primary switchover and upgrades.<br />If not provided, it defaults to 0, which means replicas are not allowed to lag behind the primary.<br />This field is not taken into account by MaxScale, you can define the maximum lag as router parameters. See: https://mariadb.com/docs/maxscale/reference/maxscale-routers/maxscale-readwritesplit#max_replication_lag. |  |  |
 
 
 #### Replication

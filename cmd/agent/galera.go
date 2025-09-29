@@ -17,7 +17,6 @@ import (
 	mdbhttp "github.com/mariadb-operator/mariadb-operator/v25/pkg/http"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/log"
 	"github.com/spf13/cobra"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -106,15 +105,9 @@ var galeraCommand = &cobra.Command{
 }
 
 func getGaleraProbeServer(env *environment.PodEnvironment, k8sClient client.Client, logger logr.Logger) (*server.Server, error) {
-	mariadbKey := types.NamespacedName{
-		Name:      env.MariadbName,
-		Namespace: env.PodNamespace,
-	}
-
 	handler := galerahandler.NewGaleraProbe(
-		mariadbKey,
-		k8sClient,
 		env,
+		k8sClient,
 		mdbhttp.NewResponseWriter(&logger),
 		&logger,
 	)
