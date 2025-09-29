@@ -1080,8 +1080,24 @@ var (
 	TopologyReplication Topology = "replication"
 )
 
-// Get MariaDB Superuser credentials
-func (m *MariaDB) GetAgent() (*Topology, *Agent, error) {
+// Get MariaDB data-plane init container
+func (m *MariaDB) GetDataPlaneInitContainer() (*Topology, *InitContainer, error) {
+	if !m.IsHAEnabled() {
+		return nil, nil, errors.New("high availability must be enabled")
+	}
+	galera := ptr.Deref(m.Spec.Galera, Galera{})
+	if galera.Enabled {
+		return &TopologyGalera, &galera.InitContainer, nil
+	}
+	replication := ptr.Deref(m.Spec.Replication, Replication{})
+	if replication.Enabled {
+		return &TopologyReplication, &replication.InitContainer, nil
+	}
+	return nil, nil, errors.New("init container could not be found")
+}
+
+// Get MariaDB data-plane agent
+func (m *MariaDB) GetDataPlaneAgent() (*Topology, *Agent, error) {
 	if !m.IsHAEnabled() {
 		return nil, nil, errors.New("high availability must be enabled")
 	}

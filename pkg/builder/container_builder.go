@@ -1,7 +1,6 @@
 package builder
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"path"
@@ -110,7 +109,7 @@ func (b *Builder) mariadbContainers(mariadb *mariadbv1alpha1.MariaDB, opts ...ma
 	containers = append(containers, *mariadbContainer)
 
 	if mariadb.IsHAEnabled() && mariadbOpts.includeDataPlaneContainers {
-		agentContainer, err := b.agentContainer(mariadb)
+		agentContainer, err := b.dataPlaneAgentContainer(mariadb)
 		if err != nil {
 			return nil, err
 		}
@@ -175,8 +174,8 @@ func (b *Builder) maxscaleContainers(mxs *mariadbv1alpha1.MaxScale) ([]corev1.Co
 	return []corev1.Container{*container}, nil
 }
 
-func (b *Builder) agentContainer(mariadb *mariadbv1alpha1.MariaDB) (*corev1.Container, error) {
-	topology, agent, err := mariadb.GetAgent()
+func (b *Builder) dataPlaneAgentContainer(mariadb *mariadbv1alpha1.MariaDB) (*corev1.Container, error) {
+	topology, agent, err := mariadb.GetDataPlaneAgent()
 	if err != nil {
 		return nil, err
 	}
@@ -267,30 +266,22 @@ func (b *Builder) mariadbInitContainers(mariadb *mariadbv1alpha1.MariaDB, opts .
 			initContainers = append(initContainers, *initContainer)
 		}
 	}
-	// TODO: unify galeraInitContainer and replicationInitContainer, like we did with agentContainer
-	if mariadb.IsGaleraEnabled() && mariadbOpts.includeDataPlaneContainers {
-		galeraInitContainer, err := b.galeraInitContainer(mariadb)
+	if mariadb.IsHAEnabled() && mariadbOpts.includeDataPlaneContainers {
+		dataPlaneInitContainer, err := b.dataPlaneInitContainer(mariadb)
 		if err != nil {
 			return nil, err
 		}
-		initContainers = append(initContainers, *galeraInitContainer)
-	}
-	if mariadb.Replication().Enabled && mariadbOpts.includeDataPlaneContainers {
-		replicationInitContainer, err := b.replicationInitContainer(mariadb)
-		if err != nil {
-			return nil, err
-		}
-		initContainers = append(initContainers, *replicationInitContainer)
+		initContainers = append(initContainers, *dataPlaneInitContainer)
 	}
 	return initContainers, nil
 }
 
-func (b *Builder) galeraInitContainer(mariadb *mariadbv1alpha1.MariaDB) (*corev1.Container, error) {
-	galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
-	if !galera.Enabled {
-		return nil, errors.New("Galera is not enabled") //nolint:staticcheck
+func (b *Builder) dataPlaneInitContainer(mariadb *mariadbv1alpha1.MariaDB) (*corev1.Container, error) {
+	topology, initContainer, err := mariadb.GetDataPlaneInitContainer()
+	if err != nil {
+		return nil, err
 	}
-	init := galera.InitContainer
+	init := initContainer
 	container, err := b.buildContainerWithTemplate(init.Image, init.ImagePullPolicy, &init.ContainerTemplate)
 	if err != nil {
 		return nil, err
@@ -305,40 +296,8 @@ func (b *Builder) galeraInitContainer(mariadb *mariadbv1alpha1.MariaDB) (*corev1
 		args := container.Args
 		args = append(args, []string{
 			"init",
-			"galera",
+			string(*topology),
 			fmt.Sprintf("--config-dir=%s", galeraresources.GaleraConfigMountPath),
-			fmt.Sprintf("--state-dir=%s", MariadbStorageMountPath),
-		}...)
-		return args
-	}()
-	container.Env = env
-	container.VolumeMounts = mariadbVolumeMounts(mariadb)
-
-	return container, nil
-}
-
-func (b *Builder) replicationInitContainer(mariadb *mariadbv1alpha1.MariaDB) (*corev1.Container, error) {
-	replication := mariadb.Replication()
-	if !replication.Enabled {
-		return nil, errors.New("replication is not enabled")
-	}
-	init := replication.InitContainer
-	container, err := b.buildContainerWithTemplate(init.Image, init.ImagePullPolicy, &init.ContainerTemplate)
-	if err != nil {
-		return nil, err
-	}
-	env, err := mariadbEnv(mariadb)
-	if err != nil {
-		return nil, err
-	}
-
-	container.Name = InitContainerName
-	container.Args = func() []string {
-		args := container.Args
-		args = append(args, []string{
-			"init",
-			"replication",
-			fmt.Sprintf("--config-dir=%s", MariadbConfigMountPath),
 			fmt.Sprintf("--state-dir=%s", MariadbStorageMountPath),
 		}...)
 		return args
@@ -752,7 +711,7 @@ func mariadbProbe(mariadb *mariadbv1alpha1.MariaDB, probe *mariadbv1alpha1.Probe
 }
 
 func mariadbAgentProbe(mariadb *mariadbv1alpha1.MariaDB, path string, probe *mariadbv1alpha1.Probe) (*corev1.Probe, error) {
-	_, agent, err := mariadb.GetAgent()
+	_, agent, err := mariadb.GetDataPlaneAgent()
 	if err != nil {
 		return nil, fmt.Errorf("error getting agent: %v", err)
 	}
