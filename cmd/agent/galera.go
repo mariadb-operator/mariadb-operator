@@ -114,6 +114,7 @@ func getGaleraProbeServer(env *environment.PodEnvironment, k8sClient client.Clie
 	handler := galerahandler.NewGaleraProbe(
 		mariadbKey,
 		k8sClient,
+		env,
 		mdbhttp.NewResponseWriter(&logger),
 		&logger,
 	)

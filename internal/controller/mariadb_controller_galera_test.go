@@ -591,7 +591,7 @@ var _ = Describe("MariaDB Galera alternative configs", Ordered, func() {
 				Galera: &mariadbv1alpha1.Galera{
 					Enabled: true,
 					GaleraSpec: mariadbv1alpha1.GaleraSpec{
-						Agent: mariadbv1alpha1.GaleraAgent{
+						Agent: mariadbv1alpha1.Agent{
 							BasicAuth: &mariadbv1alpha1.BasicAuth{
 								Enabled: true,
 							},

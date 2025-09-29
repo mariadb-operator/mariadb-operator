@@ -69,6 +69,7 @@ func init() {
 	RootCmd.PersistentFlags().StringVar(&basicAuthPasswordPath, "basic-auth-password-path", "", "Basic authentication password path")
 
 	RootCmd.AddCommand(galeraCommand)
+	RootCmd.AddCommand(replicationCommand)
 }
 
 var RootCmd = &cobra.Command{

@@ -296,7 +296,7 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 						Galera: &v1alpha1.Galera{
 							Enabled: true,
 							GaleraSpec: v1alpha1.GaleraSpec{
-								Agent: v1alpha1.GaleraAgent{
+								Agent: v1alpha1.Agent{
 									BasicAuth: &v1alpha1.BasicAuth{
 										Enabled: true,
 									},

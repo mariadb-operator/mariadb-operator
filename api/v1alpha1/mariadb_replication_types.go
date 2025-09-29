@@ -208,6 +208,9 @@ func (r *Replication) SetDefaults(mdb *MariaDB, env *environment.OperatorEnv) er
 			Image: env.MariadbOperatorImage,
 		}
 	}
+	if err := r.Agent.SetDefaults(mdb, env); err != nil {
+		return fmt.Errorf("error setting agent defaults: %v", err)
+	}
 
 	autoUpdateDataPlane := ptr.Deref(mdb.Spec.UpdateStrategy.AutoUpdateDataPlane, false)
 	if autoUpdateDataPlane {
@@ -216,6 +219,12 @@ func (r *Replication) SetDefaults(mdb *MariaDB, env *environment.OperatorEnv) er
 			return fmt.Errorf("error bumping replication init image: %v", err)
 		}
 		r.InitContainer.Image = initBumped
+
+		agentBumped, err := docker.SetTagOrDigest(env.MariadbOperatorImage, r.Agent.Image)
+		if err != nil {
+			return fmt.Errorf("error bumping replication agent image: %v", err)
+		}
+		r.Agent.Image = agentBumped
 	}
 
 	return nil
@@ -241,15 +250,14 @@ type ReplicationSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
 	SyncBinlog *int `json:"syncBinlog,omitempty"`
-	// ProbesEnabled indicates to use replication specific liveness and readiness probes.
-	// This probes check that the primary can receive queries and that the replica has the replication thread running.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch","urn:alm:descriptor:com.tectonic.ui:advanced"}
-	ProbesEnabled *bool `json:"probesEnabled,omitempty"`
 	// InitContainer is an init container that runs in the MariaDB Pod and co-operates with mariadb-operator.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	InitContainer InitContainer `json:"initContainer,omitempty"`
+	// Agent is a sidecar agent that co-operates with mariadb-operator.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	Agent Agent `json:"agent,omitempty"`
 }
 
 // FillWithDefaults fills the current ReplicationSpec object with DefaultReplicationSpec.
@@ -271,10 +279,6 @@ func (r *ReplicationSpec) FillWithDefaults() {
 		syncBinlog := *DefaultReplicationSpec.SyncBinlog
 		r.SyncBinlog = &syncBinlog
 	}
-	if r.ProbesEnabled == nil {
-		probesEnabled := *DefaultReplicationSpec.ProbesEnabled
-		r.ProbesEnabled = &probesEnabled
-	}
 }
 
 var (
@@ -294,8 +298,7 @@ var (
 			ConnectionRetries: ptr.To(10),
 			SyncTimeout:       ptr.To(tenSeconds),
 		},
-		SyncBinlog:    ptr.To(1),
-		ProbesEnabled: ptr.To(false),
+		SyncBinlog: ptr.To(1),
 	}
 )
 

@@ -20,16 +20,18 @@ import (
 type GaleraProbe struct {
 	mariadbKey      types.NamespacedName
 	k8sClient       ctrlclient.Client
+	env             *environment.PodEnvironment
 	responseWriter  *mdbhttp.ResponseWriter
 	livenessLogger  logr.Logger
 	readinessLogger logr.Logger
 }
 
-func NewGaleraProbe(mariadbKey types.NamespacedName, k8sClient ctrlclient.Client, responseWriter *mdbhttp.ResponseWriter,
-	logger *logr.Logger) router.ProbeHandler {
+func NewGaleraProbe(mariadbKey types.NamespacedName, k8sClient ctrlclient.Client, env *environment.PodEnvironment,
+	responseWriter *mdbhttp.ResponseWriter, logger *logr.Logger) router.ProbeHandler {
 	return &GaleraProbe{
 		mariadbKey:      mariadbKey,
 		k8sClient:       k8sClient,
+		env:             env,
 		responseWriter:  responseWriter,
 		livenessLogger:  logger.WithName("liveness"),
 		readinessLogger: logger.WithName("readiness"),
@@ -53,17 +55,10 @@ func (p *GaleraProbe) Liveness(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	env, err := environment.GetPodEnv(context.Background())
-	if err != nil {
-		p.livenessLogger.Error(err, "error getting environment")
-		p.responseWriter.WriteErrorf(w, "error getting environment: %v", err)
-		return
-	}
-
 	sqlCtx, sqlCancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer sqlCancel()
 
-	sqlClient, err := sql.NewLocalClientWithPodEnv(sqlCtx, env, sql.WithTimeout(1*time.Second))
+	sqlClient, err := sql.NewLocalClientWithPodEnv(sqlCtx, p.env, sql.WithTimeout(1*time.Second))
 	if err != nil {
 		p.livenessLogger.Error(err, "error getting SQL client")
 		p.responseWriter.WriteErrorf(w, "error getting SQL client: %v", err)
@@ -97,17 +92,10 @@ func (p *GaleraProbe) Readiness(w http.ResponseWriter, r *http.Request) {
 		p.readinessLogger.Error(err, "error getting MariaDB")
 	}
 
-	env, err := environment.GetPodEnv(context.Background())
-	if err != nil {
-		p.readinessLogger.Error(err, "error getting environment")
-		p.responseWriter.WriteErrorf(w, "error getting environment: %v", err)
-		return
-	}
-
 	sqlCtx, sqlCancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer sqlCancel()
 
-	sqlClient, err := sql.NewLocalClientWithPodEnv(sqlCtx, env, sql.WithTimeout(1*time.Second))
+	sqlClient, err := sql.NewLocalClientWithPodEnv(sqlCtx, p.env, sql.WithTimeout(1*time.Second))
 	if err != nil {
 		p.readinessLogger.Error(err, "error getting SQL client")
 		p.responseWriter.WriteErrorf(w, "error getting SQL client: %v", err)
