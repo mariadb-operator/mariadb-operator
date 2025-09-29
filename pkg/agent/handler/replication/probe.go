@@ -30,7 +30,7 @@ func NewReplicationProbe(env *environment.PodEnvironment, responseWriter *mdbhtt
 }
 
 func (p *ReplicationProbe) Liveness(w http.ResponseWriter, r *http.Request) {
-	p.readinessLogger.V(1).Info("Probe started")
+	p.livenessLogger.V(1).Info("Probe started")
 
 	sqlCtx, sqlCancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer sqlCancel()
@@ -43,19 +43,33 @@ func (p *ReplicationProbe) Liveness(w http.ResponseWriter, r *http.Request) {
 	}
 	defer sqlClient.Close()
 
-	_, err = sqlClient.IsReplicationReplica(sqlCtx)
+	isReplica, err := sqlClient.IsReplicationReplica(sqlCtx)
 	if err != nil {
-		p.readinessLogger.Error(err, "error checking replica")
+		p.livenessLogger.Error(err, "error checking replica")
 		p.responseWriter.WriteErrorf(w, "error checking replica: %v", err)
 		return
 	}
-	// if isReplica {
-	// 	// TODO: check Slave_IO_Running
-	// }
+	if isReplica {
+		replicaIORunning, err := sqlClient.ReplicaSlaveIORunning(sqlCtx)
+		if err != nil {
+			p.livenessLogger.Error(err, "error checking replica IO thread")
+			p.responseWriter.WriteErrorf(w, "error checking replica IO thread: %v", err)
+			return
+		}
+		if !replicaIORunning {
+			p.livenessLogger.Error(err, "Replica IO thread not running")
+			p.responseWriter.WriteError(w, "Replica IO thread not running")
+			return
+		}
+
+		p.livenessLogger.V(1).Info("Replica IO thread status", "running", replicaIORunning)
+		p.responseWriter.WriteOK(w, nil)
+		return
+	}
 
 	_, err = sqlClient.IsReplicationPrimary(sqlCtx)
 	if err != nil {
-		p.readinessLogger.Error(err, "error checking primary")
+		p.livenessLogger.Error(err, "error checking primary")
 		p.responseWriter.WriteErrorf(w, "error checking primary: %v", err)
 		return
 	}
