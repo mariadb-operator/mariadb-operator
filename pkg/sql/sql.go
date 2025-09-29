@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"text/template"
 	"time"
@@ -424,6 +425,23 @@ func (c Client) QueryBoolColumn(ctx context.Context, sql, column string) (bool, 
 	}
 }
 
+func (c Client) QueryIntColumn(ctx context.Context, sql, column string) (int, error) {
+	row, err := c.QueryColumnMap(ctx, sql)
+	if err != nil {
+		return 0, err
+	}
+	val, ok := row[column]
+	if !ok {
+		return 0, fmt.Errorf("column %q not found", column)
+	}
+
+	n, err := strconv.Atoi(val)
+	if err != nil {
+		return 0, fmt.Errorf("invalid int value for %q: %v", column, err)
+	}
+	return n, nil
+}
+
 type CreateUserOpts struct {
 	IdentifiedBy         string
 	IdentifiedByPassword string
@@ -758,6 +776,10 @@ func (c Client) IsReplicationReplica(ctx context.Context) (bool, error) {
 
 func (c Client) ReplicaSlaveIORunning(ctx context.Context) (bool, error) {
 	return c.QueryBoolColumn(ctx, "SHOW REPLICA STATUS", "Slave_IO_Running")
+}
+
+func (c Client) ReplicaSecondsBehindMaster(ctx context.Context) (int, error) {
+	return c.QueryIntColumn(ctx, "SHOW REPLICA STATUS", "Seconds_Behind_Master")
 }
 
 type ChangeMasterOpts struct {

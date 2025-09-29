@@ -94,15 +94,29 @@ func (p *ReplicationProbe) Readiness(w http.ResponseWriter, r *http.Request) {
 	}
 	defer sqlClient.Close()
 
-	_, err = sqlClient.IsReplicationReplica(sqlCtx)
+	isReplica, err := sqlClient.IsReplicationReplica(sqlCtx)
 	if err != nil {
 		p.readinessLogger.Error(err, "error checking replica")
 		p.responseWriter.WriteErrorf(w, "error checking replica: %v", err)
 		return
 	}
-	// if isReplica {
-	// 	// TODO: check Seconds_Behind_Master
-	// }
+	if isReplica {
+		secondsBehindMaster, err := sqlClient.ReplicaSecondsBehindMaster(sqlCtx)
+		if err != nil {
+			p.readinessLogger.Error(err, "error checking replica seconds behind master")
+			p.responseWriter.WriteErrorf(w, "error checking replica seconds behind master: %v", err)
+			return
+		}
+		if secondsBehindMaster > 0 {
+			p.readinessLogger.Error(err, "Replica is lagging behind master", "seconds", secondsBehindMaster)
+			p.responseWriter.WriteErrorf(w, "Replica is lagging %d seconds behind master", secondsBehindMaster)
+			return
+		}
+
+		p.readinessLogger.V(1).Info("Replica lag status", "seconds", secondsBehindMaster)
+		p.responseWriter.WriteOK(w, nil)
+		return
+	}
 
 	_, err = sqlClient.IsReplicationPrimary(sqlCtx)
 	if err != nil {
