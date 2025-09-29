@@ -262,7 +262,7 @@ func (r *ReplicationConfigClient) reconcileUsersAndGrants(ctx context.Context, m
 
 	if result, err := r.authReconciler.ReconcileUserGrant(ctx, userOpts, grantOpts, sqlStrategy); !result.IsZero() || err != nil {
 		if err != nil {
-			return ctrl.Result{}, fmt.Errorf("error reconciling %s user auth: %v", replUser, err)
+			return ctrl.Result{}, fmt.Errorf("error reconciling %s user auth: %w", replUser, err)
 		}
 		return result, err
 	}

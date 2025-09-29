@@ -823,7 +823,7 @@ func (r *MariaDBReconciler) reconcileUsers(ctx context.Context, mariadb *mariadb
 		auth.WithWait(true, true),
 	)
 	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error creating Auth Strategy: %v", err)
+		return ctrl.Result{}, fmt.Errorf("error creating Auth Strategy: %w", err)
 	}
 	if result, err := r.AuthReconciler.ReconcileUserGrant(
 		ctx,
@@ -832,7 +832,7 @@ func (r *MariaDBReconciler) reconcileUsers(ctx context.Context, mariadb *mariadb
 		strategy,
 	); !result.IsZero() || err != nil {
 		if err != nil {
-			return ctrl.Result{}, fmt.Errorf("error reconciling %s user auth: %v", sysUser, err)
+			return ctrl.Result{}, fmt.Errorf("error reconciling %s user auth: %w", sysUser, err)
 		}
 		return result, err
 	}
@@ -883,12 +883,12 @@ func (r *MariaDBReconciler) reconcileUsers(ctx context.Context, mariadb *mariadb
 			auth.WithOwner(mariadb),
 		)
 		if err != nil {
-			return ctrl.Result{}, fmt.Errorf("error creating Auth Strategy: %v", err)
+			return ctrl.Result{}, fmt.Errorf("error creating Auth Strategy: %w", err)
 		}
 
 		if result, err := r.AuthReconciler.ReconcileUserGrant(ctx, user, []builder.GrantOpts{grant}, strategy); !result.IsZero() || err != nil {
 			if err != nil {
-				return ctrl.Result{}, fmt.Errorf("error reconciling user auth: %v", err)
+				return ctrl.Result{}, fmt.Errorf("error reconciling user auth: %w", err)
 			}
 			return result, err
 		}

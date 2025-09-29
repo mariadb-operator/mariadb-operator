@@ -118,7 +118,7 @@ func (r *MariaDBReconciler) reconcileAuth(ctx context.Context, mariadb *mariadbv
 		auth.WithOwner(mariadb),
 	)
 	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error creating Auth Strategy: %v", err)
+		return ctrl.Result{}, fmt.Errorf("error creating Auth Strategy: %w", err)
 	}
 	return r.AuthReconciler.ReconcileUserGrant(ctx, userOpts, []builder.GrantOpts{grantOpts}, strategy)
 }

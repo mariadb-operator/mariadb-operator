@@ -840,12 +840,12 @@ func (r *MaxScaleReconciler) reconcileAuth(ctx context.Context, req *requestMaxS
 			auth.WithOwner(mxs),
 		)
 		if err != nil {
-			return ctrl.Result{}, fmt.Errorf("error creating Auth Strategy: %v", err)
+			return ctrl.Result{}, fmt.Errorf("error creating Auth Strategy: %w", err)
 		}
 
 		if result, err := r.AuthReconciler.ReconcileUserGrant(ctx, item.user, item.grants, strategy); !result.IsZero() || err != nil {
 			if err != nil {
-				return ctrl.Result{}, fmt.Errorf("error reconciling %s user auth: %v", item.key.Name, err)
+				return ctrl.Result{}, fmt.Errorf("error reconciling %s user auth: %w", item.key.Name, err)
 			}
 			return result, err
 		}
