@@ -787,10 +787,11 @@ func (r *MariaDBReconciler) reconcileUsers(ctx context.Context, mariadb *mariadb
 				Namespace: mariadb.Namespace,
 			},
 		},
-		Metadata:             mariadb.Spec.InheritMetadata,
-		MaxUserConnections:   20,
-		Name:                 sysUser,
-		Host:                 sysUserHost,
+		Metadata:           mariadb.Spec.InheritMetadata,
+		MaxUserConnections: 20,
+		Name:               sysUser,
+		Host:               sysUserHost,
+		// @TODO: This should be done with the AuthReconciler. see `r.reconcileSecrets`
 		PasswordSecretKeyRef: nil,
 		CleanupPolicy:        ptr.To(mariadbv1alpha1.CleanupPolicySkip),
 	}
