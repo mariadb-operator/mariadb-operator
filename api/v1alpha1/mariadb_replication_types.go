@@ -145,6 +145,14 @@ type ReplicaReplication struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	SyncTimeout *metav1.Duration `json:"syncTimeout,omitempty"`
+	// MaxLagSeconds is the maximum number of seconds that replicas are allowed to lag behind the primary.
+	// If a replica exceeds this threshold, it is marked as not ready and queries will no longer be forwarded to it.
+	// Replicas in non ready state will block operations such as primary switchover and upgrades.
+	// If not provided, it defaults to 0, which means replicas are not allowed to lag behind the primary.
+	// This field is not taken into account by MaxScale, you can define the maximum lag as router parameters. See: https://mariadb.com/docs/maxscale/reference/maxscale-routers/maxscale-readwritesplit#max_replication_lag.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
+	MaxLagSeconds *int `json:"maxLagSeconds,omitempty"`
 }
 
 // FillWithDefaults fills the current ReplicaReplication object with DefaultReplicationSpec.
