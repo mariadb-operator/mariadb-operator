@@ -268,10 +268,17 @@ func (r *MariaDBReconciler) reconcileSecret(ctx context.Context, mariadb *mariad
 	if mariadb.Spec.PasswordSecretKeyRef != nil {
 		secretKeyRefs = append(secretKeyRefs, *mariadb.Spec.PasswordSecretKeyRef)
 	}
-	galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
-	basicAuth := ptr.Deref(galera.Agent.BasicAuth, mariadbv1alpha1.BasicAuth{})
-	if galera.Enabled && basicAuth.Enabled && !reflect.ValueOf(galera.Agent.BasicAuth.PasswordSecretKeyRef).IsZero() {
-		secretKeyRefs = append(secretKeyRefs, galera.Agent.BasicAuth.PasswordSecretKeyRef)
+
+	if mariadb.IsHAEnabled() {
+		_, agent, err := mariadb.GetDataPlaneAgent()
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("error getting data-plane agent: %v", err)
+		}
+
+		basicAuth := ptr.Deref(agent.BasicAuth, mariadbv1alpha1.BasicAuth{})
+		if basicAuth.Enabled && !reflect.ValueOf(agent.BasicAuth.PasswordSecretKeyRef).IsZero() {
+			secretKeyRefs = append(secretKeyRefs, agent.BasicAuth.PasswordSecretKeyRef)
+		}
 	}
 
 	for _, secretKeyRef := range secretKeyRefs {

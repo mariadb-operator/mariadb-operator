@@ -68,10 +68,14 @@ func (b *Builder) mariadbContainers(mariadb *mariadbv1alpha1.MariaDB, opts ...ma
 	if err != nil {
 		return nil, err
 	}
+	volumeMounts, err := mariadbVolumeMounts(mariadb, opts...)
+	if err != nil {
+		return nil, err
+	}
 
 	mariadbContainer.Name = MariadbContainerName
 	mariadbContainer.Env = env
-	mariadbContainer.VolumeMounts = mariadbVolumeMounts(mariadb, opts...)
+	mariadbContainer.VolumeMounts = volumeMounts
 
 	if mariadbOpts.includePorts {
 		mariadbContainer.Ports = mariadbPorts(mariadb)
@@ -108,7 +112,7 @@ func (b *Builder) mariadbContainers(mariadb *mariadbv1alpha1.MariaDB, opts ...ma
 	var containers []corev1.Container
 	containers = append(containers, *mariadbContainer)
 
-	if mariadb.IsHAEnabled() && mariadbOpts.includeDataPlaneContainers {
+	if mariadb.IsHAEnabled() && mariadbOpts.includeDataPlane {
 		agentContainer, err := b.dataPlaneAgentContainer(mariadb)
 		if err != nil {
 			return nil, err
@@ -188,6 +192,10 @@ func (b *Builder) dataPlaneAgentContainer(mariadb *mariadbv1alpha1.MariaDB) (*co
 	if err != nil {
 		return nil, err
 	}
+	volumeMounts, err := mariadbVolumeMounts(mariadb)
+	if err != nil {
+		return nil, err
+	}
 
 	container.Name = AgentContainerName
 	container.Ports = []corev1.ContainerPort{
@@ -227,7 +235,7 @@ func (b *Builder) dataPlaneAgentContainer(mariadb *mariadbv1alpha1.MariaDB) (*co
 			args = append(args, []string{
 				"--basic-auth",
 				fmt.Sprintf("--basic-auth-username=%s", basicAuth.Username),
-				fmt.Sprintf("--basic-auth-password-path=%s", path.Join(galeraresources.AgentAuthVolumeMount, basicAuth.PasswordSecretKeyRef.Key)),
+				fmt.Sprintf("--basic-auth-password-path=%s", path.Join(AgentAuthVolumeMount, basicAuth.PasswordSecretKeyRef.Key)),
 			}...)
 		}
 
@@ -235,7 +243,7 @@ func (b *Builder) dataPlaneAgentContainer(mariadb *mariadbv1alpha1.MariaDB) (*co
 		return args
 	}()
 	container.Env = env
-	container.VolumeMounts = mariadbVolumeMounts(mariadb)
+	container.VolumeMounts = volumeMounts
 	container.LivenessProbe = func() *corev1.Probe {
 		if container.LivenessProbe != nil {
 			return container.LivenessProbe
@@ -266,7 +274,7 @@ func (b *Builder) mariadbInitContainers(mariadb *mariadbv1alpha1.MariaDB, opts .
 			initContainers = append(initContainers, *initContainer)
 		}
 	}
-	if mariadb.IsHAEnabled() && mariadbOpts.includeDataPlaneContainers {
+	if mariadb.IsHAEnabled() && mariadbOpts.includeDataPlane {
 		dataPlaneInitContainer, err := b.dataPlaneInitContainer(mariadb)
 		if err != nil {
 			return nil, err
@@ -290,6 +298,10 @@ func (b *Builder) dataPlaneInitContainer(mariadb *mariadbv1alpha1.MariaDB) (*cor
 	if err != nil {
 		return nil, err
 	}
+	volumeMounts, err := mariadbVolumeMounts(mariadb)
+	if err != nil {
+		return nil, err
+	}
 
 	container.Name = InitContainerName
 	container.Args = func() []string {
@@ -303,7 +315,7 @@ func (b *Builder) dataPlaneInitContainer(mariadb *mariadbv1alpha1.MariaDB) (*cor
 		return args
 	}()
 	container.Env = env
-	container.VolumeMounts = mariadbVolumeMounts(mariadb)
+	container.VolumeMounts = volumeMounts
 
 	return container, nil
 }
@@ -343,8 +355,11 @@ func (b *Builder) buildContainer(mdb *mariadbv1alpha1.MariaDB, mdbContainer *mar
 	if mdbContainer.Env != nil {
 		env = append(env, kadapter.ToKubernetesSlice(mdbContainer.Env)...)
 	}
+	volumeMounts, err := mariadbVolumeMounts(mdb)
+	if err != nil {
+		return nil, err
+	}
 
-	volumeMounts := mariadbVolumeMounts(mdb)
 	if mdbContainer.VolumeMounts != nil {
 		volumeMounts = append(volumeMounts, kadapter.ToKubernetesSlice(mdbContainer.VolumeMounts)...)
 	}
@@ -557,7 +572,7 @@ func mariadbStorageVolumeMount(mariadb *mariadbv1alpha1.MariaDB) corev1.VolumeMo
 	return storageVolumeMount
 }
 
-func mariadbVolumeMounts(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt) []corev1.VolumeMount {
+func mariadbVolumeMounts(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt) ([]corev1.VolumeMount, error) {
 	mariadbOpts := newMariadbPodOpts(opts...)
 	volumeMounts := []corev1.VolumeMount{
 		{
@@ -579,12 +594,28 @@ func mariadbVolumeMounts(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt
 			MountPath: MariadbConfigMountPath,
 		})
 	}
-	if mariadb.IsGaleraEnabled() && mariadbOpts.includeServiceAccount {
-		volumeMounts = append(volumeMounts, corev1.VolumeMount{
-			Name:      ServiceAccountVolume,
-			MountPath: ServiceAccountMountPath,
-		})
+	if mariadb.IsHAEnabled() && mariadbOpts.includeDataPlane {
+		_, agent, err := mariadb.GetDataPlaneAgent()
+		if err != nil {
+			return nil, fmt.Errorf("error getting data-plane agent: %v", err)
+		}
+
+		basicAuth := ptr.Deref(agent.BasicAuth, mariadbv1alpha1.BasicAuth{})
+		if basicAuth.Enabled && !reflect.ValueOf(agent.BasicAuth.PasswordSecretKeyRef).IsZero() {
+			volumeMounts = append(volumeMounts, corev1.VolumeMount{
+				Name:      AgentAuthVolume,
+				MountPath: AgentAuthVolumeMount,
+			})
+		}
+
+		if mariadbOpts.includeServiceAccount {
+			volumeMounts = append(volumeMounts, corev1.VolumeMount{
+				Name:      ServiceAccountVolume,
+				MountPath: ServiceAccountMountPath,
+			})
+		}
 	}
+
 	if mariadb.IsGaleraEnabled() && mariadbOpts.includeGaleraConfig {
 		galeraConfigVolumeMount := corev1.VolumeMount{
 			MountPath: galeraresources.GaleraConfigMountPath,
@@ -599,14 +630,6 @@ func mariadbVolumeMounts(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt
 			galeraConfigVolumeMount.Name = galeraresources.GaleraConfigVolume
 		}
 
-		basicAuth := ptr.Deref(galera.Agent.BasicAuth, mariadbv1alpha1.BasicAuth{})
-		if basicAuth.Enabled {
-			volumeMounts = append(volumeMounts, corev1.VolumeMount{
-				Name:      galeraresources.AgentAuthVolume,
-				MountPath: galeraresources.AgentAuthVolumeMount,
-			})
-		}
-
 		volumeMounts = append(volumeMounts, galeraConfigVolumeMount)
 	}
 	if mariadb.Spec.VolumeMounts != nil {
@@ -615,7 +638,7 @@ func mariadbVolumeMounts(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt
 	if mariadbOpts.extraVolumeMounts != nil {
 		volumeMounts = append(volumeMounts, mariadbOpts.extraVolumeMounts...)
 	}
-	return volumeMounts
+	return volumeMounts, nil
 }
 
 func maxscaleVolumeMounts(maxscale *mariadbv1alpha1.MaxScale) []corev1.VolumeMount {

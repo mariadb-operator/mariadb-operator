@@ -29,6 +29,9 @@ const (
 	MaxscaleConfigMountPath = "/etc/config"
 	ConfigVolumeRole        = "config"
 
+	AgentAuthVolume      = "agent-auth"
+	AgentAuthVolumeMount = "/var/run/secrets/mariadb-operator/agent"
+
 	RunVolume            = "run"
 	MaxScaleRunMountPath = "/var/run/maxscale"
 

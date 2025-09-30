@@ -4,9 +4,6 @@ var (
 	GaleraConfigVolume    = "galera"
 	GaleraConfigMountPath = "/etc/mysql/mariadb.conf.d"
 
-	AgentAuthVolume      = "agent-auth"
-	AgentAuthVolumeMount = "/var/run/secrets/mariadb-operator/agent"
-
 	MysqlAppProtocol = "mysql"
 
 	GaleraSSTPortName     = "sst"
