@@ -7,6 +7,7 @@ import (
 	"reflect"
 
 	"github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/environment"
 	galerakeys "github.com/mariadb-operator/mariadb-operator/v25/pkg/galera/config/keys"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -44,9 +45,14 @@ func (d *MariaDBCustomDefaulter) Default(ctx context.Context, obj runtime.Object
 	}
 	mariadblog.V(1).Info("Defaulting for MariaDB", "name", mariadb.GetName())
 
+	env, err := environment.GetOperatorEnv(ctx)
+	if err != nil {
+		return fmt.Errorf("error getting the environment: %v", err)
+	}
+
 	if mariadb.IsReplicationEnabled() {
 		mariadblog.V(1).Info("Defaulting spec.replication", "mariadb", mariadb.Name)
-		return mariadb.Spec.Replication.SetDefaults()
+		return mariadb.Spec.Replication.SetDefaults(mariadb, env)
 	}
 	return nil
 }
