@@ -584,6 +584,7 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 				},
 				Generate: true,
 			}
+			expected.GtidStrictMode = ptr.To(true)
 
 			mariadb := v1alpha1.MariaDB{
 				ObjectMeta: metav1.ObjectMeta{
@@ -617,6 +618,8 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 			Expect(k8sClient.Get(testCtx, client.ObjectKeyFromObject(&mariadb), &mariadb)).To(Succeed())
 
 			By("Expect v1alpha1.MariaDB replication spec to be defaulted")
+			Expect(mariadb.Spec.Replication.ReplicationSpec.InitContainer.Image).NotTo(BeEmpty())
+			mariadb.Spec.Replication.InitContainer.Image = "" // Since this comes from an env variable, can't assert
 			Expect(mariadb.Spec.Replication.ReplicationSpec).To(Equal(expected))
 		})
 
@@ -632,6 +635,7 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 				},
 				Generate: true,
 			}
+			expected.GtidStrictMode = ptr.To(true)
 
 			mariadb := v1alpha1.MariaDB{
 				ObjectMeta: metav1.ObjectMeta{
@@ -681,6 +685,8 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 			Expect(k8sClient.Get(testCtx, client.ObjectKeyFromObject(&mariadb), &mariadb)).To(Succeed())
 
 			By("Expect v1alpha1.MariaDB replication spec to be defaulted")
+			Expect(mariadb.Spec.Replication.ReplicationSpec.InitContainer.Image).NotTo(BeEmpty())
+			mariadb.Spec.Replication.InitContainer.Image = "" // Since this comes from an env variable, can't assert
 			Expect(mariadb.Spec.Replication.ReplicationSpec).To(Equal(expected))
 		})
 	})
