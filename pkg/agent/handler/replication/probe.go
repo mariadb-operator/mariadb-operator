@@ -78,15 +78,17 @@ func (p *ReplicationProbe) Liveness(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = sqlClient.IsReplicationPrimary(sqlCtx)
+	isPrimary, err := sqlClient.IsReplicationPrimary(sqlCtx)
 	if err != nil {
 		p.livenessLogger.Error(err, "error checking primary")
 		p.responseWriter.WriteErrorf(w, "error checking primary: %v", err)
 		return
 	}
-	// if isPrimary {
-	// 	// TODO: check SHOW MASTER STATUS
-	// }
+	if !isPrimary {
+		p.livenessLogger.Error(err, "primary not configured")
+		p.responseWriter.WriteError(w, "primary not configured")
+		return
+	}
 
 	p.responseWriter.WriteOK(w, nil)
 }
@@ -134,15 +136,17 @@ func (p *ReplicationProbe) Readiness(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = sqlClient.IsReplicationPrimary(sqlCtx)
+	isPrimary, err := sqlClient.IsReplicationPrimary(sqlCtx)
 	if err != nil {
 		p.readinessLogger.Error(err, "error checking primary")
 		p.responseWriter.WriteErrorf(w, "error checking primary: %v", err)
 		return
 	}
-	// if isPrimary {
-	// 	// TODO: check SHOW MASTER STATUS
-	// }
+	if !isPrimary {
+		p.readinessLogger.Error(err, "primary not configured")
+		p.responseWriter.WriteError(w, "primary not configured")
+		return
+	}
 
 	p.responseWriter.WriteOK(w, nil)
 }
