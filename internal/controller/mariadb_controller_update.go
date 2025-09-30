@@ -18,6 +18,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/health"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/metadata"
 	podpkg "github.com/mariadb-operator/mariadb-operator/v25/pkg/pod"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/statefulset"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/wait"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -320,35 +321,73 @@ func (r *MariaDBReconciler) triggerSwitchover(ctx context.Context, mariadb *mari
 	if !shouldTriggerSwitchover(mariadb) {
 		return nil
 	}
-
 	if mariadb.Status.CurrentPrimaryPodIndex == nil {
 		return fmt.Errorf("'status.currentPrimaryPodIndex' must be set")
 	}
 
-	fromIndex := mariadb.Status.CurrentPrimaryPodIndex
-	toIndex, err := health.ReplicaPodHealthyIndex(ctx, r.Client, mariadb)
+	primary := mariadb.Status.CurrentPrimaryPodIndex
+	newPrimary, err := health.ReplicaPodHealthyIndex(ctx, r.Client, mariadb)
 	if err != nil {
 		return fmt.Errorf("error getting healthy replica: %v", err)
 	}
+	switchoverLogger := logger.WithValues("primary", primary, "new-primary", *newPrimary)
 
-	if err := r.patch(ctx, mariadb, func(mdb *mariadbv1alpha1.MariaDB) error {
-		mdb.Replication().Primary.PodIndex = toIndex
-		return nil
-	}); err != nil {
-		return err
+	if mariadb.IsMaxScaleEnabled() {
+		primaryServer := statefulset.PodName(mariadb.ObjectMeta, *newPrimary)
+		switchoverLogger.Info("Triggering MaxScale switchover")
+
+		if err := r.triggerMaxScaleSwitchover(ctx, mariadb, primaryServer, logger); err != nil {
+			return fmt.Errorf("error triggering MaxScale switchover: %v", err)
+		}
+	} else {
+		switchoverLogger.Info("Triggering MariaDB switchover")
+
+		if err := r.patch(ctx, mariadb, func(mdb *mariadbv1alpha1.MariaDB) error {
+			mdb.Replication().Primary.PodIndex = newPrimary
+			return nil
+		}); err != nil {
+			return fmt.Errorf("error triggering MariaDB switchover: %v", err)
+		}
 	}
 
-	logger.Info("Switching primary", "from-index", fromIndex, "to-index", *toIndex)
+	logger.Info("Switching primary")
 	// To perform switchover we must reach the 'Replication' phase that runs after the 'StatefulSet' phase.
 	// When the 'MariaDBReconciler' controller receives the 'ErrSkipReconciliationPhase' error, it continues the reconciliation loop.
 	// See: https://github.com/mariadb-operator/mariadb-operator/pull/967
 	return ErrSkipReconciliationPhase
 }
 
+func (r *MariaDBReconciler) triggerMaxScaleSwitchover(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, primaryServer string,
+	logger logr.Logger) error {
+	mxs, err := r.RefResolver.MaxScale(ctx, mariadb.Spec.MaxScaleRef, mariadb.Namespace)
+	if err != nil {
+		return fmt.Errorf("error getting MaxScale: %v", err)
+	}
+
+	if err := r.patchMaxScale(ctx, mxs, func(status *mariadbv1alpha1.MaxScale) {
+		mxs.Spec.PrimaryServer = &primaryServer
+	}); err != nil {
+		return fmt.Errorf("error patching MaxScale: %v", err)
+	}
+
+	switchoverCtx, cancel := context.WithTimeout(ctx, 1*time.Minute)
+	defer cancel()
+
+	return wait.PollUntilSuccessOrContextCancel(switchoverCtx, logger, func(ctx context.Context) error {
+		mxs, err := r.RefResolver.MaxScale(ctx, mariadb.Spec.MaxScaleRef, mariadb.Namespace)
+		if err != nil {
+			return fmt.Errorf("error getting MaxScale: %v", err)
+		}
+		if mxs.IsSwitchingPrimary() {
+			return nil
+		}
+		return errors.New("MaxScale switchover did not start")
+	})
+}
+
 func shouldTriggerSwitchover(mariadb *mariadbv1alpha1.MariaDB) bool {
-	if mariadb.IsMaxScaleEnabled() || mariadb.IsRestoringBackup() {
+	if mariadb.IsRestoringBackup() {
 		return false
 	}
-	primaryRepl := ptr.Deref(mariadb.Replication().Primary, mariadbv1alpha1.PrimaryReplication{})
-	return mariadb.Replication().Enabled && *primaryRepl.AutomaticFailover && mariadb.HasConfiguredReplica()
+	return mariadb.Replication().Enabled && mariadb.HasConfiguredReplica()
 }

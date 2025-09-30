@@ -1073,6 +1073,13 @@ func (r *MariaDBReconciler) patch(ctx context.Context, mariadb *mariadbv1alpha1.
 	return r.Patch(ctx, mariadb, patch)
 }
 
+func (r *MariaDBReconciler) patchMaxScale(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,
+	patcher func(*mariadbv1alpha1.MaxScale)) error {
+	patch := client.MergeFrom(mxs.DeepCopy())
+	patcher(mxs)
+	return r.Patch(ctx, mxs, patch)
+}
+
 // SetupWithManager sets up the controller with the Manager.
 func (r *MariaDBReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, env *environment.OperatorEnv,
 	opts controller.Options) error {
