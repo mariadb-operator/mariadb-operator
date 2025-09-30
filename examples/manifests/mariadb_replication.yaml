@@ -17,6 +17,8 @@ spec:
 
   replication:
     enabled: true
+    # replica:
+    #   maxLagSeconds: 10
 
   service:
     type: LoadBalancer
