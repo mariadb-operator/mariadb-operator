@@ -131,7 +131,7 @@ func (m *maxScaleAPI) maxScaleReplicationCustomOptions(mdb *mariadbv1alpha1.Mari
 		kvOpts["MASTER_SSL_CA"] = builderpki.CACertPath
 	}
 
-	if mdb != nil && mdb.IsReplicationEnabled() {
+	if mdb != nil && mdb.Replication().Enabled {
 		if kvOpts == nil {
 			kvOpts = make(map[string]string)
 		}
