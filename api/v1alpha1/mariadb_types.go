@@ -841,9 +841,9 @@ func (m *MariaDB) SetDefaults(env *environment.OperatorEnv) error {
 			return fmt.Errorf("error setting Galera defaults: %v", err)
 		}
 	}
-	if m.Spec.Replication != nil && m.Spec.Replication.Enabled {
+	if m.IsReplicationEnabled() {
 		if err := m.Spec.Replication.SetDefaults(m, env); err != nil {
-			return fmt.Errorf("error setting replication defaults: %v", err)
+			return fmt.Errorf("error setting Replication defaults: %v", err)
 		}
 	}
 	if m.Spec.BootstrapFrom != nil {
@@ -852,12 +852,6 @@ func (m *MariaDB) SetDefaults(env *environment.OperatorEnv) error {
 
 	if m.Spec.UpdateStrategy == (UpdateStrategy{}) {
 		m.Spec.UpdateStrategy.SetDefaults()
-	}
-
-	if m.IsReplicationEnabled() {
-		if err := m.Spec.Replication.SetDefaults(m, env); err != nil {
-			return fmt.Errorf("error setting Replication defaults: %v", err)
-		}
 	}
 
 	m.Spec.Storage.SetDefaults()

@@ -104,7 +104,7 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 					Spec: v1alpha1.MariaDBSpec{
 						Replication: &v1alpha1.Replication{
 							ReplicationSpec: v1alpha1.ReplicationSpec{
-								Primary: &v1alpha1.PrimaryReplication{
+								Primary: v1alpha1.PrimaryReplication{
 									PodIndex: func() *int { i := 0; return &i }(),
 								},
 								SyncBinlog: ptr.To(1),
@@ -126,7 +126,7 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 					Spec: v1alpha1.MariaDBSpec{
 						Replication: &v1alpha1.Replication{
 							ReplicationSpec: v1alpha1.ReplicationSpec{
-								Primary: &v1alpha1.PrimaryReplication{
+								Primary: v1alpha1.PrimaryReplication{
 									PodIndex: func() *int { i := 0; return &i }(),
 								},
 								SyncBinlog: ptr.To(1),
@@ -321,10 +321,10 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 					Spec: v1alpha1.MariaDBSpec{
 						Replication: &v1alpha1.Replication{
 							ReplicationSpec: v1alpha1.ReplicationSpec{
-								Primary: &v1alpha1.PrimaryReplication{
+								Primary: v1alpha1.PrimaryReplication{
 									PodIndex: func() *int { i := 4; return &i }(),
 								},
-								Replica: &v1alpha1.ReplicaReplication{
+								Replica: v1alpha1.ReplicaReplication{
 									WaitPoint:         ptr.To(v1alpha1.WaitPointAfterCommit),
 									ConnectionTimeout: &metav1.Duration{Duration: time.Duration(1 * time.Second)},
 									ConnectionRetries: func() *int { r := 3; return &r }(),
@@ -368,7 +368,7 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 					Spec: v1alpha1.MariaDBSpec{
 						Replication: &v1alpha1.Replication{
 							ReplicationSpec: v1alpha1.ReplicationSpec{
-								Replica: &v1alpha1.ReplicaReplication{
+								Replica: v1alpha1.ReplicaReplication{
 									WaitPoint: ptr.To(v1alpha1.WaitPoint("foo")),
 								},
 							},
@@ -389,7 +389,7 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 					Spec: v1alpha1.MariaDBSpec{
 						Replication: &v1alpha1.Replication{
 							ReplicationSpec: v1alpha1.ReplicationSpec{
-								Replica: &v1alpha1.ReplicaReplication{
+								Replica: v1alpha1.ReplicaReplication{
 									Gtid: ptr.To(v1alpha1.Gtid("foo")),
 								},
 							},
@@ -573,18 +573,33 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 		)
 
 		It("Should default replication", func() {
-			expected := *v1alpha1.DefaultReplicationSpec.DeepCopy()
 
-			expected.Replica.ReplPasswordSecretKeyRef = &v1alpha1.GeneratedSecretKeyRef{
-				SecretKeySelector: v1alpha1.SecretKeySelector{
-					LocalObjectReference: v1alpha1.LocalObjectReference{
-						Name: "repl-password-mariadb-repl-partial-default-webhook",
-					},
-					Key: "password",
+			expected := v1alpha1.ReplicationSpec{
+				Primary: v1alpha1.PrimaryReplication{
+					PodIndex:               ptr.To(0),
+					AutomaticFailover:      ptr.To(true),
+					AutomaticFailoverDelay: ptr.To(metav1.Duration{}),
 				},
-				Generate: true,
+				Replica: v1alpha1.ReplicaReplication{
+					WaitPoint:         ptr.To(v1alpha1.WaitPointAfterCommit),
+					Gtid:              ptr.To(v1alpha1.GtidCurrentPos),
+					ConnectionTimeout: ptr.To(metav1.Duration{Duration: 10 * time.Second}),
+					ConnectionRetries: ptr.To(10),
+					SyncTimeout:       ptr.To(metav1.Duration{Duration: 10 * time.Second}),
+					ReplPasswordSecretKeyRef: &v1alpha1.GeneratedSecretKeyRef{
+						SecretKeySelector: v1alpha1.SecretKeySelector{
+							LocalObjectReference: v1alpha1.LocalObjectReference{
+								Name: "repl-password-mariadb-repl-partial-default-webhook",
+							},
+							Key: "password",
+						},
+						Generate: true,
+					},
+				},
+				SyncBinlog:     ptr.To(1),
+				ProbesEnabled:  ptr.To(false),
+				GtidStrictMode: ptr.To(true),
 			}
-			expected.GtidStrictMode = ptr.To(true)
 
 			mariadb := v1alpha1.MariaDB{
 				ObjectMeta: metav1.ObjectMeta{
@@ -596,7 +611,7 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 					Replication: &v1alpha1.Replication{
 						Enabled: true,
 						ReplicationSpec: v1alpha1.ReplicationSpec{
-							Replica: &v1alpha1.ReplicaReplication{
+							Replica: v1alpha1.ReplicaReplication{
 								ReplPasswordSecretKeyRef: &v1alpha1.GeneratedSecretKeyRef{
 									SecretKeySelector: v1alpha1.SecretKeySelector{
 										LocalObjectReference: v1alpha1.LocalObjectReference{
@@ -624,18 +639,32 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 		})
 
 		It("Should partially default replication", func() {
-			expected := *v1alpha1.DefaultReplicationSpec.DeepCopy()
-
-			expected.Replica.ReplPasswordSecretKeyRef = &v1alpha1.GeneratedSecretKeyRef{
-				SecretKeySelector: v1alpha1.SecretKeySelector{
-					LocalObjectReference: v1alpha1.LocalObjectReference{
-						Name: "repl-password-mariadb-repl-partial-default-webhook",
-					},
-					Key: "password",
+			expected := v1alpha1.ReplicationSpec{
+				Primary: v1alpha1.PrimaryReplication{
+					PodIndex:               ptr.To(0),
+					AutomaticFailover:      ptr.To(true),
+					AutomaticFailoverDelay: ptr.To(metav1.Duration{}),
 				},
-				Generate: true,
+				Replica: v1alpha1.ReplicaReplication{
+					WaitPoint:         ptr.To(v1alpha1.WaitPointAfterCommit),
+					Gtid:              ptr.To(v1alpha1.GtidCurrentPos),
+					ConnectionTimeout: ptr.To(metav1.Duration{Duration: 10 * time.Second}),
+					ConnectionRetries: ptr.To(10),
+					SyncTimeout:       ptr.To(metav1.Duration{Duration: 10 * time.Second}),
+					ReplPasswordSecretKeyRef: &v1alpha1.GeneratedSecretKeyRef{
+						SecretKeySelector: v1alpha1.SecretKeySelector{
+							LocalObjectReference: v1alpha1.LocalObjectReference{
+								Name: "repl-password-mariadb-repl-partial-default-webhook",
+							},
+							Key: "password",
+						},
+						Generate: true,
+					},
+				},
+				SyncBinlog:     ptr.To(1),
+				ProbesEnabled:  ptr.To(false),
+				GtidStrictMode: ptr.To(true),
 			}
-			expected.GtidStrictMode = ptr.To(true)
 
 			mariadb := v1alpha1.MariaDB{
 				ObjectMeta: metav1.ObjectMeta{
@@ -647,10 +676,10 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 					Replication: &v1alpha1.Replication{
 						Enabled: true,
 						ReplicationSpec: v1alpha1.ReplicationSpec{
-							Primary: &v1alpha1.PrimaryReplication{
+							Primary: v1alpha1.PrimaryReplication{
 								PodIndex: ptr.To(0),
 							},
-							Replica: &v1alpha1.ReplicaReplication{
+							Replica: v1alpha1.ReplicaReplication{
 								ReplPasswordSecretKeyRef: &v1alpha1.GeneratedSecretKeyRef{
 									SecretKeySelector: v1alpha1.SecretKeySelector{
 										LocalObjectReference: v1alpha1.LocalObjectReference{
@@ -975,7 +1004,7 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 					},
 					Replication: &v1alpha1.Replication{
 						ReplicationSpec: v1alpha1.ReplicationSpec{
-							Primary: &v1alpha1.PrimaryReplication{
+							Primary: v1alpha1.PrimaryReplication{
 								PodIndex:          func() *int { i := 0; return &i }(),
 								AutomaticFailover: func() *bool { f := false; return &f }(),
 							},
@@ -1006,7 +1035,7 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 					},
 					Replication: &v1alpha1.Replication{
 						ReplicationSpec: v1alpha1.ReplicationSpec{
-							Primary: &v1alpha1.PrimaryReplication{
+							Primary: v1alpha1.PrimaryReplication{
 								PodIndex:          func() *int { i := 0; return &i }(),
 								AutomaticFailover: func() *bool { f := false; return &f }(),
 							},

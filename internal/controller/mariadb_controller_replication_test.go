@@ -52,11 +52,11 @@ var _ = Describe("MariaDB replication", Ordered, func() {
 				),
 				Replication: &mariadbv1alpha1.Replication{
 					ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
-						Primary: &mariadbv1alpha1.PrimaryReplication{
+						Primary: mariadbv1alpha1.PrimaryReplication{
 							PodIndex:          ptr.To(0),
 							AutomaticFailover: ptr.To(true),
 						},
-						Replica: &mariadbv1alpha1.ReplicaReplication{
+						Replica: mariadbv1alpha1.ReplicaReplication{
 							WaitPoint: ptr.To(mariadbv1alpha1.WaitPointAfterCommit),
 							Gtid:      ptr.To(mariadbv1alpha1.GtidCurrentPos),
 						},

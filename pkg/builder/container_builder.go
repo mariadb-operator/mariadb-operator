@@ -488,7 +488,7 @@ func mariadbEnv(mariadb *mariadbv1alpha1.MariaDB) ([]corev1.EnvVar, error) {
 		}...)
 
 		replication := mariadb.Replication()
-		replica := ptr.Deref(replication.Replica, mariadbv1alpha1.ReplicaReplication{})
+		replica := replication.Replica
 
 		if ptr.Deref(replication.GtidStrictMode, true) {
 			env = append(env, corev1.EnvVar{
