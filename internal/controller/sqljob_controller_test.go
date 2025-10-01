@@ -229,6 +229,14 @@ var _ = Describe("SqlJob", Label("basic"), func() {
 			),
 		),
 		Entry(
+			"should reconcile a CronJob with starting deadline seconds setting",
+			"sqljob-scheduled-with-starting-deadline",
+			applyDecoratorChain(
+				buildScheduledSqlJob,
+				decorateScqlJobWithStartingDeadlineSeconds,
+			),
+		),
+		Entry(
 			"should reconcile a CronJob with time zone setting",
 			"sqljob-scheduled-with-tz",
 			applyDecoratorChain(
@@ -530,6 +538,11 @@ func decorateSqlJobWithTimeZone(backup mariadbv1alpha1.SqlJob) mariadbv1alpha1.S
 	return backup
 }
 
+func decorateScqlJobWithStartingDeadlineSeconds(backup mariadbv1alpha1.SqlJob) mariadbv1alpha1.SqlJob {
+	backup.Spec.StartingDeadlineSeconds = ptr.To[int64](60)
+	return backup
+}
+
 func testScheduledSqlJob(scheduledSqlJob mariadbv1alpha1.SqlJob) {
 	By("Creating a scheduled SqlJob")
 	Expect(k8sClient.Create(testCtx, &scheduledSqlJob)).To(Succeed())
@@ -563,10 +576,11 @@ func testScheduledSqlJob(scheduledSqlJob mariadbv1alpha1.SqlJob) {
 	scheduledSqlJob.Spec.SuccessfulJobsHistoryLimit = ptr.To[int32](7)
 	scheduledSqlJob.Spec.FailedJobsHistoryLimit = ptr.To[int32](7)
 	scheduledSqlJob.Spec.TimeZone = ptr.To[string]("Europe/Madrid")
-	By("Updating a scheduled SqlJob's history limits and time zone")
+	scheduledSqlJob.Spec.StartingDeadlineSeconds = ptr.To[int64](120)
+	By("Updating a scheduled SqlJob's history limits, time zone, and starting deadline seconds")
 	Expect(k8sClient.Patch(testCtx, &scheduledSqlJob, patch)).To(Succeed())
 
-	By("Expecting to update the CronJob history limits and time zone eventually")
+	By("Expecting to update the CronJob history limits, time zone, and starting deadline seconds eventually")
 	Eventually(func() bool {
 		var cronJob batchv1.CronJob
 		if k8sClient.Get(testCtx, client.ObjectKeyFromObject(&scheduledSqlJob), &cronJob) != nil {
@@ -582,5 +596,6 @@ func assertSqlJobCronJobTemplateSpecsEqual(cronJob batchv1.CronJob, sqlJob maria
 	isFailedJobHistoryLimitCorrect :=
 		reflect.DeepEqual(cronJob.Spec.FailedJobsHistoryLimit, sqlJob.Spec.FailedJobsHistoryLimit)
 	isTimeZoneCorrect := reflect.DeepEqual(cronJob.Spec.TimeZone, sqlJob.Spec.TimeZone)
-	return isSuccessfulJobHistoryLimitCorrect && isFailedJobHistoryLimitCorrect && isTimeZoneCorrect
+	isStartingDeadlineSecondsCorrect := reflect.DeepEqual(cronJob.Spec.StartingDeadlineSeconds, sqlJob.Spec.StartingDeadlineSeconds)
+	return isSuccessfulJobHistoryLimitCorrect && isFailedJobHistoryLimitCorrect && isTimeZoneCorrect && isStartingDeadlineSecondsCorrect
 }

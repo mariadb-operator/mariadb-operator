@@ -131,6 +131,7 @@ _Appears in:_
 | `successfulJobsHistoryLimit` _integer_ | SuccessfulJobsHistoryLimit defines the maximum number of successful Jobs to be displayed. |  | Minimum: 0 <br /> |
 | `failedJobsHistoryLimit` _integer_ | FailedJobsHistoryLimit defines the maximum number of failed Jobs to be displayed. |  | Minimum: 0 <br /> |
 | `timeZone` _string_ | TimeZone defines the timezone associated with the cron expression. |  |  |
+| `startingDeadlineSeconds` _integer_ | StartingDeadlineSeconds defines deadline in seconds for starting the job if it misses scheduled time for any reason. Missed jobs executions will be counted as failed ones. |  | Minimum: 0 <br /> |
 | `mariaDbRef` _[MariaDBRef](#mariadbref)_ | MariaDBRef is a reference to a MariaDB object. |  | Required: \{\} <br /> |
 | `compression` _[CompressAlgorithm](#compressalgorithm)_ | Compression algorithm to be used in the Backup. |  | Enum: [none bzip2 gzip] <br /> |
 | `stagingStorage` _[BackupStagingStorage](#backupstagingstorage)_ | StagingStorage defines the temporary storage used to keep external backups (i.e. S3) while they are being processed.<br />It defaults to an emptyDir volume, meaning that the backups will be temporarily stored in the node where the Backup Job is scheduled.<br />The staging area gets cleaned up after each backup is completed, consider this for sizing it appropriately. |  |  |
@@ -481,6 +482,7 @@ _Appears in:_
 | `successfulJobsHistoryLimit` _integer_ | SuccessfulJobsHistoryLimit defines the maximum number of successful Jobs to be displayed. |  | Minimum: 0 <br /> |
 | `failedJobsHistoryLimit` _integer_ | FailedJobsHistoryLimit defines the maximum number of failed Jobs to be displayed. |  | Minimum: 0 <br /> |
 | `timeZone` _string_ | TimeZone defines the timezone associated with the cron expression. |  |  |
+| `startingDeadlineSeconds` _integer_ | StartingDeadlineSeconds defines deadline in seconds for starting the job if it misses scheduled time for any reason. Missed jobs executions will be counted as failed ones. |  | Minimum: 0 <br /> |
 
 
 #### Database
@@ -2726,6 +2728,7 @@ _Appears in:_
 | `successfulJobsHistoryLimit` _integer_ | SuccessfulJobsHistoryLimit defines the maximum number of successful Jobs to be displayed. |  | Minimum: 0 <br /> |
 | `failedJobsHistoryLimit` _integer_ | FailedJobsHistoryLimit defines the maximum number of failed Jobs to be displayed. |  | Minimum: 0 <br /> |
 | `timeZone` _string_ | TimeZone defines the timezone associated with the cron expression. |  |  |
+| `startingDeadlineSeconds` _integer_ | StartingDeadlineSeconds defines deadline in seconds for starting the job if it misses scheduled time for any reason. Missed jobs executions will be counted as failed ones. |  | Minimum: 0 <br /> |
 | `mariaDbRef` _[MariaDBRef](#mariadbref)_ | MariaDBRef is a reference to a MariaDB object. |  | Required: \{\} <br /> |
 | `schedule` _[Schedule](#schedule)_ | Schedule defines when the SqlJob will be executed. |  |  |
 | `username` _string_ | Username to be impersonated when executing the SqlJob. |  | Required: \{\} <br /> |
