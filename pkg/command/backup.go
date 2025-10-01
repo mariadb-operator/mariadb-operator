@@ -212,7 +212,7 @@ func (b *BackupCommand) MariadbBackup(mariadb *mariadbv1alpha1.MariaDB, backupFi
 	if err != nil {
 		return nil, fmt.Errorf("error getting connection flags: %v", err)
 	}
-	args := strings.Join(b.mariadbBackupArgs(mariadb), " ")
+	args := strings.Join(b.mariadbBackupArgs(mariadb, targetPodIndex), " ")
 
 	cmds := []string{
 		"set -euo pipefail",
@@ -433,7 +433,7 @@ func (b *BackupCommand) mariadbDumpArgs(backup *mariadbv1alpha1.Backup, mariadb 
 	return ds.Unique(ds.Merge(args, dumpOpts)...)
 }
 
-func (b *BackupCommand) mariadbBackupArgs(mariadb interfaces.TLSProvider) []string {
+func (b *BackupCommand) mariadbBackupArgs(mariadb *mariadbv1alpha1.MariaDB, targetPodIndex int) []string {
 	backupOpts := make([]string, len(b.ExtraOpts))
 	copy(backupOpts, b.ExtraOpts)
 
@@ -444,9 +444,14 @@ func (b *BackupCommand) mariadbBackupArgs(mariadb interfaces.TLSProvider) []stri
 		// which causes mariadb-backup to include it in the backup file as a database.
 		"--databases-exclude='lost+found'",
 	}
-
 	if mariadb.IsTLSEnabled() {
 		args = append(args, b.tlsArgs(mariadb)...)
+	}
+	if mariadb.Status.CurrentPrimaryPodIndex != nil && *mariadb.Status.CurrentPrimaryPodIndex != targetPodIndex {
+		args = append(args, []string{
+			"--slave-info",
+			"--safe-slave-backup",
+		}...)
 	}
 
 	return ds.Unique(ds.Merge(args, backupOpts)...)
