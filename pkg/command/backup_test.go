@@ -454,7 +454,8 @@ func TestMariadbBackupArgs(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			args := tt.backupCmd.mariadbBackupArgs(tt.mariadb)
+			// TODO: extend tests with replica args
+			args := tt.backupCmd.mariadbBackupArgs(tt.mariadb, 0)
 			if diff := cmp.Diff(args, tt.wantArgs); diff != "" {
 				t.Errorf("unexpected args (-want +got):\n%s", diff)
 			}
