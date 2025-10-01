@@ -479,7 +479,7 @@ func mariadbEnv(mariadb *mariadbv1alpha1.MariaDB) ([]corev1.EnvVar, error) {
 		}
 	}
 
-	if mariadb.Replication().Enabled {
+	if mariadb.IsReplicationEnabled() {
 		env = append(env, []corev1.EnvVar{
 			{
 				Name:  "MARIADB_REPL_ENABLED",
@@ -588,7 +588,7 @@ func mariadbVolumeMounts(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt
 
 	volumeMounts = append(volumeMounts, mariadbStorageVolumeMount(mariadb))
 
-	if mariadb.Replication().Enabled {
+	if mariadb.IsReplicationEnabled() {
 		volumeMounts = append(volumeMounts, corev1.VolumeMount{
 			Name:      MariadbConfigVolume,
 			MountPath: MariadbConfigMountPath,

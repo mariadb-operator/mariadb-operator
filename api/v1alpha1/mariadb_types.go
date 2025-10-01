@@ -886,7 +886,7 @@ func (m *MariaDB) IsReplicationEnabled() bool {
 
 // IsHAEnabled indicates whether the MariaDB instance has HA enabled
 func (m *MariaDB) IsHAEnabled() bool {
-	return m.Replication().Enabled || m.IsGaleraEnabled()
+	return m.IsReplicationEnabled() || m.IsGaleraEnabled()
 }
 
 // IsMaxScaleEnabled indicates that a MaxScale instance is forwarding traffic to this MariaDB instance

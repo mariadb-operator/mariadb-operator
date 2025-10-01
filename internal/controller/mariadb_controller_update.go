@@ -196,7 +196,7 @@ func (r *MariaDBReconciler) waitForReadyStatus(ctx context.Context, mdb *mariadb
 }
 
 func (r *MariaDBReconciler) waitForConfiguredReplica(mdb *mariadbv1alpha1.MariaDB, logger logr.Logger) error {
-	if !mdb.Replication().Enabled {
+	if !mdb.IsReplicationEnabled() {
 		return nil
 	}
 
@@ -389,5 +389,5 @@ func shouldTriggerSwitchover(mariadb *mariadbv1alpha1.MariaDB) bool {
 	if mariadb.IsRestoringBackup() {
 		return false
 	}
-	return mariadb.Replication().Enabled && mariadb.HasConfiguredReplica()
+	return mariadb.IsReplicationEnabled() && mariadb.HasConfiguredReplica()
 }

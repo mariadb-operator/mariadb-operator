@@ -239,7 +239,7 @@ func mariadbHAAnnotations(mariadb *mariadbv1alpha1.MariaDB) map[string]string {
 		annotations = map[string]string{
 			annotation.MariadbAnnotation: mariadb.Name,
 		}
-		if mariadb.Replication().Enabled {
+		if mariadb.IsReplicationEnabled() {
 			annotations[annotation.ReplicationAnnotation] = ""
 		}
 		if mariadb.IsGaleraEnabled() {

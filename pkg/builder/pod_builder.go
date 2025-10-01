@@ -314,7 +314,7 @@ func mariadbVolumes(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt) ([]
 		tlsVolumes, _ := mariadbTLSVolumes(mariadb)
 		volumes = append(volumes, tlsVolumes...)
 	}
-	if mariadb.Replication().Enabled {
+	if mariadb.IsReplicationEnabled() {
 		volumes = append(volumes, corev1.Volume{
 			Name: MariadbConfigVolume,
 			VolumeSource: corev1.VolumeSource{

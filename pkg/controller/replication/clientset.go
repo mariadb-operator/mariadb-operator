@@ -16,7 +16,7 @@ type ReplicationClientSet struct {
 }
 
 func NewReplicationClientSet(mariadb *mariadbv1alpha1.MariaDB, refResolver *refresolver.RefResolver) (*ReplicationClientSet, error) {
-	if !mariadb.Replication().Enabled {
+	if !mariadb.IsReplicationEnabled() {
 		return nil, errors.New("'mariadb.spec.replication' is required to create a replicationClientSet")
 	}
 	return &ReplicationClientSet{

@@ -333,7 +333,7 @@ sync_binlog={{ . }}
 }
 
 func newReplPasswordRef(mariadb *mariadbv1alpha1.MariaDB) mariadbv1alpha1.GeneratedSecretKeyRef {
-	if mariadb.Replication().Enabled && mariadb.Replication().Replica.ReplPasswordSecretKeyRef != nil {
+	if mariadb.IsReplicationEnabled() && mariadb.Replication().Replica.ReplPasswordSecretKeyRef != nil {
 		return *mariadb.Replication().Replica.ReplPasswordSecretKeyRef
 	}
 	return mariadbv1alpha1.GeneratedSecretKeyRef{
