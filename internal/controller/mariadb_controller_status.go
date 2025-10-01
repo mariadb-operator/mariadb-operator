@@ -83,7 +83,7 @@ func (r *MariaDBReconciler) reconcileStatus(ctx context.Context, mdb *mariadbv1a
 
 func (r *MariaDBReconciler) getReplicationStatus(ctx context.Context,
 	mdb *mariadbv1alpha1.MariaDB) (mariadbv1alpha1.ReplicationStatus, error) {
-	if !mdb.Replication().Enabled {
+	if !mdb.IsReplicationEnabled() {
 		return nil, nil
 	}
 
@@ -228,7 +228,7 @@ func defaultPrimary(mdb *mariadbv1alpha1.MariaDB) {
 		galera := ptr.Deref(mdb.Spec.Galera, mariadbv1alpha1.Galera{})
 		podIndex = ptr.Deref(galera.Primary.PodIndex, 0)
 	}
-	if mdb.Replication().Enabled {
+	if mdb.IsReplicationEnabled() {
 		primaryReplication := ptr.Deref(mdb.Replication().Primary, mariadbv1alpha1.PrimaryReplication{})
 		podIndex = ptr.Deref(primaryReplication.PodIndex, 0)
 	}

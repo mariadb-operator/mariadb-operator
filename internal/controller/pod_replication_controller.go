@@ -144,7 +144,7 @@ func shouldReconcile(mariadb *mariadbv1alpha1.MariaDB) bool {
 		return false
 	}
 	primaryRepl := ptr.Deref(mariadb.Replication().Primary, mariadbv1alpha1.PrimaryReplication{})
-	return mariadb.Replication().Enabled && *primaryRepl.AutomaticFailover && mariadb.HasConfiguredReplica()
+	return mariadb.IsReplicationEnabled() && *primaryRepl.AutomaticFailover && mariadb.HasConfiguredReplica()
 }
 
 func (r *PodReplicationController) patch(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,

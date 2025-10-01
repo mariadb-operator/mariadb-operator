@@ -90,7 +90,7 @@ type reconcileRequest struct {
 }
 
 func (r *ReplicationReconciler) Reconcile(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
-	if !mdb.Replication().Enabled {
+	if !mdb.IsReplicationEnabled() {
 		return ctrl.Result{}, nil
 	}
 	logger := log.FromContext(ctx).WithName("replication")
