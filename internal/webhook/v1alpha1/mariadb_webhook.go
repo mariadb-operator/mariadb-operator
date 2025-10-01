@@ -7,7 +7,6 @@ import (
 	"reflect"
 
 	"github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/environment"
 	galerakeys "github.com/mariadb-operator/mariadb-operator/v25/pkg/galera/config/keys"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -25,36 +24,7 @@ var mariadblog = logf.Log.WithName("mariadb-resource")
 func SetupMariaDBWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).For(&v1alpha1.MariaDB{}).
 		WithValidator(&MariaDBCustomValidator{}).
-		WithDefaulter(&MariaDBCustomDefaulter{}).
 		Complete()
-}
-
-// +kubebuilder:webhook:path=/mutate-k8s-mariadb-com-v1alpha1-mariadb,mutating=true,failurePolicy=fail,sideEffects=None,groups=k8s.mariadb.com,resources=mariadbs,verbs=create;update,versions=v1alpha1,name=mmariadb-v1alpha1.kb.io,admissionReviewVersions=v1
-
-// MariaDBCustomDefaulter struct is responsible for setting default values on the custom resource of the
-// Kind MariaDB when those are created or updated.
-type MariaDBCustomDefaulter struct{}
-
-var _ webhook.CustomDefaulter = &MariaDBCustomDefaulter{}
-
-// Default implements webhook.CustomDefaulter so a webhook will be registered for the Kind MariaDB.
-func (d *MariaDBCustomDefaulter) Default(ctx context.Context, obj runtime.Object) error {
-	mariadb, ok := obj.(*v1alpha1.MariaDB)
-	if !ok {
-		return fmt.Errorf("expected an MariaDB object but got %T", obj)
-	}
-	mariadblog.V(1).Info("Defaulting for MariaDB", "name", mariadb.GetName())
-
-	env, err := environment.GetOperatorEnv(ctx)
-	if err != nil {
-		return fmt.Errorf("error getting the environment: %v", err)
-	}
-
-	if mariadb.IsReplicationEnabled() {
-		mariadblog.V(1).Info("Defaulting spec.replication", "mariadb", mariadb.Name)
-		return mariadb.Spec.Replication.SetDefaults(mariadb, env)
-	}
-	return nil
 }
 
 // +kubebuilder:webhook:path=/validate-k8s-mariadb-com-v1alpha1-mariadb,mutating=false,failurePolicy=fail,sideEffects=None,groups=k8s.mariadb.com,resources=mariadbs,verbs=create;update,versions=v1alpha1,name=vmariadb-v1alpha1.kb.io,admissionReviewVersions=v1
