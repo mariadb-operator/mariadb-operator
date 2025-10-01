@@ -25,6 +25,8 @@ type ReplicationProbe struct {
 	readinessLogger logr.Logger
 }
 
+var requestTimeout = 3 * time.Second
+
 func NewReplicationProbe(env *environment.PodEnvironment, k8sClient ctrlclient.Client, responseWriter *mdbhttp.ResponseWriter,
 	logger *logr.Logger) router.ProbeHandler {
 	return &ReplicationProbe{
@@ -43,10 +45,10 @@ func NewReplicationProbe(env *environment.PodEnvironment, k8sClient ctrlclient.C
 func (p *ReplicationProbe) Liveness(w http.ResponseWriter, r *http.Request) {
 	p.livenessLogger.V(1).Info("Probe started")
 
-	sqlCtx, sqlCancel := context.WithTimeout(context.Background(), 1*time.Second)
+	sqlCtx, sqlCancel := context.WithTimeout(context.Background(), requestTimeout)
 	defer sqlCancel()
 
-	sqlClient, err := sql.NewLocalClientWithPodEnv(sqlCtx, p.env, sql.WithTimeout(1*time.Second))
+	sqlClient, err := sql.NewLocalClientWithPodEnv(sqlCtx, p.env, sql.WithTimeout(requestTimeout))
 	if err != nil {
 		p.livenessLogger.Error(err, "error getting SQL client")
 		p.responseWriter.WriteErrorf(w, "error getting SQL client: %v", err)
@@ -60,6 +62,7 @@ func (p *ReplicationProbe) Liveness(w http.ResponseWriter, r *http.Request) {
 		p.responseWriter.WriteErrorf(w, "error checking replica: %v", err)
 		return
 	}
+	// See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/replication-threads
 	if isReplica {
 		replicaIORunning, err := sqlClient.ReplicaSlaveIORunning(sqlCtx)
 		if err != nil {
@@ -68,12 +71,27 @@ func (p *ReplicationProbe) Liveness(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if !replicaIORunning {
-			p.livenessLogger.Error(err, "Replica IO thread not running")
+			p.livenessLogger.Error(nil, "Replica IO thread not running")
 			p.responseWriter.WriteError(w, "Replica IO thread not running")
 			return
 		}
 
-		p.livenessLogger.V(1).Info("Replica IO thread status", "running", replicaIORunning)
+		replicaSQLRunning, err := sqlClient.ReplicaSlaveSQLRunning(sqlCtx)
+		if err != nil {
+			p.livenessLogger.Error(err, "error checking replica SQL thread")
+			p.responseWriter.WriteErrorf(w, "error checking replica SQL thread: %v", err)
+			return
+		}
+		if !replicaSQLRunning {
+			p.livenessLogger.Error(nil, "Replica SQL thread not running")
+			p.responseWriter.WriteError(w, "Replica SQL thread not running")
+			return
+		}
+
+		p.livenessLogger.V(1).Info("Replica thread running status",
+			"Slave_IO_Running", replicaIORunning,
+			"Slave_SQL_Running", replicaSQLRunning,
+		)
 		p.responseWriter.WriteOK(w, nil)
 		return
 	}
@@ -85,8 +103,8 @@ func (p *ReplicationProbe) Liveness(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !isPrimary {
-		p.livenessLogger.Error(err, "primary not configured")
-		p.responseWriter.WriteError(w, "primary not configured")
+		p.livenessLogger.Error(nil, "Primary not configured")
+		p.responseWriter.WriteError(w, "Primary not configured")
 		return
 	}
 
@@ -96,13 +114,13 @@ func (p *ReplicationProbe) Liveness(w http.ResponseWriter, r *http.Request) {
 func (p *ReplicationProbe) Readiness(w http.ResponseWriter, r *http.Request) {
 	p.readinessLogger.V(1).Info("Probe started")
 
-	sqlCtx, sqlCancel := context.WithTimeout(context.Background(), 1*time.Second)
+	sqlCtx, sqlCancel := context.WithTimeout(context.Background(), requestTimeout)
 	defer sqlCancel()
 
-	k8sCtx, k8sCancel := context.WithTimeout(context.Background(), 1*time.Second)
+	k8sCtx, k8sCancel := context.WithTimeout(context.Background(), requestTimeout)
 	defer k8sCancel()
 
-	sqlClient, err := sql.NewLocalClientWithPodEnv(sqlCtx, p.env, sql.WithTimeout(1*time.Second))
+	sqlClient, err := sql.NewLocalClientWithPodEnv(sqlCtx, p.env, sql.WithTimeout(requestTimeout))
 	if err != nil {
 		p.readinessLogger.Error(err, "error getting SQL client")
 		p.responseWriter.WriteErrorf(w, "error getting SQL client: %v", err)
@@ -126,7 +144,7 @@ func (p *ReplicationProbe) Readiness(w http.ResponseWriter, r *http.Request) {
 		maxLagSeconds := p.getMaxLagSeconds(k8sCtx)
 
 		if secondsBehindMaster > maxLagSeconds {
-			p.readinessLogger.Error(err, "Replica is lagging behind master", "seconds", secondsBehindMaster, "max-seconds", maxLagSeconds)
+			p.readinessLogger.Error(nil, "Replica is lagging behind master", "seconds", secondsBehindMaster, "max-seconds", maxLagSeconds)
 			p.responseWriter.WriteErrorf(w, "Replica is lagging %d seconds behind master (max seconds: %d)", secondsBehindMaster, maxLagSeconds)
 			return
 		}
@@ -143,8 +161,8 @@ func (p *ReplicationProbe) Readiness(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !isPrimary {
-		p.readinessLogger.Error(err, "primary not configured")
-		p.responseWriter.WriteError(w, "primary not configured")
+		p.readinessLogger.Error(nil, "Primary not configured")
+		p.responseWriter.WriteError(w, "Primary not configured")
 		return
 	}
 
