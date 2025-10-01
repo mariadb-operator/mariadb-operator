@@ -778,6 +778,10 @@ func (c Client) ReplicaSlaveIORunning(ctx context.Context) (bool, error) {
 	return c.QueryBoolColumn(ctx, "SHOW REPLICA STATUS", "Slave_IO_Running")
 }
 
+func (c Client) ReplicaSlaveSQLRunning(ctx context.Context) (bool, error) {
+	return c.QueryBoolColumn(ctx, "SHOW REPLICA STATUS", "Slave_SQL_Running")
+}
+
 func (c Client) ReplicaSecondsBehindMaster(ctx context.Context) (int, error) {
 	return c.QueryIntColumn(ctx, "SHOW REPLICA STATUS", "Seconds_Behind_Master")
 }
