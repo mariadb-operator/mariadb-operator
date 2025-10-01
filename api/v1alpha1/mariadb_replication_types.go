@@ -100,16 +100,13 @@ type PrimaryReplication struct {
 // This enables having minimal PrimaryReplication objects and provides sensible defaults.
 func (r *PrimaryReplication) SetDefaults() {
 	if r.PodIndex == nil {
-		index := *DefaultReplicationSpec.Primary.PodIndex
-		r.PodIndex = &index
+		r.PodIndex = ptr.To(0)
 	}
 	if r.AutomaticFailover == nil {
-		failover := *DefaultReplicationSpec.Primary.AutomaticFailover
-		r.AutomaticFailover = &failover
+		r.AutomaticFailover = ptr.To(true)
 	}
 	if r.AutomaticFailoverDelay == nil {
-		failoverDelay := *DefaultReplicationSpec.Primary.AutomaticFailoverDelay
-		r.AutomaticFailoverDelay = &failoverDelay
+		r.AutomaticFailoverDelay = ptr.To(metav1.Duration{})
 	}
 }
 
@@ -159,24 +156,19 @@ type ReplicaReplication struct {
 // This enables having minimal ReplicaReplication objects and provides sensible defaults.
 func (r *ReplicaReplication) SetDefaults() {
 	if r.WaitPoint == nil {
-		waitPoint := *DefaultReplicationSpec.Replica.WaitPoint
-		r.WaitPoint = &waitPoint
+		r.WaitPoint = ptr.To(WaitPointAfterCommit)
 	}
 	if r.Gtid == nil {
-		gtid := *DefaultReplicationSpec.Replica.Gtid
-		r.Gtid = &gtid
+		r.Gtid = ptr.To(GtidCurrentPos)
 	}
 	if r.ConnectionTimeout == nil {
-		timeout := *DefaultReplicationSpec.Replica.ConnectionTimeout
-		r.ConnectionTimeout = &timeout
+		r.ConnectionTimeout = ptr.To(tenSeconds)
 	}
 	if r.ConnectionRetries == nil {
-		retries := *DefaultReplicationSpec.Replica.ConnectionRetries
-		r.ConnectionRetries = &retries
+		r.ConnectionRetries = ptr.To(10)
 	}
 	if r.SyncTimeout == nil {
-		timeout := *DefaultReplicationSpec.Replica.SyncTimeout
-		r.SyncTimeout = &timeout
+		r.SyncTimeout = ptr.To(tenSeconds)
 	}
 }
 
@@ -206,31 +198,16 @@ type Replication struct {
 	Enabled bool `json:"enabled,omitempty"`
 }
 
-func (r *Replication) GetReplica() *ReplicaReplication {
-	if r.Replica == nil {
-		return &ReplicaReplication{}
-	}
-
-	return r.Replica
-}
-
-func (r *Replication) GetPrimary() *PrimaryReplication {
-	if r.Replica == nil {
-		return &PrimaryReplication{}
-	}
-	return r.Primary
-}
-
 // ReplicationSpec is the Replication desired state specification.
 type ReplicationSpec struct {
 	// Primary is the replication configuration for the primary node.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	Primary *PrimaryReplication `json:"primary,omitempty"`
+	Primary PrimaryReplication `json:"primary,omitempty"`
 	// ReplicaReplication is the replication configuration for the replica nodes.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	Replica *ReplicaReplication `json:"replica,omitempty"`
+	Replica ReplicaReplication `json:"replica,omitempty"`
 	// GtidStrictMode determines whether the GTID strict mode is enabled. See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/gtid#gtid_strict_mode.
 	// It is enabled by default.
 	// +optional
@@ -257,6 +234,10 @@ func (r *Replication) SetDefaults(mdb *MariaDB, env *environment.OperatorEnv) er
 	if r.GtidStrictMode == nil {
 		r.GtidStrictMode = ptr.To(true)
 	}
+	if r.SyncBinlog == nil {
+		r.SyncBinlog = ptr.To(1)
+	}
+
 	if reflect.ValueOf(r.InitContainer).IsZero() {
 		r.InitContainer = InitContainer{
 			Image: env.MariadbOperatorImage,
@@ -281,51 +262,20 @@ func (r *Replication) SetDefaults(mdb *MariaDB, env *environment.OperatorEnv) er
 		r.Agent.Image = agentBumped
 	}
 
-	if r.Primary == nil {
-		primary := *DefaultReplicationSpec.Primary
-		r.Primary = &primary
-	} else {
-		r.Primary.SetDefaults()
-	}
-	if r.Replica == nil {
-		replica := *DefaultReplicationSpec.Replica
-		r.Replica = &replica
-	} else {
-		r.Replica.SetDefaults()
-	}
-	if r.SyncBinlog == nil {
-		syncBinlog := *DefaultReplicationSpec.SyncBinlog
-		r.SyncBinlog = &syncBinlog
-	}
+	r.Primary.SetDefaults()
+	r.Replica.SetDefaults()
 
 	return nil
 }
 
 var (
 	tenSeconds = metav1.Duration{Duration: 10 * time.Second}
-
-	// DefaultReplicationSpec provides sensible defaults for the ReplicationSpec.
-	DefaultReplicationSpec = ReplicationSpec{
-		Primary: &PrimaryReplication{
-			PodIndex:               ptr.To(0),
-			AutomaticFailover:      ptr.To(true),
-			AutomaticFailoverDelay: ptr.To(metav1.Duration{}),
-		},
-		Replica: &ReplicaReplication{
-			WaitPoint:         ptr.To(WaitPointAfterCommit),
-			Gtid:              ptr.To(GtidCurrentPos),
-			ConnectionTimeout: ptr.To(tenSeconds),
-			ConnectionRetries: ptr.To(10),
-			SyncTimeout:       ptr.To(tenSeconds),
-		},
-		SyncBinlog: ptr.To(1),
-	}
 )
 
 // GetAutomaticFailoverDelay returns the duration of the automatic failover delay.
 func (m *MariaDB) GetAutomaticFailoverDelay() time.Duration {
-	primary := ptr.Deref(m.Replication().Primary, PrimaryReplication{})
-	automaticFailoverDelay := ptr.Deref(primary.AutomaticFailoverDelay, *DefaultReplicationSpec.Primary.AutomaticFailoverDelay)
+	primary := m.Replication().Primary
+	automaticFailoverDelay := ptr.Deref(primary.AutomaticFailoverDelay, metav1.Duration{})
 
 	return automaticFailoverDelay.Duration
 }
@@ -351,7 +301,7 @@ func (m *MariaDB) IsSwitchoverRequired() bool {
 		return false
 	}
 	currentPodIndex := ptr.Deref(m.Status.CurrentPrimaryPodIndex, 0)
-	desiredPodIndex := ptr.Deref(m.Replication().GetPrimary().PodIndex, 0)
+	desiredPodIndex := ptr.Deref(m.Replication().Primary.PodIndex, 0)
 	return currentPodIndex != desiredPodIndex
 }
 

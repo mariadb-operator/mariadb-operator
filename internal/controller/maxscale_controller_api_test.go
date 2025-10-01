@@ -79,7 +79,7 @@ var _ = Describe("MaxScale Replication options", Label("basic"), func() {
 					Replication: &mariadbv1alpha1.Replication{
 						Enabled: true,
 						ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
-							Replica: &mariadbv1alpha1.ReplicaReplication{
+							Replica: mariadbv1alpha1.ReplicaReplication{
 								ConnectionRetries: ptr.To(5),
 							},
 						},
@@ -102,7 +102,7 @@ var _ = Describe("MaxScale Replication options", Label("basic"), func() {
 					Replication: &mariadbv1alpha1.Replication{
 						Enabled: true,
 						ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
-							Replica: &mariadbv1alpha1.ReplicaReplication{
+							Replica: mariadbv1alpha1.ReplicaReplication{
 								ConnectionRetries: ptr.To(5),
 							},
 						},

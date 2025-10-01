@@ -310,14 +310,14 @@ config:
   # -- Galera library path to be used with MariaDB Galera
   galeraLibPath: /usr/lib/galera/libgalera_smm.so
   # -- Default MariaDB version to be used when unable to infer it via image tag
-  mariadbDefaultVersion: "11.8"
+  mariadbDefaultVersion: "11.4"
   # -- Default MariaDB image
-  mariadbImage: docker-registry1.mariadb.com/library/mariadb:11.8.2
+  mariadbImage: mariadb:11.4
   # -- Default MariaDB image name
-  mariadbImageName: docker-registry1.mariadb.com/library/mariadb
+  mariadbImageName: mariadb
   # -- Default MaxScale image
-  maxscaleImage: docker-registry2.mariadb.com/mariadb/maxscale:23.08.5
+  maxscaleImage: mariadb/maxscale:24.02-ubi
   # -- Default MariaDB exporter image
   exporterImage: prom/mysqld-exporter:v0.15.1
   # -- Default MaxScale exporter image
-  exporterMaxscaleImage: docker-registry2.mariadb.com/mariadb/maxscale-prometheus-exporter-ubi:v0.0.1
+  exporterMaxscaleImage: mariadb/maxscale-prometheus-exporter-ubi:latest
