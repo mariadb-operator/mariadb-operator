@@ -159,6 +159,6 @@ func (p *ReplicationProbe) getMaxLagSeconds(ctx context.Context) int {
 	}
 
 	replication := ptr.Deref(mdb.Spec.Replication, mariadbv1alpha1.Replication{})
-	replica := ptr.Deref(replication.Replica, mariadbv1alpha1.ReplicaReplication{})
+	replica := replication.Replica
 	return ptr.Deref(replica.MaxLagSeconds, 0)
 }
