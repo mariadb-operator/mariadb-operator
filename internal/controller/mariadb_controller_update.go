@@ -330,7 +330,7 @@ func (r *MariaDBReconciler) triggerSwitchover(ctx context.Context, mariadb *mari
 	if err != nil {
 		return fmt.Errorf("error getting healthy replica: %v", err)
 	}
-	switchoverLogger := logger.WithValues("primary", primary, "new-primary", *newPrimary)
+	switchoverLogger := logger.WithName("switchover").WithValues("primary", primary, "new-primary", *newPrimary)
 
 	if mariadb.IsMaxScaleEnabled() {
 		primaryServer := statefulset.PodName(mariadb.ObjectMeta, *newPrimary)
@@ -350,7 +350,7 @@ func (r *MariaDBReconciler) triggerSwitchover(ctx context.Context, mariadb *mari
 		}
 	}
 
-	logger.Info("Switching primary")
+	switchoverLogger.Info("Switching primary")
 	// To perform switchover we must reach the 'Replication' phase that runs after the 'StatefulSet' phase.
 	// When the 'MariaDBReconciler' controller receives the 'ErrSkipReconciliationPhase' error, it continues the reconciliation loop.
 	// See: https://github.com/mariadb-operator/mariadb-operator/pull/967
