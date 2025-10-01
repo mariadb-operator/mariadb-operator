@@ -9,6 +9,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/refresolver"
 	sqlClient "github.com/mariadb-operator/mariadb-operator/v25/pkg/sql"
 	sqlClientSet "github.com/mariadb-operator/mariadb-operator/v25/pkg/sqlset"
+	"k8s.io/utils/ptr"
 )
 
 type ReplicationClientSet struct {
@@ -44,7 +45,8 @@ func (c *ReplicationClientSet) currentPrimaryClient(ctx context.Context, clientO
 }
 
 func (c *ReplicationClientSet) newPrimaryClient(ctx context.Context, clientOpts ...sqlClient.Opt) (*sqlClient.Client, error) {
-	client, err := c.ClientForIndex(ctx, *c.Mariadb.Replication().Primary.PodIndex, clientOpts...)
+	replication := ptr.Deref(c.Mariadb.Spec.Replication, mariadbv1alpha1.Replication{})
+	client, err := c.ClientForIndex(ctx, *replication.Primary.PodIndex, clientOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("error getting new primary client: %v", err)
 	}

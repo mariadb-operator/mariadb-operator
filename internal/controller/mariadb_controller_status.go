@@ -229,7 +229,7 @@ func defaultPrimary(mdb *mariadbv1alpha1.MariaDB) {
 		podIndex = ptr.Deref(galera.Primary.PodIndex, 0)
 	}
 	if mdb.IsReplicationEnabled() {
-		podIndex = ptr.Deref(mdb.Replication().Primary.PodIndex, 0)
+		podIndex = ptr.Deref(mdb.Spec.Replication.Primary.PodIndex, 0)
 	}
 	mdb.Status.CurrentPrimaryPodIndex = &podIndex
 	mdb.Status.CurrentPrimary = ptr.To(stspkg.PodName(mdb.ObjectMeta, podIndex))

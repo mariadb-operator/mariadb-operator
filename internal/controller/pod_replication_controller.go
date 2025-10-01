@@ -16,6 +16,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -118,7 +119,7 @@ func (r *PodReplicationController) ReconcilePodNotReady(ctx context.Context, pod
 
 	var errBundle *multierror.Error
 	err = r.patch(ctx, mariadb, func(mdb *mariadbv1alpha1.MariaDB) {
-		mdb.Replication().Primary.PodIndex = newPrimary
+		mdb.Spec.Replication.Primary.PodIndex = newPrimary
 	})
 	errBundle = multierror.Append(errBundle, err)
 
@@ -142,7 +143,7 @@ func shouldReconcile(mariadb *mariadbv1alpha1.MariaDB) bool {
 	if mariadb.IsMaxScaleEnabled() || mariadb.IsRestoringBackup() || mariadb.IsSuspended() {
 		return false
 	}
-	primaryRepl := mariadb.Replication().Primary
+	primaryRepl := ptr.Deref(mariadb.Spec.Replication, mariadbv1alpha1.Replication{}).Primary
 	return mariadb.IsReplicationEnabled() && *primaryRepl.AutomaticFailover && mariadb.HasConfiguredReplica()
 }
 

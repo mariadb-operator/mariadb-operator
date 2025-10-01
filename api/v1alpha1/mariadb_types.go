@@ -860,14 +860,6 @@ func (m *MariaDB) SetDefaults(env *environment.OperatorEnv) error {
 	return nil
 }
 
-// Replication with defaulting accessor
-func (m *MariaDB) Replication() *Replication {
-	if m.Spec.Replication == nil {
-		return &Replication{}
-	}
-	return m.Spec.Replication
-}
-
 // IsGaleraEnabled indicates whether the MariaDB instance has Galera enabled
 func (m *MariaDB) IsGaleraEnabled() bool {
 	return ptr.Deref(m.Spec.Galera, Galera{}).Enabled

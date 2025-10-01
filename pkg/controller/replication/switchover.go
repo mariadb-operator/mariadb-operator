@@ -16,6 +16,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 )
 
 type switchoverPhase struct {
@@ -47,9 +48,10 @@ func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *re
 		return nil
 	}
 
+	replication := ptr.Deref(req.mariadb.Spec.Replication, mariadbv1alpha1.Replication{})
 	primary := req.mariadb.Status.CurrentPrimaryPodIndex
-	newPrimary := *req.mariadb.Replication().Primary.PodIndex
-	newPrimaryPodName := statefulset.PodName(req.mariadb.ObjectMeta, *req.mariadb.Replication().Primary.PodIndex)
+	newPrimary := *replication.Primary.PodIndex
+	newPrimaryPodName := statefulset.PodName(req.mariadb.ObjectMeta, *replication.Primary.PodIndex)
 	logger = logger.WithValues("primary", primary, "new-primary", newPrimary)
 
 	if err := r.patchStatus(ctx, req.mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
@@ -219,6 +221,7 @@ func (r *ReplicationReconciler) waitForReplicaSync(ctx context.Context, req *rec
 	logger.Info("Waiting for replicas to be synced with primary", "gtid", primaryGtid)
 	r.recorder.Event(req.mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonReplicationReplicaSync,
 		"Waiting for replicas to be synced with primary")
+	replication := ptr.Deref(req.mariadb.Spec.Replication, mariadbv1alpha1.Replication{})
 	for i := 0; i < int(req.mariadb.Spec.Replicas); i++ {
 		if i == *req.mariadb.Status.CurrentPrimaryPodIndex {
 			continue
@@ -233,7 +236,7 @@ func (r *ReplicationReconciler) waitForReplicaSync(ctx context.Context, req *rec
 			}
 
 			logger.V(1).Info("Syncing replica with primary GTID", "replica", i, "gtid", primaryGtid)
-			timeout := req.mariadb.Replication().Replica.SyncTimeout.Duration
+			timeout := replication.Replica.SyncTimeout.Duration
 			if err := replClient.WaitForReplicaGtid(ctx, primaryGtid, timeout); err != nil {
 				logger.Error(err, "Error waiting for GTID in replica", "gtid", primaryGtid, "replica", i)
 				r.recorder.Eventf(req.mariadb, corev1.EventTypeWarning, mariadbv1alpha1.ReasonReplicationReplicaSyncErr,
@@ -263,7 +266,7 @@ func (r *ReplicationReconciler) waitForReplicaSync(ctx context.Context, req *rec
 }
 
 func (r *ReplicationReconciler) configureNewPrimary(ctx context.Context, req *reconcileRequest, logger logr.Logger) error {
-	newPrimary := *req.mariadb.Replication().Primary.PodIndex
+	newPrimary := *ptr.Deref(req.mariadb.Spec.Replication, mariadbv1alpha1.Replication{}).Primary.PodIndex
 	newPrimaryClient, err := req.clientSet.newPrimaryClient(ctx)
 	if err != nil {
 		return fmt.Errorf("error getting new primary client: %v", err)
@@ -287,7 +290,7 @@ func (r *ReplicationReconciler) connectReplicasToNewPrimary(ctx context.Context,
 	doneChan := make(chan struct{})
 	errChan := make(chan error)
 
-	newPrimary := *req.mariadb.Replication().Primary.PodIndex
+	newPrimary := *ptr.Deref(req.mariadb.Spec.Replication, mariadbv1alpha1.Replication{}).Primary.PodIndex
 	newPrimaryClient, err := req.clientSet.newPrimaryClient(ctx)
 	if err != nil {
 		return fmt.Errorf("error getting new primary client: %v", err)
@@ -302,8 +305,10 @@ func (r *ReplicationReconciler) connectReplicasToNewPrimary(ctx context.Context,
 		return fmt.Errorf("error getting replica options: %v", err)
 	}
 
+	replicationPrimaryPodIndex := ptr.Deref(req.mariadb.Spec.Replication, mariadbv1alpha1.Replication{}).Primary.PodIndex
+
 	for i := 0; i < int(req.mariadb.Spec.Replicas); i++ {
-		if i == *req.mariadb.Status.CurrentPrimaryPodIndex || i == *req.mariadb.Replication().Primary.PodIndex {
+		if i == *req.mariadb.Status.CurrentPrimaryPodIndex || i == *replicationPrimaryPodIndex {
 			continue
 		}
 		wg.Add(1)
@@ -373,7 +378,7 @@ func (r *ReplicationReconciler) changePrimaryToReplica(ctx context.Context, req 
 	if err != nil {
 		return fmt.Errorf("error getting current primary client: %v", err)
 	}
-	newPrimary := *req.mariadb.Replication().Primary.PodIndex
+	newPrimary := *ptr.Deref(req.mariadb.Spec.Replication, mariadbv1alpha1.Replication{}).Primary.PodIndex
 	newPrimaryClient, err := req.clientSet.newPrimaryClient(ctx)
 	if err != nil {
 		return fmt.Errorf("error getting new primary client: %v", err)

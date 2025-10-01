@@ -282,7 +282,7 @@ var _ = Describe("MariaDB replication", Ordered, func() {
 		}
 		Eventually(func(g Gomega) bool {
 			g.Expect(k8sClient.Get(testCtx, key, mdb)).To(Succeed())
-			mdb.Replication().Primary.PodIndex = &podIndex
+			mdb.Spec.Replication.Primary.PodIndex = &podIndex
 			g.Expect(k8sClient.Update(testCtx, mdb)).To(Succeed())
 			return true
 		}, testTimeout, testInterval).Should(BeTrue())

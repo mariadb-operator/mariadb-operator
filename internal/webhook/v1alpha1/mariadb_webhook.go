@@ -177,7 +177,7 @@ func validateGalera(mariadb *v1alpha1.MariaDB) error {
 		if *galera.Primary.PodIndex < 0 || *galera.Primary.PodIndex >= int(mariadb.Spec.Replicas) {
 			return field.Invalid(
 				field.NewPath("spec").Child("galera").Child("primary").Child("podIndex"),
-				mariadb.Replication().Primary.PodIndex,
+				ptr.Deref(mariadb.Spec.Galera, v1alpha1.Galera{}).Primary.PodIndex,
 				"'spec.galera.primary.podIndex' out of 'spec.replicas' bounds",
 			)
 		}
@@ -232,20 +232,21 @@ func validateGalera(mariadb *v1alpha1.MariaDB) error {
 }
 
 func validateReplication(mariadb *v1alpha1.MariaDB) error {
-	if !mariadb.IsReplicationEnabled() {
+	replication := ptr.Deref(mariadb.Spec.Replication, v1alpha1.Replication{})
+	if !replication.Enabled {
 		return nil
 	}
-	if *mariadb.Replication().Primary.PodIndex < 0 || *mariadb.Replication().Primary.PodIndex >= int(mariadb.Spec.Replicas) {
+	if *replication.Primary.PodIndex < 0 || *replication.Primary.PodIndex >= int(mariadb.Spec.Replicas) {
 		return field.Invalid(
 			field.NewPath("spec").Child("replication").Child("primary").Child("podIndex"),
-			mariadb.Replication().Primary.PodIndex,
+			replication.Primary.PodIndex,
 			"'spec.replication.primary.podIndex' out of 'spec.replicas' bounds",
 		)
 	}
-	if err := mariadb.Replication().Replica.Validate(); err != nil {
+	if err := replication.Replica.Validate(); err != nil {
 		return field.Invalid(
 			field.NewPath("spec").Child("replication").Child("replica"),
-			mariadb.Replication(),
+			replication,
 			err.Error(),
 		)
 	}
@@ -254,18 +255,20 @@ func validateReplication(mariadb *v1alpha1.MariaDB) error {
 
 func validatePrimarySwitchover(mariadb, old *v1alpha1.MariaDB) error {
 	if old.IsReplicationEnabled() && old.IsSwitchingPrimary() {
-		if *old.Replication().Primary.PodIndex != *mariadb.Replication().Primary.PodIndex {
+		oldReplication := ptr.Deref(old.Spec.Replication, v1alpha1.Replication{})
+		mariadbReplication := ptr.Deref(mariadb.Spec.Replication, v1alpha1.Replication{})
+		if *oldReplication.Primary.PodIndex != *mariadbReplication.Primary.PodIndex {
 			return field.Invalid(
 				field.NewPath("spec").Child("replication").Child("primary").Child("podIndex"),
-				mariadb.Replication().Primary.PodIndex,
+				mariadbReplication.Primary.PodIndex,
 				"'spec.replication.primary.podIndex' cannot be updated during a primary switchover",
 			)
 		}
-		if *old.Replication().Primary.AutomaticFailover != *mariadb.Replication().Primary.AutomaticFailover &&
-			*mariadb.Replication().Primary.AutomaticFailover {
+		if *oldReplication.Primary.AutomaticFailover != *mariadbReplication.Primary.AutomaticFailover &&
+			*mariadbReplication.Primary.AutomaticFailover {
 			return field.Invalid(
 				field.NewPath("spec").Child("replication").Child("primary").Child("automaticFailover"),
-				mariadb.Replication().Primary.PodIndex,
+				mariadbReplication.Primary.PodIndex,
 				"'spec.replication.primary.automaticFailover' cannot be enabled during a primary switchover",
 			)
 		}

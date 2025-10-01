@@ -274,7 +274,7 @@ var (
 
 // GetAutomaticFailoverDelay returns the duration of the automatic failover delay.
 func (m *MariaDB) GetAutomaticFailoverDelay() time.Duration {
-	primary := m.Replication().Primary
+	primary := ptr.Deref(m.Spec.Replication, Replication{}).Primary
 	automaticFailoverDelay := ptr.Deref(primary.AutomaticFailoverDelay, metav1.Duration{})
 
 	return automaticFailoverDelay.Duration
@@ -301,7 +301,7 @@ func (m *MariaDB) IsSwitchoverRequired() bool {
 		return false
 	}
 	currentPodIndex := ptr.Deref(m.Status.CurrentPrimaryPodIndex, 0)
-	desiredPodIndex := ptr.Deref(m.Replication().Primary.PodIndex, 0)
+	desiredPodIndex := ptr.Deref(ptr.Deref(m.Spec.Replication, Replication{}).Primary.PodIndex, 0)
 	return currentPodIndex != desiredPodIndex
 }
 
