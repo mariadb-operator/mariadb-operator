@@ -128,7 +128,7 @@ func (r *ReplicationConfigClient) changeMaster(ctx context.Context, mariadb *mar
 		return fmt.Errorf("error getting replication password: %v", err)
 	}
 
-	gtid := ptr.Deref(mariadb.Replication().Replica.Gtid, mariadbv1alpha1.GtidCurrentPos)
+	gtid := ptr.Deref(mariadb.Spec.Replication.Replica.Gtid, mariadbv1alpha1.GtidCurrentPos)
 	gtidString, err := gtid.MariaDBFormat()
 	if err != nil {
 		return fmt.Errorf("error getting GTID: %v", err)
@@ -139,12 +139,14 @@ func (r *ReplicationConfigClient) changeMaster(ctx context.Context, mariadb *mar
 		return fmt.Errorf("error getting host option: %v", err)
 	}
 
+	replication := ptr.Deref(mariadb.Spec.Replication, mariadbv1alpha1.Replication{})
+
 	changeMasterOpts := []sql.ChangeMasterOpt{
 		changeMasterHostOpt,
 		sql.WithChangeMasterPort(mariadb.Spec.Port),
 		sql.WithChangeMasterCredentials(replUser, password),
 		sql.WithChangeMasterGtid(gtidString),
-		sql.WithChangeMasterRetries(*mariadb.Replication().Replica.ConnectionRetries),
+		sql.WithChangeMasterRetries(*replication.Replica.ConnectionRetries),
 	}
 	if mariadb.IsTLSEnabled() {
 		changeMasterOpts = append(changeMasterOpts, sql.WithChangeMasterSSL(
@@ -333,8 +335,9 @@ sync_binlog={{ . }}
 }
 
 func newReplPasswordRef(mariadb *mariadbv1alpha1.MariaDB) mariadbv1alpha1.GeneratedSecretKeyRef {
-	if mariadb.IsReplicationEnabled() && mariadb.Replication().Replica.ReplPasswordSecretKeyRef != nil {
-		return *mariadb.Replication().Replica.ReplPasswordSecretKeyRef
+	replication := ptr.Deref(mariadb.Spec.Replication, mariadbv1alpha1.Replication{})
+	if replication.Enabled && replication.Replica.ReplPasswordSecretKeyRef != nil {
+		return *replication.Replica.ReplPasswordSecretKeyRef
 	}
 	return mariadbv1alpha1.GeneratedSecretKeyRef{
 		SecretKeySelector: mariadbv1alpha1.SecretKeySelector{

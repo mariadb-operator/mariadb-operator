@@ -343,7 +343,7 @@ func (r *MariaDBReconciler) triggerSwitchover(ctx context.Context, mariadb *mari
 		switchoverLogger.Info("Triggering MariaDB switchover")
 
 		if err := r.patch(ctx, mariadb, func(mdb *mariadbv1alpha1.MariaDB) error {
-			mdb.Replication().Primary.PodIndex = newPrimary
+			mdb.Spec.Replication.Primary.PodIndex = newPrimary
 			return nil
 		}); err != nil {
 			return fmt.Errorf("error triggering MariaDB switchover: %v", err)
