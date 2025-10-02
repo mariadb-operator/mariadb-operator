@@ -162,13 +162,13 @@ func (r *ReplicaReplication) SetDefaults() {
 		r.Gtid = ptr.To(GtidCurrentPos)
 	}
 	if r.ConnectionTimeout == nil {
-		r.ConnectionTimeout = ptr.To(tenSeconds)
+		r.ConnectionTimeout = ptr.To(metav1.Duration{Duration: 10 * time.Second})
 	}
 	if r.ConnectionRetries == nil {
 		r.ConnectionRetries = ptr.To(10)
 	}
 	if r.SyncTimeout == nil {
-		r.SyncTimeout = ptr.To(tenSeconds)
+		r.SyncTimeout = ptr.To(metav1.Duration{Duration: 10 * time.Second})
 	}
 }
 
@@ -267,10 +267,6 @@ func (r *Replication) SetDefaults(mdb *MariaDB, env *environment.OperatorEnv) er
 
 	return nil
 }
-
-var (
-	tenSeconds = metav1.Duration{Duration: 10 * time.Second}
-)
 
 // GetAutomaticFailoverDelay returns the duration of the automatic failover delay.
 func (m *MariaDB) GetAutomaticFailoverDelay() time.Duration {
