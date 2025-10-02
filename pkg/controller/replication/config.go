@@ -128,7 +128,9 @@ func (r *ReplicationConfigClient) changeMaster(ctx context.Context, mariadb *mar
 		return fmt.Errorf("error getting replication password: %v", err)
 	}
 
-	gtid := ptr.Deref(mariadb.Spec.Replication.Replica.Gtid, mariadbv1alpha1.GtidCurrentPos)
+	replication := ptr.Deref(mariadb.Spec.Replication, mariadbv1alpha1.Replication{})
+
+	gtid := ptr.Deref(replication.Replica.Gtid, mariadbv1alpha1.GtidCurrentPos)
 	gtidString, err := gtid.MariaDBFormat()
 	if err != nil {
 		return fmt.Errorf("error getting GTID: %v", err)
@@ -138,8 +140,6 @@ func (r *ReplicationConfigClient) changeMaster(ctx context.Context, mariadb *mar
 	if err != nil {
 		return fmt.Errorf("error getting host option: %v", err)
 	}
-
-	replication := ptr.Deref(mariadb.Spec.Replication, mariadbv1alpha1.Replication{})
 
 	changeMasterOpts := []sql.ChangeMasterOpt{
 		changeMasterHostOpt,
