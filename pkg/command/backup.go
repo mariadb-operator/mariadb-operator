@@ -12,6 +12,7 @@ import (
 	builderpki "github.com/mariadb-operator/mariadb-operator/v25/pkg/builder/pki"
 	ds "github.com/mariadb-operator/mariadb-operator/v25/pkg/datastructures"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/interfaces"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/replication"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/statefulset"
 	"k8s.io/utils/ptr"
 )
@@ -339,21 +340,16 @@ func (b *BackupCommand) MariadbBackupRestore(mariadb *mariadbv1alpha1.MariaDB, b
 		backupDirPath,
 	)
 
-	// This file has been renamed in MariaDB 11.4. We should be compatible with both.
-	binlogFileName := "mariadb_backup_binlog_info"
-	legacyBinlogFileName := "xtrabackup_binlog_info"
-
 	copyBinlogCmd := func(binlogFileName string) string {
 		binlogSrcPath := filepath.Join(backupDirPath, binlogFileName)
-		binlogDstDir := "/var/lib/mysql/.mariadb-backup"
-		binlogDstPath := filepath.Join(binlogDstDir, binlogFileName)
+		binlogDstPath := filepath.Join(replication.MariaDBBackupDirPath, binlogFileName)
 		return fmt.Sprintf(`if [ -f %[1]s ]; then 
 	echo "💾 Copying binlog position file '%[1]s' to data directory";
 	mkdir -p %[2]s; 
 	cp %[1]s %[3]s
 fi`,
 			binlogSrcPath,
-			binlogDstDir,
+			replication.MariaDBBackupDirPath,
 			binlogDstPath,
 		)
 	}
@@ -370,8 +366,8 @@ fi`,
 fi`,
 			backupDirPath,
 			copyBackupCmd,
-			copyBinlogCmd(binlogFileName),
-			copyBinlogCmd(legacyBinlogFileName),
+			copyBinlogCmd(replication.BinlogFileName),
+			copyBinlogCmd(replication.LegacyBinlogFileName),
 		),
 		"echo 💾 Extracting backup",
 		fmt.Sprintf(
@@ -390,8 +386,8 @@ fi`,
 		),
 		"echo 💾 Copying backup to data directory",
 		copyBackupCmd,
-		copyBinlogCmd(binlogFileName),
-		copyBinlogCmd(legacyBinlogFileName),
+		copyBinlogCmd(replication.BinlogFileName),
+		copyBinlogCmd(replication.LegacyBinlogFileName),
 	}
 	return NewBashCommand(cmds), nil
 }
