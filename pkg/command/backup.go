@@ -339,17 +339,43 @@ func (b *BackupCommand) MariadbBackupRestore(mariadb *mariadbv1alpha1.MariaDB, b
 		backupDirPath,
 	)
 
+	// This file has been renamed in MariaDB 11.4. We should be compatible with both.
+	binlogFileName := "mariadb_backup_binlog_info"
+	legacyBinlogFileName := "xtrabackup_binlog_info"
+
+	copyBinlogCmd := func(binlogFileName string) string {
+		binlogSrcPath := filepath.Join(backupDirPath, binlogFileName)
+		binlogDstDir := "/var/lib/mysql/.mariadb-backup"
+		binlogDstPath := filepath.Join(binlogDstDir, binlogFileName)
+		return fmt.Sprintf(`if [ -f %[1]s ]; then 
+	echo "💾 Copying binlog position file '%[1]s' to data directory";
+	mkdir -p %[2]s; 
+	cp %[1]s %[3]s
+fi`,
+			binlogSrcPath,
+			binlogDstDir,
+			binlogDstPath,
+		)
+	}
+
 	cmds := []string{
 		"set -euo pipefail",
 		"echo 💾 Checking existing backup",
-		fmt.Sprintf(
-			"if [ -d %s ]; then echo '💾 Existing backup directory found. Copying backup to data directory'; %s && exit 0; fi",
+		fmt.Sprintf(`if [ -d %[1]s ]; then
+  echo '💾 Existing backup directory found. Copying backup to data directory';
+  { %[2]s; } &&
+  { %[3]s; } &&
+  { %[4]s; } &&
+  exit 0
+fi`,
 			backupDirPath,
 			copyBackupCmd,
+			copyBinlogCmd(binlogFileName),
+			copyBinlogCmd(legacyBinlogFileName),
 		),
 		"echo 💾 Extracting backup",
 		fmt.Sprintf(
-			"mkdir %s",
+			"mkdir -p %s",
 			backupDirPath,
 		),
 		fmt.Sprintf(
@@ -364,6 +390,8 @@ func (b *BackupCommand) MariadbBackupRestore(mariadb *mariadbv1alpha1.MariaDB, b
 		),
 		"echo 💾 Copying backup to data directory",
 		copyBackupCmd,
+		copyBinlogCmd(binlogFileName),
+		copyBinlogCmd(legacyBinlogFileName),
 	}
 	return NewBashCommand(cmds), nil
 }
