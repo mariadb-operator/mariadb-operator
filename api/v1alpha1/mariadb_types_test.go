@@ -1,6 +1,8 @@
 package v1alpha1
 
 import (
+	"time"
+
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/environment"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -19,6 +21,12 @@ var _ = Describe("MariaDB types", func() {
 	}
 	env := &environment.OperatorEnv{
 		RelatedMariadbImage: "mariadb:11.0.3",
+	}
+
+	envWithSpecificNs := &environment.OperatorEnv{
+		RelatedMariadbImage:      "mariadb:11.0.3",
+		WatchNamespace:           "mariadb-obj",
+		MariadbOperatorNamespace: "mariadb-obj",
 	}
 	Context("When creating a MariaDB object", func() {
 		DescribeTable(
@@ -1281,6 +1289,221 @@ var _ = Describe("MariaDB types", func() {
 					},
 				},
 				env,
+			),
+
+			Entry(
+				"replication disabled has zeroed replication",
+				&MariaDB{
+					ObjectMeta: objMeta,
+					Spec: MariaDBSpec{
+						Replication: &Replication{
+							Enabled: false,
+						},
+					},
+				},
+				&MariaDB{
+					ObjectMeta: objMeta,
+					Spec: MariaDBSpec{
+						Replication:       &Replication{},
+						Image:             env.RelatedMariadbImage,
+						RootEmptyPassword: ptr.To(false),
+						RootPasswordSecretKeyRef: GeneratedSecretKeyRef{
+							SecretKeySelector: SecretKeySelector{
+								LocalObjectReference: LocalObjectReference{
+									Name: "mariadb-obj-root",
+								},
+								Key: "password",
+							},
+							Generate: true,
+						},
+						Port: 3306,
+						Storage: Storage{
+							Ephemeral:           ptr.To(false),
+							ResizeInUseVolumes:  ptr.To(true),
+							WaitForVolumeResize: ptr.To(true),
+						},
+						TLS: &TLS{
+							Enabled: true,
+						},
+						UpdateStrategy: UpdateStrategy{
+							Type:                ReplicasFirstPrimaryLastUpdateType,
+							AutoUpdateDataPlane: ptr.To(false),
+						},
+						PodTemplate: PodTemplate{
+							ServiceAccountName: &objMeta.Name,
+						},
+					},
+				},
+				env,
+			),
+
+			Entry(
+				"replication enabled sets defaults",
+				&MariaDB{
+					ObjectMeta: objMeta,
+					Spec: MariaDBSpec{
+						Replication: &Replication{
+							Enabled: true,
+						},
+					},
+				},
+				&MariaDB{
+					ObjectMeta: objMeta,
+					Spec: MariaDBSpec{
+						Replication: &Replication{
+							Enabled: true,
+							ReplicationSpec: ReplicationSpec{
+								GtidStrictMode: ptr.To(true),
+								SyncBinlog:     ptr.To(1),
+								InitContainer: InitContainer{
+									Image:             env.MariadbOperatorImage,
+									ContainerTemplate: ContainerTemplate{},
+									ImagePullPolicy:   "",
+								},
+								Agent: Agent{
+
+									Image:     env.MariadbOperatorImage,
+									Port:      5555,
+									ProbePort: 5566,
+									KubernetesAuth: &KubernetesAuth{
+										Enabled: true,
+									},
+									GracefulShutdownTimeout: ptr.To(metav1.Duration{Duration: 1 * time.Second}),
+								},
+								Replica: ReplicaReplication{
+									WaitPoint:         ptr.To(WaitPointAfterCommit),
+									Gtid:              ptr.To(GtidCurrentPos),
+									ConnectionTimeout: ptr.To(metav1.Duration{Duration: 10 * time.Second}),
+									ConnectionRetries: ptr.To(10),
+									SyncTimeout:       ptr.To(metav1.Duration{Duration: 10 * time.Second}),
+								},
+								Primary: PrimaryReplication{
+									PodIndex:               ptr.To(0),
+									AutomaticFailover:      ptr.To(true),
+									AutomaticFailoverDelay: ptr.To(metav1.Duration{}),
+								},
+							},
+						},
+						Image:             env.RelatedMariadbImage,
+						RootEmptyPassword: ptr.To(false),
+						RootPasswordSecretKeyRef: GeneratedSecretKeyRef{
+							SecretKeySelector: SecretKeySelector{
+								LocalObjectReference: LocalObjectReference{
+									Name: "mariadb-obj-root",
+								},
+								Key: "password",
+							},
+							Generate: true,
+						},
+						Port: 3306,
+						Storage: Storage{
+							Ephemeral:           ptr.To(false),
+							ResizeInUseVolumes:  ptr.To(true),
+							WaitForVolumeResize: ptr.To(true),
+						},
+						TLS: &TLS{
+							Enabled: true,
+						},
+						UpdateStrategy: UpdateStrategy{
+							Type:                ReplicasFirstPrimaryLastUpdateType,
+							AutoUpdateDataPlane: ptr.To(false),
+						},
+						PodTemplate: PodTemplate{
+							ServiceAccountName: &objMeta.Name,
+						},
+					},
+				},
+				env,
+			),
+
+			Entry(
+				"replication with watchnamespace sets Basic Auth",
+				&MariaDB{
+					ObjectMeta: objMeta,
+					Spec: MariaDBSpec{
+						Replication: &Replication{
+							Enabled: true,
+						},
+					},
+				},
+				&MariaDB{
+					ObjectMeta: objMeta,
+					Spec: MariaDBSpec{
+						Replication: &Replication{
+							Enabled: true,
+							ReplicationSpec: ReplicationSpec{
+								GtidStrictMode: ptr.To(true),
+								SyncBinlog:     ptr.To(1),
+								InitContainer: InitContainer{
+									Image:             env.MariadbOperatorImage,
+									ContainerTemplate: ContainerTemplate{},
+									ImagePullPolicy:   "",
+								},
+								Agent: Agent{
+
+									Image:     env.MariadbOperatorImage,
+									Port:      5555,
+									ProbePort: 5566,
+									BasicAuth: &BasicAuth{
+										Enabled:  true,
+										Username: "mariadb-operator",
+										PasswordSecretKeyRef: GeneratedSecretKeyRef{
+
+											SecretKeySelector: SecretKeySelector{
+												LocalObjectReference: LocalObjectReference{
+													Name: "mariadb-obj-agent-auth",
+												},
+												Key: "password",
+											},
+											Generate: true,
+										},
+									},
+									GracefulShutdownTimeout: ptr.To(metav1.Duration{Duration: 1 * time.Second}),
+								},
+								Replica: ReplicaReplication{
+									WaitPoint:         ptr.To(WaitPointAfterCommit),
+									Gtid:              ptr.To(GtidCurrentPos),
+									ConnectionTimeout: ptr.To(metav1.Duration{Duration: 10 * time.Second}),
+									ConnectionRetries: ptr.To(10),
+									SyncTimeout:       ptr.To(metav1.Duration{Duration: 10 * time.Second}),
+								},
+								Primary: PrimaryReplication{
+									PodIndex:               ptr.To(0),
+									AutomaticFailover:      ptr.To(true),
+									AutomaticFailoverDelay: ptr.To(metav1.Duration{}),
+								},
+							},
+						},
+						Image:             env.RelatedMariadbImage,
+						RootEmptyPassword: ptr.To(false),
+						RootPasswordSecretKeyRef: GeneratedSecretKeyRef{
+							SecretKeySelector: SecretKeySelector{
+								LocalObjectReference: LocalObjectReference{
+									Name: "mariadb-obj-root",
+								},
+								Key: "password",
+							},
+							Generate: true,
+						},
+						Port: 3306,
+						Storage: Storage{
+							Ephemeral:           ptr.To(false),
+							ResizeInUseVolumes:  ptr.To(true),
+							WaitForVolumeResize: ptr.To(true),
+						},
+						TLS: &TLS{
+							Enabled: true,
+						},
+						UpdateStrategy: UpdateStrategy{
+							Type:                ReplicasFirstPrimaryLastUpdateType,
+							AutoUpdateDataPlane: ptr.To(false),
+						},
+						PodTemplate: PodTemplate{
+							ServiceAccountName: &objMeta.Name,
+						},
+					},
+				},
+				envWithSpecificNs,
 			),
 		)
 
