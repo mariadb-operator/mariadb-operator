@@ -7,18 +7,18 @@ spec:
     name: mariadb
     key: root-password
 
-  # maxScaleRef:
-  #   name: maxscale-repl
-
   storage:
     size: 1Gi
+    storageClassName: csi-hostpath-sc
 
   replicas: 3
 
   replication:
     enabled: true
-    # replica:
-    #   maxLagSeconds: 10
+
+  # bootstrapFrom:
+  #   volumeSnapshotRef:
+  #     name: physicalbackup-20250611163352
 
   service:
     type: LoadBalancer

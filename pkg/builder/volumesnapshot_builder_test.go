@@ -58,7 +58,7 @@ func TestInvalidVolumeSnapshot(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := builder.BuildVolumeSnapshot(key, tt.backup, pvcKey)
+			_, err := builder.BuildVolumeSnapshot(key, tt.backup, pvcKey, nil)
 			if tt.wantErr {
 				assert.Error(t, err, "expected error")
 			} else {
@@ -85,6 +85,7 @@ func TestVolumeSnapshotMetadata(t *testing.T) {
 	tests := []struct {
 		name            string
 		backup          *mariadbv1alpha1.PhysicalBackup
+		metadata        *mariadbv1alpha1.Metadata
 		wantLabels      map[string]string
 		wantAnnotations map[string]string
 	}{
@@ -106,6 +107,7 @@ func TestVolumeSnapshotMetadata(t *testing.T) {
 					},
 				},
 			},
+			metadata: nil,
 			wantLabels: map[string]string{
 				metadata.PhysicalBackupNameLabel: "backup-obj",
 			},
@@ -136,6 +138,7 @@ func TestVolumeSnapshotMetadata(t *testing.T) {
 					},
 				},
 			},
+			metadata: nil,
 			wantLabels: map[string]string{
 				"snapshot-label":                 "snapshot-value",
 				metadata.PhysicalBackupNameLabel: "backup-obj",
@@ -169,6 +172,7 @@ func TestVolumeSnapshotMetadata(t *testing.T) {
 					},
 				},
 			},
+			metadata: nil,
 			wantLabels: map[string]string{
 				"custom-label":                   "custom-value",
 				metadata.PhysicalBackupNameLabel: "backup-obj",
@@ -205,6 +209,7 @@ func TestVolumeSnapshotMetadata(t *testing.T) {
 					},
 				},
 			},
+			metadata: nil,
 			wantLabels: map[string]string{
 				"custom-label":                   "custom-value",
 				"snapshot-label":                 "snapshot-value",
@@ -215,11 +220,43 @@ func TestVolumeSnapshotMetadata(t *testing.T) {
 				"snapshot-annotation": "snapshot-annotation-value",
 			},
 		},
+		{
+			name: "Metadata by argument",
+			backup: &mariadbv1alpha1.PhysicalBackup{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.PhysicalBackupSpec{
+					Storage: mariadbv1alpha1.PhysicalBackupStorage{
+						VolumeSnapshot: &mariadbv1alpha1.PhysicalBackupVolumeSnapshot{
+							VolumeSnapshotClassName: "test-class",
+							Metadata: &mariadbv1alpha1.Metadata{
+								Labels: map[string]string{
+									"snapshot-label": "snapshot-value",
+								},
+								Annotations: map[string]string{
+									"snapshot-annotation": "snapshot-annotation-value",
+								},
+							},
+						},
+					},
+				},
+			},
+			metadata: &mariadbv1alpha1.Metadata{
+				Annotations: map[string]string{
+					metadata.GtidAnnotation: "0-10-1897",
+				},
+			},
+			wantLabels: map[string]string{
+				metadata.PhysicalBackupNameLabel: "backup-obj",
+			},
+			wantAnnotations: map[string]string{
+				metadata.GtidAnnotation: "0-10-1897",
+			},
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			snapshot, err := builder.BuildVolumeSnapshot(key, tt.backup, pvcKey)
+			snapshot, err := builder.BuildVolumeSnapshot(key, tt.backup, pvcKey, tt.metadata)
 			assert.NoError(t, err, "unexpected error building VolumeSnapshot")
 			assert.NotNil(t, snapshot, "expected snapshot to be created")
 			assert.Equal(t, key.Name, snapshot.Name)
