@@ -860,6 +860,10 @@ func (m *MariaDB) SetDefaults(env *environment.OperatorEnv) error {
 	return nil
 }
 
+func (m *MariaDB) GetInheritMetadata() *Metadata {
+	return m.Spec.InheritMetadata
+}
+
 // IsGaleraEnabled indicates whether the MariaDB instance has Galera enabled
 func (m *MariaDB) IsGaleraEnabled() bool {
 	return ptr.Deref(m.Spec.Galera, Galera{}).Enabled

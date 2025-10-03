@@ -58,6 +58,8 @@ import (
 
 var (
 	ErrSkipReconciliationPhase = errors.New("skipping reconciliation phase")
+	sysUser                    = "mariadb.sys"
+	sysUserHost                = "localhost"
 )
 
 // MariaDBReconciler reconciles a MariaDB object
@@ -788,47 +790,59 @@ func (r *MariaDBReconciler) reconcileUsers(ctx context.Context, mariadb *mariadb
 		},
 		Metadata:             mariadb.Spec.InheritMetadata,
 		MaxUserConnections:   20,
-		Name:                 "mariadb.sys",
-		Host:                 "localhost",
+		Name:                 sysUser,
+		Host:                 sysUserHost,
 		PasswordSecretKeyRef: nil,
 		CleanupPolicy:        ptr.To(mariadbv1alpha1.CleanupPolicySkip),
 	}
-	grantOpts := auth.GrantOpts{
-		Key: sysGrantKey,
-		GrantOpts: builder.GrantOpts{
-			MariaDBRef: mariadbv1alpha1.MariaDBRef{
-				ObjectReference: mariadbv1alpha1.ObjectReference{
-					Name:      mariadb.Name,
-					Namespace: mariadb.Namespace,
-				},
+	grantOpts := builder.GrantOpts{
+		MariaDBRef: mariadbv1alpha1.MariaDBRef{
+			ObjectReference: mariadbv1alpha1.ObjectReference{
+				Name:      mariadb.Name,
+				Namespace: mariadb.Namespace,
 			},
-			Metadata: mariadb.Spec.InheritMetadata,
-			Privileges: []string{
-				"SELECT",
-				"UPDATE",
-				"DELETE",
-			},
-			Database:      "mysql",
-			Table:         "global_priv",
-			Username:      "mariadb.sys",
-			Host:          "localhost",
-			CleanupPolicy: ptr.To(mariadbv1alpha1.CleanupPolicySkip),
 		},
+		Metadata: mariadb.Spec.InheritMetadata,
+		Privileges: []string{
+			"SELECT",
+			"UPDATE",
+			"DELETE",
+		},
+		Database:      "mysql",
+		Table:         "global_priv",
+		Username:      sysUser,
+		Host:          sysUserHost,
+		CleanupPolicy: ptr.To(mariadbv1alpha1.CleanupPolicySkip),
 	}
-
-	if result, err := r.AuthReconciler.ReconcileUserGrant(ctx, sysUserKey, mariadb, userOpts, grantOpts); !result.IsZero() || err != nil {
+	strategy, err := auth.NewCrdStrategy(
+		r.Client,
+		r.Builder,
+		auth.WithUserKeys(sysUserKey),
+		auth.WithGrantKeys(sysGrantKey),
+		auth.WithOwner(mariadb),
+		auth.WithWait(true, true),
+	)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error creating Auth Strategy: %w", err)
+	}
+	if result, err := r.AuthReconciler.ReconcileUserGrant(
+		ctx,
+		userOpts,
+		[]builder.GrantOpts{grantOpts},
+		strategy,
+	); !result.IsZero() || err != nil {
 		if err != nil {
-			return ctrl.Result{}, fmt.Errorf("error reconciling mariadb.sys user auth: %v", err)
+			return ctrl.Result{}, fmt.Errorf("error reconciling %s user auth: %w", sysUser, err)
 		}
 		return result, err
 	}
 
 	var sysGrant mariadbv1alpha1.Grant
 	if err := r.Get(ctx, sysGrantKey, &sysGrant); err != nil {
-		return ctrl.Result{}, fmt.Errorf("error getting mariadb.sys Grant: %v", err)
+		return ctrl.Result{}, fmt.Errorf("error getting %s Grant: %v", sysUser, err)
 	}
 	if !sysGrant.IsReady() {
-		log.FromContext(ctx).V(1).Info("mariadb.sys Grant not ready. Requeuing...")
+		log.FromContext(ctx).V(1).Info("system user Grant not ready. Requeuing...")
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
 
@@ -853,29 +867,37 @@ func (r *MariaDBReconciler) reconcileUsers(ctx context.Context, mariadb *mariadb
 		} else if mariadb.Spec.PasswordSecretKeyRef != nil {
 			user.PasswordSecretKeyRef = &mariadb.Spec.PasswordSecretKeyRef.SecretKeySelector
 		}
-		grant := auth.GrantOpts{
-			Key: mariadb.MariadbGrantKey(),
-			GrantOpts: builder.GrantOpts{
-				MariaDBRef: mariadbv1alpha1.MariaDBRef{
-					ObjectReference: mariadbv1alpha1.ObjectReference{
-						Name:      mariadb.Name,
-						Namespace: mariadb.Namespace,
-					},
+		grant := builder.GrantOpts{
+			MariaDBRef: mariadbv1alpha1.MariaDBRef{
+				ObjectReference: mariadbv1alpha1.ObjectReference{
+					Name:      mariadb.Name,
+					Namespace: mariadb.Namespace,
 				},
-				Metadata: mariadb.Spec.InheritMetadata,
-				Privileges: []string{
-					"ALL PRIVILEGES",
-				},
-				Database: *mariadb.Spec.Database,
-				Table:    "*",
-				Username: *mariadb.Spec.Username,
-				Host:     "%",
 			},
+			Metadata: mariadb.Spec.InheritMetadata,
+			Privileges: []string{
+				"ALL PRIVILEGES",
+			},
+			Database: *mariadb.Spec.Database,
+			Table:    "*",
+			Username: *mariadb.Spec.Username,
+			Host:     "%",
 		}
 
-		if result, err := r.AuthReconciler.ReconcileUserGrant(ctx, userKey, mariadb, user, grant); !result.IsZero() || err != nil {
+		strategy, err := auth.NewCrdStrategy(
+			r.Client,
+			r.Builder,
+			auth.WithUserKeys(userKey),
+			auth.WithGrantKeys(mariadb.MariadbGrantKey()),
+			auth.WithOwner(mariadb),
+		)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("error creating Auth Strategy: %w", err)
+		}
+
+		if result, err := r.AuthReconciler.ReconcileUserGrant(ctx, user, []builder.GrantOpts{grant}, strategy); !result.IsZero() || err != nil {
 			if err != nil {
-				return ctrl.Result{}, fmt.Errorf("error reconciling user auth: %v", err)
+				return ctrl.Result{}, fmt.Errorf("error reconciling user auth: %w", err)
 			}
 			return result, err
 		}
