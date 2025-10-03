@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/datastructures"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/docker"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/environment"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -278,12 +279,42 @@ func (m *MariaDB) GetAutomaticFailoverDelay() time.Duration {
 
 // HasConfiguredReplica indicates whether the cluster has a configured replica.
 func (m *MariaDB) HasConfiguredReplica() bool {
+	if m.Status.Replication == nil {
+		return false
+	}
 	return m.Status.Replication.HasConfiguredReplica()
 }
 
-// IsConfiguredReplica indicates whether the given pod is a configured replica.
+// IsConfiguredReplica determines whether a specific replica has been configured.
 func (m *MariaDB) IsConfiguredReplica(podName string) bool {
+	if m.Status.Replication == nil {
+		return false
+	}
 	return m.Status.Replication.IsConfiguredReplica(podName)
+}
+
+// AddReplicasToConfigure adds replicas to be configured.
+func (m *MariaDB) AddReplicasToConfigure(replicas ...string) {
+	if m.Status.Replication == nil {
+		m.Status.Replication = &ReplicationStatus{}
+	}
+	m.Status.Replication.AddReplicasToConfigure(replicas...)
+}
+
+// ReplicaNeedsConfiguration indicates whether a replica needs to be configured.
+func (m *MariaDB) ReplicaNeedsConfiguration(replica string) bool {
+	if m.Status.Replication == nil {
+		return false
+	}
+	return m.Status.Replication.ReplicaNeedsConfiguration(replica)
+}
+
+// MarkReplicaAsConfigured marks a replica as configured.
+func (m *MariaDB) MarkReplicaAsConfigured(replica string) {
+	if m.Status.Replication == nil {
+		return
+	}
+	m.Status.Replication.MarkReplicaAsConfigured(replica)
 }
 
 // IsSwitchingPrimary indicates whether a primary swichover operation is in progress.
@@ -307,15 +338,21 @@ type ReplicationState string
 const (
 	ReplicationStatePrimary       ReplicationState = "Primary"
 	ReplicationStateReplica       ReplicationState = "Replica"
+	ReplicationStateConfiguring   ReplicationState = "Configuring"
 	ReplicationStateNotConfigured ReplicationState = "NotConfigured"
 )
 
-// ReplicationStatus is the replication current status per each Pod.
-type ReplicationStatus map[string]ReplicationState
+// ReplicationStatus is the replication current state.
+type ReplicationStatus struct {
+	// State is the observed replication state for each Pod.
+	State map[string]ReplicationState `json:"state,omitempty"`
+	// ReplicasToConfigure are the replicas that need to configure replication.
+	ReplicasToConfigure []string `json:"replicasToConfigure,omitempty"`
+}
 
 // HasConfiguredReplica determines whether at least one replica has been configured.
-func (r ReplicationStatus) HasConfiguredReplica() bool {
-	for _, state := range r {
+func (r *ReplicationStatus) HasConfiguredReplica() bool {
+	for _, state := range r.State {
 		if state == ReplicationStateReplica {
 			return true
 		}
@@ -323,12 +360,31 @@ func (r ReplicationStatus) HasConfiguredReplica() bool {
 	return false
 }
 
-// HasConfiguredReplica determines whether if a specific replica has been configured.
-func (r ReplicationStatus) IsConfiguredReplica(podName string) bool {
-	for pod, state := range r {
+// IsConfiguredReplica determines whether a specific replica has been configured.
+func (r *ReplicationStatus) IsConfiguredReplica(podName string) bool {
+	for pod, state := range r.State {
 		if pod == podName && state == ReplicationStateReplica {
 			return true
 		}
 	}
 	return false
+}
+
+// AddReplicasToConfigure adds replicas to be configure.
+func (r *ReplicationStatus) AddReplicasToConfigure(replicas ...string) {
+	r.ReplicasToConfigure = datastructures.Unique(replicas...)
+}
+
+// ReplicaNeedsConfiguration indicates whether a replica needs to be configuration.
+func (r *ReplicationStatus) ReplicaNeedsConfiguration(replica string) bool {
+	return datastructures.Any(r.ReplicasToConfigure, func(r string) bool {
+		return r == replica
+	})
+}
+
+// MarkReplicaAsConfigured marks a replica as configured.
+func (r *ReplicationStatus) MarkReplicaAsConfigured(replica string) {
+	r.ReplicasToConfigure = datastructures.Remove(r.ReplicasToConfigure, func(r string) bool {
+		return r == replica
+	})
 }

@@ -150,12 +150,13 @@ var _ = BeforeSuite(func() {
 	certReconciler := certctrl.NewCertReconciler(client, scheme, k8sManager.GetEventRecorderFor("cert"), disc, builder)
 
 	mxsReconciler := maxscale.NewMaxScaleReconciler(client, builder, env)
-	replConfig := replication.NewReplicationConfigClient(client, builder, secretReconciler, env)
+	replConfigClient := replication.NewReplicationConfigClient(client, builder, secretReconciler)
 	replicationReconciler, err := replication.NewReplicationReconciler(
 		client,
 		replRecorder,
 		builder,
-		replConfig,
+		env,
+		replConfigClient,
 		replication.WithRefResolver(refResolver),
 		replication.WithSecretReconciler(secretReconciler),
 		replication.WithServiceReconciler(serviceReconciler),
@@ -181,7 +182,7 @@ var _ = BeforeSuite(func() {
 			replRecorder,
 			builder,
 			refResolver,
-			replConfig,
+			replConfigClient,
 		),
 		[]string{
 			metadata.MariadbAnnotation,
@@ -204,12 +205,13 @@ var _ = BeforeSuite(func() {
 		Scheme:   scheme,
 		Recorder: k8sManager.GetEventRecorderFor("mariadb"),
 
-		Environment:     env,
-		Builder:         builder,
-		RefResolver:     refResolver,
-		ConditionReady:  conditionReady,
-		Discovery:       disc,
-		BackupProcessor: backupProcessor,
+		Environment:      env,
+		Builder:          builder,
+		RefResolver:      refResolver,
+		ConditionReady:   conditionReady,
+		Discovery:        disc,
+		BackupProcessor:  backupProcessor,
+		ReplConfigClient: replConfigClient,
 
 		ConfigMapReconciler:      configMapReconciler,
 		SecretReconciler:         secretReconciler,

@@ -732,7 +732,7 @@ type MariaDBStatus struct {
 	// Replication is the replication current status per each Pod.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
-	Replication ReplicationStatus `json:"replication,omitempty"`
+	Replication *ReplicationStatus `json:"replication,omitempty"`
 	// DefaultVersion is the MariaDB version used by the operator when it cannot infer the version
 	// from spec.image. This can happen if the image uses a digest (e.g. sha256) instead
 	// of a version tag.

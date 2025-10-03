@@ -3,10 +3,10 @@ package galera
 import (
 	"context"
 	"fmt"
-	"reflect"
 
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
+	agentclient "github.com/mariadb-operator/mariadb-operator/v25/pkg/agent/client"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/agent/errors"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/builder"
 	condition "github.com/mariadb-operator/mariadb-operator/v25/pkg/condition"
@@ -14,8 +14,6 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/pvc"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/service"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/environment"
-	mdbhttp "github.com/mariadb-operator/mariadb-operator/v25/pkg/http"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/pki"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/refresolver"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -149,12 +147,12 @@ func (r *GaleraReconciler) Reconcile(ctx context.Context, mariadb *mariadbv1alph
 func (r *GaleraReconciler) disableBootstrap(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, logger logr.Logger) error {
 	logger.V(1).Info("Disabling Galera bootstrap")
 
-	clientSet, err := r.newAgentClientSet(ctx, mariadb)
+	clientSet, err := agentclient.NewClientSet(ctx, mariadb, r.env, r.refResolver)
 	if err != nil {
 		return fmt.Errorf("error creating agent client set: %v", err)
 	}
 	for i := 0; i < int(mariadb.Spec.Replicas); i++ {
-		agentClient, err := clientSet.clientForIndex(i)
+		agentClient, err := clientSet.ClientForIndex(i)
 		if err != nil {
 			return fmt.Errorf("error creating agent client: %v", err)
 		}
@@ -163,68 +161,6 @@ func (r *GaleraReconciler) disableBootstrap(ctx context.Context, mariadb *mariad
 		}
 	}
 	return nil
-}
-
-func (r *GaleraReconciler) newAgentClientSet(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	clientOpts ...mdbhttp.Option) (*agentClientSet, error) {
-	opts := []mdbhttp.Option{}
-	opts = append(opts, clientOpts...)
-
-	agent := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{}).Agent
-	kubernetesAuth := ptr.Deref(agent.KubernetesAuth, mariadbv1alpha1.KubernetesAuth{})
-	basicAuth := ptr.Deref(agent.BasicAuth, mariadbv1alpha1.BasicAuth{})
-
-	if kubernetesAuth.Enabled {
-		opts = append(opts,
-			mdbhttp.WithKubernetesAuth(r.env.MariadbOperatorSAPath),
-		)
-	} else if basicAuth.Enabled && !reflect.ValueOf(basicAuth.PasswordSecretKeyRef).IsZero() {
-		password, err := r.refResolver.SecretKeyRef(ctx, basicAuth.PasswordSecretKeyRef.SecretKeySelector, mariadb.Namespace)
-		if err != nil {
-			return nil, fmt.Errorf("error getting agent password: %v", err)
-		}
-		opts = append(opts,
-			mdbhttp.WithBasicAuth(basicAuth.Username, password),
-		)
-	}
-
-	if mariadb.IsTLSEnabled() {
-		tlsCA, err := r.refResolver.SecretKeyRef(ctx, mariadb.TLSCABundleSecretKeyRef(), mariadb.Namespace)
-		if err != nil {
-			return nil, fmt.Errorf("error reading TLS CA bundle: %v", err)
-		}
-
-		clientCertKeySelector := mariadbv1alpha1.SecretKeySelector{
-			LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
-				Name: mariadb.TLSClientCertSecretKey().Name,
-			},
-			Key: pki.TLSCertKey,
-		}
-		tlsCert, err := r.refResolver.SecretKeyRef(ctx, clientCertKeySelector, mariadb.Namespace)
-		if err != nil {
-			return nil, fmt.Errorf("error reading TLS cert: %v", err)
-		}
-
-		clientKeyKeySelector := mariadbv1alpha1.SecretKeySelector{
-			LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
-				Name: mariadb.TLSClientCertSecretKey().Name,
-			},
-			Key: pki.TLSKeyKey,
-		}
-		tlsKey, err := r.refResolver.SecretKeyRef(ctx, clientKeyKeySelector, mariadb.Namespace)
-		if err != nil {
-			return nil, fmt.Errorf("error reading TLS key: %v", err)
-		}
-
-		opts = append(opts, []mdbhttp.Option{
-			mdbhttp.WithTLSEnabled(mariadb.IsTLSEnabled()),
-			mdbhttp.WithTLSCA([]byte(tlsCA)),
-			mdbhttp.WithTLSCert([]byte(tlsCert)),
-			mdbhttp.WithTLSKey([]byte(tlsKey)),
-		}...)
-	}
-
-	return newAgentClientSet(mariadb, opts...)
 }
 
 func (r *GaleraReconciler) patchStatus(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,

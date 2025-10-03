@@ -15,11 +15,9 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/refresolver"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/sql"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/statefulset"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/version"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 var (
@@ -32,22 +30,19 @@ type ReplicationConfigClient struct {
 	builder          *builder.Builder
 	refResolver      *refresolver.RefResolver
 	secretReconciler *secret.SecretReconciler
-	env              *env.OperatorEnv
 }
 
-func NewReplicationConfigClient(client client.Client, builder *builder.Builder, secretReconciler *secret.SecretReconciler,
-	env *env.OperatorEnv) *ReplicationConfigClient {
+func NewReplicationConfigClient(client client.Client, builder *builder.Builder,
+	secretReconciler *secret.SecretReconciler) *ReplicationConfigClient {
 	return &ReplicationConfigClient{
 		Client:           client,
 		builder:          builder,
 		refResolver:      refresolver.New(client),
 		secretReconciler: secretReconciler,
-		env:              env,
 	}
 }
 
-func (r *ReplicationConfigClient) ConfigurePrimary(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *sql.Client,
-	podIndex int) error {
+func (r *ReplicationConfigClient) ConfigurePrimary(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *sql.Client) error {
 	if err := client.StopAllSlaves(ctx); err != nil {
 		return fmt.Errorf("error stopping slaves: %v", err)
 	}
@@ -69,6 +64,7 @@ func (r *ReplicationConfigClient) ConfigurePrimary(ctx context.Context, mariadb 
 type ConfigureReplicaOpts struct {
 	GtidSlavePos      *string
 	ResetGtidSlavePos bool
+	ChangeMasterOpts  []sql.ChangeMasterOpt
 }
 
 type ConfigureReplicaOpt func(*ConfigureReplicaOpts)
@@ -85,8 +81,14 @@ func WithResetGtidSlavePos() ConfigureReplicaOpt {
 	}
 }
 
+func WithChangeMasterOpts(opts ...sql.ChangeMasterOpt) ConfigureReplicaOpt {
+	return func(cro *ConfigureReplicaOpts) {
+		cro.ChangeMasterOpts = opts
+	}
+}
+
 func (r *ReplicationConfigClient) ConfigureReplica(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *sql.Client,
-	replicaPodIndex, primaryPodIndex int, replicaOpts ...ConfigureReplicaOpt) error {
+	primaryPodIndex int, replicaOpts ...ConfigureReplicaOpt) error {
 	opts := ConfigureReplicaOpts{}
 	for _, setOpt := range replicaOpts {
 		setOpt(&opts)
@@ -110,7 +112,7 @@ func (r *ReplicationConfigClient) ConfigureReplica(ctx context.Context, mariadb 
 	if err := client.EnableReadOnly(ctx); err != nil {
 		return fmt.Errorf("error enabling read_only: %v", err)
 	}
-	if err := r.changeMaster(ctx, mariadb, client, primaryPodIndex); err != nil {
+	if err := r.changeMaster(ctx, mariadb, client, primaryPodIndex, opts.ChangeMasterOpts...); err != nil {
 		return fmt.Errorf("error changing master: %v", err)
 	}
 	if err := client.StartSlave(ctx); err != nil {
@@ -120,7 +122,7 @@ func (r *ReplicationConfigClient) ConfigureReplica(ctx context.Context, mariadb 
 }
 
 func (r *ReplicationConfigClient) changeMaster(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *sql.Client,
-	primaryPodIndex int) error {
+	primaryPodIndex int, opts ...sql.ChangeMasterOpt) error {
 	replPasswordRef := newReplPasswordRef(mariadb)
 
 	password, err := r.refResolver.SecretKeyRef(ctx, replPasswordRef.SecretKeySelector, mariadb.Namespace)
@@ -136,13 +138,14 @@ func (r *ReplicationConfigClient) changeMaster(ctx context.Context, mariadb *mar
 		return fmt.Errorf("error getting GTID: %v", err)
 	}
 
-	changeMasterHostOpt, err := r.getChangeMasterHost(ctx, mariadb, primaryPodIndex)
-	if err != nil {
-		return fmt.Errorf("error getting host option: %v", err)
-	}
-
 	changeMasterOpts := []sql.ChangeMasterOpt{
-		changeMasterHostOpt,
+		sql.WithChangeMasterHost(
+			statefulset.PodFQDNWithService(
+				mariadb.ObjectMeta,
+				primaryPodIndex,
+				mariadb.InternalServiceKey().Name,
+			),
+		),
 		sql.WithChangeMasterPort(mariadb.Spec.Port),
 		sql.WithChangeMasterCredentials(replUser, password),
 		sql.WithChangeMasterGtid(gtidString),
@@ -155,51 +158,12 @@ func (r *ReplicationConfigClient) changeMaster(ctx context.Context, mariadb *mar
 			builderpki.CACertPath,
 		))
 	}
+	changeMasterOpts = append(changeMasterOpts, opts...)
+
 	if err := client.ChangeMaster(ctx, changeMasterOpts...); err != nil {
 		return fmt.Errorf("error changing master: %v", err)
 	}
 	return nil
-}
-
-func (r *ReplicationConfigClient) getChangeMasterHost(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	primaryPodIndex int) (sql.ChangeMasterOpt, error) {
-	logger := log.FromContext(ctx).
-		WithName("replication-config").
-		WithValues("image", mariadb.Spec.Image).
-		V(1)
-	vOpts := []version.Option{
-		version.WithLogger(logger),
-	}
-	if r.env != nil && r.env.MariadbDefaultVersion != "" {
-		vOpts = append(vOpts, version.WithDefaultVersion(r.env.MariadbDefaultVersion))
-	}
-	v, err := version.NewVersion(mariadb.Spec.Image, vOpts...)
-	if err != nil {
-		return nil, fmt.Errorf("error creating version: %v", err)
-	}
-
-	isCompatibleVersion, err := v.GreaterThanOrEqual("10.6")
-	if err != nil {
-		return nil, fmt.Errorf("error comparing version: %v", err)
-	}
-
-	if isCompatibleVersion {
-		return sql.WithChangeMasterHost(
-			statefulset.PodFQDNWithService(
-				mariadb.ObjectMeta,
-				primaryPodIndex,
-				mariadb.InternalServiceKey().Name,
-			),
-		), nil
-	}
-	return sql.WithChangeMasterHost(
-		// MariaDB 10.5 has a limitation of 60 characters in this host.
-		statefulset.PodShortFQDNWithService(
-			mariadb.ObjectMeta,
-			primaryPodIndex,
-			mariadb.InternalServiceKey().Name,
-		),
-	), nil
 }
 
 func (r *ReplicationConfigClient) reconcilePrimarySql(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *sql.Client) error {

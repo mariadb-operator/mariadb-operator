@@ -11,6 +11,7 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
+	agentresources "github.com/mariadb-operator/mariadb-operator/v25/pkg/agent/resources"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/backup"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/builder"
 	labels "github.com/mariadb-operator/mariadb-operator/v25/pkg/builder/labels"
@@ -66,12 +67,13 @@ type MariaDBReconciler struct {
 	Scheme   *runtime.Scheme
 	Recorder record.EventRecorder
 
-	Builder         *builder.Builder
-	RefResolver     *refresolver.RefResolver
-	ConditionReady  *condition.Ready
-	Environment     *environment.OperatorEnv
-	Discovery       *discovery.Discovery
-	BackupProcessor backup.BackupProcessor
+	Builder          *builder.Builder
+	RefResolver      *refresolver.RefResolver
+	ConditionReady   *condition.Ready
+	Environment      *environment.OperatorEnv
+	Discovery        *discovery.Discovery
+	BackupProcessor  backup.BackupProcessor
+	ReplConfigClient *replication.ReplicationConfigClient
 
 	ConfigMapReconciler      *configmap.ConfigMapReconciler
 	SecretReconciler         *secret.SecretReconciler
@@ -611,36 +613,45 @@ func (r *MariaDBReconciler) reconcileInternalService(ctx context.Context, mariad
 	if mariadb.Spec.ServicePorts != nil {
 		ports = append(ports, kadapter.ToKubernetesSlice(mariadb.Spec.ServicePorts)...)
 	}
-	if mariadb.IsGaleraEnabled() {
-		agent := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{}).Agent
+	if mariadb.IsHAEnabled() {
+		_, agent, err := mariadb.GetDataPlaneAgent()
+		if err != nil {
+			return fmt.Errorf("error getting data-plane agent: %v", err)
+		}
 		ports = append(ports, []corev1.ServicePort{
 			{
-				// App protocol is a fix for istio to recognize protocol before attempting MariaDB Galera cluster Pod-to-Pod communication.
-				// See: https://github.com/istio/istio/issues/38655#issuecomment-1169819447
-				Name:        galeraresources.GaleraClusterPortName,
-				Port:        galeraresources.GaleraClusterPort,
-				AppProtocol: ptr.To[string](galeraresources.MysqlAppProtocol),
-			},
-			{
-				Name:        galeraresources.GaleraISTPortName,
-				Port:        galeraresources.GaleraISTPort,
-				AppProtocol: ptr.To[string](galeraresources.MysqlAppProtocol),
-			},
-			{
-				Name:        galeraresources.GaleraSSTPortName,
-				Port:        galeraresources.GaleraSSTPort,
-				AppProtocol: ptr.To[string](galeraresources.MysqlAppProtocol),
-			},
-			{
-				Name: galeraresources.AgentPortName,
+				Name: agentresources.AgentPortName,
 				Port: agent.Port,
 			},
 			{
-				Name: galeraresources.AgentProbePortName,
+				Name: agentresources.AgentProbePortName,
 				Port: agent.ProbePort,
 			},
 		}...)
+
+		if mariadb.IsGaleraEnabled() {
+			ports = append(ports, []corev1.ServicePort{
+				{
+					// App protocol is a fix for istio to recognize protocol before attempting MariaDB Galera cluster Pod-to-Pod communication.
+					// See: https://github.com/istio/istio/issues/38655#issuecomment-1169819447
+					Name:        galeraresources.GaleraClusterPortName,
+					Port:        galeraresources.GaleraClusterPort,
+					AppProtocol: ptr.To[string](galeraresources.MysqlAppProtocol),
+				},
+				{
+					Name:        galeraresources.GaleraISTPortName,
+					Port:        galeraresources.GaleraISTPort,
+					AppProtocol: ptr.To[string](galeraresources.MysqlAppProtocol),
+				},
+				{
+					Name:        galeraresources.GaleraSSTPortName,
+					Port:        galeraresources.GaleraSSTPort,
+					AppProtocol: ptr.To[string](galeraresources.MysqlAppProtocol),
+				},
+			}...)
+		}
 	}
+
 	selectorLabels :=
 		labels.NewLabelsBuilder().
 			WithMariaDBSelectorLabels(mariadb).
@@ -1118,6 +1129,7 @@ func (r *MariaDBReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manag
 }
 
 func defaultConfig(mariadb *mariadbv1alpha1.MariaDB) (string, error) {
+	// TODO: ignore .mariadb-backup folder introduced for the backup process
 	tpl := createTpl("0-default.cnf", `[mariadb]
 skip-name-resolve
 temp-pool

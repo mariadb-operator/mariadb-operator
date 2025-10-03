@@ -8,12 +8,11 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/refresolver"
 	sqlClient "github.com/mariadb-operator/mariadb-operator/v25/pkg/sql"
-	sqlClientSet "github.com/mariadb-operator/mariadb-operator/v25/pkg/sqlset"
 	"k8s.io/utils/ptr"
 )
 
 type ReplicationClientSet struct {
-	*sqlClientSet.ClientSet
+	*sqlClient.ClientSet
 }
 
 func NewReplicationClientSet(mariadb *mariadbv1alpha1.MariaDB, refResolver *refresolver.RefResolver) (*ReplicationClientSet, error) {
@@ -21,7 +20,7 @@ func NewReplicationClientSet(mariadb *mariadbv1alpha1.MariaDB, refResolver *refr
 		return nil, errors.New("'mariadb.spec.replication' is required to create a replicationClientSet")
 	}
 	return &ReplicationClientSet{
-		ClientSet: sqlClientSet.NewClientSet(mariadb, refResolver),
+		ClientSet: sqlClient.NewClientSet(mariadb, refResolver),
 	}, nil
 }
 
