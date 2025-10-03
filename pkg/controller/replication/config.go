@@ -10,14 +10,15 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/builder"
 	builderpki "github.com/mariadb-operator/mariadb-operator/v25/pkg/builder/pki"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/auth"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/secret"
 	env "github.com/mariadb-operator/mariadb-operator/v25/pkg/environment"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/refresolver"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/sql"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/statefulset"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/version"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -32,16 +33,18 @@ type ReplicationConfigClient struct {
 	builder          *builder.Builder
 	refResolver      *refresolver.RefResolver
 	secretReconciler *secret.SecretReconciler
+	authReconciler   *auth.AuthReconciler
 	env              *env.OperatorEnv
 }
 
 func NewReplicationConfigClient(client client.Client, builder *builder.Builder, secretReconciler *secret.SecretReconciler,
-	env *env.OperatorEnv) *ReplicationConfigClient {
+	authReconciler *auth.AuthReconciler, env *env.OperatorEnv) *ReplicationConfigClient {
 	return &ReplicationConfigClient{
 		Client:           client,
 		builder:          builder,
 		refResolver:      refresolver.New(client),
 		secretReconciler: secretReconciler,
+		authReconciler:   authReconciler,
 		env:              env,
 	}
 }
@@ -59,9 +62,6 @@ func (r *ReplicationConfigClient) ConfigurePrimary(ctx context.Context, mariadb 
 	}
 	if err := client.DisableReadOnly(ctx); err != nil {
 		return fmt.Errorf("error disabling read_only: %v", err)
-	}
-	if err := r.reconcilePrimarySql(ctx, mariadb, client); err != nil {
-		return fmt.Errorf("error reconciling primary SQL: %v", err)
 	}
 	return nil
 }
@@ -121,7 +121,7 @@ func (r *ReplicationConfigClient) ConfigureReplica(ctx context.Context, mariadb 
 
 func (r *ReplicationConfigClient) changeMaster(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *sql.Client,
 	primaryPodIndex int) error {
-	replPasswordRef := newReplPasswordRef(mariadb)
+	replPasswordRef := mariadb.Spec.Replication.Replica.ReplPasswordSecretKeyRef
 
 	password, err := r.refResolver.SecretKeyRef(ctx, replPasswordRef.SecretKeySelector, mariadb.Namespace)
 	if err != nil {
@@ -202,68 +202,72 @@ func (r *ReplicationConfigClient) getChangeMasterHost(ctx context.Context, maria
 	), nil
 }
 
-func (r *ReplicationConfigClient) reconcilePrimarySql(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *sql.Client) error {
-	opts := userSqlOpts{
-		username:   replUser,
-		host:       replUserHost,
-		privileges: []string{"REPLICATION REPLICA"},
-	}
-	if err := r.reconcileUserSql(ctx, mariadb, client, &opts); err != nil {
-		return fmt.Errorf("error reconciling '%s' SQL user: %v", replUser, err)
-	}
-	return nil
-}
+// reconcileUsersAndGrants Creates a `User` and `Grant` resources with minimum required permissions for replication.
+func (r *ReplicationConfigClient) reconcileUsersAndGrants(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+	client *sql.Client) (ctrl.Result, error) {
+	replUserKey := mariadb.MariadbReplUserKey()
+	replGrantKey := mariadb.MariadbReplGrantKey()
 
-type userSqlOpts struct {
-	username   string
-	host       string
-	privileges []string
-}
-
-func (r *ReplicationConfigClient) reconcileUserSql(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *sql.Client,
-	opts *userSqlOpts) error {
-	replPasswordRef := newReplPasswordRef(mariadb)
-	var replPassword string
-
-	req := secret.PasswordRequest{
-		Owner:    mariadb,
-		Metadata: mariadb.Spec.InheritMetadata,
-		Key: types.NamespacedName{
-			Name:      replPasswordRef.Name,
-			Namespace: mariadb.Namespace,
+	userOpts := builder.UserOpts{
+		MariaDBRef: mariadbv1alpha1.MariaDBRef{
+			ObjectReference: mariadbv1alpha1.ObjectReference{
+				Name:      mariadb.Name,
+				Namespace: mariadb.Namespace,
+			},
 		},
-		SecretKey: replPasswordRef.Key,
-		Generate:  replPasswordRef.Generate,
-	}
-	replPassword, err := r.secretReconciler.ReconcilePassword(ctx, req)
-	if err != nil {
-		return fmt.Errorf("error reconciling replication password: %v", err)
+		Metadata:             mariadb.Spec.InheritMetadata,
+		MaxUserConnections:   20,
+		Name:                 replUser,
+		Host:                 replUserHost,
+		PasswordSecretKeyRef: &mariadb.Spec.Replication.Replica.ReplPasswordSecretKeyRef.SecretKeySelector,
+		CleanupPolicy:        ptr.To(mariadbv1alpha1.CleanupPolicySkip),
 	}
 
-	accountName := formatAccountName(opts.username, opts.host)
-	exists, err := client.UserExists(ctx, opts.username, opts.host)
+	grantOpts := []builder.GrantOpts{
+		{
+			MariaDBRef: mariadbv1alpha1.MariaDBRef{
+				ObjectReference: mariadbv1alpha1.ObjectReference{
+					Name:      mariadb.Name,
+					Namespace: mariadb.Namespace,
+				},
+			},
+			Metadata:      mariadb.Spec.InheritMetadata,
+			Privileges:    []string{"REPLICATION REPLICA"},
+			Database:      "*",
+			Table:         "*",
+			Username:      replUser,
+			Host:          replUserHost,
+			CleanupPolicy: ptr.To(mariadbv1alpha1.CleanupPolicySkip),
+		},
+	}
+
+	crdStrategy, err := auth.NewCrdStrategy(
+		r.Client,
+		r.builder,
+		auth.WithUserKeys(replUserKey),
+		auth.WithGrantKeys(replGrantKey),
+		auth.WithOwner(mariadb),
+		auth.WithSecretKeyRef(mariadb.Spec.Replication.Replica.ReplPasswordSecretKeyRef, r.secretReconciler),
+	)
+
 	if err != nil {
-		return fmt.Errorf("error checking if replication user exists: %v", err)
+		return ctrl.Result{}, fmt.Errorf("error creating crd strategy. Error was: %w", err)
 	}
-	if exists {
-		if err := client.AlterUser(ctx, accountName, sql.WithIdentifiedBy(replPassword)); err != nil {
-			return fmt.Errorf("error altering replication user: %v", err)
+
+	sqlStrategy, err := auth.NewSqlStrategy(client, crdStrategy)
+
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error creating sql strategy. Error was: %w", err)
+	}
+
+	if result, err := r.authReconciler.ReconcileUserGrant(ctx, userOpts, grantOpts, sqlStrategy); !result.IsZero() || err != nil {
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("error reconciling %s user auth: %w", replUser, err)
 		}
-	} else {
-		if err := client.CreateUser(ctx, accountName, sql.WithIdentifiedBy(replPassword)); err != nil {
-			return fmt.Errorf("error creating replication user: %v", err)
-		}
+		return result, err
 	}
-	if err := client.Grant(
-		ctx,
-		opts.privileges,
-		"*",
-		"*",
-		accountName,
-	); err != nil {
-		return fmt.Errorf("error creating grant: %v", err)
-	}
-	return nil
+
+	return ctrl.Result{}, nil
 }
 
 func NewReplicationConfig(env *env.PodEnvironment) ([]byte, error) {
@@ -334,32 +338,12 @@ sync_binlog={{ . }}
 	return buf.Bytes(), nil
 }
 
-func newReplPasswordRef(mariadb *mariadbv1alpha1.MariaDB) mariadbv1alpha1.GeneratedSecretKeyRef {
-	replication := ptr.Deref(mariadb.Spec.Replication, mariadbv1alpha1.Replication{})
-	if replication.Enabled && replication.Replica.ReplPasswordSecretKeyRef != nil {
-		return *replication.Replica.ReplPasswordSecretKeyRef
-	}
-	return mariadbv1alpha1.GeneratedSecretKeyRef{
-		SecretKeySelector: mariadbv1alpha1.SecretKeySelector{
-			LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
-				Name: fmt.Sprintf("repl-password-%s", mariadb.Name),
-			},
-			Key: "password",
-		},
-		Generate: true,
-	}
-}
-
 func serverId(podName string) (int, error) {
 	podIndex, err := statefulset.PodIndex(podName)
 	if err != nil {
 		return 0, fmt.Errorf("error getting Pod index: %v", err)
 	}
 	return 10 + *podIndex, nil
-}
-
-func formatAccountName(username, host string) string {
-	return fmt.Sprintf("'%s'@'%s'", username, host)
 }
 
 func createTpl(name, t string) *template.Template {

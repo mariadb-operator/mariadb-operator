@@ -248,6 +248,39 @@ func (m *MariaDB) MetricsConfigSecretKeyRef() GeneratedSecretKeyRef {
 	}
 }
 
+// REPLICATION user + grrant
+
+// ReplPasswordSecretKeyRef defines the key selector for for the password to be used by the replication "repl" user
+func (m *MariaDB) ReplPasswordSecretKeyRef() *GeneratedSecretKeyRef {
+	return &GeneratedSecretKeyRef{
+		SecretKeySelector: SecretKeySelector{
+			LocalObjectReference: LocalObjectReference{
+				Name: fmt.Sprintf("repl-password-%s", m.Name),
+			},
+			Key: "password",
+		},
+		Generate: true,
+	}
+}
+
+// MariadbReplUserKey defines the key for the 'repl' User resource.
+func (m *MariaDB) MariadbReplUserKey() types.NamespacedName {
+	return types.NamespacedName{
+		Name:      fmt.Sprintf("%s-mariadb-repl", m.Name),
+		Namespace: m.Namespace,
+	}
+}
+
+// MariadbReplGrantKey defines the key for the 'repl' Grant resource.
+func (m *MariaDB) MariadbReplGrantKey() types.NamespacedName {
+	return types.NamespacedName{
+		Name:      fmt.Sprintf("%s-mariadb-repl-replication", m.Name),
+		Namespace: m.Namespace,
+	}
+}
+
+// END REPLICATION user + grrant
+
 // InitKey defines the keys for the init objects.
 func (m *MariaDB) InitKey() types.NamespacedName {
 	return types.NamespacedName{

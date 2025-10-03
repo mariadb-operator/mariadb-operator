@@ -154,7 +154,7 @@ type ReplicaReplication struct {
 
 // SetDefaults fills the current ReplicaReplication object with DefaultReplicationSpec.
 // This enables having minimal ReplicaReplication objects and provides sensible defaults.
-func (r *ReplicaReplication) SetDefaults() {
+func (r *ReplicaReplication) SetDefaults(mariadb *MariaDB) {
 	if r.WaitPoint == nil {
 		r.WaitPoint = ptr.To(WaitPointAfterCommit)
 	}
@@ -169,6 +169,10 @@ func (r *ReplicaReplication) SetDefaults() {
 	}
 	if r.SyncTimeout == nil {
 		r.SyncTimeout = ptr.To(metav1.Duration{Duration: 10 * time.Second})
+	}
+
+	if r.ReplPasswordSecretKeyRef == nil {
+		r.ReplPasswordSecretKeyRef = mariadb.ReplPasswordSecretKeyRef()
 	}
 }
 
@@ -263,7 +267,7 @@ func (r *Replication) SetDefaults(mdb *MariaDB, env *environment.OperatorEnv) er
 	}
 
 	r.Primary.SetDefaults()
-	r.Replica.SetDefaults()
+	r.Replica.SetDefaults(mdb)
 
 	return nil
 }

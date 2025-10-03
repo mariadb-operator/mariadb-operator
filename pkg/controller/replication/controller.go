@@ -184,18 +184,27 @@ func (r *ReplicationReconciler) reconcileReplicationInPod(ctx context.Context, r
 	replicationStatus := req.mariadb.Status.Replication
 	pod := statefulset.PodName(req.mariadb.ObjectMeta, index)
 
+	primaryClient, err := req.clientSet.currentPrimaryClient(ctx)
+	if err != nil {
+		logger.V(1).Info("error getting current primary client", "err", err, "pod", pod)
+		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+	}
+
 	if primaryPodIndex == index {
 		if rs, ok := replicationStatus[pod]; ok && rs == mariadbv1alpha1.ReplicationStatePrimary {
 			return ctrl.Result{}, nil
 		}
 
-		client, err := req.clientSet.currentPrimaryClient(ctx)
-		if err != nil {
-			logger.V(1).Info("error getting current primary client", "err", err, "pod", pod)
-			return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
-		}
 		logger.Info("Configuring replication in primary", "pod", pod)
-		return ctrl.Result{}, r.replConfig.ConfigurePrimary(ctx, req.mariadb, client, index)
+		return ctrl.Result{}, r.replConfig.ConfigurePrimary(ctx, req.mariadb, primaryClient, index)
+	}
+
+	if result, err := r.replConfig.reconcileUsersAndGrants(ctx, req.mariadb, primaryClient); !result.IsZero() || err != nil {
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("error reconciling primary SQL: %v", err)
+		}
+
+		return result, err
 	}
 
 	if rs, ok := replicationStatus[pod]; ok && rs == mariadbv1alpha1.ReplicationStateReplica {
