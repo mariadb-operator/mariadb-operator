@@ -1376,6 +1376,15 @@ var _ = Describe("MariaDB types", func() {
 									ConnectionTimeout: ptr.To(metav1.Duration{Duration: 10 * time.Second}),
 									ConnectionRetries: ptr.To(10),
 									SyncTimeout:       ptr.To(metav1.Duration{Duration: 10 * time.Second}),
+									ReplPasswordSecretKeyRef: &GeneratedSecretKeyRef{
+										SecretKeySelector: SecretKeySelector{
+											LocalObjectReference: LocalObjectReference{
+												Name: "repl-password-mariadb-obj",
+											},
+											Key: "password",
+										},
+										Generate: true,
+									},
 								},
 								Primary: PrimaryReplication{
 									PodIndex:               ptr.To(0),
@@ -1440,7 +1449,6 @@ var _ = Describe("MariaDB types", func() {
 									ImagePullPolicy:   "",
 								},
 								Agent: Agent{
-
 									Image:     env.MariadbOperatorImage,
 									Port:      5555,
 									ProbePort: 5566,
@@ -1466,6 +1474,15 @@ var _ = Describe("MariaDB types", func() {
 									ConnectionTimeout: ptr.To(metav1.Duration{Duration: 10 * time.Second}),
 									ConnectionRetries: ptr.To(10),
 									SyncTimeout:       ptr.To(metav1.Duration{Duration: 10 * time.Second}),
+									ReplPasswordSecretKeyRef: &GeneratedSecretKeyRef{
+										SecretKeySelector: SecretKeySelector{
+											LocalObjectReference: LocalObjectReference{
+												Name: "repl-password-mariadb-obj",
+											},
+											Key: "password",
+										},
+										Generate: true,
+									},
 								},
 								Primary: PrimaryReplication{
 									PodIndex:               ptr.To(0),
