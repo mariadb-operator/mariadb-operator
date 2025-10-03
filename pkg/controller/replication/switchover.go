@@ -313,7 +313,7 @@ func (r *ReplicationReconciler) connectReplicasToNewPrimary(ctx context.Context,
 				if apierrors.IsNotFound(err) {
 					return nil
 				}
-				return fmt.Errorf("eror getting pod: %w", err)
+				return fmt.Errorf("error getting pod: %w", err)
 			}
 			if !mariadbpod.PodReady(&pod) {
 				logger.V(1).Info("Skipping non ready Pod when connecting replicas to new primary", "pod", key.Name)
