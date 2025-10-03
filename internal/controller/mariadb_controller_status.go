@@ -36,7 +36,7 @@ func (r *MariaDBReconciler) reconcileStatus(ctx context.Context, mdb *mariadbv1a
 		logger.Info("error getting StatefulSet", "err", err)
 	}
 
-	replicationStatus, replErr := r.getReplicationStatus(ctx, mdb)
+	replState, replErr := r.getReplicationState(ctx, mdb)
 	if replErr != nil {
 		logger.Info("error getting replication status", "err", replErr)
 	}
@@ -57,8 +57,11 @@ func (r *MariaDBReconciler) reconcileStatus(ctx context.Context, mdb *mariadbv1a
 		defaultPrimary(mdb)
 		setMaxScalePrimary(mdb, mxsPrimaryPodIndex)
 
-		if replicationStatus != nil {
-			status.Replication = replicationStatus
+		if replState != nil {
+			if status.Replication == nil {
+				status.Replication = &mariadbv1alpha1.ReplicationStatus{}
+			}
+			status.Replication.State = replState
 		}
 
 		if tlsStatus != nil {
@@ -81,8 +84,8 @@ func (r *MariaDBReconciler) reconcileStatus(ctx context.Context, mdb *mariadbv1a
 	})
 }
 
-func (r *MariaDBReconciler) getReplicationStatus(ctx context.Context,
-	mdb *mariadbv1alpha1.MariaDB) (mariadbv1alpha1.ReplicationStatus, error) {
+func (r *MariaDBReconciler) getReplicationState(ctx context.Context,
+	mdb *mariadbv1alpha1.MariaDB) (map[string]mariadbv1alpha1.ReplicationState, error) {
 	if !mdb.IsReplicationEnabled() {
 		return nil, nil
 	}
@@ -93,7 +96,7 @@ func (r *MariaDBReconciler) getReplicationStatus(ctx context.Context,
 	}
 	defer clientSet.Close()
 
-	replicationStatus := make(mariadbv1alpha1.ReplicationStatus)
+	var replState map[string]mariadbv1alpha1.ReplicationState
 	logger := log.FromContext(ctx)
 	for i := 0; i < int(mdb.Spec.Replicas); i++ {
 		pod := stspkg.PodName(mdb.ObjectMeta, i)
@@ -117,14 +120,19 @@ func (r *MariaDBReconciler) getReplicationStatus(ctx context.Context,
 		}
 
 		state := mariadbv1alpha1.ReplicationStateNotConfigured
-		if isReplica {
+		if mdb.ReplicaNeedsConfiguration(pod) {
+			state = mariadbv1alpha1.ReplicationStateConfiguring
+		} else if isReplica {
 			state = mariadbv1alpha1.ReplicationStateReplica
 		} else if isPrimary {
 			state = mariadbv1alpha1.ReplicationStatePrimary
 		}
-		replicationStatus[pod] = state
+		if replState == nil {
+			replState = make(map[string]mariadbv1alpha1.ReplicationState)
+		}
+		replState[pod] = state
 	}
-	return replicationStatus, nil
+	return replState, nil
 }
 
 func (r *MariaDBReconciler) getMaxScalePrimaryPod(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) (*int, error) {

@@ -8,6 +8,7 @@ import (
 	"strconv"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
+	agentresources "github.com/mariadb-operator/mariadb-operator/v25/pkg/agent/resources"
 	builderpki "github.com/mariadb-operator/mariadb-operator/v25/pkg/builder/pki"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/command"
 	galeraresources "github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/galera/resources"
@@ -200,11 +201,11 @@ func (b *Builder) dataPlaneAgentContainer(mariadb *mariadbv1alpha1.MariaDB) (*co
 	container.Name = AgentContainerName
 	container.Ports = []corev1.ContainerPort{
 		{
-			Name:          galeraresources.AgentPortName,
+			Name:          agentresources.AgentPortName,
 			ContainerPort: agent.Port,
 		},
 		{
-			Name:          galeraresources.AgentProbePortName,
+			Name:          agentresources.AgentProbePortName,
 			ContainerPort: agent.ProbePort,
 		},
 	}

@@ -1,8 +1,11 @@
 package agent
 
 import (
+	"context"
 	"fmt"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -76,6 +79,16 @@ var RootCmd = &cobra.Command{
 	Use:   "agent",
 	Short: "Agent.",
 	Long:  "Sidecar agent that co-operates with mariadb-operator.",
+}
+
+func newContext() (context.Context, context.CancelFunc) {
+	return signal.NotifyContext(context.Background(), []os.Signal{
+		syscall.SIGINT,
+		syscall.SIGTERM,
+		syscall.SIGKILL,
+		syscall.SIGHUP,
+		syscall.SIGQUIT}...,
+	)
 }
 
 func getK8sClient() (client.Client, error) {

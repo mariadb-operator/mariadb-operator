@@ -8965,12 +8965,23 @@ spec:
                 format: int32
                 type: integer
               replication:
-                additionalProperties:
-                  description: ReplicationState represents the observed replication
-                    states.
-                  type: string
                 description: Replication is the replication current status per each
                   Pod.
+                properties:
+                  replicasToConfigure:
+                    description: ReplicasToConfigure are the replicas that need to
+                      configure replication.
+                    items:
+                      type: string
+                    type: array
+                  state:
+                    additionalProperties:
+                      description: ReplicationState represents the observed replication
+                        states.
+                      type: string
+                    description: State is the observed replication state for each
+                      Pod.
+                    type: object
                 type: object
               tls:
                 description: TLS aggregates the status of the certificates used by

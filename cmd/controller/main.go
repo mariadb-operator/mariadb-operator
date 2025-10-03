@@ -277,12 +277,13 @@ var rootCmd = &cobra.Command{
 		certReconciler := certctrl.NewCertReconciler(client, scheme, mgr.GetEventRecorderFor("cert"), discovery, builder)
 
 		mxsReconciler := maxscale.NewMaxScaleReconciler(client, builder, env)
-		replConfig := replication.NewReplicationConfigClient(client, builder, secretReconciler, env)
+		replConfigClient := replication.NewReplicationConfigClient(client, builder, secretReconciler)
 		replicationReconciler, err := replication.NewReplicationReconciler(
 			client,
 			replRecorder,
 			builder,
-			replConfig,
+			env,
+			replConfigClient,
 			replication.WithRefResolver(refResolver),
 			replication.WithSecretReconciler(secretReconciler),
 			replication.WithServiceReconciler(serviceReconciler),
@@ -311,7 +312,7 @@ var rootCmd = &cobra.Command{
 				replRecorder,
 				builder,
 				refResolver,
-				replConfig,
+				replConfigClient,
 			),
 			[]string{
 				metadata.MariadbAnnotation,
@@ -334,12 +335,13 @@ var rootCmd = &cobra.Command{
 			Scheme:   scheme,
 			Recorder: mgr.GetEventRecorderFor("mariadb"),
 
-			Environment:     env,
-			Builder:         builder,
-			RefResolver:     refResolver,
-			ConditionReady:  conditionReady,
-			Discovery:       discovery,
-			BackupProcessor: backupProcessor,
+			Environment:      env,
+			Builder:          builder,
+			RefResolver:      refResolver,
+			ConditionReady:   conditionReady,
+			Discovery:        discovery,
+			BackupProcessor:  backupProcessor,
+			ReplConfigClient: replConfigClient,
 
 			ConfigMapReconciler:      configMapReconciler,
 			SecretReconciler:         secretReconciler,

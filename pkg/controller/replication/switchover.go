@@ -114,7 +114,7 @@ func (r *ReplicationReconciler) reconcileStaleSwitchover(ctx context.Context, re
 	if !isSwitchoverStale(req.mariadb) {
 		return nil
 	}
-	ready, err := r.currentPrimaryReady(ctx, req.mariadb, req.clientSet)
+	ready, err := r.currentPrimaryReady(ctx, req.mariadb, req.replClientSet)
 	if err != nil {
 		return fmt.Errorf("error getting current primary readiness: %v", err)
 	}
@@ -122,7 +122,7 @@ func (r *ReplicationReconciler) reconcileStaleSwitchover(ctx context.Context, re
 		logger.Info("Skipped stale switchover reconciliation due to primary's non ready status")
 		return nil
 	}
-	currentPrimaryClient, err := req.clientSet.currentPrimaryClient(ctx)
+	currentPrimaryClient, err := req.replClientSet.currentPrimaryClient(ctx)
 	if err != nil {
 		return fmt.Errorf("error getting current primary client: %v", err)
 	}
@@ -150,7 +150,7 @@ func (r *ReplicationReconciler) reconcileStaleSwitchover(ctx context.Context, re
 }
 
 func (r *ReplicationReconciler) lockPrimaryWithReadLock(ctx context.Context, req *reconcileRequest, logger logr.Logger) error {
-	ready, err := r.currentPrimaryReady(ctx, req.mariadb, req.clientSet)
+	ready, err := r.currentPrimaryReady(ctx, req.mariadb, req.replClientSet)
 	if err != nil {
 		return fmt.Errorf("error getting current primary readiness: %v", err)
 	}
@@ -158,7 +158,7 @@ func (r *ReplicationReconciler) lockPrimaryWithReadLock(ctx context.Context, req
 		logger.Info("Skipped locking primary with read lock due to primary's non ready status")
 		return nil
 	}
-	client, err := req.clientSet.currentPrimaryClient(ctx)
+	client, err := req.replClientSet.currentPrimaryClient(ctx)
 	if err != nil {
 		return fmt.Errorf("error getting current primary client: %v", err)
 	}
@@ -170,7 +170,7 @@ func (r *ReplicationReconciler) lockPrimaryWithReadLock(ctx context.Context, req
 }
 
 func (r *ReplicationReconciler) setPrimaryReadOnly(ctx context.Context, req *reconcileRequest, logger logr.Logger) error {
-	ready, err := r.currentPrimaryReady(ctx, req.mariadb, req.clientSet)
+	ready, err := r.currentPrimaryReady(ctx, req.mariadb, req.replClientSet)
 	if err != nil {
 		return fmt.Errorf("error getting current primary readiness: %v", err)
 	}
@@ -178,7 +178,7 @@ func (r *ReplicationReconciler) setPrimaryReadOnly(ctx context.Context, req *rec
 		logger.Info("Skipped enabling readonly mode in primary due to primary's non ready status")
 		return nil
 	}
-	client, err := req.clientSet.currentPrimaryClient(ctx)
+	client, err := req.replClientSet.currentPrimaryClient(ctx)
 	if err != nil {
 		return fmt.Errorf("error getting current primary client: %v", err)
 	}
@@ -193,7 +193,7 @@ func (r *ReplicationReconciler) waitForReplicaSync(ctx context.Context, req *rec
 	if req.mariadb.Status.CurrentPrimaryPodIndex == nil {
 		return errors.New("'status.currentPrimaryPodIndex' must be set")
 	}
-	ready, err := r.currentPrimaryReady(ctx, req.mariadb, req.clientSet)
+	ready, err := r.currentPrimaryReady(ctx, req.mariadb, req.replClientSet)
 	if err != nil {
 		return fmt.Errorf("error getting current primary readiness: %v", err)
 	}
@@ -202,7 +202,7 @@ func (r *ReplicationReconciler) waitForReplicaSync(ctx context.Context, req *rec
 		return nil
 	}
 
-	primaryClient, err := req.clientSet.currentPrimaryClient(ctx)
+	primaryClient, err := req.replClientSet.currentPrimaryClient(ctx)
 	if err != nil {
 		return fmt.Errorf("error getting current primary client: %v", err)
 	}
@@ -229,7 +229,7 @@ func (r *ReplicationReconciler) waitForReplicaSync(ctx context.Context, req *rec
 		wg.Add(1)
 		go func(i int) {
 			defer wg.Done()
-			replClient, err := req.clientSet.clientForIndex(ctx, i)
+			replClient, err := req.replClientSet.clientForIndex(ctx, i)
 			if err != nil {
 				errChan <- fmt.Errorf("error getting replica '%d' client: %v", i, err)
 				return
@@ -276,7 +276,7 @@ func (r *ReplicationReconciler) configureNewPrimary(ctx context.Context, req *re
 	r.recorder.Eventf(req.mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonReplicationPrimaryNew,
 		"Configuring new primary at index '%d'", newPrimary)
 
-	if err := r.replConfig.ConfigurePrimary(ctx, req.mariadb, newPrimaryClient, newPrimary); err != nil {
+	if err := r.replConfigClient.ConfigurePrimary(ctx, req.mariadb, newPrimaryClient); err != nil {
 		return fmt.Errorf("error confguring new primary vars: %v", err)
 	}
 	return nil
@@ -332,14 +332,14 @@ func (r *ReplicationReconciler) connectReplicasToNewPrimary(ctx context.Context,
 				return
 			}
 
-			replClient, err := req.clientSet.clientForIndex(ctx, i)
+			replClient, err := req.replClientSet.clientForIndex(ctx, i)
 			if err != nil {
 				errChan <- fmt.Errorf("error getting replica '%d' client: %v", i, err)
 				return
 			}
 
 			logger.V(1).Info("Connecting replica to new primary", "replica", i)
-			if err := r.replConfig.ConfigureReplica(ctx, req.mariadb, replClient, i, newPrimary, replicaOpts...); err != nil {
+			if err := r.replConfigClient.ConfigureReplica(ctx, req.mariadb, replClient, newPrimary, replicaOpts...); err != nil {
 				errChan <- fmt.Errorf("error configuring replica '%d': %v", i, err)
 				return
 			}
@@ -364,7 +364,7 @@ func (r *ReplicationReconciler) changePrimaryToReplica(ctx context.Context, req 
 	if req.mariadb.Status.CurrentPrimaryPodIndex == nil {
 		return errors.New("'status.currentPrimaryPodIndex' must be set")
 	}
-	ready, err := r.currentPrimaryReady(ctx, req.mariadb, req.clientSet)
+	ready, err := r.currentPrimaryReady(ctx, req.mariadb, req.replClientSet)
 	if err != nil {
 		return fmt.Errorf("error getting current primary readiness: %v", err)
 	}
@@ -374,7 +374,7 @@ func (r *ReplicationReconciler) changePrimaryToReplica(ctx context.Context, req 
 	}
 
 	currentPrimary := *req.mariadb.Status.CurrentPrimaryPodIndex
-	currentPrimaryClient, err := req.clientSet.currentPrimaryClient(ctx)
+	currentPrimaryClient, err := req.replClientSet.currentPrimaryClient(ctx)
 	if err != nil {
 		return fmt.Errorf("error getting current primary client: %v", err)
 	}
@@ -400,11 +400,10 @@ func (r *ReplicationReconciler) changePrimaryToReplica(ctx context.Context, req 
 	}
 
 	logger.Info("Configuring primary to be a replica")
-	return r.replConfig.ConfigureReplica(
+	return r.replConfigClient.ConfigureReplica(
 		ctx,
 		req.mariadb,
 		currentPrimaryClient,
-		currentPrimary,
 		newPrimary,
 		replicaOpts...,
 	)

@@ -13,6 +13,7 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/hashicorp/go-multierror"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
+	agentclient "github.com/mariadb-operator/mariadb-operator/v25/pkg/agent/client"
 	agenterrors "github.com/mariadb-operator/mariadb-operator/v25/pkg/agent/errors"
 	labels "github.com/mariadb-operator/mariadb-operator/v25/pkg/builder/labels"
 	galeraclient "github.com/mariadb-operator/mariadb-operator/v25/pkg/galera/client"
@@ -20,7 +21,6 @@ import (
 	mdbhttp "github.com/mariadb-operator/mariadb-operator/v25/pkg/http"
 	jobpkg "github.com/mariadb-operator/mariadb-operator/v25/pkg/job"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/sql"
-	sqlclientset "github.com/mariadb-operator/mariadb-operator/v25/pkg/sqlset"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/statefulset"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/wait"
 	"golang.org/x/sync/errgroup"
@@ -47,11 +47,11 @@ func (r *GaleraReconciler) reconcileRecovery(ctx context.Context, mariadb *maria
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 
-	agentClientSet, err := r.newAgentClientSet(ctx, mariadb, mdbhttp.WithTimeout(5*time.Second))
+	agentClientSet, err := agentclient.NewClientSet(ctx, mariadb, r.env, r.refResolver, mdbhttp.WithTimeout(5*time.Second))
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error getting agent client: %v", err)
 	}
-	sqlClientSet := sqlclientset.NewClientSet(mariadb, r.refResolver)
+	sqlClientSet := sql.NewClientSet(mariadb, r.refResolver)
 	defer sqlClientSet.Close()
 
 	rs := newRecoveryStatus(mariadb)
@@ -85,7 +85,7 @@ func (r *GaleraReconciler) reconcileRecovery(ctx context.Context, mariadb *maria
 }
 
 func (r *GaleraReconciler) recoverCluster(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, pods []corev1.Pod,
-	rs *recoveryStatus, clientSet *agentClientSet, logger logr.Logger) error {
+	rs *recoveryStatus, clientSet *agentclient.ClientSet, logger logr.Logger) error {
 	galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
 	recovery := ptr.Deref(galera.Recovery, mariadbv1alpha1.GaleraRecovery{})
 
@@ -144,7 +144,7 @@ func (r *GaleraReconciler) recoverCluster(ctx context.Context, mariadb *mariadbv
 }
 
 func (r *GaleraReconciler) restartPods(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, rs *recoveryStatus,
-	agentClientSet *agentClientSet, sqlClientSet *sqlclientset.ClientSet, logger logr.Logger) error {
+	agentClientSet *agentclient.ClientSet, sqlClientSet *sql.ClientSet, logger logr.Logger) error {
 	galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
 	recovery := ptr.Deref(galera.Recovery, mariadbv1alpha1.GaleraRecovery{})
 
@@ -246,7 +246,7 @@ func (r *GaleraReconciler) getPods(ctx context.Context, mariadb *mariadbv1alpha1
 }
 
 func (r *GaleraReconciler) getGaleraState(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, pods []corev1.Pod, rs *recoveryStatus,
-	clientSet *agentClientSet, logger logr.Logger) error {
+	clientSet *agentclient.ClientSet, logger logr.Logger) error {
 	g := new(errgroup.Group)
 	g.SetLimit(len(pods))
 
@@ -262,7 +262,7 @@ func (r *GaleraReconciler) getGaleraState(ctx context.Context, mariadb *mariadbv
 				return fmt.Errorf("error getting index for Pod '%s': %v", pod.Name, err)
 			}
 
-			client, err := clientSet.clientForIndex(*i)
+			client, err := clientSet.ClientForIndex(*i)
 			if err != nil {
 				return fmt.Errorf("error getting client for Pod '%s': %v", pod.Name, err)
 			}
@@ -413,12 +413,12 @@ func (r *GaleraReconciler) recoverGaleraState(ctx context.Context, mariadb *mari
 }
 
 func (r *GaleraReconciler) enableBootstrapWithSource(ctx context.Context, mariadbKey types.NamespacedName, src *bootstrapSource,
-	clientSet *agentClientSet, logger logr.Logger) error {
+	clientSet *agentclient.ClientSet, logger logr.Logger) error {
 	idx, err := statefulset.PodIndex(src.pod)
 	if err != nil {
 		return fmt.Errorf("error getting index for Pod '%s': %v", src.pod, err)
 	}
-	client, err := clientSet.clientForIndex(*idx)
+	client, err := clientSet.ClientForIndex(*idx)
 	if err != nil {
 		return fmt.Errorf("error getting client for Pod '%s': %v", src.pod, err)
 	}
@@ -438,13 +438,13 @@ func (r *GaleraReconciler) enableBootstrapWithSource(ctx context.Context, mariad
 	return nil
 }
 
-func (r *GaleraReconciler) disableBootstrapInPod(ctx context.Context, mariadbKey, podKey types.NamespacedName, clientSet *agentClientSet,
-	logger logr.Logger) error {
+func (r *GaleraReconciler) disableBootstrapInPod(ctx context.Context, mariadbKey, podKey types.NamespacedName,
+	clientSet *agentclient.ClientSet, logger logr.Logger) error {
 	index, err := statefulset.PodIndex(podKey.Name)
 	if err != nil {
 		return fmt.Errorf("error getting Pod index: %v", err)
 	}
-	client, err := clientSet.clientForIndex(*index)
+	client, err := clientSet.ClientForIndex(*index)
 	if err != nil {
 		return fmt.Errorf("error getting agent client: %v", err)
 	}
@@ -488,7 +488,7 @@ func (r *GaleraReconciler) patchStatefulSetReplicas(ctx context.Context, key typ
 	})
 }
 
-func (r *GaleraReconciler) ensurePodHealthy(ctx context.Context, mariadbKey, podKey types.NamespacedName, clientSet *agentClientSet,
+func (r *GaleraReconciler) ensurePodHealthy(ctx context.Context, mariadbKey, podKey types.NamespacedName, clientSet *agentclient.ClientSet,
 	logger logr.Logger) error {
 	initialCtx, initialCancel := context.WithTimeout(ctx, 30*time.Second)
 	defer initialCancel()
@@ -520,13 +520,13 @@ func (r *GaleraReconciler) ensureJob(ctx context.Context, recoveryJob *batchv1.J
 	return nil
 }
 
-func (r *GaleraReconciler) pollUntilPodHealthy(ctx context.Context, mariadbKey, podKey types.NamespacedName, clientSet *agentClientSet,
-	logger logr.Logger) error {
+func (r *GaleraReconciler) pollUntilPodHealthy(ctx context.Context, mariadbKey, podKey types.NamespacedName,
+	clientSet *agentclient.ClientSet, logger logr.Logger) error {
 	i, err := statefulset.PodIndex(podKey.Name)
 	if err != nil {
 		return fmt.Errorf("error getting index for Pod '%s': %v", podKey.Name, err)
 	}
-	client, err := clientSet.clientForIndex(*i)
+	client, err := clientSet.ClientForIndex(*i)
 	if err != nil {
 		return fmt.Errorf("error getting client for Pod '%s': %v", podKey.Name, err)
 	}
@@ -565,7 +565,7 @@ func (r *GaleraReconciler) pollUntilPodDeleted(ctx context.Context, mariadbKey, 
 }
 
 func (r *GaleraReconciler) pollUntilPodSynced(ctx context.Context, mariadbKey, podKey types.NamespacedName,
-	sqlClientSet *sqlclientset.ClientSet, logger logr.Logger) error {
+	sqlClientSet *sql.ClientSet, logger logr.Logger) error {
 	return wait.PollWithMariaDB(ctx, mariadbKey, r.Client, logger, func(ctx context.Context) error {
 		var pod corev1.Pod
 		if err := r.Get(ctx, podKey, &pod); err != nil {

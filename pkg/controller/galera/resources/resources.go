@@ -12,6 +12,4 @@ var (
 	GaleraClusterPort     = int32(4567)
 	GaleraISTPortName     = "ist"
 	GaleraISTPort         = int32(4568)
-	AgentPortName         = "agent"
-	AgentProbePortName    = "agent-probe"
 )

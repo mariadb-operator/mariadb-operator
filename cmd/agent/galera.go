@@ -4,9 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"os/signal"
 	"sync"
-	"syscall"
 
 	"github.com/go-logr/logr"
 	galerahandler "github.com/mariadb-operator/mariadb-operator/v25/pkg/agent/handler/galera"
@@ -71,7 +69,7 @@ var galeraCommand = &cobra.Command{
 			os.Exit(1)
 		}
 
-		ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+		ctx, cancel := newContext()
 		defer cancel()
 		errChan := make(chan error, 2)
 

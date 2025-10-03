@@ -10,7 +10,8 @@ import (
 )
 
 type Client struct {
-	Galera *Galera
+	Galera      *Galera
+	Replication *Replication
 }
 
 func NewClient(baseUrl string, opts ...mdbhttp.Option) (*Client, error) {
@@ -20,7 +21,8 @@ func NewClient(baseUrl string, opts ...mdbhttp.Option) (*Client, error) {
 	}
 
 	return &Client{
-		Galera: NewGalera(httpClient),
+		Galera:      NewGalera(httpClient),
+		Replication: NewReplication(httpClient),
 	}, nil
 }
 
