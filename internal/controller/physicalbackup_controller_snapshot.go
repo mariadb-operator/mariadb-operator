@@ -302,22 +302,13 @@ func (r *PhysicalBackupReconciler) createVolumeSnapshot(ctx context.Context, sna
 		}
 	}()
 
-	gtid, err := client.GtidSlavePos(ctx)
+	metadata, err := r.getVolumeSnapshotMetadata(ctx, mariadb, client)
 	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error getting replica GTID: %v", err)
+		return ctrl.Result{}, fmt.Errorf("error getting VolumeSnapshot metadata: %v", err)
 	}
 
 	targetPVCKey := mariadb.PVCKey(builder.StorageVolume, *podIndex)
-	desiredSnapshot, err := r.Builder.BuildVolumeSnapshot(
-		snapshotKey,
-		backup,
-		targetPVCKey,
-		&mariadbv1alpha1.Metadata{
-			Annotations: map[string]string{
-				metadata.GtidAnnotation: gtid,
-			},
-		},
-	)
+	desiredSnapshot, err := r.Builder.BuildVolumeSnapshot(snapshotKey, backup, targetPVCKey, metadata)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error building VolumeSnapshot: %v", err)
 	}
@@ -366,6 +357,22 @@ func (r *PhysicalBackupReconciler) createVolumeSnapshot(ctx context.Context, sna
 		}
 		return errors.New("VolumeSnapshot not provisioned")
 	})
+}
+
+func (r *PhysicalBackupReconciler) getVolumeSnapshotMetadata(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+	sqlClient *sql.Client) (*mariadbv1alpha1.Metadata, error) {
+	if !mariadb.Replication().Enabled {
+		return nil, nil
+	}
+	gtid, err := sqlClient.GtidSlavePos(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("error getting replica GTID: %v", err)
+	}
+	return &mariadbv1alpha1.Metadata{
+		Annotations: map[string]string{
+			metadata.GtidAnnotation: gtid,
+		},
+	}, nil
 }
 
 func (r *PhysicalBackupReconciler) waitForProvisionedSnapshots(ctx context.Context, backup *mariadbv1alpha1.PhysicalBackup,
