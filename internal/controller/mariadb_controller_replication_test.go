@@ -215,6 +215,46 @@ var _ = Describe("MariaDB replication", Ordered, func() {
 		Expect(k8sClient.Get(testCtx, key, &pdb)).To(Succeed())
 	})
 
+	It("should create User and Grant Custom Resources for repl user", func() {
+		By("Expecting User CR to be ready")
+		Eventually(func() bool {
+			userKey := mdb.MariadbReplUserKey()
+			var user mariadbv1alpha1.User
+			if err := k8sClient.Get(testCtx, userKey, &user); err != nil {
+				return false
+			}
+
+			return user.IsReady()
+		}, testTimeout, testInterval).Should(BeTrue())
+
+		By("Expecting Grant CR to be ready")
+		Eventually(func() bool {
+			grantKey := mdb.MariadbReplGrantKey()
+			var grant mariadbv1alpha1.Grant
+			if err := k8sClient.Get(testCtx, grantKey, &grant); err != nil {
+				return false
+			}
+
+			return grant.IsReady()
+		}, testTimeout, testInterval).Should(BeTrue())
+	})
+
+	It("should create secret with repl user password", func() {
+		By("Expecting repl user password secret to be created")
+		Eventually(func() bool {
+			secretKey := types.NamespacedName{}
+			var secret corev1.Secret
+			if err := k8sClient.Get(testCtx, secretKey, &secret); err != nil {
+				return apierrors.IsNotFound(err)
+			}
+
+			password, ok := secret.Data["password"]
+			By("Expecting Secret password to be set")
+			Expect(ok).To(BeTrue())
+			return len(password) > 0
+		}, testTimeout, testInterval).Should(BeTrue())
+	})
+
 	It("should fail and switch over primary", func() {
 		By("Expecting MariaDB primary to be set")
 		Eventually(func() bool {
