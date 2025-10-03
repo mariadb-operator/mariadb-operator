@@ -302,8 +302,22 @@ func (r *PhysicalBackupReconciler) createVolumeSnapshot(ctx context.Context, sna
 		}
 	}()
 
+	gtid, err := client.GtidSlavePos(ctx)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error getting replica GTID: %v", err)
+	}
+
 	targetPVCKey := mariadb.PVCKey(builder.StorageVolume, *podIndex)
-	desiredSnapshot, err := r.Builder.BuildVolumeSnapshot(snapshotKey, backup, targetPVCKey)
+	desiredSnapshot, err := r.Builder.BuildVolumeSnapshot(
+		snapshotKey,
+		backup,
+		targetPVCKey,
+		&mariadbv1alpha1.Metadata{
+			Annotations: map[string]string{
+				metadata.GtidAnnotation: gtid,
+			},
+		},
+	)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error building VolumeSnapshot: %v", err)
 	}
