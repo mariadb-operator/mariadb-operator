@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	volumesnapshotv1 "github.com/kubernetes-csi/external-snapshotter/client/v8/apis/volumesnapshot/v1"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
 	agentclient "github.com/mariadb-operator/mariadb-operator/v25/pkg/agent/client"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/builder"
@@ -13,6 +14,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/secret"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/service"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/environment"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/metadata"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/refresolver"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/sql"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/statefulset"
@@ -243,21 +245,43 @@ func (r *ReplicationReconciler) getReplicaOpts(ctx context.Context, req *reconci
 	if !req.mariadb.ReplicaNeedsConfiguration(pod) {
 		return nil, nil
 	}
-	agentClient, err := req.agentClientSet.ClientForIndex(index)
-	if err != nil {
-		return nil, fmt.Errorf("error getting agent client: %v", err)
+	bootstrapFrom := ptr.Deref(req.mariadb.Spec.BootstrapFrom, mariadbv1alpha1.BootstrapFrom{})
+
+	var gtid string
+	if bootstrapFrom.VolumeSnapshotRef != nil {
+		snapshotKey := types.NamespacedName{
+			Name:      bootstrapFrom.VolumeSnapshotRef.Name,
+			Namespace: req.mariadb.Namespace,
+		}
+		var snapshot volumesnapshotv1.VolumeSnapshot
+		if err := r.Get(ctx, snapshotKey, &snapshot); err != nil {
+			return nil, fmt.Errorf("error getting bootstrap VolumeSnapshot: %v", err)
+		}
+		snapshotGtid, ok := snapshot.Annotations[metadata.GtidAnnotation]
+		if !ok {
+			return nil, fmt.Errorf("could not find GTI annotation \"%s\" in VolumeSnapshot", metadata.GtidAnnotation)
+		}
+
+		gtid = snapshotGtid
+		logger.Info("Got replica GTID from VolumeSnapshot", "gtid", gtid)
+	} else {
+		agentClient, err := req.agentClientSet.ClientForIndex(index)
+		if err != nil {
+			return nil, fmt.Errorf("error getting agent client: %v", err)
+		}
+		agentGtid, err := agentClient.Replication.GetGtid(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("error requesting GTID to agent: %v", err)
+		}
+
+		gtid = agentGtid
+		logger.Info("Got replica GTID from agent", "gtid", gtid)
 	}
-	gtid, err := agentClient.Replication.GetGtid(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("error requesting GTID to agent: %v", err)
-	}
-	logger.Info("Got replica GTID from agent", "gtid", gtid)
 
 	changeMasterGtid, err := mariadbv1alpha1.GtidSlavePos.MariaDBFormat()
 	if err != nil {
 		return nil, fmt.Errorf("error getting change master GTID: %v", err)
 	}
-
 	return []ConfigureReplicaOpt{
 		WithGtidSlavePos(gtid),
 		WithChangeMasterOpts(
