@@ -4,7 +4,7 @@ metadata:
   name: physicalbackup
 spec:
   mariaDbRef:
-    name: mariadb-repl
+    name: mariadb
   storage:
     volumeSnapshot:
       volumeSnapshotClassName: csi-hostpath-snapclass
