@@ -111,7 +111,7 @@ func (r *MariaDBReconciler) getReplicationState(ctx context.Context,
 
 		isReplica, err := client.IsReplicationReplica(ctx)
 		aggErr = multierror.Append(aggErr, err)
-		isPrimary, err := client.IsReplicationPrimary(ctx)
+		hasConnectedReplicas, err := client.HasConnectedReplicas(ctx)
 		aggErr = multierror.Append(aggErr, err)
 
 		if err := aggErr.ErrorOrNil(); err != nil {
@@ -124,7 +124,7 @@ func (r *MariaDBReconciler) getReplicationState(ctx context.Context,
 			state = mariadbv1alpha1.ReplicationStateConfiguring
 		} else if isReplica {
 			state = mariadbv1alpha1.ReplicationStateReplica
-		} else if isPrimary {
+		} else if hasConnectedReplicas {
 			state = mariadbv1alpha1.ReplicationStatePrimary
 		}
 		if replState == nil {

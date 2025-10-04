@@ -358,49 +358,53 @@ func (c Client) Exists(ctx context.Context, sql string, args ...any) (bool, erro
 	return rows.Next(), nil
 }
 
-func (c Client) QueryColumnMap(ctx context.Context, sql string) (map[string]string, error) {
+// QueryColumnMaps executes a query and returns all rows as []map[column]value.
+func (c Client) QueryColumnMaps(ctx context.Context, sql string) ([]map[string]string, error) {
 	rows, err := c.db.QueryContext(ctx, sql)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	if !rows.Next() {
-		return nil, fmt.Errorf("no rows returned for query %q", sql)
-	}
 
 	columns, err := rows.Columns()
 	if err != nil {
 		return nil, err
 	}
 
-	// raw holds the scanned values
-	raw := make([]interface{}, len(columns))
-	// dest holds pointers into raw
-	dest := make([]interface{}, len(columns))
-	for i := range raw {
-		dest[i] = &raw[i]
-	}
-	if err := rows.Scan(dest...); err != nil {
-		return nil, err
+	var results []map[string]string
+	for rows.Next() {
+		raw := make([]interface{}, len(columns))
+		dest := make([]interface{}, len(columns))
+		for i := range raw {
+			dest[i] = &raw[i]
+		}
+		if err := rows.Scan(dest...); err != nil {
+			return nil, err
+		}
+
+		row := make(map[string]string, len(columns))
+		for i, col := range columns {
+			row[col] = toString(raw[i])
+		}
+		results = append(results, row)
 	}
 
-	result := make(map[string]string, len(columns))
-	for i, col := range columns {
-		if raw[i] == nil {
-			continue
-		}
-		switch v := raw[i].(type) {
-		case []byte:
-			result[col] = string(v)
-		case string:
-			result[col] = v
-		case int64:
-			result[col] = fmt.Sprintf("%d", v)
-		default:
-			result[col] = fmt.Sprintf("%v", v)
-		}
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
-	return result, nil
+	return results, nil
+}
+
+// QueryColumnMap invokes QueryColumnMaps and returns the first row.
+func (c Client) QueryColumnMap(ctx context.Context, sql string) (map[string]string, error) {
+	rows, err := c.QueryColumnMaps(ctx, sql)
+	if err != nil {
+		return nil, err
+	}
+	if len(rows) == 0 {
+		return nil, fmt.Errorf("no rows returned for query %q", sql)
+	}
+	return rows[0], nil
 }
 
 func (c Client) QueryBoolColumn(ctx context.Context, sql, column string) (bool, error) {
@@ -790,6 +794,20 @@ func (c Client) ReplicaSecondsBehindMaster(ctx context.Context) (int, error) {
 	return c.QueryIntColumn(ctx, "SHOW REPLICA STATUS", "Seconds_Behind_Master")
 }
 
+func (c Client) HasConnectedReplicas(ctx context.Context) (bool, error) {
+	rows, err := c.QueryColumnMaps(ctx, "SHOW PROCESSLIST")
+	if err != nil {
+		return false, err
+	}
+	for _, row := range rows {
+		cmd := row["Command"]
+		if cmd == "Binlog Dump" || cmd == "Binlog Dump GTID" {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 type ChangeMasterOpts struct {
 	Host     string
 	Port     int32
@@ -976,4 +994,20 @@ func requireQuery(require *mariadbv1alpha1.TLSRequirements) (string, error) {
 
 func createTpl(name, t string) *template.Template {
 	return template.Must(template.New(name).Parse(t))
+}
+
+func toString(v interface{}) string {
+	if v == nil {
+		return ""
+	}
+	switch val := v.(type) {
+	case []byte:
+		return string(val)
+	case string:
+		return val
+	case int64:
+		return fmt.Sprintf("%d", val)
+	default:
+		return fmt.Sprintf("%v", val)
+	}
 }

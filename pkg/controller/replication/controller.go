@@ -205,20 +205,22 @@ func (r *ReplicationReconciler) reconcileReplicationInPod(ctx context.Context, r
 		if rs, ok := replState[pod]; ok && rs == mariadbv1alpha1.ReplicationStatePrimary {
 			return ctrl.Result{}, nil
 		}
-
 		client, err := req.replClientSet.currentPrimaryClient(ctx)
 		if err != nil {
 			logger.V(1).Info("error getting current primary client", "err", err, "pod", pod)
 			return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 		}
 		logger.Info("Configuring primary", "pod", pod)
-		return ctrl.Result{}, r.replConfigClient.ConfigurePrimary(ctx, req.mariadb, client)
-	}
-
-	if rs, ok := replState[pod]; ok && rs == mariadbv1alpha1.ReplicationStateReplica {
+		if err := r.replConfigClient.ConfigurePrimary(ctx, req.mariadb, client); err != nil {
+			return ctrl.Result{}, fmt.Errorf("error configuring replica: %v", err)
+		}
 		return ctrl.Result{}, nil
 	}
 
+	rs, ok := replState[pod]
+	if ok && rs == mariadbv1alpha1.ReplicationStateReplica && !req.mariadb.ReplicaNeedsConfiguration(pod) {
+		return ctrl.Result{}, nil
+	}
 	client, err := req.replClientSet.clientForIndex(ctx, index)
 	if err != nil {
 		logger.V(1).Info("error getting replica client", "err", err, "pod", pod)
