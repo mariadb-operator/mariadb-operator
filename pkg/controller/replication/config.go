@@ -42,14 +42,20 @@ func NewReplicationConfigClient(client client.Client, builder *builder.Builder,
 }
 
 func (r *ReplicationConfigClient) ConfigurePrimary(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *sql.Client) error {
-	if err := client.StopAllSlaves(ctx); err != nil {
-		return fmt.Errorf("error stopping slaves: %v", err)
+	isReplica, err := client.IsReplicationReplica(ctx)
+	if err != nil {
+		return fmt.Errorf("error checking replica: %v", err)
 	}
-	if err := client.ResetAllSlaves(ctx); err != nil {
-		return fmt.Errorf("error resetting slave: %v", err)
-	}
-	if err := client.ResetGtidSlavePos(ctx); err != nil {
-		return fmt.Errorf("error resetting slave position: %v", err)
+	if isReplica {
+		if err := client.StopAllSlaves(ctx); err != nil {
+			return fmt.Errorf("error stopping slaves: %v", err)
+		}
+		if err := client.ResetAllSlaves(ctx); err != nil {
+			return fmt.Errorf("error resetting slave: %v", err)
+		}
+		if err := client.ResetGtidSlavePos(ctx); err != nil {
+			return fmt.Errorf("error resetting slave position: %v", err)
+		}
 	}
 	if err := client.DisableReadOnly(ctx); err != nil {
 		return fmt.Errorf("error disabling read_only: %v", err)
