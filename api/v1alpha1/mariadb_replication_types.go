@@ -232,6 +232,12 @@ type ReplicationSpec struct {
 // SetDefaults fills the current Replication object with DefaultReplicationSpec.
 // This enables having minimal Replication objects and provides sensible defaults.
 func (r *Replication) SetDefaults(mdb *MariaDB, env *environment.OperatorEnv) error {
+	if r.Replica == nil {
+		r.Replica = &ReplicaReplication{}
+	}
+	if r.Replica.ReplPasswordSecretKeyRef == nil {
+		r.Replica.ReplPasswordSecretKeyRef = ptr.To(mdb.ReplPasswordSecretKeyRef())
+	}
 	if r.GtidStrictMode == nil {
 		r.GtidStrictMode = ptr.To(true)
 	}

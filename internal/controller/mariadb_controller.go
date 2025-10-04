@@ -282,6 +282,12 @@ func (r *MariaDBReconciler) reconcileSecret(ctx context.Context, mariadb *mariad
 			secretKeyRefs = append(secretKeyRefs, agent.BasicAuth.PasswordSecretKeyRef)
 		}
 	}
+	if mariadb.Replication().Enabled {
+		replica := ptr.Deref(mariadb.Replication().Replica, mariadbv1alpha1.ReplicaReplication{})
+		if replica.ReplPasswordSecretKeyRef != nil {
+			secretKeyRefs = append(secretKeyRefs, *replica.ReplPasswordSecretKeyRef)
+		}
+	}
 
 	for _, secretKeyRef := range secretKeyRefs {
 		req := secret.PasswordRequest{
