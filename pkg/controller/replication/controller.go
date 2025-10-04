@@ -261,7 +261,7 @@ func (r *ReplicationReconciler) getReplicaOpts(ctx context.Context, req *reconci
 		}
 		snapshotGtid, ok := snapshot.Annotations[metadata.GtidAnnotation]
 		if !ok {
-			return nil, fmt.Errorf("could not find GTI annotation \"%s\" in VolumeSnapshot", metadata.GtidAnnotation)
+			return nil, fmt.Errorf("could not find GTID annotation \"%s\" in VolumeSnapshot", metadata.GtidAnnotation)
 		}
 
 		gtid = snapshotGtid

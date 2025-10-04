@@ -12,4 +12,9 @@ var (
 	MariaDBBackupDir = ".mariadb-backup"
 	// MariaDBBackupDirPath is the full path of the mariadb-backup directory
 	MariaDBBackupDirPath = filepath.Join("/var/lib/mysql", MariaDBBackupDir)
+	// MasterInfoFileName is a file where the replicas keep the connection details to the master.
+	MasterInfoFileName = "master.info"
+	// RelayLogFileName is the log file where the replicas keep a record of the transactions synced from the primary.
+	// See: https://mariadb.com/docs/server/server-management/server-monitoring-logs/binary-log/relay-log.
+	RelayLogFileName = "relay-log.info"
 )
