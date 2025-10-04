@@ -35,6 +35,19 @@ func (m *MariaDB) PasswordSecretKeyRef() GeneratedSecretKeyRef {
 	}
 }
 
+// ReplPasswordSecretKeyRef defines the key selector for for the password to be used by the replication "repl" user
+func (m *MariaDB) ReplPasswordSecretKeyRef() GeneratedSecretKeyRef {
+	return GeneratedSecretKeyRef{
+		SecretKeySelector: SecretKeySelector{
+			LocalObjectReference: LocalObjectReference{
+				Name: fmt.Sprintf("%s-repl-password", m.Name),
+			},
+			Key: "password",
+		},
+		Generate: true,
+	}
+}
+
 // DefaultConfigMapKeyRef defines the key selector for the default my.cnf ConfigMap.
 func (m *MariaDB) DefaultConfigMapKeyRef() ConfigMapKeySelector {
 	return ConfigMapKeySelector{

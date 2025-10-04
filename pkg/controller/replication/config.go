@@ -15,7 +15,6 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/refresolver"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/sql"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/statefulset"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -123,19 +122,21 @@ func (r *ReplicationConfigClient) ConfigureReplica(ctx context.Context, mariadb 
 
 func (r *ReplicationConfigClient) changeMaster(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *sql.Client,
 	primaryPodIndex int, opts ...sql.ChangeMasterOpt) error {
-	replPasswordRef := newReplPasswordRef(mariadb)
+	replica := ptr.Deref(mariadb.Replication().Replica, mariadbv1alpha1.ReplicaReplication{})
+	if replica.ReplPasswordSecretKeyRef == nil {
+		return errors.New("'spec.replication.replica.replPasswordSecretKeyRef` must not be nil'")
+	}
 
-	password, err := r.refResolver.SecretKeyRef(ctx, replPasswordRef.SecretKeySelector, mariadb.Namespace)
+	password, err := r.refResolver.SecretKeyRef(ctx, replica.ReplPasswordSecretKeyRef.SecretKeySelector, mariadb.Namespace)
 	if err != nil {
 		return fmt.Errorf("error getting replication password: %v", err)
 	}
 
 	replication := ptr.Deref(mariadb.Spec.Replication, mariadbv1alpha1.Replication{})
-
 	gtid := ptr.Deref(replication.Replica.Gtid, mariadbv1alpha1.GtidCurrentPos)
 	gtidString, err := gtid.MariaDBFormat()
 	if err != nil {
-		return fmt.Errorf("error getting GTID: %v", err)
+		return fmt.Errorf("error getting change master GTID: %v", err)
 	}
 
 	changeMasterOpts := []sql.ChangeMasterOpt{
@@ -186,25 +187,17 @@ type userSqlOpts struct {
 
 func (r *ReplicationConfigClient) reconcileUserSql(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *sql.Client,
 	opts *userSqlOpts) error {
-	replPasswordRef := newReplPasswordRef(mariadb)
-	var replPassword string
-
-	req := secret.PasswordRequest{
-		Owner:    mariadb,
-		Metadata: mariadb.Spec.InheritMetadata,
-		Key: types.NamespacedName{
-			Name:      replPasswordRef.Name,
-			Namespace: mariadb.Namespace,
-		},
-		SecretKey: replPasswordRef.Key,
-		Generate:  replPasswordRef.Generate,
+	replica := ptr.Deref(mariadb.Replication().Replica, mariadbv1alpha1.ReplicaReplication{})
+	if replica.ReplPasswordSecretKeyRef == nil {
+		return errors.New("'spec.replication.replica.replPasswordSecretKeyRef` must not be nil'")
 	}
-	replPassword, err := r.secretReconciler.ReconcilePassword(ctx, req)
+
+	replPassword, err := r.refResolver.SecretKeyRef(ctx, replica.ReplPasswordSecretKeyRef.SecretKeySelector, mariadb.Namespace)
 	if err != nil {
-		return fmt.Errorf("error reconciling replication password: %v", err)
+		return fmt.Errorf("error getting repl password: %v", err)
 	}
-
 	accountName := formatAccountName(opts.username, opts.host)
+
 	exists, err := client.UserExists(ctx, opts.username, opts.host)
 	if err != nil {
 		return fmt.Errorf("error checking if replication user exists: %v", err)
@@ -298,6 +291,7 @@ sync_binlog={{ . }}
 	return buf.Bytes(), nil
 }
 
+<<<<<<< HEAD
 func newReplPasswordRef(mariadb *mariadbv1alpha1.MariaDB) mariadbv1alpha1.GeneratedSecretKeyRef {
 	replication := ptr.Deref(mariadb.Spec.Replication, mariadbv1alpha1.Replication{})
 	if replication.Enabled && replication.Replica.ReplPasswordSecretKeyRef != nil {
@@ -314,6 +308,24 @@ func newReplPasswordRef(mariadb *mariadbv1alpha1.MariaDB) mariadbv1alpha1.Genera
 	}
 }
 
+||||||| parent of 69ef19b9 (Fix repl password provisioning. Align implementation with existing Secret generation.)
+func newReplPasswordRef(mariadb *mariadbv1alpha1.MariaDB) mariadbv1alpha1.GeneratedSecretKeyRef {
+	if mariadb.Replication().Enabled && mariadb.Replication().Replica.ReplPasswordSecretKeyRef != nil {
+		return *mariadb.Replication().Replica.ReplPasswordSecretKeyRef
+	}
+	return mariadbv1alpha1.GeneratedSecretKeyRef{
+		SecretKeySelector: mariadbv1alpha1.SecretKeySelector{
+			LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+				Name: fmt.Sprintf("repl-password-%s", mariadb.Name),
+			},
+			Key: "password",
+		},
+		Generate: true,
+	}
+}
+
+=======
+>>>>>>> 69ef19b9 (Fix repl password provisioning. Align implementation with existing Secret generation.)
 func serverId(podName string) (int, error) {
 	podIndex, err := statefulset.PodIndex(podName)
 	if err != nil {
