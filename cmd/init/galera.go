@@ -2,9 +2,7 @@ package init
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"io/fs"
 	"os"
 	"time"
 
@@ -22,7 +20,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/utils/ptr"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -84,7 +81,7 @@ var galeraCommand = &cobra.Command{
 			os.Exit(0)
 		}
 
-		if err := cleanupStateForVolumeSnapshot(fileManager, &mdb); err != nil {
+		if err := cleanupGaleraStateForVolumeSnapshot(fileManager, &mdb); err != nil {
 			logger.Error(err, "error cleaning up state for VolumeSnapshot")
 			os.Exit(1)
 		}
@@ -105,18 +102,6 @@ var galeraCommand = &cobra.Command{
 		}
 		logger.Info("Galera init done")
 	},
-}
-
-func getK8sClient() (client.Client, error) {
-	restConfig, err := ctrl.GetConfig()
-	if err != nil {
-		return nil, fmt.Errorf("error getting REST config: %v", err)
-	}
-	k8sClient, err := client.New(restConfig, client.Options{Scheme: scheme})
-	if err != nil {
-		return nil, fmt.Errorf("error creating Kubernetes client: %v", err)
-	}
-	return k8sClient, nil
 }
 
 func configureGalera(fm *filemanager.FileManager, env *environment.PodEnvironment, mdb *mariadbv1alpha1.MariaDB, logger logr.Logger) error {
@@ -192,7 +177,7 @@ func waitForPreviousPod(ctx context.Context, fm *filemanager.FileManager, k8sCli
 	return nil
 }
 
-func cleanupStateForVolumeSnapshot(fm *filemanager.FileManager, mdb *mariadbv1alpha1.MariaDB) error {
+func cleanupGaleraStateForVolumeSnapshot(fm *filemanager.FileManager, mdb *mariadbv1alpha1.MariaDB) error {
 	bootstrapFrom := ptr.Deref(mdb.Spec.BootstrapFrom, mariadbv1alpha1.BootstrapFrom{})
 	if mdb.HasGaleraConfiguredCondition() || bootstrapFrom.VolumeSnapshotRef == nil {
 		return nil
@@ -250,18 +235,4 @@ func hasGaleraState(fm *filemanager.FileManager) (bool, error) {
 		return false, fmt.Errorf("error checking Galera primary component file: %v", err)
 	}
 	return stateExists || primaryComponentExists, nil
-}
-
-func cleanupStateFile(fm *filemanager.FileManager, file string) error {
-	exists, err := fm.StateFileExists(file)
-	if err != nil {
-		return fmt.Errorf("error checking if %s file exists: %v", file, err)
-	}
-	if exists {
-		logger.Info("Deleting state file", "file", file)
-		if err := fm.DeleteStateFile(file); err != nil && !errors.Is(err, fs.ErrNotExist) {
-			return fmt.Errorf("error deleting %s file: %v", file, err)
-		}
-	}
-	return nil
 }
