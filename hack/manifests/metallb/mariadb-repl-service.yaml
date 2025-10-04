@@ -23,6 +23,7 @@ spec:
     app.kubernetes.io/instance: mariadb-repl
     app.kubernetes.io/name: mariadb
     statefulset.kubernetes.io/pod-name: mariadb-repl-0
+  publishNotReadyAddresses: true
   type: LoadBalancer
 ---
 apiVersion: v1
@@ -50,6 +51,7 @@ spec:
     app.kubernetes.io/instance: mariadb-repl
     app.kubernetes.io/name: mariadb
     statefulset.kubernetes.io/pod-name: mariadb-repl-1
+  publishNotReadyAddresses: true
   type: LoadBalancer
 ---
 apiVersion: v1
@@ -77,6 +79,7 @@ spec:
     app.kubernetes.io/instance: mariadb-repl
     app.kubernetes.io/name: mariadb
     statefulset.kubernetes.io/pod-name: mariadb-repl-2
+  publishNotReadyAddresses: true
   type: LoadBalancer
 ---
 apiVersion: v1
@@ -104,4 +107,5 @@ spec:
     app.kubernetes.io/instance: mariadb-repl
     app.kubernetes.io/name: mariadb
     statefulset.kubernetes.io/pod-name: mariadb-repl-3
+  publishNotReadyAddresses: true
   type: LoadBalancer
