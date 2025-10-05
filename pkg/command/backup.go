@@ -339,18 +339,16 @@ func (b *BackupCommand) MariadbBackupRestore(mariadb *mariadbv1alpha1.MariaDB, b
 		"mariadb-backup --copy-back --target-dir=%s --force-non-empty-directories",
 		backupDirPath,
 	)
-
+	// Binlog file with the GTID coordinate is not available on the finally restored data directory.
+	// This ensures that we have access to the coordinate after restoring the backup.
 	copyBinlogCmd := func(binlogFileName string) string {
-		binlogSrcPath := filepath.Join(backupDirPath, binlogFileName)
-		binlogDstPath := filepath.Join(replication.MariaDBBackupDirPath, binlogFileName)
+		binlogPath := filepath.Join(backupDirPath, binlogFileName)
 		return fmt.Sprintf(`if [ -f %[1]s ]; then 
 	echo "💾 Copying binlog position file '%[1]s' to data directory";
-	mkdir -p %[2]s; 
-	cp %[1]s %[3]s
+	cp %[1]s %[2]s
 fi`,
-			binlogSrcPath,
-			replication.MariaDBBackupDirPath,
-			binlogDstPath,
+			binlogPath,
+			replication.MariaDBOperatorFilePath,
 		)
 	}
 

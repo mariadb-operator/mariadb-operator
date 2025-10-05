@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"net/http"
-	"os"
-	"path/filepath"
 	"strings"
 
 	chi "github.com/go-chi/chi/v5"
@@ -44,38 +42,23 @@ type GtidResponse struct {
 func (h *ReplicationHandler) GetGtid(w http.ResponseWriter, r *http.Request) {
 	h.logger.V(1).Info("getting GTID")
 
-	gtidFiles := []string{
-		filepath.Join(replication.MariaDBBackupDir, replication.BinlogFileName),
-		filepath.Join(replication.MariaDBBackupDir, replication.LegacyBinlogFileName),
+	bytes, err := h.fileManager.ReadStateFile(replication.MariaDBOperatorFileName)
+	if err != nil {
+		h.responseWriter.WriteErrorf(w, "error reading GTID file '%s': %v", replication.MariaDBOperatorFileName, err)
+		return
 	}
-
-	for _, file := range gtidFiles {
-		bytes, err := h.fileManager.ReadStateFile(file)
-		if err != nil {
-			if errors.Is(err, os.ErrNotExist) {
-				h.logger.V(1).Info("GTID file not found", "file", file)
-				continue
-			}
-			h.responseWriter.WriteErrorf(w, "error reading GTID file '%s': %v", file, err)
-			return
-		}
-
-		gtid, err := parseGtid(bytes)
-		if err != nil {
-			h.responseWriter.WriteErrorf(w, "error parsing GTID: %v", err)
-			return
-		}
-
-		h.responseWriter.WriteOK(w, GtidResponse{
-			Gtid: gtid,
-		})
+	gtid, err := parseGtid(bytes)
+	if err != nil {
+		h.responseWriter.WriteErrorf(w, "error parsing GTID: %v", err)
 		return
 	}
 
-	w.WriteHeader(http.StatusNotFound)
+	h.responseWriter.WriteOK(w, GtidResponse{
+		Gtid: gtid,
+	})
 }
 
-// parseGtid extracts the GTID from a mariadb_backup_binlog_info file.
+// parseGtid extracts the GTID from a mariadb-operator.info file.
 // Example line: "mariadb-repl-bin.000001 335 0-10-9"
 func parseGtid(fileBytes []byte) (string, error) {
 	trimmed := bytes.TrimSpace(fileBytes)
