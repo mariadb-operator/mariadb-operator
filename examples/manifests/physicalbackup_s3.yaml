@@ -4,7 +4,7 @@ metadata:
   name: physicalbackup
 spec:
   mariaDbRef:
-    name: mariadb
+    name: mariadb-repl
   compression: bzip2
   storage:
     s3:
