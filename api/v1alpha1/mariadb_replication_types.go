@@ -155,7 +155,10 @@ type ReplicaReplication struct {
 
 // SetDefaults fills the current ReplicaReplication object with DefaultReplicationSpec.
 // This enables having minimal ReplicaReplication objects and provides sensible defaults.
-func (r *ReplicaReplication) SetDefaults() {
+func (r *ReplicaReplication) SetDefaults(mdb *MariaDB) {
+	if r.ReplPasswordSecretKeyRef == nil {
+		r.ReplPasswordSecretKeyRef = ptr.To(mdb.ReplPasswordSecretKeyRef())
+	}
 	if r.WaitPoint == nil {
 		r.WaitPoint = ptr.To(WaitPointAfterCommit)
 	}
@@ -232,12 +235,9 @@ type ReplicationSpec struct {
 // SetDefaults fills the current Replication object with DefaultReplicationSpec.
 // This enables having minimal Replication objects and provides sensible defaults.
 func (r *Replication) SetDefaults(mdb *MariaDB, env *environment.OperatorEnv) error {
-	if r.Replica == nil {
-		r.Replica = &ReplicaReplication{}
-	}
-	if r.Replica.ReplPasswordSecretKeyRef == nil {
-		r.Replica.ReplPasswordSecretKeyRef = ptr.To(mdb.ReplPasswordSecretKeyRef())
-	}
+	r.Primary.SetDefaults()
+	r.Replica.SetDefaults(mdb)
+
 	if r.GtidStrictMode == nil {
 		r.GtidStrictMode = ptr.To(true)
 	}
@@ -268,9 +268,6 @@ func (r *Replication) SetDefaults(mdb *MariaDB, env *environment.OperatorEnv) er
 		}
 		r.Agent.Image = agentBumped
 	}
-
-	r.Primary.SetDefaults()
-	r.Replica.SetDefaults()
 
 	return nil
 }

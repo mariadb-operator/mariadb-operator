@@ -267,7 +267,7 @@ func (r *ReplicationReconciler) waitForReplicaSync(ctx context.Context, req *rec
 
 func (r *ReplicationReconciler) configureNewPrimary(ctx context.Context, req *reconcileRequest, logger logr.Logger) error {
 	newPrimary := *ptr.Deref(req.mariadb.Spec.Replication, mariadbv1alpha1.Replication{}).Primary.PodIndex
-	newPrimaryClient, err := req.clientSet.newPrimaryClient(ctx)
+	newPrimaryClient, err := req.replClientSet.newPrimaryClient(ctx)
 	if err != nil {
 		return fmt.Errorf("error getting new primary client: %v", err)
 	}
@@ -291,7 +291,7 @@ func (r *ReplicationReconciler) connectReplicasToNewPrimary(ctx context.Context,
 	errChan := make(chan error)
 
 	newPrimary := *ptr.Deref(req.mariadb.Spec.Replication, mariadbv1alpha1.Replication{}).Primary.PodIndex
-	newPrimaryClient, err := req.clientSet.newPrimaryClient(ctx)
+	newPrimaryClient, err := req.replClientSet.newPrimaryClient(ctx)
 	if err != nil {
 		return fmt.Errorf("error getting new primary client: %v", err)
 	}
@@ -379,7 +379,7 @@ func (r *ReplicationReconciler) changePrimaryToReplica(ctx context.Context, req 
 		return fmt.Errorf("error getting current primary client: %v", err)
 	}
 	newPrimary := *ptr.Deref(req.mariadb.Spec.Replication, mariadbv1alpha1.Replication{}).Primary.PodIndex
-	newPrimaryClient, err := req.clientSet.newPrimaryClient(ctx)
+	newPrimaryClient, err := req.replClientSet.newPrimaryClient(ctx)
 	if err != nil {
 		return fmt.Errorf("error getting new primary client: %v", err)
 	}

@@ -361,7 +361,7 @@ func (r *PhysicalBackupReconciler) createVolumeSnapshot(ctx context.Context, sna
 
 func (r *PhysicalBackupReconciler) getVolumeSnapshotMetadata(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 	sqlClient *sql.Client) (*mariadbv1alpha1.Metadata, error) {
-	if !mariadb.Replication().Enabled {
+	if !mariadb.IsReplicationEnabled() {
 		return nil, nil
 	}
 	gtid, err := sqlClient.GtidSlavePos(ctx)

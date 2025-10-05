@@ -1361,7 +1361,6 @@ var _ = Describe("MariaDB types", func() {
 									ImagePullPolicy:   "",
 								},
 								Agent: Agent{
-
 									Image:     env.MariadbOperatorImage,
 									Port:      5555,
 									ProbePort: 5566,
@@ -1371,6 +1370,15 @@ var _ = Describe("MariaDB types", func() {
 									GracefulShutdownTimeout: ptr.To(metav1.Duration{Duration: 1 * time.Second}),
 								},
 								Replica: ReplicaReplication{
+									ReplPasswordSecretKeyRef: &GeneratedSecretKeyRef{
+										SecretKeySelector: SecretKeySelector{
+											LocalObjectReference: LocalObjectReference{
+												Name: "mariadb-obj-repl-password",
+											},
+											Key: "password",
+										},
+										Generate: true,
+									},
 									WaitPoint:         ptr.To(WaitPointAfterCommit),
 									Gtid:              ptr.To(GtidCurrentPos),
 									ConnectionTimeout: ptr.To(metav1.Duration{Duration: 10 * time.Second}),
@@ -1440,7 +1448,6 @@ var _ = Describe("MariaDB types", func() {
 									ImagePullPolicy:   "",
 								},
 								Agent: Agent{
-
 									Image:     env.MariadbOperatorImage,
 									Port:      5555,
 									ProbePort: 5566,
@@ -1448,7 +1455,6 @@ var _ = Describe("MariaDB types", func() {
 										Enabled:  true,
 										Username: "mariadb-operator",
 										PasswordSecretKeyRef: GeneratedSecretKeyRef{
-
 											SecretKeySelector: SecretKeySelector{
 												LocalObjectReference: LocalObjectReference{
 													Name: "mariadb-obj-agent-auth",
@@ -1461,6 +1467,15 @@ var _ = Describe("MariaDB types", func() {
 									GracefulShutdownTimeout: ptr.To(metav1.Duration{Duration: 1 * time.Second}),
 								},
 								Replica: ReplicaReplication{
+									ReplPasswordSecretKeyRef: &GeneratedSecretKeyRef{
+										SecretKeySelector: SecretKeySelector{
+											LocalObjectReference: LocalObjectReference{
+												Name: "mariadb-obj-repl-password",
+											},
+											Key: "password",
+										},
+										Generate: true,
+									},
 									WaitPoint:         ptr.To(WaitPointAfterCommit),
 									Gtid:              ptr.To(GtidCurrentPos),
 									ConnectionTimeout: ptr.To(metav1.Duration{Duration: 10 * time.Second}),
