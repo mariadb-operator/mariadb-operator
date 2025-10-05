@@ -10,8 +10,6 @@ spec:
   storage:
     size: 1Gi
 
-  image: mariadb:10.6
-
   replicas: 3
 
   replication:

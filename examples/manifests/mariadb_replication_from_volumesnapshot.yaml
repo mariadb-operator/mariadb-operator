@@ -16,9 +16,9 @@ spec:
   replication:
     enabled: true
 
-  # bootstrapFrom:
-  #   volumeSnapshotRef:
-  #     name: physicalbackup-20251004175540
+  bootstrapFrom:
+    volumeSnapshotRef:
+      name: physicalbackup-20251005110142
 
   service:
     type: LoadBalancer
