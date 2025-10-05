@@ -96,7 +96,7 @@ func (r *MariaDBReconciler) reconcilePhysicalBackupInit(ctx context.Context, mar
 		condition.SetInitialized(status)
 		condition.SetRestoredPhysicalBackup(status)
 
-		if mariadb.Replication().Enabled {
+		if mariadb.IsReplicationEnabled() {
 			if err := r.addReplicasToConfigure(ctx, mariadb, logger); err != nil {
 				return err
 			}

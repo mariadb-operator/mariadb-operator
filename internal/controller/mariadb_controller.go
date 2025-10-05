@@ -282,10 +282,10 @@ func (r *MariaDBReconciler) reconcileSecret(ctx context.Context, mariadb *mariad
 			secretKeyRefs = append(secretKeyRefs, agent.BasicAuth.PasswordSecretKeyRef)
 		}
 	}
-	if mariadb.Replication().Enabled {
-		replica := ptr.Deref(mariadb.Replication().Replica, mariadbv1alpha1.ReplicaReplication{})
-		if replica.ReplPasswordSecretKeyRef != nil {
-			secretKeyRefs = append(secretKeyRefs, *replica.ReplPasswordSecretKeyRef)
+	if mariadb.IsReplicationEnabled() {
+		replication := ptr.Deref(mariadb.Spec.Replication, mariadbv1alpha1.Replication{})
+		if replication.Replica.ReplPasswordSecretKeyRef != nil {
+			secretKeyRefs = append(secretKeyRefs, *replication.Replica.ReplPasswordSecretKeyRef)
 		}
 	}
 
