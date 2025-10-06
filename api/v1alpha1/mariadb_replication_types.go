@@ -349,7 +349,7 @@ const (
 type ReplicationStatus struct {
 	// State is the observed replication state for each Pod.
 	State map[string]ReplicationState `json:"state,omitempty"`
-	// ReplicasToConfigure are the replicas that need to configure replication.
+	// ReplicasToConfigure are the replicas that the operator will configure replication on.
 	ReplicasToConfigure []string `json:"replicasToConfigure,omitempty"`
 }
 
