@@ -981,23 +981,40 @@ func (m *MariaDB) IsSuspended() bool {
 	return m.Spec.Suspend
 }
 
-// IsGaleraInitialized indicates that the MariaDB instance has been successfully initialized.
+// IsInitialized indicates that the MariaDB instance has been successfully initialized.
 func (m *MariaDB) IsInitialized() bool {
 	return meta.IsStatusConditionTrue(m.Status.Conditions, ConditionTypeInitialized)
 }
 
-// IsGaleraInitialized indicates that the MariaDB instance is being initialized.
+// IsInitializing indicates that the MariaDB instance is being initialized.
 func (m *MariaDB) IsInitializing() bool {
 	return meta.IsStatusConditionFalse(m.Status.Conditions, ConditionTypeInitialized)
 }
 
-// HasInitError indicates that the MariaDB instance has an initialization error.
+// InitError indicates that the MariaDB instance has an initialization error.
 func (m *MariaDB) InitError() error {
 	c := meta.FindStatusCondition(m.Status.Conditions, ConditionTypeInitialized)
 	if c == nil {
 		return nil
 	}
 	if c.Status == metav1.ConditionFalse && c.Reason == ConditionReasonInitError {
+		return errors.New(c.Message)
+	}
+	return nil
+}
+
+// IsScalingOut indicates that the MariaDB instance is being initialized.
+func (m *MariaDB) IsScalingOut() bool {
+	return meta.IsStatusConditionFalse(m.Status.Conditions, ConditionTypeScaledOut)
+}
+
+// ScalingOutError indicates that the MariaDB instance has an scaling out error.
+func (m *MariaDB) ScalingOutError() error {
+	c := meta.FindStatusCondition(m.Status.Conditions, ConditionTypeScaledOut)
+	if c == nil {
+		return nil
+	}
+	if c.Status == metav1.ConditionFalse && c.Reason == ConditionReasonScaleOutError {
 		return errors.New(c.Message)
 	}
 	return nil

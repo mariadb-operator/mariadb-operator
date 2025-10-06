@@ -163,7 +163,7 @@ var _ = Describe("PhysicalBackup webhook", func() {
 				true,
 			),
 			Entry(
-				"Invalid schedule",
+				"Invalid cron",
 				&v1alpha1.PhysicalBackup{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "physicalbackup-invalid-schedule",
@@ -198,6 +198,81 @@ var _ = Describe("PhysicalBackup webhook", func() {
 					},
 				},
 				true,
+			),
+			Entry(
+				"Invalid schedule",
+				&v1alpha1.PhysicalBackup{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "physicalbackup-invalid-schedule",
+						Namespace: testNamespace,
+					},
+					Spec: v1alpha1.PhysicalBackupSpec{
+						JobContainerTemplate: v1alpha1.JobContainerTemplate{
+							Resources: &v1alpha1.ResourceRequirements{
+								Requests: corev1.ResourceList{
+									"cpu": resource.MustParse("100m"),
+								},
+							},
+						},
+						Schedule: &v1alpha1.PhysicalBackupSchedule{
+							Cron:    "",
+							Suspend: false,
+						},
+						Compression: v1alpha1.CompressGzip,
+						Storage: v1alpha1.PhysicalBackupStorage{
+							S3: &v1alpha1.S3{
+								Bucket:   "test",
+								Endpoint: "test",
+							},
+						},
+						MariaDBRef: v1alpha1.MariaDBRef{
+							ObjectReference: v1alpha1.ObjectReference{
+								Name: "mariadb-webhook",
+							},
+							WaitForIt: true,
+						},
+						BackoffLimit:  10,
+						RestartPolicy: corev1.RestartPolicyOnFailure,
+					},
+				},
+				true,
+			),
+			Entry(
+				"Suspended schedule",
+				&v1alpha1.PhysicalBackup{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "physicalbackup-invalid-schedule",
+						Namespace: testNamespace,
+					},
+					Spec: v1alpha1.PhysicalBackupSpec{
+						JobContainerTemplate: v1alpha1.JobContainerTemplate{
+							Resources: &v1alpha1.ResourceRequirements{
+								Requests: corev1.ResourceList{
+									"cpu": resource.MustParse("100m"),
+								},
+							},
+						},
+						Schedule: &v1alpha1.PhysicalBackupSchedule{
+							Suspend: true,
+						},
+						Compression: v1alpha1.CompressGzip,
+						Storage: v1alpha1.PhysicalBackupStorage{
+							S3: &v1alpha1.S3{
+								Bucket:   "test",
+								Endpoint: "test",
+							},
+						},
+						MariaDBRef: v1alpha1.MariaDBRef{
+							ObjectReference: v1alpha1.ObjectReference{
+								Name: "mariadb-webhook",
+							},
+							WaitForIt: true,
+						},
+						BackoffLimit:  10,
+						RestartPolicy: corev1.RestartPolicyOnFailure,
+					},
+				},
+				false,
 			),
 			Entry(
 				"Invalid history limits",
