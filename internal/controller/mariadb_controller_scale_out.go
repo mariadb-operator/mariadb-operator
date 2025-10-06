@@ -9,6 +9,7 @@ import (
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
 	condition "github.com/mariadb-operator/mariadb-operator/v25/pkg/condition"
+	mdbsnapshot "github.com/mariadb-operator/mariadb-operator/v25/pkg/volumesnapshot"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -24,7 +25,12 @@ import (
 func (r *MariaDBReconciler) reconcileScaleOut(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
 	logger := log.FromContext(ctx).WithName("scale-out")
 
-	isScalingOut, err := r.isScalingOut(ctx, mariadb, logger)
+	var sts appsv1.StatefulSet
+	if err := r.Get(ctx, client.ObjectKeyFromObject(mariadb), &sts); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	isScalingOut, err := r.isScalingOut(ctx, mariadb, &sts)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -62,6 +68,29 @@ func (r *MariaDBReconciler) reconcileScaleOut(ctx context.Context, mariadb *mari
 		return result, err
 	}
 
+	physicalBackup, err := r.getScaleOutPhysicalBackup(ctx, mariadb)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error getting PhysicalBackup: %v", err)
+	}
+	snapshotKey, err := r.getVolumeSnapshotKey(ctx, mariadb, physicalBackup)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error getting VolumeSnapshot key: %v", err)
+	}
+	fromIndex := int(sts.Status.Replicas) // start one index after the last replica
+
+	if result, err := r.reconcilePVCs(ctx, mariadb, fromIndex, snapshotKey); !result.IsZero() || err != nil {
+		return result, err
+	}
+
+	if physicalBackup.Spec.Storage.VolumeSnapshot == nil {
+		if result, err := r.reconcileRollingInitJobs(ctx, mariadb, fromIndex); !result.IsZero() || err != nil {
+			return result, err
+		}
+		if err := r.cleanupInitJobs(ctx, mariadb, fromIndex); err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+
 	if err := r.cleanupPhysicalBackup(ctx, mariadb); err != nil {
 		return ctrl.Result{}, err
 	}
@@ -75,13 +104,9 @@ func (r *MariaDBReconciler) reconcileScaleOut(ctx context.Context, mariadb *mari
 	return ctrl.Result{}, nil
 }
 
-func (r *MariaDBReconciler) isScalingOut(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, logger logr.Logger) (bool, error) {
+func (r *MariaDBReconciler) isScalingOut(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, sts *appsv1.StatefulSet) (bool, error) {
 	if !mariadb.IsReplicationEnabled() {
 		return false, nil
-	}
-	var sts appsv1.StatefulSet
-	if err := r.Get(ctx, client.ObjectKeyFromObject(mariadb), &sts); err != nil {
-		return false, err
 	}
 	return sts.Status.Replicas > 0 &&
 		sts.Status.Replicas == sts.Status.ReadyReplicas &&
@@ -141,6 +166,31 @@ func (r *MariaDBReconciler) createPhysicalBackup(ctx context.Context, mariadb *m
 		return fmt.Errorf("error setting controller reference to PhysicalBackup: %v", err)
 	}
 	return r.Create(ctx, &physicalBackup)
+}
+
+func (r *MariaDBReconciler) getScaleOutPhysicalBackup(ctx context.Context,
+	mariadb *mariadbv1alpha1.MariaDB) (*mariadbv1alpha1.PhysicalBackup, error) {
+	key := mariadb.PhysicalBackupScaleOutKey()
+	var physicalBackup mariadbv1alpha1.PhysicalBackup
+	if err := r.Get(ctx, key, &physicalBackup); err != nil {
+		return nil, err
+	}
+	return &physicalBackup, nil
+}
+
+func (r *MariaDBReconciler) getVolumeSnapshotKey(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+	physicalBackup *mariadbv1alpha1.PhysicalBackup) (*types.NamespacedName, error) {
+	if physicalBackup.Spec.Storage.VolumeSnapshot == nil {
+		return nil, nil
+	}
+	snapshotList, err := mdbsnapshot.ListVolumeSnapshots(ctx, r.Client, physicalBackup)
+	if err != nil {
+		return nil, err
+	}
+	if len(snapshotList.Items) == 0 {
+		return nil, errors.New("VolumeSnapshot not found")
+	}
+	return ptr.To(client.ObjectKeyFromObject(&snapshotList.Items[0])), nil
 }
 
 func (r *MariaDBReconciler) cleanupPhysicalBackup(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
