@@ -126,12 +126,6 @@ type ReplicaBootstrapFrom struct {
 
 // ReplicaReplication is the replication configuration for the replica nodes.
 type ReplicaReplication struct {
-	// WaitPoint defines whether the transaction should wait for ACK before committing to the storage engine.
-	// More info: https://mariadb.com/kb/en/semisynchronous-replication/#rpl_semi_sync_master_wait_point.
-	// +optional
-	// +kubebuilder:validation:Enum=AfterSync;AfterCommit
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	WaitPoint *WaitPoint `json:"waitPoint,omitempty"`
 	// Gtid indicates which Global Transaction ID should be used when connecting a replica to the master.
 	// See: https://mariadb.com/kb/en/gtid/#using-current_pos-vs-slave_pos.
 	// +optional
@@ -178,9 +172,6 @@ func (r *ReplicaReplication) SetDefaults(mdb *MariaDB) {
 	if r.ReplPasswordSecretKeyRef == nil {
 		r.ReplPasswordSecretKeyRef = ptr.To(mdb.ReplPasswordSecretKeyRef())
 	}
-	if r.WaitPoint == nil {
-		r.WaitPoint = ptr.To(WaitPointAfterCommit)
-	}
 	if r.Gtid == nil {
 		r.Gtid = ptr.To(GtidCurrentPos)
 	}
@@ -197,11 +188,6 @@ func (r *ReplicaReplication) SetDefaults(mdb *MariaDB) {
 
 // Validate returns an error if the ReplicaReplication is not valid.
 func (r *ReplicaReplication) Validate() error {
-	if r.WaitPoint != nil {
-		if err := r.WaitPoint.Validate(); err != nil {
-			return fmt.Errorf("invalid WaitPoint: %v", err)
-		}
-	}
 	if r.Gtid != nil {
 		if err := r.Gtid.Validate(); err != nil {
 			return fmt.Errorf("invalid GTID: %v", err)
@@ -231,6 +217,14 @@ type ReplicationSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Replica ReplicaReplication `json:"replica,omitempty"`
+
+	// WaitPoint defines whether the transaction should wait for ACK before committing to the storage engine.
+	// More info: https://mariadb.com/kb/en/semisynchronous-replication/#rpl_semi_sync_master_wait_point.
+	// +optional
+	// +kubebuilder:validation:Enum=AfterSync;AfterCommit
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	WaitPoint *WaitPoint `json:"waitPoint,omitempty"`
+
 	// GtidStrictMode determines whether the GTID strict mode is enabled. See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/gtid#gtid_strict_mode.
 	// It is enabled by default.
 	// +optional
@@ -249,6 +243,16 @@ type ReplicationSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Agent Agent `json:"agent,omitempty"`
+}
+
+func (r *Replication) Validate() error {
+	if r.WaitPoint != nil {
+		if err := r.WaitPoint.Validate(); err != nil {
+			return fmt.Errorf("invalid WaitPoint: %v", err)
+		}
+	}
+
+	return nil
 }
 
 // SetDefaults fills the current Replication object with DefaultReplicationSpec.

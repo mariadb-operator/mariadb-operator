@@ -6055,20 +6055,20 @@ spec:
                           During a switchover, all replicas must be synced with the primary before promoting the new primary.
                           During a failover, the primary will be down, therefore this sync step will be skipped.
                         type: string
-                      waitPoint:
-                        description: |-
-                          WaitPoint defines whether the transaction should wait for ACK before committing to the storage engine.
-                          More info: https://mariadb.com/kb/en/semisynchronous-replication/#rpl_semi_sync_master_wait_point.
-                        enum:
-                        - AfterSync
-                        - AfterCommit
-                        type: string
                     type: object
                   syncBinlog:
                     description: |-
                       SyncBinlog indicates after how many events the binary log is synchronized to the disk.
                       The default is 1, flushing the binary log to disk after every write, which trades off performance for consistency. See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/replication-and-binary-log-system-variables#sync_binlog
                     type: integer
+                  waitPoint:
+                    description: |-
+                      WaitPoint defines whether the transaction should wait for ACK before committing to the storage engine.
+                      More info: https://mariadb.com/kb/en/semisynchronous-replication/#rpl_semi_sync_master_wait_point.
+                    enum:
+                    - AfterSync
+                    - AfterCommit
+                    type: string
                 type: object
               resources:
                 description: Resources describes the compute resource requirements.

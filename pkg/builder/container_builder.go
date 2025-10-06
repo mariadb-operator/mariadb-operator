@@ -503,8 +503,8 @@ func mariadbEnv(mariadb *mariadbv1alpha1.MariaDB) ([]corev1.EnvVar, error) {
 				Value: fmt.Sprint(replica.ConnectionTimeout.Milliseconds()),
 			})
 		}
-		if replica.WaitPoint != nil {
-			waitPoint, err := replica.WaitPoint.MariaDBFormat()
+		if replication.WaitPoint != nil {
+			waitPoint, err := replication.WaitPoint.MariaDBFormat()
 			if err != nil {
 				return nil, fmt.Errorf("error getting replication wait point: %v", err)
 			}
