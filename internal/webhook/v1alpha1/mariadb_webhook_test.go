@@ -325,10 +325,10 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 									PodIndex: func() *int { i := 4; return &i }(),
 								},
 								Replica: v1alpha1.ReplicaReplication{
-									WaitPoint:         ptr.To(v1alpha1.WaitPointAfterCommit),
 									ConnectionTimeout: &metav1.Duration{Duration: time.Duration(1 * time.Second)},
 									ConnectionRetries: func() *int { r := 3; return &r }(),
 								},
+								WaitPoint: ptr.To(v1alpha1.WaitPointAfterCommit),
 							},
 							Enabled: true,
 						},
@@ -368,9 +368,7 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 					Spec: v1alpha1.MariaDBSpec{
 						Replication: &v1alpha1.Replication{
 							ReplicationSpec: v1alpha1.ReplicationSpec{
-								Replica: v1alpha1.ReplicaReplication{
-									WaitPoint: ptr.To(v1alpha1.WaitPoint("foo")),
-								},
+								WaitPoint: ptr.To(v1alpha1.WaitPoint("foo")),
 							},
 							Enabled: true,
 						},
