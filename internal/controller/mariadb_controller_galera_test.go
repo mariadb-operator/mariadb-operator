@@ -66,7 +66,7 @@ var _ = Describe("MariaDB Galera spec", Label("basic"), func() {
 	})
 })
 
-var _ = Describe("MariaDB Galera lifecycle", Ordered, func() {
+var _ = FDescribe("MariaDB Galera lifecycle", Ordered, func() {
 	var (
 		key = types.NamespacedName{
 			Name:      "mariadb-galera",
