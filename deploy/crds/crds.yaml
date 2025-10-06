@@ -7763,6 +7763,24 @@ spec:
                     description: ReplicaReplication is the replication configuration
                       for the replica nodes.
                     properties:
+                      bootstrapFrom:
+                        description: |-
+                          ReplicaBootstrapFrom defines the datasources for bootstrapping new relicas.
+                          This will be used as part of the scaling out operations, when increasing the number of replicas.
+                          If not provided, scale out operations will return an error.
+                        properties:
+                          physicalBackupTemplateRef:
+                            description: |-
+                              PhysicalBackupTemplateRef is a reference to a PhysicalBackup object that will be used as template to create a new PhysicalBackup object
+                              used synchronize the data from an up to date replica to the new replica to be bootstrapped.
+                            properties:
+                              name:
+                                default: ""
+                                type: string
+                            type: object
+                        required:
+                        - physicalBackupTemplateRef
+                        type: object
                       connectionRetries:
                         description: ConnectionRetries to be used when the replica
                           connects to the primary.
@@ -11914,8 +11932,6 @@ spec:
                     description: Suspend defines whether the schedule is active or
                       not.
                     type: boolean
-                required:
-                - cron
                 type: object
               securityContext:
                 description: SecurityContext holds security configuration that will

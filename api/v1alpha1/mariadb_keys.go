@@ -285,6 +285,14 @@ func (m *MariaDB) PhysicalBackupStagingPVCKey() types.NamespacedName {
 	}
 }
 
+// PhysicalBackupScaleOutKey defines the key for the PhysicalBackup scale out object.
+func (m *MariaDB) PhysicalBackupScaleOutKey() types.NamespacedName {
+	return types.NamespacedName{
+		Name:      fmt.Sprintf("%s-physicalbackup-scale-out", m.Name),
+		Namespace: m.Namespace,
+	}
+}
+
 // RecoveryJobKey defines the key for a Galera recovery Job
 func (m *MariaDB) RecoveryJobKey(podName string) types.NamespacedName {
 	return types.NamespacedName{

@@ -1181,6 +1181,7 @@ _Appears in:_
 - [PhysicalBackupPodTemplate](#physicalbackuppodtemplate)
 - [PhysicalBackupSpec](#physicalbackupspec)
 - [PodTemplate](#podtemplate)
+- [ReplicaBootstrapFrom](#replicabootstrapfrom)
 - [RestoreSource](#restoresource)
 - [RestoreSpec](#restorespec)
 - [SecretKeySelector](#secretkeyselector)
@@ -1966,7 +1967,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `cron` _string_ | Cron is a cron expression that defines the schedule. |  | Required: \{\} <br /> |
+| `cron` _string_ | Cron is a cron expression that defines the schedule. |  |  |
 | `suspend` _boolean_ | Suspend defines whether the schedule is active or not. | false |  |
 | `immediate` _boolean_ | Immediate indicates whether the first backup should be taken immediately after creating the PhysicalBackup. |  |  |
 
@@ -2258,6 +2259,22 @@ _Appears in:_
 | `tcpSocket` _[TCPSocketAction](#tcpsocketaction)_ |  |  |  |
 
 
+#### ReplicaBootstrapFrom
+
+
+
+ReplicaBootstrapFrom defines the sources for bootstrapping new relicas.
+
+
+
+_Appears in:_
+- [ReplicaReplication](#replicareplication)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `physicalBackupTemplateRef` _[LocalObjectReference](#localobjectreference)_ | PhysicalBackupTemplateRef is a reference to a PhysicalBackup object that will be used as template to create a new PhysicalBackup object<br />used synchronize the data from an up to date replica to the new replica to be bootstrapped. |  | Required: \{\} <br /> |
+
+
 #### ReplicaReplication
 
 
@@ -2279,6 +2296,7 @@ _Appears in:_
 | `connectionRetries` _integer_ | ConnectionRetries to be used when the replica connects to the primary. |  |  |
 | `syncTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#duration-v1-meta)_ | SyncTimeout defines the timeout for a replica to be synced with the primary when performing a primary switchover.<br />During a switchover, all replicas must be synced with the primary before promoting the new primary.<br />During a failover, the primary will be down, therefore this sync step will be skipped. |  |  |
 | `maxLagSeconds` _integer_ | MaxLagSeconds is the maximum number of seconds that replicas are allowed to lag behind the primary.<br />If a replica exceeds this threshold, it is marked as not ready and queries will no longer be forwarded to it.<br />Replicas in non ready state will block operations such as primary switchover and upgrades.<br />If not provided, it defaults to 0, which means replicas are not allowed to lag behind the primary.<br />This field is not taken into account by MaxScale, you can define the maximum lag as router parameters. See: https://mariadb.com/docs/maxscale/reference/maxscale-routers/maxscale-readwritesplit#max_replication_lag. |  |  |
+| `bootstrapFrom` _[ReplicaBootstrapFrom](#replicabootstrapfrom)_ | ReplicaBootstrapFrom defines the datasources for bootstrapping new relicas.<br />This will be used as part of the scaling out operations, when increasing the number of replicas.<br />If not provided, scale out operations will return an error. |  |  |
 
 
 #### Replication

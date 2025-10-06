@@ -63,4 +63,7 @@ const (
 
 	// ReasonMariaDBInitError indicates that an error has occurred during the MariaDB instance initialization.
 	ReasonMariaDBInitError = "MariaDBInitError"
+
+	// ReasonMariaDBScaleOutError indicates that an error has occurred during the MariaDB instance scale out operation.
+	ReasonMariaDBScaleOutError = "MariaDBScaleOutError"
 )

@@ -111,6 +111,15 @@ func (r *PrimaryReplication) SetDefaults() {
 	}
 }
 
+// ReplicaBootstrapFrom defines the sources for bootstrapping new relicas.
+type ReplicaBootstrapFrom struct {
+	// PhysicalBackupTemplateRef is a reference to a PhysicalBackup object that will be used as template to create a new PhysicalBackup object
+	// used synchronize the data from an up to date replica to the new replica to be bootstrapped.
+	// +kubebuilder:validation:Required
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	PhysicalBackupTemplateRef LocalObjectReference `json:"physicalBackupTemplateRef"`
+}
+
 // ReplicaReplication is the replication configuration for the replica nodes.
 type ReplicaReplication struct {
 	// WaitPoint defines whether the transaction should wait for ACK before committing to the storage engine.
@@ -151,6 +160,12 @@ type ReplicaReplication struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
 	MaxLagSeconds *int `json:"maxLagSeconds,omitempty"`
+	// ReplicaBootstrapFrom defines the datasources for bootstrapping new relicas.
+	// This will be used as part of the scaling out operations, when increasing the number of replicas.
+	// If not provided, scale out operations will return an error.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	ReplicaBootstrapFrom *ReplicaBootstrapFrom `json:"bootstrapFrom,omitempty"`
 }
 
 // SetDefaults fills the current ReplicaReplication object with DefaultReplicationSpec.

@@ -285,8 +285,6 @@ spec:
                     description: Suspend defines whether the schedule is active or
                       not.
                     type: boolean
-                required:
-                - cron
                 type: object
               securityContext:
                 description: SecurityContext holds security configuration that will
