@@ -8969,8 +8969,8 @@ spec:
                   Pod.
                 properties:
                   replicasToConfigure:
-                    description: ReplicasToConfigure are the replicas that need to
-                      configure replication.
+                    description: ReplicasToConfigure are the replicas that the operator
+                      will configure replication on.
                     items:
                       type: string
                     type: array
