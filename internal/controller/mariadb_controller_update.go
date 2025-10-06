@@ -346,7 +346,8 @@ func (r *MariaDBReconciler) triggerSwitchover(ctx context.Context, mariadb *mari
 }
 
 func shouldTriggerSwitchover(mariadb *mariadbv1alpha1.MariaDB) bool {
-	if mariadb.IsMaxScaleEnabled() || mariadb.IsRestoringBackup() {
+	replication := mariadb.Replication()
+	if mariadb.IsMaxScaleEnabled() || mariadb.IsRestoringBackup() || replication.IsExternalReplication() {
 		return false
 	}
 	primaryRepl := ptr.Deref(mariadb.Replication().Primary, mariadbv1alpha1.PrimaryReplication{})

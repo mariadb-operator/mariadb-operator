@@ -359,6 +359,10 @@ spec:
                   type: string
                 description: NodeSelector to be used in the Pod.
                 type: object
+              podIndex:
+                description: PodIndex is the StatefulSet index of pod to restore.
+                  Used to bootstrap nodes on external replication.
+                type: integer
               podMetadata:
                 description: PodMetadata defines extra metadata for the Pod.
                 properties:

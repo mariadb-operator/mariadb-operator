@@ -113,10 +113,17 @@ func (r *EndpointsReconciler) endpointSlice(ctx context.Context, key types.Names
 		if err != nil {
 			return nil, fmt.Errorf("error getting Pod '%s' index: %v", pod.Name, err)
 		}
-		if *podIndex == *mariadb.Status.CurrentPrimaryPodIndex {
+		if *podIndex == *mariadb.Status.CurrentPrimaryPodIndex && mariadb.Replication().ReplicaFromExternal == nil {
 			continue
 		}
-		endpoints = append(endpoints, *endpoint)
+
+		if mdbpod.PodReady(&pod) && (mariadb.Status.ReplicationStatus[pod.Name] == mariadbv1alpha1.ReplicationStateSlave ||
+			mariadb.Status.ReplicationStatus[pod.Name] == mariadbv1alpha1.ReplicationStateSlaveBroken) {
+			endpoints = append(endpoints, *endpoint)
+		} else {
+			endpoint.Conditions.Ready = ptr.To(false)
+			endpoints = append(endpoints, *endpoint)
+		}
 	}
 	if len(endpoints) == 0 {
 		return nil, errNoEndpointsAvailable
