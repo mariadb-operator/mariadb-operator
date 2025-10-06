@@ -354,15 +354,17 @@ func TestMariadbDumpArgs(t *testing.T) {
 
 func TestMariadbBackupArgs(t *testing.T) {
 	tests := []struct {
-		name      string
-		backupCmd *BackupCommand
-		mariadb   *mariadbv1alpha1.MariaDB
-		wantArgs  []string
+		name           string
+		backupCmd      *BackupCommand
+		mariadb        *mariadbv1alpha1.MariaDB
+		targetPodIndex int
+		wantArgs       []string
 	}{
 		{
-			name:      "default",
-			backupCmd: &BackupCommand{},
-			mariadb:   &mariadbv1alpha1.MariaDB{},
+			name:           "default",
+			backupCmd:      &BackupCommand{},
+			mariadb:        &mariadbv1alpha1.MariaDB{},
+			targetPodIndex: 0,
 			wantArgs: []string{
 				"--backup",
 				"--stream=xbstream",
@@ -376,7 +378,8 @@ func TestMariadbBackupArgs(t *testing.T) {
 					ExtraOpts: []string{"--compress", "--parallel=2"},
 				},
 			},
-			mariadb: &mariadbv1alpha1.MariaDB{},
+			mariadb:        &mariadbv1alpha1.MariaDB{},
+			targetPodIndex: 0,
 			wantArgs: []string{
 				"--backup",
 				"--stream=xbstream",
@@ -393,6 +396,7 @@ func TestMariadbBackupArgs(t *testing.T) {
 					TLS: &mariadbv1alpha1.TLS{Enabled: true},
 				},
 			},
+			targetPodIndex: 0,
 			wantArgs: []string{
 				"--backup",
 				"--stream=xbstream",
@@ -419,6 +423,7 @@ func TestMariadbBackupArgs(t *testing.T) {
 					TLS: &mariadbv1alpha1.TLS{Enabled: true},
 				},
 			},
+			targetPodIndex: 0,
 			wantArgs: []string{
 				"--backup",
 				"--stream=xbstream",
@@ -442,7 +447,8 @@ func TestMariadbBackupArgs(t *testing.T) {
 					ExtraOpts: []string{"--compress", "--compress"},
 				},
 			},
-			mariadb: &mariadbv1alpha1.MariaDB{},
+			mariadb:        &mariadbv1alpha1.MariaDB{},
+			targetPodIndex: 0,
 			wantArgs: []string{
 				"--backup",
 				"--stream=xbstream",
@@ -450,12 +456,33 @@ func TestMariadbBackupArgs(t *testing.T) {
 				"--compress",
 			},
 		},
+		{
+			name:      "replication",
+			backupCmd: &BackupCommand{},
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Replication: &mariadbv1alpha1.Replication{
+						Enabled: true,
+					},
+				},
+				Status: mariadbv1alpha1.MariaDBStatus{
+					CurrentPrimaryPodIndex: ptr.To(1),
+				},
+			},
+			targetPodIndex: 0,
+			wantArgs: []string{
+				"--backup",
+				"--stream=xbstream",
+				"--databases-exclude='lost+found'",
+				"--slave-info",
+				"--safe-slave-backup",
+			},
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// TODO: extend tests with replica args
-			args := tt.backupCmd.mariadbBackupArgs(tt.mariadb, 0)
+			args := tt.backupCmd.mariadbBackupArgs(tt.mariadb, tt.targetPodIndex)
 			if diff := cmp.Diff(args, tt.wantArgs); diff != "" {
 				t.Errorf("unexpected args (-want +got):\n%s", diff)
 			}

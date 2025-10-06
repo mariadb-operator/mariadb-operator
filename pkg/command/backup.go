@@ -469,7 +469,8 @@ func (b *BackupCommand) mariadbBackupArgs(mariadb *mariadbv1alpha1.MariaDB, targ
 	if mariadb.IsTLSEnabled() {
 		args = append(args, b.tlsArgs(mariadb)...)
 	}
-	if mariadb.Status.CurrentPrimaryPodIndex != nil && *mariadb.Status.CurrentPrimaryPodIndex != targetPodIndex {
+	if mariadb.IsReplicationEnabled() &&
+		mariadb.Status.CurrentPrimaryPodIndex != nil && *mariadb.Status.CurrentPrimaryPodIndex != targetPodIndex {
 		args = append(args, []string{
 			"--slave-info",
 			"--safe-slave-backup",
