@@ -1135,7 +1135,6 @@ func (r *MariaDBReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manag
 }
 
 func defaultConfig(mariadb *mariadbv1alpha1.MariaDB) (string, error) {
-	// TODO: ignore .mariadb-backup folder introduced for the backup process
 	tpl := createTpl("0-default.cnf", `[mariadb]
 skip-name-resolve
 temp-pool
