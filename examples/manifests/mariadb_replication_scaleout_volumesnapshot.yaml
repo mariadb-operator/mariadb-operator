@@ -21,7 +21,7 @@ spec:
     replica:
       bootstrapFrom:
         physicalBackupTemplateRef:
-          name: physicalbackup-repl
+          name: physicalbackup-tpl
 
   service:
     type: LoadBalancer
@@ -48,7 +48,7 @@ spec:
 apiVersion: k8s.mariadb.com/v1alpha1
 kind: PhysicalBackup
 metadata:
-  name: physicalbackup-repl
+  name: physicalbackup-tpl
 spec:
   mariaDbRef:
     name: mariadb-repl

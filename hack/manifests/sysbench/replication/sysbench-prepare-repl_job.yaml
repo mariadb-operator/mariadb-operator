@@ -12,8 +12,8 @@ spec:
         command:
           - sysbench
           - oltp_read_write
-          - --tables=1
-          - --table_size=1000
+          - --tables=5
+          - --table_size=1000000
           - --mysql-host=mariadb-repl-primary.default.svc.cluster.local
           # - --mysql-host=maxscale-repl.default.svc.cluster.local
           - --mysql-port=3306
