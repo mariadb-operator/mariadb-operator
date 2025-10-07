@@ -116,7 +116,7 @@ func (r *MariaDBReconciler) reconcilePhysicalBackupInit(ctx context.Context, mar
 		condition.SetRestoredPhysicalBackup(status)
 
 		if mariadb.IsReplicationEnabled() {
-			if err := r.addReplicasToConfigure(ctx, mariadb, fromIndex, logger); err != nil {
+			if err := r.addReplicasToConfigure(ctx, mariadb, fromIndex, snapshotKey, logger); err != nil {
 				return err
 			}
 		}
@@ -354,20 +354,28 @@ func (r *MariaDBReconciler) cleanupStagingPVC(ctx context.Context, mariadb *mari
 }
 
 func (r *MariaDBReconciler) addReplicasToConfigure(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, fromIndex int,
-	logger logr.Logger) error {
+	snapshotKey *types.NamespacedName, logger logr.Logger) error {
 	if mariadb.Status.CurrentPrimaryPodIndex == nil {
 		return errors.New("'status.currentPrimaryPodIndex' must be set")
 	}
-	var replicas []string
+	var replicas []mariadbv1alpha1.ReplicaToConfigure
 	for i := fromIndex; i < int(mariadb.Spec.Replicas); i++ {
 		if i == *mariadb.Status.CurrentPrimaryPodIndex {
 			continue
 		}
-		replicas = append(replicas, stsobj.PodName(mariadb.ObjectMeta, i))
+		r := mariadbv1alpha1.ReplicaToConfigure{
+			Name: stsobj.PodName(mariadb.ObjectMeta, i),
+		}
+		if snapshotKey != nil {
+			r.VolumeSnapshotRef = &mariadbv1alpha1.LocalObjectReference{
+				Name: snapshotKey.Name,
+			}
+		}
+		replicas = append(replicas, r)
 	}
 
 	logger.Info("Marking replicas to be configured", "replicas", replicas)
-	mariadb.AddReplicasToConfigure(replicas...)
+	mariadb.SetReplicasToConfigure(replicas...)
 	return nil
 }
 

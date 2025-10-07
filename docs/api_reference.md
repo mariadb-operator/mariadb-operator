@@ -358,6 +358,23 @@ _Appears in:_
 | `defaultMode` _integer_ |  |  |  |
 
 
+#### ConfigurationSource
+
+_Underlying type:_ _string_
+
+ConfigurationSource is a source to configure replicas
+
+
+
+_Appears in:_
+- [ReplicaToConfigure](#replicatoconfigure)
+
+| Field | Description |
+| --- | --- |
+| `BootstrapFrom` |  |
+| `BootstrapFromReplica` |  |
+
+
 #### Connection
 
 
@@ -1183,6 +1200,7 @@ _Appears in:_
 - [PhysicalBackupSpec](#physicalbackupspec)
 - [PodTemplate](#podtemplate)
 - [ReplicaBootstrapFrom](#replicabootstrapfrom)
+- [ReplicaToConfigure](#replicatoconfigure)
 - [RestoreSource](#restoresource)
 - [RestoreSpec](#restorespec)
 - [SecretKeySelector](#secretkeyselector)
@@ -2299,6 +2317,8 @@ _Appears in:_
 | `syncTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#duration-v1-meta)_ | SyncTimeout defines the timeout for a replica to be synced with the primary when performing a primary switchover.<br />During a switchover, all replicas must be synced with the primary before promoting the new primary.<br />During a failover, the primary will be down, therefore this sync step will be skipped. |  |  |
 | `maxLagSeconds` _integer_ | MaxLagSeconds is the maximum number of seconds that replicas are allowed to lag behind the primary.<br />If a replica exceeds this threshold, it is marked as not ready and queries will no longer be forwarded to it.<br />Replicas in non ready state will block operations such as primary switchover and upgrades.<br />If not provided, it defaults to 0, which means replicas are not allowed to lag behind the primary.<br />This field is not taken into account by MaxScale, you can define the maximum lag as router parameters. See: https://mariadb.com/docs/maxscale/reference/maxscale-routers/maxscale-readwritesplit#max_replication_lag. |  |  |
 | `bootstrapFrom` _[ReplicaBootstrapFrom](#replicabootstrapfrom)_ | ReplicaBootstrapFrom defines the datasources for bootstrapping new relicas.<br />This will be used as part of the scaling out operations, when increasing the number of replicas.<br />If not provided, scale out operations will return an error. |  |  |
+
+
 
 
 #### Replication

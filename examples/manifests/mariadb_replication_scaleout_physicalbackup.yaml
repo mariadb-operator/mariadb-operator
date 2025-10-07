@@ -12,7 +12,7 @@ spec:
     storageClassName: csi-hostpath-sc
 
   # Increase number of replicas to trigger scaleout process
-  replicas: 4
+  replicas: 3
   # TODO: remove
   replicasAllowEvenNumber: true
 
