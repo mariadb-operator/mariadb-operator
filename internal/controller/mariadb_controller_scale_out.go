@@ -8,6 +8,7 @@ import (
 
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/builder"
 	condition "github.com/mariadb-operator/mariadb-operator/v25/pkg/condition"
 	mdbsnapshot "github.com/mariadb-operator/mariadb-operator/v25/pkg/volumesnapshot"
 	appsv1 "k8s.io/api/apps/v1"
@@ -35,25 +36,16 @@ func (r *MariaDBReconciler) reconcileScaleOut(ctx context.Context, mariadb *mari
 		return ctrl.Result{}, err
 	}
 	if !isScalingOut {
+		if err := r.setScaledOutAndCleanup(ctx, mariadb); err != nil {
+			return ctrl.Result{}, err
+		}
 		return ctrl.Result{}, nil
 	}
+	fromIndex := int(sts.Status.Replicas) // start one index after the last replica
 
 	if !mariadb.IsScalingOut() || mariadb.ScalingOutError() != nil {
-		replication := ptr.Deref(mariadb.Spec.Replication, mariadbv1alpha1.Replication{})
-
-		if replication.Replica.ReplicaBootstrapFrom == nil {
-			r.Recorder.Eventf(mariadb, corev1.EventTypeWarning, mariadbv1alpha1.ReasonMariaDBScaleOutError,
-				"Unable to scale out MariaDB: replica datasource not found (replication.replica.bootstrapFrom is nil)")
-
-			if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
-				condition.SetScaleOutError(status, "replica datasource not found (replication.replica.bootstrapFrom is nil)")
-				return nil
-			}); err != nil {
-				return ctrl.Result{}, fmt.Errorf("error patching MariaDB status: %v", err)
-			}
-
-			logger.Info("Unable to scale out MariaDB: replica datasource not found (replication.replica.bootstrapFrom is nil). Requeuing...")
-			return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+		if result, err := r.reconcileScaleOutError(ctx, mariadb, fromIndex, logger); !result.IsZero() || err != nil {
+			return result, err
 		}
 	}
 
@@ -76,30 +68,23 @@ func (r *MariaDBReconciler) reconcileScaleOut(ctx context.Context, mariadb *mari
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error getting VolumeSnapshot key: %v", err)
 	}
-	fromIndex := int(sts.Status.Replicas) // start one index after the last replica
 
 	if result, err := r.reconcilePVCs(ctx, mariadb, fromIndex, snapshotKey); !result.IsZero() || err != nil {
 		return result, err
 	}
 
 	if physicalBackup.Spec.Storage.VolumeSnapshot == nil {
-		if result, err := r.reconcileRollingInitJobs(ctx, mariadb, fromIndex); !result.IsZero() || err != nil {
+		replication := ptr.Deref(mariadb.Spec.Replication, mariadbv1alpha1.Replication{})
+		bootstrapFrom := ptr.Deref(replication.Replica.ReplicaBootstrapFrom, mariadbv1alpha1.ReplicaBootstrapFrom{})
+
+		if result, err := r.reconcileRollingInitJobs(
+			ctx,
+			mariadb,
+			fromIndex,
+			builder.WithPhysicalBackup(physicalBackup, time.Now(), bootstrapFrom.RestoreJob),
+		); !result.IsZero() || err != nil {
 			return result, err
 		}
-		if err := r.cleanupInitJobs(ctx, mariadb, fromIndex); err != nil {
-			return ctrl.Result{}, err
-		}
-	}
-
-	if err := r.cleanupPhysicalBackup(ctx, mariadb); err != nil {
-		return ctrl.Result{}, err
-	}
-
-	if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
-		condition.SetScaledOut(status)
-		return nil
-	}); err != nil {
-		return ctrl.Result{}, fmt.Errorf("error patching MariaDB status: %v", err)
 	}
 	return ctrl.Result{}, nil
 }
@@ -111,6 +96,62 @@ func (r *MariaDBReconciler) isScalingOut(ctx context.Context, mariadb *mariadbv1
 	return sts.Status.Replicas > 0 &&
 		sts.Status.Replicas == sts.Status.ReadyReplicas &&
 		sts.Status.Replicas < mariadb.Spec.Replicas, nil
+}
+
+func (r *MariaDBReconciler) reconcileScaleOutError(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, fromIndex int,
+	logger logr.Logger) (ctrl.Result, error) {
+	replication := ptr.Deref(mariadb.Spec.Replication, mariadbv1alpha1.Replication{})
+
+	if replication.Replica.ReplicaBootstrapFrom == nil {
+		r.Recorder.Eventf(mariadb, corev1.EventTypeWarning, mariadbv1alpha1.ReasonMariaDBScaleOutError,
+			"Unable to scale out MariaDB: replica datasource not found (replication.replica.bootstrapFrom is nil)")
+
+		if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
+			condition.SetScaleOutError(status, "replica datasource not found (replication.replica.bootstrapFrom is nil)")
+			return nil
+		}); err != nil {
+			return ctrl.Result{}, fmt.Errorf("error patching MariaDB status: %v", err)
+		}
+
+		logger.Info("Unable to scale out MariaDB: replica datasource not found (replication.replica.bootstrapFrom is nil). Requeuing...")
+		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+	}
+
+	pvcsAlreadyExist, err := r.pvcAlreadyExists(ctx, mariadb, fromIndex)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error checking PVCs: %v", err)
+	}
+	if pvcsAlreadyExist {
+		r.Recorder.Eventf(mariadb, corev1.EventTypeWarning, mariadbv1alpha1.ReasonMariaDBScaleOutError,
+			"Unable to scale out MariaDB: storage PVCs already exist")
+
+		if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
+			condition.SetScaleOutError(status, "storage PVCs already exist")
+			return nil
+		}); err != nil {
+			return ctrl.Result{}, fmt.Errorf("error patching MariaDB status: %v", err)
+		}
+
+		logger.Info("Unable to scale out MariaDB: storage PVCs already exist. Requeuing...")
+		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+	}
+
+	return ctrl.Result{}, nil
+}
+
+func (r *MariaDBReconciler) pvcAlreadyExists(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, fromIndex int) (bool, error) {
+	for i := fromIndex; i < int(mariadb.Spec.Replicas); i++ {
+		pvcKey := mariadb.PVCKey(builder.StorageVolumeRole, i)
+		var pvc corev1.PersistentVolumeClaim
+		if err := r.Get(ctx, pvcKey, &pvc); err != nil {
+			if apierrors.IsNotFound(err) {
+				continue
+			}
+			return false, fmt.Errorf("error getting PVC: %v", err)
+		}
+		return true, fmt.Errorf("PVC %s already exists", pvcKey.Name)
+	}
+	return false, nil
 }
 
 func (r *MariaDBReconciler) reconcilePhysicalBackup(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
@@ -191,6 +232,26 @@ func (r *MariaDBReconciler) getVolumeSnapshotKey(ctx context.Context, mariadb *m
 		return nil, errors.New("VolumeSnapshot not found")
 	}
 	return ptr.To(client.ObjectKeyFromObject(&snapshotList.Items[0])), nil
+}
+
+func (r *MariaDBReconciler) setScaledOutAndCleanup(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
+	if !mariadb.IsScalingOut() {
+		return nil
+	}
+	if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
+		condition.SetScaledOut(status)
+		return nil
+	}); err != nil {
+		return fmt.Errorf("error patching MariaDB status: %v", err)
+	}
+
+	if err := r.cleanupPhysicalBackup(ctx, mariadb); err != nil {
+		return err
+	}
+	if err := r.cleanupInitJobs(ctx, mariadb, 0); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (r *MariaDBReconciler) cleanupPhysicalBackup(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {

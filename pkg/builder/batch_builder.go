@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
 	labels "github.com/mariadb-operator/mariadb-operator/v25/pkg/builder/labels"
@@ -394,13 +395,53 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 	return job, nil
 }
 
-func (b *Builder) BuildPhysicalBackupRestoreJob(key types.NamespacedName, mariadb *mariadbv1alpha1.MariaDB,
-	podIndex *int) (*batchv1.Job, error) {
-	if mariadb.Spec.BootstrapFrom == nil {
-		return nil, errors.New("spec.bootstrapFrom must be set")
+type PhysicalBackupRestoreOpts struct {
+	TargetRecoveryTime *time.Time
+	Volume             *mariadbv1alpha1.StorageVolumeSource
+	S3                 *mariadbv1alpha1.S3
+	RestoreJob         *mariadbv1alpha1.Job
+}
+
+type PhysicalBackupRestoreOpt func(*PhysicalBackupRestoreOpts) error
+
+func WithBootstrapFrom(bootstrapFrom *mariadbv1alpha1.BootstrapFrom) PhysicalBackupRestoreOpt {
+	return func(opts *PhysicalBackupRestoreOpts) error {
+		opts.TargetRecoveryTime = ptr.To(bootstrapFrom.TargetRecoveryTimeOrDefault())
+		opts.Volume = bootstrapFrom.Volume
+		opts.S3 = bootstrapFrom.S3
+		opts.RestoreJob = bootstrapFrom.RestoreJob
+		return nil
 	}
-	if mariadb.Spec.BootstrapFrom.Volume == nil {
-		return nil, errors.New("spec.bootstrapFrom.volume must be set")
+}
+
+func WithPhysicalBackup(pb *mariadbv1alpha1.PhysicalBackup, targetRecoveryTime time.Time,
+	restoreJob *mariadbv1alpha1.Job) PhysicalBackupRestoreOpt {
+	return func(opts *PhysicalBackupRestoreOpts) error {
+		volume, err := pb.Volume()
+		if err != nil {
+			return err
+		}
+		opts.TargetRecoveryTime = ptr.To(targetRecoveryTime)
+		opts.Volume = &volume
+		opts.S3 = pb.Spec.Storage.S3
+		opts.RestoreJob = restoreJob
+		return nil
+	}
+}
+
+func (b *Builder) BuildPhysicalBackupRestoreJob(key types.NamespacedName, mariadb *mariadbv1alpha1.MariaDB,
+	podIndex *int, restoreOpts ...PhysicalBackupRestoreOpt) (*batchv1.Job, error) {
+	opts := PhysicalBackupRestoreOpts{}
+	for _, setOpt := range restoreOpts {
+		if err := setOpt(&opts); err != nil {
+			return nil, fmt.Errorf("error setting restore option: %v", err)
+		}
+	}
+	if opts.TargetRecoveryTime == nil {
+		return nil, errors.New("targetRecoveryTime option must be set")
+	}
+	if opts.Volume == nil {
+		return nil, errors.New("volume option must be set")
 	}
 
 	jobMeta :=
@@ -425,10 +466,10 @@ func (b *Builder) BuildPhysicalBackupRestoreJob(key types.NamespacedName, mariad
 			batchStorageMountPath,
 			batchBackupTargetFilePath,
 		),
-		command.WithBackupTargetTime(mariadb.Spec.BootstrapFrom.TargetRecoveryTimeOrDefault()),
+		command.WithBackupTargetTime(*opts.TargetRecoveryTime),
 		command.WithOmitCredentials(true),
 	}
-	cmdOpts = append(cmdOpts, s3Opts(mariadb.Spec.BootstrapFrom.S3)...)
+	cmdOpts = append(cmdOpts, s3Opts(opts.S3)...)
 
 	cmd, err := command.NewBackupCommand(cmdOpts...)
 	if err != nil {
@@ -439,13 +480,13 @@ func (b *Builder) BuildPhysicalBackupRestoreJob(key types.NamespacedName, mariad
 		return nil, fmt.Errorf("error getting mariadb-backup restore command: %v", err)
 	}
 
-	volumes, volumeMounts := jobPhysicalBackupVolumes(*mariadb.Spec.BootstrapFrom.Volume, mariadb.Spec.BootstrapFrom.S3, mariadb, podIndex)
-	restoreJob := ptr.Deref(mariadb.Spec.BootstrapFrom.RestoreJob, mariadbv1alpha1.Job{})
+	volumes, volumeMounts := jobPhysicalBackupVolumes(*opts.Volume, opts.S3, mariadb, podIndex)
+	restoreJob := ptr.Deref(opts.RestoreJob, mariadbv1alpha1.Job{})
 
 	operatorContainer, err := b.jobMariadbOperatorContainer(
 		cmd.MariadbOperatorRestore(mariadbv1alpha1.BackupContentTypePhysical, &batchPhysicalBackupDirFullPath),
 		volumeMounts,
-		jobS3Env(mariadb.Spec.BootstrapFrom.S3),
+		jobS3Env(opts.S3),
 		jobResources(restoreJob.Resources),
 		mariadb,
 		b.env,

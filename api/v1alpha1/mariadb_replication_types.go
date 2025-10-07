@@ -118,6 +118,10 @@ type ReplicaBootstrapFrom struct {
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	PhysicalBackupTemplateRef LocalObjectReference `json:"physicalBackupTemplateRef"`
+	// RestoreJob defines additional properties for the Job used to perform the restoration.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	RestoreJob *Job `json:"restoreJob,omitempty"`
 }
 
 // ReplicaReplication is the replication configuration for the replica nodes.

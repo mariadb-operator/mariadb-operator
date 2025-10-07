@@ -12,7 +12,7 @@ func SetScaledOut(c Conditioner) {
 		Type:    mariadbv1alpha1.ConditionTypeScaledOut,
 		Status:  metav1.ConditionTrue,
 		Reason:  mariadbv1alpha1.ConditionReasonScaledOut,
-		Message: "Initialized",
+		Message: "Scaled out",
 	})
 }
 

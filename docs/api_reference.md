@@ -1044,6 +1044,7 @@ Job defines a Job used to be used with MariaDB.
 
 _Appears in:_
 - [BootstrapFrom](#bootstrapfrom)
+- [ReplicaBootstrapFrom](#replicabootstrapfrom)
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
@@ -2273,6 +2274,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `physicalBackupTemplateRef` _[LocalObjectReference](#localobjectreference)_ | PhysicalBackupTemplateRef is a reference to a PhysicalBackup object that will be used as template to create a new PhysicalBackup object<br />used synchronize the data from an up to date replica to the new replica to be bootstrapped. |  | Required: \{\} <br /> |
+| `restoreJob` _[Job](#job)_ | RestoreJob defines additional properties for the Job used to perform the restoration. |  |  |
 
 
 #### ReplicaReplication
