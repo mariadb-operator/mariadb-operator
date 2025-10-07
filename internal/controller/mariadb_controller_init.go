@@ -93,7 +93,12 @@ func (r *MariaDBReconciler) reconcilePhysicalBackupInit(ctx context.Context, mar
 	}
 
 	if bootstrapFrom.VolumeSnapshotRef == nil {
-		if result, err := r.reconcileRollingInitJobs(ctx, mariadb, fromIndex); !result.IsZero() || err != nil {
+		if result, err := r.reconcileRollingInitJobs(
+			ctx,
+			mariadb,
+			fromIndex,
+			builder.WithBootstrapFrom(mariadb.Spec.BootstrapFrom),
+		); !result.IsZero() || err != nil {
 			return result, err
 		}
 		if err := r.cleanupInitJobs(ctx, mariadb, fromIndex); err != nil {
@@ -178,11 +183,17 @@ func (r *MariaDBReconciler) waitForReadyVolumeSnapshot(ctx context.Context, key 
 }
 
 func (r *MariaDBReconciler) reconcileRollingInitJobs(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	fromIndex int) (ctrl.Result, error) {
+	fromIndex int, restoreOpts ...builder.PhysicalBackupRestoreOpt) (ctrl.Result, error) {
 	return r.forEachMariaDBPod(mariadb, fromIndex, func(podIndex int) (ctrl.Result, error) {
 		physicalBackupKey := mariadb.PhysicalBackupInitJobKey(podIndex)
 
-		if result, err := r.reconcileAndWaitForInitJob(ctx, mariadb, physicalBackupKey, podIndex); !result.IsZero() || err != nil {
+		if result, err := r.reconcileAndWaitForInitJob(
+			ctx,
+			mariadb,
+			physicalBackupKey,
+			podIndex,
+			restoreOpts...,
+		); !result.IsZero() || err != nil {
 			return result, err
 		}
 
@@ -199,11 +210,11 @@ func (r *MariaDBReconciler) reconcileRollingInitJobs(ctx context.Context, mariad
 }
 
 func (r *MariaDBReconciler) reconcileAndWaitForInitJob(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	key types.NamespacedName, podIndex int) (ctrl.Result, error) {
+	key types.NamespacedName, podIndex int, restoreOpts ...builder.PhysicalBackupRestoreOpt) (ctrl.Result, error) {
 	var job batchv1.Job
 	if err := r.Get(ctx, key, &job); err != nil {
 		if apierrors.IsNotFound(err) {
-			if err := r.createInitJob(ctx, mariadb, key, podIndex); err != nil {
+			if err := r.createInitJob(ctx, mariadb, key, podIndex, restoreOpts...); err != nil {
 				return ctrl.Result{}, err
 			}
 			return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
@@ -217,8 +228,13 @@ func (r *MariaDBReconciler) reconcileAndWaitForInitJob(ctx context.Context, mari
 }
 
 func (r *MariaDBReconciler) createInitJob(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	key types.NamespacedName, podIndex int) error {
-	job, err := r.Builder.BuildPhysicalBackupRestoreJob(key, mariadb, &podIndex)
+	key types.NamespacedName, podIndex int, restoreOpts ...builder.PhysicalBackupRestoreOpt) error {
+	job, err := r.Builder.BuildPhysicalBackupRestoreJob(
+		key,
+		mariadb,
+		&podIndex,
+		restoreOpts...,
+	)
 	if err != nil {
 		return fmt.Errorf("error building PhysicalBackup init Job: %v", err)
 	}

@@ -7778,6 +7778,346 @@ spec:
                                 default: ""
                                 type: string
                             type: object
+                          restoreJob:
+                            description: RestoreJob defines additional properties
+                              for the Job used to perform the restoration.
+                            properties:
+                              affinity:
+                                description: Affinity to be used in the Pod.
+                                properties:
+                                  antiAffinityEnabled:
+                                    description: |-
+                                      AntiAffinityEnabled configures PodAntiAffinity so each Pod is scheduled in a different Node, enabling HA.
+                                      Make sure you have at least as many Nodes available as the replicas to not end up with unscheduled Pods.
+                                    type: boolean
+                                  nodeAffinity:
+                                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeaffinity-v1-core'
+                                    properties:
+                                      preferredDuringSchedulingIgnoredDuringExecution:
+                                        items:
+                                          description: 'Refer to the Kubernetes docs:
+                                            https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#preferredschedulingterm-v1-core'
+                                          properties:
+                                            preference:
+                                              description: 'Refer to the Kubernetes
+                                                docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselectorterm-v1-core'
+                                              properties:
+                                                matchExpressions:
+                                                  items:
+                                                    description: 'Refer to the Kubernetes
+                                                      docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselectorrequirement-v1-core'
+                                                    properties:
+                                                      key:
+                                                        type: string
+                                                      operator:
+                                                        description: |-
+                                                          A node selector operator is the set of operators that can be used in
+                                                          a node selector requirement.
+                                                        type: string
+                                                      values:
+                                                        items:
+                                                          type: string
+                                                        type: array
+                                                        x-kubernetes-list-type: atomic
+                                                    required:
+                                                    - key
+                                                    - operator
+                                                    type: object
+                                                  type: array
+                                                  x-kubernetes-list-type: atomic
+                                                matchFields:
+                                                  items:
+                                                    description: 'Refer to the Kubernetes
+                                                      docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselectorrequirement-v1-core'
+                                                    properties:
+                                                      key:
+                                                        type: string
+                                                      operator:
+                                                        description: |-
+                                                          A node selector operator is the set of operators that can be used in
+                                                          a node selector requirement.
+                                                        type: string
+                                                      values:
+                                                        items:
+                                                          type: string
+                                                        type: array
+                                                        x-kubernetes-list-type: atomic
+                                                    required:
+                                                    - key
+                                                    - operator
+                                                    type: object
+                                                  type: array
+                                                  x-kubernetes-list-type: atomic
+                                              type: object
+                                            weight:
+                                              format: int32
+                                              type: integer
+                                          required:
+                                          - preference
+                                          - weight
+                                          type: object
+                                        type: array
+                                        x-kubernetes-list-type: atomic
+                                      requiredDuringSchedulingIgnoredDuringExecution:
+                                        description: 'Refer to the Kubernetes docs:
+                                          https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselector-v1-core'
+                                        properties:
+                                          nodeSelectorTerms:
+                                            items:
+                                              description: 'Refer to the Kubernetes
+                                                docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselectorterm-v1-core'
+                                              properties:
+                                                matchExpressions:
+                                                  items:
+                                                    description: 'Refer to the Kubernetes
+                                                      docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselectorrequirement-v1-core'
+                                                    properties:
+                                                      key:
+                                                        type: string
+                                                      operator:
+                                                        description: |-
+                                                          A node selector operator is the set of operators that can be used in
+                                                          a node selector requirement.
+                                                        type: string
+                                                      values:
+                                                        items:
+                                                          type: string
+                                                        type: array
+                                                        x-kubernetes-list-type: atomic
+                                                    required:
+                                                    - key
+                                                    - operator
+                                                    type: object
+                                                  type: array
+                                                  x-kubernetes-list-type: atomic
+                                                matchFields:
+                                                  items:
+                                                    description: 'Refer to the Kubernetes
+                                                      docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselectorrequirement-v1-core'
+                                                    properties:
+                                                      key:
+                                                        type: string
+                                                      operator:
+                                                        description: |-
+                                                          A node selector operator is the set of operators that can be used in
+                                                          a node selector requirement.
+                                                        type: string
+                                                      values:
+                                                        items:
+                                                          type: string
+                                                        type: array
+                                                        x-kubernetes-list-type: atomic
+                                                    required:
+                                                    - key
+                                                    - operator
+                                                    type: object
+                                                  type: array
+                                                  x-kubernetes-list-type: atomic
+                                              type: object
+                                            type: array
+                                            x-kubernetes-list-type: atomic
+                                        required:
+                                        - nodeSelectorTerms
+                                        type: object
+                                    type: object
+                                  podAntiAffinity:
+                                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#podantiaffinity-v1-core.'
+                                    properties:
+                                      preferredDuringSchedulingIgnoredDuringExecution:
+                                        items:
+                                          description: 'Refer to the Kubernetes docs:
+                                            https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#weightedpodaffinityterm-v1-core.'
+                                          properties:
+                                            podAffinityTerm:
+                                              description: 'Refer to the Kubernetes
+                                                docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#podaffinityterm-v1-core.'
+                                              properties:
+                                                labelSelector:
+                                                  description: 'Refer to the Kubernetes
+                                                    docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#labelselector-v1-meta'
+                                                  properties:
+                                                    matchExpressions:
+                                                      items:
+                                                        description: 'Refer to the
+                                                          Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#labelselectorrequirement-v1-meta'
+                                                        properties:
+                                                          key:
+                                                            type: string
+                                                          operator:
+                                                            description: A label selector
+                                                              operator is the set
+                                                              of operators that can
+                                                              be used in a selector
+                                                              requirement.
+                                                            type: string
+                                                          values:
+                                                            items:
+                                                              type: string
+                                                            type: array
+                                                            x-kubernetes-list-type: atomic
+                                                        required:
+                                                        - key
+                                                        - operator
+                                                        type: object
+                                                      type: array
+                                                      x-kubernetes-list-type: atomic
+                                                    matchLabels:
+                                                      additionalProperties:
+                                                        type: string
+                                                      type: object
+                                                  type: object
+                                                topologyKey:
+                                                  type: string
+                                              required:
+                                              - topologyKey
+                                              type: object
+                                            weight:
+                                              format: int32
+                                              type: integer
+                                          required:
+                                          - podAffinityTerm
+                                          - weight
+                                          type: object
+                                        type: array
+                                        x-kubernetes-list-type: atomic
+                                      requiredDuringSchedulingIgnoredDuringExecution:
+                                        items:
+                                          description: 'Refer to the Kubernetes docs:
+                                            https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#podaffinityterm-v1-core.'
+                                          properties:
+                                            labelSelector:
+                                              description: 'Refer to the Kubernetes
+                                                docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#labelselector-v1-meta'
+                                              properties:
+                                                matchExpressions:
+                                                  items:
+                                                    description: 'Refer to the Kubernetes
+                                                      docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#labelselectorrequirement-v1-meta'
+                                                    properties:
+                                                      key:
+                                                        type: string
+                                                      operator:
+                                                        description: A label selector
+                                                          operator is the set of operators
+                                                          that can be used in a selector
+                                                          requirement.
+                                                        type: string
+                                                      values:
+                                                        items:
+                                                          type: string
+                                                        type: array
+                                                        x-kubernetes-list-type: atomic
+                                                    required:
+                                                    - key
+                                                    - operator
+                                                    type: object
+                                                  type: array
+                                                  x-kubernetes-list-type: atomic
+                                                matchLabels:
+                                                  additionalProperties:
+                                                    type: string
+                                                  type: object
+                                              type: object
+                                            topologyKey:
+                                              type: string
+                                          required:
+                                          - topologyKey
+                                          type: object
+                                        type: array
+                                        x-kubernetes-list-type: atomic
+                                    type: object
+                                type: object
+                              args:
+                                description: Args to be used in the Container.
+                                items:
+                                  type: string
+                                type: array
+                              metadata:
+                                description: Metadata defines additional metadata
+                                  for the bootstrap Jobs.
+                                properties:
+                                  annotations:
+                                    additionalProperties:
+                                      type: string
+                                    description: Annotations to be added to children
+                                      resources.
+                                    type: object
+                                  labels:
+                                    additionalProperties:
+                                      type: string
+                                    description: Labels to be added to children resources.
+                                    type: object
+                                type: object
+                              nodeSelector:
+                                additionalProperties:
+                                  type: string
+                                description: NodeSelector to be used in the Pod.
+                                type: object
+                              resources:
+                                description: Resources describes the compute resource
+                                  requirements.
+                                properties:
+                                  limits:
+                                    additionalProperties:
+                                      anyOf:
+                                      - type: integer
+                                      - type: string
+                                      pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                      x-kubernetes-int-or-string: true
+                                    description: ResourceList is a set of (resource
+                                      name, quantity) pairs.
+                                    type: object
+                                  requests:
+                                    additionalProperties:
+                                      anyOf:
+                                      - type: integer
+                                      - type: string
+                                      pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                      x-kubernetes-int-or-string: true
+                                    description: ResourceList is a set of (resource
+                                      name, quantity) pairs.
+                                    type: object
+                                type: object
+                              tolerations:
+                                description: Tolerations to be used in the Pod.
+                                items:
+                                  description: |-
+                                    The pod this Toleration is attached to tolerates any taint that matches
+                                    the triple <key,value,effect> using the matching operator <operator>.
+                                  properties:
+                                    effect:
+                                      description: |-
+                                        Effect indicates the taint effect to match. Empty means match all taint effects.
+                                        When specified, allowed values are NoSchedule, PreferNoSchedule and NoExecute.
+                                      type: string
+                                    key:
+                                      description: |-
+                                        Key is the taint key that the toleration applies to. Empty means match all taint keys.
+                                        If the key is empty, operator must be Exists; this combination means to match all values and all keys.
+                                      type: string
+                                    operator:
+                                      description: |-
+                                        Operator represents a key's relationship to the value.
+                                        Valid operators are Exists and Equal. Defaults to Equal.
+                                        Exists is equivalent to wildcard for value, so that a pod can
+                                        tolerate all taints of a particular category.
+                                      type: string
+                                    tolerationSeconds:
+                                      description: |-
+                                        TolerationSeconds represents the period of time the toleration (which must be
+                                        of effect NoExecute, otherwise this field is ignored) tolerates the taint. By default,
+                                        it is not set, which means tolerate the taint forever (do not evict). Zero and
+                                        negative values will be treated as 0 (evict immediately) by the system.
+                                      format: int64
+                                      type: integer
+                                    value:
+                                      description: |-
+                                        Value is the taint value the toleration matches to.
+                                        If the operator is Exists, the value should be empty, otherwise just a regular string.
+                                      type: string
+                                  type: object
+                                type: array
+                            type: object
                         required:
                         - physicalBackupTemplateRef
                         type: object
