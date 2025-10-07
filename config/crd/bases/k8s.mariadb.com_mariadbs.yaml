@@ -7216,7 +7216,22 @@ spec:
                     description: ReplicasToConfigure are the replicas that the operator
                       will configure replication on.
                     items:
-                      type: string
+                      description: ReplicaToConfigure is a replica that the operator
+                        will configure replication on.
+                      properties:
+                        name:
+                          description: Name of the replica.
+                          type: string
+                        volumeSnapshotRef:
+                          description: |-
+                            VolumeSnapshotRef is a reference to the VolumeSnapshot to be used to configure the replica.
+                            If not provided, configuration from mariadb-backup is assumed.
+                          properties:
+                            name:
+                              default: ""
+                              type: string
+                          type: object
+                      type: object
                     type: array
                   state:
                     additionalProperties:

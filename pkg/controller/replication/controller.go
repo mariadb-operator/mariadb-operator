@@ -2,6 +2,7 @@ package replication
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -247,25 +248,28 @@ func (r *ReplicationReconciler) getReplicaOpts(ctx context.Context, req *reconci
 	if !req.mariadb.ReplicaNeedsConfiguration(pod) {
 		return nil, nil
 	}
-	bootstrapFrom := ptr.Deref(req.mariadb.Spec.BootstrapFrom, mariadbv1alpha1.BootstrapFrom{})
+	replica := req.mariadb.GetReplicaToConfigure(pod)
+	if replica == nil {
+		return nil, errors.New("replica to configure not found")
+	}
 
 	var gtid string
-	if bootstrapFrom.VolumeSnapshotRef != nil {
+	if replica.VolumeSnapshotRef != nil {
 		snapshotKey := types.NamespacedName{
-			Name:      bootstrapFrom.VolumeSnapshotRef.Name,
+			Name:      replica.VolumeSnapshotRef.Name,
 			Namespace: req.mariadb.Namespace,
 		}
 		var snapshot volumesnapshotv1.VolumeSnapshot
 		if err := r.Get(ctx, snapshotKey, &snapshot); err != nil {
-			return nil, fmt.Errorf("error getting bootstrap VolumeSnapshot: %v", err)
+			return nil, fmt.Errorf("error getting %s VolumeSnapshot: %v", snapshotKey.Name, err)
 		}
 		snapshotGtid, ok := snapshot.Annotations[metadata.GtidAnnotation]
 		if !ok {
-			return nil, fmt.Errorf("could not find GTID annotation \"%s\" in VolumeSnapshot", metadata.GtidAnnotation)
+			return nil, fmt.Errorf("could not find GTID annotation %s in VolumeSnapshot", metadata.GtidAnnotation)
 		}
 
 		gtid = snapshotGtid
-		logger.Info("Got replica GTID from VolumeSnapshot", "gtid", gtid)
+		logger.Info("Got replica GTID from VolumeSnapshot", "gtid", gtid, "snapshot", snapshot.Name)
 	} else {
 		agentClient, err := req.agentClientSet.ClientForIndex(index)
 		if err != nil {

@@ -74,6 +74,15 @@ func (r *MariaDBReconciler) reconcileScaleOut(ctx context.Context, mariadb *mari
 		return result, err
 	}
 
+	addReplicasToConfigure := func() error {
+		if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
+			return r.addReplicasToConfigure(ctx, mariadb, fromIndex, snapshotKey, logger)
+		}); err != nil {
+			return fmt.Errorf("error patching MariaDB status: %v", err)
+		}
+		return nil
+	}
+
 	if physicalBackup.Spec.Storage.VolumeSnapshot == nil {
 		replication := ptr.Deref(mariadb.Spec.Replication, mariadbv1alpha1.Replication{})
 		bootstrapFrom := ptr.Deref(replication.Replica.ReplicaBootstrapFrom, mariadbv1alpha1.ReplicaBootstrapFrom{})
@@ -88,23 +97,15 @@ func (r *MariaDBReconciler) reconcileScaleOut(ctx context.Context, mariadb *mari
 			withPodInitializedFn(func(podIndex int) error {
 				// last replica
 				if podIndex+1 == int(mariadb.Spec.Replicas) {
-					logger.Info("Adding replicas to configure")
-					// if err := r.addReplicasToConfigure(ctx, mariadb, fromIndex, logger); err != nil {
-					// 	return fmt.Errorf("error adding replicas to configure: %v", err)
-					// }
+					return addReplicasToConfigure()
 				}
 				return nil
 			}),
 		); !result.IsZero() || err != nil {
 			return result, err
 		}
-	} else {
-		logger.Info("Adding replicas to configure")
-		// if err := r.addReplicasToConfigure(ctx, mariadb, fromIndex, logger); err != nil {
-		// 	return ctrl.Result{}, err
-		// }
 	}
-	return ctrl.Result{}, nil
+	return ctrl.Result{}, addReplicasToConfigure()
 }
 
 func (r *MariaDBReconciler) isScalingOut(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, sts *appsv1.StatefulSet) (bool, error) {

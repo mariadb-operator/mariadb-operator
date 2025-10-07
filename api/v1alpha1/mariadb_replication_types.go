@@ -304,7 +304,12 @@ func (m *MariaDB) HasConfiguredReplica() bool {
 	if m.Status.Replication == nil {
 		return false
 	}
-	return m.Status.Replication.HasConfiguredReplica()
+	for _, state := range m.Status.Replication.State {
+		if state == ReplicationStateReplica {
+			return true
+		}
+	}
+	return false
 }
 
 // IsConfiguredReplica determines whether a specific replica has been configured.
@@ -312,31 +317,46 @@ func (m *MariaDB) IsConfiguredReplica(podName string) bool {
 	if m.Status.Replication == nil {
 		return false
 	}
-	return m.Status.Replication.IsConfiguredReplica(podName)
+	for pod, state := range m.Status.Replication.State {
+		if pod == podName && state == ReplicationStateReplica {
+			return true
+		}
+	}
+	return false
 }
 
-// AddReplicasToConfigure adds replicas to be configured.
-func (m *MariaDB) AddReplicasToConfigure(replicas ...string) {
+// SetReplicasToConfigure sets replicas to be configured.
+func (m *MariaDB) SetReplicasToConfigure(replicas ...ReplicaToConfigure) {
 	if m.Status.Replication == nil {
 		m.Status.Replication = &ReplicationStatus{}
 	}
-	m.Status.Replication.AddReplicasToConfigure(replicas...)
+	m.Status.Replication.ReplicasToConfigure = replicas
 }
 
 // ReplicaNeedsConfiguration indicates whether a replica needs to be configured.
-func (m *MariaDB) ReplicaNeedsConfiguration(replica string) bool {
+func (m *MariaDB) ReplicaNeedsConfiguration(replicaName string) bool {
+	return m.GetReplicaToConfigure(replicaName) != nil
+}
+
+// ReplicaConfigurationSource returns the replica to be configured
+func (m *MariaDB) GetReplicaToConfigure(replicaName string) *ReplicaToConfigure {
 	if m.Status.Replication == nil {
-		return false
+		return nil
 	}
-	return m.Status.Replication.ReplicaNeedsConfiguration(replica)
+	return datastructures.Find(m.Status.Replication.ReplicasToConfigure, func(r ReplicaToConfigure) bool {
+		return r.Name == replicaName
+	})
 }
 
 // MarkReplicaAsConfigured marks a replica as configured.
-func (m *MariaDB) MarkReplicaAsConfigured(replica string) {
+func (m *MariaDB) MarkReplicaAsConfigured(replicaName string) {
 	if m.Status.Replication == nil {
 		return
 	}
-	m.Status.Replication.MarkReplicaAsConfigured(replica)
+	m.Status.Replication.ReplicasToConfigure =
+		datastructures.Remove(m.Status.Replication.ReplicasToConfigure, func(r ReplicaToConfigure) bool {
+			return r.Name == replicaName
+		})
 }
 
 // IsSwitchingPrimary indicates whether a primary swichover operation is in progress.
@@ -364,49 +384,27 @@ const (
 	ReplicationStateNotConfigured ReplicationState = "NotConfigured"
 )
 
+// ReplicaToConfigure is a replica that the operator will configure replication on.
+type ReplicaToConfigure struct {
+	// Name of the replica.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	Name string `json:"name"`
+	// VolumeSnapshotRef is a reference to the VolumeSnapshot to be used to configure the replica.
+	// If not provided, configuration from mariadb-backup is assumed.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	VolumeSnapshotRef *LocalObjectReference `json:"volumeSnapshotRef,omitempty"`
+}
+
 // ReplicationStatus is the replication current state.
 type ReplicationStatus struct {
 	// State is the observed replication state for each Pod.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
 	State map[string]ReplicationState `json:"state,omitempty"`
 	// ReplicasToConfigure are the replicas that the operator will configure replication on.
-	ReplicasToConfigure []string `json:"replicasToConfigure,omitempty"`
-}
-
-// HasConfiguredReplica determines whether at least one replica has been configured.
-func (r *ReplicationStatus) HasConfiguredReplica() bool {
-	for _, state := range r.State {
-		if state == ReplicationStateReplica {
-			return true
-		}
-	}
-	return false
-}
-
-// IsConfiguredReplica determines whether a specific replica has been configured.
-func (r *ReplicationStatus) IsConfiguredReplica(podName string) bool {
-	for pod, state := range r.State {
-		if pod == podName && state == ReplicationStateReplica {
-			return true
-		}
-	}
-	return false
-}
-
-// AddReplicasToConfigure adds replicas to be configure.
-func (r *ReplicationStatus) AddReplicasToConfigure(replicas ...string) {
-	r.ReplicasToConfigure = datastructures.Unique(replicas...)
-}
-
-// ReplicaNeedsConfiguration indicates whether a replica needs to be configuration.
-func (r *ReplicationStatus) ReplicaNeedsConfiguration(replica string) bool {
-	return datastructures.Any(r.ReplicasToConfigure, func(r string) bool {
-		return r == replica
-	})
-}
-
-// MarkReplicaAsConfigured marks a replica as configured.
-func (r *ReplicationStatus) MarkReplicaAsConfigured(replica string) {
-	r.ReplicasToConfigure = datastructures.Remove(r.ReplicasToConfigure, func(r string) bool {
-		return r == replica
-	})
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	ReplicasToConfigure []ReplicaToConfigure `json:"replicasToConfigure,omitempty"`
 }
