@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -248,6 +249,9 @@ func (r *MariaDBReconciler) getVolumeSnapshotKey(ctx context.Context, mariadb *m
 	if len(snapshotList.Items) == 0 {
 		return nil, errors.New("VolumeSnapshot not found")
 	}
+	sort.Slice(snapshotList.Items, func(i, j int) bool {
+		return snapshotList.Items[i].CreationTimestamp.After(snapshotList.Items[j].CreationTimestamp.Time)
+	})
 	return ptr.To(client.ObjectKeyFromObject(&snapshotList.Items[0])), nil
 }
 
