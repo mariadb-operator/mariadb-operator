@@ -12,7 +12,7 @@ spec:
     storageClassName: csi-hostpath-sc
 
   # Increase number of replicas to trigger scaleout process
-  replicas: 3
+  replicas: 4
   # TODO: remove
   replicasAllowEvenNumber: true
 
@@ -77,10 +77,12 @@ spec:
 # apiVersion: k8s.mariadb.com/v1alpha1
 # kind: PhysicalBackup
 # metadata:
-#   name: physicalbackup
+#   name: physicalbackup-repl
 # spec:
 #   mariaDbRef:
-#     name: mariadb
+#     name: mariadb-repl
+#   schedule:
+#     suspend: true
 #   storage:
 #     volumeSnapshot:
 #       volumeSnapshotClassName: csi-hostpath-snapclass
