@@ -155,11 +155,11 @@ func (r *MariaDBReconciler) getMaxScalePrimaryPod(ctx context.Context, mdb *mari
 }
 
 func (r *MariaDBReconciler) setUpdatedCondition(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) error {
-	stsUpdateRevision, err := r.getStatefulSetRevision(ctx, mdb)
-	if err != nil {
+	var sts appsv1.StatefulSet
+	if err := r.Get(ctx, client.ObjectKeyFromObject(mdb), &sts); err != nil {
 		return err
 	}
-	if stsUpdateRevision == "" {
+	if sts.Status.UpdateRevision == "" {
 		return nil
 	}
 
@@ -178,14 +178,14 @@ func (r *MariaDBReconciler) setUpdatedCondition(ctx context.Context, mdb *mariad
 
 	podsUpdated := 0
 	for _, pod := range list.Items {
-		if podpkg.PodUpdated(&pod, stsUpdateRevision) {
+		if podpkg.PodUpdated(&pod, sts.Status.UpdateRevision) {
 			podsUpdated++
 		}
 	}
 
 	logger := log.FromContext(ctx)
 
-	if podsUpdated >= int(mdb.Spec.Replicas) {
+	if podsUpdated >= int(sts.Status.Replicas) {
 		logger.V(1).Info("MariaDB is up to date")
 		condition.SetUpdated(&mdb.Status)
 	} else if podsUpdated > 0 {
@@ -196,14 +196,6 @@ func (r *MariaDBReconciler) setUpdatedCondition(ctx context.Context, mdb *mariad
 		condition.SetPendingUpdate(&mdb.Status)
 	}
 	return nil
-}
-
-func (r *MariaDBReconciler) getStatefulSetRevision(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) (string, error) {
-	var sts appsv1.StatefulSet
-	if err := r.Get(ctx, client.ObjectKeyFromObject(mdb), &sts); err != nil {
-		return "", err
-	}
-	return sts.Status.UpdateRevision, nil
 }
 
 func podIndexForServer(serverName string, mxs *mariadbv1alpha1.MaxScale, mdb *mariadbv1alpha1.MariaDB) (*int, error) {
