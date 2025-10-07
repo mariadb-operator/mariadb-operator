@@ -97,7 +97,9 @@ func (r *MariaDBReconciler) reconcilePhysicalBackupInit(ctx context.Context, mar
 			ctx,
 			mariadb,
 			fromIndex,
-			builder.WithBootstrapFrom(mariadb.Spec.BootstrapFrom),
+			withRestoreOpts(
+				builder.WithBootstrapFrom(mariadb.Spec.BootstrapFrom),
+			),
 		); !result.IsZero() || err != nil {
 			return result, err
 		}
@@ -114,7 +116,7 @@ func (r *MariaDBReconciler) reconcilePhysicalBackupInit(ctx context.Context, mar
 		condition.SetRestoredPhysicalBackup(status)
 
 		if mariadb.IsReplicationEnabled() {
-			if err := r.addReplicasToConfigure(ctx, mariadb, logger); err != nil {
+			if err := r.addReplicasToConfigure(ctx, mariadb, fromIndex, logger); err != nil {
 				return err
 			}
 		}
@@ -182,8 +184,32 @@ func (r *MariaDBReconciler) waitForReadyVolumeSnapshot(ctx context.Context, key 
 	return ctrl.Result{}, nil
 }
 
+type rollingInitOpts struct {
+	restoreOpts      []builder.PhysicalBackupRestoreOpt
+	podInitializedFn func(podIndex int) error
+}
+
+type rollingInitOpt func(*rollingInitOpts)
+
+func withRestoreOpts(opts ...builder.PhysicalBackupRestoreOpt) rollingInitOpt {
+	return func(rio *rollingInitOpts) {
+		rio.restoreOpts = opts
+	}
+}
+
+func withPodInitializedFn(fn func(podIndex int) error) rollingInitOpt {
+	return func(rio *rollingInitOpts) {
+		rio.podInitializedFn = fn
+	}
+}
+
 func (r *MariaDBReconciler) reconcileRollingInitJobs(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	fromIndex int, restoreOpts ...builder.PhysicalBackupRestoreOpt) (ctrl.Result, error) {
+	fromIndex int, riopts ...rollingInitOpt) (ctrl.Result, error) {
+	opts := rollingInitOpts{}
+	for _, setOpt := range riopts {
+		setOpt(&opts)
+	}
+
 	return r.forEachMariaDBPod(mariadb, fromIndex, func(podIndex int) (ctrl.Result, error) {
 		physicalBackupKey := mariadb.PhysicalBackupInitJobKey(podIndex)
 
@@ -192,13 +218,18 @@ func (r *MariaDBReconciler) reconcileRollingInitJobs(ctx context.Context, mariad
 			mariadb,
 			physicalBackupKey,
 			podIndex,
-			restoreOpts...,
+			opts.restoreOpts...,
 		); !result.IsZero() || err != nil {
 			return result, err
 		}
 
 		if err := r.upscaleStatefulSet(ctx, mariadb, int32(podIndex+1)); err != nil {
 			return ctrl.Result{}, fmt.Errorf("error upscaling StatefulSet: %v", err)
+		}
+		if opts.podInitializedFn != nil {
+			if err := opts.podInitializedFn(podIndex); err != nil {
+				return ctrl.Result{}, fmt.Errorf("error initializing Pod %d: %v", podIndex, err)
+			}
 		}
 		if result, err := r.waitForPodScheduled(ctx, mariadb, podIndex); !result.IsZero() || err != nil {
 			return result, err
@@ -322,12 +353,13 @@ func (r *MariaDBReconciler) cleanupStagingPVC(ctx context.Context, mariadb *mari
 	return r.Delete(ctx, &pvc)
 }
 
-func (r *MariaDBReconciler) addReplicasToConfigure(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, logger logr.Logger) error {
+func (r *MariaDBReconciler) addReplicasToConfigure(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, fromIndex int,
+	logger logr.Logger) error {
 	if mariadb.Status.CurrentPrimaryPodIndex == nil {
 		return errors.New("'status.currentPrimaryPodIndex' must be set")
 	}
 	var replicas []string
-	for i := 0; i < int(mariadb.Spec.Replicas); i++ {
+	for i := fromIndex; i < int(mariadb.Spec.Replicas); i++ {
 		if i == *mariadb.Status.CurrentPrimaryPodIndex {
 			continue
 		}

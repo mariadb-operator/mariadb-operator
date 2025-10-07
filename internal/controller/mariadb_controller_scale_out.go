@@ -81,10 +81,27 @@ func (r *MariaDBReconciler) reconcileScaleOut(ctx context.Context, mariadb *mari
 			ctx,
 			mariadb,
 			fromIndex,
-			builder.WithPhysicalBackup(physicalBackup, time.Now(), bootstrapFrom.RestoreJob),
+			withRestoreOpts(
+				builder.WithPhysicalBackup(physicalBackup, time.Now(), bootstrapFrom.RestoreJob),
+			),
+			withPodInitializedFn(func(podIndex int) error {
+				// last replica
+				if podIndex+1 == int(mariadb.Spec.Replicas) {
+					logger.Info("Adding replicas to configure")
+					// if err := r.addReplicasToConfigure(ctx, mariadb, fromIndex, logger); err != nil {
+					// 	return fmt.Errorf("error adding replicas to configure: %v", err)
+					// }
+				}
+				return nil
+			}),
 		); !result.IsZero() || err != nil {
 			return result, err
 		}
+	} else {
+		logger.Info("Adding replicas to configure")
+		// if err := r.addReplicasToConfigure(ctx, mariadb, fromIndex, logger); err != nil {
+		// 	return ctrl.Result{}, err
+		// }
 	}
 	return ctrl.Result{}, nil
 }
