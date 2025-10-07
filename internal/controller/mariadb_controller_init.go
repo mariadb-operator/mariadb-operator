@@ -97,6 +97,7 @@ func (r *MariaDBReconciler) reconcilePhysicalBackupInit(ctx context.Context, mar
 			ctx,
 			mariadb,
 			fromIndex,
+			logger,
 			withRestoreOpts(
 				builder.WithBootstrapFrom(mariadb.Spec.BootstrapFrom),
 			),
@@ -204,7 +205,7 @@ func withPodInitializedFn(fn func(podIndex int) error) rollingInitOpt {
 }
 
 func (r *MariaDBReconciler) reconcileRollingInitJobs(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	fromIndex int, riopts ...rollingInitOpt) (ctrl.Result, error) {
+	fromIndex int, logger logr.Logger, riopts ...rollingInitOpt) (ctrl.Result, error) {
 	opts := rollingInitOpts{}
 	for _, setOpt := range riopts {
 		setOpt(&opts)
@@ -213,6 +214,7 @@ func (r *MariaDBReconciler) reconcileRollingInitJobs(ctx context.Context, mariad
 	return r.forEachMariaDBPod(mariadb, fromIndex, func(podIndex int) (ctrl.Result, error) {
 		physicalBackupKey := mariadb.PhysicalBackupInitJobKey(podIndex)
 
+		logger.V(1).Info("Reconciling init Job", "pod-index", podIndex)
 		if result, err := r.reconcileAndWaitForInitJob(
 			ctx,
 			mariadb,
@@ -223,7 +225,9 @@ func (r *MariaDBReconciler) reconcileRollingInitJobs(ctx context.Context, mariad
 			return result, err
 		}
 
-		if err := r.upscaleStatefulSet(ctx, mariadb, int32(podIndex+1)); err != nil {
+		newReplicas := int32(podIndex + 1)
+		logger.V(1).Info("Upscaling StatefulSet", "replicas", newReplicas)
+		if err := r.upscaleStatefulSet(ctx, mariadb, newReplicas); err != nil {
 			return ctrl.Result{}, fmt.Errorf("error upscaling StatefulSet: %v", err)
 		}
 		if opts.podInitializedFn != nil {
@@ -234,7 +238,7 @@ func (r *MariaDBReconciler) reconcileRollingInitJobs(ctx context.Context, mariad
 		if result, err := r.waitForPodScheduled(ctx, mariadb, podIndex); !result.IsZero() || err != nil {
 			return result, err
 		}
-		log.FromContext(ctx).V(1).Info("Pod successfully initialized", "pod", stsobj.PodName(mariadb.ObjectMeta, podIndex))
+		logger.V(1).Info("Pod successfully initialized", "pod", stsobj.PodName(mariadb.ObjectMeta, podIndex))
 
 		return ctrl.Result{}, nil
 	})

@@ -25,8 +25,6 @@ import (
 )
 
 func (r *MariaDBReconciler) reconcileScaleOut(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
-	logger := log.FromContext(ctx).WithName("scale-out")
-
 	var sts appsv1.StatefulSet
 	if err := r.Get(ctx, client.ObjectKeyFromObject(mariadb), &sts); err != nil {
 		return ctrl.Result{}, err
@@ -42,7 +40,10 @@ func (r *MariaDBReconciler) reconcileScaleOut(ctx context.Context, mariadb *mari
 		}
 		return ctrl.Result{}, nil
 	}
-	fromIndex := int(sts.Status.Replicas) // start one index after the last replica
+	fromIndex := ptr.Deref(mariadb.Status.ScaleOutInitialIndex, int(sts.Status.Replicas))
+	logger := log.FromContext(ctx).
+		WithName("scale-out").
+		WithValues("from-index", fromIndex)
 
 	if !mariadb.IsScalingOut() || mariadb.ScalingOutError() != nil {
 		if result, err := r.reconcileScaleOutError(ctx, mariadb, fromIndex, logger); !result.IsZero() || err != nil {
@@ -52,6 +53,7 @@ func (r *MariaDBReconciler) reconcileScaleOut(ctx context.Context, mariadb *mari
 
 	if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
 		condition.SetScalingOut(status)
+		status.ScaleOutInitialIndex = &fromIndex
 		return nil
 	}); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error patching MariaDB status: %v", err)
@@ -91,6 +93,7 @@ func (r *MariaDBReconciler) reconcileScaleOut(ctx context.Context, mariadb *mari
 			ctx,
 			mariadb,
 			fromIndex,
+			logger,
 			withRestoreOpts(
 				builder.WithPhysicalBackup(physicalBackup, time.Now(), bootstrapFrom.RestoreJob),
 			),
@@ -109,11 +112,19 @@ func (r *MariaDBReconciler) reconcileScaleOut(ctx context.Context, mariadb *mari
 }
 
 func (r *MariaDBReconciler) isScalingOut(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, sts *appsv1.StatefulSet) (bool, error) {
-	if !mariadb.IsReplicationEnabled() {
+	if !mariadb.IsReplicationEnabled() || sts.Status.Replicas == 0 {
 		return false, nil
 	}
-	return sts.Status.Replicas > 0 &&
-		sts.Status.Replicas == sts.Status.ReadyReplicas &&
+	// user is able to reset at any point by matching the number of existing replicas
+	if sts.Status.Replicas == mariadb.Spec.Replicas {
+		return false, nil
+	}
+	// ongoing scale out process
+	if mariadb.IsScalingOut() {
+		return true, nil
+	}
+	// initial condition for starting scale out process, all replicas should be ready
+	return sts.Status.Replicas == sts.Status.ReadyReplicas &&
 		sts.Status.Replicas < mariadb.Spec.Replicas, nil
 }
 
@@ -262,6 +273,7 @@ func (r *MariaDBReconciler) setScaledOutAndCleanup(ctx context.Context, mariadb 
 	}
 	if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
 		condition.SetScaledOut(status)
+		status.ScaleOutInitialIndex = nil
 		return nil
 	}); err != nil {
 		return fmt.Errorf("error patching MariaDB status: %v", err)
