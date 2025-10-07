@@ -15,12 +15,10 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -209,34 +207,20 @@ func (r *MariaDBReconciler) createPhysicalBackup(ctx context.Context, mariadb *m
 		return errors.New("replica datasource not found")
 	}
 
-	templateKey := types.NamespacedName{
+	tplKey := types.NamespacedName{
 		Name:      replication.Replica.ReplicaBootstrapFrom.PhysicalBackupTemplateRef.Name,
 		Namespace: mariadb.Namespace,
 	}
-	var physicalBackupTpl mariadbv1alpha1.PhysicalBackup
-	if err := r.Get(ctx, templateKey, &physicalBackupTpl); err != nil {
+	var tpl mariadbv1alpha1.PhysicalBackup
+	if err := r.Get(ctx, tplKey, &tpl); err != nil {
 		return fmt.Errorf("error getting PhysicalBackup template: %v", err)
 	}
 
-	physicalBackup := mariadbv1alpha1.PhysicalBackup{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      mariadb.PhysicalBackupScaleOutKey().Name,
-			Namespace: mariadb.Namespace,
-		},
-		Spec: physicalBackupTpl.Spec,
+	physicalBackup, err := r.Builder.BuildPhysicalBackup(mariadb.PhysicalBackupScaleOutKey(), &tpl, mariadb)
+	if err != nil {
+		return fmt.Errorf("error building PhysicalBackuo: %v", err)
 	}
-	physicalBackup.Spec.MariaDBRef = mariadbv1alpha1.MariaDBRef{
-		ObjectReference: mariadbv1alpha1.ObjectReference{
-			Name: mariadb.Name,
-		},
-	}
-	physicalBackup.Spec.Schedule = &mariadbv1alpha1.PhysicalBackupSchedule{
-		Immediate: ptr.To(true),
-	}
-	if err := controllerutil.SetControllerReference(mariadb, &physicalBackup, r.Scheme); err != nil {
-		return fmt.Errorf("error setting controller reference to PhysicalBackup: %v", err)
-	}
-	return r.Create(ctx, &physicalBackup)
+	return r.Create(ctx, physicalBackup)
 }
 
 func (r *MariaDBReconciler) getScaleOutPhysicalBackup(ctx context.Context,
