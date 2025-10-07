@@ -725,6 +725,10 @@ type MariaDBStatus struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	CurrentPrimaryFailingSince *metav1.Time `json:"currentPrimaryFailingSince,omitempty"`
+	// ScaleOutInitialIndex is the initial index where the scale out operation started.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	ScaleOutInitialIndex *int `json:"scaleOutInitialIndex,omitempty"`
 	// GaleraRecovery is the Galera recovery current state.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status

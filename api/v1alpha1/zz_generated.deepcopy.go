@@ -2234,6 +2234,11 @@ func (in *MariaDBStatus) DeepCopyInto(out *MariaDBStatus) {
 		in, out := &in.CurrentPrimaryFailingSince, &out.CurrentPrimaryFailingSince
 		*out = (*in).DeepCopy()
 	}
+	if in.ScaleOutInitialIndex != nil {
+		in, out := &in.ScaleOutInitialIndex, &out.ScaleOutInitialIndex
+		*out = new(int)
+		**out = **in
+	}
 	if in.GaleraRecovery != nil {
 		in, out := &in.GaleraRecovery, &out.GaleraRecovery
 		*out = new(GaleraRecoveryStatus)

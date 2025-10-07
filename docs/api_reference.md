@@ -358,23 +358,6 @@ _Appears in:_
 | `defaultMode` _integer_ |  |  |  |
 
 
-#### ConfigurationSource
-
-_Underlying type:_ _string_
-
-ConfigurationSource is a source to configure replicas
-
-
-
-_Appears in:_
-- [ReplicaToConfigure](#replicatoconfigure)
-
-| Field | Description |
-| --- | --- |
-| `BootstrapFrom` |  |
-| `BootstrapFromReplica` |  |
-
-
 #### Connection
 
 
