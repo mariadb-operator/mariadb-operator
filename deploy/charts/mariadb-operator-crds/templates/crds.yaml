@@ -9190,7 +9190,8 @@ spec:
             - message: 'An odd number of MariaDB instances (mariadb.spec.replicas)
                 is required to avoid split brain situations for Galera. Use ''mariadb.spec.replicasAllowEvenNumber:
                 true'' to disable this validation.'
-              rule: '!self.galera.enabled || (self.replicas % 2 == 1 || self.replicasAllowEvenNumber)'
+              rule: '!has(self.galera) || !self.galera.enabled || (self.replicas %
+                2 == 1 || self.replicasAllowEvenNumber)'
           status:
             description: MariaDBStatus defines the observed state of MariaDB
             properties:
