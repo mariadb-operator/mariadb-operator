@@ -44,10 +44,12 @@ func (r *MariaDBReconciler) reconcileUpdates(ctx context.Context, mdb *mariadbv1
 	mariadbKey := client.ObjectKeyFromObject(mdb)
 	logger := log.FromContext(ctx).WithName("update")
 
-	stsUpdateRevision, err := r.getStatefulSetRevision(ctx, mdb)
-	if err != nil {
+	var sts appsv1.StatefulSet
+	if err := r.Get(ctx, mariadbKey, &sts); err != nil {
 		return ctrl.Result{}, err
 	}
+	stsUpdateRevision := sts.Status.UpdateRevision
+
 	if stsUpdateRevision == "" {
 		logger.V(1).Info("StatefulSet status.updateRevision not set. Requeuing...")
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
