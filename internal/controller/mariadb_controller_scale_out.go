@@ -173,13 +173,13 @@ func (r *MariaDBReconciler) pvcAlreadyExists(ctx context.Context, mariadb *maria
 	for i := fromIndex; i < int(mariadb.Spec.Replicas); i++ {
 		pvcKey := mariadb.PVCKey(builder.StorageVolumeRole, i)
 		var pvc corev1.PersistentVolumeClaim
-		if err := r.Get(ctx, pvcKey, &pvc); err != nil {
-			if apierrors.IsNotFound(err) {
-				continue
-			}
-			return false, fmt.Errorf("error getting PVC: %v", err)
+		err := r.Get(ctx, pvcKey, &pvc)
+		if err == nil {
+			return true, nil
 		}
-		return true, fmt.Errorf("PVC %s already exists", pvcKey.Name)
+		if !apierrors.IsNotFound(err) {
+			return false, fmt.Errorf("error getting PVC %s: %v", pvcKey.Name, err)
+		}
 	}
 	return false, nil
 }
