@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/hashicorp/go-multierror"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
@@ -15,6 +16,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	klabels "k8s.io/apimachinery/pkg/labels"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -38,7 +40,11 @@ func (r *MariaDBReconciler) reconcileStatus(ctx context.Context, mdb *mariadbv1a
 
 	replState, replErr := r.getReplicationState(ctx, mdb)
 	if replErr != nil {
-		logger.Info("error getting replication status", "err", replErr)
+		logger.Info("error getting replication state", "err", replErr)
+	}
+	replErrStatus, replErrStatusErr := r.getReplicationErrors(ctx, mdb)
+	if replErrStatusErr != nil {
+		logger.Info("error getting replication error status", "err", replErrStatus)
 	}
 
 	mxsPrimaryPodIndex, mxsErr := r.getMaxScalePrimaryPod(ctx, mdb)
@@ -62,6 +68,12 @@ func (r *MariaDBReconciler) reconcileStatus(ctx context.Context, mdb *mariadbv1a
 				status.Replication = &mariadbv1alpha1.ReplicationStatus{}
 			}
 			status.Replication.State = replState
+		}
+		if replErrStatus != nil {
+			if status.Replication == nil {
+				status.Replication = &mariadbv1alpha1.ReplicationStatus{}
+			}
+			status.Replication.Errors = replErrStatus
 		}
 
 		if tlsStatus != nil {
@@ -133,6 +145,118 @@ func (r *MariaDBReconciler) getReplicationState(ctx context.Context,
 		replState[pod] = state
 	}
 	return replState, nil
+}
+
+func (r *MariaDBReconciler) getReplicationErrors(ctx context.Context,
+	mdb *mariadbv1alpha1.MariaDB) (map[string]mariadbv1alpha1.ReplicaErrorStatus, error) {
+	if !mdb.IsReplicationEnabled() {
+		return nil, nil
+	}
+	replStatus := ptr.Deref(mdb.Status.Replication, mariadbv1alpha1.ReplicationStatus{})
+
+	if mdb.Status.CurrentPrimaryPodIndex == nil {
+		return replStatus.Errors, nil
+	}
+
+	clientSet, err := replication.NewReplicationClientSet(mdb, r.RefResolver)
+	if err != nil {
+		return nil, fmt.Errorf("error creating mariadb clientset: %v", err)
+	}
+	defer clientSet.Close()
+
+	var replicaErrorStatus map[string]mariadbv1alpha1.ReplicaErrorStatus
+	logger := log.FromContext(ctx)
+	for i := 0; i < int(mdb.Spec.Replicas); i++ {
+		if i == *mdb.Status.CurrentPrimaryPodIndex {
+			continue
+		}
+		pod := stspkg.PodName(mdb.ObjectMeta, i)
+
+		var currentReplicaErrors *mariadbv1alpha1.ReplicaErrorStatus
+		if current, ok := replStatus.Errors[pod]; ok {
+			currentReplicaErrors = &current
+		}
+		// when the Pods are restarted or unstable, SQL connections could fail, keep the current state
+		preserveCurrentState := func() {
+			if replicaErrorStatus == nil {
+				replicaErrorStatus = make(map[string]mariadbv1alpha1.ReplicaErrorStatus)
+			}
+			if currentReplicaErrors != nil {
+				replicaErrorStatus[pod] = *currentReplicaErrors
+			}
+		}
+
+		client, err := clientSet.ClientForIndex(ctx, i)
+		if err != nil {
+			logger.V(1).Info("error getting client for Pod", "err", err, "pod", pod)
+			preserveCurrentState()
+			continue
+		}
+
+		replicaErrors, err := client.ReplicaErrors(ctx)
+		if err != nil {
+			logger.V(1).Info("error checking Pod replica errors", "err", err, "pod", pod)
+			preserveCurrentState()
+			continue
+		}
+
+		mergedReplicaErrors := mergeReplicaErrors(currentReplicaErrors, replicaErrors)
+		if mergedReplicaErrors != nil {
+			if replicaErrorStatus == nil {
+				replicaErrorStatus = make(map[string]mariadbv1alpha1.ReplicaErrorStatus)
+			}
+			replicaErrorStatus[pod] = *mergedReplicaErrors
+		}
+	}
+	return replicaErrorStatus, nil
+}
+
+func mergeReplicaErrors(current *mariadbv1alpha1.ReplicaErrorStatus,
+	new *mariadbv1alpha1.ReplicaErrors) *mariadbv1alpha1.ReplicaErrorStatus {
+	if new == nil {
+		return current
+	}
+	now := metav1.Time{Time: time.Now()}
+	isHealthy := func(e *mariadbv1alpha1.ReplicaErrors) bool {
+		return e.LastIOErrno != nil && *e.LastIOErrno == 0 &&
+			e.LastSQLErrno != nil && *e.LastSQLErrno == 0
+	}
+
+	// First report of errors — initialize new status
+	if current == nil {
+		return &mariadbv1alpha1.ReplicaErrorStatus{
+			ReplicaErrors:      *new,
+			LastTransitionTime: now,
+		}
+	}
+
+	currHealthy := isHealthy(&current.ReplicaErrors)
+	newHealthy := isHealthy(new)
+
+	// No state change (both healthy)
+	if currHealthy && newHealthy {
+		return &mariadbv1alpha1.ReplicaErrorStatus{
+			ReplicaErrors:      *new,
+			LastTransitionTime: current.LastTransitionTime,
+		}
+	}
+
+	// No state change (both unhealthy with same error codes)
+	if !currHealthy && !newHealthy &&
+		current.LastIOErrno == new.LastIOErrno &&
+		current.LastSQLErrno == new.LastSQLErrno {
+
+		return &mariadbv1alpha1.ReplicaErrorStatus{
+			ReplicaErrors:      *new,
+			LastTransitionTime: current.LastTransitionTime,
+		}
+	}
+
+	// Transition: healthy <-> error or changed error type
+	return &mariadbv1alpha1.ReplicaErrorStatus{
+		ReplicaErrors:      *new,
+		LastTransitionTime: now,
+	}
 }
 
 func (r *MariaDBReconciler) getMaxScalePrimaryPod(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) (*int, error) {

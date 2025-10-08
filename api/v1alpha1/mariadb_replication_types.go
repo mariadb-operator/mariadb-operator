@@ -397,12 +397,47 @@ type ReplicaToConfigure struct {
 	VolumeSnapshotRef *LocalObjectReference `json:"volumeSnapshotRef,omitempty"`
 }
 
+// ReplicaErrors is the current error state of the threads available in a replica.
+type ReplicaErrors struct {
+	// LastIOErrno is the error code returned by the IO thread.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	LastIOErrno *int `json:"lastIOErrno,omitempty"`
+	// LastIOErrno is the error message returned by the IO thread.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	LastIOError *string `json:"lastIOError,omitempty"`
+	// LastIOErrno is the error code returned by the SQL thread.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	LastSQLErrno *int `json:"lastSQLErrno,omitempty"`
+	// LastIOErrno is the error message returned by the SQL thread.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	LastSQLError *string `json:"lastSQLError,omitempty"`
+}
+
+// ReplicaErrorStatus represents the current error state of a replica.
+type ReplicaErrorStatus struct {
+	// ReplicaErrors is the current error state of the threads available in a replica.
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	ReplicaErrors `json:",inline"`
+	// LastTransitionTime is the last time the replica transitioned to an error state.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
+}
+
 // ReplicationStatus is the replication current state.
 type ReplicationStatus struct {
 	// State is the observed replication state for each Pod.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	State map[string]ReplicationState `json:"state,omitempty"`
+	// Errors is the observed state of replication errors for each replica.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	Errors map[string]ReplicaErrorStatus `json:"errors,omitempty"`
 	// ReplicasToConfigure are the replicas that the operator will configure replication on.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status

@@ -7212,6 +7212,36 @@ spec:
                 description: Replication is the replication current status per each
                   Pod.
                 properties:
+                  errors:
+                    additionalProperties:
+                      description: ReplicaErrorStatus represents the current error
+                        state of a replica.
+                      properties:
+                        lastIOErrno:
+                          description: LastIOErrno is the error code returned by the
+                            IO thread.
+                          type: integer
+                        lastIOError:
+                          description: LastIOErrno is the error message returned by
+                            the IO thread.
+                          type: string
+                        lastSQLErrno:
+                          description: LastIOErrno is the error code returned by the
+                            SQL thread.
+                          type: integer
+                        lastSQLError:
+                          description: LastIOErrno is the error message returned by
+                            the SQL thread.
+                          type: string
+                        lastTransitionTime:
+                          description: LastTransitionTime is the last time the replica
+                            transitioned to an error state.
+                          format: date-time
+                          type: string
+                      type: object
+                    description: Errors is the observed state of replication errors
+                      for each replica.
+                    type: object
                   replicasToConfigure:
                     description: ReplicasToConfigure are the replicas that the operator
                       will configure replication on.
