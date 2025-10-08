@@ -8122,8 +8122,9 @@ spec:
                         - physicalBackupTemplateRef
                         type: object
                       connectionRetries:
-                        description: ConnectionRetries to be used when the replica
-                          connects to the primary.
+                        description: |-
+                          ConnectionRetries to be used when the replica connects to the primary.
+                          See: https://mariadb.com/docs/server/reference/sql-statements/administrative-sql-statements/replication-statements/change-master-to#master_connect_retry
                         type: integer
                       connectionTimeout:
                         description: ConnectionTimeout to be used when the replica
@@ -8168,6 +8169,7 @@ spec:
                           SyncTimeout defines the timeout for a replica to be synced with the primary when performing a primary switchover.
                           During a switchover, all replicas must be synced with the primary before promoting the new primary.
                           During a failover, the primary will be down, therefore this sync step will be skipped.
+                          See: https://mariadb.com/docs/server/reference/sql-functions/secondary-functions/miscellaneous-functions/master_gtid_wait
                         type: string
                     type: object
                   syncBinlog:

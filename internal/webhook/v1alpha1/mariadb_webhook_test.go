@@ -326,7 +326,7 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 								},
 								Replica: v1alpha1.ReplicaReplication{
 									ConnectionTimeout: &metav1.Duration{Duration: time.Duration(1 * time.Second)},
-									ConnectionRetries: func() *int { r := 3; return &r }(),
+									ConnectionRetries: ptr.To(3),
 								},
 								WaitPoint: ptr.To(v1alpha1.WaitPointAfterCommit),
 							},

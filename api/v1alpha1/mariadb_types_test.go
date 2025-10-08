@@ -1382,7 +1382,7 @@ var _ = Describe("MariaDB types", func() {
 									},
 									Gtid:              ptr.To(GtidCurrentPos),
 									ConnectionTimeout: ptr.To(metav1.Duration{Duration: 10 * time.Second}),
-									ConnectionRetries: ptr.To(10),
+									ConnectionRetries: nil,
 									SyncTimeout:       ptr.To(metav1.Duration{Duration: 10 * time.Second}),
 								},
 								Primary: PrimaryReplication{
@@ -1479,7 +1479,7 @@ var _ = Describe("MariaDB types", func() {
 									},
 									Gtid:              ptr.To(GtidCurrentPos),
 									ConnectionTimeout: ptr.To(metav1.Duration{Duration: 10 * time.Second}),
-									ConnectionRetries: ptr.To(10),
+									ConnectionRetries: nil,
 									SyncTimeout:       ptr.To(metav1.Duration{Duration: 10 * time.Second}),
 								},
 								Primary: PrimaryReplication{
