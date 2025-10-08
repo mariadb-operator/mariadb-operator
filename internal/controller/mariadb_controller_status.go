@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/hashicorp/go-multierror"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
@@ -211,54 +210,6 @@ func (r *MariaDBReconciler) getReplicationErrors(ctx context.Context,
 	return replicaErrorStatus, nil
 }
 
-func mergeReplicaErrors(current *mariadbv1alpha1.ReplicaErrorStatus,
-	new *mariadbv1alpha1.ReplicaErrors) *mariadbv1alpha1.ReplicaErrorStatus {
-	if new == nil {
-		return current
-	}
-	now := metav1.Time{Time: time.Now()}
-	isHealthy := func(e *mariadbv1alpha1.ReplicaErrors) bool {
-		return e.LastIOErrno != nil && *e.LastIOErrno == 0 &&
-			e.LastSQLErrno != nil && *e.LastSQLErrno == 0
-	}
-
-	// First report of errors — initialize new status
-	if current == nil {
-		return &mariadbv1alpha1.ReplicaErrorStatus{
-			ReplicaErrors:      *new,
-			LastTransitionTime: now,
-		}
-	}
-
-	currHealthy := isHealthy(&current.ReplicaErrors)
-	newHealthy := isHealthy(new)
-
-	// No state change (both healthy)
-	if currHealthy && newHealthy {
-		return &mariadbv1alpha1.ReplicaErrorStatus{
-			ReplicaErrors:      *new,
-			LastTransitionTime: current.LastTransitionTime,
-		}
-	}
-
-	// No state change (both unhealthy with same error codes)
-	if !currHealthy && !newHealthy &&
-		current.LastIOErrno == new.LastIOErrno &&
-		current.LastSQLErrno == new.LastSQLErrno {
-
-		return &mariadbv1alpha1.ReplicaErrorStatus{
-			ReplicaErrors:      *new,
-			LastTransitionTime: current.LastTransitionTime,
-		}
-	}
-
-	// Transition: healthy <-> error or changed error type
-	return &mariadbv1alpha1.ReplicaErrorStatus{
-		ReplicaErrors:      *new,
-		LastTransitionTime: now,
-	}
-}
-
 func (r *MariaDBReconciler) getMaxScalePrimaryPod(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) (*int, error) {
 	if !mdb.IsMaxScaleEnabled() {
 		return nil, nil
@@ -320,6 +271,30 @@ func (r *MariaDBReconciler) setUpdatedCondition(ctx context.Context, mdb *mariad
 		condition.SetPendingUpdate(&mdb.Status)
 	}
 	return nil
+}
+
+func mergeReplicaErrors(current *mariadbv1alpha1.ReplicaErrorStatus,
+	new *mariadbv1alpha1.ReplicaErrors) *mariadbv1alpha1.ReplicaErrorStatus {
+	if new == nil {
+		return current
+	}
+	now := metav1.Now()
+	// First report of errors — initialize new status
+	if current == nil {
+		return &mariadbv1alpha1.ReplicaErrorStatus{
+			ReplicaErrors:      *new,
+			LastTransitionTime: now,
+		}
+	}
+	// No state change
+	if current.Equal(new) {
+		return current
+	}
+	// Transition: healthy <-> error or changed error type
+	return &mariadbv1alpha1.ReplicaErrorStatus{
+		ReplicaErrors:      *new,
+		LastTransitionTime: now,
+	}
 }
 
 func podIndexForServer(serverName string, mxs *mariadbv1alpha1.MaxScale, mdb *mariadbv1alpha1.MariaDB) (*int, error) {

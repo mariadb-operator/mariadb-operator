@@ -417,6 +417,18 @@ type ReplicaErrors struct {
 	LastSQLError *string `json:"lastSQLError,omitempty"`
 }
 
+// Equal determines equiality based on error codes.
+func (r *ReplicaErrors) Equal(o *ReplicaErrors) bool {
+	if r == nil && o == nil {
+		return true
+	}
+	if r == nil || o == nil {
+		return false
+	}
+	return ptr.Equal(r.LastIOErrno, o.LastIOErrno) &&
+		ptr.Equal(r.LastSQLErrno, o.LastSQLErrno)
+}
+
 // ReplicaErrorStatus represents the current error state of a replica.
 type ReplicaErrorStatus struct {
 	// ReplicaErrors is the current error state of the threads available in a replica.
