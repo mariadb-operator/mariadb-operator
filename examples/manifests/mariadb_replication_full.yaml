@@ -12,7 +12,7 @@ spec:
     name: mariadb
     key: password
   database: mariadb
-  
+
   storage:
     size: 1Gi
     storageClassName: standard
@@ -20,7 +20,7 @@ spec:
     waitForVolumeResize: true
     volumeClaimTemplate:
       accessModes:
-      - ReadWriteOnce
+        - ReadWriteOnce
       resources:
         requests:
           storage: 1Gi
@@ -59,7 +59,6 @@ spec:
       podIndex: 0
       automaticFailover: true
     replica:
-      waitPoint: AfterSync
       gtid: CurrentPos
       replPasswordSecretKeyRef:
         name: mariadb
@@ -68,6 +67,7 @@ spec:
       connectionRetries: 10
       syncTimeout: 10s
     syncBinlog: 1
+    waitPoint: AfterSync
 
   service:
     type: LoadBalancer
@@ -149,3 +149,4 @@ spec:
     required: true
 
   suspend: false
+
