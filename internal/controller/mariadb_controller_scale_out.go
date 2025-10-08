@@ -113,7 +113,7 @@ func (r *MariaDBReconciler) isScalingOut(ctx context.Context, mariadb *mariadbv1
 	if !mariadb.IsReplicationEnabled() || sts.Status.Replicas == 0 {
 		return false, nil
 	}
-	// user is able to reset at any point by matching the number of existing replicas
+	// user is able to rollback scale out operation at any point by matching the number of existing replicas
 	if sts.Status.Replicas == mariadb.Spec.Replicas {
 		return false, nil
 	}
@@ -218,7 +218,7 @@ func (r *MariaDBReconciler) createPhysicalBackup(ctx context.Context, mariadb *m
 
 	physicalBackup, err := r.Builder.BuildPhysicalBackup(mariadb.PhysicalBackupScaleOutKey(), &tpl, mariadb)
 	if err != nil {
-		return fmt.Errorf("error building PhysicalBackuo: %v", err)
+		return fmt.Errorf("error building PhysicalBackup: %v", err)
 	}
 	return r.Create(ctx, physicalBackup)
 }
@@ -266,7 +266,7 @@ func (r *MariaDBReconciler) setScaledOutAndCleanup(ctx context.Context, mariadb 
 	if err := r.cleanupPhysicalBackup(ctx, mariadb); err != nil {
 		return err
 	}
-	if err := r.cleanupInitJobs(ctx, mariadb, 0); err != nil {
+	if err := r.cleanupInitJobs(ctx, mariadb); err != nil {
 		return err
 	}
 	return nil

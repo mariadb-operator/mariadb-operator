@@ -17,7 +17,7 @@ const (
 	ConditionTypeUpdated string = "Updated"
 	// ConditionTypeInitialized indicates that the cluster has been successfully initialized.
 	ConditionTypeInitialized string = "Initialized"
-	// ConditionTypeInitialized indicates that the cluster has been successfully scaled out.
+	// ConditionTypeScaledOut indicates that the cluster has been successfully scaled out.
 	ConditionTypeScaledOut string = "ScaledOut"
 
 	ConditionReasonStatefulSetNotReady   string = "StatefulSetNotReady"

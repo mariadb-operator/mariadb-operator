@@ -104,7 +104,7 @@ func (r *MariaDBReconciler) reconcilePhysicalBackupInit(ctx context.Context, mar
 		); !result.IsZero() || err != nil {
 			return result, err
 		}
-		if err := r.cleanupInitJobs(ctx, mariadb, fromIndex); err != nil {
+		if err := r.cleanupInitJobs(ctx, mariadb); err != nil {
 			return ctrl.Result{}, err
 		}
 		if err := r.cleanupStagingPVC(ctx, mariadb); err != nil {
@@ -326,8 +326,8 @@ func (r *MariaDBReconciler) waitForPodScheduled(ctx context.Context, mariadb *ma
 	return ctrl.Result{}, nil
 }
 
-func (r *MariaDBReconciler) cleanupInitJobs(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, fromIndex int) error {
-	_, err := r.forEachMariaDBPod(mariadb, fromIndex, func(podIndex int) (ctrl.Result, error) {
+func (r *MariaDBReconciler) cleanupInitJobs(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
+	_, err := r.forEachMariaDBPod(mariadb, 0, func(podIndex int) (ctrl.Result, error) {
 		key := mariadb.PhysicalBackupInitJobKey(podIndex)
 		var job batchv1.Job
 		if err := r.Get(ctx, key, &job); err == nil {
