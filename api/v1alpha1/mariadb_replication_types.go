@@ -147,12 +147,14 @@ type ReplicaReplication struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	ConnectionTimeout *metav1.Duration `json:"connectionTimeout,omitempty"`
 	// ConnectionRetries to be used when the replica connects to the primary.
+	// See: https://mariadb.com/docs/server/reference/sql-statements/administrative-sql-statements/replication-statements/change-master-to#master_connect_retry
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
 	ConnectionRetries *int `json:"connectionRetries,omitempty"`
 	// SyncTimeout defines the timeout for a replica to be synced with the primary when performing a primary switchover.
 	// During a switchover, all replicas must be synced with the primary before promoting the new primary.
 	// During a failover, the primary will be down, therefore this sync step will be skipped.
+	// See: https://mariadb.com/docs/server/reference/sql-functions/secondary-functions/miscellaneous-functions/master_gtid_wait
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	SyncTimeout *metav1.Duration `json:"syncTimeout,omitempty"`
@@ -186,9 +188,6 @@ func (r *ReplicaReplication) SetDefaults(mdb *MariaDB) {
 	}
 	if r.ConnectionTimeout == nil {
 		r.ConnectionTimeout = ptr.To(metav1.Duration{Duration: 10 * time.Second})
-	}
-	if r.ConnectionRetries == nil {
-		r.ConnectionRetries = ptr.To(10)
 	}
 	if r.SyncTimeout == nil {
 		r.SyncTimeout = ptr.To(metav1.Duration{Duration: 10 * time.Second})
