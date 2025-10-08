@@ -497,10 +497,10 @@ func mariadbEnv(mariadb *mariadbv1alpha1.MariaDB) ([]corev1.EnvVar, error) {
 				Value: fmt.Sprint(true),
 			})
 		}
-		if replica.ConnectionTimeout != nil {
+		if replication.AckTimeout != nil {
 			env = append(env, corev1.EnvVar{
 				Name:  "MARIADB_REPL_MASTER_TIMEOUT",
-				Value: fmt.Sprint(replica.ConnectionTimeout.Milliseconds()),
+				Value: fmt.Sprint(replication.AckTimeout.Milliseconds()),
 			})
 		}
 		if replication.WaitPoint != nil {

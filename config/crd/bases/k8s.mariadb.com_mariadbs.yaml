@@ -4818,6 +4818,11 @@ spec:
                   This feature is still in alpha, use Galera if you are looking for
                   a more production-ready HA.
                 properties:
+                  ackTimeout:
+                    description: |-
+                      AckTimeout to be used when the replica connects to the primary.
+                      See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/semisynchronous-replication#rpl_semi_sync_master_timeout
+                    type: string
                   agent:
                     description: Agent is a sidecar agent that co-operates with mariadb-operator.
                     properties:
@@ -6012,10 +6017,6 @@ spec:
                           ConnectionRetries to be used when the replica connects to the primary.
                           See: https://mariadb.com/docs/server/reference/sql-statements/administrative-sql-statements/replication-statements/change-master-to#master_connect_retry
                         type: integer
-                      connectionTimeout:
-                        description: ConnectionTimeout to be used when the replica
-                          connects to the primary.
-                        type: string
                       gtid:
                         description: |-
                           Gtid indicates which Global Transaction ID should be used when connecting a replica to the master.

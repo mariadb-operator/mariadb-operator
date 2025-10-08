@@ -1356,6 +1356,7 @@ var _ = Describe("MariaDB types", func() {
 								GtidStrictMode: ptr.To(true),
 								WaitPoint:      nil,
 								SyncBinlog:     nil,
+								AckTimeout:     nil,
 								InitContainer: InitContainer{
 									Image:             env.MariadbOperatorImage,
 									ContainerTemplate: ContainerTemplate{},
@@ -1381,7 +1382,6 @@ var _ = Describe("MariaDB types", func() {
 										Generate: true,
 									},
 									Gtid:              ptr.To(GtidCurrentPos),
-									ConnectionTimeout: ptr.To(metav1.Duration{Duration: 10 * time.Second}),
 									ConnectionRetries: nil,
 									SyncTimeout:       ptr.To(metav1.Duration{Duration: 10 * time.Second}),
 								},
@@ -1442,6 +1442,7 @@ var _ = Describe("MariaDB types", func() {
 							ReplicationSpec: ReplicationSpec{
 								GtidStrictMode: ptr.To(true),
 								WaitPoint:      nil,
+								AckTimeout:     nil,
 								InitContainer: InitContainer{
 									Image:             env.MariadbOperatorImage,
 									ContainerTemplate: ContainerTemplate{},
@@ -1477,7 +1478,6 @@ var _ = Describe("MariaDB types", func() {
 										Generate: true,
 									},
 									Gtid:              ptr.To(GtidCurrentPos),
-									ConnectionTimeout: ptr.To(metav1.Duration{Duration: 10 * time.Second}),
 									ConnectionRetries: nil,
 									SyncTimeout:       ptr.To(metav1.Duration{Duration: 10 * time.Second}),
 								},

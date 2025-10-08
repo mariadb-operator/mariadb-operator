@@ -63,9 +63,9 @@ spec:
       replPasswordSecretKeyRef:
         name: mariadb
         key: password
-      connectionTimeout: 10s
       connectionRetries: 10
       syncTimeout: 10s
+    ackTimeout: 10s
     syncBinlog: 1
     waitPoint: AfterSync
 

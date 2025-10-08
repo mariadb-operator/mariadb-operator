@@ -136,10 +136,6 @@ type ReplicaReplication struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	ReplPasswordSecretKeyRef *GeneratedSecretKeyRef `json:"replPasswordSecretKeyRef,omitempty"`
-	// ConnectionTimeout to be used when the replica connects to the primary.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	ConnectionTimeout *metav1.Duration `json:"connectionTimeout,omitempty"`
 	// ConnectionRetries to be used when the replica connects to the primary.
 	// See: https://mariadb.com/docs/server/reference/sql-statements/administrative-sql-statements/replication-statements/change-master-to#master_connect_retry
 	// +optional
@@ -177,8 +173,8 @@ func (r *ReplicaReplication) SetDefaults(mdb *MariaDB) {
 	if r.Gtid == nil {
 		r.Gtid = ptr.To(GtidCurrentPos)
 	}
-	if r.ConnectionTimeout == nil {
-		r.ConnectionTimeout = ptr.To(metav1.Duration{Duration: 10 * time.Second})
+	if r.ConnectionRetries == nil {
+		r.ConnectionRetries = ptr.To(10)
 	}
 	if r.SyncTimeout == nil {
 		r.SyncTimeout = ptr.To(metav1.Duration{Duration: 10 * time.Second})
@@ -229,6 +225,11 @@ type ReplicationSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	GtidStrictMode *bool `json:"gtidStrictMode,omitempty"`
+	// AckTimeout to be used when the replica connects to the primary.
+	// See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/semisynchronous-replication#rpl_semi_sync_master_timeout
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	AckTimeout *metav1.Duration `json:"ackTimeout,omitempty"`
 	// SyncBinlog indicates after how many events the binary log is synchronized to the disk.
 	// See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/replication-and-binary-log-system-variables#sync_binlog
 	// +optional
