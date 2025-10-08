@@ -407,17 +407,17 @@ type ReplicaErrors struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	LastIOError *string `json:"lastIOError,omitempty"`
-	// LastIOErrno is the error code returned by the SQL thread.
+	// LastSQLErrno is the error code returned by the SQL thread.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	LastSQLErrno *int `json:"lastSQLErrno,omitempty"`
-	// LastIOErrno is the error message returned by the SQL thread.
+	// LastSQLError is the error message returned by the SQL thread.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	LastSQLError *string `json:"lastSQLError,omitempty"`
 }
 
-// Equal determines equiality based on error codes.
+// Equal determines equality based on error codes.
 func (r *ReplicaErrors) Equal(o *ReplicaErrors) bool {
 	if r == nil && o == nil {
 		return true
