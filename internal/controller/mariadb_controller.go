@@ -196,6 +196,10 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			Reconcile: r.GaleraReconciler.Reconcile,
 		},
 		{
+			Name:      "Replica recovery",
+			Reconcile: r.reconcileReplicaRecovery,
+		},
+		{
 			Name:      "Restore",
 			Reconcile: r.reconcileRestore,
 		},

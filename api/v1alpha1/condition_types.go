@@ -19,6 +19,8 @@ const (
 	ConditionTypeInitialized string = "Initialized"
 	// ConditionTypeScaledOut indicates that the cluster has been successfully scaled out.
 	ConditionTypeScaledOut string = "ScaledOut"
+	// ConditionTypeReplicaRecovered indicates that a replica has been successfully recovered
+	ConditionTypeReplicaRecovered string = "ReplicaRecovered"
 
 	ConditionReasonStatefulSetNotReady   string = "StatefulSetNotReady"
 	ConditionReasonStatefulSetReady      string = "StatefulSetReady"
@@ -39,6 +41,9 @@ const (
 	ConditionReasonScalingOut            string = "ScalingOut"
 	ConditionReasonScaledOut             string = "ScaledOut"
 	ConditionReasonScaleOutError         string = "ScaleOutError"
+	ConditionReasonReplicaRecovering     string = "ReplicaRecovering"
+	ConditionReasonReplicaRecovered      string = "ReplicaRecovered"
+	ConditionReasonReplicaRecoverError   string = "ReplicaRecoverError"
 	ConditionReasonPendingUpdate         string = "PendingUpdate"
 	ConditionReasonUpdating              string = "Updating"
 	ConditionReasonUpdated               string = "Updated"

@@ -6033,6 +6033,16 @@ spec:
                           If not provided, it defaults to 0, which means replicas are not allowed to lag behind the primary.
                           This field is not taken into account by MaxScale, you can define the maximum lag as router parameters. See: https://mariadb.com/docs/maxscale/reference/maxscale-routers/maxscale-readwritesplit#max_replication_lag.
                         type: integer
+                      recovery:
+                        description: ReplicaRecovery defines how the operator should
+                          recover replicas after they become not ready.
+                        properties:
+                          enabled:
+                            description: Enabled is a flag to enable replica recovery
+                            type: boolean
+                        required:
+                        - enabled
+                        type: object
                       replPasswordSecretKeyRef:
                         description: ReplPasswordSecretKeyRef provides a reference
                           to the Secret to use as password for the replication user.
@@ -7246,6 +7256,10 @@ spec:
                     description: Errors is the observed state of replication errors
                       for each replica.
                     type: object
+                  replicaToRecover:
+                    description: ReplicaToRecover is the replica tha will be recovered
+                      by the operator.
+                    type: string
                   replicasToConfigure:
                     description: ReplicasToConfigure are the replicas that the operator
                       will configure replication on.

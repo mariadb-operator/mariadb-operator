@@ -124,6 +124,14 @@ type ReplicaBootstrapFrom struct {
 	RestoreJob *Job `json:"restoreJob,omitempty"`
 }
 
+// ReplicaRecovery defines how the operator should recover replicas after they become not ready.
+type ReplicaRecovery struct {
+	// Enabled is a flag to enable replica recovery
+	// +kubebuilder:validation:Required
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Enabled bool `json:"enabled"`
+}
+
 // ReplicaReplication is the replication configuration for the replica nodes.
 type ReplicaReplication struct {
 	// Gtid indicates which Global Transaction ID should be used when connecting a replica to the master.
@@ -162,6 +170,10 @@ type ReplicaReplication struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	ReplicaBootstrapFrom *ReplicaBootstrapFrom `json:"bootstrapFrom,omitempty"`
+	// ReplicaRecovery defines how the operator should recover replicas after they become not ready.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	ReplicaRecovery *ReplicaRecovery `json:"recovery,omitempty"`
 }
 
 // SetDefaults fills the current ReplicaReplication object with DefaultReplicationSpec.
@@ -357,6 +369,14 @@ func (m *MariaDB) MarkReplicaAsConfigured(replicaName string) {
 		})
 }
 
+// SetReplicaToRecover sets the replica to be recovered
+func (m *MariaDB) SetReplicaToRecover(replica *string) {
+	if m.Status.Replication == nil {
+		m.Status.Replication = &ReplicationStatus{}
+	}
+	m.Status.Replication.ReplicaToRecover = replica
+}
+
 // IsSwitchingPrimary indicates whether a primary swichover operation is in progress.
 func (m *MariaDB) IsSwitchingPrimary() bool {
 	return meta.IsStatusConditionFalse(m.Status.Conditions, ConditionTypePrimarySwitched)
@@ -452,4 +472,8 @@ type ReplicationStatus struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	ReplicasToConfigure []ReplicaToConfigure `json:"replicasToConfigure,omitempty"`
+	// ReplicaToRecover is the replica tha will be recovered by the operator.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	ReplicaToRecover *string `json:"replicaToRecover,omitempty"`
 }
