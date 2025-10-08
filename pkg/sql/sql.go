@@ -22,6 +22,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/refresolver"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/statefulset"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 )
 
 var (
@@ -792,6 +793,37 @@ func (c Client) ReplicaSlaveSQLRunning(ctx context.Context) (bool, error) {
 
 func (c Client) ReplicaSecondsBehindMaster(ctx context.Context) (int, error) {
 	return c.QueryIntColumn(ctx, "SHOW REPLICA STATUS", "Seconds_Behind_Master")
+}
+
+func (c Client) ReplicaErrors(ctx context.Context) (*mariadbv1alpha1.ReplicaErrors, error) {
+	row, err := c.QueryColumnMap(ctx, "SHOW REPLICA STATUS")
+	if err != nil {
+		return nil, err
+	}
+
+	replErrors := mariadbv1alpha1.ReplicaErrors{}
+	if lastIOErrno, ok := row["Last_IO_Errno"]; ok {
+		errno, err := strconv.Atoi(lastIOErrno)
+		if err != nil {
+			return nil, fmt.Errorf("error parsing Last_IO_Errno: %v", err)
+		}
+		replErrors.LastIOErrno = ptr.To(errno)
+	}
+	if lastIOError, ok := row["Last_IO_Error"]; ok {
+		replErrors.LastIOError = ptr.To(lastIOError)
+	}
+	if lastSQLErrno, ok := row["Last_SQL_Errno"]; ok {
+		errno, err := strconv.Atoi(lastSQLErrno)
+		if err != nil {
+			return nil, fmt.Errorf("error parsing Last_SQL_Errno: %v", err)
+		}
+		replErrors.LastSQLErrno = ptr.To(errno)
+	}
+	if lastSQLError, ok := row["Last_SQL_Error"]; ok {
+		replErrors.LastSQLError = ptr.To(lastSQLError)
+	}
+
+	return &replErrors, nil
 }
 
 func (c Client) HasConnectedReplicas(ctx context.Context) (bool, error) {
