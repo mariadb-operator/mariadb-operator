@@ -30,3 +30,12 @@ func PodUpdated(pod *corev1.Pod, updateRevision string) bool {
 func PodScheduled(pod *corev1.Pod) bool {
 	return pod.Spec.NodeName != ""
 }
+
+func PodInitializing(pod *corev1.Pod) bool {
+	for _, ics := range pod.Status.InitContainerStatuses {
+		if ics.State.Running != nil {
+			return true
+		}
+	}
+	return false
+}

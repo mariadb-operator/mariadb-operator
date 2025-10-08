@@ -117,7 +117,7 @@ func (r *MariaDBReconciler) reconcilePhysicalBackupInit(ctx context.Context, mar
 		condition.SetRestoredPhysicalBackup(status)
 
 		if mariadb.IsReplicationEnabled() {
-			if err := r.addReplicasToConfigure(ctx, mariadb, fromIndex, snapshotKey, logger); err != nil {
+			if err := r.setReplicasToConfigure(ctx, mariadb, fromIndex, snapshotKey, logger); err != nil {
 				return err
 			}
 		}
@@ -357,7 +357,7 @@ func (r *MariaDBReconciler) cleanupStagingPVC(ctx context.Context, mariadb *mari
 	return r.Delete(ctx, &pvc)
 }
 
-func (r *MariaDBReconciler) addReplicasToConfigure(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, fromIndex int,
+func (r *MariaDBReconciler) setReplicasToConfigure(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, fromIndex int,
 	snapshotKey *types.NamespacedName, logger logr.Logger) error {
 	if mariadb.Status.CurrentPrimaryPodIndex == nil {
 		return errors.New("'status.currentPrimaryPodIndex' must be set")

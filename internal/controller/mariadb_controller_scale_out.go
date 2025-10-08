@@ -57,11 +57,12 @@ func (r *MariaDBReconciler) reconcileScaleOut(ctx context.Context, mariadb *mari
 		return ctrl.Result{}, fmt.Errorf("error patching MariaDB status: %v", err)
 	}
 
-	if result, err := r.reconcilePhysicalBackup(ctx, mariadb, logger); !result.IsZero() || err != nil {
+	physicalBackupKey := mariadb.PhysicalBackupScaleOutKey()
+
+	if result, err := r.reconcileReplicaPhysicalBackup(ctx, physicalBackupKey, mariadb, logger); !result.IsZero() || err != nil {
 		return result, err
 	}
-
-	physicalBackup, err := r.getScaleOutPhysicalBackup(ctx, mariadb)
+	physicalBackup, err := r.getPhysicalBackup(ctx, physicalBackupKey, mariadb)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error getting PhysicalBackup: %v", err)
 	}
@@ -76,7 +77,7 @@ func (r *MariaDBReconciler) reconcileScaleOut(ctx context.Context, mariadb *mari
 
 	addReplicasToConfigure := func() error {
 		if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
-			return r.addReplicasToConfigure(ctx, mariadb, fromIndex, snapshotKey, logger)
+			return r.setReplicasToConfigure(ctx, mariadb, fromIndex, snapshotKey, logger)
 		}); err != nil {
 			return fmt.Errorf("error patching MariaDB status: %v", err)
 		}
@@ -182,26 +183,25 @@ func (r *MariaDBReconciler) pvcAlreadyExists(ctx context.Context, mariadb *maria
 	return false, nil
 }
 
-func (r *MariaDBReconciler) reconcilePhysicalBackup(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+func (r *MariaDBReconciler) reconcileReplicaPhysicalBackup(ctx context.Context, key types.NamespacedName, mariadb *mariadbv1alpha1.MariaDB,
 	logger logr.Logger) (ctrl.Result, error) {
-	key := mariadb.PhysicalBackupScaleOutKey()
 	var physicalBackup mariadbv1alpha1.PhysicalBackup
 	if err := r.Get(ctx, key, &physicalBackup); err != nil {
 		if apierrors.IsNotFound(err) {
-			if err := r.createPhysicalBackup(ctx, mariadb); err != nil {
+			if err := r.createReplicaPhysicalBackup(ctx, mariadb); err != nil {
 				return ctrl.Result{}, err
 			}
 		}
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
 	if !physicalBackup.IsComplete() {
-		logger.V(1).Info("PhysicalBackup init job not completed. Requeuing")
+		logger.V(1).Info("Replica PhysicalBackup job not completed. Requeuing")
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
 	return ctrl.Result{}, nil
 }
 
-func (r *MariaDBReconciler) createPhysicalBackup(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
+func (r *MariaDBReconciler) createReplicaPhysicalBackup(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
 	replication := ptr.Deref(mariadb.Spec.Replication, mariadbv1alpha1.Replication{})
 	if replication.Replica.ReplicaBootstrapFrom == nil {
 		return errors.New("replica datasource not found")
@@ -223,9 +223,8 @@ func (r *MariaDBReconciler) createPhysicalBackup(ctx context.Context, mariadb *m
 	return r.Create(ctx, physicalBackup)
 }
 
-func (r *MariaDBReconciler) getScaleOutPhysicalBackup(ctx context.Context,
+func (r *MariaDBReconciler) getPhysicalBackup(ctx context.Context, key types.NamespacedName,
 	mariadb *mariadbv1alpha1.MariaDB) (*mariadbv1alpha1.PhysicalBackup, error) {
-	key := mariadb.PhysicalBackupScaleOutKey()
 	var physicalBackup mariadbv1alpha1.PhysicalBackup
 	if err := r.Get(ctx, key, &physicalBackup); err != nil {
 		return nil, err
