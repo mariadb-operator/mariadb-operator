@@ -474,7 +474,7 @@ type ReplicationStatus struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	ReplicasToConfigure []ReplicaToConfigure `json:"replicasToConfigure,omitempty"`
-	// ReplicaToRecover is the replica tha will be recovered by the operator.
+	// ReplicaToRecover is the replica that will be recovered by the operator.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	ReplicaToRecover *string `json:"replicaToRecover,omitempty"`

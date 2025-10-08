@@ -7253,7 +7253,7 @@ spec:
                       for each replica.
                     type: object
                   replicaToRecover:
-                    description: ReplicaToRecover is the replica tha will be recovered
+                    description: ReplicaToRecover is the replica that will be recovered
                       by the operator.
                     type: string
                   replicasToConfigure:
