@@ -1354,8 +1354,8 @@ var _ = Describe("MariaDB types", func() {
 							Enabled: true,
 							ReplicationSpec: ReplicationSpec{
 								GtidStrictMode: ptr.To(true),
-								SyncBinlog:     ptr.To(1),
 								WaitPoint:      nil,
+								SyncBinlog:     nil,
 								InitContainer: InitContainer{
 									Image:             env.MariadbOperatorImage,
 									ContainerTemplate: ContainerTemplate{},
@@ -1441,7 +1441,6 @@ var _ = Describe("MariaDB types", func() {
 							Enabled: true,
 							ReplicationSpec: ReplicationSpec{
 								GtidStrictMode: ptr.To(true),
-								SyncBinlog:     ptr.To(1),
 								WaitPoint:      nil,
 								InitContainer: InitContainer{
 									Image:             env.MariadbOperatorImage,
