@@ -2279,25 +2279,11 @@ var _ = Describe("MariaDB types", func() {
 			},
 
 			Entry(
-				"Valid replicas when not even",
+				"Valid replicas with no galera or replication",
 				&MariaDB{
 					ObjectMeta: meta,
 					Spec: MariaDBSpec{
-						Replicas: 3,
-						Storage: Storage{
-							Size: ptr.To(resource.MustParse("100Mi")),
-						},
-					},
-				},
-				false,
-				"",
-			),
-			Entry(
-				"Valid replicas when even",
-				&MariaDB{
-					ObjectMeta: meta,
-					Spec: MariaDBSpec{
-						Replicas: 2,
+						Replicas: 1,
 						Storage: Storage{
 							Size: ptr.To(resource.MustParse("100Mi")),
 						},
@@ -2341,7 +2327,7 @@ var _ = Describe("MariaDB types", func() {
 				"",
 			),
 			Entry(
-				"Valid Galera replicas",
+				"Valid Galera replicas when not even",
 				&MariaDB{
 					ObjectMeta: meta,
 					Spec: MariaDBSpec{
@@ -2384,7 +2370,7 @@ var _ = Describe("MariaDB types", func() {
 				"",
 			),
 			Entry(
-				"Invalid Galera replicas",
+				"Invalid Galera replicas when even and replicasAllowEvenNumber is not set",
 				&MariaDB{
 					ObjectMeta: meta,
 					Spec: MariaDBSpec{
