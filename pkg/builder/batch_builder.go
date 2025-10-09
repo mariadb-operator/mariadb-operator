@@ -400,6 +400,7 @@ type PhysicalBackupRestoreOpts struct {
 	Volume             *mariadbv1alpha1.StorageVolumeSource
 	S3                 *mariadbv1alpha1.S3
 	RestoreJob         *mariadbv1alpha1.Job
+	RestoreCommandOpts []command.MariaDBBackupRestoreOpt
 }
 
 type PhysicalBackupRestoreOpt func(*PhysicalBackupRestoreOpts) error
@@ -415,7 +416,7 @@ func WithBootstrapFrom(bootstrapFrom *mariadbv1alpha1.BootstrapFrom) PhysicalBac
 }
 
 func WithPhysicalBackup(pb *mariadbv1alpha1.PhysicalBackup, targetRecoveryTime time.Time,
-	restoreJob *mariadbv1alpha1.Job) PhysicalBackupRestoreOpt {
+	restoreJob *mariadbv1alpha1.Job, restoreCommandOpts ...command.MariaDBBackupRestoreOpt) PhysicalBackupRestoreOpt {
 	return func(opts *PhysicalBackupRestoreOpts) error {
 		volume, err := pb.Volume()
 		if err != nil {
@@ -425,6 +426,7 @@ func WithPhysicalBackup(pb *mariadbv1alpha1.PhysicalBackup, targetRecoveryTime t
 		opts.Volume = &volume
 		opts.S3 = pb.Spec.Storage.S3
 		opts.RestoreJob = restoreJob
+		opts.RestoreCommandOpts = restoreCommandOpts
 		return nil
 	}
 }
@@ -475,7 +477,7 @@ func (b *Builder) BuildPhysicalBackupRestoreJob(key types.NamespacedName, mariad
 	if err != nil {
 		return nil, fmt.Errorf("error building backup command: %v", err)
 	}
-	restoreCmd, err := cmd.MariadbBackupRestore(mariadb, batchPhysicalBackupDirFullPath)
+	restoreCmd, err := cmd.MariadbBackupRestore(mariadb, batchPhysicalBackupDirFullPath, opts.RestoreCommandOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("error getting mariadb-backup restore command: %v", err)
 	}
