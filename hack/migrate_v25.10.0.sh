@@ -87,7 +87,7 @@ fi
 
 "$YQ" '. |= pick(["status"])' -i "$MARIADB_STATUS_OUTPUT"
 
-# Show a summary if `diff` is installed. Which it should be on Linux and Mac, not sure for Windows...
+# Show a summary if `diff` is installed.
 if command_exists diff; then
   echo "Here are all the differences"
   # 
