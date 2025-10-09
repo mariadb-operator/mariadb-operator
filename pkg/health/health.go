@@ -137,6 +137,7 @@ func secondaryPodHealthyIndex(ctx context.Context, client ctrlclient.Client, mar
 	if mariadb.Status.CurrentPrimaryPodIndex == nil {
 		return nil, errors.New("'status.currentPrimaryPodIndex' must be set")
 	}
+	// TODO: pod.ListMariaDBPods
 	podList := corev1.PodList{}
 	listOpts := &ctrlclient.ListOptions{
 		LabelSelector: klabels.SelectorFromSet(

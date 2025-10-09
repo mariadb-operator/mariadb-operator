@@ -69,7 +69,7 @@ func ListSecondaryPods(ctx context.Context, client ctrlclient.Client,
 	var pods []corev1.Pod
 	for _, p := range podList.Items {
 		// ignore Pods created by Jobs
-		if IsJobPod(p) {
+		if IsManagedByJob(p) {
 			continue
 		}
 
@@ -85,7 +85,7 @@ func ListSecondaryPods(ctx context.Context, client ctrlclient.Client,
 	return pods, nil
 }
 
-func IsJobPod(pod corev1.Pod) bool {
+func IsManagedByJob(pod corev1.Pod) bool {
 	return pod.Labels["job-name"] != "" ||
 		pod.Labels["batch.kubernetes.io/job-name"] != ""
 }

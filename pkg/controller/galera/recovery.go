@@ -219,6 +219,7 @@ func (r *GaleraReconciler) restartPods(ctx context.Context, mariadb *mariadbv1al
 }
 
 func (r *GaleraReconciler) getPods(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) ([]corev1.Pod, error) {
+	// TODO: pod.ListMariaDBPods
 	list := corev1.PodList{}
 	listOpts := &ctrlclient.ListOptions{
 		LabelSelector: klabels.SelectorFromSet(

@@ -91,7 +91,7 @@ func NewReplicationReconciler(client client.Client, recorder record.EventRecorde
 	return r, nil
 }
 
-type reconcileRequest struct {
+type ReconcileRequest struct {
 	mariadb        *mariadbv1alpha1.MariaDB
 	key            types.NamespacedName
 	replClientSet  *ReplicationClientSet
@@ -99,7 +99,7 @@ type reconcileRequest struct {
 	replicasSynced bool
 }
 
-func (r *reconcileRequest) close() error {
+func (r *ReconcileRequest) Close() error {
 	if r.replClientSet != nil {
 		r.replClientSet.close()
 	}
@@ -113,11 +113,11 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, mdb *mariadbv1alp
 	logger := log.FromContext(ctx).WithName("replication")
 	switchoverLogger := log.FromContext(ctx).WithName("switchover")
 
-	req, err := r.newReconcileRequest(ctx, mdb)
+	req, err := r.NewReconcileRequest(ctx, mdb)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error creating reconcile request: %v", err)
 	}
-	defer req.close()
+	defer req.Close()
 
 	if !mdb.IsMaxScaleEnabled() && mdb.IsSwitchoverRequired() {
 		return ctrl.Result{}, r.reconcileSwitchover(ctx, req, switchoverLogger)
@@ -128,7 +128,7 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, mdb *mariadbv1alp
 	return ctrl.Result{}, r.reconcileSwitchover(ctx, req, switchoverLogger)
 }
 
-func (r *ReplicationReconciler) newReconcileRequest(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) (*reconcileRequest, error) {
+func (r *ReplicationReconciler) NewReconcileRequest(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) (*ReconcileRequest, error) {
 	replClientSet, err := NewReplicationClientSet(mdb, r.refResolver)
 	if err != nil {
 		return nil, fmt.Errorf("error creating mariadb clientset: %v", err)
@@ -137,7 +137,7 @@ func (r *ReplicationReconciler) newReconcileRequest(ctx context.Context, mdb *ma
 	if err != nil {
 		return nil, fmt.Errorf("error getting agent clientset: %v", err)
 	}
-	return &reconcileRequest{
+	return &ReconcileRequest{
 		mariadb:        mdb,
 		key:            client.ObjectKeyFromObject(mdb),
 		replClientSet:  replClientSet,
@@ -146,19 +146,19 @@ func (r *ReplicationReconciler) newReconcileRequest(ctx context.Context, mdb *ma
 	}, nil
 }
 
-func (r *ReplicationReconciler) reconcileReplication(ctx context.Context, req *reconcileRequest, logger logr.Logger) (ctrl.Result, error) {
+func (r *ReplicationReconciler) reconcileReplication(ctx context.Context, req *ReconcileRequest, logger logr.Logger) (ctrl.Result, error) {
 	if result, err := r.shouldReconcileReplication(ctx, req, logger); !result.IsZero() || err != nil {
 		return result, err
 	}
 	for _, i := range r.replicationPodIndexes(ctx, req) {
-		if result, err := r.reconcileReplicationInPod(ctx, req, logger, i); !result.IsZero() || err != nil {
+		if result, err := r.ReconcileReplicationInPod(ctx, req, i, logger); !result.IsZero() || err != nil {
 			return result, err
 		}
 	}
 	return ctrl.Result{}, nil
 }
 
-func (r *ReplicationReconciler) shouldReconcileReplication(ctx context.Context, req *reconcileRequest,
+func (r *ReplicationReconciler) shouldReconcileReplication(ctx context.Context, req *ReconcileRequest,
 	logger logr.Logger) (ctrl.Result, error) {
 	if req.mariadb.Status.CurrentPrimaryPodIndex == nil {
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
@@ -183,7 +183,7 @@ func (r *ReplicationReconciler) shouldReconcileReplication(ctx context.Context, 
 	return ctrl.Result{}, nil
 }
 
-func (r *ReplicationReconciler) replicationPodIndexes(ctx context.Context, req *reconcileRequest) []int {
+func (r *ReplicationReconciler) replicationPodIndexes(ctx context.Context, req *ReconcileRequest) []int {
 	podIndexes := []int{
 		*req.mariadb.Status.CurrentPrimaryPodIndex,
 	}
@@ -195,14 +195,31 @@ func (r *ReplicationReconciler) replicationPodIndexes(ctx context.Context, req *
 	return podIndexes
 }
 
-func (r *ReplicationReconciler) reconcileReplicationInPod(ctx context.Context, req *reconcileRequest, logger logr.Logger,
-	index int) (ctrl.Result, error) {
+type ReconcilePodOpts struct {
+	forceReplicaReconciliation bool
+}
+
+type ReconcilePodOpt func(*ReconcilePodOpts)
+
+func WithForceReplicaReconciliation(reconcile bool) ReconcilePodOpt {
+	return func(rpo *ReconcilePodOpts) {
+		rpo.forceReplicaReconciliation = reconcile
+	}
+}
+
+func (r *ReplicationReconciler) ReconcileReplicationInPod(ctx context.Context, req *ReconcileRequest, podIndex int,
+	logger logr.Logger, reconcilePodOpts ...ReconcilePodOpt) (ctrl.Result, error) {
+	opts := ReconcilePodOpts{}
+	for _, setOpt := range reconcilePodOpts {
+		setOpt(&opts)
+	}
+
 	primaryPodIndex := *req.mariadb.Status.CurrentPrimaryPodIndex
 	replStatus := ptr.Deref(req.mariadb.Status.Replication, mariadbv1alpha1.ReplicationStatus{})
 	replState := replStatus.State
-	pod := statefulset.PodName(req.mariadb.ObjectMeta, index)
+	pod := statefulset.PodName(req.mariadb.ObjectMeta, podIndex)
 
-	if primaryPodIndex == index {
+	if primaryPodIndex == podIndex {
 		if rs, ok := replState[pod]; ok && rs == mariadbv1alpha1.ReplicationStatePrimary {
 			return ctrl.Result{}, nil
 		}
@@ -218,22 +235,21 @@ func (r *ReplicationReconciler) reconcileReplicationInPod(ctx context.Context, r
 		return ctrl.Result{}, nil
 	}
 
-	if req.mariadb.IsReplicaBeingRecovered(pod) {
-		return ctrl.Result{}, nil
-	}
-	rs, ok := replState[pod]
-	if ok && rs == mariadbv1alpha1.ReplicationStateReplica && !req.mariadb.ReplicaNeedsConfiguration(pod) {
-		return ctrl.Result{}, nil
+	if !opts.forceReplicaReconciliation {
+		rs, ok := replState[pod]
+		if (ok && rs == mariadbv1alpha1.ReplicationStateReplica) || req.mariadb.IsReplicaBeingRecovered(pod) {
+			return ctrl.Result{}, nil
+		}
 	}
 
-	client, err := req.replClientSet.clientForIndex(ctx, index)
+	client, err := req.replClientSet.clientForIndex(ctx, podIndex)
 	if err != nil {
 		logger.V(1).Info("error getting replica client", "err", err, "pod", pod)
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 	logger.Info("Configuring replica", "pod", pod)
 
-	replicaOpts, err := r.getReplicaOpts(ctx, req, pod, index, logger)
+	replicaOpts, err := r.getReplicaOpts(ctx, req, pod, podIndex, logger)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error getting replica opts: %v", err)
 	}
@@ -247,7 +263,7 @@ func (r *ReplicationReconciler) reconcileReplicationInPod(ctx context.Context, r
 	return ctrl.Result{}, nil
 }
 
-func (r *ReplicationReconciler) getReplicaOpts(ctx context.Context, req *reconcileRequest, pod string, index int,
+func (r *ReplicationReconciler) getReplicaOpts(ctx context.Context, req *ReconcileRequest, pod string, index int,
 	logger logr.Logger) ([]ConfigureReplicaOpt, error) {
 	if !req.mariadb.ReplicaNeedsConfiguration(pod) {
 		return nil, nil
@@ -300,7 +316,7 @@ func (r *ReplicationReconciler) getReplicaOpts(ctx context.Context, req *reconci
 	}, nil
 }
 
-func (r *ReplicationReconciler) markReplicaAsConfigured(ctx context.Context, req *reconcileRequest, pod string, logger logr.Logger) error {
+func (r *ReplicationReconciler) markReplicaAsConfigured(ctx context.Context, req *ReconcileRequest, pod string, logger logr.Logger) error {
 	if !req.mariadb.ReplicaNeedsConfiguration(pod) {
 		return nil
 	}

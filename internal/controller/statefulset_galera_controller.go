@@ -155,6 +155,7 @@ func (r *StatefulSetGaleraReconciler) isHealthy(ctx context.Context, stsObjMeta 
 
 func (r *StatefulSetGaleraReconciler) readyClient(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 	clientSet *sqlClient.ClientSet) (*sqlClient.Client, error) {
+	// TODO: pod.ListMariaDBPods
 	list := corev1.PodList{}
 	listOpts := &client.ListOptions{
 		LabelSelector: klabels.SelectorFromSet(

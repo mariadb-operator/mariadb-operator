@@ -23,6 +23,9 @@ import (
 )
 
 func (r *MariaDBReconciler) reconcileScaleOut(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
+	if !mariadb.IsReplicationEnabled() {
+		return ctrl.Result{}, nil
+	}
 	var sts appsv1.StatefulSet
 	if err := r.Get(ctx, client.ObjectKeyFromObject(mariadb), &sts); err != nil {
 		return ctrl.Result{}, err
@@ -263,7 +266,7 @@ func (r *MariaDBReconciler) setScaledOutAndCleanup(ctx context.Context, mariadb 
 		return fmt.Errorf("error patching MariaDB status: %v", err)
 	}
 
-	if err := r.cleanupPhysicalBackup(ctx, mariadb); err != nil {
+	if err := r.cleanupPhysicalBackup(ctx, mariadb.PhysicalBackupScaleOutKey()); err != nil {
 		return err
 	}
 	if err := r.cleanupInitJobs(ctx, mariadb); err != nil {
@@ -272,8 +275,7 @@ func (r *MariaDBReconciler) setScaledOutAndCleanup(ctx context.Context, mariadb 
 	return nil
 }
 
-func (r *MariaDBReconciler) cleanupPhysicalBackup(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
-	key := mariadb.PhysicalBackupScaleOutKey()
+func (r *MariaDBReconciler) cleanupPhysicalBackup(ctx context.Context, key types.NamespacedName) error {
 	var physicalBackup mariadbv1alpha1.PhysicalBackup
 	if err := r.Get(ctx, key, &physicalBackup); err != nil {
 		if apierrors.IsNotFound(err) {

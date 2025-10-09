@@ -372,6 +372,7 @@ func (h *certHandler) ensureAllPodsTrustingCABundle(ctx context.Context, mdb *ma
 	caBundleHash string) (bool, error) {
 	logger := log.FromContext(ctx).WithName("pod-ca").WithValues("ca-hash", caBundleHash)
 
+	// TODO: pod.ListMariaDBPods
 	list := corev1.PodList{}
 	listOpts := &client.ListOptions{
 		LabelSelector: klabels.SelectorFromSet(
