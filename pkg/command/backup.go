@@ -327,9 +327,26 @@ func (b *BackupCommand) MariadbRestore(restore *mariadbv1alpha1.Restore,
 	return NewBashCommand(cmds), nil
 }
 
-func (b *BackupCommand) MariadbBackupRestore(mariadb *mariadbv1alpha1.MariaDB, backupDirPath string) (*Command, error) {
+type MariaDBBackupRestoreOpts struct {
+	cleanupDataDir bool
+}
+
+type MariaDBBackupRestoreOpt func(*MariaDBBackupRestoreOpts)
+
+func WithCleanupDataDir(cleanup bool) MariaDBBackupRestoreOpt {
+	return func(mdro *MariaDBBackupRestoreOpts) {
+		mdro.cleanupDataDir = cleanup
+	}
+}
+
+func (b *BackupCommand) MariadbBackupRestore(mariadb *mariadbv1alpha1.MariaDB, backupDirPath string,
+	restoreOpts ...MariaDBBackupRestoreOpt) (*Command, error) {
 	if b.Database != nil {
 		return nil, errors.New("database option not supported in physical backups")
+	}
+	opts := MariaDBBackupRestoreOpts{}
+	for _, setOpt := range restoreOpts {
+		setOpt(&opts)
 	}
 
 	// The ext4 filesystem creates a lost+found directory by default, which causes mariadb-backup to fail with:
@@ -382,11 +399,19 @@ fi`,
 			"mariadb-backup --prepare --target-dir=%s",
 			backupDirPath,
 		),
+	}
+	if opts.cleanupDataDir {
+		cmds = append(cmds, []string{
+			"echo 💾 Cleaning up data directory",
+			"if [ -d /var/lib/mysql ]; then rm -rf /var/lib/mysql/*; fi",
+		}...)
+	}
+	cmds = append(cmds, []string{
 		"echo 💾 Copying backup to data directory",
 		copyBackupCmd,
 		copyBinlogCmd(replication.BinlogFileName),
 		copyBinlogCmd(replication.LegacyBinlogFileName),
-	}
+	}...)
 	return NewBashCommand(cmds), nil
 }
 
