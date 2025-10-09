@@ -14,7 +14,6 @@ import (
 )
 
 // Holds utility functions shared between Replication and PhysicalBackup tests.
-//
 
 func testPhysicalBackup(backup *mariadbv1alpha1.PhysicalBackup) {
 	By("Creating PhysicalBackup")
