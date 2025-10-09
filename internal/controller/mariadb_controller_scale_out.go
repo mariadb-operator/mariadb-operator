@@ -188,7 +188,7 @@ func (r *MariaDBReconciler) reconcileReplicaPhysicalBackup(ctx context.Context, 
 	var physicalBackup mariadbv1alpha1.PhysicalBackup
 	if err := r.Get(ctx, key, &physicalBackup); err != nil {
 		if apierrors.IsNotFound(err) {
-			if err := r.createReplicaPhysicalBackup(ctx, mariadb); err != nil {
+			if err := r.createReplicaPhysicalBackup(ctx, key, mariadb); err != nil {
 				return ctrl.Result{}, err
 			}
 		}
@@ -201,7 +201,8 @@ func (r *MariaDBReconciler) reconcileReplicaPhysicalBackup(ctx context.Context, 
 	return ctrl.Result{}, nil
 }
 
-func (r *MariaDBReconciler) createReplicaPhysicalBackup(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
+func (r *MariaDBReconciler) createReplicaPhysicalBackup(ctx context.Context, key types.NamespacedName,
+	mariadb *mariadbv1alpha1.MariaDB) error {
 	replication := ptr.Deref(mariadb.Spec.Replication, mariadbv1alpha1.Replication{})
 	if replication.Replica.ReplicaBootstrapFrom == nil {
 		return errors.New("replica datasource not found")
@@ -216,7 +217,7 @@ func (r *MariaDBReconciler) createReplicaPhysicalBackup(ctx context.Context, mar
 		return fmt.Errorf("error getting PhysicalBackup template: %v", err)
 	}
 
-	physicalBackup, err := r.Builder.BuildPhysicalBackup(mariadb.PhysicalBackupScaleOutKey(), &tpl, mariadb)
+	physicalBackup, err := r.Builder.BuildPhysicalBackup(key, &tpl, mariadb)
 	if err != nil {
 		return fmt.Errorf("error building PhysicalBackup: %v", err)
 	}

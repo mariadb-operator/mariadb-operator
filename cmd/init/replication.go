@@ -1,8 +1,10 @@
 package init
 
 import (
+	"context"
 	"fmt"
 	"os"
+	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/replication"
@@ -13,6 +15,8 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/statefulset"
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/wait"
+	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const replicationConfigFile = "0-replication.cnf"
@@ -67,6 +71,10 @@ var replicationCommand = &cobra.Command{
 			os.Exit(0)
 		}
 
+		if err := waitForReplicaRecovery(ctx, env, &mdb, k8sClient); err != nil {
+			logger.Error(err, "error waiting for replica recovery")
+			os.Exit(1)
+		}
 		if err := cleanupReplicaState(fileManager, &mdb, *podIndex); err != nil {
 			logger.Error(err, "error cleaning up replica state")
 			os.Exit(1)
@@ -82,6 +90,27 @@ func createReplicationConfig(env *environment.PodEnvironment, fileManager *filem
 	}
 	logger.Info("Configuring replication")
 	return fileManager.WriteConfigFile(replicationConfigFile, replConfig)
+}
+
+func waitForReplicaRecovery(ctx context.Context, env *environment.PodEnvironment, mdb *mariadbv1alpha1.MariaDB,
+	client ctrlclient.Client) error {
+	if !mdb.IsReplicaBeingRecovered(env.PodName) {
+		return nil
+	}
+	logger.Info("Waiting for replica recovery")
+	key := ctrlclient.ObjectKeyFromObject(mdb)
+
+	return wait.PollUntilContextCancel(ctx, 1*time.Second, true, func(context.Context) (bool, error) {
+		var mariadb mariadbv1alpha1.MariaDB
+		if err := client.Get(ctx, key, &mariadb); err != nil {
+			return false, fmt.Errorf("error getting MariaDB: %v", err)
+		}
+		if mariadb.IsReplicaBeingRecovered(env.PodName) {
+			logger.V(1).Info("Replica is being recovered")
+			return false, nil
+		}
+		return true, nil
+	})
 }
 
 // Cleanup replica state files to prevent starting a potential primary as replica due to previous state

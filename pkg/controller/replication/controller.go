@@ -218,10 +218,14 @@ func (r *ReplicationReconciler) reconcileReplicationInPod(ctx context.Context, r
 		return ctrl.Result{}, nil
 	}
 
+	if req.mariadb.IsReplicaBeingRecovered(pod) {
+		return ctrl.Result{}, nil
+	}
 	rs, ok := replState[pod]
 	if ok && rs == mariadbv1alpha1.ReplicationStateReplica && !req.mariadb.ReplicaNeedsConfiguration(pod) {
 		return ctrl.Result{}, nil
 	}
+
 	client, err := req.replClientSet.clientForIndex(ctx, index)
 	if err != nil {
 		logger.V(1).Info("error getting replica client", "err", err, "pod", pod)

@@ -1,0 +1,77 @@
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-repl
+spec:
+  rootPasswordSecretKeyRef:
+    name: mariadb
+    key: root-password
+
+  storage:
+    size: 1Gi
+    storageClassName: csi-hostpath-sc
+
+  # Increase number of replicas to trigger scaleout process
+  replicas: 3
+  # TODO: remove
+  replicasAllowEvenNumber: true
+
+  replication:
+    enabled: true
+    replica:
+      bootstrapFrom:
+        physicalBackupTemplateRef:
+          name: physicalbackup-tpl
+      recovery:
+        enabled: true
+
+  service:
+    type: LoadBalancer
+    metadata:
+      annotations:
+        metallb.universe.tf/loadBalancerIPs: 172.18.0.120
+
+  primaryService:
+    type: LoadBalancer
+    metadata:
+      annotations:
+        metallb.universe.tf/loadBalancerIPs: 172.18.0.130
+
+  secondaryService:
+    type: LoadBalancer
+    metadata:
+      annotations:
+        metallb.universe.tf/loadBalancerIPs: 172.18.0.131
+
+  metrics:
+    enabled: true
+
+---
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: PhysicalBackup
+metadata:
+  name: physicalbackup-tpl
+spec:
+  mariaDbRef:
+    name: mariadb-repl
+  schedule:
+    suspend: true
+  storage:
+    s3:
+      bucket: scaleout
+      prefix: mariadb
+      endpoint: minio.minio.svc.cluster.local:9000
+      region:  us-east-1
+      accessKeyIdSecretKeyRef:
+        name: minio
+        key: access-key-id
+      secretAccessKeySecretKeyRef:
+        name: minio
+        key: secret-access-key
+      tls:
+        enabled: true
+        caSecretKeyRef:
+          name: minio-ca
+          key: ca.crt
+  timeout: 1h
+  podAffinity: true

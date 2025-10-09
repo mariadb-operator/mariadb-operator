@@ -1,7 +1,15 @@
 package pod
 
 import (
+	"context"
+	"errors"
+	"fmt"
+
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
+	labels "github.com/mariadb-operator/mariadb-operator/v25/pkg/builder/labels"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/statefulset"
 	corev1 "k8s.io/api/core/v1"
+	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func PodReadyCondition(pod *corev1.Pod) *corev1.PodCondition {
@@ -38,4 +46,46 @@ func PodInitializing(pod *corev1.Pod) bool {
 		}
 	}
 	return false
+}
+
+func ListSecondaryPods(ctx context.Context, client ctrlclient.Client,
+	mariadb *mariadbv1alpha1.MariaDB) ([]corev1.Pod, error) {
+	if mariadb.Status.CurrentPrimaryPodIndex == nil {
+		return nil, errors.New("'status.currentPrimaryPodIndex' must be set")
+	}
+	var podList corev1.PodList
+	if err := client.List(
+		ctx,
+		&podList,
+		ctrlclient.InNamespace(mariadb.Namespace),
+		ctrlclient.MatchingLabels(
+			labels.NewLabelsBuilder().
+				WithMariaDBSelectorLabels(mariadb).
+				Build(),
+		),
+	); err != nil {
+		return nil, err
+	}
+	var pods []corev1.Pod
+	for _, p := range podList.Items {
+		// ignore Pods created by Jobs
+		if IsJobPod(p) {
+			continue
+		}
+
+		podIndex, err := statefulset.PodIndex(p.Name)
+		if err != nil {
+			return nil, fmt.Errorf("error getting Pod '%s' index: %v", p.Name, err)
+		}
+		if *podIndex == *mariadb.Status.CurrentPrimaryPodIndex {
+			continue
+		}
+		pods = append(pods, p)
+	}
+	return pods, nil
+}
+
+func IsJobPod(pod corev1.Pod) bool {
+	return pod.Labels["job-name"] != "" ||
+		pod.Labels["batch.kubernetes.io/job-name"] != ""
 }

@@ -164,7 +164,7 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			Reconcile: r.reconcileInit,
 		},
 		{
-			Name:      "ScaleOut",
+			Name:      "Scale out",
 			Reconcile: r.reconcileScaleOut,
 		},
 		{
@@ -407,7 +407,7 @@ func (r *MariaDBReconciler) reconcilePodLabels(ctx context.Context, mariadb *mar
 	for _, pod := range podList.Items {
 		var role = "replica"
 
-		if pod.Status.PodIP == "" || pod.Spec.NodeName == "" {
+		if pod.Status.PodIP == "" || pod.Spec.NodeName == "" || mdbpod.IsJobPod(pod) {
 			continue
 		}
 		podIndex, err := sts.PodIndex(pod.Name)
