@@ -1201,7 +1201,7 @@ func deletePhysicalBackup(key types.NamespacedName) {
 	By("Deleting PhysicalBackup")
 	err := k8sClient.Get(testCtx, key, &backup)
 	if err == nil {
-		Expect(k8sClient.Delete(testCtx, &backup)).To(Succeed())
+		Expect(client.IgnoreNotFound(k8sClient.Delete(testCtx, &backup))).To(Succeed())
 	}
 	if !apierrors.IsNotFound(err) {
 		Expect(err).ToNot(HaveOccurred())
