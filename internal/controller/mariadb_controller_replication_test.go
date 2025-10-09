@@ -383,4 +383,44 @@ var _ = Describe("MariaDB replication", Ordered, func() {
 		By("Using MariaDB with MaxScale")
 		testMaxscale(mdb, mxs)
 	})
+
+	It("should create database from physical backup", func() {
+		backupKey := types.NamespacedName{
+			Name:      "replication-pvc-backup-test",
+			Namespace: key.Namespace,
+		}
+
+		backup := buildPhysicalBackupWithPVCStorage(key)(backupKey)
+		testPhysicalBackup(backup)
+		// We delete the PhysicalBackup, because the job holds the pvc
+		deletePhysicalBackup(backupKey)
+
+		By("Deleting MariaDB")
+		bootstrapFrom := mdb.DeepCopy()
+		deleteMariadb(key, true)
+
+		By("Creating MariaDB from PhysicalBackup")
+		bootstrapFrom.ObjectMeta = metav1.ObjectMeta{
+			Name:      key.Name,
+			Namespace: key.Namespace,
+		}
+		bootstrapFrom.Spec.BootstrapFrom = &mariadbv1alpha1.BootstrapFrom{
+			BackupContentType: mariadbv1alpha1.BackupContentTypePhysical,
+			Volume: &mariadbv1alpha1.StorageVolumeSource{
+				PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimVolumeSource{
+					ClaimName: backupKey.Name,
+				},
+			},
+			TargetRecoveryTime: &metav1.Time{Time: time.Now()},
+		}
+		Expect(k8sClient.Create(testCtx, bootstrapFrom)).To(Succeed())
+
+		By("Expecting MariaDB to be ready eventually")
+		Eventually(func() bool {
+			if err := k8sClient.Get(testCtx, key, mdb); err != nil {
+				return false
+			}
+			return mdb.IsReady() && mdb.IsInitialized() && mdb.HasRestoredBackup()
+		}, testHighTimeout, testInterval).Should(BeTrue())
+	})
 })
