@@ -238,6 +238,7 @@ func (r *MariaDBReconciler) setUpdatedCondition(ctx context.Context, mdb *mariad
 		return nil
 	}
 
+	// TODO: pod.ListMariaDBPods
 	list := corev1.PodList{}
 	listOpts := &client.ListOptions{
 		LabelSelector: klabels.SelectorFromSet(

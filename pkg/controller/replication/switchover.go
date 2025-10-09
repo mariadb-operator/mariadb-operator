@@ -21,7 +21,7 @@ import (
 
 type switchoverPhase struct {
 	name      string
-	reconcile func(context.Context, *reconcileRequest, logr.Logger) error
+	reconcile func(context.Context, *ReconcileRequest, logr.Logger) error
 }
 
 func isSwitchoverStale(mdb *mariadbv1alpha1.MariaDB) bool {
@@ -38,7 +38,7 @@ func shouldReconcileSwitchover(mdb *mariadbv1alpha1.MariaDB) bool {
 	return mdb.IsSwitchoverRequired()
 }
 
-func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *reconcileRequest, switchoverLogger logr.Logger) error {
+func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *ReconcileRequest, switchoverLogger logr.Logger) error {
 	logger := switchoverLogger.WithValues("mariadb", req.mariadb.Name)
 
 	if err := r.reconcileStaleSwitchover(ctx, req, logger); err != nil {
@@ -109,7 +109,7 @@ func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *re
 	return nil
 }
 
-func (r *ReplicationReconciler) reconcileStaleSwitchover(ctx context.Context, req *reconcileRequest,
+func (r *ReplicationReconciler) reconcileStaleSwitchover(ctx context.Context, req *ReconcileRequest,
 	logger logr.Logger) error {
 	if !isSwitchoverStale(req.mariadb) {
 		return nil
@@ -149,7 +149,7 @@ func (r *ReplicationReconciler) reconcileStaleSwitchover(ctx context.Context, re
 	return nil
 }
 
-func (r *ReplicationReconciler) lockPrimaryWithReadLock(ctx context.Context, req *reconcileRequest, logger logr.Logger) error {
+func (r *ReplicationReconciler) lockPrimaryWithReadLock(ctx context.Context, req *ReconcileRequest, logger logr.Logger) error {
 	ready, err := r.currentPrimaryReady(ctx, req.mariadb, req.replClientSet)
 	if err != nil {
 		return fmt.Errorf("error getting current primary readiness: %v", err)
@@ -169,7 +169,7 @@ func (r *ReplicationReconciler) lockPrimaryWithReadLock(ctx context.Context, req
 	return client.LockTablesWithReadLock(ctx)
 }
 
-func (r *ReplicationReconciler) setPrimaryReadOnly(ctx context.Context, req *reconcileRequest, logger logr.Logger) error {
+func (r *ReplicationReconciler) setPrimaryReadOnly(ctx context.Context, req *ReconcileRequest, logger logr.Logger) error {
 	ready, err := r.currentPrimaryReady(ctx, req.mariadb, req.replClientSet)
 	if err != nil {
 		return fmt.Errorf("error getting current primary readiness: %v", err)
@@ -189,7 +189,7 @@ func (r *ReplicationReconciler) setPrimaryReadOnly(ctx context.Context, req *rec
 	return client.EnableReadOnly(ctx)
 }
 
-func (r *ReplicationReconciler) waitForReplicaSync(ctx context.Context, req *reconcileRequest, logger logr.Logger) error {
+func (r *ReplicationReconciler) waitForReplicaSync(ctx context.Context, req *ReconcileRequest, logger logr.Logger) error {
 	if req.mariadb.Status.CurrentPrimaryPodIndex == nil {
 		return errors.New("'status.currentPrimaryPodIndex' must be set")
 	}
@@ -265,7 +265,7 @@ func (r *ReplicationReconciler) waitForReplicaSync(ctx context.Context, req *rec
 	}
 }
 
-func (r *ReplicationReconciler) configureNewPrimary(ctx context.Context, req *reconcileRequest, logger logr.Logger) error {
+func (r *ReplicationReconciler) configureNewPrimary(ctx context.Context, req *ReconcileRequest, logger logr.Logger) error {
 	newPrimary := *ptr.Deref(req.mariadb.Spec.Replication, mariadbv1alpha1.Replication{}).Primary.PodIndex
 	newPrimaryClient, err := req.replClientSet.newPrimaryClient(ctx)
 	if err != nil {
@@ -282,7 +282,7 @@ func (r *ReplicationReconciler) configureNewPrimary(ctx context.Context, req *re
 	return nil
 }
 
-func (r *ReplicationReconciler) connectReplicasToNewPrimary(ctx context.Context, req *reconcileRequest, logger logr.Logger) error {
+func (r *ReplicationReconciler) connectReplicasToNewPrimary(ctx context.Context, req *ReconcileRequest, logger logr.Logger) error {
 	if req.mariadb.Status.CurrentPrimaryPodIndex == nil {
 		return errors.New("'status.currentPrimaryPodIndex' must be set")
 	}
@@ -360,7 +360,7 @@ func (r *ReplicationReconciler) connectReplicasToNewPrimary(ctx context.Context,
 	}
 }
 
-func (r *ReplicationReconciler) changePrimaryToReplica(ctx context.Context, req *reconcileRequest, logger logr.Logger) error {
+func (r *ReplicationReconciler) changePrimaryToReplica(ctx context.Context, req *ReconcileRequest, logger logr.Logger) error {
 	if req.mariadb.Status.CurrentPrimaryPodIndex == nil {
 		return errors.New("'status.currentPrimaryPodIndex' must be set")
 	}
@@ -409,7 +409,7 @@ func (r *ReplicationReconciler) changePrimaryToReplica(ctx context.Context, req 
 	)
 }
 
-func (r *ReplicationReconciler) configureReplicaOpts(ctx context.Context, req *reconcileRequest, primaryClient *sql.Client,
+func (r *ReplicationReconciler) configureReplicaOpts(ctx context.Context, req *ReconcileRequest, primaryClient *sql.Client,
 	logger logr.Logger) ([]ConfigureReplicaOpt, error) {
 	if req.replicasSynced {
 		primaryBinlogPos, err := primaryClient.GtidBinlogPos(ctx)

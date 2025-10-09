@@ -391,6 +391,7 @@ func (r *MariaDBReconciler) reconcilePodLabels(ctx context.Context, mariadb *mar
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 
+	// TODO: pod.ListMariaDBPods
 	podList := corev1.PodList{}
 	listOpts := &client.ListOptions{
 		LabelSelector: klabels.SelectorFromSet(
@@ -407,7 +408,7 @@ func (r *MariaDBReconciler) reconcilePodLabels(ctx context.Context, mariadb *mar
 	for _, pod := range podList.Items {
 		var role = "replica"
 
-		if pod.Status.PodIP == "" || pod.Spec.NodeName == "" || mdbpod.IsJobPod(pod) {
+		if pod.Status.PodIP == "" || pod.Spec.NodeName == "" || mdbpod.IsManagedByJob(pod) {
 			continue
 		}
 		podIndex, err := sts.PodIndex(pod.Name)

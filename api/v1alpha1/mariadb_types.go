@@ -757,6 +757,11 @@ func (s *MariaDBStatus) SetCondition(condition metav1.Condition) {
 	meta.SetStatusCondition(&s.Conditions, condition)
 }
 
+// RemoveCondition removes a status condition to MariaDB, returning true when removed
+func (s *MariaDBStatus) RemoveCondition(conditionType string) bool {
+	return meta.RemoveStatusCondition(&s.Conditions, conditionType)
+}
+
 // UpdateCurrentPrimary updates the current primary status.
 func (s *MariaDBStatus) UpdateCurrentPrimary(mariadb *MariaDB, index int) {
 	s.CurrentPrimaryPodIndex = &index

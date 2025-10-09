@@ -272,6 +272,7 @@ func (r *MariaDBReconciler) getPodsByRole(ctx context.Context, mdb *mariadbv1alp
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 
+	// TODO: pod.ListMariaDBPods
 	list := corev1.PodList{}
 	listOpts := &client.ListOptions{
 		LabelSelector: klabels.SelectorFromSet(
