@@ -19,7 +19,7 @@
         "MARIADB_OPERATOR_NAME": "mariadb-operator",
         "MARIADB_OPERATOR_NAMESPACE": "default",
         "MARIADB_OPERATOR_SA_PATH": "/tmp/mariadb-operator/token",
-        "MARIADB_OPERATOR_IMAGE": "docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:0.37.0",
+        "MARIADB_OPERATOR_IMAGE": "docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:25.8.4-2",
         "RELATED_IMAGE_MARIADB": "mariadb:11.8.2",
         "RELATED_IMAGE_MARIADB_NAME": "mariadb",
         "RELATED_IMAGE_MAXSCALE": "mariadb/maxscale:23.08",

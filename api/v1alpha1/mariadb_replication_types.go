@@ -343,6 +343,20 @@ func (m *MariaDB) SetReplicasToConfigure(replicas ...ReplicaToConfigure) {
 	m.Status.Replication.ReplicasToConfigure = replicas
 }
 
+// AddReplicaToConfigure adds a replica to be configured.
+func (m *MariaDB) AddReplicaToConfigure(replica ReplicaToConfigure) {
+	if m.Status.Replication == nil {
+		m.Status.Replication = &ReplicationStatus{}
+	}
+	exists := datastructures.Any(m.Status.Replication.ReplicasToConfigure, func(r ReplicaToConfigure) bool {
+		return r.Name == replica.Name
+	})
+	if exists {
+		return
+	}
+	m.Status.Replication.ReplicasToConfigure = append(m.Status.Replication.ReplicasToConfigure, replica)
+}
+
 // ReplicaNeedsConfiguration indicates whether a replica needs to be configured.
 func (m *MariaDB) ReplicaNeedsConfiguration(replicaName string) bool {
 	return m.GetReplicaToConfigure(replicaName) != nil
@@ -375,6 +389,15 @@ func (m *MariaDB) SetReplicaToRecover(replica *string) {
 		m.Status.Replication = &ReplicationStatus{}
 	}
 	m.Status.Replication.ReplicaToRecover = replica
+}
+
+// IsReplicaBeingRecovered indicates whether a replica is being recovered
+func (m *MariaDB) IsReplicaBeingRecovered(replica string) bool {
+	if !m.IsRecoveringReplicas() {
+		return false
+	}
+	replication := ptr.Deref(m.Status.Replication, ReplicationStatus{})
+	return replication.ReplicaToRecover != nil && *replication.ReplicaToRecover == replica
 }
 
 // IsSwitchingPrimary indicates whether a primary swichover operation is in progress.

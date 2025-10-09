@@ -22,7 +22,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-var nonRecoverableIOErrorCodes = []int{
+// These errors will trigger the recovery process straight away
+var recoverableIOErrorCodes = []int{
 	// Error 1236: Got fatal error from master when reading data from binary log.
 	// See: https://mariadb.com/docs/server/reference/error-codes/mariadb-error-codes-1200-to-1299/e1236
 	1236,
@@ -79,7 +80,7 @@ func (r *MariaDBReconciler) reconcileReplicaRecovery(ctx context.Context, mariad
 		logger.Info("Recovering replica", "replica", replica)
 
 		if snapshotKey == nil {
-			if result, err := r.reconcileJobReplicaRecovery(ctx, mariadb, replica, logger); !result.IsZero() || err != nil {
+			if result, err := r.reconcileJobReplicaRecovery(ctx, replica, physicalBackup, mariadb, logger); !result.IsZero() || err != nil {
 				return result, err
 			}
 		}
@@ -87,8 +88,8 @@ func (r *MariaDBReconciler) reconcileReplicaRecovery(ctx context.Context, mariad
 	return ctrl.Result{}, nil
 }
 
-func (r *MariaDBReconciler) reconcileJobReplicaRecovery(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, replica string,
-	logger logr.Logger) (ctrl.Result, error) {
+func (r *MariaDBReconciler) reconcileJobReplicaRecovery(ctx context.Context, replica string, physicalBackup *mariadbv1alpha1.PhysicalBackup,
+	mariadb *mariadbv1alpha1.MariaDB, logger logr.Logger) (ctrl.Result, error) {
 	podIndex, err := stsobj.PodIndex(replica)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error getting replica pod index: %v", err)
@@ -106,12 +107,12 @@ func (r *MariaDBReconciler) reconcileJobReplicaRecovery(ctx context.Context, mar
 		return ctrl.Result{}, fmt.Errorf("error patching MariaDB status: %v", err)
 	}
 
-	// TODO: update initcontainer to check replica to recover
 	isPodInitializing, err := r.isPodInitializing(ctx, podKey)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error checking Pod initializing: %v", err)
 	}
 	if !isPodInitializing {
+		logger.Info("Deleting PVC and restarting Pod")
 		if err := r.ensurePVCTerminating(ctx, pvcKey, logger); err != nil {
 			return ctrl.Result{}, fmt.Errorf("error ensuring PVC terminating: %v", err)
 		}
@@ -120,27 +121,30 @@ func (r *MariaDBReconciler) reconcileJobReplicaRecovery(ctx context.Context, mar
 		}
 	}
 
-	// if result, err := r.reconcileAndWaitForInitJob(
-	// 	ctx,
-	// 	mariadb,
-	// 	physicalBackupKey,
-	// 	podIndex,
-	// 	opts.restoreOpts...,
-	// ); !result.IsZero() || err != nil {
-	// 	return result, err
-	// }
+	replication := ptr.Deref(mariadb.Spec.Replication, mariadbv1alpha1.Replication{})
+	bootstrapFrom := ptr.Deref(replication.Replica.ReplicaBootstrapFrom, mariadbv1alpha1.ReplicaBootstrapFrom{})
+
+	if result, err := r.reconcileAndWaitForInitJob(
+		ctx,
+		mariadb,
+		mariadb.PhysicalBackupInitJobKey(*podIndex),
+		*podIndex,
+		builder.WithPhysicalBackup(physicalBackup, time.Now(), bootstrapFrom.RestoreJob),
+	); !result.IsZero() || err != nil {
+		return result, err
+	}
 
 	if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
 		mariadb.SetReplicaToRecover(nil)
+		mariadb.AddReplicaToConfigure(mariadbv1alpha1.ReplicaToConfigure{
+			Name: replica,
+		})
 		return nil
 	}); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error patching MariaDB status: %v", err)
 	}
-
-	// TODO: prevent replication reconciliation from configuring replica to recover
-	// SetReplicasToConfigure
-
-	return ctrl.Result{}, nil
+	// Requeue to configure replication
+	return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 }
 
 func (r *MariaDBReconciler) isPodInitializing(ctx context.Context, key types.NamespacedName) (bool, error) {
@@ -152,56 +156,29 @@ func (r *MariaDBReconciler) isPodInitializing(ctx context.Context, key types.Nam
 }
 
 func (r *MariaDBReconciler) ensurePVCTerminating(ctx context.Context, key types.NamespacedName, logger logr.Logger) error {
-	isTerminated, err := r.isPVCTerminated(ctx, key, logger)
-	if isTerminated {
-		return nil
-	}
-	if err != nil {
-		return fmt.Errorf("error checking PVC %s terminated: %v", key.Name, err)
-	}
-
-	var pvc corev1.PersistentVolumeClaim
-	if err := r.Get(ctx, key, &pvc); err != nil {
-		if apierrors.IsNotFound(err) {
-			return nil
-		}
-		return fmt.Errorf("error getting PVC %s: %v", key.Name, err)
-	}
-	if err := r.Delete(ctx, &pvc); err != nil {
-		if apierrors.IsNotFound(err) {
-			return nil
-		}
-		return fmt.Errorf("failed to delete PVC %s: %w", key.Name, err)
-	}
-
 	pollCtx, cancel := context.WithTimeout(ctx, 1*time.Minute)
 	defer cancel()
 
 	return wait.PollUntilSuccessOrContextCancel(pollCtx, logger, func(ctx context.Context) error {
-		isTerminated, err := r.isPVCTerminated(ctx, key, logger)
-		if isTerminated {
+		var pvc corev1.PersistentVolumeClaim
+		if err := r.Get(ctx, key, &pvc); err != nil {
+			if apierrors.IsNotFound(err) {
+				return nil
+			}
+			return fmt.Errorf("error getting PVC %s: %v", key.Name, err)
+		}
+		if pvc.DeletionTimestamp != nil {
 			return nil
 		}
-		if err != nil {
-			return fmt.Errorf("error checking PVC %s terminated: %v", key.Name, err)
-		}
-		return errors.New("PVC not terminated")
-	})
-}
 
-func (r *MariaDBReconciler) isPVCTerminated(ctx context.Context, key types.NamespacedName, logger logr.Logger) (bool, error) {
-	var pvc corev1.PersistentVolumeClaim
-	err := r.Get(ctx, key, &pvc)
-	if apierrors.IsNotFound(err) {
-		return true, nil
-	}
-	if err != nil {
-		return false, fmt.Errorf("failed to get PVC %s: %w", key.Name, err)
-	}
-	if pvc.DeletionTimestamp != nil {
-		return true, nil
-	}
-	return false, nil
+		if err := r.Delete(ctx, &pvc); err != nil {
+			if apierrors.IsNotFound(err) {
+				return nil
+			}
+			return fmt.Errorf("failed to delete PVC %s: %w", key.Name, err)
+		}
+		return errors.New("PVC not terminated") //nolint:staticcheck
+	})
 }
 
 func (r *MariaDBReconciler) ensurePodInitializing(ctx context.Context, key types.NamespacedName, logger logr.Logger) error {
@@ -209,24 +186,29 @@ func (r *MariaDBReconciler) ensurePodInitializing(ctx context.Context, key types
 	if err := r.Get(ctx, key, &pod); err != nil {
 		return fmt.Errorf("error getting Pod %s: %v", key.Name, err)
 	}
+	if podobj.PodInitializing(&pod) {
+		return nil
+	}
 	if err := r.Delete(ctx, &pod); err != nil {
-		return fmt.Errorf("error deleting Pod %s: %v", key.Name, err)
+		return fmt.Errorf("error deleting Pod: %v", err)
 	}
 
 	pollCtx, cancel := context.WithTimeout(ctx, 1*time.Minute)
 	defer cancel()
 
-	return wait.PollUntilSuccessOrContextCancel(pollCtx, logger, func(ctx context.Context) error {
+	return wait.PollUntilSuccessOrContextCancelWithInterval(pollCtx, 30*time.Second, logger, func(ctx context.Context) error {
+		var pod corev1.Pod
 		if err := r.Get(ctx, key, &pod); err != nil {
 			return fmt.Errorf("error getting Pod %s: %v", key.Name, err)
 		}
 		if podobj.PodInitializing(&pod) {
 			return nil
 		}
+
 		if err := r.Delete(ctx, &pod); err != nil {
 			return err
 		}
-		return errors.New("Pod not initializing")
+		return errors.New("Pod not initializing") //nolint:staticcheck
 	})
 }
 
@@ -234,7 +216,7 @@ func getReplicasToRecover(mdb *mariadbv1alpha1.MariaDB) []string {
 	replication := ptr.Deref(mdb.Status.Replication, mariadbv1alpha1.ReplicationStatus{})
 	var replicas []string
 	for replica, err := range replication.Errors {
-		if isNonRecoverableError(err) {
+		if isRecoverableError(err) {
 			replicas = append(replicas, replica)
 		}
 	}
@@ -244,11 +226,11 @@ func getReplicasToRecover(mdb *mariadbv1alpha1.MariaDB) []string {
 	return replicas
 }
 
-func isNonRecoverableError(s mariadbv1alpha1.ReplicaErrorStatus) bool {
+func isRecoverableError(s mariadbv1alpha1.ReplicaErrorStatus) bool {
 	if s.LastIOErrno == nil {
 		return false
 	}
-	for _, code := range nonRecoverableIOErrorCodes {
+	for _, code := range recoverableIOErrorCodes {
 		if *s.LastIOErrno == code {
 			return true
 		}
