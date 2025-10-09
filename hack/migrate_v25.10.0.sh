@@ -7,7 +7,7 @@ MARIADB_OUTPUT="migrated.$MARIADB_INPUT"
 MARIADB_STATUS_OUTPUT="status.$MARIADB_INPUT"
 
 if [ -z "$MARIADB_INPUT" ]; then
-  echo "Error: MariaDB manifest file from a version older than v0.0.26 must be provided as the first argument."
+  echo "Error: MariaDB manifest file from a version older than 25.8.4 must be provided as the first argument."
   echo "Usage: $0 mariadb.yaml"
   exit 1
 fi
