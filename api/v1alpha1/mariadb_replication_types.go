@@ -173,9 +173,6 @@ func (r *ReplicaReplication) SetDefaults(mdb *MariaDB) {
 	if r.Gtid == nil {
 		r.Gtid = ptr.To(GtidCurrentPos)
 	}
-	if r.ConnectionRetries == nil {
-		r.ConnectionRetries = ptr.To(10)
-	}
 	if r.SyncTimeout == nil {
 		r.SyncTimeout = ptr.To(metav1.Duration{Duration: 10 * time.Second})
 	}
