@@ -413,7 +413,7 @@ var _ = Describe("MariaDB replication restore from backup", Ordered, func() {
 var _ = Describe("MariaDB replication scale out", Ordered, func() {
 	var (
 		key = types.NamespacedName{
-			Name:      "mariadb-scale",
+			Name:      "mariadb-repl",
 			Namespace: testNamespace,
 		}
 		mdb *mariadbv1alpha1.MariaDB
@@ -493,7 +493,7 @@ var _ = Describe("MariaDB replication scale out", Ordered, func() {
 			},
 		),
 		// VolumeSnapshot doesn't get created, to investigate
-		XEntry(
+		Entry(
 			"from volume snapshot",
 			types.NamespacedName{Name: "replication-volume-snapshot-scaleout-test", Namespace: key.Namespace},
 			buildPhysicalBackupWithVolumeSnapshotStorage(key),
