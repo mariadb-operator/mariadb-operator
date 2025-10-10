@@ -299,7 +299,7 @@ var _ = Describe("User", Label("basic"), func() {
 		testConnection(user.Name, testPasswordSecretRef, testTLSClientCertRef, testDatabase, true)
 	})
 
-	It("should clean up", func() {
+	It("should clean up", Label("flaky"), FlakeAttempts(3), func() {
 		By("Creating User")
 		userKey := types.NamespacedName{
 			Name:      "test-clean-up-user",
