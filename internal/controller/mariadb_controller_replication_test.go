@@ -13,6 +13,7 @@ import (
 	discoveryv1 "k8s.io/api/discovery/v1"
 	policyv1 "k8s.io/api/policy/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -304,6 +305,15 @@ var _ = Describe("MariaDB replication restore from backup", Ordered, func() {
 		DeferCleanup(func() {
 			deleteMariadb(key, false)
 		})
+
+		By("Expecting MariaDB to be ready eventually")
+		Eventually(func() bool {
+			if err := k8sClient.Get(testCtx, key, mdb); err != nil {
+				return false
+			}
+			return mdb.IsReady()
+
+		}, testHighTimeout, testInterval).Should(BeTrue())
 	})
 
 	DescribeTable(
@@ -400,6 +410,109 @@ var _ = Describe("MariaDB replication restore from backup", Ordered, func() {
 	)
 })
 
+var _ = Describe("MariaDB replication scale out", Ordered, func() {
+	var (
+		key = types.NamespacedName{
+			Name:      "mariadb-scale",
+			Namespace: testNamespace,
+		}
+		mdb *mariadbv1alpha1.MariaDB
+	)
+
+	BeforeEach(func() {
+		mdb = buildTestMariaDB(key)
+		applyMariadbTestConfig(mdb)
+
+		By("Creating MariaDB with replication")
+		Expect(k8sClient.Create(testCtx, mdb)).To(Succeed())
+		DeferCleanup(func() {
+			deleteMariadb(key, false)
+		})
+
+		By("Expecting MariaDB to be ready eventually")
+		Eventually(func() bool {
+			if err := k8sClient.Get(testCtx, key, mdb); err != nil {
+				return false
+			}
+			return mdb.IsReady()
+
+		}, testHighTimeout, testInterval).Should(BeTrue())
+	})
+
+	DescribeTable(
+		"should scale out",
+		func(
+			backupKey types.NamespacedName,
+			builderFn physicalBackupBuilder,
+			cleanupFn func(backupKey types.NamespacedName) func(),
+		) {
+			backup := builderFn(backupKey)
+			testPhysicalBackup(backup)
+
+			DeferCleanup(func() {
+				deletePhysicalBackup(backupKey)
+				cleanupFn(backupKey)()
+			})
+
+			By("Scale Out")
+			Eventually(func() bool {
+				if err := k8sClient.Get(testCtx, key, mdb); err != nil {
+					return false
+				}
+
+				mdb.Spec.Replicas = mdb.Spec.Replicas + 1
+				mdb.Spec.Replication.Replica.ReplicaBootstrapFrom = &mariadbv1alpha1.ReplicaBootstrapFrom{
+					PhysicalBackupTemplateRef: mariadbv1alpha1.LocalObjectReference{
+						Name: backupKey.Name,
+					},
+				}
+
+				return k8sClient.Update(testCtx, mdb) == nil
+			}, testTimeout, testInterval).Should(BeTrue())
+
+			By("Expecting MariaDB to be ready eventually")
+			Eventually(func() bool {
+				if err := k8sClient.Get(testCtx, key, mdb); err != nil {
+					return false
+				}
+				return mdb.IsReady() && meta.IsStatusConditionTrue(mdb.Status.Conditions, mariadbv1alpha1.ConditionTypeScaledOut)
+
+			}, testHighTimeout, testInterval).Should(BeTrue())
+		},
+		Entry(
+			"with physical backup",
+			types.NamespacedName{Name: "replication-pvc-scaleout-test", Namespace: key.Namespace},
+			buildPhysicalBackupWithPVCStorage(key),
+			func(backupKey types.NamespacedName) func() {
+				return func() {
+					By("Deleting Backup Resources")
+					var pvc corev1.PersistentVolumeClaim
+					Expect(k8sClient.Get(testCtx, backupKey, &pvc)).To(Succeed())
+					Expect(k8sClient.Delete(testCtx, &pvc)).To(Succeed())
+				}
+			},
+		),
+		// VolumeSnapshot doesn't get created, to investigate
+		XEntry(
+			"from volume snapshot",
+			types.NamespacedName{Name: "replication-volume-snapshot-scaleout-test", Namespace: key.Namespace},
+			buildPhysicalBackupWithVolumeSnapshotStorage(key),
+			func(backupKey types.NamespacedName) func() {
+				return func() {
+					By("Deleting Backup Resources")
+					opts := []client.DeleteAllOfOption{
+						client.MatchingLabels{
+							metadata.PhysicalBackupNameLabel: backupKey.Name,
+						},
+						client.InNamespace(backupKey.Namespace),
+					}
+					Expect(k8sClient.DeleteAllOf(testCtx, &volumesnapshotv1.VolumeSnapshot{}, opts...)).To(Succeed())
+				}
+			},
+		),
+	)
+})
+
 func buildTestMariaDB(key types.NamespacedName) *mariadbv1alpha1.MariaDB {
 	return &mariadbv1alpha1.MariaDB{
 		ObjectMeta: metav1.ObjectMeta{
@@ -437,6 +550,8 @@ func buildTestMariaDB(key types.NamespacedName) *mariadbv1alpha1.MariaDB {
 				Enabled: true,
 			},
 			Replicas: 3,
+			// @TODO: REMOVE
+			ReplicasAllowEvenNumber: true,
 			Storage: mariadbv1alpha1.Storage{
 				Size:                ptr.To(resource.MustParse("300Mi")),
 				StorageClassName:    "csi-hostpath-sc",
