@@ -8,10 +8,9 @@ import (
 
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
-	labels "github.com/mariadb-operator/mariadb-operator/v25/pkg/builder/labels"
 	condition "github.com/mariadb-operator/mariadb-operator/v25/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/metadata"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/pod"
+	mdbpod "github.com/mariadb-operator/mariadb-operator/v25/pkg/pod"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/predicate"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/refresolver"
 	sqlClient "github.com/mariadb-operator/mariadb-operator/v25/pkg/sql"
@@ -19,7 +18,6 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	klabels "k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/record"
@@ -155,22 +153,13 @@ func (r *StatefulSetGaleraReconciler) isHealthy(ctx context.Context, stsObjMeta 
 
 func (r *StatefulSetGaleraReconciler) readyClient(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 	clientSet *sqlClient.ClientSet) (*sqlClient.Client, error) {
-	// TODO: pod.ListMariaDBPods
-	list := corev1.PodList{}
-	listOpts := &client.ListOptions{
-		LabelSelector: klabels.SelectorFromSet(
-			labels.NewLabelsBuilder().
-				WithMariaDBSelectorLabels(mariadb).
-				Build(),
-		),
-		Namespace: mariadb.GetNamespace(),
-	}
-	if err := r.List(ctx, &list, listOpts); err != nil {
+	pods, err := mdbpod.ListMariaDBPods(ctx, r.Client, mariadb)
+	if err != nil {
 		return nil, fmt.Errorf("error listing Pods: %v", err)
 	}
 
-	for _, p := range list.Items {
-		if !pod.PodReady(&p) {
+	for _, p := range pods {
+		if !mdbpod.PodReady(&p) {
 			continue
 		}
 		index, err := statefulset.PodIndex(p.Name)

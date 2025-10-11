@@ -48,11 +48,8 @@ func PodInitializing(pod *corev1.Pod) bool {
 	return false
 }
 
-func ListSecondaryPods(ctx context.Context, client ctrlclient.Client,
+func ListMariaDBPods(ctx context.Context, client ctrlclient.Client,
 	mariadb *mariadbv1alpha1.MariaDB) ([]corev1.Pod, error) {
-	if mariadb.Status.CurrentPrimaryPodIndex == nil {
-		return nil, errors.New("'status.currentPrimaryPodIndex' must be set")
-	}
 	var podList corev1.PodList
 	if err := client.List(
 		ctx,
@@ -66,13 +63,28 @@ func ListSecondaryPods(ctx context.Context, client ctrlclient.Client,
 	); err != nil {
 		return nil, err
 	}
-	var pods []corev1.Pod
+	pods := make([]corev1.Pod, 0, len(podList.Items))
 	for _, p := range podList.Items {
 		// ignore Pods created by Jobs
 		if IsManagedByJob(p) {
 			continue
 		}
+		pods = append(pods, p)
+	}
+	return pods, nil
+}
 
+func ListMariaDBSecondaryPods(ctx context.Context, client ctrlclient.Client,
+	mariadb *mariadbv1alpha1.MariaDB) ([]corev1.Pod, error) {
+	if mariadb.Status.CurrentPrimaryPodIndex == nil {
+		return nil, errors.New("'status.currentPrimaryPodIndex' must be set")
+	}
+	pods, err := ListMariaDBPods(ctx, client, mariadb)
+	if err != nil {
+		return nil, err
+	}
+	secondaryPods := make([]corev1.Pod, 0, len(pods))
+	for _, p := range pods {
 		podIndex, err := statefulset.PodIndex(p.Name)
 		if err != nil {
 			return nil, fmt.Errorf("error getting Pod '%s' index: %v", p.Name, err)
@@ -80,9 +92,9 @@ func ListSecondaryPods(ctx context.Context, client ctrlclient.Client,
 		if *podIndex == *mariadb.Status.CurrentPrimaryPodIndex {
 			continue
 		}
-		pods = append(pods, p)
+		secondaryPods = append(secondaryPods, p)
 	}
-	return pods, nil
+	return secondaryPods, nil
 }
 
 func IsManagedByJob(pod corev1.Pod) bool {

@@ -36,7 +36,7 @@ func (r *MariaDBReconciler) reconcileReplicaRecovery(ctx context.Context, mariad
 		return ctrl.Result{}, nil
 	}
 	if !mariadb.IsReplicaRecoveryEnabled() {
-		if err := r.resetReplicaRecoveryAndCleanup(ctx, mariadb); err != nil {
+		if err := r.resetReplicaRecovery(ctx, mariadb); err != nil {
 			return ctrl.Result{}, err
 		}
 		return ctrl.Result{}, nil
@@ -75,11 +75,16 @@ func (r *MariaDBReconciler) reconcileReplicaRecovery(ctx context.Context, mariad
 
 	for _, replica := range replicasToRecover {
 		logger.Info("Recovering replica", "replica", replica)
-
 		if snapshotKey == nil {
 			if result, err := r.reconcileJobReplicaRecovery(ctx, replica, physicalBackup, mariadb, logger); !result.IsZero() || err != nil {
 				return result, err
 			}
+		}
+		if err := r.ensureReplicaConfigured(ctx, replica, mariadb, logger); err != nil {
+			return ctrl.Result{}, fmt.Errorf("error ensuring replica %s configured: %v", replica, err)
+		}
+		if err := r.ensureReplicaRecovered(ctx, replica, mariadb, logger); err != nil {
+			return ctrl.Result{}, fmt.Errorf("error ensuring replica %s recovered: %v", replica, err)
 		}
 	}
 	return ctrl.Result{}, nil
@@ -134,19 +139,9 @@ func (r *MariaDBReconciler) reconcileJobReplicaRecovery(ctx context.Context, rep
 
 	if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
 		mariadb.SetReplicaToRecover(nil)
-		mariadb.AddReplicaToConfigure(mariadbv1alpha1.ReplicaToConfigure{
-			Name: replica,
-		})
 		return nil
 	}); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error patching MariaDB status: %v", err)
-	}
-
-	if err := r.ensureReplicaConfigured(ctx, mariadb, *podIndex, logger); err != nil {
-		return ctrl.Result{}, fmt.Errorf("error ensuring replica configured: %v", err)
-	}
-	if err := r.ensureReplicaRecovered(ctx, mariadb, *podIndex, logger); err != nil {
-		return ctrl.Result{}, fmt.Errorf("error ensuring replica recovered: %v", err)
 	}
 	return ctrl.Result{}, nil
 }
@@ -190,8 +185,12 @@ func (r *MariaDBReconciler) ensurePodInitializing(ctx context.Context, key types
 	})
 }
 
-func (r *MariaDBReconciler) ensureReplicaConfigured(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, podIndex int,
+func (r *MariaDBReconciler) ensureReplicaConfigured(ctx context.Context, replica string, mariadb *mariadbv1alpha1.MariaDB,
 	logger logr.Logger) error {
+	podIndex, err := stsobj.PodIndex(replica)
+	if err != nil {
+		return fmt.Errorf("error getting replica pod index: %v", err)
+	}
 	req, err := r.ReplicationReconciler.NewReconcileRequest(ctx, mariadb)
 	if err != nil {
 		return fmt.Errorf("error creating replication reconcile request: %v", err)
@@ -205,7 +204,7 @@ func (r *MariaDBReconciler) ensureReplicaConfigured(ctx context.Context, mariadb
 		if result, err := r.ReplicationReconciler.ReconcileReplicationInPod(
 			ctx,
 			req,
-			podIndex,
+			*podIndex,
 			logger,
 			replication.WithForceReplicaReconciliation(true),
 		); !result.IsZero() || err != nil {
@@ -215,14 +214,18 @@ func (r *MariaDBReconciler) ensureReplicaConfigured(ctx context.Context, mariadb
 	})
 }
 
-func (r *MariaDBReconciler) ensureReplicaRecovered(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, podIndex int,
+func (r *MariaDBReconciler) ensureReplicaRecovered(ctx context.Context, replica string, mariadb *mariadbv1alpha1.MariaDB,
 	logger logr.Logger) error {
+	podIndex, err := stsobj.PodIndex(replica)
+	if err != nil {
+		return fmt.Errorf("error getting replica pod index: %v", err)
+	}
 
 	pollCtx, cancel := context.WithTimeout(ctx, 1*time.Minute)
 	defer cancel()
 
 	return wait.PollUntilSuccessOrContextCancel(pollCtx, logger, func(ctx context.Context) error {
-		client, err := sql.NewInternalClientWithPodIndex(ctx, mariadb, r.RefResolver, podIndex)
+		client, err := sql.NewInternalClientWithPodIndex(ctx, mariadb, r.RefResolver, *podIndex)
 		if err != nil {
 			return fmt.Errorf("error getting SQL client: %v", err)
 		}
@@ -262,20 +265,13 @@ func (r *MariaDBReconciler) setReplicaRecoveredAndCleanup(ctx context.Context, m
 	return nil
 }
 
-func (r *MariaDBReconciler) resetReplicaRecoveryAndCleanup(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
+func (r *MariaDBReconciler) resetReplicaRecovery(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
 	if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
 		mariadb.Status.RemoveCondition(mariadbv1alpha1.ConditionTypeReplicaRecovered)
 		mariadb.SetReplicaToRecover(nil)
 		return nil
 	}); err != nil {
 		return fmt.Errorf("error patching MariaDB status: %v", err)
-	}
-
-	if err := r.cleanupPhysicalBackup(ctx, mariadb.PhysicalBackupReplicaRecoveryKey()); err != nil {
-		return err
-	}
-	if err := r.cleanupInitJobs(ctx, mariadb); err != nil {
-		return err
 	}
 	return nil
 }
@@ -289,7 +285,7 @@ func getReplicasToRecover(mdb *mariadbv1alpha1.MariaDB) []string {
 		}
 	}
 	sort.Slice(replicas, func(i, j int) bool {
-		return replicas[i] > replicas[j]
+		return replicas[i] < replicas[j]
 	})
 	return replicas
 }

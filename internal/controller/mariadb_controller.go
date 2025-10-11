@@ -45,7 +45,6 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	klabels "k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -391,24 +390,15 @@ func (r *MariaDBReconciler) reconcilePodLabels(ctx context.Context, mariadb *mar
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 
-	// TODO: pod.ListMariaDBPods
-	podList := corev1.PodList{}
-	listOpts := &client.ListOptions{
-		LabelSelector: klabels.SelectorFromSet(
-			labels.NewLabelsBuilder().
-				WithMariaDBSelectorLabels(mariadb).
-				Build(),
-		),
-		Namespace: mariadb.GetNamespace(),
-	}
-	if err := r.List(ctx, &podList, listOpts); err != nil {
+	pods, err := mdbpod.ListMariaDBPods(ctx, r.Client, mariadb)
+	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error listing Pods: %v", err)
 	}
 
-	for _, pod := range podList.Items {
+	for _, pod := range pods {
 		var role = "replica"
 
-		if pod.Status.PodIP == "" || pod.Spec.NodeName == "" || mdbpod.IsManagedByJob(pod) {
+		if pod.Status.PodIP == "" || pod.Spec.NodeName == "" {
 			continue
 		}
 		podIndex, err := sts.PodIndex(pod.Name)
