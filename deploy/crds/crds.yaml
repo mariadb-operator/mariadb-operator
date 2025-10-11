@@ -9367,30 +9367,9 @@ spec:
                       for each replica.
                     type: object
                   replicaToRecover:
-                    description: ReplicaToRecover is the replica that will be recovered
+                    description: ReplicaToRecover is the replica that is being recovered
                       by the operator.
                     type: string
-                  replicasToConfigure:
-                    description: ReplicasToConfigure are the replicas that the operator
-                      will configure replication on.
-                    items:
-                      description: ReplicaToConfigure is a replica that the operator
-                        will configure replication on.
-                      properties:
-                        name:
-                          description: Name of the replica.
-                          type: string
-                        volumeSnapshotRef:
-                          description: |-
-                            VolumeSnapshotRef is a reference to the VolumeSnapshot to be used to configure the replica.
-                            If not provided, configuration from mariadb-backup is assumed.
-                          properties:
-                            name:
-                              default: ""
-                              type: string
-                          type: object
-                      type: object
-                    type: array
                   state:
                     additionalProperties:
                       description: ReplicationState represents the observed replication

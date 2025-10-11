@@ -2,7 +2,6 @@ package replication
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
@@ -11,6 +10,7 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
 	agentclient "github.com/mariadb-operator/mariadb-operator/v25/pkg/agent/client"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/builder"
+	conditions "github.com/mariadb-operator/mariadb-operator/v25/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/configmap"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/secret"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/service"
@@ -155,6 +155,13 @@ func (r *ReplicationReconciler) reconcileReplication(ctx context.Context, req *R
 			return result, err
 		}
 	}
+	if !req.mariadb.HasConfiguredReplication() {
+		if err := r.patchStatus(ctx, req.mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
+			conditions.SetReplicationConfigured(status)
+		}); err != nil {
+			return ctrl.Result{}, err
+		}
+	}
 	return ctrl.Result{}, nil
 }
 
@@ -196,14 +203,21 @@ func (r *ReplicationReconciler) replicationPodIndexes(ctx context.Context, req *
 }
 
 type ReconcilePodOpts struct {
-	forceReplicaReconciliation bool
+	forceReplicaConfiguration bool
+	volumeSnapshotKey         *types.NamespacedName
 }
 
 type ReconcilePodOpt func(*ReconcilePodOpts)
 
-func WithForceReplicaReconciliation(reconcile bool) ReconcilePodOpt {
+func WithForceReplicaConfiguration(reconcile bool) ReconcilePodOpt {
 	return func(rpo *ReconcilePodOpts) {
-		rpo.forceReplicaReconciliation = reconcile
+		rpo.forceReplicaConfiguration = reconcile
+	}
+}
+
+func WithVolumeSnapshotKey(key *types.NamespacedName) ReconcilePodOpt {
+	return func(rpo *ReconcilePodOpts) {
+		rpo.volumeSnapshotKey = key
 	}
 }
 
@@ -235,9 +249,9 @@ func (r *ReplicationReconciler) ReconcileReplicationInPod(ctx context.Context, r
 		return ctrl.Result{}, nil
 	}
 
-	if !opts.forceReplicaReconciliation {
+	if !opts.forceReplicaConfiguration {
 		rs, ok := replState[pod]
-		if (ok && rs == mariadbv1alpha1.ReplicationStateReplica) || req.mariadb.IsReplicaBeingRecovered(pod) {
+		if ok && rs == mariadbv1alpha1.ReplicationStateReplica {
 			return ctrl.Result{}, nil
 		}
 	}
@@ -249,39 +263,31 @@ func (r *ReplicationReconciler) ReconcileReplicationInPod(ctx context.Context, r
 	}
 	logger.Info("Configuring replica", "pod", pod)
 
-	replicaOpts, err := r.getReplicaOpts(ctx, req, pod, podIndex, logger)
+	replicaOpts, err := r.getReplicaOpts(ctx, req, pod, podIndex, logger, reconcilePodOpts...)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error getting replica opts: %v", err)
 	}
 	if err := r.replConfigClient.ConfigureReplica(ctx, req.mariadb, client, primaryPodIndex, replicaOpts...); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error configuring replica: %v", err)
 	}
-
-	if err := r.markReplicaAsConfigured(ctx, req, pod, logger); err != nil {
-		return ctrl.Result{}, fmt.Errorf("error marking replica as configured: %v", err)
-	}
 	return ctrl.Result{}, nil
 }
 
 func (r *ReplicationReconciler) getReplicaOpts(ctx context.Context, req *ReconcileRequest, pod string, index int,
-	logger logr.Logger) ([]ConfigureReplicaOpt, error) {
-	if !req.mariadb.ReplicaNeedsConfiguration(pod) {
-		return nil, nil
+	logger logr.Logger, reconcilePodOpts ...ReconcilePodOpt) ([]ConfigureReplicaOpt, error) {
+	opts := ReconcilePodOpts{}
+	for _, setOpt := range reconcilePodOpts {
+		setOpt(&opts)
 	}
-	replica := req.mariadb.GetReplicaToConfigure(pod)
-	if replica == nil {
-		return nil, errors.New("replica to configure not found")
+	if !opts.forceReplicaConfiguration {
+		return nil, nil
 	}
 
 	var gtid string
-	if replica.VolumeSnapshotRef != nil {
-		snapshotKey := types.NamespacedName{
-			Name:      replica.VolumeSnapshotRef.Name,
-			Namespace: req.mariadb.Namespace,
-		}
+	if opts.volumeSnapshotKey != nil {
 		var snapshot volumesnapshotv1.VolumeSnapshot
-		if err := r.Get(ctx, snapshotKey, &snapshot); err != nil {
-			return nil, fmt.Errorf("error getting %s VolumeSnapshot: %v", snapshotKey.Name, err)
+		if err := r.Get(ctx, *opts.volumeSnapshotKey, &snapshot); err != nil {
+			return nil, fmt.Errorf("error getting %s VolumeSnapshot: %v", (*opts.volumeSnapshotKey).Name, err)
 		}
 		snapshotGtid, ok := snapshot.Annotations[metadata.GtidAnnotation]
 		if !ok {
@@ -289,7 +295,7 @@ func (r *ReplicationReconciler) getReplicaOpts(ctx context.Context, req *Reconci
 		}
 
 		gtid = snapshotGtid
-		logger.Info("Got replica GTID from VolumeSnapshot", "gtid", gtid, "snapshot", snapshot.Name)
+		logger.Info("Got replica GTID from VolumeSnapshot", "pod", pod, "gtid", gtid, "snapshot", snapshot.Name)
 	} else {
 		agentClient, err := req.agentClientSet.ClientForIndex(index)
 		if err != nil {
@@ -301,7 +307,7 @@ func (r *ReplicationReconciler) getReplicaOpts(ctx context.Context, req *Reconci
 		}
 
 		gtid = agentGtid
-		logger.Info("Got replica GTID from agent", "gtid", gtid)
+		logger.Info("Got replica GTID from agent", "pod", pod, "gtid", gtid)
 	}
 
 	changeMasterGtid, err := mariadbv1alpha1.GtidSlavePos.MariaDBFormat()
@@ -314,16 +320,6 @@ func (r *ReplicationReconciler) getReplicaOpts(ctx context.Context, req *Reconci
 			sql.WithChangeMasterGtid(changeMasterGtid),
 		),
 	}, nil
-}
-
-func (r *ReplicationReconciler) markReplicaAsConfigured(ctx context.Context, req *ReconcileRequest, pod string, logger logr.Logger) error {
-	if !req.mariadb.ReplicaNeedsConfiguration(pod) {
-		return nil
-	}
-	logger.Info("Marking replica as configured", "replica", pod)
-	return r.patchStatus(ctx, req.mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
-		req.mariadb.MarkReplicaAsConfigured(pod)
-	})
 }
 
 func (r *ReplicationReconciler) patchStatus(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,

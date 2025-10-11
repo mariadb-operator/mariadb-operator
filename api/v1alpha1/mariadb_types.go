@@ -1029,21 +1029,6 @@ func (m *MariaDB) ScalingOutError() error {
 	return nil
 }
 
-// IsReplicaRecoveryEnabled indicates if the replica recovery is enabled
-func (m *MariaDB) IsReplicaRecoveryEnabled() bool {
-	if !m.IsReplicationEnabled() {
-		return false
-	}
-	replication := ptr.Deref(m.Spec.Replication, Replication{})
-	recovery := ptr.Deref(replication.Replica.ReplicaRecovery, ReplicaRecovery{})
-	return recovery.Enabled
-}
-
-// IsRecoveringReplicas indicates that a replica is being recovered.
-func (m *MariaDB) IsRecoveringReplicas() bool {
-	return meta.IsStatusConditionFalse(m.Status.Conditions, ConditionTypeReplicaRecovered)
-}
-
 // ServerDNSNames are the Service DNS names used by server TLS certificates.
 func (m *MariaDB) TLSServerDNSNames() []string {
 	var names []string

@@ -26,6 +26,8 @@ func (r *MariaDBReconciler) reconcileScaleOut(ctx context.Context, mariadb *mari
 	if !mariadb.IsReplicationEnabled() {
 		return ctrl.Result{}, nil
 	}
+	logger := log.FromContext(ctx).WithName("scale-out")
+
 	var sts appsv1.StatefulSet
 	if err := r.Get(ctx, client.ObjectKeyFromObject(mariadb), &sts); err != nil {
 		return ctrl.Result{}, err
@@ -36,15 +38,13 @@ func (r *MariaDBReconciler) reconcileScaleOut(ctx context.Context, mariadb *mari
 		return ctrl.Result{}, err
 	}
 	if !isScalingOut {
-		if err := r.setScaledOutAndCleanup(ctx, mariadb); err != nil {
-			return ctrl.Result{}, err
+		if result, err := r.setScaledOutAndCleanup(ctx, mariadb, logger); !result.IsZero() || err != nil {
+			return result, err
 		}
 		return ctrl.Result{}, nil
 	}
 	fromIndex := ptr.Deref(mariadb.Status.ScaleOutInitialIndex, int(sts.Status.Replicas))
-	logger := log.FromContext(ctx).
-		WithName("scale-out").
-		WithValues("from-index", fromIndex)
+	logger = logger.WithValues("from-index", fromIndex)
 
 	if !mariadb.IsScalingOut() || mariadb.ScalingOutError() != nil {
 		if result, err := r.reconcileScaleOutError(ctx, mariadb, fromIndex, logger); !result.IsZero() || err != nil {
@@ -78,15 +78,6 @@ func (r *MariaDBReconciler) reconcileScaleOut(ctx context.Context, mariadb *mari
 		return result, err
 	}
 
-	addReplicasToConfigure := func() error {
-		if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
-			return r.setReplicasToConfigure(ctx, mariadb, fromIndex, snapshotKey, logger)
-		}); err != nil {
-			return fmt.Errorf("error patching MariaDB status: %v", err)
-		}
-		return nil
-	}
-
 	if physicalBackup.Spec.Storage.VolumeSnapshot == nil {
 		replication := ptr.Deref(mariadb.Spec.Replication, mariadbv1alpha1.Replication{})
 		bootstrapFrom := ptr.Deref(replication.Replica.ReplicaBootstrapFrom, mariadbv1alpha1.ReplicaBootstrapFrom{})
@@ -99,18 +90,11 @@ func (r *MariaDBReconciler) reconcileScaleOut(ctx context.Context, mariadb *mari
 			withRestoreOpts(
 				builder.WithPhysicalBackup(physicalBackup, time.Now(), bootstrapFrom.RestoreJob),
 			),
-			withPodInitializedFn(func(podIndex int) error {
-				// last replica
-				if podIndex+1 == int(mariadb.Spec.Replicas) {
-					return addReplicasToConfigure()
-				}
-				return nil
-			}),
 		); !result.IsZero() || err != nil {
 			return result, err
 		}
 	}
-	return ctrl.Result{}, addReplicasToConfigure()
+	return ctrl.Result{}, nil
 }
 
 func (r *MariaDBReconciler) isScalingOut(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, sts *appsv1.StatefulSet) (bool, error) {
@@ -254,25 +238,56 @@ func (r *MariaDBReconciler) getVolumeSnapshotKey(ctx context.Context, mariadb *m
 	return ptr.To(client.ObjectKeyFromObject(&snapshotList.Items[0])), nil
 }
 
-func (r *MariaDBReconciler) setScaledOutAndCleanup(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
+func (r *MariaDBReconciler) setScaledOutAndCleanup(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+	logger logr.Logger) (ctrl.Result, error) {
 	if !mariadb.IsScalingOut() {
-		return nil
+		return ctrl.Result{}, nil
 	}
+	physicalBackupKey := mariadb.PhysicalBackupScaleOutKey()
+
+	if mariadb.Status.ScaleOutInitialIndex != nil {
+		fromIndex := *mariadb.Status.ScaleOutInitialIndex
+
+		physicalBackup, err := r.getPhysicalBackup(ctx, physicalBackupKey, mariadb)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("error getting PhysicalBackup: %v", err)
+		}
+		snapshotKey, err := r.getVolumeSnapshotKey(ctx, mariadb, physicalBackup)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("error getting VolumeSnapshot key: %v", err)
+		}
+
+		if err := r.ensureReplicasConfigured(ctx, fromIndex, mariadb, snapshotKey, logger); err != nil {
+			return ctrl.Result{}, err
+		}
+
+		if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
+			status.ScaleOutInitialIndex = nil
+			return nil
+		}); err != nil {
+			return ctrl.Result{}, fmt.Errorf("error patching MariaDB status: %v", err)
+		}
+		// Requeue to track replication status
+		if mariadb.IsReplicationEnabled() {
+			return ctrl.Result{Requeue: true}, nil
+		}
+	}
+
 	if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
 		condition.SetScaledOut(status)
 		status.ScaleOutInitialIndex = nil
 		return nil
 	}); err != nil {
-		return fmt.Errorf("error patching MariaDB status: %v", err)
+		return ctrl.Result{}, fmt.Errorf("error patching MariaDB status: %v", err)
 	}
 
-	if err := r.cleanupPhysicalBackup(ctx, mariadb.PhysicalBackupScaleOutKey()); err != nil {
-		return err
+	if err := r.cleanupPhysicalBackup(ctx, physicalBackupKey); err != nil {
+		return ctrl.Result{}, err
 	}
 	if err := r.cleanupInitJobs(ctx, mariadb); err != nil {
-		return err
+		return ctrl.Result{}, err
 	}
-	return nil
+	return ctrl.Result{}, nil
 }
 
 func (r *MariaDBReconciler) cleanupPhysicalBackup(ctx context.Context, key types.NamespacedName) error {

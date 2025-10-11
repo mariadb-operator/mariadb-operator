@@ -1183,7 +1183,6 @@ _Appears in:_
 - [PhysicalBackupSpec](#physicalbackupspec)
 - [PodTemplate](#podtemplate)
 - [ReplicaBootstrapFrom](#replicabootstrapfrom)
-- [ReplicaToConfigure](#replicatoconfigure)
 - [RestoreSource](#restoresource)
 - [RestoreSpec](#restorespec)
 - [SecretKeySelector](#secretkeyselector)
@@ -2319,8 +2318,6 @@ _Appears in:_
 | `maxLagSeconds` _integer_ | MaxLagSeconds is the maximum number of seconds that replicas are allowed to lag behind the primary.<br />If a replica exceeds this threshold, it is marked as not ready and queries will no longer be forwarded to it.<br />Replicas in non ready state will block operations such as primary switchover and upgrades.<br />If not provided, it defaults to 0, which means replicas are not allowed to lag behind the primary.<br />This field is not taken into account by MaxScale, you can define the maximum lag as router parameters. See: https://mariadb.com/docs/maxscale/reference/maxscale-routers/maxscale-readwritesplit#max_replication_lag. |  |  |
 | `bootstrapFrom` _[ReplicaBootstrapFrom](#replicabootstrapfrom)_ | ReplicaBootstrapFrom defines the datasources for bootstrapping new relicas.<br />This will be used as part of the scaling out operations, when increasing the number of replicas.<br />If not provided, scale out operations will return an error. |  |  |
 | `recovery` _[ReplicaRecovery](#replicarecovery)_ | ReplicaRecovery defines how the operator should recover replicas after they become not ready. |  |  |
-
-
 
 
 #### Replication
