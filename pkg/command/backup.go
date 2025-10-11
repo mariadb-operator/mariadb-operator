@@ -1,8 +1,10 @@
 package command
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"html/template"
 	"path/filepath"
 	"strings"
 	"time"
@@ -349,6 +351,11 @@ func (b *BackupCommand) MariadbBackupRestore(mariadb *mariadbv1alpha1.MariaDB, b
 		setOpt(&opts)
 	}
 
+	// Replicas being recovered will have a data directory in error state, needs to be cleaned up before restoring.
+	cleanupDataDirCmd := `if [ -d /var/lib/mysql ]; then 
+	echo "💾 Cleaning up data directory";
+	rm -rf /var/lib/mysql/*;
+fi`
 	// The ext4 filesystem creates a lost+found directory by default, which causes mariadb-backup to fail with:
 	// "Original data directory /var/lib/mysql is not empty!"
 	// Since we already check the PVC existence earlier, it should be safe to use --force-non-empty-directories.
@@ -369,21 +376,23 @@ fi`,
 		)
 	}
 
-	cmds := []string{
-		"set -euo pipefail",
-		"echo 💾 Checking existing backup",
-		fmt.Sprintf(`if [ -d %[1]s ]; then
-  echo '💾 Existing backup directory found. Copying backup to data directory';
-  { %[2]s; } &&
-  { %[3]s; } &&
-  { %[4]s; } &&
-  exit 0
-fi`,
-			backupDirPath,
-			copyBackupCmd,
+	existingBackupRestoreCmd, err := b.existingBackupRestoreCmd(
+		backupDirPath,
+		cleanupDataDirCmd,
+		copyBackupCmd,
+		[]string{
 			copyBinlogCmd(replication.BinlogFileName),
 			copyBinlogCmd(replication.LegacyBinlogFileName),
-		),
+		},
+		restoreOpts...,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("error getting existing backup command: %v", err)
+	}
+
+	cmds := []string{
+		"set -euo pipefail",
+		existingBackupRestoreCmd,
 		"echo 💾 Extracting backup",
 		fmt.Sprintf(
 			"mkdir -p %s",
@@ -401,10 +410,7 @@ fi`,
 		),
 	}
 	if opts.cleanupDataDir {
-		cmds = append(cmds, []string{
-			"echo 💾 Cleaning up data directory",
-			"if [ -d /var/lib/mysql ]; then rm -rf /var/lib/mysql/*; fi",
-		}...)
+		cmds = append(cmds, cleanupDataDirCmd)
 	}
 	cmds = append(cmds, []string{
 		"echo 💾 Copying backup to data directory",
@@ -413,6 +419,45 @@ fi`,
 		copyBinlogCmd(replication.LegacyBinlogFileName),
 	}...)
 	return NewBashCommand(cmds), nil
+}
+
+func (b *BackupCommand) existingBackupRestoreCmd(backupDirPath, cleanupDataDirCmd, copyBackupCmd string,
+	copyBinlogCmds []string, restoreOpts ...MariaDBBackupRestoreOpt) (string, error) {
+	opts := MariaDBBackupRestoreOpts{}
+	for _, setOpt := range restoreOpts {
+		setOpt(&opts)
+	}
+
+	tpl := createTpl("restore.sh", `if [ -d {{ .BackupDir }} ]; then
+  echo '💾 Existing backup directory found. Copying backup to data directory';
+  {{- if .CleanupDataDir }}
+  { {{ .CleanupDataDirCmd }}; } &&
+  {{- end }}
+  { {{ .CopyBackupCmd }}; } &&
+  {{- range $cmd := .CopyBinlogCmds }}
+  { {{ $cmd }}; } &&
+  {{- end }}
+  exit 0
+fi`)
+	buf := new(bytes.Buffer)
+	err := tpl.Execute(buf, struct {
+		BackupDir         string
+		CleanupDataDir    bool
+		CleanupDataDirCmd string
+		CopyBackupCmd     string
+		CopyBinlogCmds    []string
+	}{
+		BackupDir:         backupDirPath,
+		CleanupDataDir:    opts.cleanupDataDir,
+		CleanupDataDirCmd: cleanupDataDirCmd,
+		CopyBackupCmd:     copyBackupCmd,
+		CopyBinlogCmds:    copyBinlogCmds,
+	})
+	if err != nil {
+		return "", err
+	}
+	// Trim surrounding whitespace and newlines to reduce bash syntax error risk
+	return strings.TrimSpace(buf.String()), nil
 }
 
 func (b *BackupCommand) newBackupFile() string {
@@ -571,4 +616,8 @@ func (b *BackupCommand) tlsArgs(mariadb interfaces.TLSProvider) []string {
 		builderpki.ClientKeyPath,
 		"--ssl-verify-server-cert",
 	}
+}
+
+func createTpl(name, t string) *template.Template {
+	return template.Must(template.New(name).Parse(t))
 }
