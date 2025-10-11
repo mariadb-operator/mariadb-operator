@@ -9,7 +9,7 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
 	labels "github.com/mariadb-operator/mariadb-operator/v25/pkg/builder/labels"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/metadata"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/pod"
+	mdbpod "github.com/mariadb-operator/mariadb-operator/v25/pkg/pod"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/statefulset"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -122,43 +122,28 @@ func IsStatefulSetHealthy(ctx context.Context, client ctrlclient.Client, service
 
 func SecondaryPodHealthyIndex(ctx context.Context, client ctrlclient.Client, mariadb *mariadbv1alpha1.MariaDB) (*int, error) {
 	return secondaryPodHealthyIndex(ctx, client, mariadb, func(p *corev1.Pod) bool {
-		return pod.PodReady(p)
+		return mdbpod.PodReady(p)
 	})
 }
 
 func ReplicaPodHealthyIndex(ctx context.Context, client ctrlclient.Client, mariadb *mariadbv1alpha1.MariaDB) (*int, error) {
 	return secondaryPodHealthyIndex(ctx, client, mariadb, func(p *corev1.Pod) bool {
-		return pod.PodReady(p) && mariadb.IsConfiguredReplica(p.Name)
+		return mdbpod.PodReady(p) && mariadb.IsConfiguredReplica(p.Name)
 	})
 }
 
 func secondaryPodHealthyIndex(ctx context.Context, client ctrlclient.Client, mariadb *mariadbv1alpha1.MariaDB,
 	isHealthy func(*corev1.Pod) bool) (*int, error) {
-	if mariadb.Status.CurrentPrimaryPodIndex == nil {
-		return nil, errors.New("'status.currentPrimaryPodIndex' must be set")
-	}
-	// TODO: pod.ListMariaDBPods
-	podList := corev1.PodList{}
-	listOpts := &ctrlclient.ListOptions{
-		LabelSelector: klabels.SelectorFromSet(
-			labels.NewLabelsBuilder().
-				WithMariaDBSelectorLabels(mariadb).
-				Build(),
-		),
-		Namespace: mariadb.GetNamespace(),
-	}
-	if err := client.List(ctx, &podList, listOpts); err != nil {
+	pods, err := mdbpod.ListMariaDBSecondaryPods(ctx, client, mariadb)
+	if err != nil {
 		return nil, fmt.Errorf("error listing Pods: %v", err)
 	}
-	sortPodList(podList)
+	sortPods(pods)
 
-	for _, p := range podList.Items {
+	for _, p := range pods {
 		index, err := statefulset.PodIndex(p.Name)
 		if err != nil {
 			return nil, fmt.Errorf("error getting index for Pod '%s': %v", p.Name, err)
-		}
-		if *index == *mariadb.Status.CurrentPrimaryPodIndex {
-			continue
 		}
 		if isHealthy(&p) {
 			return index, nil
@@ -180,14 +165,14 @@ func HealthyMaxScalePod(ctx context.Context, client ctrlclient.Client, maxscale 
 	if err := client.List(ctx, &podList, listOpts); err != nil {
 		return nil, fmt.Errorf("error listing Pods: %v", err)
 	}
-	sortPodList(podList)
+	sortPodList(&podList)
 
 	for _, p := range podList.Items {
 		index, err := statefulset.PodIndex(p.Name)
 		if err != nil {
 			return nil, fmt.Errorf("error getting index for Pod '%s': %v", p.Name, err)
 		}
-		if pod.PodReady(&p) {
+		if mdbpod.PodReady(&p) {
 			return index, nil
 		}
 	}
@@ -221,8 +206,12 @@ func IsServiceHealthy(ctx context.Context, client ctrlclient.Client, serviceKey 
 	return false, nil
 }
 
-func sortPodList(list corev1.PodList) {
-	sort.Slice(list.Items, func(i, j int) bool {
-		return list.Items[i].Name < list.Items[j].Name
+func sortPods(pods []corev1.Pod) {
+	sort.Slice(pods, func(i, j int) bool {
+		return pods[i].Name < pods[j].Name
 	})
+}
+
+func sortPodList(list *corev1.PodList) {
+	sortPods(list.Items)
 }

@@ -10,19 +10,17 @@ import (
 
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
-	labels "github.com/mariadb-operator/mariadb-operator/v25/pkg/builder/labels"
 	builderpki "github.com/mariadb-operator/mariadb-operator/v25/pkg/builder/pki"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/environment"
 	galeraconfig "github.com/mariadb-operator/mariadb-operator/v25/pkg/galera/config"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/hash"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/health"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/metadata"
-	podpkg "github.com/mariadb-operator/mariadb-operator/v25/pkg/pod"
+	mdbpod "github.com/mariadb-operator/mariadb-operator/v25/pkg/pod"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/statefulset"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/wait"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	klabels "k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -72,7 +70,7 @@ func (r *MariaDBReconciler) reconcileUpdates(ctx context.Context, mdb *mariadbv1
 	}
 
 	for _, replicaPod := range podsByRole.replicas {
-		if podpkg.PodUpdated(&replicaPod, stsUpdateRevision) {
+		if mdbpod.PodUpdated(&replicaPod, stsUpdateRevision) {
 			logger.V(1).Info("Replica Pod up to date", "pod", replicaPod.Name)
 			continue
 		}
@@ -84,7 +82,7 @@ func (r *MariaDBReconciler) reconcileUpdates(ctx context.Context, mdb *mariadbv1
 	}
 
 	primaryPod := podsByRole.primary
-	if podpkg.PodUpdated(&primaryPod, stsUpdateRevision) {
+	if mdbpod.PodUpdated(&primaryPod, stsUpdateRevision) {
 		logger.V(1).Info("Primary Pod up to date", "pod", primaryPod.Name)
 		return ctrl.Result{}, nil
 	}
@@ -235,7 +233,7 @@ func (r *MariaDBReconciler) pollUntilPodUpdated(ctx context.Context, mariadbKey,
 		if err := r.Get(ctx, podKey, &pod); err != nil {
 			return fmt.Errorf("error getting Pod '%s': %v", podKey.Name, err)
 		}
-		if podpkg.PodUpdated(&pod, updateRevision) {
+		if mdbpod.PodUpdated(&pod, updateRevision) {
 			return nil
 		}
 		return errors.New("Pod stale") //nolint:staticcheck
@@ -250,11 +248,11 @@ type podRoleSet struct {
 func (p *podRoleSet) getStalePodNames(updateRevision string) []string {
 	var podNames []string
 	for _, r := range p.replicas {
-		if !podpkg.PodUpdated(&r, updateRevision) {
+		if !mdbpod.PodUpdated(&r, updateRevision) {
 			podNames = append(podNames, r.Name)
 		}
 	}
-	if !podpkg.PodUpdated(&p.primary, updateRevision) {
+	if !mdbpod.PodUpdated(&p.primary, updateRevision) {
 		podNames = append(podNames, p.primary.Name)
 	}
 	return podNames
@@ -272,30 +270,21 @@ func (r *MariaDBReconciler) getPodsByRole(ctx context.Context, mdb *mariadbv1alp
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 
-	// TODO: pod.ListMariaDBPods
-	list := corev1.PodList{}
-	listOpts := &client.ListOptions{
-		LabelSelector: klabels.SelectorFromSet(
-			labels.NewLabelsBuilder().
-				WithMariaDBSelectorLabels(mdb).
-				Build(),
-		),
-		Namespace: mdb.GetNamespace(),
-	}
-	if err := r.List(ctx, &list, listOpts); err != nil {
+	pods, err := mdbpod.ListMariaDBPods(ctx, r.Client, mdb)
+	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error listing Pods: %v", err)
 	}
 
-	numPods := len(list.Items)
+	numPods := len(pods)
 	numReplicas := int(mdb.Spec.Replicas)
-	if len(list.Items) != int(mdb.Spec.Replicas) {
+	if numPods != numReplicas {
 		logger.V(1).Info("Number of Pods does not match MariaDB replicas. Requeuing...", "pods", numPods, "mariadb-replicas", numReplicas)
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
 
 	var replicas []corev1.Pod
 	var primary *corev1.Pod
-	for _, pod := range list.Items {
+	for _, pod := range pods {
 		if pod.Name == currentPrimary {
 			primary = &pod
 		} else {

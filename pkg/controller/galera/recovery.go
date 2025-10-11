@@ -15,11 +15,11 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
 	agentclient "github.com/mariadb-operator/mariadb-operator/v25/pkg/agent/client"
 	agenterrors "github.com/mariadb-operator/mariadb-operator/v25/pkg/agent/errors"
-	labels "github.com/mariadb-operator/mariadb-operator/v25/pkg/builder/labels"
 	galeraclient "github.com/mariadb-operator/mariadb-operator/v25/pkg/galera/client"
 	galerarecovery "github.com/mariadb-operator/mariadb-operator/v25/pkg/galera/recovery"
 	mdbhttp "github.com/mariadb-operator/mariadb-operator/v25/pkg/http"
 	jobpkg "github.com/mariadb-operator/mariadb-operator/v25/pkg/job"
+	mdbpod "github.com/mariadb-operator/mariadb-operator/v25/pkg/pod"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/sql"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/statefulset"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/wait"
@@ -219,22 +219,13 @@ func (r *GaleraReconciler) restartPods(ctx context.Context, mariadb *mariadbv1al
 }
 
 func (r *GaleraReconciler) getPods(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) ([]corev1.Pod, error) {
-	// TODO: pod.ListMariaDBPods
-	list := corev1.PodList{}
-	listOpts := &ctrlclient.ListOptions{
-		LabelSelector: klabels.SelectorFromSet(
-			labels.NewLabelsBuilder().
-				WithMariaDBSelectorLabels(mariadb).
-				Build(),
-		),
-		Namespace: mariadb.GetNamespace(),
-	}
-	if err := r.List(ctx, &list, listOpts); err != nil {
+	pods, err := mdbpod.ListMariaDBPods(ctx, r.Client, mariadb)
+	if err != nil {
 		return nil, fmt.Errorf("error listing Pods: %v", err)
 	}
 
 	var scheduledPods []corev1.Pod
-	for _, pod := range list.Items {
+	for _, pod := range pods {
 		if pod.Spec.NodeName != "" {
 			scheduledPods = append(scheduledPods, pod)
 		}

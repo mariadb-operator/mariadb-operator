@@ -73,7 +73,7 @@ func (r *EndpointsReconciler) Reconcile(ctx context.Context, key types.Namespace
 
 func (r *EndpointsReconciler) endpointSlice(ctx context.Context, key types.NamespacedName,
 	mariadb *mariadbv1alpha1.MariaDB, serviceName string, logger logr.Logger) (*discoveryv1.EndpointSlice, error) {
-	pods, err := mdbpod.ListSecondaryPods(ctx, r.Client, mariadb)
+	pods, err := mdbpod.ListMariaDBSecondaryPods(ctx, r.Client, mariadb)
 	if err != nil {
 		return nil, fmt.Errorf("error listing secondary Pods: %v", err)
 	}
