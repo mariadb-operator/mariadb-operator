@@ -876,11 +876,13 @@ func TestMariadbArgs(t *testing.T) {
 
 func TestMariadbBackupRestore(t *testing.T) {
 	tests := []struct {
-		name      string
-		backupCmd *BackupCommand
-		mariadb   *mariadbv1alpha1.MariaDB
-		backupDir string
-		wantErr   bool
+		name        string
+		backupCmd   *BackupCommand
+		mariadb     *mariadbv1alpha1.MariaDB
+		backupDir   string
+		restoreOpts []MariaDBBackupRestoreOpt
+		wantErr     bool
+		wantCleanup bool
 	}{
 		{
 			name: "with database option (should error)",
@@ -892,9 +894,11 @@ func TestMariadbBackupRestore(t *testing.T) {
 					TargetFilePath: "/backups/target.sql",
 				},
 			},
-			mariadb:   &mariadbv1alpha1.MariaDB{},
-			backupDir: "/restore/dir",
-			wantErr:   true,
+			mariadb:     &mariadbv1alpha1.MariaDB{},
+			backupDir:   "/backup/full",
+			restoreOpts: nil,
+			wantErr:     true,
+			wantCleanup: false,
 		},
 		{
 			name: "basic physical restore",
@@ -903,21 +907,120 @@ func TestMariadbBackupRestore(t *testing.T) {
 					TargetFilePath: "/backups/target.sql",
 				},
 			},
-			mariadb:   &mariadbv1alpha1.MariaDB{},
-			backupDir: "/restore/dir",
-			wantErr:   false,
+			mariadb:     &mariadbv1alpha1.MariaDB{},
+			backupDir:   "/backup/full",
+			restoreOpts: nil,
+			wantErr:     false,
+			wantCleanup: false,
+		},
+		{
+			name: "with cleanup data dir (should include cleanup command)",
+			backupCmd: &BackupCommand{
+				BackupOpts: BackupOpts{
+					TargetFilePath: "/backups/target.sql",
+				},
+			},
+			mariadb:     &mariadbv1alpha1.MariaDB{},
+			backupDir:   "/backup/full",
+			restoreOpts: []MariaDBBackupRestoreOpt{WithCleanupDataDir(true)},
+			wantErr:     false,
+			wantCleanup: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cmd, err := tt.backupCmd.MariadbBackupRestore(tt.mariadb, tt.backupDir)
+			cmd, err := tt.backupCmd.MariadbBackupRestore(tt.mariadb, tt.backupDir, tt.restoreOpts...)
 			if tt.wantErr {
 				assert.Error(t, err)
 				assert.Nil(t, cmd)
+				return
+			}
+
+			assert.NoError(t, err)
+			if assert.NotNil(t, cmd) {
+				if len(cmd.Args) == 0 {
+					t.Error("Expected command to return args")
+				}
+				script := cmd.Args[0] // NewBashCommand puts the whole script here
+				if tt.wantCleanup {
+					assert.Contains(t, script, "rm -rf /var/lib/mysql/*")
+				} else {
+					assert.NotContains(t, script, "rm -rf /var/lib/mysql/*")
+				}
+			}
+		})
+	}
+}
+
+func TestExistingBackupRestoreCmd(t *testing.T) {
+	tests := []struct {
+		name              string
+		backupDirPath     string
+		cleanupDataDirCmd string
+		copyBackupCmd     string
+		copyBinlogCmds    []string
+		restoreOpts       []MariaDBBackupRestoreOpt
+		wantCleanup       bool
+	}{
+		{
+			name:              "no cleanup no binlogs",
+			backupDirPath:     "/backup/full",
+			cleanupDataDirCmd: `if [ -d /var/lib/mysql ]; then echo "cleanup"; rm -rf /var/lib/mysql/*; fi`,
+			copyBackupCmd:     "mariadb-backup --copy-back --target-dir=/backup/full --force-non-empty-directories",
+			copyBinlogCmds:    []string{},
+			restoreOpts:       nil,
+			wantCleanup:       false,
+		},
+		{
+			name:              "with cleanup and one binlog",
+			backupDirPath:     "/backup/full",
+			cleanupDataDirCmd: `if [ -d /var/lib/mysql ]; then echo "cleanup"; rm -rf /var/lib/mysql/*; fi`,
+			copyBackupCmd:     "mariadb-backup --copy-back --target-dir=/backup/full --force-non-empty-directories",
+			copyBinlogCmds:    []string{"cp /backup/full/binlog1 /var/lib/mysql/mariadb_operator_position"},
+			restoreOpts:       []MariaDBBackupRestoreOpt{WithCleanupDataDir(true)},
+			wantCleanup:       true,
+		},
+		{
+			name:              "no cleanup with two binlogs",
+			backupDirPath:     "/another/restore",
+			cleanupDataDirCmd: `if [ -d /var/lib/mysql ]; then echo "cleanup"; rm -rf /var/lib/mysql/*; fi`,
+			copyBackupCmd:     "mariadb-backup --copy-back --target-dir=/another/restore --force-non-empty-directories",
+			copyBinlogCmds: []string{
+				"cp /another/restore/binlogA /var/lib/mysql/mariadb_operator_position",
+				"cp /another/restore/binlogB /var/lib/mysql/mariadb_operator_position",
+			},
+			restoreOpts: nil,
+			wantCleanup: false,
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			b := &BackupCommand{}
+			out, err := b.existingBackupRestoreCmd(
+				tt.backupDirPath,
+				tt.cleanupDataDirCmd,
+				tt.copyBackupCmd,
+				tt.copyBinlogCmds,
+				tt.restoreOpts...,
+			)
+			assert.NoError(t, err)
+			assert.NotEmpty(t, out)
+
+			assert.Contains(t, out, "if [ -d "+tt.backupDirPath+" ]; then")
+			assert.Contains(t, out, tt.copyBackupCmd)
+			assert.Contains(t, out, "exit 0")
+
+			if tt.wantCleanup {
+				assert.Contains(t, out, "rm -rf /var/lib/mysql/*")
 			} else {
-				assert.NoError(t, err)
-				assert.NotNil(t, cmd)
+				assert.NotContains(t, out, "rm -rf /var/lib/mysql/*")
+			}
+
+			for _, cmd := range tt.copyBinlogCmds {
+				assert.Contains(t, out, cmd)
 			}
 		})
 	}

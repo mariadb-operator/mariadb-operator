@@ -48,6 +48,12 @@ func (r *PhysicalBackupReconciler) reconcileSnapshots(ctx context.Context, backu
 	if err := r.reconcileSnapshotStatus(ctx, backup, snapshotList); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error reconciling status: %v", err)
 	}
+
+	schedule := ptr.Deref(backup.Spec.Schedule, mariadbv1alpha1.PhysicalBackupSchedule{})
+	if schedule.Suspend {
+		return ctrl.Result{}, nil
+	}
+
 	if err := r.cleanupSnapshots(ctx, backup, snapshotList); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error cleaning up Jobs: %v", err)
 	}

@@ -73,3 +73,10 @@ spec:
           key: ca.crt
   timeout: 1h
   podAffinity: true
+  stagingStorage:
+    persistentVolumeClaim:
+      resources:
+        requests:
+          storage: 1Gi
+      accessModes:
+        - ReadWriteOnce
