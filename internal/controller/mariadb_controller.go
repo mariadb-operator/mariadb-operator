@@ -167,6 +167,10 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			Reconcile: r.reconcileScaleOut,
 		},
 		{
+			Name:      "Replica recovery",
+			Reconcile: r.reconcileReplicaRecovery,
+		},
+		{
 			Name:      "Storage",
 			Reconcile: r.reconcileStorage,
 		},
@@ -193,10 +197,6 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		{
 			Name:      "Galera",
 			Reconcile: r.GaleraReconciler.Reconcile,
-		},
-		{
-			Name:      "Replica recovery",
-			Reconcile: r.reconcileReplicaRecovery,
 		},
 		{
 			Name:      "Restore",

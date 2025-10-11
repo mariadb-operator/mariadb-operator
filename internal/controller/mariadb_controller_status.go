@@ -128,9 +128,7 @@ func (r *MariaDBReconciler) getReplicationState(ctx context.Context,
 		}
 
 		state := mariadbv1alpha1.ReplicationStateNotConfigured
-		if mdb.ReplicaNeedsConfiguration(pod) {
-			state = mariadbv1alpha1.ReplicationStateConfiguring
-		} else if isReplica {
+		if isReplica {
 			state = mariadbv1alpha1.ReplicationStateReplica
 		} else if hasConnectedReplicas {
 			state = mariadbv1alpha1.ReplicationStatePrimary

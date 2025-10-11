@@ -12,7 +12,6 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/builder"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/command"
 	condition "github.com/mariadb-operator/mariadb-operator/v25/pkg/condition"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/replication"
 	podobj "github.com/mariadb-operator/mariadb-operator/v25/pkg/pod"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/sql"
 	stsobj "github.com/mariadb-operator/mariadb-operator/v25/pkg/statefulset"
@@ -32,7 +31,7 @@ var recoverableIOErrorCodes = []int{
 }
 
 func (r *MariaDBReconciler) reconcileReplicaRecovery(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
-	if !mariadb.IsReplicationEnabled() {
+	if !mariadb.IsReplicationEnabled() || !mariadb.HasConfiguredReplication() {
 		return ctrl.Result{}, nil
 	}
 	if !mariadb.IsReplicaRecoveryEnabled() {
@@ -80,14 +79,15 @@ func (r *MariaDBReconciler) reconcileReplicaRecovery(ctx context.Context, mariad
 				return result, err
 			}
 		}
-		if err := r.ensureReplicaConfigured(ctx, replica, mariadb, logger); err != nil {
+		if err := r.ensureReplicaConfigured(ctx, replica, mariadb, snapshotKey, logger); err != nil {
 			return ctrl.Result{}, fmt.Errorf("error ensuring replica %s configured: %v", replica, err)
 		}
 		if err := r.ensureReplicaRecovered(ctx, replica, mariadb, logger); err != nil {
 			return ctrl.Result{}, fmt.Errorf("error ensuring replica %s recovered: %v", replica, err)
 		}
 	}
-	return ctrl.Result{}, nil
+	// Requeue to track replication status
+	return ctrl.Result{Requeue: true}, nil
 }
 
 func (r *MariaDBReconciler) reconcileJobReplicaRecovery(ctx context.Context, replica string, physicalBackup *mariadbv1alpha1.PhysicalBackup,
@@ -182,35 +182,6 @@ func (r *MariaDBReconciler) ensurePodInitializing(ctx context.Context, key types
 			return err
 		}
 		return errors.New("Pod not initializing") //nolint:staticcheck
-	})
-}
-
-func (r *MariaDBReconciler) ensureReplicaConfigured(ctx context.Context, replica string, mariadb *mariadbv1alpha1.MariaDB,
-	logger logr.Logger) error {
-	podIndex, err := stsobj.PodIndex(replica)
-	if err != nil {
-		return fmt.Errorf("error getting replica pod index: %v", err)
-	}
-	req, err := r.ReplicationReconciler.NewReconcileRequest(ctx, mariadb)
-	if err != nil {
-		return fmt.Errorf("error creating replication reconcile request: %v", err)
-	}
-	defer req.Close()
-
-	pollCtx, cancel := context.WithTimeout(ctx, 1*time.Minute)
-	defer cancel()
-
-	return wait.PollUntilSuccessOrContextCancel(pollCtx, logger, func(ctx context.Context) error {
-		if result, err := r.ReplicationReconciler.ReconcileReplicationInPod(
-			ctx,
-			req,
-			*podIndex,
-			logger,
-			replication.WithForceReplicaReconciliation(true),
-		); !result.IsZero() || err != nil {
-			return errors.New("replication not configured")
-		}
-		return nil
 	})
 }
 

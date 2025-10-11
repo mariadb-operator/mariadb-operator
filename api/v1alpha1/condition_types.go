@@ -21,6 +21,8 @@ const (
 	ConditionTypeScaledOut string = "ScaledOut"
 	// ConditionTypeReplicaRecovered indicates that a replica has been successfully recovered
 	ConditionTypeReplicaRecovered string = "ReplicaRecovered"
+	// ConditionTypeReplicationConfigured indicates that replication has been successfully configured.
+	ConditionTypeReplicationConfigured string = "ReplicationConfigured"
 
 	ConditionReasonStatefulSetNotReady   string = "StatefulSetNotReady"
 	ConditionReasonStatefulSetReady      string = "StatefulSetReady"
@@ -44,6 +46,7 @@ const (
 	ConditionReasonReplicaRecovering     string = "ReplicaRecovering"
 	ConditionReasonReplicaRecovered      string = "ReplicaRecovered"
 	ConditionReasonReplicaRecoverError   string = "ReplicaRecoverError"
+	ConditionReasonReplicationConfigured string = "ReplicationConfigured"
 	ConditionReasonPendingUpdate         string = "PendingUpdate"
 	ConditionReasonUpdating              string = "Updating"
 	ConditionReasonUpdated               string = "Updated"

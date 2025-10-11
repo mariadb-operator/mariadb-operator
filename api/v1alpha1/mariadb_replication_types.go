@@ -5,7 +5,6 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/datastructures"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/docker"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/environment"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -301,12 +300,10 @@ func (r *Replication) SetDefaults(mdb *MariaDB, env *environment.OperatorEnv) er
 	return nil
 }
 
-// GetAutomaticFailoverDelay returns the duration of the automatic failover delay.
-func (m *MariaDB) GetAutomaticFailoverDelay() time.Duration {
-	primary := ptr.Deref(m.Spec.Replication, Replication{}).Primary
-	automaticFailoverDelay := ptr.Deref(primary.AutomaticFailoverDelay, metav1.Duration{})
-
-	return automaticFailoverDelay.Duration
+// HasConfiguredReplication indicates whether the MariaDB object has a ConditionTypeReplicationConfigured status condition.
+// This means that replication has been successfully configured for the first time.
+func (m *MariaDB) HasConfiguredReplication() bool {
+	return meta.IsStatusConditionTrue(m.Status.Conditions, ConditionTypeReplicationConfigured)
 }
 
 // HasConfiguredReplica indicates whether the cluster has a configured replica.
@@ -335,52 +332,19 @@ func (m *MariaDB) IsConfiguredReplica(podName string) bool {
 	return false
 }
 
-// SetReplicasToConfigure sets replicas to be configured.
-func (m *MariaDB) SetReplicasToConfigure(replicas ...ReplicaToConfigure) {
-	if m.Status.Replication == nil {
-		m.Status.Replication = &ReplicationStatus{}
+// IsReplicaRecoveryEnabled indicates if the replica recovery is enabled
+func (m *MariaDB) IsReplicaRecoveryEnabled() bool {
+	if !m.IsReplicationEnabled() {
+		return false
 	}
-	m.Status.Replication.ReplicasToConfigure = replicas
+	replication := ptr.Deref(m.Spec.Replication, Replication{})
+	recovery := ptr.Deref(replication.Replica.ReplicaRecovery, ReplicaRecovery{})
+	return recovery.Enabled
 }
 
-// AddReplicaToConfigure adds a replica to be configured.
-func (m *MariaDB) AddReplicaToConfigure(replica ReplicaToConfigure) {
-	if m.Status.Replication == nil {
-		m.Status.Replication = &ReplicationStatus{}
-	}
-	exists := datastructures.Any(m.Status.Replication.ReplicasToConfigure, func(r ReplicaToConfigure) bool {
-		return r.Name == replica.Name
-	})
-	if exists {
-		return
-	}
-	m.Status.Replication.ReplicasToConfigure = append(m.Status.Replication.ReplicasToConfigure, replica)
-}
-
-// ReplicaNeedsConfiguration indicates whether a replica needs to be configured.
-func (m *MariaDB) ReplicaNeedsConfiguration(replicaName string) bool {
-	return m.GetReplicaToConfigure(replicaName) != nil
-}
-
-// ReplicaConfigurationSource returns the replica to be configured
-func (m *MariaDB) GetReplicaToConfigure(replicaName string) *ReplicaToConfigure {
-	if m.Status.Replication == nil {
-		return nil
-	}
-	return datastructures.Find(m.Status.Replication.ReplicasToConfigure, func(r ReplicaToConfigure) bool {
-		return r.Name == replicaName
-	})
-}
-
-// MarkReplicaAsConfigured marks a replica as configured.
-func (m *MariaDB) MarkReplicaAsConfigured(replicaName string) {
-	if m.Status.Replication == nil {
-		return
-	}
-	m.Status.Replication.ReplicasToConfigure =
-		datastructures.Remove(m.Status.Replication.ReplicasToConfigure, func(r ReplicaToConfigure) bool {
-			return r.Name == replicaName
-		})
+// IsRecoveringReplicas indicates that a replica is being recovered.
+func (m *MariaDB) IsRecoveringReplicas() bool {
+	return meta.IsStatusConditionFalse(m.Status.Conditions, ConditionTypeReplicaRecovered)
 }
 
 // SetReplicaToRecover sets the replica to be recovered
@@ -398,6 +362,14 @@ func (m *MariaDB) IsReplicaBeingRecovered(replica string) bool {
 	}
 	replication := ptr.Deref(m.Status.Replication, ReplicationStatus{})
 	return replication.ReplicaToRecover != nil && *replication.ReplicaToRecover == replica
+}
+
+// GetAutomaticFailoverDelay returns the duration of the automatic failover delay.
+func (m *MariaDB) GetAutomaticFailoverDelay() time.Duration {
+	primary := ptr.Deref(m.Spec.Replication, Replication{}).Primary
+	automaticFailoverDelay := ptr.Deref(primary.AutomaticFailoverDelay, metav1.Duration{})
+
+	return automaticFailoverDelay.Duration
 }
 
 // IsSwitchingPrimary indicates whether a primary swichover operation is in progress.
@@ -421,22 +393,8 @@ type ReplicationState string
 const (
 	ReplicationStatePrimary       ReplicationState = "Primary"
 	ReplicationStateReplica       ReplicationState = "Replica"
-	ReplicationStateConfiguring   ReplicationState = "Configuring"
 	ReplicationStateNotConfigured ReplicationState = "NotConfigured"
 )
-
-// ReplicaToConfigure is a replica that the operator will configure replication on.
-type ReplicaToConfigure struct {
-	// Name of the replica.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=status
-	Name string `json:"name"`
-	// VolumeSnapshotRef is a reference to the VolumeSnapshot to be used to configure the replica.
-	// If not provided, configuration from mariadb-backup is assumed.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=status
-	VolumeSnapshotRef *LocalObjectReference `json:"volumeSnapshotRef,omitempty"`
-}
 
 // ReplicaErrors is the current error state of the threads available in a replica.
 type ReplicaErrors struct {
@@ -491,11 +449,7 @@ type ReplicationStatus struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	Errors map[string]ReplicaErrorStatus `json:"errors,omitempty"`
-	// ReplicasToConfigure are the replicas that the operator will configure replication on.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=status
-	ReplicasToConfigure []ReplicaToConfigure `json:"replicasToConfigure,omitempty"`
-	// ReplicaToRecover is the replica that will be recovered by the operator.
+	// ReplicaToRecover is the replica that is being recovered by the operator.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	ReplicaToRecover *string `json:"replicaToRecover,omitempty"`
