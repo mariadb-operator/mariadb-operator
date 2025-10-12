@@ -125,6 +125,7 @@ type patcherMariaDB func(*mariadbv1alpha1.MariaDBStatus) error
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
 func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	logger := log.FromContext(ctx).WithName("main")
 	var mariadb mariadbv1alpha1.MariaDB
 	if err := r.Get(ctx, req.NamespacedName, &mariadb); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
@@ -221,9 +222,11 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	for _, p := range phases {
+		logger.V(1).Info(fmt.Sprintf("Reconcile phase %s", p.Name), "phase", p.Name)
 		result, err := p.Reconcile(ctx, &mariadb)
 		if err != nil {
 			if shouldSkipPhase(err) {
+				logger.V(1).Info(fmt.Sprintf("Skipping phase %s", p.Name), "phase", p.Name)
 				continue
 			}
 			var errBundle *multierror.Error
