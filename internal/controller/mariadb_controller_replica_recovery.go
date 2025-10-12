@@ -30,8 +30,19 @@ var recoverableIOErrorCodes = []int{
 	1236,
 }
 
+func shouldReconcileReplicaRecovery(mdb *mariadbv1alpha1.MariaDB) bool {
+	if !mdb.IsReplicationEnabled() || !mdb.HasConfiguredReplication() {
+		return false
+	}
+	if mdb.IsSwitchingPrimary() || mdb.IsInitializing() || mdb.IsScalingOut() ||
+		mdb.IsRestoringBackup() || mdb.IsResizingStorage() || mdb.IsUpdating() {
+		return false
+	}
+	return true
+}
+
 func (r *MariaDBReconciler) reconcileReplicaRecovery(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
-	if !mariadb.IsReplicationEnabled() || !mariadb.HasConfiguredReplication() {
+	if !shouldReconcileReplicaRecovery(mariadb) {
 		return ctrl.Result{}, nil
 	}
 	if !mariadb.IsReplicaRecoveryEnabled() {
