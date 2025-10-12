@@ -87,9 +87,7 @@ func (r *MariaDBReconciler) reconcileScaleOut(ctx context.Context, mariadb *mari
 			mariadb,
 			fromIndex,
 			logger,
-			withRestoreOpts(
-				builder.WithPhysicalBackup(physicalBackup, time.Now(), bootstrapFrom.RestoreJob),
-			),
+			builder.WithPhysicalBackup(physicalBackup, time.Now(), bootstrapFrom.RestoreJob),
 		); !result.IsZero() || err != nil {
 			return result, err
 		}
@@ -175,6 +173,7 @@ func (r *MariaDBReconciler) reconcileReplicaPhysicalBackup(ctx context.Context, 
 	var physicalBackup mariadbv1alpha1.PhysicalBackup
 	if err := r.Get(ctx, key, &physicalBackup); err != nil {
 		if apierrors.IsNotFound(err) {
+			logger.Info("Creating PhysicalBackup", "name", key.Name)
 			if err := r.createReplicaPhysicalBackup(ctx, key, mariadb); err != nil {
 				return ctrl.Result{}, err
 			}
