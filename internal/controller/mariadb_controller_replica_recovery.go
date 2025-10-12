@@ -69,6 +69,7 @@ func (r *MariaDBReconciler) reconcileReplicaRecovery(ctx context.Context, mariad
 	}); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error patching MariaDB status: %v", err)
 	}
+	logger.V(1).Info("Recovering replicas")
 	physicalBackupKey := mariadb.PhysicalBackupReplicaRecoveryKey()
 
 	if result, err := r.reconcileReplicaPhysicalBackup(ctx, physicalBackupKey, mariadb, logger); !result.IsZero() || err != nil {
@@ -84,16 +85,18 @@ func (r *MariaDBReconciler) reconcileReplicaRecovery(ctx context.Context, mariad
 	}
 
 	for _, replica := range replicasToRecover {
-		logger.Info("Recovering replica", "replica", replica)
+		replicaLogger := logger.WithValues("replica", replica)
+		replicaLogger.V(1).Info("Recovering replica")
+
 		if snapshotKey == nil {
-			if result, err := r.reconcileJobReplicaRecovery(ctx, replica, physicalBackup, mariadb, logger); !result.IsZero() || err != nil {
+			if result, err := r.reconcileJobReplicaRecovery(ctx, replica, physicalBackup, mariadb, replicaLogger); !result.IsZero() || err != nil {
 				return result, err
 			}
 		}
-		if err := r.ensureReplicaConfigured(ctx, replica, mariadb, snapshotKey, logger); err != nil {
+		if err := r.ensureReplicaConfigured(ctx, replica, mariadb, snapshotKey, replicaLogger); err != nil {
 			return ctrl.Result{}, fmt.Errorf("error ensuring replica %s configured: %v", replica, err)
 		}
-		if err := r.ensureReplicaRecovered(ctx, replica, mariadb, logger); err != nil {
+		if err := r.ensureReplicaRecovered(ctx, replica, mariadb, replicaLogger); err != nil {
 			return ctrl.Result{}, fmt.Errorf("error ensuring replica %s recovered: %v", replica, err)
 		}
 	}
@@ -138,6 +141,7 @@ func (r *MariaDBReconciler) reconcileJobReplicaRecovery(ctx context.Context, rep
 		mariadb,
 		mariadb.PhysicalBackupInitJobKey(*podIndex),
 		*podIndex,
+		logger,
 		builder.WithPhysicalBackup(
 			physicalBackup,
 			time.Now(),
@@ -220,6 +224,7 @@ func (r *MariaDBReconciler) ensureReplicaRecovered(ctx context.Context, replica 
 
 		if replErrors.LastIOErrno != nil && *replErrors.LastIOErrno == 0 &&
 			replErrors.LastSQLErrno != nil && *replErrors.LastSQLErrno == 0 {
+			logger.Info("Replica recovered")
 			return nil
 		}
 		return errors.New("replica not recovered")
