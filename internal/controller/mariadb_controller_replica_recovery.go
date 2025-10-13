@@ -204,7 +204,7 @@ func (r *MariaDBReconciler) reconcileSnapshotReplicaRecovery(ctx context.Context
 		return ctrl.Result{}, fmt.Errorf("error deleting StatefulSet: %v", err)
 	}
 	defer func() {
-		// reuqueuing not handled, as it only applies to updates
+		// requeuing not handled, as it only applies to updates
 		if _, err := r.reconcileStatefulSet(ctx, mariadb); err != nil {
 			logger.Error(err, "error reconciling StatefulSet: %v", err)
 		}
