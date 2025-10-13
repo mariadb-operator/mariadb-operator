@@ -17,6 +17,7 @@ import (
 	stsobj "github.com/mariadb-operator/mariadb-operator/v25/pkg/statefulset"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/wait"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -88,12 +89,30 @@ func (r *MariaDBReconciler) reconcileReplicaRecovery(ctx context.Context, mariad
 		replicaLogger := logger.WithValues("replica", replica)
 		replicaLogger.V(1).Info("Recovering replica")
 
-		if snapshotKey == nil {
-			if result, err := r.reconcileJobReplicaRecovery(ctx, replica, physicalBackup, mariadb, replicaLogger); !result.IsZero() || err != nil {
+		if snapshotKey != nil {
+			if result, err := r.reconcileSnapshotReplicaRecovery(
+				ctx,
+				replica,
+				physicalBackup,
+				mariadb,
+				snapshotKey,
+				replicaLogger.WithName("snapshot"),
+			); !result.IsZero() || err != nil {
+				return result, err
+			}
+		} else {
+			if result, err := r.reconcileJobReplicaRecovery(
+				ctx,
+				replica,
+				physicalBackup,
+				mariadb,
+				replicaLogger.WithName("job"),
+			); !result.IsZero() || err != nil {
 				return result, err
 			}
 		}
-		if err := r.ensureReplicaConfigured(ctx, replica, mariadb, snapshotKey, replicaLogger); err != nil {
+
+		if err := r.ensureReplicationConfigured(ctx, replica, mariadb, snapshotKey, replicaLogger); err != nil {
 			return ctrl.Result{}, fmt.Errorf("error ensuring replica %s configured: %v", replica, err)
 		}
 		if err := r.ensureReplicaRecovered(ctx, replica, mariadb, replicaLogger); err != nil {
@@ -158,6 +177,93 @@ func (r *MariaDBReconciler) reconcileJobReplicaRecovery(ctx context.Context, rep
 	}); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error patching MariaDB status: %v", err)
 	}
+	return ctrl.Result{}, nil
+}
+
+func (r *MariaDBReconciler) reconcileSnapshotReplicaRecovery(ctx context.Context, replica string,
+	physicalBackup *mariadbv1alpha1.PhysicalBackup, mariadb *mariadbv1alpha1.MariaDB, snapshotKey *types.NamespacedName,
+	logger logr.Logger) (ctrl.Result, error) {
+	if snapshotKey == nil {
+		return ctrl.Result{}, errors.New("VolumeSnapshot key must be set")
+	}
+	podIndex, err := stsobj.PodIndex(replica)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error getting replica pod index: %v", err)
+	}
+	podKey := types.NamespacedName{
+		Name:      replica,
+		Namespace: mariadb.Namespace,
+	}
+	pvcKey := mariadb.PVCKey(builder.StorageVolume, *podIndex)
+
+	if result, err := r.waitForReadyVolumeSnapshot(ctx, *snapshotKey, logger); !result.IsZero() || err != nil {
+		return result, err
+	}
+
+	if err := r.deleteStatefulSetLeavingOrphanPods(ctx, mariadb); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error deleting StatefulSet: %v", err)
+	}
+	defer func() {
+		// reuqueuing not handled, as it only applies to updates
+		if _, err := r.reconcileStatefulSet(ctx, mariadb); err != nil {
+			logger.Error(err, "error reconciling StatefulSet: %v", err)
+		}
+	}()
+
+	deletePodCtx, cancel := context.WithTimeout(ctx, 1*time.Minute)
+	defer cancel()
+
+	if err := wait.PollUntilSuccessOrContextCancelWithInterval(deletePodCtx, 5*time.Second, logger, func(ctx context.Context) error {
+		var pod corev1.Pod
+		if err := r.Get(ctx, podKey, &pod); err != nil {
+			if apierrors.IsNotFound(err) {
+				logger.Info("Pod deleted")
+				return nil
+			}
+			return err
+		}
+		if err := r.Delete(ctx, &pod); err != nil {
+			if apierrors.IsNotFound(err) {
+				logger.Info("Pod deleted")
+				return nil
+			}
+			return err
+		}
+		return errors.New("Pod still exists") //nolint:staticcheck
+	}); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error deleting Pod: %v", err)
+	}
+
+	deletePVCCtx, cancel := context.WithTimeout(ctx, 1*time.Minute)
+	defer cancel()
+
+	if err := wait.PollUntilSuccessOrContextCancelWithInterval(deletePVCCtx, 5*time.Second, logger, func(ctx context.Context) error {
+		var pvc corev1.PersistentVolumeClaim
+		if err := r.Get(ctx, pvcKey, &pvc); err != nil {
+			if apierrors.IsNotFound(err) {
+				logger.Info("PVC deleted")
+				return nil
+			}
+			return err
+		}
+		if err := r.Delete(ctx, &pvc); err != nil {
+			if apierrors.IsNotFound(err) {
+				logger.Info("PVC deleted")
+				return nil
+			}
+			return err
+		}
+		return errors.New("PVC still exists") //nolint:staticcheck
+	}); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error deleting PVC: %v", err)
+	}
+
+	logger.Info("Provisioning new PVC from VolumeSnapshot", "snapshot", snapshotKey.Name)
+	if err := r.reconcilePVC(ctx, mariadb, pvcKey, builder.WithVolumeSnapshotDataSource(snapshotKey.Name)); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error reconciling PVC: %v", err)
+	}
+
+	logger.Info("Provisioning new Pod")
 	return ctrl.Result{}, nil
 }
 

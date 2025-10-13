@@ -11,7 +11,6 @@ spec:
     size: 1Gi
     storageClassName: csi-hostpath-sc
 
-  # Increase number of replicas to trigger scaleout process
   replicas: 3
 
   replication:
@@ -20,6 +19,8 @@ spec:
       bootstrapFrom:
         physicalBackupTemplateRef:
           name: physicalbackup-tpl
+      recovery:
+        enabled: true
 
   service:
     type: LoadBalancer

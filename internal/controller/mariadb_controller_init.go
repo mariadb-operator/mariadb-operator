@@ -50,23 +50,8 @@ func (r *MariaDBReconciler) reconcilePhysicalBackupInit(ctx context.Context, mar
 	}
 
 	if !mariadb.IsInitializing() || mariadb.InitError() != nil {
-		pvcs, err := pvc.ListStoragePVCs(ctx, r.Client, mariadb)
-		if err != nil {
-			return ctrl.Result{}, fmt.Errorf("error listing PVCs: %v", err)
-		}
-		if len(pvcs) > 0 {
-			r.Recorder.Eventf(mariadb, corev1.EventTypeWarning, mariadbv1alpha1.ReasonMariaDBInitError,
-				"Unable to init MariaDB: storage PVCs already exist")
-
-			if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
-				condition.SetInitError(status, "storage PVCs already exist")
-				return nil
-			}); err != nil {
-				return ctrl.Result{}, fmt.Errorf("error patching MariaDB status: %v", err)
-			}
-
-			logger.Info("Unable to init MariaDB: storage PVCs already exist. Requeuing...")
-			return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+		if result, err := r.reconcileInitError(ctx, mariadb, logger); !result.IsZero() || err != nil {
+			return result, err
 		}
 	}
 
@@ -87,7 +72,7 @@ func (r *MariaDBReconciler) reconcilePhysicalBackupInit(ctx context.Context, mar
 			Namespace: mariadb.Namespace,
 		}
 	}
-	if result, err := r.reconcilePVCs(ctx, mariadb, fromIndex, snapshotKey); !result.IsZero() || err != nil {
+	if result, err := r.reconcilePVCs(ctx, mariadb, fromIndex, snapshotKey, logger); !result.IsZero() || err != nil {
 		return result, err
 	}
 	if result, err := r.reconcileStagingPVC(ctx, mariadb); !result.IsZero() || err != nil {
@@ -110,8 +95,17 @@ func (r *MariaDBReconciler) reconcilePhysicalBackupInit(ctx context.Context, mar
 		if err := r.cleanupStagingPVC(ctx, mariadb); err != nil {
 			return ctrl.Result{}, err
 		}
+	} else {
+		// TODO: graceful init with volume snapshots
+		// reuqueuing not handled, as it only applies to updates
+		if _, err := r.reconcileStatefulSet(ctx, mariadb); err != nil {
+			return ctrl.Result{}, fmt.Errorf("error reconciling StatefulSet: %v", err)
+		}
 	}
 
+	if err := r.ensurePrimaryConfigured(ctx, mariadb, snapshotKey, logger); err != nil {
+		return ctrl.Result{}, err
+	}
 	if err := r.ensureReplicasConfigured(ctx, fromIndex, mariadb, snapshotKey, logger); err != nil {
 		return ctrl.Result{}, err
 	}
@@ -131,13 +125,37 @@ func (r *MariaDBReconciler) reconcilePhysicalBackupInit(ctx context.Context, mar
 	return ctrl.Result{}, nil
 }
 
+func (r *MariaDBReconciler) reconcileInitError(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+	logger logr.Logger) (ctrl.Result, error) {
+	pvcs, err := pvc.ListStoragePVCs(ctx, r.Client, mariadb)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error listing PVCs: %v", err)
+	}
+	if len(pvcs) == 0 {
+		return ctrl.Result{}, nil
+	}
+	r.Recorder.Eventf(mariadb, corev1.EventTypeWarning, mariadbv1alpha1.ReasonMariaDBInitError,
+		"Unable to init MariaDB: storage PVCs already exist")
+
+	if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
+		condition.SetInitError(status, "storage PVCs already exist")
+		return nil
+	}); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error patching MariaDB status: %v", err)
+	}
+
+	logger.Info("Unable to init MariaDB: storage PVCs already exist. Requeuing...")
+	return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+}
+
 func (r *MariaDBReconciler) reconcilePVCs(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, fromIndex int,
-	snapshotKey *types.NamespacedName) (ctrl.Result, error) {
+	snapshotKey *types.NamespacedName, logger logr.Logger) (ctrl.Result, error) {
 	var pvcOpts []builder.PVCOption
 	if snapshotKey != nil {
-		if result, err := r.waitForReadyVolumeSnapshot(ctx, *snapshotKey); !result.IsZero() || err != nil {
+		if result, err := r.waitForReadyVolumeSnapshot(ctx, *snapshotKey, logger); !result.IsZero() || err != nil {
 			return result, err
 		}
+		logger.Info("Provisioning new PVCs from VolumeSnapshot", "snapshot", snapshotKey.Name)
 		pvcOpts = append(
 			pvcOpts,
 			builder.WithVolumeSnapshotDataSource(snapshotKey.Name),
@@ -145,16 +163,21 @@ func (r *MariaDBReconciler) reconcilePVCs(ctx context.Context, mariadb *mariadbv
 	}
 
 	for i := fromIndex; i < int(mariadb.Spec.Replicas); i++ {
-		key := mariadb.PVCKey(builder.StorageVolume, i)
-		pvc, err := r.Builder.BuildStoragePVC(key, mariadb.Spec.Storage.VolumeClaimTemplate, mariadb, pvcOpts...)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-		if err := r.PVCReconciler.Reconcile(ctx, key, pvc); err != nil {
+		pvcKey := mariadb.PVCKey(builder.StorageVolume, i)
+		if err := r.reconcilePVC(ctx, mariadb, pvcKey, pvcOpts...); err != nil {
 			return ctrl.Result{}, err
 		}
 	}
 	return ctrl.Result{}, nil
+}
+
+func (r *MariaDBReconciler) reconcilePVC(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, key types.NamespacedName,
+	opts ...builder.PVCOption) error {
+	pvc, err := r.Builder.BuildStoragePVC(key, mariadb.Spec.Storage.VolumeClaimTemplate, mariadb, opts...)
+	if err != nil {
+		return err
+	}
+	return r.PVCReconciler.Reconcile(ctx, key, pvc)
 }
 
 func (r *MariaDBReconciler) reconcileStagingPVC(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
@@ -176,13 +199,14 @@ func (r *MariaDBReconciler) reconcileStagingPVC(ctx context.Context, mariadb *ma
 	return ctrl.Result{}, nil
 }
 
-func (r *MariaDBReconciler) waitForReadyVolumeSnapshot(ctx context.Context, key types.NamespacedName) (ctrl.Result, error) {
+func (r *MariaDBReconciler) waitForReadyVolumeSnapshot(ctx context.Context, key types.NamespacedName,
+	logger logr.Logger) (ctrl.Result, error) {
 	var snapshot volumesnapshotv1.VolumeSnapshot
 	if err := r.Get(ctx, key, &snapshot); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error getting VolumeSnapshot: %v", err)
 	}
 	if !mdbsnapshot.IsVolumeSnapshotReady(&snapshot) {
-		log.FromContext(ctx).Info("VolumeSnapshot not ready. Requeuing...", "snapshot", snapshot.Name, "status", snapshot.Status)
+		logger.Info("VolumeSnapshot not ready. Requeuing...", "snapshot", snapshot.Name, "status")
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 	return ctrl.Result{}, nil
@@ -212,9 +236,12 @@ func (r *MariaDBReconciler) reconcileRollingInitJobs(ctx context.Context, mariad
 		if err := r.upscaleStatefulSet(ctx, mariadb, newReplicas); err != nil {
 			return ctrl.Result{}, fmt.Errorf("error upscaling StatefulSet: %v", err)
 		}
-		if result, err := r.waitForPodScheduled(ctx, mariadb, podIndex); !result.IsZero() || err != nil {
+		if result, err := r.waitForPodScheduled(ctx, mariadb, podIndex, logger); !result.IsZero() || err != nil {
 			return result, err
 		}
+
+		// TODO: ensureReplicationConfigured
+
 		logger.Info("Pod successfully initialized", "pod", pod)
 
 		return ctrl.Result{}, nil
@@ -284,7 +311,8 @@ func (r *MariaDBReconciler) upscaleStatefulSet(ctx context.Context, mariadb *mar
 	return nil
 }
 
-func (r *MariaDBReconciler) waitForPodScheduled(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, podIndex int) (ctrl.Result, error) {
+func (r *MariaDBReconciler) waitForPodScheduled(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, podIndex int,
+	logger logr.Logger) (ctrl.Result, error) {
 	podKey := types.NamespacedName{
 		Name:      stsobj.PodName(mariadb.ObjectMeta, podIndex),
 		Namespace: mariadb.Namespace,
@@ -298,10 +326,29 @@ func (r *MariaDBReconciler) waitForPodScheduled(ctx context.Context, mariadb *ma
 	}
 
 	if !podpkg.PodScheduled(&pod) {
-		log.FromContext(ctx).V(1).Info("Pod has not been scheduled. Requeuing...", "pod", pod.Name)
+		logger.V(1).Info("Pod has not been scheduled. Requeuing...", "pod", pod.Name)
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
 	return ctrl.Result{}, nil
+}
+
+func (r *MariaDBReconciler) ensurePrimaryConfigured(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+	snapshotKey *types.NamespacedName, logger logr.Logger) error {
+	if !mariadb.IsReplicationEnabled() {
+		return nil
+	}
+	if mariadb.Status.CurrentPrimaryPodIndex == nil {
+		return errors.New("'status.currentPrimaryPodIndex' must be set")
+	}
+	replica := stsobj.PodName(mariadb.ObjectMeta, *mariadb.Status.CurrentPrimaryPodIndex)
+
+	return r.ensureReplicationConfigured(
+		ctx,
+		replica,
+		mariadb,
+		snapshotKey,
+		logger,
+	)
 }
 
 func (r *MariaDBReconciler) ensureReplicasConfigured(ctx context.Context, fromIndex int, mariadb *mariadbv1alpha1.MariaDB,
@@ -317,7 +364,7 @@ func (r *MariaDBReconciler) ensureReplicasConfigured(ctx context.Context, fromIn
 		pod := stsobj.PodName(mariadb.ObjectMeta, podIndex)
 
 		if *mariadb.Status.CurrentPrimaryPodIndex != podIndex && !mariadb.IsConfiguredReplica(pod) {
-			if err := r.ensureReplicaConfigured(
+			if err := r.ensureReplicationConfigured(
 				ctx,
 				pod,
 				mariadb,
@@ -332,7 +379,7 @@ func (r *MariaDBReconciler) ensureReplicasConfigured(ctx context.Context, fromIn
 	return err
 }
 
-func (r *MariaDBReconciler) ensureReplicaConfigured(ctx context.Context, replica string, mariadb *mariadbv1alpha1.MariaDB,
+func (r *MariaDBReconciler) ensureReplicationConfigured(ctx context.Context, replica string, mariadb *mariadbv1alpha1.MariaDB,
 	snapshotKey *types.NamespacedName, logger logr.Logger) error {
 	if !mariadb.IsReplicationEnabled() {
 		return nil
@@ -398,9 +445,6 @@ func (r *MariaDBReconciler) cleanupStagingPVC(ctx context.Context, mariadb *mari
 
 func (r *MariaDBReconciler) forEachMariaDBPod(mariadb *mariadbv1alpha1.MariaDB, fromIndex int,
 	fn func(podIndex int) (ctrl.Result, error)) (ctrl.Result, error) {
-	if fromIndex >= int(mariadb.Spec.Replicas) {
-		return ctrl.Result{}, fmt.Errorf("index %d out of MariaDB replica bounds [0, %d]", fromIndex, mariadb.Spec.Replicas-1)
-	}
 	for i := fromIndex; i < int(mariadb.Spec.Replicas); i++ {
 		if result, err := fn(i); !result.IsZero() || err != nil {
 			return result, err
