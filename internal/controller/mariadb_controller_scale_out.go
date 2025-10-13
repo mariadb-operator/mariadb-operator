@@ -86,7 +86,7 @@ func (r *MariaDBReconciler) reconcileScaleOut(ctx context.Context, mariadb *mari
 			ctx,
 			mariadb,
 			fromIndex,
-			logger,
+			logger.WithName("job"),
 			builder.WithPhysicalBackup(physicalBackup, time.Now(), bootstrapFrom.RestoreJob),
 		); !result.IsZero() || err != nil {
 			return result, err
