@@ -906,9 +906,8 @@ func (c *Client) ChangeMaster(ctx context.Context, changeMasterOpts ...ChangeMas
 
 func buildChangeMasterQuery(changeMasterOpts ...ChangeMasterOpt) (string, error) {
 	opts := ChangeMasterOpts{
-		Port:    3306,
-		Gtid:    "CurrentPos",
-		Retries: 10,
+		Port: 3306,
+		Gtid: "CurrentPos",
 	}
 	for _, setOpt := range changeMasterOpts {
 		setOpt(&opts)
@@ -924,19 +923,21 @@ func buildChangeMasterQuery(changeMasterOpts ...ChangeMasterOpt) (string, error)
 	}
 
 	tpl := createTpl("change-master.sql", `CHANGE MASTER TO
-MASTER_HOST='{{ .Host }}',
-MASTER_PORT={{ .Port }},
-MASTER_USER='{{ .User }}',
-MASTER_PASSWORD='{{ .Password }}',
-MASTER_USE_GTID={{ .Gtid }},
-MASTER_CONNECT_RETRY={{ .Retries }}{{ if .SSLEnabled }},{{ else }};{{ end }}
 {{- if .SSLEnabled }}
 MASTER_SSL=1,
 MASTER_SSL_CERT='{{ .SSLCertPath }}',
 MASTER_SSL_KEY='{{ .SSLKeyPath }}',
 MASTER_SSL_CA='{{ .SSLCAPath }}',
-MASTER_SSL_VERIFY_SERVER_CERT=1;
+MASTER_SSL_VERIFY_SERVER_CERT=1,
 {{- end }}
+MASTER_HOST='{{ .Host }}',
+MASTER_PORT={{ .Port }},
+MASTER_USER='{{ .User }}',
+MASTER_PASSWORD='{{ .Password }}',
+{{- with .Retries }}
+MASTER_CONNECT_RETRY={{ . }},
+{{- end }}
+MASTER_USE_GTID={{ .Gtid }};
 `)
 	buf := new(bytes.Buffer)
 	err := tpl.Execute(buf, opts)

@@ -133,12 +133,6 @@ type ReplicaRecovery struct {
 
 // ReplicaReplication is the replication configuration for the replica nodes.
 type ReplicaReplication struct {
-	// WaitPoint defines whether the transaction should wait for ACK before committing to the storage engine.
-	// More info: https://mariadb.com/kb/en/semisynchronous-replication/#rpl_semi_sync_master_wait_point.
-	// +optional
-	// +kubebuilder:validation:Enum=AfterSync;AfterCommit
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	WaitPoint *WaitPoint `json:"waitPoint,omitempty"`
 	// Gtid indicates which Global Transaction ID should be used when connecting a replica to the master.
 	// See: https://mariadb.com/kb/en/gtid/#using-current_pos-vs-slave_pos.
 	// +optional
@@ -149,17 +143,15 @@ type ReplicaReplication struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	ReplPasswordSecretKeyRef *GeneratedSecretKeyRef `json:"replPasswordSecretKeyRef,omitempty"`
-	// ConnectionTimeout to be used when the replica connects to the primary.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	ConnectionTimeout *metav1.Duration `json:"connectionTimeout,omitempty"`
 	// ConnectionRetries to be used when the replica connects to the primary.
+	// See: https://mariadb.com/docs/server/reference/sql-statements/administrative-sql-statements/replication-statements/change-master-to#master_connect_retry
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
 	ConnectionRetries *int `json:"connectionRetries,omitempty"`
 	// SyncTimeout defines the timeout for a replica to be synced with the primary when performing a primary switchover.
 	// During a switchover, all replicas must be synced with the primary before promoting the new primary.
 	// During a failover, the primary will be down, therefore this sync step will be skipped.
+	// See: https://mariadb.com/docs/server/reference/sql-functions/secondary-functions/miscellaneous-functions/master_gtid_wait
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	SyncTimeout *metav1.Duration `json:"syncTimeout,omitempty"`
@@ -189,17 +181,8 @@ func (r *ReplicaReplication) SetDefaults(mdb *MariaDB) {
 	if r.ReplPasswordSecretKeyRef == nil {
 		r.ReplPasswordSecretKeyRef = ptr.To(mdb.ReplPasswordSecretKeyRef())
 	}
-	if r.WaitPoint == nil {
-		r.WaitPoint = ptr.To(WaitPointAfterCommit)
-	}
 	if r.Gtid == nil {
 		r.Gtid = ptr.To(GtidCurrentPos)
-	}
-	if r.ConnectionTimeout == nil {
-		r.ConnectionTimeout = ptr.To(metav1.Duration{Duration: 10 * time.Second})
-	}
-	if r.ConnectionRetries == nil {
-		r.ConnectionRetries = ptr.To(10)
 	}
 	if r.SyncTimeout == nil {
 		r.SyncTimeout = ptr.To(metav1.Duration{Duration: 10 * time.Second})
@@ -208,11 +191,6 @@ func (r *ReplicaReplication) SetDefaults(mdb *MariaDB) {
 
 // Validate returns an error if the ReplicaReplication is not valid.
 func (r *ReplicaReplication) Validate() error {
-	if r.WaitPoint != nil {
-		if err := r.WaitPoint.Validate(); err != nil {
-			return fmt.Errorf("invalid WaitPoint: %v", err)
-		}
-	}
 	if r.Gtid != nil {
 		if err := r.Gtid.Validate(); err != nil {
 			return fmt.Errorf("invalid GTID: %v", err)
@@ -242,13 +220,26 @@ type ReplicationSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Replica ReplicaReplication `json:"replica,omitempty"`
+
+	// WaitPoint defines whether the transaction should wait for ACK before committing to the storage engine.
+	// More info: https://mariadb.com/kb/en/semisynchronous-replication/#rpl_semi_sync_master_wait_point.
+	// +optional
+	// +kubebuilder:validation:Enum=AfterSync;AfterCommit
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	WaitPoint *WaitPoint `json:"waitPoint,omitempty"`
+
 	// GtidStrictMode determines whether the GTID strict mode is enabled. See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/gtid#gtid_strict_mode.
 	// It is enabled by default.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	GtidStrictMode *bool `json:"gtidStrictMode,omitempty"`
+	// AckTimeout to be used when the replica connects to the primary.
+	// See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/semisynchronous-replication#rpl_semi_sync_master_timeout
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	AckTimeout *metav1.Duration `json:"ackTimeout,omitempty"`
 	// SyncBinlog indicates after how many events the binary log is synchronized to the disk.
-	// The default is 1, flushing the binary log to disk after every write, which trades off performance for consistency. See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/replication-and-binary-log-system-variables#sync_binlog
+	// See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/replication-and-binary-log-system-variables#sync_binlog
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
 	SyncBinlog *int `json:"syncBinlog,omitempty"`
@@ -262,6 +253,16 @@ type ReplicationSpec struct {
 	Agent Agent `json:"agent,omitempty"`
 }
 
+func (r *Replication) Validate() error {
+	if r.WaitPoint != nil {
+		if err := r.WaitPoint.Validate(); err != nil {
+			return fmt.Errorf("invalid WaitPoint: %v", err)
+		}
+	}
+
+	return nil
+}
+
 // SetDefaults fills the current Replication object with DefaultReplicationSpec.
 // This enables having minimal Replication objects and provides sensible defaults.
 func (r *Replication) SetDefaults(mdb *MariaDB, env *environment.OperatorEnv) error {
@@ -270,9 +271,6 @@ func (r *Replication) SetDefaults(mdb *MariaDB, env *environment.OperatorEnv) er
 
 	if r.GtidStrictMode == nil {
 		r.GtidStrictMode = ptr.To(true)
-	}
-	if r.SyncBinlog == nil {
-		r.SyncBinlog = ptr.To(1)
 	}
 
 	if reflect.ValueOf(r.InitContainer).IsZero() {

@@ -2309,12 +2309,10 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `waitPoint` _[WaitPoint](#waitpoint)_ | WaitPoint defines whether the transaction should wait for ACK before committing to the storage engine.<br />More info: https://mariadb.com/kb/en/semisynchronous-replication/#rpl_semi_sync_master_wait_point. |  | Enum: [AfterSync AfterCommit] <br /> |
 | `gtid` _[Gtid](#gtid)_ | Gtid indicates which Global Transaction ID should be used when connecting a replica to the master.<br />See: https://mariadb.com/kb/en/gtid/#using-current_pos-vs-slave_pos. |  | Enum: [CurrentPos SlavePos] <br /> |
 | `replPasswordSecretKeyRef` _[GeneratedSecretKeyRef](#generatedsecretkeyref)_ | ReplPasswordSecretKeyRef provides a reference to the Secret to use as password for the replication user. |  |  |
-| `connectionTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#duration-v1-meta)_ | ConnectionTimeout to be used when the replica connects to the primary. |  |  |
-| `connectionRetries` _integer_ | ConnectionRetries to be used when the replica connects to the primary. |  |  |
-| `syncTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#duration-v1-meta)_ | SyncTimeout defines the timeout for a replica to be synced with the primary when performing a primary switchover.<br />During a switchover, all replicas must be synced with the primary before promoting the new primary.<br />During a failover, the primary will be down, therefore this sync step will be skipped. |  |  |
+| `connectionRetries` _integer_ | ConnectionRetries to be used when the replica connects to the primary.<br />See: https://mariadb.com/docs/server/reference/sql-statements/administrative-sql-statements/replication-statements/change-master-to#master_connect_retry |  |  |
+| `syncTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#duration-v1-meta)_ | SyncTimeout defines the timeout for a replica to be synced with the primary when performing a primary switchover.<br />During a switchover, all replicas must be synced with the primary before promoting the new primary.<br />During a failover, the primary will be down, therefore this sync step will be skipped.<br />See: https://mariadb.com/docs/server/reference/sql-functions/secondary-functions/miscellaneous-functions/master_gtid_wait |  |  |
 | `maxLagSeconds` _integer_ | MaxLagSeconds is the maximum number of seconds that replicas are allowed to lag behind the primary.<br />If a replica exceeds this threshold, it is marked as not ready and queries will no longer be forwarded to it.<br />Replicas in non ready state will block operations such as primary switchover and upgrades.<br />If not provided, it defaults to 0, which means replicas are not allowed to lag behind the primary.<br />This field is not taken into account by MaxScale, you can define the maximum lag as router parameters. See: https://mariadb.com/docs/maxscale/reference/maxscale-routers/maxscale-readwritesplit#max_replication_lag. |  |  |
 | `bootstrapFrom` _[ReplicaBootstrapFrom](#replicabootstrapfrom)_ | ReplicaBootstrapFrom defines the datasources for bootstrapping new relicas.<br />This will be used as part of the scaling out operations, when increasing the number of replicas.<br />If not provided, scale out operations will return an error. |  |  |
 | `recovery` _[ReplicaRecovery](#replicarecovery)_ | ReplicaRecovery defines how the operator should recover replicas after they become not ready. |  |  |
@@ -2335,8 +2333,10 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `primary` _[PrimaryReplication](#primaryreplication)_ | Primary is the replication configuration for the primary node. |  |  |
 | `replica` _[ReplicaReplication](#replicareplication)_ | ReplicaReplication is the replication configuration for the replica nodes. |  |  |
+| `waitPoint` _[WaitPoint](#waitpoint)_ | WaitPoint defines whether the transaction should wait for ACK before committing to the storage engine.<br />More info: https://mariadb.com/kb/en/semisynchronous-replication/#rpl_semi_sync_master_wait_point. |  | Enum: [AfterSync AfterCommit] <br /> |
 | `gtidStrictMode` _boolean_ | GtidStrictMode determines whether the GTID strict mode is enabled. See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/gtid#gtid_strict_mode.<br />It is enabled by default. |  |  |
-| `syncBinlog` _integer_ | SyncBinlog indicates after how many events the binary log is synchronized to the disk.<br />The default is 1, flushing the binary log to disk after every write, which trades off performance for consistency. See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/replication-and-binary-log-system-variables#sync_binlog |  |  |
+| `ackTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#duration-v1-meta)_ | AckTimeout to be used when the replica connects to the primary.<br />See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/semisynchronous-replication#rpl_semi_sync_master_timeout |  |  |
+| `syncBinlog` _integer_ | SyncBinlog indicates after how many events the binary log is synchronized to the disk.<br />See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/replication-and-binary-log-system-variables#sync_binlog |  |  |
 | `initContainer` _[InitContainer](#initcontainer)_ | InitContainer is an init container that runs in the MariaDB Pod and co-operates with mariadb-operator. |  |  |
 | `agent` _[Agent](#agent)_ | Agent is a sidecar agent that co-operates with mariadb-operator. |  |  |
 | `enabled` _boolean_ | Enabled is a flag to enable Replication. |  |  |
@@ -2357,8 +2357,10 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `primary` _[PrimaryReplication](#primaryreplication)_ | Primary is the replication configuration for the primary node. |  |  |
 | `replica` _[ReplicaReplication](#replicareplication)_ | ReplicaReplication is the replication configuration for the replica nodes. |  |  |
+| `waitPoint` _[WaitPoint](#waitpoint)_ | WaitPoint defines whether the transaction should wait for ACK before committing to the storage engine.<br />More info: https://mariadb.com/kb/en/semisynchronous-replication/#rpl_semi_sync_master_wait_point. |  | Enum: [AfterSync AfterCommit] <br /> |
 | `gtidStrictMode` _boolean_ | GtidStrictMode determines whether the GTID strict mode is enabled. See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/gtid#gtid_strict_mode.<br />It is enabled by default. |  |  |
-| `syncBinlog` _integer_ | SyncBinlog indicates after how many events the binary log is synchronized to the disk.<br />The default is 1, flushing the binary log to disk after every write, which trades off performance for consistency. See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/replication-and-binary-log-system-variables#sync_binlog |  |  |
+| `ackTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#duration-v1-meta)_ | AckTimeout to be used when the replica connects to the primary.<br />See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/semisynchronous-replication#rpl_semi_sync_master_timeout |  |  |
+| `syncBinlog` _integer_ | SyncBinlog indicates after how many events the binary log is synchronized to the disk.<br />See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/replication-and-binary-log-system-variables#sync_binlog |  |  |
 | `initContainer` _[InitContainer](#initcontainer)_ | InitContainer is an init container that runs in the MariaDB Pod and co-operates with mariadb-operator. |  |  |
 | `agent` _[Agent](#agent)_ | Agent is a sidecar agent that co-operates with mariadb-operator. |  |  |
 
@@ -3165,7 +3167,8 @@ More info: https://mariadb.com/kb/en/semisynchronous-replication/#rpl_semi_sync_
 
 
 _Appears in:_
-- [ReplicaReplication](#replicareplication)
+- [Replication](#replication)
+- [ReplicationSpec](#replicationspec)
 
 | Field | Description |
 | --- | --- |

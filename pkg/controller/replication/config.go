@@ -155,7 +155,6 @@ func (r *ReplicationConfigClient) changeMaster(ctx context.Context, mariadb *mar
 		sql.WithChangeMasterPort(mariadb.Spec.Port),
 		sql.WithChangeMasterCredentials(replUser, password),
 		sql.WithChangeMasterGtid(gtidString),
-		sql.WithChangeMasterRetries(*replication.Replica.ConnectionRetries),
 	}
 	if mariadb.IsTLSEnabled() {
 		changeMasterOpts = append(changeMasterOpts, sql.WithChangeMasterSSL(
@@ -164,6 +163,11 @@ func (r *ReplicationConfigClient) changeMaster(ctx context.Context, mariadb *mar
 			builderpki.CACertPath,
 		))
 	}
+
+	if retries := ptr.Deref(replication.Replica.ConnectionRetries, -1); retries != -1 {
+		changeMasterOpts = append(changeMasterOpts, sql.WithChangeMasterRetries(*replication.Replica.ConnectionRetries))
+	}
+
 	changeMasterOpts = append(changeMasterOpts, opts...)
 
 	if err := client.ChangeMaster(ctx, changeMasterOpts...); err != nil {

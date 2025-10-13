@@ -489,7 +489,6 @@ func mariadbEnv(mariadb *mariadbv1alpha1.MariaDB) ([]corev1.EnvVar, error) {
 		}...)
 
 		replication := ptr.Deref(mariadb.Spec.Replication, mariadbv1alpha1.Replication{})
-		replica := replication.Replica
 
 		if ptr.Deref(replication.GtidStrictMode, true) {
 			env = append(env, corev1.EnvVar{
@@ -497,14 +496,14 @@ func mariadbEnv(mariadb *mariadbv1alpha1.MariaDB) ([]corev1.EnvVar, error) {
 				Value: fmt.Sprint(true),
 			})
 		}
-		if replica.ConnectionTimeout != nil {
+		if replication.AckTimeout != nil {
 			env = append(env, corev1.EnvVar{
 				Name:  "MARIADB_REPL_MASTER_TIMEOUT",
-				Value: fmt.Sprint(replica.ConnectionTimeout.Milliseconds()),
+				Value: fmt.Sprint(replication.AckTimeout.Milliseconds()),
 			})
 		}
-		if replica.WaitPoint != nil {
-			waitPoint, err := replica.WaitPoint.MariaDBFormat()
+		if replication.WaitPoint != nil {
+			waitPoint, err := replication.WaitPoint.MariaDBFormat()
 			if err != nil {
 				return nil, fmt.Errorf("error getting replication wait point: %v", err)
 			}

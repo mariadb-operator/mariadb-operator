@@ -6932,6 +6932,11 @@ spec:
                   This feature is still in alpha, use Galera if you are looking for
                   a more production-ready HA.
                 properties:
+                  ackTimeout:
+                    description: |-
+                      AckTimeout to be used when the replica connects to the primary.
+                      See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/semisynchronous-replication#rpl_semi_sync_master_timeout
+                    type: string
                   agent:
                     description: Agent is a sidecar agent that co-operates with mariadb-operator.
                     properties:
@@ -8122,13 +8127,10 @@ spec:
                         - physicalBackupTemplateRef
                         type: object
                       connectionRetries:
-                        description: ConnectionRetries to be used when the replica
-                          connects to the primary.
+                        description: |-
+                          ConnectionRetries to be used when the replica connects to the primary.
+                          See: https://mariadb.com/docs/server/reference/sql-statements/administrative-sql-statements/replication-statements/change-master-to#master_connect_retry
                         type: integer
-                      connectionTimeout:
-                        description: ConnectionTimeout to be used when the replica
-                          connects to the primary.
-                        type: string
                       gtid:
                         description: |-
                           Gtid indicates which Global Transaction ID should be used when connecting a replica to the master.
@@ -8178,21 +8180,22 @@ spec:
                           SyncTimeout defines the timeout for a replica to be synced with the primary when performing a primary switchover.
                           During a switchover, all replicas must be synced with the primary before promoting the new primary.
                           During a failover, the primary will be down, therefore this sync step will be skipped.
-                        type: string
-                      waitPoint:
-                        description: |-
-                          WaitPoint defines whether the transaction should wait for ACK before committing to the storage engine.
-                          More info: https://mariadb.com/kb/en/semisynchronous-replication/#rpl_semi_sync_master_wait_point.
-                        enum:
-                        - AfterSync
-                        - AfterCommit
+                          See: https://mariadb.com/docs/server/reference/sql-functions/secondary-functions/miscellaneous-functions/master_gtid_wait
                         type: string
                     type: object
                   syncBinlog:
                     description: |-
                       SyncBinlog indicates after how many events the binary log is synchronized to the disk.
-                      The default is 1, flushing the binary log to disk after every write, which trades off performance for consistency. See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/replication-and-binary-log-system-variables#sync_binlog
+                      See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/replication-and-binary-log-system-variables#sync_binlog
                     type: integer
+                  waitPoint:
+                    description: |-
+                      WaitPoint defines whether the transaction should wait for ACK before committing to the storage engine.
+                      More info: https://mariadb.com/kb/en/semisynchronous-replication/#rpl_semi_sync_master_wait_point.
+                    enum:
+                    - AfterSync
+                    - AfterCommit
+                    type: string
                 type: object
               resources:
                 description: Resources describes the compute resource requirements.
@@ -9196,9 +9199,10 @@ spec:
             type: object
             x-kubernetes-validations:
             - message: 'An odd number of MariaDB instances (mariadb.spec.replicas)
-                is required to avoid split brain situations. Use ''mariadb.spec.replicasAllowEvenNumber:
+                is required to avoid split brain situations for Galera. Use ''mariadb.spec.replicasAllowEvenNumber:
                 true'' to disable this validation.'
-              rule: self.replicas %2 == 1 || self.replicasAllowEvenNumber
+              rule: '!has(self.galera) || !self.galera.enabled || (self.replicas %
+                2 == 1 || self.replicasAllowEvenNumber)'
           status:
             description: MariaDBStatus defines the observed state of MariaDB
             properties:

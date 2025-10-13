@@ -1354,7 +1354,9 @@ var _ = Describe("MariaDB types", func() {
 							Enabled: true,
 							ReplicationSpec: ReplicationSpec{
 								GtidStrictMode: ptr.To(true),
-								SyncBinlog:     ptr.To(1),
+								WaitPoint:      nil,
+								SyncBinlog:     nil,
+								AckTimeout:     nil,
 								InitContainer: InitContainer{
 									Image:             env.MariadbOperatorImage,
 									ContainerTemplate: ContainerTemplate{},
@@ -1379,10 +1381,8 @@ var _ = Describe("MariaDB types", func() {
 										},
 										Generate: true,
 									},
-									WaitPoint:         ptr.To(WaitPointAfterCommit),
 									Gtid:              ptr.To(GtidCurrentPos),
-									ConnectionTimeout: ptr.To(metav1.Duration{Duration: 10 * time.Second}),
-									ConnectionRetries: ptr.To(10),
+									ConnectionRetries: nil,
 									SyncTimeout:       ptr.To(metav1.Duration{Duration: 10 * time.Second}),
 								},
 								Primary: PrimaryReplication{
@@ -1441,7 +1441,8 @@ var _ = Describe("MariaDB types", func() {
 							Enabled: true,
 							ReplicationSpec: ReplicationSpec{
 								GtidStrictMode: ptr.To(true),
-								SyncBinlog:     ptr.To(1),
+								WaitPoint:      nil,
+								AckTimeout:     nil,
 								InitContainer: InitContainer{
 									Image:             env.MariadbOperatorImage,
 									ContainerTemplate: ContainerTemplate{},
@@ -1476,10 +1477,8 @@ var _ = Describe("MariaDB types", func() {
 										},
 										Generate: true,
 									},
-									WaitPoint:         ptr.To(WaitPointAfterCommit),
 									Gtid:              ptr.To(GtidCurrentPos),
-									ConnectionTimeout: ptr.To(metav1.Duration{Duration: 10 * time.Second}),
-									ConnectionRetries: ptr.To(10),
+									ConnectionRetries: nil,
 									SyncTimeout:       ptr.To(metav1.Duration{Duration: 10 * time.Second}),
 								},
 								Primary: PrimaryReplication{
@@ -2256,6 +2255,139 @@ var _ = Describe("MariaDB types", func() {
 						},
 					},
 				},
+			),
+		)
+	})
+
+	Context("When creating a MariaDB Resource", func() {
+		meta := metav1.ObjectMeta{
+			Name:      "mariadb-validation",
+			Namespace: testNamespace,
+		}
+		DescribeTable(
+			"Should validate",
+			func(mdb *MariaDB, wantErr bool, validationMessage string) {
+				_ = k8sClient.Delete(testCtx, mdb)
+				err := k8sClient.Create(testCtx, mdb)
+				if wantErr {
+					Expect(err).To(HaveOccurred(), "Expected there to be a validation error, but there was none")
+					Expect(err.Error()).To(Equal(validationMessage))
+				} else {
+					Expect(err).ToNot(HaveOccurred(), "Did not expect there to be a validation error, but there was one.")
+				}
+			},
+
+			Entry(
+				"Valid replicas with no galera or replication",
+				&MariaDB{
+					ObjectMeta: meta,
+					Spec: MariaDBSpec{
+						Replicas: 1,
+						Storage: Storage{
+							Size: ptr.To(resource.MustParse("100Mi")),
+						},
+					},
+				},
+				false,
+				"",
+			),
+			Entry(
+				"Valid replicas with replication when not even",
+				&MariaDB{
+					ObjectMeta: meta,
+					Spec: MariaDBSpec{
+						Replicas: 3,
+						Storage: Storage{
+							Size: ptr.To(resource.MustParse("100Mi")),
+						},
+						Replication: &Replication{
+							Enabled: true,
+						},
+					},
+				},
+				false,
+				"",
+			),
+			Entry(
+				"Valid replicas with replication when even",
+				&MariaDB{
+					ObjectMeta: meta,
+					Spec: MariaDBSpec{
+						Replicas: 2,
+						Storage: Storage{
+							Size: ptr.To(resource.MustParse("100Mi")),
+						},
+						Replication: &Replication{
+							Enabled: true,
+						},
+					},
+				},
+				false,
+				"",
+			),
+			Entry(
+				"Valid Galera replicas when not even",
+				&MariaDB{
+					ObjectMeta: meta,
+					Spec: MariaDBSpec{
+						Galera: &Galera{
+							Enabled: true,
+							GaleraSpec: GaleraSpec{
+								SST:            SSTMariaBackup,
+								ReplicaThreads: 1,
+							},
+						},
+						Replicas: 3,
+						Storage: Storage{
+							Size: ptr.To(resource.MustParse("100Mi")),
+						},
+					},
+				},
+				false,
+				"",
+			),
+			Entry(
+				"Valid Galera replicas when even and replicasAllowEvenNumber is set",
+				&MariaDB{
+					ObjectMeta: meta,
+					Spec: MariaDBSpec{
+						Galera: &Galera{
+							Enabled: true,
+							GaleraSpec: GaleraSpec{
+								SST:            SSTMariaBackup,
+								ReplicaThreads: 1,
+							},
+						},
+						Replicas:                2,
+						ReplicasAllowEvenNumber: true,
+						Storage: Storage{
+							Size: ptr.To(resource.MustParse("100Mi")),
+						},
+					},
+				},
+				false,
+				"",
+			),
+			Entry(
+				"Invalid Galera replicas when even and replicasAllowEvenNumber is not set",
+				&MariaDB{
+					ObjectMeta: meta,
+					Spec: MariaDBSpec{
+						Galera: &Galera{
+							Enabled: true,
+							GaleraSpec: GaleraSpec{
+								SST:            SSTMariaBackup,
+								ReplicaThreads: 1,
+							},
+						},
+						Replicas: 2,
+						Storage: Storage{
+							Size: ptr.To(resource.MustParse("100Mi")),
+						},
+					},
+				},
+				true,
+				"MariaDB.k8s.mariadb.com \"mariadb-validation\" is invalid: spec: Invalid value: \"object\": An odd number of MariaDB instances (mariadb.spec.replicas) is required to avoid split brain situations for Galera. Use 'mariadb.spec.replicasAllowEvenNumber: true' to disable this validation.", //nolint
 			),
 		)
 	})
