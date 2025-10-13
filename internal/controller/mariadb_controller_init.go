@@ -84,7 +84,7 @@ func (r *MariaDBReconciler) reconcilePhysicalBackupInit(ctx context.Context, mar
 			ctx,
 			mariadb,
 			fromIndex,
-			logger,
+			logger.WithName("job"),
 			builder.WithBootstrapFrom(mariadb.Spec.BootstrapFrom),
 		); !result.IsZero() || err != nil {
 			return result, err
@@ -202,7 +202,7 @@ func (r *MariaDBReconciler) waitForReadyVolumeSnapshot(ctx context.Context, key 
 		return ctrl.Result{}, fmt.Errorf("error getting VolumeSnapshot: %v", err)
 	}
 	if !mdbsnapshot.IsVolumeSnapshotReady(&snapshot) {
-		logger.Info("VolumeSnapshot not ready. Requeuing...", "snapshot", snapshot.Name, "status")
+		logger.Info("VolumeSnapshot not ready. Requeuing...", "snapshot", snapshot.Name)
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 	return ctrl.Result{}, nil

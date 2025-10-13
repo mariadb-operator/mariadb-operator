@@ -287,7 +287,7 @@ func (r *MariaDBReconciler) ensurePodInitializing(ctx context.Context, key types
 		return fmt.Errorf("error deleting Pod: %v", err)
 	}
 
-	pollCtx, cancel := context.WithTimeout(ctx, 2*time.Minute)
+	pollCtx, cancel := context.WithTimeout(ctx, 3*time.Minute)
 	defer cancel()
 
 	return wait.PollUntilSuccessOrContextCancelWithInterval(pollCtx, 30*time.Second, logger, func(ctx context.Context) error {
