@@ -32,7 +32,7 @@ var _ = Describe("MariaDB replication", Ordered, func() {
 	)
 
 	BeforeAll(func() {
-		mdb = buildTestMariaDB(key)
+		mdb = buildTestMariaDBRepl(key)
 		applyMariadbTestConfig(mdb)
 
 		By("Creating MariaDB with replication")
@@ -297,7 +297,7 @@ var _ = Describe("MariaDB replication restore from backup", Ordered, func() {
 	)
 
 	BeforeEach(func() {
-		mdb = buildTestMariaDB(key)
+		mdb = buildTestMariaDBRepl(key)
 		applyMariadbTestConfig(mdb)
 
 		By("Creating MariaDB with replication")
@@ -353,24 +353,17 @@ var _ = Describe("MariaDB replication restore from backup", Ordered, func() {
 		Entry(
 			"from physical backup",
 			types.NamespacedName{Name: "replication-pvc-backup-test", Namespace: key.Namespace},
-			buildPhysicalBackupWithPVCStorage(key),
+			buildPhysicalBackupWithS3Storage(key, "test-replication-restore-from-backup", ""),
 			func(backupKey types.NamespacedName) *mariadbv1alpha1.BootstrapFrom {
 				return &mariadbv1alpha1.BootstrapFrom{
-					BackupContentType: mariadbv1alpha1.BackupContentTypePhysical,
-					Volume: &mariadbv1alpha1.StorageVolumeSource{
-						PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimVolumeSource{
-							ClaimName: backupKey.Name,
-						},
-					},
+					BackupContentType:  mariadbv1alpha1.BackupContentTypePhysical,
+					S3:                 getS3WithBucket("test-replication-restore-from-backup", ""),
 					TargetRecoveryTime: &metav1.Time{Time: time.Now()},
 				}
 			},
 			func(backupKey types.NamespacedName) func() {
 				return func() {
-					By("Deleting Backup Resources")
-					var pvc corev1.PersistentVolumeClaim
-					Expect(k8sClient.Get(testCtx, backupKey, &pvc)).To(Succeed())
-					Expect(k8sClient.Delete(testCtx, &pvc)).To(Succeed())
+					// No cleanup for S3
 				}
 			},
 		),
@@ -420,7 +413,7 @@ var _ = Describe("MariaDB replication scale out", Ordered, func() {
 	)
 
 	BeforeEach(func() {
-		mdb = buildTestMariaDB(key)
+		mdb = buildTestMariaDBRepl(key)
 		applyMariadbTestConfig(mdb)
 
 		By("Creating MariaDB with replication")
@@ -475,24 +468,22 @@ var _ = Describe("MariaDB replication scale out", Ordered, func() {
 				if err := k8sClient.Get(testCtx, key, mdb); err != nil {
 					return false
 				}
-				return mdb.IsReady() && meta.IsStatusConditionTrue(mdb.Status.Conditions, mariadbv1alpha1.ConditionTypeScaledOut)
+				return mdb.IsReady() &&
+					meta.IsStatusConditionTrue(mdb.Status.Conditions, mariadbv1alpha1.ConditionTypeScaledOut) &&
+					mdb.Status.Replicas == int32(4)
 
 			}, testHighTimeout, testInterval).Should(BeTrue())
 		},
 		Entry(
 			"with physical backup",
 			types.NamespacedName{Name: "replication-pvc-scaleout-test", Namespace: key.Namespace},
-			buildPhysicalBackupWithPVCStorage(key),
+			buildPhysicalBackupWithS3Storage(key, "test-replication-scale-out", ""),
 			func(backupKey types.NamespacedName) func() {
 				return func() {
-					By("Deleting Backup Resources")
-					var pvc corev1.PersistentVolumeClaim
-					Expect(k8sClient.Get(testCtx, backupKey, &pvc)).To(Succeed())
-					Expect(k8sClient.Delete(testCtx, &pvc)).To(Succeed())
+					// No cleanup for s3
 				}
 			},
 		),
-		// VolumeSnapshot doesn't get created, to investigate
 		Entry(
 			"from volume snapshot",
 			types.NamespacedName{Name: "replication-volume-snapshot-scaleout-test", Namespace: key.Namespace},
@@ -513,7 +504,7 @@ var _ = Describe("MariaDB replication scale out", Ordered, func() {
 	)
 })
 
-func buildTestMariaDB(key types.NamespacedName) *mariadbv1alpha1.MariaDB {
+func buildTestMariaDBRepl(key types.NamespacedName) *mariadbv1alpha1.MariaDB {
 	return &mariadbv1alpha1.MariaDB{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      key.Name,
@@ -543,15 +534,13 @@ func buildTestMariaDB(key types.NamespacedName) *mariadbv1alpha1.MariaDB {
 						PodIndex:          ptr.To(0),
 						AutomaticFailover: ptr.To(true),
 					},
-					Replica: mariadbv1alpha1.ReplicaReplication{
-						Gtid: ptr.To(mariadbv1alpha1.GtidCurrentPos),
-					},
+					// Replica: mariadbv1alpha1.ReplicaReplication{
+					// 	Gtid: ptr.To(mariadbv1alpha1.GtidCurrentPos),
+					// },
 				},
 				Enabled: true,
 			},
 			Replicas: 3,
-			// @TODO: REMOVE
-			ReplicasAllowEvenNumber: true,
 			Storage: mariadbv1alpha1.Storage{
 				Size:                ptr.To(resource.MustParse("300Mi")),
 				StorageClassName:    "csi-hostpath-sc",

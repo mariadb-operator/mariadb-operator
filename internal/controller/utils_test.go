@@ -1124,6 +1124,13 @@ func deleteMariadb(key types.NamespacedName, assertPVCDeletion bool) {
 		Expect(err).ToNot(HaveOccurred())
 	}
 
+	By("Expecting MariaDB to be deleted")
+	Eventually(func() bool {
+		err := k8sClient.Get(testCtx, key, &mdb)
+
+		return apierrors.IsNotFound(err)
+	}, testTimeout, testInterval).Should(BeTrue())
+
 	By("Deleting PVCs")
 	opts := []client.DeleteAllOfOption{
 		client.MatchingLabels(
