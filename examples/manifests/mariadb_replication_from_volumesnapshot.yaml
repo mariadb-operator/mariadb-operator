@@ -18,7 +18,7 @@ spec:
 
   bootstrapFrom:
     volumeSnapshotRef:
-      name: physicalbackup-20251013101927
+      name: physicalbackup-20251013161703 
 
   service:
     type: LoadBalancer
