@@ -89,6 +89,12 @@ func (r *MariaDBReconciler) reconcilePhysicalBackupInit(ctx context.Context, mar
 		); !result.IsZero() || err != nil {
 			return result, err
 		}
+		if err := r.cleanupInitJobs(ctx, mariadb); err != nil {
+			return ctrl.Result{}, err
+		}
+		if err := r.cleanupStagingPVC(ctx, mariadb); err != nil {
+			return ctrl.Result{}, err
+		}
 	} else {
 		logger.Info("Provisioning StatefulSet", "replicas", mariadb.Spec.Replicas)
 		if err := r.upscaleStatefulSet(ctx, mariadb, mariadb.Spec.Replicas); err != nil {
