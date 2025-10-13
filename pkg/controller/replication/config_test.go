@@ -103,6 +103,28 @@ sync_binlog=1
 `,
 			wantErr: false,
 		},
+		{
+			name: "missing master timeout",
+			env: &env.PodEnvironment{
+				PodName:                     "mariadb-0",
+				MariadbName:                 "mariadb",
+				MariaDBReplEnabled:          "true",
+				MariaDBReplGtidStrictMode:   "true",
+				MariaDBReplMasterWaitPoint:  "AFTER_SYNC",
+				MariaDBReplMasterSyncBinlog: "1",
+			},
+			wantConfig: `[mariadb]
+log_bin
+log_basename=mariadb
+gtid_strict_mode
+rpl_semi_sync_master_enabled=ON
+rpl_semi_sync_slave_enabled=ON
+rpl_semi_sync_master_wait_point=AFTER_SYNC
+server_id=10
+sync_binlog=1
+`,
+			wantErr: false,
+		},
 	}
 
 	for _, tt := range tests {

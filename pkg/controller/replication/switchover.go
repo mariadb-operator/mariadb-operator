@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -13,6 +12,7 @@ import (
 	mariadbpod "github.com/mariadb-operator/mariadb-operator/v25/pkg/pod"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/sql"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/statefulset"
+	"golang.org/x/sync/errgroup"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
@@ -214,25 +214,22 @@ func (r *ReplicationReconciler) waitForReplicaSync(ctx context.Context, req *rec
 		return errors.New("primary GTID (gtid_binlog_pos) is empty")
 	}
 
-	var wg sync.WaitGroup
-	doneChan := make(chan struct{})
-	errChan := make(chan error)
-
 	logger.Info("Waiting for replicas to be synced with primary", "gtid", primaryGtid)
 	r.recorder.Event(req.mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonReplicationReplicaSync,
 		"Waiting for replicas to be synced with primary")
 	replication := ptr.Deref(req.mariadb.Spec.Replication, mariadbv1alpha1.Replication{})
+
+	g := new(errgroup.Group)
+	g.SetLimit(int(req.mariadb.Spec.Replicas))
+
 	for i := 0; i < int(req.mariadb.Spec.Replicas); i++ {
 		if i == *req.mariadb.Status.CurrentPrimaryPodIndex {
 			continue
 		}
-		wg.Add(1)
-		go func(i int) {
-			defer wg.Done()
+		g.Go(func() error {
 			replClient, err := req.replClientSet.clientForIndex(ctx, i)
 			if err != nil {
-				errChan <- fmt.Errorf("error getting replica '%d' client: %v", i, err)
-				return
+				return fmt.Errorf("error getting replica '%d' client: %v", i, err)
 			}
 
 			logger.V(1).Info("Syncing replica with primary GTID", "replica", i, "gtid", primaryGtid)
@@ -242,27 +239,21 @@ func (r *ReplicationReconciler) waitForReplicaSync(ctx context.Context, req *rec
 				r.recorder.Eventf(req.mariadb, corev1.EventTypeWarning, mariadbv1alpha1.ReasonReplicationReplicaSyncErr,
 					"Error waiting for GTID '%s' in replica '%d': %v", primaryGtid, i, err)
 
-				errChan <- err
-				return
+				return err
 			}
 
 			logger.V(1).Info("Replica synced", "replica", i, "gtid", primaryGtid)
-		}(i)
-	}
-	go func() {
-		wg.Wait()
-		close(doneChan)
-	}()
 
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	case <-doneChan:
-		req.replicasSynced = true
-		return nil
-	case err := <-errChan:
-		return err
+			return nil
+		})
 	}
+
+	if err := g.Wait(); err != nil {
+		return fmt.Errorf("error waiting for replica sync: %w", err)
+	}
+
+	req.replicasSynced = true
+	return nil
 }
 
 func (r *ReplicationReconciler) configureNewPrimary(ctx context.Context, req *reconcileRequest, logger logr.Logger) error {
@@ -286,9 +277,6 @@ func (r *ReplicationReconciler) connectReplicasToNewPrimary(ctx context.Context,
 	if req.mariadb.Status.CurrentPrimaryPodIndex == nil {
 		return errors.New("'status.currentPrimaryPodIndex' must be set")
 	}
-	var wg sync.WaitGroup
-	doneChan := make(chan struct{})
-	errChan := make(chan error)
 
 	newPrimary := *ptr.Deref(req.mariadb.Spec.Replication, mariadbv1alpha1.Replication{}).Primary.PodIndex
 	newPrimaryClient, err := req.replClientSet.newPrimaryClient(ctx)
@@ -307,13 +295,14 @@ func (r *ReplicationReconciler) connectReplicasToNewPrimary(ctx context.Context,
 
 	replicationPrimaryPodIndex := ptr.Deref(req.mariadb.Spec.Replication, mariadbv1alpha1.Replication{}).Primary.PodIndex
 
+	g := new(errgroup.Group)
+	g.SetLimit(int(req.mariadb.Spec.Replicas))
+
 	for i := 0; i < int(req.mariadb.Spec.Replicas); i++ {
 		if i == *req.mariadb.Status.CurrentPrimaryPodIndex || i == *replicationPrimaryPodIndex {
 			continue
 		}
-		wg.Add(1)
-		go func(i int) {
-			defer wg.Done()
+		g.Go(func() error {
 			key := types.NamespacedName{
 				Name:      statefulset.PodName(req.mariadb.ObjectMeta, i),
 				Namespace: req.mariadb.Namespace,
@@ -322,42 +311,31 @@ func (r *ReplicationReconciler) connectReplicasToNewPrimary(ctx context.Context,
 			if err := r.Get(ctx, key, &pod); err != nil {
 				logger.V(1).Info("Error getting Pod when connecting replicas to new primary", "pod", key.Name)
 				if apierrors.IsNotFound(err) {
-					return
+					return nil
 				}
-				errChan <- err
-				return
+				return fmt.Errorf("error getting pod: %w", err)
 			}
 			if !mariadbpod.PodReady(&pod) {
 				logger.V(1).Info("Skipping non ready Pod when connecting replicas to new primary", "pod", key.Name)
-				return
+				return nil
 			}
 
 			replClient, err := req.replClientSet.clientForIndex(ctx, i)
 			if err != nil {
-				errChan <- fmt.Errorf("error getting replica '%d' client: %v", i, err)
-				return
+				return fmt.Errorf("error getting replica '%d' client: %v", i, err)
 			}
 
 			logger.V(1).Info("Connecting replica to new primary", "replica", i)
-			if err := r.replConfigClient.ConfigureReplica(ctx, req.mariadb, replClient, newPrimary, replicaOpts...); err != nil {
-				errChan <- fmt.Errorf("error configuring replica '%d': %v", i, err)
-				return
-			}
-		}(i)
-	}
-	go func() {
-		wg.Wait()
-		close(doneChan)
-	}()
 
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	case <-doneChan:
-		return nil
-	case err := <-errChan:
-		return err
+			if err := r.replConfigClient.ConfigureReplica(ctx, req.mariadb, replClient, newPrimary, replicaOpts...); err != nil {
+				return fmt.Errorf("error configuring replica '%d': %v", i, err)
+			}
+
+			return nil
+		})
 	}
+
+	return g.Wait()
 }
 
 func (r *ReplicationReconciler) changePrimaryToReplica(ctx context.Context, req *reconcileRequest, logger logr.Logger) error {

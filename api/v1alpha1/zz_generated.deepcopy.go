@@ -3898,11 +3898,6 @@ func (in *ReplicaReplication) DeepCopyInto(out *ReplicaReplication) {
 		*out = new(GeneratedSecretKeyRef)
 		**out = **in
 	}
-	if in.ConnectionTimeout != nil {
-		in, out := &in.ConnectionTimeout, &out.ConnectionTimeout
-		*out = new(v1.Duration)
-		**out = **in
-	}
 	if in.ConnectionRetries != nil {
 		in, out := &in.ConnectionRetries, &out.ConnectionRetries
 		*out = new(int)
@@ -3984,6 +3979,11 @@ func (in *ReplicationSpec) DeepCopyInto(out *ReplicationSpec) {
 	if in.GtidStrictMode != nil {
 		in, out := &in.GtidStrictMode, &out.GtidStrictMode
 		*out = new(bool)
+		**out = **in
+	}
+	if in.AckTimeout != nil {
+		in, out := &in.AckTimeout, &out.AckTimeout
+		*out = new(v1.Duration)
 		**out = **in
 	}
 	if in.SyncBinlog != nil {

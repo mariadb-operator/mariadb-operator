@@ -136,10 +136,6 @@ type ReplicaReplication struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	ReplPasswordSecretKeyRef *GeneratedSecretKeyRef `json:"replPasswordSecretKeyRef,omitempty"`
-	// ConnectionTimeout to be used when the replica connects to the primary.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	ConnectionTimeout *metav1.Duration `json:"connectionTimeout,omitempty"`
 	// ConnectionRetries to be used when the replica connects to the primary.
 	// See: https://mariadb.com/docs/server/reference/sql-statements/administrative-sql-statements/replication-statements/change-master-to#master_connect_retry
 	// +optional
@@ -176,9 +172,6 @@ func (r *ReplicaReplication) SetDefaults(mdb *MariaDB) {
 	}
 	if r.Gtid == nil {
 		r.Gtid = ptr.To(GtidCurrentPos)
-	}
-	if r.ConnectionTimeout == nil {
-		r.ConnectionTimeout = ptr.To(metav1.Duration{Duration: 10 * time.Second})
 	}
 	if r.SyncTimeout == nil {
 		r.SyncTimeout = ptr.To(metav1.Duration{Duration: 10 * time.Second})
@@ -229,8 +222,13 @@ type ReplicationSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	GtidStrictMode *bool `json:"gtidStrictMode,omitempty"`
+	// AckTimeout to be used when the replica connects to the primary.
+	// See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/semisynchronous-replication#rpl_semi_sync_master_timeout
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	AckTimeout *metav1.Duration `json:"ackTimeout,omitempty"`
 	// SyncBinlog indicates after how many events the binary log is synchronized to the disk.
-	// The default is 1, flushing the binary log to disk after every write, which trades off performance for consistency. See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/replication-and-binary-log-system-variables#sync_binlog
+	// See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/replication-and-binary-log-system-variables#sync_binlog
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
 	SyncBinlog *int `json:"syncBinlog,omitempty"`
@@ -262,9 +260,6 @@ func (r *Replication) SetDefaults(mdb *MariaDB, env *environment.OperatorEnv) er
 
 	if r.GtidStrictMode == nil {
 		r.GtidStrictMode = ptr.To(true)
-	}
-	if r.SyncBinlog == nil {
-		r.SyncBinlog = ptr.To(1)
 	}
 
 	if reflect.ValueOf(r.InitContainer).IsZero() {
