@@ -96,7 +96,7 @@ func (r *MariaDBReconciler) reconcileScaleOut(ctx context.Context, mariadb *mari
 }
 
 func (r *MariaDBReconciler) isScalingOut(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, sts *appsv1.StatefulSet) (bool, error) {
-	if !mariadb.IsReplicationEnabled() || sts.Status.Replicas == 0 {
+	if !mariadb.IsReplicationEnabled() || !mariadb.HasConfiguredReplication() || sts.Status.Replicas == 0 {
 		return false, nil
 	}
 	// user is able to rollback scale out operation at any point by matching the number of existing replicas
@@ -256,7 +256,7 @@ func (r *MariaDBReconciler) setScaledOutAndCleanup(ctx context.Context, mariadb 
 			return ctrl.Result{}, fmt.Errorf("error getting VolumeSnapshot key: %v", err)
 		}
 
-		if err := r.ensureReplicasConfigured(ctx, fromIndex, mariadb, snapshotKey, logger); err != nil {
+		if err := r.ensureReplicationConfigured(ctx, fromIndex, mariadb, snapshotKey, logger); err != nil {
 			return ctrl.Result{}, err
 		}
 

@@ -112,7 +112,7 @@ func (r *MariaDBReconciler) reconcileReplicaRecovery(ctx context.Context, mariad
 			}
 		}
 
-		if err := r.ensureReplicationConfigured(ctx, replica, mariadb, snapshotKey, replicaLogger); err != nil {
+		if err := r.ensureReplicationConfiguredInPod(ctx, replica, mariadb, snapshotKey, replicaLogger); err != nil {
 			return ctrl.Result{}, fmt.Errorf("error ensuring replica %s configured: %v", replica, err)
 		}
 		if err := r.ensureReplicaRecovered(ctx, replica, mariadb, replicaLogger); err != nil {

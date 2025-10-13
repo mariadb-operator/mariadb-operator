@@ -113,11 +113,9 @@ func waitForReplicaRecovery(ctx context.Context, env *environment.PodEnvironment
 	})
 }
 
-// Cleanup replica state files to prevent starting a potential primary as replica due to previous state
+// Cleanup previous replica state files during initialization
 func cleanupReplicaState(fm *filemanager.FileManager, mdb *mariadbv1alpha1.MariaDB, podIndex int) error {
-	if mdb.Status.CurrentPrimaryPodIndex == nil ||
-		(mdb.Status.CurrentPrimaryPodIndex != nil && *mdb.Status.CurrentPrimaryPodIndex != podIndex) ||
-		mdb.IsSwitchingPrimary() {
+	if mdb.HasConfiguredReplication() || mdb.IsSwitchingPrimary() {
 		return nil
 	}
 	logger.Info("Cleaning up replica state")
