@@ -23,7 +23,7 @@
 - alert: MariaDBTooManyConnectionsWarning
   expr: |
     mysql_global_status_threads_connected{target=~"{{ include "mariadb-cluster.fullname" . }}.*"}
-    / mysql_global_variables_max_connections{target=~"{{ include "mariadb-cluster.fullname" . }}.*"} > 0.8
+    / mysql_global_variables_max_connections{target=~"{{ include "mariadb-cluster.fullname" . }}.*"} > 0.7
   for: 1m
   labels:
     severity: warning

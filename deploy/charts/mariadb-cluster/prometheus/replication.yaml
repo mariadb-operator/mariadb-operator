@@ -3,7 +3,8 @@
 - alert: MariaDBReplicationNotRunning
   expr: |
     mysql_slave_status_slave_sql_running{target=~"{{ include "mariadb-cluster.fullname" . }}.*"} == 0
-    or mysql_slave_status_slave_io_running{target=~"{{ include "mariadb-cluster.fullname" . }}.*"} == 0
+    or
+    mysql_slave_status_slave_io_running{target=~"{{ include "mariadb-cluster.fullname" . }}.*"} == 0
   for: 1m
   labels:
     severity: critical

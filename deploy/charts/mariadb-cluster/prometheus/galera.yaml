@@ -1,2 +1,36 @@
 # The rules are helm templated, so we must escape labels:
 # {{ $labels.target }} => {{"{{ $labels.target }}"}}
+- alert: MariaDBGaleraNotReady
+  expr: |
+    mysql_global_status_wsrep_ready{target=~"{{ include "mariadb-cluster.fullname" . }}.*"} != 1
+  for: 1m
+  labels:
+    severity: critical
+  annotations:
+    summary: MariaDB instance in a Galera cluster is not ready
+    description: |
+      MariaDB instance {{"`{{ $labels.target }}`"}} in a Galera cluster is not ready
+- alert: MariaDBGaleraOutOfSync
+  expr: |
+    mysql_global_status_wsrep_local_state{target=~"{{ include "mariadb-cluster.fullname" . }}.*"} != 4
+    and
+    mysql_global_variables_wsrep_desync{target=~"{{ include "mariadb-cluster.fullname" . }}.*"} == 0
+  for: 1m
+  labels:
+    severity: critical
+  annotations:
+    summary: MariaDB instance in a Galera cluster is out of sync
+    description: |
+      MariaDB instance {{"`{{ $labels.target }}`"}} in a Galera cluster in out of sync
+- alert: MariaDBGaleraDonorFallingBehind
+  expr: |
+    mysql_global_status_wsrep_local_state{target=~"{{ include "mariadb-cluster.fullname" . }}.*"} == 2
+    and
+    mysql_global_status_wsrep_local_recv_queue{target=~"{{ include "mariadb-cluster.fullname" . }}.*"} > 100
+  for: 1m
+  labels:
+    severity: critical
+  annotations:
+    summary: MariaDB instance in a Galera cluster is a donor falling behind
+    description: |
+      MariaDB instance {{"`{{ $labels.target }}`"}} in a Galera cluster is a donor falling behind
