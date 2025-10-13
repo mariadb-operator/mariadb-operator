@@ -13,8 +13,6 @@ spec:
 
   # Increase number of replicas to trigger scaleout process
   replicas: 3
-  # TODO: remove
-  replicasAllowEvenNumber: true
 
   replication:
     enabled: true

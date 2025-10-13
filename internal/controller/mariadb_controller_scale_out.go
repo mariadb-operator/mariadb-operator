@@ -74,7 +74,7 @@ func (r *MariaDBReconciler) reconcileScaleOut(ctx context.Context, mariadb *mari
 		return ctrl.Result{}, fmt.Errorf("error getting VolumeSnapshot key: %v", err)
 	}
 
-	if result, err := r.reconcilePVCs(ctx, mariadb, fromIndex, snapshotKey); !result.IsZero() || err != nil {
+	if result, err := r.reconcilePVCs(ctx, mariadb, fromIndex, snapshotKey, logger); !result.IsZero() || err != nil {
 		return result, err
 	}
 
