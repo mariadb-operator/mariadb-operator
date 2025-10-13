@@ -332,9 +332,6 @@ func (r *MariaDBReconciler) ensureReplicationConfigured(ctx context.Context, fro
 	if !mariadb.IsReplicationEnabled() {
 		return nil
 	}
-	if mariadb.Status.CurrentPrimaryPodIndex == nil {
-		return errors.New("'status.currentPrimaryPodIndex' must be set")
-	}
 
 	_, err := r.forEachMariaDBPod(mariadb, fromIndex, func(podIndex int) (ctrl.Result, error) {
 		pod := stsobj.PodName(mariadb.ObjectMeta, podIndex)
