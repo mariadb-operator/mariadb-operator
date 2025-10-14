@@ -15,16 +15,8 @@ import (
 var _ = Describe("isRecoverableError", func() {
 	logger := zapr.NewLogger(zap.NewNop())
 	DescribeTable("should evaluate recoverability",
-		func(status mariadbv1alpha1.ReplicaErrorStatus, mdb *mariadbv1alpha1.MariaDB, modifyRecoverableCodes []int, expected bool) {
-			orig := recoverableIOErrorCodes
-			if modifyRecoverableCodes != nil {
-				recoverableIOErrorCodes = modifyRecoverableCodes
-			}
-			DeferCleanup(func() {
-				recoverableIOErrorCodes = orig
-			})
-
-			res := isRecoverableError(mdb, status, logger)
+		func(status mariadbv1alpha1.ReplicaErrorStatus, mdb *mariadbv1alpha1.MariaDB, expected bool) {
+			res := isRecoverableError(mdb, status, recoverableIOErrorCodes, logger)
 			Expect(res).To(Equal(expected))
 		},
 		Entry("recoverable IO code matches",
@@ -36,7 +28,6 @@ var _ = Describe("isRecoverableError", func() {
 				LastTransitionTime: metav1.Time{},
 			},
 			&mariadbv1alpha1.MariaDB{},
-			[]int{1236},
 			true,
 		),
 		Entry("no errors -> not recoverable",
@@ -48,7 +39,6 @@ var _ = Describe("isRecoverableError", func() {
 				LastTransitionTime: metav1.Time{},
 			},
 			&mariadbv1alpha1.MariaDB{},
-			nil,
 			false,
 		),
 		Entry("recent error within threshold -> not recoverable",
@@ -60,7 +50,6 @@ var _ = Describe("isRecoverableError", func() {
 				LastTransitionTime: metav1.NewTime(time.Now()),
 			},
 			&mariadbv1alpha1.MariaDB{},
-			nil,
 			false,
 		),
 		Entry("old error older than threshold -> recoverable",
@@ -72,7 +61,6 @@ var _ = Describe("isRecoverableError", func() {
 				LastTransitionTime: metav1.NewTime(time.Now().Add(-10 * time.Minute)),
 			},
 			&mariadbv1alpha1.MariaDB{},
-			nil,
 			true,
 		),
 		Entry("old SQL error older than threshold -> recoverable",
@@ -84,7 +72,6 @@ var _ = Describe("isRecoverableError", func() {
 				LastTransitionTime: metav1.NewTime(time.Now().Add(-10 * time.Minute)),
 			},
 			&mariadbv1alpha1.MariaDB{},
-			nil,
 			true,
 		),
 		Entry("old SQL error older than custom threshold -> recoverable",
@@ -110,7 +97,6 @@ var _ = Describe("isRecoverableError", func() {
 					},
 				},
 			},
-			nil,
 			true,
 		),
 	)

@@ -360,7 +360,7 @@ func (m *MariaDB) IsRecoveringReplicas() bool {
 	return meta.IsStatusConditionFalse(m.Status.Conditions, ConditionTypeReplicaRecovered)
 }
 
-// ReplicaRecoveryError indicates that the MariaDB instance has a replica recoveryerror.
+// ReplicaRecoveryError indicates that the MariaDB instance has a replica recovery error.
 func (m *MariaDB) ReplicaRecoveryError() error {
 	c := meta.FindStatusCondition(m.Status.Conditions, ConditionTypeReplicaRecovered)
 	if c == nil {
