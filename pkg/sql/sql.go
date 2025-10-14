@@ -795,35 +795,35 @@ func (c Client) ReplicaSecondsBehindMaster(ctx context.Context) (int, error) {
 	return c.QueryIntColumn(ctx, "SHOW REPLICA STATUS", "Seconds_Behind_Master")
 }
 
-func (c Client) ReplicaErrors(ctx context.Context) (*mariadbv1alpha1.ReplicaErrors, error) {
+func (c Client) ReplicaStatus(ctx context.Context) (*mariadbv1alpha1.ReplicaStatusVars, error) {
 	row, err := c.QueryColumnMap(ctx, "SHOW REPLICA STATUS")
 	if err != nil {
 		return nil, err
 	}
 
-	replErrors := mariadbv1alpha1.ReplicaErrors{}
+	status := mariadbv1alpha1.ReplicaStatusVars{}
 	if lastIOErrno, ok := row["Last_IO_Errno"]; ok {
 		errno, err := strconv.Atoi(lastIOErrno)
 		if err != nil {
 			return nil, fmt.Errorf("error parsing Last_IO_Errno: %v", err)
 		}
-		replErrors.LastIOErrno = ptr.To(errno)
+		status.LastIOErrno = ptr.To(errno)
 	}
 	if lastIOError, ok := row["Last_IO_Error"]; ok {
-		replErrors.LastIOError = ptr.To(lastIOError)
+		status.LastIOError = ptr.To(lastIOError)
 	}
 	if lastSQLErrno, ok := row["Last_SQL_Errno"]; ok {
 		errno, err := strconv.Atoi(lastSQLErrno)
 		if err != nil {
 			return nil, fmt.Errorf("error parsing Last_SQL_Errno: %v", err)
 		}
-		replErrors.LastSQLErrno = ptr.To(errno)
+		status.LastSQLErrno = ptr.To(errno)
 	}
 	if lastSQLError, ok := row["Last_SQL_Error"]; ok {
-		replErrors.LastSQLError = ptr.To(lastSQLError)
+		status.LastSQLError = ptr.To(lastSQLError)
 	}
 
-	return &replErrors, nil
+	return &status, nil
 }
 
 func (c Client) HasConnectedReplicas(ctx context.Context) (bool, error) {

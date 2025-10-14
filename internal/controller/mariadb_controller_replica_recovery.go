@@ -359,13 +359,13 @@ func (r *MariaDBReconciler) ensureReplicaRecovered(ctx context.Context, replica 
 		}
 		defer client.Close()
 
-		replErrors, err := client.ReplicaErrors(ctx)
+		replStatus, err := client.ReplicaStatus(ctx)
 		if err != nil {
-			return fmt.Errorf("error getting replica errors: %v", err)
+			return fmt.Errorf("error getting replica status: %v", err)
 		}
 
-		if replErrors.LastIOErrno != nil && *replErrors.LastIOErrno == 0 &&
-			replErrors.LastSQLErrno != nil && *replErrors.LastSQLErrno == 0 {
+		if replStatus.LastIOErrno != nil && *replStatus.LastIOErrno == 0 &&
+			replStatus.LastSQLErrno != nil && *replStatus.LastSQLErrno == 0 {
 			logger.Info("Replica recovered")
 			return nil
 		}
@@ -408,7 +408,7 @@ func (r *MariaDBReconciler) resetReplicaRecovery(ctx context.Context, mariadb *m
 func getReplicasToRecover(mdb *mariadbv1alpha1.MariaDB, logger logr.Logger) []string {
 	replication := ptr.Deref(mdb.Status.Replication, mariadbv1alpha1.ReplicationStatus{})
 	var replicas []string
-	for replica, err := range replication.Errors {
+	for replica, err := range replication.Replicas {
 		if isRecoverableError(
 			mdb,
 			err,
@@ -424,7 +424,7 @@ func getReplicasToRecover(mdb *mariadbv1alpha1.MariaDB, logger logr.Logger) []st
 	return replicas
 }
 
-func isRecoverableError(mdb *mariadbv1alpha1.MariaDB, status mariadbv1alpha1.ReplicaErrorStatus,
+func isRecoverableError(mdb *mariadbv1alpha1.MariaDB, status mariadbv1alpha1.ReplicaStatus,
 	recoverableIOErrorCodes []int, logger logr.Logger) bool {
 	for _, code := range recoverableIOErrorCodes {
 		if status.LastIOErrno != nil && *status.LastIOErrno == code {
@@ -435,11 +435,11 @@ func isRecoverableError(mdb *mariadbv1alpha1.MariaDB, status mariadbv1alpha1.Rep
 	lastIOErrno := ptr.Deref(status.LastIOErrno, 0)
 	lastSQLErrno := ptr.Deref(status.LastSQLErrno, 0)
 
-	if (lastIOErrno != 0 || lastSQLErrno != 0) && !status.LastTransitionTime.IsZero() {
+	if (lastIOErrno != 0 || lastSQLErrno != 0) && !status.LastErrorTransitionTime.IsZero() {
 		replication := ptr.Deref(mdb.Spec.Replication, mariadbv1alpha1.Replication{})
 		recovery := ptr.Deref(replication.Replica.ReplicaRecovery, mariadbv1alpha1.ReplicaRecovery{})
 		errThreshold := ptr.Deref(recovery.ErrorDurationThreshold, metav1.Duration{Duration: 5 * time.Minute})
-		age := time.Since(status.LastTransitionTime.Time)
+		age := time.Since(status.LastErrorTransitionTime.Time)
 
 		logger.V(1).Info(
 			"Current error",
