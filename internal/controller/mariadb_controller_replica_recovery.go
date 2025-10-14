@@ -318,6 +318,8 @@ func (r *MariaDBReconciler) ensurePodInitializing(ctx context.Context, key types
 	if podobj.PodInitializing(&pod) {
 		return nil
 	}
+
+	oldUID := pod.UID
 	if err := r.Delete(ctx, &pod); err != nil {
 		return fmt.Errorf("error deleting Pod: %v", err)
 	}
@@ -325,17 +327,16 @@ func (r *MariaDBReconciler) ensurePodInitializing(ctx context.Context, key types
 	pollCtx, cancel := context.WithTimeout(ctx, 3*time.Minute)
 	defer cancel()
 
-	return wait.PollUntilSuccessOrContextCancelWithInterval(pollCtx, 30*time.Second, logger, func(ctx context.Context) error {
+	return wait.PollUntilSuccessOrContextCancelWithInterval(pollCtx, 5*time.Second, logger, func(ctx context.Context) error {
 		var pod corev1.Pod
 		if err := r.Get(ctx, key, &pod); err != nil {
 			return fmt.Errorf("error getting Pod %s: %v", key.Name, err)
 		}
+		if pod.UID == oldUID {
+			return errors.New("old Pod still present")
+		}
 		if podobj.PodInitializing(&pod) {
 			return nil
-		}
-
-		if err := r.Delete(ctx, &pod); err != nil {
-			return err
 		}
 		return errors.New("Pod not initializing") //nolint:staticcheck
 	})
@@ -408,7 +409,12 @@ func getReplicasToRecover(mdb *mariadbv1alpha1.MariaDB, logger logr.Logger) []st
 	replication := ptr.Deref(mdb.Status.Replication, mariadbv1alpha1.ReplicationStatus{})
 	var replicas []string
 	for replica, err := range replication.Errors {
-		if isRecoverableError(mdb, err, logger.WithValues("replica", replica)) {
+		if isRecoverableError(
+			mdb,
+			err,
+			recoverableIOErrorCodes,
+			logger.WithValues("replica", replica),
+		) {
 			replicas = append(replicas, replica)
 		}
 	}
@@ -419,7 +425,7 @@ func getReplicasToRecover(mdb *mariadbv1alpha1.MariaDB, logger logr.Logger) []st
 }
 
 func isRecoverableError(mdb *mariadbv1alpha1.MariaDB, status mariadbv1alpha1.ReplicaErrorStatus,
-	logger logr.Logger) bool {
+	recoverableIOErrorCodes []int, logger logr.Logger) bool {
 	for _, code := range recoverableIOErrorCodes {
 		if status.LastIOErrno != nil && *status.LastIOErrno == code {
 			logger.V(1).Info("Recoverable IO error code detected", "io-errno", *status.LastIOErrno)
