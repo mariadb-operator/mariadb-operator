@@ -1017,7 +1017,7 @@ func (m *MariaDB) IsScalingOut() bool {
 	return meta.IsStatusConditionFalse(m.Status.Conditions, ConditionTypeScaledOut)
 }
 
-// ScalingOutError indicates that the MariaDB instance has an scaling out error.
+// ScalingOutError indicates that the MariaDB instance has a scaling out error.
 func (m *MariaDB) ScalingOutError() error {
 	c := meta.FindStatusCondition(m.Status.Conditions, ConditionTypeScaledOut)
 	if c == nil {

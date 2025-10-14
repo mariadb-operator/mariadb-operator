@@ -55,6 +55,12 @@ func (r *MariaDBReconciler) reconcileReplicaRecovery(ctx context.Context, mariad
 	}
 	logger := log.FromContext(ctx).
 		WithName("replica-recovery")
+
+	if !mariadb.IsRecoveringReplicas() || mariadb.ReplicaRecoveryError() != nil {
+		if result, err := r.reconcileReplicaRecoveryError(ctx, mariadb, logger); !result.IsZero() || err != nil {
+			return result, err
+		}
+	}
 	replicasToRecover := getReplicasToRecover(mariadb, logger)
 	logger = logger.
 		WithValues("replicas", replicasToRecover)
@@ -87,7 +93,34 @@ func (r *MariaDBReconciler) reconcileReplicaRecovery(ctx context.Context, mariad
 		return ctrl.Result{}, fmt.Errorf("error getting VolumeSnapshot key: %v", err)
 	}
 
-	for _, replica := range replicasToRecover {
+	return r.reconcileReplicasToRecover(ctx, replicasToRecover, mariadb, physicalBackup, snapshotKey, logger)
+}
+
+func (r *MariaDBReconciler) reconcileReplicaRecoveryError(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+	logger logr.Logger) (ctrl.Result, error) {
+	replication := ptr.Deref(mariadb.Spec.Replication, mariadbv1alpha1.Replication{})
+
+	if replication.Replica.ReplicaBootstrapFrom == nil {
+		r.Recorder.Eventf(mariadb, corev1.EventTypeWarning, mariadbv1alpha1.ReasonMariaDBReplicaRecoveryError,
+			"Unable to recover replicas: replica datasource not found (replication.replica.bootstrapFrom is nil)")
+
+		if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
+			condition.SetReplicaRecoveryError(status, "replica datasource not found (replication.replica.bootstrapFrom is nil)")
+			return nil
+		}); err != nil {
+			return ctrl.Result{}, fmt.Errorf("error patching MariaDB status: %v", err)
+		}
+
+		logger.Info("Unable to recover replicas: replica datasource not found (replication.replica.bootstrapFrom is nil). Requeuing...")
+		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+	}
+
+	return ctrl.Result{}, nil
+}
+
+func (r *MariaDBReconciler) reconcileReplicasToRecover(ctx context.Context, replicas []string, mariadb *mariadbv1alpha1.MariaDB,
+	physicalBackup *mariadbv1alpha1.PhysicalBackup, snapshotKey *types.NamespacedName, logger logr.Logger) (ctrl.Result, error) {
+	for _, replica := range replicas {
 		replicaLogger := logger.WithValues("replica", replica)
 		replicaLogger.V(1).Info("Recovering replica")
 

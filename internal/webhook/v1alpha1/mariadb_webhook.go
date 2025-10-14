@@ -213,7 +213,6 @@ func validateReplication(mariadb *v1alpha1.MariaDB) error {
 			"'spec.replication.primary.podIndex' out of 'spec.replicas' bounds",
 		)
 	}
-
 	if err := replication.Validate(); err != nil {
 		return field.Invalid(
 			field.NewPath("spec").Child("replication"),
@@ -221,7 +220,6 @@ func validateReplication(mariadb *v1alpha1.MariaDB) error {
 			err.Error(),
 		)
 	}
-
 	if err := replication.Replica.Validate(); err != nil {
 		return field.Invalid(
 			field.NewPath("spec").Child("replication").Child("replica"),

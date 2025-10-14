@@ -1,6 +1,7 @@
 package v1alpha1
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"time"
@@ -206,6 +207,10 @@ func (r *ReplicaReplication) Validate() error {
 			return fmt.Errorf("invalid GTID: %v", err)
 		}
 	}
+	recoveryEnabled := ptr.Deref(r.ReplicaRecovery, ReplicaRecovery{}).Enabled
+	if recoveryEnabled && r.ReplicaBootstrapFrom == nil {
+		return errors.New("'bootstrapFrom' must be set when 'recovery` is enabled")
+	}
 	return nil
 }
 
@@ -230,14 +235,12 @@ type ReplicationSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Replica ReplicaReplication `json:"replica,omitempty"`
-
 	// WaitPoint defines whether the transaction should wait for ACK before committing to the storage engine.
 	// More info: https://mariadb.com/kb/en/semisynchronous-replication/#rpl_semi_sync_master_wait_point.
 	// +optional
 	// +kubebuilder:validation:Enum=AfterSync;AfterCommit
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	WaitPoint *WaitPoint `json:"waitPoint,omitempty"`
-
 	// GtidStrictMode determines whether the GTID strict mode is enabled. See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/gtid#gtid_strict_mode.
 	// It is enabled by default.
 	// +optional
@@ -355,6 +358,18 @@ func (m *MariaDB) IsReplicaRecoveryEnabled() bool {
 // IsRecoveringReplicas indicates that a replica is being recovered.
 func (m *MariaDB) IsRecoveringReplicas() bool {
 	return meta.IsStatusConditionFalse(m.Status.Conditions, ConditionTypeReplicaRecovered)
+}
+
+// ReplicaRecoveryError indicates that the MariaDB instance has a replica recoveryerror.
+func (m *MariaDB) ReplicaRecoveryError() error {
+	c := meta.FindStatusCondition(m.Status.Conditions, ConditionTypeReplicaRecovered)
+	if c == nil {
+		return nil
+	}
+	if c.Status == metav1.ConditionFalse && c.Reason == ConditionReasonReplicaRecoverError {
+		return errors.New(c.Message)
+	}
+	return nil
 }
 
 // SetReplicaToRecover sets the replica to be recovered

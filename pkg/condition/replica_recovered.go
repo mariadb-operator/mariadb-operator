@@ -29,7 +29,7 @@ func SetReplicaRecoveryError(c Conditioner, msg string) {
 	c.SetCondition(metav1.Condition{
 		Type:    mariadbv1alpha1.ConditionTypeReplicaRecovered,
 		Status:  metav1.ConditionFalse,
-		Reason:  mariadbv1alpha1.ConditionReasonReplicaRecovered,
+		Reason:  mariadbv1alpha1.ConditionReasonReplicaRecoverError,
 		Message: fmt.Sprintf("Replica recovery error: %s", msg),
 	})
 }

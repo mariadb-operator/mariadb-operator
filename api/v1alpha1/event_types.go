@@ -66,4 +66,7 @@ const (
 
 	// ReasonMariaDBScaleOutError indicates that an error has occurred during the MariaDB instance scale out operation.
 	ReasonMariaDBScaleOutError = "MariaDBScaleOutError"
+
+	// ReasonMariaDBReplicaRecoveryError indicates that an error has occurred during the MariaDB instance replica recovery operation.
+	ReasonMariaDBReplicaRecoveryError = "MariaDBReplicaRecoveryError"
 )
