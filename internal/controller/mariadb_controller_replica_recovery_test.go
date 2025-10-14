@@ -14,73 +14,86 @@ import (
 
 var _ = Describe("isRecoverableError", func() {
 	logger := zapr.NewLogger(zap.NewNop())
+
 	DescribeTable("should evaluate recoverability",
-		func(status mariadbv1alpha1.ReplicaErrorStatus, mdb *mariadbv1alpha1.MariaDB, expected bool) {
-			res := isRecoverableError(mdb, status, recoverableIOErrorCodes, logger)
+		func(buildErrorStatus func() mariadbv1alpha1.ReplicaErrorStatus, mdb *mariadbv1alpha1.MariaDB, expected bool) {
+			res := isRecoverableError(mdb, buildErrorStatus(), recoverableIOErrorCodes, logger)
 			Expect(res).To(Equal(expected))
 		},
 		Entry("recoverable IO code matches",
-			mariadbv1alpha1.ReplicaErrorStatus{
-				ReplicaErrors: mariadbv1alpha1.ReplicaErrors{
-					LastIOErrno:  ptr.To(1236),
-					LastSQLErrno: nil,
-				},
-				LastTransitionTime: metav1.Time{},
+			func() mariadbv1alpha1.ReplicaErrorStatus {
+				return mariadbv1alpha1.ReplicaErrorStatus{
+					ReplicaErrors: mariadbv1alpha1.ReplicaErrors{
+						LastIOErrno:  ptr.To(1236),
+						LastSQLErrno: nil,
+					},
+					LastTransitionTime: metav1.Time{},
+				}
 			},
 			&mariadbv1alpha1.MariaDB{},
 			true,
 		),
 		Entry("no errors -> not recoverable",
-			mariadbv1alpha1.ReplicaErrorStatus{
-				ReplicaErrors: mariadbv1alpha1.ReplicaErrors{
-					LastIOErrno:  nil,
-					LastSQLErrno: nil,
-				},
-				LastTransitionTime: metav1.Time{},
+			func() mariadbv1alpha1.ReplicaErrorStatus {
+				return mariadbv1alpha1.ReplicaErrorStatus{
+					ReplicaErrors: mariadbv1alpha1.ReplicaErrors{
+						LastIOErrno:  nil,
+						LastSQLErrno: nil,
+					},
+					LastTransitionTime: metav1.Time{},
+				}
 			},
 			&mariadbv1alpha1.MariaDB{},
 			false,
 		),
 		Entry("recent error within threshold -> not recoverable",
-			mariadbv1alpha1.ReplicaErrorStatus{
-				ReplicaErrors: mariadbv1alpha1.ReplicaErrors{
-					LastIOErrno:  ptr.To(1),
-					LastSQLErrno: ptr.To(0),
-				},
-				LastTransitionTime: metav1.NewTime(time.Now()),
+			func() mariadbv1alpha1.ReplicaErrorStatus {
+				return mariadbv1alpha1.ReplicaErrorStatus{
+					ReplicaErrors: mariadbv1alpha1.ReplicaErrors{
+						LastIOErrno:  ptr.To(1),
+						LastSQLErrno: ptr.To(0),
+					},
+					LastTransitionTime: metav1.NewTime(time.Now()),
+				}
 			},
 			&mariadbv1alpha1.MariaDB{},
 			false,
 		),
 		Entry("old error older than threshold -> recoverable",
-			mariadbv1alpha1.ReplicaErrorStatus{
-				ReplicaErrors: mariadbv1alpha1.ReplicaErrors{
-					LastIOErrno:  ptr.To(1),
-					LastSQLErrno: ptr.To(0),
-				},
-				LastTransitionTime: metav1.NewTime(time.Now().Add(-10 * time.Minute)),
+			func() mariadbv1alpha1.ReplicaErrorStatus {
+				return mariadbv1alpha1.ReplicaErrorStatus{
+					ReplicaErrors: mariadbv1alpha1.ReplicaErrors{
+						LastIOErrno:  ptr.To(1),
+						LastSQLErrno: ptr.To(0),
+					},
+					LastTransitionTime: metav1.NewTime(time.Now().Add(-10 * time.Minute)),
+				}
 			},
 			&mariadbv1alpha1.MariaDB{},
 			true,
 		),
 		Entry("old SQL error older than threshold -> recoverable",
-			mariadbv1alpha1.ReplicaErrorStatus{
-				ReplicaErrors: mariadbv1alpha1.ReplicaErrors{
-					LastIOErrno:  ptr.To(1),
-					LastSQLErrno: ptr.To(1062),
-				},
-				LastTransitionTime: metav1.NewTime(time.Now().Add(-10 * time.Minute)),
+			func() mariadbv1alpha1.ReplicaErrorStatus {
+				return mariadbv1alpha1.ReplicaErrorStatus{
+					ReplicaErrors: mariadbv1alpha1.ReplicaErrors{
+						LastIOErrno:  ptr.To(1),
+						LastSQLErrno: ptr.To(1062),
+					},
+					LastTransitionTime: metav1.NewTime(time.Now().Add(-10 * time.Minute)),
+				}
 			},
 			&mariadbv1alpha1.MariaDB{},
 			true,
 		),
 		Entry("old SQL error older than custom threshold -> recoverable",
-			mariadbv1alpha1.ReplicaErrorStatus{
-				ReplicaErrors: mariadbv1alpha1.ReplicaErrors{
-					LastIOErrno:  ptr.To(1),
-					LastSQLErrno: ptr.To(1062),
-				},
-				LastTransitionTime: metav1.NewTime(time.Now().Add(-1 * time.Minute)),
+			func() mariadbv1alpha1.ReplicaErrorStatus {
+				return mariadbv1alpha1.ReplicaErrorStatus{
+					ReplicaErrors: mariadbv1alpha1.ReplicaErrors{
+						LastIOErrno:  ptr.To(1),
+						LastSQLErrno: ptr.To(1062),
+					},
+					LastTransitionTime: metav1.NewTime(time.Now().Add(-1 * time.Minute)),
+				}
 			},
 			&mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
