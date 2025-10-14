@@ -2293,6 +2293,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `enabled` _boolean_ | Enabled is a flag to enable replica recovery |  | Required: \{\} <br /> |
+| `errorDurationThreshold` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#duration-v1-meta)_ | ErrorDurationThreshold defines the time duration after which, if a replica continues to report errors,<br />the operator will initiate the recovery process for that replica.<br />This threshold applies only to error codes not identified as recoverable by the operator.<br />Errors identified as recoverable will trigger the recovery process immediately.<br />It defaults to 5 minutes. |  |  |
 
 
 #### ReplicaReplication
@@ -2314,8 +2315,8 @@ _Appears in:_
 | `connectionRetries` _integer_ | ConnectionRetries to be used when the replica connects to the primary.<br />See: https://mariadb.com/docs/server/reference/sql-statements/administrative-sql-statements/replication-statements/change-master-to#master_connect_retry |  |  |
 | `syncTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#duration-v1-meta)_ | SyncTimeout defines the timeout for a replica to be synced with the primary when performing a primary switchover.<br />During a switchover, all replicas must be synced with the primary before promoting the new primary.<br />During a failover, the primary will be down, therefore this sync step will be skipped.<br />See: https://mariadb.com/docs/server/reference/sql-functions/secondary-functions/miscellaneous-functions/master_gtid_wait |  |  |
 | `maxLagSeconds` _integer_ | MaxLagSeconds is the maximum number of seconds that replicas are allowed to lag behind the primary.<br />If a replica exceeds this threshold, it is marked as not ready and queries will no longer be forwarded to it.<br />Replicas in non ready state will block operations such as primary switchover and upgrades.<br />If not provided, it defaults to 0, which means replicas are not allowed to lag behind the primary.<br />This field is not taken into account by MaxScale, you can define the maximum lag as router parameters. See: https://mariadb.com/docs/maxscale/reference/maxscale-routers/maxscale-readwritesplit#max_replication_lag. |  |  |
-| `bootstrapFrom` _[ReplicaBootstrapFrom](#replicabootstrapfrom)_ | ReplicaBootstrapFrom defines the datasources for bootstrapping new relicas.<br />This will be used as part of the scaling out operations, when increasing the number of replicas.<br />If not provided, scale out operations will return an error. |  |  |
-| `recovery` _[ReplicaRecovery](#replicarecovery)_ | ReplicaRecovery defines how the operator should recover replicas after they become not ready. |  |  |
+| `bootstrapFrom` _[ReplicaBootstrapFrom](#replicabootstrapfrom)_ | ReplicaBootstrapFrom defines the datasources for bootstrapping new replicas.<br />This will be used as part of the scaling out and recovery operations, when new replicas are created.<br />If not provided, scale out and recovery operations will return an error. |  |  |
+| `recovery` _[ReplicaRecovery](#replicarecovery)_ | ReplicaRecovery defines how the operator should recover replicas after they start reporting errors.<br />The recovery process is disabled by default, and it requires the bootstrapFrom field to be set<br />in order to rebuild new replicas. |  |  |
 
 
 #### Replication
