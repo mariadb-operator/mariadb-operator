@@ -7236,11 +7236,19 @@ spec:
                 description: Replication is the replication current status per each
                   Pod.
                 properties:
-                  errors:
+                  replicaToRecover:
+                    description: ReplicaToRecover is the replica that is being recovered
+                      by the operator.
+                    type: string
+                  replicas:
                     additionalProperties:
-                      description: ReplicaErrorStatus represents the current error
-                        state of a replica.
+                      description: ReplicaStatus is the observed replica status.
                       properties:
+                        lastErrorTransitionTime:
+                          description: LastErrorTransitionTime is the last time the
+                            replica transitioned to an error state.
+                          format: date-time
+                          type: string
                         lastIOErrno:
                           description: LastIOErrno is the error code returned by the
                             IO thread.
@@ -7257,25 +7265,16 @@ spec:
                           description: LastSQLError is the error message returned
                             by the SQL thread.
                           type: string
-                        lastTransitionTime:
-                          description: LastTransitionTime is the last time the replica
-                            transitioned to an error state.
-                          format: date-time
-                          type: string
                       type: object
-                    description: Errors is the observed state of replication errors
-                      for each replica.
+                    description: Replicas is the observed replication status for each
+                      replica.
                     type: object
-                  replicaToRecover:
-                    description: ReplicaToRecover is the replica that is being recovered
-                      by the operator.
-                    type: string
-                  state:
+                  roles:
                     additionalProperties:
-                      description: ReplicationState represents the observed replication
-                        states.
+                      description: ReplicationRole represents the observed replication
+                        roles.
                       type: string
-                    description: State is the observed replication state for each
+                    description: Roles is the observed replication roles for each
                       Pod.
                     type: object
                 type: object

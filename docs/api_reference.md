@@ -2277,8 +2277,6 @@ _Appears in:_
 | `restoreJob` _[Job](#job)_ | RestoreJob defines additional properties for the Job used to perform the restoration. |  |  |
 
 
-
-
 #### ReplicaRecovery
 
 
@@ -2319,6 +2317,8 @@ _Appears in:_
 | `recovery` _[ReplicaRecovery](#replicarecovery)_ | ReplicaRecovery defines how the operator should recover replicas after they enter an error state.<br />This process deletes data from faulty replicas and recreates them using the source defined in the bootstrapFrom field.<br />It is disabled by default, and it requires the bootstrapFrom field to be set. |  |  |
 
 
+
+
 #### Replication
 
 
@@ -2343,6 +2343,8 @@ _Appears in:_
 | `enabled` _boolean_ | Enabled is a flag to enable Replication. |  |  |
 
 
+
+
 #### ReplicationSpec
 
 
@@ -2364,8 +2366,6 @@ _Appears in:_
 | `syncBinlog` _integer_ | SyncBinlog indicates after how many events the binary log is synchronized to the disk.<br />See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/replication-and-binary-log-system-variables#sync_binlog |  |  |
 | `initContainer` _[InitContainer](#initcontainer)_ | InitContainer is an init container that runs in the MariaDB Pod and co-operates with mariadb-operator. |  |  |
 | `agent` _[Agent](#agent)_ | Agent is a sidecar agent that co-operates with mariadb-operator. |  |  |
-
-
 
 
 #### ResourceRequirements

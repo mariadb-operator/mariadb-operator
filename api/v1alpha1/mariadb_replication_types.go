@@ -324,8 +324,8 @@ func (m *MariaDB) HasConfiguredReplica() bool {
 	if m.Status.Replication == nil {
 		return false
 	}
-	for _, state := range m.Status.Replication.State {
-		if state == ReplicationStateReplica {
+	for _, role := range m.Status.Replication.Roles {
+		if role == ReplicationRoleReplica {
 			return true
 		}
 	}
@@ -337,8 +337,8 @@ func (m *MariaDB) IsConfiguredReplica(podName string) bool {
 	if m.Status.Replication == nil {
 		return false
 	}
-	for pod, state := range m.Status.Replication.State {
-		if pod == podName && state == ReplicationStateReplica {
+	for pod, role := range m.Status.Replication.Roles {
+		if pod == podName && role == ReplicationRoleReplica {
 			return true
 		}
 	}
@@ -412,17 +412,17 @@ func (m *MariaDB) IsSwitchoverRequired() bool {
 	return currentPodIndex != desiredPodIndex
 }
 
-// ReplicationState represents the observed replication states.
-type ReplicationState string
+// ReplicationRole represents the observed replication roles.
+type ReplicationRole string
 
 const (
-	ReplicationStatePrimary       ReplicationState = "Primary"
-	ReplicationStateReplica       ReplicationState = "Replica"
-	ReplicationStateNotConfigured ReplicationState = "NotConfigured"
+	ReplicationRolePrimary ReplicationRole = "Primary"
+	ReplicationRoleReplica ReplicationRole = "Replica"
+	ReplicationRoleUnknown ReplicationRole = "Unknown"
 )
 
-// ReplicaErrors is the current error state of the threads available in a replica.
-type ReplicaErrors struct {
+// ReplicaStatusVars is the observed replica status variables.
+type ReplicaStatusVars struct {
 	// LastIOErrno is the error code returned by the IO thread.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
@@ -441,8 +441,8 @@ type ReplicaErrors struct {
 	LastSQLError *string `json:"lastSQLError,omitempty"`
 }
 
-// Equal determines equality based on error codes.
-func (r *ReplicaErrors) Equal(o *ReplicaErrors) bool {
+// EqualErrors determines equality of error codes.
+func (r *ReplicaStatusVars) EqualErrors(o *ReplicaStatusVars) bool {
 	if r == nil && o == nil {
 		return true
 	}
@@ -453,27 +453,27 @@ func (r *ReplicaErrors) Equal(o *ReplicaErrors) bool {
 		ptr.Equal(r.LastSQLErrno, o.LastSQLErrno)
 }
 
-// ReplicaErrorStatus represents the current error state of a replica.
-type ReplicaErrorStatus struct {
-	// ReplicaErrors is the current error state of the threads available in a replica.
+// ReplicaStatus is the observed replica status.
+type ReplicaStatus struct {
+	// ReplicaStatusVars is the observed replica status variables.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	ReplicaErrors `json:",inline"`
-	// LastTransitionTime is the last time the replica transitioned to an error state.
+	ReplicaStatusVars `json:",inline"`
+	// LastErrorTransitionTime is the last time the replica transitioned to an error state.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
-	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
+	LastErrorTransitionTime metav1.Time `json:"lastErrorTransitionTime,omitempty"`
 }
 
 // ReplicationStatus is the replication current state.
 type ReplicationStatus struct {
-	// State is the observed replication state for each Pod.
+	// Roles is the observed replication roles for each Pod.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
-	State map[string]ReplicationState `json:"state,omitempty"`
-	// Errors is the observed state of replication errors for each replica.
+	Roles map[string]ReplicationRole `json:"roles,omitempty"`
+	// Replicas is the observed replication status for each replica.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
-	Errors map[string]ReplicaErrorStatus `json:"errors,omitempty"`
+	Replicas map[string]ReplicaStatus `json:"replicas,omitempty"`
 	// ReplicaToRecover is the replica that is being recovered by the operator.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status

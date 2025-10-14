@@ -230,11 +230,11 @@ func (r *ReplicationReconciler) ReconcileReplicationInPod(ctx context.Context, r
 
 	primaryPodIndex := *req.mariadb.Status.CurrentPrimaryPodIndex
 	replStatus := ptr.Deref(req.mariadb.Status.Replication, mariadbv1alpha1.ReplicationStatus{})
-	replState := replStatus.State
+	replRoles := replStatus.Roles
 	pod := statefulset.PodName(req.mariadb.ObjectMeta, podIndex)
 
 	if primaryPodIndex == podIndex {
-		if rs, ok := replState[pod]; ok && rs == mariadbv1alpha1.ReplicationStatePrimary {
+		if role, ok := replRoles[pod]; ok && role == mariadbv1alpha1.ReplicationRolePrimary {
 			return ctrl.Result{}, nil
 		}
 		client, err := req.replClientSet.currentPrimaryClient(ctx)
@@ -250,8 +250,8 @@ func (r *ReplicationReconciler) ReconcileReplicationInPod(ctx context.Context, r
 	}
 
 	if !opts.forceReplicaConfiguration {
-		rs, ok := replState[pod]
-		if ok && rs == mariadbv1alpha1.ReplicationStateReplica {
+		role, ok := replRoles[pod]
+		if ok && role == mariadbv1alpha1.ReplicationRoleReplica {
 			return ctrl.Result{}, nil
 		}
 	}
