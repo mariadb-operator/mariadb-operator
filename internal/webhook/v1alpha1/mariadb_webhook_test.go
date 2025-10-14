@@ -401,6 +401,29 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 				true,
 			),
 			Entry(
+				"Invalid replica recovery",
+				&v1alpha1.MariaDB{
+					ObjectMeta: meta,
+					Spec: v1alpha1.MariaDBSpec{
+						Replication: &v1alpha1.Replication{
+							ReplicationSpec: v1alpha1.ReplicationSpec{
+								Replica: v1alpha1.ReplicaReplication{
+									ReplicaRecovery: &v1alpha1.ReplicaRecovery{
+										Enabled: true,
+									},
+								},
+							},
+							Enabled: true,
+						},
+						Storage: v1alpha1.Storage{
+							Size: ptr.To(resource.MustParse("100Mi")),
+						},
+						Replicas: 3,
+					},
+				},
+				true,
+			),
+			Entry(
 				"Invalid MaxScale",
 				&v1alpha1.MariaDB{
 					ObjectMeta: meta,
