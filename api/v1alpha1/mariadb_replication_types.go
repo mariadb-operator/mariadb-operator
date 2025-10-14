@@ -124,9 +124,9 @@ type ReplicaBootstrapFrom struct {
 	RestoreJob *Job `json:"restoreJob,omitempty"`
 }
 
-// ReplicaRecovery defines how the operator should recover replicas after they become not ready.
+// ReplicaRecovery defines how the operator should recover replicas after they enter an error state.
 type ReplicaRecovery struct {
-	// Enabled is a flag to enable replica recovery
+	// Enabled is a flag to enable replica recovery.
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Enabled bool `json:"enabled"`
@@ -159,7 +159,6 @@ type ReplicaReplication struct {
 	ConnectionRetries *int `json:"connectionRetries,omitempty"`
 	// SyncTimeout defines the timeout for a replica to be synced with the primary when performing a primary switchover.
 	// During a switchover, all replicas must be synced with the primary before promoting the new primary.
-	// During a failover, the primary will be down, therefore this sync step will be skipped.
 	// See: https://mariadb.com/docs/server/reference/sql-functions/secondary-functions/miscellaneous-functions/master_gtid_wait
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -168,19 +167,20 @@ type ReplicaReplication struct {
 	// If a replica exceeds this threshold, it is marked as not ready and queries will no longer be forwarded to it.
 	// Replicas in non ready state will block operations such as primary switchover and upgrades.
 	// If not provided, it defaults to 0, which means replicas are not allowed to lag behind the primary.
-	// This field is not taken into account by MaxScale, you can define the maximum lag as router parameters. See: https://mariadb.com/docs/maxscale/reference/maxscale-routers/maxscale-readwritesplit#max_replication_lag.
+	// This field is not taken into account by MaxScale, you can define the maximum lag as router parameters.
+	// See: https://mariadb.com/docs/maxscale/reference/maxscale-routers/maxscale-readwritesplit#max_replication_lag.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
 	MaxLagSeconds *int `json:"maxLagSeconds,omitempty"`
-	// ReplicaBootstrapFrom defines the datasources for bootstrapping new replicas.
+	// ReplicaBootstrapFrom defines the data sources used to bootstrap new replicas.
 	// This will be used as part of the scaling out and recovery operations, when new replicas are created.
 	// If not provided, scale out and recovery operations will return an error.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	ReplicaBootstrapFrom *ReplicaBootstrapFrom `json:"bootstrapFrom,omitempty"`
-	// ReplicaRecovery defines how the operator should recover replicas after they start reporting errors.
-	// The recovery process is disabled by default, and it requires the bootstrapFrom field to be set
-	// in order to rebuild new replicas.
+	// ReplicaRecovery defines how the operator should recover replicas after they enter an error state.
+	// This process deletes data from faulty replicas and recreates them using the source defined in the bootstrapFrom field.
+	// It is disabled by default, and it requires the bootstrapFrom field to be set.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	ReplicaRecovery *ReplicaRecovery `json:"recovery,omitempty"`
