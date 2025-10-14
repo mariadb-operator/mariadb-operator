@@ -7770,9 +7770,9 @@ spec:
                     properties:
                       bootstrapFrom:
                         description: |-
-                          ReplicaBootstrapFrom defines the datasources for bootstrapping new relicas.
-                          This will be used as part of the scaling out operations, when increasing the number of replicas.
-                          If not provided, scale out operations will return an error.
+                          ReplicaBootstrapFrom defines the datasources for bootstrapping new replicas.
+                          This will be used as part of the scaling out and recovery operations, when new replicas are created.
+                          If not provided, scale out and recovery operations will return an error.
                         properties:
                           physicalBackupTemplateRef:
                             description: |-
@@ -8148,12 +8148,22 @@ spec:
                           This field is not taken into account by MaxScale, you can define the maximum lag as router parameters. See: https://mariadb.com/docs/maxscale/reference/maxscale-routers/maxscale-readwritesplit#max_replication_lag.
                         type: integer
                       recovery:
-                        description: ReplicaRecovery defines how the operator should
-                          recover replicas after they become not ready.
+                        description: |-
+                          ReplicaRecovery defines how the operator should recover replicas after they start reporting errors.
+                          The recovery process is disabled by default, and it requires the bootstrapFrom field to be set
+                          in order to rebuild new replicas.
                         properties:
                           enabled:
                             description: Enabled is a flag to enable replica recovery
                             type: boolean
+                          errorDurationThreshold:
+                            description: |-
+                              ErrorDurationThreshold defines the time duration after which, if a replica continues to report errors,
+                              the operator will initiate the recovery process for that replica.
+                              This threshold applies only to error codes not identified as recoverable by the operator.
+                              Errors identified as recoverable will trigger the recovery process immediately.
+                              It defaults to 5 minutes.
+                            type: string
                         required:
                         - enabled
                         type: object

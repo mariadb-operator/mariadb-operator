@@ -129,6 +129,14 @@ type ReplicaRecovery struct {
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Enabled bool `json:"enabled"`
+	// ErrorDurationThreshold defines the time duration after which, if a replica continues to report errors,
+	// the operator will initiate the recovery process for that replica.
+	// This threshold applies only to error codes not identified as recoverable by the operator.
+	// Errors identified as recoverable will trigger the recovery process immediately.
+	// It defaults to 5 minutes.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	ErrorDurationThreshold *metav1.Duration `json:"errorDurationThreshold,omitempty"`
 }
 
 // ReplicaReplication is the replication configuration for the replica nodes.
@@ -163,13 +171,15 @@ type ReplicaReplication struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
 	MaxLagSeconds *int `json:"maxLagSeconds,omitempty"`
-	// ReplicaBootstrapFrom defines the datasources for bootstrapping new relicas.
-	// This will be used as part of the scaling out operations, when increasing the number of replicas.
-	// If not provided, scale out operations will return an error.
+	// ReplicaBootstrapFrom defines the datasources for bootstrapping new replicas.
+	// This will be used as part of the scaling out and recovery operations, when new replicas are created.
+	// If not provided, scale out and recovery operations will return an error.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	ReplicaBootstrapFrom *ReplicaBootstrapFrom `json:"bootstrapFrom,omitempty"`
-	// ReplicaRecovery defines how the operator should recover replicas after they become not ready.
+	// ReplicaRecovery defines how the operator should recover replicas after they start reporting errors.
+	// The recovery process is disabled by default, and it requires the bootstrapFrom field to be set
+	// in order to rebuild new replicas.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	ReplicaRecovery *ReplicaRecovery `json:"recovery,omitempty"`

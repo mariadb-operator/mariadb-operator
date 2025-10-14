@@ -18,6 +18,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/wait"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -52,9 +53,10 @@ func (r *MariaDBReconciler) reconcileReplicaRecovery(ctx context.Context, mariad
 		}
 		return ctrl.Result{}, nil
 	}
-	replicasToRecover := getReplicasToRecover(mariadb)
 	logger := log.FromContext(ctx).
-		WithName("replica-recovery").
+		WithName("replica-recovery")
+	replicasToRecover := getReplicasToRecover(mariadb, logger)
+	logger = logger.
 		WithValues("replicas", replicasToRecover)
 
 	if len(replicasToRecover) == 0 {
@@ -369,11 +371,11 @@ func (r *MariaDBReconciler) resetReplicaRecovery(ctx context.Context, mariadb *m
 	return nil
 }
 
-func getReplicasToRecover(mdb *mariadbv1alpha1.MariaDB) []string {
+func getReplicasToRecover(mdb *mariadbv1alpha1.MariaDB, logger logr.Logger) []string {
 	replication := ptr.Deref(mdb.Status.Replication, mariadbv1alpha1.ReplicationStatus{})
 	var replicas []string
 	for replica, err := range replication.Errors {
-		if isRecoverableError(err) {
+		if isRecoverableError(mdb, err, logger.WithValues("replica", replica)) {
 			replicas = append(replicas, replica)
 		}
 	}
@@ -383,12 +385,38 @@ func getReplicasToRecover(mdb *mariadbv1alpha1.MariaDB) []string {
 	return replicas
 }
 
-func isRecoverableError(s mariadbv1alpha1.ReplicaErrorStatus) bool {
-	if s.LastIOErrno == nil {
-		return false
-	}
+func isRecoverableError(mdb *mariadbv1alpha1.MariaDB, status mariadbv1alpha1.ReplicaErrorStatus,
+	logger logr.Logger) bool {
 	for _, code := range recoverableIOErrorCodes {
-		if *s.LastIOErrno == code {
+		if status.LastIOErrno != nil && *status.LastIOErrno == code {
+			logger.V(1).Info("Recoverable IO error code detected", "io-errno", *status.LastIOErrno)
+			return true
+		}
+	}
+	lastIOErrno := ptr.Deref(status.LastIOErrno, 0)
+	lastSQLErrno := ptr.Deref(status.LastSQLErrno, 0)
+
+	if (lastIOErrno != 0 || lastSQLErrno != 0) && !status.LastTransitionTime.IsZero() {
+		replication := ptr.Deref(mdb.Spec.Replication, mariadbv1alpha1.Replication{})
+		recovery := ptr.Deref(replication.Replica.ReplicaRecovery, mariadbv1alpha1.ReplicaRecovery{})
+		errThreshold := ptr.Deref(recovery.ErrorDurationThreshold, metav1.Duration{Duration: 5 * time.Minute})
+		age := time.Since(status.LastTransitionTime.Time)
+
+		logger.V(1).Info(
+			"Current error",
+			"io-errno", lastIOErrno,
+			"sql-errno", lastSQLErrno,
+			"age", age,
+			"threshold", errThreshold.Duration,
+		)
+		if age > errThreshold.Duration {
+			logger.V(1).Info(
+				"Error surpassed threshold",
+				"io-errno", lastIOErrno,
+				"sql-errno", lastSQLErrno,
+				"age", age,
+				"threshold", errThreshold.Duration,
+			)
 			return true
 		}
 	}
