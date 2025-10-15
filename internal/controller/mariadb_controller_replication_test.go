@@ -120,22 +120,32 @@ var _ = Describe("MariaDB replication", Ordered, func() {
 	It("should fail and switch over primary", func() {
 		By("Expecting MariaDB primary to be set")
 		Eventually(func() bool {
+			if err := k8sClient.Get(testCtx, key, mdb); err != nil {
+				return false
+			}
 			return mdb.Status.CurrentPrimary != nil
 		}, testTimeout, testInterval).Should(BeTrue())
 
-		currentPrimary := *mdb.Status.CurrentPrimary
-		By("Tearing down primary Pod consistently")
-		Consistently(func() bool {
+		var currentPrimary string
+		By("Tearing down primary Pod")
+		Eventually(func() bool {
+			if err := k8sClient.Get(testCtx, key, mdb); err != nil {
+				return false
+			}
+			currentPrimary = *mdb.Status.CurrentPrimary
 			primaryPodKey := types.NamespacedName{
-				Name:      currentPrimary,
+				Name:      *mdb.Status.CurrentPrimary,
 				Namespace: mdb.Namespace,
 			}
 			var primaryPod corev1.Pod
 			if err := k8sClient.Get(testCtx, primaryPodKey, &primaryPod); err != nil {
 				return apierrors.IsNotFound(err)
 			}
-			return k8sClient.Delete(testCtx, &primaryPod) == nil
-		}, 10*time.Second, testInterval).Should(BeTrue())
+			return k8sClient.Delete(testCtx, &primaryPod, &client.DeleteOptions{
+				GracePeriodSeconds: ptr.To(int64(0)),
+				PropagationPolicy:  ptr.To(metav1.DeletePropagationForeground),
+			}) == nil
+		}, testTimeout, testInterval).Should(BeTrue())
 
 		By("Expecting MariaDB to be ready eventually")
 		Eventually(func() bool {

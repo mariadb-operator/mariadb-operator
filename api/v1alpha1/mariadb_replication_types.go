@@ -89,10 +89,12 @@ type PrimaryReplication struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	PodIndex *int `json:"podIndex,omitempty"`
 	// AutomaticFailover indicates whether the operator should automatically update PodIndex to perform an automatic primary failover.
+	// It is enabled by default.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
 	AutomaticFailover *bool `json:"automaticFailover,omitempty"`
-	// AutomaticFailoverDelay indicates the duration before performing an automatic primary failover. By default, no extra delay is added.
+	// AutomaticFailoverDelay indicates the duration before performing an automatic primary failover.
+	// By default, no extra delay is added.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	AutomaticFailoverDelay *metav1.Duration `json:"automaticFailoverDelay,omitempty"`
