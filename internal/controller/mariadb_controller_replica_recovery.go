@@ -36,8 +36,8 @@ func shouldReconcileReplicaRecovery(mdb *mariadbv1alpha1.MariaDB) bool {
 	if !mdb.IsReplicationEnabled() || !mdb.HasConfiguredReplication() {
 		return false
 	}
-	if mdb.IsSwitchingPrimary() || mdb.IsInitializing() || mdb.IsScalingOut() ||
-		mdb.IsRestoringBackup() || mdb.IsResizingStorage() || mdb.IsUpdating() {
+	if mdb.IsSwitchingPrimary() || mdb.IsSwitchoverRequired() || mdb.IsInitializing() || mdb.IsScalingOut() ||
+		mdb.IsRestoringBackup() || mdb.IsResizingStorage() || mdb.IsUpdating() || mdb.IsSuspended() {
 		return false
 	}
 	return true

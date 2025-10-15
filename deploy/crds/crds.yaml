@@ -7749,14 +7749,14 @@ spec:
                       primary node.
                     properties:
                       automaticFailover:
-                        description: AutomaticFailover indicates whether the operator
-                          should automatically update PodIndex to perform an automatic
-                          primary failover.
+                        description: |-
+                          AutomaticFailover indicates whether the operator should automatically update PodIndex to perform an automatic primary failover.
+                          It is enabled by default.
                         type: boolean
                       automaticFailoverDelay:
-                        description: AutomaticFailoverDelay indicates the duration
-                          before performing an automatic primary failover. By default,
-                          no extra delay is added.
+                        description: |-
+                          AutomaticFailoverDelay indicates the duration before performing an automatic primary failover.
+                          By default, no extra delay is added.
                         type: string
                       podIndex:
                         description: PodIndex is the StatefulSet index of the primary

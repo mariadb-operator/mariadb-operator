@@ -95,21 +95,25 @@ func (r *MariaDBReconciler) reconcileScaleOut(ctx context.Context, mariadb *mari
 	return ctrl.Result{}, nil
 }
 
-func (r *MariaDBReconciler) isScalingOut(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, sts *appsv1.StatefulSet) (bool, error) {
-	if !mariadb.IsReplicationEnabled() || !mariadb.HasConfiguredReplication() || sts.Status.Replicas == 0 {
+func (r *MariaDBReconciler) isScalingOut(ctx context.Context, mdb *mariadbv1alpha1.MariaDB, sts *appsv1.StatefulSet) (bool, error) {
+	if !mdb.IsReplicationEnabled() || !mdb.HasConfiguredReplication() || sts.Status.Replicas == 0 {
+		return false, nil
+	}
+	if mdb.IsSwitchingPrimary() || mdb.IsSwitchoverRequired() || mdb.IsInitializing() || mdb.IsRecoveringReplicas() ||
+		mdb.IsRestoringBackup() || mdb.IsResizingStorage() || mdb.IsUpdating() || mdb.IsSuspended() {
 		return false, nil
 	}
 	// user is able to rollback scale out operation at any point by matching the number of existing replicas
-	if sts.Status.Replicas == mariadb.Spec.Replicas {
+	if sts.Status.Replicas == mdb.Spec.Replicas {
 		return false, nil
 	}
 	// ongoing scale out process
-	if mariadb.IsScalingOut() {
+	if mdb.IsScalingOut() {
 		return true, nil
 	}
 	// initial condition for starting scale out process, all replicas should be ready
 	return sts.Status.Replicas == sts.Status.ReadyReplicas &&
-		sts.Status.Replicas < mariadb.Spec.Replicas, nil
+		sts.Status.Replicas < mdb.Spec.Replicas, nil
 }
 
 func (r *MariaDBReconciler) reconcileScaleOutError(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, fromIndex int,

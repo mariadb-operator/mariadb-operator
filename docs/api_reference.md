@@ -2211,8 +2211,8 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `podIndex` _integer_ | PodIndex is the StatefulSet index of the primary node. The user may change this field to perform a manual switchover. |  |  |
-| `automaticFailover` _boolean_ | AutomaticFailover indicates whether the operator should automatically update PodIndex to perform an automatic primary failover. |  |  |
-| `automaticFailoverDelay` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#duration-v1-meta)_ | AutomaticFailoverDelay indicates the duration before performing an automatic primary failover. By default, no extra delay is added. |  |  |
+| `automaticFailover` _boolean_ | AutomaticFailover indicates whether the operator should automatically update PodIndex to perform an automatic primary failover.<br />It is enabled by default. |  |  |
+| `automaticFailoverDelay` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#duration-v1-meta)_ | AutomaticFailoverDelay indicates the duration before performing an automatic primary failover.<br />By default, no extra delay is added. |  |  |
 
 
 #### Probe

@@ -148,12 +148,14 @@ func (r *PodReplicationController) ReconcilePodNotReady(ctx context.Context, pod
 	return nil
 }
 
-func shouldReconcile(mariadb *mariadbv1alpha1.MariaDB) bool {
-	if mariadb.IsMaxScaleEnabled() || mariadb.IsRestoringBackup() || mariadb.IsSuspended() || mariadb.IsSwitchingPrimary() {
+func shouldReconcile(mdb *mariadbv1alpha1.MariaDB) bool {
+	if mdb.IsMaxScaleEnabled() || mdb.IsSwitchingPrimary() || mdb.IsSwitchoverRequired() ||
+		mdb.IsRestoringBackup() || mdb.IsResizingStorage() || mdb.IsSuspended() {
 		return false
 	}
-	primaryRepl := ptr.Deref(mariadb.Spec.Replication, mariadbv1alpha1.Replication{}).Primary
-	return mariadb.IsReplicationEnabled() && *primaryRepl.AutomaticFailover && mariadb.HasConfiguredReplica()
+	primaryRepl := ptr.Deref(mdb.Spec.Replication, mariadbv1alpha1.Replication{}).Primary
+	automaticFailover := ptr.Deref(primaryRepl.AutomaticFailover, true)
+	return mdb.IsReplicationEnabled() && automaticFailover && mdb.HasConfiguredReplica()
 }
 
 func (r *PodReplicationController) patch(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
