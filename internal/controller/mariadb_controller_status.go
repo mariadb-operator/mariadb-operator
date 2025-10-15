@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/go-logr/logr"
 	"github.com/hashicorp/go-multierror"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
 	condition "github.com/mariadb-operator/mariadb-operator/v25/pkg/condition"
@@ -38,7 +39,7 @@ func (r *MariaDBReconciler) reconcileStatus(ctx context.Context, mdb *mariadbv1a
 	if replErr != nil {
 		logger.Info("error getting replication state", "err", replErr)
 	}
-	replStatus, replErrStatusErr := r.getReplicaStatus(ctx, mdb)
+	replStatus, replErrStatusErr := r.getReplicaStatus(ctx, mdb, logger)
 	if replErrStatusErr != nil {
 		logger.Info("error getting replication status", "err", replStatus)
 	}
@@ -142,7 +143,7 @@ func (r *MariaDBReconciler) getReplicationRoles(ctx context.Context,
 }
 
 func (r *MariaDBReconciler) getReplicaStatus(ctx context.Context,
-	mdb *mariadbv1alpha1.MariaDB) (map[string]mariadbv1alpha1.ReplicaStatus, error) {
+	mdb *mariadbv1alpha1.MariaDB, logger logr.Logger) (map[string]mariadbv1alpha1.ReplicaStatus, error) {
 	if !mdb.IsReplicationEnabled() {
 		return nil, nil
 	}
@@ -159,7 +160,6 @@ func (r *MariaDBReconciler) getReplicaStatus(ctx context.Context,
 	defer clientSet.Close()
 
 	var replicaStatus map[string]mariadbv1alpha1.ReplicaStatus
-	logger := log.FromContext(ctx)
 	for i := 0; i < int(mdb.Spec.Replicas); i++ {
 		if i == *mdb.Status.CurrentPrimaryPodIndex {
 			continue
@@ -187,7 +187,7 @@ func (r *MariaDBReconciler) getReplicaStatus(ctx context.Context,
 			continue
 		}
 
-		newReplicaStatus, err := client.ReplicaStatus(ctx)
+		newReplicaStatus, err := client.ReplicaStatus(ctx, logger)
 		if err != nil {
 			logger.V(1).Info("error checking Pod replica status", "err", err, "pod", pod)
 			preserveCurrentState()

@@ -359,7 +359,7 @@ func (r *MariaDBReconciler) ensureReplicaRecovered(ctx context.Context, replica 
 		}
 		defer client.Close()
 
-		replStatus, err := client.ReplicaStatus(ctx)
+		replStatus, err := client.ReplicaStatus(ctx, logger)
 		if err != nil {
 			return fmt.Errorf("error getting replica status: %v", err)
 		}

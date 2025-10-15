@@ -377,6 +377,9 @@ func (r *MariaDBReconciler) ensureReplicationConfiguredInPod(ctx context.Context
 			replication.WithForceReplicaConfiguration(true),
 			replication.WithVolumeSnapshotKey(snapshotKey),
 		); !result.IsZero() || err != nil {
+			if err != nil {
+				return err
+			}
 			return errors.New("replication not configured")
 		}
 		return nil
