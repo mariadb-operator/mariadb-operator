@@ -40,6 +40,25 @@ func (g *Gtid) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
+func (g *Gtid) Equal(o *Gtid) bool {
+	if g == nil || o == nil {
+		return false
+	}
+	return g.DomainID == o.DomainID &&
+		g.ServerID == o.ServerID &&
+		g.SequenceID == o.SequenceID
+}
+
+func (g *Gtid) GreaterThan(o *Gtid) (bool, error) {
+	if g == nil || o == nil {
+		return false, nil
+	}
+	if g.DomainID != o.DomainID {
+		return false, fmt.Errorf("domain IDs are different (%d and %d). Not comparable", g.DomainID, o.DomainID)
+	}
+	return g.SequenceID > o.SequenceID, nil
+}
+
 func ParseGtid(rawGtid string) (*Gtid, error) {
 	if strings.Contains(rawGtid, ",") {
 		return nil, fmt.Errorf("multi-source replication not supported. Detected multiple GTID values in: %s", rawGtid)

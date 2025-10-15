@@ -1055,7 +1055,9 @@ func toString(v interface{}) string {
 
 func parseThreadRunning(s string) (bool, error) {
 	switch strings.ToLower(s) {
-	case "connecting", "preparing":
+	case "connecting":
+		return true, nil
+	case "preparing":
 		return false, nil
 	default:
 		return parseBool(s)

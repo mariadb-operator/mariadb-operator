@@ -10,7 +10,7 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/builder"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/replication"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/health"
+
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/refresolver"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/statefulset"
 	corev1 "k8s.io/api/core/v1"
@@ -112,9 +112,18 @@ func (r *PodReplicationController) ReconcilePodNotReady(ctx context.Context, pod
 	}
 
 	primary := mariadb.Status.CurrentPrimaryPodIndex
-	newPrimary, err := health.ReplicaPodHealthyIndex(ctx, r, mariadb)
+
+	newPrimaryName, err := replication.NewFailoverHandler(
+		r.Client,
+		mariadb,
+		log.FromContext(ctx).WithName("failover").V(1),
+	).FurthestAdvancedReplica(ctx)
 	if err != nil {
-		return fmt.Errorf("error getting healthy replica: %v", err)
+		return fmt.Errorf("error getting promotion candidate: %v", err)
+	}
+	newPrimary, err := statefulset.PodIndex(newPrimaryName)
+	if err != nil {
+		return fmt.Errorf("error getting new primary Pod index: %v", err)
 	}
 
 	var errBundle *multierror.Error
@@ -140,7 +149,7 @@ func (r *PodReplicationController) ReconcilePodNotReady(ctx context.Context, pod
 }
 
 func shouldReconcile(mariadb *mariadbv1alpha1.MariaDB) bool {
-	if mariadb.IsMaxScaleEnabled() || mariadb.IsRestoringBackup() || mariadb.IsSuspended() {
+	if mariadb.IsMaxScaleEnabled() || mariadb.IsRestoringBackup() || mariadb.IsSuspended() || mariadb.IsSwitchingPrimary() {
 		return false
 	}
 	primaryRepl := ptr.Deref(mariadb.Spec.Replication, mariadbv1alpha1.Replication{}).Primary
