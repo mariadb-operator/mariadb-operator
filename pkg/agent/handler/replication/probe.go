@@ -62,33 +62,29 @@ func (p *ReplicationProbe) Liveness(w http.ResponseWriter, r *http.Request) {
 		p.responseWriter.WriteErrorf(w, "error checking replica: %v", err)
 		return
 	}
-	// See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/replication-threads
 	if isReplica {
-		replicaIORunning, err := sqlClient.ReplicaSlaveIORunning(sqlCtx)
+		status, err := sqlClient.ReplicaStatus(sqlCtx, p.livenessLogger)
 		if err != nil {
-			p.livenessLogger.Error(err, "error checking replica IO thread")
-			p.responseWriter.WriteErrorf(w, "error checking replica IO thread: %v", err)
+			p.livenessLogger.Error(err, "error getting replica status")
+			p.responseWriter.WriteErrorf(w, "error getting replica status: %v", err)
 			return
 		}
+
+		replicaIORunning := ptr.Deref(status.SlaveIORunning, false)
 		if !replicaIORunning {
 			p.livenessLogger.Error(nil, "Replica IO thread not running")
 			p.responseWriter.WriteError(w, "Replica IO thread not running")
 			return
 		}
-
-		replicaSQLRunning, err := sqlClient.ReplicaSlaveSQLRunning(sqlCtx)
-		if err != nil {
-			p.livenessLogger.Error(err, "error checking replica SQL thread")
-			p.responseWriter.WriteErrorf(w, "error checking replica SQL thread: %v", err)
-			return
-		}
+		replicaSQLRunning := ptr.Deref(status.SlaveSQLRunning, false)
 		if !replicaSQLRunning {
 			p.livenessLogger.Error(nil, "Replica SQL thread not running")
 			p.responseWriter.WriteError(w, "Replica SQL thread not running")
 			return
 		}
 
-		p.livenessLogger.V(1).Info("Replica thread running status",
+		p.livenessLogger.V(1).Info(
+			"Replica thread running status",
 			"Slave_IO_Running", replicaIORunning,
 			"Slave_SQL_Running", replicaSQLRunning,
 		)
@@ -135,21 +131,31 @@ func (p *ReplicationProbe) Readiness(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if isReplica {
-		secondsBehindMaster, err := sqlClient.ReplicaSecondsBehindMaster(sqlCtx)
+		status, err := sqlClient.ReplicaStatus(sqlCtx, p.readinessLogger)
 		if err != nil {
-			p.readinessLogger.Error(err, "error checking replica seconds behind master")
-			p.responseWriter.WriteErrorf(w, "error checking replica seconds behind master: %v", err)
+			p.readinessLogger.Error(err, "error getting replica status")
+			p.responseWriter.WriteErrorf(w, "error getting replica status: %v", err)
 			return
 		}
-		maxLagSeconds := p.getMaxLagSeconds(k8sCtx)
+		if status.SecondsBehindMaster == nil {
+			p.readinessLogger.Error(nil, "could not determine replica lag")
+			p.responseWriter.WriteError(w, "could not determine replica lag")
+			return
+		}
+		secondsBehindMaster := *status.SecondsBehindMaster
 
+		maxLagSeconds := p.getMaxLagSeconds(k8sCtx)
 		if secondsBehindMaster > maxLagSeconds {
 			p.readinessLogger.Error(nil, "Replica is lagging behind master", "seconds", secondsBehindMaster, "max-seconds", maxLagSeconds)
 			p.responseWriter.WriteErrorf(w, "Replica is lagging %d seconds behind master (max seconds: %d)", secondsBehindMaster, maxLagSeconds)
 			return
 		}
 
-		p.readinessLogger.V(1).Info("Replica lag status", "seconds", secondsBehindMaster)
+		p.readinessLogger.V(1).Info(
+			"Replica lag status",
+			"seconds", secondsBehindMaster,
+			"max-seconds", maxLagSeconds,
+		)
 		p.responseWriter.WriteOK(w, nil)
 		return
 	}
@@ -175,7 +181,6 @@ func (p *ReplicationProbe) getMaxLagSeconds(ctx context.Context) int {
 		p.readinessLogger.Error(err, "error getting MariaDB. Using default max replication lag")
 		return 0
 	}
-
 	replication := ptr.Deref(mdb.Spec.Replication, mariadbv1alpha1.Replication{})
 	replica := replication.Replica
 	return ptr.Deref(replica.MaxLagSeconds, 0)

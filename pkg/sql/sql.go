@@ -14,6 +14,7 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/go-logr/logr"
 	"github.com/go-sql-driver/mysql"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/environment"
@@ -408,45 +409,6 @@ func (c Client) QueryColumnMap(ctx context.Context, sql string) (map[string]stri
 	return rows[0], nil
 }
 
-func (c Client) QueryBoolColumn(ctx context.Context, sql, column string) (bool, error) {
-	row, err := c.QueryColumnMap(ctx, sql)
-	if err != nil {
-		return false, err
-	}
-	val, ok := row[column]
-	if !ok {
-		return false, fmt.Errorf("column %q not found", column)
-	}
-
-	switch strings.ToLower(val) {
-	case "yes", "on", "true", "1":
-		return true, nil
-	case "no", "off", "false", "0":
-		return false, nil
-	case "":
-		return false, fmt.Errorf("column %q is empty", column)
-	default:
-		return false, fmt.Errorf("unexpected bool value for %q: %q", column, val)
-	}
-}
-
-func (c Client) QueryIntColumn(ctx context.Context, sql, column string) (int, error) {
-	row, err := c.QueryColumnMap(ctx, sql)
-	if err != nil {
-		return 0, err
-	}
-	val, ok := row[column]
-	if !ok {
-		return 0, fmt.Errorf("column %q not found", column)
-	}
-
-	n, err := strconv.Atoi(val)
-	if err != nil {
-		return 0, fmt.Errorf("invalid int value for %q: %v", column, err)
-	}
-	return n, nil
-}
-
 type CreateUserOpts struct {
 	IdentifiedBy         string
 	IdentifiedByPassword string
@@ -783,44 +745,63 @@ func (c Client) IsReplicationReplica(ctx context.Context) (bool, error) {
 	return c.Exists(ctx, "SHOW REPLICA STATUS")
 }
 
-func (c Client) ReplicaSlaveIORunning(ctx context.Context) (bool, error) {
-	return c.QueryBoolColumn(ctx, "SHOW REPLICA STATUS", "Slave_IO_Running")
-}
-
-func (c Client) ReplicaSlaveSQLRunning(ctx context.Context) (bool, error) {
-	return c.QueryBoolColumn(ctx, "SHOW REPLICA STATUS", "Slave_SQL_Running")
-}
-
-func (c Client) ReplicaSecondsBehindMaster(ctx context.Context) (int, error) {
-	return c.QueryIntColumn(ctx, "SHOW REPLICA STATUS", "Seconds_Behind_Master")
-}
-
-func (c Client) ReplicaStatus(ctx context.Context) (*mariadbv1alpha1.ReplicaStatusVars, error) {
+// See: https://mariadb.com/docs/server/reference/sql-statements/administrative-sql-statements/show/show-replica-status
+func (c Client) ReplicaStatus(ctx context.Context, logger logr.Logger) (*mariadbv1alpha1.ReplicaStatusVars, error) {
 	row, err := c.QueryColumnMap(ctx, "SHOW REPLICA STATUS")
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error getting replica status: %v", err)
 	}
 
 	status := mariadbv1alpha1.ReplicaStatusVars{}
 	if lastIOErrno, ok := row["Last_IO_Errno"]; ok {
 		errno, err := strconv.Atoi(lastIOErrno)
 		if err != nil {
-			return nil, fmt.Errorf("error parsing Last_IO_Errno: %v", err)
+			logger.Error(err, "error parsing Last_IO_Errno")
+		} else {
+			status.LastIOErrno = ptr.To(errno)
 		}
-		status.LastIOErrno = ptr.To(errno)
 	}
 	if lastIOError, ok := row["Last_IO_Error"]; ok {
 		status.LastIOError = ptr.To(lastIOError)
 	}
+
 	if lastSQLErrno, ok := row["Last_SQL_Errno"]; ok {
 		errno, err := strconv.Atoi(lastSQLErrno)
 		if err != nil {
-			return nil, fmt.Errorf("error parsing Last_SQL_Errno: %v", err)
+			logger.Error(err, "error parsing Last_SQL_Errno")
+		} else {
+			status.LastSQLErrno = ptr.To(errno)
 		}
-		status.LastSQLErrno = ptr.To(errno)
 	}
 	if lastSQLError, ok := row["Last_SQL_Error"]; ok {
 		status.LastSQLError = ptr.To(lastSQLError)
+	}
+
+	if slaveIORunning, ok := row["Slave_IO_Running"]; ok {
+		running, err := parseThreadRunning(slaveIORunning)
+		if err != nil {
+			logger.Error(err, "error parsing Slave_IO_Running")
+		} else {
+			status.SlaveIORunning = ptr.To(running)
+		}
+	}
+	if slaveSQLRunning, ok := row["Slave_SQL_Running"]; ok {
+		running, err := parseThreadRunning(slaveSQLRunning)
+		if err != nil {
+			logger.Error(err, "error parsing Slave_SQL_Running")
+		} else {
+			status.SlaveSQLRunning = ptr.To(running)
+		}
+	}
+
+	// Seconds_Behind_Master may be empty when any of the replication threads are not running. Do not treat nil as 0!
+	if secondsBehindMaster, ok := row["Seconds_Behind_Master"]; ok && secondsBehindMaster != "" {
+		seconds, err := strconv.Atoi(secondsBehindMaster)
+		if err != nil {
+			logger.Error(err, "error parsing Seconds_Behind_Master")
+		} else {
+			status.SecondsBehindMaster = ptr.To(seconds)
+		}
 	}
 
 	return &status, nil
@@ -1042,5 +1023,27 @@ func toString(v interface{}) string {
 		return fmt.Sprintf("%d", val)
 	default:
 		return fmt.Sprintf("%v", val)
+	}
+}
+
+func parseThreadRunning(s string) (bool, error) {
+	switch strings.ToLower(s) {
+	case "connecting", "preparing":
+		return false, nil
+	default:
+		return parseBool(s)
+	}
+}
+
+func parseBool(s string) (bool, error) {
+	switch strings.ToLower(s) {
+	case "yes", "on", "true", "1":
+		return true, nil
+	case "no", "off", "false", "0":
+		return false, nil
+	case "":
+		return false, errors.New("invalid bool value: empty string")
+	default:
+		return false, fmt.Errorf("invalid bool value: %s", s)
 	}
 }

@@ -164,9 +164,10 @@ type ReplicaReplication struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	SyncTimeout *metav1.Duration `json:"syncTimeout,omitempty"`
 	// MaxLagSeconds is the maximum number of seconds that replicas are allowed to lag behind the primary.
-	// If a replica exceeds this threshold, it is marked as not ready and queries will no longer be forwarded to it.
-	// Replicas in non ready state will block operations such as primary switchover and upgrades.
-	// If not provided, it defaults to 0, which means replicas are not allowed to lag behind the primary.
+	// If a replica exceeds this threshold, it is marked as not ready and read queries will no longer be forwarded to it.
+	// If not provided, it defaults to 0, which means that replicas are not allowed to lag behind the primary (recommended).
+	// Lagged replicas will not be taken into account as candidates for the new primary during failover,
+	// and they will block other operations, such as switchover and upgrade.
 	// This field is not taken into account by MaxScale, you can define the maximum lag as router parameters.
 	// See: https://mariadb.com/docs/maxscale/reference/maxscale-routers/maxscale-readwritesplit#max_replication_lag.
 	// +optional
@@ -439,6 +440,18 @@ type ReplicaStatusVars struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	LastSQLError *string `json:"lastSQLError,omitempty"`
+	// SlaveIORunning indicates whether the slave IO thread is running.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	SlaveIORunning *bool `json:"slaveIORunning,omitempty"`
+	// SlaveSQLRunning indicates whether the slave SQL thread is running.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	SlaveSQLRunning *bool `json:"slaveSQLRunning,omitempty"`
+	// SecondsBehindMaster measures the replication lag with the primary.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	SecondsBehindMaster *int `json:"secondsBehindMaster,omitempty"`
 }
 
 // EqualErrors determines equality of error codes.
