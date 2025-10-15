@@ -21,6 +21,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/interfaces"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/pki"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/refresolver"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/replication"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/statefulset"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
@@ -726,6 +727,10 @@ func (c *Client) GtidSlavePos(ctx context.Context) (string, error) {
 	return c.SystemVariable(ctx, "gtid_slave_pos")
 }
 
+func (c *Client) GtidCurrentPos(ctx context.Context) (string, error) {
+	return c.SystemVariable(ctx, "gtid_current_pos")
+}
+
 func (c *Client) SetGtidSlavePos(ctx context.Context, gtid string) error {
 	if gtid == "" {
 		return errors.New("gtid must not be empty")
@@ -801,6 +806,28 @@ func (c Client) ReplicaStatus(ctx context.Context, logger logr.Logger) (*mariadb
 			logger.Error(err, "error parsing Seconds_Behind_Master")
 		} else {
 			status.SecondsBehindMaster = ptr.To(seconds)
+		}
+	}
+
+	if gtidIOPos, ok := row["Gtid_IO_Pos"]; ok && gtidIOPos != "" {
+		gtid, err := replication.ParseGtid(gtidIOPos)
+		if err != nil {
+			logger.Error(err, "error parsing Gtid_IO_Pos")
+		} else {
+			status.GtidIOPos = gtid
+		}
+	}
+
+	gtidCurrentPos, err := c.GtidCurrentPos(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("error getting gtid_current_pos: %v", err)
+	}
+	if gtidCurrentPos != "" {
+		gtid, err := replication.ParseGtid(gtidCurrentPos)
+		if err != nil {
+			logger.Error(err, "error parsing gtid_current_pos")
+		} else {
+			status.GtidCurrentPos = gtid
 		}
 	}
 

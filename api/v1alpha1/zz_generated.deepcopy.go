@@ -31,6 +31,7 @@ package v1alpha1
 import (
 	metav1 "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/galera/recovery"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/replication"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -3956,6 +3957,16 @@ func (in *ReplicaStatusVars) DeepCopyInto(out *ReplicaStatusVars) {
 	if in.SecondsBehindMaster != nil {
 		in, out := &in.SecondsBehindMaster, &out.SecondsBehindMaster
 		*out = new(int)
+		**out = **in
+	}
+	if in.GtidIOPos != nil {
+		in, out := &in.GtidIOPos, &out.GtidIOPos
+		*out = new(replication.Gtid)
+		**out = **in
+	}
+	if in.GtidCurrentPos != nil {
+		in, out := &in.GtidCurrentPos, &out.GtidCurrentPos
+		*out = new(replication.Gtid)
 		**out = **in
 	}
 }

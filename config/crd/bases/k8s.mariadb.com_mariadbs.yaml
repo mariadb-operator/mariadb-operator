@@ -7245,6 +7245,14 @@ spec:
                     additionalProperties:
                       description: ReplicaStatus is the observed replica status.
                       properties:
+                        gtidCurrentPos:
+                          description: GtidCurrentPos is the last GTID position executed
+                            by the SQL thread.
+                          type: string
+                        gtidIOPos:
+                          description: GtidIOPos is the last GTID position received
+                            by the IO thread and written to the relay log.
+                          type: string
                         lastErrorTransitionTime:
                           description: LastErrorTransitionTime is the last time the
                             replica transitioned to an error state.
