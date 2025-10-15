@@ -3,6 +3,9 @@
 hashi = "hashi"
 # Incremental State Transfers
 ist = "ist"
+# Global Transaction ID
+GTID = "GTID"
+GTIDs = "GTIDs"
 # TO DO: fix => immutable
 inmutable = "inmutable"
 

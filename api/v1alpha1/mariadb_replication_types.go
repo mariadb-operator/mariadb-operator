@@ -8,6 +8,7 @@ import (
 
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/docker"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/environment"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/replication"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
@@ -452,6 +453,14 @@ type ReplicaStatusVars struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	SecondsBehindMaster *int `json:"secondsBehindMaster,omitempty"`
+	// GtidIOPos is the last GTID position received by the IO thread and written to the relay log.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	GtidIOPos *replication.Gtid `json:"gtidIOPos,omitempty"`
+	// GtidCurrentPos is the last GTID position executed by the SQL thread.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	GtidCurrentPos *replication.Gtid `json:"gtidCurrentPos,omitempty"`
 }
 
 // EqualErrors determines equality of error codes.
