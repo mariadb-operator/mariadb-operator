@@ -95,7 +95,7 @@ func TestParseGtid(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:         "multiple GTIDs, some invalid",
+			name:         "multiple GTID, some invalid",
 			input:        "2-a-48438,0-2001-48431,1-2101-48436",
 			gtidDomainId: 0,
 			wantGtid: &Gtid{
@@ -106,7 +106,7 @@ func TestParseGtid(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:         "multiple GTIDs, some empty",
+			name:         "multiple GTID, some empty",
 			input:        ",0-2002-48432",
 			gtidDomainId: 0,
 			wantGtid: &Gtid{
@@ -117,7 +117,7 @@ func TestParseGtid(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:         "multiple GTIDs from same domain",
+			name:         "multiple GTID from same domain",
 			input:        "0-2001-48431,0-2002-48432",
 			gtidDomainId: 0,
 			wantGtid: &Gtid{
@@ -128,7 +128,7 @@ func TestParseGtid(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:         "1. multiple GTIDs from different domains",
+			name:         "1. multiple GTID from different domains",
 			input:        "2-2201-48438,1-2101-48436,0-2001-48431",
 			gtidDomainId: 0,
 			wantGtid: &Gtid{
@@ -139,7 +139,7 @@ func TestParseGtid(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:         "2. multiple GTIDs from different domains",
+			name:         "2. multiple GTID from different domains",
 			input:        "0-2001-48431,2-2201-48438,1-2101-48436",
 			gtidDomainId: 0,
 			wantGtid: &Gtid{
@@ -150,7 +150,7 @@ func TestParseGtid(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:         "3. multiple GTIDs from different domains",
+			name:         "3. multiple GTID from different domains",
 			input:        "2-2201-48438,0-2001-48431,1-2101-48436",
 			gtidDomainId: 0,
 			wantGtid: &Gtid{
@@ -161,7 +161,7 @@ func TestParseGtid(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:         "multiple GTIDs from different domains using non default domain",
+			name:         "multiple GTID from different domains using non default domain",
 			input:        "2-2201-48438,1-2101-48436,0-2001-48431",
 			gtidDomainId: 1,
 			wantGtid: &Gtid{
