@@ -10,7 +10,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-func (b *Builder) BuildPhysicalBackup(key types.NamespacedName, tpl *mariadbv1alpha1.PhysicalBackup,
+func (b *Builder) BuildReplicaRecoveryPhysicalBackup(key types.NamespacedName, tpl *mariadbv1alpha1.PhysicalBackup,
 	mariadb *mariadbv1alpha1.MariaDB) (*mariadbv1alpha1.PhysicalBackup, error) {
 	physicalBackup := mariadbv1alpha1.PhysicalBackup{
 		ObjectMeta: metav1.ObjectMeta{

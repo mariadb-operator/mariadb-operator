@@ -207,7 +207,7 @@ func (r *MariaDBReconciler) createReplicaPhysicalBackup(ctx context.Context, key
 		return fmt.Errorf("error getting PhysicalBackup template: %v", err)
 	}
 
-	physicalBackup, err := r.Builder.BuildPhysicalBackup(key, &tpl, mariadb)
+	physicalBackup, err := r.Builder.BuildReplicaRecoveryPhysicalBackup(key, &tpl, mariadb)
 	if err != nil {
 		return fmt.Errorf("error building PhysicalBackup: %v", err)
 	}
