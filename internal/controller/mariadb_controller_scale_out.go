@@ -100,7 +100,7 @@ func (r *MariaDBReconciler) isScalingOut(ctx context.Context, mdb *mariadbv1alph
 		return false, nil
 	}
 	if mdb.IsSwitchingPrimary() || mdb.IsSwitchoverRequired() || mdb.IsInitializing() || mdb.IsRecoveringReplicas() ||
-		mdb.IsRestoringBackup() || mdb.IsResizingStorage() || mdb.IsUpdating() || mdb.IsSuspended() {
+		mdb.IsRestoringBackup() || mdb.IsResizingStorage() || mdb.IsUpdating() {
 		return false, nil
 	}
 	// user is able to rollback scale out operation at any point by matching the number of existing replicas
