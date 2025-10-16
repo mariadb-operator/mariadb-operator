@@ -54,6 +54,12 @@ func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *Re
 	newPrimaryPodName := statefulset.PodName(req.mariadb.ObjectMeta, *replication.Primary.PodIndex)
 	logger = logger.WithValues("primary", primary, "new-primary", newPrimary)
 
+	currentPrimaryReady, err := r.currentPrimaryReady(ctx, req.mariadb, req.replClientSet)
+	if err != nil {
+		return fmt.Errorf("error getting current primary readiness: %v", err)
+	}
+	req.currentPrimaryReady = currentPrimaryReady
+
 	if err := r.patchStatus(ctx, req.mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
 		condition.SetPrimarySwitching(&req.mariadb.Status, newPrimaryPodName)
 	}); err != nil {
@@ -114,11 +120,7 @@ func (r *ReplicationReconciler) reconcileStaleSwitchover(ctx context.Context, re
 	if !isSwitchoverStale(req.mariadb) {
 		return nil
 	}
-	ready, err := r.currentPrimaryReady(ctx, req.mariadb, req.replClientSet)
-	if err != nil {
-		return fmt.Errorf("error getting current primary readiness: %v", err)
-	}
-	if !ready {
+	if !req.currentPrimaryReady {
 		logger.Info("Skipped stale switchover reconciliation due to primary's non ready status")
 		return nil
 	}
@@ -150,11 +152,7 @@ func (r *ReplicationReconciler) reconcileStaleSwitchover(ctx context.Context, re
 }
 
 func (r *ReplicationReconciler) lockPrimaryWithReadLock(ctx context.Context, req *ReconcileRequest, logger logr.Logger) error {
-	ready, err := r.currentPrimaryReady(ctx, req.mariadb, req.replClientSet)
-	if err != nil {
-		return fmt.Errorf("error getting current primary readiness: %v", err)
-	}
-	if !ready {
+	if !req.currentPrimaryReady {
 		logger.Info("Skipped locking primary with read lock due to primary's non ready status")
 		return nil
 	}
@@ -170,11 +168,7 @@ func (r *ReplicationReconciler) lockPrimaryWithReadLock(ctx context.Context, req
 }
 
 func (r *ReplicationReconciler) setPrimaryReadOnly(ctx context.Context, req *ReconcileRequest, logger logr.Logger) error {
-	ready, err := r.currentPrimaryReady(ctx, req.mariadb, req.replClientSet)
-	if err != nil {
-		return fmt.Errorf("error getting current primary readiness: %v", err)
-	}
-	if !ready {
+	if !req.currentPrimaryReady {
 		logger.Info("Skipped enabling readonly mode in primary due to primary's non ready status")
 		return nil
 	}
@@ -193,11 +187,7 @@ func (r *ReplicationReconciler) waitForReplicaSync(ctx context.Context, req *Rec
 	if req.mariadb.Status.CurrentPrimaryPodIndex == nil {
 		return errors.New("'status.currentPrimaryPodIndex' must be set")
 	}
-	ready, err := r.currentPrimaryReady(ctx, req.mariadb, req.replClientSet)
-	if err != nil {
-		return fmt.Errorf("error getting current primary readiness: %v", err)
-	}
-	if !ready {
+	if !req.currentPrimaryReady {
 		logger.Info("Skipped waiting for replicas to be synced with primary due to primary's non ready status")
 		return nil
 	}
@@ -342,11 +332,7 @@ func (r *ReplicationReconciler) changePrimaryToReplica(ctx context.Context, req 
 	if req.mariadb.Status.CurrentPrimaryPodIndex == nil {
 		return errors.New("'status.currentPrimaryPodIndex' must be set")
 	}
-	ready, err := r.currentPrimaryReady(ctx, req.mariadb, req.replClientSet)
-	if err != nil {
-		return fmt.Errorf("error getting current primary readiness: %v", err)
-	}
-	if !ready {
+	if !req.currentPrimaryReady {
 		logger.Info("Skipped changing primary to be a replica due to primary's non ready status")
 		return nil
 	}
