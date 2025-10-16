@@ -11,6 +11,7 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
 	mdbpod "github.com/mariadb-operator/mariadb-operator/v25/pkg/pod"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/refresolver"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/replication"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/sql"
 	mdbsts "github.com/mariadb-operator/mariadb-operator/v25/pkg/statefulset"
 	corev1 "k8s.io/api/core/v1"
@@ -60,8 +61,8 @@ func (f *FailoverHandler) FurthestAdvancedReplica(ctx context.Context) (string, 
 }
 
 type promotionCandidate struct {
-	name   string
-	status *mariadbv1alpha1.ReplicaStatusVars
+	name           string
+	gtidCurrentPos *replication.Gtid
 }
 
 func (f *FailoverHandler) findCandidates(ctx context.Context, pods []corev1.Pod) []promotionCandidate {
@@ -107,15 +108,31 @@ func (f *FailoverHandler) findCandidates(ctx context.Context, pods []corev1.Pod)
 			podLogger.Info("Unable to get GTID IO position. Skipping...")
 			continue
 		}
-		gtidIOPos := *status.GtidIOPos
-
+		rawGtidIOPos := *status.GtidIOPos
 		if status.GtidCurrentPos == nil {
 			podLogger.Info("Unable to get GTID SQL position. Skipping...")
 			continue
 		}
-		gtidCurrentPos := *status.GtidCurrentPos
+		rawGtidCurrentPos := *status.GtidCurrentPos
 
-		if !gtidIOPos.Equal(&gtidCurrentPos) {
+		gtidDomainId, err := sqlClient.GtidDomainId(ctx)
+		if err != nil {
+			podLogger.Info("Error getting GTID domain ID. Skipping...", "err", err)
+			continue
+		}
+
+		gtidIOPos, err := replication.ParseGtid(rawGtidIOPos, *gtidDomainId, f.logger)
+		if err != nil {
+			podLogger.Info("Error parsing GTID IO position. Skipping...", "err", err)
+			continue
+		}
+		gtidCurrentPos, err := replication.ParseGtid(rawGtidCurrentPos, *gtidDomainId, f.logger)
+		if err != nil {
+			podLogger.Info("Error parsing GTID current position. Skipping...", "err", err)
+			continue
+		}
+
+		if !gtidIOPos.Equal(gtidCurrentPos) {
 			podLogger.Info(
 				"Detected events in relay log. Skipping...",
 				"gtid-io-pos", gtidIOPos.String(),
@@ -124,8 +141,8 @@ func (f *FailoverHandler) findCandidates(ctx context.Context, pods []corev1.Pod)
 			continue
 		}
 		candidates = append(candidates, promotionCandidate{
-			name:   pod.Name,
-			status: status,
+			name:           pod.Name,
+			gtidCurrentPos: gtidCurrentPos,
 		})
 	}
 	return candidates
@@ -137,7 +154,7 @@ func (f *FailoverHandler) furthestAdvancedCandidate(candidates []promotionCandid
 		c := &candidates[i]
 		candidateLogger := f.logger.WithValues("candidate", c.name)
 
-		if c.status.GtidCurrentPos == nil {
+		if c.gtidCurrentPos == nil {
 			candidateLogger.Info("GTID position not set. Skipping...")
 			continue
 		}
@@ -146,7 +163,7 @@ func (f *FailoverHandler) furthestAdvancedCandidate(candidates []promotionCandid
 			continue
 		}
 
-		greaterThan, err := c.status.GtidCurrentPos.GreaterThan(furthestAdvanced.status.GtidCurrentPos)
+		greaterThan, err := c.gtidCurrentPos.GreaterThan(furthestAdvanced.gtidCurrentPos)
 		if err != nil {
 			candidateLogger.Info("Error comparing GTID values. Skipping...", "err", err)
 			continue

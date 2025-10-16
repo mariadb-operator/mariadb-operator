@@ -1,43 +1,23 @@
 package replication
 
 import (
-	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
+
+	"github.com/go-logr/logr"
 )
 
 // Gtid is a Global Transaction ID. See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/gtid#implementation.
 // +kubebuilder:validation:Type=string
 type Gtid struct {
-	DomainID   uint32 `json:"-"` // ignored by default JSON gen
-	ServerID   uint32 `json:"-"`
-	SequenceID uint64 `json:"-"`
+	DomainID   uint32
+	ServerID   uint32
+	SequenceID uint64
 }
 
 func (g *Gtid) String() string {
 	return fmt.Sprintf("%d-%d-%d", g.DomainID, g.ServerID, g.SequenceID)
-}
-
-func (g *Gtid) MarshalJSON() ([]byte, error) {
-	return json.Marshal(g.String())
-}
-
-func (g *Gtid) UnmarshalJSON(b []byte) error {
-	if string(b) == "null" {
-		*g = Gtid{}
-		return nil
-	}
-	var s string
-	if err := json.Unmarshal(b, &s); err != nil {
-		return fmt.Errorf("GTID must be a JSON string: %w", err)
-	}
-	parsed, err := ParseGtid(s)
-	if err != nil {
-		return err
-	}
-	*g = *parsed
-	return nil
 }
 
 func (g *Gtid) Equal(o *Gtid) bool {
@@ -59,9 +39,34 @@ func (g *Gtid) GreaterThan(o *Gtid) (bool, error) {
 	return g.SequenceID > o.SequenceID, nil
 }
 
-func ParseGtid(rawGtid string) (*Gtid, error) {
-	if strings.Contains(rawGtid, ",") {
-		return nil, fmt.Errorf("multi-source replication not supported. Detected multiple GTID values in: %s", rawGtid)
+func ParseGtid(rawGtid string, domainId uint32, logger logr.Logger) (*Gtid, error) {
+	if !strings.Contains(rawGtid, ",") {
+		return parseSingleGtid(rawGtid)
+	}
+	parts := strings.Split(rawGtid, ",")
+
+	for _, part := range parts {
+		rawGtid = strings.TrimSpace(part)
+		if part == "" {
+			logger.Info("Ignoring empty GTID")
+			continue
+		}
+
+		gtid, err := parseSingleGtid(rawGtid)
+		if err != nil {
+			logger.Error(err, "Error parsing GTID", "gtid", rawGtid)
+			continue
+		}
+		if gtid.DomainID == uint32(domainId) {
+			return gtid, nil
+		}
+	}
+	return nil, fmt.Errorf("GTID for domain ID %d not found", domainId)
+}
+
+func parseSingleGtid(rawGtid string) (*Gtid, error) {
+	if rawGtid == "" {
+		return nil, fmt.Errorf("empty GTID string")
 	}
 	parts := strings.Split(rawGtid, "-")
 	if len(parts) != 3 {
