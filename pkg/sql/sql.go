@@ -21,7 +21,6 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/interfaces"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/pki"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/refresolver"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/replication"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/statefulset"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
@@ -719,6 +718,18 @@ func (c *Client) WaitForReplicaGtid(ctx context.Context, gtid string, timeout ti
 	}
 }
 
+func (c *Client) GtidDomainId(ctx context.Context) (*uint32, error) {
+	rawGtidDomainId, err := c.SystemVariable(ctx, "gtid_domain_id")
+	if err != nil {
+		return nil, err
+	}
+	gtidDomainId, err := strconv.ParseUint(rawGtidDomainId, 10, 32)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing gtid_domain_id: %v", err)
+	}
+	return ptr.To(uint32(gtidDomainId)), nil
+}
+
 func (c *Client) GtidBinlogPos(ctx context.Context) (string, error) {
 	return c.SystemVariable(ctx, "gtid_binlog_pos")
 }
@@ -810,12 +821,7 @@ func (c Client) ReplicaStatus(ctx context.Context, logger logr.Logger) (*mariadb
 	}
 
 	if gtidIOPos, ok := row["Gtid_IO_Pos"]; ok && gtidIOPos != "" {
-		gtid, err := replication.ParseGtid(gtidIOPos)
-		if err != nil {
-			logger.Error(err, "error parsing Gtid_IO_Pos")
-		} else {
-			status.GtidIOPos = gtid
-		}
+		status.GtidIOPos = &gtidIOPos
 	}
 
 	gtidCurrentPos, err := c.GtidCurrentPos(ctx)
@@ -823,12 +829,7 @@ func (c Client) ReplicaStatus(ctx context.Context, logger logr.Logger) (*mariadb
 		return nil, fmt.Errorf("error getting gtid_current_pos: %v", err)
 	}
 	if gtidCurrentPos != "" {
-		gtid, err := replication.ParseGtid(gtidCurrentPos)
-		if err != nil {
-			logger.Error(err, "error parsing gtid_current_pos")
-		} else {
-			status.GtidCurrentPos = gtid
-		}
+		status.GtidCurrentPos = &gtidCurrentPos
 	}
 
 	return &status, nil
