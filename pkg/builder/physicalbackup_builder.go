@@ -23,6 +23,7 @@ func (b *Builder) BuildPhysicalBackup(key types.NamespacedName, tpl *mariadbv1al
 		ObjectReference: mariadbv1alpha1.ObjectReference{
 			Name: mariadb.Name,
 		},
+		WaitForIt: false,
 	}
 	physicalBackup.Spec.Schedule = &mariadbv1alpha1.PhysicalBackupSchedule{
 		Immediate: ptr.To(true),
