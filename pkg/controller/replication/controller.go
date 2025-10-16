@@ -92,11 +92,12 @@ func NewReplicationReconciler(client client.Client, recorder record.EventRecorde
 }
 
 type ReconcileRequest struct {
-	mariadb        *mariadbv1alpha1.MariaDB
-	key            types.NamespacedName
-	replClientSet  *ReplicationClientSet
-	agentClientSet *agentclient.ClientSet
-	replicasSynced bool
+	mariadb             *mariadbv1alpha1.MariaDB
+	key                 types.NamespacedName
+	replClientSet       *ReplicationClientSet
+	agentClientSet      *agentclient.ClientSet
+	currentPrimaryReady bool
+	replicasSynced      bool
 }
 
 func (r *ReconcileRequest) Close() error {
@@ -104,6 +105,25 @@ func (r *ReconcileRequest) Close() error {
 		r.replClientSet.close()
 	}
 	return nil
+}
+
+func (r *ReplicationReconciler) NewReconcileRequest(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) (*ReconcileRequest, error) {
+	replClientSet, err := NewReplicationClientSet(mdb, r.refResolver)
+	if err != nil {
+		return nil, fmt.Errorf("error creating mariadb clientset: %v", err)
+	}
+	agentClientSet, err := agentclient.NewClientSet(ctx, mdb, r.env, r.refResolver)
+	if err != nil {
+		return nil, fmt.Errorf("error getting agent clientset: %v", err)
+	}
+	return &ReconcileRequest{
+		mariadb:             mdb,
+		key:                 client.ObjectKeyFromObject(mdb),
+		replClientSet:       replClientSet,
+		agentClientSet:      agentClientSet,
+		currentPrimaryReady: false,
+		replicasSynced:      false,
+	}, nil
 }
 
 func (r *ReplicationReconciler) Reconcile(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
@@ -126,24 +146,6 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, mdb *mariadbv1alp
 		return result, err
 	}
 	return ctrl.Result{}, r.reconcileSwitchover(ctx, req, switchoverLogger)
-}
-
-func (r *ReplicationReconciler) NewReconcileRequest(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) (*ReconcileRequest, error) {
-	replClientSet, err := NewReplicationClientSet(mdb, r.refResolver)
-	if err != nil {
-		return nil, fmt.Errorf("error creating mariadb clientset: %v", err)
-	}
-	agentClientSet, err := agentclient.NewClientSet(ctx, mdb, r.env, r.refResolver)
-	if err != nil {
-		return nil, fmt.Errorf("error getting agent clientset: %v", err)
-	}
-	return &ReconcileRequest{
-		mariadb:        mdb,
-		key:            client.ObjectKeyFromObject(mdb),
-		replClientSet:  replClientSet,
-		agentClientSet: agentClientSet,
-		replicasSynced: false,
-	}, nil
 }
 
 func (r *ReplicationReconciler) reconcileReplication(ctx context.Context, req *ReconcileRequest, logger logr.Logger) (ctrl.Result, error) {
