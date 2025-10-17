@@ -48,7 +48,7 @@ func (w WaitPoint) MariaDBFormat() (string, error) {
 	}
 }
 
-// Gtid indicates which Global Transaction ID should be used when connecting a replica to the master.
+// Gtid indicates which Global Transaction ID (GTID) position mode should be used when connecting a replica to the master.
 // See: https://mariadb.com/kb/en/gtid/#using-current_pos-vs-slave_pos.
 type Gtid string
 
@@ -144,23 +144,27 @@ type ReplicaRecovery struct {
 
 // ReplicaReplication is the replication configuration for the replica nodes.
 type ReplicaReplication struct {
-	// Gtid indicates which Global Transaction ID should be used when connecting a replica to the master.
+	// Gtid indicates which Global Transaction ID (GTID) position mode should be used when connecting a replica to the master.
+	// By default, CurrentPos is used.
 	// See: https://mariadb.com/kb/en/gtid/#using-current_pos-vs-slave_pos.
 	// +optional
 	// +kubebuilder:validation:Enum=CurrentPos;SlavePos
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Gtid *Gtid `json:"gtid,omitempty"`
 	// ReplPasswordSecretKeyRef provides a reference to the Secret to use as password for the replication user.
+	// By default, a random password will be generated.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	ReplPasswordSecretKeyRef *GeneratedSecretKeyRef `json:"replPasswordSecretKeyRef,omitempty"`
-	// ConnectionRetries to be used when the replica connects to the primary.
+	// ConnectionRetries defines the maximum number of connection attempts for the replica to connect to the primary.
 	// See: https://mariadb.com/docs/server/reference/sql-statements/administrative-sql-statements/replication-statements/change-master-to#master_connect_retry
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
 	ConnectionRetries *int `json:"connectionRetries,omitempty"`
-	// SyncTimeout defines the timeout for a replica to be synced with the primary when performing a primary switchover.
-	// During a switchover, all replicas must be synced with the primary before promoting the new primary.
+	// SyncTimeout defines the timeout for the synchronization phase during switchover and failover operations.
+	// During switchover, all replicas must be synced with the current primary before promoting the new primary.
+	// During failover, the new primary must be synced before being promoted as primary. This implies processing all the events in the relay log.
+	// When the timeout is reached, the operator restarts the operation from the beginning.
 	// It defaults to 10s.
 	// See: https://mariadb.com/docs/server/reference/sql-functions/secondary-functions/miscellaneous-functions/master_gtid_wait
 	// +optional
@@ -218,18 +222,18 @@ func (r *ReplicaReplication) Validate() error {
 	return nil
 }
 
-// Replication allows you to enable single-master HA via semi-synchronours replication in your MariaDB cluster.
+// Replication defines semi-synchronours replication configuration for a MariaDB cluster.
 type Replication struct {
 	// ReplicationSpec is the Replication desired state specification.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	ReplicationSpec `json:",inline"`
-	// Enabled is a flag to enable Replication.
+	// Enabled is a flag to enable semi-synchronours replication.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
 	Enabled bool `json:"enabled,omitempty"`
 }
 
-// ReplicationSpec is the Replication desired state specification.
+// ReplicationSpec is the semi-synchronours replication desired state.
 type ReplicationSpec struct {
 	// Primary is the replication configuration for the primary node.
 	// +optional
@@ -239,7 +243,7 @@ type ReplicationSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Replica ReplicaReplication `json:"replica,omitempty"`
-	// WaitPoint defines whether the transaction should wait for ACK before committing to the storage engine.
+	// WaitPoint defines whether the transaction should wait for an ACK before committing to the storage engine.
 	// More info: https://mariadb.com/kb/en/semisynchronous-replication/#rpl_semi_sync_master_wait_point.
 	// +optional
 	// +kubebuilder:validation:Enum=AfterSync;AfterCommit
@@ -257,6 +261,7 @@ type ReplicationSpec struct {
 	AckTimeout *metav1.Duration `json:"ackTimeout,omitempty"`
 	// SyncBinlog indicates after how many events the binary log is synchronized to the disk.
 	// See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/replication-and-binary-log-system-variables#sync_binlog
+	// It can be set to 1 for a fully synchronous binlog, enabling better consistency.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
 	SyncBinlog *int `json:"syncBinlog,omitempty"`
@@ -264,12 +269,13 @@ type ReplicationSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	InitContainer InitContainer `json:"initContainer,omitempty"`
-	// Agent is a sidecar agent that co-operates with mariadb-operator.
+	// Agent is a sidecar agent that runs in the MariaDB Pod and co-operates with mariadb-operator.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Agent Agent `json:"agent,omitempty"`
 }
 
+// Validate determines whether replication config is valid.
 func (r *Replication) Validate() error {
 	if r.WaitPoint != nil {
 		if err := r.WaitPoint.Validate(); err != nil {
@@ -280,8 +286,7 @@ func (r *Replication) Validate() error {
 	return nil
 }
 
-// SetDefaults fills the current Replication object with DefaultReplicationSpec.
-// This enables having minimal Replication objects and provides sensible defaults.
+// SetDefaults sets resonable defaults for replication.
 func (r *Replication) SetDefaults(mdb *MariaDB, env *environment.OperatorEnv) error {
 	r.Primary.SetDefaults()
 	r.Replica.SetDefaults(mdb)
