@@ -11,6 +11,10 @@ const (
 	ReasonReplicationReplicaSync = "ReplicaSync"
 	// ReasonReplicationReplicaSyncErr indicates that an error has happened while replicas were being synced with primary.
 	ReasonReplicationReplicaSyncErr = "ReplicaSyncErr"
+	// ReasonReplicationPrimaryNewSync indicates that the new primary is being synced.
+	ReasonReplicationPrimaryNewSync = "PrimaryNewSync"
+	// ReasonReplicationPrimaryNewSync indicates that an error has happened while the new primary was being synced.
+	ReasonReplicationPrimaryNewSyncErr = "PrimaryNewSyncErr"
 	// ReasonReplicationPrimaryNew indicates that a new primary is being configured.
 	ReasonReplicationPrimaryNew = "PrimaryNew"
 	// ReasonReplicationReplicaConn indicates that replicas are connecting to the new primary.
