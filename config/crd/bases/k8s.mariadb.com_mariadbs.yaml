@@ -4824,7 +4824,8 @@ spec:
                       See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/semisynchronous-replication#rpl_semi_sync_master_timeout
                     type: string
                   agent:
-                    description: Agent is a sidecar agent that co-operates with mariadb-operator.
+                    description: Agent is a sidecar agent that runs in the MariaDB
+                      Pod and co-operates with mariadb-operator.
                     properties:
                       args:
                         description: Args to be used in the Container.
@@ -5250,7 +5251,7 @@ spec:
                         type: array
                     type: object
                   enabled:
-                    description: Enabled is a flag to enable Replication.
+                    description: Enabled is a flag to enable semi-synchronours replication.
                     type: boolean
                   gtidStrictMode:
                     description: |-
@@ -6014,12 +6015,13 @@ spec:
                         type: object
                       connectionRetries:
                         description: |-
-                          ConnectionRetries to be used when the replica connects to the primary.
+                          ConnectionRetries defines the maximum number of connection attempts for the replica to connect to the primary.
                           See: https://mariadb.com/docs/server/reference/sql-statements/administrative-sql-statements/replication-statements/change-master-to#master_connect_retry
                         type: integer
                       gtid:
                         description: |-
-                          Gtid indicates which Global Transaction ID should be used when connecting a replica to the master.
+                          Gtid indicates which Global Transaction ID (GTID) position mode should be used when connecting a replica to the master.
+                          By default, CurrentPos is used.
                           See: https://mariadb.com/kb/en/gtid/#using-current_pos-vs-slave_pos.
                         enum:
                         - CurrentPos
@@ -6056,8 +6058,9 @@ spec:
                         - enabled
                         type: object
                       replPasswordSecretKeyRef:
-                        description: ReplPasswordSecretKeyRef provides a reference
-                          to the Secret to use as password for the replication user.
+                        description: |-
+                          ReplPasswordSecretKeyRef provides a reference to the Secret to use as password for the replication user.
+                          By default, a random password will be generated.
                         properties:
                           generate:
                             default: false
@@ -6075,8 +6078,10 @@ spec:
                         x-kubernetes-map-type: atomic
                       syncTimeout:
                         description: |-
-                          SyncTimeout defines the timeout for a replica to be synced with the primary when performing a primary switchover.
-                          During a switchover, all replicas must be synced with the primary before promoting the new primary.
+                          SyncTimeout defines the timeout for the synchronization phase during switchover and failover operations.
+                          During switchover, all replicas must be synced with the current primary before promoting the new primary.
+                          During failover, the new primary must be synced before being promoted as primary. This implies processing all the events in the relay log.
+                          When the timeout is reached, the operator restarts the operation from the beginning.
                           It defaults to 10s.
                           See: https://mariadb.com/docs/server/reference/sql-functions/secondary-functions/miscellaneous-functions/master_gtid_wait
                         type: string
@@ -6085,10 +6090,11 @@ spec:
                     description: |-
                       SyncBinlog indicates after how many events the binary log is synchronized to the disk.
                       See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/replication-and-binary-log-system-variables#sync_binlog
+                      It can be set to 1 for a fully synchronous binlog, enabling better consistency.
                     type: integer
                   waitPoint:
                     description: |-
-                      WaitPoint defines whether the transaction should wait for ACK before committing to the storage engine.
+                      WaitPoint defines whether the transaction should wait for an ACK before committing to the storage engine.
                       More info: https://mariadb.com/kb/en/semisynchronous-replication/#rpl_semi_sync_master_wait_point.
                     enum:
                     - AfterSync
