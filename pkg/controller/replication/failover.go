@@ -104,42 +104,32 @@ func (f *FailoverHandler) findCandidates(ctx context.Context, pods []corev1.Pod)
 			continue
 		}
 
-		if status.GtidIOPos == nil {
-			podLogger.Info("Unable to get GTID IO position. Skipping...")
-			continue
-		}
-		rawGtidIOPos := *status.GtidIOPos
-		if status.GtidCurrentPos == nil {
-			podLogger.Info("Unable to get GTID SQL position. Skipping...")
-			continue
-		}
-		rawGtidCurrentPos := *status.GtidCurrentPos
-
 		gtidDomainId, err := sqlClient.GtidDomainId(ctx)
 		if err != nil {
 			podLogger.Info("Error getting GTID domain ID. Skipping...", "err", err)
 			continue
 		}
 
-		gtidIOPos, err := replication.ParseGtid(rawGtidIOPos, *gtidDomainId, f.logger)
+		hasRelayLogEvents, err := HasRelayLogEvents(status, *gtidDomainId, podLogger)
 		if err != nil {
-			podLogger.Info("Error parsing GTID IO position. Skipping...", "err", err)
+			podLogger.Info("Error checking relay log events. Skipping...", "err", err)
 			continue
 		}
-		gtidCurrentPos, err := replication.ParseGtid(rawGtidCurrentPos, *gtidDomainId, f.logger)
+		if hasRelayLogEvents {
+			podLogger.Info("Detected events in relay log. Skipping...")
+			continue
+		}
+
+		if status.GtidCurrentPos == nil {
+			podLogger.Info("GTID current position not set. Skipping...")
+			continue
+		}
+		gtidCurrentPos, err := replication.ParseGtid(*status.GtidCurrentPos, *gtidDomainId, f.logger)
 		if err != nil {
 			podLogger.Info("Error parsing GTID current position. Skipping...", "err", err)
 			continue
 		}
 
-		if !gtidIOPos.Equal(gtidCurrentPos) {
-			podLogger.Info(
-				"Detected events in relay log. Skipping...",
-				"gtid-io-pos", gtidIOPos.String(),
-				"gtid-current-pos", gtidCurrentPos.String(),
-			)
-			continue
-		}
 		candidates = append(candidates, promotionCandidate{
 			name:           pod.Name,
 			gtidCurrentPos: gtidCurrentPos,

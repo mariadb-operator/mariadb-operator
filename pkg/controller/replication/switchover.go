@@ -12,9 +12,11 @@ import (
 	mariadbpod "github.com/mariadb-operator/mariadb-operator/v25/pkg/pod"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/sql"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/statefulset"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/wait"
 	"golang.org/x/sync/errgroup"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 )
@@ -41,6 +43,12 @@ func shouldReconcileSwitchover(mdb *mariadbv1alpha1.MariaDB) bool {
 func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *ReconcileRequest, switchoverLogger logr.Logger) error {
 	logger := switchoverLogger.WithValues("mariadb", req.mariadb.Name)
 
+	currentPrimaryReady, err := r.currentPrimaryReady(ctx, req.mariadb, req.replClientSet)
+	if err != nil {
+		return fmt.Errorf("error getting current primary readiness: %v", err)
+	}
+	req.currentPrimaryReady = currentPrimaryReady
+
 	if err := r.reconcileStaleSwitchover(ctx, req, logger); err != nil {
 		return fmt.Errorf("error reconciling stale switchover: %v", err)
 	}
@@ -53,12 +61,6 @@ func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *Re
 	newPrimary := *replication.Primary.PodIndex
 	newPrimaryPodName := statefulset.PodName(req.mariadb.ObjectMeta, *replication.Primary.PodIndex)
 	logger = logger.WithValues("primary", primary, "new-primary", newPrimary)
-
-	currentPrimaryReady, err := r.currentPrimaryReady(ctx, req.mariadb, req.replClientSet)
-	if err != nil {
-		return fmt.Errorf("error getting current primary readiness: %v", err)
-	}
-	req.currentPrimaryReady = currentPrimaryReady
 
 	if err := r.patchStatus(ctx, req.mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
 		condition.SetPrimarySwitching(&req.mariadb.Status, newPrimaryPodName)
@@ -76,8 +78,8 @@ func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *Re
 			reconcile: r.setPrimaryReadOnly,
 		},
 		{
-			name:      "Wait for replica sync",
-			reconcile: r.waitForReplicaSync,
+			name:      "Wait sync",
+			reconcile: r.waitSync,
 		},
 		{
 			name:      "Configure new primary",
@@ -98,7 +100,7 @@ func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *Re
 			if apierrors.IsNotFound(err) {
 				return err
 			}
-			return fmt.Errorf("error in '%s' switchover reconcile phase: %v", p.name, err)
+			return fmt.Errorf("error in %s switchover reconcile phase: %v", p.name, err)
 		}
 	}
 
@@ -183,6 +185,13 @@ func (r *ReplicationReconciler) setPrimaryReadOnly(ctx context.Context, req *Rec
 	return client.EnableReadOnly(ctx)
 }
 
+func (r *ReplicationReconciler) waitSync(ctx context.Context, req *ReconcileRequest, logger logr.Logger) error {
+	if req.currentPrimaryReady {
+		return r.waitForReplicaSync(ctx, req, logger)
+	}
+	return r.waitForNewPrimarySync(ctx, req, logger)
+}
+
 func (r *ReplicationReconciler) waitForReplicaSync(ctx context.Context, req *ReconcileRequest, logger logr.Logger) error {
 	if req.mariadb.Status.CurrentPrimaryPodIndex == nil {
 		return errors.New("'status.currentPrimaryPodIndex' must be set")
@@ -221,19 +230,17 @@ func (r *ReplicationReconciler) waitForReplicaSync(ctx context.Context, req *Rec
 			if err != nil {
 				return fmt.Errorf("error getting replica '%d' client: %v", i, err)
 			}
-
 			logger.V(1).Info("Syncing replica with primary GTID", "replica", i, "gtid", primaryGtid)
-			timeout := replication.Replica.SyncTimeout.Duration
-			if err := replClient.WaitForReplicaGtid(ctx, primaryGtid, timeout); err != nil {
+			syncTimeout := ptr.Deref(replication.Replica.SyncTimeout, metav1.Duration{Duration: 10 * time.Second}).Duration
+
+			if err := replClient.WaitForReplicaGtid(ctx, primaryGtid, syncTimeout); err != nil {
 				logger.Error(err, "Error waiting for GTID in replica", "gtid", primaryGtid, "replica", i)
 				r.recorder.Eventf(req.mariadb, corev1.EventTypeWarning, mariadbv1alpha1.ReasonReplicationReplicaSyncErr,
 					"Error waiting for GTID '%s' in replica '%d': %v", primaryGtid, i, err)
-
 				return err
 			}
 
 			logger.V(1).Info("Replica synced", "replica", i, "gtid", primaryGtid)
-
 			return nil
 		})
 	}
@@ -243,6 +250,49 @@ func (r *ReplicationReconciler) waitForReplicaSync(ctx context.Context, req *Rec
 	}
 
 	req.replicasSynced = true
+	return nil
+}
+
+func (r *ReplicationReconciler) waitForNewPrimarySync(ctx context.Context, req *ReconcileRequest, logger logr.Logger) error {
+	replication := ptr.Deref(req.mariadb.Spec.Replication, mariadbv1alpha1.Replication{})
+	newPrimaryClient, err := req.replClientSet.newPrimaryClient(ctx)
+	if err != nil {
+		return fmt.Errorf("error getting new primary client: %v", err)
+	}
+
+	logger.Info("Waiting for new primary to be synced")
+	r.recorder.Event(req.mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonReplicationPrimaryNewSync,
+		"Waiting for new primary to be synced")
+
+	syncTimeout := ptr.Deref(replication.Replica.SyncTimeout, metav1.Duration{Duration: 10 * time.Second}).Duration
+	syncCtx, cancel := context.WithTimeout(ctx, syncTimeout)
+	defer cancel()
+
+	if err := wait.PollUntilSuccessOrContextCancel(syncCtx, logger, func(ctx context.Context) error {
+		status, err := newPrimaryClient.ReplicaStatus(ctx, logger)
+		if err != nil {
+			return fmt.Errorf("error getting new primary status: %v", err)
+		}
+		gtidDomainId, err := newPrimaryClient.GtidDomainId(ctx)
+		if err != nil {
+			return fmt.Errorf("error getting GTID domain ID in new primary: %v", err)
+		}
+		hasRelayLogEvents, err := HasRelayLogEvents(status, *gtidDomainId, logger)
+		if err != nil {
+			return fmt.Errorf("error checking relay logs: %v", err)
+		}
+		if hasRelayLogEvents {
+			return errors.New("relay log events detected")
+		}
+		return nil
+	}); err != nil {
+		logger.Error(err, "Error waiting for new primary to be synced")
+		r.recorder.Eventf(req.mariadb, corev1.EventTypeWarning, mariadbv1alpha1.ReasonReplicationPrimaryNewSyncErr,
+			"Error waiting for new primary to be synced: %v", err)
+		return err
+	}
+
+	logger.V(1).Info("New primary synced")
 	return nil
 }
 

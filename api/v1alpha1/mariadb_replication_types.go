@@ -161,6 +161,7 @@ type ReplicaReplication struct {
 	ConnectionRetries *int `json:"connectionRetries,omitempty"`
 	// SyncTimeout defines the timeout for a replica to be synced with the primary when performing a primary switchover.
 	// During a switchover, all replicas must be synced with the primary before promoting the new primary.
+	// It defaults to 10s.
 	// See: https://mariadb.com/docs/server/reference/sql-functions/secondary-functions/miscellaneous-functions/master_gtid_wait
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
