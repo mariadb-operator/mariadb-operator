@@ -57,7 +57,7 @@ func ParseGtid(rawGtid string, domainId uint32, logger logr.Logger) (*Gtid, erro
 			logger.Error(err, "Error parsing GTID", "gtid", rawGtid)
 			continue
 		}
-		if gtid.DomainID == uint32(domainId) {
+		if gtid.DomainID == domainId {
 			return gtid, nil
 		}
 	}
