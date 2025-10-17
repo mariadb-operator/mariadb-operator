@@ -78,6 +78,11 @@ buckets:
     purge: false
     versioning: false
     objectlocking: false
+  - name: test-replication-recovery
+    policy: none
+    purge: false
+    versioning: false
+    objectlocking: false
   - name: test-mariadb-galera-physical
     policy: none
     purge: false
@@ -86,4 +91,3 @@ buckets:
 
 securityContext:
   enabled: false
-

@@ -362,7 +362,7 @@ var _ = Describe("MariaDB replication restore from backup", Ordered, func() {
 		},
 		Entry(
 			"from physical backup",
-			types.NamespacedName{Name: "replication-pvc-backup-test", Namespace: key.Namespace},
+			types.NamespacedName{Name: "replication-s3-backup-test", Namespace: key.Namespace},
 			buildPhysicalBackupWithS3Storage(key, "test-replication-restore-from-backup", ""),
 			func(backupKey types.NamespacedName) *mariadbv1alpha1.BootstrapFrom {
 				return &mariadbv1alpha1.BootstrapFrom{
@@ -486,7 +486,7 @@ var _ = Describe("MariaDB replication scale out", Ordered, func() {
 		},
 		Entry(
 			"with physical backup",
-			types.NamespacedName{Name: "replication-pvc-scaleout-test", Namespace: key.Namespace},
+			types.NamespacedName{Name: "replication-s3-scaleout-test", Namespace: key.Namespace},
 			buildPhysicalBackupWithS3Storage(key, "test-replication-scale-out", ""),
 			func(backupKey types.NamespacedName) func() {
 				return func() {
@@ -544,9 +544,6 @@ func buildTestMariaDBRepl(key types.NamespacedName) *mariadbv1alpha1.MariaDB {
 						PodIndex:          ptr.To(0),
 						AutomaticFailover: ptr.To(true),
 					},
-					// Replica: mariadbv1alpha1.ReplicaReplication{
-					// 	Gtid: ptr.To(mariadbv1alpha1.GtidCurrentPos),
-					// },
 				},
 				Enabled: true,
 			},
