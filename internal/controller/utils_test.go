@@ -13,6 +13,8 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/docker"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/environment"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/metadata"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/refresolver"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/sql"
 	stsobj "github.com/mariadb-operator/mariadb-operator/v25/pkg/statefulset"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -1201,6 +1203,52 @@ func deleteMaxScale(key types.NamespacedName, assertPVCDeletion bool) {
 		}
 		return len(pvcList.Items) == 0
 	}, testHighTimeout, testInterval).Should(BeTrue())
+}
+
+func deletePodByIndex(mdb *mariadbv1alpha1.MariaDB, podIndex int) {
+	podKey := types.NamespacedName{
+		Name:      stsobj.PodName(mdb.ObjectMeta, podIndex),
+		Namespace: mdb.Namespace,
+	}
+
+	deletePod(podKey)
+}
+
+// deletePod allows you to delete a Pod by it's name
+func deletePod(podKey types.NamespacedName) {
+	By("Deleting Pod")
+	var pod corev1.Pod
+
+	Expect(client.IgnoreNotFound(k8sClient.Get(testCtx, podKey, &pod))).NotTo(HaveOccurred())
+	Expect(client.IgnoreNotFound(k8sClient.Delete(testCtx, &pod))).NotTo(HaveOccurred())
+}
+
+// deletePVCByPodIndex is a wrapper to extract the pvc key from mdb and the pod index
+func deletePVCByPodIndex(mdb *mariadbv1alpha1.MariaDB, podIndex int) {
+	deletePVC(mdb.PVCKey(builder.StorageVolume, podIndex))
+}
+
+// deletePVC allows you to delete a PVC if you know the name
+func deletePVC(pvcKey types.NamespacedName) {
+	By("Deleting PersistentVolumeClaim")
+	var pvc corev1.PersistentVolumeClaim
+
+	Expect(client.IgnoreNotFound(k8sClient.Get(testCtx, pvcKey, &pvc))).NotTo(HaveOccurred())
+	Expect(client.IgnoreNotFound(k8sClient.Delete(testCtx, &pvc))).NotTo(HaveOccurred())
+}
+
+func executeSqlInPodByIndex(mdb *mariadbv1alpha1.MariaDB, podIndex int, query string) {
+	By(fmt.Sprintf("Executing query in pod %d", podIndex))
+	fmt.Println("EXECUTING QUERY: ")
+	fmt.Println(query)
+
+	clientSet := sql.NewClientSet(mdb, refresolver.New(k8sClient))
+	sqlClient, err := clientSet.ClientForIndex(testCtx, podIndex)
+
+	Expect(err).ToNot(HaveOccurred(), "Could not create an internal client.")
+	defer sqlClient.Close()
+
+	Expect(sqlClient.Exec(testCtx, query)).ToNot(HaveOccurred(), fmt.Sprintf("Could not execute query: %s.", query))
 }
 
 func deletePhysicalBackup(key types.NamespacedName) {
