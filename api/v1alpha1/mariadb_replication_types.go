@@ -286,7 +286,7 @@ func (r *Replication) Validate() error {
 	return nil
 }
 
-// SetDefaults sets resonable defaults for replication.
+// SetDefaults sets reasonable defaults for replication.
 func (r *Replication) SetDefaults(mdb *MariaDB, env *environment.OperatorEnv) error {
 	r.Primary.SetDefaults()
 	r.Replica.SetDefaults(mdb)
