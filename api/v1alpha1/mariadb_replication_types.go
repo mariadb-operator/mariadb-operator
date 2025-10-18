@@ -254,14 +254,13 @@ type ReplicationSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	GtidStrictMode *bool `json:"gtidStrictMode,omitempty"`
-	// AckTimeout to be used when the replica connects to the primary.
+	// AckTimeout for the replica to acknowledge transactions to the primary.
 	// See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/semisynchronous-replication#rpl_semi_sync_master_timeout
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	AckTimeout *metav1.Duration `json:"ackTimeout,omitempty"`
 	// SyncBinlog indicates after how many events the binary log is synchronized to the disk.
 	// See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/replication-and-binary-log-system-variables#sync_binlog
-	// It can be set to 1 for a fully synchronous binlog, enabling better consistency.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
 	SyncBinlog *int `json:"syncBinlog,omitempty"`

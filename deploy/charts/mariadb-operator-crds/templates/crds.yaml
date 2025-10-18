@@ -6934,7 +6934,7 @@ spec:
                 properties:
                   ackTimeout:
                     description: |-
-                      AckTimeout to be used when the replica connects to the primary.
+                      AckTimeout for the replica to acknowledge transactions to the primary.
                       See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/semisynchronous-replication#rpl_semi_sync_master_timeout
                     type: string
                   agent:
@@ -8204,7 +8204,6 @@ spec:
                     description: |-
                       SyncBinlog indicates after how many events the binary log is synchronized to the disk.
                       See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/replication-and-binary-log-system-variables#sync_binlog
-                      It can be set to 1 for a fully synchronous binlog, enabling better consistency.
                     type: integer
                   waitPoint:
                     description: |-

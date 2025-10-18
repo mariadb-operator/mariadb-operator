@@ -18,10 +18,48 @@ spec:
   replicas: 3
 
   replication:
+    # Enable semi-synchronous replication.
     enabled: true
-    # replica:
-    #   maxLagSeconds: 10
-
+    primary:
+      # Trigger a switchover by declaring the desired primary index.
+      podIndex: 0
+      # Whether the operator should automatically perform primary failover.
+      automaticFailover: true
+      # Duration before performing primary failover.
+      # automaticFailoverDelay: 0s
+    replica:
+      # GTID position mode to be used.
+      # See: https://mariadb.com/kb/en/gtid/#using-current_pos-vs-slave_pos.
+      gtid: CurrentPos
+      # Password for the replication user used by the replicas to connect to the primary.
+      replPasswordSecretKeyRef:
+        name: mariadb
+        key: password
+      # Timeout for the replicas to be synced during switchover and failover operations.
+      syncTimeout: 10s
+      # Maximum lag allowed for the replicas. If surpassed, readiness probe in the replicas will error.
+      # maxLagSeconds: 0
+      # Connection attempts for the replica to connect to the primary.
+      # connectionRetries: 10
+    # Enables GTID strict mode.
+    # See: See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/gtid#gtid_strict_mode.
+    gtidStrictMode: true
+    # Determines whether the transaction should wait for an ACK before committing to the storage engine.
+    # See: https://mariadb.com/kb/en/semisynchronous-replication/#rpl_semi_sync_master_wait_point.
+    # waitPoint: AfterCommit
+    # ACK timeout for the replicas to acknowledge transactions to the primary.
+    # See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/semisynchronous-replication#rpl_semi_sync_master_timeout
+    # ackTimeout: 10s
+    # Number of events after which the binary log will be synchronized to the disk.
+    # See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/replication-and-binary-log-system-variables#sync_binlog
+    # syncBinlog: 1
+    # Init container that cooperates with mariadb-operator.
+    # initContainer:
+    #   image: docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:25.10.0
+    # Agent sidecar that cooperates with mariadb-operator.
+    # agent:
+    #   image: docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:25.10.0
+  
   service:
     type: LoadBalancer
     metadata:
