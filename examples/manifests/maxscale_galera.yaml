@@ -8,6 +8,9 @@ spec:
   mariaDbRef:
     name: mariadb-galera
 
+  # Trigger a switchover by declaring the desired primary server
+  # primaryServer: mariadb-repl-1
+
   services:
     - name: rw-router
       router: readwritesplit
@@ -53,5 +56,32 @@ spec:
 
   metrics:
     enabled: true
+
+  tls:
+    enabled: true
+
+    # Issue certificates with a existing cert-manager ClusterIssuer
+    # adminCertIssuerRef:
+    #   name: root-ca
+    #   kind: ClusterIssuer
+    # listenerCertIssuerRef:
+    #   name: root-ca
+    #   kind: ClusterIssuer
+
+    # Configure existing certificates available in a Secret
+    # adminCASecretRef:
+    #   name: maxscale-admin-ca
+    # adminCertSecretRef:
+    #   name: maxscale-galera-admin-tls
+    # listenerCASecretRef:
+    #   name: maxscale-listener-ca
+    # listenerCertSecretRef:
+    #   name: maxscale-galera-listener-tls
+    # serverCASecretRef:
+    #   name: mariadb-galera-ca-bundle
+    # serverCertSecretRef:
+    #   name: mariadb-galera-client-tls
+    # verifyPeerCertificate: true
+    # verifyPeerHost: false
 
   requeueInterval: 1h
