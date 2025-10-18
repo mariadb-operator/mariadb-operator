@@ -9,7 +9,7 @@ spec:
     name: mariadb-galera
 
   # Trigger a switchover by declaring the desired primary server
-  # primaryServer: mariadb-repl-1
+  # primaryServer: mariadb-repl-0
 
   services:
     - name: rw-router
