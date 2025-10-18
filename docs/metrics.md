@@ -50,7 +50,7 @@ spec:
     enabled: true
 ```
 
-The rest of the fields are defaulted by the operator. If you need a more fine grained configuration, refer to the [API reference](./api_reference.md) and take a look at this [example](../examples/manifests/mariadb_metrics_full.yaml):
+The rest of the fields are defaulted by the operator. If you need a more fine grained configuration, refer to the [API reference](./api_reference.md).
 
 ```yaml
 apiVersion: k8s.mariadb.com/v1alpha1

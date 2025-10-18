@@ -8,6 +8,9 @@ spec:
   mariaDbRef:
     name: mariadb-repl
 
+  # Trigger a switchover by declaring the desired primary server
+  # primaryServer: mariadb-repl-1
+
   services:
     - name: rw-router
       router: readwritesplit
@@ -82,5 +85,33 @@ spec:
 
   metrics:
     enabled: true
+
+  tls:
+    enabled: true
+
+    # Issue certificates with a existing cert-manager ClusterIssuer
+    # adminCertIssuerRef:
+    #   name: root-ca
+    #   kind: ClusterIssuer
+    # listenerCertIssuerRef:
+    #   name: root-ca
+    #   kind: ClusterIssuer
+
+    # Configure existing certificates available in a Secret
+    # adminCASecretRef:
+    #   name: maxscale-admin-ca
+    # adminCertSecretRef:
+    #   name: maxscale-repl-admin-tls
+    # listenerCASecretRef:
+    #   name: maxscale-listener-ca
+    # listenerCertSecretRef:
+    #   name: maxscale-repl-listener-tls
+    # serverCASecretRef:
+    #   name: mariadb-repl-ca-bundle
+    # serverCertSecretRef:
+    #   name: mariadb-repl-client-tls
+    # verifyPeerCertificate: true
+    # verifyPeerHost: false
+    # replicationSSLEnabled: true
 
   requeueInterval: 1h
