@@ -233,7 +233,7 @@ func parseSeqno(rawSeqno string, logger logr.Logger) (int, error) {
 	for _, part := range parts {
 		rawSeqno = strings.TrimSpace(part)
 		if part == "" {
-			logger.Info("Ignoring empty seqno")
+			logger.V(1).Info("Ignoring empty seqno")
 			continue
 		}
 		seqno, err := strconv.Atoi(rawSeqno)
