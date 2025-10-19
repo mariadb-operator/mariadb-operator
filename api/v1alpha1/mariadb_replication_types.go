@@ -126,7 +126,7 @@ type ReplicaBootstrapFrom struct {
 	RestoreJob *Job `json:"restoreJob,omitempty"`
 }
 
-// ReplicaRecovery defines how the operator should recover replicas after they enter an error state.
+// ReplicaRecovery defines how the replicas should be recovered after they enter an error state.
 type ReplicaRecovery struct {
 	// Enabled is a flag to enable replica recovery.
 	// +kubebuilder:validation:Required
@@ -186,7 +186,7 @@ type ReplicaReplication struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	ReplicaBootstrapFrom *ReplicaBootstrapFrom `json:"bootstrapFrom,omitempty"`
-	// ReplicaRecovery defines how the operator should recover replicas after they enter an error state.
+	// ReplicaRecovery defines how the replicas should be recovered after they enter an error state.
 	// This process deletes data from faulty replicas and recreates them using the source defined in the bootstrapFrom field.
 	// It is disabled by default, and it requires the bootstrapFrom field to be set.
 	// +optional
