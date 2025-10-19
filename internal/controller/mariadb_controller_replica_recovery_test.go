@@ -3,13 +3,12 @@ package controller
 import (
 	"time"
 
-	"github.com/go-logr/zapr"
+	"github.com/go-logr/logr"
 	volumesnapshotv1 "github.com/kubernetes-csi/external-snapshotter/client/v8/apis/volumesnapshot/v1"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/metadata"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -20,7 +19,7 @@ import (
 )
 
 var _ = Describe("isRecoverableError", func() {
-	logger := zapr.NewLogger(zap.NewNop())
+	logger := logr.Discard()
 
 	DescribeTable("should evaluate recoverability",
 		func(buildReplicaStatus func() mariadbv1alpha1.ReplicaStatus, mdb *mariadbv1alpha1.MariaDB, expected bool) {

@@ -3,12 +3,11 @@ package replication
 import (
 	"testing"
 
-	"github.com/go-logr/zapr"
-	"go.uber.org/zap"
+	"github.com/go-logr/logr"
 )
 
 func TestParseGtid(t *testing.T) {
-	logger := zapr.NewLogger(zap.NewNop())
+	logger := logr.Discard()
 
 	tests := []struct {
 		name         string
