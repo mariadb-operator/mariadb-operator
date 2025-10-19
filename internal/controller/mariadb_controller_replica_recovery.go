@@ -160,10 +160,6 @@ func (r *MariaDBReconciler) reconcileReplicasToRecover(ctx context.Context, repl
 
 func (r *MariaDBReconciler) reconcileJobReplicaRecovery(ctx context.Context, replica string, physicalBackup *mariadbv1alpha1.PhysicalBackup,
 	mariadb *mariadbv1alpha1.MariaDB, logger logr.Logger) (ctrl.Result, error) {
-	podIndex, err := stsobj.PodIndex(replica)
-	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error getting replica pod index: %v", err)
-	}
 	podKey := types.NamespacedName{
 		Name:      replica,
 		Namespace: mariadb.Namespace,
@@ -187,21 +183,12 @@ func (r *MariaDBReconciler) reconcileJobReplicaRecovery(ctx context.Context, rep
 		}
 	}
 
-	replication := ptr.Deref(mariadb.Spec.Replication, mariadbv1alpha1.Replication{})
-	bootstrapFrom := ptr.Deref(replication.Replica.ReplicaBootstrapFrom, mariadbv1alpha1.ReplicaBootstrapFrom{})
-
-	if result, err := r.reconcileAndWaitForInitJob(
+	if result, err := r.reconcileAndWaitForRecoveryJob(
 		ctx,
+		physicalBackup,
 		mariadb,
-		mariadb.PhysicalBackupInitJobKey(*podIndex),
-		*podIndex,
+		podKey,
 		logger,
-		builder.WithPhysicalBackup(
-			physicalBackup,
-			time.Now(),
-			bootstrapFrom.RestoreJob,
-			command.WithCleanupDataDir(true),
-		),
 	); !result.IsZero() || err != nil {
 		return result, err
 	}
@@ -340,6 +327,40 @@ func (r *MariaDBReconciler) ensurePodInitializing(ctx context.Context, key types
 		}
 		return errors.New("Pod not initializing") //nolint:staticcheck
 	})
+}
+
+func (r *MariaDBReconciler) reconcileAndWaitForRecoveryJob(ctx context.Context, physicalBackup *mariadbv1alpha1.PhysicalBackup,
+	mariadb *mariadbv1alpha1.MariaDB, podKey types.NamespacedName, logger logr.Logger) (ctrl.Result, error) {
+	podIndex, err := stsobj.PodIndex(podKey.Name)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error getting Pod index: %v", err)
+	}
+
+	var pod corev1.Pod
+	if err := r.Get(ctx, podKey, &pod); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error getting Pod: %v", err)
+	}
+	if pod.Spec.NodeName == "" {
+		return ctrl.Result{}, errors.New("Pod must be scheduled: spec.nodeName is empty") //nolint:staticcheck
+	}
+
+	replication := ptr.Deref(mariadb.Spec.Replication, mariadbv1alpha1.Replication{})
+	bootstrapFrom := ptr.Deref(replication.Replica.ReplicaBootstrapFrom, mariadbv1alpha1.ReplicaBootstrapFrom{})
+
+	return r.reconcileAndWaitForInitJob(
+		ctx,
+		mariadb,
+		mariadb.PhysicalBackupInitJobKey(*podIndex),
+		*podIndex,
+		logger,
+		builder.WithPhysicalBackup(
+			physicalBackup,
+			time.Now(),
+			bootstrapFrom.RestoreJob,
+			command.WithCleanupDataDir(true),
+		),
+		builder.WithReplicaRecovery(&pod),
+	)
 }
 
 func (r *MariaDBReconciler) ensureReplicaRecovered(ctx context.Context, replica string, mariadb *mariadbv1alpha1.MariaDB,
