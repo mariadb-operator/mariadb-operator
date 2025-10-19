@@ -14,6 +14,7 @@ import (
 	galeraresources "github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/galera/resources"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/interfaces"
 	kadapter "github.com/mariadb-operator/mariadb-operator/v25/pkg/kubernetes/adapter"
+	mdbmetadata "github.com/mariadb-operator/mariadb-operator/v25/pkg/metadata"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/statefulset"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -224,10 +225,10 @@ func (b *Builder) BuildPhysicalBackupJob(key types.NamespacedName, backup *maria
 
 	var nodeSelector map[string]string
 	if ptr.Deref(backup.Spec.PodAffinity, true) {
-		// Schedule the Job is in the same node as the MariaDB Pod.
+		// Schedule the Job is in the same node as the MariaDB Pod to be able to attach the data PVC.
 		// Required for ReadWriteOnce storage.
 		nodeSelector = map[string]string{
-			"kubernetes.io/hostname": pod.Spec.NodeName,
+			mdbmetadata.KubernetesHostnameLabel: pod.Spec.NodeName,
 		}
 	}
 
@@ -401,6 +402,9 @@ type PhysicalBackupRestoreOpts struct {
 	S3                 *mariadbv1alpha1.S3
 	RestoreJob         *mariadbv1alpha1.Job
 	RestoreCommandOpts []command.MariaDBBackupRestoreOpt
+	MariaDBLabels      *bool
+	Affinity           *bool
+	NodeSelector       map[string]string
 }
 
 type PhysicalBackupRestoreOpt func(*PhysicalBackupRestoreOpts) error
@@ -431,6 +435,21 @@ func WithPhysicalBackup(pb *mariadbv1alpha1.PhysicalBackup, targetRecoveryTime t
 	}
 }
 
+func WithReplicaRecovery(podToRecover *corev1.Pod) PhysicalBackupRestoreOpt {
+	return func(opts *PhysicalBackupRestoreOpts) error {
+		// By default, both MariaDB Pod and the init Job will have the same labels and affinity rules.
+		// MariaDB Pod will be running, removing the labels and affinity will allow the recovery Job to be scheduled.
+		opts.MariaDBLabels = ptr.To(false)
+		opts.Affinity = ptr.To(false)
+		// Schedule the Job is in the same node as the MariaDB Pod to be able to attach the data PVC.
+		// Required for ReadWriteOnce storage.
+		opts.NodeSelector = map[string]string{
+			mdbmetadata.KubernetesHostnameLabel: podToRecover.Spec.NodeName,
+		}
+		return nil
+	}
+}
+
 func (b *Builder) BuildPhysicalBackupRestoreJob(key types.NamespacedName, mariadb *mariadbv1alpha1.MariaDB,
 	podIndex *int, restoreOpts ...PhysicalBackupRestoreOpt) (*batchv1.Job, error) {
 	opts := PhysicalBackupRestoreOpts{}
@@ -454,14 +473,18 @@ func (b *Builder) BuildPhysicalBackupRestoreJob(key types.NamespacedName, mariad
 		labels.NewLabelsBuilder().
 			WithMariaDBSelectorLabels(mariadb).
 			Build()
-	podMeta :=
+	podMetaBuilder :=
 		metadata.NewMetadataBuilder(key).
 			WithMetadata(mariadb.Spec.InheritMetadata).
-			WithMetadata(mariadb.Spec.PodMetadata).
-			// MariaDB Pod may have not been created yet.
-			// Include MariaDB selector labels to match anti-affinity.
-			WithLabels(selectorLabels).
-			Build()
+			WithMetadata(mariadb.Spec.PodMetadata)
+	if ptr.Deref(opts.MariaDBLabels, true) {
+		// MariaDB Pod will not be running when creating the init Job.
+		// Add MariaDB selector labels so that:
+		// - The init Job matches anti-affinity rules configured for MariaDB Pods.
+		// - The PVC is provisioned on the same node where MariaDB will run.
+		podMetaBuilder = podMetaBuilder.WithLabels(selectorLabels)
+	}
+	podMeta := podMetaBuilder.Build()
 
 	cmdOpts := []command.BackupOpt{
 		command.WithBackup(
@@ -512,8 +535,13 @@ func (b *Builder) BuildPhysicalBackupRestoreJob(key types.NamespacedName, mariad
 	}
 
 	var affinity *corev1.Affinity
-	if mariadb.Spec.Affinity != nil {
+	if ptr.Deref(opts.Affinity, true) && mariadb.Spec.Affinity != nil {
 		affinity = ptr.To(mariadb.Spec.Affinity.ToKubernetesType())
+	}
+
+	nodeSelector := mariadb.Spec.NodeSelector
+	if opts.NodeSelector != nil {
+		nodeSelector = opts.NodeSelector
 	}
 
 	securityContext, err := b.buildPodSecurityContextWithUserGroup(mariadb.Spec.PodSecurityContext, mysqlUser, mysqlGroup)
@@ -534,7 +562,7 @@ func (b *Builder) BuildPhysicalBackupRestoreJob(key types.NamespacedName, mariad
 					InitContainers:     []corev1.Container{*operatorContainer},
 					Containers:         []corev1.Container{*mariadbContainer},
 					Affinity:           affinity,
-					NodeSelector:       mariadb.Spec.NodeSelector,
+					NodeSelector:       nodeSelector,
 					Tolerations:        mariadb.Spec.Tolerations,
 					SecurityContext:    securityContext,
 					ServiceAccountName: ptr.Deref(mariadb.Spec.ServiceAccountName, "default"),
