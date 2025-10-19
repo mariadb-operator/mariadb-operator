@@ -1,6 +1,7 @@
 package client
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"reflect"
@@ -12,7 +13,6 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/pki"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/refresolver"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/statefulset"
-	"golang.org/x/net/context"
 	"k8s.io/utils/ptr"
 )
 
