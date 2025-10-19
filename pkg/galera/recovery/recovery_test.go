@@ -4,8 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/go-logr/zapr"
-	"go.uber.org/zap"
+	"github.com/go-logr/logr"
 )
 
 func TestGaleraStateMarshal(t *testing.T) {
@@ -283,7 +282,7 @@ func TestBootstrapValidate(t *testing.T) {
 }
 
 func TestBootstrapUnmarshal(t *testing.T) {
-	logger := zapr.NewLogger(zap.NewNop())
+	logger := logr.Discard()
 
 	tests := []struct {
 		name    string
