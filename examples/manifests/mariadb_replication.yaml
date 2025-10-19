@@ -9,7 +9,7 @@ spec:
 
   # Point to an existing MaxScale instance. Doing this will delegate operations such as primary failover to MaxScale.
   # maxScaleRef:
-  #   name: maxscale
+  #   name: maxscale-repl
 
   storage:
     size: 1Gi
@@ -21,22 +21,22 @@ spec:
     # Enable semi-synchronous replication.
     enabled: true
     primary:
-      # Trigger a switchover by declaring the desired primary index.
-      podIndex: 0
       # Whether the operator should automatically perform primary failover.
       automaticFailover: true
       # Duration before performing primary failover.
-      # automaticFailoverDelay: 0s
+      automaticFailoverDelay: 0s
+      # Trigger a switchover by declaring the desired primary index.
+      # podIndex: 0
     replica:
-      # GTID position mode to be used.
-      # See: https://mariadb.com/kb/en/gtid/#using-current_pos-vs-slave_pos.
-      gtid: CurrentPos
       # Password for the replication user used by the replicas to connect to the primary.
       replPasswordSecretKeyRef:
         name: mariadb
         key: password
+      # GTID position mode to be used.
+      # See: https://mariadb.com/kb/en/gtid/#using-current_pos-vs-slave_pos.
+      # gtid: CurrentPos
       # Timeout for the replicas to be synced during switchover and failover operations.
-      syncTimeout: 10s
+      # syncTimeout: 10s
       # Maximum lag allowed for the replicas. If surpassed, readiness probe in the replicas will error.
       # maxLagSeconds: 0
       # Connection attempts for the replica to connect to the primary.
@@ -83,10 +83,8 @@ spec:
 
   tls:
     enabled: true
-
     # Enforce TLS in all connections.
     # required: true
-
     # Issue certificates with an existing cert-manager ClusterIssuer.
     # serverCertIssuerRef:
     #   name: root-ca
@@ -94,13 +92,11 @@ spec:
     # clientCertIssuerRef:
     #   name: root-ca
     #   kind: ClusterIssuer
-
     # Bring your own Certificate Authority.
     # serverCASecretRef:
     #   name: mariadb-server-ca
     # clientCASecretRef:
     #   name: mariadb-client-ca
-
     # Configure existing certificates available in a Secret.
     # serverCASecretRef:
     #   name: mariadb-server-ca
@@ -113,8 +109,7 @@ spec:
 
   # Configure Pod anti-affinity and schedule Pods only in given set of nodes defined by the nodeAffinity.
   # affinity:
-  #   antiAffinityEnabled: true
-    
+  #   antiAffinityEnabled: true   
     # Custom anti-affinity rules
     # nodeAffinity:
     #   requiredDuringSchedulingIgnoredDuringExecution:

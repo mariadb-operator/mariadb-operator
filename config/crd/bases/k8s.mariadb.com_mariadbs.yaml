@@ -5251,7 +5251,7 @@ spec:
                         type: array
                     type: object
                   enabled:
-                    description: Enabled is a flag to enable semi-synchronours replication.
+                    description: Enabled is a flag to enable replication.
                     type: boolean
                   gtidStrictMode:
                     description: |-

@@ -2200,7 +2200,7 @@ _Appears in:_
 
 
 
-PrimaryReplication is the replication configuration for the primary node.
+PrimaryReplication is the replication configuration and operation parameters for the primary.
 
 
 
@@ -2298,7 +2298,7 @@ _Appears in:_
 
 
 
-ReplicaReplication is the replication configuration for the replica nodes.
+ReplicaReplication is the replication configuration and operation parameters for the replicas.
 
 
 
@@ -2323,7 +2323,7 @@ _Appears in:_
 
 
 
-Replication defines semi-synchronours replication configuration for a MariaDB cluster.
+Replication defines replication configuration for a MariaDB cluster.
 
 
 
@@ -2340,7 +2340,7 @@ _Appears in:_
 | `syncBinlog` _integer_ | SyncBinlog indicates after how many events the binary log is synchronized to the disk.<br />See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/replication-and-binary-log-system-variables#sync_binlog |  |  |
 | `initContainer` _[InitContainer](#initcontainer)_ | InitContainer is an init container that runs in the MariaDB Pod and co-operates with mariadb-operator. |  |  |
 | `agent` _[Agent](#agent)_ | Agent is a sidecar agent that runs in the MariaDB Pod and co-operates with mariadb-operator. |  |  |
-| `enabled` _boolean_ | Enabled is a flag to enable semi-synchronours replication. |  |  |
+| `enabled` _boolean_ | Enabled is a flag to enable replication. |  |  |
 
 
 
@@ -2349,7 +2349,7 @@ _Appears in:_
 
 
 
-ReplicationSpec is the semi-synchronours replication desired state.
+ReplicationSpec is the replication desired state.
 
 
 

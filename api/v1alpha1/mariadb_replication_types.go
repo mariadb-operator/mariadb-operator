@@ -81,7 +81,7 @@ func (g Gtid) MariaDBFormat() (string, error) {
 	}
 }
 
-// PrimaryReplication is the replication configuration for the primary node.
+// PrimaryReplication is the replication configuration and operation parameters for the primary.
 type PrimaryReplication struct {
 	// PodIndex is the StatefulSet index of the primary node. The user may change this field to perform a manual switchover.
 	// +optional
@@ -142,7 +142,7 @@ type ReplicaRecovery struct {
 	ErrorDurationThreshold *metav1.Duration `json:"errorDurationThreshold,omitempty"`
 }
 
-// ReplicaReplication is the replication configuration for the replica nodes.
+// ReplicaReplication is the replication configuration and operation parameters for the replicas.
 type ReplicaReplication struct {
 	// Gtid indicates which Global Transaction ID (GTID) position mode should be used when connecting a replica to the master.
 	// By default, CurrentPos is used.
@@ -222,18 +222,18 @@ func (r *ReplicaReplication) Validate() error {
 	return nil
 }
 
-// Replication defines semi-synchronours replication configuration for a MariaDB cluster.
+// Replication defines replication configuration for a MariaDB cluster.
 type Replication struct {
 	// ReplicationSpec is the Replication desired state specification.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	ReplicationSpec `json:",inline"`
-	// Enabled is a flag to enable semi-synchronours replication.
+	// Enabled is a flag to enable replication.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
 	Enabled bool `json:"enabled,omitempty"`
 }
 
-// ReplicationSpec is the semi-synchronours replication desired state.
+// ReplicationSpec is the replication desired state.
 type ReplicationSpec struct {
 	// Primary is the replication configuration for the primary node.
 	// +optional

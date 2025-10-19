@@ -86,9 +86,8 @@ spec:
   metrics:
     enabled: true
 
-  tls:
-    enabled: true
-
+  # tls:
+  #   enabled: true
     # Issue certificates with a existing cert-manager ClusterIssuer
     # adminCertIssuerRef:
     #   name: root-ca
@@ -96,7 +95,6 @@ spec:
     # listenerCertIssuerRef:
     #   name: root-ca
     #   kind: ClusterIssuer
-
     # Configure existing certificates available in a Secret
     # adminCASecretRef:
     #   name: maxscale-admin-ca
