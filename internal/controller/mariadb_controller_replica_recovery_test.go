@@ -11,6 +11,7 @@ import (
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -108,7 +109,7 @@ var _ = Describe("isRecoverableError", func() {
 							Replica: mariadbv1alpha1.ReplicaReplication{
 								ReplicaRecovery: &mariadbv1alpha1.ReplicaRecovery{
 									Enabled:                true,
-									ErrorDurationThreshold: &metav1.Duration{Duration: 30 * time.Second},
+									ErrorDurationThreshold: &metav1.Duration{Duration: 15 * time.Second},
 								},
 							},
 						},
@@ -178,12 +179,18 @@ var _ = FDescribe("MariaDB Replica Recovery", Ordered, func() {
 					},
 					ReplicaRecovery: &mariadbv1alpha1.ReplicaRecovery{
 						Enabled:                true,
-						ErrorDurationThreshold: ptr.To(metav1.Duration{Duration: time.Second * 30}),
+						ErrorDurationThreshold: ptr.To(metav1.Duration{Duration: time.Second * 15}),
 					},
 				}
 
 				return k8sClient.Update(testCtx, mdb) == nil
 			}, testTimeout, testInterval).Should(BeTrue())
+
+			By("Deleting the First Replica PVC")
+			deletePVCByPodIndex(mdb, 1)
+
+			By("Deleting the First Replica Pod")
+			deletePodByIndex(mdb, 1)
 
 			By("Flushing Binary Logs")
 			query := `FLUSH LOGS;`
@@ -191,31 +198,19 @@ var _ = FDescribe("MariaDB Replica Recovery", Ordered, func() {
 			query = `PURGE BINARY LOGS BEFORE NOW();`
 			executeSqlInPodByIndex(mdb, 0, query)
 
-			By("Deleting the First Replica PVC")
-			deletePVCByPodIndex(mdb, 1)
-
-			By("Flushing Binary Logs")
-			query = `FLUSH LOGS;`
-			executeSqlInPodByIndex(mdb, 0, query)
-			query = `PURGE BINARY LOGS BEFORE NOW();`
-			executeSqlInPodByIndex(mdb, 0, query)
-
-			By("Deleting the First Replica Pod")
-			deletePodByIndex(mdb, 1)
-
-			By("Flushing Binary Logs")
-			query = `FLUSH LOGS;`
-			executeSqlInPodByIndex(mdb, 0, query)
-			query = `PURGE BINARY LOGS BEFORE NOW();`
-			executeSqlInPodByIndex(mdb, 0, query)
-
 			// Otherwise the `pod` doesn't get deleted and gets stuck in `Completed`
 			By("Removing PVC finalizer after a short delay")
 			time.Sleep(10 * time.Second)
-			var pvc corev1.PersistentVolumeClaim
 
-			key := mdb.PVCKey(builder.StorageVolume, 1)
-			err := k8sClient.Get(testCtx, key, &pvc)
+			By("Flushing Binary Logs")
+			query = `FLUSH LOGS;`
+			executeSqlInPodByIndex(mdb, 0, query)
+			query = `PURGE BINARY LOGS BEFORE NOW();`
+			executeSqlInPodByIndex(mdb, 0, query)
+
+			var pvc corev1.PersistentVolumeClaim
+			pvcKey := mdb.PVCKey(builder.StorageVolume, 1)
+			err := k8sClient.Get(testCtx, pvcKey, &pvc)
 			if apierrors.IsNotFound(err) {
 				return
 			}
@@ -230,7 +225,7 @@ var _ = FDescribe("MariaDB Replica Recovery", Ordered, func() {
 			}
 
 			Eventually(func() bool {
-				err := k8sClient.Get(testCtx, key, &pvc)
+				err := k8sClient.Get(testCtx, pvcKey, &pvc)
 				return apierrors.IsNotFound(err)
 			}, 10*time.Second, 500*time.Millisecond).Should(BeTrue(), "PVC should be deleted")
 
@@ -240,7 +235,7 @@ var _ = FDescribe("MariaDB Replica Recovery", Ordered, func() {
 					return false
 				}
 				return mdb.IsReady() &&
-					// meta.IsStatusConditionTrue(mdb.Status.Conditions, mariadbv1alpha1.ConditionTypeReplicaRecovered) &&
+					meta.IsStatusConditionTrue(mdb.Status.Conditions, mariadbv1alpha1.ConditionTypeReplicaRecovered) &&
 					mdb.Status.Replicas == int32(3)
 
 			}, testHighTimeout, testInterval).Should(BeTrue())
@@ -297,7 +292,8 @@ func buildTestMariaDBRecovery(key types.NamespacedName) *mariadbv1alpha1.MariaDB
 				default_storage_engine=InnoDB
 				binlog_format=row
 				innodb_autoinc_lock_mode=2
-				max_allowed_packet=256M`,
+				max_allowed_packet=256M
+				general_log`,
 			),
 			Replication: &mariadbv1alpha1.Replication{
 				ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
