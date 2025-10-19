@@ -2281,7 +2281,7 @@ _Appears in:_
 
 
 
-ReplicaRecovery defines how the operator should recover replicas after they enter an error state.
+ReplicaRecovery defines how the replicas should be recovered after they enter an error state.
 
 
 
@@ -2314,7 +2314,7 @@ _Appears in:_
 | `syncTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#duration-v1-meta)_ | SyncTimeout defines the timeout for the synchronization phase during switchover and failover operations.<br />During switchover, all replicas must be synced with the current primary before promoting the new primary.<br />During failover, the new primary must be synced before being promoted as primary. This implies processing all the events in the relay log.<br />When the timeout is reached, the operator restarts the operation from the beginning.<br />It defaults to 10s.<br />See: https://mariadb.com/docs/server/reference/sql-functions/secondary-functions/miscellaneous-functions/master_gtid_wait |  |  |
 | `maxLagSeconds` _integer_ | MaxLagSeconds is the maximum number of seconds that replicas are allowed to lag behind the primary.<br />If a replica exceeds this threshold, it is marked as not ready and read queries will no longer be forwarded to it.<br />If not provided, it defaults to 0, which means that replicas are not allowed to lag behind the primary (recommended).<br />Lagged replicas will not be taken into account as candidates for the new primary during failover,<br />and they will block other operations, such as switchover and upgrade.<br />This field is not taken into account by MaxScale, you can define the maximum lag as router parameters.<br />See: https://mariadb.com/docs/maxscale/reference/maxscale-routers/maxscale-readwritesplit#max_replication_lag. |  |  |
 | `bootstrapFrom` _[ReplicaBootstrapFrom](#replicabootstrapfrom)_ | ReplicaBootstrapFrom defines the data sources used to bootstrap new replicas.<br />This will be used as part of the scaling out and recovery operations, when new replicas are created.<br />If not provided, scale out and recovery operations will return an error. |  |  |
-| `recovery` _[ReplicaRecovery](#replicarecovery)_ | ReplicaRecovery defines how the operator should recover replicas after they enter an error state.<br />This process deletes data from faulty replicas and recreates them using the source defined in the bootstrapFrom field.<br />It is disabled by default, and it requires the bootstrapFrom field to be set. |  |  |
+| `recovery` _[ReplicaRecovery](#replicarecovery)_ | ReplicaRecovery defines how the replicas should be recovered after they enter an error state.<br />This process deletes data from faulty replicas and recreates them using the source defined in the bootstrapFrom field.<br />It is disabled by default, and it requires the bootstrapFrom field to be set. |  |  |
 
 
 

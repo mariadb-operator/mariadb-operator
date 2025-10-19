@@ -11,13 +11,15 @@ spec:
     size: 1Gi
     storageClassName: csi-hostpath-sc
 
-  # Increase number of replicas to trigger scaleout process
+  # Increase number of replicas to trigger scaleout process.
   replicas: 3
 
   replication:
     enabled: true
     replica:
+      # Define the data source to bootstrap new replicas from.
       bootstrapFrom:
+        # Reference to a PhysicalBackup object to be used as a template to bootstrap new replicas.
         physicalBackupTemplateRef:
           name: physicalbackup-tpl
 
@@ -43,6 +45,7 @@ spec:
     enabled: true
 
 ---
+# PhysicalBackup object to be used as template to bootstrap new replicas.
 apiVersion: k8s.mariadb.com/v1alpha1
 kind: PhysicalBackup
 metadata:
