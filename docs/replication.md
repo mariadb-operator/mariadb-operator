@@ -422,13 +422,13 @@ It is important to note that, if there are no ready replicas available at the ti
 
 ## Replica recovery
 
-The operator has the ability to automatically recover replicas that become unavailable and report a specific error code in the replication status.  For doing so, the operator continiously monitors the replication status of each replica, and whenever a replicas reports an error code listed in the table below, the operator will trigger an automatic recovery process for that replica:
+The operator has the ability to automatically recover replicas that become unavailable and report a specific error code in the replication status.  For doing so, the operator continiously monitors the replication status of each replica, and whenever a replicas reports an error code listed in the table below, the operator will trigger an automated recovery process for that replica:
 
 | Error Code | Thread | Description | Documentation |
 |------------|--------|-------------|---------------|
 | 1236       | IO     | Error 1236: Got fatal error from master when reading data from binary log. | [MariaDB docs](https://mariadb.com/docs/server/reference/error-codes/mariadb-error-codes-1200-to-1299/e1236) |
 
-To perform the recover, the operator will take a physical backup from a ready replica, restore it to the failed replica PVC, and reconfigure it as a replica of the primary.
+To perform the recovery, the operator will take a physical backup from a ready replica, restore it to the failed replica PVC, and reconfigure the replica to connect to the primary from the GTID position stored in the backup.
 
 Similarly to the [scaling out](#scaling-out) operation, you need to define a `PhysicalBackup` template and set a reference to it in the `spec.replication.replica.bootstrapFrom` field of the `MariaDB` CR. Additionally, you need to explicitly enable the replica recovery, as it is disabled by default:
 
@@ -463,7 +463,7 @@ echo "Purging binary logs in primary $PRIMARY"
 kubectl exec -it $PRIMARY -c mariadb -- mariadb -u root -p'MariaDB11!' --ssl=false -e "FLUSH LOGS; PURGE BINARY LOGS BEFORE NOW();"
 ```
 
-2. Delete the PVC and restart one of the replicas:
+1. Delete the PVC and restart one of the replicas:
 ```bash
 REPLICA=$(kubectl get mariadb mariadb-repl -o jsonpath='{.status.replication.replicas}' | jq -r 'keys[]' | head -n1)
 echo "Deleting PVC and restarting replica $REPLICA"
@@ -471,7 +471,7 @@ kubectl delete pvc storage-$REPLICA --wait=false
 kubectl delete pod $REPLICA --wait=false 
 ```
 
-3. Observe how the replica is recovered:
+1. Observe how the replica is recovered:
 
 ```bash
 kubectl get mariadb
