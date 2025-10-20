@@ -137,7 +137,7 @@ func (m *maxScaleAPI) maxScaleReplicationCustomOptions(mdb *mariadbv1alpha1.Mari
 		}
 
 		replSpec := ptr.Deref(mdb.Spec.Replication, mariadbv1alpha1.Replication{})
-		kvOpts["MASTER_CONNECT_RETRY"] = strconv.Itoa(ptr.Deref(replSpec.Replica.ConnectionRetries, 10))
+		kvOpts["MASTER_CONNECT_RETRY"] = strconv.Itoa(ptr.Deref(replSpec.Replica.ConnectionRetrySeconds, 10))
 	}
 
 	pairs := make([]string, len(kvOpts))

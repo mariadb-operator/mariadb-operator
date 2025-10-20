@@ -64,8 +64,17 @@ fi
 echo "Migrating MariaDB fields..."
 cp "$MARIADB_INPUT" "$MARIADB_OUTPUT"
 
+HAS_CONN_RETRY=$("$YQ" ".spec.replication.replica.connectionRetries != null" "$MARIADB_OUTPUT")
+if [[ "$HAS_CONN_RETRY" == "true" ]]; then
+  echo ".spec.replication.replica.connectionRetries is present and not null, will migrate"
+  "$YQ" '
+    .spec.replication.replica.connectionRetrySeconds = .spec.replication.replica.connectionRetries |
+    del(.spec.replication.replica.connectionRetries)
+  ' -i "$MARIADB_OUTPUT"
+fi
+
 HAS_WAIT_POINT=$("$YQ" ".spec.replication.replica.waitPoint != null" "$MARIADB_OUTPUT")
-if [[ $HAS_WAIT_POINT ]]; then
+if [[ "$HAS_WAIT_POINT" == "true" ]]; then
   echo ".spec.replication.replica.waitPoint is present and not null, will migrate"
   "$YQ" '
     .spec.replication.waitPoint = .spec.replication.replica.waitPoint |
@@ -74,7 +83,7 @@ if [[ $HAS_WAIT_POINT ]]; then
 fi
 
 HAS_CONNECTION_TIMEOUT=$("$YQ" ".spec.replication.replica.connectionTimeout != null" "$MARIADB_OUTPUT")
-if [[ $HAS_CONNECTION_TIMEOUT ]]; then
+if [[ "$HAS_CONNECTION_TIMEOUT" == "true" ]]; then
   echo ".spec.replication.replica.connectionTimeout is present and not null, will migrate"
   "$YQ" '
     .spec.replication.ackTimeout = .spec.replication.replica.connectionTimeout |

@@ -112,6 +112,35 @@ For replica-specific configuration options, please refer to the [replica configu
 
 ## Replica configuration
 
+The following options are replica-specific and can be configured under the `replication.replica` section of the `MariaDB` CR:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-repl
+spec:
+  replicas: 3
+  replication:
+    enabled: true
+    replica:
+      replPasswordSecretKeyRef:
+        name: mariadb
+        key: password
+      gtid: CurrentPos
+      connectionRetrySeconds: 10
+      maxLagSeconds: 0
+      syncTimeout: 10s
+```
+
+- `replPasswordSecretKeyRef`: Reference to the `Secret` key containing the password for the replication user, used by the replicas to connect to the primary. By default, a `Secret` with a random password will be created.
+- `gtid`: GTID position mode to be used (`CurrentPos` and `SlavePos` allowed). See [MariaDB documentation](https://mariadb.com/docs/server/reference/sql-statements/administrative-sql-statements/replication-statements/change-master-to#master_use_gtid). It defaults to `CurrentPos`.
+- `connectionRetrySeconds`: Number of seconds that the replica will wait between connection retries. See [MariaDB documentation](https://mariadb.com/docs/server/reference/sql-statements/administrative-sql-statements/replication-statements/change-master-to#master_connect_retry).
+- `maxLagSeconds`: Maximum acceptable lag in seconds between the replica and the primary. If the lag exceeds this value, the [readiness probe](#readiness-probe) will fail and the replica will be marked as not ready. See [replica lag](#replica-lag) section for more details. It defaults to `0`, meaning that no lag is allowed.
+- `syncTimeout`: Timeout for the replicas to be synced during switchover and failover operations. See the [primary switchover](#primary-switchover) and [primary failover](#primary-failover) sections for more details. It defaults to `10s`.
+
+When updating any of these options, an [update of the cluster](#updates) will be triggered in order to apply the new configuration.
+
 ## Probes
 
 Data plane. Probes documentation

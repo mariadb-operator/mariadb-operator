@@ -144,32 +144,23 @@ type ReplicaRecovery struct {
 
 // ReplicaReplication is the replication configuration and operation parameters for the replicas.
 type ReplicaReplication struct {
-	// Gtid indicates which Global Transaction ID (GTID) position mode should be used when connecting a replica to the master.
-	// By default, CurrentPos is used.
-	// See: https://mariadb.com/kb/en/gtid/#using-current_pos-vs-slave_pos.
-	// +optional
-	// +kubebuilder:validation:Enum=CurrentPos;SlavePos
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Gtid *Gtid `json:"gtid,omitempty"`
 	// ReplPasswordSecretKeyRef provides a reference to the Secret to use as password for the replication user.
 	// By default, a random password will be generated.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	ReplPasswordSecretKeyRef *GeneratedSecretKeyRef `json:"replPasswordSecretKeyRef,omitempty"`
-	// ConnectionRetries defines the maximum number of connection attempts for the replica to connect to the primary.
-	// See: https://mariadb.com/docs/server/reference/sql-statements/administrative-sql-statements/replication-statements/change-master-to#master_connect_retry
+	// Gtid indicates which Global Transaction ID (GTID) position mode should be used when connecting a replica to the master.
+	// By default, CurrentPos is used.
+	// See: https://mariadb.com/docs/server/reference/sql-statements/administrative-sql-statements/replication-statements/change-master-to#master_use_gtid.
+	// +optional
+	// +kubebuilder:validation:Enum=CurrentPos;SlavePos
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Gtid *Gtid `json:"gtid,omitempty"`
+	// ConnectionRetrySeconds is the number of seconds that the replica will wait between connection retries.
+	// See: https://mariadb.com/docs/server/reference/sql-statements/administrative-sql-statements/replication-statements/change-master-to#master_connect_retry.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
-	ConnectionRetries *int `json:"connectionRetries,omitempty"`
-	// SyncTimeout defines the timeout for the synchronization phase during switchover and failover operations.
-	// During switchover, all replicas must be synced with the current primary before promoting the new primary.
-	// During failover, the new primary must be synced before being promoted as primary. This implies processing all the events in the relay log.
-	// When the timeout is reached, the operator restarts the operation from the beginning.
-	// It defaults to 10s.
-	// See: https://mariadb.com/docs/server/reference/sql-functions/secondary-functions/miscellaneous-functions/master_gtid_wait
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	SyncTimeout *metav1.Duration `json:"syncTimeout,omitempty"`
+	ConnectionRetrySeconds *int `json:"connectionRetrySeconds,omitempty"`
 	// MaxLagSeconds is the maximum number of seconds that replicas are allowed to lag behind the primary.
 	// If a replica exceeds this threshold, it is marked as not ready and read queries will no longer be forwarded to it.
 	// If not provided, it defaults to 0, which means that replicas are not allowed to lag behind the primary (recommended).
@@ -180,6 +171,15 @@ type ReplicaReplication struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
 	MaxLagSeconds *int `json:"maxLagSeconds,omitempty"`
+	// SyncTimeout defines the timeout for the synchronization phase during switchover and failover operations.
+	// During switchover, all replicas must be synced with the current primary before promoting the new primary.
+	// During failover, the new primary must be synced before being promoted as primary. This implies processing all the events in the relay log.
+	// When the timeout is reached, the operator restarts the operation from the beginning.
+	// It defaults to 10s.
+	// See: https://mariadb.com/docs/server/reference/sql-functions/secondary-functions/miscellaneous-functions/master_gtid_wait
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	SyncTimeout *metav1.Duration `json:"syncTimeout,omitempty"`
 	// ReplicaBootstrapFrom defines the data sources used to bootstrap new replicas.
 	// This will be used as part of the scaling out and recovery operations, when new replicas are created.
 	// If not provided, scale out and recovery operations will return an error.
