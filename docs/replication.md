@@ -463,7 +463,7 @@ echo "Purging binary logs in primary $PRIMARY"
 kubectl exec -it $PRIMARY -c mariadb -- mariadb -u root -p'MariaDB11!' --ssl=false -e "FLUSH LOGS; PURGE BINARY LOGS BEFORE NOW();"
 ```
 
-1. Delete the PVC and restart one of the replicas:
+2. Delete the PVC and restart one of the replicas:
 ```bash
 REPLICA=$(kubectl get mariadb mariadb-repl -o jsonpath='{.status.replication.replicas}' | jq -r 'keys[]' | head -n1)
 echo "Deleting PVC and restarting replica $REPLICA"
@@ -471,7 +471,7 @@ kubectl delete pvc storage-$REPLICA --wait=false
 kubectl delete pod $REPLICA --wait=false 
 ```
 
-1. Observe how the replica is recovered:
+3. Observe how the replica is recovered:
 
 ```bash
 kubectl get mariadb
