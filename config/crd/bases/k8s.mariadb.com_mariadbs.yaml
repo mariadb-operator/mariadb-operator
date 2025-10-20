@@ -5255,7 +5255,8 @@ spec:
                     type: boolean
                   gtidStrictMode:
                     description: |-
-                      GtidStrictMode determines whether the GTID strict mode is enabled. See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/gtid#gtid_strict_mode.
+                      GtidStrictMode determines whether the GTID strict mode is enabled.
+                      See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/gtid#gtid_strict_mode.
                       It is enabled by default.
                     type: boolean
                   initContainer:
@@ -6093,8 +6094,9 @@ spec:
                     type: integer
                   waitPoint:
                     description: |-
-                      WaitPoint defines whether the transaction should wait for an ACK before committing to the storage engine.
-                      More info: https://mariadb.com/kb/en/semisynchronous-replication/#rpl_semi_sync_master_wait_point.
+                      WaitPoint determines whether the transaction should wait for an ACK after having synced the binlog (AfterSync)
+                      or after having committed to the storage engine (AfterCommit, the default).
+                      See: https://mariadb.com/kb/en/semisynchronous-replication/#rpl_semi_sync_master_wait_point.
                     enum:
                     - AfterSync
                     - AfterCommit

@@ -1,6 +1,10 @@
 # Replication
 
-The operator supports provisioning and operating MariaDB clusters with semi-synchronous replication as a high availability topology. In the following sections we will cover how to manage the full lifecycle of a semi-synchronous replication cluster. Please refer to the [MariaDB documentation for more details about replication.](https://mariadb.com/docs/server/ha-and-performance/standard-replication)
+The operator supports provisioning and operating MariaDB clusters with semi-synchronous replication as a high availability topology. In the following sections we will cover how to manage the full lifecycle of a semi-synchronous replication cluster. 
+
+In a replication setup, one primary server handles all write operations while one or more replica servers replicate data from the primary and can handle read operations. The semi-synchronous aspect ensures that at least one replica acknowledges the receipt of a transaction before the primary commits it.
+
+Please refer to the [MariaDB documentation](https://mariadb.com/docs/server/ha-and-performance/standard-replication) for more details about replication.
 
 ## Table of contents
 <!-- toc -->
@@ -36,7 +40,7 @@ NAME           READY   STATUS    PRIMARY          UPDATES                    AGE
 mariadb-repl   True    Running   mariadb-repl-0   ReplicasFirstPrimaryLast   2d20h
 ```
 
-As you can see, the primary can be identified in the `PRIMARY` column of the `kubectl get mariadb` output. You may also check the current replication status by checking the `MariaDB` CR status:
+As you can see, the primary can be identified in the `PRIMARY` column of the `kubectl get mariadb` output. You may also inspect the current replication status by checking the `MariaDB` CR status:
 
 ```bash
 kubectl get mariadb mariadb-repl -o jsonpath="{.status.replication}" | jq
@@ -79,7 +83,7 @@ The operator continiously monitors the replication status via [`SHOW SLAVE STATU
 
 ## Configuration
 
-The replication settings can be customized under the `replication` section of the MariaDB CR. The following options are available:
+The replication settings can be customized under the `replication` section of the `MariaDB` CR. The following options are available:
 
 ```yaml
 apiVersion: k8s.mariadb.com/v1alpha1
@@ -96,14 +100,15 @@ spec:
     syncBinlog: 1
 ```
 
-- `gtidStrictMode`: Enables GTID strict mode on the primary and replicas. It is recommended and enabled by default.
-- `waitPoint`: Determines whether the transaction should wait for an ACK before committing to the storage engine.
-- `ackTimeout`
-- `syncBinlog`:
+- `gtidStrictMode`: Enables GTID strict mode. It is recommended and enabled by default. See [MariaDB documentation](https://mariadb.com/docs/server/ha-and-performance/standard-replication/gtid#gtid_strict_mode).
+- `waitPoint`: Determines whether the transaction should wait for an ACK after having synced the binlog (`AfterSync`) or after having committed to the storage engine (`AfterCommit`, the default). See [MariaDB documentation](https://mariadb.com/docs/server/ha-and-performance/standard-replication/semisynchronous-replication#rpl_semi_sync_master_wait_point).
+- `ackTimeout`: ACK timeout for the replicas to acknowledge transactions to the primary. See [MariaDB documentation](https://mariadb.com/docs/server/ha-and-performance/standard-replication/semisynchronous-replication#rpl_semi_sync_master_timeout).
+- `syncBinlog`: Number of events after which the binary log is synchronized to disk. See [MariaDB documentation](https://mariadb.com/docs/server/ha-and-performance/standard-replication/replication-and-binary-log-system-variables#sync_binlog).
 
 
-Additional system variables may be configured via the `myCnf` configuration field. Refer to the [configuration documentation for more details](./configuration.md#mycnf)
+These options are used by the operator to render a replication configuration file that is applied to all nodes in the cluster. When updating any of these options, an [update of the cluster](#updates) will be triggered in order to apply the new configuration.
 
+For replica-specific configuration options, please refer to the [replica configuration](#replica-configuration) section. Additional system variables may be configured via the `myCnf` configuration field. Refer to the [configuration documentation](./configuration.md#mycnf) for more details.
 
 ## Replica configuration
 
