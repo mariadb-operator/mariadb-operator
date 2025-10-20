@@ -1,6 +1,6 @@
-# Standalone MariaDB
+# Standalone
 
-MariaDB Operator allows you to configure standalone MariaDB Server instances. To achieve this, you can either omit the `replicas` field or set it to `1`:
+This operator allows you to configure standalone MariaDB Server instances. To achieve this, you can either omit the `replicas` field or set it to `1`:
 
 ```yaml
 apiVersion: k8s.mariadb.com/v1alpha1
