@@ -4,8 +4,10 @@ import (
 	"time"
 
 	"github.com/go-logr/zapr"
+	volumesnapshotv1 "github.com/kubernetes-csi/external-snapshotter/client/v8/apis/volumesnapshot/v1"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/builder"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/metadata"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"go.uber.org/zap"
@@ -16,6 +18,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var _ = Describe("isRecoverableError", func() {
@@ -121,7 +124,7 @@ var _ = Describe("isRecoverableError", func() {
 	)
 })
 
-var _ = FDescribe("MariaDB Replica Recovery", Ordered, func() {
+var _ = Describe("MariaDB Replica Recovery", Ordered, func() {
 	var (
 		key = types.NamespacedName{
 			Name:      "mariadb-repl",
@@ -157,6 +160,7 @@ var _ = FDescribe("MariaDB Replica Recovery", Ordered, func() {
 			builderFn physicalBackupBuilder,
 			cleanupFn func(backupKey types.NamespacedName) func(),
 		) {
+			podIndexToDelete := 2
 			backup := builderFn(backupKey)
 			testPhysicalBackup(backup)
 
@@ -186,14 +190,20 @@ var _ = FDescribe("MariaDB Replica Recovery", Ordered, func() {
 				return k8sClient.Update(testCtx, mdb) == nil
 			}, testTimeout, testInterval).Should(BeTrue())
 
-			By("Deleting the First Replica PVC")
-			deletePVCByPodIndex(mdb, 1)
-
-			By("Deleting the First Replica Pod")
-			deletePodByIndex(mdb, 1)
-
 			By("Flushing Binary Logs")
 			query := `FLUSH LOGS;`
+			executeSqlInPodByIndex(mdb, 0, query)
+			query = `PURGE BINARY LOGS BEFORE NOW();`
+			executeSqlInPodByIndex(mdb, 0, query)
+
+			By("Deleting the First Replica PVC")
+			deletePVCByPodIndex(mdb, podIndexToDelete)
+
+			By("Deleting the First Replica Pod")
+			deletePodByIndex(mdb, podIndexToDelete)
+
+			By("Flushing Binary Logs")
+			query = `FLUSH LOGS;`
 			executeSqlInPodByIndex(mdb, 0, query)
 			query = `PURGE BINARY LOGS BEFORE NOW();`
 			executeSqlInPodByIndex(mdb, 0, query)
@@ -209,7 +219,7 @@ var _ = FDescribe("MariaDB Replica Recovery", Ordered, func() {
 			executeSqlInPodByIndex(mdb, 0, query)
 
 			var pvc corev1.PersistentVolumeClaim
-			pvcKey := mdb.PVCKey(builder.StorageVolume, 1)
+			pvcKey := mdb.PVCKey(builder.StorageVolume, podIndexToDelete)
 			err := k8sClient.Get(testCtx, pvcKey, &pvc)
 			if apierrors.IsNotFound(err) {
 				return
@@ -218,16 +228,6 @@ var _ = FDescribe("MariaDB Replica Recovery", Ordered, func() {
 
 			pvc.SetFinalizers(nil)
 			Expect(k8sClient.Update(testCtx, &pvc)).NotTo(HaveOccurred())
-
-			err = k8sClient.Delete(testCtx, &pvc)
-			if err != nil && !apierrors.IsNotFound(err) {
-				Expect(err).NotTo(HaveOccurred())
-			}
-
-			Eventually(func() bool {
-				err := k8sClient.Get(testCtx, pvcKey, &pvc)
-				return apierrors.IsNotFound(err)
-			}, 10*time.Second, 500*time.Millisecond).Should(BeTrue(), "PVC should be deleted")
 
 			By("Expecting MariaDB to have recovered eventually")
 			Eventually(func() bool {
@@ -250,23 +250,23 @@ var _ = FDescribe("MariaDB Replica Recovery", Ordered, func() {
 				}
 			},
 		),
-		// Entry(
-		// 	"from volume snapshot",
-		// 	types.NamespacedName{Name: "replication-volume-snapshot-recovery-test", Namespace: key.Namespace},
-		// 	buildPhysicalBackupWithVolumeSnapshotStorage(key),
-		// 	func(backupKey types.NamespacedName) func() {
-		// 		return func() {
-		// 			By("Deleting Backup Resources")
-		// 			opts := []client.DeleteAllOfOption{
-		// 				client.MatchingLabels{
-		// 					metadata.PhysicalBackupNameLabel: backupKey.Name,
-		// 				},
-		// 				client.InNamespace(backupKey.Namespace),
-		// 			}
-		// 			Expect(k8sClient.DeleteAllOf(testCtx, &volumesnapshotv1.VolumeSnapshot{}, opts...)).To(Succeed())
-		// 		}
-		// 	},
-		// ),
+		Entry(
+			"from volume snapshot",
+			types.NamespacedName{Name: "replication-volume-snapshot-recovery-test", Namespace: key.Namespace},
+			buildPhysicalBackupWithVolumeSnapshotStorage(key),
+			func(backupKey types.NamespacedName) func() {
+				return func() {
+					By("Deleting Backup Resources")
+					opts := []client.DeleteAllOfOption{
+						client.MatchingLabels{
+							metadata.PhysicalBackupNameLabel: backupKey.Name,
+						},
+						client.InNamespace(backupKey.Namespace),
+					}
+					Expect(k8sClient.DeleteAllOf(testCtx, &volumesnapshotv1.VolumeSnapshot{}, opts...)).To(Succeed())
+				}
+			},
+		),
 	)
 })
 
