@@ -11,8 +11,8 @@
 
 - [Standalone](./standalone.md)
 - [High availability](./high_availability.md)
-- [Semi-synchronous replication](./replication.md)
-- [Synchronous multi-master via Galera](./galera.md)
+  - [Semi-synchronous replication](./replication.md)
+  - [Synchronous multi-master via Galera](./galera.md)
 - [MaxScale as database proxy](./maxscale.md)
 - [Data plane](./data_plane.md)
 
