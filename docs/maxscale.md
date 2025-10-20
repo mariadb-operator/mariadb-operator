@@ -327,7 +327,9 @@ spec:
 This will trigger a switchover operation and MaxScale will promote the specified server to be the new primary server.
 
 ```bash
-kubectl patch maxscale maxscale-repl --type='merge' -p '{"spec":{"primaryServer":"mariadb-repl-1"}}'
+kubectl patch maxscale maxscale-repl \
+  --type='merge' \
+  -p '{"spec":{"primaryServer":"mariadb-repl-1"}}'
 kubectl get maxscale
 NAME            READY   STATUS                                  PRIMARY          AGE
 maxscale-repl   False   Switching primary to 'mariadb-repl-1'   mariadb-repl-0   2m15s

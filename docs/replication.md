@@ -200,7 +200,7 @@ spec:
       podIndex: 1
 ```
 
-You can also do this imperatively using kubectl:
+You can also do this imperatively using `kubectl`:
 
 ```bash
 kubectl patch mariadb mariadb-repl \
