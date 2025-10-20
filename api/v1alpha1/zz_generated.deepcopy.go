@@ -4001,14 +4001,14 @@ func (in *ReplicationSpec) DeepCopyInto(out *ReplicationSpec) {
 	*out = *in
 	in.Primary.DeepCopyInto(&out.Primary)
 	in.Replica.DeepCopyInto(&out.Replica)
-	if in.WaitPoint != nil {
-		in, out := &in.WaitPoint, &out.WaitPoint
-		*out = new(WaitPoint)
-		**out = **in
-	}
 	if in.GtidStrictMode != nil {
 		in, out := &in.GtidStrictMode, &out.GtidStrictMode
 		*out = new(bool)
+		**out = **in
+	}
+	if in.WaitPoint != nil {
+		in, out := &in.WaitPoint, &out.WaitPoint
+		*out = new(WaitPoint)
 		**out = **in
 	}
 	if in.AckTimeout != nil {

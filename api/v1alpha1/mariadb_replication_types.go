@@ -243,17 +243,19 @@ type ReplicationSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Replica ReplicaReplication `json:"replica,omitempty"`
-	// WaitPoint defines whether the transaction should wait for an ACK before committing to the storage engine.
-	// More info: https://mariadb.com/kb/en/semisynchronous-replication/#rpl_semi_sync_master_wait_point.
-	// +optional
-	// +kubebuilder:validation:Enum=AfterSync;AfterCommit
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	WaitPoint *WaitPoint `json:"waitPoint,omitempty"`
-	// GtidStrictMode determines whether the GTID strict mode is enabled. See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/gtid#gtid_strict_mode.
+	// GtidStrictMode determines whether the GTID strict mode is enabled.
+	// See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/gtid#gtid_strict_mode.
 	// It is enabled by default.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	GtidStrictMode *bool `json:"gtidStrictMode,omitempty"`
+	// WaitPoint determines whether the transaction should wait for an ACK after having synced the binlog (AfterSync)
+	// or after having committed to the storage engine (AfterCommit, the default).
+	// See: https://mariadb.com/kb/en/semisynchronous-replication/#rpl_semi_sync_master_wait_point.
+	// +optional
+	// +kubebuilder:validation:Enum=AfterSync;AfterCommit
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	WaitPoint *WaitPoint `json:"waitPoint,omitempty"`
 	// AckTimeout for the replica to acknowledge transactions to the primary.
 	// See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/semisynchronous-replication#rpl_semi_sync_master_timeout
 	// +optional
