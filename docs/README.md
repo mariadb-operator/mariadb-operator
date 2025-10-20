@@ -9,7 +9,7 @@
 
 ## Topologies
 
-- [Standalone MariaDB](./standalone_mariadb.md)
+- [Standalone](./standalone.md)
 - [High availability](./high_availability.md)
 - [Semi-synchronous replication](./replication.md)
 - [Synchronous multi-master via Galera](./galera.md)
