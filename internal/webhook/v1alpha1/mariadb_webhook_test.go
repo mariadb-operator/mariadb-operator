@@ -325,7 +325,7 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 									PodIndex: func() *int { i := 4; return &i }(),
 								},
 								Replica: v1alpha1.ReplicaReplication{
-									ConnectionRetries: ptr.To(3),
+									ConnectionRetrySeconds: ptr.To(3),
 								},
 								WaitPoint: ptr.To(v1alpha1.WaitPointAfterCommit),
 							},

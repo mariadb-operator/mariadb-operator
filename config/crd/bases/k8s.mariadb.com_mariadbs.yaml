@@ -6014,16 +6014,16 @@ spec:
                         required:
                         - physicalBackupTemplateRef
                         type: object
-                      connectionRetries:
+                      connectionRetrySeconds:
                         description: |-
-                          ConnectionRetries defines the maximum number of connection attempts for the replica to connect to the primary.
-                          See: https://mariadb.com/docs/server/reference/sql-statements/administrative-sql-statements/replication-statements/change-master-to#master_connect_retry
+                          ConnectionRetrySeconds is the number of seconds that the replica will wait between connection retries.
+                          See: https://mariadb.com/docs/server/reference/sql-statements/administrative-sql-statements/replication-statements/change-master-to#master_connect_retry.
                         type: integer
                       gtid:
                         description: |-
                           Gtid indicates which Global Transaction ID (GTID) position mode should be used when connecting a replica to the master.
                           By default, CurrentPos is used.
-                          See: https://mariadb.com/kb/en/gtid/#using-current_pos-vs-slave_pos.
+                          See: https://mariadb.com/docs/server/reference/sql-statements/administrative-sql-statements/replication-statements/change-master-to#master_use_gtid.
                         enum:
                         - CurrentPos
                         - SlavePos

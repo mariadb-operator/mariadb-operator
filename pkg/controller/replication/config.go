@@ -164,8 +164,8 @@ func (r *ReplicationConfigClient) changeMaster(ctx context.Context, mariadb *mar
 		))
 	}
 
-	if retries := ptr.Deref(replication.Replica.ConnectionRetries, -1); retries != -1 {
-		changeMasterOpts = append(changeMasterOpts, sql.WithChangeMasterRetries(*replication.Replica.ConnectionRetries))
+	if retries := ptr.Deref(replication.Replica.ConnectionRetrySeconds, -1); retries != -1 {
+		changeMasterOpts = append(changeMasterOpts, sql.WithChangeMasterRetries(*replication.Replica.ConnectionRetrySeconds))
 	}
 
 	changeMasterOpts = append(changeMasterOpts, opts...)
