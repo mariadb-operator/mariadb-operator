@@ -393,20 +393,12 @@ This will trigger an scaling out operation, resulting in:
 
 
 ```bash
-kubectl get pods
-NAME                                    READY   STATUS    RESTARTS   AGE
-mariadb-repl-0                          2/2     Running   0          136m
-mariadb-repl-1                          2/2     Running   0          3d5h
-mariadb-repl-2                          2/2     Running   0          3d5h
-mariadb-repl-metrics-56865fff65-t72kc   1/1     Running   0          3d5h
-
 kubectl scale mariadb mariadb-repl --replicas=4
 mariadb.k8s.mariadb.com/mariadb-repl scaled
 
 kubectl get mariadb
 NAME           READY   STATUS        PRIMARY          UPDATES                    AGE
 mariadb-repl   False   Scaling out   mariadb-repl-1   ReplicasFirstPrimaryLast   3d5h
-
 
 kubectl get physicalbackups
 NAME                                    COMPLETE   STATUS      MARIADB        LAST SCHEDULED   AGE
@@ -420,12 +412,91 @@ mariadb-repl-1                          2/2     Running   0          3d5h
 mariadb-repl-2                          2/2     Running   0          3d5h
 mariadb-repl-3                          2/2     Running   0          40s
 mariadb-repl-metrics-56865fff65-t72kc   1/1     Running   0          3d5h
+
+kubectl get mariadb
+NAME           READY   STATUS    PRIMARY          UPDATES                    AGE
+mariadb-repl   True    Running   mariadb-repl-1   ReplicasFirstPrimaryLast   3d5h
 ```
 
 It is important to note that, if there are no ready replicas available at the time of the scaling out operation, the `PhysicalBackup` will not become ready, and the scaling out operation will be stuck until a replica becomes ready. You have the ability to cancel the scaling out operation by setting back the `spec.replicas` field to the previous value.
 
-
 ## Replica recovery
+
+The operator has the ability to automatically recover replicas that become unavailable and report a specific error code in the replication status.  For doing so, the operator continiously monitors the replication status of each replica, and whenever a replicas reports an error code listed in the table below, the operator will trigger an automatic recovery process for that replica:
+
+| Error Code | Thread | Description | Documentation |
+|------------|--------|-------------|---------------|
+| 1236       | IO     | Error 1236: Got fatal error from master when reading data from binary log. | [MariaDB docs](https://mariadb.com/docs/server/reference/error-codes/mariadb-error-codes-1200-to-1299/e1236) |
+
+To perform the recover, the operator will take a physical backup from a ready replica, restore it to the failed replica PVC, and reconfigure it as a replica of the primary.
+
+Similarly to the [scaling out](#scaling-out) operation, you need to define a `PhysicalBackup` template and set a reference to it in the `spec.replication.replica.bootstrapFrom` field of the `MariaDB` CR. Additionally, you need to explicitly enable the replica recovery, as it is disabled by default:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-repl
+spec:
+  replication:
+    enabled: true
+    replica:
+      bootstrapFrom:
+        physicalBackupTemplateRef:
+          name: physicalbackup-tpl
+      recovery:
+        enabled: true
+        errorDurationThreshold: 5m
+```
+
+The `errorDurationThreshold` option defines the duration after which, a replica reporting an unknown error code will be considered for recovery. This is useful to avoid recovering replicas due to transient issues. It defaults to `5m`.
+
+We will be simulating a `1236` error in a replica to demostrate how the recovery process works:
+
+> [!CAUTION]
+> Do not perform the following steps in a production environment.
+
+1. Purge the binary logs in the primary:
+```bash
+PRIMARY=$(kubectl get mariadb mariadb-repl -o jsonpath="{.status.currentPrimary}")
+echo "Purging binary logs in primary $PRIMARY"
+kubectl exec -it $PRIMARY -c mariadb -- mariadb -u root -p'MariaDB11!' --ssl=false -e "FLUSH LOGS; PURGE BINARY LOGS BEFORE NOW();"
+```
+
+2. Delete the PVC and restart one of the replicas:
+```bash
+REPLICA=$(kubectl get mariadb mariadb-repl -o jsonpath='{.status.replication.replicas}' | jq -r 'keys[]' | head -n1)
+echo "Deleting PVC and restarting replica $REPLICA"
+kubectl delete pvc storage-$REPLICA --wait=false 
+kubectl delete pod $REPLICA --wait=false 
+```
+
+3. Observe how the replica is recovered:
+
+```bash
+kubectl get mariadb
+NAME           READY   STATUS                PRIMARY          UPDATES                    AGE
+mariadb-repl   False   Recovering replicas   mariadb-repl-1   ReplicasFirstPrimaryLast   3d6h
+
+kubectl get physicalbackups
+NAME                                           COMPLETE   STATUS      MARIADB        LAST SCHEDULED   AGE
+mariadb-repl-physicalbackup-replica-recovery   True       Success     mariadb-repl   31s              31s
+physicalbackup-tpl                             False      Suspended   mariadb-repl                    3d9h
+
+
+kubectl get pods
+NAME                                                              READY   STATUS            RESTARTS       AGE
+mariadb-repl-0                                                    0/2     PodInitializing   0              22s
+mariadb-repl-0-physicalbackup-init-qn79f                          0/1     Completed         0              8s
+mariadb-repl-1                                                    2/2     Running           0              3d6h
+mariadb-repl-2                                                    2/2     Running           0              3d6h
+mariadb-repl-metrics-56865fff65-t72kc                             1/1     Running           0              3d6h
+mariadb-repl-physicalbackup-replica-recovery-2025102020270r98zr   0/1     Completed         0              31s
+
+kubectl get mariadb
+NAME           READY   STATUS    PRIMARY          UPDATES                    AGE
+mariadb-repl   True    Running   mariadb-repl-1   ReplicasFirstPrimaryLast   3d6h
+``` 
 
 ## Troubleshooting
 
