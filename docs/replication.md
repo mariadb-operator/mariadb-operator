@@ -166,12 +166,69 @@ A replica is considered to be lagging behind the primary when the `Seconds_Behin
 
 ## Backing up and restoring
 
-GTID
-VolumeSnapshot
+In order to back up and restore a replication cluster, all the concepts and procedures described in the [physical backup](./physical_backup.md) documentation apply. 
+
+Additionally, for the replication topology, the operator tracks the GTID position at the time of taking the backup, and sets this position in the `gtid_slave_pos` system variable when restoring the backup, as described in the [MariaDB documentation](https://mariadb.com/docs/server/server-usage/backup-and-restore/mariadb-backup/setting-up-a-replica-with-mariadb-backup).
+
+Depending on the `PhysicalBackup` strategy used, the operator will track the GTID position accordingly:
+
+#### mariadb-backup
+
+When using `PhysicalBackup` with the `mariadb-backup` strategy, the GTID will be restored to a `mariadb-operator.info` file in the data directory, which the agent will expose to the operator via HTTP.
+
+#### `VolumeSnapshot`
+
+When using `PhysicalBackup` with the `VolumeSnapshot` strategy, the GTID position will be kept in a `k8s.mariadb.com/gtid` annotation in the `VolumeSnapshot` object, which later on the operator will read when restoring the backup.
+
+> [!WARNING]
+> Refrain from removing the `k8s.mariadb.com/gtid` annotation in the `VolumeSnapshot` object, as it is required for configuring the replica when restoring the backup.
 
 ## Primary switchover
 
-How to trigger it. Steps
+You can declaratively trigger a primary switchover by updating the `spec.replication.primary.podIndex` field in the `MariaDB` CR to the index of the replica you want to promote as the new primary. For example, to promote the replica at index `1`:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-repl
+spec:
+  replicas: 3
+  replication:
+    enabled: true
+    primary:
+      podIndex: 1
+```
+
+You can also do this imperatively using kubectl:
+
+```bash
+kubectl patch mariadb mariadb-repl \
+  --type='merge' \
+  -p '{"spec":{"replication":{"primary":{"podIndex":1}}}}'
+```
+
+This will result in the `MariaDB` object reporting the following status:
+
+```bash
+kubectl get mariadb
+NAME           READY   STATUS                                  PRIMARY          UPDATES                    AGE
+mariadb-repl   False   Switching primary to 'mariadb-repl-1'   mariadb-repl-0   ReplicasFirstPrimaryLast   3d2h
+```
+
+The steps involved in the switchover operation are:
+1. Lock the current primary using `FLUSH TABLES WITH READ LOCK` to ensure no new transactions are being processed.
+2. Set the `read_only` system variable on the current primary to prevent any write operations.
+3. Wait until all the replicas are in sync with the current primary. The timeout for this step can be configured via the `spec.replication.replica.syncTimeout` option. If the timeout is reached, the switchover operation will be retried from the beginning.
+4. Promote the selected replica to be the new primary.
+5. Connect replicas to the new primary.
+6. Change the current primary to be a replica of the new primary.
+
+If the switchover operation is stuck waiting for replicas to be in sync, you can check the `MariaDB` status to identify which replicas are causing the issue. Furthermore, if still in this step, you can cancel the switchover operation by setting back the `spec.replication.primary.podIndex` field back to the previous primary index.
+
+  
+Our recommendation for production environments is to rely on [MaxScale](./maxscale.md) for the [switchover operation](./maxscale.md#primary-server-switchover), as it provides [several advantages](./high_availability.md#maxscale).
+
 
 ## Primary failover
 
