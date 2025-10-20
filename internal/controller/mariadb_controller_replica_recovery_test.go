@@ -162,7 +162,13 @@ var _ = Describe("MariaDB Replica Recovery", Ordered, func() {
 		) {
 			podIndexToDelete := 2
 			backup := builderFn(backupKey)
-			testPhysicalBackup(backup)
+			backup.Spec.Schedule = &mariadbv1alpha1.PhysicalBackupSchedule{
+				Suspend: true,
+			}
+			Expect(k8sClient.Create(testCtx, backup)).To(Succeed())
+			DeferCleanup(func() {
+				Expect(client.IgnoreNotFound(k8sClient.Delete(testCtx, backup))).To(Succeed())
+			})
 
 			DeferCleanup(func() {
 				deletePhysicalBackup(backupKey)
