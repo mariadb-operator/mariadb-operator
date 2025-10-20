@@ -259,7 +259,7 @@ pod "mariadb-repl-0" deleted
 
 kubectl get mariadb
 NAME           READY   STATUS                                  PRIMARY          UPDATES                    AGE
-mariadb-repl   False   Switching primary to 'mariadb-repl-1'   mariadb-repl-0   ReplicasFirstPrimaryLast 
+mariadb-repl   False   Switching primary to 'mariadb-repl-1'   mariadb-repl-0   ReplicasFirstPrimaryLast   3d2h 
 
 kubectl get mariadb
 NAME           READY   STATUS    PRIMARY          UPDATES                    AGE
@@ -291,6 +291,139 @@ The steps involved in updating a replication cluster are:
 3. Update the previous primary, now running as a replica.
 
 ## Scaling out
+
+Scaling out a replication cluster implies adding new replicas to the cluster i.e scaling horizontally. The process involves taking a physical backup from a ready replica to setup the new replica PVC, and upscaling the replication cluster afterwards.
+
+The first step is to define the [`PhysicalBackup` strategy](./physical_backup.md#backup-strategies) to be used for taking the backup. For doing so, we will be defining a `PhysicalBackup` CR, that will be used by the operator as template for creating the actual `PhysicalBackup` object during scaling out events. For instance, to use the `mariadb-backup` strategy, we can define the following `PhysicalBackup`:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: PhysicalBackup
+metadata:
+  name: physicalbackup-tpl
+spec:
+  mariaDbRef:
+    name: mariadb-repl
+  schedule:
+    suspend: true
+  storage:
+    s3:
+      bucket: scaleout
+      prefix: mariadb
+      endpoint: minio.minio.svc.cluster.local:9000
+      region:  us-east-1
+      accessKeyIdSecretKeyRef:
+        name: minio
+        key: access-key-id
+      secretAccessKeySecretKeyRef:
+        name: minio
+        key: secret-access-key
+      tls:
+        enabled: true
+        caSecretKeyRef:
+          name: minio-ca
+          key: ca.crt
+  timeout: 1h
+  podAffinity: true
+```
+
+It is important to note that, we set the `spec.schedule.suspend=true` to prevent scheduling this backup, as it will be only be used as a template. 
+
+Alternatively, you may also use a `VolumeSnapshot` strategy for taking the backup:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: PhysicalBackup
+metadata:
+  name: physicalbackup-tpl
+spec:
+  mariaDbRef:
+    name: mariadb-repl
+  schedule:
+    suspend: true
+  storage:
+    volumeSnapshot:
+      volumeSnapshotClassName: csi-hostpath-snapclass
+```
+
+Once the `PhysicalBackup` template is created, you neeed to set a reference to it in the `spec.replication.replica.bootstrapFrom`, indicating that this will be the source for creating new replicas:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-repl
+spec:
+  replication:
+    enabled: true
+    replica:
+      bootstrapFrom:
+        physicalBackupTemplateRef:
+          name: physicalbackup-tpl
+```
+
+At this point, you can proceed to scale out the cluster by increasing the `spec.replicas` field in the `MariaDB` CR. For example, to scale out from `3` to `4` replicas:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-repl
+spec:
+  replicas: 4
+  replication:
+    enabled: true
+    replica:
+      bootstrapFrom:
+        physicalBackupTemplateRef:
+          name: physicalbackup-tpl
+```
+
+You can also do this imperatively using `kubectl`:
+
+```bash
+kubectl scale mariadb mariadb-repl --replicas=4
+```
+
+This will trigger an scaling out operation, resulting in:
+- A `PhysicalBackup` based on the template being created.
+- Creating a new PVC for the new replica based on the `PhysicalBackup`.
+- Upscaling the `StatefulSet`, adding a `Pod` that mounts the newly created PVC.
+- The `Pod` is configured as a replica, connected to the primary by starting the replication in the GTID position stored in the backup.
+
+
+```bash
+kubectl get pods
+NAME                                    READY   STATUS    RESTARTS   AGE
+mariadb-repl-0                          2/2     Running   0          136m
+mariadb-repl-1                          2/2     Running   0          3d5h
+mariadb-repl-2                          2/2     Running   0          3d5h
+mariadb-repl-metrics-56865fff65-t72kc   1/1     Running   0          3d5h
+
+kubectl scale mariadb mariadb-repl --replicas=4
+mariadb.k8s.mariadb.com/mariadb-repl scaled
+
+kubectl get mariadb
+NAME           READY   STATUS        PRIMARY          UPDATES                    AGE
+mariadb-repl   False   Scaling out   mariadb-repl-1   ReplicasFirstPrimaryLast   3d5h
+
+
+kubectl get physicalbackups
+NAME                                    COMPLETE   STATUS      MARIADB        LAST SCHEDULED   AGE
+mariadb-repl-physicalbackup-scale-out   True       Success     mariadb-repl   14s              14s
+physicalbackup-tpl                      False      Suspended   mariadb-repl                    3d8h
+
+kubectl get pods
+NAME                                    READY   STATUS    RESTARTS   AGE
+mariadb-repl-0                          2/2     Running   0          137m
+mariadb-repl-1                          2/2     Running   0          3d5h
+mariadb-repl-2                          2/2     Running   0          3d5h
+mariadb-repl-3                          2/2     Running   0          40s
+mariadb-repl-metrics-56865fff65-t72kc   1/1     Running   0          3d5h
+```
+
+It is important to note that, if there are no ready replicas available at the time of the scaling out operation, the `PhysicalBackup` will not become ready, and the scaling out operation will be stuck until a replica becomes ready. You have the ability to cancel the scaling out operation by setting back the `spec.replicas` field to the previous value.
+
 
 ## Replica recovery
 
