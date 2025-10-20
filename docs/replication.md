@@ -136,22 +136,33 @@ spec:
 - `replPasswordSecretKeyRef`: Reference to the `Secret` key containing the password for the replication user, used by the replicas to connect to the primary. By default, a `Secret` with a random password will be created.
 - `gtid`: GTID position mode to be used (`CurrentPos` and `SlavePos` allowed). See [MariaDB documentation](https://mariadb.com/docs/server/reference/sql-statements/administrative-sql-statements/replication-statements/change-master-to#master_use_gtid). It defaults to `CurrentPos`.
 - `connectionRetrySeconds`: Number of seconds that the replica will wait between connection retries. See [MariaDB documentation](https://mariadb.com/docs/server/reference/sql-statements/administrative-sql-statements/replication-statements/change-master-to#master_connect_retry).
-- `maxLagSeconds`: Maximum acceptable lag in seconds between the replica and the primary. If the lag exceeds this value, the [readiness probe](#readiness-probe) will fail and the replica will be marked as not ready. See [replica lag](#replica-lag) section for more details. It defaults to `0`, meaning that no lag is allowed.
+- `maxLagSeconds`: Maximum acceptable lag in seconds between the replica and the primary. If the lag exceeds this value, the [readiness probe](#readiness-probe) will fail and the replica will be marked as not ready. See [lagged replicas](#lagged-replicas) section for more details. It defaults to `0`, meaning that no lag is allowed.
 - `syncTimeout`: Timeout for the replicas to be synced during switchover and failover operations. See the [primary switchover](#primary-switchover) and [primary failover](#primary-failover) sections for more details. It defaults to `10s`.
 
 When updating any of these options, an [update of the cluster](#updates) will be triggered in order to apply the new configuration.
 
 ## Probes
 
-Data plane. Probes documentation
+Kubernetes probes are resolved by the agent (see [data-plane](./data_plane.md) documentation) in the replication topology, taking into account both the MariaDB and replication status. Additionally, as described in the [configuration documentation](./configuration.md#probes), probe thresholds may be tuned accordinly for a better reliability based on your environment.
+
+In the following sub-sections we will be covering specifics about the replication topology.
 
 #### Liveness probe
 
+As part of the liveness probe, the agent checks that the MariaDB server is running and that the replication threads (`Slave_IO_Running` and `Slave_SQL_Running`) are both running on replicas. If any of these checks fail, the liveness probe will fail.
+
 #### Readiness probe
 
-## Replica lag
+The readiness probe checks that the MariaDB server is running and that the `Seconds_Behind_Master` value is within the acceptable lag range defined by the `spec.replication.replica.maxLagSeconds` configuration option. If the lag exceeds this value, the readiness probe will fail and the replica will be marked as not ready.
 
-maxLagSeconds
+## Lagged replicas
+
+A replica is considered to be lagging behind the primary when the `Seconds_Behind_Master` value reported by `SHOW SLAVE STATUS` exceeds the `spec.replication.replica.maxLagSeconds` configuration option. This results in the [readiness probe](#readiness-probe) failing for that replica, and it has the following implications:
+- When using [Kubernetes `Services` for high availability](./high_availability.md#kubernetes-services), queries will not be forwarded to lagged replicas. This doesn't affect MaxScale routing.
+- When taking a [physical backup](./physical_backup.md), lagged replicas will not be considered as a target for taking the backup.
+- During a [primary switchover](#primary-switchover) managed by the operator, lagged replicas will block switchover operations, as all the replicas must be in sync before promoting the new primary. This doesn't affect MaxScale switchover operation.
+- During a [primary failover](#primary-failover) managed by the operator, lagged replicas will not be considered as candidates to be promoted as the new primary. MaxScale failover will not consider lagged replicas either.
+- During [updates](#updates), lagged replicas will block the update operation, as each of the replicas must pass the readiness probe before proceeding to the update of the next one.
 
 ## Backing up and restoring
 
