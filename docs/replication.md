@@ -483,7 +483,6 @@ NAME                                           COMPLETE   STATUS      MARIADB   
 mariadb-repl-physicalbackup-replica-recovery   True       Success     mariadb-repl   31s              31s
 physicalbackup-tpl                             False      Suspended   mariadb-repl                    3d9h
 
-
 kubectl get pods
 NAME                                                              READY   STATUS            RESTARTS       AGE
 mariadb-repl-0                                                    0/2     PodInitializing   0              22s
@@ -496,7 +495,9 @@ mariadb-repl-physicalbackup-replica-recovery-2025102020270r98zr   0/1     Comple
 kubectl get mariadb
 NAME           READY   STATUS    PRIMARY          UPDATES                    AGE
 mariadb-repl   True    Running   mariadb-repl-1   ReplicasFirstPrimaryLast   3d6h
-``` 
+```
+
+It is important to note that, if there are no ready replicas available at the time of the recovery operation, the `PhysicalBackup` will not become ready, and the recovery operation will be stuck until a replica becomes ready. You have the ability to cancel the recovery operation by setting `spec.replication.replica.recovery.enabled=false`.
 
 ## Troubleshooting
 
