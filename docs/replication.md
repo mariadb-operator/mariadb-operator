@@ -226,17 +226,69 @@ The steps involved in the switchover operation are:
 
 If the switchover operation is stuck waiting for replicas to be in sync, you can check the `MariaDB` status to identify which replicas are causing the issue. Furthermore, if still in this step, you can cancel the switchover operation by setting back the `spec.replication.primary.podIndex` field back to the previous primary index.
 
-  
 Our recommendation for production environments is to rely on [MaxScale](./maxscale.md) for the [switchover operation](./maxscale.md#primary-server-switchover), as it provides [several advantages](./high_availability.md#maxscale).
-
 
 ## Primary failover
 
-How to configure it. Steps.
+You can configure the operator to automatically perform a primary failover whenever the current primary becomes unavailable:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-repl
+spec:
+  replicas: 3
+  replication:
+    enabled: true
+    primary:
+      automaticFailover: true
+      automaticFailoverDelay: 0s
+```
+Optionally, you may also specify a `automaticFailoverDelay`, which will add a delay before triggering the failover operation. By default, the failover is immediate, but introducing a delay may be useful to avoid failovers due to transient issues.
+
+Whenever the primary becomes unavailable, the following status will be reported in the `MariaDB` CR:
+
+```bash
+kubectl get mariadb
+NAME           READY   STATUS    PRIMARY          UPDATES                    AGE
+mariadb-repl   True    Running   mariadb-repl-0   ReplicasFirstPrimaryLast   3d2h
+
+kubectl delete pod mariadb-repl-0
+pod "mariadb-repl-0" deleted
+
+kubectl get mariadb
+NAME           READY   STATUS                                  PRIMARY          UPDATES                    AGE
+mariadb-repl   False   Switching primary to 'mariadb-repl-1'   mariadb-repl-0   ReplicasFirstPrimaryLast 
+
+kubectl get mariadb
+NAME           READY   STATUS    PRIMARY          UPDATES                    AGE
+mariadb-repl   True    Running   mariadb-repl-1   ReplicasFirstPrimaryLast   3d2h
+```
+
+The criteria for choosing a new primary is:
+- The `Pod` should be in `Ready` state, therefore not considering unavailable or lagged replicas (see [readiness probe](#readiness-probe) and [lagged replicas](#lagged-replicas) sections).
+- Both the `Slave_IO_Running` and `Slave_SQL_Running` threads should be running.
+- The replica should not have relay log events.
+- Among the candidates, the one with the highest `gtid_current_pos` will be selected.
+
+Once the new primary is selected, the failover process will be performed, consisting of the following steps:
+1. Wait for the new primary to apply all relay log events.
+2. Promote the selected replica to be the new primary.
+3. Connect replicas to the new primary.
+
+Our recommendation for production environments is to rely on [MaxScale](./maxscale.md) for the failover process, as it provides [several advantages](./high_availability.md#maxscale).
 
 ## Updates
 
-Steps. Include MaxScale switchover.
+When updating a replication cluster, all the considerations and procedures described in the [updates](./updates.md) documentation apply.
+
+Furthermore, for the replication topology, the operator will trigger an additional [switchover operation](#primary-switchover) once all the replicas have been updated, just before updating the primary. This ensures that the primary is always updated last, minimizing the impact on write operations.
+
+The steps involved in updating a replication cluster are:
+1. Update each replica one by one, waiting for each replica to be ready before proceeding to the next one (see [readiness probe](#readiness-probe) section).
+2. Once all replicas are up to date and synced, perform a [primary switchover](#primary-switchover) to promote one of the replicas as the new primary. If `MariaDB` CR has a `MaxScale` configured using the `spec.maxScaleRef` field, the operator will trigger the [primary switchover in MaxScale](./maxscale.md#primary-server-switchover) instead.
+3. Update the previous primary, now running as a replica.
 
 ## Scaling out
 
