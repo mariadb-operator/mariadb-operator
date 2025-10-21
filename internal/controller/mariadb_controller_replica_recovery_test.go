@@ -131,6 +131,8 @@ var _ = Describe("MariaDB Replica Recovery", Ordered, func() {
 		mdb *mariadbv1alpha1.MariaDB
 	)
 
+	var primaryPodIndex int
+
 	BeforeEach(func() {
 		mdb = buildTestMariaDBRecovery(key)
 		applyMariadbTestConfig(mdb)
@@ -149,6 +151,8 @@ var _ = Describe("MariaDB Replica Recovery", Ordered, func() {
 			return mdb.IsReady()
 
 		}, testHighTimeout, testInterval).Should(BeTrue())
+
+		primaryPodIndex = ptr.Deref(mdb.Status.CurrentPrimaryPodIndex, 0)
 	})
 
 	DescribeTable(
@@ -200,21 +204,21 @@ var _ = Describe("MariaDB Replica Recovery", Ordered, func() {
 			By("Deleting the First Replica Pod")
 			deletePodByIndex(mdb, podIndexToDelete)
 
-			By("Flushing Binary Logs")
-			query := `FLUSH LOGS;`
-			executeSqlInPodByIndex(mdb, 0, query)
-			query = `PURGE BINARY LOGS BEFORE NOW();`
-			executeSqlInPodByIndex(mdb, 0, query)
+			By("Flushing Binary Logs Continuously Until Replica Recovery is needed")
+			Eventually(func() bool {
+				query := `FLUSH LOGS;`
+				executeSqlInPodByIndex(mdb, primaryPodIndex, query)
+				query = `PURGE BINARY LOGS BEFORE NOW();`
+				executeSqlInPodByIndex(mdb, primaryPodIndex, query)
 
-			// Otherwise the `pod` doesn't get deleted and gets stuck in `Completed`
-			By("Removing PVC finalizer after a short delay")
-			time.Sleep(10 * time.Second)
+				if err := k8sClient.Get(testCtx, key, mdb); err != nil {
+					return false
+				}
 
-			By("Flushing Binary Logs")
-			query = `FLUSH LOGS;`
-			executeSqlInPodByIndex(mdb, 0, query)
-			query = `PURGE BINARY LOGS BEFORE NOW();`
-			executeSqlInPodByIndex(mdb, 0, query)
+				// Adding mariadbv1alpha1.ConditionTypeReplicaRecovered just in case, should never be true, but we don't want to get stuck
+				return meta.IsStatusConditionTrue(mdb.Status.Conditions, mariadbv1alpha1.ConditionTypeReplicaRecovered) ||
+					meta.IsStatusConditionFalse(mdb.Status.Conditions, mariadbv1alpha1.ConditionTypeReplicaRecovered)
+			}, testTimeout, time.Second*2).Should(BeTrue())
 
 			By("Expecting MariaDB to have recovered eventually")
 			Eventually(func() bool {
@@ -224,7 +228,6 @@ var _ = Describe("MariaDB Replica Recovery", Ordered, func() {
 				return mdb.IsReady() &&
 					meta.IsStatusConditionTrue(mdb.Status.Conditions, mariadbv1alpha1.ConditionTypeReplicaRecovered) &&
 					mdb.Status.Replicas == int32(3)
-
 			}, testHighTimeout, testInterval).Should(BeTrue())
 		},
 		Entry(

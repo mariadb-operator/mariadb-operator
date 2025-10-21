@@ -1238,7 +1238,6 @@ func deletePVC(pvcKey types.NamespacedName) {
 }
 
 func executeSqlInPodByIndex(mdb *mariadbv1alpha1.MariaDB, podIndex int, query string) {
-	By(fmt.Sprintf("Executing query in pod %d", podIndex))
 	clientSet := sql.NewClientSet(mdb, refresolver.New(k8sClient))
 	sqlClient, err := clientSet.ClientForIndex(testCtx, podIndex)
 
