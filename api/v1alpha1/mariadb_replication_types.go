@@ -414,7 +414,7 @@ func (m *MariaDB) IsSwitchingPrimary() bool {
 
 // IsSwitchoverRequired indicates that a primary switchover operation is required.
 func (m *MariaDB) IsSwitchoverRequired() bool {
-	if m.Status.CurrentPrimaryPodIndex == nil {
+	if m.Status.CurrentPrimaryPodIndex == nil || m.IsMaxScaleEnabled() {
 		return false
 	}
 	currentPodIndex := ptr.Deref(m.Status.CurrentPrimaryPodIndex, 0)

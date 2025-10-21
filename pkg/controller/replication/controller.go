@@ -139,7 +139,7 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, mdb *mariadbv1alp
 	}
 	defer req.Close()
 
-	if !mdb.IsMaxScaleEnabled() && mdb.IsSwitchoverRequired() {
+	if mdb.IsSwitchoverRequired() {
 		return ctrl.Result{}, r.reconcileSwitchover(ctx, req, switchoverLogger)
 	}
 	if result, err := r.reconcileReplication(ctx, req, logger); !result.IsZero() || err != nil {
