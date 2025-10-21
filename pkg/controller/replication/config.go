@@ -265,6 +265,14 @@ log_basename={{.LogName }}
 {{- with .GtidStrictMode }}
 gtid_strict_mode
 {{- end }}
+rpl_semi_sync_master_enabled=ON
+rpl_semi_sync_slave_enabled=ON
+{{- with .MasterTimeout }}
+rpl_semi_sync_master_timeout={{ . }}
+{{- end }}
+{{- with .MasterWaitPoint }}
+rpl_semi_sync_master_wait_point={{ . }}
+{{- end }}
 server_id={{ .ServerId }}
 {{- with .SyncBinlog }}
 sync_binlog={{ . }}
