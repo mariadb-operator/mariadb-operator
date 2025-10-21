@@ -12,7 +12,6 @@ import (
 	. "github.com/onsi/gomega"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -112,7 +111,7 @@ var _ = Describe("isRecoverableError", func() {
 							Replica: mariadbv1alpha1.ReplicaReplication{
 								ReplicaRecovery: &mariadbv1alpha1.ReplicaRecovery{
 									Enabled:                true,
-									ErrorDurationThreshold: &metav1.Duration{Duration: 15 * time.Second},
+									ErrorDurationThreshold: &metav1.Duration{Duration: 30 * time.Second},
 								},
 							},
 						},
@@ -227,13 +226,15 @@ var _ = Describe("MariaDB Replica Recovery", Ordered, func() {
 			var pvc corev1.PersistentVolumeClaim
 			pvcKey := mdb.PVCKey(builder.StorageVolume, podIndexToDelete)
 			err := k8sClient.Get(testCtx, pvcKey, &pvc)
-			if apierrors.IsNotFound(err) {
-				return
-			}
-			Expect(err).NotTo(HaveOccurred())
 
-			pvc.SetFinalizers(nil)
-			Expect(k8sClient.Update(testCtx, &pvc)).NotTo(HaveOccurred())
+			Expect(client.IgnoreNotFound(err)).NotTo(HaveOccurred())
+
+			if err == nil && pvc.DeletionTimestamp != nil {
+				Expect(err).NotTo(HaveOccurred())
+
+				pvc.SetFinalizers(nil)
+				Expect(k8sClient.Update(testCtx, &pvc)).NotTo(HaveOccurred())
+			}
 
 			By("Expecting MariaDB to have recovered eventually")
 			Eventually(func() bool {
@@ -330,30 +331,12 @@ func buildTestMariaDBRecovery(key types.NamespacedName) *mariadbv1alpha1.MariaDB
 					},
 				},
 			},
-			Connection: &mariadbv1alpha1.ConnectionTemplate{
-				SecretName: func() *string {
-					s := "mdb-repl-conn"
-					return &s
-				}(),
-				SecretTemplate: &mariadbv1alpha1.SecretTemplate{
-					Key: &testConnSecretKey,
-				},
-			},
 			PrimaryService: &mariadbv1alpha1.ServiceTemplate{
 				Type: corev1.ServiceTypeLoadBalancer,
 				Metadata: &mariadbv1alpha1.Metadata{
 					Annotations: map[string]string{
 						"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.130",
 					},
-				},
-			},
-			PrimaryConnection: &mariadbv1alpha1.ConnectionTemplate{
-				SecretName: func() *string {
-					s := "mdb-repl-conn-primary"
-					return &s
-				}(),
-				SecretTemplate: &mariadbv1alpha1.SecretTemplate{
-					Key: &testConnSecretKey,
 				},
 			},
 			SecondaryService: &mariadbv1alpha1.ServiceTemplate{
