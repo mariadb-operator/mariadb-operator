@@ -456,14 +456,14 @@ We will be simulating a `1236` error in a replica to demostrate how the recovery
 > [!CAUTION]
 > Do not perform the following steps in a production environment.
 
-1. Purge the binary logs in the primary:
+-  Purge the binary logs in the primary:
 ```bash
 PRIMARY=$(kubectl get mariadb mariadb-repl -o jsonpath="{.status.currentPrimary}")
 echo "Purging binary logs in primary $PRIMARY"
 kubectl exec -it $PRIMARY -c mariadb -- mariadb -u root -p'MariaDB11!' --ssl=false -e "FLUSH LOGS; PURGE BINARY LOGS BEFORE NOW();"
 ```
 
-2. Delete the PVC and restart one of the replicas:
+- Delete the PVC and restart one of the replicas:
 ```bash
 REPLICA=$(kubectl get mariadb mariadb-repl -o jsonpath='{.status.replication.replicas}' | jq -r 'keys[]' | head -n1)
 echo "Deleting PVC and restarting replica $REPLICA"
@@ -471,7 +471,10 @@ kubectl delete pvc storage-$REPLICA --wait=false
 kubectl delete pod $REPLICA --wait=false 
 ```
 
-3. Observe how the replica is recovered:
+This will trigger a replica recovery operation, resulting in:
+- A `PhysicalBackup` based on the template being created.
+- Restoring the backup to the failed replica PVC.
+- Reconfigure the replica to connect to the primary from the GTID position stored in the backup.
 
 ```bash
 kubectl get mariadb
@@ -501,6 +504,117 @@ It is important to note that, if there are no ready replicas available at the ti
 
 ## Troubleshooting
 
-#### Current status and events
+The operator tracks the current replication status under the `MariaDB` status subresource. This status is updated every time the operator reconciles the `MariaDB` resource, and it is the first place to look for when troubleshooting replication issues:
+
+```bash
+kubectl get mariadb mariadb-repl -o jsonpath="{.status.replication}" | jq
+{
+  "replicas": {
+    "mariadb-repl-0": {
+      "gtidCurrentPos": "0-10-24",
+      "gtidIOPos": "0-10-24",
+      "lastErrorTransitionTime": "2025-10-17T14:30:10Z",
+      "lastIOErrno": 0,
+      "lastIOError": "",
+      "lastSQLErrno": 0,
+      "lastSQLError": "",
+      "secondsBehindMaster": 0,
+      "slaveIORunning": true,
+      "slaveSQLRunning": true
+    },
+    "mariadb-repl-2": {
+      "gtidCurrentPos": "0-10-24",
+      "gtidIOPos": "0-10-24",
+      "lastErrorTransitionTime": "2025-10-17T14:30:10Z",
+      "lastIOErrno": 0,
+      "lastIOError": "",
+      "lastSQLErrno": 0,
+      "lastSQLError": "",
+      "secondsBehindMaster": 0,
+      "slaveIORunning": true,
+      "slaveSQLRunning": true
+    }
+  },
+  "roles": {
+    "mariadb-repl-0": "Primary",
+    "mariadb-repl-1": "Replica",
+    "mariadb-repl-2": "Replica"
+  }
+}
+```
+
+Additionally, also under the status subresource, the operator sets status conditions whenever a specific state of the `MariaDB` lifecycle is reached:
+
+```bash
+kubectl get mariadb mariadb-repl -o jsonpath="{.status.conditions}" | jq
+[
+  {
+    "lastTransitionTime": "2025-10-20T20:28:09Z",
+    "message": "Running",
+    "reason": "StatefulSetReady",
+    "status": "True",
+    "type": "Ready"
+  },
+  {
+    "lastTransitionTime": "2025-10-17T14:17:43Z",
+    "message": "Updated",
+    "reason": "Updated",
+    "status": "True",
+    "type": "Updated"
+  },
+  {
+    "lastTransitionTime": "2025-10-17T14:17:58Z",
+    "message": "Replication configured",
+    "reason": "ReplicationConfigured",
+    "status": "True",
+    "type": "ReplicationConfigured"
+  },
+  {
+    "lastTransitionTime": "2025-10-20T17:14:38Z",
+    "message": "Switchover complete",
+    "reason": "SwitchPrimary",
+    "status": "True",
+    "type": "PrimarySwitched"
+  },
+  {
+    "lastTransitionTime": "2025-10-20T19:31:29Z",
+    "message": "Scaled out",
+    "reason": "ScaledOut",
+    "status": "True",
+    "type": "ScaledOut"
+  },
+  {
+    "lastTransitionTime": "2025-10-20T20:27:41Z",
+    "message": "Replica recovered",
+    "reason": "ReplicaRecovered",
+    "status": "True",
+    "type": "ReplicaRecovered"
+  }
+]
+``` 
+
+The operator also emits Kubernetes events during failover/switchover operations. You may check them to see how these operations progress:
+
+```bash
+kubectl get events --field-selector involvedObject.name=mariadb-repl --sort-by='.lastTimestamp'
+
+LAST SEEN   TYPE     REASON             OBJECT                 MESSAGE
+17s         Normal   PrimaryLock        mariadb/mariadb-repl   Locking primary with read lock
+17s         Normal   PrimaryReadonly    mariadb/mariadb-repl   Enabling readonly mode in primary
+17s         Normal   ReplicaSync        mariadb/mariadb-repl   Waiting for replicas to be synced with primary
+17s         Normal   PrimaryNew         mariadb/mariadb-repl   Configuring new primary at index '0'
+7s          Normal   ReplicaConn        mariadb/mariadb-repl   Connecting replicas to new primary at '0'
+7s          Normal   PrimaryToReplica   mariadb/mariadb-repl   Unlocking primary '1' and configuring it to be a replica. New primary at '0'
+7s          Normal   PrimaryLock        mariadb/mariadb-repl   Unlocking primary
+7s          Normal   PrimarySwitched    mariadb/mariadb-repl   Primary switched from index '1' to index '0'
+``` 
 
 #### Common errors
+
+##### Primary has purged binary logs, unable to configure replica
+
+##### Scaling out/recovery operation stucked
+
+These operations rely on a `PhysicalBackup` for setting up the new replicas. If this `PhysicalBackup` does not become ready, the operation will not progress. In order to debug this please refer to the [`PhysicalBackup` troubleshooting section](./physical_backup.md#troubleshooting).
+
+One of the reasons why it doesn't become ready is that there are no replica `Pods` in ready state, please check the `Pod` state and the replication status as described in this section to verify this.
