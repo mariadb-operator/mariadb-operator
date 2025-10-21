@@ -1353,10 +1353,11 @@ var _ = Describe("MariaDB types", func() {
 						Replication: &Replication{
 							Enabled: true,
 							ReplicationSpec: ReplicationSpec{
-								GtidStrictMode: ptr.To(true),
-								WaitPoint:      nil,
-								SyncBinlog:     nil,
-								AckTimeout:     nil,
+								GtidStrictMode:     ptr.To(true),
+								SemiSyncEnabled:    ptr.To(true),
+								SemiSyncWaitPoint:  nil,
+								SyncBinlog:         nil,
+								SemiSyncAckTimeout: nil,
 								InitContainer: InitContainer{
 									Image:             env.MariadbOperatorImage,
 									ContainerTemplate: ContainerTemplate{},
@@ -1440,9 +1441,10 @@ var _ = Describe("MariaDB types", func() {
 						Replication: &Replication{
 							Enabled: true,
 							ReplicationSpec: ReplicationSpec{
-								GtidStrictMode: ptr.To(true),
-								WaitPoint:      nil,
-								AckTimeout:     nil,
+								GtidStrictMode:     ptr.To(true),
+								SemiSyncEnabled:    ptr.To(true),
+								SemiSyncWaitPoint:  nil,
+								SemiSyncAckTimeout: nil,
 								InitContainer: InitContainer{
 									Image:             env.MariadbOperatorImage,
 									ContainerTemplate: ContainerTemplate{},

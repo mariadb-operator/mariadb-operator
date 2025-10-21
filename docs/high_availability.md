@@ -24,7 +24,7 @@ Refer to the following sections for further detail.
 
 ## Highly Available Topologies
 
-- **[Semi-syncrhonous replication](./replication.md)**: The primary node allows both reads and writes, while secondary nodes only serve reads. Before committing the transaction back to the client, at least one replica should have sent an ACK to the primary node.
+- **[Semi-synchronous replication](./replication.md)**: The primary node allows both reads and writes, while secondary nodes only serve reads. Before committing the transaction back to the client, at least one replica should have sent an ACK to the primary node.
 - **[Synchronous multi-master Galera](./galera.md)**: All nodes support reads and writes, but writes are only sent to one node to avoid contention. The fact that is synchronous and that all nodes are equally configured makes the primary failover/switchover operation seamless and usually instantaneous.
 
 ## Kubernetes Services

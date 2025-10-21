@@ -481,36 +481,40 @@ func mariadbEnv(mariadb *mariadbv1alpha1.MariaDB) ([]corev1.EnvVar, error) {
 	}
 
 	if mariadb.IsReplicationEnabled() {
-		env = append(env, []corev1.EnvVar{
-			{
-				Name:  "MARIADB_REPL_ENABLED",
-				Value: "true",
-			},
-		}...)
+		env = append(env, corev1.EnvVar{
+			Name:  "MARIADB_REPL_ENABLED",
+			Value: "true",
+		})
 
 		replication := ptr.Deref(mariadb.Spec.Replication, mariadbv1alpha1.Replication{})
 
-		if ptr.Deref(replication.GtidStrictMode, true) {
+		if replication.IsGtidStrictModeEnabled() {
 			env = append(env, corev1.EnvVar{
 				Name:  "MARIADB_REPL_GTID_STRICT_MODE",
 				Value: fmt.Sprint(true),
 			})
 		}
-		if replication.AckTimeout != nil {
+		if replication.IsSemiSyncEnabled() {
 			env = append(env, corev1.EnvVar{
-				Name:  "MARIADB_REPL_MASTER_TIMEOUT",
-				Value: fmt.Sprint(replication.AckTimeout.Milliseconds()),
+				Name:  "MARIADB_REPL_SEMI_SYNC_ENABLED",
+				Value: "true",
 			})
-		}
-		if replication.WaitPoint != nil {
-			waitPoint, err := replication.WaitPoint.MariaDBFormat()
-			if err != nil {
-				return nil, fmt.Errorf("error getting replication wait point: %v", err)
+			if replication.SemiSyncAckTimeout != nil {
+				env = append(env, corev1.EnvVar{
+					Name:  "MARIADB_REPL_SEMI_SYNC_MASTER_TIMEOUT",
+					Value: fmt.Sprint(replication.SemiSyncAckTimeout.Milliseconds()),
+				})
 			}
-			env = append(env, corev1.EnvVar{
-				Name:  "MARIADB_REPL_MASTER_WAIT_POINT",
-				Value: waitPoint,
-			})
+			if replication.SemiSyncWaitPoint != nil {
+				waitPoint, err := replication.SemiSyncWaitPoint.MariaDBFormat()
+				if err != nil {
+					return nil, fmt.Errorf("error getting semi-synchronous replication wait point: %v", err)
+				}
+				env = append(env, corev1.EnvVar{
+					Name:  "MARIADB_REPL_SEMI_SYNC_MASTER_WAIT_POINT",
+					Value: waitPoint,
+				})
+			}
 		}
 		if replication.SyncBinlog != nil {
 			env = append(env, corev1.EnvVar{
