@@ -195,12 +195,6 @@ var _ = Describe("MariaDB Replica Recovery", Ordered, func() {
 				return k8sClient.Update(testCtx, mdb) == nil
 			}, testTimeout, testInterval).Should(BeTrue())
 
-			By("Flushing Binary Logs")
-			query := `FLUSH LOGS;`
-			executeSqlInPodByIndex(mdb, 0, query)
-			query = `PURGE BINARY LOGS BEFORE NOW();`
-			executeSqlInPodByIndex(mdb, 0, query)
-
 			By("Deleting the First Replica PVC")
 			deletePVCByPodIndex(mdb, podIndexToDelete)
 
@@ -208,7 +202,7 @@ var _ = Describe("MariaDB Replica Recovery", Ordered, func() {
 			deletePodByIndex(mdb, podIndexToDelete)
 
 			By("Flushing Binary Logs")
-			query = `FLUSH LOGS;`
+			query := `FLUSH LOGS;`
 			executeSqlInPodByIndex(mdb, 0, query)
 			query = `PURGE BINARY LOGS BEFORE NOW();`
 			executeSqlInPodByIndex(mdb, 0, query)
