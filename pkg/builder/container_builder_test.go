@@ -5,6 +5,7 @@ import (
 	"sort"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
@@ -1209,6 +1210,54 @@ func TestMariadbEnv(t *testing.T) {
 					{
 						Name:  "TLS_CLIENT_KEY_PATH",
 						Value: builderpki.ClientKeyPath,
+					},
+				}...),
+		},
+		{
+			name: "MariaDB replication",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "mariadb-repl",
+				},
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Replication: &mariadbv1alpha1.Replication{
+						Enabled: true,
+						ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
+							GtidStrictMode:     ptr.To(true),
+							SemiSyncEnabled:    ptr.To(true),
+							SemiSyncAckTimeout: &metav1.Duration{Duration: 10 * time.Second},
+							SemiSyncWaitPoint:  ptr.To(mariadbv1alpha1.WaitPointAfterCommit),
+						},
+					},
+				},
+			},
+			wantEnv: append(
+				defaultEnv([]corev1.EnvVar{
+					{
+						Name:  "MARIADB_NAME",
+						Value: "mariadb-repl",
+					},
+				}),
+				[]corev1.EnvVar{
+					{
+						Name:  "MARIADB_REPL_ENABLED",
+						Value: strconv.FormatBool(true),
+					},
+					{
+						Name:  "MARIADB_REPL_GTID_STRICT_MODE",
+						Value: strconv.FormatBool(true),
+					},
+					{
+						Name:  "MARIADB_REPL_SEMI_SYNC_ENABLED",
+						Value: strconv.FormatBool(true),
+					},
+					{
+						Name:  "MARIADB_REPL_SEMI_SYNC_MASTER_TIMEOUT",
+						Value: "10000",
+					},
+					{
+						Name:  "MARIADB_REPL_SEMI_SYNC_MASTER_WAIT_POINT",
+						Value: "AFTER_COMMIT",
 					},
 				}...),
 		},

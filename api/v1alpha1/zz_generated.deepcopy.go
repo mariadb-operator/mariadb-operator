@@ -4006,14 +4006,19 @@ func (in *ReplicationSpec) DeepCopyInto(out *ReplicationSpec) {
 		*out = new(bool)
 		**out = **in
 	}
-	if in.WaitPoint != nil {
-		in, out := &in.WaitPoint, &out.WaitPoint
-		*out = new(WaitPoint)
+	if in.SemiSyncEnabled != nil {
+		in, out := &in.SemiSyncEnabled, &out.SemiSyncEnabled
+		*out = new(bool)
 		**out = **in
 	}
-	if in.AckTimeout != nil {
-		in, out := &in.AckTimeout, &out.AckTimeout
+	if in.SemiSyncAckTimeout != nil {
+		in, out := &in.SemiSyncAckTimeout, &out.SemiSyncAckTimeout
 		*out = new(v1.Duration)
+		**out = **in
+	}
+	if in.SemiSyncWaitPoint != nil {
+		in, out := &in.SemiSyncWaitPoint, &out.SemiSyncWaitPoint
+		*out = new(WaitPoint)
 		**out = **in
 	}
 	if in.SyncBinlog != nil {

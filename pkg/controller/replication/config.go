@@ -244,9 +244,13 @@ func NewReplicationConfig(env *env.PodEnvironment) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error getting GTID strict mode: %v", err)
 	}
-	masterTimeout, err := env.ReplMasterTimeout()
+	semiSyncEnabled, err := env.ReplSemiSyncEnabled()
 	if err != nil {
-		return nil, fmt.Errorf("error getting master timeout: %v", err)
+		return nil, fmt.Errorf("error getting semi-sync enabled: %v", err)
+	}
+	semiSyncMasterTimeout, err := env.ReplSemiSyncMasterTimeout()
+	if err != nil {
+		return nil, fmt.Errorf("error getting semi-sync master timeout: %v", err)
 	}
 	serverId, err := serverId(env.PodName)
 	if err != nil {
@@ -265,13 +269,15 @@ log_basename={{.LogName }}
 {{- with .GtidStrictMode }}
 gtid_strict_mode
 {{- end }}
+{{- if .SemiSyncEnabled }}
 rpl_semi_sync_master_enabled=ON
 rpl_semi_sync_slave_enabled=ON
-{{- with .MasterTimeout }}
+{{- with .SemiSyncMasterTimeout }}
 rpl_semi_sync_master_timeout={{ . }}
 {{- end }}
-{{- with .MasterWaitPoint }}
+{{- with .SemiSyncMasterWaitPoint }}
 rpl_semi_sync_master_wait_point={{ . }}
+{{- end }}
 {{- end }}
 server_id={{ .ServerId }}
 {{- with .SyncBinlog }}
@@ -280,19 +286,21 @@ sync_binlog={{ . }}
 `)
 	buf := new(bytes.Buffer)
 	err = tpl.Execute(buf, struct {
-		LogName         string
-		GtidStrictMode  bool
-		MasterTimeout   *int64
-		MasterWaitPoint string
-		SyncBinlog      *int
-		ServerId        int
+		LogName                 string
+		GtidStrictMode          bool
+		SemiSyncEnabled         bool
+		SemiSyncMasterTimeout   *int64
+		SemiSyncMasterWaitPoint string
+		SyncBinlog              *int
+		ServerId                int
 	}{
-		LogName:         env.MariadbName,
-		GtidStrictMode:  gtidStrictMode,
-		MasterTimeout:   masterTimeout,
-		MasterWaitPoint: env.MariaDBReplMasterWaitPoint,
-		ServerId:        serverId,
-		SyncBinlog:      syncBinlog,
+		LogName:                 env.MariadbName,
+		GtidStrictMode:          gtidStrictMode,
+		SemiSyncEnabled:         semiSyncEnabled,
+		SemiSyncMasterTimeout:   semiSyncMasterTimeout,
+		SemiSyncMasterWaitPoint: env.MariaDBReplSemiSyncMasterWaitPoint,
+		ServerId:                serverId,
+		SyncBinlog:              syncBinlog,
 	})
 	if err != nil {
 		return nil, err

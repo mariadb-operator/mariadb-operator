@@ -68,11 +68,12 @@ type PodEnvironment struct {
 	MariadbRootPassword string `env:"MARIADB_ROOT_PASSWORD,required"`
 	MariadbPort         string `env:"MYSQL_TCP_PORT,required"`
 
-	MariaDBReplEnabled          string `env:"MARIADB_REPL_ENABLED"`
-	MariaDBReplGtidStrictMode   string `env:"MARIADB_REPL_GTID_STRICT_MODE"`
-	MariaDBReplMasterTimeout    string `env:"MARIADB_REPL_MASTER_TIMEOUT"`
-	MariaDBReplMasterWaitPoint  string `env:"MARIADB_REPL_MASTER_WAIT_POINT"`
-	MariaDBReplMasterSyncBinlog string `env:"MARIADB_REPL_SYNC_BINLOG"`
+	MariaDBReplEnabled                 string `env:"MARIADB_REPL_ENABLED"`
+	MariaDBReplGtidStrictMode          string `env:"MARIADB_REPL_GTID_STRICT_MODE"`
+	MariaDBReplSemiSyncEnabled         string `env:"MARIADB_REPL_SEMI_SYNC_ENABLED"`
+	MariaDBReplSemiSyncMasterTimeout   string `env:"MARIADB_REPL_SEMI_SYNC_MASTER_TIMEOUT"`
+	MariaDBReplSemiSyncMasterWaitPoint string `env:"MARIADB_REPL_SEMI_SYNC_MASTER_WAIT_POINT"`
+	MariaDBReplMasterSyncBinlog        string `env:"MARIADB_REPL_SYNC_BINLOG"`
 
 	TLSEnabled        string `env:"TLS_ENABLED"`
 	TLSCACertPath     string `env:"TLS_CA_CERT_PATH"`
@@ -111,7 +112,14 @@ func (e *PodEnvironment) ReplGtidStrictMode() (bool, error) {
 	return strconv.ParseBool(e.MariaDBReplGtidStrictMode)
 }
 
-func (e *PodEnvironment) ReplMasterTimeout() (*int64, error) {
+func (e *PodEnvironment) ReplSemiSyncEnabled() (bool, error) {
+	if e.MariaDBReplSemiSyncEnabled == "" {
+		return false, nil
+	}
+	return strconv.ParseBool(e.MariaDBReplSemiSyncEnabled)
+}
+
+func (e *PodEnvironment) ReplSemiSyncMasterTimeout() (*int64, error) {
 	replEnabled, err := e.IsReplEnabled()
 	if err != nil {
 		return nil, err
@@ -120,10 +128,10 @@ func (e *PodEnvironment) ReplMasterTimeout() (*int64, error) {
 		return nil, errors.New("replication must be enabled")
 	}
 
-	if e.MariaDBReplMasterTimeout == "" {
+	if e.MariaDBReplSemiSyncMasterTimeout == "" {
 		return nil, nil
 	}
-	timeout, err := strconv.ParseInt(e.MariaDBReplMasterTimeout, 10, 64)
+	timeout, err := strconv.ParseInt(e.MariaDBReplSemiSyncMasterTimeout, 10, 64)
 	if err != nil {
 		return nil, fmt.Errorf("invalid replication master timeout: %w", err)
 	}
