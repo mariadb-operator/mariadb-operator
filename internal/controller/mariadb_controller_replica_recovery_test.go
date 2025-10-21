@@ -6,7 +6,6 @@ import (
 	"github.com/go-logr/zapr"
 	volumesnapshotv1 "github.com/kubernetes-csi/external-snapshotter/client/v8/apis/volumesnapshot/v1"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/builder"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/metadata"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -216,19 +215,6 @@ var _ = Describe("MariaDB Replica Recovery", Ordered, func() {
 			executeSqlInPodByIndex(mdb, 0, query)
 			query = `PURGE BINARY LOGS BEFORE NOW();`
 			executeSqlInPodByIndex(mdb, 0, query)
-
-			var pvc corev1.PersistentVolumeClaim
-			pvcKey := mdb.PVCKey(builder.StorageVolume, podIndexToDelete)
-			err := k8sClient.Get(testCtx, pvcKey, &pvc)
-
-			Expect(client.IgnoreNotFound(err)).NotTo(HaveOccurred())
-
-			if err == nil && pvc.DeletionTimestamp != nil {
-				Expect(err).NotTo(HaveOccurred())
-
-				pvc.SetFinalizers(nil)
-				Expect(k8sClient.Update(testCtx, &pvc)).NotTo(HaveOccurred())
-			}
 
 			By("Expecting MariaDB to have recovered eventually")
 			Eventually(func() bool {
