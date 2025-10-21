@@ -1269,8 +1269,17 @@ func (r *MaxScaleReconciler) reconcileMonitorState(ctx context.Context, req *req
 	})
 }
 
+// When adding new servers, we need to trigger the reconciliation of services for the new servers.
+type servicesHash struct {
+	Services []mariadbv1alpha1.MaxScaleService `json:"services,omitempty"`
+	Servers  []mariadbv1alpha1.MaxScaleServer  `json:"servers,omitempty"`
+}
+
 func (r *MaxScaleReconciler) reconcileChangedServicesAndListeners(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
-	servicesHash, err := hash.HashJSON(req.mxs.Spec.Services)
+	servicesHash, err := hash.HashJSON(servicesHash{
+		Services: req.mxs.Spec.Services,
+		Servers:  req.mxs.Spec.Servers,
+	})
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error hashing spec.Services: %v", err)
 	}
