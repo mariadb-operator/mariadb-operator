@@ -19,13 +19,8 @@ spec:
   services:
     - name: rw-router
       router: readwritesplit
-      params:
-        transaction_replay: "true"
-        transaction_replay_attempts: "10"
-        transaction_replay_timeout: "5s"
       listener:
         port: 3306
-        protocol: MariaDBProtocol
 
   monitor:
     name: mariadb-monitor
