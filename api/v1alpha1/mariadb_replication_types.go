@@ -249,18 +249,28 @@ type ReplicationSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	GtidStrictMode *bool `json:"gtidStrictMode,omitempty"`
-	// WaitPoint determines whether the transaction should wait for an ACK after having synced the binlog (AfterSync)
+	// SemiSyncEnabled determines whether semi-synchronous replication is enabled.
+	// Semi-synchronous replication requires that at least one replica should have sent an ACK to the primary node
+	// before comitting the transaction back to the client.
+	// See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/semisynchronous-replication
+	// It is enabled by default
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	SemiSyncEnabled *bool `json:"semiSyncEnabled,omitempty"`
+	// SemiSyncAckTimeout for the replica to acknowledge transactions to the primary.
+	// It requires semi-synchronous replication to be enabled.
+	// See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/semisynchronous-replication#rpl_semi_sync_master_timeout
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	SemiSyncAckTimeout *metav1.Duration `json:"semiSyncAckTimeout,omitempty"`
+	// SemiSyncWaitPoint determines whether the transaction should wait for an ACK after having synced the binlog (AfterSync)
 	// or after having committed to the storage engine (AfterCommit, the default).
+	// It requires semi-synchronous replication to be enabled.
 	// See: https://mariadb.com/kb/en/semisynchronous-replication/#rpl_semi_sync_master_wait_point.
 	// +optional
 	// +kubebuilder:validation:Enum=AfterSync;AfterCommit
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	WaitPoint *WaitPoint `json:"waitPoint,omitempty"`
-	// AckTimeout for the replica to acknowledge transactions to the primary.
-	// See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/semisynchronous-replication#rpl_semi_sync_master_timeout
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	AckTimeout *metav1.Duration `json:"ackTimeout,omitempty"`
+	SemiSyncWaitPoint *WaitPoint `json:"semiSyncWaitPoint,omitempty"`
 	// SyncBinlog indicates after how many events the binary log is synchronized to the disk.
 	// See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/replication-and-binary-log-system-variables#sync_binlog
 	// +optional
@@ -276,14 +286,25 @@ type ReplicationSpec struct {
 	Agent Agent `json:"agent,omitempty"`
 }
 
+// IsGtidStrictModeEnabled determines whether GTID strict mode is enabled.
+func (r *Replication) IsGtidStrictModeEnabled() bool {
+	return ptr.Deref(r.GtidStrictMode, true)
+}
+
+// IsSemiSyncEnabled determines whether semi-synchronous replication is enabled.
+func (r *Replication) IsSemiSyncEnabled() bool {
+	return ptr.Deref(r.SemiSyncEnabled, true)
+}
+
 // Validate determines whether replication config is valid.
 func (r *Replication) Validate() error {
-	if r.WaitPoint != nil {
-		if err := r.WaitPoint.Validate(); err != nil {
-			return fmt.Errorf("invalid WaitPoint: %v", err)
+	if r.IsSemiSyncEnabled() {
+		if r.SemiSyncWaitPoint != nil {
+			if err := r.SemiSyncWaitPoint.Validate(); err != nil {
+				return fmt.Errorf("invalid WaitPoint: %v", err)
+			}
 		}
 	}
-
 	return nil
 }
 
@@ -294,6 +315,9 @@ func (r *Replication) SetDefaults(mdb *MariaDB, env *environment.OperatorEnv) er
 
 	if r.GtidStrictMode == nil {
 		r.GtidStrictMode = ptr.To(true)
+	}
+	if r.SemiSyncEnabled == nil {
+		r.SemiSyncEnabled = ptr.To(true)
 	}
 
 	if reflect.ValueOf(r.InitContainer).IsZero() {

@@ -315,7 +315,7 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 				true,
 			),
 			Entry(
-				"Invalid replication primary pod index",
+				"Invalid semi-sync replication primary pod index",
 				&v1alpha1.MariaDB{
 					ObjectMeta: meta,
 					Spec: v1alpha1.MariaDBSpec{
@@ -327,7 +327,7 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 								Replica: v1alpha1.ReplicaReplication{
 									ConnectionRetrySeconds: ptr.To(3),
 								},
-								WaitPoint: ptr.To(v1alpha1.WaitPointAfterCommit),
+								SemiSyncWaitPoint: ptr.To(v1alpha1.WaitPointAfterCommit),
 							},
 							Enabled: true,
 						},
@@ -361,13 +361,13 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 				true,
 			),
 			Entry(
-				"Invalid replica wait point",
+				"Invalid semi-sync replication wait point",
 				&v1alpha1.MariaDB{
 					ObjectMeta: meta,
 					Spec: v1alpha1.MariaDBSpec{
 						Replication: &v1alpha1.Replication{
 							ReplicationSpec: v1alpha1.ReplicationSpec{
-								WaitPoint: ptr.To(v1alpha1.WaitPoint("foo")),
+								SemiSyncWaitPoint: ptr.To(v1alpha1.WaitPoint("foo")),
 							},
 							Enabled: true,
 						},

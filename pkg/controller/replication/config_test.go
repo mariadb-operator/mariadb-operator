@@ -35,12 +35,22 @@ func TestNewReplicationConfig(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "invalid master timeout",
+			name: "invalid semi-sync enabled",
 			env: &env.PodEnvironment{
-				PodName:                  "mariadb-0",
-				MariadbName:              "mariadb",
-				MariaDBReplEnabled:       "true",
-				MariaDBReplMasterTimeout: "foo",
+				PodName:                    "mariadb-0",
+				MariadbName:                "mariadb",
+				MariaDBReplEnabled:         "true",
+				MariaDBReplSemiSyncEnabled: "foo",
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid semi-sync master timeout",
+			env: &env.PodEnvironment{
+				PodName:                          "mariadb-0",
+				MariadbName:                      "mariadb",
+				MariaDBReplEnabled:               "true",
+				MariaDBReplSemiSyncMasterTimeout: "foo",
 			},
 			wantErr: true,
 		},
@@ -73,6 +83,21 @@ func TestNewReplicationConfig(t *testing.T) {
 			wantConfig: `[mariadb]
 log_bin
 log_basename=mariadb
+server_id=10
+`,
+			wantErr: false,
+		},
+		{
+			name: "minimal semi-sync replication enabled",
+			env: &env.PodEnvironment{
+				PodName:                    "mariadb-0",
+				MariadbName:                "mariadb",
+				MariaDBReplEnabled:         "true",
+				MariaDBReplSemiSyncEnabled: "true",
+			},
+			wantConfig: `[mariadb]
+log_bin
+log_basename=mariadb
 rpl_semi_sync_master_enabled=ON
 rpl_semi_sync_slave_enabled=ON
 server_id=10
@@ -82,13 +107,14 @@ server_id=10
 		{
 			name: "all values present",
 			env: &env.PodEnvironment{
-				PodName:                     "mariadb-0",
-				MariadbName:                 "mariadb",
-				MariaDBReplEnabled:          "true",
-				MariaDBReplGtidStrictMode:   "true",
-				MariaDBReplMasterTimeout:    "5000",
-				MariaDBReplMasterWaitPoint:  "AFTER_SYNC",
-				MariaDBReplMasterSyncBinlog: "1",
+				PodName:                            "mariadb-0",
+				MariadbName:                        "mariadb",
+				MariaDBReplEnabled:                 "true",
+				MariaDBReplGtidStrictMode:          "true",
+				MariaDBReplSemiSyncEnabled:         "true",
+				MariaDBReplSemiSyncMasterTimeout:   "5000",
+				MariaDBReplSemiSyncMasterWaitPoint: "AFTER_SYNC",
+				MariaDBReplMasterSyncBinlog:        "1",
 			},
 			wantConfig: `[mariadb]
 log_bin
@@ -104,14 +130,15 @@ sync_binlog=1
 			wantErr: false,
 		},
 		{
-			name: "missing master timeout",
+			name: "missing semi-sync master timeout",
 			env: &env.PodEnvironment{
-				PodName:                     "mariadb-0",
-				MariadbName:                 "mariadb",
-				MariaDBReplEnabled:          "true",
-				MariaDBReplGtidStrictMode:   "true",
-				MariaDBReplMasterWaitPoint:  "AFTER_SYNC",
-				MariaDBReplMasterSyncBinlog: "1",
+				PodName:                            "mariadb-0",
+				MariadbName:                        "mariadb",
+				MariaDBReplEnabled:                 "true",
+				MariaDBReplGtidStrictMode:          "true",
+				MariaDBReplSemiSyncEnabled:         "true",
+				MariaDBReplSemiSyncMasterWaitPoint: "AFTER_SYNC",
+				MariaDBReplMasterSyncBinlog:        "1",
 			},
 			wantConfig: `[mariadb]
 log_bin
@@ -120,6 +147,29 @@ gtid_strict_mode
 rpl_semi_sync_master_enabled=ON
 rpl_semi_sync_slave_enabled=ON
 rpl_semi_sync_master_wait_point=AFTER_SYNC
+server_id=10
+sync_binlog=1
+`,
+			wantErr: false,
+		},
+		{
+			name: "missing semi-sync master wait point",
+			env: &env.PodEnvironment{
+				PodName:                          "mariadb-0",
+				MariadbName:                      "mariadb",
+				MariaDBReplEnabled:               "true",
+				MariaDBReplGtidStrictMode:        "true",
+				MariaDBReplSemiSyncEnabled:       "true",
+				MariaDBReplSemiSyncMasterTimeout: "5000",
+				MariaDBReplMasterSyncBinlog:      "1",
+			},
+			wantConfig: `[mariadb]
+log_bin
+log_basename=mariadb
+gtid_strict_mode
+rpl_semi_sync_master_enabled=ON
+rpl_semi_sync_slave_enabled=ON
+rpl_semi_sync_master_timeout=5000
 server_id=10
 sync_binlog=1
 `,
