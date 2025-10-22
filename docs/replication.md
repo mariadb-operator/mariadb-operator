@@ -1,8 +1,8 @@
 # Replication
 
-The operator supports provisioning and operating MariaDB clusters with semi-synchronous replication as a high availability topology. In the following sections we will cover how to manage the full lifecycle of a semi-synchronous replication cluster. 
+The operator supports provisioning and operating MariaDB clusters with replication as a high availability topology. In the following sections we will cover how to manage the full lifecycle of a replication cluster. 
 
-In a replication setup, one primary server handles all write operations while one or more replica servers replicate data from the primary and can handle read operations. The semi-synchronous aspect ensures that at least one replica acknowledges the receipt of a transaction before the primary commits it.
+In a replication setup, one primary server handles all write operations while one or more replica servers replicate data from the primary, being able to handle read operations. More precisely, the primary has a binary log and the replicas asynchronously replicate the binary log events over the network.
 
 Please refer to the [MariaDB documentation](https://mariadb.com/docs/server/ha-and-performance/standard-replication) for more details about replication.
 
@@ -81,6 +81,12 @@ kubectl get mariadb mariadb-repl -o jsonpath="{.status.replication}" | jq
 
 The operator continiously monitors the replication status via [`SHOW SLAVE STATUS`](https://mariadb.com/docs/server/reference/sql-statements/administrative-sql-statements/show/show-replica-status), taking it into account for internal operations and updating the CR status accordingly.
 
+## Asynchronous vs semi-syncrhonous replication
+
+By default, [semi-synchronous replication](https://mariadb.com/docs/server/ha-and-performance/standard-replication/semisynchronous-replication) is configured, which requires an acknowledgement from at least one replica before committing the transaction back to the client. This trades off performance for better consistency and facilitates [failover](#primary-failover) and [switchover](#primary-switchover) operations.
+
+If you are aiming for better performance, you can disable semi-synchronous replication, and go fully asynchronous, please refer to [configuration](#asynchronous-replication) section for doing so.
+
 ## Configuration
 
 The replication settings can be customized under the `replication` section of the `MariaDB` CR. The following options are available:
@@ -95,14 +101,16 @@ spec:
   replication:
     enabled: true
     gtidStrictMode: true
-    waitPoint: AfterCommit
-    ackTimeout: 10s
+    semiSyncEnabled: true
+    semiSyncAckTimeout: 10s
+    semiSyncWaitPoint: AfterCommit
     syncBinlog: 1
 ```
 
 - `gtidStrictMode`: Enables GTID strict mode. It is recommended and enabled by default. See [MariaDB documentation](https://mariadb.com/docs/server/ha-and-performance/standard-replication/gtid#gtid_strict_mode).
-- `waitPoint`: Determines whether the transaction should wait for an ACK after having synced the binlog (`AfterSync`) or after having committed to the storage engine (`AfterCommit`, the default). See [MariaDB documentation](https://mariadb.com/docs/server/ha-and-performance/standard-replication/semisynchronous-replication#rpl_semi_sync_master_wait_point).
-- `ackTimeout`: ACK timeout for the replicas to acknowledge transactions to the primary. See [MariaDB documentation](https://mariadb.com/docs/server/ha-and-performance/standard-replication/semisynchronous-replication#rpl_semi_sync_master_timeout).
+- `semiSyncEnabled`: Determines whether semi-synchronous replication should be enabled. It is enabled by default. See [MariaDB documentation](https://mariadb.com/docs/server/ha-and-performance/standard-replication/semisynchronous-replication).
+- `semiSyncAckTimeout`: ACK timeout for the replicas to acknowledge transactions to the primary. It requires semi-synchronous replication. See [MariaDB documentation](https://mariadb.com/docs/server/ha-and-performance/standard-replication/semisynchronous-replication#rpl_semi_sync_master_timeout).
+- `semiSyncWaitPoint`: Determines whether the transaction should wait for an ACK after having synced the binlog (`AfterSync`) or after having committed to the storage engine (`AfterCommit`, the default). It requires semi-synchronous replication. See [MariaDB documentation](https://mariadb.com/docs/server/ha-and-performance/standard-replication/semisynchronous-replication#rpl_semi_sync_master_wait_point).
 - `syncBinlog`: Number of events after which the binary log is synchronized to disk. See [MariaDB documentation](https://mariadb.com/docs/server/ha-and-performance/standard-replication/replication-and-binary-log-system-variables#sync_binlog).
 
 
@@ -185,6 +193,9 @@ When using `PhysicalBackup` with the `VolumeSnapshot` strategy, the GTID positio
 
 ## Primary switchover
 
+> [!IMPORTANT]  
+> Our recommendation for production environments is to rely on [MaxScale](./maxscale.md) for the [switchover operation](./maxscale.md#primary-server-switchover), as it provides [several advantages](./high_availability.md#maxscale).
+
 You can declaratively trigger a primary switchover by updating the `spec.replication.primary.podIndex` field in the `MariaDB` CR to the index of the replica you want to promote as the new primary. For example, to promote the replica at index `1`:
 
 ```yaml
@@ -226,9 +237,10 @@ The steps involved in the switchover operation are:
 
 If the switchover operation is stuck waiting for replicas to be in sync, you can check the `MariaDB` status to identify which replicas are causing the issue. Furthermore, if still in this step, you can cancel the switchover operation by setting back the `spec.replication.primary.podIndex` field back to the previous primary index.
 
-Our recommendation for production environments is to rely on [MaxScale](./maxscale.md) for the [switchover operation](./maxscale.md#primary-server-switchover), as it provides [several advantages](./high_availability.md#maxscale).
-
 ## Primary failover
+
+> [!IMPORTANT]  
+> Our recommendation for production environments is to rely on [MaxScale](./maxscale.md) for the failover process, as it provides [several advantages](./high_availability.md#maxscale).
 
 You can configure the operator to automatically perform a primary failover whenever the current primary becomes unavailable:
 
@@ -276,8 +288,6 @@ Once the new primary is selected, the failover process will be performed, consis
 1. Wait for the new primary to apply all relay log events.
 2. Promote the selected replica to be the new primary.
 3. Connect replicas to the new primary.
-
-Our recommendation for production environments is to rely on [MaxScale](./maxscale.md) for the failover process, as it provides [several advantages](./high_availability.md#maxscale).
 
 ## Updates
 
@@ -390,7 +400,6 @@ This will trigger an scaling out operation, resulting in:
 - Creating a new PVC for the new replica based on the `PhysicalBackup`.
 - Upscaling the `StatefulSet`, adding a `Pod` that mounts the newly created PVC.
 - The `Pod` is configured as a replica, connected to the primary by starting the replication in the GTID position stored in the backup.
-
 
 ```bash
 kubectl scale mariadb mariadb-repl --replicas=4
@@ -510,10 +519,10 @@ The operator tracks the current replication status under the `MariaDB` status su
 kubectl get mariadb mariadb-repl -o jsonpath="{.status.replication}" | jq
 {
   "replicas": {
-    "mariadb-repl-0": {
-      "gtidCurrentPos": "0-10-24",
-      "gtidIOPos": "0-10-24",
-      "lastErrorTransitionTime": "2025-10-17T14:30:10Z",
+    "mariadb-repl-1": {
+      "gtidCurrentPos": "0-10-155",
+      "gtidIOPos": "0-10-155",
+      "lastErrorTransitionTime": "2025-10-22T10:51:10Z",
       "lastIOErrno": 0,
       "lastIOError": "",
       "lastSQLErrno": 0,
@@ -523,9 +532,9 @@ kubectl get mariadb mariadb-repl -o jsonpath="{.status.replication}" | jq
       "slaveSQLRunning": true
     },
     "mariadb-repl-2": {
-      "gtidCurrentPos": "0-10-24",
-      "gtidIOPos": "0-10-24",
-      "lastErrorTransitionTime": "2025-10-17T14:30:10Z",
+      "gtidCurrentPos": "0-10-155",
+      "gtidIOPos": "0-10-155",
+      "lastErrorTransitionTime": "2025-10-22T10:47:29Z",
       "lastIOErrno": 0,
       "lastIOError": "",
       "lastSQLErrno": 0,
@@ -613,8 +622,16 @@ LAST SEEN   TYPE     REASON             OBJECT                 MESSAGE
 
 ##### Primary has purged binary logs, unable to configure replica
 
+The primary may purge binary log events at some point, after then, if a replica requests events before that point, it will fail with the following error:
+
+```bash
+Error 1236: Got fatal error from master when reading data from binary log.
+```
+
+This is a something the operator is able to recover from, please refer to the [replica recovery section](#replica-recovery).
+
 ##### Scaling out/recovery operation stucked
 
 These operations rely on a `PhysicalBackup` for setting up the new replicas. If this `PhysicalBackup` does not become ready, the operation will not progress. In order to debug this please refer to the [`PhysicalBackup` troubleshooting section](./physical_backup.md#troubleshooting).
 
-One of the reasons why it doesn't become ready is that there are no replica `Pods` in ready state, please check the `Pod` state and the replication status as described in this section to verify this.
+One of the reasons could be that there are not replicas in ready state at the time of creating the `PhysicalBackup`, for instance, all the replicas are lagging behind the primary. Please verify that this is the case by checking the status of your `MariaDB` resource and your `Pods`.
