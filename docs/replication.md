@@ -1,6 +1,6 @@
 # Replication
 
-The operator supports provisioning and operating MariaDB clusters with replication as a high availability topology. In the following sections we will cover how to manage the full lifecycle of a replication cluster. 
+The operator supports provisioning and operating MariaDB clusters with replication as a highly availability topology. In the following sections we will be covering how to manage the full lifecycle of a replication cluster. 
 
 In a replication setup, one primary server handles all write operations while one or more replica servers replicate data from the primary, being able to handle read operations. More precisely, the primary has a binary log and the replicas asynchronously replicate the binary log events over the network.
 
@@ -483,7 +483,7 @@ echo "Purging binary logs in primary $PRIMARY"
 kubectl exec -it $PRIMARY -c mariadb -- mariadb -u root -p'MariaDB11!' --ssl=false -e "FLUSH LOGS; PURGE BINARY LOGS BEFORE NOW();"
 ```
 
-- Delete the PVC and restart one of the replicas:
+- Delete the PVC and restart one of the replicas. If this is a brand new `MariaDB` instance, you might need to re-attempt this step:
 ```bash
 REPLICA=$(kubectl get mariadb mariadb-repl -o jsonpath='{.status.replication.replicas}' | jq -r 'keys[]' | head -n1)
 echo "Deleting PVC and restarting replica $REPLICA"
