@@ -4,7 +4,6 @@ set -eo pipefail
 
 MARIADB_INPUT="$1"
 MARIADB_OUTPUT="migrated.$MARIADB_INPUT"
-MARIADB_STATUS_OUTPUT="status.$MARIADB_INPUT"
 
 if [ -z "$MARIADB_INPUT" ]; then
   echo "Error: MariaDB manifest file from a version older than 25.8.4 must be provided as the first argument."
@@ -64,6 +63,11 @@ fi
 echo "Migrating MariaDB fields..."
 cp "$MARIADB_INPUT" "$MARIADB_OUTPUT"
 
+echo "Setting .spec.replication.semiSyncEnabled=true"
+"$YQ" '
+  .spec.replication.semiSyncEnabled = true
+' -i "$MARIADB_OUTPUT"
+
 HAS_CONN_RETRY=$("$YQ" ".spec.replication.replica.connectionRetries != null" "$MARIADB_OUTPUT")
 if [[ "$HAS_CONN_RETRY" == "true" ]]; then
   echo ".spec.replication.replica.connectionRetries is present and not null, will migrate"
@@ -72,11 +76,6 @@ if [[ "$HAS_CONN_RETRY" == "true" ]]; then
     del(.spec.replication.replica.connectionRetries)
   ' -i "$MARIADB_OUTPUT"
 fi
-
-echo "Setting .spec.replication.semiSyncEnabled=true"
-"$YQ" '
-  .spec.replication.semiSyncEnabled = true
-' -i "$MARIADB_OUTPUT"
 
 HAS_CONNECTION_TIMEOUT=$("$YQ" ".spec.replication.replica.connectionTimeout != null" "$MARIADB_OUTPUT")
 if [[ "$HAS_CONNECTION_TIMEOUT" == "true" ]]; then
@@ -95,11 +94,6 @@ if [[ "$HAS_WAIT_POINT" == "true" ]]; then
     del(.spec.replication.replica.waitPoint)
   ' -i "$MARIADB_OUTPUT"
 fi
-
- echo "Creating status patch..."
- cp "$MARIADB_INPUT" "$MARIADB_STATUS_OUTPUT"
-
-"$YQ" '. |= pick(["status"])' -i "$MARIADB_STATUS_OUTPUT"
 
 # Show a summary if `diff` is installed.
 if command_exists diff; then
