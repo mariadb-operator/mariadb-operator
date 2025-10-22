@@ -17,6 +17,26 @@ kubectl delete validatingwebhookconfiguration mariadb-operator-webhook
 kubectl delete mutatingwebhookconfiguration mariadb-operator-webhook
 ```
 
+- __[replication]__ If you are using replication, make sure the `MariaDB` to migrate is in ready state and get a copy of its manifest:
+```bash
+kubectl get mariadb mariadb-repl -o yaml > mariadb-repl.yaml
+```
+- __[replication]__ Download and setup the migration script for replication:
+
+```bash
+wget -q "https://raw.githubusercontent.com/mariadb-operator/mariadb-operator/main/hack/migrate_v25.10.0.sh"
+chmod +x migrate_v25.10.0.sh
+```
+
+- __[replication]__ Execute the migration script:
+```bash
+./migrate_v25.10.0.sh mariadb-repl.yaml
+```
+
+- __[replication]__ [`gtid_strict_mode`](https://mariadb.com/docs/server/ha-and-performance/standard-replication/gtid#gtid_strict_mode) is now enabled by default. You may consider disabling it by setting `spec.replication.gtidStrictMode=false` in `migrated.mariadb-repl.yaml`
+
+- __[replication]__  Replication user (`repl`) default credentials have been changed from `repl-password-$MARIADB` to  `$MARIADB-repl-password`, you may consider creating a `Secret` with your existing credentials. Otherwise the password will be rotated to a random one. This will not affect you if you have a explicit reference in `spec.replication.replica.replPasswordSecretKeyRef`
+
 - Upgrade `mariadb-operator-crds` to `25.10.0`:
 
 ```bash
@@ -53,27 +73,6 @@ spec:
 -      image: docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:0.38.1
 +      image: docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:25.10.0
 ```
-
-- __[replication]__ If you are using replication, make sure the `MariaDB` to migrate is in ready state and get a copy of its manifest:
-
-```bash
-kubectl get mariadb mariadb-repl -o yaml > mariadb-repl.yaml
-```
-- __[replication]__ Download and setup the migration script for replication:
-
-```bash
-wget -q "https://raw.githubusercontent.com/mariadb-operator/mariadb-operator/main/hack/migrate_v25.10.0.sh"
-chmod +x migrate_v25.10.0.sh
-```
-
-- __[replication]__ Execute the migration script:
-```bash
-./migrate_v25.10.0.sh mariadb-repl.yaml
-```
-
-- __[replication]__ [`gtid_strict_mode`](https://mariadb.com/docs/server/ha-and-performance/standard-replication/gtid#gtid_strict_mode) is now enabled by default. You may consider disabling it by setting `spec.replication.gtidStrictMode=false` in `migrated.mariadb-repl.yaml`
-
-- __[replication]__  Replication user (`repl`) default credentials have been changed from `repl-password-$MARIADB` to  `$MARIADB-repl-password`, you may consider creating a `Secret` with your existing credentials. Otherwise the password will be rotated to a random one. This will not affect you if you have a explicit reference in `spec.replication.replica.replPasswordSecretKeyRef`
 
 - __[replication]__ Apply the `v25.10.0` specification:
 ```bash

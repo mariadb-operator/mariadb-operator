@@ -68,6 +68,11 @@ echo "Setting .spec.replication.semiSyncEnabled=true"
   .spec.replication.semiSyncEnabled = true
 ' -i "$MARIADB_OUTPUT"
 
+echo "Setting .spec.replication.gtidStrictMode=true"
+"$YQ" '
+  .spec.replication.gtidStrictMode = true
+' -i "$MARIADB_OUTPUT"
+
 HAS_CONN_RETRY=$("$YQ" ".spec.replication.replica.connectionRetries != null" "$MARIADB_OUTPUT")
 if [[ "$HAS_CONN_RETRY" == "true" ]]; then
   echo ".spec.replication.replica.connectionRetries is present and not null, will migrate"
@@ -94,6 +99,12 @@ if [[ "$HAS_WAIT_POINT" == "true" ]]; then
     del(.spec.replication.replica.waitPoint)
   ' -i "$MARIADB_OUTPUT"
 fi
+
+echo "Cleaning up deprecated fields"
+"$YQ" '
+  del(.spec.replication.probesEnabled) |
+  del(.status.replicationStatus)
+' -i "$MARIADB_OUTPUT"
 
 # Show a summary if `diff` is installed.
 if command_exists diff; then
