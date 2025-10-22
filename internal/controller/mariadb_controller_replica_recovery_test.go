@@ -3,26 +3,15 @@ package controller
 import (
 	"time"
 
-<<<<<<< HEAD
 	"github.com/go-logr/logr"
 	volumesnapshotv1 "github.com/kubernetes-csi/external-snapshotter/client/v8/apis/volumesnapshot/v1"
-||||||| parent of 3d4d8a19 (Avoid zapr dependency when creating noop logger for tests)
-	"github.com/go-logr/zapr"
-=======
-	"github.com/go-logr/logr"
->>>>>>> 3d4d8a19 (Avoid zapr dependency when creating noop logger for tests)
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/metadata"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-<<<<<<< HEAD
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/resource"
-||||||| parent of 3d4d8a19 (Avoid zapr dependency when creating noop logger for tests)
-	"go.uber.org/zap"
-=======
->>>>>>> 3d4d8a19 (Avoid zapr dependency when creating noop logger for tests)
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
