@@ -336,22 +336,6 @@ NAME            READY   STATUS                                  PRIMARY         
 maxscale-repl   False   Switching primary to 'mariadb-repl-1'   mariadb-repl-0   2m15s
 ```
 
-After completing the switchover, it is important that you unset the `primaryServer` field, to avoid collisions in upcoming reconciliations:
-
-```diff
-apiVersion: k8s.mariadb.com/v1alpha1
-kind: MaxScale
-metadata:
-  name: maxscale-repl
-spec:
--  primaryServer: mariadb-repl-1
-```
-```diff
-kubectl patch maxscale maxscale-repl \
-  --type='merge' \
-  -p '{"spec":{"primaryServer":null}}'
-```
-
 ## Server maintenance
 
 You can put servers in maintenance mode by setting the server field `maintenance=true`:
