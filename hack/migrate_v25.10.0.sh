@@ -73,21 +73,26 @@ if [[ "$HAS_CONN_RETRY" == "true" ]]; then
   ' -i "$MARIADB_OUTPUT"
 fi
 
-HAS_WAIT_POINT=$("$YQ" ".spec.replication.replica.waitPoint != null" "$MARIADB_OUTPUT")
-if [[ "$HAS_WAIT_POINT" == "true" ]]; then
-  echo ".spec.replication.replica.waitPoint is present and not null, will migrate"
-  "$YQ" '
-    .spec.replication.waitPoint = .spec.replication.replica.waitPoint |
-    del(.spec.replication.replica.waitPoint)
-  ' -i "$MARIADB_OUTPUT"
-fi
+echo "Setting .spec.replication.semiSyncEnabled=true"
+"$YQ" '
+  .spec.replication.semiSyncEnabled = true
+' -i "$MARIADB_OUTPUT"
 
 HAS_CONNECTION_TIMEOUT=$("$YQ" ".spec.replication.replica.connectionTimeout != null" "$MARIADB_OUTPUT")
 if [[ "$HAS_CONNECTION_TIMEOUT" == "true" ]]; then
   echo ".spec.replication.replica.connectionTimeout is present and not null, will migrate"
   "$YQ" '
-    .spec.replication.ackTimeout = .spec.replication.replica.connectionTimeout |
+    .spec.replication.semiSyncAckTimeout = .spec.replication.replica.connectionTimeout |
     del(.spec.replication.replica.connectionTimeout)
+  ' -i "$MARIADB_OUTPUT"
+fi
+
+HAS_WAIT_POINT=$("$YQ" ".spec.replication.replica.waitPoint != null" "$MARIADB_OUTPUT")
+if [[ "$HAS_WAIT_POINT" == "true" ]]; then
+  echo ".spec.replication.replica.waitPoint is present and not null, will migrate"
+  "$YQ" '
+    .spec.replication.semiSyncWaitPoint = .spec.replication.replica.waitPoint |
+    del(.spec.replication.replica.waitPoint)
   ' -i "$MARIADB_OUTPUT"
 fi
 
