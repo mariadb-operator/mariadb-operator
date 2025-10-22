@@ -483,7 +483,7 @@ func mariadbEnv(mariadb *mariadbv1alpha1.MariaDB) ([]corev1.EnvVar, error) {
 	if mariadb.IsReplicationEnabled() {
 		env = append(env, corev1.EnvVar{
 			Name:  "MARIADB_REPL_ENABLED",
-			Value: "true",
+			Value: fmt.Sprint(true),
 		})
 
 		replication := ptr.Deref(mariadb.Spec.Replication, mariadbv1alpha1.Replication{})
@@ -497,7 +497,7 @@ func mariadbEnv(mariadb *mariadbv1alpha1.MariaDB) ([]corev1.EnvVar, error) {
 		if replication.IsSemiSyncEnabled() {
 			env = append(env, corev1.EnvVar{
 				Name:  "MARIADB_REPL_SEMI_SYNC_ENABLED",
-				Value: "true",
+				Value: fmt.Sprint(true),
 			})
 			if replication.SemiSyncAckTimeout != nil {
 				env = append(env, corev1.EnvVar{
