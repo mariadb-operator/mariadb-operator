@@ -20,10 +20,11 @@
 # 🦭 mariadb-operator
 
 Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB using Kubernetes [CRDs](https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definitions/) rather than imperative commands.
-- [Easily provision](./examples/manifests/mariadb_minimal.yaml) and [configure](./examples/manifests/mariadb.yaml) MariaDB servers in Kubernetes.
-- Multiple [HA modes](./docs/high_availability.md): Galera Cluster or MariaDB Replication.
-- Automated Galera [primary failover](./docs/high_availability.md) and [cluster recovery](./docs/galera.md#galera-cluster-recovery).
-- Advanced HA with [MaxScale](./docs/maxscale.md): a sophisticated database proxy, router, and load balancer for MariaDB.
+- Easily provision [standalone MariaDB servers](./examples/manifests/mariadb.yaml) in Kubernetes.
+- Multiple [highly available](./docs/high_availability.md) topologies supported:
+  - **[Asynchronous replication](./replication.md)** ✨
+  - [Synchronous multi-master via Galera](./galera.md)
+  - [MaxScale](./maxscale.md) as database proxy to load balance requests and perform  failover/switchover operations
 - Flexible [storage](./docs/storage.md) configuration. [Volume expansion](./docs/storage.md#volume-resize).
 - [Physical backups](./docs/physical_backup.md) based on [mariadb-backup](https://mariadb.com/docs/server/server-usage/backup-and-restore/mariadb-backup/full-backup-and-restore-with-mariadb-backup) and [Kubernetes VolumeSnapshots](https://kubernetes.io/docs/concepts/storage/volume-snapshots/).
 - [Logical backups](./docs/logical_backup.md) based on [mariadb-dump](https://mariadb.com/docs/server/clients-and-utilities/backup-restore-and-import-clients/mariadb-dump). 
