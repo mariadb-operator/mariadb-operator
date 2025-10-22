@@ -4,7 +4,7 @@ This section provides guidance on how to configure high availability in `MariaDB
 
 Our recommended setup for production is:
 - Use a **[highly available topology](#highly-available-topologies)** for MariaDB:
-  - Semi-synchronous **[replication](./replication.md)** with a primary node and at least 2 replicas.
+  - **[Asynchronous replication](./replication.md)** with a primary node and at least 2 replicas.
   - Synchronous multi-master **[Galera](./galera.md)** with at least 3 nodes. Always an odd number of nodes, as it is quorum-based.
 - Leverage **[MaxScale](./maxscale.md)** as database proxy to load balance requests and perform  failover/switchover operations. Configure 2 replicas to enable MaxScale upgrades without downtime.
 - Use **[dedicated nodes](#dedicated-nodes)** to avoid noisy neighbours.
@@ -24,7 +24,7 @@ Refer to the following sections for further detail.
 
 ## Highly Available Topologies
 
-- **[Semi-synchronous replication](./replication.md)**: The primary node allows both reads and writes, while secondary nodes only serve reads. Before committing the transaction back to the client, at least one replica should have sent an ACK to the primary node.
+- **[Asynchronous replication](./replication.md)**: The primary node allows both reads and writes, while secondary nodes only serve reads. The primary has a binary log and the replicas asynchronously replicate the binary log events.
 - **[Synchronous multi-master Galera](./galera.md)**: All nodes support reads and writes, but writes are only sent to one node to avoid contention. The fact that is synchronous and that all nodes are equally configured makes the primary failover/switchover operation seamless and usually instantaneous.
 
 ## Kubernetes Services
