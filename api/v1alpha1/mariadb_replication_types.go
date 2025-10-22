@@ -251,7 +251,7 @@ type ReplicationSpec struct {
 	GtidStrictMode *bool `json:"gtidStrictMode,omitempty"`
 	// SemiSyncEnabled determines whether semi-synchronous replication is enabled.
 	// Semi-synchronous replication requires that at least one replica should have sent an ACK to the primary node
-	// before comitting the transaction back to the client.
+	// before committing the transaction back to the client.
 	// See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/semisynchronous-replication
 	// It is enabled by default
 	// +optional
