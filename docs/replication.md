@@ -8,6 +8,19 @@ Please refer to the [MariaDB documentation](https://mariadb.com/docs/server/ha-a
 
 ## Table of contents
 <!-- toc -->
+- [Provisioning](#provisioning)
+- [Asynchronous vs semi-syncrhonous replication](#asynchronous-vs-semi-syncrhonous-replication)
+- [Configuration](#configuration)
+- [Replica configuration](#replica-configuration)
+- [Probes](#probes)
+- [Lagged replicas](#lagged-replicas)
+- [Backing up and restoring](#backing-up-and-restoring)
+- [Primary switchover](#primary-switchover)
+- [Primary failover](#primary-failover)
+- [Updates](#updates)
+- [Scaling out](#scaling-out)
+- [Replica recovery](#replica-recovery)
+- [Troubleshooting](#troubleshooting)
 <!-- /toc -->
 
 ## Provisioning
