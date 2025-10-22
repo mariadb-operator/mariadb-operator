@@ -1490,6 +1490,12 @@ func (r *MaxScaleReconciler) reconcileSwitchover(ctx context.Context, req *reque
 			r.Recorder.Eventf(req.mxs, corev1.EventTypeNormal, mariadbv1alpha1.ReasonPrimarySwitched,
 				"Primary server switched to '%s'", primary)
 		}
+
+		if err := r.patch(ctx, req.mxs, func(mxs *mariadbv1alpha1.MaxScale) {
+			mxs.Spec.PrimaryServer = nil
+		}); err != nil {
+			return ctrl.Result{}, fmt.Errorf("error patching MaxScale: %v", err)
+		}
 		return ctrl.Result{}, nil
 	}
 	logger.Info("Switching primary server", "primary", primary, "new-primary", newPrimary)
