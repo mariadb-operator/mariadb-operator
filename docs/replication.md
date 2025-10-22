@@ -59,10 +59,10 @@ As you can see, the primary can be identified in the `PRIMARY` column of the `ku
 kubectl get mariadb mariadb-repl -o jsonpath="{.status.replication}" | jq
 {
   "replicas": {
-    "mariadb-repl-0": {
-      "gtidCurrentPos": "0-10-24",
-      "gtidIOPos": "0-10-24",
-      "lastErrorTransitionTime": "2025-10-17T14:30:10Z",
+    "mariadb-repl-1": {
+      "gtidCurrentPos": "0-10-155",
+      "gtidIOPos": "0-10-155",
+      "lastErrorTransitionTime": "2025-10-22T10:51:10Z",
       "lastIOErrno": 0,
       "lastIOError": "",
       "lastSQLErrno": 0,
@@ -72,9 +72,9 @@ kubectl get mariadb mariadb-repl -o jsonpath="{.status.replication}" | jq
       "slaveSQLRunning": true
     },
     "mariadb-repl-2": {
-      "gtidCurrentPos": "0-10-24",
-      "gtidIOPos": "0-10-24",
-      "lastErrorTransitionTime": "2025-10-17T14:30:10Z",
+      "gtidCurrentPos": "0-10-155",
+      "gtidIOPos": "0-10-155",
+      "lastErrorTransitionTime": "2025-10-22T10:47:29Z",
       "lastIOErrno": 0,
       "lastIOError": "",
       "lastSQLErrno": 0,
@@ -127,7 +127,7 @@ spec:
 - `syncBinlog`: Number of events after which the binary log is synchronized to disk. See [MariaDB documentation](https://mariadb.com/docs/server/ha-and-performance/standard-replication/replication-and-binary-log-system-variables#sync_binlog).
 
 
-These options are used by the operator to render a replication configuration file that is applied to all nodes in the cluster. When updating any of these options, an [update of the cluster](#updates) will be triggered in order to apply the new configuration.
+These options are used by the operator to create a replication configuration file that is applied to all nodes in the cluster. When updating any of these options, an [update of the cluster](#updates) will be triggered in order to apply the new configuration.
 
 For replica-specific configuration options, please refer to the [replica configuration](#replica-configuration) section. Additional system variables may be configured via the `myCnf` configuration field. Refer to the [configuration documentation](./configuration.md#mycnf) for more details.
 
@@ -155,12 +155,10 @@ spec:
 ```
 
 - `replPasswordSecretKeyRef`: Reference to the `Secret` key containing the password for the replication user, used by the replicas to connect to the primary. By default, a `Secret` with a random password will be created.
-- `gtid`: GTID position mode to be used (`CurrentPos` and `SlavePos` allowed). See [MariaDB documentation](https://mariadb.com/docs/server/reference/sql-statements/administrative-sql-statements/replication-statements/change-master-to#master_use_gtid). It defaults to `CurrentPos`.
+- `gtid`: GTID position mode to be used (`CurrentPos` and `SlavePos` allowed). It defaults to `CurrentPos`. See [MariaDB documentation](https://mariadb.com/docs/server/reference/sql-statements/administrative-sql-statements/replication-statements/change-master-to#master_use_gtid).
 - `connectionRetrySeconds`: Number of seconds that the replica will wait between connection retries. See [MariaDB documentation](https://mariadb.com/docs/server/reference/sql-statements/administrative-sql-statements/replication-statements/change-master-to#master_connect_retry).
-- `maxLagSeconds`: Maximum acceptable lag in seconds between the replica and the primary. If the lag exceeds this value, the [readiness probe](#readiness-probe) will fail and the replica will be marked as not ready. See [lagged replicas](#lagged-replicas) section for more details. It defaults to `0`, meaning that no lag is allowed.
-- `syncTimeout`: Timeout for the replicas to be synced during switchover and failover operations. See the [primary switchover](#primary-switchover) and [primary failover](#primary-failover) sections for more details. It defaults to `10s`.
-
-When updating any of these options, an [update of the cluster](#updates) will be triggered in order to apply the new configuration.
+- `maxLagSeconds`: Maximum acceptable lag in seconds between the replica and the primary. If the lag exceeds this value, the [readiness probe](#readiness-probe) will fail and the replica will be marked as not ready. It defaults to `0`, meaning that no lag is allowed. See [lagged replicas](#lagged-replicas) section for more details. 
+- `syncTimeout`: Timeout for the replicas to be synced during switchover and failover operations. It defaults to `10s`. See the [primary switchover](#primary-switchover) and [primary failover](#primary-failover) sections for more details. 
 
 ## Probes
 
@@ -293,7 +291,7 @@ mariadb-repl   True    Running   mariadb-repl-1   ReplicasFirstPrimaryLast   3d2
 
 The criteria for choosing a new primary is:
 - The `Pod` should be in `Ready` state, therefore not considering unavailable or lagged replicas (see [readiness probe](#readiness-probe) and [lagged replicas](#lagged-replicas) sections).
-- Both the `Slave_IO_Running` and `Slave_SQL_Running` threads should be running.
+- Both the IO(`Slave_IO_Running`) and the SQL(`Slave_SQL_Running`) threads should be running.
 - The replica should not have relay log events.
 - Among the candidates, the one with the highest `gtid_current_pos` will be selected.
 
@@ -444,7 +442,7 @@ It is important to note that, if there are no ready replicas available at the ti
 
 ## Replica recovery
 
-The operator has the ability to automatically recover replicas that become unavailable and report a specific error code in the replication status.  For doing so, the operator continiously monitors the replication status of each replica, and whenever a replicas reports an error code listed in the table below, the operator will trigger an automated recovery process for that replica:
+The operator has the ability to automatically recover replicas that become unavailable and report a specific error code in the replication status.  For doing so, the operator continiously monitors the replication status of each replica, and whenever a replica reports an error code listed in the table below, the operator will trigger an automated recovery process for that replica:
 
 | Error Code | Thread | Description | Documentation |
 |------------|--------|-------------|---------------|
