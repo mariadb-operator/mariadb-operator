@@ -442,7 +442,7 @@ It is important to note that, if there are no ready replicas available at the ti
 
 ## Replica recovery
 
-The operator has the ability to automatically recover replicas that become unavailable and report a specific error code in the replication status.  For doing so, the operator continiously monitors the replication status of each replica, and whenever a replica reports an error code listed in the table below, the operator will trigger an automated recovery process for that replica:
+The operator has the ability to automatically recover replicas that become unavailable and report a specific error code in the replication status. For doing so, the operator continiously monitors the replication status of each replica, and whenever a replica reports an error code listed in the table below, the operator will trigger an automated recovery process for that replica:
 
 | Error Code | Thread | Description | Documentation |
 |------------|--------|-------------|---------------|
