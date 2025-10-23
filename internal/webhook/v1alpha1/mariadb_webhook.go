@@ -206,12 +206,14 @@ func validateReplication(mariadb *v1alpha1.MariaDB) error {
 	if !replication.Enabled {
 		return nil
 	}
-	if *replication.Primary.PodIndex < 0 || *replication.Primary.PodIndex >= int(mariadb.Spec.Replicas) {
-		return field.Invalid(
-			field.NewPath("spec").Child("replication").Child("primary").Child("podIndex"),
-			replication.Primary.PodIndex,
-			"'spec.replication.primary.podIndex' out of 'spec.replicas' bounds",
-		)
+	if replication.Primary.PodIndex != nil {
+		if *replication.Primary.PodIndex < 0 || *replication.Primary.PodIndex >= int(mariadb.Spec.Replicas) {
+			return field.Invalid(
+				field.NewPath("spec").Child("replication").Child("primary").Child("podIndex"),
+				replication.Primary.PodIndex,
+				"'spec.replication.primary.podIndex' out of 'spec.replicas' bounds",
+			)
+		}
 	}
 	if err := replication.Validate(); err != nil {
 		return field.Invalid(
