@@ -20,7 +20,7 @@
 # 🦭 mariadb-operator
 
 Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB using Kubernetes [CRDs](https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definitions/) rather than imperative commands.
-- Easily provision [standalone MariaDB servers](./examples/manifests/mariadb.yaml) in Kubernetes.
+- Easily provision [standalone MariaDB servers](./docs/standalone.md) in Kubernetes.
 - Multiple [highly available](./docs/high_availability.md) topologies supported:
   - **[Asynchronous replication](./docs/replication.md)** ✨
   - [Synchronous multi-master via Galera](./docs/galera.md)
