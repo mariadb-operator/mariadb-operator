@@ -73,6 +73,24 @@ echo "Setting .spec.replication.gtidStrictMode=true"
   .spec.replication.gtidStrictMode = true
 ' -i "$MARIADB_OUTPUT"
 
+HAS_AUTO_FAILOVER=$("$YQ" ".spec.replication.primary.automaticFailover != null" "$MARIADB_OUTPUT")
+if [[ "$HAS_AUTO_FAILOVER" == "true" ]]; then
+  echo ".spec.replication.primary.automaticFailover is present and not null, will migrate"
+  "$YQ" '
+    .spec.replication.primary.autoFailover = .spec.replication.primary.automaticFailover |
+    del(.spec.replication.primary.automaticFailover)
+  ' -i "$MARIADB_OUTPUT"
+fi
+
+HAS_AUTO_FAILOVER_DELAY=$("$YQ" ".spec.replication.primary.automaticFailoverDelay != null" "$MARIADB_OUTPUT")
+if [[ "$HAS_AUTO_FAILOVER_DELAY" == "true" ]]; then
+  echo ".spec.replication.primary.automaticFailoverDelay is present and not null, will migrate"
+  "$YQ" '
+    .spec.replication.primary.autoFailoverDelay = .spec.replication.primary.automaticFailoverDelay |
+    del(.spec.replication.primary.automaticFailoverDelay)
+  ' -i "$MARIADB_OUTPUT"
+fi
+
 HAS_CONN_RETRY=$("$YQ" ".spec.replication.replica.connectionRetries != null" "$MARIADB_OUTPUT")
 if [[ "$HAS_CONN_RETRY" == "true" ]]; then
   echo ".spec.replication.replica.connectionRetries is present and not null, will migrate"
