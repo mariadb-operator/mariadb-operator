@@ -116,7 +116,7 @@ mariadb-repl-3                          2/2     Running   0          40s
 
 ## Replica recovery
 
-The operator has the ability to automatically recover replicas that become unavailable and report a specific error code in the replication status.  For doing so, the operator continiously monitors the replication status of each replica, and whenever they report a known error code, a recovery operation wil be triggered.
+The operator has the ability to automatically recover replicas that become unavailable and report a specific error code in the replication status.  For doing so, the operator continiously monitors the replication status of each replica, and whenever they report a known error code, a recovery operation will be triggered.
 
 Similarly to the scaling out operation, you need to define a `PhysicalBackup` template and set a reference to it in the `spec.replication.replica.bootstrapFrom` field of the `MariaDB` CR. Additionally, you need to explicitly enable the replica recovery, as it is disabled by default:
 
@@ -137,7 +137,7 @@ spec:
         errorDurationThreshold: 5m
 ```
 
-We will be simulating a `1236` error in a replica to demostrate how the recovery process works:
+We will be simulating a [`1236` error](https://mariadb.com/docs/server/reference/error-codes/mariadb-error-codes-1200-to-1299/e1236) in a replica to demostrate how the recovery process works:
 
 > [!CAUTION]
 > Do not perform the following steps in a production environment.
