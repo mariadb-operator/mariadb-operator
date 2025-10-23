@@ -102,7 +102,7 @@ CERT_ALT_NAMES ?=
 cert-leaf: ## Generates leaf certificate keypair.
 	@mkdir -p $(PKI_DIR)
 	@openssl ecparam -genkey -name $(EC_PARAM) -noout -out $(KEY)
-	@openssl req -new -key $(KEY) $(EC_HASH) -sha256 -days 365 \
+	@openssl req -new -key $(KEY) $(EC_HASH) -days 365 \
 		-CA $(CA_CERT) -CAkey $(CA_KEY) \
 		-out $(CERT) -subj $(CERT_SUBJECT) -addext $(CERT_ALT_NAMES)
 

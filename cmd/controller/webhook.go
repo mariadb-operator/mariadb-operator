@@ -13,6 +13,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/log"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/pki"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	ctrl "sigs.k8s.io/controller-runtime"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -43,7 +44,11 @@ var webhookCmd = &cobra.Command{
 	Short: "MariaDB operator webhook server.",
 	Long:  `Provides validation and inmutability checks for MariaDB resources.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		log.SetupLogger(logLevel, logTimeEncoder, logDev)
+		log.SetupLogger(
+			viper.GetString(logLevelName),
+			viper.GetString(logTimeEncoderName),
+			viper.GetBool(logDevName),
+		)
 
 		err := waitForCerts(dnsName, time.Now(), 3*time.Minute)
 		if err != nil {

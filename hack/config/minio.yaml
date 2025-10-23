@@ -38,6 +38,11 @@ buckets:
     purge: false
     versioning: false
     objectlocking: false
+  - name: scaleout
+    policy: none
+    purge: false
+    versioning: false
+    objectlocking: false
   - name: test-backup
     policy: none
     purge: false
@@ -59,6 +64,21 @@ buckets:
     versioning: false
     objectlocking: false
   - name: test-mariadb-physical
+    policy: none
+    purge: false
+    versioning: false
+    objectlocking: false
+  - name: test-replication-restore-from-backup
+    policy: none
+    purge: false
+    versioning: false
+    objectlocking: false
+  - name: test-replication-scale-out
+    policy: none
+    purge: false
+    versioning: false
+    objectlocking: false
+  - name: test-replication-recovery
     policy: none
     purge: false
     versioning: false

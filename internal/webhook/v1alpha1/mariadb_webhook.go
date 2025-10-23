@@ -24,32 +24,7 @@ var mariadblog = logf.Log.WithName("mariadb-resource")
 func SetupMariaDBWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).For(&v1alpha1.MariaDB{}).
 		WithValidator(&MariaDBCustomValidator{}).
-		WithDefaulter(&MariaDBCustomDefaulter{}).
 		Complete()
-}
-
-// +kubebuilder:webhook:path=/mutate-k8s-mariadb-com-v1alpha1-mariadb,mutating=true,failurePolicy=fail,sideEffects=None,groups=k8s.mariadb.com,resources=mariadbs,verbs=create;update,versions=v1alpha1,name=mmariadb-v1alpha1.kb.io,admissionReviewVersions=v1
-
-// MariaDBCustomDefaulter struct is responsible for setting default values on the custom resource of the
-// Kind MariaDB when those are created or updated.
-type MariaDBCustomDefaulter struct{}
-
-var _ webhook.CustomDefaulter = &MariaDBCustomDefaulter{}
-
-// Default implements webhook.CustomDefaulter so a webhook will be registered for the Kind MariaDB.
-func (d *MariaDBCustomDefaulter) Default(ctx context.Context, obj runtime.Object) error {
-	mariadb, ok := obj.(*v1alpha1.MariaDB)
-	if !ok {
-		return fmt.Errorf("expected an MariaDB object but got %T", obj)
-	}
-	mariadblog.V(1).Info("Defaulting for MariaDB", "name", mariadb.GetName())
-
-	if mariadb.Spec.Replication != nil && mariadb.Spec.Replication.Enabled {
-		mariadblog.V(1).Info("Defaulting spec.replication", "mariadb", mariadb.Name)
-		mariadb.Spec.Replication.FillWithDefaults()
-		return nil
-	}
-	return nil
 }
 
 // +kubebuilder:webhook:path=/validate-k8s-mariadb-com-v1alpha1-mariadb,mutating=false,failurePolicy=fail,sideEffects=None,groups=k8s.mariadb.com,resources=mariadbs,verbs=create;update,versions=v1alpha1,name=vmariadb-v1alpha1.kb.io,admissionReviewVersions=v1
@@ -131,7 +106,7 @@ func (v *MariaDBCustomValidator) ValidateDelete(ctx context.Context, obj runtime
 }
 
 func validateHA(mariadb *v1alpha1.MariaDB) error {
-	if mariadb.Replication().Enabled && mariadb.IsGaleraEnabled() {
+	if mariadb.IsReplicationEnabled() && mariadb.IsGaleraEnabled() {
 		return errors.New("you may only enable one HA method at a time, either 'spec.replication' or 'spec.galera'")
 	}
 	if !mariadb.IsHAEnabled() && mariadb.Spec.Replicas > 1 {
@@ -172,7 +147,7 @@ func validateGalera(mariadb *v1alpha1.MariaDB) error {
 		if *galera.Primary.PodIndex < 0 || *galera.Primary.PodIndex >= int(mariadb.Spec.Replicas) {
 			return field.Invalid(
 				field.NewPath("spec").Child("galera").Child("primary").Child("podIndex"),
-				mariadb.Replication().Primary.PodIndex,
+				ptr.Deref(mariadb.Spec.Galera, v1alpha1.Galera{}).Primary.PodIndex,
 				"'spec.galera.primary.podIndex' out of 'spec.replicas' bounds",
 			)
 		}
@@ -227,20 +202,28 @@ func validateGalera(mariadb *v1alpha1.MariaDB) error {
 }
 
 func validateReplication(mariadb *v1alpha1.MariaDB) error {
-	if !mariadb.Replication().Enabled {
+	replication := ptr.Deref(mariadb.Spec.Replication, v1alpha1.Replication{})
+	if !replication.Enabled {
 		return nil
 	}
-	if *mariadb.Replication().Primary.PodIndex < 0 || *mariadb.Replication().Primary.PodIndex >= int(mariadb.Spec.Replicas) {
+	if *replication.Primary.PodIndex < 0 || *replication.Primary.PodIndex >= int(mariadb.Spec.Replicas) {
 		return field.Invalid(
 			field.NewPath("spec").Child("replication").Child("primary").Child("podIndex"),
-			mariadb.Replication().Primary.PodIndex,
+			replication.Primary.PodIndex,
 			"'spec.replication.primary.podIndex' out of 'spec.replicas' bounds",
 		)
 	}
-	if err := mariadb.Replication().Replica.Validate(); err != nil {
+	if err := replication.Validate(); err != nil {
+		return field.Invalid(
+			field.NewPath("spec").Child("replication"),
+			replication,
+			err.Error(),
+		)
+	}
+	if err := replication.Replica.Validate(); err != nil {
 		return field.Invalid(
 			field.NewPath("spec").Child("replication").Child("replica"),
-			mariadb.Replication(),
+			replication.Replica,
 			err.Error(),
 		)
 	}
@@ -248,20 +231,22 @@ func validateReplication(mariadb *v1alpha1.MariaDB) error {
 }
 
 func validatePrimarySwitchover(mariadb, old *v1alpha1.MariaDB) error {
-	if old.Replication().Enabled && old.IsSwitchingPrimary() {
-		if *old.Replication().Primary.PodIndex != *mariadb.Replication().Primary.PodIndex {
+	if old.IsReplicationEnabled() && old.IsSwitchingPrimary() {
+		oldReplication := ptr.Deref(old.Spec.Replication, v1alpha1.Replication{})
+		mariadbReplication := ptr.Deref(mariadb.Spec.Replication, v1alpha1.Replication{})
+		if *oldReplication.Primary.PodIndex != *mariadbReplication.Primary.PodIndex {
 			return field.Invalid(
 				field.NewPath("spec").Child("replication").Child("primary").Child("podIndex"),
-				mariadb.Replication().Primary.PodIndex,
+				mariadbReplication.Primary.PodIndex,
 				"'spec.replication.primary.podIndex' cannot be updated during a primary switchover",
 			)
 		}
-		if *old.Replication().Primary.AutomaticFailover != *mariadb.Replication().Primary.AutomaticFailover &&
-			*mariadb.Replication().Primary.AutomaticFailover {
+		if *oldReplication.Primary.AutoFailover != *mariadbReplication.Primary.AutoFailover &&
+			*mariadbReplication.Primary.AutoFailover {
 			return field.Invalid(
-				field.NewPath("spec").Child("replication").Child("primary").Child("automaticFailover"),
-				mariadb.Replication().Primary.PodIndex,
-				"'spec.replication.primary.automaticFailover' cannot be enabled during a primary switchover",
+				field.NewPath("spec").Child("replication").Child("primary").Child("autoFailover"),
+				mariadbReplication.Primary.PodIndex,
+				"'spec.replication.primary.autoFailover' cannot be enabled during a primary switchover",
 			)
 		}
 	}

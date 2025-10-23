@@ -3269,8 +3269,7 @@ spec:
                 description: Replication configures high availability via Galera.
                 properties:
                   agent:
-                    description: GaleraAgent is a sidecar agent that co-operates with
-                      mariadb-operator.
+                    description: Agent is a sidecar agent that co-operates with mariadb-operator.
                     properties:
                       args:
                         description: Args to be used in the Container.
@@ -4243,10 +4242,10 @@ spec:
                     description: Primary is the Galera configuration for the primary
                       node.
                     properties:
-                      automaticFailover:
-                        description: AutomaticFailover indicates whether the operator
-                          should automatically update PodIndex to perform an automatic
-                          primary failover.
+                      autoFailover:
+                        description: AutoFailover indicates whether the operator should
+                          automatically update PodIndex to perform an automatic primary
+                          failover.
                         type: boolean
                       podIndex:
                         description: PodIndex is the StatefulSet index of the primary
@@ -6933,22 +6932,828 @@ spec:
                   This feature is still in alpha, use Galera if you are looking for
                   a more production-ready HA.
                 properties:
+                  agent:
+                    description: Agent is a sidecar agent that runs in the MariaDB
+                      Pod and co-operates with mariadb-operator.
+                    properties:
+                      args:
+                        description: Args to be used in the Container.
+                        items:
+                          type: string
+                        type: array
+                      basicAuth:
+                        description: BasicAuth to be used by the agent container
+                        properties:
+                          enabled:
+                            description: Enabled is a flag to enable BasicAuth
+                            type: boolean
+                          passwordSecretKeyRef:
+                            description: PasswordSecretKeyRef to be used for basic
+                              authentication
+                            properties:
+                              generate:
+                                default: false
+                                description: Generate indicates whether the Secret
+                                  should be generated if the Secret referenced is
+                                  not present.
+                                type: boolean
+                              key:
+                                type: string
+                              name:
+                                default: ""
+                                type: string
+                            required:
+                            - key
+                            type: object
+                            x-kubernetes-map-type: atomic
+                          username:
+                            description: Username to be used for basic authentication
+                            type: string
+                        type: object
+                      command:
+                        description: Command to be used in the Container.
+                        items:
+                          type: string
+                        type: array
+                      env:
+                        description: Env represents the environment variables to be
+                          injected in a container.
+                        items:
+                          description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#envvarsource-v1-core.'
+                          properties:
+                            name:
+                              description: Name of the environment variable. Must
+                                be a C_IDENTIFIER.
+                              type: string
+                            value:
+                              type: string
+                            valueFrom:
+                              description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#envvarsource-v1-core.'
+                              properties:
+                                configMapKeyRef:
+                                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#configmapkeyselector-v1-core.'
+                                  properties:
+                                    key:
+                                      type: string
+                                    name:
+                                      default: ""
+                                      type: string
+                                  required:
+                                  - key
+                                  type: object
+                                  x-kubernetes-map-type: atomic
+                                fieldRef:
+                                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#objectfieldselector-v1-core.'
+                                  properties:
+                                    apiVersion:
+                                      type: string
+                                    fieldPath:
+                                      type: string
+                                  required:
+                                  - fieldPath
+                                  type: object
+                                  x-kubernetes-map-type: atomic
+                                secretKeyRef:
+                                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#secretkeyselector-v1-core.'
+                                  properties:
+                                    key:
+                                      type: string
+                                    name:
+                                      default: ""
+                                      type: string
+                                  required:
+                                  - key
+                                  type: object
+                                  x-kubernetes-map-type: atomic
+                              type: object
+                          required:
+                          - name
+                          type: object
+                        type: array
+                      envFrom:
+                        description: EnvFrom represents the references (via ConfigMap
+                          and Secrets) to environment variables to be injected in
+                          the container.
+                        items:
+                          description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#envfromsource-v1-core.'
+                          properties:
+                            configMapRef:
+                              description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core.'
+                              properties:
+                                name:
+                                  default: ""
+                                  type: string
+                              type: object
+                            prefix:
+                              type: string
+                            secretRef:
+                              description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core.'
+                              properties:
+                                name:
+                                  default: ""
+                                  type: string
+                              type: object
+                          type: object
+                        type: array
+                      gracefulShutdownTimeout:
+                        description: GracefulShutdownTimeout is the time we give to
+                          the agent container in order to gracefully terminate in-flight
+                          requests.
+                        type: string
+                      image:
+                        description: Image name to be used by the MariaDB instances.
+                          The supported format is `<image>:<tag>`.
+                        type: string
+                      imagePullPolicy:
+                        description: ImagePullPolicy is the image pull policy. One
+                          of `Always`, `Never` or `IfNotPresent`. If not defined,
+                          it defaults to `IfNotPresent`.
+                        enum:
+                        - Always
+                        - Never
+                        - IfNotPresent
+                        type: string
+                      kubernetesAuth:
+                        description: KubernetesAuth to be used by the agent container
+                        properties:
+                          authDelegatorRoleName:
+                            description: |-
+                              AuthDelegatorRoleName is the name of the ClusterRoleBinding that is associated with the "system:auth-delegator" ClusterRole.
+                              It is necessary for creating TokenReview objects in order for the agent to validate the service account token.
+                            type: string
+                          enabled:
+                            description: Enabled is a flag to enable KubernetesAuth
+                            type: boolean
+                        type: object
+                      livenessProbe:
+                        description: LivenessProbe to be used in the Container.
+                        properties:
+                          exec:
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#execaction-v1-core.'
+                            properties:
+                              command:
+                                items:
+                                  type: string
+                                type: array
+                                x-kubernetes-list-type: atomic
+                            type: object
+                          failureThreshold:
+                            format: int32
+                            type: integer
+                          httpGet:
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#httpgetaction-v1-core.'
+                            properties:
+                              host:
+                                type: string
+                              path:
+                                type: string
+                              port:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                x-kubernetes-int-or-string: true
+                              scheme:
+                                description: URIScheme identifies the scheme used
+                                  for connection to a host for Get actions
+                                type: string
+                            required:
+                            - port
+                            type: object
+                          initialDelaySeconds:
+                            format: int32
+                            type: integer
+                          periodSeconds:
+                            format: int32
+                            type: integer
+                          successThreshold:
+                            format: int32
+                            type: integer
+                          tcpSocket:
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#tcpsocketaction-v1-core.'
+                            properties:
+                              host:
+                                type: string
+                              port:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                x-kubernetes-int-or-string: true
+                            required:
+                            - port
+                            type: object
+                          timeoutSeconds:
+                            format: int32
+                            type: integer
+                        type: object
+                      port:
+                        description: Port where the agent will be listening for API
+                          connections.
+                        format: int32
+                        type: integer
+                      probePort:
+                        description: Port where the agent will be listening for probe
+                          connections.
+                        format: int32
+                        type: integer
+                      readinessProbe:
+                        description: ReadinessProbe to be used in the Container.
+                        properties:
+                          exec:
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#execaction-v1-core.'
+                            properties:
+                              command:
+                                items:
+                                  type: string
+                                type: array
+                                x-kubernetes-list-type: atomic
+                            type: object
+                          failureThreshold:
+                            format: int32
+                            type: integer
+                          httpGet:
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#httpgetaction-v1-core.'
+                            properties:
+                              host:
+                                type: string
+                              path:
+                                type: string
+                              port:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                x-kubernetes-int-or-string: true
+                              scheme:
+                                description: URIScheme identifies the scheme used
+                                  for connection to a host for Get actions
+                                type: string
+                            required:
+                            - port
+                            type: object
+                          initialDelaySeconds:
+                            format: int32
+                            type: integer
+                          periodSeconds:
+                            format: int32
+                            type: integer
+                          successThreshold:
+                            format: int32
+                            type: integer
+                          tcpSocket:
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#tcpsocketaction-v1-core.'
+                            properties:
+                              host:
+                                type: string
+                              port:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                x-kubernetes-int-or-string: true
+                            required:
+                            - port
+                            type: object
+                          timeoutSeconds:
+                            format: int32
+                            type: integer
+                        type: object
+                      resources:
+                        description: Resources describes the compute resource requirements.
+                        properties:
+                          limits:
+                            additionalProperties:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                            description: ResourceList is a set of (resource name,
+                              quantity) pairs.
+                            type: object
+                          requests:
+                            additionalProperties:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                            description: ResourceList is a set of (resource name,
+                              quantity) pairs.
+                            type: object
+                        type: object
+                      securityContext:
+                        description: SecurityContext holds security configuration
+                          that will be applied to a container.
+                        properties:
+                          allowPrivilegeEscalation:
+                            type: boolean
+                          capabilities:
+                            description: Adds and removes POSIX capabilities from
+                              running containers.
+                            properties:
+                              add:
+                                description: Added capabilities
+                                items:
+                                  description: Capability represent POSIX capabilities
+                                    type
+                                  type: string
+                                type: array
+                                x-kubernetes-list-type: atomic
+                              drop:
+                                description: Removed capabilities
+                                items:
+                                  description: Capability represent POSIX capabilities
+                                    type
+                                  type: string
+                                type: array
+                                x-kubernetes-list-type: atomic
+                            type: object
+                          privileged:
+                            type: boolean
+                          readOnlyRootFilesystem:
+                            type: boolean
+                          runAsGroup:
+                            format: int64
+                            type: integer
+                          runAsNonRoot:
+                            type: boolean
+                          runAsUser:
+                            format: int64
+                            type: integer
+                        type: object
+                      startupProbe:
+                        description: StartupProbe to be used in the Container.
+                        properties:
+                          exec:
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#execaction-v1-core.'
+                            properties:
+                              command:
+                                items:
+                                  type: string
+                                type: array
+                                x-kubernetes-list-type: atomic
+                            type: object
+                          failureThreshold:
+                            format: int32
+                            type: integer
+                          httpGet:
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#httpgetaction-v1-core.'
+                            properties:
+                              host:
+                                type: string
+                              path:
+                                type: string
+                              port:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                x-kubernetes-int-or-string: true
+                              scheme:
+                                description: URIScheme identifies the scheme used
+                                  for connection to a host for Get actions
+                                type: string
+                            required:
+                            - port
+                            type: object
+                          initialDelaySeconds:
+                            format: int32
+                            type: integer
+                          periodSeconds:
+                            format: int32
+                            type: integer
+                          successThreshold:
+                            format: int32
+                            type: integer
+                          tcpSocket:
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#tcpsocketaction-v1-core.'
+                            properties:
+                              host:
+                                type: string
+                              port:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                x-kubernetes-int-or-string: true
+                            required:
+                            - port
+                            type: object
+                          timeoutSeconds:
+                            format: int32
+                            type: integer
+                        type: object
+                      volumeMounts:
+                        description: VolumeMounts to be used in the Container.
+                        items:
+                          description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#volumemount-v1-core.'
+                          properties:
+                            mountPath:
+                              type: string
+                            name:
+                              description: This must match the Name of a Volume.
+                              type: string
+                            readOnly:
+                              type: boolean
+                            subPath:
+                              type: string
+                          required:
+                          - mountPath
+                          - name
+                          type: object
+                        type: array
+                    type: object
                   enabled:
-                    description: Enabled is a flag to enable Replication.
+                    description: Enabled is a flag to enable replication.
                     type: boolean
+                  gtidStrictMode:
+                    description: |-
+                      GtidStrictMode determines whether the GTID strict mode is enabled.
+                      See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/gtid#gtid_strict_mode.
+                      It is enabled by default.
+                    type: boolean
+                  initContainer:
+                    description: InitContainer is an init container that runs in the
+                      MariaDB Pod and co-operates with mariadb-operator.
+                    properties:
+                      args:
+                        description: Args to be used in the Container.
+                        items:
+                          type: string
+                        type: array
+                      command:
+                        description: Command to be used in the Container.
+                        items:
+                          type: string
+                        type: array
+                      env:
+                        description: Env represents the environment variables to be
+                          injected in a container.
+                        items:
+                          description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#envvarsource-v1-core.'
+                          properties:
+                            name:
+                              description: Name of the environment variable. Must
+                                be a C_IDENTIFIER.
+                              type: string
+                            value:
+                              type: string
+                            valueFrom:
+                              description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#envvarsource-v1-core.'
+                              properties:
+                                configMapKeyRef:
+                                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#configmapkeyselector-v1-core.'
+                                  properties:
+                                    key:
+                                      type: string
+                                    name:
+                                      default: ""
+                                      type: string
+                                  required:
+                                  - key
+                                  type: object
+                                  x-kubernetes-map-type: atomic
+                                fieldRef:
+                                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#objectfieldselector-v1-core.'
+                                  properties:
+                                    apiVersion:
+                                      type: string
+                                    fieldPath:
+                                      type: string
+                                  required:
+                                  - fieldPath
+                                  type: object
+                                  x-kubernetes-map-type: atomic
+                                secretKeyRef:
+                                  description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#secretkeyselector-v1-core.'
+                                  properties:
+                                    key:
+                                      type: string
+                                    name:
+                                      default: ""
+                                      type: string
+                                  required:
+                                  - key
+                                  type: object
+                                  x-kubernetes-map-type: atomic
+                              type: object
+                          required:
+                          - name
+                          type: object
+                        type: array
+                      envFrom:
+                        description: EnvFrom represents the references (via ConfigMap
+                          and Secrets) to environment variables to be injected in
+                          the container.
+                        items:
+                          description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#envfromsource-v1-core.'
+                          properties:
+                            configMapRef:
+                              description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core.'
+                              properties:
+                                name:
+                                  default: ""
+                                  type: string
+                              type: object
+                            prefix:
+                              type: string
+                            secretRef:
+                              description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#localobjectreference-v1-core.'
+                              properties:
+                                name:
+                                  default: ""
+                                  type: string
+                              type: object
+                          type: object
+                        type: array
+                      image:
+                        description: Image name to be used by the MariaDB instances.
+                          The supported format is `<image>:<tag>`.
+                        type: string
+                      imagePullPolicy:
+                        description: ImagePullPolicy is the image pull policy. One
+                          of `Always`, `Never` or `IfNotPresent`. If not defined,
+                          it defaults to `IfNotPresent`.
+                        enum:
+                        - Always
+                        - Never
+                        - IfNotPresent
+                        type: string
+                      livenessProbe:
+                        description: LivenessProbe to be used in the Container.
+                        properties:
+                          exec:
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#execaction-v1-core.'
+                            properties:
+                              command:
+                                items:
+                                  type: string
+                                type: array
+                                x-kubernetes-list-type: atomic
+                            type: object
+                          failureThreshold:
+                            format: int32
+                            type: integer
+                          httpGet:
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#httpgetaction-v1-core.'
+                            properties:
+                              host:
+                                type: string
+                              path:
+                                type: string
+                              port:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                x-kubernetes-int-or-string: true
+                              scheme:
+                                description: URIScheme identifies the scheme used
+                                  for connection to a host for Get actions
+                                type: string
+                            required:
+                            - port
+                            type: object
+                          initialDelaySeconds:
+                            format: int32
+                            type: integer
+                          periodSeconds:
+                            format: int32
+                            type: integer
+                          successThreshold:
+                            format: int32
+                            type: integer
+                          tcpSocket:
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#tcpsocketaction-v1-core.'
+                            properties:
+                              host:
+                                type: string
+                              port:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                x-kubernetes-int-or-string: true
+                            required:
+                            - port
+                            type: object
+                          timeoutSeconds:
+                            format: int32
+                            type: integer
+                        type: object
+                      readinessProbe:
+                        description: ReadinessProbe to be used in the Container.
+                        properties:
+                          exec:
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#execaction-v1-core.'
+                            properties:
+                              command:
+                                items:
+                                  type: string
+                                type: array
+                                x-kubernetes-list-type: atomic
+                            type: object
+                          failureThreshold:
+                            format: int32
+                            type: integer
+                          httpGet:
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#httpgetaction-v1-core.'
+                            properties:
+                              host:
+                                type: string
+                              path:
+                                type: string
+                              port:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                x-kubernetes-int-or-string: true
+                              scheme:
+                                description: URIScheme identifies the scheme used
+                                  for connection to a host for Get actions
+                                type: string
+                            required:
+                            - port
+                            type: object
+                          initialDelaySeconds:
+                            format: int32
+                            type: integer
+                          periodSeconds:
+                            format: int32
+                            type: integer
+                          successThreshold:
+                            format: int32
+                            type: integer
+                          tcpSocket:
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#tcpsocketaction-v1-core.'
+                            properties:
+                              host:
+                                type: string
+                              port:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                x-kubernetes-int-or-string: true
+                            required:
+                            - port
+                            type: object
+                          timeoutSeconds:
+                            format: int32
+                            type: integer
+                        type: object
+                      resources:
+                        description: Resources describes the compute resource requirements.
+                        properties:
+                          limits:
+                            additionalProperties:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                            description: ResourceList is a set of (resource name,
+                              quantity) pairs.
+                            type: object
+                          requests:
+                            additionalProperties:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                            description: ResourceList is a set of (resource name,
+                              quantity) pairs.
+                            type: object
+                        type: object
+                      securityContext:
+                        description: SecurityContext holds security configuration
+                          that will be applied to a container.
+                        properties:
+                          allowPrivilegeEscalation:
+                            type: boolean
+                          capabilities:
+                            description: Adds and removes POSIX capabilities from
+                              running containers.
+                            properties:
+                              add:
+                                description: Added capabilities
+                                items:
+                                  description: Capability represent POSIX capabilities
+                                    type
+                                  type: string
+                                type: array
+                                x-kubernetes-list-type: atomic
+                              drop:
+                                description: Removed capabilities
+                                items:
+                                  description: Capability represent POSIX capabilities
+                                    type
+                                  type: string
+                                type: array
+                                x-kubernetes-list-type: atomic
+                            type: object
+                          privileged:
+                            type: boolean
+                          readOnlyRootFilesystem:
+                            type: boolean
+                          runAsGroup:
+                            format: int64
+                            type: integer
+                          runAsNonRoot:
+                            type: boolean
+                          runAsUser:
+                            format: int64
+                            type: integer
+                        type: object
+                      startupProbe:
+                        description: StartupProbe to be used in the Container.
+                        properties:
+                          exec:
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#execaction-v1-core.'
+                            properties:
+                              command:
+                                items:
+                                  type: string
+                                type: array
+                                x-kubernetes-list-type: atomic
+                            type: object
+                          failureThreshold:
+                            format: int32
+                            type: integer
+                          httpGet:
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#httpgetaction-v1-core.'
+                            properties:
+                              host:
+                                type: string
+                              path:
+                                type: string
+                              port:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                x-kubernetes-int-or-string: true
+                              scheme:
+                                description: URIScheme identifies the scheme used
+                                  for connection to a host for Get actions
+                                type: string
+                            required:
+                            - port
+                            type: object
+                          initialDelaySeconds:
+                            format: int32
+                            type: integer
+                          periodSeconds:
+                            format: int32
+                            type: integer
+                          successThreshold:
+                            format: int32
+                            type: integer
+                          tcpSocket:
+                            description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#tcpsocketaction-v1-core.'
+                            properties:
+                              host:
+                                type: string
+                              port:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                x-kubernetes-int-or-string: true
+                            required:
+                            - port
+                            type: object
+                          timeoutSeconds:
+                            format: int32
+                            type: integer
+                        type: object
+                      volumeMounts:
+                        description: VolumeMounts to be used in the Container.
+                        items:
+                          description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#volumemount-v1-core.'
+                          properties:
+                            mountPath:
+                              type: string
+                            name:
+                              description: This must match the Name of a Volume.
+                              type: string
+                            readOnly:
+                              type: boolean
+                            subPath:
+                              type: string
+                          required:
+                          - mountPath
+                          - name
+                          type: object
+                        type: array
+                    required:
+                    - image
+                    type: object
                   primary:
                     description: Primary is the replication configuration for the
                       primary node.
                     properties:
-                      automaticFailover:
-                        description: AutomaticFailover indicates whether the operator
-                          should automatically update PodIndex to perform an automatic
-                          primary failover.
+                      autoFailover:
+                        description: |-
+                          AutoFailover indicates whether the operator should automatically update PodIndex to perform an automatic primary failover.
+                          It is enabled by default.
                         type: boolean
-                      automaticFailoverDelay:
-                        description: AutomaticFailoverDelay indicates the duration
-                          before performing an automatic primary failover. By default,
-                          no extra delay is added.
+                      autoFailoverDelay:
+                        description: |-
+                          AutoFailoverDelay indicates the duration before performing an automatic primary failover.
+                          By default, no extra delay is added.
                         type: string
                       podIndex:
                         description: PodIndex is the StatefulSet index of the primary
@@ -6956,34 +7761,416 @@ spec:
                           switchover.
                         type: integer
                     type: object
-                  probesEnabled:
-                    description: |-
-                      ProbesEnabled indicates to use replication specific liveness and readiness probes.
-                      This probes check that the primary can receive queries and that the replica has the replication thread running.
-                    type: boolean
                   replica:
                     description: ReplicaReplication is the replication configuration
                       for the replica nodes.
                     properties:
-                      connectionRetries:
-                        description: ConnectionRetries to be used when the replica
-                          connects to the primary.
+                      bootstrapFrom:
+                        description: |-
+                          ReplicaBootstrapFrom defines the data sources used to bootstrap new replicas.
+                          This will be used as part of the scaling out and recovery operations, when new replicas are created.
+                          If not provided, scale out and recovery operations will return an error.
+                        properties:
+                          physicalBackupTemplateRef:
+                            description: |-
+                              PhysicalBackupTemplateRef is a reference to a PhysicalBackup object that will be used as template to create a new PhysicalBackup object
+                              used synchronize the data from an up to date replica to the new replica to be bootstrapped.
+                            properties:
+                              name:
+                                default: ""
+                                type: string
+                            type: object
+                          restoreJob:
+                            description: RestoreJob defines additional properties
+                              for the Job used to perform the restoration.
+                            properties:
+                              affinity:
+                                description: Affinity to be used in the Pod.
+                                properties:
+                                  antiAffinityEnabled:
+                                    description: |-
+                                      AntiAffinityEnabled configures PodAntiAffinity so each Pod is scheduled in a different Node, enabling HA.
+                                      Make sure you have at least as many Nodes available as the replicas to not end up with unscheduled Pods.
+                                    type: boolean
+                                  nodeAffinity:
+                                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeaffinity-v1-core'
+                                    properties:
+                                      preferredDuringSchedulingIgnoredDuringExecution:
+                                        items:
+                                          description: 'Refer to the Kubernetes docs:
+                                            https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#preferredschedulingterm-v1-core'
+                                          properties:
+                                            preference:
+                                              description: 'Refer to the Kubernetes
+                                                docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselectorterm-v1-core'
+                                              properties:
+                                                matchExpressions:
+                                                  items:
+                                                    description: 'Refer to the Kubernetes
+                                                      docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselectorrequirement-v1-core'
+                                                    properties:
+                                                      key:
+                                                        type: string
+                                                      operator:
+                                                        description: |-
+                                                          A node selector operator is the set of operators that can be used in
+                                                          a node selector requirement.
+                                                        type: string
+                                                      values:
+                                                        items:
+                                                          type: string
+                                                        type: array
+                                                        x-kubernetes-list-type: atomic
+                                                    required:
+                                                    - key
+                                                    - operator
+                                                    type: object
+                                                  type: array
+                                                  x-kubernetes-list-type: atomic
+                                                matchFields:
+                                                  items:
+                                                    description: 'Refer to the Kubernetes
+                                                      docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselectorrequirement-v1-core'
+                                                    properties:
+                                                      key:
+                                                        type: string
+                                                      operator:
+                                                        description: |-
+                                                          A node selector operator is the set of operators that can be used in
+                                                          a node selector requirement.
+                                                        type: string
+                                                      values:
+                                                        items:
+                                                          type: string
+                                                        type: array
+                                                        x-kubernetes-list-type: atomic
+                                                    required:
+                                                    - key
+                                                    - operator
+                                                    type: object
+                                                  type: array
+                                                  x-kubernetes-list-type: atomic
+                                              type: object
+                                            weight:
+                                              format: int32
+                                              type: integer
+                                          required:
+                                          - preference
+                                          - weight
+                                          type: object
+                                        type: array
+                                        x-kubernetes-list-type: atomic
+                                      requiredDuringSchedulingIgnoredDuringExecution:
+                                        description: 'Refer to the Kubernetes docs:
+                                          https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselector-v1-core'
+                                        properties:
+                                          nodeSelectorTerms:
+                                            items:
+                                              description: 'Refer to the Kubernetes
+                                                docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselectorterm-v1-core'
+                                              properties:
+                                                matchExpressions:
+                                                  items:
+                                                    description: 'Refer to the Kubernetes
+                                                      docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselectorrequirement-v1-core'
+                                                    properties:
+                                                      key:
+                                                        type: string
+                                                      operator:
+                                                        description: |-
+                                                          A node selector operator is the set of operators that can be used in
+                                                          a node selector requirement.
+                                                        type: string
+                                                      values:
+                                                        items:
+                                                          type: string
+                                                        type: array
+                                                        x-kubernetes-list-type: atomic
+                                                    required:
+                                                    - key
+                                                    - operator
+                                                    type: object
+                                                  type: array
+                                                  x-kubernetes-list-type: atomic
+                                                matchFields:
+                                                  items:
+                                                    description: 'Refer to the Kubernetes
+                                                      docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#nodeselectorrequirement-v1-core'
+                                                    properties:
+                                                      key:
+                                                        type: string
+                                                      operator:
+                                                        description: |-
+                                                          A node selector operator is the set of operators that can be used in
+                                                          a node selector requirement.
+                                                        type: string
+                                                      values:
+                                                        items:
+                                                          type: string
+                                                        type: array
+                                                        x-kubernetes-list-type: atomic
+                                                    required:
+                                                    - key
+                                                    - operator
+                                                    type: object
+                                                  type: array
+                                                  x-kubernetes-list-type: atomic
+                                              type: object
+                                            type: array
+                                            x-kubernetes-list-type: atomic
+                                        required:
+                                        - nodeSelectorTerms
+                                        type: object
+                                    type: object
+                                  podAntiAffinity:
+                                    description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#podantiaffinity-v1-core.'
+                                    properties:
+                                      preferredDuringSchedulingIgnoredDuringExecution:
+                                        items:
+                                          description: 'Refer to the Kubernetes docs:
+                                            https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#weightedpodaffinityterm-v1-core.'
+                                          properties:
+                                            podAffinityTerm:
+                                              description: 'Refer to the Kubernetes
+                                                docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#podaffinityterm-v1-core.'
+                                              properties:
+                                                labelSelector:
+                                                  description: 'Refer to the Kubernetes
+                                                    docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#labelselector-v1-meta'
+                                                  properties:
+                                                    matchExpressions:
+                                                      items:
+                                                        description: 'Refer to the
+                                                          Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#labelselectorrequirement-v1-meta'
+                                                        properties:
+                                                          key:
+                                                            type: string
+                                                          operator:
+                                                            description: A label selector
+                                                              operator is the set
+                                                              of operators that can
+                                                              be used in a selector
+                                                              requirement.
+                                                            type: string
+                                                          values:
+                                                            items:
+                                                              type: string
+                                                            type: array
+                                                            x-kubernetes-list-type: atomic
+                                                        required:
+                                                        - key
+                                                        - operator
+                                                        type: object
+                                                      type: array
+                                                      x-kubernetes-list-type: atomic
+                                                    matchLabels:
+                                                      additionalProperties:
+                                                        type: string
+                                                      type: object
+                                                  type: object
+                                                topologyKey:
+                                                  type: string
+                                              required:
+                                              - topologyKey
+                                              type: object
+                                            weight:
+                                              format: int32
+                                              type: integer
+                                          required:
+                                          - podAffinityTerm
+                                          - weight
+                                          type: object
+                                        type: array
+                                        x-kubernetes-list-type: atomic
+                                      requiredDuringSchedulingIgnoredDuringExecution:
+                                        items:
+                                          description: 'Refer to the Kubernetes docs:
+                                            https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#podaffinityterm-v1-core.'
+                                          properties:
+                                            labelSelector:
+                                              description: 'Refer to the Kubernetes
+                                                docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#labelselector-v1-meta'
+                                              properties:
+                                                matchExpressions:
+                                                  items:
+                                                    description: 'Refer to the Kubernetes
+                                                      docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#labelselectorrequirement-v1-meta'
+                                                    properties:
+                                                      key:
+                                                        type: string
+                                                      operator:
+                                                        description: A label selector
+                                                          operator is the set of operators
+                                                          that can be used in a selector
+                                                          requirement.
+                                                        type: string
+                                                      values:
+                                                        items:
+                                                          type: string
+                                                        type: array
+                                                        x-kubernetes-list-type: atomic
+                                                    required:
+                                                    - key
+                                                    - operator
+                                                    type: object
+                                                  type: array
+                                                  x-kubernetes-list-type: atomic
+                                                matchLabels:
+                                                  additionalProperties:
+                                                    type: string
+                                                  type: object
+                                              type: object
+                                            topologyKey:
+                                              type: string
+                                          required:
+                                          - topologyKey
+                                          type: object
+                                        type: array
+                                        x-kubernetes-list-type: atomic
+                                    type: object
+                                type: object
+                              args:
+                                description: Args to be used in the Container.
+                                items:
+                                  type: string
+                                type: array
+                              metadata:
+                                description: Metadata defines additional metadata
+                                  for the bootstrap Jobs.
+                                properties:
+                                  annotations:
+                                    additionalProperties:
+                                      type: string
+                                    description: Annotations to be added to children
+                                      resources.
+                                    type: object
+                                  labels:
+                                    additionalProperties:
+                                      type: string
+                                    description: Labels to be added to children resources.
+                                    type: object
+                                type: object
+                              nodeSelector:
+                                additionalProperties:
+                                  type: string
+                                description: NodeSelector to be used in the Pod.
+                                type: object
+                              resources:
+                                description: Resources describes the compute resource
+                                  requirements.
+                                properties:
+                                  limits:
+                                    additionalProperties:
+                                      anyOf:
+                                      - type: integer
+                                      - type: string
+                                      pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                      x-kubernetes-int-or-string: true
+                                    description: ResourceList is a set of (resource
+                                      name, quantity) pairs.
+                                    type: object
+                                  requests:
+                                    additionalProperties:
+                                      anyOf:
+                                      - type: integer
+                                      - type: string
+                                      pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                      x-kubernetes-int-or-string: true
+                                    description: ResourceList is a set of (resource
+                                      name, quantity) pairs.
+                                    type: object
+                                type: object
+                              tolerations:
+                                description: Tolerations to be used in the Pod.
+                                items:
+                                  description: |-
+                                    The pod this Toleration is attached to tolerates any taint that matches
+                                    the triple <key,value,effect> using the matching operator <operator>.
+                                  properties:
+                                    effect:
+                                      description: |-
+                                        Effect indicates the taint effect to match. Empty means match all taint effects.
+                                        When specified, allowed values are NoSchedule, PreferNoSchedule and NoExecute.
+                                      type: string
+                                    key:
+                                      description: |-
+                                        Key is the taint key that the toleration applies to. Empty means match all taint keys.
+                                        If the key is empty, operator must be Exists; this combination means to match all values and all keys.
+                                      type: string
+                                    operator:
+                                      description: |-
+                                        Operator represents a key's relationship to the value.
+                                        Valid operators are Exists and Equal. Defaults to Equal.
+                                        Exists is equivalent to wildcard for value, so that a pod can
+                                        tolerate all taints of a particular category.
+                                      type: string
+                                    tolerationSeconds:
+                                      description: |-
+                                        TolerationSeconds represents the period of time the toleration (which must be
+                                        of effect NoExecute, otherwise this field is ignored) tolerates the taint. By default,
+                                        it is not set, which means tolerate the taint forever (do not evict). Zero and
+                                        negative values will be treated as 0 (evict immediately) by the system.
+                                      format: int64
+                                      type: integer
+                                    value:
+                                      description: |-
+                                        Value is the taint value the toleration matches to.
+                                        If the operator is Exists, the value should be empty, otherwise just a regular string.
+                                      type: string
+                                  type: object
+                                type: array
+                            type: object
+                        required:
+                        - physicalBackupTemplateRef
+                        type: object
+                      connectionRetrySeconds:
+                        description: |-
+                          ConnectionRetrySeconds is the number of seconds that the replica will wait between connection retries.
+                          See: https://mariadb.com/docs/server/reference/sql-statements/administrative-sql-statements/replication-statements/change-master-to#master_connect_retry.
                         type: integer
-                      connectionTimeout:
-                        description: ConnectionTimeout to be used when the replica
-                          connects to the primary.
-                        type: string
                       gtid:
                         description: |-
-                          Gtid indicates which Global Transaction ID should be used when connecting a replica to the master.
-                          See: https://mariadb.com/kb/en/gtid/#using-current_pos-vs-slave_pos.
+                          Gtid indicates which Global Transaction ID (GTID) position mode should be used when connecting a replica to the master.
+                          By default, CurrentPos is used.
+                          See: https://mariadb.com/docs/server/reference/sql-statements/administrative-sql-statements/replication-statements/change-master-to#master_use_gtid.
                         enum:
                         - CurrentPos
                         - SlavePos
                         type: string
+                      maxLagSeconds:
+                        description: |-
+                          MaxLagSeconds is the maximum number of seconds that replicas are allowed to lag behind the primary.
+                          If a replica exceeds this threshold, it is marked as not ready and read queries will no longer be forwarded to it.
+                          If not provided, it defaults to 0, which means that replicas are not allowed to lag behind the primary (recommended).
+                          Lagged replicas will not be taken into account as candidates for the new primary during failover,
+                          and they will block other operations, such as switchover and upgrade.
+                          This field is not taken into account by MaxScale, you can define the maximum lag as router parameters.
+                          See: https://mariadb.com/docs/maxscale/reference/maxscale-routers/maxscale-readwritesplit#max_replication_lag.
+                        type: integer
+                      recovery:
+                        description: |-
+                          ReplicaRecovery defines how the replicas should be recovered after they enter an error state.
+                          This process deletes data from faulty replicas and recreates them using the source defined in the bootstrapFrom field.
+                          It is disabled by default, and it requires the bootstrapFrom field to be set.
+                        properties:
+                          enabled:
+                            description: Enabled is a flag to enable replica recovery.
+                            type: boolean
+                          errorDurationThreshold:
+                            description: |-
+                              ErrorDurationThreshold defines the time duration after which, if a replica continues to report errors,
+                              the operator will initiate the recovery process for that replica.
+                              This threshold applies only to error codes not identified as recoverable by the operator.
+                              Errors identified as recoverable will trigger the recovery process immediately.
+                              It defaults to 5 minutes.
+                            type: string
+                        required:
+                        - enabled
+                        type: object
                       replPasswordSecretKeyRef:
-                        description: ReplPasswordSecretKeyRef provides a reference
-                          to the Secret to use as password for the replication user.
+                        description: |-
+                          ReplPasswordSecretKeyRef provides a reference to the Secret to use as password for the replication user.
+                          By default, a random password will be generated.
                         properties:
                           generate:
                             default: false
@@ -7001,22 +8188,42 @@ spec:
                         x-kubernetes-map-type: atomic
                       syncTimeout:
                         description: |-
-                          SyncTimeout defines the timeout for a replica to be synced with the primary when performing a primary switchover.
-                          If the timeout is reached, the replica GTID will be reset and the switchover will continue.
-                        type: string
-                      waitPoint:
-                        description: |-
-                          WaitPoint defines whether the transaction should wait for ACK before committing to the storage engine.
-                          More info: https://mariadb.com/kb/en/semisynchronous-replication/#rpl_semi_sync_master_wait_point.
-                        enum:
-                        - AfterSync
-                        - AfterCommit
+                          SyncTimeout defines the timeout for the synchronization phase during switchover and failover operations.
+                          During switchover, all replicas must be synced with the current primary before promoting the new primary.
+                          During failover, the new primary must be synced before being promoted as primary. This implies processing all the events in the relay log.
+                          When the timeout is reached, the operator restarts the operation from the beginning.
+                          It defaults to 10s.
+                          See: https://mariadb.com/docs/server/reference/sql-functions/secondary-functions/miscellaneous-functions/master_gtid_wait
                         type: string
                     type: object
+                  semiSyncAckTimeout:
+                    description: |-
+                      SemiSyncAckTimeout for the replica to acknowledge transactions to the primary.
+                      It requires semi-synchronous replication to be enabled.
+                      See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/semisynchronous-replication#rpl_semi_sync_master_timeout
+                    type: string
+                  semiSyncEnabled:
+                    description: |-
+                      SemiSyncEnabled determines whether semi-synchronous replication is enabled.
+                      Semi-synchronous replication requires that at least one replica should have sent an ACK to the primary node
+                      before committing the transaction back to the client.
+                      See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/semisynchronous-replication
+                      It is enabled by default
+                    type: boolean
+                  semiSyncWaitPoint:
+                    description: |-
+                      SemiSyncWaitPoint determines whether the transaction should wait for an ACK after having synced the binlog (AfterSync)
+                      or after having committed to the storage engine (AfterCommit, the default).
+                      It requires semi-synchronous replication to be enabled.
+                      See: https://mariadb.com/kb/en/semisynchronous-replication/#rpl_semi_sync_master_wait_point.
+                    enum:
+                    - AfterSync
+                    - AfterCommit
+                    type: string
                   syncBinlog:
                     description: |-
                       SyncBinlog indicates after how many events the binary log is synchronized to the disk.
-                      The default is 1, flushing the binary log to disk after every write, which trades off performance for consistency. See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/replication-and-binary-log-system-variables#sync_binlog
+                      See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/replication-and-binary-log-system-variables#sync_binlog
                     type: integer
                 type: object
               resources:
@@ -8021,9 +9228,10 @@ spec:
             type: object
             x-kubernetes-validations:
             - message: 'An odd number of MariaDB instances (mariadb.spec.replicas)
-                is required to avoid split brain situations. Use ''mariadb.spec.replicasAllowEvenNumber:
+                is required to avoid split brain situations for Galera. Use ''mariadb.spec.replicasAllowEvenNumber:
                 true'' to disable this validation.'
-              rule: self.replicas %2 == 1 || self.replicasAllowEvenNumber
+              rule: '!has(self.galera) || !self.galera.enabled || (self.replicas %
+                2 == 1 || self.replicasAllowEvenNumber)'
           status:
             description: MariaDBStatus defines the observed state of MariaDB
             properties:
@@ -8157,12 +9365,76 @@ spec:
                 description: Replicas indicates the number of current instances.
                 format: int32
                 type: integer
-              replicationStatus:
-                additionalProperties:
-                  type: string
-                description: ReplicationStatus is the replication current state for
-                  each Pod.
+              replication:
+                description: Replication is the replication current status per each
+                  Pod.
+                properties:
+                  replicaToRecover:
+                    description: ReplicaToRecover is the replica that is being recovered
+                      by the operator.
+                    type: string
+                  replicas:
+                    additionalProperties:
+                      description: ReplicaStatus is the observed replica status.
+                      properties:
+                        gtidCurrentPos:
+                          description: GtidCurrentPos is the last GTID position executed
+                            by the SQL thread.
+                          type: string
+                        gtidIOPos:
+                          description: GtidIOPos is the last GTID position received
+                            by the IO thread and written to the relay log.
+                          type: string
+                        lastErrorTransitionTime:
+                          description: LastErrorTransitionTime is the last time the
+                            replica transitioned to an error state.
+                          format: date-time
+                          type: string
+                        lastIOErrno:
+                          description: LastIOErrno is the error code returned by the
+                            IO thread.
+                          type: integer
+                        lastIOError:
+                          description: LastIOErrno is the error message returned by
+                            the IO thread.
+                          type: string
+                        lastSQLErrno:
+                          description: LastSQLErrno is the error code returned by
+                            the SQL thread.
+                          type: integer
+                        lastSQLError:
+                          description: LastSQLError is the error message returned
+                            by the SQL thread.
+                          type: string
+                        secondsBehindMaster:
+                          description: SecondsBehindMaster measures the replication
+                            lag with the primary.
+                          type: integer
+                        slaveIORunning:
+                          description: SlaveIORunning indicates whether the slave
+                            IO thread is running.
+                          type: boolean
+                        slaveSQLRunning:
+                          description: SlaveSQLRunning indicates whether the slave
+                            SQL thread is running.
+                          type: boolean
+                      type: object
+                    description: Replicas is the observed replication status for each
+                      replica.
+                    type: object
+                  roles:
+                    additionalProperties:
+                      description: ReplicationRole represents the observed replication
+                        roles.
+                      type: string
+                    description: Roles is the observed replication roles for each
+                      Pod.
+                    type: object
                 type: object
+              scaleOutInitialIndex:
+                description: ScaleOutInitialIndex is the initial index where the scale
+                  out operation started.
+                type: integer
               tls:
                 description: TLS aggregates the status of the certificates used by
                   the MariaDB instance.
@@ -9928,6 +11200,11 @@ spec:
                     type: array
                     x-kubernetes-list-type: atomic
                 type: object
+              primaryServer:
+                description: |-
+                  PrimaryServer specifies the desired primary server. Setting this field triggers a switchover operation in MaxScale to the desired server.
+                  This option is only valid when using monitors that support switchover, currently limited to the MariaDB monitor.
+                type: string
               priorityClassName:
                 description: PriorityClassName to be used in the Pod.
                 type: string
@@ -11089,8 +12366,6 @@ spec:
                     description: Suspend defines whether the schedule is active or
                       not.
                     type: boolean
-                required:
-                - cron
                 type: object
               securityContext:
                 description: SecurityContext holds security configuration that will

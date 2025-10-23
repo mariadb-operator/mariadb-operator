@@ -1,10 +1,12 @@
 # High availability
 
-This section provide guidance on how to run `MariaDB` and `MaxScale` in high availability mode. If you are looking to run the operator in HA as well, please refer to the [Helm documentation](./helm.md#high-availability).
+This section provides guidance on how to configure high availability in `MariaDB` and `MaxScale` instances. If you are looking for an HA setup for the operator, please refer to the [Helm documentation](./helm.md#high-availability).
 
-Our recommended HA setup for production is:
-- **[Galera](./galera.md)** with at least 3 nodes. Always an odd number of nodes.
-- Load balance requests using **[MaxScale](./maxscale.md)** as database proxy.
+Our recommended setup for production is:
+- Use a **[highly available topology](#highly-available-topologies)** for MariaDB:
+  - **[Asynchronous replication](./replication.md)** with a primary node and at least 2 replicas.
+  - Synchronous multi-master **[Galera](./galera.md)** with at least 3 nodes. Always an odd number of nodes, as it is quorum-based.
+- Leverage **[MaxScale](./maxscale.md)** as database proxy to load balance requests and perform  failover/switchover operations. Configure 2 replicas to enable MaxScale upgrades without downtime.
 - Use **[dedicated nodes](#dedicated-nodes)** to avoid noisy neighbours.
 - Define **[pod disruption budgets](#pod-disruption-budgets)**.
 
@@ -12,37 +14,41 @@ Refer to the following sections for further detail.
 
 ## Table of contents
 <!-- toc -->
-- [Topologies](#topologies)
+- [Highly Available Topologies](#highly-available-topologies)
 - [Kubernetes Services](#kubernetes-services)
 - [MaxScale](#maxscale)
 - [Pod Anti-Affinity](#pod-anti-affinity)
 - [Dedicated Nodes](#dedicated-nodes)
 - [Pod Disruption Budgets](#pod-disruption-budgets)
-- [Reference](#reference)
 <!-- /toc -->
 
-## Topologies
+## Highly Available Topologies
 
-> [!WARNING]  
-> SemiSync Replication is in alpha stage and not ready for production. Use it at your own risk.
-
-- **Multi master HA via [Galera](./galera.md)**: All nodes support reads and writes. We have a designated primary where the writes are performed.
-- **Single master HA via [SemiSync Replication](../examples/manifests/mariadb_replication.yaml)**: The primary node allows both reads and writes, while secondary nodes only allow reads.
+- **[Asynchronous replication](./replication.md)**: The primary node allows both reads and writes, while secondary nodes only serve reads. The primary has a binary log and the replicas asynchronously replicate the binary log events.
+- **[Synchronous multi-master Galera](./galera.md)**: All nodes support reads and writes, but writes are only sent to one node to avoid contention. The fact that is synchronous and that all nodes are equally configured makes the primary failover/switchover operation seamless and usually instantaneous.
 
 ## Kubernetes Services
 
 In order to address nodes, `mariadb-operator` provides you with the following Kubernetes `Services`:
-- `<mariadb-name>`: To be used for read requests. It will point to all nodes. 
-- `<mariadb-name>-primary`: To be used for write requests. It will point to a single node, the primary.
-- `<mariadb-name>-secondary`: To be used for read requests. It will point to all nodes, except the primary.
+- `<mariadb-name>`: This is the default `Service`, only intended for the [standalone topology](./standalone_mariadb.md).
+- `<mariadb-name>-primary`: To be used for write requests. It will point to the primary node.
+- `<mariadb-name>-secondary`: To be used for read requests. It will load balance requests to all nodes except the primary.
 
 Whenever the primary changes, either by the user or by the operator, both the `<mariadb-name>-primary` and `<mariadb-name>-secondary` `Services` will be automatically updated by the operator to address the right nodes.
 
-The primary may be manually changed by the user at any point by updating the `spec.[replication|galera].primary.podIndex` field. Alternatively,  automatic primary failover can be enabled by setting `spec.[replication|galera].primary.automaticFailover`, which will make the operator to switch primary whenever the primary `Pod` goes down.
+The primary may be manually changed by the user at any point by updating the `spec.[replication|galera].primary.podIndex` field. Alternatively,  automatic primary failover can be enabled by setting `spec.[replication|galera].primary.autoFailover`, which will make the operator to switch primary whenever the primary `Pod` goes down.
 
 ## MaxScale
 
-While Kubernetes `Services` can be utilized to dynamically address primary and secondary instances, the most robust high availability configuration we recommend relies on [MaxScale](https://mariadb.com/docs/server/products/mariadb-maxscale/). Please refer to [MaxScale docs](./maxscale.md) for further details.
+While Kubernetes `Services` can be used for addressing primary and secondary instances, we recommend utilizing [MaxScale](https://mariadb.com/docs/server/products/mariadb-maxscale/) as database proxy for doing so, as it comes with additional advantages:
+- Enhanced failover/switchover operations for both replication and Galera
+- Single entrypoint for both reads and writes
+- Multiple router modules available to define how to route requests
+- Replay pending transaction when primary goes down
+- Ability to choose whether the old primary rejoins as a replica
+- Connection pooling 
+
+The full lifecyle of the MaxScale proxy is covered by this operator.  Please refer to [MaxScale docs](./maxscale.md) for further detail.
 
 ## Pod Anti-Affinity
 
@@ -197,7 +203,3 @@ spec:
     podDisruptionBudget:
       maxUnavailable: 33%
 ```
-
-## Reference
-- [API reference](./api_reference.md)
-- [Example suite](../examples/)

@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/go-logr/logr"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/galera/errors"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/agent/errors"
 	mdbreflect "github.com/mariadb-operator/mariadb-operator/v25/pkg/reflect"
 )
 

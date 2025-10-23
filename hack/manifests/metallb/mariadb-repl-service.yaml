@@ -11,10 +11,19 @@ spec:
     port: 3306
     protocol: TCP
     targetPort: 3306
+  - name: agent
+    port: 5555
+    protocol: TCP
+    targetPort: 5555
+  - name: agent-probe
+    port: 5566
+    protocol: TCP
+    targetPort: 5566
   selector:
     app.kubernetes.io/instance: mariadb-repl
     app.kubernetes.io/name: mariadb
     statefulset.kubernetes.io/pod-name: mariadb-repl-0
+  publishNotReadyAddresses: true
   type: LoadBalancer
 ---
 apiVersion: v1
@@ -30,10 +39,19 @@ spec:
     port: 3306
     protocol: TCP
     targetPort: 3306
+  - name: agent
+    port: 5555
+    protocol: TCP
+    targetPort: 5555
+  - name: agent-probe
+    port: 5566
+    protocol: TCP
+    targetPort: 5566
   selector:
     app.kubernetes.io/instance: mariadb-repl
     app.kubernetes.io/name: mariadb
     statefulset.kubernetes.io/pod-name: mariadb-repl-1
+  publishNotReadyAddresses: true
   type: LoadBalancer
 ---
 apiVersion: v1
@@ -49,10 +67,19 @@ spec:
     port: 3306
     protocol: TCP
     targetPort: 3306
+  - name: agent
+    port: 5555
+    protocol: TCP
+    targetPort: 5555
+  - name: agent-probe
+    port: 5566
+    protocol: TCP
+    targetPort: 5566
   selector:
     app.kubernetes.io/instance: mariadb-repl
     app.kubernetes.io/name: mariadb
     statefulset.kubernetes.io/pod-name: mariadb-repl-2
+  publishNotReadyAddresses: true
   type: LoadBalancer
 ---
 apiVersion: v1
@@ -68,8 +95,17 @@ spec:
     port: 3306
     protocol: TCP
     targetPort: 3306
+  - name: agent
+    port: 5555
+    protocol: TCP
+    targetPort: 5555
+  - name: agent-probe
+    port: 5566
+    protocol: TCP
+    targetPort: 5566
   selector:
     app.kubernetes.io/instance: mariadb-repl
     app.kubernetes.io/name: mariadb
     statefulset.kubernetes.io/pod-name: mariadb-repl-3
+  publishNotReadyAddresses: true
   type: LoadBalancer

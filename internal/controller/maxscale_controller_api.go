@@ -1,11 +1,12 @@
 package controller
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"sort"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -58,7 +59,7 @@ func (m *maxScaleAPI) patchUser(ctx context.Context, username, password string) 
 // MaxScale API - Servers
 
 func (m *maxScaleAPI) createServer(ctx context.Context, srv *mariadbv1alpha1.MaxScaleServer) error {
-	serverAttrs, err := m.serverAttributes(srv)
+	serverAttrs, err := m.serverAttributes(ctx, srv)
 	if err != nil {
 		return fmt.Errorf("error getting server attributes: %v", err)
 	}
@@ -70,7 +71,7 @@ func (m *maxScaleAPI) deleteServer(ctx context.Context, name string) error {
 }
 
 func (m *maxScaleAPI) patchServer(ctx context.Context, srv *mariadbv1alpha1.MaxScaleServer) error {
-	serverAttrs, err := m.serverAttributes(srv)
+	serverAttrs, err := m.serverAttributes(ctx, srv)
 	if err != nil {
 		return fmt.Errorf("error getting server attributes: %v", err)
 	}
@@ -84,7 +85,7 @@ func (m *maxScaleAPI) updateServerState(ctx context.Context, srv *mariadbv1alpha
 	return m.client.Server.ClearMaintenance(ctx, srv.Name)
 }
 
-func (m *maxScaleAPI) serverAttributes(srv *mariadbv1alpha1.MaxScaleServer) (*mxsclient.ServerAttributes, error) {
+func (m *maxScaleAPI) serverAttributes(ctx context.Context, srv *mariadbv1alpha1.MaxScaleServer) (*mxsclient.ServerAttributes, error) {
 	attrs := mxsclient.ServerAttributes{
 		Parameters: mxsclient.ServerParameters{
 			Address:  srv.Address,
@@ -101,43 +102,64 @@ func (m *maxScaleAPI) serverAttributes(srv *mariadbv1alpha1.MaxScaleServer) (*mx
 		attrs.Parameters.SSLVersion = "TLSv13"
 		attrs.Parameters.SSLVerifyPeerCertificate = m.mxs.ShouldVerifyPeerCertificate()
 		attrs.Parameters.SSLVerifyPeerHost = m.mxs.ShouldVerifyPeerHost()
-
-		if m.mxs.IsReplicationSSLEnabled() {
-			tls := ptr.Deref(m.mxs.Spec.TLS, mariadbv1alpha1.MaxScaleTLS{})
-			replicationCustomOptions, err := maxScaleReplicationCustomOptions(&tls)
-			if err != nil {
-				return nil, err
-			}
-			attrs.Parameters.ReplicationCustomOptions = replicationCustomOptions
-		}
 	}
+
+	mdb, err := m.getMariaDB(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("error getting MariaDB: %v", err)
+	}
+	replicationCustomOptions := m.maxScaleReplicationCustomOptions(mdb)
+	if replicationCustomOptions != "" {
+		attrs.Parameters.ReplicationCustomOptions = replicationCustomOptions
+	}
+
 	return &attrs, nil
 }
 
-func maxScaleReplicationCustomOptions(tls *mariadbv1alpha1.MaxScaleTLS) (string, error) {
-	if !tls.Enabled {
-		return "", errors.New("MaxScale TLS must be enabled")
-	}
-	if !ptr.Deref(tls.ReplicationSSLEnabled, false) {
-		return "", nil
+func (m *maxScaleAPI) maxScaleReplicationCustomOptions(mdb *mariadbv1alpha1.MariaDB) string {
+	var kvOpts map[string]string
+
+	tls := ptr.Deref(m.mxs.Spec.TLS, mariadbv1alpha1.MaxScaleTLS{})
+	replicationSSLEnabled := ptr.Deref(tls.ReplicationSSLEnabled, false)
+	if m.mxs.IsTLSEnabled() && tls.Enabled && replicationSSLEnabled {
+		if kvOpts == nil {
+			kvOpts = make(map[string]string)
+		}
+		kvOpts["MASTER_SSL"] = "1"
+		kvOpts["MASTER_SSL_CERT"] = builderpki.ServerCertPath
+		kvOpts["MASTER_SSL_KEY"] = builderpki.ServerKeyPath
+		kvOpts["MASTER_SSL_CA"] = builderpki.CACertPath
 	}
 
-	//nolint:lll
-	tpl := createTpl("replication-custom-opts", `MASTER_SSL=1,MASTER_SSL_CERT={{ .SSLCert }},MASTER_SSL_KEY={{ .SSLKey }},MASTER_SSL_CA={{ .SSLCA }}`)
-	buf := new(bytes.Buffer)
-	err := tpl.Execute(buf, struct {
-		SSLCert string
-		SSLKey  string
-		SSLCA   string
-	}{
-		SSLCert: builderpki.ServerCertPath,
-		SSLKey:  builderpki.ServerKeyPath,
-		SSLCA:   builderpki.CACertPath,
-	})
-	if err != nil {
-		return "", fmt.Errorf("error building replication custom options: %v", err)
+	if mdb != nil && mdb.IsReplicationEnabled() {
+		if kvOpts == nil {
+			kvOpts = make(map[string]string)
+		}
+
+		replSpec := ptr.Deref(mdb.Spec.Replication, mariadbv1alpha1.Replication{})
+		kvOpts["MASTER_CONNECT_RETRY"] = strconv.Itoa(ptr.Deref(replSpec.Replica.ConnectionRetrySeconds, 10))
 	}
-	return buf.String(), nil
+
+	pairs := make([]string, len(kvOpts))
+	i := 0
+	for k, v := range kvOpts {
+		pairs[i] = fmt.Sprintf("%s=%s", k, v)
+		i++
+	}
+	sort.Strings(pairs)
+
+	return strings.Join(pairs, ",")
+}
+
+func (m *maxScaleAPI) getMariaDB(ctx context.Context) (*mariadbv1alpha1.MariaDB, error) {
+	if m.mxs.Spec.MariaDBRef == nil {
+		return nil, nil
+	}
+	mdb, err := m.refResolver.MariaDB(ctx, m.mxs.Spec.MariaDBRef, m.mxs.Namespace)
+	if err != nil {
+		return nil, fmt.Errorf("error getting MariaDB: %v", err)
+	}
+	return mdb, nil
 }
 
 func (m *maxScaleAPI) serverRelationships(ctx context.Context) (*mxsclient.Relationships, error) {
@@ -331,6 +353,19 @@ func (m *maxScaleAPI) patchMaxScaleConfigSync(ctx context.Context) error {
 	}
 
 	return m.client.MaxScale.Patch(ctx, &attrs)
+}
+
+func (m *maxScaleAPI) mariadbMonSwitchover(ctx context.Context, primary, newPrimary string) error {
+	if m.mxs.Spec.Monitor.Module == "" {
+		return errors.New("monitor module must be set")
+	}
+	if m.mxs.Spec.Monitor.Module != mariadbv1alpha1.MonitorModuleMariadb {
+		return fmt.Errorf("unsupported monitor module: \"%v\"", m.mxs.Spec.Monitor.Module)
+	}
+	if m.mxs.Spec.Monitor.Name == "" {
+		return errors.New("monitor name must be set")
+	}
+	return m.client.MaxScale.CallModule(ctx, "mariadbmon", "switchover", m.mxs.Spec.Monitor.Name, newPrimary, primary)
 }
 
 // MaxScale client

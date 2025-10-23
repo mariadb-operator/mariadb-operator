@@ -1330,7 +1330,12 @@ func TestPhysicalBackupRestoreJobSelectorLabels(t *testing.T) {
 	}
 	podIndex := ptr.To(0)
 
-	job, err := builder.BuildPhysicalBackupRestoreJob(key, mariadb, podIndex)
+	job, err := builder.BuildPhysicalBackupRestoreJob(
+		key,
+		mariadb,
+		podIndex,
+		WithBootstrapFrom(mariadb.Spec.BootstrapFrom),
+	)
 	if err != nil {
 		t.Fatalf("unexpected error building PhysicalBackupRestoreJob: %v", err)
 	}
@@ -1558,7 +1563,12 @@ func TestPhysicalBackupRestoreJobMeta(t *testing.T) {
 	podIndex := ptr.To(0)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			job, err := builder.BuildPhysicalBackupRestoreJob(key, tt.mariadb, podIndex)
+			job, err := builder.BuildPhysicalBackupRestoreJob(
+				key,
+				tt.mariadb,
+				podIndex,
+				WithBootstrapFrom(tt.mariadb.Spec.BootstrapFrom),
+			)
 			if err != nil {
 				t.Fatalf("unexpected error building PhysicalBackupRestoreJob: %v", err)
 			}
@@ -1628,7 +1638,12 @@ func TestPhysicalBackupRestoreJobImagePullSecrets(t *testing.T) {
 	podIndex := ptr.To(0)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			job, err := builder.BuildPhysicalBackupRestoreJob(key, tt.mariadb, podIndex)
+			job, err := builder.BuildPhysicalBackupRestoreJob(
+				key,
+				tt.mariadb,
+				podIndex,
+				WithBootstrapFrom(tt.mariadb.Spec.BootstrapFrom),
+			)
 			if err != nil {
 				t.Fatalf("unexpected error building PhysicalBackupRestoreJob: %v", err)
 			}

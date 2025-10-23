@@ -1,10 +1,8 @@
 package v1alpha1
 
 import (
-	"errors"
 	"fmt"
 	"reflect"
-	"strings"
 	"time"
 
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/docker"
@@ -62,10 +60,10 @@ type PrimaryGalera struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	PodIndex *int `json:"podIndex,omitempty"`
-	// AutomaticFailover indicates whether the operator should automatically update PodIndex to perform an automatic primary failover.
+	// AutoFailover indicates whether the operator should automatically update PodIndex to perform an automatic primary failover.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
-	AutomaticFailover *bool `json:"automaticFailover,omitempty"`
+	AutoFailover *bool `json:"autoFailover,omitempty"`
 }
 
 // SetDefaults sets reasonable defaults.
@@ -73,171 +71,9 @@ func (r *PrimaryGalera) SetDefaults() {
 	if r.PodIndex == nil {
 		r.PodIndex = ptr.To(0)
 	}
-	if r.AutomaticFailover == nil {
-		r.AutomaticFailover = ptr.To(true)
+	if r.AutoFailover == nil {
+		r.AutoFailover = ptr.To(true)
 	}
-}
-
-// KubernetesAuth refers to the Kubernetes authentication mechanism utilized for establishing a connection from the operator to the agent.
-// The agent validates the legitimacy of the service account token provided as an Authorization header by creating a TokenReview resource.
-type KubernetesAuth struct {
-	// Enabled is a flag to enable KubernetesAuth
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
-	Enabled bool `json:"enabled,omitempty"`
-	// AuthDelegatorRoleName is the name of the ClusterRoleBinding that is associated with the "system:auth-delegator" ClusterRole.
-	// It is necessary for creating TokenReview objects in order for the agent to validate the service account token.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	AuthDelegatorRoleName string `json:"authDelegatorRoleName,omitempty"`
-}
-
-// AuthDelegatorRoleNameOrDefault defines the ClusterRoleBinding name bound to system:auth-delegator.
-// It falls back to the MariaDB name if AuthDelegatorRoleName is not set.
-func (k *KubernetesAuth) AuthDelegatorRoleNameOrDefault(mariadb *MariaDB) string {
-	if k.AuthDelegatorRoleName != "" {
-		return k.AuthDelegatorRoleName
-	}
-	name := fmt.Sprintf("%s-%s", mariadb.Name, mariadb.Namespace)
-	parts := strings.Split(string(mariadb.UID), "-")
-	if len(parts) > 0 {
-		name += fmt.Sprintf("-%s", parts[0])
-	}
-	return name
-}
-
-// KubernetesAuth refers to the basic authentication mechanism utilized for establishing a connection from the operator to the agent.
-type BasicAuth struct {
-	// Enabled is a flag to enable BasicAuth
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
-	Enabled bool `json:"enabled,omitempty"`
-	// Username to be used for basic authentication
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Username string `json:"username,omitempty"`
-	// PasswordSecretKeyRef to be used for basic authentication
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	PasswordSecretKeyRef GeneratedSecretKeyRef `json:"passwordSecretKeyRef,omitempty"`
-}
-
-// SetDefaults set reasonable defaults
-func (b *BasicAuth) SetDefaults(mariadb *MariaDB) {
-	if !b.Enabled {
-		return
-	}
-	if b.Username == "" {
-		b.Username = "mariadb-operator"
-	}
-	if reflect.ValueOf(b.PasswordSecretKeyRef).IsZero() {
-		b.PasswordSecretKeyRef = mariadb.AgentAuthSecretKeyRef()
-	}
-}
-
-// GaleraInit is an init container that runs in the MariaDB Pod and co-operates with mariadb-operator.
-type GaleraInit struct {
-	// ContainerTemplate defines a template to configure Container objects.
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	ContainerTemplate `json:",inline"`
-	// Image name to be used by the MariaDB instances. The supported format is `<image>:<tag>`.
-	// +kubebuilder:validation:Required
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Image string `json:"image"`
-	// ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`.
-	// +optional
-	// +kubebuilder:validation:Enum=Always;Never;IfNotPresent
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:imagePullPolicy","urn:alm:descriptor:com.tectonic.ui:advanced"}
-	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
-}
-
-// GaleraAgent is a sidecar agent that co-operates with mariadb-operator.
-type GaleraAgent struct {
-	// ContainerTemplate defines a template to configure Container objects.
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	ContainerTemplate `json:",inline"`
-	// Image name to be used by the MariaDB instances. The supported format is `<image>:<tag>`.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Image string `json:"image,omitempty"`
-	// ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`.
-	// +optional
-	// +kubebuilder:validation:Enum=Always;Never;IfNotPresent
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:imagePullPolicy"}
-	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
-	// Port where the agent will be listening for API connections.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Port int32 `json:"port,omitempty"`
-	// Port where the agent will be listening for probe connections.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	ProbePort int32 `json:"probePort,omitempty"`
-	// KubernetesAuth to be used by the agent container
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	KubernetesAuth *KubernetesAuth `json:"kubernetesAuth,omitempty"`
-	// BasicAuth to be used by the agent container
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	BasicAuth *BasicAuth `json:"basicAuth,omitempty"`
-	// GracefulShutdownTimeout is the time we give to the agent container in order to gracefully terminate in-flight requests.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	GracefulShutdownTimeout *metav1.Duration `json:"gracefulShutdownTimeout,omitempty"`
-}
-
-// SetDefaults sets reasonable defaults.
-func (r *GaleraAgent) SetDefaults(mariadb *MariaDB, env *environment.OperatorEnv) error {
-	if r.Image == "" {
-		r.Image = env.MariadbOperatorImage
-	}
-	if r.Port == 0 {
-		r.Port = 5555
-	}
-	if r.ProbePort == 0 {
-		r.ProbePort = 5566
-	}
-
-	currentNamespaceOnly, err := env.CurrentNamespaceOnly()
-	if err != nil {
-		return fmt.Errorf("error checking operator watch scope: %v", err)
-	}
-	if currentNamespaceOnly {
-		if r.BasicAuth == nil {
-			r.BasicAuth = &BasicAuth{
-				Enabled: true,
-			}
-		}
-	} else if r.KubernetesAuth == nil && r.BasicAuth == nil {
-		if r.KubernetesAuth == nil {
-			r.KubernetesAuth = &KubernetesAuth{
-				Enabled: true,
-			}
-		} else if r.BasicAuth == nil {
-			r.BasicAuth = &BasicAuth{
-				Enabled: true,
-			}
-		}
-	}
-	if r.BasicAuth != nil {
-		r.BasicAuth.SetDefaults(mariadb)
-	}
-
-	if r.GracefulShutdownTimeout == nil {
-		r.GracefulShutdownTimeout = ptr.To(metav1.Duration{Duration: 1 * time.Second})
-	}
-	return nil
-}
-
-// Validate determines if a Galera Agent object is valid.
-func (r *GaleraAgent) Validate() error {
-	kubernetesAuth := ptr.Deref(r.KubernetesAuth, KubernetesAuth{})
-	basicAuth := ptr.Deref(r.BasicAuth, BasicAuth{})
-	if kubernetesAuth.Enabled && basicAuth.Enabled {
-		return errors.New("only one authentication method must be enabled: kubernetes or basic auth")
-	}
-	return nil
 }
 
 // GaleraInitJob defines a Job used to be used to initialize the Galera cluster.
@@ -448,7 +284,7 @@ func (g *Galera) SetDefaults(mdb *MariaDB, env *environment.OperatorEnv) error {
 	}
 
 	if reflect.ValueOf(g.InitContainer).IsZero() {
-		g.InitContainer = GaleraInit{
+		g.InitContainer = InitContainer{
 			Image: env.MariadbOperatorImage,
 		}
 	}
@@ -516,10 +352,10 @@ type GaleraSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	ProviderOptions map[string]string `json:"providerOptions,omitempty"`
-	// GaleraAgent is a sidecar agent that co-operates with mariadb-operator.
+	// Agent is a sidecar agent that co-operates with mariadb-operator.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	Agent GaleraAgent `json:"agent,omitempty"`
+	Agent Agent `json:"agent,omitempty"`
 	// GaleraRecovery is the recovery process performed by the operator whenever the Galera cluster is not healthy.
 	// More info: https://galeracluster.com/library/documentation/crash-recovery.html.
 	// +optional
@@ -528,7 +364,7 @@ type GaleraSpec struct {
 	// InitContainer is an init container that runs in the MariaDB Pod and co-operates with mariadb-operator.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	InitContainer GaleraInit `json:"initContainer,omitempty"`
+	InitContainer InitContainer `json:"initContainer,omitempty"`
 	// InitJob defines a Job that co-operates with mariadb-operator by performing initialization tasks.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}

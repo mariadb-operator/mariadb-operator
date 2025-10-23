@@ -7,14 +7,70 @@ spec:
     name: mariadb
     key: root-password
 
+  # Point to an existing MaxScale instance. Doing this will delegate operations such as primary failover to MaxScale.
+  # maxScaleRef:
+  #   name: maxscale-repl
+
   storage:
     size: 1Gi
+    # storageClassName: csi-hostpath-sc
 
   replicas: 3
 
   replication:
+    # Enable semi-synchronous replication.
     enabled: true
-
+    primary:
+      # Whether the operator should automatically perform primary failover.
+      autoFailover: true
+      # Duration before performing primary failover.
+      autoFailoverDelay: 0s
+      # Trigger a switchover by declaring the desired primary index.
+      # podIndex: 0
+    replica:
+      # Password for the replication user used by the replicas to connect to the primary.
+      replPasswordSecretKeyRef:
+        name: mariadb
+        key: password
+      # GTID position mode to be used (`CurrentPos` and `SlavePos` allowed).
+      # See: https://mariadb.com/docs/server/reference/sql-statements/administrative-sql-statements/replication-statements/change-master-to#master_use_gtid.
+      # gtid: CurrentPos
+      # Number of seconds that the replica will wait between connection retries.
+      # See: https://mariadb.com/docs/server/reference/sql-statements/administrative-sql-statements/replication-statements/change-master-to#master_connect_retry.
+      # connectionRetrySeconds: 10
+      # Maximum lag allowed for the replicas. If surpassed, readiness probe in the replicas will error.
+      # maxLagSeconds: 0
+      # Timeout for the replicas to be synced during switchover and failover operations.
+      # syncTimeout: 10s
+    # Enables GTID strict mode.
+    # See: See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/gtid#gtid_strict_mode.
+    # It is enabled by default
+    gtidStrictMode: true
+    # Determines whether semi-synchronous replication is enabled.
+    # Semi-synchronous replication requires that at least one replica should have sent an ACK to the primary node
+    # before committing the transaction back to the client.
+    # See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/semisynchronous-replication
+    # It is enabled by default
+    semiSyncEnabled: true
+    # Semi-synchronous ACK timeout for the replicas to acknowledge transactions to the primary.
+    # It requires semi-synchronous replication to be enabled.
+    # See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/semisynchronous-replication#rpl_semi_sync_master_timeout
+    # semiSyncAckTimeout: 10s
+    # Semi-synchronous wait point is whether the transaction should wait for an ACK after having synced the binlog (AfterSync) 
+    # or after having committed to the storage engine (AfterCommit, the default).
+    # It requires semi-synchronous replication to be enabled.
+    # See: https://mariadb.com/kb/en/semisynchronous-replication/#rpl_semi_sync_master_wait_point.
+    # semiSyncWaitPoint: AfterCommit
+    # Number of events after which the binary log will be synchronized to the disk.
+    # See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/replication-and-binary-log-system-variables#sync_binlog
+    # syncBinlog: 1
+    # Init container that cooperates with mariadb-operator.
+    # initContainer:
+    #   image: docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:25.10.0
+    # Agent sidecar that cooperates with mariadb-operator.
+    # agent:
+    #   image: docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:25.10.0
+  
   service:
     type: LoadBalancer
     metadata:
@@ -35,3 +91,44 @@ spec:
 
   metrics:
     enabled: true
+
+  tls:
+    enabled: true
+    # Enforce TLS in all connections.
+    # required: true
+    # Issue certificates with an existing cert-manager ClusterIssuer.
+    # serverCertIssuerRef:
+    #   name: root-ca
+    #   kind: ClusterIssuer
+    # clientCertIssuerRef:
+    #   name: root-ca
+    #   kind: ClusterIssuer
+    # Bring your own Certificate Authority.
+    # serverCASecretRef:
+    #   name: mariadb-server-ca
+    # clientCASecretRef:
+    #   name: mariadb-client-ca
+    # Configure existing certificates available in a Secret.
+    # serverCASecretRef:
+    #   name: mariadb-server-ca
+    # serverCertSecretRef:
+    #   name: mariadb-repl-server-tls
+    # clientCASecretRef:
+    #   name: mariadb-client-ca
+    # clientCertSecretRef:
+    #   name: mariadb-repl-client-tls
+
+  # Configure Pod anti-affinity and schedule Pods only in given set of nodes defined by the nodeAffinity.
+  # affinity:
+  #   antiAffinityEnabled: true   
+    # Custom anti-affinity rules
+    # nodeAffinity:
+    #   requiredDuringSchedulingIgnoredDuringExecution:
+    #     nodeSelectorTerms:
+    #     - matchExpressions:
+    #       - key: node-role.kubernetes.io/control-plane
+    #         operator: DoesNotExist
+    #       - key: kubernetes.io/arch
+    #         operator: In
+    #         values: 
+    #         - amd64

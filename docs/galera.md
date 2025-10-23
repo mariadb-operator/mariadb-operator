@@ -8,26 +8,16 @@ To accomplish this, after the MariaDB cluster has been provisioned, `mariadb-ope
 
 ## Table of contents
 <!-- toc -->
-- [Data-plane](#data-plane)
 - [<code>MariaDB</code> configuration](#mariadb-configuration)
 - [Storage](#storage)
 - [Wsrep provider](#wsrep-provider)
 - [IPv6 support](#ipv6-support)
-- [Agent auth methods](#agent-auth-methods)
 - [Galera cluster recovery](#galera-cluster-recovery)
 - [Bootstrap Galera cluster from existing PVCs](#bootstrap-galera-cluster-from-existing-pvcs)
 - [Quickstart](#quickstart)
 - [Troubleshooting](#troubleshooting)
 - [Reference](#reference)
 <!-- /toc -->
-
-## Data-plane
-
-To be able to effectively provision and recover MariaDB Galera clusters, the following data-plane components were introduced to run alongside MariaDB and co-operate with `mariadb-operator`:
-- **init**: Init container that dynamically provisions the Galera configuration file before the MariaDB container starts. Guarantees ordered deployment of `Pods` even if `spec.podManagementPolicy=Parallel` is set on the MariaDB `StatefulSet`, something crucial for performing the Galera recovery, as the operator needs to restart `Pods` independently.
-- **agent**: Sidecar agent that exposes the Galera state ([`grastate.dat`](https://galeracluster.com/2016/11/introducing-the-safe-to-bootstrap-feature-in-galera-cluster/)) via HTTP and allows the operator to remotely bootstrap and recover the Galera cluster. It comes with [multiple auth methods](#agent-auth-methods) to ensure that only the operator is able to call the agent.
-
-All these components are available in the operator image. More preciselly, they are subcommands of the CLI shipped as binary inside the image.
 
 ## `MariaDB` configuration
 
@@ -94,45 +84,6 @@ A list of the available options can be found in the [MariaDB documentation](http
 ## IPv6 support
 
 If you have a Kubernetes cluster running with IPv6, the operator will automatically detect the IPv6 addresses of your `Pods` and it will configure several [wsrep provider](#wsrep-provider) options to ensure that the Galera protocol runs smoothly with IPv6.
-
-## Agent auth methods
-
-As previously mentioned in the [data-plane](#data-plane) section, the agent exposes an API to remotely manage the MariaDB Galera cluster. The following authentication methods are supported to ensure that only the operator is able to call the agent:
-
-#### `ServiceAccount` based authentication
-
-The operator uses its `ServiceAccount` token as a mean of  authentication for communicating with the agent, which subsequently verifies the token by creating a [`TokenReview` object](https://kubernetes.io/docs/reference/kubernetes-api/authentication-resources/token-review-v1/). This is the default authentication method and will be automatically applied by setting:
-
-```yaml
-apiVersion: k8s.mariadb.com/v1alpha1
-kind: MariaDB
-metadata:
-  name: mariadb-galera
-spec:
-  galera:
-    agent:
-      kubernetesAuth:
-        enabled: true
-```
-This Kubernetes-native authentication mechanism eliminates the need for the operator to manage credentials, as it relies entirely on Kubernetes for this purpose. However, the drawback is that the agent requires cluster-wide permissions to impersonate the [`system:auth-delegator`](https://kubernetes.io/docs/reference/access-authn-authz/rbac/#other-component-roles) `ClusterRole` and to create [`TokenReviews`](https://kubernetes.io/docs/reference/kubernetes-api/authentication-resources/token-review-v1/), which are cluster-scoped objects.
-
-#### Basic authentication
-
-As an alternative, the agent also supports basic authentication:
-
-```yaml
-apiVersion: k8s.mariadb.com/v1alpha1
-kind: MariaDB
-metadata:
-  name: mariadb-galera
-spec:
-  galera:
-    agent:
-      basicAuth:
-        enabled: true
-```
-
-Unlike the [`ServiceAccount` based authentication](#serviceaccount-based-authentication), the operator needs to explicitly generate credentials to authenticate. The advantage of this approach is that it is entirely decoupled from Kubernetes and it does not require cluster-wide permissions on the Kubernetes API.
 
 ## Galera cluster recovery
 

@@ -1,6 +1,8 @@
 package v1alpha1
 
 import (
+	"time"
+
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/environment"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -19,6 +21,12 @@ var _ = Describe("MariaDB types", func() {
 	}
 	env := &environment.OperatorEnv{
 		RelatedMariadbImage: "mariadb:11.0.3",
+	}
+
+	envWithSpecificNs := &environment.OperatorEnv{
+		RelatedMariadbImage:      "mariadb:11.0.3",
+		WatchNamespace:           "mariadb-obj",
+		MariadbOperatorNamespace: "mariadb-obj",
 	}
 	Context("When creating a MariaDB object", func() {
 		DescribeTable(
@@ -1282,6 +1290,237 @@ var _ = Describe("MariaDB types", func() {
 				},
 				env,
 			),
+
+			Entry(
+				"replication disabled has zeroed replication",
+				&MariaDB{
+					ObjectMeta: objMeta,
+					Spec: MariaDBSpec{
+						Replication: &Replication{
+							Enabled: false,
+						},
+					},
+				},
+				&MariaDB{
+					ObjectMeta: objMeta,
+					Spec: MariaDBSpec{
+						Replication:       &Replication{},
+						Image:             env.RelatedMariadbImage,
+						RootEmptyPassword: ptr.To(false),
+						RootPasswordSecretKeyRef: GeneratedSecretKeyRef{
+							SecretKeySelector: SecretKeySelector{
+								LocalObjectReference: LocalObjectReference{
+									Name: "mariadb-obj-root",
+								},
+								Key: "password",
+							},
+							Generate: true,
+						},
+						Port: 3306,
+						Storage: Storage{
+							Ephemeral:           ptr.To(false),
+							ResizeInUseVolumes:  ptr.To(true),
+							WaitForVolumeResize: ptr.To(true),
+						},
+						TLS: &TLS{
+							Enabled: true,
+						},
+						UpdateStrategy: UpdateStrategy{
+							Type:                ReplicasFirstPrimaryLastUpdateType,
+							AutoUpdateDataPlane: ptr.To(false),
+						},
+						PodTemplate: PodTemplate{
+							ServiceAccountName: &objMeta.Name,
+						},
+					},
+				},
+				env,
+			),
+
+			Entry(
+				"replication enabled sets defaults",
+				&MariaDB{
+					ObjectMeta: objMeta,
+					Spec: MariaDBSpec{
+						Replication: &Replication{
+							Enabled: true,
+						},
+					},
+				},
+				&MariaDB{
+					ObjectMeta: objMeta,
+					Spec: MariaDBSpec{
+						Replication: &Replication{
+							Enabled: true,
+							ReplicationSpec: ReplicationSpec{
+								GtidStrictMode:     ptr.To(true),
+								SemiSyncEnabled:    ptr.To(true),
+								SemiSyncWaitPoint:  nil,
+								SyncBinlog:         nil,
+								SemiSyncAckTimeout: nil,
+								InitContainer: InitContainer{
+									Image:             env.MariadbOperatorImage,
+									ContainerTemplate: ContainerTemplate{},
+									ImagePullPolicy:   "",
+								},
+								Agent: Agent{
+									Image:     env.MariadbOperatorImage,
+									Port:      5555,
+									ProbePort: 5566,
+									KubernetesAuth: &KubernetesAuth{
+										Enabled: true,
+									},
+									GracefulShutdownTimeout: ptr.To(metav1.Duration{Duration: 1 * time.Second}),
+								},
+								Replica: ReplicaReplication{
+									ReplPasswordSecretKeyRef: &GeneratedSecretKeyRef{
+										SecretKeySelector: SecretKeySelector{
+											LocalObjectReference: LocalObjectReference{
+												Name: "mariadb-obj-repl-password",
+											},
+											Key: "password",
+										},
+										Generate: true,
+									},
+									Gtid:                   ptr.To(GtidCurrentPos),
+									ConnectionRetrySeconds: nil,
+									SyncTimeout:            ptr.To(metav1.Duration{Duration: 10 * time.Second}),
+								},
+								Primary: PrimaryReplication{
+									PodIndex:          ptr.To(0),
+									AutoFailover:      ptr.To(true),
+									AutoFailoverDelay: ptr.To(metav1.Duration{}),
+								},
+							},
+						},
+						Image:             env.RelatedMariadbImage,
+						RootEmptyPassword: ptr.To(false),
+						RootPasswordSecretKeyRef: GeneratedSecretKeyRef{
+							SecretKeySelector: SecretKeySelector{
+								LocalObjectReference: LocalObjectReference{
+									Name: "mariadb-obj-root",
+								},
+								Key: "password",
+							},
+							Generate: true,
+						},
+						Port: 3306,
+						Storage: Storage{
+							Ephemeral:           ptr.To(false),
+							ResizeInUseVolumes:  ptr.To(true),
+							WaitForVolumeResize: ptr.To(true),
+						},
+						TLS: &TLS{
+							Enabled: true,
+						},
+						UpdateStrategy: UpdateStrategy{
+							Type:                ReplicasFirstPrimaryLastUpdateType,
+							AutoUpdateDataPlane: ptr.To(false),
+						},
+						PodTemplate: PodTemplate{
+							ServiceAccountName: &objMeta.Name,
+						},
+					},
+				},
+				env,
+			),
+
+			Entry(
+				"replication with watchnamespace sets Basic Auth",
+				&MariaDB{
+					ObjectMeta: objMeta,
+					Spec: MariaDBSpec{
+						Replication: &Replication{
+							Enabled: true,
+						},
+					},
+				},
+				&MariaDB{
+					ObjectMeta: objMeta,
+					Spec: MariaDBSpec{
+						Replication: &Replication{
+							Enabled: true,
+							ReplicationSpec: ReplicationSpec{
+								GtidStrictMode:     ptr.To(true),
+								SemiSyncEnabled:    ptr.To(true),
+								SemiSyncWaitPoint:  nil,
+								SemiSyncAckTimeout: nil,
+								InitContainer: InitContainer{
+									Image:             env.MariadbOperatorImage,
+									ContainerTemplate: ContainerTemplate{},
+									ImagePullPolicy:   "",
+								},
+								Agent: Agent{
+									Image:     env.MariadbOperatorImage,
+									Port:      5555,
+									ProbePort: 5566,
+									BasicAuth: &BasicAuth{
+										Enabled:  true,
+										Username: "mariadb-operator",
+										PasswordSecretKeyRef: GeneratedSecretKeyRef{
+											SecretKeySelector: SecretKeySelector{
+												LocalObjectReference: LocalObjectReference{
+													Name: "mariadb-obj-agent-auth",
+												},
+												Key: "password",
+											},
+											Generate: true,
+										},
+									},
+									GracefulShutdownTimeout: ptr.To(metav1.Duration{Duration: 1 * time.Second}),
+								},
+								Replica: ReplicaReplication{
+									ReplPasswordSecretKeyRef: &GeneratedSecretKeyRef{
+										SecretKeySelector: SecretKeySelector{
+											LocalObjectReference: LocalObjectReference{
+												Name: "mariadb-obj-repl-password",
+											},
+											Key: "password",
+										},
+										Generate: true,
+									},
+									Gtid:                   ptr.To(GtidCurrentPos),
+									ConnectionRetrySeconds: nil,
+									SyncTimeout:            ptr.To(metav1.Duration{Duration: 10 * time.Second}),
+								},
+								Primary: PrimaryReplication{
+									PodIndex:          ptr.To(0),
+									AutoFailover:      ptr.To(true),
+									AutoFailoverDelay: ptr.To(metav1.Duration{}),
+								},
+							},
+						},
+						Image:             env.RelatedMariadbImage,
+						RootEmptyPassword: ptr.To(false),
+						RootPasswordSecretKeyRef: GeneratedSecretKeyRef{
+							SecretKeySelector: SecretKeySelector{
+								LocalObjectReference: LocalObjectReference{
+									Name: "mariadb-obj-root",
+								},
+								Key: "password",
+							},
+							Generate: true,
+						},
+						Port: 3306,
+						Storage: Storage{
+							Ephemeral:           ptr.To(false),
+							ResizeInUseVolumes:  ptr.To(true),
+							WaitForVolumeResize: ptr.To(true),
+						},
+						TLS: &TLS{
+							Enabled: true,
+						},
+						UpdateStrategy: UpdateStrategy{
+							Type:                ReplicasFirstPrimaryLastUpdateType,
+							AutoUpdateDataPlane: ptr.To(false),
+						},
+						PodTemplate: PodTemplate{
+							ServiceAccountName: &objMeta.Name,
+						},
+					},
+				},
+				envWithSpecificNs,
+			),
 		)
 
 		DescribeTable(
@@ -2018,6 +2257,139 @@ var _ = Describe("MariaDB types", func() {
 						},
 					},
 				},
+			),
+		)
+	})
+
+	Context("When creating a MariaDB Resource", func() {
+		meta := metav1.ObjectMeta{
+			Name:      "mariadb-validation",
+			Namespace: testNamespace,
+		}
+		DescribeTable(
+			"Should validate",
+			func(mdb *MariaDB, wantErr bool, validationMessage string) {
+				_ = k8sClient.Delete(testCtx, mdb)
+				err := k8sClient.Create(testCtx, mdb)
+				if wantErr {
+					Expect(err).To(HaveOccurred(), "Expected there to be a validation error, but there was none")
+					Expect(err.Error()).To(Equal(validationMessage))
+				} else {
+					Expect(err).ToNot(HaveOccurred(), "Did not expect there to be a validation error, but there was one.")
+				}
+			},
+
+			Entry(
+				"Valid replicas with no galera or replication",
+				&MariaDB{
+					ObjectMeta: meta,
+					Spec: MariaDBSpec{
+						Replicas: 1,
+						Storage: Storage{
+							Size: ptr.To(resource.MustParse("100Mi")),
+						},
+					},
+				},
+				false,
+				"",
+			),
+			Entry(
+				"Valid replicas with replication when not even",
+				&MariaDB{
+					ObjectMeta: meta,
+					Spec: MariaDBSpec{
+						Replicas: 3,
+						Storage: Storage{
+							Size: ptr.To(resource.MustParse("100Mi")),
+						},
+						Replication: &Replication{
+							Enabled: true,
+						},
+					},
+				},
+				false,
+				"",
+			),
+			Entry(
+				"Valid replicas with replication when even",
+				&MariaDB{
+					ObjectMeta: meta,
+					Spec: MariaDBSpec{
+						Replicas: 2,
+						Storage: Storage{
+							Size: ptr.To(resource.MustParse("100Mi")),
+						},
+						Replication: &Replication{
+							Enabled: true,
+						},
+					},
+				},
+				false,
+				"",
+			),
+			Entry(
+				"Valid Galera replicas when not even",
+				&MariaDB{
+					ObjectMeta: meta,
+					Spec: MariaDBSpec{
+						Galera: &Galera{
+							Enabled: true,
+							GaleraSpec: GaleraSpec{
+								SST:            SSTMariaBackup,
+								ReplicaThreads: 1,
+							},
+						},
+						Replicas: 3,
+						Storage: Storage{
+							Size: ptr.To(resource.MustParse("100Mi")),
+						},
+					},
+				},
+				false,
+				"",
+			),
+			Entry(
+				"Valid Galera replicas when even and replicasAllowEvenNumber is set",
+				&MariaDB{
+					ObjectMeta: meta,
+					Spec: MariaDBSpec{
+						Galera: &Galera{
+							Enabled: true,
+							GaleraSpec: GaleraSpec{
+								SST:            SSTMariaBackup,
+								ReplicaThreads: 1,
+							},
+						},
+						Replicas:                2,
+						ReplicasAllowEvenNumber: true,
+						Storage: Storage{
+							Size: ptr.To(resource.MustParse("100Mi")),
+						},
+					},
+				},
+				false,
+				"",
+			),
+			Entry(
+				"Invalid Galera replicas when even and replicasAllowEvenNumber is not set",
+				&MariaDB{
+					ObjectMeta: meta,
+					Spec: MariaDBSpec{
+						Galera: &Galera{
+							Enabled: true,
+							GaleraSpec: GaleraSpec{
+								SST:            SSTMariaBackup,
+								ReplicaThreads: 1,
+							},
+						},
+						Replicas: 2,
+						Storage: Storage{
+							Size: ptr.To(resource.MustParse("100Mi")),
+						},
+					},
+				},
+				true,
+				"MariaDB.k8s.mariadb.com \"mariadb-validation\" is invalid: spec: Invalid value: \"object\": An odd number of MariaDB instances (mariadb.spec.replicas) is required to avoid split brain situations for Galera. Use 'mariadb.spec.replicasAllowEvenNumber: true' to disable this validation.", //nolint
 			),
 		)
 	})

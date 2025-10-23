@@ -8,34 +8,24 @@ spec:
   mariaDbRef:
     name: mariadb-repl
 
+  # Trigger a switchover by declaring the desired primary server
+  # primaryServer: mariadb-repl-0
+
   services:
     - name: rw-router
       router: readwritesplit
-      params:
-        transaction_replay: "true"
-        transaction_replay_attempts: "10"
-        transaction_replay_timeout: "5s"
-        max_slave_connections: "255"
-        max_replication_lag: "3s"
-        master_accept_reads: "true"
       listener:
         port: 3306
-        protocol: MariaDBProtocol
-        params:
-          connection_metadata: "tx_isolation=auto"
     - name: rconn-master-router
       router: readconnroute
       params:
         router_options: "master"
-        max_replication_lag: "3s"
-        master_accept_reads: "true"
       listener:
         port: 3307
     - name: rconn-slave-router
       router: readconnroute
       params:
         router_options: "slave"
-        max_replication_lag: "3s"
       listener:
         port: 3308
 
@@ -59,7 +49,11 @@ spec:
 
   auth:
     generate: true
-
+    adminUsername: mariadb-operator
+    adminPasswordSecretKeyRef:
+      name: maxscale
+      key: password
+    
   kubernetesService:
     type: LoadBalancer
     metadata:
@@ -78,5 +72,31 @@ spec:
 
   metrics:
     enabled: true
+
+  # tls:
+  #   enabled: true
+    # Issue certificates with a existing cert-manager ClusterIssuer
+    # adminCertIssuerRef:
+    #   name: root-ca
+    #   kind: ClusterIssuer
+    # listenerCertIssuerRef:
+    #   name: root-ca
+    #   kind: ClusterIssuer
+    # Configure existing certificates available in a Secret
+    # adminCASecretRef:
+    #   name: maxscale-admin-ca
+    # adminCertSecretRef:
+    #   name: maxscale-repl-admin-tls
+    # listenerCASecretRef:
+    #   name: maxscale-listener-ca
+    # listenerCertSecretRef:
+    #   name: maxscale-repl-listener-tls
+    # serverCASecretRef:
+    #   name: mariadb-repl-ca-bundle
+    # serverCertSecretRef:
+    #   name: mariadb-repl-client-tls
+    # verifyPeerCertificate: true
+    # verifyPeerHost: false
+    # replicationSSLEnabled: true
 
   requeueInterval: 1h

@@ -1,11 +1,11 @@
 package builder
 
 import (
-	"fmt"
 	"reflect"
 	"sort"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
@@ -25,7 +25,7 @@ func TestMariadbStartupProbe(t *testing.T) {
 		wantProbe *corev1.Probe
 	}{
 		{
-			name:    "MariaDB empty",
+			name:    "MariaDB",
 			mariadb: &mariadbv1alpha1.MariaDB{},
 			wantProbe: &corev1.Probe{
 				ProbeHandler: corev1.ProbeHandler{
@@ -43,7 +43,7 @@ func TestMariadbStartupProbe(t *testing.T) {
 			},
 		},
 		{
-			name: "MariaDB partial",
+			name: "MariaDB with thresholds",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
@@ -72,7 +72,7 @@ func TestMariadbStartupProbe(t *testing.T) {
 			},
 		},
 		{
-			name: "MariaDB full",
+			name: "MariaDB custom",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
@@ -109,25 +109,24 @@ func TestMariadbStartupProbe(t *testing.T) {
 			},
 		},
 		{
-			name: "MariaDB replication empty without probes",
+			name: "MariaDB replication",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Replication: &mariadbv1alpha1.Replication{
 						Enabled: true,
 						ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
-							ProbesEnabled: ptr.To(false),
+							Agent: mariadbv1alpha1.Agent{
+								ProbePort: 5555,
+							},
 						},
 					},
 				},
 			},
 			wantProbe: &corev1.Probe{
 				ProbeHandler: corev1.ProbeHandler{
-					Exec: &corev1.ExecAction{
-						Command: []string{
-							"bash",
-							"-c",
-							"mariadb -u root -p\"${MARIADB_ROOT_PASSWORD}\" -e \"SELECT 1;\"",
-						},
+					HTTPGet: &corev1.HTTPGetAction{
+						Path: "/liveness",
+						Port: intstr.FromInt(5555),
 					},
 				},
 				InitialDelaySeconds: 20,
@@ -136,40 +135,15 @@ func TestMariadbStartupProbe(t *testing.T) {
 			},
 		},
 		{
-			name: "MariaDB replication empty",
+			name: "MariaDB replication with thresholds",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Replication: &mariadbv1alpha1.Replication{
 						Enabled: true,
 						ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
-							ProbesEnabled: ptr.To(true),
-						},
-					},
-				},
-			},
-			wantProbe: &corev1.Probe{
-				ProbeHandler: corev1.ProbeHandler{
-					Exec: &corev1.ExecAction{
-						Command: []string{
-							"bash",
-							"-c",
-							"/etc/probes/replication.sh",
-						},
-					},
-				},
-				InitialDelaySeconds: 20,
-				TimeoutSeconds:      5,
-				PeriodSeconds:       10,
-			},
-		},
-		{
-			name: "MariaDB replication partial",
-			mariadb: &mariadbv1alpha1.MariaDB{
-				Spec: mariadbv1alpha1.MariaDBSpec{
-					Replication: &mariadbv1alpha1.Replication{
-						Enabled: true,
-						ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
-							ProbesEnabled: ptr.To(true),
+							Agent: mariadbv1alpha1.Agent{
+								ProbePort: 5555,
+							},
 						},
 					},
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
@@ -183,12 +157,9 @@ func TestMariadbStartupProbe(t *testing.T) {
 			},
 			wantProbe: &corev1.Probe{
 				ProbeHandler: corev1.ProbeHandler{
-					Exec: &corev1.ExecAction{
-						Command: []string{
-							"bash",
-							"-c",
-							"/etc/probes/replication.sh",
-						},
+					HTTPGet: &corev1.HTTPGetAction{
+						Path: "/liveness",
+						Port: intstr.FromInt(5555),
 					},
 				},
 				InitialDelaySeconds: 20,
@@ -198,24 +169,23 @@ func TestMariadbStartupProbe(t *testing.T) {
 			},
 		},
 		{
-			name: "MariaDB replication full",
+			name: "MariaDB replication custom",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Replication: &mariadbv1alpha1.Replication{
 						Enabled: true,
 						ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
-							ProbesEnabled: ptr.To(true),
+							Agent: mariadbv1alpha1.Agent{
+								ProbePort: 5555,
+							},
 						},
 					},
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
 						StartupProbe: &mariadbv1alpha1.Probe{
 							ProbeHandler: mariadbv1alpha1.ProbeHandler{
-								Exec: &mariadbv1alpha1.ExecAction{
-									Command: []string{
-										"bash",
-										"-c",
-										"/etc/probes/replication-custom.sh",
-									},
+								HTTPGet: &mariadbv1alpha1.HTTPGetAction{
+									Path: "/liveness-custom",
+									Port: intstr.FromInt(5555),
 								},
 							},
 							FailureThreshold: 10,
@@ -227,12 +197,9 @@ func TestMariadbStartupProbe(t *testing.T) {
 			},
 			wantProbe: &corev1.Probe{
 				ProbeHandler: corev1.ProbeHandler{
-					Exec: &corev1.ExecAction{
-						Command: []string{
-							"bash",
-							"-c",
-							"/etc/probes/replication.sh",
-						},
+					HTTPGet: &corev1.HTTPGetAction{
+						Path: "/liveness",
+						Port: intstr.FromInt(5555),
 					},
 				},
 				InitialDelaySeconds: 20,
@@ -242,13 +209,13 @@ func TestMariadbStartupProbe(t *testing.T) {
 			},
 		},
 		{
-			name: "MariaDB Galera empty",
+			name: "MariaDB Galera",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
 						GaleraSpec: mariadbv1alpha1.GaleraSpec{
-							Agent: mariadbv1alpha1.GaleraAgent{
+							Agent: mariadbv1alpha1.Agent{
 								ProbePort: 5555,
 							},
 						},
@@ -268,13 +235,13 @@ func TestMariadbStartupProbe(t *testing.T) {
 			},
 		},
 		{
-			name: "MariaDB Galera partial",
+			name: "MariaDB Galera with thresholds",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
 						GaleraSpec: mariadbv1alpha1.GaleraSpec{
-							Agent: mariadbv1alpha1.GaleraAgent{
+							Agent: mariadbv1alpha1.Agent{
 								ProbePort: 5555,
 							},
 						},
@@ -302,13 +269,13 @@ func TestMariadbStartupProbe(t *testing.T) {
 			},
 		},
 		{
-			name: "MariaDB Galera full",
+			name: "MariaDB Galera custom",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
 						GaleraSpec: mariadbv1alpha1.GaleraSpec{
-							Agent: mariadbv1alpha1.GaleraAgent{
+							Agent: mariadbv1alpha1.Agent{
 								ProbePort: 5555,
 							},
 						},
@@ -345,7 +312,10 @@ func TestMariadbStartupProbe(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			probe := mariadbStartupProbe(tt.mariadb)
+			probe, err := mariadbStartupProbe(tt.mariadb)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
 			if diff := cmp.Diff(tt.wantProbe, probe); diff != "" {
 				t.Errorf("unexpected probe (-want +got):\n%s", diff)
 			}
@@ -360,7 +330,7 @@ func TestMariadbLivenessProbe(t *testing.T) {
 		wantProbe *corev1.Probe
 	}{
 		{
-			name:    "MariaDB empty",
+			name:    "MariaDB",
 			mariadb: &mariadbv1alpha1.MariaDB{},
 			wantProbe: &corev1.Probe{
 				ProbeHandler: corev1.ProbeHandler{
@@ -378,7 +348,7 @@ func TestMariadbLivenessProbe(t *testing.T) {
 			},
 		},
 		{
-			name: "MariaDB partial",
+			name: "MariaDB with thresholds",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
@@ -406,7 +376,7 @@ func TestMariadbLivenessProbe(t *testing.T) {
 			},
 		},
 		{
-			name: "MariaDB full",
+			name: "MariaDB custom",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
@@ -443,25 +413,24 @@ func TestMariadbLivenessProbe(t *testing.T) {
 			},
 		},
 		{
-			name: "MariaDB replication empty without probes",
+			name: "MariaDB replication",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Replication: &mariadbv1alpha1.Replication{
 						Enabled: true,
 						ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
-							ProbesEnabled: ptr.To(false),
+							Agent: mariadbv1alpha1.Agent{
+								ProbePort: 5566,
+							},
 						},
 					},
 				},
 			},
 			wantProbe: &corev1.Probe{
 				ProbeHandler: corev1.ProbeHandler{
-					Exec: &corev1.ExecAction{
-						Command: []string{
-							"bash",
-							"-c",
-							"mariadb -u root -p\"${MARIADB_ROOT_PASSWORD}\" -e \"SELECT 1;\"",
-						},
+					HTTPGet: &corev1.HTTPGetAction{
+						Path: "/liveness",
+						Port: intstr.FromInt(5566),
 					},
 				},
 				InitialDelaySeconds: 20,
@@ -470,40 +439,15 @@ func TestMariadbLivenessProbe(t *testing.T) {
 			},
 		},
 		{
-			name: "MariaDB replication empty",
+			name: "MariaDB replication with thresholds",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Replication: &mariadbv1alpha1.Replication{
 						Enabled: true,
 						ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
-							ProbesEnabled: ptr.To(true),
-						},
-					},
-				},
-			},
-			wantProbe: &corev1.Probe{
-				ProbeHandler: corev1.ProbeHandler{
-					Exec: &corev1.ExecAction{
-						Command: []string{
-							"bash",
-							"-c",
-							"/etc/probes/replication.sh",
-						},
-					},
-				},
-				InitialDelaySeconds: 20,
-				TimeoutSeconds:      5,
-				PeriodSeconds:       10,
-			},
-		},
-		{
-			name: "MariaDB replication partial",
-			mariadb: &mariadbv1alpha1.MariaDB{
-				Spec: mariadbv1alpha1.MariaDBSpec{
-					Replication: &mariadbv1alpha1.Replication{
-						Enabled: true,
-						ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
-							ProbesEnabled: ptr.To(true),
+							Agent: mariadbv1alpha1.Agent{
+								ProbePort: 5566,
+							},
 						},
 					},
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
@@ -517,12 +461,9 @@ func TestMariadbLivenessProbe(t *testing.T) {
 			},
 			wantProbe: &corev1.Probe{
 				ProbeHandler: corev1.ProbeHandler{
-					Exec: &corev1.ExecAction{
-						Command: []string{
-							"bash",
-							"-c",
-							"/etc/probes/replication.sh",
-						},
+					HTTPGet: &corev1.HTTPGetAction{
+						Path: "/liveness",
+						Port: intstr.FromInt(5566),
 					},
 				},
 				InitialDelaySeconds: 10,
@@ -531,24 +472,23 @@ func TestMariadbLivenessProbe(t *testing.T) {
 			},
 		},
 		{
-			name: "MariaDB replication full",
+			name: "MariaDB replication custom",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Replication: &mariadbv1alpha1.Replication{
 						Enabled: true,
 						ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
-							ProbesEnabled: ptr.To(true),
+							Agent: mariadbv1alpha1.Agent{
+								ProbePort: 5566,
+							},
 						},
 					},
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
 						LivenessProbe: &mariadbv1alpha1.Probe{
 							ProbeHandler: mariadbv1alpha1.ProbeHandler{
-								Exec: &mariadbv1alpha1.ExecAction{
-									Command: []string{
-										"bash",
-										"-c",
-										"/etc/probes/replication-custom.sh",
-									},
+								HTTPGet: &mariadbv1alpha1.HTTPGetAction{
+									Path: "/liveness-custom",
+									Port: intstr.FromInt(5566),
 								},
 							},
 							InitialDelaySeconds: 10,
@@ -560,12 +500,9 @@ func TestMariadbLivenessProbe(t *testing.T) {
 			},
 			wantProbe: &corev1.Probe{
 				ProbeHandler: corev1.ProbeHandler{
-					Exec: &corev1.ExecAction{
-						Command: []string{
-							"bash",
-							"-c",
-							"/etc/probes/replication.sh",
-						},
+					HTTPGet: &corev1.HTTPGetAction{
+						Path: "/liveness",
+						Port: intstr.FromInt(5566),
 					},
 				},
 				InitialDelaySeconds: 10,
@@ -574,13 +511,13 @@ func TestMariadbLivenessProbe(t *testing.T) {
 			},
 		},
 		{
-			name: "MariaDB Galera empty",
+			name: "MariaDB Galera",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
 						GaleraSpec: mariadbv1alpha1.GaleraSpec{
-							Agent: mariadbv1alpha1.GaleraAgent{
+							Agent: mariadbv1alpha1.Agent{
 								ProbePort: 5566,
 							},
 						},
@@ -600,13 +537,13 @@ func TestMariadbLivenessProbe(t *testing.T) {
 			},
 		},
 		{
-			name: "MariaDB Galera partial",
+			name: "MariaDB Galera with thresholds",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
 						GaleraSpec: mariadbv1alpha1.GaleraSpec{
-							Agent: mariadbv1alpha1.GaleraAgent{
+							Agent: mariadbv1alpha1.Agent{
 								ProbePort: 5566,
 							},
 						},
@@ -633,13 +570,13 @@ func TestMariadbLivenessProbe(t *testing.T) {
 			},
 		},
 		{
-			name: "MariaDB Galera full",
+			name: "MariaDB Galera custom",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
 						GaleraSpec: mariadbv1alpha1.GaleraSpec{
-							Agent: mariadbv1alpha1.GaleraAgent{
+							Agent: mariadbv1alpha1.Agent{
 								ProbePort: 5566,
 							},
 						},
@@ -675,7 +612,10 @@ func TestMariadbLivenessProbe(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			probe := mariadbLivenessProbe(tt.mariadb)
+			probe, err := mariadbLivenessProbe(tt.mariadb)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
 			if diff := cmp.Diff(tt.wantProbe, probe); diff != "" {
 				t.Errorf("unexpected probe (-want +got):\n%s", diff)
 			}
@@ -708,7 +648,7 @@ func TestMariadbReadinessProbe(t *testing.T) {
 			},
 		},
 		{
-			name: "MariaDB partial",
+			name: "MariaDB with thresholds",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
@@ -736,7 +676,7 @@ func TestMariadbReadinessProbe(t *testing.T) {
 			},
 		},
 		{
-			name: "MariaDB full",
+			name: "MariaDB custom",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
@@ -773,25 +713,24 @@ func TestMariadbReadinessProbe(t *testing.T) {
 			},
 		},
 		{
-			name: "MariaDB replication empty without probes",
+			name: "MariaDB replication",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Replication: &mariadbv1alpha1.Replication{
 						Enabled: true,
 						ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
-							ProbesEnabled: ptr.To(false),
+							Agent: mariadbv1alpha1.Agent{
+								ProbePort: 5566,
+							},
 						},
 					},
 				},
 			},
 			wantProbe: &corev1.Probe{
 				ProbeHandler: corev1.ProbeHandler{
-					Exec: &corev1.ExecAction{
-						Command: []string{
-							"bash",
-							"-c",
-							"mariadb -u root -p\"${MARIADB_ROOT_PASSWORD}\" -e \"SELECT 1;\"",
-						},
+					HTTPGet: &corev1.HTTPGetAction{
+						Path: "/readiness",
+						Port: intstr.FromInt(5566),
 					},
 				},
 				InitialDelaySeconds: 20,
@@ -800,40 +739,15 @@ func TestMariadbReadinessProbe(t *testing.T) {
 			},
 		},
 		{
-			name: "MariaDB replication empty",
+			name: "MariaDB replication with thresholds",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Replication: &mariadbv1alpha1.Replication{
 						Enabled: true,
 						ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
-							ProbesEnabled: ptr.To(true),
-						},
-					},
-				},
-			},
-			wantProbe: &corev1.Probe{
-				ProbeHandler: corev1.ProbeHandler{
-					Exec: &corev1.ExecAction{
-						Command: []string{
-							"bash",
-							"-c",
-							"/etc/probes/replication.sh",
-						},
-					},
-				},
-				InitialDelaySeconds: 20,
-				TimeoutSeconds:      5,
-				PeriodSeconds:       10,
-			},
-		},
-		{
-			name: "MariaDB replication partial",
-			mariadb: &mariadbv1alpha1.MariaDB{
-				Spec: mariadbv1alpha1.MariaDBSpec{
-					Replication: &mariadbv1alpha1.Replication{
-						Enabled: true,
-						ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
-							ProbesEnabled: ptr.To(true),
+							Agent: mariadbv1alpha1.Agent{
+								ProbePort: 5566,
+							},
 						},
 					},
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
@@ -847,12 +761,9 @@ func TestMariadbReadinessProbe(t *testing.T) {
 			},
 			wantProbe: &corev1.Probe{
 				ProbeHandler: corev1.ProbeHandler{
-					Exec: &corev1.ExecAction{
-						Command: []string{
-							"bash",
-							"-c",
-							"/etc/probes/replication.sh",
-						},
+					HTTPGet: &corev1.HTTPGetAction{
+						Path: "/readiness",
+						Port: intstr.FromInt(5566),
 					},
 				},
 				InitialDelaySeconds: 10,
@@ -861,24 +772,23 @@ func TestMariadbReadinessProbe(t *testing.T) {
 			},
 		},
 		{
-			name: "MariaDB replication full",
+			name: "MariaDB replication custom",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Replication: &mariadbv1alpha1.Replication{
 						Enabled: true,
 						ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
-							ProbesEnabled: ptr.To(true),
+							Agent: mariadbv1alpha1.Agent{
+								ProbePort: 5566,
+							},
 						},
 					},
 					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
 						ReadinessProbe: &mariadbv1alpha1.Probe{
 							ProbeHandler: mariadbv1alpha1.ProbeHandler{
-								Exec: &mariadbv1alpha1.ExecAction{
-									Command: []string{
-										"bash",
-										"-c",
-										"/etc/probes/replication-custom.sh",
-									},
+								HTTPGet: &mariadbv1alpha1.HTTPGetAction{
+									Path: "/readiness-custom",
+									Port: intstr.FromInt(5566),
 								},
 							},
 							InitialDelaySeconds: 10,
@@ -890,12 +800,9 @@ func TestMariadbReadinessProbe(t *testing.T) {
 			},
 			wantProbe: &corev1.Probe{
 				ProbeHandler: corev1.ProbeHandler{
-					Exec: &corev1.ExecAction{
-						Command: []string{
-							"bash",
-							"-c",
-							"/etc/probes/replication.sh",
-						},
+					HTTPGet: &corev1.HTTPGetAction{
+						Path: "/readiness",
+						Port: intstr.FromInt(5566),
 					},
 				},
 				InitialDelaySeconds: 10,
@@ -904,13 +811,13 @@ func TestMariadbReadinessProbe(t *testing.T) {
 			},
 		},
 		{
-			name: "MariaDB Galera empty",
+			name: "MariaDB Galera",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
 						GaleraSpec: mariadbv1alpha1.GaleraSpec{
-							Agent: mariadbv1alpha1.GaleraAgent{
+							Agent: mariadbv1alpha1.Agent{
 								ProbePort: 5566,
 							},
 						},
@@ -930,13 +837,13 @@ func TestMariadbReadinessProbe(t *testing.T) {
 			},
 		},
 		{
-			name: "MariaDB Galera partial",
+			name: "MariaDB Galera with thresholds",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
 						GaleraSpec: mariadbv1alpha1.GaleraSpec{
-							Agent: mariadbv1alpha1.GaleraAgent{
+							Agent: mariadbv1alpha1.Agent{
 								ProbePort: 5566,
 							},
 						},
@@ -963,13 +870,13 @@ func TestMariadbReadinessProbe(t *testing.T) {
 			},
 		},
 		{
-			name: "MariaDB Galera full",
+			name: "MariaDB Galera custom",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
 						GaleraSpec: mariadbv1alpha1.GaleraSpec{
-							Agent: mariadbv1alpha1.GaleraAgent{
+							Agent: mariadbv1alpha1.Agent{
 								ProbePort: 5566,
 							},
 						},
@@ -1005,7 +912,10 @@ func TestMariadbReadinessProbe(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			probe := mariadbReadinessProbe(tt.mariadb)
+			probe, err := mariadbReadinessProbe(tt.mariadb)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
 			if diff := cmp.Diff(tt.wantProbe, probe); diff != "" {
 				t.Errorf("unexpected probe (-want +got):\n%s", diff)
 			}
@@ -1304,6 +1214,54 @@ func TestMariadbEnv(t *testing.T) {
 				}...),
 		},
 		{
+			name: "MariaDB replication",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "mariadb-repl",
+				},
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Replication: &mariadbv1alpha1.Replication{
+						Enabled: true,
+						ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
+							GtidStrictMode:     ptr.To(true),
+							SemiSyncEnabled:    ptr.To(true),
+							SemiSyncAckTimeout: &metav1.Duration{Duration: 10 * time.Second},
+							SemiSyncWaitPoint:  ptr.To(mariadbv1alpha1.WaitPointAfterCommit),
+						},
+					},
+				},
+			},
+			wantEnv: append(
+				defaultEnv([]corev1.EnvVar{
+					{
+						Name:  "MARIADB_NAME",
+						Value: "mariadb-repl",
+					},
+				}),
+				[]corev1.EnvVar{
+					{
+						Name:  "MARIADB_REPL_ENABLED",
+						Value: strconv.FormatBool(true),
+					},
+					{
+						Name:  "MARIADB_REPL_GTID_STRICT_MODE",
+						Value: strconv.FormatBool(true),
+					},
+					{
+						Name:  "MARIADB_REPL_SEMI_SYNC_ENABLED",
+						Value: strconv.FormatBool(true),
+					},
+					{
+						Name:  "MARIADB_REPL_SEMI_SYNC_MASTER_TIMEOUT",
+						Value: "10000",
+					},
+					{
+						Name:  "MARIADB_REPL_SEMI_SYNC_MASTER_WAIT_POINT",
+						Value: "AFTER_COMMIT",
+					},
+				}...),
+		},
+		{
 			name: "MariaDB Galera TLS",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: metav1.ObjectMeta{
@@ -1467,7 +1425,11 @@ func TestMariadbEnv(t *testing.T) {
 			if tt.setClusterName {
 				t.Setenv("CLUSTER_NAME", "example.com")
 			}
-			env := mariadbEnv(tt.mariadb)
+			env, err := mariadbEnv(tt.mariadb)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
 			sortedWantEnv := sortEnvVars(tt.wantEnv)
 			sortedEnv := sortEnvVars(env)
 
@@ -1503,7 +1465,7 @@ func TestContainerArgs(t *testing.T) {
 			},
 		},
 		{
-			name: "MariaDB args verbose /w replication",
+			name: "MariaDB args verbose",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "mariadb-test",
@@ -1518,8 +1480,6 @@ func TestContainerArgs(t *testing.T) {
 				},
 			},
 			wantArgs: []string{
-				"--log-bin",
-				fmt.Sprintf("--log-basename=%s", "mariadb-test"),
 				"--verbose",
 			},
 		},

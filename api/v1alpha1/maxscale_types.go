@@ -537,7 +537,7 @@ func (m *MaxScaleTLS) SetDefaults(mdb *MariaDB) {
 		return
 	}
 
-	if mdb.Replication().Enabled && m.ReplicationSSLEnabled == nil {
+	if mdb.IsReplicationEnabled() && m.ReplicationSSLEnabled == nil {
 		m.ReplicationSSLEnabled = ptr.To(true)
 	}
 	if m.ServerCASecretRef == nil {
@@ -639,6 +639,11 @@ type MaxScaleSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	MariaDBRef *MariaDBRef `json:"mariaDbRef,omitempty" webhook:"inmutable"`
+	// PrimaryServer specifies the desired primary server. Setting this field triggers a switchover operation in MaxScale to the desired server.
+	// This option is only valid when using monitors that support switchover, currently limited to the MariaDB monitor.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	PrimaryServer *string `json:"primaryServer,omitempty"`
 	// Servers are the MariaDB servers to forward traffic to. It is required if 'spec.mariaDbRef' is not provided.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
@@ -953,6 +958,11 @@ func (m *MaxScale) AreMetricsEnabled() bool {
 // IsTLSEnabled  indicates whether TLS is enabled
 func (m *MaxScale) IsTLSEnabled() bool {
 	return ptr.Deref(m.Spec.TLS, MaxScaleTLS{}).Enabled
+}
+
+// IsSwitchingPrimary indicates whether a primary swichover operation is in progress.
+func (m *MaxScale) IsSwitchingPrimary() bool {
+	return meta.IsStatusConditionFalse(m.Status.Conditions, ConditionTypePrimarySwitched)
 }
 
 // ShouldVerifyPeerCertificate indicates whether peer certificate should be verified
