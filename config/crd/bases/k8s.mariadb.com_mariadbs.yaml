@@ -2128,10 +2128,10 @@ spec:
                     description: Primary is the Galera configuration for the primary
                       node.
                     properties:
-                      automaticFailover:
-                        description: AutomaticFailover indicates whether the operator
-                          should automatically update PodIndex to perform an automatic
-                          primary failover.
+                      autoFailover:
+                        description: AutoFailover indicates whether the operator should
+                          automatically update PodIndex to perform an automatic primary
+                          failover.
                         type: boolean
                       podIndex:
                         description: PodIndex is the StatefulSet index of the primary
@@ -5631,14 +5631,14 @@ spec:
                     description: Primary is the replication configuration for the
                       primary node.
                     properties:
-                      automaticFailover:
+                      autoFailover:
                         description: |-
-                          AutomaticFailover indicates whether the operator should automatically update PodIndex to perform an automatic primary failover.
+                          AutoFailover indicates whether the operator should automatically update PodIndex to perform an automatic primary failover.
                           It is enabled by default.
                         type: boolean
-                      automaticFailoverDelay:
+                      autoFailoverDelay:
                         description: |-
-                          AutomaticFailoverDelay indicates the duration before performing an automatic primary failover.
+                          AutoFailoverDelay indicates the duration before performing an automatic primary failover.
                           By default, no extra delay is added.
                         type: string
                       podIndex:

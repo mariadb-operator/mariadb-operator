@@ -265,10 +265,10 @@ spec:
   replication:
     enabled: true
     primary:
-      automaticFailover: true
-      automaticFailoverDelay: 0s
+      autoFailover: true
+      autoFailoverDelay: 0s
 ```
-Optionally, you may also specify a `automaticFailoverDelay`, which will add a delay before triggering the failover operation. By default, the failover is immediate, but introducing a delay may be useful to avoid failovers due to transient issues.
+Optionally, you may also specify a `autoFailoverDelay`, which will add a delay before triggering the failover operation. By default, the failover is immediate, but introducing a delay may be useful to avoid failovers due to transient issues.
 
 Whenever the primary becomes unavailable, the following status will be reported in the `MariaDB` CR:
 

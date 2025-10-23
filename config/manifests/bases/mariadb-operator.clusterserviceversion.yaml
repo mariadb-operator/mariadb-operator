@@ -1272,7 +1272,7 @@ spec:
       - description: AutomaticFailover indicates whether the operator should automatically
           update PodIndex to perform an automatic primary failover.
         displayName: Automatic Failover
-        path: galera.primary.automaticFailover
+        path: galera.primary.autoFailover
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
       - description: PodIndex is the StatefulSet index of the primary node. The user
@@ -2507,7 +2507,7 @@ spec:
       - description: AutomaticFailover indicates whether the operator should automatically
           update PodIndex to perform an automatic primary failover.
         displayName: Automatic Failover
-        path: replication.primary.automaticFailover
+        path: replication.primary.autoFailover
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
       - description: PodIndex is the StatefulSet index of the primary node. The user

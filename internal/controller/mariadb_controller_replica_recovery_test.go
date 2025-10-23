@@ -287,8 +287,8 @@ func buildTestMariaDBRecovery(key types.NamespacedName) *mariadbv1alpha1.MariaDB
 			Replication: &mariadbv1alpha1.Replication{
 				ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
 					Primary: mariadbv1alpha1.PrimaryReplication{
-						PodIndex:          ptr.To(0),
-						AutomaticFailover: ptr.To(true),
+						PodIndex:     ptr.To(0),
+						AutoFailover: ptr.To(true),
 					},
 					Replica: mariadbv1alpha1.ReplicaReplication{},
 				},

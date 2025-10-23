@@ -61,9 +61,9 @@ spec:
     enabled: true
     primary:
       # Whether the operator should automatically perform primary failover.
-      automaticFailover: true
+      autoFailover: true
       # Duration before performing primary failover.
-      automaticFailoverDelay: 0s
+      autoFailoverDelay: 0s
       # Trigger a switchover by declaring the desired primary index.
       # podIndex: 0
     replica:

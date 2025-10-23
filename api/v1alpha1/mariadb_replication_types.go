@@ -87,16 +87,16 @@ type PrimaryReplication struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	PodIndex *int `json:"podIndex,omitempty"`
-	// AutomaticFailover indicates whether the operator should automatically update PodIndex to perform an automatic primary failover.
+	// AutoFailover indicates whether the operator should automatically update PodIndex to perform an automatic primary failover.
 	// It is enabled by default.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
-	AutomaticFailover *bool `json:"automaticFailover,omitempty"`
-	// AutomaticFailoverDelay indicates the duration before performing an automatic primary failover.
+	AutoFailover *bool `json:"autoFailover,omitempty"`
+	// AutoFailoverDelay indicates the duration before performing an automatic primary failover.
 	// By default, no extra delay is added.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	AutomaticFailoverDelay *metav1.Duration `json:"automaticFailoverDelay,omitempty"`
+	AutoFailoverDelay *metav1.Duration `json:"autoFailoverDelay,omitempty"`
 }
 
 // SetDefaults fills the current PrimaryReplication object with DefaultReplicationSpec.
@@ -105,11 +105,11 @@ func (r *PrimaryReplication) SetDefaults() {
 	if r.PodIndex == nil {
 		r.PodIndex = ptr.To(0)
 	}
-	if r.AutomaticFailover == nil {
-		r.AutomaticFailover = ptr.To(true)
+	if r.AutoFailover == nil {
+		r.AutoFailover = ptr.To(true)
 	}
-	if r.AutomaticFailoverDelay == nil {
-		r.AutomaticFailoverDelay = ptr.To(metav1.Duration{})
+	if r.AutoFailoverDelay == nil {
+		r.AutoFailoverDelay = ptr.To(metav1.Duration{})
 	}
 }
 
@@ -426,9 +426,9 @@ func (m *MariaDB) IsReplicaBeingRecovered(replica string) bool {
 // GetAutomaticFailoverDelay returns the duration of the automatic failover delay.
 func (m *MariaDB) GetAutomaticFailoverDelay() time.Duration {
 	primary := ptr.Deref(m.Spec.Replication, Replication{}).Primary
-	automaticFailoverDelay := ptr.Deref(primary.AutomaticFailoverDelay, metav1.Duration{})
+	autoFailoverDelay := ptr.Deref(primary.AutoFailoverDelay, metav1.Duration{})
 
-	return automaticFailoverDelay.Duration
+	return autoFailoverDelay.Duration
 }
 
 // IsSwitchingPrimary indicates whether a primary swichover operation is in progress.

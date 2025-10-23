@@ -60,10 +60,10 @@ type PrimaryGalera struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	PodIndex *int `json:"podIndex,omitempty"`
-	// AutomaticFailover indicates whether the operator should automatically update PodIndex to perform an automatic primary failover.
+	// AutoFailover indicates whether the operator should automatically update PodIndex to perform an automatic primary failover.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
-	AutomaticFailover *bool `json:"automaticFailover,omitempty"`
+	AutoFailover *bool `json:"autoFailover,omitempty"`
 }
 
 // SetDefaults sets reasonable defaults.
@@ -71,8 +71,8 @@ func (r *PrimaryGalera) SetDefaults() {
 	if r.PodIndex == nil {
 		r.PodIndex = ptr.To(0)
 	}
-	if r.AutomaticFailover == nil {
-		r.AutomaticFailover = ptr.To(true)
+	if r.AutoFailover == nil {
+		r.AutoFailover = ptr.To(true)
 	}
 }
 

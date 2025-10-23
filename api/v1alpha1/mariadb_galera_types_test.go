@@ -66,8 +66,8 @@ var _ = Describe("MariaDB Galera types", func() {
 							},
 						},
 						Primary: PrimaryGalera{
-							PodIndex:          ptr.To(0),
-							AutomaticFailover: ptr.To(true),
+							PodIndex:     ptr.To(0),
+							AutoFailover: ptr.To(true),
 						},
 						Agent: Agent{
 							Image:     "ghcr.io/mariadb-operator/mariadb-operator:v0.0.26",
@@ -106,7 +106,7 @@ var _ = Describe("MariaDB Galera types", func() {
 						SST:           SSTRsync,
 						GaleraLibPath: "/usr/lib/galera/libgalera_smm.so",
 						Primary: PrimaryGalera{
-							AutomaticFailover: ptr.To(false),
+							AutoFailover: ptr.To(false),
 						},
 						InitContainer: InitContainer{
 							Image: "mariadb-operator:v0.0.26",
@@ -151,8 +151,8 @@ var _ = Describe("MariaDB Galera types", func() {
 							},
 						},
 						Primary: PrimaryGalera{
-							PodIndex:          ptr.To(0),
-							AutomaticFailover: ptr.To(false),
+							PodIndex:     ptr.To(0),
+							AutoFailover: ptr.To(false),
 						},
 						Agent: Agent{
 							Image:     "mariadb-operator:v0.0.26",
@@ -219,8 +219,8 @@ var _ = Describe("MariaDB Galera types", func() {
 							},
 						},
 						Primary: PrimaryGalera{
-							PodIndex:          ptr.To(0),
-							AutomaticFailover: ptr.To(true),
+							PodIndex:     ptr.To(0),
+							AutoFailover: ptr.To(true),
 						},
 						Agent: Agent{
 							Image:     "ghcr.io/mariadb-operator/mariadb-operator:v0.0.26",

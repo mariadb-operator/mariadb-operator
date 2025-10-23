@@ -878,8 +878,8 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 					Replication: &v1alpha1.Replication{
 						ReplicationSpec: v1alpha1.ReplicationSpec{
 							Primary: v1alpha1.PrimaryReplication{
-								PodIndex:          func() *int { i := 0; return &i }(),
-								AutomaticFailover: func() *bool { f := false; return &f }(),
+								PodIndex:     func() *int { i := 0; return &i }(),
+								AutoFailover: func() *bool { f := false; return &f }(),
 							},
 						},
 						Enabled: true,
@@ -909,8 +909,8 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 					Replication: &v1alpha1.Replication{
 						ReplicationSpec: v1alpha1.ReplicationSpec{
 							Primary: v1alpha1.PrimaryReplication{
-								PodIndex:          func() *int { i := 0; return &i }(),
-								AutomaticFailover: func() *bool { f := false; return &f }(),
+								PodIndex:     func() *int { i := 0; return &i }(),
+								AutoFailover: func() *bool { f := false; return &f }(),
 							},
 						},
 						Enabled: true,
@@ -977,7 +977,7 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 				noSwitchoverKey,
 				func(mdb *v1alpha1.MariaDB) {
 					f := true
-					mdb.Spec.Replication.Primary.AutomaticFailover = &f
+					mdb.Spec.Replication.Primary.AutoFailover = &f
 				},
 				false,
 			),
@@ -995,7 +995,7 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 				switchoverKey,
 				func(mdb *v1alpha1.MariaDB) {
 					f := true
-					mdb.Spec.Replication.Primary.AutomaticFailover = &f
+					mdb.Spec.Replication.Primary.AutoFailover = &f
 				},
 				true,
 			),

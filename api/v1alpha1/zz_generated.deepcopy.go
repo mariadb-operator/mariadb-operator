@@ -3719,8 +3719,8 @@ func (in *PrimaryGalera) DeepCopyInto(out *PrimaryGalera) {
 		*out = new(int)
 		**out = **in
 	}
-	if in.AutomaticFailover != nil {
-		in, out := &in.AutomaticFailover, &out.AutomaticFailover
+	if in.AutoFailover != nil {
+		in, out := &in.AutoFailover, &out.AutoFailover
 		*out = new(bool)
 		**out = **in
 	}
@@ -3744,13 +3744,13 @@ func (in *PrimaryReplication) DeepCopyInto(out *PrimaryReplication) {
 		*out = new(int)
 		**out = **in
 	}
-	if in.AutomaticFailover != nil {
-		in, out := &in.AutomaticFailover, &out.AutomaticFailover
+	if in.AutoFailover != nil {
+		in, out := &in.AutoFailover, &out.AutoFailover
 		*out = new(bool)
 		**out = **in
 	}
-	if in.AutomaticFailoverDelay != nil {
-		in, out := &in.AutomaticFailoverDelay, &out.AutomaticFailoverDelay
+	if in.AutoFailoverDelay != nil {
+		in, out := &in.AutoFailoverDelay, &out.AutoFailoverDelay
 		*out = new(v1.Duration)
 		**out = **in
 	}

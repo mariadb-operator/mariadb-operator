@@ -111,8 +111,8 @@ var _ = Describe("MariaDB Galera lifecycle", Ordered, func() {
 					Enabled: true,
 					GaleraSpec: mariadbv1alpha1.GaleraSpec{
 						Primary: mariadbv1alpha1.PrimaryGalera{
-							PodIndex:          ptr.To(0),
-							AutomaticFailover: ptr.To(true),
+							PodIndex:     ptr.To(0),
+							AutoFailover: ptr.To(true),
 						},
 						Recovery: &mariadbv1alpha1.GaleraRecovery{
 							Enabled:               true,

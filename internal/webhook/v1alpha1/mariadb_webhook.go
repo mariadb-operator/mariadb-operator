@@ -241,12 +241,12 @@ func validatePrimarySwitchover(mariadb, old *v1alpha1.MariaDB) error {
 				"'spec.replication.primary.podIndex' cannot be updated during a primary switchover",
 			)
 		}
-		if *oldReplication.Primary.AutomaticFailover != *mariadbReplication.Primary.AutomaticFailover &&
-			*mariadbReplication.Primary.AutomaticFailover {
+		if *oldReplication.Primary.AutoFailover != *mariadbReplication.Primary.AutoFailover &&
+			*mariadbReplication.Primary.AutoFailover {
 			return field.Invalid(
-				field.NewPath("spec").Child("replication").Child("primary").Child("automaticFailover"),
+				field.NewPath("spec").Child("replication").Child("primary").Child("autoFailover"),
 				mariadbReplication.Primary.PodIndex,
-				"'spec.replication.primary.automaticFailover' cannot be enabled during a primary switchover",
+				"'spec.replication.primary.autoFailover' cannot be enabled during a primary switchover",
 			)
 		}
 	}

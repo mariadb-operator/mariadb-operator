@@ -100,9 +100,9 @@ func (r *PodReplicationController) ReconcilePodNotReady(ctx context.Context, pod
 		}
 	}
 
-	automaticFailoverDelay := mariadb.GetAutomaticFailoverDelay()
-	if automaticFailoverDelay > 0 {
-		failoverTime := mariadb.Status.CurrentPrimaryFailingSince.Add(automaticFailoverDelay)
+	autoFailoverDelay := mariadb.GetAutomaticFailoverDelay()
+	if autoFailoverDelay > 0 {
+		failoverTime := mariadb.Status.CurrentPrimaryFailingSince.Add(autoFailoverDelay)
 		if failoverTime.After(now) {
 			// To delay automatic failover we must abort and requeue later.
 			// When the 'PodController' controller receives the 'ErrDelayAutomaticFailover' error, it requeues without error.
@@ -154,8 +154,8 @@ func shouldReconcile(mdb *mariadbv1alpha1.MariaDB) bool {
 		return false
 	}
 	primaryRepl := ptr.Deref(mdb.Spec.Replication, mariadbv1alpha1.Replication{}).Primary
-	automaticFailover := ptr.Deref(primaryRepl.AutomaticFailover, true)
-	return mdb.IsReplicationEnabled() && automaticFailover && mdb.HasConfiguredReplica()
+	autoFailover := ptr.Deref(primaryRepl.AutoFailover, true)
+	return mdb.IsReplicationEnabled() && autoFailover && mdb.HasConfiguredReplica()
 }
 
 func (r *PodReplicationController) patch(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
