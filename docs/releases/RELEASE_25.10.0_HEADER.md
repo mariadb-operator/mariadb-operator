@@ -68,7 +68,7 @@ mariadb-repl   True    Running   mariadb-repl-1   ReplicasFirstPrimaryLast   3d2
 
 ## Scaling out
 
-The operator will scale horizontaly the replication cluster whenever you increase the number of `spec.replicas`. Before doing so, you should specify a template `PhysicalBackup` resource that the operator will use to create the actual `PhysicalBackup` objects to set up new replicas during scaling events:
+The operator will scale horizontaly the replication cluster whenever you increase the number of `spec.replicas`. Before doing so, you should specify a template `PhysicalBackup` resource that the operator will use to create the actual `PhysicalBackup` objects to set up new replicas during scaling out events:
 
 ```yaml
 apiVersion: k8s.mariadb.com/v1alpha1
