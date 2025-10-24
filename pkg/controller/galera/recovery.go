@@ -200,7 +200,7 @@ func (r *GaleraReconciler) restartPods(ctx context.Context, mariadb *mariadbv1al
 
 		if err := wait.PollWithMariaDB(syncCtx, mariadbKey, r.Client, podLogger, func(ctx context.Context) error {
 			if err := r.ensurePodSynced(ctx, mariadbKey, podKey, sqlClientSet, podLogger); err != nil {
-				return fmt.Errorf("error waiting for Pod '%s' to be synced: %v", podKey.Name, err)
+				return fmt.Errorf("error ensuring Pod '%s' synced: %v", podKey.Name, err)
 			}
 			return nil
 		}); err != nil {
@@ -575,7 +575,7 @@ func (r *GaleraReconciler) ensurePodSynced(ctx context.Context, mariadbKey, podK
 		return fmt.Errorf("error deleting Pod '%s': %v", podKey.Name, err)
 	}
 	if err := r.pollUntilPodSynced(ctx, mariadbKey, podKey, sqlClientSet, logger); err != nil {
-		return fmt.Errorf("error ensuring Pod '%s' synced: %v", podKey.Name, err)
+		return fmt.Errorf("error waiting for Pod '%s' to be synced: %v", podKey.Name, err)
 	}
 	return nil
 }
