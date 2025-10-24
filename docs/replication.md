@@ -485,7 +485,7 @@ kubectl exec -it $PRIMARY -c mariadb -- mariadb -u root -p'MariaDB11!' --ssl=fal
 kubectl exec -it $PRIMARY -c mariadb -- mariadb -u root -p'MariaDB11!' --ssl=false -e "SHOW BINARY LOGS;"
 ```
 
-- Delete the PVC and restart one of the replicas::
+- Delete the PVC and restart one of the replicas:
 ```bash
 REPLICA=$(kubectl get mariadb mariadb-repl -o jsonpath='{.status.replication.replicas}' | jq -r 'keys[]' | head -n1)
 echo "Deleting PVC and restarting replica $REPLICA"
