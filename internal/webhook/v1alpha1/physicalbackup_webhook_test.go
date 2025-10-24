@@ -16,7 +16,7 @@ import (
 
 var _ = Describe("PhysicalBackup webhook", func() {
 	Context("When creating a PhysicalBackup", func() {
-		FDescribeTable(
+		DescribeTable(
 			"Should validate",
 			func(backup *v1alpha1.PhysicalBackup, wantErr bool) {
 				err := k8sClient.Create(testCtx, backup)
