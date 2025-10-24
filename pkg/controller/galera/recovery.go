@@ -176,33 +176,30 @@ func (r *GaleraReconciler) restartPods(ctx context.Context, mariadb *mariadbv1al
 	}
 
 	for _, podKey := range podKeys {
+		podLogger := logger.WithValues("pod", podKey.Name)
+
 		syncTimeout := ptr.Deref(recovery.PodSyncTimeout, metav1.Duration{Duration: 5 * time.Minute}).Duration
 		syncCtx, syncCancel := context.WithTimeout(ctx, syncTimeout)
 		defer syncCancel()
 
 		if podKey.Name == bootstrapPodKey.Name {
-			logger.Info("Bootstrapping cluster", "pod", podKey.Name)
+			podLogger.Info("Bootstrapping cluster")
 			r.recorder.Eventf(mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonGaleraClusterBootstrap,
 				"Bootstrapping Galera cluster in Pod '%s'", podKey.Name)
 
-			if err := r.enableBootstrapWithSource(syncCtx, mariadbKey, src, agentClientSet, logger); err != nil {
+			if err := r.enableBootstrapWithSource(syncCtx, mariadbKey, src, agentClientSet, podLogger); err != nil {
 				return fmt.Errorf("error enabling bootstrap in Pod '%s': %v", podKey.Name, err)
 			}
-			logger.Info("Restarting bootstrap Pod", "pod", podKey.Name)
 		} else {
-			logger.V(1).Info("Ensuring bootstrap disabled in Pod", "pod", podKey.Name)
+			podLogger.V(1).Info("Ensuring bootstrap disabled in Pod")
 
-			if err := r.disableBootstrapInPod(syncCtx, mariadbKey, podKey, agentClientSet, logger); err != nil {
+			if err := r.disableBootstrapInPod(syncCtx, mariadbKey, podKey, agentClientSet, podLogger); err != nil {
 				return fmt.Errorf("error disabling bootstrap in Pod '%s': %v", podKey.Name, err)
 			}
-			logger.Info("Restarting Pod", "pod", podKey.Name)
 		}
 
-		if err := wait.PollWithMariaDB(syncCtx, mariadbKey, r.Client, logger, func(ctx context.Context) error {
-			if err := r.pollUntilPodDeleted(ctx, mariadbKey, podKey, logger); err != nil {
-				return fmt.Errorf("error deleting Pod '%s': %v", podKey.Name, err)
-			}
-			if err := r.pollUntilPodSynced(ctx, mariadbKey, podKey, sqlClientSet, logger); err != nil {
+		if err := wait.PollWithMariaDB(syncCtx, mariadbKey, r.Client, podLogger, func(ctx context.Context) error {
+			if err := r.ensurePodSynced(ctx, mariadbKey, podKey, sqlClientSet, podLogger); err != nil {
 				return fmt.Errorf("error waiting for Pod '%s' to be synced: %v", podKey.Name, err)
 			}
 			return nil
@@ -541,6 +538,46 @@ func (r *GaleraReconciler) pollUntilPodHealthy(ctx context.Context, mariadbKey, 
 		}
 		return nil
 	})
+}
+
+func (r *GaleraReconciler) ensurePodSynced(ctx context.Context, mariadbKey, podKey types.NamespacedName, sqlClientSet *sql.ClientSet,
+	logger logr.Logger) error {
+	podIndex, err := statefulset.PodIndex(podKey.Name)
+	if err != nil {
+		return fmt.Errorf("error getting Pod index: %v", err)
+	}
+
+	syncCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	syncErr := wait.PollUntilSuccessOrContextCancel(syncCtx, logger, func(ctx context.Context) error {
+		sqlClient, err := sqlClientSet.ClientForIndex(ctx, *podIndex, sql.WithTimeout(5*time.Second))
+		if err != nil {
+			return fmt.Errorf("error getting SQL client: %v", err)
+		}
+		synced, err := galeraclient.IsPodSynced(ctx, sqlClient)
+		if err != nil {
+			return err
+		}
+		if synced {
+			return nil
+		}
+		return errors.New("Pod not synced") //nolint:staticcheck
+	})
+	if syncErr == nil {
+		logger.Info("Pod already synced. Skipping...")
+		return nil
+	}
+	logger.V(1).Info("Error checking Pod synced", "err", err)
+	logger.Info("Restarting Pod")
+
+	if err := r.pollUntilPodDeleted(ctx, mariadbKey, podKey, logger); err != nil {
+		return fmt.Errorf("error deleting Pod '%s': %v", podKey.Name, err)
+	}
+	if err := r.pollUntilPodSynced(ctx, mariadbKey, podKey, sqlClientSet, logger); err != nil {
+		return fmt.Errorf("error waiting for Pod '%s' to be synced: %v", podKey.Name, err)
+	}
+	return nil
 }
 
 func (r *GaleraReconciler) pollUntilPodDeleted(ctx context.Context, mariadbKey, podKey types.NamespacedName, logger logr.Logger) error {
