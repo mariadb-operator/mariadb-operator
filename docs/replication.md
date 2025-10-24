@@ -480,10 +480,12 @@ We will be simulating a `1236` error in a replica to demostrate how the recovery
 ```bash
 PRIMARY=$(kubectl get mariadb mariadb-repl -o jsonpath="{.status.currentPrimary}")
 echo "Purging binary logs in primary $PRIMARY"
-kubectl exec -it $PRIMARY -c mariadb -- mariadb -u root -p'MariaDB11!' --ssl=false -e "FLUSH LOGS; PURGE BINARY LOGS BEFORE NOW();"
+kubectl exec -it $PRIMARY -c mariadb -- mariadb -u root -p'MariaDB11!' --ssl=false -e "FLUSH LOGS;"
+kubectl exec -it $PRIMARY -c mariadb -- mariadb -u root -p'MariaDB11!' --ssl=false -e "PURGE BINARY LOGS BEFORE NOW();"
+kubectl exec -it $PRIMARY -c mariadb -- mariadb -u root -p'MariaDB11!' --ssl=false -e "SHOW BINARY LOGS;"
 ```
 
-- Delete the PVC and restart one of the replicas. If this is a brand new `MariaDB` instance, you might need to re-attempt this step:
+- Delete the PVC and restart one of the replicas::
 ```bash
 REPLICA=$(kubectl get mariadb mariadb-repl -o jsonpath='{.status.replication.replicas}' | jq -r 'keys[]' | head -n1)
 echo "Deleting PVC and restarting replica $REPLICA"
