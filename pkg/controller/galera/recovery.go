@@ -550,7 +550,7 @@ func (r *GaleraReconciler) ensurePodSynced(ctx context.Context, mariadbKey, podK
 	syncCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
-	syncErr := wait.PollUntilSuccessOrContextCancel(syncCtx, logger, func(ctx context.Context) error {
+	syncErr := wait.PollWithMariaDB(syncCtx, mariadbKey, r.Client, logger, func(ctx context.Context) error {
 		sqlClient, err := sqlClientSet.ClientForIndex(ctx, *podIndex, sql.WithTimeout(5*time.Second))
 		if err != nil {
 			return fmt.Errorf("error getting SQL client: %v", err)
