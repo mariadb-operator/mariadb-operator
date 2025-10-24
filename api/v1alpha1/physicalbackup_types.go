@@ -85,9 +85,6 @@ type PhysicalBackupSchedule struct {
 
 // Validate determines whether a PhysicalBackupSchedule is valid.
 func (s *PhysicalBackupSchedule) Validate() error {
-	if s.Cron == "" && !s.Suspend {
-		return fmt.Errorf("either cron or suspend must be set")
-	}
 	if s.Cron != "" {
 		_, err := CronParser.Parse(s.Cron)
 		return err
