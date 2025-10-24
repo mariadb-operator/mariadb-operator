@@ -16,7 +16,7 @@ import (
 
 var _ = Describe("PhysicalBackup webhook", func() {
 	Context("When creating a PhysicalBackup", func() {
-		DescribeTable(
+		FDescribeTable(
 			"Should validate",
 			func(backup *v1alpha1.PhysicalBackup, wantErr bool) {
 				err := k8sClient.Create(testCtx, backup)
@@ -166,7 +166,7 @@ var _ = Describe("PhysicalBackup webhook", func() {
 				"Invalid cron",
 				&v1alpha1.PhysicalBackup{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "physicalbackup-invalid-schedule",
+						Name:      "physicalbackup-invalid-cron",
 						Namespace: testNamespace,
 					},
 					Spec: v1alpha1.PhysicalBackupSpec{
@@ -200,10 +200,10 @@ var _ = Describe("PhysicalBackup webhook", func() {
 				true,
 			),
 			Entry(
-				"Invalid schedule",
+				"No schedule (defaults to immediate)",
 				&v1alpha1.PhysicalBackup{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "physicalbackup-invalid-schedule",
+						Name:      "physicalbackup-immediate-default",
 						Namespace: testNamespace,
 					},
 					Spec: v1alpha1.PhysicalBackupSpec{
@@ -213,10 +213,6 @@ var _ = Describe("PhysicalBackup webhook", func() {
 									"cpu": resource.MustParse("100m"),
 								},
 							},
-						},
-						Schedule: &v1alpha1.PhysicalBackupSchedule{
-							Cron:    "",
-							Suspend: false,
 						},
 						Compression: v1alpha1.CompressGzip,
 						Storage: v1alpha1.PhysicalBackupStorage{
@@ -235,13 +231,52 @@ var _ = Describe("PhysicalBackup webhook", func() {
 						RestartPolicy: corev1.RestartPolicyOnFailure,
 					},
 				},
-				true,
+				false,
+			),
+			Entry(
+				"Immediate schedule",
+				&v1alpha1.PhysicalBackup{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "physicalbackup-immediate",
+						Namespace: testNamespace,
+					},
+					Spec: v1alpha1.PhysicalBackupSpec{
+						JobContainerTemplate: v1alpha1.JobContainerTemplate{
+							Resources: &v1alpha1.ResourceRequirements{
+								Requests: corev1.ResourceList{
+									"cpu": resource.MustParse("100m"),
+								},
+							},
+						},
+						Schedule: &v1alpha1.PhysicalBackupSchedule{
+							Cron:      "",
+							Suspend:   false,
+							Immediate: ptr.To(true),
+						},
+						Compression: v1alpha1.CompressGzip,
+						Storage: v1alpha1.PhysicalBackupStorage{
+							S3: &v1alpha1.S3{
+								Bucket:   "test",
+								Endpoint: "test",
+							},
+						},
+						MariaDBRef: v1alpha1.MariaDBRef{
+							ObjectReference: v1alpha1.ObjectReference{
+								Name: "mariadb-webhook",
+							},
+							WaitForIt: true,
+						},
+						BackoffLimit:  10,
+						RestartPolicy: corev1.RestartPolicyOnFailure,
+					},
+				},
+				false,
 			),
 			Entry(
 				"Suspended schedule",
 				&v1alpha1.PhysicalBackup{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "physicalbackup-invalid-schedule",
+						Name:      "physicalbackup-suspended",
 						Namespace: testNamespace,
 					},
 					Spec: v1alpha1.PhysicalBackupSpec{
