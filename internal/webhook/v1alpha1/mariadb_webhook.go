@@ -94,9 +94,6 @@ func (v *MariaDBCustomValidator) ValidateUpdate(ctx context.Context, oldObj, new
 		}
 	}
 
-	if err := validatePrimarySwitchover(mariadb, oldMariadb); err != nil {
-		return nil, err
-	}
 	return nil, validateUpdateStorage(mariadb, oldMariadb)
 }
 
@@ -228,29 +225,6 @@ func validateReplication(mariadb *v1alpha1.MariaDB) error {
 			replication.Replica,
 			err.Error(),
 		)
-	}
-	return nil
-}
-
-func validatePrimarySwitchover(mariadb, old *v1alpha1.MariaDB) error {
-	if old.IsReplicationEnabled() && old.IsSwitchingPrimary() {
-		oldReplication := ptr.Deref(old.Spec.Replication, v1alpha1.Replication{})
-		mariadbReplication := ptr.Deref(mariadb.Spec.Replication, v1alpha1.Replication{})
-		if *oldReplication.Primary.PodIndex != *mariadbReplication.Primary.PodIndex {
-			return field.Invalid(
-				field.NewPath("spec").Child("replication").Child("primary").Child("podIndex"),
-				mariadbReplication.Primary.PodIndex,
-				"'spec.replication.primary.podIndex' cannot be updated during a primary switchover",
-			)
-		}
-		if *oldReplication.Primary.AutoFailover != *mariadbReplication.Primary.AutoFailover &&
-			*mariadbReplication.Primary.AutoFailover {
-			return field.Invalid(
-				field.NewPath("spec").Child("replication").Child("primary").Child("autoFailover"),
-				mariadbReplication.Primary.PodIndex,
-				"'spec.replication.primary.autoFailover' cannot be enabled during a primary switchover",
-			)
-		}
 	}
 	return nil
 }
