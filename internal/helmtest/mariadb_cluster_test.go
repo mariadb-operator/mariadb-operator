@@ -47,6 +47,8 @@ func TestClusterHelmMariaDB(t *testing.T) {
 	var mariadb v1alpha1.MariaDB
 	helm.UnmarshalK8SYaml(t, renderedData, &mariadb)
 
+	Expect(mariadb.Name).To(Equal(clusterHelmReleaseName))
+	Expect(mariadb.Namespace).To(Equal(kubectlopts.Namespace))
 	Expect(mariadb.Spec.Galera.Enabled).To(BeTrue())
 	Expect(mariadb.Spec.Metrics.Enabled).To(BeTrue())
 	Expect(mariadb.Spec.Replicas).To(Equal(int32(replicas)))
