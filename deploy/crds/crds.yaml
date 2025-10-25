@@ -3,6 +3,7 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.18.0
+    helm.sh/resource-policy: keep
   name: backups.k8s.mariadb.com
 spec:
   group: k8s.mariadb.com
@@ -1119,6 +1120,7 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.18.0
+    helm.sh/resource-policy: keep
   name: connections.k8s.mariadb.com
 spec:
   group: k8s.mariadb.com
@@ -1373,6 +1375,7 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.18.0
+    helm.sh/resource-policy: keep
   name: databases.k8s.mariadb.com
 spec:
   group: k8s.mariadb.com
@@ -1550,6 +1553,7 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.18.0
+    helm.sh/resource-policy: keep
   name: externalmariadbs.k8s.mariadb.com
 spec:
   group: k8s.mariadb.com
@@ -1917,6 +1921,7 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.18.0
+    helm.sh/resource-policy: keep
   name: grants.k8s.mariadb.com
 spec:
   group: k8s.mariadb.com
@@ -2118,6 +2123,7 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.18.0
+    helm.sh/resource-policy: keep
   name: mariadbs.k8s.mariadb.com
 spec:
   group: k8s.mariadb.com
@@ -9531,6 +9537,7 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.18.0
+    helm.sh/resource-policy: keep
   name: maxscales.k8s.mariadb.com
 spec:
   group: k8s.mariadb.com
@@ -12085,6 +12092,7 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.18.0
+    helm.sh/resource-policy: keep
   name: physicalbackups.k8s.mariadb.com
 spec:
   group: k8s.mariadb.com
@@ -12997,6 +13005,7 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.18.0
+    helm.sh/resource-policy: keep
   name: restores.k8s.mariadb.com
 spec:
   group: k8s.mariadb.com
@@ -13984,6 +13993,7 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.18.0
+    helm.sh/resource-policy: keep
   name: sqljobs.k8s.mariadb.com
 spec:
   group: k8s.mariadb.com
@@ -14716,6 +14726,7 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.18.0
+    helm.sh/resource-policy: keep
   name: users.k8s.mariadb.com
 spec:
   group: k8s.mariadb.com
