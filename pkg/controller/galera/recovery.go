@@ -568,7 +568,7 @@ func (r *GaleraReconciler) ensurePodSynced(ctx context.Context, mariadbKey, podK
 		logger.Info("Pod already synced. Skipping...")
 		return nil
 	}
-	logger.V(1).Info("Error checking Pod synced", "err", err)
+	logger.V(1).Info("Error checking Pod synced", "sync-err", syncErr)
 	logger.Info("Restarting Pod")
 
 	if err := r.pollUntilPodDeleted(ctx, mariadbKey, podKey, logger); err != nil {
