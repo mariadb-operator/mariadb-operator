@@ -11,10 +11,10 @@ import (
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
 	builderpki "github.com/mariadb-operator/mariadb-operator/v25/pkg/builder/pki"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/replication"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/environment"
 	galeraconfig "github.com/mariadb-operator/mariadb-operator/v25/pkg/galera/config"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/hash"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/health"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/metadata"
 	mdbpod "github.com/mariadb-operator/mariadb-operator/v25/pkg/pod"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/statefulset"
@@ -317,13 +317,22 @@ func (r *MariaDBReconciler) triggerSwitchover(ctx context.Context, mariadb *mari
 	if mariadb.Status.CurrentPrimaryPodIndex == nil {
 		return fmt.Errorf("'status.currentPrimaryPodIndex' must be set")
 	}
+	switchoverLogger := logger.WithName("switchover")
 
 	primary := mariadb.Status.CurrentPrimaryPodIndex
-	newPrimary, err := health.ReplicaPodHealthyIndex(ctx, r.Client, mariadb)
+	newPrimaryName, err := replication.NewFailoverHandler(
+		r.Client,
+		mariadb,
+		switchoverLogger.V(1),
+	).FurthestAdvancedReplica(ctx)
 	if err != nil {
-		return fmt.Errorf("error getting healthy replica: %v", err)
+		return fmt.Errorf("error getting promotion candidate: %v", err)
 	}
-	switchoverLogger := logger.WithName("switchover").WithValues("primary", primary, "new-primary", *newPrimary)
+	newPrimary, err := statefulset.PodIndex(newPrimaryName)
+	if err != nil {
+		return fmt.Errorf("error getting primary Pod index: %v", err)
+	}
+	switchoverLogger = switchoverLogger.WithValues("primary", primary, "new-primary", *newPrimary)
 
 	if mariadb.IsMaxScaleEnabled() {
 		primaryServer := statefulset.PodName(mariadb.ObjectMeta, *newPrimary)
@@ -356,11 +365,15 @@ func (r *MariaDBReconciler) triggerMaxScaleSwitchover(ctx context.Context, maria
 	if err != nil {
 		return fmt.Errorf("error getting MaxScale: %v", err)
 	}
-
-	if err := r.patchMaxScale(ctx, mxs, func(status *mariadbv1alpha1.MaxScale) {
-		mxs.Spec.PrimaryServer = &primaryServer
-	}); err != nil {
-		return fmt.Errorf("error patching MaxScale: %v", err)
+	if mxs.Spec.PrimaryServer == nil {
+		logger.Info("Setting primary server in MaxScale")
+		if err := r.patchMaxScale(ctx, mxs, func(status *mariadbv1alpha1.MaxScale) {
+			mxs.Spec.PrimaryServer = &primaryServer
+		}); err != nil {
+			return fmt.Errorf("error patching MaxScale: %v", err)
+		}
+	} else {
+		logger.Info("Primary server already set in MaxScale. Skipping...")
 	}
 
 	switchoverCtx, cancel := context.WithTimeout(ctx, 1*time.Minute)

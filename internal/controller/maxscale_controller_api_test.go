@@ -57,9 +57,13 @@ var _ = Describe("MaxScale Replication options", Label("basic"), func() {
 					},
 				},
 			},
-			want: "MASTER_SSL=1,MASTER_SSL_CA=" + builderpki.CACertPath +
-				",MASTER_SSL_CERT=" + builderpki.ServerCertPath +
-				",MASTER_SSL_KEY=" + builderpki.ServerKeyPath,
+			want: strings.Join([]string{
+				"MASTER_SSL=1",
+				"MASTER_SSL_CA='" + builderpki.CACertPath + "'",
+				"MASTER_SSL_CERT='" + builderpki.ClientCertPath + "'",
+				"MASTER_SSL_KEY='" + builderpki.ClientKeyPath + "'",
+				"MASTER_SSL_VERIFY_SERVER_CERT=1",
+			}, ","),
 		}),
 		Entry("replication enabled (defaults)", test{
 			mxs: &mariadbv1alpha1.MaxScale{},
@@ -70,7 +74,8 @@ var _ = Describe("MaxScale Replication options", Label("basic"), func() {
 					},
 				},
 			},
-			want: "MASTER_CONNECT_RETRY=10",
+			// No MASTER_CONNECT_RETRY unless explicitly set.
+			want: "",
 		}),
 		Entry("replication enabled (custom values)", test{
 			mxs: &mariadbv1alpha1.MaxScale{},
@@ -112,9 +117,10 @@ var _ = Describe("MaxScale Replication options", Label("basic"), func() {
 			want: strings.Join([]string{
 				"MASTER_CONNECT_RETRY=5",
 				"MASTER_SSL=1",
-				"MASTER_SSL_CA=" + builderpki.CACertPath,
-				"MASTER_SSL_CERT=" + builderpki.ServerCertPath,
-				"MASTER_SSL_KEY=" + builderpki.ServerKeyPath,
+				"MASTER_SSL_CA='" + builderpki.CACertPath + "'",
+				"MASTER_SSL_CERT='" + builderpki.ClientCertPath + "'",
+				"MASTER_SSL_KEY='" + builderpki.ClientKeyPath + "'",
+				"MASTER_SSL_VERIFY_SERVER_CERT=1",
 			}, ","),
 		}),
 	)
