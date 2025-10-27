@@ -284,6 +284,11 @@ type ReplicationSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Agent Agent `json:"agent,omitempty"`
+	// StandaloneProbes indicates whether to use the default non-HA startup and liveness probes.
+	// It is disabled by default
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	StandaloneProbes *bool `json:"standaloneProbes,omitempty"`
 }
 
 // IsGtidStrictModeEnabled determines whether GTID strict mode is enabled.
@@ -318,6 +323,9 @@ func (r *Replication) SetDefaults(mdb *MariaDB, env *environment.OperatorEnv) er
 	}
 	if r.SemiSyncEnabled == nil {
 		r.SemiSyncEnabled = ptr.To(true)
+	}
+	if r.StandaloneProbes == nil {
+		r.StandaloneProbes = ptr.To(false)
 	}
 
 	if reflect.ValueOf(r.InitContainer).IsZero() {
@@ -532,4 +540,12 @@ type ReplicationStatus struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	ReplicaToRecover *string `json:"replicaToRecover,omitempty"`
+}
+
+// UseStandaloneProbes indicates whether to use the default non-HA startup and liveness probes.
+func (m *MariaDB) UseStandaloneProbes() bool {
+	replication := ptr.Deref(m.Spec.Replication, Replication{})
+	standaloneProbes := ptr.Deref(replication.StandaloneProbes, false)
+
+	return standaloneProbes
 }

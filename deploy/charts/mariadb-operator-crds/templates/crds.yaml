@@ -8220,6 +8220,11 @@ spec:
                     - AfterSync
                     - AfterCommit
                     type: string
+                  standaloneProbes:
+                    description: |-
+                      StandaloneProbes indicates whether to use the default non-HA startup and liveness probes.
+                      It is disabled by default
+                    type: boolean
                   syncBinlog:
                     description: |-
                       SyncBinlog indicates after how many events the binary log is synchronized to the disk.
