@@ -648,3 +648,13 @@ This is a something the operator is able to recover from, please refer to the [r
 These operations rely on a `PhysicalBackup` for setting up the new replicas. If this `PhysicalBackup` does not become ready, the operation will not progress. In order to debug this please refer to the [`PhysicalBackup` troubleshooting section](./physical_backup.md#troubleshooting).
 
 One of the reasons could be that there are not replicas in ready state at the time of creating the `PhysicalBackup`, for instance, all the replicas are lagging behind the primary. Please verify that this is the case by checking the status of your `MariaDB` resource and your `Pods`.
+
+##### MaxScale switchover stuck during update
+
+When using MaxScale, after having updated all the replica Pods, it could happen that MaxScale refuses to perform the switchover, as it considers the Pod chosen by the operator to be unsafe:
+
+```bash
+2025-10-27 15:17:11   error  : [mariadbmon] 'mariadb-repl-1' is not a valid demotion target for switchover: it does not have a 'gtid_binlog_pos'.
+``` 
+
+For this case, you can manually update the `primaryServer` field in the `MaxScale` resource to a safe Pod, and restart the operator. If the new primary server is the right Pod, MaxScale will start the switchover and the update will continue after it completes.
