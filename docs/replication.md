@@ -118,6 +118,7 @@ spec:
     semiSyncAckTimeout: 10s
     semiSyncWaitPoint: AfterCommit
     syncBinlog: 1
+    standaloneProbes: false
 ```
 
 - `gtidStrictMode`: Enables GTID strict mode. It is recommended and enabled by default. See [MariaDB documentation](https://mariadb.com/docs/server/ha-and-performance/standard-replication/gtid#gtid_strict_mode).
@@ -125,7 +126,7 @@ spec:
 - `semiSyncAckTimeout`: ACK timeout for the replicas to acknowledge transactions to the primary. It requires semi-synchronous replication. See [MariaDB documentation](https://mariadb.com/docs/server/ha-and-performance/standard-replication/semisynchronous-replication#rpl_semi_sync_master_timeout).
 - `semiSyncWaitPoint`: Determines whether the transaction should wait for an ACK after having synced the binlog (`AfterSync`) or after having committed to the storage engine (`AfterCommit`, the default). It requires semi-synchronous replication. See [MariaDB documentation](https://mariadb.com/docs/server/ha-and-performance/standard-replication/semisynchronous-replication#rpl_semi_sync_master_wait_point).
 - `syncBinlog`: Number of events after which the binary log is synchronized to disk. See [MariaDB documentation](https://mariadb.com/docs/server/ha-and-performance/standard-replication/replication-and-binary-log-system-variables#sync_binlog).
-
+- `standaloneProbes`: Determines whether to use regular non-HA startup and liveness probes.
 
 These options are used by the operator to create a replication configuration file that is applied to all nodes in the cluster. When updating any of these options, an [update of the cluster](#updates) will be triggered in order to apply the new configuration.
 
@@ -162,13 +163,15 @@ spec:
 
 ## Probes
 
-Kubernetes probes are resolved by the agent (see [data-plane](./data_plane.md) documentation) in the replication topology, taking into account both the MariaDB and replication status. Additionally, as described in the [configuration documentation](./configuration.md#probes), probe thresholds may be tuned accordinly for a better reliability based on your environment.
+Kubernetes probes are resolved by the agent (see [data-plane](./data_plane.md) documentation) in the replication topology, taking into account both the MariaDB and replication status. Additionally, as described in the [configuration documentation](./configuration.md#probes), probe thresholds may be tuned accordingly for a better reliability based on your environment.
 
 In the following sub-sections we will be covering specifics about the replication topology.
 
 #### Liveness probe
 
-As part of the liveness probe, the agent checks that the MariaDB server is running and that the replication threads (`Slave_IO_Running` and `Slave_SQL_Running`) are both running on replicas. If any of these checks fail, the liveness probe will fail.
+As part of the liveness probe, the agent checks that the MariaDB server is running and that the replication threads (`Slave_IO_Running` and `Slave_SQL_Running`) are both running on replicas. If any of these checks fail, the liveness probe will fail. 
+
+If such a behaviour is undesirable, it is possible to opt in for regular standalone startup/liveness probes (default `SELECT 1` query). See `standaloneProbes` in the [configuration](#configuration) section.
 
 #### Readiness probe
 
@@ -268,7 +271,8 @@ spec:
       autoFailover: true
       autoFailoverDelay: 0s
 ```
-Optionally, you may also specify a `autoFailoverDelay`, which will add a delay before triggering the failover operation. By default, the failover is immediate, but introducing a delay may be useful to avoid failovers due to transient issues.
+
+Optionally, you may also specify a `autoFailoverDelay`, which will add a delay before triggering the failover operation. By default, the failover is immediate, but introducing a delay may be useful to avoid failovers due to transient issues. But note that the delay should be lower than the readiness probe failure threshold (e.g. 20 seconds delay when readiness threshold is 30 seconds), otherwise all the replicas will be marked as not ready and the automatic failover will not be able to proceed.
 
 Whenever the primary becomes unavailable, the following status will be reported in the `MariaDB` CR:
 
