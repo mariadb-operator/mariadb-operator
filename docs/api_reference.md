@@ -2341,6 +2341,7 @@ _Appears in:_
 | `syncBinlog` _integer_ | SyncBinlog indicates after how many events the binary log is synchronized to the disk.<br />See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/replication-and-binary-log-system-variables#sync_binlog |  |  |
 | `initContainer` _[InitContainer](#initcontainer)_ | InitContainer is an init container that runs in the MariaDB Pod and co-operates with mariadb-operator. |  |  |
 | `agent` _[Agent](#agent)_ | Agent is a sidecar agent that runs in the MariaDB Pod and co-operates with mariadb-operator. |  |  |
+| `standaloneProbes` _boolean_ | StandaloneProbes indicates whether to use the default non-HA startup and liveness probes.<br />It is disabled by default |  |  |
 | `enabled` _boolean_ | Enabled is a flag to enable replication. |  |  |
 
 
@@ -2368,6 +2369,7 @@ _Appears in:_
 | `syncBinlog` _integer_ | SyncBinlog indicates after how many events the binary log is synchronized to the disk.<br />See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/replication-and-binary-log-system-variables#sync_binlog |  |  |
 | `initContainer` _[InitContainer](#initcontainer)_ | InitContainer is an init container that runs in the MariaDB Pod and co-operates with mariadb-operator. |  |  |
 | `agent` _[Agent](#agent)_ | Agent is a sidecar agent that runs in the MariaDB Pod and co-operates with mariadb-operator. |  |  |
+| `standaloneProbes` _boolean_ | StandaloneProbes indicates whether to use the default non-HA startup and liveness probes.<br />It is disabled by default |  |  |
 
 
 #### ResourceRequirements
