@@ -1358,6 +1358,7 @@ var _ = Describe("MariaDB types", func() {
 								SemiSyncWaitPoint:  nil,
 								SyncBinlog:         nil,
 								SemiSyncAckTimeout: nil,
+								StandaloneProbes:   ptr.To(false),
 								InitContainer: InitContainer{
 									Image:             env.MariadbOperatorImage,
 									ContainerTemplate: ContainerTemplate{},
@@ -1445,6 +1446,7 @@ var _ = Describe("MariaDB types", func() {
 								SemiSyncEnabled:    ptr.To(true),
 								SemiSyncWaitPoint:  nil,
 								SemiSyncAckTimeout: nil,
+								StandaloneProbes:   ptr.To(false),
 								InitContainer: InitContainer{
 									Image:             env.MariadbOperatorImage,
 									ContainerTemplate: ContainerTemplate{},
