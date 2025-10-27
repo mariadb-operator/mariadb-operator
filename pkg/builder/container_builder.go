@@ -705,14 +705,14 @@ func mariadbPorts(mariadb *mariadbv1alpha1.MariaDB) []corev1.ContainerPort {
 }
 
 func mariadbLivenessProbe(mariadb *mariadbv1alpha1.MariaDB) (*corev1.Probe, error) {
-	if mariadb.IsHAEnabled() {
+	if mariadb.IsHAEnabled() && !mariadb.UseStandaloneProbes() {
 		return mariadbAgentProbe(mariadb, "/liveness", mariadb.Spec.LivenessProbe)
 	}
 	return mariadbProbe(mariadb, mariadb.Spec.LivenessProbe), nil
 }
 
 func mariadbStartupProbe(mariadb *mariadbv1alpha1.MariaDB) (*corev1.Probe, error) {
-	if mariadb.IsHAEnabled() {
+	if mariadb.IsHAEnabled() && !mariadb.UseStandaloneProbes() {
 		return mariadbAgentProbe(mariadb, "/liveness", mariadb.Spec.StartupProbe)
 	}
 	return mariadbProbe(mariadb, mariadb.Spec.StartupProbe), nil
