@@ -49,13 +49,6 @@ func (m *maxScaleAPI) createAdminUser(ctx context.Context, username, password st
 	return m.client.User.Create(ctx, username, &attrs)
 }
 
-func (m *maxScaleAPI) patchUser(ctx context.Context, username, password string) error {
-	attrs := mxsclient.UserAttributes{
-		Password: &password,
-	}
-	return m.client.User.Patch(ctx, username, &attrs)
-}
-
 // MaxScale API - Servers
 
 func (m *maxScaleAPI) createServer(ctx context.Context, srv *mariadbv1alpha1.MaxScaleServer) error {
@@ -126,18 +119,22 @@ func (m *maxScaleAPI) maxScaleReplicationCustomOptions(mdb *mariadbv1alpha1.Mari
 			kvOpts = make(map[string]string)
 		}
 		kvOpts["MASTER_SSL"] = "1"
-		kvOpts["MASTER_SSL_CERT"] = builderpki.ServerCertPath
-		kvOpts["MASTER_SSL_KEY"] = builderpki.ServerKeyPath
-		kvOpts["MASTER_SSL_CA"] = builderpki.CACertPath
+		// This is used by MaxScale to build the CHANGE MASTER query, so it should point to a path inside the MariaDB Pod.
+		// See: https://mariadb.com/docs/maxscale/reference/maxscale-monitors/mariadb-monitor#replication_custom_options.
+		kvOpts["MASTER_SSL_CERT"] = fmt.Sprintf("'%s'", builderpki.ClientCertPath)
+		kvOpts["MASTER_SSL_KEY"] = fmt.Sprintf("'%s'", builderpki.ClientKeyPath)
+		kvOpts["MASTER_SSL_CA"] = fmt.Sprintf("'%s'", builderpki.CACertPath)
+		kvOpts["MASTER_SSL_VERIFY_SERVER_CERT"] = "1"
 	}
 
 	if mdb != nil && mdb.IsReplicationEnabled() {
-		if kvOpts == nil {
-			kvOpts = make(map[string]string)
+		replication := ptr.Deref(mdb.Spec.Replication, mariadbv1alpha1.Replication{})
+		if replication.Replica.ConnectionRetrySeconds != nil {
+			if kvOpts == nil {
+				kvOpts = make(map[string]string)
+			}
+			kvOpts["MASTER_CONNECT_RETRY"] = strconv.Itoa(*replication.Replica.ConnectionRetrySeconds)
 		}
-
-		replSpec := ptr.Deref(mdb.Spec.Replication, mariadbv1alpha1.Replication{})
-		kvOpts["MASTER_CONNECT_RETRY"] = strconv.Itoa(ptr.Deref(replSpec.Replica.ConnectionRetrySeconds, 10))
 	}
 
 	pairs := make([]string, len(kvOpts))
@@ -407,7 +404,31 @@ func (r *MaxScaleReconciler) clientSetByPod(ctx context.Context, mxs *mariadbv1a
 	return clientSet, nil
 }
 
-func (r *MaxScaleReconciler) clientWitHealthyPod(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) (*mxsclient.Client, error) {
+func (r *MaxScaleReconciler) primaryClient(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) (*mxsclient.Client, error) {
+	if mxs.Spec.Monitor.Module != mariadbv1alpha1.MonitorModuleMariadb || mxs.Spec.Monitor.Name == "" {
+		return nil, nil
+	}
+	logger := log.FromContext(ctx).WithName("primary-client").V(1)
+
+	for i := 0; i < int(mxs.Spec.Replicas); i++ {
+		client, err := r.clientWithPodIndex(ctx, mxs, i)
+		if err != nil {
+			return nil, fmt.Errorf("error getting client for Pod index %d: %v", i, err)
+		}
+		monitor, err := client.Monitor.Get(ctx, mxs.Spec.Monitor.Name)
+		if err != nil {
+			logger.Info("error getting monitor", "monitor", mxs.Spec.Monitor.Name, "err", err)
+			continue
+		}
+		if monitor.Attributes != nil && monitor.Attributes.Diagnostics != nil &&
+			ptr.Deref(monitor.Attributes.Diagnostics.Primary, false) {
+			return client, nil
+		}
+	}
+	return nil, nil
+}
+
+func (r *MaxScaleReconciler) healthyClient(ctx context.Context, mxs *mariadbv1alpha1.MaxScale) (*mxsclient.Client, error) {
 	podIndex, err := health.HealthyMaxScalePod(ctx, r.Client, mxs)
 	if err != nil {
 		return nil, fmt.Errorf("error getting healthy Pod: %v", err)

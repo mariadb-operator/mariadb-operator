@@ -77,9 +77,10 @@ type MaxScaleReconciler struct {
 }
 
 type requestMaxScale struct {
-	mxs          *mariadbv1alpha1.MaxScale
-	podClient    *mxsclient.Client
-	podClientSet map[string]*mxsclient.Client
+	mxs           *mariadbv1alpha1.MaxScale
+	client        *mxsclient.Client
+	primaryClient *mxsclient.Client
+	podClientSet  map[string]*mxsclient.Client
 }
 
 type reconcileFnMaxScale func(context.Context, *requestMaxScale) (ctrl.Result, error)
@@ -107,6 +108,7 @@ type reconcilePhaseMaxScale struct {
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
 func (r *MaxScaleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	logger := log.FromContext(ctx).WithName("maxscale")
 	var mxs mariadbv1alpha1.MaxScale
 	if err := r.Get(ctx, req.NamespacedName, &mxs); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
@@ -223,6 +225,7 @@ func (r *MaxScaleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	}
 
 	for _, p := range phases {
+		logger.V(1).Info(fmt.Sprintf("Reconcile phase %s", p.name), "phase", p.name)
 		result, err := p.reconcile(ctx, request)
 		if err != nil {
 			if apierrors.IsNotFound(err) {
@@ -914,7 +917,6 @@ func (r *MaxScaleReconciler) reconcileAdmin(ctx context.Context, req *requestMax
 	if !result.IsZero() || err != nil {
 		return result, err
 	}
-
 	return r.reconcileMetricsAdmin(ctx, req)
 }
 
@@ -954,30 +956,12 @@ func (r *MaxScaleReconciler) reconcileMetricsAdmin(ctx context.Context, req *req
 	if !req.mxs.AreMetricsEnabled() {
 		return ctrl.Result{}, nil
 	}
-
-	result, err := r.forEachPod(req, func(podIndex int, podName string, client *mxsclient.Client) (ctrl.Result, error) {
+	return r.forEachPod(req, func(podIndex int, podName string, client *mxsclient.Client) (ctrl.Result, error) {
 		if err := r.reconcileMetricsAdminInPod(ctx, req.mxs, client); err != nil {
 			return ctrl.Result{}, fmt.Errorf("error reconciling metrics admin in Pod '%s': %v", podName, err)
 		}
 		return ctrl.Result{}, nil
 	})
-	if !result.IsZero() || err != nil {
-		return result, err
-	}
-
-	if req.podClient == nil {
-		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
-	}
-	if _, err := req.podClient.User.Get(ctx, req.mxs.Spec.Auth.MetricsUsername); err == nil {
-		return ctrl.Result{}, r.patchUser(
-			ctx,
-			req.mxs,
-			req.podClient,
-			req.mxs.Spec.Auth.MetricsUsername,
-			req.mxs.Spec.Auth.MetricsPasswordSecretKeyRef.SecretKeySelector,
-		)
-	}
-	return ctrl.Result{}, nil
 }
 
 func (r *MaxScaleReconciler) reconcileMetricsAdminInPod(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,
@@ -996,17 +980,6 @@ func (r *MaxScaleReconciler) reconcileMetricsAdminInPod(ctx context.Context, mxs
 		return fmt.Errorf("error creating metrics admin: %v", err)
 	}
 	return nil
-}
-
-func (r *MaxScaleReconciler) patchUser(ctx context.Context, mxs *mariadbv1alpha1.MaxScale, client *mxsclient.Client,
-	username string, passwordKeyRef mariadbv1alpha1.SecretKeySelector) error {
-	password, err := r.RefResolver.SecretKeyRef(ctx, passwordKeyRef, mxs.Namespace)
-	if err != nil {
-		return fmt.Errorf("error getting password: %v", err)
-	}
-	mxsApi := newMaxScaleAPI(mxs, client, r.RefResolver)
-
-	return mxsApi.patchUser(ctx, username, password)
 }
 
 func (r *MaxScaleReconciler) reconcileInit(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
@@ -1031,8 +1004,8 @@ func (r *MaxScaleReconciler) reconcileInitInPod(ctx context.Context, mxs *mariad
 	log.FromContext(ctx).Info("Initializing MaxScale Pod", "pod", podName)
 
 	req := &requestMaxScale{
-		mxs:       mxs,
-		podClient: client,
+		mxs:    mxs,
+		client: client,
 	}
 	logger := log.FromContext(ctx)
 	reconcileServers := func(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
@@ -1138,13 +1111,13 @@ func (r *MaxScaleReconciler) reconcileChangedServers(ctx context.Context, req *r
 }
 
 func (r *MaxScaleReconciler) reconcileServers(ctx context.Context, req *requestMaxScale, logger logr.Logger) (ctrl.Result, error) {
-	if req.podClient == nil {
+	if req.client == nil {
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
 	logger.Info("Reconciling servers")
 
 	currentIdx := req.mxs.ServerIndex()
-	previousIdx, err := req.podClient.Server.ListIndex(ctx)
+	previousIdx, err := req.client.Server.ListIndex(ctx)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error getting server index: %v", err)
 	}
@@ -1158,7 +1131,7 @@ func (r *MaxScaleReconciler) reconcileServers(ctx context.Context, req *requestM
 			"rest", diff.Rest,
 		)
 	}
-	mxsApi := newMaxScaleAPI(req.mxs, req.podClient, r.RefResolver)
+	mxsApi := newMaxScaleAPI(req.mxs, req.client, r.RefResolver)
 
 	for _, id := range diff.Added {
 		srv, err := ds.Get(currentIdx, id)
@@ -1223,13 +1196,13 @@ func (r *MaxScaleReconciler) reconcileChangedMonitor(ctx context.Context, req *r
 }
 
 func (r *MaxScaleReconciler) reconcileMonitor(ctx context.Context, req *requestMaxScale, logger logr.Logger) (ctrl.Result, error) {
-	if req.podClient == nil {
+	if req.client == nil {
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
 	logger.Info("Reconciling monitor")
-	mxsApi := newMaxScaleAPI(req.mxs, req.podClient, r.RefResolver)
+	mxsApi := newMaxScaleAPI(req.mxs, req.client, r.RefResolver)
 
-	_, err := req.podClient.Monitor.Get(ctx, req.mxs.Spec.Monitor.Name)
+	_, err := req.client.Monitor.Get(ctx, req.mxs.Spec.Monitor.Name)
 	if err != nil {
 		if !mxsclient.IsNotFound(err) {
 			return ctrl.Result{}, fmt.Errorf("error getting monitor: %v", err)
@@ -1303,13 +1276,13 @@ func (r *MaxScaleReconciler) reconcileChangedServicesAndListeners(ctx context.Co
 }
 
 func (r *MaxScaleReconciler) reconcileServices(ctx context.Context, req *requestMaxScale, logger logr.Logger) (ctrl.Result, error) {
-	if req.podClient == nil {
+	if req.client == nil {
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
 	logger.Info("Reconciling services")
 
 	currentIdx := req.mxs.ServiceIndex()
-	previousIdx, err := req.podClient.Service.ListIndex(ctx)
+	previousIdx, err := req.client.Service.ListIndex(ctx)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error getting service index: %v", err)
 	}
@@ -1323,7 +1296,7 @@ func (r *MaxScaleReconciler) reconcileServices(ctx context.Context, req *request
 			"rest", diff.Rest,
 		)
 	}
-	mxsApi := newMaxScaleAPI(req.mxs, req.podClient, r.RefResolver)
+	mxsApi := newMaxScaleAPI(req.mxs, req.client, r.RefResolver)
 
 	rels, err := mxsApi.serverRelationships(ctx)
 	if err != nil {
@@ -1383,13 +1356,13 @@ func (r *MaxScaleReconciler) reconcileServiceState(ctx context.Context, req *req
 }
 
 func (r *MaxScaleReconciler) reconcileListeners(ctx context.Context, req *requestMaxScale, logger logr.Logger) (ctrl.Result, error) {
-	if req.podClient == nil {
+	if req.client == nil {
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
 	logger.Info("Reconciling listeners")
 
 	currentIdx := req.mxs.ListenerIndex()
-	previousIdx, err := req.podClient.Listener.ListIndex(ctx)
+	previousIdx, err := req.client.Listener.ListIndex(ctx)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error getting listener index: %v", err)
 	}
@@ -1403,7 +1376,7 @@ func (r *MaxScaleReconciler) reconcileListeners(ctx context.Context, req *reques
 			"rest", diff.Rest,
 		)
 	}
-	mxsApi := newMaxScaleAPI(req.mxs, req.podClient, r.RefResolver)
+	mxsApi := newMaxScaleAPI(req.mxs, req.client, r.RefResolver)
 
 	for _, id := range diff.Added {
 		listener, err := ds.Get(currentIdx, id)
@@ -1470,7 +1443,8 @@ func (r *MaxScaleReconciler) reconcileListenerState(ctx context.Context, req *re
 func (r *MaxScaleReconciler) reconcileSwitchover(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
 	if req.mxs.Status.PrimaryServer == nil ||
 		req.mxs.Spec.PrimaryServer == nil ||
-		req.mxs.Spec.Monitor.Module != mariadbv1alpha1.MonitorModuleMariadb {
+		req.mxs.Spec.Monitor.Module != mariadbv1alpha1.MonitorModuleMariadb ||
+		req.primaryClient == nil {
 		return ctrl.Result{}, nil
 	}
 	logger := log.FromContext(ctx).WithName("switchover")
@@ -1509,7 +1483,7 @@ func (r *MaxScaleReconciler) reconcileSwitchover(ctx context.Context, req *reque
 		return ctrl.Result{}, fmt.Errorf("error patching MaxScale status: %v", err)
 	}
 
-	mxsApi := newMaxScaleAPI(req.mxs, req.podClient, r.RefResolver)
+	mxsApi := newMaxScaleAPI(req.mxs, req.primaryClient, r.RefResolver)
 	if err := mxsApi.mariadbMonSwitchover(ctx, primary, newPrimary); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error requesting MariaDB monitor switchover: %v", err)
 	}
@@ -1542,11 +1516,17 @@ func (r *MaxScaleReconciler) reconcileConnection(ctx context.Context, req *reque
 }
 
 func (r *MaxScaleReconciler) setupClients(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
-	podClient, err := r.clientWitHealthyPod(ctx, req.mxs)
+	client, err := r.healthyClient(ctx, req.mxs)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("unable to get healthy Pod client: %v", err)
 	}
-	req.podClient = podClient
+	req.client = client
+
+	primaryClient, err := r.primaryClient(ctx, req.mxs)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error getting primary client: %v", err)
+	}
+	req.primaryClient = primaryClient
 
 	podClientSet, err := r.clientSetByPod(ctx, req.mxs)
 	if err != nil {
