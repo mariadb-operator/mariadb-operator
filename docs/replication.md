@@ -649,7 +649,7 @@ These operations rely on a `PhysicalBackup` for setting up the new replicas. If 
 
 One of the reasons could be that there are not replicas in ready state at the time of creating the `PhysicalBackup`, for instance, all the replicas are lagging behind the primary. Please verify that this is the case by checking the status of your `MariaDB` resource and your `Pods`.
 
-##### MaxScale switchover stuck during update
+##### MaxScale switchover stucked during update
 
 When using MaxScale, after having updated all the replica Pods, it could happen that MaxScale refuses to perform the switchover, as it considers the Pod chosen by the operator to be unsafe:
 
