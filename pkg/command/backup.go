@@ -35,6 +35,7 @@ type BackupOpts struct {
 	S3TLS                bool
 	S3CACertPath         string
 	S3Prefix             string
+	S3StorageClass       string
 	LogLevel             string
 	ExtraOpts            []string
 }
@@ -97,6 +98,12 @@ func WithS3TLS(tls bool) BackupOpt {
 func WithS3CACertPath(caCertPath string) BackupOpt {
 	return func(bo *BackupOpts) {
 		bo.S3CACertPath = caCertPath
+	}
+}
+
+func WithS3StorageClass(storageClass string) BackupOpt {
+	return func(bo *BackupOpts) {
+		bo.S3StorageClass = storageClass
 	}
 }
 
@@ -597,6 +604,12 @@ func (b *BackupCommand) s3Args() []string {
 		args = append(args,
 			"--s3-prefix",
 			b.S3Prefix,
+		)
+	}
+	if b.S3StorageClass != "" {
+		args = append(args,
+			"--s3-storage-class",
+			b.S3StorageClass,
 		)
 	}
 	return args

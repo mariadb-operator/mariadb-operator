@@ -289,6 +289,30 @@ var _ = Describe("Backup webhook", func() {
 				true,
 			),
 			Entry(
+				"Invalid S3 storage class",
+				&v1alpha1.Backup{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "backup-invalid-s3-storage-class",
+						Namespace: testNamespace,
+					},
+					Spec: v1alpha1.BackupSpec{
+						Storage: v1alpha1.BackupStorage{
+							S3: &v1alpha1.S3{
+								Bucket:       "test",
+								Endpoint:     "test",
+								StorageClass: "INVALID_STORAGE_CLASS",
+							},
+						},
+						MariaDBRef: v1alpha1.MariaDBRef{
+							ObjectReference: v1alpha1.ObjectReference{
+								Name: "mariadb-webhook",
+							},
+						},
+					},
+				},
+				true,
+			),
+			Entry(
 				"Valid",
 				&v1alpha1.Backup{
 					ObjectMeta: metav1.ObjectMeta{
