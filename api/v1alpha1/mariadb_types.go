@@ -478,6 +478,11 @@ type TLS struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
 	Required *bool `json:"required,omitempty"`
+	// Mutual specifies whether TLS must be mutual between server and client.
+	// It enabled by default.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
+	Mutual *bool `json:"mutual,omitempty"`
 	// ServerCASecretRef is a reference to a Secret containing the server certificate authority keypair. It is used to establish trust and issue server certificates.
 	// One of:
 	// - Secret containing both the 'ca.crt' and 'ca.key' keys. This allows you to bring your own CA to Kubernetes to issue certificates.
@@ -927,6 +932,11 @@ func (m *MariaDB) IsTLSRequired() bool {
 	}
 	tls := ptr.Deref(m.Spec.TLS, TLS{})
 	return ptr.Deref(tls.Required, false)
+}
+
+// IsTLSMutual specifies whether TLS must be mutual between server and client.
+func (m *MariaDB) IsTLSMutual() bool {
+	return true
 }
 
 // IsTLSForGaleraSSTEnabled indicates whether TLS for Galera SSTs is enabled.
