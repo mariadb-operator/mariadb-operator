@@ -8,6 +8,7 @@ $(LOCALBIN):
 ## Tool Binaries
 GO ?= go
 DOCKER ?= docker
+HELM ?= $(LOCALBIN)/helm
 KIND ?= $(LOCALBIN)/kind
 KUBECTL ?= $(LOCALBIN)/kubectl
 KUSTOMIZE ?= $(LOCALBIN)/kustomize
@@ -23,6 +24,7 @@ YQ ?= $(LOCALBIN)/yq
 
 ## Tool Versions
 KUBERNETES_VERSION ?= 1.34.x
+HELM_VERSION ?= v3.19.2
 KIND_VERSION ?= v0.29.0
 KUBECTL_VERSION ?= v1.34.1
 KUSTOMIZE_VERSION ?= v5.4.3
@@ -143,3 +145,18 @@ else
 YQ = $(shell which yq)
 endif
 endif
+
+.PHONY: helm
+helm: $(HELM) ## Download helm.
+$(HELM):
+	@{ \
+	set -e ;\
+	mkdir -p $(dir $(HELM)) ;\
+	OS=$(shell $(GO) env GOOS) && \
+	curl -sSLo $(HELM).tar.gz https://get.helm.sh/helm-$(HELM_VERSION)-$${OS}-$(GOARCH).tar.gz; \
+	tar -C $(LOCALBIN) -xzvf $(HELM).tar.gz ;\
+	mv $(LOCALBIN)/$${OS}-$(GOARCH)/helm $(LOCALBIN) ;\
+	chmod +x $(HELM) ;\
+	rm $(HELM).tar.gz ;\
+	rm -rf $(LOCALBIN)/$${OS}-$(GOARCH) ;\
+	}

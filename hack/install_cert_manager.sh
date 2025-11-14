@@ -10,10 +10,15 @@ if [ -z "$CERT_MANAGER_VERSION" ]; then
   exit 1
 fi
 
-helm repo add jetstack https://charts.jetstack.io
-helm repo update jetstack
+if [ -z "$HELM" ]; then
+  echo "HELM environment variable is mandatory"
+  exit 1
+fi
 
-helm upgrade --install \
+${HELM} repo add jetstack https://charts.jetstack.io
+${HELM} repo update jetstack
+
+${HELM} upgrade --install \
   --version $CERT_MANAGER_VERSION \
   -n cert-manager --create-namespace \
   -f $CONFIG/cert-manager.yaml \

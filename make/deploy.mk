@@ -89,28 +89,28 @@ install-prometheus-crds: cluster-ctx  ## Install Prometheus CRDs.
 	kubectl apply -f https://raw.githubusercontent.com/prometheus-community/helm-charts/kube-prometheus-stack-$(PROMETHEUS_VERSION)/charts/kube-prometheus-stack/charts/crds/crds/crd-servicemonitors.yaml
 
 .PHONY: install-prometheus
-install-prometheus: cluster-ctx ## Install kube-prometheus-stack helm chart.
-	@PROMETHEUS_VERSION=$(PROMETHEUS_VERSION) ./hack/install_prometheus.sh
+install-prometheus: helm cluster-ctx ## Install kube-prometheus-stack helm chart.
+	@PROMETHEUS_VERSION=$(PROMETHEUS_VERSION) HELM=$(HELM) ./hack/install_prometheus.sh
 
 CERT_MANAGER_VERSION ?= "v1.17.1"
 .PHONY: install-cert-manager
-install-cert-manager: cluster-ctx ## Install cert-manager helm chart.
-	@CERT_MANAGER_VERSION=$(CERT_MANAGER_VERSION) ./hack/install_cert_manager.sh
+install-cert-manager: helm cluster-ctx ## Install cert-manager helm chart.
+	@CERT_MANAGER_VERSION=$(CERT_MANAGER_VERSION) HELM=$(HELM) ./hack/install_cert_manager.sh
 
 TRUST_MANAGER_VERSION ?= "v0.16.0"
 .PHONY: install-trust-manager
-install-trust-manager: cluster-ctx install-cert-manager ## Install trust-manager helm chart.
-	@TRUST_MANAGER_VERSION=$(TRUST_MANAGER_VERSION) ./hack/install_trust_manager.sh
+install-trust-manager: helm cluster-ctx install-cert-manager ## Install trust-manager helm chart.
+	@TRUST_MANAGER_VERSION=$(TRUST_MANAGER_VERSION) HELM=$(HELM) ./hack/install_trust_manager.sh
 
 METALLB_VERSION ?= "0.14.9"
 .PHONY: install-metallb
-install-metallb: cluster-ctx ## Install metallb helm chart.
-	@METALLB_VERSION=$(METALLB_VERSION) ./hack/install_metallb.sh
+install-metallb: helm cluster-ctx ## Install metallb helm chart.
+	@METALLB_VERSION=$(METALLB_VERSION) HELM=$(HELM) ./hack/install_metallb.sh
 
 MINIO_VERSION ?= "5.4.0"
 .PHONY: install-minio
-install-minio: cert-minio ## Install minio helm chart.
-	@MINIO_VERSION=$(MINIO_VERSION) ./hack/install_minio.sh
+install-minio: helm cert-minio ## Install minio helm chart.
+	@MINIO_VERSION=$(MINIO_VERSION) HELM=$(HELM) ./hack/install_minio.sh
 
 .PHONY: install-snapshotter
 install-snapshotter: ## Install external-snapshotter.

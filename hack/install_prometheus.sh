@@ -8,12 +8,17 @@ if [ -z "$PROMETHEUS_VERSION" ]; then
   exit 1
 fi
 
-helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-helm repo update prometheus-community
+if [ -z "$HELM" ]; then
+  echo "HELM environment variable is mandatory"
+  exit 1
+fi
+
+${HELM} repo add prometheus-community https://prometheus-community.github.io/helm-charts
+${HELM} repo update prometheus-community
 
 CIDR_PREFIX=$(go run ./hack/get_kind_cidr_prefix/main.go)
 
-helm upgrade --install \
+${HELM} upgrade --install \
   --version $PROMETHEUS_VERSION \
   -n kube-prometheus-stack --create-namespace \
   -f $CONFIG/kube-prometheus-stack.yaml \
