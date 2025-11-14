@@ -27,9 +27,9 @@ helm-cluster-lint: ## Lint mariadb-cluster helm chart.
 	$(DOCKER) run --rm --workdir /repo -v $(shell pwd):/repo $(HELM_CT_IMG) ct lint --config $(HELM_CLUSTER_CT_CONFIG) 
 
 .PHONY: helm-crds 
-helm-crds: kustomize ## Generate CRDs for the Helm chart.
+helm-crds: helm kustomize ## Generate CRDs for the Helm chart.
 	$(KUSTOMIZE) build config/crd > $(HELM_CRDS_DIR)/templates/crds.yaml
-	helm dependency update deploy/charts/mariadb-operator
+	$(HELM) dependency update deploy/charts/mariadb-operator
 
 .PHONY: helm-config
 helm-config: yq ## Update operator config in the Helm chart.
@@ -70,7 +70,7 @@ ifndef HELM_CRDS_CHART_FILE
 endif
 	@cat $(HELM_CRDS_CHART_FILE) | $(YQ) e ".version"
 
-HELM_VERSION ?=
+HELM_CHART_VERSION ?=
 .PHONY: helm-version-bump
 helm-version-bump: yq ## Bump helm charts version.
 ifndef HELM_CHART_FILE
@@ -82,11 +82,11 @@ endif
 ifndef HELM_CLUSTER_CHART_FILE
 	$(error HELM_CLUSTER_CHART_FILE is not set. Please set it before running this target)
 endif
-ifndef HELM_VERSION
-	$(error HELM_VERSION is not set. Please set it before running this target)
+ifndef HELM_CHART_VERSION
+	$(error HELM_CHART_VERSION is not set. Please set it before running this target)
 endif
-	@$(YQ) e -i ".version = \"$(HELM_VERSION)\"" $(HELM_CHART_FILE); \
-	$(YQ) e -i ".appVersion = \"$(HELM_VERSION)\"" $(HELM_CHART_FILE); \
-	$(YQ) e -i ".dependencies |= map(select(.name == \"mariadb-operator-crds\").version = \"$(HELM_VERSION)\" // .)" $(HELM_CHART_FILE); \
-	$(YQ) e -i ".version = \"$(HELM_VERSION)\"" $(HELM_CRDS_CHART_FILE); \
-	$(YQ) e -i ".version = \"$(HELM_VERSION)\"" $(HELM_CLUSTER_CHART_FILE);
+	@$(YQ) e -i ".version = \"$(HELM_CHART_VERSION)\"" $(HELM_CHART_FILE); \
+	$(YQ) e -i ".appVersion = \"$(HELM_CHART_VERSION)\"" $(HELM_CHART_FILE); \
+	$(YQ) e -i ".dependencies |= map(select(.name == \"mariadb-operator-crds\").version = \"$(HELM_CHART_VERSION)\" // .)" $(HELM_CHART_FILE); \
+	$(YQ) e -i ".version = \"$(HELM_CHART_VERSION)\"" $(HELM_CRDS_CHART_FILE); \
+	$(YQ) e -i ".version = \"$(HELM_CHART_VERSION)\"" $(HELM_CLUSTER_CHART_FILE);
