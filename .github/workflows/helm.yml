@@ -11,7 +11,7 @@ on:
       - "deploy/charts/**"
 
 env:
-  HELM_VERSION: "v3.10.2"
+  HELM_VERSION: "v3.19.2"
 
 jobs:
   lint-cluster:
@@ -83,7 +83,7 @@ jobs:
       - name: Lint
         if: steps.list-changed.outputs.changed == 'true'
         run: ct lint --config $CT_CONFIG
-      
+
       - name: Cluster
         if: steps.list-changed.outputs.changed == 'true'
         run: make cluster
@@ -126,7 +126,7 @@ jobs:
       - name: Lint
         if: steps.list-changed.outputs.changed == 'true'
         run: ct lint --config $CT_CONFIG
-      
+
       - name: Cluster
         if: steps.list-changed.outputs.changed == 'true'
         run: |
