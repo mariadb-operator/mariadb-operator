@@ -8,10 +8,15 @@ if [ -z "$METALLB_VERSION" ]; then
   exit 1
 fi
 
-helm repo add metallb https://metallb.github.io/metallb
-helm repo update metallb
+if [ -z "$HELM" ]; then
+  echo "HELM environment variable is mandatory"
+  exit 1
+fi
 
-helm upgrade --install \
+${HELM} repo add metallb https://metallb.github.io/metallb
+${HELM} repo update metallb
+
+${HELM} upgrade --install \
   --version $METALLB_VERSION \
   -n metallb --create-namespace \
   metallb metallb/metallb
