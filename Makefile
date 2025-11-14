@@ -5,6 +5,8 @@ else
 GOBIN=$(shell go env GOBIN)
 endif
 
+GOARCH=$(shell $(GO) env GOARCH)
+
 ifndef ignore-not-found
   ignore-not-found = false
 endif
