@@ -1,0 +1,9 @@
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: PointInTimeRecovery
+metadata:
+  labels:
+    app.kubernetes.io/name: mariadb-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: pointintimerecovery-sample
+spec:
+  # TODO(user): Add fields here
