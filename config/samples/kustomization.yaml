@@ -9,4 +9,5 @@ resources:
 - restore.yaml
 - sqljob.yaml
 - user.yaml
+- pointintimerecovery.yaml
 #+kubebuilder:scaffold:manifestskustomizesamples
