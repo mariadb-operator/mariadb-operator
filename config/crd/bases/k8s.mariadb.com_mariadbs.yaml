@@ -2535,7 +2535,7 @@ spec:
               maxScaleRef:
                 description: |-
                   MaxScaleRef is a reference to a MaxScale resource to be used with the current MariaDB.
-                  Providing this field implies delegating high availability tasks such as primary failover to MaxScale.
+                  Providing this reference implies delegating high availability tasks such as primary failover to MaxScale.
                 properties:
                   name:
                     type: string
@@ -3304,6 +3304,15 @@ spec:
                       type: integer
                     type: array
                     x-kubernetes-list-type: atomic
+                type: object
+              pointInTimeRecoveryRef:
+                description: |-
+                  PointtInTimeRecoveryRef is a reference to a PointInTimeRecovery resource to be used with the current MariaDB.
+                  Providing this reference implies configuring binary log archival in the sidecar agent.
+                properties:
+                  name:
+                    default: ""
+                    type: string
                 type: object
               port:
                 default: 3306

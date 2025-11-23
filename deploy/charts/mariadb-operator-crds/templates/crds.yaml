@@ -4687,7 +4687,7 @@ spec:
               maxScaleRef:
                 description: |-
                   MaxScaleRef is a reference to a MaxScale resource to be used with the current MariaDB.
-                  Providing this field implies delegating high availability tasks such as primary failover to MaxScale.
+                  Providing this reference implies delegating high availability tasks such as primary failover to MaxScale.
                 properties:
                   name:
                     type: string
@@ -5456,6 +5456,15 @@ spec:
                       type: integer
                     type: array
                     x-kubernetes-list-type: atomic
+                type: object
+              pointInTimeRecoveryRef:
+                description: |-
+                  PointtInTimeRecoveryRef is a reference to a PointInTimeRecovery resource to be used with the current MariaDB.
+                  Providing this reference implies configuring binary log archival in the sidecar agent.
+                properties:
+                  name:
+                    default: ""
+                    type: string
                 type: object
               port:
                 default: 3306
@@ -11817,14 +11826,20 @@ spec:
     kind: PointInTimeRecovery
     listKind: PointInTimeRecoveryList
     plural: pointintimerecoveries
+    shortNames:
+    - pitr
     singular: pointintimerecovery
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: PointInTimeRecovery is the Schema for the pointintimerecoveries
-          API.
+          API.  It contains binlog archive and point-in-time restoration settings.
         properties:
           apiVersion:
             description: |-
@@ -11845,20 +11860,149 @@ spec:
             type: object
           spec:
             description: PointInTimeRecoverySpec defines the desired state of PointInTimeRecovery.
+              It contains binlog archive and point-in-time restoration settings.
             properties:
-              foo:
-                description: Foo is an example field of PointInTimeRecovery. Edit
-                  pointintimerecovery_types.go to remove/update
+              archiveTimeout:
+                description: |-
+                  ArchiveTimeout defines the maximum duration for the binary log archival..
+                  If this duration is exceeded, the sidecar agent will log an error and it will be retried in the next archive cycle.
+                  It defaults to 1 hour.
                 type: string
-            type: object
-          status:
-            description: PointInTimeRecoveryStatus defines the observed state of PointInTimeRecovery.
+              compression:
+                description: Compression algorithm to be used for compressing the
+                  binary logs.
+                enum:
+                - none
+                - bzip2
+                - gzip
+                type: string
+              maxRetention:
+                description: |-
+                  MaxRetention defines the retention policy for binary logs. Old binary logs will be purged after every archive cycle.
+                  By default, old binary logs are not purged.
+                type: string
+              physicalBackupRef:
+                description: PhysicalBackupRef is a reference to a PhysicalBackup
+                  object that will be used as base backup.
+                properties:
+                  name:
+                    default: ""
+                    type: string
+                type: object
+              s3:
+                description: S3 is the S3-compatible storage where the binary logs
+                  will be kept.
+                properties:
+                  accessKeyIdSecretKeyRef:
+                    description: AccessKeyIdSecretKeyRef is a reference to a Secret
+                      key containing the S3 access key id.
+                    properties:
+                      key:
+                        type: string
+                      name:
+                        default: ""
+                        type: string
+                    required:
+                    - key
+                    type: object
+                    x-kubernetes-map-type: atomic
+                  bucket:
+                    description: Bucket is the name Name of the bucket to store backups.
+                    type: string
+                  endpoint:
+                    description: Endpoint is the S3 API endpoint without scheme.
+                    type: string
+                  prefix:
+                    description: 'Prefix indicates a folder/subfolder in the bucket.
+                      For example: mariadb/ or mariadb/backups. A trailing slash ''/''
+                      is added if not provided.'
+                    type: string
+                  region:
+                    description: Region is the S3 region name to use.
+                    type: string
+                  secretAccessKeySecretKeyRef:
+                    description: AccessKeyIdSecretKeyRef is a reference to a Secret
+                      key containing the S3 secret key.
+                    properties:
+                      key:
+                        type: string
+                      name:
+                        default: ""
+                        type: string
+                    required:
+                    - key
+                    type: object
+                    x-kubernetes-map-type: atomic
+                  sessionTokenSecretKeyRef:
+                    description: SessionTokenSecretKeyRef is a reference to a Secret
+                      key containing the S3 session token.
+                    properties:
+                      key:
+                        type: string
+                      name:
+                        default: ""
+                        type: string
+                    required:
+                    - key
+                    type: object
+                    x-kubernetes-map-type: atomic
+                  ssec:
+                    description: |-
+                      SSEC is a reference to a Secret containing the SSE-C (Server-Side Encryption with Customer-Provided Keys) key.
+                      The secret must contain a 32-byte key (256 bits) in the specified key.
+                      This enables server-side encryption where you provide and manage the encryption key.
+                    properties:
+                      customerKeySecretKeyRef:
+                        description: |-
+                          CustomerKeySecretKeyRef is a reference to a Secret key containing the SSE-C customer-provided encryption key.
+                          The key must be a 32-byte (256-bit) key encoded in base64.
+                        properties:
+                          key:
+                            type: string
+                          name:
+                            default: ""
+                            type: string
+                        required:
+                        - key
+                        type: object
+                        x-kubernetes-map-type: atomic
+                    required:
+                    - customerKeySecretKeyRef
+                    type: object
+                  tls:
+                    description: TLS provides the configuration required to establish
+                      TLS connections with S3.
+                    properties:
+                      caSecretKeyRef:
+                        description: |-
+                          CASecretKeyRef is a reference to a Secret key containing a CA bundle in PEM format used to establish TLS connections with S3.
+                          By default, the system trust chain will be used, but you can use this field to add more CAs to the bundle.
+                        properties:
+                          key:
+                            type: string
+                          name:
+                            default: ""
+                            type: string
+                        required:
+                        - key
+                        type: object
+                        x-kubernetes-map-type: atomic
+                      enabled:
+                        description: Enabled is a flag to enable TLS.
+                        type: boolean
+                    type: object
+                required:
+                - bucket
+                - endpoint
+                type: object
+            required:
+            - physicalBackupRef
+            - s3
             type: object
         type: object
     served: true
     storage: true
-    subresources:
-      status: {}
+    subresources: {}
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition

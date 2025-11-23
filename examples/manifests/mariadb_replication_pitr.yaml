@@ -1,0 +1,88 @@
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-repl
+spec:
+  rootPasswordSecretKeyRef:
+    name: mariadb
+    key: root-password
+  storage:
+    size: 1Gi
+  replicas: 3
+  replication:
+    enabled: true
+  pointInTimeRecovery:
+    name: pitr
+  service:
+    type: LoadBalancer
+    metadata:
+      annotations:
+        metallb.universe.tf/loadBalancerIPs: 172.18.0.120
+  primaryService:
+    type: LoadBalancer
+    metadata:
+      annotations:
+        metallb.universe.tf/loadBalancerIPs: 172.18.0.130
+  secondaryService:
+    type: LoadBalancer
+    metadata:
+      annotations:
+        metallb.universe.tf/loadBalancerIPs: 172.18.0.131
+---
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: PointInTimeRecovery
+metadata:
+  name: pitr
+spec:
+  physicalBackupRef:
+    name: physicalbackup-daily
+  s3:
+    bucket: binlogs
+    prefix: mariadb
+    endpoint: minio.minio.svc.cluster.local:9000
+    region:  us-east-1
+    accessKeyIdSecretKeyRef:
+      name: minio
+      key: access-key-id
+    secretAccessKeySecretKeyRef:
+      name: minio
+      key: secret-access-key
+    tls:
+      enabled: true
+      caSecretKeyRef:
+        name: minio-ca
+        key: ca.crt
+  compression: gzip
+  archiveTimeout: 1h
+  maxRetention: 720h # 30 days
+---
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: PhysicalBackup
+metadata:
+  name: physicalbackup-daily
+spec:
+  mariaDbRef:
+    name: mariadb
+  schedule:
+    cron: "0 0 * * *"
+    suspend: false
+    immediate: true
+  compression: bzip2
+  maxRetention: 720h # 30 days
+  storage:
+    s3:
+      bucket: physicalbackups
+      prefix: mariadb
+      endpoint: minio.minio.svc.cluster.local:9000
+      region:  us-east-1
+      accessKeyIdSecretKeyRef:
+        name: minio
+        key: access-key-id
+      secretAccessKeySecretKeyRef:
+        name: minio
+        key: secret-access-key
+      tls:
+        enabled: true
+        caSecretKeyRef:
+          name: minio-ca
+          key: ca.crt
