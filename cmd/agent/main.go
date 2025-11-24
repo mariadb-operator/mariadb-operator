@@ -42,6 +42,8 @@ var (
 	basicAuth             bool
 	basicAuthUsername     string
 	basicAuthPasswordPath string
+
+	binaryLogArchival bool
 )
 
 func init() {
@@ -70,6 +72,8 @@ func init() {
 	RootCmd.PersistentFlags().BoolVar(&basicAuth, "basic-auth", false, "Enable basic authentication")
 	RootCmd.PersistentFlags().StringVar(&basicAuthUsername, "basic-auth-username", "", "Basic authentication username")
 	RootCmd.PersistentFlags().StringVar(&basicAuthPasswordPath, "basic-auth-password-path", "", "Basic authentication password path")
+
+	RootCmd.PersistentFlags().BoolVar(&binaryLogArchival, "binary-log-archival", false, "Enable binary log archival")
 
 	RootCmd.AddCommand(galeraCommand)
 	RootCmd.AddCommand(replicationCommand)
