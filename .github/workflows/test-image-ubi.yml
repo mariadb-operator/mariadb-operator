@@ -22,7 +22,7 @@ jobs:
           docker run --rm ${{ inputs.mariadb_image }} mariadbd --version
 
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Setup Go
         uses: actions/setup-go@v6
