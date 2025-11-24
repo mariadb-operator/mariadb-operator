@@ -247,6 +247,12 @@ func (b *Builder) dataPlaneAgentContainer(mariadb *mariadbv1alpha1.MariaDB) (*co
 			}...)
 		}
 
+		if mariadb.Spec.PointtInTimeRecoveryRef != nil {
+			args = append(args, []string{
+				"--binary-log-archival",
+			}...)
+		}
+
 		args = append(args, container.Args...)
 		return args
 	}()
