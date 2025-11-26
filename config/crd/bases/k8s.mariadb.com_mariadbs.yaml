@@ -706,6 +706,29 @@ spec:
                         - key
                         type: object
                         x-kubernetes-map-type: atomic
+                      ssec:
+                        description: |-
+                          SSEC is a reference to a Secret containing the SSE-C (Server-Side Encryption with Customer-Provided Keys) key.
+                          The secret must contain a 32-byte key (256 bits) in the specified key.
+                          This enables server-side encryption where you provide and manage the encryption key.
+                        properties:
+                          customerKeySecretKeyRef:
+                            description: |-
+                              CustomerKeySecretKeyRef is a reference to a Secret key containing the SSE-C customer-provided encryption key.
+                              The key must be a 32-byte (256-bit) key encoded in base64.
+                            properties:
+                              key:
+                                type: string
+                              name:
+                                default: ""
+                                type: string
+                            required:
+                            - key
+                            type: object
+                            x-kubernetes-map-type: atomic
+                        required:
+                        - customerKeySecretKeyRef
+                        type: object
                       tls:
                         description: TLS provides the configuration required to establish
                           TLS connections with S3.

@@ -153,6 +153,14 @@ func jobS3Env(s3 *mariadbv1alpha1.S3) []corev1.EnvVar {
 			},
 		})
 	}
+	if s3.SSEC != nil {
+		env = append(env, corev1.EnvVar{
+			Name: batchS3SSECCustomerKey,
+			ValueFrom: &corev1.EnvVarSource{
+				SecretKeyRef: ptr.To(s3.SSEC.CustomerKeySecretKeyRef.ToKubernetesType()),
+			},
+		})
+	}
 	return env
 }
 
