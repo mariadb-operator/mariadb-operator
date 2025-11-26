@@ -1,6 +1,9 @@
 package backup
 
-import "testing"
+import (
+	"encoding/base64"
+	"testing"
+)
 
 func TestS3PrefixedFile(t *testing.T) {
 	tests := []struct {
@@ -247,6 +250,101 @@ func TestS3Prefix(t *testing.T) {
 			prefix := tt.backupStorage.getPrefix()
 			if prefix != tt.wantPrefix {
 				t.Errorf("unexpected S3 prefix, got: \"%s\" want: \"%s\"", prefix, tt.wantPrefix)
+			}
+		})
+	}
+}
+
+func TestS3GetSSEC(t *testing.T) {
+	// Valid 32-byte key for AES-256
+	validKey := make([]byte, 32)
+	for i := range validKey {
+		validKey[i] = byte(i)
+	}
+	validKeyBase64 := base64.StdEncoding.EncodeToString(validKey)
+
+	// Invalid key (not 32 bytes)
+	invalidKey := make([]byte, 16)
+	invalidKeyBase64 := base64.StdEncoding.EncodeToString(invalidKey)
+
+	tests := []struct {
+		name          string
+		backupStorage *S3BackupStorage
+		wantNil       bool
+		wantErr       bool
+	}{
+		{
+			name:          "no SSE-C key",
+			backupStorage: &S3BackupStorage{},
+			wantNil:       true,
+			wantErr:       false,
+		},
+		{
+			name: "empty SSE-C key",
+			backupStorage: &S3BackupStorage{
+				S3BackupStorageOpts: S3BackupStorageOpts{
+					SSECCustomerKey: "",
+				},
+			},
+			wantNil: true,
+			wantErr: false,
+		},
+		{
+			name: "valid SSE-C key",
+			backupStorage: &S3BackupStorage{
+				S3BackupStorageOpts: S3BackupStorageOpts{
+					SSECCustomerKey: validKeyBase64,
+				},
+			},
+			wantNil: false,
+			wantErr: false,
+		},
+		{
+			name: "invalid base64",
+			backupStorage: &S3BackupStorage{
+				S3BackupStorageOpts: S3BackupStorageOpts{
+					SSECCustomerKey: "not-valid-base64!!!",
+				},
+			},
+			wantNil: true,
+			wantErr: true,
+		},
+		{
+			name: "invalid key length (not 32 bytes)",
+			backupStorage: &S3BackupStorage{
+				S3BackupStorageOpts: S3BackupStorageOpts{
+					SSECCustomerKey: invalidKeyBase64,
+				},
+			},
+			wantNil: true,
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			sse, err := tt.backupStorage.getSSEC()
+
+			if tt.wantErr {
+				if err == nil {
+					t.Error("expected error, got nil")
+				}
+				return
+			}
+
+			if err != nil {
+				t.Errorf("unexpected error: %v", err)
+				return
+			}
+
+			if tt.wantNil {
+				if sse != nil {
+					t.Error("expected nil SSE-C, got non-nil")
+				}
+			} else {
+				if sse == nil {
+					t.Error("expected non-nil SSE-C, got nil")
+				}
 			}
 		})
 	}

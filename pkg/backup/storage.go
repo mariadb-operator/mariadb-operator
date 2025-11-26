@@ -2,6 +2,7 @@ package backup
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -10,6 +11,7 @@ import (
 	"github.com/go-logr/logr"
 	mariadbminio "github.com/mariadb-operator/mariadb-operator/v25/pkg/minio"
 	"github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/encrypt"
 )
 
 type BackupStorage interface {
@@ -71,10 +73,11 @@ func (f *FileSystemBackupStorage) shouldProcessBackupFile(fileName string, logge
 }
 
 type S3BackupStorageOpts struct {
-	TLS        bool
-	CACertPath string
-	Region     string
-	Prefix     string
+	TLS             bool
+	CACertPath      string
+	Region          string
+	Prefix          string
+	SSECCustomerKey string
 }
 
 type S3BackupStorageOpt func(s *S3BackupStorageOpts)
@@ -100,6 +103,12 @@ func WithRegion(region string) S3BackupStorageOpt {
 func WithPrefix(prefix string) S3BackupStorageOpt {
 	return func(s *S3BackupStorageOpts) {
 		s.Prefix = prefix
+	}
+}
+
+func WithSSECCustomerKey(ssecCustomerKey string) S3BackupStorageOpt {
+	return func(s *S3BackupStorageOpts) {
+		s.SSECCustomerKey = ssecCustomerKey
 	}
 }
 
@@ -158,14 +167,26 @@ func (s *S3BackupStorage) List(ctx context.Context) ([]string, error) {
 func (s *S3BackupStorage) Push(ctx context.Context, fileName string) error {
 	s3FilePath := s.prefixedFileName(fileName)
 	filePath := GetFilePath(s.basePath, fileName)
-	_, err := s.client.FPutObject(ctx, s.bucket, s3FilePath, filePath, minio.PutObjectOptions{})
+	putOpts := minio.PutObjectOptions{}
+	if sse, err := s.getSSEC(); err != nil {
+		return fmt.Errorf("error creating SSE-C encryption: %v", err)
+	} else if sse != nil {
+		putOpts.ServerSideEncryption = sse
+	}
+	_, err := s.client.FPutObject(ctx, s.bucket, s3FilePath, filePath, putOpts)
 	return err
 }
 
 func (s *S3BackupStorage) Pull(ctx context.Context, fileName string) error {
 	s3FilePath := s.prefixedFileName(fileName)
 	filePath := GetFilePath(s.basePath, fileName)
-	return s.client.FGetObject(ctx, s.bucket, s3FilePath, filePath, minio.GetObjectOptions{})
+	getOpts := minio.GetObjectOptions{}
+	if sse, err := s.getSSEC(); err != nil {
+		return fmt.Errorf("error creating SSE-C encryption: %v", err)
+	} else if sse != nil {
+		getOpts.ServerSideEncryption = sse
+	}
+	return s.client.FGetObject(ctx, s.bucket, s3FilePath, filePath, getOpts)
 }
 
 func (s *S3BackupStorage) Delete(ctx context.Context, fileName string) error {
@@ -198,4 +219,21 @@ func (s *S3BackupStorage) getPrefix() string {
 		return s.Prefix + "/" // ending slash is required for avoiding matching like "foo/" and "foobar/" with prefix "foo"
 	}
 	return s.Prefix
+}
+
+// getSSEC returns the SSE-C encryption object if SSECCustomerKey is configured.
+// The key is expected to be base64 encoded and must be 32 bytes (256 bits) when decoded.
+func (s *S3BackupStorage) getSSEC() (encrypt.ServerSide, error) {
+	if s.SSECCustomerKey == "" {
+		return nil, nil
+	}
+	key, err := base64.StdEncoding.DecodeString(s.SSECCustomerKey)
+	if err != nil {
+		return nil, fmt.Errorf("error decoding SSE-C key from base64: %v", err)
+	}
+	sse, err := encrypt.NewSSEC(key)
+	if err != nil {
+		return nil, fmt.Errorf("error creating SSE-C encryption: %v", err)
+	}
+	return sse, nil
 }
