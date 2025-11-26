@@ -763,6 +763,21 @@ type S3 struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	TLS *TLSS3 `json:"tls,omitempty"`
+	// SSEC is a reference to a Secret containing the SSE-C (Server-Side Encryption with Customer-Provided Keys) key.
+	// The secret must contain a 32-byte key (256 bits) in the specified key.
+	// This enables server-side encryption where you provide and manage the encryption key.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	SSEC *SSECConfig `json:"ssec,omitempty"`
+}
+
+// SSECConfig defines the configuration for SSE-C (Server-Side Encryption with Customer-Provided Keys).
+type SSECConfig struct {
+	// CustomerKeySecretKeyRef is a reference to a Secret key containing the SSE-C customer-provided encryption key.
+	// The key must be a 32-byte (256-bit) key encoded in base64.
+	// +kubebuilder:validation:Required
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	CustomerKeySecretKeyRef SecretKeySelector `json:"customerKeySecretKeyRef"`
 }
 
 // Metadata defines the metadata to added to resources.

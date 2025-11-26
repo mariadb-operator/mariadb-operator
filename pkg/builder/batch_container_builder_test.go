@@ -1,6 +1,7 @@
 package builder
 
 import (
+	"slices"
 	"testing"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
@@ -63,5 +64,154 @@ func TestJobContainerSecurityContext(t *testing.T) {
 	}
 	if container.SecurityContext != nil {
 		t.Error("expected SecurityContext to be nil")
+	}
+}
+
+func TestJobS3Env(t *testing.T) {
+	tests := []struct {
+		name        string
+		s3          *mariadbv1alpha1.S3
+		expectedEnv []string
+	}{
+		{
+			name:        "nil S3",
+			s3:          nil,
+			expectedEnv: nil,
+		},
+		{
+			name: "S3 with access key only",
+			s3: &mariadbv1alpha1.S3{
+				Bucket:   "test-bucket",
+				Endpoint: "s3.amazonaws.com",
+				AccessKeyIdSecretKeyRef: &mariadbv1alpha1.SecretKeySelector{
+					LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+						Name: "s3-credentials",
+					},
+					Key: "access-key-id",
+				},
+				SecretAccessKeySecretKeyRef: &mariadbv1alpha1.SecretKeySelector{
+					LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+						Name: "s3-credentials",
+					},
+					Key: "secret-access-key",
+				},
+			},
+			expectedEnv: []string{batchS3AccessKeyId, batchS3SecretAccessKey},
+		},
+		{
+			name: "S3 with session token",
+			s3: &mariadbv1alpha1.S3{
+				Bucket:   "test-bucket",
+				Endpoint: "s3.amazonaws.com",
+				AccessKeyIdSecretKeyRef: &mariadbv1alpha1.SecretKeySelector{
+					LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+						Name: "s3-credentials",
+					},
+					Key: "access-key-id",
+				},
+				SecretAccessKeySecretKeyRef: &mariadbv1alpha1.SecretKeySelector{
+					LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+						Name: "s3-credentials",
+					},
+					Key: "secret-access-key",
+				},
+				SessionTokenSecretKeyRef: &mariadbv1alpha1.SecretKeySelector{
+					LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+						Name: "s3-credentials",
+					},
+					Key: "session-token",
+				},
+			},
+			expectedEnv: []string{batchS3AccessKeyId, batchS3SecretAccessKey, batchS3SessionTokenKey},
+		},
+		{
+			name: "S3 with SSE-C",
+			s3: &mariadbv1alpha1.S3{
+				Bucket:   "test-bucket",
+				Endpoint: "s3.amazonaws.com",
+				AccessKeyIdSecretKeyRef: &mariadbv1alpha1.SecretKeySelector{
+					LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+						Name: "s3-credentials",
+					},
+					Key: "access-key-id",
+				},
+				SecretAccessKeySecretKeyRef: &mariadbv1alpha1.SecretKeySelector{
+					LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+						Name: "s3-credentials",
+					},
+					Key: "secret-access-key",
+				},
+				SSEC: &mariadbv1alpha1.SSECConfig{
+					CustomerKeySecretKeyRef: mariadbv1alpha1.SecretKeySelector{
+						LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+							Name: "ssec-key",
+						},
+						Key: "customer-key",
+					},
+				},
+			},
+			expectedEnv: []string{batchS3AccessKeyId, batchS3SecretAccessKey, batchS3SSECCustomerKey},
+		},
+		{
+			name: "S3 with all options",
+			s3: &mariadbv1alpha1.S3{
+				Bucket:   "test-bucket",
+				Endpoint: "s3.amazonaws.com",
+				AccessKeyIdSecretKeyRef: &mariadbv1alpha1.SecretKeySelector{
+					LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+						Name: "s3-credentials",
+					},
+					Key: "access-key-id",
+				},
+				SecretAccessKeySecretKeyRef: &mariadbv1alpha1.SecretKeySelector{
+					LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+						Name: "s3-credentials",
+					},
+					Key: "secret-access-key",
+				},
+				SessionTokenSecretKeyRef: &mariadbv1alpha1.SecretKeySelector{
+					LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+						Name: "s3-credentials",
+					},
+					Key: "session-token",
+				},
+				SSEC: &mariadbv1alpha1.SSECConfig{
+					CustomerKeySecretKeyRef: mariadbv1alpha1.SecretKeySelector{
+						LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+							Name: "ssec-key",
+						},
+						Key: "customer-key",
+					},
+				},
+			},
+			expectedEnv: []string{batchS3AccessKeyId, batchS3SecretAccessKey, batchS3SessionTokenKey, batchS3SSECCustomerKey},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			env := jobS3Env(tt.s3)
+
+			if tt.expectedEnv == nil {
+				if env != nil {
+					t.Errorf("expected nil env, got: %v", env)
+				}
+				return
+			}
+
+			if len(env) != len(tt.expectedEnv) {
+				t.Errorf("expected %d env vars, got: %d", len(tt.expectedEnv), len(env))
+				return
+			}
+
+			for _, expectedName := range tt.expectedEnv {
+				found := slices.ContainsFunc(env, func(e corev1.EnvVar) bool {
+					return e.Name == expectedName
+				})
+				if !found {
+					t.Errorf("expected env var %s not found in %v", expectedName, env)
+				}
+			}
+		})
 	}
 }
