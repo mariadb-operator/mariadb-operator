@@ -88,7 +88,8 @@ var (
 
 	requeueSqlMaxOffset time.Duration
 
-	syncPeriod time.Duration
+	syncPeriod       time.Duration
+	cacheSyncTimeout time.Duration
 
 	webhookEnabled bool
 	webhookPort    int
@@ -156,6 +157,7 @@ func init() {
 	rootCmd.Flags().DurationVar(&requeueMaxScale, "requeue-maxscale", 1*time.Hour, "The interval at which MaxScales are requeued.")
 
 	rootCmd.Flags().DurationVar(&syncPeriod, "sync-period", 10*time.Hour, "The interval at which watched resources are reconciled.")
+	rootCmd.Flags().DurationVar(&cacheSyncTimeout, "cache-sync-timeout", 2*time.Minute, "The time limit set to wait for syncing caches.")
 
 	rootCmd.Flags().BoolVar(&webhookEnabled, "webhook", false, "Enable the webhook server.")
 	rootCmd.Flags().IntVar(&webhookPort, "webhook-port", 9443, "Port to be used by the webhook server."+
@@ -218,6 +220,7 @@ var rootCmd = &cobra.Command{
 			LeaderElectionID:       "mariadb-operator.mariadb.com",
 			Controller: config.Controller{
 				MaxConcurrentReconciles: maxConcurrentReconciles,
+				CacheSyncTimeout:        cacheSyncTimeout,
 			},
 			Cache: cache.Options{
 				SyncPeriod: &syncPeriod,
@@ -385,7 +388,7 @@ var rootCmd = &cobra.Command{
 			MaxScaleReconciler:    mxsReconciler,
 			ReplicationReconciler: replicationReconciler,
 			GaleraReconciler:      galeraReconciler,
-		}).SetupWithManager(ctx, mgr, env, ctrlcontroller.Options{MaxConcurrentReconciles: mariadbMaxConcurrentReconciles}); err != nil {
+		}).SetupWithManager(ctx, mgr, env, ctrlcontroller.Options{MaxConcurrentReconciles: mariadbMaxConcurrentReconciles, CacheSyncTimeout: cacheSyncTimeout}); err != nil {
 			setupLog.Error(err, "Unable to create controller", "controller", "MariaDB")
 			os.Exit(1)
 		}
@@ -413,7 +416,7 @@ var rootCmd = &cobra.Command{
 
 			RequeueInterval: requeueMaxScale,
 			LogMaxScale:     logMaxScale,
-		}).SetupWithManager(ctx, mgr, ctrlcontroller.Options{MaxConcurrentReconciles: maxscaleMaxConcurrentReconciles}); err != nil {
+		}).SetupWithManager(ctx, mgr, ctrlcontroller.Options{MaxConcurrentReconciles: maxscaleMaxConcurrentReconciles, CacheSyncTimeout: cacheSyncTimeout}); err != nil {
 			setupLog.Error(err, "Unable to create controller", "controller", "MaxScale")
 			os.Exit(1)
 		}
@@ -440,7 +443,7 @@ var rootCmd = &cobra.Command{
 			RBACReconciler:    rbacReconciler,
 			PVCReconciler:     pvcReconciler,
 			BackupProcessor:   backupProcessor,
-		}).SetupWithManager(ctx, mgr, ctrlcontroller.Options{MaxConcurrentReconciles: physicalBackupMaxConcurrentReconciles}); err != nil {
+		}).SetupWithManager(ctx, mgr, ctrlcontroller.Options{MaxConcurrentReconciles: physicalBackupMaxConcurrentReconciles, CacheSyncTimeout: cacheSyncTimeout}); err != nil {
 			setupLog.Error(err, "Unable to create controller", "controller", "PhysicalBackup")
 			os.Exit(1)
 		}
