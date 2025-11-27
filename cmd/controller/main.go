@@ -388,7 +388,9 @@ var rootCmd = &cobra.Command{
 			MaxScaleReconciler:    mxsReconciler,
 			ReplicationReconciler: replicationReconciler,
 			GaleraReconciler:      galeraReconciler,
-		}).SetupWithManager(ctx, mgr, env, ctrlcontroller.Options{MaxConcurrentReconciles: mariadbMaxConcurrentReconciles, CacheSyncTimeout: cacheSyncTimeout}); err != nil {
+		}).SetupWithManager(ctx, mgr, env, ctrlcontroller.Options{
+			MaxConcurrentReconciles: mariadbMaxConcurrentReconciles,
+			CacheSyncTimeout:        cacheSyncTimeout}); err != nil {
 			setupLog.Error(err, "Unable to create controller", "controller", "MariaDB")
 			os.Exit(1)
 		}
@@ -416,7 +418,9 @@ var rootCmd = &cobra.Command{
 
 			RequeueInterval: requeueMaxScale,
 			LogMaxScale:     logMaxScale,
-		}).SetupWithManager(ctx, mgr, ctrlcontroller.Options{MaxConcurrentReconciles: maxscaleMaxConcurrentReconciles, CacheSyncTimeout: cacheSyncTimeout}); err != nil {
+		}).SetupWithManager(ctx, mgr, ctrlcontroller.Options{
+			MaxConcurrentReconciles: maxscaleMaxConcurrentReconciles,
+			CacheSyncTimeout:        cacheSyncTimeout}); err != nil {
 			setupLog.Error(err, "Unable to create controller", "controller", "MaxScale")
 			os.Exit(1)
 		}
@@ -443,7 +447,9 @@ var rootCmd = &cobra.Command{
 			RBACReconciler:    rbacReconciler,
 			PVCReconciler:     pvcReconciler,
 			BackupProcessor:   backupProcessor,
-		}).SetupWithManager(ctx, mgr, ctrlcontroller.Options{MaxConcurrentReconciles: physicalBackupMaxConcurrentReconciles, CacheSyncTimeout: cacheSyncTimeout}); err != nil {
+		}).SetupWithManager(ctx, mgr, ctrlcontroller.Options{
+			MaxConcurrentReconciles: physicalBackupMaxConcurrentReconciles,
+			CacheSyncTimeout:        cacheSyncTimeout}); err != nil {
 			setupLog.Error(err, "Unable to create controller", "controller", "PhysicalBackup")
 			os.Exit(1)
 		}
