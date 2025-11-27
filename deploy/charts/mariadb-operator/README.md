@@ -27,7 +27,7 @@ Refer to the [helm documentation](https://github.com/mariadb-operator/mariadb-op
 | certController.caLifetime | string | `"26280h"` | CA certificate lifetime. It must be greater than certLifetime. |
 | certController.certLifetime | string | `"2160h"` | Certificate lifetime. |
 | certController.enabled | bool | `true` | Specifies whether the cert-controller should be created. |
-| certController.extrArgs | list | `[]` | Extra arguments to be passed to the cert-controller entrypoint |
+| certController.extraArgs | list | `[]` | Extra arguments to be passed to the cert-controller entrypoint |
 | certController.extraVolumeMounts | list | `[]` | Extra volumes to mount to cert-controller container |
 | certController.extraVolumes | list | `[]` | Extra volumes to pass to cert-controller Pod |
 | certController.ha.enabled | bool | `false` | Enable high availability |
@@ -71,7 +71,7 @@ Refer to the [helm documentation](https://github.com/mariadb-operator/mariadb-op
 | crds | object | `{"enabled":false}` | CRDs |
 | crds.enabled | bool | `false` | Whether the helm chart should create and update the CRDs. It is false by default, which implies that the CRDs must be managed independently with the mariadb-operator-crds helm chart. **WARNING** This should only be set to true during the initial deployment. If this chart manages the CRDs and is later uninstalled, all MariaDB instances will be DELETED. |
 | currentNamespaceOnly | bool | `false` | Whether the operator should watch CRDs only in its own namespace or not. |
-| extrArgs | list | `[]` | Extra arguments to be passed to the controller entrypoint |
+| extraArgs | list | `[]` | Extra arguments to be passed to the controller entrypoint |
 | extraEnv | list | `[]` | Extra environment variables to be passed to the controller |
 | extraEnvFrom | list | `[]` | Extra environment variables from preexiting ConfigMap / Secret objects used by the controller using envFrom |
 | extraVolumeMounts | list | `[]` | Extra volumes to mount to the container. |
@@ -124,7 +124,7 @@ Refer to the [helm documentation](https://github.com/mariadb-operator/mariadb-op
 | webhook.cert.secretAnnotations | object | `{}` | Annotatioms to be added to webhook TLS secret. |
 | webhook.cert.secretLabels | object | `{}` | Labels to be added to webhook TLS secret. |
 | webhook.enabled | bool | `true` | Specifies whether the webhook should be created. |
-| webhook.extrArgs | list | `[]` | Extra arguments to be passed to the webhook entrypoint |
+| webhook.extraArgs | list | `[]` | Extra arguments to be passed to the webhook entrypoint |
 | webhook.extraVolumeMounts | list | `[]` | Extra volumes to mount to webhook container |
 | webhook.extraVolumes | list | `[]` | Extra volumes to pass to webhook Pod |
 | webhook.ha.enabled | bool | `false` | Enable high availability |
