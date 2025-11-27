@@ -63,7 +63,7 @@ rbac:
     # -- Specifies whether the cluster roles aggrate to view and edit predefinied roles
     enabled: true
 # -- Extra arguments to be passed to the controller entrypoint
-extrArgs: []
+extraArgs: []
 # -- Extra environment variables to be passed to the controller
 extraEnv: []
 # -- Extra environment variables from preexiting ConfigMap / Secret objects used by the controller using envFrom
@@ -192,7 +192,7 @@ webhook:
   # -- Annotations for webhook configurations.
   annotations: {}
   # -- Extra arguments to be passed to the webhook entrypoint
-  extrArgs: []
+  extraArgs: []
   # -- Extra volumes to pass to webhook Pod
   extraVolumes: []
   # -- Extra volumes to mount to webhook container
@@ -274,7 +274,7 @@ certController:
     # If not set and enabled is true, a name is generated using the fullname template
     name: ""
   # -- Extra arguments to be passed to the cert-controller entrypoint
-  extrArgs: []
+  extraArgs: []
   # -- Extra volumes to pass to cert-controller Pod
   extraVolumes: []
   # -- Extra volumes to mount to cert-controller container
