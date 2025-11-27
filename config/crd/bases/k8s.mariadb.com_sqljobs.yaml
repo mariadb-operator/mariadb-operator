@@ -589,6 +589,13 @@ spec:
                 - key
                 type: object
                 x-kubernetes-map-type: atomic
+              startingDeadlineSeconds:
+                description: StartingDeadlineSeconds defines deadline in seconds for
+                  starting the job if it misses scheduled time for any reason. Missed
+                  jobs executions will be counted as failed ones.
+                format: int64
+                minimum: 0
+                type: integer
               successfulJobsHistoryLimit:
                 description: SuccessfulJobsHistoryLimit defines the maximum number
                   of successful Jobs to be displayed.
