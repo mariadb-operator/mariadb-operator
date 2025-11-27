@@ -71,10 +71,11 @@ func (f *FileSystemBackupStorage) shouldProcessBackupFile(fileName string, logge
 }
 
 type S3BackupStorageOpts struct {
-	TLS        bool
-	CACertPath string
-	Region     string
-	Prefix     string
+	TLS          bool
+	CACertPath   string
+	Region       string
+	Prefix       string
+	StorageClass string
 }
 
 type S3BackupStorageOpt func(s *S3BackupStorageOpts)
@@ -100,6 +101,12 @@ func WithRegion(region string) S3BackupStorageOpt {
 func WithPrefix(prefix string) S3BackupStorageOpt {
 	return func(s *S3BackupStorageOpts) {
 		s.Prefix = prefix
+	}
+}
+
+func WithStorageClass(storageClass string) S3BackupStorageOpt {
+	return func(s *S3BackupStorageOpts) {
+		s.StorageClass = storageClass
 	}
 }
 
@@ -158,7 +165,9 @@ func (s *S3BackupStorage) List(ctx context.Context) ([]string, error) {
 func (s *S3BackupStorage) Push(ctx context.Context, fileName string) error {
 	s3FilePath := s.prefixedFileName(fileName)
 	filePath := GetFilePath(s.basePath, fileName)
-	_, err := s.client.FPutObject(ctx, s.bucket, s3FilePath, filePath, minio.PutObjectOptions{})
+	_, err := s.client.FPutObject(ctx, s.bucket, s3FilePath, filePath, minio.PutObjectOptions{
+		StorageClass: s.StorageClass,
+	})
 	return err
 }
 
