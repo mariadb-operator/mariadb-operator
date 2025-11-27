@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
@@ -33,7 +34,7 @@ func NewArchiver(dataDir string, env *environment.PodEnvironment, client *client
 }
 
 func (a *Archiver) Start(ctx context.Context) error {
-	a.logger.Info("Starting binlog archiver")
+	a.logger.Info("Starting binary log archiver")
 
 	mdb, err := a.getMariaDB(ctx)
 	if err != nil {
@@ -44,12 +45,25 @@ func (a *Archiver) Start(ctx context.Context) error {
 		return err
 	}
 	// TODO: mount TLS certs and credentials
-	_, err = getS3Client(pitr)
+	s3Client, err := getS3Client(pitr)
 	if err != nil {
 		return err
 	}
 
-	return nil
+	ticker := time.NewTicker(10 * time.Minute)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			a.logger.Info("Stopping binary log archiver")
+			return nil
+		case <-ticker.C:
+			if err := a.archiveBinaryLogs(ctx, mdb, pitr, s3Client); err != nil {
+				a.logger.Error(err, "Error archiving binary logs")
+			}
+		}
+	}
 }
 
 func (a *Archiver) getMariaDB(ctx context.Context) (*mariadbv1alpha1.MariaDB, error) {
@@ -77,6 +91,20 @@ func (a *Archiver) getPointInTimeRecovery(ctx context.Context, mdb *mariadbv1alp
 		return nil, fmt.Errorf("error getting PointInTimeRecovery: %v", err)
 	}
 	return &pitr, nil
+}
+
+func (a *Archiver) archiveBinaryLogs(ctx context.Context, mdb *mariadbv1alpha1.MariaDB,
+	pitr *mariadbv1alpha1.PointInTimeRecovery, s3Client *minio.Client) error {
+	if mdb.Status.CurrentPrimary == nil ||
+		(mdb.Status.CurrentPrimary != nil && *mdb.Status.CurrentPrimary != a.env.PodName) {
+		return nil
+	}
+	if mdb.IsSwitchoverRequired() || mdb.IsSwitchingPrimary() {
+		return errors.New("Unable to start archival: Switchover operation pending/ongoing")
+	}
+	a.logger.Info("Archiving binary logs")
+
+	return nil
 }
 
 func getS3Client(pitr *mariadbv1alpha1.PointInTimeRecovery) (*minio.Client, error) {
