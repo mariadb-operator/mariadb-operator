@@ -5979,6 +5979,15 @@ spec:
                       file (grastate.dat).
                     type: object
                 type: object
+              pointInTimeRecovery:
+                description: PointInTimeRecovery is the status of the point-in-time-recovery
+                  process.
+                properties:
+                  lastArchivedBinaryLog:
+                    description: LastArchivedBinaryLog is the last binary file that
+                      has been archived.
+                    type: string
+                type: object
               replicas:
                 description: Replicas indicates the number of current instances.
                 format: int32

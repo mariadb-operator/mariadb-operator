@@ -643,6 +643,14 @@ type MariaDBTLSStatus struct {
 	ClientCert *CertificateStatus `json:"clientCert,omitempty"`
 }
 
+// PointInTimeRecoveryStatus is the status of the point-in-time-recovery process.
+type PointInTimeRecoveryStatus struct {
+	// LastArchivedBinaryLog is the last binary file that has been archived.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	LastArchivedBinaryLog *string `json:"lastArchivedBinaryLog,omitempty"`
+}
+
 // MariaDBStatus defines the observed state of MariaDB
 type MariaDBStatus struct {
 	// Conditions for the Mariadb object.
@@ -686,6 +694,10 @@ type MariaDBStatus struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	TLS *MariaDBTLSStatus `json:"tls,omitempty"`
+	// PointInTimeRecovery is the status of the point-in-time-recovery process.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	PointInTimeRecovery *PointInTimeRecoveryStatus `json:"pointInTimeRecovery,omitempty"`
 }
 
 // SetCondition sets a status condition to MariaDB
