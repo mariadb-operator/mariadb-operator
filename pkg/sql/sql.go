@@ -974,6 +974,10 @@ func (c *Client) StatusVariableInt(ctx context.Context, variable string) (int, e
 	return val, nil
 }
 
+func (c *Client) BinaryLogIndex(ctx context.Context) (string, error) {
+	return c.StatusVariable(ctx, "log_bin_index")
+}
+
 func (c *Client) GaleraClusterSize(ctx context.Context) (int, error) {
 	return c.StatusVariableInt(ctx, "wsrep_cluster_size")
 }

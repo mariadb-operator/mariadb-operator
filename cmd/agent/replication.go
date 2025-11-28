@@ -97,7 +97,7 @@ var replicationCommand = &cobra.Command{
 		}()
 		if binaryLogArchival {
 			archiver := binlog.NewArchiver(
-				stateDir,
+				fileManager,
 				env,
 				&k8sClient,
 				logger.WithName("binlog-archival"),
