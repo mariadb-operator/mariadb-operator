@@ -37,6 +37,7 @@ const (
 	batchS3AccessKeyId     = "AWS_ACCESS_KEY_ID"
 	batchS3SecretAccessKey = "AWS_SECRET_ACCESS_KEY"
 	batchS3SessionTokenKey = "AWS_SESSION_TOKEN"
+	batchS3SSECCustomerKey = "MARIADB_OPERATOR_S3_SSEC_CUSTOMER_KEY"
 )
 
 var (
