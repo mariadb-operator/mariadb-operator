@@ -8,7 +8,12 @@ import (
 	"k8s.io/utils/ptr"
 )
 
-func BinlogNum(filename string) (*int, error) {
+type BinlogNum struct {
+	filename string
+	num      int
+}
+
+func ParseBinlogNum(filename string) (*BinlogNum, error) {
 	p := strings.LastIndexAny(filename, ".")
 	if p < 0 {
 		return nil, fmt.Errorf("unexpected binlog name: %v", filename)
@@ -17,13 +22,41 @@ func BinlogNum(filename string) (*int, error) {
 	if err != nil {
 		return nil, fmt.Errorf("unexpected binlog name: %v", filename)
 	}
-	return &num, nil
+	return &BinlogNum{filename: filename, num: num}, nil
 }
 
-func BinlogPrefix(filename string) (*string, error) {
+func MustParseBinlogNum(filename string) *BinlogNum {
+	num, err := ParseBinlogNum(filename)
+	if err != nil {
+		panic(err)
+	}
+	return num
+}
+
+func (b *BinlogNum) String() string {
+	return fmt.Sprintf("BinlogNum{filename: %s, num: %d}", b.filename, b.num)
+}
+
+func (b *BinlogNum) LessThan(other *BinlogNum) bool {
+	return b.num < other.num
+}
+
+func (b *BinlogNum) GreaterThan(other *BinlogNum) bool {
+	return b.num > other.num
+}
+
+func ParseBinlogPrefix(filename string) (*string, error) {
 	p := strings.LastIndexAny(filename, ".")
 	if p < 0 {
 		return nil, fmt.Errorf("unexpected binlog name: %v", filename)
 	}
 	return ptr.To(filename[:p]), nil
+}
+
+func MustParseBinlogPrefix(filename string) string {
+	prefix, err := ParseBinlogPrefix(filename)
+	if err != nil {
+		panic(err)
+	}
+	return *prefix
 }
