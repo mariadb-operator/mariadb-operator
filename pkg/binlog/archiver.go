@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"github.com/hashicorp/go-multierror"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/environment"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/filemanager"
@@ -133,7 +132,7 @@ func (a *Archiver) archiveBinaryLogs(ctx context.Context, mdb *mariadbv1alpha1.M
 		}
 		if shouldReset {
 			if err := a.patchStatus(ctx, mdb, func(mdb *mariadbv1alpha1.MariaDBStatus) {
-				mdb.PointInTimeRecovery.LastArchivedBinaryLog = nil
+				mdb.PointInTimeRecovery = nil
 			}); err != nil {
 				return fmt.Errorf("error patching MariaDB: %v", err)
 			}
@@ -141,6 +140,20 @@ func (a *Archiver) archiveBinaryLogs(ctx context.Context, mdb *mariadbv1alpha1.M
 		}
 	}
 
+	for i := 0; i < len(binlogs); i++ {
+		binlog := binlogs[i]
+		a.logger.V(1).Info("Processing binary log", "binlog", binlog)
+
+		if mdb.Status.PointInTimeRecovery != nil && mdb.Status.PointInTimeRecovery.LastArchivedBinaryLog != nil {
+			num := MustParseBinlogNum(binlog)
+			archivedNum := MustParseBinlogNum(*mdb.Status.PointInTimeRecovery.LastArchivedBinaryLog)
+
+			if num.LessThan(archivedNum) {
+				a.logger.V(1).Info("Skipping binary log", "binlog", binlog)
+				continue
+			}
+		}
+	}
 	return nil
 }
 
@@ -192,21 +205,13 @@ func getS3Client(pitr *mariadbv1alpha1.PointInTimeRecovery) (*minio.Client, erro
 
 func shouldResetArchivedBinlog(binlogs []string, lastArchivedBinlog string,
 	logger logr.Logger) (bool, error) {
-	var errBundle *multierror.Error
-	prefix, err := BinlogPrefix(binlogs[0])
-	errBundle = multierror.Append(errBundle, err)
-	archivedPrefix, err := BinlogPrefix(lastArchivedBinlog)
-	errBundle = multierror.Append(errBundle, err)
+	prefix := MustParseBinlogPrefix(binlogs[0])
+	archivedPrefix := MustParseBinlogPrefix(lastArchivedBinlog)
 
-	lastNum, err := BinlogNum(binlogs[len(binlogs)-1])
-	errBundle = multierror.Append(errBundle, err)
-	archivedNum, err := BinlogNum(lastArchivedBinlog)
-	errBundle = multierror.Append(errBundle, err)
+	lastNum := MustParseBinlogNum(binlogs[len(binlogs)-1])
+	archivedNum := MustParseBinlogNum(lastArchivedBinlog)
 
-	if err := errBundle.ErrorOrNil(); err != nil {
-		return false, err
-	}
-	if prefix != archivedPrefix || *lastNum < *archivedNum {
+	if prefix != archivedPrefix || lastNum.LessThan(archivedNum) {
 		logger.Info(
 			"Resetting last archived binary log",
 			"prefix", prefix,
