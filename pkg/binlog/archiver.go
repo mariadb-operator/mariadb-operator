@@ -1,35 +1,42 @@
 package binlog
 
 import (
+	"bufio"
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
+	"path"
 	"time"
 
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/environment"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/filemanager"
 	mariadbminio "github.com/mariadb-operator/mariadb-operator/v25/pkg/minio"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/sql"
 	"github.com/minio/minio-go/v7"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+var archiveInterval = 10 * time.Minute
+
 type Archiver struct {
-	dataDir string
-	env     *environment.PodEnvironment
-	client  client.Client
-	logger  logr.Logger
+	fileManager *filemanager.FileManager
+	env         *environment.PodEnvironment
+	client      client.Client
+	logger      logr.Logger
 }
 
-func NewArchiver(dataDir string, env *environment.PodEnvironment, client *client.Client,
+func NewArchiver(fileManager *filemanager.FileManager, env *environment.PodEnvironment, client *client.Client,
 	logger logr.Logger) *Archiver {
 	return &Archiver{
-		dataDir: dataDir,
-		env:     env,
-		client:  *client,
-		logger:  logger,
+		fileManager: fileManager,
+		env:         env,
+		client:      *client,
+		logger:      logger,
 	}
 }
 
@@ -44,13 +51,18 @@ func (a *Archiver) Start(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	sqlClient, err := sql.NewLocalClientWithPodEnv(ctx, a.env)
+	if err != nil {
+		return fmt.Errorf("error getting SQL client: %v", err)
+	}
+	defer sqlClient.Close()
 	// TODO: mount TLS certs and credentials
 	s3Client, err := getS3Client(pitr)
 	if err != nil {
 		return err
 	}
 
-	ticker := time.NewTicker(10 * time.Minute)
+	ticker := time.NewTicker(archiveInterval)
 	defer ticker.Stop()
 
 	for {
@@ -59,7 +71,7 @@ func (a *Archiver) Start(ctx context.Context) error {
 			a.logger.Info("Stopping binary log archiver")
 			return nil
 		case <-ticker.C:
-			if err := a.archiveBinaryLogs(ctx, mdb, pitr, s3Client); err != nil {
+			if err := a.archiveBinaryLogs(ctx, mdb, pitr, sqlClient, s3Client); err != nil {
 				a.logger.Error(err, "Error archiving binary logs")
 			}
 		}
@@ -94,7 +106,7 @@ func (a *Archiver) getPointInTimeRecovery(ctx context.Context, mdb *mariadbv1alp
 }
 
 func (a *Archiver) archiveBinaryLogs(ctx context.Context, mdb *mariadbv1alpha1.MariaDB,
-	pitr *mariadbv1alpha1.PointInTimeRecovery, s3Client *minio.Client) error {
+	pitr *mariadbv1alpha1.PointInTimeRecovery, sqlClient *sql.Client, s3Client *minio.Client) error {
 	if mdb.Status.CurrentPrimary == nil ||
 		(mdb.Status.CurrentPrimary != nil && *mdb.Status.CurrentPrimary != a.env.PodName) {
 		return nil
@@ -104,7 +116,37 @@ func (a *Archiver) archiveBinaryLogs(ctx context.Context, mdb *mariadbv1alpha1.M
 	}
 	a.logger.Info("Archiving binary logs")
 
+	_, err := a.getBinaryLogs(ctx, sqlClient)
+	if err != nil {
+		return fmt.Errorf("error getting binary logs: %v", err)
+	}
+
 	return nil
+}
+
+func (a *Archiver) getBinaryLogs(ctx context.Context, sqlClient *sql.Client) ([]string, error) {
+	binaryLogIndex, err := sqlClient.BinaryLogIndex(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("error getting binary log index: %v", err)
+	}
+
+	binlogIndexBytes, err := a.fileManager.ReadStateFile(binaryLogIndex)
+	if err != nil {
+		return nil, fmt.Errorf("error reading binary log index: %v", err)
+	}
+
+	var binlogs []string
+	fileScanner := bufio.NewScanner(bytes.NewReader(binlogIndexBytes))
+	fileScanner.Split(bufio.ScanLines)
+
+	for fileScanner.Scan() {
+		binlog := path.Base(fileScanner.Text())
+		binlogs = append(binlogs, binlog)
+	}
+	if len(binlogs) == 0 {
+		return nil, errors.New("no binary logs were found")
+	}
+	return binlogs, nil
 }
 
 func getS3Client(pitr *mariadbv1alpha1.PointInTimeRecovery) (*minio.Client, error) {
