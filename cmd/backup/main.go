@@ -194,7 +194,10 @@ func getBackupStorage(processor backup.BackupProcessor) (backup.BackupStorage, e
 			s3Endpoint,
 			processor,
 			logger.WithName("s3-storage"),
-			opts...,
+			mdbminio.WithTLS(s3TLS),
+			mdbminio.WithCACertPath(s3CACertPath),
+			mdbminio.WithRegion(s3Region),
+			mdbminio.WithPrefix(s3Prefix),
 		)
 	}
 	logger.Info("configuring filesystem backup storage")
