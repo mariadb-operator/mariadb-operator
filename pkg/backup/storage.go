@@ -77,7 +77,7 @@ type S3BackupStorage struct {
 
 func NewS3BackupStorage(basePath, bucket, endpoint string, processor BackupProcessor, logger logr.Logger,
 	mOpts ...mariadbminio.MinioOpt) (BackupStorage, error) {
-	client, err := mariadbminio.NewMinioClient(basePath, bucket, endpoint, mOpts...)
+	client, err := mariadbminio.NewMinioClient(basePath, endpoint, bucket, mOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("error creating S3 client: %v", err)
 	}
