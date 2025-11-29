@@ -15,7 +15,6 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/filemanager"
 	mariadbminio "github.com/mariadb-operator/mariadb-operator/v25/pkg/minio"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/sql"
-	"github.com/minio/minio-go/v7"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -57,10 +56,16 @@ func (a *Archiver) Start(ctx context.Context) error {
 	}
 	defer sqlClient.Close()
 	// TODO: mount TLS certs and credentials
-	s3Client, err := getS3Client(pitr)
+	s3Client, err := a.getS3Client(pitr)
 	if err != nil {
 		return err
 	}
+	uploader := NewUploader(
+		a.fileManager,
+		s3Client,
+		a.client,
+		a.logger.WithName("uploader"),
+	)
 
 	ticker := time.NewTicker(archiveInterval)
 	defer ticker.Stop()
@@ -71,7 +76,7 @@ func (a *Archiver) Start(ctx context.Context) error {
 			a.logger.Info("Stopping binary log archiver")
 			return nil
 		case <-ticker.C:
-			if err := a.archiveBinaryLogs(ctx, mdb, pitr, sqlClient, s3Client); err != nil {
+			if err := a.archiveBinaryLogs(ctx, mdb, pitr, sqlClient, uploader); err != nil {
 				a.logger.Error(err, "Error archiving binary logs")
 			}
 		}
@@ -105,16 +110,24 @@ func (a *Archiver) getPointInTimeRecovery(ctx context.Context, mdb *mariadbv1alp
 	return &pitr, nil
 }
 
-func (a *Archiver) archiveBinaryLogs(ctx context.Context, mdb *mariadbv1alpha1.MariaDB,
-	pitr *mariadbv1alpha1.PointInTimeRecovery, sqlClient *sql.Client, s3Client *minio.Client) error {
+func (a *Archiver) archiveBinaryLogs(ctx context.Context, mdb *mariadbv1alpha1.MariaDB, pitr *mariadbv1alpha1.PointInTimeRecovery,
+	sqlClient *sql.Client, uploader *Uploader) error {
 	if mdb.Status.CurrentPrimary == nil ||
 		(mdb.Status.CurrentPrimary != nil && *mdb.Status.CurrentPrimary != a.env.PodName) {
 		return nil
 	}
 	if mdb.IsSwitchoverRequired() || mdb.IsSwitchingPrimary() {
-		return errors.New("Unable to start archival: Switchover operation pending/ongoing")
+		return errors.New("unable to start archival: Switchover operation pending/ongoing")
 	}
 	a.logger.Info("Archiving binary logs")
+
+	isConfigured, err := a.physicalBackupConfigured(ctx, &pitr.Spec.PhysicalBackupRef, mdb)
+	if err != nil {
+		return fmt.Errorf("error checking PhysicalBackup: %v", err)
+	}
+	if !isConfigured {
+		return errors.New("PhysicalBackup not configured, stopping binary log archival") //nolint:staticcheck
+	}
 
 	binlogs, err := a.getBinaryLogs(ctx, sqlClient)
 	if err != nil {
@@ -131,8 +144,8 @@ func (a *Archiver) archiveBinaryLogs(ctx context.Context, mdb *mariadbv1alpha1.M
 			return fmt.Errorf("error checking archived binary log: %v", err)
 		}
 		if shouldReset {
-			if err := a.patchStatus(ctx, mdb, func(mdb *mariadbv1alpha1.MariaDBStatus) {
-				mdb.PointInTimeRecovery = nil
+			if err := a.patchStatus(ctx, mdb, func(status *mariadbv1alpha1.MariaDBStatus) {
+				status.PointInTimeRecovery = nil
 			}); err != nil {
 				return fmt.Errorf("error patching MariaDB: %v", err)
 			}
@@ -144,6 +157,11 @@ func (a *Archiver) archiveBinaryLogs(ctx context.Context, mdb *mariadbv1alpha1.M
 		binlog := binlogs[i]
 		a.logger.V(1).Info("Processing binary log", "binlog", binlog)
 
+		if i == len(binlogs)-1 {
+			a.logger.V(1).Info("Skipping active binary log", "binlog", binlog)
+			continue
+		}
+
 		if mdb.Status.PointInTimeRecovery != nil && mdb.Status.PointInTimeRecovery.LastArchivedBinaryLog != nil {
 			num := MustParseBinlogNum(binlog)
 			archivedNum := MustParseBinlogNum(*mdb.Status.PointInTimeRecovery.LastArchivedBinaryLog)
@@ -153,8 +171,25 @@ func (a *Archiver) archiveBinaryLogs(ctx context.Context, mdb *mariadbv1alpha1.M
 				continue
 			}
 		}
+
+		if err := uploader.Upload(ctx, binlog, mdb, pitr); err != nil {
+			return fmt.Errorf("error uploading binary log %s: %v", binlog, err)
+		}
 	}
 	return nil
+}
+
+func (a *Archiver) physicalBackupConfigured(ctx context.Context, ref *mariadbv1alpha1.LocalObjectReference,
+	mdb *mariadbv1alpha1.MariaDB) (bool, error) {
+	key := types.NamespacedName{
+		Name:      ref.Name,
+		Namespace: mdb.Namespace,
+	}
+	var physicalBackup mariadbv1alpha1.PhysicalBackup
+	if err := a.client.Get(ctx, key, &physicalBackup); err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 func (a *Archiver) getBinaryLogs(ctx context.Context, sqlClient *sql.Client) ([]string, error) {
@@ -186,17 +221,18 @@ func (a *Archiver) patchStatus(ctx context.Context, mariadb *mariadbv1alpha1.Mar
 	return a.client.Status().Patch(ctx, mariadb, patch)
 }
 
-func getS3Client(pitr *mariadbv1alpha1.PointInTimeRecovery) (*minio.Client, error) {
+func (a *Archiver) getS3Client(pitr *mariadbv1alpha1.PointInTimeRecovery) (*mariadbminio.Client, error) {
 	s3 := pitr.Spec.S3
 	tls := ptr.Deref(s3.TLS, mariadbv1alpha1.TLSS3{})
 
-	clientOpts := []mariadbminio.MinioOpt{
+	minioOpts := []mariadbminio.MinioOpt{
 		mariadbminio.WithTLS(tls.Enabled),
 		// TODO: mount TLS certs
 		// mariadbminio.WithCACertPath(opts.CACertPath),
 		mariadbminio.WithRegion(s3.Region),
+		mariadbminio.WithPrefix(s3.Prefix),
 	}
-	client, err := mariadbminio.NewMinioClient(s3.Endpoint, clientOpts...)
+	client, err := mariadbminio.NewMinioClient(a.fileManager.GetStateDir(), s3.Bucket, s3.Endpoint, minioOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("error getting S3 client: %v", err)
 	}
