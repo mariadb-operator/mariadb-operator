@@ -619,10 +619,16 @@ type MariaDBSpec struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Galera *Galera `json:"galera,omitempty"`
 	// MaxScaleRef is a reference to a MaxScale resource to be used with the current MariaDB.
-	// Providing this field implies delegating high availability tasks such as primary failover to MaxScale.
+	// Providing this reference implies delegating high availability tasks such as primary failover to MaxScale.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	MaxScaleRef *ObjectReference `json:"maxScaleRef,omitempty"`
+	// PointtInTimeRecoveryRef is a reference to a PointInTimeRecovery resource to be used with the current MariaDB.
+	// Providing this reference implies configuring binary logs in the MariaDB instance
+	// and binary log archival in the sidecar agent.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	PointtInTimeRecoveryRef *LocalObjectReference `json:"pointInTimeRecoveryRef,omitempty"`
 	// MaxScale is the MaxScale specification that defines the MaxScale resource to be used with the current MariaDB.
 	// When enabling this field, MaxScaleRef is automatically set.
 	// +optional
@@ -704,6 +710,14 @@ type MariaDBTLSStatus struct {
 	ClientCert *CertificateStatus `json:"clientCert,omitempty"`
 }
 
+// PointInTimeRecoveryStatus is the status of the point-in-time-recovery process.
+type PointInTimeRecoveryStatus struct {
+	// LastArchivedBinaryLog is the last binary file that has been archived.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	LastArchivedBinaryLog *string `json:"lastArchivedBinaryLog,omitempty"`
+}
+
 // MariaDBStatus defines the observed state of MariaDB
 type MariaDBStatus struct {
 	// Conditions for the Mariadb object.
@@ -747,6 +761,10 @@ type MariaDBStatus struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	TLS *MariaDBTLSStatus `json:"tls,omitempty"`
+	// PointInTimeRecovery is the status of the point-in-time-recovery process.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	PointInTimeRecovery *PointInTimeRecoveryStatus `json:"pointInTimeRecovery,omitempty"`
 }
 
 // SetCondition sets a status condition to MariaDB

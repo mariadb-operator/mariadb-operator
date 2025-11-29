@@ -1,30 +1,30 @@
-package backup
+package minio
 
 import "testing"
 
-func TestS3PrefixedFile(t *testing.T) {
+func TestPrefixedFile(t *testing.T) {
 	tests := []struct {
-		name          string
-		backupStorage *S3BackupStorage
-		fileName      string
-		wantFileName  string
+		name         string
+		client       *Client
+		fileName     string
+		wantFileName string
 	}{
 		{
-			name:          "no prefix",
-			backupStorage: &S3BackupStorage{},
-			fileName:      "backup.2023-12-18T16:14:00Z.sql",
-			wantFileName:  "backup.2023-12-18T16:14:00Z.sql",
+			name:         "no prefix",
+			client:       &Client{},
+			fileName:     "backup.2023-12-18T16:14:00Z.sql",
+			wantFileName: "backup.2023-12-18T16:14:00Z.sql",
 		},
 		{
-			name:          "no prefix with file path",
-			backupStorage: &S3BackupStorage{},
-			fileName:      "backup/backup.2023-12-18T16:14:00Z.sql",
-			wantFileName:  "backup.2023-12-18T16:14:00Z.sql",
+			name:         "no prefix with file path",
+			client:       &Client{},
+			fileName:     "backup/backup.2023-12-18T16:14:00Z.sql",
+			wantFileName: "backup.2023-12-18T16:14:00Z.sql",
 		},
 		{
 			name: "prefix",
-			backupStorage: &S3BackupStorage{
-				S3BackupStorageOpts: S3BackupStorageOpts{
+			client: &Client{
+				MinioOpts: MinioOpts{
 					Prefix: "mariadb",
 				},
 			},
@@ -33,8 +33,8 @@ func TestS3PrefixedFile(t *testing.T) {
 		},
 		{
 			name: "prefix with file path",
-			backupStorage: &S3BackupStorage{
-				S3BackupStorageOpts: S3BackupStorageOpts{
+			client: &Client{
+				MinioOpts: MinioOpts{
 					Prefix: "mariadb",
 				},
 			},
@@ -43,8 +43,8 @@ func TestS3PrefixedFile(t *testing.T) {
 		},
 		{
 			name: "prefix with trailing slash",
-			backupStorage: &S3BackupStorage{
-				S3BackupStorageOpts: S3BackupStorageOpts{
+			client: &Client{
+				MinioOpts: MinioOpts{
 					Prefix: "mariadb/",
 				},
 			},
@@ -53,8 +53,8 @@ func TestS3PrefixedFile(t *testing.T) {
 		},
 		{
 			name: "prefix with trailing slash and file path",
-			backupStorage: &S3BackupStorage{
-				S3BackupStorageOpts: S3BackupStorageOpts{
+			client: &Client{
+				MinioOpts: MinioOpts{
 					Prefix: "mariadb/",
 				},
 			},
@@ -63,8 +63,8 @@ func TestS3PrefixedFile(t *testing.T) {
 		},
 		{
 			name: "nested prefix",
-			backupStorage: &S3BackupStorage{
-				S3BackupStorageOpts: S3BackupStorageOpts{
+			client: &Client{
+				MinioOpts: MinioOpts{
 					Prefix: "backups/production/mariadb",
 				},
 			},
@@ -73,8 +73,8 @@ func TestS3PrefixedFile(t *testing.T) {
 		},
 		{
 			name: "nested prefix with file path",
-			backupStorage: &S3BackupStorage{
-				S3BackupStorageOpts: S3BackupStorageOpts{
+			client: &Client{
+				MinioOpts: MinioOpts{
 					Prefix: "backups/production/mariadb",
 				},
 			},
@@ -83,8 +83,8 @@ func TestS3PrefixedFile(t *testing.T) {
 		},
 		{
 			name: "already prefixed",
-			backupStorage: &S3BackupStorage{
-				S3BackupStorageOpts: S3BackupStorageOpts{
+			client: &Client{
+				MinioOpts: MinioOpts{
 					Prefix: "mariadb",
 				},
 			},
@@ -95,37 +95,37 @@ func TestS3PrefixedFile(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			fileName := tt.backupStorage.prefixedFileName(tt.fileName)
+			fileName := tt.client.PrefixedFileName(tt.fileName)
 			if fileName != tt.wantFileName {
-				t.Errorf("unexpected S3 file name, got: \"%s\" want: \"%s\"", fileName, tt.wantFileName)
+				t.Errorf("unexpected S3 file name, got: %s want: %s", fileName, tt.wantFileName)
 			}
 		})
 	}
 }
 
-func TestS3UnprefixedFile(t *testing.T) {
+func TestUnprefixedFile(t *testing.T) {
 	tests := []struct {
-		name          string
-		backupStorage *S3BackupStorage
-		fileName      string
-		wantFileName  string
+		name         string
+		client       *Client
+		fileName     string
+		wantFileName string
 	}{
 		{
-			name:          "no prefix",
-			backupStorage: &S3BackupStorage{},
-			fileName:      "backup.2023-12-18T16:14:00Z.sql",
-			wantFileName:  "backup.2023-12-18T16:14:00Z.sql",
+			name:         "no prefix",
+			client:       &Client{},
+			fileName:     "backup.2023-12-18T16:14:00Z.sql",
+			wantFileName: "backup.2023-12-18T16:14:00Z.sql",
 		},
 		{
-			name:          "no prefix with file path",
-			backupStorage: &S3BackupStorage{},
-			fileName:      "backup/backup.2023-12-18T16:14:00Z.sql",
-			wantFileName:  "backup.2023-12-18T16:14:00Z.sql",
+			name:         "no prefix with file path",
+			client:       &Client{},
+			fileName:     "backup/backup.2023-12-18T16:14:00Z.sql",
+			wantFileName: "backup.2023-12-18T16:14:00Z.sql",
 		},
 		{
 			name: "prefix",
-			backupStorage: &S3BackupStorage{
-				S3BackupStorageOpts: S3BackupStorageOpts{
+			client: &Client{
+				MinioOpts: MinioOpts{
 					Prefix: "mariadb",
 				},
 			},
@@ -134,8 +134,8 @@ func TestS3UnprefixedFile(t *testing.T) {
 		},
 		{
 			name: "prefix with file path",
-			backupStorage: &S3BackupStorage{
-				S3BackupStorageOpts: S3BackupStorageOpts{
+			client: &Client{
+				MinioOpts: MinioOpts{
 					Prefix: "mariadb",
 				},
 			},
@@ -144,8 +144,8 @@ func TestS3UnprefixedFile(t *testing.T) {
 		},
 		{
 			name: "prefix with trailing slash",
-			backupStorage: &S3BackupStorage{
-				S3BackupStorageOpts: S3BackupStorageOpts{
+			client: &Client{
+				MinioOpts: MinioOpts{
 					Prefix: "mariadb/",
 				},
 			},
@@ -154,8 +154,8 @@ func TestS3UnprefixedFile(t *testing.T) {
 		},
 		{
 			name: "nested prefix",
-			backupStorage: &S3BackupStorage{
-				S3BackupStorageOpts: S3BackupStorageOpts{
+			client: &Client{
+				MinioOpts: MinioOpts{
 					Prefix: "backups/production/mariadb",
 				},
 			},
@@ -164,8 +164,8 @@ func TestS3UnprefixedFile(t *testing.T) {
 		},
 		{
 			name: "already unprefixed",
-			backupStorage: &S3BackupStorage{
-				S3BackupStorageOpts: S3BackupStorageOpts{
+			client: &Client{
+				MinioOpts: MinioOpts{
 					Prefix: "mariadb",
 				},
 			},
@@ -176,29 +176,29 @@ func TestS3UnprefixedFile(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			fileName := tt.backupStorage.unprefixedFilename(tt.fileName)
+			fileName := tt.client.UnprefixedFilename(tt.fileName)
 			if fileName != tt.wantFileName {
-				t.Errorf("unexpected S3 file name, got: \"%s\" want: \"%s\"", fileName, tt.wantFileName)
+				t.Errorf("unexpected S3 file name, got: %s want: %s", fileName, tt.wantFileName)
 			}
 		})
 	}
 }
 
-func TestS3Prefix(t *testing.T) {
+func TestPrefix(t *testing.T) {
 	tests := []struct {
-		name          string
-		backupStorage *S3BackupStorage
-		wantPrefix    string
+		name       string
+		client     *Client
+		wantPrefix string
 	}{
 		{
-			name:          "no prefix",
-			backupStorage: &S3BackupStorage{},
-			wantPrefix:    "",
+			name:       "no prefix",
+			client:     &Client{},
+			wantPrefix: "",
 		},
 		{
 			name: "root",
-			backupStorage: &S3BackupStorage{
-				S3BackupStorageOpts: S3BackupStorageOpts{
+			client: &Client{
+				MinioOpts: MinioOpts{
 					Prefix: "/",
 				},
 			},
@@ -206,8 +206,8 @@ func TestS3Prefix(t *testing.T) {
 		},
 		{
 			name: "no trailing slash",
-			backupStorage: &S3BackupStorage{
-				S3BackupStorageOpts: S3BackupStorageOpts{
+			client: &Client{
+				MinioOpts: MinioOpts{
 					Prefix: "mariadb",
 				},
 			},
@@ -215,8 +215,8 @@ func TestS3Prefix(t *testing.T) {
 		},
 		{
 			name: "trailing slash",
-			backupStorage: &S3BackupStorage{
-				S3BackupStorageOpts: S3BackupStorageOpts{
+			client: &Client{
+				MinioOpts: MinioOpts{
 					Prefix: "mariadb/",
 				},
 			},
@@ -224,8 +224,8 @@ func TestS3Prefix(t *testing.T) {
 		},
 		{
 			name: "nested without trailing slash",
-			backupStorage: &S3BackupStorage{
-				S3BackupStorageOpts: S3BackupStorageOpts{
+			client: &Client{
+				MinioOpts: MinioOpts{
 					Prefix: "backups/production/mariadb",
 				},
 			},
@@ -233,8 +233,8 @@ func TestS3Prefix(t *testing.T) {
 		},
 		{
 			name: "nested with trailing slash",
-			backupStorage: &S3BackupStorage{
-				S3BackupStorageOpts: S3BackupStorageOpts{
+			client: &Client{
+				MinioOpts: MinioOpts{
 					Prefix: "backups/production/mariadb/",
 				},
 			},
@@ -244,9 +244,9 @@ func TestS3Prefix(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			prefix := tt.backupStorage.getPrefix()
+			prefix := tt.client.GetPrefix()
 			if prefix != tt.wantPrefix {
-				t.Errorf("unexpected S3 prefix, got: \"%s\" want: \"%s\"", prefix, tt.wantPrefix)
+				t.Errorf("unexpected S3 prefix, got: %s want: %s", prefix, tt.wantPrefix)
 			}
 		})
 	}

@@ -12,6 +12,7 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/backup"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/log"
+	mdbminio "github.com/mariadb-operator/mariadb-operator/v25/pkg/minio"
 	"github.com/spf13/cobra"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
@@ -181,10 +182,10 @@ func getBackupStorage(processor backup.BackupProcessor) (backup.BackupStorage, e
 			s3Endpoint,
 			processor,
 			logger.WithName("s3-storage"),
-			backup.WithTLS(s3TLS),
-			backup.WithCACertPath(s3CACertPath),
-			backup.WithRegion(s3Region),
-			backup.WithPrefix(s3Prefix),
+			mdbminio.WithTLS(s3TLS),
+			mdbminio.WithCACertPath(s3CACertPath),
+			mdbminio.WithRegion(s3Region),
+			mdbminio.WithPrefix(s3Prefix),
 		)
 	}
 	logger.Info("configuring filesystem backup storage")
