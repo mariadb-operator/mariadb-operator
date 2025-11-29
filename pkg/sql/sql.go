@@ -165,33 +165,35 @@ func NewClientWithMariaDB(ctx context.Context, mariadb interfaces.MariaDBObject,
 		}
 		opts = append(opts, WithMariadbTLS(mariadb.GetName(), mariadb.GetNamespace(), []byte(caCert)))
 
-		clientSecretKey := types.NamespacedName{
-			Name:      mariadb.TLSClientCertSecretKey().Name,
-			Namespace: mariadb.GetNamespace(),
-		}
-		clientCertSelector := mariadbv1alpha1.SecretKeySelector{
-			LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
-				Name: clientSecretKey.Name,
-			},
-			Key: pki.TLSCertKey,
-		}
-		clientCert, err := refResolver.SecretKeyRef(ctx, clientCertSelector, clientSecretKey.Namespace)
-		if err != nil {
-			return nil, fmt.Errorf("error getting client certificate: %v", err)
-		}
+		if mariadb.IsTLSMutual() {
+			clientSecretKey := types.NamespacedName{
+				Name:      mariadb.TLSClientCertSecretKey().Name,
+				Namespace: mariadb.GetNamespace(),
+			}
+			clientCertSelector := mariadbv1alpha1.SecretKeySelector{
+				LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+					Name: clientSecretKey.Name,
+				},
+				Key: pki.TLSCertKey,
+			}
+			clientCert, err := refResolver.SecretKeyRef(ctx, clientCertSelector, clientSecretKey.Namespace)
+			if err != nil {
+				return nil, fmt.Errorf("error getting client certificate: %v", err)
+			}
 
-		clientPrivateKeySelector := mariadbv1alpha1.SecretKeySelector{
-			LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
-				Name: clientSecretKey.Name,
-			},
-			Key: pki.TLSKeyKey,
-		}
-		clientPrivateKey, err := refResolver.SecretKeyRef(ctx, clientPrivateKeySelector, clientSecretKey.Namespace)
-		if err != nil {
-			return nil, fmt.Errorf("error getting client private key: %v", err)
-		}
+			clientPrivateKeySelector := mariadbv1alpha1.SecretKeySelector{
+				LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+					Name: clientSecretKey.Name,
+				},
+				Key: pki.TLSKeyKey,
+			}
+			clientPrivateKey, err := refResolver.SecretKeyRef(ctx, clientPrivateKeySelector, clientSecretKey.Namespace)
+			if err != nil {
+				return nil, fmt.Errorf("error getting client private key: %v", err)
+			}
 
-		opts = append(opts, WithTLSClientCert(clientCertSelector.Name, []byte(clientCert), []byte(clientPrivateKey)))
+			opts = append(opts, WithTLSClientCert(clientCertSelector.Name, []byte(clientCert), []byte(clientPrivateKey)))
+		}
 	}
 
 	opts = append(opts, clientOpts...)
