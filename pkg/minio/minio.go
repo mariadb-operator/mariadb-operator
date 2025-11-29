@@ -1,11 +1,14 @@
 package minio
 
 import (
+	"context"
 	"crypto/x509"
 	"errors"
 	"fmt"
 	"net/http"
 	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
@@ -15,6 +18,7 @@ type MinioOpts struct {
 	TLS        bool
 	CACertPath string
 	Region     string
+	Prefix     string
 }
 
 type MinioOpt func(m *MinioOpts)
@@ -37,7 +41,20 @@ func WithRegion(region string) MinioOpt {
 	}
 }
 
-func NewMinioClient(endpoint string, mOpts ...MinioOpt) (*minio.Client, error) {
+func WithPrefix(prefix string) MinioOpt {
+	return func(m *MinioOpts) {
+		m.Prefix = prefix
+	}
+}
+
+type Client struct {
+	*minio.Client
+	MinioOpts
+	basePath string
+	bucket   string
+}
+
+func NewMinioClient(basePath, bucket, endpoint string, mOpts ...MinioOpt) (*Client, error) {
 	opts := MinioOpts{}
 	for _, setOpt := range mOpts {
 		setOpt(&opts)
@@ -51,7 +68,55 @@ func NewMinioClient(endpoint string, mOpts ...MinioOpt) (*minio.Client, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error creating Minio client: %v", err)
 	}
-	return client, nil
+	return &Client{
+		Client:    client,
+		MinioOpts: opts,
+		basePath:  basePath,
+		bucket:    bucket,
+	}, nil
+}
+
+func (c *Client) PrefixedFPutObject(ctx context.Context, fileName string) error {
+	prefixedFilePath := c.PrefixedFileName(fileName)
+	filePath := c.getFilePath(fileName)
+	_, err := c.FPutObject(ctx, c.bucket, prefixedFilePath, filePath, minio.PutObjectOptions{})
+	return err
+}
+
+func (c *Client) PrefixedFGetObject(ctx context.Context, fileName string) error {
+	prefixedFilePath := c.PrefixedFileName(fileName)
+	filePath := c.getFilePath(fileName)
+	return c.FGetObject(ctx, c.bucket, prefixedFilePath, filePath, minio.GetObjectOptions{})
+}
+
+func (c *Client) PrefixedDelete(ctx context.Context, fileName string) error {
+	prefixedFilePath := c.PrefixedFileName(fileName)
+	return c.RemoveObject(ctx, c.bucket, prefixedFilePath, minio.RemoveObjectOptions{})
+}
+
+func (c *Client) PrefixedFileName(fileName string) string {
+	return c.GetPrefix() + filepath.Base(fileName)
+}
+
+func (c *Client) UnprefixedFilename(fileName string) string {
+	return strings.TrimPrefix(filepath.Base(fileName), c.GetPrefix())
+}
+
+func (c *Client) GetPrefix() string {
+	if c.Prefix == "" || c.Prefix == "/" {
+		return "" // object store doesn't use slash for root path
+	}
+	if !strings.HasSuffix(c.Prefix, "/") {
+		return c.Prefix + "/" // ending slash is required for avoiding matching like "foo/" and "foobar/" with prefix "foo"
+	}
+	return c.Prefix
+}
+
+func (c *Client) getFilePath(fileName string) string {
+	if filepath.IsAbs(fileName) {
+		return fileName
+	}
+	return filepath.Join(c.basePath, fileName)
 }
 
 func getMinioOptions(opts MinioOpts) (*minio.Options, error) {
