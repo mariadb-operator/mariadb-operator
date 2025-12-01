@@ -95,7 +95,7 @@ kind: Secret
 metadata:
   name: ssec-key
 type: Opaque
-data:
+stringData:
   # 32-byte key encoded in base64 (use: openssl rand -base64 32)
   customer-key: YWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXoxMjM0NTY=
 ```
