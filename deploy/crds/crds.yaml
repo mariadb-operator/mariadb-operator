@@ -5459,8 +5459,8 @@ spec:
                 type: object
               pointInTimeRecoveryRef:
                 description: |-
-                  PointtInTimeRecoveryRef is a reference to a PointInTimeRecovery resource to be used with the current MariaDB.
-                  Providing this reference implies configuring binary log archival in the sidecar agent.
+                  PointInTimeRecoveryRef is a reference to a PointInTimeRecovery resource to be used with the current MariaDB.
+                  Providing this reference implies configuring binary logs in the MariaDB instance and binary log archival in the sidecar agent.
                 properties:
                   name:
                     default: ""
@@ -8120,6 +8120,15 @@ spec:
                     description: State is a per Pod representation of the Galera state
                       file (grastate.dat).
                     type: object
+                type: object
+              pointInTimeRecovery:
+                description: PointInTimeRecovery is the status of the point-in-time-recovery
+                  process.
+                properties:
+                  lastArchivedBinaryLog:
+                    description: LastArchivedBinaryLog is the last binary file that
+                      has been archived.
+                    type: string
                 type: object
               replicas:
                 description: Replicas indicates the number of current instances.

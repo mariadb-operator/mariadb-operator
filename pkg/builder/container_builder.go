@@ -121,7 +121,7 @@ func (b *Builder) mariadbContainers(mariadb *mariadbv1alpha1.MariaDB, opts ...ma
 	containers = append(containers, *mariadbContainer)
 
 	if mariadb.IsHAEnabled() && mariadbOpts.includeDataPlane {
-		agentContainer, err := b.dataPlaneAgentContainer(mariadb)
+		agentContainer, err := b.dataPlaneAgentContainer(mariadb, opts...)
 		if err != nil {
 			return nil, err
 		}
@@ -186,7 +186,8 @@ func (b *Builder) maxscaleContainers(mxs *mariadbv1alpha1.MaxScale) ([]corev1.Co
 	return []corev1.Container{*container}, nil
 }
 
-func (b *Builder) dataPlaneAgentContainer(mariadb *mariadbv1alpha1.MariaDB) (*corev1.Container, error) {
+func (b *Builder) dataPlaneAgentContainer(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt) (*corev1.Container, error) {
+	mariadbOpts := newMariadbPodOpts(opts...)
 	topology, agent, err := mariadb.GetDataPlaneAgent()
 	if err != nil {
 		return nil, err
@@ -199,6 +200,9 @@ func (b *Builder) dataPlaneAgentContainer(mariadb *mariadbv1alpha1.MariaDB) (*co
 	env, err := mariadbEnv(mariadb)
 	if err != nil {
 		return nil, err
+	}
+	if mariadbOpts.pointInTimeRecovery != nil {
+		env = append(env, s3Env(&mariadbOpts.pointInTimeRecovery.Spec.S3)...)
 	}
 	volumeMounts, err := mariadbVolumeMounts(mariadb)
 	if err != nil {
@@ -247,7 +251,7 @@ func (b *Builder) dataPlaneAgentContainer(mariadb *mariadbv1alpha1.MariaDB) (*co
 			}...)
 		}
 
-		if mariadb.Spec.PointtInTimeRecoveryRef != nil {
+		if mariadbOpts.pointInTimeRecovery != nil {
 			args = append(args, []string{
 				"--binary-log-archival",
 			}...)
@@ -649,6 +653,10 @@ func mariadbVolumeMounts(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt
 	if mariadb.IsTLSEnabled() {
 		_, tlsVolumeMounts := mariadbTLSVolumes(mariadb)
 		volumeMounts = append(volumeMounts, tlsVolumeMounts...)
+	}
+	if mariadbOpts.pointInTimeRecovery != nil {
+		_, s3VolumeMounts := s3Volumes(&mariadbOpts.pointInTimeRecovery.Spec.S3)
+		volumeMounts = append(volumeMounts, s3VolumeMounts...)
 	}
 
 	volumeMounts = append(volumeMounts, mariadbStorageVolumeMount(mariadb))

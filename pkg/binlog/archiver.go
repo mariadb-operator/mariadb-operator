@@ -50,16 +50,17 @@ func (a *Archiver) Start(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	s3Client, err := a.getS3Client(&pitr.Spec.S3, a.env)
+	if err != nil {
+		return err
+	}
+
 	sqlClient, err := sql.NewLocalClientWithPodEnv(ctx, a.env)
 	if err != nil {
 		return fmt.Errorf("error getting SQL client: %v", err)
 	}
 	defer sqlClient.Close()
-	// TODO: mount TLS certs and credentials
-	s3Client, err := a.getS3Client(pitr)
-	if err != nil {
-		return err
-	}
+
 	uploader := NewUploader(
 		a.fileManager,
 		s3Client,
@@ -96,11 +97,11 @@ func (a *Archiver) getMariaDB(ctx context.Context) (*mariadbv1alpha1.MariaDB, er
 }
 
 func (a *Archiver) getPointInTimeRecovery(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) (*mariadbv1alpha1.PointInTimeRecovery, error) {
-	if mdb.Spec.PointtInTimeRecoveryRef == nil {
+	if mdb.Spec.PointInTimeRecoveryRef == nil {
 		return nil, errors.New("'spec.pointInTimeRecoveryRef' must be set in MariaDB object")
 	}
 	key := types.NamespacedName{
-		Name:      mdb.Spec.PointtInTimeRecoveryRef.Name,
+		Name:      mdb.Spec.PointInTimeRecoveryRef.Name,
 		Namespace: a.env.PodNamespace,
 	}
 	var pitr mariadbv1alpha1.PointInTimeRecovery
@@ -221,17 +222,17 @@ func (a *Archiver) patchStatus(ctx context.Context, mariadb *mariadbv1alpha1.Mar
 	return a.client.Status().Patch(ctx, mariadb, patch)
 }
 
-func (a *Archiver) getS3Client(pitr *mariadbv1alpha1.PointInTimeRecovery) (*mariadbminio.Client, error) {
-	s3 := pitr.Spec.S3
+func (a *Archiver) getS3Client(s3 *mariadbv1alpha1.S3, env *environment.PodEnvironment) (*mariadbminio.Client, error) {
 	tls := ptr.Deref(s3.TLS, mariadbv1alpha1.TLSS3{})
-
 	minioOpts := []mariadbminio.MinioOpt{
 		mariadbminio.WithTLS(tls.Enabled),
-		// TODO: mount TLS certs
-		// mariadbminio.WithCACertPath(opts.CACertPath),
 		mariadbminio.WithRegion(s3.Region),
 		mariadbminio.WithPrefix(s3.Prefix),
 	}
+	if env.MariadbOperatorS3CAPath != "" {
+		minioOpts = append(minioOpts, mariadbminio.WithCACertPath(env.MariadbOperatorS3CAPath))
+	}
+
 	client, err := mariadbminio.NewMinioClient(a.fileManager.GetStateDir(), s3.Bucket, s3.Endpoint, minioOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("error getting S3 client: %v", err)

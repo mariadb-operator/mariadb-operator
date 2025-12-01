@@ -286,7 +286,15 @@ func (r *MariaDBReconciler) upscaleStatefulSet(ctx context.Context, mariadb *mar
 		if err != nil {
 			return fmt.Errorf("error getting Pod annotations: %v", err)
 		}
-		desiredSts, err := r.Builder.BuildMariadbStatefulSet(mariadb, key, updateAnnotations)
+		var pitr *mariadbv1alpha1.PointInTimeRecovery
+		if mariadb.Spec.PointInTimeRecoveryRef != nil {
+			pitr, err = r.RefResolver.PointInTimeRecovery(ctx, mariadb.Spec.PointInTimeRecoveryRef, mariadb.Namespace)
+			if err != nil {
+				return fmt.Errorf("error getting PointInTimeRecovery: %v", err)
+			}
+		}
+
+		desiredSts, err := r.Builder.BuildMariadbStatefulSet(mariadb, key, updateAnnotations, pitr)
 		if err != nil {
 			return fmt.Errorf("error building StatefulSet: %v", err)
 		}

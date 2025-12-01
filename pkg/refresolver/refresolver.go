@@ -153,6 +153,19 @@ func (r *RefResolver) PhysicalBackupBackup(ctx context.Context, ref *mariadbv1al
 	return &backup, nil
 }
 
+func (r *RefResolver) PointInTimeRecovery(ctx context.Context, ref *mariadbv1alpha1.LocalObjectReference,
+	namespace string) (*mariadbv1alpha1.PointInTimeRecovery, error) {
+	nn := types.NamespacedName{
+		Name:      ref.Name,
+		Namespace: namespace,
+	}
+	var pitr mariadbv1alpha1.PointInTimeRecovery
+	if err := r.client.Get(ctx, nn, &pitr); err != nil {
+		return nil, err
+	}
+	return &pitr, nil
+}
+
 func (r *RefResolver) SqlJob(ctx context.Context, ref *mariadbv1alpha1.LocalObjectReference,
 	namespace string) (*mariadbv1alpha1.SqlJob, error) {
 	nn := types.NamespacedName{

@@ -24,6 +24,7 @@ type mariadbPodOpts struct {
 	resources                    *corev1.ResourceRequirements
 	affinity                     *corev1.Affinity
 	nodeSelector                 map[string]string
+	pointInTimeRecovery          *mariadbv1alpha1.PointInTimeRecovery
 	extraVolumes                 []corev1.Volume
 	extraVolumeMounts            []corev1.VolumeMount
 	includeMariadbResources      bool
@@ -106,6 +107,12 @@ func withAffinityEnabled(includeAffinity bool) mariadbPodOpt {
 func withNodeSelector(nodeSelector map[string]string) mariadbPodOpt {
 	return func(opts *mariadbPodOpts) {
 		opts.nodeSelector = nodeSelector
+	}
+}
+
+func withPointInTimeRecovery(pointInTimeRecovery *mariadbv1alpha1.PointInTimeRecovery) mariadbPodOpt {
+	return func(opts *mariadbPodOpts) {
+		opts.pointInTimeRecovery = pointInTimeRecovery
 	}
 }
 
@@ -329,6 +336,10 @@ func mariadbVolumes(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt) ([]
 	if mariadb.IsTLSEnabled() {
 		tlsVolumes, _ := mariadbTLSVolumes(mariadb)
 		volumes = append(volumes, tlsVolumes...)
+	}
+	if mariadbOpts.pointInTimeRecovery != nil {
+		s3Volumes, _ := s3Volumes(&mariadbOpts.pointInTimeRecovery.Spec.S3)
+		volumes = append(volumes, s3Volumes...)
 	}
 	if mariadb.IsReplicationEnabled() {
 		volumes = append(volumes, corev1.Volume{
