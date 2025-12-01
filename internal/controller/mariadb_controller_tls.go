@@ -7,7 +7,6 @@ import (
 	"fmt"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
-	labels "github.com/mariadb-operator/mariadb-operator/v25/pkg/builder/labels"
 	builderpki "github.com/mariadb-operator/mariadb-operator/v25/pkg/builder/pki"
 	condition "github.com/mariadb-operator/mariadb-operator/v25/pkg/condition"
 	certctrl "github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/certificate"
@@ -16,12 +15,10 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/hash"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/metadata"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/pki"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/pod"
+	mdbpod "github.com/mariadb-operator/mariadb-operator/v25/pkg/pod"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/refresolver"
-	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	klabels "k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -372,24 +369,16 @@ func (h *certHandler) ensureAllPodsTrustingCABundle(ctx context.Context, mdb *ma
 	caBundleHash string) (bool, error) {
 	logger := log.FromContext(ctx).WithName("pod-ca").WithValues("ca-hash", caBundleHash)
 
-	list := corev1.PodList{}
-	listOpts := &client.ListOptions{
-		LabelSelector: klabels.SelectorFromSet(
-			labels.NewLabelsBuilder().
-				WithMariaDBSelectorLabels(mdb).
-				Build(),
-		),
-		Namespace: mdb.GetNamespace(),
-	}
-	if err := h.List(ctx, &list, listOpts); err != nil {
+	pods, err := mdbpod.ListMariaDBPods(ctx, h.Client, mdb)
+	if err != nil {
 		return false, fmt.Errorf("error listing Pods: %v", err)
 	}
-	if len(list.Items) != int(mdb.Spec.Replicas) {
+	if len(pods) != int(mdb.Spec.Replicas) {
 		return false, errors.New("some Pods are missing")
 	}
 
-	for _, p := range list.Items {
-		if !pod.PodReady(&p) {
+	for _, p := range pods {
+		if !mdbpod.PodReady(&p) {
 			logger.V(1).Info("Pod not ready", "pod", p.Name)
 			return false, nil
 		}

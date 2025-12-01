@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/gruntwork-io/terratest/modules/helm"
+	"github.com/gruntwork-io/terratest/modules/k8s"
 	"github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
 	. "github.com/onsi/gomega"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -17,6 +18,10 @@ var (
 	clusterHelmChartPath   = "../../deploy/charts/mariadb-cluster"
 	clusterHelmNamespace   = "default"
 )
+
+var kubectlopts = &k8s.KubectlOptions{
+	Namespace: "default",
+}
 
 func TestClusterHelmMariaDB(t *testing.T) {
 	RegisterTestingT(t)
@@ -35,12 +40,15 @@ func TestClusterHelmMariaDB(t *testing.T) {
 			"mariadb.rootPasswordSecretKeyRef.key":  rootPasswordSecretKeyRefKey,
 			"mariadb.rootPasswordSecretKeyRef.name": rootPasswordSecretKeyRefName,
 		},
+		KubectlOptions: kubectlopts,
 	}
 
 	renderedData := helm.RenderTemplate(t, opts, clusterHelmChartPath, clusterHelmReleaseName, []string{"templates/mariadb.yaml"})
 	var mariadb v1alpha1.MariaDB
 	helm.UnmarshalK8SYaml(t, renderedData, &mariadb)
 
+	Expect(mariadb.Name).To(Equal(clusterHelmReleaseName))
+	Expect(mariadb.Namespace).To(Equal(kubectlopts.Namespace))
 	Expect(mariadb.Spec.Galera.Enabled).To(BeTrue())
 	Expect(mariadb.Spec.Metrics.Enabled).To(BeTrue())
 	Expect(mariadb.Spec.Replicas).To(Equal(int32(replicas)))
@@ -77,6 +85,7 @@ func TestClusterHelmDatabase(t *testing.T) {
 			"databases[0].mariaDBRef.name":      "cluster",
 			"databases[0].mariaDBRef.namespace": "namespace",
 		},
+		KubectlOptions: kubectlopts,
 	}
 
 	renderedData := helm.RenderTemplate(t, opts, clusterHelmChartPath, clusterHelmReleaseName, []string{"templates/database.yaml"})
@@ -131,6 +140,7 @@ func TestClusterHelmUser(t *testing.T) {
 			"users[0].mariaDBRef.name":           "cluster",
 			"users[0].mariaDBRef.namespace":      "namespace",
 		},
+		KubectlOptions: kubectlopts,
 	}
 
 	renderedData := helm.RenderTemplate(t, opts, clusterHelmChartPath, clusterHelmReleaseName, []string{"templates/user.yaml"})
@@ -192,6 +202,7 @@ func TestClusterHelmGrant(t *testing.T) {
 			"grants[0].mariaDBRef.name":      "cluster",
 			"grants[0].mariaDBRef.namespace": "namespace",
 		},
+		KubectlOptions: kubectlopts,
 	}
 
 	renderedData := helm.RenderTemplate(t, opts, clusterHelmChartPath, clusterHelmReleaseName, []string{"templates/grant.yaml"})
@@ -256,6 +267,7 @@ func TestClusterHelmBackup(t *testing.T) {
 			"backups[0].mariaDBRef.name":                             "cluster",
 			"backups[0].mariaDBRef.namespace":                        "namespace",
 		},
+		KubectlOptions: kubectlopts,
 	}
 
 	renderedData := helm.RenderTemplate(t, opts, clusterHelmChartPath, clusterHelmReleaseName, []string{"templates/backup.yaml"})
@@ -330,6 +342,7 @@ func TestClusterHelmPhysicalBackup(t *testing.T) {
 			"physicalBackups[0].mariaDBRef.name":                             "cluster",
 			"physicalBackups[0].mariaDBRef.namespace":                        "namespace",
 		},
+		KubectlOptions: kubectlopts,
 	}
 
 	renderedData := helm.RenderTemplate(t, opts, clusterHelmChartPath, clusterHelmReleaseName, []string{"templates/physicalbackup.yaml"})

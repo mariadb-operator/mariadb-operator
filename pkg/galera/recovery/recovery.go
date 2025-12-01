@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/go-logr/logr"
 	guuid "github.com/google/uuid"
 )
 
@@ -169,7 +170,7 @@ func (b *Bootstrap) Validate() error {
 	return nil
 }
 
-func (b *Bootstrap) Unmarshal(text []byte) error {
+func (b *Bootstrap) Unmarshal(text []byte, logger logr.Logger) error {
 	fileScanner := bufio.NewScanner(bytes.NewReader(text))
 	fileScanner.Split(bufio.ScanLines)
 
@@ -190,7 +191,7 @@ func (b *Bootstrap) Unmarshal(text []byte) error {
 		if _, err := guuid.Parse(currentUUID); err != nil {
 			return fmt.Errorf("error parsing uuid: %v", err)
 		}
-		currentSeqno, err := strconv.Atoi(strings.TrimSpace(parts[1]))
+		currentSeqno, err := parseSeqno(strings.TrimSpace(parts[1]), logger)
 		if err != nil {
 			return fmt.Errorf("error parsing seqno: %v", err)
 		}
@@ -221,4 +222,26 @@ func parseBool(s string) (bool, error) {
 		return false, fmt.Errorf("invalid integer bool: %d", i)
 	}
 	return i == 1, nil
+}
+
+func parseSeqno(rawSeqno string, logger logr.Logger) (int, error) {
+	if !strings.Contains(rawSeqno, ",") {
+		return strconv.Atoi(rawSeqno)
+	}
+	parts := strings.Split(rawSeqno, ",")
+
+	for _, part := range parts {
+		rawSeqno = strings.TrimSpace(part)
+		if part == "" {
+			logger.V(1).Info("Ignoring empty seqno")
+			continue
+		}
+		seqno, err := strconv.Atoi(rawSeqno)
+		if err != nil {
+			logger.V(1).Info("Unable to parse seqno. Skipping...", "err", err)
+			continue
+		}
+		return seqno, nil
+	}
+	return 0, fmt.Errorf("unable to parse seqno: %s", rawSeqno)
 }

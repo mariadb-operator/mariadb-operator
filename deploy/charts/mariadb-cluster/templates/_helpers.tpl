@@ -51,6 +51,13 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{/*
+Determine target namespace
+*/}}
+{{- define "mariadb-cluster.namespace" -}}
+{{- default .Release.Namespace .Values.namespaceOverride }}
+{{- end }}
+
+{{/*
 Render an object as YAML omitting specified keys and indent it.
 Usage:
   {{ include "mariadb-cluster.omitKeys" (dict "object" . "keys" (list "name" "mariaDbRef") "nindent" 2) }}

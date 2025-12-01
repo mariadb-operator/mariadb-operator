@@ -4,9 +4,6 @@ var (
 	GaleraConfigVolume    = "galera"
 	GaleraConfigMountPath = "/etc/mysql/mariadb.conf.d"
 
-	AgentAuthVolume      = "agent-auth"
-	AgentAuthVolumeMount = "/var/run/secrets/mariadb-operator/agent"
-
 	MysqlAppProtocol = "mysql"
 
 	GaleraSSTPortName     = "sst"
@@ -15,6 +12,4 @@ var (
 	GaleraClusterPort     = int32(4567)
 	GaleraISTPortName     = "ist"
 	GaleraISTPort         = int32(4568)
-	AgentPortName         = "agent"
-	AgentProbePortName    = "agent-probe"
 )

@@ -1,0 +1,63 @@
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-repl
+spec:
+  rootPasswordSecretKeyRef:
+    name: mariadb
+    key: root-password
+
+  storage:
+    size: 1Gi
+
+  replicas: 3
+
+  replication:
+    enabled: true
+
+  bootstrapFrom:
+    s3:
+      bucket: physicalbackups
+      prefix: mariadb
+      endpoint: minio.minio.svc.cluster.local:9000
+      accessKeyIdSecretKeyRef:
+        name: minio
+        key: access-key-id
+      secretAccessKeySecretKeyRef:
+        name: minio
+        key: secret-access-key
+      tls:
+        enabled: true
+        caSecretKeyRef:
+          name: minio-ca
+          key: ca.crt
+    backupContentType: Physical
+    targetRecoveryTime: 2025-06-17T08:07:00Z
+    stagingStorage:
+      persistentVolumeClaim:
+        resources:
+          requests:
+            storage: 1Gi
+        accessModes:
+          - ReadWriteOnce
+
+  service:
+    type: LoadBalancer
+    metadata:
+      annotations:
+        metallb.universe.tf/loadBalancerIPs: 172.18.0.120
+
+  primaryService:
+    type: LoadBalancer
+    metadata:
+      annotations:
+        metallb.universe.tf/loadBalancerIPs: 172.18.0.130
+
+  secondaryService:
+    type: LoadBalancer
+    metadata:
+      annotations:
+        metallb.universe.tf/loadBalancerIPs: 172.18.0.131
+
+  metrics:
+    enabled: true

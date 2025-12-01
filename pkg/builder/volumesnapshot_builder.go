@@ -11,7 +11,7 @@ import (
 )
 
 func (b *Builder) BuildVolumeSnapshot(key types.NamespacedName, backup *mariadbv1alpha1.PhysicalBackup,
-	pvcKey types.NamespacedName) (*volumesnapshotv1.VolumeSnapshot, error) {
+	pvcKey types.NamespacedName, meta *mariadbv1alpha1.Metadata) (*volumesnapshotv1.VolumeSnapshot, error) {
 	if backup.Spec.Storage.VolumeSnapshot == nil {
 		return nil, fmt.Errorf("VolumeSnapshot must be set as storage")
 	}
@@ -25,6 +25,7 @@ func (b *Builder) BuildVolumeSnapshot(key types.NamespacedName, backup *mariadbv
 					WithPhysicalBackupSelectorLabels(backup).
 					Build(),
 			).
+			WithMetadata(meta).
 			Build()
 
 	return &volumesnapshotv1.VolumeSnapshot{

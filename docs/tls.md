@@ -627,9 +627,9 @@ See [MariaDB docs](https://mariadb.com/kb/en/securing-connections-for-client-and
 
 ## Secure application connections with TLS
 
-In this guide, we will configure TLS for an application running in the `app` namespace to connect with `MariaDB` and `MaxScale` instances deployed in the `default` namespace. We assume that the following resources are already present in the `default` namespace:  
-- [`MariaDB` Galera](../examples/manifests/mariadb_galera_tls.yaml)  
-- [`MaxScale` Galera](../examples/manifests/maxscale_galera_tls.yaml)  
+In this guide, we will configure TLS for an application running in the `app` namespace to connect with `MariaDB` and `MaxScale` instances deployed in the `default` namespace. We assume that the following resources are already present in the `default` namespace with TLS enabled.
+- [`MariaDB` Galera](../examples/manifests/mariadb_galera.yaml)  
+- [`MaxScale` Galera](../examples/manifests/maxscale_galera.yaml)  
 
 The first step is to create a `User` resource and grant the necessary permissions:
 
@@ -930,7 +930,7 @@ spec:
 
 Leaf certificates issued by [intermediate CAs](#intermediate-cas) are not supported by Galera, see [MDEV-35812](https://jira.mariadb.org/browse/MDEV-35812). This implies that a root CA must be used to issue the `MariaDB` certificates.
 
-This doesn't affect `MaxScale`, as it is able to establish trust with intermediate CAs, and therefore you can still issue your application facing certificates (MaxScale listeners) with an intermediate CA, giving you more flexibility in your PKI setup. You can find a practical [example here](./../examples/manifests/maxscale_galera_tls_cert_manager_intermediate_ca.yaml).
+This doesn't affect `MaxScale`, as it is able to establish trust with intermediate CAs, and therefore you can still issue your application facing certificates (MaxScale listeners) with an intermediate CA, giving you more flexibility in your PKI setup.
 
 
 ### MaxScale

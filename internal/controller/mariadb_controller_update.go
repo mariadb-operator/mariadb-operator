@@ -10,18 +10,17 @@ import (
 
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
-	labels "github.com/mariadb-operator/mariadb-operator/v25/pkg/builder/labels"
 	builderpki "github.com/mariadb-operator/mariadb-operator/v25/pkg/builder/pki"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/replication"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/environment"
 	galeraconfig "github.com/mariadb-operator/mariadb-operator/v25/pkg/galera/config"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/hash"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/health"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/metadata"
-	podpkg "github.com/mariadb-operator/mariadb-operator/v25/pkg/pod"
+	mdbpod "github.com/mariadb-operator/mariadb-operator/v25/pkg/pod"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/statefulset"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/wait"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	klabels "k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -30,7 +29,8 @@ import (
 )
 
 func shouldReconcileUpdates(mdb *mariadbv1alpha1.MariaDB) bool {
-	if mdb.IsRestoringBackup() || mdb.IsResizingStorage() || mdb.IsSwitchingPrimary() || mdb.HasGaleraNotReadyCondition() {
+	if mdb.IsRestoringBackup() || mdb.IsResizingStorage() || mdb.IsSwitchingPrimary() ||
+		mdb.HasGaleraNotReadyCondition() || mdb.IsRecoveringReplicas() {
 		return false
 	}
 	return mdb.Spec.UpdateStrategy.Type == mariadbv1alpha1.ReplicasFirstPrimaryLastUpdateType
@@ -43,10 +43,12 @@ func (r *MariaDBReconciler) reconcileUpdates(ctx context.Context, mdb *mariadbv1
 	mariadbKey := client.ObjectKeyFromObject(mdb)
 	logger := log.FromContext(ctx).WithName("update")
 
-	stsUpdateRevision, err := r.getStatefulSetRevision(ctx, mdb)
-	if err != nil {
+	var sts appsv1.StatefulSet
+	if err := r.Get(ctx, mariadbKey, &sts); err != nil {
 		return ctrl.Result{}, err
 	}
+	stsUpdateRevision := sts.Status.UpdateRevision
+
 	if stsUpdateRevision == "" {
 		logger.V(1).Info("StatefulSet status.updateRevision not set. Requeuing...")
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
@@ -68,7 +70,7 @@ func (r *MariaDBReconciler) reconcileUpdates(ctx context.Context, mdb *mariadbv1
 	}
 
 	for _, replicaPod := range podsByRole.replicas {
-		if podpkg.PodUpdated(&replicaPod, stsUpdateRevision) {
+		if mdbpod.PodUpdated(&replicaPod, stsUpdateRevision) {
 			logger.V(1).Info("Replica Pod up to date", "pod", replicaPod.Name)
 			continue
 		}
@@ -80,7 +82,7 @@ func (r *MariaDBReconciler) reconcileUpdates(ctx context.Context, mdb *mariadbv1
 	}
 
 	primaryPod := podsByRole.primary
-	if podpkg.PodUpdated(&primaryPod, stsUpdateRevision) {
+	if mdbpod.PodUpdated(&primaryPod, stsUpdateRevision) {
 		logger.V(1).Info("Primary Pod up to date", "pod", primaryPod.Name)
 		return ctrl.Result{}, nil
 	}
@@ -195,7 +197,7 @@ func (r *MariaDBReconciler) waitForReadyStatus(ctx context.Context, mdb *mariadb
 }
 
 func (r *MariaDBReconciler) waitForConfiguredReplica(mdb *mariadbv1alpha1.MariaDB, logger logr.Logger) error {
-	if !mdb.Replication().Enabled {
+	if !mdb.IsReplicationEnabled() {
 		return nil
 	}
 
@@ -231,7 +233,7 @@ func (r *MariaDBReconciler) pollUntilPodUpdated(ctx context.Context, mariadbKey,
 		if err := r.Get(ctx, podKey, &pod); err != nil {
 			return fmt.Errorf("error getting Pod '%s': %v", podKey.Name, err)
 		}
-		if podpkg.PodUpdated(&pod, updateRevision) {
+		if mdbpod.PodUpdated(&pod, updateRevision) {
 			return nil
 		}
 		return errors.New("Pod stale") //nolint:staticcheck
@@ -246,11 +248,11 @@ type podRoleSet struct {
 func (p *podRoleSet) getStalePodNames(updateRevision string) []string {
 	var podNames []string
 	for _, r := range p.replicas {
-		if !podpkg.PodUpdated(&r, updateRevision) {
+		if !mdbpod.PodUpdated(&r, updateRevision) {
 			podNames = append(podNames, r.Name)
 		}
 	}
-	if !podpkg.PodUpdated(&p.primary, updateRevision) {
+	if !mdbpod.PodUpdated(&p.primary, updateRevision) {
 		podNames = append(podNames, p.primary.Name)
 	}
 	return podNames
@@ -268,29 +270,21 @@ func (r *MariaDBReconciler) getPodsByRole(ctx context.Context, mdb *mariadbv1alp
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 
-	list := corev1.PodList{}
-	listOpts := &client.ListOptions{
-		LabelSelector: klabels.SelectorFromSet(
-			labels.NewLabelsBuilder().
-				WithMariaDBSelectorLabels(mdb).
-				Build(),
-		),
-		Namespace: mdb.GetNamespace(),
-	}
-	if err := r.List(ctx, &list, listOpts); err != nil {
+	pods, err := mdbpod.ListMariaDBPods(ctx, r.Client, mdb)
+	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error listing Pods: %v", err)
 	}
 
-	numPods := len(list.Items)
+	numPods := len(pods)
 	numReplicas := int(mdb.Spec.Replicas)
-	if len(list.Items) != int(mdb.Spec.Replicas) {
+	if numPods != numReplicas {
 		logger.V(1).Info("Number of Pods does not match MariaDB replicas. Requeuing...", "pods", numPods, "mariadb-replicas", numReplicas)
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
 
 	var replicas []corev1.Pod
 	var primary *corev1.Pod
-	for _, pod := range list.Items {
+	for _, pod := range pods {
 		if pod.Name == currentPrimary {
 			primary = &pod
 		} else {
@@ -320,35 +314,86 @@ func (r *MariaDBReconciler) triggerSwitchover(ctx context.Context, mariadb *mari
 	if !shouldTriggerSwitchover(mariadb) {
 		return nil
 	}
-
 	if mariadb.Status.CurrentPrimaryPodIndex == nil {
 		return fmt.Errorf("'status.currentPrimaryPodIndex' must be set")
 	}
+	switchoverLogger := logger.WithName("switchover")
 
-	fromIndex := mariadb.Status.CurrentPrimaryPodIndex
-	toIndex, err := health.ReplicaPodHealthyIndex(ctx, r.Client, mariadb)
+	primary := mariadb.Status.CurrentPrimaryPodIndex
+	newPrimaryName, err := replication.NewFailoverHandler(
+		r.Client,
+		mariadb,
+		switchoverLogger.V(1),
+	).FurthestAdvancedReplica(ctx)
 	if err != nil {
-		return fmt.Errorf("error getting healthy replica: %v", err)
+		return fmt.Errorf("error getting promotion candidate: %v", err)
+	}
+	newPrimary, err := statefulset.PodIndex(newPrimaryName)
+	if err != nil {
+		return fmt.Errorf("error getting primary Pod index: %v", err)
+	}
+	switchoverLogger = switchoverLogger.WithValues("primary", primary, "new-primary", *newPrimary)
+
+	if mariadb.IsMaxScaleEnabled() {
+		primaryServer := statefulset.PodName(mariadb.ObjectMeta, *newPrimary)
+		switchoverLogger.Info("Triggering MaxScale switchover")
+
+		if err := r.triggerMaxScaleSwitchover(ctx, mariadb, primaryServer, logger); err != nil {
+			return fmt.Errorf("error triggering MaxScale switchover: %v", err)
+		}
+	} else {
+		switchoverLogger.Info("Triggering MariaDB switchover")
+
+		if err := r.patch(ctx, mariadb, func(mdb *mariadbv1alpha1.MariaDB) error {
+			mdb.Spec.Replication.Primary.PodIndex = newPrimary
+			return nil
+		}); err != nil {
+			return fmt.Errorf("error triggering MariaDB switchover: %v", err)
+		}
 	}
 
-	if err := r.patch(ctx, mariadb, func(mdb *mariadbv1alpha1.MariaDB) error {
-		mdb.Replication().Primary.PodIndex = toIndex
-		return nil
-	}); err != nil {
-		return err
-	}
-
-	logger.Info("Switching primary", "from-index", fromIndex, "to-index", *toIndex)
+	switchoverLogger.Info("Switching primary")
 	// To perform switchover we must reach the 'Replication' phase that runs after the 'StatefulSet' phase.
 	// When the 'MariaDBReconciler' controller receives the 'ErrSkipReconciliationPhase' error, it continues the reconciliation loop.
 	// See: https://github.com/mariadb-operator/mariadb-operator/pull/967
 	return ErrSkipReconciliationPhase
 }
 
+func (r *MariaDBReconciler) triggerMaxScaleSwitchover(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, primaryServer string,
+	logger logr.Logger) error {
+	mxs, err := r.RefResolver.MaxScale(ctx, mariadb.Spec.MaxScaleRef, mariadb.Namespace)
+	if err != nil {
+		return fmt.Errorf("error getting MaxScale: %v", err)
+	}
+	if mxs.Spec.PrimaryServer == nil {
+		logger.Info("Setting primary server in MaxScale")
+		if err := r.patchMaxScale(ctx, mxs, func(status *mariadbv1alpha1.MaxScale) {
+			mxs.Spec.PrimaryServer = &primaryServer
+		}); err != nil {
+			return fmt.Errorf("error patching MaxScale: %v", err)
+		}
+	} else {
+		logger.Info("Primary server already set in MaxScale. Skipping...")
+	}
+
+	switchoverCtx, cancel := context.WithTimeout(ctx, 1*time.Minute)
+	defer cancel()
+
+	return wait.PollUntilSuccessOrContextCancel(switchoverCtx, logger, func(ctx context.Context) error {
+		mxs, err := r.RefResolver.MaxScale(ctx, mariadb.Spec.MaxScaleRef, mariadb.Namespace)
+		if err != nil {
+			return fmt.Errorf("error getting MaxScale: %v", err)
+		}
+		if mxs.IsSwitchingPrimary() {
+			return nil
+		}
+		return errors.New("MaxScale switchover did not start")
+	})
+}
+
 func shouldTriggerSwitchover(mariadb *mariadbv1alpha1.MariaDB) bool {
-	if mariadb.IsMaxScaleEnabled() || mariadb.IsRestoringBackup() {
+	if mariadb.IsRestoringBackup() {
 		return false
 	}
-	primaryRepl := ptr.Deref(mariadb.Replication().Primary, mariadbv1alpha1.PrimaryReplication{})
-	return mariadb.Replication().Enabled && *primaryRepl.AutomaticFailover && mariadb.HasConfiguredReplica()
+	return mariadb.IsReplicationEnabled() && mariadb.HasConfiguredReplica()
 }

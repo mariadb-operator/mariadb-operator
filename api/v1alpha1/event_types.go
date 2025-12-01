@@ -1,10 +1,8 @@
 package v1alpha1
 
 const (
-	// ReasonReplicationConfiguring indicates that replication is being configured.
-	ReasonReplicationConfiguring = "ReplicationConfiguring"
-	// ReasonReplicationConfigured indicates that replication has been configured.
-	ReasonReplicationConfigured = "ReplicationConfigured"
+	// ReasonReplicationResetStaleSwitchover indicates a stale switchover has been reset.
+	ReasonReplicationResetStaleSwitchover = "ResetStaleSwitchover"
 	// ReasonReplicationPrimaryLock indicates that primary tables have a read lock.
 	ReasonReplicationPrimaryLock = "PrimaryLock"
 	// ReasonReplicationPrimaryReadonly indicates that primary is being changed to readonly mode.
@@ -13,6 +11,10 @@ const (
 	ReasonReplicationReplicaSync = "ReplicaSync"
 	// ReasonReplicationReplicaSyncErr indicates that an error has happened while replicas were being synced with primary.
 	ReasonReplicationReplicaSyncErr = "ReplicaSyncErr"
+	// ReasonReplicationPrimaryNewSync indicates that the new primary is being synced.
+	ReasonReplicationPrimaryNewSync = "PrimaryNewSync"
+	// ReasonReplicationPrimaryNewSync indicates that an error has happened while the new primary was being synced.
+	ReasonReplicationPrimaryNewSyncErr = "PrimaryNewSyncErr"
 	// ReasonReplicationPrimaryNew indicates that a new primary is being configured.
 	ReasonReplicationPrimaryNew = "PrimaryNew"
 	// ReasonReplicationReplicaConn indicates that replicas are connecting to the new primary.
@@ -65,4 +67,10 @@ const (
 
 	// ReasonMariaDBInitError indicates that an error has occurred during the MariaDB instance initialization.
 	ReasonMariaDBInitError = "MariaDBInitError"
+
+	// ReasonMariaDBScaleOutError indicates that an error has occurred during the MariaDB instance scale out operation.
+	ReasonMariaDBScaleOutError = "MariaDBScaleOutError"
+
+	// ReasonMariaDBReplicaRecoveryError indicates that an error has occurred during the MariaDB instance replica recovery operation.
+	ReasonMariaDBReplicaRecoveryError = "MariaDBReplicaRecoveryError"
 )

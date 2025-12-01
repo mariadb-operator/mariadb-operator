@@ -1,8 +1,10 @@
 package command
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"html/template"
 	"path/filepath"
 	"strings"
 	"time"
@@ -12,6 +14,7 @@ import (
 	builderpki "github.com/mariadb-operator/mariadb-operator/v25/pkg/builder/pki"
 	ds "github.com/mariadb-operator/mariadb-operator/v25/pkg/datastructures"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/interfaces"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/replication"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/statefulset"
 	"k8s.io/utils/ptr"
 )
@@ -212,7 +215,7 @@ func (b *BackupCommand) MariadbBackup(mariadb *mariadbv1alpha1.MariaDB, backupFi
 	if err != nil {
 		return nil, fmt.Errorf("error getting connection flags: %v", err)
 	}
-	args := strings.Join(b.mariadbBackupArgs(mariadb), " ")
+	args := strings.Join(b.mariadbBackupArgs(mariadb, targetPodIndex), " ")
 
 	cmds := []string{
 		"set -euo pipefail",
@@ -326,11 +329,33 @@ func (b *BackupCommand) MariadbRestore(restore *mariadbv1alpha1.Restore,
 	return NewBashCommand(cmds), nil
 }
 
-func (b *BackupCommand) MariadbBackupRestore(mariadb *mariadbv1alpha1.MariaDB, backupDirPath string) (*Command, error) {
+type MariaDBBackupRestoreOpts struct {
+	cleanupDataDir bool
+}
+
+type MariaDBBackupRestoreOpt func(*MariaDBBackupRestoreOpts)
+
+func WithCleanupDataDir(cleanup bool) MariaDBBackupRestoreOpt {
+	return func(mdro *MariaDBBackupRestoreOpts) {
+		mdro.cleanupDataDir = cleanup
+	}
+}
+
+func (b *BackupCommand) MariadbBackupRestore(mariadb *mariadbv1alpha1.MariaDB, backupDirPath string,
+	restoreOpts ...MariaDBBackupRestoreOpt) (*Command, error) {
 	if b.Database != nil {
 		return nil, errors.New("database option not supported in physical backups")
 	}
+	opts := MariaDBBackupRestoreOpts{}
+	for _, setOpt := range restoreOpts {
+		setOpt(&opts)
+	}
 
+	// Replicas being recovered will have a data directory in error state, needs to be cleaned up before restoring.
+	cleanupDataDirCmd := `if [ -d /var/lib/mysql ]; then 
+	echo "💾 Cleaning up data directory";
+	rm -rf /var/lib/mysql/*;
+fi`
 	// The ext4 filesystem creates a lost+found directory by default, which causes mariadb-backup to fail with:
 	// "Original data directory /var/lib/mysql is not empty!"
 	// Since we already check the PVC existence earlier, it should be safe to use --force-non-empty-directories.
@@ -338,18 +363,39 @@ func (b *BackupCommand) MariadbBackupRestore(mariadb *mariadbv1alpha1.MariaDB, b
 		"mariadb-backup --copy-back --target-dir=%s --force-non-empty-directories",
 		backupDirPath,
 	)
+	// Binlog file with the GTID coordinate is not available on the finally restored data directory.
+	// This ensures that we have access to the coordinate after restoring the backup.
+	copyBinlogCmd := func(binlogFileName string) string {
+		binlogPath := filepath.Join(backupDirPath, binlogFileName)
+		return fmt.Sprintf(`if [ -f %[1]s ]; then 
+	echo "💾 Copying binlog position file '%[1]s' to data directory";
+	cp %[1]s %[2]s
+fi`,
+			binlogPath,
+			replication.MariaDBOperatorFilePath,
+		)
+	}
+
+	existingBackupRestoreCmd, err := b.existingBackupRestoreCmd(
+		backupDirPath,
+		cleanupDataDirCmd,
+		copyBackupCmd,
+		[]string{
+			copyBinlogCmd(replication.BinlogFileName),
+			copyBinlogCmd(replication.LegacyBinlogFileName),
+		},
+		restoreOpts...,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("error getting existing backup command: %v", err)
+	}
 
 	cmds := []string{
 		"set -euo pipefail",
-		"echo 💾 Checking existing backup",
-		fmt.Sprintf(
-			"if [ -d %s ]; then echo '💾 Existing backup directory found. Copying backup to data directory'; %s && exit 0; fi",
-			backupDirPath,
-			copyBackupCmd,
-		),
+		existingBackupRestoreCmd,
 		"echo 💾 Extracting backup",
 		fmt.Sprintf(
-			"mkdir %s",
+			"mkdir -p %s",
 			backupDirPath,
 		),
 		fmt.Sprintf(
@@ -362,10 +408,56 @@ func (b *BackupCommand) MariadbBackupRestore(mariadb *mariadbv1alpha1.MariaDB, b
 			"mariadb-backup --prepare --target-dir=%s",
 			backupDirPath,
 		),
+	}
+	if opts.cleanupDataDir {
+		cmds = append(cmds, cleanupDataDirCmd)
+	}
+	cmds = append(cmds, []string{
 		"echo 💾 Copying backup to data directory",
 		copyBackupCmd,
-	}
+		copyBinlogCmd(replication.BinlogFileName),
+		copyBinlogCmd(replication.LegacyBinlogFileName),
+	}...)
 	return NewBashCommand(cmds), nil
+}
+
+func (b *BackupCommand) existingBackupRestoreCmd(backupDirPath, cleanupDataDirCmd, copyBackupCmd string,
+	copyBinlogCmds []string, restoreOpts ...MariaDBBackupRestoreOpt) (string, error) {
+	opts := MariaDBBackupRestoreOpts{}
+	for _, setOpt := range restoreOpts {
+		setOpt(&opts)
+	}
+
+	tpl := createTpl("restore.sh", `if [ -d {{ .BackupDir }} ]; then
+  echo '💾 Existing backup directory found. Copying backup to data directory';
+  {{- if .CleanupDataDir }}
+  { {{ .CleanupDataDirCmd }}; } &&
+  {{- end }}
+  { {{ .CopyBackupCmd }}; } &&
+  {{- range $cmd := .CopyBinlogCmds }}
+  { {{ $cmd }}; } &&
+  {{- end }}
+  exit 0
+fi`)
+	buf := new(bytes.Buffer)
+	err := tpl.Execute(buf, struct {
+		BackupDir         string
+		CleanupDataDir    bool
+		CleanupDataDirCmd string
+		CopyBackupCmd     string
+		CopyBinlogCmds    []string
+	}{
+		BackupDir:         backupDirPath,
+		CleanupDataDir:    opts.cleanupDataDir,
+		CleanupDataDirCmd: cleanupDataDirCmd,
+		CopyBackupCmd:     copyBackupCmd,
+		CopyBinlogCmds:    copyBinlogCmds,
+	})
+	if err != nil {
+		return "", err
+	}
+	// Trim surrounding whitespace and newlines to reduce bash syntax error risk
+	return strings.TrimSpace(buf.String()), nil
 }
 
 func (b *BackupCommand) newBackupFile() string {
@@ -433,7 +525,7 @@ func (b *BackupCommand) mariadbDumpArgs(backup *mariadbv1alpha1.Backup, mariadb 
 	return ds.Unique(ds.Merge(args, dumpOpts)...)
 }
 
-func (b *BackupCommand) mariadbBackupArgs(mariadb interfaces.TLSProvider) []string {
+func (b *BackupCommand) mariadbBackupArgs(mariadb *mariadbv1alpha1.MariaDB, targetPodIndex int) []string {
 	backupOpts := make([]string, len(b.ExtraOpts))
 	copy(backupOpts, b.ExtraOpts)
 
@@ -444,9 +536,15 @@ func (b *BackupCommand) mariadbBackupArgs(mariadb interfaces.TLSProvider) []stri
 		// which causes mariadb-backup to include it in the backup file as a database.
 		"--databases-exclude='lost+found'",
 	}
-
 	if mariadb.IsTLSEnabled() {
 		args = append(args, b.tlsArgs(mariadb)...)
+	}
+	if mariadb.IsReplicationEnabled() &&
+		mariadb.Status.CurrentPrimaryPodIndex != nil && *mariadb.Status.CurrentPrimaryPodIndex != targetPodIndex {
+		args = append(args, []string{
+			"--slave-info",
+			"--safe-slave-backup",
+		}...)
 	}
 
 	return ds.Unique(ds.Merge(args, backupOpts)...)
@@ -518,4 +616,8 @@ func (b *BackupCommand) tlsArgs(mariadb interfaces.TLSProvider) []string {
 		builderpki.ClientKeyPath,
 		"--ssl-verify-server-cert",
 	}
+}
+
+func createTpl(name, t string) *template.Template {
+	return template.Must(template.New(name).Parse(t))
 }

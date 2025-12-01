@@ -26,6 +26,9 @@ func TestOperatorHelmExtraEnvFrom(t *testing.T) {
 			"extraEnvFrom[0].configMapRef.name": `env-extra-configmap`,
 			"extraEnvFrom[1].secretRef.name":    `env-extra-secret`,
 		},
+		KubectlOptions: &k8s.KubectlOptions{
+			Namespace: operatorTestNamespace,
+		},
 	}
 
 	deploymentData := helm.RenderTemplate(t, opts,

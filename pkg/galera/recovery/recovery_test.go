@@ -3,6 +3,8 @@ package recovery
 import (
 	"reflect"
 	"testing"
+
+	"github.com/go-logr/logr"
 )
 
 func TestGaleraStateMarshal(t *testing.T) {
@@ -280,6 +282,8 @@ func TestBootstrapValidate(t *testing.T) {
 }
 
 func TestBootstrapUnmarshal(t *testing.T) {
+	logger := logr.Discard()
+
 	tests := []struct {
 		name    string
 		bytes   []byte
@@ -347,6 +351,76 @@ Warning: Memory not freed: 280
 			want: Bootstrap{
 				UUID:  "15d9a0ef-02b1-11ee-9499-decd8e34642e",
 				Seqno: 1,
+			},
+			wantErr: false,
+		},
+		{
+			name: "1 single position with GTID",
+			//nolint
+			bytes: []byte(`2025-10-14 10:14:25 0 [Note] slave_connections_needed_for_purge changed to 0 because of Galera. Change it to 1 or higher if this Galera node is also Master in a normal replication setup
+2023-06-04  8:24:16 0 [Note] Starting MariaDB 10.11.3-MariaDB-1:10.11.3+maria~ubu2204 source revision 0bb31039f54bd6a0dc8f0fc7d40e6b58a51998b0 as process 84826
+2025-10-14 10:14:25 0 [Note] InnoDB: Compressed tables use zlib 1.2.11
+2025-10-14 10:14:25 0 [Note] InnoDB: Number of transaction pools: 1
+2025-10-14 10:14:25 0 [Note] InnoDB: Using crc32 + pclmulqdq instructions
+2025-10-14 10:14:25 0 [Note] mariadbd: O_TMPFILE is not supported on /tmp (disabling future attempts)
+2025-10-14 10:14:25 0 [Note] InnoDB: Using Linux native AIO
+2025-10-14 10:14:25 0 [Note] InnoDB: Initializing buffer pool, total size = 1.000GiB, chunk size = 16.000MiB
+2025-10-14 10:14:25 0 [Note] InnoDB: Completed initialization of buffer pool
+2025-10-14 10:14:25 0 [Note] InnoDB: Buffered log writes (block size=512 bytes)
+2025-10-14 10:14:25 0 [Note] InnoDB: End of log at LSN=2734997
+2025-10-14 10:14:26 0 [Note] InnoDB: Opened 3 undo tablespaces
+2025-10-14 10:14:26 0 [Note] InnoDB: 128 rollback segments in 3 undo tablespaces are active.
+2025-10-14 10:14:26 0 [Note] InnoDB: Setting file './ibtmp1' size to 12.000MiB. Physically writing the file full; Please wait ...
+2025-10-14 10:14:26 0 [Note] InnoDB: File './ibtmp1' size is now 12.000MiB.
+2025-10-14 10:14:26 0 [Note] InnoDB: log sequence number 2734997; transaction id 63
+2025-10-14 10:14:26 0 [Warning] InnoDB: Skipping buffer pool dump/restore during wsrep recovery.
+2025-10-14 10:14:26 0 [Note] Plugin 'FEEDBACK' is disabled.
+2025-10-14 10:14:26 server_audit: MariaDB Audit Plugin version 2.5.0 STARTED.
+2025-10-14 10:14:26 server_audit: Query cache is enabled with the TABLE events. Some table reads can be veiled.
+2025-10-14 10:14:26 server_audit: logging started to the file /var/lib/mysql/server_audit.log.
+2025-10-14 10:14:26 0 [Note] Server socket created on IP: '0.0.0.0'.
+2025-10-14 10:14:26 0 [Note] Server socket created on IP: '::'.
+2025-10-14 10:14:26 0 [Note] WSREP: Recovered position: 808ffebd-a7f3-11f0-b6b4-b3b81fce961a:48451,201-2001-48431
+2025-10-14 10:14:26 server_audit: STOPPED
+`),
+			want: Bootstrap{
+				UUID:  "808ffebd-a7f3-11f0-b6b4-b3b81fce961a",
+				Seqno: 48451,
+			},
+			wantErr: false,
+		},
+		{
+			name: "2 single position with GTID",
+			//nolint
+			bytes: []byte(`2025-10-14 10:14:25 0 [Note] slave_connections_needed_for_purge changed to 0 because of Galera. Change it to 1 or higher if this Galera node is also Master in a normal replication setup
+2023-06-04  8:24:16 0 [Note] Starting MariaDB 10.11.3-MariaDB-1:10.11.3+maria~ubu2204 source revision 0bb31039f54bd6a0dc8f0fc7d40e6b58a51998b0 as process 84826
+2025-10-14 10:14:25 0 [Note] InnoDB: Compressed tables use zlib 1.2.11
+2025-10-14 10:14:25 0 [Note] InnoDB: Number of transaction pools: 1
+2025-10-14 10:14:25 0 [Note] InnoDB: Using crc32 + pclmulqdq instructions
+2025-10-14 10:14:25 0 [Note] mariadbd: O_TMPFILE is not supported on /tmp (disabling future attempts)
+2025-10-14 10:14:25 0 [Note] InnoDB: Using Linux native AIO
+2025-10-14 10:14:25 0 [Note] InnoDB: Initializing buffer pool, total size = 1.000GiB, chunk size = 16.000MiB
+2025-10-14 10:14:25 0 [Note] InnoDB: Completed initialization of buffer pool
+2025-10-14 10:14:25 0 [Note] InnoDB: Buffered log writes (block size=512 bytes)
+2025-10-14 10:14:25 0 [Note] InnoDB: End of log at LSN=2734997
+2025-10-14 10:14:26 0 [Note] InnoDB: Opened 3 undo tablespaces
+2025-10-14 10:14:26 0 [Note] InnoDB: 128 rollback segments in 3 undo tablespaces are active.
+2025-10-14 10:14:26 0 [Note] InnoDB: Setting file './ibtmp1' size to 12.000MiB. Physically writing the file full; Please wait ...
+2025-10-14 10:14:26 0 [Note] InnoDB: File './ibtmp1' size is now 12.000MiB.
+2025-10-14 10:14:26 0 [Note] InnoDB: log sequence number 2734997; transaction id 63
+2025-10-14 10:14:26 0 [Warning] InnoDB: Skipping buffer pool dump/restore during wsrep recovery.
+2025-10-14 10:14:26 0 [Note] Plugin 'FEEDBACK' is disabled.
+2025-10-14 10:14:26 server_audit: MariaDB Audit Plugin version 2.5.0 STARTED.
+2025-10-14 10:14:26 server_audit: Query cache is enabled with the TABLE events. Some table reads can be veiled.
+2025-10-14 10:14:26 server_audit: logging started to the file /var/lib/mysql/server_audit.log.
+2025-10-14 10:14:26 0 [Note] Server socket created on IP: '0.0.0.0'.
+2025-10-14 10:14:26 0 [Note] Server socket created on IP: '::'.
+2025-10-14 10:14:26 0 [Note] WSREP: Recovered position: 808ffebd-a7f3-11f0-b6b4-b3b81fce961a:201-2001-48431,48451
+2025-10-14 10:14:26 server_audit: STOPPED
+`),
+			want: Bootstrap{
+				UUID:  "808ffebd-a7f3-11f0-b6b4-b3b81fce961a",
+				Seqno: 48451,
 			},
 			wantErr: false,
 		},
@@ -420,12 +494,97 @@ Warning: Memory not freed: 280
 			},
 			wantErr: false,
 		},
+		{
+			name: "multiple position with GTID",
+			//nolint
+			bytes: []byte(`2025-10-14 10:14:25 0 [Note] slave_connections_needed_for_purge changed to 0 because of Galera. Change it to 1 or higher if this Galera node is also Master in a normal replication setup
+2023-06-04  8:24:16 0 [Note] Starting MariaDB 10.11.3-MariaDB-1:10.11.3+maria~ubu2204 source revision 0bb31039f54bd6a0dc8f0fc7d40e6b58a51998b0 as process 84826
+2025-10-14 10:14:25 0 [Note] InnoDB: Compressed tables use zlib 1.2.11
+2025-10-14 10:14:25 0 [Note] InnoDB: Number of transaction pools: 1
+2025-10-14 10:14:25 0 [Note] InnoDB: Using crc32 + pclmulqdq instructions
+2025-10-14 10:14:25 0 [Note] mariadbd: O_TMPFILE is not supported on /tmp (disabling future attempts)
+2025-10-14 10:14:25 0 [Note] InnoDB: Using Linux native AIO
+2025-10-14 10:14:25 0 [Note] InnoDB: Initializing buffer pool, total size = 1.000GiB, chunk size = 16.000MiB
+2025-10-14 10:14:25 0 [Note] InnoDB: Completed initialization of buffer pool
+2025-10-14 10:14:25 0 [Note] InnoDB: Buffered log writes (block size=512 bytes)
+2025-10-14 10:14:25 0 [Note] InnoDB: End of log at LSN=2734997
+2025-10-14 10:14:26 0 [Note] InnoDB: Opened 3 undo tablespaces
+2025-10-14 10:14:26 0 [Note] InnoDB: 128 rollback segments in 3 undo tablespaces are active.
+2025-10-14 10:14:26 0 [Note] InnoDB: Setting file './ibtmp1' size to 12.000MiB. Physically writing the file full; Please wait ...
+2025-10-14 10:14:26 0 [Note] InnoDB: File './ibtmp1' size is now 12.000MiB.
+2025-10-14 10:14:26 0 [Note] InnoDB: log sequence number 2734997; transaction id 63
+2025-10-14 10:14:26 0 [Warning] InnoDB: Skipping buffer pool dump/restore during wsrep recovery.
+2025-10-14 10:14:26 0 [Note] Plugin 'FEEDBACK' is disabled.
+2025-10-14 10:14:26 server_audit: MariaDB Audit Plugin version 2.5.0 STARTED.
+2025-10-14 10:14:26 server_audit: Query cache is enabled with the TABLE events. Some table reads can be veiled.
+2025-10-14 10:14:26 server_audit: logging started to the file /var/lib/mysql/server_audit.log.
+2025-10-14 10:14:26 0 [Note] Server socket created on IP: '0.0.0.0'.
+2025-10-14 10:14:26 0 [Note] Server socket created on IP: '::'.
+2025-10-14 10:14:26 0 [Note] WSREP: Recovered position: 808ffebd-a7f3-11f0-b6b4-b3b81fce961a:48451,201-2001-48431
+2025-10-14 10:14:26 server_audit: STOPPED
+2025-10-14 10:14:25 0 [Note] slave_connections_needed_for_purge changed to 0 because of Galera. Change it to 1 or higher if this Galera node is also Master in a normal replication setup
+2023-06-04  8:24:16 0 [Note] Starting MariaDB 10.11.3-MariaDB-1:10.11.3+maria~ubu2204 source revision 0bb31039f54bd6a0dc8f0fc7d40e6b58a51998b0 as process 84826
+2025-10-14 10:14:25 0 [Note] InnoDB: Compressed tables use zlib 1.2.11
+2025-10-14 10:14:25 0 [Note] InnoDB: Number of transaction pools: 1
+2025-10-14 10:14:25 0 [Note] InnoDB: Using crc32 + pclmulqdq instructions
+2025-10-14 10:14:25 0 [Note] mariadbd: O_TMPFILE is not supported on /tmp (disabling future attempts)
+2025-10-14 10:14:25 0 [Note] InnoDB: Using Linux native AIO
+2025-10-14 10:14:25 0 [Note] InnoDB: Initializing buffer pool, total size = 1.000GiB, chunk size = 16.000MiB
+2025-10-14 10:14:25 0 [Note] InnoDB: Completed initialization of buffer pool
+2025-10-14 10:14:25 0 [Note] InnoDB: Buffered log writes (block size=512 bytes)
+2025-10-14 10:14:25 0 [Note] InnoDB: End of log at LSN=2734997
+2025-10-14 10:14:26 0 [Note] InnoDB: Opened 3 undo tablespaces
+2025-10-14 10:14:26 0 [Note] InnoDB: 128 rollback segments in 3 undo tablespaces are active.
+2025-10-14 10:14:26 0 [Note] InnoDB: Setting file './ibtmp1' size to 12.000MiB. Physically writing the file full; Please wait ...
+2025-10-14 10:14:26 0 [Note] InnoDB: File './ibtmp1' size is now 12.000MiB.
+2025-10-14 10:14:26 0 [Note] InnoDB: log sequence number 2734997; transaction id 63
+2025-10-14 10:14:26 0 [Warning] InnoDB: Skipping buffer pool dump/restore during wsrep recovery.
+2025-10-14 10:14:26 0 [Note] Plugin 'FEEDBACK' is disabled.
+2025-10-14 10:14:26 server_audit: MariaDB Audit Plugin version 2.5.0 STARTED.
+2025-10-14 10:14:26 server_audit: Query cache is enabled with the TABLE events. Some table reads can be veiled.
+2025-10-14 10:14:26 server_audit: logging started to the file /var/lib/mysql/server_audit.log.
+2025-10-14 10:14:26 0 [Note] Server socket created on IP: '0.0.0.0'.
+2025-10-14 10:14:26 0 [Note] Server socket created on IP: '::'.
+2025-10-14 10:14:26 0 [Note] WSREP: Recovered position: 808ffebd-a7f3-11f0-b6b4-b3b81fce961b:48452,201-2001-48431
+2025-10-14 10:14:26 server_audit: STOPPED
+2025-10-14 10:14:25 0 [Note] slave_connections_needed_for_purge changed to 0 because of Galera. Change it to 1 or higher if this Galera node is also Master in a normal replication setup
+2023-06-04  8:24:16 0 [Note] Starting MariaDB 10.11.3-MariaDB-1:10.11.3+maria~ubu2204 source revision 0bb31039f54bd6a0dc8f0fc7d40e6b58a51998b0 as process 84826
+2025-10-14 10:14:25 0 [Note] InnoDB: Compressed tables use zlib 1.2.11
+2025-10-14 10:14:25 0 [Note] InnoDB: Number of transaction pools: 1
+2025-10-14 10:14:25 0 [Note] InnoDB: Using crc32 + pclmulqdq instructions
+2025-10-14 10:14:25 0 [Note] mariadbd: O_TMPFILE is not supported on /tmp (disabling future attempts)
+2025-10-14 10:14:25 0 [Note] InnoDB: Using Linux native AIO
+2025-10-14 10:14:25 0 [Note] InnoDB: Initializing buffer pool, total size = 1.000GiB, chunk size = 16.000MiB
+2025-10-14 10:14:25 0 [Note] InnoDB: Completed initialization of buffer pool
+2025-10-14 10:14:25 0 [Note] InnoDB: Buffered log writes (block size=512 bytes)
+2025-10-14 10:14:25 0 [Note] InnoDB: End of log at LSN=2734997
+2025-10-14 10:14:26 0 [Note] InnoDB: Opened 3 undo tablespaces
+2025-10-14 10:14:26 0 [Note] InnoDB: 128 rollback segments in 3 undo tablespaces are active.
+2025-10-14 10:14:26 0 [Note] InnoDB: Setting file './ibtmp1' size to 12.000MiB. Physically writing the file full; Please wait ...
+2025-10-14 10:14:26 0 [Note] InnoDB: File './ibtmp1' size is now 12.000MiB.
+2025-10-14 10:14:26 0 [Note] InnoDB: log sequence number 2734997; transaction id 63
+2025-10-14 10:14:26 0 [Warning] InnoDB: Skipping buffer pool dump/restore during wsrep recovery.
+2025-10-14 10:14:26 0 [Note] Plugin 'FEEDBACK' is disabled.
+2025-10-14 10:14:26 server_audit: MariaDB Audit Plugin version 2.5.0 STARTED.
+2025-10-14 10:14:26 server_audit: Query cache is enabled with the TABLE events. Some table reads can be veiled.
+2025-10-14 10:14:26 server_audit: logging started to the file /var/lib/mysql/server_audit.log.
+2025-10-14 10:14:26 0 [Note] Server socket created on IP: '0.0.0.0'.
+2025-10-14 10:14:26 0 [Note] Server socket created on IP: '::'.
+2025-10-14 10:14:26 0 [Note] WSREP: Recovered position: 808ffebd-a7f3-11f0-b6b4-b3b81fce961c:48453,201-2001-48431
+2025-10-14 10:14:26 server_audit: STOPPED
+`),
+			want: Bootstrap{
+				UUID:  "808ffebd-a7f3-11f0-b6b4-b3b81fce961c",
+				Seqno: 48453,
+			},
+			wantErr: false,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var bootstrap Bootstrap
-			err := bootstrap.Unmarshal(tt.bytes)
+			err := bootstrap.Unmarshal(tt.bytes, logger)
 			if tt.wantErr && err == nil {
 				t.Fatal("error expected, got nil")
 			}

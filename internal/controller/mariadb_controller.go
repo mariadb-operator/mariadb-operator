@@ -11,6 +11,7 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
+	agentresources "github.com/mariadb-operator/mariadb-operator/v25/pkg/agent/resources"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/backup"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/builder"
 	labels "github.com/mariadb-operator/mariadb-operator/v25/pkg/builder/labels"
@@ -44,7 +45,6 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	klabels "k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -66,12 +66,13 @@ type MariaDBReconciler struct {
 	Scheme   *runtime.Scheme
 	Recorder record.EventRecorder
 
-	Builder         *builder.Builder
-	RefResolver     *refresolver.RefResolver
-	ConditionReady  *condition.Ready
-	Environment     *environment.OperatorEnv
-	Discovery       *discovery.Discovery
-	BackupProcessor backup.BackupProcessor
+	Builder          *builder.Builder
+	RefResolver      *refresolver.RefResolver
+	ConditionReady   *condition.Ready
+	Environment      *environment.OperatorEnv
+	Discovery        *discovery.Discovery
+	BackupProcessor  backup.BackupProcessor
+	ReplConfigClient *replication.ReplicationConfigClient
 
 	ConfigMapReconciler      *configmap.ConfigMapReconciler
 	SecretReconciler         *secret.SecretReconciler
@@ -100,7 +101,7 @@ type patcherMariaDB func(*mariadbv1alpha1.MariaDBStatus) error
 //+kubebuilder:rbac:groups=k8s.mariadb.com,resources=mariadbs,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=k8s.mariadb.com,resources=mariadbs/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=k8s.mariadb.com,resources=mariadbs/finalizers,verbs=update
-//+kubebuilder:rbac:groups=k8s.mariadb.com,resources=maxscale;restores;connections;users;grants,verbs=list;watch;create;patch
+//+kubebuilder:rbac:groups=k8s.mariadb.com,resources=maxscale;restores;connections;users;grants;physicalbackups,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;patch;delete
 //+kubebuilder:rbac:groups="",resources=services,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups="",resources=secrets,verbs=list;watch;create;patch
@@ -124,6 +125,7 @@ type patcherMariaDB func(*mariadbv1alpha1.MariaDBStatus) error
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
 func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	logger := log.FromContext(ctx).WithName("mariadb")
 	var mariadb mariadbv1alpha1.MariaDB
 	if err := r.Get(ctx, req.NamespacedName, &mariadb); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
@@ -160,6 +162,14 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		{
 			Name:      "Init",
 			Reconcile: r.reconcileInit,
+		},
+		{
+			Name:      "Scale out",
+			Reconcile: r.reconcileScaleOut,
+		},
+		{
+			Name:      "Replica recovery",
+			Reconcile: r.reconcileReplicaRecovery,
 		},
 		{
 			Name:      "Storage",
@@ -212,9 +222,11 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 
 	for _, p := range phases {
+		logger.V(1).Info(fmt.Sprintf("Reconcile phase %s", p.Name), "phase", p.Name)
 		result, err := p.Reconcile(ctx, &mariadb)
 		if err != nil {
 			if shouldSkipPhase(err) {
+				logger.V(1).Info(fmt.Sprintf("Skipping phase %s", p.Name), "phase", p.Name)
 				continue
 			}
 			var errBundle *multierror.Error
@@ -268,10 +280,23 @@ func (r *MariaDBReconciler) reconcileSecret(ctx context.Context, mariadb *mariad
 	if mariadb.Spec.PasswordSecretKeyRef != nil {
 		secretKeyRefs = append(secretKeyRefs, *mariadb.Spec.PasswordSecretKeyRef)
 	}
-	galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
-	basicAuth := ptr.Deref(galera.Agent.BasicAuth, mariadbv1alpha1.BasicAuth{})
-	if galera.Enabled && basicAuth.Enabled && !reflect.ValueOf(galera.Agent.BasicAuth.PasswordSecretKeyRef).IsZero() {
-		secretKeyRefs = append(secretKeyRefs, galera.Agent.BasicAuth.PasswordSecretKeyRef)
+
+	if mariadb.IsHAEnabled() {
+		_, agent, err := mariadb.GetDataPlaneAgent()
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("error getting data-plane agent: %v", err)
+		}
+
+		basicAuth := ptr.Deref(agent.BasicAuth, mariadbv1alpha1.BasicAuth{})
+		if basicAuth.Enabled && !reflect.ValueOf(agent.BasicAuth.PasswordSecretKeyRef).IsZero() {
+			secretKeyRefs = append(secretKeyRefs, agent.BasicAuth.PasswordSecretKeyRef)
+		}
+	}
+	if mariadb.IsReplicationEnabled() {
+		replication := ptr.Deref(mariadb.Spec.Replication, mariadbv1alpha1.Replication{})
+		if replication.Replica.ReplPasswordSecretKeyRef != nil {
+			secretKeyRefs = append(secretKeyRefs, *replication.Replica.ReplPasswordSecretKeyRef)
+		}
 	}
 
 	for _, secretKeyRef := range secretKeyRefs {
@@ -333,12 +358,6 @@ func (r *MariaDBReconciler) reconcileConfigMap(ctx context.Context, mariadb *mar
 		}
 	}
 
-	if mariadb.Replication().Enabled && ptr.Deref(mariadb.Replication().ProbesEnabled, false) {
-		configMapKeyRef := mariadb.ReplConfigMapKeyRef()
-		if err := r.ReplicationReconciler.ReconcileProbeConfigMap(ctx, configMapKeyRef, mariadb); err != nil {
-			return ctrl.Result{}, err
-		}
-	}
 	return ctrl.Result{}, nil
 }
 
@@ -374,20 +393,12 @@ func (r *MariaDBReconciler) reconcilePodLabels(ctx context.Context, mariadb *mar
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 
-	podList := corev1.PodList{}
-	listOpts := &client.ListOptions{
-		LabelSelector: klabels.SelectorFromSet(
-			labels.NewLabelsBuilder().
-				WithMariaDBSelectorLabels(mariadb).
-				Build(),
-		),
-		Namespace: mariadb.GetNamespace(),
-	}
-	if err := r.List(ctx, &podList, listOpts); err != nil {
+	pods, err := mdbpod.ListMariaDBPods(ctx, r.Client, mariadb)
+	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error listing Pods: %v", err)
 	}
 
-	for _, pod := range podList.Items {
+	for _, pod := range pods {
 		var role = "replica"
 
 		if pod.Status.PodIP == "" || pod.Spec.NodeName == "" {
@@ -610,36 +621,45 @@ func (r *MariaDBReconciler) reconcileInternalService(ctx context.Context, mariad
 	if mariadb.Spec.ServicePorts != nil {
 		ports = append(ports, kadapter.ToKubernetesSlice(mariadb.Spec.ServicePorts)...)
 	}
-	if mariadb.IsGaleraEnabled() {
-		agent := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{}).Agent
+	if mariadb.IsHAEnabled() {
+		_, agent, err := mariadb.GetDataPlaneAgent()
+		if err != nil {
+			return fmt.Errorf("error getting data-plane agent: %v", err)
+		}
 		ports = append(ports, []corev1.ServicePort{
 			{
-				// App protocol is a fix for istio to recognize protocol before attempting MariaDB Galera cluster Pod-to-Pod communication.
-				// See: https://github.com/istio/istio/issues/38655#issuecomment-1169819447
-				Name:        galeraresources.GaleraClusterPortName,
-				Port:        galeraresources.GaleraClusterPort,
-				AppProtocol: ptr.To[string](galeraresources.MysqlAppProtocol),
-			},
-			{
-				Name:        galeraresources.GaleraISTPortName,
-				Port:        galeraresources.GaleraISTPort,
-				AppProtocol: ptr.To[string](galeraresources.MysqlAppProtocol),
-			},
-			{
-				Name:        galeraresources.GaleraSSTPortName,
-				Port:        galeraresources.GaleraSSTPort,
-				AppProtocol: ptr.To[string](galeraresources.MysqlAppProtocol),
-			},
-			{
-				Name: galeraresources.AgentPortName,
+				Name: agentresources.AgentPortName,
 				Port: agent.Port,
 			},
 			{
-				Name: galeraresources.AgentProbePortName,
+				Name: agentresources.AgentProbePortName,
 				Port: agent.ProbePort,
 			},
 		}...)
+
+		if mariadb.IsGaleraEnabled() {
+			ports = append(ports, []corev1.ServicePort{
+				{
+					// App protocol is a fix for istio to recognize protocol before attempting MariaDB Galera cluster Pod-to-Pod communication.
+					// See: https://github.com/istio/istio/issues/38655#issuecomment-1169819447
+					Name:        galeraresources.GaleraClusterPortName,
+					Port:        galeraresources.GaleraClusterPort,
+					AppProtocol: ptr.To[string](galeraresources.MysqlAppProtocol),
+				},
+				{
+					Name:        galeraresources.GaleraISTPortName,
+					Port:        galeraresources.GaleraISTPort,
+					AppProtocol: ptr.To[string](galeraresources.MysqlAppProtocol),
+				},
+				{
+					Name:        galeraresources.GaleraSSTPortName,
+					Port:        galeraresources.GaleraSSTPort,
+					AppProtocol: ptr.To[string](galeraresources.MysqlAppProtocol),
+				},
+			}...)
+		}
 	}
+
 	selectorLabels :=
 		labels.NewLabelsBuilder().
 			WithMariaDBSelectorLabels(mariadb).
@@ -1070,6 +1090,13 @@ func (r *MariaDBReconciler) patch(ctx context.Context, mariadb *mariadbv1alpha1.
 		return err
 	}
 	return r.Patch(ctx, mariadb, patch)
+}
+
+func (r *MariaDBReconciler) patchMaxScale(ctx context.Context, mxs *mariadbv1alpha1.MaxScale,
+	patcher func(*mariadbv1alpha1.MaxScale)) error {
+	patch := client.MergeFrom(mxs.DeepCopy())
+	patcher(mxs)
+	return r.Patch(ctx, mxs, patch)
 }
 
 // SetupWithManager sets up the controller with the Manager.

@@ -54,7 +54,7 @@ func (r *RBACReconciler) ReconcileMariadbRBAC(ctx context.Context, mariadb *mari
 	if err != nil {
 		return fmt.Errorf("error reconciling ServiceAccount: %v", err)
 	}
-	if !mariadb.IsGaleraEnabled() {
+	if !mariadb.IsHAEnabled() {
 		return nil
 	}
 	role, err := r.reconcileRole(ctx, key, mariadb)
@@ -71,7 +71,11 @@ func (r *RBACReconciler) ReconcileMariadbRBAC(ctx context.Context, mariadb *mari
 		return fmt.Errorf("error reconciling RoleBinding: %v", err)
 	}
 
-	agent := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{}).Agent
+	_, agent, err := mariadb.GetDataPlaneAgent()
+	if err != nil {
+		return fmt.Errorf("error getting data-plane agent: %v", err)
+	}
+
 	k8sAuth := ptr.Deref(agent.KubernetesAuth, mariadbv1alpha1.KubernetesAuth{})
 	if k8sAuth.Enabled {
 		authDelegatorRoleRef := rbacv1.RoleRef{

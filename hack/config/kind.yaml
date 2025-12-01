@@ -9,3 +9,5 @@ nodes:
     image: *image
   - role: worker
     image: *image
+  - role: worker
+    image: *image

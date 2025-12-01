@@ -170,6 +170,13 @@ func validateMonitor(maxscale *mariadbv1alpha1.MaxScale) error {
 				err.Error(),
 			)
 		}
+		if maxscale.Spec.Monitor.Module != mariadbv1alpha1.MonitorModuleMariadb && maxscale.Spec.PrimaryServer != nil {
+			return field.Invalid(
+				field.NewPath("spec").Child("primaryServer"),
+				maxscale.Spec.PrimaryServer,
+				"'spec.primaryServer' should only be provided when the 'mariadbmon' monitor is used",
+			)
+		}
 	}
 	return nil
 }

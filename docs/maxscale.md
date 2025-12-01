@@ -23,6 +23,7 @@ To better understand what MaxScale is capable of you may check the [product page
 - [<code>MaxScale</code> embedded in <code>MariaDB</code>](#maxscale-embedded-in-mariadb)
 - [Defaults](#defaults)
 - [Server configuration](#server-configuration)
+- [Primary server switchover](#primary-server-switchover)
 - [Server maintenance](#server-maintenance)
 - [Configuration](#configuration)
 - [Authentication](#authentication)
@@ -307,9 +308,37 @@ spec:
 - Infer the monitor module (`spec.monitor.module`), so it will need to be provided by the user.
 - Autogenerate authentication credentials (`spec.auth`), so they will need to be provided by the user. See [Authentication](#authentication) section. 
 
+## Primary server switchover
+
+> [!IMPORTANT]  
+> Only the MariaDB Monitor, to be used with MariaDB replication, supports the primary switchover operation.
+
+You can declaratively select the primary server by setting `spec.primaryServer=<server>`:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MaxScale
+metadata:
+  name: maxscale-repl
+spec:
+  primaryServer: mariadb-repl-1
+```
+
+This will trigger a switchover operation and MaxScale will promote the specified server to be the new primary server.
+
+```bash
+kubectl patch maxscale maxscale-repl \
+  --type='merge' \
+  -p '{"spec":{"primaryServer":"mariadb-repl-1"}}'
+  
+kubectl get maxscale
+NAME            READY   STATUS                                  PRIMARY          AGE
+maxscale-repl   False   Switching primary to 'mariadb-repl-1'   mariadb-repl-0   2m15s
+```
+
 ## Server maintenance
 
-You can put servers in maintenance mode by setting `maintenance = true`:
+You can put servers in maintenance mode by setting the server field `maintenance=true`:
 
 ```yaml
 apiVersion: k8s.mariadb.com/v1alpha1
@@ -317,7 +346,6 @@ kind: MaxScale
 metadata:
   name: maxscale-galera
 spec:
-...
   servers:
     - name: mariadb-0
       address: mariadb-galera-0.mariadb-galera-internal.default.svc.cluster.local
@@ -325,8 +353,6 @@ spec:
       protocol: MariaDBBackend
       maintenance: true
 ```
-
-Maintenance mode prevents MaxScale from routing traffic to the server and also excludes it from being elected as the new primary during failover events.
 
 ## Configuration
 

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
 	labels "github.com/mariadb-operator/mariadb-operator/v25/pkg/builder/labels"
@@ -13,6 +14,7 @@ import (
 	galeraresources "github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/galera/resources"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/interfaces"
 	kadapter "github.com/mariadb-operator/mariadb-operator/v25/pkg/kubernetes/adapter"
+	mdbmetadata "github.com/mariadb-operator/mariadb-operator/v25/pkg/metadata"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/statefulset"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -223,10 +225,10 @@ func (b *Builder) BuildPhysicalBackupJob(key types.NamespacedName, backup *maria
 
 	var nodeSelector map[string]string
 	if ptr.Deref(backup.Spec.PodAffinity, true) {
-		// Schedule the Job is in the same node as the MariaDB Pod.
+		// Schedule the Job is in the same node as the MariaDB Pod to be able to attach the data PVC.
 		// Required for ReadWriteOnce storage.
 		nodeSelector = map[string]string{
-			"kubernetes.io/hostname": pod.Spec.NodeName,
+			mdbmetadata.KubernetesHostnameLabel: pod.Spec.NodeName,
 		}
 	}
 
@@ -394,13 +396,73 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 	return job, nil
 }
 
-func (b *Builder) BuildPhysicalBackupRestoreJob(key types.NamespacedName, mariadb *mariadbv1alpha1.MariaDB,
-	podIndex *int) (*batchv1.Job, error) {
-	if mariadb.Spec.BootstrapFrom == nil {
-		return nil, errors.New("spec.bootstrapFrom must be set")
+type PhysicalBackupRestoreOpts struct {
+	TargetRecoveryTime *time.Time
+	Volume             *mariadbv1alpha1.StorageVolumeSource
+	S3                 *mariadbv1alpha1.S3
+	RestoreJob         *mariadbv1alpha1.Job
+	RestoreCommandOpts []command.MariaDBBackupRestoreOpt
+	MariaDBLabels      *bool
+	Affinity           *bool
+	NodeSelector       map[string]string
+}
+
+type PhysicalBackupRestoreOpt func(*PhysicalBackupRestoreOpts) error
+
+func WithBootstrapFrom(bootstrapFrom *mariadbv1alpha1.BootstrapFrom) PhysicalBackupRestoreOpt {
+	return func(opts *PhysicalBackupRestoreOpts) error {
+		opts.TargetRecoveryTime = ptr.To(bootstrapFrom.TargetRecoveryTimeOrDefault())
+		opts.Volume = bootstrapFrom.Volume
+		opts.S3 = bootstrapFrom.S3
+		opts.RestoreJob = bootstrapFrom.RestoreJob
+		return nil
 	}
-	if mariadb.Spec.BootstrapFrom.Volume == nil {
-		return nil, errors.New("spec.bootstrapFrom.volume must be set")
+}
+
+func WithPhysicalBackup(pb *mariadbv1alpha1.PhysicalBackup, targetRecoveryTime time.Time,
+	restoreJob *mariadbv1alpha1.Job, restoreCommandOpts ...command.MariaDBBackupRestoreOpt) PhysicalBackupRestoreOpt {
+	return func(opts *PhysicalBackupRestoreOpts) error {
+		volume, err := pb.Volume()
+		if err != nil {
+			return err
+		}
+		opts.TargetRecoveryTime = ptr.To(targetRecoveryTime)
+		opts.Volume = &volume
+		opts.S3 = pb.Spec.Storage.S3
+		opts.RestoreJob = restoreJob
+		opts.RestoreCommandOpts = restoreCommandOpts
+		return nil
+	}
+}
+
+func WithReplicaRecovery(podToRecover *corev1.Pod) PhysicalBackupRestoreOpt {
+	return func(opts *PhysicalBackupRestoreOpts) error {
+		// By default, both MariaDB Pod and the init Job will have the same labels and affinity rules.
+		// MariaDB Pod will be running, removing the labels and affinity will allow the recovery Job to be scheduled.
+		opts.MariaDBLabels = ptr.To(false)
+		opts.Affinity = ptr.To(false)
+		// Schedule the Job is in the same node as the MariaDB Pod to be able to attach the data PVC.
+		// Required for ReadWriteOnce storage.
+		opts.NodeSelector = map[string]string{
+			mdbmetadata.KubernetesHostnameLabel: podToRecover.Spec.NodeName,
+		}
+		return nil
+	}
+}
+
+func (b *Builder) BuildPhysicalBackupRestoreJob(key types.NamespacedName, mariadb *mariadbv1alpha1.MariaDB,
+	podIndex *int, restoreOpts ...PhysicalBackupRestoreOpt) (*batchv1.Job, error) {
+	opts := PhysicalBackupRestoreOpts{}
+	for _, setOpt := range restoreOpts {
+		if err := setOpt(&opts); err != nil {
+			return nil, fmt.Errorf("error setting restore option: %v", err)
+		}
+	}
+	if opts.TargetRecoveryTime == nil {
+		return nil, errors.New("targetRecoveryTime option must be set")
+	}
+	if opts.Volume == nil {
+		return nil, errors.New("volume option must be set")
 	}
 
 	jobMeta :=
@@ -411,41 +473,45 @@ func (b *Builder) BuildPhysicalBackupRestoreJob(key types.NamespacedName, mariad
 		labels.NewLabelsBuilder().
 			WithMariaDBSelectorLabels(mariadb).
 			Build()
-	podMeta :=
+	podMetaBuilder :=
 		metadata.NewMetadataBuilder(key).
 			WithMetadata(mariadb.Spec.InheritMetadata).
-			WithMetadata(mariadb.Spec.PodMetadata).
-			// MariaDB Pod may have not been created yet.
-			// Include MariaDB selector labels to match anti-affinity.
-			WithLabels(selectorLabels).
-			Build()
+			WithMetadata(mariadb.Spec.PodMetadata)
+	if ptr.Deref(opts.MariaDBLabels, true) {
+		// MariaDB Pod will not be running when creating the init Job.
+		// Add MariaDB selector labels so that:
+		// - The init Job matches anti-affinity rules configured for MariaDB Pods.
+		// - The PVC is provisioned on the same node where MariaDB will run.
+		podMetaBuilder = podMetaBuilder.WithLabels(selectorLabels)
+	}
+	podMeta := podMetaBuilder.Build()
 
 	cmdOpts := []command.BackupOpt{
 		command.WithBackup(
 			batchStorageMountPath,
 			batchBackupTargetFilePath,
 		),
-		command.WithBackupTargetTime(mariadb.Spec.BootstrapFrom.TargetRecoveryTimeOrDefault()),
+		command.WithBackupTargetTime(*opts.TargetRecoveryTime),
 		command.WithOmitCredentials(true),
 	}
-	cmdOpts = append(cmdOpts, s3Opts(mariadb.Spec.BootstrapFrom.S3)...)
+	cmdOpts = append(cmdOpts, s3Opts(opts.S3)...)
 
 	cmd, err := command.NewBackupCommand(cmdOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("error building backup command: %v", err)
 	}
-	restoreCmd, err := cmd.MariadbBackupRestore(mariadb, batchPhysicalBackupDirFullPath)
+	restoreCmd, err := cmd.MariadbBackupRestore(mariadb, batchPhysicalBackupDirFullPath, opts.RestoreCommandOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("error getting mariadb-backup restore command: %v", err)
 	}
 
-	volumes, volumeMounts := jobPhysicalBackupVolumes(*mariadb.Spec.BootstrapFrom.Volume, mariadb.Spec.BootstrapFrom.S3, mariadb, podIndex)
-	restoreJob := ptr.Deref(mariadb.Spec.BootstrapFrom.RestoreJob, mariadbv1alpha1.Job{})
+	volumes, volumeMounts := jobPhysicalBackupVolumes(*opts.Volume, opts.S3, mariadb, podIndex)
+	restoreJob := ptr.Deref(opts.RestoreJob, mariadbv1alpha1.Job{})
 
 	operatorContainer, err := b.jobMariadbOperatorContainer(
 		cmd.MariadbOperatorRestore(mariadbv1alpha1.BackupContentTypePhysical, &batchPhysicalBackupDirFullPath),
 		volumeMounts,
-		jobS3Env(mariadb.Spec.BootstrapFrom.S3),
+		jobS3Env(opts.S3),
 		jobResources(restoreJob.Resources),
 		mariadb,
 		b.env,
@@ -469,8 +535,13 @@ func (b *Builder) BuildPhysicalBackupRestoreJob(key types.NamespacedName, mariad
 	}
 
 	var affinity *corev1.Affinity
-	if mariadb.Spec.Affinity != nil {
+	if ptr.Deref(opts.Affinity, true) && mariadb.Spec.Affinity != nil {
 		affinity = ptr.To(mariadb.Spec.Affinity.ToKubernetesType())
+	}
+
+	nodeSelector := mariadb.Spec.NodeSelector
+	if opts.NodeSelector != nil {
+		nodeSelector = opts.NodeSelector
 	}
 
 	securityContext, err := b.buildPodSecurityContextWithUserGroup(mariadb.Spec.PodSecurityContext, mysqlUser, mysqlGroup)
@@ -491,7 +562,7 @@ func (b *Builder) BuildPhysicalBackupRestoreJob(key types.NamespacedName, mariad
 					InitContainers:     []corev1.Container{*operatorContainer},
 					Containers:         []corev1.Container{*mariadbContainer},
 					Affinity:           affinity,
-					NodeSelector:       mariadb.Spec.NodeSelector,
+					NodeSelector:       nodeSelector,
 					Tolerations:        mariadb.Spec.Tolerations,
 					SecurityContext:    securityContext,
 					ServiceAccountName: ptr.Deref(mariadb.Spec.ServiceAccountName, "default"),
@@ -558,7 +629,7 @@ func (b *Builder) BuildGaleraInitJob(key types.NamespacedName, mariadb *mariadbv
 		}),
 		withMariadbResources(false),
 		withMariadbSelectorLabels(false),
-		withGaleraContainers(false),
+		withDataPlane(false),
 		withGaleraConfig(false),
 		withServiceAccount(false),
 		withPorts(false),
@@ -647,7 +718,7 @@ func (b *Builder) BuildGaleraRecoveryJob(key types.NamespacedName, mariadb *mari
 		withAffinityEnabled(false),
 		withMariadbResources(false),
 		withMariadbSelectorLabels(false),
-		withGaleraContainers(false),
+		withDataPlane(false),
 		withGaleraConfig(true),
 		withServiceAccount(false),
 		withPorts(false),
