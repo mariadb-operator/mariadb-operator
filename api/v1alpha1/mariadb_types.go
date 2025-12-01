@@ -623,12 +623,12 @@ type MariaDBSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	MaxScaleRef *ObjectReference `json:"maxScaleRef,omitempty"`
-	// PointtInTimeRecoveryRef is a reference to a PointInTimeRecovery resource to be used with the current MariaDB.
+	// PointInTimeRecoveryRef is a reference to a PointInTimeRecovery resource to be used with the current MariaDB.
 	// Providing this reference implies configuring binary logs in the MariaDB instance
 	// and binary log archival in the sidecar agent.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	PointtInTimeRecoveryRef *LocalObjectReference `json:"pointInTimeRecoveryRef,omitempty"`
+	PointInTimeRecoveryRef *LocalObjectReference `json:"pointInTimeRecoveryRef,omitempty"`
 	// MaxScale is the MaxScale specification that defines the MaxScale resource to be used with the current MariaDB.
 	// When enabling this field, MaxScaleRef is automatically set.
 	// +optional
