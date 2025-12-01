@@ -59,7 +59,7 @@ const (
 )
 
 func (b *Builder) BuildMariadbStatefulSet(mariadb *mariadbv1alpha1.MariaDB, key types.NamespacedName,
-	podAnnotations map[string]string) (*appsv1.StatefulSet, error) {
+	podAnnotations map[string]string, pitr *mariadbv1alpha1.PointInTimeRecovery) (*appsv1.StatefulSet, error) {
 	objMeta :=
 		metadata.NewMetadataBuilder(key).
 			WithMetadata(mariadb.Spec.InheritMetadata).
@@ -81,6 +81,11 @@ func (b *Builder) BuildMariadbStatefulSet(mariadb *mariadbv1alpha1.MariaDB, key 
 	}
 
 	var mariadbPodOpts []mariadbPodOpt
+	if pitr != nil {
+		mariadbPodOpts = append(mariadbPodOpts,
+			withPointInTimeRecovery(pitr),
+		)
+	}
 	if podAnnotations != nil {
 		mariadbPodOpts = append(mariadbPodOpts,
 			withMeta(&mariadbv1alpha1.Metadata{
