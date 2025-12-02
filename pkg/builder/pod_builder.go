@@ -649,3 +649,24 @@ func maxscaleTLSVolumes(mxs *mariadbv1alpha1.MaxScale) ([]corev1.Volume, []corev
 			},
 		}
 }
+
+func s3Volumes(s3 *mariadbv1alpha1.S3) ([]corev1.Volume, []corev1.VolumeMount) {
+	if s3 != nil && s3.TLS != nil && s3.TLS.Enabled && s3.TLS.CASecretKeyRef != nil {
+		return []corev1.Volume{
+				{
+					Name: S3PKI,
+					VolumeSource: corev1.VolumeSource{
+						Secret: &corev1.SecretVolumeSource{
+							SecretName: s3.TLS.CASecretKeyRef.Name,
+						},
+					},
+				},
+			}, []corev1.VolumeMount{
+				{
+					Name:      S3PKI,
+					MountPath: S3PKIMountPath,
+				},
+			}
+	}
+	return nil, nil
+}

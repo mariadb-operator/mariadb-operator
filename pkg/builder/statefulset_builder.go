@@ -49,6 +49,9 @@ const (
 	ServiceAccountVolume    = "serviceaccount"
 	ServiceAccountMountPath = "/var/run/secrets/kubernetes.io/serviceaccount"
 
+	S3PKI          = "pki-s3"
+	S3PKIMountPath = "/etc/s3/pki"
+
 	mysqlUser     = int64(999)
 	mysqlGroup    = int64(999)
 	maxscaleUser  = int64(998)

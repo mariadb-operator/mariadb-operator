@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"path/filepath"
 	"reflect"
 	"strconv"
 
@@ -27,6 +28,12 @@ var (
 
 	InitContainerName  = "init"
 	AgentContainerName = "agent"
+
+	S3AccessKeyId     = "AWS_ACCESS_KEY_ID"
+	S3SecretAccessKey = "AWS_SECRET_ACCESS_KEY"
+	S3SessionTokenKey = "AWS_SESSION_TOKEN"
+	S3CAPath          = "MARIADB_OPERATOR_S3_CA_PATH"
+	S3SSECCustomerKey = "MARIADB_OPERATOR_S3_SSEC_CUSTOMER_KEY"
 
 	defaultProbe = corev1.Probe{
 		ProbeHandler: corev1.ProbeHandler{
@@ -560,6 +567,54 @@ func mariadbEnv(mariadb *mariadbv1alpha1.MariaDB) ([]corev1.EnvVar, error) {
 	}
 
 	return env, nil
+}
+
+func s3Env(s3 *mariadbv1alpha1.S3) []corev1.EnvVar {
+	if s3 == nil {
+		return nil
+	}
+	var env []corev1.EnvVar
+	if s3.AccessKeyIdSecretKeyRef != nil {
+		env = append(env, corev1.EnvVar{
+			Name: S3AccessKeyId,
+			ValueFrom: &corev1.EnvVarSource{
+				SecretKeyRef: ptr.To(s3.AccessKeyIdSecretKeyRef.ToKubernetesType()),
+			},
+		})
+	}
+	if s3.AccessKeyIdSecretKeyRef != nil {
+		env = append(env, corev1.EnvVar{
+			Name: S3SecretAccessKey,
+			ValueFrom: &corev1.EnvVarSource{
+				SecretKeyRef: ptr.To(s3.SecretAccessKeySecretKeyRef.ToKubernetesType()),
+			},
+		})
+	}
+	if s3.SessionTokenSecretKeyRef != nil {
+		env = append(env, corev1.EnvVar{
+			Name: S3SessionTokenKey,
+			ValueFrom: &corev1.EnvVarSource{
+				SecretKeyRef: ptr.To(s3.SessionTokenSecretKeyRef.ToKubernetesType()),
+			},
+		})
+	}
+	if s3.SSEC != nil {
+		env = append(env, corev1.EnvVar{
+			Name: S3SSECCustomerKey,
+			ValueFrom: &corev1.EnvVarSource{
+				SecretKeyRef: ptr.To(s3.SSEC.CustomerKeySecretKeyRef.ToKubernetesType()),
+			},
+		})
+	}
+
+	tls := ptr.Deref(s3.TLS, mariadbv1alpha1.TLSS3{})
+	if tls.Enabled && tls.CASecretKeyRef != nil {
+		env = append(env, corev1.EnvVar{
+			Name:  S3CAPath,
+			Value: filepath.Join(S3PKIMountPath, s3.TLS.CASecretKeyRef.Key),
+		})
+	}
+	return env
 }
 
 func mariadbStorageVolumeMount(mariadb *mariadbv1alpha1.MariaDB) corev1.VolumeMount {

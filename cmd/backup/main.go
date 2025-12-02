@@ -11,13 +11,11 @@ import (
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/backup"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/builder"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/log"
+	mdbminio "github.com/mariadb-operator/mariadb-operator/v25/pkg/minio"
 	"github.com/spf13/cobra"
 	ctrl "sigs.k8s.io/controller-runtime"
-)
-
-const (
-	s3SSECCustomerKeyEnv = "MARIADB_OPERATOR_S3_SSEC_CUSTOMER_KEY"
 )
 
 var (
@@ -179,15 +177,15 @@ func getBackupProcessor() (backup.BackupProcessor, error) {
 func getBackupStorage(processor backup.BackupProcessor) (backup.BackupStorage, error) {
 	if s3 {
 		logger.Info("configuring S3 backup storage")
-		opts := []backup.S3BackupStorageOpt{
-			backup.WithTLS(s3TLS),
-			backup.WithCACertPath(s3CACertPath),
-			backup.WithRegion(s3Region),
-			backup.WithPrefix(s3Prefix),
+		opts := []mdbminio.MinioOpt{
+			mdbminio.WithTLS(s3TLS),
+			mdbminio.WithCACertPath(s3CACertPath),
+			mdbminio.WithRegion(s3Region),
+			mdbminio.WithPrefix(s3Prefix),
 		}
-		if ssecKey := os.Getenv(s3SSECCustomerKeyEnv); ssecKey != "" {
+		if ssecKey := os.Getenv(builder.S3SSECCustomerKey); ssecKey != "" {
 			logger.Info("configuring S3 SSE-C encryption")
-			opts = append(opts, backup.WithSSECCustomerKey(ssecKey))
+			opts = append(opts, mdbminio.WithSSECCustomerKey(ssecKey))
 		}
 		return backup.NewS3BackupStorage(
 			path,
