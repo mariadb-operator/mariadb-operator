@@ -113,7 +113,7 @@ spec:
       tls:
         enabled: true
 ```
-By leaving out the `accessKeyIdSecretKeyRef` and `secretAccessKeySecretKeyRef credentials and pointing to the correct `serviceAccountName`, the backup Job will use the dynamic credentials from EKS.
+By leaving out the `accessKeyIdSecretKeyRef` and `secretAccessKeySecretKeyRef` credentials and pointing to the correct `serviceAccountName`, the backup Job will use the dynamic credentials from EKS.
 
 #### Scheduling
 
