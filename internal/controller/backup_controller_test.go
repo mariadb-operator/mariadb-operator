@@ -161,6 +161,25 @@ var _ = Describe("Backup", Label("basic"), func() {
 			),
 			testS3Backup,
 		),
+		Entry("should reconcile a CronJob with S3 storage and starting deadline seconds",
+			"backup-s3-scheduled-with-starting-deadline-test",
+			applyDecoratorChain(
+				buildBackupWithS3Storage("test-backup", ""),
+				decorateBackupWithSchedule,
+				decorateBackupWithStartingDeadlineSeconds,
+			),
+			testS3Backup,
+		),
+		Entry(
+			"should reconcile a CronJob with S3 storage with prefix and starting deadline seconds",
+			"backup-s3-scheduled-with-starting-deadline-test-prefix",
+			applyDecoratorChain(
+				buildBackupWithS3Storage("test-backup", "mariadb"),
+				decorateBackupWithSchedule,
+				decorateBackupWithStartingDeadlineSeconds,
+			),
+			testS3Backup,
+		),
 		Entry("should reconcile a CronJob with PVC storage and time zone setting",
 			"backup-pvc-scheduled-with-tz-test",
 			applyDecoratorChain(
@@ -385,10 +404,11 @@ func testBackupCronJob(backup *mariadbv1alpha1.Backup) {
 	backup.Spec.SuccessfulJobsHistoryLimit = ptr.To[int32](7)
 	backup.Spec.FailedJobsHistoryLimit = ptr.To[int32](7)
 	backup.Spec.TimeZone = ptr.To("Europe/Madrid")
-	By("Updating a CronJob's history limits and time zone")
+	backup.Spec.StartingDeadlineSeconds = ptr.To[int64](120)
+	By("Updating a CronJob's history limits, time zone, and starting deadline seconds")
 	Expect(k8sClient.Patch(testCtx, backup, patch)).To(Succeed())
 
-	By("Expecting to update the CronJob history limits and time zone eventually")
+	By("Expecting to update the CronJob history limits, time zone, and starting deadline seconds eventually")
 	Eventually(func() bool {
 		var cronJob batchv1.CronJob
 		if k8sClient.Get(testCtx, client.ObjectKeyFromObject(backup), &cronJob) != nil {
@@ -465,6 +485,11 @@ func decorateBackupWithStagingStorage(backup *mariadbv1alpha1.Backup) *mariadbv1
 	return backup
 }
 
+func decorateBackupWithStartingDeadlineSeconds(backup *mariadbv1alpha1.Backup) *mariadbv1alpha1.Backup {
+	backup.Spec.StartingDeadlineSeconds = ptr.To[int64](60)
+	return backup
+}
+
 func buildBackupWithS3Storage(bucket, prefix string) func(key types.NamespacedName) *mariadbv1alpha1.Backup {
 	return func(key types.NamespacedName) *mariadbv1alpha1.Backup {
 		return getBackupWithS3Storage(key, bucket, prefix)
@@ -477,5 +502,6 @@ func assertBackupCronJobTemplateSpecsEqual(cronJob batchv1.CronJob, backup *mari
 	isFailedJobHistoryLimitCorrect :=
 		reflect.DeepEqual(cronJob.Spec.FailedJobsHistoryLimit, backup.Spec.FailedJobsHistoryLimit)
 	isTimeZoneCorrect := reflect.DeepEqual(cronJob.Spec.TimeZone, backup.Spec.TimeZone)
-	return isSuccessfulJobHistoryLimitCorrect && isFailedJobHistoryLimitCorrect && isTimeZoneCorrect
+	isStartingDeadlineSecondsCorrect := reflect.DeepEqual(cronJob.Spec.StartingDeadlineSeconds, backup.Spec.StartingDeadlineSeconds)
+	return isSuccessfulJobHistoryLimitCorrect && isFailedJobHistoryLimitCorrect && isTimeZoneCorrect && isStartingDeadlineSecondsCorrect
 }

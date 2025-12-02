@@ -187,6 +187,7 @@ func (r *BatchReconciler) reconcileCronJob(ctx context.Context, key types.Namesp
 	existingCronJob.Spec.FailedJobsHistoryLimit = desiredCronJob.Spec.FailedJobsHistoryLimit
 	existingCronJob.Spec.SuccessfulJobsHistoryLimit = desiredCronJob.Spec.SuccessfulJobsHistoryLimit
 	existingCronJob.Spec.TimeZone = desiredCronJob.Spec.TimeZone
+	existingCronJob.Spec.StartingDeadlineSeconds = desiredCronJob.Spec.StartingDeadlineSeconds
 	existingCronJob.Spec.Schedule = desiredCronJob.Spec.Schedule
 	existingCronJob.Spec.Suspend = desiredCronJob.Spec.Suspend
 	existingCronJob.Spec.JobTemplate.Spec.BackoffLimit = desiredCronJob.Spec.JobTemplate.Spec.BackoffLimit

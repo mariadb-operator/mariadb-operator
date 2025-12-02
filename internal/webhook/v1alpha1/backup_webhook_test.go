@@ -241,6 +241,46 @@ var _ = Describe("Backup webhook", func() {
 				true,
 			),
 			Entry(
+				"Invalid starting deadline seconds",
+				&v1alpha1.Backup{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "backup-invalid-starting-deadline-seconds",
+						Namespace: testNamespace,
+					},
+					Spec: v1alpha1.BackupSpec{
+						JobContainerTemplate: v1alpha1.JobContainerTemplate{
+							Resources: &v1alpha1.ResourceRequirements{
+								Requests: corev1.ResourceList{
+									"cpu": resource.MustParse("100m"),
+								},
+							},
+						},
+						Schedule: &v1alpha1.Schedule{
+							Cron: "*/1 * * * *",
+						},
+						Compression: v1alpha1.CompressGzip,
+						Storage: v1alpha1.BackupStorage{
+							S3: &v1alpha1.S3{
+								Bucket:   "test",
+								Endpoint: "test",
+							},
+						},
+						MariaDBRef: v1alpha1.MariaDBRef{
+							ObjectReference: v1alpha1.ObjectReference{
+								Name: "mariadb-webhook",
+							},
+							WaitForIt: true,
+						},
+						BackoffLimit:  10,
+						RestartPolicy: corev1.RestartPolicyOnFailure,
+						CronJobTemplate: v1alpha1.CronJobTemplate{
+							StartingDeadlineSeconds: ptr.To[int64](-5),
+						},
+					},
+				},
+				true,
+			),
+			Entry(
 				"Invalid staging storage",
 				&v1alpha1.Backup{
 					ObjectMeta: metav1.ObjectMeta{
@@ -287,6 +327,46 @@ var _ = Describe("Backup webhook", func() {
 					},
 				},
 				true,
+			),
+			Entry(
+				"Valid with starting deadline seconds",
+				&v1alpha1.Backup{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "backup-valid-starting-deadline-seconds",
+						Namespace: testNamespace,
+					},
+					Spec: v1alpha1.BackupSpec{
+						JobContainerTemplate: v1alpha1.JobContainerTemplate{
+							Resources: &v1alpha1.ResourceRequirements{
+								Requests: corev1.ResourceList{
+									"cpu": resource.MustParse("100m"),
+								},
+							},
+						},
+						Schedule: &v1alpha1.Schedule{
+							Cron: "*/1 * * * *",
+						},
+						Compression: v1alpha1.CompressGzip,
+						Storage: v1alpha1.BackupStorage{
+							S3: &v1alpha1.S3{
+								Bucket:   "test",
+								Endpoint: "test",
+							},
+						},
+						MariaDBRef: v1alpha1.MariaDBRef{
+							ObjectReference: v1alpha1.ObjectReference{
+								Name: "mariadb-webhook",
+							},
+							WaitForIt: true,
+						},
+						BackoffLimit:  10,
+						RestartPolicy: corev1.RestartPolicyOnFailure,
+						CronJobTemplate: v1alpha1.CronJobTemplate{
+							StartingDeadlineSeconds: ptr.To[int64](60),
+						},
+					},
+				},
+				false,
 			),
 			Entry(
 				"Valid",
@@ -453,6 +533,20 @@ var _ = Describe("Backup webhook", func() {
 				"Updating with wrong FailedJobsHistoryLimit",
 				func(bmdb *v1alpha1.Backup) {
 					bmdb.Spec.FailedJobsHistoryLimit = ptr.To[int32](-5)
+				},
+				true,
+			),
+			Entry(
+				"Updating StartingDeadlineSeconds",
+				func(bmdb *v1alpha1.Backup) {
+					bmdb.Spec.StartingDeadlineSeconds = ptr.To[int64](120)
+				},
+				false,
+			),
+			Entry(
+				"Updating with wrong StartingDeadlineSeconds",
+				func(bmdb *v1alpha1.Backup) {
+					bmdb.Spec.StartingDeadlineSeconds = ptr.To[int64](-5)
 				},
 				true,
 			),
