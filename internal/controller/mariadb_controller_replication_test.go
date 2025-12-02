@@ -379,7 +379,6 @@ var _ = Describe("MariaDB replication restore from backup", Ordered, func() {
 					// No cleanup for S3
 				}
 			},
-			
 		),
 		Entry(
 			"from volume snapshot",
