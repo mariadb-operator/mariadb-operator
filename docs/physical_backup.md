@@ -135,9 +135,9 @@ You can enable server-side encryption using your own encryption key (SSE-C) by p
 ```yaml
 apiVersion: v1
 kind: Secret
+type: Opaque
 metadata:
   name: ssec-key
-type: Opaque
 stringData:
   # 32-byte key encoded in base64 (use: openssl rand -base64 32)
   customer-key: YWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXoxMjM0NTY=
