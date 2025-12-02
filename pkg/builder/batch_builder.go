@@ -27,8 +27,6 @@ const (
 	batchStorageVolume    = "backup"
 	batchStorageMountPath = "/backup"
 	batchScriptsVolume    = "scripts"
-	batchS3PKI            = "s3-pki"
-	batchS3PKIMountPath   = "/s3/pki"
 	batchScriptsMountPath = "/opt"
 	batchScriptsSqlFile   = "job.sql"
 	batchBackupDirFull    = "full"
@@ -894,7 +892,7 @@ func s3Opts(s3 *mariadbv1alpha1.S3) []command.BackupOpt {
 		command.WithS3TLS(tls.Enabled),
 	}
 	if tls.Enabled && tls.CASecretKeyRef != nil {
-		caCertPath := filepath.Join(batchS3PKIMountPath, s3.TLS.CASecretKeyRef.Key)
+		caCertPath := filepath.Join(S3PKIMountPath, s3.TLS.CASecretKeyRef.Key)
 		cmdOpts = append(cmdOpts, command.WithS3CACertPath(caCertPath))
 	}
 	return cmdOpts

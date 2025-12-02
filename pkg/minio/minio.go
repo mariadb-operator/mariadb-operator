@@ -144,11 +144,11 @@ func (c *Client) getFilePath(fileName string) string {
 
 // getSSEC returns the SSE-C encryption object if SSECCustomerKey is configured.
 // The key is expected to be base64 encoded and must be 32 bytes (256 bits) when decoded.
-func (s *Client) getSSEC() (encrypt.ServerSide, error) {
-	if s.SSECCustomerKey == "" {
+func (c *Client) getSSEC() (encrypt.ServerSide, error) {
+	if c.SSECCustomerKey == "" {
 		return nil, nil
 	}
-	key, err := base64.StdEncoding.DecodeString(s.SSECCustomerKey)
+	key, err := base64.StdEncoding.DecodeString(c.SSECCustomerKey)
 	if err != nil {
 		return nil, fmt.Errorf("error decoding SSE-C key from base64: %v", err)
 	}
