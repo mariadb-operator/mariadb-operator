@@ -363,11 +363,14 @@ var _ = Describe("MariaDB replication restore from backup", Ordered, func() {
 		Entry(
 			"from physical backup",
 			types.NamespacedName{Name: "replication-s3-backup-test", Namespace: key.Namespace},
-			buildPhysicalBackupWithS3Storage(key, "test-replication-restore-from-backup", ""),
+			applyDecoratorChain(
+				buildPhysicalBackupWithS3Storage(key, "test-replication-restore-from-backup", ""),
+				decoratePhysicalBackupWithSSEC,
+			),
 			func(backupKey types.NamespacedName) *mariadbv1alpha1.BootstrapFrom {
 				return &mariadbv1alpha1.BootstrapFrom{
 					BackupContentType:  mariadbv1alpha1.BackupContentTypePhysical,
-					S3:                 getS3WithBucket("test-replication-restore-from-backup", ""),
+					S3:                 getS3Storage("test-replication-restore-from-backup", "", withSSEC()),
 					TargetRecoveryTime: &metav1.Time{Time: time.Now()},
 				}
 			},
@@ -376,6 +379,7 @@ var _ = Describe("MariaDB replication restore from backup", Ordered, func() {
 					// No cleanup for S3
 				}
 			},
+			
 		),
 		Entry(
 			"from volume snapshot",

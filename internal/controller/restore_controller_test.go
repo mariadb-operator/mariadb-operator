@@ -374,7 +374,7 @@ func testS3BackupRestore(key types.NamespacedName, bucket, prefix string, stagin
 				WaitForIt: true,
 			},
 			RestoreSource: mariadbv1alpha1.RestoreSource{
-				S3: getS3WithBucket(bucket, prefix),
+				S3: getS3Storage(bucket, prefix),
 			},
 		},
 	}

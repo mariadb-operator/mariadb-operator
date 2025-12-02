@@ -68,6 +68,15 @@ var _ = Describe("PhysicalBackup", Label("basic"), func() {
 			testPhysicalBackup,
 		),
 		Entry(
+			"should reconcile a Job with S3 storage and SSEC",
+			"physicalbackup-job-s3-ssec-test",
+			applyDecoratorChain(
+				buildPhysicalBackupWithS3Storage(testMdbkey, "test-physicalbackup", ""),
+				decoratePhysicalBackupWithSSEC,
+			),
+			testPhysicalBackup,
+		),
+		Entry(
 			"should reconcile a Job with S3 storage and staging storage",
 			"physicalbackup-job-s3-staging-test",
 			applyDecoratorChain(

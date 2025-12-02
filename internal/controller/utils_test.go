@@ -52,17 +52,14 @@ var (
 		Name:      "emdb-test",
 		Namespace: testNamespace,
 	}
-
 	testPwdKey = types.NamespacedName{
 		Name:      "password",
 		Namespace: testNamespace,
 	}
-
 	testEmulatedExternalPwdKey = types.NamespacedName{
 		Name:      "password-emulated-external",
 		Namespace: testNamespace,
 	}
-
 	testPwdSecretKey        = "password"
 	testPwdMetricsSecretKey = "metrics"
 	testUser                = "test"
@@ -81,8 +78,18 @@ var (
 	testTLSClientCARef   *mariadbv1alpha1.LocalObjectReference
 	testTLSClientCertRef *mariadbv1alpha1.LocalObjectReference
 	testTLSRequirements  *mariadbv1alpha1.TLSRequirements
-	testDatabase         = "test"
-	testConnKey          = types.NamespacedName{
+	testSSECKey          = types.NamespacedName{
+		Name:      "test-ssec-key",
+		Namespace: testNamespace,
+	}
+	testSSEC = mariadbv1alpha1.SecretKeySelector{
+		LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+			Name: testSSECKey.Name,
+		},
+		Key: "customer-key",
+	}
+	testDatabase = "test"
+	testConnKey  = types.NamespacedName{
 		Name:      "conn",
 		Namespace: testNamespace,
 	}
@@ -120,6 +127,17 @@ func testCreateInitialData(ctx context.Context, env environment.OperatorEnv) {
 		},
 	}
 	Expect(k8sClient.Create(ctx, &password)).To(Succeed())
+
+	ssecKey := corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      testSSEC.Name,
+			Namespace: testNamespace,
+		},
+		Data: map[string][]byte{
+			testSSEC.Key: []byte("YWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXoxMjM0NTY="),
+		},
+	}
+	Expect(k8sClient.Create(ctx, &ssecKey)).To(Succeed())
 
 	mdb := mariadbv1alpha1.MariaDB{
 		ObjectMeta: metav1.ObjectMeta{
@@ -370,10 +388,13 @@ max_allowed_packet=256M`),
 
 func testCleanupInitialData(ctx context.Context) {
 	var password corev1.Secret
+	var ssec corev1.Secret
 	var externalPassword corev1.Secret
 	var emdb mariadbv1alpha1.ExternalMariaDB
 	Expect(k8sClient.Get(ctx, testPwdKey, &password)).To(Succeed())
 	Expect(k8sClient.Delete(ctx, &password)).To(Succeed())
+	Expect(k8sClient.Get(ctx, testSSECKey, &ssec)).To(Succeed())
+	Expect(k8sClient.Delete(ctx, &ssec)).To(Succeed())
 	deleteMariadb(testMdbkey, false)
 	Expect(k8sClient.Get(ctx, testEMdbkey, &emdb)).To(Succeed())
 	Expect(k8sClient.Delete(ctx, &emdb)).To(Succeed())
@@ -817,8 +838,24 @@ func applyMaxscaleTestConfig(mxs *mariadbv1alpha1.MaxScale) *mariadbv1alpha1.Max
 	return mxs
 }
 
-func getS3WithBucket(bucket, prefix string) *mariadbv1alpha1.S3 {
-	return &mariadbv1alpha1.S3{
+type s3StorageOptions struct {
+	ssec bool
+}
+
+type s3StorageOpt func(*s3StorageOptions)
+
+func withSSEC() s3StorageOpt {
+	return func(sso *s3StorageOptions) {
+		sso.ssec = true
+	}
+}
+
+func getS3Storage(bucket, prefix string, s3Opts ...s3StorageOpt) *mariadbv1alpha1.S3 {
+	opts := &s3StorageOptions{}
+	for _, setOpt := range s3Opts {
+		setOpt(opts)
+	}
+	s3 := &mariadbv1alpha1.S3{
 		Bucket:   bucket,
 		Prefix:   prefix,
 		Endpoint: "minio.minio.svc.cluster.local:9000",
@@ -845,6 +882,12 @@ func getS3WithBucket(bucket, prefix string) *mariadbv1alpha1.S3 {
 			},
 		},
 	}
+	if opts.ssec {
+		s3.SSEC = &mariadbv1alpha1.SSECConfig{
+			CustomerKeySecretKeyRef: testSSEC,
+		}
+	}
+	return s3
 }
 
 func getBackupWithStorage(key types.NamespacedName, storage mariadbv1alpha1.BackupStorage) *mariadbv1alpha1.Backup {
@@ -932,7 +975,7 @@ func getBackupWithPVCStorage(key types.NamespacedName) *mariadbv1alpha1.Backup {
 
 func getBackupWithS3Storage(key types.NamespacedName, bucket, prefix string) *mariadbv1alpha1.Backup {
 	return getBackupWithStorage(key, mariadbv1alpha1.BackupStorage{
-		S3: getS3WithBucket(bucket, prefix),
+		S3: getS3Storage(bucket, prefix),
 	})
 }
 
@@ -988,6 +1031,15 @@ func decoratePhysicalBackupWithBzip2Compression(backup *mariadbv1alpha1.Physical
 	return backup
 }
 
+func decoratePhysicalBackupWithSSEC(backup *mariadbv1alpha1.PhysicalBackup) *mariadbv1alpha1.PhysicalBackup {
+	if backup.Spec.Storage.S3 != nil {
+		backup.Spec.Storage.S3.SSEC = &mariadbv1alpha1.SSECConfig{
+			CustomerKeySecretKeyRef: testSSEC,
+		}
+	}
+	return backup
+}
+
 func decoratePhysicalBackupWithStagingStorage(backup *mariadbv1alpha1.PhysicalBackup) *mariadbv1alpha1.PhysicalBackup {
 	backup.Spec.StagingStorage = &mariadbv1alpha1.BackupStagingStorage{
 		PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimSpec{
@@ -1026,7 +1078,7 @@ func buildPhysicalBackupWithPVCStorage(mariadbKey types.NamespacedName) physical
 func buildPhysicalBackupWithS3Storage(mariadbKey types.NamespacedName, bucket, prefix string) physicalBackupBuilder {
 	return func(key types.NamespacedName) *mariadbv1alpha1.PhysicalBackup {
 		return getPhysicalBackupWithStorage(key, mariadbKey, mariadbv1alpha1.PhysicalBackupStorage{
-			S3: getS3WithBucket(bucket, prefix),
+			S3: getS3Storage(bucket, prefix),
 		})
 	}
 }
