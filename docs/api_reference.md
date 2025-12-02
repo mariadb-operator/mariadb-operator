@@ -2499,7 +2499,6 @@ _Appears in:_
 | `secretAccessKeySecretKeyRef` _[SecretKeySelector](#secretkeyselector)_ | AccessKeyIdSecretKeyRef is a reference to a Secret key containing the S3 secret key. |  |  |
 | `sessionTokenSecretKeyRef` _[SecretKeySelector](#secretkeyselector)_ | SessionTokenSecretKeyRef is a reference to a Secret key containing the S3 session token. |  |  |
 | `tls` _[TLSS3](#tlss3)_ | TLS provides the configuration required to establish TLS connections with S3. |  |  |
-| `ssec` _[SSECConfig](#ssecconfig)_ | SSEC is a reference to a Secret containing the SSE-C (Server-Side Encryption with Customer-Provided Keys) key.<br />The secret must contain a 32-byte key (256 bits) in the specified key.<br />This enables server-side encryption where you provide and manage the encryption key. |  |  |
 
 
 #### SQLTemplate
@@ -2520,22 +2519,6 @@ _Appears in:_
 | `requeueInterval` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#duration-v1-meta)_ | RequeueInterval is used to perform requeue reconciliations. |  |  |
 | `retryInterval` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#duration-v1-meta)_ | RetryInterval is the interval used to perform retries. |  |  |
 | `cleanupPolicy` _[CleanupPolicy](#cleanuppolicy)_ | CleanupPolicy defines the behavior for cleaning up a SQL resource. |  | Enum: [Skip Delete] <br /> |
-
-
-#### SSECConfig
-
-
-
-SSECConfig defines the configuration for SSE-C (Server-Side Encryption with Customer-Provided Keys).
-
-
-
-_Appears in:_
-- [S3](#s3)
-
-| Field | Description | Default | Validation |
-| --- | --- | --- | --- |
-| `customerKeySecretKeyRef` _[SecretKeySelector](#secretkeyselector)_ | CustomerKeySecretKeyRef is a reference to a Secret key containing the SSE-C customer-provided encryption key.<br />The key must be a 32-byte (256-bit) key encoded in base64. |  | Required: \{\} <br /> |
 
 
 #### SST
@@ -2592,7 +2575,6 @@ _Appears in:_
 - [MariaDBSpec](#mariadbspec)
 - [PasswordPlugin](#passwordplugin)
 - [S3](#s3)
-- [SSECConfig](#ssecconfig)
 - [SqlJobSpec](#sqljobspec)
 - [TLSS3](#tlss3)
 - [UserSpec](#userspec)
