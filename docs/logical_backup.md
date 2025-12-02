@@ -173,6 +173,58 @@ Currently the following compression algorithms are supported:
 
 `compression` is defaulted to `none` by the operator.
 
+#### Server-Side Encryption with Customer-Provided Keys (SSE-C)
+
+You can enable server-side encryption using your own encryption key (SSE-C) by providing a reference to a `Secret` containing a 32-byte (256-bit) key encoded in base64:
+
+```yaml
+apiVersion: v1
+kind: Secret
+type: Opaque
+metadata:
+  name: ssec-key
+stringData:
+  # 32-byte key encoded in base64 (use: openssl rand -base64 32)
+  customer-key: YWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXoxMjM0NTY=
+```
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: Backup
+metadata:
+  name: backup
+spec:
+  mariaDbRef:
+    name: mariadb
+  storage:
+    s3:
+      bucket: backups
+      prefix: mariadb
+      endpoint: minio.minio.svc.cluster.local:9000
+      region: us-east-1
+      accessKeyIdSecretKeyRef:
+        name: minio
+        key: access-key-id
+      secretAccessKeySecretKeyRef:
+        name: minio
+        key: secret-access-key
+      tls:
+        enabled: true
+        caSecretKeyRef:
+          name: minio-ca
+          key: tls.crt
+      ssec:
+        customerKeySecretKeyRef:
+          name: ssec-key
+          key: customer-key
+```
+
+> [!IMPORTANT]
+> When using SSE-C, you are responsible for managing and securely storing the encryption key. If you lose the key, you will not be able to decrypt your backups. Ensure you have proper key management procedures in place.
+
+> [!NOTE]
+> When restoring from SSE-C encrypted backups, the same key must be provided in the `Restore` CR or `bootstrapFrom` configuration.
+
 ## `Restore` CR
 
 You can easily restore a `Backup` in your `MariaDB` instance by creating the following resource:

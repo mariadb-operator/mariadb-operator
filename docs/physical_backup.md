@@ -8,6 +8,7 @@
 - [Storage types](#storage-types)
 - [Scheduling](#scheduling)
 - [Compression](#compression)
+- [Server-Side Encryption with Customer-Provided Keys (SSE-C)](#server-side-encryption-with-customer-provided-keys-sse-c)
 - [Retention policy](#retention-policy)
 - [Restoration](#restoration)
 - [Target recovery time](#target-recovery-time)
@@ -126,6 +127,56 @@ spec:
 ```
 
 `compression` is defaulted to `none` by the operator.
+
+## Server-Side Encryption with Customer-Provided Keys (SSE-C)
+
+You can enable server-side encryption using your own encryption key (SSE-C) by providing a reference to a `Secret` containing a 32-byte (256-bit) key encoded in base64:
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ssec-key
+type: Opaque
+stringData:
+  # 32-byte key encoded in base64 (use: openssl rand -base64 32)
+  customer-key: YWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXoxMjM0NTY=
+```
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: PhysicalBackup
+metadata:
+  name: physicalbackup
+spec:
+  mariaDbRef:
+    name: mariadb
+  storage:
+    s3:
+      bucket: physicalbackups
+      endpoint: minio.minio.svc.cluster.local:9000
+      accessKeyIdSecretKeyRef:
+        name: minio
+        key: access-key-id
+      secretAccessKeySecretKeyRef:
+        name: minio
+        key: secret-access-key
+      tls:
+        enabled: true
+        caSecretKeyRef:
+          name: minio-ca
+          key: ca.crt
+      ssec:
+        customerKeySecretKeyRef:
+          name: ssec-key
+          key: customer-key
+```
+
+> [!IMPORTANT]
+> When using SSE-C, you are responsible for managing and securely storing the encryption key. If you lose the key, you will not be able to decrypt your backups. Ensure you have proper key management procedures in place.
+
+> [!NOTE]
+> When restoring from SSE-C encrypted backups via `bootstrapFrom`, the same key must be provided in the S3 configuration.
 
 ## Retention policy
 
