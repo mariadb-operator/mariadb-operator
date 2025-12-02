@@ -445,7 +445,7 @@ var _ = Describe("MariaDB Galera lifecycle", Ordered, func() {
 })
 
 var _ = Describe("MariaDB Galera disaster recovery", Ordered, func() {
-	It("should bootstrap from PhysicalBackup",  func() {
+	It("should bootstrap from PhysicalBackup", func() {
 		key := types.NamespacedName{
 			Name:      "mariadb-galera",
 			Namespace: testNamespace,
