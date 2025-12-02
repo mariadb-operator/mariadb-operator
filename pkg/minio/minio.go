@@ -1,20 +1,27 @@
 package minio
 
 import (
+	"context"
 	"crypto/x509"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"net/http"
 	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
+	"github.com/minio/minio-go/v7/pkg/encrypt"
 )
 
 type MinioOpts struct {
-	TLS        bool
-	CACertPath string
-	Region     string
+	TLS             bool
+	CACertPath      string
+	Region          string
+	Prefix          string
+	SSECCustomerKey string
 }
 
 type MinioOpt func(m *MinioOpts)
@@ -37,7 +44,26 @@ func WithRegion(region string) MinioOpt {
 	}
 }
 
-func NewMinioClient(endpoint string, mOpts ...MinioOpt) (*minio.Client, error) {
+func WithPrefix(prefix string) MinioOpt {
+	return func(m *MinioOpts) {
+		m.Prefix = prefix
+	}
+}
+
+func WithSSECCustomerKey(ssecCustomerKey string) MinioOpt {
+	return func(m *MinioOpts) {
+		m.SSECCustomerKey = ssecCustomerKey
+	}
+}
+
+type Client struct {
+	*minio.Client
+	MinioOpts
+	basePath string
+	bucket   string
+}
+
+func NewMinioClient(basePath, bucket, endpoint string, mOpts ...MinioOpt) (*Client, error) {
 	opts := MinioOpts{}
 	for _, setOpt := range mOpts {
 		setOpt(&opts)
@@ -51,7 +77,86 @@ func NewMinioClient(endpoint string, mOpts ...MinioOpt) (*minio.Client, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error creating Minio client: %v", err)
 	}
-	return client, nil
+	return &Client{
+		Client:    client,
+		MinioOpts: opts,
+		basePath:  basePath,
+		bucket:    bucket,
+	}, nil
+}
+
+func (c *Client) FPutObjectWithOptions(ctx context.Context, fileName string) error {
+	prefixedFilePath := c.PrefixedFileName(fileName)
+	filePath := c.getFilePath(fileName)
+	putOpts := minio.PutObjectOptions{}
+	if sse, err := c.getSSEC(); err != nil {
+		return fmt.Errorf("error creating SSE-C encryption: %v", err)
+	} else if sse != nil {
+		putOpts.ServerSideEncryption = sse
+	}
+
+	_, err := c.FPutObject(ctx, c.bucket, prefixedFilePath, filePath, putOpts)
+	return err
+}
+
+func (c *Client) FGetObjectWithOptions(ctx context.Context, fileName string) error {
+	prefixedFilePath := c.PrefixedFileName(fileName)
+	filePath := c.getFilePath(fileName)
+	getOpts := minio.GetObjectOptions{}
+	if sse, err := c.getSSEC(); err != nil {
+		return fmt.Errorf("error creating SSE-C encryption: %v", err)
+	} else if sse != nil {
+		getOpts.ServerSideEncryption = sse
+	}
+
+	return c.FGetObject(ctx, c.bucket, prefixedFilePath, filePath, getOpts)
+}
+
+func (c *Client) RemoveWithOptions(ctx context.Context, fileName string) error {
+	prefixedFilePath := c.PrefixedFileName(fileName)
+	return c.RemoveObject(ctx, c.bucket, prefixedFilePath, minio.RemoveObjectOptions{})
+}
+
+func (c *Client) PrefixedFileName(fileName string) string {
+	return c.GetPrefix() + filepath.Base(fileName)
+}
+
+func (c *Client) UnprefixedFilename(fileName string) string {
+	return strings.TrimPrefix(filepath.Base(fileName), c.GetPrefix())
+}
+
+func (c *Client) GetPrefix() string {
+	if c.Prefix == "" || c.Prefix == "/" {
+		return "" // object store doesn't use slash for root path
+	}
+	if !strings.HasSuffix(c.Prefix, "/") {
+		return c.Prefix + "/" // ending slash is required for avoiding matching like "foo/" and "foobar/" with prefix "foo"
+	}
+	return c.Prefix
+}
+
+func (c *Client) getFilePath(fileName string) string {
+	if filepath.IsAbs(fileName) {
+		return fileName
+	}
+	return filepath.Join(c.basePath, fileName)
+}
+
+// getSSEC returns the SSE-C encryption object if SSECCustomerKey is configured.
+// The key is expected to be base64 encoded and must be 32 bytes (256 bits) when decoded.
+func (s *Client) getSSEC() (encrypt.ServerSide, error) {
+	if s.SSECCustomerKey == "" {
+		return nil, nil
+	}
+	key, err := base64.StdEncoding.DecodeString(s.SSECCustomerKey)
+	if err != nil {
+		return nil, fmt.Errorf("error decoding SSE-C key from base64: %v", err)
+	}
+	sse, err := encrypt.NewSSEC(key)
+	if err != nil {
+		return nil, fmt.Errorf("error creating SSE-C encryption: %v", err)
+	}
+	return sse, nil
 }
 
 func getMinioOptions(opts MinioOpts) (*minio.Options, error) {
