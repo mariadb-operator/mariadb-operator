@@ -8,12 +8,17 @@ if [ -z "$MINIO_VERSION" ]; then
   exit 1
 fi
 
-helm repo add minio https://charts.min.io/
-helm repo update minio
+if [ -z "$HELM" ]; then
+  echo "HELM environment variable is mandatory"
+  exit 1
+fi
+
+${HELM} repo add minio https://charts.min.io/
+${HELM} repo update minio
 
 CIDR_PREFIX=$(go run ./hack/get_kind_cidr_prefix/main.go)
 
-helm upgrade --install \
+${HELM} upgrade --install \
   --version $MINIO_VERSION \
   -n minio --create-namespace \
   -f $CONFIG/minio.yaml \

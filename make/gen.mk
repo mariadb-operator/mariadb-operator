@@ -34,16 +34,16 @@ MANIFESTS_DIR ?= deploy/manifests
 
 MANIFESTS_BUNDLE_VALUES ?= deploy/manifests/helm-values.yaml 
 .PHONY: manifests-bundle-helm
-manifests-bundle-helm: manifests manifests-crds ## Generate manifests bundle from helm chart.
+manifests-bundle-helm: helm manifests manifests-crds ## Generate manifests bundle from helm chart.
 	mkdir -p $(MANIFESTS_DIR)
-	helm template -n default mariadb-operator $(HELM_DIR) -f $(MANIFESTS_BUNDLE_VALUES) >> $(MANIFESTS_DIR)/manifests.yaml
+	$(HELM) template -n default mariadb-operator $(HELM_DIR) -f $(MANIFESTS_BUNDLE_VALUES) >> $(MANIFESTS_DIR)/manifests.yaml
 
 MANIFESTS_BUNDLE_MIN_VALUES ?= deploy/manifests/helm-values.min.yaml 
 .PHONY: manifests-bundle-helm-min
-manifests-bundle-helm-min: manifests manifests-crds ## Generate minimal manifests bundle.
+manifests-bundle-helm-min: helm manifests manifests-crds ## Generate minimal manifests bundle.
 	mkdir -p $(MANIFESTS_DIR)
 	cat $(MANIFESTS_CRDS_DIR)/crds.yaml > $(MANIFESTS_DIR)/manifests.min.yaml
-	helm template -n default mariadb-operator $(HELM_DIR) -f $(MANIFESTS_BUNDLE_MIN_VALUES) >> $(MANIFESTS_DIR)/manifests.min.yaml
+	$(HELM) template -n default mariadb-operator $(HELM_DIR) -f $(MANIFESTS_BUNDLE_MIN_VALUES) >> $(MANIFESTS_DIR)/manifests.min.yaml
 
 .PHONY: manifests-bundle
 manifests-bundle: manifests-crds manifests-bundle-helm manifests-bundle-helm-min ## Generate manifests.
