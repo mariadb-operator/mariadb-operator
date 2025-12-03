@@ -54,7 +54,7 @@ func (u *Uploader) Upload(ctx context.Context, binlog string, mdb *mariadbv1alph
 		return err != nil
 	}
 	if err := retry.OnError(uploadBackoff, uploadIsRetriable, func() error {
-		return u.s3Client.PrefixedFPutObject(ctx, targetFile)
+		return u.s3Client.FPutObjectWithOptions(ctx, targetFile)
 	}); err != nil {
 		return fmt.Errorf("error uploading binlog %s: %v", binlog, err)
 	}
