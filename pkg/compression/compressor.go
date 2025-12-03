@@ -129,7 +129,7 @@ func (c *Bzip2BackupCompressor) Decompress(fileName string) (string, error) {
 
 func compressFile(path, fileName string, logger logr.Logger, compressFn func(dst io.Writer, src io.Reader) error) error {
 	filePath := getFilePath(path, fileName)
-	logger.Info("compressing backup", "file", filePath)
+	logger.Info("compressing file", "file", filePath)
 
 	compressedFilePath := filePath + ".tmp"
 
