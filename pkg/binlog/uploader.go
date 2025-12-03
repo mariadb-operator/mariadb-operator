@@ -39,7 +39,10 @@ func NewUploader(fileManager *filemanager.FileManager, s3Client *mariadbminio.Cl
 func (u *Uploader) Upload(ctx context.Context, binlog string, mdb *mariadbv1alpha1.MariaDB,
 	pitr *mariadbv1alpha1.PointInTimeRecovery) error {
 	startTime := time.Now()
-	targetFile := u.fileManager.StateFilePath(binlog)
+	targetFile, err := u.getTargetFile(binlog, pitr)
+	if err != nil {
+		return fmt.Errorf("error getting target file: %v", err)
+	}
 	u.logger.Info(
 		"Uploading binary log",
 		"binlog", binlog,
@@ -77,6 +80,19 @@ func (u *Uploader) Upload(ctx context.Context, binlog string, mdb *mariadbv1alph
 		"total-time", time.Since(startTime),
 	)
 	return nil
+}
+
+func (u *Uploader) getTargetFile(binlog string, pitr *mariadbv1alpha1.PointInTimeRecovery) (string, error) {
+	targetFile := u.fileManager.StateFilePath(binlog)
+
+	if pitr.Spec.Compression != "" && pitr.Spec.Compression != mariadbv1alpha1.CompressNone {
+		ext, err := pitr.Spec.Compression.Extension()
+		if err != nil {
+			return "", fmt.Errorf("error getting compression algorithm extension: %v", err)
+		}
+		targetFile = fmt.Sprintf("%s.%s", targetFile, ext)
+	}
+	return targetFile, nil
 }
 
 func (u *Uploader) patchStatus(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
