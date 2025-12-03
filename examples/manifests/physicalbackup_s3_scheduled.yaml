@@ -28,6 +28,11 @@ spec:
         caSecretKeyRef:
           name: minio-ca
           key: ca.crt
+      # Encrypt backups on the object storage server side using a customer key.
+      # ssec:
+      #   customerKeySecretKeyRef:
+      #     name: ssec-key
+      #     key: customer-key
   # Define a PVC to use as staging area for keeping the backups while they are being processed.
   stagingStorage:
     persistentVolumeClaim:

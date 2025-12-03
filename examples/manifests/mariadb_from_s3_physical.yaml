@@ -26,6 +26,10 @@ spec:
         caSecretKeyRef:
           name: minio-ca
           key: ca.crt
+      # ssec:
+      #   customerKeySecretKeyRef:
+      #     name: ssec-key
+      #     key: customer-key
     backupContentType: Physical
     targetRecoveryTime: 2025-06-17T08:07:00Z
     stagingStorage:
