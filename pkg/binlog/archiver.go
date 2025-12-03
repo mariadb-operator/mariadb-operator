@@ -7,10 +7,12 @@ import (
 	"errors"
 	"fmt"
 	"path"
+	"strings"
 	"time"
 
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
+	mariadbcompression "github.com/mariadb-operator/mariadb-operator/v25/pkg/compression"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/environment"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/filemanager"
 	mariadbminio "github.com/mariadb-operator/mariadb-operator/v25/pkg/minio"
@@ -54,6 +56,10 @@ func (a *Archiver) Start(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	compressor, err := a.getCompressor(pitr.Spec.Compression)
+	if err != nil {
+		return err
+	}
 
 	sqlClient, err := sql.NewLocalClientWithPodEnv(ctx, a.env)
 	if err != nil {
@@ -65,6 +71,7 @@ func (a *Archiver) Start(ctx context.Context) error {
 		a.fileManager,
 		s3Client,
 		a.client,
+		compressor,
 		a.logger.WithName("uploader"),
 	)
 
@@ -109,6 +116,31 @@ func (a *Archiver) getPointInTimeRecovery(ctx context.Context, mdb *mariadbv1alp
 		return nil, fmt.Errorf("error getting PointInTimeRecovery: %v", err)
 	}
 	return &pitr, nil
+}
+
+func (a *Archiver) getS3Client(s3 *mariadbv1alpha1.S3, env *environment.PodEnvironment) (*mariadbminio.Client, error) {
+	tls := ptr.Deref(s3.TLS, mariadbv1alpha1.TLSS3{})
+	minioOpts := []mariadbminio.MinioOpt{
+		mariadbminio.WithTLS(tls.Enabled),
+		mariadbminio.WithRegion(s3.Region),
+		mariadbminio.WithPrefix(s3.Prefix),
+	}
+	if env.MariadbOperatorS3CAPath != "" {
+		minioOpts = append(minioOpts, mariadbminio.WithCACertPath(env.MariadbOperatorS3CAPath))
+	}
+
+	client, err := mariadbminio.NewMinioClient(a.fileManager.GetStateDir(), s3.Bucket, s3.Endpoint, minioOpts...)
+	if err != nil {
+		return nil, fmt.Errorf("error getting S3 client: %v", err)
+	}
+	return client, nil
+}
+
+func (a *Archiver) getCompressor(calg mariadbv1alpha1.CompressAlgorithm) (mariadbcompression.Compressor, error) {
+	if err := calg.Validate(); err != nil {
+		return nil, fmt.Errorf("compression algorithm not supported: %v", err)
+	}
+	return mariadbcompression.NewCompressor(calg, a.fileManager.GetStateDir(), getUncompressedBinlog, a.logger)
 }
 
 func (a *Archiver) archiveBinaryLogs(ctx context.Context, mdb *mariadbv1alpha1.MariaDB, pitr *mariadbv1alpha1.PointInTimeRecovery,
@@ -215,29 +247,25 @@ func (a *Archiver) getBinaryLogs(ctx context.Context, sqlClient *sql.Client) ([]
 	return binlogs, nil
 }
 
+func getUncompressedBinlog(compressedBinlog string) (string, error) {
+	// compressed binlog format: mariadb-bin.000001.bz2
+	parts := strings.Split(compressedBinlog, ".")
+	if len(parts) != 3 {
+		return "", fmt.Errorf("invalid compressed binlog file name: %s", compressedBinlog)
+	}
+
+	calg := mariadbv1alpha1.CompressAlgorithm(parts[2])
+	if err := calg.Validate(); err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%s.%s", parts[0], parts[1]), nil
+}
+
 func (a *Archiver) patchStatus(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 	patcher func(*mariadbv1alpha1.MariaDBStatus)) error {
 	patch := client.MergeFrom(mariadb.DeepCopy())
 	patcher(&mariadb.Status)
 	return a.client.Status().Patch(ctx, mariadb, patch)
-}
-
-func (a *Archiver) getS3Client(s3 *mariadbv1alpha1.S3, env *environment.PodEnvironment) (*mariadbminio.Client, error) {
-	tls := ptr.Deref(s3.TLS, mariadbv1alpha1.TLSS3{})
-	minioOpts := []mariadbminio.MinioOpt{
-		mariadbminio.WithTLS(tls.Enabled),
-		mariadbminio.WithRegion(s3.Region),
-		mariadbminio.WithPrefix(s3.Prefix),
-	}
-	if env.MariadbOperatorS3CAPath != "" {
-		minioOpts = append(minioOpts, mariadbminio.WithCACertPath(env.MariadbOperatorS3CAPath))
-	}
-
-	client, err := mariadbminio.NewMinioClient(a.fileManager.GetStateDir(), s3.Bucket, s3.Endpoint, minioOpts...)
-	if err != nil {
-		return nil, fmt.Errorf("error getting S3 client: %v", err)
-	}
-	return client, nil
 }
 
 func shouldResetArchivedBinlog(binlogs []string, lastArchivedBinlog string,
