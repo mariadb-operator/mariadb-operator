@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/compression"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/filemanager"
 	mariadbminio "github.com/mariadb-operator/mariadb-operator/v25/pkg/minio"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -23,15 +24,17 @@ type Uploader struct {
 	fileManager *filemanager.FileManager
 	s3Client    *mariadbminio.Client
 	client      client.Client
+	compressor  compression.Compressor
 	logger      logr.Logger
 }
 
 func NewUploader(fileManager *filemanager.FileManager, s3Client *mariadbminio.Client,
-	client client.Client, logger logr.Logger) *Uploader {
+	client client.Client, compressor compression.Compressor, logger logr.Logger) *Uploader {
 	return &Uploader{
 		fileManager: fileManager,
 		s3Client:    s3Client,
 		client:      client,
+		compressor:  compressor,
 		logger:      logger,
 	}
 }
@@ -49,6 +52,10 @@ func (u *Uploader) Upload(ctx context.Context, binlog string, mdb *mariadbv1alph
 		"target-file", targetFile,
 		"start-time", startTime,
 	)
+
+	if err := u.compressor.Compress(targetFile); err != nil {
+		return fmt.Errorf("error compressing binlog: %v", err)
+	}
 
 	uploadIsRetriable := func(err error) bool {
 		if ctx.Err() != nil {
