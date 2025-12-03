@@ -11,7 +11,7 @@ spec:
   replicas: 3
   replication:
     enabled: true
-  pointInTimeRecovery:
+  pointInTimeRecoveryRef:
     name: pitr
   service:
     type: LoadBalancer
@@ -62,7 +62,7 @@ metadata:
   name: physicalbackup-daily
 spec:
   mariaDbRef:
-    name: mariadb
+    name: mariadb-repl
   schedule:
     cron: "0 0 * * *"
     suspend: false
