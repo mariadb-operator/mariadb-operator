@@ -1,4 +1,4 @@
-package backup
+package compression
 
 import (
 	"os"
@@ -6,14 +6,17 @@ import (
 	"testing"
 
 	"github.com/go-logr/logr"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/backup"
 )
 
-func TestBackupCompressors(t *testing.T) {
+func TestCompressors(t *testing.T) {
 	content := "Lorem ipsum dolor sit amet, consectetur adipiscing elit."
-	processor := NewLogicalBackupProcessor()
+	processor := backup.NewLogicalBackupProcessor()
+	logger := logr.Discard()
+
 	tests := []struct {
 		name            string
-		newCompressorFn func(basePath string, processor BackupProcessor, logger logr.Logger) BackupCompressor
+		newCompressorFn func(basePath string, getUncompressedFilename GetUncompressedFilenameFn, logger logr.Logger) Compressor
 		fileName        string
 	}{
 		{
@@ -41,7 +44,7 @@ func TestBackupCompressors(t *testing.T) {
 			}
 			defer os.RemoveAll(dir)
 
-			compressor := tt.newCompressorFn(dir, processor, logger)
+			compressor := tt.newCompressorFn(dir, processor.GetUncompressedBackupFile, logger)
 
 			filePath := filepath.Join(dir, tt.fileName)
 			if err := os.WriteFile(filePath, []byte(content), 0644); err != nil {

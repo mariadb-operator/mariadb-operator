@@ -12,6 +12,7 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/backup"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/builder"
+	mdbcompression "github.com/mariadb-operator/mariadb-operator/v25/pkg/compression"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/log"
 	mdbminio "github.com/mariadb-operator/mariadb-operator/v25/pkg/minio"
 	"github.com/spf13/cobra"
@@ -100,7 +101,7 @@ var RootCmd = &cobra.Command{
 			logger.Error(err, "error getting backup storage")
 			os.Exit(1)
 		}
-		backupCompressor, err := getBackupCompressor(backupProcessor)
+		backupCompressor, err := getCompressor(backupProcessor)
 		if err != nil {
 			logger.Error(err, "error getting backup compressor")
 			os.Exit(1)
@@ -200,26 +201,12 @@ func getBackupStorage(processor backup.BackupProcessor) (backup.BackupStorage, e
 	return backup.NewFileSystemBackupStorage(path, processor, logger.WithName("file-system-storage")), nil
 }
 
-func getBackupCompressor(processor backup.BackupProcessor) (backup.BackupCompressor, error) {
+func getCompressor(processor backup.BackupProcessor) (mdbcompression.Compressor, error) {
 	calg := mariadbv1alpha1.CompressAlgorithm(compression)
 	if err := calg.Validate(); err != nil {
 		return nil, fmt.Errorf("compression algorithm not supported: %v", err)
 	}
-	return getBackupCompressorWithAlgorithm(calg, processor)
-}
-
-func getBackupCompressorWithAlgorithm(calg mariadbv1alpha1.CompressAlgorithm,
-	processor backup.BackupProcessor) (backup.BackupCompressor, error) {
-	switch calg {
-	case mariadbv1alpha1.CompressNone:
-		return backup.NewNopCompressor(path, processor, logger.WithName("nop-compressor")), nil
-	case mariadbv1alpha1.CompressGzip:
-		return backup.NewGzipBackupCompressor(path, processor, logger.WithName("gzip-compressor")), nil
-	case mariadbv1alpha1.CompressBzip2:
-		return backup.NewBzip2BackupCompressor(path, processor, logger.WithName("bzip2-compressor")), nil
-	default:
-		return nil, fmt.Errorf("unsupported compression algorithm: %v", calg)
-	}
+	return mdbcompression.NewCompressor(calg, path, processor.GetUncompressedBackupFile, logger)
 }
 
 func readTargetFile() (string, error) {
