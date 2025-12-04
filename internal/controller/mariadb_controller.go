@@ -102,6 +102,7 @@ type patcherMariaDB func(*mariadbv1alpha1.MariaDBStatus) error
 //+kubebuilder:rbac:groups=k8s.mariadb.com,resources=mariadbs/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=k8s.mariadb.com,resources=mariadbs/finalizers,verbs=update
 //+kubebuilder:rbac:groups=k8s.mariadb.com,resources=maxscale;restores;connections;users;grants;physicalbackups,verbs=list;watch;create;patch
+//+kubebuilder:rbac:groups=k8s.mariadb.com,resources=pointintimerecoveries,verbs=get
 //+kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;patch;delete
 //+kubebuilder:rbac:groups="",resources=services,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups="",resources=secrets,verbs=list;watch;create;patch
@@ -371,8 +372,15 @@ func (r *MariaDBReconciler) reconcileStatefulSet(ctx context.Context, mariadb *m
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error getting Pod annotations: %v", err)
 	}
+	var pitr *mariadbv1alpha1.PointInTimeRecovery
+	if mariadb.Spec.PointInTimeRecoveryRef != nil {
+		pitr, err = r.RefResolver.PointInTimeRecovery(ctx, mariadb.Spec.PointInTimeRecoveryRef, mariadb.Namespace)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("error getting PointInTimeRecovery: %v", err)
+		}
+	}
 
-	desiredSts, err := r.Builder.BuildMariadbStatefulSet(mariadb, key, updateAnnotations)
+	desiredSts, err := r.Builder.BuildMariadbStatefulSet(mariadb, key, updateAnnotations, pitr)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error building StatefulSet: %v", err)
 	}
