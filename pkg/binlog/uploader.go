@@ -8,7 +8,6 @@ import (
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/compression"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/filemanager"
 	mariadbminio "github.com/mariadb-operator/mariadb-operator/v25/pkg/minio"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/util/retry"
@@ -21,21 +20,21 @@ var uploadBackoff = wait.Backoff{
 }
 
 type Uploader struct {
-	fileManager *filemanager.FileManager
-	s3Client    *mariadbminio.Client
-	client      client.Client
-	compressor  compression.Compressor
-	logger      logr.Logger
+	dataDir    string
+	s3Client   *mariadbminio.Client
+	client     client.Client
+	compressor compression.Compressor
+	logger     logr.Logger
 }
 
-func NewUploader(fileManager *filemanager.FileManager, s3Client *mariadbminio.Client,
-	client client.Client, compressor compression.Compressor, logger logr.Logger) *Uploader {
+func NewUploader(dataDir string, s3Client *mariadbminio.Client, client client.Client,
+	compressor compression.Compressor, logger logr.Logger) *Uploader {
 	return &Uploader{
-		fileManager: fileManager,
-		s3Client:    s3Client,
-		client:      client,
-		compressor:  compressor,
-		logger:      logger,
+		dataDir:    dataDir,
+		s3Client:   s3Client,
+		client:     client,
+		compressor: compressor,
+		logger:     logger,
 	}
 }
 
@@ -90,7 +89,7 @@ func (u *Uploader) Upload(ctx context.Context, binlog string, mdb *mariadbv1alph
 }
 
 func (u *Uploader) getTargetFile(binlog string, pitr *mariadbv1alpha1.PointInTimeRecovery) (string, error) {
-	targetFile := u.fileManager.StateFilePath(binlog)
+	targetFile := binlog
 
 	if pitr.Spec.Compression != "" && pitr.Spec.Compression != mariadbv1alpha1.CompressNone {
 		ext, err := pitr.Spec.Compression.Extension()

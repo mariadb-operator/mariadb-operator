@@ -2,10 +2,10 @@ package binlog
 
 import (
 	"bufio"
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"path"
 	"strings"
 	"time"
@@ -14,7 +14,6 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
 	mariadbcompression "github.com/mariadb-operator/mariadb-operator/v25/pkg/compression"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/environment"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/filemanager"
 	mariadbminio "github.com/mariadb-operator/mariadb-operator/v25/pkg/minio"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/sql"
 	"k8s.io/apimachinery/pkg/types"
@@ -25,55 +24,24 @@ import (
 var archiveInterval = 10 * time.Minute
 
 type Archiver struct {
-	fileManager *filemanager.FileManager
-	env         *environment.PodEnvironment
-	client      client.Client
-	logger      logr.Logger
+	dataDir string
+	env     *environment.PodEnvironment
+	client  client.Client
+	logger  logr.Logger
 }
 
-func NewArchiver(fileManager *filemanager.FileManager, env *environment.PodEnvironment, client *client.Client,
+func NewArchiver(dataDir string, env *environment.PodEnvironment, client *client.Client,
 	logger logr.Logger) *Archiver {
 	return &Archiver{
-		fileManager: fileManager,
-		env:         env,
-		client:      *client,
-		logger:      logger,
+		dataDir: dataDir,
+		env:     env,
+		client:  *client,
+		logger:  logger,
 	}
 }
 
 func (a *Archiver) Start(ctx context.Context) error {
 	a.logger.Info("Starting binary log archiver")
-
-	mdb, err := a.getMariaDB(ctx)
-	if err != nil {
-		return err
-	}
-	pitr, err := a.getPointInTimeRecovery(ctx, mdb)
-	if err != nil {
-		return err
-	}
-	s3Client, err := a.getS3Client(&pitr.Spec.S3, a.env)
-	if err != nil {
-		return err
-	}
-	compressor, err := a.getCompressor(pitr.Spec.Compression)
-	if err != nil {
-		return err
-	}
-
-	sqlClient, err := sql.NewLocalClientWithPodEnv(ctx, a.env)
-	if err != nil {
-		return fmt.Errorf("error getting SQL client: %v", err)
-	}
-	defer sqlClient.Close()
-
-	uploader := NewUploader(
-		a.fileManager,
-		s3Client,
-		a.client,
-		compressor,
-		a.logger.WithName("uploader"),
-	)
 
 	ticker := time.NewTicker(archiveInterval)
 	defer ticker.Stop()
@@ -84,7 +52,7 @@ func (a *Archiver) Start(ctx context.Context) error {
 			a.logger.Info("Stopping binary log archiver")
 			return nil
 		case <-ticker.C:
-			if err := a.archiveBinaryLogs(ctx, mdb, pitr, sqlClient, uploader); err != nil {
+			if err := a.archiveBinaryLogs(ctx); err != nil {
 				a.logger.Error(err, "Error archiving binary logs")
 			}
 		}
@@ -129,7 +97,7 @@ func (a *Archiver) getS3Client(s3 *mariadbv1alpha1.S3, env *environment.PodEnvir
 		minioOpts = append(minioOpts, mariadbminio.WithCACertPath(env.MariadbOperatorS3CAPath))
 	}
 
-	client, err := mariadbminio.NewMinioClient(a.fileManager.GetStateDir(), s3.Bucket, s3.Endpoint, minioOpts...)
+	client, err := mariadbminio.NewMinioClient(a.dataDir, s3.Bucket, s3.Endpoint, minioOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("error getting S3 client: %v", err)
 	}
@@ -137,22 +105,34 @@ func (a *Archiver) getS3Client(s3 *mariadbv1alpha1.S3, env *environment.PodEnvir
 }
 
 func (a *Archiver) getCompressor(calg mariadbv1alpha1.CompressAlgorithm) (mariadbcompression.Compressor, error) {
+	if calg == mariadbv1alpha1.CompressAlgorithm("") {
+		calg = mariadbv1alpha1.CompressNone
+	}
 	if err := calg.Validate(); err != nil {
 		return nil, fmt.Errorf("compression algorithm not supported: %v", err)
 	}
-	return mariadbcompression.NewCompressor(calg, a.fileManager.GetStateDir(), getUncompressedBinlog, a.logger)
+	return mariadbcompression.NewCompressor(calg, a.dataDir, getUncompressedBinlog, a.logger)
 }
 
-func (a *Archiver) archiveBinaryLogs(ctx context.Context, mdb *mariadbv1alpha1.MariaDB, pitr *mariadbv1alpha1.PointInTimeRecovery,
-	sqlClient *sql.Client, uploader *Uploader) error {
+func (a *Archiver) archiveBinaryLogs(ctx context.Context) error {
+	mdb, err := a.getMariaDB(ctx)
+	if err != nil {
+		return err
+	}
 	if mdb.Status.CurrentPrimary == nil ||
 		(mdb.Status.CurrentPrimary != nil && *mdb.Status.CurrentPrimary != a.env.PodName) {
+		a.logger.V(1).Info("Current primary not set or current Pod is a replica. Skipping binary log archival...")
 		return nil
 	}
 	if mdb.IsSwitchoverRequired() || mdb.IsSwitchingPrimary() {
 		return errors.New("unable to start archival: Switchover operation pending/ongoing")
 	}
 	a.logger.Info("Archiving binary logs")
+
+	pitr, err := a.getPointInTimeRecovery(ctx, mdb)
+	if err != nil {
+		return err
+	}
 
 	isConfigured, err := a.physicalBackupConfigured(ctx, &pitr.Spec.PhysicalBackupRef, mdb)
 	if err != nil {
@@ -161,6 +141,12 @@ func (a *Archiver) archiveBinaryLogs(ctx context.Context, mdb *mariadbv1alpha1.M
 	if !isConfigured {
 		return errors.New("PhysicalBackup not configured, stopping binary log archival") //nolint:staticcheck
 	}
+
+	sqlClient, err := sql.NewLocalClientWithPodEnv(ctx, a.env)
+	if err != nil {
+		return fmt.Errorf("error getting SQL client: %v", err)
+	}
+	defer sqlClient.Close()
 
 	binlogs, err := a.getBinaryLogs(ctx, sqlClient)
 	if err != nil {
@@ -186,6 +172,22 @@ func (a *Archiver) archiveBinaryLogs(ctx context.Context, mdb *mariadbv1alpha1.M
 		}
 	}
 
+	s3Client, err := a.getS3Client(&pitr.Spec.S3, a.env)
+	if err != nil {
+		return err
+	}
+	compressor, err := a.getCompressor(pitr.Spec.Compression)
+	if err != nil {
+		return err
+	}
+	uploader := NewUploader(
+		a.dataDir,
+		s3Client,
+		a.client,
+		compressor,
+		a.logger.WithName("uploader"),
+	)
+
 	for i := 0; i < len(binlogs); i++ {
 		binlog := binlogs[i]
 		a.logger.V(1).Info("Processing binary log", "binlog", binlog)
@@ -199,7 +201,7 @@ func (a *Archiver) archiveBinaryLogs(ctx context.Context, mdb *mariadbv1alpha1.M
 			num := MustParseBinlogNum(binlog)
 			archivedNum := MustParseBinlogNum(*mdb.Status.PointInTimeRecovery.LastArchivedBinaryLog)
 
-			if num.LessThan(archivedNum) {
+			if num.LessThan(archivedNum) || num.Equal(archivedNum) {
 				a.logger.V(1).Info("Skipping binary log", "binlog", binlog)
 				continue
 			}
@@ -231,13 +233,13 @@ func (a *Archiver) getBinaryLogs(ctx context.Context, sqlClient *sql.Client) ([]
 		return nil, fmt.Errorf("error getting binary log index: %v", err)
 	}
 
-	binlogIndexBytes, err := a.fileManager.ReadStateFile(binaryLogIndex)
+	file, err := os.Open(binaryLogIndex)
 	if err != nil {
-		return nil, fmt.Errorf("error reading binary log index: %v", err)
+		return nil, fmt.Errorf("failed to open binlog index: %w", err)
 	}
 
 	var binlogs []string
-	fileScanner := bufio.NewScanner(bytes.NewReader(binlogIndexBytes))
+	fileScanner := bufio.NewScanner(file)
 	fileScanner.Split(bufio.ScanLines)
 
 	for fileScanner.Scan() {
