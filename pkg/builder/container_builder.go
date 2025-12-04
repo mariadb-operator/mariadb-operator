@@ -204,7 +204,7 @@ func (b *Builder) dataPlaneAgentContainer(mariadb *mariadbv1alpha1.MariaDB, opts
 	if mariadbOpts.pointInTimeRecovery != nil {
 		env = append(env, s3Env(&mariadbOpts.pointInTimeRecovery.Spec.S3)...)
 	}
-	volumeMounts, err := mariadbVolumeMounts(mariadb)
+	volumeMounts, err := mariadbVolumeMounts(mariadb, opts...)
 	if err != nil {
 		return nil, err
 	}
