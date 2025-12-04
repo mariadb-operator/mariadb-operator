@@ -112,9 +112,23 @@ func (r *RBACReconciler) reconcileRole(ctx context.Context, key types.Namespaced
 			},
 			Resources: []string{
 				"mariadbs",
+				"pointintimerecoveries",
 			},
 			Verbs: []string{
 				"get",
+			},
+		},
+		{
+			APIGroups: []string{
+				mariadbv1alpha1.GroupVersion.Group,
+			},
+			Resources: []string{
+				"mariadbs/status",
+			},
+			Verbs: []string{
+				"get",
+				"patch",
+				"update",
 			},
 		},
 		{
