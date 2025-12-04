@@ -41,6 +41,10 @@ func (b *BinlogNum) LessThan(other *BinlogNum) bool {
 	return b.num < other.num
 }
 
+func (b *BinlogNum) Equal(other *BinlogNum) bool {
+	return b.num == other.num
+}
+
 func (b *BinlogNum) GreaterThan(other *BinlogNum) bool {
 	return b.num > other.num
 }
