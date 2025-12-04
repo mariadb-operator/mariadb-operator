@@ -732,6 +732,10 @@ func (c *Client) GtidDomainId(ctx context.Context) (*uint32, error) {
 	return ptr.To(uint32(gtidDomainId)), nil
 }
 
+func (c *Client) BinaryLogIndex(ctx context.Context) (string, error) {
+	return c.SystemVariable(ctx, "log_bin_index")
+}
+
 func (c *Client) GtidBinlogPos(ctx context.Context) (string, error) {
 	return c.SystemVariable(ctx, "gtid_binlog_pos")
 }
@@ -972,10 +976,6 @@ func (c *Client) StatusVariableInt(ctx context.Context, variable string) (int, e
 		return 0, err
 	}
 	return val, nil
-}
-
-func (c *Client) BinaryLogIndex(ctx context.Context) (string, error) {
-	return c.StatusVariable(ctx, "log_bin_index")
 }
 
 func (c *Client) GaleraClusterSize(ctx context.Context) (int, error) {
