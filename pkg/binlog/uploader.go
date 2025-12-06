@@ -3,6 +3,8 @@ package binlog
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -52,7 +54,7 @@ func (u *Uploader) Upload(ctx context.Context, binlog string, mdb *mariadbv1alph
 		"start-time", startTime,
 	)
 
-	if err := u.compressor.Compress(targetFile); err != nil {
+	if err := u.compressor.Compress(binlog, compression.WithCompressedFilename(targetFile)); err != nil {
 		return fmt.Errorf("error compressing binlog: %v", err)
 	}
 
@@ -78,6 +80,10 @@ func (u *Uploader) Upload(ctx context.Context, binlog string, mdb *mariadbv1alph
 		return fmt.Errorf("error patching MariaDB: %v", err)
 	}
 
+	if err := u.cleanupCompressedFile(targetFile, pitr); err != nil {
+		return fmt.Errorf("error cleaning up compressed file: %v", err)
+	}
+
 	u.logger.Info(
 		"Binary log uploaded",
 		"binlog", binlog,
@@ -99,6 +105,13 @@ func (u *Uploader) getTargetFile(binlog string, pitr *mariadbv1alpha1.PointInTim
 		targetFile = fmt.Sprintf("%s.%s", targetFile, ext)
 	}
 	return targetFile, nil
+}
+
+func (u *Uploader) cleanupCompressedFile(targetFile string, pitr *mariadbv1alpha1.PointInTimeRecovery) error {
+	if pitr.Spec.Compression == "" || pitr.Spec.Compression == mariadbv1alpha1.CompressNone {
+		return nil
+	}
+	return os.Remove(filepath.Join(u.dataDir, targetFile))
 }
 
 func (u *Uploader) patchStatus(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
