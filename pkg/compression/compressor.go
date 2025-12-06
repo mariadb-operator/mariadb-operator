@@ -2,6 +2,7 @@ package compression
 
 import (
 	"compress/gzip"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -13,8 +14,20 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
 )
 
+type CompressOptions struct {
+	compressedFileName string
+}
+
+type CompressOpt func(*CompressOptions)
+
+func WithCompressedFilename(comopressedFileName string) CompressOpt {
+	return func(co *CompressOptions) {
+		co.compressedFileName = comopressedFileName
+	}
+}
+
 type Compressor interface {
-	Compress(fileName string) error
+	Compress(fileName string, opts ...CompressOpt) error
 	Decompress(fileName string) (string, error)
 }
 
@@ -44,7 +57,7 @@ func NewNopCompressor(basePath string, getUncompressedFilename GetUncompressedFi
 	}
 }
 
-func (c *NopCompressor) Compress(fileName string) error {
+func (c *NopCompressor) Compress(fileName string, opts ...CompressOpt) error {
 	return nil
 }
 
@@ -66,13 +79,13 @@ func NewGzipBackupCompressor(basePath string, getUncompressedFilename GetUncompr
 	}
 }
 
-func (c *GzipBackupCompressor) Compress(fileName string) error {
+func (c *GzipBackupCompressor) Compress(fileName string, opts ...CompressOpt) error {
 	return compressFile(c.basePath, fileName, c.logger, func(dst io.Writer, src io.Reader) error {
 		writer := gzip.NewWriter(dst)
 		defer writer.Close()
 		_, err := io.Copy(writer, src)
 		return err
-	})
+	}, opts...)
 }
 
 func (c *GzipBackupCompressor) Decompress(fileName string) (string, error) {
@@ -101,7 +114,7 @@ func NewBzip2BackupCompressor(basePath string, getUncompressedFilename GetUncomp
 	}
 }
 
-func (c *Bzip2BackupCompressor) Compress(fileName string) error {
+func (c *Bzip2BackupCompressor) Compress(fileName string, opts ...CompressOpt) error {
 	return compressFile(c.basePath, fileName, c.logger, func(dst io.Writer, src io.Reader) error {
 		writer, err := bzip2.NewWriter(dst,
 			&bzip2.WriterConfig{Level: bzip2.DefaultCompression})
@@ -111,7 +124,7 @@ func (c *Bzip2BackupCompressor) Compress(fileName string) error {
 		defer writer.Close()
 		_, err = io.Copy(writer, src)
 		return err
-	})
+	}, opts...)
 }
 
 func (c *Bzip2BackupCompressor) Decompress(fileName string) (string, error) {
@@ -127,11 +140,24 @@ func (c *Bzip2BackupCompressor) Decompress(fileName string) (string, error) {
 	})
 }
 
-func compressFile(path, fileName string, logger logr.Logger, compressFn func(dst io.Writer, src io.Reader) error) error {
+func compressFile(path, fileName string, logger logr.Logger, compressFn func(dst io.Writer, src io.Reader) error,
+	compressOpts ...CompressOpt) error {
+	opts := CompressOptions{}
+	for _, setOpt := range compressOpts {
+		setOpt(&opts)
+	}
 	filePath := getFilePath(path, fileName)
-	logger.Info("compressing file", "file", filePath)
 
-	compressedFilePath := filePath + ".tmp"
+	var compressedFilePath string
+	if opts.compressedFileName != "" {
+		if fileName == opts.compressedFileName {
+			return errors.New("Compressed file name must be different from plain file name")
+		}
+		compressedFilePath = getFilePath(path, opts.compressedFileName)
+	} else {
+		compressedFilePath = filePath + ".tmp"
+	}
+	logger.Info("compressing file", "file", filePath)
 
 	// compressedFilePath must be closed before renaming. See: https://github.com/mariadb-operator/mariadb-operator/issues/1007
 	if err := func() error {
@@ -158,11 +184,13 @@ func compressFile(path, fileName string, logger logr.Logger, compressFn func(dst
 		return errBundle
 	}
 
-	if err := os.Remove(filePath); err != nil {
-		return err
-	}
-	if err := os.Rename(compressedFilePath, filePath); err != nil {
-		return err
+	if opts.compressedFileName == "" {
+		if err := os.Remove(filePath); err != nil {
+			return err
+		}
+		if err := os.Rename(compressedFilePath, filePath); err != nil {
+			return err
+		}
 	}
 	return nil
 }
