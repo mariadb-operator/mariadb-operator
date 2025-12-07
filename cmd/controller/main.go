@@ -14,6 +14,7 @@ import (
 	agentcmd "github.com/mariadb-operator/mariadb-operator/v25/cmd/agent"
 	backupcmd "github.com/mariadb-operator/mariadb-operator/v25/cmd/backup"
 	initcmd "github.com/mariadb-operator/mariadb-operator/v25/cmd/init"
+	pitrcmd "github.com/mariadb-operator/mariadb-operator/v25/cmd/pitr"
 	"github.com/mariadb-operator/mariadb-operator/v25/internal/controller"
 	webhookv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/internal/webhook/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/backup"
@@ -585,6 +586,7 @@ func main() {
 	rootCmd.AddCommand(certControllerCmd)
 	rootCmd.AddCommand(webhookCmd)
 	rootCmd.AddCommand(backupcmd.RootCmd)
+	rootCmd.AddCommand(pitrcmd.RootCmd)
 	rootCmd.AddCommand(initcmd.RootCmd)
 	rootCmd.AddCommand(agentcmd.RootCmd)
 
