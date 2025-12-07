@@ -25,11 +25,6 @@ type PointInTimeRecoverySpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	ArchiveTimeout *metav1.Duration `json:"archiveTimeout,omitempty"`
-	// MaxRetention defines the retention policy for binary logs. Old binary logs will be purged after every archive cycle.
-	// By default, old binary logs are not purged.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	MaxRetention *metav1.Duration `json:"maxRetention,omitempty"`
 }
 
 // +kubebuilder:object:root=true

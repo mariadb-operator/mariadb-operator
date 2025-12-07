@@ -61,11 +61,6 @@ spec:
                 - bzip2
                 - gzip
                 type: string
-              maxRetention:
-                description: |-
-                  MaxRetention defines the retention policy for binary logs. Old binary logs will be purged after every archive cycle.
-                  By default, old binary logs are not purged.
-                type: string
               physicalBackupRef:
                 description: PhysicalBackupRef is a reference to a PhysicalBackup
                   object that will be used as base backup.
