@@ -1,0 +1,187 @@
+**`{{ .ProjectName }}` [25.10.0](https://github.com/mariadb-operator/mariadb-operator/releases/tag/25.10.0) is here!** 🦭
+
+
+We are thrilled to announce that our __highly available, replication-based topology is now generally available!__ 🎉  It is been quite a journey and we are very excited about this milestone. A huge thank-you to everyone involved, specially for those who actively contributed to the development of this feature, namely @hedgieinsocks and @Michaelpalacce! 🙇🏼 Please refer to the __[Pull Request for additional details](https://github.com/mariadb-operator/mariadb-operator/pull/1441)__ about all the changes introduced in this release. 
+
+If you're upgrading from previous versions, __do not miss the [UPGRADE GUIDE](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/releases/UPGRADE_25.10.0.md)__ for a smooth transition.
+
+## Provisioning a replication cluster
+
+In order to provision a replication cluster, you need to configure a number of `replicas` greater than `1` and set the `replication.enabled=true` in the `MariaDB` CR:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-repl
+spec:
+  replicas: 3
+  replication:
+    enabled: true
+```
+After applying the previous CR, the operator will provision a replication cluster with one primary and two replicas. The operator will take care of setting up replication, configuring the replication user and monitoring the replication status:
+
+```bash
+kubectl get pods
+NAME                                    READY   STATUS    RESTARTS   AGE
+mariadb-repl-0                          2/2     Running   0          2d19h
+mariadb-repl-1                          2/2     Running   0          2d19h
+mariadb-repl-2                          2/2     Running   0          2d19h
+mariadb-repl-metrics-56865fff65-t72kc   1/1     Running   0          2d20h
+
+kubectl get mariadb
+NAME           READY   STATUS    PRIMARY          UPDATES                    AGE
+mariadb-repl   True    Running   mariadb-repl-0   ReplicasFirstPrimaryLast   2d20h
+```
+
+As you can see, the primary can be identified in the `PRIMARY` column of the `kubectl get mariadb` output. You may also inspect the current replication status by checking the `MariaDB` status.
+
+## Primary failover
+
+Whenever the primary `Pod` goes down, the operator will automatically trigger a failover to the furthest advanced replica. This is the default behaviour, and can be configured by setting:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-repl
+spec:
+  replicas: 3
+  replication:
+    enabled: true
+    primary:
+      autoFailover: true
+      autoFailoverDelay: 0s
+```
+
+In this situation, the following status will be reported in the `MariaDB` CR:
+
+```bash
+kubectl get mariadb
+NAME           READY   STATUS                                  PRIMARY          UPDATES                    AGE
+mariadb-repl   False   Switching primary to 'mariadb-repl-1'   mariadb-repl-0   ReplicasFirstPrimaryLast   3d2h 
+
+kubectl get mariadb
+NAME           READY   STATUS    PRIMARY          UPDATES                    AGE
+mariadb-repl   True    Running   mariadb-repl-1   ReplicasFirstPrimaryLast   3d2h
+```
+
+## Scaling out
+
+The operator will scale horizontaly the replication cluster whenever you increase the number of `spec.replicas`. Before doing so, you should specify a template `PhysicalBackup` resource that the operator will use to create the actual `PhysicalBackup` objects to set up new replicas during scaling out events:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-repl
+spec:
+  replication:
+    enabled: true
+    replica:
+      bootstrapFrom:
+        physicalBackupTemplateRef:
+          name: physicalbackup-tpl
+---
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: PhysicalBackup
+metadata:
+  name: physicalbackup-tpl
+spec:
+  mariaDbRef:
+    name: mariadb-repl
+  schedule:
+    suspend: true
+  storage:
+    volumeSnapshot:
+      volumeSnapshotClassName: csi-hostpath-snapclass
+```
+
+After configuring this, you will be able to scale the cluster simply by:
+
+```bash
+kubectl scale mariadb mariadb-repl --replicas=4
+
+kubectl get mariadb
+NAME           READY   STATUS        PRIMARY          UPDATES                    AGE
+mariadb-repl   False   Scaling out   mariadb-repl-1   ReplicasFirstPrimaryLast   3d5h
+
+kubectl get pods
+NAME                                    READY   STATUS    RESTARTS   AGE
+mariadb-repl-0                          2/2     Running   0          137m
+mariadb-repl-1                          2/2     Running   0          3d5h
+mariadb-repl-2                          2/2     Running   0          3d5h
+mariadb-repl-3                          2/2     Running   0          40s
+```
+
+## Replica recovery
+
+The operator has the ability to automatically recover replicas that become unavailable and report a specific error code in the replication status.  For doing so, the operator continiously monitors the replication status of each replica, and whenever they report a known error code, a recovery operation will be triggered.
+
+Similarly to the scaling out operation, you need to define a `PhysicalBackup` template and set a reference to it in the `spec.replication.replica.bootstrapFrom` field of the `MariaDB` CR. Additionally, you need to explicitly enable the replica recovery, as it is disabled by default:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-repl
+spec:
+  replication:
+    enabled: true
+    replica:
+      bootstrapFrom:
+        physicalBackupTemplateRef:
+          name: physicalbackup-tpl
+      recovery:
+        enabled: true
+        errorDurationThreshold: 5m
+```
+
+We will be simulating a [`1236` error](https://mariadb.com/docs/server/reference/error-codes/mariadb-error-codes-1200-to-1299/e1236) in a replica to demostrate how the recovery process works:
+
+> [!CAUTION]
+> Do not perform the following steps in a production environment.
+
+-  Purge the binary logs in the primary:
+```bash
+PRIMARY=$(kubectl get mariadb mariadb-repl -o jsonpath="{.status.currentPrimary}")
+echo "Purging binary logs in primary $PRIMARY"
+kubectl exec -it $PRIMARY -c mariadb -- mariadb -u root -p'MariaDB11!' --ssl=false -e "FLUSH LOGS; PURGE BINARY LOGS BEFORE NOW();"
+```
+
+- Delete the PVC and restart one of the replicas:
+```bash
+REPLICA=$(kubectl get mariadb mariadb-repl -o jsonpath='{.status.replication.replicas}' | jq -r 'keys[]' | head -n1)
+echo "Deleting PVC and restarting replica $REPLICA"
+kubectl delete pvc storage-$REPLICA --wait=false 
+kubectl delete pod $REPLICA --wait=false 
+```
+
+This will trigger a replica recovery operation:
+
+```bash
+kubectl get mariadb
+NAME           READY   STATUS                PRIMARY          UPDATES                    AGE
+mariadb-repl   False   Recovering replicas   mariadb-repl-1   ReplicasFirstPrimaryLast   3d6h
+
+kubectl get pods
+NAME                                                              READY   STATUS            RESTARTS       AGE
+mariadb-repl-0                                                    0/2     PodInitializing   0              22s
+mariadb-repl-0-physicalbackup-init-qn79f                          0/1     Completed         0              8s
+mariadb-repl-1                                                    2/2     Running           0              3d6h
+mariadb-repl-2                                                    2/2     Running           0              3d6h
+mariadb-repl-metrics-56865fff65-t72kc                             1/1     Running           0              3d6h
+mariadb-repl-physicalbackup-replica-recovery-2025102020270r98zr   0/1     Completed         0              31s
+
+kubectl get mariadb
+NAME           READY   STATUS    PRIMARY          UPDATES                    AGE
+mariadb-repl   True    Running   mariadb-repl-1   ReplicasFirstPrimaryLast   3d6h
+```
+
+## Documentation
+
+Please refer to the __[replication docs](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/replication.md)__ for further details.
+
+---
+
+__`{{ .ProjectName }}` needs your support! Please consider contributing by adding yourself to the [list of adopters](https://github.com/mariadb-operator/mariadb-operator/blob/main/ADOPTERS.md) or starring the project! 🌟__

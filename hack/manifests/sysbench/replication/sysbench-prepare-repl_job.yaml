@@ -8,46 +8,22 @@ spec:
       restartPolicy: OnFailure
       containers:
       - name: sysbench-prepare
-        image: zyclonite/sysbench:1.0.21
+        image: severalnines/sysbench
         command:
           - sysbench
           - oltp_read_write
           - --tables=5
           - --table_size=1000000
-          # - --mysql-host=mariadb-repl-primary.default.svc.cluster.local
-          - --mysql-host=maxscale-repl.default.svc.cluster.local
+          - --mysql-host=mariadb-repl-primary.default.svc.cluster.local
+          # - --mysql-host=maxscale-repl.default.svc.cluster.local
           - --mysql-port=3306
           - --mysql-user=sbtest-repl
           - --mysql-password=MariaDB11!
           - --mysql-db=sbtest-repl
-          - --mysql-ssl=on
-          - --mysql-ssl-cipher=AES256
           - prepare
-        volumeMounts:
-          - name: pki
-            mountPath: /etc/pki
-            readOnly: true
-        workingDir: /etc/pki
         resources:
           requests:
             cpu: 500m
             memory: 128Mi
           limits:
             memory: 512Mi
-      volumes:
-        - name: pki
-          projected:
-            sources:
-              - secret:
-                  # name: mariadb-repl-ca-bundle
-                  name: maxscale-repl-ca-bundle
-                  items:
-                    - key: ca.crt
-                      path: cacert.pem
-              - secret:
-                  name: mariadb-repl-client-cert
-                  items:
-                    - key: tls.crt
-                      path: client-cert.pem
-                    - key: tls.key
-                      path: client-key.pem

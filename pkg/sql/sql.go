@@ -9,10 +9,12 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"text/template"
 	"time"
 
+	"github.com/go-logr/logr"
 	"github.com/go-sql-driver/mysql"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/environment"
@@ -21,6 +23,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/refresolver"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/statefulset"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 )
 
 var (
@@ -350,6 +353,64 @@ func (c *Client) Exec(ctx context.Context, sql string, args ...any) error {
 	return err
 }
 
+func (c Client) Exists(ctx context.Context, sql string, args ...any) (bool, error) {
+	rows, err := c.db.QueryContext(ctx, sql, args...)
+	if err != nil {
+		return false, err
+	}
+	defer rows.Close()
+	return rows.Next(), nil
+}
+
+// QueryColumnMaps executes a query and returns all rows as []map[column]value.
+func (c Client) QueryColumnMaps(ctx context.Context, sql string) ([]map[string]string, error) {
+	rows, err := c.db.QueryContext(ctx, sql)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	columns, err := rows.Columns()
+	if err != nil {
+		return nil, err
+	}
+
+	var results []map[string]string
+	for rows.Next() {
+		raw := make([]interface{}, len(columns))
+		dest := make([]interface{}, len(columns))
+		for i := range raw {
+			dest[i] = &raw[i]
+		}
+		if err := rows.Scan(dest...); err != nil {
+			return nil, err
+		}
+
+		row := make(map[string]string, len(columns))
+		for i, col := range columns {
+			row[col] = toString(raw[i])
+		}
+		results = append(results, row)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return results, nil
+}
+
+// QueryColumnMap invokes QueryColumnMaps and returns the first row.
+func (c Client) QueryColumnMap(ctx context.Context, sql string) (map[string]string, error) {
+	rows, err := c.QueryColumnMaps(ctx, sql)
+	if err != nil {
+		return nil, err
+	}
+	if len(rows) == 0 {
+		return nil, fmt.Errorf("no rows returned for query %q", sql)
+	}
+	return rows[0], nil
+}
+
 type CreateUserOpts struct {
 	IdentifiedBy         string
 	IdentifiedByPassword string
@@ -608,15 +669,6 @@ func (c *Client) SetSystemVariable(ctx context.Context, variable string, value s
 	return c.Exec(ctx, sql)
 }
 
-func (c *Client) SetSystemVariables(ctx context.Context, keyVal map[string]string) error {
-	for k, v := range keyVal {
-		if err := c.SetSystemVariable(ctx, k, v); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 func (c *Client) LockTablesWithReadLock(ctx context.Context) error {
 	return c.Exec(ctx, "FLUSH TABLES WITH READ LOCK;")
 }
@@ -666,6 +718,137 @@ func (c *Client) WaitForReplicaGtid(ctx context.Context, gtid string, timeout ti
 	default:
 		return fmt.Errorf("unexpected result: %d", result)
 	}
+}
+
+func (c *Client) GtidDomainId(ctx context.Context) (*uint32, error) {
+	rawGtidDomainId, err := c.SystemVariable(ctx, "gtid_domain_id")
+	if err != nil {
+		return nil, err
+	}
+	gtidDomainId, err := strconv.ParseUint(rawGtidDomainId, 10, 32)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing gtid_domain_id: %v", err)
+	}
+	return ptr.To(uint32(gtidDomainId)), nil
+}
+
+func (c *Client) GtidBinlogPos(ctx context.Context) (string, error) {
+	return c.SystemVariable(ctx, "gtid_binlog_pos")
+}
+
+func (c *Client) GtidSlavePos(ctx context.Context) (string, error) {
+	return c.SystemVariable(ctx, "gtid_slave_pos")
+}
+
+func (c *Client) GtidCurrentPos(ctx context.Context) (string, error) {
+	return c.SystemVariable(ctx, "gtid_current_pos")
+}
+
+func (c *Client) SetGtidSlavePos(ctx context.Context, gtid string) error {
+	if gtid == "" {
+		return errors.New("gtid must not be empty")
+	}
+	return c.Exec(ctx, fmt.Sprintf("SET @@global.gtid_slave_pos='%s';", gtid))
+}
+
+func (c *Client) ResetGtidSlavePos(ctx context.Context) error {
+	return c.Exec(ctx, "SET @@global.gtid_slave_pos='';")
+}
+
+func (c Client) IsReplicationPrimary(ctx context.Context) (bool, error) {
+	return c.Exists(ctx, "SHOW MASTER STATUS")
+}
+
+func (c Client) IsReplicationReplica(ctx context.Context) (bool, error) {
+	return c.Exists(ctx, "SHOW REPLICA STATUS")
+}
+
+// See: https://mariadb.com/docs/server/reference/sql-statements/administrative-sql-statements/show/show-replica-status
+func (c Client) ReplicaStatus(ctx context.Context, logger logr.Logger) (*mariadbv1alpha1.ReplicaStatusVars, error) {
+	row, err := c.QueryColumnMap(ctx, "SHOW REPLICA STATUS")
+	if err != nil {
+		return nil, fmt.Errorf("error getting replica status: %v", err)
+	}
+
+	status := mariadbv1alpha1.ReplicaStatusVars{}
+	if lastIOErrno, ok := row["Last_IO_Errno"]; ok {
+		errno, err := strconv.Atoi(lastIOErrno)
+		if err != nil {
+			logger.Error(err, "error parsing Last_IO_Errno")
+		} else {
+			status.LastIOErrno = ptr.To(errno)
+		}
+	}
+	if lastIOError, ok := row["Last_IO_Error"]; ok {
+		status.LastIOError = ptr.To(lastIOError)
+	}
+
+	if lastSQLErrno, ok := row["Last_SQL_Errno"]; ok {
+		errno, err := strconv.Atoi(lastSQLErrno)
+		if err != nil {
+			logger.Error(err, "error parsing Last_SQL_Errno")
+		} else {
+			status.LastSQLErrno = ptr.To(errno)
+		}
+	}
+	if lastSQLError, ok := row["Last_SQL_Error"]; ok {
+		status.LastSQLError = ptr.To(lastSQLError)
+	}
+
+	if slaveIORunning, ok := row["Slave_IO_Running"]; ok {
+		running, err := parseThreadRunning(slaveIORunning)
+		if err != nil {
+			logger.Error(err, "error parsing Slave_IO_Running")
+		} else {
+			status.SlaveIORunning = ptr.To(running)
+		}
+	}
+	if slaveSQLRunning, ok := row["Slave_SQL_Running"]; ok {
+		running, err := parseThreadRunning(slaveSQLRunning)
+		if err != nil {
+			logger.Error(err, "error parsing Slave_SQL_Running")
+		} else {
+			status.SlaveSQLRunning = ptr.To(running)
+		}
+	}
+
+	// Seconds_Behind_Master may be empty when any of the replication threads are not running. Do not treat nil as 0!
+	if secondsBehindMaster, ok := row["Seconds_Behind_Master"]; ok && secondsBehindMaster != "" {
+		seconds, err := strconv.Atoi(secondsBehindMaster)
+		if err != nil {
+			logger.Error(err, "error parsing Seconds_Behind_Master")
+		} else {
+			status.SecondsBehindMaster = ptr.To(seconds)
+		}
+	}
+
+	if gtidIOPos, ok := row["Gtid_IO_Pos"]; ok && gtidIOPos != "" {
+		status.GtidIOPos = &gtidIOPos
+	}
+
+	gtidCurrentPos, err := c.GtidCurrentPos(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("error getting gtid_current_pos: %v", err)
+	}
+	if gtidCurrentPos != "" {
+		status.GtidCurrentPos = &gtidCurrentPos
+	}
+
+	return &status, nil
+}
+
+func (c Client) HasConnectedReplicas(ctx context.Context) (bool, error) {
+	rows, err := c.QueryColumnMaps(ctx, "SHOW PROCESSLIST")
+	if err != nil {
+		return false, err
+	}
+	for _, row := range rows {
+		cmd := row["Command"]
+		if cmd == "Binlog Dump" || cmd == "Binlog Dump GTID" {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 type ChangeMasterOpts struct {
@@ -734,9 +917,8 @@ func (c *Client) ChangeMaster(ctx context.Context, changeMasterOpts ...ChangeMas
 
 func buildChangeMasterQuery(changeMasterOpts ...ChangeMasterOpt) (string, error) {
 	opts := ChangeMasterOpts{
-		Port:    3306,
-		Gtid:    "CurrentPos",
-		Retries: 10,
+		Port: 3306,
+		Gtid: "CurrentPos",
 	}
 	for _, setOpt := range changeMasterOpts {
 		setOpt(&opts)
@@ -752,19 +934,21 @@ func buildChangeMasterQuery(changeMasterOpts ...ChangeMasterOpt) (string, error)
 	}
 
 	tpl := createTpl("change-master.sql", `CHANGE MASTER TO
-MASTER_HOST='{{ .Host }}',
-MASTER_PORT={{ .Port }},
-MASTER_USER='{{ .User }}',
-MASTER_PASSWORD='{{ .Password }}',
-MASTER_USE_GTID={{ .Gtid }},
-MASTER_CONNECT_RETRY={{ .Retries }}{{ if .SSLEnabled }},{{ else }};{{ end }}
 {{- if .SSLEnabled }}
 MASTER_SSL=1,
 MASTER_SSL_CERT='{{ .SSLCertPath }}',
 MASTER_SSL_KEY='{{ .SSLKeyPath }}',
 MASTER_SSL_CA='{{ .SSLCAPath }}',
-MASTER_SSL_VERIFY_SERVER_CERT=1;
+MASTER_SSL_VERIFY_SERVER_CERT=1,
 {{- end }}
+MASTER_HOST='{{ .Host }}',
+MASTER_PORT={{ .Port }},
+MASTER_USER='{{ .User }}',
+MASTER_PASSWORD='{{ .Password }}',
+{{- with .Retries }}
+MASTER_CONNECT_RETRY={{ . }},
+{{- end }}
+MASTER_USE_GTID={{ .Gtid }};
 `)
 	buf := new(bytes.Buffer)
 	err := tpl.Execute(buf, opts)
@@ -772,11 +956,6 @@ MASTER_SSL_VERIFY_SERVER_CERT=1;
 		return "", fmt.Errorf("error rendering CHANGE MASTER template: %v", err)
 	}
 	return buf.String(), nil
-}
-
-func (c *Client) ResetSlavePos(ctx context.Context) error {
-	sql := fmt.Sprintf("SET @@global.%s='';", "gtid_slave_pos")
-	return c.Exec(ctx, sql)
 }
 
 const statusVariableSql = "SELECT variable_value FROM information_schema.global_status WHERE variable_name=?;"
@@ -859,4 +1038,44 @@ func requireQuery(require *mariadbv1alpha1.TLSRequirements) (string, error) {
 
 func createTpl(name, t string) *template.Template {
 	return template.Must(template.New(name).Parse(t))
+}
+
+func toString(v interface{}) string {
+	if v == nil {
+		return ""
+	}
+	switch val := v.(type) {
+	case []byte:
+		return string(val)
+	case string:
+		return val
+	case int64:
+		return fmt.Sprintf("%d", val)
+	default:
+		return fmt.Sprintf("%v", val)
+	}
+}
+
+func parseThreadRunning(s string) (bool, error) {
+	switch strings.ToLower(s) {
+	case "connecting":
+		return true, nil
+	case "preparing":
+		return false, nil
+	default:
+		return parseBool(s)
+	}
+}
+
+func parseBool(s string) (bool, error) {
+	switch strings.ToLower(s) {
+	case "yes", "on", "true", "1":
+		return true, nil
+	case "no", "off", "false", "0":
+		return false, nil
+	case "":
+		return false, errors.New("invalid bool value: empty string")
+	default:
+		return false, fmt.Errorf("invalid bool value: %s", s)
+	}
 }

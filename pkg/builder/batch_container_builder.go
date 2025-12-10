@@ -64,20 +64,10 @@ func jobBatchStorageVolume(storageVolume mariadbv1alpha1.StorageVolumeSource,
 			MountPath: batchStorageMountPath,
 		},
 	}
-	if s3 != nil && s3.TLS != nil && s3.TLS.Enabled && s3.TLS.CASecretKeyRef != nil {
-		volumes = append(volumes, corev1.Volume{
-			Name: batchS3PKI,
-			VolumeSource: corev1.VolumeSource{
-				Secret: &corev1.SecretVolumeSource{
-					SecretName: s3.TLS.CASecretKeyRef.Name,
-				},
-			},
-		})
-		volumeMounts = append(volumeMounts, corev1.VolumeMount{
-			Name:      batchS3PKI,
-			MountPath: batchS3PKIMountPath,
-		})
-	}
+	s3Volumes, s3VolumeMounts := s3Volumes(s3)
+	volumes = append(volumes, s3Volumes...)
+	volumeMounts = append(volumeMounts, s3VolumeMounts...)
+
 	if mariadb.IsTLSEnabled() {
 		tlsVolumes, tlsVolumeMounts := mariadbTLSVolumes(mariadb)
 		volumes = append(volumes, tlsVolumes...)
@@ -121,38 +111,6 @@ func jobEnv(mariadb interfaces.Connector) []corev1.EnvVar {
 		})
 	}
 
-	return env
-}
-
-func jobS3Env(s3 *mariadbv1alpha1.S3) []corev1.EnvVar {
-	if s3 == nil {
-		return nil
-	}
-	var env []corev1.EnvVar
-	if s3.AccessKeyIdSecretKeyRef != nil {
-		env = append(env, corev1.EnvVar{
-			Name: batchS3AccessKeyId,
-			ValueFrom: &corev1.EnvVarSource{
-				SecretKeyRef: ptr.To(s3.AccessKeyIdSecretKeyRef.ToKubernetesType()),
-			},
-		})
-	}
-	if s3.AccessKeyIdSecretKeyRef != nil {
-		env = append(env, corev1.EnvVar{
-			Name: batchS3SecretAccessKey,
-			ValueFrom: &corev1.EnvVarSource{
-				SecretKeyRef: ptr.To(s3.SecretAccessKeySecretKeyRef.ToKubernetesType()),
-			},
-		})
-	}
-	if s3.SessionTokenSecretKeyRef != nil {
-		env = append(env, corev1.EnvVar{
-			Name: batchS3SessionTokenKey,
-			ValueFrom: &corev1.EnvVarSource{
-				SecretKeyRef: ptr.To(s3.SessionTokenSecretKeyRef.ToKubernetesType()),
-			},
-		})
-	}
 	return env
 }
 

@@ -76,10 +76,14 @@ release: goreleaser ## Test release locally.
 
 RUN_FLAGS ?= --log-dev --log-level=info --log-time-encoder=iso8601
 # RUN_FLAGS ?= --log-dev --log-level=info --log-time-encoder=iso8601 --pprof --pprof-addr=$(PPROF_ADDR)
+# RUN_ENV ?= \
+# 	MARIADB_OPERATOR_LOG_DEV=true \
+# 	MARIADB_OPERATOR_LOG_LEVEL=DEBUG \
+# 	MARIADB_OPERATOR_LOG_TIME_ENCODER=iso8601
 
 .PHONY: run
 run: lint ## Run a controller from your host.
-	$(ENV) $(GO) run cmd/controller/*.go $(RUN_FLAGS)
+	$(ENV) $(RUN_ENV) $(GO) run cmd/controller/*.go $(RUN_FLAGS)
 
 WEBHOOK_FLAGS ?= --log-dev --log-level=debug --log-time-encoder=iso8601 \
 	--ca-cert-path=$(CA_CERT) --cert-dir=$(WEBHOOK_PKI_DIR) \

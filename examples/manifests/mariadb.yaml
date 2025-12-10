@@ -44,3 +44,29 @@ spec:
 
   metrics:
     enabled: true
+
+  tls:
+    enabled: true
+    # Enforce TLS in all connections.
+    # required: true
+    # Issue certificates with an existing cert-manager ClusterIssuer.
+    # serverCertIssuerRef:
+    #   name: root-ca
+    #   kind: ClusterIssuer
+    # clientCertIssuerRef:
+    #   name: root-ca
+    #   kind: ClusterIssuer
+    # Bring your own Certificate Authority.
+    # serverCASecretRef:
+    #   name: mariadb-server-ca
+    # clientCASecretRef:
+    #   name: mariadb-client-ca
+    # Configure existing certificates available in a Secret.
+    # serverCASecretRef:
+    #   name: mariadb-server-ca
+    # serverCertSecretRef:
+    #   name: mariadb-server-tls
+    # clientCASecretRef:
+    #   name: mariadb-client-ca
+    # clientCertSecretRef:
+    #   name: mariadb-client-tls

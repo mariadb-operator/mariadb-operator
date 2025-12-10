@@ -72,7 +72,7 @@ spec:
             {{- if .Values.certController.ha.enabled }}
             - --leader-elect
             {{- end }}
-            {{- range .Values.certController.extrArgs }}
+            {{- range .Values.certController.extraArgs }}
             - {{ . }}
             {{- end }}
           ports:

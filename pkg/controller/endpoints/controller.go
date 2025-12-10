@@ -11,14 +11,11 @@ import (
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/builder"
-	labels "github.com/mariadb-operator/mariadb-operator/v25/pkg/builder/labels"
 	kadapter "github.com/mariadb-operator/mariadb-operator/v25/pkg/kubernetes/adapter"
 	mdbpod "github.com/mariadb-operator/mariadb-operator/v25/pkg/pod"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/statefulset"
 	corev1 "k8s.io/api/core/v1"
 	discoveryv1 "k8s.io/api/discovery/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	klabels "k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -76,44 +73,28 @@ func (r *EndpointsReconciler) Reconcile(ctx context.Context, key types.Namespace
 
 func (r *EndpointsReconciler) endpointSlice(ctx context.Context, key types.NamespacedName,
 	mariadb *mariadbv1alpha1.MariaDB, serviceName string, logger logr.Logger) (*discoveryv1.EndpointSlice, error) {
-	podList := corev1.PodList{}
-	listOpts := &client.ListOptions{
-		LabelSelector: klabels.SelectorFromSet(
-			labels.NewLabelsBuilder().
-				WithMariaDBSelectorLabels(mariadb).
-				Build(),
-		),
-		Namespace: mariadb.GetNamespace(),
+	pods, err := mdbpod.ListMariaDBSecondaryPods(ctx, r.Client, mariadb)
+	if err != nil {
+		return nil, fmt.Errorf("error listing secondary Pods: %v", err)
 	}
-	if err := r.List(ctx, &podList, listOpts); err != nil {
-		return nil, fmt.Errorf("error listing Pods: %v", err)
-	}
-	if len(podList.Items) == 0 {
+	if len(pods) == 0 {
 		return nil, errNoEndpointsAvailable
 	}
-	sort.Slice(podList.Items, func(i, j int) bool {
-		return podList.Items[i].Status.PodIP < podList.Items[j].Status.PodIP
+	sort.Slice(pods, func(i, j int) bool {
+		return pods[i].Status.PodIP < pods[j].Status.PodIP
 	})
 
-	addressType, err := getAddressType(&podList.Items[0])
+	addressType, err := getAddressType(&pods[0])
 	if err != nil {
 		logger.Info("error getting address type", "err", err)
 		return nil, errNoEndpointsAvailable
 	}
 
 	endpoints := []discoveryv1.Endpoint{}
-	for _, pod := range podList.Items {
+	for _, pod := range pods {
 		endpoint, err := buildEndpoint(&pod)
 		if err != nil {
 			logger.Info("error building Endpoint", "err", err)
-			continue
-		}
-
-		podIndex, err := statefulset.PodIndex(pod.Name)
-		if err != nil {
-			return nil, fmt.Errorf("error getting Pod '%s' index: %v", pod.Name, err)
-		}
-		if *podIndex == *mariadb.Status.CurrentPrimaryPodIndex {
 			continue
 		}
 		endpoints = append(endpoints, *endpoint)

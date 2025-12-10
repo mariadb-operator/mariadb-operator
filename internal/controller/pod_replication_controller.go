@@ -9,9 +9,8 @@ import (
 	"github.com/hashicorp/go-multierror"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/builder"
-	condition "github.com/mariadb-operator/mariadb-operator/v25/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/replication"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/health"
+
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/refresolver"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/statefulset"
 	corev1 "k8s.io/api/core/v1"
@@ -32,11 +31,11 @@ type PodReplicationController struct {
 	recorder    record.EventRecorder
 	builder     *builder.Builder
 	refResolver *refresolver.RefResolver
-	replConfig  *replication.ReplicationConfig
+	replConfig  *replication.ReplicationConfigClient
 }
 
 func NewPodReplicationController(client client.Client, recorder record.EventRecorder, builder *builder.Builder,
-	refResolver *refresolver.RefResolver, replConfig *replication.ReplicationConfig) PodReadinessController {
+	refResolver *refresolver.RefResolver, replConfig *replication.ReplicationConfigClient) PodReadinessController {
 	return &PodReplicationController{
 		Client:      client,
 		recorder:    recorder,
@@ -101,9 +100,9 @@ func (r *PodReplicationController) ReconcilePodNotReady(ctx context.Context, pod
 		}
 	}
 
-	automaticFailoverDelay := mariadb.GetAutomaticFailoverDelay()
-	if automaticFailoverDelay > 0 {
-		failoverTime := mariadb.Status.CurrentPrimaryFailingSince.Add(automaticFailoverDelay)
+	autoFailoverDelay := mariadb.GetAutomaticFailoverDelay()
+	if autoFailoverDelay > 0 {
+		failoverTime := mariadb.Status.CurrentPrimaryFailingSince.Add(autoFailoverDelay)
 		if failoverTime.After(now) {
 			// To delay automatic failover we must abort and requeue later.
 			// When the 'PodController' controller receives the 'ErrDelayAutomaticFailover' error, it requeues without error.
@@ -112,20 +111,28 @@ func (r *PodReplicationController) ReconcilePodNotReady(ctx context.Context, pod
 		}
 	}
 
-	fromIndex := mariadb.Status.CurrentPrimaryPodIndex
-	toIndex, err := health.ReplicaPodHealthyIndex(ctx, r, mariadb)
+	primary := mariadb.Status.CurrentPrimaryPodIndex
+
+	newPrimaryName, err := replication.NewFailoverHandler(
+		r.Client,
+		mariadb,
+		log.FromContext(ctx).WithName("failover").V(1),
+	).FurthestAdvancedReplica(ctx)
 	if err != nil {
-		return fmt.Errorf("error getting healthy replica: %v", err)
+		return fmt.Errorf("error getting promotion candidate: %v", err)
+	}
+	newPrimary, err := statefulset.PodIndex(newPrimaryName)
+	if err != nil {
+		return fmt.Errorf("error getting new primary Pod index: %v", err)
 	}
 
 	var errBundle *multierror.Error
 	err = r.patch(ctx, mariadb, func(mdb *mariadbv1alpha1.MariaDB) {
-		mdb.Replication().Primary.PodIndex = toIndex
+		mdb.Spec.Replication.Primary.PodIndex = newPrimary
 	})
 	errBundle = multierror.Append(errBundle, err)
 
 	err = r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
-		condition.SetPrimarySwitching(status, mariadb)
 		status.CurrentPrimaryFailingSince = nil
 	})
 	errBundle = multierror.Append(errBundle, err)
@@ -134,19 +141,21 @@ func (r *PodReplicationController) ReconcilePodNotReady(ctx context.Context, pod
 		return fmt.Errorf("error patching MariaDB: %v", err)
 	}
 
-	logger.Info("Switching primary", "from-index", fromIndex, "to-index", *toIndex)
+	logger.Info("Switching primary", "primary", primary, "new-primary", *newPrimary)
 	r.recorder.Eventf(mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonPrimarySwitching,
-		"Switching primary from index '%d' to index '%d'", *fromIndex, *toIndex)
+		"Switching primary from index '%d' to index '%d'", *primary, *newPrimary)
 
 	return nil
 }
 
-func shouldReconcile(mariadb *mariadbv1alpha1.MariaDB) bool {
-	if mariadb.IsMaxScaleEnabled() || mariadb.IsRestoringBackup() || mariadb.IsSuspended() {
+func shouldReconcile(mdb *mariadbv1alpha1.MariaDB) bool {
+	if mdb.IsMaxScaleEnabled() || mdb.IsSwitchingPrimary() || mdb.IsSwitchoverRequired() ||
+		mdb.IsRestoringBackup() || mdb.IsResizingStorage() || mdb.IsSuspended() {
 		return false
 	}
-	primaryRepl := ptr.Deref(mariadb.Replication().Primary, mariadbv1alpha1.PrimaryReplication{})
-	return mariadb.Replication().Enabled && *primaryRepl.AutomaticFailover && mariadb.HasConfiguredReplica()
+	primaryRepl := ptr.Deref(mdb.Spec.Replication, mariadbv1alpha1.Replication{}).Primary
+	autoFailover := ptr.Deref(primaryRepl.AutoFailover, true)
+	return mdb.IsReplicationEnabled() && autoFailover && mdb.HasConfiguredReplica()
 }
 
 func (r *PodReplicationController) patch(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,

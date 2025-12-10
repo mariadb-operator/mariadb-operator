@@ -4,8 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"strings"
+	"time"
 
 	cmmeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/environment"
 	cron "github.com/robfig/cron/v3"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -197,6 +200,168 @@ type Container struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:resourceRequirements"}
 	Resources *ResourceRequirements `json:"resources,omitempty"`
+}
+
+// InitContainer is an init container that runs in the MariaDB Pod and co-operates with mariadb-operator.
+type InitContainer struct {
+	// ContainerTemplate defines a template to configure Container objects.
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	ContainerTemplate `json:",inline"`
+	// Image name to be used by the MariaDB instances. The supported format is `<image>:<tag>`.
+	// +kubebuilder:validation:Required
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Image string `json:"image"`
+	// ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`.
+	// +optional
+	// +kubebuilder:validation:Enum=Always;Never;IfNotPresent
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:imagePullPolicy","urn:alm:descriptor:com.tectonic.ui:advanced"}
+	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
+}
+
+// KubernetesAuth refers to the Kubernetes authentication mechanism utilized for establishing a connection from the operator to the agent.
+// The agent validates the legitimacy of the service account token provided as an Authorization header by creating a TokenReview resource.
+type KubernetesAuth struct {
+	// Enabled is a flag to enable KubernetesAuth
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
+	Enabled bool `json:"enabled,omitempty"`
+	// AuthDelegatorRoleName is the name of the ClusterRoleBinding that is associated with the "system:auth-delegator" ClusterRole.
+	// It is necessary for creating TokenReview objects in order for the agent to validate the service account token.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	AuthDelegatorRoleName string `json:"authDelegatorRoleName,omitempty"`
+}
+
+// AuthDelegatorRoleNameOrDefault defines the ClusterRoleBinding name bound to system:auth-delegator.
+// It falls back to the MariaDB name if AuthDelegatorRoleName is not set.
+func (k *KubernetesAuth) AuthDelegatorRoleNameOrDefault(mariadb *MariaDB) string {
+	if k.AuthDelegatorRoleName != "" {
+		return k.AuthDelegatorRoleName
+	}
+	name := fmt.Sprintf("%s-%s", mariadb.Name, mariadb.Namespace)
+	parts := strings.Split(string(mariadb.UID), "-")
+	if len(parts) > 0 {
+		name += fmt.Sprintf("-%s", parts[0])
+	}
+	return name
+}
+
+// BasicAuth refers to the basic authentication mechanism utilized for establishing a connection from the operator to the agent.
+type BasicAuth struct {
+	// Enabled is a flag to enable BasicAuth
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
+	Enabled bool `json:"enabled,omitempty"`
+	// Username to be used for basic authentication
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Username string `json:"username,omitempty"`
+	// PasswordSecretKeyRef to be used for basic authentication
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	PasswordSecretKeyRef GeneratedSecretKeyRef `json:"passwordSecretKeyRef,omitempty"`
+}
+
+// SetDefaults set reasonable defaults
+func (b *BasicAuth) SetDefaults(mariadb *MariaDB) {
+	if !b.Enabled {
+		return
+	}
+	if b.Username == "" {
+		b.Username = "mariadb-operator"
+	}
+	if reflect.ValueOf(b.PasswordSecretKeyRef).IsZero() {
+		b.PasswordSecretKeyRef = mariadb.AgentAuthSecretKeyRef()
+	}
+}
+
+// Agent is a sidecar agent that co-operates with mariadb-operator.
+type Agent struct {
+	// ContainerTemplate defines a template to configure Container objects.
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	ContainerTemplate `json:",inline"`
+	// Image name to be used by the MariaDB instances. The supported format is `<image>:<tag>`.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Image string `json:"image,omitempty"`
+	// ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`.
+	// +optional
+	// +kubebuilder:validation:Enum=Always;Never;IfNotPresent
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:imagePullPolicy"}
+	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
+	// Port where the agent will be listening for API connections.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Port int32 `json:"port,omitempty"`
+	// Port where the agent will be listening for probe connections.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	ProbePort int32 `json:"probePort,omitempty"`
+	// KubernetesAuth to be used by the agent container
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	KubernetesAuth *KubernetesAuth `json:"kubernetesAuth,omitempty"`
+	// BasicAuth to be used by the agent container
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	BasicAuth *BasicAuth `json:"basicAuth,omitempty"`
+	// GracefulShutdownTimeout is the time we give to the agent container in order to gracefully terminate in-flight requests.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	GracefulShutdownTimeout *metav1.Duration `json:"gracefulShutdownTimeout,omitempty"`
+}
+
+// SetDefaults sets reasonable defaults.
+func (r *Agent) SetDefaults(mariadb *MariaDB, env *environment.OperatorEnv) error {
+	if r.Image == "" {
+		r.Image = env.MariadbOperatorImage
+	}
+	if r.Port == 0 {
+		r.Port = 5555
+	}
+	if r.ProbePort == 0 {
+		r.ProbePort = 5566
+	}
+
+	currentNamespaceOnly, err := env.CurrentNamespaceOnly()
+	if err != nil {
+		return fmt.Errorf("error checking operator watch scope: %v", err)
+	}
+	if currentNamespaceOnly {
+		if r.BasicAuth == nil {
+			r.BasicAuth = &BasicAuth{
+				Enabled: true,
+			}
+		}
+	} else if r.KubernetesAuth == nil && r.BasicAuth == nil {
+		if r.KubernetesAuth == nil {
+			r.KubernetesAuth = &KubernetesAuth{
+				Enabled: true,
+			}
+		} else if r.BasicAuth == nil {
+			r.BasicAuth = &BasicAuth{
+				Enabled: true,
+			}
+		}
+	}
+	if r.BasicAuth != nil {
+		r.BasicAuth.SetDefaults(mariadb)
+	}
+
+	if r.GracefulShutdownTimeout == nil {
+		r.GracefulShutdownTimeout = ptr.To(metav1.Duration{Duration: 1 * time.Second})
+	}
+	return nil
+}
+
+// Validate determines if a Galera Agent object is valid.
+func (r *Agent) Validate() error {
+	kubernetesAuth := ptr.Deref(r.KubernetesAuth, KubernetesAuth{})
+	basicAuth := ptr.Deref(r.BasicAuth, BasicAuth{})
+	if kubernetesAuth.Enabled && basicAuth.Enabled {
+		return errors.New("only one authentication method must be enabled: kubernetes or basic auth")
+	}
+	return nil
 }
 
 // Job defines a Job used to be used with MariaDB.
@@ -598,6 +763,21 @@ type S3 struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	TLS *TLSS3 `json:"tls,omitempty"`
+	// SSEC is a reference to a Secret containing the SSE-C (Server-Side Encryption with Customer-Provided Keys) key.
+	// The secret must contain a 32-byte key (256 bits) in the specified key.
+	// This enables server-side encryption where you provide and manage the encryption key.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	SSEC *SSECConfig `json:"ssec,omitempty"`
+}
+
+// SSECConfig defines the configuration for SSE-C (Server-Side Encryption with Customer-Provided Keys).
+type SSECConfig struct {
+	// CustomerKeySecretKeyRef is a reference to a Secret key containing the SSE-C customer-provided encryption key.
+	// The key must be a 32-byte (256-bit) key encoded in base64.
+	// +kubebuilder:validation:Required
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	CustomerKeySecretKeyRef SecretKeySelector `json:"customerKeySecretKeyRef"`
 }
 
 // Metadata defines the metadata to added to resources.

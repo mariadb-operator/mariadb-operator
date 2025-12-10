@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -41,6 +42,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/refresolver"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes"
@@ -62,11 +64,14 @@ var (
 
 	leaderElect bool
 
-	logLevel       string
-	logTimeEncoder string
-	logDev         bool
-	logMaxScale    bool
-	logSql         bool
+	logLevel           string
+	logLevelName       = "log-level"
+	logTimeEncoder     string
+	logTimeEncoderName = "log-time-encoder"
+	logDev             bool
+	logDevName         = "log-dev"
+	logMaxScale        bool
+	logSql             bool
 
 	kubeApiQps   float32
 	kubeApiBurst int
@@ -83,7 +88,8 @@ var (
 
 	requeueSqlMaxOffset time.Duration
 
-	syncPeriod time.Duration
+	syncPeriod       time.Duration
+	cacheSyncTimeout time.Duration
 
 	webhookEnabled bool
 	webhookPort    int
@@ -93,7 +99,13 @@ var (
 	pprofAddr    string
 
 	featureMaxScaleSuspend bool
+
+	envPrefix = "MARIADB_OPERATOR"
 )
+
+func prefixedEnv(env string) string {
+	return fmt.Sprintf("%s_%s", envPrefix, env)
+}
 
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
@@ -107,11 +119,20 @@ func init() {
 
 	rootCmd.PersistentFlags().BoolVar(&leaderElect, "leader-elect", false, "Enable leader election for controller manager.")
 
-	rootCmd.PersistentFlags().StringVar(&logLevel, "log-level", "info", "Log level to use, one of: "+
+	rootCmd.PersistentFlags().StringVar(&logLevel, logLevelName, "info", "Log level to use, one of: "+
 		"debug, info, warn, error, dpanic, panic, fatal.")
-	rootCmd.PersistentFlags().StringVar(&logTimeEncoder, "log-time-encoder", "epoch", "Log time encoder to use, one of: "+
+	_ = viper.BindPFlag(logLevelName, rootCmd.PersistentFlags().Lookup(logLevelName))
+	_ = viper.BindEnv(logLevelName, prefixedEnv("LOG_LEVEL"))
+
+	rootCmd.PersistentFlags().StringVar(&logTimeEncoder, logTimeEncoderName, "epoch", "Log time encoder to use, one of: "+
 		"epoch, millis, nano, iso8601, rfc3339 or rfc3339nano")
-	rootCmd.PersistentFlags().BoolVar(&logDev, "log-dev", false, "Enable development logs.")
+	_ = viper.BindPFlag(logTimeEncoderName, rootCmd.PersistentFlags().Lookup(logTimeEncoderName))
+	_ = viper.BindEnv(logTimeEncoderName, prefixedEnv("LOG_TIME_ENCODER"))
+
+	rootCmd.PersistentFlags().BoolVar(&logDev, logDevName, false, "Enable development logs.")
+	_ = viper.BindPFlag(logDevName, rootCmd.PersistentFlags().Lookup(logDevName))
+	_ = viper.BindEnv(logDevName, prefixedEnv("LOG_DEV"))
+
 	rootCmd.Flags().BoolVar(&logMaxScale, "log-maxscale", false, "Enable MaxScale API request logs.")
 	rootCmd.Flags().BoolVar(&logSql, "log-sql", false, "Enable SQL resource logs.")
 
@@ -136,6 +157,7 @@ func init() {
 	rootCmd.Flags().DurationVar(&requeueMaxScale, "requeue-maxscale", 1*time.Hour, "The interval at which MaxScales are requeued.")
 
 	rootCmd.Flags().DurationVar(&syncPeriod, "sync-period", 10*time.Hour, "The interval at which watched resources are reconciled.")
+	rootCmd.Flags().DurationVar(&cacheSyncTimeout, "cache-sync-timeout", 2*time.Minute, "The time limit set to wait for syncing caches.")
 
 	rootCmd.Flags().BoolVar(&webhookEnabled, "webhook", false, "Enable the webhook server.")
 	rootCmd.Flags().IntVar(&webhookPort, "webhook-port", 9443, "Port to be used by the webhook server."+
@@ -148,6 +170,9 @@ func init() {
 	rootCmd.Flags().StringVar(&pprofAddr, "pprof-addr", ":6060", "The address the pprof endpoint binds to.")
 
 	rootCmd.Flags().BoolVar(&featureMaxScaleSuspend, "feature-maxscale-suspend", false, "Feature flag to enable MaxScale resource suspension.")
+
+	viper.SetEnvPrefix(envPrefix)
+	viper.AutomaticEnv()
 }
 
 var rootCmd = &cobra.Command{
@@ -156,7 +181,11 @@ var rootCmd = &cobra.Command{
 	Long:  `Run and operate MariaDB in a cloud native way.`,
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		log.SetupLogger(logLevel, logTimeEncoder, logDev)
+		log.SetupLogger(
+			viper.GetString(logLevelName),
+			viper.GetString(logTimeEncoderName),
+			viper.GetBool(logDevName),
+		)
 
 		ctx, cancel := signal.NotifyContext(context.Background(), []os.Signal{
 			syscall.SIGINT,
@@ -191,6 +220,7 @@ var rootCmd = &cobra.Command{
 			LeaderElectionID:       "mariadb-operator.mariadb.com",
 			Controller: config.Controller{
 				MaxConcurrentReconciles: maxConcurrentReconciles,
+				CacheSyncTimeout:        cacheSyncTimeout,
 			},
 			Cache: cache.Options{
 				SyncPeriod: &syncPeriod,
@@ -277,12 +307,13 @@ var rootCmd = &cobra.Command{
 		certReconciler := certctrl.NewCertReconciler(client, scheme, mgr.GetEventRecorderFor("cert"), discovery, builder)
 
 		mxsReconciler := maxscale.NewMaxScaleReconciler(client, builder, env)
-		replConfig := replication.NewReplicationConfig(client, builder, secretReconciler, env)
+		replConfigClient := replication.NewReplicationConfigClient(client, builder, secretReconciler)
 		replicationReconciler, err := replication.NewReplicationReconciler(
 			client,
 			replRecorder,
 			builder,
-			replConfig,
+			env,
+			replConfigClient,
 			replication.WithRefResolver(refResolver),
 			replication.WithSecretReconciler(secretReconciler),
 			replication.WithServiceReconciler(serviceReconciler),
@@ -311,7 +342,7 @@ var rootCmd = &cobra.Command{
 				replRecorder,
 				builder,
 				refResolver,
-				replConfig,
+				replConfigClient,
 			),
 			[]string{
 				metadata.MariadbAnnotation,
@@ -334,12 +365,13 @@ var rootCmd = &cobra.Command{
 			Scheme:   scheme,
 			Recorder: mgr.GetEventRecorderFor("mariadb"),
 
-			Environment:     env,
-			Builder:         builder,
-			RefResolver:     refResolver,
-			ConditionReady:  conditionReady,
-			Discovery:       discovery,
-			BackupProcessor: backupProcessor,
+			Environment:      env,
+			Builder:          builder,
+			RefResolver:      refResolver,
+			ConditionReady:   conditionReady,
+			Discovery:        discovery,
+			BackupProcessor:  backupProcessor,
+			ReplConfigClient: replConfigClient,
 
 			ConfigMapReconciler:      configMapReconciler,
 			SecretReconciler:         secretReconciler,

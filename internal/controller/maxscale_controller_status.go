@@ -69,20 +69,20 @@ func (r *MaxScaleReconciler) reconcileStatus(ctx context.Context, req *requestMa
 		logger.V(1).Info("error getting status", "err", err)
 	}
 
-	currentPrimary := ptr.Deref(req.mxs.Status.PrimaryServer, "")
+	primary := ptr.Deref(req.mxs.Status.PrimaryServer, "")
 	newPrimary := ptr.Deref(srvStatus, serverStatus{}).primary
 
-	if currentPrimary != "" && newPrimary != "" && currentPrimary != newPrimary {
+	if primary != "" && newPrimary != "" && primary != newPrimary {
 		logger.Info(
 			"MaxScale primary server changed",
-			"from-server", currentPrimary,
-			"to-server", newPrimary,
+			"primary", primary,
+			"new-primary", newPrimary,
 		)
 		r.Recorder.Event(
 			req.mxs,
 			corev1.EventTypeNormal,
 			mariadbv1alpha1.ReasonMaxScalePrimaryServerChanged,
-			fmt.Sprintf("MaxScale primary server changed from '%s' to '%s'", currentPrimary, newPrimary),
+			fmt.Sprintf("MaxScale primary server changed from '%s' to '%s'", primary, newPrimary),
 		)
 	}
 

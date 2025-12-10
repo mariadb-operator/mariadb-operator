@@ -7,12 +7,14 @@
 - [Docker images](./docker.md)
 - [Quickstart](./quickstart.md)
 
-## Provisioning
+## Topologies
 
-- [Standalone MariaDB](./standalone_mariadb.md)
+- [Standalone](./standalone.md)
 - [High availability](./high_availability.md)
-- [Galera](./galera.md)
-- [MaxScale](./maxscale.md)
+  - [Asynchronous replication](./replication.md)
+  - [Synchronous multi-master via Galera](./galera.md)
+- [MaxScale as database proxy](./maxscale.md)
+- [Data plane](./data_plane.md)
 
 ## Backup and restore
 

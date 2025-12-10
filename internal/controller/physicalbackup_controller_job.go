@@ -34,6 +34,12 @@ func (r *PhysicalBackupReconciler) reconcileJobs(ctx context.Context, backup *ma
 	if err := r.reconcileJobStatus(ctx, backup, jobList); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error reconciling status: %v", err)
 	}
+
+	schedule := ptr.Deref(backup.Spec.Schedule, mariadbv1alpha1.PhysicalBackupSchedule{})
+	if schedule.Suspend {
+		return ctrl.Result{}, nil
+	}
+
 	if err := r.cleanupJobs(ctx, backup, jobList); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error cleaning up Jobs: %v", err)
 	}

@@ -104,10 +104,10 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 					Spec: v1alpha1.MariaDBSpec{
 						Replication: &v1alpha1.Replication{
 							ReplicationSpec: v1alpha1.ReplicationSpec{
-								Primary: &v1alpha1.PrimaryReplication{
+								Primary: v1alpha1.PrimaryReplication{
 									PodIndex: func() *int { i := 0; return &i }(),
 								},
-								SyncBinlog: ptr.To(1),
+								SyncBinlog: nil,
 							},
 							Enabled: true,
 						},
@@ -126,10 +126,10 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 					Spec: v1alpha1.MariaDBSpec{
 						Replication: &v1alpha1.Replication{
 							ReplicationSpec: v1alpha1.ReplicationSpec{
-								Primary: &v1alpha1.PrimaryReplication{
+								Primary: v1alpha1.PrimaryReplication{
 									PodIndex: func() *int { i := 0; return &i }(),
 								},
-								SyncBinlog: ptr.To(1),
+								SyncBinlog: nil,
 							},
 							Enabled: true,
 						},
@@ -296,7 +296,7 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 						Galera: &v1alpha1.Galera{
 							Enabled: true,
 							GaleraSpec: v1alpha1.GaleraSpec{
-								Agent: v1alpha1.GaleraAgent{
+								Agent: v1alpha1.Agent{
 									BasicAuth: &v1alpha1.BasicAuth{
 										Enabled: true,
 									},
@@ -321,13 +321,11 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 					Spec: v1alpha1.MariaDBSpec{
 						Replication: &v1alpha1.Replication{
 							ReplicationSpec: v1alpha1.ReplicationSpec{
-								Primary: &v1alpha1.PrimaryReplication{
+								Primary: v1alpha1.PrimaryReplication{
 									PodIndex: func() *int { i := 4; return &i }(),
 								},
-								Replica: &v1alpha1.ReplicaReplication{
-									WaitPoint:         ptr.To(v1alpha1.WaitPointAfterCommit),
-									ConnectionTimeout: &metav1.Duration{Duration: time.Duration(1 * time.Second)},
-									ConnectionRetries: func() *int { r := 3; return &r }(),
+								Replica: v1alpha1.ReplicaReplication{
+									ConnectionRetrySeconds: ptr.To(3),
 								},
 							},
 							Enabled: true,
@@ -362,15 +360,14 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 				true,
 			),
 			Entry(
-				"Invalid replica wait point",
+				"Invalid semi-sync replication wait point",
 				&v1alpha1.MariaDB{
 					ObjectMeta: meta,
 					Spec: v1alpha1.MariaDBSpec{
 						Replication: &v1alpha1.Replication{
 							ReplicationSpec: v1alpha1.ReplicationSpec{
-								Replica: &v1alpha1.ReplicaReplication{
-									WaitPoint: ptr.To(v1alpha1.WaitPoint("foo")),
-								},
+								SemiSyncEnabled:   ptr.To(true),
+								SemiSyncWaitPoint: ptr.To(v1alpha1.WaitPoint("foo")),
 							},
 							Enabled: true,
 						},
@@ -389,8 +386,31 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 					Spec: v1alpha1.MariaDBSpec{
 						Replication: &v1alpha1.Replication{
 							ReplicationSpec: v1alpha1.ReplicationSpec{
-								Replica: &v1alpha1.ReplicaReplication{
+								Replica: v1alpha1.ReplicaReplication{
 									Gtid: ptr.To(v1alpha1.Gtid("foo")),
+								},
+							},
+							Enabled: true,
+						},
+						Storage: v1alpha1.Storage{
+							Size: ptr.To(resource.MustParse("100Mi")),
+						},
+						Replicas: 3,
+					},
+				},
+				true,
+			),
+			Entry(
+				"Invalid replica recovery",
+				&v1alpha1.MariaDB{
+					ObjectMeta: meta,
+					Spec: v1alpha1.MariaDBSpec{
+						Replication: &v1alpha1.Replication{
+							ReplicationSpec: v1alpha1.ReplicationSpec{
+								Replica: v1alpha1.ReplicaReplication{
+									ReplicaRecovery: &v1alpha1.ReplicaRecovery{
+										Enabled: true,
+									},
 								},
 							},
 							Enabled: true,
@@ -571,72 +591,6 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 				false,
 			),
 		)
-
-		It("Should default replication", func() {
-			mariadb := v1alpha1.MariaDB{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "mariadb-repl-default-webhook",
-					Namespace: testNamespace,
-				},
-				Spec: v1alpha1.MariaDBSpec{
-					Replicas: 3,
-					Replication: &v1alpha1.Replication{
-						Enabled: true,
-					},
-					Storage: v1alpha1.Storage{
-						Size: ptr.To(resource.MustParse("100Mi")),
-					},
-				},
-			}
-			Expect(k8sClient.Create(testCtx, &mariadb)).To(Succeed())
-			Expect(k8sClient.Get(testCtx, client.ObjectKeyFromObject(&mariadb), &mariadb)).To(Succeed())
-
-			By("Expect v1alpha1.MariaDB replication spec to be defaulted")
-			Expect(mariadb.Spec.Replication.ReplicationSpec).To(Equal(v1alpha1.DefaultReplicationSpec))
-		})
-
-		It("Should partially default replication", func() {
-			mariadb := v1alpha1.MariaDB{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "mariadb-repl-partial-default-webhook",
-					Namespace: testNamespace,
-				},
-				Spec: v1alpha1.MariaDBSpec{
-					Replicas: 3,
-					Replication: &v1alpha1.Replication{
-						Enabled: true,
-						ReplicationSpec: v1alpha1.ReplicationSpec{
-							Primary: &v1alpha1.PrimaryReplication{
-								PodIndex: ptr.To(0),
-							},
-							Replica: &v1alpha1.ReplicaReplication{
-								WaitPoint: ptr.To(v1alpha1.WaitPointAfterSync),
-							},
-						},
-					},
-					Storage: v1alpha1.Storage{
-						Size: ptr.To(resource.MustParse("100Mi")),
-						VolumeClaimTemplate: &v1alpha1.VolumeClaimTemplate{
-							PersistentVolumeClaimSpec: v1alpha1.PersistentVolumeClaimSpec{
-								Resources: corev1.VolumeResourceRequirements{
-									Requests: corev1.ResourceList{
-										corev1.ResourceStorage: resource.MustParse("100Mi"),
-									},
-								},
-								AccessModes: []corev1.PersistentVolumeAccessMode{
-									corev1.ReadWriteOnce,
-								},
-							},
-						},
-					},
-				},
-			}
-			Expect(k8sClient.Create(testCtx, &mariadb)).To(Succeed())
-			Expect(k8sClient.Get(testCtx, client.ObjectKeyFromObject(&mariadb), &mariadb)).To(Succeed())
-
-			By("Expect v1alpha1.MariaDB replication spec to be defaulted")
-			Expect(mariadb.Spec.Replication.ReplicationSpec).To(Equal(v1alpha1.DefaultReplicationSpec))
-		})
 	})
 
 	Context("When updating a v1alpha1.MariaDB", Ordered, func() {
@@ -890,160 +844,6 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 					mdb.Spec.PriorityClassName = ptr.To("new-PriorityClassName")
 				},
 				false,
-			),
-		)
-	})
-
-	Context("When updating v1alpha1.MariaDB primary pod index", Ordered, func() {
-		noSwitchoverKey := types.NamespacedName{
-			Name:      "mariadb-no-switchover-webhook",
-			Namespace: testNamespace,
-		}
-		switchoverKey := types.NamespacedName{
-			Name:      "mariadb-switchover-webhook",
-			Namespace: testNamespace,
-		}
-		BeforeAll(func() {
-			test := "test"
-			mariaDb := v1alpha1.MariaDB{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      noSwitchoverKey.Name,
-					Namespace: noSwitchoverKey.Namespace,
-				},
-				Spec: v1alpha1.MariaDBSpec{
-					Database: &test,
-					Username: &test,
-					PasswordSecretKeyRef: &v1alpha1.GeneratedSecretKeyRef{
-						SecretKeySelector: v1alpha1.SecretKeySelector{
-							LocalObjectReference: v1alpha1.LocalObjectReference{
-								Name: "secret",
-							},
-							Key: "password",
-						},
-					},
-					Replication: &v1alpha1.Replication{
-						ReplicationSpec: v1alpha1.ReplicationSpec{
-							Primary: &v1alpha1.PrimaryReplication{
-								PodIndex:          func() *int { i := 0; return &i }(),
-								AutomaticFailover: func() *bool { f := false; return &f }(),
-							},
-						},
-						Enabled: true,
-					},
-					Replicas: 3,
-					Storage: v1alpha1.Storage{
-						Size: ptr.To(resource.MustParse("100Mi")),
-					},
-				},
-			}
-			mariaDbSwitchover := v1alpha1.MariaDB{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      switchoverKey.Name,
-					Namespace: switchoverKey.Namespace,
-				},
-				Spec: v1alpha1.MariaDBSpec{
-					Database: &test,
-					Username: &test,
-					PasswordSecretKeyRef: &v1alpha1.GeneratedSecretKeyRef{
-						SecretKeySelector: v1alpha1.SecretKeySelector{
-							LocalObjectReference: v1alpha1.LocalObjectReference{
-								Name: "secret",
-							},
-							Key: "password",
-						},
-					},
-					Replication: &v1alpha1.Replication{
-						ReplicationSpec: v1alpha1.ReplicationSpec{
-							Primary: &v1alpha1.PrimaryReplication{
-								PodIndex:          func() *int { i := 0; return &i }(),
-								AutomaticFailover: func() *bool { f := false; return &f }(),
-							},
-						},
-						Enabled: true,
-					},
-					Replicas: 3,
-					Storage: v1alpha1.Storage{
-						Size: ptr.To(resource.MustParse("100Mi")),
-					},
-				},
-				Status: v1alpha1.MariaDBStatus{
-					Conditions: []metav1.Condition{
-						{
-							Type:    v1alpha1.ConditionTypePrimarySwitched,
-							Status:  metav1.ConditionFalse,
-							Reason:  v1alpha1.ConditionReasonSwitchPrimary,
-							Message: "Switching primary",
-						},
-					},
-				},
-			}
-			Expect(k8sClient.Create(testCtx, &mariaDb)).To(Succeed())
-			Expect(k8sClient.Create(testCtx, &mariaDbSwitchover)).To(Succeed())
-
-			By("Updating status conditions")
-			Expect(k8sClient.Get(testCtx, switchoverKey, &mariaDbSwitchover)).To(Succeed())
-			mariaDbSwitchover.Status.Conditions = []metav1.Condition{
-				{
-					Type:               v1alpha1.ConditionTypePrimarySwitched,
-					Status:             metav1.ConditionFalse,
-					Reason:             v1alpha1.ConditionReasonSwitchPrimary,
-					Message:            "Switching primary",
-					LastTransitionTime: metav1.Now(),
-				},
-			}
-			Expect(k8sClient.Status().Update(testCtx, &mariaDbSwitchover)).To(Succeed())
-		})
-		DescribeTable(
-			"Should validate",
-			func(key types.NamespacedName, patchFn func(mdb *v1alpha1.MariaDB), wantErr bool) {
-				var mdb v1alpha1.MariaDB
-				Expect(k8sClient.Get(testCtx, key, &mdb)).To(Succeed())
-
-				patch := client.MergeFrom(mdb.DeepCopy())
-				patchFn(&mdb)
-
-				err := k8sClient.Patch(testCtx, &mdb, patch)
-				if wantErr {
-					Expect(err).To(HaveOccurred())
-				} else {
-					Expect(err).ToNot(HaveOccurred())
-				}
-			},
-			Entry(
-				"Updating primary pod index",
-				noSwitchoverKey,
-				func(mdb *v1alpha1.MariaDB) {
-					i := 1
-					mdb.Spec.Replication.Primary.PodIndex = &i
-				},
-				false,
-			),
-			Entry(
-				"Updating automatic failover",
-				noSwitchoverKey,
-				func(mdb *v1alpha1.MariaDB) {
-					f := true
-					mdb.Spec.Replication.Primary.AutomaticFailover = &f
-				},
-				false,
-			),
-			Entry(
-				"Updating primary pod index when switching",
-				switchoverKey,
-				func(mdb *v1alpha1.MariaDB) {
-					i := 1
-					mdb.Spec.Replication.Primary.PodIndex = &i
-				},
-				true,
-			),
-			Entry(
-				"Updating automatic failover when switching",
-				switchoverKey,
-				func(mdb *v1alpha1.MariaDB) {
-					f := true
-					mdb.Spec.Replication.Primary.AutomaticFailover = &f
-				},
-				true,
 			),
 		)
 	})

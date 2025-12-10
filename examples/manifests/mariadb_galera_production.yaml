@@ -13,6 +13,10 @@ spec:
     name: mariadb
     key: root-password
 
+  # Point to an existing MaxScale instance. Doing this will delegate operations such as primary failover to MaxScale.
+  # maxScaleRef:
+  #   name: maxscale-galera
+
   storage:
     size: 10Gi
 
@@ -54,6 +58,24 @@ spec:
 
   galera:
     enabled: true
+
+  # service:
+  #   type: LoadBalancer
+  #   metadata:
+  #     annotations:
+  #       metallb.universe.tf/loadBalancerIPs: 172.18.0.150
+
+  # primaryService:
+  #   type: LoadBalancer
+  #   metadata:
+  #     annotations:
+  #       metallb.universe.tf/loadBalancerIPs: 172.18.0.160
+
+  # secondaryService:
+  #   type: LoadBalancer
+  #   metadata:
+  #     annotations:
+  #       metallb.universe.tf/loadBalancerIPs: 172.18.0.161
 
   metrics:
     enabled: true

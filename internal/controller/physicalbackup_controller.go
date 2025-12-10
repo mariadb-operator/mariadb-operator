@@ -133,16 +133,21 @@ func (r *PhysicalBackupReconciler) reconcileTemplateScheduled(ctx context.Contex
 	if schedule.Suspend {
 		return ctrl.Result{}, nil
 	}
+
 	isImmediate := ptr.Deref(schedule.Immediate, true)
+	now := time.Now()
+	if isImmediate && backup.Status.LastScheduleCheckTime == nil {
+		return scheduleFn(now, nil)
+	}
+
+	if schedule.Cron == "" {
+		return ctrl.Result{}, nil
+	}
 	cronSchedule, err := mariadbv1alpha1.CronParser.Parse(schedule.Cron)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error parsing cron schedule: %v", err)
 	}
-	now := time.Now()
 
-	if isImmediate && backup.Status.LastScheduleCheckTime == nil {
-		return scheduleFn(now, cronSchedule)
-	}
 	if backup.Status.LastScheduleCheckTime == nil {
 		nextTime := cronSchedule.Next(now)
 

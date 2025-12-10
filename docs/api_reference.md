@@ -69,6 +69,41 @@ _Appears in:_
 | `antiAffinityEnabled` _boolean_ | AntiAffinityEnabled configures PodAntiAffinity so each Pod is scheduled in a different Node, enabling HA.<br />Make sure you have at least as many Nodes available as the replicas to not end up with unscheduled Pods. |  |  |
 
 
+#### Agent
+
+
+
+Agent is a sidecar agent that co-operates with mariadb-operator.
+
+
+
+_Appears in:_
+- [Galera](#galera)
+- [GaleraSpec](#galeraspec)
+- [Replication](#replication)
+- [ReplicationSpec](#replicationspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `command` _string array_ | Command to be used in the Container. |  |  |
+| `args` _string array_ | Args to be used in the Container. |  |  |
+| `env` _[EnvVar](#envvar) array_ | Env represents the environment variables to be injected in a container. |  |  |
+| `envFrom` _[EnvFromSource](#envfromsource) array_ | EnvFrom represents the references (via ConfigMap and Secrets) to environment variables to be injected in the container. |  |  |
+| `volumeMounts` _[VolumeMount](#volumemount) array_ | VolumeMounts to be used in the Container. |  |  |
+| `livenessProbe` _[Probe](#probe)_ | LivenessProbe to be used in the Container. |  |  |
+| `readinessProbe` _[Probe](#probe)_ | ReadinessProbe to be used in the Container. |  |  |
+| `startupProbe` _[Probe](#probe)_ | StartupProbe to be used in the Container. |  |  |
+| `resources` _[ResourceRequirements](#resourcerequirements)_ | Resources describes the compute resource requirements. |  |  |
+| `securityContext` _[SecurityContext](#securitycontext)_ | SecurityContext holds security configuration that will be applied to a container. |  |  |
+| `image` _string_ | Image name to be used by the MariaDB instances. The supported format is `<image>:<tag>`. |  |  |
+| `imagePullPolicy` _[PullPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#pullpolicy-v1-core)_ | ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`. |  | Enum: [Always Never IfNotPresent] <br /> |
+| `port` _integer_ | Port where the agent will be listening for API connections. |  |  |
+| `probePort` _integer_ | Port where the agent will be listening for probe connections. |  |  |
+| `kubernetesAuth` _[KubernetesAuth](#kubernetesauth)_ | KubernetesAuth to be used by the agent container |  |  |
+| `basicAuth` _[BasicAuth](#basicauth)_ | BasicAuth to be used by the agent container |  |  |
+| `gracefulShutdownTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#duration-v1-meta)_ | GracefulShutdownTimeout is the time we give to the agent container in order to gracefully terminate in-flight requests. |  |  |
+
+
 #### Backup
 
 
@@ -188,12 +223,12 @@ _Appears in:_
 
 
 
-KubernetesAuth refers to the basic authentication mechanism utilized for establishing a connection from the operator to the agent.
+BasicAuth refers to the basic authentication mechanism utilized for establishing a connection from the operator to the agent.
 
 
 
 _Appears in:_
-- [GaleraAgent](#galeraagent)
+- [Agent](#agent)
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
@@ -427,8 +462,8 @@ ContainerTemplate defines a template to configure Container objects.
 
 
 _Appears in:_
-- [GaleraAgent](#galeraagent)
-- [GaleraInit](#galerainit)
+- [Agent](#agent)
+- [InitContainer](#initcontainer)
 - [MariaDBSpec](#mariadbspec)
 - [MaxScaleSpec](#maxscalespec)
 
@@ -551,9 +586,9 @@ Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kub
 
 
 _Appears in:_
+- [Agent](#agent)
 - [ContainerTemplate](#containertemplate)
-- [GaleraAgent](#galeraagent)
-- [GaleraInit](#galerainit)
+- [InitContainer](#initcontainer)
 - [MariaDBSpec](#mariadbspec)
 - [MaxScaleSpec](#maxscalespec)
 
@@ -573,10 +608,10 @@ Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kub
 
 
 _Appears in:_
+- [Agent](#agent)
 - [Container](#container)
 - [ContainerTemplate](#containertemplate)
-- [GaleraAgent](#galeraagent)
-- [GaleraInit](#galerainit)
+- [InitContainer](#initcontainer)
 - [MariaDBSpec](#mariadbspec)
 - [MaxScaleSpec](#maxscalespec)
 
@@ -713,45 +748,12 @@ _Appears in:_
 | `galeraLibPath` _string_ | GaleraLibPath is a path inside the MariaDB image to the wsrep provider plugin. It is defaulted if not provided.<br />More info: https://galeracluster.com/library/documentation/mysql-wsrep-options.html#wsrep-provider. |  |  |
 | `replicaThreads` _integer_ | ReplicaThreads is the number of replica threads used to apply Galera write sets in parallel.<br />More info: https://mariadb.com/kb/en/galera-cluster-system-variables/#wsrep_slave_threads. |  |  |
 | `providerOptions` _object (keys:string, values:string)_ | ProviderOptions is map of Galera configuration parameters.<br />More info: https://mariadb.com/kb/en/galera-cluster-system-variables/#wsrep_provider_options. |  |  |
-| `agent` _[GaleraAgent](#galeraagent)_ | GaleraAgent is a sidecar agent that co-operates with mariadb-operator. |  |  |
+| `agent` _[Agent](#agent)_ | Agent is a sidecar agent that co-operates with mariadb-operator. |  |  |
 | `recovery` _[GaleraRecovery](#galerarecovery)_ | GaleraRecovery is the recovery process performed by the operator whenever the Galera cluster is not healthy.<br />More info: https://galeracluster.com/library/documentation/crash-recovery.html. |  |  |
-| `initContainer` _[GaleraInit](#galerainit)_ | InitContainer is an init container that runs in the MariaDB Pod and co-operates with mariadb-operator. |  |  |
+| `initContainer` _[InitContainer](#initcontainer)_ | InitContainer is an init container that runs in the MariaDB Pod and co-operates with mariadb-operator. |  |  |
 | `initJob` _[GaleraInitJob](#galerainitjob)_ | InitJob defines a Job that co-operates with mariadb-operator by performing initialization tasks. |  |  |
 | `config` _[GaleraConfig](#galeraconfig)_ | GaleraConfig defines storage options for the Galera configuration files. |  |  |
 | `enabled` _boolean_ | Enabled is a flag to enable Galera. |  |  |
-
-
-#### GaleraAgent
-
-
-
-GaleraAgent is a sidecar agent that co-operates with mariadb-operator.
-
-
-
-_Appears in:_
-- [Galera](#galera)
-- [GaleraSpec](#galeraspec)
-
-| Field | Description | Default | Validation |
-| --- | --- | --- | --- |
-| `command` _string array_ | Command to be used in the Container. |  |  |
-| `args` _string array_ | Args to be used in the Container. |  |  |
-| `env` _[EnvVar](#envvar) array_ | Env represents the environment variables to be injected in a container. |  |  |
-| `envFrom` _[EnvFromSource](#envfromsource) array_ | EnvFrom represents the references (via ConfigMap and Secrets) to environment variables to be injected in the container. |  |  |
-| `volumeMounts` _[VolumeMount](#volumemount) array_ | VolumeMounts to be used in the Container. |  |  |
-| `livenessProbe` _[Probe](#probe)_ | LivenessProbe to be used in the Container. |  |  |
-| `readinessProbe` _[Probe](#probe)_ | ReadinessProbe to be used in the Container. |  |  |
-| `startupProbe` _[Probe](#probe)_ | StartupProbe to be used in the Container. |  |  |
-| `resources` _[ResourceRequirements](#resourcerequirements)_ | Resources describes the compute resource requirements. |  |  |
-| `securityContext` _[SecurityContext](#securitycontext)_ | SecurityContext holds security configuration that will be applied to a container. |  |  |
-| `image` _string_ | Image name to be used by the MariaDB instances. The supported format is `<image>:<tag>`. |  |  |
-| `imagePullPolicy` _[PullPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#pullpolicy-v1-core)_ | ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`. |  | Enum: [Always Never IfNotPresent] <br /> |
-| `port` _integer_ | Port where the agent will be listening for API connections. |  |  |
-| `probePort` _integer_ | Port where the agent will be listening for probe connections. |  |  |
-| `kubernetesAuth` _[KubernetesAuth](#kubernetesauth)_ | KubernetesAuth to be used by the agent container |  |  |
-| `basicAuth` _[BasicAuth](#basicauth)_ | BasicAuth to be used by the agent container |  |  |
-| `gracefulShutdownTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#duration-v1-meta)_ | GracefulShutdownTimeout is the time we give to the agent container in order to gracefully terminate in-flight requests. |  |  |
 
 
 #### GaleraConfig
@@ -770,34 +772,6 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `reuseStorageVolume` _boolean_ | ReuseStorageVolume indicates that storage volume used by MariaDB should be reused to store the Galera configuration files.<br />It defaults to false, which implies that a dedicated volume for the Galera configuration files is provisioned. |  |  |
 | `volumeClaimTemplate` _[VolumeClaimTemplate](#volumeclaimtemplate)_ | VolumeClaimTemplate is a template for the PVC that will contain the Galera configuration files shared between the InitContainer, Agent and MariaDB. |  |  |
-
-
-#### GaleraInit
-
-
-
-GaleraInit is an init container that runs in the MariaDB Pod and co-operates with mariadb-operator.
-
-
-
-_Appears in:_
-- [Galera](#galera)
-- [GaleraSpec](#galeraspec)
-
-| Field | Description | Default | Validation |
-| --- | --- | --- | --- |
-| `command` _string array_ | Command to be used in the Container. |  |  |
-| `args` _string array_ | Args to be used in the Container. |  |  |
-| `env` _[EnvVar](#envvar) array_ | Env represents the environment variables to be injected in a container. |  |  |
-| `envFrom` _[EnvFromSource](#envfromsource) array_ | EnvFrom represents the references (via ConfigMap and Secrets) to environment variables to be injected in the container. |  |  |
-| `volumeMounts` _[VolumeMount](#volumemount) array_ | VolumeMounts to be used in the Container. |  |  |
-| `livenessProbe` _[Probe](#probe)_ | LivenessProbe to be used in the Container. |  |  |
-| `readinessProbe` _[Probe](#probe)_ | ReadinessProbe to be used in the Container. |  |  |
-| `startupProbe` _[Probe](#probe)_ | StartupProbe to be used in the Container. |  |  |
-| `resources` _[ResourceRequirements](#resourcerequirements)_ | Resources describes the compute resource requirements. |  |  |
-| `securityContext` _[SecurityContext](#securitycontext)_ | SecurityContext holds security configuration that will be applied to a container. |  |  |
-| `image` _string_ | Image name to be used by the MariaDB instances. The supported format is `<image>:<tag>`. |  | Required: \{\} <br /> |
-| `imagePullPolicy` _[PullPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#pullpolicy-v1-core)_ | ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`. |  | Enum: [Always Never IfNotPresent] <br /> |
 
 
 #### GaleraInitJob
@@ -883,9 +857,9 @@ _Appears in:_
 | `galeraLibPath` _string_ | GaleraLibPath is a path inside the MariaDB image to the wsrep provider plugin. It is defaulted if not provided.<br />More info: https://galeracluster.com/library/documentation/mysql-wsrep-options.html#wsrep-provider. |  |  |
 | `replicaThreads` _integer_ | ReplicaThreads is the number of replica threads used to apply Galera write sets in parallel.<br />More info: https://mariadb.com/kb/en/galera-cluster-system-variables/#wsrep_slave_threads. |  |  |
 | `providerOptions` _object (keys:string, values:string)_ | ProviderOptions is map of Galera configuration parameters.<br />More info: https://mariadb.com/kb/en/galera-cluster-system-variables/#wsrep_provider_options. |  |  |
-| `agent` _[GaleraAgent](#galeraagent)_ | GaleraAgent is a sidecar agent that co-operates with mariadb-operator. |  |  |
+| `agent` _[Agent](#agent)_ | Agent is a sidecar agent that co-operates with mariadb-operator. |  |  |
 | `recovery` _[GaleraRecovery](#galerarecovery)_ | GaleraRecovery is the recovery process performed by the operator whenever the Galera cluster is not healthy.<br />More info: https://galeracluster.com/library/documentation/crash-recovery.html. |  |  |
-| `initContainer` _[GaleraInit](#galerainit)_ | InitContainer is an init container that runs in the MariaDB Pod and co-operates with mariadb-operator. |  |  |
+| `initContainer` _[InitContainer](#initcontainer)_ | InitContainer is an init container that runs in the MariaDB Pod and co-operates with mariadb-operator. |  |  |
 | `initJob` _[GaleraInitJob](#galerainitjob)_ | InitJob defines a Job that co-operates with mariadb-operator by performing initialization tasks. |  |  |
 | `config` _[GaleraConfig](#galeraconfig)_ | GaleraConfig defines storage options for the Galera configuration files. |  |  |
 
@@ -959,7 +933,7 @@ _Appears in:_
 
 _Underlying type:_ _string_
 
-Gtid indicates which Global Transaction ID should be used when connecting a replica to the master.
+Gtid indicates which Global Transaction ID (GTID) position mode should be used when connecting a replica to the master.
 See: https://mariadb.com/kb/en/gtid/#using-current_pos-vs-slave_pos.
 
 
@@ -969,7 +943,7 @@ _Appears in:_
 
 | Field | Description |
 | --- | --- |
-| `CurrentPos` | GtidCurrentPos indicates the union of gtid_binlog_pos and gtid_slave_pos will be used when replicating from master.<br />This is the default Gtid mode.<br /> |
+| `CurrentPos` | GtidCurrentPos indicates the union of gtid_binlog_pos and gtid_slave_pos will be used when replicating from master.<br /> |
 | `SlavePos` | GtidSlavePos indicates that gtid_slave_pos will be used when replicating from master.<br /> |
 
 
@@ -1030,6 +1004,36 @@ _Appears in:_
 | `type` _string_ |  |  |  |
 
 
+#### InitContainer
+
+
+
+InitContainer is an init container that runs in the MariaDB Pod and co-operates with mariadb-operator.
+
+
+
+_Appears in:_
+- [Galera](#galera)
+- [GaleraSpec](#galeraspec)
+- [Replication](#replication)
+- [ReplicationSpec](#replicationspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `command` _string array_ | Command to be used in the Container. |  |  |
+| `args` _string array_ | Args to be used in the Container. |  |  |
+| `env` _[EnvVar](#envvar) array_ | Env represents the environment variables to be injected in a container. |  |  |
+| `envFrom` _[EnvFromSource](#envfromsource) array_ | EnvFrom represents the references (via ConfigMap and Secrets) to environment variables to be injected in the container. |  |  |
+| `volumeMounts` _[VolumeMount](#volumemount) array_ | VolumeMounts to be used in the Container. |  |  |
+| `livenessProbe` _[Probe](#probe)_ | LivenessProbe to be used in the Container. |  |  |
+| `readinessProbe` _[Probe](#probe)_ | ReadinessProbe to be used in the Container. |  |  |
+| `startupProbe` _[Probe](#probe)_ | StartupProbe to be used in the Container. |  |  |
+| `resources` _[ResourceRequirements](#resourcerequirements)_ | Resources describes the compute resource requirements. |  |  |
+| `securityContext` _[SecurityContext](#securitycontext)_ | SecurityContext holds security configuration that will be applied to a container. |  |  |
+| `image` _string_ | Image name to be used by the MariaDB instances. The supported format is `<image>:<tag>`. |  | Required: \{\} <br /> |
+| `imagePullPolicy` _[PullPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#pullpolicy-v1-core)_ | ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`. |  | Enum: [Always Never IfNotPresent] <br /> |
+
+
 #### Job
 
 
@@ -1040,6 +1044,7 @@ Job defines a Job used to be used with MariaDB.
 
 _Appears in:_
 - [BootstrapFrom](#bootstrapfrom)
+- [ReplicaBootstrapFrom](#replicabootstrapfrom)
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
@@ -1107,7 +1112,7 @@ The agent validates the legitimacy of the service account token provided as an A
 
 
 _Appears in:_
-- [GaleraAgent](#galeraagent)
+- [Agent](#agent)
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
@@ -1177,6 +1182,7 @@ _Appears in:_
 - [PhysicalBackupPodTemplate](#physicalbackuppodtemplate)
 - [PhysicalBackupSpec](#physicalbackupspec)
 - [PodTemplate](#podtemplate)
+- [ReplicaBootstrapFrom](#replicabootstrapfrom)
 - [RestoreSource](#restoresource)
 - [RestoreSpec](#restorespec)
 - [SecretKeySelector](#secretkeyselector)
@@ -1411,7 +1417,7 @@ _Appears in:_
 | `adminPasswordSecretKeyRef` _[GeneratedSecretKeyRef](#generatedsecretkeyref)_ | AdminPasswordSecretKeyRef is Secret key reference to the admin password to call the admin REST API. It is defaulted if not provided. |  |  |
 | `deleteDefaultAdmin` _boolean_ | DeleteDefaultAdmin determines whether the default admin user should be deleted after the initial configuration. If not provided, it defaults to true. |  |  |
 | `metricsUsername` _string_ | MetricsUsername is an metrics username to call the REST API. It is defaulted if metrics are enabled. |  |  |
-| `metricsPasswordSecretKeyRef` _[GeneratedSecretKeyRef](#generatedsecretkeyref)_ | MetricsPasswordSecretKeyRef is Secret key reference to the metrics password to call the admib REST API. It is defaulted if metrics are enabled.<br />If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password. |  |  |
+| `metricsPasswordSecretKeyRef` _[GeneratedSecretKeyRef](#generatedsecretkeyref)_ | MetricsPasswordSecretKeyRef is Secret key reference to the metrics password to call the admib REST API. It is defaulted if metrics are enabled. |  |  |
 | `clientUsername` _string_ | ClientUsername is the user to connect to MaxScale. It is defaulted if not provided. |  |  |
 | `clientPasswordSecretKeyRef` _[GeneratedSecretKeyRef](#generatedsecretkeyref)_ | ClientPasswordSecretKeyRef is Secret key reference to the password to connect to MaxScale. It is defaulted if not provided.<br />If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password. |  |  |
 | `clientMaxConnections` _integer_ | ClientMaxConnections defines the maximum number of connections that the client can establish.<br />If HA is enabled, make sure to increase this value, as more MaxScale replicas implies more connections.<br />It defaults to 30 times the number of MaxScale replicas. |  |  |
@@ -1624,6 +1630,7 @@ _Appears in:_
 | `topologySpreadConstraints` _[TopologySpreadConstraint](#topologyspreadconstraint) array_ | TopologySpreadConstraints to be used in the Pod. |  |  |
 | `suspend` _boolean_ | Suspend indicates whether the current resource should be suspended or not.<br />This can be useful for maintenance, as disabling the reconciliation prevents the operator from interfering with user operations during maintenance activities. | false |  |
 | `mariaDbRef` _[MariaDBRef](#mariadbref)_ | MariaDBRef is a reference to the MariaDB that MaxScale points to. It is used to initialize the servers field. |  |  |
+| `primaryServer` _string_ | PrimaryServer specifies the desired primary server. Setting this field triggers a switchover operation in MaxScale to the desired server.<br />This option is only valid when using monitors that support switchover, currently limited to the MariaDB monitor. |  |  |
 | `servers` _[MaxScaleServer](#maxscaleserver) array_ | Servers are the MariaDB servers to forward traffic to. It is required if 'spec.mariaDbRef' is not provided. |  |  |
 | `image` _string_ | Image name to be used by the MaxScale instances. The supported format is `<image>:<tag>`.<br />Only MaxScale official images are supported. |  |  |
 | `imagePullPolicy` _[PullPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#pullpolicy-v1-core)_ | ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`. |  | Enum: [Always Never IfNotPresent] <br /> |
@@ -1961,7 +1968,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `cron` _string_ | Cron is a cron expression that defines the schedule. |  | Required: \{\} <br /> |
+| `cron` _string_ | Cron is a cron expression that defines the schedule. |  |  |
 | `suspend` _boolean_ | Suspend defines whether the schedule is active or not. | false |  |
 | `immediate` _boolean_ | Immediate indicates whether the first backup should be taken immediately after creating the PhysicalBackup. |  |  |
 
@@ -2186,14 +2193,14 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `podIndex` _integer_ | PodIndex is the StatefulSet index of the primary node. The user may change this field to perform a manual switchover. |  |  |
-| `automaticFailover` _boolean_ | AutomaticFailover indicates whether the operator should automatically update PodIndex to perform an automatic primary failover. |  |  |
+| `autoFailover` _boolean_ | AutoFailover indicates whether the operator should automatically update PodIndex to perform an automatic primary failover. |  |  |
 
 
 #### PrimaryReplication
 
 
 
-PrimaryReplication is the replication configuration for the primary node.
+PrimaryReplication is the replication configuration and operation parameters for the primary.
 
 
 
@@ -2204,8 +2211,8 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `podIndex` _integer_ | PodIndex is the StatefulSet index of the primary node. The user may change this field to perform a manual switchover. |  |  |
-| `automaticFailover` _boolean_ | AutomaticFailover indicates whether the operator should automatically update PodIndex to perform an automatic primary failover. |  |  |
-| `automaticFailoverDelay` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#duration-v1-meta)_ | AutomaticFailoverDelay indicates the duration before performing an automatic primary failover. By default, no extra delay is added. |  |  |
+| `autoFailover` _boolean_ | AutoFailover indicates whether the operator should automatically update PodIndex to perform an automatic primary failover.<br />It is enabled by default. |  |  |
+| `autoFailoverDelay` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#duration-v1-meta)_ | AutoFailoverDelay indicates the duration before performing an automatic primary failover.<br />By default, no extra delay is added. |  |  |
 
 
 #### Probe
@@ -2217,9 +2224,9 @@ Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kub
 
 
 _Appears in:_
+- [Agent](#agent)
 - [ContainerTemplate](#containertemplate)
-- [GaleraAgent](#galeraagent)
-- [GaleraInit](#galerainit)
+- [InitContainer](#initcontainer)
 - [MariaDBSpec](#mariadbspec)
 - [MaxScaleSpec](#maxscalespec)
 
@@ -2253,11 +2260,45 @@ _Appears in:_
 | `tcpSocket` _[TCPSocketAction](#tcpsocketaction)_ |  |  |  |
 
 
+#### ReplicaBootstrapFrom
+
+
+
+ReplicaBootstrapFrom defines the sources for bootstrapping new relicas.
+
+
+
+_Appears in:_
+- [ReplicaReplication](#replicareplication)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `physicalBackupTemplateRef` _[LocalObjectReference](#localobjectreference)_ | PhysicalBackupTemplateRef is a reference to a PhysicalBackup object that will be used as template to create a new PhysicalBackup object<br />used synchronize the data from an up to date replica to the new replica to be bootstrapped. |  | Required: \{\} <br /> |
+| `restoreJob` _[Job](#job)_ | RestoreJob defines additional properties for the Job used to perform the restoration. |  |  |
+
+
+#### ReplicaRecovery
+
+
+
+ReplicaRecovery defines how the replicas should be recovered after they enter an error state.
+
+
+
+_Appears in:_
+- [ReplicaReplication](#replicareplication)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `enabled` _boolean_ | Enabled is a flag to enable replica recovery. |  | Required: \{\} <br /> |
+| `errorDurationThreshold` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#duration-v1-meta)_ | ErrorDurationThreshold defines the time duration after which, if a replica continues to report errors,<br />the operator will initiate the recovery process for that replica.<br />This threshold applies only to error codes not identified as recoverable by the operator.<br />Errors identified as recoverable will trigger the recovery process immediately.<br />It defaults to 5 minutes. |  |  |
+
+
 #### ReplicaReplication
 
 
 
-ReplicaReplication is the replication configuration for the replica nodes.
+ReplicaReplication is the replication configuration and operation parameters for the replicas.
 
 
 
@@ -2267,19 +2308,22 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `waitPoint` _[WaitPoint](#waitpoint)_ | WaitPoint defines whether the transaction should wait for ACK before committing to the storage engine.<br />More info: https://mariadb.com/kb/en/semisynchronous-replication/#rpl_semi_sync_master_wait_point. |  | Enum: [AfterSync AfterCommit] <br /> |
-| `gtid` _[Gtid](#gtid)_ | Gtid indicates which Global Transaction ID should be used when connecting a replica to the master.<br />See: https://mariadb.com/kb/en/gtid/#using-current_pos-vs-slave_pos. |  | Enum: [CurrentPos SlavePos] <br /> |
-| `replPasswordSecretKeyRef` _[GeneratedSecretKeyRef](#generatedsecretkeyref)_ | ReplPasswordSecretKeyRef provides a reference to the Secret to use as password for the replication user. |  |  |
-| `connectionTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#duration-v1-meta)_ | ConnectionTimeout to be used when the replica connects to the primary. |  |  |
-| `connectionRetries` _integer_ | ConnectionRetries to be used when the replica connects to the primary. |  |  |
-| `syncTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#duration-v1-meta)_ | SyncTimeout defines the timeout for a replica to be synced with the primary when performing a primary switchover.<br />If the timeout is reached, the replica GTID will be reset and the switchover will continue. |  |  |
+| `replPasswordSecretKeyRef` _[GeneratedSecretKeyRef](#generatedsecretkeyref)_ | ReplPasswordSecretKeyRef provides a reference to the Secret to use as password for the replication user.<br />By default, a random password will be generated. |  |  |
+| `gtid` _[Gtid](#gtid)_ | Gtid indicates which Global Transaction ID (GTID) position mode should be used when connecting a replica to the master.<br />By default, CurrentPos is used.<br />See: https://mariadb.com/docs/server/reference/sql-statements/administrative-sql-statements/replication-statements/change-master-to#master_use_gtid. |  | Enum: [CurrentPos SlavePos] <br /> |
+| `connectionRetrySeconds` _integer_ | ConnectionRetrySeconds is the number of seconds that the replica will wait between connection retries.<br />See: https://mariadb.com/docs/server/reference/sql-statements/administrative-sql-statements/replication-statements/change-master-to#master_connect_retry. |  |  |
+| `maxLagSeconds` _integer_ | MaxLagSeconds is the maximum number of seconds that replicas are allowed to lag behind the primary.<br />If a replica exceeds this threshold, it is marked as not ready and read queries will no longer be forwarded to it.<br />If not provided, it defaults to 0, which means that replicas are not allowed to lag behind the primary (recommended).<br />Lagged replicas will not be taken into account as candidates for the new primary during failover,<br />and they will block other operations, such as switchover and upgrade.<br />This field is not taken into account by MaxScale, you can define the maximum lag as router parameters.<br />See: https://mariadb.com/docs/maxscale/reference/maxscale-routers/maxscale-readwritesplit#max_replication_lag. |  |  |
+| `syncTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#duration-v1-meta)_ | SyncTimeout defines the timeout for the synchronization phase during switchover and failover operations.<br />During switchover, all replicas must be synced with the current primary before promoting the new primary.<br />During failover, the new primary must be synced before being promoted as primary. This implies processing all the events in the relay log.<br />When the timeout is reached, the operator restarts the operation from the beginning.<br />It defaults to 10s.<br />See: https://mariadb.com/docs/server/reference/sql-functions/secondary-functions/miscellaneous-functions/master_gtid_wait |  |  |
+| `bootstrapFrom` _[ReplicaBootstrapFrom](#replicabootstrapfrom)_ | ReplicaBootstrapFrom defines the data sources used to bootstrap new replicas.<br />This will be used as part of the scaling out and recovery operations, when new replicas are created.<br />If not provided, scale out and recovery operations will return an error. |  |  |
+| `recovery` _[ReplicaRecovery](#replicarecovery)_ | ReplicaRecovery defines how the replicas should be recovered after they enter an error state.<br />This process deletes data from faulty replicas and recreates them using the source defined in the bootstrapFrom field.<br />It is disabled by default, and it requires the bootstrapFrom field to be set. |  |  |
+
+
 
 
 #### Replication
 
 
 
-Replication allows you to enable single-master HA via semi-synchronours replication in your MariaDB cluster.
+Replication defines replication configuration for a MariaDB cluster.
 
 
 
@@ -2290,16 +2334,24 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `primary` _[PrimaryReplication](#primaryreplication)_ | Primary is the replication configuration for the primary node. |  |  |
 | `replica` _[ReplicaReplication](#replicareplication)_ | ReplicaReplication is the replication configuration for the replica nodes. |  |  |
-| `syncBinlog` _integer_ | SyncBinlog indicates after how many events the binary log is synchronized to the disk.<br />The default is 1, flushing the binary log to disk after every write, which trades off performance for consistency. See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/replication-and-binary-log-system-variables#sync_binlog |  |  |
-| `probesEnabled` _boolean_ | ProbesEnabled indicates to use replication specific liveness and readiness probes.<br />This probes check that the primary can receive queries and that the replica has the replication thread running. |  |  |
-| `enabled` _boolean_ | Enabled is a flag to enable Replication. |  |  |
+| `gtidStrictMode` _boolean_ | GtidStrictMode determines whether the GTID strict mode is enabled.<br />See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/gtid#gtid_strict_mode.<br />It is enabled by default. |  |  |
+| `semiSyncEnabled` _boolean_ | SemiSyncEnabled determines whether semi-synchronous replication is enabled.<br />Semi-synchronous replication requires that at least one replica should have sent an ACK to the primary node<br />before committing the transaction back to the client.<br />See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/semisynchronous-replication<br />It is enabled by default |  |  |
+| `semiSyncAckTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#duration-v1-meta)_ | SemiSyncAckTimeout for the replica to acknowledge transactions to the primary.<br />It requires semi-synchronous replication to be enabled.<br />See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/semisynchronous-replication#rpl_semi_sync_master_timeout |  |  |
+| `semiSyncWaitPoint` _[WaitPoint](#waitpoint)_ | SemiSyncWaitPoint determines whether the transaction should wait for an ACK after having synced the binlog (AfterSync)<br />or after having committed to the storage engine (AfterCommit, the default).<br />It requires semi-synchronous replication to be enabled.<br />See: https://mariadb.com/kb/en/semisynchronous-replication/#rpl_semi_sync_master_wait_point. |  | Enum: [AfterSync AfterCommit] <br /> |
+| `syncBinlog` _integer_ | SyncBinlog indicates after how many events the binary log is synchronized to the disk.<br />See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/replication-and-binary-log-system-variables#sync_binlog |  |  |
+| `initContainer` _[InitContainer](#initcontainer)_ | InitContainer is an init container that runs in the MariaDB Pod and co-operates with mariadb-operator. |  |  |
+| `agent` _[Agent](#agent)_ | Agent is a sidecar agent that runs in the MariaDB Pod and co-operates with mariadb-operator. |  |  |
+| `standaloneProbes` _boolean_ | StandaloneProbes indicates whether to use the default non-HA startup and liveness probes.<br />It is disabled by default |  |  |
+| `enabled` _boolean_ | Enabled is a flag to enable replication. |  |  |
+
+
 
 
 #### ReplicationSpec
 
 
 
-ReplicationSpec is the Replication desired state specification.
+ReplicationSpec is the replication desired state.
 
 
 
@@ -2310,10 +2362,14 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `primary` _[PrimaryReplication](#primaryreplication)_ | Primary is the replication configuration for the primary node. |  |  |
 | `replica` _[ReplicaReplication](#replicareplication)_ | ReplicaReplication is the replication configuration for the replica nodes. |  |  |
-| `syncBinlog` _integer_ | SyncBinlog indicates after how many events the binary log is synchronized to the disk.<br />The default is 1, flushing the binary log to disk after every write, which trades off performance for consistency. See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/replication-and-binary-log-system-variables#sync_binlog |  |  |
-| `probesEnabled` _boolean_ | ProbesEnabled indicates to use replication specific liveness and readiness probes.<br />This probes check that the primary can receive queries and that the replica has the replication thread running. |  |  |
-
-
+| `gtidStrictMode` _boolean_ | GtidStrictMode determines whether the GTID strict mode is enabled.<br />See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/gtid#gtid_strict_mode.<br />It is enabled by default. |  |  |
+| `semiSyncEnabled` _boolean_ | SemiSyncEnabled determines whether semi-synchronous replication is enabled.<br />Semi-synchronous replication requires that at least one replica should have sent an ACK to the primary node<br />before committing the transaction back to the client.<br />See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/semisynchronous-replication<br />It is enabled by default |  |  |
+| `semiSyncAckTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.34/#duration-v1-meta)_ | SemiSyncAckTimeout for the replica to acknowledge transactions to the primary.<br />It requires semi-synchronous replication to be enabled.<br />See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/semisynchronous-replication#rpl_semi_sync_master_timeout |  |  |
+| `semiSyncWaitPoint` _[WaitPoint](#waitpoint)_ | SemiSyncWaitPoint determines whether the transaction should wait for an ACK after having synced the binlog (AfterSync)<br />or after having committed to the storage engine (AfterCommit, the default).<br />It requires semi-synchronous replication to be enabled.<br />See: https://mariadb.com/kb/en/semisynchronous-replication/#rpl_semi_sync_master_wait_point. |  | Enum: [AfterSync AfterCommit] <br /> |
+| `syncBinlog` _integer_ | SyncBinlog indicates after how many events the binary log is synchronized to the disk.<br />See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/replication-and-binary-log-system-variables#sync_binlog |  |  |
+| `initContainer` _[InitContainer](#initcontainer)_ | InitContainer is an init container that runs in the MariaDB Pod and co-operates with mariadb-operator. |  |  |
+| `agent` _[Agent](#agent)_ | Agent is a sidecar agent that runs in the MariaDB Pod and co-operates with mariadb-operator. |  |  |
+| `standaloneProbes` _boolean_ | StandaloneProbes indicates whether to use the default non-HA startup and liveness probes.<br />It is disabled by default |  |  |
 
 
 #### ResourceRequirements
@@ -2325,14 +2381,14 @@ Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kub
 
 
 _Appears in:_
+- [Agent](#agent)
 - [BackupSpec](#backupspec)
 - [Container](#container)
 - [ContainerTemplate](#containertemplate)
 - [Exporter](#exporter)
-- [GaleraAgent](#galeraagent)
-- [GaleraInit](#galerainit)
 - [GaleraInitJob](#galerainitjob)
 - [GaleraRecoveryJob](#galerarecoveryjob)
+- [InitContainer](#initcontainer)
 - [Job](#job)
 - [JobContainerTemplate](#jobcontainertemplate)
 - [MariaDBSpec](#mariadbspec)
@@ -2580,11 +2636,11 @@ Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kub
 
 
 _Appears in:_
+- [Agent](#agent)
 - [BackupSpec](#backupspec)
 - [ContainerTemplate](#containertemplate)
 - [Exporter](#exporter)
-- [GaleraAgent](#galeraagent)
-- [GaleraInit](#galerainit)
+- [InitContainer](#initcontainer)
 - [JobContainerTemplate](#jobcontainertemplate)
 - [MariaDBSpec](#mariadbspec)
 - [MaxScaleSpec](#maxscalespec)
@@ -2889,6 +2945,8 @@ _Appears in:_
 | `caSecretKeyRef` _[SecretKeySelector](#secretkeyselector)_ | CASecretKeyRef is a reference to a Secret key containing a CA bundle in PEM format used to establish TLS connections with S3.<br />By default, the system trust chain will be used, but you can use this field to add more CAs to the bundle. |  |  |
 
 
+
+
 #### TopologySpreadConstraint
 
 
@@ -3068,10 +3126,10 @@ Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kub
 
 
 _Appears in:_
+- [Agent](#agent)
 - [Container](#container)
 - [ContainerTemplate](#containertemplate)
-- [GaleraAgent](#galeraagent)
-- [GaleraInit](#galerainit)
+- [InitContainer](#initcontainer)
 - [MariaDBSpec](#mariadbspec)
 - [MaxScaleSpec](#maxscalespec)
 
@@ -3115,11 +3173,12 @@ More info: https://mariadb.com/kb/en/semisynchronous-replication/#rpl_semi_sync_
 
 
 _Appears in:_
-- [ReplicaReplication](#replicareplication)
+- [Replication](#replication)
+- [ReplicationSpec](#replicationspec)
 
 | Field | Description |
 | --- | --- |
-| `AfterSync` | WaitPointAfterSync indicates that the primary waits for the replica ACK before committing the transaction to the storage engine.<br />This is the default WaitPoint. It trades off performance for consistency.<br /> |
+| `AfterSync` | WaitPointAfterSync indicates that the primary waits for the replica ACK before committing the transaction to the storage engine.<br />It trades off performance for consistency.<br /> |
 | `AfterCommit` | WaitPointAfterCommit indicates that the primary commits the transaction to the storage engine and waits for the replica ACK afterwards.<br />It trades off consistency for performance.<br /> |
 
 

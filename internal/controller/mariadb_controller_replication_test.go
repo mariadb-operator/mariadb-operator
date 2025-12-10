@@ -3,7 +3,9 @@ package controller
 import (
 	"time"
 
+	volumesnapshotv1 "github.com/kubernetes-csi/external-snapshotter/client/v8/apis/volumesnapshot/v1"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/metadata"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/statefulset"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -11,10 +13,13 @@ import (
 	discoveryv1 "k8s.io/api/discovery/v1"
 	policyv1 "k8s.io/api/policy/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var _ = Describe("MariaDB replication", Ordered, func() {
@@ -27,110 +32,7 @@ var _ = Describe("MariaDB replication", Ordered, func() {
 	)
 
 	BeforeAll(func() {
-		mdb = &mariadbv1alpha1.MariaDB{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      key.Name,
-				Namespace: key.Namespace,
-			},
-			Spec: mariadbv1alpha1.MariaDBSpec{
-				Username: &testUser,
-				PasswordSecretKeyRef: &mariadbv1alpha1.GeneratedSecretKeyRef{
-					SecretKeySelector: mariadbv1alpha1.SecretKeySelector{
-						LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
-							Name: testPwdKey.Name,
-						},
-						Key: testPwdSecretKey,
-					},
-				},
-				Database: &testDatabase,
-				MyCnf: ptr.To(`[mariadb]
-				bind-address=*
-				default_storage_engine=InnoDB
-				binlog_format=row
-				innodb_autoinc_lock_mode=2
-				max_allowed_packet=256M`,
-				),
-				Replication: &mariadbv1alpha1.Replication{
-					ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
-						Primary: &mariadbv1alpha1.PrimaryReplication{
-							PodIndex:          func() *int { i := 0; return &i }(),
-							AutomaticFailover: func() *bool { f := true; return &f }(),
-						},
-						Replica: &mariadbv1alpha1.ReplicaReplication{
-							WaitPoint: func() *mariadbv1alpha1.WaitPoint { w := mariadbv1alpha1.WaitPointAfterSync; return &w }(),
-							Gtid:      func() *mariadbv1alpha1.Gtid { g := mariadbv1alpha1.GtidCurrentPos; return &g }(),
-						},
-						SyncBinlog: ptr.To(1),
-					},
-					Enabled: true,
-				},
-				Replicas: 3,
-				Storage: mariadbv1alpha1.Storage{
-					Size:                ptr.To(resource.MustParse("300Mi")),
-					StorageClassName:    "standard-resize",
-					ResizeInUseVolumes:  ptr.To(true),
-					WaitForVolumeResize: ptr.To(true),
-				},
-				TLS: &mariadbv1alpha1.TLS{
-					Enabled:  true,
-					Required: ptr.To(true),
-				},
-				Service: &mariadbv1alpha1.ServiceTemplate{
-					Type: corev1.ServiceTypeLoadBalancer,
-					Metadata: &mariadbv1alpha1.Metadata{
-						Annotations: map[string]string{
-							"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.120",
-						},
-					},
-				},
-				Connection: &mariadbv1alpha1.ConnectionTemplate{
-					SecretName: func() *string {
-						s := "mdb-repl-conn"
-						return &s
-					}(),
-					SecretTemplate: &mariadbv1alpha1.SecretTemplate{
-						Key: &testConnSecretKey,
-					},
-				},
-				PrimaryService: &mariadbv1alpha1.ServiceTemplate{
-					Type: corev1.ServiceTypeLoadBalancer,
-					Metadata: &mariadbv1alpha1.Metadata{
-						Annotations: map[string]string{
-							"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.130",
-						},
-					},
-				},
-				PrimaryConnection: &mariadbv1alpha1.ConnectionTemplate{
-					SecretName: func() *string {
-						s := "mdb-repl-conn-primary"
-						return &s
-					}(),
-					SecretTemplate: &mariadbv1alpha1.SecretTemplate{
-						Key: &testConnSecretKey,
-					},
-				},
-				SecondaryService: &mariadbv1alpha1.ServiceTemplate{
-					Type: corev1.ServiceTypeLoadBalancer,
-					Metadata: &mariadbv1alpha1.Metadata{
-						Annotations: map[string]string{
-							"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.131",
-						},
-					},
-				},
-				SecondaryConnection: &mariadbv1alpha1.ConnectionTemplate{
-					SecretName: func() *string {
-						s := "mdb-repl-conn-secondary"
-						return &s
-					}(),
-					SecretTemplate: &mariadbv1alpha1.SecretTemplate{
-						Key: &testConnSecretKey,
-					},
-				},
-				UpdateStrategy: mariadbv1alpha1.UpdateStrategy{
-					Type: mariadbv1alpha1.ReplicasFirstPrimaryLastUpdateType,
-				},
-			},
-		}
+		mdb = buildTestMariaDBRepl(key)
 		applyMariadbTestConfig(mdb)
 
 		By("Creating MariaDB with replication")
@@ -216,26 +118,34 @@ var _ = Describe("MariaDB replication", Ordered, func() {
 	})
 
 	It("should fail and switch over primary", func() {
-		Skip("TODO: re-evaluate this test when productionizing replication. See https://github.com/mariadb-operator/mariadb-operator/issues/738")
-
 		By("Expecting MariaDB primary to be set")
 		Eventually(func() bool {
+			if err := k8sClient.Get(testCtx, key, mdb); err != nil {
+				return false
+			}
 			return mdb.Status.CurrentPrimary != nil
 		}, testTimeout, testInterval).Should(BeTrue())
 
-		currentPrimary := *mdb.Status.CurrentPrimary
-		By("Tearing down primary Pod consistently")
-		Consistently(func() bool {
+		var currentPrimary string
+		By("Tearing down primary Pod")
+		Eventually(func() bool {
+			if err := k8sClient.Get(testCtx, key, mdb); err != nil {
+				return false
+			}
+			currentPrimary = *mdb.Status.CurrentPrimary
 			primaryPodKey := types.NamespacedName{
-				Name:      currentPrimary,
+				Name:      *mdb.Status.CurrentPrimary,
 				Namespace: mdb.Namespace,
 			}
 			var primaryPod corev1.Pod
 			if err := k8sClient.Get(testCtx, primaryPodKey, &primaryPod); err != nil {
 				return apierrors.IsNotFound(err)
 			}
-			return k8sClient.Delete(testCtx, &primaryPod) == nil
-		}, 10*time.Second, testInterval).Should(BeTrue())
+			return k8sClient.Delete(testCtx, &primaryPod, &client.DeleteOptions{
+				GracePeriodSeconds: ptr.To(int64(0)),
+				PropagationPolicy:  ptr.To(metav1.DeletePropagationForeground),
+			}) == nil
+		}, testTimeout, testInterval).Should(BeTrue())
 
 		By("Expecting MariaDB to be ready eventually")
 		Eventually(func() bool {
@@ -284,10 +194,18 @@ var _ = Describe("MariaDB replication", Ordered, func() {
 		}
 		Eventually(func(g Gomega) bool {
 			g.Expect(k8sClient.Get(testCtx, key, mdb)).To(Succeed())
-			mdb.Replication().Primary.PodIndex = &podIndex
+			mdb.Spec.Replication.Primary.PodIndex = &podIndex
 			g.Expect(k8sClient.Update(testCtx, mdb)).To(Succeed())
 			return true
 		}, testTimeout, testInterval).Should(BeTrue())
+
+		By("Expecting MariaDB to be ready eventually")
+		Eventually(func() bool {
+			if err := k8sClient.Get(testCtx, key, mdb); err != nil {
+				return false
+			}
+			return mdb.IsReady()
+		}, testHighTimeout, testInterval).Should(BeTrue())
 
 		By("Expecting MariaDB to eventually change primary")
 		Eventually(func() bool {
@@ -321,8 +239,6 @@ var _ = Describe("MariaDB replication", Ordered, func() {
 	})
 
 	It("should reconcile with MaxScale", Label("basic"), func() {
-		Skip("TODO: re-evaluate this test when productionizing replication. See https://github.com/mariadb-operator/mariadb-operator/issues/738")
-
 		mxs := &mariadbv1alpha1.MaxScale{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "maxscale-repl",
@@ -380,3 +296,325 @@ var _ = Describe("MariaDB replication", Ordered, func() {
 		testMaxscale(mdb, mxs)
 	})
 })
+
+var _ = Describe("MariaDB replication restore from backup", Ordered, func() {
+	var (
+		key = types.NamespacedName{
+			Name:      "mariadb-repl",
+			Namespace: testNamespace,
+		}
+		mdb *mariadbv1alpha1.MariaDB
+	)
+
+	BeforeEach(func() {
+		mdb = buildTestMariaDBRepl(key)
+		applyMariadbTestConfig(mdb)
+
+		By("Creating MariaDB with replication")
+		Expect(k8sClient.Create(testCtx, mdb)).To(Succeed())
+		DeferCleanup(func() {
+			deleteMariadb(key, false)
+		})
+
+		By("Expecting MariaDB to be ready eventually")
+		Eventually(func() bool {
+			if err := k8sClient.Get(testCtx, key, mdb); err != nil {
+				return false
+			}
+			return mdb.IsReady()
+
+		}, testHighTimeout, testInterval).Should(BeTrue())
+	})
+
+	DescribeTable(
+		"should restore database",
+		func(
+			backupKey types.NamespacedName,
+			builderFn physicalBackupBuilder,
+			bootstrapFromBuilder func(backupKey types.NamespacedName) *mariadbv1alpha1.BootstrapFrom,
+			cleanupFn func(backupKey types.NamespacedName) func(),
+		) {
+			backup := builderFn(backupKey)
+			testPhysicalBackup(backup)
+			// We delete the PhysicalBackup, because the job holds the pvc
+			deletePhysicalBackup(backupKey)
+			DeferCleanup(cleanupFn(backupKey))
+
+			By("Deleting MariaDB")
+			bootstrapFrom := mdb.DeepCopy()
+			deleteMariadb(key, true)
+
+			By("Creating MariaDB from PhysicalBackup")
+			bootstrapFrom.ObjectMeta = metav1.ObjectMeta{
+				Name:      key.Name,
+				Namespace: key.Namespace,
+			}
+			bootstrapFrom.Spec.BootstrapFrom = bootstrapFromBuilder(backupKey)
+			Expect(k8sClient.Create(testCtx, bootstrapFrom)).To(Succeed())
+
+			By("Expecting MariaDB to be ready eventually")
+			Eventually(func() bool {
+				if err := k8sClient.Get(testCtx, key, mdb); err != nil {
+					return false
+				}
+				return mdb.IsReady() && mdb.IsInitialized() && mdb.HasRestoredBackup()
+			}, testHighTimeout, testInterval).Should(BeTrue())
+		},
+		Entry(
+			"from physical backup",
+			types.NamespacedName{Name: "replication-s3-backup-test", Namespace: key.Namespace},
+			applyDecoratorChain(
+				buildPhysicalBackupWithS3Storage(key, "test-replication-restore-from-backup", ""),
+				decoratePhysicalBackupWithSSEC,
+			),
+			func(backupKey types.NamespacedName) *mariadbv1alpha1.BootstrapFrom {
+				return &mariadbv1alpha1.BootstrapFrom{
+					BackupContentType:  mariadbv1alpha1.BackupContentTypePhysical,
+					S3:                 getS3Storage("test-replication-restore-from-backup", "", withSSEC()),
+					TargetRecoveryTime: &metav1.Time{Time: time.Now()},
+				}
+			},
+			func(backupKey types.NamespacedName) func() {
+				return func() {
+					// No cleanup for S3
+				}
+			},
+		),
+		Entry(
+			"from volume snapshot",
+			types.NamespacedName{Name: "replication-volume-snapshot-backup-test", Namespace: key.Namespace},
+			buildPhysicalBackupWithVolumeSnapshotStorage(key),
+			func(backupKey types.NamespacedName) *mariadbv1alpha1.BootstrapFrom {
+				selector := labels.SelectorFromSet(labels.Set{metadata.PhysicalBackupNameLabel: backupKey.Name})
+
+				snapshotList := &volumesnapshotv1.VolumeSnapshotList{}
+				listOpts := []client.ListOption{client.InNamespace(backupKey.Namespace), client.MatchingLabelsSelector{Selector: selector}}
+
+				Expect(k8sClient.List(testCtx, snapshotList, listOpts...)).To(Succeed())
+				Expect(snapshotList.Items).To(HaveLen(1))
+
+				return &mariadbv1alpha1.BootstrapFrom{
+					VolumeSnapshotRef: &mariadbv1alpha1.LocalObjectReference{
+						Name: snapshotList.Items[0].Name,
+					},
+					TargetRecoveryTime: &metav1.Time{Time: time.Now()},
+				}
+			},
+			func(backupKey types.NamespacedName) func() {
+				return func() {
+					By("Deleting Backup Resources")
+					opts := []client.DeleteAllOfOption{
+						client.MatchingLabels{
+							metadata.PhysicalBackupNameLabel: backupKey.Name,
+						},
+						client.InNamespace(backupKey.Namespace),
+					}
+					Expect(k8sClient.DeleteAllOf(testCtx, &volumesnapshotv1.VolumeSnapshot{}, opts...)).To(Succeed())
+				}
+			},
+		),
+	)
+})
+
+var _ = Describe("MariaDB replication scale out", Ordered, func() {
+	var (
+		key = types.NamespacedName{
+			Name:      "mariadb-repl",
+			Namespace: testNamespace,
+		}
+		mdb *mariadbv1alpha1.MariaDB
+	)
+
+	BeforeEach(func() {
+		mdb = buildTestMariaDBRepl(key)
+		applyMariadbTestConfig(mdb)
+
+		By("Creating MariaDB with replication")
+		Expect(k8sClient.Create(testCtx, mdb)).To(Succeed())
+		DeferCleanup(func() {
+			deleteMariadb(key, false)
+		})
+
+		By("Expecting MariaDB to be ready eventually")
+		Eventually(func() bool {
+			if err := k8sClient.Get(testCtx, key, mdb); err != nil {
+				return false
+			}
+			return mdb.IsReady()
+
+		}, testHighTimeout, testInterval).Should(BeTrue())
+	})
+
+	DescribeTable(
+		"should scale out",
+		func(
+			backupKey types.NamespacedName,
+			builderFn physicalBackupBuilder,
+			cleanupFn func(backupKey types.NamespacedName) func(),
+		) {
+			backup := builderFn(backupKey)
+			testPhysicalBackup(backup)
+
+			DeferCleanup(func() {
+				deletePhysicalBackup(backupKey)
+				cleanupFn(backupKey)()
+			})
+
+			By("Scale Out")
+			Eventually(func() bool {
+				if err := k8sClient.Get(testCtx, key, mdb); err != nil {
+					return false
+				}
+
+				mdb.Spec.Replicas = mdb.Spec.Replicas + 1
+				mdb.Spec.Replication.Replica.ReplicaBootstrapFrom = &mariadbv1alpha1.ReplicaBootstrapFrom{
+					PhysicalBackupTemplateRef: mariadbv1alpha1.LocalObjectReference{
+						Name: backupKey.Name,
+					},
+				}
+
+				return k8sClient.Update(testCtx, mdb) == nil
+			}, testTimeout, testInterval).Should(BeTrue())
+
+			By("Expecting MariaDB to be ready eventually")
+			Eventually(func() bool {
+				if err := k8sClient.Get(testCtx, key, mdb); err != nil {
+					return false
+				}
+				return mdb.IsReady() &&
+					meta.IsStatusConditionTrue(mdb.Status.Conditions, mariadbv1alpha1.ConditionTypeScaledOut) &&
+					mdb.Status.Replicas == int32(4)
+
+			}, testHighTimeout, testInterval).Should(BeTrue())
+		},
+		Entry(
+			"with physical backup",
+			types.NamespacedName{Name: "replication-s3-scaleout-test", Namespace: key.Namespace},
+			buildPhysicalBackupWithS3Storage(key, "test-replication-scale-out", ""),
+			func(backupKey types.NamespacedName) func() {
+				return func() {
+					// No cleanup for s3
+				}
+			},
+		),
+		Entry(
+			"from volume snapshot",
+			types.NamespacedName{Name: "replication-volume-snapshot-scaleout-test", Namespace: key.Namespace},
+			buildPhysicalBackupWithVolumeSnapshotStorage(key),
+			func(backupKey types.NamespacedName) func() {
+				return func() {
+					By("Deleting Backup Resources")
+					opts := []client.DeleteAllOfOption{
+						client.MatchingLabels{
+							metadata.PhysicalBackupNameLabel: backupKey.Name,
+						},
+						client.InNamespace(backupKey.Namespace),
+					}
+					Expect(k8sClient.DeleteAllOf(testCtx, &volumesnapshotv1.VolumeSnapshot{}, opts...)).To(Succeed())
+				}
+			},
+		),
+	)
+})
+
+func buildTestMariaDBRepl(key types.NamespacedName) *mariadbv1alpha1.MariaDB {
+	return &mariadbv1alpha1.MariaDB{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      key.Name,
+			Namespace: key.Namespace,
+		},
+		Spec: mariadbv1alpha1.MariaDBSpec{
+			Username: &testUser,
+			PasswordSecretKeyRef: &mariadbv1alpha1.GeneratedSecretKeyRef{
+				SecretKeySelector: mariadbv1alpha1.SecretKeySelector{
+					LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+						Name: testPwdKey.Name,
+					},
+					Key: testPwdSecretKey,
+				},
+			},
+			Database: &testDatabase,
+			MyCnf: ptr.To(`[mariadb]
+				bind-address=*
+				default_storage_engine=InnoDB
+				binlog_format=row
+				innodb_autoinc_lock_mode=2
+				max_allowed_packet=256M`,
+			),
+			Replication: &mariadbv1alpha1.Replication{
+				ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
+					Primary: mariadbv1alpha1.PrimaryReplication{
+						PodIndex:     ptr.To(0),
+						AutoFailover: ptr.To(true),
+					},
+				},
+				Enabled: true,
+			},
+			Replicas: 3,
+			Storage: mariadbv1alpha1.Storage{
+				Size:                ptr.To(resource.MustParse("300Mi")),
+				StorageClassName:    "csi-hostpath-sc",
+				ResizeInUseVolumes:  ptr.To(true),
+				WaitForVolumeResize: ptr.To(true),
+			},
+			TLS: &mariadbv1alpha1.TLS{
+				Enabled:  true,
+				Required: ptr.To(true),
+			},
+			Service: &mariadbv1alpha1.ServiceTemplate{
+				Type: corev1.ServiceTypeLoadBalancer,
+				Metadata: &mariadbv1alpha1.Metadata{
+					Annotations: map[string]string{
+						"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.120",
+					},
+				},
+			},
+			Connection: &mariadbv1alpha1.ConnectionTemplate{
+				SecretName: func() *string {
+					s := "mdb-repl-conn"
+					return &s
+				}(),
+				SecretTemplate: &mariadbv1alpha1.SecretTemplate{
+					Key: &testConnSecretKey,
+				},
+			},
+			PrimaryService: &mariadbv1alpha1.ServiceTemplate{
+				Type: corev1.ServiceTypeLoadBalancer,
+				Metadata: &mariadbv1alpha1.Metadata{
+					Annotations: map[string]string{
+						"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.130",
+					},
+				},
+			},
+			PrimaryConnection: &mariadbv1alpha1.ConnectionTemplate{
+				SecretName: func() *string {
+					s := "mdb-repl-conn-primary"
+					return &s
+				}(),
+				SecretTemplate: &mariadbv1alpha1.SecretTemplate{
+					Key: &testConnSecretKey,
+				},
+			},
+			SecondaryService: &mariadbv1alpha1.ServiceTemplate{
+				Type: corev1.ServiceTypeLoadBalancer,
+				Metadata: &mariadbv1alpha1.Metadata{
+					Annotations: map[string]string{
+						"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.131",
+					},
+				},
+			},
+			SecondaryConnection: &mariadbv1alpha1.ConnectionTemplate{
+				SecretName: func() *string {
+					s := "mdb-repl-conn-secondary"
+					return &s
+				}(),
+				SecretTemplate: &mariadbv1alpha1.SecretTemplate{
+					Key: &testConnSecretKey,
+				},
+			},
+			UpdateStrategy: mariadbv1alpha1.UpdateStrategy{
+				Type: mariadbv1alpha1.ReplicasFirstPrimaryLastUpdateType,
+			},
+		},
+	}
+}

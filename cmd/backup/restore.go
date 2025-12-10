@@ -7,6 +7,7 @@ import (
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/backup"
+	mdbcompression "github.com/mariadb-operator/mariadb-operator/v25/pkg/compression"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/log"
 	"github.com/spf13/cobra"
 )
@@ -85,7 +86,7 @@ var restoreCommand = &cobra.Command{
 			os.Exit(1)
 		}
 
-		backupCompressor, err := getBackupCompressorWithFile(backupTargetFile, backupProcessor)
+		backupCompressor, err := getCompressorWithFile(backupTargetFile, backupProcessor)
 		if err != nil {
 			logger.Error(err, "error getting backup compressor")
 			os.Exit(1)
@@ -131,10 +132,10 @@ func writeTargetFile(backupTargetFile string) error {
 	return os.WriteFile(targetFilePath, []byte(backupTargetFile), 0777)
 }
 
-func getBackupCompressorWithFile(fileName string, processor backup.BackupProcessor) (backup.BackupCompressor, error) {
+func getCompressorWithFile(fileName string, processor backup.BackupProcessor) (mdbcompression.Compressor, error) {
 	calg, err := processor.ParseCompressionAlgorithm(fileName)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing compression algorithm: %v", err)
 	}
-	return getBackupCompressorWithAlgorithm(calg, processor)
+	return mdbcompression.NewCompressor(calg, path, processor.GetUncompressedBackupFile, logger)
 }

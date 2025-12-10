@@ -9,6 +9,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/log"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/pki"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
@@ -52,7 +53,11 @@ var certControllerCmd = &cobra.Command{
 	Short: "MariaDB operator certificate controller.",
 	Long:  `Issues and injects certificates for validation and mutation webhooks.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		log.SetupLogger(logLevel, logTimeEncoder, logDev)
+		log.SetupLogger(
+			viper.GetString(logLevelName),
+			viper.GetString(logTimeEncoderName),
+			viper.GetBool(logDevName),
+		)
 
 		if renewBeforePercentage < 10 || renewBeforePercentage > 90 {
 			setupLog.Error(errors.New(

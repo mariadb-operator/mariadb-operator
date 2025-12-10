@@ -35,6 +35,19 @@ func (m *MariaDB) PasswordSecretKeyRef() GeneratedSecretKeyRef {
 	}
 }
 
+// ReplPasswordSecretKeyRef defines the key selector for for the password to be used by the replication "repl" user
+func (m *MariaDB) ReplPasswordSecretKeyRef() GeneratedSecretKeyRef {
+	return GeneratedSecretKeyRef{
+		SecretKeySelector: SecretKeySelector{
+			LocalObjectReference: LocalObjectReference{
+				Name: fmt.Sprintf("%s-repl-password", m.Name),
+			},
+			Key: "password",
+		},
+		Generate: true,
+	}
+}
+
 // DefaultConfigMapKeyRef defines the key selector for the default my.cnf ConfigMap.
 func (m *MariaDB) DefaultConfigMapKeyRef() ConfigMapKeySelector {
 	return ConfigMapKeySelector{
@@ -248,16 +261,6 @@ func (m *MariaDB) MetricsConfigSecretKeyRef() GeneratedSecretKeyRef {
 	}
 }
 
-// ConfigMapKeySelector defines the key selector for the ConfigMap used for replication healthchecks.
-func (m *MariaDB) ReplConfigMapKeyRef() ConfigMapKeySelector {
-	return ConfigMapKeySelector{
-		LocalObjectReference: LocalObjectReference{
-			Name: fmt.Sprintf("%s-probes", m.Name),
-		},
-		Key: "replication.sh",
-	}
-}
-
 // InitKey defines the keys for the init objects.
 func (m *MariaDB) InitKey() types.NamespacedName {
 	return types.NamespacedName{
@@ -278,6 +281,22 @@ func (m *MariaDB) PhysicalBackupInitJobKey(podIndex int) types.NamespacedName {
 func (m *MariaDB) PhysicalBackupStagingPVCKey() types.NamespacedName {
 	return types.NamespacedName{
 		Name:      fmt.Sprintf("%s-physicalbackup-staging", m.Name),
+		Namespace: m.Namespace,
+	}
+}
+
+// PhysicalBackupScaleOutKey defines the key for the PhysicalBackup scale out object.
+func (m *MariaDB) PhysicalBackupScaleOutKey() types.NamespacedName {
+	return types.NamespacedName{
+		Name:      fmt.Sprintf("%s-physicalbackup-scale-out", m.Name),
+		Namespace: m.Namespace,
+	}
+}
+
+// PhysicalBackupScaleOutKey defines the key for the PhysicalBackup replica recovery object.
+func (m *MariaDB) PhysicalBackupReplicaRecoveryKey() types.NamespacedName {
+	return types.NamespacedName{
+		Name:      fmt.Sprintf("%s-physicalbackup-replica-recovery", m.Name),
 		Namespace: m.Namespace,
 	}
 }

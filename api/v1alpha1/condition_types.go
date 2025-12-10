@@ -17,6 +17,12 @@ const (
 	ConditionTypeUpdated string = "Updated"
 	// ConditionTypeInitialized indicates that the cluster has been successfully initialized.
 	ConditionTypeInitialized string = "Initialized"
+	// ConditionTypeScaledOut indicates that the cluster has been successfully scaled out.
+	ConditionTypeScaledOut string = "ScaledOut"
+	// ConditionTypeReplicaRecovered indicates that a replica has been successfully recovered
+	ConditionTypeReplicaRecovered string = "ReplicaRecovered"
+	// ConditionTypeReplicationConfigured indicates that replication has been successfully configured.
+	ConditionTypeReplicationConfigured string = "ReplicationConfigured"
 
 	ConditionReasonStatefulSetNotReady   string = "StatefulSetNotReady"
 	ConditionReasonStatefulSetReady      string = "StatefulSetReady"
@@ -34,6 +40,13 @@ const (
 	ConditionReasonInitializing          string = "Initializing"
 	ConditionReasonInitialized           string = "Initialized"
 	ConditionReasonInitError             string = "InitError"
+	ConditionReasonScalingOut            string = "ScalingOut"
+	ConditionReasonScaledOut             string = "ScaledOut"
+	ConditionReasonScaleOutError         string = "ScaleOutError"
+	ConditionReasonReplicaRecovering     string = "ReplicaRecovering"
+	ConditionReasonReplicaRecovered      string = "ReplicaRecovered"
+	ConditionReasonReplicaRecoverError   string = "ReplicaRecoverError"
+	ConditionReasonReplicationConfigured string = "ReplicationConfigured"
 	ConditionReasonPendingUpdate         string = "PendingUpdate"
 	ConditionReasonUpdating              string = "Updating"
 	ConditionReasonUpdated               string = "Updated"

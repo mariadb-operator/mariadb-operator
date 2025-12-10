@@ -42,10 +42,15 @@ func (m MonitorParameters) MarshalJSON() ([]byte, error) {
 	return json.Marshal(rawMap)
 }
 
+type MonitorDiagnostics struct {
+	Primary *bool `json:"primary,omitempty"`
+}
+
 type MonitorAttributes struct {
-	Module     mariadbv1alpha1.MonitorModule `json:"module"`
-	State      string                        `json:"state,omitempty"`
-	Parameters MonitorParameters             `json:"parameters"`
+	Module      mariadbv1alpha1.MonitorModule `json:"module"`
+	State       string                        `json:"state,omitempty"`
+	Diagnostics *MonitorDiagnostics           `json:"monitor_diagnostics,omitempty"`
+	Parameters  MonitorParameters             `json:"parameters"`
 }
 
 type MonitorClient struct {

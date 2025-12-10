@@ -12,14 +12,19 @@ import (
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func PollUntilSuccessOrContextCancel(ctx context.Context, logger logr.Logger, fn func(ctx context.Context) error) error {
-	return kwait.PollUntilContextCancel(ctx, 1*time.Second, true, func(ctx context.Context) (bool, error) {
+func PollUntilSuccessOrContextCancelWithInterval(ctx context.Context, interval time.Duration, logger logr.Logger,
+	fn func(ctx context.Context) error) error {
+	return kwait.PollUntilContextCancel(ctx, interval, true, func(ctx context.Context) (bool, error) {
 		if err := fn(ctx); err != nil {
 			logger.V(1).Info("Error polling", "err", err)
 			return false, nil
 		}
 		return true, nil
 	})
+}
+
+func PollUntilSuccessOrContextCancel(ctx context.Context, logger logr.Logger, fn func(ctx context.Context) error) error {
+	return PollUntilSuccessOrContextCancelWithInterval(ctx, 1*time.Second, logger, fn)
 }
 
 func PollWithMariaDB(ctx context.Context, mariadbKey types.NamespacedName, client ctrlclient.Client, logger logr.Logger,

@@ -1,0 +1,42 @@
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-repl
+spec:
+  rootPasswordSecretKeyRef:
+    name: mariadb
+    key: root-password
+
+  storage:
+    size: 1Gi
+    storageClassName: csi-hostpath-sc
+
+  replicas: 3
+
+  replication:
+    enabled: true
+
+  bootstrapFrom:
+    volumeSnapshotRef:
+      name: physicalbackup-20251013193259
+
+  service:
+    type: LoadBalancer
+    metadata:
+      annotations:
+        metallb.universe.tf/loadBalancerIPs: 172.18.0.120
+
+  primaryService:
+    type: LoadBalancer
+    metadata:
+      annotations:
+        metallb.universe.tf/loadBalancerIPs: 172.18.0.130
+
+  secondaryService:
+    type: LoadBalancer
+    metadata:
+      annotations:
+        metallb.universe.tf/loadBalancerIPs: 172.18.0.131
+
+  metrics:
+    enabled: true

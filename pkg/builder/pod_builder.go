@@ -8,7 +8,6 @@ import (
 	labels "github.com/mariadb-operator/mariadb-operator/v25/pkg/builder/labels"
 	metadata "github.com/mariadb-operator/mariadb-operator/v25/pkg/builder/metadata"
 	builderpki "github.com/mariadb-operator/mariadb-operator/v25/pkg/builder/pki"
-	galeraresources "github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/galera/resources"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/interfaces"
 	kadapter "github.com/mariadb-operator/mariadb-operator/v25/pkg/kubernetes/adapter"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/pki"
@@ -29,7 +28,7 @@ type mariadbPodOpts struct {
 	extraVolumeMounts            []corev1.VolumeMount
 	includeMariadbResources      bool
 	includeMariadbSelectorLabels bool
-	includeGaleraContainers      bool
+	includeDataPlane             bool
 	includeGaleraConfig          bool
 	includeServiceAccount        bool
 	includePorts                 bool
@@ -42,7 +41,7 @@ func newMariadbPodOpts(userOpts ...mariadbPodOpt) *mariadbPodOpts {
 	opts := &mariadbPodOpts{
 		includeMariadbResources:      true,
 		includeMariadbSelectorLabels: true,
-		includeGaleraContainers:      true,
+		includeDataPlane:             true,
 		includeGaleraConfig:          true,
 		includeServiceAccount:        true,
 		includePorts:                 true,
@@ -130,9 +129,9 @@ func withMariadbSelectorLabels(includeMariadbSelectorLabels bool) mariadbPodOpt 
 	}
 }
 
-func withGaleraContainers(includeGaleraContainers bool) mariadbPodOpt {
+func withDataPlane(includeDataPlane bool) mariadbPodOpt {
 	return func(opts *mariadbPodOpts) {
-		opts.includeGaleraContainers = includeGaleraContainers
+		opts.includeDataPlane = includeDataPlane
 	}
 }
 
@@ -194,7 +193,10 @@ func (b *Builder) mariadbPodTemplate(mariadb *mariadbv1alpha1.MariaDB, opts ...m
 	if err != nil {
 		return nil, err
 	}
-
+	volumes, err := mariadbVolumes(mariadb, opts...)
+	if err != nil {
+		return nil, err
+	}
 	securityContext, err := b.buildPodSecurityContextWithUserGroup(mariadb.Spec.PodSecurityContext, mysqlUser, mysqlGroup)
 	if err != nil {
 		return nil, err
@@ -209,7 +211,7 @@ func (b *Builder) mariadbPodTemplate(mariadb *mariadbv1alpha1.MariaDB, opts ...m
 			InitContainers:               initContainers,
 			Containers:                   containers,
 			ImagePullSecrets:             kadapter.ToKubernetesSlice(mariadb.Spec.ImagePullSecrets),
-			Volumes:                      mariadbVolumes(mariadb, opts...),
+			Volumes:                      volumes,
 			SecurityContext:              securityContext,
 			Affinity:                     mariadbAffinity(mariadb, opts...),
 			NodeSelector:                 mariadbNodeSelector(mariadb, opts...),
@@ -303,7 +305,7 @@ func mariadbServiceAccount(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodO
 	return ptr.Deref(mariadb.Spec.ServiceAccountName, mariadb.Name)
 }
 
-func mariadbVolumes(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt) []corev1.Volume {
+func mariadbVolumes(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt) ([]corev1.Volume, error) {
 	mariadbOpts := newMariadbPodOpts(opts...)
 	volumes := []corev1.Volume{
 		mariadbConfigVolume(mariadb),
@@ -312,28 +314,25 @@ func mariadbVolumes(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt) []c
 		tlsVolumes, _ := mariadbTLSVolumes(mariadb)
 		volumes = append(volumes, tlsVolumes...)
 	}
-	if mariadb.Replication().Enabled && ptr.Deref(mariadb.Replication().ProbesEnabled, false) {
+	if mariadb.IsReplicationEnabled() {
 		volumes = append(volumes, corev1.Volume{
-			Name: ProbesVolume,
+			Name: MariadbConfigVolume,
 			VolumeSource: corev1.VolumeSource{
-				ConfigMap: &corev1.ConfigMapVolumeSource{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: mariadb.ReplConfigMapKeyRef().Name,
-					},
-					DefaultMode: ptr.To(int32(0777)),
-				},
+				EmptyDir: &corev1.EmptyDirVolumeSource{},
 			},
 		})
 	}
 
-	galera := ptr.Deref(mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
+	if mariadb.IsHAEnabled() && mariadbOpts.includeDataPlane {
+		_, agent, err := mariadb.GetDataPlaneAgent()
+		if err != nil {
+			return nil, fmt.Errorf("error getting data-plane agent: %v", err)
+		}
 
-	if galera.Enabled {
-		basicAuth := ptr.Deref(galera.Agent.BasicAuth, mariadbv1alpha1.BasicAuth{})
-
-		if mariadbOpts.includeGaleraConfig && basicAuth.Enabled && !reflect.ValueOf(basicAuth.PasswordSecretKeyRef).IsZero() {
+		basicAuth := ptr.Deref(agent.BasicAuth, mariadbv1alpha1.BasicAuth{})
+		if basicAuth.Enabled && !reflect.ValueOf(basicAuth.PasswordSecretKeyRef).IsZero() {
 			volumes = append(volumes, corev1.Volume{
-				Name: galeraresources.AgentAuthVolume,
+				Name: AgentAuthVolume,
 				VolumeSource: corev1.VolumeSource{
 					Secret: &corev1.SecretVolumeSource{
 						SecretName: basicAuth.PasswordSecretKeyRef.Name,
@@ -383,8 +382,8 @@ func mariadbVolumes(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt) []c
 				},
 			})
 		}
-
 	}
+
 	if mariadb.IsEphemeralStorageEnabled() {
 		volumes = append(volumes, corev1.Volume{
 			Name: StorageVolume,
@@ -399,7 +398,7 @@ func mariadbVolumes(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt) []c
 	if mariadbOpts.extraVolumes != nil {
 		volumes = append(volumes, mariadbOpts.extraVolumes...)
 	}
-	return volumes
+	return volumes, nil
 }
 
 func mariadbConfigVolume(mariadb *mariadbv1alpha1.MariaDB) corev1.Volume {
@@ -649,4 +648,25 @@ func maxscaleTLSVolumes(mxs *mariadbv1alpha1.MaxScale) ([]corev1.Volume, []corev
 				MountPath: builderpki.PKIMountPath,
 			},
 		}
+}
+
+func s3Volumes(s3 *mariadbv1alpha1.S3) ([]corev1.Volume, []corev1.VolumeMount) {
+	if s3 != nil && s3.TLS != nil && s3.TLS.Enabled && s3.TLS.CASecretKeyRef != nil {
+		return []corev1.Volume{
+				{
+					Name: S3PKI,
+					VolumeSource: corev1.VolumeSource{
+						Secret: &corev1.SecretVolumeSource{
+							SecretName: s3.TLS.CASecretKeyRef.Name,
+						},
+					},
+				},
+			}, []corev1.VolumeMount{
+				{
+					Name:      S3PKI,
+					MountPath: S3PKIMountPath,
+				},
+			}
+	}
+	return nil, nil
 }

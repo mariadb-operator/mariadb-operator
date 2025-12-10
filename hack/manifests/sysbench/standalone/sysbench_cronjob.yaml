@@ -27,7 +27,6 @@ spec:
               - --threads=64
               - --report-interval=1
               - run
-            workingDir: /etc/pki
             resources:
               requests:
                 cpu: 500m

@@ -74,7 +74,7 @@ func (r *MariaDBReconciler) reconcileStorage(ctx context.Context, mariadb *maria
 	if result, err := r.resizeInUsePVCs(ctx, mariadb, *desiredSize); !result.IsZero() || err != nil {
 		return result, err
 	}
-	if result, err := r.resizeStatefulSet(ctx, mariadb, &existingSts); !result.IsZero() || err != nil {
+	if result, err := r.recreateStatefulSet(ctx, mariadb); !result.IsZero() || err != nil {
 		return result, err
 	}
 
@@ -108,9 +108,8 @@ func (r *MariaDBReconciler) resizeInUsePVCs(ctx context.Context, mariadb *mariad
 	return ctrl.Result{}, nil
 }
 
-func (r *MariaDBReconciler) resizeStatefulSet(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	sts *appsv1.StatefulSet) (ctrl.Result, error) {
-	if err := r.Delete(ctx, sts, &client.DeleteOptions{PropagationPolicy: ptr.To(metav1.DeletePropagationOrphan)}); err != nil {
+func (r *MariaDBReconciler) recreateStatefulSet(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
+	if err := r.deleteStatefulSetLeavingOrphanPods(ctx, mariadb); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error deleting StatefulSet: %v", err)
 	}
 	return r.reconcileStatefulSet(ctx, mariadb)
@@ -171,4 +170,15 @@ func (r *MariaDBReconciler) getStoragePVCs(ctx context.Context, mdb *mariadbv1al
 		return nil, fmt.Errorf("error listing PVCs: %v", err)
 	}
 	return pvcList.Items, nil
+}
+
+func (r *MariaDBReconciler) deleteStatefulSetLeavingOrphanPods(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) error {
+	var sts appsv1.StatefulSet
+	if err := r.Get(ctx, client.ObjectKeyFromObject(mdb), &sts); err != nil {
+		return fmt.Errorf("error getting StatefulSet: %v", err)
+	}
+	if err := r.Delete(ctx, &sts, &client.DeleteOptions{PropagationPolicy: ptr.To(metav1.DeletePropagationOrphan)}); err != nil {
+		return fmt.Errorf("error deleting StatefulSet: %v", err)
+	}
+	return nil
 }

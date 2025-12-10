@@ -730,14 +730,18 @@ type MariaDBStatus struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	CurrentPrimaryFailingSince *metav1.Time `json:"currentPrimaryFailingSince,omitempty"`
+	// ScaleOutInitialIndex is the initial index where the scale out operation started.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	ScaleOutInitialIndex *int `json:"scaleOutInitialIndex,omitempty"`
 	// GaleraRecovery is the Galera recovery current state.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	GaleraRecovery *GaleraRecoveryStatus `json:"galeraRecovery,omitempty"`
-	// ReplicationStatus is the replication current state for each Pod.
+	// Replication is the replication current status per each Pod.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
-	ReplicationStatus ReplicationStatus `json:"replicationStatus,omitempty"`
+	Replication *ReplicationStatus `json:"replication,omitempty"`
 	// DefaultVersion is the MariaDB version used by the operator when it cannot infer the version
 	// from spec.image. This can happen if the image uses a digest (e.g. sha256) instead
 	// of a version tag.
@@ -756,6 +760,11 @@ func (s *MariaDBStatus) SetCondition(condition metav1.Condition) {
 		s.Conditions = make([]metav1.Condition, 0)
 	}
 	meta.SetStatusCondition(&s.Conditions, condition)
+}
+
+// RemoveCondition removes a status condition to MariaDB, returning true when removed
+func (s *MariaDBStatus) RemoveCondition(conditionType string) bool {
+	return meta.RemoveStatusCondition(&s.Conditions, conditionType)
 }
 
 // UpdateCurrentPrimary updates the current primary status.
@@ -781,7 +790,7 @@ type MariaDB struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	// +kubebuilder:validation:XValidation:rule="self.replicas %2 == 1 || self.replicasAllowEvenNumber", message="An odd number of MariaDB instances (mariadb.spec.replicas) is required to avoid split brain situations. Use 'mariadb.spec.replicasAllowEvenNumber: true' to disable this validation."
+	// +kubebuilder:validation:XValidation:rule="!has(self.galera) || !self.galera.enabled || (self.replicas % 2 == 1 || self.replicasAllowEvenNumber)", message="An odd number of MariaDB instances (mariadb.spec.replicas) is required to avoid split brain situations for Galera. Use 'mariadb.spec.replicasAllowEvenNumber: true' to disable this validation."
 	Spec   MariaDBSpec   `json:"spec"`
 	Status MariaDBStatus `json:"status,omitempty"`
 }
@@ -846,6 +855,11 @@ func (m *MariaDB) SetDefaults(env *environment.OperatorEnv) error {
 			return fmt.Errorf("error setting Galera defaults: %v", err)
 		}
 	}
+	if m.IsReplicationEnabled() {
+		if err := m.Spec.Replication.SetDefaults(m, env); err != nil {
+			return fmt.Errorf("error setting replication defaults: %v", err)
+		}
+	}
 	if m.Spec.BootstrapFrom != nil {
 		m.Spec.BootstrapFrom.SetDefaults(m)
 	}
@@ -860,23 +874,19 @@ func (m *MariaDB) SetDefaults(env *environment.OperatorEnv) error {
 	return nil
 }
 
-// Replication with defaulting accessor
-func (m *MariaDB) Replication() Replication {
-	if m.Spec.Replication == nil {
-		m.Spec.Replication = &Replication{}
-	}
-	m.Spec.Replication.FillWithDefaults()
-	return *m.Spec.Replication
-}
-
-// IsHAEnabled indicates whether the MariaDB instance has Galera enabled
+// IsGaleraEnabled indicates whether the MariaDB instance has Galera enabled
 func (m *MariaDB) IsGaleraEnabled() bool {
 	return ptr.Deref(m.Spec.Galera, Galera{}).Enabled
 }
 
+// IsReplicationEnabled indicates whether the MariaDB instance has replication enabled
+func (m *MariaDB) IsReplicationEnabled() bool {
+	return ptr.Deref(m.Spec.Replication, Replication{}).Enabled
+}
+
 // IsHAEnabled indicates whether the MariaDB instance has HA enabled
 func (m *MariaDB) IsHAEnabled() bool {
-	return m.Replication().Enabled || m.IsGaleraEnabled()
+	return m.IsReplicationEnabled() || m.IsGaleraEnabled()
 }
 
 // IsMaxScaleEnabled indicates that a MaxScale instance is forwarding traffic to this MariaDB instance
@@ -958,7 +968,7 @@ func (m *MariaDB) IsResizingStorage() bool {
 	return meta.IsStatusConditionFalse(m.Status.Conditions, ConditionTypeStorageResized)
 }
 
-// IsResizingStorage indicates whether the MariaDB instance is waiting for storage resize
+// IsWaitingForStorageResize indicates whether the MariaDB instance is waiting for storage resize
 func (m *MariaDB) IsWaitingForStorageResize() bool {
 	condition := meta.FindStatusCondition(m.Status.Conditions, ConditionTypeStorageResized)
 	if condition == nil {
@@ -990,23 +1000,40 @@ func (m *MariaDB) IsSuspended() bool {
 	return m.Spec.Suspend
 }
 
-// IsGaleraInitialized indicates that the MariaDB instance has been successfully initialized.
+// IsInitialized indicates that the MariaDB instance has been successfully initialized.
 func (m *MariaDB) IsInitialized() bool {
 	return meta.IsStatusConditionTrue(m.Status.Conditions, ConditionTypeInitialized)
 }
 
-// IsGaleraInitialized indicates that the MariaDB instance is being initialized.
+// IsInitializing indicates that the MariaDB instance is being initialized.
 func (m *MariaDB) IsInitializing() bool {
 	return meta.IsStatusConditionFalse(m.Status.Conditions, ConditionTypeInitialized)
 }
 
-// HasInitError indicates that the MariaDB instance has an initialization error.
+// InitError indicates that the MariaDB instance has an initialization error.
 func (m *MariaDB) InitError() error {
 	c := meta.FindStatusCondition(m.Status.Conditions, ConditionTypeInitialized)
 	if c == nil {
 		return nil
 	}
 	if c.Status == metav1.ConditionFalse && c.Reason == ConditionReasonInitError {
+		return errors.New(c.Message)
+	}
+	return nil
+}
+
+// IsScalingOut indicates that the MariaDB instance is being initialized.
+func (m *MariaDB) IsScalingOut() bool {
+	return meta.IsStatusConditionFalse(m.Status.Conditions, ConditionTypeScaledOut)
+}
+
+// ScalingOutError indicates that the MariaDB instance has a scaling out error.
+func (m *MariaDB) ScalingOutError() error {
+	c := meta.FindStatusCondition(m.Status.Conditions, ConditionTypeScaledOut)
+	if c == nil {
+		return nil
+	}
+	if c.Status == metav1.ConditionFalse && c.Reason == ConditionReasonScaleOutError {
 		return errors.New(c.Message)
 	}
 	return nil
@@ -1075,6 +1102,46 @@ func (m *MariaDB) GetSUName() string {
 // Get MariaDB Superuser credentials
 func (m *MariaDB) GetSUCredential() *SecretKeySelector {
 	return &m.Spec.RootPasswordSecretKeyRef.SecretKeySelector
+}
+
+// Topology refers to the MariaDB topology
+type Topology string
+
+var (
+	TopologyGalera      Topology = "galera"
+	TopologyReplication Topology = "replication"
+)
+
+// Get MariaDB data-plane init container
+func (m *MariaDB) GetDataPlaneInitContainer() (*Topology, *InitContainer, error) {
+	if !m.IsHAEnabled() {
+		return nil, nil, errors.New("high availability must be enabled")
+	}
+	galera := ptr.Deref(m.Spec.Galera, Galera{})
+	if galera.Enabled {
+		return &TopologyGalera, &galera.InitContainer, nil
+	}
+	replication := ptr.Deref(m.Spec.Replication, Replication{})
+	if replication.Enabled {
+		return &TopologyReplication, &replication.InitContainer, nil
+	}
+	return nil, nil, errors.New("init container could not be found")
+}
+
+// Get MariaDB data-plane agent
+func (m *MariaDB) GetDataPlaneAgent() (*Topology, *Agent, error) {
+	if !m.IsHAEnabled() {
+		return nil, nil, errors.New("high availability must be enabled")
+	}
+	galera := ptr.Deref(m.Spec.Galera, Galera{})
+	if galera.Enabled {
+		return &TopologyGalera, &galera.Agent, nil
+	}
+	replication := ptr.Deref(m.Spec.Replication, Replication{})
+	if replication.Enabled {
+		return &TopologyReplication, &replication.Agent, nil
+	}
+	return nil, nil, errors.New("agent could not be found")
 }
 
 // +kubebuilder:object:root=true

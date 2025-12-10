@@ -16,5 +16,12 @@ spec:
   # Delete the resource in the database whenever the CR gets deleted.
   # Alternatively, you can specify Skip in order to omit deletion.
   cleanupPolicy: Delete
+  
+  # Require TLS when connecting with this user.
+  # See: https://mariadb.com/kb/en/securing-connections-for-client-and-server/#requiring-tls
+  # require:
+  #   issuer: "/CN=mariadb-ca"
+  #   subject: "/CN=mariadb-client"
+  
   requeueInterval: 10h
   retryInterval: 30s

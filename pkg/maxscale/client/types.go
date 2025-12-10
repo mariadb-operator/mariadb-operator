@@ -145,6 +145,9 @@ type APIError struct {
 }
 
 func (e *APIError) Error() string {
+	if len(e.Errors) == 0 {
+		return ""
+	}
 	if len(e.Errors) == 1 {
 		return e.Errors[0].Detail
 	}

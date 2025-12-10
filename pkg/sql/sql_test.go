@@ -46,8 +46,7 @@ MASTER_HOST='127.0.0.1',
 MASTER_PORT=3306,
 MASTER_USER='repl',
 MASTER_PASSWORD='password',
-MASTER_USE_GTID=CurrentPos,
-MASTER_CONNECT_RETRY=10;
+MASTER_USE_GTID=CurrentPos;
 `,
 			wantErr: false,
 		},
@@ -72,17 +71,35 @@ MASTER_CONNECT_RETRY=10;
 				WithChangeMasterSSL("/etc/pki/client.crt", "/etc/pki/client.key", "/etc/pki/ca.crt"),
 			},
 			wantQuery: `CHANGE MASTER TO
-MASTER_HOST='127.0.0.1',
-MASTER_PORT=3306,
-MASTER_USER='repl',
-MASTER_PASSWORD='password',
-MASTER_USE_GTID=CurrentPos,
-MASTER_CONNECT_RETRY=10,
 MASTER_SSL=1,
 MASTER_SSL_CERT='/etc/pki/client.crt',
 MASTER_SSL_KEY='/etc/pki/client.key',
 MASTER_SSL_CA='/etc/pki/ca.crt',
-MASTER_SSL_VERIFY_SERVER_CERT=1;
+MASTER_SSL_VERIFY_SERVER_CERT=1,
+MASTER_HOST='127.0.0.1',
+MASTER_PORT=3306,
+MASTER_USER='repl',
+MASTER_PASSWORD='password',
+MASTER_USE_GTID=CurrentPos;
+`,
+			wantErr: false,
+		},
+		{
+			name: "valid with Retries",
+			options: []ChangeMasterOpt{
+				WithChangeMasterHost("127.0.0.1"),
+				WithChangeMasterPort(3306),
+				WithChangeMasterCredentials("repl", "password"),
+				WithChangeMasterGtid("CurrentPos"),
+				WithChangeMasterRetries(10),
+			},
+			wantQuery: `CHANGE MASTER TO
+MASTER_HOST='127.0.0.1',
+MASTER_PORT=3306,
+MASTER_USER='repl',
+MASTER_PASSWORD='password',
+MASTER_CONNECT_RETRY=10,
+MASTER_USE_GTID=CurrentPos;
 `,
 			wantErr: false,
 		},

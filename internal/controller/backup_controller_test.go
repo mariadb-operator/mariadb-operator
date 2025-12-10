@@ -65,6 +65,14 @@ var _ = Describe("Backup", Label("basic"), func() {
 			),
 			testS3Backup,
 		),
+		Entry("should reconcile a Job with S3 storage and SSEC",
+			"backup-s3-ssec-test",
+			applyDecoratorChain(
+				buildBackupWithS3Storage("test-backup", ""),
+				decorateBackupWithSSEC,
+			),
+			testS3Backup,
+		),
 		Entry("should reconcile a Job with S3 storage and staging storage",
 			"backup-s3-staging-test",
 			applyDecoratorChain(
@@ -446,6 +454,15 @@ func decorateBackupWithGzipCompression(backup *mariadbv1alpha1.Backup) *mariadbv
 
 func decorateBackupWithBzip2Compression(backup *mariadbv1alpha1.Backup) *mariadbv1alpha1.Backup {
 	backup.Spec.Compression = mariadbv1alpha1.CompressBzip2
+	return backup
+}
+
+func decorateBackupWithSSEC(backup *mariadbv1alpha1.Backup) *mariadbv1alpha1.Backup {
+	if backup.Spec.Storage.S3 != nil {
+		backup.Spec.Storage.S3.SSEC = &mariadbv1alpha1.SSECConfig{
+			CustomerKeySecretKeyRef: testSSEC,
+		}
+	}
 	return backup
 }
 

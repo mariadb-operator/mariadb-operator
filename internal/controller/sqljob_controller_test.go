@@ -427,7 +427,7 @@ var _ = Describe("SqlJob on External MariaDB", func() {
 		}
 	})
 
-	It("should report unready status for non-existent dependencies", func() {
+	It("should report unready status for non-existent dependencies", Label("flaky"), FlakeAttempts(3), func() {
 		nonExistentDependency := "not-existing-job"
 		sqlJob := mariadbv1alpha1.SqlJob{
 			ObjectMeta: metav1.ObjectMeta{

@@ -22,10 +22,15 @@ const (
 	MaxscaleStorageMountPath = "/var/lib/maxscale"
 	StorageVolumeRole        = "storage"
 
+	MariadbConfigVolume     = "mariadb-config"
+	MariadbConfigMountPath  = "/etc/mysql/mariadb.conf.d"
 	ConfigVolume            = "config"
-	MariadbConfigMountPath  = "/etc/mysql/conf.d"
+	ConfigMountPath         = "/etc/mysql/conf.d"
 	MaxscaleConfigMountPath = "/etc/config"
 	ConfigVolumeRole        = "config"
+
+	AgentAuthVolume      = "agent-auth"
+	AgentAuthVolumeMount = "/var/run/secrets/mariadb-operator/agent"
 
 	RunVolume            = "run"
 	MaxScaleRunMountPath = "/var/run/maxscale"
@@ -41,11 +46,11 @@ const (
 	InitLibKey        = "lib.sh"
 	InitEntrypointKey = "entrypoint.sh"
 
-	ProbesVolume    = "probes"
-	ProbesMountPath = "/etc/probes"
-
 	ServiceAccountVolume    = "serviceaccount"
 	ServiceAccountMountPath = "/var/run/secrets/kubernetes.io/serviceaccount"
+
+	S3PKI          = "pki-s3"
+	S3PKIMountPath = "/etc/s3/pki"
 
 	mysqlUser     = int64(999)
 	mysqlGroup    = int64(999)
@@ -237,7 +242,7 @@ func mariadbHAAnnotations(mariadb *mariadbv1alpha1.MariaDB) map[string]string {
 		annotations = map[string]string{
 			annotation.MariadbAnnotation: mariadb.Name,
 		}
-		if mariadb.Replication().Enabled {
+		if mariadb.IsReplicationEnabled() {
 			annotations[annotation.ReplicationAnnotation] = ""
 		}
 		if mariadb.IsGaleraEnabled() {

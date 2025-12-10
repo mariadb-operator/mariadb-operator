@@ -1,5 +1,6 @@
 nameOverride: ""
 fullnameOverride: ""
+namespaceOverride: ""
 # -- MariaDB CR
 # https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/api_reference.md#mariadbspec
 mariadb:

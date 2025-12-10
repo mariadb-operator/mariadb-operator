@@ -111,8 +111,8 @@ var _ = Describe("MariaDB Galera lifecycle", Ordered, func() {
 					Enabled: true,
 					GaleraSpec: mariadbv1alpha1.GaleraSpec{
 						Primary: mariadbv1alpha1.PrimaryGalera{
-							PodIndex:          ptr.To(0),
-							AutomaticFailover: ptr.To(true),
+							PodIndex:     ptr.To(0),
+							AutoFailover: ptr.To(true),
 						},
 						Recovery: &mariadbv1alpha1.GaleraRecovery{
 							Enabled:               true,
@@ -145,7 +145,7 @@ var _ = Describe("MariaDB Galera lifecycle", Ordered, func() {
 				Replicas: 3,
 				Storage: mariadbv1alpha1.Storage{
 					Size:                ptr.To(resource.MustParse("300Mi")),
-					StorageClassName:    "standard-resize",
+					StorageClassName:    "csi-hostpath-sc",
 					ResizeInUseVolumes:  ptr.To(true),
 					WaitForVolumeResize: ptr.To(true),
 				},
@@ -523,6 +523,7 @@ var _ = Describe("MariaDB Galera disaster recovery", Ordered, func() {
 			"test-mariadb-galera-physical",
 			"",
 		)(backupKey)
+		decoratePhysicalBackupWithSSEC(backup)
 
 		Expect(k8sClient.Create(testCtx, backup)).To(Succeed())
 		DeferCleanup(func() {
@@ -551,7 +552,7 @@ var _ = Describe("MariaDB Galera disaster recovery", Ordered, func() {
 		}
 		bootstrapFrom.Spec.BootstrapFrom = &mariadbv1alpha1.BootstrapFrom{
 			BackupContentType:  mariadbv1alpha1.BackupContentTypePhysical,
-			S3:                 getS3WithBucket("test-mariadb-galera-physical", ""),
+			S3:                 getS3Storage("test-mariadb-galera-physical", "", withSSEC()),
 			TargetRecoveryTime: &metav1.Time{Time: time.Now()},
 		}
 		Expect(k8sClient.Create(testCtx, bootstrapFrom)).To(Succeed())
@@ -591,7 +592,7 @@ var _ = Describe("MariaDB Galera alternative configs", Ordered, func() {
 				Galera: &mariadbv1alpha1.Galera{
 					Enabled: true,
 					GaleraSpec: mariadbv1alpha1.GaleraSpec{
-						Agent: mariadbv1alpha1.GaleraAgent{
+						Agent: mariadbv1alpha1.Agent{
 							BasicAuth: &mariadbv1alpha1.BasicAuth{
 								Enabled: true,
 							},
