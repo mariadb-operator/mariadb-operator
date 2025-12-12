@@ -1808,7 +1808,7 @@ spec:
                     type: boolean
                   mutual:
                     description: |-
-                      Mutual specifies whether TLS must be mutual between server and client.
+                      Mutual specifies whether TLS must be mutual between server and client for external connections.
                       It enabled by default.
                     type: boolean
                   required:
@@ -8943,11 +8943,6 @@ spec:
                     description: |-
                       GaleraSSTEnabled determines whether Galera SST connections should use TLS.
                       It disabled by default.
-                    type: boolean
-                  mutual:
-                    description: |-
-                      Mutual specifies whether TLS must be mutual between server and client.
-                      It enabled by default.
                     type: boolean
                   required:
                     description: |-

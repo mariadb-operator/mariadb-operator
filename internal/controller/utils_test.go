@@ -365,17 +365,19 @@ max_allowed_packet=256M`),
 					"k8s.mariadb.com/test": "test",
 				},
 			},
-			TLS: &mariadbv1alpha1.TLS{
-				Enabled:  true,
-				Required: ptr.To(false),
-				ServerCASecretRef: &mariadbv1alpha1.LocalObjectReference{
-					Name: "mdb-emulate-external-test-ca",
-				},
-				ClientCertSecretRef: &mariadbv1alpha1.LocalObjectReference{
-					Name: "mdb-emulate-external-test-client-cert",
-				},
-				ServerCertSecretRef: &mariadbv1alpha1.LocalObjectReference{
-					Name: "mdb-emulate-external-test-server-cert",
+			TLS: &mariadbv1alpha1.ExternalTLS{
+				TLS: mariadbv1alpha1.TLS{
+					Enabled:  true,
+					Required: ptr.To(false),
+					ServerCASecretRef: &mariadbv1alpha1.LocalObjectReference{
+						Name: "mdb-emulate-external-test-ca",
+					},
+					ClientCertSecretRef: &mariadbv1alpha1.LocalObjectReference{
+						Name: "mdb-emulate-external-test-client-cert",
+					},
+					ServerCertSecretRef: &mariadbv1alpha1.LocalObjectReference{
+						Name: "mdb-emulate-external-test-server-cert",
+					},
 				},
 			},
 		},
