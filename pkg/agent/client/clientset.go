@@ -103,34 +103,39 @@ func getClientOpts(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, agent 
 			return nil, fmt.Errorf("error reading TLS CA bundle: %v", err)
 		}
 
-		clientCertKeySelector := mariadbv1alpha1.SecretKeySelector{
-			LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
-				Name: mariadb.TLSClientCertSecretKey().Name,
-			},
-			Key: pki.TLSCertKey,
-		}
-		tlsCert, err := refResolver.SecretKeyRef(ctx, clientCertKeySelector, mariadb.Namespace)
-		if err != nil {
-			return nil, fmt.Errorf("error reading TLS cert: %v", err)
-		}
-
-		clientKeyKeySelector := mariadbv1alpha1.SecretKeySelector{
-			LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
-				Name: mariadb.TLSClientCertSecretKey().Name,
-			},
-			Key: pki.TLSKeyKey,
-		}
-		tlsKey, err := refResolver.SecretKeyRef(ctx, clientKeyKeySelector, mariadb.Namespace)
-		if err != nil {
-			return nil, fmt.Errorf("error reading TLS key: %v", err)
-		}
-
 		opts = append(opts, []mdbhttp.Option{
 			mdbhttp.WithTLSEnabled(mariadb.IsTLSEnabled()),
 			mdbhttp.WithTLSCA([]byte(tlsCA)),
-			mdbhttp.WithTLSCert([]byte(tlsCert)),
-			mdbhttp.WithTLSKey([]byte(tlsKey)),
 		}...)
+
+		if mariadb.IsTLSMutual() {
+			clientCertKeySelector := mariadbv1alpha1.SecretKeySelector{
+				LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+					Name: mariadb.TLSClientCertSecretKey().Name,
+				},
+				Key: pki.TLSCertKey,
+			}
+			tlsCert, err := refResolver.SecretKeyRef(ctx, clientCertKeySelector, mariadb.Namespace)
+			if err != nil {
+				return nil, fmt.Errorf("error reading TLS cert: %v", err)
+			}
+
+			clientKeyKeySelector := mariadbv1alpha1.SecretKeySelector{
+				LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+					Name: mariadb.TLSClientCertSecretKey().Name,
+				},
+				Key: pki.TLSKeyKey,
+			}
+			tlsKey, err := refResolver.SecretKeyRef(ctx, clientKeyKeySelector, mariadb.Namespace)
+			if err != nil {
+				return nil, fmt.Errorf("error reading TLS key: %v", err)
+			}
+
+			opts = append(opts, []mdbhttp.Option{
+				mdbhttp.WithTLSCert([]byte(tlsCert)),
+				mdbhttp.WithTLSKey([]byte(tlsKey)),
+			}...)
+		}
 	}
 
 	return opts, nil
