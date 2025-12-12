@@ -433,7 +433,7 @@ func (r *ConnectionReconciler) clientCertSecretKey(conn *mariadbv1alpha1.Connect
 			Namespace: conn.Namespace,
 		}
 	}
-	if mdb != nil && mdb.IsTLSEnabled() {
+	if mdb != nil && mdb.IsTLSEnabled() && mdb.IsTLSMutual() {
 		return &types.NamespacedName{
 			Name:      mdb.TLSClientCertSecretKey().Name,
 			Namespace: mdb.GetNamespace(),
