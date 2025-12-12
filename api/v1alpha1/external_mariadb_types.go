@@ -52,7 +52,7 @@ type ExternalMariaDBSpec struct {
 	// TLS defines the PKI to be used with the external MariaDB.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	TLS *TLS `json:"tls,omitempty"`
+	TLS *ExternalTLS `json:"tls,omitempty"`
 	// Connection defines a template to configure a Connection for the external MariaDB.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -149,7 +149,7 @@ func (m *ExternalMariaDB) IsTLSRequired() bool {
 
 // IsTLSEnabled indicates whether TLS is enabled
 func (m *ExternalMariaDB) IsTLSEnabled() bool {
-	return ptr.Deref(m.Spec.TLS, TLS{}).Enabled
+	return ptr.Deref(m.Spec.TLS, ExternalTLS{}).Enabled
 }
 
 // IsTLSMutual specifies whether TLS must be mutual between server and client.
@@ -157,7 +157,7 @@ func (m *ExternalMariaDB) IsTLSMutual() bool {
 	if !m.IsTLSEnabled() {
 		return false
 	}
-	tls := ptr.Deref(m.Spec.TLS, TLS{})
+	tls := ptr.Deref(m.Spec.TLS, ExternalTLS{})
 	return ptr.Deref(tls.Mutual, true)
 }
 

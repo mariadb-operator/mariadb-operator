@@ -53,14 +53,16 @@ var _ = Describe("External MariaDB spec", func() {
 						RetryInterval: &metav1.Duration{Duration: 1 * time.Second},
 					},
 				},
-				TLS: &mariadbv1alpha1.TLS{
-					Enabled:  true,
-					Required: ptr.To(false),
-					ServerCASecretRef: &mariadbv1alpha1.LocalObjectReference{
-						Name: "mdb-emulate-external-test-ca",
-					},
-					ClientCertSecretRef: &mariadbv1alpha1.LocalObjectReference{
-						Name: "mdb-emulate-external-test-client-cert",
+				TLS: &mariadbv1alpha1.ExternalTLS{
+					TLS: mariadbv1alpha1.TLS{
+						Enabled:  true,
+						Required: ptr.To(false),
+						ServerCASecretRef: &mariadbv1alpha1.LocalObjectReference{
+							Name: "mdb-emulate-external-test-ca",
+						},
+						ClientCertSecretRef: &mariadbv1alpha1.LocalObjectReference{
+							Name: "mdb-emulate-external-test-client-cert",
+						},
 					},
 				},
 			},
@@ -76,6 +78,14 @@ var _ = Describe("External MariaDB spec", func() {
 				return false
 			}
 			return emdb.Spec.Port == 3306
+		}, testTimeout, testInterval).Should(BeTrue())
+
+		By("Expecting IsTLSMutual to return true by default")
+		Eventually(func() bool {
+			if err := k8sClient.Get(testCtx, key, &emdb); err != nil {
+				return false
+			}
+			return emdb.IsTLSMutual()
 		}, testTimeout, testInterval).Should(BeTrue())
 
 		By("Expecting Connection to be ready eventually")
@@ -112,13 +122,22 @@ var _ = Describe("External MariaDB spec", func() {
 					},
 					Key: testPwdSecretKey,
 				},
-				TLS: &mariadbv1alpha1.TLS{
-					Enabled:  true,
-					Required: ptr.To(false),
-					Mutual:   ptr.To(false),
-					ServerCASecretRef: &mariadbv1alpha1.LocalObjectReference{
-						Name: "mdb-emulate-external-test-ca",
+				Connection: &mariadbv1alpha1.ConnectionTemplate{
+					SecretName: &key.Name,
+					HealthCheck: &mariadbv1alpha1.HealthCheck{
+						Interval:      &metav1.Duration{Duration: 1 * time.Second},
+						RetryInterval: &metav1.Duration{Duration: 1 * time.Second},
 					},
+				},
+				TLS: &mariadbv1alpha1.ExternalTLS{
+					TLS: mariadbv1alpha1.TLS{
+						Enabled:  true,
+						Required: ptr.To(false),
+						ServerCASecretRef: &mariadbv1alpha1.LocalObjectReference{
+							Name: "mdb-emulate-external-test-ca",
+						},
+					},
+					Mutual: ptr.To(false),
 				},
 			},
 		}
@@ -133,6 +152,15 @@ var _ = Describe("External MariaDB spec", func() {
 				return false
 			}
 			return !emdb.IsTLSMutual()
+		}, testTimeout, testInterval).Should(BeTrue())
+
+		By("Expecting Connection to be ready eventually")
+		Eventually(func(g Gomega) bool {
+			var conn mariadbv1alpha1.Connection
+			if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(&emdb), &conn); err != nil {
+				return false
+			}
+			return conn.IsReady()
 		}, testTimeout, testInterval).Should(BeTrue())
 	})
 

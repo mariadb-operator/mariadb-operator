@@ -28,7 +28,7 @@ func (m *ExternalMariaDB) TLSCABundleSecretKeyRef() SecretKeySelector {
 
 // TLSServerCertSecretKey defines the key for the TLS server cert.
 func (m *ExternalMariaDB) TLSServerCertSecretKey() types.NamespacedName {
-	tls := ptr.Deref(m.Spec.TLS, TLS{})
+	tls := ptr.Deref(m.Spec.TLS, ExternalTLS{})
 	if tls.Enabled && tls.ServerCertSecretRef != nil {
 		return types.NamespacedName{
 			Name:      tls.ServerCertSecretRef.Name,
@@ -43,7 +43,7 @@ func (m *ExternalMariaDB) TLSServerCertSecretKey() types.NamespacedName {
 
 // TLSClientCertSecretKey defines the key for the TLS client cert.
 func (m *ExternalMariaDB) TLSClientCertSecretKey() types.NamespacedName {
-	tls := ptr.Deref(m.Spec.TLS, TLS{})
+	tls := ptr.Deref(m.Spec.TLS, ExternalTLS{})
 	if tls.Enabled && tls.ClientCertSecretRef != nil {
 		return types.NamespacedName{
 			Name:      tls.ClientCertSecretRef.Name,

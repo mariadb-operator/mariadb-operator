@@ -478,11 +478,6 @@ type TLS struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
 	Required *bool `json:"required,omitempty"`
-	// Mutual specifies whether TLS must be mutual between server and client.
-	// It enabled by default.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
-	Mutual *bool `json:"mutual,omitempty"`
 	// ServerCASecretRef is a reference to a Secret containing the server certificate authority keypair. It is used to establish trust and issue server certificates.
 	// One of:
 	// - Secret containing both the 'ca.crt' and 'ca.key' keys. This allows you to bring your own CA to Kubernetes to issue certificates.
@@ -526,6 +521,17 @@ type TLS struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	GaleraSSTEnabled *bool `json:"galeraSSTEnabled,omitempty"`
+}
+
+// ExternalTLS defines the TLS configuration for external MariaDB instances.
+// It embeds the base TLS struct and adds the Mutual field which is specific to external connections.
+type ExternalTLS struct {
+	TLS `json:",inline"`
+	// Mutual specifies whether TLS must be mutual between server and client for external connections.
+	// It enabled by default.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
+	Mutual *bool `json:"mutual,omitempty"`
 }
 
 // MariaDBSpec defines the desired state of MariaDB
