@@ -16,8 +16,10 @@ func TestExternalMariaDB_IsTLSMutual(t *testing.T) {
 			name: "TLS disabled",
 			emdb: &ExternalMariaDB{
 				Spec: ExternalMariaDBSpec{
-					TLS: &TLS{
-						Enabled: false,
+					TLS: &ExternalTLS{
+						TLS: TLS{
+							Enabled: false,
+						},
 					},
 				},
 			},
@@ -27,8 +29,10 @@ func TestExternalMariaDB_IsTLSMutual(t *testing.T) {
 			name: "TLS enabled",
 			emdb: &ExternalMariaDB{
 				Spec: ExternalMariaDBSpec{
-					TLS: &TLS{
-						Enabled: true,
+					TLS: &ExternalTLS{
+						TLS: TLS{
+							Enabled: true,
+						},
 					},
 				},
 			},
@@ -38,9 +42,11 @@ func TestExternalMariaDB_IsTLSMutual(t *testing.T) {
 			name: "TLS enabled with mutual true",
 			emdb: &ExternalMariaDB{
 				Spec: ExternalMariaDBSpec{
-					TLS: &TLS{
-						Enabled: true,
-						Mutual:  ptr.To(true),
+					TLS: &ExternalTLS{
+						TLS: TLS{
+							Enabled: true,
+						},
+						Mutual: ptr.To(true),
 					},
 				},
 			},
@@ -50,9 +56,11 @@ func TestExternalMariaDB_IsTLSMutual(t *testing.T) {
 			name: "TLS enabled with mutual false",
 			emdb: &ExternalMariaDB{
 				Spec: ExternalMariaDBSpec{
-					TLS: &TLS{
-						Enabled: true,
-						Mutual:  ptr.To(false),
+					TLS: &ExternalTLS{
+						TLS: TLS{
+							Enabled: true,
+						},
+						Mutual: ptr.To(false),
 					},
 				},
 			},

@@ -725,8 +725,25 @@ _Appears in:_
 | `port` _integer_ | Port of the external MariaDB. | 3306 |  |
 | `username` _string_ | Username is the username to connect to the external MariaDB. |  | Required: \{\} <br /> |
 | `passwordSecretKeyRef` _[SecretKeySelector](#secretkeyselector)_ | PasswordSecretKeyRef is a reference to the password to connect to the external MariaDB. |  |  |
-| `tls` _[TLS](#tls)_ | TLS defines the PKI to be used with the external MariaDB. |  |  |
+| `tls` _[ExternalTLS](#externaltls)_ | TLS defines the PKI to be used with the external MariaDB. |  |  |
 | `connection` _[ConnectionTemplate](#connectiontemplate)_ | Connection defines a template to configure a Connection for the external MariaDB. |  |  |
+
+
+#### ExternalTLS
+
+
+
+ExternalTLS defines the TLS configuration for external MariaDB instances.
+It embeds the base TLS struct and adds the Mutual field which is specific to external connections.
+
+
+
+_Appears in:_
+- [ExternalMariaDBSpec](#externalmariadbspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `mutual` _boolean_ | Mutual specifies whether TLS must be mutual between server and client for external connections.<br />It enabled by default. |  |  |
 
 
 #### Galera
@@ -2892,14 +2909,13 @@ TLS defines the PKI to be used with MariaDB.
 
 
 _Appears in:_
-- [ExternalMariaDBSpec](#externalmariadbspec)
+- [ExternalTLS](#externaltls)
 - [MariaDBSpec](#mariadbspec)
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `enabled` _boolean_ | Enabled indicates whether TLS is enabled, determining if certificates should be issued and mounted to the MariaDB instance.<br />It is enabled by default. |  |  |
 | `required` _boolean_ | Required specifies whether TLS must be enforced for all connections.<br />User TLS requirements take precedence over this.<br />It disabled by default. |  |  |
-| `mutual` _boolean_ | Mutual specifies whether TLS must be mutual between server and client.<br />It enabled by default. |  |  |
 | `serverCASecretRef` _[LocalObjectReference](#localobjectreference)_ | ServerCASecretRef is a reference to a Secret containing the server certificate authority keypair. It is used to establish trust and issue server certificates.<br />One of:<br />- Secret containing both the 'ca.crt' and 'ca.key' keys. This allows you to bring your own CA to Kubernetes to issue certificates.<br />- Secret containing only the 'ca.crt' in order to establish trust. In this case, either serverCertSecretRef or serverCertIssuerRef must be provided.<br />If not provided, a self-signed CA will be provisioned to issue the server certificate. |  |  |
 | `serverCertSecretRef` _[LocalObjectReference](#localobjectreference)_ | ServerCertSecretRef is a reference to a TLS Secret containing the server certificate.<br />It is mutually exclusive with serverCertIssuerRef. |  |  |
 | `serverCertIssuerRef` _[ObjectReference](#objectreference)_ | ServerCertIssuerRef is a reference to a cert-manager issuer object used to issue the server certificate. cert-manager must be installed previously in the cluster.<br />It is mutually exclusive with serverCertSecretRef.<br />By default, the Secret field 'ca.crt' provisioned by cert-manager will be added to the trust chain. A custom trust bundle may be specified via serverCASecretRef. |  |  |
