@@ -10903,6 +10903,19 @@ spec:
                     description: Labels to be added to children resources.
                     type: object
                 type: object
+              logLevel:
+                default: info
+                description: LogLevel to be used in the PhysicalBackup Job. It defaults
+                  to 'info'.
+                enum:
+                - debug
+                - info
+                - warn
+                - error
+                - dpanic
+                - panic
+                - fatal
+                type: string
               mariaDbRef:
                 description: MariaDBRef is a reference to a MariaDB object.
                 properties:
@@ -11605,6 +11618,14 @@ spec:
                 format: int32
                 minimum: 0
                 type: integer
+              target:
+                description: Target defines in which Pod the physical backups will
+                  be taken. It defaults to "Replica", meaning that the physical backups
+                  will only be taken in ready replicas.
+                enum:
+                - Replica
+                - PreferReplica
+                type: string
               timeout:
                 description: |-
                   Timeout defines the maximum duration of a PhysicalBackup job or snapshot.
@@ -13094,19 +13115,6 @@ spec:
                     description: Labels to be added to children resources.
                     type: object
                 type: object
-              logLevel:
-                default: info
-                description: LogLevel to be used in the PhysicalBackup Job. It defaults
-                  to 'info'.
-                enum:
-                - debug
-                - info
-                - warn
-                - error
-                - dpanic
-                - panic
-                - fatal
-                type: string
               mariaDbRef:
                 description: MariaDBRef is a reference to a MariaDB object.
                 properties:
