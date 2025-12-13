@@ -66,10 +66,10 @@ spec:
     # syncBinlog: 1
     # Init container that cooperates with mariadb-operator.
     # initContainer:
-    #   image: docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:25.10.2
+    #   image: docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:25.10.3
     # Agent sidecar that cooperates with mariadb-operator.
     # agent:
-    #   image: docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:25.10.2
+    #   image: docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:25.10.3
   
   service:
     type: LoadBalancer
