@@ -11,6 +11,16 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// ExternalTLS defines the TLS configuration for external MariaDB instances.
+type ExternalTLS struct {
+	TLS `json:",inline"`
+	// Mutual specifies whether TLS must be mutual between server and client for external connections.
+	// It enabled by default.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
+	Mutual *bool `json:"mutual,omitempty"`
+}
+
 // ExternalMariaDBSpec defines the desired state of an External MariaDB
 type ExternalMariaDBSpec struct {
 	// Image name to be used to perform operations on the external MariaDB, for example, for taking backups.

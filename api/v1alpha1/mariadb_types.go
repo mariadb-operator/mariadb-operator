@@ -523,17 +523,6 @@ type TLS struct {
 	GaleraSSTEnabled *bool `json:"galeraSSTEnabled,omitempty"`
 }
 
-// ExternalTLS defines the TLS configuration for external MariaDB instances.
-// It embeds the base TLS struct and adds the Mutual field which is specific to external connections.
-type ExternalTLS struct {
-	TLS `json:",inline"`
-	// Mutual specifies whether TLS must be mutual between server and client for external connections.
-	// It enabled by default.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
-	Mutual *bool `json:"mutual,omitempty"`
-}
-
 // MariaDBSpec defines the desired state of MariaDB
 type MariaDBSpec struct {
 	// ContainerTemplate defines templates to configure Container objects.
