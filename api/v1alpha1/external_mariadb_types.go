@@ -15,7 +15,8 @@ import (
 type ExternalTLS struct {
 	TLS `json:",inline"`
 	// Mutual specifies whether TLS must be mutual between server and client for external connections.
-	// It enabled by default.
+	// When set to false, the client certificate will not be sent during the TLS handshake.
+	// It is enabled by default.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
 	Mutual *bool `json:"mutual,omitempty"`

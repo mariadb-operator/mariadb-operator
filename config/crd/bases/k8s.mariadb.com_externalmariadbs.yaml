@@ -240,7 +240,8 @@ spec:
                   mutual:
                     description: |-
                       Mutual specifies whether TLS must be mutual between server and client for external connections.
-                      It enabled by default.
+                      When set to false, the client certificate will not be sent during the TLS handshake.
+                      It is enabled by default.
                     type: boolean
                   required:
                     description: |-
