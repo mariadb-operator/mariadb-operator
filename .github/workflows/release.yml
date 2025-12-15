@@ -35,7 +35,7 @@ jobs:
             echo "Version('$VERSION') and Makefile version('$MAKE_VERSION') don't match!"
             exit 1;
           fi
-          
+
           RELEASE_ARGS=release
           RELEASE_HEADER_TMPL=docs/releases/RELEASE_${VERSION}_HEADER.md.gotmpl
           RELEASE_FOOTER_TMPL=docs/releases/RELEASE_${VERSION}_FOOTER.md.gotmpl
@@ -49,7 +49,7 @@ jobs:
           else
             RELEASE_ARGS="${RELEASE_ARGS} --release-footer-tmpl=docs/releases/RELEASE_FOOTER.md.gotmpl"
           fi
-          
+
           echo "BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_OUTPUT
           echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
           echo "RELEASE_ARGS=${RELEASE_ARGS}" >> $GITHUB_OUTPUT
@@ -97,12 +97,12 @@ jobs:
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.version=${{ needs.args.outputs.VERSION }}
             org.opencontainers.image.created=${{ needs.args.outputs.BUILD_DATE }}
-  
+
   goreleaser:
     name: Goreleaser
     runs-on: ubuntu-latest
     needs:
-      - args 
+      - args
       - release
     steps:
       - name: Checkout
@@ -115,7 +115,7 @@ jobs:
 
       - name: Set GORELEASER_PREVIOUS_TAG
         run: echo "GORELEASER_PREVIOUS_TAG=$(git tag -l --sort=-version:refname | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | head -n 2 | tail -n 1)" >> $GITHUB_ENV
-  
+
       - name: GoReleaser
         uses: goreleaser/goreleaser-action@v6
         with:
@@ -127,7 +127,7 @@ jobs:
   helm:
     name: Helm
     runs-on: ubuntu-latest
-    needs: 
+    needs:
       - args
       - goreleaser
     steps:
@@ -146,9 +146,9 @@ jobs:
       - name: Bump version
         id: version
         env:
-          HELM_VERSION: ${{ needs.args.outputs.VERSION }}
+          HELM_CHART_VERSION: ${{ needs.args.outputs.VERSION }}
         run: make helm-version-bump
-      
+
       - name: Helm generate
         run: make helm-gen
 
@@ -161,7 +161,7 @@ jobs:
   gopkg:
     name: Go package
     runs-on: ubuntu-latest
-    needs: 
+    needs:
       - args
       - helm
     steps:
@@ -181,3 +181,4 @@ jobs:
         run: |
           git tag "v${{ needs.args.outputs.VERSION }}"
           git push --tags
+
