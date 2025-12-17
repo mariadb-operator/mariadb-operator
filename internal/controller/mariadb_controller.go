@@ -23,7 +23,6 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/endpoints"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/galera"
 	galeraresources "github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/galera/resources"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/maxscale"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/pvc"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/rbac"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/replication"
@@ -88,7 +87,6 @@ type MariaDBReconciler struct {
 
 	ReplicationReconciler *replication.ReplicationReconciler
 	GaleraReconciler      *galera.GaleraReconciler
-	MaxScaleReconciler    *maxscale.MaxScaleReconciler
 }
 
 type reconcilePhaseMariaDB struct {
@@ -202,10 +200,6 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		{
 			Name:      "Restore",
 			Reconcile: r.reconcileRestore,
-		},
-		{
-			Name:      "MaxScale",
-			Reconcile: r.MaxScaleReconciler.Reconcile,
 		},
 		{
 			Name:      "SQL",

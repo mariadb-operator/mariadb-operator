@@ -623,11 +623,6 @@ type MariaDBSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	MaxScaleRef *ObjectReference `json:"maxScaleRef,omitempty"`
-	// MaxScale is the MaxScale specification that defines the MaxScale resource to be used with the current MariaDB.
-	// When enabling this field, MaxScaleRef is automatically set.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	MaxScale *MariaDBMaxScaleSpec `json:"maxScale,omitempty"`
 	// Replicas indicates the number of desired instances.
 	// +kubebuilder:default=1
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:podCount"}
@@ -835,13 +830,6 @@ func (m *MariaDB) SetDefaults(env *environment.OperatorEnv) error {
 	if m.Spec.TLS == nil {
 		m.Spec.TLS = &TLS{
 			Enabled: true,
-		}
-	}
-
-	if ptr.Deref(m.Spec.MaxScale, MariaDBMaxScaleSpec{}).Enabled && m.Spec.MaxScaleRef == nil {
-		m.Spec.MaxScaleRef = &ObjectReference{
-			Name:      m.MaxScaleKey().Name,
-			Namespace: m.Namespace,
 		}
 	}
 

@@ -77,7 +77,7 @@ func (r *MariaDBReconciler) reconcileStatus(ctx context.Context, mdb *mariadbv1a
 			status.TLS = tlsStatus
 		}
 
-		if apierrors.IsNotFound(mxsErr) && !ptr.Deref(mdb.Spec.MaxScale, mariadbv1alpha1.MariaDBMaxScaleSpec{}).Enabled {
+		if apierrors.IsNotFound(mxsErr) && mdb.IsMaxScaleEnabled() {
 			r.ConditionReady.PatcherRefResolver(mxsErr, mariadbv1alpha1.MaxScale{})(&mdb.Status)
 			return nil
 		}
