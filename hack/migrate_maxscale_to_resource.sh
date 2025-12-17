@@ -73,6 +73,18 @@ echo "Cleaning up deprecated fields"
   del(.spec.maxScale)
 ' -i "$MARIADB_OUTPUT"
 
+# Extract name and namespace for the new reference
+NAME=$("$YQ" '.metadata.name' "$MARIADB_INPUT")
+NAMESPACE=$("$YQ" '.metadata.namespace // "default"' "$MARIADB_INPUT")
+
+echo "Adding maxScaleRef field..."
+"$YQ" -i "
+  .spec.maxScaleRef = {
+    \"name\": \"$NAME-maxscale\",
+    \"namespace\": \"$NAMESPACE\"
+  }
+" "$MARIADB_OUTPUT"
+
 # Show a summary if `diff` is installed.
 if command_exists diff; then
   echo "Here are all the differences"
