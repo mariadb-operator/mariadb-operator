@@ -20,7 +20,6 @@ To better understand what MaxScale is capable of you may check the [product page
 - [MaxScale resources](#maxscale-resources)
 - [<code>MaxScale</code> CR](#maxscale-cr)
 - [<code>MariaDB</code> CR](#mariadb-cr)
-- [<code>MaxScale</code> embedded in <code>MariaDB</code>](#maxscale-embedded-in-mariadb)
 - [Defaults](#defaults)
 - [Server configuration](#server-configuration)
 - [Primary server switchover](#primary-server-switchover)
@@ -52,6 +51,7 @@ A monitor is an agent that queries the state of the servers and makes it availab
 Depending on which highly available configuration your servers have, you will need to choose betweeen the following modules:
 - [Galera Monitor](https://mariadb.com/kb/en/mariadb-maxscale-2308-galera-monitor/): Detects whether servers are part of the cluster, ensuring synchronization among them, and assigning primary and replica roles as needed.
 - [MariaDB Monitor](https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-monitor/): Probes the state of the cluster, assigns roles to the servers, and executes failover, switchover, and rejoin operations as necessary.
+
 #### Services
 
 A service defines how the traffic is routed to the servers based on a routing algorithm that takes into account the state of the servers and its role. For more detailed information, please consult the [service reference](https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/#service).
@@ -193,35 +193,6 @@ spec:
   galera:
     enabled: true
 ```
-
-Refer to the [Reference](#reference) section for further detail.
-
-##  `MaxScale` embedded in `MariaDB`
-
-To streamline the setup outlined in the [MaxScale CR](#mariadb-cr) and [MariaDB CR](#mariadb-cr) sections, you can provision a `MaxScale` to be used with `MariaDB` in just one resource:
-
-```yaml
-apiVersion: k8s.mariadb.com/v1alpha1
-kind: MariaDB
-metadata:
-  name: mariadb-galera
-spec:
-...
-  maxScale:
-    enabled: true
-
-    kubernetesService:
-      type: LoadBalancer
-      metadata:
-        annotations:
-          metallb.universe.tf/loadBalancerIPs: 172.18.0.229
-
-  galera:
-    enabled: true
-```
-This will automatically set the references between `MariaDB` and `MaxScale` and [default](#defaults) the rest of the fields.
-
-It is important to note that, this is intended for simple use cases where no further modifications are done on the `spec.maxscale` field. If you need a more fine grained configuration and perform further updates to the `MaxScale` resource, please use a dedicated `MaxScale` as described in the [MaxScale CR](#mariadb-cr) section.
 
 Refer to the [Reference](#reference) section for further detail.
 
