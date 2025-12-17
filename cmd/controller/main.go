@@ -26,7 +26,6 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/deployment"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/endpoints"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/galera"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/maxscale"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/pvc"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/rbac"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/replication"
@@ -306,7 +305,6 @@ var rootCmd = &cobra.Command{
 		svcMonitorReconciler := servicemonitor.NewServiceMonitorReconciler(client)
 		certReconciler := certctrl.NewCertReconciler(client, scheme, mgr.GetEventRecorderFor("cert"), discovery, builder)
 
-		mxsReconciler := maxscale.NewMaxScaleReconciler(client, builder, env)
 		replConfigClient := replication.NewReplicationConfigClient(client, builder, secretReconciler)
 		replicationReconciler, err := replication.NewReplicationReconciler(
 			client,
@@ -385,7 +383,6 @@ var rootCmd = &cobra.Command{
 			ServiceMonitorReconciler: svcMonitorReconciler,
 			CertReconciler:           certReconciler,
 
-			MaxScaleReconciler:    mxsReconciler,
 			ReplicationReconciler: replicationReconciler,
 			GaleraReconciler:      galeraReconciler,
 		}).SetupWithManager(ctx, mgr, env, ctrlcontroller.Options{MaxConcurrentReconciles: mariadbMaxConcurrentReconciles}); err != nil {

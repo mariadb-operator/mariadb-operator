@@ -20,7 +20,6 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/deployment"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/endpoints"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/galera"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/maxscale"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/pvc"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/rbac"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/replication"
@@ -149,7 +148,6 @@ var _ = BeforeSuite(func() {
 	svcMonitorReconciler := servicemonitor.NewServiceMonitorReconciler(client)
 	certReconciler := certctrl.NewCertReconciler(client, scheme, k8sManager.GetEventRecorderFor("cert"), disc, builder)
 
-	mxsReconciler := maxscale.NewMaxScaleReconciler(client, builder, env)
 	replConfigClient := replication.NewReplicationConfigClient(client, builder, secretReconciler)
 	replicationReconciler, err := replication.NewReplicationReconciler(
 		client,
@@ -225,7 +223,6 @@ var _ = BeforeSuite(func() {
 		ServiceMonitorReconciler: svcMonitorReconciler,
 		CertReconciler:           certReconciler,
 
-		MaxScaleReconciler:    mxsReconciler,
 		ReplicationReconciler: replicationReconciler,
 		GaleraReconciler:      galeraReconciler,
 	}).SetupWithManager(testCtx, k8sManager, env, ctrlcontroller.Options{MaxConcurrentReconciles: 10})

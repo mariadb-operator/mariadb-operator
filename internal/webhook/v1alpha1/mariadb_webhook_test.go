@@ -431,9 +431,6 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 						MaxScaleRef: &v1alpha1.ObjectReference{
 							Name: "maxscale",
 						},
-						MaxScale: &v1alpha1.MariaDBMaxScaleSpec{
-							Enabled: true,
-						},
 					},
 				},
 				true,

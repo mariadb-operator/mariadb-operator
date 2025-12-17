@@ -124,13 +124,6 @@ func validateHA(mariadb *v1alpha1.MariaDB) error {
 }
 
 func validateMaxScale(mariadb *v1alpha1.MariaDB) error {
-	if mariadb.Spec.MaxScaleRef != nil && mariadb.Spec.MaxScale != nil {
-		return field.Invalid(
-			field.NewPath("spec").Child("maxScaleRef"),
-			mariadb.Spec.MaxScaleRef,
-			"'spec.maxScaleRef' and 'spec.maxScale' cannot be specified simultaneously",
-		)
-	}
 	return nil
 }
 

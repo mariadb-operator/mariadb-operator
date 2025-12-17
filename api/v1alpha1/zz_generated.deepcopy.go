@@ -2173,11 +2173,6 @@ func (in *MariaDBSpec) DeepCopyInto(out *MariaDBSpec) {
 		*out = new(ObjectReference)
 		**out = **in
 	}
-	if in.MaxScale != nil {
-		in, out := &in.MaxScale, &out.MaxScale
-		*out = new(MariaDBMaxScaleSpec)
-		(*in).DeepCopyInto(*out)
-	}
 	if in.ServicePorts != nil {
 		in, out := &in.ServicePorts, &out.ServicePorts
 		*out = make([]ServicePort, len(*in))
