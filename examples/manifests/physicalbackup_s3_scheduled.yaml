@@ -9,6 +9,7 @@ spec:
     cron: "*/1 * * * *"
     suspend: false
     immediate: true
+  target: Replica
   compression: bzip2
   maxRetention: 720h # 30 days
   storage:

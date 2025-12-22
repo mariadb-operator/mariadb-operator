@@ -281,10 +281,10 @@ func (r *PhysicalBackupReconciler) createJob(ctx context.Context, backup *mariad
 		WithValues(
 			"mariadb", mariadb.Name,
 		)
-	podIndex, err := r.physicalBackupTargetPodIndex(ctx, mariadb, logger)
+	podIndex, err := r.physicalBackupTarget(ctx, backup, mariadb, logger)
 	if err != nil {
 		if errors.Is(err, errPhysicalBackupNoTargetPodsAvailable) {
-			logger.V(1).Info("No target Pods available. Requeuing...")
+			logger.Info("No target Pods available. Requeuing...", "target", backup.Spec.Target)
 			return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 		}
 		return ctrl.Result{}, fmt.Errorf("error getting target Pod index: %v", err)

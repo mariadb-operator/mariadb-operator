@@ -3357,6 +3357,11 @@ func (in *PhysicalBackupSpec) DeepCopyInto(out *PhysicalBackupSpec) {
 	in.JobContainerTemplate.DeepCopyInto(&out.JobContainerTemplate)
 	in.PhysicalBackupPodTemplate.DeepCopyInto(&out.PhysicalBackupPodTemplate)
 	out.MariaDBRef = in.MariaDBRef
+	if in.Target != nil {
+		in, out := &in.Target, &out.Target
+		*out = new(PhysicalBackupTarget)
+		**out = **in
+	}
 	if in.StagingStorage != nil {
 		in, out := &in.StagingStorage, &out.StagingStorage
 		*out = new(BackupStagingStorage)

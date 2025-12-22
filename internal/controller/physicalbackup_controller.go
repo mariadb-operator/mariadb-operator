@@ -17,6 +17,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/rbac"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/discovery"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/health"
+	mariadbpod "github.com/mariadb-operator/mariadb-operator/v25/pkg/pod"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/refresolver"
 	mdbtime "github.com/mariadb-operator/mariadb-operator/v25/pkg/time"
 	"github.com/robfig/cron/v3"
@@ -24,6 +25,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -186,15 +188,36 @@ func (r *PhysicalBackupReconciler) patchStatus(ctx context.Context, backup *mari
 	return r.Client.Status().Patch(ctx, backup, patch)
 }
 
-func (r *PhysicalBackupReconciler) physicalBackupTargetPodIndex(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+func (r *PhysicalBackupReconciler) physicalBackupTarget(ctx context.Context, backup *mariadbv1alpha1.PhysicalBackup,
+	mariadb *mariadbv1alpha1.MariaDB, logger logr.Logger) (*int, error) {
+	return physicalBackupTargetWithFuncs(ctx, backup, mariadb, r.primaryTarget, r.replicaTarget, logger)
+}
+
+func (r *PhysicalBackupReconciler) primaryTarget(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 	logger logr.Logger) (*int, error) {
-	if mariadb.Status.CurrentPrimaryPodIndex == nil {
-		logger.V(1).Info("no target Pods Available: 'status.currentPrimaryPodIndex' not set")
+	if mariadb.Status.CurrentPrimary == nil || mariadb.Status.CurrentPrimaryPodIndex == nil {
+		logger.V(1).Info("no target Pods Available: 'status.currentPrimary' and 'status.currentPrimaryPodIndex' must be set")
 		return nil, errPhysicalBackupNoTargetPodsAvailable
 	}
-	if !mariadb.IsHAEnabled() {
-		return mariadb.Status.CurrentPrimaryPodIndex, nil
+	key := types.NamespacedName{
+		Name:      *mariadb.Status.CurrentPrimary,
+		Namespace: mariadb.Namespace,
 	}
+	var pod corev1.Pod
+	if err := r.Get(ctx, key, &pod); err != nil {
+		return nil, fmt.Errorf("error getting primary Pod: %v", err)
+	}
+	if !mariadbpod.PodReady(&pod) {
+		logger.V(1).Info("no target Pods Available: no healthy primary Pod available")
+		return nil, errPhysicalBackupNoTargetPodsAvailable
+	}
+	podIndex := mariadb.Status.CurrentPrimaryPodIndex
+	logger.Info("Using primary as PhysicalBackup target", "target-pod-index", podIndex)
+	return podIndex, nil
+}
+
+func (r *PhysicalBackupReconciler) replicaTarget(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+	logger logr.Logger) (*int, error) {
 	podIndex, err := health.SecondaryPodHealthyIndex(ctx, r.Client, mariadb)
 	if err != nil {
 		if errors.Is(err, health.ErrNoHealthyInstancesAvailable) {
@@ -203,6 +226,7 @@ func (r *PhysicalBackupReconciler) physicalBackupTargetPodIndex(ctx context.Cont
 		}
 		return nil, fmt.Errorf("error getting target Pod index: %v", err)
 	}
+	logger.Info("Using replica as PhysicalBackup target", "target-pod-index", podIndex)
 	return podIndex, nil
 }
 
@@ -252,4 +276,28 @@ func sortByObjectTime[T client.Object](objList []T) error {
 		return objTime.After(anotherObjTime)
 	})
 	return parseErr
+}
+
+type targetFn func(context.Context, *mariadbv1alpha1.MariaDB, logr.Logger) (*int, error)
+
+func physicalBackupTargetWithFuncs(ctx context.Context, backup *mariadbv1alpha1.PhysicalBackup,
+	mariadb *mariadbv1alpha1.MariaDB, primaryFn, replicaFn targetFn, logger logr.Logger) (*int, error) {
+	if !mariadb.IsHAEnabled() {
+		return primaryFn(ctx, mariadb, logger)
+	}
+	target := ptr.Deref(backup.Spec.Target, mariadbv1alpha1.PhysicalBackupTargetReplica)
+	switch target {
+	case mariadbv1alpha1.PhysicalBackupTargetReplica:
+		return replicaFn(ctx, mariadb, logger)
+	case mariadbv1alpha1.PhysicalBackupTargetPreferReplica:
+		podIndex, err := replicaFn(ctx, mariadb, logger)
+		if err != nil && !errors.Is(err, errPhysicalBackupNoTargetPodsAvailable) {
+			return nil, fmt.Errorf("error getting replica target: %v", err)
+		}
+		if podIndex != nil {
+			return podIndex, nil
+		}
+		return primaryFn(ctx, mariadb, logger)
+	}
+	return nil, errPhysicalBackupNoTargetPodsAvailable
 }

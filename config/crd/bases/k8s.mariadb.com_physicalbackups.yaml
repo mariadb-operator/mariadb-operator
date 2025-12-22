@@ -803,6 +803,14 @@ spec:
                 format: int32
                 minimum: 0
                 type: integer
+              target:
+                description: Target defines in which Pod the physical backups will
+                  be taken. It defaults to "Replica", meaning that the physical backups
+                  will only be taken in ready replicas.
+                enum:
+                - Replica
+                - PreferReplica
+                type: string
               timeout:
                 description: |-
                   Timeout defines the maximum duration of a PhysicalBackup job or snapshot.

@@ -239,9 +239,9 @@ func (r *PhysicalBackupReconciler) scheduleSnapshot(ctx context.Context, backup 
 		WithValues(
 			"mariadb", mariadb.Name,
 		)
-	_, err := r.physicalBackupTargetPodIndex(ctx, mariadb, logger)
+	_, err := r.physicalBackupTarget(ctx, backup, mariadb, logger)
 	if errors.Is(err, errPhysicalBackupNoTargetPodsAvailable) {
-		logger.V(1).Info("No target Pods available. Requeuing...")
+		logger.Info("No target Pods available. Requeuing...", "target", backup.Spec.Target)
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 
@@ -279,10 +279,10 @@ func (r *PhysicalBackupReconciler) createVolumeSnapshot(ctx context.Context, sna
 		WithValues(
 			"mariadb", mariadb.Name,
 		)
-	podIndex, err := r.physicalBackupTargetPodIndex(ctx, mariadb, logger)
+	podIndex, err := r.physicalBackupTarget(ctx, backup, mariadb, logger)
 	if err != nil {
 		if errors.Is(err, errPhysicalBackupNoTargetPodsAvailable) {
-			logger.V(1).Info("No target Pods available. Requeuing...")
+			logger.Info("No target Pods available. Requeuing...", "target", backup.Spec.Target)
 			return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 		}
 		return ctrl.Result{}, fmt.Errorf("error getting target Pod index: %v", err)
@@ -370,7 +370,7 @@ func (r *PhysicalBackupReconciler) getVolumeSnapshotMetadata(ctx context.Context
 	if !mariadb.IsReplicationEnabled() {
 		return nil, nil
 	}
-	gtid, err := sqlClient.GtidSlavePos(ctx)
+	gtid, err := sqlClient.GtidCurrentPos(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("error getting replica GTID: %v", err)
 	}
