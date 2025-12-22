@@ -272,7 +272,7 @@ func (m *MariaDB) InitKey() types.NamespacedName {
 // PhysicalBackupInitJobKey defines the keys for the PhysicalBackup init Job objects.
 func (m *MariaDB) PhysicalBackupInitJobKey(podIndex int) types.NamespacedName {
 	return types.NamespacedName{
-		Name:      fmt.Sprintf("%s-physicalbackup-init", stsobj.PodName(m.ObjectMeta, podIndex)),
+		Name:      fmt.Sprintf("%s-pb-init", stsobj.PodName(m.ObjectMeta, podIndex)),
 		Namespace: m.Namespace,
 	}
 }
@@ -280,7 +280,7 @@ func (m *MariaDB) PhysicalBackupInitJobKey(podIndex int) types.NamespacedName {
 // PhysicalBackupStagingPVCKey defines the key for the PhysicalBackup staging PVC object.
 func (m *MariaDB) PhysicalBackupStagingPVCKey() types.NamespacedName {
 	return types.NamespacedName{
-		Name:      fmt.Sprintf("%s-physicalbackup-staging", m.Name),
+		Name:      fmt.Sprintf("%s-pb-staging", m.Name),
 		Namespace: m.Namespace,
 	}
 }
@@ -288,7 +288,7 @@ func (m *MariaDB) PhysicalBackupStagingPVCKey() types.NamespacedName {
 // PhysicalBackupScaleOutKey defines the key for the PhysicalBackup scale out object.
 func (m *MariaDB) PhysicalBackupScaleOutKey() types.NamespacedName {
 	return types.NamespacedName{
-		Name:      fmt.Sprintf("%s-physicalbackup-scale-out", m.Name),
+		Name:      fmt.Sprintf("%s-pb-scaleout", m.Name),
 		Namespace: m.Namespace,
 	}
 }
@@ -296,7 +296,7 @@ func (m *MariaDB) PhysicalBackupScaleOutKey() types.NamespacedName {
 // PhysicalBackupScaleOutKey defines the key for the PhysicalBackup replica recovery object.
 func (m *MariaDB) PhysicalBackupReplicaRecoveryKey() types.NamespacedName {
 	return types.NamespacedName{
-		Name:      fmt.Sprintf("%s-physicalbackup-replica-recovery", m.Name),
+		Name:      fmt.Sprintf("%s-pb-recovery", m.Name),
 		Namespace: m.Namespace,
 	}
 }
