@@ -19,6 +19,28 @@ func GetTag(image string) (string, error) {
 	return "", errors.New("image does not have a tag")
 }
 
+func GetDigest(image string) (string, error) {
+	ref, err := reference.Parse(image)
+	if err != nil {
+		return "", fmt.Errorf("error parsing reference: %v", err)
+	}
+
+	if digested, ok := ref.(reference.Digested); ok {
+		return digested.Digest().String(), nil
+	}
+	return "", errors.New("image does not have a digest")
+}
+
+func HasTagOrDigest(image string) bool {
+	if tag, err := GetTag(image); tag != "" && err == nil {
+		return true
+	}
+	if digest, err := GetDigest(image); digest != "" && err == nil {
+		return true
+	}
+	return false
+}
+
 func SetTagOrDigest(sourceImage, targetImage string) (string, error) {
 	sourceRef, err := reference.Parse(sourceImage)
 	if err != nil {
