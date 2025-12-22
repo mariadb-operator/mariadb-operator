@@ -31,6 +31,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 var errPhysicalBackupNoTargetPodsAvailable = errors.New("no target Pods available")
@@ -93,11 +94,19 @@ func (r *PhysicalBackupReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
+	logger := log.FromContext(ctx).
+		WithName("physicalbackup").
+		WithValues(
+			"mariadb", mariadb.Name,
+		)
+	if !shouldReconcilePhysicalBackup(mariadb, logger) {
+		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+	}
 
 	if err := r.setDefaults(ctx, &backup, mariadb); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error defaulting PhysicalBackup: %v", err)
 	}
-	return r.reconcile(ctx, &backup, mariadb)
+	return r.reconcile(ctx, &backup, mariadb, logger)
 }
 
 func (r *PhysicalBackupReconciler) setDefaults(ctx context.Context, backup *mariadbv1alpha1.PhysicalBackup,
@@ -108,11 +117,11 @@ func (r *PhysicalBackupReconciler) setDefaults(ctx context.Context, backup *mari
 }
 
 func (r *PhysicalBackupReconciler) reconcile(ctx context.Context, backup *mariadbv1alpha1.PhysicalBackup,
-	mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
+	mariadb *mariadbv1alpha1.MariaDB, logger logr.Logger) (ctrl.Result, error) {
 	if backup.Spec.Storage.VolumeSnapshot != nil {
-		return r.reconcileSnapshots(ctx, backup, mariadb)
+		return r.reconcileSnapshots(ctx, backup, mariadb, logger)
 	}
-	return r.reconcileJobs(ctx, backup, mariadb)
+	return r.reconcileJobs(ctx, backup, mariadb, logger)
 }
 
 type scheduleFn func(now time.Time, cronSchedule cron.Schedule) (ctrl.Result, error)
@@ -245,6 +254,34 @@ func (r *PhysicalBackupReconciler) SetupWithManager(ctx context.Context, mgr ctr
 		return fmt.Errorf("error watching PhysicalBackup VolumeSnapshots: %v", err)
 	}
 	return builder.Complete(r)
+}
+
+func shouldReconcilePhysicalBackup(mdb *mariadbv1alpha1.MariaDB, logger logr.Logger) bool {
+	if mdb.IsSuspended() {
+		logger.Info("MariaDB is suspended, skipping PhysicalBackup schedule...")
+		return false
+	}
+	if mdb.IsRestoringBackup() {
+		logger.Info("Backup restoration in progress, skipping PhysicalBackup schedule...")
+		return false
+	}
+	if mdb.IsInitializing() {
+		logger.Info("Initialization in progress, skipping PhysicalBackup schedule...")
+		return false
+	}
+	if mdb.IsSwitchingPrimary() || mdb.IsSwitchoverRequired() {
+		logger.Info("Switchover in progress, skipping PhysicalBackup schedule...")
+		return false
+	}
+	if mdb.IsUpdating() || mdb.HasPendingUpdate() {
+		logger.Info("Update in progress, skipping PhysicalBackup schedule...")
+		return false
+	}
+	if mdb.IsResizingStorage() {
+		logger.Info("Storage resize in progress, skipping PhysicalBackup schedule...")
+		return false
+	}
+	return true
 }
 
 func getObjectName(obj client.Object, now time.Time) string {
