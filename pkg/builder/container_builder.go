@@ -127,7 +127,7 @@ func (b *Builder) mariadbContainers(mariadb *mariadbv1alpha1.MariaDB, opts ...ma
 		}
 		containers = append(containers, *agentContainer)
 	}
-	if mariadb.Spec.SidecarContainers != nil {
+	if mariadb.Spec.SidecarContainers != nil && mariadbOpts.includeSidecarContainers {
 		for index, container := range mariadb.Spec.SidecarContainers {
 			sidecarContainer, err := b.buildContainer(mariadb, &container)
 			if err != nil {
@@ -270,7 +270,7 @@ func (b *Builder) dataPlaneAgentContainer(mariadb *mariadbv1alpha1.MariaDB) (*co
 func (b *Builder) mariadbInitContainers(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt) ([]corev1.Container, error) {
 	mariadbOpts := newMariadbPodOpts(opts...)
 	initContainers := []corev1.Container{}
-	if mariadb.Spec.InitContainers != nil {
+	if mariadb.Spec.InitContainers != nil && mariadbOpts.includeInitContainers {
 		for index, container := range mariadb.Spec.InitContainers {
 			initContainer, err := b.buildContainer(mariadb, &container)
 			if err != nil {

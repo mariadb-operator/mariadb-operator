@@ -15,6 +15,7 @@ import (
 	discoveryv1 "k8s.io/api/discovery/v1"
 	policyv1 "k8s.io/api/policy/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -321,6 +322,48 @@ var _ = Describe("MariaDB Galera lifecycle", Ordered, func() {
 	})
 
 	It("should recover after Galera cluster crash", func() {
+		By("Tearing down all Pods")
+		opts := []client.DeleteAllOfOption{
+			client.MatchingLabels(
+				labels.NewLabelsBuilder().
+					WithMariaDBSelectorLabels(mdb).
+					Build(),
+			),
+			client.InNamespace(mdb.Namespace),
+		}
+		Expect(k8sClient.DeleteAllOf(testCtx, &corev1.Pod{}, opts...)).To(Succeed())
+
+		testGaleraRecovery(key)
+	})
+
+	It("should recover if log-error is changed", func() {
+
+		key := client.ObjectKeyFromObject(mdb)
+
+		By("Update log-error variable")
+		Eventually(func() bool {
+			if err := k8sClient.Get(testCtx, key, mdb); err != nil {
+				return false
+			}
+			mdb.Spec.MyCnf = ptr.To(`[mariadb]
+			bind-address=*
+			default_storage_engine=InnoDB
+			binlog_format=row
+			innodb_autoinc_lock_mode=2
+			max_allowed_packet=256M
+			log-error=/var/lib/mysql/mysqld.log
+			`)
+			return k8sClient.Update(testCtx, mdb) == nil
+		}, testTimeout, testInterval).Should(BeTrue())
+
+		By("Expecting MariaDB to be updated eventually")
+		Eventually(func() bool {
+			if err := k8sClient.Get(testCtx, key, mdb); err != nil {
+				return false
+			}
+			return mdb.IsReady() && meta.IsStatusConditionTrue(mdb.Status.Conditions, mariadbv1alpha1.ConditionTypeUpdated)
+		}, testHighTimeout, testInterval).Should(BeTrue())
+
 		By("Tearing down all Pods")
 		opts := []client.DeleteAllOfOption{
 			client.MatchingLabels(

@@ -29,6 +29,8 @@ type mariadbPodOpts struct {
 	includeMariadbResources      bool
 	includeMariadbSelectorLabels bool
 	includeDataPlane             bool
+	includeInitContainers        bool
+	includeSidecarContainers     bool
 	includeGaleraConfig          bool
 	includeServiceAccount        bool
 	includePorts                 bool
@@ -42,6 +44,8 @@ func newMariadbPodOpts(userOpts ...mariadbPodOpt) *mariadbPodOpts {
 		includeMariadbResources:      true,
 		includeMariadbSelectorLabels: true,
 		includeDataPlane:             true,
+		includeInitContainers:        true,
+		includeSidecarContainers:     true,
 		includeGaleraConfig:          true,
 		includeServiceAccount:        true,
 		includePorts:                 true,
@@ -132,6 +136,18 @@ func withMariadbSelectorLabels(includeMariadbSelectorLabels bool) mariadbPodOpt 
 func withDataPlane(includeDataPlane bool) mariadbPodOpt {
 	return func(opts *mariadbPodOpts) {
 		opts.includeDataPlane = includeDataPlane
+	}
+}
+
+func withInitContainers(includeInitContainers bool) mariadbPodOpt {
+	return func(opts *mariadbPodOpts) {
+		opts.includeInitContainers = includeInitContainers
+	}
+}
+
+func withSidecarContainers(includeSicecarContainers bool) mariadbPodOpt {
+	return func(opts *mariadbPodOpts) {
+		opts.includeSidecarContainers = includeSicecarContainers
 	}
 }
 

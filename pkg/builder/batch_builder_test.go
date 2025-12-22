@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"strings"
 	"testing"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
@@ -2050,6 +2051,59 @@ func TestGaleraInitJobResources(t *testing.T) {
 	}
 }
 
+func TestGaleraInitContainers(t *testing.T) {
+	builder := newDefaultTestBuilder(t)
+	key := types.NamespacedName{
+		Name: "job-obj",
+	}
+	mdb := &mariadbv1alpha1.MariaDB{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "mariadb-obj",
+		},
+		Spec: mariadbv1alpha1.MariaDBSpec{
+			PodTemplate: mariadbv1alpha1.PodTemplate{
+				InitContainers: []mariadbv1alpha1.Container{
+					{
+						Name:    "init",
+						Image:   "busybox",
+						Command: []string{"bash", "-c"},
+						Args:    []string{"exit 0;"},
+					},
+				},
+				SidecarContainers: []mariadbv1alpha1.Container{
+					{
+						Name:    "sidecar",
+						Image:   "busybox",
+						Command: []string{"sleep", "infinity"},
+					},
+				},
+			},
+			Galera: &mariadbv1alpha1.Galera{
+				Enabled: true,
+				GaleraSpec: mariadbv1alpha1.GaleraSpec{
+					Recovery: &mariadbv1alpha1.GaleraRecovery{
+						Enabled: true,
+					},
+				},
+			},
+		},
+	}
+
+	job, err := builder.BuildGaleraInitJob(key, mdb)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", 0)
+	}
+	initContainers := job.Spec.Template.Spec.InitContainers
+	containers := job.Spec.Template.Spec.Containers
+
+	if got := len(initContainers); got != 0 {
+		t.Errorf("expecting 0 init containers, got: %d", got)
+	}
+	if got := len(containers); got != 1 {
+		t.Errorf("expecting 1 container, got: %d", got)
+	}
+}
+
 func TestGaleraRecoveryJobImagePullSecrets(t *testing.T) {
 	builder := newDefaultTestBuilder(t)
 	key := types.NamespacedName{
@@ -2802,6 +2856,110 @@ func TestGaleraRecoveryJobResources(t *testing.T) {
 				t.Errorf("unexpected resources, got: %v, expected: %v", resources, tt.wantResources)
 			}
 		})
+	}
+}
+
+func TestGaleraRecoveryContainers(t *testing.T) {
+	builder := newDefaultTestBuilder(t)
+	key := types.NamespacedName{
+		Name: "job-obj",
+	}
+	mdb := &mariadbv1alpha1.MariaDB{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "mariadb-obj",
+		},
+		Spec: mariadbv1alpha1.MariaDBSpec{
+			PodTemplate: mariadbv1alpha1.PodTemplate{
+				InitContainers: []mariadbv1alpha1.Container{
+					{
+						Name:    "init",
+						Image:   "busybox",
+						Command: []string{"bash", "-c"},
+						Args:    []string{"exit 0;"},
+					},
+				},
+				SidecarContainers: []mariadbv1alpha1.Container{
+					{
+						Name:    "sidecar",
+						Image:   "busybox",
+						Command: []string{"sleep", "infinity"},
+					},
+				},
+			},
+			Galera: &mariadbv1alpha1.Galera{
+				Enabled: true,
+				GaleraSpec: mariadbv1alpha1.GaleraSpec{
+					Recovery: &mariadbv1alpha1.GaleraRecovery{
+						Enabled: true,
+					},
+				},
+			},
+		},
+	}
+	pod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "mariadb-galera-0",
+		},
+		Spec: corev1.PodSpec{
+			NodeName: "compute-0",
+		},
+	}
+
+	job, err := builder.BuildGaleraRecoveryJob(key, mdb, pod)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", 0)
+	}
+	initContainers := job.Spec.Template.Spec.InitContainers
+	containers := job.Spec.Template.Spec.Containers
+
+	if got := len(initContainers); got != 0 {
+		t.Errorf("expecting 0 init containers, got: %d", got)
+	}
+	if got := len(containers); got != 1 {
+		t.Errorf("expecting 1 container, got: %d", got)
+	}
+}
+
+func TestGaleraRecoveryJobCommand(t *testing.T) {
+	expected := "mariadbd --log-error=/dev/stderr --wsrep-recover"
+	builder := newDefaultTestBuilder(t)
+	key := types.NamespacedName{
+		Name: "job-obj",
+	}
+	mdb := &mariadbv1alpha1.MariaDB{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "mariadb-obj",
+		},
+		Spec: mariadbv1alpha1.MariaDBSpec{
+			Galera: &mariadbv1alpha1.Galera{
+				Enabled: true,
+				GaleraSpec: mariadbv1alpha1.GaleraSpec{
+					Recovery: &mariadbv1alpha1.GaleraRecovery{
+						Enabled: true,
+					},
+				},
+			},
+		},
+	}
+	pod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "mariadb-galera-0",
+		},
+		Spec: corev1.PodSpec{
+			NodeName: "compute-0",
+		},
+	}
+
+	job, err := builder.BuildGaleraRecoveryJob(key, mdb, pod)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", 0)
+	}
+
+	container := job.Spec.Template.Spec.Containers[0]
+	command := strings.Join(append(container.Command, container.Args...), " ")
+
+	if command != expected {
+		t.Errorf("expected galera recovery command to be %s, got: %s", expected, command)
 	}
 }
 

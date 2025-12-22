@@ -625,6 +625,8 @@ func (b *Builder) BuildGaleraInitJob(key types.NamespacedName, mariadb *mariadbv
 		withMariadbResources(false),
 		withMariadbSelectorLabels(false),
 		withDataPlane(false),
+		withInitContainers(false),
+		withSidecarContainers(false),
 		withGaleraConfig(false),
 		withServiceAccount(false),
 		withPorts(false),
@@ -675,7 +677,7 @@ func (b *Builder) BuildGaleraRecoveryJob(key types.NamespacedName, mariadb *mari
 			WithMetadata(mariadb.Spec.InheritMetadata).
 			WithMetadata(&extraMeta).
 			Build()
-	command := command.NewCommand([]string{"mariadbd"}, []string{"--wsrep-recover"})
+	command := command.NewCommand([]string{"mariadbd"}, []string{"--log-error=/dev/stderr", "--wsrep-recover"})
 
 	reuseStorageVolume := ptr.Deref(galera.Config.ReuseStorageVolume, false)
 
@@ -714,6 +716,8 @@ func (b *Builder) BuildGaleraRecoveryJob(key types.NamespacedName, mariadb *mari
 		withMariadbResources(false),
 		withMariadbSelectorLabels(false),
 		withDataPlane(false),
+		withInitContainers(false),
+		withSidecarContainers(false),
 		withGaleraConfig(true),
 		withServiceAccount(false),
 		withPorts(false),
