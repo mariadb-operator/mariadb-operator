@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
 	jobpkg "github.com/mariadb-operator/mariadb-operator/v25/pkg/job"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/metadata"
@@ -26,12 +27,13 @@ import (
 )
 
 func (r *PhysicalBackupReconciler) reconcileJobs(ctx context.Context, backup *mariadbv1alpha1.PhysicalBackup,
-	mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
+	mariadb *mariadbv1alpha1.MariaDB, parentLogger logr.Logger) (ctrl.Result, error) {
+	logger := parentLogger.WithName("job")
 	jobList, err := jobpkg.ListJobs(ctx, r.Client, backup)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error listing Jobs: %v", err)
 	}
-	if err := r.reconcileJobStatus(ctx, backup, jobList); err != nil {
+	if err := r.reconcileJobStatus(ctx, backup, jobList, logger); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error reconciling status: %v", err)
 	}
 
@@ -40,10 +42,10 @@ func (r *PhysicalBackupReconciler) reconcileJobs(ctx context.Context, backup *ma
 		return ctrl.Result{}, nil
 	}
 
-	if err := r.cleanupJobs(ctx, backup, jobList); err != nil {
+	if err := r.cleanupJobs(ctx, backup, jobList, logger); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error cleaning up Jobs: %v", err)
 	}
-	if result, err := r.waitForRunningJobs(ctx, backup, jobList); !result.IsZero() || err != nil {
+	if result, err := r.waitForRunningJobs(ctx, backup, jobList, logger); !result.IsZero() || err != nil {
 		return result, err
 	}
 
@@ -55,7 +57,7 @@ func (r *PhysicalBackupReconciler) reconcileJobs(ctx context.Context, backup *ma
 	}
 
 	return r.reconcileTemplate(ctx, backup, len(jobList.Items), func(now time.Time, cronSchedule cron.Schedule) (ctrl.Result, error) {
-		return r.createJob(ctx, backup, mariadb, now, cronSchedule)
+		return r.createJob(ctx, backup, mariadb, now, cronSchedule, logger)
 	})
 }
 
@@ -91,8 +93,8 @@ func (r *PhysicalBackupReconciler) indexJobs(ctx context.Context, mgr manager.Ma
 }
 
 func (r *PhysicalBackupReconciler) reconcileJobStatus(ctx context.Context, backup *mariadbv1alpha1.PhysicalBackup,
-	jobList *batchv1.JobList) error {
-	logger := log.FromContext(ctx).WithName("status").V(1)
+	jobList *batchv1.JobList, parentLogger logr.Logger) error {
+	logger := parentLogger.WithName("status").V(1)
 	schedule := ptr.Deref(backup.Spec.Schedule, mariadbv1alpha1.PhysicalBackupSchedule{})
 
 	if schedule.Suspend {
@@ -174,7 +176,7 @@ func (r *PhysicalBackupReconciler) reconcileJobStatus(ctx context.Context, backu
 }
 
 func (r *PhysicalBackupReconciler) cleanupJobs(ctx context.Context, backup *mariadbv1alpha1.PhysicalBackup,
-	jobList *batchv1.JobList) error {
+	jobList *batchv1.JobList, logger logr.Logger) error {
 	if backup.Spec.Schedule == nil {
 		return nil
 	}
@@ -193,7 +195,6 @@ func (r *PhysicalBackupReconciler) cleanupJobs(ctx context.Context, backup *mari
 	if err := sortByObjectTime(completeJobs); err != nil {
 		return err
 	}
-	logger := log.FromContext(ctx).WithName("job")
 
 	for i := maxHistory; i < len(completeJobs); i++ {
 		job := completeJobs[i]
@@ -209,25 +210,25 @@ func (r *PhysicalBackupReconciler) cleanupJobs(ctx context.Context, backup *mari
 }
 
 func (r *PhysicalBackupReconciler) waitForRunningJobs(ctx context.Context, backup *mariadbv1alpha1.PhysicalBackup,
-	jobList *batchv1.JobList) (ctrl.Result, error) {
+	jobList *batchv1.JobList, logger logr.Logger) (ctrl.Result, error) {
 	for _, job := range jobList.Items {
 		if jobpkg.IsJobRunning(&job) {
 			if backup.Spec.Timeout != nil && !job.CreationTimestamp.IsZero() &&
 				time.Since(job.CreationTimestamp.Time) > backup.Spec.Timeout.Duration {
 
-				log.FromContext(ctx).Info("PhysicalBackup Job timed out. Deleting...", "job", job.Name)
-				if err := r.deleteJobSync(ctx, &job); err != nil {
+				logger.Info("PhysicalBackup Job timed out. Deleting...", "job", job.Name)
+				if err := r.deleteJobSync(ctx, &job, logger); err != nil {
 					return ctrl.Result{}, fmt.Errorf("error deleting expired Job: %v", err)
 				}
 				return ctrl.Result{Requeue: true}, nil
 			}
 
-			log.FromContext(ctx).V(1).Info("PhysicalBackup Job is still running. Requeuing...", "job", job.Name)
+			logger.V(1).Info("PhysicalBackup Job is still running. Requeuing...", "job", job.Name)
 			return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 		}
 
 		if !jobpkg.IsJobComplete(&job) {
-			log.FromContext(ctx).V(1).Info("PhysicalBackup Job is not complete. Requeuing...", "job", job.Name)
+			logger.V(1).Info("PhysicalBackup Job is not complete. Requeuing...", "job", job.Name)
 			return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 		}
 	}
@@ -275,12 +276,7 @@ func (r *PhysicalBackupReconciler) reconcileStorage(ctx context.Context, backup 
 }
 
 func (r *PhysicalBackupReconciler) createJob(ctx context.Context, backup *mariadbv1alpha1.PhysicalBackup, mariadb *mariadbv1alpha1.MariaDB,
-	now time.Time, schedule cron.Schedule) (ctrl.Result, error) {
-	logger := log.FromContext(ctx).
-		WithName("physicalbackup-job").
-		WithValues(
-			"mariadb", mariadb.Name,
-		)
+	now time.Time, schedule cron.Schedule, logger logr.Logger) (ctrl.Result, error) {
 	podIndex, err := r.physicalBackupTarget(ctx, backup, mariadb, logger)
 	if err != nil {
 		if errors.Is(err, errPhysicalBackupNoTargetPodsAvailable) {
@@ -342,7 +338,7 @@ func (r *PhysicalBackupReconciler) createJob(ctx context.Context, backup *mariad
 	return ctrl.Result{}, nil
 }
 
-func (r *PhysicalBackupReconciler) deleteJobSync(ctx context.Context, job *batchv1.Job) error {
+func (r *PhysicalBackupReconciler) deleteJobSync(ctx context.Context, job *batchv1.Job, logger logr.Logger) error {
 	err := r.Delete(ctx, job, &client.DeleteOptions{PropagationPolicy: ptr.To(metav1.DeletePropagationForeground)})
 	if err != nil && !apierrors.IsNotFound(err) {
 		return fmt.Errorf("error deleting Job \"%s\": %v", job.Name, err)
@@ -352,7 +348,7 @@ func (r *PhysicalBackupReconciler) deleteJobSync(ctx context.Context, job *batch
 	defer cancel()
 	key := client.ObjectKeyFromObject(job)
 
-	return wait.PollUntilSuccessOrContextCancel(waitCtx, log.FromContext(ctx), func(ctx context.Context) error {
+	return wait.PollUntilSuccessOrContextCancel(waitCtx, logger, func(ctx context.Context) error {
 		var j batchv1.Job
 		if err := r.Get(ctx, key, &j); apierrors.IsNotFound(err) {
 			return nil

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/go-logr/logr"
 	volumesnapshotv1 "github.com/kubernetes-csi/external-snapshotter/client/v8/apis/volumesnapshot/v1"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/builder"
@@ -29,7 +30,8 @@ import (
 )
 
 func (r *PhysicalBackupReconciler) reconcileSnapshots(ctx context.Context, backup *mariadbv1alpha1.PhysicalBackup,
-	mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
+	mariadb *mariadbv1alpha1.MariaDB, parentLogger logr.Logger) (ctrl.Result, error) {
+	logger := parentLogger.WithName("snapshot")
 	exist, err := r.Discovery.VolumeSnapshotExist()
 	if err != nil {
 		return ctrl.Result{}, err
@@ -37,7 +39,7 @@ func (r *PhysicalBackupReconciler) reconcileSnapshots(ctx context.Context, backu
 	if !exist {
 		r.Recorder.Event(backup, corev1.EventTypeWarning, mariadbv1alpha1.ReasonCRDNotFound,
 			"Unable to reconcile PhysicalBackup: VolumeSnapshot CRD not installed in the cluster")
-		log.FromContext(ctx).Error(errors.New("VolumeSnapshot CRD not installed in the cluster"), "Unable to reconcile PhysicalBackup")
+		logger.Error(errors.New("VolumeSnapshot CRD not installed in the cluster"), "Unable to reconcile PhysicalBackup")
 		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 	}
 
@@ -45,7 +47,7 @@ func (r *PhysicalBackupReconciler) reconcileSnapshots(ctx context.Context, backu
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error listing VolumeSnapshots: %v", err)
 	}
-	if err := r.reconcileSnapshotStatus(ctx, backup, snapshotList); err != nil {
+	if err := r.reconcileSnapshotStatus(ctx, backup, snapshotList, logger); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error reconciling status: %v", err)
 	}
 
@@ -54,15 +56,15 @@ func (r *PhysicalBackupReconciler) reconcileSnapshots(ctx context.Context, backu
 		return ctrl.Result{}, nil
 	}
 
-	if err := r.cleanupSnapshots(ctx, backup, snapshotList); err != nil {
+	if err := r.cleanupSnapshots(ctx, backup, snapshotList, logger); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error cleaning up Jobs: %v", err)
 	}
-	if result, err := r.waitForProvisionedSnapshots(ctx, backup, snapshotList); !result.IsZero() || err != nil {
+	if result, err := r.waitForProvisionedSnapshots(ctx, backup, snapshotList, logger); !result.IsZero() || err != nil {
 		return result, err
 	}
 
 	return r.reconcileTemplate(ctx, backup, len(snapshotList.Items), func(now time.Time, cronSchedule cron.Schedule) (ctrl.Result, error) {
-		return r.scheduleSnapshot(ctx, backup, mariadb, now, cronSchedule)
+		return r.scheduleSnapshot(ctx, backup, mariadb, now, cronSchedule, logger)
 	})
 }
 
@@ -106,8 +108,8 @@ func (r *PhysicalBackupReconciler) mapVolumeSnapshotsToRequests(ctx context.Cont
 }
 
 func (r *PhysicalBackupReconciler) reconcileSnapshotStatus(ctx context.Context, backup *mariadbv1alpha1.PhysicalBackup,
-	snapshotList *volumesnapshotv1.VolumeSnapshotList) error {
-	logger := log.FromContext(ctx).WithName("status").V(1)
+	snapshotList *volumesnapshotv1.VolumeSnapshotList, parentLogger logr.Logger) error {
+	logger := parentLogger.WithName("status").V(1)
 	schedule := ptr.Deref(backup.Spec.Schedule, mariadbv1alpha1.PhysicalBackupSchedule{})
 
 	if schedule.Suspend {
@@ -191,7 +193,7 @@ func (r *PhysicalBackupReconciler) reconcileSnapshotStatus(ctx context.Context, 
 }
 
 func (r *PhysicalBackupReconciler) cleanupSnapshots(ctx context.Context, backup *mariadbv1alpha1.PhysicalBackup,
-	snapshotList *volumesnapshotv1.VolumeSnapshotList) error {
+	snapshotList *volumesnapshotv1.VolumeSnapshotList, logger logr.Logger) error {
 	if backup.Spec.Schedule == nil {
 		return nil
 	}
@@ -206,7 +208,6 @@ func (r *PhysicalBackupReconciler) cleanupSnapshots(ctx context.Context, backup 
 	if maxRetention == (metav1.Duration{}) {
 		maxRetention = mariadbv1alpha1.DefaultPhysicalBackupMaxRetention
 	}
-	logger := log.FromContext(ctx).WithName("snapshot")
 
 	oldSnapshotNames := r.BackupProcessor.GetOldBackupFiles(readySnapshotNames, maxRetention.Duration, logger)
 	for _, snapshotName := range oldSnapshotNames {
@@ -233,12 +234,7 @@ func (r *PhysicalBackupReconciler) cleanupSnapshots(ctx context.Context, backup 
 }
 
 func (r *PhysicalBackupReconciler) scheduleSnapshot(ctx context.Context, backup *mariadbv1alpha1.PhysicalBackup,
-	mariadb *mariadbv1alpha1.MariaDB, now time.Time, schedule cron.Schedule) (ctrl.Result, error) {
-	logger := log.FromContext(ctx).
-		WithName("snapshot").
-		WithValues(
-			"mariadb", mariadb.Name,
-		)
+	mariadb *mariadbv1alpha1.MariaDB, now time.Time, schedule cron.Schedule, logger logr.Logger) (ctrl.Result, error) {
 	_, err := r.physicalBackupTarget(ctx, backup, mariadb, logger)
 	if errors.Is(err, errPhysicalBackupNoTargetPodsAvailable) {
 		logger.Info("No target Pods available. Requeuing...", "target", backup.Spec.Target)
@@ -249,7 +245,7 @@ func (r *PhysicalBackupReconciler) scheduleSnapshot(ctx context.Context, backup 
 		Name:      getObjectName(backup, now),
 		Namespace: mariadb.Namespace,
 	}
-	if result, err := r.createVolumeSnapshot(ctx, snapshotKey, backup, mariadb); !result.IsZero() || err != nil {
+	if result, err := r.createVolumeSnapshot(ctx, snapshotKey, backup, mariadb, logger); !result.IsZero() || err != nil {
 		return result, err
 	}
 
@@ -273,12 +269,7 @@ func (r *PhysicalBackupReconciler) scheduleSnapshot(ctx context.Context, backup 
 }
 
 func (r *PhysicalBackupReconciler) createVolumeSnapshot(ctx context.Context, snapshotKey types.NamespacedName,
-	backup *mariadbv1alpha1.PhysicalBackup, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
-	logger := log.FromContext(ctx).
-		WithName("snapshot").
-		WithValues(
-			"mariadb", mariadb.Name,
-		)
+	backup *mariadbv1alpha1.PhysicalBackup, mariadb *mariadbv1alpha1.MariaDB, logger logr.Logger) (ctrl.Result, error) {
 	podIndex, err := r.physicalBackupTarget(ctx, backup, mariadb, logger)
 	if err != nil {
 		if errors.Is(err, errPhysicalBackupNoTargetPodsAvailable) {
@@ -382,7 +373,7 @@ func (r *PhysicalBackupReconciler) getVolumeSnapshotMetadata(ctx context.Context
 }
 
 func (r *PhysicalBackupReconciler) waitForProvisionedSnapshots(ctx context.Context, backup *mariadbv1alpha1.PhysicalBackup,
-	snapshotList *volumesnapshotv1.VolumeSnapshotList) (ctrl.Result, error) {
+	snapshotList *volumesnapshotv1.VolumeSnapshotList, logger logr.Logger) (ctrl.Result, error) {
 	for _, snapshot := range snapshotList.Items {
 		if mdbsnapshot.IsVolumeSnapshotProvisioned(&snapshot) {
 			continue
@@ -390,14 +381,14 @@ func (r *PhysicalBackupReconciler) waitForProvisionedSnapshots(ctx context.Conte
 		if backup.Spec.Timeout != nil && !snapshot.CreationTimestamp.IsZero() &&
 			time.Since(snapshot.CreationTimestamp.Time) > backup.Spec.Timeout.Duration {
 
-			log.FromContext(ctx).Info("PhysicalBackup VolumeSnapshot timed out. Deleting...", "snapshot", snapshot.Name)
+			logger.Info("PhysicalBackup VolumeSnapshot timed out. Deleting...", "snapshot", snapshot.Name)
 			if err := r.Delete(ctx, &snapshot); err != nil {
 				return ctrl.Result{}, fmt.Errorf("error deleting expired VolumeSnapshot: %v", err)
 			}
 			return ctrl.Result{Requeue: true}, nil
 		}
 
-		log.FromContext(ctx).V(1).Info(
+		logger.V(1).Info(
 			"PhysicalBackup VolumeSnapshot is not provisioned. Requeuing...",
 			"snapshot", snapshot.Name,
 			"status", snapshot.Status,
