@@ -49,3 +49,6 @@ pprof.out
 .nvim.lua
 
 .envrc
+
+# Git patches
+*.patch
