@@ -3,6 +3,7 @@ package v1alpha1
 import (
 	"fmt"
 
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/docker"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/environment"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -145,6 +146,9 @@ func (m *ExternalMariaDB) GetImagePullSecrets() []LocalObjectReference {
 func (m *ExternalMariaDB) GetImage(env *environment.OperatorEnv) string {
 	if m.Spec.Image != "" {
 		return m.Spec.Image
+	}
+	if docker.HasTagOrDigest(env.RelatedMariadbImageName) {
+		return env.RelatedMariadbImageName
 	}
 	version := m.Status.Version
 	if version == "" {
