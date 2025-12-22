@@ -2066,7 +2066,7 @@ var _ = Describe("MariaDB types", func() {
 					},
 					Volume: &StorageVolumeSource{
 						PersistentVolumeClaim: &PersistentVolumeClaimVolumeSource{
-							ClaimName: "mariadb-obj-physicalbackup-staging",
+							ClaimName: "mariadb-obj-pb-staging",
 						},
 					},
 				},
