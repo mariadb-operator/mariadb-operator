@@ -346,8 +346,16 @@ spec:
                 type: object
               logLevel:
                 default: info
-                description: LogLevel to be used n the Backup Job. It defaults to
+                description: LogLevel to be used in the Backup Job. It defaults to
                   'info'.
+                enum:
+                - debug
+                - info
+                - warn
+                - error
+                - dpanic
+                - panic
+                - fatal
                 type: string
               mariaDbRef:
                 description: MariaDBRef is a reference to a MariaDB object.

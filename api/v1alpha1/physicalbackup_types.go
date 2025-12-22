@@ -236,6 +236,12 @@ type PhysicalBackupSpec struct {
 	// +kubebuilder:validation:Minimum=0
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	SuccessfulJobsHistoryLimit *int32 `json:"successfulJobsHistoryLimit,omitempty"`
+	// LogLevel to be used in the PhysicalBackup Job. It defaults to 'info'.
+	// +optional
+	// +kubebuilder:default=info
+	// +kubebuilder:validation:Enum=debug;info;warn;error;dpanic;panic;fatal
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	LogLevel string `json:"logLevel,omitempty"`
 }
 
 // PhysicalBackupStatus defines the observed state of PhysicalBackup.

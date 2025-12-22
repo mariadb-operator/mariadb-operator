@@ -40,6 +40,9 @@ spec:
   timeout: 1h
   podAffinity: true
   serviceAccountName: backup
+  args:
+    - --verbose
+  logLevel: debug
   resources:
     requests:
       cpu: 100m
