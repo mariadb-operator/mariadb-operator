@@ -8,7 +8,7 @@ spec:
   passwordSecretKeyRef:
     name: mariadb
     key: password
-  require:
-    x509: true
+  # require:
+  #   x509: true
   host: "%"
   maxUserConnections: 1000000000

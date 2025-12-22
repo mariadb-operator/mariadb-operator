@@ -66,6 +66,31 @@ func (p *PhysicalBackupPodTemplate) ServiceAccountKey(objMeta metav1.ObjectMeta)
 	}
 }
 
+// PhysicalBackupTarget defines in which Pod the physical backups will be taken.
+type PhysicalBackupTarget string
+
+const (
+	// PhysicalBackupTargetReplica indicates that the physical backup will be taken in a ready replica.
+	PhysicalBackupTargetReplica PhysicalBackupTarget = "Replica"
+	// PhysicalBackupTargetReplica indicates that the physical backup will preferably be taken in a ready replica.
+	// If no ready replicas are available, physical backups will be taken in the primary.
+	PhysicalBackupTargetPreferReplica PhysicalBackupTarget = "PreferReplica"
+)
+
+func (c PhysicalBackupTarget) Validate() error {
+	switch c {
+	case PhysicalBackupTargetReplica, PhysicalBackupTargetPreferReplica:
+		return nil
+	default:
+		return fmt.Errorf(
+			"invalid physical backup target: %v, supported: [%v|%v]",
+			c,
+			PhysicalBackupTargetReplica,
+			PhysicalBackupTargetPreferReplica,
+		)
+	}
+}
+
 // PhysicalBackupSchedule defines when the PhysicalBackup will be taken.
 type PhysicalBackupSchedule struct {
 	// Cron is a cron expression that defines the schedule.
@@ -151,6 +176,11 @@ type PhysicalBackupSpec struct {
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	MariaDBRef MariaDBRef `json:"mariaDbRef" webhook:"inmutable"`
+	// Target defines in which Pod the physical backups will be taken. It defaults to "Replica", meaning that the physical backups will only be taken in ready replicas.
+	// +optional
+	// +kubebuilder:validation:Enum=Replica;PreferReplica
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Target *PhysicalBackupTarget `json:"target,omitempty"`
 	// Compression algorithm to be used in the Backup.
 	// +optional
 	// +kubebuilder:validation:Enum=none;bzip2;gzip
@@ -259,6 +289,11 @@ func (b *PhysicalBackup) IsComplete() bool {
 }
 
 func (b *PhysicalBackup) Validate() error {
+	if b.Spec.Target != nil {
+		if err := b.Spec.Target.Validate(); err != nil {
+			return fmt.Errorf("invalid Target: %v", err)
+		}
+	}
 	if b.Spec.Schedule != nil {
 		if err := b.Spec.Schedule.Validate(); err != nil {
 			return fmt.Errorf("invalid Schedule: %v", err)
@@ -282,6 +317,9 @@ func (b *PhysicalBackup) Validate() error {
 }
 
 func (b *PhysicalBackup) SetDefaults(mariadb *MariaDB) {
+	if b.Spec.Target == nil {
+		b.Spec.Target = ptr.To(PhysicalBackupTargetReplica)
+	}
 	if b.Spec.MaxRetention == (metav1.Duration{}) {
 		b.Spec.MaxRetention = DefaultPhysicalBackupMaxRetention
 	}

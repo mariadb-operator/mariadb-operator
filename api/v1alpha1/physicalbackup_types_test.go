@@ -44,6 +44,7 @@ var _ = Describe("PhysicalBackup types", func() {
 						PhysicalBackupPodTemplate: PhysicalBackupPodTemplate{
 							ServiceAccountName: &objMeta.Name,
 						},
+						Target:                     ptr.To(PhysicalBackupTargetReplica),
 						Compression:                CompressNone,
 						MaxRetention:               DefaultPhysicalBackupMaxRetention,
 						Timeout:                    &DefaultPhysicalBackupTimeout,
@@ -60,6 +61,7 @@ var _ = Describe("PhysicalBackup types", func() {
 						PhysicalBackupPodTemplate: PhysicalBackupPodTemplate{
 							ServiceAccountName: ptr.To("physicalbackup-test"),
 						},
+						Target:                     ptr.To(PhysicalBackupTargetPreferReplica),
 						Compression:                CompressBzip2,
 						MaxRetention:               metav1.Duration{Duration: 10 * 24 * time.Hour},
 						Timeout:                    &metav1.Duration{Duration: 5 * time.Minute},
@@ -76,6 +78,7 @@ var _ = Describe("PhysicalBackup types", func() {
 						PhysicalBackupPodTemplate: PhysicalBackupPodTemplate{
 							ServiceAccountName: ptr.To("physicalbackup-test"),
 						},
+						Target:                     ptr.To(PhysicalBackupTargetPreferReplica),
 						Compression:                CompressBzip2,
 						MaxRetention:               metav1.Duration{Duration: 10 * 24 * time.Hour},
 						Timeout:                    &metav1.Duration{Duration: 5 * time.Minute},
@@ -109,6 +112,7 @@ var _ = Describe("PhysicalBackup types", func() {
 				&PhysicalBackup{
 					ObjectMeta: objMeta,
 					Spec: PhysicalBackupSpec{
+						Target: ptr.To(PhysicalBackupTargetReplica),
 						Storage: PhysicalBackupStorage{
 							VolumeSnapshot: &PhysicalBackupVolumeSnapshot{
 								VolumeSnapshotClassName: "test",
@@ -124,6 +128,7 @@ var _ = Describe("PhysicalBackup types", func() {
 				&PhysicalBackup{
 					ObjectMeta: objMeta,
 					Spec: PhysicalBackupSpec{
+						Target: ptr.To(PhysicalBackupTargetPreferReplica),
 						Storage: PhysicalBackupStorage{
 							VolumeSnapshot: &PhysicalBackupVolumeSnapshot{
 								VolumeSnapshotClassName: "test",
@@ -139,6 +144,7 @@ var _ = Describe("PhysicalBackup types", func() {
 				&PhysicalBackup{
 					ObjectMeta: objMeta,
 					Spec: PhysicalBackupSpec{
+						Target: ptr.To(PhysicalBackupTargetPreferReplica),
 						Storage: PhysicalBackupStorage{
 							VolumeSnapshot: &PhysicalBackupVolumeSnapshot{
 								VolumeSnapshotClassName: "test",
