@@ -100,7 +100,7 @@ This [migration guide](./docs/logical_backup.md#migrating-an-external-mariadb-to
 
 ## Roadmap
 
-We are actively working on the following features, to be released in the upcoming versions, stay tuned!
+We are actively working on the following features, which will be released in upcoming versions. Stay tuned!
 
 - [ ] [Point In Time Recovery (PITR)](https://github.com/mariadb-operator/mariadb-operator/issues/507)
 - [ ] [Multi-cluster topology](https://github.com/mariadb-operator/mariadb-operator/issues/1543)
