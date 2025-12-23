@@ -113,6 +113,10 @@ Please create a PR and add your company or project to our [ADOPTERS.md file](./A
 
 We welcome and encourage contributions to this project! Please check our [contributing](./CONTRIBUTING.md) and [development](./docs/development.md) guides. PRs welcome!
 
+## Star history
+
+[![Star history](https://api.star-history.com/svg?repos=mariadb-operator/mariadb-operator&type=Date)](https://star-history.com/#mariadb-operator/mariadb-operator&Date)
+
 ## Community
 
 - [We Tested and Compared 6 Database Operators. The Results are In!](https://www.youtube.com/watch?v=l33pcnQ4cUQ&t=17m25s) - KubeCon EU, March 2024
@@ -120,10 +124,8 @@ We welcome and encourage contributions to this project! Please check our [contri
 - [Run and operate MariaDB in Kubernetes with mariadb-operator](https://mariadb.org/mariadb-in-kubernetes-with-mariadb-operator/) - MariaDB Foundation blog, July 2023
 - [L'enfer des DB SQL sur Kubernetes face à la promesse des opérateurs](https://www.youtube.com/watch?v=d_ka7PlWo1I&t=2415s&ab_channel=KCDFrance) - KCD France, March 2023
 
-## Get in touch
-
 Join us on Slack: **[MariaDB Community Slack](https://r.mariadb.com/join-community-slack)**.
 
-## Star history
+## Enterprise
 
-[![Star history](https://api.star-history.com/svg?repos=mariadb-operator/mariadb-operator&type=Date)](https://star-history.com/#mariadb-operator/mariadb-operator&Date)
+For enterprise users, see the __[MariaDB Enterprise Operator](https://mariadb.com/products/enterprise/kubernetes-operator/)__, a commercially supported Kubernetes operator from MariaDB with additional enterprise-grade features.
