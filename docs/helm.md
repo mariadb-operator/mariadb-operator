@@ -20,7 +20,7 @@ Helm is the preferred way to install `mariadb-operator` in vanilla Kubernetes cl
 
 ## Charts
 
-The installation of `mariadb-operator` is splitted into multiple different helm charts for better convenience:
+The installation of `mariadb-operator` is split into multiple different helm charts for better convenience:
 - [`mariadb-operator-crds`](../deploy/charts/mariadb-operator-crds/): Bundles the [`CustomResourceDefinitions`](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/) required by the operator.
 - [`mariadb-operator`](../deploy/charts/mariadb-operator/): Contains the template manifests required to install the operator.
 - [`mariadb-cluster`](../deploy/charts/mariadb-cluster/): Contains the template maniffests to deploy a `MariaDB` cluster based on the operator CRDs.
