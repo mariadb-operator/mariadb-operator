@@ -177,8 +177,10 @@ metadata:
 spec:
   mariaDbRef:
     name: mariadb-repl
+    waitForIt: false
   schedule:
     suspend: true
+  target: PreferReplica
   storage:
     s3:
       bucket: scaleout
