@@ -22,14 +22,14 @@
 Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB using Kubernetes [CRDs](https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definitions/) rather than imperative commands.
 - Easily provision [standalone MariaDB servers](./docs/standalone.md) in Kubernetes.
 - Multiple [highly available](./docs/high_availability.md) topologies supported:
-  - **[Asynchronous replication](./docs/replication.md)** ✨
+  - [Asynchronous replication](./docs/replication.md)
   - [Synchronous multi-master via Galera](./docs/galera.md)
   - [MaxScale](./docs/maxscale.md) as database proxy to load balance requests and perform  failover/switchover operations
 - Flexible [storage](./docs/storage.md) configuration. [Volume expansion](./docs/storage.md#volume-resize).
 - [Physical backups](./docs/physical_backup.md) based on [mariadb-backup](https://mariadb.com/docs/server/server-usage/backup-and-restore/mariadb-backup/full-backup-and-restore-with-mariadb-backup) and [Kubernetes VolumeSnapshots](https://kubernetes.io/docs/concepts/storage/volume-snapshots/).
 - [Logical backups](./docs/logical_backup.md) based on [mariadb-dump](https://mariadb.com/docs/server/clients-and-utilities/backup-restore-and-import-clients/mariadb-dump). 
 - Multiple [backup storage types](./docs/physical_backup.md#storage-types): S3 compatible, PVCs, Kubernetes volumes and `VolumeSnapshots`.
-- Flexible backup configuration: [scheduling](./docs/physical_backup.md#scheduling), [compression](./docs/physical_backup.md#compression), [retention policy](./docs/physical_backup.md#retention-policy), [timeout](./docs/physical_backup.md#timeout), [staging area](./docs/physical_backup.md#staging-area)...
+- Flexible backup configuration: [scheduling](./docs/physical_backup.md#scheduling), [compression](./docs/physical_backup.md#compression), [encryption](./docs/physical_backup.md#server-side-encryption-with-customer-provided-keys-sse-c), [retention policy](./docs/physical_backup.md#retention-policy), [target policy](./docs/physical_backup.md#target-policy), [timeout](./docs/physical_backup.md#timeout), [staging area](./docs/physical_backup.md#staging-area)...
 - [Target recovery time](./docs/physical_backup.md#target-recovery-time): restore the closest available backup to the specified time.
 - [Bootstrap new instances](./docs/physical_backup.md#restoration) from: Physical backups, logical backups, S3, PVCs, `VolumeSnapshots`...
 - [Cluster-aware rolling update](./docs/updates.md#replicasfirstprimarylast): roll out replica Pods one by one, wait for each of them to become ready, and then proceed with the primary Pod, using `ReplicasFirstPrimaryLast`.
