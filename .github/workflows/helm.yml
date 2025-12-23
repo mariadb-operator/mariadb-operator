@@ -21,7 +21,7 @@ jobs:
       CT_CONFIG: hack/config/chart-testing/mariadb-cluster.yaml
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -56,7 +56,7 @@ jobs:
       CT_CONFIG: hack/config/chart-testing/mariadb-operator-crds.yaml
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -99,7 +99,7 @@ jobs:
       CT_CONFIG: hack/config/chart-testing/mariadb-operator.yaml
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -147,7 +147,7 @@ jobs:
     if: github.ref == 'refs/heads/main'
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
           token: "${{ secrets.GHA_TOKEN }}"
