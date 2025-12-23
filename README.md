@@ -98,14 +98,12 @@ The Openshift installation is managed separately in the [mariadb-operator-helm](
 
 This [migration guide](./docs/logical_backup.md#migrating-an-external-mariadb-to-a-mariadb-running-in-kubernetes) will streamline your onboarding process and assist you in migrating your data into a `MariaDB` instance running on Kubernetes.
 
-## GitOps
-
-You can embrace [GitOps](https://opengitops.dev/) best practises by using this operator, just place your CRDs in a git repo and reconcile them with your favorite tool, see an example with [flux](https://fluxcd.io/):
-- [Run and operate MariaDB in a GitOps fashion using Flux](./examples/flux/)
-
 ## Roadmap
 
-Take a look at our [roadmap](./ROADMAP.md) and feel free to open an issue to suggest new features.
+We are actively working on the following features, to be released in the upcoming versions, stay tuned!
+
+- [ ] [Point In Time Recovery (PITR)](https://github.com/mariadb-operator/mariadb-operator/issues/507)
+- [ ] [Multi-cluster topology](https://github.com/mariadb-operator/mariadb-operator/issues/1543)
 
 ## Adopters
 
