@@ -2316,7 +2316,7 @@ var _ = Describe("MariaDB types", func() {
 					},
 				},
 				true,
-				"MariaDB.k8s.mariadb.com \"mariadb-validation\" is invalid: spec: Invalid value: \"object\": An odd number of MariaDB instances (mariadb.spec.replicas) is required to avoid split brain situations for Galera. Use 'mariadb.spec.replicasAllowEvenNumber: true' to disable this validation.", //nolint
+				"MariaDB.k8s.mariadb.com \"mariadb-validation\" is invalid: spec: Invalid value: An odd number of MariaDB instances (mariadb.spec.replicas) is required to avoid split brain situations for Galera. Use 'mariadb.spec.replicasAllowEvenNumber: true' to disable this validation.", //nolint
 			),
 		)
 	})
