@@ -92,7 +92,7 @@ kubectl get mariadb mariadb-repl -o jsonpath="{.status.replication}" | jq
 }
 ```
 
-The operator continiously monitors the replication status via [`SHOW SLAVE STATUS`](https://mariadb.com/docs/server/reference/sql-statements/administrative-sql-statements/show/show-replica-status), taking it into account for internal operations and updating the CR status accordingly.
+The operator continuously monitors the replication status via [`SHOW SLAVE STATUS`](https://mariadb.com/docs/server/reference/sql-statements/administrative-sql-statements/show/show-replica-status), taking it into account for internal operations and updating the CR status accordingly.
 
 ## Asynchronous vs semi-syncrhonous replication
 
@@ -190,17 +190,14 @@ A replica is considered to be lagging behind the primary when the `Seconds_Behin
 
 In order to back up and restore a replication cluster, all the concepts and procedures described in the [physical backup](./physical_backup.md) documentation apply. 
 
-Additionally, for the replication topology, the operator tracks the GTID position at the time of taking the backup, and sets this position in the `gtid_slave_pos` system variable when restoring the backup, as described in the [MariaDB documentation](https://mariadb.com/docs/server/server-usage/backup-and-restore/mariadb-backup/setting-up-a-replica-with-mariadb-backup).
+Additionally, for the replication topology, the operator tracks the GTID position at the time of taking the backup, and sets this position based on the `gtid_current_pos` system variable when restoring the backup, as described in the [MariaDB documentation](https://mariadb.com/docs/server/server-usage/backup-and-restore/mariadb-backup/setting-up-a-replica-with-mariadb-backup).
 
 Depending on the `PhysicalBackup` strategy used, the operator will track the GTID position accordingly:
 
-#### mariadb-backup
+- __mariadb-backup__: When using `PhysicalBackup` with the `mariadb-backup` strategy, the GTID will be restored to a `mariadb-operator.info` file in the data directory, which the agent will expose to the operator via HTTP.
+- __VolumeSnapshot__: When using `PhysicalBackup` with the `VolumeSnapshot` strategy, the GTID position will be kept in a `k8s.mariadb.com/gtid` annotation in the `VolumeSnapshot` object, which later on the operator will read when restoring the backup.
 
-When using `PhysicalBackup` with the `mariadb-backup` strategy, the GTID will be restored to a `mariadb-operator.info` file in the data directory, which the agent will expose to the operator via HTTP.
-
-#### `VolumeSnapshot`
-
-When using `PhysicalBackup` with the `VolumeSnapshot` strategy, the GTID position will be kept in a `k8s.mariadb.com/gtid` annotation in the `VolumeSnapshot` object, which later on the operator will read when restoring the backup.
+It is important to note that, by default, physical backups are only taken in ready replicas when the `MariaDB` resource is in a ready state. If you are running with a single replica, it is recommended to set `mariaDbRef.waitForIt=false` and `target=PreferReplica` in the `PhysicalBackup` CR to allow taking backups from the primary when the replica is not ready. Please refer to the [physical backup documentation](./physical_backup.md) for configuring this behaviour.
 
 > [!WARNING]
 > Refrain from removing the `k8s.mariadb.com/gtid` annotation in the `VolumeSnapshot` object, as it is required for configuring the replica when restoring the backup.
@@ -329,8 +326,10 @@ metadata:
 spec:
   mariaDbRef:
     name: mariadb-repl
+    waitForIt: false
   schedule:
     suspend: true
+  target: PreferReplica
   storage:
     s3:
       bucket: scaleout
@@ -364,14 +363,16 @@ metadata:
 spec:
   mariaDbRef:
     name: mariadb-repl
+    waitForIt: false
   schedule:
     suspend: true
+  target: PreferReplica
   storage:
     volumeSnapshot:
       volumeSnapshotClassName: csi-hostpath-snapclass
 ```
 
-Once the `PhysicalBackup` template is created, you neeed to set a reference to it in the `spec.replication.replica.bootstrapFrom`, indicating that this will be the source for creating new replicas:
+Once the `PhysicalBackup` template is created, you need to set a reference to it in the `spec.replication.replica.bootstrapFrom`, indicating that this will be the source for creating new replicas:
 
 ```yaml
 apiVersion: k8s.mariadb.com/v1alpha1
@@ -425,9 +426,9 @@ NAME           READY   STATUS        PRIMARY          UPDATES                   
 mariadb-repl   False   Scaling out   mariadb-repl-1   ReplicasFirstPrimaryLast   3d5h
 
 kubectl get physicalbackups
-NAME                                    COMPLETE   STATUS      MARIADB        LAST SCHEDULED   AGE
-mariadb-repl-physicalbackup-scale-out   True       Success     mariadb-repl   14s              14s
-physicalbackup-tpl                      False      Suspended   mariadb-repl                    3d8h
+NAME                       COMPLETE   STATUS      MARIADB        LAST SCHEDULED   AGE
+mariadb-repl-pb-scaleout   True       Success     mariadb-repl   14s              14s
+physicalbackup-tpl         False      Suspended   mariadb-repl                    3d8h
 
 kubectl get pods
 NAME                                    READY   STATUS    RESTARTS   AGE
@@ -444,9 +445,15 @@ mariadb-repl   True    Running   mariadb-repl-1   ReplicasFirstPrimaryLast   3d5
 
 It is important to note that, if there are no ready replicas available at the time of the scaling out operation, the `PhysicalBackup` will not become ready, and the scaling out operation will be stuck until a replica becomes ready. You have the ability to cancel the scaling out operation by setting back the `spec.replicas` field to the previous value.
 
+> [!WARNING]  
+> Considering that we set `mariaDbRef.waitForIt=false` and `target=PreferReplica` in the `PhysicalBackup` template, it is important to note that, if there are no ready replicas available at the time of the scaling out operation, the operator will take the backup from the primary instead. Please refer to the [physical backup documentation](./physical_backup.md) for configuring this behaviour.
+
+> [!TIP]
+> You have the ability to cancel the scaling out operation by setting `spec.replicas` back to the previous value.
+
 ## Replica recovery
 
-The operator has the ability to automatically recover replicas that become unavailable and report a specific error code in the replication status. For doing so, the operator continiously monitors the replication status of each replica, and whenever a replica reports an error code listed in the table below, the operator will trigger an automated recovery process for that replica:
+The operator has the ability to automatically recover replicas that become unavailable and report a specific error code in the replication status. For doing so, the operator continuously monitors the replication status of each replica, and whenever a replica reports an error code listed in the table below, the operator will trigger an automated recovery process for that replica:
 
 | Error Code | Thread | Description | Documentation |
 |------------|--------|-------------|---------------|
@@ -475,7 +482,7 @@ spec:
 
 The `errorDurationThreshold` option defines the duration after which, a replica reporting an unknown error code will be considered for recovery. This is useful to avoid recovering replicas due to transient issues. It defaults to `5m`.
 
-We will be simulating a `1236` error in a replica to demostrate how the recovery process works:
+We will be simulating a `1236` error in a replica to demonstrate how the recovery process works:
 
 > [!CAUTION]
 > Do not perform the following steps in a production environment.
@@ -508,25 +515,30 @@ NAME           READY   STATUS                PRIMARY          UPDATES           
 mariadb-repl   False   Recovering replicas   mariadb-repl-1   ReplicasFirstPrimaryLast   3d6h
 
 kubectl get physicalbackups
-NAME                                           COMPLETE   STATUS      MARIADB        LAST SCHEDULED   AGE
-mariadb-repl-physicalbackup-replica-recovery   True       Success     mariadb-repl   31s              31s
-physicalbackup-tpl                             False      Suspended   mariadb-repl                    3d9h
+NAME                       COMPLETE   STATUS      MARIADB        LAST SCHEDULED   AGE
+mariadb-repl-pb-recovery   True       Success     mariadb-repl   31s              31s
+physicalbackup-tpl         False      Suspended   mariadb-repl                    3d9h
 
 kubectl get pods
-NAME                                                              READY   STATUS            RESTARTS       AGE
-mariadb-repl-0                                                    0/2     PodInitializing   0              22s
-mariadb-repl-0-physicalbackup-init-qn79f                          0/1     Completed         0              8s
-mariadb-repl-1                                                    2/2     Running           0              3d6h
-mariadb-repl-2                                                    2/2     Running           0              3d6h
-mariadb-repl-metrics-56865fff65-t72kc                             1/1     Running           0              3d6h
-mariadb-repl-physicalbackup-replica-recovery-2025102020270r98zr   0/1     Completed         0              31s
+NAME                                          READY   STATUS            RESTARTS       AGE
+mariadb-repl-0                                0/2     PodInitializing   0              22s
+mariadb-repl-0-pb-init-qn79f                  0/1     Completed         0              8s
+mariadb-repl-1                                2/2     Running           0              3d6h
+mariadb-repl-2                                2/2     Running           0              3d6h
+mariadb-repl-metrics-56865fff65-t72kc         1/1     Running           0              3d6h
+mariadb-repl-pb-recovery-2025102020270r98zr   0/1     Completed         0              31s
 
 kubectl get mariadb
 NAME           READY   STATUS    PRIMARY          UPDATES                    AGE
 mariadb-repl   True    Running   mariadb-repl-1   ReplicasFirstPrimaryLast   3d6h
 ```
 
-It is important to note that, if there are no ready replicas available at the time of the recovery operation, the `PhysicalBackup` will not become ready, and the recovery operation will be stuck until a replica becomes ready. You have the ability to cancel the recovery operation by setting `spec.replication.replica.recovery.enabled=false`.
+> [!WARNING]  
+> Considering that we set `mariaDbRef.waitForIt=false` and `target=PreferReplica` in the `PhysicalBackup` template, it is important to note that, if there are no ready replicas available at the time of the replica recovery operation, the operator will take the backup from the primary instead. Please refer to the [physical backup documentation](../backup-and-restore/physical_backup.md) for configuring this behaviour.
+{% endhint %}
+
+> [!TIP]
+> You have the ability to cancel the recovery operation by setting `spec.replication.replica.recovery.enabled=false`.
 
 ## Troubleshooting
 
@@ -647,18 +659,30 @@ Error 1236: Got fatal error from master when reading data from binary log.
 
 This is a something the operator is able to recover from, please refer to the [replica recovery section](#replica-recovery).
 
-##### Scaling out/recovery operation stucked
+##### Scaling out/recovery operation stuck
 
-These operations rely on a `PhysicalBackup` for setting up the new replicas. If this `PhysicalBackup` does not become ready, the operation will not progress. In order to debug this please refer to the [`PhysicalBackup` troubleshooting section](./physical_backup.md#troubleshooting).
+These operations rely on a `PhysicalBackup` for setting up the new replicas. If this `PhysicalBackup` does not become ready, the operation will not progress. In order to debug this please refer to the [`PhysicalBackup` troubleshooting section](./physical_backup.md). 
 
-One of the reasons could be that there are not replicas in ready state at the time of creating the `PhysicalBackup`, for instance, all the replicas are lagging behind the primary. Please verify that this is the case by checking the status of your `MariaDB` resource and your `Pods`.
+One of the reasons could be that you have no ready replicas for taking the backup and your `PhysicalBackup` CR does not allow taking the backup from the primary. You may set `mariaDbRef.waitForIt=false` and `target=PreferReplica` in the `PhysicalBackup` template to allow taking the backup from the primary when there are no ready replicas available. Please verify that this is the case by checking the status of your `MariaDB` resource and your `Pods`, and refer to the [physical backup documentation](./physical_backup.md) for configuring the backup behaviour.
 
-##### MaxScale switchover stucked during update
+##### MaxScale switchover stuck during update
 
 When using MaxScale, after having updated all the replica Pods, it could happen that MaxScale refuses to perform the switchover, as it considers the Pod chosen by the operator to be unsafe:
 
 ```bash
 2025-10-27 15:17:11   error  : [mariadbmon] 'mariadb-repl-1' is not a valid demotion target for switchover: it does not have a 'gtid_binlog_pos'.
 ``` 
+For this case, you can manually update the `primaryServer` field in the `MaxScale` resource to a safe Pod, and restart the operator. If the new primary server is the right Pod, MaxScale will start the switchover and the update will continue after it completes.
+
+##### Scale out/replica recovery job names too long
+
+```bash
+error creating Job: Job.batch \"mariadb-repl-operator-test-new-physicalbackup-scale-out-20251208221943\" 
+is invalid: spec.template.labels: 
+Invalid value: \"mariadb-repl-operator-test-new-physicalbackup-scale-out-20251208221943\": 
+must be no more than 63 characters
+```
+
+This error happens when the name of the physical backup `Job` created for the scaling out or replica recovery operation exceeds the Kubernetes hard limit of 63 characters. We have truncated the job names already to significantly mitigate this problem, but the problem might still happen if your `MariaDB` resource name is too long.
 
 For this case, you can manually update the `primaryServer` field in the `MaxScale` resource to a safe Pod, and restart the operator. If the new primary server is the right Pod, MaxScale will start the switchover and the update will continue after it completes.

@@ -10,13 +10,15 @@
 - [Compression](#compression)
 - [Server-Side Encryption with Customer-Provided Keys (SSE-C)](#server-side-encryption-with-customer-provided-keys-sse-c)
 - [Retention policy](#retention-policy)
+- [Target policy](#target-policy)
 - [Restoration](#restoration)
 - [Target recovery time](#target-recovery-time)
 - [Timeout](#timeout)
+- [Log level](#log-level)
 - [Extra options](#extra-options)
 - [S3 credentials](#s3-credentials)
 - [Staging area](#staging-area)
-- [VolumeSnapshots](#volumesnapshots)
+- [`VolumeSnapshots`](#volumesnapshots)
 - [Important considerations and limitations](#important-considerations-and-limitations)
 - [Troubleshooting](#troubleshooting)
 <!-- /toc -->
@@ -96,6 +98,7 @@ metadata:
 spec:
   mariaDbRef:
     name: mariadb
+    waitForIt: true
   schedule:
     cron: "*/1 * * * *"
     suspend: false
@@ -105,6 +108,8 @@ spec:
 If you want to immediatly trigger a backup after creating the `PhysicalBackup` resource, you can set the `immediate` field to `true`. This will create a backup immediately, regardless of the schedule.
 
 If you want to suspend the schedule, you can set the `suspend` field to `true`. This will prevent any new backups from being created until the `PhysicalBackup` is resumed.
+
+It is very important to note that, by default, backups will only be scheduled if the referred `MariaDB` resource is in ready state. You can override this behavior by setting `mariaDbRef.waitForIt=false` which will allow backups to be scheduled even if the `MariaDB` resource is not ready.
 
 ## Compression
 
@@ -193,9 +198,31 @@ spec:
   maxRetention: 720h # 30 days
 ```
 
-When using physical backups based on `mariadb-backup`, the operator will automatically delete backups files in the specified storage older than the retention period.
+When using physical backups based on `mariadb-backup`, the operator will automatically delete backups files in the specified storage older than the retention period. The cleanup process will be performed after each successful backup.
 
-When using `VolumeSnapshots`, the operator will automatically delete the `VolumeSnapshot` resources older than the retention period using the Kubernetes API.
+When using `VolumeSnapshots`, the operator will automatically delete the `VolumeSnapshot` resources older than the retention period using the Kubernetes API. The cleanup process will be performed after a `VolumeSnapshot` is successfully created.
+
+
+## Target policy
+
+You can define a target policy both for backups based on `mariadb-backup` and for `VolumeSnapshots`. The target policy allows you to specify in which `Pod` the backup should be taken. This can be defined via the `target` field in the `PhysicalBackup` resource:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: PhysicalBackup
+metadata:
+  name: physicalbackup
+spec:
+  mariaDbRef:
+    name: mariadb
+  target: Replica
+```
+
+The following target policies are available:
+- `Replica`: The backup will be taken in a ready replica. If no ready replicas are available, the backup will not be scheduled.
+- `PreferReplica`: The backup will be taken in a ready replica if available, otherwise it will be taken in the primary `Pod`.
+
+When using the `PreferReplica` target policy, you may be willing to schedule the backups even if the `MariaDB` resource is not ready. In this case, you can set `mariaDbRef.waitForIt=false` to allow scheduling the backup even if no replicas are available.
 
 ## Restoration
 
@@ -288,7 +315,22 @@ spec:
   timeout: 2h
 ```
 
-When timed out, the operator will delete the `Jobs` or `VolumeSnapshots` resources associated wit the `PhysicalBackup` resource. The operator will create new `Jobs` or `VolumeSnapshots` to retry the backup operation if the `PhysicalBackup` resource is still scheduled.
+When timed out, the operator will delete the `Jobs` or `VolumeSnapshots` resources associated with the `PhysicalBackup` resource. The operator will create new `Jobs` or `VolumeSnapshots` to retry the backup operation if the `PhysicalBackup` resource is still scheduled.
+
+## Log level
+
+When taking backups based on `mariadb-backup`, you can specify the log level to be used by the `mariadb-operator` container using the `logLevel` field in the `PhysicalBackup` resource:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: PhysicalBackup
+metadata:
+  name: physicalbackup
+spec:
+  mariaDbRef:
+    name: mariadb
+  logLevel: debug
+```
 
 ## Extra options
 
