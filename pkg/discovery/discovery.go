@@ -46,7 +46,7 @@ func NewDiscovery(opts ...DiscoveryOpt) (*Discovery, error) {
 }
 
 func NewFakeDiscovery(resources ...*metav1.APIResourceList) (*Discovery, error) {
-	client := fakeClient.NewSimpleClientset()
+	client := fakeClient.NewClientset()
 	fakeDiscovery, ok := client.Discovery().(*fakeDiscovery.FakeDiscovery)
 	if !ok {
 		return nil, fmt.Errorf("unable to cast discovery client to FakeDiscovery")
