@@ -53,10 +53,8 @@ metadata:
 spec:
   mariaDbRef:
     name: mariadb-repl
-    waitForIt: false
   schedule:
     suspend: true
-  target: PreferReplica
   storage:
     volumeSnapshot:
       volumeSnapshotClassName: csi-hostpath-snapclass
