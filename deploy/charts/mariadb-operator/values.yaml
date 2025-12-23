@@ -312,7 +312,7 @@ config:
   # -- Default MariaDB version to be used when unable to infer it via image tag
   mariadbDefaultVersion: "11.8"
   # -- Default MariaDB image
-  mariadbImage: docker-registry1.mariadb.com/library/mariadb:11.8.2
+  mariadbImage: docker-registry1.mariadb.com/library/mariadb:11.8.5
   # -- Default MariaDB image name
   mariadbImageName: docker-registry1.mariadb.com/library/mariadb
   # -- Default MaxScale image
