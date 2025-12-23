@@ -848,7 +848,7 @@ func (c CompressAlgorithm) Validate() error {
 	case CompressAlgorithm(""), CompressNone, CompressBzip2, CompressGzip:
 		return nil
 	default:
-		return fmt.Errorf("invalid compression: %v, supported agorithms: [%v|%v|%v]", c, CompressNone, CompressBzip2, CompressGzip)
+		return fmt.Errorf("invalid compression: %v, supported algorithms: [%v|%v|%v]", c, CompressNone, CompressBzip2, CompressGzip)
 	}
 }
 
@@ -861,7 +861,7 @@ func (c CompressAlgorithm) Extension() (string, error) {
 	case CompressGzip:
 		return "gz", nil
 	default:
-		return "", fmt.Errorf("invalid compression: %v, supported agorithms: [%v|%v|%v]", c, CompressNone, CompressBzip2, CompressGzip)
+		return "", fmt.Errorf("invalid compression: %v, supported algorithms: [%v|%v|%v]", c, CompressNone, CompressBzip2, CompressGzip)
 	}
 }
 

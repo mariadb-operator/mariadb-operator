@@ -308,7 +308,7 @@ func (r *ReplicationReconciler) configureNewPrimary(ctx context.Context, req *Re
 		"Configuring new primary at index '%d'", newPrimary)
 
 	if err := r.replConfigClient.ConfigurePrimary(ctx, req.mariadb, newPrimaryClient); err != nil {
-		return fmt.Errorf("error confguring new primary vars: %v", err)
+		return fmt.Errorf("error configuring new primary vars: %v", err)
 	}
 	return nil
 }
