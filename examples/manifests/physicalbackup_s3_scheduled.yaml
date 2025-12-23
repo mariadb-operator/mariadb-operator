@@ -9,6 +9,7 @@ spec:
     cron: "*/1 * * * *"
     suspend: false
     immediate: true
+  target: Replica
   compression: bzip2
   maxRetention: 720h # 30 days
   storage:
@@ -44,6 +45,9 @@ spec:
   timeout: 1h
   podAffinity: true
   serviceAccountName: backup
+  args:
+    - --verbose
+  logLevel: debug
   resources:
     requests:
       cpu: 100m

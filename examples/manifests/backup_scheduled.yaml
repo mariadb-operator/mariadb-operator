@@ -37,7 +37,8 @@ spec:
   args:
     - --single-transaction
     - --all-databases
-  logLevel: info
+    - --verbose
+  logLevel: debug
   resources:
     requests:
       cpu: 100m
