@@ -6,7 +6,7 @@ require (
 	github.com/cert-manager/cert-manager v1.18.2
 	github.com/distribution/reference v0.6.0
 	github.com/dsnet/compress v0.0.1
-	github.com/go-chi/chi/v5 v5.2.2
+	github.com/go-chi/chi/v5 v5.2.3
 	github.com/go-chi/httprate v0.15.0
 	github.com/go-logr/logr v1.4.3
 	github.com/go-sql-driver/mysql v1.9.3
@@ -23,7 +23,7 @@ require (
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/sethvargo/go-envconfig v1.3.0
 	github.com/sethvargo/go-password v0.3.1
-	github.com/spf13/cobra v1.9.1
+	github.com/spf13/cobra v1.10.1
 	github.com/spf13/viper v1.21.0
 	github.com/stretchr/testify v1.11.1
 	go.uber.org/zap v1.27.0
