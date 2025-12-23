@@ -113,9 +113,6 @@ Please create a PR and add your company or project to our [ADOPTERS.md file](./A
 
 We welcome and encourage contributions to this project! Please check our [contributing](./CONTRIBUTING.md) and [development](./docs/development.md) guides. PRs welcome!
 
-## Get in touch
-
-Join us on Slack: **[MariaDB Community Slack](https://r.mariadb.com/join-community-slack)**.
 
 ## Star history
 
@@ -127,6 +124,8 @@ Join us on Slack: **[MariaDB Community Slack](https://r.mariadb.com/join-communi
 - [Get Started with MariaDB in Kubernetes and mariadb-operator](https://mariadb.com/resources/blog/get-started-with-mariadb-in-kubernetes-and-mariadb-operator/) - MariaDB Corporation blog, February 2024
 - [Run and operate MariaDB in Kubernetes with mariadb-operator](https://mariadb.org/mariadb-in-kubernetes-with-mariadb-operator/) - MariaDB Foundation blog, July 2023
 - [L'enfer des DB SQL sur Kubernetes face à la promesse des opérateurs](https://www.youtube.com/watch?v=d_ka7PlWo1I&t=2415s&ab_channel=KCDFrance) - KCD France, March 2023
+
+Join us on Slack: **[MariaDB Community Slack](https://r.mariadb.com/join-community-slack)**.
 
 ## Enterprise
 
