@@ -617,6 +617,10 @@ type ServiceTemplate struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Metadata *Metadata `json:"metadata,omitempty"`
+	// LoadBalancerClass Service field.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	LoadBalancerClass *string `json:"loadBalancerClass,omitempty"`
 	// LoadBalancerIP Service field.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
