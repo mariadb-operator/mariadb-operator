@@ -281,6 +281,10 @@ func shouldReconcilePhysicalBackup(mdb *mariadbv1alpha1.MariaDB, logger logr.Log
 		logger.Info("Storage resize in progress, skipping PhysicalBackup schedule...")
 		return false
 	}
+	if mdb.HasGaleraNotReadyCondition() {
+		logger.Info("Galera not ready, skipping PhysicalBackup schedule...")
+		return false
+	}
 	return true
 }
 
