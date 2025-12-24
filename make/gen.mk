@@ -1,6 +1,6 @@
 ##@ Generate - Controller gen
 
-KUBE_API_VERSION ?= v1.34
+KUBE_API_VERSION ?= v1.35
 .PHONY: kube-api-version
 kube-api-version: ## Update Kubernetes version in links available in API docs.
 	@KUBE_API_VERSION=$(KUBE_API_VERSION) ./hack/kube_api_version.sh
