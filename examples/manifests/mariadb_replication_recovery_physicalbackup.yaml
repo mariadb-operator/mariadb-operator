@@ -64,7 +64,7 @@ spec:
   target: PreferReplica
   storage:
     s3:
-      bucket: scaleout
+      bucket: physicalbackups
       prefix: mariadb
       endpoint: minio.minio.svc.cluster.local:9000
       region:  us-east-1
