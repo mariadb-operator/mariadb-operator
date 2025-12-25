@@ -55,11 +55,10 @@ func (b *Builder) BuildService(key types.NamespacedName, owner metav1.Object, op
 			return nil, fmt.Errorf("error validating Ports: %v", err)
 		}
 	}
-	objMeta :=
-		metadata.NewMetadataBuilder(key).
-			WithMetadata(opts.ExtraMeta).
-			WithMetadata(opts.Metadata).
-			Build()
+	objMeta := metadata.NewMetadataBuilder(key).
+		WithMetadata(opts.ExtraMeta).
+		WithMetadata(opts.Metadata).
+		Build()
 	svc := &corev1.Service{
 		ObjectMeta: objMeta,
 		Spec: corev1.ServiceSpec{
@@ -73,6 +72,9 @@ func (b *Builder) BuildService(key types.NamespacedName, owner metav1.Object, op
 	}
 	if !opts.ExcludeSelectorLabels {
 		svc.Spec.Selector = opts.SelectorLabels
+	}
+	if opts.LoadBalancerClass != nil {
+		svc.Spec.LoadBalancerClass = opts.LoadBalancerClass
 	}
 	if opts.LoadBalancerIP != nil {
 		svc.Spec.LoadBalancerIP = *opts.LoadBalancerIP
