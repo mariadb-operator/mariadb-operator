@@ -151,7 +151,7 @@ func compressFile(path, fileName string, logger logr.Logger, compressFn func(dst
 	var compressedFilePath string
 	if opts.compressedFileName != "" {
 		if fileName == opts.compressedFileName {
-			return errors.New("Compressed file name must be different from plain file name")
+			return errors.New("compressed file name must be different from plain file name")
 		}
 		compressedFilePath = getFilePath(path, opts.compressedFileName)
 	} else {
