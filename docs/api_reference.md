@@ -2224,7 +2224,6 @@ _Appears in:_
 | `s3` _[S3](#s3)_ | S3 is the S3-compatible storage where the binary logs will be kept. |  | Required: \{\} <br /> |
 | `compression` _[CompressAlgorithm](#compressalgorithm)_ | Compression algorithm to be used for compressing the binary logs. |  | Enum: [none bzip2 gzip] <br /> |
 | `archiveTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#duration-v1-meta)_ | ArchiveTimeout defines the maximum duration for the binary log archival..<br />If this duration is exceeded, the sidecar agent will log an error and it will be retried in the next archive cycle.<br />It defaults to 1 hour. |  |  |
-| `maxRetention` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#duration-v1-meta)_ | MaxRetention defines the retention policy for binary logs. Old binary logs will be purged after every archive cycle.<br />By default, old binary logs are not purged. |  |  |
 
 
 #### PreferredSchedulingTerm

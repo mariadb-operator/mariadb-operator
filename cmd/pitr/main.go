@@ -24,6 +24,16 @@ var (
 	s3Prefix     string
 )
 
+func init() {
+	RootCmd.PersistentFlags().BoolVar(&s3, "s3", false, "Enable S3 storage.")
+	RootCmd.PersistentFlags().StringVar(&s3Bucket, "s3-bucket", "binlogs", "Name of the bucket to store binary logs.")
+	RootCmd.PersistentFlags().StringVar(&s3Endpoint, "s3-endpoint", "s3.amazonaws.com", "S3 API endpoint without scheme.")
+	RootCmd.PersistentFlags().StringVar(&s3Region, "s3-region", "us-east-1", "S3 region name to use.")
+	RootCmd.PersistentFlags().BoolVar(&s3TLS, "s3-tls", false, "Enable S3 TLS connections.")
+	RootCmd.PersistentFlags().StringVar(&s3CACertPath, "s3-ca-cert-path", "", "Path to the CA to be trusted when connecting to S3.")
+	RootCmd.PersistentFlags().StringVar(&s3Prefix, "s3-prefix", "", "S3 bucket prefix name to use.")
+}
+
 var RootCmd = &cobra.Command{
 	Use:   "pitr",
 	Short: "PITR.",

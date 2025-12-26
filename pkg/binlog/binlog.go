@@ -25,14 +25,6 @@ func ParseBinlogNum(filename string) (*BinlogNum, error) {
 	return &BinlogNum{filename: filename, num: num}, nil
 }
 
-func MustParseBinlogNum(filename string) *BinlogNum {
-	num, err := ParseBinlogNum(filename)
-	if err != nil {
-		panic(err)
-	}
-	return num
-}
-
 func (b *BinlogNum) String() string {
 	return fmt.Sprintf("BinlogNum{filename: %s, num: %d}", b.filename, b.num)
 }
@@ -55,12 +47,4 @@ func ParseBinlogPrefix(filename string) (*string, error) {
 		return nil, fmt.Errorf("unexpected binlog name: %v", filename)
 	}
 	return ptr.To(filename[:p]), nil
-}
-
-func MustParseBinlogPrefix(filename string) string {
-	prefix, err := ParseBinlogPrefix(filename)
-	if err != nil {
-		panic(err)
-	}
-	return *prefix
 }
