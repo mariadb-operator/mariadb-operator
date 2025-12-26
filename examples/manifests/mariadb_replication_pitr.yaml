@@ -54,7 +54,6 @@ spec:
         key: ca.crt
   compression: gzip
   archiveTimeout: 1h
-  maxRetention: 720h # 30 days
 ---
 apiVersion: k8s.mariadb.com/v1alpha1
 kind: PhysicalBackup

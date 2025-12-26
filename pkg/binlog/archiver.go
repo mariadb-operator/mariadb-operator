@@ -174,32 +174,8 @@ func (a *Archiver) archiveBinaryLogs(ctx context.Context) error {
 	)
 
 	for i := 0; i < len(binlogs); i++ {
-		binlog := binlogs[i]
-		a.logger.V(1).Info("Processing binary log", "binlog", binlog)
-
-		if i == len(binlogs)-1 {
-			a.logger.V(1).Info("Skipping active binary log", "binlog", binlog)
-			continue
-		}
-
-		if mdb.Status.PointInTimeRecovery != nil && mdb.Status.PointInTimeRecovery.LastArchivedBinaryLog != nil {
-			num, err := ParseBinlogNum(binlog)
-			if err != nil {
-				return fmt.Errorf("error parsing binlog number in %s: %v", binlog, err)
-			}
-			archivedNum, err := ParseBinlogNum(*mdb.Status.PointInTimeRecovery.LastArchivedBinaryLog)
-			if err != nil {
-				return fmt.Errorf("error archived parsing binlog number in %s: %v", *mdb.Status.PointInTimeRecovery.LastArchivedBinaryLog, err)
-			}
-
-			if num.LessThan(archivedNum) || num.Equal(archivedNum) {
-				a.logger.V(1).Info("Skipping binary log", "binlog", binlog)
-				continue
-			}
-		}
-
-		if err := uploader.Upload(ctx, binlog, mdb, pitr); err != nil {
-			return fmt.Errorf("error uploading binary log %s: %v", binlog, err)
+		if err := a.archiveBinaryLog(ctx, binlogs, i, mdb, pitr, uploader); err != nil {
+			return err
 		}
 	}
 	return nil
@@ -276,6 +252,38 @@ func (a *Archiver) resetArchivedBinlog(ctx context.Context, binlogs []string, md
 			return fmt.Errorf("error patching MariaDB: %v", err)
 		}
 		// TODO: verify  if additional request to get updated MariaDB is needed (it shouldm't)
+	}
+	return nil
+}
+
+func (a *Archiver) archiveBinaryLog(ctx context.Context, binlogs []string, binlogIndex int, mdb *mariadbv1alpha1.MariaDB,
+	pitr *mariadbv1alpha1.PointInTimeRecovery, uploader *Uploader) error {
+	binlog := binlogs[binlogIndex]
+	a.logger.V(1).Info("Processing binary log", "binlog", binlog)
+
+	if binlogIndex == len(binlogs)-1 {
+		a.logger.V(1).Info("Skipping active binary log", "binlog", binlog)
+		return nil
+	}
+
+	if mdb.Status.PointInTimeRecovery != nil && mdb.Status.PointInTimeRecovery.LastArchivedBinaryLog != nil {
+		num, err := ParseBinlogNum(binlog)
+		if err != nil {
+			return fmt.Errorf("error parsing binlog number in %s: %v", binlog, err)
+		}
+		archivedNum, err := ParseBinlogNum(*mdb.Status.PointInTimeRecovery.LastArchivedBinaryLog)
+		if err != nil {
+			return fmt.Errorf("error archived parsing binlog number in %s: %v", *mdb.Status.PointInTimeRecovery.LastArchivedBinaryLog, err)
+		}
+
+		if num.LessThan(archivedNum) || num.Equal(archivedNum) {
+			a.logger.V(1).Info("Skipping binary log since a more recent one has already been archived", "binlog", binlog)
+			return nil
+		}
+	}
+
+	if err := uploader.Upload(ctx, binlog, mdb, pitr); err != nil {
+		return fmt.Errorf("error uploading binary log %s: %v", binlog, err)
 	}
 	return nil
 }
