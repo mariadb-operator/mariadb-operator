@@ -565,7 +565,7 @@ type MariaDBSpec struct {
 	// Providing this reference implies configuring binary logs in the MariaDB instance and binary log archival in the sidecar agent.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	PointtInTimeRecoveryRef *LocalObjectReference `json:"pointInTimeRecoveryRef,omitempty"`
+	PointInTimeRecoveryRef *LocalObjectReference `json:"pointInTimeRecoveryRef,omitempty"`
 	// Replicas indicates the number of desired instances.
 	// +kubebuilder:default=1
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:podCount"}

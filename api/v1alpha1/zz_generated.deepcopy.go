@@ -2091,8 +2091,8 @@ func (in *MariaDBSpec) DeepCopyInto(out *MariaDBSpec) {
 		*out = new(ObjectReference)
 		**out = **in
 	}
-	if in.PointtInTimeRecoveryRef != nil {
-		in, out := &in.PointtInTimeRecoveryRef, &out.PointtInTimeRecoveryRef
+	if in.PointInTimeRecoveryRef != nil {
+		in, out := &in.PointInTimeRecoveryRef, &out.PointInTimeRecoveryRef
 		*out = new(LocalObjectReference)
 		**out = **in
 	}

@@ -153,23 +153,8 @@ func (a *Archiver) archiveBinaryLogs(ctx context.Context) error {
 		return fmt.Errorf("error getting binary logs: %v", err)
 	}
 
-	if len(binlogs) > 0 && mdb.Status.PointInTimeRecovery != nil && mdb.Status.PointInTimeRecovery.LastArchivedBinaryLog != nil {
-		shouldReset, err := shouldResetArchivedBinlog(
-			binlogs,
-			*mdb.Status.PointInTimeRecovery.LastArchivedBinaryLog,
-			a.logger,
-		)
-		if err != nil {
-			return fmt.Errorf("error checking archived binary log: %v", err)
-		}
-		if shouldReset {
-			if err := a.patchStatus(ctx, mdb, func(status *mariadbv1alpha1.MariaDBStatus) {
-				status.PointInTimeRecovery = nil
-			}); err != nil {
-				return fmt.Errorf("error patching MariaDB: %v", err)
-			}
-			// TODO: verify  if additional request to get updated MariaDB is needed (it shouldm't)
-		}
+	if err := a.resetArchivedBinlog(ctx, binlogs, mdb); err != nil {
+		return fmt.Errorf("error resetting binary logs: %v", err)
 	}
 
 	s3Client, err := a.getS3Client(&pitr.Spec.S3, a.env)
@@ -198,8 +183,14 @@ func (a *Archiver) archiveBinaryLogs(ctx context.Context) error {
 		}
 
 		if mdb.Status.PointInTimeRecovery != nil && mdb.Status.PointInTimeRecovery.LastArchivedBinaryLog != nil {
-			num := MustParseBinlogNum(binlog)
-			archivedNum := MustParseBinlogNum(*mdb.Status.PointInTimeRecovery.LastArchivedBinaryLog)
+			num, err := ParseBinlogNum(binlog)
+			if err != nil {
+				return fmt.Errorf("error parsing binlog number in %s: %v", binlog, err)
+			}
+			archivedNum, err := ParseBinlogNum(*mdb.Status.PointInTimeRecovery.LastArchivedBinaryLog)
+			if err != nil {
+				return fmt.Errorf("error archived parsing binlog number in %s: %v", *mdb.Status.PointInTimeRecovery.LastArchivedBinaryLog, err)
+			}
 
 			if num.LessThan(archivedNum) || num.Equal(archivedNum) {
 				a.logger.V(1).Info("Skipping binary log", "binlog", binlog)
@@ -249,6 +240,46 @@ func (a *Archiver) getBinaryLogs(ctx context.Context, sqlClient *sql.Client) ([]
 	return binlogs, nil
 }
 
+func (a *Archiver) resetArchivedBinlog(ctx context.Context, binlogs []string, mdb *mariadbv1alpha1.MariaDB) error {
+	if len(binlogs) == 0 || mdb.Status.PointInTimeRecovery == nil || mdb.Status.PointInTimeRecovery.LastArchivedBinaryLog == nil {
+		return nil
+	}
+	prefix, err := ParseBinlogPrefix(binlogs[0])
+	if err != nil {
+		return fmt.Errorf("error parsing binlog prefix in %s: %v", binlogs[0], err)
+	}
+	archivedPrefix, err := ParseBinlogPrefix(*mdb.Status.PointInTimeRecovery.LastArchivedBinaryLog)
+	if err != nil {
+		return fmt.Errorf("error parsing archived binlog prefix in %s: %v", *mdb.Status.PointInTimeRecovery.LastArchivedBinaryLog, err)
+	}
+
+	lastNum, err := ParseBinlogNum(binlogs[len(binlogs)-1])
+	if err != nil {
+		return fmt.Errorf("error parsing last binlog number in %s: %v", binlogs[len(binlogs)-1], err)
+	}
+	archivedNum, err := ParseBinlogNum(*mdb.Status.PointInTimeRecovery.LastArchivedBinaryLog)
+	if err != nil {
+		return fmt.Errorf("error parsing archived binlog number in %s: %v", *mdb.Status.PointInTimeRecovery.LastArchivedBinaryLog, err)
+	}
+
+	if prefix != archivedPrefix || lastNum.LessThan(archivedNum) {
+		a.logger.Info(
+			"Resetting last archived binary log",
+			"prefix", prefix,
+			"archived-prefix", archivedPrefix,
+			"last-num", lastNum,
+			"archived-num", archivedNum,
+		)
+		if err := a.patchStatus(ctx, mdb, func(status *mariadbv1alpha1.MariaDBStatus) {
+			status.PointInTimeRecovery = nil
+		}); err != nil {
+			return fmt.Errorf("error patching MariaDB: %v", err)
+		}
+		// TODO: verify  if additional request to get updated MariaDB is needed (it shouldm't)
+	}
+	return nil
+}
+
 func getUncompressedBinlog(compressedBinlog string) (string, error) {
 	// compressed binlog format: mariadb-bin.000001.bz2
 	parts := strings.Split(compressedBinlog, ".")
@@ -268,25 +299,4 @@ func (a *Archiver) patchStatus(ctx context.Context, mariadb *mariadbv1alpha1.Mar
 	patch := client.MergeFrom(mariadb.DeepCopy())
 	patcher(&mariadb.Status)
 	return a.client.Status().Patch(ctx, mariadb, patch)
-}
-
-func shouldResetArchivedBinlog(binlogs []string, lastArchivedBinlog string,
-	logger logr.Logger) (bool, error) {
-	prefix := MustParseBinlogPrefix(binlogs[0])
-	archivedPrefix := MustParseBinlogPrefix(lastArchivedBinlog)
-
-	lastNum := MustParseBinlogNum(binlogs[len(binlogs)-1])
-	archivedNum := MustParseBinlogNum(lastArchivedBinlog)
-
-	if prefix != archivedPrefix || lastNum.LessThan(archivedNum) {
-		logger.Info(
-			"Resetting last archived binary log",
-			"prefix", prefix,
-			"archived-prefix", archivedPrefix,
-			"last-num", lastNum,
-			"archived-num", archivedNum,
-		)
-		return true, nil
-	}
-	return false, nil
 }
