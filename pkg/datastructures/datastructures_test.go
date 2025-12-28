@@ -311,6 +311,135 @@ func TestAny(t *testing.T) {
 	}
 }
 
+func TestUniqueArgs(t *testing.T) {
+	tests := []struct {
+		name         string
+		args         []string
+		wantElements []string
+	}{
+		{
+			name:         "empty",
+			args:         nil,
+			wantElements: nil,
+		},
+		{
+			name: "no duplicates",
+			args: []string{
+				"--single-transaction",
+				"--events",
+				"--routines",
+			},
+			wantElements: []string{
+				"--single-transaction",
+				"--events",
+				"--routines",
+			},
+		},
+		{
+			name: "exact duplicates keep first",
+			args: []string{
+				"--single-transaction",
+				"--events",
+				"--events",
+			},
+			wantElements: []string{
+				"--single-transaction",
+				"--events",
+			},
+		},
+		{
+			name: "flag with value override - user arg wins",
+			args: []string{
+				"--ssl-verify-server-cert",
+				"--events",
+				"--ssl-verify-server-cert=0",
+			},
+			wantElements: []string{
+				"--events",
+				"--ssl-verify-server-cert=0",
+			},
+		},
+		{
+			name: "exact duplicates preserve order user override wins",
+			args: []string{
+				"--single-transaction",
+				"--events",
+				"--routines",
+				"--ssl",
+				"--ssl-verify-server-cert",
+				// user args - exact duplicate of --events, override of --ssl-verify-server-cert
+				"--ssl-verify-server-cert=0",
+				"--events",
+			},
+			wantElements: []string{
+				"--single-transaction",
+				"--events",
+				"--routines",
+				"--ssl",
+				"--ssl-verify-server-cert=0",
+			},
+		},
+		{
+			name: "multiple value overrides keep last",
+			args: []string{
+				"--timeout=30",
+				"--retries=3",
+				"--timeout=60",
+			},
+			wantElements: []string{
+				"--retries=3",
+				"--timeout=60",
+			},
+		},
+		{
+			name: "non-flag args preserved",
+			args: []string{
+				"backup",
+				"--verbose",
+				"restore",
+			},
+			wantElements: []string{
+				"backup",
+				"--verbose",
+				"restore",
+			},
+		},
+		{
+			name: "mixed exact and value duplicates",
+			args: []string{
+				"--single-transaction",
+				"--events",
+				"--routines",
+				"--all-databases",
+				"--skip-add-locks",
+				"--events",
+				"--all-databases",
+				"--skip-add-locks",
+				"--ignore-table=mysql.global_priv",
+				"--verbose",
+			},
+			wantElements: []string{
+				"--single-transaction",
+				"--events",
+				"--routines",
+				"--all-databases",
+				"--skip-add-locks",
+				"--ignore-table=mysql.global_priv",
+				"--verbose",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			elements := UniqueArgs(tt.args...)
+			if !reflect.DeepEqual(elements, tt.wantElements) {
+				t.Errorf("expecting unique args to be:\n%v\ngot:\n%v\n", tt.wantElements, elements)
+			}
+		})
+	}
+}
+
 func TestRemove(t *testing.T) {
 	tests := []struct {
 		name         string
