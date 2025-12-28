@@ -522,7 +522,7 @@ func (b *BackupCommand) mariadbDumpArgs(backup *mariadbv1alpha1.Backup, mariadb 
 		args = append(args, b.tlsArgs(mariadb)...)
 	}
 
-	return ds.Unique(ds.Merge(args, dumpOpts)...)
+	return ds.UniqueArgs(ds.Merge(args, dumpOpts)...)
 }
 
 func (b *BackupCommand) mariadbBackupArgs(mariadb *mariadbv1alpha1.MariaDB, targetPodIndex int) []string {
@@ -547,7 +547,7 @@ func (b *BackupCommand) mariadbBackupArgs(mariadb *mariadbv1alpha1.MariaDB, targ
 		}...)
 	}
 
-	return ds.Unique(ds.Merge(args, backupOpts)...)
+	return ds.UniqueArgs(ds.Merge(args, backupOpts)...)
 }
 
 func (b *BackupCommand) mariadbArgs(restore *mariadbv1alpha1.Restore, mariadb interfaces.TLSProvider) []string {
@@ -562,7 +562,7 @@ func (b *BackupCommand) mariadbArgs(restore *mariadbv1alpha1.Restore, mariadb in
 		args = append(args, b.tlsArgs(mariadb)...)
 	}
 
-	return ds.Unique(args...)
+	return ds.UniqueArgs(args...)
 }
 
 func (b *BackupCommand) s3Args() []string {

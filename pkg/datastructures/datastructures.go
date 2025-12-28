@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"strings"
 )
 
 var ErrNotFound = errors.New("not found in Index")
@@ -124,6 +125,72 @@ func Unique[T comparable](elements ...T) []T {
 	}
 
 	return result
+}
+
+// UniqueArgs returns unique CLI arguments with smart deduplication:
+//   - For exact duplicates (same string), keeps the first occurrence to preserve order
+//   - For flag name conflicts with different values (e.g., --flag vs --flag=value),
+//     keeps the last occurrence so user-specified args can override defaults
+func UniqueArgs(args ...string) []string {
+	type occurrence struct {
+		index int
+		arg   string
+	}
+
+	// Group args by flag name
+	flagOccurrences := make(map[string][]occurrence)
+	for i, arg := range args {
+		flagName := extractFlagName(arg)
+		flagOccurrences[flagName] = append(flagOccurrences[flagName], occurrence{i, arg})
+	}
+
+	// Determine which index to keep for each flag
+	keepIndex := make(map[int]bool)
+	for _, occurrences := range flagOccurrences {
+		if len(occurrences) == 1 {
+			keepIndex[occurrences[0].index] = true
+		} else {
+			// Check if all args are identical (exact duplicates)
+			allSame := true
+			first := occurrences[0].arg
+			for _, occ := range occurrences[1:] {
+				if occ.arg != first {
+					allSame = false
+					break
+				}
+			}
+			if allSame {
+				// Keep first for exact duplicates (preserve order)
+				keepIndex[occurrences[0].index] = true
+			} else {
+				// Keep last for value overrides (user args win)
+				keepIndex[occurrences[len(occurrences)-1].index] = true
+			}
+		}
+	}
+
+	// Build result preserving original order
+	var result []string
+	for i, arg := range args {
+		if keepIndex[i] {
+			result = append(result, arg)
+		}
+	}
+
+	return result
+}
+
+// extractFlagName extracts the flag name from a CLI argument.
+// For "--flag=value", it returns "--flag".
+// For "--flag value" style (where value is separate), it returns "--flag".
+// For non-flag arguments, it returns the argument as-is.
+func extractFlagName(arg string) string {
+	// Handle --flag=value style
+	if idx := strings.Index(arg, "="); idx != -1 {
+		return arg[:idx]
+	}
+	// For --flag or -f style, or non-flag args, return as-is
+	return arg
 }
 
 func Find[T any](elements []T, fn func(T) bool) *T {
