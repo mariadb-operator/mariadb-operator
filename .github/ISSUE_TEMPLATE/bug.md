@@ -49,6 +49,7 @@ kubectl get events --field-selector involvedObject.name=<restore-resource-name>
 - Kubernetes version: [Version number]
 - Kubernetes distribution: [Vanilla Kubernetes, OpenShift, EKS, GKE, AKS, Rancher, k3s, KIND...]
 - MariaDB Operator version: [Version number]
+- MariaDB topology: [Standalone, replication, Galera]
 - MariaDB Server version: [Version number]
 - MaxScale version: [Version number]
 - Install method: [Helm, OLM]
