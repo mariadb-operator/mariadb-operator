@@ -11833,7 +11833,7 @@ spec:
     schema:
       openAPIV3Schema:
         description: PointInTimeRecovery is the Schema for the pointintimerecoveries
-          API.  It contains binlog archive and point-in-time restoration settings.
+          API. It contains binlog archival and point-in-time restoration settings.
         properties:
           apiVersion:
             description: |-
