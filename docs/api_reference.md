@@ -2193,7 +2193,7 @@ _Appears in:_
 
 
 
-PointInTimeRecovery is the Schema for the pointintimerecoveries API.  It contains binlog archive and point-in-time restoration settings.
+PointInTimeRecovery is the Schema for the pointintimerecoveries API. It contains binlog archival and point-in-time restoration settings.
 
 
 
