@@ -13,7 +13,6 @@ import (
 	mariadbminio "github.com/mariadb-operator/mariadb-operator/v25/pkg/minio"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/util/retry"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var uploadBackoff = wait.Backoff{
@@ -24,17 +23,15 @@ var uploadBackoff = wait.Backoff{
 type Uploader struct {
 	dataDir    string
 	s3Client   *mariadbminio.Client
-	client     client.Client
 	compressor compression.Compressor
 	logger     logr.Logger
 }
 
-func NewUploader(dataDir string, s3Client *mariadbminio.Client, client client.Client,
-	compressor compression.Compressor, logger logr.Logger) *Uploader {
+func NewUploader(dataDir string, s3Client *mariadbminio.Client, compressor compression.Compressor,
+	logger logr.Logger) *Uploader {
 	return &Uploader{
 		dataDir:    dataDir,
 		s3Client:   s3Client,
-		client:     client,
 		compressor: compressor,
 		logger:     logger,
 	}
@@ -51,7 +48,7 @@ func (u *Uploader) Upload(ctx context.Context, binlog string, mdb *mariadbv1alph
 		"Uploading binary log",
 		"binlog", binlog,
 		"target-file", targetFile,
-		"start-time", startTime,
+		"start-time", startTime.Format(time.RFC3339),
 	)
 
 	if err := u.compressor.Compress(binlog, compression.WithCompressedFilename(targetFile)); err != nil {
@@ -70,16 +67,6 @@ func (u *Uploader) Upload(ctx context.Context, binlog string, mdb *mariadbv1alph
 		return fmt.Errorf("error uploading binlog %s: %v", binlog, err)
 	}
 
-	if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		return u.patchStatus(ctx, mdb, func(status *mariadbv1alpha1.MariaDBStatus) {
-			status.PointInTimeRecovery = &mariadbv1alpha1.PointInTimeRecoveryStatus{
-				LastArchivedBinaryLog: &binlog,
-			}
-		})
-	}); err != nil {
-		return fmt.Errorf("error patching MariaDB: %v", err)
-	}
-
 	if err := u.cleanupCompressedFile(targetFile, pitr); err != nil {
 		return fmt.Errorf("error cleaning up compressed file: %v", err)
 	}
@@ -88,8 +75,8 @@ func (u *Uploader) Upload(ctx context.Context, binlog string, mdb *mariadbv1alph
 		"Binary log uploaded",
 		"binlog", binlog,
 		"target-file", targetFile,
-		"start-time", startTime,
-		"total-time", time.Since(startTime),
+		"start-time", startTime.Format(time.RFC3339),
+		"total-time", time.Since(startTime).String(),
 	)
 	return nil
 }
@@ -112,11 +99,4 @@ func (u *Uploader) cleanupCompressedFile(targetFile string, pitr *mariadbv1alpha
 		return nil
 	}
 	return os.Remove(filepath.Join(u.dataDir, targetFile))
-}
-
-func (u *Uploader) patchStatus(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	patcher func(*mariadbv1alpha1.MariaDBStatus)) error {
-	patch := client.MergeFrom(mariadb.DeepCopy())
-	patcher(&mariadb.Status)
-	return u.client.Status().Patch(ctx, mariadb, patch)
 }

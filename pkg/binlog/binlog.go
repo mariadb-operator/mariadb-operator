@@ -37,10 +37,6 @@ func (b *BinlogNum) Equal(other *BinlogNum) bool {
 	return b.num == other.num
 }
 
-func (b *BinlogNum) GreaterThan(other *BinlogNum) bool {
-	return b.num > other.num
-}
-
 func ParseBinlogPrefix(filename string) (*string, error) {
 	p := strings.LastIndexAny(filename, ".")
 	if p < 0 {

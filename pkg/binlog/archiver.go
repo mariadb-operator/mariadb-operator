@@ -17,6 +17,7 @@ import (
 	mariadbminio "github.com/mariadb-operator/mariadb-operator/v25/pkg/minio"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/sql"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/util/retry"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -168,13 +169,12 @@ func (a *Archiver) archiveBinaryLogs(ctx context.Context) error {
 	uploader := NewUploader(
 		a.dataDir,
 		s3Client,
-		a.client,
 		compressor,
 		a.logger.WithName("uploader"),
 	)
 
 	for i := 0; i < len(binlogs); i++ {
-		if err := a.archiveBinaryLog(ctx, binlogs, i, mdb, pitr, uploader); err != nil {
+		if err := a.archiveBinaryLog(ctx, binlogs, i, uploader); err != nil {
 			return err
 		}
 	}
@@ -238,7 +238,7 @@ func (a *Archiver) resetArchivedBinlog(ctx context.Context, binlogs []string, md
 		return fmt.Errorf("error parsing archived binlog number in %s: %v", *mdb.Status.PointInTimeRecovery.LastArchivedBinaryLog, err)
 	}
 
-	if prefix != archivedPrefix || lastNum.LessThan(archivedNum) {
+	if *prefix != *archivedPrefix || lastNum.LessThan(archivedNum) {
 		a.logger.Info(
 			"Resetting last archived binary log",
 			"prefix", prefix,
@@ -251,13 +251,25 @@ func (a *Archiver) resetArchivedBinlog(ctx context.Context, binlogs []string, md
 		}); err != nil {
 			return fmt.Errorf("error patching MariaDB: %v", err)
 		}
-		// TODO: verify  if additional request to get updated MariaDB is needed (it shouldm't)
 	}
 	return nil
 }
 
-func (a *Archiver) archiveBinaryLog(ctx context.Context, binlogs []string, binlogIndex int, mdb *mariadbv1alpha1.MariaDB,
-	pitr *mariadbv1alpha1.PointInTimeRecovery, uploader *Uploader) error {
+func (a *Archiver) archiveBinaryLog(ctx context.Context, binlogs []string, binlogIndex int, uploader *Uploader) error {
+	if len(binlogs) == 0 {
+		return errors.New("no binary logs were provided")
+	}
+	if binlogIndex < 0 || binlogIndex >= len(binlogs) {
+		return fmt.Errorf("binary log index %d out of bounds [0, %d]", binlogIndex, len(binlogs)-1)
+	}
+	mdb, err := a.getMariaDB(ctx)
+	if err != nil {
+		return err
+	}
+	pitr, err := a.getPointInTimeRecovery(ctx, mdb)
+	if err != nil {
+		return err
+	}
 	binlog := binlogs[binlogIndex]
 	a.logger.V(1).Info("Processing binary log", "binlog", binlog)
 
@@ -285,7 +297,59 @@ func (a *Archiver) archiveBinaryLog(ctx context.Context, binlogs []string, binlo
 	if err := uploader.Upload(ctx, binlog, mdb, pitr); err != nil {
 		return fmt.Errorf("error uploading binary log %s: %v", binlog, err)
 	}
+	if err := a.updateLastArchivedBinlog(ctx, binlog); err != nil {
+		return fmt.Errorf("error updating last archived with binlog %s: %v", binlog, err)
+	}
 	return nil
+}
+
+func (a *Archiver) updateLastArchivedBinlog(ctx context.Context, binlog string) error {
+	num, err := ParseBinlogNum(binlog)
+	if err != nil {
+		return fmt.Errorf("error parsing current binary log number in %s: %v", binlog, err)
+	}
+
+	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		mdb, err := a.getMariaDB(ctx)
+		if err != nil {
+			return err
+		}
+		if mdb.Status.PointInTimeRecovery == nil {
+			return a.patchStatus(ctx, mdb, func(status *mariadbv1alpha1.MariaDBStatus) {
+				status.PointInTimeRecovery = &mariadbv1alpha1.PointInTimeRecoveryStatus{
+					LastArchivedBinaryLog: &binlog,
+				}
+			})
+		}
+		if mdb.Status.PointInTimeRecovery.LastArchivedBinaryLog == nil {
+			return a.patchStatus(ctx, mdb, func(status *mariadbv1alpha1.MariaDBStatus) {
+				status.PointInTimeRecovery.LastArchivedBinaryLog = &binlog
+			})
+		}
+
+		archivedNum, err := ParseBinlogNum(*mdb.Status.PointInTimeRecovery.LastArchivedBinaryLog)
+		if err != nil {
+			return fmt.Errorf(
+				"error parsing last archived binary log number in %s: %v",
+				*mdb.Status.PointInTimeRecovery.LastArchivedBinaryLog,
+				err,
+			)
+		}
+		if num.LessThan(archivedNum) || num.Equal(archivedNum) {
+			return nil
+		}
+
+		return a.patchStatus(ctx, mdb, func(status *mariadbv1alpha1.MariaDBStatus) {
+			status.PointInTimeRecovery.LastArchivedBinaryLog = &binlog
+		})
+	})
+}
+
+func (a *Archiver) patchStatus(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+	patcher func(*mariadbv1alpha1.MariaDBStatus)) error {
+	patch := client.MergeFrom(mariadb.DeepCopy())
+	patcher(&mariadb.Status)
+	return a.client.Status().Patch(ctx, mariadb, patch)
 }
 
 func getUncompressedBinlog(compressedBinlog string) (string, error) {
@@ -300,11 +364,4 @@ func getUncompressedBinlog(compressedBinlog string) (string, error) {
 		return "", err
 	}
 	return fmt.Sprintf("%s.%s", parts[0], parts[1]), nil
-}
-
-func (a *Archiver) patchStatus(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	patcher func(*mariadbv1alpha1.MariaDBStatus)) error {
-	patch := client.MergeFrom(mariadb.DeepCopy())
-	patcher(&mariadb.Status)
-	return a.client.Status().Patch(ctx, mariadb, patch)
 }
