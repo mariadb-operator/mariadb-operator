@@ -31,7 +31,7 @@ type PointInTimeRecoverySpec struct {
 // +kubebuilder:resource:shortName=pitr
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 
-// PointInTimeRecovery is the Schema for the pointintimerecoveries API.  It contains binlog archive and point-in-time restoration settings.
+// PointInTimeRecovery is the Schema for the pointintimerecoveries API. It contains binlog archival and point-in-time restoration settings.
 type PointInTimeRecovery struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

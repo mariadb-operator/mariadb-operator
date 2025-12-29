@@ -23,4 +23,3 @@ spec:
         key: ca.crt
   compression: gzip
   archiveTimeout: 5m
-  maxRetention: 720h # 30 days
