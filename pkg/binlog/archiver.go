@@ -16,6 +16,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/environment"
 	mariadbminio "github.com/mariadb-operator/mariadb-operator/v25/pkg/minio"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/sql"
+	mdbtime "github.com/mariadb-operator/mariadb-operator/v25/pkg/time"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/util/retry"
 	"k8s.io/utils/ptr"
@@ -271,6 +272,7 @@ func (a *Archiver) archiveBinaryLog(ctx context.Context, binlogs []string, binlo
 		return err
 	}
 	binlog := binlogs[binlogIndex]
+	suffix := mdbtime.Format(time.Now())
 	a.logger.V(1).Info("Processing binary log", "binlog", binlog)
 
 	if binlogIndex == len(binlogs)-1 {
@@ -294,7 +296,7 @@ func (a *Archiver) archiveBinaryLog(ctx context.Context, binlogs []string, binlo
 		}
 	}
 
-	if err := uploader.Upload(ctx, binlog, mdb, pitr); err != nil {
+	if err := uploader.Upload(ctx, binlog, suffix, mdb, pitr); err != nil {
 		return fmt.Errorf("error uploading binary log %s: %v", binlog, err)
 	}
 	if err := a.updateLastArchivedBinlog(ctx, binlog); err != nil {

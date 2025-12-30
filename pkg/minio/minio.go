@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -85,17 +86,26 @@ func NewMinioClient(basePath, bucket, endpoint string, mOpts ...MinioOpt) (*Clie
 	}, nil
 }
 
+func (c *Client) PutObjectWithOptions(ctx context.Context, fileName string, reader io.Reader, size int64) error {
+	putOpts, err := c.getPutObjectOptions()
+	if err != nil {
+		return err
+	}
+	prefixedFilePath := c.PrefixedFileName(fileName)
+
+	_, err = c.PutObject(ctx, c.bucket, prefixedFilePath, reader, size, *putOpts)
+	return err
+}
+
 func (c *Client) FPutObjectWithOptions(ctx context.Context, fileName string) error {
+	putOpts, err := c.getPutObjectOptions()
+	if err != nil {
+		return err
+	}
 	prefixedFilePath := c.PrefixedFileName(fileName)
 	filePath := c.getFilePath(fileName)
-	putOpts := minio.PutObjectOptions{}
-	if sse, err := c.getSSEC(); err != nil {
-		return fmt.Errorf("error creating SSE-C encryption: %v", err)
-	} else if sse != nil {
-		putOpts.ServerSideEncryption = sse
-	}
 
-	_, err := c.FPutObject(ctx, c.bucket, prefixedFilePath, filePath, putOpts)
+	_, err = c.FPutObject(ctx, c.bucket, prefixedFilePath, filePath, *putOpts)
 	return err
 }
 
@@ -133,6 +143,16 @@ func (c *Client) GetPrefix() string {
 		return c.Prefix + "/" // ending slash is required for avoiding matching like "foo/" and "foobar/" with prefix "foo"
 	}
 	return c.Prefix
+}
+
+func (c *Client) getPutObjectOptions() (*minio.PutObjectOptions, error) {
+	putOpts := minio.PutObjectOptions{}
+	if sse, err := c.getSSEC(); err != nil {
+		return nil, fmt.Errorf("error creating SSE-C encryption: %v", err)
+	} else if sse != nil {
+		putOpts.ServerSideEncryption = sse
+	}
+	return &putOpts, nil
 }
 
 func (c *Client) getFilePath(fileName string) string {
