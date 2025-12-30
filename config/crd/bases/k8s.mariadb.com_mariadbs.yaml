@@ -5270,6 +5270,29 @@ spec:
                     description: Ephemeral indicates whether to use ephemeral storage
                       in the PVCs. It is only compatible with non HA MariaDBs.
                     type: boolean
+                  pvcRetentionPolicy:
+                    description: |-
+                      PersistentVolumeClaimRetentionPolicy describes the lifecycle of PVCs created from volumeClaimTemplates.
+                      By default, all persistent volume claims are created as needed and retained until manually deleted.
+                      This policy allows the lifecycle to be altered, for example by deleting PVCs when their statefulset is deleted,
+                      or when their pod is scaled down.
+                    properties:
+                      whenDeleted:
+                        description: |-
+                          WhenDeleted specifies what happens to PVCs created from StatefulSet
+                          VolumeClaimTemplates when the StatefulSet is deleted. The default policy
+                          of `Retain` causes PVCs to not be affected by StatefulSet deletion. The
+                          `Delete` policy causes those PVCs to be deleted.
+                        type: string
+                      whenScaled:
+                        description: |-
+                          WhenScaled specifies what happens to PVCs created from StatefulSet
+                          VolumeClaimTemplates when the StatefulSet is scaled down. The default
+                          policy of `Retain` causes PVCs to not be affected by a scaledown. The
+                          `Delete` policy causes the associated PVCs for any excess pods above
+                          the replica count to be deleted.
+                        type: string
+                    type: object
                   resizeInUseVolumes:
                     description: |-
                       ResizeInUseVolumes indicates whether the PVCs can be resized. The 'StorageClassName' used should have 'allowVolumeExpansion' set to 'true' to allow resizing.

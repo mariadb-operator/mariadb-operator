@@ -91,6 +91,13 @@ type Storage struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	VolumeClaimTemplate *VolumeClaimTemplate `json:"volumeClaimTemplate,omitempty"`
+	// PersistentVolumeClaimRetentionPolicy describes the lifecycle of PVCs created from volumeClaimTemplates.
+	// By default, all persistent volume claims are created as needed and retained until manually deleted.
+	// This policy allows the lifecycle to be altered, for example by deleting PVCs when their statefulset is deleted,
+	// or when their pod is scaled down.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	PVCRetentionPolicy *appsv1.StatefulSetPersistentVolumeClaimRetentionPolicy `json:"pvcRetentionPolicy,omitempty"`
 }
 
 // Storage determines whether a Storage object is valid.

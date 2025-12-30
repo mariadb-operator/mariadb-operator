@@ -91,10 +91,11 @@ func (b *Builder) BuildMariadbStatefulSet(mariadb *mariadbv1alpha1.MariaDB, key 
 	sts := &appsv1.StatefulSet{
 		ObjectMeta: objMeta,
 		Spec: appsv1.StatefulSetSpec{
-			ServiceName:         mariadb.InternalServiceKey().Name,
-			Replicas:            &mariadb.Spec.Replicas,
-			PodManagementPolicy: appsv1.ParallelPodManagement,
-			UpdateStrategy:      *updateStrategy,
+			ServiceName:                          mariadb.InternalServiceKey().Name,
+			Replicas:                             &mariadb.Spec.Replicas,
+			PodManagementPolicy:                  appsv1.ParallelPodManagement,
+			UpdateStrategy:                       *updateStrategy,
+			PersistentVolumeClaimRetentionPolicy: mariadb.Spec.Storage.PVCRetentionPolicy,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: selectorLabels,
 			},
