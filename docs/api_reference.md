@@ -415,7 +415,6 @@ ConnectionTemplate defines a template to customize Connection objects.
 _Appears in:_
 - [ConnectionSpec](#connectionspec)
 - [ExternalMariaDBSpec](#externalmariadbspec)
-- [MariaDBMaxScaleSpec](#mariadbmaxscalespec)
 - [MariaDBSpec](#mariadbspec)
 - [MaxScaleSpec](#maxscalespec)
 
@@ -1238,8 +1237,6 @@ MariaDB is the Schema for the mariadbs API. It is used to define MariaDB cluster
 | `spec` _[MariaDBSpec](#mariadbspec)_ |  |  |  |
 
 
-
-
 #### MariaDBRef
 
 
@@ -1384,7 +1381,6 @@ MaxScaleAdmin configures the admin REST API and GUI.
 
 
 _Appears in:_
-- [MariaDBMaxScaleSpec](#mariadbmaxscalespec)
 - [MaxScaleSpec](#maxscalespec)
 
 | Field | Description | Default | Validation |
@@ -1402,7 +1398,6 @@ MaxScaleAuth defines the credentials required for MaxScale to connect to MariaDB
 
 
 _Appears in:_
-- [MariaDBMaxScaleSpec](#mariadbmaxscalespec)
 - [MaxScaleSpec](#maxscalespec)
 
 | Field | Description | Default | Validation |
@@ -1436,7 +1431,6 @@ MaxScaleConfig defines the MaxScale configuration.
 
 
 _Appears in:_
-- [MariaDBMaxScaleSpec](#mariadbmaxscalespec)
 - [MaxScaleSpec](#maxscalespec)
 
 | Field | Description | Default | Validation |
@@ -1493,7 +1487,6 @@ MaxScaleMetrics defines the metrics for a Maxscale.
 
 
 _Appears in:_
-- [MariaDBMaxScaleSpec](#mariadbmaxscalespec)
 - [MaxScaleSpec](#maxscalespec)
 
 | Field | Description | Default | Validation |
@@ -1512,7 +1505,6 @@ MaxScaleMonitor monitors MariaDB server instances
 
 
 _Appears in:_
-- [MariaDBMaxScaleSpec](#mariadbmaxscalespec)
 - [MaxScaleSpec](#maxscalespec)
 
 | Field | Description | Default | Validation |
@@ -1579,7 +1571,6 @@ Services define how the traffic is forwarded to the MariaDB servers.
 
 
 _Appears in:_
-- [MariaDBMaxScaleSpec](#mariadbmaxscalespec)
 - [MaxScaleSpec](#maxscalespec)
 
 | Field | Description | Default | Validation |
@@ -1655,7 +1646,6 @@ TLS defines the PKI to be used with MaxScale.
 
 
 _Appears in:_
-- [MariaDBMaxScaleSpec](#mariadbmaxscalespec)
 - [MaxScaleSpec](#maxscalespec)
 
 | Field | Description | Default | Validation |
@@ -2104,7 +2094,6 @@ PodDisruptionBudget is the Pod availability bundget for a MariaDB
 
 
 _Appears in:_
-- [MariaDBMaxScaleSpec](#mariadbmaxscalespec)
 - [MariaDBSpec](#mariadbspec)
 - [MaxScaleSpec](#maxscalespec)
 
@@ -2754,7 +2743,6 @@ ServiceTemplate defines a template to customize Service objects.
 
 
 _Appears in:_
-- [MariaDBMaxScaleSpec](#mariadbmaxscalespec)
 - [MariaDBSpec](#mariadbspec)
 - [MaxScaleSpec](#maxscalespec)
 
