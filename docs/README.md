@@ -26,6 +26,7 @@
 - [Storage](./storage.md)
 - [TLS](./tls.md)
 - [Configuration](./configuration.md)
+- [Connections](./connections.md)
 - [Updates](./updates.md)
 - [Metrics](./metrics.md)
 - [SQL resources](./sql_resources.md)
