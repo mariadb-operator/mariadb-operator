@@ -8134,10 +8134,32 @@ spec:
                 description: PointInTimeRecovery is the status of the point-in-time-recovery
                   process.
                 properties:
-                  lastArchivedBinaryLog:
-                    description: LastArchivedBinaryLog is the last binary file that
-                      has been archived.
+                  activeBinaryLog:
+                    description: ActiveBinaryLog is name of the active binary log.
+                      After being flushed, this is the next binary log to be archived.
                     type: string
+                  lastArchivedBinaryLog:
+                    description: LastArchivedBinaryLog is name of the last archived
+                      binary log.
+                    type: string
+                  lastArchivedGtid:
+                    description: LastArchivedGtid is the last archived GTID.
+                    type: string
+                  lastArchivedPosition:
+                    description: LastArchivedPosition is the position of last archived
+                      binary log event.
+                    format: int32
+                    type: integer
+                  lastArchivedTime:
+                    description: LastArchivedTime is the time of the last archived
+                      binary log event.
+                    format: date-time
+                    type: string
+                  serverId:
+                    description: ServerId identifies the server whose binary logs
+                      are being archived.
+                    format: int32
+                    type: integer
                 type: object
               replicas:
                 description: Replicas indicates the number of current instances.

@@ -642,12 +642,32 @@ type MariaDBTLSStatus struct {
 	ClientCert *CertificateStatus `json:"clientCert,omitempty"`
 }
 
-// PointInTimeRecoveryStatus is the status of the point-in-time-recovery process.
+// PointInTimeRecoveryStatus represents the current status of the binary log archival and  point-in-time-recovery.
 type PointInTimeRecoveryStatus struct {
-	// LastArchivedBinaryLog is the last binary file that has been archived.
+	// LastArchivedBinaryLog is name of the last archived binary log.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
-	LastArchivedBinaryLog *string `json:"lastArchivedBinaryLog,omitempty"`
+	LastArchivedBinaryLog string `json:"lastArchivedBinaryLog"`
+	// ActiveBinaryLog is name of the active binary log. After being flushed, this is the next binary log to be archived.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	ActiveBinaryLog string `json:"activeBinaryLog"`
+	// LastArchivedTime is the time of the last archived binary log event.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	LastArchivedTime metav1.Time `json:"lastArchivedTime"`
+	// LastArchivedPosition is the position of last archived binary log event.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	LastArchivedPosition uint32 `json:"lastArchivedPosition"`
+	// ServerId identifies the server whose binary logs are being archived.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	ServerId uint32 `json:"serverId,omitempty"`
+	// LastArchivedGtid is the last archived GTID.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	LastArchivedGtid *string `json:"lastArchivedGtid,omitempty"`
 }
 
 // MariaDBStatus defines the observed state of MariaDB
