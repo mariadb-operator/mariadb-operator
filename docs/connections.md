@@ -19,7 +19,7 @@
 
 ## `Connection` CR
 
-A `Connection` resource declares an intent to create a connection string for applications to connect to a MariaDB instance. When reconciled, it creates a `Secret` containing the DSN and individual connection parameters:
+A `Connection` resource declares an intent to create a connection string for applications to connect to a MariaDB instance. When reconciled, it creates a `Secret` containing the DSN and optionally, individual connection parameters:
 
 ```yaml
 apiVersion: k8s.mariadb.com/v1alpha1
