@@ -5,6 +5,7 @@
 ## Table of contents
 <!-- toc -->
 - [`Connection` CR](#connection-cr)
+- [Service selection](#service-selection)
 - [Credential generation](#credential-generation)
 - [Secret template](#secret-template)
 - [Custom DSN format](#custom-dsn-format)
@@ -41,6 +42,26 @@ spec:
 ```
 
 The operator creates a `Secret` named `connection` containing a DSN and individual fields like `username`, `password`, `host`, `port`, and `database`. Applications can mount this `Secret` to obtain the connection details.
+
+## Service selection
+
+By default, the `host` in the generated `Secret` points to the Service named after the referenced MariaDB or MaxScale resource (the same as `metadata.name`). Use `serviceName` to connect to a specific Service instead:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: Connection
+metadata:
+  name: connection
+spec:
+  mariaDbRef:
+    name: mariadb
+  serviceName: mariadb-primary
+  username: mariadb
+  passwordSecretKeyRef:
+    name: mariadb
+    key: password
+  secretName: connection
+```
 
 ## Credential generation
 
