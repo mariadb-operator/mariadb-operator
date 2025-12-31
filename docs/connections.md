@@ -45,7 +45,7 @@ The operator creates a `Secret` named `connection` containing a DSN and individu
 
 ## Service selection
 
-By default, the `host` in the generated `Secret` points to the Service named after the referenced MariaDB or MaxScale resource (the same as `metadata.name`). Use `serviceName` to connect to a specific Service instead:
+By default, the `host` in the generated `Secret` points to the `Service` named after the referenced `MariaDB` or `MaxScale` resource (the same as `metadata.name`). For HA `MariaDB`, this `Service` load balances across all pods, so use `serviceName` to target a specific `Service` such as `<mariadb-name>-primary`.
 
 ```yaml
 apiVersion: k8s.mariadb.com/v1alpha1
@@ -62,6 +62,8 @@ spec:
     key: password
   secretName: connection
 ```
+
+Please refer to the [Kubernetes `Service` documentation](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/high_availability.md#kubernetes-services) to identify which `Services` are available.
 
 ## Credential generation
 
