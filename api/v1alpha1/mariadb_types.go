@@ -97,7 +97,7 @@ type Storage struct {
 	// or when their pod is scaled down.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	PVCRetentionPolicy *appsv1.StatefulSetPersistentVolumeClaimRetentionPolicy `json:"pvcRetentionPolicy,omitempty"`
+	PVCRetentionPolicy *StatefulSetPersistentVolumeClaimRetentionPolicy `json:"pvcRetentionPolicy,omitempty"`
 }
 
 // Storage determines whether a Storage object is valid.

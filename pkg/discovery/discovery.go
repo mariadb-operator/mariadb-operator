@@ -2,10 +2,13 @@ package discovery
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/go-logr/logr"
+	hashversion "github.com/hashicorp/go-version"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	k8sversion "k8s.io/apimachinery/pkg/version"
 	discoverypkg "k8s.io/client-go/discovery"
 	fakeDiscovery "k8s.io/client-go/discovery/fake"
 	fakeClient "k8s.io/client-go/kubernetes/fake"
@@ -59,6 +62,21 @@ func NewFakeDiscovery(resources ...*metav1.APIResourceList) (*Discovery, error) 
 	)
 }
 
+func NewFakeDiscoveryWithServerVersion(serverVersion *k8sversion.Info, resources ...*metav1.APIResourceList) (*Discovery, error) {
+	client := fakeClient.NewClientset()
+	fakeDiscovery, ok := client.Discovery().(*fakeDiscovery.FakeDiscovery)
+	if !ok {
+		return nil, fmt.Errorf("unable to cast discovery client to FakeDiscovery")
+	}
+	fakeDiscovery.FakedServerVersion = serverVersion
+	if resources != nil {
+		fakeDiscovery.Resources = resources
+	}
+	return NewDiscovery(
+		WithClient(fakeDiscovery),
+	)
+}
+
 func (c *Discovery) ServiceMonitorExist() (bool, error) {
 	return c.resourceExist("monitoring.coreos.com/v1", "servicemonitors")
 }
@@ -73,6 +91,22 @@ func (c *Discovery) VolumeSnapshotExist() (bool, error) {
 
 func (c *Discovery) SecurityContextConstraintsExist() (bool, error) {
 	return c.resourceExist("security.openshift.io/v1", "securitycontextconstraints")
+}
+
+func (c *Discovery) ServerVersionAtLeast(minVersion string) (bool, error) {
+	serverVersionInfo, err := c.client.ServerVersion()
+	if err != nil {
+		return false, err
+	}
+	serverVersion, err := hashversion.NewSemver(strings.TrimPrefix(serverVersionInfo.GitVersion, "v"))
+	if err != nil {
+		return false, fmt.Errorf("error parsing server version %q: %v", serverVersionInfo.GitVersion, err)
+	}
+	targetVersion, err := hashversion.NewSemver(minVersion)
+	if err != nil {
+		return false, fmt.Errorf("error parsing target version %q: %v", minVersion, err)
+	}
+	return serverVersion.GreaterThanOrEqual(targetVersion), nil
 }
 
 func (c *Discovery) LogInfo(logger logr.Logger) error {

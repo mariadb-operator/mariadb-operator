@@ -75,6 +75,11 @@ func (b *Builder) BuildMariadbStatefulSet(mariadb *mariadbv1alpha1.MariaDB, key 
 		return nil, err
 	}
 
+	pvcRetentionPolicy, err := b.mariadbPVCRetentionPolicy(mariadb)
+	if err != nil {
+		return nil, err
+	}
+
 	var mariadbPodOpts []mariadbPodOpt
 	if podAnnotations != nil {
 		mariadbPodOpts = append(mariadbPodOpts,
@@ -95,7 +100,7 @@ func (b *Builder) BuildMariadbStatefulSet(mariadb *mariadbv1alpha1.MariaDB, key 
 			Replicas:                             &mariadb.Spec.Replicas,
 			PodManagementPolicy:                  appsv1.ParallelPodManagement,
 			UpdateStrategy:                       *updateStrategy,
-			PersistentVolumeClaimRetentionPolicy: mariadb.Spec.Storage.PVCRetentionPolicy,
+			PersistentVolumeClaimRetentionPolicy: pvcRetentionPolicy,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: selectorLabels,
 			},
@@ -107,6 +112,20 @@ func (b *Builder) BuildMariadbStatefulSet(mariadb *mariadbv1alpha1.MariaDB, key 
 		return nil, fmt.Errorf("error setting controller reference to StatefulSet: %v", err)
 	}
 	return sts, nil
+}
+
+func (b *Builder) mariadbPVCRetentionPolicy(mariadb *mariadbv1alpha1.MariaDB) (*appsv1.StatefulSetPersistentVolumeClaimRetentionPolicy, error) {
+	if mariadb.Spec.Storage.PVCRetentionPolicy == nil {
+		return nil, nil
+	}
+	supported, err := b.discovery.ServerVersionAtLeast("1.32.0")
+	if err != nil {
+		return nil, fmt.Errorf("error discovering Kubernetes version: %v", err)
+	}
+	if !supported {
+		return nil, nil
+	}
+	return ptr.To(mariadb.Spec.Storage.PVCRetentionPolicy.ToKubernetesType()), nil
 }
 
 func (b *Builder) BuildMaxscaleStatefulSet(maxscale *mariadbv1alpha1.MaxScale, key types.NamespacedName,
