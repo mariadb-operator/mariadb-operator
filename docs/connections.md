@@ -84,7 +84,7 @@ If you prefer to provide your own password, you can opt-out from random password
 
 ## Secret template
 
-The `secretTemplate` field allows you to customize the output `Secret`:
+The `secretTemplate` field allows you to customize the output `Secret`, allowing you to include individual connection parameters:
 
 ```yaml
 apiVersion: k8s.mariadb.com/v1alpha1
