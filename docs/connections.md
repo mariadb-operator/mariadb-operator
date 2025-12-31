@@ -156,6 +156,8 @@ Available template variables:
 - `{{ .Database }}`: The database name
 - `{{ .Params }}`: Query parameters (e.g., `?parseTime=true&timeout=5s`)
 
+Refer to the [Go documentation](https://pkg.go.dev/text/template) for additional details about the template syntax.
+
 ## TLS authentication
 
 `Connection` supports TLS client certificate authentication as an alternative to password authentication:
