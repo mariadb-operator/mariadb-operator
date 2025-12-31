@@ -251,7 +251,7 @@ spec:
     interval: 30s
 ```
 
-When referencing a `MaxScale`, the operator uses the MaxScale listener port. The health check will consume connections from the MaxScale connection pool.
+When referencing a `MaxScale`, the operator uses the MaxScale `Service` and its listener port. The health check will consume connections from the MaxScale connection pool.
 
 ## External MariaDB connections
 
