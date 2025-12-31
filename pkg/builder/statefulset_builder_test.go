@@ -6,6 +6,7 @@ import (
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
 	galeraresources "github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/galera/resources"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/discovery"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/metadata"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -13,6 +14,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/apimachinery/pkg/version"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -442,6 +444,70 @@ func TestMariaDBUpdateStrategy(t *testing.T) {
 			}
 			if !reflect.DeepEqual(tt.wantUpdateStrategy, stsStrategy) {
 				t.Errorf("expecting mariadbUpdateStrategy returned value to be:\n%v\ngot:\n%v\n", tt.wantUpdateStrategy, stsStrategy)
+			}
+		})
+	}
+}
+
+func TestMariaDBPVCRetentionPolicy(t *testing.T) {
+	tests := []struct {
+		name       string
+		gitVersion string
+		wantSet    bool
+	}{
+		{
+			name:       "supported kubernetes version",
+			gitVersion: "v1.32.0",
+			wantSet:    true,
+		},
+		{
+			name:       "unsupported kubernetes version",
+			gitVersion: "v1.31.0",
+			wantSet:    false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			discoveryClient, err := discovery.NewFakeDiscoveryWithServerVersion(&version.Info{
+				GitVersion: tt.gitVersion,
+			})
+			if err != nil {
+				t.Fatalf("unexpected error creating discovery: %v", err)
+			}
+			builder := newTestBuilder(discoveryClient)
+			mariadb := &mariadbv1alpha1.MariaDB{
+				ObjectMeta: metav1.ObjectMeta{Name: "mariadb-obj"},
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					UpdateStrategy: mariadbv1alpha1.UpdateStrategy{
+						Type: mariadbv1alpha1.RollingUpdateUpdateType,
+					},
+					Storage: mariadbv1alpha1.Storage{
+						PVCRetentionPolicy: &mariadbv1alpha1.StatefulSetPersistentVolumeClaimRetentionPolicy{
+							WhenDeleted: mariadbv1alpha1.PersistentVolumeClaimRetentionPolicyDelete,
+							WhenScaled:  mariadbv1alpha1.PersistentVolumeClaimRetentionPolicyRetain,
+						},
+					},
+				},
+			}
+
+			sts, err := builder.BuildMariadbStatefulSet(mariadb, client.ObjectKeyFromObject(mariadb), nil)
+			if err != nil {
+				t.Fatalf("unexpected error building StatefulSet: %v", err)
+			}
+
+			if tt.wantSet {
+				if sts.Spec.PersistentVolumeClaimRetentionPolicy == nil {
+					t.Fatal("expected pvcRetentionPolicy to be set")
+				}
+				if sts.Spec.PersistentVolumeClaimRetentionPolicy.WhenDeleted != appsv1.PersistentVolumeClaimRetentionPolicyDelete {
+					t.Errorf("unexpected whenDeleted value: %v", sts.Spec.PersistentVolumeClaimRetentionPolicy.WhenDeleted)
+				}
+				if sts.Spec.PersistentVolumeClaimRetentionPolicy.WhenScaled != appsv1.PersistentVolumeClaimRetentionPolicyRetain {
+					t.Errorf("unexpected whenScaled value: %v", sts.Spec.PersistentVolumeClaimRetentionPolicy.WhenScaled)
+				}
+			} else if sts.Spec.PersistentVolumeClaimRetentionPolicy != nil {
+				t.Fatal("expected pvcRetentionPolicy to be omitted for unsupported versions")
 			}
 		})
 	}
