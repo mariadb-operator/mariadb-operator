@@ -11,9 +11,15 @@ fi
 
 echo "Updating examples in folder '$FOLDER' to '$IMAGE:$VERSION'"
 
+if sed --version >/dev/null 2>&1; then
+  SED_INPLACE=(-i)
+else
+  SED_INPLACE=(-i '')
+fi
+
 for file in "$FOLDER"/*.yaml; do
   if [ -f "$file" ] && [ -r "$file" ]; then
-    sed -i "s|$IMAGE:[^ ]*|$IMAGE:$VERSION|g" "$file"
+    sed "${SED_INPLACE[@]}" "s|$IMAGE:[^ ]*|$IMAGE:$VERSION|g" "$file"
   else
     echo "Error: $file does not exist or is not readable."
   fi

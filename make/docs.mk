@@ -9,7 +9,8 @@ docs-api: crd-ref-docs ## Generate API reference docs.
 		--renderer=markdown \
 		--output-path=$(DOCS_API_REFERENCE) \
 		--max-depth=13
-	sed -i '/nolint:lll/d' $(DOCS_API_REFERENCE)
+	@sed -i '/nolint:lll/d' $(DOCS_API_REFERENCE) 2>/dev/null || \
+	  sed -i '' '/nolint:lll/d' $(DOCS_API_REFERENCE)
 
 .PHONY: docs-docker
 docs-docker: ## Generate Docker docs.

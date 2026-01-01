@@ -7422,6 +7422,24 @@ spec:
                     description: Ephemeral indicates whether to use ephemeral storage
                       in the PVCs. It is only compatible with non HA MariaDBs.
                     type: boolean
+                  pvcRetentionPolicy:
+                    description: |-
+                      PersistentVolumeClaimRetentionPolicy describes the lifecycle of PVCs created from volumeClaimTemplates.
+                      By default, all persistent volume claims are created as needed and retained until manually deleted.
+                      This policy allows the lifecycle to be altered, for example by deleting PVCs when their statefulset is deleted,
+                      or when their pod is scaled down.
+                    properties:
+                      whenDeleted:
+                        description: |-
+                          PersistentVolumeClaimRetentionPolicyType describes the lifecycle of persistent volume claims.
+                          Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#persistentvolumeclaimretentionpolicytype-v1-apps.
+                        type: string
+                      whenScaled:
+                        description: |-
+                          PersistentVolumeClaimRetentionPolicyType describes the lifecycle of persistent volume claims.
+                          Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#persistentvolumeclaimretentionpolicytype-v1-apps.
+                        type: string
+                    type: object
                   resizeInUseVolumes:
                     description: |-
                       ResizeInUseVolumes indicates whether the PVCs can be resized. The 'StorageClassName' used should have 'allowVolumeExpansion' set to 'true' to allow resizing.
