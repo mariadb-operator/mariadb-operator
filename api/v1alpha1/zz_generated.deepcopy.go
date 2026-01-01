@@ -2040,6 +2040,11 @@ func (in *MariaDBSpec) DeepCopyInto(out *MariaDBSpec) {
 		*out = new(PasswordPlugin)
 		(*in).DeepCopyInto(*out)
 	}
+	if in.CleanupPolicy != nil {
+		in, out := &in.CleanupPolicy, &out.CleanupPolicy
+		*out = new(CleanupPolicy)
+		**out = **in
+	}
 	if in.MyCnf != nil {
 		in, out := &in.MyCnf, &out.MyCnf
 		*out = new(string)

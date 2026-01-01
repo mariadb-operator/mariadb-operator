@@ -293,6 +293,7 @@ CleanupPolicy defines the behavior for cleaning up a resource.
 _Appears in:_
 - [DatabaseSpec](#databasespec)
 - [GrantSpec](#grantspec)
+- [MariaDBSpec](#mariadbspec)
 - [SQLTemplate](#sqltemplate)
 - [UserSpec](#userspec)
 
@@ -1310,6 +1311,7 @@ _Appears in:_
 | `passwordSecretKeyRef` _[GeneratedSecretKeyRef](#generatedsecretkeyref)_ | PasswordSecretKeyRef is a reference to a Secret that contains the password to be used by the initial User.<br />If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password. |  |  |
 | `passwordHashSecretKeyRef` _[SecretKeySelector](#secretkeyselector)_ | PasswordHashSecretKeyRef is a reference to the password hash to be used by the initial User.<br />If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password hash. |  |  |
 | `passwordPlugin` _[PasswordPlugin](#passwordplugin)_ | PasswordPlugin is a reference to the password plugin and arguments to be used by the initial User. |  |  |
+| `cleanupPolicy` _[CleanupPolicy](#cleanuppolicy)_ | CleanupPolicy defines the behavior for cleaning up the initial User, Database, and Grant created by the operator. |  | Enum: [Skip Delete] <br /> |
 | `myCnf` _string_ | MyCnf allows to specify the my.cnf file mounted by Mariadb.<br />Updating this field will trigger an update to the Mariadb resource. |  |  |
 | `myCnfConfigMapKeyRef` _[ConfigMapKeySelector](#configmapkeyselector)_ | MyCnfConfigMapKeyRef is a reference to the my.cnf config file provided via a ConfigMap.<br />If not provided, it will be defaulted with a reference to a ConfigMap containing the MyCnf field.<br />If the referred ConfigMap is labeled with "k8s.mariadb.com/watch", an update to the Mariadb resource will be triggered when the ConfigMap is updated. |  |  |
 | `timeZone` _string_ | TimeZone sets the default timezone. If not provided, it defaults to SYSTEM and the timezone data is not loaded. |  |  |

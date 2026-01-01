@@ -505,6 +505,11 @@ type MariaDBSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	PasswordPlugin *PasswordPlugin `json:"passwordPlugin,omitempty"`
+	// CleanupPolicy defines the behavior for cleaning up the initial User, Database, and Grant created by the operator.
+	// +optional
+	// +kubebuilder:validation:Enum=Skip;Delete
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	CleanupPolicy *CleanupPolicy `json:"cleanupPolicy,omitempty"`
 	// MyCnf allows to specify the my.cnf file mounted by Mariadb.
 	// Updating this field will trigger an update to the Mariadb resource.
 	// +optional

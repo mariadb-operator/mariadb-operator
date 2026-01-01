@@ -182,3 +182,89 @@ func TestGrantCleanupPolicy(t *testing.T) {
 		})
 	}
 }
+
+func TestDatabaseMeta(t *testing.T) {
+	builder := newDefaultTestBuilder(t)
+	key := types.NamespacedName{
+		Name: "database",
+	}
+	tests := []struct {
+		name     string
+		opts     DatabaseOpts
+		wantMeta *mariadbv1alpha1.Metadata
+	}{
+		{
+			name: "no meta",
+			opts: DatabaseOpts{},
+			wantMeta: &mariadbv1alpha1.Metadata{
+				Labels:      map[string]string{},
+				Annotations: map[string]string{},
+			},
+		},
+		{
+			name: "meta",
+			opts: DatabaseOpts{
+				Metadata: &mariadbv1alpha1.Metadata{
+					Labels: map[string]string{
+						"database.myorg.io": "mariadb",
+					},
+					Annotations: map[string]string{
+						"database.myorg.io": "mariadb",
+					},
+				},
+			},
+			wantMeta: &mariadbv1alpha1.Metadata{
+				Labels: map[string]string{
+					"database.myorg.io": "mariadb",
+				},
+				Annotations: map[string]string{
+					"database.myorg.io": "mariadb",
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			database, err := builder.BuildDatabase(key, &mariadbv1alpha1.MariaDB{}, tt.opts)
+			if err != nil {
+				t.Fatalf("unexpected error building Database: %v", err)
+			}
+			assertObjectMeta(t, &database.ObjectMeta, tt.wantMeta.Labels, tt.wantMeta.Annotations)
+		})
+	}
+}
+func TestDatabaseCleanupPolicy(t *testing.T) {
+	builder := newDefaultTestBuilder(t)
+	key := types.NamespacedName{
+		Name: "database",
+	}
+	tests := []struct {
+		name              string
+		opts              DatabaseOpts
+		wantCleanupPolicy *mariadbv1alpha1.CleanupPolicy
+	}{
+		{
+			name:              "no cleanupPolicy",
+			opts:              DatabaseOpts{},
+			wantCleanupPolicy: nil,
+		},
+		{
+			name: "cleanupPolicy",
+			opts: DatabaseOpts{
+				CleanupPolicy: ptr.To(mariadbv1alpha1.CleanupPolicySkip),
+			},
+			wantCleanupPolicy: ptr.To(mariadbv1alpha1.CleanupPolicySkip),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			database, err := builder.BuildDatabase(key, &mariadbv1alpha1.MariaDB{}, tt.opts)
+			if err != nil {
+				t.Fatalf("unexpected error building Database: %v", err)
+			}
+			if !reflect.DeepEqual(database.Spec.CleanupPolicy, tt.wantCleanupPolicy) {
+				t.Errorf("unexpected cleanupPolicy: got: %v, want: %v", database.Spec.CleanupPolicy, tt.wantCleanupPolicy)
+			}
+		})
+	}
+}

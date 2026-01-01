@@ -773,8 +773,9 @@ func (r *MariaDBReconciler) reconcileDatabase(ctx context.Context, mariadb *mari
 	}
 
 	opts := builder.DatabaseOpts{
-		Name:     *mariadb.Spec.Database,
-		Metadata: mariadb.Spec.InheritMetadata,
+		Name:          *mariadb.Spec.Database,
+		CleanupPolicy: mariadb.Spec.CleanupPolicy,
+		Metadata:      mariadb.Spec.InheritMetadata,
 		MariaDBRef: mariadbv1alpha1.MariaDBRef{
 			ObjectReference: mariadbv1alpha1.ObjectReference{
 				Name:      mariadb.Name,
@@ -855,6 +856,7 @@ func (r *MariaDBReconciler) reconcileUsers(ctx context.Context, mariadb *mariadb
 				},
 			},
 			Metadata:           mariadb.Spec.InheritMetadata,
+			CleanupPolicy:      mariadb.Spec.CleanupPolicy,
 			MaxUserConnections: 20,
 			Name:               *mariadb.Spec.Username,
 			Host:               "%",
@@ -875,7 +877,8 @@ func (r *MariaDBReconciler) reconcileUsers(ctx context.Context, mariadb *mariadb
 						Namespace: mariadb.Namespace,
 					},
 				},
-				Metadata: mariadb.Spec.InheritMetadata,
+				Metadata:      mariadb.Spec.InheritMetadata,
+				CleanupPolicy: mariadb.Spec.CleanupPolicy,
 				Privileges: []string{
 					"ALL PRIVILEGES",
 				},
