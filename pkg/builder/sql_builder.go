@@ -93,9 +93,10 @@ func (b *Builder) BuildGrant(key types.NamespacedName, owner metav1.Object, opts
 }
 
 type DatabaseOpts struct {
-	Name       string
-	Metadata   *mariadbv1alpha1.Metadata
-	MariaDBRef mariadbv1alpha1.MariaDBRef
+	Name          string
+	CleanupPolicy *mariadbv1alpha1.CleanupPolicy
+	Metadata      *mariadbv1alpha1.Metadata
+	MariaDBRef    mariadbv1alpha1.MariaDBRef
 }
 
 func (b *Builder) BuildDatabase(key types.NamespacedName, owner metav1.Object, opts DatabaseOpts) (*mariadbv1alpha1.Database, error) {
@@ -109,6 +110,9 @@ func (b *Builder) BuildDatabase(key types.NamespacedName, owner metav1.Object, o
 			MariaDBRef: opts.MariaDBRef,
 			Name:       opts.Name,
 		},
+	}
+	if opts.CleanupPolicy != nil {
+		database.Spec.CleanupPolicy = opts.CleanupPolicy
 	}
 	if err := controllerutil.SetControllerReference(owner, database, b.scheme); err != nil {
 		return nil, fmt.Errorf("error setting controller reference to Database: %v", err)

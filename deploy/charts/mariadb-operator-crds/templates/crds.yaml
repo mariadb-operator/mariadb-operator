@@ -5305,6 +5305,13 @@ spec:
                     type: object
                     x-kubernetes-map-type: atomic
                 type: object
+              cleanupPolicy:
+                description: CleanupPolicy defines the behavior for cleaning up the
+                  initial User, Database, and Grant created by the operator.
+                enum:
+                - Skip
+                - Delete
+                type: string
               passwordSecretKeyRef:
                 description: |-
                   PasswordSecretKeyRef is a reference to a Secret that contains the password to be used by the initial User.
