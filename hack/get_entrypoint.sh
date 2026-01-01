@@ -31,7 +31,16 @@ if [ -d "$MARIADB_ENTRYPOINT_PATH" ]; then
   rm -rf "$MARIADB_ENTRYPOINT_PATH"
 fi
 
-for VERSION_DIR in $(find mariadb-docker/ -maxdepth 1 -type d -regex 'mariadb-docker/[0-9]+\.[0-9]+$' | sort -V); do
+shopt -s nullglob
+version_dirs=()
+for candidate in mariadb-docker/*; do
+  base=$(basename "$candidate")
+  if [[ -d "$candidate" && "$base" =~ ^[0-9]+\.[0-9]+$ ]]; then
+    version_dirs+=("$candidate")
+  fi
+done
+IFS=$'\n' sorted_dirs=($(printf "%s\n" "${version_dirs[@]}" | sort -V))
+for VERSION_DIR in "${sorted_dirs[@]}"; do
   VERSION=$(basename "$VERSION_DIR")
   ENTRYPOINT="$VERSION_DIR/docker-entrypoint.sh"
   

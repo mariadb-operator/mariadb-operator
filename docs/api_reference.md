@@ -10,6 +10,7 @@ Package v1alpha1 contains API Schema definitions for the v1alpha1 API group
 
 
 
+
 ### Resource Types
 - [Backup](#backup)
 - [Connection](#connection)
@@ -1860,6 +1861,24 @@ _Appears in:_
 | `pluginArgSecretKeyRef` _[SecretKeySelector](#secretkeyselector)_ | PluginArgSecretKeyRef is a reference to the arguments to be provided to the authentication plugin for the User.<br />If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the authentication plugin arguments. |  |  |
 
 
+#### PersistentVolumeClaimRetentionPolicyType
+
+_Underlying type:_ _string_
+
+PersistentVolumeClaimRetentionPolicyType describes the lifecycle of persistent volume claims.
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#persistentvolumeclaimretentionpolicytype-v1-apps.
+
+
+
+_Appears in:_
+- [StatefulSetPersistentVolumeClaimRetentionPolicy](#statefulsetpersistentvolumeclaimretentionpolicy)
+
+| Field | Description |
+| --- | --- |
+| `Delete` | PersistentVolumeClaimRetentionPolicyDelete deletes PVCs when their owning pods or StatefulSet are deleted.<br /> |
+| `Retain` | PersistentVolumeClaimRetentionPolicyRetain retains PVCs when their owning pods or StatefulSet are deleted.<br /> |
+
+
 #### PersistentVolumeClaimSpec
 
 
@@ -2817,6 +2836,24 @@ _Appears in:_
 | `inheritMetadata` _[Metadata](#metadata)_ | InheritMetadata defines the metadata to be inherited by children resources. |  |  |
 
 
+#### StatefulSetPersistentVolumeClaimRetentionPolicy
+
+
+
+StatefulSetPersistentVolumeClaimRetentionPolicy describes the lifecycle of PVCs created from volumeClaimTemplates.
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#statefulsetpersistentvolumeclaimretentionpolicy-v1-apps.
+
+
+
+_Appears in:_
+- [Storage](#storage)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `whenDeleted` _[PersistentVolumeClaimRetentionPolicyType](#persistentvolumeclaimretentionpolicytype)_ |  |  |  |
+| `whenScaled` _[PersistentVolumeClaimRetentionPolicyType](#persistentvolumeclaimretentionpolicytype)_ |  |  |  |
+
+
 #### Storage
 
 
@@ -2836,6 +2873,7 @@ _Appears in:_
 | `resizeInUseVolumes` _boolean_ | ResizeInUseVolumes indicates whether the PVCs can be resized. The 'StorageClassName' used should have 'allowVolumeExpansion' set to 'true' to allow resizing.<br />It defaults to true. |  |  |
 | `waitForVolumeResize` _boolean_ | WaitForVolumeResize indicates whether to wait for the PVCs to be resized before marking the MariaDB object as ready. This will block other operations such as cluster recovery while the resize is in progress.<br />It defaults to true. |  |  |
 | `volumeClaimTemplate` _[VolumeClaimTemplate](#volumeclaimtemplate)_ | VolumeClaimTemplate provides a template to define the PVCs. |  |  |
+| `pvcRetentionPolicy` _[StatefulSetPersistentVolumeClaimRetentionPolicy](#statefulsetpersistentvolumeclaimretentionpolicy)_ | PersistentVolumeClaimRetentionPolicy describes the lifecycle of PVCs created from volumeClaimTemplates.<br />By default, all persistent volume claims are created as needed and retained until manually deleted.<br />This policy allows the lifecycle to be altered, for example by deleting PVCs when their statefulset is deleted,<br />or when their pod is scaled down. |  |  |
 
 
 #### StorageVolumeSource

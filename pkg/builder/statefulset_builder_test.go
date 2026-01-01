@@ -500,10 +500,10 @@ func TestMariaDBPVCRetentionPolicy(t *testing.T) {
 				if sts.Spec.PersistentVolumeClaimRetentionPolicy == nil {
 					t.Fatal("expected pvcRetentionPolicy to be set")
 				}
-				if sts.Spec.PersistentVolumeClaimRetentionPolicy.WhenDeleted != appsv1.PersistentVolumeClaimRetentionPolicyDelete {
+				if sts.Spec.PersistentVolumeClaimRetentionPolicy.WhenDeleted != appsv1.DeletePersistentVolumeClaimRetentionPolicyType {
 					t.Errorf("unexpected whenDeleted value: %v", sts.Spec.PersistentVolumeClaimRetentionPolicy.WhenDeleted)
 				}
-				if sts.Spec.PersistentVolumeClaimRetentionPolicy.WhenScaled != appsv1.PersistentVolumeClaimRetentionPolicyRetain {
+				if sts.Spec.PersistentVolumeClaimRetentionPolicy.WhenScaled != appsv1.RetainPersistentVolumeClaimRetentionPolicyType {
 					t.Errorf("unexpected whenScaled value: %v", sts.Spec.PersistentVolumeClaimRetentionPolicy.WhenScaled)
 				}
 			} else if sts.Spec.PersistentVolumeClaimRetentionPolicy != nil {
