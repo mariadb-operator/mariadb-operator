@@ -114,7 +114,9 @@ func (b *Builder) BuildMariadbStatefulSet(mariadb *mariadbv1alpha1.MariaDB, key 
 	return sts, nil
 }
 
-func (b *Builder) mariadbPVCRetentionPolicy(mariadb *mariadbv1alpha1.MariaDB) (*appsv1.StatefulSetPersistentVolumeClaimRetentionPolicy, error) {
+func (b *Builder) mariadbPVCRetentionPolicy(
+	mariadb *mariadbv1alpha1.MariaDB,
+) (*appsv1.StatefulSetPersistentVolumeClaimRetentionPolicy, error) {
 	if mariadb.Spec.Storage.PVCRetentionPolicy == nil {
 		return nil, nil
 	}
