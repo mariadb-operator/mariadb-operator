@@ -8,6 +8,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -17,7 +18,6 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/environment"
 	mariadbminio "github.com/mariadb-operator/mariadb-operator/v25/pkg/minio"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/sql"
-	mdbtime "github.com/mariadb-operator/mariadb-operator/v25/pkg/time"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
@@ -95,6 +95,7 @@ func (a *Archiver) getS3Client(s3 *mariadbv1alpha1.S3, env *environment.PodEnvir
 		mariadbminio.WithTLS(tls.Enabled),
 		mariadbminio.WithRegion(s3.Region),
 		mariadbminio.WithPrefix(s3.Prefix),
+		mariadbminio.WithAllowNestedPrefixes(true),
 	}
 	if env.MariadbOperatorS3CAPath != "" {
 		minioOpts = append(minioOpts, mariadbminio.WithCACertPath(env.MariadbOperatorS3CAPath))
@@ -155,6 +156,19 @@ func (a *Archiver) archiveBinaryLogs(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("error getting binary logs: %v", err)
 	}
+	if len(binlogs) == 0 {
+		return errors.New("no binary logs were found")
+	}
+	if len(binlogs) == 1 {
+		a.logger.V(1).Info("Only active binary log is available. Skipping binary log archival...")
+		return nil
+	}
+	// skip active binary log
+	binlogs = binlogs[:len(binlogs)-1]
+
+	if err := a.resetArchivedBinlog(ctx, binlogs, mdb); err != nil {
+		return fmt.Errorf("error resetting binary logs: %v", err)
+	}
 
 	s3Client, err := a.getS3Client(&pitr.Spec.S3, a.env)
 	if err != nil {
@@ -171,9 +185,8 @@ func (a *Archiver) archiveBinaryLogs(ctx context.Context) error {
 		a.logger.WithName("uploader"),
 	)
 
-	// TODO: filter already archived and active binlogs
-	for i := 0; i < len(binlogs)-1; i++ {
-		if err := a.archiveBinaryLog(ctx, binlogs, i, uploader); err != nil {
+	for i := 0; i < len(binlogs); i++ {
+		if err := a.archiveBinaryLog(ctx, binlogs[i], mdb, pitr, uploader); err != nil {
 			return err
 		}
 	}
@@ -215,67 +228,75 @@ func (a *Archiver) getBinaryLogs(ctx context.Context, sqlClient *sql.Client) ([]
 		binlog := path.Base(fileScanner.Text())
 		binlogs = append(binlogs, binlog)
 	}
+	sort.Strings(binlogs)
+
 	return binlogs, nil
 }
 
-func (a *Archiver) archiveBinaryLog(ctx context.Context, binlogs []string, binlogIndex int, uploader *Uploader) error {
-	if len(binlogs) == 0 {
-		return errors.New("no binary logs were provided")
-	}
-	if binlogIndex < 0 || binlogIndex >= len(binlogs) {
-		return fmt.Errorf("binary log index %d out of bounds [0, %d]", binlogIndex, len(binlogs)-1)
-	}
-	mdb, err := a.getMariaDB(ctx)
-	if err != nil {
-		return err
-	}
-	pitr, err := a.getPointInTimeRecovery(ctx, mdb)
-	if err != nil {
-		return err
-	}
-	binlog := binlogs[binlogIndex]
-	suffix := mdbtime.Format(time.Now())
-	a.logger.V(1).Info("Processing binary log", "binlog", binlog)
-
-	if binlogIndex == len(binlogs)-1 {
-		a.logger.V(1).Info("Skipping active binary log", "binlog", binlog)
+func (a *Archiver) resetArchivedBinlog(ctx context.Context, binlogs []string, mdb *mariadbv1alpha1.MariaDB) error {
+	if mdb.Status.PointInTimeRecovery == nil {
 		return nil
 	}
+	meta, err := GetBinlogMetadata(filepath.Join(a.dataDir, binlogs[0]), a.logger)
+	if err != nil {
+		return fmt.Errorf("error getting binary log %s metadata: %v", binlogs[0], err)
+	}
 
-	// if mdb.Status.PointInTimeRecovery != nil && mdb.Status.PointInTimeRecovery.LastArchivedBinaryLog != nil {
-	// 	num, err := ParseBinlogNum(binlog)
-	// 	if err != nil {
-	// 		return fmt.Errorf("error parsing binlog number in %s: %v", binlog, err)
-	// 	}
-	// 	archivedNum, err := ParseBinlogNum(*mdb.Status.PointInTimeRecovery.LastArchivedBinaryLog)
-	// 	if err != nil {
-	// 		return fmt.Errorf("error archived parsing binlog number in %s: %v", *mdb.Status.PointInTimeRecovery.LastArchivedBinaryLog, err)
-	// 	}
+	if mdb.Status.PointInTimeRecovery.ServerId != meta.ServerId {
+		a.logger.Info(
+			"Detected server_id change. Resetting binary log archival status...",
+			"server-id", mdb.Status.PointInTimeRecovery.ServerId,
+			"new-server-id", meta.ServerId,
+		)
+		if err := a.patchStatus(ctx, mdb, func(status *mariadbv1alpha1.MariaDBStatus) {
+			status.PointInTimeRecovery = nil
+		}); err != nil {
+			return fmt.Errorf("error patching MariaDB: %v", err)
+		}
+	}
 
-	// 	if num.LessThan(archivedNum) || num.Equal(archivedNum) {
-	// 		a.logger.V(1).Info("Skipping binary log since a more recent one has already been archived", "binlog", binlog)
-	// 		return nil
-	// 	}
-	// }
+	// TODO: when a replica that used to be a primary becomes a primary again, there will be previously archived binary logs in the object storage.
+	// As part of the replica configuration, the RESET MASTER will purge the primary logs in the PVC, so the ones in object storage will become stale.
+	// Options:
+	// - Avoid RESET MASTER when PITR is enabled, allowing to keep the previous binlogs
+	// - Keep RESET MASTER and cleanup previous object storage binlogs
 
-	if err := uploader.Upload(ctx, binlog, suffix, mdb, pitr); err != nil {
+	return nil
+}
+
+func (a *Archiver) archiveBinaryLog(ctx context.Context, binlog string, mdb *mariadbv1alpha1.MariaDB,
+	pitr *mariadbv1alpha1.PointInTimeRecovery, uploader *Uploader) error {
+	a.logger.V(1).Info("Processing binary log", "binlog", binlog)
+
+	if mdb.Status.PointInTimeRecovery != nil {
+		num, err := ParseBinlogNum(binlog)
+		if err != nil {
+			return fmt.Errorf("error parsing binlog number in %s: %v", binlog, err)
+		}
+		archivedNum, err := ParseBinlogNum(mdb.Status.PointInTimeRecovery.LastArchivedBinaryLog)
+		if err != nil {
+			return fmt.Errorf("error archived parsing binlog number in %s: %v", mdb.Status.PointInTimeRecovery.LastArchivedBinaryLog, err)
+		}
+
+		if num.LessThan(archivedNum) || num.Equal(archivedNum) {
+			a.logger.V(1).Info("Skipping binary log since a more recent one has already been archived", "binlog", binlog)
+			return nil
+		}
+	}
+
+	if err := uploader.Upload(ctx, binlog, mdb, pitr); err != nil {
 		return fmt.Errorf("error uploading binary log %s: %v", binlog, err)
 	}
 	return nil
 }
 
 func (a *Archiver) updatePointInTimeRecoveryStatus(ctx context.Context, binlogs []string) error {
-	if len(binlogs) < 2 {
-		return nil
-	}
 	mdb, err := a.getMariaDB(ctx)
 	if err != nil {
 		return fmt.Errorf("error getting MariaDB: %v", err)
 	}
-	lastBinlog := binlogs[len(binlogs)-2]
-	activeBinlog := binlogs[len(binlogs)-1]
 
-	pitrStatus, err := a.getPointInTimeRecoveryStatus(lastBinlog, activeBinlog)
+	pitrStatus, err := a.getPointInTimeRecoveryStatus(binlogs[len(binlogs)-1])
 	if err != nil {
 		return fmt.Errorf("error getting PITR status: %v", err)
 	}
@@ -285,7 +306,7 @@ func (a *Archiver) updatePointInTimeRecoveryStatus(ctx context.Context, binlogs 
 	})
 }
 
-func (a *Archiver) getPointInTimeRecoveryStatus(lastBinlog, activeBinlog string) (*mariadbv1alpha1.PointInTimeRecoveryStatus, error) {
+func (a *Archiver) getPointInTimeRecoveryStatus(lastBinlog string) (*mariadbv1alpha1.PointInTimeRecoveryStatus, error) {
 	lastBinlogPath := filepath.Join(a.dataDir, lastBinlog)
 	lastBinlogMeta, err := GetBinlogMetadata(lastBinlogPath, a.logger)
 	if err != nil {
@@ -293,7 +314,6 @@ func (a *Archiver) getPointInTimeRecoveryStatus(lastBinlog, activeBinlog string)
 	}
 	return &mariadbv1alpha1.PointInTimeRecoveryStatus{
 		LastArchivedBinaryLog: lastBinlog,
-		ActiveBinaryLog:       activeBinlog,
 		LastArchivedTime:      metav1.NewTime(time.Unix(int64(lastBinlogMeta.Timestamp), 0)),
 		LastArchivedPosition:  lastBinlogMeta.LogPos,
 		ServerId:              lastBinlogMeta.ServerId,

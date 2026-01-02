@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -38,10 +37,14 @@ func NewUploader(dataDir string, s3Client *mariadbminio.Client, compressor compr
 	}
 }
 
-func (u *Uploader) Upload(ctx context.Context, binlog string, suffix string, mdb *mariadbv1alpha1.MariaDB,
+func (u *Uploader) Upload(ctx context.Context, binlog string, mdb *mariadbv1alpha1.MariaDB,
 	pitr *mariadbv1alpha1.PointInTimeRecovery) error {
 	startTime := time.Now()
-	targetFile, err := u.getTargetFile(binlog, suffix, pitr)
+	meta, err := GetBinlogMetadata(filepath.Join(u.dataDir, binlog), u.logger)
+	if err != nil {
+		return fmt.Errorf("error getting binary log %s metadata: %v", binlog, err)
+	}
+	targetFile, err := u.getTargetFile(binlog, meta, pitr)
 	if err != nil {
 		return fmt.Errorf("error getting target file: %v", err)
 	}
@@ -74,7 +77,8 @@ func (u *Uploader) Upload(ctx context.Context, binlog string, suffix string, mdb
 	}
 
 	if err := retry.OnError(uploadBackoff, uploadIsRetriable, func() error {
-		return u.s3Client.PutObjectWithOptions(ctx, targetFile, file, fileInfo.Size())
+		// TODO: check if target file already exists to prevent overrides (?)
+		return u.s3Client.PutObjectWithOptions(ctx, getObjectName(targetFile, meta), file, fileInfo.Size())
 	}); err != nil {
 		return fmt.Errorf("error uploading binlog %s: %v", binlog, err)
 	}
@@ -93,14 +97,15 @@ func (u *Uploader) Upload(ctx context.Context, binlog string, suffix string, mdb
 	return nil
 }
 
-func (u *Uploader) getTargetFile(binlog string, suffix string, pitr *mariadbv1alpha1.PointInTimeRecovery) (string, error) {
-	name := binlog
-	// insert -<suffix> before the first dot in the filename (e.g. mariadb-bin.000001 -> mariadb-bin-<s>.000001)
-	if idx := strings.Index(name, "."); idx != -1 {
-		name = fmt.Sprintf("%s-%s%s", name[:idx], suffix, name[idx:])
-	} else {
-		name = fmt.Sprintf("%s-%s", name, suffix)
+func (u *Uploader) getBinlogFile(binlog string, targetFile string, pitr *mariadbv1alpha1.PointInTimeRecovery) (*os.File, error) {
+	if pitr.Spec.Compression == "" || pitr.Spec.Compression == mariadbv1alpha1.CompressNone {
+		return os.Open(filepath.Join(u.dataDir, binlog))
 	}
+	return os.Open(filepath.Join(u.dataDir, targetFile))
+}
+
+func (u *Uploader) getTargetFile(binlog string, meta *BinlogMetadata, pitr *mariadbv1alpha1.PointInTimeRecovery) (string, error) {
+	name := binlog
 
 	if pitr.Spec.Compression != "" && pitr.Spec.Compression != mariadbv1alpha1.CompressNone {
 		ext, err := pitr.Spec.Compression.Extension()
@@ -112,16 +117,13 @@ func (u *Uploader) getTargetFile(binlog string, suffix string, pitr *mariadbv1al
 	return name, nil
 }
 
-func (u *Uploader) getBinlogFile(binlog string, targetFile string, pitr *mariadbv1alpha1.PointInTimeRecovery) (*os.File, error) {
-	if pitr.Spec.Compression == "" || pitr.Spec.Compression == mariadbv1alpha1.CompressNone {
-		return os.Open(filepath.Join(u.dataDir, binlog))
-	}
-	return os.Open(filepath.Join(u.dataDir, targetFile))
-}
-
 func (u *Uploader) cleanupCompressedFile(targetFile string, pitr *mariadbv1alpha1.PointInTimeRecovery) error {
 	if pitr.Spec.Compression == "" || pitr.Spec.Compression == mariadbv1alpha1.CompressNone {
 		return nil
 	}
 	return os.Remove(filepath.Join(u.dataDir, targetFile))
+}
+
+func getObjectName(targetFile string, meta *BinlogMetadata) string {
+	return fmt.Sprintf("server-%d/%s", meta.ServerId, targetFile)
 }

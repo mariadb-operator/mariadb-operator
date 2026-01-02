@@ -8125,10 +8125,6 @@ spec:
                 description: PointInTimeRecovery is the status of the point-in-time-recovery
                   process.
                 properties:
-                  activeBinaryLog:
-                    description: ActiveBinaryLog is name of the active binary log.
-                      After being flushed, this is the next binary log to be archived.
-                    type: string
                   lastArchivedBinaryLog:
                     description: LastArchivedBinaryLog is name of the last archived
                       binary log.
