@@ -18,11 +18,12 @@ import (
 )
 
 type MinioOpts struct {
-	TLS             bool
-	CACertPath      string
-	Region          string
-	Prefix          string
-	SSECCustomerKey string
+	TLS                 bool
+	CACertPath          string
+	Region              string
+	Prefix              string
+	AllowNestedPrefixes bool
+	SSECCustomerKey     string
 }
 
 type MinioOpt func(m *MinioOpts)
@@ -48,6 +49,12 @@ func WithRegion(region string) MinioOpt {
 func WithPrefix(prefix string) MinioOpt {
 	return func(m *MinioOpts) {
 		m.Prefix = prefix
+	}
+}
+
+func WithAllowNestedPrefixes(allowNestedPrefixes bool) MinioOpt {
+	return func(m *MinioOpts) {
+		m.AllowNestedPrefixes = allowNestedPrefixes
 	}
 }
 
@@ -128,6 +135,9 @@ func (c *Client) RemoveWithOptions(ctx context.Context, fileName string) error {
 }
 
 func (c *Client) PrefixedFileName(fileName string) string {
+	if c.AllowNestedPrefixes {
+		return c.GetPrefix() + fileName
+	}
 	return c.GetPrefix() + filepath.Base(fileName)
 }
 

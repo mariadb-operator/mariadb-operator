@@ -648,10 +648,6 @@ type PointInTimeRecoveryStatus struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	LastArchivedBinaryLog string `json:"lastArchivedBinaryLog"`
-	// ActiveBinaryLog is name of the active binary log. After being flushed, this is the next binary log to be archived.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=status
-	ActiveBinaryLog string `json:"activeBinaryLog"`
 	// LastArchivedTime is the time of the last archived binary log event.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
