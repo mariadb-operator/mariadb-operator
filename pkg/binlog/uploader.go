@@ -39,7 +39,6 @@ func NewUploader(dataDir string, s3Client *mariadbminio.Client, compressor compr
 
 func (u *Uploader) Upload(ctx context.Context, binlog string, mdb *mariadbv1alpha1.MariaDB,
 	pitr *mariadbv1alpha1.PointInTimeRecovery) error {
-	startTime := time.Now()
 	meta, err := GetBinlogMetadata(filepath.Join(u.dataDir, binlog), u.logger)
 	if err != nil {
 		return fmt.Errorf("error getting binary log %s metadata: %v", binlog, err)
@@ -48,12 +47,25 @@ func (u *Uploader) Upload(ctx context.Context, binlog string, mdb *mariadbv1alph
 	if err != nil {
 		return fmt.Errorf("error getting target file: %v", err)
 	}
-	u.logger.Info(
-		"Uploading binary log",
+	objectName := getObjectName(targetFile, meta)
+	binlogLogger := u.logger.WithValues(
 		"binlog", binlog,
 		"target-file", targetFile,
-		"start-time", startTime.Format(time.RFC3339),
+		"object", objectName,
 	)
+
+	exists, err := u.s3Client.Exists(ctx, objectName)
+	if err != nil {
+		return err
+	}
+	if exists {
+		binlogLogger.V(1).Info("Binary log already exists. Skipping...")
+		return nil
+	}
+
+	startTime := time.Now()
+	binlogLogger = binlogLogger.WithValues("start-time", startTime.Format(time.RFC3339))
+	binlogLogger.Info("Uploading binary log")
 
 	if err := u.compressor.Compress(binlog, compression.WithCompressedFilename(targetFile)); err != nil {
 		return fmt.Errorf("error compressing binlog: %v", err)
@@ -77,8 +89,11 @@ func (u *Uploader) Upload(ctx context.Context, binlog string, mdb *mariadbv1alph
 	}
 
 	if err := retry.OnError(uploadBackoff, uploadIsRetriable, func() error {
-		// TODO: check if target file already exists to prevent overrides (?)
-		return u.s3Client.PutObjectWithOptions(ctx, getObjectName(targetFile, meta), file, fileInfo.Size())
+		// rewind to start for each attempt
+		if _, err := file.Seek(0, 0); err != nil {
+			return fmt.Errorf("seek before upload: %w", err)
+		}
+		return u.s3Client.PutObjectWithOptions(ctx, objectName, file, fileInfo.Size())
 	}); err != nil {
 		return fmt.Errorf("error uploading binlog %s: %v", binlog, err)
 	}
@@ -87,13 +102,7 @@ func (u *Uploader) Upload(ctx context.Context, binlog string, mdb *mariadbv1alph
 		return fmt.Errorf("error cleaning up compressed file: %v", err)
 	}
 
-	u.logger.Info(
-		"Binary log uploaded",
-		"binlog", binlog,
-		"target-file", targetFile,
-		"start-time", startTime.Format(time.RFC3339),
-		"total-time", time.Since(startTime).String(),
-	)
+	binlogLogger.Info("Binary log uploaded", "total-time", time.Since(startTime).String())
 	return nil
 }
 
