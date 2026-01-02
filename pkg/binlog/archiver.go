@@ -255,12 +255,6 @@ func (a *Archiver) resetArchivedBinlog(ctx context.Context, binlogs []string, md
 		}
 	}
 
-	// TODO: when a replica that used to be a primary becomes a primary again, there will be previously archived binary logs in the object storage.
-	// As part of the replica configuration, the RESET MASTER will purge the primary logs in the PVC, so the ones in object storage will become stale.
-	// Options:
-	// - Avoid RESET MASTER when PITR is enabled, allowing to keep the previous binlogs
-	// - Keep RESET MASTER and cleanup previous object storage binlogs
-
 	return nil
 }
 

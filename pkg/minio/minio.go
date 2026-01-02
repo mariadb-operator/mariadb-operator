@@ -134,6 +134,20 @@ func (c *Client) RemoveWithOptions(ctx context.Context, fileName string) error {
 	return c.RemoveObject(ctx, c.bucket, prefixedFilePath, minio.RemoveObjectOptions{})
 }
 
+func (c *Client) Exists(ctx context.Context, fileName string) (bool, error) {
+	prefixedFilePath := c.PrefixedFileName(fileName)
+
+	_, err := c.StatObject(ctx, c.bucket, prefixedFilePath, minio.StatObjectOptions{})
+	if err != nil {
+		resp := minio.ToErrorResponse(err)
+		if resp.StatusCode == http.StatusNotFound || resp.Code == "NoSuchKey" {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
+}
+
 func (c *Client) PrefixedFileName(fileName string) string {
 	if c.AllowNestedPrefixes {
 		return c.GetPrefix() + fileName
