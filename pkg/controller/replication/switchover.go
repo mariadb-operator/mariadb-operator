@@ -425,19 +425,24 @@ func (r *ReplicationReconciler) changePrimaryToReplica(ctx context.Context, req 
 
 func (r *ReplicationReconciler) configureReplicaOpts(ctx context.Context, req *ReconcileRequest, primaryClient *sql.Client,
 	logger logr.Logger) ([]ConfigureReplicaOpt, error) {
+	var replicaOpts []ConfigureReplicaOpt
+
 	if req.replicasSynced {
 		primaryBinlogPos, err := primaryClient.GtidBinlogPos(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("error getting primary binlog position: %v", err)
 		}
 		logger.Info("Configuring replicas with primary GTID", "gtid", primaryBinlogPos)
-		return []ConfigureReplicaOpt{
-			WithGtidSlavePos(primaryBinlogPos),
-		}, nil
+		replicaOpts = append(replicaOpts, WithGtidSlavePos(primaryBinlogPos))
+	} else {
+		replicaOpts = append(replicaOpts, WithResetGtidSlavePos())
 	}
-	return []ConfigureReplicaOpt{
-		WithResetGtidSlavePos(),
-	}, nil
+
+	// avoid deleting binary logs during archival to prevent drifting from object storage
+	if req.mariadb.Spec.PointInTimeRecoveryRef != nil {
+		replicaOpts = append(replicaOpts, WithResetMaster(false))
+	}
+	return replicaOpts, nil
 }
 
 func (r *ReplicationReconciler) currentPrimaryReady(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
