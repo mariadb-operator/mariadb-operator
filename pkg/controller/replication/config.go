@@ -70,6 +70,7 @@ type ConfigureReplicaOpts struct {
 	GtidSlavePos      *string
 	ResetGtidSlavePos bool
 	ChangeMasterOpts  []sql.ChangeMasterOpt
+	ResetMaster       bool
 }
 
 type ConfigureReplicaOpt func(*ConfigureReplicaOpts)
@@ -92,15 +93,25 @@ func WithChangeMasterOpts(opts ...sql.ChangeMasterOpt) ConfigureReplicaOpt {
 	}
 }
 
+func WithResetMaster(resetMaster bool) ConfigureReplicaOpt {
+	return func(cro *ConfigureReplicaOpts) {
+		cro.ResetMaster = resetMaster
+	}
+}
+
 func (r *ReplicationConfigClient) ConfigureReplica(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, client *sql.Client,
 	primaryPodIndex int, replicaOpts ...ConfigureReplicaOpt) error {
-	opts := ConfigureReplicaOpts{}
+	opts := ConfigureReplicaOpts{
+		ResetMaster: true,
+	}
 	for _, setOpt := range replicaOpts {
 		setOpt(&opts)
 	}
 
-	if err := client.ResetMaster(ctx); err != nil {
-		return fmt.Errorf("error resetting master: %v", err)
+	if opts.ResetMaster {
+		if err := client.ResetMaster(ctx); err != nil {
+			return fmt.Errorf("error resetting master: %v", err)
+		}
 	}
 	if err := client.StopAllSlaves(ctx); err != nil {
 		return fmt.Errorf("error stopping slaves: %v", err)
