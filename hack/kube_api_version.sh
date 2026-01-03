@@ -10,6 +10,7 @@ fi
 
 echo "Updating API doc references to version: $KUBE_API_VERSION"
 ESCAPED_VERSION=$(echo "$KUBE_API_VERSION" | sed 's/\./\\./g')
+# Detect GNU vs BSD sed (sed --version only works in GNU)
 if sed --version >/dev/null 2>&1; then
   SED_INPLACE=(-i)
 else
