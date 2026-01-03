@@ -10,7 +10,6 @@ Package v1alpha1 contains API Schema definitions for the v1alpha1 API group
 
 
 
-
 ### Resource Types
 - [Backup](#backup)
 - [Connection](#connection)
@@ -294,7 +293,6 @@ CleanupPolicy defines the behavior for cleaning up a resource.
 _Appears in:_
 - [DatabaseSpec](#databasespec)
 - [GrantSpec](#grantspec)
-- [MariaDBSpec](#mariadbspec)
 - [SQLTemplate](#sqltemplate)
 - [UserSpec](#userspec)
 
@@ -1312,7 +1310,6 @@ _Appears in:_
 | `passwordSecretKeyRef` _[GeneratedSecretKeyRef](#generatedsecretkeyref)_ | PasswordSecretKeyRef is a reference to a Secret that contains the password to be used by the initial User.<br />If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password. |  |  |
 | `passwordHashSecretKeyRef` _[SecretKeySelector](#secretkeyselector)_ | PasswordHashSecretKeyRef is a reference to the password hash to be used by the initial User.<br />If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password hash. |  |  |
 | `passwordPlugin` _[PasswordPlugin](#passwordplugin)_ | PasswordPlugin is a reference to the password plugin and arguments to be used by the initial User. |  |  |
-| `cleanupPolicy` _[CleanupPolicy](#cleanuppolicy)_ | CleanupPolicy defines the behavior for cleaning up the initial User, Database, and Grant created by the operator. |  | Enum: [Skip Delete] <br /> |
 | `myCnf` _string_ | MyCnf allows to specify the my.cnf file mounted by Mariadb.<br />Updating this field will trigger an update to the Mariadb resource. |  |  |
 | `myCnfConfigMapKeyRef` _[ConfigMapKeySelector](#configmapkeyselector)_ | MyCnfConfigMapKeyRef is a reference to the my.cnf config file provided via a ConfigMap.<br />If not provided, it will be defaulted with a reference to a ConfigMap containing the MyCnf field.<br />If the referred ConfigMap is labeled with "k8s.mariadb.com/watch", an update to the Mariadb resource will be triggered when the ConfigMap is updated. |  |  |
 | `timeZone` _string_ | TimeZone sets the default timezone. If not provided, it defaults to SYSTEM and the timezone data is not loaded. |  |  |
@@ -1861,24 +1858,6 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `pluginNameSecretKeyRef` _[SecretKeySelector](#secretkeyselector)_ | PluginNameSecretKeyRef is a reference to the authentication plugin to be used by the User.<br />If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the authentication plugin. |  |  |
 | `pluginArgSecretKeyRef` _[SecretKeySelector](#secretkeyselector)_ | PluginArgSecretKeyRef is a reference to the arguments to be provided to the authentication plugin for the User.<br />If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the authentication plugin arguments. |  |  |
-
-
-#### PersistentVolumeClaimRetentionPolicyType
-
-_Underlying type:_ _string_
-
-PersistentVolumeClaimRetentionPolicyType describes the lifecycle of persistent volume claims.
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#statefulsetpersistentvolumeclaimretentionpolicy-v1-apps.
-
-
-
-_Appears in:_
-- [StatefulSetPersistentVolumeClaimRetentionPolicy](#statefulsetpersistentvolumeclaimretentionpolicy)
-
-| Field | Description |
-| --- | --- |
-| `Delete` | PersistentVolumeClaimRetentionPolicyDelete deletes PVCs when their owning pods or StatefulSet are deleted.<br /> |
-| `Retain` | PersistentVolumeClaimRetentionPolicyRetain retains PVCs when their owning pods or StatefulSet are deleted.<br /> |
 
 
 #### PersistentVolumeClaimSpec
@@ -2838,24 +2817,6 @@ _Appears in:_
 | `inheritMetadata` _[Metadata](#metadata)_ | InheritMetadata defines the metadata to be inherited by children resources. |  |  |
 
 
-#### StatefulSetPersistentVolumeClaimRetentionPolicy
-
-
-
-StatefulSetPersistentVolumeClaimRetentionPolicy describes the lifecycle of PVCs created from volumeClaimTemplates.
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#statefulsetpersistentvolumeclaimretentionpolicy-v1-apps.
-
-
-
-_Appears in:_
-- [Storage](#storage)
-
-| Field | Description | Default | Validation |
-| --- | --- | --- | --- |
-| `whenDeleted` _[PersistentVolumeClaimRetentionPolicyType](#persistentvolumeclaimretentionpolicytype)_ |  |  |  |
-| `whenScaled` _[PersistentVolumeClaimRetentionPolicyType](#persistentvolumeclaimretentionpolicytype)_ |  |  |  |
-
-
 #### Storage
 
 
@@ -2875,7 +2836,6 @@ _Appears in:_
 | `resizeInUseVolumes` _boolean_ | ResizeInUseVolumes indicates whether the PVCs can be resized. The 'StorageClassName' used should have 'allowVolumeExpansion' set to 'true' to allow resizing.<br />It defaults to true. |  |  |
 | `waitForVolumeResize` _boolean_ | WaitForVolumeResize indicates whether to wait for the PVCs to be resized before marking the MariaDB object as ready. This will block other operations such as cluster recovery while the resize is in progress.<br />It defaults to true. |  |  |
 | `volumeClaimTemplate` _[VolumeClaimTemplate](#volumeclaimtemplate)_ | VolumeClaimTemplate provides a template to define the PVCs. |  |  |
-| `pvcRetentionPolicy` _[StatefulSetPersistentVolumeClaimRetentionPolicy](#statefulsetpersistentvolumeclaimretentionpolicy)_ | PersistentVolumeClaimRetentionPolicy describes the lifecycle of PVCs created from volumeClaimTemplates.<br />By default, all persistent volume claims are created as needed and retained until manually deleted.<br />This policy allows the lifecycle to be altered, for example by deleting PVCs when their statefulset is deleted,<br />or when their pod is scaled down. |  |  |
 
 
 #### StorageVolumeSource
