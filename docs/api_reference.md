@@ -1868,7 +1868,7 @@ _Appears in:_
 _Underlying type:_ _string_
 
 PersistentVolumeClaimRetentionPolicyType describes the lifecycle of persistent volume claims.
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#persistentvolumeclaimretentionpolicytype-v1-apps.
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#statefulsetpersistentvolumeclaimretentionpolicy-v1-apps.
 
 
 
