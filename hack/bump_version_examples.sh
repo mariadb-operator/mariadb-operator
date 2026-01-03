@@ -11,6 +11,7 @@ fi
 
 echo "Updating examples in folder '$FOLDER' to '$IMAGE:$VERSION'"
 
+# Detect GNU vs BSD sed (sed --version only works in GNU)
 if sed --version >/dev/null 2>&1; then
   SED_INPLACE=(-i)
 else
