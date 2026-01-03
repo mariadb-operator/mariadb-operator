@@ -491,7 +491,7 @@ func TestMariaDBPVCRetentionPolicy(t *testing.T) {
 				},
 			}
 
-			sts, err := builder.BuildMariadbStatefulSet(mariadb, client.ObjectKeyFromObject(mariadb), nil)
+			sts, err := builder.BuildMariadbStatefulSet(mariadb, client.ObjectKeyFromObject(mariadb), nil, nil)
 			if err != nil {
 				t.Fatalf("unexpected error building StatefulSet: %v", err)
 			}
