@@ -9,6 +9,7 @@ docs-api: crd-ref-docs ## Generate API reference docs.
 		--renderer=markdown \
 		--output-path=$(DOCS_API_REFERENCE) \
 		--max-depth=13
+        # Detect GNU vs BSD sed (sed --version only works in GNU)
 	@sed -i '/nolint:lll/d' $(DOCS_API_REFERENCE) 2>/dev/null || \
 	  sed -i '' '/nolint:lll/d' $(DOCS_API_REFERENCE)
 
