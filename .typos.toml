@@ -7,7 +7,12 @@ ist = "ist"
 cmo = "cmo"
 # TO DO: fix => immutable
 inmutable = "inmutable"
-
+# Global Transaction IDs
+GTI = "GTI"
+# Global Transaction IDs
+GTIDs = "GTIDs"
+# Global Transaction ID
+GTID = "GTID"
 [files]
 extend-exclude = [
     # comes from external source
