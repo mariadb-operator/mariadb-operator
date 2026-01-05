@@ -263,11 +263,18 @@ func (c *Client) getTransport(opts *Opts) (http.RoundTripper, error) {
 		return nil, fmt.Errorf("error parsing x509 keypair: %v", err)
 	}
 
+	// @PERF: We should not create a transport every time, but potentially pool them
 	return &http.Transport{
+		Proxy: http.ProxyFromEnvironment,
 		TLSClientConfig: &tls.Config{
 			RootCAs:            caCertPool,
 			Certificates:       []tls.Certificate{cert},
 			InsecureSkipVerify: false,
 		},
+		ForceAttemptHTTP2:     true,
+		MaxIdleConns:          100,
+		IdleConnTimeout:       90 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
 	}, nil
 }
