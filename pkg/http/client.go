@@ -264,7 +264,7 @@ func (c *Client) getTransport(opts *Opts) (http.RoundTripper, error) {
 	}
 
 	// @PERF: We should not create a transport every time, but potentially pool them.
-	//        ref: net/http/transport.go > DefaultTransport
+	// Using defaults from DefaultTransport: https://pkg.go.dev/net/http#DefaultTransport
 	return &http.Transport{
 		Proxy: http.ProxyFromEnvironment,
 		TLSClientConfig: &tls.Config{
