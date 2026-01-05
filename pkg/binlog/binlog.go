@@ -41,10 +41,17 @@ func (b *BinlogNum) Equal(other *BinlogNum) bool {
 }
 
 type BinlogMetadata struct {
-	Timestamp uint32
-	LogPos    uint32
-	ServerId  uint32
-	Gtid      *string
+	ServerId       uint32
+	ServerVersion  string
+	BinlogVersion  uint16
+	LogPos         uint32
+	FirstTimestamp uint32
+	LastTimestamp  uint32
+	PreviousGtids  []string
+	FirstGtid      *string
+	LastGtid       *string
+	RotateEvent    bool
+	StopEvent      bool
 }
 
 func GetBinlogMetadata(filename string, logger logr.Logger) (*BinlogMetadata, error) {
@@ -54,36 +61,93 @@ func GetBinlogMetadata(filename string, logger logr.Logger) (*BinlogMetadata, er
 	parser.SetRawMode(true)
 
 	meta := BinlogMetadata{}
-	var rawGtidEvent []byte
+	var (
+		rawFormatDescriptionEvent []byte
+		rawGtidListEvent          []byte
+		firstRawGtidEvent         []byte
+		lastRawGtidEvent          []byte
+	)
 
-	err := parser.ParseFile(filename, 0, func(e *replication.BinlogEvent) error {
-		if e.Header.EventType == replication.MARIADB_GTID_EVENT {
-			rawGtidEvent = e.RawData
-		}
-		meta.Timestamp = e.Header.Timestamp
-		meta.LogPos = e.Header.LogPos
+	if err := parser.ParseFile(filename, 0, func(e *replication.BinlogEvent) error {
 		meta.ServerId = e.Header.ServerID
+		meta.LogPos = e.Header.LogPos
+
+		// See: https://mariadb.com/docs/server/reference/clientserver-protocol/replication-protocol
+		switch e.Header.EventType {
+		case replication.FORMAT_DESCRIPTION_EVENT:
+			rawFormatDescriptionEvent = e.RawData
+		case replication.MARIADB_GTID_LIST_EVENT:
+			rawGtidListEvent = e.RawData
+		case replication.MARIADB_GTID_EVENT:
+			if firstRawGtidEvent == nil {
+				firstRawGtidEvent = e.RawData
+			}
+			lastRawGtidEvent = e.RawData
+		case replication.ROTATE_EVENT:
+			meta.RotateEvent = true
+		case replication.STOP_EVENT:
+			meta.StopEvent = true
+		}
+		if meta.FirstTimestamp == 0 {
+			meta.FirstTimestamp = e.Header.Timestamp
+		}
+		meta.LastTimestamp = e.Header.Timestamp
+
 		return nil
-	})
-	if err != nil {
+	}); err != nil {
 		return nil, fmt.Errorf("error getting binlog metadata: %v", err)
 	}
 
-	if rawGtidEvent != nil {
-		gtidEvent := &replication.MariadbGTIDEvent{}
-		// See:
-		// https://github.com/go-mysql-org/go-mysql/blob/a07c974ef5a34a8d0d7dfb543652c4ba2dec90cf/replication/parser.go#L149
-		// https://github.com/wal-g/wal-g/blob/c98a8ea2d4afcb639e112164b7ce30316c4fbdb0/internal/databases/mysql/mysql_binlog.go#L76
-		if err := gtidEvent.Decode(rawGtidEvent[replication.EventHeaderSize:]); err != nil {
-			fmt.Printf("error decoding GTID event: %v", err)
-		} else {
-			// See:
-			// https://github.com/go-mysql-org/go-mysql/blob/a07c974ef5a34a8d0d7dfb543652c4ba2dec90cf/replication/parser.go#L315
-			// https://github.com/go-mysql-org/go-mysql/blob/a07c974ef5a34a8d0d7dfb543652c4ba2dec90cf/replication/event.go#L876
-			gtidEvent.GTID.ServerID = meta.ServerId
-			meta.Gtid = ptr.To(gtidEvent.GTID.String())
+	if rawFormatDescriptionEvent != nil {
+		formatDescription := &replication.FormatDescriptionEvent{}
+		if err := formatDescription.Decode(rawFormatDescriptionEvent[replication.EventHeaderSize:]); err != nil {
+			return nil, fmt.Errorf("error decoding format description event: %v", err)
 		}
+		meta.ServerVersion = formatDescription.ServerVersion
+		meta.BinlogVersion = formatDescription.Version
+	}
+
+	if rawGtidListEvent != nil {
+		listEvent := &replication.MariadbGTIDListEvent{}
+		if err := listEvent.Decode(rawGtidListEvent[replication.EventHeaderSize:]); err != nil {
+			return nil, fmt.Errorf("error decoding GTID list event: %v", err)
+		}
+		prevGtids := make([]string, len(listEvent.GTIDs))
+		for i, gtid := range listEvent.GTIDs {
+			prevGtids[i] = gtid.String()
+		}
+		meta.PreviousGtids = prevGtids
+	}
+
+	if firstRawGtidEvent != nil {
+		firstGtid, err := decodeGTIDEvent(firstRawGtidEvent, meta.ServerId)
+		if err != nil {
+			return nil, fmt.Errorf("error decoding first GTID event: %v", err)
+		}
+		meta.FirstGtid = ptr.To(firstGtid.GTID.String())
+	}
+	if lastRawGtidEvent != nil {
+		lastGtid, err := decodeGTIDEvent(lastRawGtidEvent, meta.ServerId)
+		if err != nil {
+			return nil, fmt.Errorf("error decoding last GTID event: %v", err)
+		}
+		meta.LastGtid = ptr.To(lastGtid.GTID.String())
 	}
 
 	return &meta, nil
+}
+
+func decodeGTIDEvent(rawEvent []byte, serverId uint32) (*replication.MariadbGTIDEvent, error) {
+	gtidEvent := &replication.MariadbGTIDEvent{}
+	// See:
+	// https://github.com/go-mysql-org/go-mysql/blob/a07c974ef5a34a8d0d7dfb543652c4ba2dec90cf/replication/parser.go#L149
+	// https://github.com/wal-g/wal-g/blob/c98a8ea2d4afcb639e112164b7ce30316c4fbdb0/internal/databases/mysql/mysql_binlog.go#L76
+	if err := gtidEvent.Decode(rawEvent[replication.EventHeaderSize:]); err != nil {
+		return nil, err
+	}
+	// See:
+	// https://github.com/go-mysql-org/go-mysql/blob/a07c974ef5a34a8d0d7dfb543652c4ba2dec90cf/replication/parser.go#L315
+	// https://github.com/go-mysql-org/go-mysql/blob/a07c974ef5a34a8d0d7dfb543652c4ba2dec90cf/replication/event.go#L876
+	gtidEvent.GTID.ServerID = serverId
+	return gtidEvent, nil
 }

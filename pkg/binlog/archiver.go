@@ -307,11 +307,11 @@ func (a *Archiver) getPointInTimeRecoveryStatus(lastBinlog string) (*mariadbv1al
 		return nil, fmt.Errorf("error getting last binlog %s metadata: %v", lastBinlog, err)
 	}
 	return &mariadbv1alpha1.PointInTimeRecoveryStatus{
-		LastArchivedBinaryLog: lastBinlog,
-		LastArchivedTime:      metav1.NewTime(time.Unix(int64(lastBinlogMeta.Timestamp), 0)),
-		LastArchivedPosition:  lastBinlogMeta.LogPos,
 		ServerId:              lastBinlogMeta.ServerId,
-		LastArchivedGtid:      lastBinlogMeta.Gtid,
+		LastArchivedBinaryLog: lastBinlog,
+		LastArchivedTime:      metav1.NewTime(time.Unix(int64(lastBinlogMeta.LastTimestamp), 0)),
+		LastArchivedPosition:  lastBinlogMeta.LogPos,
+		LastArchivedGtid:      lastBinlogMeta.LastGtid,
 	}, nil
 }
 
