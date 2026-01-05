@@ -644,6 +644,10 @@ type MariaDBTLSStatus struct {
 
 // PointInTimeRecoveryStatus represents the current status of the binary log archival and  point-in-time-recovery.
 type PointInTimeRecoveryStatus struct {
+	// ServerId identifies the server whose binary logs are being archived.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	ServerId uint32 `json:"serverId,omitempty"`
 	// LastArchivedBinaryLog is name of the last archived binary log.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
@@ -656,10 +660,6 @@ type PointInTimeRecoveryStatus struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	LastArchivedPosition uint32 `json:"lastArchivedPosition"`
-	// ServerId identifies the server whose binary logs are being archived.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=status
-	ServerId uint32 `json:"serverId,omitempty"`
 	// LastArchivedGtid is the last archived GTID.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
