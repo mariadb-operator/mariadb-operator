@@ -5,6 +5,7 @@ namespaceOverride: ""
 # https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/api_reference.md#mariadbspec
 mariadb:
   rootPasswordSecretKeyRef:
+    # If name is set to null and generate is true then secret key name will also be generated
     name: mariadb
     key: root-password
   storage:

@@ -71,6 +71,19 @@ Usage:
 {{- end }}
 
 {{/*
+Generate a passwordSecretKeyRef.
+*/}}
+{{- define "mariadb-cluster.generatePasswordSecretKeyRef" -}}
+{{- if and .secretKeyRef.generate (not .secretKeyRef.name) }}
+  name: {{ include "mariadb-cluster.fullname" .global }}-{{ .name }}
+{{- else }}
+  name: {{ .secretKeyRef.name }}
+{{- end }}
+  generate: {{ .secretKeyRef.generate }}
+  key: {{ .secretKeyRef.key }}
+{{- end }}
+
+{{/*
 Validate Database CRs
 */}}
 {{- define "mariadb-cluster.validateDatabases" -}}

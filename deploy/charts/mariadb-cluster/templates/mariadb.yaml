@@ -6,4 +6,16 @@ metadata:
   labels:
     {{- include "mariadb-cluster.labels" . | nindent 4 }}
 spec:
-  {{- toYaml .Values.mariadb | nindent 2 }}
+  {{- if .Values.mariadb.rootPasswordSecretKeyRef }}
+  rootPasswordSecretKeyRef:
+    {{- include "mariadb-cluster.generatePasswordSecretKeyRef" (dict "secretKeyRef" .Values.mariadb.rootPasswordSecretKeyRef "global" $ "name" "root") | nindent 2 }}
+  {{- end }}
+  {{- if .Values.mariadb.passwordSecretKeyRef }}
+  passwordSecretKeyRef:
+    {{- include "mariadb-cluster.generatePasswordSecretKeyRef" (dict "secretKeyRef" .Values.mariadb.passwordSecretKeyRef "global" $ "name" .Values.mariadb.username) | nindent 2 }}
+  {{- end }}
+  {{- if .Values.mariadb.passwordHashSecretKeyRef }}
+  passwordHashSecretKeyRef:
+    {{- include "mariadb-cluster.generatePasswordSecretKeyRef" (dict "secretKeyRef" .Values.mariadb.passwordHashSecretKeyRef "global" $ "name" .Values.mariadb.username) | nindent 2 }}
+  {{- end }}
+  {{- include "mariadb-cluster.omitKeys" (dict "object" .Values.mariadb "keys" (list "rootPasswordSecretKeyRef" "passwordSecretKeyRef" "passwordHashSecretKeyRef") "nindent" 2) }}
