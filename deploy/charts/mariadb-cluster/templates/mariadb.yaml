@@ -6,4 +6,5 @@ metadata:
   labels:
     {{- include "mariadb-cluster.labels" . | nindent 4 }}
 spec:
+  {{- include "mariadb-cluster.generateSecretRefNames" . -}}
   {{- toYaml .Values.mariadb | nindent 2 }}

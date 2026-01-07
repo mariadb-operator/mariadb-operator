@@ -158,10 +158,12 @@ This helm chart simplifies the deployment of a `MariaDB` cluster and its associa
 For example, by using the following `values.yaml` file to install the helm chart:
 
 ```yaml
+# In the following example the referenced secrets are managed externally.
 mariadb:
   rootPasswordSecretKeyRef:
     name: mariadb
     key: root-password
+    generate: false
   storage:
     size: 1Gi
   replicas: 3

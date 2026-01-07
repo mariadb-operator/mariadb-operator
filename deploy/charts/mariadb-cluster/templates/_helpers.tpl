@@ -124,3 +124,14 @@ Validate PhysicalBackup CRs
 {{- end }}
 {{- end }}
 {{- end }}
+
+{{/*
+Generate names for Secret references
+*/}}
+{{- define "mariadb-cluster.generateSecretRefNames" -}}
+{{- range list .Values.mariadb.rootPasswordSecretKeyRef .Values.mariadb.passwordSecretKeyRef .Values.mariadb.passwordHashSecretKeyRef }}
+{{- if and . (not .name) }}
+{{- $_ := set . "name" (printf "%s-%s" (include "mariadb-cluster.fullname" $) .key) -}}
+{{- end }}
+{{- end }}
+{{- end }}

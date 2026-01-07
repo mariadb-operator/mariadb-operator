@@ -5,8 +5,11 @@ namespaceOverride: ""
 # https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/api_reference.md#mariadbspec
 mariadb:
   rootPasswordSecretKeyRef:
-    name: mariadb
-    key: root-password
+    # -- The name of the Secret holding root password.
+    # @default -- The chart will generate the Secret name e.g. `myrelease-mariadb-cluster-root`
+    name: ""
+    key: root
+    generate: true
   storage:
     size: 1Gi
   replicas: 3
