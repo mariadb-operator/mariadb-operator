@@ -444,14 +444,15 @@ func (m *MariaDB) IsSwitchingPrimary() bool {
 	return meta.IsStatusConditionFalse(m.Status.Conditions, ConditionTypePrimarySwitched)
 }
 
-// IsSwitchoverRequired indicates that a primary switchover operation is required.
-func (m *MariaDB) IsSwitchoverRequired() bool {
-	if m.Status.CurrentPrimaryPodIndex == nil || m.IsMaxScaleEnabled() {
+// IsReplicationSwitchoverRequired indicates that a primary switchover operation is required.
+func (m *MariaDB) IsReplicationSwitchoverRequired() bool {
+	if m.IsMaxScaleEnabled() || !m.IsReplicationEnabled() {
 		return false
 	}
-	currentPodIndex := ptr.Deref(m.Status.CurrentPrimaryPodIndex, 0)
-	desiredPodIndex := ptr.Deref(ptr.Deref(m.Spec.Replication, Replication{}).Primary.PodIndex, 0)
-	return currentPodIndex != desiredPodIndex
+	if m.Status.CurrentPrimaryPodIndex == nil || m.Spec.Replication == nil || m.Spec.Replication.Primary.PodIndex == nil {
+		return false
+	}
+	return *m.Status.CurrentPrimaryPodIndex != *m.Spec.Replication.Primary.PodIndex
 }
 
 // ReplicationRole represents the observed replication roles.

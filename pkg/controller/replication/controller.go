@@ -139,7 +139,7 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, mdb *mariadbv1alp
 	}
 	defer req.Close()
 
-	if mdb.IsSwitchoverRequired() {
+	if mdb.IsReplicationSwitchoverRequired() {
 		return ctrl.Result{}, r.reconcileSwitchover(ctx, req, switchoverLogger)
 	}
 	if result, err := r.reconcileReplication(ctx, req, logger); !result.IsZero() || err != nil {
@@ -152,7 +152,7 @@ func (r *ReplicationReconciler) reconcileReplication(ctx context.Context, req *R
 	if result, err := r.shouldReconcileReplication(ctx, req, logger); !result.IsZero() || err != nil {
 		return result, err
 	}
-	for _, i := range r.replicationPodIndexes(ctx, req) {
+	for _, i := range r.replicationPodIndexes(req) {
 		if result, err := r.ReconcileReplicationInPod(ctx, req, i, logger); !result.IsZero() || err != nil {
 			return result, err
 		}
@@ -192,7 +192,7 @@ func (r *ReplicationReconciler) shouldReconcileReplication(ctx context.Context, 
 	return ctrl.Result{}, nil
 }
 
-func (r *ReplicationReconciler) replicationPodIndexes(ctx context.Context, req *ReconcileRequest) []int {
+func (r *ReplicationReconciler) replicationPodIndexes(req *ReconcileRequest) []int {
 	podIndexes := []int{
 		*req.mariadb.Status.CurrentPrimaryPodIndex,
 	}

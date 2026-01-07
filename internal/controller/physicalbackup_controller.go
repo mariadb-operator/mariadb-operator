@@ -269,7 +269,7 @@ func shouldReconcilePhysicalBackup(mdb *mariadbv1alpha1.MariaDB, logger logr.Log
 		logger.Info("Initialization in progress, skipping PhysicalBackup schedule...")
 		return false
 	}
-	if mdb.IsSwitchingPrimary() || mdb.IsSwitchoverRequired() {
+	if mdb.IsSwitchingPrimary() || mdb.IsReplicationSwitchoverRequired() {
 		logger.Info("Switchover in progress, skipping PhysicalBackup schedule...")
 		return false
 	}

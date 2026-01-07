@@ -149,7 +149,7 @@ func (r *PodReplicationController) ReconcilePodNotReady(ctx context.Context, pod
 }
 
 func shouldReconcile(mdb *mariadbv1alpha1.MariaDB) bool {
-	if mdb.IsMaxScaleEnabled() || mdb.IsSwitchingPrimary() || mdb.IsSwitchoverRequired() ||
+	if mdb.IsMaxScaleEnabled() || mdb.IsSwitchingPrimary() || mdb.IsReplicationSwitchoverRequired() ||
 		mdb.IsRestoringBackup() || mdb.IsResizingStorage() || mdb.IsSuspended() {
 		return false
 	}

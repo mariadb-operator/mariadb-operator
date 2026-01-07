@@ -33,7 +33,7 @@ func (r *MariaDBReconciler) reconcileScaleOut(ctx context.Context, mariadb *mari
 		return ctrl.Result{}, err
 	}
 
-	isScalingOut, err := r.isScalingOut(ctx, mariadb, &sts)
+	isScalingOut, err := r.isScalingOut(mariadb, &sts)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -95,11 +95,11 @@ func (r *MariaDBReconciler) reconcileScaleOut(ctx context.Context, mariadb *mari
 	return ctrl.Result{}, nil
 }
 
-func (r *MariaDBReconciler) isScalingOut(ctx context.Context, mdb *mariadbv1alpha1.MariaDB, sts *appsv1.StatefulSet) (bool, error) {
+func (r *MariaDBReconciler) isScalingOut(mdb *mariadbv1alpha1.MariaDB, sts *appsv1.StatefulSet) (bool, error) {
 	if !mdb.IsReplicationEnabled() || !mdb.HasConfiguredReplication() || sts.Status.Replicas == 0 {
 		return false, nil
 	}
-	if mdb.IsSwitchingPrimary() || mdb.IsSwitchoverRequired() || mdb.IsInitializing() || mdb.IsRecoveringReplicas() ||
+	if mdb.IsSwitchingPrimary() || mdb.IsReplicationSwitchoverRequired() || mdb.IsInitializing() || mdb.IsRecoveringReplicas() ||
 		mdb.IsRestoringBackup() || mdb.IsResizingStorage() || mdb.IsUpdating() {
 		return false, nil
 	}
