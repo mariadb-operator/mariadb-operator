@@ -28,8 +28,8 @@ func TestClusterHelmMariaDB(t *testing.T) {
 
 	replicas := 3
 	storageSize := "1Gi"
-	rootPasswordSecretKeyRefKey := "mariadb"
-	rootPasswordSecretKeyRefName := "root-password"
+	rootPasswordSecretKeyRefKey := "root"
+	rootPasswordSecretKeyRefName := "mariadb"
 
 	opts := &helm.Options{
 		SetValues: map[string]string{
@@ -55,6 +55,34 @@ func TestClusterHelmMariaDB(t *testing.T) {
 	Expect(mariadb.Spec.Storage.Size.String()).To(Equal(storageSize))
 	Expect(mariadb.Spec.RootPasswordSecretKeyRef.Key).To(Equal(rootPasswordSecretKeyRefKey))
 	Expect(mariadb.Spec.RootPasswordSecretKeyRef.Name).To(Equal(rootPasswordSecretKeyRefName))
+}
+
+func TestClusterHelmMariaDBNoSecretKeyRefName(t *testing.T) {
+	RegisterTestingT(t)
+
+	rootPasswordSecretKeyRefKey := "root"
+	passwordSecretKeyRefKey := "mariadb-1"
+	passwordHashSecretKeyRefKey := "mariadb-2"
+
+	opts := &helm.Options{
+		SetValues: map[string]string{
+			"mariadb.rootPasswordSecretKeyRef.key":  rootPasswordSecretKeyRefKey,
+			"mariadb.rootPasswordSecretKeyRef.name": "",
+			"mariadb.passwordSecretKeyRef.key":      passwordSecretKeyRefKey,
+			"mariadb.passwordSecretKeyRef.name":     "",
+			"mariadb.passwordHashSecretKeyRef.key":  passwordHashSecretKeyRefKey,
+			"mariadb.passwordHashSecretKeyRef.name": "",
+		},
+		KubectlOptions: kubectlopts,
+	}
+
+	renderedData := helm.RenderTemplate(t, opts, clusterHelmChartPath, clusterHelmReleaseName, []string{"templates/mariadb.yaml"})
+	var mariadb v1alpha1.MariaDB
+	helm.UnmarshalK8SYaml(t, renderedData, &mariadb)
+
+	Expect(mariadb.Spec.RootPasswordSecretKeyRef.Name).To(Equal(fmt.Sprintf("%s-%s", clusterHelmReleaseName, rootPasswordSecretKeyRefKey)))
+	Expect(mariadb.Spec.PasswordSecretKeyRef.Name).To(Equal(fmt.Sprintf("%s-%s", clusterHelmReleaseName, passwordSecretKeyRefKey)))
+	Expect(mariadb.Spec.PasswordHashSecretKeyRef.Name).To(Equal(fmt.Sprintf("%s-%s", clusterHelmReleaseName, passwordHashSecretKeyRefKey)))
 }
 
 func TestClusterHelmDatabase(t *testing.T) {
@@ -116,8 +144,8 @@ func TestClusterHelmUser(t *testing.T) {
 	cleanupPolicy := "Delete"
 	host := "%"
 	maxUserConnections := 100
-	passwordSecretKeyRefKey := "mariadb"
-	passwordSecretKeyRefName := "password"
+	passwordSecretKeyRefKey := "root"
+	passwordSecretKeyRefName := "mariadb"
 	requeueInterval := "10h"
 	retryInterval := "30s"
 
@@ -240,10 +268,10 @@ func TestClusterHelmBackup(t *testing.T) {
 	endpoint := "minio.minio.svc.cluster.local:9000"
 	region := "us-east-1"
 	prefix := "mariadb-cluster"
-	accessKeyIdSecretKeyRefKey := "minio"
-	accessKeyIdSecretKeyRefName := "access-key-id"
-	secretAccessKeySecretKeyRefKey := "minio"
-	secretAccessKeySecretKeyRefName := "secret-access-key"
+	accessKeyIdSecretKeyRefKey := "access-key-id"
+	accessKeyIdSecretKeyRefName := "minio"
+	secretAccessKeySecretKeyRefKey := "secret-access-key"
+	secretAccessKeySecretKeyRefName := "minio"
 	cron := "0 0 * * *"
 
 	durationMaxRetention, _ := time.ParseDuration(maxRetention)
@@ -315,10 +343,10 @@ func TestClusterHelmPhysicalBackup(t *testing.T) {
 	endpoint := "minio.minio.svc.cluster.local:9000"
 	region := "us-east-1"
 	prefix := "mariadb-cluster"
-	accessKeyIdSecretKeyRefKey := "minio"
-	accessKeyIdSecretKeyRefName := "access-key-id"
-	secretAccessKeySecretKeyRefKey := "minio"
-	secretAccessKeySecretKeyRefName := "secret-access-key"
+	accessKeyIdSecretKeyRefKey := "access-key-id"
+	accessKeyIdSecretKeyRefName := "minio"
+	secretAccessKeySecretKeyRefKey := "secret-access-key"
+	secretAccessKeySecretKeyRefName := "minio"
 	cron := "0 0 * * *"
 
 	durationMaxRetention, _ := time.ParseDuration(maxRetention)

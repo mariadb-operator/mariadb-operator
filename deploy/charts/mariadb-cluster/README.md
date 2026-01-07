@@ -32,7 +32,8 @@ Refer to the [helm documentation](https://github.com/mariadb-operator/mariadb-op
 | databases | list | `[]` | The list of Database CRs. The `.mariaDbRef` keys will be ignored. The `.name` keys are required to generate distinct CR names. The `.namespace` keys are allowed to override `.Release.Namespace`. https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/api_reference.md#databasespec |
 | fullnameOverride | string | `""` |  |
 | grants | list | `[]` | The list of Grant CRs. The `.mariaDbRef` keys will be ignored. The `.name` keys are used to generate distinct CR names. The `.namespace` keys are allowed to override `.Release.Namespace`. https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/api_reference.md#grantspec |
-| mariadb | object | `{"galera":{"enabled":true},"replicas":3,"rootPasswordSecretKeyRef":{"key":"root-password","name":"mariadb"},"storage":{"size":"1Gi"}}` | MariaDB CR https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/api_reference.md#mariadbspec |
+| mariadb | object | `{"galera":{"enabled":true},"replicas":3,"rootPasswordSecretKeyRef":{"generate":true,"key":"root","name":""},"storage":{"size":"1Gi"}}` | MariaDB CR https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/api_reference.md#mariadbspec |
+| mariadb.rootPasswordSecretKeyRef.name | string | The chart will generate the Secret name e.g. `myrelease-mariadb-cluster-root` | The name of the Secret holding root password. |
 | nameOverride | string | `""` |  |
 | namespaceOverride | string | `""` |  |
 | physicalBackups | list | `[]` | The list of PhysicalBackup CRs. The `.mariaDbRef` keys will be ignored. The `.name` keys are used to generate distinct CR names. The `.namespace` keys are allowed to override `.Release.Namespace`. https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/api_reference.md#physicalbackup |
