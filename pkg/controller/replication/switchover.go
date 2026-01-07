@@ -27,7 +27,7 @@ type switchoverPhase struct {
 }
 
 func isSwitchoverStale(mdb *mariadbv1alpha1.MariaDB) bool {
-	return mdb.IsSwitchingPrimary() && !mdb.IsSwitchoverRequired()
+	return mdb.IsSwitchingPrimary() && !mdb.IsReplicationSwitchoverRequired()
 }
 
 func shouldReconcileSwitchover(mdb *mariadbv1alpha1.MariaDB) bool {
@@ -37,7 +37,7 @@ func shouldReconcileSwitchover(mdb *mariadbv1alpha1.MariaDB) bool {
 	if !mdb.HasConfiguredReplica() {
 		return false
 	}
-	return mdb.IsSwitchoverRequired()
+	return mdb.IsReplicationSwitchoverRequired()
 }
 
 func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *ReconcileRequest, switchoverLogger logr.Logger) error {
