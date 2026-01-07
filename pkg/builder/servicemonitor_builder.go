@@ -126,9 +126,8 @@ func serviceMonitorEndpoints(objMeta metav1.ObjectMeta, replicas int, serviceNam
 		podName := statefulset.PodName(objMeta, i)
 		podFQDN := statefulset.PodFQDNWithService(objMeta, i, serviceName)
 		endpoint := monitoringv1.Endpoint{
-			Path:   "/probe",
-			Port:   MetricsPortName,
-			Scheme: "http",
+			Path: "/probe",
+			Port: MetricsPortName,
 			MetricRelabelConfigs: []monitoringv1.RelabelConfig{
 				{
 					Action:      "replace",
