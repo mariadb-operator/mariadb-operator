@@ -135,7 +135,7 @@ func (a *Archiver) archiveBinaryLogs(ctx context.Context) error {
 		return nil
 	}
 	// TODO: fine grained guard
-	if mdb.IsSwitchoverRequired() || mdb.IsSwitchingPrimary() {
+	if mdb.IsSwitchingPrimary() {
 		return errors.New("unable to start archival: Switchover operation pending/ongoing")
 	}
 	a.logger.Info("Archiving binary logs")
