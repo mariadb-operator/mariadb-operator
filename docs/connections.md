@@ -5,21 +5,18 @@
 ## Table of contents
 
 <!-- toc -->
-
-- [Connections](#connections)
-  - [Table of contents](#table-of-contents)
-  - [`Connection` CR](#connection-cr)
-  - [Service selection](#service-selection)
-  - [Credential generation](#credential-generation)
-  - [Secret template](#secret-template)
-  - [Custom DSN format](#custom-dsn-format)
-  - [TLS authentication](#tls-authentication)
-  - [Cross-namespace connections](#cross-namespace-connections)
-  - [MaxScale connections](#maxscale-connections)
-  - [External MariaDB connections](#external-mariadb-connections)
-  - [Embedded Connection template](#embedded-connection-template)
-  - [Health checking](#health-checking)
-  - [Reference](#reference)
+- [`Connection` CR](#connection-cr)
+- [Service selection](#service-selection)
+- [Credential generation](#credential-generation)
+- [Secret template](#secret-template)
+- [Custom DSN format](#custom-dsn-format)
+- [TLS authentication](#tls-authentication)
+- [Cross-namespace connections](#cross-namespace-connections)
+- [MaxScale connections](#maxscale-connections)
+- [External MariaDB connections](#external-mariadb-connections)
+- [Embedded Connection template](#embedded-connection-template)
+- [Health checking](#health-checking)
+- [Reference](#reference)
 
 ## `Connection` CR
 
