@@ -65,7 +65,7 @@ func WithPassword(password string) Opt {
 	}
 }
 
-func WitHost(host string) Opt {
+func WithHost(host string) Opt {
 	return func(o *Opts) {
 		o.Host = host
 	}
@@ -154,7 +154,7 @@ func NewClientWithMariaDB(ctx context.Context, mariadb interfaces.MariaDBObject,
 	opts = []Opt{
 		WithUsername(mariadb.GetSUName()),
 		WithPassword(password),
-		WitHost(mariadb.GetHost()),
+		WithHost(mariadb.GetHost()),
 		WithPort(mariadb.GetPort()),
 	}
 
@@ -203,7 +203,7 @@ func NewClientWithMariaDB(ctx context.Context, mariadb interfaces.MariaDBObject,
 func NewInternalClientWithPodIndex(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, refResolver *refresolver.RefResolver,
 	podIndex int, clientOpts ...Opt) (*Client, error) {
 	opts := []Opt{
-		WitHost(
+		WithHost(
 			statefulset.PodFQDNWithService(
 				mariadb.ObjectMeta,
 				podIndex,
@@ -223,7 +223,7 @@ func NewLocalClientWithPodEnv(ctx context.Context, env *environment.PodEnvironme
 	opts := []Opt{
 		WithUsername("root"),
 		WithPassword(env.MariadbRootPassword),
-		WitHost("localhost"),
+		WithHost("localhost"),
 		WithPort(port),
 	}
 

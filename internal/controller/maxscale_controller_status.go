@@ -329,7 +329,7 @@ func (r *MaxScaleReconciler) getSqlClient(ctx context.Context, mxs *mariadbv1alp
 	}
 
 	opts := []sql.Opt{
-		sql.WitHost(srv.Address),
+		sql.WithHost(srv.Address),
 		sql.WithPort(srv.Port),
 		sql.WithDatabase(mxs.Spec.Config.Sync.Database),
 		sql.WithUsername(*mxs.Spec.Auth.SyncUsername),
