@@ -5,16 +5,20 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/go-mysql-org/go-mysql/mysql"
 	"github.com/go-mysql-org/go-mysql/replication"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/datastructures"
-	"k8s.io/utils/ptr"
+	mariadbrepl "github.com/mariadb-operator/mariadb-operator/v25/pkg/replication"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// TODO: add API version
+var BinlogIndexV1 = "v1"
+
 type BinlogIndex struct {
+	APIVersion string `yaml:"apiVersion"`
 	// Binlogs indexed by server ID
 	Binlogs map[string][]BinlogMetadata `yaml:"binlogs"`
 }
@@ -27,6 +31,12 @@ func (b *BinlogIndex) Exists(serverId uint32, binlog string) bool {
 	return datastructures.Any(binlogs, func(meta BinlogMetadata) bool {
 		return meta.BinlogFilename == binlog
 	})
+}
+
+func NewBinlogIndex() *BinlogIndex {
+	return &BinlogIndex{
+		APIVersion: BinlogIndexV1,
+	}
 }
 
 func (b *BinlogIndex) Add(serverId uint32, meta BinlogMetadata) {
@@ -69,20 +79,19 @@ func (b *BinlogNum) Equal(other *BinlogNum) bool {
 	return b.num == other.num
 }
 
-// TODO: replace timestamps with metav1.Time
 type BinlogMetadata struct {
-	ServerId       uint32   `yaml:"serverId"`
-	ServerVersion  string   `yaml:"serverVersion"`
-	BinlogVersion  uint16   `yaml:"binlogVersion"`
-	BinlogFilename string   `yaml:"binlogFilename"`
-	LogPos         uint32   `yaml:"logPos"`
-	FirstTimestamp uint32   `yaml:"firstTimestamp"`
-	LastTimestamp  uint32   `yaml:"lastTimestamp"`
-	PreviousGtids  []string `yaml:"previousGtids,omitempty"`
-	FirstGtid      *string  `yaml:"firstGtid,omitempty"`
-	LastGtid       *string  `yaml:"lastGtid,omitempty"`
-	RotateEvent    bool     `yaml:"rotateEvent"`
-	StopEvent      bool     `yaml:"stopEvent"`
+	ServerId       uint32              `yaml:"serverId"`
+	ServerVersion  string              `yaml:"serverVersion"`
+	BinlogVersion  uint16              `yaml:"binlogVersion"`
+	BinlogFilename string              `yaml:"binlogFilename"`
+	LogPosition    uint32              `yaml:"logPosition"`
+	FirstTime      metav1.Time         `yaml:"firstTime"`
+	LastTime       metav1.Time         `yaml:"lastTime"`
+	PreviousGtids  []*mariadbrepl.Gtid `yaml:"previousGtids,omitempty"`
+	FirstGtid      *mariadbrepl.Gtid   `yaml:"firstGtid,omitempty"`
+	LastGtid       *mariadbrepl.Gtid   `yaml:"lastGtid,omitempty"`
+	RotateEvent    bool                `yaml:"rotateEvent"`
+	StopEvent      bool                `yaml:"stopEvent"`
 }
 
 func GetBinlogMetadata(binlogPath string, logger logr.Logger) (*BinlogMetadata, error) {
@@ -103,7 +112,7 @@ func GetBinlogMetadata(binlogPath string, logger logr.Logger) (*BinlogMetadata, 
 
 	if err := parser.ParseFile(binlogPath, 0, func(e *replication.BinlogEvent) error {
 		meta.ServerId = e.Header.ServerID
-		meta.LogPos = e.Header.LogPos
+		meta.LogPosition = e.Header.LogPos
 
 		// See: https://mariadb.com/docs/server/reference/clientserver-protocol/replication-protocol
 		switch e.Header.EventType {
@@ -121,10 +130,10 @@ func GetBinlogMetadata(binlogPath string, logger logr.Logger) (*BinlogMetadata, 
 		case replication.STOP_EVENT:
 			meta.StopEvent = true
 		}
-		if meta.FirstTimestamp == 0 {
-			meta.FirstTimestamp = e.Header.Timestamp
+		if meta.FirstTime == (metav1.Time{}) {
+			meta.FirstTime = metav1.NewTime(time.Unix(int64(e.Header.Timestamp), 0))
 		}
-		meta.LastTimestamp = e.Header.Timestamp
+		meta.LastTime = metav1.NewTime(time.Unix(int64(e.Header.Timestamp), 0))
 
 		return nil
 	}); err != nil {
@@ -145,9 +154,13 @@ func GetBinlogMetadata(binlogPath string, logger logr.Logger) (*BinlogMetadata, 
 		if err := listEvent.Decode(rawGtidListEvent[replication.EventHeaderSize:]); err != nil {
 			return nil, fmt.Errorf("error decoding GTID list event: %v", err)
 		}
-		prevGtids := make([]string, len(listEvent.GTIDs))
+		prevGtids := make([]*mariadbrepl.Gtid, len(listEvent.GTIDs))
 		for i, gtid := range listEvent.GTIDs {
-			prevGtids[i] = gtid.String()
+			gtid, err := toMariadbGtid(&gtid)
+			if err != nil {
+				return nil, err
+			}
+			prevGtids[i] = gtid
 		}
 		meta.PreviousGtids = prevGtids
 	}
@@ -157,14 +170,22 @@ func GetBinlogMetadata(binlogPath string, logger logr.Logger) (*BinlogMetadata, 
 		if err != nil {
 			return nil, fmt.Errorf("error decoding first GTID event: %v", err)
 		}
-		meta.FirstGtid = ptr.To(firstGtid.GTID.String())
+		gtid, err := toMariadbGtid(&firstGtid.GTID)
+		if err != nil {
+			return nil, err
+		}
+		meta.FirstGtid = gtid
 	}
 	if lastRawGtidEvent != nil {
 		lastGtid, err := decodeGTIDEvent(lastRawGtidEvent, meta.ServerId)
 		if err != nil {
 			return nil, fmt.Errorf("error decoding last GTID event: %v", err)
 		}
-		meta.LastGtid = ptr.To(lastGtid.GTID.String())
+		gtid, err := toMariadbGtid(&lastGtid.GTID)
+		if err != nil {
+			return nil, err
+		}
+		meta.LastGtid = gtid
 	}
 
 	return &meta, nil
@@ -183,4 +204,13 @@ func decodeGTIDEvent(rawEvent []byte, serverId uint32) (*replication.MariadbGTID
 	// https://github.com/go-mysql-org/go-mysql/blob/a07c974ef5a34a8d0d7dfb543652c4ba2dec90cf/replication/event.go#L876
 	gtidEvent.GTID.ServerID = serverId
 	return gtidEvent, nil
+}
+
+func toMariadbGtid(mysqlGtid *mysql.MariadbGTID) (*mariadbrepl.Gtid, error) {
+	rawGtid := mysqlGtid.String()
+	gtid, err := mariadbrepl.ParseGtid(rawGtid)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing GTID %s: %v", rawGtid, err)
+	}
+	return gtid, nil
 }

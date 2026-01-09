@@ -21,7 +21,6 @@ import (
 	mariadbminio "github.com/mariadb-operator/mariadb-operator/v25/pkg/minio"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/sql"
 	"gopkg.in/yaml.v2"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -197,7 +196,7 @@ func (a *Archiver) archiveBinaryLogs(ctx context.Context) error {
 			return err
 		}
 	}
-	return a.updateStatus(ctx, binlogs, s3Client)
+	return a.updateStatus(ctx, binlogs, s3Client, sqlClient)
 }
 
 func (a *Archiver) physicalBackupConfigured(ctx context.Context, ref *mariadbv1alpha1.LocalObjectReference,
@@ -288,13 +287,14 @@ func (a *Archiver) archiveBinaryLog(ctx context.Context, binlog string, mdb *mar
 	return nil
 }
 
-func (a *Archiver) updateStatus(ctx context.Context, binlogs []string, s3Client *mariadbminio.Client) error {
+func (a *Archiver) updateStatus(ctx context.Context, binlogs []string, s3Client *mariadbminio.Client,
+	sqlClient *sql.Client) error {
 	mdb, err := a.getMariaDB(ctx)
 	if err != nil {
 		return fmt.Errorf("error getting MariaDB: %v", err)
 	}
 	// using last binlog to track the most recent GTIDs
-	pitrStatus, err := a.getPointInTimeRecoveryStatus(binlogs[len(binlogs)-1])
+	pitrStatus, err := a.getPointInTimeRecoveryStatus(ctx, binlogs[len(binlogs)-1], sqlClient)
 	if err != nil {
 		return fmt.Errorf("error getting PITR status: %v", err)
 	}
@@ -310,18 +310,36 @@ func (a *Archiver) updateStatus(ctx context.Context, binlogs []string, s3Client 
 	return nil
 }
 
-func (a *Archiver) getPointInTimeRecoveryStatus(lastBinlog string) (*mariadbv1alpha1.PointInTimeRecoveryStatus, error) {
+func (a *Archiver) getPointInTimeRecoveryStatus(ctx context.Context, lastBinlog string,
+	sqlClient *sql.Client) (*mariadbv1alpha1.PointInTimeRecoveryStatus, error) {
 	lastBinlogPath := filepath.Join(a.dataDir, lastBinlog)
 	lastBinlogMeta, err := GetBinlogMetadata(lastBinlogPath, a.logger)
 	if err != nil {
 		return nil, fmt.Errorf("error getting last binlog %s metadata: %v", lastBinlog, err)
 	}
+
+	lastArchivedGtid := lastBinlogMeta.LastGtid
+	if lastArchivedGtid == nil && len(lastBinlogMeta.PreviousGtids) > 0 {
+		domainId, err := sqlClient.GtidDomainId(ctx)
+		if err != nil {
+			a.logger.Error(err, "error getting domain ID")
+		}
+		if domainId != nil {
+			for _, gtid := range lastBinlogMeta.PreviousGtids {
+				if gtid.DomainID == *domainId {
+					lastArchivedGtid = gtid
+					break
+				}
+			}
+		}
+	}
+
 	return &mariadbv1alpha1.PointInTimeRecoveryStatus{
 		ServerId:              lastBinlogMeta.ServerId,
 		LastArchivedBinaryLog: lastBinlog,
-		LastArchivedTime:      metav1.NewTime(time.Unix(int64(lastBinlogMeta.LastTimestamp), 0)),
-		LastArchivedPosition:  lastBinlogMeta.LogPos,
-		LastArchivedGtid:      lastBinlogMeta.LastGtid,
+		LastArchivedTime:      lastBinlogMeta.LastTime,
+		LastArchivedPosition:  lastBinlogMeta.LogPosition,
+		LastArchivedGtid:      lastArchivedGtid,
 	}, nil
 }
 
@@ -348,7 +366,7 @@ func (a *Archiver) updateBinlogIndex(ctx context.Context, binlogs []string, serv
 		}
 		index = &bi
 	} else {
-		index = &BinlogIndex{}
+		index = NewBinlogIndex()
 	}
 
 	for _, binlog := range binlogs {
