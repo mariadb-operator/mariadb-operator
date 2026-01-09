@@ -39,7 +39,8 @@ func (r *ConnectionRefs) Host(c *Connection) (*string, error) {
 	}
 
 	// Use the primary Service when HA is enabled to ensure writes go to the primary node
-	if r.MariaDB != nil && r.MariaDB.IsHAEnabled() {
+	// Only apply this for direct MariaDB connections, not for MaxScale connections.
+	if r.MaxScale == nil && r.MariaDB != nil && r.MariaDB.IsHAEnabled() {
 		primarySvcMeta := metav1.ObjectMeta{
 			Name:      r.MariaDB.PrimaryServiceKey().Name,
 			Namespace: objMeta.Namespace,
