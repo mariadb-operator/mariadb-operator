@@ -62,7 +62,7 @@ func main() {
 	for {
 		select {
 		case <-ctx.Done():
-			log.Printf("context cancelled, exiting")
+			log.Printf("context canceled, exiting")
 			return
 		case t := <-ticker.C:
 			value := t.Unix()
@@ -70,7 +70,7 @@ func main() {
 				log.Printf("error inserting: %v", err)
 				continue
 			}
-			log.Printf("inserted at %d \n", value)
+			log.Printf("inserted at %d\n", value)
 		}
 	}
 }
