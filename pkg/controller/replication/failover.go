@@ -124,7 +124,7 @@ func (f *FailoverHandler) findCandidates(ctx context.Context, pods []corev1.Pod)
 			podLogger.Info("GTID current position not set. Skipping...")
 			continue
 		}
-		gtidCurrentPos, err := replication.ParseGtid(*status.GtidCurrentPos, *gtidDomainId, f.logger)
+		gtidCurrentPos, err := replication.ParseGtidWithDomainId(*status.GtidCurrentPos, *gtidDomainId, f.logger)
 		if err != nil {
 			podLogger.Info("Error parsing GTID current position. Skipping...", "err", err)
 			continue

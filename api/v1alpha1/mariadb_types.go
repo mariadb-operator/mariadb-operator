@@ -7,6 +7,7 @@ import (
 
 	cmmeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/environment"
+	mariadbrepl "github.com/mariadb-operator/mariadb-operator/v25/pkg/replication"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/statefulset"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -663,7 +664,7 @@ type PointInTimeRecoveryStatus struct {
 	// LastArchivedGtid is the last archived GTID.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
-	LastArchivedGtid *string `json:"lastArchivedGtid,omitempty"`
+	LastArchivedGtid *mariadbrepl.Gtid `json:"lastArchivedGtid,omitempty"`
 }
 
 // MariaDBStatus defines the observed state of MariaDB
