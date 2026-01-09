@@ -3,7 +3,9 @@
 `mariadb-operator` provides the `Connection` resource to configure connection strings for applications connecting to MariaDB. This resource creates and maintains a Kubernetes `Secret` containing the credentials and connection details needed by your applications.
 
 ## Table of contents
+
 <!-- toc -->
+
 - [`Connection` CR](#connection-cr)
 - [Service selection](#service-selection)
 - [Credential generation](#credential-generation)
@@ -16,7 +18,6 @@
 - [Embedded Connection template](#embedded-connection-template)
 - [Health checking](#health-checking)
 - [Reference](#reference)
-<!-- /toc -->
 
 ## `Connection` CR
 
@@ -45,23 +46,27 @@ The operator creates a `Secret` named `connection` containing a DSN and individu
 
 ## Service selection
 
-By default, the `host` in the generated `Secret` points to the `Service` named after the referenced `MariaDB` or `MaxScale` resource (the same as `metadata.name`). For HA `MariaDB`, this `Service` load balances across all pods, so use `serviceName` to target a specific `Service` such as `<mariadb-name>-primary`.
+By default, the `host` in the generated `Secret` points to the `Service` named after the referenced `MariaDB` or `MaxScale` resource (the same as `metadata.name`).
+
+For HA `MariaDB` (Galera or Replication), the operator automatically uses the primary `Service` (`<mariadb-name>-primary`) to ensure write operations are correctly routed to the primary node. If you need to target a different `Service` (e.g., for read-only connections to secondaries), you can explicitly set `serviceName` :
 
 ```yaml
 apiVersion: k8s.mariadb.com/v1alpha1
 kind: Connection
 metadata:
-  name: connection
+  name: connection-readonly
 spec:
   mariaDbRef:
     name: mariadb
-  serviceName: mariadb-primary
+  serviceName: mariadb-secondary
   username: mariadb
   passwordSecretKeyRef:
     name: mariadb
     key: password
-  secretName: connection
+  secretName: connection-readonly
 ```
+
+For `MaxScale` connections, the operator uses the MaxScale `Service` directly, as MaxScale handles read/write splitting internally.
 
 Please refer to the [Kubernetes `Service` documentation](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/high_availability.md#kubernetes-services) to identify which `Services` are available.
 
@@ -138,6 +143,7 @@ spec:
 ```
 
 The resulting `Secret` will contain:
+
 - `dsn`: The full connection string
 - `username`: The database username
 - `password`: The database password
@@ -172,6 +178,7 @@ spec:
 ```
 
 Available template variables:
+
 - `{{ .Username }}`: The database username
 - `{{ .Password }}`: The database password
 - `{{ .Host }}`: The database host
@@ -359,5 +366,6 @@ spec:
 The `Connection` status reflects the health check results, allowing you to monitor connectivity issues through Kubernetes.
 
 ## Reference
+
 - [API reference](./api_reference.md)
 - [Example suite](../examples/)
