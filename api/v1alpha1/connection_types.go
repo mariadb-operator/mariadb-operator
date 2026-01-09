@@ -37,6 +37,16 @@ func (r *ConnectionRefs) Host(c *Connection) (*string, error) {
 		}
 		return ptr.To(statefulset.ServiceFQDN(svcMeta)), nil
 	}
+
+	// Use the primary Service when HA is enabled to ensure writes go to the primary node
+	if r.MariaDB != nil && r.MariaDB.IsHAEnabled() {
+		primarySvcMeta := metav1.ObjectMeta{
+			Name:      r.MariaDB.PrimaryServiceKey().Name,
+			Namespace: objMeta.Namespace,
+		}
+		return ptr.To(statefulset.ServiceFQDN(primarySvcMeta)), nil
+	}
+
 	return ptr.To(statefulset.ServiceFQDN(*objMeta)), nil
 }
 
