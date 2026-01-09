@@ -142,6 +142,14 @@ AGENT_FLAGS ?= $(RUN_FLAGS) $(AGENT_AUTH_FLAGS) --config-dir=mariadb/config --st
 agent: local-dir ## Run agent from your host.
 	$(POD_ENV) $(GO) run cmd/controller/*.go agent $(AGENT_FLAGS)
 
+
+CLIENT_FLAGS ?= --host=mariadb-repl-primary.default.svc.cluster.local --port=3306 \
+	--username=root --password=MariaDB11! --database=test --table=test \
+	--timeout=3s --insert-interval=1s
+.PHONY: client
+client: ## Run sample client application
+	$(GO) run hack/client/*.go $(CLIENT_FLAGS)
+
 ##@ Dump
 
 DUMP_NAMESPACE ?= default
