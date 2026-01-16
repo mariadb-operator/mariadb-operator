@@ -37,6 +37,7 @@ const (
 var (
 	batchBackupTargetFilePath      = filepath.Join(batchStorageMountPath, "0-backup-target.txt")
 	batchPhysicalBackupDirFullPath = filepath.Join(batchStorageMountPath, batchBackupDirFull)
+	batchOperatorBinaryPath        = filepath.Join(batchStorageMountPath, "bin", "mariadb-operator")
 )
 
 func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alpha1.Backup,
@@ -334,7 +335,7 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 	affinity := ptr.Deref(restore.Spec.Affinity, mariadbv1alpha1.AffinityConfig{}).Affinity
 
 	operatorContainer, err := b.jobMariadbOperatorContainer(
-		cmd.MariadbOperatorRestore(mariadbv1alpha1.BackupContentTypeLogical, nil),
+		cmd.MariadbOperatorRestore(mariadbv1alpha1.BackupContentTypeLogical, nil, nil),
 		volumeMounts,
 		s3Env(restore.Spec.S3),
 		jobResources(restore.Spec.Resources),
@@ -496,7 +497,9 @@ func (b *Builder) BuildPhysicalBackupRestoreJob(key types.NamespacedName, mariad
 	if err != nil {
 		return nil, fmt.Errorf("error building backup command: %v", err)
 	}
-	restoreCmd, err := cmd.MariadbBackupRestore(mariadb, batchPhysicalBackupDirFullPath, opts.RestoreCommandOpts...)
+	// Append the operator binary path option for streaming restore
+	restoreCommandOpts := append(opts.RestoreCommandOpts, command.WithOperatorBinaryPath(batchOperatorBinaryPath))
+	restoreCmd, err := cmd.MariadbBackupRestore(mariadb, batchPhysicalBackupDirFullPath, restoreCommandOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("error getting mariadb-backup restore command: %v", err)
 	}
@@ -505,7 +508,7 @@ func (b *Builder) BuildPhysicalBackupRestoreJob(key types.NamespacedName, mariad
 	restoreJob := ptr.Deref(opts.RestoreJob, mariadbv1alpha1.Job{})
 
 	operatorContainer, err := b.jobMariadbOperatorContainer(
-		cmd.MariadbOperatorRestore(mariadbv1alpha1.BackupContentTypePhysical, &batchPhysicalBackupDirFullPath),
+		cmd.MariadbOperatorRestore(mariadbv1alpha1.BackupContentTypePhysical, &batchPhysicalBackupDirFullPath, &batchOperatorBinaryPath),
 		volumeMounts,
 		s3Env(opts.S3),
 		jobResources(restoreJob.Resources),
@@ -521,7 +524,7 @@ func (b *Builder) BuildPhysicalBackupRestoreJob(key types.NamespacedName, mariad
 		restoreCmd,
 		b.env,
 		volumeMounts,
-		nil,
+		s3Env(opts.S3), // Pass S3 env vars for streaming restore
 		jobResources(restoreJob.Resources),
 		mariadb,
 		mariadb.Spec.SecurityContext,

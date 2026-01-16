@@ -10,6 +10,7 @@ import (
 	"github.com/dsnet/compress/bzip2"
 	"github.com/go-logr/logr"
 	"github.com/hashicorp/go-multierror"
+	"github.com/klauspost/pgzip"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
 )
 
@@ -17,6 +18,22 @@ type Compressor interface {
 	Compress(fileName string) error
 	Decompress(fileName string) (string, error)
 }
+
+// StreamingCompressor extends Compressor with streaming decompression capabilities
+// that allow direct piping of compressed data without intermediate files.
+type StreamingCompressor interface {
+	Compressor
+	// DecompressStream reads compressed data from src and writes decompressed data to dst.
+	// Returns the number of bytes written and any error encountered.
+	DecompressStream(dst io.Writer, src io.Reader) (int64, error)
+}
+
+// Compile-time interface verification
+var (
+	_ StreamingCompressor = (*NopCompressor)(nil)
+	_ StreamingCompressor = (*GzipBackupCompressor)(nil)
+	_ StreamingCompressor = (*Bzip2BackupCompressor)(nil)
+)
 
 type GetUncompressedFilenameFn func(compressedFilename string) (string, error)
 
@@ -52,6 +69,10 @@ func (c *NopCompressor) Decompress(fileName string) (string, error) {
 	return getFilePath(c.basePath, fileName), nil
 }
 
+func (c *NopCompressor) DecompressStream(dst io.Writer, src io.Reader) (int64, error) {
+	return io.Copy(dst, src)
+}
+
 type GzipBackupCompressor struct {
 	basePath                string
 	getUncompressedFilename GetUncompressedFilenameFn
@@ -85,6 +106,15 @@ func (c *GzipBackupCompressor) Decompress(fileName string) (string, error) {
 		_, err = io.Copy(dst, reader)
 		return err
 	})
+}
+
+func (c *GzipBackupCompressor) DecompressStream(dst io.Writer, src io.Reader) (int64, error) {
+	reader, err := pgzip.NewReader(src)
+	if err != nil {
+		return 0, err
+	}
+	defer reader.Close()
+	return io.Copy(dst, reader)
 }
 
 type Bzip2BackupCompressor struct {
@@ -125,6 +155,15 @@ func (c *Bzip2BackupCompressor) Decompress(fileName string) (string, error) {
 		_, err = io.Copy(dst, reader)
 		return err
 	})
+}
+
+func (c *Bzip2BackupCompressor) DecompressStream(dst io.Writer, src io.Reader) (int64, error) {
+	reader, err := bzip2.NewReader(src, &bzip2.ReaderConfig{})
+	if err != nil {
+		return 0, err
+	}
+	defer reader.Close()
+	return io.Copy(dst, reader)
 }
 
 func compressFile(path, fileName string, logger logr.Logger, compressFn func(dst io.Writer, src io.Reader) error) error {
