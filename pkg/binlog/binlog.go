@@ -12,6 +12,7 @@ import (
 	"github.com/go-mysql-org/go-mysql/replication"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/datastructures"
 	mariadbrepl "github.com/mariadb-operator/mariadb-operator/v25/pkg/replication"
+	mdbrepl "github.com/mariadb-operator/mariadb-operator/v25/pkg/replication"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -46,9 +47,104 @@ func (b *BinlogIndex) Add(serverId uint32, meta BinlogMetadata) {
 	b.Binlogs[serverKey(serverId)] = append(b.Binlogs[serverKey(serverId)], meta)
 }
 
+func (b *BinlogIndex) BinlogPath(fromGtid *mdbrepl.Gtid, untilTime *time.Time, logger logr.Logger) ([]BinlogMetadata, error) {
+	currentServerKey := serverKey(fromGtid.ServerID)
+	_, ok := b.Binlogs[currentServerKey]
+	if !ok {
+		return nil, fmt.Errorf("binlogs for server %s not found", currentServerKey)
+	}
+	return nil, nil
+}
+
 func serverKey(serverId uint32) string {
 	return fmt.Sprintf("server-%d", serverId)
 }
+
+func binlogSubPathWithBinlogs(binlogs []BinlogMetadata, fromGtid *mdbrepl.Gtid, untilTime *metav1.Time, logger logr.Logger) ([]BinlogMetadata, error) {
+	var (
+		path          []BinlogMetadata
+		currentBinlog *BinlogMetadata
+	)
+	addBinlog := func(b BinlogMetadata) {
+		path = append(path, b)
+		currentBinlog = &b
+	}
+
+	for _, binlog := range binlogs {
+		endOfPath, err := isEndOfBinlogSubPath(currentBinlog, &binlog, fromGtid, untilTime, logger)
+		if err != nil {
+			return nil, fmt.Errorf("error determining end of binlog path: %v", err)
+		}
+		if endOfPath {
+			return path, nil
+		}
+
+		if binlog.LastGtid != nil {
+			greaterThan, err := binlog.LastGtid.GreaterThan(fromGtid)
+			if err != nil {
+				return nil, fmt.Errorf("error comparing GTIDs %s and %s: %v", binlog.LastGtid, fromGtid, err)
+			}
+			if greaterThan {
+				continue
+			}
+		}
+
+		if binlog.FirstGtid != nil {
+			lessThan, err := binlog.LastGtid.LessThan(binlog.FirstGtid)
+			if err != nil {
+				return nil, fmt.Errorf("error comparing GTIDs %s and %s: %v", fromGtid, binlog.FirstGtid, err)
+			}
+			if lessThan {
+				continue
+			}
+		}
+
+		if binlog.LastGtid != nil {
+			greaterThan, err := binlog.LastGtid.GreaterThan(fromGtid)
+			if err != nil {
+				return nil, fmt.Errorf("error comparing GTIDs %s and %s: %v", binlog.LastGtid, fromGtid, err)
+			}
+			if greaterThan {
+				continue
+			}
+		}
+
+		if (binlog.FirstTime.Before(untilTime) || binlog.FirstTime.Equal(untilTime)) &&
+			(untilTime.Equal(&binlog.LastTime) || untilTime.Before(&binlog.LastTime)) {
+			addBinlog(binlog)
+			continue
+		}
+	}
+	return path, nil
+}
+
+func isEndOfBinlogSubPath(currentBinlog, candidateBinlog *BinlogMetadata, fromGtid *mdbrepl.Gtid, untilTime *metav1.Time,
+	logger logr.Logger) (bool, error) {
+	// there is a GTID gap, we should continue in another server's subpath
+	if currentBinlog != nil && currentBinlog.LastGtid != nil &&
+		candidateBinlog != nil && candidateBinlog.FirstGtid != nil {
+
+		diff, err := currentBinlog.LastGtid.Diff(candidateBinlog.FirstGtid)
+		if err != nil {
+			return false, fmt.Errorf(
+				"error getting diff between %s and %s GTIDs: %v",
+				currentBinlog.LastGtid,
+				candidateBinlog.FirstGtid,
+				err,
+			)
+		}
+		if diff > 1 {
+			return true, nil
+		}
+	}
+	// candidate binlog is after the requested time
+	if candidateBinlog.FirstTime.Time.After(untilTime.Time) {
+		return true, nil
+	}
+	return false, nil
+}
+
+// func closestBinlogSubPath() {}
 
 type BinlogNum struct {
 	filename string

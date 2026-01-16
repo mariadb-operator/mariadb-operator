@@ -4,6 +4,7 @@ import (
 	"encoding"
 	"encoding/json"
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 
@@ -79,6 +80,16 @@ func (g *Gtid) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+func (g *Gtid) LessThan(o *Gtid) (bool, error) {
+	if g == nil || o == nil {
+		return false, nil
+	}
+	if g.DomainID != o.DomainID {
+		return false, fmt.Errorf("domain IDs are different (%d and %d). Not comparable", g.DomainID, o.DomainID)
+	}
+	return g.SequenceID < o.SequenceID, nil
+}
+
 func (g *Gtid) Equal(o *Gtid) bool {
 	if g == nil || o == nil {
 		return false
@@ -96,6 +107,16 @@ func (g *Gtid) GreaterThan(o *Gtid) (bool, error) {
 		return false, fmt.Errorf("domain IDs are different (%d and %d). Not comparable", g.DomainID, o.DomainID)
 	}
 	return g.SequenceID > o.SequenceID, nil
+}
+
+func (g *Gtid) Diff(o *Gtid) (uint64, error) {
+	if g == nil || o == nil {
+		return 0, nil
+	}
+	if g.DomainID != o.DomainID {
+		return 0, fmt.Errorf("domain IDs are different (%d and %d). Not comparable", g.DomainID, o.DomainID)
+	}
+	return uint64(math.Abs(float64(g.SequenceID) - float64(o.SequenceID))), nil
 }
 
 func ParseGtidWithDomainId(rawGtid string, domainId uint32, logger logr.Logger) (*Gtid, error) {
