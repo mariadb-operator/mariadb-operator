@@ -27,8 +27,8 @@ import (
 )
 
 var (
+	BinlogIndexName = "index.yaml"
 	archiveInterval = 10 * time.Minute
-	binlogIndexName = "index.yaml"
 )
 
 type Archiver struct {
@@ -105,6 +105,7 @@ func (a *Archiver) getS3Client(s3 *mariadbv1alpha1.S3, env *environment.PodEnvir
 	if env.MariadbOperatorS3CAPath != "" {
 		minioOpts = append(minioOpts, mariadbminio.WithCACertPath(env.MariadbOperatorS3CAPath))
 	}
+	// TODO: support for SSEC based on environment
 
 	client, err := mariadbminio.NewMinioClient(a.dataDir, s3.Bucket, s3.Endpoint, minioOpts...)
 	if err != nil {
@@ -345,12 +346,12 @@ func (a *Archiver) getPointInTimeRecoveryStatus(ctx context.Context, lastBinlog 
 
 func (a *Archiver) updateBinlogIndex(ctx context.Context, binlogs []string, serverId uint32, s3Client *mariadbminio.Client) error {
 	var index *BinlogIndex
-	exists, err := s3Client.Exists(ctx, binlogIndexName)
+	exists, err := s3Client.Exists(ctx, BinlogIndexName)
 	if err != nil {
 		return fmt.Errorf("error checking if binlog index exists: %v", err)
 	}
 	if exists {
-		indexReader, err := s3Client.GetObjectWithOptions(ctx, binlogIndexName)
+		indexReader, err := s3Client.GetObjectWithOptions(ctx, BinlogIndexName)
 		if err != nil {
 			return fmt.Errorf("error getting binlog index: %w", err)
 		}
@@ -387,7 +388,7 @@ func (a *Archiver) updateBinlogIndex(ctx context.Context, binlogs []string, serv
 		return fmt.Errorf("error marshaling binlog index: %v", err)
 	}
 
-	if err := s3Client.PutObjectWithOptions(ctx, binlogIndexName, bytes.NewReader(indexBytes), int64(len(indexBytes))); err != nil {
+	if err := s3Client.PutObjectWithOptions(ctx, BinlogIndexName, bytes.NewReader(indexBytes), int64(len(indexBytes))); err != nil {
 		return fmt.Errorf("error putting binlog index: %v", err)
 	}
 	return nil
