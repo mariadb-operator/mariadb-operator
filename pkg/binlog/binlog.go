@@ -1,6 +1,7 @@
 package binlog
 
 import (
+	"errors"
 	"fmt"
 	"path/filepath"
 	"strconv"
@@ -12,7 +13,6 @@ import (
 	"github.com/go-mysql-org/go-mysql/replication"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/datastructures"
 	mariadbrepl "github.com/mariadb-operator/mariadb-operator/v25/pkg/replication"
-	mdbrepl "github.com/mariadb-operator/mariadb-operator/v25/pkg/replication"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -47,104 +47,169 @@ func (b *BinlogIndex) Add(serverId uint32, meta BinlogMetadata) {
 	b.Binlogs[serverKey(serverId)] = append(b.Binlogs[serverKey(serverId)], meta)
 }
 
-func (b *BinlogIndex) BinlogPath(fromGtid *mdbrepl.Gtid, untilTime *time.Time, logger logr.Logger) ([]BinlogMetadata, error) {
+func (b *BinlogIndex) BinlogPath(fromGtid *mariadbrepl.Gtid, untilTime time.Time, logger logr.Logger) ([]BinlogMetadata, error) {
+	return b.binlogPathWithBinlogs(nil, fromGtid, untilTime, logger)
+}
+
+func (b *BinlogIndex) binlogPathWithBinlogs(binlogs []BinlogMetadata, fromGtid *mariadbrepl.Gtid, untilTime time.Time,
+	binlogLogger logr.Logger) ([]BinlogMetadata, error) {
 	currentServerKey := serverKey(fromGtid.ServerID)
-	_, ok := b.Binlogs[currentServerKey]
+	logger := binlogLogger.WithValues(
+		"num-binlogs", len(binlogs),
+		"from-gtid", fromGtid.String(),
+		"until-time", untilTime,
+		"server", currentServerKey,
+	)
+	logger.Info("Building binlog path")
+
+	binlogsToProcess, ok := b.Binlogs[currentServerKey]
 	if !ok {
 		return nil, fmt.Errorf("binlogs for server %s not found", currentServerKey)
 	}
-	return nil, nil
+
+	for _, binlog := range binlogsToProcess {
+		// next binlog is out of time range, done!
+		if binlog.FirstTime.After(untilTime) {
+			logger.Info(
+				"Next binlog is out of time range. Done.",
+				"binlog", binlog.BinlogFilename,
+				"time", binlog.FirstTime,
+			)
+			return binlogs, nil
+		}
+
+		shouldFilter, err := shouldFilterBinlog(&binlog, fromGtid, untilTime, logger)
+		if err != nil {
+			return nil, fmt.Errorf("error determining whether binlog %s should be filtered: %v", binlog.BinlogFilename, err)
+		}
+		if shouldFilter {
+			continue
+		}
+
+		if len(binlogs) > 0 {
+			lastBinlog := binlogs[len(binlogs)-1]
+			// there is a GTID gap, for example: 0-10-7 ... 0-10-11
+			// we should continue in another server, for example: 0-11-8
+			gtidGap, err := hasGtidGap(&lastBinlog, &binlog)
+			if err != nil {
+				return nil, fmt.Errorf("error determining GTID gap: %v", err)
+			}
+			if gtidGap {
+				logger.Info(
+					"GTID gap detected. Attempting to find next GTID in another server...",
+					"processed-binlog", lastBinlog.BinlogFilename,
+					"processed-gtid", lastBinlog.LastGtid.String(),
+					"binlog", binlog.BinlogFilename,
+					"gtid", binlog.FirstGtid.String(),
+				)
+				nextGtid, err := b.findNextGtidInOtherServer(&lastBinlog, currentServerKey, fromGtid, untilTime, logger.WithName("gtid-gap"))
+				if err != nil {
+					return nil, fmt.Errorf("unable to find next GTID: %v", err)
+				}
+				return b.binlogPathWithBinlogs(binlogs, nextGtid, untilTime, logger)
+			}
+		}
+
+		binlogs = append(binlogs, binlog)
+	}
+	if len(binlogs) == 0 {
+		return nil, errors.New("no binlogs were found")
+	}
+	lastBinlog := binlogs[len(binlogs)-1]
+
+	// binlog path may not be complete after processing all server binlogs
+	nextGtid, err := b.findNextGtidInOtherServer(&lastBinlog, currentServerKey, fromGtid, untilTime, logger)
+	if nextGtid != nil && err == nil {
+		return b.binlogPathWithBinlogs(binlogs, nextGtid, untilTime, logger)
+	}
+
+	return binlogs, nil
+}
+
+func (b *BinlogIndex) findNextGtidInOtherServer(lastBinlog *BinlogMetadata, currentServer string, fromGtid *mariadbrepl.Gtid,
+	untilTime time.Time, logger logr.Logger) (*mariadbrepl.Gtid, error) {
+	if lastBinlog == nil || lastBinlog.LastGtid == nil {
+		return nil, errors.New("last processed binlog must have last GTID set")
+	}
+	for serverKey, binlogs := range b.Binlogs {
+		if serverKey == currentServer {
+			continue
+		}
+		for _, binlog := range binlogs {
+			shouldFilter, err := shouldFilterBinlog(&binlog, fromGtid, untilTime, logger)
+			if shouldFilter {
+				continue
+			}
+			if err != nil {
+				return nil, fmt.Errorf("error determining whether binlog %s should be filtered: %v", binlog.BinlogFilename, err)
+			}
+
+			gtidGap, err := hasGtidGap(lastBinlog, &binlog)
+			if err != nil {
+				return nil, fmt.Errorf("error determining GTID gap: %v", err)
+			}
+			if !gtidGap {
+				return binlog.FirstGtid, nil
+			}
+		}
+	}
+	return nil, errors.New("GTID not found")
 }
 
 func serverKey(serverId uint32) string {
 	return fmt.Sprintf("server-%d", serverId)
 }
 
-func binlogSubPathWithBinlogs(binlogs []BinlogMetadata, fromGtid *mdbrepl.Gtid, untilTime *metav1.Time, logger logr.Logger) ([]BinlogMetadata, error) {
-	var (
-		path          []BinlogMetadata
-		currentBinlog *BinlogMetadata
+func shouldFilterBinlog(binlog *BinlogMetadata, fromGtid *mariadbrepl.Gtid, untilTime time.Time, binlogLogger logr.Logger) (bool, error) {
+	logger := binlogLogger.WithValues(
+		"binlog", binlog.BinlogFilename,
+		"gtid", binlog.LastGtid.String(),
+		"time", binlog.FirstTime,
+		"from-gtid", fromGtid.String(),
+		"until-time", untilTime,
 	)
-	addBinlog := func(b BinlogMetadata) {
-		path = append(path, b)
-		currentBinlog = &b
+	logger.V(1).Info("Processing binlog")
+
+	// only binlogs with GTID events are considered
+	if binlog.FirstGtid == nil || binlog.LastGtid == nil {
+		logger.Info("Skipping binlog, as it does not have GTID events")
+		return true, nil
 	}
 
-	for _, binlog := range binlogs {
-		endOfPath, err := isEndOfBinlogSubPath(currentBinlog, &binlog, fromGtid, untilTime, logger)
-		if err != nil {
-			return nil, fmt.Errorf("error determining end of binlog path: %v", err)
-		}
-		if endOfPath {
-			return path, nil
-		}
-
-		if binlog.LastGtid != nil {
-			greaterThan, err := binlog.LastGtid.GreaterThan(fromGtid)
-			if err != nil {
-				return nil, fmt.Errorf("error comparing GTIDs %s and %s: %v", binlog.LastGtid, fromGtid, err)
-			}
-			if greaterThan {
-				continue
-			}
-		}
-
-		if binlog.FirstGtid != nil {
-			lessThan, err := binlog.LastGtid.LessThan(binlog.FirstGtid)
-			if err != nil {
-				return nil, fmt.Errorf("error comparing GTIDs %s and %s: %v", fromGtid, binlog.FirstGtid, err)
-			}
-			if lessThan {
-				continue
-			}
-		}
-
-		if binlog.LastGtid != nil {
-			greaterThan, err := binlog.LastGtid.GreaterThan(fromGtid)
-			if err != nil {
-				return nil, fmt.Errorf("error comparing GTIDs %s and %s: %v", binlog.LastGtid, fromGtid, err)
-			}
-			if greaterThan {
-				continue
-			}
-		}
-
-		if (binlog.FirstTime.Before(untilTime) || binlog.FirstTime.Equal(untilTime)) &&
-			(untilTime.Equal(&binlog.LastTime) || untilTime.Before(&binlog.LastTime)) {
-			addBinlog(binlog)
-			continue
-		}
+	lessThanFromGtid, err := binlog.LastGtid.LessThan(fromGtid)
+	if err != nil {
+		return false, fmt.Errorf("error comparing GTIDs %s and %s: %v", binlog.LastGtid, fromGtid, err)
 	}
-	return path, nil
-}
-
-func isEndOfBinlogSubPath(currentBinlog, candidateBinlog *BinlogMetadata, fromGtid *mdbrepl.Gtid, untilTime *metav1.Time,
-	logger logr.Logger) (bool, error) {
-	// there is a GTID gap, we should continue in another server's subpath
-	if currentBinlog != nil && currentBinlog.LastGtid != nil &&
-		candidateBinlog != nil && candidateBinlog.FirstGtid != nil {
-
-		diff, err := currentBinlog.LastGtid.Diff(candidateBinlog.FirstGtid)
-		if err != nil {
-			return false, fmt.Errorf(
-				"error getting diff between %s and %s GTIDs: %v",
-				currentBinlog.LastGtid,
-				candidateBinlog.FirstGtid,
-				err,
-			)
-		}
-		if diff > 1 {
-			return true, nil
-		}
+	if lessThanFromGtid {
+		logger.Info("Skipping binlog, as it has older GTID events")
+		return true, nil
 	}
-	// candidate binlog is after the requested time
-	if candidateBinlog.FirstTime.Time.After(untilTime.Time) {
+
+	if binlog.FirstTime.After(untilTime) {
+		logger.Info("Skipping binlog, as it is out of time range")
 		return true, nil
 	}
 	return false, nil
 }
 
-// func closestBinlogSubPath() {}
+func hasGtidGap(lastBinlog, nextBinlog *BinlogMetadata) (bool, error) {
+	if lastBinlog == nil || lastBinlog.LastGtid == nil {
+		return false, errors.New("last processed binlog must have last GTID set")
+	}
+	if nextBinlog == nil || nextBinlog.FirstGtid == nil {
+		return false, errors.New("next binlog must have first GTID set")
+	}
+	diff, err := lastBinlog.LastGtid.Diff(nextBinlog.FirstGtid)
+	if err != nil {
+		return false, fmt.Errorf(
+			"error getting diff between GTIDs %v and %v: %v",
+			lastBinlog.LastGtid,
+			nextBinlog.FirstGtid,
+			err,
+		)
+	}
+	return diff > 1, nil
+}
 
 type BinlogNum struct {
 	filename string
@@ -188,6 +253,10 @@ type BinlogMetadata struct {
 	LastGtid       *mariadbrepl.Gtid   `yaml:"lastGtid,omitempty"`
 	RotateEvent    bool                `yaml:"rotateEvent"`
 	StopEvent      bool                `yaml:"stopEvent"`
+}
+
+func (b *BinlogMetadata) ObjectStoragePath() string {
+	return fmt.Sprintf("%s/%s", serverKey(b.ServerId), b.BinlogFilename)
 }
 
 func GetBinlogMetadata(binlogPath string, logger logr.Logger) (*BinlogMetadata, error) {

@@ -4,7 +4,6 @@ import (
 	"encoding"
 	"encoding/json"
 	"fmt"
-	"math"
 	"strconv"
 	"strings"
 
@@ -116,7 +115,7 @@ func (g *Gtid) Diff(o *Gtid) (uint64, error) {
 	if g.DomainID != o.DomainID {
 		return 0, fmt.Errorf("domain IDs are different (%d and %d). Not comparable", g.DomainID, o.DomainID)
 	}
-	return uint64(math.Abs(float64(g.SequenceID) - float64(o.SequenceID))), nil
+	return uint64(g.SequenceID - o.SequenceID), nil
 }
 
 func ParseGtidWithDomainId(rawGtid string, domainId uint32, logger logr.Logger) (*Gtid, error) {
