@@ -137,11 +137,11 @@ func (b *BinlogIndex) findNextGtidInOtherServer(lastBinlog *BinlogMetadata, curr
 		}
 		for _, binlog := range binlogs {
 			shouldFilter, err := shouldFilterBinlog(&binlog, fromGtid, untilTime, logger)
-			if shouldFilter {
-				continue
-			}
 			if err != nil {
 				return nil, fmt.Errorf("error determining whether binlog %s should be filtered: %v", binlog.BinlogFilename, err)
+			}
+			if shouldFilter {
+				continue
 			}
 
 			gtidGap, err := hasGtidGap(lastBinlog, &binlog)
@@ -163,7 +163,6 @@ func serverKey(serverId uint32) string {
 func shouldFilterBinlog(binlog *BinlogMetadata, fromGtid *mariadbrepl.Gtid, untilTime time.Time, binlogLogger logr.Logger) (bool, error) {
 	logger := binlogLogger.WithValues(
 		"binlog", binlog.BinlogFilename,
-		"gtid", binlog.LastGtid.String(),
 		"time", binlog.FirstTime,
 		"from-gtid", fromGtid.String(),
 		"until-time", untilTime,
@@ -175,6 +174,9 @@ func shouldFilterBinlog(binlog *BinlogMetadata, fromGtid *mariadbrepl.Gtid, unti
 		logger.Info("Skipping binlog, as it does not have GTID events")
 		return true, nil
 	}
+	logger = logger.WithValues(
+		"gtid", binlog.LastGtid.String(),
+	)
 
 	lessThanFromGtid, err := binlog.LastGtid.LessThan(fromGtid)
 	if err != nil {
