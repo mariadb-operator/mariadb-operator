@@ -95,8 +95,10 @@ func (p *LogicalBackupProcessor) IsValidBackupFile(fileName string) bool {
 }
 
 // ParseCompressionAlrogrithm gets the compression algorithm from the backup file name.
+// Supports both new format (backup.timestamp.sql.gz) and legacy format (backup.timestamp.gzip.sql).
 func (p *LogicalBackupProcessor) ParseCompressionAlgorithm(fileName string) (mariadbv1alpha1.CompressAlgorithm, error) {
 	parts := strings.Split(fileName, ".")
+	// No compression: backup.timestamp.sql
 	if len(parts) == 3 {
 		return mariadbv1alpha1.CompressNone, nil
 	}
@@ -104,6 +106,12 @@ func (p *LogicalBackupProcessor) ParseCompressionAlgorithm(fileName string) (mar
 		return mariadbv1alpha1.CompressAlgorithm(""), fmt.Errorf("invalid backup file name: %s", fileName)
 	}
 
+	// New format: backup.timestamp.sql.gz (extension at the end)
+	if parts[2] == "sql" {
+		return mariadbv1alpha1.CompressionFromExtension(parts[3])
+	}
+
+	// Legacy format: backup.timestamp.gzip.sql (algorithm name in the middle)
 	calg := mariadbv1alpha1.CompressAlgorithm(parts[2])
 	if err := calg.Validate(); err != nil {
 		return "", err
@@ -112,12 +120,22 @@ func (p *LogicalBackupProcessor) ParseCompressionAlgorithm(fileName string) (mar
 }
 
 // GetUncompressedBackupFile get the backup file without compression extension.
+// Supports both new format (backup.timestamp.sql.gz) and legacy format (backup.timestamp.gzip.sql).
 func (p *LogicalBackupProcessor) GetUncompressedBackupFile(compressedBackupFile string) (string, error) {
 	parts := strings.Split(compressedBackupFile, ".")
 	if len(parts) != 4 {
 		return "", fmt.Errorf("invalid compressed backup file name: %s", compressedBackupFile)
 	}
 
+	// New format: backup.timestamp.sql.gz -> backup.timestamp.sql
+	if parts[2] == "sql" {
+		if _, err := mariadbv1alpha1.CompressionFromExtension(parts[3]); err != nil {
+			return "", err
+		}
+		return fmt.Sprintf("%s.%s.%s", parts[0], parts[1], parts[2]), nil
+	}
+
+	// Legacy format: backup.timestamp.gzip.sql -> backup.timestamp.sql
 	calg := mariadbv1alpha1.CompressAlgorithm(parts[2])
 	if err := calg.Validate(); err != nil {
 		return "", err
