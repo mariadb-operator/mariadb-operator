@@ -102,7 +102,7 @@ func (b *BinlogIndex) binlogPathWithBinlogs(binlogs []BinlogMetadata, fromGtid *
 					"binlog", binlog.BinlogFilename,
 					"gtid", binlog.FirstGtid.String(),
 				)
-				nextGtid, err := b.findNextGtidInOtherServer(&lastBinlog, currentServerKey, fromGtid, untilTime, logger.WithName("gtid-gap"))
+				nextGtid, err := b.findNextGtidInOtherServer(&lastBinlog, currentServerKey, untilTime, logger.WithName("gtid-gap"))
 				if err != nil {
 					return nil, fmt.Errorf("unable to find next GTID: %v", err)
 				}
@@ -118,7 +118,7 @@ func (b *BinlogIndex) binlogPathWithBinlogs(binlogs []BinlogMetadata, fromGtid *
 	lastBinlog := binlogs[len(binlogs)-1]
 
 	// binlog path may not be complete after processing all server binlogs
-	nextGtid, err := b.findNextGtidInOtherServer(&lastBinlog, currentServerKey, fromGtid, untilTime, logger)
+	nextGtid, err := b.findNextGtidInOtherServer(&lastBinlog, currentServerKey, untilTime, logger)
 	if nextGtid != nil && err == nil {
 		return b.binlogPathWithBinlogs(binlogs, nextGtid, untilTime, logger)
 	}
@@ -126,8 +126,8 @@ func (b *BinlogIndex) binlogPathWithBinlogs(binlogs []BinlogMetadata, fromGtid *
 	return binlogs, nil
 }
 
-func (b *BinlogIndex) findNextGtidInOtherServer(lastBinlog *BinlogMetadata, currentServer string, fromGtid *mariadbrepl.Gtid,
-	untilTime time.Time, logger logr.Logger) (*mariadbrepl.Gtid, error) {
+func (b *BinlogIndex) findNextGtidInOtherServer(lastBinlog *BinlogMetadata, currentServer string, untilTime time.Time,
+	logger logr.Logger) (*mariadbrepl.Gtid, error) {
 	if lastBinlog == nil || lastBinlog.LastGtid == nil {
 		return nil, errors.New("last processed binlog must have last GTID set")
 	}
@@ -136,7 +136,7 @@ func (b *BinlogIndex) findNextGtidInOtherServer(lastBinlog *BinlogMetadata, curr
 			continue
 		}
 		for _, binlog := range binlogs {
-			shouldFilter, err := shouldFilterBinlog(&binlog, fromGtid, untilTime, logger)
+			shouldFilter, err := shouldFilterBinlog(&binlog, lastBinlog.LastGtid, untilTime, logger)
 			if err != nil {
 				return nil, fmt.Errorf("error determining whether binlog %s should be filtered: %v", binlog.BinlogFilename, err)
 			}
