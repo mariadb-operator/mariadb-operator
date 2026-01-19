@@ -108,14 +108,20 @@ func (g *Gtid) GreaterThan(o *Gtid) (bool, error) {
 	return g.SequenceID > o.SequenceID, nil
 }
 
-func (g *Gtid) Diff(o *Gtid) (uint64, error) {
+// Diff returns the sequence difference between the current GTID and the one provided as argument.
+// If the GTID provided as argument is older than the current GTID, -1 is returned.
+// Otherwise the sequence difference is returned.
+func (g *Gtid) Diff(o *Gtid) (int, error) {
 	if g == nil || o == nil {
 		return 0, nil
 	}
 	if g.DomainID != o.DomainID {
 		return 0, fmt.Errorf("domain IDs are different (%d and %d). Not comparable", g.DomainID, o.DomainID)
 	}
-	return uint64(g.SequenceID - o.SequenceID), nil
+	if o.SequenceID <= g.SequenceID {
+		return -1, nil
+	}
+	return int(o.SequenceID - g.SequenceID), nil
 }
 
 func ParseGtidWithDomainId(rawGtid string, domainId uint32, logger logr.Logger) (*Gtid, error) {
