@@ -7,11 +7,14 @@ import (
 	"io"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
+	"time"
 
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/binlog"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/log"
 	mariadbminio "github.com/mariadb-operator/mariadb-operator/v25/pkg/minio"
+	mariadbrepl "github.com/mariadb-operator/mariadb-operator/v25/pkg/replication"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert/yaml"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -62,7 +65,17 @@ var RootCmd = &cobra.Command{
 			fmt.Printf("error setting up logger: %v\n", err)
 			os.Exit(1)
 		}
-		logger.Info("starting ppoint-in-time recovery")
+		startGtid, err := mariadbrepl.ParseGtid(startGtidRaw)
+		if err != nil {
+			logger.Error(err, "error parsing start GTID", "gtid", startGtidRaw)
+			os.Exit(1)
+		}
+		targetTime, err := time.Parse(time.RFC3339, targetTimeRaw)
+		if err != nil {
+			logger.Error(err, "error parsing target time", "time", targetTimeRaw)
+			os.Exit(1)
+		}
+		logger.Info("starting point-in-time recovery")
 
 		ctx, cancel := newContext()
 		defer cancel()
@@ -73,9 +86,32 @@ var RootCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		_, err = getBinlogIndex(ctx, s3Client)
+		logger.Info("getting binlog index from object storage")
+		binlogIndex, err := getBinlogIndex(ctx, s3Client)
 		if err != nil {
 			logger.Error(err, "error getting binlog index")
+			os.Exit(1)
+		}
+
+		logger.Info("building binlog path")
+		binlogMetas, err := binlogIndex.BinlogPath(startGtid, targetTime, logger.WithName("binlog-path"))
+		if err != nil {
+			logger.Error(err, "error getting binlog path")
+			os.Exit(1)
+		}
+
+		binlogPath := getBinlogPath(binlogMetas)
+		logger.Info("got binlog path", "path", binlogPath)
+
+		logger.Info("writing target file", "file-path", targetFilePath)
+		if err := writeTargetFile(binlogPath); err != nil {
+			logger.Error(err, "error writing target file")
+			os.Exit(1)
+		}
+
+		logger.Info("pulling binlogs into staging area", "staging-path", path)
+		if err := pullBinlogs(ctx, binlogPath, s3Client); err != nil {
+			logger.Error(err, "error pulling binlogs")
 			os.Exit(1)
 		}
 	},
@@ -132,4 +168,25 @@ func getBinlogIndex(ctx context.Context, s3Client *mariadbminio.Client) (*binlog
 		return nil, fmt.Errorf("error unmarshaling binlog index: %v", err)
 	}
 	return &bi, nil
+}
+
+func getBinlogPath(binlogMetas []binlog.BinlogMetadata) []string {
+	binlogPath := make([]string, len(binlogMetas))
+	for i, binlogMeta := range binlogMetas {
+		binlogPath[i] = binlogMeta.ObjectStoragePath()
+	}
+	return binlogPath
+}
+
+func writeTargetFile(binlogPath []string) error {
+	return os.WriteFile(targetFilePath, []byte(strings.Join(binlogPath, ",")), 0777)
+}
+
+func pullBinlogs(ctx context.Context, binlogPath []string, s3Client *mariadbminio.Client) error {
+	for _, binlog := range binlogPath {
+		if err := s3Client.FGetObjectWithOptions(ctx, binlog); err != nil {
+			return fmt.Errorf("error pulling binlog %s: %v", binlog, err)
+		}
+	}
+	return nil
 }
