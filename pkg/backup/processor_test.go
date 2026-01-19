@@ -385,10 +385,34 @@ func TestLogicalParseCompressionAlgorithm(t *testing.T) {
 			wantErr:      true,
 		},
 		{
-			name:         "compression",
+			name:         "legacy compression gzip",
 			fileName:     "backup.2023-12-22T13:00:00Z.gzip.sql",
 			wantCompress: mariadbv1alpha1.CompressGzip,
 			wantErr:      false,
+		},
+		{
+			name:         "legacy compression bzip2",
+			fileName:     "backup.2023-12-22T13:00:00Z.bzip2.sql",
+			wantCompress: mariadbv1alpha1.CompressBzip2,
+			wantErr:      false,
+		},
+		{
+			name:         "new format compression gz",
+			fileName:     "backup.2023-12-22T13:00:00Z.sql.gz",
+			wantCompress: mariadbv1alpha1.CompressGzip,
+			wantErr:      false,
+		},
+		{
+			name:         "new format compression bz2",
+			fileName:     "backup.2023-12-22T13:00:00Z.sql.bz2",
+			wantCompress: mariadbv1alpha1.CompressBzip2,
+			wantErr:      false,
+		},
+		{
+			name:         "new format invalid extension",
+			fileName:     "backup.2023-12-22T13:00:00Z.sql.foo",
+			wantCompress: mariadbv1alpha1.CompressAlgorithm(""),
+			wantErr:      true,
 		},
 	}
 
@@ -447,10 +471,34 @@ func TestLogicalGetUncompressedBackupFile(t *testing.T) {
 			wantErr:      true,
 		},
 		{
-			name:         "compression",
+			name:         "legacy compression gzip",
 			fileName:     "backup.2023-12-22T13:00:00Z.gzip.sql",
 			wantFileName: "backup.2023-12-22T13:00:00Z.sql",
 			wantErr:      false,
+		},
+		{
+			name:         "legacy compression bzip2",
+			fileName:     "backup.2023-12-22T13:00:00Z.bzip2.sql",
+			wantFileName: "backup.2023-12-22T13:00:00Z.sql",
+			wantErr:      false,
+		},
+		{
+			name:         "new format compression gz",
+			fileName:     "backup.2023-12-22T13:00:00Z.sql.gz",
+			wantFileName: "backup.2023-12-22T13:00:00Z.sql",
+			wantErr:      false,
+		},
+		{
+			name:         "new format compression bz2",
+			fileName:     "backup.2023-12-22T13:00:00Z.sql.bz2",
+			wantFileName: "backup.2023-12-22T13:00:00Z.sql",
+			wantErr:      false,
+		},
+		{
+			name:         "new format invalid extension",
+			fileName:     "backup.2023-12-22T13:00:00Z.sql.foo",
+			wantFileName: "",
+			wantErr:      true,
 		},
 	}
 
