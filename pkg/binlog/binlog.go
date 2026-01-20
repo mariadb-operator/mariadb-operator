@@ -57,7 +57,7 @@ func (b *BinlogIndex) binlogPathWithBinlogs(binlogs []BinlogMetadata, fromGtid *
 	logger := binlogLogger.WithValues(
 		"num-binlogs", len(binlogs),
 		"from-gtid", fromGtid.String(),
-		"until-time", untilTime,
+		"until-time", untilTime.Format(time.RFC3339),
 		"server", currentServerKey,
 	)
 	logger.Info("Building binlog path")
@@ -165,7 +165,7 @@ func shouldFilterBinlog(binlog *BinlogMetadata, fromGtid *mariadbrepl.Gtid, unti
 		"binlog", binlog.BinlogFilename,
 		"time", binlog.FirstTime,
 		"from-gtid", fromGtid.String(),
-		"until-time", untilTime,
+		"until-time", untilTime.Format(time.RFC3339),
 	)
 	logger.V(1).Info("Processing binlog")
 

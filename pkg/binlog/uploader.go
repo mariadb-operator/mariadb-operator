@@ -23,11 +23,11 @@ var uploadBackoff = wait.Backoff{
 type Uploader struct {
 	dataDir    string
 	s3Client   *mariadbminio.Client
-	compressor compression.BackupCompressor
+	compressor compression.Compressor
 	logger     logr.Logger
 }
 
-func NewUploader(dataDir string, s3Client *mariadbminio.Client, compressor compression.BackupCompressor,
+func NewUploader(dataDir string, s3Client *mariadbminio.Client, compressor compression.Compressor,
 	logger logr.Logger) *Uploader {
 	return &Uploader{
 		dataDir:    dataDir,
@@ -39,24 +39,23 @@ func NewUploader(dataDir string, s3Client *mariadbminio.Client, compressor compr
 
 func (u *Uploader) Upload(ctx context.Context, binlog string, mdb *mariadbv1alpha1.MariaDB,
 	pitr *mariadbv1alpha1.PointInTimeRecovery) error {
-	meta, err := GetBinlogMetadata(filepath.Join(u.dataDir, binlog), u.logger)
+	binlogFileName := filepath.Join(u.dataDir, binlog)
+	meta, err := GetBinlogMetadata(binlogFileName, u.logger)
 	if err != nil {
 		return fmt.Errorf("error getting binary log %s metadata: %v", binlog, err)
 	}
-	targetFile, err := u.getTargetFile(binlog, meta, pitr)
+	objectName, err := getObjectName(binlog, meta, pitr)
 	if err != nil {
-		return fmt.Errorf("error getting target file: %v", err)
+		return fmt.Errorf("error getting object name: %v", err)
 	}
-	objectName := getObjectName(targetFile, meta)
 	binlogLogger := u.logger.WithValues(
 		"binlog", binlog,
-		"target-file", targetFile,
 		"object", objectName,
 	)
 
 	exists, err := u.s3Client.Exists(ctx, objectName)
 	if err != nil {
-		return err
+		return fmt.Errorf("error determining if binary log exists: %v", err)
 	}
 	if exists {
 		binlogLogger.V(1).Info("Binary log already exists. Skipping...")
@@ -67,8 +66,30 @@ func (u *Uploader) Upload(ctx context.Context, binlog string, mdb *mariadbv1alph
 	binlogLogger = binlogLogger.WithValues("start-time", startTime.Format(time.RFC3339))
 	binlogLogger.Info("Uploading binary log")
 
-	if err := u.compressor.Compress(binlog, compression.BackupWithCompressedFilename(targetFile)); err != nil {
+	binlogFile, err := os.Open(binlogFileName)
+	if err != nil {
+		return fmt.Errorf("error opening binlog file %s: %v", binlogFileName, err)
+	}
+	defer binlogFile.Close()
+
+	if pitr.Spec.Compression != "" && pitr.Spec.Compression != mariadbv1alpha1.CompressNone {
+		binlogLogger.Info("Compressing binary log")
+	}
+	// Temporary file to be used for compression. This is to avoid loading the binlog in memory.
+	tmpFile, err := os.CreateTemp(u.dataDir, binlog+".*.tmp")
+	if err != nil {
+		return fmt.Errorf("creating temp file in %s: %v", u.dataDir, err)
+	}
+	defer func() {
+		_ = tmpFile.Close()
+		_ = os.Remove(tmpFile.Name())
+	}()
+	if err := u.compressor.Compress(tmpFile, binlogFile); err != nil {
 		return fmt.Errorf("error compressing binlog: %v", err)
+	}
+	tmpStat, err := tmpFile.Stat()
+	if err != nil {
+		return fmt.Errorf("error stat temp file %s: %v", tmpFile.Name(), err)
 	}
 
 	uploadIsRetriable := func(err error) bool {
@@ -77,45 +98,22 @@ func (u *Uploader) Upload(ctx context.Context, binlog string, mdb *mariadbv1alph
 		}
 		return err != nil
 	}
-	file, err := u.getBinlogFile(binlog, targetFile, pitr)
-	if err != nil {
-		return fmt.Errorf("error getting binlog file: %v", err)
-	}
-	defer file.Close()
-
-	fileInfo, err := file.Stat()
-	if err != nil {
-		return fmt.Errorf("error getting binlog file info: %v", err)
-	}
-
 	if err := retry.OnError(uploadBackoff, uploadIsRetriable, func() error {
 		// rewind to start for each attempt
-		if _, err := file.Seek(0, 0); err != nil {
-			return fmt.Errorf("seek before upload: %w", err)
+		if _, err := tmpFile.Seek(0, 0); err != nil {
+			return fmt.Errorf("error seeking before upload: %v", err)
 		}
-		return u.s3Client.PutObjectWithOptions(ctx, objectName, file, fileInfo.Size())
+		return u.s3Client.PutObjectWithOptions(ctx, objectName, tmpFile, tmpStat.Size())
 	}); err != nil {
 		return fmt.Errorf("error uploading binlog %s: %v", binlog, err)
-	}
-
-	if err := u.cleanupCompressedFile(targetFile, pitr); err != nil {
-		return fmt.Errorf("error cleaning up compressed file: %v", err)
 	}
 
 	binlogLogger.Info("Binary log uploaded", "total-time", time.Since(startTime).String())
 	return nil
 }
 
-func (u *Uploader) getBinlogFile(binlog string, targetFile string, pitr *mariadbv1alpha1.PointInTimeRecovery) (*os.File, error) {
-	if pitr.Spec.Compression == "" || pitr.Spec.Compression == mariadbv1alpha1.CompressNone {
-		return os.Open(filepath.Join(u.dataDir, binlog))
-	}
-	return os.Open(filepath.Join(u.dataDir, targetFile))
-}
-
-func (u *Uploader) getTargetFile(binlog string, meta *BinlogMetadata, pitr *mariadbv1alpha1.PointInTimeRecovery) (string, error) {
+func getObjectName(binlog string, meta *BinlogMetadata, pitr *mariadbv1alpha1.PointInTimeRecovery) (string, error) {
 	name := binlog
-
 	if pitr.Spec.Compression != "" && pitr.Spec.Compression != mariadbv1alpha1.CompressNone {
 		ext, err := pitr.Spec.Compression.Extension()
 		if err != nil {
@@ -123,16 +121,5 @@ func (u *Uploader) getTargetFile(binlog string, meta *BinlogMetadata, pitr *mari
 		}
 		name = fmt.Sprintf("%s.%s", name, ext)
 	}
-	return name, nil
-}
-
-func (u *Uploader) cleanupCompressedFile(targetFile string, pitr *mariadbv1alpha1.PointInTimeRecovery) error {
-	if pitr.Spec.Compression == "" || pitr.Spec.Compression == mariadbv1alpha1.CompressNone {
-		return nil
-	}
-	return os.Remove(filepath.Join(u.dataDir, targetFile))
-}
-
-func getObjectName(targetFile string, meta *BinlogMetadata) string {
-	return fmt.Sprintf("server-%d/%s", meta.ServerId, targetFile)
+	return fmt.Sprintf("server-%d/%s", meta.ServerId, name), nil
 }
