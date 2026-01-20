@@ -778,7 +778,7 @@ const (
 	CompressGzip CompressAlgorithm = "gzip"
 )
 
-// CompressAlgoritms is the list of supported compress algorithms.
+// CompressAlgorithms is the list of supported compress algorithms.
 var CompressAlgorithms = []CompressAlgorithm{
 	CompressNone,
 	CompressBzip2,
