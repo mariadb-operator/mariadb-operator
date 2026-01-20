@@ -637,6 +637,10 @@ type ServiceTemplate struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch","urn:alm:descriptor:com.tectonic.ui:advanced"}
 	AllocateLoadBalancerNodePorts *bool `json:"allocateLoadBalancerNodePorts,omitempty"`
+	// LoadBalancerClass Service field.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	LoadBalancerClass *string `json:"loadBalancerClass,omitempty"`
 }
 
 // PodDisruptionBudget is the Pod availability bundget for a MariaDB

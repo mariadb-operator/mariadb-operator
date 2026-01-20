@@ -3394,6 +3394,9 @@ spec:
                   externalTrafficPolicy:
                     description: ExternalTrafficPolicy Service field.
                     type: string
+                  loadBalancerClass:
+                    description: LoadBalancerClass Service field.
+                    type: string
                   loadBalancerIP:
                     description: LoadBalancerIP Service field.
                     type: string
@@ -4937,6 +4940,9 @@ spec:
                   externalTrafficPolicy:
                     description: ExternalTrafficPolicy Service field.
                     type: string
+                  loadBalancerClass:
+                    description: LoadBalancerClass Service field.
+                    type: string
                   loadBalancerIP:
                     description: LoadBalancerIP Service field.
                     type: string
@@ -5020,6 +5026,9 @@ spec:
                     type: boolean
                   externalTrafficPolicy:
                     description: ExternalTrafficPolicy Service field.
+                    type: string
+                  loadBalancerClass:
+                    description: LoadBalancerClass Service field.
                     type: string
                   loadBalancerIP:
                     description: LoadBalancerIP Service field.

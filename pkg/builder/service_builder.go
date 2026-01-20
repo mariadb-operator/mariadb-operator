@@ -89,6 +89,9 @@ func (b *Builder) BuildService(key types.NamespacedName, owner metav1.Object, op
 	if opts.AllocateLoadBalancerNodePorts != nil {
 		svc.Spec.AllocateLoadBalancerNodePorts = opts.AllocateLoadBalancerNodePorts
 	}
+	if opts.LoadBalancerClass != nil {
+		svc.Spec.LoadBalancerClass = opts.LoadBalancerClass
+	}
 	if err := controllerutil.SetControllerReference(owner, svc, b.scheme); err != nil {
 		return nil, fmt.Errorf("error setting controller reference to Service: %v", err)
 	}
