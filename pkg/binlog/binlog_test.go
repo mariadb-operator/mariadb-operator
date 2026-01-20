@@ -6,11 +6,10 @@ import (
 	"testing"
 	"time"
 
-	"gopkg.in/yaml.v2"
-
 	"github.com/go-logr/logr"
 	"github.com/google/go-cmp/cmp"
 	mariadbrepl "github.com/mariadb-operator/mariadb-operator/v25/pkg/replication"
+	"sigs.k8s.io/yaml"
 )
 
 func TestBinlogPath(t *testing.T) {

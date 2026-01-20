@@ -20,10 +20,10 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/environment"
 	mariadbminio "github.com/mariadb-operator/mariadb-operator/v25/pkg/minio"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/sql"
-	"gopkg.in/yaml.v2"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/yaml"
 )
 
 var (
@@ -114,14 +114,15 @@ func (a *Archiver) getS3Client(s3 *mariadbv1alpha1.S3, env *environment.PodEnvir
 	return client, nil
 }
 
-func (a *Archiver) getCompressor(calg mariadbv1alpha1.CompressAlgorithm) (mariadbcompression.Compressor, error) {
+// TODO: use ariadbcompression.Compressor
+func (a *Archiver) getCompressor(calg mariadbv1alpha1.CompressAlgorithm) (mariadbcompression.BackupCompressor, error) {
 	if calg == mariadbv1alpha1.CompressAlgorithm("") {
 		calg = mariadbv1alpha1.CompressNone
 	}
 	if err := calg.Validate(); err != nil {
 		return nil, fmt.Errorf("compression algorithm not supported: %v", err)
 	}
-	return mariadbcompression.NewCompressor(calg, a.dataDir, getUncompressedBinlog, a.logger)
+	return mariadbcompression.NewBackupCompressor(calg, a.dataDir, getUncompressedBinlog, a.logger)
 }
 
 func (a *Archiver) archiveBinaryLogs(ctx context.Context) error {
