@@ -119,6 +119,7 @@ restore: lint ## Run restore from your host.
 local-dir: ## Create config and state directories for local development.
 	mkdir -p mariadb/config
 	mkdir -p mariadb/state
+	mkdir -p binlogs/
 
 POD_ENV ?= \
 	CLUSTER_NAME=cluster.local  \
@@ -142,6 +143,15 @@ AGENT_FLAGS ?= $(RUN_FLAGS) $(AGENT_AUTH_FLAGS) --config-dir=mariadb/config --st
 agent: local-dir ## Run agent from your host.
 	$(POD_ENV) $(GO) run cmd/controller/*.go agent $(AGENT_FLAGS)
 
+PITR_ENV ?= AWS_ACCESS_KEY_ID=mariadb-operator AWS_SECRET_ACCESS_KEY=Minio11!
+PITR_FLAGS ?= --path=binlogs --target-file-path=binlogs/0-binlog-target.txt \
+	--start-gtid=0-10-1 --target-time=2027-01-20T10:00:00Z \
+	--s3-bucket=binlogs --s3-prefix=mariadb --s3-endpoint=minio.minio.svc.cluster.local:9000 --s3-region=us-east-1 \
+	--s3-tls --s3-ca-cert-path=/tmp/pki/ca/minio.crt \
+	--compression=gzip
+.PHONY: pitr
+pitr: local-dir ## Run PITR from your host.
+	$(PITR_ENV) $(GO) run cmd/controller/*.go pitr $(PITR_FLAGS)
 
 CLIENT_FLAGS ?= --host=mariadb-repl-primary.default.svc.cluster.local --port=3306 \
 	--username=root --password=MariaDB11! --database=test --table=test \

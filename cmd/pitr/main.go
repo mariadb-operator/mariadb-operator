@@ -11,6 +11,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/go-logr/logr"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/binlog"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/log"
 	mariadbminio "github.com/mariadb-operator/mariadb-operator/v25/pkg/minio"
@@ -35,6 +37,8 @@ var (
 	s3TLS        bool
 	s3CACertPath string
 	s3Prefix     string
+
+	compression string
 )
 
 func init() {
@@ -48,11 +52,15 @@ func init() {
 		"RFC3339 (1970-01-01T00:00:00Z) date and time that defines the recovery point-in-time.")
 
 	RootCmd.Flags().StringVar(&s3Bucket, "s3-bucket", "binlogs", "Name of the bucket to store binary logs.")
+	RootCmd.Flags().StringVar(&s3Prefix, "s3-prefix", "", "S3 bucket prefix name to use.")
 	RootCmd.Flags().StringVar(&s3Endpoint, "s3-endpoint", "s3.amazonaws.com", "S3 API endpoint without scheme.")
 	RootCmd.Flags().StringVar(&s3Region, "s3-region", "us-east-1", "S3 region name to use.")
 	RootCmd.Flags().BoolVar(&s3TLS, "s3-tls", false, "Enable S3 TLS connections.")
 	RootCmd.Flags().StringVar(&s3CACertPath, "s3-ca-cert-path", "", "Path to the CA to be trusted when connecting to S3.")
-	RootCmd.Flags().StringVar(&s3Prefix, "s3-prefix", "", "S3 bucket prefix name to use.")
+
+	RootCmd.Flags().StringVar(&compression, "compression", string(mariadbv1alpha1.CompressNone),
+		"Default compression algorithm to infer the extension that binary logs will have. Supported values: none, gzip or bzip2."+
+			"If the binary log file is not available with this extension, the other values will be attempted.")
 }
 
 var RootCmd = &cobra.Command{
@@ -73,6 +81,11 @@ var RootCmd = &cobra.Command{
 		targetTime, err := time.Parse(time.RFC3339, targetTimeRaw)
 		if err != nil {
 			logger.Error(err, "error parsing target time", "time", targetTimeRaw)
+			os.Exit(1)
+		}
+		binlogExtensions, err := getBinlogExtensions()
+		if err != nil {
+			logger.Error(err, "error getting binlog extensions")
 			os.Exit(1)
 		}
 		logger.Info("starting point-in-time recovery")
@@ -109,12 +122,30 @@ var RootCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		logger.Info("pulling binlogs into staging area", "staging-path", path)
-		if err := pullBinlogs(ctx, binlogPath, s3Client); err != nil {
+		logger.Info("pulling binlogs into staging area", "staging-path", path, "extensions", binlogExtensions)
+		if err := pullBinlogs(ctx, binlogPath, binlogExtensions, s3Client, logger); err != nil {
 			logger.Error(err, "error pulling binlogs")
 			os.Exit(1)
 		}
 	},
+}
+
+func getBinlogExtensions() ([]string, error) {
+	calg := mariadbv1alpha1.CompressAlgorithm(compression)
+	if err := calg.Validate(); err != nil {
+		return nil, fmt.Errorf("compression algorithm not supported: %v", err)
+	}
+	calgs := mariadbv1alpha1.GetSupportedCompressAlgorithms(calg)
+	exts := make([]string, len(calgs))
+
+	for i, calg := range calgs {
+		ext, err := calg.Extension()
+		if err != nil {
+			return nil, fmt.Errorf("error getting extensions for compress algorithm %v: %v", calg, err)
+		}
+		exts[i] = ext
+	}
+	return exts, nil
 }
 
 func newContext() (context.Context, context.CancelFunc) {
@@ -182,7 +213,8 @@ func writeTargetFile(binlogPath []string) error {
 	return os.WriteFile(targetFilePath, []byte(strings.Join(binlogPath, ",")), 0777)
 }
 
-func pullBinlogs(ctx context.Context, binlogPath []string, s3Client *mariadbminio.Client) error {
+func pullBinlogs(ctx context.Context, binlogPath []string, binlogExtensions []string, s3Client *mariadbminio.Client,
+	logger logr.Logger) error {
 	for _, binlog := range binlogPath {
 		if err := s3Client.FGetObjectWithOptions(ctx, binlog); err != nil {
 			return fmt.Errorf("error pulling binlog %s: %v", binlog, err)
