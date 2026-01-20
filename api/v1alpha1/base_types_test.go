@@ -373,4 +373,37 @@ var _ = Describe("Base types", func() {
 			),
 		)
 	})
+
+	Context("When getting supported compress algorithms", func() {
+		DescribeTable(
+			"Should return algorithms in expected order",
+			func(
+				preferred []CompressAlgorithm,
+				want []CompressAlgorithm,
+			) {
+				got := GetSupportedCompressAlgorithms(preferred...)
+				Expect(got).To(BeEquivalentTo(want))
+			},
+			Entry(
+				"no preferred",
+				nil,
+				[]CompressAlgorithm{CompressNone, CompressBzip2, CompressGzip},
+			),
+			Entry(
+				"preferred gzip",
+				[]CompressAlgorithm{CompressGzip},
+				[]CompressAlgorithm{CompressGzip, CompressNone, CompressBzip2},
+			),
+			Entry(
+				"preferred bzip2 then gzip",
+				[]CompressAlgorithm{CompressBzip2, CompressGzip},
+				[]CompressAlgorithm{CompressBzip2, CompressGzip, CompressNone},
+			),
+			Entry(
+				"preferred none",
+				[]CompressAlgorithm{CompressNone},
+				[]CompressAlgorithm{CompressNone, CompressBzip2, CompressGzip},
+			),
+		)
+	})
 })

@@ -66,6 +66,7 @@ host-monitoring: ## Add monitoring hosts to /etc/hosts.
 .PHONY: host-minio
 host-minio: ## Add minio hosts to /etc/hosts.
 	@./hack/add_host.sh 200 minio
+	@./hack/add_host.sh 200 minio.minio.svc.cluster.local
 	@./hack/add_host.sh 201 minio-console
 
 .PHONY: host-maxscale-repl
