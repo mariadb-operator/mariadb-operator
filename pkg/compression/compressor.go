@@ -30,11 +30,13 @@ func NewCompressor(calg mariadbv1alpha1.CompressAlgorithm) (Compressor, error) {
 type NopCompressor struct{}
 
 func (c *NopCompressor) Compress(dst io.Writer, src io.Reader) error {
-	return nil
+	_, err := io.Copy(dst, src)
+	return err
 }
 
 func (c *NopCompressor) Decompress(dst io.Writer, src io.Reader) error {
-	return nil
+	_, err := io.Copy(dst, src)
+	return err
 }
 
 type GzipCompressor struct{}

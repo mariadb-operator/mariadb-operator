@@ -11,7 +11,6 @@ import (
 	"path"
 	"path/filepath"
 	"sort"
-	"strings"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -38,12 +37,12 @@ type Archiver struct {
 	logger  logr.Logger
 }
 
-func NewArchiver(dataDir string, env *environment.PodEnvironment, client *client.Client,
+func NewArchiver(dataDir string, env *environment.PodEnvironment, client client.Client,
 	logger logr.Logger) *Archiver {
 	return &Archiver{
 		dataDir: dataDir,
 		env:     env,
-		client:  *client,
+		client:  client,
 		logger:  logger,
 	}
 }
@@ -114,15 +113,14 @@ func (a *Archiver) getS3Client(s3 *mariadbv1alpha1.S3, env *environment.PodEnvir
 	return client, nil
 }
 
-// TODO: use ariadbcompression.Compressor
-func (a *Archiver) getCompressor(calg mariadbv1alpha1.CompressAlgorithm) (mariadbcompression.BackupCompressor, error) {
+func (a *Archiver) getCompressor(calg mariadbv1alpha1.CompressAlgorithm) (mariadbcompression.Compressor, error) {
 	if calg == mariadbv1alpha1.CompressAlgorithm("") {
 		calg = mariadbv1alpha1.CompressNone
 	}
 	if err := calg.Validate(); err != nil {
 		return nil, fmt.Errorf("compression algorithm not supported: %v", err)
 	}
-	return mariadbcompression.NewBackupCompressor(calg, a.dataDir, getUncompressedBinlog, a.logger)
+	return mariadbcompression.NewCompressor(calg)
 }
 
 func (a *Archiver) archiveBinaryLogs(ctx context.Context) error {
@@ -222,8 +220,9 @@ func (a *Archiver) getBinaryLogs(ctx context.Context, sqlClient *sql.Client) ([]
 
 	file, err := os.Open(binaryLogIndex)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open binlog index: %w", err)
+		return nil, fmt.Errorf("failed to open binlog index: %v", err)
 	}
+	defer file.Close()
 
 	var binlogs []string
 	fileScanner := bufio.NewScanner(file)
@@ -354,17 +353,17 @@ func (a *Archiver) updateBinlogIndex(ctx context.Context, binlogs []string, serv
 	if exists {
 		indexReader, err := s3Client.GetObjectWithOptions(ctx, BinlogIndexName)
 		if err != nil {
-			return fmt.Errorf("error getting binlog index: %w", err)
+			return fmt.Errorf("error getting binlog index: %v", err)
 		}
 		defer indexReader.Close()
 
 		bytes, err := io.ReadAll(indexReader)
 		if err != nil {
-			return fmt.Errorf("error reading binlog index: %w", err)
+			return fmt.Errorf("error reading binlog index: %v", err)
 		}
 		var bi BinlogIndex
 		if err := yaml.Unmarshal(bytes, &bi); err != nil {
-			return fmt.Errorf("error unmarshaling binlog index: %w", err)
+			return fmt.Errorf("error unmarshaling binlog index: %v", err)
 		}
 		index = &bi
 	} else {
@@ -400,18 +399,4 @@ func (a *Archiver) patchStatus(ctx context.Context, mariadb *mariadbv1alpha1.Mar
 	patch := client.MergeFrom(mariadb.DeepCopy())
 	patcher(&mariadb.Status)
 	return a.client.Status().Patch(ctx, mariadb, patch)
-}
-
-func getUncompressedBinlog(compressedBinlog string) (string, error) {
-	// compressed binlog format: mariadb-bin.000001.bz2
-	parts := strings.Split(compressedBinlog, ".")
-	if len(parts) != 3 {
-		return "", fmt.Errorf("invalid compressed binlog file name: %s", compressedBinlog)
-	}
-
-	calg := mariadbv1alpha1.CompressAlgorithm(parts[2])
-	if err := calg.Validate(); err != nil {
-		return "", err
-	}
-	return fmt.Sprintf("%s.%s", parts[0], parts[1]), nil
 }

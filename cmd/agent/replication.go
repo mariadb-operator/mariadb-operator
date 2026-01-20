@@ -99,7 +99,7 @@ var replicationCommand = &cobra.Command{
 			archiver := binlog.NewArchiver(
 				stateDir,
 				env,
-				&k8sClient,
+				k8sClient,
 				logger.WithName("binlog-archival"),
 			)
 			go func() {
