@@ -13,13 +13,6 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
 )
 
-// Magic bytes for compression format detection.
-// These are used to validate file content matches the expected compression algorithm.
-var (
-	gzipMagic  = []byte{0x1f, 0x8b} // gzip magic number
-	bzip2Magic = []byte{0x42, 0x5a} // bzip2 magic number ("BZ")
-)
-
 type Compressor interface {
 	Compress(fileName string) error
 	Decompress(fileName string) (string, error)
@@ -83,16 +76,15 @@ func (c *GzipBackupCompressor) Compress(fileName string) error {
 }
 
 func (c *GzipBackupCompressor) Decompress(fileName string) (string, error) {
-	return decompressFile(c.basePath, fileName, c.logger, c.getUncompressedFilename, gzipMagic,
-		func(dst io.Writer, src io.Reader) error {
-			reader, err := gzip.NewReader(src)
-			if err != nil {
-				return err
-			}
-			defer reader.Close()
-			_, err = io.Copy(dst, reader)
+	return decompressFile(c.basePath, fileName, c.logger, c.getUncompressedFilename, func(dst io.Writer, src io.Reader) error {
+		reader, err := gzip.NewReader(src)
+		if err != nil {
 			return err
-		})
+		}
+		defer reader.Close()
+		_, err = io.Copy(dst, reader)
+		return err
+	})
 }
 
 type Bzip2BackupCompressor struct {
@@ -123,17 +115,16 @@ func (c *Bzip2BackupCompressor) Compress(fileName string) error {
 }
 
 func (c *Bzip2BackupCompressor) Decompress(fileName string) (string, error) {
-	return decompressFile(c.basePath, fileName, c.logger, c.getUncompressedFilename, bzip2Magic,
-		func(dst io.Writer, src io.Reader) error {
-			reader, err := bzip2.NewReader(src,
-				&bzip2.ReaderConfig{})
-			if err != nil {
-				return err
-			}
-			defer reader.Close()
-			_, err = io.Copy(dst, reader)
+	return decompressFile(c.basePath, fileName, c.logger, c.getUncompressedFilename, func(dst io.Writer, src io.Reader) error {
+		reader, err := bzip2.NewReader(src,
+			&bzip2.ReaderConfig{})
+		if err != nil {
 			return err
-		})
+		}
+		defer reader.Close()
+		_, err = io.Copy(dst, reader)
+		return err
+	})
 }
 
 func compressFile(path, fileName string, logger logr.Logger, compressFn func(dst io.Writer, src io.Reader) error) error {
@@ -176,34 +167,8 @@ func compressFile(path, fileName string, logger logr.Logger, compressFn func(dst
 	return nil
 }
 
-// validateMagicBytes reads the first bytes of a file and validates they match
-// the expected compression format. This provides a safety check that the file
-// content matches the expected compression algorithm, regardless of file extension.
-func validateMagicBytes(file *os.File, expectedMagic []byte) error {
-	magic := make([]byte, len(expectedMagic))
-	n, err := file.Read(magic)
-	if err != nil {
-		return fmt.Errorf("failed to read magic bytes: %w", err)
-	}
-	if n < len(expectedMagic) {
-		return fmt.Errorf("file too short to contain magic bytes")
-	}
-
-	// Seek back to the beginning for decompression
-	if _, err := file.Seek(0, io.SeekStart); err != nil {
-		return fmt.Errorf("failed to seek back to start: %w", err)
-	}
-
-	for i, b := range expectedMagic {
-		if magic[i] != b {
-			return fmt.Errorf("invalid magic bytes: expected %x, got %x", expectedMagic, magic)
-		}
-	}
-	return nil
-}
-
 func decompressFile(path, fileName string, logger logr.Logger, getUncompressedFilename GetUncompressedFilenameFn,
-	expectedMagic []byte, uncompressFn func(dst io.Writer, src io.Reader) error) (string, error) {
+	uncompressFn func(dst io.Writer, src io.Reader) error) (string, error) {
 	filePath := getFilePath(path, fileName)
 	logger.Info("decompressing file", "file", filePath)
 
@@ -212,13 +177,6 @@ func decompressFile(path, fileName string, logger logr.Logger, getUncompressedFi
 		return "", err
 	}
 	defer compressedFile.Close()
-
-	// Validate magic bytes if specified
-	if expectedMagic != nil {
-		if err := validateMagicBytes(compressedFile, expectedMagic); err != nil {
-			return "", fmt.Errorf("magic bytes validation failed for %s: %w", fileName, err)
-		}
-	}
 
 	plainFileName, err := getUncompressedFilename(fileName)
 	if err != nil {
