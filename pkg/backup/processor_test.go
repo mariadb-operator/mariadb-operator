@@ -550,7 +550,7 @@ func TestPhysicalGetTargetFile(t *testing.T) {
 			backupFiles: []string{
 				"physicalbackup-20231218155800.xb",
 			},
-			targetRecovery: time.UnixMilli(0),
+			targetRecovery: time.Now(),
 			wantFile:       "physicalbackup-20231218155800.xb",
 			wantErr:        false,
 		},
@@ -583,8 +583,8 @@ func TestPhysicalGetTargetFile(t *testing.T) {
 				"physicalbackup-20231218155900.xb",
 			},
 			targetRecovery: time.UnixMilli(0),
-			wantFile:       "physicalbackup-20231218155800.xb",
-			wantErr:        false,
+			wantFile:       "",
+			wantErr:        true,
 		},
 		{
 			name: "target after backups",
@@ -1046,7 +1046,7 @@ func TestSnapshotGetTargetFile(t *testing.T) {
 			backupFiles: []string{
 				"snapshot-20231218155800",
 			},
-			targetRecovery: time.UnixMilli(0),
+			targetRecovery: time.Now(),
 			wantFile:       "snapshot-20231218155800",
 			wantErr:        false,
 		},
@@ -1079,8 +1079,8 @@ func TestSnapshotGetTargetFile(t *testing.T) {
 				"snapshot-20231218155900",
 			},
 			targetRecovery: time.UnixMilli(0),
-			wantFile:       "snapshot-20231218155800",
-			wantErr:        false,
+			wantFile:       "",
+			wantErr:        true,
 		},
 		{
 			name: "target after backups",
