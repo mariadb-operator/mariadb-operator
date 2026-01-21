@@ -2,7 +2,6 @@ package controller
 
 import (
 	"os"
-	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/metadata"
@@ -675,7 +674,7 @@ var _ = Describe("MariaDB", Label("basic"), func() {
 				BackupRef: &mariadbv1alpha1.LocalObjectReference{
 					Name: "test-backup",
 				},
-				TargetRecoveryTime: &metav1.Time{Time: time.Now()},
+				TargetRecoveryTime: testTargetRecoveryTime,
 			}),
 			types.NamespacedName{
 				Name:      "test-mariadb-from-backup",
@@ -706,7 +705,7 @@ var _ = Describe("MariaDB", Label("basic"), func() {
 						},
 					},
 				},
-				TargetRecoveryTime: &metav1.Time{Time: time.Now()},
+				TargetRecoveryTime: testTargetRecoveryTime,
 			}),
 			types.NamespacedName{
 				Name:      "test-mariadb-from-s3",
@@ -754,7 +753,7 @@ var _ = Describe("MariaDB", Label("basic"), func() {
 					Name: "test-physicalbackup",
 					Kind: mariadbv1alpha1.PhysicalBackupKind,
 				},
-				TargetRecoveryTime: &metav1.Time{Time: time.Now()},
+				TargetRecoveryTime: testTargetRecoveryTime,
 			},
 			types.NamespacedName{
 				Name:      "test-mariadb-from-physicalbackup",
@@ -774,7 +773,7 @@ var _ = Describe("MariaDB", Label("basic"), func() {
 					Name: "test-physicalbackup-volumesnapshot",
 					Kind: mariadbv1alpha1.PhysicalBackupKind,
 				},
-				TargetRecoveryTime: &metav1.Time{Time: time.Now()},
+				TargetRecoveryTime: testTargetRecoveryTime,
 			},
 			types.NamespacedName{
 				Name:      "test-mariadb-from-physicalbackup-volumesnapshot",

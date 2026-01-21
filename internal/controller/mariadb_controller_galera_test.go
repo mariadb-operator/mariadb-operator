@@ -596,7 +596,7 @@ var _ = Describe("MariaDB Galera disaster recovery", Ordered, func() {
 		bootstrapFrom.Spec.BootstrapFrom = &mariadbv1alpha1.BootstrapFrom{
 			BackupContentType:  mariadbv1alpha1.BackupContentTypePhysical,
 			S3:                 getS3Storage("test-mariadb-galera-physical", "", withSSEC()),
-			TargetRecoveryTime: &metav1.Time{Time: time.Now()},
+			TargetRecoveryTime: testTargetRecoveryTime,
 		}
 		Expect(k8sClient.Create(testCtx, bootstrapFrom)).To(Succeed())
 
