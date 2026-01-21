@@ -70,7 +70,7 @@ func (b *BinlogIndex) binlogPathWithBinlogs(binlogs []BinlogMetadata, fromGtid *
 	for _, binlog := range binlogsToProcess {
 		// next binlog is out of time range, done!
 		if binlog.FirstTime.After(untilTime) {
-			logger.Info(
+			logger.V(1).Info(
 				"Next binlog is out of time range. Done.",
 				"binlog", binlog.BinlogFilename,
 				"time", binlog.FirstTime,
@@ -166,8 +166,8 @@ func shouldFilterBinlog(binlog *BinlogMetadata, fromGtid *mariadbrepl.Gtid, unti
 		"time", binlog.FirstTime,
 		"from-gtid", fromGtid.String(),
 		"until-time", untilTime.Format(time.RFC3339),
-	)
-	logger.V(1).Info("Processing binlog")
+	).V(1)
+	logger.Info("Processing binlog")
 
 	// only binlogs with GTID events are considered
 	if binlog.FirstGtid == nil || binlog.LastGtid == nil {

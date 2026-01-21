@@ -72,66 +72,66 @@ var RootCmd = &cobra.Command{
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		if err := log.SetupLoggerWithCommand(cmd); err != nil {
-			fmt.Printf("error setting up logger: %v\n", err)
+			fmt.Printf("Error setting up logger: %v\n", err)
 			os.Exit(1)
 		}
 		startGtid, err := mariadbrepl.ParseGtid(startGtidRaw)
 		if err != nil {
-			logger.Error(err, "error parsing start GTID", "gtid", startGtidRaw)
+			logger.Error(err, "Error parsing start GTID", "gtid", startGtidRaw)
 			os.Exit(1)
 		}
 		targetTime, err := time.Parse(time.RFC3339, targetTimeRaw)
 		if err != nil {
-			logger.Error(err, "error parsing target time", "time", targetTimeRaw)
+			logger.Error(err, "Error parsing target time", "time", targetTimeRaw)
 			os.Exit(1)
 		}
 		calgs, err := getCompressAlgorithms()
 		if err != nil {
-			logger.Error(err, "error getting compress algorithms")
+			logger.Error(err, "Error getting compress algorithms")
 			os.Exit(1)
 		}
-		logger.Info("starting point-in-time recovery")
+		logger.Info("Starting point-in-time recovery")
 
 		ctx, cancel := newContext()
 		defer cancel()
 
 		s3Client, err := getS3Client()
 		if err != nil {
-			logger.Error(err, "error getting S3 client")
+			logger.Error(err, "Error getting S3 client")
 			os.Exit(1)
 		}
 
-		logger.Info("getting binlog index from object storage")
+		logger.Info("Getting binlog index from object storage")
 		binlogIndex, err := getBinlogIndex(ctx, s3Client)
 		if err != nil {
-			logger.Error(err, "error getting binlog index")
+			logger.Error(err, "Error getting binlog index")
 			os.Exit(1)
 		}
 
-		logger.Info("building binlog path")
+		logger.Info("Building binlog path")
 		binlogMetas, err := binlogIndex.BinlogPath(startGtid, targetTime, logger.WithName("binlog-path"))
 		if err != nil {
-			logger.Error(err, "error getting binlog path")
+			logger.Error(err, "Error getting binlog path")
 			os.Exit(1)
 		}
-
 		binlogPath := getBinlogPath(binlogMetas)
-		logger.Info("got binlog path", "path", binlogPath)
+		logger.Info("Got binlog path", "path", binlogPath)
 
-		logger.Info("pulling binlogs into staging area", "staging-path", path, "compression", calgs)
+		logger.Info("Pulling binlogs into staging area", "staging-path", path, "compression", calgs)
 		if err := pullBinlogs(ctx, binlogPath, calgs, s3Client, logger.WithName("storage")); err != nil {
-			logger.Error(err, "error pulling binlogs")
+			logger.Error(err, "Error pulling binlogs")
 			os.Exit(1)
 		}
 
-		logger.Info("writing target file", "file-path", targetFilePath)
+		logger.Info("Writing target file", "file-path", targetFilePath)
 		if err := writeTargetFile(binlogPath); err != nil {
-			logger.Error(err, "error writing target file")
+			logger.Error(err, "Error writing target file")
 			os.Exit(1)
 		}
 	},
 }
 
+// getCompressAlgorithms returns the supported compressed algorithms ordered by preference.
 func getCompressAlgorithms() ([]mariadbv1alpha1.CompressAlgorithm, error) {
 	calg := mariadbv1alpha1.CompressAlgorithm(compression)
 	if err := calg.Validate(); err != nil {
@@ -212,8 +212,9 @@ func pullBinlogs(ctx context.Context, binlogPath []string, calgs []mariadbv1alph
 
 func pullBinlog(ctx context.Context, binlog string, calgs []mariadbv1alpha1.CompressAlgorithm, s3Client *mariadbminio.Client,
 	logger logr.Logger) error {
-	logger.Info("pulling binlog", "binlog", binlog)
+	logger.Info("Pulling binlog", "binlog", binlog)
 
+	// compression algorithms are ordered by preference
 	for _, calg := range calgs {
 		ext, err := calg.Extension()
 		if err != nil {
@@ -229,7 +230,7 @@ func pullBinlog(ctx context.Context, binlog string, calgs []mariadbv1alpha1.Comp
 			return fmt.Errorf("error determining if %s exists: %v", compressedFileName, err)
 		}
 		if !exists {
-			logger.Info("file not found in object storage. Will attempt to pull with different extension", "file", compressedFileName)
+			logger.V(1).Info("File not found in object storage. Will attempt to pull with different extension", "file", compressedFileName)
 			continue
 		}
 
@@ -258,7 +259,7 @@ func pullBinlog(ctx context.Context, binlog string, calgs []mariadbv1alpha1.Comp
 
 		if calg != "" && calg != mariadbv1alpha1.CompressNone {
 			logger.Info(
-				"decompressing binlog",
+				"Decompressing binlog",
 				"compressed-file", compressedFileName,
 				"decompressed-file", plainFileName,
 				"compression", calg,
