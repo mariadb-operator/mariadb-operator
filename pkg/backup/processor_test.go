@@ -44,7 +44,7 @@ func TestLogicalGetTargetFile(t *testing.T) {
 			backupFiles: []string{
 				"backup.2023-12-18T15:58:00Z.sql",
 			},
-			targetRecovery: time.UnixMilli(0),
+			targetRecovery: time.Now(),
 			wantFile:       "backup.2023-12-18T15:58:00Z.sql",
 			wantErr:        false,
 		},
@@ -84,8 +84,8 @@ func TestLogicalGetTargetFile(t *testing.T) {
 				"backup.2023-12-18T16:13:00Z.sql",
 			},
 			targetRecovery: time.UnixMilli(0),
-			wantFile:       "backup.2023-12-18T15:58:00Z.sql",
-			wantErr:        false,
+			wantFile:       "",
+			wantErr:        true,
 		},
 		{
 			name: "target after backups",
