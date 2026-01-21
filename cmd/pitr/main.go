@@ -20,6 +20,8 @@ import (
 	mariadbminio "github.com/mariadb-operator/mariadb-operator/v25/pkg/minio"
 	mariadbrepl "github.com/mariadb-operator/mariadb-operator/v25/pkg/replication"
 	"github.com/spf13/cobra"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/util/retry"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/yaml"
 )
@@ -41,6 +43,11 @@ var (
 	s3Prefix     string
 
 	compression string
+
+	pullBackoff = wait.Backoff{
+		Steps:    10,
+		Duration: 1 * time.Second,
+	}
 )
 
 func init() {
@@ -214,6 +221,13 @@ func pullBinlog(ctx context.Context, binlog string, calgs []mariadbv1alpha1.Comp
 	logger logr.Logger) error {
 	logger.Info("Pulling binlog", "binlog", binlog)
 
+	pullIsRetriable := func(err error) bool {
+		if ctx.Err() != nil {
+			return false
+		}
+		return err != nil
+	}
+
 	// compression algorithms are ordered by preference
 	for _, calg := range calgs {
 		ext, err := calg.Extension()
@@ -234,9 +248,11 @@ func pullBinlog(ctx context.Context, binlog string, calgs []mariadbv1alpha1.Comp
 			continue
 		}
 
-		// TODO: retry.OnError, as they could potentially be large files
-		compressedFile, err := s3Client.GetObjectWithOptions(ctx, compressedFileName)
-		if err != nil {
+		var compressedFile io.ReadCloser
+		if err := retry.OnError(pullBackoff, pullIsRetriable, func() error {
+			compressedFile, err = s3Client.GetObjectWithOptions(ctx, compressedFileName)
+			return err
+		}); err != nil {
 			return fmt.Errorf("error pulling binlog %s: %v", binlog, err)
 		}
 		defer compressedFile.Close()
