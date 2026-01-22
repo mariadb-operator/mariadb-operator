@@ -346,6 +346,7 @@ func (b *Builder) buildContainerWithTemplate(image string, pullPolicy corev1.Pul
 		EnvFrom:         kadapter.ToKubernetesSlice(tpl.EnvFrom),
 		VolumeMounts:    kadapter.ToKubernetesSlice(tpl.VolumeMounts),
 		SecurityContext: sc,
+		Lifecycle:       tpl.Lifecycle,
 	}
 	if mariadbOpts.resources != nil {
 		container.Resources = *mariadbOpts.resources
