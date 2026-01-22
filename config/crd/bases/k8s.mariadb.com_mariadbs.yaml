@@ -319,7 +319,7 @@ spec:
                     description: |-
                       PointInTimeRecoveryRef is a reference to a PointInTimeRecovery object.
                       Providing this field implies restoring the PhysicalBackup referenced in the PointInTimeRecovery object and replaying the
-                      archived binary logs until the point-in-time restoration target, defined by the targetRecoveryTime field.
+                      archived binary logs up to the point-in-time restoration target, defined by the targetRecoveryTime field.
                     properties:
                       name:
                         default: ""
