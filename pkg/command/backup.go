@@ -468,10 +468,13 @@ func (b *BackupCommand) newBackupFile() string {
 			"%Y-%m-%dT%H:%M:%SZ",
 		)
 	} else {
+		// Use standard extension format: .sql.gz or .sql.bz2
+		// This allows tools like gunzip to recognize the file format
+		ext, _ := b.Compression.Extension()
 		fileName = fmt.Sprintf(
-			"backup.$(date -u +'%s').%v.sql",
+			"backup.$(date -u +'%s').sql.%s",
 			"%Y-%m-%dT%H:%M:%SZ",
-			b.Compression,
+			ext,
 		)
 	}
 	return filepath.Join(b.Path, fileName)
