@@ -1184,6 +1184,55 @@ func TestContainerSecurityContext(t *testing.T) {
 	}
 }
 
+func TestContainerLifecycle(t *testing.T) {
+	builder := newDefaultTestBuilder(t)
+
+	// Test without lifecycle
+	tpl := &mariadbv1alpha1.ContainerTemplate{}
+	container, err := builder.buildContainerWithTemplate("mariadb:10.6", corev1.PullIfNotPresent, tpl)
+	if err != nil {
+		t.Fatalf("unexpected error building container: %v", err)
+	}
+	if container.Lifecycle != nil {
+		t.Error("expected Lifecycle to be nil")
+	}
+
+	// Test with lifecycle
+	tpl = &mariadbv1alpha1.ContainerTemplate{
+		Lifecycle: &corev1.Lifecycle{
+			PreStop: &corev1.LifecycleHandler{
+				Exec: &corev1.ExecAction{
+					Command: []string{"/bin/sh", "-c", "sleep 10"},
+				},
+			},
+			PostStart: &corev1.LifecycleHandler{
+				Exec: &corev1.ExecAction{
+					Command: []string{"/bin/sh", "-c", "echo started"},
+				},
+			},
+		},
+	}
+	container, err = builder.buildContainerWithTemplate("mariadb:10.6", corev1.PullIfNotPresent, tpl)
+	if err != nil {
+		t.Fatalf("unexpected error building container: %v", err)
+	}
+	if container.Lifecycle == nil {
+		t.Fatal("expected Lifecycle not to be nil")
+	}
+	if container.Lifecycle.PreStop == nil {
+		t.Error("expected PreStop not to be nil")
+	}
+	if container.Lifecycle.PostStart == nil {
+		t.Error("expected PostStart not to be nil")
+	}
+	if !reflect.DeepEqual(container.Lifecycle.PreStop.Exec.Command, []string{"/bin/sh", "-c", "sleep 10"}) {
+		t.Errorf("unexpected PreStop command: %v", container.Lifecycle.PreStop.Exec.Command)
+	}
+	if !reflect.DeepEqual(container.Lifecycle.PostStart.Exec.Command, []string{"/bin/sh", "-c", "echo started"}) {
+		t.Errorf("unexpected PostStart command: %v", container.Lifecycle.PostStart.Exec.Command)
+	}
+}
+
 func TestMariadbEnv(t *testing.T) {
 	tests := []struct {
 		name           string
