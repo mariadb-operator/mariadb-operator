@@ -174,6 +174,14 @@ func (m *MariaDB) RestoreKey() types.NamespacedName {
 	}
 }
 
+// PITRJobKey defines the key for the PITR job used to replay the binary logs.
+func (m *MariaDB) PITRJobKey() types.NamespacedName {
+	return types.NamespacedName{
+		Name:      fmt.Sprintf("%s-pitr", m.Name),
+		Namespace: m.Namespace,
+	}
+}
+
 // InternalServiceKey defines the key for the internal headless Service
 func (m *MariaDB) InternalServiceKey() types.NamespacedName {
 	return types.NamespacedName{

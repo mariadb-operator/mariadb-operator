@@ -203,6 +203,10 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			Reconcile: r.reconcileRestore,
 		},
 		{
+			Name:      "PITR",
+			Reconcile: r.reconcilePITR,
+		},
+		{
 			Name:      "SQL",
 			Reconcile: r.reconcileSQL,
 		},

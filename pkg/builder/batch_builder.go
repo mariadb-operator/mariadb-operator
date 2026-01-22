@@ -26,6 +26,8 @@ import (
 const (
 	batchStorageVolume    = "backup"
 	batchStorageMountPath = "/backup"
+	// batchBinlogsVolume    = "binlogs"
+	// batchBinlogsMountPath = "/binlogs"
 	batchScriptsVolume    = "scripts"
 	batchScriptsMountPath = "/opt"
 	batchScriptsSqlFile   = "job.sql"
@@ -37,6 +39,7 @@ const (
 var (
 	batchBackupTargetFilePath      = filepath.Join(batchStorageMountPath, "0-backup-target.txt")
 	batchPhysicalBackupDirFullPath = filepath.Join(batchStorageMountPath, batchBackupDirFull)
+	// batchBinlogsTargetFilePath     = filepath.Join(batchBinlogsMountPath, "0-binlog-target.txt")
 )
 
 func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alpha1.Backup,
@@ -571,6 +574,10 @@ func (b *Builder) BuildPhysicalBackupRestoreJob(key types.NamespacedName, mariad
 		return nil, fmt.Errorf("error setting controller reference to Job: %v", err)
 	}
 	return job, nil
+}
+
+func (b *Builder) BuildPITRJob(key types.NamespacedName, pitr *mariadbv1alpha1.PointInTimeRecovery) (*batchv1.Job, error) {
+	return nil, nil
 }
 
 func (b *Builder) BuildGaleraInitJob(key types.NamespacedName, mariadb *mariadbv1alpha1.MariaDB) (*batchv1.Job, error) {
