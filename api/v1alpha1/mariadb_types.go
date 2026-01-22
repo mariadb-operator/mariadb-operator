@@ -206,6 +206,12 @@ type BootstrapFrom struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	VolumeSnapshotRef *LocalObjectReference `json:"volumeSnapshotRef,omitempty" webhook:"inmutableinit"`
+	// PointInTimeRecoveryRef is a reference to a PointInTimeRecovery object.
+	// Providing this field implies restoring the PhysicalBackup referenced in the PointInTimeRecovery object and replaying the
+	// archived binary logs up to the point-in-time restoration target, defined by the targetRecoveryTime field.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	PointInTimeRecoveryRef *LocalObjectReference `json:"pointInTimeRecoveryRef,omitempty"`
 	// BackupContentType is the backup content type available in the source to bootstrap from.
 	// It is inferred based on the BackupRef and VolumeSnapshotRef fields. If inference is not possible, it defaults to Logical.
 	// Set this field explicitly when using physical backups from S3 or Volume sources.
@@ -239,7 +245,8 @@ type BootstrapFrom struct {
 }
 
 func (b *BootstrapFrom) Validate() error {
-	if b.BackupRef == nil && b.VolumeSnapshotRef == nil && b.S3 == nil && b.Volume == nil {
+	if b.BackupRef == nil && b.VolumeSnapshotRef == nil && b.PointInTimeRecoveryRef == nil &&
+		b.S3 == nil && b.Volume == nil {
 		return errors.New("unable to determine bootstrap source")
 	}
 
@@ -916,6 +923,16 @@ func (m *MariaDB) IsRestoringBackup() bool {
 // HasRestoredBackup indicates whether the MariaDB instance has restored a Backup
 func (m *MariaDB) HasRestoredBackup() bool {
 	return meta.IsStatusConditionTrue(m.Status.Conditions, ConditionTypeBackupRestored)
+}
+
+// IsReplayingBinlogs indicates whether the MariaDB instance is replaying binlogs
+func (m *MariaDB) IsReplayingBinlogs() bool {
+	return meta.IsStatusConditionFalse(m.Status.Conditions, ConditionTypeBinlogsReplayed)
+}
+
+// HasReplayedBinlogs indicates whether the MariaDB instance has replayed binlogs
+func (m *MariaDB) HasReplayedBinlogs() bool {
+	return meta.IsStatusConditionTrue(m.Status.Conditions, ConditionTypeBinlogsReplayed)
 }
 
 // IsResizingStorage indicates whether the MariaDB instance is resizing storage

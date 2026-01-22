@@ -327,6 +327,11 @@ func (in *BootstrapFrom) DeepCopyInto(out *BootstrapFrom) {
 		*out = new(LocalObjectReference)
 		**out = **in
 	}
+	if in.PointInTimeRecoveryRef != nil {
+		in, out := &in.PointInTimeRecoveryRef, &out.PointInTimeRecoveryRef
+		*out = new(LocalObjectReference)
+		**out = **in
+	}
 	if in.S3 != nil {
 		in, out := &in.S3, &out.S3
 		*out = new(S3)

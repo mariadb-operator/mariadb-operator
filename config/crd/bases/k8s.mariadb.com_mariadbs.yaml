@@ -315,6 +315,16 @@ spec:
                         description: Name of the referent.
                         type: string
                     type: object
+                  pointInTimeRecoveryRef:
+                    description: |-
+                      PointInTimeRecoveryRef is a reference to a PointInTimeRecovery object.
+                      Providing this field implies restoring the PhysicalBackup referenced in the PointInTimeRecovery object and replaying the
+                      archived binary logs until the point-in-time restoration target, defined by the targetRecoveryTime field.
+                    properties:
+                      name:
+                        default: ""
+                        type: string
+                    type: object
                   restoreJob:
                     description: RestoreJob defines additional properties for the
                       Job used to perform the restoration.
