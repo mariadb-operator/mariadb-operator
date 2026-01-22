@@ -801,7 +801,7 @@ func (r *MariaDBReconciler) reconcileUsers(ctx context.Context, mariadb *mariadb
 			},
 		},
 		Metadata:             mariadb.Spec.InheritMetadata,
-		MaxUserConnections:   20,
+		MaxUserConnections:   ptr.To(int32(20)),
 		Name:                 "mariadb.sys",
 		Host:                 "localhost",
 		PasswordSecretKeyRef: nil,
@@ -857,7 +857,7 @@ func (r *MariaDBReconciler) reconcileUsers(ctx context.Context, mariadb *mariadb
 			},
 			Metadata:           mariadb.Spec.InheritMetadata,
 			CleanupPolicy:      mariadb.Spec.CleanupPolicy,
-			MaxUserConnections: 20,
+			MaxUserConnections: ptr.To(int32(20)),
 			Name:               *mariadb.Spec.Username,
 			Host:               "%",
 		}

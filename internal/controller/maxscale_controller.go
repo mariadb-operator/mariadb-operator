@@ -718,7 +718,7 @@ func (r *MaxScaleReconciler) reconcileAuth(ctx context.Context, req *requestMaxS
 			user: builder.UserOpts{
 				Name:                 mxs.Spec.Auth.ClientUsername,
 				PasswordSecretKeyRef: &mxs.Spec.Auth.ClientPasswordSecretKeyRef.SecretKeySelector,
-				MaxUserConnections:   mxs.Spec.Auth.ClientMaxConnections,
+				MaxUserConnections:   ptr.To(mxs.Spec.Auth.ClientMaxConnections),
 				Metadata:             mxs.Spec.InheritMetadata,
 				MariaDBRef:           *mxs.Spec.MariaDBRef,
 			},
@@ -748,7 +748,7 @@ func (r *MaxScaleReconciler) reconcileAuth(ctx context.Context, req *requestMaxS
 			user: builder.UserOpts{
 				Name:                 mxs.Spec.Auth.ServerUsername,
 				PasswordSecretKeyRef: &mxs.Spec.Auth.ServerPasswordSecretKeyRef.SecretKeySelector,
-				MaxUserConnections:   mxs.Spec.Auth.ServerMaxConnections,
+				MaxUserConnections:   ptr.To(mxs.Spec.Auth.ServerMaxConnections),
 				Metadata:             mxs.Spec.InheritMetadata,
 				MariaDBRef:           *mxs.Spec.MariaDBRef,
 			},
@@ -796,7 +796,7 @@ func (r *MaxScaleReconciler) reconcileAuth(ctx context.Context, req *requestMaxS
 			user: builder.UserOpts{
 				Name:                 mxs.Spec.Auth.MonitorUsername,
 				PasswordSecretKeyRef: &mxs.Spec.Auth.MonitorPasswordSecretKeyRef.SecretKeySelector,
-				MaxUserConnections:   mxs.Spec.Auth.MonitorMaxConnections,
+				MaxUserConnections:   ptr.To(mxs.Spec.Auth.MonitorMaxConnections),
 				Metadata:             mxs.Spec.InheritMetadata,
 				MariaDBRef:           *mxs.Spec.MariaDBRef,
 			},
@@ -814,7 +814,7 @@ func (r *MaxScaleReconciler) reconcileAuth(ctx context.Context, req *requestMaxS
 			user: builder.UserOpts{
 				Name:                 *mxs.Spec.Auth.SyncUsername,
 				PasswordSecretKeyRef: &mxs.Spec.Auth.SyncPasswordSecretKeyRef.SecretKeySelector,
-				MaxUserConnections:   *mxs.Spec.Auth.SyncMaxConnections,
+				MaxUserConnections:   mxs.Spec.Auth.SyncMaxConnections,
 				Metadata:             mxs.Spec.InheritMetadata,
 				MariaDBRef:           *mxs.Spec.MariaDBRef,
 			},

@@ -417,7 +417,7 @@ type CreateUserOpts struct {
 	IdentifiedVia        string
 	IdentifiedViaUsing   string
 	Require              *mariadbv1alpha1.TLSRequirements
-	MaxUserConnections   int32
+	MaxUserConnections   *int32
 }
 
 type CreateUserOpt func(*CreateUserOpts)
@@ -452,7 +452,7 @@ func WithTLSRequirements(require *mariadbv1alpha1.TLSRequirements) CreateUserOpt
 	}
 }
 
-func WithMaxUserConnections(maxConns int32) CreateUserOpt {
+func WithMaxUserConnections(maxConns *int32) CreateUserOpt {
 	return func(cuo *CreateUserOpts) {
 		cuo.MaxUserConnections = maxConns
 	}
@@ -484,7 +484,9 @@ func (c *Client) CreateUser(ctx context.Context, accountName string, createUserO
 		query += fmt.Sprintf("%s ", requireSubQuery)
 	}
 
-	query += fmt.Sprintf("WITH MAX_USER_CONNECTIONS %d ", opts.MaxUserConnections)
+	if opts.MaxUserConnections != nil {
+		query += fmt.Sprintf("WITH MAX_USER_CONNECTIONS %d ", *opts.MaxUserConnections)
+	}
 	if opts.IdentifiedBy == "" && opts.IdentifiedByPassword == "" && opts.IdentifiedVia == "" && opts.Require == nil {
 		query += "ACCOUNT LOCK PASSWORD EXPIRE "
 	}
@@ -526,7 +528,9 @@ func (c *Client) AlterUser(ctx context.Context, accountName string, createUserOp
 		query += fmt.Sprintf("%s ", requireSubQuery)
 	}
 
-	query += fmt.Sprintf("WITH MAX_USER_CONNECTIONS %d ", opts.MaxUserConnections)
+	if opts.MaxUserConnections != nil {
+		query += fmt.Sprintf("WITH MAX_USER_CONNECTIONS %d ", *opts.MaxUserConnections)
+	}
 
 	query += ";"
 

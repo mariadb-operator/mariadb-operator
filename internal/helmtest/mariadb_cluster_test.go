@@ -11,6 +11,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
 	. "github.com/onsi/gomega"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 )
 
 var (
@@ -181,7 +182,7 @@ func TestClusterHelmUser(t *testing.T) {
 	Expect(user.Spec.MariaDBRef.Namespace).To(Equal(clusterHelmNamespace))
 	Expect(*user.Spec.CleanupPolicy).To(Equal(v1alpha1.CleanupPolicy(cleanupPolicy)))
 	Expect(user.Spec.Host).To(Equal(host))
-	Expect(user.Spec.MaxUserConnections).To(Equal(int32(maxUserConnections)))
+	Expect(user.Spec.MaxUserConnections).To(Equal(ptr.To(int32(maxUserConnections))))
 	Expect(user.Spec.Name).To(Equal(name))
 	Expect(user.Spec.PasswordSecretKeyRef.Key).To(Equal(passwordSecretKeyRefKey))
 	Expect(user.Spec.PasswordSecretKeyRef.Name).To(Equal(passwordSecretKeyRefName))

@@ -80,10 +80,10 @@ type UserSpec struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Require *TLSRequirements `json:"require,omitempty"`
 	// MaxUserConnections defines the maximum number of simultaneous connections that the User can establish.
+	// If not provided, it defaults to the value set by the MariaDB instance, which can be configured via the max_user_connections system variable.
 	// +optional
-	// +kubebuilder:default=10
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
-	MaxUserConnections int32 `json:"maxUserConnections,omitempty"`
+	MaxUserConnections *int32 `json:"maxUserConnections,omitempty"`
 	// Name overrides the default name provided by metadata.name.
 	// +optional
 	// +kubebuilder:validation:MaxLength=80
