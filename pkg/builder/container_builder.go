@@ -529,6 +529,12 @@ func mariadbEnv(mariadb *mariadbv1alpha1.MariaDB) ([]corev1.EnvVar, error) {
 				Value: fmt.Sprintf("%d", *replication.SyncBinlog),
 			})
 		}
+		if replication.ServerIdBase != nil {
+			env = append(env, corev1.EnvVar{
+				Name:  "MARIADB_REPL_SERVER_ID_BASE",
+				Value: fmt.Sprintf("%d", *replication.ServerIdBase),
+			})
+		}
 	}
 
 	if mariadb.IsRootPasswordEmpty() {
