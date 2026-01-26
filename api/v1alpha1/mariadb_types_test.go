@@ -2045,7 +2045,7 @@ var _ = Describe("MariaDB types", func() {
 						Bucket: "test",
 					},
 					BackupContentType: BackupContentTypePhysical,
-					StagingStorage: &BackupStagingStorage{
+					StagingStorage: &StagingStorage{
 						PersistentVolumeClaim: &PersistentVolumeClaimSpec{
 							StorageClassName: ptr.To("test"),
 						},
@@ -2059,7 +2059,7 @@ var _ = Describe("MariaDB types", func() {
 						Bucket: "test",
 					},
 					BackupContentType: BackupContentTypePhysical,
-					StagingStorage: &BackupStagingStorage{
+					StagingStorage: &StagingStorage{
 						PersistentVolumeClaim: &PersistentVolumeClaimSpec{
 							StorageClassName: ptr.To("test"),
 						},

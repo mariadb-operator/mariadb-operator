@@ -178,7 +178,7 @@ var _ = Describe("Restore webhook", func() {
 								Bucket:   "test",
 								Endpoint: "test",
 							},
-							StagingStorage: &v1alpha1.BackupStagingStorage{
+							StagingStorage: &v1alpha1.StagingStorage{
 								PersistentVolumeClaim: &v1alpha1.PersistentVolumeClaimSpec{
 									AccessModes: []corev1.PersistentVolumeAccessMode{
 										corev1.ReadWriteOnce,
@@ -211,7 +211,7 @@ var _ = Describe("Restore webhook", func() {
 							Volume: &v1alpha1.StorageVolumeSource{
 								EmptyDir: &v1alpha1.EmptyDirVolumeSource{},
 							},
-							StagingStorage: &v1alpha1.BackupStagingStorage{
+							StagingStorage: &v1alpha1.StagingStorage{
 								PersistentVolumeClaim: &v1alpha1.PersistentVolumeClaimSpec{
 									AccessModes: []corev1.PersistentVolumeAccessMode{
 										corev1.ReadWriteOnce,
@@ -262,7 +262,7 @@ var _ = Describe("Restore webhook", func() {
 							Bucket:   "test",
 							Endpoint: "test",
 						},
-						StagingStorage: &v1alpha1.BackupStagingStorage{
+						StagingStorage: &v1alpha1.StagingStorage{
 							PersistentVolumeClaim: &v1alpha1.PersistentVolumeClaimSpec{
 								AccessModes: []corev1.PersistentVolumeAccessMode{
 									corev1.ReadWriteOnce,

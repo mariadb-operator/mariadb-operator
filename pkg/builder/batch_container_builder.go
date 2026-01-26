@@ -93,6 +93,20 @@ func jobPhysicalBackupVolumes(storageVolume mariadbv1alpha1.StorageVolumeSource,
 	return volumes, volumeMounts
 }
 
+func jobPITRVolumes(binlogsVolumeSource corev1.VolumeSource) ([]corev1.Volume, []corev1.VolumeMount) {
+	return []corev1.Volume{
+			{
+				Name:         batchBinlogsVolume,
+				VolumeSource: binlogsVolumeSource,
+			},
+		}, []corev1.VolumeMount{
+			{
+				Name:      batchBinlogsVolume,
+				MountPath: batchBinlogsMountPath,
+			},
+		}
+}
+
 func jobEnv(mariadb interfaces.Connector) []corev1.EnvVar {
 	env := []corev1.EnvVar{
 		{

@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/builder"
 	condition "github.com/mariadb-operator/mariadb-operator/v25/pkg/condition"
 	jobpkg "github.com/mariadb-operator/mariadb-operator/v25/pkg/job"
 	batchv1 "k8s.io/api/batch/v1"
@@ -31,6 +32,9 @@ func (r *MariaDBReconciler) reconcilePITR(ctx context.Context, mdb *mariadbv1alp
 		}
 	}
 
+	if err := r.reconcilePITRStagingPVC(ctx, mdb); err != nil {
+		return ctrl.Result{}, err
+	}
 	if result, err := r.reconcileAndWaitForPITRJob(ctx, mdb, logger); !result.IsZero() || err != nil {
 		return result, err
 	}
@@ -43,6 +47,25 @@ func (r *MariaDBReconciler) reconcilePITR(ctx context.Context, mdb *mariadbv1alp
 		return ctrl.Result{}, fmt.Errorf("error patching MariaDB status: %v", err)
 	}
 	return ctrl.Result{}, nil
+}
+
+func (r *MariaDBReconciler) reconcilePITRStagingPVC(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
+	if shouldProvisionPITRStagingPVC(mariadb) {
+		key := mariadb.PITRStagingPVCKey()
+		pvc, err := r.Builder.BuildStagingPVC(
+			key,
+			mariadb.Spec.BootstrapFrom.StagingStorage.PersistentVolumeClaim,
+			mariadb.Spec.InheritMetadata,
+			mariadb,
+		)
+		if err != nil {
+			return err
+		}
+		if err := r.PVCReconciler.Reconcile(ctx, key, pvc); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (r *MariaDBReconciler) reconcileAndWaitForPITRJob(ctx context.Context, mdb *mariadbv1alpha1.MariaDB,
@@ -72,7 +95,12 @@ func (r *MariaDBReconciler) createPITRJob(ctx context.Context, mdb *mariadbv1alp
 	if err != nil {
 		return fmt.Errorf("error getting PointInTimeRecovery: %v", err)
 	}
-	pitrJob, err := r.Builder.BuildPITRJob(mdb.PITRJobKey(), pitr)
+	pitrJob, err := r.Builder.BuildPITRJob(
+		mdb.PITRJobKey(),
+		pitr,
+		mdb,
+		builder.WithBootstrapFrom(mdb.Spec.BootstrapFrom),
+	)
 	if err != nil {
 		return fmt.Errorf("error building PointInTimeRecovery Job: %v", err)
 	}
@@ -89,4 +117,12 @@ func shouldReconcilePITR(mdb *mariadbv1alpha1.MariaDB) bool {
 		return false
 	}
 	return mdb.Spec.BootstrapFrom != nil && mdb.Spec.BootstrapFrom.PointInTimeRecoveryRef != nil
+}
+
+func shouldProvisionPITRStagingPVC(mariadb *mariadbv1alpha1.MariaDB) bool {
+	b := mariadb.Spec.BootstrapFrom
+	if b == nil {
+		return false
+	}
+	return b.PointInTimeRecoveryRef != nil && b.StagingStorage != nil && b.StagingStorage.PersistentVolumeClaim != nil
 }

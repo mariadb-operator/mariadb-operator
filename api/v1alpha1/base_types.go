@@ -933,8 +933,8 @@ func (b *BackupStorage) Validate() error {
 	return nil
 }
 
-// BackupStagingStorage defines the temporary storage used to keep external backups (i.e. S3) while they are being processed.
-type BackupStagingStorage struct {
+// StagingStorage defines the temporary storage used to keep external backups (i.e. S3) while they are being processed.
+type StagingStorage struct {
 	// PersistentVolumeClaim is a Kubernetes PVC specification.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -945,7 +945,7 @@ type BackupStagingStorage struct {
 	Volume *StorageVolumeSource `json:"volume,omitempty"`
 }
 
-func (s *BackupStagingStorage) VolumeOrEmptyDir(pvcKey types.NamespacedName) StorageVolumeSource {
+func (s *StagingStorage) VolumeOrEmptyDir(pvcKey types.NamespacedName) StorageVolumeSource {
 	if s.PersistentVolumeClaim != nil {
 		return StorageVolumeSource{
 			PersistentVolumeClaim: &PersistentVolumeClaimVolumeSource{

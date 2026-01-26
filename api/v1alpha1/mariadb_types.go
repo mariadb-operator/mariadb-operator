@@ -233,11 +233,11 @@ type BootstrapFrom struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	TargetRecoveryTime *metav1.Time `json:"targetRecoveryTime,omitempty" webhook:"inmutable"`
-	// StagingStorage defines the temporary storage used to keep external backups (i.e. S3) while they are being processed.
+	// StagingStorage defines the temporary storage used to keep external backups and binary logs (i.e. S3) while they are being processed.
 	// It defaults to an emptyDir volume, meaning that the backups will be temporarily stored in the node where the Job is scheduled.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch","urn:alm:descriptor:com.tectonic.ui:advanced"}
-	StagingStorage *BackupStagingStorage `json:"stagingStorage,omitempty" webhook:"inmutable"`
+	StagingStorage *StagingStorage `json:"stagingStorage,omitempty" webhook:"inmutable"`
 	// RestoreJob defines additional properties for the Job used to perform the restoration.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
@@ -311,8 +311,12 @@ func (b *BootstrapFrom) SetDefaults(mariadb *MariaDB) {
 	if b.BackupContentType == "" {
 		b.BackupContentType = BackupContentTypeLogical
 	}
-	if b.BackupContentType == BackupContentTypePhysical && b.S3 != nil {
-		stagingStorage := ptr.Deref(b.StagingStorage, BackupStagingStorage{})
+	// TODO: unit tests
+	if b.PointInTimeRecoveryRef != nil {
+		stagingStorage := ptr.Deref(b.StagingStorage, StagingStorage{})
+		b.Volume = ptr.To(stagingStorage.VolumeOrEmptyDir(mariadb.PITRStagingPVCKey()))
+	} else if b.BackupContentType == BackupContentTypePhysical && b.S3 != nil {
+		stagingStorage := ptr.Deref(b.StagingStorage, StagingStorage{})
 		b.Volume = ptr.To(stagingStorage.VolumeOrEmptyDir(mariadb.PhysicalBackupStagingPVCKey()))
 	}
 }
