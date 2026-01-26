@@ -195,7 +195,7 @@ type Container struct {
 	// VolumeMounts to be used in the Container.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	VolumeMounts []VolumeMount `json:"volumeMounts,omitempty" webhook:"inmutable"`
+	VolumeMounts []VolumeMount `json:"volumeMounts,omitempty"`
 	// Resources describes the compute resource requirements.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:resourceRequirements"}
@@ -476,7 +476,7 @@ type PodTemplate struct {
 	// Volumes to be used in the Pod.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	Volumes []Volume `json:"volumes,omitempty" webhook:"inmutable"`
+	Volumes []Volume `json:"volumes,omitempty"`
 	// PriorityClassName to be used in the Pod.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
