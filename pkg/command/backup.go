@@ -26,6 +26,7 @@ type BackupOpts struct {
 	OmitCredentials      bool
 	CleanupTargetFile    bool
 	MaxRetentionDuration time.Duration
+	StartGtid            *replication.Gtid
 	TargetTime           time.Time
 	Compression          mariadbv1alpha1.CompressAlgorithm
 	S3                   bool
@@ -41,7 +42,7 @@ type BackupOpts struct {
 
 type BackupOpt func(*BackupOpts)
 
-func WithBackup(path string, targetFilePath string) BackupOpt {
+func WithPath(path string, targetFilePath string) BackupOpt {
 	return func(bo *BackupOpts) {
 		bo.Path = path
 		bo.TargetFilePath = targetFilePath
@@ -66,7 +67,13 @@ func WithBackupMaxRetention(d time.Duration) BackupOpt {
 	}
 }
 
-func WithBackupTargetTime(t time.Time) BackupOpt {
+func WithStartGtid(gtid *replication.Gtid) BackupOpt {
+	return func(bo *BackupOpts) {
+		bo.StartGtid = gtid
+	}
+}
+
+func WithTargetTime(t time.Time) BackupOpt {
 	return func(bo *BackupOpts) {
 		bo.TargetTime = t
 	}
@@ -419,6 +426,67 @@ fi`,
 		copyBinlogCmd(replication.LegacyBinlogFileName),
 	}...)
 	return NewBashCommand(cmds), nil
+}
+
+func (b *BackupCommand) MariadbOperatorPITR() (*Command, error) {
+	if b.StartGtid == nil {
+		return nil, errors.New("startGtid must be set")
+	}
+	args := []string{
+		"pitr",
+		"--path",
+		b.Path,
+		"--target-file-path",
+		b.TargetFilePath,
+		"--start-gtid",
+		b.StartGtid.String(),
+		"--target-time",
+		b.TargetTime.Format(time.RFC3339),
+	}
+	args = append(args, b.s3Args()...)
+
+	if b.Compression != "" {
+		args = append(args, []string{
+			"--compression",
+			string(b.Compression),
+		}...)
+	}
+	if b.LogLevel != "" {
+		args = append(args, []string{
+			"--log-level",
+			b.LogLevel,
+		}...)
+	}
+
+	return NewCommand(nil, args), nil
+}
+
+func (b *BackupCommand) MariadbBinlog(mariadb *mariadbv1alpha1.MariaDB) (*Command, error) {
+	if b.StartGtid == nil {
+		return nil, errors.New("startGtid must be set")
+	}
+	// TODO: verify flags when requiring TLS
+	connFlags, err := ConnectionFlags(&b.CommandOpts, mariadb)
+	if err != nil {
+		return nil, fmt.Errorf("error getting connection flags: %v", err)
+	}
+
+	cmds := []string{
+		"set -euo pipefail",
+		"echo 💾 Restoring binlogs",
+		// TODO: pass multiple --start-position
+		// See:
+		// https://mariadb.com/docs/server/clients-and-utilities/logging-tools/mariadb-binlog/mariadb-binlog-options#j-pos-start-position-pos
+		// https://jira.mariadb.org/browse/MDEV-37231
+		fmt.Sprintf(
+			"mariadb-binlog --start-position=%s --stop-datetime=%s %s | mariadb %s",
+			b.StartGtid.String(),
+			b.TargetTime.Local().Format(time.DateTime),
+			b.getTargetFilePath(),
+			connFlags,
+		),
+	}
+	return NewCommand(cmds, nil), nil
 }
 
 func (b *BackupCommand) existingBackupRestoreCmd(backupDirPath, cleanupDataDirCmd, copyBackupCmd string,
