@@ -31,7 +31,7 @@ const (
 	batchScriptsSqlFile   = "job.sql"
 	batchBackupDirFull    = "full"
 	batchUserEnv          = "MARIADB_OPERATOR_USER"
-	batchPasswordEnv      = "MARIADB_OPERATOR_PASSWORD"
+	batchPasswordEnv      = "MYSQL_PWD"
 )
 
 var (
