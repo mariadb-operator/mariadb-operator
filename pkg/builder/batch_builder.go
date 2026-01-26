@@ -55,7 +55,7 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alph
 			Build()
 
 	cmdOpts := []command.BackupOpt{
-		command.WithBackup(
+		command.WithPath(
 			batchStorageMountPath,
 			batchBackupTargetFilePath,
 		),
@@ -165,7 +165,7 @@ func (b *Builder) BuildPhysicalBackupJob(key types.NamespacedName, backup *maria
 			Build()
 
 	cmdOpts := []command.BackupOpt{
-		command.WithBackup(
+		command.WithPath(
 			batchStorageMountPath,
 			batchBackupTargetFilePath,
 		),
@@ -311,11 +311,11 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 			Build()
 
 	cmdOpts := []command.BackupOpt{
-		command.WithBackup(
+		command.WithPath(
 			batchStorageMountPath,
 			batchBackupTargetFilePath,
 		),
-		command.WithBackupTargetTime(restore.Spec.TargetRecoveryTimeOrDefault()),
+		command.WithTargetTime(restore.Spec.TargetRecoveryTimeOrDefault()),
 		command.WithBackupUserEnv(batchUserEnv),
 		command.WithBackupPasswordEnv(batchPasswordEnv),
 		command.WithBackupLogLevel(restore.Spec.LogLevel),
@@ -486,11 +486,11 @@ func (b *Builder) BuildPhysicalBackupRestoreJob(key types.NamespacedName, mariad
 	podMeta := podMetaBuilder.Build()
 
 	cmdOpts := []command.BackupOpt{
-		command.WithBackup(
+		command.WithPath(
 			batchStorageMountPath,
 			batchBackupTargetFilePath,
 		),
-		command.WithBackupTargetTime(*opts.TargetRecoveryTime),
+		command.WithTargetTime(*opts.TargetRecoveryTime),
 		command.WithOmitCredentials(true),
 	}
 	cmdOpts = append(cmdOpts, s3Opts(opts.S3)...)

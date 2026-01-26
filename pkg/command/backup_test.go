@@ -20,7 +20,7 @@ func TestNewBackupCommand(t *testing.T) {
 		{
 			name: "missing path",
 			opts: []BackupOpt{
-				WithBackup("", "/target/file"),
+				WithPath("", "/target/file"),
 				WithBackupUserEnv("USER_ENV"),
 				WithBackupPasswordEnv("PASS_ENV"),
 			},
@@ -29,7 +29,7 @@ func TestNewBackupCommand(t *testing.T) {
 		{
 			name: "missing target file",
 			opts: []BackupOpt{
-				WithBackup("/backups", ""),
+				WithPath("/backups", ""),
 				WithBackupUserEnv("USER_ENV"),
 				WithBackupPasswordEnv("PASS_ENV"),
 			},
@@ -38,7 +38,7 @@ func TestNewBackupCommand(t *testing.T) {
 		{
 			name: "missing user env",
 			opts: []BackupOpt{
-				WithBackup("/backups", "/target/file"),
+				WithPath("/backups", "/target/file"),
 				WithBackupPasswordEnv("PASS_ENV"),
 			},
 			wantErr: true,
@@ -46,7 +46,7 @@ func TestNewBackupCommand(t *testing.T) {
 		{
 			name: "missing password env",
 			opts: []BackupOpt{
-				WithBackup("/backups", "/target/file"),
+				WithPath("/backups", "/target/file"),
 				WithBackupUserEnv("USER_ENV"),
 			},
 			wantErr: true,
@@ -54,7 +54,7 @@ func TestNewBackupCommand(t *testing.T) {
 		{
 			name: "omit credentials skips user/password check",
 			opts: []BackupOpt{
-				WithBackup("/backups", "/target/file"),
+				WithPath("/backups", "/target/file"),
 				WithOmitCredentials(true),
 			},
 			wantErr: false,

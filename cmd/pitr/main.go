@@ -290,5 +290,5 @@ func pullBinlog(ctx context.Context, binlog string, calgs []mariadbv1alpha1.Comp
 }
 
 func writeTargetFile(binlogPath []string) error {
-	return os.WriteFile(targetFilePath, []byte(strings.Join(binlogPath, ",")), 0777)
+	return os.WriteFile(targetFilePath, []byte(strings.Join(binlogPath, " ")), 0777)
 }
