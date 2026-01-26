@@ -252,7 +252,11 @@ func NewReplicationConfig(env *env.PodEnvironment) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error getting semi-sync master timeout: %v", err)
 	}
-	serverId, err := serverId(env.PodName)
+	serverIdBase, err := env.ReplServerIdBase()
+	if err != nil {
+		return nil, fmt.Errorf("error getting server_id base: %v", err)
+	}
+	serverId, err := serverId(env.PodName, serverIdBase)
 	if err != nil {
 		return nil, fmt.Errorf("error getting server ID: %v", err)
 	}
@@ -308,12 +312,12 @@ sync_binlog={{ . }}
 	return buf.Bytes(), nil
 }
 
-func serverId(podName string) (int, error) {
+func serverId(podName string, serverIdBase int) (int, error) {
 	podIndex, err := statefulset.PodIndex(podName)
 	if err != nil {
 		return 0, fmt.Errorf("error getting Pod index: %v", err)
 	}
-	return 10 + *podIndex, nil
+	return serverIdBase + *podIndex, nil
 }
 
 func formatAccountName(username, host string) string {

@@ -4798,6 +4798,14 @@ spec:
                     - AfterSync
                     - AfterCommit
                     type: string
+                  serverIdBase:
+                    default: 10
+                    description: |-
+                      ServerIdBase is the base value used to calculate the server_id for each Pod.
+                      server_id = ServerIdBase + podIndex.
+                      This is useful for multi-cluster setups to avoid server_id conflicts.
+                      It defaults to 10.
+                    type: integer
                   standaloneProbes:
                     description: |-
                       StandaloneProbes indicates whether to use the default non-HA startup and liveness probes.
