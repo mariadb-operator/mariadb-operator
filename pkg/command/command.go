@@ -60,9 +60,8 @@ func ConnectionFlags(co *CommandOpts, mariadb interfaces.Connector,
 	}
 
 	flags := fmt.Sprintf(
-		"--user=${%s} --password=${%s} --host=%s --port=%d",
+		"--user=${%s} --host=%s --port=%d",
 		co.UserEnv,
-		co.PasswordEnv,
 		host(mariadb, opts),
 		mariadb.GetPort(),
 	)
