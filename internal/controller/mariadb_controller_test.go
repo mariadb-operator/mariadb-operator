@@ -693,7 +693,7 @@ var _ = Describe("MariaDB", Label("basic"), func() {
 			),
 			newBootstrapFromRestoreSource(mariadbv1alpha1.RestoreSource{
 				S3: getS3Storage("test-mariadb", ""),
-				StagingStorage: &mariadbv1alpha1.BackupStagingStorage{
+				StagingStorage: &mariadbv1alpha1.StagingStorage{
 					PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimSpec{
 						AccessModes: []corev1.PersistentVolumeAccessMode{
 							corev1.ReadWriteOnce,

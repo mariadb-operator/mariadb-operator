@@ -1043,7 +1043,7 @@ func decoratePhysicalBackupWithSSEC(backup *mariadbv1alpha1.PhysicalBackup) *mar
 }
 
 func decoratePhysicalBackupWithStagingStorage(backup *mariadbv1alpha1.PhysicalBackup) *mariadbv1alpha1.PhysicalBackup {
-	backup.Spec.StagingStorage = &mariadbv1alpha1.BackupStagingStorage{
+	backup.Spec.StagingStorage = &mariadbv1alpha1.StagingStorage{
 		PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimSpec{
 			AccessModes: []corev1.PersistentVolumeAccessMode{
 				corev1.ReadWriteOnce,

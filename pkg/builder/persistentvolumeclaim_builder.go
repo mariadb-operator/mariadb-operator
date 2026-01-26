@@ -31,7 +31,7 @@ func (b *Builder) BuildBackupStoragePVC(key types.NamespacedName, pvcSpec *maria
 	}, nil
 }
 
-func (b *Builder) BuildBackupStagingPVC(key types.NamespacedName, pvcSpec *mariadbv1alpha1.PersistentVolumeClaimSpec,
+func (b *Builder) BuildStagingPVC(key types.NamespacedName, pvcSpec *mariadbv1alpha1.PersistentVolumeClaimSpec,
 	meta *mariadbv1alpha1.Metadata, owner metav1.Object) (*corev1.PersistentVolumeClaim, error) {
 	if pvcSpec == nil {
 		return nil, errors.New("PVC spec must be set")
