@@ -319,7 +319,7 @@ func (b *BackupCommand) MariadbRestore(restore *mariadbv1alpha1.Restore,
 		return nil, fmt.Errorf("error getting connection flags: %v", err)
 	}
 
-	args := strings.Join(b.mariadbArgs(restore, mariadb), " ")
+	args := strings.Join(b.mariadbRestoreArgs(restore, mariadb), " ")
 	cmds := []string{
 		"set -euo pipefail",
 		fmt.Sprintf(
@@ -465,11 +465,12 @@ func (b *BackupCommand) MariadbBinlog(mariadb *mariadbv1alpha1.MariaDB) (*Comman
 	if b.StartGtid == nil {
 		return nil, errors.New("startGtid must be set")
 	}
-	// TODO: verify flags when requiring TLS
 	connFlags, err := ConnectionFlags(&b.CommandOpts, mariadb)
 	if err != nil {
 		return nil, fmt.Errorf("error getting connection flags: %v", err)
 	}
+	// TODO: unit tests
+	mariadbArgs := b.mariadbArgs(mariadb)
 
 	cmds := []string{
 		"set -euo pipefail",
@@ -479,11 +480,12 @@ func (b *BackupCommand) MariadbBinlog(mariadb *mariadbv1alpha1.MariaDB) (*Comman
 		// https://mariadb.com/docs/server/clients-and-utilities/logging-tools/mariadb-binlog/mariadb-binlog-options#j-pos-start-position-pos
 		// https://jira.mariadb.org/browse/MDEV-37231
 		fmt.Sprintf(
-			"mariadb-binlog --start-position=%s --stop-datetime=%s %s | mariadb %s",
+			"mariadb-binlog --start-position=%s --stop-datetime=%s %s | mariadb %s %s",
 			b.StartGtid.String(),
 			b.TargetTime.Local().Format(time.DateTime),
 			b.getTargetFilePath(),
 			connFlags,
+			mariadbArgs,
 		),
 	}
 	return NewCommand(cmds, nil), nil
@@ -621,13 +623,19 @@ func (b *BackupCommand) mariadbBackupArgs(mariadb *mariadbv1alpha1.MariaDB, targ
 	return ds.UniqueArgs(ds.Merge(args, backupOpts)...)
 }
 
-func (b *BackupCommand) mariadbArgs(restore *mariadbv1alpha1.Restore, mariadb interfaces.TLSProvider) []string {
-	args := make([]string, len(b.ExtraOpts))
-	copy(args, b.ExtraOpts)
+func (b *BackupCommand) mariadbRestoreArgs(restore *mariadbv1alpha1.Restore, mariadb interfaces.TLSProvider) []string {
+	args := b.mariadbArgs(mariadb)
 
 	if restore.Spec.Database != "" {
 		args = append(args, fmt.Sprintf("--one-database %s", restore.Spec.Database))
 	}
+
+	return ds.UniqueArgs(args...)
+}
+
+func (b *BackupCommand) mariadbArgs(mariadb interfaces.TLSProvider) []string {
+	args := make([]string, len(b.ExtraOpts))
+	copy(args, b.ExtraOpts)
 
 	if mariadb.IsTLSEnabled() {
 		args = append(args, b.tlsArgs(mariadb)...)

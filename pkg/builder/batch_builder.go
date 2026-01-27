@@ -604,7 +604,7 @@ func (b *Builder) BuildPITRJob(key types.NamespacedName, pitr *mariadbv1alpha1.P
 			WithMetadata(mariadb.Spec.PodMetadata).
 			Build()
 
-	volumes, _ := jobPITRVolumes(binlogsVolumeSource)
+	volumes, _ := jobPITRVolumes(binlogsVolumeSource, mariadb)
 
 	var affinity *corev1.Affinity
 	if restoreJob.Affinity != nil {
