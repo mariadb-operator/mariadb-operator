@@ -9,6 +9,7 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/go-logr/logr"
 	"github.com/hashicorp/go-multierror"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
 	agentresources "github.com/mariadb-operator/mariadb-operator/v25/pkg/agent/resources"
@@ -131,8 +132,11 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 	phases := []reconcilePhaseMariaDB{
 		{
-			Name:      "Spec",
-			Reconcile: r.setSpecDefaults,
+			Name: "Spec",
+			// TODO: unify Reconcile interface passing logger
+			Reconcile: func(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
+				return r.setSpecDefaults(ctx, mdb, logger.WithName("spec"))
+			},
 		},
 		{
 			Name:      "Status",
@@ -650,17 +654,17 @@ func (r *MariaDBReconciler) reconcileInternalService(ctx context.Context, mariad
 					// See: https://github.com/istio/istio/issues/38655#issuecomment-1169819447
 					Name:        galeraresources.GaleraClusterPortName,
 					Port:        galeraresources.GaleraClusterPort,
-					AppProtocol: ptr.To[string](galeraresources.MysqlAppProtocol),
+					AppProtocol: ptr.To(galeraresources.MysqlAppProtocol),
 				},
 				{
 					Name:        galeraresources.GaleraISTPortName,
 					Port:        galeraresources.GaleraISTPort,
-					AppProtocol: ptr.To[string](galeraresources.MysqlAppProtocol),
+					AppProtocol: ptr.To(galeraresources.MysqlAppProtocol),
 				},
 				{
 					Name:        galeraresources.GaleraSSTPortName,
 					Port:        galeraresources.GaleraSSTPort,
-					AppProtocol: ptr.To[string](galeraresources.MysqlAppProtocol),
+					AppProtocol: ptr.To(galeraresources.MysqlAppProtocol),
 				},
 			}...)
 		}
@@ -911,7 +915,8 @@ func (r *MariaDBReconciler) reconcileUsers(ctx context.Context, mariadb *mariadb
 	return ctrl.Result{}, nil
 }
 
-func (r *MariaDBReconciler) setSpecDefaults(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
+func (r *MariaDBReconciler) setSpecDefaults(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+	logger logr.Logger) (ctrl.Result, error) {
 	return ctrl.Result{}, r.patch(ctx, mariadb, func(mdb *mariadbv1alpha1.MariaDB) error {
 		if err := mdb.SetDefaults(r.Environment); err != nil {
 			return err
@@ -922,25 +927,53 @@ func (r *MariaDBReconciler) setSpecDefaults(ctx context.Context, mariadb *mariad
 		}
 		bootstrapFrom := ptr.Deref(mdb.Spec.BootstrapFrom, mariadbv1alpha1.BootstrapFrom{})
 		backupRef := ptr.Deref(bootstrapFrom.BackupRef, mariadbv1alpha1.TypedLocalObjectReference{})
-		// BackupKind (logical backup) is managed by the Restore resource
-		if backupRef.Kind != mariadbv1alpha1.PhysicalBackupKind {
+		var physicalBackup *mariadbv1alpha1.PhysicalBackup
+
+		// TODO: integration tests
+		if bootstrapFrom.PointInTimeRecoveryRef != nil {
+			logger.Info("Defaulting bootstrapFrom with PointInTimeRecovery")
+
+			pitr, err := r.RefResolver.PointInTimeRecovery(ctx, bootstrapFrom.PointInTimeRecoveryRef, mdb.Namespace)
+			if err != nil {
+				return err
+			}
+			pb, err := r.RefResolver.PhysicalBackup(ctx, &pitr.Spec.PhysicalBackupRef, mdb.Namespace)
+			if err != nil {
+				return err
+			}
+			physicalBackup = pb
+		} else if backupRef.Kind == mariadbv1alpha1.PhysicalBackupKind {
+			logger.Info("Defaulting bootstrapFrom with PhysicalBackup")
+
+			pb, err := r.RefResolver.PhysicalBackup(ctx, backupRef.LocalReference(), mdb.Namespace)
+			if err != nil {
+				return err
+			}
+			physicalBackup = pb
+		} else if backupRef.Kind == mariadbv1alpha1.BackupKind {
+			logger.V(1).Info("Defaulting bootstrapFrom with Backup not needed, skipping...")
+			// logical backups don't need defaulting, this is managed by the Restore resource
 			return nil
 		}
-		physicalBackup, err := r.RefResolver.PhysicalBackupBackup(ctx, backupRef.LocalReference(), mdb.Namespace)
-		if err != nil {
-			return err
-		}
 
-		if physicalBackup.Spec.Storage.VolumeSnapshot != nil {
-			targetSnapshot, err := r.getTargetVolumeSnapshot(ctx, physicalBackup, mdb.Spec.BootstrapFrom.TargetRecoveryTime)
-			if err != nil {
-				return fmt.Errorf("error getting target VolumeSnapshot: %v", err)
+		if physicalBackup != nil {
+			if physicalBackup.Spec.Storage.VolumeSnapshot != nil {
+				targetSnapshot, err := r.getTargetVolumeSnapshot(ctx, physicalBackup, mdb.Spec.BootstrapFrom.TargetRecoveryTime)
+				if err != nil {
+					return fmt.Errorf("error getting target VolumeSnapshot: %v", err)
+				}
+				logger.Info("Setting bootstrapFrom defaults with PhysicalBackup based on VolumeSnapshot", "snapshot", targetSnapshot)
+
+				mdb.Spec.BootstrapFrom.SetDefaultsWithVolumeSnapshotRef(&mariadbv1alpha1.LocalObjectReference{
+					Name: targetSnapshot,
+				})
+			} else {
+				logger.Info("Setting bootstrapFrom defaults with PhysicalBackup based on mariadb-backup")
+
+				if err := mdb.Spec.BootstrapFrom.SetDefaultsWithPhysicalBackup(physicalBackup); err != nil {
+					return err
+				}
 			}
-			mdb.Spec.BootstrapFrom.SetDefaultsWithVolumeSnapshotRef(&mariadbv1alpha1.LocalObjectReference{
-				Name: targetSnapshot,
-			})
-		} else if err := mdb.Spec.BootstrapFrom.SetDefaultsWithPhysicalBackup(physicalBackup); err != nil {
-			return err
 		}
 
 		mdb.Spec.BootstrapFrom.SetDefaults(mdb)
