@@ -297,6 +297,13 @@ func (b *BootstrapFrom) IsDefaulted() bool {
 }
 
 func (b *BootstrapFrom) SetDefaults(mariadb *MariaDB) {
+	// TODO: unit tests
+	if b.PointInTimeRecoveryRef != nil {
+		stagingStorage := ptr.Deref(b.StagingStorage, StagingStorage{})
+		b.Volume = ptr.To(stagingStorage.VolumeOrEmptyDir(mariadb.PITRStagingPVCKey()))
+		return
+	}
+
 	if b.BackupRef != nil && b.BackupContentType == "" {
 		switch b.BackupRef.Kind {
 		case BackupKind:
@@ -311,11 +318,7 @@ func (b *BootstrapFrom) SetDefaults(mariadb *MariaDB) {
 	if b.BackupContentType == "" {
 		b.BackupContentType = BackupContentTypeLogical
 	}
-	// TODO: unit tests
-	if b.PointInTimeRecoveryRef != nil {
-		stagingStorage := ptr.Deref(b.StagingStorage, StagingStorage{})
-		b.Volume = ptr.To(stagingStorage.VolumeOrEmptyDir(mariadb.PITRStagingPVCKey()))
-	} else if b.BackupContentType == BackupContentTypePhysical && b.S3 != nil {
+	if b.BackupContentType == BackupContentTypePhysical && b.S3 != nil {
 		stagingStorage := ptr.Deref(b.StagingStorage, StagingStorage{})
 		b.Volume = ptr.To(stagingStorage.VolumeOrEmptyDir(mariadb.PhysicalBackupStagingPVCKey()))
 	}

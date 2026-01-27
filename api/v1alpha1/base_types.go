@@ -823,7 +823,7 @@ type BackupContentType string
 const (
 	// BackupContentTypeLogical represents a logical backup created using mariadb-dump.
 	BackupContentTypeLogical BackupContentType = "Logical"
-	// BackupContentTypePhysical represents a physical backup created using mariadb-backup.
+	// BackupContentTypePhysical represents a physical backup created using mariadb-backup or a VolumeSnapshot.
 	BackupContentTypePhysical BackupContentType = "Physical"
 )
 

@@ -96,7 +96,7 @@ func (r *MariaDBReconciler) createPITRJob(ctx context.Context, mdb *mariadbv1alp
 	if err != nil {
 		return fmt.Errorf("error getting PointInTimeRecovery: %v", err)
 	}
-	startGtid, err := r.getStartGtid(ctx, pitr)
+	startGtid, err := r.getStartGtid(ctx, pitr, mdb)
 	if err != nil {
 		return fmt.Errorf("error getting start GTID: %v", err)
 	}
@@ -113,7 +113,12 @@ func (r *MariaDBReconciler) createPITRJob(ctx context.Context, mdb *mariadbv1alp
 	return r.Create(ctx, pitrJob)
 }
 
-func (r *MariaDBReconciler) getStartGtid(ctx context.Context, pitr *mariadbv1alpha1.PointInTimeRecovery) (*replication.Gtid, error) {
+func (r *MariaDBReconciler) getStartGtid(ctx context.Context, pitr *mariadbv1alpha1.PointInTimeRecovery,
+	mdb *mariadbv1alpha1.MariaDB) (*replication.Gtid, error) {
+	// TODO:
+	// - Get domain ID from the server
+	// - Get GTID from either bootstrapFrom.volumeSnapshotRef or the agent API
+	// - Filter GTID by domain ID
 	return nil, nil
 }
 

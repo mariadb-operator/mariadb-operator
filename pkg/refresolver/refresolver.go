@@ -140,7 +140,7 @@ func (r *RefResolver) Backup(ctx context.Context, ref *mariadbv1alpha1.LocalObje
 	return &backup, nil
 }
 
-func (r *RefResolver) PhysicalBackupBackup(ctx context.Context, ref *mariadbv1alpha1.LocalObjectReference,
+func (r *RefResolver) PhysicalBackup(ctx context.Context, ref *mariadbv1alpha1.LocalObjectReference,
 	namespace string) (*mariadbv1alpha1.PhysicalBackup, error) {
 	nn := types.NamespacedName{
 		Name:      ref.Name,
