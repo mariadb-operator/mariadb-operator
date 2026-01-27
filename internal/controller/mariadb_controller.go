@@ -9,7 +9,6 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/go-logr/logr"
 	"github.com/hashicorp/go-multierror"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
 	agentresources "github.com/mariadb-operator/mariadb-operator/v25/pkg/agent/resources"
@@ -132,11 +131,8 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 	phases := []reconcilePhaseMariaDB{
 		{
-			Name: "Spec",
-			// TODO: unify Reconcile interface passing logger
-			Reconcile: func(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
-				return r.setSpecDefaults(ctx, mdb, logger.WithName("spec"))
-			},
+			Name:      "Spec",
+			Reconcile: r.setSpecDefaults,
 		},
 		{
 			Name:      "Status",
@@ -915,8 +911,9 @@ func (r *MariaDBReconciler) reconcileUsers(ctx context.Context, mariadb *mariadb
 	return ctrl.Result{}, nil
 }
 
-func (r *MariaDBReconciler) setSpecDefaults(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	logger logr.Logger) (ctrl.Result, error) {
+func (r *MariaDBReconciler) setSpecDefaults(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
+	logger := log.FromContext(ctx).WithName("spec")
+
 	return ctrl.Result{}, r.patch(ctx, mariadb, func(mdb *mariadbv1alpha1.MariaDB) error {
 		if err := mdb.SetDefaults(r.Environment); err != nil {
 			return err

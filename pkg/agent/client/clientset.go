@@ -12,7 +12,6 @@ import (
 	mdbhttp "github.com/mariadb-operator/mariadb-operator/v25/pkg/http"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/pki"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/refresolver"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/statefulset"
 	"k8s.io/utils/ptr"
 )
 
@@ -139,25 +138,4 @@ func getClientOpts(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, agent 
 	}
 
 	return opts, nil
-}
-
-func getAgentBaseUrl(mariadb *mariadbv1alpha1.MariaDB, index int) (string, error) {
-	_, agent, err := mariadb.GetDataPlaneAgent()
-	if err != nil {
-		return "", fmt.Errorf("error getting agent: %v", err)
-	}
-	scheme := "http"
-	if mariadb.IsTLSEnabled() {
-		scheme = "https"
-	}
-	return fmt.Sprintf(
-		"%s://%s:%d",
-		scheme,
-		statefulset.PodFQDNWithService(
-			mariadb.ObjectMeta,
-			index,
-			mariadb.InternalServiceKey().Name,
-		),
-		agent.Port,
-	), nil
 }
