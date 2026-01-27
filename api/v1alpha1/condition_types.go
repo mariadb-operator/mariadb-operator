@@ -30,6 +30,7 @@ const (
 	ConditionReasonRestoreBackup         string = "RestoreBackup"
 	ConditionReasonRestorePhysicalBackup string = "RestorePhysicalBackup"
 	ConditionReasonReplayBinlogs         string = "ReplayBinlogs"
+	ConditionReasonReplayBinlogsError    string = "ReplayBinlogsError"
 	ConditionReasonSwitchPrimary         string = "SwitchPrimary"
 	ConditionReasonGaleraReady           string = "GaleraReady"
 	ConditionReasonGaleraNotReady        string = "GaleraNotReady"
