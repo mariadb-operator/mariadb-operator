@@ -61,7 +61,7 @@ func WithCleanupTargetFile(shouldCleanup bool) BackupOpt {
 	}
 }
 
-func WithBackupMaxRetention(d time.Duration) BackupOpt {
+func WithMaxRetention(d time.Duration) BackupOpt {
 	return func(bo *BackupOpts) {
 		bo.MaxRetentionDuration = d
 	}
@@ -79,7 +79,7 @@ func WithTargetTime(t time.Time) BackupOpt {
 	}
 }
 
-func WithBackupCompression(c mariadbv1alpha1.CompressAlgorithm) BackupOpt {
+func WithCompression(c mariadbv1alpha1.CompressAlgorithm) BackupOpt {
 	return func(bo *BackupOpts) {
 		bo.Compression = c
 	}
@@ -113,25 +113,25 @@ func WithExtraOpts(opts []string) BackupOpt {
 	}
 }
 
-func WithBackupUserEnv(u string) BackupOpt {
+func WithUserEnv(u string) BackupOpt {
 	return func(bo *BackupOpts) {
 		bo.UserEnv = u
 	}
 }
 
-func WithBackupPasswordEnv(p string) BackupOpt {
+func WithPasswordEnv(p string) BackupOpt {
 	return func(bo *BackupOpts) {
 		bo.PasswordEnv = p
 	}
 }
 
-func WithBackupDatabase(d string) BackupOpt {
+func WithDatabase(d string) BackupOpt {
 	return func(bo *BackupOpts) {
 		bo.Database = &d
 	}
 }
 
-func WithBackupLogLevel(l string) BackupOpt {
+func WithLogLevel(l string) BackupOpt {
 	return func(bo *BackupOpts) {
 		bo.LogLevel = l
 	}

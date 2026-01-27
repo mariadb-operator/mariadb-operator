@@ -11913,6 +11913,19 @@ spec:
                 - bzip2
                 - gzip
                 type: string
+              logLevel:
+                default: info
+                description: LogLevel to be used in the PointInTimeRecovery Job, used
+                  to pull and build the binary log path. It defaults to 'info'.
+                enum:
+                - debug
+                - info
+                - warn
+                - error
+                - dpanic
+                - panic
+                - fatal
+                type: string
               physicalBackupRef:
                 description: PhysicalBackupRef is a reference to a PhysicalBackup
                   object that will be used as base backup.

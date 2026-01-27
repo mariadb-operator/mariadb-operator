@@ -25,6 +25,12 @@ type PointInTimeRecoverySpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	ArchiveTimeout *metav1.Duration `json:"archiveTimeout,omitempty"`
+	// LogLevel to be used in the PointInTimeRecovery Job, used to pull and build the binary log path. It defaults to 'info'.
+	// +optional
+	// +kubebuilder:default=info
+	// +kubebuilder:validation:Enum=debug;info;warn;error;dpanic;panic;fatal
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	LogLevel string `json:"logLevel,omitempty"`
 }
 
 // +kubebuilder:object:root=true

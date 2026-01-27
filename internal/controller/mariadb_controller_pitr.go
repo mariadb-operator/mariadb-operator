@@ -10,6 +10,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/builder"
 	condition "github.com/mariadb-operator/mariadb-operator/v25/pkg/condition"
 	jobpkg "github.com/mariadb-operator/mariadb-operator/v25/pkg/job"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/replication"
 	batchv1 "k8s.io/api/batch/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -95,16 +96,25 @@ func (r *MariaDBReconciler) createPITRJob(ctx context.Context, mdb *mariadbv1alp
 	if err != nil {
 		return fmt.Errorf("error getting PointInTimeRecovery: %v", err)
 	}
+	startGtid, err := r.getStartGtid(ctx, pitr)
+	if err != nil {
+		return fmt.Errorf("error getting start GTID: %v", err)
+	}
 	pitrJob, err := r.Builder.BuildPITRJob(
 		mdb.PITRJobKey(),
 		pitr,
 		mdb,
+		builder.WithStartGtid(startGtid),
 		builder.WithBootstrapFrom(mdb.Spec.BootstrapFrom),
 	)
 	if err != nil {
 		return fmt.Errorf("error building PointInTimeRecovery Job: %v", err)
 	}
 	return r.Create(ctx, pitrJob)
+}
+
+func (r *MariaDBReconciler) getStartGtid(ctx context.Context, pitr *mariadbv1alpha1.PointInTimeRecovery) (*replication.Gtid, error) {
+	return nil, nil
 }
 
 func shouldReconcilePITR(mdb *mariadbv1alpha1.MariaDB) bool {
