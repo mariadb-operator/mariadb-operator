@@ -942,6 +942,18 @@ func (m *MariaDB) HasReplayedBinlogs() bool {
 	return meta.IsStatusConditionTrue(m.Status.Conditions, ConditionTypeBinlogsReplayed)
 }
 
+// ReplayBinlogsError indicates that an error occurred when replaying binlogs.
+func (m *MariaDB) ReplayBinlogsError() error {
+	c := meta.FindStatusCondition(m.Status.Conditions, ConditionTypeBinlogsReplayed)
+	if c == nil {
+		return nil
+	}
+	if c.Status == metav1.ConditionFalse && c.Reason == ConditionReasonReplayBinlogsError {
+		return errors.New(c.Message)
+	}
+	return nil
+}
+
 // IsResizingStorage indicates whether the MariaDB instance is resizing storage
 func (m *MariaDB) IsResizingStorage() bool {
 	return meta.IsStatusConditionFalse(m.Status.Conditions, ConditionTypeStorageResized)
