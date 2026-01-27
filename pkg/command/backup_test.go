@@ -21,8 +21,8 @@ func TestNewBackupCommand(t *testing.T) {
 			name: "missing path",
 			opts: []BackupOpt{
 				WithPath("", "/target/file"),
-				WithBackupUserEnv("USER_ENV"),
-				WithBackupPasswordEnv("PASS_ENV"),
+				WithUserEnv("USER_ENV"),
+				WithPasswordEnv("PASS_ENV"),
 			},
 			wantErr: true,
 		},
@@ -30,8 +30,8 @@ func TestNewBackupCommand(t *testing.T) {
 			name: "missing target file",
 			opts: []BackupOpt{
 				WithPath("/backups", ""),
-				WithBackupUserEnv("USER_ENV"),
-				WithBackupPasswordEnv("PASS_ENV"),
+				WithUserEnv("USER_ENV"),
+				WithPasswordEnv("PASS_ENV"),
 			},
 			wantErr: true,
 		},
@@ -39,7 +39,7 @@ func TestNewBackupCommand(t *testing.T) {
 			name: "missing user env",
 			opts: []BackupOpt{
 				WithPath("/backups", "/target/file"),
-				WithBackupPasswordEnv("PASS_ENV"),
+				WithPasswordEnv("PASS_ENV"),
 			},
 			wantErr: true,
 		},
@@ -47,7 +47,7 @@ func TestNewBackupCommand(t *testing.T) {
 			name: "missing password env",
 			opts: []BackupOpt{
 				WithPath("/backups", "/target/file"),
-				WithBackupUserEnv("USER_ENV"),
+				WithUserEnv("USER_ENV"),
 			},
 			wantErr: true,
 		},
