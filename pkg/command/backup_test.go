@@ -7,6 +7,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
 	builderpki "github.com/mariadb-operator/mariadb-operator/v25/pkg/builder/pki"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/replication"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/utils/ptr"
 )
@@ -953,6 +954,193 @@ func TestMariadbBackupRestore(t *testing.T) {
 	}
 }
 
+func TestMariadbOperatorPITR(t *testing.T) {
+	startGtid := mustParseGtid(t, "0-10-1")
+	targetTime := time.Now()
+	tests := []struct {
+		name     string
+		opts     []BackupOpt
+		wantErr  bool
+		wantArgs []string
+	}{
+		{
+			name: "basic PITR without S3",
+			opts: []BackupOpt{
+				WithPath("/binlogs", "/binlogs/file"),
+				WithStartGtid(startGtid),
+				WithTargetTime(targetTime),
+			},
+			wantArgs: []string{
+				"pitr",
+				"--path",
+				"/binlogs",
+				"--target-file-path",
+				"/binlogs/file",
+				"--start-gtid",
+				"0-10-1",
+				"--target-time",
+				targetTime.Format(time.RFC3339),
+			},
+		},
+		{
+			name: "PITR with S3",
+			opts: []BackupOpt{
+				WithPath("/binlogs", "/binlogs/file"),
+				WithStartGtid(startGtid),
+				WithTargetTime(targetTime),
+				WithS3("test-bucket", "s3.example.com", "us-west-2", "prefix/"),
+				WithS3TLS(true),
+				WithS3CACertPath("/ca/cert"),
+			},
+			wantArgs: []string{
+				"pitr",
+				"--path",
+				"/binlogs",
+				"--target-file-path",
+				"/binlogs/file",
+				"--start-gtid",
+				"0-10-1",
+				"--target-time",
+				targetTime.Format(time.RFC3339),
+				"--s3",
+				"--s3-bucket",
+				"test-bucket",
+				"--s3-endpoint",
+				"s3.example.com",
+				"--s3-region",
+				"us-west-2",
+				"--s3-tls",
+				"--s3-ca-cert-path",
+				"/ca/cert",
+				"--s3-prefix",
+				"prefix/",
+			},
+		},
+		{
+			name: "PITR with compression",
+			opts: []BackupOpt{
+				WithPath("/binlogs", "/binlogs/file"),
+				WithStartGtid(startGtid),
+				WithTargetTime(targetTime),
+				WithCompression(mariadbv1alpha1.CompressGzip),
+			},
+			wantArgs: []string{
+				"pitr",
+				"--path",
+				"/binlogs",
+				"--target-file-path",
+				"/binlogs/file",
+				"--start-gtid",
+				"0-10-1",
+				"--target-time",
+				targetTime.Format(time.RFC3339),
+				"--compression",
+				"gzip",
+			},
+		},
+		{
+			name: "PITR with log level",
+			opts: []BackupOpt{
+				WithPath("/binlogs", "/binlogs/file"),
+				WithStartGtid(startGtid),
+				WithTargetTime(targetTime),
+				WithLogLevel("debug"),
+			},
+			wantArgs: []string{
+				"pitr",
+				"--path",
+				"/binlogs",
+				"--target-file-path",
+				"/binlogs/file",
+				"--start-gtid",
+				"0-10-1",
+				"--target-time",
+				targetTime.Format(time.RFC3339),
+				"--log-level",
+				"debug",
+			},
+		},
+		{
+			name: "PITR with all options",
+			opts: []BackupOpt{
+				WithPath("/binlogs", "/binlogs/file"),
+				WithMaxRetention(30 * 24 * time.Hour),
+				WithStartGtid(startGtid),
+				WithTargetTime(targetTime),
+				WithS3("test-bucket", "s3.example.com", "us-west-2", "prefix/"),
+				WithS3TLS(true),
+				WithS3CACertPath("/ca/cert"),
+				WithCompression(mariadbv1alpha1.CompressBzip2),
+				WithLogLevel("info"),
+			},
+			wantArgs: []string{
+				"pitr",
+				"--path",
+				"/binlogs",
+				"--target-file-path",
+				"/binlogs/file",
+				"--start-gtid",
+				"0-10-1",
+				"--target-time",
+				targetTime.Format(time.RFC3339),
+				"--s3",
+				"--s3-bucket",
+				"test-bucket",
+				"--s3-endpoint",
+				"s3.example.com",
+				"--s3-region",
+				"us-west-2",
+				"--s3-tls",
+				"--s3-ca-cert-path",
+				"/ca/cert",
+				"--s3-prefix",
+				"prefix/",
+				"--compression",
+				"bzip2",
+				"--log-level",
+				"info",
+			},
+		},
+		{
+			name: "PITR without startGtid",
+			opts: []BackupOpt{
+				WithPath("/backup", "/target/file"),
+				WithTargetTime(targetTime),
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			opts := []BackupOpt{
+				WithUserEnv("test"),
+				WithPasswordEnv("test"),
+			}
+			opts = append(opts, tt.opts...)
+			b, err := NewBackupCommand(opts...)
+			if err != nil {
+				t.Fatalf("NewBackupCommand() error = %v", err)
+			}
+
+			cmd, err := b.MariadbOperatorPITR()
+			if tt.wantErr {
+				if err == nil {
+					t.Errorf("MariadbOperatorPITR() error = nil, wantErr = true")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("MariadbOperatorPITR() error = %v", err)
+			}
+
+			if diff := cmp.Diff(tt.wantArgs, cmd.Args); diff != "" {
+				t.Errorf("unexpected probe (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
 func TestExistingBackupRestoreCmd(t *testing.T) {
 	tests := []struct {
 		name              string
@@ -1024,4 +1212,12 @@ func TestExistingBackupRestoreCmd(t *testing.T) {
 			}
 		})
 	}
+}
+
+func mustParseGtid(t *testing.T, rawGtid string) *replication.Gtid {
+	gtid, err := replication.ParseGtid(rawGtid)
+	if err != nil {
+		t.Fatalf("unexpected error parsing GTID: %v", err)
+	}
+	return gtid
 }
