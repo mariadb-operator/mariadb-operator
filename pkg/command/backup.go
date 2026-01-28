@@ -175,10 +175,9 @@ func (b *BackupCommand) MariadbDump(backup *mariadbv1alpha1.Backup,
 	if err != nil {
 		return nil, fmt.Errorf("error getting connection flags: %v", err)
 	}
+	dumpArgs := strings.Join(b.mariadbDumpArgs(backup, mariadb), " ")
 
-	args := strings.Join(b.mariadbDumpArgs(backup, mariadb), " ")
-
-	cmds := []string{
+	args := []string{
 		"set -euo pipefail",
 		"echo 💾 Exporting env",
 		fmt.Sprintf(
@@ -200,11 +199,11 @@ func (b *BackupCommand) MariadbDump(backup *mariadbv1alpha1.Backup,
 		fmt.Sprintf(
 			"mariadb-dump %s %s > %s",
 			connFlags,
-			args,
+			dumpArgs,
 			b.getTargetFilePath(),
 		),
 	}
-	return NewBashCommand(cmds), nil
+	return NewBashCommand(args), nil
 }
 
 func (b *BackupCommand) MariadbBackup(mariadb *mariadbv1alpha1.MariaDB, backupFilePath string,
@@ -462,33 +461,11 @@ func (b *BackupCommand) MariadbOperatorPITR() (*Command, error) {
 }
 
 func (b *BackupCommand) MariadbBinlog(mariadb *mariadbv1alpha1.MariaDB) (*Command, error) {
-	if b.StartGtid == nil {
-		return nil, errors.New("startGtid must be set")
-	}
-	connFlags, err := ConnectionFlags(&b.CommandOpts, mariadb)
+	mariadbBinlogArgs, err := b.mariadbBinlogArgs(mariadb)
 	if err != nil {
-		return nil, fmt.Errorf("error getting connection flags: %v", err)
+		return nil, fmt.Errorf("error getting mariadb-binlog args: %v", err)
 	}
-	// TODO: unit tests
-	mariadbArgs := b.mariadbArgs(mariadb)
-
-	cmds := []string{
-		"set -euo pipefail",
-		"echo 💾 Restoring binlogs",
-		// TODO: pass multiple --start-position
-		// See:
-		// https://mariadb.com/docs/server/clients-and-utilities/logging-tools/mariadb-binlog/mariadb-binlog-options#j-pos-start-position-pos
-		// https://jira.mariadb.org/browse/MDEV-37231
-		fmt.Sprintf(
-			"mariadb-binlog --start-position=%s --stop-datetime=%s %s | mariadb %s %s",
-			b.StartGtid.String(),
-			b.TargetTime.Local().Format(time.DateTime),
-			b.getTargetFilePath(),
-			connFlags,
-			mariadbArgs,
-		),
-	}
-	return NewCommand(cmds, nil), nil
+	return NewBashCommand(mariadbBinlogArgs), nil
 }
 
 func (b *BackupCommand) existingBackupRestoreCmd(backupDirPath, cleanupDataDirCmd, copyBackupCmd string,
@@ -596,6 +573,38 @@ func (b *BackupCommand) mariadbDumpArgs(backup *mariadbv1alpha1.Backup, mariadb 
 	}
 
 	return ds.UniqueArgs(ds.Merge(args, dumpOpts)...)
+}
+
+func (b *BackupCommand) mariadbBinlogArgs(mariadb *mariadbv1alpha1.MariaDB) ([]string, error) {
+	if b.StartGtid == nil {
+		return nil, errors.New("startGtid must be set")
+	}
+	connFlags, err := ConnectionFlags(&b.CommandOpts, mariadb)
+	if err != nil {
+		return nil, fmt.Errorf("error getting connection flags: %v", err)
+	}
+	mariadbArgs := b.mariadbArgs(mariadb)
+
+	mariadbCmd := fmt.Sprintf("mariadb %s", connFlags)
+	if len(mariadbArgs) > 0 {
+		mariadbCmd += fmt.Sprintf(" %s", strings.Join(mariadbArgs, " "))
+	}
+
+	return []string{
+		"set -euo pipefail",
+		"echo 💾 Restoring binlogs",
+		// TODO: pass multiple --start-position
+		// See:
+		// https://mariadb.com/docs/server/clients-and-utilities/logging-tools/mariadb-binlog/mariadb-binlog-options#j-pos-start-position-pos
+		// https://jira.mariadb.org/browse/MDEV-37231
+		fmt.Sprintf(
+			"mariadb-binlog --start-position=\"%s\" --stop-datetime=\"%s\" %s | %s",
+			b.StartGtid.String(),
+			b.TargetTime.Local().Format(time.DateTime),
+			b.getTargetFilePath(),
+			mariadbCmd,
+		),
+	}, nil
 }
 
 func (b *BackupCommand) mariadbBackupArgs(mariadb *mariadbv1alpha1.MariaDB, targetPodIndex int) []string {
