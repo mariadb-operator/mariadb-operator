@@ -281,12 +281,22 @@ func (b *BootstrapFrom) Validate() error {
 		}
 	}
 
+	if b.VolumeSnapshotRef != nil && b.BackupContentType != "" && b.BackupContentType != BackupContentTypePhysical {
+		return errors.New("inconsistent 'volumeSnapshotRef' and 'backupContentType' fields. Physical type must be set in this case")
+	}
+
+	return b.validateMutuallyExclusive()
+}
+
+func (b *BootstrapFrom) validateMutuallyExclusive() error {
 	if b.VolumeSnapshotRef != nil {
-		if b.BackupContentType != "" && b.BackupContentType != BackupContentTypePhysical {
-			return errors.New("inconsistent 'volumeSnapshotRef' and 'backupContentType' fields. Physical type must be set in this case")
-		}
 		if b.S3 != nil || b.Volume != nil || b.RestoreJob != nil {
 			return errors.New("'s3', 'volume' and 'restoreJob' may not be set when 'volumeSnapshotRef' is set")
+		}
+	}
+	if b.PointInTimeRecoveryRef != nil {
+		if b.BackupRef != nil || b.VolumeSnapshotRef != nil || b.S3 != nil {
+			return errors.New("'backupRef', 'volumeSnapshotRef' and 's3' may not be set when 'pointInTimeRecoveryRef' is set")
 		}
 	}
 	return nil
