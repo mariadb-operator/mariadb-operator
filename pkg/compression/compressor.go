@@ -4,201 +4,80 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io"
-	"os"
-	"path/filepath"
 
 	"github.com/dsnet/compress/bzip2"
-	"github.com/go-logr/logr"
-	"github.com/hashicorp/go-multierror"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
 )
 
 type Compressor interface {
-	Compress(fileName string) error
-	Decompress(fileName string) (string, error)
+	Compress(dst io.Writer, src io.Reader) error
+	Decompress(dst io.Writer, src io.Reader) error
 }
 
-type GetUncompressedFilenameFn func(compressedFilename string) (string, error)
-
-func NewCompressor(calg mariadbv1alpha1.CompressAlgorithm, basePath string,
-	getUncompressedFilename GetUncompressedFilenameFn, logger logr.Logger) (Compressor, error) {
+func NewCompressor(calg mariadbv1alpha1.CompressAlgorithm) (Compressor, error) {
 	switch calg {
 	case mariadbv1alpha1.CompressNone:
-		return NewNopCompressor(basePath, getUncompressedFilename, logger.WithName("nop-compressor")), nil
+		return &NopCompressor{}, nil
 	case mariadbv1alpha1.CompressGzip:
-		return NewGzipBackupCompressor(basePath, getUncompressedFilename, logger.WithName("gzip-compressor")), nil
+		return &GzipCompressor{}, nil
 	case mariadbv1alpha1.CompressBzip2:
-		return NewBzip2BackupCompressor(basePath, getUncompressedFilename, logger.WithName("bzip2-compressor")), nil
+		return &Bzip2Compressor{}, nil
 	default:
 		return nil, fmt.Errorf("unsupported compression algorithm: %v", calg)
 	}
 }
 
-type NopCompressor struct {
-	basePath string
+type NopCompressor struct{}
+
+func (c *NopCompressor) Compress(dst io.Writer, src io.Reader) error {
+	_, err := io.Copy(dst, src)
+	return err
 }
 
-func NewNopCompressor(basePath string, getUncompressedFilename GetUncompressedFilenameFn, logger logr.Logger) Compressor {
-	return &NopCompressor{
-		basePath: basePath,
-	}
+func (c *NopCompressor) Decompress(dst io.Writer, src io.Reader) error {
+	_, err := io.Copy(dst, src)
+	return err
 }
 
-func (c *NopCompressor) Compress(fileName string) error {
-	return nil
+type GzipCompressor struct{}
+
+func (c *GzipCompressor) Compress(dst io.Writer, src io.Reader) error {
+	writer := gzip.NewWriter(dst)
+	defer writer.Close()
+	_, err := io.Copy(writer, src)
+	return err
 }
 
-func (c *NopCompressor) Decompress(fileName string) (string, error) {
-	return getFilePath(c.basePath, fileName), nil
-}
-
-type GzipBackupCompressor struct {
-	basePath                string
-	getUncompressedFilename GetUncompressedFilenameFn
-	logger                  logr.Logger
-}
-
-func NewGzipBackupCompressor(basePath string, getUncompressedFilename GetUncompressedFilenameFn, logger logr.Logger) Compressor {
-	return &GzipBackupCompressor{
-		basePath:                basePath,
-		getUncompressedFilename: getUncompressedFilename,
-		logger:                  logger,
-	}
-}
-
-func (c *GzipBackupCompressor) Compress(fileName string) error {
-	return compressFile(c.basePath, fileName, c.logger, func(dst io.Writer, src io.Reader) error {
-		writer := gzip.NewWriter(dst)
-		defer writer.Close()
-		_, err := io.Copy(writer, src)
-		return err
-	})
-}
-
-func (c *GzipBackupCompressor) Decompress(fileName string) (string, error) {
-	return decompressFile(c.basePath, fileName, c.logger, c.getUncompressedFilename, func(dst io.Writer, src io.Reader) error {
-		reader, err := gzip.NewReader(src)
-		if err != nil {
-			return err
-		}
-		defer reader.Close()
-		_, err = io.Copy(dst, reader)
-		return err
-	})
-}
-
-type Bzip2BackupCompressor struct {
-	basePath                string
-	getUncompressedFilename GetUncompressedFilenameFn
-	logger                  logr.Logger
-}
-
-func NewBzip2BackupCompressor(basePath string, getUncompressedFilename GetUncompressedFilenameFn, logger logr.Logger) Compressor {
-	return &Bzip2BackupCompressor{
-		basePath:                basePath,
-		getUncompressedFilename: getUncompressedFilename,
-		logger:                  logger,
-	}
-}
-
-func (c *Bzip2BackupCompressor) Compress(fileName string) error {
-	return compressFile(c.basePath, fileName, c.logger, func(dst io.Writer, src io.Reader) error {
-		writer, err := bzip2.NewWriter(dst,
-			&bzip2.WriterConfig{Level: bzip2.DefaultCompression})
-		if err != nil {
-			return err
-		}
-		defer writer.Close()
-		_, err = io.Copy(writer, src)
-		return err
-	})
-}
-
-func (c *Bzip2BackupCompressor) Decompress(fileName string) (string, error) {
-	return decompressFile(c.basePath, fileName, c.logger, c.getUncompressedFilename, func(dst io.Writer, src io.Reader) error {
-		reader, err := bzip2.NewReader(src,
-			&bzip2.ReaderConfig{})
-		if err != nil {
-			return err
-		}
-		defer reader.Close()
-		_, err = io.Copy(dst, reader)
-		return err
-	})
-}
-
-func compressFile(path, fileName string, logger logr.Logger, compressFn func(dst io.Writer, src io.Reader) error) error {
-	filePath := getFilePath(path, fileName)
-	logger.Info("compressing file", "file", filePath)
-
-	compressedFilePath := filePath + ".tmp"
-
-	// compressedFilePath must be closed before renaming. See: https://github.com/mariadb-operator/mariadb-operator/issues/1007
-	if err := func() error {
-		plainFile, err := os.Open(filePath)
-		if err != nil {
-			return err
-		}
-		defer plainFile.Close()
-
-		compressedFile, err := os.Create(compressedFilePath)
-		if err != nil {
-			return err
-		}
-		defer compressedFile.Close()
-
-		return compressFn(compressedFile, plainFile)
-	}(); err != nil {
-		var errBundle *multierror.Error
-		errBundle = multierror.Append(errBundle, err)
-
-		if err := os.Remove(compressedFilePath); err != nil && !os.IsNotExist(err) {
-			errBundle = multierror.Append(errBundle, err)
-		}
-		return errBundle
-	}
-
-	if err := os.Remove(filePath); err != nil {
-		return err
-	}
-	if err := os.Rename(compressedFilePath, filePath); err != nil {
-		return err
-	}
-	return nil
-}
-
-func decompressFile(path, fileName string, logger logr.Logger, getUncompressedFilename GetUncompressedFilenameFn,
-	uncompressFn func(dst io.Writer, src io.Reader) error) (string, error) {
-	filePath := getFilePath(path, fileName)
-	logger.Info("decompressing file", "file", filePath)
-
-	compressedFile, err := os.Open(filePath)
+func (c *GzipCompressor) Decompress(dst io.Writer, src io.Reader) error {
+	reader, err := gzip.NewReader(src)
 	if err != nil {
-		return "", err
+		return err
 	}
-	defer compressedFile.Close()
-
-	plainFileName, err := getUncompressedFilename(fileName)
-	if err != nil {
-		return "", err
-	}
-	plainFilePath := getFilePath(path, plainFileName)
-	plainFile, err := os.Create(plainFilePath)
-	if err != nil {
-		return "", err
-	}
-	defer plainFile.Close()
-
-	if err := uncompressFn(plainFile, compressedFile); err != nil {
-		return "", err
-	}
-
-	return plainFilePath, nil
+	defer reader.Close()
+	_, err = io.Copy(dst, reader)
+	return err
 }
 
-func getFilePath(basePath, fileName string) string {
-	if filepath.IsAbs(fileName) {
-		return fileName
+type Bzip2Compressor struct{}
+
+func (c *Bzip2Compressor) Compress(dst io.Writer, src io.Reader) error {
+	writer, err := bzip2.NewWriter(dst,
+		&bzip2.WriterConfig{Level: bzip2.DefaultCompression})
+	if err != nil {
+		return err
 	}
-	return filepath.Join(basePath, fileName)
+	defer writer.Close()
+	_, err = io.Copy(writer, src)
+	return err
+}
+
+func (c *Bzip2Compressor) Decompress(dst io.Writer, src io.Reader) error {
+	reader, err := bzip2.NewReader(src,
+		&bzip2.ReaderConfig{})
+	if err != nil {
+		return err
+	}
+	defer reader.Close()
+	_, err = io.Copy(dst, reader)
+	return err
 }

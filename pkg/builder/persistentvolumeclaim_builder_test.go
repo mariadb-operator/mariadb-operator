@@ -198,7 +198,7 @@ func TestBackupStagingPVCOwnerReference(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			pvc, err := builder.BuildBackupStagingPVC(key, pvcSpec, meta, tt.owner)
+			pvc, err := builder.BuildStagingPVC(key, pvcSpec, meta, tt.owner)
 			assert.NoError(t, err, "unexpected error building Backup Staging PVC")
 			assert.NotNil(t, pvc, "expected PVC to be created")
 

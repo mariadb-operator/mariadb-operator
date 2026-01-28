@@ -181,7 +181,7 @@ func TestParseGtid(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			got, err := ParseGtid(tc.input, tc.gtidDomainId, logger)
+			got, err := ParseGtidWithDomainId(tc.input, tc.gtidDomainId, logger)
 			if tc.wantErr {
 				if err == nil {
 					t.Fatalf("expected error for input %q, got nil and result %#v", tc.input, got)

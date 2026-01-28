@@ -316,12 +316,17 @@ func (r *ReplicationReconciler) getReplicaOpts(ctx context.Context, req *Reconci
 	if err != nil {
 		return nil, fmt.Errorf("error getting change master GTID: %v", err)
 	}
-	return []ConfigureReplicaOpt{
+	replicaOpts := []ConfigureReplicaOpt{
 		WithGtidSlavePos(gtid),
 		WithChangeMasterOpts(
 			sql.WithChangeMasterGtid(changeMasterGtid),
 		),
-	}, nil
+	}
+	// avoid deleting binary logs during archival to prevent drifting from object storage
+	if req.mariadb.Spec.PointInTimeRecoveryRef != nil {
+		replicaOpts = append(replicaOpts, WithResetMaster(false))
+	}
+	return replicaOpts, nil
 }
 
 func (r *ReplicationReconciler) patchStatus(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,

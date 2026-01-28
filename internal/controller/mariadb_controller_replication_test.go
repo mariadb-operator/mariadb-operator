@@ -371,7 +371,7 @@ var _ = Describe("MariaDB replication restore from backup", Ordered, func() {
 				return &mariadbv1alpha1.BootstrapFrom{
 					BackupContentType:  mariadbv1alpha1.BackupContentTypePhysical,
 					S3:                 getS3Storage("test-replication-restore-from-backup", "", withSSEC()),
-					TargetRecoveryTime: &metav1.Time{Time: time.Now()},
+					TargetRecoveryTime: testTargetRecoveryTime,
 				}
 			},
 			func(backupKey types.NamespacedName) func() {
@@ -397,7 +397,7 @@ var _ = Describe("MariaDB replication restore from backup", Ordered, func() {
 					VolumeSnapshotRef: &mariadbv1alpha1.LocalObjectReference{
 						Name: snapshotList.Items[0].Name,
 					},
-					TargetRecoveryTime: &metav1.Time{Time: time.Now()},
+					TargetRecoveryTime: testTargetRecoveryTime,
 				}
 			},
 			func(backupKey types.NamespacedName) func() {

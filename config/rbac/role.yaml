@@ -192,6 +192,12 @@ rules:
   - patch
   - watch
 - apiGroups:
+  - k8s.mariadb.com
+  resources:
+  - pointintimerecoveries
+  verbs:
+  - get
+- apiGroups:
   - monitoring.coreos.com
   resources:
   - servicemonitors

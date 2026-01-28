@@ -86,7 +86,7 @@ var restoreCommand = &cobra.Command{
 			os.Exit(1)
 		}
 
-		backupCompressor, err := getCompressorWithFile(backupTargetFile, backupProcessor)
+		backupCompressor, err := getBackupCompressorWithFile(backupTargetFile, backupProcessor)
 		if err != nil {
 			logger.Error(err, "error getting backup compressor")
 			os.Exit(1)
@@ -132,10 +132,10 @@ func writeTargetFile(backupTargetFile string) error {
 	return os.WriteFile(targetFilePath, []byte(backupTargetFile), 0777)
 }
 
-func getCompressorWithFile(fileName string, processor backup.BackupProcessor) (mdbcompression.Compressor, error) {
+func getBackupCompressorWithFile(fileName string, processor backup.BackupProcessor) (mdbcompression.BackupCompressor, error) {
 	calg, err := processor.ParseCompressionAlgorithm(fileName)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing compression algorithm: %v", err)
 	}
-	return mdbcompression.NewCompressor(calg, path, processor.GetUncompressedBackupFile, logger)
+	return mdbcompression.NewBackupCompressor(calg, path, processor.GetUncompressedBackupFile, logger)
 }
