@@ -235,6 +235,19 @@ type BootstrapFrom struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	RestoreJob *Job `json:"restoreJob,omitempty"`
+	// RestoreOnlyPrimary indicates that only the primary pod (pod 0) should be restored
+	// from backup. Secondary pods will join via Galera SST.
+	// Only applicable for physical backups with Galera enabled.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch","urn:alm:descriptor:com.tectonic.ui:advanced"}
+	RestoreOnlyPrimary *bool `json:"restoreOnlyPrimary,omitempty" webhook:"inmutableinit"`
+	// RestoreParallel indicates that all pods should restore from backup in parallel.
+	// This downloads the backup once per pod but all downloads run concurrently,
+	// providing the fastest restore time at the cost of higher bandwidth usage.
+	// Only applicable for physical backups.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch","urn:alm:descriptor:com.tectonic.ui:advanced"}
+	RestoreParallel *bool `json:"restoreParallel,omitempty" webhook:"inmutableinit"`
 }
 
 func (b *BootstrapFrom) Validate() error {
@@ -328,6 +341,14 @@ func (b *BootstrapFrom) TargetRecoveryTimeOrDefault() time.Time {
 		return b.TargetRecoveryTime.Time
 	}
 	return time.Now()
+}
+
+func (b *BootstrapFrom) IsRestoreOnlyPrimaryEnabled() bool {
+	return ptr.Deref(b.RestoreOnlyPrimary, false)
+}
+
+func (b *BootstrapFrom) IsRestoreParallelEnabled() bool {
+	return ptr.Deref(b.RestoreParallel, false)
 }
 
 func (b *BootstrapFrom) RestoreSource() (*RestoreSource, error) {

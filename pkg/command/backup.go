@@ -340,6 +340,7 @@ func (b *BackupCommand) MariadbRestore(restore *mariadbv1alpha1.Restore,
 type MariaDBBackupRestoreOpts struct {
 	cleanupDataDir     bool
 	operatorBinaryPath string
+	dataDir            string // Data directory path for direct restore (e.g., /var/lib/mysql)
 }
 
 type MariaDBBackupRestoreOpt func(*MariaDBBackupRestoreOpts)
@@ -353,6 +354,15 @@ func WithCleanupDataDir(cleanup bool) MariaDBBackupRestoreOpt {
 func WithOperatorBinaryPath(path string) MariaDBBackupRestoreOpt {
 	return func(mdro *MariaDBBackupRestoreOpts) {
 		mdro.operatorBinaryPath = path
+	}
+}
+
+// WithDataDir sets the data directory for direct restore.
+// When set with streaming mode, backup is extracted directly to this directory,
+// skipping the intermediate staging directory and move-back step.
+func WithDataDir(path string) MariaDBBackupRestoreOpt {
+	return func(mdro *MariaDBBackupRestoreOpts) {
+		mdro.dataDir = path
 	}
 }
 
@@ -374,10 +384,10 @@ fi`
 	// The ext4 filesystem creates a lost+found directory by default, which causes mariadb-backup to fail with:
 	// "Original data directory /var/lib/mysql is not empty!"
 	// Since we already check the PVC existence earlier, it should be safe to use --force-non-empty-directories.
-	// Using --move-back instead of --copy-back to reduce disk space requirements by moving files
-	// instead of copying them. This is safe because the backup directory is only used for restore.
-	moveBackupCmd := fmt.Sprintf(
-		"mariadb-backup --move-back --target-dir=%s --force-non-empty-directories",
+	// Using --copy-back to preserve the backup in the staging directory so it can be reused
+	// for subsequent pods in sequential restore mode.
+	copyBackupCmd := fmt.Sprintf(
+		"mariadb-backup --copy-back --target-dir=%s --force-non-empty-directories",
 		backupDirPath,
 	)
 	// Binlog file with the GTID coordinate is not available on the finally restored data directory.
@@ -396,7 +406,7 @@ fi`,
 	existingBackupRestoreCmd, err := b.existingBackupRestoreCmd(
 		backupDirPath,
 		cleanupDataDirCmd,
-		moveBackupCmd,
+		copyBackupCmd,
 		[]string{
 			copyBinlogCmd(replication.BinlogFileName),
 			copyBinlogCmd(replication.LegacyBinlogFileName),
@@ -408,9 +418,64 @@ fi`,
 	}
 
 	var cmds []string
-	if opts.operatorBinaryPath != "" {
-		// Streaming restore: pipe directly from S3 through decompression into mbstream
-		// This eliminates the intermediate decompressed file, reducing peak disk usage
+	if opts.operatorBinaryPath != "" && opts.dataDir != "" {
+		// Direct streaming restore: extract directly to data directory, skip staging and move-back
+		// This eliminates both the intermediate decompressed file AND the staging directory copy
+		streamCmd := b.buildStreamCommand(opts.operatorBinaryPath)
+
+		// For direct restore, binlog files will be in the data directory
+		copyBinlogCmdDirect := func(binlogFileName string) string {
+			binlogPath := filepath.Join(opts.dataDir, binlogFileName)
+			return fmt.Sprintf(`if [ -f %[1]s ]; then
+	echo "💾 Copying binlog position file '%[1]s' to data directory";
+	cp %[1]s %[2]s
+fi`,
+				binlogPath,
+				replication.MariaDBOperatorFilePath,
+			)
+		}
+
+		// Check if data directory already has a prepared backup (from previous attempt)
+		existingDataDirCmd := fmt.Sprintf(`if [ -f %[1]s/ibdata1 ]; then
+  echo '💾 Existing prepared backup found in data directory. Restore already complete.';
+  %[2]s
+  %[3]s
+  exit 0
+fi`,
+			opts.dataDir,
+			copyBinlogCmdDirect(replication.BinlogFileName),
+			copyBinlogCmdDirect(replication.LegacyBinlogFileName),
+		)
+
+		cmds = []string{
+			"set -euo pipefail",
+			existingDataDirCmd,
+			"echo 💾 Direct streaming restore: extracting backup directly to data directory",
+			fmt.Sprintf(
+				"mkdir -p %s",
+				opts.dataDir,
+			),
+			// Run the streaming pipeline directly to data directory
+			fmt.Sprintf(
+				`%s | mbstream -x -C %s; pipe_status=("${PIPESTATUS[@]}"); `+
+					`if [ "${pipe_status[0]}" -ne 0 ]; then echo "💾 Error: streaming command failed with exit code ${pipe_status[0]}" >&2; exit "${pipe_status[0]}"; fi; `+
+					`if [ "${pipe_status[1]}" -ne 0 ]; then echo "💾 Error: mbstream failed with exit code ${pipe_status[1]}" >&2; exit "${pipe_status[1]}"; fi`,
+				streamCmd,
+				opts.dataDir,
+			),
+			"echo 💾 Preparing backup in data directory",
+			fmt.Sprintf(
+				"mariadb-backup --prepare --target-dir=%s",
+				opts.dataDir,
+			),
+			// Copy binlog files (they're already in dataDir, just need to rename)
+			copyBinlogCmdDirect(replication.BinlogFileName),
+			copyBinlogCmdDirect(replication.LegacyBinlogFileName),
+		}
+		// No move-back needed - files are already in data directory
+		return NewBashCommand(cmds), nil
+	} else if opts.operatorBinaryPath != "" {
+		// Streaming restore with staging directory (legacy streaming mode without direct restore)
 		streamCmd := b.buildStreamCommand(opts.operatorBinaryPath)
 		cmds = []string{
 			"set -euo pipefail",
@@ -466,15 +531,15 @@ fi`,
 		cmds = append(cmds, cleanupDataDirCmd)
 	}
 	cmds = append(cmds, []string{
-		"echo 💾 Moving backup to data directory",
-		moveBackupCmd,
+		"echo 💾 Copying backup to data directory",
+		copyBackupCmd,
 		copyBinlogCmd(replication.BinlogFileName),
 		copyBinlogCmd(replication.LegacyBinlogFileName),
 	}...)
 	return NewBashCommand(cmds), nil
 }
 
-func (b *BackupCommand) existingBackupRestoreCmd(backupDirPath, cleanupDataDirCmd, moveBackupCmd string,
+func (b *BackupCommand) existingBackupRestoreCmd(backupDirPath, cleanupDataDirCmd, copyBackupCmd string,
 	copyBinlogCmds []string, restoreOpts ...MariaDBBackupRestoreOpt) (string, error) {
 	opts := MariaDBBackupRestoreOpts{}
 	for _, setOpt := range restoreOpts {
@@ -482,11 +547,11 @@ func (b *BackupCommand) existingBackupRestoreCmd(backupDirPath, cleanupDataDirCm
 	}
 
 	tpl := createTpl("restore.sh", `if [ -d {{ .BackupDir }} ]; then
-  echo '💾 Existing backup directory found. Moving backup to data directory';
+  echo '💾 Existing backup directory found. Copying backup to data directory';
   {{- if .CleanupDataDir }}
   { {{ .CleanupDataDirCmd }}; } &&
   {{- end }}
-  { {{ .MoveBackupCmd }}; } &&
+  { {{ .CopyBackupCmd }}; } &&
   {{- range $cmd := .CopyBinlogCmds }}
   { {{ $cmd }}; } &&
   {{- end }}
@@ -497,13 +562,13 @@ fi`)
 		BackupDir         string
 		CleanupDataDir    bool
 		CleanupDataDirCmd string
-		MoveBackupCmd     string
+		CopyBackupCmd     string
 		CopyBinlogCmds    []string
 	}{
 		BackupDir:         backupDirPath,
 		CleanupDataDir:    opts.cleanupDataDir,
 		CleanupDataDirCmd: cleanupDataDirCmd,
-		MoveBackupCmd:     moveBackupCmd,
+		CopyBackupCmd:     copyBackupCmd,
 		CopyBinlogCmds:    copyBinlogCmds,
 	})
 	if err != nil {

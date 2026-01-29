@@ -15,6 +15,16 @@ mariadb:
   replicas: 3
   galera:
     enabled: true
+  # -- Bootstrap from a backup or volume snapshot.
+  # bootstrapFrom:
+  #   s3:
+  #     bucket: my-bucket
+  #     endpoint: s3.amazonaws.com
+  #   backupContentType: Physical
+  #   # Restore modes (pick one):
+  #   # - Default: Sequential restore (one pod at a time)
+  #   # - restoreOnlyPrimary: true  # SST mode: pod 0 only, others join via Galera
+  #   # - restoreParallel: true     # Parallel mode: all pods restore concurrently (fastest)
 # -- The list of Database CRs.
 # The `.mariaDbRef` keys will be ignored.
 # The `.name` keys are required to generate distinct CR names.

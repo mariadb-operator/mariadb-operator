@@ -497,8 +497,12 @@ func (b *Builder) BuildPhysicalBackupRestoreJob(key types.NamespacedName, mariad
 	if err != nil {
 		return nil, fmt.Errorf("error building backup command: %v", err)
 	}
-	// Append the operator binary path option for streaming restore
-	restoreCommandOpts := append(opts.RestoreCommandOpts, command.WithOperatorBinaryPath(batchOperatorBinaryPath))
+	// Append the operator binary path and data directory for direct streaming restore
+	// This enables extracting directly to /var/lib/mysql, skipping the staging directory and move-back step
+	restoreCommandOpts := append(opts.RestoreCommandOpts,
+		command.WithOperatorBinaryPath(batchOperatorBinaryPath),
+		command.WithDataDir(MariadbStorageMountPath),
+	)
 	restoreCmd, err := cmd.MariadbBackupRestore(mariadb, batchPhysicalBackupDirFullPath, restoreCommandOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("error getting mariadb-backup restore command: %v", err)
