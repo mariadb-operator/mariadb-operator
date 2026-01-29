@@ -12,6 +12,8 @@
 - [Retention policy](#retention-policy)
 - [Target policy](#target-policy)
 - [Restoration](#restoration)
+- [Streaming restore](#streaming-restore)
+- [Restore modes](#restore-modes)
 - [Target recovery time](#target-recovery-time)
 - [Timeout](#timeout)
 - [Log level](#log-level)
@@ -285,6 +287,137 @@ spec:
     volumeSnapshotRef:
       name: physicalbackup-20250611163352
 ```
+
+## Streaming restore
+
+When restoring physical backups from S3 storage, the operator uses a streaming restore mechanism that provides several advantages:
+
+- **No intermediate files**: The backup is streamed directly from S3 to `mbstream`, eliminating the need for intermediate files on disk.
+- **Resumable downloads**: Large backups benefit from automatic retry with exponential backoff. If a network interruption occurs during download, the restore automatically resumes from where it left off.
+- **Progress tracking**: The restore process tracks and logs progress, making it easier to monitor large restores.
+- **Direct extraction**: When possible, the backup is extracted directly to the MariaDB data directory (`/var/lib/mysql`), skipping intermediate staging directories.
+
+The streaming restore is the default behavior when restoring from S3 storage. No additional configuration is required to enable it.
+
+> [!NOTE]
+> Streaming restore requires the backup to be stored in S3. For backups stored in PVCs or other volume types, the traditional file-based restore is used.
+
+## Restore modes
+
+When bootstrapping a multi-replica `MariaDB` cluster from a physical backup, the operator supports three restore modes. Each mode offers different trade-offs between restore time, network bandwidth usage, and operational complexity.
+
+### Sequential restore (default)
+
+The default restore mode downloads the backup once to a staging area, then copies it to each pod sequentially. For a 3-replica cluster:
+
+1. Download backup from S3 to staging PVC
+2. Copy data from staging to pod 0's PVC, start pod 0
+3. Copy data from staging to pod 1's PVC, start pod 1
+4. Copy data from staging to pod 2's PVC, start pod 2
+
+| Characteristic | Value |
+|----------------|-------|
+| S3 downloads | 1 × backup size |
+| Total time | Download + (N × copy operations) |
+| Best for | Default, bandwidth-efficient |
+
+This mode downloads the backup only once and reuses it for all pods, making it bandwidth-efficient while still being safe and predictable.
+
+### SST restore mode
+
+When using Galera, you can restore only the primary pod and let secondary pods join via Galera's State Snapshot Transfer (SST). This is enabled with `restoreOnlyPrimary: true`:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-galera
+spec:
+  replicas: 3
+  galera:
+    enabled: true
+  bootstrapFrom:
+    s3:
+      bucket: my-bucket
+      endpoint: s3.example.com
+      accessKeyIdSecretKeyRef:
+        name: s3-credentials
+        key: access-key-id
+      secretAccessKeySecretKeyRef:
+        name: s3-credentials
+        key: secret-access-key
+    backupContentType: Physical
+    restoreOnlyPrimary: true
+```
+
+The restore flow is:
+
+1. Restore pod 0 from S3 backup
+2. Start pod 0 and wait for it to become ready (Galera primary)
+3. Start pods 1 and 2 - they join via Galera SST
+
+| Characteristic | Value |
+|----------------|-------|
+| S3 downloads | 1 × backup size |
+| Total time | Pod 0 restore + SST joins |
+| Best for | Bandwidth-constrained environments |
+
+> [!IMPORTANT]
+> SST mode requires Galera to be enabled. The `restoreOnlyPrimary` option is ignored for non-Galera deployments.
+
+### Parallel restore mode
+
+For the fastest download time, you can download and restore all pods concurrently with `restoreParallel: true`:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb
+spec:
+  replicas: 3
+  bootstrapFrom:
+    s3:
+      bucket: my-bucket
+      endpoint: s3.example.com
+      accessKeyIdSecretKeyRef:
+        name: s3-credentials
+        key: access-key-id
+      secretAccessKeySecretKeyRef:
+        name: s3-credentials
+        key: secret-access-key
+    backupContentType: Physical
+    restoreParallel: true
+```
+
+The restore flow is:
+
+1. Create restore jobs for all pods simultaneously
+2. All jobs download from S3 and restore to their respective PVCs concurrently
+3. Once all jobs complete, start all pods
+
+| Characteristic | Value |
+|----------------|-------|
+| S3 downloads | N × backup size (concurrent) |
+| Total time | Max of all restore jobs |
+| Best for | Fastest restore for non-Galera setups |
+
+> [!IMPORTANT]
+> Parallel mode cannot be used with `stagingStorage.persistentVolumeClaim` because each job needs its own storage. The default `emptyDir` staging works correctly since each job gets its own ephemeral volume.
+
+> [!NOTE]
+> **For Galera clusters, parallel mode provides limited benefit.** While all pods download concurrently, Galera will still perform SST (State Snapshot Transfer) when pods 1 and 2 join the cluster - Galera doesn't trust existing data on joining nodes. For Galera, consider using `restoreOnlyPrimary: true` instead, which downloads once and lets Galera handle data distribution via SST.
+
+### Choosing a restore mode
+
+| Mode | Flag | Downloads | Time | Use case |
+|------|------|-----------|------|----------|
+| Sequential | (default) | 1 × backup | Download + N copies | Default, bandwidth-efficient |
+| SST | `restoreOnlyPrimary: true` | 1 × backup | Pod 0 + SST joins | Galera only, recommended |
+| Parallel | `restoreParallel: true` | N × backup | Max of jobs | Non-Galera multi-replica |
+
+> [!NOTE]
+> `restoreOnlyPrimary` and `restoreParallel` are mutually exclusive. Only one can be enabled at a time.
 
 ## Target recovery time
 

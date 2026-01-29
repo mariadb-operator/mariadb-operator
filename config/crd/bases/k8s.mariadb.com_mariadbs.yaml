@@ -648,6 +648,19 @@ spec:
                           type: object
                         type: array
                     type: object
+                  restoreOnlyPrimary:
+                    description: |-
+                      RestoreOnlyPrimary indicates that only the primary pod (pod 0) should be restored
+                      from backup. Secondary pods will join via Galera SST.
+                      Only applicable for physical backups with Galera enabled.
+                    type: boolean
+                  restoreParallel:
+                    description: |-
+                      RestoreParallel indicates that all pods should restore from backup in parallel.
+                      This downloads the backup once per pod but all downloads run concurrently,
+                      providing the fastest restore time at the cost of higher bandwidth usage.
+                      Only applicable for physical backups.
+                    type: boolean
                   s3:
                     description: |-
                       S3 defines the configuration to restore backups from a S3 compatible storage.
