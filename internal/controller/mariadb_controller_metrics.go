@@ -15,6 +15,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/secret"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -96,7 +97,7 @@ func (r *MariaDBReconciler) reconcileAuth(ctx context.Context, mariadb *mariadbv
 	userOpts := builder.UserOpts{
 		Name:                 mariadb.Spec.Metrics.Username,
 		PasswordSecretKeyRef: &mariadb.Spec.Metrics.PasswordSecretKeyRef.SecretKeySelector,
-		MaxUserConnections:   3,
+		MaxUserConnections:   ptr.To(int32(3)),
 		Metadata:             mariadb.Spec.InheritMetadata,
 		MariaDBRef:           ref,
 	}

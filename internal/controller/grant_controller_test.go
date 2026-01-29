@@ -8,6 +8,7 @@ import (
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
@@ -41,7 +42,7 @@ var _ = Describe("Grant", Label("basic"), func() {
 					},
 					Key: testPwdSecretKey,
 				},
-				MaxUserConnections: 20,
+				MaxUserConnections: ptr.To(int32(20)),
 			},
 		}
 		Expect(k8sClient.Create(testCtx, &user)).To(Succeed())
@@ -168,7 +169,7 @@ var _ = Describe("Grant", Label("basic"), func() {
 					},
 					Key: testPwdSecretKey,
 				},
-				MaxUserConnections: 20,
+				MaxUserConnections: ptr.To(int32(20)),
 			},
 		}
 		Expect(k8sClient.Create(testCtx, &user)).To(Succeed())
@@ -267,7 +268,7 @@ var _ = Describe("Grant on an external MariaDB", func() {
 					},
 					Key: testPwdSecretKey,
 				},
-				MaxUserConnections: 20,
+				MaxUserConnections: ptr.To(int32(20)),
 			},
 		}
 		Expect(k8sClient.Create(testCtx, &user)).To(Succeed())
@@ -397,7 +398,7 @@ var _ = Describe("Grant on an external MariaDB", func() {
 					},
 					Key: testPwdSecretKey,
 				},
-				MaxUserConnections: 20,
+				MaxUserConnections: ptr.To(int32(20)),
 			},
 		}
 		Expect(k8sClient.Create(testCtx, &user)).To(Succeed())
