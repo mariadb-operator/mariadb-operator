@@ -1992,6 +1992,25 @@ var _ = Describe("MariaDB types", func() {
 				},
 			),
 			Entry(
+				"PointInTimeRecovery",
+				&BootstrapFrom{
+					PointInTimeRecoveryRef: &LocalObjectReference{
+						Name: "test",
+					},
+				},
+				&MariaDB{
+					ObjectMeta: objMeta,
+				},
+				&BootstrapFrom{
+					PointInTimeRecoveryRef: &LocalObjectReference{
+						Name: "test",
+					},
+					Volume: &StorageVolumeSource{
+						EmptyDir: &EmptyDirVolumeSource{},
+					},
+				},
+			),
+			Entry(
 				"Logical backup",
 				&BootstrapFrom{
 					BackupRef: &TypedLocalObjectReference{

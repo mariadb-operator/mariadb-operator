@@ -4,31 +4,36 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"time"
 
 	"github.com/go-logr/logr"
 	volumesnapshotv1 "github.com/kubernetes-csi/external-snapshotter/client/v8/apis/volumesnapshot/v1"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
 	agentclient "github.com/mariadb-operator/mariadb-operator/v25/pkg/agent/client"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/binlog"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/builder"
 	condition "github.com/mariadb-operator/mariadb-operator/v25/pkg/condition"
 	jobpkg "github.com/mariadb-operator/mariadb-operator/v25/pkg/job"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/metadata"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/minio"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/replication"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/sql"
+	"gopkg.in/yaml.v3"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 func (r *MariaDBReconciler) reconcilePITR(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
-	if !shouldReconcilePITR(mdb) {
+	logger := log.FromContext(ctx).WithName("pitr")
+	if !shouldReconcilePITR(mdb, logger) {
 		return ctrl.Result{}, nil
 	}
-	logger := log.FromContext(ctx).WithName("pitr")
 
 	startGtid, err := r.getStartGtid(ctx, mdb, logger)
 	if err != nil {
@@ -132,7 +137,7 @@ func (r *MariaDBReconciler) getStartGtid(ctx context.Context, mdb *mariadbv1alph
 func (r *MariaDBReconciler) reconcileReplayBinlogsError(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, startGtid *replication.Gtid,
 	logger logr.Logger) (ctrl.Result, error) {
 	logger.Info("Validating binlog path")
-	if err := r.validateBinlogPath(ctx, mariadb, startGtid); err != nil {
+	if err := r.validateBinlogPath(ctx, mariadb, startGtid, logger); err != nil {
 		errMsg := fmt.Sprintf("Invalid binary log path: %v", err)
 		r.Recorder.Event(mariadb, corev1.EventTypeWarning, mariadbv1alpha1.ReasonMariaDBInvalidBinlogPath, errMsg)
 
@@ -149,7 +154,41 @@ func (r *MariaDBReconciler) reconcileReplayBinlogsError(ctx context.Context, mar
 	return ctrl.Result{}, nil
 }
 
-func (r *MariaDBReconciler) validateBinlogPath(ctx context.Context, mdb *mariadbv1alpha1.MariaDB, startGtid *replication.Gtid) error {
+func (r *MariaDBReconciler) validateBinlogPath(ctx context.Context, mdb *mariadbv1alpha1.MariaDB, startGtid *replication.Gtid,
+	logger logr.Logger) error {
+	pitr, err := r.RefResolver.PointInTimeRecovery(ctx, mdb.Spec.BootstrapFrom.PointInTimeRecoveryRef, mdb.Namespace)
+	if err != nil {
+		return fmt.Errorf("error getting PointInTimeRecoveryRef: %v", err)
+	}
+	s3Client, err := r.getS3Client(ctx, pitr)
+	if err != nil {
+		return fmt.Errorf("error getting S3 client: %v", err)
+	}
+
+	indexReader, err := s3Client.GetObjectWithOptions(ctx, binlog.BinlogIndexName)
+	if err != nil {
+		return fmt.Errorf("error getting binlog index: %v", err)
+	}
+	defer indexReader.Close()
+	indexBytes, err := io.ReadAll(indexReader)
+	if err != nil {
+		return fmt.Errorf("error reading binlog index: %v", err)
+	}
+	var index binlog.BinlogIndex
+	if err := yaml.Unmarshal(indexBytes, &index); err != nil {
+		return fmt.Errorf("error unmarshalling binlog index: %v", err)
+	}
+
+	targetTime := mdb.Spec.BootstrapFrom.TargetRecoveryTimeOrDefault()
+	_, err = index.BinlogPath(startGtid, targetTime, logger)
+	if err != nil {
+		return fmt.Errorf(
+			"error getting binlog path between GTID %s and target time %s: %v",
+			startGtid.String(),
+			targetTime.Format(time.RFC3339),
+			err,
+		)
+	}
 	return nil
 }
 
@@ -212,10 +251,52 @@ func (r *MariaDBReconciler) createPITRJob(ctx context.Context, mdb *mariadbv1alp
 	return r.Create(ctx, pitrJob)
 }
 
-func shouldReconcilePITR(mdb *mariadbv1alpha1.MariaDB) bool {
+func (r *MariaDBReconciler) getS3Client(ctx context.Context, pitr *mariadbv1alpha1.PointInTimeRecovery) (*minio.Client, error) {
+	s3 := pitr.Spec.S3
+	minioOpts := []minio.MinioOpt{
+		minio.WithRegion(s3.Region),
+		minio.WithPrefix(s3.Prefix),
+	}
+
+	tls := ptr.Deref(s3.TLS, mariadbv1alpha1.TLSS3{})
+	if tls.Enabled {
+		minioOpts = append(minioOpts, minio.WithTLS(true))
+		caCertBytes, err := r.RefResolver.SecretKeyRef(ctx, *s3.TLS.CASecretKeyRef, pitr.Namespace)
+		if err != nil {
+			return nil, fmt.Errorf("error getting CA cert: %v", err)
+		}
+		minioOpts = append(minioOpts, minio.WithCACertBytes([]byte(caCertBytes)))
+	}
+
+	if s3.SSEC != nil {
+		ssecKey, err := r.RefResolver.SecretKeyRef(ctx, s3.SSEC.CustomerKeySecretKeyRef, pitr.Namespace)
+		if err != nil {
+			return nil, fmt.Errorf("error getting SSEC key: %v", err)
+		}
+		minioOpts = append(minioOpts, minio.WithSSECCustomerKey(ssecKey))
+	}
+
+	s3Client, err := minio.NewMinioClient(
+		"", // not needed: in-memory methods (io.Reader instead of a file) are used in this context
+		pitr.Spec.S3.Bucket,
+		pitr.Spec.S3.Endpoint,
+		minioOpts...,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("error getting S3 client: %v", err)
+	}
+	return s3Client, nil
+}
+
+func shouldReconcilePITR(mdb *mariadbv1alpha1.MariaDB, logger logr.Logger) bool {
 	if mdb.IsInitializing() || mdb.IsUpdating() || mdb.IsRestoringBackup() || mdb.IsResizingStorage() ||
 		mdb.IsScalingOut() || mdb.IsRecoveringReplicas() || mdb.HasGaleraNotReadyCondition() ||
 		mdb.IsSwitchingPrimary() || mdb.IsReplicationSwitchoverRequired() {
+		logger.V(1).Info("Operation in progress. Skipping PITR reconciliation...")
+		return false
+	}
+	if !mdb.HasRestoredPhysicalBackup() {
+		logger.V(1).Info("PhysicalBackup not restored. Skipping PITR reconciliation...")
 		return false
 	}
 	if mdb.HasReplayedBinlogs() {

@@ -307,7 +307,6 @@ func (b *BootstrapFrom) IsDefaulted() bool {
 }
 
 func (b *BootstrapFrom) SetDefaults(mariadb *MariaDB) {
-	// TODO: unit tests
 	if b.PointInTimeRecoveryRef != nil {
 		stagingStorage := ptr.Deref(b.StagingStorage, StagingStorage{})
 		b.Volume = ptr.To(stagingStorage.VolumeOrEmptyDir(mariadb.PITRStagingPVCKey()))
@@ -940,6 +939,15 @@ func (m *MariaDB) IsRestoringBackup() bool {
 // HasRestoredBackup indicates whether the MariaDB instance has restored a Backup
 func (m *MariaDB) HasRestoredBackup() bool {
 	return meta.IsStatusConditionTrue(m.Status.Conditions, ConditionTypeBackupRestored)
+}
+
+// HasRestoredPhysicalBackup indicates whether the MariaDB instance has restored a PhysicalBackup
+func (m *MariaDB) HasRestoredPhysicalBackup() bool {
+	c := meta.FindStatusCondition(m.Status.Conditions, ConditionTypeBackupRestored)
+	if c == nil {
+		return false
+	}
+	return c.Status == metav1.ConditionTrue && c.Reason == ConditionReasonRestorePhysicalBackup
 }
 
 // IsReplayingBinlogs indicates whether the MariaDB instance is replaying binlogs
