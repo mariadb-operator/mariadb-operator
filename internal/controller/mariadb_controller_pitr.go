@@ -19,7 +19,6 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/minio"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/replication"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/sql"
-	"gopkg.in/yaml.v3"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -27,6 +26,7 @@ import (
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/yaml"
 )
 
 func (r *MariaDBReconciler) reconcilePITR(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
