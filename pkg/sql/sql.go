@@ -353,6 +353,15 @@ func (c *Client) Exec(ctx context.Context, sql string, args ...any) error {
 	return err
 }
 
+func (c *Client) Query(ctx context.Context, sql string, args ...any) (*sql.Rows, error) {
+	rows, err := c.db.QueryContext(ctx, sql, args...)
+	return rows, err
+}
+
+func (c *Client) QueryRow(ctx context.Context, sql string, args ...any) *sql.Row {
+	return c.db.QueryRowContext(ctx, sql, args...)
+}
+
 func (c Client) Exists(ctx context.Context, sql string, args ...any) (bool, error) {
 	rows, err := c.db.QueryContext(ctx, sql, args...)
 	if err != nil {

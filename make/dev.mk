@@ -154,11 +154,14 @@ pitr: local-dir ## Run PITR from your host.
 	$(PITR_ENV) $(GO) run cmd/controller/*.go pitr $(PITR_FLAGS)
 
 CLIENT_FLAGS ?= --host=mariadb-repl-primary.default.svc.cluster.local --port=3306 \
-	--username=root --password=MariaDB11! --database=test --table=test \
-	--timeout=3s --insert-interval=1s
+	--username=root --password=MariaDB11! --database=test --table=test --timeout=3s
 .PHONY: client
-client: ## Run sample client application
-	$(GO) run hack/client/*.go $(CLIENT_FLAGS)
+client: ## Run sample client application in insert mode.
+	$(GO) run hack/client/*.go $(CLIENT_FLAGS) --mode=insert --insert-interval=1s
+
+.PHONY: client-validate
+client-validate: ## Run sample client application in validate mode.
+	$(GO) run hack/client/*.go $(CLIENT_FLAGS) --mode=validate --validate-threshold=1s
 
 ##@ Dump
 
