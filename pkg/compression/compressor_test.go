@@ -30,12 +30,12 @@ func TestCompressors(t *testing.T) {
 		{
 			name:            "gzip",
 			newCompressorFn: NewGzipBackupCompressor,
-			fileName:        "backup.2023-12-18T16:14:00Z.gzip.sql",
+			fileName:        "backup.2023-12-18T16:14:00Z.sql.gz",
 		},
 		{
 			name:            "bzip2",
 			newCompressorFn: NewBzip2BackupCompressor,
-			fileName:        "backup.2023-12-18T16:14:00Z.bzip2.sql",
+			fileName:        "backup.2023-12-18T16:14:00Z.sql.bz2",
 		},
 	}
 

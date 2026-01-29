@@ -171,3 +171,53 @@ func TestServicePorts(t *testing.T) {
 		})
 	}
 }
+
+func TestServiceLoadBalancerClass(t *testing.T) {
+	builder := newDefaultTestBuilder(t)
+	key := types.NamespacedName{
+		Name: "service",
+	}
+	loadBalancerClass := "tailscale"
+	tests := []struct {
+		name                  string
+		opts                  ServiceOpts
+		wantLoadBalancerClass *string
+	}{
+		{
+			name: "no loadBalancerClass",
+			opts: ServiceOpts{
+				ExcludeSelectorLabels: true,
+			},
+			wantLoadBalancerClass: nil,
+		},
+		{
+			name: "with loadBalancerClass",
+			opts: ServiceOpts{
+				ServiceTemplate: mariadbv1alpha1.ServiceTemplate{
+					LoadBalancerClass: &loadBalancerClass,
+				},
+				ExcludeSelectorLabels: true,
+			},
+			wantLoadBalancerClass: &loadBalancerClass,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			svc, err := builder.BuildService(key, &mariadbv1alpha1.MariaDB{}, tt.opts)
+			if err != nil {
+				t.Fatalf("unexpected error building Service: %v", err)
+			}
+			if tt.wantLoadBalancerClass == nil {
+				if svc.Spec.LoadBalancerClass != nil {
+					t.Errorf("expected nil LoadBalancerClass, got %v", *svc.Spec.LoadBalancerClass)
+				}
+			} else {
+				if svc.Spec.LoadBalancerClass == nil {
+					t.Errorf("expected LoadBalancerClass %v, got nil", *tt.wantLoadBalancerClass)
+				} else if *svc.Spec.LoadBalancerClass != *tt.wantLoadBalancerClass {
+					t.Errorf("expected LoadBalancerClass %v, got %v", *tt.wantLoadBalancerClass, *svc.Spec.LoadBalancerClass)
+				}
+			}
+		})
+	}
+}
