@@ -20,6 +20,7 @@ import (
 type MinioOpts struct {
 	TLS                 bool
 	CACertPath          string
+	CACertBytes         []byte
 	Region              string
 	Prefix              string
 	AllowNestedPrefixes bool
@@ -37,6 +38,12 @@ func WithTLS(tls bool) MinioOpt {
 func WithCACertPath(caCertPath string) MinioOpt {
 	return func(m *MinioOpts) {
 		m.CACertPath = caCertPath
+	}
+}
+
+func WithCACertBytes(bytes []byte) MinioOpt {
+	return func(m *MinioOpts) {
+		m.CACertBytes = bytes
 	}
 }
 
@@ -275,7 +282,11 @@ func getTransport(opts *MinioOpts) (*http.Transport, error) {
 		}
 	}
 
-	if opts.CACertPath != "" {
+	if opts.CACertBytes != nil {
+		if ok := transport.TLSClientConfig.RootCAs.AppendCertsFromPEM(opts.CACertBytes); !ok {
+			return nil, errors.New("unable to add CA cert to pool")
+		}
+	} else if opts.CACertPath != "" {
 		caBytes, err := os.ReadFile(opts.CACertPath)
 		if err != nil {
 			return nil, fmt.Errorf("error reading CA cert: %v", err)
