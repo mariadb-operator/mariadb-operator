@@ -18,6 +18,7 @@ import (
 )
 
 type MinioOpts struct {
+	CredsProviders      []credentials.Provider
 	TLS                 bool
 	CACertPath          string
 	CACertBytes         []byte
@@ -27,7 +28,26 @@ type MinioOpts struct {
 	SSECCustomerKey     string
 }
 
+func (o *MinioOpts) getCredentials() *credentials.Credentials {
+	// Use a chained credentials provider to support multiple sources:
+	// 1. Environment variables (set by custom resource)
+	// 2. IAM role (for EC2 Meta Data, EKS service accounts when environment variables are not set)
+	// 3. Credentials providers passed as functional option
+	providers := []credentials.Provider{
+		&credentials.EnvAWS{},
+		&credentials.IAM{},
+	}
+	providers = append(providers, o.CredsProviders...)
+	return credentials.NewChainCredentials(providers)
+}
+
 type MinioOpt func(m *MinioOpts)
+
+func WithCredsProviders(provider ...credentials.Provider) MinioOpt {
+	return func(m *MinioOpts) {
+		m.CredsProviders = provider
+	}
+}
 
 func WithTLS(tls bool) MinioOpt {
 	return func(m *MinioOpts) {
@@ -195,6 +215,10 @@ func (c *Client) GetPrefix() string {
 	return c.Prefix
 }
 
+func (c *Client) GetCredentials() *credentials.Credentials {
+	return c.getCredentials()
+}
+
 func (c *Client) putObjectOptions() (*minio.PutObjectOptions, error) {
 	putOpts := minio.PutObjectOptions{}
 	if sse, err := c.getSSEC(); err != nil {
@@ -244,24 +268,12 @@ func getMinioOptions(opts MinioOpts) (*minio.Options, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error getting transport: %v", err)
 	}
-
-	// Use a chained credentials provider to support multiple sources:
-	// 1. Environment variables (set by custom resource)
-	// 2. IAM role (for EC2 Meta Data, EKS service accounts when environment variables are not set)
-	chainedCreds := credentials.NewChainCredentials(
-		[]credentials.Provider{
-			&credentials.EnvAWS{},
-			&credentials.IAM{},
-		},
-	)
-
-	minioOpts := &minio.Options{
-		Creds:     chainedCreds,
+	return &minio.Options{
+		Creds:     opts.getCredentials(),
 		Region:    opts.Region,
 		Secure:    opts.TLS,
 		Transport: transport,
-	}
-	return minioOpts, nil
+	}, nil
 }
 
 func getTransport(opts *MinioOpts) (*http.Transport, error) {
