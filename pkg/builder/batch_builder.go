@@ -406,6 +406,7 @@ type RestoreOpts struct {
 	MariaDBLabels      *bool
 	Affinity           *bool
 	NodeSelector       map[string]string
+	LogLevel           string
 }
 
 type RestoreOpt func(*RestoreOpts) error
@@ -423,6 +424,7 @@ func WithBootstrapFrom(bootstrapFrom *mariadbv1alpha1.BootstrapFrom) RestoreOpt 
 		opts.Volume = bootstrapFrom.Volume
 		opts.S3 = bootstrapFrom.S3
 		opts.RestoreJob = bootstrapFrom.RestoreJob
+		opts.LogLevel = bootstrapFrom.LogLevel
 		return nil
 	}
 }
@@ -493,6 +495,7 @@ func (b *Builder) BuildPhysicalBackupRestoreJob(key types.NamespacedName, mariad
 		podMetaBuilder = podMetaBuilder.WithLabels(selectorLabels)
 	}
 	podMeta := podMetaBuilder.Build()
+	restoreJob := ptr.Deref(opts.RestoreJob, mariadbv1alpha1.Job{})
 
 	cmdOpts := []command.BackupOpt{
 		command.WithPath(
@@ -501,8 +504,13 @@ func (b *Builder) BuildPhysicalBackupRestoreJob(key types.NamespacedName, mariad
 		),
 		command.WithTargetTime(*opts.TargetRecoveryTime),
 		command.WithOmitCredentials(true),
+		command.WithExtraOpts(restoreJob.Args),
 	}
 	cmdOpts = append(cmdOpts, s3Opts(opts.S3)...)
+
+	if opts.LogLevel != "" {
+		cmdOpts = append(cmdOpts, command.WithLogLevel(opts.LogLevel))
+	}
 
 	cmd, err := command.NewBackupCommand(cmdOpts...)
 	if err != nil {
@@ -514,7 +522,6 @@ func (b *Builder) BuildPhysicalBackupRestoreJob(key types.NamespacedName, mariad
 	}
 
 	volumes, volumeMounts := jobPhysicalBackupVolumes(*opts.Volume, opts.S3, mariadb, podIndex)
-	restoreJob := ptr.Deref(opts.RestoreJob, mariadbv1alpha1.Job{})
 
 	operatorContainer, err := b.jobMariadbOperatorContainer(
 		cmd.MariadbOperatorRestore(mariadbv1alpha1.BackupContentTypePhysical, &batchPhysicalBackupDirFullPath),
@@ -626,10 +633,14 @@ func (b *Builder) BuildPITRJob(key types.NamespacedName, pitr *mariadbv1alpha1.P
 		command.WithCompression(pitr.Spec.Compression),
 		command.WithUserEnv(batchUserEnv),
 		command.WithPasswordEnv(batchPasswordEnv),
-		command.WithLogLevel(pitr.Spec.LogLevel),
 		command.WithExtraOpts(restoreJob.Args),
 	}
 	cmdOpts = append(cmdOpts, s3Opts(&pitr.Spec.S3)...)
+
+	if opts.LogLevel != "" {
+		cmdOpts = append(cmdOpts, command.WithLogLevel(opts.LogLevel))
+	}
+
 	cmd, err := command.NewBackupCommand(cmdOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("error building backup command: %v", err)
