@@ -47,16 +47,27 @@ func (r *MariaDBReconciler) reconcileInit(ctx context.Context, mariadb *mariadbv
 
 func (r *MariaDBReconciler) reconcilePointInTimeRecoveryInit(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 	logger logr.Logger) (ctrl.Result, error) {
-	pitr, err := r.RefResolver.PointInTimeRecovery(ctx, mariadb.Spec.PointInTimeRecoveryRef, mariadb.Namespace)
+	pitr, err := r.RefResolver.PointInTimeRecovery(ctx, mariadb.Spec.BootstrapFrom.PointInTimeRecoveryRef, mariadb.Namespace)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error getting PointInTimeRecovery: %v", err)
 	}
-	bootstrapFrom := &mariadbv1alpha1.BootstrapFrom{
-		BackupRef: &mariadbv1alpha1.TypedLocalObjectReference{
-			Name: pitr.Spec.PhysicalBackupRef.Name,
-			Kind: mariadbv1alpha1.PhysicalBackupKind,
-		},
+	pb, err := r.RefResolver.PhysicalBackup(ctx, &pitr.Spec.PhysicalBackupRef, pitr.Namespace)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error getting PhysicalBackup: %v", err)
 	}
+
+	bootstrapFrom := mariadb.Spec.BootstrapFrom.DeepCopy()
+	bootstrapFrom.PointInTimeRecoveryRef = nil
+	bootstrapFrom.BackupRef = &mariadbv1alpha1.TypedLocalObjectReference{
+		Name: pb.Name,
+		Kind: mariadbv1alpha1.PhysicalBackupKind,
+	}
+	bootstrapFrom.BackupContentType = mariadbv1alpha1.BackupContentTypePhysical
+	bootstrapFrom.SetDefaults(mariadb)
+	if err := bootstrapFrom.SetDefaultsWithPhysicalBackup(pb); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error defaulting bootstrapFrom: %v", err)
+	}
+
 	return r.reconcilePhysicalBackupInit(ctx, mariadb, bootstrapFrom, logger)
 }
 
@@ -102,7 +113,7 @@ func (r *MariaDBReconciler) reconcilePhysicalBackupInit(ctx context.Context, mar
 			mariadb,
 			fromIndex,
 			logger.WithName("job"),
-			builder.WithBootstrapFrom(mariadb.Spec.BootstrapFrom),
+			builder.WithBootstrapFrom(&bootstrapFrom),
 		); !result.IsZero() || err != nil {
 			return result, err
 		}

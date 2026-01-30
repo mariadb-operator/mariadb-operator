@@ -315,6 +315,19 @@ spec:
                         description: Name of the referent.
                         type: string
                     type: object
+                  logLevel:
+                    default: info
+                    description: LogLevel to be used in the restoration Job. It defaults
+                      to 'info'.
+                    enum:
+                    - debug
+                    - info
+                    - warn
+                    - error
+                    - dpanic
+                    - panic
+                    - fatal
+                    type: string
                   pointInTimeRecoveryRef:
                     description: |-
                       PointInTimeRecoveryRef is a reference to a PointInTimeRecovery object.
@@ -327,7 +340,7 @@ spec:
                     type: object
                   restoreJob:
                     description: RestoreJob defines additional properties for the
-                      Job used to perform the restoration.
+                      restoration Job.
                     properties:
                       affinity:
                         description: Affinity to be used in the Pod.
