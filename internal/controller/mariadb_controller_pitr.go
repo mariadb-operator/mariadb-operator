@@ -19,6 +19,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/minio"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/replication"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/sql"
+	"github.com/minio/minio-go/v7/pkg/credentials"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -136,8 +137,23 @@ func (r *MariaDBReconciler) getStartGtid(ctx context.Context, mdb *mariadbv1alph
 
 func (r *MariaDBReconciler) reconcileReplayBinlogsError(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, startGtid *replication.Gtid,
 	logger logr.Logger) (ctrl.Result, error) {
+	pitr, err := r.RefResolver.PointInTimeRecovery(ctx, mariadb.Spec.BootstrapFrom.PointInTimeRecoveryRef, mariadb.Namespace)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error getting PointInTimeRecoveryRef: %v", err)
+	}
+	s3Client, err := r.getS3Client(ctx, pitr)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error getting S3 client: %v", err)
+	}
+	val, err := s3Client.GetCredentials().GetWithContext(nil)
+	// S3 credentials are not static or AWS env variables are not set in the operator Pod.
+	if err != nil || val == (credentials.Value{}) {
+		logger.Info("Object storage credentials not found. Skipping binlog path validation...", "err", err)
+		return ctrl.Result{}, nil
+	}
+
 	logger.Info("Validating binlog path")
-	if err := r.validateBinlogPath(ctx, mariadb, startGtid, logger); err != nil {
+	if err := r.validateBinlogPath(ctx, mariadb, startGtid, s3Client, logger); err != nil {
 		errMsg := fmt.Sprintf("Invalid binary log path: %v", err)
 		r.Recorder.Event(mariadb, corev1.EventTypeWarning, mariadbv1alpha1.ReasonMariaDBInvalidBinlogPath, errMsg)
 
@@ -155,16 +171,7 @@ func (r *MariaDBReconciler) reconcileReplayBinlogsError(ctx context.Context, mar
 }
 
 func (r *MariaDBReconciler) validateBinlogPath(ctx context.Context, mdb *mariadbv1alpha1.MariaDB, startGtid *replication.Gtid,
-	logger logr.Logger) error {
-	pitr, err := r.RefResolver.PointInTimeRecovery(ctx, mdb.Spec.BootstrapFrom.PointInTimeRecoveryRef, mdb.Namespace)
-	if err != nil {
-		return fmt.Errorf("error getting PointInTimeRecoveryRef: %v", err)
-	}
-	s3Client, err := r.getS3Client(ctx, pitr)
-	if err != nil {
-		return fmt.Errorf("error getting S3 client: %v", err)
-	}
-
+	s3Client *minio.Client, logger logr.Logger) error {
 	indexReader, err := s3Client.GetObjectWithOptions(ctx, binlog.BinlogIndexName)
 	if err != nil {
 		return fmt.Errorf("error getting binlog index: %v", err)
@@ -180,7 +187,7 @@ func (r *MariaDBReconciler) validateBinlogPath(ctx context.Context, mdb *mariadb
 	}
 
 	targetTime := mdb.Spec.BootstrapFrom.TargetRecoveryTimeOrDefault()
-	_, err = index.BinlogPath(startGtid, targetTime, logger)
+	binlogMetas, err := index.BinlogPath(startGtid, targetTime, logger)
 	if err != nil {
 		return fmt.Errorf(
 			"error getting binlog path between GTID %s and target time %s: %v",
@@ -189,6 +196,12 @@ func (r *MariaDBReconciler) validateBinlogPath(ctx context.Context, mdb *mariadb
 			err,
 		)
 	}
+	binlogPath := make([]string, len(binlogMetas))
+	for i, meta := range binlogMetas {
+		binlogPath[i] = meta.BinlogFilename
+	}
+	logger.Info("Got binlog path", "path", binlogPath)
+
 	return nil
 }
 
@@ -234,7 +247,7 @@ func (r *MariaDBReconciler) reconcileAndWaitForPITRJob(ctx context.Context, mdb 
 }
 
 func (r *MariaDBReconciler) createPITRJob(ctx context.Context, mdb *mariadbv1alpha1.MariaDB, startGtid *replication.Gtid) error {
-	pitr, err := r.RefResolver.PointInTimeRecovery(ctx, mdb.Spec.PointInTimeRecoveryRef, mdb.Namespace)
+	pitr, err := r.RefResolver.PointInTimeRecovery(ctx, mdb.Spec.BootstrapFrom.PointInTimeRecoveryRef, mdb.Namespace)
 	if err != nil {
 		return fmt.Errorf("error getting PointInTimeRecovery: %v", err)
 	}
@@ -256,6 +269,32 @@ func (r *MariaDBReconciler) getS3Client(ctx context.Context, pitr *mariadbv1alph
 	minioOpts := []minio.MinioOpt{
 		minio.WithRegion(s3.Region),
 		minio.WithPrefix(s3.Prefix),
+	}
+
+	if s3.AccessKeyIdSecretKeyRef != nil && s3.SecretAccessKeySecretKeyRef != nil {
+		accessKeyId, err := r.RefResolver.SecretKeyRef(ctx, *s3.AccessKeyIdSecretKeyRef, pitr.Namespace)
+		if err != nil {
+			return nil, fmt.Errorf("error getting S3 access key ID: %v", err)
+		}
+		secretAccessKey, err := r.RefResolver.SecretKeyRef(ctx, *s3.SecretAccessKeySecretKeyRef, pitr.Namespace)
+		if err != nil {
+			return nil, fmt.Errorf("error getting S3 access key ID: %v", err)
+		}
+		var sessionToken string
+		if s3.SessionTokenSecretKeyRef != nil {
+			sessionToken, err = r.RefResolver.SecretKeyRef(ctx, *s3.SessionTokenSecretKeyRef, pitr.Namespace)
+			if err != nil {
+				return nil, fmt.Errorf("error getting S3 session token: %v", err)
+			}
+		}
+		minioOpts = append(minioOpts, minio.WithCredsProviders(&credentials.Static{
+			Value: credentials.Value{
+				AccessKeyID:     accessKeyId,
+				SecretAccessKey: secretAccessKey,
+				SessionToken:    sessionToken,
+				SignerType:      credentials.SignatureDefault,
+			},
+		}))
 	}
 
 	tls := ptr.Deref(s3.TLS, mariadbv1alpha1.TLSS3{})

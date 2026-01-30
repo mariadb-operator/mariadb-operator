@@ -35,6 +35,7 @@ var (
 	startGtidRaw  string
 	targetTimeRaw string
 
+	s3           bool
 	s3Bucket     string
 	s3Endpoint   string
 	s3Region     string
@@ -60,6 +61,7 @@ func init() {
 	RootCmd.Flags().StringVar(&targetTimeRaw, "target-time", "",
 		"RFC3339 (1970-01-01T00:00:00Z) date and time that defines the recovery point-in-time.")
 
+	RootCmd.Flags().BoolVar(&s3, "s3", false, "Enable S3 binlog storage.")
 	RootCmd.Flags().StringVar(&s3Bucket, "s3-bucket", "binlogs", "Name of the bucket to store binary logs.")
 	RootCmd.Flags().StringVar(&s3Prefix, "s3-prefix", "", "S3 bucket prefix name to use.")
 	RootCmd.Flags().StringVar(&s3Endpoint, "s3-endpoint", "s3.amazonaws.com", "S3 API endpoint without scheme.")
