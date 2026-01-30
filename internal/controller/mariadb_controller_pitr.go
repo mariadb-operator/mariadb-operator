@@ -100,7 +100,7 @@ func (r *MariaDBReconciler) getStartGtid(ctx context.Context, mdb *mariadbv1alph
 		if mdb.Status.CurrentPrimaryPodIndex == nil {
 			return nil, errors.New("status.currentPrimaryPodIndex must be set")
 		}
-		agentClient, err := agentclient.NewClientWithMariaDB(mdb, *mdb.Status.CurrentPrimaryPodIndex)
+		agentClient, err := agentclient.NewClientWithMariaDB(ctx, mdb, r.Environment, r.RefResolver, *mdb.Status.CurrentPrimaryPodIndex)
 		if err != nil {
 			return nil, fmt.Errorf("error getting agent client: %v", err)
 		}
