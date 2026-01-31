@@ -292,5 +292,9 @@ func pullBinlog(ctx context.Context, binlog string, calgs []mariadbv1alpha1.Comp
 }
 
 func writeTargetFile(binlogPath []string) error {
-	return os.WriteFile(targetFilePath, []byte(strings.Join(binlogPath, " ")), 0777)
+	targetBinlogsWithLocalPath := make([]string, len(binlogPath))
+	for i, binlog := range binlogPath {
+		targetBinlogsWithLocalPath[i] = filepath.Join(path, binlog)
+	}
+	return os.WriteFile(targetFilePath, []byte(strings.Join(targetBinlogsWithLocalPath, " ")), 0777)
 }

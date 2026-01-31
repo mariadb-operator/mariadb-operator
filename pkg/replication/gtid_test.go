@@ -191,9 +191,11 @@ func TestParseGtid(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unexpected error for input %q: %v", tc.input, err)
 			}
+			//nolint:staticcheck
 			if got == nil {
 				t.Fatalf("expected non-nil result for input %q", tc.input)
 			}
+			//nolint:staticcheck
 			if got.DomainID != tc.wantGtid.DomainID || got.ServerID != tc.wantGtid.ServerID || got.SequenceID != tc.wantGtid.SequenceID {
 				t.Fatalf("parse mismatch for input %q: got %+v, want %+v", tc.input, got, tc.wantGtid)
 			}

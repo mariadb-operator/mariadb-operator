@@ -66,6 +66,7 @@ func (r *MariaDBReconciler) reconcilePITR(ctx context.Context, mdb *mariadbv1alp
 	}
 
 	// TODO: restore gtid_strict_mode if needed
+	// TODO: cleanup PITR job
 
 	logger.Info("Binlogs replayed")
 	if err := r.patchStatus(ctx, mdb, func(status *mariadbv1alpha1.MariaDBStatus) error {
@@ -95,6 +96,7 @@ func (r *MariaDBReconciler) getStartGtid(ctx context.Context, mdb *mariadbv1alph
 		if !ok {
 			return nil, fmt.Errorf("annotation %s not found in VolumeSnapshot %s", metadata.GtidAnnotation, snapshot.Name)
 		}
+		// TODO: reduce verbosity
 		logger.Info("Got GTID from VolumeSnapshot", "gtid", snapGtid, "snapshot", snapshot.Name)
 		rawGtid = snapGtid
 	} else {
@@ -111,6 +113,7 @@ func (r *MariaDBReconciler) getStartGtid(ctx context.Context, mdb *mariadbv1alph
 		if err != nil {
 			return nil, fmt.Errorf("error getting GTID from agent: %v", err)
 		}
+		// TODO: reduce verbosity
 		logger.Info("Got GTID from agent", "gtid", agentGtid)
 		rawGtid = agentGtid
 	}
@@ -198,7 +201,7 @@ func (r *MariaDBReconciler) validateBinlogPath(ctx context.Context, mdb *mariadb
 	}
 	binlogPath := make([]string, len(binlogMetas))
 	for i, meta := range binlogMetas {
-		binlogPath[i] = meta.BinlogFilename
+		binlogPath[i] = meta.ObjectStoragePath()
 	}
 	logger.Info("Got binlog path", "path", binlogPath)
 
