@@ -6,10 +6,12 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
 	labels "github.com/mariadb-operator/mariadb-operator/v25/pkg/builder/labels"
 	galeraresources "github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/galera/resources"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/replication"
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -3299,6 +3301,231 @@ func TestSqlJobMeta(t *testing.T) {
 	}
 }
 
+func TestBuildPITRJob(t *testing.T) {
+	t.Parallel()
+	pitr := &mariadbv1alpha1.PointInTimeRecovery{
+		Spec: mariadbv1alpha1.PointInTimeRecoverySpec{
+			PhysicalBackupRef: mariadbv1alpha1.LocalObjectReference{
+				Name: "test",
+			},
+			S3: mariadbv1alpha1.S3{
+				Bucket:   "test-bucket",
+				Endpoint: "s3.amazonaws.com",
+				Region:   "us-west-2",
+				Prefix:   "test",
+			},
+		},
+	}
+	startGtid := mustParseGtid(t, "0-10-1")
+	targetRecoveryTime := &metav1.Time{Time: time.Now()}
+
+	tests := []struct {
+		name         string
+		pitr         *mariadbv1alpha1.PointInTimeRecovery
+		mariadb      *mariadbv1alpha1.MariaDB
+		restoreOpts  []RestoreOpt
+		wantErr      bool
+		wantJob      bool
+		wantJobMeta  *mariadbv1alpha1.Metadata
+		wantPodMeta  *mariadbv1alpha1.Metadata
+		wantAffinity bool
+	}{
+		{
+			name:    "PITR job missing startGtid",
+			pitr:    pitr,
+			mariadb: &mariadbv1alpha1.MariaDB{},
+			restoreOpts: []RestoreOpt{
+				WithBootstrapFrom(&mariadbv1alpha1.BootstrapFrom{
+					TargetRecoveryTime: targetRecoveryTime,
+					Volume: &mariadbv1alpha1.StorageVolumeSource{
+						EmptyDir: &mariadbv1alpha1.EmptyDirVolumeSource{},
+					},
+				}),
+			},
+			wantErr: true,
+			wantJob: false,
+		},
+		{
+			name:    "PITR job missing targetRecoveryTime",
+			pitr:    pitr,
+			mariadb: &mariadbv1alpha1.MariaDB{},
+			restoreOpts: []RestoreOpt{
+				WithStartGtid(mustParseGtid(t, "0-10-1")),
+			},
+			wantErr: true,
+			wantJob: false,
+		},
+		{
+			name:    "PITR job missing volume",
+			pitr:    pitr,
+			mariadb: &mariadbv1alpha1.MariaDB{},
+			restoreOpts: []RestoreOpt{
+				WithStartGtid(mustParseGtid(t, "0-10-1")),
+				WithBootstrapFrom(&mariadbv1alpha1.BootstrapFrom{
+					TargetRecoveryTime: &metav1.Time{Time: time.Now()},
+				}),
+			},
+			wantErr: true,
+			wantJob: false,
+		},
+		{
+			name:    "PITR job missing volume",
+			pitr:    pitr,
+			mariadb: &mariadbv1alpha1.MariaDB{},
+			restoreOpts: []RestoreOpt{
+				WithStartGtid(mustParseGtid(t, "0-10-1")),
+				WithBootstrapFrom(&mariadbv1alpha1.BootstrapFrom{
+					TargetRecoveryTime: &metav1.Time{Time: time.Now()},
+				}),
+			},
+			wantErr: true,
+			wantJob: false,
+		},
+		{
+			name:    "Valid PITR job ",
+			pitr:    pitr,
+			mariadb: &mariadbv1alpha1.MariaDB{},
+			restoreOpts: []RestoreOpt{
+				WithStartGtid(startGtid),
+				WithBootstrapFrom(&mariadbv1alpha1.BootstrapFrom{
+					TargetRecoveryTime: targetRecoveryTime,
+					Volume: &mariadbv1alpha1.StorageVolumeSource{
+						EmptyDir: &mariadbv1alpha1.EmptyDirVolumeSource{},
+					},
+				}),
+			},
+			wantErr: false,
+			wantJob: true,
+		},
+		{
+			name: "Valid PITR job with meta",
+			pitr: pitr,
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					InheritMetadata: &mariadbv1alpha1.Metadata{
+						Annotations: map[string]string{
+							"database.myorg.io": "test",
+						},
+					},
+					PodTemplate: mariadbv1alpha1.PodTemplate{
+						PodMetadata: &mariadbv1alpha1.Metadata{
+							Annotations: map[string]string{
+								"pod.myorg.io": "test",
+							},
+						},
+					},
+				},
+			},
+			restoreOpts: []RestoreOpt{
+				WithStartGtid(startGtid),
+				WithBootstrapFrom(&mariadbv1alpha1.BootstrapFrom{
+					TargetRecoveryTime: targetRecoveryTime,
+					Volume: &mariadbv1alpha1.StorageVolumeSource{
+						EmptyDir: &mariadbv1alpha1.EmptyDirVolumeSource{},
+					},
+					RestoreJob: &mariadbv1alpha1.Job{
+						Metadata: &mariadbv1alpha1.Metadata{
+							Annotations: map[string]string{
+								"job.myorg.io": "test",
+							},
+						},
+					},
+				}),
+			},
+			wantErr: false,
+			wantJob: true,
+			wantJobMeta: &mariadbv1alpha1.Metadata{
+				Annotations: map[string]string{
+					"database.myorg.io": "test",
+					"job.myorg.io":      "test",
+				},
+			},
+			wantPodMeta: &mariadbv1alpha1.Metadata{
+				Annotations: map[string]string{
+					"database.myorg.io": "test",
+					"pod.myorg.io":      "test",
+				},
+			},
+		},
+		{
+			name:    "Valid PITR job with affinity",
+			pitr:    pitr,
+			mariadb: &mariadbv1alpha1.MariaDB{},
+			restoreOpts: []RestoreOpt{
+				WithStartGtid(startGtid),
+				WithBootstrapFrom(&mariadbv1alpha1.BootstrapFrom{
+					TargetRecoveryTime: targetRecoveryTime,
+					Volume: &mariadbv1alpha1.StorageVolumeSource{
+						EmptyDir: &mariadbv1alpha1.EmptyDirVolumeSource{},
+					},
+					RestoreJob: &mariadbv1alpha1.Job{
+						Affinity: &mariadbv1alpha1.AffinityConfig{
+							Affinity: mariadbv1alpha1.Affinity{
+								NodeAffinity: &mariadbv1alpha1.NodeAffinity{
+									RequiredDuringSchedulingIgnoredDuringExecution: &mariadbv1alpha1.NodeSelector{
+										NodeSelectorTerms: []mariadbv1alpha1.NodeSelectorTerm{
+											{
+												MatchExpressions: []mariadbv1alpha1.NodeSelectorRequirement{
+													{
+														Key:      "kubernetes.io/hostname",
+														Operator: corev1.NodeSelectorOpIn,
+														Values:   []string{"node1", "node2"},
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				}),
+			},
+			wantErr:      false,
+			wantJob:      true,
+			wantAffinity: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			b := newDefaultTestBuilder(t)
+			key := types.NamespacedName{
+				Name:      "test-pitr-job",
+				Namespace: "test",
+			}
+
+			job, err := b.BuildPITRJob(key, tt.pitr, tt.mariadb, tt.restoreOpts...)
+			if tt.wantErr {
+				assert.Error(t, err)
+				assert.Nil(t, job)
+				return
+			}
+			assert.NoError(t, err)
+			assert.NotNil(t, job)
+
+			assert.Equal(t, key.Name, job.Name)
+			assert.Equal(t, key.Namespace, job.Namespace)
+
+			assert.Equal(t, corev1.RestartPolicyOnFailure, job.Spec.Template.Spec.RestartPolicy)
+			assert.NotEmpty(t, job.Spec.Template.Spec.Containers)
+			assert.NotEmpty(t, job.Spec.Template.Spec.InitContainers)
+
+			if tt.wantJobMeta != nil {
+				assertObjectMeta(t, &job.ObjectMeta, tt.wantJobMeta.Labels, tt.wantJobMeta.Annotations)
+			}
+			if tt.wantPodMeta != nil {
+				assertObjectMeta(t, &job.Spec.Template.ObjectMeta, tt.wantPodMeta.Labels, tt.wantPodMeta.Annotations)
+			}
+			if tt.wantAffinity {
+				assert.NotNil(t, job.Spec.Template.Spec.Affinity)
+			} else {
+				assert.Nil(t, job.Spec.Template.Spec.Affinity)
+			}
+		})
+	}
+}
+
 func hasVolumePVC(volumes []corev1.Volume, volumeName string) bool {
 	for _, v := range volumes {
 		if v.PersistentVolumeClaim != nil && v.Name == volumeName {
@@ -3315,4 +3542,12 @@ func getVolumeSource(name string, job *v1.Job) *corev1.VolumeSource {
 		}
 	}
 	return nil
+}
+
+func mustParseGtid(t *testing.T, rawGtid string) *replication.Gtid {
+	gtid, err := replication.ParseGtid(rawGtid)
+	if err != nil {
+		t.Fatalf("unexpected error parsing GTID: %v", err)
+	}
+	return gtid
 }

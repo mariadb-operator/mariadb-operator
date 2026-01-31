@@ -1,0 +1,59 @@
+apiVersion: v1
+binlogs:
+  server-10:
+  - serverId: 10
+    serverVersion: 11.8.5-MariaDB-ubu2404-log
+    binlogVersion: 4
+    binlogFilename: mariadb-repl-bin.000001
+    logPosition: 358
+    firstTime: "2026-01-09T11:36:11Z"
+    lastTime: "2026-01-09T11:36:13Z"
+    rotateEvent: false
+    stopEvent: true
+  - serverId: 10
+    serverVersion: 11.8.5-MariaDB-ubu2404-log
+    binlogVersion: 4
+    binlogFilename: mariadb-repl-bin.000002
+    logPosition: 1590
+    firstTime: "2026-01-09T11:36:13Z"
+    lastTime: "2026-01-09T11:37:14Z"
+    firstGtid: 0-10-1
+    lastGtid: 0-10-7
+    rotateEvent: true
+    stopEvent: false
+  - serverId: 10
+    serverVersion: 11.8.5-MariaDB-ubu2404-log
+    binlogVersion: 4
+    binlogFilename: mariadb-repl-bin.000003
+    logPosition: 422
+    firstTime: "2026-01-09T11:37:14Z"
+    lastTime: "2026-01-09T11:37:18Z"
+    previousGtids:
+    - 0-10-7
+    rotateEvent: false
+    stopEvent: true
+  - serverId: 10
+    serverVersion: 11.8.5-MariaDB-ubu2404-log
+    binlogVersion: 4
+    binlogFilename: mariadb-repl-bin.000004
+    logPosition: 887
+    firstTime: "2026-01-09T11:37:20Z"
+    lastTime: "2026-01-09T11:38:24Z"
+    previousGtids:
+    - 0-10-7
+    firstGtid: 0-10-11
+    lastGtid: 0-10-13
+    rotateEvent: true
+    stopEvent: false
+  server-11:
+  - serverId: 11
+    serverVersion: 11.8.5-MariaDB-ubu2404-log
+    binlogVersion: 4
+    binlogFilename: mariadb-repl-bin.000001
+    logPosition: 873
+    firstTime: "2026-01-09T11:36:26Z"
+    lastTime: "2026-01-09T11:37:46Z"
+    firstGtid: 0-11-8
+    lastGtid: 0-11-10
+    rotateEvent: true
+    stopEvent: false

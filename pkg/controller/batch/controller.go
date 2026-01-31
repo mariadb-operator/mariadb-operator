@@ -58,9 +58,9 @@ func (r *BatchReconciler) reconcileStorage(ctx context.Context, parentObj client
 			}
 		}
 
-		stagingStorage := ptr.Deref(backup.Spec.StagingStorage, mariadbv1alpha1.BackupStagingStorage{})
+		stagingStorage := ptr.Deref(backup.Spec.StagingStorage, mariadbv1alpha1.StagingStorage{})
 		if stagingStorage.PersistentVolumeClaim != nil {
-			pvc, err := r.builder.BuildBackupStagingPVC(
+			pvc, err := r.builder.BuildStagingPVC(
 				backup.StagingPVCKey(),
 				stagingStorage.PersistentVolumeClaim,
 				backup.Spec.InheritMetadata,
@@ -77,9 +77,9 @@ func (r *BatchReconciler) reconcileStorage(ctx context.Context, parentObj client
 	}
 
 	if restore, ok := parentObj.(*mariadbv1alpha1.Restore); ok {
-		stagingStorage := ptr.Deref(restore.Spec.StagingStorage, mariadbv1alpha1.BackupStagingStorage{})
+		stagingStorage := ptr.Deref(restore.Spec.StagingStorage, mariadbv1alpha1.StagingStorage{})
 		if stagingStorage.PersistentVolumeClaim != nil {
-			pvc, err := r.builder.BuildBackupStagingPVC(
+			pvc, err := r.builder.BuildStagingPVC(
 				restore.StagingPVCKey(),
 				stagingStorage.PersistentVolumeClaim,
 				restore.Spec.InheritMetadata,

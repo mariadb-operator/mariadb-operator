@@ -256,9 +256,9 @@ func (r *PhysicalBackupReconciler) reconcileStorage(ctx context.Context, backup 
 		}
 	}
 
-	stagingStorage := ptr.Deref(backup.Spec.StagingStorage, mariadbv1alpha1.BackupStagingStorage{})
+	stagingStorage := ptr.Deref(backup.Spec.StagingStorage, mariadbv1alpha1.StagingStorage{})
 	if stagingStorage.PersistentVolumeClaim != nil {
-		pvc, err := r.Builder.BuildBackupStagingPVC(
+		pvc, err := r.Builder.BuildStagingPVC(
 			backup.StagingPVCKey(),
 			stagingStorage.PersistentVolumeClaim,
 			backup.Spec.InheritMetadata,

@@ -36,7 +36,7 @@ type BackupSpec struct {
 	// The staging area gets cleaned up after each backup is completed, consider this for sizing it appropriately.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch","urn:alm:descriptor:com.tectonic.ui:advanced"}
-	StagingStorage *BackupStagingStorage `json:"stagingStorage,omitempty" webhook:"inmutable"`
+	StagingStorage *StagingStorage `json:"stagingStorage,omitempty" webhook:"inmutable"`
 	// Storage defines the final storage for backups.
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -169,7 +169,7 @@ func (b *Backup) SetExternalDefaults(mariadb *ExternalMariaDB) {
 
 func (b *Backup) Volume() (StorageVolumeSource, error) {
 	if b.Spec.Storage.S3 != nil {
-		stagingStorage := ptr.Deref(b.Spec.StagingStorage, BackupStagingStorage{})
+		stagingStorage := ptr.Deref(b.Spec.StagingStorage, StagingStorage{})
 		return stagingStorage.VolumeOrEmptyDir(b.StagingPVCKey()), nil
 	}
 	if b.Spec.Storage.PersistentVolumeClaim != nil {

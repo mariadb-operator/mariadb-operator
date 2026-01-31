@@ -101,7 +101,7 @@ var RootCmd = &cobra.Command{
 			logger.Error(err, "error getting backup storage")
 			os.Exit(1)
 		}
-		backupCompressor, err := getCompressor(backupProcessor)
+		backupCompressor, err := getBackupCompressor(backupProcessor)
 		if err != nil {
 			logger.Error(err, "error getting backup compressor")
 			os.Exit(1)
@@ -201,12 +201,12 @@ func getBackupStorage(processor backup.BackupProcessor) (backup.BackupStorage, e
 	return backup.NewFileSystemBackupStorage(path, processor, logger.WithName("file-system-storage")), nil
 }
 
-func getCompressor(processor backup.BackupProcessor) (mdbcompression.Compressor, error) {
+func getBackupCompressor(processor backup.BackupProcessor) (mdbcompression.BackupCompressor, error) {
 	calg := mariadbv1alpha1.CompressAlgorithm(compression)
 	if err := calg.Validate(); err != nil {
 		return nil, fmt.Errorf("compression algorithm not supported: %v", err)
 	}
-	return mdbcompression.NewCompressor(calg, path, processor.GetUncompressedBackupFile, logger)
+	return mdbcompression.NewBackupCompressor(calg, path, processor.GetUncompressedBackupFile, logger)
 }
 
 func readTargetFile() (string, error) {

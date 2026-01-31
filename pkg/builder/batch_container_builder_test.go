@@ -36,9 +36,6 @@ func TestJobContainerSecurityContext(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error building container: %v", err)
 	}
-	if err != nil {
-		t.Fatalf("unexpected error building container: %v", err)
-	}
 	if container.SecurityContext == nil {
 		t.Error("expected SecurityContext not to be nil")
 	}

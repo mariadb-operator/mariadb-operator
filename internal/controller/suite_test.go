@@ -37,6 +37,7 @@ import (
 	. "github.com/onsi/gomega"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"go.uber.org/zap/zapcore"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/utils/ptr"
@@ -52,10 +53,12 @@ import (
 
 var (
 	testCtx                    = context.Background()
+	testLogger                 logr.Logger
 	k8sClient                  client.Client
 	testCidrPrefix             string
 	testEmulateExternalMdbHost string = "mdb-emulate-external-test.default.svc.cluster.local"
-	testLogger                 logr.Logger
+	// This is to make sure that backups taken during the tests are matched
+	testTargetRecoveryTime = &metav1.Time{Time: time.Now().Add(100 * time.Hour)}
 )
 
 func TestAPIs(t *testing.T) {

@@ -15,6 +15,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/interfaces"
 	kadapter "github.com/mariadb-operator/mariadb-operator/v25/pkg/kubernetes/adapter"
 	mdbmetadata "github.com/mariadb-operator/mariadb-operator/v25/pkg/metadata"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/replication"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/statefulset"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -26,6 +27,8 @@ import (
 const (
 	batchStorageVolume    = "backup"
 	batchStorageMountPath = "/backup"
+	batchBinlogsVolume    = "binlogs"
+	batchBinlogsMountPath = "/binlogs"
 	batchScriptsVolume    = "scripts"
 	batchScriptsMountPath = "/opt"
 	batchScriptsSqlFile   = "job.sql"
@@ -37,6 +40,7 @@ const (
 var (
 	batchBackupTargetFilePath      = filepath.Join(batchStorageMountPath, "0-backup-target.txt")
 	batchPhysicalBackupDirFullPath = filepath.Join(batchStorageMountPath, batchBackupDirFull)
+	batchBinlogsTargetFilePath     = filepath.Join(batchBinlogsMountPath, "0-binlog-target.txt")
 )
 
 func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alpha1.Backup,
@@ -52,16 +56,16 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alph
 			Build()
 
 	cmdOpts := []command.BackupOpt{
-		command.WithBackup(
+		command.WithPath(
 			batchStorageMountPath,
 			batchBackupTargetFilePath,
 		),
 		command.WithCleanupTargetFile(backupShouldCleanupTargetFile(backup)),
-		command.WithBackupMaxRetention(backup.Spec.MaxRetention.Duration),
-		command.WithBackupCompression(backup.Spec.Compression),
-		command.WithBackupUserEnv(batchUserEnv),
-		command.WithBackupPasswordEnv(batchPasswordEnv),
-		command.WithBackupLogLevel(backup.Spec.LogLevel),
+		command.WithMaxRetention(backup.Spec.MaxRetention.Duration),
+		command.WithCompression(backup.Spec.Compression),
+		command.WithUserEnv(batchUserEnv),
+		command.WithPasswordEnv(batchPasswordEnv),
+		command.WithLogLevel(backup.Spec.LogLevel),
 		command.WithExtraOpts(backup.Spec.Args),
 	}
 	cmdOpts = append(cmdOpts, s3Opts(backup.Spec.Storage.S3)...)
@@ -162,16 +166,16 @@ func (b *Builder) BuildPhysicalBackupJob(key types.NamespacedName, backup *maria
 			Build()
 
 	cmdOpts := []command.BackupOpt{
-		command.WithBackup(
+		command.WithPath(
 			batchStorageMountPath,
 			batchBackupTargetFilePath,
 		),
 		command.WithCleanupTargetFile(physicalBackupShouldCleanupTargetFile(backup)),
-		command.WithBackupMaxRetention(backup.Spec.MaxRetention.Duration),
-		command.WithBackupCompression(backup.Spec.Compression),
-		command.WithBackupUserEnv(batchUserEnv),
-		command.WithBackupPasswordEnv(batchPasswordEnv),
-		command.WithBackupLogLevel(backup.Spec.LogLevel),
+		command.WithMaxRetention(backup.Spec.MaxRetention.Duration),
+		command.WithCompression(backup.Spec.Compression),
+		command.WithUserEnv(batchUserEnv),
+		command.WithPasswordEnv(batchPasswordEnv),
+		command.WithLogLevel(backup.Spec.LogLevel),
 		command.WithExtraOpts(backup.Spec.Args),
 	}
 	cmdOpts = append(cmdOpts, s3Opts(backup.Spec.Storage.S3)...)
@@ -308,14 +312,14 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 			Build()
 
 	cmdOpts := []command.BackupOpt{
-		command.WithBackup(
+		command.WithPath(
 			batchStorageMountPath,
 			batchBackupTargetFilePath,
 		),
-		command.WithBackupTargetTime(restore.Spec.TargetRecoveryTimeOrDefault()),
-		command.WithBackupUserEnv(batchUserEnv),
-		command.WithBackupPasswordEnv(batchPasswordEnv),
-		command.WithBackupLogLevel(restore.Spec.LogLevel),
+		command.WithTargetTime(restore.Spec.TargetRecoveryTimeOrDefault()),
+		command.WithUserEnv(batchUserEnv),
+		command.WithPasswordEnv(batchPasswordEnv),
+		command.WithLogLevel(restore.Spec.LogLevel),
 		command.WithExtraOpts(restore.Spec.Args),
 	}
 	cmdOpts = append(cmdOpts, s3Opts(restore.Spec.S3)...)
@@ -392,7 +396,8 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 	return job, nil
 }
 
-type PhysicalBackupRestoreOpts struct {
+type RestoreOpts struct {
+	StartGtid          *replication.Gtid
 	TargetRecoveryTime *time.Time
 	Volume             *mariadbv1alpha1.StorageVolumeSource
 	S3                 *mariadbv1alpha1.S3
@@ -401,23 +406,32 @@ type PhysicalBackupRestoreOpts struct {
 	MariaDBLabels      *bool
 	Affinity           *bool
 	NodeSelector       map[string]string
+	LogLevel           string
 }
 
-type PhysicalBackupRestoreOpt func(*PhysicalBackupRestoreOpts) error
+type RestoreOpt func(*RestoreOpts) error
 
-func WithBootstrapFrom(bootstrapFrom *mariadbv1alpha1.BootstrapFrom) PhysicalBackupRestoreOpt {
-	return func(opts *PhysicalBackupRestoreOpts) error {
+func WithStartGtid(gtid *replication.Gtid) RestoreOpt {
+	return func(opts *RestoreOpts) error {
+		opts.StartGtid = gtid
+		return nil
+	}
+}
+
+func WithBootstrapFrom(bootstrapFrom *mariadbv1alpha1.BootstrapFrom) RestoreOpt {
+	return func(opts *RestoreOpts) error {
 		opts.TargetRecoveryTime = ptr.To(bootstrapFrom.TargetRecoveryTimeOrDefault())
 		opts.Volume = bootstrapFrom.Volume
 		opts.S3 = bootstrapFrom.S3
 		opts.RestoreJob = bootstrapFrom.RestoreJob
+		opts.LogLevel = bootstrapFrom.LogLevel
 		return nil
 	}
 }
 
 func WithPhysicalBackup(pb *mariadbv1alpha1.PhysicalBackup, targetRecoveryTime time.Time,
-	restoreJob *mariadbv1alpha1.Job, restoreCommandOpts ...command.MariaDBBackupRestoreOpt) PhysicalBackupRestoreOpt {
-	return func(opts *PhysicalBackupRestoreOpts) error {
+	restoreJob *mariadbv1alpha1.Job, restoreCommandOpts ...command.MariaDBBackupRestoreOpt) RestoreOpt {
+	return func(opts *RestoreOpts) error {
 		volume, err := pb.Volume()
 		if err != nil {
 			return err
@@ -431,8 +445,8 @@ func WithPhysicalBackup(pb *mariadbv1alpha1.PhysicalBackup, targetRecoveryTime t
 	}
 }
 
-func WithReplicaRecovery(podToRecover *corev1.Pod) PhysicalBackupRestoreOpt {
-	return func(opts *PhysicalBackupRestoreOpts) error {
+func WithReplicaRecovery(podToRecover *corev1.Pod) RestoreOpt {
+	return func(opts *RestoreOpts) error {
 		// By default, both MariaDB Pod and the init Job will have the same labels and affinity rules.
 		// MariaDB Pod will be running, removing the labels and affinity will allow the recovery Job to be scheduled.
 		opts.MariaDBLabels = ptr.To(false)
@@ -447,8 +461,8 @@ func WithReplicaRecovery(podToRecover *corev1.Pod) PhysicalBackupRestoreOpt {
 }
 
 func (b *Builder) BuildPhysicalBackupRestoreJob(key types.NamespacedName, mariadb *mariadbv1alpha1.MariaDB,
-	podIndex *int, restoreOpts ...PhysicalBackupRestoreOpt) (*batchv1.Job, error) {
-	opts := PhysicalBackupRestoreOpts{}
+	podIndex *int, restoreOpts ...RestoreOpt) (*batchv1.Job, error) {
+	opts := RestoreOpts{}
 	for _, setOpt := range restoreOpts {
 		if err := setOpt(&opts); err != nil {
 			return nil, fmt.Errorf("error setting restore option: %v", err)
@@ -481,16 +495,22 @@ func (b *Builder) BuildPhysicalBackupRestoreJob(key types.NamespacedName, mariad
 		podMetaBuilder = podMetaBuilder.WithLabels(selectorLabels)
 	}
 	podMeta := podMetaBuilder.Build()
+	restoreJob := ptr.Deref(opts.RestoreJob, mariadbv1alpha1.Job{})
 
 	cmdOpts := []command.BackupOpt{
-		command.WithBackup(
+		command.WithPath(
 			batchStorageMountPath,
 			batchBackupTargetFilePath,
 		),
-		command.WithBackupTargetTime(*opts.TargetRecoveryTime),
+		command.WithTargetTime(*opts.TargetRecoveryTime),
 		command.WithOmitCredentials(true),
+		command.WithExtraOpts(restoreJob.Args),
 	}
 	cmdOpts = append(cmdOpts, s3Opts(opts.S3)...)
+
+	if opts.LogLevel != "" {
+		cmdOpts = append(cmdOpts, command.WithLogLevel(opts.LogLevel))
+	}
 
 	cmd, err := command.NewBackupCommand(cmdOpts...)
 	if err != nil {
@@ -502,7 +522,6 @@ func (b *Builder) BuildPhysicalBackupRestoreJob(key types.NamespacedName, mariad
 	}
 
 	volumes, volumeMounts := jobPhysicalBackupVolumes(*opts.Volume, opts.S3, mariadb, podIndex)
-	restoreJob := ptr.Deref(opts.RestoreJob, mariadbv1alpha1.Job{})
 
 	operatorContainer, err := b.jobMariadbOperatorContainer(
 		cmd.MariadbOperatorRestore(mariadbv1alpha1.BackupContentTypePhysical, &batchPhysicalBackupDirFullPath),
@@ -560,6 +579,134 @@ func (b *Builder) BuildPhysicalBackupRestoreJob(key types.NamespacedName, mariad
 					Affinity:           affinity,
 					NodeSelector:       nodeSelector,
 					Tolerations:        mariadb.Spec.Tolerations,
+					SecurityContext:    securityContext,
+					ServiceAccountName: ptr.Deref(mariadb.Spec.ServiceAccountName, "default"),
+					PriorityClassName:  ptr.Deref(mariadb.Spec.PriorityClassName, ""),
+				},
+			},
+		},
+	}
+	if err := controllerutil.SetControllerReference(mariadb, job, b.scheme); err != nil {
+		return nil, fmt.Errorf("error setting controller reference to Job: %v", err)
+	}
+	return job, nil
+}
+
+func (b *Builder) BuildPITRJob(key types.NamespacedName, pitr *mariadbv1alpha1.PointInTimeRecovery,
+	mariadb *mariadbv1alpha1.MariaDB, restoreOpts ...RestoreOpt) (*batchv1.Job, error) {
+	opts := RestoreOpts{}
+	for _, setOpt := range restoreOpts {
+		if err := setOpt(&opts); err != nil {
+			return nil, fmt.Errorf("error setting restore option: %v", err)
+		}
+	}
+	if opts.StartGtid == nil {
+		return nil, errors.New("startGtid option must be set")
+	}
+	if opts.TargetRecoveryTime == nil {
+		return nil, errors.New("targetRecoveryTime option must be set")
+	}
+	if opts.Volume == nil {
+		return nil, errors.New("volume option must be set")
+	}
+	binlogsVolumeSource := opts.Volume.ToKubernetesType()
+	restoreJob := ptr.Deref(opts.RestoreJob, mariadbv1alpha1.Job{})
+
+	jobMeta :=
+		metadata.NewMetadataBuilder(key).
+			WithMetadata(mariadb.Spec.InheritMetadata).
+			WithMetadata(restoreJob.Metadata).
+			Build()
+	podMeta :=
+		metadata.NewMetadataBuilder(key).
+			WithMetadata(mariadb.Spec.InheritMetadata).
+			WithMetadata(mariadb.Spec.PodMetadata).
+			Build()
+
+	cmdOpts := []command.BackupOpt{
+		command.WithPath(
+			batchBinlogsMountPath,
+			batchBinlogsTargetFilePath,
+		),
+		command.WithStartGtid(opts.StartGtid),
+		command.WithTargetTime(*opts.TargetRecoveryTime),
+		command.WithCompression(pitr.Spec.Compression),
+		command.WithUserEnv(batchUserEnv),
+		command.WithPasswordEnv(batchPasswordEnv),
+		command.WithExtraOpts(restoreJob.Args),
+	}
+	cmdOpts = append(cmdOpts, s3Opts(&pitr.Spec.S3)...)
+
+	if opts.LogLevel != "" {
+		cmdOpts = append(cmdOpts, command.WithLogLevel(opts.LogLevel))
+	}
+
+	cmd, err := command.NewBackupCommand(cmdOpts...)
+	if err != nil {
+		return nil, fmt.Errorf("error building backup command: %v", err)
+	}
+
+	volumes, volumeMounts := jobPITRVolumes(binlogsVolumeSource, &pitr.Spec.S3, mariadb)
+
+	opteratorPITRCmd, err := cmd.MariadbOperatorPITR()
+	if err != nil {
+		return nil, fmt.Errorf("error getting operator PITR command: %v", err)
+	}
+	mariadbBinlogCmd, err := cmd.MariadbBinlog(mariadb)
+	if err != nil {
+		return nil, fmt.Errorf("error getting mariadb-binlog command: %v", err)
+	}
+
+	operatorContainer, err := b.jobMariadbOperatorContainer(
+		opteratorPITRCmd,
+		volumeMounts,
+		s3Env(&pitr.Spec.S3),
+		jobResources(restoreJob.Resources),
+		mariadb,
+		b.env,
+		mariadb.Spec.SecurityContext,
+	)
+	if err != nil {
+		return nil, err
+	}
+	mariadbContainer, err := b.jobMariadbContainer(
+		mariadbBinlogCmd,
+		b.env,
+		volumeMounts,
+		jobEnv(mariadb),
+		jobResources(restoreJob.Resources),
+		mariadb,
+		mariadb.Spec.SecurityContext,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	var affinity *corev1.Affinity
+	if restoreJob.Affinity != nil {
+		affinity = ptr.To(restoreJob.Affinity.ToKubernetesType())
+	}
+
+	securityContext, err := b.buildPodSecurityContextWithUserGroup(mariadb.Spec.PodSecurityContext, mysqlUser, mysqlGroup)
+	if err != nil {
+		return nil, err
+	}
+
+	job := &batchv1.Job{
+		ObjectMeta: jobMeta,
+		Spec: batchv1.JobSpec{
+			BackoffLimit: ptr.To(int32(5)),
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: podMeta,
+				Spec: corev1.PodSpec{
+					RestartPolicy:      corev1.RestartPolicyOnFailure,
+					ImagePullSecrets:   kadapter.ToKubernetesSlice(mariadb.Spec.ImagePullSecrets),
+					Volumes:            volumes,
+					InitContainers:     []corev1.Container{*operatorContainer},
+					Containers:         []corev1.Container{*mariadbContainer},
+					Affinity:           affinity,
+					NodeSelector:       restoreJob.NodeSelector,
+					Tolerations:        restoreJob.Tolerations,
 					SecurityContext:    securityContext,
 					ServiceAccountName: ptr.Deref(mariadb.Spec.ServiceAccountName, "default"),
 					PriorityClassName:  ptr.Deref(mariadb.Spec.PriorityClassName, ""),

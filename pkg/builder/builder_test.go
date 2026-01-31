@@ -51,25 +51,23 @@ func newDefaultTestBuilder(t *testing.T) *Builder {
 func assertObjectMeta(t *testing.T, objMeta *metav1.ObjectMeta, wantLabels, wantAnnotations map[string]string) {
 	if objMeta == nil {
 		t.Fatal("expecting object metadata to not be nil")
-	} else {
-		if !reflect.DeepEqual(wantLabels, objMeta.Labels) {
-			t.Errorf("unexpected labels, want: %v  got: %v", wantLabels, objMeta.Labels)
-		}
-		if !reflect.DeepEqual(wantAnnotations, objMeta.Annotations) {
-			t.Errorf("unexpected annotations, want: %v  got: %v", wantAnnotations, objMeta.Annotations)
-		}
+	}
+	if wantLabels != nil && !reflect.DeepEqual(wantLabels, objMeta.Labels) {
+		t.Errorf("unexpected labels, want: %v  got: %v", wantLabels, objMeta.Labels)
+	}
+	if wantAnnotations != nil && !reflect.DeepEqual(wantAnnotations, objMeta.Annotations) {
+		t.Errorf("unexpected annotations, want: %v  got: %v", wantAnnotations, objMeta.Annotations)
 	}
 }
 
 func assertMeta(t *testing.T, meta *mariadbv1alpha1.Metadata, wantLabels, wantAnnotations map[string]string) {
 	if meta == nil {
 		t.Fatal("expecting metadata to not be nil")
-	} else {
-		if !reflect.DeepEqual(wantLabels, meta.Labels) {
-			t.Errorf("unexpected labels, want: %v  got: %v", wantLabels, meta.Labels)
-		}
-		if !reflect.DeepEqual(wantAnnotations, meta.Annotations) {
-			t.Errorf("unexpected annotations, want: %v  got: %v", wantAnnotations, meta.Annotations)
-		}
+	}
+	if wantLabels != nil && !reflect.DeepEqual(wantLabels, meta.Labels) {
+		t.Errorf("unexpected labels, want: %v  got: %v", wantLabels, meta.Labels)
+	}
+	if wantAnnotations != nil && !reflect.DeepEqual(wantAnnotations, meta.Annotations) {
+		t.Errorf("unexpected annotations, want: %v  got: %v", wantAnnotations, meta.Annotations)
 	}
 }

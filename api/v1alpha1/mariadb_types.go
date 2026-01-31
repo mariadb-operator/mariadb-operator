@@ -7,6 +7,7 @@ import (
 
 	cmmeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/environment"
+	mariadbrepl "github.com/mariadb-operator/mariadb-operator/v25/pkg/replication"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/statefulset"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -205,6 +206,12 @@ type BootstrapFrom struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	VolumeSnapshotRef *LocalObjectReference `json:"volumeSnapshotRef,omitempty" webhook:"inmutableinit"`
+	// PointInTimeRecoveryRef is a reference to a PointInTimeRecovery object.
+	// Providing this field implies restoring the PhysicalBackup referenced in the PointInTimeRecovery object and replaying the
+	// archived binary logs up to the point-in-time restoration target, defined by the targetRecoveryTime field.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	PointInTimeRecoveryRef *LocalObjectReference `json:"pointInTimeRecoveryRef,omitempty"`
 	// BackupContentType is the backup content type available in the source to bootstrap from.
 	// It is inferred based on the BackupRef and VolumeSnapshotRef fields. If inference is not possible, it defaults to Logical.
 	// Set this field explicitly when using physical backups from S3 or Volume sources.
@@ -226,19 +233,26 @@ type BootstrapFrom struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	TargetRecoveryTime *metav1.Time `json:"targetRecoveryTime,omitempty" webhook:"inmutable"`
-	// StagingStorage defines the temporary storage used to keep external backups (i.e. S3) while they are being processed.
+	// StagingStorage defines the temporary storage used to keep external backups and binary logs (i.e. S3) while they are being processed.
 	// It defaults to an emptyDir volume, meaning that the backups will be temporarily stored in the node where the Job is scheduled.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch","urn:alm:descriptor:com.tectonic.ui:advanced"}
-	StagingStorage *BackupStagingStorage `json:"stagingStorage,omitempty" webhook:"inmutable"`
-	// RestoreJob defines additional properties for the Job used to perform the restoration.
+	StagingStorage *StagingStorage `json:"stagingStorage,omitempty" webhook:"inmutable"`
+	// RestoreJob defines additional properties for the restoration Job.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	RestoreJob *Job `json:"restoreJob,omitempty"`
+	// LogLevel to be used in the restoration Job. It defaults to 'info'.
+	// +optional
+	// +kubebuilder:default=info
+	// +kubebuilder:validation:Enum=debug;info;warn;error;dpanic;panic;fatal
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	LogLevel string `json:"logLevel,omitempty"`
 }
 
 func (b *BootstrapFrom) Validate() error {
-	if b.BackupRef == nil && b.VolumeSnapshotRef == nil && b.S3 == nil && b.Volume == nil {
+	if b.BackupRef == nil && b.VolumeSnapshotRef == nil && b.PointInTimeRecoveryRef == nil &&
+		b.S3 == nil && b.Volume == nil {
 		return errors.New("unable to determine bootstrap source")
 	}
 
@@ -273,12 +287,22 @@ func (b *BootstrapFrom) Validate() error {
 		}
 	}
 
+	if b.VolumeSnapshotRef != nil && b.BackupContentType != "" && b.BackupContentType != BackupContentTypePhysical {
+		return errors.New("inconsistent 'volumeSnapshotRef' and 'backupContentType' fields. Physical type must be set in this case")
+	}
+
+	return b.validateMutuallyExclusive()
+}
+
+func (b *BootstrapFrom) validateMutuallyExclusive() error {
 	if b.VolumeSnapshotRef != nil {
-		if b.BackupContentType != "" && b.BackupContentType != BackupContentTypePhysical {
-			return errors.New("inconsistent 'volumeSnapshotRef' and 'backupContentType' fields. Physical type must be set in this case")
-		}
 		if b.S3 != nil || b.Volume != nil || b.RestoreJob != nil {
 			return errors.New("'s3', 'volume' and 'restoreJob' may not be set when 'volumeSnapshotRef' is set")
+		}
+	}
+	if b.PointInTimeRecoveryRef != nil {
+		if b.BackupRef != nil || b.VolumeSnapshotRef != nil || b.S3 != nil {
+			return errors.New("'backupRef', 'volumeSnapshotRef' and 's3' may not be set when 'pointInTimeRecoveryRef' is set")
 		}
 	}
 	return nil
@@ -289,6 +313,12 @@ func (b *BootstrapFrom) IsDefaulted() bool {
 }
 
 func (b *BootstrapFrom) SetDefaults(mariadb *MariaDB) {
+	if b.PointInTimeRecoveryRef != nil {
+		stagingStorage := ptr.Deref(b.StagingStorage, StagingStorage{})
+		b.Volume = ptr.To(stagingStorage.VolumeOrEmptyDir(mariadb.PITRStagingPVCKey()))
+		return
+	}
+
 	if b.BackupRef != nil && b.BackupContentType == "" {
 		switch b.BackupRef.Kind {
 		case BackupKind:
@@ -304,7 +334,7 @@ func (b *BootstrapFrom) SetDefaults(mariadb *MariaDB) {
 		b.BackupContentType = BackupContentTypeLogical
 	}
 	if b.BackupContentType == BackupContentTypePhysical && b.S3 != nil {
-		stagingStorage := ptr.Deref(b.StagingStorage, BackupStagingStorage{})
+		stagingStorage := ptr.Deref(b.StagingStorage, StagingStorage{})
 		b.Volume = ptr.To(stagingStorage.VolumeOrEmptyDir(mariadb.PhysicalBackupStagingPVCKey()))
 	}
 }
@@ -557,10 +587,15 @@ type MariaDBSpec struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Galera *Galera `json:"galera,omitempty"`
 	// MaxScaleRef is a reference to a MaxScale resource to be used with the current MariaDB.
-	// Providing this field implies delegating high availability tasks such as primary failover to MaxScale.
+	// Providing this reference implies delegating high availability tasks such as primary failover to MaxScale.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	MaxScaleRef *ObjectReference `json:"maxScaleRef,omitempty"`
+	// PointInTimeRecoveryRef is a reference to a PointInTimeRecovery resource to be used with the current MariaDB.
+	// Providing this reference implies configuring binary logs in the MariaDB instance and binary log archival in the sidecar agent.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	PointInTimeRecoveryRef *LocalObjectReference `json:"pointInTimeRecoveryRef,omitempty"`
 	// Replicas indicates the number of desired instances.
 	// +kubebuilder:default=1
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:podCount"}
@@ -637,6 +672,30 @@ type MariaDBTLSStatus struct {
 	ClientCert *CertificateStatus `json:"clientCert,omitempty"`
 }
 
+// PointInTimeRecoveryStatus represents the current status of the binary log archival and  point-in-time-recovery.
+type PointInTimeRecoveryStatus struct {
+	// ServerId identifies the server whose binary logs are being archived.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	ServerId uint32 `json:"serverId,omitempty"`
+	// LastArchivedBinaryLog is name of the last archived binary log.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	LastArchivedBinaryLog string `json:"lastArchivedBinaryLog"`
+	// LastArchivedTime is the time of the last archived binary log event.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	LastArchivedTime metav1.Time `json:"lastArchivedTime"`
+	// LastArchivedPosition is the position of last archived binary log event.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	LastArchivedPosition uint32 `json:"lastArchivedPosition"`
+	// LastArchivedGtid is the last archived GTID.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	LastArchivedGtid *mariadbrepl.Gtid `json:"lastArchivedGtid,omitempty"`
+}
+
 // MariaDBStatus defines the observed state of MariaDB
 type MariaDBStatus struct {
 	// Conditions for the Mariadb object.
@@ -680,6 +739,10 @@ type MariaDBStatus struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	TLS *MariaDBTLSStatus `json:"tls,omitempty"`
+	// PointInTimeRecovery is the status of the point-in-time-recovery process.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	PointInTimeRecovery *PointInTimeRecoveryStatus `json:"pointInTimeRecovery,omitempty"`
 }
 
 // SetCondition sets a status condition to MariaDB
@@ -882,6 +945,37 @@ func (m *MariaDB) IsRestoringBackup() bool {
 // HasRestoredBackup indicates whether the MariaDB instance has restored a Backup
 func (m *MariaDB) HasRestoredBackup() bool {
 	return meta.IsStatusConditionTrue(m.Status.Conditions, ConditionTypeBackupRestored)
+}
+
+// HasRestoredPhysicalBackup indicates whether the MariaDB instance has restored a PhysicalBackup
+func (m *MariaDB) HasRestoredPhysicalBackup() bool {
+	c := meta.FindStatusCondition(m.Status.Conditions, ConditionTypeBackupRestored)
+	if c == nil {
+		return false
+	}
+	return c.Status == metav1.ConditionTrue && c.Reason == ConditionReasonRestorePhysicalBackup
+}
+
+// IsReplayingBinlogs indicates whether the MariaDB instance is replaying binlogs
+func (m *MariaDB) IsReplayingBinlogs() bool {
+	return meta.IsStatusConditionFalse(m.Status.Conditions, ConditionTypeBinlogsReplayed)
+}
+
+// HasReplayedBinlogs indicates whether the MariaDB instance has replayed binlogs
+func (m *MariaDB) HasReplayedBinlogs() bool {
+	return meta.IsStatusConditionTrue(m.Status.Conditions, ConditionTypeBinlogsReplayed)
+}
+
+// ReplayBinlogsError indicates that an error occurred when replaying binlogs.
+func (m *MariaDB) ReplayBinlogsError() error {
+	c := meta.FindStatusCondition(m.Status.Conditions, ConditionTypeBinlogsReplayed)
+	if c == nil {
+		return nil
+	}
+	if c.Status == metav1.ConditionFalse && c.Reason == ConditionReasonReplayBinlogsError {
+		return errors.New(c.Message)
+	}
+	return nil
 }
 
 // IsResizingStorage indicates whether the MariaDB instance is resizing storage

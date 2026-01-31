@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"slices"
 	"strings"
 	"time"
 
@@ -822,7 +823,7 @@ type BackupContentType string
 const (
 	// BackupContentTypeLogical represents a logical backup created using mariadb-dump.
 	BackupContentTypeLogical BackupContentType = "Logical"
-	// BackupContentTypePhysical represents a physical backup created using mariadb-backup.
+	// BackupContentTypePhysical represents a physical backup created using mariadb-backup or a VolumeSnapshot.
 	BackupContentTypePhysical BackupContentType = "Physical"
 )
 
@@ -846,6 +847,25 @@ const (
 	// Gzip compression. Good compression/decompression speed, but worse compression ratio compared to bzip2.
 	CompressGzip CompressAlgorithm = "gzip"
 )
+
+// CompressAlgorithms is the list of supported compress algorithms.
+var CompressAlgorithms = []CompressAlgorithm{
+	CompressNone,
+	CompressBzip2,
+	CompressGzip,
+}
+
+// GetSupportedCompressAlgorithms returns a list of compression algorithms sorted by preference.
+func GetSupportedCompressAlgorithms(preferred ...CompressAlgorithm) []CompressAlgorithm {
+	var calgs []CompressAlgorithm
+	calgs = append(calgs, preferred...)
+	for _, calg := range CompressAlgorithms {
+		if !slices.Contains(calgs, calg) {
+			calgs = append(calgs, calg)
+		}
+	}
+	return calgs
+}
 
 func (c CompressAlgorithm) Validate() error {
 	switch c {
@@ -913,8 +933,8 @@ func (b *BackupStorage) Validate() error {
 	return nil
 }
 
-// BackupStagingStorage defines the temporary storage used to keep external backups (i.e. S3) while they are being processed.
-type BackupStagingStorage struct {
+// StagingStorage defines the temporary storage used to keep external backups (i.e. S3) while they are being processed.
+type StagingStorage struct {
 	// PersistentVolumeClaim is a Kubernetes PVC specification.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -925,7 +945,7 @@ type BackupStagingStorage struct {
 	Volume *StorageVolumeSource `json:"volume,omitempty"`
 }
 
-func (s *BackupStagingStorage) VolumeOrEmptyDir(pvcKey types.NamespacedName) StorageVolumeSource {
+func (s *StagingStorage) VolumeOrEmptyDir(pvcKey types.NamespacedName) StorageVolumeSource {
 	if s.PersistentVolumeClaim != nil {
 		return StorageVolumeSource{
 			PersistentVolumeClaim: &PersistentVolumeClaimVolumeSource{

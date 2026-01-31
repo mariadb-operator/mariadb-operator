@@ -33,8 +33,10 @@ import (
 func (r *MariaDBReconciler) reconcileInit(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
 	logger := log.FromContext(ctx).WithName("init")
 
-	if mariadb.Spec.BootstrapFrom != nil && mariadb.Spec.BootstrapFrom.BackupContentType == mariadbv1alpha1.BackupContentTypePhysical {
-		return r.reconcilePhysicalBackupInit(ctx, mariadb, logger)
+	if mariadb.Spec.BootstrapFrom != nil && mariadb.Spec.BootstrapFrom.PointInTimeRecoveryRef != nil {
+		return r.reconcilePointInTimeRecoveryInit(ctx, mariadb, logger.WithName("pitr"))
+	} else if mariadb.Spec.BootstrapFrom != nil && mariadb.Spec.BootstrapFrom.BackupContentType == mariadbv1alpha1.BackupContentTypePhysical {
+		return r.reconcilePhysicalBackupInit(ctx, mariadb, mariadb.Spec.BootstrapFrom, logger.WithName("physicalbackup"))
 	} else if mariadb.IsGaleraEnabled() {
 		if result, err := r.GaleraReconciler.ReconcileInit(ctx, mariadb); !result.IsZero() || err != nil {
 			return result, err
@@ -43,8 +45,34 @@ func (r *MariaDBReconciler) reconcileInit(ctx context.Context, mariadb *mariadbv
 	return ctrl.Result{}, nil
 }
 
-func (r *MariaDBReconciler) reconcilePhysicalBackupInit(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+func (r *MariaDBReconciler) reconcilePointInTimeRecoveryInit(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 	logger logr.Logger) (ctrl.Result, error) {
+	pitr, err := r.RefResolver.PointInTimeRecovery(ctx, mariadb.Spec.BootstrapFrom.PointInTimeRecoveryRef, mariadb.Namespace)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error getting PointInTimeRecovery: %v", err)
+	}
+	pb, err := r.RefResolver.PhysicalBackup(ctx, &pitr.Spec.PhysicalBackupRef, pitr.Namespace)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error getting PhysicalBackup: %v", err)
+	}
+
+	bootstrapFrom := mariadb.Spec.BootstrapFrom.DeepCopy()
+	bootstrapFrom.PointInTimeRecoveryRef = nil
+	bootstrapFrom.BackupRef = &mariadbv1alpha1.TypedLocalObjectReference{
+		Name: pb.Name,
+		Kind: mariadbv1alpha1.PhysicalBackupKind,
+	}
+	bootstrapFrom.BackupContentType = mariadbv1alpha1.BackupContentTypePhysical
+	bootstrapFrom.SetDefaults(mariadb)
+	if err := bootstrapFrom.SetDefaultsWithPhysicalBackup(pb); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error defaulting bootstrapFrom: %v", err)
+	}
+
+	return r.reconcilePhysicalBackupInit(ctx, mariadb, bootstrapFrom, logger)
+}
+
+func (r *MariaDBReconciler) reconcilePhysicalBackupInit(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+	bootstrap *mariadbv1alpha1.BootstrapFrom, logger logr.Logger) (ctrl.Result, error) {
 	if mariadb.IsInitialized() {
 		return ctrl.Result{}, nil
 	}
@@ -62,7 +90,7 @@ func (r *MariaDBReconciler) reconcilePhysicalBackupInit(ctx context.Context, mar
 		return ctrl.Result{}, fmt.Errorf("error patching MariaDB status: %v", err)
 	}
 
-	bootstrapFrom := ptr.Deref(mariadb.Spec.BootstrapFrom, mariadbv1alpha1.BootstrapFrom{})
+	bootstrapFrom := ptr.Deref(bootstrap, mariadbv1alpha1.BootstrapFrom{})
 	fromIndex := 0 // init process reconciles all Pods
 
 	var snapshotKey *types.NamespacedName
@@ -75,8 +103,8 @@ func (r *MariaDBReconciler) reconcilePhysicalBackupInit(ctx context.Context, mar
 	if result, err := r.reconcilePVCs(ctx, mariadb, fromIndex, snapshotKey, logger); !result.IsZero() || err != nil {
 		return result, err
 	}
-	if result, err := r.reconcileStagingPVC(ctx, mariadb); !result.IsZero() || err != nil {
-		return result, err
+	if err := r.reconcilePhysicalBackupStagingPVC(ctx, mariadb); err != nil {
+		return ctrl.Result{}, err
 	}
 
 	if bootstrapFrom.VolumeSnapshotRef == nil {
@@ -85,7 +113,7 @@ func (r *MariaDBReconciler) reconcilePhysicalBackupInit(ctx context.Context, mar
 			mariadb,
 			fromIndex,
 			logger.WithName("job"),
-			builder.WithBootstrapFrom(mariadb.Spec.BootstrapFrom),
+			builder.WithBootstrapFrom(&bootstrapFrom),
 		); !result.IsZero() || err != nil {
 			return result, err
 		}
@@ -176,23 +204,23 @@ func (r *MariaDBReconciler) reconcilePVC(ctx context.Context, mariadb *mariadbv1
 	return r.PVCReconciler.Reconcile(ctx, key, pvc)
 }
 
-func (r *MariaDBReconciler) reconcileStagingPVC(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
+func (r *MariaDBReconciler) reconcilePhysicalBackupStagingPVC(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
 	if shouldProvisionPhysicalBackupStagingPVC(mariadb) {
 		key := mariadb.PhysicalBackupStagingPVCKey()
-		pvc, err := r.Builder.BuildBackupStagingPVC(
+		pvc, err := r.Builder.BuildStagingPVC(
 			key,
 			mariadb.Spec.BootstrapFrom.StagingStorage.PersistentVolumeClaim,
 			mariadb.Spec.InheritMetadata,
 			mariadb,
 		)
 		if err != nil {
-			return ctrl.Result{}, err
+			return err
 		}
 		if err := r.PVCReconciler.Reconcile(ctx, key, pvc); err != nil {
-			return ctrl.Result{}, err
+			return err
 		}
 	}
-	return ctrl.Result{}, nil
+	return nil
 }
 
 func (r *MariaDBReconciler) waitForReadyVolumeSnapshot(ctx context.Context, key types.NamespacedName,
@@ -209,7 +237,7 @@ func (r *MariaDBReconciler) waitForReadyVolumeSnapshot(ctx context.Context, key 
 }
 
 func (r *MariaDBReconciler) reconcileRollingInitJobs(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	fromIndex int, logger logr.Logger, restoreOpts ...builder.PhysicalBackupRestoreOpt) (ctrl.Result, error) {
+	fromIndex int, logger logr.Logger, restoreOpts ...builder.RestoreOpt) (ctrl.Result, error) {
 
 	return r.forEachMariaDBPod(mariadb, fromIndex, func(podIndex int) (ctrl.Result, error) {
 		physicalBackupKey := mariadb.PhysicalBackupInitJobKey(podIndex)
@@ -241,7 +269,7 @@ func (r *MariaDBReconciler) reconcileRollingInitJobs(ctx context.Context, mariad
 }
 
 func (r *MariaDBReconciler) reconcileAndWaitForInitJob(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	key types.NamespacedName, podIndex int, logger logr.Logger, restoreOpts ...builder.PhysicalBackupRestoreOpt) (ctrl.Result, error) {
+	key types.NamespacedName, podIndex int, logger logr.Logger, restoreOpts ...builder.RestoreOpt) (ctrl.Result, error) {
 	var job batchv1.Job
 	if err := r.Get(ctx, key, &job); err != nil {
 		if apierrors.IsNotFound(err) {
@@ -260,7 +288,7 @@ func (r *MariaDBReconciler) reconcileAndWaitForInitJob(ctx context.Context, mari
 }
 
 func (r *MariaDBReconciler) createInitJob(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	key types.NamespacedName, podIndex int, restoreOpts ...builder.PhysicalBackupRestoreOpt) error {
+	key types.NamespacedName, podIndex int, restoreOpts ...builder.RestoreOpt) error {
 	job, err := r.Builder.BuildPhysicalBackupRestoreJob(
 		key,
 		mariadb,
@@ -286,7 +314,15 @@ func (r *MariaDBReconciler) upscaleStatefulSet(ctx context.Context, mariadb *mar
 		if err != nil {
 			return fmt.Errorf("error getting Pod annotations: %v", err)
 		}
-		desiredSts, err := r.Builder.BuildMariadbStatefulSet(mariadb, key, updateAnnotations)
+		var pitr *mariadbv1alpha1.PointInTimeRecovery
+		if mariadb.Spec.PointInTimeRecoveryRef != nil {
+			pitr, err = r.RefResolver.PointInTimeRecovery(ctx, mariadb.Spec.PointInTimeRecoveryRef, mariadb.Namespace)
+			if err != nil {
+				return fmt.Errorf("error getting PointInTimeRecovery: %v", err)
+			}
+		}
+
+		desiredSts, err := r.Builder.BuildMariadbStatefulSet(mariadb, key, updateAnnotations, pitr)
 		if err != nil {
 			return fmt.Errorf("error building StatefulSet: %v", err)
 		}

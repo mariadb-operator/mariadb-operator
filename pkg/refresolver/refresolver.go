@@ -140,7 +140,7 @@ func (r *RefResolver) Backup(ctx context.Context, ref *mariadbv1alpha1.LocalObje
 	return &backup, nil
 }
 
-func (r *RefResolver) PhysicalBackupBackup(ctx context.Context, ref *mariadbv1alpha1.LocalObjectReference,
+func (r *RefResolver) PhysicalBackup(ctx context.Context, ref *mariadbv1alpha1.LocalObjectReference,
 	namespace string) (*mariadbv1alpha1.PhysicalBackup, error) {
 	nn := types.NamespacedName{
 		Name:      ref.Name,
@@ -151,6 +151,19 @@ func (r *RefResolver) PhysicalBackupBackup(ctx context.Context, ref *mariadbv1al
 		return nil, err
 	}
 	return &backup, nil
+}
+
+func (r *RefResolver) PointInTimeRecovery(ctx context.Context, ref *mariadbv1alpha1.LocalObjectReference,
+	namespace string) (*mariadbv1alpha1.PointInTimeRecovery, error) {
+	nn := types.NamespacedName{
+		Name:      ref.Name,
+		Namespace: namespace,
+	}
+	var pitr mariadbv1alpha1.PointInTimeRecovery
+	if err := r.client.Get(ctx, nn, &pitr); err != nil {
+		return nil, err
+	}
+	return &pitr, nil
 }
 
 func (r *RefResolver) SqlJob(ctx context.Context, ref *mariadbv1alpha1.LocalObjectReference,

@@ -10,6 +10,7 @@ import (
 	replicationhandler "github.com/mariadb-operator/mariadb-operator/v25/pkg/agent/handler/replication"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/agent/router"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/agent/server"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/binlog"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/environment"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/filemanager"
 	mdbhttp "github.com/mariadb-operator/mariadb-operator/v25/pkg/http"
@@ -71,10 +72,15 @@ var replicationCommand = &cobra.Command{
 
 		ctx, cancel := newContext()
 		defer cancel()
-		errChan := make(chan error, 2)
 
+		numGoroutines := 2
+		if binaryLogArchival {
+			numGoroutines++
+		}
+		errChan := make(chan error, numGoroutines)
 		var wg sync.WaitGroup
-		wg.Add(2)
+		wg.Add(numGoroutines)
+
 		go func() {
 			defer wg.Done()
 
@@ -89,13 +95,28 @@ var replicationCommand = &cobra.Command{
 				errChan <- fmt.Errorf("error starting probe server: %v", err)
 			}
 		}()
+		if binaryLogArchival {
+			archiver := binlog.NewArchiver(
+				stateDir,
+				env,
+				k8sClient,
+				logger.WithName("binlog-archival"),
+			)
+			go func() {
+				defer wg.Done()
+
+				if err := archiver.Start(ctx); err != nil {
+					errChan <- fmt.Errorf("error starting binlog archiver: %v", err)
+				}
+			}()
+		}
 		go func() {
 			wg.Wait()
 			close(errChan)
 		}()
 
 		if err, ok := <-errChan; ok {
-			logger.Error(err, "Server error")
+			logger.Error(err, "Agent error")
 			os.Exit(1)
 		}
 		logger.Info("Replication agent stopped")

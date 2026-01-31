@@ -174,6 +174,22 @@ func (m *MariaDB) RestoreKey() types.NamespacedName {
 	}
 }
 
+// PITRStagingPVCKey defines the PVC key for the PITR staging area, used to keep the binary logs during restoration.
+func (m *MariaDB) PITRStagingPVCKey() types.NamespacedName {
+	return types.NamespacedName{
+		Name:      fmt.Sprintf("%s-pitr-staging", m.Name),
+		Namespace: m.Namespace,
+	}
+}
+
+// PITRJobKey defines the key for the PITR job used to replay the binary logs.
+func (m *MariaDB) PITRJobKey() types.NamespacedName {
+	return types.NamespacedName{
+		Name:      fmt.Sprintf("%s-pitr", m.Name),
+		Namespace: m.Namespace,
+	}
+}
+
 // InternalServiceKey defines the key for the internal headless Service
 func (m *MariaDB) InternalServiceKey() types.NamespacedName {
 	return types.NamespacedName{

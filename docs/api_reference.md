@@ -20,6 +20,7 @@ Package v1alpha1 contains API Schema definitions for the v1alpha1 API group
 - [MariaDB](#mariadb)
 - [MaxScale](#maxscale)
 - [PhysicalBackup](#physicalbackup)
+- [PointInTimeRecovery](#pointintimerecovery)
 - [Restore](#restore)
 - [SqlJob](#sqljob)
 - [User](#user)
@@ -315,6 +316,7 @@ CompressAlgorithm defines the compression algorithm for a Backup resource.
 _Appears in:_
 - [BackupSpec](#backupspec)
 - [PhysicalBackupSpec](#physicalbackupspec)
+- [PointInTimeRecoverySpec](#pointintimerecoveryspec)
 
 | Field | Description |
 | --- | --- |
@@ -1209,6 +1211,7 @@ _Appears in:_
 - [PhysicalBackupPodTemplate](#physicalbackuppodtemplate)
 - [PhysicalBackupSpec](#physicalbackupspec)
 - [PodTemplate](#podtemplate)
+- [PointInTimeRecoverySpec](#pointintimerecoveryspec)
 - [ReplicaBootstrapFrom](#replicabootstrapfrom)
 - [RestoreSource](#restoresource)
 - [RestoreSpec](#restorespec)
@@ -1322,7 +1325,8 @@ _Appears in:_
 | `tls` _[TLS](#tls)_ | TLS defines the PKI to be used with MariaDB. |  |  |
 | `replication` _[Replication](#replication)_ | Replication configures high availability via replication. This feature is still in alpha, use Galera if you are looking for a more production-ready HA. |  |  |
 | `galera` _[Galera](#galera)_ | Replication configures high availability via Galera. |  |  |
-| `maxScaleRef` _[ObjectReference](#objectreference)_ | MaxScaleRef is a reference to a MaxScale resource to be used with the current MariaDB.<br />Providing this field implies delegating high availability tasks such as primary failover to MaxScale. |  |  |
+| `maxScaleRef` _[ObjectReference](#objectreference)_ | MaxScaleRef is a reference to a MaxScale resource to be used with the current MariaDB.<br />Providing this reference implies delegating high availability tasks such as primary failover to MaxScale. |  |  |
+| `pointInTimeRecoveryRef` _[LocalObjectReference](#localobjectreference)_ | PointInTimeRecoveryRef is a reference to a PointInTimeRecovery resource to be used with the current MariaDB.<br />Providing this reference implies configuring binary logs in the MariaDB instance and binary log archival in the sidecar agent. |  |  |
 | `replicas` _integer_ | Replicas indicates the number of desired instances. | 1 |  |
 | `replicasAllowEvenNumber` _boolean_ | disables the validation check for an odd number of replicas. | false |  |
 | `port` _integer_ | Port where the instances will be listening for connections. | 3306 |  |
@@ -2185,6 +2189,43 @@ _Appears in:_
 | `topologySpreadConstraints` _[TopologySpreadConstraint](#topologyspreadconstraint) array_ | TopologySpreadConstraints to be used in the Pod. |  |  |
 
 
+#### PointInTimeRecovery
+
+
+
+PointInTimeRecovery is the Schema for the pointintimerecoveries API. It contains binlog archival and point-in-time restoration settings.
+
+
+
+
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `apiVersion` _string_ | `k8s.mariadb.com/v1alpha1` | | |
+| `kind` _string_ | `PointInTimeRecovery` | | |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `spec` _[PointInTimeRecoverySpec](#pointintimerecoveryspec)_ |  |  |  |
+
+
+#### PointInTimeRecoverySpec
+
+
+
+PointInTimeRecoverySpec defines the desired state of PointInTimeRecovery. It contains binlog archive and point-in-time restoration settings.
+
+
+
+_Appears in:_
+- [PointInTimeRecovery](#pointintimerecovery)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `physicalBackupRef` _[LocalObjectReference](#localobjectreference)_ | PhysicalBackupRef is a reference to a PhysicalBackup object that will be used as base backup. |  | Required: \{\} <br /> |
+| `s3` _[S3](#s3)_ | S3 is the S3-compatible storage where the binary logs will be kept. |  | Required: \{\} <br /> |
+| `compression` _[CompressAlgorithm](#compressalgorithm)_ | Compression algorithm to be used for compressing the binary logs. |  | Enum: [none bzip2 gzip] <br /> |
+| `archiveTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#duration-v1-meta)_ | ArchiveTimeout defines the maximum duration for the binary log archival..<br />If this duration is exceeded, the sidecar agent will log an error and it will be retried in the next archive cycle.<br />It defaults to 1 hour. |  |  |
+
+
 #### PreferredSchedulingTerm
 
 
@@ -2510,6 +2551,7 @@ _Appears in:_
 - [BackupStorage](#backupstorage)
 - [BootstrapFrom](#bootstrapfrom)
 - [PhysicalBackupStorage](#physicalbackupstorage)
+- [PointInTimeRecoverySpec](#pointintimerecoveryspec)
 - [RestoreSource](#restoresource)
 - [RestoreSpec](#restorespec)
 

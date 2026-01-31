@@ -19,11 +19,11 @@ func HasRelayLogEvents(status *mariadbv1alpha1.ReplicaStatusVars, gtidDomainId u
 		return false, errors.New("GTID SQL position must be set")
 	}
 
-	gtidIOPos, err := replication.ParseGtid(*status.GtidIOPos, gtidDomainId, logger)
+	gtidIOPos, err := replication.ParseGtidWithDomainId(*status.GtidIOPos, gtidDomainId, logger)
 	if err != nil {
 		return false, fmt.Errorf("error parsing GTID IO position: %v", err)
 	}
-	gtidCurrentPos, err := replication.ParseGtid(*status.GtidCurrentPos, gtidDomainId, logger)
+	gtidCurrentPos, err := replication.ParseGtidWithDomainId(*status.GtidCurrentPos, gtidDomainId, logger)
 	if err != nil {
 		return false, fmt.Errorf("error parsing GTID SQL position: %v", err)
 	}

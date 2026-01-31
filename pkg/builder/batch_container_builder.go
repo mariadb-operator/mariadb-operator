@@ -93,6 +93,32 @@ func jobPhysicalBackupVolumes(storageVolume mariadbv1alpha1.StorageVolumeSource,
 	return volumes, volumeMounts
 }
 
+func jobPITRVolumes(binlogsVolumeSource corev1.VolumeSource, s3 *mariadbv1alpha1.S3,
+	mariadb *mariadbv1alpha1.MariaDB) ([]corev1.Volume, []corev1.VolumeMount) {
+	volumes := []corev1.Volume{
+		{
+			Name:         batchBinlogsVolume,
+			VolumeSource: binlogsVolumeSource,
+		},
+	}
+	volumeMounts := []corev1.VolumeMount{
+		{
+			Name:      batchBinlogsVolume,
+			MountPath: batchBinlogsMountPath,
+		},
+	}
+	s3Volumes, s3VolumeMounts := s3Volumes(s3)
+	volumes = append(volumes, s3Volumes...)
+	volumeMounts = append(volumeMounts, s3VolumeMounts...)
+
+	if mariadb.IsTLSEnabled() {
+		tlsVolumes, tlsVolumeMounts := mariadbTLSVolumes(mariadb)
+		volumes = append(volumes, tlsVolumes...)
+		volumeMounts = append(volumeMounts, tlsVolumeMounts...)
+	}
+	return volumes, volumeMounts
+}
+
 func jobEnv(mariadb interfaces.Connector) []corev1.EnvVar {
 	env := []corev1.EnvVar{
 		{
