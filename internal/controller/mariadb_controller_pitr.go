@@ -56,7 +56,14 @@ func (r *MariaDBReconciler) reconcilePITR(ctx context.Context, mdb *mariadbv1alp
 		}
 	}
 
-	// TODO: disable gtid_strict_mode if needed
+	sqlClient, err := sql.NewClientWithMariaDB(ctx, mdb, r.RefResolver)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error getting SQL client: %v", err)
+	}
+	defer sqlClient.Close()
+	if err := r.pauseGtidStrictMode(ctx, mdb, sqlClient, logger); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error pausing gtid_strict_mode: %v", err)
+	}
 
 	if err := r.reconcilePITRStagingPVC(ctx, mdb); err != nil {
 		return ctrl.Result{}, err
@@ -65,7 +72,9 @@ func (r *MariaDBReconciler) reconcilePITR(ctx context.Context, mdb *mariadbv1alp
 		return result, err
 	}
 
-	// TODO: restore gtid_strict_mode if needed
+	if err := r.resumeGtidStrictMode(ctx, mdb, sqlClient, logger); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error resuming gtid_strict_mode: %v", err)
+	}
 	// TODO: cleanup PITR job
 
 	logger.Info("Binlogs replayed")
@@ -206,6 +215,53 @@ func (r *MariaDBReconciler) validateBinlogPath(ctx context.Context, mdb *mariadb
 	logger.Info("Got binlog path", "path", binlogPath)
 
 	return nil
+}
+
+func (r *MariaDBReconciler) pauseGtidStrictMode(ctx context.Context, mdb *mariadbv1alpha1.MariaDB, sqlClient *sql.Client,
+	logger logr.Logger) error {
+	pitr := ptr.Deref(mdb.Status.PointInTimeRecovery, mariadbv1alpha1.PointInTimeRecoveryStatus{})
+	if pitr.GtidStrictModePaused != nil && *pitr.GtidStrictModePaused {
+		return nil
+	}
+
+	gtidStrictMode, err := sqlClient.GtidStrictMode(ctx)
+	if err != nil {
+		return fmt.Errorf("error getting gtid_strict_mode: %v", err)
+	}
+	if !gtidStrictMode {
+		return nil
+	}
+
+	logger.Info("Temporarily disabling gtid_strict_mode to replay binlogs")
+	if err := sqlClient.DisableGtidStrictMode(ctx); err != nil {
+		return fmt.Errorf("error disabling gtid_strict_mode: %v", err)
+	}
+	return r.patchStatus(ctx, mdb, func(status *mariadbv1alpha1.MariaDBStatus) error {
+		if status.PointInTimeRecovery == nil {
+			status.PointInTimeRecovery = &mariadbv1alpha1.PointInTimeRecoveryStatus{}
+		}
+		status.PointInTimeRecovery.GtidStrictModePaused = ptr.To(true)
+		return nil
+	})
+}
+
+func (r *MariaDBReconciler) resumeGtidStrictMode(ctx context.Context, mdb *mariadbv1alpha1.MariaDB, sqlClient *sql.Client,
+	logger logr.Logger) error {
+	pitr := ptr.Deref(mdb.Status.PointInTimeRecovery, mariadbv1alpha1.PointInTimeRecoveryStatus{})
+	if pitr.GtidStrictModePaused == nil || !*pitr.GtidStrictModePaused {
+		return nil
+	}
+
+	logger.Info("Enabling back gtid_strict_mode")
+	if err := sqlClient.EnableGtidStrictMode(ctx); err != nil {
+		return fmt.Errorf("error enabling gtid_strict_mode: %v", err)
+	}
+	return r.patchStatus(ctx, mdb, func(status *mariadbv1alpha1.MariaDBStatus) error {
+		if status.PointInTimeRecovery != nil {
+			status.PointInTimeRecovery.GtidStrictModePaused = nil
+		}
+		return nil
+	})
 }
 
 func (r *MariaDBReconciler) reconcilePITRStagingPVC(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {

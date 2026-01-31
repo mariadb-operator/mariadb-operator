@@ -786,19 +786,23 @@ type PointInTimeRecoveryStatus struct {
 	// LastArchivedBinaryLog is name of the last archived binary log.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
-	LastArchivedBinaryLog string `json:"lastArchivedBinaryLog"`
+	LastArchivedBinaryLog string `json:"lastArchivedBinaryLog,omitempty"`
 	// LastArchivedTime is the time of the last archived binary log event.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
-	LastArchivedTime metav1.Time `json:"lastArchivedTime"`
+	LastArchivedTime metav1.Time `json:"lastArchivedTime,omitempty"`
 	// LastArchivedPosition is the position of last archived binary log event.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
-	LastArchivedPosition uint32 `json:"lastArchivedPosition"`
+	LastArchivedPosition uint32 `json:"lastArchivedPosition,omitempty"`
 	// LastArchivedGtid is the last archived GTID.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	LastArchivedGtid *mariadbrepl.Gtid `json:"lastArchivedGtid,omitempty"`
+	// GtidStrictModePaused indicates that gtid_strict_mode has been temporarily paused to replay binlogs.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	GtidStrictModePaused *bool `json:"gtidStrictModePaused,omitempty"`
 }
 
 // MariaDBStatus defines the observed state of MariaDB
