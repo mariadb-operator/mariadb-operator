@@ -741,6 +741,22 @@ func (c *Client) GtidDomainId(ctx context.Context) (*uint32, error) {
 	return ptr.To(uint32(gtidDomainId)), nil
 }
 
+func (c *Client) GtidStrictMode(ctx context.Context) (bool, error) {
+	rawGtidStrictMode, err := c.SystemVariable(ctx, "gtid_strict_mode")
+	if err != nil {
+		return false, err
+	}
+	return parseBool(rawGtidStrictMode)
+}
+
+func (c *Client) DisableGtidStrictMode(ctx context.Context) error {
+	return c.SetSystemVariable(ctx, "gtid_strict_mode", "0")
+}
+
+func (c *Client) EnableGtidStrictMode(ctx context.Context) error {
+	return c.SetSystemVariable(ctx, "gtid_strict_mode", "1")
+}
+
 func (c *Client) BinaryLogIndex(ctx context.Context) (string, error) {
 	return c.SystemVariable(ctx, "log_bin_index")
 }
