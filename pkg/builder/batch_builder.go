@@ -646,7 +646,7 @@ func (b *Builder) BuildPITRJob(key types.NamespacedName, pitr *mariadbv1alpha1.P
 		return nil, fmt.Errorf("error building backup command: %v", err)
 	}
 
-	volumes, volumeMounts := jobPITRVolumes(binlogsVolumeSource, mariadb)
+	volumes, volumeMounts := jobPITRVolumes(binlogsVolumeSource, &pitr.Spec.S3, mariadb)
 
 	opteratorPITRCmd, err := cmd.MariadbOperatorPITR()
 	if err != nil {
