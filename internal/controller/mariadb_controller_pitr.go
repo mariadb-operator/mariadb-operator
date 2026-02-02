@@ -23,9 +23,11 @@ import (
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/yaml"
 )
@@ -75,7 +77,6 @@ func (r *MariaDBReconciler) reconcilePITR(ctx context.Context, mdb *mariadbv1alp
 	if err := r.resumeGtidStrictMode(ctx, mdb, sqlClient, logger); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error resuming gtid_strict_mode: %v", err)
 	}
-	// TODO: cleanup PITR job
 
 	logger.Info("Binlogs replayed")
 	if err := r.patchStatus(ctx, mdb, func(status *mariadbv1alpha1.MariaDBStatus) error {
@@ -83,6 +84,9 @@ func (r *MariaDBReconciler) reconcilePITR(ctx context.Context, mdb *mariadbv1alp
 		return nil
 	}); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error patching MariaDB status: %v", err)
+	}
+	if err := r.cleanupPITRJob(ctx, mdb); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error cleaning up PITR job: %v", err)
 	}
 	return ctrl.Result{}, nil
 }
@@ -321,6 +325,18 @@ func (r *MariaDBReconciler) createPITRJob(ctx context.Context, mdb *mariadbv1alp
 		return fmt.Errorf("error building PointInTimeRecovery Job: %v", err)
 	}
 	return r.Create(ctx, pitrJob)
+}
+
+func (r *MariaDBReconciler) cleanupPITRJob(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
+	var job batchv1.Job
+	if err := r.Get(ctx, mariadb.PITRJobKey(), &job); err == nil {
+		if err := r.Delete(ctx, &job, &client.DeleteOptions{PropagationPolicy: ptr.To(metav1.DeletePropagationBackground)}); err != nil {
+			if !apierrors.IsNotFound(err) {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 func (r *MariaDBReconciler) getS3Client(ctx context.Context, pitr *mariadbv1alpha1.PointInTimeRecovery) (*minio.Client, error) {
