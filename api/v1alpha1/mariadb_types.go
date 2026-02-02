@@ -243,7 +243,7 @@ type BootstrapFrom struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	RestoreJob *Job `json:"restoreJob,omitempty"`
-	// LogLevel to be used in the restoration Job. It defaults to 'info'.
+	// LogLevel to be used in the mariadb-operator container of the restoration Job. It defaults to 'info'.
 	// +optional
 	// +kubebuilder:default=info
 	// +kubebuilder:validation:Enum=debug;info;warn;error;dpanic;panic;fatal
