@@ -14,6 +14,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/binlog"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/builder"
 	condition "github.com/mariadb-operator/mariadb-operator/v25/pkg/condition"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/health"
 	jobpkg "github.com/mariadb-operator/mariadb-operator/v25/pkg/job"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/metadata"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/minio"
@@ -34,7 +35,11 @@ import (
 
 func (r *MariaDBReconciler) reconcilePITR(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
 	logger := log.FromContext(ctx).WithName("pitr")
-	if !shouldReconcilePITR(mdb, logger) {
+	shouldReconcile, err := r.shouldReconcilePITR(ctx, mdb, logger)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error determining whether PITR should be reconciled: %v", err)
+	}
+	if !shouldReconcile {
 		return ctrl.Result{}, nil
 	}
 
@@ -42,6 +47,10 @@ func (r *MariaDBReconciler) reconcilePITR(ctx context.Context, mdb *mariadbv1alp
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error getting start GTID: %v", err)
 	}
+	logger = logger.WithValues(
+		"start-gtid", startGtid,
+		"target-time", mdb.Spec.BootstrapFrom.TargetRecoveryTimeOrDefault(),
+	)
 	if !mdb.IsReplayingBinlogs() || mdb.ReplayBinlogsError() != nil {
 		if result, err := r.reconcileReplayBinlogsError(ctx, mdb, startGtid, logger); !result.IsZero() || err != nil {
 			return result, err
@@ -109,8 +118,7 @@ func (r *MariaDBReconciler) getStartGtid(ctx context.Context, mdb *mariadbv1alph
 		if !ok {
 			return nil, fmt.Errorf("annotation %s not found in VolumeSnapshot %s", metadata.GtidAnnotation, snapshot.Name)
 		}
-		// TODO: reduce verbosity
-		logger.Info("Got GTID from VolumeSnapshot", "gtid", snapGtid, "snapshot", snapshot.Name)
+		logger.V(1).Info("Got GTID from VolumeSnapshot", "gtid", snapGtid, "snapshot", snapshot.Name)
 		rawGtid = snapGtid
 	} else {
 		if mdb.Status.CurrentPrimaryPodIndex == nil {
@@ -126,8 +134,7 @@ func (r *MariaDBReconciler) getStartGtid(ctx context.Context, mdb *mariadbv1alph
 		if err != nil {
 			return nil, fmt.Errorf("error getting GTID from agent: %v", err)
 		}
-		// TODO: reduce verbosity
-		logger.Info("Got GTID from agent", "gtid", agentGtid)
+		logger.V(1).Info("Got GTID from agent", "gtid", agentGtid)
 		rawGtid = agentGtid
 	}
 	if rawGtid == "" {
@@ -402,21 +409,37 @@ func (r *MariaDBReconciler) getS3Client(ctx context.Context, pitr *mariadbv1alph
 	return s3Client, nil
 }
 
-func shouldReconcilePITR(mdb *mariadbv1alpha1.MariaDB, logger logr.Logger) bool {
+func (r *MariaDBReconciler) shouldReconcilePITR(ctx context.Context, mdb *mariadbv1alpha1.MariaDB, logger logr.Logger) (bool, error) {
 	if mdb.IsInitializing() || mdb.IsUpdating() || mdb.IsRestoringBackup() || mdb.IsResizingStorage() ||
 		mdb.IsScalingOut() || mdb.IsRecoveringReplicas() || mdb.HasGaleraNotReadyCondition() ||
 		mdb.IsSwitchingPrimary() || mdb.IsReplicationSwitchoverRequired() {
 		logger.V(1).Info("Operation in progress. Skipping PITR reconciliation...")
-		return false
+		return false, nil
 	}
 	if !mdb.HasRestoredPhysicalBackup() {
 		logger.V(1).Info("PhysicalBackup not restored. Skipping PITR reconciliation...")
-		return false
+		return false, nil
 	}
-	if mdb.HasReplayedBinlogs() {
-		return false
+	if mdb.HasReplayedBinlogs() || mdb.Spec.BootstrapFrom == nil || mdb.Spec.BootstrapFrom.PointInTimeRecoveryRef == nil {
+		return false, nil
 	}
-	return mdb.Spec.BootstrapFrom != nil && mdb.Spec.BootstrapFrom.PointInTimeRecoveryRef != nil
+
+	healthy, err := health.IsStatefulSetHealthy(
+		ctx,
+		r.Client,
+		client.ObjectKeyFromObject(mdb),
+		health.WithDesiredReplicas(mdb.Spec.Replicas),
+		health.WithPort(mdb.Spec.Port),
+		health.WithEndpointPolicy(health.EndpointPolicyAll),
+	)
+	if err != nil {
+		return false, fmt.Errorf("error checking MariaDB health: %v", err)
+	}
+	if !healthy {
+		logger.V(1).Info("Some MariaDb Pods are not ready. Skipping PITR reconciliation...")
+		return false, nil
+	}
+	return true, nil
 }
 
 func shouldProvisionPITRStagingPVC(mariadb *mariadbv1alpha1.MariaDB) bool {
