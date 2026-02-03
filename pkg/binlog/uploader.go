@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"github.com/hashicorp/go-multierror"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/compression"
 	mariadbminio "github.com/mariadb-operator/mariadb-operator/v25/pkg/minio"
@@ -86,7 +85,7 @@ func (u *Uploader) Upload(ctx context.Context, binlog string, mdb *mariadbv1alph
 		_ = os.Remove(tmpFile.Name())
 	}()
 	if err = u.compressor.Compress(ctx, tmpFile, binlogFile); err != nil {
-		return multierror.Append(fmt.Errorf("error compressing binlog: %v", err), os.Remove(binlogFile.Name()))
+		return fmt.Errorf("error compressing binlog: %v", err)
 	}
 	tmpStat, err := tmpFile.Stat()
 	if err != nil {
