@@ -919,7 +919,7 @@ func (r *MariaDBReconciler) setSpecDefaults(ctx context.Context, mariadb *mariad
 			return err
 		}
 
-		if mdb.Spec.BootstrapFrom == nil || mdb.Spec.BootstrapFrom.IsDefaulted() {
+		if mdb.Spec.BootstrapFrom == nil || mdb.HasRestoredBackup() {
 			return nil
 		}
 		bootstrapFrom := ptr.Deref(mdb.Spec.BootstrapFrom, mariadbv1alpha1.BootstrapFrom{})
@@ -928,7 +928,7 @@ func (r *MariaDBReconciler) setSpecDefaults(ctx context.Context, mariadb *mariad
 
 		// TODO: integration tests
 		if bootstrapFrom.PointInTimeRecoveryRef != nil {
-			logger.Info("Defaulting bootstrapFrom with PointInTimeRecovery")
+			logger.V(1).Info("Defaulting bootstrapFrom with PointInTimeRecovery")
 
 			pitr, err := r.RefResolver.PointInTimeRecovery(ctx, bootstrapFrom.PointInTimeRecoveryRef, mdb.Namespace)
 			if err != nil {
@@ -940,7 +940,7 @@ func (r *MariaDBReconciler) setSpecDefaults(ctx context.Context, mariadb *mariad
 			}
 			physicalBackup = pb
 		} else if backupRef.Kind == mariadbv1alpha1.PhysicalBackupKind {
-			logger.Info("Defaulting bootstrapFrom with PhysicalBackup")
+			logger.V(1).Info("Defaulting bootstrapFrom with PhysicalBackup")
 
 			pb, err := r.RefResolver.PhysicalBackup(ctx, backupRef.LocalReference(), mdb.Namespace)
 			if err != nil {
@@ -959,13 +959,13 @@ func (r *MariaDBReconciler) setSpecDefaults(ctx context.Context, mariadb *mariad
 				if err != nil {
 					return fmt.Errorf("error getting target VolumeSnapshot: %v", err)
 				}
-				logger.Info("Setting bootstrapFrom defaults with PhysicalBackup based on VolumeSnapshot", "snapshot", targetSnapshot)
+				logger.V(1).Info("Setting bootstrapFrom defaults with PhysicalBackup based on VolumeSnapshot", "snapshot", targetSnapshot)
 
 				mdb.Spec.BootstrapFrom.SetDefaultsWithVolumeSnapshotRef(&mariadbv1alpha1.LocalObjectReference{
 					Name: targetSnapshot,
 				})
 			} else {
-				logger.Info("Setting bootstrapFrom defaults with PhysicalBackup based on mariadb-backup")
+				logger.V(1).Info("Setting bootstrapFrom defaults with PhysicalBackup based on mariadb-backup")
 
 				if err := mdb.Spec.BootstrapFrom.SetDefaultsWithPhysicalBackup(physicalBackup); err != nil {
 					return err
