@@ -191,7 +191,7 @@ func (a *Archiver) archiveBinaryLogs(ctx context.Context) error {
 		a.logger.WithName("uploader"),
 	)
 
-	// TODO: arhival timeout based on pitr.Spec.archivalTimeout
+	// TODO: archival timeout based on pitr.Spec.archivalTimeout
 	for i := 0; i < len(binlogs); i++ {
 		if err := a.archiveBinaryLog(ctx, binlogs[i], mdb, pitr, uploader); err != nil {
 			return err

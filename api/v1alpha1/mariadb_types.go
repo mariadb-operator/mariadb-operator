@@ -309,10 +309,6 @@ func (b *BootstrapFrom) validateMutuallyExclusive() error {
 	return nil
 }
 
-func (b *BootstrapFrom) IsDefaulted() bool {
-	return b.Volume != nil || b.VolumeSnapshotRef != nil
-}
-
 func (b *BootstrapFrom) SetDefaults(mariadb *MariaDB) {
 	if b.PointInTimeRecoveryRef != nil {
 		stagingStorage := ptr.Deref(b.StagingStorage, StagingStorage{})
@@ -341,6 +337,10 @@ func (b *BootstrapFrom) SetDefaults(mariadb *MariaDB) {
 }
 
 func (b *BootstrapFrom) SetDefaultsWithPhysicalBackup(physicalBackup *PhysicalBackup) error {
+	// VolumeSnapshot method does not need Volume nor S3 defaulting
+	if physicalBackup.Spec.Storage.VolumeSnapshot != nil {
+		return nil
+	}
 	volume, err := physicalBackup.Volume()
 	if err != nil {
 		return fmt.Errorf("error getting BackupSource volume: %v", err)
