@@ -2467,9 +2467,32 @@ spec:
                         description: Name of the referent.
                         type: string
                     type: object
+                  logLevel:
+                    default: info
+                    description: LogLevel to be used in the mariadb-operator container
+                      of the restoration Job. It defaults to 'info'.
+                    enum:
+                    - debug
+                    - info
+                    - warn
+                    - error
+                    - dpanic
+                    - panic
+                    - fatal
+                    type: string
+                  pointInTimeRecoveryRef:
+                    description: |-
+                      PointInTimeRecoveryRef is a reference to a PointInTimeRecovery object.
+                      Providing this field implies restoring the PhysicalBackup referenced in the PointInTimeRecovery object and replaying the
+                      archived binary logs up to the point-in-time restoration target, defined by the targetRecoveryTime field.
+                    properties:
+                      name:
+                        default: ""
+                        type: string
+                    type: object
                   restoreJob:
                     description: RestoreJob defines additional properties for the
-                      Job used to perform the restoration.
+                      restoration Job.
                     properties:
                       affinity:
                         description: Affinity to be used in the Pod.
@@ -2910,7 +2933,7 @@ spec:
                     type: object
                   stagingStorage:
                     description: |-
-                      StagingStorage defines the temporary storage used to keep external backups (i.e. S3) while they are being processed.
+                      StagingStorage defines the temporary storage used to keep external backups and binary logs (i.e. S3) while they are being processed.
                       It defaults to an emptyDir volume, meaning that the backups will be temporarily stored in the node where the Job is scheduled.
                     properties:
                       persistentVolumeClaim:
@@ -5555,6 +5578,9 @@ spec:
                   externalTrafficPolicy:
                     description: ExternalTrafficPolicy Service field.
                     type: string
+                  loadBalancerClass:
+                    description: LoadBalancerClass Service field.
+                    type: string
                   loadBalancerIP:
                     description: LoadBalancerIP Service field.
                     type: string
@@ -7098,6 +7124,9 @@ spec:
                   externalTrafficPolicy:
                     description: ExternalTrafficPolicy Service field.
                     type: string
+                  loadBalancerClass:
+                    description: LoadBalancerClass Service field.
+                    type: string
                   loadBalancerIP:
                     description: LoadBalancerIP Service field.
                     type: string
@@ -7181,6 +7210,9 @@ spec:
                     type: boolean
                   externalTrafficPolicy:
                     description: ExternalTrafficPolicy Service field.
+                    type: string
+                  loadBalancerClass:
+                    description: LoadBalancerClass Service field.
                     type: string
                   loadBalancerIP:
                     description: LoadBalancerIP Service field.
@@ -8125,6 +8157,10 @@ spec:
                 description: PointInTimeRecovery is the status of the point-in-time-recovery
                   process.
                 properties:
+                  gtidStrictModePaused:
+                    description: GtidStrictModePaused indicates that gtid_strict_mode
+                      has been temporarily paused to replay binlogs.
+                    type: boolean
                   lastArchivedBinaryLog:
                     description: LastArchivedBinaryLog is name of the last archived
                       binary log.
@@ -9096,6 +9132,9 @@ spec:
                   externalTrafficPolicy:
                     description: ExternalTrafficPolicy Service field.
                     type: string
+                  loadBalancerClass:
+                    description: LoadBalancerClass Service field.
+                    type: string
                   loadBalancerIP:
                     description: LoadBalancerIP Service field.
                     type: string
@@ -9179,6 +9218,9 @@ spec:
                     type: boolean
                   externalTrafficPolicy:
                     description: ExternalTrafficPolicy Service field.
+                    type: string
+                  loadBalancerClass:
+                    description: LoadBalancerClass Service field.
                     type: string
                   loadBalancerIP:
                     description: LoadBalancerIP Service field.
@@ -11875,6 +11917,7 @@ spec:
               It contains binlog archive and point-in-time restoration settings.
             properties:
               archiveTimeout:
+                default: 1h
                 description: |-
                   ArchiveTimeout defines the maximum duration for the binary log archival..
                   If this duration is exceeded, the sidecar agent will log an error and it will be retried in the next archive cycle.
