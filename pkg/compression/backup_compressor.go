@@ -1,6 +1,7 @@
 package compression
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -118,7 +119,8 @@ func compressFile(path, fileName string, logger logr.Logger, compressor Compress
 		}
 		defer compressedFile.Close()
 
-		return compressor.Compress(compressedFile, plainFile)
+		// @PERF: Potential improvement here if we want this to be cancellable, can change to Background if we don't want to
+		return compressor.Compress(context.TODO(), compressedFile, plainFile)
 	}(); err != nil {
 		var errBundle *multierror.Error
 		errBundle = multierror.Append(errBundle, err)
