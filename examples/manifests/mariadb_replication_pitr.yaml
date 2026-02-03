@@ -46,7 +46,7 @@ spec:
     bucket: binlogs
     prefix: mariadb
     endpoint: minio.minio.svc.cluster.local:9000
-    region:  us-east-1
+    region: us-east-1
     accessKeyIdSecretKeyRef:
       name: minio
       key: access-key-id
@@ -80,7 +80,7 @@ spec:
       bucket: physicalbackups
       prefix: mariadb
       endpoint: minio.minio.svc.cluster.local:9000
-      region:  us-east-1
+      region: us-east-1
       accessKeyIdSecretKeyRef:
         name: minio
         key: access-key-id

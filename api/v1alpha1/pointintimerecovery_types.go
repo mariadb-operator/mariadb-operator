@@ -22,6 +22,7 @@ type PointInTimeRecoverySpec struct {
 	// ArchiveTimeout defines the maximum duration for the binary log archival..
 	// If this duration is exceeded, the sidecar agent will log an error and it will be retried in the next archive cycle.
 	// It defaults to 1 hour.
+	// +kubebuilder:default="1h"
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	ArchiveTimeout *metav1.Duration `json:"archiveTimeout,omitempty"`

@@ -54,6 +54,7 @@ spec:
               It contains binlog archive and point-in-time restoration settings.
             properties:
               archiveTimeout:
+                default: 1h
                 description: |-
                   ArchiveTimeout defines the maximum duration for the binary log archival..
                   If this duration is exceeded, the sidecar agent will log an error and it will be retried in the next archive cycle.

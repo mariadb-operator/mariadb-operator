@@ -2,15 +2,17 @@ package compression
 
 import (
 	"compress/gzip"
+	"context"
 	"fmt"
 	"io"
 
 	"github.com/dsnet/compress/bzip2"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/fs"
 )
 
 type Compressor interface {
-	Compress(dst io.Writer, src io.Reader) error
+	Compress(ctx context.Context, dst io.Writer, src io.Reader) error
 	Decompress(dst io.Writer, src io.Reader) error
 }
 
@@ -29,8 +31,11 @@ func NewCompressor(calg mariadbv1alpha1.CompressAlgorithm) (Compressor, error) {
 
 type NopCompressor struct{}
 
-func (c *NopCompressor) Compress(dst io.Writer, src io.Reader) error {
-	_, err := io.Copy(dst, src)
+func (c *NopCompressor) Compress(ctx context.Context, dst io.Writer, src io.Reader) error {
+	_, err := io.Copy(dst, &fs.ContextReader{
+		Ctx: ctx,
+		R:   src,
+	})
 	return err
 }
 
@@ -41,10 +46,13 @@ func (c *NopCompressor) Decompress(dst io.Writer, src io.Reader) error {
 
 type GzipCompressor struct{}
 
-func (c *GzipCompressor) Compress(dst io.Writer, src io.Reader) error {
+func (c *GzipCompressor) Compress(ctx context.Context, dst io.Writer, src io.Reader) error {
 	writer := gzip.NewWriter(dst)
 	defer writer.Close()
-	_, err := io.Copy(writer, src)
+	_, err := io.Copy(writer, &fs.ContextReader{
+		Ctx: ctx,
+		R:   src,
+	})
 	return err
 }
 
@@ -60,14 +68,17 @@ func (c *GzipCompressor) Decompress(dst io.Writer, src io.Reader) error {
 
 type Bzip2Compressor struct{}
 
-func (c *Bzip2Compressor) Compress(dst io.Writer, src io.Reader) error {
+func (c *Bzip2Compressor) Compress(ctx context.Context, dst io.Writer, src io.Reader) error {
 	writer, err := bzip2.NewWriter(dst,
 		&bzip2.WriterConfig{Level: bzip2.DefaultCompression})
 	if err != nil {
 		return err
 	}
 	defer writer.Close()
-	_, err = io.Copy(writer, src)
+	_, err = io.Copy(writer, &fs.ContextReader{
+		Ctx: ctx,
+		R:   src,
+	})
 	return err
 }
 
