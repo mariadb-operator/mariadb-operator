@@ -1,0 +1,224 @@
+apiVersion: v1
+binlogs:
+  server-10:
+  - binlogFilename: mariadb-repl-bin.000001
+    binlogVersion: 4
+    firstGtid: null
+    firstTime: "2026-02-04T12:02:54Z"
+    lastGtid: null
+    lastTime: "2026-02-04T12:02:56Z"
+    logPosition: 358
+    previousGtids: []
+    rotateEvent: false
+    serverId: 10
+    serverVersion: 11.8.5-MariaDB-ubu2404-log
+    stopEvent: true
+  - binlogFilename: mariadb-repl-bin.000002
+    binlogVersion: 4
+    firstGtid: 0-10-1
+    firstTime: "2026-02-04T12:02:56Z"
+    lastGtid: 0-10-18
+    lastTime: "2026-02-04T12:04:08Z"
+    logPosition: 4299
+    previousGtids: []
+    rotateEvent: true
+    serverId: 10
+    serverVersion: 11.8.5-MariaDB-ubu2404-log
+    stopEvent: false
+  - binlogFilename: mariadb-repl-bin.000003
+    binlogVersion: 4
+    firstGtid: 0-10-19
+    firstTime: "2026-02-04T12:04:08Z"
+    lastGtid: 0-10-35
+    lastTime: "2026-02-04T12:04:25Z"
+    logPosition: 4278
+    previousGtids:
+    - 0-10-18
+    rotateEvent: true
+    serverId: 10
+    serverVersion: 11.8.5-MariaDB-ubu2404-log
+    stopEvent: false
+  - binlogFilename: mariadb-repl-bin.000004
+    binlogVersion: 4
+    firstGtid: 0-10-36
+    firstTime: "2026-02-04T12:04:25Z"
+    lastGtid: 0-10-52
+    lastTime: "2026-02-04T12:04:42Z"
+    logPosition: 4278
+    previousGtids:
+    - 0-10-35
+    rotateEvent: true
+    serverId: 10
+    serverVersion: 11.8.5-MariaDB-ubu2404-log
+    stopEvent: false
+  - binlogFilename: mariadb-repl-bin.000005
+    binlogVersion: 4
+    firstGtid: 0-10-53
+    firstTime: "2026-02-04T12:04:42Z"
+    lastGtid: 0-10-69
+    lastTime: "2026-02-04T12:04:59Z"
+    logPosition: 4278
+    previousGtids:
+    - 0-10-52
+    rotateEvent: true
+    serverId: 10
+    serverVersion: 11.8.5-MariaDB-ubu2404-log
+    stopEvent: false
+  - binlogFilename: mariadb-repl-bin.000006
+    binlogVersion: 4
+    firstGtid: 0-10-70
+    firstTime: "2026-02-04T12:04:59Z"
+    lastGtid: 0-10-70
+    lastTime: "2026-02-04T12:05:01Z"
+    logPosition: 647
+    previousGtids:
+    - 0-10-69
+    rotateEvent: false
+    serverId: 10
+    serverVersion: 11.8.5-MariaDB-ubu2404-log
+    stopEvent: true
+  # FAILOVER to server-11
+  - binlogFilename: mariadb-repl-bin.000007
+    binlogVersion: 4
+    firstGtid: 0-10-238
+    firstTime: "2026-02-04T12:05:04Z"
+    lastGtid: 0-10-255
+    lastTime: "2026-02-04T12:08:31Z"
+    logPosition: 4349
+    previousGtids:
+    - 0-10-70
+    rotateEvent: true
+    serverId: 10
+    serverVersion: 11.8.5-MariaDB-ubu2404-log
+    stopEvent: false
+  - binlogFilename: mariadb-repl-bin.000008
+    binlogVersion: 4
+    firstGtid: 0-10-256
+    firstTime: "2026-02-04T12:08:31Z"
+    lastGtid: 0-10-272
+    lastTime: "2026-02-04T12:08:48Z"
+    logPosition: 4278
+    previousGtids:
+    - 0-10-255
+    rotateEvent: true
+    serverId: 10
+    serverVersion: 11.8.5-MariaDB-ubu2404-log
+    stopEvent: false
+  server-11:
+  - binlogFilename: mariadb-repl-bin.000001
+    binlogVersion: 4
+    firstGtid: 0-11-71
+    firstTime: "2026-02-04T12:03:11Z"
+    lastGtid: 0-11-88
+    lastTime: "2026-02-04T12:05:31Z"
+    logPosition: 4335
+    previousGtids: []
+    rotateEvent: true
+    serverId: 11
+    serverVersion: 11.8.5-MariaDB-ubu2404-log
+    stopEvent: false
+  - binlogFilename: mariadb-repl-bin.000002
+    binlogVersion: 4
+    firstGtid: 0-11-89
+    firstTime: "2026-02-04T12:05:31Z"
+    lastGtid: 0-11-105
+    lastTime: "2026-02-04T12:05:48Z"
+    logPosition: 4278
+    previousGtids:
+    - 0-11-88
+    rotateEvent: true
+    serverId: 11
+    serverVersion: 11.8.5-MariaDB-ubu2404-log
+    stopEvent: false
+  - binlogFilename: mariadb-repl-bin.000003
+    binlogVersion: 4
+    firstGtid: 0-11-106
+    firstTime: "2026-02-04T12:05:48Z"
+    lastGtid: 0-11-122
+    lastTime: "2026-02-04T12:06:05Z"
+    logPosition: 4278
+    previousGtids:
+    - 0-11-105
+    rotateEvent: true
+    serverId: 11
+    serverVersion: 11.8.5-MariaDB-ubu2404-log
+    stopEvent: false
+  - binlogFilename: mariadb-repl-bin.000004
+    binlogVersion: 4
+    firstGtid: 0-11-123
+    firstTime: "2026-02-04T12:06:05Z"
+    lastGtid: 0-11-139
+    lastTime: "2026-02-04T12:06:22Z"
+    logPosition: 4278
+    previousGtids:
+    - 0-11-122
+    rotateEvent: true
+    serverId: 11
+    serverVersion: 11.8.5-MariaDB-ubu2404-log
+    stopEvent: false
+  - binlogFilename: mariadb-repl-bin.000005
+    binlogVersion: 4
+    firstGtid: 0-11-140
+    firstTime: "2026-02-04T12:06:22Z"
+    lastGtid: 0-11-156
+    lastTime: "2026-02-04T12:06:39Z"
+    logPosition: 4278
+    previousGtids:
+    - 0-11-139
+    rotateEvent: true
+    serverId: 11
+    serverVersion: 11.8.5-MariaDB-ubu2404-log
+    stopEvent: false
+  - binlogFilename: mariadb-repl-bin.000006
+    binlogVersion: 4
+    firstGtid: 0-11-157
+    firstTime: "2026-02-04T12:06:39Z"
+    lastGtid: 0-11-173
+    lastTime: "2026-02-04T12:06:56Z"
+    logPosition: 4278
+    previousGtids:
+    - 0-11-156
+    rotateEvent: true
+    serverId: 11
+    serverVersion: 11.8.5-MariaDB-ubu2404-log
+    stopEvent: false
+  - binlogFilename: mariadb-repl-bin.000007
+    binlogVersion: 4
+    firstGtid: 0-11-174
+    firstTime: "2026-02-04T12:06:56Z"
+    lastGtid: 0-11-190
+    lastTime: "2026-02-04T12:07:13Z"
+    logPosition: 4278
+    previousGtids:
+    - 0-11-173
+    rotateEvent: true
+    serverId: 11
+    serverVersion: 11.8.5-MariaDB-ubu2404-log
+    stopEvent: false
+  - binlogFilename: mariadb-repl-bin.000008
+    binlogVersion: 4
+    firstGtid: 0-11-191
+    firstTime: "2026-02-04T12:07:13Z"
+    lastGtid: 0-11-207
+    lastTime: "2026-02-04T12:07:30Z"
+    logPosition: 4278
+    previousGtids:
+    - 0-11-190
+    rotateEvent: true
+    serverId: 11
+    serverVersion: 11.8.5-MariaDB-ubu2404-log
+    stopEvent: false
+  - binlogFilename: mariadb-repl-bin.000009
+    binlogVersion: 4
+    firstGtid: 0-11-208
+    firstTime: "2026-02-04T12:07:30Z"
+    lastGtid: 0-11-224
+    lastTime: "2026-02-04T12:07:47Z"
+    logPosition: 4278
+    previousGtids:
+    - 0-11-207
+    rotateEvent: true
+    serverId: 11
+    serverVersion: 11.8.5-MariaDB-ubu2404-log
+    stopEvent: false
+  # FAILOVER to server-10

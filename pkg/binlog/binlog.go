@@ -19,9 +19,9 @@ import (
 var BinlogIndexV1 = "v1"
 
 type BinlogIndex struct {
-	APIVersion string `yaml:"apiVersion"`
+	APIVersion string `json:"apiVersion"`
 	// Binlogs indexed by server ID
-	Binlogs map[string][]BinlogMetadata `yaml:"binlogs"`
+	Binlogs map[string][]BinlogMetadata `json:"binlogs"`
 }
 
 func (b *BinlogIndex) Exists(serverId uint32, binlog string) bool {
@@ -128,8 +128,14 @@ func (b *BinlogIndex) binlogPathWithBinlogs(binlogs []BinlogMetadata, fromGtid *
 
 func (b *BinlogIndex) findNextGtidInOtherServer(lastBinlog *BinlogMetadata, currentServer string, untilTime time.Time,
 	logger logr.Logger) (*mariadbrepl.Gtid, error) {
-	if lastBinlog == nil || lastBinlog.LastGtid == nil {
-		return nil, errors.New("last processed binlog must have last GTID set")
+	if lastBinlog == nil {
+		return nil, errors.New("last processed binlog must be set")
+	}
+	if lastBinlog.LastGtid == nil {
+		return nil, fmt.Errorf("last processed binlog %s must have last GTID set", lastBinlog.BinlogFilename)
+	}
+	if !lastBinlog.StopEvent {
+		return nil, fmt.Errorf("last processed binlog %s must have a stop event", lastBinlog.BinlogFilename)
 	}
 	for serverKey, binlogs := range b.Binlogs {
 		if serverKey == currentServer {
@@ -243,18 +249,18 @@ func (b *BinlogNum) Equal(other *BinlogNum) bool {
 }
 
 type BinlogMetadata struct {
-	ServerId       uint32              `yaml:"serverId"`
-	ServerVersion  string              `yaml:"serverVersion"`
-	BinlogVersion  uint16              `yaml:"binlogVersion"`
-	BinlogFilename string              `yaml:"binlogFilename"`
-	LogPosition    uint32              `yaml:"logPosition"`
-	FirstTime      metav1.Time         `yaml:"firstTime"`
-	LastTime       metav1.Time         `yaml:"lastTime"`
-	PreviousGtids  []*mariadbrepl.Gtid `yaml:"previousGtids,omitempty"`
-	FirstGtid      *mariadbrepl.Gtid   `yaml:"firstGtid,omitempty"`
-	LastGtid       *mariadbrepl.Gtid   `yaml:"lastGtid,omitempty"`
-	RotateEvent    bool                `yaml:"rotateEvent"`
-	StopEvent      bool                `yaml:"stopEvent"`
+	ServerId       uint32              `json:"serverId"`
+	ServerVersion  string              `json:"serverVersion"`
+	BinlogVersion  uint16              `json:"binlogVersion"`
+	BinlogFilename string              `json:"binlogFilename"`
+	LogPosition    uint32              `json:"logPosition"`
+	FirstTime      metav1.Time         `json:"firstTime"`
+	LastTime       metav1.Time         `json:"lastTime"`
+	PreviousGtids  []*mariadbrepl.Gtid `json:"previousGtids,omitempty"`
+	FirstGtid      *mariadbrepl.Gtid   `json:"firstGtid,omitempty"`
+	LastGtid       *mariadbrepl.Gtid   `json:"lastGtid,omitempty"`
+	RotateEvent    bool                `json:"rotateEvent"`
+	StopEvent      bool                `json:"stopEvent"`
 }
 
 func (b *BinlogMetadata) ObjectStoragePath() string {

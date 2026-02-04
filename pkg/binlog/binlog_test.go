@@ -53,14 +53,48 @@ func TestBinlogPath(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:      "gap in server-10",
-			indexFile: mustParseTestFile(t, "gap-server-10.yaml"),
+			name:      "filter by server-10 gtid and date",
+			indexFile: mustParseTestFile(t, "failover-1205-1208.yaml"),
+			fromGtid:  mustParseGtid(t, "0-10-40"),
+			untilTime: mustParseDate(t, "2026-02-04T12:05:00Z"),
+			wantPath: []string{
+				"server-10/mariadb-repl-bin.000004",
+				"server-10/mariadb-repl-bin.000005",
+				"server-10/mariadb-repl-bin.000006",
+			},
+			wantErr: false,
+		},
+		{
+			name:      "filter by server-11 gtid and date",
+			indexFile: mustParseTestFile(t, "failover-1205-1208.yaml"),
+			fromGtid:  mustParseGtid(t, "0-11-100"),
+			untilTime: mustParseDate(t, "2026-02-04T12:06:50Z"),
+			wantPath: []string{
+				"server-11/mariadb-repl-bin.000002",
+				"server-11/mariadb-repl-bin.000003",
+				"server-11/mariadb-repl-bin.000004",
+				"server-11/mariadb-repl-bin.000005",
+				"server-11/mariadb-repl-bin.000006",
+			},
+			wantErr: false,
+		},
+		{
+			name:      "failover at 12:05 from server-10 to server-10",
+			indexFile: mustParseTestFile(t, "failover-1205-1208.yaml"),
 			fromGtid:  mustParseGtid(t, "0-10-1"),
-			untilTime: time.Now(),
+			untilTime: mustParseDate(t, "2026-02-04T12:06:30Z"),
 			wantPath: []string{
 				"server-10/mariadb-repl-bin.000002",
-				"server-11/mariadb-repl-bin.000001",
+				"server-10/mariadb-repl-bin.000003",
 				"server-10/mariadb-repl-bin.000004",
+				"server-10/mariadb-repl-bin.000005",
+				"server-10/mariadb-repl-bin.000006",
+				// FAILOVER to server-11
+				"server-11/mariadb-repl-bin.000001",
+				"server-11/mariadb-repl-bin.000002",
+				"server-11/mariadb-repl-bin.000003",
+				"server-11/mariadb-repl-bin.000004",
+				"server-11/mariadb-repl-bin.000005",
 			},
 			wantErr: false,
 		},
@@ -103,6 +137,15 @@ func mustParseGtid(t *testing.T, s string) *mariadbrepl.Gtid {
 		t.Fatalf("failed to parse gtid %s: %v", s, err)
 	}
 	return g
+}
+
+func mustParseDate(t *testing.T, s string) time.Time {
+	t.Helper()
+	d, err := time.Parse(time.RFC3339, s)
+	if err != nil {
+		t.Fatalf("failed to parse date %s: %v", s, err)
+	}
+	return d
 }
 
 func getBinlogPath(binlogMetas []BinlogMetadata) []string {
