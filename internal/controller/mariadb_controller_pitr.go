@@ -49,7 +49,7 @@ func (r *MariaDBReconciler) reconcilePITR(ctx context.Context, mdb *mariadbv1alp
 	}
 	logger = logger.WithValues(
 		"start-gtid", startGtid,
-		"target-time", mdb.Spec.BootstrapFrom.TargetRecoveryTimeOrDefault(),
+		"target-time", mdb.Spec.BootstrapFrom.TargetRecoveryTimeOrDefault().Format(time.RFC3339),
 	)
 	if !mdb.IsReplayingBinlogs() || mdb.ReplayBinlogsError() != nil {
 		if result, err := r.reconcileReplayBinlogsError(ctx, mdb, startGtid, logger); !result.IsZero() || err != nil {
@@ -436,7 +436,7 @@ func (r *MariaDBReconciler) shouldReconcilePITR(ctx context.Context, mdb *mariad
 		return false, fmt.Errorf("error checking MariaDB health: %v", err)
 	}
 	if !healthy {
-		logger.V(1).Info("Some MariaDb Pods are not ready. Skipping PITR reconciliation...")
+		logger.V(1).Info("Some MariaDB Pods are not ready. Skipping PITR reconciliation...")
 		return false, nil
 	}
 	return true, nil
