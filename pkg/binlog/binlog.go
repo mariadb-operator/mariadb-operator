@@ -73,7 +73,7 @@ func (b *BinlogIndex) binlogPathWithBinlogs(binlogs []BinlogMetadata, fromGtid *
 			logger.V(1).Info(
 				"Next binlog is out of time range. Done.",
 				"binlog", binlog.BinlogFilename,
-				"time", binlog.FirstTime,
+				"time", binlog.FirstTime.Format(time.RFC3339),
 			)
 			return binlogs, nil
 		}
@@ -163,7 +163,7 @@ func serverKey(serverId uint32) string {
 func shouldFilterBinlog(binlog *BinlogMetadata, fromGtid *mariadbrepl.Gtid, untilTime time.Time, binlogLogger logr.Logger) (bool, error) {
 	logger := binlogLogger.WithValues(
 		"binlog", binlog.BinlogFilename,
-		"time", binlog.FirstTime,
+		"time", binlog.FirstTime.Format(time.RFC3339),
 		"start-gtid", fromGtid.String(),
 		"target-time", untilTime.Format(time.RFC3339),
 	).V(1)
