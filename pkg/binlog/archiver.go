@@ -90,12 +90,35 @@ func (a *Archiver) Start(ctx context.Context) error {
 func (a *Archiver) shouldArchiveBinlogs(mdb *mariadbv1alpha1.MariaDB) bool {
 	if mdb.Status.CurrentPrimary == nil ||
 		(mdb.Status.CurrentPrimary != nil && *mdb.Status.CurrentPrimary != a.env.PodName) {
-		a.logger.V(1).Info("Current primary not set or current Pod is a replica. Skipping binary log archival...")
+		a.logger.V(1).Info("Current primary not set or current Pod is a replica, skipping binary log archival...")
 		return false
 	}
-	// TODO: fine grained guard
-	if mdb.IsSwitchingPrimary() {
-		a.logger.V(1).Info("Switchover operation pending/ongoing. Skipping binary log archival...")
+	if mdb.IsRestoringBackup() {
+		a.logger.Info("Backup restoration in progress, skipping binary log archival...")
+		return false
+	}
+	if mdb.IsInitializing() {
+		a.logger.Info("Initialization in progress, skipping binary log archival...")
+		return false
+	}
+	if mdb.IsSwitchingPrimary() || mdb.IsReplicationSwitchoverRequired() {
+		a.logger.Info("Switchover operation pending/ongoing, skipping binary log archival...")
+		return false
+	}
+	if mdb.IsUpdating() || mdb.HasPendingUpdate() {
+		a.logger.Info("Update in progress, skipping binary log archival...")
+		return false
+	}
+	if mdb.IsResizingStorage() {
+		a.logger.Info("Storage resize in progress, skipping binary log archival...")
+		return false
+	}
+	if mdb.IsRecoveringReplicas() {
+		a.logger.Info("Replica recovery in progress, skipping binary log archival...")
+		return false
+	}
+	if mdb.HasGaleraNotReadyCondition() {
+		a.logger.Info("Galera not ready, skipping binary log archival...")
 		return false
 	}
 	return true
@@ -114,7 +137,7 @@ func (a *Archiver) archiveBinaryLogs(ctx context.Context, mdb *mariadbv1alpha1.M
 
 	storageAlreadyInit, err := a.checkStorageAlreadyInitialized(ctx, mdb, s3Client)
 	if err != nil {
-		return fmt.Errorf("error checking whether storaage is already initialized: %v", err)
+		return fmt.Errorf("error checking whether storage is already initialized: %v", err)
 	}
 	if storageAlreadyInit {
 		return errors.New("binary log storage is already initialized. Archival must start from a clean state")
