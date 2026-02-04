@@ -124,6 +124,12 @@ func insertMode(ctx context.Context, client *sql.Client) {
 	}
 }
 
+type row struct {
+	id        int64
+	value     int64
+	createdAt time.Time
+}
+
 func validateMode(ctx context.Context, client *sql.Client) {
 	query, args := buildValidateQuery(targetTime)
 	rows, err := client.Query(ctx, query, args...)
@@ -132,37 +138,38 @@ func validateMode(ctx context.Context, client *sql.Client) {
 	}
 	defer rows.Close()
 
-	var lastValue int64
 	var count int64
+	var lastRow row
 	for rows.Next() {
-		var id int64
-		var value int64
-		var createdAt time.Time
-		if err := rows.Scan(&id, &value, &createdAt); err != nil {
+		var currentRow row
+		if err := rows.Scan(&currentRow.id, &currentRow.value, &currentRow.createdAt); err != nil {
 			log.Fatalf("error scanning row: %v", err)
 		}
 		count++
-		if lastValue != 0 {
-			gap := time.Duration(value-lastValue) * time.Second
+		if lastRow.value != 0 {
+			gap := time.Duration(currentRow.value-lastRow.value) * time.Second
 			if gap > validateThreshold {
-				prevRow, err := getRowById(ctx, client, id-1)
+				prevRow, err := getRowById(ctx, client, currentRow.id-1)
 				if err != nil {
 					log.Fatalf("error getting previous row: %v", err)
 				}
 				log.Printf(`gap %v exceeds threshold %v.
-Last row: id=%d, value=%d, created_at=%v
-Current row: id=%d, value=%d, created_at=%v`,
+previous: id=%d, value=%d, created_at=%v
+current: id=%d, value=%d, created_at=%v`,
 					gap, validateThreshold,
 					prevRow.id, prevRow.value, prevRow.createdAt,
-					id, value, createdAt)
+					currentRow.id, currentRow.value, currentRow.createdAt)
 			}
 		}
-		lastValue = value
+		lastRow.id = currentRow.id
+		lastRow.value = currentRow.value
+		lastRow.createdAt = currentRow.createdAt
 	}
 	if err := rows.Err(); err != nil {
 		log.Fatalf("error iterating rows: %v", err)
 	}
 	log.Printf("processed %d rows", count)
+	log.Printf("last processed: id=%d, value=%d, created_at=%v", lastRow.id, lastRow.value, lastRow.createdAt)
 }
 
 func buildValidateQuery(targetTime *time.Time) (string, []interface{}) {
@@ -176,11 +183,7 @@ func buildValidateQuery(targetTime *time.Time) (string, []interface{}) {
 	return query, args
 }
 
-func getRowById(ctx context.Context, client *sql.Client, id int64) (row struct {
-	id        int64
-	value     int64
-	createdAt time.Time
-}, err error) {
+func getRowById(ctx context.Context, client *sql.Client, id int64) (row row, err error) {
 	query := fmt.Sprintf("SELECT id, value, created_at FROM %s.%s WHERE id = ?", escape(database), escape(table))
 	rowPtr := &row
 	err = client.QueryRow(ctx, query, id).Scan(&rowPtr.id, &rowPtr.value, &rowPtr.createdAt)
