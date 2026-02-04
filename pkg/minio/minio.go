@@ -30,14 +30,14 @@ type MinioOpts struct {
 
 func (o *MinioOpts) getCredentials() *credentials.Credentials {
 	// Use a chained credentials provider to support multiple sources:
-	// 1. Environment variables (set by custom resource)
-	// 2. IAM role (for EC2 Meta Data, EKS service accounts when environment variables are not set)
-	// 3. Credentials providers passed as functional option
-	providers := []credentials.Provider{
+	// 1. Credentials providers passed as functional option
+	// 2. Environment variables (set by custom resource)
+	// 3. IAM role (for EC2 Meta Data, EKS service accounts when environment variables are not set)
+	providers := o.CredsProviders
+	providers = append(providers, []credentials.Provider{
 		&credentials.EnvAWS{},
 		&credentials.IAM{},
-	}
-	providers = append(providers, o.CredsProviders...)
+	}...)
 	return credentials.NewChainCredentials(providers)
 }
 
