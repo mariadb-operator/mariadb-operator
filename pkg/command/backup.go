@@ -597,10 +597,14 @@ func (b *BackupCommand) mariadbBinlogArgs(mariadb *mariadbv1alpha1.MariaDB) ([]s
 		// See:
 		// https://mariadb.com/docs/server/clients-and-utilities/logging-tools/mariadb-binlog/mariadb-binlog-options#j-pos-start-position-pos
 		// https://jira.mariadb.org/browse/MDEV-37231
+		// Note:
+		// mariadb-binlog assumes the same timezone as the OS where it runs.
+		// Here we enforce UTC and use a format compatible with the server.
+		// The server can be in any timezone, mariadb-binlog handles that.
 		fmt.Sprintf(
-			"mariadb-binlog --start-position=\"%s\" --stop-datetime=\"%s\" %s | %s",
+			"TZ=UTC mariadb-binlog --start-position=\"%s\" --stop-datetime=\"%s\" %s | %s",
 			b.StartGtid.String(),
-			b.TargetTime.Local().Format(time.DateTime),
+			b.TargetTime.UTC().Format(time.DateTime),
 			b.getTargetFilePath(),
 			mariadbCmd,
 		),
