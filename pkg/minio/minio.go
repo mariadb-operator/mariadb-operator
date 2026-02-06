@@ -194,10 +194,21 @@ func IsNotFound(err error) bool {
 	return false
 }
 
+// StatObjectOptions are the same as normal get ones and do not provide extra functionality
+// e.g.: type StatObjectOptions = GetObjectOptions
+func (c *Client) StatObjectOptions() (*minio.GetObjectOptions, error) {
+	return c.getObjectOptions()
+}
+
 func (c *Client) Exists(ctx context.Context, fileName string) (bool, error) {
+	statOpts, err := c.getObjectOptions()
+	if err != nil {
+		return false, err
+	}
+
 	prefixedFilePath := c.PrefixedFileName(fileName)
 
-	_, err := c.StatObject(ctx, c.bucket, prefixedFilePath, minio.StatObjectOptions{})
+	_, err = c.StatObject(ctx, c.bucket, prefixedFilePath, *statOpts)
 	if err != nil {
 		if IsNotFound(err) {
 			return false, nil
