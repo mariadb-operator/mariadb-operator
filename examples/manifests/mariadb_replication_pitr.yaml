@@ -60,6 +60,7 @@ spec:
         key: ca.crt
   compression: gzip
   archiveTimeout: 1h
+  strictMode: false
 ---
 apiVersion: k8s.mariadb.com/v1alpha1
 kind: PhysicalBackup

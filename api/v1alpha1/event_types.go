@@ -74,6 +74,6 @@ const (
 	// ReasonMariaDBReplicaRecoveryError indicates that an error has occurred during the MariaDB instance replica recovery operation.
 	ReasonMariaDBReplicaRecoveryError = "MariaDBReplicaRecoveryError"
 
-	// ReasonMariaDBInvalidBinlogPath indicates that an error has occurred when validating the binlog path to be used for point-in-time recovery.
-	ReasonMariaDBInvalidBinlogPath = "ReasonMariaDBInvalidBinlogPath"
+	// ReasonMariaDBInvalidBinlogTimeline indicates that an error has occurred when validating the binlog timeline to be used for point-in-time recovery.
+	ReasonMariaDBInvalidBinlogTimeline = "ReasonMariaDBInvalidBinlogTimeline"
 )

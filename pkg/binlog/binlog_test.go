@@ -9,35 +9,46 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/google/go-cmp/cmp"
 	mariadbrepl "github.com/mariadb-operator/mariadb-operator/v25/pkg/replication"
+	"github.com/stretchr/testify/assert"
 	"sigs.k8s.io/yaml"
 )
 
-func TestBinlogPath(t *testing.T) {
-	logger := logr.Discard()
-
+func TestBuildTimeline(t *testing.T) {
 	tests := []struct {
-		name      string
-		indexFile *BinlogIndex
-		fromGtid  *mariadbrepl.Gtid
-		untilTime time.Time
-		wantPath  []string
-		wantErr   bool
+		name       string
+		indexFile  *BinlogIndex
+		startGtid  *mariadbrepl.Gtid
+		targetTime time.Time
+		strictMode bool
+		wantPath   []string
+		wantErr    bool
 	}{
 		{
-			name:      "single GTID binlog in server-10",
-			indexFile: mustParseTestFile(t, "single-gtid-binlog-server-10.yaml"),
-			fromGtid:  mustParseGtid(t, "0-10-1"),
-			untilTime: time.Now(),
+			name:       "single binlog",
+			indexFile:  mustParseTestFile(t, "single-binlog.yaml"),
+			startGtid:  mustParseGtid(t, "0-10-1"),
+			targetTime: time.Now(),
+			strictMode: false,
 			wantPath: []string{
 				"server-10/mariadb-repl-bin.000002",
 			},
 			wantErr: false,
 		},
 		{
-			name:      "multiple GTID binlog in server-10",
-			indexFile: mustParseTestFile(t, "multiple-gtid-binlog-server-10.yaml"),
-			fromGtid:  mustParseGtid(t, "0-10-1"),
-			untilTime: time.Now(),
+			name:       "single binlog - strict",
+			indexFile:  mustParseTestFile(t, "single-binlog.yaml"),
+			startGtid:  mustParseGtid(t, "0-10-1"),
+			targetTime: time.Now(),
+			strictMode: true,
+			wantPath:   nil,
+			wantErr:    true,
+		},
+		{
+			name:       "multiple binlogs",
+			indexFile:  mustParseTestFile(t, "multiple-binlogs.yaml"),
+			startGtid:  mustParseGtid(t, "0-10-1"),
+			targetTime: mustParseDate(t, "2026-01-20T11:11:26Z"),
+			strictMode: false,
 			wantPath: []string{
 				"server-10/mariadb-repl-bin.000002",
 				"server-10/mariadb-repl-bin.000003",
@@ -53,10 +64,20 @@ func TestBinlogPath(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:      "filter by server-10 gtid and date",
-			indexFile: mustParseTestFile(t, "failover-1205-1208.yaml"),
-			fromGtid:  mustParseGtid(t, "0-10-40"),
-			untilTime: mustParseDate(t, "2026-02-04T12:05:00Z"),
+			name:       "multiple binlogs - strict",
+			indexFile:  mustParseTestFile(t, "multiple-binlogs.yaml"),
+			startGtid:  mustParseGtid(t, "0-10-1"),
+			targetTime: time.Now(),
+			strictMode: true,
+			wantPath:   nil,
+			wantErr:    true,
+		},
+		{
+			name:       "filter by server-10 gtid and date",
+			indexFile:  mustParseTestFile(t, "failover-1205-1208.yaml"),
+			startGtid:  mustParseGtid(t, "0-10-40"),
+			targetTime: mustParseDate(t, "2026-02-04T12:05:00Z"),
+			strictMode: true,
 			wantPath: []string{
 				"server-10/mariadb-repl-bin.000004",
 				"server-10/mariadb-repl-bin.000005",
@@ -65,10 +86,11 @@ func TestBinlogPath(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:      "filter by server-11 gtid and date",
-			indexFile: mustParseTestFile(t, "failover-1205-1208.yaml"),
-			fromGtid:  mustParseGtid(t, "0-11-100"),
-			untilTime: mustParseDate(t, "2026-02-04T12:06:50Z"),
+			name:       "filter by server-11 gtid and date",
+			indexFile:  mustParseTestFile(t, "failover-1205-1208.yaml"),
+			startGtid:  mustParseGtid(t, "0-11-100"),
+			targetTime: mustParseDate(t, "2026-02-04T12:06:56Z"),
+			strictMode: true,
 			wantPath: []string{
 				"server-11/mariadb-repl-bin.000002",
 				"server-11/mariadb-repl-bin.000003",
@@ -79,10 +101,58 @@ func TestBinlogPath(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:      "failover at 12:05 from server-10 to server-10",
-			indexFile: mustParseTestFile(t, "failover-1205-1208.yaml"),
-			fromGtid:  mustParseGtid(t, "0-10-1"),
-			untilTime: mustParseDate(t, "2026-02-04T12:06:30Z"),
+			name:       "failover",
+			indexFile:  mustParseTestFile(t, "failover.yaml"),
+			startGtid:  mustParseGtid(t, "0-10-1"),
+			targetTime: time.Now(),
+			strictMode: false,
+			wantPath: []string{
+				"server-10/mariadb-repl-bin.000002",
+				"server-10/mariadb-repl-bin.000003",
+				"server-10/mariadb-repl-bin.000004",
+				"server-10/mariadb-repl-bin.000005",
+			},
+			wantErr: false,
+		},
+		{
+			name:       "failover - strict",
+			indexFile:  mustParseTestFile(t, "failover.yaml"),
+			startGtid:  mustParseGtid(t, "0-10-1"),
+			targetTime: time.Now(),
+			strictMode: true,
+			wantPath:   nil,
+			wantErr:    true,
+		},
+		{
+			name:       "failover no stop event",
+			indexFile:  mustParseTestFile(t, "failover-no-stop-event.yaml"),
+			startGtid:  mustParseGtid(t, "0-10-1"),
+			targetTime: time.Now(),
+			strictMode: false,
+			wantPath: []string{
+				"server-10/mariadb-repl-bin.000002",
+				"server-10/mariadb-repl-bin.000003",
+				"server-10/mariadb-repl-bin.000004",
+				"server-10/mariadb-repl-bin.000005",
+				"server-10/mariadb-repl-bin.000006",
+			},
+			wantErr: false,
+		},
+		{
+			name:       "failover no stop event - strict",
+			indexFile:  mustParseTestFile(t, "failover-no-stop-event.yaml"),
+			startGtid:  mustParseGtid(t, "0-10-1"),
+			targetTime: time.Now(),
+			strictMode: true,
+			wantPath:   nil,
+			wantErr:    true,
+		},
+		{
+			name:       "failover at 12:05",
+			indexFile:  mustParseTestFile(t, "failover-1205-1208.yaml"),
+			startGtid:  mustParseGtid(t, "0-10-1"),
+			targetTime: mustParseDate(t, "2026-02-04T12:06:39Z"),
+			strictMode: false,
 			wantPath: []string{
 				"server-10/mariadb-repl-bin.000002",
 				"server-10/mariadb-repl-bin.000003",
@@ -98,19 +168,75 @@ func TestBinlogPath(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name:       "failover at 12:05 - strict",
+			indexFile:  mustParseTestFile(t, "failover-1205-1208.yaml"),
+			startGtid:  mustParseGtid(t, "0-10-1"),
+			targetTime: mustParseDate(t, "2026-02-04T12:06:39Z"),
+			strictMode: true,
+			wantPath: []string{
+				"server-10/mariadb-repl-bin.000002",
+				"server-10/mariadb-repl-bin.000003",
+				"server-10/mariadb-repl-bin.000004",
+				"server-10/mariadb-repl-bin.000005",
+				"server-10/mariadb-repl-bin.000006",
+				// FAILOVER to server-11
+				"server-11/mariadb-repl-bin.000001",
+				"server-11/mariadb-repl-bin.000002",
+				"server-11/mariadb-repl-bin.000003",
+				"server-11/mariadb-repl-bin.000004",
+				"server-11/mariadb-repl-bin.000005",
+				// FAILOVER to server-10
+			},
+			wantErr: false,
+		},
+		{
+			name:       "failover at 12:05 and 12:08",
+			indexFile:  mustParseTestFile(t, "failover-1205-1208.yaml"),
+			startGtid:  mustParseGtid(t, "0-10-1"),
+			targetTime: mustParseDate(t, "2026-02-04T12:08:32Z"), // server-10/mariadb-repl-bin.000008
+			strictMode: false,
+			wantPath: []string{
+				"server-10/mariadb-repl-bin.000002",
+				"server-10/mariadb-repl-bin.000003",
+				"server-10/mariadb-repl-bin.000004",
+				"server-10/mariadb-repl-bin.000005",
+				"server-10/mariadb-repl-bin.000006",
+				// FAILOVER to server-11
+				"server-11/mariadb-repl-bin.000001",
+				"server-11/mariadb-repl-bin.000002",
+				"server-11/mariadb-repl-bin.000003",
+				"server-11/mariadb-repl-bin.000004",
+				"server-11/mariadb-repl-bin.000005",
+				"server-11/mariadb-repl-bin.000006",
+				"server-11/mariadb-repl-bin.000007",
+				"server-11/mariadb-repl-bin.000008",
+				"server-11/mariadb-repl-bin.000009",
+				// FAILOVER to server-10
+			},
+			wantErr: false,
+		},
+		{
+			name:       "failover at 12:05 and 12:08 - strict",
+			indexFile:  mustParseTestFile(t, "failover-1205-1208.yaml"),
+			startGtid:  mustParseGtid(t, "0-10-1"),
+			targetTime: mustParseDate(t, "2026-02-04T12:08:32Z"), // server-10/mariadb-repl-bin.000008
+			strictMode: true,
+			wantPath:   nil,
+			wantErr:    true,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			binlogMetas, err := tt.indexFile.BinlogPath(tt.fromGtid, tt.untilTime, logger)
-			if tt.wantErr && err == nil {
-				t.Error("expect error to have occurred, got nil")
-			}
-			if !tt.wantErr && err != nil {
-				t.Errorf("expect error to not have occurred, got: %v", err)
-			}
-			if diff := cmp.Diff(getBinlogPath(binlogMetas), tt.wantPath); diff != "" {
-				t.Errorf("unexpected binlog path (-want +got):\n%s", diff)
+			binlogMetas, err := tt.indexFile.BuildTimeline(tt.startGtid, tt.targetTime, tt.strictMode, logr.Discard())
+			if tt.wantErr {
+				assert.Error(t, err, "expected error")
+			} else {
+				assert.NoError(t, err, "unexpected error")
+				if diff := cmp.Diff(getBinlogTimeline(binlogMetas), tt.wantPath); diff != "" {
+					t.Errorf("unexpected binlog timeline (-want +got):\n%s", diff)
+				}
 			}
 		})
 	}
@@ -148,7 +274,7 @@ func mustParseDate(t *testing.T, s string) time.Time {
 	return d
 }
 
-func getBinlogPath(binlogMetas []BinlogMetadata) []string {
+func getBinlogTimeline(binlogMetas []BinlogMetadata) []string {
 	path := make([]string, len(binlogMetas))
 	for i, binlogMeta := range binlogMetas {
 		path[i] = binlogMeta.ObjectStoragePath()

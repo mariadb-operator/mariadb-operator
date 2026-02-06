@@ -960,10 +960,11 @@ func TestMariadbOperatorPITR(t *testing.T) {
 	startGtid := mustParseGtid(t, "0-10-1")
 	targetTime := time.Now()
 	tests := []struct {
-		name     string
-		opts     []BackupOpt
-		wantErr  bool
-		wantArgs []string
+		name       string
+		opts       []BackupOpt
+		strictMode bool
+		wantErr    bool
+		wantArgs   []string
 	}{
 		{
 			name: "basic PITR without S3",
@@ -1063,6 +1064,27 @@ func TestMariadbOperatorPITR(t *testing.T) {
 			},
 		},
 		{
+			name: "PITR with strict mode",
+			opts: []BackupOpt{
+				WithPath("/binlogs", "/binlogs/file"),
+				WithStartGtid(startGtid),
+				WithTargetTime(targetTime),
+			},
+			strictMode: true,
+			wantArgs: []string{
+				"pitr",
+				"--path",
+				"/binlogs",
+				"--target-file-path",
+				"/binlogs/file",
+				"--start-gtid",
+				"0-10-1",
+				"--target-time",
+				targetTime.Format(time.RFC3339),
+				"--strict-mode",
+			},
+		},
+		{
 			name: "PITR with all options",
 			opts: []BackupOpt{
 				WithPath("/binlogs", "/binlogs/file"),
@@ -1075,6 +1097,7 @@ func TestMariadbOperatorPITR(t *testing.T) {
 				WithCompression(mariadbv1alpha1.CompressBzip2),
 				WithLogLevel("info"),
 			},
+			strictMode: true,
 			wantArgs: []string{
 				"pitr",
 				"--path",
@@ -1085,6 +1108,7 @@ func TestMariadbOperatorPITR(t *testing.T) {
 				"0-10-1",
 				"--target-time",
 				targetTime.Format(time.RFC3339),
+				"--strict-mode",
 				"--s3",
 				"--s3-bucket",
 				"test-bucket",
@@ -1125,7 +1149,7 @@ func TestMariadbOperatorPITR(t *testing.T) {
 				t.Fatalf("NewBackupCommand() error = %v", err)
 			}
 
-			cmd, err := b.MariadbOperatorPITR()
+			cmd, err := b.MariadbOperatorPITR(tt.strictMode)
 			if tt.wantErr {
 				if err == nil {
 					t.Errorf("MariadbOperatorPITR() error = nil, wantErr = true")

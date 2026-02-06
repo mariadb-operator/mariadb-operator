@@ -648,7 +648,7 @@ func (b *Builder) BuildPITRJob(key types.NamespacedName, pitr *mariadbv1alpha1.P
 
 	volumes, volumeMounts := jobPITRVolumes(binlogsVolumeSource, &pitr.Spec.S3, mariadb)
 
-	opteratorPITRCmd, err := cmd.MariadbOperatorPITR()
+	opteratorPITRCmd, err := cmd.MariadbOperatorPITR(pitr.Spec.StrictMode)
 	if err != nil {
 		return nil, fmt.Errorf("error getting operator PITR command: %v", err)
 	}

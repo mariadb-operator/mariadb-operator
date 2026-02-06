@@ -171,14 +171,14 @@ func (r *MariaDBReconciler) reconcileReplayBinlogsError(ctx context.Context, mar
 	val, err := s3Client.GetCredentials().GetWithContext(nil)
 	// S3 credentials are not static or AWS env variables are not set in the operator Pod.
 	if err != nil || val == (credentials.Value{}) {
-		logger.Info("Object storage credentials not found. Skipping binlog path validation...", "err", err)
+		logger.Info("Object storage credentials not found. Skipping binlog timeline validation...", "err", err)
 		return ctrl.Result{}, nil
 	}
 
-	logger.Info("Validating binlog path")
-	if err := r.validateBinlogPath(ctx, mariadb, startGtid, s3Client, logger); err != nil {
-		errMsg := fmt.Sprintf("Invalid binary log path: %v", err)
-		r.Recorder.Event(mariadb, corev1.EventTypeWarning, mariadbv1alpha1.ReasonMariaDBInvalidBinlogPath, errMsg)
+	logger.Info("Validating binlog timeline")
+	if err := r.validateBinlogTimeline(ctx, mariadb, startGtid, pitr.Spec.StrictMode, s3Client, logger); err != nil {
+		errMsg := fmt.Sprintf("Invalid binary log timeline: %v", err)
+		r.Recorder.Event(mariadb, corev1.EventTypeWarning, mariadbv1alpha1.ReasonMariaDBInvalidBinlogTimeline, errMsg)
 
 		if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
 			condition.SetReplayBinlogsError(status, errMsg)
@@ -186,15 +186,13 @@ func (r *MariaDBReconciler) reconcileReplayBinlogsError(ctx context.Context, mar
 		}); err != nil {
 			return ctrl.Result{}, fmt.Errorf("error patching MariaDB status: %v", err)
 		}
-
-		logger.Error(err, errMsg)
 		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 	}
 	return ctrl.Result{}, nil
 }
 
-func (r *MariaDBReconciler) validateBinlogPath(ctx context.Context, mdb *mariadbv1alpha1.MariaDB, startGtid *replication.Gtid,
-	s3Client *minio.Client, logger logr.Logger) error {
+func (r *MariaDBReconciler) validateBinlogTimeline(ctx context.Context, mdb *mariadbv1alpha1.MariaDB, startGtid *replication.Gtid,
+	strictMode bool, s3Client *minio.Client, logger logr.Logger) error {
 	indexReader, err := s3Client.GetObjectWithOptions(ctx, binlog.BinlogIndexName)
 	if err != nil {
 		return fmt.Errorf("error getting binlog index: %v", err)
@@ -210,10 +208,10 @@ func (r *MariaDBReconciler) validateBinlogPath(ctx context.Context, mdb *mariadb
 	}
 
 	targetTime := mdb.Spec.BootstrapFrom.TargetRecoveryTimeOrDefault()
-	binlogMetas, err := index.BinlogPath(startGtid, targetTime, logger)
+	binlogMetas, err := index.BuildTimeline(startGtid, targetTime, strictMode, logger)
 	if err != nil {
 		return fmt.Errorf(
-			"error getting binlog path between GTID %s and target time %s: %v",
+			"error getting binlog timeline between GTID %s and target time %s: %v",
 			startGtid.String(),
 			targetTime.Format(time.RFC3339),
 			err,
@@ -223,7 +221,7 @@ func (r *MariaDBReconciler) validateBinlogPath(ctx context.Context, mdb *mariadb
 	for i, meta := range binlogMetas {
 		binlogPath[i] = meta.ObjectStoragePath()
 	}
-	logger.Info("Got binlog path", "path", binlogPath)
+	logger.Info("Got binlog timeline", "timeline", binlogPath)
 
 	return nil
 }

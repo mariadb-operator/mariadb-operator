@@ -427,7 +427,7 @@ fi`,
 	return NewBashCommand(cmds), nil
 }
 
-func (b *BackupCommand) MariadbOperatorPITR() (*Command, error) {
+func (b *BackupCommand) MariadbOperatorPITR(strictMode bool) (*Command, error) {
 	if b.StartGtid == nil {
 		return nil, errors.New("startGtid must be set")
 	}
@@ -441,6 +441,9 @@ func (b *BackupCommand) MariadbOperatorPITR() (*Command, error) {
 		b.StartGtid.String(),
 		"--target-time",
 		b.TargetTime.Format(time.RFC3339),
+	}
+	if strictMode {
+		args = append(args, "--strict-mode")
 	}
 	args = append(args, b.s3Args()...)
 
