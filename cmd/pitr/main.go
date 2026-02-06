@@ -34,6 +34,7 @@ var (
 
 	startGtidRaw  string
 	targetTimeRaw string
+	strictMode    bool
 
 	s3           bool
 	s3Bucket     string
@@ -60,6 +61,10 @@ func init() {
 		"Initial GTID (global transaction ID) from which the binlogs will be pulled.")
 	RootCmd.Flags().StringVar(&targetTimeRaw, "target-time", "",
 		"RFC3339 (1970-01-01T00:00:00Z) date and time that defines the recovery point-in-time.")
+	RootCmd.Flags().BoolVar(&strictMode, "strict-mode", false,
+		"Strict mode that controls the behavior when a point-in-time restoration cannot reach the exact target time."+
+			"When enabled, returns an error and avoids replaying binary logs if target time is not reached."+
+			"When disabled (default), replays available binary logs until the last recoverable time.")
 
 	RootCmd.Flags().BoolVar(&s3, "s3", false, "Enable S3 binlog storage.")
 	RootCmd.Flags().StringVar(&s3Bucket, "s3-bucket", "binlogs", "Name of the bucket to store binary logs.")
@@ -117,14 +122,14 @@ var RootCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		logger.Info("Building binlog path")
-		binlogMetas, err := binlogIndex.BinlogPath(startGtid, targetTime, logger.WithName("binlog-path"))
+		logger.Info("Building binlog timeline")
+		binlogMetas, err := binlogIndex.BuildTimeline(startGtid, targetTime, strictMode, logger.WithName("binlog-path"))
 		if err != nil {
-			logger.Error(err, "Error getting binlog path")
+			logger.Error(err, "Error getting binlog timeline")
 			os.Exit(1)
 		}
-		binlogPath := getBinlogPath(binlogMetas)
-		logger.Info("Got binlog path", "path", binlogPath)
+		binlogPath := getBinlogTimeline(binlogMetas)
+		logger.Info("Got binlog timeline", "path", binlogPath)
 
 		logger.Info("Pulling binlogs into staging area", "staging-path", path, "compression", calgs)
 		if err := pullBinlogs(ctx, binlogPath, calgs, s3Client, logger.WithName("storage")); err != nil {
@@ -201,7 +206,7 @@ func getBinlogIndex(ctx context.Context, s3Client *mariadbminio.Client) (*binlog
 	return &bi, nil
 }
 
-func getBinlogPath(binlogMetas []binlog.BinlogMetadata) []string {
+func getBinlogTimeline(binlogMetas []binlog.BinlogMetadata) []string {
 	binlogPath := make([]string, len(binlogMetas))
 	for i, binlogMeta := range binlogMetas {
 		binlogPath[i] = binlogMeta.ObjectStoragePath()

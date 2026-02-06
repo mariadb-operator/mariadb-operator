@@ -1,0 +1,80 @@
+apiVersion: v1
+binlogs:
+  server-10:
+  - binlogFilename: mariadb-repl-bin.000001
+    binlogVersion: 4
+    firstGtid: null
+    firstTime: "2026-02-04T12:02:54Z"
+    lastGtid: null
+    lastTime: "2026-02-04T12:02:56Z"
+    logPosition: 358
+    previousGtids: []
+    rotateEvent: false
+    serverId: 10
+    serverVersion: 11.8.5-MariaDB-ubu2404-log
+    stopEvent: true
+  - binlogFilename: mariadb-repl-bin.000002
+    binlogVersion: 4
+    firstGtid: 0-10-1
+    firstTime: "2026-02-04T12:02:56Z"
+    lastGtid: 0-10-18
+    lastTime: "2026-02-04T12:04:08Z"
+    logPosition: 4299
+    previousGtids: []
+    rotateEvent: true
+    serverId: 10
+    serverVersion: 11.8.5-MariaDB-ubu2404-log
+    stopEvent: false
+  - binlogFilename: mariadb-repl-bin.000003
+    binlogVersion: 4
+    firstGtid: 0-10-19
+    firstTime: "2026-02-04T12:04:08Z"
+    lastGtid: 0-10-35
+    lastTime: "2026-02-04T12:04:25Z"
+    logPosition: 4278
+    previousGtids:
+    - 0-10-18
+    rotateEvent: true
+    serverId: 10
+    serverVersion: 11.8.5-MariaDB-ubu2404-log
+    stopEvent: false
+  - binlogFilename: mariadb-repl-bin.000004
+    binlogVersion: 4
+    firstGtid: 0-10-36
+    firstTime: "2026-02-04T12:04:25Z"
+    lastGtid: 0-10-52
+    lastTime: "2026-02-04T12:04:42Z"
+    logPosition: 4278
+    previousGtids:
+    - 0-10-35
+    rotateEvent: true
+    serverId: 10
+    serverVersion: 11.8.5-MariaDB-ubu2404-log
+    stopEvent: false
+  - binlogFilename: mariadb-repl-bin.000005
+    binlogVersion: 4
+    firstGtid: 0-10-53
+    firstTime: "2026-02-04T12:04:42Z"
+    lastGtid: 0-10-69
+    lastTime: "2026-02-04T12:04:59Z"
+    logPosition: 4278
+    previousGtids:
+    - 0-10-52
+    rotateEvent: true
+    serverId: 10
+    serverVersion: 11.8.5-MariaDB-ubu2404-log
+    stopEvent: false
+  # FAILOVER to server-11
+  server-11:
+  - binlogFilename: mariadb-repl-bin.000001
+    binlogVersion: 4
+    firstGtid: 0-11-71
+    firstTime: "2026-02-04T12:03:11Z"
+    lastGtid: 0-11-88
+    lastTime: "2026-02-04T12:05:31Z"
+    logPosition: 4335
+    previousGtids: []
+    rotateEvent: true
+    serverId: 11
+    serverVersion: 11.8.5-MariaDB-ubu2404-log
+    stopEvent: false

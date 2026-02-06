@@ -25,6 +25,12 @@ type PointInTimeRecoverySpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	ArchiveTimeout *metav1.Duration `json:"archiveTimeout,omitempty"`
+	// StrictMode controls the behavior when a point-in-time restoration cannot reach the exact target time:
+	// When enabled: Returns an error and avoids replaying binary logs if target time is not reached.
+	// When disabled (default): Replays available binary logs until the last recoverable time. It logs logs an error if target time is not reached.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	StrictMode bool `json:"strictMode"`
 }
 
 // +kubebuilder:object:root=true

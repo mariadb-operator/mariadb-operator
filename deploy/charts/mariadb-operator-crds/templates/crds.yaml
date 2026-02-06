@@ -12044,6 +12044,12 @@ spec:
                 - bucket
                 - endpoint
                 type: object
+              strictMode:
+                description: |-
+                  StrictMode controls the behavior when a point-in-time restoration cannot reach the exact target time:
+                  When enabled: Returns an error and avoids replaying binary logs if target time is not reached.
+                  When disabled (default): Replays available binary logs until the last recoverable time. It logs logs an error if target time is not reached.
+                type: boolean
             required:
             - physicalBackupRef
             - s3

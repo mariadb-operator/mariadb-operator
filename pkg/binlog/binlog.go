@@ -47,38 +47,43 @@ func (b *BinlogIndex) Add(serverId uint32, meta BinlogMetadata) {
 	b.Binlogs[serverKey(serverId)] = append(b.Binlogs[serverKey(serverId)], meta)
 }
 
-func (b *BinlogIndex) BinlogPath(fromGtid *mariadbrepl.Gtid, untilTime time.Time, logger logr.Logger) ([]BinlogMetadata, error) {
-	return b.binlogPathWithBinlogs(nil, fromGtid, untilTime, logger)
+func (b *BinlogIndex) BuildTimeline(starGtid *mariadbrepl.Gtid, targetTime time.Time, strictMode bool,
+	logger logr.Logger) ([]BinlogMetadata, error) {
+	return b.buildTimelineWithBinlogs(nil, starGtid, targetTime, strictMode, logger)
 }
 
-func (b *BinlogIndex) binlogPathWithBinlogs(binlogs []BinlogMetadata, fromGtid *mariadbrepl.Gtid, untilTime time.Time,
-	binlogLogger logr.Logger) ([]BinlogMetadata, error) {
-	currentServerKey := serverKey(fromGtid.ServerID)
+func (b *BinlogIndex) buildTimelineWithBinlogs(binlogs []BinlogMetadata, startGtid *mariadbrepl.Gtid, targetTime time.Time,
+	strictMode bool, binlogLogger logr.Logger) ([]BinlogMetadata, error) {
+	currentServerKey := serverKey(startGtid.ServerID)
 	logger := binlogLogger.WithValues(
 		"num-binlogs", len(binlogs),
-		"start-gtid", fromGtid.String(),
-		"target-time", untilTime.Format(time.RFC3339),
+		"start-gtid", startGtid.String(),
+		"target-time", targetTime.Format(time.RFC3339),
+		"strict-mode", strictMode,
 		"server", currentServerKey,
 	)
-	logger.Info("Building binlog path")
+	logger.Info("Building binlog timeline")
 
 	binlogsToProcess, ok := b.Binlogs[currentServerKey]
 	if !ok {
 		return nil, fmt.Errorf("binlogs for server %s not found", currentServerKey)
 	}
+	hasReachedTargetTime := false
+	var currentTime metav1.Time
 
 	for _, binlog := range binlogsToProcess {
 		// next binlog is out of time range, done!
-		if binlog.FirstTime.After(untilTime) {
+		if binlog.FirstTime.After(targetTime) {
 			logger.V(1).Info(
 				"Next binlog is out of time range. Done.",
 				"binlog", binlog.BinlogFilename,
 				"time", binlog.FirstTime.Format(time.RFC3339),
 			)
-			return binlogs, nil
+			hasReachedTargetTime = true
+			break
 		}
 
-		shouldFilter, err := shouldFilterBinlog(&binlog, fromGtid, untilTime, logger)
+		shouldFilter, err := shouldFilterBinlog(&binlog, startGtid, targetTime, logger)
 		if err != nil {
 			return nil, fmt.Errorf("error determining whether binlog %s should be filtered: %v", binlog.BinlogFilename, err)
 		}
@@ -102,27 +107,44 @@ func (b *BinlogIndex) binlogPathWithBinlogs(binlogs []BinlogMetadata, fromGtid *
 					"binlog", binlog.BinlogFilename,
 					"gtid", binlog.FirstGtid.String(),
 				)
-				nextGtid, err := b.findNextGtidInOtherServer(&lastBinlog, currentServerKey, untilTime, logger.WithName("gtid-gap"))
+				nextGtid, err := b.findNextGtidInOtherServer(&lastBinlog, currentServerKey, targetTime, logger.WithName("gtid-gap"))
 				if err != nil {
 					return nil, fmt.Errorf("unable to find next GTID: %v", err)
 				}
-				return b.binlogPathWithBinlogs(binlogs, nextGtid, untilTime, logger)
+				if nextGtid == nil {
+					break // stop processing binlogs when a gap is detected
+				}
+				return b.buildTimelineWithBinlogs(binlogs, nextGtid, targetTime, strictMode, logger)
 			}
 		}
 
 		binlogs = append(binlogs, binlog)
+		currentTime = binlog.LastTime
+
+		if binlog.LastTime.Time.Equal(targetTime) {
+			logger.V(1).Info(
+				"Found binlog with exact target time. Done.",
+				"binlog", binlog.BinlogFilename,
+				"time", binlog.LastTime.Format(time.RFC3339),
+			)
+			hasReachedTargetTime = true
+			break
+		}
 	}
 	if len(binlogs) == 0 {
 		return nil, errors.New("no binlogs were found")
 	}
-	lastBinlog := binlogs[len(binlogs)-1]
-
-	// binlog path may not be complete after processing all server binlogs
-	nextGtid, err := b.findNextGtidInOtherServer(&lastBinlog, currentServerKey, untilTime, logger)
-	if nextGtid != nil && err == nil {
-		return b.binlogPathWithBinlogs(binlogs, nextGtid, untilTime, logger)
+	if !hasReachedTargetTime {
+		err := fmt.Errorf(
+			"timeline did not reach target time: %s, last recoverable time: %s",
+			targetTime.Format(time.RFC3339),
+			currentTime.Format(time.RFC3339),
+		)
+		logger.Error(err, "Error building binlog timeline")
+		if strictMode {
+			return nil, err
+		}
 	}
-
 	return binlogs, nil
 }
 
@@ -132,10 +154,12 @@ func (b *BinlogIndex) findNextGtidInOtherServer(lastBinlog *BinlogMetadata, curr
 		return nil, errors.New("last processed binlog must be set")
 	}
 	if lastBinlog.LastGtid == nil {
-		return nil, fmt.Errorf("last processed binlog %s must have last GTID set", lastBinlog.BinlogFilename)
+		logger.Info("Last processed binlog must have last GTID set. Skipping...", "binlog", lastBinlog.BinlogFilename)
+		return nil, nil
 	}
 	if !lastBinlog.StopEvent {
-		return nil, fmt.Errorf("last processed binlog %s must have a stop event", lastBinlog.BinlogFilename)
+		logger.Info("Last processed binlog must have a stop event. Skipping...", "binlog", lastBinlog.BinlogFilename)
+		return nil, nil
 	}
 	for serverKey, binlogs := range b.Binlogs {
 		if serverKey == currentServer {
@@ -159,7 +183,7 @@ func (b *BinlogIndex) findNextGtidInOtherServer(lastBinlog *BinlogMetadata, curr
 			}
 		}
 	}
-	return nil, errors.New("GTID not found")
+	return nil, nil
 }
 
 func serverKey(serverId uint32) string {
