@@ -251,7 +251,11 @@ func (a *Archiver) getS3Client(s3 *mariadbv1alpha1.S3, env *environment.PodEnvir
 	if env.MariadbOperatorS3CAPath != "" {
 		minioOpts = append(minioOpts, mariadbminio.WithCACertPath(env.MariadbOperatorS3CAPath))
 	}
-	// TODO: support for SSEC based on environment
+
+	if env.MariaDBOperatorS3SSECCustomerKey != "" {
+		a.logger.Info("configuring S3 SSE-C encryption")
+		minioOpts = append(minioOpts, mariadbminio.WithSSECCustomerKey(env.MariaDBOperatorS3SSECCustomerKey))
+	}
 
 	client, err := mariadbminio.NewMinioClient(a.dataDir, s3.Bucket, s3.Endpoint, minioOpts...)
 	if err != nil {
@@ -376,7 +380,11 @@ func (a *Archiver) archiveBinaryLog(ctx context.Context, binlog string, mdb *mar
 		}
 
 		if num.LessThan(archivedNum) || num.Equal(archivedNum) {
-			a.logger.V(1).Info("Skipping binary log since a more recent one has already been archived", "binlog", binlog)
+			a.logger.V(1).Info("Skipping binary log since a more recent one has already been archived",
+				"binlog", binlog,
+				"current-position", num,
+				"last-archived-position", archivedNum,
+			)
 			return nil
 		}
 	}
