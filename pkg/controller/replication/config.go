@@ -5,7 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"html/template"
+	"text/template"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/builder"
