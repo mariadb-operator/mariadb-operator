@@ -46,7 +46,14 @@ func (b *Builder) jobMariadbContainer(cmd *cmd.Command, env *environment.Operato
 	envVar []corev1.EnvVar, resources *corev1.ResourceRequirements, mariadb interfaces.Imager,
 	securityContext *mariadbv1alpha1.SecurityContext) (*corev1.Container, error) {
 
-	return b.jobContainer("mariadb", cmd, mariadb.GetImage(env), volumeMounts, envVar, resources, mariadb, securityContext)
+	return b.jobMariadbContainerWithName("mariadb", cmd, env, volumeMounts, envVar, resources, mariadb, securityContext)
+}
+
+func (b *Builder) jobMariadbContainerWithName(name string, cmd *cmd.Command, env *environment.OperatorEnv,
+	volumeMounts []corev1.VolumeMount, envVar []corev1.EnvVar, resources *corev1.ResourceRequirements, mariadb interfaces.Imager,
+	securityContext *mariadbv1alpha1.SecurityContext) (*corev1.Container, error) {
+
+	return b.jobContainer(name, cmd, mariadb.GetImage(env), volumeMounts, envVar, resources, mariadb, securityContext)
 }
 
 func jobBatchStorageVolume(storageVolume mariadbv1alpha1.StorageVolumeSource,

@@ -882,7 +882,6 @@ func TestMariadbBackupRestore(t *testing.T) {
 		name        string
 		backupCmd   *BackupCommand
 		mariadb     *mariadbv1alpha1.MariaDB
-		backupDir   string
 		restoreOpts []MariaDBBackupRestoreOpt
 		wantErr     bool
 		wantCleanup bool
@@ -898,7 +897,6 @@ func TestMariadbBackupRestore(t *testing.T) {
 				},
 			},
 			mariadb:     &mariadbv1alpha1.MariaDB{},
-			backupDir:   "/backup/full",
 			restoreOpts: nil,
 			wantErr:     true,
 			wantCleanup: false,
@@ -911,7 +909,6 @@ func TestMariadbBackupRestore(t *testing.T) {
 				},
 			},
 			mariadb:     &mariadbv1alpha1.MariaDB{},
-			backupDir:   "/backup/full",
 			restoreOpts: nil,
 			wantErr:     false,
 			wantCleanup: false,
@@ -924,7 +921,6 @@ func TestMariadbBackupRestore(t *testing.T) {
 				},
 			},
 			mariadb:     &mariadbv1alpha1.MariaDB{},
-			backupDir:   "/backup/full",
 			restoreOpts: []MariaDBBackupRestoreOpt{WithCleanupDataDir(true)},
 			wantErr:     false,
 			wantCleanup: true,
@@ -933,7 +929,12 @@ func TestMariadbBackupRestore(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cmd, err := tt.backupCmd.MariadbBackupRestore(tt.mariadb, tt.backupDir, tt.restoreOpts...)
+			cmd, err := tt.backupCmd.MariadbBackupRestore(
+				tt.mariadb,
+				"/backup/full",
+				"/var/lib/mysql",
+				tt.restoreOpts...,
+			)
 			if tt.wantErr {
 				assert.Error(t, err)
 				assert.Nil(t, cmd)
@@ -1327,7 +1328,6 @@ func TestMariadbBinlogArgs(t *testing.T) {
 func TestExistingBackupRestoreCmd(t *testing.T) {
 	tests := []struct {
 		name              string
-		backupDirPath     string
 		cleanupDataDirCmd string
 		copyBackupCmd     string
 		restoreOpts       []MariaDBBackupRestoreOpt
@@ -1335,7 +1335,6 @@ func TestExistingBackupRestoreCmd(t *testing.T) {
 	}{
 		{
 			name:              "no cleanup",
-			backupDirPath:     "/backup/full",
 			cleanupDataDirCmd: `if [ -d /var/lib/mysql ]; then echo "cleanup"; rm -rf /var/lib/mysql/*; fi`,
 			copyBackupCmd:     "mariadb-backup --copy-back --target-dir=/backup/full --force-non-empty-directories",
 			restoreOpts:       nil,
@@ -1343,7 +1342,6 @@ func TestExistingBackupRestoreCmd(t *testing.T) {
 		},
 		{
 			name:              "cleanup",
-			backupDirPath:     "/backup/full",
 			cleanupDataDirCmd: `if [ -d /var/lib/mysql ]; then echo "cleanup"; rm -rf /var/lib/mysql/*; fi`,
 			copyBackupCmd:     "mariadb-backup --copy-back --target-dir=/backup/full --force-non-empty-directories",
 			restoreOpts:       []MariaDBBackupRestoreOpt{WithCleanupDataDir(true)},
@@ -1355,8 +1353,11 @@ func TestExistingBackupRestoreCmd(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			b := &BackupCommand{}
+			backupDirPath := "/backup/full"
+			dataDirPath := "/var/lib/mysql"
 			out, err := b.existingBackupRestoreCmd(
-				tt.backupDirPath,
+				backupDirPath,
+				dataDirPath,
 				tt.cleanupDataDirCmd,
 				tt.copyBackupCmd,
 				tt.restoreOpts...,
@@ -1364,7 +1365,7 @@ func TestExistingBackupRestoreCmd(t *testing.T) {
 			assert.NoError(t, err)
 			assert.NotEmpty(t, out)
 
-			assert.Contains(t, out, "if [ -d "+tt.backupDirPath+" ]; then")
+			assert.Contains(t, out, "if [ -d "+backupDirPath+" ]; then")
 			assert.Contains(t, out, tt.copyBackupCmd)
 			assert.Contains(t, out, "exit 0")
 
@@ -1374,7 +1375,7 @@ func TestExistingBackupRestoreCmd(t *testing.T) {
 				assert.NotContains(t, out, "rm -rf /var/lib/mysql/*")
 			}
 
-			for _, cmd := range copyBinlogMetaCmds(tt.backupDirPath) {
+			for _, cmd := range copyBinlogMetaCmds(backupDirPath, dataDirPath) {
 				assert.Contains(t, out, cmd)
 			}
 		})
