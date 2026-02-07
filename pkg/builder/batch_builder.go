@@ -33,6 +33,7 @@ const (
 	batchScriptsMountPath = "/opt"
 	batchScriptsSqlFile   = "job.sql"
 	batchBackupDirFull    = "full"
+	batchDataDir          = "/var/lib/mysql"
 	batchUserEnv          = "MARIADB_OPERATOR_USER"
 	batchPasswordEnv      = "MARIADB_OPERATOR_PASSWORD"
 )
@@ -197,7 +198,8 @@ func (b *Builder) BuildPhysicalBackupJob(key types.NamespacedName, backup *maria
 	}
 	volumes, volumeMounts := jobPhysicalBackupVolumes(volume, backup.Spec.Storage.S3, mariadb, podIndex)
 
-	mariadbContainer, err := b.jobMariadbContainer(
+	var initContainers []corev1.Container
+	mariadbBackupContainer, err := b.jobMariadbContainer(
 		backupCmd,
 		b.env,
 		volumeMounts,
@@ -208,6 +210,24 @@ func (b *Builder) BuildPhysicalBackupJob(key types.NamespacedName, backup *maria
 	)
 	if err != nil {
 		return nil, err
+	}
+	initContainers = append(initContainers, *mariadbBackupContainer)
+
+	if mariadb.IsReplicationEnabled() {
+		mariadbBackupMetaContainer, err := b.jobMariadbContainerWithName(
+			"backup-meta",
+			cmd.MariadbBackupMeta(batchPhysicalBackupDirFullPath),
+			b.env,
+			volumeMounts,
+			jobEnv(mariadb),
+			jobResources(backup.Spec.Resources),
+			mariadb,
+			backup.Spec.SecurityContext,
+		)
+		if err != nil {
+			return nil, err
+		}
+		initContainers = append(initContainers, *mariadbBackupMetaContainer)
 	}
 
 	operatorContainer, err := b.jobMariadbOperatorContainer(
@@ -247,7 +267,7 @@ func (b *Builder) BuildPhysicalBackupJob(key types.NamespacedName, backup *maria
 					RestartPolicy:      backup.Spec.RestartPolicy,
 					ImagePullSecrets:   batchImagePullSecrets(mariadb, backup.Spec.ImagePullSecrets),
 					Volumes:            volumes,
-					InitContainers:     []corev1.Container{*mariadbContainer},
+					InitContainers:     initContainers,
 					Containers:         []corev1.Container{*operatorContainer},
 					NodeSelector:       nodeSelector,
 					Tolerations:        backup.Spec.Tolerations,
@@ -516,7 +536,12 @@ func (b *Builder) BuildPhysicalBackupRestoreJob(key types.NamespacedName, mariad
 	if err != nil {
 		return nil, fmt.Errorf("error building backup command: %v", err)
 	}
-	restoreCmd, err := cmd.MariadbBackupRestore(mariadb, batchPhysicalBackupDirFullPath, opts.RestoreCommandOpts...)
+	restoreCmd, err := cmd.MariadbBackupRestore(
+		mariadb,
+		batchPhysicalBackupDirFullPath,
+		batchDataDir,
+		opts.RestoreCommandOpts...,
+	)
 	if err != nil {
 		return nil, fmt.Errorf("error getting mariadb-backup restore command: %v", err)
 	}

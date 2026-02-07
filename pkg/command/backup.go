@@ -248,6 +248,29 @@ func (b *BackupCommand) MariadbBackup(mariadb *mariadbv1alpha1.MariaDB, backupFi
 	return NewBashCommand(cmds), nil
 }
 
+func (b *BackupCommand) MariadbBackupMeta(backupFullDirPath string) *Command {
+	cmds := []string{
+		"set -euo pipefail",
+		fmt.Sprintf(`if [ -d %[1]s ]; then
+	echo "💾 Cleaning up backup directory";
+	rm -rf %[1]s
+fi`, backupFullDirPath),
+		"echo 💾 Creating backup directory",
+		fmt.Sprintf(
+			"mkdir -p %s",
+			backupFullDirPath,
+		),
+		"echo 💾 Extracting stream",
+		fmt.Sprintf(
+			"mbstream -x -C %s < %s",
+			backupFullDirPath,
+			b.getTargetFilePath(),
+		),
+	}
+	cmds = append(cmds, copyBinlogMetaCmds(backupFullDirPath, backupFullDirPath)...)
+	return NewBashCommand(cmds)
+}
+
 func (b *BackupCommand) MariadbOperatorBackup(backupContentType mariadbv1alpha1.BackupContentType) *Command {
 	args := []string{
 		"backup",
@@ -347,8 +370,8 @@ func WithCleanupDataDir(cleanup bool) MariaDBBackupRestoreOpt {
 	}
 }
 
-func (b *BackupCommand) MariadbBackupRestore(mariadb *mariadbv1alpha1.MariaDB, backupDirPath string,
-	restoreOpts ...MariaDBBackupRestoreOpt) (*Command, error) {
+func (b *BackupCommand) MariadbBackupRestore(mariadb *mariadbv1alpha1.MariaDB, backupFullDirPath,
+	dataDirPath string, restoreOpts ...MariaDBBackupRestoreOpt) (*Command, error) {
 	if b.Database != nil {
 		return nil, errors.New("database option not supported in physical backups")
 	}
@@ -367,10 +390,11 @@ fi`
 	// Since we already check the PVC existence earlier, it should be safe to use --force-non-empty-directories.
 	copyBackupCmd := fmt.Sprintf(
 		"mariadb-backup --copy-back --target-dir=%s --force-non-empty-directories",
-		backupDirPath,
+		backupFullDirPath,
 	)
 	existingBackupRestoreCmd, err := b.existingBackupRestoreCmd(
-		backupDirPath,
+		backupFullDirPath,
+		dataDirPath,
 		cleanupDataDirCmd,
 		copyBackupCmd,
 		restoreOpts...,
@@ -385,17 +409,17 @@ fi`
 		"echo 💾 Extracting backup",
 		fmt.Sprintf(
 			"mkdir -p %s",
-			backupDirPath,
+			backupFullDirPath,
 		),
 		fmt.Sprintf(
 			"mbstream -x -C %s < %s",
-			backupDirPath,
+			backupFullDirPath,
 			b.getTargetFilePath(),
 		),
 		"echo 💾 Preparing backup",
 		fmt.Sprintf(
 			"mariadb-backup --prepare --target-dir=%s",
-			backupDirPath,
+			backupFullDirPath,
 		),
 	}
 	if opts.cleanupDataDir {
@@ -405,7 +429,7 @@ fi`
 		"echo 💾 Copying backup to data directory",
 		copyBackupCmd,
 	}...)
-	cmds = append(cmds, copyBinlogMetaCmds(backupDirPath)...)
+	cmds = append(cmds, copyBinlogMetaCmds(backupFullDirPath, dataDirPath)...)
 	return NewBashCommand(cmds), nil
 }
 
@@ -453,7 +477,7 @@ func (b *BackupCommand) MariadbBinlog(mariadb *mariadbv1alpha1.MariaDB) (*Comman
 	return NewBashCommand(mariadbBinlogArgs), nil
 }
 
-func (b *BackupCommand) existingBackupRestoreCmd(backupDirPath, cleanupDataDirCmd, copyBackupCmd string,
+func (b *BackupCommand) existingBackupRestoreCmd(backupDirPath, dataDirPath, cleanupDataDirCmd, copyBackupCmd string,
 	restoreOpts ...MariaDBBackupRestoreOpt) (string, error) {
 	opts := MariaDBBackupRestoreOpts{}
 	for _, setOpt := range restoreOpts {
@@ -483,7 +507,7 @@ fi`)
 		CleanupDataDir:     opts.cleanupDataDir,
 		CleanupDataDirCmd:  cleanupDataDirCmd,
 		CopyBackupCmd:      copyBackupCmd,
-		CopyBinlogMetaCmds: copyBinlogMetaCmds(backupDirPath),
+		CopyBinlogMetaCmds: copyBinlogMetaCmds(backupDirPath, dataDirPath),
 	})
 	if err != nil {
 		return "", err
@@ -695,17 +719,18 @@ func (b *BackupCommand) tlsArgs(mariadb interfaces.TLSProvider) []string {
 	}
 }
 
-func copyBinlogMetaCmds(backupDirPath string) []string {
-	// Binlog file with the GTID coordinate is not available on the finally restored data directory.
+func copyBinlogMetaCmds(sourceDir string, destDir string) []string {
+	// Binlog file with the GTID coordinate is not available on the destination directory.
 	// This ensures that we have access to the coordinate after restoring the backup.
 	copyBinlogMetaCmd := func(binlogFileName string) string {
-		binlogMetaPath := filepath.Join(backupDirPath, binlogFileName)
+		sourcePath := filepath.Join(sourceDir, binlogFileName)
+		destPath := filepath.Join(destDir, replication.MariaDBOperatorFileName)
 		return fmt.Sprintf(`if [ -f %[1]s ]; then 
-	echo "💾 Copying binlog position file '%[1]s' to data directory";
+	echo "💾 Copying binlog position file '%[1]s' to '%[2]s'";
 	cp %[1]s %[2]s
 fi`,
-			binlogMetaPath,
-			replication.MariaDBOperatorFilePath,
+			sourcePath,
+			destPath,
 		)
 	}
 	return []string{
