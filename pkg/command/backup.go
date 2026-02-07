@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"html/template"
 	"path/filepath"
 	"strings"
+	"text/template"
 	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
@@ -369,27 +369,10 @@ fi`
 		"mariadb-backup --copy-back --target-dir=%s --force-non-empty-directories",
 		backupDirPath,
 	)
-	// Binlog file with the GTID coordinate is not available on the finally restored data directory.
-	// This ensures that we have access to the coordinate after restoring the backup.
-	copyBinlogCmd := func(binlogFileName string) string {
-		binlogPath := filepath.Join(backupDirPath, binlogFileName)
-		return fmt.Sprintf(`if [ -f %[1]s ]; then 
-	echo "💾 Copying binlog position file '%[1]s' to data directory";
-	cp %[1]s %[2]s
-fi`,
-			binlogPath,
-			replication.MariaDBOperatorFilePath,
-		)
-	}
-
 	existingBackupRestoreCmd, err := b.existingBackupRestoreCmd(
 		backupDirPath,
 		cleanupDataDirCmd,
 		copyBackupCmd,
-		[]string{
-			copyBinlogCmd(replication.BinlogFileName),
-			copyBinlogCmd(replication.LegacyBinlogFileName),
-		},
 		restoreOpts...,
 	)
 	if err != nil {
@@ -421,9 +404,8 @@ fi`,
 	cmds = append(cmds, []string{
 		"echo 💾 Copying backup to data directory",
 		copyBackupCmd,
-		copyBinlogCmd(replication.BinlogFileName),
-		copyBinlogCmd(replication.LegacyBinlogFileName),
 	}...)
+	cmds = append(cmds, copyBinlogMetaCmds(backupDirPath)...)
 	return NewBashCommand(cmds), nil
 }
 
@@ -472,7 +454,7 @@ func (b *BackupCommand) MariadbBinlog(mariadb *mariadbv1alpha1.MariaDB) (*Comman
 }
 
 func (b *BackupCommand) existingBackupRestoreCmd(backupDirPath, cleanupDataDirCmd, copyBackupCmd string,
-	copyBinlogCmds []string, restoreOpts ...MariaDBBackupRestoreOpt) (string, error) {
+	restoreOpts ...MariaDBBackupRestoreOpt) (string, error) {
 	opts := MariaDBBackupRestoreOpts{}
 	for _, setOpt := range restoreOpts {
 		setOpt(&opts)
@@ -484,24 +466,24 @@ func (b *BackupCommand) existingBackupRestoreCmd(backupDirPath, cleanupDataDirCm
   { {{ .CleanupDataDirCmd }}; } &&
   {{- end }}
   { {{ .CopyBackupCmd }}; } &&
-  {{- range $cmd := .CopyBinlogCmds }}
+  {{- range $cmd := .CopyBinlogMetaCmds }}
   { {{ $cmd }}; } &&
   {{- end }}
   exit 0
 fi`)
 	buf := new(bytes.Buffer)
 	err := tpl.Execute(buf, struct {
-		BackupDir         string
-		CleanupDataDir    bool
-		CleanupDataDirCmd string
-		CopyBackupCmd     string
-		CopyBinlogCmds    []string
+		BackupDir          string
+		CleanupDataDir     bool
+		CleanupDataDirCmd  string
+		CopyBackupCmd      string
+		CopyBinlogMetaCmds []string
 	}{
-		BackupDir:         backupDirPath,
-		CleanupDataDir:    opts.cleanupDataDir,
-		CleanupDataDirCmd: cleanupDataDirCmd,
-		CopyBackupCmd:     copyBackupCmd,
-		CopyBinlogCmds:    copyBinlogCmds,
+		BackupDir:          backupDirPath,
+		CleanupDataDir:     opts.cleanupDataDir,
+		CleanupDataDirCmd:  cleanupDataDirCmd,
+		CopyBackupCmd:      copyBackupCmd,
+		CopyBinlogMetaCmds: copyBinlogMetaCmds(backupDirPath),
 	})
 	if err != nil {
 		return "", err
@@ -710,6 +692,25 @@ func (b *BackupCommand) tlsArgs(mariadb interfaces.TLSProvider) []string {
 		"--ssl-key",
 		builderpki.ClientKeyPath,
 		"--ssl-verify-server-cert",
+	}
+}
+
+func copyBinlogMetaCmds(backupDirPath string) []string {
+	// Binlog file with the GTID coordinate is not available on the finally restored data directory.
+	// This ensures that we have access to the coordinate after restoring the backup.
+	copyBinlogMetaCmd := func(binlogFileName string) string {
+		binlogMetaPath := filepath.Join(backupDirPath, binlogFileName)
+		return fmt.Sprintf(`if [ -f %[1]s ]; then 
+	echo "💾 Copying binlog position file '%[1]s' to data directory";
+	cp %[1]s %[2]s
+fi`,
+			binlogMetaPath,
+			replication.MariaDBOperatorFilePath,
+		)
+	}
+	return []string{
+		copyBinlogMetaCmd(replication.BinlogFileName),
+		copyBinlogMetaCmd(replication.LegacyBinlogFileName),
 	}
 }
 

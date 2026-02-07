@@ -1330,39 +1330,24 @@ func TestExistingBackupRestoreCmd(t *testing.T) {
 		backupDirPath     string
 		cleanupDataDirCmd string
 		copyBackupCmd     string
-		copyBinlogCmds    []string
 		restoreOpts       []MariaDBBackupRestoreOpt
 		wantCleanup       bool
 	}{
 		{
-			name:              "no cleanup no binlogs",
+			name:              "no cleanup",
 			backupDirPath:     "/backup/full",
 			cleanupDataDirCmd: `if [ -d /var/lib/mysql ]; then echo "cleanup"; rm -rf /var/lib/mysql/*; fi`,
 			copyBackupCmd:     "mariadb-backup --copy-back --target-dir=/backup/full --force-non-empty-directories",
-			copyBinlogCmds:    []string{},
 			restoreOpts:       nil,
 			wantCleanup:       false,
 		},
 		{
-			name:              "with cleanup and one binlog",
+			name:              "cleanup",
 			backupDirPath:     "/backup/full",
 			cleanupDataDirCmd: `if [ -d /var/lib/mysql ]; then echo "cleanup"; rm -rf /var/lib/mysql/*; fi`,
 			copyBackupCmd:     "mariadb-backup --copy-back --target-dir=/backup/full --force-non-empty-directories",
-			copyBinlogCmds:    []string{"cp /backup/full/binlog1 /var/lib/mysql/mariadb_operator_position"},
 			restoreOpts:       []MariaDBBackupRestoreOpt{WithCleanupDataDir(true)},
 			wantCleanup:       true,
-		},
-		{
-			name:              "no cleanup with two binlogs",
-			backupDirPath:     "/another/restore",
-			cleanupDataDirCmd: `if [ -d /var/lib/mysql ]; then echo "cleanup"; rm -rf /var/lib/mysql/*; fi`,
-			copyBackupCmd:     "mariadb-backup --copy-back --target-dir=/another/restore --force-non-empty-directories",
-			copyBinlogCmds: []string{
-				"cp /another/restore/binlogA /var/lib/mysql/mariadb_operator_position",
-				"cp /another/restore/binlogB /var/lib/mysql/mariadb_operator_position",
-			},
-			restoreOpts: nil,
-			wantCleanup: false,
 		},
 	}
 
@@ -1374,7 +1359,6 @@ func TestExistingBackupRestoreCmd(t *testing.T) {
 				tt.backupDirPath,
 				tt.cleanupDataDirCmd,
 				tt.copyBackupCmd,
-				tt.copyBinlogCmds,
 				tt.restoreOpts...,
 			)
 			assert.NoError(t, err)
@@ -1390,7 +1374,7 @@ func TestExistingBackupRestoreCmd(t *testing.T) {
 				assert.NotContains(t, out, "rm -rf /var/lib/mysql/*")
 			}
 
-			for _, cmd := range tt.copyBinlogCmds {
+			for _, cmd := range copyBinlogMetaCmds(tt.backupDirPath) {
 				assert.Contains(t, out, cmd)
 			}
 		})

@@ -4,9 +4,9 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"html/template"
 	"strconv"
 	"strings"
+	"text/template"
 
 	"github.com/go-logr/logr"
 	guuid "github.com/google/uuid"
