@@ -213,7 +213,7 @@ func (b *Builder) BuildPhysicalBackupJob(key types.NamespacedName, backup *maria
 	}
 	initContainers = append(initContainers, *mariadbBackupContainer)
 
-	if mariadb.IsReplicationEnabled() {
+	if mariadb.IsPointInTimeRecoveryEnabled() {
 		mariadbBackupMetaContainer, err := b.jobMariadbContainerWithName(
 			"backup-meta",
 			cmd.MariadbBackupMeta(batchPhysicalBackupDirFullPath),

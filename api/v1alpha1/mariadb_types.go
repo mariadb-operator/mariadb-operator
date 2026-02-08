@@ -987,6 +987,14 @@ func (m *MariaDB) IsMaxScaleEnabled() bool {
 	return m.Spec.MaxScaleRef != nil
 }
 
+// IsPointInTimeRecoveryEnabled indicates whether binary log archival is activated to enable point-in-time recovery.
+func (m *MariaDB) IsPointInTimeRecoveryEnabled() bool {
+	if !m.IsReplicationEnabled() {
+		return false
+	}
+	return m.Spec.PointInTimeRecoveryRef != nil
+}
+
 // AreMetricsEnabled indicates whether the MariaDB instance has metrics enabled
 func (m *MariaDB) AreMetricsEnabled() bool {
 	return ptr.Deref(m.Spec.Metrics, MariadbMetrics{}).Enabled
