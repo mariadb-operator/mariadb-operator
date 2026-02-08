@@ -682,10 +682,8 @@ func mariadbVolumeMounts(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt
 		}
 
 		if mariadbOpts.includeServiceAccount {
-			volumeMounts = append(volumeMounts, corev1.VolumeMount{
-				Name:      ServiceAccountVolume,
-				MountPath: ServiceAccountMountPath,
-			})
+			_, serviceAccountVolumeMount := serviceAccountVolumes()
+			volumeMounts = append(volumeMounts, serviceAccountVolumeMount)
 		}
 	}
 

@@ -369,45 +369,8 @@ func mariadbVolumes(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt) ([]
 		}
 
 		if mariadbOpts.includeServiceAccount {
-			volumes = append(volumes, corev1.Volume{
-				Name: ServiceAccountVolume,
-				VolumeSource: corev1.VolumeSource{
-					Projected: &corev1.ProjectedVolumeSource{
-						Sources: []corev1.VolumeProjection{
-							{
-								ServiceAccountToken: &corev1.ServiceAccountTokenProjection{
-									Path: "token",
-								},
-							},
-							{
-								ConfigMap: &corev1.ConfigMapProjection{
-									Items: []corev1.KeyToPath{
-										{
-											Key:  "ca.crt",
-											Path: "ca.crt",
-										},
-									},
-									LocalObjectReference: corev1.LocalObjectReference{
-										Name: "kube-root-ca.crt",
-									},
-								},
-							},
-							{
-								DownwardAPI: &corev1.DownwardAPIProjection{
-									Items: []corev1.DownwardAPIVolumeFile{
-										{
-											FieldRef: &corev1.ObjectFieldSelector{
-												FieldPath: "metadata.namespace",
-											},
-											Path: "namespace",
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-			})
+			serviceAccountVolume, _ := serviceAccountVolumes()
+			volumes = append(volumes, serviceAccountVolume)
 		}
 	}
 
@@ -696,4 +659,49 @@ func s3Volumes(s3 *mariadbv1alpha1.S3) ([]corev1.Volume, []corev1.VolumeMount) {
 			}
 	}
 	return nil, nil
+}
+
+func serviceAccountVolumes() (corev1.Volume, corev1.VolumeMount) {
+	return corev1.Volume{
+			Name: ServiceAccountVolume,
+			VolumeSource: corev1.VolumeSource{
+				Projected: &corev1.ProjectedVolumeSource{
+					Sources: []corev1.VolumeProjection{
+						{
+							ServiceAccountToken: &corev1.ServiceAccountTokenProjection{
+								Path: "token",
+							},
+						},
+						{
+							ConfigMap: &corev1.ConfigMapProjection{
+								Items: []corev1.KeyToPath{
+									{
+										Key:  "ca.crt",
+										Path: "ca.crt",
+									},
+								},
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: "kube-root-ca.crt",
+								},
+							},
+						},
+						{
+							DownwardAPI: &corev1.DownwardAPIProjection{
+								Items: []corev1.DownwardAPIVolumeFile{
+									{
+										FieldRef: &corev1.ObjectFieldSelector{
+											FieldPath: "metadata.namespace",
+										},
+										Path: "namespace",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		}, corev1.VolumeMount{
+			Name:      ServiceAccountVolume,
+			MountPath: ServiceAccountMountPath,
+		}
 }

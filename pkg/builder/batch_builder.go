@@ -15,6 +15,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/interfaces"
 	kadapter "github.com/mariadb-operator/mariadb-operator/v25/pkg/kubernetes/adapter"
 	mdbmetadata "github.com/mariadb-operator/mariadb-operator/v25/pkg/metadata"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/pki"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/replication"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/statefulset"
 	batchv1 "k8s.io/api/batch/v1"
@@ -91,7 +92,7 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alph
 	if err != nil {
 		return nil, fmt.Errorf("error getting volume from Backup: %v", err)
 	}
-	volumes, volumeMounts := jobBatchStorageVolume(volume, backup.Spec.Storage.S3, mariadb)
+	volumes, volumeMounts := jobBatchStorageVolumes(volume, backup.Spec.Storage.S3, mariadb)
 	affinity := ptr.Deref(backup.Spec.Affinity, mariadbv1alpha1.AffinityConfig{}).Affinity
 
 	mariadbContainer, err := b.jobMariadbContainer(
@@ -374,7 +375,7 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 	}
 
 	volume := ptr.Deref(restore.Spec.Volume, mariadbv1alpha1.StorageVolumeSource{})
-	volumes, volumeMounts := jobBatchStorageVolume(volume, restore.Spec.S3, mariadb)
+	volumes, volumeMounts := jobBatchStorageVolumes(volume, restore.Spec.S3, mariadb)
 	affinity := ptr.Deref(restore.Spec.Affinity, mariadbv1alpha1.AffinityConfig{}).Affinity
 
 	operatorContainer, err := b.jobMariadbOperatorContainer(
@@ -1105,4 +1106,161 @@ func batchImagePullSecrets(mariadb interfaces.Imager,
 	secrets = append(secrets, mariadb.GetImagePullSecrets()...)
 	secrets = append(secrets, pullSecrets...)
 	return kadapter.ToKubernetesSlice(secrets)
+}
+
+func jobBatchStorageVolumes(storageVolume mariadbv1alpha1.StorageVolumeSource,
+	s3 *mariadbv1alpha1.S3, mariadb interfaces.TLSProvider) ([]corev1.Volume, []corev1.VolumeMount) {
+	volumes :=
+		[]corev1.Volume{
+			{
+				Name:         batchStorageVolume,
+				VolumeSource: storageVolume.ToKubernetesType(),
+			},
+		}
+	volumeMounts := []corev1.VolumeMount{
+		{
+			Name:      batchStorageVolume,
+			MountPath: batchStorageMountPath,
+		},
+	}
+	s3Volumes, s3VolumeMounts := s3Volumes(s3)
+	volumes = append(volumes, s3Volumes...)
+	volumeMounts = append(volumeMounts, s3VolumeMounts...)
+
+	if mariadb.IsTLSEnabled() {
+		tlsVolumes, tlsVolumeMounts := mariadbTLSVolumes(mariadb)
+		volumes = append(volumes, tlsVolumes...)
+		volumeMounts = append(volumeMounts, tlsVolumeMounts...)
+	}
+	return volumes, volumeMounts
+}
+
+func jobPhysicalBackupVolumes(storageVolume mariadbv1alpha1.StorageVolumeSource,
+	s3 *mariadbv1alpha1.S3, mariadb *mariadbv1alpha1.MariaDB, podIndex *int) ([]corev1.Volume, []corev1.VolumeMount) {
+	volumes, volumeMounts := jobBatchStorageVolumes(storageVolume, s3, mariadb)
+
+	volumes = append(volumes, corev1.Volume{
+		Name: StorageVolume,
+		VolumeSource: corev1.VolumeSource{
+			PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+				ClaimName: mariadb.PVCKey(StorageVolume, *podIndex).Name,
+			},
+		},
+	})
+	volumeMounts = append(volumeMounts, mariadbStorageVolumeMount(mariadb))
+
+	if mariadb.IsPointInTimeRecoveryEnabled() {
+		serviceAccountVolume, serviceAccountVolumeMount := serviceAccountVolumes()
+		volumes = append(volumes, serviceAccountVolume)
+		volumeMounts = append(volumeMounts, serviceAccountVolumeMount)
+	}
+
+	return volumes, volumeMounts
+}
+
+func jobPITRVolumes(binlogsVolumeSource corev1.VolumeSource, s3 *mariadbv1alpha1.S3,
+	mariadb *mariadbv1alpha1.MariaDB) ([]corev1.Volume, []corev1.VolumeMount) {
+	volumes := []corev1.Volume{
+		{
+			Name:         batchBinlogsVolume,
+			VolumeSource: binlogsVolumeSource,
+		},
+	}
+	volumeMounts := []corev1.VolumeMount{
+		{
+			Name:      batchBinlogsVolume,
+			MountPath: batchBinlogsMountPath,
+		},
+	}
+	s3Volumes, s3VolumeMounts := s3Volumes(s3)
+	volumes = append(volumes, s3Volumes...)
+	volumeMounts = append(volumeMounts, s3VolumeMounts...)
+
+	if mariadb.IsTLSEnabled() {
+		tlsVolumes, tlsVolumeMounts := mariadbTLSVolumes(mariadb)
+		volumes = append(volumes, tlsVolumes...)
+		volumeMounts = append(volumeMounts, tlsVolumeMounts...)
+	}
+	return volumes, volumeMounts
+}
+
+func sqlJobvolumes(sqlJob *mariadbv1alpha1.SqlJob, mariadb interfaces.TLSProvider) ([]corev1.Volume, []corev1.VolumeMount) {
+	volumes := []corev1.Volume{
+		{
+			Name: batchScriptsVolume,
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: sqlJob.Spec.SqlConfigMapKeyRef.LocalObjectReference.ToKubernetesType(),
+					Items: []corev1.KeyToPath{
+						{
+							Key:  sqlJob.Spec.SqlConfigMapKeyRef.Key,
+							Path: batchScriptsSqlFile,
+						},
+					},
+				},
+			},
+		},
+	}
+	volumeMounts := []corev1.VolumeMount{
+		{
+			Name:      batchScriptsVolume,
+			MountPath: batchScriptsMountPath,
+		},
+	}
+
+	if sqlJob.Spec.TLSCACertSecretRef != nil && sqlJob.Spec.TLSClientCertSecretRef != nil {
+		volumes = append(volumes, []corev1.Volume{
+			{
+				Name: builderpki.PKIVolume,
+				VolumeSource: corev1.VolumeSource{
+					Projected: &corev1.ProjectedVolumeSource{
+						Sources: []corev1.VolumeProjection{
+							{
+								Secret: &corev1.SecretProjection{
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: sqlJob.Spec.TLSCACertSecretRef.Name,
+									},
+									Items: []corev1.KeyToPath{
+										{
+											Key:  pki.CACertKey,
+											Path: pki.CACertKey,
+										},
+									},
+								},
+							},
+							{
+								Secret: &corev1.SecretProjection{
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: sqlJob.Spec.TLSClientCertSecretRef.Name,
+									},
+									Items: []corev1.KeyToPath{
+										{
+											Key:  pki.TLSCertKey,
+											Path: builderpki.ClientCertKey,
+										},
+										{
+											Key:  pki.TLSKeyKey,
+											Path: builderpki.ClientKeyKey,
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		}...)
+		volumeMounts = append(volumeMounts, []corev1.VolumeMount{
+			{
+				Name:      builderpki.PKIVolume,
+				MountPath: builderpki.PKIMountPath,
+			},
+		}...)
+	} else if mariadb.IsTLSEnabled() {
+		tlsVolumes, tlsVolumeMounts := mariadbTLSVolumes(mariadb)
+		volumes = append(volumes, tlsVolumes...)
+		volumeMounts = append(volumeMounts, tlsVolumeMounts...)
+	}
+
+	return volumes, volumeMounts
 }
