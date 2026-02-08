@@ -371,7 +371,7 @@ func (r *MariaDBReconciler) reconcileStatefulSet(ctx context.Context, mariadb *m
 		return ctrl.Result{}, fmt.Errorf("error getting Pod annotations: %v", err)
 	}
 	var pitr *mariadbv1alpha1.PointInTimeRecovery
-	if mariadb.Spec.PointInTimeRecoveryRef != nil {
+	if mariadb.IsPointInTimeRecoveryEnabled() {
 		pitr, err = r.RefResolver.PointInTimeRecovery(ctx, mariadb.Spec.PointInTimeRecoveryRef, mariadb.Namespace)
 		if err != nil {
 			return ctrl.Result{}, fmt.Errorf("error getting PointInTimeRecovery: %v", err)

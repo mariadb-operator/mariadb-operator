@@ -949,6 +949,84 @@ func TestPhysicalBackupJobImagePullSecrets(t *testing.T) {
 	}
 }
 
+func TestPhysicalBackupJobInitContainers(t *testing.T) {
+	tests := []struct {
+		name               string
+		mariadb            *mariadbv1alpha1.MariaDB
+		wantInitContainers []string
+	}{
+		{
+			name: "Point-in-time recovery disabled",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Storage: mariadbv1alpha1.Storage{
+						Size: ptr.To(resource.MustParse("1Gi")),
+					},
+				},
+			},
+			wantInitContainers: []string{"mariadb"},
+		},
+		{
+			name: "Replication and point-in-time recovery enabled",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					PointInTimeRecoveryRef: &mariadbv1alpha1.LocalObjectReference{
+						Name: "test",
+					},
+					Replication: &mariadbv1alpha1.Replication{
+						Enabled: true,
+					},
+					Storage: mariadbv1alpha1.Storage{
+						Size: ptr.To(resource.MustParse("1Gi")),
+					},
+				},
+			},
+			wantInitContainers: []string{"mariadb", "backup-meta"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			builder := newDefaultTestBuilder(t)
+
+			key := types.NamespacedName{
+				Name:      "test-backup",
+				Namespace: "test-namespace",
+			}
+			backup := &mariadbv1alpha1.PhysicalBackup{
+				Spec: mariadbv1alpha1.PhysicalBackupSpec{
+					Storage: mariadbv1alpha1.PhysicalBackupStorage{
+						S3: &mariadbv1alpha1.S3{
+							Bucket:   "test",
+							Endpoint: "test",
+						},
+					},
+					Compression: mariadbv1alpha1.CompressBzip2,
+				},
+			}
+			pod := &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "mariadb-0",
+				},
+				Spec: corev1.PodSpec{
+					NodeName: "node1",
+				},
+			}
+
+			job, err := builder.BuildPhysicalBackupJob(key, backup, tt.mariadb, pod, "backup.xb.bz2")
+
+			assert.NoError(t, err)
+			assert.NotNil(t, job)
+			assert.NotNil(t, job.Spec.Template.Spec.InitContainers)
+			assert.Len(t, job.Spec.Template.Spec.InitContainers, len(tt.wantInitContainers))
+
+			for i, container := range job.Spec.Template.Spec.InitContainers {
+				assert.Equal(t, tt.wantInitContainers[i], container.Name)
+			}
+		})
+	}
+}
+
 func TestRestoreJobImagePullSecrets(t *testing.T) {
 	builder := newDefaultTestBuilder(t)
 	objMeta := metav1.ObjectMeta{
