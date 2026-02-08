@@ -35,6 +35,11 @@ var (
 	s3CACertPath string
 	s3Prefix     string
 
+	physicalBackupDirPath   string
+	physicalBackupMeta      bool
+	physicalBackupName      string
+	physicalBackupNamespace string
+
 	maxRetention time.Duration
 
 	compression string
@@ -69,6 +74,15 @@ func init() {
 
 	RootCmd.PersistentFlags().StringVar(&compression, "compression", string(mariadbv1alpha1.CompressNone),
 		"Compression algorithm: none, gzip or bzip2.")
+
+	RootCmd.PersistentFlags().StringVar(&physicalBackupDirPath, "physical-backup-dir-path", "",
+		"Directory path where the physical backup is located. Only considered when backup-content-type is Physical.")
+	RootCmd.Flags().BoolVar(&physicalBackupMeta, "physical-backup-meta", false,
+		"Enable tracking physical backup metadata in the PhysicalBackup custom resource. Only considered when backup-content-type is Physical.")
+	RootCmd.Flags().StringVar(&physicalBackupName, "physical-backup-name", "",
+		"PhysicalBackup custom resource name to track physical backup metadata. Only considered when physical-backup-meta is enabled.")
+	RootCmd.Flags().StringVar(&physicalBackupNamespace, "physical-backup-namespace", "",
+		"PhysicalBackup custom resource namespace to track physical backup metadata. Only considered when physical-backup-meta is enabled.")
 
 	RootCmd.Flags().DurationVar(&maxRetention, "max-retention", 30*24*time.Hour,
 		"Defines the retention policy for backups. Older backups will be deleted.")

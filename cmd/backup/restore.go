@@ -12,14 +12,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	physicalBackupDirPath string
-	targetTimeRaw         string
-)
+var targetTimeRaw string
 
 func init() {
-	restoreCommand.Flags().StringVar(&physicalBackupDirPath, "physical-backup-dir-path", "",
-		"Directory path where the physical backup has been prepared. Only considered when backup-content-type is Physical.")
 	restoreCommand.Flags().StringVar(&targetTimeRaw, "target-time", "",
 		"RFC3339 (1970-01-01T00:00:00Z) date and time that defines the backup target time.")
 }
