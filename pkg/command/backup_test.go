@@ -11,6 +11,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/replication"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 )
 
@@ -23,7 +24,7 @@ func TestNewBackupCommand(t *testing.T) {
 		{
 			name: "missing path",
 			opts: []BackupOpt{
-				WithPath("", "/target/file"),
+				WithPath("", "/target/file", "/backup/full"),
 				WithUserEnv("USER_ENV"),
 				WithPasswordEnv("PASS_ENV"),
 			},
@@ -32,7 +33,16 @@ func TestNewBackupCommand(t *testing.T) {
 		{
 			name: "missing target file",
 			opts: []BackupOpt{
-				WithPath("/backups", ""),
+				WithPath("/backups", "", "/backup/full"),
+				WithUserEnv("USER_ENV"),
+				WithPasswordEnv("PASS_ENV"),
+			},
+			wantErr: true,
+		},
+		{
+			name: "missing backup full dir",
+			opts: []BackupOpt{
+				WithPath("/backups", "/target/file", ""),
 				WithUserEnv("USER_ENV"),
 				WithPasswordEnv("PASS_ENV"),
 			},
@@ -41,7 +51,7 @@ func TestNewBackupCommand(t *testing.T) {
 		{
 			name: "missing user env",
 			opts: []BackupOpt{
-				WithPath("/backups", "/target/file"),
+				WithPath("/backups", "/target/file", "/backup/full"),
 				WithPasswordEnv("PASS_ENV"),
 			},
 			wantErr: true,
@@ -49,7 +59,7 @@ func TestNewBackupCommand(t *testing.T) {
 		{
 			name: "missing password env",
 			opts: []BackupOpt{
-				WithPath("/backups", "/target/file"),
+				WithPath("/backups", "/target/file", "/backup/full"),
 				WithUserEnv("USER_ENV"),
 			},
 			wantErr: true,
@@ -57,7 +67,7 @@ func TestNewBackupCommand(t *testing.T) {
 		{
 			name: "omit credentials skips user/password check",
 			opts: []BackupOpt{
-				WithPath("/backups", "/target/file"),
+				WithPath("/backups", "/target/file", "/backup/full"),
 				WithOmitCredentials(true),
 			},
 			wantErr: false,
@@ -495,23 +505,22 @@ func TestMariadbBackupArgs(t *testing.T) {
 
 func TestMariadbOperatorBackup(t *testing.T) {
 	tests := []struct {
-		name              string
-		backupCmd         *BackupCommand
-		backupContentType mariadbv1alpha1.BackupContentType
-		wantArgs          []string
+		name      string
+		backupCmd *BackupCommand
+		wantArgs  []string
 	}{
 		{
 			name: "logical no S3 no cleanupTargetFile",
 			backupCmd: &BackupCommand{
 				BackupOpts: BackupOpts{
 					Path:                 "/backups",
+					BackupContentType:    mariadbv1alpha1.BackupContentTypeLogical,
 					TargetFilePath:       "/backups/0-backup-target.txt",
 					MaxRetentionDuration: 24 * time.Hour,
 					Compression:          mariadbv1alpha1.CompressGzip,
 					LogLevel:             "info",
 				},
 			},
-			backupContentType: mariadbv1alpha1.BackupContentTypeLogical,
 			wantArgs: []string{
 				"backup",
 				"--path",
@@ -534,12 +543,12 @@ func TestMariadbOperatorBackup(t *testing.T) {
 				BackupOpts: BackupOpts{
 					Path:                 "/backups",
 					TargetFilePath:       "/backups/0-backup-target.txt",
+					BackupContentType:    mariadbv1alpha1.BackupContentTypePhysical,
 					MaxRetentionDuration: 24 * time.Hour,
 					Compression:          mariadbv1alpha1.CompressGzip,
 					LogLevel:             "info",
 				},
 			},
-			backupContentType: mariadbv1alpha1.BackupContentTypePhysical,
 			wantArgs: []string{
 				"backup",
 				"--path",
@@ -562,6 +571,7 @@ func TestMariadbOperatorBackup(t *testing.T) {
 				BackupOpts: BackupOpts{
 					Path:                 "/backups",
 					TargetFilePath:       "/backups/0-backup-target.txt",
+					BackupContentType:    mariadbv1alpha1.BackupContentTypeLogical,
 					MaxRetentionDuration: 24 * time.Hour,
 					Compression:          mariadbv1alpha1.CompressGzip,
 					LogLevel:             "info",
@@ -574,7 +584,6 @@ func TestMariadbOperatorBackup(t *testing.T) {
 					S3Prefix:             "mariadb",
 				},
 			},
-			backupContentType: mariadbv1alpha1.BackupContentTypeLogical,
 			wantArgs: []string{
 				"backup",
 				"--path",
@@ -609,6 +618,7 @@ func TestMariadbOperatorBackup(t *testing.T) {
 				BackupOpts: BackupOpts{
 					Path:                 "/backups",
 					TargetFilePath:       "/backups/0-backup-target.txt",
+					BackupContentType:    mariadbv1alpha1.BackupContentTypePhysical,
 					MaxRetentionDuration: 24 * time.Hour,
 					Compression:          mariadbv1alpha1.CompressGzip,
 					LogLevel:             "info",
@@ -621,7 +631,6 @@ func TestMariadbOperatorBackup(t *testing.T) {
 					S3Prefix:             "mariadb",
 				},
 			},
-			backupContentType: mariadbv1alpha1.BackupContentTypePhysical,
 			wantArgs: []string{
 				"backup",
 				"--path",
@@ -656,6 +665,7 @@ func TestMariadbOperatorBackup(t *testing.T) {
 				BackupOpts: BackupOpts{
 					Path:                 "/backups",
 					TargetFilePath:       "/backups/0-backup-target.txt",
+					BackupContentType:    mariadbv1alpha1.BackupContentTypeLogical,
 					MaxRetentionDuration: 24 * time.Hour,
 					Compression:          mariadbv1alpha1.CompressGzip,
 					LogLevel:             "info",
@@ -669,7 +679,6 @@ func TestMariadbOperatorBackup(t *testing.T) {
 					CleanupTargetFile:    true,
 				},
 			},
-			backupContentType: mariadbv1alpha1.BackupContentTypeLogical,
 			wantArgs: []string{
 				"backup",
 				"--path",
@@ -705,6 +714,7 @@ func TestMariadbOperatorBackup(t *testing.T) {
 				BackupOpts: BackupOpts{
 					Path:                 "/backups",
 					TargetFilePath:       "/backups/0-backup-target.txt",
+					BackupContentType:    mariadbv1alpha1.BackupContentTypePhysical,
 					MaxRetentionDuration: 24 * time.Hour,
 					Compression:          mariadbv1alpha1.CompressGzip,
 					LogLevel:             "info",
@@ -718,7 +728,6 @@ func TestMariadbOperatorBackup(t *testing.T) {
 					CleanupTargetFile:    true,
 				},
 			},
-			backupContentType: mariadbv1alpha1.BackupContentTypePhysical,
 			wantArgs: []string{
 				"backup",
 				"--path",
@@ -748,11 +757,76 @@ func TestMariadbOperatorBackup(t *testing.T) {
 				"--cleanup-target-file",
 			},
 		},
+		{
+			name: "physical S3 and meta",
+			backupCmd: &BackupCommand{
+				BackupOpts: BackupOpts{
+					Path:               "/backups",
+					TargetFilePath:     "/backups/0-backup-target.txt",
+					BackupFullDirPath:  "/backups/full",
+					BackupContentType:  mariadbv1alpha1.BackupContentTypePhysical,
+					PhysicalBackupMeta: true,
+					PhysicalBackupKey: &types.NamespacedName{
+						Name:      "test",
+						Namespace: "test",
+					},
+					MaxRetentionDuration: 24 * time.Hour,
+					Compression:          mariadbv1alpha1.CompressGzip,
+					LogLevel:             "info",
+					S3:                   true,
+					S3Bucket:             "backups",
+					S3Endpoint:           "s3.amazonaws.com",
+					S3Region:             "us-east-1",
+					S3TLS:                true,
+					S3CACertPath:         "/etc/ssl/ca.crt",
+					S3Prefix:             "mariadb",
+					CleanupTargetFile:    true,
+				},
+			},
+			wantArgs: []string{
+				"backup",
+				"--path",
+				"/backups",
+				"--target-file-path",
+				"/backups/0-backup-target.txt",
+				"--backup-content-type",
+				string(mariadbv1alpha1.BackupContentTypePhysical),
+				"--max-retention",
+				"24h0m0s",
+				"--compression",
+				"gzip",
+				"--log-level",
+				"info",
+				"--s3",
+				"--s3-bucket",
+				"backups",
+				"--s3-endpoint",
+				"s3.amazonaws.com",
+				"--s3-region",
+				"us-east-1",
+				"--s3-tls",
+				"--s3-ca-cert-path",
+				"/etc/ssl/ca.crt",
+				"--s3-prefix",
+				"mariadb",
+				"--cleanup-target-file",
+				"--physical-backup-dir-path",
+				"/backups/full",
+				"--physical-backup-meta",
+				"--physical-backup-name",
+				"test",
+				"--physical-backup-namespace",
+				"test",
+			},
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			command := tt.backupCmd.MariadbOperatorBackup(tt.backupContentType)
+			command, err := tt.backupCmd.MariadbOperatorBackup()
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
 			if diff := cmp.Diff(command.Args, tt.wantArgs); diff != "" {
 				t.Errorf("unexpected args (-want +got):\n%s", diff)
 			}
@@ -893,7 +967,8 @@ func TestMariadbBackupRestore(t *testing.T) {
 					CommandOpts: CommandOpts{
 						Database: ptr.To("somedb"),
 					},
-					TargetFilePath: "/backups/target.sql",
+					TargetFilePath:    "/backups/target.sql",
+					BackupFullDirPath: "/backup/full",
 				},
 			},
 			mariadb:     &mariadbv1alpha1.MariaDB{},
@@ -905,7 +980,8 @@ func TestMariadbBackupRestore(t *testing.T) {
 			name: "basic physical restore",
 			backupCmd: &BackupCommand{
 				BackupOpts: BackupOpts{
-					TargetFilePath: "/backups/target.sql",
+					TargetFilePath:    "/backups/target.sql",
+					BackupFullDirPath: "/backup/full",
 				},
 			},
 			mariadb:     &mariadbv1alpha1.MariaDB{},
@@ -917,7 +993,8 @@ func TestMariadbBackupRestore(t *testing.T) {
 			name: "with cleanup data dir (should include cleanup command)",
 			backupCmd: &BackupCommand{
 				BackupOpts: BackupOpts{
-					TargetFilePath: "/backups/target.sql",
+					TargetFilePath:    "/backups/target.sql",
+					BackupFullDirPath: "/backup/full",
 				},
 			},
 			mariadb:     &mariadbv1alpha1.MariaDB{},
@@ -931,7 +1008,6 @@ func TestMariadbBackupRestore(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			cmd, err := tt.backupCmd.MariadbBackupRestore(
 				tt.mariadb,
-				"/backup/full",
 				"/var/lib/mysql",
 				tt.restoreOpts...,
 			)
@@ -970,7 +1046,7 @@ func TestMariadbOperatorPITR(t *testing.T) {
 		{
 			name: "basic PITR without S3",
 			opts: []BackupOpt{
-				WithPath("/binlogs", "/binlogs/file"),
+				WithPath("/binlogs", "/binlogs/file", "/backup/full"),
 				WithStartGtid(startGtid),
 				WithTargetTime(targetTime),
 			},
@@ -989,7 +1065,7 @@ func TestMariadbOperatorPITR(t *testing.T) {
 		{
 			name: "PITR with S3",
 			opts: []BackupOpt{
-				WithPath("/binlogs", "/binlogs/file"),
+				WithPath("/binlogs", "/binlogs/file", "/backup/full"),
 				WithStartGtid(startGtid),
 				WithTargetTime(targetTime),
 				WithS3("test-bucket", "s3.example.com", "us-west-2", "prefix/"),
@@ -1023,7 +1099,7 @@ func TestMariadbOperatorPITR(t *testing.T) {
 		{
 			name: "PITR with compression",
 			opts: []BackupOpt{
-				WithPath("/binlogs", "/binlogs/file"),
+				WithPath("/binlogs", "/binlogs/file", "/backup/full"),
 				WithStartGtid(startGtid),
 				WithTargetTime(targetTime),
 				WithCompression(mariadbv1alpha1.CompressGzip),
@@ -1045,7 +1121,7 @@ func TestMariadbOperatorPITR(t *testing.T) {
 		{
 			name: "PITR with log level",
 			opts: []BackupOpt{
-				WithPath("/binlogs", "/binlogs/file"),
+				WithPath("/binlogs", "/binlogs/file", "/backup/full"),
 				WithStartGtid(startGtid),
 				WithTargetTime(targetTime),
 				WithLogLevel("debug"),
@@ -1067,7 +1143,7 @@ func TestMariadbOperatorPITR(t *testing.T) {
 		{
 			name: "PITR with strict mode",
 			opts: []BackupOpt{
-				WithPath("/binlogs", "/binlogs/file"),
+				WithPath("/binlogs", "/binlogs/file", "/backup/full"),
 				WithStartGtid(startGtid),
 				WithTargetTime(targetTime),
 			},
@@ -1088,7 +1164,7 @@ func TestMariadbOperatorPITR(t *testing.T) {
 		{
 			name: "PITR with all options",
 			opts: []BackupOpt{
-				WithPath("/binlogs", "/binlogs/file"),
+				WithPath("/binlogs", "/binlogs/file", "/backup/full"),
 				WithMaxRetention(30 * 24 * time.Hour),
 				WithStartGtid(startGtid),
 				WithTargetTime(targetTime),
@@ -1131,7 +1207,7 @@ func TestMariadbOperatorPITR(t *testing.T) {
 		{
 			name: "PITR without startGtid",
 			opts: []BackupOpt{
-				WithPath("/backup", "/target/file"),
+				WithPath("/backup", "/target/file", "/backup/full"),
 				WithTargetTime(targetTime),
 			},
 			wantErr: true,
@@ -1188,7 +1264,7 @@ func TestMariadbBinlogArgs(t *testing.T) {
 		{
 			name: "error when StartGtid is nil",
 			opts: []BackupOpt{
-				WithPath("/binlogs", "/binlogs/file"),
+				WithPath("/binlogs", "/binlogs/file", "/backup/full"),
 				WithTargetTime(targetTime),
 				WithUserEnv("test"),
 				WithPasswordEnv("test"),
@@ -1207,7 +1283,7 @@ func TestMariadbBinlogArgs(t *testing.T) {
 		{
 			name: "valid",
 			opts: []BackupOpt{
-				WithPath("/binlogs", "/binlogs/file"),
+				WithPath("/binlogs", "/binlogs/file", "/backup/full"),
 				WithStartGtid(startGtid),
 				WithTargetTime(targetTime),
 				WithUserEnv("test"),
@@ -1237,7 +1313,7 @@ func TestMariadbBinlogArgs(t *testing.T) {
 		{
 			name: "valid with TLS",
 			opts: []BackupOpt{
-				WithPath("/binlogs", "/binlogs/file"),
+				WithPath("/binlogs", "/binlogs/file", "/backup/full"),
 				WithStartGtid(startGtid),
 				WithTargetTime(targetTime),
 				WithUserEnv("test"),
@@ -1271,7 +1347,7 @@ func TestMariadbBinlogArgs(t *testing.T) {
 		{
 			name: "valid with extra args",
 			opts: []BackupOpt{
-				WithPath("/binlogs", "/binlogs/file"),
+				WithPath("/binlogs", "/binlogs/file", "/backup/full"),
 				WithStartGtid(startGtid),
 				WithTargetTime(targetTime),
 				WithUserEnv("test"),
@@ -1352,11 +1428,14 @@ func TestExistingBackupRestoreCmd(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			b := &BackupCommand{}
-			backupDirPath := "/backup/full"
+			backupFullDirPath := "/backup/full"
+			b := &BackupCommand{
+				BackupOpts: BackupOpts{
+					BackupFullDirPath: backupFullDirPath,
+				},
+			}
 			dataDirPath := "/var/lib/mysql"
 			out, err := b.existingBackupRestoreCmd(
-				backupDirPath,
 				dataDirPath,
 				tt.cleanupDataDirCmd,
 				tt.copyBackupCmd,
@@ -1365,7 +1444,7 @@ func TestExistingBackupRestoreCmd(t *testing.T) {
 			assert.NoError(t, err)
 			assert.NotEmpty(t, out)
 
-			assert.Contains(t, out, "if [ -d "+backupDirPath+" ]; then")
+			assert.Contains(t, out, "if [ -d "+backupFullDirPath+" ]; then")
 			assert.Contains(t, out, tt.copyBackupCmd)
 			assert.Contains(t, out, "exit 0")
 
@@ -1375,8 +1454,86 @@ func TestExistingBackupRestoreCmd(t *testing.T) {
 				assert.NotContains(t, out, "rm -rf /var/lib/mysql/*")
 			}
 
-			for _, cmd := range copyBinlogMetaCmds(backupDirPath, dataDirPath) {
+			for _, cmd := range copyBinlogMetaCmds(backupFullDirPath, dataDirPath) {
 				assert.Contains(t, out, cmd)
+			}
+		})
+	}
+}
+
+func TestPhysicalBackupArgs(t *testing.T) {
+	tests := []struct {
+		name               string
+		backupContentType  mariadbv1alpha1.BackupContentType
+		backupFullDirPath  string
+		physicalBackupMeta bool
+		physicalBackupKey  *types.NamespacedName
+		wantArgs           []string
+	}{
+		{
+			name:               "Non-physical backup content type",
+			backupContentType:  mariadbv1alpha1.BackupContentTypeLogical,
+			backupFullDirPath:  "/backup/dir",
+			physicalBackupMeta: false,
+			physicalBackupKey:  nil,
+			wantArgs:           nil,
+		},
+		{
+			name:               "Physical backup with directory path",
+			backupContentType:  mariadbv1alpha1.BackupContentTypePhysical,
+			backupFullDirPath:  "/backup/dir",
+			physicalBackupMeta: false,
+			physicalBackupKey:  nil,
+			wantArgs: []string{
+				"--physical-backup-dir-path",
+				"/backup/dir",
+			},
+		},
+		{
+			name:               "Physical backup with meta and key",
+			backupContentType:  mariadbv1alpha1.BackupContentTypePhysical,
+			backupFullDirPath:  "/backup/dir",
+			physicalBackupMeta: true,
+			physicalBackupKey: &types.NamespacedName{
+				Name:      "test-backup",
+				Namespace: "test-namespace",
+			},
+			wantArgs: []string{
+				"--physical-backup-dir-path",
+				"/backup/dir",
+				"--physical-backup-meta",
+				"--physical-backup-name",
+				"test-backup",
+				"--physical-backup-namespace",
+				"test-namespace",
+			},
+		},
+		{
+			name:               "Physical backup with directory and meta but no key",
+			backupContentType:  mariadbv1alpha1.BackupContentTypePhysical,
+			backupFullDirPath:  "/backup/dir",
+			physicalBackupMeta: true,
+			physicalBackupKey:  nil,
+			wantArgs: []string{
+				"--physical-backup-dir-path",
+				"/backup/dir",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			b := &BackupCommand{
+				BackupOpts: BackupOpts{
+					BackupContentType:  tt.backupContentType,
+					BackupFullDirPath:  tt.backupFullDirPath,
+					PhysicalBackupMeta: tt.physicalBackupMeta,
+					PhysicalBackupKey:  tt.physicalBackupKey,
+				},
+			}
+
+			if diff := cmp.Diff(b.physicalBackupArgs(), tt.wantArgs); diff != "" {
+				t.Errorf("unexpected args (-want +got):\n%s", diff)
 			}
 		})
 	}

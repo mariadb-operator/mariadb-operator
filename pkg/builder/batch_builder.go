@@ -21,6 +21,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
@@ -39,9 +40,9 @@ const (
 )
 
 var (
-	batchBackupTargetFilePath      = filepath.Join(batchStorageMountPath, "0-backup-target.txt")
-	batchPhysicalBackupDirFullPath = filepath.Join(batchStorageMountPath, batchBackupDirFull)
-	batchBinlogsTargetFilePath     = filepath.Join(batchBinlogsMountPath, "0-binlog-target.txt")
+	batchBackupTargetFilePath  = filepath.Join(batchStorageMountPath, "0-backup-target.txt")
+	batchBackupDirFullPath     = filepath.Join(batchStorageMountPath, batchBackupDirFull)
+	batchBinlogsTargetFilePath = filepath.Join(batchBinlogsMountPath, "0-binlog-target.txt")
 )
 
 func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alpha1.Backup,
@@ -60,7 +61,9 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alph
 		command.WithPath(
 			batchStorageMountPath,
 			batchBackupTargetFilePath,
+			batchBackupDirFullPath,
 		),
+		command.WithBackupContentType(mariadbv1alpha1.BackupContentTypeLogical),
 		command.WithCleanupTargetFile(backupShouldCleanupTargetFile(backup)),
 		command.WithMaxRetention(backup.Spec.MaxRetention.Duration),
 		command.WithCompression(backup.Spec.Compression),
@@ -78,6 +81,10 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alph
 	dumpCmd, err := cmd.MariadbDump(backup, mariadb)
 	if err != nil {
 		return nil, fmt.Errorf("error getting mariadb-dump command: %v", err)
+	}
+	operatorCmd, err := cmd.MariadbOperatorBackup()
+	if err != nil {
+		return nil, fmt.Errorf("error getting mariadb-operator command: %v", err)
 	}
 
 	volume, err := backup.Volume()
@@ -99,9 +106,8 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alph
 	if err != nil {
 		return nil, err
 	}
-
 	operatorContainer, err := b.jobMariadbOperatorContainer(
-		cmd.MariadbOperatorBackup(mariadbv1alpha1.BackupContentTypeLogical),
+		operatorCmd,
 		volumeMounts,
 		s3Env(backup.Spec.Storage.S3),
 		jobResources(backup.Spec.Resources),
@@ -170,6 +176,12 @@ func (b *Builder) BuildPhysicalBackupJob(key types.NamespacedName, backup *maria
 		command.WithPath(
 			batchStorageMountPath,
 			batchBackupTargetFilePath,
+			batchBackupDirFullPath,
+		),
+		command.WithBackupContentType(mariadbv1alpha1.BackupContentTypePhysical),
+		command.WithPhysicalBackupMeta(
+			mariadb.IsPointInTimeRecoveryEnabled(),
+			client.ObjectKeyFromObject(backup),
 		),
 		command.WithCleanupTargetFile(physicalBackupShouldCleanupTargetFile(backup)),
 		command.WithMaxRetention(backup.Spec.MaxRetention.Duration),
@@ -190,6 +202,10 @@ func (b *Builder) BuildPhysicalBackupJob(key types.NamespacedName, backup *maria
 	backupCmd, err := cmd.MariadbBackup(mariadb, backupFilepath, *podIndex)
 	if err != nil {
 		return nil, fmt.Errorf("error getting mariadb-backup command: %v", err)
+	}
+	operatorCmd, err := cmd.MariadbOperatorBackup()
+	if err != nil {
+		return nil, fmt.Errorf("error getting mariadb-operator command: %v", err)
 	}
 
 	volume, err := backup.Volume()
@@ -212,11 +228,10 @@ func (b *Builder) BuildPhysicalBackupJob(key types.NamespacedName, backup *maria
 		return nil, err
 	}
 	initContainers = append(initContainers, *mariadbBackupContainer)
-
 	if mariadb.IsPointInTimeRecoveryEnabled() {
 		mariadbBackupMetaContainer, err := b.jobMariadbContainerWithName(
 			"backup-meta",
-			cmd.MariadbBackupMeta(batchPhysicalBackupDirFullPath),
+			cmd.MariadbBackupMeta(),
 			b.env,
 			volumeMounts,
 			jobEnv(mariadb),
@@ -229,9 +244,8 @@ func (b *Builder) BuildPhysicalBackupJob(key types.NamespacedName, backup *maria
 		}
 		initContainers = append(initContainers, *mariadbBackupMetaContainer)
 	}
-
 	operatorContainer, err := b.jobMariadbOperatorContainer(
-		cmd.MariadbOperatorBackup(mariadbv1alpha1.BackupContentTypePhysical),
+		operatorCmd,
 		volumeMounts,
 		s3Env(backup.Spec.Storage.S3),
 		jobResources(backup.Spec.Resources),
@@ -335,7 +349,9 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 		command.WithPath(
 			batchStorageMountPath,
 			batchBackupTargetFilePath,
+			batchBackupDirFullPath,
 		),
+		command.WithBackupContentType(mariadbv1alpha1.BackupContentTypeLogical),
 		command.WithTargetTime(restore.Spec.TargetRecoveryTimeOrDefault()),
 		command.WithUserEnv(batchUserEnv),
 		command.WithPasswordEnv(batchPasswordEnv),
@@ -348,6 +364,10 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 	if err != nil {
 		return nil, fmt.Errorf("error building restore command: %v", err)
 	}
+	operatorCmd, err := cmd.MariadbOperatorRestore()
+	if err != nil {
+		return nil, fmt.Errorf("error getting mariadb-operator command: %v", err)
+	}
 	restoreCmd, err := cmd.MariadbRestore(restore, mariadb)
 	if err != nil {
 		return nil, fmt.Errorf("error getting mariadb restore command: %v", err)
@@ -358,7 +378,7 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 	affinity := ptr.Deref(restore.Spec.Affinity, mariadbv1alpha1.AffinityConfig{}).Affinity
 
 	operatorContainer, err := b.jobMariadbOperatorContainer(
-		cmd.MariadbOperatorRestore(mariadbv1alpha1.BackupContentTypeLogical, nil),
+		operatorCmd,
 		volumeMounts,
 		s3Env(restore.Spec.S3),
 		jobResources(restore.Spec.Resources),
@@ -369,7 +389,6 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 	if err != nil {
 		return nil, err
 	}
-
 	mariadbContainer, err := b.jobMariadbContainer(
 		restoreCmd,
 		b.env,
@@ -521,7 +540,9 @@ func (b *Builder) BuildPhysicalBackupRestoreJob(key types.NamespacedName, mariad
 		command.WithPath(
 			batchStorageMountPath,
 			batchBackupTargetFilePath,
+			batchBackupDirFullPath,
 		),
+		command.WithBackupContentType(mariadbv1alpha1.BackupContentTypePhysical),
 		command.WithTargetTime(*opts.TargetRecoveryTime),
 		command.WithOmitCredentials(true),
 		command.WithExtraOpts(restoreJob.Args),
@@ -536,9 +557,12 @@ func (b *Builder) BuildPhysicalBackupRestoreJob(key types.NamespacedName, mariad
 	if err != nil {
 		return nil, fmt.Errorf("error building backup command: %v", err)
 	}
+	operatorCmd, err := cmd.MariadbOperatorRestore()
+	if err != nil {
+		return nil, fmt.Errorf("error getting mariadb-operator command: %v", err)
+	}
 	restoreCmd, err := cmd.MariadbBackupRestore(
 		mariadb,
-		batchPhysicalBackupDirFullPath,
 		batchDataDir,
 		opts.RestoreCommandOpts...,
 	)
@@ -549,7 +573,7 @@ func (b *Builder) BuildPhysicalBackupRestoreJob(key types.NamespacedName, mariad
 	volumes, volumeMounts := jobPhysicalBackupVolumes(*opts.Volume, opts.S3, mariadb, podIndex)
 
 	operatorContainer, err := b.jobMariadbOperatorContainer(
-		cmd.MariadbOperatorRestore(mariadbv1alpha1.BackupContentTypePhysical, &batchPhysicalBackupDirFullPath),
+		operatorCmd,
 		volumeMounts,
 		s3Env(opts.S3),
 		jobResources(restoreJob.Resources),
@@ -560,7 +584,6 @@ func (b *Builder) BuildPhysicalBackupRestoreJob(key types.NamespacedName, mariad
 	if err != nil {
 		return nil, err
 	}
-
 	mariadbContainer, err := b.jobMariadbContainer(
 		restoreCmd,
 		b.env,
@@ -652,6 +675,7 @@ func (b *Builder) BuildPITRJob(key types.NamespacedName, pitr *mariadbv1alpha1.P
 		command.WithPath(
 			batchBinlogsMountPath,
 			batchBinlogsTargetFilePath,
+			batchBackupDirFullPath,
 		),
 		command.WithStartGtid(opts.StartGtid),
 		command.WithTargetTime(*opts.TargetRecoveryTime),
