@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
@@ -14,14 +15,20 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/builder"
 	mdbcompression "github.com/mariadb-operator/mariadb-operator/v25/pkg/compression"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/log"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/metadata"
 	mdbminio "github.com/mariadb-operator/mariadb-operator/v25/pkg/minio"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/replication"
 	"github.com/spf13/cobra"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var (
-	logger = ctrl.Log
-
+	scheme            = runtime.NewScheme()
+	logger            = ctrl.Log
 	path              string
 	targetFilePath    string
 	backupContentType string
@@ -46,6 +53,8 @@ var (
 )
 
 func init() {
+	utilruntime.Must(mariadbv1alpha1.AddToScheme(scheme))
+
 	RootCmd.PersistentFlags().StringVar(&path, "path", "/backup", "Directory path where the backup files are located."+
 		"When S3 is enabled, it is used as staging area and the source of truth of backups remains in S3.")
 	RootCmd.PersistentFlags().StringVar(&targetFilePath, "target-file-path", "/backup/0-backup-target.txt",
@@ -159,6 +168,11 @@ var RootCmd = &cobra.Command{
 			logger.Error(err, "error cleaning up target file", "file", backupTargetFile)
 			os.Exit(1)
 		}
+
+		if err := handleBackupMeta(ctx, logger.WithName("backup-meta")); err != nil {
+			logger.Error(err, "error handling backup meta")
+			os.Exit(1)
+		}
 	},
 }
 
@@ -239,4 +253,74 @@ func cleanupFile(fileName string, logger logr.Logger) error {
 	logger.Info("cleaning up target file", "file", filePath)
 
 	return os.Remove(filePath)
+}
+
+func handleBackupMeta(ctx context.Context, backupLogger logr.Logger) error {
+	if backupContentType != string(mariadbv1alpha1.BackupContentTypePhysical) {
+		return nil
+	}
+	if !physicalBackupMeta || physicalBackupName == "" || physicalBackupNamespace == "" {
+		return nil
+	}
+	key := types.NamespacedName{
+		Name:      physicalBackupName,
+		Namespace: physicalBackupNamespace,
+	}
+	logger := backupLogger.WithValues("physicalbackup", key.Name)
+	logger.Info("handling physical backup meta")
+
+	k8sClient, err := getK8sClient()
+	if err != nil {
+		return fmt.Errorf("error getting Kubernetes client: %v", err)
+	}
+	var physicalBackup mariadbv1alpha1.PhysicalBackup
+	if err := k8sClient.Get(ctx, key, &physicalBackup); err != nil {
+		return fmt.Errorf("error getting PhysicalBackup: %v", err)
+	}
+
+	rawGTID, err := getBackupGTID()
+	if err != nil {
+		return fmt.Errorf("error getting backup GTID: %v", err)
+	}
+	gtid, err := replication.ParseGtid(rawGTID)
+	if err != nil {
+		return fmt.Errorf("error parsing GTID %s: %v", rawGTID, err)
+	}
+
+	patch := client.MergeFrom(physicalBackup.DeepCopy())
+	if physicalBackup.Annotations == nil {
+		physicalBackup.Annotations = make(map[string]string)
+	}
+	physicalBackup.Annotations[metadata.LastGtidAnnotation] = gtid.String()
+	if err := k8sClient.Patch(ctx, &physicalBackup, patch); err != nil {
+		return fmt.Errorf("error patching PhysicalBackup: %v", err)
+	}
+
+	logger.Info("patched PhysicalBackup with GTID", "gtid", gtid.String())
+	return nil
+}
+
+func getK8sClient() (client.Client, error) {
+	restConfig, err := ctrl.GetConfig()
+	if err != nil {
+		return nil, fmt.Errorf("error getting REST config: %v", err)
+	}
+	k8sClient, err := client.New(restConfig, client.Options{Scheme: scheme})
+	if err != nil {
+		return nil, fmt.Errorf("error creating Kubernetes client: %v", err)
+	}
+	return k8sClient, nil
+}
+
+func getBackupGTID() (string, error) {
+	metaFilePath := filepath.Join(physicalBackupDirPath, replication.MariaDBOperatorFileName)
+	bytes, err := os.ReadFile(metaFilePath)
+	if err != nil {
+		return "", fmt.Errorf("error reading backup meta file %s: %v", metaFilePath, err)
+	}
+	rawGtid, err := replication.ParseRawGtidInMetaFile(bytes)
+	if err != nil {
+		return "", fmt.Errorf("error parsing GTID in meta file %s: %v", metaFilePath, err)
+	}
+	return rawGtid, nil
 }

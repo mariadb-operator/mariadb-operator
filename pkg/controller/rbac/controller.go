@@ -20,7 +20,7 @@ type RBACReconciler struct {
 	builder *builder.Builder
 }
 
-func NewRBACReconiler(client client.Client, builder *builder.Builder) *RBACReconciler {
+func NewRBACReconciler(client client.Client, builder *builder.Builder) *RBACReconciler {
 	return &RBACReconciler{
 		Client:  client,
 		builder: builder,
@@ -48,6 +48,52 @@ func (r *RBACReconciler) ReconcileServiceAccount(ctx context.Context, key types.
 	return sa, nil
 }
 
+func (r *RBACReconciler) ReconcileRole(ctx context.Context, key types.NamespacedName, owner metav1.Object,
+	meta *mariadbv1alpha1.Metadata, rules []rbacv1.PolicyRule) (*rbacv1.Role, error) {
+	role, err := r.builder.BuildRole(key, owner, meta, rules)
+	if err != nil {
+		return nil, fmt.Errorf("error building Role: %v", err)
+	}
+
+	var existingRole rbacv1.Role
+	if err := r.Get(ctx, key, &existingRole); err != nil {
+		if !apierrors.IsNotFound(err) {
+			return nil, fmt.Errorf("error getting Role: %v", err)
+		}
+		if err := r.Create(ctx, role); err != nil {
+			return nil, fmt.Errorf("error creating Role: %v", err)
+		}
+		return role, nil
+	}
+
+	patch := client.MergeFrom(existingRole.DeepCopy())
+	existingRole.Rules = rules
+	if err := r.Patch(ctx, &existingRole, patch); err != nil {
+		return nil, err
+	}
+	return &existingRole, nil
+}
+
+func (r *RBACReconciler) ReconcileRoleBinding(ctx context.Context, key types.NamespacedName, owner metav1.Object,
+	meta *mariadbv1alpha1.Metadata, sa *corev1.ServiceAccount, roleRef rbacv1.RoleRef) error {
+	rb, err := r.builder.BuildRoleBinding(key, owner, meta, sa, roleRef)
+	if err != nil {
+		return fmt.Errorf("error building RoleBinding: %v", err)
+	}
+
+	var existingRB rbacv1.RoleBinding
+	if err := r.Get(ctx, key, &existingRB); err != nil {
+		if !apierrors.IsNotFound(err) {
+			return fmt.Errorf("error getting RoleBinding: %v", err)
+		}
+		return r.Create(ctx, rb)
+	}
+
+	patch := client.MergeFrom(existingRB.DeepCopy())
+	existingRB.RoleRef = roleRef
+	return r.Patch(ctx, &existingRB, patch)
+}
+
 func (r *RBACReconciler) ReconcileMariadbRBAC(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
 	key := mariadb.Spec.ServiceAccountKey(mariadb.ObjectMeta)
 	sa, err := r.ReconcileServiceAccount(ctx, key, mariadb, mariadb.Spec.InheritMetadata)
@@ -56,53 +102,6 @@ func (r *RBACReconciler) ReconcileMariadbRBAC(ctx context.Context, mariadb *mari
 	}
 	if !mariadb.IsHAEnabled() {
 		return nil
-	}
-	role, err := r.reconcileRole(ctx, key, mariadb)
-	if err != nil {
-		return fmt.Errorf("error reconciling Role: %v", err)
-	}
-
-	roleRef := rbacv1.RoleRef{
-		APIGroup: rbacv1.GroupName,
-		Kind:     "Role",
-		Name:     role.Name,
-	}
-	if err := r.reconcileRoleBinding(ctx, key, mariadb, sa, roleRef); err != nil {
-		return fmt.Errorf("error reconciling RoleBinding: %v", err)
-	}
-
-	_, agent, err := mariadb.GetDataPlaneAgent()
-	if err != nil {
-		return fmt.Errorf("error getting data-plane agent: %v", err)
-	}
-
-	k8sAuth := ptr.Deref(agent.KubernetesAuth, mariadbv1alpha1.KubernetesAuth{})
-	if k8sAuth.Enabled {
-		authDelegatorRoleRef := rbacv1.RoleRef{
-			APIGroup: rbacv1.GroupName,
-			Kind:     "ClusterRole",
-			Name:     "system:auth-delegator",
-		}
-		key := types.NamespacedName{
-			Name:      fmt.Sprintf("%s:auth-delegator", k8sAuth.AuthDelegatorRoleNameOrDefault(mariadb)),
-			Namespace: mariadb.Namespace,
-		}
-		if err := r.reconcileClusterRoleBinding(ctx, key, mariadb, sa, authDelegatorRoleRef); err != nil {
-			return fmt.Errorf("error reconciling system:auth-delegator ClusterRoleBinding: %v", err)
-		}
-	}
-	return nil
-}
-
-func (r *RBACReconciler) reconcileRole(ctx context.Context, key types.NamespacedName,
-	mariadb *mariadbv1alpha1.MariaDB) (*rbacv1.Role, error) {
-	var existingRole rbacv1.Role
-	err := r.Get(ctx, key, &existingRole)
-	if err == nil {
-		return &existingRole, nil
-	}
-	if !apierrors.IsNotFound(err) {
-		return nil, fmt.Errorf("error getting Role: %v", err)
 	}
 
 	rules := []rbacv1.PolicyRule{
@@ -144,33 +143,39 @@ func (r *RBACReconciler) reconcileRole(ctx context.Context, key types.Namespaced
 			},
 		},
 	}
-	role, err := r.builder.BuildRole(key, mariadb, rules)
+	role, err := r.ReconcileRole(ctx, key, mariadb, mariadb.Spec.InheritMetadata, rules)
 	if err != nil {
-		return nil, fmt.Errorf("error building Role: %v", err)
-	}
-	if err := r.Create(ctx, role); err != nil {
-		return nil, fmt.Errorf("error creating Role: %v", err)
-	}
-	return role, nil
-}
-
-func (r *RBACReconciler) reconcileRoleBinding(ctx context.Context, key types.NamespacedName, mariadb *mariadbv1alpha1.MariaDB,
-	sa *corev1.ServiceAccount, roleRef rbacv1.RoleRef) error {
-	var existingRB rbacv1.RoleBinding
-	err := r.Get(ctx, key, &existingRB)
-	if err == nil {
-		return nil
-	}
-	if !apierrors.IsNotFound(err) {
-		return fmt.Errorf("error getting RoleBinding: %v", err)
+		return fmt.Errorf("error reconciling Role: %v", err)
 	}
 
-	rb, err := r.builder.BuildRoleBinding(key, mariadb, sa, roleRef)
-	if err != nil {
-		return fmt.Errorf("error building RoleBinding: %v", err)
+	roleRef := rbacv1.RoleRef{
+		APIGroup: rbacv1.GroupName,
+		Kind:     "Role",
+		Name:     role.Name,
 	}
-	if err := r.Create(ctx, rb); err != nil {
-		return fmt.Errorf("error creating RoleBinding: %v", err)
+	if err := r.ReconcileRoleBinding(ctx, key, mariadb, mariadb.Spec.InheritMetadata, sa, roleRef); err != nil {
+		return fmt.Errorf("error reconciling RoleBinding: %v", err)
+	}
+
+	_, agent, err := mariadb.GetDataPlaneAgent()
+	if err != nil {
+		return fmt.Errorf("error getting data-plane agent: %v", err)
+	}
+
+	k8sAuth := ptr.Deref(agent.KubernetesAuth, mariadbv1alpha1.KubernetesAuth{})
+	if k8sAuth.Enabled {
+		authDelegatorRoleRef := rbacv1.RoleRef{
+			APIGroup: rbacv1.GroupName,
+			Kind:     "ClusterRole",
+			Name:     "system:auth-delegator",
+		}
+		key := types.NamespacedName{
+			Name:      fmt.Sprintf("%s:auth-delegator", k8sAuth.AuthDelegatorRoleNameOrDefault(mariadb)),
+			Namespace: mariadb.Namespace,
+		}
+		if err := r.reconcileClusterRoleBinding(ctx, key, mariadb, sa, authDelegatorRoleRef); err != nil {
+			return fmt.Errorf("error reconciling system:auth-delegator ClusterRoleBinding: %v", err)
+		}
 	}
 	return nil
 }
@@ -192,7 +197,7 @@ func (r *RBACReconciler) reconcileClusterRoleBinding(ctx context.Context, key ty
 		return fmt.Errorf("error getting ClusterRoleBinding: %v", err)
 	}
 
-	crdb, err := r.builder.BuildClusterRoleBinding(key, mariadb, sa, roleRef)
+	crdb, err := r.builder.BuildClusterRoleBinding(key, mariadb, mariadb.Spec.InheritMetadata, sa, roleRef)
 	if err != nil {
 		return fmt.Errorf("error building ClusterRoleBinding: %v", err)
 	}
