@@ -1,8 +1,10 @@
 package replication
 
 import (
+	"bytes"
 	"encoding"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -176,4 +178,18 @@ func ParseGtid(rawGtid string) (*Gtid, error) {
 		ServerID:   uint32(serverID),
 		SequenceID: sequenceID,
 	}, nil
+}
+
+// ParseGtidInMetadataFile extracts the raw GTID from a mariadb-operator.info file.
+// Example line: "mariadb-repl-bin.000001 335 0-10-9"
+func ParseRawGtidInMetaFile(fileBytes []byte) (string, error) {
+	trimmed := bytes.TrimSpace(fileBytes)
+	if len(trimmed) == 0 {
+		return "", errors.New("file is empty")
+	}
+	parts := strings.Fields(string(trimmed))
+	if len(parts) < 3 {
+		return "", errors.New("unexpected file format, expected at least 3 fields")
+	}
+	return parts[2], nil
 }

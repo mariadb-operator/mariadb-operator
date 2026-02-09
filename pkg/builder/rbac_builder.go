@@ -27,26 +27,27 @@ func (b *Builder) BuildServiceAccount(key types.NamespacedName, owner metav1.Obj
 	return sa, nil
 }
 
-func (b *Builder) BuildRole(key types.NamespacedName, mariadb *mariadbv1alpha1.MariaDB, rules []rbacv1.PolicyRule) (*rbacv1.Role, error) {
+func (b *Builder) BuildRole(key types.NamespacedName, owner metav1.Object, meta *mariadbv1alpha1.Metadata,
+	rules []rbacv1.PolicyRule) (*rbacv1.Role, error) {
 	objMeta :=
 		metadata.NewMetadataBuilder(key).
-			WithMetadata(mariadb.Spec.InheritMetadata).
+			WithMetadata(meta).
 			Build()
 	r := &rbacv1.Role{
 		ObjectMeta: objMeta,
 		Rules:      rules,
 	}
-	if err := controllerutil.SetControllerReference(mariadb, r, b.scheme); err != nil {
+	if err := controllerutil.SetControllerReference(owner, r, b.scheme); err != nil {
 		return nil, fmt.Errorf("error setting controller reference to Role: %v", err)
 	}
 	return r, nil
 }
 
-func (b *Builder) BuildRoleBinding(key types.NamespacedName, mariadb *mariadbv1alpha1.MariaDB, sa *corev1.ServiceAccount,
-	roleRef rbacv1.RoleRef) (*rbacv1.RoleBinding, error) {
+func (b *Builder) BuildRoleBinding(key types.NamespacedName, owner metav1.Object, meta *mariadbv1alpha1.Metadata,
+	sa *corev1.ServiceAccount, roleRef rbacv1.RoleRef) (*rbacv1.RoleBinding, error) {
 	objMeta :=
 		metadata.NewMetadataBuilder(key).
-			WithMetadata(mariadb.Spec.InheritMetadata).
+			WithMetadata(meta).
 			Build()
 	rb := &rbacv1.RoleBinding{
 		ObjectMeta: objMeta,
@@ -60,17 +61,17 @@ func (b *Builder) BuildRoleBinding(key types.NamespacedName, mariadb *mariadbv1a
 		},
 		RoleRef: roleRef,
 	}
-	if err := controllerutil.SetControllerReference(mariadb, rb, b.scheme); err != nil {
+	if err := controllerutil.SetControllerReference(owner, rb, b.scheme); err != nil {
 		return nil, fmt.Errorf("error setting controller reference to RoleBinding: %v", err)
 	}
 	return rb, nil
 }
 
-func (b *Builder) BuildClusterRoleBinding(key types.NamespacedName, mariadb *mariadbv1alpha1.MariaDB, sa *corev1.ServiceAccount,
-	roleRef rbacv1.RoleRef) (*rbacv1.ClusterRoleBinding, error) {
+func (b *Builder) BuildClusterRoleBinding(key types.NamespacedName, owner metav1.Object, meta *mariadbv1alpha1.Metadata,
+	sa *corev1.ServiceAccount, roleRef rbacv1.RoleRef) (*rbacv1.ClusterRoleBinding, error) {
 	objMeta :=
 		metadata.NewMetadataBuilder(key).
-			WithMetadata(mariadb.Spec.InheritMetadata).
+			WithMetadata(meta).
 			Build()
 	rb := &rbacv1.ClusterRoleBinding{
 		ObjectMeta: objMeta,
@@ -84,7 +85,7 @@ func (b *Builder) BuildClusterRoleBinding(key types.NamespacedName, mariadb *mar
 		},
 		RoleRef: roleRef,
 	}
-	if err := controllerutil.SetControllerReference(mariadb, rb, b.scheme); err != nil {
+	if err := controllerutil.SetControllerReference(owner, rb, b.scheme); err != nil {
 		return nil, fmt.Errorf("error setting controller reference to ClusterRoleBinding: %v", err)
 	}
 	return rb, nil

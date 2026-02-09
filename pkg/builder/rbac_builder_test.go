@@ -106,7 +106,7 @@ func TestRoleMeta(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			role, err := builder.BuildRole(key, tt.mariadb, rules)
+			role, err := builder.BuildRole(key, tt.mariadb, tt.mariadb.Spec.InheritMetadata, rules)
 			if err != nil {
 				t.Fatalf("unexpected error building Role: %v", err)
 			}
@@ -163,7 +163,7 @@ func TestRoleBindingMeta(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			role, err := builder.BuildRoleBinding(key, tt.mariadb, &sa, roleRef)
+			role, err := builder.BuildRoleBinding(key, tt.mariadb, tt.mariadb.Spec.InheritMetadata, &sa, roleRef)
 			if err != nil {
 				t.Fatalf("unexpected error building RoleBinding: %v", err)
 			}
@@ -220,7 +220,7 @@ func TestClusterRoleBindingMeta(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			role, err := builder.BuildClusterRoleBinding(key, tt.mariadb, &sa, roleRef)
+			role, err := builder.BuildClusterRoleBinding(key, tt.mariadb, tt.mariadb.Spec.InheritMetadata, &sa, roleRef)
 			if err != nil {
 				t.Fatalf("unexpected error building ClusterRoleBinding: %v", err)
 			}

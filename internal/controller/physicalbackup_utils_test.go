@@ -36,7 +36,7 @@ func testPhysicalBackupJob(backup *mariadbv1alpha1.PhysicalBackup) {
 	Eventually(func(g Gomega) bool {
 		g.Expect(k8sClient.Get(testCtx, key, backup)).To(Succeed())
 		var svcAcc corev1.ServiceAccount
-		key := backup.Spec.PhysicalBackupPodTemplate.ServiceAccountKey(backup.ObjectMeta)
+		key := backup.ServiceAccountKey()
 		g.Expect(k8sClient.Get(testCtx, key, &svcAcc)).To(Succeed())
 		return true
 	}, testTimeout, testInterval).Should(BeTrue())

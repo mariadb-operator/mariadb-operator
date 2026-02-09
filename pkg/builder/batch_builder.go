@@ -213,7 +213,7 @@ func (b *Builder) BuildPhysicalBackupJob(key types.NamespacedName, backup *maria
 	if err != nil {
 		return nil, fmt.Errorf("error getting volume from Backup: %v", err)
 	}
-	volumes, volumeMounts := jobPhysicalBackupVolumes(volume, backup.Spec.Storage.S3, mariadb, podIndex)
+	volumes, volumeMounts := jobPhysicalBackupVolumesWithSA(volume, backup.Spec.Storage.S3, mariadb, podIndex)
 
 	var initContainers []corev1.Container
 	mariadbBackupContainer, err := b.jobMariadbContainer(
@@ -1148,6 +1148,13 @@ func jobPhysicalBackupVolumes(storageVolume mariadbv1alpha1.StorageVolumeSource,
 		},
 	})
 	volumeMounts = append(volumeMounts, mariadbStorageVolumeMount(mariadb))
+
+	return volumes, volumeMounts
+}
+
+func jobPhysicalBackupVolumesWithSA(storageVolume mariadbv1alpha1.StorageVolumeSource,
+	s3 *mariadbv1alpha1.S3, mariadb *mariadbv1alpha1.MariaDB, podIndex *int) ([]corev1.Volume, []corev1.VolumeMount) {
+	volumes, volumeMounts := jobPhysicalBackupVolumes(storageVolume, s3, mariadb, podIndex)
 
 	if mariadb.IsPointInTimeRecoveryEnabled() {
 		serviceAccountVolume, serviceAccountVolumeMount := serviceAccountVolumes()
