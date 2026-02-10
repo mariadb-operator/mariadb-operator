@@ -72,3 +72,4 @@ include make/gen.mk
 include make/helm.mk
 include make/net.mk
 include make/pki.mk
+include make/azure.mk

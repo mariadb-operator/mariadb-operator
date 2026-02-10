@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    component: azurite
+  name: azurite
+spec:
+  selector:
+    matchLabels:
+      component: azurite
+  template:
+    metadata:
+      labels:
+        component: azurite
+    spec:
+      volumes:
+        - name: azurite-certs
+          secret:
+            secretName: azurite-certs
+      containers:
+        - image: mcr.microsoft.com/azure-storage/azurite
+          imagePullPolicy: IfNotPresent
+          args:
+            - azurite
+            - "--blobHost"
+            - "0.0.0.0"
+            - "--blobPort"
+            - "10000"
+            - "--queueHost"
+            - "0.0.0.0"
+            - "--queuePort"
+            - "10001"
+            - "--tableHost"
+            - "0.0.0.0"
+            - "--tablePort"
+            - "10002"
+            - "--oauth"
+            - "basic"
+            - "--cert"
+            - "/certs/cert.pem"
+            - "--key"
+            - "/certs/key.pem"
+            - "--debug"
+            - "/tmp/debug.log"
+            - "--loose"
+            - "--disableProductStyleUrl"
+            - "--skipApiVersionCheck" # This is required to prevent: 400 The API version 2026-02-06 is not supported by Azurite
+          name: azurite
+          ports:
+            - containerPort: 10000
+              name: blob
+              protocol: TCP
+            - containerPort: 10001
+              name: queue
+              protocol: TCP
+            - containerPort: 10002
+              name: table
+              protocol: TCP
+          resources:
+            limits:
+              cpu: "0"
+              memory: "0"
+            requests:
+              cpu: "0"
+              memory: "0"
+          volumeMounts:
+            - name: azurite-certs
+              mountPath: /certs
