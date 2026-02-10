@@ -51,6 +51,13 @@ func (r *MariaDBReconciler) reconcilePointInTimeRecoveryInit(ctx context.Context
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error getting PointInTimeRecovery: %v", err)
 	}
+
+	if !mariadb.IsInitializing() || mariadb.InitError() != nil {
+		if result, err := r.reconcilePITRInitError(ctx, mariadb, pitr, logger); !result.IsZero() || err != nil {
+			return result, err
+		}
+	}
+
 	pb, err := r.RefResolver.PhysicalBackup(ctx, &pitr.Spec.PhysicalBackupRef, pitr.Namespace)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error getting PhysicalBackup: %v", err)
@@ -78,7 +85,7 @@ func (r *MariaDBReconciler) reconcilePhysicalBackupInit(ctx context.Context, mar
 	}
 
 	if !mariadb.IsInitializing() || mariadb.InitError() != nil {
-		if result, err := r.reconcileInitError(ctx, mariadb, logger); !result.IsZero() || err != nil {
+		if result, err := r.reconcilePhysicalBackupInitError(ctx, mariadb, logger); !result.IsZero() || err != nil {
 			return result, err
 		}
 	}
@@ -149,7 +156,51 @@ func (r *MariaDBReconciler) reconcilePhysicalBackupInit(ctx context.Context, mar
 	return ctrl.Result{}, nil
 }
 
-func (r *MariaDBReconciler) reconcileInitError(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+func (r *MariaDBReconciler) reconcilePITRInitError(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+	pitr *mariadbv1alpha1.PointInTimeRecovery, logger logr.Logger) (ctrl.Result, error) {
+	if !pitr.Spec.StrictMode {
+		logger.V(1).Info("Strict mode not enabled, skipping target recovery time validation. Proceeding to bootstrap...")
+		return ctrl.Result{}, nil
+	}
+	if pitr.Status.LastRecoverableTime == nil {
+		logger.V(1).Info("Last recoverable time not tracked, skipping target recovery time validation. Proceeding to bootstrap...")
+		return ctrl.Result{}, nil
+	}
+	lastRecoverableTime, err := time.Parse(time.RFC3339, *pitr.Status.LastRecoverableTime)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error parsing last recoverable time %s: %v", *pitr.Status.LastRecoverableTime, err)
+	}
+	targetRecoveryTime := mariadb.Spec.BootstrapFrom.TargetRecoveryTimeOrDefault()
+
+	if targetRecoveryTime.Before(lastRecoverableTime) || targetRecoveryTime.Equal(lastRecoverableTime) {
+		logger.V(1).Info(
+			"Target recovery time is equal or before last recoverable time. Proceeding to bootstrap...",
+			"target-recovery-time", targetRecoveryTime.Format(time.RFC3339),
+			"last-recoverable-time", lastRecoverableTime.Format(time.RFC3339),
+		)
+		return ctrl.Result{}, nil
+	}
+
+	errMsg := fmt.Sprintf(
+		"target recovery time %s is after latest recoverable time %s",
+		targetRecoveryTime,
+		lastRecoverableTime,
+	)
+	r.Recorder.Eventf(mariadb, corev1.EventTypeWarning, mariadbv1alpha1.ReasonMariaDBInitError,
+		"Unable to init MariaDB: %s", errMsg)
+
+	if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
+		condition.SetInitError(status, errMsg)
+		return nil
+	}); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error patching MariaDB status: %v", err)
+	}
+
+	logger.Info(fmt.Sprintf("Unable to init MariaDB: %s. Requeuing...", errMsg))
+	return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+}
+
+func (r *MariaDBReconciler) reconcilePhysicalBackupInitError(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 	logger logr.Logger) (ctrl.Result, error) {
 	pvcs, err := pvc.ListStoragePVCs(ctx, r.Client, mariadb)
 	if err != nil {
@@ -158,7 +209,7 @@ func (r *MariaDBReconciler) reconcileInitError(ctx context.Context, mariadb *mar
 	if len(pvcs) == 0 {
 		return ctrl.Result{}, nil
 	}
-	r.Recorder.Eventf(mariadb, corev1.EventTypeWarning, mariadbv1alpha1.ReasonMariaDBInitError,
+	r.Recorder.Event(mariadb, corev1.EventTypeWarning, mariadbv1alpha1.ReasonMariaDBInitError,
 		"Unable to init MariaDB: storage PVCs already exist")
 
 	if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
