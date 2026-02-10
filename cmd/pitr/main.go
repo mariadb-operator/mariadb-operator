@@ -123,7 +123,7 @@ var RootCmd = &cobra.Command{
 		}
 
 		logger.Info("Building binlog timeline")
-		binlogMetas, err := binlogIndex.BuildTimeline(startGtid, targetTime, strictMode, logger.WithName("binlog-path"))
+		binlogMetas, err := binlogIndex.BuildTimeline(startGtid, targetTime, strictMode, logger.WithName("binlog-timeline"))
 		if err != nil {
 			logger.Error(err, "Error getting binlog timeline")
 			os.Exit(1)

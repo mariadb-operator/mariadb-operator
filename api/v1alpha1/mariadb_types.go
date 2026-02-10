@@ -672,8 +672,8 @@ type MariaDBTLSStatus struct {
 	ClientCert *CertificateStatus `json:"clientCert,omitempty"`
 }
 
-// PointInTimeRecoveryStatus represents the current status of the binary log archival and  point-in-time-recovery.
-type PointInTimeRecoveryStatus struct {
+// MariaDBPointInTimeRecoveryStatus represents the current status of the binary log archival and point-in-time-recovery.
+type MariaDBPointInTimeRecoveryStatus struct {
 	// ServerId identifies the server whose binary logs are being archived.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
@@ -746,7 +746,7 @@ type MariaDBStatus struct {
 	// PointInTimeRecovery is the status of the point-in-time-recovery process.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
-	PointInTimeRecovery *PointInTimeRecoveryStatus `json:"pointInTimeRecovery,omitempty"`
+	PointInTimeRecovery *MariaDBPointInTimeRecoveryStatus `json:"pointInTimeRecovery,omitempty"`
 }
 
 // SetCondition sets a status condition to MariaDB

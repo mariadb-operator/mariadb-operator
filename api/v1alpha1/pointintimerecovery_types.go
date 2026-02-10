@@ -35,6 +35,9 @@ type PointInTimeRecoverySpec struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:shortName=pitr
+// +kubebuilder:subresource:status
+// +kubebuilder:printcolumn:name="Physical Backup",type="string",JSONPath=".spec.physicalBackupRef.name"
+// +kubebuilder:printcolumn:name="Last Recoverable Time",type="string",JSONPath=".status.lastRecoverableTime"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 
 // PointInTimeRecovery is the Schema for the pointintimerecoveries API. It contains binlog archival and point-in-time restoration settings.
@@ -42,7 +45,16 @@ type PointInTimeRecovery struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec PointInTimeRecoverySpec `json:"spec,omitempty"`
+	Spec   PointInTimeRecoverySpec   `json:"spec,omitempty"`
+	Status PointInTimeRecoveryStatus `json:"status,omitempty"`
+}
+
+// PointInTimeRecoveryStatus represents the current status of the point-in-time-recovery.
+type PointInTimeRecoveryStatus struct {
+	// LastRecoverableTime is the most recent recoverable time based on the current state of physical backups and archived binary logs.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	LastRecoverableTime *string `json:"lastRecoverableTime,omitempty"`
 }
 
 // +kubebuilder:object:root=true

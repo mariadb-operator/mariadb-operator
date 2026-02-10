@@ -124,6 +124,7 @@ func (r *RBACReconciler) ReconcileMariadbRBAC(ctx context.Context, mariadb *mari
 			},
 			Resources: []string{
 				"mariadbs/status",
+				"pointintimerecoveries/status",
 			},
 			Verbs: []string{
 				"get",
