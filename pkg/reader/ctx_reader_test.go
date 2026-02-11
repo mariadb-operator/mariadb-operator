@@ -1,4 +1,4 @@
-package fs
+package reader
 
 import (
 	"bytes"
@@ -23,8 +23,8 @@ var _ = Describe("ContextReader", func() {
 		data := []byte("hello world")
 		reader := bytes.NewReader(data)
 		cr := &ContextReader{
-			Ctx: context.Background(),
-			R:   reader,
+			ctx:           context.Background(),
+			wrappedReader: reader,
 		}
 		p := make([]byte, len(data))
 		n, err := cr.Read(p)
@@ -38,8 +38,8 @@ var _ = Describe("ContextReader", func() {
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel()
 		cr := &ContextReader{
-			Ctx: ctx,
-			R:   bytes.NewReader([]byte("hello world")),
+			ctx:           ctx,
+			wrappedReader: bytes.NewReader([]byte("hello world")),
 		}
 		p := make([]byte, 1)
 		n, err := cr.Read(p)
@@ -54,8 +54,8 @@ var _ = Describe("ContextReader", func() {
 		defer cancel()
 		time.Sleep(5 * time.Millisecond)
 		cr := &ContextReader{
-			Ctx: ctx,
-			R:   bytes.NewReader([]byte("hello world")),
+			ctx:           ctx,
+			wrappedReader: bytes.NewReader([]byte("hello world")),
 		}
 		p := make([]byte, 1)
 		n, err := cr.Read(p)
@@ -68,8 +68,8 @@ var _ = Describe("ContextReader", func() {
 	It("should propagate the error", func() {
 		expectedErr := io.ErrUnexpectedEOF
 		cr := &ContextReader{
-			Ctx: context.Background(),
-			R:   &testErrorReader{err: expectedErr},
+			ctx:           context.Background(),
+			wrappedReader: &testErrorReader{err: expectedErr},
 		}
 		p := make([]byte, 1)
 		n, err := cr.Read(p)

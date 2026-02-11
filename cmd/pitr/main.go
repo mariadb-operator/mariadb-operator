@@ -288,7 +288,7 @@ func pullBinlog(ctx context.Context, binlog string, calgs []mariadbv1alpha1.Comp
 				"compression", calg,
 			)
 		}
-		if err := compressor.Decompress(plainFile, compressedFile); err != nil {
+		if err := compressor.Decompress(ctx, plainFile, compressedFile); err != nil {
 			return fmt.Errorf("error decompressing file %s into %s: %v", compressedFileName, plainFileName, err)
 		}
 		return nil
