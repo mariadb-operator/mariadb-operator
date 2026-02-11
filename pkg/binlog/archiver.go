@@ -72,6 +72,91 @@ func (a *Archiver) Start(ctx context.Context) error {
 	}
 }
 
+func (a *Archiver) archiveBinaryLogs(ctx context.Context) error {
+	mdb, err := a.getMariaDB(ctx)
+	if err != nil {
+		return err
+	}
+	if mdb.Status.CurrentPrimary == nil ||
+		(mdb.Status.CurrentPrimary != nil && *mdb.Status.CurrentPrimary != a.env.PodName) {
+		a.logger.V(1).Info("Current primary not set or current Pod is a replica. Skipping binary log archival...")
+		return nil
+	}
+	// TODO: fine grained guard
+	if mdb.IsSwitchingPrimary() {
+		return errors.New("unable to start archival: Switchover operation pending/ongoing")
+	}
+	a.logger.Info("Archiving binary logs")
+
+	pitr, err := a.getPointInTimeRecovery(ctx, mdb)
+	if err != nil {
+		return err
+	}
+	s3Client, err := a.getS3Client(&pitr.Spec.S3, a.env)
+	if err != nil {
+		return err
+	}
+
+	storageAlreadyInit, err := a.checkStorageAlreadyInitialized(ctx, mdb, s3Client)
+	if err != nil {
+		return fmt.Errorf("error checking whether storaage is already initialized: %v", err)
+	}
+	if storageAlreadyInit {
+		return errors.New("binary log storage is already initialized. Archival must start from a clean state.")
+	}
+
+	isConfigured, err := a.physicalBackupConfigured(ctx, &pitr.Spec.PhysicalBackupRef, mdb)
+	if err != nil {
+		return fmt.Errorf("error checking PhysicalBackup: %v", err)
+	}
+	if !isConfigured {
+		return errors.New("PhysicalBackup not configured. Skipping binary log archival...") //nolint:staticcheck
+	}
+
+	sqlClient, err := sql.NewLocalClientWithPodEnv(ctx, a.env)
+	if err != nil {
+		return fmt.Errorf("error getting SQL client: %v", err)
+	}
+	defer sqlClient.Close()
+
+	binlogs, err := a.getBinaryLogs(ctx, sqlClient)
+	if err != nil {
+		return fmt.Errorf("error getting binary logs: %v", err)
+	}
+	if len(binlogs) == 0 {
+		return errors.New("no binary logs were found")
+	}
+	if len(binlogs) == 1 {
+		a.logger.V(1).Info("Only active binary log is available. Skipping binary log archival...")
+		return nil
+	}
+	// skip active binary log
+	binlogs = binlogs[:len(binlogs)-1]
+
+	if err := a.resetArchivedBinlog(ctx, binlogs, mdb); err != nil {
+		return fmt.Errorf("error resetting binary logs: %v", err)
+	}
+
+	compressor, err := a.getCompressor(pitr.Spec.Compression)
+	if err != nil {
+		return err
+	}
+	uploader := NewUploader(
+		a.dataDir,
+		s3Client,
+		compressor,
+		a.logger.WithName("uploader"),
+	)
+
+	// TODO: archival timeout based on pitr.Spec.archivalTimeout
+	for i := 0; i < len(binlogs); i++ {
+		if err := a.archiveBinaryLog(ctx, binlogs[i], mdb, pitr, uploader); err != nil {
+			return err
+		}
+	}
+	return a.updateStatus(ctx, binlogs, s3Client, sqlClient)
+}
+
 func (a *Archiver) getMariaDB(ctx context.Context) (*mariadbv1alpha1.MariaDB, error) {
 	key := types.NamespacedName{
 		Name:      a.env.MariadbName,
@@ -125,81 +210,16 @@ func (a *Archiver) getCompressor(calg mariadbv1alpha1.CompressAlgorithm) (mariad
 	return mariadbcompression.NewCompressor(calg)
 }
 
-func (a *Archiver) archiveBinaryLogs(ctx context.Context) error {
-	mdb, err := a.getMariaDB(ctx)
+func (a *Archiver) checkStorageAlreadyInitialized(ctx context.Context, mdb *mariadbv1alpha1.MariaDB,
+	s3Client *mariadbminio.Client) (bool, error) {
+	if mdb.Status.PointInTimeRecovery != nil {
+		return false, nil
+	}
+	objs, err := s3Client.ListObjectsWithOptions(ctx)
 	if err != nil {
-		return err
+		return false, err
 	}
-	if mdb.Status.CurrentPrimary == nil ||
-		(mdb.Status.CurrentPrimary != nil && *mdb.Status.CurrentPrimary != a.env.PodName) {
-		a.logger.V(1).Info("Current primary not set or current Pod is a replica. Skipping binary log archival...")
-		return nil
-	}
-	// TODO: fine grained guard
-	if mdb.IsSwitchingPrimary() {
-		return errors.New("unable to start archival: Switchover operation pending/ongoing")
-	}
-	a.logger.Info("Archiving binary logs")
-
-	pitr, err := a.getPointInTimeRecovery(ctx, mdb)
-	if err != nil {
-		return err
-	}
-
-	isConfigured, err := a.physicalBackupConfigured(ctx, &pitr.Spec.PhysicalBackupRef, mdb)
-	if err != nil {
-		return fmt.Errorf("error checking PhysicalBackup: %v", err)
-	}
-	if !isConfigured {
-		return errors.New("PhysicalBackup not configured, stopping binary log archival") //nolint:staticcheck
-	}
-
-	sqlClient, err := sql.NewLocalClientWithPodEnv(ctx, a.env)
-	if err != nil {
-		return fmt.Errorf("error getting SQL client: %v", err)
-	}
-	defer sqlClient.Close()
-
-	binlogs, err := a.getBinaryLogs(ctx, sqlClient)
-	if err != nil {
-		return fmt.Errorf("error getting binary logs: %v", err)
-	}
-	if len(binlogs) == 0 {
-		return errors.New("no binary logs were found")
-	}
-	if len(binlogs) == 1 {
-		a.logger.V(1).Info("Only active binary log is available. Skipping binary log archival...")
-		return nil
-	}
-	// skip active binary log
-	binlogs = binlogs[:len(binlogs)-1]
-
-	if err := a.resetArchivedBinlog(ctx, binlogs, mdb); err != nil {
-		return fmt.Errorf("error resetting binary logs: %v", err)
-	}
-
-	s3Client, err := a.getS3Client(&pitr.Spec.S3, a.env)
-	if err != nil {
-		return err
-	}
-	compressor, err := a.getCompressor(pitr.Spec.Compression)
-	if err != nil {
-		return err
-	}
-	uploader := NewUploader(
-		a.dataDir,
-		s3Client,
-		compressor,
-		a.logger.WithName("uploader"),
-	)
-
-	// TODO: archival timeout based on pitr.Spec.archivalTimeout
-	for i := 0; i < len(binlogs); i++ {
-		if err := a.archiveBinaryLog(ctx, binlogs[i], mdb, pitr, uploader); err != nil {
-			return err
-		}
-	}
-	return a.updateStatus(ctx, binlogs, s3Client, sqlClient)
+	return len(objs) > 0, nil
 }
 
 func (a *Archiver) physicalBackupConfigured(ctx context.Context, ref *mariadbv1alpha1.LocalObjectReference,
@@ -256,7 +276,9 @@ func (a *Archiver) resetArchivedBinlog(ctx context.Context, binlogs []string, md
 			"new-server-id", meta.ServerId,
 		)
 		if err := a.patchMariadbStatus(ctx, mdb, func(status *mariadbv1alpha1.MariaDBStatus) {
-			status.PointInTimeRecovery = nil
+			// setting this to empty empty struct, as setting it to nil
+			// would trigger an error when checking binlog storage initialization
+			status.PointInTimeRecovery = &mariadbv1alpha1.MariaDBPointInTimeRecoveryStatus{}
 		}); err != nil {
 			return fmt.Errorf("error patching MariaDB: %v", err)
 		}
@@ -269,14 +291,14 @@ func (a *Archiver) archiveBinaryLog(ctx context.Context, binlog string, mdb *mar
 	pitr *mariadbv1alpha1.PointInTimeRecovery, uploader *Uploader) error {
 	a.logger.V(1).Info("Processing binary log", "binlog", binlog)
 
-	if mdb.Status.PointInTimeRecovery != nil {
+	if mdb.Status.PointInTimeRecovery != nil && mdb.Status.PointInTimeRecovery.LastArchivedBinaryLog != "" {
 		num, err := ParseBinlogNum(binlog)
 		if err != nil {
 			return fmt.Errorf("error parsing binlog number in %s: %v", binlog, err)
 		}
 		archivedNum, err := ParseBinlogNum(mdb.Status.PointInTimeRecovery.LastArchivedBinaryLog)
 		if err != nil {
-			return fmt.Errorf("error archived parsing binlog number in %s: %v", mdb.Status.PointInTimeRecovery.LastArchivedBinaryLog, err)
+			return fmt.Errorf("error archiving parsing binlog number in %s: %v", mdb.Status.PointInTimeRecovery.LastArchivedBinaryLog, err)
 		}
 
 		if num.LessThan(archivedNum) || num.Equal(archivedNum) {
