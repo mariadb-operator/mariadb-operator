@@ -143,6 +143,18 @@ func (r *RBACReconciler) ReconcileMariadbRBAC(ctx context.Context, mariadb *mari
 				"get",
 			},
 		},
+		{
+			APIGroups: []string{
+				corev1.GroupName,
+			},
+			Resources: []string{
+				"events",
+			},
+			Verbs: []string{
+				"create",
+				"patch",
+			},
+		},
 	}
 	role, err := r.ReconcileRole(ctx, key, mariadb, mariadb.Spec.InheritMetadata, rules)
 	if err != nil {

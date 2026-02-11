@@ -178,7 +178,7 @@ func (r *MariaDBReconciler) reconcileReplayBinlogsError(ctx context.Context, mar
 	logger.Info("Validating binlog timeline")
 	if err := r.validateBinlogTimeline(ctx, mariadb, startGtid, pitr.Spec.StrictMode, s3Client, logger); err != nil {
 		errMsg := fmt.Sprintf("Invalid binary log timeline: %v", err)
-		r.Recorder.Event(mariadb, corev1.EventTypeWarning, mariadbv1alpha1.ReasonMariaDBInvalidBinlogTimeline, errMsg)
+		r.Recorder.Event(mariadb, corev1.EventTypeWarning, mariadbv1alpha1.ReasonBinlogTimelineInvalid, errMsg)
 
 		if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
 			condition.SetReplayBinlogsError(status, errMsg)

@@ -16,6 +16,7 @@ import (
 	mdbhttp "github.com/mariadb-operator/mariadb-operator/v25/pkg/http"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/log"
 	"github.com/spf13/cobra"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -41,9 +42,19 @@ var replicationCommand = &cobra.Command{
 			logger.Error(err, "Error creating file manager")
 			os.Exit(1)
 		}
-		k8sClient, err := getK8sClient()
+		restConfig, err := ctrl.GetConfig()
+		if err != nil {
+			logger.Error(err, "Error getting REST config")
+			os.Exit(1)
+		}
+		k8sClient, err := client.New(restConfig, client.Options{Scheme: scheme})
 		if err != nil {
 			logger.Error(err, "Error getting Kubernetes client")
+			os.Exit(1)
+		}
+		mgr, err := ctrl.NewManager(restConfig, ctrl.Options{Scheme: scheme})
+		if err != nil {
+			logger.Error(err, "Unable to create manager")
 			os.Exit(1)
 		}
 
@@ -100,6 +111,7 @@ var replicationCommand = &cobra.Command{
 				stateDir,
 				env,
 				k8sClient,
+				mgr.GetEventRecorderFor("binlog-archival"),
 				logger.WithName("binlog-archival"),
 			)
 			go func() {

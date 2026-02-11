@@ -2,7 +2,6 @@ package agent
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -93,18 +92,6 @@ func newContext() (context.Context, context.CancelFunc) {
 		syscall.SIGHUP,
 		syscall.SIGQUIT}...,
 	)
-}
-
-func getK8sClient() (client.Client, error) {
-	restConfig, err := ctrl.GetConfig()
-	if err != nil {
-		return nil, fmt.Errorf("error getting REST config: %v", err)
-	}
-	k8sClient, err := client.New(restConfig, client.Options{Scheme: scheme})
-	if err != nil {
-		return nil, fmt.Errorf("error creating Kubernetes client: %v", err)
-	}
-	return k8sClient, nil
 }
 
 func getAPIServer(apiHandler router.RouteHandler, env *environment.PodEnvironment, k8sClient client.Client,
