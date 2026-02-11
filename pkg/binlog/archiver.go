@@ -102,7 +102,7 @@ func (a *Archiver) archiveBinaryLogs(ctx context.Context) error {
 		return fmt.Errorf("error checking whether storaage is already initialized: %v", err)
 	}
 	if storageAlreadyInit {
-		return errors.New("binary log storage is already initialized. Archival must start from a clean state.")
+		return errors.New("binary log storage is already initialized. Archival must start from a clean state")
 	}
 
 	isConfigured, err := a.physicalBackupConfigured(ctx, &pitr.Spec.PhysicalBackupRef, mdb)
