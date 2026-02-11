@@ -33,8 +33,9 @@ import (
 )
 
 var (
-	BinlogIndexName = "index.yaml"
-	archiveInterval = 10 * time.Minute
+	BinlogIndexName        = "index.yaml"
+	archiveInterval        = 10 * time.Minute
+	defaultArchivalTimeout = metav1.Duration{Duration: time.Hour}
 )
 
 type Archiver struct {
@@ -162,12 +163,21 @@ func (a *Archiver) archiveBinaryLogs(ctx context.Context, mdb *mariadbv1alpha1.M
 		a.logger.WithName("uploader"),
 	)
 
-	// TODO: archival timeout based on pitr.Spec.archivalTimeout
+	timeOutCtx, cancel := context.WithTimeout(ctx, ptr.Deref(pitr.Spec.ArchiveTimeout, defaultArchivalTimeout).Duration)
+	defer cancel()
+
 	for i := 0; i < len(binlogs); i++ {
-		if err := a.archiveBinaryLog(ctx, binlogs[i], mdb, pitr, uploader); err != nil {
-			return err
+		select {
+		case <-timeOutCtx.Done():
+			return fmt.Errorf("archival timed out: %w", timeOutCtx.Err())
+		default:
+			if err := a.archiveBinaryLog(timeOutCtx, binlogs[i], mdb, pitr, uploader); err != nil {
+				return err
+			}
 		}
 	}
+	a.logger.Info("Binlog archival done")
+
 	return a.updateStatus(ctx, binlogs, s3Client, sqlClient)
 }
 

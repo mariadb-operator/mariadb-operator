@@ -84,7 +84,7 @@ func (u *Uploader) Upload(ctx context.Context, binlog string, mdb *mariadbv1alph
 		_ = tmpFile.Close()
 		_ = os.Remove(tmpFile.Name())
 	}()
-	if err := u.compressor.Compress(tmpFile, binlogFile); err != nil {
+	if err = u.compressor.Compress(ctx, tmpFile, binlogFile); err != nil {
 		return fmt.Errorf("error compressing binlog: %v", err)
 	}
 	tmpStat, err := tmpFile.Stat()
