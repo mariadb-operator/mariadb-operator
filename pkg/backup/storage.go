@@ -7,7 +7,6 @@ import (
 
 	"github.com/go-logr/logr"
 	mariadbminio "github.com/mariadb-operator/mariadb-operator/v25/pkg/minio"
-	"github.com/minio/minio-go/v7"
 )
 
 type BackupStorage interface {
@@ -91,19 +90,18 @@ func NewS3BackupStorage(basePath, bucket, endpoint string, processor BackupProce
 }
 
 func (s *S3BackupStorage) List(ctx context.Context) ([]string, error) {
-	var fileNames []string
-	for o := range s.client.ListObjects(ctx, s.bucket, minio.ListObjectsOptions{
-		Prefix: s.client.GetPrefix(),
-	}) {
-		if o.Err != nil {
-			return nil, o.Err
-		}
-		fileName := o.Key
+	fileNames, err := s.client.ListObjectsWithOptions(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("error listing objects: %v", err)
+	}
+	var filteredFileNames []string
+
+	for _, fileName := range fileNames {
 		if s.shouldProcessBackupFile(fileName, s.logger) {
-			fileNames = append(fileNames, fileName)
+			filteredFileNames = append(filteredFileNames, fileName)
 		}
 	}
-	return fileNames, nil
+	return filteredFileNames, nil
 }
 
 func (s *S3BackupStorage) Push(ctx context.Context, fileName string) error {

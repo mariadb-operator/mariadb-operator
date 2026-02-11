@@ -120,6 +120,19 @@ func NewMinioClient(basePath, bucket, endpoint string, mOpts ...MinioOpt) (*Clie
 	}, nil
 }
 
+func (c *Client) ListObjectsWithOptions(ctx context.Context) ([]string, error) {
+	var fileNames []string
+	for o := range c.ListObjects(ctx, c.bucket, minio.ListObjectsOptions{
+		Prefix: c.GetPrefix(),
+	}) {
+		if o.Err != nil {
+			return nil, o.Err
+		}
+		fileNames = append(fileNames, o.Key)
+	}
+	return fileNames, nil
+}
+
 func (c *Client) PutObjectWithOptions(ctx context.Context, fileName string, reader io.Reader, size int64) error {
 	putOpts, err := c.putObjectOptions()
 	if err != nil {
