@@ -3,6 +3,7 @@ package v1alpha1
 const (
 	ConditionTypeReady           string = "Ready"
 	ConditionTypeBackupRestored  string = "BackupRestored"
+	ConditionTypeBinlogsArchived string = "BinlogsArchived"
 	ConditionTypeBinlogsReplayed string = "BinlogsReplayed"
 	ConditionTypePrimarySwitched string = "PrimarySwitched"
 	// ConditionTypeGaleraReady indicates that the cluster is healthy.
@@ -29,6 +30,8 @@ const (
 	ConditionReasonStatefulSetReady      string = "StatefulSetReady"
 	ConditionReasonRestoreBackup         string = "RestoreBackup"
 	ConditionReasonRestorePhysicalBackup string = "RestorePhysicalBackup"
+	ConditionReasonArchiveBinlogs        string = "ArchiveBinlogs"
+	ConditionReasonArchiveBinlogsError   string = "ArchiveBinlogsError"
 	ConditionReasonReplayBinlogs         string = "ReplayBinlogs"
 	ConditionReasonReplayBinlogsError    string = "ReplayBinlogsError"
 	ConditionReasonSwitchPrimary         string = "SwitchPrimary"

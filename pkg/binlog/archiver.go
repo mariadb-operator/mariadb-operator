@@ -16,14 +16,17 @@ import (
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
 	mariadbcompression "github.com/mariadb-operator/mariadb-operator/v25/pkg/compression"
+	conditions "github.com/mariadb-operator/mariadb-operator/v25/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/environment"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/metadata"
 	mariadbminio "github.com/mariadb-operator/mariadb-operator/v25/pkg/minio"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/refresolver"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/replication"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/sql"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
@@ -39,16 +42,18 @@ type Archiver struct {
 	env         *environment.PodEnvironment
 	client      client.Client
 	refResolver *refresolver.RefResolver
+	recorder    record.EventRecorder
 	logger      logr.Logger
 }
 
 func NewArchiver(dataDir string, env *environment.PodEnvironment, client client.Client,
-	logger logr.Logger) *Archiver {
+	recorder record.EventRecorder, logger logr.Logger) *Archiver {
 	return &Archiver{
 		dataDir:     dataDir,
 		env:         env,
 		client:      client,
 		refResolver: refresolver.New(client),
+		recorder:    recorder,
 		logger:      logger,
 	}
 }
@@ -65,29 +70,38 @@ func (a *Archiver) Start(ctx context.Context) error {
 			a.logger.Info("Stopping binary log archiver")
 			return nil
 		case <-ticker.C:
-			if err := a.archiveBinaryLogs(ctx); err != nil {
-				a.logger.Error(err, "Error archiving binary logs")
+			mdb, err := a.getMariaDB(ctx)
+			if err != nil {
+				return fmt.Errorf("error getting MariaDB: %v", err)
+			}
+			if !a.shouldArchiveBinlogs(mdb) {
+				continue
+			}
+			archiveErr := a.archiveBinaryLogs(ctx, mdb)
+
+			if err := a.updateStatusWithError(ctx, mdb, archiveErr); err != nil {
+				return fmt.Errorf("error updating status with error: %v", err)
 			}
 		}
 	}
 }
 
-func (a *Archiver) archiveBinaryLogs(ctx context.Context) error {
-	mdb, err := a.getMariaDB(ctx)
-	if err != nil {
-		return err
-	}
+func (a *Archiver) shouldArchiveBinlogs(mdb *mariadbv1alpha1.MariaDB) bool {
 	if mdb.Status.CurrentPrimary == nil ||
 		(mdb.Status.CurrentPrimary != nil && *mdb.Status.CurrentPrimary != a.env.PodName) {
 		a.logger.V(1).Info("Current primary not set or current Pod is a replica. Skipping binary log archival...")
-		return nil
+		return false
 	}
 	// TODO: fine grained guard
 	if mdb.IsSwitchingPrimary() {
-		return errors.New("unable to start archival: Switchover operation pending/ongoing")
+		a.logger.V(1).Info("Switchover operation pending/ongoing. Skipping binary log archival...")
+		return false
 	}
-	a.logger.Info("Archiving binary logs")
+	return true
+}
 
+func (a *Archiver) archiveBinaryLogs(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) error {
+	a.logger.Info("Archiving binary logs")
 	pitr, err := a.getPointInTimeRecovery(ctx, mdb)
 	if err != nil {
 		return err
@@ -310,6 +324,10 @@ func (a *Archiver) archiveBinaryLog(ctx context.Context, binlog string, mdb *mar
 	if err := uploader.Upload(ctx, binlog, mdb, pitr); err != nil {
 		return fmt.Errorf("error uploading binary log %s: %v", binlog, err)
 	}
+	msg := fmt.Sprintf("Binary log %s archived", binlog)
+	a.logger.Info(msg)
+	a.recorder.Event(mdb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonBinlogArchived, msg)
+
 	return nil
 }
 
@@ -355,6 +373,27 @@ func (a *Archiver) updateStatus(ctx context.Context, binlogs []string, s3Client 
 			status.LastRecoverableTime = ptr.To(lastRecoverableTime.Format(time.RFC3339))
 		}); err != nil {
 			return fmt.Errorf("error patching PITR status: %v", err)
+		}
+	}
+	return nil
+}
+
+func (a *Archiver) updateStatusWithError(ctx context.Context, mdb *mariadbv1alpha1.MariaDB, archiveErr error) error {
+	if archiveErr != nil {
+		a.logger.Error(archiveErr, "Error archiving binary logs")
+
+		if err := a.patchMariadbStatus(ctx, mdb, func(status *mariadbv1alpha1.MariaDBStatus) {
+			conditions.SetArchivedBinlogsError(status, archiveErr.Error())
+		}); err != nil {
+			return fmt.Errorf("error patching MariaDB status: %v", err)
+		}
+		a.recorder.Eventf(mdb, corev1.EventTypeWarning, mariadbv1alpha1.ReasonBinlogArchivalError,
+			"Error archiving binary logs: %v", archiveErr)
+	} else {
+		if err := a.patchMariadbStatus(ctx, mdb, func(status *mariadbv1alpha1.MariaDBStatus) {
+			conditions.SetArchivedBinlogs(status)
+		}); err != nil {
+			return fmt.Errorf("error patching MariaDB status: %v", err)
 		}
 	}
 	return nil

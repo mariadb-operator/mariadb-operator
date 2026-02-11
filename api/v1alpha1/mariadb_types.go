@@ -968,6 +968,18 @@ func (m *MariaDB) HasRestoredPhysicalBackup() bool {
 	return c.Status == metav1.ConditionTrue && c.Reason == ConditionReasonRestorePhysicalBackup
 }
 
+// ArchiveBinlogsError indicates that an error occurred when archiving binlogs.
+func (m *MariaDB) ArchiveBinlogsError() error {
+	c := meta.FindStatusCondition(m.Status.Conditions, ConditionTypeBinlogsArchived)
+	if c == nil {
+		return nil
+	}
+	if c.Status == metav1.ConditionFalse && c.Reason == ConditionReasonArchiveBinlogsError {
+		return errors.New(c.Message)
+	}
+	return nil
+}
+
 // IsReplayingBinlogs indicates whether the MariaDB instance is replaying binlogs
 func (m *MariaDB) IsReplayingBinlogs() bool {
 	return meta.IsStatusConditionFalse(m.Status.Conditions, ConditionTypeBinlogsReplayed)
