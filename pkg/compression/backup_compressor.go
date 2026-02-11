@@ -162,7 +162,7 @@ func decompressFile(path, fileName string, logger logr.Logger, getUncompressedFi
 	}
 	defer plainFile.Close()
 
-	if err := compressor.Decompress(plainFile, compressedFile); err != nil {
+	if err := compressor.Decompress(context.TODO(), plainFile, compressedFile); err != nil {
 		return "", err
 	}
 

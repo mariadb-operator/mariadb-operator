@@ -1,4 +1,4 @@
-package fs
+package reader
 
 import (
 	"testing"
@@ -9,5 +9,5 @@ import (
 
 func TestAPIs(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "FS Suite")
+	RunSpecs(t, "Reader Suite")
 }
