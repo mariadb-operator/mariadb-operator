@@ -3,8 +3,8 @@ package controller
 import (
 	"strings"
 
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
-	builderpki "github.com/mariadb-operator/mariadb-operator/v25/pkg/builder/pki"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
+	builderpki "github.com/mariadb-operator/mariadb-operator/v26/pkg/builder/pki"
 	"k8s.io/utils/ptr"
 
 	. "github.com/onsi/ginkgo/v2"

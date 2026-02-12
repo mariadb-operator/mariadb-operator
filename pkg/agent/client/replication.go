@@ -3,8 +3,8 @@ package client
 import (
 	"context"
 
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/agent/handler/replication"
-	mdbhttp "github.com/mariadb-operator/mariadb-operator/v25/pkg/http"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/agent/handler/replication"
+	mdbhttp "github.com/mariadb-operator/mariadb-operator/v26/pkg/http"
 )
 
 type Replication struct {

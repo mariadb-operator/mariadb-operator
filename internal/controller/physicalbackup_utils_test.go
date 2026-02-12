@@ -1,9 +1,9 @@
 package controller
 
 import (
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/job"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/volumesnapshot"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/job"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/volumesnapshot"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"

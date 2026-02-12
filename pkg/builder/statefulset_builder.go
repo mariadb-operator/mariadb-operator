@@ -3,11 +3,11 @@ package builder
 import (
 	"fmt"
 
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
-	labels "github.com/mariadb-operator/mariadb-operator/v25/pkg/builder/labels"
-	metadata "github.com/mariadb-operator/mariadb-operator/v25/pkg/builder/metadata"
-	galeraresources "github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/galera/resources"
-	annotation "github.com/mariadb-operator/mariadb-operator/v25/pkg/metadata"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
+	labels "github.com/mariadb-operator/mariadb-operator/v26/pkg/builder/labels"
+	metadata "github.com/mariadb-operator/mariadb-operator/v26/pkg/builder/metadata"
+	galeraresources "github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/galera/resources"
+	annotation "github.com/mariadb-operator/mariadb-operator/v26/pkg/metadata"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

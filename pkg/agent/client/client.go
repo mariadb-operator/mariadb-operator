@@ -7,13 +7,13 @@ import (
 	"net/http"
 	"reflect"
 
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/agent/errors"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/environment"
-	mdbhttp "github.com/mariadb-operator/mariadb-operator/v25/pkg/http"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/pki"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/refresolver"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/statefulset"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/agent/errors"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/environment"
+	mdbhttp "github.com/mariadb-operator/mariadb-operator/v26/pkg/http"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/pki"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/refresolver"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
 	"k8s.io/utils/ptr"
 )
 

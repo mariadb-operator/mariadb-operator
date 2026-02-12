@@ -5,10 +5,10 @@ import (
 
 	chi "github.com/go-chi/chi/v5"
 	"github.com/go-logr/logr"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/agent/router"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/filemanager"
-	mdbhttp "github.com/mariadb-operator/mariadb-operator/v25/pkg/http"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/replication"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/agent/router"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/filemanager"
+	mdbhttp "github.com/mariadb-operator/mariadb-operator/v26/pkg/http"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/replication"
 )
 
 type ReplicationHandler struct {

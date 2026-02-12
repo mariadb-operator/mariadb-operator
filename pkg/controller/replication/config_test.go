@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	env "github.com/mariadb-operator/mariadb-operator/v25/pkg/environment"
+	env "github.com/mariadb-operator/mariadb-operator/v26/pkg/environment"
 )
 
 func TestNewReplicationConfig(t *testing.T) {

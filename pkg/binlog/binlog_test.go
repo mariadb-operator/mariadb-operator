@@ -8,7 +8,7 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/google/go-cmp/cmp"
-	mariadbrepl "github.com/mariadb-operator/mariadb-operator/v25/pkg/replication"
+	mariadbrepl "github.com/mariadb-operator/mariadb-operator/v26/pkg/replication"
 	"github.com/stretchr/testify/assert"
 	"sigs.k8s.io/yaml"
 )

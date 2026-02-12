@@ -3,7 +3,7 @@ package pki
 import (
 	"path/filepath"
 
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/pki"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/pki"
 )
 
 const (

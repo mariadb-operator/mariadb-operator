@@ -10,12 +10,12 @@ import (
 
 	chi "github.com/go-chi/chi/v5"
 	"github.com/go-logr/logr"
-	agenterrors "github.com/mariadb-operator/mariadb-operator/v25/pkg/agent/errors"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/agent/router"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/filemanager"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/galera/recovery"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/galera/state"
-	mdbhttp "github.com/mariadb-operator/mariadb-operator/v25/pkg/http"
+	agenterrors "github.com/mariadb-operator/mariadb-operator/v26/pkg/agent/errors"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/agent/router"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/filemanager"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/galera/recovery"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/galera/state"
+	mdbhttp "github.com/mariadb-operator/mariadb-operator/v26/pkg/http"
 )
 
 type GaleraHandler struct {

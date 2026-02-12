@@ -9,9 +9,9 @@ import (
 	"path/filepath"
 
 	"github.com/go-logr/logr"
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
-	env "github.com/mariadb-operator/mariadb-operator/v25/pkg/environment"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/version"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
+	env "github.com/mariadb-operator/mariadb-operator/v26/pkg/environment"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/version"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 

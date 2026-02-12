@@ -3,7 +3,7 @@ package certificate
 import (
 	"context"
 
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/pki"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/pki"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )

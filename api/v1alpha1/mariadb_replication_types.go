@@ -6,8 +6,8 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/docker"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/environment"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/docker"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/environment"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"

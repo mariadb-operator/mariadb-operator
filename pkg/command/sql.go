@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/interfaces"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/interfaces"
 )
 
 type SqlOpts struct {

@@ -3,8 +3,8 @@ package v1alpha1
 import (
 	"fmt"
 
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/docker"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/environment"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/docker"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/environment"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

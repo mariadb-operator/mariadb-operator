@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
-	builderpki "github.com/mariadb-operator/mariadb-operator/v25/pkg/builder/pki"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/replication"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
+	builderpki "github.com/mariadb-operator/mariadb-operator/v26/pkg/builder/pki"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/replication"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"

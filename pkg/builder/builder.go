@@ -1,8 +1,8 @@
 package builder
 
 import (
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/discovery"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/environment"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/discovery"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/environment"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 

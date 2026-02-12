@@ -10,7 +10,7 @@ import (
 	"errors"
 	"fmt"
 
-	ds "github.com/mariadb-operator/mariadb-operator/v25/pkg/datastructures"
+	ds "github.com/mariadb-operator/mariadb-operator/v26/pkg/datastructures"
 )
 
 // PrivateKey represents a type of private key.
