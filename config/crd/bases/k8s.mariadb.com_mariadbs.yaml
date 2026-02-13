@@ -294,6 +294,69 @@ spec:
               bootstrapFrom:
                 description: BootstrapFrom defines a source to bootstrap from.
                 properties:
+                  abs:
+                    description: |-
+                      ABS defines the configuration to restore backups from an ABS compatible storage.
+                      This field takes precedence over the Volume source.
+                    properties:
+                      containerName:
+                        description: ContainerName name Name of the container to store
+                          backups.
+                        type: string
+                      prefix:
+                        description: 'Prefix indicates a folder/subfolder in the bucket.
+                          For example: mariadb/ or mariadb/backups. A trailing slash
+                          ''/'' is added if not provided.'
+                        type: string
+                      serviceURL:
+                        description: 'ServiceURL is the full URL for connecting to
+                          Azure, usually in the form: http(s)://<account>.blob.core.windows.net/.'
+                        type: string
+                      storageAccountKey:
+                        description: StorageAccountKey is a reference to a Secret
+                          key containing the Azure Blob Storage Storage account Key.
+                          Pairs with StorageAccountKey for static credential authentication
+                        properties:
+                          key:
+                            type: string
+                          name:
+                            default: ""
+                            type: string
+                        required:
+                        - key
+                        type: object
+                        x-kubernetes-map-type: atomic
+                      storageAccountName:
+                        description: StorageAccountName is the name of the storage
+                          account. Pairs with StorageAccountKey for static credential
+                          authentication
+                        type: string
+                      tls:
+                        description: TLS provides the configuration required to establish
+                          TLS connections with Azure Blob Storage.
+                        properties:
+                          caSecretKeyRef:
+                            description: |-
+                              CASecretKeyRef is a reference to a Secret key containing a CA bundle in PEM format used to establish TLS connections with S3.
+                              By default, the system trust chain will be used, but you can use this field to add more CAs to the bundle.
+                            properties:
+                              key:
+                                type: string
+                              name:
+                                default: ""
+                                type: string
+                            required:
+                            - key
+                            type: object
+                            x-kubernetes-map-type: atomic
+                          enabled:
+                            description: Enabled is a flag to enable TLS.
+                            type: boolean
+                        type: object
+                    required:
+                    - containerName
+                    - serviceURL
+                    type: object
                   backupContentType:
                     description: |-
                       BackupContentType is the backup content type available in the source to bootstrap from.
