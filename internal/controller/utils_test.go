@@ -852,6 +852,31 @@ func withSSEC() s3StorageOpt {
 	}
 }
 
+func getABSStorage(containerName, prefix string) *mariadbv1alpha1.ABS {
+	abs := &mariadbv1alpha1.ABS{
+		ContainerName:      containerName,
+		Prefix:             prefix,
+		ServiceURL:         "https://172.18.0.60:10000/devstoreaccount1",
+		StorageAccountName: "devstoreaccount1",
+		StorageAccountKey: &mariadbv1alpha1.SecretKeySelector{
+			LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+				Name: "azurite-key",
+			},
+			Key: "storageAccountKey",
+		},
+		TLS: &mariadbv1alpha1.TLSConfig{
+			Enabled: true,
+			CASecretKeyRef: &mariadbv1alpha1.SecretKeySelector{
+				LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+					Name: "azurite-certs",
+				},
+				Key: "cert.pem",
+			},
+		},
+	}
+	return abs
+}
+
 func getS3Storage(bucket, prefix string, s3Opts ...s3StorageOpt) *mariadbv1alpha1.S3 {
 	opts := &s3StorageOptions{}
 	for _, setOpt := range s3Opts {
@@ -1081,6 +1106,14 @@ func buildPhysicalBackupWithS3Storage(mariadbKey types.NamespacedName, bucket, p
 	return func(key types.NamespacedName) *mariadbv1alpha1.PhysicalBackup {
 		return getPhysicalBackupWithStorage(key, mariadbKey, mariadbv1alpha1.PhysicalBackupStorage{
 			S3: getS3Storage(bucket, prefix),
+		})
+	}
+}
+
+func buildPhysicalBackupWithABSStorage(mariadbKey types.NamespacedName, containerName, prefix string) physicalBackupBuilder {
+	return func(key types.NamespacedName) *mariadbv1alpha1.PhysicalBackup {
+		return getPhysicalBackupWithStorage(key, mariadbKey, mariadbv1alpha1.PhysicalBackupStorage{
+			ABS: getABSStorage(containerName, prefix),
 		})
 	}
 }

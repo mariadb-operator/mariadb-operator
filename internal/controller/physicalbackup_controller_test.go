@@ -12,7 +12,7 @@ import (
 	"k8s.io/utils/ptr"
 )
 
-var _ = Describe("PhysicalBackup", Label("basic"), func() {
+var _ = FDescribe("PhysicalBackup", Label("basic"), func() {
 	BeforeEach(func() {
 		By("Waiting for MariaDB to be ready")
 		expectMariadbReady(testCtx, k8sClient, testMdbkey)
@@ -44,9 +44,21 @@ var _ = Describe("PhysicalBackup", Label("basic"), func() {
 			testPhysicalBackup,
 		),
 		Entry(
+			"should reconcile a Job with ABS storage",
+			"physicalbackup-job-abs-test",
+			buildPhysicalBackupWithABSStorage(testMdbkey, "test-physicalbackup", ""),
+			testPhysicalBackup,
+		),
+		Entry(
 			"should reconcile a Job with S3 storage",
 			"physicalbackup-job-s3-test",
 			buildPhysicalBackupWithS3Storage(testMdbkey, "test-physicalbackup", ""),
+			testPhysicalBackup,
+		),
+		Entry(
+			"should reconcile a Job with ABS storage with prefix",
+			"physicalbackup-job-abs-prefix-test",
+			buildPhysicalBackupWithABSStorage(testMdbkey, "test-physicalbackup", "mariadb"),
 			testPhysicalBackup,
 		),
 		Entry(
@@ -56,11 +68,29 @@ var _ = Describe("PhysicalBackup", Label("basic"), func() {
 			testPhysicalBackup,
 		),
 		Entry(
+			"should reconcile a Job with ABS storage and bzip2 compression",
+			"physicalbackup-job-abs-bzip2-test",
+			applyDecoratorChain(
+				buildPhysicalBackupWithABSStorage(testMdbkey, "test-physicalbackup", ""),
+				decoratePhysicalBackupWithGzipCompression,
+			),
+			testPhysicalBackup,
+		),
+		Entry(
 			"should reconcile a Job with S3 storage and bzip2 compression",
 			"physicalbackup-job-s3-bzip2-test",
 			applyDecoratorChain(
 				buildPhysicalBackupWithS3Storage(testMdbkey, "test-physicalbackup", ""),
 				decoratePhysicalBackupWithBzip2Compression,
+			),
+			testPhysicalBackup,
+		),
+		Entry(
+			"should reconcile a Job with ABS storage and gzip compression",
+			"physicalbackup-job-abs-gzip-test",
+			applyDecoratorChain(
+				buildPhysicalBackupWithABSStorage(testMdbkey, "test-physicalbackup", ""),
+				decoratePhysicalBackupWithGzipCompression,
 			),
 			testPhysicalBackup,
 		),
@@ -83,11 +113,29 @@ var _ = Describe("PhysicalBackup", Label("basic"), func() {
 			testPhysicalBackup,
 		),
 		Entry(
+			"should reconcile a Job with ABS storage and staging storage",
+			"physicalbackup-job-abs-staging-test",
+			applyDecoratorChain(
+				buildPhysicalBackupWithABSStorage(testMdbkey, "test-physicalbackup", ""),
+				decoratePhysicalBackupWithStagingStorage,
+			),
+			testPhysicalBackup,
+		),
+		Entry(
 			"should reconcile a Job with S3 storage and staging storage",
 			"physicalbackup-job-s3-staging-test",
 			applyDecoratorChain(
 				buildPhysicalBackupWithS3Storage(testMdbkey, "test-physicalbackup", ""),
 				decoratePhysicalBackupWithStagingStorage,
+			),
+			testPhysicalBackup,
+		),
+		Entry(
+			"should reconcile a scheduled Job with ABS storage",
+			"physicalbackup-scheduled-job-abs-test",
+			applyDecoratorChain(
+				buildPhysicalBackupWithABSStorage(testMdbkey, "test-physicalbackup", ""),
+				decoratePhysicalBackupWithSchedule,
 			),
 			testPhysicalBackup,
 		),

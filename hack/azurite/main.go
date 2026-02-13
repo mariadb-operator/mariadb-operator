@@ -22,6 +22,7 @@ import (
 
 var containers = []string{
 	"physicalbackup",
+	"test-physicalbackup",
 }
 
 const (
