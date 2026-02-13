@@ -664,6 +664,33 @@ type TLSConfig struct {
 	CASecretKeyRef *SecretKeySelector `json:"caSecretKeyRef,omitempty"`
 }
 
+type ABS struct {
+	// ContainerName name Name of the container to store backups.
+	// +kubebuilder:validation:Required
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	ContainerName string `json:"containerName" webhook:"inmutable"`
+	// ServiceURL is the full URL for connecting to Azure, usually in the form: http(s)://<account>.blob.core.windows.net/.
+	// +kubebuilder:validation:Required
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	ServiceURL string `json:"serviceURL" webhook:"inmutable"`
+	// Prefix indicates a folder/subfolder in the bucket. For example: mariadb/ or mariadb/backups. A trailing slash '/' is added if not provided.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Prefix string `json:"prefix" webhook:"inmutable"`
+	// StorageAccountName is the name of the storage account. Pairs with StorageAccountKey for static credential authentication
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	StorageAccountName string `json:"storageAccountName,omitempty" webhook:"inmutable"`
+	// StorageAccountKey is a reference to a Secret key containing the Azure Blob Storage Storage account Key. Pairs with StorageAccountKey for static credential authentication
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	StorageAccountKey *SecretKeySelector `json:"storageAccountKey,omitempty"`
+	// TLS provides the configuration required to establish TLS connections with Azure Blob Storage.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	TLS *TLSConfig `json:"tls,omitempty"`
+}
+
 type S3 struct {
 	// Bucket is the name Name of the bucket to store backups.
 	// +kubebuilder:validation:Required
