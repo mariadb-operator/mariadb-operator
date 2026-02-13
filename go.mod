@@ -3,6 +3,8 @@ module github.com/mariadb-operator/mariadb-operator/v26
 go 1.26
 
 require (
+	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.20.0
+	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.6.4
 	github.com/cert-manager/cert-manager v1.19.2
 	github.com/distribution/reference v0.6.0
 	github.com/dsnet/compress v0.0.1
@@ -39,6 +41,7 @@ require (
 
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
+	github.com/Azure/azure-sdk-for-go/sdk/internal v1.11.2 // indirect
 	github.com/BurntSushi/toml v1.4.0 // indirect
 	github.com/Masterminds/semver/v3 v3.4.0 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.39.2 // indirect
