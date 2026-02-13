@@ -11,6 +11,7 @@ import (
 
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/azure"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/backup"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/builder"
 	mdbcompression "github.com/mariadb-operator/mariadb-operator/v26/pkg/compression"
@@ -41,6 +42,13 @@ var (
 	s3TLS        bool
 	s3CACertPath string
 	s3Prefix     string
+
+	abs           bool
+	absContainer  string
+	absServiceURL string
+	absTLS        bool
+	absCACertPath string
+	absPrefix     string
 
 	physicalBackupDirPath   string
 	physicalBackupMeta      bool
@@ -80,6 +88,13 @@ func init() {
 	RootCmd.PersistentFlags().BoolVar(&s3TLS, "s3-tls", false, "Enable S3 TLS connections.")
 	RootCmd.PersistentFlags().StringVar(&s3CACertPath, "s3-ca-cert-path", "", "Path to the CA to be trusted when connecting to S3.")
 	RootCmd.PersistentFlags().StringVar(&s3Prefix, "s3-prefix", "", "S3 bucket prefix name to use.")
+
+	RootCmd.PersistentFlags().BoolVar(&abs, "abs", false, "Enable Azure Blob backup storage.")
+	RootCmd.PersistentFlags().StringVar(&absContainer, "abs-container", "backups", "Name of the container to store backups.")
+	RootCmd.PersistentFlags().StringVar(&absServiceURL, "abs-service-url", "", "Full abs service url to use: http(s)://<account>.blob.core.windows.net/.")
+	RootCmd.PersistentFlags().BoolVar(&absTLS, "abs-tls", false, "Enable Azure Blob Storage TLS connections.")
+	RootCmd.PersistentFlags().StringVar(&absCACertPath, "abs-ca-cert-path", "", "Path to the CA to be trusted when connecting to ABS.")
+	RootCmd.PersistentFlags().StringVar(&absPrefix, "abs-prefix", "", "ABS container prefix to use.")
 
 	RootCmd.PersistentFlags().StringVar(&compression, "compression", string(mariadbv1alpha1.CompressNone),
 		"Compression algorithm: none, gzip or bzip2.")
@@ -143,9 +158,9 @@ var RootCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		logger.Info("pushing target backup", "file", backupTargetFile, "prefix", s3Prefix)
+		logger.Info("pushing target backup", "file", backupTargetFile)
 		if err := backupStorage.Push(ctx, backupTargetFile); err != nil {
-			logger.Error(err, "error pushing target backup", "file", backupTargetFile, "prefix", s3Prefix)
+			logger.Error(err, "error pushing target backup", "file", backupTargetFile)
 			os.Exit(1)
 		}
 
@@ -216,12 +231,33 @@ func getBackupStorage(processor backup.BackupProcessor) (backup.BackupStorage, e
 			logger.Info("configuring S3 SSE-C encryption")
 			opts = append(opts, mdbminio.WithSSECCustomerKey(ssecKey))
 		}
-		return backup.NewS3BackupStorage(
+		return backup.NewBlobBackupStorageWithS3(
 			path,
 			s3Bucket,
 			s3Endpoint,
 			processor,
-			logger.WithName("s3-storage"),
+			opts...,
+		)
+	}
+	if abs {
+		logger.Info("configuring ABS backup storage")
+		opts := []azure.AzBlobOpt{
+			azure.WithTLSEnabled(absTLS),
+			azure.WithTLSCACertPath(absCACertPath),
+			azure.WithPrefix(absPrefix),
+		}
+		if accountKey := os.Getenv(builder.ABSStorageAccountKey); accountKey != "" {
+			opts = append(opts, azure.WithAccountKey(accountKey))
+		}
+
+		if accountName := os.Getenv(builder.ABSStorageAccountName); accountName != "" {
+			opts = append(opts, azure.WithAccountName(accountName))
+		}
+		return backup.NewBlobBackupStorageWithABS(
+			path,
+			absContainer,
+			absServiceURL,
+			processor,
 			opts...,
 		)
 	}
@@ -246,7 +282,7 @@ func readTargetFile() (string, error) {
 }
 
 func cleanupFile(fileName string, logger logr.Logger) error {
-	if !s3 || !cleanupTargetFile {
+	if !s3 || !abs || !cleanupTargetFile {
 		return nil
 	}
 	filePath := backup.GetFilePath(path, fileName)

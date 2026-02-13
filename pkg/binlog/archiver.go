@@ -244,7 +244,7 @@ func (a *Archiver) getPointInTimeRecovery(ctx context.Context, mdb *mariadbv1alp
 }
 
 func (a *Archiver) getS3Client(s3 *mariadbv1alpha1.S3, env *environment.PodEnvironment) (*mariadbminio.Client, error) {
-	tls := ptr.Deref(s3.TLS, mariadbv1alpha1.TLSS3{})
+	tls := ptr.Deref(s3.TLS, mariadbv1alpha1.TLSConfig{})
 	minioOpts := []mariadbminio.MinioOpt{
 		mariadbminio.WithTLS(tls.Enabled),
 		mariadbminio.WithRegion(s3.Region),

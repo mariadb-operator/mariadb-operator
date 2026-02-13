@@ -722,7 +722,7 @@ type SQLTemplate struct {
 	CleanupPolicy *CleanupPolicy `json:"cleanupPolicy,omitempty"`
 }
 
-type TLSS3 struct {
+type TLSConfig struct {
 	// Enabled is a flag to enable TLS.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
@@ -766,7 +766,7 @@ type S3 struct {
 	// TLS provides the configuration required to establish TLS connections with S3.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	TLS *TLSS3 `json:"tls,omitempty"`
+	TLS *TLSConfig `json:"tls,omitempty"`
 	// SSEC is a reference to a Secret containing the SSE-C (Server-Side Encryption with Customer-Provided Keys) key.
 	// The secret must contain a 32-byte key (256 bits) in the specified key.
 	// This enables server-side encryption where you provide and manage the encryption key.
