@@ -31,7 +31,7 @@ host-mxs-test: ## Add MaxScale test hosts to /etc/hosts.
 
 .PHONY: host-azurite
 host-azurite: ## Add Azurite test hosts to /etc/hosts.
-	@./hack/add_host.sh 60 azurite.azurite.svc.cluster.local
+	@./hack/add_host.sh 60 azurite.default.svc.cluster.local
 
 .PHONY: host-mariadb-repl
 host-mariadb-repl: ## Add mariadb repl hosts to /etc/hosts.
