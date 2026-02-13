@@ -34,15 +34,23 @@ type BackupOpts struct {
 	StartGtid            *replication.Gtid
 	TargetTime           time.Time
 	Compression          mariadbv1alpha1.CompressAlgorithm
-	S3                   bool
-	S3Bucket             string
-	S3Endpoint           string
-	S3Region             string
-	S3TLS                bool
-	S3CACertPath         string
-	S3Prefix             string
 	LogLevel             string
 	ExtraOpts            []string
+
+	S3           bool
+	S3Bucket     string
+	S3Endpoint   string
+	S3Region     string
+	S3TLS        bool
+	S3CACertPath string
+	S3Prefix     string
+
+	ABS              bool
+	ABSContainerName string
+	ABSServiceURL    string
+	ABSTLS           bool
+	ABSCACertPath    string
+	ABSPrefix        string
 }
 
 type BackupOpt func(*BackupOpts)
@@ -111,6 +119,27 @@ func WithS3(bucket, endpoint, region, prefix string) BackupOpt {
 		bo.S3Endpoint = endpoint
 		bo.S3Region = region
 		bo.S3Prefix = prefix
+	}
+}
+
+func WithABS(containerName, serviceURL, prefix string) BackupOpt {
+	return func(bo *BackupOpts) {
+		bo.ABS = true
+		bo.ABSContainerName = containerName
+		bo.ABSServiceURL = serviceURL
+		bo.ABSPrefix = prefix
+	}
+}
+
+func WithABSTLS(tls bool) BackupOpt {
+	return func(bo *BackupOpts) {
+		bo.ABSTLS = tls
+	}
+}
+
+func WithABSCACertPath(caCertPath string) BackupOpt {
+	return func(bo *BackupOpts) {
+		bo.ABSCACertPath = caCertPath
 	}
 }
 
@@ -322,7 +351,8 @@ func (b *BackupCommand) MariadbOperatorBackup() (*Command, error) {
 	}
 
 	args = append(args, b.s3Args()...)
-	if b.S3 && b.CleanupTargetFile {
+	args = append(args, b.absArgs()...)
+	if (b.S3 || b.ABS) && b.CleanupTargetFile {
 		args = append(args, "--cleanup-target-file")
 	}
 	args = append(args, b.physicalBackupArgs()...)
@@ -354,6 +384,7 @@ func (b *BackupCommand) MariadbOperatorRestore() (*Command, error) {
 	}
 
 	args = append(args, b.s3Args()...)
+	args = append(args, b.absArgs()...)
 	args = append(args, b.physicalBackupArgs()...)
 
 	return NewCommand(nil, args), nil
@@ -476,6 +507,7 @@ func (b *BackupCommand) MariadbOperatorPITR(strictMode bool) (*Command, error) {
 		args = append(args, "--strict-mode")
 	}
 	args = append(args, b.s3Args()...)
+	args = append(args, b.absArgs()...)
 
 	if b.Compression != "" {
 		args = append(args, []string{
@@ -688,6 +720,37 @@ func (b *BackupCommand) mariadbArgs(mariadb interfaces.TLSProvider) []string {
 	}
 
 	return ds.UniqueArgs(args...)
+}
+
+func (b *BackupCommand) absArgs() []string {
+	if !b.ABS {
+		return nil
+	}
+	args := []string{
+		"--abs",
+		"--abs-container",
+		b.ABSContainerName,
+		"--abs-service-url",
+		b.ABSServiceURL,
+	}
+	if b.ABSTLS {
+		args = append(args,
+			"--abs-tls",
+		)
+		if b.ABSCACertPath != "" {
+			args = append(args,
+				"--abs-ca-cert-path",
+				b.ABSCACertPath,
+			)
+		}
+	}
+	if b.ABSPrefix != "" {
+		args = append(args,
+			"--abs-prefix",
+			b.ABSPrefix,
+		)
+	}
+	return args
 }
 
 func (b *BackupCommand) s3Args() []string {

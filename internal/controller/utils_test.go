@@ -874,7 +874,7 @@ func getS3Storage(bucket, prefix string, s3Opts ...s3StorageOpt) *mariadbv1alpha
 			},
 			Key: "secret-access-key",
 		},
-		TLS: &mariadbv1alpha1.TLSS3{
+		TLS: &mariadbv1alpha1.TLSConfig{
 			Enabled: true,
 			CASecretKeyRef: &mariadbv1alpha1.SecretKeySelector{
 				LocalObjectReference: mariadbv1alpha1.LocalObjectReference{

@@ -186,9 +186,8 @@ func (r *MariaDBReconciler) reconcileReplayBinlogsError(ctx context.Context, mar
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error getting S3 client: %v", err)
 	}
-	val, err := s3Client.GetCredentials().GetWithContext(nil)
 	// S3 credentials are not static or AWS env variables are not set in the operator Pod.
-	if err != nil || val == (credentials.Value{}) {
+	if s3Client.IsAuthenticated() {
 		logger.Info("Object storage credentials not found. Skipping binlog timeline validation...", "err", err)
 		return ctrl.Result{}, nil
 	}
@@ -400,7 +399,7 @@ func (r *MariaDBReconciler) getS3Client(ctx context.Context, pitr *mariadbv1alph
 		}))
 	}
 
-	tls := ptr.Deref(s3.TLS, mariadbv1alpha1.TLSS3{})
+	tls := ptr.Deref(s3.TLS, mariadbv1alpha1.TLSConfig{})
 	if tls.Enabled {
 		minioOpts = append(minioOpts, minio.WithTLS(true))
 		caCertBytes, err := r.RefResolver.SecretKeyRef(ctx, *s3.TLS.CASecretKeyRef, pitr.Namespace)

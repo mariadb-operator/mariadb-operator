@@ -4374,7 +4374,7 @@ func (in *S3) DeepCopyInto(out *S3) {
 	}
 	if in.TLS != nil {
 		in, out := &in.TLS, &out.TLS
-		*out = new(TLSS3)
+		*out = new(TLSConfig)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.SSEC != nil {
