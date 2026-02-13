@@ -12221,73 +12221,31 @@ spec:
                     default: ""
                     type: string
                 type: object
-              s3:
-                description: S3 is the S3-compatible storage where the binary logs
-                  will be kept.
+              storage:
+                description: PointInTimeRecoveryStorage is the storage where the point
+                  in time recovery data will be stored
                 properties:
-                  accessKeyIdSecretKeyRef:
-                    description: AccessKeyIdSecretKeyRef is a reference to a Secret
-                      key containing the S3 access key id.
+                  azureBlob:
+                    description: ABS is the Azure Blob Storage where the binary logs
+                      will be kept.
                     properties:
-                      key:
+                      containerName:
+                        description: ContainerName name Name of the container to store
+                          backups.
                         type: string
-                      name:
-                        default: ""
+                      prefix:
+                        description: 'Prefix indicates a folder/subfolder in the bucket.
+                          For example: mariadb/ or mariadb/backups. A trailing slash
+                          ''/'' is added if not provided.'
                         type: string
-                    required:
-                    - key
-                    type: object
-                    x-kubernetes-map-type: atomic
-                  bucket:
-                    description: Bucket is the name Name of the bucket to store backups.
-                    type: string
-                  endpoint:
-                    description: Endpoint is the S3 API endpoint without scheme.
-                    type: string
-                  prefix:
-                    description: 'Prefix indicates a folder/subfolder in the bucket.
-                      For example: mariadb/ or mariadb/backups. A trailing slash ''/''
-                      is added if not provided.'
-                    type: string
-                  region:
-                    description: Region is the S3 region name to use.
-                    type: string
-                  secretAccessKeySecretKeyRef:
-                    description: AccessKeyIdSecretKeyRef is a reference to a Secret
-                      key containing the S3 secret key.
-                    properties:
-                      key:
+                      serviceURL:
+                        description: 'ServiceURL is the full URL for connecting to
+                          Azure, usually in the form: http(s)://<account>.blob.core.windows.net/.'
                         type: string
-                      name:
-                        default: ""
-                        type: string
-                    required:
-                    - key
-                    type: object
-                    x-kubernetes-map-type: atomic
-                  sessionTokenSecretKeyRef:
-                    description: SessionTokenSecretKeyRef is a reference to a Secret
-                      key containing the S3 session token.
-                    properties:
-                      key:
-                        type: string
-                      name:
-                        default: ""
-                        type: string
-                    required:
-                    - key
-                    type: object
-                    x-kubernetes-map-type: atomic
-                  ssec:
-                    description: |-
-                      SSEC is a reference to a Secret containing the SSE-C (Server-Side Encryption with Customer-Provided Keys) key.
-                      The secret must contain a 32-byte key (256 bits) in the specified key.
-                      This enables server-side encryption where you provide and manage the encryption key.
-                    properties:
-                      customerKeySecretKeyRef:
-                        description: |-
-                          CustomerKeySecretKeyRef is a reference to a Secret key containing the SSE-C customer-provided encryption key.
-                          The key must be a 32-byte (256-bit) key encoded in base64.
+                      storageAccountKey:
+                        description: StorageAccountKey is a reference to a Secret
+                          key containing the Azure Blob Storage Storage account Key.
+                          Pairs with StorageAccountKey for static credential authentication
                         properties:
                           key:
                             type: string
@@ -12298,17 +12256,44 @@ spec:
                         - key
                         type: object
                         x-kubernetes-map-type: atomic
+                      storageAccountName:
+                        description: StorageAccountName is the name of the storage
+                          account. Pairs with StorageAccountKey for static credential
+                          authentication
+                        type: string
+                      tls:
+                        description: TLS provides the configuration required to establish
+                          TLS connections with Azure Blob Storage.
+                        properties:
+                          caSecretKeyRef:
+                            description: |-
+                              CASecretKeyRef is a reference to a Secret key containing a CA bundle in PEM format used to establish TLS connections with S3.
+                              By default, the system trust chain will be used, but you can use this field to add more CAs to the bundle.
+                            properties:
+                              key:
+                                type: string
+                              name:
+                                default: ""
+                                type: string
+                            required:
+                            - key
+                            type: object
+                            x-kubernetes-map-type: atomic
+                          enabled:
+                            description: Enabled is a flag to enable TLS.
+                            type: boolean
+                        type: object
                     required:
-                    - customerKeySecretKeyRef
+                    - containerName
+                    - serviceURL
                     type: object
-                  tls:
-                    description: TLS provides the configuration required to establish
-                      TLS connections with S3.
+                  s3:
+                    description: S3 is the S3-compatible storage where the binary
+                      logs will be kept.
                     properties:
-                      caSecretKeyRef:
-                        description: |-
-                          CASecretKeyRef is a reference to a Secret key containing a CA bundle in PEM format used to establish TLS connections with S3.
-                          By default, the system trust chain will be used, but you can use this field to add more CAs to the bundle.
+                      accessKeyIdSecretKeyRef:
+                        description: AccessKeyIdSecretKeyRef is a reference to a Secret
+                          key containing the S3 access key id.
                         properties:
                           key:
                             type: string
@@ -12319,13 +12304,96 @@ spec:
                         - key
                         type: object
                         x-kubernetes-map-type: atomic
-                      enabled:
-                        description: Enabled is a flag to enable TLS.
-                        type: boolean
+                      bucket:
+                        description: Bucket is the name Name of the bucket to store
+                          backups.
+                        type: string
+                      endpoint:
+                        description: Endpoint is the S3 API endpoint without scheme.
+                        type: string
+                      prefix:
+                        description: 'Prefix indicates a folder/subfolder in the bucket.
+                          For example: mariadb/ or mariadb/backups. A trailing slash
+                          ''/'' is added if not provided.'
+                        type: string
+                      region:
+                        description: Region is the S3 region name to use.
+                        type: string
+                      secretAccessKeySecretKeyRef:
+                        description: AccessKeyIdSecretKeyRef is a reference to a Secret
+                          key containing the S3 secret key.
+                        properties:
+                          key:
+                            type: string
+                          name:
+                            default: ""
+                            type: string
+                        required:
+                        - key
+                        type: object
+                        x-kubernetes-map-type: atomic
+                      sessionTokenSecretKeyRef:
+                        description: SessionTokenSecretKeyRef is a reference to a
+                          Secret key containing the S3 session token.
+                        properties:
+                          key:
+                            type: string
+                          name:
+                            default: ""
+                            type: string
+                        required:
+                        - key
+                        type: object
+                        x-kubernetes-map-type: atomic
+                      ssec:
+                        description: |-
+                          SSEC is a reference to a Secret containing the SSE-C (Server-Side Encryption with Customer-Provided Keys) key.
+                          The secret must contain a 32-byte key (256 bits) in the specified key.
+                          This enables server-side encryption where you provide and manage the encryption key.
+                        properties:
+                          customerKeySecretKeyRef:
+                            description: |-
+                              CustomerKeySecretKeyRef is a reference to a Secret key containing the SSE-C customer-provided encryption key.
+                              The key must be a 32-byte (256-bit) key encoded in base64.
+                            properties:
+                              key:
+                                type: string
+                              name:
+                                default: ""
+                                type: string
+                            required:
+                            - key
+                            type: object
+                            x-kubernetes-map-type: atomic
+                        required:
+                        - customerKeySecretKeyRef
+                        type: object
+                      tls:
+                        description: TLS provides the configuration required to establish
+                          TLS connections with S3.
+                        properties:
+                          caSecretKeyRef:
+                            description: |-
+                              CASecretKeyRef is a reference to a Secret key containing a CA bundle in PEM format used to establish TLS connections with S3.
+                              By default, the system trust chain will be used, but you can use this field to add more CAs to the bundle.
+                            properties:
+                              key:
+                                type: string
+                              name:
+                                default: ""
+                                type: string
+                            required:
+                            - key
+                            type: object
+                            x-kubernetes-map-type: atomic
+                          enabled:
+                            description: Enabled is a flag to enable TLS.
+                            type: boolean
+                        type: object
+                    required:
+                    - bucket
+                    - endpoint
                     type: object
-                required:
-                - bucket
-                - endpoint
                 type: object
               strictMode:
                 description: |-
@@ -12335,7 +12403,7 @@ spec:
                 type: boolean
             required:
             - physicalBackupRef
-            - s3
+            - storage
             type: object
           status:
             description: PointInTimeRecoveryStatus represents the current status of

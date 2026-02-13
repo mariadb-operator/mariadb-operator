@@ -206,7 +206,8 @@ func (b *Builder) dataPlaneAgentContainer(mariadb *mariadbv1alpha1.MariaDB, opts
 		return nil, err
 	}
 	if mariadbOpts.pointInTimeRecovery != nil {
-		env = append(env, s3Env(&mariadbOpts.pointInTimeRecovery.Spec.S3)...)
+		env = append(env, s3Env(&mariadbOpts.pointInTimeRecovery.Spec.PointInTimeRecoveryStorage.S3)...)
+		env = append(env, absEnv(&mariadbOpts.pointInTimeRecovery.Spec.PointInTimeRecoveryStorage.ABS)...)
 	}
 	volumeMounts, err := mariadbVolumeMounts(mariadb, opts...)
 	if err != nil {
@@ -631,7 +632,7 @@ func s3Env(s3 *mariadbv1alpha1.S3) []corev1.EnvVar {
 	return env
 }
 
-func ABSEnv(abs *mariadbv1alpha1.ABS) []corev1.EnvVar {
+func absEnv(abs *mariadbv1alpha1.ABS) []corev1.EnvVar {
 	if abs == nil {
 		return make([]corev1.EnvVar, 0)
 	}
@@ -690,8 +691,11 @@ func mariadbVolumeMounts(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt
 		volumeMounts = append(volumeMounts, tlsVolumeMounts...)
 	}
 	if mariadbOpts.pointInTimeRecovery != nil {
-		_, s3VolumeMounts := s3Volumes(&mariadbOpts.pointInTimeRecovery.Spec.S3)
+		_, s3VolumeMounts := s3Volumes(&mariadbOpts.pointInTimeRecovery.Spec.PointInTimeRecoveryStorage.S3)
 		volumeMounts = append(volumeMounts, s3VolumeMounts...)
+
+		_, absVolumeMounts := absVolumes(&mariadbOpts.pointInTimeRecovery.Spec.PointInTimeRecoveryStorage.ABS)
+		volumeMounts = append(volumeMounts, absVolumeMounts...)
 	}
 
 	volumeMounts = append(volumeMounts, mariadbStorageVolumeMount(mariadb))

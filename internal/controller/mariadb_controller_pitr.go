@@ -367,7 +367,7 @@ func (r *MariaDBReconciler) cleanupPITRJob(ctx context.Context, mariadb *mariadb
 }
 
 func (r *MariaDBReconciler) getS3Client(ctx context.Context, pitr *mariadbv1alpha1.PointInTimeRecovery) (*minio.Client, error) {
-	s3 := pitr.Spec.S3
+	s3 := pitr.Spec.PointInTimeRecoveryStorage.S3
 	minioOpts := []minio.MinioOpt{
 		minio.WithRegion(s3.Region),
 		minio.WithPrefix(s3.Prefix),
@@ -419,8 +419,8 @@ func (r *MariaDBReconciler) getS3Client(ctx context.Context, pitr *mariadbv1alph
 
 	s3Client, err := minio.NewMinioClient(
 		"", // not needed: in-memory methods (io.Reader instead of a file) are used in this context
-		pitr.Spec.S3.Bucket,
-		pitr.Spec.S3.Endpoint,
+		pitr.Spec.PointInTimeRecoveryStorage.S3.Bucket,
+		pitr.Spec.PointInTimeRecoveryStorage.S3.Endpoint,
 		minioOpts...,
 	)
 	if err != nil {

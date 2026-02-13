@@ -38,6 +38,7 @@ Package v1alpha1 contains API Schema definitions for the v1alpha1 API group
 _Appears in:_
 - [BootstrapFrom](#bootstrapfrom)
 - [PhysicalBackupStorage](#physicalbackupstorage)
+- [PointInTimeRecoveryStorage](#pointintimerecoverystorage)
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
@@ -2226,10 +2227,27 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `physicalBackupRef` _[LocalObjectReference](#localobjectreference)_ | PhysicalBackupRef is a reference to a PhysicalBackup object that will be used as base backup. |  | Required: \{\} <br /> |
-| `s3` _[S3](#s3)_ | S3 is the S3-compatible storage where the binary logs will be kept. |  | Required: \{\} <br /> |
+| `storage` _[PointInTimeRecoveryStorage](#pointintimerecoverystorage)_ | PointInTimeRecoveryStorage is the storage where the point in time recovery data will be stored |  | Required: \{\} <br /> |
 | `compression` _[CompressAlgorithm](#compressalgorithm)_ | Compression algorithm to be used for compressing the binary logs. |  | Enum: [none bzip2 gzip] <br /> |
 | `archiveTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#duration-v1-meta)_ | ArchiveTimeout defines the maximum duration for the binary log archival..<br />If this duration is exceeded, the sidecar agent will log an error and it will be retried in the next archive cycle.<br />It defaults to 1 hour. | 1h |  |
 | `strictMode` _boolean_ | StrictMode controls the behavior when a point-in-time restoration cannot reach the exact target time:<br />When enabled: Returns an error and avoids replaying binary logs if target time is not reached.<br />When disabled (default): Replays available binary logs until the last recoverable time. It logs logs an error if target time is not reached. |  |  |
+
+
+#### PointInTimeRecoveryStorage
+
+
+
+
+
+
+
+_Appears in:_
+- [PointInTimeRecoverySpec](#pointintimerecoveryspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `s3` _[S3](#s3)_ | S3 is the S3-compatible storage where the binary logs will be kept. |  |  |
+| `azureBlob` _[ABS](#abs)_ | ABS is the Azure Blob Storage where the binary logs will be kept. |  |  |
 
 
 #### PreferredSchedulingTerm
@@ -2557,7 +2575,7 @@ _Appears in:_
 - [BackupStorage](#backupstorage)
 - [BootstrapFrom](#bootstrapfrom)
 - [PhysicalBackupStorage](#physicalbackupstorage)
-- [PointInTimeRecoverySpec](#pointintimerecoveryspec)
+- [PointInTimeRecoveryStorage](#pointintimerecoverystorage)
 - [RestoreSource](#restoresource)
 - [RestoreSpec](#restorespec)
 
