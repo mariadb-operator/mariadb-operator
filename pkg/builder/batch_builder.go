@@ -249,7 +249,7 @@ func (b *Builder) BuildPhysicalBackupJob(key types.NamespacedName, backup *maria
 	operatorContainer, err := b.jobMariadbOperatorContainer(
 		operatorCmd,
 		volumeMounts,
-		append(s3Env(backup.Spec.Storage.S3), ABSEnv(backup.Spec.Storage.ABS)...),
+		append(s3Env(backup.Spec.Storage.S3), absEnv(backup.Spec.Storage.ABS)...),
 		jobResources(backup.Spec.Resources),
 		mariadb,
 		b.env,
@@ -581,7 +581,7 @@ func (b *Builder) BuildPhysicalBackupRestoreJob(key types.NamespacedName, mariad
 	operatorContainer, err := b.jobMariadbOperatorContainer(
 		operatorCmd,
 		volumeMounts,
-		append(s3Env(opts.S3), ABSEnv(opts.ABS)...),
+		append(s3Env(opts.S3), absEnv(opts.ABS)...),
 		jobResources(restoreJob.Resources),
 		mariadb,
 		b.env,
@@ -690,7 +690,8 @@ func (b *Builder) BuildPITRJob(key types.NamespacedName, pitr *mariadbv1alpha1.P
 		command.WithPasswordEnv(batchPasswordEnv),
 		command.WithExtraOpts(restoreJob.Args),
 	}
-	cmdOpts = append(cmdOpts, s3Opts(&pitr.Spec.S3)...)
+	cmdOpts = append(cmdOpts, s3Opts(&pitr.Spec.PointInTimeRecoveryStorage.S3)...)
+	cmdOpts = append(cmdOpts, absOpts(&pitr.Spec.PointInTimeRecoveryStorage.ABS)...)
 
 	if opts.LogLevel != "" {
 		cmdOpts = append(cmdOpts, command.WithLogLevel(opts.LogLevel))
@@ -701,7 +702,7 @@ func (b *Builder) BuildPITRJob(key types.NamespacedName, pitr *mariadbv1alpha1.P
 		return nil, fmt.Errorf("error building backup command: %v", err)
 	}
 
-	volumes, volumeMounts := jobPITRVolumes(binlogsVolumeSource, &pitr.Spec.S3, mariadb)
+	volumes, volumeMounts := jobPITRVolumes(binlogsVolumeSource, &pitr.Spec.PointInTimeRecoveryStorage.S3, &pitr.Spec.PointInTimeRecoveryStorage.ABS, mariadb)
 
 	opteratorPITRCmd, err := cmd.MariadbOperatorPITR(pitr.Spec.StrictMode)
 	if err != nil {
@@ -715,7 +716,7 @@ func (b *Builder) BuildPITRJob(key types.NamespacedName, pitr *mariadbv1alpha1.P
 	operatorContainer, err := b.jobMariadbOperatorContainer(
 		opteratorPITRCmd,
 		volumeMounts,
-		s3Env(&pitr.Spec.S3),
+		append(s3Env(&pitr.Spec.PointInTimeRecoveryStorage.S3), absEnv(&pitr.Spec.PointInTimeRecoveryStorage.ABS)...),
 		jobResources(restoreJob.Resources),
 		mariadb,
 		b.env,
@@ -1195,7 +1196,7 @@ func jobPhysicalBackupVolumesWithSA(storageVolume mariadbv1alpha1.StorageVolumeS
 	return volumes, volumeMounts
 }
 
-func jobPITRVolumes(binlogsVolumeSource corev1.VolumeSource, s3 *mariadbv1alpha1.S3,
+func jobPITRVolumes(binlogsVolumeSource corev1.VolumeSource, s3 *mariadbv1alpha1.S3, abs *mariadbv1alpha1.ABS,
 	mariadb *mariadbv1alpha1.MariaDB) ([]corev1.Volume, []corev1.VolumeMount) {
 	volumes := []corev1.Volume{
 		{
@@ -1212,6 +1213,10 @@ func jobPITRVolumes(binlogsVolumeSource corev1.VolumeSource, s3 *mariadbv1alpha1
 	s3Volumes, s3VolumeMounts := s3Volumes(s3)
 	volumes = append(volumes, s3Volumes...)
 	volumeMounts = append(volumeMounts, s3VolumeMounts...)
+
+	absVolumes, absVolumeMounts := absVolumes(abs)
+	volumes = append(volumes, absVolumes...)
+	volumeMounts = append(volumeMounts, absVolumeMounts...)
 
 	if mariadb.IsTLSEnabled() {
 		tlsVolumes, tlsVolumeMounts := mariadbTLSVolumes(mariadb)

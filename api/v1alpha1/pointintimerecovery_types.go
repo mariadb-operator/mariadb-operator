@@ -10,10 +10,10 @@ type PointInTimeRecoverySpec struct {
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	PhysicalBackupRef LocalObjectReference `json:"physicalBackupRef"`
-	// S3 is the S3-compatible storage where the binary logs will be kept.
+	// PointInTimeRecoveryStorage is the storage where the point in time recovery data will be stored
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	S3 S3 `json:"s3"`
+	PointInTimeRecoveryStorage PointInTimeRecoveryStorage `json:"storage"`
 	// Compression algorithm to be used for compressing the binary logs.
 	// This field is immutable, it cannot be updated after creation.
 	// +optional
@@ -33,6 +33,18 @@ type PointInTimeRecoverySpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	StrictMode bool `json:"strictMode"`
+}
+
+type PointInTimeRecoveryStorage struct {
+	// S3 is the S3-compatible storage where the binary logs will be kept.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	S3 S3 `json:"s3"`
+
+	// ABS is the Azure Blob Storage where the binary logs will be kept.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	ABS ABS `json:"azureBlob"`
 }
 
 // +kubebuilder:object:root=true

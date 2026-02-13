@@ -146,7 +146,7 @@ func (a *Archiver) archiveBinaryLogs(ctx context.Context, mdb *mariadbv1alpha1.M
 	if err != nil {
 		return err
 	}
-	s3Client, err := a.getS3Client(&pitr.Spec.S3, a.env)
+	s3Client, err := a.getS3Client(&pitr.Spec.PointInTimeRecoveryStorage.S3, a.env)
 	if err != nil {
 		return err
 	}
