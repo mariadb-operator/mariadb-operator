@@ -2446,6 +2446,69 @@ spec:
               bootstrapFrom:
                 description: BootstrapFrom defines a source to bootstrap from.
                 properties:
+                  abs:
+                    description: |-
+                      ABS defines the configuration to restore backups from an ABS compatible storage.
+                      This field takes precedence over the Volume source.
+                    properties:
+                      containerName:
+                        description: ContainerName name Name of the container to store
+                          backups.
+                        type: string
+                      prefix:
+                        description: 'Prefix indicates a folder/subfolder in the bucket.
+                          For example: mariadb/ or mariadb/backups. A trailing slash
+                          ''/'' is added if not provided.'
+                        type: string
+                      serviceURL:
+                        description: 'ServiceURL is the full URL for connecting to
+                          Azure, usually in the form: http(s)://<account>.blob.core.windows.net/.'
+                        type: string
+                      storageAccountKey:
+                        description: StorageAccountKey is a reference to a Secret
+                          key containing the Azure Blob Storage Storage account Key.
+                          Pairs with StorageAccountKey for static credential authentication
+                        properties:
+                          key:
+                            type: string
+                          name:
+                            default: ""
+                            type: string
+                        required:
+                        - key
+                        type: object
+                        x-kubernetes-map-type: atomic
+                      storageAccountName:
+                        description: StorageAccountName is the name of the storage
+                          account. Pairs with StorageAccountKey for static credential
+                          authentication
+                        type: string
+                      tls:
+                        description: TLS provides the configuration required to establish
+                          TLS connections with Azure Blob Storage.
+                        properties:
+                          caSecretKeyRef:
+                            description: |-
+                              CASecretKeyRef is a reference to a Secret key containing a CA bundle in PEM format used to establish TLS connections with S3.
+                              By default, the system trust chain will be used, but you can use this field to add more CAs to the bundle.
+                            properties:
+                              key:
+                                type: string
+                              name:
+                                default: ""
+                                type: string
+                            required:
+                            - key
+                            type: object
+                            x-kubernetes-map-type: atomic
+                          enabled:
+                            description: Enabled is a flag to enable TLS.
+                            type: boolean
+                        type: object
+                    required:
+                    - containerName
+                    - serviceURL
+                    type: object
                   backupContentType:
                     description: |-
                       BackupContentType is the backup content type available in the source to bootstrap from.
@@ -11426,6 +11489,68 @@ spec:
               storage:
                 description: Storage defines the final storage for backups.
                 properties:
+                  abs:
+                    description: ABS defines the configuration to store backups in
+                      a ABS compatible storage.
+                    properties:
+                      containerName:
+                        description: ContainerName name Name of the container to store
+                          backups.
+                        type: string
+                      prefix:
+                        description: 'Prefix indicates a folder/subfolder in the bucket.
+                          For example: mariadb/ or mariadb/backups. A trailing slash
+                          ''/'' is added if not provided.'
+                        type: string
+                      serviceURL:
+                        description: 'ServiceURL is the full URL for connecting to
+                          Azure, usually in the form: http(s)://<account>.blob.core.windows.net/.'
+                        type: string
+                      storageAccountKey:
+                        description: StorageAccountKey is a reference to a Secret
+                          key containing the Azure Blob Storage Storage account Key.
+                          Pairs with StorageAccountKey for static credential authentication
+                        properties:
+                          key:
+                            type: string
+                          name:
+                            default: ""
+                            type: string
+                        required:
+                        - key
+                        type: object
+                        x-kubernetes-map-type: atomic
+                      storageAccountName:
+                        description: StorageAccountName is the name of the storage
+                          account. Pairs with StorageAccountKey for static credential
+                          authentication
+                        type: string
+                      tls:
+                        description: TLS provides the configuration required to establish
+                          TLS connections with Azure Blob Storage.
+                        properties:
+                          caSecretKeyRef:
+                            description: |-
+                              CASecretKeyRef is a reference to a Secret key containing a CA bundle in PEM format used to establish TLS connections with S3.
+                              By default, the system trust chain will be used, but you can use this field to add more CAs to the bundle.
+                            properties:
+                              key:
+                                type: string
+                              name:
+                                default: ""
+                                type: string
+                            required:
+                            - key
+                            type: object
+                            x-kubernetes-map-type: atomic
+                          enabled:
+                            description: Enabled is a flag to enable TLS.
+                            type: boolean
+                        type: object
+                    required:
+                    - containerName
+                    - serviceURL
+                    type: object
                   persistentVolumeClaim:
                     description: PersistentVolumeClaim is a Kubernetes PVC specification.
                     properties:
@@ -11886,6 +12011,12 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
+    - jsonPath: .spec.physicalBackupRef.name
+      name: Physical Backup
+      type: string
+    - jsonPath: .status.lastRecoverableTime
+      name: Last Recoverable Time
+      type: string
     - jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
@@ -12045,14 +12176,31 @@ spec:
                 - bucket
                 - endpoint
                 type: object
+              strictMode:
+                description: |-
+                  StrictMode controls the behavior when a point-in-time restoration cannot reach the exact target time:
+                  When enabled: Returns an error and avoids replaying binary logs if target time is not reached.
+                  When disabled (default): Replays available binary logs until the last recoverable time. It logs logs an error if target time is not reached.
+                type: boolean
             required:
             - physicalBackupRef
             - s3
             type: object
+          status:
+            description: PointInTimeRecoveryStatus represents the current status of
+              the point-in-time-recovery.
+            properties:
+              lastRecoverableTime:
+                description: LastRecoverableTime is the most recent recoverable time
+                  based on the current state of physical backups and archived binary
+                  logs.
+                type: string
+            type: object
         type: object
     served: true
     storage: true
-    subresources: {}
+    subresources:
+      status: {}
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
