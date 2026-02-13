@@ -224,6 +224,11 @@ type BootstrapFrom struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	S3 *S3 `json:"s3,omitempty" webhook:"inmutableinit"`
+	// ABS defines the configuration to restore backups from an ABS compatible storage.
+	// This field takes precedence over the Volume source.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	ABS *ABS `json:"abs,omitempty" webhook:"inmutableinit"`
 	// Volume is a Kubernetes Volume object that contains a backup.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -252,7 +257,7 @@ type BootstrapFrom struct {
 
 func (b *BootstrapFrom) Validate() error {
 	if b.BackupRef == nil && b.VolumeSnapshotRef == nil && b.PointInTimeRecoveryRef == nil &&
-		b.S3 == nil && b.Volume == nil {
+		b.S3 == nil && b.ABS == nil && b.Volume == nil {
 		return errors.New("unable to determine bootstrap source")
 	}
 
@@ -301,6 +306,7 @@ func (b *BootstrapFrom) validateMutuallyExclusive() error {
 		}
 	}
 	if b.PointInTimeRecoveryRef != nil {
+		// @TODO: ABS
 		if b.BackupRef != nil || b.VolumeSnapshotRef != nil || b.S3 != nil {
 			return errors.New("'backupRef', 'volumeSnapshotRef' and 's3' may not be set when 'pointInTimeRecoveryRef' is set")
 		}
@@ -329,7 +335,7 @@ func (b *BootstrapFrom) SetDefaults(mariadb *MariaDB) {
 	if b.BackupContentType == "" {
 		b.BackupContentType = BackupContentTypeLogical
 	}
-	if b.BackupContentType == BackupContentTypePhysical && b.S3 != nil {
+	if b.BackupContentType == BackupContentTypePhysical && (b.S3 != nil || b.ABS != nil) {
 		stagingStorage := ptr.Deref(b.StagingStorage, StagingStorage{})
 		b.Volume = ptr.To(stagingStorage.VolumeOrEmptyDir(mariadb.BootstrapFromStagingPVCKey()))
 	}
@@ -346,6 +352,7 @@ func (b *BootstrapFrom) SetDefaultsWithPhysicalBackup(physicalBackup *PhysicalBa
 	}
 	b.Volume = &volume
 	b.S3 = physicalBackup.Spec.Storage.S3
+	b.ABS = physicalBackup.Spec.Storage.ABS
 	return nil
 }
 

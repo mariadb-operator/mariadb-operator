@@ -35,6 +35,10 @@ var (
 	S3CAPath          = "MARIADB_OPERATOR_S3_CA_PATH"
 	S3SSECCustomerKey = "MARIADB_OPERATOR_S3_SSEC_CUSTOMER_KEY"
 
+	ABSStorageAccountKey  = "ABS_STORAGE_ACCOUNT_KEY"
+	ABSStorageAccountName = "ABS_STORAGE_ACCOUNT_NAME"
+	ABSCAPath             = "MARIADB_OPERATOR_ABS_CA_PATH"
+
 	defaultProbe = corev1.Probe{
 		ProbeHandler: corev1.ProbeHandler{
 			Exec: &corev1.ExecAction{
@@ -581,7 +585,7 @@ func mariadbEnv(mariadb *mariadbv1alpha1.MariaDB) ([]corev1.EnvVar, error) {
 
 func s3Env(s3 *mariadbv1alpha1.S3) []corev1.EnvVar {
 	if s3 == nil {
-		return nil
+		return make([]corev1.EnvVar, 0)
 	}
 	var env []corev1.EnvVar
 	if s3.AccessKeyIdSecretKeyRef != nil {
@@ -617,11 +621,42 @@ func s3Env(s3 *mariadbv1alpha1.S3) []corev1.EnvVar {
 		})
 	}
 
-	tls := ptr.Deref(s3.TLS, mariadbv1alpha1.TLSS3{})
+	tls := ptr.Deref(s3.TLS, mariadbv1alpha1.TLSConfig{})
 	if tls.Enabled && tls.CASecretKeyRef != nil {
 		env = append(env, corev1.EnvVar{
 			Name:  S3CAPath,
 			Value: filepath.Join(S3PKIMountPath, s3.TLS.CASecretKeyRef.Key),
+		})
+	}
+	return env
+}
+
+func ABSEnv(abs *mariadbv1alpha1.ABS) []corev1.EnvVar {
+	if abs == nil {
+		return make([]corev1.EnvVar, 0)
+	}
+	var env []corev1.EnvVar
+	if abs.StorageAccountKey != nil {
+		env = append(env, corev1.EnvVar{
+			Name: ABSStorageAccountKey,
+			ValueFrom: &corev1.EnvVarSource{
+				SecretKeyRef: ptr.To(abs.StorageAccountKey.ToKubernetesType()),
+			},
+		})
+	}
+
+	if abs.StorageAccountName != "" {
+		env = append(env, corev1.EnvVar{
+			Name:  ABSStorageAccountName,
+			Value: abs.StorageAccountName,
+		})
+	}
+
+	tls := ptr.Deref(abs.TLS, mariadbv1alpha1.TLSConfig{})
+	if tls.Enabled && tls.CASecretKeyRef != nil {
+		env = append(env, corev1.EnvVar{
+			Name:  ABSCAPath,
+			Value: filepath.Join(ABSPKIMountPath, abs.TLS.CASecretKeyRef.Key),
 		})
 	}
 	return env

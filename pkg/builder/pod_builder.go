@@ -661,6 +661,27 @@ func s3Volumes(s3 *mariadbv1alpha1.S3) ([]corev1.Volume, []corev1.VolumeMount) {
 	return nil, nil
 }
 
+func absVolumes(abs *mariadbv1alpha1.ABS) ([]corev1.Volume, []corev1.VolumeMount) {
+	if abs != nil && abs.TLS != nil && abs.TLS.Enabled && abs.TLS.CASecretKeyRef != nil {
+		return []corev1.Volume{
+				{
+					Name: ABSPKI,
+					VolumeSource: corev1.VolumeSource{
+						Secret: &corev1.SecretVolumeSource{
+							SecretName: abs.TLS.CASecretKeyRef.Name,
+						},
+					},
+				},
+			}, []corev1.VolumeMount{
+				{
+					Name:      ABSPKI,
+					MountPath: ABSPKIMountPath,
+				},
+			}
+	}
+	return nil, nil
+}
+
 func serviceAccountVolumes() (corev1.Volume, corev1.VolumeMount) {
 	return corev1.Volume{
 			Name: ServiceAccountVolume,
