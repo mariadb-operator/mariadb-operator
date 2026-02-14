@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
-	"slices"
 	"strings"
 	"time"
 
@@ -847,25 +846,6 @@ const (
 	// Gzip compression. Good compression/decompression speed, but worse compression ratio compared to bzip2.
 	CompressGzip CompressAlgorithm = "gzip"
 )
-
-// CompressAlgorithms is the list of supported compress algorithms.
-var CompressAlgorithms = []CompressAlgorithm{
-	CompressNone,
-	CompressBzip2,
-	CompressGzip,
-}
-
-// GetSupportedCompressAlgorithms returns a list of compression algorithms sorted by preference.
-func GetSupportedCompressAlgorithms(preferred ...CompressAlgorithm) []CompressAlgorithm {
-	var calgs []CompressAlgorithm
-	calgs = append(calgs, preferred...)
-	for _, calg := range CompressAlgorithms {
-		if !slices.Contains(calgs, calg) {
-			calgs = append(calgs, calg)
-		}
-	}
-	return calgs
-}
 
 func (c CompressAlgorithm) Validate() error {
 	switch c {

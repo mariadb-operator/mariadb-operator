@@ -75,8 +75,7 @@ func init() {
 	RootCmd.Flags().StringVar(&s3CACertPath, "s3-ca-cert-path", "", "Path to the CA to be trusted when connecting to S3.")
 
 	RootCmd.Flags().StringVar(&compression, "compression", string(mariadbv1alpha1.CompressNone),
-		"Default compression algorithm to infer the extension that binary logs will have. Supported values: none, gzip or bzip2."+
-			"If the binary log file is not available with this extension, the other values will be attempted.")
+		"Compression algorithm: none, gzip or bzip2.")
 }
 
 var RootCmd = &cobra.Command{
@@ -99,9 +98,9 @@ var RootCmd = &cobra.Command{
 			logger.Error(err, "Error parsing target time", "time", targetTimeRaw)
 			os.Exit(1)
 		}
-		calgs, err := getCompressAlgorithms()
+		calg, err := getCompressionAlgorithm()
 		if err != nil {
-			logger.Error(err, "Error getting compress algorithms")
+			logger.Error(err, "Error getting compression algorithm", "compression", compression)
 			os.Exit(1)
 		}
 		logger.Info("Starting point-in-time recovery")
@@ -131,8 +130,8 @@ var RootCmd = &cobra.Command{
 		binlogPath := getBinlogTimeline(binlogMetas)
 		logger.Info("Got binlog timeline", "path", binlogPath)
 
-		logger.Info("Pulling binlogs into staging area", "staging-path", path, "compression", calgs)
-		if err := pullBinlogs(ctx, binlogPath, calgs, s3Client, logger.WithName("storage")); err != nil {
+		logger.Info("Pulling binlogs into staging area", "staging-path", path, "compression", calg)
+		if err := pullBinlogs(ctx, binlogPath, calg, s3Client, logger.WithName("storage")); err != nil {
 			logger.Error(err, "Error pulling binlogs")
 			os.Exit(1)
 		}
@@ -143,15 +142,6 @@ var RootCmd = &cobra.Command{
 			os.Exit(1)
 		}
 	},
-}
-
-// getCompressAlgorithms returns the supported compressed algorithms ordered by preference.
-func getCompressAlgorithms() ([]mariadbv1alpha1.CompressAlgorithm, error) {
-	calg := mariadbv1alpha1.CompressAlgorithm(compression)
-	if err := calg.Validate(); err != nil {
-		return nil, fmt.Errorf("invalid compress algorithm: %v", err)
-	}
-	return mariadbv1alpha1.GetSupportedCompressAlgorithms(calg), nil
 }
 
 func newContext() (context.Context, context.CancelFunc) {
@@ -214,19 +204,36 @@ func getBinlogTimeline(binlogMetas []binlog.BinlogMetadata) []string {
 	return binlogPath
 }
 
-func pullBinlogs(ctx context.Context, binlogPath []string, calgs []mariadbv1alpha1.CompressAlgorithm, s3Client *mariadbminio.Client,
+func pullBinlogs(ctx context.Context, binlogPath []string, calg mariadbv1alpha1.CompressAlgorithm, s3Client *mariadbminio.Client,
 	logger logr.Logger) error {
 	for _, binlog := range binlogPath {
-		if err := pullBinlog(ctx, binlog, calgs, s3Client, logger); err != nil {
+		if err := pullBinlog(ctx, binlog, calg, s3Client, logger); err != nil {
 			return fmt.Errorf("error pulling binlog %s: %v", binlog, err)
 		}
 	}
 	return nil
 }
 
-func pullBinlog(ctx context.Context, binlog string, calgs []mariadbv1alpha1.CompressAlgorithm, s3Client *mariadbminio.Client,
+func pullBinlog(ctx context.Context, binlog string, calg mariadbv1alpha1.CompressAlgorithm, s3Client *mariadbminio.Client,
 	logger logr.Logger) error {
 	logger.Info("Pulling binlog", "binlog", binlog)
+
+	ext, err := calg.Extension()
+	if err != nil {
+		return fmt.Errorf("error getting extension for compression algorithm %s: %v", calg, err)
+	}
+	compressedFileName := binlog
+	if ext != "" {
+		compressedFileName = fmt.Sprintf("%s.%s", binlog, ext)
+	}
+
+	exists, err := s3Client.Exists(ctx, compressedFileName)
+	if err != nil {
+		return fmt.Errorf("error determining if %s exists: %v", compressedFileName, err)
+	}
+	if !exists {
+		return fmt.Errorf("binlog file %s not found", compressedFileName)
+	}
 
 	pullIsRetriable := func(err error) bool {
 		if ctx.Err() != nil {
@@ -234,66 +241,51 @@ func pullBinlog(ctx context.Context, binlog string, calgs []mariadbv1alpha1.Comp
 		}
 		return err != nil
 	}
-
-	// compression algorithms are ordered by preference
-	for _, calg := range calgs {
-		ext, err := calg.Extension()
-		if err != nil {
-			return fmt.Errorf("error getting extension for compression algorithm %s: %v", calg, err)
-		}
-		compressedFileName := binlog
-		if ext != "" {
-			compressedFileName = fmt.Sprintf("%s.%s", binlog, ext)
-		}
-
-		exists, err := s3Client.Exists(ctx, compressedFileName)
-		if err != nil {
-			return fmt.Errorf("error determining if %s exists: %v", compressedFileName, err)
-		}
-		if !exists {
-			logger.V(1).Info("File not found in object storage. Will attempt to pull with different extension", "file", compressedFileName)
-			continue
-		}
-
-		var compressedFile io.ReadCloser
-		if err := retry.OnError(pullBackoff, pullIsRetriable, func() error {
-			compressedFile, err = s3Client.GetObjectWithOptions(ctx, compressedFileName)
-			return err
-		}); err != nil {
-			return fmt.Errorf("error pulling binlog %s: %v", binlog, err)
-		}
-		defer compressedFile.Close()
-
-		plainFileName := filepath.Join(path, binlog)
-		plainFileDir := filepath.Dir(plainFileName)
-		if err := os.MkdirAll(plainFileDir, os.ModePerm); err != nil {
-			return fmt.Errorf("error creating binlog dir %s: %v", plainFileDir, err)
-		}
-		plainFile, err := os.Create(plainFileName)
-		if err != nil {
-			return fmt.Errorf("error creating binlog file %s: %v", plainFileName, err)
-		}
-		defer plainFile.Close()
-
-		compressor, err := mariadbcompression.NewCompressor(calg)
-		if err != nil {
-			return fmt.Errorf("error getting compressor: %v", err)
-		}
-
-		if calg != "" && calg != mariadbv1alpha1.CompressNone {
-			logger.Info(
-				"Decompressing binlog",
-				"compressed-file", compressedFileName,
-				"decompressed-file", plainFileName,
-				"compression", calg,
-			)
-		}
-		if err := compressor.Decompress(ctx, plainFile, compressedFile); err != nil {
-			return fmt.Errorf("error decompressing file %s into %s: %v", compressedFileName, plainFileName, err)
-		}
-		return nil
+	var compressedFile io.ReadCloser
+	if err := retry.OnError(pullBackoff, pullIsRetriable, func() error {
+		compressedFile, err = s3Client.GetObjectWithOptions(ctx, compressedFileName)
+		return err
+	}); err != nil {
+		return fmt.Errorf("error pulling binlog file %s: %v", compressedFileName, err)
 	}
-	return errors.New("binlog not found in object storage")
+	defer compressedFile.Close()
+
+	plainFileName := filepath.Join(path, binlog)
+	plainFileDir := filepath.Dir(plainFileName)
+	if err := os.MkdirAll(plainFileDir, os.ModePerm); err != nil {
+		return fmt.Errorf("error creating binlog dir %s: %v", plainFileDir, err)
+	}
+	plainFile, err := os.Create(plainFileName)
+	if err != nil {
+		return fmt.Errorf("error creating binlog file %s: %v", plainFileName, err)
+	}
+	defer plainFile.Close()
+
+	compressor, err := mariadbcompression.NewCompressor(calg)
+	if err != nil {
+		return fmt.Errorf("error getting compressor: %v", err)
+	}
+
+	if calg != "" && calg != mariadbv1alpha1.CompressNone {
+		logger.Info(
+			"Decompressing binlog",
+			"compressed-file", compressedFileName,
+			"decompressed-file", plainFileName,
+			"compression", calg,
+		)
+	}
+	if err := compressor.Decompress(ctx, plainFile, compressedFile); err != nil {
+		return fmt.Errorf("error decompressing file %s into %s: %v", compressedFileName, plainFileName, err)
+	}
+	return nil
+}
+
+func getCompressionAlgorithm() (mariadbv1alpha1.CompressAlgorithm, error) {
+	calg := mariadbv1alpha1.CompressAlgorithm(compression)
+	if err := calg.Validate(); err != nil {
+		return "", fmt.Errorf("compression algorithm not supported: %v", err)
+	}
+	return calg, nil
 }
 
 func writeTargetFile(binlogPath []string) error {

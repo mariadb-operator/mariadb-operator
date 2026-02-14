@@ -543,6 +543,10 @@ var rootCmd = &cobra.Command{
 				setupLog.Error(err, "Unable to create webhook", "webhook", "Restore")
 				os.Exit(1)
 			}
+			if err = webhookv1alpha1.SetupPointInTimeRecoveryWebhookWithManager(mgr); err != nil {
+				setupLog.Error(err, "Unable to create webhook", "webhook", "PointInTimeRecovery")
+				os.Exit(1)
+			}
 			if err = webhookv1alpha1.SetupUserWebhookWithManager(mgr); err != nil {
 				setupLog.Error(err, "Unable to create webhook", "webhook", "User")
 				os.Exit(1)

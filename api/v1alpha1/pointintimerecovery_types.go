@@ -15,11 +15,12 @@ type PointInTimeRecoverySpec struct {
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	S3 S3 `json:"s3"`
 	// Compression algorithm to be used for compressing the binary logs.
+	// This field is immutable, it cannot be updated after creation.
 	// +optional
 	// +kubebuilder:validation:Enum=none;bzip2;gzip
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Compression CompressAlgorithm `json:"compression,omitempty"`
-	// ArchiveTimeout defines the maximum duration for the binary log archival..
+	Compression CompressAlgorithm `json:"compression,omitempty" webhook:"inmutable"`
+	// ArchiveTimeout defines the maximum duration for the binary log archival.
 	// If this duration is exceeded, the sidecar agent will log an error and it will be retried in the next archive cycle.
 	// It defaults to 1 hour.
 	// +kubebuilder:default="1h"
