@@ -118,6 +118,9 @@ var _ = BeforeSuite(func() {
 	err = SetupRestoreWebhookWithManager(mgr)
 	Expect(err).NotTo(HaveOccurred())
 
+	err = SetupPointInTimeRecoveryWebhookWithManager(mgr)
+	Expect(err).NotTo(HaveOccurred())
+
 	err = SetupConnectionWebhookWithManager(mgr)
 	Expect(err).NotTo(HaveOccurred())
 

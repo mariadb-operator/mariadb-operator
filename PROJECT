@@ -21,7 +21,6 @@ resources:
   path: github.com/mariadb-operator/mariadb-operator/api/v1alpha1
   version: v1alpha1
   webhooks:
-    defaulting: true
     validation: true
     webhookVersion: v1
 - api:
@@ -145,4 +144,7 @@ resources:
   kind: PointInTimeRecovery
   path: github.com/mariadb-operator/mariadb-operator/api/v1alpha1
   version: v1alpha1
+  webhooks:
+    validation: true
+    webhookVersion: v1
 version: "3"

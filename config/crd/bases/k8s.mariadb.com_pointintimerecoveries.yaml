@@ -56,13 +56,14 @@ spec:
               archiveTimeout:
                 default: 1h
                 description: |-
-                  ArchiveTimeout defines the maximum duration for the binary log archival..
+                  ArchiveTimeout defines the maximum duration for the binary log archival.
                   If this duration is exceeded, the sidecar agent will log an error and it will be retried in the next archive cycle.
                   It defaults to 1 hour.
                 type: string
               compression:
-                description: Compression algorithm to be used for compressing the
-                  binary logs.
+                description: |-
+                  Compression algorithm to be used for compressing the binary logs.
+                  This field is immutable, it cannot be updated after creation.
                 enum:
                 - none
                 - bzip2

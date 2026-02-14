@@ -189,7 +189,7 @@ func inmutableFieldError(structField reflect.StructField, value interface{}, pat
 	return field.Invalid(
 		path,
 		value,
-		fmt.Sprintf("'%s' field is inmutable", path.String()),
+		fmt.Sprintf("'%s' field is immutable", path.String()),
 	)
 }
 
