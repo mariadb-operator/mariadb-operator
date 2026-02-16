@@ -16,7 +16,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var BinlogIndexV1 = "v1"
+var (
+	BinlogIndexV1 = "v1"
+	ErrNoBinlogs  = errors.New("no binlogs available")
+)
 
 type BinlogIndex struct {
 	APIVersion string `json:"apiVersion"`
@@ -66,7 +69,7 @@ func (b *BinlogIndex) buildTimelineWithBinlogs(binlogs []BinlogMetadata, startGt
 
 	binlogsToProcess, ok := b.Binlogs[currentServerKey]
 	if !ok {
-		return nil, fmt.Errorf("binlogs for server %s not found", currentServerKey)
+		return nil, fmt.Errorf("binlogs for server %s not found: %w", currentServerKey, ErrNoBinlogs)
 	}
 	hasReachedTargetTime := false
 	var currentTime metav1.Time
@@ -132,7 +135,7 @@ func (b *BinlogIndex) buildTimelineWithBinlogs(binlogs []BinlogMetadata, startGt
 		}
 	}
 	if len(binlogs) == 0 {
-		return nil, errors.New("no binlogs were found")
+		return nil, ErrNoBinlogs
 	}
 	if !hasReachedTargetTime {
 		if strictMode {

@@ -1,6 +1,7 @@
 package binlog
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
@@ -240,6 +241,25 @@ func TestBuildTimeline(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestErrNoBinlogs(t *testing.T) {
+	binlogIndex := &BinlogIndex{
+		APIVersion: BinlogIndexV1,
+		Binlogs:    make(map[string][]BinlogMetadata),
+	}
+	startGtid := &mariadbrepl.Gtid{
+		DomainID:   1,
+		ServerID:   1,
+		SequenceID: 1,
+	}
+	targetTime := time.Now()
+
+	result, err := binlogIndex.BuildTimeline(startGtid, targetTime, false, logr.Discard())
+
+	assert.Error(t, err)
+	assert.True(t, errors.Is(err, ErrNoBinlogs))
+	assert.Nil(t, result)
 }
 
 func mustParseTestFile(t *testing.T, file string) *BinlogIndex {
