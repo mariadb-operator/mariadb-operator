@@ -15,9 +15,11 @@ import (
 
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/azure"
 	mariadbcompression "github.com/mariadb-operator/mariadb-operator/v26/pkg/compression"
 	conditions "github.com/mariadb-operator/mariadb-operator/v26/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/environment"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/interfaces"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/metadata"
 	mariadbminio "github.com/mariadb-operator/mariadb-operator/v26/pkg/minio"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/refresolver"
@@ -146,12 +148,12 @@ func (a *Archiver) archiveBinaryLogs(ctx context.Context, mdb *mariadbv1alpha1.M
 	if err != nil {
 		return err
 	}
-	s3Client, err := a.getS3Client(&pitr.Spec.PointInTimeRecoveryStorage.S3, a.env)
+	storageClient, err := a.getStorageClient(&pitr.Spec.PointInTimeRecoveryStorage, a.env)
 	if err != nil {
 		return err
 	}
 
-	storageReadyForArchival, err := a.checkStorageReadyForArchival(ctx, mdb, s3Client)
+	storageReadyForArchival, err := a.checkStorageReadyForArchival(ctx, mdb, storageClient)
 	if err != nil {
 		return fmt.Errorf("error checking whether storage is ready for archival: %v", err)
 	}
@@ -197,7 +199,7 @@ func (a *Archiver) archiveBinaryLogs(ctx context.Context, mdb *mariadbv1alpha1.M
 	}
 	uploader := NewUploader(
 		a.dataDir,
-		s3Client,
+		storageClient,
 		compressor,
 		a.logger.WithName("uploader"),
 	)
@@ -217,7 +219,7 @@ func (a *Archiver) archiveBinaryLogs(ctx context.Context, mdb *mariadbv1alpha1.M
 	}
 	a.logger.Info("Binlog archival done")
 
-	return a.updateStatus(ctx, binlogs, s3Client, sqlClient)
+	return a.updateStatus(ctx, binlogs, storageClient, sqlClient)
 }
 
 func (a *Archiver) getMariaDB(ctx context.Context) (*mariadbv1alpha1.MariaDB, error) {
@@ -241,6 +243,40 @@ func (a *Archiver) getPointInTimeRecovery(ctx context.Context, mdb *mariadbv1alp
 		return nil, fmt.Errorf("error getting PointInTimeRecovery: %v", err)
 	}
 	return pitr, nil
+}
+
+func (a *Archiver) getStorageClient(storage *mariadbv1alpha1.PointInTimeRecoveryStorage,
+	env *environment.PodEnvironment) (interfaces.BlobStorage, error) {
+	if storage.ABS != nil {
+		return a.getABSClient(storage.ABS, env)
+	}
+
+	if storage.S3 != nil {
+		return a.getS3Client(storage.S3, env)
+	}
+
+	return nil, fmt.Errorf("error getting a storage client, none configured. Either abs or s3 must be configured")
+}
+
+func (a *Archiver) getABSClient(abs *mariadbv1alpha1.ABS, env *environment.PodEnvironment) (*azure.AzBlobClient, error) {
+	tls := ptr.Deref(abs.TLS, mariadbv1alpha1.TLSConfig{})
+	opts := []azure.AzBlobOpt{
+		azure.WithAccountName(abs.StorageAccountName),
+		azure.WithTLSEnabled(tls.Enabled),
+		azure.WithAllowNestedPrefixes(true),
+		azure.WithPrefix(abs.Prefix),
+	}
+	if env.MariadbOperatorABSCAPath != "" {
+		opts = append(opts, azure.WithTLSCACertPath(env.MariadbOperatorABSCAPath))
+	}
+	//@TODO: ABS AUTH
+
+	return azure.NewAzBlobClient(
+		a.dataDir,
+		abs.ContainerName,
+		abs.ServiceURL,
+		opts...,
+	)
 }
 
 func (a *Archiver) getS3Client(s3 *mariadbv1alpha1.S3, env *environment.PodEnvironment) (*mariadbminio.Client, error) {
@@ -278,14 +314,14 @@ func (a *Archiver) getCompressor(calg mariadbv1alpha1.CompressAlgorithm) (mariad
 }
 
 func (a *Archiver) checkStorageReadyForArchival(ctx context.Context, mdb *mariadbv1alpha1.MariaDB,
-	s3Client *mariadbminio.Client) (bool, error) {
+	storageClient interfaces.BlobStorage) (bool, error) {
 	pitrStatus := ptr.Deref(mdb.Status.PointInTimeRecovery, mariadbv1alpha1.MariaDBPointInTimeRecoveryStatus{})
 	storageReadyForArchival := ptr.Deref(pitrStatus.StorageReadyForArchival, false)
 	if storageReadyForArchival {
 		return true, nil
 	}
 
-	objs, err := s3Client.ListObjectsWithOptions(ctx)
+	objs, err := storageClient.ListObjectsWithOptions(ctx)
 	if err != nil {
 		return false, err
 	}
@@ -402,7 +438,7 @@ func (a *Archiver) archiveBinaryLog(ctx context.Context, binlog string, mdb *mar
 	return nil
 }
 
-func (a *Archiver) updateStatus(ctx context.Context, binlogs []string, s3Client *mariadbminio.Client,
+func (a *Archiver) updateStatus(ctx context.Context, binlogs []string, storageClient interfaces.BlobStorage,
 	sqlClient *sql.Client) error {
 	mdb, err := a.getMariaDB(ctx)
 	if err != nil {
@@ -425,7 +461,7 @@ func (a *Archiver) updateStatus(ctx context.Context, binlogs []string, s3Client 
 	if err != nil {
 		return fmt.Errorf("error getting PITR status: %v", err)
 	}
-	binlogIndex, err := a.updateBinlogIndex(ctx, binlogs, pitrStatus.ServerId, s3Client)
+	binlogIndex, err := a.updateBinlogIndex(ctx, binlogs, pitrStatus.ServerId, storageClient)
 	if err != nil {
 		return fmt.Errorf("error updating binlog index: %v", err)
 	}
@@ -499,14 +535,14 @@ func (a *Archiver) getPointInTimeRecoveryStatus(lastBinlog string,
 }
 
 func (a *Archiver) updateBinlogIndex(ctx context.Context, binlogs []string, serverId uint32,
-	s3Client *mariadbminio.Client) (*BinlogIndex, error) {
+	storageClient interfaces.BlobStorage) (*BinlogIndex, error) {
 	var index *BinlogIndex
-	exists, err := s3Client.Exists(ctx, BinlogIndexName)
+	exists, err := storageClient.Exists(ctx, BinlogIndexName)
 	if err != nil {
 		return nil, fmt.Errorf("error checking if binlog index exists: %v", err)
 	}
 	if exists {
-		indexReader, err := s3Client.GetObjectWithOptions(ctx, BinlogIndexName)
+		indexReader, err := storageClient.GetObjectWithOptions(ctx, BinlogIndexName)
 		if err != nil {
 			return nil, fmt.Errorf("error getting binlog index: %v", err)
 		}
@@ -543,7 +579,7 @@ func (a *Archiver) updateBinlogIndex(ctx context.Context, binlogs []string, serv
 		return nil, fmt.Errorf("error marshaling binlog index: %v", err)
 	}
 
-	if err := s3Client.PutObjectWithOptions(ctx, BinlogIndexName, bytes.NewReader(indexBytes), int64(len(indexBytes))); err != nil {
+	if err := storageClient.PutObjectWithOptions(ctx, BinlogIndexName, bytes.NewReader(indexBytes), int64(len(indexBytes))); err != nil {
 		return nil, fmt.Errorf("error putting binlog index: %v", err)
 	}
 	return index, nil

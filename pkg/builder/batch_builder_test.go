@@ -3387,7 +3387,7 @@ func TestBuildPITRJob(t *testing.T) {
 				Name: "test",
 			},
 			PointInTimeRecoveryStorage: mariadbv1alpha1.PointInTimeRecoveryStorage{
-				S3: mariadbv1alpha1.S3{
+				S3: &mariadbv1alpha1.S3{
 					Bucket:   "test-bucket",
 					Endpoint: "s3.amazonaws.com",
 					Region:   "us-west-2",

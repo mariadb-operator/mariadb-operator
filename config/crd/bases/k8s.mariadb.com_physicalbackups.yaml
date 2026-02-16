@@ -514,7 +514,7 @@ spec:
               storage:
                 description: Storage defines the final storage for backups.
                 properties:
-                  abs:
+                  azureBlob:
                     description: ABS defines the configuration to store backups in
                       a ABS compatible storage.
                     properties:

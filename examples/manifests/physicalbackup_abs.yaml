@@ -9,7 +9,7 @@ spec:
   target: Replica
   compression: bzip2
   storage:
-    abs:
+    azureBlob:
       containerName: physicalbackup
       serviceURL: https://172.18.0.60:10000/devstoreaccount1
       prefix: mariadb

@@ -690,8 +690,8 @@ func (b *Builder) BuildPITRJob(key types.NamespacedName, pitr *mariadbv1alpha1.P
 		command.WithPasswordEnv(batchPasswordEnv),
 		command.WithExtraOpts(restoreJob.Args),
 	}
-	cmdOpts = append(cmdOpts, s3Opts(&pitr.Spec.PointInTimeRecoveryStorage.S3)...)
-	cmdOpts = append(cmdOpts, absOpts(&pitr.Spec.PointInTimeRecoveryStorage.ABS)...)
+	cmdOpts = append(cmdOpts, s3Opts(pitr.Spec.PointInTimeRecoveryStorage.S3)...)
+	cmdOpts = append(cmdOpts, absOpts(pitr.Spec.PointInTimeRecoveryStorage.ABS)...)
 
 	if opts.LogLevel != "" {
 		cmdOpts = append(cmdOpts, command.WithLogLevel(opts.LogLevel))
@@ -702,7 +702,7 @@ func (b *Builder) BuildPITRJob(key types.NamespacedName, pitr *mariadbv1alpha1.P
 		return nil, fmt.Errorf("error building backup command: %v", err)
 	}
 
-	volumes, volumeMounts := jobPITRVolumes(binlogsVolumeSource, &pitr.Spec.PointInTimeRecoveryStorage.S3, &pitr.Spec.PointInTimeRecoveryStorage.ABS, mariadb)
+	volumes, volumeMounts := jobPITRVolumes(binlogsVolumeSource, pitr.Spec.PointInTimeRecoveryStorage.S3, pitr.Spec.PointInTimeRecoveryStorage.ABS, mariadb)
 
 	opteratorPITRCmd, err := cmd.MariadbOperatorPITR(pitr.Spec.StrictMode)
 	if err != nil {
@@ -716,7 +716,7 @@ func (b *Builder) BuildPITRJob(key types.NamespacedName, pitr *mariadbv1alpha1.P
 	operatorContainer, err := b.jobMariadbOperatorContainer(
 		opteratorPITRCmd,
 		volumeMounts,
-		append(s3Env(&pitr.Spec.PointInTimeRecoveryStorage.S3), absEnv(&pitr.Spec.PointInTimeRecoveryStorage.ABS)...),
+		append(s3Env(pitr.Spec.PointInTimeRecoveryStorage.S3), absEnv(pitr.Spec.PointInTimeRecoveryStorage.ABS)...),
 		jobResources(restoreJob.Resources),
 		mariadb,
 		b.env,

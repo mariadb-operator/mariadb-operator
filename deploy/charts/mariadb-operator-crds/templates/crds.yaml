@@ -2454,7 +2454,7 @@ spec:
               bootstrapFrom:
                 description: BootstrapFrom defines a source to bootstrap from.
                 properties:
-                  abs:
+                  azureBlob:
                     description: |-
                       ABS defines the configuration to restore backups from an ABS compatible storage.
                       This field takes precedence over the Volume source.
@@ -11639,7 +11639,7 @@ spec:
               storage:
                 description: Storage defines the final storage for backups.
                 properties:
-                  abs:
+                  azureBlob:
                     description: ABS defines the configuration to store backups in
                       a ABS compatible storage.
                     properties:

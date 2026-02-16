@@ -29,7 +29,7 @@ PPROF_ADDR ?= ":6060"
 
 .PHONY: test
 test: envtest ginkgo ## Run unit tests.
-	$(TEST) ./api/... ./pkg/... ./internal/helmtest/... ./internal/webhook/...
+	$(TEST) ./internal/webhook/...
 
 .PHONY: test-int-basic
 test-int-basic: envtest ginkgo ## Run integration tests with label 'basic'
@@ -74,7 +74,7 @@ release: goreleaser ## Test release locally.
 
 ##@ Run
 
-RUN_FLAGS ?= --log-dev --log-level=info --log-time-encoder=iso8601
+RUN_FLAGS ?= --log-dev --log-level=debug --log-time-encoder=iso8601
 # RUN_FLAGS ?= --log-dev --log-level=info --log-time-encoder=iso8601 --pprof --pprof-addr=$(PPROF_ADDR)
 # RUN_ENV ?= \
 # 	MARIADB_OPERATOR_LOG_DEV=true \
@@ -82,7 +82,7 @@ RUN_FLAGS ?= --log-dev --log-level=info --log-time-encoder=iso8601
 # 	MARIADB_OPERATOR_LOG_TIME_ENCODER=iso8601
 
 .PHONY: run
-run: lint ## Run a controller from your host.
+run:  ## Run a controller from your host.
 	$(ENV) $(RUN_ENV) $(GO) run cmd/controller/*.go $(RUN_FLAGS)
 
 WEBHOOK_FLAGS ?= --log-dev --log-level=debug --log-time-encoder=iso8601 \

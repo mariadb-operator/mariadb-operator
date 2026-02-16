@@ -340,10 +340,10 @@ func mariadbVolumes(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt) ([]
 		volumes = append(volumes, tlsVolumes...)
 	}
 	if mariadbOpts.pointInTimeRecovery != nil {
-		s3Volumes, _ := s3Volumes(&mariadbOpts.pointInTimeRecovery.Spec.PointInTimeRecoveryStorage.S3)
+		s3Volumes, _ := s3Volumes(mariadbOpts.pointInTimeRecovery.Spec.PointInTimeRecoveryStorage.S3)
 		volumes = append(volumes, s3Volumes...)
 
-		absVolumes, _ := absVolumes(&mariadbOpts.pointInTimeRecovery.Spec.PointInTimeRecoveryStorage.ABS)
+		absVolumes, _ := absVolumes(mariadbOpts.pointInTimeRecovery.Spec.PointInTimeRecoveryStorage.ABS)
 		volumes = append(volumes, absVolumes...)
 	}
 	if mariadb.IsReplicationEnabled() {

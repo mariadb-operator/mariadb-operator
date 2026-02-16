@@ -11,10 +11,12 @@ import (
 	volumesnapshotv1 "github.com/kubernetes-csi/external-snapshotter/client/v8/apis/volumesnapshot/v1"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	agentclient "github.com/mariadb-operator/mariadb-operator/v26/pkg/agent/client"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/azure"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/binlog"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/builder"
 	condition "github.com/mariadb-operator/mariadb-operator/v26/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/health"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/interfaces"
 	jobpkg "github.com/mariadb-operator/mariadb-operator/v26/pkg/job"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/metadata"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/minio"
@@ -182,18 +184,17 @@ func (r *MariaDBReconciler) reconcileReplayBinlogsError(ctx context.Context, mar
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error getting PointInTimeRecoveryRef: %v", err)
 	}
-	s3Client, err := r.getS3Client(ctx, pitr)
+	storageClient, err := r.getStorageClient(ctx, pitr)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error getting S3 client: %v", err)
 	}
-	// S3 credentials are not static or AWS env variables are not set in the operator Pod.
-	if s3Client.IsAuthenticated() {
+	if storageClient.IsAuthenticated() {
 		logger.Info("Object storage credentials not found. Skipping binlog timeline validation...", "err", err)
 		return ctrl.Result{}, nil
 	}
 
 	logger.Info("Validating binlog timeline")
-	if err := r.validateBinlogTimeline(ctx, mariadb, startGtid, pitr.Spec.StrictMode, s3Client, logger); err != nil {
+	if err := r.validateBinlogTimeline(ctx, mariadb, startGtid, pitr.Spec.StrictMode, storageClient, logger); err != nil {
 		if errors.Is(err, binlog.ErrNoBinlogs) && !pitr.Spec.StrictMode {
 			logger.Info("No binlogs available and strict mode is disabled. Skipping binlog replay...", "err", err)
 			return ctrl.Result{}, errSkipBinlogReplay
@@ -214,8 +215,8 @@ func (r *MariaDBReconciler) reconcileReplayBinlogsError(ctx context.Context, mar
 }
 
 func (r *MariaDBReconciler) validateBinlogTimeline(ctx context.Context, mdb *mariadbv1alpha1.MariaDB, startGtid *replication.Gtid,
-	strictMode bool, s3Client *minio.Client, logger logr.Logger) error {
-	indexReader, err := s3Client.GetObjectWithOptions(ctx, binlog.BinlogIndexName)
+	strictMode bool, storageClient interfaces.BlobStorage, logger logr.Logger) error {
+	indexReader, err := storageClient.GetObjectWithOptions(ctx, binlog.BinlogIndexName)
 	if err != nil {
 		return fmt.Errorf("error getting binlog index: %v", err)
 	}
@@ -366,15 +367,77 @@ func (r *MariaDBReconciler) cleanupPITRJob(ctx context.Context, mariadb *mariadb
 	return nil
 }
 
+func (r *MariaDBReconciler) getStorageClient(ctx context.Context,
+	pitr *mariadbv1alpha1.PointInTimeRecovery) (interfaces.BlobStorage, error) {
+	storage := pitr.Spec.PointInTimeRecoveryStorage
+
+	if storage.ABS != nil {
+		return r.getABSClient(ctx, pitr)
+	}
+
+	if storage.S3 != nil {
+		return r.getS3Client(ctx, pitr)
+	}
+
+	return nil, fmt.Errorf("error getting a storage client, none configured. Either abs or s3 must be configure")
+
+}
+
+// getABSClient retrieves a configured Azure Blob Storage client
+// This should not be used directly, see `getStorageClient`
+func (r *MariaDBReconciler) getABSClient(ctx context.Context, pitr *mariadbv1alpha1.PointInTimeRecovery) (*azure.AzBlobClient, error) {
+	abs := pitr.Spec.PointInTimeRecoveryStorage.ABS
+	if abs == nil {
+		return nil, fmt.Errorf("error getting azure blob storage client. No abs config found")
+	}
+
+	opts := []azure.AzBlobOpt{
+		azure.WithPrefix(abs.Prefix),
+		azure.WithAccountName(abs.StorageAccountName),
+	}
+
+	// If `storageAccountKey` is not set, we rely on DefaultAzureCredential
+	if abs.StorageAccountKey != nil {
+		accountKey, err := r.RefResolver.SecretKeyRef(ctx, *abs.StorageAccountKey, pitr.Namespace)
+		if err != nil {
+			return nil, fmt.Errorf("error getting CA cert: %v", err)
+		}
+		opts = append(opts, azure.WithAccountKey(accountKey))
+	}
+
+	tls := ptr.Deref(abs.TLS, mariadbv1alpha1.TLSConfig{})
+	if tls.Enabled {
+		opts = append(opts, azure.WithTLSEnabled(true))
+		caCertBytes, err := r.RefResolver.SecretKeyRef(ctx, *abs.TLS.CASecretKeyRef, pitr.Namespace)
+		if err != nil {
+			return nil, fmt.Errorf("error getting CA cert: %v", err)
+		}
+		opts = append(opts, azure.WithTLSCACertBytes([]byte(caCertBytes)))
+	}
+
+	return azure.NewAzBlobClient(
+		"",
+		abs.ContainerName,
+		abs.ServiceURL,
+		opts...,
+	)
+}
+
+// getS3Client retrieves a configured S3 client
+// @WARN: This should not be used directly, see `getStorageClient`
 func (r *MariaDBReconciler) getS3Client(ctx context.Context, pitr *mariadbv1alpha1.PointInTimeRecovery) (*minio.Client, error) {
 	s3 := pitr.Spec.PointInTimeRecoveryStorage.S3
+	if s3 == nil {
+		return nil, fmt.Errorf("error getting s3 client. No s3 config found")
+	}
+
 	minioOpts := []minio.MinioOpt{
 		minio.WithRegion(s3.Region),
 		minio.WithPrefix(s3.Prefix),
 	}
 
 	if s3.AccessKeyIdSecretKeyRef != nil && s3.SecretAccessKeySecretKeyRef != nil {
-		accessKeyId, err := r.RefResolver.SecretKeyRef(ctx, *s3.AccessKeyIdSecretKeyRef, pitr.Namespace)
+		accessKeyID, err := r.RefResolver.SecretKeyRef(ctx, *s3.AccessKeyIdSecretKeyRef, pitr.Namespace)
 		if err != nil {
 			return nil, fmt.Errorf("error getting S3 access key ID: %v", err)
 		}
@@ -391,7 +454,7 @@ func (r *MariaDBReconciler) getS3Client(ctx context.Context, pitr *mariadbv1alph
 		}
 		minioOpts = append(minioOpts, minio.WithCredsProviders(&credentials.Static{
 			Value: credentials.Value{
-				AccessKeyID:     accessKeyId,
+				AccessKeyID:     accessKeyID,
 				SecretAccessKey: secretAccessKey,
 				SessionToken:    sessionToken,
 				SignerType:      credentials.SignatureDefault,
@@ -419,8 +482,8 @@ func (r *MariaDBReconciler) getS3Client(ctx context.Context, pitr *mariadbv1alph
 
 	s3Client, err := minio.NewMinioClient(
 		"", // not needed: in-memory methods (io.Reader instead of a file) are used in this context
-		pitr.Spec.PointInTimeRecoveryStorage.S3.Bucket,
-		pitr.Spec.PointInTimeRecoveryStorage.S3.Endpoint,
+		s3.Bucket,
+		s3.Endpoint,
 		minioOpts...,
 	)
 	if err != nil {
