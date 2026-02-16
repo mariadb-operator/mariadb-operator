@@ -11,7 +11,7 @@ spec:
     size: 1Gi
 
   bootstrapFrom:
-    abs:
+    azureBlob:
       containerName: physicalbackup
       serviceURL: https://172.18.0.60:10000/devstoreaccount1
       prefix: mariadb

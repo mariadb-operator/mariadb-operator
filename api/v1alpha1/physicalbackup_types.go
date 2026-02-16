@@ -129,7 +129,7 @@ type PhysicalBackupStorage struct {
 	// ABS defines the configuration to store backups in a ABS compatible storage.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	ABS *ABS `json:"abs,omitempty"`
+	ABS *ABS `json:"azureBlob,omitempty"`
 	// PersistentVolumeClaim is a Kubernetes PVC specification.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec

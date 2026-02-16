@@ -10,7 +10,7 @@ import (
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/compression"
-	mariadbminio "github.com/mariadb-operator/mariadb-operator/v26/pkg/minio"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/interfaces"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/util/retry"
 )
@@ -21,19 +21,19 @@ var uploadBackoff = wait.Backoff{
 }
 
 type Uploader struct {
-	dataDir    string
-	s3Client   *mariadbminio.Client
-	compressor compression.Compressor
-	logger     logr.Logger
+	dataDir       string
+	storageClient interfaces.BlobStorage
+	compressor    compression.Compressor
+	logger        logr.Logger
 }
 
-func NewUploader(dataDir string, s3Client *mariadbminio.Client, compressor compression.Compressor,
+func NewUploader(dataDir string, storageClient interfaces.BlobStorage, compressor compression.Compressor,
 	logger logr.Logger) *Uploader {
 	return &Uploader{
-		dataDir:    dataDir,
-		s3Client:   s3Client,
-		compressor: compressor,
-		logger:     logger,
+		dataDir:       dataDir,
+		storageClient: storageClient,
+		compressor:    compressor,
+		logger:        logger,
 	}
 }
 
@@ -53,7 +53,7 @@ func (u *Uploader) Upload(ctx context.Context, binlog string, mdb *mariadbv1alph
 		"object", objectName,
 	)
 
-	exists, err := u.s3Client.Exists(ctx, objectName)
+	exists, err := u.storageClient.Exists(ctx, objectName)
 	if err != nil {
 		return fmt.Errorf("error determining if binary log exists: %v", err)
 	}
@@ -103,7 +103,7 @@ func (u *Uploader) Upload(ctx context.Context, binlog string, mdb *mariadbv1alph
 		if _, err := tmpFile.Seek(0, 0); err != nil {
 			return fmt.Errorf("error seeking before upload: %v", err)
 		}
-		return u.s3Client.PutObjectWithOptions(ctx, objectName, tmpFile, tmpStat.Size())
+		return u.storageClient.PutObjectWithOptions(ctx, objectName, tmpFile, tmpStat.Size())
 	}); err != nil {
 		return fmt.Errorf("error uploading binlog %s: %v", binlog, err)
 	}

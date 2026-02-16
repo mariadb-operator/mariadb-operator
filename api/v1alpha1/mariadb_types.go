@@ -228,7 +228,7 @@ type BootstrapFrom struct {
 	// This field takes precedence over the Volume source.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	ABS *ABS `json:"abs,omitempty" webhook:"inmutableinit"`
+	ABS *ABS `json:"azureBlob,omitempty" webhook:"inmutableinit"`
 	// Volume is a Kubernetes Volume object that contains a backup.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -307,8 +307,8 @@ func (b *BootstrapFrom) validateMutuallyExclusive() error {
 	}
 	if b.PointInTimeRecoveryRef != nil {
 		// @TODO: ABS
-		if b.BackupRef != nil || b.VolumeSnapshotRef != nil || b.S3 != nil {
-			return errors.New("'backupRef', 'volumeSnapshotRef' and 's3' may not be set when 'pointInTimeRecoveryRef' is set")
+		if b.BackupRef != nil || b.VolumeSnapshotRef != nil || b.S3 != nil || b.ABS != nil {
+			return errors.New("'backupRef', 'volumeSnapshotRef', 's3' and 'azureBlob' may not be set when 'pointInTimeRecoveryRef' is set")
 		}
 	}
 	return nil

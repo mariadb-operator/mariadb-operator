@@ -259,7 +259,7 @@ _Appears in:_
 | `pointInTimeRecoveryRef` _[LocalObjectReference](#localobjectreference)_ | PointInTimeRecoveryRef is a reference to a PointInTimeRecovery object.<br />Providing this field implies restoring the PhysicalBackup referenced in the PointInTimeRecovery object and replaying the<br />archived binary logs up to the point-in-time restoration target, defined by the targetRecoveryTime field. |  |  |
 | `backupContentType` _[BackupContentType](#backupcontenttype)_ | BackupContentType is the backup content type available in the source to bootstrap from.<br />It is inferred based on the BackupRef and VolumeSnapshotRef fields. If inference is not possible, it defaults to Logical.<br />Set this field explicitly when using physical backups from S3 or Volume sources. |  | Enum: [Logical Physical] <br /> |
 | `s3` _[S3](#s3)_ | S3 defines the configuration to restore backups from a S3 compatible storage.<br />This field takes precedence over the Volume source. |  |  |
-| `abs` _[ABS](#abs)_ | ABS defines the configuration to restore backups from an ABS compatible storage.<br />This field takes precedence over the Volume source. |  |  |
+| `azureBlob` _[ABS](#abs)_ | ABS defines the configuration to restore backups from an ABS compatible storage.<br />This field takes precedence over the Volume source. |  |  |
 | `volume` _[StorageVolumeSource](#storagevolumesource)_ | Volume is a Kubernetes Volume object that contains a backup. |  |  |
 | `targetRecoveryTime` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#time-v1-meta)_ | TargetRecoveryTime is a RFC3339 (1970-01-01T00:00:00Z) date and time that defines the point in time recovery objective.<br />It is used to determine the closest restoration source in time. |  |  |
 | `stagingStorage` _[StagingStorage](#stagingstorage)_ | StagingStorage defines the temporary storage used to keep external backups and binary logs (i.e. S3) while they are being processed.<br />It defaults to an emptyDir volume, meaning that the backups will be temporarily stored in the node where the Job is scheduled. |  |  |
@@ -2040,7 +2040,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `s3` _[S3](#s3)_ | S3 defines the configuration to store backups in a S3 compatible storage. |  |  |
-| `abs` _[ABS](#abs)_ | ABS defines the configuration to store backups in a ABS compatible storage. |  |  |
+| `azureBlob` _[ABS](#abs)_ | ABS defines the configuration to store backups in a ABS compatible storage. |  |  |
 | `persistentVolumeClaim` _[PersistentVolumeClaimSpec](#persistentvolumeclaimspec)_ | PersistentVolumeClaim is a Kubernetes PVC specification. |  |  |
 | `volume` _[StorageVolumeSource](#storagevolumesource)_ | Volume is a Kubernetes volume specification. |  |  |
 | `volumeSnapshot` _[PhysicalBackupVolumeSnapshot](#physicalbackupvolumesnapshot)_ | VolumeSnapshot is a Kubernetes VolumeSnapshot specification. |  |  |
@@ -2237,7 +2237,7 @@ _Appears in:_
 
 
 
-
+PointInTimeRecoveryStorage stores the different storage options for PITR
 
 
 

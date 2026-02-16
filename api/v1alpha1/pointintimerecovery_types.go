@@ -1,6 +1,8 @@
 package v1alpha1
 
 import (
+	"fmt"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -35,16 +37,17 @@ type PointInTimeRecoverySpec struct {
 	StrictMode bool `json:"strictMode"`
 }
 
+// PointInTimeRecoveryStorage stores the different storage options for PITR
 type PointInTimeRecoveryStorage struct {
 	// S3 is the S3-compatible storage where the binary logs will be kept.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	S3 S3 `json:"s3"`
+	S3 *S3 `json:"s3,omitempty"`
 
 	// ABS is the Azure Blob Storage where the binary logs will be kept.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	ABS ABS `json:"azureBlob"`
+	ABS *ABS `json:"azureBlob,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -78,6 +81,25 @@ type PointInTimeRecoveryList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []PointInTimeRecovery `json:"items"`
+}
+
+func (b *PointInTimeRecovery) Validate() error {
+	if err := b.Spec.PointInTimeRecoveryStorage.Validate(); err != nil {
+		return fmt.Errorf("invalid storage: %w", err)
+	}
+
+	return nil
+}
+
+func (s *PointInTimeRecoveryStorage) Validate() error {
+	hasAbs := s.ABS != nil
+	hasS3 := s.S3 != nil
+
+	if hasAbs == hasS3 {
+		return fmt.Errorf("either s3 or abs must be enabled for Point In Time Recovery")
+	}
+
+	return nil
 }
 
 func init() {

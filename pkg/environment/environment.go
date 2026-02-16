@@ -84,6 +84,7 @@ type PodEnvironment struct {
 
 	MariadbOperatorS3CAPath          string `env:"MARIADB_OPERATOR_S3_CA_PATH"`
 	MariaDBOperatorS3SSECCustomerKey string `env:"MARIADB_OPERATOR_S3_SSEC_CUSTOMER_KEY"`
+	MariadbOperatorABSCAPath         string `env:"MARIADB_OPERATOR_ABS_CA_PATH"`
 }
 
 func (e *PodEnvironment) Port() (int32, error) {
