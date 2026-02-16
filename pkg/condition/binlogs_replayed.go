@@ -39,3 +39,12 @@ func SetReplayBinlogsError(c Conditioner, msg string) {
 		Message: fmt.Sprintf("Error replaying binlogs: %s", msg),
 	})
 }
+
+func SetReplayBinlogsSkipped(c Conditioner) {
+	c.SetCondition(metav1.Condition{
+		Type:    mariadbv1alpha1.ConditionTypeBinlogsReplayed,
+		Status:  metav1.ConditionTrue,
+		Reason:  mariadbv1alpha1.ConditionReasonReplayBinlogsSkipped,
+		Message: "Replay binlogs skipped",
+	})
+}

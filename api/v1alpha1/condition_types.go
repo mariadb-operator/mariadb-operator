@@ -34,6 +34,7 @@ const (
 	ConditionReasonArchiveBinlogsError   string = "ArchiveBinlogsError"
 	ConditionReasonReplayBinlogs         string = "ReplayBinlogs"
 	ConditionReasonReplayBinlogsError    string = "ReplayBinlogsError"
+	ConditionReasonReplayBinlogsSkipped  string = "ReplayBinlogsSkipped"
 	ConditionReasonSwitchPrimary         string = "SwitchPrimary"
 	ConditionReasonGaleraReady           string = "GaleraReady"
 	ConditionReasonGaleraNotReady        string = "GaleraNotReady"

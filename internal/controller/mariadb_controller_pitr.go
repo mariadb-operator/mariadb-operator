@@ -55,7 +55,16 @@ func (r *MariaDBReconciler) reconcilePITR(ctx context.Context, mdb *mariadbv1alp
 	)
 	if !mdb.IsReplayingBinlogs() || mdb.ReplayBinlogsError() != nil {
 		result, err := r.reconcileReplayBinlogsError(ctx, mdb, startGtid, logger)
+
 		if errors.Is(err, errSkipBinlogReplay) {
+			if !mdb.HasSkippedBinlogReplay() {
+				if err := r.patchStatus(ctx, mdb, func(status *mariadbv1alpha1.MariaDBStatus) error {
+					condition.SetReplayBinlogsSkipped(status)
+					return nil
+				}); err != nil {
+					return ctrl.Result{}, fmt.Errorf("error patching MariaDB status: %v", err)
+				}
+			}
 			return ctrl.Result{}, nil
 		}
 		if !result.IsZero() || err != nil {
@@ -429,7 +438,11 @@ func (r *MariaDBReconciler) shouldReconcilePITR(ctx context.Context, mdb *mariad
 		logger.V(1).Info("PhysicalBackup not restored. Skipping PITR reconciliation...")
 		return false, nil
 	}
-	if mdb.HasReplayedBinlogs() || mdb.Spec.BootstrapFrom == nil || mdb.Spec.BootstrapFrom.PointInTimeRecoveryRef == nil {
+	if mdb.HasReplayedBinlogs() || mdb.HasSkippedBinlogReplay() {
+		logger.V(1).Info("Binlogs already replayed or skipped. Skipping PITR reconciliation...")
+		return false, nil
+	}
+	if mdb.Spec.BootstrapFrom == nil || mdb.Spec.BootstrapFrom.PointInTimeRecoveryRef == nil {
 		return false, nil
 	}
 

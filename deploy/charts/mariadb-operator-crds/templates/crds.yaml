@@ -8314,6 +8314,11 @@ spec:
                       are being archived.
                     format: int32
                     type: integer
+                  storageReadyForArchival:
+                    description: StorageReadyForArchival indicates that the storage
+                      is ready for archival, meaning that the sidecar agent can start
+                      archiving the binary logs.
+                    type: boolean
                 type: object
               replicas:
                 description: Replicas indicates the number of current instances.
