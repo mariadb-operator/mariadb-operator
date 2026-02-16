@@ -33,6 +33,8 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
+var errSkipBinlogReplay = errors.New("skip binlog replay")
+
 func (r *MariaDBReconciler) reconcilePITR(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
 	logger := log.FromContext(ctx).WithName("pitr")
 	shouldReconcile, err := r.shouldReconcilePITR(ctx, mdb, logger)
@@ -52,7 +54,11 @@ func (r *MariaDBReconciler) reconcilePITR(ctx context.Context, mdb *mariadbv1alp
 		"target-time", mdb.Spec.BootstrapFrom.TargetRecoveryTimeOrDefault().Format(time.RFC3339),
 	)
 	if !mdb.IsReplayingBinlogs() || mdb.ReplayBinlogsError() != nil {
-		if result, err := r.reconcileReplayBinlogsError(ctx, mdb, startGtid, logger); !result.IsZero() || err != nil {
+		result, err := r.reconcileReplayBinlogsError(ctx, mdb, startGtid, logger)
+		if errors.Is(err, errSkipBinlogReplay) {
+			return ctrl.Result{}, nil
+		}
+		if !result.IsZero() || err != nil {
 			return result, err
 		}
 	}
@@ -177,7 +183,12 @@ func (r *MariaDBReconciler) reconcileReplayBinlogsError(ctx context.Context, mar
 
 	logger.Info("Validating binlog timeline")
 	if err := r.validateBinlogTimeline(ctx, mariadb, startGtid, pitr.Spec.StrictMode, s3Client, logger); err != nil {
+		if errors.Is(err, binlog.ErrNoBinlogs) && !pitr.Spec.StrictMode {
+			logger.Info("No binlogs available and strict mode is disabled. Skipping binlog replay...", "err", err)
+			return ctrl.Result{}, errSkipBinlogReplay
+		}
 		errMsg := fmt.Sprintf("Invalid binary log timeline: %v", err)
+		logger.Error(err, errMsg)
 		r.Recorder.Event(mariadb, corev1.EventTypeWarning, mariadbv1alpha1.ReasonBinlogTimelineInvalid, errMsg)
 
 		if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
@@ -211,7 +222,7 @@ func (r *MariaDBReconciler) validateBinlogTimeline(ctx context.Context, mdb *mar
 	binlogMetas, err := index.BuildTimeline(startGtid, targetTime, strictMode, logger)
 	if err != nil {
 		return fmt.Errorf(
-			"error getting binlog timeline between GTID %s and target time %s: %v",
+			"error getting binlog timeline between GTID %s and target time %s: %w",
 			startGtid.String(),
 			targetTime.Format(time.RFC3339),
 			err,
