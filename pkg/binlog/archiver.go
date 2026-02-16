@@ -258,6 +258,8 @@ func (a *Archiver) getStorageClient(storage *mariadbv1alpha1.PointInTimeRecovery
 	return nil, fmt.Errorf("error getting a storage client, none configured. Either abs or s3 must be configured")
 }
 
+// getABSClient retrieves an Azure Blob Storage client
+// @WARN: should not be used directly, see `getStorageClient`
 func (a *Archiver) getABSClient(abs *mariadbv1alpha1.ABS, env *environment.PodEnvironment) (*azure.AzBlobClient, error) {
 	tls := ptr.Deref(abs.TLS, mariadbv1alpha1.TLSConfig{})
 	opts := []azure.AzBlobOpt{
@@ -269,7 +271,10 @@ func (a *Archiver) getABSClient(abs *mariadbv1alpha1.ABS, env *environment.PodEn
 	if env.MariadbOperatorABSCAPath != "" {
 		opts = append(opts, azure.WithTLSCACertPath(env.MariadbOperatorABSCAPath))
 	}
-	//@TODO: ABS AUTH
+
+	if env.ABSStorageAccountKey != "" {
+		opts = append(opts, azure.WithAccountKey(env.ABSStorageAccountKey))
+	}
 
 	return azure.NewAzBlobClient(
 		a.dataDir,
@@ -279,6 +284,8 @@ func (a *Archiver) getABSClient(abs *mariadbv1alpha1.ABS, env *environment.PodEn
 	)
 }
 
+// getS3Client retrieves an S3 client
+// @WARN: should not be used directly, see `getStorageClient`
 func (a *Archiver) getS3Client(s3 *mariadbv1alpha1.S3, env *environment.PodEnvironment) (*mariadbminio.Client, error) {
 	tls := ptr.Deref(s3.TLS, mariadbv1alpha1.TLSConfig{})
 	minioOpts := []mariadbminio.MinioOpt{
