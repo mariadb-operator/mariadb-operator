@@ -698,6 +698,10 @@ type MariaDBPointInTimeRecoveryStatus struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	GtidStrictModePaused *bool `json:"gtidStrictModePaused,omitempty"`
+	// StorageReadyForArchival indicates that the storage is ready for archival, meaning that the sidecar agent can start archiving the binary logs.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	StorageReadyForArchival *bool `json:"storageReadyForArchival,omitempty"`
 }
 
 // MariaDBStatus defines the observed state of MariaDB
@@ -1000,6 +1004,15 @@ func (m *MariaDB) ReplayBinlogsError() error {
 		return errors.New(c.Message)
 	}
 	return nil
+}
+
+// HasSkippedBinlogReplay indicates that binlog replay has been skipped.
+func (m *MariaDB) HasSkippedBinlogReplay() bool {
+	c := meta.FindStatusCondition(m.Status.Conditions, ConditionTypeBinlogsReplayed)
+	if c == nil {
+		return false
+	}
+	return c.Status == metav1.ConditionTrue && c.Reason == ConditionReasonReplayBinlogsSkipped
 }
 
 // IsResizingStorage indicates whether the MariaDB instance is resizing storage

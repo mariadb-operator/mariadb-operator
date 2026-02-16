@@ -121,6 +121,19 @@ func (a *Archiver) shouldArchiveBinlogs(mdb *mariadbv1alpha1.MariaDB) bool {
 		a.logger.Info("Galera not ready, skipping binary log archival...")
 		return false
 	}
+	if mdb.IsReplicationEnabled() && !mdb.HasConfiguredReplication() {
+		a.logger.Info("Replication has not been configured, skipping binary log archival...")
+		return false
+	}
+	if mdb.IsGaleraEnabled() && !mdb.HasGaleraConfiguredCondition() {
+		a.logger.Info("Galera has not been configured, skipping binary log archival...")
+		return false
+	}
+	if mdb.Spec.BootstrapFrom != nil && mdb.Spec.BootstrapFrom.PointInTimeRecoveryRef != nil &&
+		!mdb.HasReplayedBinlogs() && !mdb.HasSkippedBinlogReplay() {
+		a.logger.Info("Binlog replay has not been performed nor skipped, skipping binary log archival...")
+		return false
+	}
 	return true
 }
 
@@ -135,12 +148,12 @@ func (a *Archiver) archiveBinaryLogs(ctx context.Context, mdb *mariadbv1alpha1.M
 		return err
 	}
 
-	storageAlreadyInit, err := a.checkStorageAlreadyInitialized(ctx, mdb, s3Client)
+	storageReadyForArchival, err := a.checkStorageReadyForArchival(ctx, mdb, s3Client)
 	if err != nil {
-		return fmt.Errorf("error checking whether storage is already initialized: %v", err)
+		return fmt.Errorf("error checking whether storage is ready for archival: %v", err)
 	}
-	if storageAlreadyInit {
-		return errors.New("binary log storage is already initialized. Archival must start from a clean state")
+	if !storageReadyForArchival {
+		return errors.New("binary log storage is not ready for archival. Archival must start from a clean state")
 	}
 
 	isConfigured, err := a.physicalBackupConfigured(ctx, &pitr.Spec.PhysicalBackupRef, mdb)
@@ -257,16 +270,31 @@ func (a *Archiver) getCompressor(calg mariadbv1alpha1.CompressAlgorithm) (mariad
 	return mariadbcompression.NewCompressor(calg)
 }
 
-func (a *Archiver) checkStorageAlreadyInitialized(ctx context.Context, mdb *mariadbv1alpha1.MariaDB,
+func (a *Archiver) checkStorageReadyForArchival(ctx context.Context, mdb *mariadbv1alpha1.MariaDB,
 	s3Client *mariadbminio.Client) (bool, error) {
-	if mdb.Status.PointInTimeRecovery != nil {
-		return false, nil
+	pitrStatus := ptr.Deref(mdb.Status.PointInTimeRecovery, mariadbv1alpha1.MariaDBPointInTimeRecoveryStatus{})
+	storageReadyForArchival := ptr.Deref(pitrStatus.StorageReadyForArchival, false)
+	if storageReadyForArchival {
+		return true, nil
 	}
+
 	objs, err := s3Client.ListObjectsWithOptions(ctx)
 	if err != nil {
 		return false, err
 	}
-	return len(objs) > 0, nil
+	if len(objs) > 0 {
+		return false, nil
+	}
+
+	if err := a.patchMariadbStatus(ctx, mdb, func(status *mariadbv1alpha1.MariaDBStatus) {
+		if status.PointInTimeRecovery == nil {
+			status.PointInTimeRecovery = &mariadbv1alpha1.MariaDBPointInTimeRecoveryStatus{}
+		}
+		status.PointInTimeRecovery.StorageReadyForArchival = ptr.To(true)
+	}); err != nil {
+		return false, fmt.Errorf("error patching MariaDB: %v", err)
+	}
+	return true, nil
 }
 
 func (a *Archiver) physicalBackupConfigured(ctx context.Context, ref *mariadbv1alpha1.LocalObjectReference,
@@ -323,14 +351,13 @@ func (a *Archiver) resetArchivedBinlog(ctx context.Context, binlogs []string, md
 			"new-server-id", meta.ServerId,
 		)
 		if err := a.patchMariadbStatus(ctx, mdb, func(status *mariadbv1alpha1.MariaDBStatus) {
-			// setting this to empty empty struct, as setting it to nil
-			// would trigger an error when checking binlog storage initialization
-			status.PointInTimeRecovery = &mariadbv1alpha1.MariaDBPointInTimeRecoveryStatus{}
+			status.PointInTimeRecovery = &mariadbv1alpha1.MariaDBPointInTimeRecoveryStatus{
+				StorageReadyForArchival: ptr.To(true), // skip storage check
+			}
 		}); err != nil {
 			return fmt.Errorf("error patching MariaDB: %v", err)
 		}
 	}
-
 	return nil
 }
 
@@ -451,11 +478,12 @@ func (a *Archiver) getPointInTimeRecoveryStatus(lastBinlog string,
 	}
 
 	return &mariadbv1alpha1.MariaDBPointInTimeRecoveryStatus{
-		ServerId:              lastBinlogMeta.ServerId,
-		LastArchivedBinaryLog: lastBinlog,
-		LastArchivedTime:      lastBinlogMeta.LastTime,
-		LastArchivedPosition:  lastBinlogMeta.LogPosition,
-		LastArchivedGtid:      lastArchivedGtid,
+		ServerId:                lastBinlogMeta.ServerId,
+		LastArchivedBinaryLog:   lastBinlog,
+		LastArchivedTime:        lastBinlogMeta.LastTime,
+		LastArchivedPosition:    lastBinlogMeta.LogPosition,
+		LastArchivedGtid:        lastArchivedGtid,
+		StorageReadyForArchival: ptr.To(true), // skip storage check
 	}, nil
 }
 
