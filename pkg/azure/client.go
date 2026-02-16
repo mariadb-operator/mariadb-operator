@@ -115,11 +115,6 @@ func NewAzBlobClient(basePath, containerName, serviceURL string, azOpts ...AzBlo
 
 	var client *azblob.Client
 
-	fmt.Println()
-	fmt.Println(opts.AccountKey)
-	fmt.Println(opts.AccountName)
-	fmt.Println()
-
 	if opts.AccountKey != "" && opts.AccountName != "" {
 		cred, err := azblob.NewSharedKeyCredential(opts.AccountName, opts.AccountKey)
 		if err != nil {
