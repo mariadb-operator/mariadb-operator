@@ -306,7 +306,6 @@ func (b *BootstrapFrom) validateMutuallyExclusive() error {
 		}
 	}
 	if b.PointInTimeRecoveryRef != nil {
-		// @TODO: ABS
 		if b.BackupRef != nil || b.VolumeSnapshotRef != nil || b.S3 != nil || b.ABS != nil {
 			return errors.New("'backupRef', 'volumeSnapshotRef', 's3' and 'azureBlob' may not be set when 'pointInTimeRecoveryRef' is set")
 		}

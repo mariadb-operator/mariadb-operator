@@ -186,7 +186,6 @@ func (c *AzBlobClient) FGetObjectWithOptions(ctx context.Context, fileName strin
 	defer rc.Close()
 
 	filePath := c.getFilePath(fileName)
-	fmt.Println("Will create:", filepath.Dir(filePath))
 	if err := os.MkdirAll(filepath.Dir(filePath), os.ModePerm); err != nil {
 		return err
 	}
