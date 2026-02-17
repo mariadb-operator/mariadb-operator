@@ -195,9 +195,14 @@ func IsNotFound(err error) bool {
 }
 
 func (c *Client) Exists(ctx context.Context, fileName string) (bool, error) {
+	statOpts, err := c.getObjectOptions()
+	if err != nil {
+		return false, err
+	}
+
 	prefixedFilePath := c.PrefixedFileName(fileName)
 
-	_, err := c.StatObject(ctx, c.bucket, prefixedFilePath, minio.StatObjectOptions{})
+	_, err = c.StatObject(ctx, c.bucket, prefixedFilePath, *statOpts)
 	if err != nil {
 		if IsNotFound(err) {
 			return false, nil
@@ -250,6 +255,12 @@ func (c *Client) getObjectOptions() (*minio.GetObjectOptions, error) {
 		getOpts.ServerSideEncryption = sse
 	}
 	return &getOpts, nil
+}
+
+// StatObjectOptions are the same as normal get ones and do not provide extra functionality
+// e.g.: type StatObjectOptions = GetObjectOptions
+func (c *Client) StatObjectOptions() (*minio.GetObjectOptions, error) {
+	return c.getObjectOptions()
 }
 
 func (c *Client) getFilePath(fileName string) string {

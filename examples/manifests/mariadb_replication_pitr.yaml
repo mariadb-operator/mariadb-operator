@@ -47,6 +47,10 @@ spec:
     prefix: mariadb
     endpoint: minio.minio.svc.cluster.local:9000
     region: us-east-1
+    # ssec:
+    #   customerKeySecretKeyRef:
+    #     name: ssec-key
+    #     key: customer-key
     accessKeyIdSecretKeyRef:
       name: minio
       key: access-key-id
@@ -81,6 +85,10 @@ spec:
       prefix: mariadb
       endpoint: minio.minio.svc.cluster.local:9000
       region: us-east-1
+      # ssec:
+      #   customerKeySecretKeyRef:
+      #     name: ssec-key
+      #     key: customer-key
       accessKeyIdSecretKeyRef:
         name: minio
         key: access-key-id

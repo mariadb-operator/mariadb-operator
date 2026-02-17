@@ -15,6 +15,7 @@ import (
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/binlog"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/builder"
 	mariadbcompression "github.com/mariadb-operator/mariadb-operator/v26/pkg/compression"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/log"
 	mariadbminio "github.com/mariadb-operator/mariadb-operator/v26/pkg/minio"
@@ -162,7 +163,12 @@ func getS3Client() (*mariadbminio.Client, error) {
 		mariadbminio.WithPrefix(s3Prefix),
 		mariadbminio.WithAllowNestedPrefixes(true),
 	}
-	// TODO: support for SSEC based on environment
+
+	if ssecKey := os.Getenv(builder.S3SSECCustomerKey); ssecKey != "" {
+		logger.Info("configuring S3 SSE-C encryption")
+		minioOpts = append(minioOpts, mariadbminio.WithSSECCustomerKey(ssecKey))
+	}
+
 	client, err := mariadbminio.NewMinioClient(path, s3Bucket, s3Endpoint, minioOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("error getting S3 client: %v", err)
