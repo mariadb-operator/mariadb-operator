@@ -43,7 +43,6 @@ var (
 	s3Region     string
 	s3TLS        bool
 	s3CACertPath string
-	s3SSECKey    string
 	s3Prefix     string
 
 	compression string
@@ -160,7 +159,6 @@ func getS3Client() (*mariadbminio.Client, error) {
 	minioOpts := []mariadbminio.MinioOpt{
 		mariadbminio.WithTLS(s3TLS),
 		mariadbminio.WithCACertPath(s3CACertPath),
-		mariadbminio.WithSSECCustomerKey(s3SSECKey),
 		mariadbminio.WithRegion(s3Region),
 		mariadbminio.WithPrefix(s3Prefix),
 		mariadbminio.WithAllowNestedPrefixes(true),
