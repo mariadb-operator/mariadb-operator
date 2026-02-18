@@ -40,6 +40,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/rest"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -55,6 +56,7 @@ var (
 	testCtx                    = context.Background()
 	testLogger                 logr.Logger
 	k8sClient                  client.Client
+	cfg                        *rest.Config
 	testCidrPrefix             string
 	testEmulateExternalMdbHost string = "mdb-emulate-external-test.default.svc.cluster.local"
 	// This is to make sure that backups taken during the tests are matched
@@ -87,7 +89,7 @@ var _ = BeforeSuite(func() {
 
 	//+kubebuilder:scaffold:scheme
 
-	cfg, err := ctrl.GetConfig()
+	cfg, err = ctrl.GetConfig()
 	Expect(err).NotTo(HaveOccurred())
 	Expect(cfg).NotTo(BeNil())
 
