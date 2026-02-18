@@ -136,10 +136,9 @@ jobs:
           make install
           make install-csi-hostpath
           make install-minio
-          make install-metallb
-          make install-azurite
           make install-cert-manager
           make net
+          make install-azurite
 
       - name: Run integration tests
         if: ${{ steps.test.outputs.type == 'full' }}
