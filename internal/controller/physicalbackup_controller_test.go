@@ -43,7 +43,7 @@ var _ = FDescribe("PhysicalBackup", Label("basic"), func() {
 			buildPhysicalBackupWithVolumeStorage(testMdbkey),
 			testPhysicalBackup,
 		),
-		Entry(
+		FEntry(
 			"should reconcile a Job with ABS storage",
 			"physicalbackup-job-abs-test",
 			buildPhysicalBackupWithABSStorage(testMdbkey, "test-physicalbackup", ""),
@@ -72,7 +72,7 @@ var _ = FDescribe("PhysicalBackup", Label("basic"), func() {
 			"physicalbackup-job-abs-bzip2-test",
 			applyDecoratorChain(
 				buildPhysicalBackupWithABSStorage(testMdbkey, "test-physicalbackup", ""),
-				decoratePhysicalBackupWithGzipCompression,
+				decoratePhysicalBackupWithBzip2Compression,
 			),
 			testPhysicalBackup,
 		),
