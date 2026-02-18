@@ -1,13 +1,16 @@
 package controller
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/job"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/volumesnapshot"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -77,7 +80,7 @@ func testPhysicalBackupJob(backup *mariadbv1alpha1.PhysicalBackup) {
 		}
 
 		var podList corev1.PodList
-		if err := k8sClient.List(testCtx, &podList, client.InNamespace(backup.Namespace)); err == nil {
+		if err := k8sClient.List(testCtx, &podList, client.InNamespace(backup.Namespace), client.MatchingLabels{"job-name": job.Name}); err == nil {
 			for _, p := range podList.Items {
 				fmt.Fprintf(GinkgoWriter, "Pod: %s, Status: %s\n", p.Name, p.Status.Phase)
 				for _, cs := range p.Status.ContainerStatuses {
@@ -90,6 +93,32 @@ func testPhysicalBackupJob(backup *mariadbv1alpha1.PhysicalBackup) {
 						cs.State,
 						cs.LastTerminationState,
 					)
+					if cs.RestartCount > 0 {
+						clientset, err := kubernetes.NewForConfig(cfg)
+						if err != nil {
+							fmt.Fprintf(GinkgoWriter, "Error creating clientset: %v\n", err)
+							continue
+						}
+						podLogOpts := corev1.PodLogOptions{
+							Container: cs.Name,
+							Previous:  true,
+						}
+						req := clientset.CoreV1().Pods(p.Namespace).GetLogs(p.Name, &podLogOpts)
+						podLogs, err := req.Stream(testCtx)
+						if err != nil {
+							fmt.Fprintf(GinkgoWriter, "Error getting logs for pod '%s' container '%s': %v\n", p.Name, cs.Name, err)
+							continue
+						}
+						defer podLogs.Close()
+						buf := new(bytes.Buffer)
+						_, err = io.Copy(buf, podLogs)
+						if err != nil {
+							fmt.Fprintf(GinkgoWriter, "Error reading logs for pod '%s' container '%s': %v\n", p.Name, cs.Name, err)
+							continue
+						}
+						logs := buf.String()
+						fmt.Fprintf(GinkgoWriter, "Logs for pod '%s' container '%s' (previous termination):\n%s\n", p.Name, cs.Name, logs)
+					}
 				}
 			}
 		}
@@ -114,27 +143,6 @@ func testPhysicalBackupVolumeSnapshot(backup *mariadbv1alpha1.PhysicalBackup) {
 		if err := k8sClient.Get(testCtx, key, backup); err != nil {
 			return false
 		}
-		if backup.IsComplete() {
-			return true
-		}
-
-		var podList corev1.PodList
-		if err := k8sClient.List(testCtx, &podList, client.InNamespace(backup.Namespace)); err == nil {
-			for _, p := range podList.Items {
-				fmt.Fprintf(GinkgoWriter, "Pod: %s, Status: %s\n", p.Name, p.Status.Phase)
-				for _, cs := range p.Status.ContainerStatuses {
-					fmt.Fprintf(
-						GinkgoWriter,
-						"	Container: %s, Ready: %t, RestartCount: %d, State: %v, LastTerminationState: %v\n",
-						cs.Name,
-						cs.Ready,
-						cs.RestartCount,
-						cs.State,
-						cs.LastTerminationState,
-					)
-				}
-			}
-		}
-		return false
+		return backup.IsComplete()
 	}, testTimeout, testInterval).Should(BeTrue())
 }
