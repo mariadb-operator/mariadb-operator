@@ -112,6 +112,9 @@ func (r *MariaDBReconciler) reconcilePITR(ctx context.Context, mdb *mariadbv1alp
 	if err := r.cleanupPITRJob(ctx, mdb); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error cleaning up PITR job: %v", err)
 	}
+	if err := r.cleanupPITRStagingPVC(ctx, mdb); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error cleaning up PITR stating PVC: %v", err)
+	}
 	return ctrl.Result{}, nil
 }
 
@@ -295,7 +298,7 @@ func (r *MariaDBReconciler) resumeGtidStrictMode(ctx context.Context, mdb *maria
 
 func (r *MariaDBReconciler) reconcilePITRStagingPVC(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
 	if shouldProvisionPITRStagingPVC(mariadb) {
-		key := mariadb.PITRStagingPVCKey()
+		key := mariadb.BootstrapFromStagingPVCKey()
 		pvc, err := r.Builder.BuildStagingPVC(
 			key,
 			mariadb.Spec.BootstrapFrom.StagingStorage.PersistentVolumeClaim,
@@ -462,6 +465,21 @@ func (r *MariaDBReconciler) shouldReconcilePITR(ctx context.Context, mdb *mariad
 		return false, nil
 	}
 	return true, nil
+}
+
+func (r *MariaDBReconciler) cleanupPITRStagingPVC(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
+	if !shouldProvisionPITRStagingPVC(mariadb) {
+		return nil
+	}
+	key := mariadb.BootstrapFromStagingPVCKey()
+	var pvc corev1.PersistentVolumeClaim
+	if err := r.Get(ctx, key, &pvc); err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil
+		}
+		return err
+	}
+	return r.Delete(ctx, &pvc)
 }
 
 func shouldProvisionPITRStagingPVC(mariadb *mariadbv1alpha1.MariaDB) bool {

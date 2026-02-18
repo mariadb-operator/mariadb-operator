@@ -2131,7 +2131,38 @@ var _ = Describe("MariaDB types", func() {
 					},
 					Volume: &StorageVolumeSource{
 						PersistentVolumeClaim: &PersistentVolumeClaimVolumeSource{
-							ClaimName: "mariadb-obj-pb-staging",
+							ClaimName: "mariadb-obj-bootstrap-staging",
+						},
+					},
+				},
+			),
+			Entry(
+				"PointInTimeRecovery with staging storage",
+				&BootstrapFrom{
+					PointInTimeRecoveryRef: &LocalObjectReference{
+						Name: "test",
+					},
+					StagingStorage: &StagingStorage{
+						PersistentVolumeClaim: &PersistentVolumeClaimSpec{
+							StorageClassName: ptr.To("test"),
+						},
+					},
+				},
+				&MariaDB{
+					ObjectMeta: objMeta,
+				},
+				&BootstrapFrom{
+					PointInTimeRecoveryRef: &LocalObjectReference{
+						Name: "test",
+					},
+					StagingStorage: &StagingStorage{
+						PersistentVolumeClaim: &PersistentVolumeClaimSpec{
+							StorageClassName: ptr.To("test"),
+						},
+					},
+					Volume: &StorageVolumeSource{
+						PersistentVolumeClaim: &PersistentVolumeClaimVolumeSource{
+							ClaimName: "mariadb-obj-bootstrap-staging",
 						},
 					},
 				},
