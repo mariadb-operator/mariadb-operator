@@ -856,7 +856,7 @@ func getABSStorage(containerName, prefix string) *mariadbv1alpha1.ABS {
 	abs := &mariadbv1alpha1.ABS{
 		ContainerName:      containerName,
 		Prefix:             prefix,
-		ServiceURL:         "https://172.18.0.60:10000/devstoreaccount1",
+		ServiceURL:         "https://azurite.default.svc.cluster.local:10000/devstoreaccount1",
 		StorageAccountName: "devstoreaccount1",
 		StorageAccountKey: &mariadbv1alpha1.SecretKeySelector{
 			LocalObjectReference: mariadbv1alpha1.LocalObjectReference{

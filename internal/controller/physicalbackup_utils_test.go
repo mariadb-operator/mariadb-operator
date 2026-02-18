@@ -1,9 +1,12 @@
 package controller
 
 import (
+	"fmt"
+
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/job"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/volumesnapshot"
+	"go.yaml.in/yaml/v2"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -69,6 +72,10 @@ func testPhysicalBackupJob(backup *mariadbv1alpha1.PhysicalBackup) {
 	Eventually(func() bool {
 		if err := k8sClient.Get(testCtx, key, backup); err != nil {
 			return false
+		}
+		// Inside your Eventually block:
+		if data, err := yaml.Marshal(backup); err == nil {
+			fmt.Printf("\n--- Current Backup State ---\n%s\n", string(data))
 		}
 		return backup.IsComplete()
 	}, testTimeout, testInterval).Should(BeTrue())
