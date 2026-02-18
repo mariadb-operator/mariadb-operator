@@ -285,6 +285,14 @@ func shouldReconcilePhysicalBackup(mdb *mariadbv1alpha1.MariaDB, logger logr.Log
 		logger.Info("Galera not ready, skipping PhysicalBackup schedule...")
 		return false
 	}
+	if mdb.HasPendingBinlogReplay() {
+		logger.Info("Binary logs replay is pending, skipping PhysicalBackup schedule...")
+		return false
+	}
+	if mdb.IsReplayingBinlogs() {
+		logger.Info("Binary logs are being replayed, skipping PhysicalBackup schedule...")
+		return false
+	}
 	return true
 }
 

@@ -1015,6 +1015,12 @@ func (m *MariaDB) HasSkippedBinlogReplay() bool {
 	return c.Status == metav1.ConditionTrue && c.Reason == ConditionReasonReplayBinlogsSkipped
 }
 
+// HasPendingBinlogReplay indicates that a binlog replay is expected, but hasn't been performed yet.
+func (m *MariaDB) HasPendingBinlogReplay() bool {
+	return m.Spec.BootstrapFrom != nil && m.Spec.BootstrapFrom.PointInTimeRecoveryRef != nil &&
+		!m.HasReplayedBinlogs() && !m.HasSkippedBinlogReplay()
+}
+
 // IsResizingStorage indicates whether the MariaDB instance is resizing storage
 func (m *MariaDB) IsResizingStorage() bool {
 	return meta.IsStatusConditionFalse(m.Status.Conditions, ConditionTypeStorageResized)

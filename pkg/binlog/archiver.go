@@ -129,9 +129,12 @@ func (a *Archiver) shouldArchiveBinlogs(mdb *mariadbv1alpha1.MariaDB) bool {
 		a.logger.Info("Galera has not been configured, skipping binary log archival...")
 		return false
 	}
-	if mdb.Spec.BootstrapFrom != nil && mdb.Spec.BootstrapFrom.PointInTimeRecoveryRef != nil &&
-		!mdb.HasReplayedBinlogs() && !mdb.HasSkippedBinlogReplay() {
-		a.logger.Info("Binlog replay has not been performed nor skipped, skipping binary log archival...")
+	if mdb.HasPendingBinlogReplay() {
+		a.logger.Info("Binary logs replay is pending, skipping binary log archival...")
+		return false
+	}
+	if mdb.IsReplayingBinlogs() {
+		a.logger.Info("Binary logs are being replayed, skipping binary log archival...")
 		return false
 	}
 	return true
