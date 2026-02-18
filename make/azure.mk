@@ -1,8 +1,12 @@
 ##@ Azure
 
+AZURE_STORAGE_ACCOUNT_NAME ?= devstoreaccount1
+AZURE_STORAGE_ACCOUNT_KEY ?= Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==
+AZURE_SERVICE_URL ?= https://172.18.0.60:10000/devstoreaccount1
+
 .PHONY: azurite-seed-containers
 azurite-seed-containers: ## Seeds development containers in azurite
-	$(GO) run ./hack/azurite/main.go
+	AZURE_STORAGE_ACCOUNT_NAME=$(AZURE_STORAGE_ACCOUNT_NAME) AZURE_STORAGE_ACCOUNT_KEY=$(AZURE_STORAGE_ACCOUNT_KEY) AZURE_SERVICE_URL=$(AZURE_SERVICE_URL) $(GO) run ./hack/azurite/main.go
 
 .PHONY: install-azurite
 install-azurite: kubectl ## Sets up Azurite for local development
