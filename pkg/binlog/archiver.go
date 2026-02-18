@@ -570,7 +570,7 @@ func (a *Archiver) getLastRecoverableTime(binlogIndex *BinlogIndex, backup *mari
 		a.logger.WithName("binlog-timeline").V(1),
 	)
 	if err != nil {
-		a.logger.Info(
+		a.logger.V(1).Info(
 			"Unable to build current binlog timeline. Skipping last recoverable time tracking...",
 			"err", err,
 			"gtid", gtid.String(),
