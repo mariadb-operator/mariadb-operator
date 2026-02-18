@@ -6,7 +6,6 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/job"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/volumesnapshot"
-	"go.yaml.in/yaml/v2"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -73,11 +72,28 @@ func testPhysicalBackupJob(backup *mariadbv1alpha1.PhysicalBackup) {
 		if err := k8sClient.Get(testCtx, key, backup); err != nil {
 			return false
 		}
-		// Inside your Eventually block:
-		if data, err := yaml.Marshal(backup); err == nil {
-			fmt.Printf("\n--- Current Backup State ---\n%s\n", string(data))
+		if backup.IsComplete() {
+			return true
 		}
-		return backup.IsComplete()
+
+		var podList corev1.PodList
+		if err := k8sClient.List(testCtx, &podList, client.InNamespace(backup.Namespace)); err == nil {
+			for _, p := range podList.Items {
+				fmt.Fprintf(GinkgoWriter, "Pod: %s, Status: %s\n", p.Name, p.Status.Phase)
+				for _, cs := range p.Status.ContainerStatuses {
+					fmt.Fprintf(
+						GinkgoWriter,
+						"	Container: %s, Ready: %t, RestartCount: %d, State: %v, LastTerminationState: %v\n",
+						cs.Name,
+						cs.Ready,
+						cs.RestartCount,
+						cs.State,
+						cs.LastTerminationState,
+					)
+				}
+			}
+		}
+		return false
 	}, testTimeout, testInterval).Should(BeTrue())
 }
 
@@ -98,6 +114,27 @@ func testPhysicalBackupVolumeSnapshot(backup *mariadbv1alpha1.PhysicalBackup) {
 		if err := k8sClient.Get(testCtx, key, backup); err != nil {
 			return false
 		}
-		return backup.IsComplete()
+		if backup.IsComplete() {
+			return true
+		}
+
+		var podList corev1.PodList
+		if err := k8sClient.List(testCtx, &podList, client.InNamespace(backup.Namespace)); err == nil {
+			for _, p := range podList.Items {
+				fmt.Fprintf(GinkgoWriter, "Pod: %s, Status: %s\n", p.Name, p.Status.Phase)
+				for _, cs := range p.Status.ContainerStatuses {
+					fmt.Fprintf(
+						GinkgoWriter,
+						"	Container: %s, Ready: %t, RestartCount: %d, State: %v, LastTerminationState: %v\n",
+						cs.Name,
+						cs.Ready,
+						cs.RestartCount,
+						cs.State,
+						cs.LastTerminationState,
+					)
+				}
+			}
+		}
+		return false
 	}, testTimeout, testInterval).Should(BeTrue())
 }
