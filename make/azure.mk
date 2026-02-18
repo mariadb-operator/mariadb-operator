@@ -20,9 +20,7 @@ install-azurite: kubectl ## Sets up Azurite for local development
 	else \
 			echo "Secret 'azurite-certs' already exists. Skipping generation."; \
 	fi
-	sleep 5
-	$(KUBECTL) get all
-	$(KUBECTL) logs -l component=azurite &
+	$(KUBECTL) wait deployment.apps/azurite --for condition=Available --timeout 2m
 	$(MAKE) azurite-seed-containers
 
 .PHONY: uninstall-azurite
