@@ -56,10 +56,33 @@ func main() {
 			log.Fatal(err)
 		}
 	}
+
+	fmt.Println()
+	fmt.Println("Listing Containers")
+	if err = client.ListContainers(ctx); err != nil {
+		log.Fatal(err)
+	}
 }
 
 type AzBlobClient struct {
 	Client *azblob.Client
+}
+
+func (c *AzBlobClient) ListContainers(ctx context.Context) error {
+	pager := c.Client.NewListContainersPager(&azblob.ListContainersOptions{})
+
+	for pager.More() {
+		resp, err := pager.NextPage(ctx)
+		if err != nil {
+			return err
+		}
+
+		for _, v := range resp.ContainerItems {
+			fmt.Println(*v.Name)
+		}
+	}
+
+	return nil
 }
 
 func NewAzBlobClient(cert string) (*AzBlobClient, error) {
@@ -107,6 +130,7 @@ func (c *AzBlobClient) CreateContainerIfNotExists(ctx context.Context, container
 		if errors.As(err, &respErr) {
 			switch respErr.StatusCode {
 			case http.StatusConflict:
+				fmt.Printf("Container %s already exists\n", containerName)
 				return nil // Already exists
 			default:
 				return respErr
