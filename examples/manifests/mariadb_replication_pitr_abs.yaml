@@ -1,0 +1,92 @@
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-repl
+spec:
+  myCnf: |
+    [mariadb]
+    max_binlog_size=4096
+  rootPasswordSecretKeyRef:
+    name: mariadb
+    key: root-password
+  storage:
+    size: 1Gi
+  replicas: 3
+  replication:
+    enabled: true
+  # bootstrap the instance using the PITR physical backup + binary log replay up to targetRecoveryTime
+  # bootstrapFrom:
+  #   pointInTimeRecoveryRef:
+  #     name: pitr
+  #   targetRecoveryTime: 2026-02-17T14:10:00Z
+  # configure the binary log archival
+  pointInTimeRecoveryRef:
+    name: pitr
+  service:
+    type: LoadBalancer
+    metadata:
+      annotations:
+        metallb.universe.tf/loadBalancerIPs: 172.18.0.120
+  primaryService:
+    type: LoadBalancer
+    metadata:
+      annotations:
+        metallb.universe.tf/loadBalancerIPs: 172.18.0.130
+  secondaryService:
+    type: LoadBalancer
+    metadata:
+      annotations:
+        metallb.universe.tf/loadBalancerIPs: 172.18.0.131
+---
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: PointInTimeRecovery
+metadata:
+  name: pitr
+spec:
+  physicalBackupRef:
+    name: physicalbackup-daily
+  storage:
+    azureBlob:
+      containerName: binlogs
+      serviceURL: https://172.18.0.60:10000/devstoreaccount1
+      prefix: mariadb
+      storageAccountName: devstoreaccount1
+      storageAccountKey:
+        name: azurite-key
+        key: storageAccountKey
+      tls:
+        enabled: true
+        caSecretKeyRef:
+          name: azurite-certs
+          key: cert.pem
+  compression: gzip
+  archiveTimeout: 1h
+  strictMode: false
+---
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: PhysicalBackup
+metadata:
+  name: physicalbackup-daily
+spec:
+  mariaDbRef:
+    name: mariadb-repl
+  schedule:
+    cron: "0 0 * * *"
+    suspend: false
+    immediate: true
+  compression: bzip2
+  maxRetention: 720h # 30 days
+  storage:
+    azureBlob:
+      containerName: physicalbackup
+      serviceURL: https://172.18.0.60:10000/devstoreaccount1
+      prefix: mariadb
+      storageAccountName: devstoreaccount1
+      storageAccountKey:
+        name: azurite-key
+        key: storageAccountKey
+      tls:
+        enabled: true
+        caSecretKeyRef:
+          name: azurite-certs
+          key: cert.pem

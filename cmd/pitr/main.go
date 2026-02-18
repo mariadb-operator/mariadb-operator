@@ -14,9 +14,11 @@ import (
 
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/azure"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/binlog"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/builder"
 	mariadbcompression "github.com/mariadb-operator/mariadb-operator/v26/pkg/compression"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/interfaces"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/log"
 	mariadbminio "github.com/mariadb-operator/mariadb-operator/v26/pkg/minio"
 	mariadbrepl "github.com/mariadb-operator/mariadb-operator/v26/pkg/replication"
@@ -44,6 +46,13 @@ var (
 	s3TLS        bool
 	s3CACertPath string
 	s3Prefix     string
+
+	abs           bool
+	absContainer  string
+	absServiceURL string
+	absTLS        bool
+	absCACertPath string
+	absPrefix     string
 
 	compression string
 
@@ -74,6 +83,13 @@ func init() {
 	RootCmd.Flags().StringVar(&s3Region, "s3-region", "us-east-1", "S3 region name to use.")
 	RootCmd.Flags().BoolVar(&s3TLS, "s3-tls", false, "Enable S3 TLS connections.")
 	RootCmd.Flags().StringVar(&s3CACertPath, "s3-ca-cert-path", "", "Path to the CA to be trusted when connecting to S3.")
+
+	RootCmd.PersistentFlags().BoolVar(&abs, "abs", false, "Enable Azure Blob backup storage.")
+	RootCmd.PersistentFlags().StringVar(&absContainer, "abs-container", "backups", "Name of the container to store backups.")
+	RootCmd.PersistentFlags().StringVar(&absServiceURL, "abs-service-url", "", "Full abs service url to use: http(s)://<account>.blob.core.windows.net/.")
+	RootCmd.PersistentFlags().BoolVar(&absTLS, "abs-tls", false, "Enable Azure Blob Storage TLS connections.")
+	RootCmd.PersistentFlags().StringVar(&absCACertPath, "abs-ca-cert-path", "", "Path to the CA to be trusted when connecting to ABS.")
+	RootCmd.PersistentFlags().StringVar(&absPrefix, "abs-prefix", "", "ABS container prefix to use.")
 
 	RootCmd.Flags().StringVar(&compression, "compression", string(mariadbv1alpha1.CompressNone),
 		"Compression algorithm: none, gzip or bzip2.")
@@ -109,14 +125,14 @@ var RootCmd = &cobra.Command{
 		ctx, cancel := newContext()
 		defer cancel()
 
-		s3Client, err := getS3Client()
+		storageClient, err := getStorageClient()
 		if err != nil {
 			logger.Error(err, "Error getting S3 client")
 			os.Exit(1)
 		}
 
 		logger.Info("Getting binlog index from object storage")
-		binlogIndex, err := getBinlogIndex(ctx, s3Client)
+		binlogIndex, err := getBinlogIndex(ctx, storageClient)
 		if err != nil {
 			logger.Error(err, "Error getting binlog index")
 			os.Exit(1)
@@ -132,7 +148,7 @@ var RootCmd = &cobra.Command{
 		logger.Info("Got binlog timeline", "path", binlogPath)
 
 		logger.Info("Pulling binlogs into staging area", "staging-path", path, "compression", calg)
-		if err := pullBinlogs(ctx, binlogPath, calg, s3Client, logger.WithName("storage")); err != nil {
+		if err := pullBinlogs(ctx, binlogPath, calg, storageClient, logger.WithName("storage")); err != nil {
 			logger.Error(err, "Error pulling binlogs")
 			os.Exit(1)
 		}
@@ -153,6 +169,38 @@ func newContext() (context.Context, context.CancelFunc) {
 		syscall.SIGHUP,
 		syscall.SIGQUIT}...,
 	)
+}
+
+func getStorageClient() (interfaces.BlobStorage, error) {
+	if abs {
+		return getABSClient()
+	}
+	if s3 {
+		return getS3Client()
+	}
+
+	return nil, fmt.Errorf("error getting a storage client, none configured. Either abs or s3 must be configured")
+}
+
+// getABSClient retrieves an Azure Blob Storage client
+// @WARN: should not be used directly, see `getStorageClient`
+func getABSClient() (*azure.AzBlobClient, error) {
+	logger.Info("configuring ABS backup storage")
+	opts := []azure.AzBlobOpt{
+		azure.WithTLSEnabled(absTLS),
+		azure.WithTLSCACertPath(absCACertPath),
+		azure.WithPrefix(absPrefix),
+		azure.WithAllowNestedPrefixes(true),
+	}
+	if accountKey := os.Getenv(builder.ABSStorageAccountKey); accountKey != "" {
+		opts = append(opts, azure.WithAccountKey(accountKey))
+	}
+
+	if accountName := os.Getenv(builder.ABSStorageAccountName); accountName != "" {
+		opts = append(opts, azure.WithAccountName(accountName))
+	}
+
+	return azure.NewAzBlobClient(path, absContainer, absServiceURL, opts...)
 }
 
 func getS3Client() (*mariadbminio.Client, error) {
@@ -176,8 +224,8 @@ func getS3Client() (*mariadbminio.Client, error) {
 	return client, nil
 }
 
-func getBinlogIndex(ctx context.Context, s3Client *mariadbminio.Client) (*binlog.BinlogIndex, error) {
-	exists, err := s3Client.Exists(ctx, binlog.BinlogIndexName)
+func getBinlogIndex(ctx context.Context, storageClient interfaces.BlobStorage) (*binlog.BinlogIndex, error) {
+	exists, err := storageClient.Exists(ctx, binlog.BinlogIndexName)
 	if err != nil {
 		return nil, fmt.Errorf("error checking if binlog index exists: %v", err)
 	}
@@ -185,7 +233,7 @@ func getBinlogIndex(ctx context.Context, s3Client *mariadbminio.Client) (*binlog
 		return nil, errors.New("binlog index not found")
 	}
 
-	indexReader, err := s3Client.GetObjectWithOptions(ctx, binlog.BinlogIndexName)
+	indexReader, err := storageClient.GetObjectWithOptions(ctx, binlog.BinlogIndexName)
 	if err != nil {
 		return nil, fmt.Errorf("error getting binlog index: %v", err)
 	}
@@ -210,17 +258,17 @@ func getBinlogTimeline(binlogMetas []binlog.BinlogMetadata) []string {
 	return binlogPath
 }
 
-func pullBinlogs(ctx context.Context, binlogPath []string, calg mariadbv1alpha1.CompressAlgorithm, s3Client *mariadbminio.Client,
+func pullBinlogs(ctx context.Context, binlogPath []string, calg mariadbv1alpha1.CompressAlgorithm, storageClient interfaces.BlobStorage,
 	logger logr.Logger) error {
 	for _, binlog := range binlogPath {
-		if err := pullBinlog(ctx, binlog, calg, s3Client, logger); err != nil {
+		if err := pullBinlog(ctx, binlog, calg, storageClient, logger); err != nil {
 			return fmt.Errorf("error pulling binlog %s: %v", binlog, err)
 		}
 	}
 	return nil
 }
 
-func pullBinlog(ctx context.Context, binlog string, calg mariadbv1alpha1.CompressAlgorithm, s3Client *mariadbminio.Client,
+func pullBinlog(ctx context.Context, binlog string, calg mariadbv1alpha1.CompressAlgorithm, storageClient interfaces.BlobStorage,
 	logger logr.Logger) error {
 	logger.Info("Pulling binlog", "binlog", binlog)
 
@@ -233,7 +281,7 @@ func pullBinlog(ctx context.Context, binlog string, calg mariadbv1alpha1.Compres
 		compressedFileName = fmt.Sprintf("%s.%s", binlog, ext)
 	}
 
-	exists, err := s3Client.Exists(ctx, compressedFileName)
+	exists, err := storageClient.Exists(ctx, compressedFileName)
 	if err != nil {
 		return fmt.Errorf("error determining if %s exists: %v", compressedFileName, err)
 	}
@@ -249,7 +297,7 @@ func pullBinlog(ctx context.Context, binlog string, calg mariadbv1alpha1.Compres
 	}
 	var compressedFile io.ReadCloser
 	if err := retry.OnError(pullBackoff, pullIsRetriable, func() error {
-		compressedFile, err = s3Client.GetObjectWithOptions(ctx, compressedFileName)
+		compressedFile, err = storageClient.GetObjectWithOptions(ctx, compressedFileName)
 		return err
 	}); err != nil {
 		return fmt.Errorf("error pulling binlog file %s: %v", compressedFileName, err)
