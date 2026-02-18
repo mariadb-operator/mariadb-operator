@@ -163,7 +163,7 @@ make test
 make cluster
 make install
 make install-minio
-make install-azurite
 make net
 make test-int
+make install-azurite
 ```

@@ -36,9 +36,9 @@ jobs:
           make install
           make install-csi-hostpath
           make install-minio
-          make install-azurite
           make install-cert-manager
           make net
+          make install-azurite
 
       - name: Integration tests
         run: make test-int
@@ -62,4 +62,3 @@ jobs:
       - name: Post Test Debugging (on failure)
         if: failure()
         run: make dump
-
