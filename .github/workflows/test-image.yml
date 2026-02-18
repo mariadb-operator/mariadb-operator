@@ -14,7 +14,7 @@ on:
 
 jobs:
   test:
-    name: "Test \"${{ inputs.mariadb_image }}\" image"
+    name: 'Test "${{ inputs.mariadb_image }}" image'
     runs-on: ubuntu-latest
     steps:
       - name: MariaDB Version
@@ -36,6 +36,7 @@ jobs:
           make install
           make install-csi-hostpath
           make install-minio
+          make install-azurite
           make install-cert-manager
           make net
 
@@ -61,3 +62,4 @@ jobs:
       - name: Post Test Debugging (on failure)
         if: failure()
         run: make dump
+

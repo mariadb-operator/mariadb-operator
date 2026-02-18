@@ -136,6 +136,7 @@ jobs:
           make install
           make install-csi-hostpath
           make install-minio
+          make install-azurite
           make install-cert-manager
           make net
 
@@ -170,4 +171,3 @@ jobs:
 
       - name: Check CRD size
         run: make crd-size
-
