@@ -70,10 +70,10 @@ func (r *MariaDBReconciler) reconcilePointInTimeRecoveryInit(ctx context.Context
 		Kind: mariadbv1alpha1.PhysicalBackupKind,
 	}
 	bootstrapFrom.BackupContentType = mariadbv1alpha1.BackupContentTypePhysical
-	bootstrapFrom.SetDefaults(mariadb)
 	if err := bootstrapFrom.SetDefaultsWithPhysicalBackup(pb); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error defaulting bootstrapFrom: %v", err)
 	}
+	bootstrapFrom.SetDefaults(mariadb)
 
 	return r.reconcilePhysicalBackupInit(ctx, mariadb, bootstrapFrom, logger)
 }
@@ -127,7 +127,7 @@ func (r *MariaDBReconciler) reconcilePhysicalBackupInit(ctx context.Context, mar
 		if err := r.cleanupInitJobs(ctx, mariadb); err != nil {
 			return ctrl.Result{}, err
 		}
-		if err := r.cleanupStagingPVC(ctx, mariadb); err != nil {
+		if err := r.cleanupPhysicalBackupStagingPVC(ctx, mariadb); err != nil {
 			return ctrl.Result{}, err
 		}
 	} else {
@@ -257,7 +257,7 @@ func (r *MariaDBReconciler) reconcilePVC(ctx context.Context, mariadb *mariadbv1
 
 func (r *MariaDBReconciler) reconcilePhysicalBackupStagingPVC(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
 	if shouldProvisionPhysicalBackupStagingPVC(mariadb) {
-		key := mariadb.PhysicalBackupStagingPVCKey()
+		key := mariadb.BootstrapFromStagingPVCKey()
 		pvc, err := r.Builder.BuildStagingPVC(
 			key,
 			mariadb.Spec.BootstrapFrom.StagingStorage.PersistentVolumeClaim,
@@ -489,11 +489,11 @@ func (r *MariaDBReconciler) cleanupInitJobs(ctx context.Context, mariadb *mariad
 	return err
 }
 
-func (r *MariaDBReconciler) cleanupStagingPVC(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
+func (r *MariaDBReconciler) cleanupPhysicalBackupStagingPVC(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
 	if !shouldProvisionPhysicalBackupStagingPVC(mariadb) {
 		return nil
 	}
-	key := mariadb.PhysicalBackupStagingPVCKey()
+	key := mariadb.BootstrapFromStagingPVCKey()
 	var pvc corev1.PersistentVolumeClaim
 	if err := r.Get(ctx, key, &pvc); err != nil {
 		if apierrors.IsNotFound(err) {
@@ -515,6 +515,10 @@ func (r *MariaDBReconciler) forEachMariaDBPod(mariadb *mariadbv1alpha1.MariaDB, 
 }
 
 func shouldProvisionPhysicalBackupStagingPVC(mariadb *mariadbv1alpha1.MariaDB) bool {
+	// spec.bootstrapFrom.stagingStorage is shared between physical backups and PITR
+	if shouldProvisionPITRStagingPVC(mariadb) {
+		return true
+	}
 	b := mariadb.Spec.BootstrapFrom
 	if b == nil {
 		return false

@@ -12,10 +12,18 @@ spec:
   replication:
     enabled: true
   # bootstrap the instance using the PITR physical backup + binary log replay up to targetRecoveryTime
-  # bootstrapFrom:
-  #   pointInTimeRecoveryRef:
-  #     name: pitr
-  #   targetRecoveryTime: 2025-06-17T08:07:00Z
+  bootstrapFrom:
+    pointInTimeRecoveryRef:
+      name: pitr
+    # targetRecoveryTime: 2026-02-18T15:22:00Z
+    # stagingStorage:
+    #   persistentVolumeClaim:
+    #     resources:
+    #       requests:
+    #         storage: 10Gi
+    #     accessModes:
+    #       - ReadWriteOnce
+    # logLevel: debug
   # configure the binary log archival
   pointInTimeRecoveryRef:
     name: pitr

@@ -312,7 +312,7 @@ func (b *BootstrapFrom) validateMutuallyExclusive() error {
 func (b *BootstrapFrom) SetDefaults(mariadb *MariaDB) {
 	if b.PointInTimeRecoveryRef != nil {
 		stagingStorage := ptr.Deref(b.StagingStorage, StagingStorage{})
-		b.Volume = ptr.To(stagingStorage.VolumeOrEmptyDir(mariadb.PITRStagingPVCKey()))
+		b.Volume = ptr.To(stagingStorage.VolumeOrEmptyDir(mariadb.BootstrapFromStagingPVCKey()))
 		return
 	}
 
@@ -332,7 +332,7 @@ func (b *BootstrapFrom) SetDefaults(mariadb *MariaDB) {
 	}
 	if b.BackupContentType == BackupContentTypePhysical && b.S3 != nil {
 		stagingStorage := ptr.Deref(b.StagingStorage, StagingStorage{})
-		b.Volume = ptr.To(stagingStorage.VolumeOrEmptyDir(mariadb.PhysicalBackupStagingPVCKey()))
+		b.Volume = ptr.To(stagingStorage.VolumeOrEmptyDir(mariadb.BootstrapFromStagingPVCKey()))
 	}
 }
 

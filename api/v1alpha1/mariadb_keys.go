@@ -174,10 +174,10 @@ func (m *MariaDB) RestoreKey() types.NamespacedName {
 	}
 }
 
-// PITRStagingPVCKey defines the PVC key for the PITR staging area, used to keep the binary logs during restoration.
-func (m *MariaDB) PITRStagingPVCKey() types.NamespacedName {
+// BootstrapFromStagingPVCKey defines the PVC key for the bootstrap staging area, used to keep backups and binary logs during restoration.
+func (m *MariaDB) BootstrapFromStagingPVCKey() types.NamespacedName {
 	return types.NamespacedName{
-		Name:      fmt.Sprintf("%s-pitr-staging", m.Name),
+		Name:      fmt.Sprintf("%s-bootstrap-staging", m.Name),
 		Namespace: m.Namespace,
 	}
 }
@@ -289,14 +289,6 @@ func (m *MariaDB) InitKey() types.NamespacedName {
 func (m *MariaDB) PhysicalBackupInitJobKey(podIndex int) types.NamespacedName {
 	return types.NamespacedName{
 		Name:      fmt.Sprintf("%s-pb-init", stsobj.PodName(m.ObjectMeta, podIndex)),
-		Namespace: m.Namespace,
-	}
-}
-
-// PhysicalBackupStagingPVCKey defines the key for the PhysicalBackup staging PVC object.
-func (m *MariaDB) PhysicalBackupStagingPVCKey() types.NamespacedName {
-	return types.NamespacedName{
-		Name:      fmt.Sprintf("%s-pb-staging", m.Name),
 		Namespace: m.Namespace,
 	}
 }
