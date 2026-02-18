@@ -106,6 +106,7 @@ You might need the following third party dependencies to test certain features o
 make install-prometheus
 make install-cert-manager
 make install-minio
+make install-azurite
 ```
 
 Some of this dependencies have ports mapped to the host (i.e. Grafana and Minio to expose the dashboard) so be sure to check the [forwarded ports](../.devcontainer/devcontainer.json) to access. This step requires running `make net` previously.
@@ -162,6 +163,7 @@ make test
 make cluster
 make install
 make install-minio
+make install-azurite
 make net
 make test-int
 ```
