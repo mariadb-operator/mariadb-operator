@@ -149,7 +149,7 @@ func NewAzBlobClient(basePath, containerName, serviceURL string, azOpts ...AzBlo
 // Blob Storage Interop
 
 // PutObjectWithOptions will upload the given reader to Azure
-// `size` is ignored and is passed to satisfy the inteface
+// `size` is ignored and is passed to satisfy the interface
 func (c *AzBlobClient) PutObjectWithOptions(ctx context.Context, fileName string, reader io.Reader, size int64) error {
 	_, err := c.UploadStream(ctx, c.ContainerName, c.PrefixedFileName(fileName), reader, nil)
 
