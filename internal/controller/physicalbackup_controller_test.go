@@ -12,7 +12,7 @@ import (
 	"k8s.io/utils/ptr"
 )
 
-var _ = FDescribe("PhysicalBackup", Label("basic"), func() {
+var _ = Describe("PhysicalBackup", Label("basic"), func() {
 	BeforeEach(func() {
 		By("Waiting for MariaDB to be ready")
 		expectMariadbReady(testCtx, k8sClient, testMdbkey)
