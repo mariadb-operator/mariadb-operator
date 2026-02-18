@@ -21,6 +21,7 @@ install-azurite: kubectl ## Sets up Azurite for local development
 			echo "Secret 'azurite-certs' already exists. Skipping generation."; \
 	fi
 	$(KUBECTL) wait deployment.apps/azurite --for condition=Available --timeout 2m
+	$(KUBECTL) get all
 	curl -XGET -k -v https://172.18.0.60:10000/devstoreaccount1
 	$(MAKE) azurite-seed-containers
 
