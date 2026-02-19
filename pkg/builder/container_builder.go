@@ -586,7 +586,7 @@ func mariadbEnv(mariadb *mariadbv1alpha1.MariaDB) ([]corev1.EnvVar, error) {
 
 func s3Env(s3 *mariadbv1alpha1.S3) []corev1.EnvVar {
 	if s3 == nil {
-		return make([]corev1.EnvVar, 0)
+		return nil
 	}
 	var env []corev1.EnvVar
 	if s3.AccessKeyIdSecretKeyRef != nil {
