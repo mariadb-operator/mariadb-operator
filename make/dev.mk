@@ -74,7 +74,7 @@ release: goreleaser ## Test release locally.
 
 ##@ Run
 
-RUN_FLAGS ?= --log-dev --log-level=debug --log-time-encoder=iso8601
+RUN_FLAGS ?= --log-dev --log-level=info --log-time-encoder=iso8601
 # RUN_FLAGS ?= --log-dev --log-level=info --log-time-encoder=iso8601 --pprof --pprof-addr=$(PPROF_ADDR)
 # RUN_ENV ?= \
 # 	MARIADB_OPERATOR_LOG_DEV=true \
