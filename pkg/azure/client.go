@@ -243,7 +243,7 @@ func (c *AzBlobClient) ListObjectsWithOptions(ctx context.Context) ([]string, er
 	pager := c.NewListBlobsFlatPager(c.ContainerName, &container.ListBlobsFlatOptions{
 		Prefix: ptr.To(c.GetPrefix()),
 	})
-	items := make([]string, 0)
+	var items []string
 
 	for pager.More() {
 		resp, err := pager.NextPage(ctx)
