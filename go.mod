@@ -20,7 +20,6 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/go-version v1.8.0
 	github.com/kubernetes-csi/external-snapshotter/client/v8 v8.4.0
-	github.com/mariadb-operator/mariadb-operator v0.38.1
 	github.com/minio/minio-go/v7 v7.0.97
 	github.com/onsi/ginkgo/v2 v2.27.3
 	github.com/onsi/gomega v1.38.3
