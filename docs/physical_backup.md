@@ -8,7 +8,7 @@
 - [Storage types](#storage-types)
 - [Scheduling](#scheduling)
 - [Compression](#compression)
-- [Server-Side Encryption with Customer-Provided Keys (SSE-C)](#server-side-encryption-with-customer-provided-keys-sse-c)
+- [Server-Side Encryption with Customer-Provided Keys (SSE-C) For S3](#server-side-encryption-with-customer-provided-keys-sse-c-for-s3)
 - [Retention policy](#retention-policy)
 - [Target policy](#target-policy)
 - [Restoration](#restoration)
