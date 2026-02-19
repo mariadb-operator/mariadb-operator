@@ -634,7 +634,7 @@ func s3Env(s3 *mariadbv1alpha1.S3) []corev1.EnvVar {
 
 func absEnv(abs *mariadbv1alpha1.ABS) []corev1.EnvVar {
 	if abs == nil {
-		return make([]corev1.EnvVar, 0)
+		return nil
 	}
 	var env []corev1.EnvVar
 	if abs.StorageAccountKey != nil {
