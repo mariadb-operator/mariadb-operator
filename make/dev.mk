@@ -82,7 +82,7 @@ RUN_FLAGS ?= --log-dev --log-level=info --log-time-encoder=iso8601
 # 	MARIADB_OPERATOR_LOG_TIME_ENCODER=iso8601
 
 .PHONY: run
-run:  ## Run a controller from your host.
+run: lint ## Run a controller from your host.
 	$(ENV) $(RUN_ENV) $(GO) run cmd/controller/*.go $(RUN_FLAGS)
 
 WEBHOOK_FLAGS ?= --log-dev --log-level=debug --log-time-encoder=iso8601 \
