@@ -260,9 +260,9 @@ func (c *AzBlobClient) ListObjectsWithOptions(ctx context.Context) ([]string, er
 
 // IsAuthenticated will do a simple property check on the container to validate authentication
 // RESPONSE 403: 403 Server failed to authenticate the request....
-func (c *AzBlobClient) IsAuthenticated() bool {
+func (c *AzBlobClient) IsAuthenticated(ctx context.Context) bool {
 	_, err := c.ServiceClient().
-		NewContainerClient(c.ContainerName).GetProperties(context.Background(), nil)
+		NewContainerClient(c.ContainerName).GetProperties(ctx, nil)
 
 	if err != nil {
 		code := getStatusCodeFromErr(err)

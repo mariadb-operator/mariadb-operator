@@ -188,7 +188,7 @@ func (r *MariaDBReconciler) reconcileReplayBinlogsError(ctx context.Context, mar
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error getting S3 client: %v", err)
 	}
-	if storageClient.IsAuthenticated() {
+	if storageClient.IsAuthenticated(ctx) {
 		logger.Info("Object storage credentials not found. Skipping binlog timeline validation...", "err", err)
 		return ctrl.Result{}, nil
 	}

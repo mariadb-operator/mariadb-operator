@@ -65,5 +65,5 @@ type BlobStorage interface {
 	UnprefixedFilename(fileName string) string
 	GetPrefix() string
 	ListObjectsWithOptions(ctx context.Context) ([]string, error)
-	IsAuthenticated() bool
+	IsAuthenticated(ctx context.Context) bool
 }
