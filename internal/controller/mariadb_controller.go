@@ -916,7 +916,7 @@ func (r *MariaDBReconciler) setSpecDefaults(ctx context.Context, mariadb *mariad
 
 	return ctrl.Result{}, r.patch(ctx, mariadb, func(mdb *mariadbv1alpha1.MariaDB) error {
 		if err := mdb.SetDefaults(r.Environment); err != nil {
-			return err
+			return fmt.Errorf("error setting defaults: %v", err)
 		}
 
 		if mdb.Spec.BootstrapFrom == nil || mdb.HasRestoredBackup() {
@@ -932,11 +932,11 @@ func (r *MariaDBReconciler) setSpecDefaults(ctx context.Context, mariadb *mariad
 
 			pitr, err := r.RefResolver.PointInTimeRecovery(ctx, bootstrapFrom.PointInTimeRecoveryRef, mdb.Namespace)
 			if err != nil {
-				return err
+				return fmt.Errorf("error getting PointInTimeRecovery: %v", err)
 			}
 			pb, err := r.RefResolver.PhysicalBackup(ctx, &pitr.Spec.PhysicalBackupRef, mdb.Namespace)
 			if err != nil {
-				return err
+				return fmt.Errorf("error getting PhysicalBackup: %v", err)
 			}
 			physicalBackup = pb
 		} else if backupRef.Kind == mariadbv1alpha1.PhysicalBackupKind {
@@ -944,7 +944,7 @@ func (r *MariaDBReconciler) setSpecDefaults(ctx context.Context, mariadb *mariad
 
 			pb, err := r.RefResolver.PhysicalBackup(ctx, backupRef.LocalReference(), mdb.Namespace)
 			if err != nil {
-				return err
+				return fmt.Errorf("error getting PhysicalBackup: %v", err)
 			}
 			physicalBackup = pb
 		} else if backupRef.Kind == mariadbv1alpha1.BackupKind {
@@ -968,7 +968,7 @@ func (r *MariaDBReconciler) setSpecDefaults(ctx context.Context, mariadb *mariad
 				logger.V(1).Info("Setting bootstrapFrom defaults with PhysicalBackup based on mariadb-backup")
 
 				if err := mdb.Spec.BootstrapFrom.SetDefaultsWithPhysicalBackup(physicalBackup); err != nil {
-					return err
+					return fmt.Errorf("error setting defaults with physical backup: %v", err)
 				}
 			}
 		}
