@@ -233,7 +233,7 @@ func (c *Client) GetPrefix() string {
 	return c.Prefix
 }
 
-func (c *Client) IsAuthenticated() bool {
+func (c *Client) IsAuthenticated(ctx context.Context) bool {
 	val, err := c.getCredentials().GetWithContext(nil)
 	return err == nil && val != (credentials.Value{})
 }
