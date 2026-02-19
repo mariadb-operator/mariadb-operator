@@ -92,6 +92,7 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alph
 	if err != nil {
 		return nil, fmt.Errorf("error getting volume from Backup: %v", err)
 	}
+	// TODO: ABS support in logical backups
 	volumes, volumeMounts := jobBatchStorageVolumes(volume, backup.Spec.Storage.S3, nil, mariadb)
 	affinity := ptr.Deref(backup.Spec.Affinity, mariadbv1alpha1.AffinityConfig{}).Affinity
 
