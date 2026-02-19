@@ -444,7 +444,7 @@ type PodTemplate struct {
 	// ImagePullSecrets is the list of pull Secrets to be used to pull the image.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	ImagePullSecrets []LocalObjectReference `json:"imagePullSecrets,omitempty" webhook:"inmutable"`
+	ImagePullSecrets []LocalObjectReference `json:"imagePullSecrets,omitempty"`
 	// InitContainers to be used in the Pod.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
@@ -514,7 +514,7 @@ type JobPodTemplate struct {
 	// ImagePullSecrets is the list of pull Secrets to be used to pull the image.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	ImagePullSecrets []LocalObjectReference `json:"imagePullSecrets,omitempty" webhook:"inmutable"`
+	ImagePullSecrets []LocalObjectReference `json:"imagePullSecrets,omitempty"`
 	// SecurityContext holds pod-level security attributes and common container settings.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
@@ -1048,7 +1048,7 @@ type Exporter struct {
 	// ImagePullSecrets is the list of pull Secrets to be used to pull the image.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	ImagePullSecrets []LocalObjectReference `json:"imagePullSecrets,omitempty" webhook:"inmutable"`
+	ImagePullSecrets []LocalObjectReference `json:"imagePullSecrets,omitempty"`
 	// Args to be used in the Container.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
