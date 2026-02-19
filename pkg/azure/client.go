@@ -248,7 +248,7 @@ func (c *AzBlobClient) ListObjectsWithOptions(ctx context.Context) ([]string, er
 	for pager.More() {
 		resp, err := pager.NextPage(ctx)
 		if err != nil {
-			return []string{}, err
+			return nil, err
 		}
 
 		for _, v := range resp.Segment.BlobItems {
