@@ -524,5 +524,5 @@ func shouldProvisionPhysicalBackupStagingPVC(mariadb *mariadbv1alpha1.MariaDB) b
 		return false
 	}
 	return b.BackupContentType == mariadbv1alpha1.BackupContentTypePhysical &&
-		b.S3 != nil && b.ABS != nil && b.StagingStorage != nil && b.StagingStorage.PersistentVolumeClaim != nil
+		(b.S3 != nil || b.ABS != nil) && b.StagingStorage != nil && b.StagingStorage.PersistentVolumeClaim != nil
 }
