@@ -1346,6 +1346,18 @@ func deletePhysicalBackup(key types.NamespacedName) {
 	}
 }
 
+func deletePitr(key types.NamespacedName) {
+	var pitr mariadbv1alpha1.PointInTimeRecovery
+	By("Deleting PointInTimeRecovery")
+	err := k8sClient.Get(testCtx, key, &pitr)
+	if err == nil {
+		Expect(client.IgnoreNotFound(k8sClient.Delete(testCtx, &pitr))).To(Succeed())
+	}
+	if !apierrors.IsNotFound(err) {
+		Expect(err).ToNot(HaveOccurred())
+	}
+}
+
 func removeFinalizerAndDelete(obj client.Object) error {
 	if err := k8sClient.Get(testCtx, client.ObjectKeyFromObject(obj), obj); err != nil {
 		if apierrors.IsNotFound(err) {
@@ -1359,6 +1371,117 @@ func removeFinalizerAndDelete(obj client.Object) error {
 		return err
 	}
 	return k8sClient.Delete(testCtx, obj)
+}
+
+// @TODO: We have a lot of builder logic, we can split it up and allow for extension, like we do with PhysicalBackups
+func buildTestMariaDBWithRepl(key types.NamespacedName) *mariadbv1alpha1.MariaDB {
+	return &mariadbv1alpha1.MariaDB{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      key.Name,
+			Namespace: key.Namespace,
+		},
+		Spec: mariadbv1alpha1.MariaDBSpec{
+			Username: &testUser,
+			PasswordSecretKeyRef: &mariadbv1alpha1.GeneratedSecretKeyRef{
+				SecretKeySelector: mariadbv1alpha1.SecretKeySelector{
+					LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+						Name: testPwdKey.Name,
+					},
+					Key: testPwdSecretKey,
+				},
+			},
+			RootPasswordSecretKeyRef: mariadbv1alpha1.GeneratedSecretKeyRef{
+				SecretKeySelector: mariadbv1alpha1.SecretKeySelector{
+					LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+						Name: testPwdKey.Name,
+					},
+					Key: testPwdSecretKey,
+				},
+			},
+			Database: &testDatabase,
+			MyCnf: ptr.To(`[mariadb]
+				bind-address=*
+				default_storage_engine=InnoDB
+				binlog_format=row
+				innodb_autoinc_lock_mode=2
+				max_allowed_packet=256M`,
+			),
+			Replication: &mariadbv1alpha1.Replication{
+				ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
+					Primary: mariadbv1alpha1.PrimaryReplication{
+						PodIndex:     ptr.To(0),
+						AutoFailover: ptr.To(true),
+					},
+				},
+				Enabled: true,
+			},
+			Replicas: 3,
+			Storage: mariadbv1alpha1.Storage{
+				Size:                ptr.To(resource.MustParse("300Mi")),
+				StorageClassName:    "csi-hostpath-sc",
+				ResizeInUseVolumes:  ptr.To(true),
+				WaitForVolumeResize: ptr.To(true),
+			},
+			TLS: &mariadbv1alpha1.TLS{
+				Enabled:  true,
+				Required: ptr.To(true),
+			},
+			Service: &mariadbv1alpha1.ServiceTemplate{
+				Type: corev1.ServiceTypeLoadBalancer,
+				Metadata: &mariadbv1alpha1.Metadata{
+					Annotations: map[string]string{
+						"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.120",
+					},
+				},
+			},
+			Connection: &mariadbv1alpha1.ConnectionTemplate{
+				SecretName: func() *string {
+					s := "mdb-repl-conn"
+					return &s
+				}(),
+				SecretTemplate: &mariadbv1alpha1.SecretTemplate{
+					Key: &testConnSecretKey,
+				},
+			},
+			PrimaryService: &mariadbv1alpha1.ServiceTemplate{
+				Type: corev1.ServiceTypeLoadBalancer,
+				Metadata: &mariadbv1alpha1.Metadata{
+					Annotations: map[string]string{
+						"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.130",
+					},
+				},
+			},
+			PrimaryConnection: &mariadbv1alpha1.ConnectionTemplate{
+				SecretName: func() *string {
+					s := "mdb-repl-conn-primary"
+					return &s
+				}(),
+				SecretTemplate: &mariadbv1alpha1.SecretTemplate{
+					Key: &testConnSecretKey,
+				},
+			},
+			SecondaryService: &mariadbv1alpha1.ServiceTemplate{
+				Type: corev1.ServiceTypeLoadBalancer,
+				Metadata: &mariadbv1alpha1.Metadata{
+					Annotations: map[string]string{
+						"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.131",
+					},
+				},
+			},
+			SecondaryConnection: &mariadbv1alpha1.ConnectionTemplate{
+				SecretName: func() *string {
+					s := "mdb-repl-conn-secondary"
+					return &s
+				}(),
+				SecretTemplate: &mariadbv1alpha1.SecretTemplate{
+					Key: &testConnSecretKey,
+				},
+			},
+			UpdateStrategy: mariadbv1alpha1.UpdateStrategy{
+				Type: mariadbv1alpha1.ReplicasFirstPrimaryLastUpdateType,
+			},
+		},
+	}
 }
 
 // applyDecoratorChain applies a set of decorator functions that modify certain field values on the object created by the builder function.
