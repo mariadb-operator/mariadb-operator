@@ -97,6 +97,17 @@ func (v PersistentVolumeClaimVolumeSource) ToKubernetesType() corev1.PersistentV
 	}
 }
 
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#ephemeralvolumesource-v1-core.
+type EphemeralVolumeSource struct {
+	VolumeClaimTemplate *corev1.PersistentVolumeClaimTemplate `json:"volumeClaimTemplate,omitempty"`
+}
+
+func (v EphemeralVolumeSource) ToKubernetesType() corev1.EphemeralVolumeSource {
+	return corev1.EphemeralVolumeSource{
+		VolumeClaimTemplate: v.VolumeClaimTemplate,
+	}
+}
+
 // Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#secretvolumesource-v1-core.
 type SecretVolumeSource struct {
 	// +optional
@@ -138,6 +149,8 @@ type StorageVolumeSource struct {
 	HostPath *HostPathVolumeSource `json:"hostPath,omitempty"`
 	// +optional
 	PersistentVolumeClaim *PersistentVolumeClaimVolumeSource `json:"persistentVolumeClaim,omitempty"`
+	// +optional
+	Ephemeral *EphemeralVolumeSource `json:"ephemeral,omitempty"`
 }
 
 func (v StorageVolumeSource) ToKubernetesType() corev1.VolumeSource {
@@ -156,6 +169,9 @@ func (v StorageVolumeSource) ToKubernetesType() corev1.VolumeSource {
 	}
 	if v.PersistentVolumeClaim != nil {
 		volumeSource.PersistentVolumeClaim = ptr.To(v.PersistentVolumeClaim.ToKubernetesType())
+	}
+	if v.Ephemeral != nil {
+		volumeSource.Ephemeral = ptr.To(v.Ephemeral.ToKubernetesType())
 	}
 	return volumeSource
 }
