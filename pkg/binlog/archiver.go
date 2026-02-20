@@ -68,25 +68,42 @@ func (a *Archiver) Start(ctx context.Context) error {
 	defer ticker.Stop()
 
 	for {
+		if err := a.doArchive(ctx); err != nil {
+			return err
+		}
 		select {
 		case <-ctx.Done():
 			a.logger.Info("Stopping binary log archiver")
 			return nil
 		case <-ticker.C:
-			mdb, err := a.getMariaDB(ctx)
-			if err != nil {
-				return fmt.Errorf("error getting MariaDB: %v", err)
-			}
-			if !a.shouldArchiveBinlogs(mdb) {
-				continue
-			}
-			archiveErr := a.archiveBinaryLogs(ctx, mdb)
-
-			if err := a.updateStatusWithError(ctx, mdb, archiveErr); err != nil {
-				return fmt.Errorf("error updating status with error: %v", err)
-			}
 		}
 	}
+}
+
+func (a *Archiver) doArchive(ctx context.Context) error {
+	var mdb *mariadbv1alpha1.MariaDB
+	var err error
+	for {
+		mdb, err = a.getMariaDB(ctx)
+		if err != nil {
+			a.logger.Error(err, "Error getting MariaDB, retrying in 5 seconds")
+		} else if a.shouldArchiveBinlogs(mdb) {
+			break
+		}
+
+		a.logger.V(1).Info("Not ready for binlog archival, retrying in 5 seconds...")
+		select {
+		case <-ctx.Done():
+			return nil
+		case <-time.After(10 * time.Second):
+		}
+	}
+	archiveErr := a.archiveBinaryLogs(ctx, mdb)
+
+	if err := a.updateStatusWithError(ctx, mdb, archiveErr); err != nil {
+		return fmt.Errorf("error updating status with error: %v", err)
+	}
+	return nil
 }
 
 func (a *Archiver) shouldArchiveBinlogs(mdb *mariadbv1alpha1.MariaDB) bool {
