@@ -8,6 +8,20 @@ AZURE_SERVICE_URL ?= https://172.18.0.60:10000/devstoreaccount1
 azurite-seed-containers: host-azurite ## Seeds development containers in azurite
 	AZURE_STORAGE_ACCOUNT_NAME=$(AZURE_STORAGE_ACCOUNT_NAME) AZURE_STORAGE_ACCOUNT_KEY=$(AZURE_STORAGE_ACCOUNT_KEY) AZURE_SERVICE_URL=$(AZURE_SERVICE_URL) $(GO) run ./hack/azurite/main.go
 
+AZURITE_DB ?= $(KUBECTL) exec deployment/azurite -- cat /data/__azurite_db_blob__.json 
+
+.PHONY: azurite-debug
+azurite-debug: kubectl jq ## Show azurite internal state.
+	@$(AZURITE_DB) | $(JQ)
+
+.PHONY: azurite-blobs
+azurite-blobs: kubectl jq ## Lists azurite blobs.
+	@$(AZURITE_DB) | $(JQ) -r '.collections[] | select(.name == "$$BLOBS_COLLECTION$$") | .data[] | "\(.name) @ \(.containerName)"'
+
+.PHONY: azurite-containers
+azurite-containers: kubectl jq ## Lists azurite containers.
+	@$(AZURITE_DB) | $(JQ) -r '.collections[] | select(.name == "$$CONTAINERS_COLLECTION$$") | .data[] | "\(.name) @ \(.accountName)"'
+
 .PHONY: install-azurite
 install-azurite: kubectl ## Sets up Azurite for local development
 	$(KUBECTL) apply -k ./hack/manifests/azurite/
