@@ -92,7 +92,7 @@ log_slave_update = 1`)
 				g.Expect(err).To(Succeed())
 
 				// Index and server-%d gets created
-				g.Expect(len(items)).To(BeNumerically(">", 0))
+				g.Expect(items).ToNot(BeEmpty())
 				return true
 			}, testHighTimeout, testInterval).To(BeTrue())
 		})
