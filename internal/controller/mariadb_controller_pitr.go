@@ -22,7 +22,6 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/minio"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/replication"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/sql"
-	"github.com/minio/minio-go/v7/pkg/credentials"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -436,65 +435,13 @@ func (r *MariaDBReconciler) getS3Client(ctx context.Context, pitr *mariadbv1alph
 		return nil, errors.New("error getting s3 client. No s3 config found")
 	}
 
-	minioOpts := []minio.MinioOpt{
-		minio.WithRegion(s3.Region),
-		minio.WithPrefix(s3.Prefix),
-	}
-
-	if s3.AccessKeyIdSecretKeyRef != nil && s3.SecretAccessKeySecretKeyRef != nil {
-		accessKeyID, err := r.RefResolver.SecretKeyRef(ctx, *s3.AccessKeyIdSecretKeyRef, pitr.Namespace)
-		if err != nil {
-			return nil, fmt.Errorf("error getting S3 access key ID: %v", err)
-		}
-		secretAccessKey, err := r.RefResolver.SecretKeyRef(ctx, *s3.SecretAccessKeySecretKeyRef, pitr.Namespace)
-		if err != nil {
-			return nil, fmt.Errorf("error getting S3 access key ID: %v", err)
-		}
-		var sessionToken string
-		if s3.SessionTokenSecretKeyRef != nil {
-			sessionToken, err = r.RefResolver.SecretKeyRef(ctx, *s3.SessionTokenSecretKeyRef, pitr.Namespace)
-			if err != nil {
-				return nil, fmt.Errorf("error getting S3 session token: %v", err)
-			}
-		}
-		minioOpts = append(minioOpts, minio.WithCredsProviders(&credentials.Static{
-			Value: credentials.Value{
-				AccessKeyID:     accessKeyID,
-				SecretAccessKey: secretAccessKey,
-				SessionToken:    sessionToken,
-				SignerType:      credentials.SignatureDefault,
-			},
-		}))
-	}
-
-	tls := ptr.Deref(s3.TLS, mariadbv1alpha1.TLSConfig{})
-	if tls.Enabled {
-		minioOpts = append(minioOpts, minio.WithTLS(true))
-		caCertBytes, err := r.RefResolver.SecretKeyRef(ctx, *s3.TLS.CASecretKeyRef, pitr.Namespace)
-		if err != nil {
-			return nil, fmt.Errorf("error getting CA cert: %v", err)
-		}
-		minioOpts = append(minioOpts, minio.WithCACertBytes([]byte(caCertBytes)))
-	}
-
-	if s3.SSEC != nil {
-		ssecKey, err := r.RefResolver.SecretKeyRef(ctx, s3.SSEC.CustomerKeySecretKeyRef, pitr.Namespace)
-		if err != nil {
-			return nil, fmt.Errorf("error getting SSEC key: %v", err)
-		}
-		minioOpts = append(minioOpts, minio.WithSSECCustomerKey(ssecKey))
-	}
-
-	s3Client, err := minio.NewMinioClient(
-		"", // not needed: in-memory methods (io.Reader instead of a file) are used in this context
-		s3.Bucket,
-		s3.Endpoint,
-		minioOpts...,
+	return minio.NewMinioClientFromS3Config(
+		ctx,
+		*r.RefResolver,
+		*s3,
+		"",
+		pitr.Namespace,
 	)
-	if err != nil {
-		return nil, fmt.Errorf("error getting S3 client: %v", err)
-	}
-	return s3Client, nil
 }
 
 func (r *MariaDBReconciler) shouldReconcilePITR(ctx context.Context, mdb *mariadbv1alpha1.MariaDB, logger logr.Logger) (bool, error) {

@@ -12,9 +12,12 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/refresolver"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"github.com/minio/minio-go/v7/pkg/encrypt"
+	"k8s.io/utils/ptr"
 )
 
 type MinioOpts struct {
@@ -96,6 +99,77 @@ type Client struct {
 	MinioOpts
 	basePath string
 	bucket   string
+}
+
+func NewMinioClientFromS3Config(
+	ctx context.Context,
+	refResolver refresolver.RefResolver,
+	s3 v1alpha1.S3,
+	basePath,
+	namespace string,
+	mOpts ...MinioOpt,
+) (*Client, error) {
+	minioOpts := []MinioOpt{
+		WithRegion(s3.Region),
+		WithPrefix(s3.Prefix),
+	}
+
+	if s3.AccessKeyIdSecretKeyRef != nil && s3.SecretAccessKeySecretKeyRef != nil {
+		accessKeyID, err := refResolver.SecretKeyRef(ctx, *s3.AccessKeyIdSecretKeyRef, namespace)
+		if err != nil {
+			return nil, fmt.Errorf("error getting S3 access key ID: %v", err)
+		}
+		secretAccessKey, err := refResolver.SecretKeyRef(ctx, *s3.SecretAccessKeySecretKeyRef, namespace)
+		if err != nil {
+			return nil, fmt.Errorf("error getting S3 access key ID: %v", err)
+		}
+		var sessionToken string
+		if s3.SessionTokenSecretKeyRef != nil {
+			sessionToken, err = refResolver.SecretKeyRef(ctx, *s3.SessionTokenSecretKeyRef, namespace)
+			if err != nil {
+				return nil, fmt.Errorf("error getting S3 session token: %v", err)
+			}
+		}
+		minioOpts = append(minioOpts, WithCredsProviders(&credentials.Static{
+			Value: credentials.Value{
+				AccessKeyID:     accessKeyID,
+				SecretAccessKey: secretAccessKey,
+				SessionToken:    sessionToken,
+				SignerType:      credentials.SignatureDefault,
+			},
+		}))
+	}
+
+	tls := ptr.Deref(s3.TLS, v1alpha1.TLSConfig{})
+	if tls.Enabled {
+		minioOpts = append(minioOpts, WithTLS(true))
+		caCertBytes, err := refResolver.SecretKeyRef(ctx, *s3.TLS.CASecretKeyRef, namespace)
+		if err != nil {
+			return nil, fmt.Errorf("error getting CA cert: %v", err)
+		}
+		minioOpts = append(minioOpts, WithCACertBytes([]byte(caCertBytes)))
+	}
+
+	if s3.SSEC != nil {
+		ssecKey, err := refResolver.SecretKeyRef(ctx, s3.SSEC.CustomerKeySecretKeyRef, namespace)
+		if err != nil {
+			return nil, fmt.Errorf("error getting SSEC key: %v", err)
+		}
+		minioOpts = append(minioOpts, WithSSECCustomerKey(ssecKey))
+	}
+
+	minioOpts = append(minioOpts, mOpts...)
+
+	s3Client, err := NewMinioClient(
+		basePath,
+		s3.Bucket,
+		s3.Endpoint,
+		minioOpts...,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("error getting S3 client: %v", err)
+	}
+	return s3Client, nil
 }
 
 func NewMinioClient(basePath, bucket, endpoint string, mOpts ...MinioOpt) (*Client, error) {
