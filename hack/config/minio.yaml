@@ -63,6 +63,11 @@ buckets:
     purge: false
     versioning: false
     objectlocking: false
+  - name: test-pitr
+    policy: none
+    purge: false
+    versioning: false
+    objectlocking: false
   - name: test-mariadb
     policy: none
     purge: false
