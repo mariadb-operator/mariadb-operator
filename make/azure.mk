@@ -16,11 +16,11 @@ azurite-debug: kubectl jq ## Show azurite internal state.
 
 .PHONY: azurite-blobs
 azurite-blobs: kubectl jq ## Lists azurite blobs.
-	@$(AZURITE_DB) | $(JQ) -r '.collections[] | select(.name == "$$BLOBS_COLLECTION$$") | .data[] | "\(.name) @ \(.containerName)"'
+	@$(AZURITE_DB) | $(JQ) -r '.collections[] | select(.name == "$$BLOBS_COLLECTION$$") | .data[] | "\(.name) @ \(.containerName)"' | sort
 
 .PHONY: azurite-containers
 azurite-containers: kubectl jq ## Lists azurite containers.
-	@$(AZURITE_DB) | $(JQ) -r '.collections[] | select(.name == "$$CONTAINERS_COLLECTION$$") | .data[] | "\(.name) @ \(.accountName)"'
+	@$(AZURITE_DB) | $(JQ) -r '.collections[] | select(.name == "$$CONTAINERS_COLLECTION$$") | .data[] | "\(.name) @ \(.accountName)"' | sort
 
 .PHONY: install-azurite
 install-azurite: kubectl ## Sets up Azurite for local development

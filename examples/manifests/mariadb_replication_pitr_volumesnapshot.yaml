@@ -8,6 +8,7 @@ spec:
     key: root-password
   storage:
     size: 1Gi
+    storageClassName: csi-hostpath-sc
   replicas: 3
   replication:
     enabled: true
@@ -15,7 +16,7 @@ spec:
   # bootstrapFrom:
   #   pointInTimeRecoveryRef:
   #     name: pitr
-  #   targetRecoveryTime: 2025-06-17T08:07:00Z
+  #   targetRecoveryTime: 2026-02-18T15:22:00Z
   # configure the binary log archival
   pointInTimeRecoveryRef:
     name: pitr
@@ -42,22 +43,23 @@ metadata:
 spec:
   physicalBackupRef:
     name: physicalbackup-daily
-  s3:
-    bucket: binlogs
-    prefix: mariadb
-    endpoint: minio.minio.svc.cluster.local:9000
-    region:  us-east-1
-    accessKeyIdSecretKeyRef:
-      name: minio
-      key: access-key-id
-    secretAccessKeySecretKeyRef:
-      name: minio
-      key: secret-access-key
-    tls:
-      enabled: true
-      caSecretKeyRef:
-        name: minio-ca
-        key: ca.crt
+  storage:
+    s3:
+      bucket: binlogs
+      prefix: mariadb
+      endpoint: minio.minio.svc.cluster.local:9000
+      region:  us-east-1
+      accessKeyIdSecretKeyRef:
+        name: minio
+        key: access-key-id
+      secretAccessKeySecretKeyRef:
+        name: minio
+        key: secret-access-key
+      tls:
+        enabled: true
+        caSecretKeyRef:
+          name: minio-ca
+          key: ca.crt
   compression: gzip
   archiveTimeout: 1h
   strictMode: false
