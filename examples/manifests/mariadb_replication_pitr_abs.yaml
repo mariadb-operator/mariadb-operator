@@ -3,9 +3,6 @@ kind: MariaDB
 metadata:
   name: mariadb-repl
 spec:
-  myCnf: |
-    [mariadb]
-    max_binlog_size=4096
   rootPasswordSecretKeyRef:
     name: mariadb
     key: root-password
@@ -18,7 +15,15 @@ spec:
   # bootstrapFrom:
   #   pointInTimeRecoveryRef:
   #     name: pitr
-  #   targetRecoveryTime: 2026-02-17T14:10:00Z
+  #   targetRecoveryTime: 2026-02-20T18:00:04Z
+  #   stagingStorage:
+  #     persistentVolumeClaim:
+  #       resources:
+  #         requests:
+  #           storage: 10Gi
+  #       accessModes:
+  #         - ReadWriteOnce
+  #   logLevel: debug
   # configure the binary log archival
   pointInTimeRecoveryRef:
     name: pitr
