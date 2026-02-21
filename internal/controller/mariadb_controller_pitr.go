@@ -47,16 +47,11 @@ func (r *MariaDBReconciler) reconcilePITR(ctx context.Context, mdb *mariadbv1alp
 		return ctrl.Result{}, nil
 	}
 
-	startGtid, err := r.getStartGtid(ctx, mdb, logger)
-	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error getting start GTID: %v", err)
-	}
 	logger = logger.WithValues(
-		"start-gtid", startGtid,
 		"target-time", mdb.Spec.BootstrapFrom.TargetRecoveryTimeOrDefault().Format(time.RFC3339),
 	)
 	if !mdb.IsReplayingBinlogs() || mdb.ReplayBinlogsError() != nil {
-		result, err := r.reconcileReplayBinlogsError(ctx, mdb, startGtid, logger)
+		result, err := r.reconcileReplayBinlogsError(ctx, mdb, logger)
 
 		if errors.Is(err, errSkipBinlogReplay) {
 			if !mdb.HasSkippedBinlogReplay() {
@@ -96,7 +91,7 @@ func (r *MariaDBReconciler) reconcilePITR(ctx context.Context, mdb *mariadbv1alp
 	if err := r.reconcilePITRStagingPVC(ctx, mdb); err != nil {
 		return ctrl.Result{}, err
 	}
-	if result, err := r.reconcileAndWaitForPITRJob(ctx, mdb, startGtid, logger); !result.IsZero() || err != nil {
+	if result, err := r.reconcileAndWaitForPITRJob(ctx, mdb, logger); !result.IsZero() || err != nil {
 		return result, err
 	}
 
@@ -178,8 +173,14 @@ func (r *MariaDBReconciler) getStartGtid(ctx context.Context, mdb *mariadbv1alph
 	return gtid, nil
 }
 
-func (r *MariaDBReconciler) reconcileReplayBinlogsError(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, startGtid *replication.Gtid,
-	logger logr.Logger) (ctrl.Result, error) {
+func (r *MariaDBReconciler) reconcileReplayBinlogsError(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+	binlogLogger logr.Logger) (ctrl.Result, error) {
+	startGtid, err := r.getStartGtid(ctx, mariadb, binlogLogger)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error getting start GTID: %v", err)
+	}
+	logger := binlogLogger.WithValues("start-gtid", startGtid)
+
 	pitr, err := r.RefResolver.PointInTimeRecovery(ctx, mariadb.Spec.BootstrapFrom.PointInTimeRecoveryRef, mariadb.Namespace)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error getting PointInTimeRecoveryRef: %v", err)
@@ -315,13 +316,17 @@ func (r *MariaDBReconciler) reconcilePITRStagingPVC(ctx context.Context, mariadb
 	return nil
 }
 
-func (r *MariaDBReconciler) reconcileAndWaitForPITRJob(ctx context.Context, mdb *mariadbv1alpha1.MariaDB, startGtid *replication.Gtid,
+func (r *MariaDBReconciler) reconcileAndWaitForPITRJob(ctx context.Context, mdb *mariadbv1alpha1.MariaDB,
 	logger logr.Logger) (ctrl.Result, error) {
 	key := mdb.PITRJobKey()
 	var job batchv1.Job
 	if err := r.Get(ctx, key, &job); err != nil {
 		if apierrors.IsNotFound(err) {
-			logger.Info("Creating PointInTimeRecovery job", "name", key.Name)
+			startGtid, err := r.getStartGtid(ctx, mdb, logger)
+			if err != nil {
+				return ctrl.Result{}, fmt.Errorf("error getting start GTID: %v", err)
+			}
+			logger.Info("Creating PointInTimeRecovery job", "name", key.Name, "start-gtid", startGtid)
 			if err := r.createPITRJob(ctx, mdb, startGtid); err != nil {
 				return ctrl.Result{}, err
 			}
