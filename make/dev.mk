@@ -29,7 +29,7 @@ PPROF_ADDR ?= ":6060"
 
 .PHONY: test
 test: envtest ginkgo ## Run unit tests.
-	$(TEST) ./internal/webhook/...
+	$(TEST) ./api/... ./pkg/... ./internal/helmtest/... ./internal/webhook/...
 
 .PHONY: test-int-basic
 test-int-basic: envtest ginkgo ## Run integration tests with label 'basic'
