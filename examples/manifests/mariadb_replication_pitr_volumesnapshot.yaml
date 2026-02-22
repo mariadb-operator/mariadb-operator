@@ -12,14 +12,18 @@ spec:
   replicas: 3
   replication:
     enabled: true
-  # bootstrap the instance using the PITR physical backup + binary log replay up to targetRecoveryTime
+  # bootstrap the instance from PITR: restore closest physical backup and replay binary logs up to targetRecoveryTime.
   # bootstrapFrom:
   #   pointInTimeRecoveryRef:
   #     name: pitr
   #   targetRecoveryTime: 2026-02-18T15:22:00Z
-  # configure the binary log archival
+  # configure binary log archival.
   pointInTimeRecoveryRef:
     name: pitr
+  # configure an optimal max_binlog_size to meet your RPO while minimizing server impact.
+  myCnf: |
+    [mariadb]
+    max_binlog_size=256M
   service:
     type: LoadBalancer
     metadata:
