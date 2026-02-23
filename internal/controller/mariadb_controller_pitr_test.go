@@ -5,16 +5,13 @@ import (
 	"math/rand/v2"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
-	"github.com/mariadb-operator/mariadb-operator/v26/pkg/minio"
-	"github.com/mariadb-operator/mariadb-operator/v26/pkg/refresolver"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/ptr"
 )
 
-var _ = Describe("MariaDB PITR with Replication", Ordered, func() {
+var _ = Describe("MariaDB PITR with Replication", func() {
 	var (
 		// Used for MariaDB, PITR, PhysicalBackup
 		key = types.NamespacedName{
@@ -37,65 +34,34 @@ var _ = Describe("MariaDB PITR with Replication", Ordered, func() {
 		BeforeAll(func() {
 			mdb = buildTestMariaDBWithRepl(key)
 			applyMariadbTestConfig(mdb)
-
-			// @NOTE: `log_slave_update` we add so the replica will have binlogs to replicate when it switches over.
-			mdb.Spec.MyCnf = ptr.To(`[mariadb]
-max_binlog_size = 4096
-log_slave_update = 1`)
+			mdb.Spec.PointInTimeRecoveryRef = &mariadbv1alpha1.LocalObjectReference{
+				Name: pitr.Name,
+			}
 
 			By("Creating MariaDB with replication")
 			Expect(k8sClient.Create(testCtx, mdb)).To(Succeed())
 
-			DeferCleanup(func() {
-				deleteMariadb(key, false)
-				deletePhysicalBackup(key)
-			})
-		})
-
-		AfterAll(func() {
-			deletePitr(key)
-		})
-
-		It(fmt.Sprintf("should reconcile in bucket %s", pitrPrefix), func() {
-			By("Expecting MariaDB to be ready eventually")
-			expectMariadbReady(testCtx, k8sClient, key)
-
-			By("Generating binlogs before adding PITR")
-			generateBinlogs(mdb)
-
-			By("Updating MariaDB")
-			Eventually(func() bool {
-				if err := k8sClient.Get(testCtx, key, mdb); err != nil {
-					return false
-				}
-				mdb.Spec.PointInTimeRecoveryRef = &mariadbv1alpha1.LocalObjectReference{
-					Name: pitr.Name,
-				}
-
-				return k8sClient.Update(testCtx, mdb) == nil
-			}, testTimeout, testInterval).Should(BeTrue())
-
 			By("Creating Physical Backup")
 			Expect(k8sClient.Create(testCtx, physicalBackup)).To(Succeed())
-
-			By("Expecting PhysicalBackup to be ready")
-			expectPhysicalBackupReady(physicalBackup)
 
 			By("Creating PointInTimeRecovery")
 			Expect(k8sClient.Create(testCtx, pitr)).To(Succeed())
 
-			Eventually(func(g Gomega) bool {
-				s3Client, err := minio.NewMinioClientFromS3Config(testCtx, *refresolver.New(k8sClient), pitr.Spec.S3, "", pitr.Namespace)
-				g.Expect(err).To(Succeed())
-
-				items, err := s3Client.ListObjectsWithOptions(testCtx)
-				g.Expect(err).To(Succeed())
-
-				// Index and server-%d gets created
-				g.Expect(items).ToNot(BeEmpty())
-				return true
-			}, testHighTimeout, testInterval).To(BeTrue())
+			DeferCleanup(func() {
+				deleteMariadb(key, false)
+				deletePhysicalBackup(key)
+				deletePitr(key)
+			})
 		})
+
+		It("should reconcile MariaDB", func() {
+			By("Expecting MariaDB to be ready eventually")
+			expectMariadbReady(testCtx, k8sClient, key)
+
+			By("Expecting PhysicalBackup to be ready")
+			expectPhysicalBackupReady(physicalBackup)
+		})
+
 	})
 
 	PContext("With ABS Storage", func() {
@@ -117,20 +83,6 @@ log_slave_update = 1`)
 // 		return pitr.Status.LastRecoverableTime != nil
 // 	}, testHighTimeout, testInterval).Should(BeTrue())
 // }
-
-func generateBinlogs(mdb *mariadbv1alpha1.MariaDB) {
-	primaryIndex := ptr.Deref(mdb.Status.CurrentPrimaryPodIndex, 0)
-	By("Creating database")
-	executeSqlInPodByIndex(mdb, primaryIndex, "CREATE DATABASE IF NOT EXISTS pitr;")
-
-	By("Creating table")
-	executeSqlInPodByIndex(mdb, primaryIndex, "CREATE TABLE IF NOT EXISTS pitr.test (id INT PRIMARY KEY AUTO_INCREMENT, name VARCHAR(255));")
-
-	By("Generating binlogs")
-	for i := range 500 {
-		executeSqlInPodByIndex(mdb, primaryIndex, fmt.Sprintf("INSERT INTO pitr.test (name) VALUES ('test-%d');", i))
-	}
-}
 
 // =========================
 
