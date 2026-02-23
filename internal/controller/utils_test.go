@@ -1353,9 +1353,13 @@ func deletePitr(key types.NamespacedName) {
 	if err == nil {
 		Expect(client.IgnoreNotFound(k8sClient.Delete(testCtx, &pitr))).To(Succeed())
 	}
-	if !apierrors.IsNotFound(err) {
-		Expect(err).ToNot(HaveOccurred())
-	}
+
+	By("Expecting PITR to be deleted")
+	Eventually(func() bool {
+		err := k8sClient.Get(testCtx, key, &pitr)
+
+		return apierrors.IsNotFound(err)
+	}, testTimeout, testInterval).Should(BeTrue())
 }
 
 func removeFinalizerAndDelete(obj client.Object) error {
