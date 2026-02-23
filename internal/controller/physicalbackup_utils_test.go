@@ -1,8 +1,6 @@
 package controller
 
 import (
-	"fmt"
-
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/job"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/volumesnapshot"
@@ -93,27 +91,6 @@ func testPhysicalBackupVolumeSnapshot(backup *mariadbv1alpha1.PhysicalBackup) {
 		if err := k8sClient.Get(testCtx, key, backup); err != nil {
 			return false
 		}
-		if backup.IsComplete() {
-			return true
-		}
-
-		var podList corev1.PodList
-		if err := k8sClient.List(testCtx, &podList, client.InNamespace(backup.Namespace)); err == nil {
-			for _, p := range podList.Items {
-				fmt.Fprintf(GinkgoWriter, "Pod: %s, Status: %s\n", p.Name, p.Status.Phase)
-				for _, cs := range p.Status.ContainerStatuses {
-					fmt.Fprintf(
-						GinkgoWriter,
-						"	Container: %s, Ready: %t, RestartCount: %d, State: %v, LastTerminationState: %v\n",
-						cs.Name,
-						cs.Ready,
-						cs.RestartCount,
-						cs.State,
-						cs.LastTerminationState,
-					)
-				}
-			}
-		}
-		return false
+		return backup.IsComplete()
 	}, testTimeout, testInterval).Should(BeTrue())
 }
