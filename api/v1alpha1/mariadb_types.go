@@ -225,7 +225,7 @@ type BootstrapFrom struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	S3 *S3 `json:"s3,omitempty" webhook:"inmutableinit"`
-	// ABS defines the configuration to restore backups from an ABS compatible storage.
+	// AzureBlob defines the configuration to restore from Azure Blob compatible storage.
 	// This field takes precedence over the Volume source.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
