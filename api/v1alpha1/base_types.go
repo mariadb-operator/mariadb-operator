@@ -665,7 +665,7 @@ type TLSConfig struct {
 }
 
 type ABS struct {
-	// ContainerName name Name of the container to store backups.
+	// ContainerName is the name of the storage container.
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	ContainerName string `json:"containerName" webhook:"inmutable"`
