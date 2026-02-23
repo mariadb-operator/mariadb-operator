@@ -27,29 +27,6 @@ Package v1alpha1 contains API Schema definitions for the v1alpha1 API group
 
 
 
-#### ABS
-
-
-
-
-
-
-
-_Appears in:_
-- [BootstrapFrom](#bootstrapfrom)
-- [PhysicalBackupStorage](#physicalbackupstorage)
-- [PointInTimeRecoveryStorage](#pointintimerecoverystorage)
-
-| Field | Description | Default | Validation |
-| --- | --- | --- | --- |
-| `containerName` _string_ | ContainerName name Name of the container to store backups. |  | Required: \{\} <br /> |
-| `serviceURL` _string_ | ServiceURL is the full URL for connecting to Azure, usually in the form: http(s)://<account>.blob.core.windows.net/. |  | Required: \{\} <br /> |
-| `prefix` _string_ | Prefix indicates a folder/subfolder in the bucket. For example: mariadb/ or mariadb/backups. A trailing slash '/' is added if not provided. |  |  |
-| `storageAccountName` _string_ | StorageAccountName is the name of the storage account. Pairs with StorageAccountKey for static credential authentication |  |  |
-| `storageAccountKey` _[SecretKeySelector](#secretkeyselector)_ | StorageAccountKey is a reference to a Secret key containing the Azure Blob Storage Storage account Key. Pairs with StorageAccountKey for static credential authentication |  |  |
-| `tls` _[TLSConfig](#tlsconfig)_ | TLS provides the configuration required to establish TLS connections with Azure Blob Storage. |  |  |
-
-
 #### Affinity
 
 
@@ -127,6 +104,29 @@ _Appears in:_
 | `kubernetesAuth` _[KubernetesAuth](#kubernetesauth)_ | KubernetesAuth to be used by the agent container |  |  |
 | `basicAuth` _[BasicAuth](#basicauth)_ | BasicAuth to be used by the agent container |  |  |
 | `gracefulShutdownTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#duration-v1-meta)_ | GracefulShutdownTimeout is the time we give to the agent container in order to gracefully terminate in-flight requests. |  |  |
+
+
+#### AzureBlob
+
+
+
+
+
+
+
+_Appears in:_
+- [BootstrapFrom](#bootstrapfrom)
+- [PhysicalBackupStorage](#physicalbackupstorage)
+- [PointInTimeRecoveryStorage](#pointintimerecoverystorage)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `containerName` _string_ | ContainerName is the name of the storage container. |  | Required: \{\} <br /> |
+| `serviceURL` _string_ | ServiceURL is the full URL for connecting to Azure, usually in the form: http(s)://<account>.blob.core.windows.net/. |  | Required: \{\} <br /> |
+| `prefix` _string_ | Prefix indicates a folder/subfolder in the container. For example: mariadb/ or mariadb/backups. A trailing slash '/' is added if not provided. |  |  |
+| `storageAccountName` _string_ | StorageAccountName is the name of the storage account. Pairs with StorageAccountKey for static credential authentication |  |  |
+| `storageAccountKey` _[SecretKeySelector](#secretkeyselector)_ | StorageAccountKey is a reference to a Secret key containing the Azure Blob Storage Storage account Key. Pairs with StorageAccountKey for static credential authentication |  |  |
+| `tls` _[TLSConfig](#tlsconfig)_ | TLS provides the configuration required to establish TLS connections with Azure Blob Storage. |  |  |
 
 
 #### Backup
@@ -259,7 +259,7 @@ _Appears in:_
 | `pointInTimeRecoveryRef` _[LocalObjectReference](#localobjectreference)_ | PointInTimeRecoveryRef is a reference to a PointInTimeRecovery object.<br />Providing this field implies restoring the PhysicalBackup referenced in the PointInTimeRecovery object and replaying the<br />archived binary logs up to the point-in-time restoration target, defined by the targetRecoveryTime field. |  |  |
 | `backupContentType` _[BackupContentType](#backupcontenttype)_ | BackupContentType is the backup content type available in the source to bootstrap from.<br />It is inferred based on the BackupRef and VolumeSnapshotRef fields. If inference is not possible, it defaults to Logical.<br />Set this field explicitly when using physical backups from S3 or Volume sources. |  | Enum: [Logical Physical] <br /> |
 | `s3` _[S3](#s3)_ | S3 defines the configuration to restore backups from a S3 compatible storage.<br />This field takes precedence over the Volume source. |  |  |
-| `azureBlob` _[ABS](#abs)_ | ABS defines the configuration to restore backups from an ABS compatible storage.<br />This field takes precedence over the Volume source. |  |  |
+| `azureBlob` _[AzureBlob](#azureblob)_ | AzureBlob defines the configuration to restore from Azure Blob compatible storage.<br />This field takes precedence over the Volume source. |  |  |
 | `volume` _[StorageVolumeSource](#storagevolumesource)_ | Volume is a Kubernetes Volume object that contains a backup. |  |  |
 | `targetRecoveryTime` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#time-v1-meta)_ | TargetRecoveryTime is a RFC3339 (1970-01-01T00:00:00Z) date and time that defines the point in time recovery objective.<br />It is used to determine the closest restoration source in time. |  |  |
 | `stagingStorage` _[StagingStorage](#stagingstorage)_ | StagingStorage defines the temporary storage used to keep external backups and binary logs (i.e. S3) while they are being processed.<br />It defaults to an emptyDir volume, meaning that the backups will be temporarily stored in the node where the Job is scheduled. |  |  |
@@ -2040,7 +2040,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `s3` _[S3](#s3)_ | S3 defines the configuration to store backups in a S3 compatible storage. |  |  |
-| `azureBlob` _[ABS](#abs)_ | ABS defines the configuration to store backups in a ABS compatible storage. |  |  |
+| `azureBlob` _[AzureBlob](#azureblob)_ | AzureBlob defines the configuration to store backups in a AzureBlob compatible storage. |  |  |
 | `persistentVolumeClaim` _[PersistentVolumeClaimSpec](#persistentvolumeclaimspec)_ | PersistentVolumeClaim is a Kubernetes PVC specification. |  |  |
 | `volume` _[StorageVolumeSource](#storagevolumesource)_ | Volume is a Kubernetes volume specification. |  |  |
 | `volumeSnapshot` _[PhysicalBackupVolumeSnapshot](#physicalbackupvolumesnapshot)_ | VolumeSnapshot is a Kubernetes VolumeSnapshot specification. |  |  |
@@ -2228,8 +2228,8 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `physicalBackupRef` _[LocalObjectReference](#localobjectreference)_ | PhysicalBackupRef is a reference to a PhysicalBackup object that will be used as base backup. |  | Required: \{\} <br /> |
 | `storage` _[PointInTimeRecoveryStorage](#pointintimerecoverystorage)_ | PointInTimeRecoveryStorage is the storage where the point in time recovery data will be stored |  | Required: \{\} <br /> |
-| `compression` _[CompressAlgorithm](#compressalgorithm)_ | Compression algorithm to be used for compressing the binary logs. |  | Enum: [none bzip2 gzip] <br /> |
-| `archiveTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#duration-v1-meta)_ | ArchiveTimeout defines the maximum duration for the binary log archival..<br />If this duration is exceeded, the sidecar agent will log an error and it will be retried in the next archive cycle.<br />It defaults to 1 hour. | 1h |  |
+| `compression` _[CompressAlgorithm](#compressalgorithm)_ | Compression algorithm to be used for compressing the binary logs.<br />This field is immutable, it cannot be updated after creation. |  | Enum: [none bzip2 gzip] <br /> |
+| `archiveTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#duration-v1-meta)_ | ArchiveTimeout defines the maximum duration for the binary log archival.<br />If this duration is exceeded, the sidecar agent will log an error and it will be retried in the next archive cycle.<br />It defaults to 1 hour. | 1h |  |
 | `strictMode` _boolean_ | StrictMode controls the behavior when a point-in-time restoration cannot reach the exact target time:<br />When enabled: Returns an error and avoids replaying binary logs if target time is not reached.<br />When disabled (default): Replays available binary logs until the last recoverable time. It logs logs an error if target time is not reached. |  |  |
 
 
@@ -2247,7 +2247,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `s3` _[S3](#s3)_ | S3 is the S3-compatible storage where the binary logs will be kept. |  |  |
-| `azureBlob` _[ABS](#abs)_ | ABS is the Azure Blob Storage where the binary logs will be kept. |  |  |
+| `azureBlob` _[AzureBlob](#azureblob)_ | AzureBlob is the Azure Blob Storage where the binary logs will be kept. |  |  |
 
 
 #### PreferredSchedulingTerm
@@ -2675,7 +2675,7 @@ Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kub
 
 
 _Appears in:_
-- [ABS](#abs)
+- [AzureBlob](#azureblob)
 - [ConnectionSpec](#connectionspec)
 - [EnvVarSource](#envvarsource)
 - [ExternalMariaDBSpec](#externalmariadbspec)
@@ -3066,7 +3066,7 @@ _Appears in:_
 
 
 _Appears in:_
-- [ABS](#abs)
+- [AzureBlob](#azureblob)
 - [S3](#s3)
 
 | Field | Description | Default | Validation |

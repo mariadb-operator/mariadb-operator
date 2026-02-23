@@ -194,7 +194,7 @@ func (b *Builder) BuildPhysicalBackupJob(key types.NamespacedName, backup *maria
 		command.WithExtraOpts(backup.Spec.Args),
 	}
 	cmdOpts = append(cmdOpts, s3Opts(backup.Spec.Storage.S3)...)
-	cmdOpts = append(cmdOpts, absOpts(backup.Spec.Storage.ABS)...)
+	cmdOpts = append(cmdOpts, absOpts(backup.Spec.Storage.AzureBlob)...)
 
 	backupFilepath := filepath.Join(batchStorageMountPath, backupFile)
 
@@ -215,7 +215,7 @@ func (b *Builder) BuildPhysicalBackupJob(key types.NamespacedName, backup *maria
 	if err != nil {
 		return nil, fmt.Errorf("error getting volume from Backup: %v", err)
 	}
-	volumes, volumeMounts := jobPhysicalBackupVolumesWithSA(volume, backup.Spec.Storage.S3, backup.Spec.Storage.ABS, mariadb, podIndex)
+	volumes, volumeMounts := jobPhysicalBackupVolumesWithSA(volume, backup.Spec.Storage.S3, backup.Spec.Storage.AzureBlob, mariadb, podIndex)
 
 	var initContainers []corev1.Container
 	mariadbBackupContainer, err := b.jobMariadbContainer(
@@ -250,7 +250,7 @@ func (b *Builder) BuildPhysicalBackupJob(key types.NamespacedName, backup *maria
 	operatorContainer, err := b.jobMariadbOperatorContainer(
 		operatorCmd,
 		volumeMounts,
-		append(s3Env(backup.Spec.Storage.S3), absEnv(backup.Spec.Storage.ABS)...),
+		append(s3Env(backup.Spec.Storage.S3), absEnv(backup.Spec.Storage.AzureBlob)...),
 		jobResources(backup.Spec.Resources),
 		mariadb,
 		b.env,
@@ -444,7 +444,7 @@ type RestoreOpts struct {
 	TargetRecoveryTime *time.Time
 	Volume             *mariadbv1alpha1.StorageVolumeSource
 	S3                 *mariadbv1alpha1.S3
-	ABS                *mariadbv1alpha1.ABS
+	ABS                *mariadbv1alpha1.AzureBlob
 	RestoreJob         *mariadbv1alpha1.Job
 	RestoreCommandOpts []command.MariaDBBackupRestoreOpt
 	MariaDBLabels      *bool
@@ -467,7 +467,7 @@ func WithBootstrapFrom(bootstrapFrom *mariadbv1alpha1.BootstrapFrom) RestoreOpt 
 		opts.TargetRecoveryTime = ptr.To(bootstrapFrom.TargetRecoveryTimeOrDefault())
 		opts.Volume = bootstrapFrom.Volume
 		opts.S3 = bootstrapFrom.S3
-		opts.ABS = bootstrapFrom.ABS
+		opts.ABS = bootstrapFrom.AzureBlob
 		opts.RestoreJob = bootstrapFrom.RestoreJob
 		opts.LogLevel = bootstrapFrom.LogLevel
 		return nil
@@ -484,7 +484,7 @@ func WithPhysicalBackup(pb *mariadbv1alpha1.PhysicalBackup, targetRecoveryTime t
 		opts.TargetRecoveryTime = ptr.To(targetRecoveryTime)
 		opts.Volume = &volume
 		opts.S3 = pb.Spec.Storage.S3
-		opts.ABS = pb.Spec.Storage.ABS
+		opts.ABS = pb.Spec.Storage.AzureBlob
 		opts.RestoreJob = restoreJob
 		opts.RestoreCommandOpts = restoreCommandOpts
 		return nil
@@ -693,7 +693,7 @@ func (b *Builder) BuildPITRJob(key types.NamespacedName, pitr *mariadbv1alpha1.P
 		command.WithExtraOpts(restoreJob.Args),
 	}
 	cmdOpts = append(cmdOpts, s3Opts(pitr.Spec.PointInTimeRecoveryStorage.S3)...)
-	cmdOpts = append(cmdOpts, absOpts(pitr.Spec.PointInTimeRecoveryStorage.ABS)...)
+	cmdOpts = append(cmdOpts, absOpts(pitr.Spec.PointInTimeRecoveryStorage.AzureBlob)...)
 
 	if opts.LogLevel != "" {
 		cmdOpts = append(cmdOpts, command.WithLogLevel(opts.LogLevel))
@@ -707,7 +707,7 @@ func (b *Builder) BuildPITRJob(key types.NamespacedName, pitr *mariadbv1alpha1.P
 	volumes, volumeMounts := jobPITRVolumes(
 		binlogsVolumeSource,
 		pitr.Spec.PointInTimeRecoveryStorage.S3,
-		pitr.Spec.PointInTimeRecoveryStorage.ABS,
+		pitr.Spec.PointInTimeRecoveryStorage.AzureBlob,
 		mariadb,
 	)
 
@@ -723,7 +723,7 @@ func (b *Builder) BuildPITRJob(key types.NamespacedName, pitr *mariadbv1alpha1.P
 	operatorContainer, err := b.jobMariadbOperatorContainer(
 		opteratorPITRCmd,
 		volumeMounts,
-		append(s3Env(pitr.Spec.PointInTimeRecoveryStorage.S3), absEnv(pitr.Spec.PointInTimeRecoveryStorage.ABS)...),
+		append(s3Env(pitr.Spec.PointInTimeRecoveryStorage.S3), absEnv(pitr.Spec.PointInTimeRecoveryStorage.AzureBlob)...),
 		jobResources(restoreJob.Resources),
 		mariadb,
 		b.env,
@@ -1113,7 +1113,7 @@ func s3Opts(s3 *mariadbv1alpha1.S3) []command.BackupOpt {
 	return cmdOpts
 }
 
-func absOpts(abs *mariadbv1alpha1.ABS) []command.BackupOpt {
+func absOpts(abs *mariadbv1alpha1.AzureBlob) []command.BackupOpt {
 	if abs == nil {
 		return nil
 	}
@@ -1143,7 +1143,7 @@ func batchImagePullSecrets(mariadb interfaces.Imager,
 }
 
 func jobBatchStorageVolumes(storageVolume mariadbv1alpha1.StorageVolumeSource,
-	s3 *mariadbv1alpha1.S3, abs *mariadbv1alpha1.ABS, mariadb interfaces.TLSProvider) ([]corev1.Volume, []corev1.VolumeMount) {
+	s3 *mariadbv1alpha1.S3, abs *mariadbv1alpha1.AzureBlob, mariadb interfaces.TLSProvider) ([]corev1.Volume, []corev1.VolumeMount) {
 	volumes :=
 		[]corev1.Volume{
 			{
@@ -1174,7 +1174,7 @@ func jobBatchStorageVolumes(storageVolume mariadbv1alpha1.StorageVolumeSource,
 }
 
 func jobPhysicalBackupVolumes(storageVolume mariadbv1alpha1.StorageVolumeSource, s3 *mariadbv1alpha1.S3,
-	abs *mariadbv1alpha1.ABS, mariadb *mariadbv1alpha1.MariaDB, podIndex *int) ([]corev1.Volume, []corev1.VolumeMount) {
+	abs *mariadbv1alpha1.AzureBlob, mariadb *mariadbv1alpha1.MariaDB, podIndex *int) ([]corev1.Volume, []corev1.VolumeMount) {
 	volumes, volumeMounts := jobBatchStorageVolumes(storageVolume, s3, abs, mariadb)
 
 	volumes = append(volumes, corev1.Volume{
@@ -1191,7 +1191,7 @@ func jobPhysicalBackupVolumes(storageVolume mariadbv1alpha1.StorageVolumeSource,
 }
 
 func jobPhysicalBackupVolumesWithSA(storageVolume mariadbv1alpha1.StorageVolumeSource, s3 *mariadbv1alpha1.S3,
-	abs *mariadbv1alpha1.ABS, mariadb *mariadbv1alpha1.MariaDB, podIndex *int) ([]corev1.Volume, []corev1.VolumeMount) {
+	abs *mariadbv1alpha1.AzureBlob, mariadb *mariadbv1alpha1.MariaDB, podIndex *int) ([]corev1.Volume, []corev1.VolumeMount) {
 	volumes, volumeMounts := jobPhysicalBackupVolumes(storageVolume, s3, abs, mariadb, podIndex)
 
 	if mariadb.IsPointInTimeRecoveryEnabled() {
@@ -1203,7 +1203,7 @@ func jobPhysicalBackupVolumesWithSA(storageVolume mariadbv1alpha1.StorageVolumeS
 	return volumes, volumeMounts
 }
 
-func jobPITRVolumes(binlogsVolumeSource corev1.VolumeSource, s3 *mariadbv1alpha1.S3, abs *mariadbv1alpha1.ABS,
+func jobPITRVolumes(binlogsVolumeSource corev1.VolumeSource, s3 *mariadbv1alpha1.S3, abs *mariadbv1alpha1.AzureBlob,
 	mariadb *mariadbv1alpha1.MariaDB) ([]corev1.Volume, []corev1.VolumeMount) {
 	volumes := []corev1.Volume{
 		{

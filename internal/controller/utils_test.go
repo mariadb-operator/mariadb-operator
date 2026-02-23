@@ -852,8 +852,8 @@ func withSSEC() s3StorageOpt {
 	}
 }
 
-func getABSStorage(containerName, prefix string) *mariadbv1alpha1.ABS {
-	abs := &mariadbv1alpha1.ABS{
+func getABSStorage(containerName, prefix string) *mariadbv1alpha1.AzureBlob {
+	abs := &mariadbv1alpha1.AzureBlob{
 		ContainerName:      containerName,
 		Prefix:             prefix,
 		ServiceURL:         "https://azurite.default.svc.cluster.local:10000/devstoreaccount1",
@@ -1113,7 +1113,7 @@ func buildPhysicalBackupWithS3Storage(mariadbKey types.NamespacedName, bucket, p
 func buildPhysicalBackupWithABSStorage(mariadbKey types.NamespacedName, containerName, prefix string) physicalBackupBuilder {
 	return func(key types.NamespacedName) *mariadbv1alpha1.PhysicalBackup {
 		return getPhysicalBackupWithStorage(key, mariadbKey, mariadbv1alpha1.PhysicalBackupStorage{
-			ABS: getABSStorage(containerName, prefix),
+			AzureBlob: getABSStorage(containerName, prefix),
 		})
 	}
 }

@@ -296,15 +296,14 @@ spec:
                 properties:
                   azureBlob:
                     description: |-
-                      ABS defines the configuration to restore backups from an ABS compatible storage.
+                      AzureBlob defines the configuration to restore from Azure Blob compatible storage.
                       This field takes precedence over the Volume source.
                     properties:
                       containerName:
-                        description: ContainerName name Name of the container to store
-                          backups.
+                        description: ContainerName is the name of the storage container.
                         type: string
                       prefix:
-                        description: 'Prefix indicates a folder/subfolder in the bucket.
+                        description: 'Prefix indicates a folder/subfolder in the container.
                           For example: mariadb/ or mariadb/backups. A trailing slash
                           ''/'' is added if not provided.'
                         type: string

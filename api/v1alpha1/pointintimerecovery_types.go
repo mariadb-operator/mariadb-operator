@@ -43,11 +43,10 @@ type PointInTimeRecoveryStorage struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	S3 *S3 `json:"s3,omitempty"`
-
-	// ABS is the Azure Blob Storage where the binary logs will be kept.
+	// AzureBlob is the Azure Blob Storage where the binary logs will be kept.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	ABS *ABS `json:"azureBlob,omitempty"`
+	AzureBlob *AzureBlob `json:"azureBlob,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -92,7 +91,7 @@ func (b *PointInTimeRecovery) Validate() error {
 }
 
 func (s *PointInTimeRecoveryStorage) Validate() error {
-	hasAbs := s.ABS != nil
+	hasAbs := s.AzureBlob != nil
 	hasS3 := s.S3 != nil
 
 	if hasAbs == hasS3 {
