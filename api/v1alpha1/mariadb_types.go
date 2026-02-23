@@ -894,9 +894,6 @@ func (m *MariaDB) IsMaxScaleEnabled() bool {
 
 // IsPointInTimeRecoveryEnabled indicates whether binary log archival is activated to enable point-in-time recovery.
 func (m *MariaDB) IsPointInTimeRecoveryEnabled() bool {
-	if !m.IsReplicationEnabled() {
-		return false
-	}
 	return m.Spec.PointInTimeRecoveryRef != nil
 }
 
