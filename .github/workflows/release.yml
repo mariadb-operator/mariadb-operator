@@ -117,7 +117,7 @@ jobs:
         run: echo "GORELEASER_PREVIOUS_TAG=$(git tag -l --sort=-version:refname | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | head -n 2 | tail -n 1)" >> $GITHUB_ENV
 
       - name: GoReleaser
-        uses: goreleaser/goreleaser-action@v6
+        uses: goreleaser/goreleaser-action@v7
         with:
           version: ${{ env.GORELEASER_VERSION }}
           args: ${{ needs.args.outputs.RELEASE_ARGS }}
