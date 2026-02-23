@@ -27,7 +27,7 @@ type AzBlobOpts struct {
 	AccountName string
 	AccountKey  string
 
-	Prefix              string // A directory prefix... Perform All operations under here
+	Prefix              string // A prefix relative to the container root to be applied to blob names. Perform All operations under here
 	AllowNestedPrefixes bool
 
 	// TLS Opts
