@@ -126,10 +126,10 @@ type PhysicalBackupStorage struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	S3 *S3 `json:"s3,omitempty"`
-	// ABS defines the configuration to store backups in a ABS compatible storage.
+	// AzureBlob defines the configuration to store backups in a AzureBlob compatible storage.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	ABS *ABS `json:"azureBlob,omitempty"`
+	AzureBlob *AzureBlob `json:"azureBlob,omitempty"`
 	// PersistentVolumeClaim is a Kubernetes PVC specification.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -350,7 +350,7 @@ func (b *PhysicalBackup) Volume() (StorageVolumeSource, error) {
 		stagingStorage := ptr.Deref(b.Spec.StagingStorage, StagingStorage{})
 		return stagingStorage.VolumeOrEmptyDir(b.StagingPVCKey()), nil
 	}
-	if b.Spec.Storage.ABS != nil {
+	if b.Spec.Storage.AzureBlob != nil {
 		stagingStorage := ptr.Deref(b.Spec.StagingStorage, StagingStorage{})
 		return stagingStorage.VolumeOrEmptyDir(b.StagingPVCKey()), nil
 	}

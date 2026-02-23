@@ -376,7 +376,7 @@ func (r *MariaDBReconciler) getStorageClient(ctx context.Context,
 	pitr *mariadbv1alpha1.PointInTimeRecovery) (interfaces.BlobStorage, error) {
 	storage := pitr.Spec.PointInTimeRecoveryStorage
 
-	if storage.ABS != nil {
+	if storage.AzureBlob != nil {
 		return r.getABSClient(ctx, pitr)
 	}
 
@@ -391,7 +391,7 @@ func (r *MariaDBReconciler) getStorageClient(ctx context.Context,
 // getABSClient retrieves a configured Azure Blob Storage client
 // This should not be used directly, see `getStorageClient`
 func (r *MariaDBReconciler) getABSClient(ctx context.Context, pitr *mariadbv1alpha1.PointInTimeRecovery) (*azure.AzBlobClient, error) {
-	abs := pitr.Spec.PointInTimeRecoveryStorage.ABS
+	abs := pitr.Spec.PointInTimeRecoveryStorage.AzureBlob
 	if abs == nil {
 		return nil, fmt.Errorf("error getting azure blob storage client. No abs config found")
 	}

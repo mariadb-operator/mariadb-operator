@@ -343,7 +343,7 @@ func mariadbVolumes(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt) ([]
 		s3Volumes, _ := s3Volumes(mariadbOpts.pointInTimeRecovery.Spec.PointInTimeRecoveryStorage.S3)
 		volumes = append(volumes, s3Volumes...)
 
-		absVolumes, _ := absVolumes(mariadbOpts.pointInTimeRecovery.Spec.PointInTimeRecoveryStorage.ABS)
+		absVolumes, _ := absVolumes(mariadbOpts.pointInTimeRecovery.Spec.PointInTimeRecoveryStorage.AzureBlob)
 		volumes = append(volumes, absVolumes...)
 	}
 	if mariadb.IsReplicationEnabled() {
@@ -666,7 +666,7 @@ func s3Volumes(s3 *mariadbv1alpha1.S3) ([]corev1.Volume, []corev1.VolumeMount) {
 	return nil, nil
 }
 
-func absVolumes(abs *mariadbv1alpha1.ABS) ([]corev1.Volume, []corev1.VolumeMount) {
+func absVolumes(abs *mariadbv1alpha1.AzureBlob) ([]corev1.Volume, []corev1.VolumeMount) {
 	if abs != nil && abs.TLS != nil && abs.TLS.Enabled && abs.TLS.CASecretKeyRef != nil {
 		return []corev1.Volume{
 				{

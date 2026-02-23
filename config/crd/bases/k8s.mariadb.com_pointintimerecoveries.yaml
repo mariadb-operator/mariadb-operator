@@ -82,15 +82,14 @@ spec:
                   in time recovery data will be stored
                 properties:
                   azureBlob:
-                    description: ABS is the Azure Blob Storage where the binary logs
-                      will be kept.
+                    description: AzureBlob is the Azure Blob Storage where the binary
+                      logs will be kept.
                     properties:
                       containerName:
-                        description: ContainerName name Name of the container to store
-                          backups.
+                        description: ContainerName is the name of the storage container.
                         type: string
                       prefix:
-                        description: 'Prefix indicates a folder/subfolder in the bucket.
+                        description: 'Prefix indicates a folder/subfolder in the container.
                           For example: mariadb/ or mariadb/backups. A trailing slash
                           ''/'' is added if not provided.'
                         type: string

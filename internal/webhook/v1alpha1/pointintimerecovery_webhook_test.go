@@ -51,8 +51,8 @@ var _ = Describe("PointInTimeRecovery Webhook", func() {
 					Spec: v1alpha1.PointInTimeRecoverySpec{
 						Compression: v1alpha1.CompressGzip,
 						PointInTimeRecoveryStorage: v1alpha1.PointInTimeRecoveryStorage{
-							S3:  &v1alpha1.S3{},
-							ABS: &v1alpha1.ABS{},
+							S3:        &v1alpha1.S3{},
+							AzureBlob: &v1alpha1.AzureBlob{},
 						},
 					},
 				},
@@ -86,7 +86,7 @@ var _ = Describe("PointInTimeRecovery Webhook", func() {
 					Spec: v1alpha1.PointInTimeRecoverySpec{
 						Compression: v1alpha1.CompressGzip,
 						PointInTimeRecoveryStorage: v1alpha1.PointInTimeRecoveryStorage{
-							ABS: &v1alpha1.ABS{},
+							AzureBlob: &v1alpha1.AzureBlob{},
 						},
 					},
 				},
@@ -149,7 +149,7 @@ var _ = Describe("PointInTimeRecovery Webhook", func() {
 			Entry(
 				"Adding ABS",
 				func(pitr *v1alpha1.PointInTimeRecovery) {
-					pitr.Spec.PointInTimeRecoveryStorage.ABS = &v1alpha1.ABS{}
+					pitr.Spec.PointInTimeRecoveryStorage.AzureBlob = &v1alpha1.AzureBlob{}
 				},
 				true,
 			),

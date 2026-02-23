@@ -515,15 +515,14 @@ spec:
                 description: Storage defines the final storage for backups.
                 properties:
                   azureBlob:
-                    description: ABS defines the configuration to store backups in
-                      a ABS compatible storage.
+                    description: AzureBlob defines the configuration to store backups
+                      in a AzureBlob compatible storage.
                     properties:
                       containerName:
-                        description: ContainerName name Name of the container to store
-                          backups.
+                        description: ContainerName is the name of the storage container.
                         type: string
                       prefix:
-                        description: 'Prefix indicates a folder/subfolder in the bucket.
+                        description: 'Prefix indicates a folder/subfolder in the container.
                           For example: mariadb/ or mariadb/backups. A trailing slash
                           ''/'' is added if not provided.'
                         type: string

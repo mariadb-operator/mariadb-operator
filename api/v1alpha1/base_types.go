@@ -664,7 +664,7 @@ type TLSConfig struct {
 	CASecretKeyRef *SecretKeySelector `json:"caSecretKeyRef,omitempty"`
 }
 
-type ABS struct {
+type AzureBlob struct {
 	// ContainerName is the name of the storage container.
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
