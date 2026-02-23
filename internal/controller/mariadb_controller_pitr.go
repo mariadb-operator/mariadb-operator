@@ -433,7 +433,7 @@ func (r *MariaDBReconciler) getABSClient(ctx context.Context, pitr *mariadbv1alp
 func (r *MariaDBReconciler) getS3Client(ctx context.Context, pitr *mariadbv1alpha1.PointInTimeRecovery) (*minio.Client, error) {
 	s3 := pitr.Spec.PointInTimeRecoveryStorage.S3
 	if s3 == nil {
-		return nil, fmt.Errorf("error getting s3 client. No s3 config found")
+		return nil, errors.New("error getting s3 client. No s3 config found")
 	}
 
 	minioOpts := []minio.MinioOpt{
