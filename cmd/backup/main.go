@@ -240,7 +240,7 @@ func getBackupStorage(processor backup.BackupProcessor) (backup.BackupStorage, e
 		)
 	}
 	if abs {
-		logger.Info("configuring ABS backup storage")
+		logger.Info("Configuring ABS backup storage")
 		opts := []azure.AzBlobOpt{
 			azure.WithTLSEnabled(absTLS),
 			azure.WithTLSCACertPath(absCACertPath),
