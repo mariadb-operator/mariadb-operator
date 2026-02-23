@@ -255,7 +255,7 @@ func (a *Archiver) getStorageClient(storage *mariadbv1alpha1.PointInTimeRecovery
 		return a.getS3Client(storage.S3, env)
 	}
 
-	return nil, fmt.Errorf("error getting a storage client, none configured. Either abs or s3 must be configured")
+	return nil, errors.New("error getting a storage client, none configured. Either abs or s3 must be configured")
 }
 
 // getABSClient retrieves an Azure Blob Storage client
