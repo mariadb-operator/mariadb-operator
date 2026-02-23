@@ -11,7 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-var _ = Describe("MariaDB PITR with Replication", func() {
+var _ = Describe("MariaDB PITR with Replication", Ordered, func() {
 	var (
 		// Used for MariaDB, PITR, PhysicalBackup
 		key = types.NamespacedName{
