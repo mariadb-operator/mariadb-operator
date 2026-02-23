@@ -196,7 +196,9 @@ func (c *AzBlobClient) FGetObjectWithOptions(ctx context.Context, fileName strin
 	}
 	defer file.Close()
 
-	_, err = io.Copy(file, rc) // This is more efficient than the example with ReadAll
+	// This is more efficient than the example with ReadAll
+	// See: https://github.com/Azure/azure-sdk-for-go/blob/5cbc2e773f8b64b1b389a566958e2503c6202b9f/sdk/storage/azblob/examples_test.go#L77-L81
+	_, err = io.Copy(file, rc)
 	return err
 }
 
