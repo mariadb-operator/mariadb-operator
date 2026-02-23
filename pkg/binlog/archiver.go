@@ -247,8 +247,8 @@ func (a *Archiver) getPointInTimeRecovery(ctx context.Context, mdb *mariadbv1alp
 
 func (a *Archiver) getStorageClient(storage *mariadbv1alpha1.PointInTimeRecoveryStorage,
 	env *environment.PodEnvironment) (interfaces.BlobStorage, error) {
-	if storage.ABS != nil {
-		return a.getABSClient(storage.ABS, env)
+	if storage.AzureBlob != nil {
+		return a.getABSClient(storage.AzureBlob, env)
 	}
 
 	if storage.S3 != nil {
@@ -260,7 +260,7 @@ func (a *Archiver) getStorageClient(storage *mariadbv1alpha1.PointInTimeRecovery
 
 // getABSClient retrieves an Azure Blob Storage client
 // @WARN: should not be used directly, see `getStorageClient`
-func (a *Archiver) getABSClient(abs *mariadbv1alpha1.ABS, env *environment.PodEnvironment) (*azure.AzBlobClient, error) {
+func (a *Archiver) getABSClient(abs *mariadbv1alpha1.AzureBlob, env *environment.PodEnvironment) (*azure.AzBlobClient, error) {
 	tls := ptr.Deref(abs.TLS, mariadbv1alpha1.TLSConfig{})
 	opts := []azure.AzBlobOpt{
 		azure.WithAccountName(abs.StorageAccountName),
