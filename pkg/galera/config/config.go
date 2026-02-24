@@ -81,9 +81,9 @@ tca={{ .SSTSSLCAPath }}
 tcert={{ .SSTSSLCertPath }}
 tkey={{ .SSTSSLKeyPath }}
 {{- end }}
+{{- if .PITREnabled }}
 
 # PITR
-{{- if .PITREnabled }}
 wsrep_gtid_mode=ON
 wsrep_gtid_domain_id={{ .WsrepGtidDomainID }}
 log_slave_updates
@@ -112,10 +112,13 @@ gtid_domain_id={{ .GtidDomainID }}
 		return nil, fmt.Errorf("error getting provider options: %v", err)
 	}
 
-	wsrepDomainID := 0
-	gtidDomainID, err := gtidDomainID(podEnv.PodName, 10)
-	if err != nil {
-		return nil, fmt.Errorf("error getting gtid_domain_id: %v", err)
+	var wsrepDomainID, gtidDomainID int
+	if c.mariadb.IsPointInTimeRecoveryEnabled() {
+		wsrepDomainID = 0
+		gtidDomainID, err = gtidDomainIDFromPodName(podEnv.PodName, 10)
+		if err != nil {
+			return nil, fmt.Errorf("error getting gtid_domain_id from Pod %s: %v", podEnv.PodName, err)
+		}
 	}
 
 	err = tpl.Execute(buf, struct {
@@ -355,7 +358,7 @@ func thisHostIP(ip string) (string, error) {
 	return hostIP, nil
 }
 
-func gtidDomainID(podName string, baseIndex int) (int, error) {
+func gtidDomainIDFromPodName(podName string, baseIndex int) (int, error) {
 	podIndex, err := statefulset.PodIndex(podName)
 	if err != nil {
 		return 0, fmt.Errorf("error getting Pod index: %v", err)
