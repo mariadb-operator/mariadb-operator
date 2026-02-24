@@ -177,6 +177,10 @@ sysbench: ## Run sysbench tests for standalone.
 	$(KUBECTL) apply -f ./hack/manifests/sysbench/standalone/sysbench_cronjob.yaml
 	$(KUBECTL) create job sysbench --from cronjob/sysbench
 
+.PHONY: sysbench-uninstall
+sysbench-uninstall: ## Uninstall sysbench tests for standalone.
+	$(KUBECTL) delete -k ./hack/manifests/sysbench/standalone
+
 ##@ Sysbench - Replication
 
 .PHONY: sysbench-sql-repl
@@ -196,6 +200,10 @@ sysbench-repl: ## Run sysbench tests for replication.
 	$(KUBECTL) apply -f ./hack/manifests/sysbench/replication/sysbench-repl_cronjob.yaml
 	$(KUBECTL) create job sysbench-repl --from cronjob/sysbench-repl
 
+.PHONY: sysbench-repl-uninstall
+sysbench-repl-uninstall: ## Uninstall sysbench tests for replication.
+	$(KUBECTL) delete -k ./hack/manifests/sysbench/replication
+
 ##@ Sysbench - Galera
 
 .PHONY: sysbench-sql-galera
@@ -214,6 +222,10 @@ sysbench-prepare-galera: sysbench-sql-galera ## Prepare sysbench tests for Galer
 sysbench-galera: ## Run sysbench tests for Galera.
 	$(KUBECTL) apply -f ./hack/manifests/sysbench/galera/sysbench-galera_cronjob.yaml
 	$(KUBECTL) create job sysbench-galera --from cronjob/sysbench-galera
+
+.PHONY: sysbench-galera-uninstall
+sysbench-galera-uninstall: ## Uninstall sysbench tests for galera.
+	$(KUBECTL) delete -k ./hack/manifests/sysbench/galera
 
 ##@ Examples
 

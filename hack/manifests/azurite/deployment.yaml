@@ -1,0 +1,78 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    component: azurite
+  name: azurite
+spec:
+  selector:
+    matchLabels:
+      component: azurite
+  template:
+    metadata:
+      labels:
+        component: azurite
+    spec:
+      volumes:
+        - name: azurite-certs
+          secret:
+            secretName: azurite-certs
+        - name: azurite-data
+          persistentVolumeClaim:
+            claimName: azurite-data
+      containers:
+        - image: mcr.microsoft.com/azure-storage/azurite
+          imagePullPolicy: IfNotPresent
+          args:
+            - azurite
+            - "--location"
+            - "/data"
+            - "--blobHost"
+            - "0.0.0.0"
+            - "--blobPort"
+            - "10000"
+            - "--queueHost"
+            - "0.0.0.0"
+            - "--queuePort"
+            - "10001"
+            - "--tableHost"
+            - "0.0.0.0"
+            - "--tablePort"
+            - "10002"
+            - "--oauth"
+            - "basic"
+            - "--cert"
+            - "/certs/cert.pem"
+            - "--key"
+            - "/certs/key.pem"
+            - "--debug"
+            - "/tmp/debug.log"
+            - "--loose"
+            - "--disableProductStyleUrl"
+            - "--skipApiVersionCheck" # This is required to prevent: 400 The API version 2026-02-06 is not supported by Azurite
+          name: azurite
+          ports:
+            - containerPort: 10000
+              name: blob
+              protocol: TCP
+            - containerPort: 10001
+              name: queue
+              protocol: TCP
+            - containerPort: 10002
+              name: table
+              protocol: TCP
+          # TODO: investigate why unsetting this resources causes strange CI failures:
+          # For instance: after reverting them: https://github.com/mariadb-operator/mariadb-operator/pull/1610/changes/ed5305604dd8a4b495cf6cc019cf42294803e4f3
+          # CI started to fail with unrelated errors: https://github.com/mariadb-operator/mariadb-operator/actions/runs/22320009848/job/64654866205
+          resources:
+            limits:
+              cpu: "0"
+              memory: "0"
+            requests:
+              cpu: "0"
+              memory: "0"
+          volumeMounts:
+            - name: azurite-certs
+              mountPath: /certs
+            - name: azurite-data
+              mountPath: /data

@@ -11,22 +11,33 @@ spec:
   replicas: 3
   replication:
     enabled: true
-  # bootstrap the instance using the PITR physical backup + binary log replay up to targetRecoveryTime
-  bootstrapFrom:
-    pointInTimeRecoveryRef:
-      name: pitr
-    # targetRecoveryTime: 2026-02-18T15:22:00Z
-    # stagingStorage:
-    #   persistentVolumeClaim:
-    #     resources:
-    #       requests:
-    #         storage: 10Gi
-    #     accessModes:
-    #       - ReadWriteOnce
-    # logLevel: debug
-  # configure the binary log archival
+  # bootstrap the instance from PITR: restore closest physical backup and replay binary logs up to targetRecoveryTime.
+  # bootstrapFrom:
+  #   pointInTimeRecoveryRef:
+  #     name: pitr
+  #   targetRecoveryTime: 2026-02-20T18:00:04Z
+  #   stagingStorage:
+  #     persistentVolumeClaim:
+  #       resources:
+  #         requests:
+  #           storage: 10Gi
+  #       accessModes:
+  #         - ReadWriteOnce
+  #   restoreJob:
+  #     resources:
+  #       requests:
+  #         cpu: 100m
+  #         memory: 128Mi
+  #       limits:
+  #         memory: 1Gi
+  #   logLevel: debug
+  # configure binary log archival.
   pointInTimeRecoveryRef:
     name: pitr
+  # configure an optimal max_binlog_size to meet your RPO while minimizing server impact.
+  myCnf: |
+    [mariadb]
+    max_binlog_size=256M
   service:
     type: LoadBalancer
     metadata:
@@ -50,26 +61,27 @@ metadata:
 spec:
   physicalBackupRef:
     name: physicalbackup-daily
-  s3:
-    bucket: binlogs
-    prefix: mariadb
-    endpoint: minio.minio.svc.cluster.local:9000
-    region: us-east-1
-    # ssec:
-    #   customerKeySecretKeyRef:
-    #     name: ssec-key
-    #     key: customer-key
-    accessKeyIdSecretKeyRef:
-      name: minio
-      key: access-key-id
-    secretAccessKeySecretKeyRef:
-      name: minio
-      key: secret-access-key
-    tls:
-      enabled: true
-      caSecretKeyRef:
-        name: minio-ca
-        key: ca.crt
+  storage:
+    s3:
+      bucket: binlogs
+      prefix: mariadb
+      endpoint: minio.minio.svc.cluster.local:9000
+      region: us-east-1
+      # ssec:
+      #   customerKeySecretKeyRef:
+      #     name: ssec-key
+      #     key: customer-key
+      accessKeyIdSecretKeyRef:
+        name: minio
+        key: access-key-id
+      secretAccessKeySecretKeyRef:
+        name: minio
+        key: secret-access-key
+      tls:
+        enabled: true
+        caSecretKeyRef:
+          name: minio-ca
+          key: ca.crt
   compression: gzip
   archiveTimeout: 1h
   strictMode: false

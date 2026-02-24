@@ -14,7 +14,7 @@ on:
 
 jobs:
   test:
-    name: "Test \"${{ inputs.mariadb_image }}\" image"
+    name: 'Test "${{ inputs.mariadb_image }}" image'
     runs-on: ubuntu-latest
     steps:
       - name: MariaDB Version
@@ -38,6 +38,7 @@ jobs:
           make install-minio
           make install-cert-manager
           make net
+          make install-azurite
 
       - name: Integration tests
         run: make test-int

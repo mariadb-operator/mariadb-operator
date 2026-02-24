@@ -138,6 +138,7 @@ jobs:
           make install-minio
           make install-cert-manager
           make net
+          make install-azurite
 
       - name: Run integration tests
         if: ${{ steps.test.outputs.type == 'full' }}
@@ -170,4 +171,3 @@ jobs:
 
       - name: Check CRD size
         run: make crd-size
-

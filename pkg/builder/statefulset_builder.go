@@ -52,6 +52,9 @@ const (
 	S3PKI          = "pki-s3"
 	S3PKIMountPath = "/etc/s3/pki"
 
+	ABSPKI          = "pki-abs"
+	ABSPKIMountPath = "/etc/abs/pki"
+
 	mysqlUser     = int64(999)
 	mysqlGroup    = int64(999)
 	maxscaleUser  = int64(998)

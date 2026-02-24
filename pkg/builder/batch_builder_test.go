@@ -3386,11 +3386,13 @@ func TestBuildPITRJob(t *testing.T) {
 			PhysicalBackupRef: mariadbv1alpha1.LocalObjectReference{
 				Name: "test",
 			},
-			S3: mariadbv1alpha1.S3{
-				Bucket:   "test-bucket",
-				Endpoint: "s3.amazonaws.com",
-				Region:   "us-west-2",
-				Prefix:   "test",
+			PointInTimeRecoveryStorage: mariadbv1alpha1.PointInTimeRecoveryStorage{
+				S3: &mariadbv1alpha1.S3{
+					Bucket:   "test-bucket",
+					Endpoint: "s3.amazonaws.com",
+					Region:   "us-west-2",
+					Prefix:   "test",
+				},
 			},
 		},
 	}

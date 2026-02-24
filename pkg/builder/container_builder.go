@@ -35,6 +35,10 @@ var (
 	S3CAPath          = "MARIADB_OPERATOR_S3_CA_PATH"
 	S3SSECCustomerKey = "MARIADB_OPERATOR_S3_SSEC_CUSTOMER_KEY"
 
+	ABSStorageAccountKey  = "MARIADB_OPERATOR_ABS_STORAGE_ACCOUNT_KEY"
+	ABSStorageAccountName = "MARIADB_OPERATOR_ABS_STORAGE_ACCOUNT_NAME"
+	ABSCAPath             = "MARIADB_OPERATOR_ABS_CA_PATH"
+
 	defaultProbe = corev1.Probe{
 		ProbeHandler: corev1.ProbeHandler{
 			Exec: &corev1.ExecAction{
@@ -202,7 +206,8 @@ func (b *Builder) dataPlaneAgentContainer(mariadb *mariadbv1alpha1.MariaDB, opts
 		return nil, err
 	}
 	if mariadbOpts.pointInTimeRecovery != nil {
-		env = append(env, s3Env(&mariadbOpts.pointInTimeRecovery.Spec.S3)...)
+		env = append(env, s3Env(mariadbOpts.pointInTimeRecovery.Spec.PointInTimeRecoveryStorage.S3)...)
+		env = append(env, absEnv(mariadbOpts.pointInTimeRecovery.Spec.PointInTimeRecoveryStorage.AzureBlob)...)
 	}
 	volumeMounts, err := mariadbVolumeMounts(mariadb, opts...)
 	if err != nil {
@@ -617,11 +622,42 @@ func s3Env(s3 *mariadbv1alpha1.S3) []corev1.EnvVar {
 		})
 	}
 
-	tls := ptr.Deref(s3.TLS, mariadbv1alpha1.TLSS3{})
+	tls := ptr.Deref(s3.TLS, mariadbv1alpha1.TLSConfig{})
 	if tls.Enabled && tls.CASecretKeyRef != nil {
 		env = append(env, corev1.EnvVar{
 			Name:  S3CAPath,
 			Value: filepath.Join(S3PKIMountPath, s3.TLS.CASecretKeyRef.Key),
+		})
+	}
+	return env
+}
+
+func absEnv(abs *mariadbv1alpha1.AzureBlob) []corev1.EnvVar {
+	if abs == nil {
+		return nil
+	}
+	var env []corev1.EnvVar
+	if abs.StorageAccountKey != nil {
+		env = append(env, corev1.EnvVar{
+			Name: ABSStorageAccountKey,
+			ValueFrom: &corev1.EnvVarSource{
+				SecretKeyRef: ptr.To(abs.StorageAccountKey.ToKubernetesType()),
+			},
+		})
+	}
+
+	if abs.StorageAccountName != "" {
+		env = append(env, corev1.EnvVar{
+			Name:  ABSStorageAccountName,
+			Value: abs.StorageAccountName,
+		})
+	}
+
+	tls := ptr.Deref(abs.TLS, mariadbv1alpha1.TLSConfig{})
+	if tls.Enabled && tls.CASecretKeyRef != nil {
+		env = append(env, corev1.EnvVar{
+			Name:  ABSCAPath,
+			Value: filepath.Join(ABSPKIMountPath, abs.TLS.CASecretKeyRef.Key),
 		})
 	}
 	return env
@@ -655,8 +691,11 @@ func mariadbVolumeMounts(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt
 		volumeMounts = append(volumeMounts, tlsVolumeMounts...)
 	}
 	if mariadbOpts.pointInTimeRecovery != nil {
-		_, s3VolumeMounts := s3Volumes(&mariadbOpts.pointInTimeRecovery.Spec.S3)
+		_, s3VolumeMounts := s3Volumes(mariadbOpts.pointInTimeRecovery.Spec.PointInTimeRecoveryStorage.S3)
 		volumeMounts = append(volumeMounts, s3VolumeMounts...)
+
+		_, absVolumeMounts := absVolumes(mariadbOpts.pointInTimeRecovery.Spec.PointInTimeRecoveryStorage.AzureBlob)
+		volumeMounts = append(volumeMounts, absVolumeMounts...)
 	}
 
 	volumeMounts = append(volumeMounts, mariadbStorageVolumeMount(mariadb))

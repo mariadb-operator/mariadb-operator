@@ -338,8 +338,11 @@ func mariadbVolumes(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt) ([]
 		volumes = append(volumes, tlsVolumes...)
 	}
 	if mariadbOpts.pointInTimeRecovery != nil {
-		s3Volumes, _ := s3Volumes(&mariadbOpts.pointInTimeRecovery.Spec.S3)
+		s3Volumes, _ := s3Volumes(mariadbOpts.pointInTimeRecovery.Spec.PointInTimeRecoveryStorage.S3)
 		volumes = append(volumes, s3Volumes...)
+
+		absVolumes, _ := absVolumes(mariadbOpts.pointInTimeRecovery.Spec.PointInTimeRecoveryStorage.AzureBlob)
+		volumes = append(volumes, absVolumes...)
 	}
 	if mariadb.IsReplicationEnabled() {
 		volumes = append(volumes, corev1.Volume{
@@ -655,6 +658,27 @@ func s3Volumes(s3 *mariadbv1alpha1.S3) ([]corev1.Volume, []corev1.VolumeMount) {
 				{
 					Name:      S3PKI,
 					MountPath: S3PKIMountPath,
+				},
+			}
+	}
+	return nil, nil
+}
+
+func absVolumes(abs *mariadbv1alpha1.AzureBlob) ([]corev1.Volume, []corev1.VolumeMount) {
+	if abs != nil && abs.TLS != nil && abs.TLS.Enabled && abs.TLS.CASecretKeyRef != nil {
+		return []corev1.Volume{
+				{
+					Name: ABSPKI,
+					VolumeSource: corev1.VolumeSource{
+						Secret: &corev1.SecretVolumeSource{
+							SecretName: abs.TLS.CASecretKeyRef.Name,
+						},
+					},
+				},
+			}, []corev1.VolumeMount{
+				{
+					Name:      ABSPKI,
+					MountPath: ABSPKIMountPath,
 				},
 			}
 	}

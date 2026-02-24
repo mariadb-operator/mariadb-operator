@@ -722,7 +722,7 @@ type SQLTemplate struct {
 	CleanupPolicy *CleanupPolicy `json:"cleanupPolicy,omitempty"`
 }
 
-type TLSS3 struct {
+type TLSConfig struct {
 	// Enabled is a flag to enable TLS.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
@@ -732,6 +732,33 @@ type TLSS3 struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	CASecretKeyRef *SecretKeySelector `json:"caSecretKeyRef,omitempty"`
+}
+
+type AzureBlob struct {
+	// ContainerName is the name of the storage container.
+	// +kubebuilder:validation:Required
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	ContainerName string `json:"containerName" webhook:"inmutable"`
+	// ServiceURL is the full URL for connecting to Azure, usually in the form: http(s)://<account>.blob.core.windows.net/.
+	// +kubebuilder:validation:Required
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	ServiceURL string `json:"serviceURL" webhook:"inmutable"`
+	// Prefix indicates a folder/subfolder in the container. For example: mariadb/ or mariadb/backups. A trailing slash '/' is added if not provided.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Prefix string `json:"prefix" webhook:"inmutable"`
+	// StorageAccountName is the name of the storage account. Pairs with StorageAccountKey for static credential authentication
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	StorageAccountName string `json:"storageAccountName,omitempty" webhook:"inmutable"`
+	// StorageAccountKey is a reference to a Secret key containing the Azure Blob Storage Storage account Key. Pairs with StorageAccountKey for static credential authentication
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	StorageAccountKey *SecretKeySelector `json:"storageAccountKey,omitempty"`
+	// TLS provides the configuration required to establish TLS connections with Azure Blob Storage.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	TLS *TLSConfig `json:"tls,omitempty"`
 }
 
 type S3 struct {
@@ -766,7 +793,7 @@ type S3 struct {
 	// TLS provides the configuration required to establish TLS connections with S3.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	TLS *TLSS3 `json:"tls,omitempty"`
+	TLS *TLSConfig `json:"tls,omitempty"`
 	// SSEC is a reference to a Secret containing the SSE-C (Server-Side Encryption with Customer-Provided Keys) key.
 	// The secret must contain a 32-byte key (256 bits) in the specified key.
 	// This enables server-side encryption where you provide and manage the encryption key.

@@ -1,6 +1,8 @@
 package v1alpha1
 
 import (
+	"fmt"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -10,10 +12,10 @@ type PointInTimeRecoverySpec struct {
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	PhysicalBackupRef LocalObjectReference `json:"physicalBackupRef"`
-	// S3 is the S3-compatible storage where the binary logs will be kept.
+	// PointInTimeRecoveryStorage is the storage where the point in time recovery data will be stored
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	S3 S3 `json:"s3"`
+	PointInTimeRecoveryStorage PointInTimeRecoveryStorage `json:"storage"`
 	// Compression algorithm to be used for compressing the binary logs.
 	// This field is immutable, it cannot be updated after creation.
 	// +optional
@@ -33,6 +35,18 @@ type PointInTimeRecoverySpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	StrictMode bool `json:"strictMode"`
+}
+
+// PointInTimeRecoveryStorage stores the different storage options for PITR
+type PointInTimeRecoveryStorage struct {
+	// S3 is the S3-compatible storage where the binary logs will be kept.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	S3 *S3 `json:"s3,omitempty"`
+	// AzureBlob is the Azure Blob Storage where the binary logs will be kept.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	AzureBlob *AzureBlob `json:"azureBlob,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -66,6 +80,25 @@ type PointInTimeRecoveryList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []PointInTimeRecovery `json:"items"`
+}
+
+func (b *PointInTimeRecovery) Validate() error {
+	if err := b.Spec.PointInTimeRecoveryStorage.Validate(); err != nil {
+		return fmt.Errorf("invalid storage: %w", err)
+	}
+
+	return nil
+}
+
+func (s *PointInTimeRecoveryStorage) Validate() error {
+	hasAbs := s.AzureBlob != nil
+	hasS3 := s.S3 != nil
+
+	if hasAbs == hasS3 {
+		return fmt.Errorf("either s3 or abs must be enabled for Point In Time Recovery")
+	}
+
+	return nil
 }
 
 func init() {

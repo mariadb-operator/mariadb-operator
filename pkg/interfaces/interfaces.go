@@ -1,8 +1,12 @@
 package interfaces
 
 import (
+	"context"
+	"io"
+
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/environment"
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -48,4 +52,18 @@ type MariaDBObject interface {
 	TLSProvider
 
 	IsReady() bool
+}
+
+type BlobStorage interface {
+	PutObjectWithOptions(ctx context.Context, fileName string, reader io.Reader, size int64) error
+	FPutObjectWithOptions(ctx context.Context, fileName string) error
+	GetObjectWithOptions(ctx context.Context, fileName string) (io.ReadCloser, error)
+	FGetObjectWithOptions(ctx context.Context, fileName string) error
+	RemoveWithOptions(ctx context.Context, fileName string) error
+	Exists(ctx context.Context, fileName string) (bool, error)
+	PrefixedFileName(fileName string) string
+	UnprefixedFilename(fileName string) string
+	GetPrefix() string
+	ListObjectsWithOptions(ctx context.Context) ([]string, error)
+	IsAuthenticated(ctx context.Context) bool
 }
