@@ -61,6 +61,9 @@ spec:
             - containerPort: 10002
               name: table
               protocol: TCP
+          # TODO: investigate why unsetting this resources causes strange CI failures:
+          # For instance: after reverting them: https://github.com/mariadb-operator/mariadb-operator/pull/1610/changes/ed5305604dd8a4b495cf6cc019cf42294803e4f3
+          # CI started to fail with unrelated errors: https://github.com/mariadb-operator/mariadb-operator/actions/runs/22320009848/job/64654866205
           resources:
             limits:
               cpu: "0"
