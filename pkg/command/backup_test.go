@@ -8,7 +8,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	builderpki "github.com/mariadb-operator/mariadb-operator/v26/pkg/builder/pki"
-	"github.com/mariadb-operator/mariadb-operator/v26/pkg/replication"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/gtid"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -1539,8 +1539,8 @@ func TestPhysicalBackupArgs(t *testing.T) {
 	}
 }
 
-func mustParseGtid(t *testing.T, rawGtid string) *replication.Gtid {
-	gtid, err := replication.ParseGtid(rawGtid)
+func mustParseGtid(t *testing.T, rawGtid string) *gtid.Gtid {
+	gtid, err := gtid.ParseGtid(rawGtid)
 	if err != nil {
 		t.Fatalf("unexpected error parsing GTID: %v", err)
 	}

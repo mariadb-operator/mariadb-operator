@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/go-logr/logr"
+	gtidhandler "github.com/mariadb-operator/mariadb-operator/v26/pkg/agent/handler/gtid"
 	replicationhandler "github.com/mariadb-operator/mariadb-operator/v26/pkg/agent/handler/replication"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/agent/router"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/agent/server"
@@ -59,13 +60,20 @@ var replicationCommand = &cobra.Command{
 		}
 
 		apiLogger := logger.WithName("api")
-		apiHandler := replicationhandler.NewReplicationHandler(
-			fileManager,
-			mdbhttp.NewResponseWriter(&apiLogger),
-			&apiLogger,
-		)
+		handlers := []router.RouteHandler{
+			replicationhandler.NewReplicationHandler(
+				fileManager,
+				mdbhttp.NewResponseWriter(&apiLogger),
+				&apiLogger,
+			),
+			gtidhandler.NewGtidHandler(
+				fileManager,
+				mdbhttp.NewResponseWriter(&apiLogger),
+				&apiLogger,
+			),
+		}
 		apiServer, err := getAPIServer(
-			apiHandler,
+			handlers,
 			env,
 			k8sClient,
 			apiLogger,

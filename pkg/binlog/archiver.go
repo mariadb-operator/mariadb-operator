@@ -19,11 +19,11 @@ import (
 	mariadbcompression "github.com/mariadb-operator/mariadb-operator/v26/pkg/compression"
 	conditions "github.com/mariadb-operator/mariadb-operator/v26/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/environment"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/gtid"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/interfaces"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/metadata"
 	mariadbminio "github.com/mariadb-operator/mariadb-operator/v26/pkg/minio"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/refresolver"
-	"github.com/mariadb-operator/mariadb-operator/v26/pkg/replication"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/sql"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
 	corev1 "k8s.io/api/core/v1"
@@ -619,7 +619,7 @@ func (a *Archiver) getLastRecoverableTime(binlogIndex *BinlogIndex, backup *mari
 		)
 		return nil, nil
 	}
-	gtid, err := replication.ParseGtidWithDomainId(lastGtid, gtidDomainId, a.logger)
+	gtid, err := gtid.ParseGtidWithDomainId(lastGtid, gtidDomainId, a.logger)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing GTID: %v", err)
 	}

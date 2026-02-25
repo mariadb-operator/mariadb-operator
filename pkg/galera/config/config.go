@@ -47,7 +47,6 @@ func (c *ConfigFile) Marshal(podEnv *environment.PodEnvironment) ([]byte, error)
 	}
 	galera := ptr.Deref(c.mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
 
-	// regarding PITR, see: https://mariadb.com/docs/galera-cluster/high-availability/using-mariadb-replication-with-mariadb-galera-cluster/using-mariadb-gtids-with-mariadb-galera-cluster
 	tpl := createTpl("galera", `[mariadb]
 bind_address=*
 default_storage_engine=InnoDB
@@ -90,6 +89,7 @@ log_slave_updates
 log_bin
 log_basename={{ .LogBaseName }}
 gtid_domain_id={{ .GtidDomainID }}
+server_id={{ .ServerId }}
 {{- end }}
 `)
 	buf := new(bytes.Buffer)
@@ -112,9 +112,12 @@ gtid_domain_id={{ .GtidDomainID }}
 		return nil, fmt.Errorf("error getting provider options: %v", err)
 	}
 
-	var wsrepDomainID, gtidDomainID int
+	// See: https://mariadb.com/docs/galera-cluster/high-availability/using-mariadb-replication-with-mariadb-galera-cluster/using-mariadb-gtids-with-mariadb-galera-cluster
+	var wsrepDomainID, gtidDomainID, serverId int
 	if c.mariadb.IsPointInTimeRecoveryEnabled() {
 		wsrepDomainID = 0
+		serverId = 10
+		// gtid_domain_id must differ from wsrep_gtid_domain_id and be unique on each node
 		gtidDomainID, err = gtidDomainIDFromPodName(podEnv.PodName, 10)
 		if err != nil {
 			return nil, fmt.Errorf("error getting gtid_domain_id from Pod %s: %v", podEnv.PodName, err)
@@ -148,6 +151,7 @@ gtid_domain_id={{ .GtidDomainID }}
 		WsrepGtidDomainID int
 		LogBaseName       string
 		GtidDomainID      int
+		ServerId          int
 	}{
 		ClusterAddress: clusterAddr,
 		Threads:        galera.ReplicaThreads,
@@ -175,6 +179,7 @@ gtid_domain_id={{ .GtidDomainID }}
 		WsrepGtidDomainID: wsrepDomainID,
 		LogBaseName:       c.mariadb.Name,
 		GtidDomainID:      gtidDomainID,
+		ServerId:          serverId,
 	})
 	if err != nil {
 		return nil, err

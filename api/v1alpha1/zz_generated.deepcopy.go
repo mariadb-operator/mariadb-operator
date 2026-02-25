@@ -31,7 +31,7 @@ package v1alpha1
 import (
 	metav1 "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/galera/recovery"
-	"github.com/mariadb-operator/mariadb-operator/v26/pkg/replication"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/gtid"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -1999,7 +1999,7 @@ func (in *MariaDBPointInTimeRecoveryStatus) DeepCopyInto(out *MariaDBPointInTime
 	in.LastArchivedTime.DeepCopyInto(&out.LastArchivedTime)
 	if in.LastArchivedGtid != nil {
 		in, out := &in.LastArchivedGtid, &out.LastArchivedGtid
-		*out = new(replication.Gtid)
+		*out = new(gtid.Gtid)
 		**out = **in
 	}
 	if in.GtidStrictModePaused != nil {

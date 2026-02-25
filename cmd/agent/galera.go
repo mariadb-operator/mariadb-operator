@@ -8,6 +8,7 @@ import (
 
 	"github.com/go-logr/logr"
 	galerahandler "github.com/mariadb-operator/mariadb-operator/v26/pkg/agent/handler/galera"
+	gtidhandler "github.com/mariadb-operator/mariadb-operator/v26/pkg/agent/handler/gtid"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/agent/router"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/agent/server"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/binlog"
@@ -59,13 +60,20 @@ var galeraCommand = &cobra.Command{
 		}
 
 		apiLogger := logger.WithName("api")
-		apiHandler := galerahandler.NewGaleraHandler(
-			fileManager,
-			mdbhttp.NewResponseWriter(&apiLogger),
-			&apiLogger,
-		)
+		handlers := []router.RouteHandler{
+			galerahandler.NewGaleraHandler(
+				fileManager,
+				mdbhttp.NewResponseWriter(&apiLogger),
+				&apiLogger,
+			),
+			gtidhandler.NewGtidHandler(
+				fileManager,
+				mdbhttp.NewResponseWriter(&apiLogger),
+				&apiLogger,
+			),
+		}
 		apiServer, err := getAPIServer(
-			apiHandler,
+			handlers,
 			env,
 			k8sClient,
 			apiLogger,

@@ -13,8 +13,8 @@ import (
 	backuppkg "github.com/mariadb-operator/mariadb-operator/v26/pkg/backup"
 	builderpki "github.com/mariadb-operator/mariadb-operator/v26/pkg/builder/pki"
 	ds "github.com/mariadb-operator/mariadb-operator/v26/pkg/datastructures"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/gtid"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/interfaces"
-	"github.com/mariadb-operator/mariadb-operator/v26/pkg/replication"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
@@ -31,7 +31,7 @@ type BackupOpts struct {
 	OmitCredentials      bool
 	CleanupTargetFile    bool
 	MaxRetentionDuration time.Duration
-	StartGtid            *replication.Gtid
+	StartGtid            *gtid.Gtid
 	TargetTime           time.Time
 	Compression          mariadbv1alpha1.CompressAlgorithm
 	LogLevel             string
@@ -94,7 +94,7 @@ func WithMaxRetention(d time.Duration) BackupOpt {
 	}
 }
 
-func WithStartGtid(gtid *replication.Gtid) BackupOpt {
+func WithStartGtid(gtid *gtid.Gtid) BackupOpt {
 	return func(bo *BackupOpts) {
 		bo.StartGtid = gtid
 	}
@@ -834,7 +834,7 @@ func copyBinlogMetaCmds(sourceDir string, destDir string) []string {
 	// This ensures that we have access to the coordinate after restoring the backup.
 	copyBinlogMetaCmd := func(binlogFileName string) string {
 		sourcePath := filepath.Join(sourceDir, binlogFileName)
-		destPath := filepath.Join(destDir, replication.MariaDBOperatorFileName)
+		destPath := filepath.Join(destDir, gtid.MariaDBOperatorFileName)
 		return fmt.Sprintf(`if [ -f %[1]s ]; then 
 	echo "💾 Copying binlog position file '%[1]s' to '%[2]s'";
 	cp %[1]s %[2]s
@@ -844,8 +844,8 @@ fi`,
 		)
 	}
 	return []string{
-		copyBinlogMetaCmd(replication.BinlogFileName),
-		copyBinlogMetaCmd(replication.LegacyBinlogFileName),
+		copyBinlogMetaCmd(gtid.BinlogFileName),
+		copyBinlogMetaCmd(gtid.LegacyBinlogFileName),
 	}
 }
 
