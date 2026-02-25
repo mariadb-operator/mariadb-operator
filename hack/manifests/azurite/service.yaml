@@ -3,7 +3,7 @@ kind: Service
 metadata:
   name: azurite
   annotations:
-    metallb.universe.tf/loadBalancerIPs: 172.18.0.60
+    metallb.universe.tf/loadBalancerIPs: $CIDR_PREFIX.0.60
 spec:
   type: LoadBalancer
   ports:
