@@ -54,6 +54,7 @@ type PointInTimeRecoveryStorage struct {
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Physical Backup",type="string",JSONPath=".spec.physicalBackupRef.name"
 // +kubebuilder:printcolumn:name="Last Recoverable Time",type="string",JSONPath=".status.lastRecoverableTime"
+// +kubebuilder:printcolumn:name="Strict Mode",type="boolean",JSONPath=".spec.strictMode"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 
 // PointInTimeRecovery is the Schema for the pointintimerecoveries API. It contains binlog archival and point-in-time restoration settings.
