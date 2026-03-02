@@ -61,28 +61,8 @@ var _ = Describe("MariaDB PITR with Replication", Ordered, func() {
 			By("Expecting PhysicalBackup to be ready")
 			expectPhysicalBackupReady(physicalBackup)
 		})
-
-	})
-
-	PContext("With ABS Storage", func() {
-		It("should reconcile", func() {
-			By("Creating MariaDB with replication")
-			// pitr := buildTestPitr(key, key, withTestPitrABSStorage(bucket, prefix))
-			// physicalBackup := buildPhysicalBackupWithABSStorage(key, bucket, prefix)(key)
-			Expect(true).To(BeFalse(), "ABS storage is not implemented yet")
-		})
 	})
 })
-
-// Does not work due to how LastRecoverableTime is calculated.
-// func testPointInTimeRecovery(pitr *mariadbv1alpha1.PointInTimeRecovery) {
-// 	key := client.ObjectKeyFromObject(pitr)
-// 	By("Expecting Point In Time Recovery to be ready eventually")
-// 	Eventually(func(g Gomega) bool {
-// 		g.Expect(k8sClient.Get(testCtx, key, pitr)).To(Succeed())
-// 		return pitr.Status.LastRecoverableTime != nil
-// 	}, testHighTimeout, testInterval).Should(BeTrue())
-// }
 
 // =========================
 
@@ -90,7 +70,9 @@ type testPitrOption func(*mariadbv1alpha1.PointInTimeRecovery)
 
 func withTestPitrS3Storage(bucket, prefix string) testPitrOption {
 	return func(p *mariadbv1alpha1.PointInTimeRecovery) {
-		p.Spec.S3 = *getS3Storage(bucket, prefix)
+		p.Spec.PointInTimeRecoveryStorage = mariadbv1alpha1.PointInTimeRecoveryStorage{
+			S3: getS3Storage(bucket, prefix),
+		}
 	}
 }
 
