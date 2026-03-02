@@ -8,8 +8,10 @@ import (
 
 	"github.com/go-logr/logr"
 	galerahandler "github.com/mariadb-operator/mariadb-operator/v26/pkg/agent/handler/galera"
+	gtidhandler "github.com/mariadb-operator/mariadb-operator/v26/pkg/agent/handler/gtid"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/agent/router"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/agent/server"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/binlog"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/environment"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/filemanager"
 	mdbhttp "github.com/mariadb-operator/mariadb-operator/v26/pkg/http"
@@ -51,15 +53,27 @@ var galeraCommand = &cobra.Command{
 			logger.Error(err, "Error getting Kubernetes client")
 			os.Exit(1)
 		}
+		mgr, err := ctrl.NewManager(restConfig, ctrl.Options{Scheme: scheme})
+		if err != nil {
+			logger.Error(err, "Unable to create manager")
+			os.Exit(1)
+		}
 
 		apiLogger := logger.WithName("api")
-		apiHandler := galerahandler.NewGaleraHandler(
-			fileManager,
-			mdbhttp.NewResponseWriter(&apiLogger),
-			&apiLogger,
-		)
+		handlers := []router.RouteHandler{
+			galerahandler.NewGaleraHandler(
+				fileManager,
+				mdbhttp.NewResponseWriter(&apiLogger),
+				&apiLogger,
+			),
+			gtidhandler.NewGtidHandler(
+				fileManager,
+				mdbhttp.NewResponseWriter(&apiLogger),
+				&apiLogger,
+			),
+		}
 		apiServer, err := getAPIServer(
-			apiHandler,
+			handlers,
 			env,
 			k8sClient,
 			apiLogger,
@@ -77,10 +91,15 @@ var galeraCommand = &cobra.Command{
 
 		ctx, cancel := newContext()
 		defer cancel()
-		errChan := make(chan error, 2)
 
+		numGoroutines := 2
+		if binaryLogArchival {
+			numGoroutines++
+		}
+		errChan := make(chan error, numGoroutines)
 		var wg sync.WaitGroup
-		wg.Add(2)
+		wg.Add(numGoroutines)
+
 		go func() {
 			defer wg.Done()
 
@@ -95,6 +114,22 @@ var galeraCommand = &cobra.Command{
 				errChan <- fmt.Errorf("error starting probe server: %v", err)
 			}
 		}()
+		if binaryLogArchival {
+			archiver := binlog.NewArchiver(
+				stateDir,
+				env,
+				k8sClient,
+				mgr.GetEventRecorderFor("binlog-archival"),
+				logger.WithName("binlog-archival"),
+			)
+			go func() {
+				defer wg.Done()
+
+				if err := archiver.Start(ctx); err != nil {
+					errChan <- fmt.Errorf("error starting binlog archiver: %v", err)
+				}
+			}()
+		}
 		go func() {
 			wg.Wait()
 			close(errChan)

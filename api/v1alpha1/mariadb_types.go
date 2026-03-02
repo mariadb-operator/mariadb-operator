@@ -7,7 +7,7 @@ import (
 
 	cmmeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/environment"
-	mariadbrepl "github.com/mariadb-operator/mariadb-operator/v26/pkg/replication"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/gtid"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -699,7 +699,7 @@ type MariaDBPointInTimeRecoveryStatus struct {
 	// LastArchivedGtid is the last archived GTID.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
-	LastArchivedGtid *mariadbrepl.Gtid `json:"lastArchivedGtid,omitempty"`
+	LastArchivedGtid *gtid.Gtid `json:"lastArchivedGtid,omitempty"`
 	// GtidStrictModePaused indicates that gtid_strict_mode has been temporarily paused to replay binlogs.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
@@ -894,9 +894,6 @@ func (m *MariaDB) IsMaxScaleEnabled() bool {
 
 // IsPointInTimeRecoveryEnabled indicates whether binary log archival is activated to enable point-in-time recovery.
 func (m *MariaDB) IsPointInTimeRecoveryEnabled() bool {
-	if !m.IsReplicationEnabled() {
-		return false
-	}
 	return m.Spec.PointInTimeRecoveryRef != nil
 }
 

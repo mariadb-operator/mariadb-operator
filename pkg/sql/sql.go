@@ -757,6 +757,22 @@ func (c *Client) EnableGtidStrictMode(ctx context.Context) error {
 	return c.SetSystemVariable(ctx, "gtid_strict_mode", "1")
 }
 
+func (c *Client) WsrepGtidMode(ctx context.Context) (bool, error) {
+	rawGtidStrictMode, err := c.SystemVariable(ctx, "wsrep_gtid_mode")
+	if err != nil {
+		return false, err
+	}
+	return parseBool(rawGtidStrictMode)
+}
+
+func (c *Client) DisableWsrepGtidMode(ctx context.Context) error {
+	return c.SetSystemVariable(ctx, "wsrep_gtid_mode", "0")
+}
+
+func (c *Client) EnableWsrepGtidMode(ctx context.Context) error {
+	return c.SetSystemVariable(ctx, "wsrep_gtid_mode", "1")
+}
+
 func (c *Client) BinaryLogIndex(ctx context.Context) (string, error) {
 	return c.SystemVariable(ctx, "log_bin_index")
 }

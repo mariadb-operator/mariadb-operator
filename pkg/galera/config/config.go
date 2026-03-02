@@ -80,6 +80,17 @@ tca={{ .SSTSSLCAPath }}
 tcert={{ .SSTSSLCertPath }}
 tkey={{ .SSTSSLKeyPath }}
 {{- end }}
+{{- if .PITREnabled }}
+
+# PITR
+wsrep_gtid_mode=ON
+wsrep_gtid_domain_id={{ .WsrepGtidDomainID }}
+log_slave_updates
+log_bin
+log_basename={{ .LogBaseName }}
+gtid_domain_id={{ .GtidDomainID }}
+server_id={{ .ServerId }}
+{{- end }}
 `)
 	buf := new(bytes.Buffer)
 	clusterAddr, err := c.clusterAddress()
@@ -99,6 +110,18 @@ tkey={{ .SSTSSLKeyPath }}
 	providerOptions, err := c.getProviderOptions(podEnv, galera.ProviderOptions)
 	if err != nil {
 		return nil, fmt.Errorf("error getting provider options: %v", err)
+	}
+
+	// See: https://mariadb.com/docs/galera-cluster/high-availability/using-mariadb-replication-with-mariadb-galera-cluster/using-mariadb-gtids-with-mariadb-galera-cluster
+	var wsrepDomainID, gtidDomainID, serverId int
+	if c.mariadb.IsPointInTimeRecoveryEnabled() {
+		wsrepDomainID = 0
+		serverId = 10
+		// gtid_domain_id must differ from wsrep_gtid_domain_id and be unique on each node
+		gtidDomainID, err = gtidDomainIDFromPodName(podEnv.PodName, 10)
+		if err != nil {
+			return nil, fmt.Errorf("error getting gtid_domain_id from Pod %s: %v", podEnv.PodName, err)
+		}
 	}
 
 	err = tpl.Execute(buf, struct {
@@ -123,6 +146,12 @@ tkey={{ .SSTSSLKeyPath }}
 		SSTSSLCAPath   string
 		SSTSSLCertPath string
 		SSTSSLKeyPath  string
+
+		PITREnabled       bool
+		WsrepGtidDomainID int
+		LogBaseName       string
+		GtidDomainID      int
+		ServerId          int
 	}{
 		ClusterAddress: clusterAddr,
 		Threads:        galera.ReplicaThreads,
@@ -145,6 +174,12 @@ tkey={{ .SSTSSLKeyPath }}
 		SSTSSLCAPath:   podEnv.TLSCACertPath,
 		SSTSSLCertPath: podEnv.TLSClientCertPath,
 		SSTSSLKeyPath:  podEnv.TLSClientKeyPath,
+
+		PITREnabled:       c.mariadb.IsPointInTimeRecoveryEnabled(),
+		WsrepGtidDomainID: wsrepDomainID,
+		LogBaseName:       c.mariadb.Name,
+		GtidDomainID:      gtidDomainID,
+		ServerId:          serverId,
 	})
 	if err != nil {
 		return nil, err
@@ -326,6 +361,14 @@ func thisHostIP(ip string) (string, error) {
 	}
 
 	return hostIP, nil
+}
+
+func gtidDomainIDFromPodName(podName string, baseIndex int) (int, error) {
+	podIndex, err := statefulset.PodIndex(podName)
+	if err != nil {
+		return 0, fmt.Errorf("error getting Pod index: %v", err)
+	}
+	return baseIndex + *podIndex, nil
 }
 
 func createTpl(name, t string) *template.Template {

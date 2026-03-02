@@ -12,11 +12,11 @@ import (
 	builderpki "github.com/mariadb-operator/mariadb-operator/v26/pkg/builder/pki"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/command"
 	galeraresources "github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/galera/resources"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/gtid"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/interfaces"
 	kadapter "github.com/mariadb-operator/mariadb-operator/v26/pkg/kubernetes/adapter"
 	mdbmetadata "github.com/mariadb-operator/mariadb-operator/v26/pkg/metadata"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/pki"
-	"github.com/mariadb-operator/mariadb-operator/v26/pkg/replication"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -440,7 +440,7 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 }
 
 type RestoreOpts struct {
-	StartGtid          *replication.Gtid
+	StartGtid          *gtid.Gtid
 	TargetRecoveryTime *time.Time
 	Volume             *mariadbv1alpha1.StorageVolumeSource
 	S3                 *mariadbv1alpha1.S3
@@ -455,7 +455,7 @@ type RestoreOpts struct {
 
 type RestoreOpt func(*RestoreOpts) error
 
-func WithStartGtid(gtid *replication.Gtid) RestoreOpt {
+func WithStartGtid(gtid *gtid.Gtid) RestoreOpt {
 	return func(opts *RestoreOpts) error {
 		opts.StartGtid = gtid
 		return nil

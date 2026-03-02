@@ -11,7 +11,7 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	labels "github.com/mariadb-operator/mariadb-operator/v26/pkg/builder/labels"
 	galeraresources "github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/galera/resources"
-	"github.com/mariadb-operator/mariadb-operator/v26/pkg/replication"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/gtid"
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -3624,8 +3624,8 @@ func getVolumeSource(name string, job *v1.Job) *corev1.VolumeSource {
 	return nil
 }
 
-func mustParseGtid(t *testing.T, rawGtid string) *replication.Gtid {
-	gtid, err := replication.ParseGtid(rawGtid)
+func mustParseGtid(t *testing.T, rawGtid string) *gtid.Gtid {
+	gtid, err := gtid.ParseGtid(rawGtid)
 	if err != nil {
 		t.Fatalf("unexpected error parsing GTID: %v", err)
 	}

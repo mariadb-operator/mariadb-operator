@@ -18,10 +18,10 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/binlog"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/builder"
 	mariadbcompression "github.com/mariadb-operator/mariadb-operator/v26/pkg/compression"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/gtid"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/interfaces"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/log"
 	mariadbminio "github.com/mariadb-operator/mariadb-operator/v26/pkg/minio"
-	mariadbrepl "github.com/mariadb-operator/mariadb-operator/v26/pkg/replication"
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/util/retry"
@@ -105,7 +105,7 @@ var RootCmd = &cobra.Command{
 			fmt.Printf("Error setting up logger: %v\n", err)
 			os.Exit(1)
 		}
-		startGtid, err := mariadbrepl.ParseGtid(startGtidRaw)
+		startGtid, err := gtid.ParseGtid(startGtidRaw)
 		if err != nil {
 			logger.Error(err, "Error parsing start GTID", "gtid", startGtidRaw)
 			os.Exit(1)
