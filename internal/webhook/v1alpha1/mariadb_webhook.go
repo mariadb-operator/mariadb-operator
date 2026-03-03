@@ -233,6 +233,77 @@ func validateBootstrapFrom(mariadb *v1alpha1.MariaDB) error {
 			err.Error(),
 		)
 	}
+	if err := validateRestoreOnlyPrimary(mariadb); err != nil {
+		return err
+	}
+	return nil
+}
+
+func validateRestoreOnlyPrimary(mariadb *v1alpha1.MariaDB) error {
+	bootstrapFrom := mariadb.Spec.BootstrapFrom
+	if bootstrapFrom == nil {
+		return nil
+	}
+
+	// Mutual exclusivity check
+	if bootstrapFrom.IsRestoreOnlyPrimaryEnabled() && bootstrapFrom.IsRestoreParallelEnabled() {
+		return field.Invalid(
+			field.NewPath("spec").Child("bootstrapFrom"),
+			bootstrapFrom,
+			"'restoreOnlyPrimary' and 'restoreParallel' are mutually exclusive",
+		)
+	}
+
+	// restoreOnlyPrimary validation
+	if bootstrapFrom.IsRestoreOnlyPrimaryEnabled() {
+		if bootstrapFrom.BackupContentType != v1alpha1.BackupContentTypePhysical {
+			return field.Invalid(
+				field.NewPath("spec").Child("bootstrapFrom").Child("restoreOnlyPrimary"),
+				bootstrapFrom.RestoreOnlyPrimary,
+				"'restoreOnlyPrimary' requires backupContentType: Physical",
+			)
+		}
+		if !mariadb.IsGaleraEnabled() {
+			return field.Invalid(
+				field.NewPath("spec").Child("bootstrapFrom").Child("restoreOnlyPrimary"),
+				bootstrapFrom.RestoreOnlyPrimary,
+				"'restoreOnlyPrimary' requires Galera enabled",
+			)
+		}
+		if bootstrapFrom.VolumeSnapshotRef != nil {
+			return field.Invalid(
+				field.NewPath("spec").Child("bootstrapFrom").Child("restoreOnlyPrimary"),
+				bootstrapFrom.RestoreOnlyPrimary,
+				"'restoreOnlyPrimary' not applicable with volumeSnapshotRef",
+			)
+		}
+	}
+
+	// restoreParallel validation
+	if bootstrapFrom.IsRestoreParallelEnabled() {
+		if bootstrapFrom.BackupContentType != v1alpha1.BackupContentTypePhysical {
+			return field.Invalid(
+				field.NewPath("spec").Child("bootstrapFrom").Child("restoreParallel"),
+				bootstrapFrom.RestoreParallel,
+				"'restoreParallel' requires backupContentType: Physical",
+			)
+		}
+		if bootstrapFrom.VolumeSnapshotRef != nil {
+			return field.Invalid(
+				field.NewPath("spec").Child("bootstrapFrom").Child("restoreParallel"),
+				bootstrapFrom.RestoreParallel,
+				"'restoreParallel' not applicable with volumeSnapshotRef",
+			)
+		}
+		if bootstrapFrom.StagingStorage != nil && bootstrapFrom.StagingStorage.PersistentVolumeClaim != nil {
+			return field.Invalid(
+				field.NewPath("spec").Child("bootstrapFrom").Child("restoreParallel"),
+				bootstrapFrom.RestoreParallel,
+				"'restoreParallel' cannot be used with stagingStorage.persistentVolumeClaim as each job needs its own storage. Use emptyDir (default) instead",
+			)
+		}
+	}
+
 	return nil
 }
 
