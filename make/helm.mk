@@ -35,11 +35,15 @@ helm-crds: helm kustomize ## Generate CRDs for the Helm chart.
 helm-config: yq ## Update operator config in the Helm chart.
 	$(YQ) e -i '.config.galeraLibPath = "$(MARIADB_GALERA_LIB_PATH)"' $(HELM_VALUES_FILE)
 	$(YQ) e -i '.config.mariadbDefaultVersion = "$(MARIADB_DEFAULT_VERSION)"' $(HELM_VALUES_FILE)
-	$(YQ) e -i '.config.mariadbImage = "$(RELATED_IMAGE_MARIADB)"' $(HELM_VALUES_FILE)
+	$(YQ) e -i '.config.mariadbImage.repository = "$(RELATED_IMAGE_MARIADB_NAME)"' $(HELM_VALUES_FILE)
+	$(YQ) e -i '.config.mariadbImage.tag = "$(RELATED_IMAGE_MARIADB_VERSION)"' $(HELM_VALUES_FILE)
 	$(YQ) e -i '.config.mariadbImageName = "$(RELATED_IMAGE_MARIADB_NAME)"' $(HELM_VALUES_FILE)
-	$(YQ) e -i '.config.maxscaleImage = "$(RELATED_IMAGE_MAXSCALE)"' $(HELM_VALUES_FILE)
-	$(YQ) e -i '.config.exporterImage = "$(RELATED_IMAGE_EXPORTER)"' $(HELM_VALUES_FILE)
-	$(YQ) e -i '.config.exporterMaxscaleImage = "$(RELATED_IMAGE_EXPORTER_MAXSCALE)"' $(HELM_VALUES_FILE)
+	$(YQ) e -i '.config.maxscaleImage.repository = "$(RELATED_IMAGE_MAXSCALE_NAME)"' $(HELM_VALUES_FILE)
+	$(YQ) e -i '.config.maxscaleImage.tag = "$(RELATED_IMAGE_MAXSCALE_VERSION)"' $(HELM_VALUES_FILE)
+	$(YQ) e -i '.config.exporterImage.repository = "$(RELATED_IMAGE_EXPORTER_NAME)"' $(HELM_VALUES_FILE)
+	$(YQ) e -i '.config.exporterImage.tag = "$(RELATED_IMAGE_EXPORTER_VERSION)"' $(HELM_VALUES_FILE)
+	$(YQ) e -i '.config.exporterMaxscaleImage.repository = "$(RELATED_IMAGE_EXPORTER_MAXSCALE_NAME)"' $(HELM_VALUES_FILE)
+	$(YQ) e -i '.config.exporterMaxscaleImage.tag = "$(RELATED_IMAGE_EXPORTER_MAXSCALE_VERSION)"' $(HELM_VALUES_FILE)
 
 HELM_DOCS_IMG ?= jnorwood/helm-docs:v1.14.2
 .PHONY: helm-docs
