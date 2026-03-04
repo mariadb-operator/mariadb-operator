@@ -134,6 +134,10 @@ type ContainerTemplate struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	SecurityContext *SecurityContext `json:"securityContext,omitempty"`
+	// Lifecycle describes actions the management system should take in response to container lifecycle events.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	Lifecycle *corev1.Lifecycle `json:"lifecycle,omitempty"`
 }
 
 // JobContainerTemplate defines a template to configure Container objects that run in a Job.
