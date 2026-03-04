@@ -688,6 +688,7 @@ _Appears in:_
 | `inheritMetadata` _[Metadata](#metadata)_ | InheritMetadata defines the metadata to be inherited by children resources. |  |  |
 | `host` _string_ | Hostname of the external MariaDB. |  | Required: \{\} <br /> |
 | `port` _integer_ | Port of the external MariaDB. | 3306 |  |
+| `binlogPort` _integer_ | Binlog proxy router port of the external MariaDB. Useful when the external MariaDB is behind a Maxscale and using the Binlogrouter to expose the binlog stream. |  |  |
 | `username` _string_ | Username is the username to connect to the external MariaDB. |  | Required: \{\} <br /> |
 | `passwordSecretKeyRef` _[SecretKeySelector](#secretkeyselector)_ | PasswordSecretKeyRef is a reference to the password to connect to the external MariaDB. |  |  |
 | `tls` _[TLS](#tls)_ | TLS defines the PKI to be used with the external MariaDB. |  |  |

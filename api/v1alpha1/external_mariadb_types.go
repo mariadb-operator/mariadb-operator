@@ -41,6 +41,10 @@ type ExternalMariaDBSpec struct {
 	// +kubebuilder:default=3306
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number","urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Port int32 `json:"port,omitempty"`
+	// Binlog proxy router port of the external MariaDB. Useful when the external MariaDB is behind a Maxscale and using the Binlogrouter to expose the binlog stream.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number","urn:alm:descriptor:com.tectonic.ui:advanced"}
+	BinlogProxyPort *int32 `json:"binlogPort,omitempty"`
 	// Username is the username to connect to the external MariaDB.
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -175,6 +179,11 @@ func (m *ExternalMariaDB) GetPodHost(podIndex int) string {
 // Get MariaDB port
 func (m *ExternalMariaDB) GetPort() int32 {
 	return m.Spec.Port
+}
+
+// Get MariaDB binlog proxy router port
+func (m *ExternalMariaDB) GetBinlogProxyPort() *int32 {
+	return m.Spec.BinlogProxyPort
 }
 
 // Get MariaDB replicas

@@ -263,10 +263,15 @@ func (r *ReplicationConfig) changeMaster(ctx context.Context, mariadb *mariadbv1
 		}
 		changeMasterOpts = []sql.ChangeMasterOpt{
 			changeMasterHostOpt,
-			sql.WithChangeMasterPort(emdb.GetPort()),
+			// sql.WithChangeMasterPort(emdb.GetPort()),
 			sql.WithChangeMasterCredentials(emdb.GetSUName(), password),
 			// sql.WithChangeMasterGtid(gtidString),
 			sql.WithChangeMasterRetries(*mariadb.Replication().Replica.ConnectionRetries),
+		}
+		if emdb.GetBinlogProxyPort() != nil {
+			changeMasterOpts = append(changeMasterOpts, sql.WithChangeMasterPort(*emdb.GetBinlogProxyPort()))
+		} else {
+			changeMasterOpts = append(changeMasterOpts, sql.WithChangeMasterPort(emdb.GetPort()))
 		}
 	}
 

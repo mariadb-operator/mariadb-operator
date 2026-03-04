@@ -1599,6 +1599,12 @@ spec:
             description: ExternalMariaDBSpec defines the desired state of an External
               MariaDB
             properties:
+              binlogPort:
+                description: Binlog proxy router port of the external MariaDB. Useful
+                  when the external MariaDB is behind a Maxscale and using the Binlogrouter
+                  to expose the binlog stream.
+                format: int32
+                type: integer
               connection:
                 description: Connection defines a template to configure a Connection
                   for the external MariaDB.
