@@ -116,3 +116,26 @@ physicalBackups: []
   #         caSecretKeyRef:
   #           name: minio-ca
   #           key: ca.crt
+# -- PrometheusRule configuration.
+prometheusRule:
+  enabled: false
+  namespace: ""
+  # -- Disable or tune bundled alerts.
+  overrides: {}
+    # MariaDBDown:
+    #   disabled: true
+    # MariaDBSlowQueries:
+    #   for: 3m
+    #   labels:
+    #     severity: critical
+  # -- Declare your own custom alerts.
+  custom: []
+    # - alert: MariaDBNotOk
+    #   expr: mysql_arbitrary_metric{target=~"{{ include "mariadb-cluster.fullname" . }}.*"} > 0
+    #   for: 5m
+    #   labels:
+    #     severity: warning
+    #   annotations:
+    #     summary: MariaDB instance is not ok
+    #     description: |
+    #       MariaDB instance {{"`{{ $labels.target }}`"}} is not ok
