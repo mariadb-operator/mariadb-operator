@@ -74,6 +74,7 @@ type PodEnvironment struct {
 	MariaDBReplSemiSyncMasterTimeout   string `env:"MARIADB_REPL_SEMI_SYNC_MASTER_TIMEOUT"`
 	MariaDBReplSemiSyncMasterWaitPoint string `env:"MARIADB_REPL_SEMI_SYNC_MASTER_WAIT_POINT"`
 	MariaDBReplMasterSyncBinlog        string `env:"MARIADB_REPL_SYNC_BINLOG"`
+	MariaDBReplServerIdBase            string `env:"MARIADB_REPL_SERVER_ID_BASE"`
 
 	TLSEnabled        string `env:"TLS_ENABLED"`
 	TLSCACertPath     string `env:"TLS_CA_CERT_PATH"`
@@ -155,6 +156,17 @@ func (e *PodEnvironment) ReplSyncBinlog() (*int, error) {
 		return nil, fmt.Errorf("invalid replication master sync binlog: %w", err)
 	}
 	return &timeout, nil
+}
+
+func (e *PodEnvironment) ReplServerIdBase() (int, error) {
+	if e.MariaDBReplServerIdBase == "" {
+		return 10, nil // default value for backward compatibility
+	}
+	base, err := strconv.Atoi(e.MariaDBReplServerIdBase)
+	if err != nil {
+		return 0, fmt.Errorf("invalid server_id base: %w", err)
+	}
+	return base, nil
 }
 
 func GetPodEnv(ctx context.Context) (*PodEnvironment, error) {
