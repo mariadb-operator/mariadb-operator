@@ -377,15 +377,19 @@ func TestOperatorHelmConfigMap(t *testing.T) {
 	tag := "v1.0.0"
 	opts := &helm.Options{
 		SetValues: map[string]string{
-			"image.repository":             repository,
-			"image.tag":                    tag,
-			"config.galeraLibPath":         "/path/to/libgalera.so",
-			"config.mariadbDefaultVersion": "11.4",
-			"config.mariadbImage":          "mariadb:10.5",
-			"config.mariadbImageName":      "mariadb",
-			"config.maxscaleImage":         "maxscale:2.5",
-			"config.exporterImage":         "exporter:1.0",
-			"config.exporterMaxscaleImage": "exporter-maxscale:1.0",
+			"image.repository":                        repository,
+			"image.tag":                               tag,
+			"config.galeraLibPath":                    "/path/to/libgalera.so",
+			"config.mariadbDefaultVersion":            "11.4",
+			"config.mariadbImage.repository":          "mariadb",
+			"config.mariadbImage.tag":                 "10.5",
+			"config.mariadbImageName":                 "mariadb",
+			"config.maxscaleImage.repository":         "maxscale",
+			"config.maxscaleImage.tag":                "2.5",
+			"config.exporterImage.repository":         "exporter",
+			"config.exporterImage.tag":                "1.0",
+			"config.exporterMaxscaleImage.repository": "exporter-maxscale",
+			"config.exporterMaxscaleImage.tag":        "1.0",
 		},
 	}
 	configMapData := helm.RenderTemplate(t, opts,
