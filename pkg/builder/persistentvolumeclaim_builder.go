@@ -5,10 +5,10 @@ import (
 	"fmt"
 
 	volumesnapshotv1 "github.com/kubernetes-csi/external-snapshotter/client/v8/apis/volumesnapshot/v1"
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
-	labels "github.com/mariadb-operator/mariadb-operator/v25/pkg/builder/labels"
-	metadata "github.com/mariadb-operator/mariadb-operator/v25/pkg/builder/metadata"
-	mdbreflect "github.com/mariadb-operator/mariadb-operator/v25/pkg/reflect"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
+	labels "github.com/mariadb-operator/mariadb-operator/v26/pkg/builder/labels"
+	metadata "github.com/mariadb-operator/mariadb-operator/v26/pkg/builder/metadata"
+	mdbreflect "github.com/mariadb-operator/mariadb-operator/v26/pkg/reflect"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -31,7 +31,7 @@ func (b *Builder) BuildBackupStoragePVC(key types.NamespacedName, pvcSpec *maria
 	}, nil
 }
 
-func (b *Builder) BuildBackupStagingPVC(key types.NamespacedName, pvcSpec *mariadbv1alpha1.PersistentVolumeClaimSpec,
+func (b *Builder) BuildStagingPVC(key types.NamespacedName, pvcSpec *mariadbv1alpha1.PersistentVolumeClaimSpec,
 	meta *mariadbv1alpha1.Metadata, owner metav1.Object) (*corev1.PersistentVolumeClaim, error) {
 	if pvcSpec == nil {
 		return nil, errors.New("PVC spec must be set")

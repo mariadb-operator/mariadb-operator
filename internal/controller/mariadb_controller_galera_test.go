@@ -4,10 +4,10 @@ import (
 	"time"
 
 	cmmeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/builder"
-	labels "github.com/mariadb-operator/mariadb-operator/v25/pkg/builder/labels"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/statefulset"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/builder"
+	labels "github.com/mariadb-operator/mariadb-operator/v26/pkg/builder/labels"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
@@ -596,7 +596,7 @@ var _ = Describe("MariaDB Galera disaster recovery", Ordered, func() {
 		bootstrapFrom.Spec.BootstrapFrom = &mariadbv1alpha1.BootstrapFrom{
 			BackupContentType:  mariadbv1alpha1.BackupContentTypePhysical,
 			S3:                 getS3Storage("test-mariadb-galera-physical", "", withSSEC()),
-			TargetRecoveryTime: &metav1.Time{Time: time.Now()},
+			TargetRecoveryTime: testTargetRecoveryTime,
 		}
 		Expect(k8sClient.Create(testCtx, bootstrapFrom)).To(Succeed())
 

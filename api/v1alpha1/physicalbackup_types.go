@@ -7,11 +7,10 @@ import (
 	"strings"
 	"time"
 
-	mdbtime "github.com/mariadb-operator/mariadb-operator/v25/pkg/time"
+	mdbtime "github.com/mariadb-operator/mariadb-operator/v26/pkg/time"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -52,17 +51,9 @@ type PhysicalBackupPodTemplate struct {
 }
 
 // SetDefaults sets reasonable defaults.
-func (p *PhysicalBackupPodTemplate) SetDefaults(objMeta, mariadbObjMeta metav1.ObjectMeta) {
+func (p *PhysicalBackupPodTemplate) SetDefaults(backup *PhysicalBackup) {
 	if p.ServiceAccountName == nil {
-		p.ServiceAccountName = ptr.To(p.ServiceAccountKey(objMeta).Name)
-	}
-}
-
-// ServiceAccountKey defines the key for the ServiceAccount object.
-func (p *PhysicalBackupPodTemplate) ServiceAccountKey(objMeta metav1.ObjectMeta) types.NamespacedName {
-	return types.NamespacedName{
-		Name:      ptr.Deref(p.ServiceAccountName, objMeta.Name),
-		Namespace: objMeta.Namespace,
+		p.ServiceAccountName = ptr.To(backup.ServiceAccountKey().Name)
 	}
 }
 
@@ -135,6 +126,10 @@ type PhysicalBackupStorage struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	S3 *S3 `json:"s3,omitempty"`
+	// AzureBlob defines the configuration to store backups in a AzureBlob compatible storage.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	AzureBlob *AzureBlob `json:"azureBlob,omitempty"`
 	// PersistentVolumeClaim is a Kubernetes PVC specification.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -191,7 +186,7 @@ type PhysicalBackupSpec struct {
 	// The staging area gets cleaned up after each backup is completed, consider this for sizing it appropriately.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch","urn:alm:descriptor:com.tectonic.ui:advanced"}
-	StagingStorage *BackupStagingStorage `json:"stagingStorage,omitempty" webhook:"inmutable"`
+	StagingStorage *StagingStorage `json:"stagingStorage,omitempty" webhook:"inmutable"`
 	// Storage defines the final storage for backups.
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -344,7 +339,7 @@ func (b *PhysicalBackup) SetDefaults(mariadb *MariaDB) {
 	if b.Spec.SuccessfulJobsHistoryLimit == nil {
 		b.Spec.SuccessfulJobsHistoryLimit = ptr.To(int32(5))
 	}
-	b.Spec.SetDefaults(b.ObjectMeta, mariadb.ObjectMeta)
+	b.Spec.SetDefaults(b)
 }
 
 func (b *PhysicalBackup) Volume() (StorageVolumeSource, error) {
@@ -352,7 +347,11 @@ func (b *PhysicalBackup) Volume() (StorageVolumeSource, error) {
 		return StorageVolumeSource{}, errors.New("VolumeSnapshot does not require a volume")
 	}
 	if b.Spec.Storage.S3 != nil {
-		stagingStorage := ptr.Deref(b.Spec.StagingStorage, BackupStagingStorage{})
+		stagingStorage := ptr.Deref(b.Spec.StagingStorage, StagingStorage{})
+		return stagingStorage.VolumeOrEmptyDir(b.StagingPVCKey()), nil
+	}
+	if b.Spec.Storage.AzureBlob != nil {
+		stagingStorage := ptr.Deref(b.Spec.StagingStorage, StagingStorage{})
 		return stagingStorage.VolumeOrEmptyDir(b.StagingPVCKey()), nil
 	}
 	if b.Spec.Storage.PersistentVolumeClaim != nil {

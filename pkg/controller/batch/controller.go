@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/builder"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/interfaces"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/refresolver"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/builder"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/interfaces"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/refresolver"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -58,9 +58,9 @@ func (r *BatchReconciler) reconcileStorage(ctx context.Context, parentObj client
 			}
 		}
 
-		stagingStorage := ptr.Deref(backup.Spec.StagingStorage, mariadbv1alpha1.BackupStagingStorage{})
+		stagingStorage := ptr.Deref(backup.Spec.StagingStorage, mariadbv1alpha1.StagingStorage{})
 		if stagingStorage.PersistentVolumeClaim != nil {
-			pvc, err := r.builder.BuildBackupStagingPVC(
+			pvc, err := r.builder.BuildStagingPVC(
 				backup.StagingPVCKey(),
 				stagingStorage.PersistentVolumeClaim,
 				backup.Spec.InheritMetadata,
@@ -77,9 +77,9 @@ func (r *BatchReconciler) reconcileStorage(ctx context.Context, parentObj client
 	}
 
 	if restore, ok := parentObj.(*mariadbv1alpha1.Restore); ok {
-		stagingStorage := ptr.Deref(restore.Spec.StagingStorage, mariadbv1alpha1.BackupStagingStorage{})
+		stagingStorage := ptr.Deref(restore.Spec.StagingStorage, mariadbv1alpha1.StagingStorage{})
 		if stagingStorage.PersistentVolumeClaim != nil {
-			pvc, err := r.builder.BuildBackupStagingPVC(
+			pvc, err := r.builder.BuildStagingPVC(
 				restore.StagingPVCKey(),
 				stagingStorage.PersistentVolumeClaim,
 				restore.Spec.InheritMetadata,

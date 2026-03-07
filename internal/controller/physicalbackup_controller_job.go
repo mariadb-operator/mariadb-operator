@@ -7,15 +7,16 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
-	jobpkg "github.com/mariadb-operator/mariadb-operator/v25/pkg/job"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/metadata"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/statefulset"
-	mdbtime "github.com/mariadb-operator/mariadb-operator/v25/pkg/time"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/wait"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
+	jobpkg "github.com/mariadb-operator/mariadb-operator/v26/pkg/job"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/metadata"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
+	mdbtime "github.com/mariadb-operator/mariadb-operator/v26/pkg/time"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/wait"
 	"github.com/robfig/cron/v3"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -49,7 +50,7 @@ func (r *PhysicalBackupReconciler) reconcileJobs(ctx context.Context, backup *ma
 		return result, err
 	}
 
-	if err := r.reconcileServiceAccount(ctx, backup); err != nil {
+	if err := r.reconcileRBAC(ctx, backup, mariadb); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error reconciling ServiceAccount: %v", err)
 	}
 	if err := r.reconcileStorage(ctx, backup); err != nil {
@@ -235,10 +236,52 @@ func (r *PhysicalBackupReconciler) waitForRunningJobs(ctx context.Context, backu
 	return ctrl.Result{}, nil
 }
 
-func (r *PhysicalBackupReconciler) reconcileServiceAccount(ctx context.Context, backup *mariadbv1alpha1.PhysicalBackup) error {
-	key := backup.Spec.ServiceAccountKey(backup.ObjectMeta)
-	_, err := r.RBACReconciler.ReconcileServiceAccount(ctx, key, backup, backup.Spec.InheritMetadata)
-	return err
+func (r *PhysicalBackupReconciler) reconcileRBAC(ctx context.Context, backup *mariadbv1alpha1.PhysicalBackup,
+	mariadb *mariadbv1alpha1.MariaDB) error {
+	key := backup.ServiceAccountKey()
+	sa, err := r.RBACReconciler.ReconcileServiceAccount(ctx, key, backup, backup.Spec.InheritMetadata)
+	if err != nil {
+		return fmt.Errorf("error reconciling ServiceAccount: %v", err)
+	}
+
+	if mariadb.IsPointInTimeRecoveryEnabled() {
+		rules := []rbacv1.PolicyRule{
+			{
+				APIGroups: []string{
+					mariadbv1alpha1.GroupVersion.Group,
+				},
+				Resources: []string{
+					"physicalbackups",
+				},
+				Verbs: []string{
+					"get",
+					"patch",
+					"update",
+				},
+			},
+		}
+		role, err := r.RBACReconciler.ReconcileRole(ctx, backup.RoleKey(), backup, backup.Spec.InheritMetadata, rules)
+		if err != nil {
+			return fmt.Errorf("error reconciling Role: %v", err)
+		}
+
+		roleRef := rbacv1.RoleRef{
+			APIGroup: rbacv1.GroupName,
+			Kind:     "Role",
+			Name:     role.Name,
+		}
+		if err := r.RBACReconciler.ReconcileRoleBinding(
+			ctx,
+			backup.RoleBindingKey(),
+			backup,
+			backup.Spec.InheritMetadata,
+			sa,
+			roleRef,
+		); err != nil {
+			return fmt.Errorf("error reconciling RoleBinding: %v", err)
+		}
+	}
+	return nil
 }
 
 func (r *PhysicalBackupReconciler) reconcileStorage(ctx context.Context, backup *mariadbv1alpha1.PhysicalBackup) error {
@@ -256,9 +299,9 @@ func (r *PhysicalBackupReconciler) reconcileStorage(ctx context.Context, backup 
 		}
 	}
 
-	stagingStorage := ptr.Deref(backup.Spec.StagingStorage, mariadbv1alpha1.BackupStagingStorage{})
+	stagingStorage := ptr.Deref(backup.Spec.StagingStorage, mariadbv1alpha1.StagingStorage{})
 	if stagingStorage.PersistentVolumeClaim != nil {
-		pvc, err := r.Builder.BuildBackupStagingPVC(
+		pvc, err := r.Builder.BuildStagingPVC(
 			backup.StagingPVCKey(),
 			stagingStorage.PersistentVolumeClaim,
 			backup.Spec.InheritMetadata,

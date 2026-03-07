@@ -9,34 +9,35 @@ import (
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/go-logr/logr"
 	volumesnapshotv1 "github.com/kubernetes-csi/external-snapshotter/client/v8/apis/volumesnapshot/v1"
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/backup"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/builder"
-	condition "github.com/mariadb-operator/mariadb-operator/v25/pkg/condition"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/auth"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/batch"
-	certctrl "github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/certificate"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/configmap"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/deployment"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/endpoints"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/galera"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/pvc"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/rbac"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/replication"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/secret"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/service"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/servicemonitor"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/sql"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/statefulset"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/discovery"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/docker"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/environment"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/metadata"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/refresolver"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/backup"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/builder"
+	condition "github.com/mariadb-operator/mariadb-operator/v26/pkg/condition"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/auth"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/batch"
+	certctrl "github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/certificate"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/configmap"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/deployment"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/endpoints"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/galera"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/pvc"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/rbac"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/replication"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/secret"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/service"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/servicemonitor"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/sql"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/statefulset"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/discovery"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/docker"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/environment"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/metadata"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/refresolver"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"go.uber.org/zap/zapcore"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/utils/ptr"
@@ -52,10 +53,12 @@ import (
 
 var (
 	testCtx                    = context.Background()
+	testLogger                 logr.Logger
 	k8sClient                  client.Client
 	testCidrPrefix             string
 	testEmulateExternalMdbHost string = "mdb-emulate-external-test.default.svc.cluster.local"
-	testLogger                 logr.Logger
+	// This is to make sure that backups taken during the tests are matched
+	testTargetRecoveryTime = &metav1.Time{Time: time.Now().Add(100 * time.Hour)}
 )
 
 func TestAPIs(t *testing.T) {
@@ -142,7 +145,7 @@ var _ = BeforeSuite(func() {
 	endpointsReconciler := endpoints.NewEndpointsReconciler(client, builder)
 	batchReconciler := batch.NewBatchReconciler(client, builder)
 	authReconciler := auth.NewAuthReconciler(client, builder)
-	rbacReconciler := rbac.NewRBACReconiler(client, builder)
+	rbacReconciler := rbac.NewRBACReconciler(client, builder)
 	deployReconciler := deployment.NewDeploymentReconciler(client)
 	pvcReconciler := pvc.NewPVCReconciler(client)
 	svcMonitorReconciler := servicemonitor.NewServiceMonitorReconciler(client)

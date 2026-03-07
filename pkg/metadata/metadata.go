@@ -11,6 +11,7 @@ var (
 
 	ReplicationAnnotation = "k8s.mariadb.com/replication"
 	GtidAnnotation        = "k8s.mariadb.com/gtid"
+	LastGtidAnnotation    = "k8s.mariadb.com/last-gtid"
 	GaleraAnnotation      = "k8s.mariadb.com/galera"
 	MariadbAnnotation     = "k8s.mariadb.com/mariadb"
 

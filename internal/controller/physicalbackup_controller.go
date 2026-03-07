@@ -9,17 +9,17 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/hashicorp/go-multierror"
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/backup"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/builder"
-	condition "github.com/mariadb-operator/mariadb-operator/v25/pkg/condition"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/pvc"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/rbac"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/discovery"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/health"
-	mariadbpod "github.com/mariadb-operator/mariadb-operator/v25/pkg/pod"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/refresolver"
-	mdbtime "github.com/mariadb-operator/mariadb-operator/v25/pkg/time"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/backup"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/builder"
+	condition "github.com/mariadb-operator/mariadb-operator/v26/pkg/condition"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/pvc"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/rbac"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/discovery"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/health"
+	mariadbpod "github.com/mariadb-operator/mariadb-operator/v26/pkg/pod"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/refresolver"
+	mdbtime "github.com/mariadb-operator/mariadb-operator/v26/pkg/time"
 	"github.com/robfig/cron/v3"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -283,6 +283,14 @@ func shouldReconcilePhysicalBackup(mdb *mariadbv1alpha1.MariaDB, logger logr.Log
 	}
 	if mdb.HasGaleraNotReadyCondition() {
 		logger.Info("Galera not ready, skipping PhysicalBackup schedule...")
+		return false
+	}
+	if mdb.HasPendingBinlogReplay() {
+		logger.Info("Binary logs replay is pending, skipping PhysicalBackup schedule...")
+		return false
+	}
+	if mdb.IsReplayingBinlogs() {
+		logger.Info("Binary logs are being replayed, skipping PhysicalBackup schedule...")
 		return false
 	}
 	return true

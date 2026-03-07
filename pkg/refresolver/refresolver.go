@@ -5,9 +5,9 @@ import (
 	"errors"
 	"fmt"
 
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/interfaces"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/metadata"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/interfaces"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/metadata"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -140,7 +140,7 @@ func (r *RefResolver) Backup(ctx context.Context, ref *mariadbv1alpha1.LocalObje
 	return &backup, nil
 }
 
-func (r *RefResolver) PhysicalBackupBackup(ctx context.Context, ref *mariadbv1alpha1.LocalObjectReference,
+func (r *RefResolver) PhysicalBackup(ctx context.Context, ref *mariadbv1alpha1.LocalObjectReference,
 	namespace string) (*mariadbv1alpha1.PhysicalBackup, error) {
 	nn := types.NamespacedName{
 		Name:      ref.Name,
@@ -151,6 +151,19 @@ func (r *RefResolver) PhysicalBackupBackup(ctx context.Context, ref *mariadbv1al
 		return nil, err
 	}
 	return &backup, nil
+}
+
+func (r *RefResolver) PointInTimeRecovery(ctx context.Context, ref *mariadbv1alpha1.LocalObjectReference,
+	namespace string) (*mariadbv1alpha1.PointInTimeRecovery, error) {
+	nn := types.NamespacedName{
+		Name:      ref.Name,
+		Namespace: namespace,
+	}
+	var pitr mariadbv1alpha1.PointInTimeRecovery
+	if err := r.client.Get(ctx, nn, &pitr); err != nil {
+		return nil, err
+	}
+	return &pitr, nil
 }
 
 func (r *RefResolver) SqlJob(ctx context.Context, ref *mariadbv1alpha1.LocalObjectReference,

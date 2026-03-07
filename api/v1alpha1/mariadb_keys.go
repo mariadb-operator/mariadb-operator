@@ -3,8 +3,8 @@ package v1alpha1
 import (
 	"fmt"
 
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/pki"
-	stsobj "github.com/mariadb-operator/mariadb-operator/v25/pkg/statefulset"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/pki"
+	stsobj "github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 )
@@ -174,6 +174,22 @@ func (m *MariaDB) RestoreKey() types.NamespacedName {
 	}
 }
 
+// BootstrapFromStagingPVCKey defines the PVC key for the bootstrap staging area, used to keep backups and binary logs during restoration.
+func (m *MariaDB) BootstrapFromStagingPVCKey() types.NamespacedName {
+	return types.NamespacedName{
+		Name:      fmt.Sprintf("%s-bootstrap-staging", m.Name),
+		Namespace: m.Namespace,
+	}
+}
+
+// PITRJobKey defines the key for the PITR job used to replay the binary logs.
+func (m *MariaDB) PITRJobKey() types.NamespacedName {
+	return types.NamespacedName{
+		Name:      fmt.Sprintf("%s-pitr", m.Name),
+		Namespace: m.Namespace,
+	}
+}
+
 // InternalServiceKey defines the key for the internal headless Service
 func (m *MariaDB) InternalServiceKey() types.NamespacedName {
 	return types.NamespacedName{
@@ -273,14 +289,6 @@ func (m *MariaDB) InitKey() types.NamespacedName {
 func (m *MariaDB) PhysicalBackupInitJobKey(podIndex int) types.NamespacedName {
 	return types.NamespacedName{
 		Name:      fmt.Sprintf("%s-pb-init", stsobj.PodName(m.ObjectMeta, podIndex)),
-		Namespace: m.Namespace,
-	}
-}
-
-// PhysicalBackupStagingPVCKey defines the key for the PhysicalBackup staging PVC object.
-func (m *MariaDB) PhysicalBackupStagingPVCKey() types.NamespacedName {
-	return types.NamespacedName{
-		Name:      fmt.Sprintf("%s-pb-staging", m.Name),
 		Namespace: m.Namespace,
 	}
 }

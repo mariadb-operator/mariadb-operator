@@ -2,18 +2,17 @@ package agent
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
 	"github.com/go-logr/logr"
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/agent/router"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/agent/server"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/environment"
-	kubeauth "github.com/mariadb-operator/mariadb-operator/v25/pkg/kubernetes/auth"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/agent/router"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/agent/server"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/environment"
+	kubeauth "github.com/mariadb-operator/mariadb-operator/v26/pkg/kubernetes/auth"
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -42,6 +41,8 @@ var (
 	basicAuth             bool
 	basicAuthUsername     string
 	basicAuthPasswordPath string
+
+	binaryLogArchival bool
 )
 
 func init() {
@@ -71,6 +72,8 @@ func init() {
 	RootCmd.PersistentFlags().StringVar(&basicAuthUsername, "basic-auth-username", "", "Basic authentication username")
 	RootCmd.PersistentFlags().StringVar(&basicAuthPasswordPath, "basic-auth-password-path", "", "Basic authentication password path")
 
+	RootCmd.PersistentFlags().BoolVar(&binaryLogArchival, "binary-log-archival", false, "Enable binary log archival")
+
 	RootCmd.AddCommand(galeraCommand)
 	RootCmd.AddCommand(replicationCommand)
 }
@@ -89,18 +92,6 @@ func newContext() (context.Context, context.CancelFunc) {
 		syscall.SIGHUP,
 		syscall.SIGQUIT}...,
 	)
-}
-
-func getK8sClient() (client.Client, error) {
-	restConfig, err := ctrl.GetConfig()
-	if err != nil {
-		return nil, fmt.Errorf("error getting REST config: %v", err)
-	}
-	k8sClient, err := client.New(restConfig, client.Options{Scheme: scheme})
-	if err != nil {
-		return nil, fmt.Errorf("error creating Kubernetes client: %v", err)
-	}
-	return k8sClient, nil
 }
 
 func getAPIServer(apiHandler router.RouteHandler, env *environment.PodEnvironment, k8sClient client.Client,

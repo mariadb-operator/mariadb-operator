@@ -16,12 +16,12 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/go-sql-driver/mysql"
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/environment"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/interfaces"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/pki"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/refresolver"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/statefulset"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/environment"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/interfaces"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/pki"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/refresolver"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 )
@@ -65,7 +65,7 @@ func WithPassword(password string) Opt {
 	}
 }
 
-func WitHost(host string) Opt {
+func WithHost(host string) Opt {
 	return func(o *Opts) {
 		o.Host = host
 	}
@@ -154,7 +154,7 @@ func NewClientWithMariaDB(ctx context.Context, mariadb interfaces.MariaDBObject,
 	opts = []Opt{
 		WithUsername(mariadb.GetSUName()),
 		WithPassword(password),
-		WitHost(mariadb.GetHost()),
+		WithHost(mariadb.GetHost()),
 		WithPort(mariadb.GetPort()),
 	}
 
@@ -203,7 +203,7 @@ func NewClientWithMariaDB(ctx context.Context, mariadb interfaces.MariaDBObject,
 func NewInternalClientWithPodIndex(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, refResolver *refresolver.RefResolver,
 	podIndex int, clientOpts ...Opt) (*Client, error) {
 	opts := []Opt{
-		WitHost(
+		WithHost(
 			statefulset.PodFQDNWithService(
 				mariadb.ObjectMeta,
 				podIndex,
@@ -223,7 +223,7 @@ func NewLocalClientWithPodEnv(ctx context.Context, env *environment.PodEnvironme
 	opts := []Opt{
 		WithUsername("root"),
 		WithPassword(env.MariadbRootPassword),
-		WitHost("localhost"),
+		WithHost("localhost"),
 		WithPort(port),
 	}
 
@@ -351,6 +351,15 @@ func (c *Client) Close() error {
 func (c *Client) Exec(ctx context.Context, sql string, args ...any) error {
 	_, err := c.db.ExecContext(ctx, sql, args...)
 	return err
+}
+
+func (c *Client) Query(ctx context.Context, sql string, args ...any) (*sql.Rows, error) {
+	rows, err := c.db.QueryContext(ctx, sql, args...)
+	return rows, err
+}
+
+func (c *Client) QueryRow(ctx context.Context, sql string, args ...any) *sql.Row {
+	return c.db.QueryRowContext(ctx, sql, args...)
 }
 
 func (c Client) Exists(ctx context.Context, sql string, args ...any) (bool, error) {
@@ -730,6 +739,26 @@ func (c *Client) GtidDomainId(ctx context.Context) (*uint32, error) {
 		return nil, fmt.Errorf("error parsing gtid_domain_id: %v", err)
 	}
 	return ptr.To(uint32(gtidDomainId)), nil
+}
+
+func (c *Client) GtidStrictMode(ctx context.Context) (bool, error) {
+	rawGtidStrictMode, err := c.SystemVariable(ctx, "gtid_strict_mode")
+	if err != nil {
+		return false, err
+	}
+	return parseBool(rawGtidStrictMode)
+}
+
+func (c *Client) DisableGtidStrictMode(ctx context.Context) error {
+	return c.SetSystemVariable(ctx, "gtid_strict_mode", "0")
+}
+
+func (c *Client) EnableGtidStrictMode(ctx context.Context) error {
+	return c.SetSystemVariable(ctx, "gtid_strict_mode", "1")
+}
+
+func (c *Client) BinaryLogIndex(ctx context.Context) (string, error) {
+	return c.SystemVariable(ctx, "log_bin_index")
 }
 
 func (c *Client) GtidBinlogPos(ctx context.Context) (string, error) {

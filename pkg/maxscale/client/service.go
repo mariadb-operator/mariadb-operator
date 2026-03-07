@@ -3,8 +3,8 @@ package client
 import (
 	"encoding/json"
 
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
-	mdbhttp "github.com/mariadb-operator/mariadb-operator/v25/pkg/http"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
+	mdbhttp "github.com/mariadb-operator/mariadb-operator/v26/pkg/http"
 )
 
 type ServiceParameters struct {

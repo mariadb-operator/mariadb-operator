@@ -3,7 +3,7 @@ package v1alpha1
 import (
 	"time"
 
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/environment"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/environment"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/format"
@@ -1773,7 +1773,7 @@ var _ = Describe("MariaDB types", func() {
 				true,
 			),
 			Entry(
-				"VolumeSnapshot and S3 mutually exclusive",
+				"Mutually exclusive 1",
 				&BootstrapFrom{
 					VolumeSnapshotRef: &LocalObjectReference{
 						Name: "test",
@@ -1785,7 +1785,7 @@ var _ = Describe("MariaDB types", func() {
 				true,
 			),
 			Entry(
-				"VolumeSnapshot and Volume mutually exclusive",
+				"Mutually exclusive 2",
 				&BootstrapFrom{
 					VolumeSnapshotRef: &LocalObjectReference{
 						Name: "test",
@@ -1799,12 +1799,49 @@ var _ = Describe("MariaDB types", func() {
 				true,
 			),
 			Entry(
-				"VolumeSnapshot and RestoreJob mutually exclusive",
+				"Mutually exclusive 3",
 				&BootstrapFrom{
 					VolumeSnapshotRef: &LocalObjectReference{
 						Name: "test",
 					},
 					RestoreJob: &Job{},
+				},
+				true,
+			),
+			Entry(
+				"Mutually exclusive 4",
+				&BootstrapFrom{
+					PointInTimeRecoveryRef: &LocalObjectReference{
+						Name: "test",
+					},
+					BackupRef: &TypedLocalObjectReference{
+						Name: "test",
+						Kind: PhysicalBackupKind,
+					},
+				},
+				true,
+			),
+			Entry(
+				"Mutually exclusive 5",
+				&BootstrapFrom{
+					PointInTimeRecoveryRef: &LocalObjectReference{
+						Name: "test",
+					},
+					VolumeSnapshotRef: &LocalObjectReference{
+						Name: "test",
+					},
+				},
+				true,
+			),
+			Entry(
+				"Mutually exclusive 6",
+				&BootstrapFrom{
+					PointInTimeRecoveryRef: &LocalObjectReference{
+						Name: "test",
+					},
+					S3: &S3{
+						Bucket: "test",
+					},
 				},
 				true,
 			),
@@ -1927,6 +1964,15 @@ var _ = Describe("MariaDB types", func() {
 				},
 				false,
 			),
+			Entry(
+				"Valid 12",
+				&BootstrapFrom{
+					PointInTimeRecoveryRef: &LocalObjectReference{
+						Name: "test",
+					},
+				},
+				false,
+			),
 		)
 
 		DescribeTable(
@@ -1943,6 +1989,25 @@ var _ = Describe("MariaDB types", func() {
 				},
 				&BootstrapFrom{
 					BackupContentType: BackupContentTypeLogical,
+				},
+			),
+			Entry(
+				"PointInTimeRecovery",
+				&BootstrapFrom{
+					PointInTimeRecoveryRef: &LocalObjectReference{
+						Name: "test",
+					},
+				},
+				&MariaDB{
+					ObjectMeta: objMeta,
+				},
+				&BootstrapFrom{
+					PointInTimeRecoveryRef: &LocalObjectReference{
+						Name: "test",
+					},
+					Volume: &StorageVolumeSource{
+						EmptyDir: &EmptyDirVolumeSource{},
+					},
 				},
 			),
 			Entry(
@@ -2045,7 +2110,7 @@ var _ = Describe("MariaDB types", func() {
 						Bucket: "test",
 					},
 					BackupContentType: BackupContentTypePhysical,
-					StagingStorage: &BackupStagingStorage{
+					StagingStorage: &StagingStorage{
 						PersistentVolumeClaim: &PersistentVolumeClaimSpec{
 							StorageClassName: ptr.To("test"),
 						},
@@ -2059,14 +2124,45 @@ var _ = Describe("MariaDB types", func() {
 						Bucket: "test",
 					},
 					BackupContentType: BackupContentTypePhysical,
-					StagingStorage: &BackupStagingStorage{
+					StagingStorage: &StagingStorage{
 						PersistentVolumeClaim: &PersistentVolumeClaimSpec{
 							StorageClassName: ptr.To("test"),
 						},
 					},
 					Volume: &StorageVolumeSource{
 						PersistentVolumeClaim: &PersistentVolumeClaimVolumeSource{
-							ClaimName: "mariadb-obj-pb-staging",
+							ClaimName: "mariadb-obj-bootstrap-staging",
+						},
+					},
+				},
+			),
+			Entry(
+				"PointInTimeRecovery with staging storage",
+				&BootstrapFrom{
+					PointInTimeRecoveryRef: &LocalObjectReference{
+						Name: "test",
+					},
+					StagingStorage: &StagingStorage{
+						PersistentVolumeClaim: &PersistentVolumeClaimSpec{
+							StorageClassName: ptr.To("test"),
+						},
+					},
+				},
+				&MariaDB{
+					ObjectMeta: objMeta,
+				},
+				&BootstrapFrom{
+					PointInTimeRecoveryRef: &LocalObjectReference{
+						Name: "test",
+					},
+					StagingStorage: &StagingStorage{
+						PersistentVolumeClaim: &PersistentVolumeClaimSpec{
+							StorageClassName: ptr.To("test"),
+						},
+					},
+					Volume: &StorageVolumeSource{
+						PersistentVolumeClaim: &PersistentVolumeClaimVolumeSource{
+							ClaimName: "mariadb-obj-bootstrap-staging",
 						},
 					},
 				},

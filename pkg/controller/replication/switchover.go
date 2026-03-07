@@ -7,12 +7,12 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
-	condition "github.com/mariadb-operator/mariadb-operator/v25/pkg/condition"
-	mariadbpod "github.com/mariadb-operator/mariadb-operator/v25/pkg/pod"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/sql"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/statefulset"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/wait"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
+	condition "github.com/mariadb-operator/mariadb-operator/v26/pkg/condition"
+	mariadbpod "github.com/mariadb-operator/mariadb-operator/v26/pkg/pod"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/sql"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/wait"
 	"golang.org/x/sync/errgroup"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -425,19 +425,24 @@ func (r *ReplicationReconciler) changePrimaryToReplica(ctx context.Context, req 
 
 func (r *ReplicationReconciler) configureReplicaOpts(ctx context.Context, req *ReconcileRequest, primaryClient *sql.Client,
 	logger logr.Logger) ([]ConfigureReplicaOpt, error) {
+	var replicaOpts []ConfigureReplicaOpt
+
 	if req.replicasSynced {
 		primaryBinlogPos, err := primaryClient.GtidBinlogPos(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("error getting primary binlog position: %v", err)
 		}
 		logger.Info("Configuring replicas with primary GTID", "gtid", primaryBinlogPos)
-		return []ConfigureReplicaOpt{
-			WithGtidSlavePos(primaryBinlogPos),
-		}, nil
+		replicaOpts = append(replicaOpts, WithGtidSlavePos(primaryBinlogPos))
+	} else {
+		replicaOpts = append(replicaOpts, WithResetGtidSlavePos())
 	}
-	return []ConfigureReplicaOpt{
-		WithResetGtidSlavePos(),
-	}, nil
+
+	// avoid deleting binary logs during archival to prevent drifting from object storage
+	if req.mariadb.IsPointInTimeRecoveryEnabled() {
+		replicaOpts = append(replicaOpts, WithResetMaster(false))
+	}
+	return replicaOpts, nil
 }
 
 func (r *ReplicationReconciler) currentPrimaryReady(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,

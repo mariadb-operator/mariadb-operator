@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"reflect"
 
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
-	labels "github.com/mariadb-operator/mariadb-operator/v25/pkg/builder/labels"
-	metadata "github.com/mariadb-operator/mariadb-operator/v25/pkg/builder/metadata"
-	builderpki "github.com/mariadb-operator/mariadb-operator/v25/pkg/builder/pki"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/interfaces"
-	kadapter "github.com/mariadb-operator/mariadb-operator/v25/pkg/kubernetes/adapter"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/pki"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
+	labels "github.com/mariadb-operator/mariadb-operator/v26/pkg/builder/labels"
+	metadata "github.com/mariadb-operator/mariadb-operator/v26/pkg/builder/metadata"
+	builderpki "github.com/mariadb-operator/mariadb-operator/v26/pkg/builder/pki"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/interfaces"
+	kadapter "github.com/mariadb-operator/mariadb-operator/v26/pkg/kubernetes/adapter"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/pki"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -24,6 +24,7 @@ type mariadbPodOpts struct {
 	resources                    *corev1.ResourceRequirements
 	affinity                     *corev1.Affinity
 	nodeSelector                 map[string]string
+	pointInTimeRecovery          *mariadbv1alpha1.PointInTimeRecovery
 	extraVolumes                 []corev1.Volume
 	extraVolumeMounts            []corev1.VolumeMount
 	includeMariadbResources      bool
@@ -106,6 +107,12 @@ func withAffinityEnabled(includeAffinity bool) mariadbPodOpt {
 func withNodeSelector(nodeSelector map[string]string) mariadbPodOpt {
 	return func(opts *mariadbPodOpts) {
 		opts.nodeSelector = nodeSelector
+	}
+}
+
+func withPointInTimeRecovery(pointInTimeRecovery *mariadbv1alpha1.PointInTimeRecovery) mariadbPodOpt {
+	return func(opts *mariadbPodOpts) {
+		opts.pointInTimeRecovery = pointInTimeRecovery
 	}
 }
 
@@ -330,6 +337,13 @@ func mariadbVolumes(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt) ([]
 		tlsVolumes, _ := mariadbTLSVolumes(mariadb)
 		volumes = append(volumes, tlsVolumes...)
 	}
+	if mariadbOpts.pointInTimeRecovery != nil {
+		s3Volumes, _ := s3Volumes(mariadbOpts.pointInTimeRecovery.Spec.PointInTimeRecoveryStorage.S3)
+		volumes = append(volumes, s3Volumes...)
+
+		absVolumes, _ := absVolumes(mariadbOpts.pointInTimeRecovery.Spec.PointInTimeRecoveryStorage.AzureBlob)
+		volumes = append(volumes, absVolumes...)
+	}
 	if mariadb.IsReplicationEnabled() {
 		volumes = append(volumes, corev1.Volume{
 			Name: MariadbConfigVolume,
@@ -358,45 +372,8 @@ func mariadbVolumes(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt) ([]
 		}
 
 		if mariadbOpts.includeServiceAccount {
-			volumes = append(volumes, corev1.Volume{
-				Name: ServiceAccountVolume,
-				VolumeSource: corev1.VolumeSource{
-					Projected: &corev1.ProjectedVolumeSource{
-						Sources: []corev1.VolumeProjection{
-							{
-								ServiceAccountToken: &corev1.ServiceAccountTokenProjection{
-									Path: "token",
-								},
-							},
-							{
-								ConfigMap: &corev1.ConfigMapProjection{
-									Items: []corev1.KeyToPath{
-										{
-											Key:  "ca.crt",
-											Path: "ca.crt",
-										},
-									},
-									LocalObjectReference: corev1.LocalObjectReference{
-										Name: "kube-root-ca.crt",
-									},
-								},
-							},
-							{
-								DownwardAPI: &corev1.DownwardAPIProjection{
-									Items: []corev1.DownwardAPIVolumeFile{
-										{
-											FieldRef: &corev1.ObjectFieldSelector{
-												FieldPath: "metadata.namespace",
-											},
-											Path: "namespace",
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-			})
+			serviceAccountVolume, _ := serviceAccountVolumes()
+			volumes = append(volumes, serviceAccountVolume)
 		}
 	}
 
@@ -685,4 +662,70 @@ func s3Volumes(s3 *mariadbv1alpha1.S3) ([]corev1.Volume, []corev1.VolumeMount) {
 			}
 	}
 	return nil, nil
+}
+
+func absVolumes(abs *mariadbv1alpha1.AzureBlob) ([]corev1.Volume, []corev1.VolumeMount) {
+	if abs != nil && abs.TLS != nil && abs.TLS.Enabled && abs.TLS.CASecretKeyRef != nil {
+		return []corev1.Volume{
+				{
+					Name: ABSPKI,
+					VolumeSource: corev1.VolumeSource{
+						Secret: &corev1.SecretVolumeSource{
+							SecretName: abs.TLS.CASecretKeyRef.Name,
+						},
+					},
+				},
+			}, []corev1.VolumeMount{
+				{
+					Name:      ABSPKI,
+					MountPath: ABSPKIMountPath,
+				},
+			}
+	}
+	return nil, nil
+}
+
+func serviceAccountVolumes() (corev1.Volume, corev1.VolumeMount) {
+	return corev1.Volume{
+			Name: ServiceAccountVolume,
+			VolumeSource: corev1.VolumeSource{
+				Projected: &corev1.ProjectedVolumeSource{
+					Sources: []corev1.VolumeProjection{
+						{
+							ServiceAccountToken: &corev1.ServiceAccountTokenProjection{
+								Path: "token",
+							},
+						},
+						{
+							ConfigMap: &corev1.ConfigMapProjection{
+								Items: []corev1.KeyToPath{
+									{
+										Key:  "ca.crt",
+										Path: "ca.crt",
+									},
+								},
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: "kube-root-ca.crt",
+								},
+							},
+						},
+						{
+							DownwardAPI: &corev1.DownwardAPIProjection{
+								Items: []corev1.DownwardAPIVolumeFile{
+									{
+										FieldRef: &corev1.ObjectFieldSelector{
+											FieldPath: "metadata.namespace",
+										},
+										Path: "namespace",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		}, corev1.VolumeMount{
+			Name:      ServiceAccountVolume,
+			MountPath: ServiceAccountMountPath,
+		}
 }

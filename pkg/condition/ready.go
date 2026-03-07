@@ -3,8 +3,8 @@ package conditions
 import (
 	"fmt"
 
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
-	jobpkg "github.com/mariadb-operator/mariadb-operator/v25/pkg/job"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
+	jobpkg "github.com/mariadb-operator/mariadb-operator/v26/pkg/job"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -88,6 +88,35 @@ func SetReadyWithMariaDB(c Conditioner, sts *appsv1.StatefulSet, mdb *mariadbv1a
 			Status:  metav1.ConditionFalse,
 			Reason:  mariadbv1alpha1.ConditionReasonInitializing,
 			Message: "Initializing",
+		})
+		return
+	}
+	if mdb.IsPointInTimeRecoveryEnabled() {
+		if err := mdb.ArchiveBinlogsError(); err != nil {
+			c.SetCondition(metav1.Condition{
+				Type:    mariadbv1alpha1.ConditionTypeReady,
+				Status:  metav1.ConditionFalse,
+				Reason:  mariadbv1alpha1.ConditionReasonArchiveBinlogsError,
+				Message: err.Error(),
+			})
+			return
+		}
+	}
+	if mdb.IsReplayingBinlogs() {
+		if err := mdb.ReplayBinlogsError(); err != nil {
+			c.SetCondition(metav1.Condition{
+				Type:    mariadbv1alpha1.ConditionTypeReady,
+				Status:  metav1.ConditionFalse,
+				Reason:  mariadbv1alpha1.ConditionReasonReplayBinlogsError,
+				Message: err.Error(),
+			})
+			return
+		}
+		c.SetCondition(metav1.Condition{
+			Type:    mariadbv1alpha1.ConditionTypeReady,
+			Status:  metav1.ConditionFalse,
+			Reason:  mariadbv1alpha1.ConditionReasonReplayBinlogs,
+			Message: "Replaying binlogs",
 		})
 		return
 	}

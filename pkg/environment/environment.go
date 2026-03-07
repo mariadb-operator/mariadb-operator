@@ -81,6 +81,12 @@ type PodEnvironment struct {
 	TLSServerKeyPath  string `env:"TLS_SERVER_KEY_PATH"`
 	TLSClientCertPath string `env:"TLS_CLIENT_CERT_PATH"`
 	TLSClientKeyPath  string `env:"TLS_CLIENT_KEY_PATH"`
+
+	MariadbOperatorS3CAPath          string `env:"MARIADB_OPERATOR_S3_CA_PATH"`
+	MariaDBOperatorS3SSECCustomerKey string `env:"MARIADB_OPERATOR_S3_SSEC_CUSTOMER_KEY"`
+
+	MariadbOperatorABSCAPath string `env:"MARIADB_OPERATOR_ABS_CA_PATH"`
+	ABSStorageAccountKey     string `env:"MARIADB_OPERATOR_ABS_STORAGE_ACCOUNT_KEY"`
 }
 
 func (e *PodEnvironment) Port() (int32, error) {

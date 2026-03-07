@@ -9,9 +9,9 @@ import (
 	"path/filepath"
 	"time"
 
-	webhookv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/internal/webhook/v1alpha1"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/log"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/pki"
+	webhookv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/internal/webhook/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/log"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/pki"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -90,6 +90,10 @@ var webhookCmd = &cobra.Command{
 		}
 		if err = webhookv1alpha1.SetupRestoreWebhookWithManager(mgr); err != nil {
 			setupLog.Error(err, "Unable to create webhook", "webhook", "Restore")
+			os.Exit(1)
+		}
+		if err = webhookv1alpha1.SetupPointInTimeRecoveryWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "Unable to create webhook", "webhook", "PointInTimeRecovery")
 			os.Exit(1)
 		}
 		if err = webhookv1alpha1.SetupUserWebhookWithManager(mgr); err != nil {

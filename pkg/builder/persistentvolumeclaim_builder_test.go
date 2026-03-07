@@ -3,7 +3,7 @@ package builder
 import (
 	"testing"
 
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -198,7 +198,7 @@ func TestBackupStagingPVCOwnerReference(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			pvc, err := builder.BuildBackupStagingPVC(key, pvcSpec, meta, tt.owner)
+			pvc, err := builder.BuildStagingPVC(key, pvcSpec, meta, tt.owner)
 			assert.NoError(t, err, "unexpected error building Backup Staging PVC")
 			assert.NotNil(t, pvc, "expected PVC to be created")
 

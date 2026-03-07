@@ -1,0 +1,35 @@
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-from-abs
+spec:
+  rootPasswordSecretKeyRef:
+    name: mariadb
+    key: password
+
+  storage:
+    size: 1Gi
+
+  bootstrapFrom:
+    azureBlob:
+      containerName: physicalbackup
+      serviceURL: https://azurite.default.svc.cluster.local:10000/devstoreaccount1
+      prefix: mariadb
+      storageAccountName: devstoreaccount1
+      storageAccountKey:
+        name: azurite-key
+        key: storageAccountKey
+      # Add your own certificates if desired. Usefull for distroless images without ca-certificates
+      tls:
+        enabled: true
+        caSecretKeyRef:
+          name: azurite-certs
+          key: cert.pem
+    backupContentType: Physical
+    stagingStorage:
+      persistentVolumeClaim:
+        resources:
+          requests:
+            storage: 1Gi
+        accessModes:
+          - ReadWriteOnce
