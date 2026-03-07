@@ -216,8 +216,8 @@ func TestBackupJobVolumeSource(t *testing.T) {
 			ClaimName: "test-pvc",
 		},
 		Ephemeral: &mariadbv1alpha1.EphemeralVolumeSource{
-			VolumeClaimTemplate: &corev1.PersistentVolumeClaimTemplate{
-				Spec: corev1.PersistentVolumeClaimSpec{
+			VolumeClaimTemplate: &mariadbv1alpha1.VolumeClaimTemplate{
+				PersistentVolumeClaimSpec: mariadbv1alpha1.PersistentVolumeClaimSpec{
 					AccessModes: []corev1.PersistentVolumeAccessMode{
 						corev1.ReadWriteOnce,
 					},

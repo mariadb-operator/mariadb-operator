@@ -986,7 +986,7 @@ func (in *EphemeralVolumeSource) DeepCopyInto(out *EphemeralVolumeSource) {
 	*out = *in
 	if in.VolumeClaimTemplate != nil {
 		in, out := &in.VolumeClaimTemplate, &out.VolumeClaimTemplate
-		*out = new(corev1.PersistentVolumeClaimTemplate)
+		*out = new(VolumeClaimTemplate)
 		(*in).DeepCopyInto(*out)
 	}
 }
