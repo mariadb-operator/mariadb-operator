@@ -21,7 +21,10 @@ func testPhysicalBackup(backup *mariadbv1alpha1.PhysicalBackup) {
 	DeferCleanup(func() {
 		Expect(client.IgnoreNotFound(k8sClient.Delete(testCtx, backup))).To(Succeed())
 	})
+	expectPhysicalBackupReady(backup)
+}
 
+func expectPhysicalBackupReady(backup *mariadbv1alpha1.PhysicalBackup) {
 	if backup.Spec.Storage.VolumeSnapshot != nil {
 		testPhysicalBackupVolumeSnapshot(backup)
 	} else {
