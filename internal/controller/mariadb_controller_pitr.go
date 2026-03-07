@@ -15,12 +15,12 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/binlog"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/builder"
 	condition "github.com/mariadb-operator/mariadb-operator/v26/pkg/condition"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/gtid"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/health"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/interfaces"
 	jobpkg "github.com/mariadb-operator/mariadb-operator/v26/pkg/job"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/metadata"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/minio"
-	"github.com/mariadb-operator/mariadb-operator/v26/pkg/replication"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/sql"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -115,7 +115,7 @@ func (r *MariaDBReconciler) reconcilePITR(ctx context.Context, mdb *mariadbv1alp
 }
 
 func (r *MariaDBReconciler) getStartGtid(ctx context.Context, mdb *mariadbv1alpha1.MariaDB,
-	logger logr.Logger) (*replication.Gtid, error) {
+	logger logr.Logger) (*gtid.Gtid, error) {
 	var rawGtid string
 
 	if mdb.Spec.BootstrapFrom != nil && mdb.Spec.BootstrapFrom.VolumeSnapshotRef != nil {
@@ -143,8 +143,7 @@ func (r *MariaDBReconciler) getStartGtid(ctx context.Context, mdb *mariadbv1alph
 			return nil, fmt.Errorf("error getting agent client: %v", err)
 		}
 
-		// TODO: handle galera, as the agent will not have this endpoint available
-		agentGtid, err := agentClient.Replication.GetGtid(ctx)
+		agentGtid, err := agentClient.Gtid.GetGtid(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("error getting GTID from agent: %v", err)
 		}
@@ -165,7 +164,7 @@ func (r *MariaDBReconciler) getStartGtid(ctx context.Context, mdb *mariadbv1alph
 	if err != nil {
 		return nil, fmt.Errorf("error getting gtid_domain_id: %v", err)
 	}
-	gtid, err := replication.ParseGtidWithDomainId(rawGtid, *domainId, logger.WithName("gtid"))
+	gtid, err := gtid.ParseGtidWithDomainId(rawGtid, *domainId, logger.WithName("gtid"))
 	if err != nil {
 		return nil, fmt.Errorf("error parsing GTID %s: %v", rawGtid, err)
 	}
@@ -214,7 +213,7 @@ func (r *MariaDBReconciler) reconcileReplayBinlogsError(ctx context.Context, mar
 	return ctrl.Result{}, nil
 }
 
-func (r *MariaDBReconciler) validateBinlogTimeline(ctx context.Context, mdb *mariadbv1alpha1.MariaDB, startGtid *replication.Gtid,
+func (r *MariaDBReconciler) validateBinlogTimeline(ctx context.Context, mdb *mariadbv1alpha1.MariaDB, startGtid *gtid.Gtid,
 	strictMode bool, storageClient interfaces.BlobStorage, logger logr.Logger) error {
 	indexReader, err := storageClient.GetObjectWithOptions(ctx, binlog.BinlogIndexName)
 	if err != nil {
@@ -256,7 +255,9 @@ func (r *MariaDBReconciler) pauseGtidStrictMode(ctx context.Context, mdb *mariad
 		return nil
 	}
 
-	gtidStrictMode, err := sqlClient.GtidStrictMode(ctx)
+	// TODO: gtidStrictMode, err := sqlClient.GtidStrictMode(ctx)
+
+	gtidStrictMode, err := sqlClient.WsrepGtidMode(ctx)
 	if err != nil {
 		return fmt.Errorf("error getting gtid_strict_mode: %v", err)
 	}
@@ -265,7 +266,8 @@ func (r *MariaDBReconciler) pauseGtidStrictMode(ctx context.Context, mdb *mariad
 	}
 
 	logger.Info("Temporarily disabling gtid_strict_mode to replay binlogs")
-	if err := sqlClient.DisableGtidStrictMode(ctx); err != nil {
+	// TODO: 	if err := sqlClient.DisableGtidStrictMode(ctx); err != nil {
+	if err := sqlClient.DisableWsrepGtidMode(ctx); err != nil {
 		return fmt.Errorf("error disabling gtid_strict_mode: %v", err)
 	}
 	return r.patchStatus(ctx, mdb, func(status *mariadbv1alpha1.MariaDBStatus) error {
@@ -285,7 +287,8 @@ func (r *MariaDBReconciler) resumeGtidStrictMode(ctx context.Context, mdb *maria
 	}
 
 	logger.Info("Enabling back gtid_strict_mode")
-	if err := sqlClient.EnableGtidStrictMode(ctx); err != nil {
+	// TODO: 	if err := sqlClient.EnableGtidStrictMode(ctx); err != nil {
+	if err := sqlClient.EnableWsrepGtidMode(ctx); err != nil {
 		return fmt.Errorf("error enabling gtid_strict_mode: %v", err)
 	}
 	return r.patchStatus(ctx, mdb, func(status *mariadbv1alpha1.MariaDBStatus) error {
@@ -341,7 +344,7 @@ func (r *MariaDBReconciler) reconcileAndWaitForPITRJob(ctx context.Context, mdb 
 	return ctrl.Result{}, nil
 }
 
-func (r *MariaDBReconciler) createPITRJob(ctx context.Context, mdb *mariadbv1alpha1.MariaDB, startGtid *replication.Gtid) error {
+func (r *MariaDBReconciler) createPITRJob(ctx context.Context, mdb *mariadbv1alpha1.MariaDB, startGtid *gtid.Gtid) error {
 	pitr, err := r.RefResolver.PointInTimeRecovery(ctx, mdb.Spec.BootstrapFrom.PointInTimeRecoveryRef, mdb.Namespace)
 	if err != nil {
 		return fmt.Errorf("error getting PointInTimeRecovery: %v", err)

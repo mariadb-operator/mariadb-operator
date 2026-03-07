@@ -1,9 +1,9 @@
-package replication
+package gtid
 
 import (
 	"net/http"
 
-	chi "github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5"
 	"github.com/go-logr/logr"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/agent/router"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/filemanager"
@@ -11,27 +11,24 @@ import (
 	mdbhttp "github.com/mariadb-operator/mariadb-operator/v26/pkg/http"
 )
 
-// TODO: deprecate in favor of handler/gtid
-// With the introduction of PITR, the GTID endpoint should not be tied to replication topology.
-// This is kept for backwards compatibility purposes.
-type ReplicationHandler struct {
+type GtidHandler struct {
 	fileManager    *filemanager.FileManager
 	responseWriter *mdbhttp.ResponseWriter
 	logger         *logr.Logger
 }
 
-func NewReplicationHandler(fileManager *filemanager.FileManager, responseWriter *mdbhttp.ResponseWriter,
+func NewGtidHandler(fileManager *filemanager.FileManager, responseWriter *mdbhttp.ResponseWriter,
 	logger *logr.Logger) router.RouteHandler {
-	return &ReplicationHandler{
+	return &GtidHandler{
 		fileManager:    fileManager,
 		responseWriter: responseWriter,
 		logger:         logger,
 	}
 }
 
-func (h *ReplicationHandler) SetupRoutes(router *chi.Mux) {
-	router.Route("/replication", func(r chi.Router) {
-		r.Get("/gtid", h.GetGtid)
+func (h *GtidHandler) SetupRoutes(router *chi.Mux) {
+	router.Route("/gtid", func(r chi.Router) {
+		r.Get("/", h.GetGtid)
 	})
 }
 
@@ -39,7 +36,7 @@ type GtidResponse struct {
 	Gtid string `json:"gtid"`
 }
 
-func (h *ReplicationHandler) GetGtid(w http.ResponseWriter, r *http.Request) {
+func (h *GtidHandler) GetGtid(w http.ResponseWriter, r *http.Request) {
 	h.logger.V(1).Info("getting GTID")
 
 	bytes, err := h.fileManager.ReadStateFile(gtid.MariaDBOperatorFileName)

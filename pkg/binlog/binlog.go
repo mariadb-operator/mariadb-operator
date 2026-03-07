@@ -12,7 +12,7 @@ import (
 	"github.com/go-mysql-org/go-mysql/mysql"
 	"github.com/go-mysql-org/go-mysql/replication"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/datastructures"
-	mariadbrepl "github.com/mariadb-operator/mariadb-operator/v26/pkg/replication"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/gtid"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -50,12 +50,12 @@ func (b *BinlogIndex) Add(serverId uint32, meta BinlogMetadata) {
 	b.Binlogs[serverKey(serverId)] = append(b.Binlogs[serverKey(serverId)], meta)
 }
 
-func (b *BinlogIndex) BuildTimeline(starGtid *mariadbrepl.Gtid, targetTime time.Time, strictMode bool,
+func (b *BinlogIndex) BuildTimeline(starGtid *gtid.Gtid, targetTime time.Time, strictMode bool,
 	logger logr.Logger) ([]BinlogMetadata, error) {
 	return b.buildTimelineWithBinlogs(nil, starGtid, targetTime, strictMode, logger)
 }
 
-func (b *BinlogIndex) buildTimelineWithBinlogs(binlogs []BinlogMetadata, startGtid *mariadbrepl.Gtid, targetTime time.Time,
+func (b *BinlogIndex) buildTimelineWithBinlogs(binlogs []BinlogMetadata, startGtid *gtid.Gtid, targetTime time.Time,
 	strictMode bool, binlogLogger logr.Logger) ([]BinlogMetadata, error) {
 	currentServerKey := serverKey(startGtid.ServerID)
 	logger := binlogLogger.WithValues(
@@ -155,7 +155,7 @@ func (b *BinlogIndex) buildTimelineWithBinlogs(binlogs []BinlogMetadata, startGt
 }
 
 func (b *BinlogIndex) findNextGtidInOtherServer(lastBinlog *BinlogMetadata, currentServer string, untilTime time.Time,
-	logger logr.Logger) (*mariadbrepl.Gtid, error) {
+	logger logr.Logger) (*gtid.Gtid, error) {
 	if lastBinlog == nil {
 		return nil, errors.New("last processed binlog must be set")
 	}
@@ -196,7 +196,7 @@ func serverKey(serverId uint32) string {
 	return fmt.Sprintf("server-%d", serverId)
 }
 
-func shouldFilterBinlog(binlog *BinlogMetadata, fromGtid *mariadbrepl.Gtid, untilTime time.Time, binlogLogger logr.Logger) (bool, error) {
+func shouldFilterBinlog(binlog *BinlogMetadata, fromGtid *gtid.Gtid, untilTime time.Time, binlogLogger logr.Logger) (bool, error) {
 	logger := binlogLogger.WithValues(
 		"binlog", binlog.BinlogFilename,
 		"time", binlog.FirstTime.Format(time.RFC3339),
@@ -279,18 +279,18 @@ func (b *BinlogNum) Equal(other *BinlogNum) bool {
 }
 
 type BinlogMetadata struct {
-	ServerId       uint32              `json:"serverId"`
-	ServerVersion  string              `json:"serverVersion"`
-	BinlogVersion  uint16              `json:"binlogVersion"`
-	BinlogFilename string              `json:"binlogFilename"`
-	LogPosition    uint32              `json:"logPosition"`
-	FirstTime      metav1.Time         `json:"firstTime"`
-	LastTime       metav1.Time         `json:"lastTime"`
-	PreviousGtids  []*mariadbrepl.Gtid `json:"previousGtids,omitempty"`
-	FirstGtid      *mariadbrepl.Gtid   `json:"firstGtid,omitempty"`
-	LastGtid       *mariadbrepl.Gtid   `json:"lastGtid,omitempty"`
-	RotateEvent    bool                `json:"rotateEvent"`
-	StopEvent      bool                `json:"stopEvent"`
+	ServerId       uint32       `json:"serverId"`
+	ServerVersion  string       `json:"serverVersion"`
+	BinlogVersion  uint16       `json:"binlogVersion"`
+	BinlogFilename string       `json:"binlogFilename"`
+	LogPosition    uint32       `json:"logPosition"`
+	FirstTime      metav1.Time  `json:"firstTime"`
+	LastTime       metav1.Time  `json:"lastTime"`
+	PreviousGtids  []*gtid.Gtid `json:"previousGtids,omitempty"`
+	FirstGtid      *gtid.Gtid   `json:"firstGtid,omitempty"`
+	LastGtid       *gtid.Gtid   `json:"lastGtid,omitempty"`
+	RotateEvent    bool         `json:"rotateEvent"`
+	StopEvent      bool         `json:"stopEvent"`
 }
 
 func (b *BinlogMetadata) ObjectStoragePath() string {
@@ -357,7 +357,7 @@ func GetBinlogMetadata(binlogPath string, logger logr.Logger) (*BinlogMetadata, 
 		if err := listEvent.Decode(rawGtidListEvent[replication.EventHeaderSize:]); err != nil {
 			return nil, fmt.Errorf("error decoding GTID list event: %v", err)
 		}
-		prevGtids := make([]*mariadbrepl.Gtid, len(listEvent.GTIDs))
+		prevGtids := make([]*gtid.Gtid, len(listEvent.GTIDs))
 		for i, gtid := range listEvent.GTIDs {
 			gtid, err := toMariadbGtid(&gtid)
 			if err != nil {
@@ -409,9 +409,9 @@ func decodeGTIDEvent(rawEvent []byte, serverId uint32) (*replication.MariadbGTID
 	return gtidEvent, nil
 }
 
-func toMariadbGtid(mysqlGtid *mysql.MariadbGTID) (*mariadbrepl.Gtid, error) {
+func toMariadbGtid(mysqlGtid *mysql.MariadbGTID) (*gtid.Gtid, error) {
 	rawGtid := mysqlGtid.String()
-	gtid, err := mariadbrepl.ParseGtid(rawGtid)
+	gtid, err := gtid.ParseGtid(rawGtid)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing GTID %s: %v", rawGtid, err)
 	}

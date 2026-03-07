@@ -131,6 +131,11 @@ func (r *MariaDBReconciler) getUpdateAnnotations(ctx context.Context, mariadb *m
 			TLSClientCertPath:   builderpki.ClientCertPath,
 			TLSClientKeyPath:    builderpki.ClientKeyPath,
 		}
+		// This is to prevent triggering an update in existing instances without PITR enabled
+		if mariadb.IsPointInTimeRecoveryEnabled() {
+			env.PodName = "pod-name-0"
+		}
+
 		config, err := galeraconfig.NewConfigFile(mariadb, logger).Marshal(env)
 		if err != nil {
 			return nil, fmt.Errorf("error rendering Galera config file: %v", err)

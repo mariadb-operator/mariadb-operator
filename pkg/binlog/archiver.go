@@ -19,12 +19,13 @@ import (
 	mariadbcompression "github.com/mariadb-operator/mariadb-operator/v26/pkg/compression"
 	conditions "github.com/mariadb-operator/mariadb-operator/v26/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/environment"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/gtid"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/interfaces"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/metadata"
 	mariadbminio "github.com/mariadb-operator/mariadb-operator/v26/pkg/minio"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/refresolver"
-	"github.com/mariadb-operator/mariadb-operator/v26/pkg/replication"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/sql"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -77,7 +78,12 @@ func (a *Archiver) Start(ctx context.Context) error {
 			if err != nil {
 				return fmt.Errorf("error getting MariaDB: %v", err)
 			}
-			if !a.shouldArchiveBinlogs(mdb) {
+			shouldArchive, err := a.shouldArchiveBinlogs(mdb)
+			if err != nil {
+				a.logger.Error(err, "Error determining whether archival should be performed")
+				continue
+			}
+			if !shouldArchive {
 				continue
 			}
 			archiveErr := a.archiveBinaryLogs(ctx, mdb)
@@ -89,57 +95,68 @@ func (a *Archiver) Start(ctx context.Context) error {
 	}
 }
 
-func (a *Archiver) shouldArchiveBinlogs(mdb *mariadbv1alpha1.MariaDB) bool {
-	if mdb.Status.CurrentPrimary == nil ||
-		(mdb.Status.CurrentPrimary != nil && *mdb.Status.CurrentPrimary != a.env.PodName) {
-		a.logger.V(1).Info("Current primary not set or current Pod is a replica, skipping binary log archival...")
-		return false
+func (a *Archiver) shouldArchiveBinlogs(mdb *mariadbv1alpha1.MariaDB) (bool, error) {
+	if mdb.IsReplicationEnabled() {
+		if mdb.Status.CurrentPrimary == nil ||
+			(mdb.Status.CurrentPrimary != nil && *mdb.Status.CurrentPrimary != a.env.PodName) {
+			a.logger.V(1).Info("Current primary not set or current Pod is a replica, skipping binary log archival...")
+			return false, nil
+		}
+	} else {
+		podIndex, err := statefulset.PodIndex(a.env.PodName)
+		if err != nil {
+			return false, fmt.Errorf("error getting index in Pod %s: %v", a.env.PodName, err)
+		}
+		if *podIndex != 0 {
+			a.logger.V(1).Info("Current Pod has not been designated to perform archival, skipping binary log archival...")
+			return false, nil
+		}
 	}
 	if mdb.IsRestoringBackup() {
 		a.logger.Info("Backup restoration in progress, skipping binary log archival...")
-		return false
+		return false, nil
 	}
 	if mdb.IsInitializing() {
 		a.logger.Info("Initialization in progress, skipping binary log archival...")
-		return false
+		return false, nil
 	}
 	if mdb.IsSwitchingPrimary() || mdb.IsReplicationSwitchoverRequired() {
 		a.logger.Info("Switchover operation pending/ongoing, skipping binary log archival...")
-		return false
+		return false, nil
 	}
 	if mdb.IsUpdating() || mdb.HasPendingUpdate() {
 		a.logger.Info("Update in progress, skipping binary log archival...")
-		return false
+		return false, nil
 	}
 	if mdb.IsResizingStorage() {
 		a.logger.Info("Storage resize in progress, skipping binary log archival...")
-		return false
+		return false, nil
 	}
 	if mdb.IsRecoveringReplicas() {
 		a.logger.Info("Replica recovery in progress, skipping binary log archival...")
-		return false
+		return false, nil
 	}
 	if mdb.HasGaleraNotReadyCondition() {
 		a.logger.Info("Galera not ready, skipping binary log archival...")
-		return false
+		return false, nil
 	}
 	if mdb.IsReplicationEnabled() && !mdb.HasConfiguredReplication() {
 		a.logger.Info("Replication has not been configured, skipping binary log archival...")
-		return false
+		return false, nil
 	}
 	if mdb.IsGaleraEnabled() && !mdb.HasGaleraConfiguredCondition() {
 		a.logger.Info("Galera has not been configured, skipping binary log archival...")
-		return false
+		return false, nil
 	}
 	if mdb.HasPendingBinlogReplay() {
 		a.logger.Info("Binary logs replay is pending, skipping binary log archival...")
-		return false
+		return false, nil
 	}
 	if mdb.IsReplayingBinlogs() {
 		a.logger.Info("Binary logs are being replayed, skipping binary log archival...")
-		return false
+		return false, nil
 	}
-	return true
+	return true, nil
 }
 
 func (a *Archiver) archiveBinaryLogs(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) error {
@@ -602,7 +619,7 @@ func (a *Archiver) getLastRecoverableTime(binlogIndex *BinlogIndex, backup *mari
 		)
 		return nil, nil
 	}
-	gtid, err := replication.ParseGtidWithDomainId(lastGtid, gtidDomainId, a.logger)
+	gtid, err := gtid.ParseGtidWithDomainId(lastGtid, gtidDomainId, a.logger)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing GTID: %v", err)
 	}
