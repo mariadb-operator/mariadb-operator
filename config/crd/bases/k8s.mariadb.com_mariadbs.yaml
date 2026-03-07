@@ -5282,6 +5282,21 @@ spec:
                 description: Storage defines the storage options to be used for provisioning
                   the PVCs mounted by MariaDB.
                 properties:
+                  emptyDir:
+                    description: EmptyDir defines the emptyDir volume configuration
+                      when Ephemeral is true.
+                    properties:
+                      medium:
+                        description: StorageMedium defines ways that storage can be
+                          allocated to a volume.
+                        type: string
+                      sizeLimit:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                        x-kubernetes-int-or-string: true
+                    type: object
                   ephemeral:
                     description: Ephemeral indicates whether to use ephemeral storage
                       in the PVCs. It is only compatible with non HA MariaDBs.

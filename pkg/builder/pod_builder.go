@@ -401,10 +401,14 @@ func mariadbVolumes(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt) ([]
 	}
 
 	if mariadb.IsEphemeralStorageEnabled() {
+		emptyDir := &corev1.EmptyDirVolumeSource{}
+		if mariadb.Spec.Storage.EmptyDir != nil {
+			emptyDir = ptr.To(mariadb.Spec.Storage.EmptyDir.ToKubernetesType())
+		}
 		volumes = append(volumes, corev1.Volume{
 			Name: StorageVolume,
 			VolumeSource: corev1.VolumeSource{
-				EmptyDir: &corev1.EmptyDirVolumeSource{},
+				EmptyDir: emptyDir,
 			},
 		})
 	}
@@ -545,6 +549,10 @@ func mariadbTLSVolumes(mariadb interfaces.TLSProvider) ([]corev1.Volume, []corev
 }
 
 func maxscaleVolumes(maxscale *mariadbv1alpha1.MaxScale) []corev1.Volume {
+	emptyDir := &corev1.EmptyDirVolumeSource{}
+	if maxscale.Spec.Config.EmptyDir != nil {
+		emptyDir = ptr.To(maxscale.Spec.Config.EmptyDir.ToKubernetesType())
+	}
 	volumes := []corev1.Volume{
 		{
 			Name: ConfigVolume,
@@ -557,19 +565,19 @@ func maxscaleVolumes(maxscale *mariadbv1alpha1.MaxScale) []corev1.Volume {
 		{
 			Name: RunVolume,
 			VolumeSource: corev1.VolumeSource{
-				EmptyDir: &corev1.EmptyDirVolumeSource{},
+				EmptyDir: emptyDir,
 			},
 		},
 		{
 			Name: LogVolume,
 			VolumeSource: corev1.VolumeSource{
-				EmptyDir: &corev1.EmptyDirVolumeSource{},
+				EmptyDir: emptyDir,
 			},
 		},
 		{
 			Name: CacheVolume,
 			VolumeSource: corev1.VolumeSource{
-				EmptyDir: &corev1.EmptyDirVolumeSource{},
+				EmptyDir: emptyDir,
 			},
 		},
 	}
