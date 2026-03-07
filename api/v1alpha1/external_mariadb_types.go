@@ -39,7 +39,7 @@ type ExternalMariaDBSpec struct {
 	// ImagePullSecrets is the list of pull Secrets to be used to pull the image.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	ImagePullSecrets []LocalObjectReference `json:"imagePullSecrets,omitempty" webhook:"inmutable"`
+	ImagePullSecrets []LocalObjectReference `json:"imagePullSecrets,omitempty"`
 	// InheritMetadata defines the metadata to be inherited by children resources.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
