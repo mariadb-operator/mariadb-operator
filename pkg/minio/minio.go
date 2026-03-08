@@ -256,7 +256,7 @@ func (c *Client) RemoveWithOptions(ctx context.Context, fileName string) error {
 	return c.RemoveObject(ctx, c.bucket, prefixedFilePath, minio.RemoveObjectOptions{})
 }
 
-func IsNotFound(err error) bool {
+func (c *Client) IsNotFound(err error) bool {
 	resp := minio.ToErrorResponse(err)
 	if resp.StatusCode == http.StatusNotFound {
 		return true
@@ -278,7 +278,7 @@ func (c *Client) Exists(ctx context.Context, fileName string) (bool, error) {
 
 	_, err = c.StatObject(ctx, c.bucket, prefixedFilePath, *statOpts)
 	if err != nil {
-		if IsNotFound(err) {
+		if c.IsNotFound(err) {
 			return false, nil
 		}
 		return false, err

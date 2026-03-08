@@ -66,4 +66,5 @@ type BlobStorage interface {
 	GetPrefix() string
 	ListObjectsWithOptions(ctx context.Context) ([]string, error)
 	IsAuthenticated(ctx context.Context) bool
+	IsNotFound(err error) bool
 }
