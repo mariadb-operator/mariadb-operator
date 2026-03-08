@@ -307,8 +307,8 @@ func (b *BootstrapFrom) validateMutuallyExclusive() error {
 		}
 	}
 	if b.PointInTimeRecoveryRef != nil {
-		if b.BackupRef != nil || b.VolumeSnapshotRef != nil || b.S3 != nil || b.AzureBlob != nil {
-			return errors.New("'backupRef', 'volumeSnapshotRef', 's3' and 'azureBlob' may not be set when 'pointInTimeRecoveryRef' is set")
+		if b.BackupRef != nil || b.VolumeSnapshotRef != nil {
+			return errors.New("'backupRef' and 'volumeSnapshotRef' may not be set when 'pointInTimeRecoveryRef' is set")
 		}
 	}
 	return nil
