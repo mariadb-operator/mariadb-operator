@@ -3,6 +3,8 @@
 hashi = "hashi"
 # Incremental State Transfers
 ist = "ist"
+# cmo: variable name
+cmo = "cmo"
 # TO DO: fix => immutable
 inmutable = "inmutable"
 

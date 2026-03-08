@@ -312,12 +312,20 @@ config:
   # -- Default MariaDB version to be used when unable to infer it via image tag
   mariadbDefaultVersion: "11.8"
   # -- Default MariaDB image
-  mariadbImage: docker-registry1.mariadb.com/library/mariadb:11.8.5
+  mariadbImage:
+    repository: docker-registry1.mariadb.com/library/mariadb
+    tag: 11.8.5
   # -- Default MariaDB image name
   mariadbImageName: docker-registry1.mariadb.com/library/mariadb
   # -- Default MaxScale image
-  maxscaleImage: docker-registry2.mariadb.com/mariadb/maxscale:23.08.5
+  maxscaleImage:
+    repository: docker-registry2.mariadb.com/mariadb/maxscale
+    tag: 23.08.5
   # -- Default MariaDB exporter image
-  exporterImage: prom/mysqld-exporter:v0.15.1
+  exporterImage:
+    repository: prom/mysqld-exporter
+    tag: v0.15.1
   # -- Default MaxScale exporter image
-  exporterMaxscaleImage: docker-registry2.mariadb.com/mariadb/maxscale-prometheus-exporter-ubi:v0.0.1
+  exporterMaxscaleImage:
+    repository: docker-registry2.mariadb.com/mariadb/maxscale-prometheus-exporter-ubi
+    tag: v0.0.1

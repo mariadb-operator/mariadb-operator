@@ -694,6 +694,12 @@ spec:
                     description: ServiceName to be used in the Connection.
                     type: string
                 type: object
+              enableServiceLinks:
+                description: |-
+                  EnableServiceLinks indicates whether information about services should be injected into pod's
+                  environment variables, matching the syntax of Docker links. Defaults to true if not specified.
+                  Set to false to disable injection of service link environment variables.
+                type: boolean
               env:
                 description: Env represents the environment variables to be injected
                   in a container.
@@ -2025,13 +2031,17 @@ spec:
                       By default, the Secret field 'ca.crt' provisioned by cert-manager will be added to the trust chain. A custom trust bundle may be specified via adminCASecretRef.
                     properties:
                       group:
-                        description: Group of the resource being referred to.
+                        description: |-
+                          Group of the issuer being referred to.
+                          Defaults to 'cert-manager.io'.
                         type: string
                       kind:
-                        description: Kind of the resource being referred to.
+                        description: |-
+                          Kind of the issuer being referred to.
+                          Defaults to 'Issuer'.
                         type: string
                       name:
-                        description: Name of the resource being referred to.
+                        description: Name of the issuer being referred to.
                         type: string
                     required:
                     - name
@@ -2068,13 +2078,17 @@ spec:
                       By default, the Secret field 'ca.crt' provisioned by cert-manager will be added to the trust chain. A custom trust bundle may be specified via listenerCASecretRef.
                     properties:
                       group:
-                        description: Group of the resource being referred to.
+                        description: |-
+                          Group of the issuer being referred to.
+                          Defaults to 'cert-manager.io'.
                         type: string
                       kind:
-                        description: Kind of the resource being referred to.
+                        description: |-
+                          Kind of the issuer being referred to.
+                          Defaults to 'Issuer'.
                         type: string
                       name:
-                        description: Name of the resource being referred to.
+                        description: Name of the issuer being referred to.
                         type: string
                     required:
                     - name
