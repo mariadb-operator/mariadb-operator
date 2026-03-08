@@ -97,6 +97,11 @@ type PhysicalBackupSchedule struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
 	Immediate *bool `json:"immediate,omitempty"`
+	// OnDemand is an identifier used to trigger an on-demand backup.
+	// If the identifier is different than the one tracked under status.lastScheduleOnDemand, a new physical backup will be triggered.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	OnDemand *string `json:"onDemand,omitempty"`
 }
 
 // Validate determines whether a PhysicalBackupSchedule is valid.
@@ -257,6 +262,10 @@ type PhysicalBackupStatus struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	NextScheduleTime *metav1.Time `json:"nextScheduleTime,omitempty"`
+	// LastScheduleOnDemand is the last on-demand schedule identifier.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	LastScheduleOnDemand *string `json:"lastScheduleOnDemand,omitempty"`
 }
 
 func (b *PhysicalBackupStatus) SetCondition(condition metav1.Condition) {

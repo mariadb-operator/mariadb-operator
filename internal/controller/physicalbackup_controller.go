@@ -129,7 +129,23 @@ func (r *PhysicalBackupReconciler) reconcile(ctx context.Context, backup *mariad
 type scheduleFn func(now time.Time, cronSchedule cron.Schedule) (ctrl.Result, error)
 
 func (r *PhysicalBackupReconciler) reconcileTemplate(ctx context.Context, backup *mariadbv1alpha1.PhysicalBackup,
-	numReconciledObjects int, scheduleFn scheduleFn) (ctrl.Result, error) {
+	numReconciledObjects int, logger logr.Logger, scheduleFn scheduleFn) (ctrl.Result, error) {
+	if backup.Spec.Schedule != nil && backup.Spec.Schedule.OnDemand != nil {
+		if backup.Status.LastScheduleOnDemand == nil ||
+			(backup.Status.LastScheduleOnDemand != nil && *backup.Status.LastScheduleOnDemand != *backup.Spec.Schedule.OnDemand) {
+
+			logger.Info("Scheduling on demand backup")
+			if result, err := scheduleFn(time.Now(), nil); !result.IsZero() || err != nil {
+				return result, err
+			}
+			if err := r.patchStatus(ctx, backup, func(pbs *mariadbv1alpha1.PhysicalBackupStatus) {
+				pbs.LastScheduleOnDemand = backup.Spec.Schedule.OnDemand
+			}); err != nil {
+				return ctrl.Result{}, fmt.Errorf("error patching last on demand schedule: %v", err)
+			}
+		}
+	}
+
 	if backup.Spec.Schedule != nil {
 		return r.reconcileTemplateScheduled(ctx, backup, scheduleFn)
 	}

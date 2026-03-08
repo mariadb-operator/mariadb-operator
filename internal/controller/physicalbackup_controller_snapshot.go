@@ -63,9 +63,10 @@ func (r *PhysicalBackupReconciler) reconcileSnapshots(ctx context.Context, backu
 		return result, err
 	}
 
-	return r.reconcileTemplate(ctx, backup, len(snapshotList.Items), func(now time.Time, cronSchedule cron.Schedule) (ctrl.Result, error) {
-		return r.scheduleSnapshot(ctx, backup, mariadb, now, cronSchedule, logger)
-	})
+	return r.reconcileTemplate(ctx, backup, len(snapshotList.Items), logger,
+		func(now time.Time, cronSchedule cron.Schedule) (ctrl.Result, error) {
+			return r.scheduleSnapshot(ctx, backup, mariadb, now, cronSchedule, logger)
+		})
 }
 
 func (r *PhysicalBackupReconciler) watchSnapshots(ctx context.Context, builder *ctrlbuilder.Builder) error {

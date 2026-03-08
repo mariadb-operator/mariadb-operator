@@ -57,7 +57,7 @@ func (r *PhysicalBackupReconciler) reconcileJobs(ctx context.Context, backup *ma
 		return ctrl.Result{}, fmt.Errorf("error reconciling storage: %v", err)
 	}
 
-	return r.reconcileTemplate(ctx, backup, len(jobList.Items), func(now time.Time, cronSchedule cron.Schedule) (ctrl.Result, error) {
+	return r.reconcileTemplate(ctx, backup, len(jobList.Items), logger, func(now time.Time, cronSchedule cron.Schedule) (ctrl.Result, error) {
 		return r.createJob(ctx, backup, mariadb, now, cronSchedule, logger)
 	})
 }

@@ -11417,6 +11417,11 @@ spec:
                     description: Immediate indicates whether the first backup should
                       be taken immediately after creating the PhysicalBackup.
                     type: boolean
+                  onDemand:
+                    description: |-
+                      OnDemand is an identifier used to trigger an on-demand backup.
+                      If the identifier is different than the one tracked under status.lastScheduleOnDemand, a new physical backup will be triggered.
+                    type: string
                   suspend:
                     default: false
                     description: Suspend defines whether the schedule is active or
@@ -12124,6 +12129,9 @@ spec:
                 description: LastScheduleCheckTime is the last time that the schedule
                   was checked.
                 format: date-time
+                type: string
+              lastScheduleOnDemand:
+                description: LastScheduleOnDemand is the last on-demand schedule identifier.
                 type: string
               lastScheduleTime:
                 description: LastScheduleTime is the last time that a backup was scheduled.
