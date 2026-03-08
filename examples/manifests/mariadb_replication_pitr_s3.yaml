@@ -97,6 +97,8 @@ spec:
     cron: "0 0 * * *"
     suspend: false
     immediate: true
+    # Update this identifier to schedule an on-demand backup.
+    # onDemand: "1"
   compression: bzip2
   maxRetention: 720h # 30 days
   storage:
