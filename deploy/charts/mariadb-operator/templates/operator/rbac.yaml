@@ -213,6 +213,7 @@ rules:
   - externalmariadbs/status
   - maxscales/status
   - physicalbackups/status
+  - pointintimerecoveries/status
   - restores/status
   - sqljobs/status
   - users/status
@@ -235,6 +236,8 @@ rules:
   - pointintimerecoveries
   verbs:
   - get
+  - list
+  - watch
 - apiGroups:
   - monitoring.coreos.com
   resources:
