@@ -1104,6 +1104,12 @@ spec:
               database:
                 description: Database is the name of the initial Database.
                 type: string
+              enableServiceLinks:
+                description: |-
+                  EnableServiceLinks indicates whether information about services should be injected into pod's
+                  environment variables, matching the syntax of Docker links. Defaults to true if not specified.
+                  Set to false to disable injection of service link environment variables.
+                type: boolean
               env:
                 description: Env represents the environment variables to be injected
                   in a container.

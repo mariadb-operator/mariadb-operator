@@ -222,6 +222,7 @@ func (b *Builder) mariadbPodTemplate(mariadb *mariadbv1alpha1.MariaDB, opts ...m
 		ObjectMeta: objMeta,
 		Spec: corev1.PodSpec{
 			AutomountServiceAccountToken: ptr.To(false),
+			EnableServiceLinks:           mariadb.Spec.EnableServiceLinks,
 			ServiceAccountName:           mariadbServiceAccount(mariadb, opts...),
 			RestartPolicy:                ptr.Deref(mariadbOpts.restartPolicy, corev1.RestartPolicyAlways),
 			InitContainers:               initContainers,
@@ -266,6 +267,7 @@ func (b *Builder) maxscalePodTemplate(mxs *mariadbv1alpha1.MaxScale, annotations
 		ObjectMeta: objMeta,
 		Spec: corev1.PodSpec{
 			AutomountServiceAccountToken: ptr.To(false),
+			EnableServiceLinks:           mxs.Spec.EnableServiceLinks,
 			ServiceAccountName:           ptr.Deref(mxs.Spec.ServiceAccountName, mxs.Name),
 			Containers:                   containers,
 			ImagePullSecrets:             kadapter.ToKubernetesSlice(mxs.Spec.ImagePullSecrets),
