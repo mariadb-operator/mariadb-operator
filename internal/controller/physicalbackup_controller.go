@@ -16,10 +16,12 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/pvc"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/rbac"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/discovery"
-	"github.com/mariadb-operator/mariadb-operator/v26/pkg/health"
 	mariadbpod "github.com/mariadb-operator/mariadb-operator/v26/pkg/pod"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/refresolver"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/sql"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
 	mdbtime "github.com/mariadb-operator/mariadb-operator/v26/pkg/time"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/wait"
 	"github.com/robfig/cron/v3"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -244,17 +246,77 @@ func (r *PhysicalBackupReconciler) primaryTarget(ctx context.Context, mariadb *m
 }
 
 func (r *PhysicalBackupReconciler) replicaTarget(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	logger logr.Logger) (*int, error) {
-	podIndex, err := health.SecondaryPodHealthyIndex(ctx, r.Client, mariadb)
+	replicaLogger logr.Logger) (*int, error) {
+	pods, err := mariadbpod.ListMariaDBSecondaryPods(ctx, r.Client, mariadb)
 	if err != nil {
-		if errors.Is(err, health.ErrNoHealthyInstancesAvailable) {
-			logger.V(1).Info("no target Pods Available: no healthy secondary Pods available")
-			return nil, errPhysicalBackupNoTargetPodsAvailable
-		}
-		return nil, fmt.Errorf("error getting target Pod index: %v", err)
+		return nil, fmt.Errorf("error listing Pods: %v", err)
 	}
-	logger.Info("Using replica as PhysicalBackup target", "target-pod-index", podIndex)
-	return podIndex, nil
+	sortPods(pods)
+
+	for _, p := range pods {
+		podIndex, err := statefulset.PodIndex(p.Name)
+		if err != nil {
+			return nil, fmt.Errorf("error getting index for Pod '%s': %v", p.Name, err)
+		}
+		logger := replicaLogger.WithValues("replica", p.Name, "target-pod-index", podIndex)
+
+		if !mariadbpod.PodReady(&p) {
+			logger.V(1).Info("Replica not ready, skipping replica target...")
+			continue
+		}
+		if mariadb.IsReplicationEnabled() {
+			if err := r.ensureReplicationReady(ctx, *podIndex, mariadb, logger); err != nil {
+				logger.V(1).Info("Replication not ready in replica, skipping replica target...", "err", err)
+				continue
+			}
+		}
+
+		logger.Info("Using replica as PhysicalBackup target")
+		return podIndex, nil
+	}
+
+	replicaLogger.V(1).Info("No replica Pods available")
+	return nil, errPhysicalBackupNoTargetPodsAvailable
+}
+
+func (r *PhysicalBackupReconciler) ensureReplicationReady(ctx context.Context, podIndex int, mariadb *mariadbv1alpha1.MariaDB,
+	logger logr.Logger) error {
+	client, err := sql.NewInternalClientWithPodIndex(ctx, mariadb, r.RefResolver, podIndex)
+	if err != nil {
+		return fmt.Errorf("error getting SQL client: %v", err)
+	}
+	defer client.Close()
+
+	pollCtx, cancel := context.WithTimeout(ctx, 1*time.Minute)
+	defer cancel()
+
+	var (
+		// This is to prevent selecting a replica where replication readiness is flapping,
+		// as it could lead to unexpected behavior (e.g. loop in recovery).
+		// Replica should consistently report ready status for 5s to be considered as target.
+		readyStartTime time.Time
+		readyThreshold = 5 * time.Second
+	)
+	return wait.PollUntilSuccessOrContextCancel(pollCtx, logger, func(ctx context.Context) error {
+		isReady, err := isReplicationReady(ctx, client, logger)
+		if err != nil {
+			readyStartTime = time.Time{}
+			return fmt.Errorf("error getting replication readiness: %w", err)
+		}
+		if !isReady {
+			readyStartTime = time.Time{}
+			return errors.New("replica reported not ready replication status")
+		}
+		if readyStartTime.IsZero() {
+			readyStartTime = time.Now()
+		}
+
+		if time.Since(readyStartTime) >= readyThreshold {
+			logger.V(1).Info("Replica reached readiness threshold")
+			return nil
+		}
+		return errors.New("replication not ready")
+	})
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -367,4 +429,19 @@ func physicalBackupTargetWithFuncs(ctx context.Context, backup *mariadbv1alpha1.
 		return primaryFn(ctx, mariadb, logger)
 	}
 	return nil, errPhysicalBackupNoTargetPodsAvailable
+}
+
+func sortPods(pods []corev1.Pod) {
+	sort.Slice(pods, func(i, j int) bool {
+		return pods[i].Name < pods[j].Name
+	})
+}
+
+func isReplicationReady(ctx context.Context, client *sql.Client, logger logr.Logger) (bool, error) {
+	replStatus, err := client.ReplicaStatus(ctx, logger)
+	if err != nil {
+		return false, fmt.Errorf("error getting replica status: %v", err)
+	}
+	return replStatus.LastIOErrno != nil && *replStatus.LastIOErrno == 0 &&
+		replStatus.LastSQLErrno != nil && *replStatus.LastSQLErrno == 0, nil
 }
