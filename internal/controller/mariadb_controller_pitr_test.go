@@ -62,6 +62,48 @@ var _ = Describe("MariaDB PITR with Replication", Ordered, func() {
 			expectPhysicalBackupReady(physicalBackup)
 		})
 	})
+
+	Context("With ABS Storage", func() {
+		var (
+			bucket               = "test-pitr"
+			physicalBackupPrefix = "mariadb"
+			pitrPrefix           = fmt.Sprintf("mariadb-%d", rand.Int())
+
+			pitr           = buildTestPitr(key, key, withTestPitrABSStorage(bucket, pitrPrefix))
+			physicalBackup = buildPhysicalBackupWithABSStorage(key, bucket, physicalBackupPrefix)(key)
+		)
+
+		BeforeAll(func() {
+			mdb = buildTestMariaDBWithRepl(key)
+			applyMariadbTestConfig(mdb)
+			mdb.Spec.PointInTimeRecoveryRef = &mariadbv1alpha1.LocalObjectReference{
+				Name: pitr.Name,
+			}
+
+			By("Creating MariaDB with replication")
+			Expect(k8sClient.Create(testCtx, mdb)).To(Succeed())
+
+			By("Creating Physical Backup")
+			Expect(k8sClient.Create(testCtx, physicalBackup)).To(Succeed())
+
+			By("Creating PointInTimeRecovery")
+			Expect(k8sClient.Create(testCtx, pitr)).To(Succeed())
+
+			DeferCleanup(func() {
+				deleteMariadb(key, false)
+				deletePhysicalBackup(key)
+				deletePitr(key)
+			})
+		})
+
+		It("should reconcile MariaDB", func() {
+			By("Expecting MariaDB to be ready eventually")
+			expectMariadbReady(testCtx, k8sClient, key)
+
+			By("Expecting PhysicalBackup to be ready")
+			expectPhysicalBackupReady(physicalBackup)
+		})
+	})
 })
 
 // =========================
@@ -72,6 +114,14 @@ func withTestPitrS3Storage(bucket, prefix string) testPitrOption {
 	return func(p *mariadbv1alpha1.PointInTimeRecovery) {
 		p.Spec.PointInTimeRecoveryStorage = mariadbv1alpha1.PointInTimeRecoveryStorage{
 			S3: getS3Storage(bucket, prefix),
+		}
+	}
+}
+
+func withTestPitrABSStorage(containerName, prefix string) testPitrOption {
+	return func(p *mariadbv1alpha1.PointInTimeRecovery) {
+		p.Spec.PointInTimeRecoveryStorage = mariadbv1alpha1.PointInTimeRecoveryStorage{
+			AzureBlob: getABSStorage(containerName, prefix),
 		}
 	}
 }

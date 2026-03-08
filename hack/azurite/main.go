@@ -24,6 +24,7 @@ var containers = []string{
 	"physicalbackup",
 	"test-physicalbackup",
 	"binlogs",
+	"test-pitr",
 }
 
 const (
