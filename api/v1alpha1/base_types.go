@@ -668,19 +668,19 @@ type AzureBlob struct {
 	// ContainerName is the name of the storage container.
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	ContainerName string `json:"containerName" webhook:"inmutable"`
+	ContainerName string `json:"containerName"`
 	// ServiceURL is the full URL for connecting to Azure, usually in the form: http(s)://<account>.blob.core.windows.net/.
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	ServiceURL string `json:"serviceURL" webhook:"inmutable"`
+	ServiceURL string `json:"serviceURL"`
 	// Prefix indicates a folder/subfolder in the container. For example: mariadb/ or mariadb/backups. A trailing slash '/' is added if not provided.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Prefix string `json:"prefix" webhook:"inmutable"`
+	Prefix string `json:"prefix"`
 	// StorageAccountName is the name of the storage account. Pairs with StorageAccountKey for static credential authentication
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	StorageAccountName string `json:"storageAccountName,omitempty" webhook:"inmutable"`
+	StorageAccountName string `json:"storageAccountName,omitempty"`
 	// StorageAccountKey is a reference to a Secret key containing the Azure Blob Storage Storage account Key. Pairs with StorageAccountKey for static credential authentication
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -695,19 +695,19 @@ type S3 struct {
 	// Bucket is the name Name of the bucket to store backups.
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Bucket string `json:"bucket" webhook:"inmutable"`
+	Bucket string `json:"bucket"`
 	// Endpoint is the S3 API endpoint without scheme.
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Endpoint string `json:"endpoint" webhook:"inmutable"`
+	Endpoint string `json:"endpoint"`
 	// Region is the S3 region name to use.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Region string `json:"region" webhook:"inmutable"`
+	Region string `json:"region"`
 	// Prefix indicates a folder/subfolder in the bucket. For example: mariadb/ or mariadb/backups. A trailing slash '/' is added if not provided.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Prefix string `json:"prefix" webhook:"inmutable"`
+	Prefix string `json:"prefix"`
 	// AccessKeyIdSecretKeyRef is a reference to a Secret key containing the S3 access key id.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
