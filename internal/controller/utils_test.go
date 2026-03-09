@@ -145,7 +145,7 @@ func testCreateInitialData(ctx context.Context, env environment.OperatorEnv) {
 			Namespace: testMdbkey.Namespace,
 		},
 		Spec: mariadbv1alpha1.MariaDBSpec{
-			PodTemplate: mariadbv1alpha1.PodTemplate{
+			MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
 				PodMetadata: &mariadbv1alpha1.Metadata{
 					Labels: map[string]string{
 						"sidecar.istio.io/inject": "false",
@@ -273,7 +273,7 @@ max_allowed_packet=256M`),
 					AllowPrivilegeEscalation: ptr.To(false),
 				},
 			},
-			PodTemplate: mariadbv1alpha1.PodTemplate{
+			MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
 				PodSecurityContext: &mariadbv1alpha1.PodSecurityContext{
 					RunAsUser: ptr.To(int64(999)),
 				},
@@ -413,14 +413,14 @@ func testMariadbUpdate(mdb *mariadbv1alpha1.MariaDB) {
 		if err := k8sClient.Get(testCtx, key, mdb); err != nil {
 			return false
 		}
-		if mdb.Spec.PodTemplate.PodMetadata == nil {
-			mdb.Spec.PodTemplate.PodMetadata = &mariadbv1alpha1.Metadata{}
+		if mdb.Spec.MariaDBPodTemplate.PodMetadata == nil {
+			mdb.Spec.MariaDBPodTemplate.PodMetadata = &mariadbv1alpha1.Metadata{}
 
-			if mdb.Spec.PodTemplate.PodMetadata.Annotations == nil {
-				mdb.Spec.PodTemplate.PodMetadata.Annotations = map[string]string{}
+			if mdb.Spec.MariaDBPodTemplate.PodMetadata.Annotations == nil {
+				mdb.Spec.MariaDBPodTemplate.PodMetadata.Annotations = map[string]string{}
 			}
 		}
-		mdb.Spec.PodTemplate.PodMetadata.Annotations["k8s.mariadb.com/updated-at"] = time.Now().String()
+		mdb.Spec.MariaDBPodTemplate.PodMetadata.Annotations["k8s.mariadb.com/updated-at"] = time.Now().String()
 
 		return k8sClient.Update(testCtx, mdb) == nil
 	}, testTimeout, testInterval).Should(BeTrue())

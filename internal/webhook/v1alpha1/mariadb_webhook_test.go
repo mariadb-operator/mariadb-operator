@@ -604,7 +604,7 @@ var _ = Describe("v1alpha1.MariaDB webhook", func() {
 				Spec: v1alpha1.MariaDBSpec{
 					Image:           "mariadb:11.3.3",
 					ImagePullPolicy: corev1.PullIfNotPresent,
-					PodTemplate: v1alpha1.PodTemplate{
+					MariaDBPodTemplate: v1alpha1.MariaDBPodTemplate{
 						PriorityClassName: ptr.To("PriorityClassName"),
 					},
 					ContainerTemplate: v1alpha1.ContainerTemplate{

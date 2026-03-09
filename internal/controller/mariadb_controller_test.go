@@ -141,7 +141,7 @@ var _ = Describe("MariaDB", Label("basic"), func() {
 		By("Expecting to create a ServiceAccount eventually")
 		Eventually(func(g Gomega) bool {
 			var svcAcc corev1.ServiceAccount
-			key := testMariaDb.Spec.PodTemplate.ServiceAccountKey(testMariaDb.ObjectMeta)
+			key := testMariaDb.Spec.MariaDBPodTemplate.ServiceAccountKey(testMariaDb.ObjectMeta)
 			g.Expect(k8sClient.Get(testCtx, key, &svcAcc)).To(Succeed())
 
 			g.Expect(svcAcc.ObjectMeta.Labels).NotTo(BeNil())

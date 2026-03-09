@@ -43,7 +43,7 @@ var _ = Describe("MariaDB types", func() {
 				&MariaDB{
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
-						PodTemplate: PodTemplate{
+						MariaDBPodTemplate: MariaDBPodTemplate{
 							ServiceAccountName: &objMeta.Name,
 						},
 						Image:             env.RelatedMariadbImage,
@@ -99,7 +99,7 @@ var _ = Describe("MariaDB types", func() {
 				&MariaDB{
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
-						PodTemplate: PodTemplate{
+						MariaDBPodTemplate: MariaDBPodTemplate{
 							ServiceAccountName: &objMeta.Name,
 						},
 						Image:             "mariadb:lts",
@@ -142,7 +142,7 @@ var _ = Describe("MariaDB types", func() {
 				&MariaDB{
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
-						PodTemplate: PodTemplate{
+						MariaDBPodTemplate: MariaDBPodTemplate{
 							ServiceAccountName: &objMeta.Name,
 						},
 						Image:             "mariadb:lts",
@@ -180,7 +180,7 @@ var _ = Describe("MariaDB types", func() {
 				&MariaDB{
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
-						PodTemplate: PodTemplate{
+						MariaDBPodTemplate: MariaDBPodTemplate{
 							ServiceAccountName: &objMeta.Name,
 						},
 						Image:             env.RelatedMariadbImage,
@@ -236,7 +236,7 @@ var _ = Describe("MariaDB types", func() {
 				&MariaDB{
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
-						PodTemplate: PodTemplate{
+						MariaDBPodTemplate: MariaDBPodTemplate{
 							ServiceAccountName: &objMeta.Name,
 						},
 						Image:             env.RelatedMariadbImage,
@@ -305,7 +305,7 @@ var _ = Describe("MariaDB types", func() {
 				&MariaDB{
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
-						PodTemplate: PodTemplate{
+						MariaDBPodTemplate: MariaDBPodTemplate{
 							ServiceAccountName: &objMeta.Name,
 						},
 						Image:             env.RelatedMariadbImage,
@@ -362,7 +362,7 @@ var _ = Describe("MariaDB types", func() {
 				&MariaDB{
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
-						PodTemplate: PodTemplate{
+						MariaDBPodTemplate: MariaDBPodTemplate{
 							ServiceAccountName: &objMeta.Name,
 						},
 						Image:             env.RelatedMariadbImage,
@@ -424,7 +424,7 @@ var _ = Describe("MariaDB types", func() {
 				&MariaDB{
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
-						PodTemplate: PodTemplate{
+						MariaDBPodTemplate: MariaDBPodTemplate{
 							ServiceAccountName: &objMeta.Name,
 						},
 						Image:             env.RelatedMariadbImage,
@@ -478,7 +478,7 @@ var _ = Describe("MariaDB types", func() {
 				&MariaDB{
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
-						PodTemplate: PodTemplate{
+						MariaDBPodTemplate: MariaDBPodTemplate{
 							ServiceAccountName: &objMeta.Name,
 						},
 						Image:             env.RelatedMariadbImage,
@@ -544,7 +544,7 @@ var _ = Describe("MariaDB types", func() {
 				&MariaDB{
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
-						PodTemplate: PodTemplate{
+						MariaDBPodTemplate: MariaDBPodTemplate{
 							ServiceAccountName: &objMeta.Name,
 						},
 						Image:             env.RelatedMariadbImage,
@@ -631,7 +631,7 @@ var _ = Describe("MariaDB types", func() {
 				&MariaDB{
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
-						PodTemplate: PodTemplate{
+						MariaDBPodTemplate: MariaDBPodTemplate{
 							ServiceAccountName: &objMeta.Name,
 						},
 						Image:             env.RelatedMariadbImage,
@@ -718,7 +718,7 @@ var _ = Describe("MariaDB types", func() {
 				&MariaDB{
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
-						PodTemplate: PodTemplate{
+						MariaDBPodTemplate: MariaDBPodTemplate{
 							ServiceAccountName: &objMeta.Name,
 						},
 						Image:             env.RelatedMariadbImage,
@@ -789,7 +789,7 @@ var _ = Describe("MariaDB types", func() {
 				&MariaDB{
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
-						PodTemplate: PodTemplate{
+						MariaDBPodTemplate: MariaDBPodTemplate{
 							ServiceAccountName: &objMeta.Name,
 						},
 						Image:             env.RelatedMariadbImage,
@@ -846,7 +846,7 @@ var _ = Describe("MariaDB types", func() {
 				&MariaDB{
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
-						PodTemplate: PodTemplate{
+						MariaDBPodTemplate: MariaDBPodTemplate{
 							ServiceAccountName: &objMeta.Name,
 						},
 						Image:             env.RelatedMariadbImage,
@@ -890,7 +890,7 @@ var _ = Describe("MariaDB types", func() {
 				&MariaDB{
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
-						PodTemplate: PodTemplate{
+						MariaDBPodTemplate: MariaDBPodTemplate{
 							ServiceAccountName: &objMeta.Name,
 						},
 						Image:             env.RelatedMariadbImage,
@@ -924,7 +924,7 @@ var _ = Describe("MariaDB types", func() {
 				&MariaDB{
 					ObjectMeta: objMeta,
 					Spec: MariaDBSpec{
-						PodTemplate: PodTemplate{
+						MariaDBPodTemplate: MariaDBPodTemplate{
 							Affinity: &AffinityConfig{
 								AntiAffinityEnabled: ptr.To(true),
 							},
@@ -958,7 +958,7 @@ var _ = Describe("MariaDB types", func() {
 							Type:                ReplicasFirstPrimaryLastUpdateType,
 							AutoUpdateDataPlane: ptr.To(false),
 						},
-						PodTemplate: PodTemplate{
+						MariaDBPodTemplate: MariaDBPodTemplate{
 							ServiceAccountName: &objMeta.Name,
 							Affinity: &AffinityConfig{
 								AntiAffinityEnabled: ptr.To(true),
@@ -1066,7 +1066,7 @@ var _ = Describe("MariaDB types", func() {
 							Type:                OnDeleteUpdateType,
 							AutoUpdateDataPlane: ptr.To(false),
 						},
-						PodTemplate: PodTemplate{
+						MariaDBPodTemplate: MariaDBPodTemplate{
 							ServiceAccountName: ptr.To("mariadb-sa"),
 							Affinity: &AffinityConfig{
 								AntiAffinityEnabled: ptr.To(true),
@@ -1185,7 +1185,7 @@ var _ = Describe("MariaDB types", func() {
 							Type:                OnDeleteUpdateType,
 							AutoUpdateDataPlane: ptr.To(false),
 						},
-						PodTemplate: PodTemplate{
+						MariaDBPodTemplate: MariaDBPodTemplate{
 							ServiceAccountName: ptr.To("mariadb-sa"),
 							Affinity: &AffinityConfig{
 								AntiAffinityEnabled: ptr.To(true),
@@ -1254,7 +1254,7 @@ var _ = Describe("MariaDB types", func() {
 							Type:                ReplicasFirstPrimaryLastUpdateType,
 							AutoUpdateDataPlane: ptr.To(false),
 						},
-						PodTemplate: PodTemplate{
+						MariaDBPodTemplate: MariaDBPodTemplate{
 							ServiceAccountName: &objMeta.Name,
 						},
 					},
@@ -1343,7 +1343,7 @@ var _ = Describe("MariaDB types", func() {
 							Type:                ReplicasFirstPrimaryLastUpdateType,
 							AutoUpdateDataPlane: ptr.To(false),
 						},
-						PodTemplate: PodTemplate{
+						MariaDBPodTemplate: MariaDBPodTemplate{
 							ServiceAccountName: &objMeta.Name,
 						},
 					},
@@ -1441,7 +1441,7 @@ var _ = Describe("MariaDB types", func() {
 							Type:                ReplicasFirstPrimaryLastUpdateType,
 							AutoUpdateDataPlane: ptr.To(false),
 						},
-						PodTemplate: PodTemplate{
+						MariaDBPodTemplate: MariaDBPodTemplate{
 							ServiceAccountName: &objMeta.Name,
 						},
 					},

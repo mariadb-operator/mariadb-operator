@@ -1738,7 +1738,7 @@ func TestMariadbContainers(t *testing.T) {
 			name: "Without sidecar container name",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
 						SidecarContainers: []mariadbv1alpha1.Container{
 							{
 								Image: "busybox",
@@ -1760,7 +1760,7 @@ func TestMariadbContainers(t *testing.T) {
 			name: "With sidecar container name",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
 						SidecarContainers: []mariadbv1alpha1.Container{
 							{
 								Name:  "busybox",
@@ -1784,7 +1784,7 @@ func TestMariadbContainers(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Port: 3306,
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
 						SidecarContainers: []mariadbv1alpha1.Container{
 							{
 								Name:  "busybox",
@@ -1822,7 +1822,7 @@ func TestMariadbContainers(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Port: 3306,
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
 						SidecarContainers: []mariadbv1alpha1.Container{
 							{
 								Name:  "busybox",
@@ -1903,7 +1903,7 @@ func TestMariadbInitContainers(t *testing.T) {
 			name: "Without container name",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
 						InitContainers: []mariadbv1alpha1.Container{
 							{
 								Image: "busybox",
@@ -1925,7 +1925,7 @@ func TestMariadbInitContainers(t *testing.T) {
 			name: "With container name",
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
 						InitContainers: []mariadbv1alpha1.Container{
 							{
 								Name:  "busybox",
@@ -1949,7 +1949,7 @@ func TestMariadbInitContainers(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Port: 3306,
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
 						InitContainers: []mariadbv1alpha1.Container{
 							{
 								Name:  "busybox",
@@ -1987,7 +1987,7 @@ func TestMariadbInitContainers(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Port: 3306,
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
 						InitContainers: []mariadbv1alpha1.Container{
 							{
 								Name:  "busybox",
