@@ -126,6 +126,26 @@ func (v ConfigMapVolumeSource) ToKubernetesType() corev1.ConfigMapVolumeSource {
 	}
 }
 
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#ephemeralvolumesource-v1-core.
+type EphemeralVolumeSource struct {
+	VolumeClaimTemplate *VolumeClaimTemplate `json:"volumeClaimTemplate,omitempty"`
+}
+
+func (v EphemeralVolumeSource) ToKubernetesType() corev1.EphemeralVolumeSource {
+	var ephemeral corev1.EphemeralVolumeSource
+	if v.VolumeClaimTemplate != nil {
+		meta := ptr.Deref(v.VolumeClaimTemplate.Metadata, Metadata{})
+		ephemeral.VolumeClaimTemplate = &corev1.PersistentVolumeClaimTemplate{
+			ObjectMeta: metav1.ObjectMeta{
+				Labels:      meta.Labels,
+				Annotations: meta.Annotations,
+			},
+			Spec: v.VolumeClaimTemplate.ToKubernetesType(),
+		}
+	}
+	return ephemeral
+}
+
 // Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#volume-v1-core.
 type StorageVolumeSource struct {
 	// +optional

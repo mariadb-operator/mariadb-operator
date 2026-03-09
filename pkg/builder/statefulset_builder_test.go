@@ -48,7 +48,7 @@ func TestMariadbImagePullSecrets(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
 						ImagePullSecrets: []mariadbv1alpha1.LocalObjectReference{
 							{
 								Name: "mariadb-registry",
@@ -249,7 +249,7 @@ func TestMariaDBStatefulSetMeta(t *testing.T) {
 			mariadb: &mariadbv1alpha1.MariaDB{
 				ObjectMeta: objMeta,
 				Spec: mariadbv1alpha1.MariaDBSpec{
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
 						PodMetadata: &mariadbv1alpha1.Metadata{
 							Annotations: map[string]string{
 								"k8s.mariadb.com/pod-meta": "pod-meta",
@@ -295,7 +295,7 @@ func TestMariaDBStatefulSetMeta(t *testing.T) {
 					Galera: &mariadbv1alpha1.Galera{
 						Enabled: true,
 					},
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
 						PodMetadata: &mariadbv1alpha1.Metadata{
 							Annotations: map[string]string{
 								"k8s.mariadb.com/pod-meta": "pod-meta",

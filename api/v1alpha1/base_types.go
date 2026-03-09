@@ -435,82 +435,6 @@ func (a *AffinityConfig) SetDefaults(antiAffinityInstances ...string) {
 	}
 }
 
-// PodTemplate defines a template to configure Container objects.
-type PodTemplate struct {
-	// PodMetadata defines extra metadata for the Pod.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	PodMetadata *Metadata `json:"podMetadata,omitempty"`
-	// ImagePullSecrets is the list of pull Secrets to be used to pull the image.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	ImagePullSecrets []LocalObjectReference `json:"imagePullSecrets,omitempty"`
-	// InitContainers to be used in the Pod.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	InitContainers []Container `json:"initContainers,omitempty"`
-	// SidecarContainers to be used in the Pod.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	SidecarContainers []Container `json:"sidecarContainers,omitempty"`
-	// SecurityContext holds pod-level security attributes and common container settings.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	PodSecurityContext *PodSecurityContext `json:"podSecurityContext,omitempty"`
-	// ServiceAccountName is the name of the ServiceAccount to be used by the Pods.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	ServiceAccountName *string `json:"serviceAccountName,omitempty" webhook:"inmutableinit"`
-	// Affinity to be used in the Pod.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	Affinity *AffinityConfig `json:"affinity,omitempty"`
-	// NodeSelector to be used in the Pod.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
-	// Tolerations to be used in the Pod.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
-	// Volumes to be used in the Pod.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	Volumes []Volume `json:"volumes,omitempty"`
-	// PriorityClassName to be used in the Pod.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	PriorityClassName *string `json:"priorityClassName,omitempty"`
-	// TopologySpreadConstraints to be used in the Pod.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	TopologySpreadConstraints []TopologySpreadConstraint `json:"topologySpreadConstraints,omitempty"`
-	// EnableServiceLinks indicates whether information about services should be injected into pod's
-	// environment variables, matching the syntax of Docker links. Defaults to true if not specified.
-	// Set to false to disable injection of service link environment variables.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	EnableServiceLinks *bool `json:"enableServiceLinks,omitempty"`
-}
-
-// SetDefaults sets reasonable defaults.
-func (p *PodTemplate) SetDefaults(objMeta metav1.ObjectMeta) {
-	if p.ServiceAccountName == nil {
-		p.ServiceAccountName = ptr.To(p.ServiceAccountKey(objMeta).Name)
-	}
-	if p.Affinity != nil {
-		p.Affinity.SetDefaults(objMeta.Name)
-	}
-}
-
-// ServiceAccountKey defines the key for the ServiceAccount object.
-func (p *PodTemplate) ServiceAccountKey(objMeta metav1.ObjectMeta) types.NamespacedName {
-	return types.NamespacedName{
-		Name:      ptr.Deref(p.ServiceAccountName, objMeta.Name),
-		Namespace: objMeta.Namespace,
-	}
-}
-
 // JobPodTemplate defines a template to configure Container objects that run in a Job.
 type JobPodTemplate struct {
 	// PodMetadata defines extra metadata for the Pod.
@@ -548,7 +472,7 @@ type JobPodTemplate struct {
 }
 
 // FromPodTemplate sets the PodTemplate fields in the current JobPodTemplate.
-func (j *JobPodTemplate) FromPodTemplate(ptpl *PodTemplate) {
+func (j *JobPodTemplate) FromPodTemplate(ptpl *MariaDBPodTemplate) {
 	if j.PodMetadata == nil {
 		j.PodMetadata = ptpl.PodMetadata
 	}
