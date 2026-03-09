@@ -485,7 +485,7 @@ func (v MariaDBVolume) ToKubernetesType() corev1.Volume {
 	}
 }
 
-// MariaDBPodTemplate defines a template to configure Container objects.
+// MariaDBPodTemplate defines a template for MariaDB Pods.
 type MariaDBPodTemplate struct {
 	// PodMetadata defines extra metadata for the Pod.
 	// +optional
