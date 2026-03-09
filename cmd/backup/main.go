@@ -282,7 +282,7 @@ func readTargetFile() (string, error) {
 }
 
 func cleanupFile(fileName string, logger logr.Logger) error {
-	if !s3 || !abs || !cleanupTargetFile {
+	if !(s3 || abs) || !cleanupTargetFile {
 		return nil
 	}
 	filePath := backup.GetFilePath(path, fileName)
