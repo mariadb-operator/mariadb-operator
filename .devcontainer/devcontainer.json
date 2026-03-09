@@ -2,7 +2,7 @@
     "name": "Go",
     "image": "mcr.microsoft.com/devcontainers/go:1.25-bookworm",
     "features": {
-        "ghcr.io/devcontainers/features/docker-in-docker:2.16.0": {
+        "ghcr.io/devcontainers/features/docker-in-docker:2.16.1": {
             "moby": true,
             "installDockerBuildx": true,
             "version": "latest",
