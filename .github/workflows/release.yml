@@ -72,7 +72,7 @@ jobs:
         id: buildx
 
       - name: Login GHCR
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
