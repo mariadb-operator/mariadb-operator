@@ -79,7 +79,7 @@ jobs:
           registry: ghcr.io
 
       - name: Publish multi-arch Docker image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           push: true
           builder: ${{ steps.buildx.outputs.name }}
