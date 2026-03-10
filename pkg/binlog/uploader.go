@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/compression"
-	mariadbminio "github.com/mariadb-operator/mariadb-operator/v25/pkg/minio"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/compression"
+	mariadbminio "github.com/mariadb-operator/mariadb-operator/v26/pkg/minio"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/util/retry"
 )

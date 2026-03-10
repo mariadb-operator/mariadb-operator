@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/sql"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/sql"
 )
 
 func IsPodHealthy(ctx context.Context, sqlClient *sql.Client) (bool, error) {

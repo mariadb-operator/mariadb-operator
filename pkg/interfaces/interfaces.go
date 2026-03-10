@@ -1,8 +1,8 @@
 package interfaces
 
 import (
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/environment"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/environment"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"

@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"github.com/go-logr/logr"
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/replication"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/replication"
 )
 
 // HasRelayLogEvents indicates that there are events in the IO thread to be applied by the SQL thread.

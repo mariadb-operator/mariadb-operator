@@ -11,8 +11,8 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/go-mysql-org/go-mysql/mysql"
 	"github.com/go-mysql-org/go-mysql/replication"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/datastructures"
-	mariadbrepl "github.com/mariadb-operator/mariadb-operator/v25/pkg/replication"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/datastructures"
+	mariadbrepl "github.com/mariadb-operator/mariadb-operator/v26/pkg/replication"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 

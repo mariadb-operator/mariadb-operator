@@ -7,8 +7,8 @@ import (
 	"io"
 
 	"github.com/dsnet/compress/bzip2"
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/reader"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/reader"
 )
 
 type Compressor interface {

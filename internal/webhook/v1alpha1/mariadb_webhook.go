@@ -5,8 +5,8 @@ import (
 	"errors"
 	"reflect"
 
-	"github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
-	galerakeys "github.com/mariadb-operator/mariadb-operator/v25/pkg/galera/config/keys"
+	"github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
+	galerakeys "github.com/mariadb-operator/mariadb-operator/v26/pkg/galera/config/keys"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"

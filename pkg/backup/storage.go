@@ -6,7 +6,7 @@ import (
 	"os"
 
 	"github.com/go-logr/logr"
-	mariadbminio "github.com/mariadb-operator/mariadb-operator/v25/pkg/minio"
+	mariadbminio "github.com/mariadb-operator/mariadb-operator/v26/pkg/minio"
 )
 
 type BackupStorage interface {

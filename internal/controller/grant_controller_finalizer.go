@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/sql"
-	sqlClient "github.com/mariadb-operator/mariadb-operator/v25/pkg/sql"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/sql"
+	sqlClient "github.com/mariadb-operator/mariadb-operator/v26/pkg/sql"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )

@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/go-logr/logr"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/backup"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/backup"
 )
 
 func TestBackupCompressors(t *testing.T) {

@@ -5,9 +5,9 @@ import (
 	"errors"
 	"fmt"
 
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
-	labels "github.com/mariadb-operator/mariadb-operator/v25/pkg/builder/labels"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/statefulset"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
+	labels "github.com/mariadb-operator/mariadb-operator/v26/pkg/builder/labels"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
 	corev1 "k8s.io/api/core/v1"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )

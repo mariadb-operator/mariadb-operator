@@ -5,10 +5,10 @@ import (
 	"os"
 	"time"
 
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/backup"
-	mdbcompression "github.com/mariadb-operator/mariadb-operator/v25/pkg/compression"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/log"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/backup"
+	mdbcompression "github.com/mariadb-operator/mariadb-operator/v26/pkg/compression"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/log"
 	"github.com/spf13/cobra"
 )
 

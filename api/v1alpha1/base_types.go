@@ -9,7 +9,7 @@ import (
 	"time"
 
 	cmmeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/environment"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/environment"
 	cron "github.com/robfig/cron/v3"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

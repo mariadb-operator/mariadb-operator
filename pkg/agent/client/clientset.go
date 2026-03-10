@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"sync"
 
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/environment"
-	mdbhttp "github.com/mariadb-operator/mariadb-operator/v25/pkg/http"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/refresolver"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/environment"
+	mdbhttp "github.com/mariadb-operator/mariadb-operator/v26/pkg/http"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/refresolver"
 )
 
 type ClientSet struct {

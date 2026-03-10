@@ -16,12 +16,12 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/go-sql-driver/mysql"
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/environment"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/interfaces"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/pki"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/refresolver"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/statefulset"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/environment"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/interfaces"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/pki"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/refresolver"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 )

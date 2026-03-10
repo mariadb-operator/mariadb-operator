@@ -5,9 +5,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/mariadb-operator/mariadb-operator/v25/internal/controller"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/log"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/pki"
+	"github.com/mariadb-operator/mariadb-operator/v26/internal/controller"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/log"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/pki"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"k8s.io/apimachinery/pkg/types"
