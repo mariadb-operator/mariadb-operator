@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	"github.com/hashicorp/go-multierror"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/environment"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/filemanager"
@@ -116,9 +117,28 @@ func (a *Archiver) archiveBinaryLogs(ctx context.Context, mdb *mariadbv1alpha1.M
 	}
 	a.logger.Info("Archiving binary logs")
 
-	_, err := a.getBinaryLogs(ctx, sqlClient)
+	binlogs, err := a.getBinaryLogs(ctx, sqlClient)
 	if err != nil {
 		return fmt.Errorf("error getting binary logs: %v", err)
+	}
+
+	if len(binlogs) > 0 && mdb.Status.PointInTimeRecovery != nil && mdb.Status.PointInTimeRecovery.LastArchivedBinaryLog != nil {
+		shouldReset, err := shouldResetArchivedBinlog(
+			binlogs,
+			*mdb.Status.PointInTimeRecovery.LastArchivedBinaryLog,
+			a.logger,
+		)
+		if err != nil {
+			return fmt.Errorf("error checking archived binary log: %v", err)
+		}
+		if shouldReset {
+			if err := a.patchStatus(ctx, mdb, func(mdb *mariadbv1alpha1.MariaDBStatus) {
+				mdb.PointInTimeRecovery.LastArchivedBinaryLog = nil
+			}); err != nil {
+				return fmt.Errorf("error patching MariaDB: %v", err)
+			}
+			// TODO: verify  if additional request to get updated MariaDB is needed (it shouldm't)
+		}
 	}
 
 	return nil
@@ -143,10 +163,14 @@ func (a *Archiver) getBinaryLogs(ctx context.Context, sqlClient *sql.Client) ([]
 		binlog := path.Base(fileScanner.Text())
 		binlogs = append(binlogs, binlog)
 	}
-	if len(binlogs) == 0 {
-		return nil, errors.New("no binary logs were found")
-	}
 	return binlogs, nil
+}
+
+func (a *Archiver) patchStatus(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+	patcher func(*mariadbv1alpha1.MariaDBStatus)) error {
+	patch := client.MergeFrom(mariadb.DeepCopy())
+	patcher(&mariadb.Status)
+	return a.client.Status().Patch(ctx, mariadb, patch)
 }
 
 func getS3Client(pitr *mariadbv1alpha1.PointInTimeRecovery) (*minio.Client, error) {
@@ -164,4 +188,33 @@ func getS3Client(pitr *mariadbv1alpha1.PointInTimeRecovery) (*minio.Client, erro
 		return nil, fmt.Errorf("error getting S3 client: %v", err)
 	}
 	return client, nil
+}
+
+func shouldResetArchivedBinlog(binlogs []string, lastArchivedBinlog string,
+	logger logr.Logger) (bool, error) {
+	var errBundle *multierror.Error
+	prefix, err := BinlogPrefix(binlogs[0])
+	errBundle = multierror.Append(errBundle, err)
+	archivedPrefix, err := BinlogPrefix(lastArchivedBinlog)
+	errBundle = multierror.Append(errBundle, err)
+
+	lastNum, err := BinlogNum(binlogs[len(binlogs)-1])
+	errBundle = multierror.Append(errBundle, err)
+	archivedNum, err := BinlogNum(lastArchivedBinlog)
+	errBundle = multierror.Append(errBundle, err)
+
+	if err := errBundle.ErrorOrNil(); err != nil {
+		return false, err
+	}
+	if prefix != archivedPrefix || *lastNum < *archivedNum {
+		logger.Info(
+			"Resetting last archived binary log",
+			"prefix", prefix,
+			"archived-prefix", archivedPrefix,
+			"last-num", lastNum,
+			"archived-num", archivedNum,
+		)
+		return true, nil
+	}
+	return false, nil
 }
