@@ -90,7 +90,7 @@ Multiple storage types are supported for storing physical backups, including:
 
 ## Scheduling
 
-Physical backups can be scheduled using the `spec.schedule` field in the `PhysicalBackup` resource. The schedule is defined using a [Cron format](https://en.wikipedia.org/wiki/Cron) and allows you to specify how often backups should be taken:
+Physical backup schedule can be optionally configured using the `spec.schedule` field in the `PhysicalBackup` resource. When empty, a single backup job is scheduled:
 
 ```yaml
 apiVersion: k8s.mariadb.com/v1alpha1
@@ -105,11 +105,13 @@ spec:
     cron: "*/1 * * * *"
     suspend: false
     immediate: true
+    onDemand: "1"
 ```
 
-If you want to immediatly trigger a backup after creating the `PhysicalBackup` resource, you can set the `immediate` field to `true`. This will create a backup immediately, regardless of the schedule.
-
-If you want to suspend the schedule, you can set the `suspend` field to `true`. This will prevent any new backups from being created until the `PhysicalBackup` is resumed.
+- `cron`: [Cron expression](https://en.wikipedia.org/wiki/Cron) to define the backup schedule.
+- `suspend`: Setting it to `true`, it will prevent new backups from being scheduled.
+- `immediate`: Setting it `true`, it will schedule a backup immediately after creating the `PhysicalBackup` resource.
+- `onDemand`: Schedule identifier for triggering an on-demand backup. If the identifier is different than the one tracked under `status.lastScheduleOnDemand`, a new physical backup will be triggered.
 
 It is very important to note that, by default, backups will only be scheduled if the referred `MariaDB` resource is in ready state. You can override this behavior by setting `mariaDbRef.waitForIt=false` which will allow backups to be scheduled even if the `MariaDB` resource is not ready.
 
@@ -301,6 +303,7 @@ spec:
   bootstrapFrom:
     targetRecoveryTime: 2025-06-17T08:07:00Z
 ``` 
+Only backups strictly before or at `targetRecoveryTime` will be matched
 
 ## Timeout
 
