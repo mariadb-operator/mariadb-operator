@@ -5,11 +5,9 @@ import (
 	"fmt"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
@@ -18,7 +16,7 @@ var pointintimerecoverylog = logf.Log.WithName("pointintimerecovery-resource")
 
 // SetupPointInTimeRecoveryWebhookWithManager registers the webhook for PointInTimeRecovery in the manager.
 func SetupPointInTimeRecoveryWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).For(&mariadbv1alpha1.PointInTimeRecovery{}).
+	return ctrl.NewWebhookManagedBy(mgr, &mariadbv1alpha1.PointInTimeRecovery{}).
 		WithValidator(&PointInTimeRecoveryCustomValidator{}).
 		Complete()
 }
@@ -29,22 +27,14 @@ func SetupPointInTimeRecoveryWebhookWithManager(mgr ctrl.Manager) error {
 // when it is created, updated, or deleted.
 type PointInTimeRecoveryCustomValidator struct{}
 
-var _ webhook.CustomValidator = &PointInTimeRecoveryCustomValidator{}
+var _ admission.Validator[*mariadbv1alpha1.PointInTimeRecovery] = &PointInTimeRecoveryCustomValidator{}
 
 // ValidateUpdate implements webhook.CustomValidator so a webhook will be registered for the type PointInTimeRecovery.
-func (v *PointInTimeRecoveryCustomValidator) ValidateUpdate(ctx context.Context, oldObj,
-	newObj runtime.Object) (admission.Warnings, error) {
-	pitr, ok := newObj.(*mariadbv1alpha1.PointInTimeRecovery)
-	if !ok {
-		return nil, fmt.Errorf("expected a PointInTimeRecovery object for the newObj but got %T", newObj)
-	}
-	oldPitr, ok := oldObj.(*mariadbv1alpha1.PointInTimeRecovery)
-	if !ok {
-		return nil, fmt.Errorf("expected a PointInTimeRecovery object for the oldObj but got %T", oldObj)
-	}
+func (v *PointInTimeRecoveryCustomValidator) ValidateUpdate(ctx context.Context,
+	pitr, oldPitr *mariadbv1alpha1.PointInTimeRecovery) (admission.Warnings, error) {
 	pointintimerecoverylog.V(1).Info("Validation for PointInTimeRecovery upon update", "name", pitr.GetName())
 
-	if err := inmutableWebhook.ValidateUpdate(pitr, oldPitr); err != nil {
+	if err := immutableWebhook.ValidateUpdate(pitr, oldPitr); err != nil {
 		return nil, err
 	}
 
@@ -52,18 +42,16 @@ func (v *PointInTimeRecoveryCustomValidator) ValidateUpdate(ctx context.Context,
 }
 
 // ValidateCreate implements webhook.CustomValidator so a webhook will be registered for the type PointInTimeRecovery.
-func (v *PointInTimeRecoveryCustomValidator) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
-	pointintimerecovery, ok := obj.(*mariadbv1alpha1.PointInTimeRecovery)
-	if !ok {
-		return nil, fmt.Errorf("expected a PointInTimeRecovery object but got %T", obj)
-	}
-	pointintimerecoverylog.Info("Validation for PointInTimeRecovery upon creation", "name", pointintimerecovery.GetName())
+func (v *PointInTimeRecoveryCustomValidator) ValidateCreate(_ context.Context,
+	pitr *mariadbv1alpha1.PointInTimeRecovery) (admission.Warnings, error) {
+	pointintimerecoverylog.Info("Validation for PointInTimeRecovery upon creation", "name", pitr.GetName())
 
-	return validatePointInTimeRecovery(pointintimerecovery)
+	return validatePointInTimeRecovery(pitr)
 }
 
 // ValidateDelete implements webhook.CustomValidator so a webhook will be registered for the type PointInTimeRecovery.
-func (v *PointInTimeRecoveryCustomValidator) ValidateDelete(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
+func (v *PointInTimeRecoveryCustomValidator) ValidateDelete(ctx context.Context,
+	pitr *mariadbv1alpha1.PointInTimeRecovery) (admission.Warnings, error) {
 	return nil, nil
 }
 

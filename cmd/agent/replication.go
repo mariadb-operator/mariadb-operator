@@ -111,7 +111,7 @@ var replicationCommand = &cobra.Command{
 				stateDir,
 				env,
 				k8sClient,
-				mgr.GetEventRecorderFor("binlog-archival"),
+				mgr.GetEventRecorder("binlog-archival"),
 				logger.WithName("binlog-archival"),
 			)
 			go func() {

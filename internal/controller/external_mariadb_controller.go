@@ -15,7 +15,7 @@ import (
 	sqlClient "github.com/mariadb-operator/mariadb-operator/v26/pkg/sql"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/tools/events"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -24,7 +24,7 @@ import (
 // ExternalMariaDBReconciler reconciles a ExternalMariaDB object
 type ExternalMariaDBReconciler struct {
 	client.Client
-	Recorder       record.EventRecorder
+	Recorder       events.EventRecorder
 	Builder        *builder.Builder
 	RefResolver    *refresolver.RefResolver
 	ConditionReady *condition.Ready

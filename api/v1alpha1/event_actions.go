@@ -5,6 +5,7 @@ package v1alpha1
 
 const (
 	// ActionReconciling indicates that the controller is reconciling a resource.
-	// @TODO: SPLIT this up into more than one.
 	ActionReconciling = "Reconciling"
+	// ActionReconciling indicates that the archiver is archiving a binary log.
+	ActionArchiving = "Archiving"
 )

@@ -201,7 +201,8 @@ func (r *MariaDBReconciler) reconcileReplayBinlogsError(ctx context.Context, mar
 		}
 		errMsg := fmt.Sprintf("Invalid binary log timeline: %v", err)
 		logger.Error(err, errMsg)
-		r.Recorder.Event(mariadb, corev1.EventTypeWarning, mariadbv1alpha1.ReasonBinlogTimelineInvalid, errMsg)
+		r.Recorder.Eventf(mariadb, pitr, corev1.EventTypeWarning, mariadbv1alpha1.ReasonBinlogTimelineInvalid,
+			mariadbv1alpha1.ActionReconciling, errMsg)
 
 		if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
 			condition.SetReplayBinlogsError(status, errMsg)
