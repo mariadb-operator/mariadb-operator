@@ -20,6 +20,7 @@ Package v1alpha1 contains API Schema definitions for the v1alpha1 API group
 - [MariaDB](#mariadb)
 - [MaxScale](#maxscale)
 - [PhysicalBackup](#physicalbackup)
+- [PointInTimeRecovery](#pointintimerecovery)
 - [Restore](#restore)
 - [SqlJob](#sqljob)
 - [User](#user)
@@ -2183,6 +2184,40 @@ _Appears in:_
 | `volumes` _[Volume](#volume) array_ | Volumes to be used in the Pod. |  |  |
 | `priorityClassName` _string_ | PriorityClassName to be used in the Pod. |  |  |
 | `topologySpreadConstraints` _[TopologySpreadConstraint](#topologyspreadconstraint) array_ | TopologySpreadConstraints to be used in the Pod. |  |  |
+
+
+#### PointInTimeRecovery
+
+
+
+PointInTimeRecovery is the Schema for the pointintimerecoveries API.
+
+
+
+
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `apiVersion` _string_ | `k8s.mariadb.com/v1alpha1` | | |
+| `kind` _string_ | `PointInTimeRecovery` | | |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `spec` _[PointInTimeRecoverySpec](#pointintimerecoveryspec)_ |  |  |  |
+
+
+#### PointInTimeRecoverySpec
+
+
+
+PointInTimeRecoverySpec defines the desired state of PointInTimeRecovery.
+
+
+
+_Appears in:_
+- [PointInTimeRecovery](#pointintimerecovery)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `foo` _string_ | Foo is an example field of PointInTimeRecovery. Edit pointintimerecovery_types.go to remove/update |  |  |
 
 
 #### PreferredSchedulingTerm
