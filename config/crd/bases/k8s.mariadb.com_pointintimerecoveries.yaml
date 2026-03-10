@@ -17,6 +17,12 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
+    - jsonPath: .spec.physicalBackupRef.name
+      name: Physical Backup
+      type: string
+    - jsonPath: .status.lastRecoverableTime
+      name: Last Recoverable Time
+      type: string
     - jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
@@ -185,7 +191,18 @@ spec:
             - physicalBackupRef
             - s3
             type: object
+          status:
+            description: PointInTimeRecoveryStatus represents the current status of
+              the point-in-time-recovery.
+            properties:
+              lastRecoverableTime:
+                description: LastRecoverableTime is the most recent recoverable time
+                  based on the current state of physical backups and archived binary
+                  logs.
+                type: string
+            type: object
         type: object
     served: true
     storage: true
-    subresources: {}
+    subresources:
+      status: {}

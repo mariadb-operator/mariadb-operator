@@ -17,8 +17,12 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
 	mariadbcompression "github.com/mariadb-operator/mariadb-operator/v25/pkg/compression"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/environment"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/metadata"
 	mariadbminio "github.com/mariadb-operator/mariadb-operator/v25/pkg/minio"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/refresolver"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/replication"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/sql"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -31,19 +35,21 @@ var (
 )
 
 type Archiver struct {
-	dataDir string
-	env     *environment.PodEnvironment
-	client  client.Client
-	logger  logr.Logger
+	dataDir     string
+	env         *environment.PodEnvironment
+	client      client.Client
+	refResolver *refresolver.RefResolver
+	logger      logr.Logger
 }
 
 func NewArchiver(dataDir string, env *environment.PodEnvironment, client client.Client,
 	logger logr.Logger) *Archiver {
 	return &Archiver{
-		dataDir: dataDir,
-		env:     env,
-		client:  client,
-		logger:  logger,
+		dataDir:     dataDir,
+		env:         env,
+		client:      client,
+		refResolver: refresolver.New(client),
+		logger:      logger,
 	}
 }
 
@@ -79,18 +85,14 @@ func (a *Archiver) getMariaDB(ctx context.Context) (*mariadbv1alpha1.MariaDB, er
 }
 
 func (a *Archiver) getPointInTimeRecovery(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) (*mariadbv1alpha1.PointInTimeRecovery, error) {
-	if mdb.Spec.PointInTimeRecoveryRef == nil {
-		return nil, errors.New("'spec.pointInTimeRecoveryRef' must be set in MariaDB object")
+	if !mdb.IsPointInTimeRecoveryEnabled() {
+		return nil, errors.New("point-in-time recovery must be enabled in MariaDB")
 	}
-	key := types.NamespacedName{
-		Name:      mdb.Spec.PointInTimeRecoveryRef.Name,
-		Namespace: a.env.PodNamespace,
-	}
-	var pitr mariadbv1alpha1.PointInTimeRecovery
-	if err := a.client.Get(ctx, key, &pitr); err != nil {
+	pitr, err := a.refResolver.PointInTimeRecovery(ctx, mdb.Spec.PointInTimeRecoveryRef, mdb.Namespace)
+	if err != nil {
 		return nil, fmt.Errorf("error getting PointInTimeRecovery: %v", err)
 	}
-	return &pitr, nil
+	return pitr, nil
 }
 
 func (a *Archiver) getS3Client(s3 *mariadbv1alpha1.S3, env *environment.PodEnvironment) (*mariadbminio.Client, error) {
@@ -253,7 +255,7 @@ func (a *Archiver) resetArchivedBinlog(ctx context.Context, binlogs []string, md
 			"server-id", mdb.Status.PointInTimeRecovery.ServerId,
 			"new-server-id", meta.ServerId,
 		)
-		if err := a.patchStatus(ctx, mdb, func(status *mariadbv1alpha1.MariaDBStatus) {
+		if err := a.patchMariadbStatus(ctx, mdb, func(status *mariadbv1alpha1.MariaDBStatus) {
 			status.PointInTimeRecovery = nil
 		}); err != nil {
 			return fmt.Errorf("error patching MariaDB: %v", err)
@@ -293,27 +295,51 @@ func (a *Archiver) updateStatus(ctx context.Context, binlogs []string, s3Client 
 	sqlClient *sql.Client) error {
 	mdb, err := a.getMariaDB(ctx)
 	if err != nil {
-		return fmt.Errorf("error getting MariaDB: %v", err)
+		return err
 	}
-	// using last binlog to track the most recent GTIDs
-	pitrStatus, err := a.getPointInTimeRecoveryStatus(ctx, binlogs[len(binlogs)-1], sqlClient)
+	pitr, err := a.getPointInTimeRecovery(ctx, mdb)
+	if err != nil {
+		return err
+	}
+	backup, err := a.refResolver.PhysicalBackup(ctx, &pitr.Spec.PhysicalBackupRef, a.env.PodNamespace)
+	if err != nil {
+		return fmt.Errorf("error getting PhysicalBackup: %v", err)
+	}
+	gtidDomainId, err := sqlClient.GtidDomainId(ctx)
+	if err != nil {
+		return fmt.Errorf("error getting gtid_domain_id: %v", err)
+	}
+
+	pitrStatus, err := a.getPointInTimeRecoveryStatus(binlogs[len(binlogs)-1], *gtidDomainId)
 	if err != nil {
 		return fmt.Errorf("error getting PITR status: %v", err)
 	}
+	binlogIndex, err := a.updateBinlogIndex(ctx, binlogs, pitrStatus.ServerId, s3Client)
+	if err != nil {
+		return fmt.Errorf("error updating binlog index: %v", err)
+	}
+	lastRecoverableTime, err := a.getLastRecoverableTime(binlogIndex, backup, *gtidDomainId)
+	if err != nil {
+		return fmt.Errorf("error getting last recoverable time: %v", err)
+	}
 
-	if err := a.patchStatus(ctx, mdb, func(status *mariadbv1alpha1.MariaDBStatus) {
+	if err := a.patchMariadbStatus(ctx, mdb, func(status *mariadbv1alpha1.MariaDBStatus) {
 		status.PointInTimeRecovery = pitrStatus
 	}); err != nil {
-		return fmt.Errorf("error updating PITR status: %v", err)
+		return fmt.Errorf("error patching MariaDB PITR status: %v", err)
 	}
-	if err := a.updateBinlogIndex(ctx, binlogs, pitrStatus.ServerId, s3Client); err != nil {
-		return fmt.Errorf("error updating binlog index: %v", err)
+	if lastRecoverableTime != nil {
+		if err := a.patchPITRStatus(ctx, pitr, func(status *mariadbv1alpha1.PointInTimeRecoveryStatus) {
+			status.LastRecoverableTime = ptr.To(lastRecoverableTime.Format(time.RFC3339))
+		}); err != nil {
+			return fmt.Errorf("error patching PITR status: %v", err)
+		}
 	}
 	return nil
 }
 
-func (a *Archiver) getPointInTimeRecoveryStatus(ctx context.Context, lastBinlog string,
-	sqlClient *sql.Client) (*mariadbv1alpha1.PointInTimeRecoveryStatus, error) {
+func (a *Archiver) getPointInTimeRecoveryStatus(lastBinlog string,
+	gtidDomainId uint32) (*mariadbv1alpha1.MariaDBPointInTimeRecoveryStatus, error) {
 	lastBinlogPath := filepath.Join(a.dataDir, lastBinlog)
 	lastBinlogMeta, err := GetBinlogMetadata(lastBinlogPath, a.logger)
 	if err != nil {
@@ -322,21 +348,15 @@ func (a *Archiver) getPointInTimeRecoveryStatus(ctx context.Context, lastBinlog 
 
 	lastArchivedGtid := lastBinlogMeta.LastGtid
 	if lastArchivedGtid == nil && len(lastBinlogMeta.PreviousGtids) > 0 {
-		domainId, err := sqlClient.GtidDomainId(ctx)
-		if err != nil {
-			a.logger.Error(err, "error getting domain ID")
-		}
-		if domainId != nil {
-			for _, gtid := range lastBinlogMeta.PreviousGtids {
-				if gtid.DomainID == *domainId {
-					lastArchivedGtid = gtid
-					break
-				}
+		for _, gtid := range lastBinlogMeta.PreviousGtids {
+			if gtid.DomainID == gtidDomainId {
+				lastArchivedGtid = gtid
+				break
 			}
 		}
 	}
 
-	return &mariadbv1alpha1.PointInTimeRecoveryStatus{
+	return &mariadbv1alpha1.MariaDBPointInTimeRecoveryStatus{
 		ServerId:              lastBinlogMeta.ServerId,
 		LastArchivedBinaryLog: lastBinlog,
 		LastArchivedTime:      lastBinlogMeta.LastTime,
@@ -345,26 +365,27 @@ func (a *Archiver) getPointInTimeRecoveryStatus(ctx context.Context, lastBinlog 
 	}, nil
 }
 
-func (a *Archiver) updateBinlogIndex(ctx context.Context, binlogs []string, serverId uint32, s3Client *mariadbminio.Client) error {
+func (a *Archiver) updateBinlogIndex(ctx context.Context, binlogs []string, serverId uint32,
+	s3Client *mariadbminio.Client) (*BinlogIndex, error) {
 	var index *BinlogIndex
 	exists, err := s3Client.Exists(ctx, BinlogIndexName)
 	if err != nil {
-		return fmt.Errorf("error checking if binlog index exists: %v", err)
+		return nil, fmt.Errorf("error checking if binlog index exists: %v", err)
 	}
 	if exists {
 		indexReader, err := s3Client.GetObjectWithOptions(ctx, BinlogIndexName)
 		if err != nil {
-			return fmt.Errorf("error getting binlog index: %v", err)
+			return nil, fmt.Errorf("error getting binlog index: %v", err)
 		}
 		defer indexReader.Close()
 
 		bytes, err := io.ReadAll(indexReader)
 		if err != nil {
-			return fmt.Errorf("error reading binlog index: %v", err)
+			return nil, fmt.Errorf("error reading binlog index: %v", err)
 		}
 		var bi BinlogIndex
 		if err := yaml.Unmarshal(bytes, &bi); err != nil {
-			return fmt.Errorf("error unmarshaling binlog index: %v", err)
+			return nil, fmt.Errorf("error unmarshaling binlog index: %v", err)
 		}
 		index = &bi
 	} else {
@@ -379,25 +400,69 @@ func (a *Archiver) updateBinlogIndex(ctx context.Context, binlogs []string, serv
 
 		meta, err := GetBinlogMetadata(filepath.Join(a.dataDir, binlog), a.logger)
 		if err != nil {
-			return fmt.Errorf("error getting binlog %s metadata: %v", binlog, err)
+			return nil, fmt.Errorf("error getting binlog %s metadata: %v", binlog, err)
 		}
 		index.Add(serverId, *meta)
 	}
 
 	indexBytes, err := yaml.Marshal(index)
 	if err != nil {
-		return fmt.Errorf("error marshaling binlog index: %v", err)
+		return nil, fmt.Errorf("error marshaling binlog index: %v", err)
 	}
 
 	if err := s3Client.PutObjectWithOptions(ctx, BinlogIndexName, bytes.NewReader(indexBytes), int64(len(indexBytes))); err != nil {
-		return fmt.Errorf("error putting binlog index: %v", err)
+		return nil, fmt.Errorf("error putting binlog index: %v", err)
 	}
-	return nil
+	return index, nil
 }
 
-func (a *Archiver) patchStatus(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+func (a *Archiver) getLastRecoverableTime(binlogIndex *BinlogIndex, backup *mariadbv1alpha1.PhysicalBackup,
+	gtidDomainId uint32) (*metav1.Time, error) {
+	lastGtid, ok := backup.Annotations[metadata.LastGtidAnnotation]
+	if !ok {
+		a.logger.Info(
+			"Last GTID annotation not found in PhysicalBackup. Skipping last recoverable time tracking...",
+			"physicalbackup", backup.Name,
+		)
+		return nil, nil
+	}
+	gtid, err := replication.ParseGtidWithDomainId(lastGtid, gtidDomainId, a.logger)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing GTID: %v", err)
+	}
+
+	// getting the most recent timeline, disabling strict mode to prevent errors.
+	// last recoverable time will be checked before bootstrapping, returning error if strict mode is enabled.
+	binlogMetas, err := binlogIndex.BuildTimeline(
+		gtid,
+		time.Now(),
+		false,
+		a.logger.WithName("binlog-timeline").V(1),
+	)
+	if err != nil {
+		a.logger.Info(
+			"Unable to build current binlog timeline. Skipping last recoverable time tracking...",
+			"err", err,
+			"gtid", gtid.String(),
+			"physicalbackup", backup.Name,
+		)
+		return nil, nil
+	}
+	lastMeta := binlogMetas[len(binlogMetas)-1]
+
+	return &lastMeta.LastTime, nil
+}
+
+func (a *Archiver) patchMariadbStatus(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 	patcher func(*mariadbv1alpha1.MariaDBStatus)) error {
 	patch := client.MergeFrom(mariadb.DeepCopy())
 	patcher(&mariadb.Status)
 	return a.client.Status().Patch(ctx, mariadb, patch)
+}
+
+func (a *Archiver) patchPITRStatus(ctx context.Context, pitr *mariadbv1alpha1.PointInTimeRecovery,
+	patcher func(*mariadbv1alpha1.PointInTimeRecoveryStatus)) error {
+	patch := client.MergeFrom(pitr.DeepCopy())
+	patcher(&pitr.Status)
+	return a.client.Status().Patch(ctx, pitr, patch)
 }

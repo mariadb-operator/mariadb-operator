@@ -135,15 +135,18 @@ func (b *BinlogIndex) buildTimelineWithBinlogs(binlogs []BinlogMetadata, startGt
 		return nil, errors.New("no binlogs were found")
 	}
 	if !hasReachedTargetTime {
-		err := fmt.Errorf(
-			"timeline did not reach target time: %s, last recoverable time: %s",
-			targetTime.Format(time.RFC3339),
-			currentTime.Format(time.RFC3339),
-		)
-		logger.Error(err, "Error building binlog timeline")
 		if strictMode {
-			return nil, err
+			return nil, fmt.Errorf(
+				"timeline did not reach target time: %s, last recoverable time: %s",
+				targetTime.Format(time.RFC3339),
+				currentTime.Format(time.RFC3339),
+			)
 		}
+		logger.Info(
+			"Timeline did not reach target time.",
+			"target-time", targetTime.Format(time.RFC3339),
+			"last-recoverable-time", currentTime.Format(time.RFC3339),
+		)
 	}
 	return binlogs, nil
 }

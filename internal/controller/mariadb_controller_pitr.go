@@ -228,7 +228,7 @@ func (r *MariaDBReconciler) validateBinlogTimeline(ctx context.Context, mdb *mar
 
 func (r *MariaDBReconciler) pauseGtidStrictMode(ctx context.Context, mdb *mariadbv1alpha1.MariaDB, sqlClient *sql.Client,
 	logger logr.Logger) error {
-	pitr := ptr.Deref(mdb.Status.PointInTimeRecovery, mariadbv1alpha1.PointInTimeRecoveryStatus{})
+	pitr := ptr.Deref(mdb.Status.PointInTimeRecovery, mariadbv1alpha1.MariaDBPointInTimeRecoveryStatus{})
 	if pitr.GtidStrictModePaused != nil && *pitr.GtidStrictModePaused {
 		return nil
 	}
@@ -247,7 +247,7 @@ func (r *MariaDBReconciler) pauseGtidStrictMode(ctx context.Context, mdb *mariad
 	}
 	return r.patchStatus(ctx, mdb, func(status *mariadbv1alpha1.MariaDBStatus) error {
 		if status.PointInTimeRecovery == nil {
-			status.PointInTimeRecovery = &mariadbv1alpha1.PointInTimeRecoveryStatus{}
+			status.PointInTimeRecovery = &mariadbv1alpha1.MariaDBPointInTimeRecoveryStatus{}
 		}
 		status.PointInTimeRecovery.GtidStrictModePaused = ptr.To(true)
 		return nil
@@ -256,7 +256,7 @@ func (r *MariaDBReconciler) pauseGtidStrictMode(ctx context.Context, mdb *mariad
 
 func (r *MariaDBReconciler) resumeGtidStrictMode(ctx context.Context, mdb *mariadbv1alpha1.MariaDB, sqlClient *sql.Client,
 	logger logr.Logger) error {
-	pitr := ptr.Deref(mdb.Status.PointInTimeRecovery, mariadbv1alpha1.PointInTimeRecoveryStatus{})
+	pitr := ptr.Deref(mdb.Status.PointInTimeRecovery, mariadbv1alpha1.MariaDBPointInTimeRecoveryStatus{})
 	if pitr.GtidStrictModePaused == nil || !*pitr.GtidStrictModePaused {
 		return nil
 	}
