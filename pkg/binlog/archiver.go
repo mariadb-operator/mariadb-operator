@@ -2,9 +2,11 @@ package binlog
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path"
 	"path/filepath"
@@ -18,13 +20,17 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/environment"
 	mariadbminio "github.com/mariadb-operator/mariadb-operator/v25/pkg/minio"
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/sql"
+	"gopkg.in/yaml.v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var archiveInterval = 10 * time.Minute
+var (
+	archiveInterval = 10 * time.Minute
+	binlogIndexName = "index.yaml"
+)
 
 type Archiver struct {
 	dataDir string
@@ -128,6 +134,7 @@ func (a *Archiver) archiveBinaryLogs(ctx context.Context) error {
 		a.logger.V(1).Info("Current primary not set or current Pod is a replica. Skipping binary log archival...")
 		return nil
 	}
+	// TODO: fine grained guard
 	if mdb.IsSwitchoverRequired() || mdb.IsSwitchingPrimary() {
 		return errors.New("unable to start archival: Switchover operation pending/ongoing")
 	}
@@ -190,10 +197,7 @@ func (a *Archiver) archiveBinaryLogs(ctx context.Context) error {
 			return err
 		}
 	}
-	if err := a.updatePointInTimeRecoveryStatus(ctx, binlogs); err != nil {
-		return err
-	}
-	return nil
+	return a.updateStatus(ctx, binlogs, s3Client)
 }
 
 func (a *Archiver) physicalBackupConfigured(ctx context.Context, ref *mariadbv1alpha1.LocalObjectReference,
@@ -284,20 +288,26 @@ func (a *Archiver) archiveBinaryLog(ctx context.Context, binlog string, mdb *mar
 	return nil
 }
 
-func (a *Archiver) updatePointInTimeRecoveryStatus(ctx context.Context, binlogs []string) error {
+func (a *Archiver) updateStatus(ctx context.Context, binlogs []string, s3Client *mariadbminio.Client) error {
 	mdb, err := a.getMariaDB(ctx)
 	if err != nil {
 		return fmt.Errorf("error getting MariaDB: %v", err)
 	}
-
+	// using last binlog to track the most recent GTIDs
 	pitrStatus, err := a.getPointInTimeRecoveryStatus(binlogs[len(binlogs)-1])
 	if err != nil {
 		return fmt.Errorf("error getting PITR status: %v", err)
 	}
 
-	return a.patchStatus(ctx, mdb, func(status *mariadbv1alpha1.MariaDBStatus) {
+	if err := a.patchStatus(ctx, mdb, func(status *mariadbv1alpha1.MariaDBStatus) {
 		status.PointInTimeRecovery = pitrStatus
-	})
+	}); err != nil {
+		return fmt.Errorf("error updating PITR status: %v", err)
+	}
+	if err := a.updateBinlogIndex(ctx, binlogs, pitrStatus.ServerId, s3Client); err != nil {
+		return fmt.Errorf("error updating binlog index: %v", err)
+	}
+	return nil
 }
 
 func (a *Archiver) getPointInTimeRecoveryStatus(lastBinlog string) (*mariadbv1alpha1.PointInTimeRecoveryStatus, error) {
@@ -313,6 +323,56 @@ func (a *Archiver) getPointInTimeRecoveryStatus(lastBinlog string) (*mariadbv1al
 		LastArchivedPosition:  lastBinlogMeta.LogPos,
 		LastArchivedGtid:      lastBinlogMeta.LastGtid,
 	}, nil
+}
+
+func (a *Archiver) updateBinlogIndex(ctx context.Context, binlogs []string, serverId uint32, s3Client *mariadbminio.Client) error {
+	var index *BinlogIndex
+	exists, err := s3Client.Exists(ctx, binlogIndexName)
+	if err != nil {
+		return fmt.Errorf("error checking if binlog index exists: %v", err)
+	}
+	if exists {
+		indexReader, err := s3Client.GetObjectWithOptions(ctx, binlogIndexName)
+		if err != nil {
+			return fmt.Errorf("error getting binlog index: %w", err)
+		}
+		defer indexReader.Close()
+
+		bytes, err := io.ReadAll(indexReader)
+		if err != nil {
+			return fmt.Errorf("error reading binlog index: %w", err)
+		}
+		var bi BinlogIndex
+		if err := yaml.Unmarshal(bytes, &bi); err != nil {
+			return fmt.Errorf("error unmarshaling binlog index: %w", err)
+		}
+		index = &bi
+	} else {
+		index = &BinlogIndex{}
+	}
+
+	for _, binlog := range binlogs {
+		if index.Exists(serverId, binlog) {
+			a.logger.V(1).Info("binlog already present in index. Skipping...", "binlog", binlog)
+			continue
+		}
+
+		meta, err := GetBinlogMetadata(filepath.Join(a.dataDir, binlog), a.logger)
+		if err != nil {
+			return fmt.Errorf("error getting binlog %s metadata: %v", binlog, err)
+		}
+		index.Add(serverId, *meta)
+	}
+
+	indexBytes, err := yaml.Marshal(index)
+	if err != nil {
+		return fmt.Errorf("error marshaling binlog index: %v", err)
+	}
+
+	if err := s3Client.PutObjectWithOptions(ctx, binlogIndexName, bytes.NewReader(indexBytes), int64(len(indexBytes))); err != nil {
+		return fmt.Errorf("error putting binlog index: %v", err)
+	}
+	return nil
 }
 
 func (a *Archiver) patchStatus(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,

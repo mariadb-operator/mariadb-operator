@@ -94,7 +94,7 @@ func NewMinioClient(basePath, bucket, endpoint string, mOpts ...MinioOpt) (*Clie
 }
 
 func (c *Client) PutObjectWithOptions(ctx context.Context, fileName string, reader io.Reader, size int64) error {
-	putOpts, err := c.getPutObjectOptions()
+	putOpts, err := c.putObjectOptions()
 	if err != nil {
 		return err
 	}
@@ -105,7 +105,7 @@ func (c *Client) PutObjectWithOptions(ctx context.Context, fileName string, read
 }
 
 func (c *Client) FPutObjectWithOptions(ctx context.Context, fileName string) error {
-	putOpts, err := c.getPutObjectOptions()
+	putOpts, err := c.putObjectOptions()
 	if err != nil {
 		return err
 	}
@@ -116,17 +116,25 @@ func (c *Client) FPutObjectWithOptions(ctx context.Context, fileName string) err
 	return err
 }
 
+func (c *Client) GetObjectWithOptions(ctx context.Context, fileName string) (io.ReadCloser, error) {
+	getOpts, err := c.getObjectOptions()
+	if err != nil {
+		return nil, err
+	}
+	prefixedFilePath := c.PrefixedFileName(fileName)
+
+	return c.GetObject(ctx, c.bucket, prefixedFilePath, *getOpts)
+}
+
 func (c *Client) FGetObjectWithOptions(ctx context.Context, fileName string) error {
+	getOpts, err := c.getObjectOptions()
+	if err != nil {
+		return err
+	}
 	prefixedFilePath := c.PrefixedFileName(fileName)
 	filePath := c.getFilePath(fileName)
-	getOpts := minio.GetObjectOptions{}
-	if sse, err := c.getSSEC(); err != nil {
-		return fmt.Errorf("error creating SSE-C encryption: %v", err)
-	} else if sse != nil {
-		getOpts.ServerSideEncryption = sse
-	}
 
-	return c.FGetObject(ctx, c.bucket, prefixedFilePath, filePath, getOpts)
+	return c.FGetObject(ctx, c.bucket, prefixedFilePath, filePath, *getOpts)
 }
 
 func (c *Client) RemoveWithOptions(ctx context.Context, fileName string) error {
@@ -134,13 +142,24 @@ func (c *Client) RemoveWithOptions(ctx context.Context, fileName string) error {
 	return c.RemoveObject(ctx, c.bucket, prefixedFilePath, minio.RemoveObjectOptions{})
 }
 
+func IsNotFound(err error) bool {
+	resp := minio.ToErrorResponse(err)
+	if resp.StatusCode == http.StatusNotFound {
+		return true
+	}
+	switch resp.Code {
+	case "NoSuchKey", "NotFound":
+		return true
+	}
+	return false
+}
+
 func (c *Client) Exists(ctx context.Context, fileName string) (bool, error) {
 	prefixedFilePath := c.PrefixedFileName(fileName)
 
 	_, err := c.StatObject(ctx, c.bucket, prefixedFilePath, minio.StatObjectOptions{})
 	if err != nil {
-		resp := minio.ToErrorResponse(err)
-		if resp.StatusCode == http.StatusNotFound || resp.Code == "NoSuchKey" {
+		if IsNotFound(err) {
 			return false, nil
 		}
 		return false, err
@@ -169,7 +188,7 @@ func (c *Client) GetPrefix() string {
 	return c.Prefix
 }
 
-func (c *Client) getPutObjectOptions() (*minio.PutObjectOptions, error) {
+func (c *Client) putObjectOptions() (*minio.PutObjectOptions, error) {
 	putOpts := minio.PutObjectOptions{}
 	if sse, err := c.getSSEC(); err != nil {
 		return nil, fmt.Errorf("error creating SSE-C encryption: %v", err)
@@ -177,6 +196,16 @@ func (c *Client) getPutObjectOptions() (*minio.PutObjectOptions, error) {
 		putOpts.ServerSideEncryption = sse
 	}
 	return &putOpts, nil
+}
+
+func (c *Client) getObjectOptions() (*minio.GetObjectOptions, error) {
+	getOpts := minio.GetObjectOptions{}
+	if sse, err := c.getSSEC(); err != nil {
+		return nil, fmt.Errorf("error creating SSE-C encryption: %v", err)
+	} else if sse != nil {
+		getOpts.ServerSideEncryption = sse
+	}
+	return &getOpts, nil
 }
 
 func (c *Client) getFilePath(fileName string) string {

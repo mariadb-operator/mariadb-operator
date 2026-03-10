@@ -2,14 +2,43 @@ package binlog
 
 import (
 	"fmt"
+	"path/filepath"
 	"strconv"
 	"strings"
 
 	"github.com/go-logr/logr"
 	"github.com/go-mysql-org/go-mysql/mysql"
 	"github.com/go-mysql-org/go-mysql/replication"
+	"github.com/mariadb-operator/mariadb-operator/v25/pkg/datastructures"
 	"k8s.io/utils/ptr"
 )
+
+// TODO: add API version
+type BinlogIndex struct {
+	// Binlogs indexed by server ID
+	Binlogs map[string][]BinlogMetadata `yaml:"binlogs"`
+}
+
+func (b *BinlogIndex) Exists(serverId uint32, binlog string) bool {
+	binlogs, ok := b.Binlogs[serverKey(serverId)]
+	if !ok {
+		return false
+	}
+	return datastructures.Any(binlogs, func(meta BinlogMetadata) bool {
+		return meta.BinlogFilename == binlog
+	})
+}
+
+func (b *BinlogIndex) Add(serverId uint32, meta BinlogMetadata) {
+	if b.Binlogs == nil {
+		b.Binlogs = make(map[string][]BinlogMetadata)
+	}
+	b.Binlogs[serverKey(serverId)] = append(b.Binlogs[serverKey(serverId)], meta)
+}
+
+func serverKey(serverId uint32) string {
+	return fmt.Sprintf("server-%d", serverId)
+}
 
 type BinlogNum struct {
 	filename string
@@ -40,27 +69,31 @@ func (b *BinlogNum) Equal(other *BinlogNum) bool {
 	return b.num == other.num
 }
 
+// TODO: replace timestamps with metav1.Time
 type BinlogMetadata struct {
-	ServerId       uint32
-	ServerVersion  string
-	BinlogVersion  uint16
-	LogPos         uint32
-	FirstTimestamp uint32
-	LastTimestamp  uint32
-	PreviousGtids  []string
-	FirstGtid      *string
-	LastGtid       *string
-	RotateEvent    bool
-	StopEvent      bool
+	ServerId       uint32   `yaml:"serverId"`
+	ServerVersion  string   `yaml:"serverVersion"`
+	BinlogVersion  uint16   `yaml:"binlogVersion"`
+	BinlogFilename string   `yaml:"binlogFilename"`
+	LogPos         uint32   `yaml:"logPos"`
+	FirstTimestamp uint32   `yaml:"firstTimestamp"`
+	LastTimestamp  uint32   `yaml:"lastTimestamp"`
+	PreviousGtids  []string `yaml:"previousGtids,omitempty"`
+	FirstGtid      *string  `yaml:"firstGtid,omitempty"`
+	LastGtid       *string  `yaml:"lastGtid,omitempty"`
+	RotateEvent    bool     `yaml:"rotateEvent"`
+	StopEvent      bool     `yaml:"stopEvent"`
 }
 
-func GetBinlogMetadata(filename string, logger logr.Logger) (*BinlogMetadata, error) {
+func GetBinlogMetadata(binlogPath string, logger logr.Logger) (*BinlogMetadata, error) {
 	parser := replication.NewBinlogParser()
 	parser.SetFlavor(mysql.MariaDBFlavor)
 	parser.SetVerifyChecksum(false)
 	parser.SetRawMode(true)
 
-	meta := BinlogMetadata{}
+	meta := BinlogMetadata{
+		BinlogFilename: filepath.Base(binlogPath),
+	}
 	var (
 		rawFormatDescriptionEvent []byte
 		rawGtidListEvent          []byte
@@ -68,7 +101,7 @@ func GetBinlogMetadata(filename string, logger logr.Logger) (*BinlogMetadata, er
 		lastRawGtidEvent          []byte
 	)
 
-	if err := parser.ParseFile(filename, 0, func(e *replication.BinlogEvent) error {
+	if err := parser.ParseFile(binlogPath, 0, func(e *replication.BinlogEvent) error {
 		meta.ServerId = e.Header.ServerID
 		meta.LogPos = e.Header.LogPos
 
