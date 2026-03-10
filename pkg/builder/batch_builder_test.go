@@ -3487,7 +3487,7 @@ func TestBuildPITRJob(t *testing.T) {
 							"database.myorg.io": "test",
 						},
 					},
-					PodTemplate: mariadbv1alpha1.PodTemplate{
+					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
 						PodMetadata: &mariadbv1alpha1.Metadata{
 							Annotations: map[string]string{
 								"pod.myorg.io": "test",
