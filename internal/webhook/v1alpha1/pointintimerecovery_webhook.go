@@ -31,7 +31,7 @@ var _ admission.Validator[*mariadbv1alpha1.PointInTimeRecovery] = &PointInTimeRe
 
 // ValidateUpdate implements webhook.CustomValidator so a webhook will be registered for the type PointInTimeRecovery.
 func (v *PointInTimeRecoveryCustomValidator) ValidateUpdate(ctx context.Context,
-	pitr, oldPitr *mariadbv1alpha1.PointInTimeRecovery) (admission.Warnings, error) {
+	oldPitr, pitr *mariadbv1alpha1.PointInTimeRecovery) (admission.Warnings, error) {
 	pointintimerecoverylog.V(1).Info("Validation for PointInTimeRecovery upon update", "name", pitr.GetName())
 
 	if err := immutableWebhook.ValidateUpdate(pitr, oldPitr); err != nil {
