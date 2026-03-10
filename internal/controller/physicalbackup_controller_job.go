@@ -330,8 +330,10 @@ func (r *PhysicalBackupReconciler) createJob(ctx context.Context, backup *mariad
 	}
 	r.Recorder.Eventf(
 		backup,
+		job,
 		corev1.EventTypeNormal,
 		mariadbv1alpha1.ReasonJobScheduled,
+		mariadbv1alpha1.ActionReconciling,
 		"Job %s scheduled",
 		job.Name,
 	)

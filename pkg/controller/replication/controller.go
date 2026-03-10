@@ -21,7 +21,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/statefulset"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/tools/events"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -50,7 +50,7 @@ func WithServiceReconciler(sr *service.ServiceReconciler) Option {
 
 type ReplicationReconciler struct {
 	client.Client
-	recorder            record.EventRecorder
+	recorder            events.EventRecorder
 	builder             *builder.Builder
 	env                 *environment.OperatorEnv
 	replConfigClient    *ReplicationConfigClient
@@ -60,7 +60,7 @@ type ReplicationReconciler struct {
 	serviceReconciler   *service.ServiceReconciler
 }
 
-func NewReplicationReconciler(client client.Client, recorder record.EventRecorder, builder *builder.Builder, env *environment.OperatorEnv,
+func NewReplicationReconciler(client client.Client, recorder events.EventRecorder, builder *builder.Builder, env *environment.OperatorEnv,
 	replConfigClient *ReplicationConfigClient, opts ...Option) (*ReplicationReconciler, error) {
 	r := &ReplicationReconciler{
 		Client:           client,

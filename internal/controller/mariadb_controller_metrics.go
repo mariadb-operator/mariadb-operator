@@ -37,7 +37,7 @@ func (r *MariaDBReconciler) reconcileMetrics(ctx context.Context, mariadb *maria
 		return ctrl.Result{}, err
 	}
 	if !exist {
-		r.Recorder.Event(mariadb, corev1.EventTypeWarning, mariadbv1alpha1.ReasonCRDNotFound,
+		r.Recorder.Eventf(mariadb, nil, corev1.EventTypeWarning, mariadbv1alpha1.ReasonCRDNotFound, mariadbv1alpha1.ActionReconciling,
 			"Unable to reconcile metrics: ServiceMonitor CRD not installed in the cluster")
 		log.FromContext(ctx).Error(errors.New("ServiceMonitor CRD not installed in the cluster"), "Unable to reconcile metrics")
 		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil

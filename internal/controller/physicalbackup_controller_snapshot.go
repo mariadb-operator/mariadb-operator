@@ -37,7 +37,7 @@ func (r *PhysicalBackupReconciler) reconcileSnapshots(ctx context.Context, backu
 		return ctrl.Result{}, err
 	}
 	if !exist {
-		r.Recorder.Event(backup, corev1.EventTypeWarning, mariadbv1alpha1.ReasonCRDNotFound,
+		r.Recorder.Eventf(backup, mariadb, corev1.EventTypeWarning, mariadbv1alpha1.ReasonCRDNotFound, mariadbv1alpha1.ActionReconciling,
 			"Unable to reconcile PhysicalBackup: VolumeSnapshot CRD not installed in the cluster")
 		logger.Error(errors.New("VolumeSnapshot CRD not installed in the cluster"), "Unable to reconcile PhysicalBackup")
 		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
@@ -320,8 +320,10 @@ func (r *PhysicalBackupReconciler) createVolumeSnapshot(ctx context.Context, sna
 		}
 		r.Recorder.Eventf(
 			backup,
+			&snapshot,
 			corev1.EventTypeNormal,
 			mariadbv1alpha1.ReasonVolumeSnapshotCreated,
+			mariadbv1alpha1.ActionReconciling,
 			"VolumeSnapshot %s scheduled",
 			desiredSnapshot.Name,
 		)

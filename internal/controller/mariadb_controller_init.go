@@ -130,8 +130,8 @@ func (r *MariaDBReconciler) reconcileInitError(ctx context.Context, mariadb *mar
 	if len(pvcs) == 0 {
 		return ctrl.Result{}, nil
 	}
-	r.Recorder.Eventf(mariadb, corev1.EventTypeWarning, mariadbv1alpha1.ReasonMariaDBInitError,
-		"Unable to init MariaDB: storage PVCs already exist")
+	r.Recorder.Eventf(mariadb, nil, corev1.EventTypeWarning, mariadbv1alpha1.ReasonMariaDBInitError,
+		mariadbv1alpha1.ActionReconciling, "Unable to init MariaDB: %s", "storage PVCs already exist")
 
 	if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
 		condition.SetInitError(status, "storage PVCs already exist")

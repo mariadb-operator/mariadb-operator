@@ -9,7 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 )
 
-var inmutableWebhook = webhook.NewInmutableWebhook(
+var immutableWebhook = webhook.NewInmutableWebhook(
 	webhook.WithTagName("webhook"),
 )
 

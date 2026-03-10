@@ -4,11 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	"github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
@@ -19,7 +17,7 @@ var backuplog = logf.Log.WithName("backup-resource")
 
 // SetupBackupWebhookWithManager registers the webhook for Backup in the manager.
 func SetupBackupWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).For(&v1alpha1.Backup{}).
+	return ctrl.NewWebhookManagedBy(mgr, &v1alpha1.Backup{}).
 		WithValidator(&BackupCustomValidator{}).
 		Complete()
 }
@@ -30,39 +28,27 @@ func SetupBackupWebhookWithManager(mgr ctrl.Manager) error {
 // when it is created, updated, or deleted.
 type BackupCustomValidator struct{}
 
-var _ webhook.CustomValidator = &BackupCustomValidator{}
+var _ admission.Validator[*v1alpha1.Backup] = &BackupCustomValidator{}
 
 // ValidateCreate implements webhook.CustomValidator so a webhook will be registered for the type Backup.
-func (v *BackupCustomValidator) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
-	backup, ok := obj.(*v1alpha1.Backup)
-	if !ok {
-		return nil, fmt.Errorf("expected a Backup object but got %T", obj)
-	}
+func (v *BackupCustomValidator) ValidateCreate(ctx context.Context, backup *v1alpha1.Backup) (admission.Warnings, error) {
 	backuplog.V(1).Info("Validation for Backup upon creation", "name", backup.GetName())
 
 	return validateBackup(backup)
 }
 
 // ValidateUpdate implements webhook.CustomValidator so a webhook will be registered for the type Backup.
-func (v *BackupCustomValidator) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
-	backup, ok := newObj.(*v1alpha1.Backup)
-	if !ok {
-		return nil, fmt.Errorf("expected a Backup object for the newObj but got %T", newObj)
-	}
-	oldBackup, ok := oldObj.(*v1alpha1.Backup)
-	if !ok {
-		return nil, fmt.Errorf("expected a Backup object for the newObj but got %T", newObj)
-	}
+func (v *BackupCustomValidator) ValidateUpdate(ctx context.Context, oldBackup, backup *v1alpha1.Backup) (admission.Warnings, error) {
 	backuplog.V(1).Info("Validation for Backup upon update", "name", backup.GetName())
 
-	if err := inmutableWebhook.ValidateUpdate(backup, oldBackup); err != nil {
+	if err := immutableWebhook.ValidateUpdate(backup, oldBackup); err != nil {
 		return nil, err
 	}
 	return validateBackup(backup)
 }
 
 // ValidateDelete implements webhook.CustomValidator so a webhook will be registered for the type Backup.
-func (v *BackupCustomValidator) ValidateDelete(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
+func (v *BackupCustomValidator) ValidateDelete(ctx context.Context, backup *v1alpha1.Backup) (admission.Warnings, error) {
 	return nil, nil
 }
 

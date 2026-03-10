@@ -2,14 +2,11 @@ package v1alpha1
 
 import (
 	"context"
-	"fmt"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
@@ -18,7 +15,7 @@ var databaselog = logf.Log.WithName("database-resource")
 
 // SetupDatabaseWebhookWithManager registers the webhook for Database in the manager.
 func SetupDatabaseWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).For(&mariadbv1alpha1.Database{}).
+	return ctrl.NewWebhookManagedBy(mgr, &mariadbv1alpha1.Database{}).
 		WithValidator(&DatabaseCustomValidator{}).
 		Complete()
 }
@@ -29,14 +26,10 @@ func SetupDatabaseWebhookWithManager(mgr ctrl.Manager) error {
 // when it is created, updated, or deleted.
 type DatabaseCustomValidator struct{}
 
-var _ webhook.CustomValidator = &DatabaseCustomValidator{}
+var _ admission.Validator[*mariadbv1alpha1.Database] = &DatabaseCustomValidator{}
 
 // ValidateCreate implements webhook.CustomValidator so a webhook will be registered for the type Database.
-func (v *DatabaseCustomValidator) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
-	database, ok := obj.(*mariadbv1alpha1.Database)
-	if !ok {
-		return nil, fmt.Errorf("expected a Database object but got %T", obj)
-	}
+func (v *DatabaseCustomValidator) ValidateCreate(ctx context.Context, database *mariadbv1alpha1.Database) (admission.Warnings, error) {
 	databaselog.V(1).Info("Validation for Database upon creation", "name", database.GetName())
 
 	if err := validateDatabaseCleanupPolicy(database); err != nil {
@@ -46,18 +39,11 @@ func (v *DatabaseCustomValidator) ValidateCreate(ctx context.Context, obj runtim
 }
 
 // ValidateUpdate implements webhook.CustomValidator so a webhook will be registered for the type Database.
-func (v *DatabaseCustomValidator) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
-	database, ok := newObj.(*mariadbv1alpha1.Database)
-	if !ok {
-		return nil, fmt.Errorf("expected a Database object for the newObj but got %T", newObj)
-	}
-	oldDatabase, ok := oldObj.(*mariadbv1alpha1.Database)
-	if !ok {
-		return nil, fmt.Errorf("expected a Database object for the newObj but got %T", newObj)
-	}
+func (v *DatabaseCustomValidator) ValidateUpdate(ctx context.Context,
+	oldDatabase, database *mariadbv1alpha1.Database) (admission.Warnings, error) {
 	databaselog.V(1).Info("Validation for Database upon update", "name", database.GetName())
 
-	if err := inmutableWebhook.ValidateUpdate(database, oldDatabase); err != nil {
+	if err := immutableWebhook.ValidateUpdate(database, oldDatabase); err != nil {
 		return nil, err
 	}
 	if err := validateDatabaseCleanupPolicy(database); err != nil {
@@ -67,7 +53,7 @@ func (v *DatabaseCustomValidator) ValidateUpdate(ctx context.Context, oldObj, ne
 }
 
 // ValidateDelete implements webhook.CustomValidator so a webhook will be registered for the type Database.
-func (v *DatabaseCustomValidator) ValidateDelete(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
+func (v *DatabaseCustomValidator) ValidateDelete(ctx context.Context, database *mariadbv1alpha1.Database) (admission.Warnings, error) {
 	return nil, nil
 }
 
