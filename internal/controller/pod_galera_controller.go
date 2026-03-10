@@ -10,7 +10,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/statefulset"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/tools/events"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -19,10 +19,10 @@ import (
 // PodGaleraController reconciles a Pod object
 type PodGaleraController struct {
 	client.Client
-	recorder record.EventRecorder
+	recorder events.EventRecorder
 }
 
-func NewPodGaleraController(client client.Client, recorder record.EventRecorder) PodReadinessController {
+func NewPodGaleraController(client client.Client, recorder events.EventRecorder) PodReadinessController {
 	return &PodGaleraController{
 		Client:   client,
 		recorder: recorder,
@@ -69,7 +69,7 @@ func (r *PodGaleraController) ReconcilePodReady(ctx context.Context, pod corev1.
 	}
 
 	logger.Info("Switching primary", "from-index", *fromIndex, "to-index", *toIndex)
-	r.recorder.Eventf(mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonPrimarySwitching,
+	r.recorder.Eventf(mariadb, nil, corev1.EventTypeNormal, mariadbv1alpha1.ReasonPrimarySwitching, mariadbv1alpha1.ActionReconciling,
 		"Switching primary from index '%d' to index '%d'", *fromIndex, *toIndex)
 
 	return nil
@@ -107,7 +107,7 @@ func (r *PodGaleraController) ReconcilePodNotReady(ctx context.Context, pod core
 	}
 
 	logger.Info("Switching primary", "from-index", *fromIndex, "to-index", *toIndex)
-	r.recorder.Eventf(mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonPrimarySwitching,
+	r.recorder.Eventf(mariadb, nil, corev1.EventTypeNormal, mariadbv1alpha1.ReasonPrimarySwitching, mariadbv1alpha1.ActionReconciling,
 		"Switching primary from index '%d' to index '%d'", *fromIndex, *toIndex)
 
 	return nil

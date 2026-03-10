@@ -5,11 +5,9 @@ import (
 	"fmt"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
@@ -18,7 +16,7 @@ var physicalbackuplog = logf.Log.WithName("physicalbackup-resource")
 
 // SetupPhysicalBackupWebhookWithManager registers the webhook for PhysicalBackup in the manager.
 func SetupPhysicalBackupWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).For(&mariadbv1alpha1.PhysicalBackup{}).
+	return ctrl.NewWebhookManagedBy(mgr, &mariadbv1alpha1.PhysicalBackup{}).
 		WithValidator(&PhysicalBackupCustomValidator{}).
 		Complete()
 }
@@ -29,39 +27,30 @@ func SetupPhysicalBackupWebhookWithManager(mgr ctrl.Manager) error {
 // when it is created, updated, or deleted.
 type PhysicalBackupCustomValidator struct{}
 
-var _ webhook.CustomValidator = &PhysicalBackupCustomValidator{}
+var _ admission.Validator[*mariadbv1alpha1.PhysicalBackup] = &PhysicalBackupCustomValidator{}
 
 // ValidateCreate implements webhook.CustomValidator so a webhook will be registered for the type PhysicalBackup.
-func (v *PhysicalBackupCustomValidator) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
-	physicalBackup, ok := obj.(*mariadbv1alpha1.PhysicalBackup)
-	if !ok {
-		return nil, fmt.Errorf("expected a PhysicalBackup object but got %T", obj)
-	}
+func (v *PhysicalBackupCustomValidator) ValidateCreate(ctx context.Context,
+	physicalBackup *mariadbv1alpha1.PhysicalBackup) (admission.Warnings, error) {
 	physicalbackuplog.V(1).Info("Validation for PhysicalBackup upon creation", "name", physicalBackup.GetName())
 
 	return validatePhysicalBackup(physicalBackup)
 }
 
 // ValidateUpdate implements webhook.CustomValidator so a webhook will be registered for the type PhysicalBackup.
-func (v *PhysicalBackupCustomValidator) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
-	physicalBackup, ok := newObj.(*mariadbv1alpha1.PhysicalBackup)
-	if !ok {
-		return nil, fmt.Errorf("expected a PhysicalBackup object for the newObj but got %T", newObj)
-	}
-	oldPhysicalBackup, ok := oldObj.(*mariadbv1alpha1.PhysicalBackup)
-	if !ok {
-		return nil, fmt.Errorf("expected a PhysicalBackup object for the newObj but got %T", newObj)
-	}
+func (v *PhysicalBackupCustomValidator) ValidateUpdate(ctx context.Context,
+	oldPhysicalBackup, physicalBackup *mariadbv1alpha1.PhysicalBackup) (admission.Warnings, error) {
 	physicalbackuplog.V(1).Info("Validation for PhysicalBackup upon update", "name", physicalBackup.GetName())
 
-	if err := inmutableWebhook.ValidateUpdate(physicalBackup, oldPhysicalBackup); err != nil {
+	if err := immutableWebhook.ValidateUpdate(physicalBackup, oldPhysicalBackup); err != nil {
 		return nil, err
 	}
 	return validatePhysicalBackup(physicalBackup)
 }
 
 // ValidateDelete implements webhook.CustomValidator so a webhook will be registered for the type PhysicalBackup.
-func (v *PhysicalBackupCustomValidator) ValidateDelete(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
+func (v *PhysicalBackupCustomValidator) ValidateDelete(ctx context.Context,
+	physicalBackup *mariadbv1alpha1.PhysicalBackup) (admission.Warnings, error) {
 	return nil, nil
 }
 

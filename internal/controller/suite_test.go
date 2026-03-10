@@ -113,8 +113,8 @@ var _ = BeforeSuite(func() {
 
 	client := k8sManager.GetClient()
 	scheme := k8sManager.GetScheme()
-	galeraRecorder := k8sManager.GetEventRecorderFor("galera")
-	replRecorder := k8sManager.GetEventRecorderFor("replication")
+	galeraRecorder := k8sManager.GetEventRecorder("galera")
+	replRecorder := k8sManager.GetEventRecorder("replication")
 
 	kubeClientset, err := kubernetes.NewForConfig(cfg)
 	Expect(err).ToNot(HaveOccurred())
@@ -146,7 +146,7 @@ var _ = BeforeSuite(func() {
 	deployReconciler := deployment.NewDeploymentReconciler(client)
 	pvcReconciler := pvc.NewPVCReconciler(client)
 	svcMonitorReconciler := servicemonitor.NewServiceMonitorReconciler(client)
-	certReconciler := certctrl.NewCertReconciler(client, scheme, k8sManager.GetEventRecorderFor("cert"), disc, builder)
+	certReconciler := certctrl.NewCertReconciler(client, scheme, k8sManager.GetEventRecorder("cert"), disc, builder)
 
 	replConfigClient := replication.NewReplicationConfigClient(client, builder, secretReconciler)
 	replicationReconciler, err := replication.NewReplicationReconciler(
@@ -201,7 +201,7 @@ var _ = BeforeSuite(func() {
 	err = (&MariaDBReconciler{
 		Client:   client,
 		Scheme:   scheme,
-		Recorder: k8sManager.GetEventRecorderFor("mariadb"),
+		Recorder: k8sManager.GetEventRecorder("mariadb"),
 
 		Environment:      env,
 		Builder:          builder,
@@ -231,7 +231,7 @@ var _ = BeforeSuite(func() {
 	err = (&MaxScaleReconciler{
 		Client:   client,
 		Scheme:   scheme,
-		Recorder: k8sManager.GetEventRecorderFor("maxscale"),
+		Recorder: k8sManager.GetEventRecorder("maxscale"),
 
 		Builder:        builder,
 		ConditionReady: conditionReady,
@@ -269,7 +269,7 @@ var _ = BeforeSuite(func() {
 	err = (&PhysicalBackupReconciler{
 		Client:            client,
 		Scheme:            scheme,
-		Recorder:          k8sManager.GetEventRecorderFor("physicalbackup"),
+		Recorder:          k8sManager.GetEventRecorder("physicalbackup"),
 		Builder:           builder,
 		Discovery:         disc,
 		RefResolver:       refResolver,
@@ -342,7 +342,7 @@ var _ = BeforeSuite(func() {
 	err = NewWebhookConfigReconciler(
 		client,
 		scheme,
-		k8sManager.GetEventRecorderFor("webhook-config"),
+		k8sManager.GetEventRecorder("webhook-config"),
 		k8sManager.Elected(),
 		testCASecretKey,
 		"test",

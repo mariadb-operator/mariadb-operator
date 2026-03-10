@@ -259,8 +259,8 @@ var rootCmd = &cobra.Command{
 
 		client := mgr.GetClient()
 		scheme := mgr.GetScheme()
-		galeraRecorder := mgr.GetEventRecorderFor("galera")
-		replRecorder := mgr.GetEventRecorderFor("replication")
+		galeraRecorder := mgr.GetEventRecorder("galera")
+		replRecorder := mgr.GetEventRecorder("replication")
 
 		kubeClientset, err := kubernetes.NewForConfig(restConfig)
 		if err != nil {
@@ -303,7 +303,7 @@ var rootCmd = &cobra.Command{
 		deployReconciler := deployment.NewDeploymentReconciler(client)
 		pvcReconciler := pvc.NewPVCReconciler(client)
 		svcMonitorReconciler := servicemonitor.NewServiceMonitorReconciler(client)
-		certReconciler := certctrl.NewCertReconciler(client, scheme, mgr.GetEventRecorderFor("cert"), discovery, builder)
+		certReconciler := certctrl.NewCertReconciler(client, scheme, mgr.GetEventRecorder("cert"), discovery, builder)
 
 		replConfigClient := replication.NewReplicationConfigClient(client, builder, secretReconciler)
 		replicationReconciler, err := replication.NewReplicationReconciler(
@@ -361,7 +361,7 @@ var rootCmd = &cobra.Command{
 		if err = (&controller.MariaDBReconciler{
 			Client:   client,
 			Scheme:   scheme,
-			Recorder: mgr.GetEventRecorderFor("mariadb"),
+			Recorder: mgr.GetEventRecorder("mariadb"),
 
 			Environment:      env,
 			Builder:          builder,
@@ -392,7 +392,7 @@ var rootCmd = &cobra.Command{
 		if err = (&controller.MaxScaleReconciler{
 			Client:      client,
 			Scheme:      scheme,
-			Recorder:    mgr.GetEventRecorderFor("maxscale"),
+			Recorder:    mgr.GetEventRecorder("maxscale"),
 			RefResolver: refResolver,
 
 			Builder:        builder,
@@ -432,7 +432,7 @@ var rootCmd = &cobra.Command{
 		if err = (&controller.PhysicalBackupReconciler{
 			Client:            client,
 			Scheme:            scheme,
-			Recorder:          mgr.GetEventRecorderFor("physicalbackup"),
+			Recorder:          mgr.GetEventRecorder("physicalbackup"),
 			Builder:           builder,
 			Discovery:         discovery,
 			RefResolver:       refResolver,

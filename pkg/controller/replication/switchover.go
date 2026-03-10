@@ -112,8 +112,8 @@ func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *Re
 	}
 
 	logger.Info("Primary switched")
-	r.recorder.Eventf(req.mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonPrimarySwitched,
-		"Primary switched from index '%d' to index '%d'", *primary, newPrimary)
+	r.recorder.Eventf(req.mariadb, nil, corev1.EventTypeNormal, mariadbv1alpha1.ReasonPrimarySwitched,
+		mariadbv1alpha1.ActionReconciling, "Primary switched from index '%d' to index '%d'", *primary, newPrimary)
 	return nil
 }
 
@@ -148,8 +148,8 @@ func (r *ReplicationReconciler) reconcileStaleSwitchover(ctx context.Context, re
 	}
 
 	logger.Info("Stale switchover has been reset")
-	r.recorder.Event(req.mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonReplicationResetStaleSwitchover,
-		"Stale switchover has been reset")
+	r.recorder.Eventf(req.mariadb, nil, corev1.EventTypeNormal, mariadbv1alpha1.ReasonReplicationResetStaleSwitchover,
+		mariadbv1alpha1.ActionReconciling, "Stale switchover has been reset")
 	return nil
 }
 
@@ -164,8 +164,8 @@ func (r *ReplicationReconciler) lockPrimaryWithReadLock(ctx context.Context, req
 	}
 
 	logger.Info("Locking primary with read lock")
-	r.recorder.Event(req.mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonReplicationPrimaryLock,
-		"Locking primary with read lock")
+	r.recorder.Eventf(req.mariadb, nil, corev1.EventTypeNormal, mariadbv1alpha1.ReasonReplicationPrimaryLock,
+		mariadbv1alpha1.ActionReconciling, "Locking primary with read lock")
 	return client.LockTablesWithReadLock(ctx)
 }
 
@@ -180,8 +180,8 @@ func (r *ReplicationReconciler) setPrimaryReadOnly(ctx context.Context, req *Rec
 	}
 
 	logger.Info("Enabling readonly mode in primary")
-	r.recorder.Event(req.mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonReplicationPrimaryReadonly,
-		"Enabling readonly mode in primary")
+	r.recorder.Eventf(req.mariadb, nil, corev1.EventTypeNormal, mariadbv1alpha1.ReasonReplicationPrimaryReadonly,
+		mariadbv1alpha1.ActionReconciling, "Enabling readonly mode in primary")
 	return client.EnableReadOnly(ctx)
 }
 
@@ -214,8 +214,8 @@ func (r *ReplicationReconciler) waitForReplicaSync(ctx context.Context, req *Rec
 	}
 
 	logger.Info("Waiting for replicas to be synced with primary", "gtid", primaryGtid)
-	r.recorder.Event(req.mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonReplicationReplicaSync,
-		"Waiting for replicas to be synced with primary")
+	r.recorder.Eventf(req.mariadb, nil, corev1.EventTypeNormal, mariadbv1alpha1.ReasonReplicationReplicaSync,
+		mariadbv1alpha1.ActionReconciling, "Waiting for replicas to be synced with primary")
 	replication := ptr.Deref(req.mariadb.Spec.Replication, mariadbv1alpha1.Replication{})
 
 	g := new(errgroup.Group)
@@ -235,8 +235,8 @@ func (r *ReplicationReconciler) waitForReplicaSync(ctx context.Context, req *Rec
 
 			if err := replClient.WaitForReplicaGtid(ctx, primaryGtid, syncTimeout); err != nil {
 				logger.Error(err, "Error waiting for GTID in replica", "gtid", primaryGtid, "replica", i)
-				r.recorder.Eventf(req.mariadb, corev1.EventTypeWarning, mariadbv1alpha1.ReasonReplicationReplicaSyncErr,
-					"Error waiting for GTID '%s' in replica '%d': %v", primaryGtid, i, err)
+				r.recorder.Eventf(req.mariadb, nil, corev1.EventTypeWarning, mariadbv1alpha1.ReasonReplicationReplicaSyncErr,
+					mariadbv1alpha1.ActionReconciling, "Error waiting for GTID '%s' in replica '%d': %v", primaryGtid, i, err)
 				return err
 			}
 
@@ -261,8 +261,8 @@ func (r *ReplicationReconciler) waitForNewPrimarySync(ctx context.Context, req *
 	}
 
 	logger.Info("Waiting for new primary to be synced")
-	r.recorder.Event(req.mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonReplicationPrimaryNewSync,
-		"Waiting for new primary to be synced")
+	r.recorder.Eventf(req.mariadb, nil, corev1.EventTypeNormal, mariadbv1alpha1.ReasonReplicationPrimaryNewSync,
+		mariadbv1alpha1.ActionReconciling, "Waiting for new primary to be synced")
 
 	syncTimeout := ptr.Deref(replication.Replica.SyncTimeout, metav1.Duration{Duration: 10 * time.Second}).Duration
 	syncCtx, cancel := context.WithTimeout(ctx, syncTimeout)
@@ -287,8 +287,8 @@ func (r *ReplicationReconciler) waitForNewPrimarySync(ctx context.Context, req *
 		return nil
 	}); err != nil {
 		logger.Error(err, "Error waiting for new primary to be synced")
-		r.recorder.Eventf(req.mariadb, corev1.EventTypeWarning, mariadbv1alpha1.ReasonReplicationPrimaryNewSyncErr,
-			"Error waiting for new primary to be synced: %v", err)
+		r.recorder.Eventf(req.mariadb, nil, corev1.EventTypeWarning, mariadbv1alpha1.ReasonReplicationPrimaryNewSyncErr,
+			mariadbv1alpha1.ActionReconciling, "Error waiting for new primary to be synced: %v", err)
 		return err
 	}
 
@@ -304,8 +304,8 @@ func (r *ReplicationReconciler) configureNewPrimary(ctx context.Context, req *Re
 	}
 
 	logger.Info("Configuring new primary")
-	r.recorder.Eventf(req.mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonReplicationPrimaryNew,
-		"Configuring new primary at index '%d'", newPrimary)
+	r.recorder.Eventf(req.mariadb, nil, corev1.EventTypeNormal, mariadbv1alpha1.ReasonReplicationPrimaryNew,
+		mariadbv1alpha1.ActionReconciling, "Configuring new primary at index '%d'", newPrimary)
 
 	if err := r.replConfigClient.ConfigurePrimary(ctx, req.mariadb, newPrimaryClient); err != nil {
 		return fmt.Errorf("error configuring new primary vars: %v", err)
@@ -325,8 +325,8 @@ func (r *ReplicationReconciler) connectReplicasToNewPrimary(ctx context.Context,
 	}
 
 	logger.Info("Connecting replicas to new primary")
-	r.recorder.Eventf(req.mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonReplicationReplicaConn,
-		"Connecting replicas to new primary at '%d'", newPrimary)
+	r.recorder.Eventf(req.mariadb, nil, corev1.EventTypeNormal, mariadbv1alpha1.ReasonReplicationReplicaConn,
+		mariadbv1alpha1.ActionReconciling, "Connecting replicas to new primary at '%d'", newPrimary)
 
 	replicaOpts, err := r.configureReplicaOpts(ctx, req, newPrimaryClient, logger)
 	if err != nil {
@@ -399,8 +399,16 @@ func (r *ReplicationReconciler) changePrimaryToReplica(ctx context.Context, req 
 	}
 
 	logger.Info("Change primary to be a replica")
-	r.recorder.Eventf(req.mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonReplicationPrimaryToReplica,
-		"Unlocking primary '%d' and configuring it to be a replica. New primary at '%d'", currentPrimary, newPrimary)
+	r.recorder.Eventf(
+		req.mariadb,
+		nil,
+		corev1.EventTypeNormal,
+		mariadbv1alpha1.ReasonReplicationPrimaryToReplica,
+		mariadbv1alpha1.ActionReconciling,
+		"Unlocking primary '%d' and configuring it to be a replica. New primary at '%d'",
+		currentPrimary,
+		newPrimary,
+	)
 
 	replicaOpts, err := r.configureReplicaOpts(ctx, req, newPrimaryClient, logger)
 	if err != nil {
@@ -408,7 +416,8 @@ func (r *ReplicationReconciler) changePrimaryToReplica(ctx context.Context, req 
 	}
 
 	logger.Info("Unlocking primary")
-	r.recorder.Event(req.mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonReplicationPrimaryLock, "Unlocking primary")
+	r.recorder.Eventf(req.mariadb, nil, corev1.EventTypeNormal, mariadbv1alpha1.ReasonReplicationPrimaryLock,
+		mariadbv1alpha1.ActionReconciling, "Unlocking primary")
 	if err := currentPrimaryClient.UnlockTables(ctx); err != nil {
 		return fmt.Errorf("error unlocking primary: %v", err)
 	}

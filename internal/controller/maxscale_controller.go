@@ -38,7 +38,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/tools/events"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -53,7 +53,7 @@ var maxScaleFinalizerName = "maxscale.k8s.mariadb.com/finalizer"
 type MaxScaleReconciler struct {
 	client.Client
 	Scheme   *runtime.Scheme
-	Recorder record.EventRecorder
+	Recorder events.EventRecorder
 
 	Builder        *builder.Builder
 	ConditionReady *condition.Ready
@@ -1461,7 +1461,7 @@ func (r *MaxScaleReconciler) reconcileSwitchover(ctx context.Context, req *reque
 			}
 
 			logger.Info("Primary server switched")
-			r.Recorder.Eventf(req.mxs, corev1.EventTypeNormal, mariadbv1alpha1.ReasonPrimarySwitched,
+			r.Recorder.Eventf(req.mxs, nil, corev1.EventTypeNormal, mariadbv1alpha1.ReasonPrimarySwitched, mariadbv1alpha1.ActionReconciling,
 				"Primary server switched to '%s'", primary)
 		}
 
@@ -1473,7 +1473,7 @@ func (r *MaxScaleReconciler) reconcileSwitchover(ctx context.Context, req *reque
 		return ctrl.Result{}, nil
 	}
 	logger.Info("Switching primary server", "primary", primary, "new-primary", newPrimary)
-	r.Recorder.Eventf(req.mxs, corev1.EventTypeNormal, mariadbv1alpha1.ReasonPrimarySwitching,
+	r.Recorder.Eventf(req.mxs, nil, corev1.EventTypeNormal, mariadbv1alpha1.ReasonPrimarySwitching, mariadbv1alpha1.ActionReconciling,
 		"Switching primary server from '%s' to '%s'", primary, newPrimary)
 
 	if err := r.patchStatus(ctx, req.mxs, func(status *mariadbv1alpha1.MaxScaleStatus) error {

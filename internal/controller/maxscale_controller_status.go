@@ -78,11 +78,13 @@ func (r *MaxScaleReconciler) reconcileStatus(ctx context.Context, req *requestMa
 			"primary", primary,
 			"new-primary", newPrimary,
 		)
-		r.Recorder.Event(
+		r.Recorder.Eventf(
 			req.mxs,
+			nil,
 			corev1.EventTypeNormal,
 			mariadbv1alpha1.ReasonMaxScalePrimaryServerChanged,
-			fmt.Sprintf("MaxScale primary server changed from '%s' to '%s'", primary, newPrimary),
+			mariadbv1alpha1.ActionReconciling,
+			"MaxScale primary server changed from '%s' to '%s'", primary, newPrimary,
 		)
 	}
 

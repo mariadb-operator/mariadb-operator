@@ -18,7 +18,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/tools/events"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -48,7 +48,7 @@ func WithServiceReconciler(sr *service.ServiceReconciler) Option {
 type GaleraReconciler struct {
 	client.Client
 	kubeClientset       *kubernetes.Clientset
-	recorder            record.EventRecorder
+	recorder            events.EventRecorder
 	env                 *environment.OperatorEnv
 	builder             *builder.Builder
 	refResolver         *refresolver.RefResolver
@@ -57,7 +57,7 @@ type GaleraReconciler struct {
 	pvcReconciler       *pvc.PVCReconciler
 }
 
-func NewGaleraReconciler(client client.Client, kubeClientset *kubernetes.Clientset, recorder record.EventRecorder,
+func NewGaleraReconciler(client client.Client, kubeClientset *kubernetes.Clientset, recorder events.EventRecorder,
 	env *environment.OperatorEnv, builder *builder.Builder, opts ...Option) *GaleraReconciler {
 	r := &GaleraReconciler{
 		Client:        client,
@@ -117,7 +117,8 @@ func (r *GaleraReconciler) Reconcile(ctx context.Context, mariadb *mariadbv1alph
 			return ctrl.Result{}, err
 		}
 		logger.Info("Galera cluster is healthy")
-		r.recorder.Event(mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonGaleraClusterHealthy, "Galera cluster is healthy")
+		r.recorder.Eventf(mariadb, nil, corev1.EventTypeNormal, mariadbv1alpha1.ReasonGaleraClusterHealthy,
+			mariadbv1alpha1.ActionReconciling, "Galera cluster is healthy")
 
 		if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
 			condition.SetGaleraReady(&mariadb.Status)
@@ -138,7 +139,7 @@ func (r *GaleraReconciler) Reconcile(ctx context.Context, mariadb *mariadbv1alph
 		}
 
 		logger.Info("Primary switched", "from-index", fromIndex, "to-index", toIndex)
-		r.recorder.Eventf(mariadb, corev1.EventTypeNormal, mariadbv1alpha1.ReasonPrimarySwitched,
+		r.recorder.Eventf(mariadb, nil, corev1.EventTypeNormal, mariadbv1alpha1.ReasonPrimarySwitched, mariadbv1alpha1.ActionReconciling,
 			"Primary switched from index '%d' to index '%d'", fromIndex, toIndex)
 	}
 	return ctrl.Result{}, nil

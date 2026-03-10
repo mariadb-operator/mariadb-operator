@@ -101,8 +101,13 @@ func (r *MariaDBReconciler) reconcileReplicaRecoveryError(ctx context.Context, m
 	replication := ptr.Deref(mariadb.Spec.Replication, mariadbv1alpha1.Replication{})
 
 	if replication.Replica.ReplicaBootstrapFrom == nil {
-		r.Recorder.Eventf(mariadb, corev1.EventTypeWarning, mariadbv1alpha1.ReasonMariaDBReplicaRecoveryError,
-			"Unable to recover replicas: replica datasource not found (replication.replica.bootstrapFrom is nil)")
+		r.Recorder.Eventf(mariadb,
+			nil,
+			corev1.EventTypeWarning,
+			mariadbv1alpha1.ReasonMariaDBReplicaRecoveryError,
+			mariadbv1alpha1.ActionReconciling,
+			"Unable to recover replicas: replica datasource not found (replication.replica.bootstrapFrom is nil)",
+		)
 
 		if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
 			condition.SetReplicaRecoveryError(status, "replica datasource not found (replication.replica.bootstrapFrom is nil)")

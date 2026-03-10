@@ -28,7 +28,7 @@ func (r *CertReconciler) reconcileCertManagerCert(ctx context.Context, opts *Cer
 		return ctrl.Result{}, fmt.Errorf("error checking Certificate availability in the cluster: %w", err)
 	}
 	if !certExists {
-		r.recorder.Event(opts.relatedObject, corev1.EventTypeWarning, mariadbv1alpha1.ReasonCRDNotFound,
+		r.recorder.Eventf(opts.relatedObject, nil, corev1.EventTypeWarning, mariadbv1alpha1.ReasonCRDNotFound, mariadbv1alpha1.ActionReconciling,
 			"Unable to reconcile certificate: Certificate CRD not installed in the cluster")
 		logger.Error(errors.New("Certificate CRD not installed in the cluster"), "Unable to reconcile Certificate") //nolint:staticcheck
 		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil

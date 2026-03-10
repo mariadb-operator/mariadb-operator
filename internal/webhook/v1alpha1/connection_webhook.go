@@ -7,11 +7,9 @@ import (
 	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
@@ -20,7 +18,7 @@ var connectionlog = logf.Log.WithName("connection-resource")
 
 // SetupConnectionWebhookWithManager registers the webhook for Connection in the manager.
 func SetupConnectionWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).For(&mariadbv1alpha1.Connection{}).
+	return ctrl.NewWebhookManagedBy(mgr, &mariadbv1alpha1.Connection{}).
 		WithValidator(&ConnectionCustomValidator{}).
 		Complete()
 }
@@ -31,39 +29,30 @@ func SetupConnectionWebhookWithManager(mgr ctrl.Manager) error {
 // when it is created, updated, or deleted.
 type ConnectionCustomValidator struct{}
 
-var _ webhook.CustomValidator = &ConnectionCustomValidator{}
+var _ admission.Validator[*mariadbv1alpha1.Connection] = &ConnectionCustomValidator{}
 
 // ValidateCreate implements webhook.CustomValidator so a webhook will be registered for the type Connection.
-func (v *ConnectionCustomValidator) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
-	connection, ok := obj.(*mariadbv1alpha1.Connection)
-	if !ok {
-		return nil, fmt.Errorf("expected a Connection object but got %T", obj)
-	}
+func (v *ConnectionCustomValidator) ValidateCreate(ctx context.Context,
+	connection *mariadbv1alpha1.Connection) (admission.Warnings, error) {
 	connectionlog.V(1).Info("Validation for Connection upon creation", "name", connection.GetName())
 
 	return validateConnection(connection)
 }
 
 // ValidateUpdate implements webhook.CustomValidator so a webhook will be registered for the type Connection.
-func (v *ConnectionCustomValidator) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
-	connection, ok := newObj.(*mariadbv1alpha1.Connection)
-	if !ok {
-		return nil, fmt.Errorf("expected a Connection object for the newObj but got %T", newObj)
-	}
-	oldConnection, ok := oldObj.(*mariadbv1alpha1.Connection)
-	if !ok {
-		return nil, fmt.Errorf("expected a Connection object for the newObj but got %T", newObj)
-	}
+func (v *ConnectionCustomValidator) ValidateUpdate(ctx context.Context,
+	oldConnection, connection *mariadbv1alpha1.Connection) (admission.Warnings, error) {
 	connectionlog.V(1).Info("Validation for Connection upon update", "name", connection.GetName())
 
-	if err := inmutableWebhook.ValidateUpdate(connection, oldConnection); err != nil {
+	if err := immutableWebhook.ValidateUpdate(connection, oldConnection); err != nil {
 		return nil, err
 	}
 	return validateConnection(connection)
 }
 
 // ValidateDelete implements webhook.CustomValidator so a webhook will be registered for the type Connection.
-func (v *ConnectionCustomValidator) ValidateDelete(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
+func (v *ConnectionCustomValidator) ValidateDelete(ctx context.Context,
+	connection *mariadbv1alpha1.Connection) (admission.Warnings, error) {
 	return nil, nil
 }
 

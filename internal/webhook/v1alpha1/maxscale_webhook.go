@@ -2,15 +2,12 @@ package v1alpha1
 
 import (
 	"context"
-	"fmt"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
@@ -19,7 +16,7 @@ var maxscalelog = logf.Log.WithName("maxscale-resource")
 
 // SetupMaxScaleWebhookWithManager registers the webhook for MaxScale in the manager.
 func SetupMaxScaleWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).For(&mariadbv1alpha1.MaxScale{}).
+	return ctrl.NewWebhookManagedBy(mgr, &mariadbv1alpha1.MaxScale{}).
 		WithValidator(&MaxScaleCustomValidator{}).
 		Complete()
 }
@@ -30,14 +27,10 @@ func SetupMaxScaleWebhookWithManager(mgr ctrl.Manager) error {
 // when it is created, updated, or deleted.
 type MaxScaleCustomValidator struct{}
 
-var _ webhook.CustomValidator = &MaxScaleCustomValidator{}
+var _ admission.Validator[*mariadbv1alpha1.MaxScale] = &MaxScaleCustomValidator{}
 
 // ValidateCreate implements webhook.CustomValidator so a webhook will be registered for the type MaxScale.
-func (v *MaxScaleCustomValidator) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
-	maxscale, ok := obj.(*mariadbv1alpha1.MaxScale)
-	if !ok {
-		return nil, fmt.Errorf("expected a MaxScale object but got %T", obj)
-	}
+func (v *MaxScaleCustomValidator) ValidateCreate(ctx context.Context, maxscale *mariadbv1alpha1.MaxScale) (admission.Warnings, error) {
 	maxscalelog.V(1).Info("Validation for MaxScale upon creation", "name", maxscale.GetName())
 
 	validateFns := []func(*mariadbv1alpha1.MaxScale) error{
@@ -58,18 +51,11 @@ func (v *MaxScaleCustomValidator) ValidateCreate(ctx context.Context, obj runtim
 }
 
 // ValidateUpdate implements webhook.CustomValidator so a webhook will be registered for the type MaxScale.
-func (v *MaxScaleCustomValidator) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
-	maxscale, ok := newObj.(*mariadbv1alpha1.MaxScale)
-	if !ok {
-		return nil, fmt.Errorf("expected a MaxScale object for the newObj but got %T", newObj)
-	}
-	oldMaxscale, ok := oldObj.(*mariadbv1alpha1.MaxScale)
-	if !ok {
-		return nil, fmt.Errorf("expected a MaxScale object for the newObj but got %T", newObj)
-	}
+func (v *MaxScaleCustomValidator) ValidateUpdate(ctx context.Context,
+	oldMaxscale, maxscale *mariadbv1alpha1.MaxScale) (admission.Warnings, error) {
 	maxscalelog.V(1).Info("Validation for MaxScale upon update", "name", maxscale.GetName())
 
-	if err := inmutableWebhook.ValidateUpdate(maxscale, oldMaxscale); err != nil {
+	if err := immutableWebhook.ValidateUpdate(maxscale, oldMaxscale); err != nil {
 		return nil, err
 	}
 
@@ -91,7 +77,7 @@ func (v *MaxScaleCustomValidator) ValidateUpdate(ctx context.Context, oldObj, ne
 }
 
 // ValidateDelete implements webhook.CustomValidator so a webhook will be registered for the type MaxScale.
-func (v *MaxScaleCustomValidator) ValidateDelete(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
+func (v *MaxScaleCustomValidator) ValidateDelete(ctx context.Context, maxscale *mariadbv1alpha1.MaxScale) (admission.Warnings, error) {
 	return nil, nil
 }
 

@@ -26,7 +26,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/tools/events"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -41,7 +41,7 @@ type PhysicalBackupReconciler struct {
 	client.Client
 	Scheme            *runtime.Scheme
 	Builder           *builder.Builder
-	Recorder          record.EventRecorder
+	Recorder          events.EventRecorder
 	Discovery         *discovery.Discovery
 	RefResolver       *refresolver.RefResolver
 	ConditionComplete *condition.Complete
@@ -85,10 +85,12 @@ func (r *PhysicalBackupReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		}); err != nil {
 			return ctrl.Result{}, fmt.Errorf("error patching Backup: %v", err)
 		}
-		r.Recorder.Event(
+		r.Recorder.Eventf(
 			&backup,
+			mariadb,
 			corev1.EventTypeWarning,
 			mariadbv1alpha1.ReasonMariaDBNotReady,
+			mariadbv1alpha1.ActionReconciling,
 			"Pausing backup: MariaDB not ready",
 		)
 

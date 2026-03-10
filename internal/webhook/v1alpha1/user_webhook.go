@@ -2,15 +2,12 @@ package v1alpha1
 
 import (
 	"context"
-	"fmt"
 	"slices"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
@@ -19,7 +16,7 @@ var userlog = logf.Log.WithName("user-resource")
 
 // SetupUserWebhookWithManager registers the webhook for User in the manager.
 func SetupUserWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).For(&mariadbv1alpha1.User{}).
+	return ctrl.NewWebhookManagedBy(mgr, &mariadbv1alpha1.User{}).
 		WithValidator(&UserCustomValidator{}).
 		Complete()
 }
@@ -30,14 +27,10 @@ func SetupUserWebhookWithManager(mgr ctrl.Manager) error {
 // when it is created, updated, or deleted.
 type UserCustomValidator struct{}
 
-var _ webhook.CustomValidator = &UserCustomValidator{}
+var _ admission.Validator[*mariadbv1alpha1.User] = &UserCustomValidator{}
 
 // ValidateCreate implements webhook.CustomValidator so a webhook will be registered for the type User.
-func (v *UserCustomValidator) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
-	user, ok := obj.(*mariadbv1alpha1.User)
-	if !ok {
-		return nil, fmt.Errorf("expected a User object but got %T", obj)
-	}
+func (v *UserCustomValidator) ValidateCreate(ctx context.Context, user *mariadbv1alpha1.User) (admission.Warnings, error) {
 	userlog.V(1).Info("Validation for User upon creation", "name", user.GetName())
 
 	validateFns := []func(user *mariadbv1alpha1.User) error{
@@ -54,18 +47,10 @@ func (v *UserCustomValidator) ValidateCreate(ctx context.Context, obj runtime.Ob
 }
 
 // ValidateUpdate implements webhook.CustomValidator so a webhook will be registered for the type User.
-func (v *UserCustomValidator) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
-	user, ok := newObj.(*mariadbv1alpha1.User)
-	if !ok {
-		return nil, fmt.Errorf("expected a User object for the newObj but got %T", newObj)
-	}
-	oldUser, ok := oldObj.(*mariadbv1alpha1.User)
-	if !ok {
-		return nil, fmt.Errorf("expected a User object for the newObj but got %T", newObj)
-	}
+func (v *UserCustomValidator) ValidateUpdate(ctx context.Context, oldUser, user *mariadbv1alpha1.User) (admission.Warnings, error) {
 	userlog.V(1).Info("Validation for User upon update", "name", user.GetName())
 
-	if err := inmutableWebhook.ValidateUpdate(user, oldUser); err != nil {
+	if err := immutableWebhook.ValidateUpdate(user, oldUser); err != nil {
 		return nil, err
 	}
 	validateFns := []func(user *mariadbv1alpha1.User) error{
@@ -82,7 +67,7 @@ func (v *UserCustomValidator) ValidateUpdate(ctx context.Context, oldObj, newObj
 }
 
 // ValidateDelete implements webhook.CustomValidator so a webhook will be registered for the type User.
-func (v *UserCustomValidator) ValidateDelete(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
+func (v *UserCustomValidator) ValidateDelete(ctx context.Context, user *mariadbv1alpha1.User) (admission.Warnings, error) {
 	return nil, nil
 }
 

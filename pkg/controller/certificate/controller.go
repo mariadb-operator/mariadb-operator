@@ -19,7 +19,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/tools/events"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -33,13 +33,13 @@ var (
 type CertReconciler struct {
 	client.Client
 	scheme      *runtime.Scheme
-	recorder    record.EventRecorder
+	recorder    events.EventRecorder
 	refResolver *refresolver.RefResolver
 	discovery   *discovery.Discovery
 	builder     *builder.Builder
 }
 
-func NewCertReconciler(client client.Client, scheme *runtime.Scheme, recorder record.EventRecorder,
+func NewCertReconciler(client client.Client, scheme *runtime.Scheme, recorder events.EventRecorder,
 	discovery *discovery.Discovery, builder *builder.Builder) *CertReconciler {
 	return &CertReconciler{
 		Client:      client,
@@ -293,7 +293,8 @@ func (r *CertReconciler) handleCAKeyPairResult(keyPair *pki.KeyPair, err error, 
 			msg := fmt.Sprintf("key not found in CA Secret \"%s\": %v", secretName, err)
 
 			if relatedObj := opts.relatedObject; relatedObj != nil {
-				r.recorder.Event(opts.relatedObject, corev1.EventTypeWarning, mariadbv1alpha1.SecretKeyNotFound, msg)
+				r.recorder.Eventf(opts.relatedObject, nil, corev1.EventTypeWarning,
+					mariadbv1alpha1.SecretKeyNotFound, mariadbv1alpha1.ActionReconciling, msg)
 			}
 			return nil, errors.New(msg)
 		}
