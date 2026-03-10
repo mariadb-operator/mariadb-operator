@@ -9,19 +9,19 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v25/pkg/backup"
 )
 
-func TestCompressors(t *testing.T) {
+func TestBackupCompressors(t *testing.T) {
 	content := "Lorem ipsum dolor sit amet, consectetur adipiscing elit."
 	processor := backup.NewLogicalBackupProcessor()
 	logger := logr.Discard()
 
 	tests := []struct {
 		name            string
-		newCompressorFn func(basePath string, getUncompressedFilename GetUncompressedFilenameFn, logger logr.Logger) Compressor
+		newCompressorFn func(basePath string, getUncompressedFilename GetBackupUncompressedFilenameFn, logger logr.Logger) BackupCompressor
 		fileName        string
 	}{
 		{
 			name:            "nop",
-			newCompressorFn: NewNopCompressor,
+			newCompressorFn: NewNopBackupCompressor,
 			fileName:        "backup.2023-12-18T16:14:00Z.sql",
 		},
 		{

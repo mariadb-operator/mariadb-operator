@@ -23,11 +23,11 @@ var uploadBackoff = wait.Backoff{
 type Uploader struct {
 	dataDir    string
 	s3Client   *mariadbminio.Client
-	compressor compression.Compressor
+	compressor compression.BackupCompressor
 	logger     logr.Logger
 }
 
-func NewUploader(dataDir string, s3Client *mariadbminio.Client, compressor compression.Compressor,
+func NewUploader(dataDir string, s3Client *mariadbminio.Client, compressor compression.BackupCompressor,
 	logger logr.Logger) *Uploader {
 	return &Uploader{
 		dataDir:    dataDir,
@@ -67,7 +67,7 @@ func (u *Uploader) Upload(ctx context.Context, binlog string, mdb *mariadbv1alph
 	binlogLogger = binlogLogger.WithValues("start-time", startTime.Format(time.RFC3339))
 	binlogLogger.Info("Uploading binary log")
 
-	if err := u.compressor.Compress(binlog, compression.WithCompressedFilename(targetFile)); err != nil {
+	if err := u.compressor.Compress(binlog, compression.BackupWithCompressedFilename(targetFile)); err != nil {
 		return fmt.Errorf("error compressing binlog: %v", err)
 	}
 
