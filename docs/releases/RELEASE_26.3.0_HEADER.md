@@ -2,7 +2,7 @@
 
 Welcome to another release of `{{ .ProjectName }}`! In this version, we have significantly enhanced our disaster recovery capabilities by adding support for __on-demand physical backups__, __Azure Blob Storage__ and... (🥁)... __Point-In-Time-Recovery__ ✨.
 
-Additionally, there were a bunch of contributions by our amazing community during this release, including bug fixes and new features. We feel very grateful for your efforts and support, thank you! 🙇‍♂️ Refer to the PRs in the changelog below for further details.
+Additionally, we've received a bunch of contributions by our amazing community during this release, including bug fixes and new features. We feel very grateful for your efforts and support, thank you! 🙇‍♂️ Refer to the PRs in the changelog below for further details.
 
 If you're upgrading from previous versions, __do not miss the [UPGRADE GUIDE](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/releases/UPGRADE_26.3.0.md)__ for a smooth transition.
 
@@ -119,7 +119,7 @@ Refer to the [PITR docs](https://github.com/mariadb-operator/mariadb-operator/bl
 
 ## Azure Blob Storage
 
-So far, we have only supported S3-compatible storage as object storage for our backups. We are now introducing native support for Azure Blob Storage in the `PhysicalBackup` and `PointInTimeRecovery` CRs. You can configure it under the `storage` field, similarly to S3:
+So far, we have only supported S3-compatible storage as object storage for keeping the backups. We are now introducing native support for Azure Blob Storage in the `PhysicalBackup` and `PointInTimeRecovery` CRs. You can configure it under the `storage` field, similarly to S3:
 
 ```yaml
 apiVersion: k8s.mariadb.com/v1alpha1
@@ -183,7 +183,7 @@ spec:
     onDemand: "1"
 ```
 
-Once scheduled, the operator tracks the identifier under the status subresource. If the identifier in the status differs from `schedule.onDemand`, the operator will trigger a new a physical backup.
+Once scheduled, the operator tracks the identifier under the status subresource. If the identifier in the status differs from `schedule.onDemand`, the operator will trigger a new physical backup.
 
 Refer to the [physical backup scheduling](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/physical_backup.md#scheduling) docs for additional details.
 
