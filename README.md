@@ -28,10 +28,11 @@ Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB
 - Flexible [storage](./docs/storage.md) configuration. [Volume expansion](./docs/storage.md#volume-resize).
 - [Physical backups](./docs/physical_backup.md) based on [mariadb-backup](https://mariadb.com/docs/server/server-usage/backup-and-restore/mariadb-backup/full-backup-and-restore-with-mariadb-backup) and [Kubernetes VolumeSnapshots](https://kubernetes.io/docs/concepts/storage/volume-snapshots/).
 - [Logical backups](./docs/logical_backup.md) based on [mariadb-dump](https://mariadb.com/docs/server/clients-and-utilities/backup-restore-and-import-clients/mariadb-dump). 
-- Multiple [backup storage types](./docs/physical_backup.md#storage-types): S3 compatible, PVCs, Kubernetes volumes and `VolumeSnapshots`.
+- Multiple [backup storage types](./docs/physical_backup.md#storage-types): S3 compatible, Azure Blob Storage, PVCs, Kubernetes volumes and `VolumeSnapshots`.
 - Flexible backup configuration: [scheduling](./docs/physical_backup.md#scheduling), [compression](./docs/physical_backup.md#compression), [encryption](./docs/physical_backup.md#server-side-encryption-with-customer-provided-keys-sse-c), [retention policy](./docs/physical_backup.md#retention-policy), [target policy](./docs/physical_backup.md#target-policy), [timeout](./docs/physical_backup.md#timeout), [staging area](./docs/physical_backup.md#staging-area)...
 - [Target recovery time](./docs/physical_backup.md#target-recovery-time): restore the closest available backup to the specified time.
-- [Bootstrap new instances](./docs/physical_backup.md#restoration) from: Physical backups, logical backups, S3, PVCs, `VolumeSnapshots`...
+- [Bootstrap new instances](./docs/physical_backup.md#restoration) from: Physical backups, logical backups, S3, Azure Blob Storage, PVCs, `VolumeSnapshots`...
+- [Point-In-Time-Recovery](./docs/pitr.md): Archive binary logs to enable point-in-time restoration and significantly reduce RPO.
 - [Cluster-aware rolling update](./docs/updates.md#replicasfirstprimarylast): roll out replica Pods one by one, wait for each of them to become ready, and then proceed with the primary Pod, using `ReplicasFirstPrimaryLast`.
 - Manual [update strategies](./docs/updates.md#update-strategies): `OnDelete` and `Never`.
 - Automated [data-plane updates](./docs/updates.md#auto-update-data-plane).
@@ -102,7 +103,7 @@ This [migration guide](./docs/logical_backup.md#migrating-an-external-mariadb-to
 
 We are actively working on the following features, which will be released in upcoming versions. Stay tuned!
 
-- [ ] [Point In Time Recovery (PITR)](https://github.com/mariadb-operator/mariadb-operator/issues/507)
+- [x] [Point In Time Recovery (PITR)](https://github.com/mariadb-operator/mariadb-operator/issues/507)
 - [ ] [Multi-cluster topology](https://github.com/mariadb-operator/mariadb-operator/issues/1543)
 
 ## Adopters
@@ -119,6 +120,7 @@ We welcome and encourage contributions to this project! Please check our [contri
 
 ## Community
 
+- [Why MariaDB Operator 25.10 Is a Big Deal for Stateful Workloads on Kubernetes](https://www.mrplanb.com/blog/mariadb-operator-25-10-stateful-kubernetes) - Mr.PlanB blog, October 2025
 - [We Tested and Compared 6 Database Operators. The Results are In!](https://www.youtube.com/watch?v=l33pcnQ4cUQ&t=17m25s) - KubeCon EU, March 2024
 - [Get Started with MariaDB in Kubernetes and mariadb-operator](https://mariadb.com/resources/blog/get-started-with-mariadb-in-kubernetes-and-mariadb-operator/) - MariaDB Corporation blog, February 2024
 - [Run and operate MariaDB in Kubernetes with mariadb-operator](https://mariadb.org/mariadb-in-kubernetes-with-mariadb-operator/) - MariaDB Foundation blog, July 2023
