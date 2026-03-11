@@ -111,6 +111,7 @@ spec:
 - `physicalBackupRef`: It is a reference to the `PhysicalBackup`  resource used as full base backup. See [full base backup](#full-base-backup).
 - `storage`: Object storage configuration for binary logs. See [storage types](#storage-types).
 - `compression`: Algorithm to be used for compressing binary logs. It is disabled by default. See [compression](#compression).
+- `archiveTimeout`: Maximum duration for the binary log archival. If exceeded, agent will return an error and archival will be retried in the next archive cycle. Defaults to 1h.
 - `strictMode`: Controls the behavior when a point-in-time restoration cannot reach the exact target time. It is disabled by default. See [strict mode](#strict-mode).
 
 With this configuration in place, you can enable binary log archival in a `MariaDB` instance by setting a reference to the `PointInTimeRecovery` object:
@@ -151,13 +152,15 @@ spec:
     targetRecoveryTime: 2026-02-20T18:00:04Z
 ```
 
+Refer to the [point-in-time restoration](#point-in-time-restoration) section for additional details.
+
 ## Full base backup
 
 To enable point-in-time recovery, a `PhysicalBackup` resource should be configured as full base backup. The backup should be a complete snapshot of the database at a specific point in time, and it will serve as the starting point for replaying the binary logs. Any of the supported [backup strategies](./physical_backup.md#backup-strategies) can be used as full base backup, as all of them provide a consistent snapshot of the database and a starting GTID position.
 
 It is very important to note that a full physical backups should be completed before a point-in-time restoration can be performed. This is something that the operator accounts for when computing the [last recoverable time](#timeline-and-last-recoverable-time). 
 
-To further expand the [last recoverable time](#timeline-and-last-recoverable-time), you can schedule an on-demand physical backup or rely on the cron scheduling for doing so:
+To further expand the [last recoverable time](#timeline-and-last-recoverable-time), you can schedule an on-demand physical backup or rely on the cron scheduling for doing so. Refer to the [physical backup scheduling](./physical_backup.md#scheduling) docs for further details, see a `PhysicalBackup` resource example:
 
 ```yaml
 apiVersion: k8s.mariadb.com/v1alpha1
@@ -171,7 +174,6 @@ spec:
 ```
 
 The backup taken in the new primary will establish a baseline for a new [binlog timeline](#binlog-timeline-and-last-recoverable-time), which will be expanded when new binary logs are archived.
-
 
 ## Archival
 
@@ -228,7 +230,7 @@ The server has a default [`max_binlog_size`](https://mariadb.com/docs/server/ha-
 
 The smaller the binlog file size, the more frequently the files will be rotated and archived, which can lead to increased load on the database `Pod` and the storage system. On the other hand, setting a very high binlog file size can lead to longer archival times and increased RPO.
 
-Refer to  the [configuration](./configuration.md) documentation for instructions on how to set the `max_binlog_size` server variable in the `MariaDB` instance.
+Refer to  the [configuration](./configuration.md#mycnf) documentation for instructions on how to set the `max_binlog_size` server variable in the `MariaDB` instance.
 
 ## Compression
 
@@ -341,13 +343,13 @@ binlogs:
 
 This file is used internally by the operator to keep track of the archived binary logs, and it is updated after each successful archival. It should not be modified manually, as it can lead to inconsistencies between the actual archived binary logs and the inventory.
 
-When it comes to point-in-time restoration, this file serves as a source of truth to compute the [binlog timeline and the last recoverable time](#timeline-and-last-recoverable-time).
+When it comes to point-in-time restoration, this file serves as a source of truth to compute the [binlog timeline and the last recoverable time](#binlog-timeline-and-last-recoverable-time).
 
 ## Binlog timeline and last recoverable time
 
 Taking into account the last completed physical backup GTID and the archived binlogs in the [inventory](#binlog-inventory), the operator computes a timeline of binary logs that can replayed and its corresponding last recoverable time. The last recoverable time is the latest timestamp that the `MariaDB` instance can be restored to. This information is crucial for understanding the RPO of the system and for making informed decisions during a recovery process.
 
-You can easily check the last recoverable time by looking at the status of the `PointInTimeRecovery` object:
+You can easily check the [last recoverable time](#binlog-timeline-and-last-recoverable-time) by looking at the status of the `PointInTimeRecovery` object:
 
 ```bash
 kubectl get pitr
