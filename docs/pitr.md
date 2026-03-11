@@ -198,10 +198,10 @@ kubectl logs -l k8s.mariadb.com/role=primary -c agent --tail 20
 {"level":"info","ts":1773229710.925272,"logger":"binlog-archival","msg":"Binlog archival done"}
 
 kubectl get events --field-selector involvedObject.name=mariadb-repl
-LAST SEEN   TYPE     REASON           OBJECT                 MESSAGE
-31m         Normal    BinlogArchived         mariadb/mariadb-repl               Binary log mariadb-repl-bin.000001 archived
-21m         Normal    BinlogArchived         mariadb/mariadb-repl               Binary log mariadb-repl-bin.000002 archived
-11m         Normal    BinlogArchived         mariadb/mariadb-repl               Binary log mariadb-repl-bin.000003 archived
+TYPE     REASON           OBJECT                 MESSAGE
+Normal    BinlogArchived         mariadb/mariadb-repl               Binary log mariadb-repl-bin.000001 archived
+Normal    BinlogArchived         mariadb/mariadb-repl               Binary log mariadb-repl-bin.000002 archived
+Normal    BinlogArchived         mariadb/mariadb-repl               Binary log mariadb-repl-bin.000003 archived
 
 kubectl get mariadb mariadb-repl -o jsonpath='{.status.pointInTimeRecovery}' | jq
 {
