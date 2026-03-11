@@ -1,0 +1,242 @@
+**`{{ .ProjectName }}` [26.03](https://github.com/mariadb-operator/mariadb-operator/releases/tag/26.3.0) is here!** 🦭
+
+Welcome to another release of `{{ .ProjectName }}`! In this version, we have significantly enhanced our disaster recovery capabilities by adding support for __on-demand physical backups__, __Azure Blob Storage__ and... (🥁)... __Point-In-Time-Recovery__ ✨.
+
+Additionally, there were a bunch of contributions by our amazing community during this release, including bug fixes and new features. We feel very grateful for your efforts and support, thank you! 🙇‍♂️ Refer to the PRs in the changelog below for further details.
+
+If you're upgrading from previous versions, __do not miss the [UPGRADE GUIDE](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/releases/UPGRADE_26.3.0.md)__ for a smooth transition.
+
+## Point-In-Time-Recovery
+
+Point-in-time recovery (PITR) is a feature that allows you to restore a `MariaDB` instance to a specific point in time. For achieving this, it combines a full base backup and the binary logs that record all changes made to the database after the backup. This is something fully automated by operator, covering archival and restoration up to a specific time, ensuring business continuity and reduced RTO and RPO.
+
+In order to configure PITR, you need to configure a `PhysicalBackup` object to be used as full base backup. For example, you can configure a nightly backup:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: PhysicalBackup
+metadata:
+  name: physicalbackup-daily
+spec:
+  mariaDbRef:
+    name: mariadb-repl
+  schedule:
+    cron: "0 0 * * *"
+    suspend: false
+    immediate: true
+  compression: bzip2
+  maxRetention: 720h 
+  storage:
+    s3:
+      bucket: physicalbackups
+      prefix: mariadb
+      endpoint: minio.minio.svc.cluster.local:9000
+      region: us-east-1
+      accessKeyIdSecretKeyRef:
+        name: minio
+        key: access-key-id
+      secretAccessKeySecretKeyRef:
+        name: minio
+        key: secret-access-key
+      tls:
+        enabled: true
+        caSecretKeyRef:
+          name: minio-ca
+          key: ca.crt
+```
+
+Next step is configuring common aspects of both binary log archiving and point-in-time restoration by defining a `PointInTimeRecovery` object:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: PointInTimeRecovery
+metadata:
+  name: pitr
+spec:
+  physicalBackupRef:
+    name: physicalbackup-daily
+  storage:
+    s3:
+      bucket: binlogs
+      prefix: mariadb
+      endpoint: minio.minio.svc.cluster.local:9000
+      region: us-east-1
+      accessKeyIdSecretKeyRef:
+        name: minio
+        key: access-key-id
+      secretAccessKeySecretKeyRef:
+        name: minio
+        key: secret-access-key
+      tls:
+        enabled: true
+        caSecretKeyRef:
+          name: minio-ca
+          key: ca.crt
+  compression: gzip
+  archiveTimeout: 1h
+  strictMode: false
+``` 
+
+The new `PointInTimeRecovery` CR is just a configuration object that contains shared settings for both binary log archiving and point-in-time recovery. It has also a reference to a `PhysicalBackup` CR, used as full base backup.
+
+In order to configure binary log archiving, you need to set a reference to the `PointInTimeRecovery` CR in the `MariaDB` object:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-repl
+spec:
+  pointInTimeRecoveryRef:
+    name: pitr
+```
+
+This will enable the binary log archival in the sidecar agent, which will eventually report the last recoverable time via the `PointInTimeRecovery` status:
+
+```bash
+kubectl get pitr
+NAME   PHYSICAL BACKUP        LAST RECOVERABLE TIME   STRICT MODE   AGE
+pitr   physicalbackup-daily   2026-02-27T20:10:42Z    false         43h
+```
+
+In order to perform a point-in-time restoration, you can create a new `MariaDB` instance with a reference to the `PointInTimeRecovery` object in the `bootstrapFrom` field, along with the `targetRecoveryTime`, which should be before or at the last recoverable time:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-repl
+spec:
+  bootstrapFrom:
+    pointInTimeRecoveryRef:
+      name: pitr
+    targetRecoveryTime: 2026-02-27T20:10:42Z
+```
+
+The restoration process will match the closest physical backup before or at the `targetRecoveryTime`, and then it will replay the archived binary logs from the backup GTID position up until the `targetRecoveryTime`.
+
+Refer to the [PITR docs](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/pitr.md) for additional details.
+
+## Azure Blob Storage
+
+So far, we have only supported S3-compatible storage as object storage for our backups. We are now introducing native support for Azure Blob Storage in the `PhysicalBackup` and `PointInTimeRecovery` CRs. You can configure it under the `storage` field, similarly to S3:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: PointInTimeRecovery
+metadata:
+  name: pitr
+spec:
+  storage:
+    azureBlob:
+      containerName: binlogs
+      serviceURL: https://azurite.default.svc.cluster.local:10000/devstoreaccount1
+      prefix: mariadb
+      storageAccountName: devstoreaccount1
+      storageAccountKey:
+        name: azurite-key
+        key: storageAccountKey
+      tls:
+        enabled: true
+        caSecretKeyRef:
+          name: azurite-certs
+          key: cert.pem
+```
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: PhysicalBackup
+metadata:
+  name: physicalbackup-daily
+spec:
+  storage:
+    azureBlob:
+      containerName: physicalbackup
+      serviceURL: https://azurite.default.svc.cluster.local:10000/devstoreaccount1
+      prefix: mariadb
+      storageAccountName: devstoreaccount1
+      storageAccountKey:
+        name: azurite-key
+        key: storageAccountKey
+      tls:
+        enabled: true
+        caSecretKeyRef:
+          name: azurite-certs
+          key: cert.pem
+```
+Refer to the [physical backup storage](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/physical_backup.md#azure-blob-storage-credentials) docs for additional details.
+
+It is important to note that we couldn't find the bandwidth to support it for `Backup` resource (logical backup) in this release, [contributions are welcomed](https://github.com/mariadb-operator/mariadb-operator/issues/1653)!
+
+Kudos to our co-maintainer @Michaelpalacce for smoothly driving this feature end-to-end!
+
+## On-demand `PhysicalBackup`
+
+We have introduced the ability to trigger on-demand physical backup manually. For doing so, you need to provide an identifier in the `schedule.onDemand` field of the `PhysicalBackup` resource:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: PhysicalBackup
+metadata:
+  name: physicalbackup
+spec:
+  schedule:
+    onDemand: "1"
+```
+
+Once scheduled, the operator tracks the identifier under the status subresource. If the identifier in the status differs from `schedule.onDemand`, the operator will trigger a new a physical backup.
+
+Refer to the [physical backup scheduling](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/physical_backup.md#scheduling) docs for additional details.
+
+### Behaviour change in `targetRecoveryTime`
+
+To satisfy requirements of point-in-time recovery, we have unified the behaviour of the `bootstrapFrom.targetRecoveryTime` field in the `MariaDB` object: Logical and physical backup files whose timestamp is closest to `targetRecoveryTime`, __but not after__, will be matched.
+
+Please take this into account when upgrading to this version.
+
+### Change in Helm `values.yaml`
+
+`config` has been split into `repository` and `tag` to facilitate overriding the image registry (see https://github.com/mariadb-operator/mariadb-operator/pull/1632). Please update your `values.yaml` from:
+
+```yaml
+config:
+  mariadbImageName: docker-registry1.mariadb.com/library/mariadb
+  maxscaleImage: docker-registry2.mariadb.com/mariadb/maxscale:23.08.5
+  exporterImage: prom/mysqld-exporter:v0.15.1
+  exporterMaxscaleImage: docker-registry2.mariadb.com/mariadb/maxscale-prometheus-exporter-ubi:v0.0.1
+ ```
+
+to the following format:
+
+```yaml
+config:
+  mariadbImage:
+    repository: docker-registry1.mariadb.com/library/mariadb
+    tag: 11.8.5
+  maxscaleImage:
+    repository: docker-registry2.mariadb.com/mariadb/maxscale
+    tag: 23.08.5
+  exporterImage:
+    repository: prom/mysqld-exporter
+    tag: v0.15.1
+  exporterMaxscaleImage:
+    repository: docker-registry2.mariadb.com/mariadb/maxscale-prometheus-exporter-ubi
+    tag: v0.0.1
+```
+
+### Updated dependencies
+
+| Platform/Component        | Version  |
+| ------------------------- | -------- |
+| Kubernetes                | 1.35     |
+| Go                        | 1.26.1   |
+| controller-runtime        | 0.23.3   |
+
+---
+
+## Community
+
+Contributions of any kind are always welcome: adding yourself to the [list of adopters](https://github.com/mariadb-operator/mariadb-operator/blob/main/ADOPTERS.md), reporting issues, submitting pull requests, or simply starring the project! 🌟
+
+## Enterprise
+
+For enterprise users, see the __[MariaDB Enterprise Operator](https://mariadb.com/products/enterprise/kubernetes-operator/)__, a commercially supported Kubernetes operator from MariaDB with additional enterprise-grade features.
