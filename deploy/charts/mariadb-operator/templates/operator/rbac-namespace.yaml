@@ -136,6 +136,15 @@ rules:
   - patch
   - watch
 - apiGroups:
+  - events.k8s.io
+  resources:
+  - events
+  verbs:
+  - create
+  - list
+  - patch
+  - watch
+- apiGroups:
   - k8s.mariadb.com
   resources:
   - backups

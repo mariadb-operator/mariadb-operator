@@ -108,7 +108,6 @@ type patcherMariaDB func(*mariadbv1alpha1.MariaDBStatus) error
 //+kubebuilder:rbac:groups="",resources=pods,verbs=get;patch;delete
 //+kubebuilder:rbac:groups="",resources=pods/log,verbs=get
 //+kubebuilder:rbac:groups="",resources=persistentvolumeclaims,verbs=list;delete
-//+kubebuilder:rbac:groups="",resources=events,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=list;watch;create;patch;delete
 //+kubebuilder:rbac:groups=apps,resources=deployments,verbs=list;watch;create;patch
@@ -119,6 +118,7 @@ type patcherMariaDB func(*mariadbv1alpha1.MariaDBStatus) error
 //+kubebuilder:rbac:groups=authentication.k8s.io,resources=tokenreviews,verbs=create
 //+kubebuilder:rbac:groups=discovery.k8s.io,resources=endpointslices,verbs=create;patch;get;list;watch
 //+kubebuilder:rbac:groups=discovery.k8s.io,resources=endpointslices/restricted,verbs=create;patch;get;list;watch
+//+kubebuilder:rbac:groups=events.k8s.io,resources=events,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups=monitoring.coreos.com,resources=servicemonitors,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups=cert-manager.io,resources=certificates,verbs=list;watch;create;patch
 

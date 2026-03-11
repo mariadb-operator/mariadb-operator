@@ -84,8 +84,8 @@ rules:
   - delete
   - get
   - list
-  - watch
   - patch
+  - watch
 - apiGroups:
   - ""
   resources:
@@ -165,14 +165,23 @@ rules:
   - patch
   - watch
 - apiGroups:
+  - events.k8s.io
+  resources:
+  - events
+  verbs:
+  - create
+  - list
+  - patch
+  - watch
+- apiGroups:
   - k8s.mariadb.com
   resources:
   - backups
   - connections
   - databases
+  - externalmariadbs
   - grants
   - mariadbs
-  - externalmariadbs
   - maxscales
   - physicalbackups
   - restores
@@ -192,9 +201,9 @@ rules:
   - backups/finalizers
   - connections/finalizers
   - databases/finalizers
+  - externalmariadbs/finalizers
   - grants/finalizers
   - mariadbs/finalizers
-  - externalmariadbs/finalizers
   - maxscales/finalizers
   - physicalbackups/finalizers
   - restores/finalizers
@@ -208,9 +217,9 @@ rules:
   - backups/status
   - connections/status
   - databases/status
+  - externalmariadbs/status
   - grants/status
   - mariadbs/status
-  - externalmariadbs/status
   - maxscales/status
   - physicalbackups/status
   - pointintimerecoveries/status
