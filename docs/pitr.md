@@ -181,32 +181,34 @@ The mariadb-operator [sidecar agent](./data_plane.md#agent-sidecar) will periodi
 
 ```bash
 kubectl logs -l k8s.mariadb.com/role=primary -c agent --tail 20
-{"level":"info","ts":1772208238.0152433,"logger":"binlog-archival","msg":"Archiving binary logs"}
-{"level":"info","ts":1772208238.437027,"logger":"binlog-archival.uploader","msg":"Uploading binary log","binlog":"mariadb-repl-bin.000003","object":"server-10/mariadb-repl-bin.000003.gz","start-time":"2026-02-27T16:03:58Z"}
-{"level":"info","ts":1772208238.4371545,"logger":"binlog-archival.uploader","msg":"Compressing binary log","binlog":"mariadb-repl-bin.000003","object":"server-10/mariadb-repl-bin.000003.gz","start-time":"2026-02-27T16:03:58Z"}
-{"level":"info","ts":1772208260.8291402,"logger":"binlog-archival.uploader","msg":"Binary log uploaded","binlog":"mariadb-repl-bin.000003","object":"server-10/mariadb-repl-bin.000003.gz","start-time":"2026-02-27T16:03:58Z","total-time":"22.392211226s"}
-{"level":"info","ts":1772208260.8621385,"logger":"binlog-archival","msg":"Binary log mariadb-repl-bin.000003 archived"}
-{"level":"info","ts":1772208260.8622391,"logger":"binlog-archival","msg":"Binlog archival done"}
-{"level":"info","ts":1772208268.0053742,"logger":"binlog-archival","msg":"Archiving binary logs"}
-{"level":"info","ts":1772208268.0907545,"logger":"binlog-archival.uploader","msg":"Uploading binary log","binlog":"mariadb-repl-bin.000004","object":"server-10/mariadb-repl-bin.000004.gz","start-time":"2026-02-27T16:04:28Z"}
-{"level":"info","ts":1772208268.0908031,"logger":"binlog-archival.uploader","msg":"Compressing binary log","binlog":"mariadb-repl-bin.000004","object":"server-10/mariadb-repl-bin.000004.gz","start-time":"2026-02-27T16:04:28Z"}
-{"level":"info","ts":1772208279.7613757,"logger":"binlog-archival.uploader","msg":"Binary log uploaded","binlog":"mariadb-repl-bin.000004","object":"server-10/mariadb-repl-bin.000004.gz","start-time":"2026-02-27T16:04:28Z","total-time":"11.670631252s"}
-{"level":"info","ts":1772208279.7794006,"logger":"binlog-archival","msg":"Binary log mariadb-repl-bin.000004 archived"}
-{"level":"info","ts":1772208279.7794523,"logger":"binlog-archival","msg":"Binlog archival done"}
+{"level":"info","ts":1773229710.7131367,"logger":"binlog-archival","msg":"Archiving binary logs"}
+{"level":"info","ts":1773229710.8043964,"logger":"binlog-archival","msg":"Detected server_id change. Resetting binary log archival status...","server-id":0,"new-server-id":10}
+{"level":"info","ts":1773229710.8404129,"logger":"binlog-archival.uploader","msg":"Uploading binary log","binlog":"mariadb-repl-bin.000001","object":"server-10/mariadb-repl-bin.000001.gz","start-time":"2026-03-11T11:48:30Z"}
+{"level":"info","ts":1773229710.840511,"logger":"binlog-archival.uploader","msg":"Compressing binary log","binlog":"mariadb-repl-bin.000001","object":"server-10/mariadb-repl-bin.000001.gz","start-time":"2026-03-11T11:48:30Z"}
+{"level":"info","ts":1773229710.8584251,"logger":"binlog-archival.uploader","msg":"Binary log uploaded","binlog":"mariadb-repl-bin.000001","object":"server-10/mariadb-repl-bin.000001.gz","start-time":"2026-03-11T11:48:30Z","total-time":"18.037438ms"}
+{"level":"info","ts":1773229710.858639,"logger":"binlog-archival","msg":"Binary log mariadb-repl-bin.000001 archived"}
+{"level":"info","ts":1773229710.8730743,"logger":"binlog-archival.uploader","msg":"Uploading binary log","binlog":"mariadb-repl-bin.000002","object":"server-10/mariadb-repl-bin.000002.gz","start-time":"2026-03-11T11:48:30Z"}
+{"level":"info","ts":1773229710.8731706,"logger":"binlog-archival.uploader","msg":"Compressing binary log","binlog":"mariadb-repl-bin.000002","object":"server-10/mariadb-repl-bin.000002.gz","start-time":"2026-03-11T11:48:30Z"}
+{"level":"info","ts":1773229710.8925226,"logger":"binlog-archival.uploader","msg":"Binary log uploaded","binlog":"mariadb-repl-bin.000002","object":"server-10/mariadb-repl-bin.000002.gz","start-time":"2026-03-11T11:48:30Z","total-time":"19.470862ms"}
+{"level":"info","ts":1773229710.89273,"logger":"binlog-archival","msg":"Binary log mariadb-repl-bin.000002 archived"}
+{"level":"info","ts":1773229710.9050276,"logger":"binlog-archival.uploader","msg":"Uploading binary log","binlog":"mariadb-repl-bin.000003","object":"server-10/mariadb-repl-bin.000003.gz","start-time":"2026-03-11T11:48:30Z"}
+{"level":"info","ts":1773229710.905098,"logger":"binlog-archival.uploader","msg":"Compressing binary log","binlog":"mariadb-repl-bin.000003","object":"server-10/mariadb-repl-bin.000003.gz","start-time":"2026-03-11T11:48:30Z"}
+{"level":"info","ts":1773229710.9248638,"logger":"binlog-archival.uploader","msg":"Binary log uploaded","binlog":"mariadb-repl-bin.000003","object":"server-10/mariadb-repl-bin.000003.gz","start-time":"2026-03-11T11:48:30Z","total-time":"19.873411ms"}
+{"level":"info","ts":1773229710.9251468,"logger":"binlog-archival","msg":"Binary log mariadb-repl-bin.000003 archived"}
+{"level":"info","ts":1773229710.925272,"logger":"binlog-archival","msg":"Binlog archival done"}
 
 kubectl get events --field-selector involvedObject.name=mariadb-repl
 LAST SEEN   TYPE     REASON           OBJECT                 MESSAGE
-4m3s        Normal   BinlogArchived   MariaDB/mariadb-repl   Binary log mariadb-repl-bin.000001 archived
-2m36s       Normal   BinlogArchived   MariaDB/mariadb-repl   Binary log mariadb-repl-bin.000002 archived
-2m11s       Normal   BinlogArchived   MariaDB/mariadb-repl   Binary log mariadb-repl-bin.000003 archived
-112s        Normal   BinlogArchived   MariaDB/mariadb-repl   Binary log mariadb-repl-bin.000004 archived
+31m         Normal    BinlogArchived         mariadb/mariadb-repl               Binary log mariadb-repl-bin.000001 archived
+21m         Normal    BinlogArchived         mariadb/mariadb-repl               Binary log mariadb-repl-bin.000002 archived
+11m         Normal    BinlogArchived         mariadb/mariadb-repl               Binary log mariadb-repl-bin.000003 archived
 
 kubectl get mariadb mariadb-repl -o jsonpath='{.status.pointInTimeRecovery}' | jq
 {
-  "lastArchivedBinaryLog": "mariadb-repl-bin.000004",
-  "lastArchivedGtid": "0-10-1559",
-  "lastArchivedPosition": 268506819,
-  "lastArchivedTime": "2026-02-27T16:04:15Z",
+  "lastArchivedBinaryLog": "mariadb-repl-bin.000003",
+  "lastArchivedGtid": "0-10-1000",
+  "lastArchivedPosition": 678,
+  "lastArchivedTime": "2026-03-11T11:55:31Z",
   "serverId": 10,
   "storageReadyForArchival": true
 }
