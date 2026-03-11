@@ -158,9 +158,9 @@ Refer to the [point-in-time restoration](#point-in-time-restoration) section for
 
 To enable point-in-time recovery, a `PhysicalBackup` resource should be configured as full base backup. The backup should be a complete snapshot of the database at a specific point in time, and it will serve as the starting point for replaying the binary logs. Any of the supported [backup strategies](./physical_backup.md#backup-strategies) can be used as full base backup, as all of them provide a consistent snapshot of the database and a starting GTID position.
 
-It is very important to note that a full physical backups should be completed before a point-in-time restoration can be performed. This is something that the operator accounts for when computing the [last recoverable time](#timeline-and-last-recoverable-time). 
+It is very important to note that a full physical backups should be completed before a point-in-time restoration can be performed. This is something that the operator accounts for when computing the [last recoverable time](#binlog-timeline-and-last-recoverable-time). 
 
-To further expand the [last recoverable time](#timeline-and-last-recoverable-time), you can schedule an on-demand physical backup or rely on the cron scheduling for doing so. Refer to the [physical backup scheduling](./physical_backup.md#scheduling) docs for further details, see a `PhysicalBackup` resource example:
+To further expand the [last recoverable time](#binlog-timeline-and-last-recoverable-time), you can schedule an on-demand physical backup or rely on the cron scheduling for doing so. Refer to the [physical backup scheduling](./physical_backup.md#scheduling) docs for further details, see a `PhysicalBackup` resource example:
 
 ```yaml
 apiVersion: k8s.mariadb.com/v1alpha1
