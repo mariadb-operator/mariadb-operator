@@ -83,7 +83,9 @@ func (p *LogicalBackupProcessor) GetOldBackupFiles(backupFileNames []string, max
 
 // IsValidBackupFile determines whether a backup file name is valid.
 func (p *LogicalBackupProcessor) IsValidBackupFile(fileName string) bool {
-	if !strings.HasPrefix(fileName, "backup.") || !strings.HasSuffix(fileName, ".sql") {
+	// Must start with "backup." and contain ".sql" either as suffix (uncompressed)
+	// or before the compression extension (e.g. ".sql.gz", ".sql.bz2").
+	if !strings.HasPrefix(fileName, "backup.") || !strings.Contains(fileName, ".sql") {
 		return false
 	}
 	_, err := p.ParseCompressionAlgorithm(fileName)
