@@ -222,7 +222,7 @@ func (b *Builder) BuildPhysicalBackupJob(key types.NamespacedName, backup *maria
 		backupCmd,
 		b.env,
 		volumeMounts,
-		jobEnv(mariadb),
+		physicalBackupJobEnv(mariadb),
 		jobResources(backup.Spec.Resources),
 		mariadb,
 		backup.Spec.SecurityContext,
@@ -596,7 +596,7 @@ func (b *Builder) BuildPhysicalBackupRestoreJob(key types.NamespacedName, mariad
 		restoreCmd,
 		b.env,
 		volumeMounts,
-		nil,
+		physicalBackupJobEnv(mariadb),
 		jobResources(restoreJob.Resources),
 		mariadb,
 		mariadb.Spec.SecurityContext,
@@ -1186,6 +1186,13 @@ func jobPhysicalBackupVolumes(storageVolume mariadbv1alpha1.StorageVolumeSource,
 		},
 	})
 	volumeMounts = append(volumeMounts, mariadbStorageVolumeMount(mariadb))
+
+	if mariadb.Spec.Volumes != nil {
+		volumes = append(volumes, kadapter.ToKubernetesSlice(mariadb.Spec.Volumes)...)
+	}
+	if mariadb.Spec.VolumeMounts != nil {
+		volumeMounts = append(volumeMounts, kadapter.ToKubernetesSlice(mariadb.Spec.VolumeMounts)...)
+	}
 
 	return volumes, volumeMounts
 }

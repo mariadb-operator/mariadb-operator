@@ -10,6 +10,7 @@ import (
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	labels "github.com/mariadb-operator/mariadb-operator/v26/pkg/builder/labels"
+	builderpki "github.com/mariadb-operator/mariadb-operator/v26/pkg/builder/pki"
 	galeraresources "github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/galera/resources"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/replication"
 	"github.com/stretchr/testify/assert"
@@ -3601,6 +3602,132 @@ func TestBuildPITRJob(t *testing.T) {
 				assert.NotNil(t, job.Spec.Template.Spec.Affinity)
 			} else {
 				assert.Nil(t, job.Spec.Template.Spec.Affinity)
+			}
+		})
+	}
+}
+
+func TestJobPhysicalBackupVolumes(t *testing.T) {
+	podIndex := 0
+
+	tests := []struct {
+		name            string
+		storageVolume   mariadbv1alpha1.StorageVolumeSource
+		s3              *mariadbv1alpha1.S3
+		abs             *mariadbv1alpha1.AzureBlob
+		mariadb         *mariadbv1alpha1.MariaDB
+		wantVolumeNames []string
+	}{
+		{
+			name: "Basic backup volumes",
+			storageVolume: mariadbv1alpha1.StorageVolumeSource{
+				EmptyDir: &mariadbv1alpha1.EmptyDirVolumeSource{},
+			},
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: metav1.ObjectMeta{Name: "my-mariadb"},
+			},
+			wantVolumeNames: []string{batchStorageVolume, StorageVolume},
+		},
+		{
+			name: "S3 Volumes",
+			s3: &mariadbv1alpha1.S3{
+				TLS: &mariadbv1alpha1.TLSConfig{
+					Enabled:        true,
+					CASecretKeyRef: &mariadbv1alpha1.SecretKeySelector{},
+				},
+			},
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: metav1.ObjectMeta{Name: "my-mariadb"},
+			},
+			wantVolumeNames: []string{batchStorageVolume, StorageVolume, S3PKI},
+		},
+		{
+			name: "ABS Volumes",
+			abs: &mariadbv1alpha1.AzureBlob{
+				TLS: &mariadbv1alpha1.TLSConfig{
+					Enabled:        true,
+					CASecretKeyRef: &mariadbv1alpha1.SecretKeySelector{},
+				},
+			},
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: metav1.ObjectMeta{Name: "my-mariadb"},
+			},
+			wantVolumeNames: []string{batchStorageVolume, StorageVolume, ABSPKI},
+		},
+		{
+			name: "PKI Volumes",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: metav1.ObjectMeta{Name: "my-mariadb"},
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					TLS: &mariadbv1alpha1.TLS{
+						Enabled: true,
+					},
+				},
+			},
+			wantVolumeNames: []string{batchStorageVolume, StorageVolume, builderpki.PKIVolume},
+		},
+		{
+			name: "Additional env",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: metav1.ObjectMeta{Name: "my-mariadb"},
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					TLS: &mariadbv1alpha1.TLS{
+						Enabled: true,
+					},
+					ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
+						VolumeMounts: []mariadbv1alpha1.VolumeMount{
+							{
+								Name: "test",
+							},
+						},
+					},
+					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
+						Volumes: []mariadbv1alpha1.MariaDBVolume{
+							{
+								Name: "test",
+							},
+						},
+					},
+				},
+			},
+			wantVolumeNames: []string{batchStorageVolume, StorageVolume, builderpki.PKIVolume, "test"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			volumes, volumeMounts := jobPhysicalBackupVolumes(tt.storageVolume, tt.s3, tt.abs, tt.mariadb, &podIndex)
+
+			if len(volumes) != len(tt.wantVolumeNames) {
+				t.Errorf("got %d volumes, want %d", len(volumes), len(tt.wantVolumeNames))
+			}
+			if len(volumeMounts) != len(tt.wantVolumeNames) {
+				t.Errorf("got %d volumeMounts, want %d", len(volumes), len(tt.wantVolumeNames))
+			}
+
+			for _, wantName := range tt.wantVolumeNames {
+				foundVol := false
+				for _, v := range volumes {
+					if v.Name == wantName {
+						foundVol = true
+						break
+					}
+				}
+				if !foundVol {
+					t.Errorf("volume %s not found in volumes", wantName)
+				}
+
+				// Check if each expected volume mount exists
+				foundMount := false
+				for _, vm := range volumeMounts {
+					if vm.Name == wantName {
+						foundMount = true
+						break
+					}
+				}
+				if !foundMount {
+					t.Errorf("volume mount %s not found in volumeMounts", wantName)
+				}
 			}
 		})
 	}
