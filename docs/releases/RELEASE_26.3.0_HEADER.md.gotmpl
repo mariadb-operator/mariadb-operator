@@ -10,7 +10,7 @@ If you're upgrading from previous versions, __do not miss the [UPGRADE GUIDE](ht
 
 Point-in-time recovery (PITR) is a feature that allows you to restore a `MariaDB` instance to a specific point in time. For achieving this, it combines a full base backup and the binary logs that record all changes made to the database after the backup. This is something fully automated by operator, covering archival and restoration up to a specific time, ensuring business continuity and reduced RTO and RPO.
 
-In order to configure PITR, you need to configure a `PhysicalBackup` object to be used as full base backup. For example, you can configure a nightly backup:
+In order to configure PITR, you need to create a `PhysicalBackup` object to be used as full base backup. For example, you can configure a nightly backup:
 
 ```yaml
 apiVersion: k8s.mariadb.com/v1alpha1
