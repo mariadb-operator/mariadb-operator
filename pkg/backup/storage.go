@@ -3,6 +3,7 @@ package backup
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/go-logr/logr"
@@ -17,6 +18,25 @@ type BackupStorage interface {
 	Delete(ctx context.Context, fileName string) error
 	shouldProcessBackupFile(fileName string, logger logr.Logger) bool
 }
+
+// StreamingBackupStorage extends BackupStorage with streaming capabilities
+// that allow direct piping of backup data without intermediate disk storage.
+type StreamingBackupStorage interface {
+	BackupStorage
+	// PullStream returns a reader for the backup file content and its size.
+	// The caller is responsible for closing the returned ReadCloser.
+	PullStream(ctx context.Context, fileName string) (io.ReadCloser, int64, error)
+	// PullStreamResumable returns a resumable reader that can automatically reconnect
+	// using HTTP Range requests if the connection drops during download.
+	// The caller is responsible for closing the returned ReadCloser.
+	PullStreamResumable(ctx context.Context, fileName string, config mariadbminio.ResumableReaderConfig) (io.ReadCloser, int64, error)
+}
+
+// Compile-time interface verification
+var (
+	_ StreamingBackupStorage = (*FileSystemBackupStorage)(nil)
+	_ StreamingBackupStorage = (*S3BackupStorage)(nil)
+)
 
 type FileSystemBackupStorage struct {
 	basePath  string
@@ -55,8 +75,37 @@ func (f *FileSystemBackupStorage) Pull(ctx context.Context, fileName string) err
 	return nil // noop
 }
 
+func (f *FileSystemBackupStorage) PullStream(ctx context.Context, fileName string) (io.ReadCloser, int64, error) {
+	filePath, err := GetFilePathSafe(f.basePath, fileName)
+	if err != nil {
+		return nil, 0, fmt.Errorf("invalid filename: %w", err)
+	}
+
+	file, err := os.Open(filePath)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	info, err := file.Stat()
+	if err != nil {
+		file.Close()
+		return nil, 0, err
+	}
+
+	return file, info.Size(), nil
+}
+
+// PullStreamResumable for filesystem just returns the regular stream since local files don't have network issues.
+func (f *FileSystemBackupStorage) PullStreamResumable(ctx context.Context, fileName string, config mariadbminio.ResumableReaderConfig) (io.ReadCloser, int64, error) {
+	return f.PullStream(ctx, fileName)
+}
+
 func (f *FileSystemBackupStorage) Delete(ctx context.Context, fileName string) error {
-	return os.Remove(GetFilePath(f.basePath, fileName))
+	filePath, err := GetFilePathSafe(f.basePath, fileName)
+	if err != nil {
+		return fmt.Errorf("invalid filename: %w", err)
+	}
+	return os.Remove(filePath)
 }
 
 func (f *FileSystemBackupStorage) shouldProcessBackupFile(fileName string, logger logr.Logger) bool {
@@ -112,6 +161,16 @@ func (s *S3BackupStorage) Push(ctx context.Context, fileName string) error {
 
 func (s *S3BackupStorage) Pull(ctx context.Context, fileName string) error {
 	return s.client.FGetObjectWithOptions(ctx, fileName)
+}
+
+func (s *S3BackupStorage) PullStream(ctx context.Context, fileName string) (io.ReadCloser, int64, error) {
+	return s.client.GetObjectStream(ctx, fileName)
+}
+
+// PullStreamResumable returns a resumable reader that automatically reconnects using HTTP Range requests
+// if the connection drops during download.
+func (s *S3BackupStorage) PullStreamResumable(ctx context.Context, fileName string, config mariadbminio.ResumableReaderConfig) (io.ReadCloser, int64, error) {
+	return s.client.GetResumableObjectStream(ctx, fileName, config)
 }
 
 func (s *S3BackupStorage) Delete(ctx context.Context, fileName string) error {
