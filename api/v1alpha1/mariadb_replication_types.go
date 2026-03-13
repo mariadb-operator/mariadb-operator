@@ -97,6 +97,12 @@ type PrimaryReplication struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	AutoFailoverDelay *metav1.Duration `json:"autoFailoverDelay,omitempty"`
+	// AutoFailoverAllowUnknownLag indicates whether ready replicas with unknown lag
+	// are considered as valid candidates for an automatic primary failover.
+	// It is enabled by default.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
+	AutoFailoverAllowUnknownLag *bool `json:"autoFailoverAllowUnknownLag,omitempty"`
 }
 
 // SetDefaults fills the current PrimaryReplication object with DefaultReplicationSpec.
@@ -110,6 +116,9 @@ func (r *PrimaryReplication) SetDefaults() {
 	}
 	if r.AutoFailoverDelay == nil {
 		r.AutoFailoverDelay = ptr.To(metav1.Duration{})
+	}
+	if r.AutoFailoverAllowUnknownLag == nil {
+		r.AutoFailoverAllowUnknownLag = ptr.To(true)
 	}
 }
 
@@ -166,6 +175,7 @@ type ReplicaReplication struct {
 	// If not provided, it defaults to 0, which means that replicas are not allowed to lag behind the primary (recommended).
 	// Lagged replicas will not be taken into account as candidates for the new primary during failover,
 	// and they will block other operations, such as switchover and upgrade.
+	// To modify this behavior, refer to .Spec.Replication.StandaloneProbes and .Spec.Replication.Primary.AutoFailoverAllowUnknownLag
 	// This field is not taken into account by MaxScale, you can define the maximum lag as router parameters.
 	// See: https://mariadb.com/docs/maxscale/reference/maxscale-routers/maxscale-readwritesplit#max_replication_lag.
 	// +optional
@@ -284,7 +294,8 @@ type ReplicationSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Agent Agent `json:"agent,omitempty"`
-	// StandaloneProbes indicates whether to use the default non-HA startup and liveness probes.
+	// StandaloneProbes indicates whether to use simple non-HA startup, liveness and readiness probes.
+	// Refer to .Spec.Replication.Replica.MaxLagSeconds to understand the implications.
 	// It is disabled by default
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
