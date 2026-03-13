@@ -34,7 +34,7 @@ type RestoreSource struct {
 	// It defaults to an emptyDir volume, meaning that the backups will be temporarily stored in the node where the Restore Job is scheduled.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch","urn:alm:descriptor:com.tectonic.ui:advanced"}
-	StagingStorage *BackupStagingStorage `json:"stagingStorage,omitempty" webhook:"inmutable"`
+	StagingStorage *StagingStorage `json:"stagingStorage,omitempty" webhook:"inmutable"`
 }
 
 func (r *RestoreSource) Validate() error {
@@ -53,7 +53,7 @@ func (r *RestoreSource) IsDefaulted() bool {
 
 func (r *RestoreSource) SetDefaults(restore *Restore) {
 	if r.S3 != nil {
-		stagingStorage := ptr.Deref(r.StagingStorage, BackupStagingStorage{})
+		stagingStorage := ptr.Deref(r.StagingStorage, StagingStorage{})
 		r.Volume = ptr.To(stagingStorage.VolumeOrEmptyDir(restore.StagingPVCKey()))
 	}
 }

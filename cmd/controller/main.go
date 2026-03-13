@@ -10,35 +10,36 @@ import (
 
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	volumesnapshotv1 "github.com/kubernetes-csi/external-snapshotter/client/v8/apis/volumesnapshot/v1"
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
-	agentcmd "github.com/mariadb-operator/mariadb-operator/v25/cmd/agent"
-	backupcmd "github.com/mariadb-operator/mariadb-operator/v25/cmd/backup"
-	initcmd "github.com/mariadb-operator/mariadb-operator/v25/cmd/init"
-	"github.com/mariadb-operator/mariadb-operator/v25/internal/controller"
-	webhookv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/internal/webhook/v1alpha1"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/backup"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/builder"
-	condition "github.com/mariadb-operator/mariadb-operator/v25/pkg/condition"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/auth"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/batch"
-	certctrl "github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/certificate"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/configmap"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/deployment"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/endpoints"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/galera"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/pvc"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/rbac"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/replication"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/secret"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/service"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/servicemonitor"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/sql"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/statefulset"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/discovery"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/environment"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/log"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/metadata"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/refresolver"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
+	agentcmd "github.com/mariadb-operator/mariadb-operator/v26/cmd/agent"
+	backupcmd "github.com/mariadb-operator/mariadb-operator/v26/cmd/backup"
+	initcmd "github.com/mariadb-operator/mariadb-operator/v26/cmd/init"
+	pitrcmd "github.com/mariadb-operator/mariadb-operator/v26/cmd/pitr"
+	"github.com/mariadb-operator/mariadb-operator/v26/internal/controller"
+	webhookv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/internal/webhook/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/backup"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/builder"
+	condition "github.com/mariadb-operator/mariadb-operator/v26/pkg/condition"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/auth"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/batch"
+	certctrl "github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/certificate"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/configmap"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/deployment"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/endpoints"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/galera"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/pvc"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/rbac"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/replication"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/secret"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/service"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/servicemonitor"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/sql"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/statefulset"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/discovery"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/environment"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/log"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/metadata"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/refresolver"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -298,7 +299,7 @@ var rootCmd = &cobra.Command{
 		serviceReconciler := service.NewServiceReconciler(client)
 		endpointsReconciler := endpoints.NewEndpointsReconciler(client, builder)
 		batchReconciler := batch.NewBatchReconciler(client, builder)
-		rbacReconciler := rbac.NewRBACReconiler(client, builder)
+		rbacReconciler := rbac.NewRBACReconciler(client, builder)
 		authReconciler := auth.NewAuthReconciler(client, builder)
 		deployReconciler := deployment.NewDeploymentReconciler(client)
 		pvcReconciler := pvc.NewPVCReconciler(client)
@@ -542,6 +543,10 @@ var rootCmd = &cobra.Command{
 				setupLog.Error(err, "Unable to create webhook", "webhook", "Restore")
 				os.Exit(1)
 			}
+			if err = webhookv1alpha1.SetupPointInTimeRecoveryWebhookWithManager(mgr); err != nil {
+				setupLog.Error(err, "Unable to create webhook", "webhook", "PointInTimeRecovery")
+				os.Exit(1)
+			}
 			if err = webhookv1alpha1.SetupUserWebhookWithManager(mgr); err != nil {
 				setupLog.Error(err, "Unable to create webhook", "webhook", "User")
 				os.Exit(1)
@@ -585,6 +590,7 @@ func main() {
 	rootCmd.AddCommand(certControllerCmd)
 	rootCmd.AddCommand(webhookCmd)
 	rootCmd.AddCommand(backupcmd.RootCmd)
+	rootCmd.AddCommand(pitrcmd.RootCmd)
 	rootCmd.AddCommand(initcmd.RootCmd)
 	rootCmd.AddCommand(agentcmd.RootCmd)
 

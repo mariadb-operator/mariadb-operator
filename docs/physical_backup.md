@@ -8,7 +8,7 @@
 - [Storage types](#storage-types)
 - [Scheduling](#scheduling)
 - [Compression](#compression)
-- [Server-Side Encryption with Customer-Provided Keys (SSE-C)](#server-side-encryption-with-customer-provided-keys-sse-c)
+- [Server-Side Encryption with Customer-Provided Keys (SSE-C) For S3](#server-side-encryption-with-customer-provided-keys-sse-c-for-s3)
 - [Retention policy](#retention-policy)
 - [Target policy](#target-policy)
 - [Restoration](#restoration)
@@ -16,6 +16,7 @@
 - [Timeout](#timeout)
 - [Log level](#log-level)
 - [Extra options](#extra-options)
+- [Azure Blob Storage Credentials](#azure-blob-storage-credentials)
 - [S3 credentials](#s3-credentials)
 - [Staging area](#staging-area)
 - [`VolumeSnapshots`](#volumesnapshots)
@@ -81,6 +82,7 @@ spec:
 
 Multiple storage types are supported for storing physical backups, including:
 - **S3 compatible storage**: Store backups in a S3 compatible storage, such as [AWS S3](https://aws.amazon.com/s3/) or [Minio](https://github.com/minio/minio).
+- **Azure Blob Storage**: Store backups in an [Azure Blob Storage](https://azure.microsoft.com/en-us/products/storage/blobs).
 - **Persistent Volume Claims (PVC)**: Use any of the [StorageClasses](https://kubernetes.io/docs/concepts/storage/storage-classes/) available in your Kubernetes cluster to create a `PersistentVolumeClaim` (PVC) for storing backups.
 - **Kubernetes Volumes**: Store backups in any of the [in-tree storage providers](https://kubernetes.io/docs/concepts/storage/volumes/#volume-types) supported by Kubernetes out of the box, such as NFS.
 - **Kubernetes VolumeSnapshots**: Use [Kubernetes VolumeSnapshots](https://kubernetes.io/docs/concepts/storage/volume-snapshots/) to create snapshots of the persistent volumes used by the `MariaDB` `Pods`. This method relies on a compatible CSI (Container Storage Interface) driver that supports volume snapshots. See the [VolumeSnapshots](#volume-snapshots) section for more details.
@@ -88,7 +90,7 @@ Multiple storage types are supported for storing physical backups, including:
 
 ## Scheduling
 
-Physical backups can be scheduled using the `spec.schedule` field in the `PhysicalBackup` resource. The schedule is defined using a [Cron format](https://en.wikipedia.org/wiki/Cron) and allows you to specify how often backups should be taken:
+Physical backup schedule can be optionally configured using the `spec.schedule` field in the `PhysicalBackup` resource. When empty, a single backup job is scheduled:
 
 ```yaml
 apiVersion: k8s.mariadb.com/v1alpha1
@@ -103,11 +105,13 @@ spec:
     cron: "*/1 * * * *"
     suspend: false
     immediate: true
+    onDemand: "1"
 ```
 
-If you want to immediatly trigger a backup after creating the `PhysicalBackup` resource, you can set the `immediate` field to `true`. This will create a backup immediately, regardless of the schedule.
-
-If you want to suspend the schedule, you can set the `suspend` field to `true`. This will prevent any new backups from being created until the `PhysicalBackup` is resumed.
+- `cron`: [Cron expression](https://en.wikipedia.org/wiki/Cron) to define the backup schedule.
+- `suspend`: Setting it to `true`, it will prevent new backups from being scheduled.
+- `immediate`: Setting it `true`, it will schedule a backup immediately after creating the `PhysicalBackup` resource.
+- `onDemand`: Schedule identifier for triggering an on-demand backup. If the identifier is different than the one tracked under `status.lastScheduleOnDemand`, a new physical backup will be triggered.
 
 It is very important to note that, by default, backups will only be scheduled if the referred `MariaDB` resource is in ready state. You can override this behavior by setting `mariaDbRef.waitForIt=false` which will allow backups to be scheduled even if the `MariaDB` resource is not ready.
 
@@ -133,7 +137,7 @@ spec:
 
 `compression` is defaulted to `none` by the operator.
 
-## Server-Side Encryption with Customer-Provided Keys (SSE-C)
+## Server-Side Encryption with Customer-Provided Keys (SSE-C) For S3
 
 You can enable server-side encryption using your own encryption key (SSE-C) by providing a reference to a `Secret` containing a 32-byte (256-bit) key encoded in base64:
 
@@ -299,6 +303,7 @@ spec:
   bootstrapFrom:
     targetRecoveryTime: 2025-06-17T08:07:00Z
 ``` 
+Only backups strictly before or at `targetRecoveryTime` will be matched
 
 ## Timeout
 
@@ -349,6 +354,40 @@ spec:
 ```
 
 Refer to the [mariadb-backup documentation](https://mariadb.com/docs/server/server-usage/backup-and-restore/mariadb-backup/mariadb-backup-options) for a list of available options.
+
+## Azure Blob Storage Credentials
+
+Credentials for accessing Azure Blob Storage can be provided via the `azureBlob` key in the storage field of the `PhysicalBackup` resource. The credentials are provided as a reference to a Kubernetes `Secret`:
+
+```yaml
+---
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: PhysicalBackup
+metadata:
+  name: physicalbackup
+spec:
+  mariaDbRef:
+    name: mariadb
+  target: Replica
+  compression: bzip2
+  storage:
+    azureBlob:
+      containerName: physicalbackup
+      serviceURL: https://physicalbackup.blob.core.windows.net # Form is: `https://%s.blob.core.windows.net/` where `%s` is the containerName
+      prefix: mariadb
+      storageAccountName: exampleStorageAccount
+      storageAccountKey:
+        name: azurite-key
+        key: storageAccountKey
+      # Optional.
+      # tls:
+      #   enabled: true
+      #   caSecretKeyRef:
+      #     name: azurite-certs
+      #     key: cert.pem
+```
+
+Alternatively, you may choose to omit the `storageAccountKey` and `storageAccountName` if you are using [managed identity](https://learn.microsoft.com/en-us/entra/identity/managed-identities-azure-resources/overview)
 
 ## S3 credentials
 

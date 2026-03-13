@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: azurite
+  annotations:
+    metallb.universe.tf/loadBalancerIPs: $CIDR_PREFIX.0.60
+spec:
+  type: LoadBalancer
+  ports:
+    - name: storage-azurite-blobs
+      port: 10000
+      targetPort: 10000
+    - name: storage-azurite-queues
+      port: 10001
+      targetPort: 10001
+    - name: storage-azurite-tables
+      port: 10002
+      targetPort: 10002
+  selector:
+    component: azurite

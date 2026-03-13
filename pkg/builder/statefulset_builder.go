@@ -3,11 +3,11 @@ package builder
 import (
 	"fmt"
 
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
-	labels "github.com/mariadb-operator/mariadb-operator/v25/pkg/builder/labels"
-	metadata "github.com/mariadb-operator/mariadb-operator/v25/pkg/builder/metadata"
-	galeraresources "github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/galera/resources"
-	annotation "github.com/mariadb-operator/mariadb-operator/v25/pkg/metadata"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
+	labels "github.com/mariadb-operator/mariadb-operator/v26/pkg/builder/labels"
+	metadata "github.com/mariadb-operator/mariadb-operator/v26/pkg/builder/metadata"
+	galeraresources "github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/galera/resources"
+	annotation "github.com/mariadb-operator/mariadb-operator/v26/pkg/metadata"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -52,6 +52,9 @@ const (
 	S3PKI          = "pki-s3"
 	S3PKIMountPath = "/etc/s3/pki"
 
+	ABSPKI          = "pki-abs"
+	ABSPKIMountPath = "/etc/abs/pki"
+
 	mysqlUser     = int64(999)
 	mysqlGroup    = int64(999)
 	maxscaleUser  = int64(998)
@@ -59,7 +62,7 @@ const (
 )
 
 func (b *Builder) BuildMariadbStatefulSet(mariadb *mariadbv1alpha1.MariaDB, key types.NamespacedName,
-	podAnnotations map[string]string) (*appsv1.StatefulSet, error) {
+	podAnnotations map[string]string, pitr *mariadbv1alpha1.PointInTimeRecovery) (*appsv1.StatefulSet, error) {
 	objMeta :=
 		metadata.NewMetadataBuilder(key).
 			WithMetadata(mariadb.Spec.InheritMetadata).
@@ -81,6 +84,11 @@ func (b *Builder) BuildMariadbStatefulSet(mariadb *mariadbv1alpha1.MariaDB, key 
 	}
 
 	var mariadbPodOpts []mariadbPodOpt
+	if pitr != nil {
+		mariadbPodOpts = append(mariadbPodOpts,
+			withPointInTimeRecovery(pitr),
+		)
+	}
 	if podAnnotations != nil {
 		mariadbPodOpts = append(mariadbPodOpts,
 			withMeta(&mariadbv1alpha1.Metadata{

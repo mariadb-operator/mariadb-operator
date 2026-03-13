@@ -4,10 +4,10 @@ import (
 	"reflect"
 	"testing"
 
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
-	galeraresources "github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/galera/resources"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/discovery"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/metadata"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
+	galeraresources "github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/galera/resources"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/discovery"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/metadata"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -70,7 +70,7 @@ func TestMariadbImagePullSecrets(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			job, err := builder.BuildMariadbStatefulSet(tt.mariadb, client.ObjectKeyFromObject(tt.mariadb), nil)
+			job, err := builder.BuildMariadbStatefulSet(tt.mariadb, client.ObjectKeyFromObject(tt.mariadb), nil, nil)
 			if err != nil {
 				t.Fatalf("unexpected error building StatefulSet: %v", err)
 			}
@@ -339,7 +339,7 @@ func TestMariaDBStatefulSetMeta(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			sts, err := builder.BuildMariadbStatefulSet(tt.mariadb, key, tt.podAnnotations)
+			sts, err := builder.BuildMariadbStatefulSet(tt.mariadb, key, tt.podAnnotations, nil)
 			if err != nil {
 				t.Fatalf("unexpected error building MariaDB StatefulSet: %v", err)
 			}
@@ -491,7 +491,7 @@ func TestMariaDBPVCRetentionPolicy(t *testing.T) {
 				},
 			}
 
-			sts, err := builder.BuildMariadbStatefulSet(mariadb, client.ObjectKeyFromObject(mariadb), nil)
+			sts, err := builder.BuildMariadbStatefulSet(mariadb, client.ObjectKeyFromObject(mariadb), nil, nil)
 			if err != nil {
 				t.Fatalf("unexpected error building StatefulSet: %v", err)
 			}

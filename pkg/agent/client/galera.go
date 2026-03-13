@@ -4,8 +4,8 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/galera/recovery"
-	mdbhttp "github.com/mariadb-operator/mariadb-operator/v25/pkg/http"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/galera/recovery"
+	mdbhttp "github.com/mariadb-operator/mariadb-operator/v26/pkg/http"
 )
 
 type Galera struct {

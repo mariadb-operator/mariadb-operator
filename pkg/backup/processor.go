@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
-	mdbtime "github.com/mariadb-operator/mariadb-operator/v25/pkg/time"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
+	mdbtime "github.com/mariadb-operator/mariadb-operator/v26/pkg/time"
 )
 
 type BackupProcessor interface {
@@ -35,18 +35,27 @@ func NewLogicalBackupProcessor() BackupProcessor {
 	return &LogicalBackupProcessor{}
 }
 
-// GetBackupTargetFile finds the backup file with the closest date to the target recovery time.
+// GetBackupTargetFile returns the backup file whose timestamp is closest to, but not after, the target recovery time.
 func (p *LogicalBackupProcessor) GetBackupTargetFile(backupFileNames []string, targetRecoveryTime time.Time,
-	logger logr.Logger) (string, error) {
+	backupLogger logr.Logger) (string, error) {
+	logger := backupLogger.WithValues(
+		"target-time", targetRecoveryTime.Format(time.RFC3339),
+	)
 	var backupDiffs []backupDiff
+
 	for _, file := range backupFileNames {
 		backupDate, err := p.parseDateInBackupFile(file)
 		if err != nil {
-			logger.Error(err, "error parsing backup date. Skipping", "file", file)
+			logger.Error(err, "error parsing backup date. Skipping", "backup", file)
 			continue
 		}
-		diff := backupDate.Sub(targetRecoveryTime).Abs()
+		diff := targetRecoveryTime.Sub(backupDate)
+		if diff < 0 {
+			logger.V(1).Info("Backup is after target recovery time. Skipping", "backup", file)
+			continue
+		}
 		if diff == 0 {
+			logger.V(1).Info("Backup matches target recovery time", "backup", file)
 			return file, nil
 		}
 		backupDiffs = append(backupDiffs, backupDiff{
@@ -185,18 +194,27 @@ func NewPhysicalBackupProcessor(opts ...PhysicalBackupProcsssorOpt) BackupProces
 	return processor
 }
 
-// GetBackupTargetFile finds the backup file with the closest date to the target recovery time.
+// GetBackupTargetFile returns the backup file whose timestamp is closest to, but not after, the target recovery time.
 func (p *PhysicalBackupProcessor) GetBackupTargetFile(backupFileNames []string, targetRecoveryTime time.Time,
-	logger logr.Logger) (string, error) {
+	backupLogger logr.Logger) (string, error) {
+	logger := backupLogger.WithValues(
+		"target-time", targetRecoveryTime.Format(time.RFC3339),
+	)
 	var backupDiffs []backupDiff
+
 	for _, file := range backupFileNames {
 		backupDate, err := p.parseDateInBackupFile(file)
 		if err != nil {
-			logger.Error(err, "error parsing backup date. Skipping", "file", file)
+			logger.Error(err, "error parsing backup date. Skipping", "backup", file)
 			continue
 		}
-		diff := backupDate.Sub(targetRecoveryTime).Abs()
+		diff := targetRecoveryTime.Sub(backupDate)
+		if diff < 0 {
+			logger.V(1).Info("Backup is after target recovery time. Skipping", "backup", file)
+			continue
+		}
 		if diff == 0 {
+			logger.V(1).Info("Backup matches target recovery time", "backup", file)
 			return file, nil
 		}
 		backupDiffs = append(backupDiffs, backupDiff{

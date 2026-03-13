@@ -38,6 +38,11 @@ buckets:
     purge: false
     versioning: false
     objectlocking: false
+  - name: binlogs
+    policy: none
+    purge: false
+    versioning: false
+    objectlocking: false
   - name: scaleout
     policy: none
     purge: false
@@ -54,6 +59,11 @@ buckets:
     versioning: false
     objectlocking: false
   - name: test-restore
+    policy: none
+    purge: false
+    versioning: false
+    objectlocking: false
+  - name: test-pitr
     policy: none
     purge: false
     versioning: false

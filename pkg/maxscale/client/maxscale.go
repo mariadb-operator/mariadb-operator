@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	mdbhttp "github.com/mariadb-operator/mariadb-operator/v25/pkg/http"
+	mdbhttp "github.com/mariadb-operator/mariadb-operator/v26/pkg/http"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 

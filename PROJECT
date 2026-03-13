@@ -21,7 +21,6 @@ resources:
   path: github.com/mariadb-operator/mariadb-operator/api/v1alpha1
   version: v1alpha1
   webhooks:
-    defaulting: true
     validation: true
     webhookVersion: v1
 - api:
@@ -132,6 +131,17 @@ resources:
   domain: mariadb.com
   group: k8s
   kind: PhysicalBackup
+  path: github.com/mariadb-operator/mariadb-operator/api/v1alpha1
+  version: v1alpha1
+  webhooks:
+    validation: true
+    webhookVersion: v1
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: mariadb.com
+  group: k8s
+  kind: PointInTimeRecovery
   path: github.com/mariadb-operator/mariadb-operator/api/v1alpha1
   version: v1alpha1
   webhooks:

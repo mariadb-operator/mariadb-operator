@@ -9,6 +9,8 @@ spec:
     cron: "*/1 * * * *"
     suspend: false
     immediate: true
+    # Update this identifier to schedule an on-demand backup.
+    # onDemand: "1"
   target: Replica
   compression: bzip2
   maxRetention: 720h # 30 days

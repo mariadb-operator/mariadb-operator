@@ -10,4 +10,5 @@ resources:
 - bases/k8s.mariadb.com_sqljobs.yaml
 - bases/k8s.mariadb.com_maxscales.yaml
 - bases/k8s.mariadb.com_physicalbackups.yaml
+- bases/k8s.mariadb.com_pointintimerecoveries.yaml
   #+kubebuilder:scaffold:crdkustomizeresource

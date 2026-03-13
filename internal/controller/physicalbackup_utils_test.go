@@ -1,9 +1,9 @@
 package controller
 
 import (
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/job"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/volumesnapshot"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/job"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/volumesnapshot"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -21,7 +21,10 @@ func testPhysicalBackup(backup *mariadbv1alpha1.PhysicalBackup) {
 	DeferCleanup(func() {
 		Expect(client.IgnoreNotFound(k8sClient.Delete(testCtx, backup))).To(Succeed())
 	})
+	expectPhysicalBackupReady(backup)
+}
 
+func expectPhysicalBackupReady(backup *mariadbv1alpha1.PhysicalBackup) {
 	if backup.Spec.Storage.VolumeSnapshot != nil {
 		testPhysicalBackupVolumeSnapshot(backup)
 	} else {
@@ -36,7 +39,7 @@ func testPhysicalBackupJob(backup *mariadbv1alpha1.PhysicalBackup) {
 	Eventually(func(g Gomega) bool {
 		g.Expect(k8sClient.Get(testCtx, key, backup)).To(Succeed())
 		var svcAcc corev1.ServiceAccount
-		key := backup.Spec.PhysicalBackupPodTemplate.ServiceAccountKey(backup.ObjectMeta)
+		key := backup.ServiceAccountKey()
 		g.Expect(k8sClient.Get(testCtx, key, &svcAcc)).To(Succeed())
 		return true
 	}, testTimeout, testInterval).Should(BeTrue())

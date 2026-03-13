@@ -8,7 +8,7 @@ import (
 	"time"
 
 	cmmeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/environment"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/environment"
 	cron "github.com/robfig/cron/v3"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -652,7 +652,7 @@ type SQLTemplate struct {
 	CleanupPolicy *CleanupPolicy `json:"cleanupPolicy,omitempty"`
 }
 
-type TLSS3 struct {
+type TLSConfig struct {
 	// Enabled is a flag to enable TLS.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
@@ -664,23 +664,50 @@ type TLSS3 struct {
 	CASecretKeyRef *SecretKeySelector `json:"caSecretKeyRef,omitempty"`
 }
 
+type AzureBlob struct {
+	// ContainerName is the name of the storage container.
+	// +kubebuilder:validation:Required
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	ContainerName string `json:"containerName"`
+	// ServiceURL is the full URL for connecting to Azure, usually in the form: http(s)://<account>.blob.core.windows.net/.
+	// +kubebuilder:validation:Required
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	ServiceURL string `json:"serviceURL"`
+	// Prefix indicates a folder/subfolder in the container. For example: mariadb/ or mariadb/backups. A trailing slash '/' is added if not provided.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	Prefix string `json:"prefix"`
+	// StorageAccountName is the name of the storage account. Pairs with StorageAccountKey for static credential authentication
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	StorageAccountName string `json:"storageAccountName,omitempty"`
+	// StorageAccountKey is a reference to a Secret key containing the Azure Blob Storage Storage account Key. Pairs with StorageAccountKey for static credential authentication
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	StorageAccountKey *SecretKeySelector `json:"storageAccountKey,omitempty"`
+	// TLS provides the configuration required to establish TLS connections with Azure Blob Storage.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	TLS *TLSConfig `json:"tls,omitempty"`
+}
+
 type S3 struct {
 	// Bucket is the name Name of the bucket to store backups.
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Bucket string `json:"bucket" webhook:"inmutable"`
+	Bucket string `json:"bucket"`
 	// Endpoint is the S3 API endpoint without scheme.
 	// +kubebuilder:validation:Required
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Endpoint string `json:"endpoint" webhook:"inmutable"`
+	Endpoint string `json:"endpoint"`
 	// Region is the S3 region name to use.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Region string `json:"region" webhook:"inmutable"`
+	Region string `json:"region"`
 	// Prefix indicates a folder/subfolder in the bucket. For example: mariadb/ or mariadb/backups. A trailing slash '/' is added if not provided.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	Prefix string `json:"prefix" webhook:"inmutable"`
+	Prefix string `json:"prefix"`
 	// AccessKeyIdSecretKeyRef is a reference to a Secret key containing the S3 access key id.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -696,7 +723,7 @@ type S3 struct {
 	// TLS provides the configuration required to establish TLS connections with S3.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
-	TLS *TLSS3 `json:"tls,omitempty"`
+	TLS *TLSConfig `json:"tls,omitempty"`
 	// SSEC is a reference to a Secret containing the SSE-C (Server-Side Encryption with Customer-Provided Keys) key.
 	// The secret must contain a 32-byte key (256 bits) in the specified key.
 	// This enables server-side encryption where you provide and manage the encryption key.
@@ -752,7 +779,7 @@ type BackupContentType string
 const (
 	// BackupContentTypeLogical represents a logical backup created using mariadb-dump.
 	BackupContentTypeLogical BackupContentType = "Logical"
-	// BackupContentTypePhysical represents a physical backup created using mariadb-backup.
+	// BackupContentTypePhysical represents a physical backup created using mariadb-backup or a VolumeSnapshot.
 	BackupContentTypePhysical BackupContentType = "Physical"
 )
 
@@ -843,8 +870,8 @@ func (b *BackupStorage) Validate() error {
 	return nil
 }
 
-// BackupStagingStorage defines the temporary storage used to keep external backups (i.e. S3) while they are being processed.
-type BackupStagingStorage struct {
+// StagingStorage defines the temporary storage used to keep external backups (i.e. S3) while they are being processed.
+type StagingStorage struct {
 	// PersistentVolumeClaim is a Kubernetes PVC specification.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -855,7 +882,7 @@ type BackupStagingStorage struct {
 	Volume *StorageVolumeSource `json:"volume,omitempty"`
 }
 
-func (s *BackupStagingStorage) VolumeOrEmptyDir(pvcKey types.NamespacedName) StorageVolumeSource {
+func (s *StagingStorage) VolumeOrEmptyDir(pvcKey types.NamespacedName) StorageVolumeSource {
 	if s.PersistentVolumeClaim != nil {
 		return StorageVolumeSource{
 			PersistentVolumeClaim: &PersistentVolumeClaimVolumeSource{

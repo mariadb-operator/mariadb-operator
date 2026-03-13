@@ -7,18 +7,18 @@ import (
 
 	"github.com/go-logr/logr"
 	volumesnapshotv1 "github.com/kubernetes-csi/external-snapshotter/client/v8/apis/volumesnapshot/v1"
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
-	agentclient "github.com/mariadb-operator/mariadb-operator/v25/pkg/agent/client"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/builder"
-	conditions "github.com/mariadb-operator/mariadb-operator/v25/pkg/condition"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/configmap"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/secret"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/service"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/environment"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/metadata"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/refresolver"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/sql"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/statefulset"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
+	agentclient "github.com/mariadb-operator/mariadb-operator/v26/pkg/agent/client"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/builder"
+	conditions "github.com/mariadb-operator/mariadb-operator/v26/pkg/condition"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/configmap"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/secret"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/service"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/environment"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/metadata"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/refresolver"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/sql"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/events"
@@ -316,12 +316,17 @@ func (r *ReplicationReconciler) getReplicaOpts(ctx context.Context, req *Reconci
 	if err != nil {
 		return nil, fmt.Errorf("error getting change master GTID: %v", err)
 	}
-	return []ConfigureReplicaOpt{
+	replicaOpts := []ConfigureReplicaOpt{
 		WithGtidSlavePos(gtid),
 		WithChangeMasterOpts(
 			sql.WithChangeMasterGtid(changeMasterGtid),
 		),
-	}, nil
+	}
+	// avoid deleting binary logs during archival to prevent drifting from object storage
+	if req.mariadb.IsPointInTimeRecoveryEnabled() {
+		replicaOpts = append(replicaOpts, WithResetMaster(false))
+	}
+	return replicaOpts, nil
 }
 
 func (r *ReplicationReconciler) patchStatus(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,

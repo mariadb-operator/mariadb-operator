@@ -20,6 +20,7 @@ Package v1alpha1 contains API Schema definitions for the v1alpha1 API group
 - [MariaDB](#mariadb)
 - [MaxScale](#maxscale)
 - [PhysicalBackup](#physicalbackup)
+- [PointInTimeRecovery](#pointintimerecovery)
 - [Restore](#restore)
 - [SqlJob](#sqljob)
 - [User](#user)
@@ -56,10 +57,10 @@ _Appears in:_
 - [Exporter](#exporter)
 - [Job](#job)
 - [JobPodTemplate](#jobpodtemplate)
+- [MariaDBPodTemplate](#mariadbpodtemplate)
 - [MariaDBSpec](#mariadbspec)
 - [MaxScalePodTemplate](#maxscalepodtemplate)
 - [MaxScaleSpec](#maxscalespec)
-- [PodTemplate](#podtemplate)
 - [RestoreSpec](#restorespec)
 - [SqlJobSpec](#sqljobspec)
 
@@ -105,6 +106,29 @@ _Appears in:_
 | `gracefulShutdownTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#duration-v1-meta)_ | GracefulShutdownTimeout is the time we give to the agent container in order to gracefully terminate in-flight requests. |  |  |
 
 
+#### AzureBlob
+
+
+
+
+
+
+
+_Appears in:_
+- [BootstrapFrom](#bootstrapfrom)
+- [PhysicalBackupStorage](#physicalbackupstorage)
+- [PointInTimeRecoveryStorage](#pointintimerecoverystorage)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `containerName` _string_ | ContainerName is the name of the storage container. |  | Required: \{\} <br /> |
+| `serviceURL` _string_ | ServiceURL is the full URL for connecting to Azure, usually in the form: http(s)://<account>.blob.core.windows.net/. |  | Required: \{\} <br /> |
+| `prefix` _string_ | Prefix indicates a folder/subfolder in the container. For example: mariadb/ or mariadb/backups. A trailing slash '/' is added if not provided. |  |  |
+| `storageAccountName` _string_ | StorageAccountName is the name of the storage account. Pairs with StorageAccountKey for static credential authentication |  |  |
+| `storageAccountKey` _[SecretKeySelector](#secretkeyselector)_ | StorageAccountKey is a reference to a Secret key containing the Azure Blob Storage Storage account Key. Pairs with StorageAccountKey for static credential authentication |  |  |
+| `tls` _[TLSConfig](#tlsconfig)_ | TLS provides the configuration required to establish TLS connections with Azure Blob Storage. |  |  |
+
+
 #### Backup
 
 
@@ -137,7 +161,7 @@ _Appears in:_
 | Field | Description |
 | --- | --- |
 | `Logical` | BackupContentTypeLogical represents a logical backup created using mariadb-dump.<br /> |
-| `Physical` | BackupContentTypePhysical represents a physical backup created using mariadb-backup.<br /> |
+| `Physical` | BackupContentTypePhysical represents a physical backup created using mariadb-backup or a VolumeSnapshot.<br /> |
 
 
 #### BackupSpec
@@ -169,7 +193,7 @@ _Appears in:_
 | `timeZone` _string_ | TimeZone defines the timezone associated with the cron expression. |  |  |
 | `mariaDbRef` _[MariaDBRef](#mariadbref)_ | MariaDBRef is a reference to a MariaDB object. |  | Required: \{\} <br /> |
 | `compression` _[CompressAlgorithm](#compressalgorithm)_ | Compression algorithm to be used in the Backup. |  | Enum: [none bzip2 gzip] <br /> |
-| `stagingStorage` _[BackupStagingStorage](#backupstagingstorage)_ | StagingStorage defines the temporary storage used to keep external backups (i.e. S3) while they are being processed.<br />It defaults to an emptyDir volume, meaning that the backups will be temporarily stored in the node where the Backup Job is scheduled.<br />The staging area gets cleaned up after each backup is completed, consider this for sizing it appropriately. |  |  |
+| `stagingStorage` _[StagingStorage](#stagingstorage)_ | StagingStorage defines the temporary storage used to keep external backups (i.e. S3) while they are being processed.<br />It defaults to an emptyDir volume, meaning that the backups will be temporarily stored in the node where the Backup Job is scheduled.<br />The staging area gets cleaned up after each backup is completed, consider this for sizing it appropriately. |  |  |
 | `storage` _[BackupStorage](#backupstorage)_ | Storage defines the final storage for backups. |  | Required: \{\} <br /> |
 | `schedule` _[Schedule](#schedule)_ | Schedule defines when the Backup will be taken. |  |  |
 | `maxRetention` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#duration-v1-meta)_ | MaxRetention defines the retention policy for backups. Old backups will be cleaned up by the Backup Job.<br />It defaults to 30 days. |  |  |
@@ -179,27 +203,6 @@ _Appears in:_
 | `backoffLimit` _integer_ | BackoffLimit defines the maximum number of attempts to successfully take a Backup. |  |  |
 | `restartPolicy` _[RestartPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#restartpolicy-v1-core)_ | RestartPolicy to be added to the Backup Pod. | OnFailure | Enum: [Always OnFailure Never] <br /> |
 | `inheritMetadata` _[Metadata](#metadata)_ | InheritMetadata defines the metadata to be inherited by children resources. |  |  |
-
-
-#### BackupStagingStorage
-
-
-
-BackupStagingStorage defines the temporary storage used to keep external backups (i.e. S3) while they are being processed.
-
-
-
-_Appears in:_
-- [BackupSpec](#backupspec)
-- [BootstrapFrom](#bootstrapfrom)
-- [PhysicalBackupSpec](#physicalbackupspec)
-- [RestoreSource](#restoresource)
-- [RestoreSpec](#restorespec)
-
-| Field | Description | Default | Validation |
-| --- | --- | --- | --- |
-| `persistentVolumeClaim` _[PersistentVolumeClaimSpec](#persistentvolumeclaimspec)_ | PersistentVolumeClaim is a Kubernetes PVC specification. |  |  |
-| `volume` _[StorageVolumeSource](#storagevolumesource)_ | Volume is a Kubernetes volume specification. |  |  |
 
 
 #### BackupStorage
@@ -253,12 +256,15 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `backupRef` _[TypedLocalObjectReference](#typedlocalobjectreference)_ | BackupRef is reference to a backup object. If the Kind is not specified, a logical Backup is assumed.<br />This field takes precedence over S3 and Volume sources. |  |  |
 | `volumeSnapshotRef` _[LocalObjectReference](#localobjectreference)_ | VolumeSnapshotRef is a reference to a VolumeSnapshot object.<br />This field takes precedence over S3 and Volume sources. |  |  |
+| `pointInTimeRecoveryRef` _[LocalObjectReference](#localobjectreference)_ | PointInTimeRecoveryRef is a reference to a PointInTimeRecovery object.<br />Providing this field implies restoring the PhysicalBackup referenced in the PointInTimeRecovery object and replaying the<br />archived binary logs up to the point-in-time restoration target, defined by the targetRecoveryTime field. |  |  |
 | `backupContentType` _[BackupContentType](#backupcontenttype)_ | BackupContentType is the backup content type available in the source to bootstrap from.<br />It is inferred based on the BackupRef and VolumeSnapshotRef fields. If inference is not possible, it defaults to Logical.<br />Set this field explicitly when using physical backups from S3 or Volume sources. |  | Enum: [Logical Physical] <br /> |
 | `s3` _[S3](#s3)_ | S3 defines the configuration to restore backups from a S3 compatible storage.<br />This field takes precedence over the Volume source. |  |  |
+| `azureBlob` _[AzureBlob](#azureblob)_ | AzureBlob defines the configuration to restore from Azure Blob compatible storage.<br />This field takes precedence over the Volume source. |  |  |
 | `volume` _[StorageVolumeSource](#storagevolumesource)_ | Volume is a Kubernetes Volume object that contains a backup. |  |  |
 | `targetRecoveryTime` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#time-v1-meta)_ | TargetRecoveryTime is a RFC3339 (1970-01-01T00:00:00Z) date and time that defines the point in time recovery objective.<br />It is used to determine the closest restoration source in time. |  |  |
-| `stagingStorage` _[BackupStagingStorage](#backupstagingstorage)_ | StagingStorage defines the temporary storage used to keep external backups (i.e. S3) while they are being processed.<br />It defaults to an emptyDir volume, meaning that the backups will be temporarily stored in the node where the Job is scheduled. |  |  |
-| `restoreJob` _[Job](#job)_ | RestoreJob defines additional properties for the Job used to perform the restoration. |  |  |
+| `stagingStorage` _[StagingStorage](#stagingstorage)_ | StagingStorage defines the temporary storage used to keep external backups and binary logs (i.e. S3) while they are being processed.<br />It defaults to an emptyDir volume, meaning that the backups will be temporarily stored in the node where the Job is scheduled. |  |  |
+| `restoreJob` _[Job](#job)_ | RestoreJob defines additional properties for the restoration Job. |  |  |
+| `logLevel` _string_ | LogLevel to be used in the mariadb-operator container of the restoration Job. It defaults to 'info'. | info | Enum: [debug info warn error dpanic panic fatal] <br /> |
 
 
 #### CSIVolumeSource
@@ -270,6 +276,8 @@ Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kub
 
 
 _Appears in:_
+- [MariaDBVolume](#mariadbvolume)
+- [MariaDBVolumeSource](#mariadbvolumesource)
 - [StorageVolumeSource](#storagevolumesource)
 - [Volume](#volume)
 - [VolumeSource](#volumesource)
@@ -315,6 +323,7 @@ CompressAlgorithm defines the compression algorithm for a Backup resource.
 _Appears in:_
 - [BackupSpec](#backupspec)
 - [PhysicalBackupSpec](#physicalbackupspec)
+- [PointInTimeRecoverySpec](#pointintimerecoveryspec)
 
 | Field | Description |
 | --- | --- |
@@ -351,6 +360,8 @@ Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kub
 
 
 _Appears in:_
+- [MariaDBVolume](#mariadbvolume)
+- [MariaDBVolumeSource](#mariadbvolumesource)
 - [Volume](#volume)
 - [VolumeSource](#volumesource)
 
@@ -439,8 +450,8 @@ Container object definition.
 
 
 _Appears in:_
+- [MariaDBPodTemplate](#mariadbpodtemplate)
 - [MariaDBSpec](#mariadbspec)
-- [PodTemplate](#podtemplate)
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
@@ -568,6 +579,8 @@ Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kub
 
 
 _Appears in:_
+- [MariaDBVolume](#mariadbvolume)
+- [MariaDBVolumeSource](#mariadbvolumesource)
 - [StorageVolumeSource](#storagevolumesource)
 - [Volume](#volume)
 - [VolumeSource](#volumesource)
@@ -639,6 +652,23 @@ _Appears in:_
 | `fieldRef` _[ObjectFieldSelector](#objectfieldselector)_ |  |  |  |
 | `configMapKeyRef` _[ConfigMapKeySelector](#configmapkeyselector)_ |  |  |  |
 | `secretKeyRef` _[SecretKeySelector](#secretkeyselector)_ |  |  |  |
+
+
+#### EphemeralVolumeSource
+
+
+
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#ephemeralvolumesource-v1-core.
+
+
+
+_Appears in:_
+- [MariaDBVolume](#mariadbvolume)
+- [MariaDBVolumeSource](#mariadbvolumesource)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `volumeClaimTemplate` _[VolumeClaimTemplate](#volumeclaimtemplate)_ |  |  |  |
 
 
 #### ExecAction
@@ -1020,6 +1050,8 @@ Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kub
 
 
 _Appears in:_
+- [MariaDBVolume](#mariadbvolume)
+- [MariaDBVolumeSource](#mariadbvolumesource)
 - [StorageVolumeSource](#storagevolumesource)
 - [Volume](#volume)
 - [VolumeSource](#volumesource)
@@ -1202,13 +1234,14 @@ _Appears in:_
 - [ExternalTLS](#externaltls)
 - [GeneratedSecretKeyRef](#generatedsecretkeyref)
 - [JobPodTemplate](#jobpodtemplate)
+- [MariaDBPodTemplate](#mariadbpodtemplate)
 - [MariaDBSpec](#mariadbspec)
 - [MaxScalePodTemplate](#maxscalepodtemplate)
 - [MaxScaleSpec](#maxscalespec)
 - [MaxScaleTLS](#maxscaletls)
 - [PhysicalBackupPodTemplate](#physicalbackuppodtemplate)
 - [PhysicalBackupSpec](#physicalbackupspec)
-- [PodTemplate](#podtemplate)
+- [PointInTimeRecoverySpec](#pointintimerecoveryspec)
 - [ReplicaBootstrapFrom](#replicabootstrapfrom)
 - [RestoreSource](#restoresource)
 - [RestoreSpec](#restorespec)
@@ -1237,6 +1270,34 @@ MariaDB is the Schema for the mariadbs API. It is used to define MariaDB cluster
 | `kind` _string_ | `MariaDB` | | |
 | `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
 | `spec` _[MariaDBSpec](#mariadbspec)_ |  |  |  |
+
+
+#### MariaDBPodTemplate
+
+
+
+MariaDBPodTemplate defines a template for MariaDB Pods.
+
+
+
+_Appears in:_
+- [MariaDBSpec](#mariadbspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `podMetadata` _[Metadata](#metadata)_ | PodMetadata defines extra metadata for the Pod. |  |  |
+| `imagePullSecrets` _[LocalObjectReference](#localobjectreference) array_ | ImagePullSecrets is the list of pull Secrets to be used to pull the image. |  |  |
+| `initContainers` _[Container](#container) array_ | InitContainers to be used in the Pod. |  |  |
+| `sidecarContainers` _[Container](#container) array_ | SidecarContainers to be used in the Pod. |  |  |
+| `podSecurityContext` _[PodSecurityContext](#podsecuritycontext)_ | SecurityContext holds pod-level security attributes and common container settings. |  |  |
+| `serviceAccountName` _string_ | ServiceAccountName is the name of the ServiceAccount to be used by the Pods. |  |  |
+| `affinity` _[AffinityConfig](#affinityconfig)_ | Affinity to be used in the Pod. |  |  |
+| `nodeSelector` _object (keys:string, values:string)_ | NodeSelector to be used in the Pod. |  |  |
+| `tolerations` _[Toleration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#toleration-v1-core) array_ | Tolerations to be used in the Pod. |  |  |
+| `volumes` _[MariaDBVolume](#mariadbvolume) array_ | Volumes to be used in the Pod. |  |  |
+| `priorityClassName` _string_ | PriorityClassName to be used in the Pod. |  |  |
+| `topologySpreadConstraints` _[TopologySpreadConstraint](#topologyspreadconstraint) array_ | TopologySpreadConstraints to be used in the Pod. |  |  |
+| `enableServiceLinks` _boolean_ | EnableServiceLinks indicates whether information about services should be injected into pod's<br />environment variables, matching the syntax of Docker links. Defaults to true if not specified.<br />Set to false to disable injection of service link environment variables. |  |  |
 
 
 #### MariaDBRef
@@ -1298,9 +1359,10 @@ _Appears in:_
 | `affinity` _[AffinityConfig](#affinityconfig)_ | Affinity to be used in the Pod. |  |  |
 | `nodeSelector` _object (keys:string, values:string)_ | NodeSelector to be used in the Pod. |  |  |
 | `tolerations` _[Toleration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#toleration-v1-core) array_ | Tolerations to be used in the Pod. |  |  |
-| `volumes` _[Volume](#volume) array_ | Volumes to be used in the Pod. |  |  |
+| `volumes` _[MariaDBVolume](#mariadbvolume) array_ | Volumes to be used in the Pod. |  |  |
 | `priorityClassName` _string_ | PriorityClassName to be used in the Pod. |  |  |
 | `topologySpreadConstraints` _[TopologySpreadConstraint](#topologyspreadconstraint) array_ | TopologySpreadConstraints to be used in the Pod. |  |  |
+| `enableServiceLinks` _boolean_ | EnableServiceLinks indicates whether information about services should be injected into pod's<br />environment variables, matching the syntax of Docker links. Defaults to true if not specified.<br />Set to false to disable injection of service link environment variables. |  |  |
 | `suspend` _boolean_ | Suspend indicates whether the current resource should be suspended or not.<br />This can be useful for maintenance, as disabling the reconciliation prevents the operator from interfering with user operations during maintenance activities. | false |  |
 | `image` _string_ | Image name to be used by the MariaDB instances. The supported format is `<image>:<tag>`.<br />Only MariaDB official images are supported. |  |  |
 | `imagePullPolicy` _[PullPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#pullpolicy-v1-core)_ | ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`. |  | Enum: [Always Never IfNotPresent] <br /> |
@@ -1322,7 +1384,8 @@ _Appears in:_
 | `tls` _[TLS](#tls)_ | TLS defines the PKI to be used with MariaDB. |  |  |
 | `replication` _[Replication](#replication)_ | Replication configures high availability via replication. This feature is still in alpha, use Galera if you are looking for a more production-ready HA. |  |  |
 | `galera` _[Galera](#galera)_ | Replication configures high availability via Galera. |  |  |
-| `maxScaleRef` _[ObjectReference](#objectreference)_ | MaxScaleRef is a reference to a MaxScale resource to be used with the current MariaDB.<br />Providing this field implies delegating high availability tasks such as primary failover to MaxScale. |  |  |
+| `maxScaleRef` _[ObjectReference](#objectreference)_ | MaxScaleRef is a reference to a MaxScale resource to be used with the current MariaDB.<br />Providing this reference implies delegating high availability tasks such as primary failover to MaxScale. |  |  |
+| `pointInTimeRecoveryRef` _[LocalObjectReference](#localobjectreference)_ | PointInTimeRecoveryRef is a reference to a PointInTimeRecovery resource to be used with the current MariaDB.<br />Providing this reference implies configuring binary logs in the MariaDB instance and binary log archival in the sidecar agent. |  |  |
 | `replicas` _integer_ | Replicas indicates the number of desired instances. | 1 |  |
 | `replicasAllowEvenNumber` _boolean_ | disables the validation check for an odd number of replicas. | false |  |
 | `port` _integer_ | Port where the instances will be listening for connections. | 3306 |  |
@@ -1335,6 +1398,54 @@ _Appears in:_
 | `primaryConnection` _[ConnectionTemplate](#connectiontemplate)_ | PrimaryConnection defines a template to configure the primary Connection object.<br />This Connection provides the initial User access to the initial Database.<br />It will make use of the PrimaryService to route network traffic to the primary Pod. |  |  |
 | `secondaryService` _[ServiceTemplate](#servicetemplate)_ | SecondaryService defines a template to configure the secondary Service object.<br />The network traffic of this Service will be routed to the secondary Pods. |  |  |
 | `secondaryConnection` _[ConnectionTemplate](#connectiontemplate)_ | SecondaryConnection defines a template to configure the secondary Connection object.<br />This Connection provides the initial User access to the initial Database.<br />It will make use of the SecondaryService to route network traffic to the secondary Pods. |  |  |
+
+
+#### MariaDBVolume
+
+
+
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#volume-v1-core.
+
+
+
+_Appears in:_
+- [MariaDBPodTemplate](#mariadbpodtemplate)
+- [MariaDBSpec](#mariadbspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `emptyDir` _[EmptyDirVolumeSource](#emptydirvolumesource)_ |  |  |  |
+| `nfs` _[NFSVolumeSource](#nfsvolumesource)_ |  |  |  |
+| `csi` _[CSIVolumeSource](#csivolumesource)_ |  |  |  |
+| `hostPath` _[HostPathVolumeSource](#hostpathvolumesource)_ |  |  |  |
+| `persistentVolumeClaim` _[PersistentVolumeClaimVolumeSource](#persistentvolumeclaimvolumesource)_ |  |  |  |
+| `secret` _[SecretVolumeSource](#secretvolumesource)_ |  |  |  |
+| `configMap` _[ConfigMapVolumeSource](#configmapvolumesource)_ |  |  |  |
+| `ephemeral` _[EphemeralVolumeSource](#ephemeralvolumesource)_ |  |  |  |
+| `name` _string_ |  |  |  |
+
+
+#### MariaDBVolumeSource
+
+
+
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#volume-v1-core.
+
+
+
+_Appears in:_
+- [MariaDBVolume](#mariadbvolume)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `emptyDir` _[EmptyDirVolumeSource](#emptydirvolumesource)_ |  |  |  |
+| `nfs` _[NFSVolumeSource](#nfsvolumesource)_ |  |  |  |
+| `csi` _[CSIVolumeSource](#csivolumesource)_ |  |  |  |
+| `hostPath` _[HostPathVolumeSource](#hostpathvolumesource)_ |  |  |  |
+| `persistentVolumeClaim` _[PersistentVolumeClaimVolumeSource](#persistentvolumeclaimvolumesource)_ |  |  |  |
+| `secret` _[SecretVolumeSource](#secretvolumesource)_ |  |  |  |
+| `configMap` _[ConfigMapVolumeSource](#configmapvolumesource)_ |  |  |  |
+| `ephemeral` _[EphemeralVolumeSource](#ephemeralvolumesource)_ |  |  |  |
 
 
 #### MariadbMetrics
@@ -1542,6 +1653,7 @@ _Appears in:_
 | `tolerations` _[Toleration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#toleration-v1-core) array_ | Tolerations to be used in the Pod. |  |  |
 | `priorityClassName` _string_ | PriorityClassName to be used in the Pod. |  |  |
 | `topologySpreadConstraints` _[TopologySpreadConstraint](#topologyspreadconstraint) array_ | TopologySpreadConstraints to be used in the Pod. |  |  |
+| `enableServiceLinks` _boolean_ | EnableServiceLinks indicates whether information about services should be injected into pod's<br />environment variables, matching the syntax of Docker links. Defaults to true if not specified.<br />Set to false to disable injection of service link environment variables. |  |  |
 
 
 #### MaxScaleServer
@@ -1617,6 +1729,7 @@ _Appears in:_
 | `tolerations` _[Toleration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#toleration-v1-core) array_ | Tolerations to be used in the Pod. |  |  |
 | `priorityClassName` _string_ | PriorityClassName to be used in the Pod. |  |  |
 | `topologySpreadConstraints` _[TopologySpreadConstraint](#topologyspreadconstraint) array_ | TopologySpreadConstraints to be used in the Pod. |  |  |
+| `enableServiceLinks` _boolean_ | EnableServiceLinks indicates whether information about services should be injected into pod's<br />environment variables, matching the syntax of Docker links. Defaults to true if not specified.<br />Set to false to disable injection of service link environment variables. |  |  |
 | `suspend` _boolean_ | Suspend indicates whether the current resource should be suspended or not.<br />This can be useful for maintenance, as disabling the reconciliation prevents the operator from interfering with user operations during maintenance activities. | false |  |
 | `mariaDbRef` _[MariaDBRef](#mariadbref)_ | MariaDBRef is a reference to the MariaDB that MaxScale points to. It is used to initialize the servers field. |  |  |
 | `primaryServer` _string_ | PrimaryServer specifies the desired primary server. Setting this field triggers a switchover operation in MaxScale to the desired server.<br />This option is only valid when using monitors that support switchover, currently limited to the MariaDB monitor. |  |  |
@@ -1683,13 +1796,13 @@ _Appears in:_
 - [GaleraRecoveryJob](#galerarecoveryjob)
 - [Job](#job)
 - [JobPodTemplate](#jobpodtemplate)
+- [MariaDBPodTemplate](#mariadbpodtemplate)
 - [MariaDBSpec](#mariadbspec)
 - [MaxScalePodTemplate](#maxscalepodtemplate)
 - [MaxScaleSpec](#maxscalespec)
 - [PhysicalBackupPodTemplate](#physicalbackuppodtemplate)
 - [PhysicalBackupSpec](#physicalbackupspec)
 - [PhysicalBackupVolumeSnapshot](#physicalbackupvolumesnapshot)
-- [PodTemplate](#podtemplate)
 - [RestoreSpec](#restorespec)
 - [SecretTemplate](#secrettemplate)
 - [ServiceTemplate](#servicetemplate)
@@ -1728,6 +1841,8 @@ Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kub
 
 
 _Appears in:_
+- [MariaDBVolume](#mariadbvolume)
+- [MariaDBVolumeSource](#mariadbvolumesource)
 - [StorageVolumeSource](#storagevolumesource)
 - [Volume](#volume)
 - [VolumeSource](#volumesource)
@@ -1890,9 +2005,9 @@ Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kub
 
 
 _Appears in:_
-- [BackupStagingStorage](#backupstagingstorage)
 - [BackupStorage](#backupstorage)
 - [PhysicalBackupStorage](#physicalbackupstorage)
+- [StagingStorage](#stagingstorage)
 - [VolumeClaimTemplate](#volumeclaimtemplate)
 
 | Field | Description | Default | Validation |
@@ -1912,6 +2027,8 @@ Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kub
 
 
 _Appears in:_
+- [MariaDBVolume](#mariadbvolume)
+- [MariaDBVolumeSource](#mariadbvolumesource)
 - [StorageVolumeSource](#storagevolumesource)
 - [Volume](#volume)
 - [VolumeSource](#volumesource)
@@ -1977,6 +2094,7 @@ _Appears in:_
 | `cron` _string_ | Cron is a cron expression that defines the schedule. |  |  |
 | `suspend` _boolean_ | Suspend defines whether the schedule is active or not. | false |  |
 | `immediate` _boolean_ | Immediate indicates whether the first backup should be taken immediately after creating the PhysicalBackup. |  |  |
+| `onDemand` _string_ | OnDemand is an identifier used to trigger an on-demand backup.<br />If the identifier is different than the one tracked under status.lastScheduleOnDemand, a new physical backup will be triggered. |  |  |
 
 
 #### PhysicalBackupSpec
@@ -2004,7 +2122,7 @@ _Appears in:_
 | `mariaDbRef` _[MariaDBRef](#mariadbref)_ | MariaDBRef is a reference to a MariaDB object. |  | Required: \{\} <br /> |
 | `target` _[PhysicalBackupTarget](#physicalbackuptarget)_ | Target defines in which Pod the physical backups will be taken. It defaults to "Replica", meaning that the physical backups will only be taken in ready replicas. |  | Enum: [Replica PreferReplica] <br /> |
 | `compression` _[CompressAlgorithm](#compressalgorithm)_ | Compression algorithm to be used in the Backup. |  | Enum: [none bzip2 gzip] <br /> |
-| `stagingStorage` _[BackupStagingStorage](#backupstagingstorage)_ | StagingStorage defines the temporary storage used to keep external backups (i.e. S3) while they are being processed.<br />It defaults to an emptyDir volume, meaning that the backups will be temporarily stored in the node where the PhysicalBackup Job is scheduled.<br />The staging area gets cleaned up after each backup is completed, consider this for sizing it appropriately. |  |  |
+| `stagingStorage` _[StagingStorage](#stagingstorage)_ | StagingStorage defines the temporary storage used to keep external backups (i.e. S3) while they are being processed.<br />It defaults to an emptyDir volume, meaning that the backups will be temporarily stored in the node where the PhysicalBackup Job is scheduled.<br />The staging area gets cleaned up after each backup is completed, consider this for sizing it appropriately. |  |  |
 | `storage` _[PhysicalBackupStorage](#physicalbackupstorage)_ | Storage defines the final storage for backups. |  | Required: \{\} <br /> |
 | `schedule` _[PhysicalBackupSchedule](#physicalbackupschedule)_ | Schedule defines when the PhysicalBackup will be taken. |  |  |
 | `maxRetention` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#duration-v1-meta)_ | MaxRetention defines the retention policy for backups. Old backups will be cleaned up by the Backup Job.<br />It defaults to 30 days. |  |  |
@@ -2031,6 +2149,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `s3` _[S3](#s3)_ | S3 defines the configuration to store backups in a S3 compatible storage. |  |  |
+| `azureBlob` _[AzureBlob](#azureblob)_ | AzureBlob defines the configuration to store backups in a AzureBlob compatible storage. |  |  |
 | `persistentVolumeClaim` _[PersistentVolumeClaimSpec](#persistentvolumeclaimspec)_ | PersistentVolumeClaim is a Kubernetes PVC specification. |  |  |
 | `volume` _[StorageVolumeSource](#storagevolumesource)_ | Volume is a Kubernetes volume specification. |  |  |
 | `volumeSnapshot` _[PhysicalBackupVolumeSnapshot](#physicalbackupvolumesnapshot)_ | VolumeSnapshot is a Kubernetes VolumeSnapshot specification. |  |  |
@@ -2136,12 +2255,12 @@ _Appears in:_
 - [BackupSpec](#backupspec)
 - [Exporter](#exporter)
 - [JobPodTemplate](#jobpodtemplate)
+- [MariaDBPodTemplate](#mariadbpodtemplate)
 - [MariaDBSpec](#mariadbspec)
 - [MaxScalePodTemplate](#maxscalepodtemplate)
 - [MaxScaleSpec](#maxscalespec)
 - [PhysicalBackupPodTemplate](#physicalbackuppodtemplate)
 - [PhysicalBackupSpec](#physicalbackupspec)
-- [PodTemplate](#podtemplate)
 - [RestoreSpec](#restorespec)
 - [SqlJobSpec](#sqljobspec)
 
@@ -2158,31 +2277,59 @@ _Appears in:_
 | `appArmorProfile` _[AppArmorProfile](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#apparmorprofile-v1-core)_ |  |  |  |
 
 
-#### PodTemplate
+#### PointInTimeRecovery
 
 
 
-PodTemplate defines a template to configure Container objects.
+PointInTimeRecovery is the Schema for the pointintimerecoveries API. It contains binlog archival and point-in-time restoration settings.
+
+
+
+
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `apiVersion` _string_ | `k8s.mariadb.com/v1alpha1` | | |
+| `kind` _string_ | `PointInTimeRecovery` | | |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `spec` _[PointInTimeRecoverySpec](#pointintimerecoveryspec)_ |  |  |  |
+
+
+#### PointInTimeRecoverySpec
+
+
+
+PointInTimeRecoverySpec defines the desired state of PointInTimeRecovery. It contains binlog archive and point-in-time restoration settings.
 
 
 
 _Appears in:_
-- [MariaDBSpec](#mariadbspec)
+- [PointInTimeRecovery](#pointintimerecovery)
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `podMetadata` _[Metadata](#metadata)_ | PodMetadata defines extra metadata for the Pod. |  |  |
-| `imagePullSecrets` _[LocalObjectReference](#localobjectreference) array_ | ImagePullSecrets is the list of pull Secrets to be used to pull the image. |  |  |
-| `initContainers` _[Container](#container) array_ | InitContainers to be used in the Pod. |  |  |
-| `sidecarContainers` _[Container](#container) array_ | SidecarContainers to be used in the Pod. |  |  |
-| `podSecurityContext` _[PodSecurityContext](#podsecuritycontext)_ | SecurityContext holds pod-level security attributes and common container settings. |  |  |
-| `serviceAccountName` _string_ | ServiceAccountName is the name of the ServiceAccount to be used by the Pods. |  |  |
-| `affinity` _[AffinityConfig](#affinityconfig)_ | Affinity to be used in the Pod. |  |  |
-| `nodeSelector` _object (keys:string, values:string)_ | NodeSelector to be used in the Pod. |  |  |
-| `tolerations` _[Toleration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#toleration-v1-core) array_ | Tolerations to be used in the Pod. |  |  |
-| `volumes` _[Volume](#volume) array_ | Volumes to be used in the Pod. |  |  |
-| `priorityClassName` _string_ | PriorityClassName to be used in the Pod. |  |  |
-| `topologySpreadConstraints` _[TopologySpreadConstraint](#topologyspreadconstraint) array_ | TopologySpreadConstraints to be used in the Pod. |  |  |
+| `physicalBackupRef` _[LocalObjectReference](#localobjectreference)_ | PhysicalBackupRef is a reference to a PhysicalBackup object that will be used as base backup. |  | Required: \{\} <br /> |
+| `storage` _[PointInTimeRecoveryStorage](#pointintimerecoverystorage)_ | PointInTimeRecoveryStorage is the storage where the point in time recovery data will be stored |  | Required: \{\} <br /> |
+| `compression` _[CompressAlgorithm](#compressalgorithm)_ | Compression algorithm to be used for compressing the binary logs.<br />This field is immutable, it cannot be updated after creation. |  | Enum: [none bzip2 gzip] <br /> |
+| `archiveTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#duration-v1-meta)_ | ArchiveTimeout defines the maximum duration for the binary log archival.<br />If this duration is exceeded, the sidecar agent will log an error and it will be retried in the next archive cycle.<br />It defaults to 1 hour. | 1h |  |
+| `strictMode` _boolean_ | StrictMode controls the behavior when a point-in-time restoration cannot reach the exact target time:<br />When enabled: Returns an error and avoids replaying binary logs if target time is not reached.<br />When disabled (default): Replays available binary logs until the last recoverable time. It logs logs an error if target time is not reached. |  |  |
+
+
+#### PointInTimeRecoveryStorage
+
+
+
+PointInTimeRecoveryStorage stores the different storage options for PITR
+
+
+
+_Appears in:_
+- [PointInTimeRecoverySpec](#pointintimerecoveryspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `s3` _[S3](#s3)_ | S3 is the S3-compatible storage where the binary logs will be kept. |  |  |
+| `azureBlob` _[AzureBlob](#azureblob)_ | AzureBlob is the Azure Blob Storage where the binary logs will be kept. |  |  |
 
 
 #### PreferredSchedulingTerm
@@ -2458,7 +2605,7 @@ _Appears in:_
 | `s3` _[S3](#s3)_ | S3 defines the configuration to restore backups from a S3 compatible storage. It has priority over Volume. |  |  |
 | `volume` _[StorageVolumeSource](#storagevolumesource)_ | Volume is a Kubernetes Volume object that contains a backup. |  |  |
 | `targetRecoveryTime` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#time-v1-meta)_ | TargetRecoveryTime is a RFC3339 (1970-01-01T00:00:00Z) date and time that defines the point in time recovery objective.<br />It is used to determine the closest restoration source in time. |  |  |
-| `stagingStorage` _[BackupStagingStorage](#backupstagingstorage)_ | StagingStorage defines the temporary storage used to keep external backups (i.e. S3) while they are being processed.<br />It defaults to an emptyDir volume, meaning that the backups will be temporarily stored in the node where the Restore Job is scheduled. |  |  |
+| `stagingStorage` _[StagingStorage](#stagingstorage)_ | StagingStorage defines the temporary storage used to keep external backups (i.e. S3) while they are being processed.<br />It defaults to an emptyDir volume, meaning that the backups will be temporarily stored in the node where the Restore Job is scheduled. |  |  |
 
 
 #### RestoreSpec
@@ -2489,7 +2636,7 @@ _Appears in:_
 | `s3` _[S3](#s3)_ | S3 defines the configuration to restore backups from a S3 compatible storage. It has priority over Volume. |  |  |
 | `volume` _[StorageVolumeSource](#storagevolumesource)_ | Volume is a Kubernetes Volume object that contains a backup. |  |  |
 | `targetRecoveryTime` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#time-v1-meta)_ | TargetRecoveryTime is a RFC3339 (1970-01-01T00:00:00Z) date and time that defines the point in time recovery objective.<br />It is used to determine the closest restoration source in time. |  |  |
-| `stagingStorage` _[BackupStagingStorage](#backupstagingstorage)_ | StagingStorage defines the temporary storage used to keep external backups (i.e. S3) while they are being processed.<br />It defaults to an emptyDir volume, meaning that the backups will be temporarily stored in the node where the Restore Job is scheduled. |  |  |
+| `stagingStorage` _[StagingStorage](#stagingstorage)_ | StagingStorage defines the temporary storage used to keep external backups (i.e. S3) while they are being processed.<br />It defaults to an emptyDir volume, meaning that the backups will be temporarily stored in the node where the Restore Job is scheduled. |  |  |
 | `mariaDbRef` _[MariaDBRef](#mariadbref)_ | MariaDBRef is a reference to a MariaDB object. |  | Required: \{\} <br /> |
 | `database` _string_ | Database defines the logical database to be restored. If not provided, all databases available in the backup are restored.<br />IMPORTANT: The database must previously exist. |  |  |
 | `logLevel` _string_ | LogLevel to be used n the Backup Job. It defaults to 'info'. | info | Enum: [debug info warn error dpanic panic fatal] <br /> |
@@ -2510,6 +2657,7 @@ _Appears in:_
 - [BackupStorage](#backupstorage)
 - [BootstrapFrom](#bootstrapfrom)
 - [PhysicalBackupStorage](#physicalbackupstorage)
+- [PointInTimeRecoveryStorage](#pointintimerecoverystorage)
 - [RestoreSource](#restoresource)
 - [RestoreSpec](#restorespec)
 
@@ -2522,7 +2670,7 @@ _Appears in:_
 | `accessKeyIdSecretKeyRef` _[SecretKeySelector](#secretkeyselector)_ | AccessKeyIdSecretKeyRef is a reference to a Secret key containing the S3 access key id. |  |  |
 | `secretAccessKeySecretKeyRef` _[SecretKeySelector](#secretkeyselector)_ | AccessKeyIdSecretKeyRef is a reference to a Secret key containing the S3 secret key. |  |  |
 | `sessionTokenSecretKeyRef` _[SecretKeySelector](#secretkeyselector)_ | SessionTokenSecretKeyRef is a reference to a Secret key containing the S3 session token. |  |  |
-| `tls` _[TLSS3](#tlss3)_ | TLS provides the configuration required to establish TLS connections with S3. |  |  |
+| `tls` _[TLSConfig](#tlsconfig)_ | TLS provides the configuration required to establish TLS connections with S3. |  |  |
 | `ssec` _[SSECConfig](#ssecconfig)_ | SSEC is a reference to a Secret containing the SSE-C (Server-Side Encryption with Customer-Provided Keys) key.<br />The secret must contain a 32-byte key (256 bits) in the specified key.<br />This enables server-side encryption where you provide and manage the encryption key. |  |  |
 
 
@@ -2609,6 +2757,7 @@ Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kub
 
 
 _Appears in:_
+- [AzureBlob](#azureblob)
 - [ConnectionSpec](#connectionspec)
 - [EnvVarSource](#envvarsource)
 - [ExternalMariaDBSpec](#externalmariadbspec)
@@ -2618,7 +2767,7 @@ _Appears in:_
 - [S3](#s3)
 - [SSECConfig](#ssecconfig)
 - [SqlJobSpec](#sqljobspec)
-- [TLSS3](#tlss3)
+- [TLSConfig](#tlsconfig)
 - [UserSpec](#userspec)
 
 | Field | Description | Default | Validation |
@@ -2660,6 +2809,8 @@ Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kub
 
 
 _Appears in:_
+- [MariaDBVolume](#mariadbvolume)
+- [MariaDBVolumeSource](#mariadbvolumesource)
 - [Volume](#volume)
 - [VolumeSource](#volumesource)
 
@@ -2776,6 +2927,7 @@ _Appears in:_
 | `externalTrafficPolicy` _[ServiceExternalTrafficPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#serviceexternaltrafficpolicy-v1-core)_ | ExternalTrafficPolicy Service field. |  |  |
 | `sessionAffinity` _[ServiceAffinity](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#serviceaffinity-v1-core)_ | SessionAffinity Service field. |  |  |
 | `allocateLoadBalancerNodePorts` _boolean_ | AllocateLoadBalancerNodePorts Service field. |  |  |
+| `loadBalancerClass` _string_ | LoadBalancerClass Service field. |  |  |
 
 
 #### SqlJob
@@ -2838,6 +2990,27 @@ _Appears in:_
 | `inheritMetadata` _[Metadata](#metadata)_ | InheritMetadata defines the metadata to be inherited by children resources. |  |  |
 
 
+#### StagingStorage
+
+
+
+StagingStorage defines the temporary storage used to keep external backups (i.e. S3) while they are being processed.
+
+
+
+_Appears in:_
+- [BackupSpec](#backupspec)
+- [BootstrapFrom](#bootstrapfrom)
+- [PhysicalBackupSpec](#physicalbackupspec)
+- [RestoreSource](#restoresource)
+- [RestoreSpec](#restorespec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `persistentVolumeClaim` _[PersistentVolumeClaimSpec](#persistentvolumeclaimspec)_ | PersistentVolumeClaim is a Kubernetes PVC specification. |  |  |
+| `volume` _[StorageVolumeSource](#storagevolumesource)_ | Volume is a Kubernetes volume specification. |  |  |
+
+
 #### StatefulSetPersistentVolumeClaimRetentionPolicy
 
 
@@ -2887,12 +3060,14 @@ Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kub
 
 
 _Appears in:_
-- [BackupStagingStorage](#backupstagingstorage)
 - [BackupStorage](#backupstorage)
 - [BootstrapFrom](#bootstrapfrom)
+- [MariaDBVolume](#mariadbvolume)
+- [MariaDBVolumeSource](#mariadbvolumesource)
 - [PhysicalBackupStorage](#physicalbackupstorage)
 - [RestoreSource](#restoresource)
 - [RestoreSpec](#restorespec)
+- [StagingStorage](#stagingstorage)
 - [Volume](#volume)
 - [VolumeSource](#volumesource)
 
@@ -2968,6 +3143,24 @@ _Appears in:_
 | `galeraSSTEnabled` _boolean_ | GaleraSSTEnabled determines whether Galera SST connections should use TLS.<br />It disabled by default. |  |  |
 
 
+#### TLSConfig
+
+
+
+
+
+
+
+_Appears in:_
+- [AzureBlob](#azureblob)
+- [S3](#s3)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `enabled` _boolean_ | Enabled is a flag to enable TLS. |  |  |
+| `caSecretKeyRef` _[SecretKeySelector](#secretkeyselector)_ | CASecretKeyRef is a reference to a Secret key containing a CA bundle in PEM format used to establish TLS connections with S3.<br />By default, the system trust chain will be used, but you can use this field to add more CAs to the bundle. |  |  |
+
+
 #### TLSRequirements
 
 
@@ -2987,23 +3180,6 @@ _Appears in:_
 | `subject` _string_ | Subject indicates that the TLS certificate provided by the user must have a specific subject. |  |  |
 
 
-#### TLSS3
-
-
-
-
-
-
-
-_Appears in:_
-- [S3](#s3)
-
-| Field | Description | Default | Validation |
-| --- | --- | --- | --- |
-| `enabled` _boolean_ | Enabled is a flag to enable TLS. |  |  |
-| `caSecretKeyRef` _[SecretKeySelector](#secretkeyselector)_ | CASecretKeyRef is a reference to a Secret key containing a CA bundle in PEM format used to establish TLS connections with S3.<br />By default, the system trust chain will be used, but you can use this field to add more CAs to the bundle. |  |  |
-
-
 
 
 #### TopologySpreadConstraint
@@ -3015,10 +3191,10 @@ Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kub
 
 
 _Appears in:_
+- [MariaDBPodTemplate](#mariadbpodtemplate)
 - [MariaDBSpec](#mariadbspec)
 - [MaxScalePodTemplate](#maxscalepodtemplate)
 - [MaxScaleSpec](#maxscalespec)
-- [PodTemplate](#podtemplate)
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
@@ -3130,28 +3306,6 @@ _Appears in:_
 | `host` _string_ | Host related to the User. |  | MaxLength: 255 <br /> |
 
 
-#### Volume
-
-
-
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#volume-v1-core.
-
-
-
-_Appears in:_
-- [MariaDBSpec](#mariadbspec)
-- [PodTemplate](#podtemplate)
-
-| Field | Description | Default | Validation |
-| --- | --- | --- | --- |
-| `name` _string_ |  |  |  |
-| `emptyDir` _[EmptyDirVolumeSource](#emptydirvolumesource)_ |  |  |  |
-| `nfs` _[NFSVolumeSource](#nfsvolumesource)_ |  |  |  |
-| `csi` _[CSIVolumeSource](#csivolumesource)_ |  |  |  |
-| `hostPath` _[HostPathVolumeSource](#hostpathvolumesource)_ |  |  |  |
-| `persistentVolumeClaim` _[PersistentVolumeClaimVolumeSource](#persistentvolumeclaimvolumesource)_ |  |  |  |
-| `secret` _[SecretVolumeSource](#secretvolumesource)_ |  |  |  |
-| `configMap` _[ConfigMapVolumeSource](#configmapvolumesource)_ |  |  |  |
 
 
 #### VolumeClaimTemplate
@@ -3163,6 +3317,7 @@ VolumeClaimTemplate defines a template to customize PVC objects.
 
 
 _Appears in:_
+- [EphemeralVolumeSource](#ephemeralvolumesource)
 - [GaleraConfig](#galeraconfig)
 - [MaxScaleConfig](#maxscaleconfig)
 - [Storage](#storage)
@@ -3209,6 +3364,8 @@ Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kub
 
 
 _Appears in:_
+- [MariaDBVolume](#mariadbvolume)
+- [MariaDBVolumeSource](#mariadbvolumesource)
 - [Volume](#volume)
 
 | Field | Description | Default | Validation |

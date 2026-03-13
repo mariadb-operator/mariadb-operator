@@ -3,8 +3,8 @@ package builder
 import (
 	"fmt"
 
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
-	metadata "github.com/mariadb-operator/mariadb-operator/v25/pkg/builder/metadata"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
+	metadata "github.com/mariadb-operator/mariadb-operator/v26/pkg/builder/metadata"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"

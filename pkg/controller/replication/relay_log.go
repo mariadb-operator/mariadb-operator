@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"github.com/go-logr/logr"
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/replication"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/replication"
 )
 
 // HasRelayLogEvents indicates that there are events in the IO thread to be applied by the SQL thread.
@@ -19,11 +19,11 @@ func HasRelayLogEvents(status *mariadbv1alpha1.ReplicaStatusVars, gtidDomainId u
 		return false, errors.New("GTID SQL position must be set")
 	}
 
-	gtidIOPos, err := replication.ParseGtid(*status.GtidIOPos, gtidDomainId, logger)
+	gtidIOPos, err := replication.ParseGtidWithDomainId(*status.GtidIOPos, gtidDomainId, logger)
 	if err != nil {
 		return false, fmt.Errorf("error parsing GTID IO position: %v", err)
 	}
-	gtidCurrentPos, err := replication.ParseGtid(*status.GtidCurrentPos, gtidDomainId, logger)
+	gtidCurrentPos, err := replication.ParseGtidWithDomainId(*status.GtidCurrentPos, gtidDomainId, logger)
 	if err != nil {
 		return false, fmt.Errorf("error parsing GTID SQL position: %v", err)
 	}

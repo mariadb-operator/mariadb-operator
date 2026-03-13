@@ -73,4 +73,13 @@ const (
 
 	// ReasonMariaDBReplicaRecoveryError indicates that an error has occurred during the MariaDB instance replica recovery operation.
 	ReasonMariaDBReplicaRecoveryError = "MariaDBReplicaRecoveryError"
+
+	// ReasonBinlogArchivalError indicates that an error has occurred when archiving binary logs.
+	ReasonBinlogArchivalError = "BinlogArchivalError"
+
+	// ReasonBinlogArchived indicates that a binary log has been archived.
+	ReasonBinlogArchived = "BinlogArchived"
+
+	// ReasonBinlogTimelineInvalid indicates that an error has occurred when validating the binlog timeline to be used for point-in-time recovery.
+	ReasonBinlogTimelineInvalid = "BinlogTimelineInvalid"
 )

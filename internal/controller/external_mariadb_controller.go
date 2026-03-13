@@ -7,15 +7,15 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-multierror"
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/builder"
-	condition "github.com/mariadb-operator/mariadb-operator/v25/pkg/condition"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/environment"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/refresolver"
-	sqlClient "github.com/mariadb-operator/mariadb-operator/v25/pkg/sql"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/builder"
+	condition "github.com/mariadb-operator/mariadb-operator/v26/pkg/condition"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/environment"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/refresolver"
+	sqlClient "github.com/mariadb-operator/mariadb-operator/v26/pkg/sql"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/tools/events"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -24,7 +24,7 @@ import (
 // ExternalMariaDBReconciler reconciles a ExternalMariaDB object
 type ExternalMariaDBReconciler struct {
 	client.Client
-	Recorder       record.EventRecorder
+	Recorder       events.EventRecorder
 	Builder        *builder.Builder
 	RefResolver    *refresolver.RefResolver
 	ConditionReady *condition.Ready

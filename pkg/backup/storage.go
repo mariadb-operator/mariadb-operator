@@ -6,8 +6,9 @@ import (
 	"os"
 
 	"github.com/go-logr/logr"
-	mariadbminio "github.com/mariadb-operator/mariadb-operator/v25/pkg/minio"
-	"github.com/minio/minio-go/v7"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/azure"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/interfaces"
+	mariadbminio "github.com/mariadb-operator/mariadb-operator/v26/pkg/minio"
 )
 
 type BackupStorage interface {
@@ -68,57 +69,54 @@ func (f *FileSystemBackupStorage) shouldProcessBackupFile(fileName string, logge
 	return false
 }
 
-type S3BackupStorage struct {
-	bucket    string
+type BlobBackupStorage struct {
 	processor BackupProcessor
-	logger    logr.Logger
-	client    *mariadbminio.Client
+	client    interfaces.BlobStorage
 }
 
-func NewS3BackupStorage(basePath, bucket, endpoint string, processor BackupProcessor, logger logr.Logger,
+func NewBlobBackupStorageWithS3(basePath, bucket, endpoint string, processor BackupProcessor,
 	mOpts ...mariadbminio.MinioOpt) (BackupStorage, error) {
 	client, err := mariadbminio.NewMinioClient(basePath, bucket, endpoint, mOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("error creating S3 client: %v", err)
 	}
 
-	return &S3BackupStorage{
-		bucket:    bucket,
+	return &BlobBackupStorage{
 		client:    client,
 		processor: processor,
-		logger:    logger,
 	}, nil
 }
 
-func (s *S3BackupStorage) List(ctx context.Context) ([]string, error) {
-	var fileNames []string
-	for o := range s.client.ListObjects(ctx, s.bucket, minio.ListObjectsOptions{
-		Prefix: s.client.GetPrefix(),
-	}) {
-		if o.Err != nil {
-			return nil, o.Err
-		}
-		fileName := o.Key
-		if s.shouldProcessBackupFile(fileName, s.logger) {
-			fileNames = append(fileNames, fileName)
-		}
+func NewBlobBackupStorageWithABS(basePath, containerName, serviceURL string, processor BackupProcessor,
+	absOpts ...azure.AzBlobOpt) (BackupStorage, error) {
+	client, err := azure.NewAzBlobClient(basePath, containerName, serviceURL, absOpts...)
+	if err != nil {
+		return nil, fmt.Errorf("error creating Azure Blob Client: %v", err)
 	}
-	return fileNames, nil
+
+	return &BlobBackupStorage{
+		client:    client,
+		processor: processor,
+	}, nil
 }
 
-func (s *S3BackupStorage) Push(ctx context.Context, fileName string) error {
-	return s.client.FPutObjectWithOptions(ctx, fileName)
-}
-
-func (s *S3BackupStorage) Pull(ctx context.Context, fileName string) error {
-	return s.client.FGetObjectWithOptions(ctx, fileName)
-}
-
-func (s *S3BackupStorage) Delete(ctx context.Context, fileName string) error {
+func (s *BlobBackupStorage) Delete(ctx context.Context, fileName string) error {
 	return s.client.RemoveWithOptions(ctx, fileName)
 }
 
-func (s *S3BackupStorage) shouldProcessBackupFile(fileName string, logger logr.Logger) bool {
+func (s *BlobBackupStorage) List(ctx context.Context) ([]string, error) {
+	return s.client.ListObjectsWithOptions(ctx)
+}
+
+func (s *BlobBackupStorage) Push(ctx context.Context, fileName string) error {
+	return s.client.FPutObjectWithOptions(ctx, fileName)
+}
+
+func (s *BlobBackupStorage) Pull(ctx context.Context, fileName string) error {
+	return s.client.FGetObjectWithOptions(ctx, fileName)
+}
+
+func (s *BlobBackupStorage) shouldProcessBackupFile(fileName string, logger logr.Logger) bool {
 	logger.V(1).Info("processing backup file", "file", fileName)
 	if s.processor.IsValidBackupFile(s.client.UnprefixedFilename(fileName)) {
 		return true

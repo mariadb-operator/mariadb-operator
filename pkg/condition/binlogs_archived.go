@@ -1,0 +1,26 @@
+package conditions
+
+import (
+	"fmt"
+
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+func SetArchivedBinlogs(c Conditioner) {
+	c.SetCondition(metav1.Condition{
+		Type:    mariadbv1alpha1.ConditionTypeBinlogsArchived,
+		Status:  metav1.ConditionTrue,
+		Reason:  mariadbv1alpha1.ConditionReasonArchiveBinlogs,
+		Message: "Archived binlogs",
+	})
+}
+
+func SetArchivedBinlogsError(c Conditioner, msg string) {
+	c.SetCondition(metav1.Condition{
+		Type:    mariadbv1alpha1.ConditionTypeBinlogsArchived,
+		Status:  metav1.ConditionFalse,
+		Reason:  mariadbv1alpha1.ConditionReasonArchiveBinlogsError,
+		Message: fmt.Sprintf("Error archiving binlogs: %s", msg),
+	})
+}

@@ -3,7 +3,7 @@ package controller
 import (
 	"reflect"
 
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
@@ -467,7 +467,7 @@ func decorateBackupWithSSEC(backup *mariadbv1alpha1.Backup) *mariadbv1alpha1.Bac
 }
 
 func decorateBackupWithStagingStorage(backup *mariadbv1alpha1.Backup) *mariadbv1alpha1.Backup {
-	backup.Spec.StagingStorage = &mariadbv1alpha1.BackupStagingStorage{
+	backup.Spec.StagingStorage = &mariadbv1alpha1.StagingStorage{
 		PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimSpec{
 			AccessModes: []corev1.PersistentVolumeAccessMode{
 				corev1.ReadWriteOnce,

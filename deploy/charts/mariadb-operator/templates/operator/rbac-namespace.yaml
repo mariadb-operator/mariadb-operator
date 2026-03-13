@@ -136,6 +136,15 @@ rules:
   - patch
   - watch
 - apiGroups:
+  - events.k8s.io
+  resources:
+  - events
+  verbs:
+  - create
+  - list
+  - patch
+  - watch
+- apiGroups:
   - k8s.mariadb.com
   resources:
   - backups
@@ -184,6 +193,7 @@ rules:
   - externalmariadbs/status
   - maxscales/status
   - physicalbackups/status
+  - pointintimerecoveries/status
   - restores/status
   - sqljobs/status
   - users/status
@@ -199,6 +209,14 @@ rules:
   - create
   - list
   - patch
+  - watch
+- apiGroups:
+  - k8s.mariadb.com
+  resources:
+  - pointintimerecoveries
+  verbs:
+  - get
+  - list
   - watch
 - apiGroups:
   - monitoring.coreos.com

@@ -2,11 +2,10 @@ package controller
 
 import (
 	"os"
-	"time"
 
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/metadata"
-	stsobj "github.com/mariadb-operator/mariadb-operator/v25/pkg/statefulset"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/metadata"
+	stsobj "github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
@@ -662,20 +661,18 @@ var _ = Describe("MariaDB", Label("basic"), func() {
 			testMariadbBootstrap(mariadbKey, &bootstrapFrom)
 		},
 		Entry(
-			"Backup",
-			getBackupWithS3Storage(
+			"Bootstrap from Backup reference",
+			buildBackupWithS3Storage("test-mariadb", "")(
 				types.NamespacedName{
 					Name:      "test-backup",
 					Namespace: testNamespace,
 				},
-				"test-mariadb",
-				"",
 			),
 			newBootstrapFromRestoreSource(mariadbv1alpha1.RestoreSource{
 				BackupRef: &mariadbv1alpha1.LocalObjectReference{
 					Name: "test-backup",
 				},
-				TargetRecoveryTime: &metav1.Time{Time: time.Now()},
+				TargetRecoveryTime: testTargetRecoveryTime,
 			}),
 			types.NamespacedName{
 				Name:      "test-mariadb-from-backup",
@@ -683,18 +680,19 @@ var _ = Describe("MariaDB", Label("basic"), func() {
 			},
 		),
 		Entry(
-			"Backup S3",
-			getBackupWithS3Storage(
+			"Bootstrap from S3 with compression",
+			applyDecoratorChain(
+				buildBackupWithS3Storage("test-mariadb", ""),
+				decorateBackupWithGzipCompression,
+			)(
 				types.NamespacedName{
-					Name:      "test-backup-from-s3",
+					Name:      "test-backup-from-s3-gzip",
 					Namespace: testNamespace,
 				},
-				"test-mariadb",
-				"",
 			),
 			newBootstrapFromRestoreSource(mariadbv1alpha1.RestoreSource{
 				S3: getS3Storage("test-mariadb", ""),
-				StagingStorage: &mariadbv1alpha1.BackupStagingStorage{
+				StagingStorage: &mariadbv1alpha1.StagingStorage{
 					PersistentVolumeClaim: &mariadbv1alpha1.PersistentVolumeClaimSpec{
 						AccessModes: []corev1.PersistentVolumeAccessMode{
 							corev1.ReadWriteOnce,
@@ -706,10 +704,10 @@ var _ = Describe("MariaDB", Label("basic"), func() {
 						},
 					},
 				},
-				TargetRecoveryTime: &metav1.Time{Time: time.Now()},
+				TargetRecoveryTime: testTargetRecoveryTime,
 			}),
 			types.NamespacedName{
-				Name:      "test-mariadb-from-s3",
+				Name:      "test-mariadb-from-s3-gzip",
 				Namespace: testNamespace,
 			},
 		),
@@ -738,11 +736,14 @@ var _ = Describe("MariaDB", Label("basic"), func() {
 			testMariadbBootstrap(mariadbKey, &bootstrapFrom)
 		},
 		Entry(
-			"PhysicalBackup",
-			buildPhysicalBackupWithS3Storage(
-				testMdbkey,
-				"test-mariadb-physical",
-				"",
+			"Bootstrap from PhysicalBackup reference with compression",
+			applyDecoratorChain(
+				buildPhysicalBackupWithS3Storage(
+					testMdbkey,
+					"test-mariadb-physical",
+					"",
+				),
+				decoratePhysicalBackupWithBzip2Compression,
 			)(
 				types.NamespacedName{
 					Name:      "test-physicalbackup",
@@ -754,7 +755,7 @@ var _ = Describe("MariaDB", Label("basic"), func() {
 					Name: "test-physicalbackup",
 					Kind: mariadbv1alpha1.PhysicalBackupKind,
 				},
-				TargetRecoveryTime: &metav1.Time{Time: time.Now()},
+				TargetRecoveryTime: testTargetRecoveryTime,
 			},
 			types.NamespacedName{
 				Name:      "test-mariadb-from-physicalbackup",
@@ -762,7 +763,7 @@ var _ = Describe("MariaDB", Label("basic"), func() {
 			},
 		),
 		Entry(
-			"PhysicalBackup VolumeSnapshot",
+			"Bootstrap from PhysicalBackup using VolumeSnapshot",
 			buildPhysicalBackupWithVolumeSnapshotStorage(testMdbkey)(
 				types.NamespacedName{
 					Name:      "test-physicalbackup-volumesnapshot",
@@ -774,7 +775,7 @@ var _ = Describe("MariaDB", Label("basic"), func() {
 					Name: "test-physicalbackup-volumesnapshot",
 					Kind: mariadbv1alpha1.PhysicalBackupKind,
 				},
-				TargetRecoveryTime: &metav1.Time{Time: time.Now()},
+				TargetRecoveryTime: testTargetRecoveryTime,
 			},
 			types.NamespacedName{
 				Name:      "test-mariadb-from-physicalbackup-volumesnapshot",

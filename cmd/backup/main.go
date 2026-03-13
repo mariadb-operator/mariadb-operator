@@ -5,23 +5,31 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
 	"github.com/go-logr/logr"
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/backup"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/builder"
-	mdbcompression "github.com/mariadb-operator/mariadb-operator/v25/pkg/compression"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/log"
-	mdbminio "github.com/mariadb-operator/mariadb-operator/v25/pkg/minio"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/azure"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/backup"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/builder"
+	mdbcompression "github.com/mariadb-operator/mariadb-operator/v26/pkg/compression"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/log"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/metadata"
+	mdbminio "github.com/mariadb-operator/mariadb-operator/v26/pkg/minio"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/replication"
 	"github.com/spf13/cobra"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var (
-	logger = ctrl.Log
-
+	scheme            = runtime.NewScheme()
+	logger            = ctrl.Log
 	path              string
 	targetFilePath    string
 	backupContentType string
@@ -35,12 +43,26 @@ var (
 	s3CACertPath string
 	s3Prefix     string
 
+	abs           bool
+	absContainer  string
+	absServiceURL string
+	absTLS        bool
+	absCACertPath string
+	absPrefix     string
+
+	physicalBackupDirPath   string
+	physicalBackupMeta      bool
+	physicalBackupName      string
+	physicalBackupNamespace string
+
 	maxRetention time.Duration
 
 	compression string
 )
 
 func init() {
+	utilruntime.Must(mariadbv1alpha1.AddToScheme(scheme))
+
 	RootCmd.PersistentFlags().StringVar(&path, "path", "/backup", "Directory path where the backup files are located."+
 		"When S3 is enabled, it is used as staging area and the source of truth of backups remains in S3.")
 	RootCmd.PersistentFlags().StringVar(&targetFilePath, "target-file-path", "/backup/0-backup-target.txt",
@@ -67,8 +89,24 @@ func init() {
 	RootCmd.PersistentFlags().StringVar(&s3CACertPath, "s3-ca-cert-path", "", "Path to the CA to be trusted when connecting to S3.")
 	RootCmd.PersistentFlags().StringVar(&s3Prefix, "s3-prefix", "", "S3 bucket prefix name to use.")
 
+	RootCmd.PersistentFlags().BoolVar(&abs, "abs", false, "Enable Azure Blob backup storage.")
+	RootCmd.PersistentFlags().StringVar(&absContainer, "abs-container", "backups", "Name of the container to store backups.")
+	RootCmd.PersistentFlags().StringVar(&absServiceURL, "abs-service-url", "", "Full abs service url to use: http(s)://<account>.blob.core.windows.net/.")
+	RootCmd.PersistentFlags().BoolVar(&absTLS, "abs-tls", false, "Enable Azure Blob Storage TLS connections.")
+	RootCmd.PersistentFlags().StringVar(&absCACertPath, "abs-ca-cert-path", "", "Path to the CA to be trusted when connecting to ABS.")
+	RootCmd.PersistentFlags().StringVar(&absPrefix, "abs-prefix", "", "ABS container prefix to use.")
+
 	RootCmd.PersistentFlags().StringVar(&compression, "compression", string(mariadbv1alpha1.CompressNone),
 		"Compression algorithm: none, gzip or bzip2.")
+
+	RootCmd.PersistentFlags().StringVar(&physicalBackupDirPath, "physical-backup-dir-path", "",
+		"Directory path where the physical backup is located. Only considered when backup-content-type is Physical.")
+	RootCmd.Flags().BoolVar(&physicalBackupMeta, "physical-backup-meta", false,
+		"Enable tracking physical backup metadata in the PhysicalBackup custom resource. Only considered when backup-content-type is Physical.")
+	RootCmd.Flags().StringVar(&physicalBackupName, "physical-backup-name", "",
+		"PhysicalBackup custom resource name to track physical backup metadata. Only considered when physical-backup-meta is enabled.")
+	RootCmd.Flags().StringVar(&physicalBackupNamespace, "physical-backup-namespace", "",
+		"PhysicalBackup custom resource namespace to track physical backup metadata. Only considered when physical-backup-meta is enabled.")
 
 	RootCmd.Flags().DurationVar(&maxRetention, "max-retention", 30*24*time.Hour,
 		"Defines the retention policy for backups. Older backups will be deleted.")
@@ -101,7 +139,7 @@ var RootCmd = &cobra.Command{
 			logger.Error(err, "error getting backup storage")
 			os.Exit(1)
 		}
-		backupCompressor, err := getCompressor(backupProcessor)
+		backupCompressor, err := getBackupCompressor(backupProcessor)
 		if err != nil {
 			logger.Error(err, "error getting backup compressor")
 			os.Exit(1)
@@ -120,9 +158,9 @@ var RootCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		logger.Info("pushing target backup", "file", backupTargetFile, "prefix", s3Prefix)
+		logger.Info("pushing target backup", "file", backupTargetFile)
 		if err := backupStorage.Push(ctx, backupTargetFile); err != nil {
-			logger.Error(err, "error pushing target backup", "file", backupTargetFile, "prefix", s3Prefix)
+			logger.Error(err, "error pushing target backup", "file", backupTargetFile)
 			os.Exit(1)
 		}
 
@@ -143,6 +181,11 @@ var RootCmd = &cobra.Command{
 
 		if err := cleanupFile(backupTargetFile, logger.WithName("cleanup")); err != nil && os.IsNotExist(err) {
 			logger.Error(err, "error cleaning up target file", "file", backupTargetFile)
+			os.Exit(1)
+		}
+
+		if err := handleBackupMeta(ctx, logger.WithName("backup-meta")); err != nil {
+			logger.Error(err, "error handling backup meta")
 			os.Exit(1)
 		}
 	},
@@ -188,12 +231,33 @@ func getBackupStorage(processor backup.BackupProcessor) (backup.BackupStorage, e
 			logger.Info("configuring S3 SSE-C encryption")
 			opts = append(opts, mdbminio.WithSSECCustomerKey(ssecKey))
 		}
-		return backup.NewS3BackupStorage(
+		return backup.NewBlobBackupStorageWithS3(
 			path,
 			s3Bucket,
 			s3Endpoint,
 			processor,
-			logger.WithName("s3-storage"),
+			opts...,
+		)
+	}
+	if abs {
+		logger.Info("Configuring ABS backup storage")
+		opts := []azure.AzBlobOpt{
+			azure.WithTLSEnabled(absTLS),
+			azure.WithTLSCACertPath(absCACertPath),
+			azure.WithPrefix(absPrefix),
+		}
+		if accountKey := os.Getenv(builder.ABSStorageAccountKey); accountKey != "" {
+			opts = append(opts, azure.WithAccountKey(accountKey))
+		}
+
+		if accountName := os.Getenv(builder.ABSStorageAccountName); accountName != "" {
+			opts = append(opts, azure.WithAccountName(accountName))
+		}
+		return backup.NewBlobBackupStorageWithABS(
+			path,
+			absContainer,
+			absServiceURL,
+			processor,
 			opts...,
 		)
 	}
@@ -201,12 +265,12 @@ func getBackupStorage(processor backup.BackupProcessor) (backup.BackupStorage, e
 	return backup.NewFileSystemBackupStorage(path, processor, logger.WithName("file-system-storage")), nil
 }
 
-func getCompressor(processor backup.BackupProcessor) (mdbcompression.Compressor, error) {
+func getBackupCompressor(processor backup.BackupProcessor) (mdbcompression.BackupCompressor, error) {
 	calg := mariadbv1alpha1.CompressAlgorithm(compression)
 	if err := calg.Validate(); err != nil {
 		return nil, fmt.Errorf("compression algorithm not supported: %v", err)
 	}
-	return mdbcompression.NewCompressor(calg, path, processor.GetUncompressedBackupFile, logger)
+	return mdbcompression.NewBackupCompressor(calg, path, processor.GetUncompressedBackupFile, logger)
 }
 
 func readTargetFile() (string, error) {
@@ -218,11 +282,81 @@ func readTargetFile() (string, error) {
 }
 
 func cleanupFile(fileName string, logger logr.Logger) error {
-	if !s3 || !cleanupTargetFile {
+	if (!s3 && !abs) || !cleanupTargetFile {
 		return nil
 	}
 	filePath := backup.GetFilePath(path, fileName)
 	logger.Info("cleaning up target file", "file", filePath)
 
 	return os.Remove(filePath)
+}
+
+func handleBackupMeta(ctx context.Context, backupLogger logr.Logger) error {
+	if backupContentType != string(mariadbv1alpha1.BackupContentTypePhysical) {
+		return nil
+	}
+	if !physicalBackupMeta || physicalBackupName == "" || physicalBackupNamespace == "" {
+		return nil
+	}
+	key := types.NamespacedName{
+		Name:      physicalBackupName,
+		Namespace: physicalBackupNamespace,
+	}
+	logger := backupLogger.WithValues("physicalbackup", key.Name)
+	logger.Info("handling physical backup meta")
+
+	k8sClient, err := getK8sClient()
+	if err != nil {
+		return fmt.Errorf("error getting Kubernetes client: %v", err)
+	}
+	var physicalBackup mariadbv1alpha1.PhysicalBackup
+	if err := k8sClient.Get(ctx, key, &physicalBackup); err != nil {
+		return fmt.Errorf("error getting PhysicalBackup: %v", err)
+	}
+
+	rawGTID, err := getBackupGTID()
+	if err != nil {
+		return fmt.Errorf("error getting backup GTID: %v", err)
+	}
+	gtid, err := replication.ParseGtid(rawGTID)
+	if err != nil {
+		return fmt.Errorf("error parsing GTID %s: %v", rawGTID, err)
+	}
+
+	patch := client.MergeFrom(physicalBackup.DeepCopy())
+	if physicalBackup.Annotations == nil {
+		physicalBackup.Annotations = make(map[string]string)
+	}
+	physicalBackup.Annotations[metadata.LastGtidAnnotation] = gtid.String()
+	if err := k8sClient.Patch(ctx, &physicalBackup, patch); err != nil {
+		return fmt.Errorf("error patching PhysicalBackup: %v", err)
+	}
+
+	logger.Info("patched PhysicalBackup with GTID", "gtid", gtid.String())
+	return nil
+}
+
+func getK8sClient() (client.Client, error) {
+	restConfig, err := ctrl.GetConfig()
+	if err != nil {
+		return nil, fmt.Errorf("error getting REST config: %v", err)
+	}
+	k8sClient, err := client.New(restConfig, client.Options{Scheme: scheme})
+	if err != nil {
+		return nil, fmt.Errorf("error creating Kubernetes client: %v", err)
+	}
+	return k8sClient, nil
+}
+
+func getBackupGTID() (string, error) {
+	metaFilePath := filepath.Join(physicalBackupDirPath, replication.MariaDBOperatorFileName)
+	bytes, err := os.ReadFile(metaFilePath)
+	if err != nil {
+		return "", fmt.Errorf("error reading backup meta file %s: %v", metaFilePath, err)
+	}
+	rawGtid, err := replication.ParseRawGtidInMetaFile(bytes)
+	if err != nil {
+		return "", fmt.Errorf("error parsing GTID in meta file %s: %v", metaFilePath, err)
+	}
+	return rawGtid, nil
 }

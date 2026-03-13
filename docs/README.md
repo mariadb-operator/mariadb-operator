@@ -20,6 +20,7 @@
 
 - [Physical backups](./physical_backup.md)
 - [Logical backups](./logical_backup.md)
+- [Point-In-Time-Recovery](./pitr.md)
 
 ## Guides
 

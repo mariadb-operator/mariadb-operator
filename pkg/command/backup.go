@@ -4,18 +4,19 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"html/template"
 	"path/filepath"
 	"strings"
+	"text/template"
 	"time"
 
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
-	backuppkg "github.com/mariadb-operator/mariadb-operator/v25/pkg/backup"
-	builderpki "github.com/mariadb-operator/mariadb-operator/v25/pkg/builder/pki"
-	ds "github.com/mariadb-operator/mariadb-operator/v25/pkg/datastructures"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/interfaces"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/replication"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/statefulset"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
+	backuppkg "github.com/mariadb-operator/mariadb-operator/v26/pkg/backup"
+	builderpki "github.com/mariadb-operator/mariadb-operator/v26/pkg/builder/pki"
+	ds "github.com/mariadb-operator/mariadb-operator/v26/pkg/datastructures"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/interfaces"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/replication"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 )
 
@@ -23,28 +24,55 @@ type BackupOpts struct {
 	CommandOpts
 	Path                 string
 	TargetFilePath       string
+	BackupFullDirPath    string
+	BackupContentType    mariadbv1alpha1.BackupContentType
+	PhysicalBackupMeta   bool
+	PhysicalBackupKey    *types.NamespacedName
 	OmitCredentials      bool
 	CleanupTargetFile    bool
 	MaxRetentionDuration time.Duration
+	StartGtid            *replication.Gtid
 	TargetTime           time.Time
 	Compression          mariadbv1alpha1.CompressAlgorithm
-	S3                   bool
-	S3Bucket             string
-	S3Endpoint           string
-	S3Region             string
-	S3TLS                bool
-	S3CACertPath         string
-	S3Prefix             string
 	LogLevel             string
 	ExtraOpts            []string
+
+	S3           bool
+	S3Bucket     string
+	S3Endpoint   string
+	S3Region     string
+	S3TLS        bool
+	S3CACertPath string
+	S3Prefix     string
+
+	ABS              bool
+	ABSContainerName string
+	ABSServiceURL    string
+	ABSTLS           bool
+	ABSCACertPath    string
+	ABSPrefix        string
 }
 
 type BackupOpt func(*BackupOpts)
 
-func WithBackup(path string, targetFilePath string) BackupOpt {
+func WithPath(path, targetFilePath, backupFullDirPath string) BackupOpt {
 	return func(bo *BackupOpts) {
 		bo.Path = path
 		bo.TargetFilePath = targetFilePath
+		bo.BackupFullDirPath = backupFullDirPath
+	}
+}
+
+func WithBackupContentType(backupContentType mariadbv1alpha1.BackupContentType) BackupOpt {
+	return func(bo *BackupOpts) {
+		bo.BackupContentType = backupContentType
+	}
+}
+
+func WithPhysicalBackupMeta(enabled bool, physicalBackupKey types.NamespacedName) BackupOpt {
+	return func(bo *BackupOpts) {
+		bo.PhysicalBackupMeta = enabled
+		bo.PhysicalBackupKey = &physicalBackupKey
 	}
 }
 
@@ -60,19 +88,25 @@ func WithCleanupTargetFile(shouldCleanup bool) BackupOpt {
 	}
 }
 
-func WithBackupMaxRetention(d time.Duration) BackupOpt {
+func WithMaxRetention(d time.Duration) BackupOpt {
 	return func(bo *BackupOpts) {
 		bo.MaxRetentionDuration = d
 	}
 }
 
-func WithBackupTargetTime(t time.Time) BackupOpt {
+func WithStartGtid(gtid *replication.Gtid) BackupOpt {
+	return func(bo *BackupOpts) {
+		bo.StartGtid = gtid
+	}
+}
+
+func WithTargetTime(t time.Time) BackupOpt {
 	return func(bo *BackupOpts) {
 		bo.TargetTime = t
 	}
 }
 
-func WithBackupCompression(c mariadbv1alpha1.CompressAlgorithm) BackupOpt {
+func WithCompression(c mariadbv1alpha1.CompressAlgorithm) BackupOpt {
 	return func(bo *BackupOpts) {
 		bo.Compression = c
 	}
@@ -85,6 +119,27 @@ func WithS3(bucket, endpoint, region, prefix string) BackupOpt {
 		bo.S3Endpoint = endpoint
 		bo.S3Region = region
 		bo.S3Prefix = prefix
+	}
+}
+
+func WithABS(containerName, serviceURL, prefix string) BackupOpt {
+	return func(bo *BackupOpts) {
+		bo.ABS = true
+		bo.ABSContainerName = containerName
+		bo.ABSServiceURL = serviceURL
+		bo.ABSPrefix = prefix
+	}
+}
+
+func WithABSTLS(tls bool) BackupOpt {
+	return func(bo *BackupOpts) {
+		bo.ABSTLS = tls
+	}
+}
+
+func WithABSCACertPath(caCertPath string) BackupOpt {
+	return func(bo *BackupOpts) {
+		bo.ABSCACertPath = caCertPath
 	}
 }
 
@@ -106,25 +161,25 @@ func WithExtraOpts(opts []string) BackupOpt {
 	}
 }
 
-func WithBackupUserEnv(u string) BackupOpt {
+func WithUserEnv(u string) BackupOpt {
 	return func(bo *BackupOpts) {
 		bo.UserEnv = u
 	}
 }
 
-func WithBackupPasswordEnv(p string) BackupOpt {
+func WithPasswordEnv(p string) BackupOpt {
 	return func(bo *BackupOpts) {
 		bo.PasswordEnv = p
 	}
 }
 
-func WithBackupDatabase(d string) BackupOpt {
+func WithDatabase(d string) BackupOpt {
 	return func(bo *BackupOpts) {
 		bo.Database = &d
 	}
 }
 
-func WithBackupLogLevel(l string) BackupOpt {
+func WithLogLevel(l string) BackupOpt {
 	return func(bo *BackupOpts) {
 		bo.LogLevel = l
 	}
@@ -144,6 +199,9 @@ func NewBackupCommand(userOpts ...BackupOpt) (*BackupCommand, error) {
 	}
 	if opts.TargetFilePath == "" {
 		return nil, errors.New("target file not provided")
+	}
+	if opts.BackupFullDirPath == "" {
+		return nil, errors.New("backup full directory not provided")
 	}
 	if opts.MaxRetentionDuration == 0 {
 		opts.MaxRetentionDuration = 30 * 24 * time.Hour
@@ -168,10 +226,9 @@ func (b *BackupCommand) MariadbDump(backup *mariadbv1alpha1.Backup,
 	if err != nil {
 		return nil, fmt.Errorf("error getting connection flags: %v", err)
 	}
+	dumpArgs := strings.Join(b.mariadbDumpArgs(backup, mariadb), " ")
 
-	args := strings.Join(b.mariadbDumpArgs(backup, mariadb), " ")
-
-	cmds := []string{
+	args := []string{
 		"set -euo pipefail",
 		"echo 💾 Exporting env",
 		fmt.Sprintf(
@@ -193,11 +250,11 @@ func (b *BackupCommand) MariadbDump(backup *mariadbv1alpha1.Backup,
 		fmt.Sprintf(
 			"mariadb-dump %s %s > %s",
 			connFlags,
-			args,
+			dumpArgs,
 			b.getTargetFilePath(),
 		),
 	}
-	return NewBashCommand(cmds), nil
+	return NewBashCommand(args), nil
 }
 
 func (b *BackupCommand) MariadbBackup(mariadb *mariadbv1alpha1.MariaDB, backupFilePath string,
@@ -242,7 +299,33 @@ func (b *BackupCommand) MariadbBackup(mariadb *mariadbv1alpha1.MariaDB, backupFi
 	return NewBashCommand(cmds), nil
 }
 
-func (b *BackupCommand) MariadbOperatorBackup(backupContentType mariadbv1alpha1.BackupContentType) *Command {
+func (b *BackupCommand) MariadbBackupMeta() *Command {
+	cmds := []string{
+		"set -euo pipefail",
+		fmt.Sprintf(`if [ -d %[1]s ]; then
+	echo "💾 Cleaning up backup directory";
+	rm -rf %[1]s
+fi`, b.BackupFullDirPath),
+		"echo 💾 Creating backup directory",
+		fmt.Sprintf(
+			"mkdir -p %s",
+			b.BackupFullDirPath,
+		),
+		"echo 💾 Extracting stream",
+		fmt.Sprintf(
+			"mbstream -x -C %s < %s",
+			b.BackupFullDirPath,
+			b.getTargetFilePath(),
+		),
+	}
+	cmds = append(cmds, copyBinlogMetaCmds(b.BackupFullDirPath, b.BackupFullDirPath)...)
+	return NewBashCommand(cmds)
+}
+
+func (b *BackupCommand) MariadbOperatorBackup() (*Command, error) {
+	if b.BackupContentType == "" {
+		return nil, errors.New("backup content type must be set")
+	}
 	args := []string{
 		"backup",
 		"--path",
@@ -250,7 +333,7 @@ func (b *BackupCommand) MariadbOperatorBackup(backupContentType mariadbv1alpha1.
 		"--target-file-path",
 		b.TargetFilePath,
 		"--backup-content-type",
-		string(backupContentType),
+		string(b.BackupContentType),
 		"--max-retention",
 		b.MaxRetentionDuration.String(),
 	}
@@ -268,14 +351,19 @@ func (b *BackupCommand) MariadbOperatorBackup(backupContentType mariadbv1alpha1.
 	}
 
 	args = append(args, b.s3Args()...)
-	if b.S3 && b.CleanupTargetFile {
+	args = append(args, b.absArgs()...)
+	if (b.S3 || b.ABS) && b.CleanupTargetFile {
 		args = append(args, "--cleanup-target-file")
 	}
+	args = append(args, b.physicalBackupArgs()...)
 
-	return NewCommand(nil, args)
+	return NewCommand(nil, args), nil
 }
 
-func (b *BackupCommand) MariadbOperatorRestore(backupContentType mariadbv1alpha1.BackupContentType, backupDirPath *string) *Command {
+func (b *BackupCommand) MariadbOperatorRestore() (*Command, error) {
+	if b.BackupContentType == "" {
+		return nil, errors.New("backup content type must be set")
+	}
 	args := []string{
 		"backup",
 		"restore",
@@ -286,13 +374,7 @@ func (b *BackupCommand) MariadbOperatorRestore(backupContentType mariadbv1alpha1
 		"--target-file-path",
 		b.TargetFilePath,
 		"--backup-content-type",
-		string(backupContentType),
-	}
-	if backupContentType == mariadbv1alpha1.BackupContentTypePhysical && backupDirPath != nil {
-		args = append(args, []string{
-			"--physical-backup-dir-path",
-			*backupDirPath,
-		}...)
+		string(b.BackupContentType),
 	}
 	if b.LogLevel != "" {
 		args = append(args, []string{
@@ -302,7 +384,10 @@ func (b *BackupCommand) MariadbOperatorRestore(backupContentType mariadbv1alpha1
 	}
 
 	args = append(args, b.s3Args()...)
-	return NewCommand(nil, args)
+	args = append(args, b.absArgs()...)
+	args = append(args, b.physicalBackupArgs()...)
+
+	return NewCommand(nil, args), nil
 }
 
 func (b *BackupCommand) MariadbRestore(restore *mariadbv1alpha1.Restore,
@@ -312,7 +397,7 @@ func (b *BackupCommand) MariadbRestore(restore *mariadbv1alpha1.Restore,
 		return nil, fmt.Errorf("error getting connection flags: %v", err)
 	}
 
-	args := strings.Join(b.mariadbArgs(restore, mariadb), " ")
+	args := strings.Join(b.mariadbRestoreArgs(restore, mariadb), " ")
 	cmds := []string{
 		"set -euo pipefail",
 		fmt.Sprintf(
@@ -341,7 +426,7 @@ func WithCleanupDataDir(cleanup bool) MariaDBBackupRestoreOpt {
 	}
 }
 
-func (b *BackupCommand) MariadbBackupRestore(mariadb *mariadbv1alpha1.MariaDB, backupDirPath string,
+func (b *BackupCommand) MariadbBackupRestore(mariadb *mariadbv1alpha1.MariaDB, dataDirPath string,
 	restoreOpts ...MariaDBBackupRestoreOpt) (*Command, error) {
 	if b.Database != nil {
 		return nil, errors.New("database option not supported in physical backups")
@@ -361,29 +446,12 @@ fi`
 	// Since we already check the PVC existence earlier, it should be safe to use --force-non-empty-directories.
 	copyBackupCmd := fmt.Sprintf(
 		"mariadb-backup --copy-back --target-dir=%s --force-non-empty-directories",
-		backupDirPath,
+		b.BackupFullDirPath,
 	)
-	// Binlog file with the GTID coordinate is not available on the finally restored data directory.
-	// This ensures that we have access to the coordinate after restoring the backup.
-	copyBinlogCmd := func(binlogFileName string) string {
-		binlogPath := filepath.Join(backupDirPath, binlogFileName)
-		return fmt.Sprintf(`if [ -f %[1]s ]; then 
-	echo "💾 Copying binlog position file '%[1]s' to data directory";
-	cp %[1]s %[2]s
-fi`,
-			binlogPath,
-			replication.MariaDBOperatorFilePath,
-		)
-	}
-
 	existingBackupRestoreCmd, err := b.existingBackupRestoreCmd(
-		backupDirPath,
+		dataDirPath,
 		cleanupDataDirCmd,
 		copyBackupCmd,
-		[]string{
-			copyBinlogCmd(replication.BinlogFileName),
-			copyBinlogCmd(replication.LegacyBinlogFileName),
-		},
 		restoreOpts...,
 	)
 	if err != nil {
@@ -396,17 +464,17 @@ fi`,
 		"echo 💾 Extracting backup",
 		fmt.Sprintf(
 			"mkdir -p %s",
-			backupDirPath,
+			b.BackupFullDirPath,
 		),
 		fmt.Sprintf(
 			"mbstream -x -C %s < %s",
-			backupDirPath,
+			b.BackupFullDirPath,
 			b.getTargetFilePath(),
 		),
 		"echo 💾 Preparing backup",
 		fmt.Sprintf(
 			"mariadb-backup --prepare --target-dir=%s",
-			backupDirPath,
+			b.BackupFullDirPath,
 		),
 	}
 	if opts.cleanupDataDir {
@@ -415,14 +483,58 @@ fi`,
 	cmds = append(cmds, []string{
 		"echo 💾 Copying backup to data directory",
 		copyBackupCmd,
-		copyBinlogCmd(replication.BinlogFileName),
-		copyBinlogCmd(replication.LegacyBinlogFileName),
 	}...)
+	cmds = append(cmds, copyBinlogMetaCmds(b.BackupFullDirPath, dataDirPath)...)
 	return NewBashCommand(cmds), nil
 }
 
-func (b *BackupCommand) existingBackupRestoreCmd(backupDirPath, cleanupDataDirCmd, copyBackupCmd string,
-	copyBinlogCmds []string, restoreOpts ...MariaDBBackupRestoreOpt) (string, error) {
+func (b *BackupCommand) MariadbOperatorPITR(strictMode bool) (*Command, error) {
+	if b.StartGtid == nil {
+		return nil, errors.New("startGtid must be set")
+	}
+	args := []string{
+		"pitr",
+		"--path",
+		b.Path,
+		"--target-file-path",
+		b.TargetFilePath,
+		"--start-gtid",
+		b.StartGtid.String(),
+		"--target-time",
+		b.TargetTime.Format(time.RFC3339),
+	}
+	if strictMode {
+		args = append(args, "--strict-mode")
+	}
+	args = append(args, b.s3Args()...)
+	args = append(args, b.absArgs()...)
+
+	if b.Compression != "" {
+		args = append(args, []string{
+			"--compression",
+			string(b.Compression),
+		}...)
+	}
+	if b.LogLevel != "" {
+		args = append(args, []string{
+			"--log-level",
+			b.LogLevel,
+		}...)
+	}
+
+	return NewCommand(nil, args), nil
+}
+
+func (b *BackupCommand) MariadbBinlog(mariadb *mariadbv1alpha1.MariaDB) (*Command, error) {
+	mariadbBinlogArgs, err := b.mariadbBinlogArgs(mariadb)
+	if err != nil {
+		return nil, fmt.Errorf("error getting mariadb-binlog args: %v", err)
+	}
+	return NewBashCommand(mariadbBinlogArgs), nil
+}
+
+func (b *BackupCommand) existingBackupRestoreCmd(dataDirPath, cleanupDataDirCmd, copyBackupCmd string,
+	restoreOpts ...MariaDBBackupRestoreOpt) (string, error) {
 	opts := MariaDBBackupRestoreOpts{}
 	for _, setOpt := range restoreOpts {
 		setOpt(&opts)
@@ -434,24 +546,24 @@ func (b *BackupCommand) existingBackupRestoreCmd(backupDirPath, cleanupDataDirCm
   { {{ .CleanupDataDirCmd }}; } &&
   {{- end }}
   { {{ .CopyBackupCmd }}; } &&
-  {{- range $cmd := .CopyBinlogCmds }}
+  {{- range $cmd := .CopyBinlogMetaCmds }}
   { {{ $cmd }}; } &&
   {{- end }}
   exit 0
 fi`)
 	buf := new(bytes.Buffer)
 	err := tpl.Execute(buf, struct {
-		BackupDir         string
-		CleanupDataDir    bool
-		CleanupDataDirCmd string
-		CopyBackupCmd     string
-		CopyBinlogCmds    []string
+		BackupDir          string
+		CleanupDataDir     bool
+		CleanupDataDirCmd  string
+		CopyBackupCmd      string
+		CopyBinlogMetaCmds []string
 	}{
-		BackupDir:         backupDirPath,
-		CleanupDataDir:    opts.cleanupDataDir,
-		CleanupDataDirCmd: cleanupDataDirCmd,
-		CopyBackupCmd:     copyBackupCmd,
-		CopyBinlogCmds:    copyBinlogCmds,
+		BackupDir:          b.BackupFullDirPath,
+		CleanupDataDir:     opts.cleanupDataDir,
+		CleanupDataDirCmd:  cleanupDataDirCmd,
+		CopyBackupCmd:      copyBackupCmd,
+		CopyBinlogMetaCmds: copyBinlogMetaCmds(b.BackupFullDirPath, dataDirPath),
 	})
 	if err != nil {
 		return "", err
@@ -528,6 +640,42 @@ func (b *BackupCommand) mariadbDumpArgs(backup *mariadbv1alpha1.Backup, mariadb 
 	return ds.UniqueArgs(ds.Merge(args, dumpOpts)...)
 }
 
+func (b *BackupCommand) mariadbBinlogArgs(mariadb *mariadbv1alpha1.MariaDB) ([]string, error) {
+	if b.StartGtid == nil {
+		return nil, errors.New("startGtid must be set")
+	}
+	connFlags, err := ConnectionFlags(&b.CommandOpts, mariadb)
+	if err != nil {
+		return nil, fmt.Errorf("error getting connection flags: %v", err)
+	}
+	mariadbArgs := b.mariadbArgs(mariadb)
+
+	mariadbCmd := fmt.Sprintf("mariadb %s", connFlags)
+	if len(mariadbArgs) > 0 {
+		mariadbCmd += fmt.Sprintf(" %s", strings.Join(mariadbArgs, " "))
+	}
+
+	return []string{
+		"set -euo pipefail",
+		"echo 💾 Restoring binlogs",
+		// TODO: pass multiple --start-position
+		// See:
+		// https://mariadb.com/docs/server/clients-and-utilities/logging-tools/mariadb-binlog/mariadb-binlog-options#j-pos-start-position-pos
+		// https://jira.mariadb.org/browse/MDEV-37231
+		// Note:
+		// mariadb-binlog assumes the same timezone as the OS where it runs.
+		// Here we enforce UTC and use a format compatible with the server.
+		// The server can be in any timezone, mariadb-binlog handles that.
+		fmt.Sprintf(
+			"TZ=UTC mariadb-binlog --start-position=\"%s\" --stop-datetime=\"%s\" %s | %s",
+			b.StartGtid.String(),
+			b.TargetTime.UTC().Format(time.DateTime),
+			b.getTargetFilePath(),
+			mariadbCmd,
+		),
+	}, nil
+}
+
 func (b *BackupCommand) mariadbBackupArgs(mariadb *mariadbv1alpha1.MariaDB, targetPodIndex int) []string {
 	backupOpts := make([]string, len(b.ExtraOpts))
 	copy(backupOpts, b.ExtraOpts)
@@ -553,19 +701,56 @@ func (b *BackupCommand) mariadbBackupArgs(mariadb *mariadbv1alpha1.MariaDB, targ
 	return ds.UniqueArgs(ds.Merge(args, backupOpts)...)
 }
 
-func (b *BackupCommand) mariadbArgs(restore *mariadbv1alpha1.Restore, mariadb interfaces.TLSProvider) []string {
-	args := make([]string, len(b.ExtraOpts))
-	copy(args, b.ExtraOpts)
+func (b *BackupCommand) mariadbRestoreArgs(restore *mariadbv1alpha1.Restore, mariadb interfaces.TLSProvider) []string {
+	args := b.mariadbArgs(mariadb)
 
 	if restore.Spec.Database != "" {
 		args = append(args, fmt.Sprintf("--one-database %s", restore.Spec.Database))
 	}
+
+	return ds.UniqueArgs(args...)
+}
+
+func (b *BackupCommand) mariadbArgs(mariadb interfaces.TLSProvider) []string {
+	args := make([]string, len(b.ExtraOpts))
+	copy(args, b.ExtraOpts)
 
 	if mariadb.IsTLSEnabled() {
 		args = append(args, b.tlsArgs(mariadb)...)
 	}
 
 	return ds.UniqueArgs(args...)
+}
+
+func (b *BackupCommand) absArgs() []string {
+	if !b.ABS {
+		return nil
+	}
+	args := []string{
+		"--abs",
+		"--abs-container",
+		b.ABSContainerName,
+		"--abs-service-url",
+		b.ABSServiceURL,
+	}
+	if b.ABSTLS {
+		args = append(args,
+			"--abs-tls",
+		)
+		if b.ABSCACertPath != "" {
+			args = append(args,
+				"--abs-ca-cert-path",
+				b.ABSCACertPath,
+			)
+		}
+	}
+	if b.ABSPrefix != "" {
+		args = append(args,
+			"--abs-prefix",
+			b.ABSPrefix,
+		)
+	}
+	return args
 }
 
 func (b *BackupCommand) s3Args() []string {
@@ -618,6 +803,49 @@ func (b *BackupCommand) tlsArgs(mariadb interfaces.TLSProvider) []string {
 		"--ssl-key",
 		builderpki.ClientKeyPath,
 		"--ssl-verify-server-cert",
+	}
+}
+
+func (b *BackupCommand) physicalBackupArgs() []string {
+	if b.BackupContentType != mariadbv1alpha1.BackupContentTypePhysical {
+		return nil
+	}
+	var args []string
+	if b.BackupFullDirPath != "" {
+		args = append(args, []string{
+			"--physical-backup-dir-path",
+			b.BackupFullDirPath,
+		}...)
+	}
+	if b.PhysicalBackupMeta && b.PhysicalBackupKey != nil {
+		args = append(args, []string{
+			"--physical-backup-meta",
+			"--physical-backup-name",
+			b.PhysicalBackupKey.Name,
+			"--physical-backup-namespace",
+			b.PhysicalBackupKey.Namespace,
+		}...)
+	}
+	return args
+}
+
+func copyBinlogMetaCmds(sourceDir string, destDir string) []string {
+	// Binlog file with the GTID coordinate is not available on the destination directory.
+	// This ensures that we have access to the coordinate after restoring the backup.
+	copyBinlogMetaCmd := func(binlogFileName string) string {
+		sourcePath := filepath.Join(sourceDir, binlogFileName)
+		destPath := filepath.Join(destDir, replication.MariaDBOperatorFileName)
+		return fmt.Sprintf(`if [ -f %[1]s ]; then 
+	echo "💾 Copying binlog position file '%[1]s' to '%[2]s'";
+	cp %[1]s %[2]s
+fi`,
+			sourcePath,
+			destPath,
+		)
+	}
+	return []string{
+		copyBinlogMetaCmd(replication.BinlogFileName),
+		copyBinlogMetaCmd(replication.LegacyBinlogFileName),
 	}
 }
 

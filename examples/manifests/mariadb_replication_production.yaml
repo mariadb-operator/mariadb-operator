@@ -1,7 +1,8 @@
 # Please, take a look at our HA guide to configure production-ready MariaDB instances:
 # https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/high_availability.md
-# Configure a backup and recovery strategy in case that something goes wrong:
+# Configure a disaster recovery strategy and practise point-in-time restoration to meet your RPO and RTO:
 # https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/physical_backup.md
+# https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/pitr.md
 # Roll out upgrades choosing the right upgrade strategy:
 # https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/updates.md
 apiVersion: k8s.mariadb.com/v1alpha1
@@ -12,33 +13,19 @@ spec:
   rootPasswordSecretKeyRef:
     name: mariadb
     key: root-password
-
   # Point to an existing MaxScale instance. Doing this will delegate operations such as primary failover to MaxScale.
   # maxScaleRef:
   #   name: maxscale-repl
-
   storage:
     size: 10Gi
-
-  # Recreate the MariaDB resource and bootstrap from a physical backup in S3.
+  # Bootstrap the instance from PITR: restore closest physical backup and replay binary logs up to targetRecoveryTime.
+  # Utilize an staging area to temporarily keep backups an binlogs during restoration.
+  # Fine-tune resources of the restoration job to improve your RTO.
+  # Set log level of the mariadb-operator container in the restoration job to improve visibility on the point-in-time restoration process.
   # bootstrapFrom:
-  #   s3:
-  #     bucket: physicalbackups
-  #     prefix: mariadb
-  #     endpoint: minio.minio.svc.cluster.local:9000
-  #     accessKeyIdSecretKeyRef:
-  #       name: minio
-  #       key: access-key-id
-  #     secretAccessKeySecretKeyRef:
-  #       name: minio
-  #       key: secret-access-key
-  #     tls:
-  #       enabled: true
-  #       caSecretKeyRef:
-  #         name: minio-ca
-  #         key: ca.crt
-  #   backupContentType: Physical
-  #   targetRecoveryTime: 2023-12-19T09:00:00Z
+  #   pointInTimeRecoveryRef:
+  #     name: pitr
+  #   targetRecoveryTime: 2026-02-20T18:00:04Z
   #   stagingStorage:
   #     persistentVolumeClaim:
   #       resources:
@@ -53,9 +40,11 @@ spec:
   #         memory: 128Mi
   #       limits:
   #         memory: 1Gi
-
+  #   logLevel: debug
+  # Configure binary log archival to meet your RPO.
+  pointInTimeRecoveryRef:
+    name: pitr
   replicas: 3
-
   replication:
     # Enable semi-synchronous replication.
     enabled: true
@@ -85,40 +74,33 @@ spec:
     # Enables GTID strict mode.
     # See: See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/gtid#gtid_strict_mode.
     gtidStrictMode: true
-
   # service:
   #   type: LoadBalancer
   #   metadata:
   #     annotations:
   #       metallb.universe.tf/loadBalancerIPs: 172.18.0.120
-
   # primaryService:
   #   type: LoadBalancer
   #   metadata:
   #     annotations:
   #       metallb.universe.tf/loadBalancerIPs: 172.18.0.130
-
   # secondaryService:
   #   type: LoadBalancer
   #   metadata:
   #     annotations:
   #       metallb.universe.tf/loadBalancerIPs: 172.18.0.131
-
   metrics:
     enabled: true
-
   # Issue and configure TLS certificates. For enhanced security, TLS will be enforced in all connections .
   tls:
     enabled: true
     required: true
-
   updateStrategy:
     type: ReplicasFirstPrimaryLast
     # Pause updates.
     # type: Never
     # Update the data-plane after an operator upgrade.
     # autoUpdateDataPlane: true
-
   # Configure enough compute resources. This is just an example, take a look at your historic compute metrics to estimate.
   resources:
     requests:
@@ -126,24 +108,21 @@ spec:
       memory: 4Gi
     limits:
       memory: 4Gi
-
   # Tune your liveness probe accordingly to avoid Pod restarts.
   livenessProbe:
     periodSeconds: 5
     timeoutSeconds: 5
-
   # Tune your readiness probe accordingly to prevent disruptions in network traffic.
   readinessProbe:
     periodSeconds: 5
     timeoutSeconds: 5
-
   # Tune your startup probe accordingly to the delay needed for full sst completion.
   startupProbe:
     failureThreshold: 10
     periodSeconds: 5
     timeoutSeconds: 5
-
   # innodb_buffer_pool_size: 80% of memory limits.
+  # Optimal max_binlog_size to meet your RPO while minimizing server impact.
   myCnf: |
     [mariadb]
     bind-address=*
@@ -152,22 +131,97 @@ spec:
     innodb_autoinc_lock_mode=2
     innodb_buffer_pool_size=3200MB
     max_allowed_packet=1GB
-
+    max_binlog_size=256M
   # Select a node type with enough compute capacity.
   nodeSelector:
     kubernetes.io/arch: amd64  
-
   # Schedule Pods in different Nodes to achieve real HA.
   affinity:
     antiAffinityEnabled: true
-
   # When draining Nodes, make sure that you have at least 2 Pods available.
   podDisruptionBudget:
     maxUnavailable: 66%
-
   # Ensure that the Pods are not preempted by Kubernetes to make room for new scheduled Pods.
   priorityClassName: system-node-critical
-
+---
+# PointInTimeRecovery object that contains binary log archival and point-in-time recovery configuration.
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: PointInTimeRecovery
+metadata:
+  name: pitr
+spec:
+  physicalBackupRef:
+    name: physicalbackup-daily
+  storage:
+    s3:
+      bucket: binlogs
+      prefix: mariadb
+      endpoint: minio.minio.svc.cluster.local:9000
+      region: us-east-1
+      # ssec:
+      #   customerKeySecretKeyRef:
+      #     name: ssec-key
+      #     key: customer-key
+      accessKeyIdSecretKeyRef:
+        name: minio
+        key: access-key-id
+      secretAccessKeySecretKeyRef:
+        name: minio
+        key: secret-access-key
+      tls:
+        enabled: true
+        caSecretKeyRef:
+          name: minio-ca
+          key: ca.crt
+  compression: bzip2
+  archiveTimeout: 1h
+  strictMode: true # Ensure target recovery time is reached
+---
+# PhysicalBackup object to be used as full base backup for point-in-time recovery.
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: PhysicalBackup
+metadata:
+  name: physicalbackup-daily
+spec:
+  mariaDbRef:
+    name: mariadb-repl
+  schedule:
+    cron: "0 0 * * *"
+    suspend: false
+    immediate: true
+    # Update this identifier to schedule an on-demand backup.
+    # onDemand: "1"
+  compression: bzip2
+  maxRetention: 720h # 30 days
+  storage:
+    s3:
+      bucket: physicalbackups
+      prefix: mariadb
+      endpoint: minio.minio.svc.cluster.local:9000
+      region: us-east-1
+      # ssec:
+      #   customerKeySecretKeyRef:
+      #     name: ssec-key
+      #     key: customer-key
+      accessKeyIdSecretKeyRef:
+        name: minio
+        key: access-key-id
+      secretAccessKeySecretKeyRef:
+        name: minio
+        key: secret-access-key
+      tls:
+        enabled: true
+        caSecretKeyRef:
+          name: minio-ca
+          key: ca.crt
+  podAffinity: true
+  stagingStorage:
+    persistentVolumeClaim:
+      resources:
+        requests:
+          storage: 10Gi
+      accessModes:
+        - ReadWriteOnce
 ---
 # PhysicalBackup object to be used as template to bootstrap new replicas.
 apiVersion: k8s.mariadb.com/v1alpha1
@@ -187,6 +241,10 @@ spec:
       prefix: mariadb
       endpoint: minio.minio.svc.cluster.local:9000
       region:  us-east-1
+      # ssec:
+      #   customerKeySecretKeyRef:
+      #     name: ssec-key
+      #     key: customer-key
       accessKeyIdSecretKeyRef:
         name: minio
         key: access-key-id

@@ -7,12 +7,12 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-multierror"
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
-	condition "github.com/mariadb-operator/mariadb-operator/v25/pkg/condition"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/health"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/interfaces"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/refresolver"
-	sqlClient "github.com/mariadb-operator/mariadb-operator/v25/pkg/sql"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
+	condition "github.com/mariadb-operator/mariadb-operator/v26/pkg/condition"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/health"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/interfaces"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/refresolver"
+	sqlClient "github.com/mariadb-operator/mariadb-operator/v26/pkg/sql"
 	ctrl "sigs.k8s.io/controller-runtime"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -105,6 +105,15 @@ func (r *SqlReconciler) Reconcile(ctx context.Context, resource Resource) (ctrl.
 		}
 
 		return result, errBundle.ErrorOrNil()
+	}
+
+	if mdb, ok := mariadb.(*mariadbv1alpha1.MariaDB); ok {
+		if mdb.HasPendingBinlogReplay() {
+			if err := r.WrappedReconciler.PatchStatus(ctx, r.ConditionReady.PatcherFailed("MariaDB has pending binlog replay")); err != nil {
+				return ctrl.Result{}, fmt.Errorf("error patching status: %v", err)
+			}
+			return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+		}
 	}
 
 	// TODO: connection pooling. See https://github.com/mariadb-operator/mariadb-operator/issues/7.

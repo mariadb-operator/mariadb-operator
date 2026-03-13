@@ -294,6 +294,68 @@ spec:
               bootstrapFrom:
                 description: BootstrapFrom defines a source to bootstrap from.
                 properties:
+                  azureBlob:
+                    description: |-
+                      AzureBlob defines the configuration to restore from Azure Blob compatible storage.
+                      This field takes precedence over the Volume source.
+                    properties:
+                      containerName:
+                        description: ContainerName is the name of the storage container.
+                        type: string
+                      prefix:
+                        description: 'Prefix indicates a folder/subfolder in the container.
+                          For example: mariadb/ or mariadb/backups. A trailing slash
+                          ''/'' is added if not provided.'
+                        type: string
+                      serviceURL:
+                        description: 'ServiceURL is the full URL for connecting to
+                          Azure, usually in the form: http(s)://<account>.blob.core.windows.net/.'
+                        type: string
+                      storageAccountKey:
+                        description: StorageAccountKey is a reference to a Secret
+                          key containing the Azure Blob Storage Storage account Key.
+                          Pairs with StorageAccountKey for static credential authentication
+                        properties:
+                          key:
+                            type: string
+                          name:
+                            default: ""
+                            type: string
+                        required:
+                        - key
+                        type: object
+                        x-kubernetes-map-type: atomic
+                      storageAccountName:
+                        description: StorageAccountName is the name of the storage
+                          account. Pairs with StorageAccountKey for static credential
+                          authentication
+                        type: string
+                      tls:
+                        description: TLS provides the configuration required to establish
+                          TLS connections with Azure Blob Storage.
+                        properties:
+                          caSecretKeyRef:
+                            description: |-
+                              CASecretKeyRef is a reference to a Secret key containing a CA bundle in PEM format used to establish TLS connections with S3.
+                              By default, the system trust chain will be used, but you can use this field to add more CAs to the bundle.
+                            properties:
+                              key:
+                                type: string
+                              name:
+                                default: ""
+                                type: string
+                            required:
+                            - key
+                            type: object
+                            x-kubernetes-map-type: atomic
+                          enabled:
+                            description: Enabled is a flag to enable TLS.
+                            type: boolean
+                        type: object
+                    required:
+                    - containerName
+                    - serviceURL
+                    type: object
                   backupContentType:
                     description: |-
                       BackupContentType is the backup content type available in the source to bootstrap from.
@@ -315,9 +377,32 @@ spec:
                         description: Name of the referent.
                         type: string
                     type: object
+                  logLevel:
+                    default: info
+                    description: LogLevel to be used in the mariadb-operator container
+                      of the restoration Job. It defaults to 'info'.
+                    enum:
+                    - debug
+                    - info
+                    - warn
+                    - error
+                    - dpanic
+                    - panic
+                    - fatal
+                    type: string
+                  pointInTimeRecoveryRef:
+                    description: |-
+                      PointInTimeRecoveryRef is a reference to a PointInTimeRecovery object.
+                      Providing this field implies restoring the PhysicalBackup referenced in the PointInTimeRecovery object and replaying the
+                      archived binary logs up to the point-in-time restoration target, defined by the targetRecoveryTime field.
+                    properties:
+                      name:
+                        default: ""
+                        type: string
+                    type: object
                   restoreJob:
                     description: RestoreJob defines additional properties for the
-                      Job used to perform the restoration.
+                      restoration Job.
                     properties:
                       affinity:
                         description: Affinity to be used in the Pod.
@@ -758,7 +843,7 @@ spec:
                     type: object
                   stagingStorage:
                     description: |-
-                      StagingStorage defines the temporary storage used to keep external backups (i.e. S3) while they are being processed.
+                      StagingStorage defines the temporary storage used to keep external backups and binary logs (i.e. S3) while they are being processed.
                       It defaults to an emptyDir volume, meaning that the backups will be temporarily stored in the node where the Job is scheduled.
                     properties:
                       persistentVolumeClaim:
@@ -2541,7 +2626,7 @@ spec:
               maxScaleRef:
                 description: |-
                   MaxScaleRef is a reference to a MaxScale resource to be used with the current MariaDB.
-                  Providing this field implies delegating high availability tasks such as primary failover to MaxScale.
+                  Providing this reference implies delegating high availability tasks such as primary failover to MaxScale.
                 properties:
                   name:
                     type: string
@@ -3310,6 +3395,15 @@ spec:
                       type: integer
                     type: array
                     x-kubernetes-list-type: atomic
+                type: object
+              pointInTimeRecoveryRef:
+                description: |-
+                  PointInTimeRecoveryRef is a reference to a PointInTimeRecovery resource to be used with the current MariaDB.
+                  Providing this reference implies configuring binary logs in the MariaDB instance and binary log archival in the sidecar agent.
+                properties:
+                  name:
+                    default: ""
+                    type: string
                 type: object
               port:
                 default: 3306
@@ -6091,6 +6185,42 @@ spec:
                     description: State is a per Pod representation of the Galera state
                       file (grastate.dat).
                     type: object
+                type: object
+              pointInTimeRecovery:
+                description: PointInTimeRecovery is the status of the point-in-time-recovery
+                  process.
+                properties:
+                  gtidStrictModePaused:
+                    description: GtidStrictModePaused indicates that gtid_strict_mode
+                      has been temporarily paused to replay binlogs.
+                    type: boolean
+                  lastArchivedBinaryLog:
+                    description: LastArchivedBinaryLog is name of the last archived
+                      binary log.
+                    type: string
+                  lastArchivedGtid:
+                    description: LastArchivedGtid is the last archived GTID.
+                    type: string
+                  lastArchivedPosition:
+                    description: LastArchivedPosition is the position of last archived
+                      binary log event.
+                    format: int32
+                    type: integer
+                  lastArchivedTime:
+                    description: LastArchivedTime is the time of the last archived
+                      binary log event.
+                    format: date-time
+                    type: string
+                  serverId:
+                    description: ServerId identifies the server whose binary logs
+                      are being archived.
+                    format: int32
+                    type: integer
+                  storageReadyForArchival:
+                    description: StorageReadyForArchival indicates that the storage
+                      is ready for archival, meaning that the sidecar agent can start
+                      archiving the binary logs.
+                    type: boolean
                 type: object
               replicas:
                 description: Replicas indicates the number of current instances.

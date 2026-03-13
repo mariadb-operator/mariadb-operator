@@ -63,6 +63,26 @@ webhooks:
       service:
         name: {{ $fullName }}-webhook
         namespace: {{ .Release.Namespace }}
+        path: /validate-k8s-mariadb-com-v1alpha1-pointintimerecovery
+    failurePolicy: Fail
+    name: vpointintimerecovery-v1alpha1.kb.io
+    rules:
+      - apiGroups:
+          - k8s.mariadb.com
+        apiVersions:
+          - v1alpha1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - pointintimerecoveries
+    sideEffects: None
+  - admissionReviewVersions:
+      - v1
+    clientConfig:
+      service:
+        name: {{ $fullName }}-webhook
+        namespace: {{ .Release.Namespace }}
         path: /validate-k8s-mariadb-com-v1alpha1-connection
     failurePolicy: Fail
     name: vconnection-v1alpha1.kb.io

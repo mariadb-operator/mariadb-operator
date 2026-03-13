@@ -8,12 +8,12 @@ import (
 	"reflect"
 	"strconv"
 
-	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v25/api/v1alpha1"
-	agentresources "github.com/mariadb-operator/mariadb-operator/v25/pkg/agent/resources"
-	builderpki "github.com/mariadb-operator/mariadb-operator/v25/pkg/builder/pki"
-	"github.com/mariadb-operator/mariadb-operator/v25/pkg/command"
-	galeraresources "github.com/mariadb-operator/mariadb-operator/v25/pkg/controller/galera/resources"
-	kadapter "github.com/mariadb-operator/mariadb-operator/v25/pkg/kubernetes/adapter"
+	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
+	agentresources "github.com/mariadb-operator/mariadb-operator/v26/pkg/agent/resources"
+	builderpki "github.com/mariadb-operator/mariadb-operator/v26/pkg/builder/pki"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/command"
+	galeraresources "github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/galera/resources"
+	kadapter "github.com/mariadb-operator/mariadb-operator/v26/pkg/kubernetes/adapter"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/utils/ptr"
@@ -34,6 +34,10 @@ var (
 	S3SessionTokenKey = "AWS_SESSION_TOKEN"
 	S3CAPath          = "MARIADB_OPERATOR_S3_CA_PATH"
 	S3SSECCustomerKey = "MARIADB_OPERATOR_S3_SSEC_CUSTOMER_KEY"
+
+	ABSStorageAccountKey  = "MARIADB_OPERATOR_ABS_STORAGE_ACCOUNT_KEY"
+	ABSStorageAccountName = "MARIADB_OPERATOR_ABS_STORAGE_ACCOUNT_NAME"
+	ABSCAPath             = "MARIADB_OPERATOR_ABS_CA_PATH"
 
 	defaultProbe = corev1.Probe{
 		ProbeHandler: corev1.ProbeHandler{
@@ -121,7 +125,7 @@ func (b *Builder) mariadbContainers(mariadb *mariadbv1alpha1.MariaDB, opts ...ma
 	containers = append(containers, *mariadbContainer)
 
 	if mariadb.IsHAEnabled() && mariadbOpts.includeDataPlane {
-		agentContainer, err := b.dataPlaneAgentContainer(mariadb)
+		agentContainer, err := b.dataPlaneAgentContainer(mariadb, opts...)
 		if err != nil {
 			return nil, err
 		}
@@ -186,7 +190,8 @@ func (b *Builder) maxscaleContainers(mxs *mariadbv1alpha1.MaxScale) ([]corev1.Co
 	return []corev1.Container{*container}, nil
 }
 
-func (b *Builder) dataPlaneAgentContainer(mariadb *mariadbv1alpha1.MariaDB) (*corev1.Container, error) {
+func (b *Builder) dataPlaneAgentContainer(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt) (*corev1.Container, error) {
+	mariadbOpts := newMariadbPodOpts(opts...)
 	topology, agent, err := mariadb.GetDataPlaneAgent()
 	if err != nil {
 		return nil, err
@@ -200,7 +205,11 @@ func (b *Builder) dataPlaneAgentContainer(mariadb *mariadbv1alpha1.MariaDB) (*co
 	if err != nil {
 		return nil, err
 	}
-	volumeMounts, err := mariadbVolumeMounts(mariadb)
+	if mariadbOpts.pointInTimeRecovery != nil {
+		env = append(env, s3Env(mariadbOpts.pointInTimeRecovery.Spec.PointInTimeRecoveryStorage.S3)...)
+		env = append(env, absEnv(mariadbOpts.pointInTimeRecovery.Spec.PointInTimeRecoveryStorage.AzureBlob)...)
+	}
+	volumeMounts, err := mariadbVolumeMounts(mariadb, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -244,6 +253,12 @@ func (b *Builder) dataPlaneAgentContainer(mariadb *mariadbv1alpha1.MariaDB) (*co
 				"--basic-auth",
 				fmt.Sprintf("--basic-auth-username=%s", basicAuth.Username),
 				fmt.Sprintf("--basic-auth-password-path=%s", path.Join(AgentAuthVolumeMount, basicAuth.PasswordSecretKeyRef.Key)),
+			}...)
+		}
+
+		if mariadbOpts.pointInTimeRecovery != nil {
+			args = append(args, []string{
+				"--binary-log-archival",
 			}...)
 		}
 
@@ -607,11 +622,42 @@ func s3Env(s3 *mariadbv1alpha1.S3) []corev1.EnvVar {
 		})
 	}
 
-	tls := ptr.Deref(s3.TLS, mariadbv1alpha1.TLSS3{})
+	tls := ptr.Deref(s3.TLS, mariadbv1alpha1.TLSConfig{})
 	if tls.Enabled && tls.CASecretKeyRef != nil {
 		env = append(env, corev1.EnvVar{
 			Name:  S3CAPath,
 			Value: filepath.Join(S3PKIMountPath, s3.TLS.CASecretKeyRef.Key),
+		})
+	}
+	return env
+}
+
+func absEnv(abs *mariadbv1alpha1.AzureBlob) []corev1.EnvVar {
+	if abs == nil {
+		return nil
+	}
+	var env []corev1.EnvVar
+	if abs.StorageAccountKey != nil {
+		env = append(env, corev1.EnvVar{
+			Name: ABSStorageAccountKey,
+			ValueFrom: &corev1.EnvVarSource{
+				SecretKeyRef: ptr.To(abs.StorageAccountKey.ToKubernetesType()),
+			},
+		})
+	}
+
+	if abs.StorageAccountName != "" {
+		env = append(env, corev1.EnvVar{
+			Name:  ABSStorageAccountName,
+			Value: abs.StorageAccountName,
+		})
+	}
+
+	tls := ptr.Deref(abs.TLS, mariadbv1alpha1.TLSConfig{})
+	if tls.Enabled && tls.CASecretKeyRef != nil {
+		env = append(env, corev1.EnvVar{
+			Name:  ABSCAPath,
+			Value: filepath.Join(ABSPKIMountPath, abs.TLS.CASecretKeyRef.Key),
 		})
 	}
 	return env
@@ -644,6 +690,13 @@ func mariadbVolumeMounts(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt
 		_, tlsVolumeMounts := mariadbTLSVolumes(mariadb)
 		volumeMounts = append(volumeMounts, tlsVolumeMounts...)
 	}
+	if mariadbOpts.pointInTimeRecovery != nil {
+		_, s3VolumeMounts := s3Volumes(mariadbOpts.pointInTimeRecovery.Spec.PointInTimeRecoveryStorage.S3)
+		volumeMounts = append(volumeMounts, s3VolumeMounts...)
+
+		_, absVolumeMounts := absVolumes(mariadbOpts.pointInTimeRecovery.Spec.PointInTimeRecoveryStorage.AzureBlob)
+		volumeMounts = append(volumeMounts, absVolumeMounts...)
+	}
 
 	volumeMounts = append(volumeMounts, mariadbStorageVolumeMount(mariadb))
 
@@ -668,10 +721,8 @@ func mariadbVolumeMounts(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt
 		}
 
 		if mariadbOpts.includeServiceAccount {
-			volumeMounts = append(volumeMounts, corev1.VolumeMount{
-				Name:      ServiceAccountVolume,
-				MountPath: ServiceAccountMountPath,
-			})
+			_, serviceAccountVolumeMount := serviceAccountVolumes()
+			volumeMounts = append(volumeMounts, serviceAccountVolumeMount)
 		}
 	}
 

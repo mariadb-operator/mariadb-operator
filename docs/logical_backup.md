@@ -288,7 +288,7 @@ spec:
   targetRecoveryTime: 2023-12-19T09:00:00Z
 ```
 
-The operator will look for the closest backup available and utilize it to restore your `MariaDB` instance.
+The operator will look for the closest backup available and utilize it to restore your `MariaDB` instance. Only backups strictly before or at `targetRecoveryTime` will be matched.
 
 By default, `spec.targetRecoveryTime` will be set to the current time, which means that the latest available backup will be used.
 
