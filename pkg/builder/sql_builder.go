@@ -16,7 +16,7 @@ type UserOpts struct {
 	PasswordSecretKeyRef     *mariadbv1alpha1.SecretKeySelector
 	PasswordHashSecretKeyRef *mariadbv1alpha1.SecretKeySelector
 	PasswordPlugin           *mariadbv1alpha1.PasswordPlugin
-	MaxUserConnections       int32
+	MaxUserConnections       *int32
 	CleanupPolicy            *mariadbv1alpha1.CleanupPolicy
 	Metadata                 *mariadbv1alpha1.Metadata
 	MariaDBRef               mariadbv1alpha1.MariaDBRef
@@ -40,7 +40,7 @@ func (b *Builder) BuildUser(key types.NamespacedName, owner metav1.Object, opts 
 	if opts.PasswordPlugin != nil {
 		user.Spec.PasswordPlugin = *opts.PasswordPlugin
 	}
-	if opts.MaxUserConnections > 0 {
+	if opts.MaxUserConnections != nil {
 		user.Spec.MaxUserConnections = opts.MaxUserConnections
 	}
 	if opts.CleanupPolicy != nil {

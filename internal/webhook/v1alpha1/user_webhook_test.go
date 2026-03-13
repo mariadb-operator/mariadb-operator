@@ -45,7 +45,7 @@ var _ = Describe("v1alpha1.User webhook", func() {
 							},
 							Key: "password",
 						},
-						MaxUserConnections: 10,
+						MaxUserConnections: ptr.To(int32(10)),
 					},
 				},
 				false,
@@ -73,7 +73,7 @@ var _ = Describe("v1alpha1.User webhook", func() {
 							},
 							Key: "password",
 						},
-						MaxUserConnections: 10,
+						MaxUserConnections: ptr.To(int32(10)),
 					},
 				},
 				true,
@@ -102,7 +102,7 @@ var _ = Describe("v1alpha1.User webhook", func() {
 							Issuer:  ptr.To("/CN=mariadb-galera-ca"),
 							Subject: ptr.To("/CN=mariadb-galera-ca"),
 						},
-						MaxUserConnections: 10,
+						MaxUserConnections: ptr.To(int32(10)),
 					},
 				},
 				false,
@@ -132,7 +132,7 @@ var _ = Describe("v1alpha1.User webhook", func() {
 							Issuer:  ptr.To("/CN=mariadb-galera-ca"),
 							Subject: ptr.To("/CN=mariadb-galera-ca"),
 						},
-						MaxUserConnections: 10,
+						MaxUserConnections: ptr.To(int32(10)),
 					},
 				},
 				true,
@@ -178,7 +178,7 @@ var _ = Describe("v1alpha1.User webhook", func() {
 						},
 						Key: "password",
 					},
-					MaxUserConnections: 10,
+					MaxUserConnections: ptr.To(int32(10)),
 				},
 			}
 			Expect(k8sClient.Create(testCtx, &user)).To(Succeed())
@@ -216,7 +216,7 @@ var _ = Describe("v1alpha1.User webhook", func() {
 			Entry(
 				"Updating MaxUserConnections",
 				func(umdb *v1alpha1.User) {
-					umdb.Spec.MaxUserConnections = 20
+					umdb.Spec.MaxUserConnections = ptr.To(int32(20))
 				},
 				false,
 			),
