@@ -661,14 +661,12 @@ var _ = Describe("MariaDB", Label("basic"), func() {
 			testMariadbBootstrap(mariadbKey, &bootstrapFrom)
 		},
 		Entry(
-			"Backup",
-			getBackupWithS3Storage(
+			"Bootstrap from Backup reference",
+			buildBackupWithS3Storage("test-mariadb", "")(
 				types.NamespacedName{
 					Name:      "test-backup",
 					Namespace: testNamespace,
 				},
-				"test-mariadb",
-				"",
 			),
 			newBootstrapFromRestoreSource(mariadbv1alpha1.RestoreSource{
 				BackupRef: &mariadbv1alpha1.LocalObjectReference{
@@ -682,14 +680,15 @@ var _ = Describe("MariaDB", Label("basic"), func() {
 			},
 		),
 		Entry(
-			"Backup S3",
-			getBackupWithS3Storage(
+			"Bootstrap from S3 with compression",
+			applyDecoratorChain(
+				buildBackupWithS3Storage("test-mariadb", ""),
+				decorateBackupWithGzipCompression,
+			)(
 				types.NamespacedName{
-					Name:      "test-backup-from-s3",
+					Name:      "test-backup-from-s3-gzip",
 					Namespace: testNamespace,
 				},
-				"test-mariadb",
-				"",
 			),
 			newBootstrapFromRestoreSource(mariadbv1alpha1.RestoreSource{
 				S3: getS3Storage("test-mariadb", ""),
@@ -708,7 +707,7 @@ var _ = Describe("MariaDB", Label("basic"), func() {
 				TargetRecoveryTime: testTargetRecoveryTime,
 			}),
 			types.NamespacedName{
-				Name:      "test-mariadb-from-s3",
+				Name:      "test-mariadb-from-s3-gzip",
 				Namespace: testNamespace,
 			},
 		),
@@ -737,11 +736,14 @@ var _ = Describe("MariaDB", Label("basic"), func() {
 			testMariadbBootstrap(mariadbKey, &bootstrapFrom)
 		},
 		Entry(
-			"PhysicalBackup",
-			buildPhysicalBackupWithS3Storage(
-				testMdbkey,
-				"test-mariadb-physical",
-				"",
+			"Bootstrap from PhysicalBackup reference with compression",
+			applyDecoratorChain(
+				buildPhysicalBackupWithS3Storage(
+					testMdbkey,
+					"test-mariadb-physical",
+					"",
+				),
+				decoratePhysicalBackupWithBzip2Compression,
 			)(
 				types.NamespacedName{
 					Name:      "test-physicalbackup",
@@ -761,7 +763,7 @@ var _ = Describe("MariaDB", Label("basic"), func() {
 			},
 		),
 		Entry(
-			"PhysicalBackup VolumeSnapshot",
+			"Bootstrap from PhysicalBackup using VolumeSnapshot",
 			buildPhysicalBackupWithVolumeSnapshotStorage(testMdbkey)(
 				types.NamespacedName{
 					Name:      "test-physicalbackup-volumesnapshot",
