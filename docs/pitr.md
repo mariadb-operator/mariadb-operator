@@ -19,6 +19,7 @@ Point-in-time recovery (PITR) is a feature that allows you to restore a MariaDB 
 - [Point-in-time restoration](#point-in-time-restoration)
 - [Strict mode](#strict-mode)
 - [Staging storage](#staging-storage)
+- [Limitations](#limitations)
 - [Troubleshooting](#troubleshooting)
 <!-- /toc -->
 
@@ -598,6 +599,11 @@ spec:
 ```
 
 This will provision a PVC and attach it to the restoration job to be used as staging area.
+
+## Limitations
+
+- A `PointInTimeRecovery` object can only be referred by a single `MariaDB` object via the `pointInTimeRecoveryRef` field.
+- A combination object storage bucket + prefix can only be utilizied by a single `MariaDB` instance to archive binary logs.
 
 ## Troubleshooting
 

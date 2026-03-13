@@ -103,7 +103,7 @@ This [migration guide](./docs/logical_backup.md#migrating-an-external-mariadb-to
 
 We are actively working on the following features, which will be released in upcoming versions. Stay tuned!
 
-- [x] [Point In Time Recovery (PITR)](https://github.com/mariadb-operator/mariadb-operator/issues/507)
+- [x] ~~[Point In Time Recovery (PITR)](https://github.com/mariadb-operator/mariadb-operator/issues/507)~~
 - [ ] [Multi-cluster topology](https://github.com/mariadb-operator/mariadb-operator/issues/1543)
 
 ## Adopters
