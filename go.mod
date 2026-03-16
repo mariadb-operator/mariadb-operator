@@ -21,7 +21,7 @@ require (
 	github.com/hashicorp/go-version v1.8.0
 	github.com/kubernetes-csi/external-snapshotter/client/v8 v8.4.0
 	github.com/minio/minio-go/v7 v7.0.99
-	github.com/onsi/ginkgo/v2 v2.28.0
+	github.com/onsi/ginkgo/v2 v2.28.1
 	github.com/onsi/gomega v1.39.1
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.89.0
 	github.com/robfig/cron/v3 v3.0.1
