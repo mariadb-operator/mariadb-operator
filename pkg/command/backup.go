@@ -34,6 +34,8 @@ type BackupOpts struct {
 	StartGtid            *replication.Gtid
 	TargetTime           time.Time
 	Compression          mariadbv1alpha1.CompressAlgorithm
+	FileNamePrefix       string
+	TimestampFormat      mariadbv1alpha1.BackupTimestampFormat
 	LogLevel             string
 	ExtraOpts            []string
 
@@ -109,6 +111,18 @@ func WithTargetTime(t time.Time) BackupOpt {
 func WithCompression(c mariadbv1alpha1.CompressAlgorithm) BackupOpt {
 	return func(bo *BackupOpts) {
 		bo.Compression = c
+	}
+}
+
+func WithFileNamePrefix(p string) BackupOpt {
+	return func(bo *BackupOpts) {
+		bo.FileNamePrefix = p
+	}
+}
+
+func WithTimestampFormat(f mariadbv1alpha1.BackupTimestampFormat) BackupOpt {
+	return func(bo *BackupOpts) {
+		bo.TimestampFormat = f
 	}
 }
 
@@ -349,6 +363,18 @@ func (b *BackupCommand) MariadbOperatorBackup() (*Command, error) {
 			b.LogLevel,
 		}...)
 	}
+	if b.FileNamePrefix != "" {
+		args = append(args, []string{
+			"--file-name-prefix",
+			b.FileNamePrefix,
+		}...)
+	}
+	if b.TimestampFormat != "" {
+		args = append(args, []string{
+			"--timestamp-format",
+			string(b.TimestampFormat),
+		}...)
+	}
 
 	args = append(args, b.s3Args()...)
 	args = append(args, b.absArgs()...)
@@ -573,19 +599,25 @@ fi`)
 }
 
 func (b *BackupCommand) newBackupFile() string {
+	prefix := b.FileNamePrefix
+	if prefix == "" {
+		prefix = "backup"
+	}
+	shellFmt := b.TimestampFormat.ShellFormat()
+
 	var fileName string
 	if b.Compression == mariadbv1alpha1.CompressNone {
 		fileName = fmt.Sprintf(
-			"backup.$(date -u +'%s').sql",
-			"%Y-%m-%dT%H:%M:%SZ",
+			"%s.$(date -u +'%s').sql",
+			prefix,
+			shellFmt,
 		)
 	} else {
-		// Use standard extension format: .sql.gz or .sql.bz2
-		// This allows tools like gunzip to recognize the file format
 		ext, _ := b.Compression.Extension()
 		fileName = fmt.Sprintf(
-			"backup.$(date -u +'%s').sql.%s",
-			"%Y-%m-%dT%H:%M:%SZ",
+			"%s.$(date -u +'%s').sql.%s",
+			prefix,
+			shellFmt,
 			ext,
 		)
 	}

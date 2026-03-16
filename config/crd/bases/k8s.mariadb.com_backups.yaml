@@ -312,6 +312,12 @@ spec:
                 format: int32
                 minimum: 0
                 type: integer
+              fileNamePrefix:
+                default: backup
+                description: |-
+                  FileNamePrefix is the prefix for backup file names. It defaults to 'backup'.
+                  Must not contain dots.
+                type: string
               ignoreGlobalPriv:
                 description: |-
                   IgnoreGlobalPriv indicates to ignore the mysql.global_priv in backups.
@@ -1035,6 +1041,15 @@ spec:
               timeZone:
                 description: TimeZone defines the timezone associated with the cron
                   expression.
+                type: string
+              timestampFormat:
+                default: iso8601
+                description: |-
+                  TimestampFormat defines the format of the timestamp used in backup filenames.
+                  It defaults to 'iso8601'.
+                enum:
+                - iso8601
+                - compact
                 type: string
               tolerations:
                 description: Tolerations to be used in the Pod.
