@@ -35,6 +35,7 @@ rules:
   - create
   - delete
   - deletecollection
+  - get
   - list
   - patch
   - watch
