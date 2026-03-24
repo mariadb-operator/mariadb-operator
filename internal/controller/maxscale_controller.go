@@ -191,6 +191,10 @@ func (r *MaxScaleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			reconcile: r.reconcileChangedServers,
 		},
 		{
+			name:      "Server State",
+			reconcile: r.reconcileServerState,
+		},
+		{
 			name:      "Monitor",
 			reconcile: r.reconcileChangedMonitor,
 		},
@@ -1116,6 +1120,11 @@ func (r *MaxScaleReconciler) reconcileServers(ctx context.Context, req *requestM
 	}
 	logger.Info("Reconciling servers")
 
+	mariadb, err := r.getMariaDB(ctx, req)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
 	currentIdx := req.mxs.ServerIndex()
 	previousIdx, err := req.client.Server.ListIndex(ctx)
 	if err != nil {
@@ -1142,7 +1151,8 @@ func (r *MaxScaleReconciler) reconcileServers(ctx context.Context, req *requestM
 		if err := mxsApi.createServer(ctx, &srv); err != nil {
 			return ctrl.Result{}, fmt.Errorf("error creating server: %v", err)
 		}
-		if err := mxsApi.updateServerState(ctx, &srv); err != nil {
+		effectiveSrv := effectiveMaxScaleServer(srv, mariadb)
+		if err := mxsApi.updateServerState(ctx, &effectiveSrv); err != nil {
 			return ctrl.Result{}, fmt.Errorf("error updating server state: %v", err)
 		}
 	}
@@ -1167,11 +1177,50 @@ func (r *MaxScaleReconciler) reconcileServers(ctx context.Context, req *requestM
 		if err := mxsApi.patchServer(ctx, &srv); err != nil {
 			return ctrl.Result{}, fmt.Errorf("error patching server: %v", err)
 		}
-		if err := mxsApi.updateServerState(ctx, &srv); err != nil {
+		effectiveSrv := effectiveMaxScaleServer(srv, mariadb)
+		if err := mxsApi.updateServerState(ctx, &effectiveSrv); err != nil {
 			return ctrl.Result{}, fmt.Errorf("error updating server state: %v", err)
 		}
 	}
 	return ctrl.Result{}, err
+}
+
+func (r *MaxScaleReconciler) reconcileServerState(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
+	mariadb, err := r.getMariaDB(ctx, req)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	return r.forEachPod(req, func(podIndex int, podName string, client *mxsclient.Client) (ctrl.Result, error) {
+		mxsApi := newMaxScaleAPI(req.mxs, client, r.RefResolver)
+		for _, srv := range req.mxs.Spec.Servers {
+			effectiveSrv := effectiveMaxScaleServer(srv, mariadb)
+			if err := mxsApi.updateServerState(ctx, &effectiveSrv); err != nil {
+				return ctrl.Result{}, fmt.Errorf("error updating server state in Pod '%s': %v", podName, err)
+			}
+		}
+		return ctrl.Result{}, nil
+	})
+}
+
+func effectiveMaxScaleServer(srv mariadbv1alpha1.MaxScaleServer, mariadb *mariadbv1alpha1.MariaDB) mariadbv1alpha1.MaxScaleServer {
+	srv.Maintenance = srv.Maintenance || autoMaintenanceRequired(srv.Name, mariadb)
+	return srv
+}
+
+func autoMaintenanceRequired(serverName string, mariadb *mariadbv1alpha1.MariaDB) bool {
+	if mariadb == nil || !mariadb.IsReplicationEnabled() {
+		return false
+	}
+
+	currentPrimary := ptr.Deref(mariadb.Status.CurrentPrimary, "")
+	if currentPrimary == "" {
+		return true
+	}
+	if serverName == currentPrimary {
+		return false
+	}
+	return !mariadb.IsConfiguredReplica(serverName)
 }
 
 func (r *MaxScaleReconciler) reconcileChangedMonitor(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {

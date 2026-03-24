@@ -349,6 +349,14 @@ func (r *MariaDBReconciler) createInitJob(ctx context.Context, mariadb *mariadbv
 	if err != nil {
 		return fmt.Errorf("error building PhysicalBackup init Job: %v", err)
 	}
+	if pvcState, ok, err := r.getStoragePVCState(ctx, mariadb, podIndex); err != nil {
+		return err
+	} else if ok && pvcState.UID != "" {
+		if job.Annotations == nil {
+			job.Annotations = make(map[string]string)
+		}
+		job.Annotations[initJobStoragePVCUIDAnnotation] = pvcState.UID
+	}
 	return r.Create(ctx, job)
 }
 

@@ -9,6 +9,7 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/go-logr/logr"
 	"github.com/hashicorp/go-multierror"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	agentresources "github.com/mariadb-operator/mariadb-operator/v26/pkg/agent/resources"
@@ -35,6 +36,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/health"
 	kadapter "github.com/mariadb-operator/mariadb-operator/v26/pkg/kubernetes/adapter"
 	mdbpod "github.com/mariadb-operator/mariadb-operator/v26/pkg/pod"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/predicate"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/refresolver"
 	sts "github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
 	mdbsnapshot "github.com/mariadb-operator/mariadb-operator/v26/pkg/volumesnapshot"
@@ -50,13 +52,22 @@ import (
 	"k8s.io/client-go/tools/events"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
+	ctrlbuilder "sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 var (
 	ErrSkipReconciliationPhase = errors.New("skipping reconciliation phase")
+)
+
+const (
+	mariadbAppLabelKey      = "app.kubernetes.io/name"
+	mariadbInstanceLabelKey = "app.kubernetes.io/instance"
+	mariadbAppLabelValue    = "mariadb"
 )
 
 // MariaDBReconciler reconciles a MariaDB object
@@ -65,13 +76,14 @@ type MariaDBReconciler struct {
 	Scheme   *runtime.Scheme
 	Recorder events.EventRecorder
 
-	Builder          *builder.Builder
-	RefResolver      *refresolver.RefResolver
-	ConditionReady   *condition.Ready
-	Environment      *environment.OperatorEnv
-	Discovery        *discovery.Discovery
-	BackupProcessor  backup.BackupProcessor
-	ReplConfigClient *replication.ReplicationConfigClient
+	Builder             *builder.Builder
+	RefResolver         *refresolver.RefResolver
+	ConditionReady      *condition.Ready
+	Environment         *environment.OperatorEnv
+	Discovery           *discovery.Discovery
+	BackupProcessor     backup.BackupProcessor
+	ReplConfigClient    *replication.ReplicationConfigClient
+	FailoverCandidateFn func(context.Context, *mariadbv1alpha1.MariaDB, logr.Logger) (string, error)
 
 	ConfigMapReconciler      *configmap.ConfigMapReconciler
 	SecretReconciler         *secret.SecretReconciler
@@ -99,7 +111,7 @@ type patcherMariaDB func(*mariadbv1alpha1.MariaDBStatus) error
 //+kubebuilder:rbac:groups=k8s.mariadb.com,resources=mariadbs,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=k8s.mariadb.com,resources=mariadbs/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=k8s.mariadb.com,resources=mariadbs/finalizers,verbs=update
-//+kubebuilder:rbac:groups=k8s.mariadb.com,resources=maxscale;restores;connections;users;grants;physicalbackups,verbs=list;watch;create;patch
+//+kubebuilder:rbac:groups=k8s.mariadb.com,resources=maxscale;restores;connections;databases;users;grants;physicalbackups,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups=k8s.mariadb.com,resources=pointintimerecoveries,verbs=list;watch;get
 //+kubebuilder:rbac:groups=k8s.mariadb.com,resources=pointintimerecoveries/status,verbs=get;patch;update
 //+kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;patch;delete
@@ -107,7 +119,7 @@ type patcherMariaDB func(*mariadbv1alpha1.MariaDBStatus) error
 //+kubebuilder:rbac:groups="",resources=secrets,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups="",resources=pods,verbs=get;patch;delete
 //+kubebuilder:rbac:groups="",resources=pods/log,verbs=get
-//+kubebuilder:rbac:groups="",resources=persistentvolumeclaims,verbs=list;delete
+//+kubebuilder:rbac:groups="",resources=persistentvolumeclaims,verbs=get;list;watch;delete
 //+kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=list;watch;create;patch
 //+kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=list;watch;create;patch;delete
 //+kubebuilder:rbac:groups=apps,resources=deployments,verbs=list;watch;create;patch
@@ -162,6 +174,10 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		{
 			Name:      "Init",
 			Reconcile: r.reconcileInit,
+		},
+		{
+			Name:      "Primary failover",
+			Reconcile: r.reconcilePrimaryPVCFailover,
 		},
 		{
 			Name:      "Scale out",
@@ -759,15 +775,36 @@ func (r *MariaDBReconciler) reconcileSecondaryService(ctx context.Context, maria
 }
 
 func (r *MariaDBReconciler) reconcileSQL(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
-	if !mariadb.IsReady() {
-		log.FromContext(ctx).V(1).Info("MariaDB not ready. Requeuing SQL resources")
-		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+	if result, err := r.waitForWritableService(
+		ctx,
+		mariadb,
+		"MariaDB writable service not ready. Requeuing SQL resources",
+	); !result.IsZero() || err != nil {
+		return result, err
 	}
 	if err := r.reconcileDatabase(ctx, mariadb); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error reconciling database: %v", err)
 	}
 	if result, err := r.reconcileUsers(ctx, mariadb); !result.IsZero() || err != nil {
 		return result, err
+	}
+	return ctrl.Result{}, nil
+}
+
+func (r *MariaDBReconciler) waitForWritableService(ctx context.Context,
+	mariadb *mariadbv1alpha1.MariaDB, message string) (ctrl.Result, error) {
+	serviceKey := client.ObjectKeyFromObject(mariadb)
+	if mariadb.IsHAEnabled() {
+		serviceKey = mariadb.PrimaryServiceKey()
+	}
+
+	healthy, err := health.IsServiceHealthy(ctx, r.Client, serviceKey)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error checking MariaDB service health: %v", err)
+	}
+	if !healthy {
+		log.FromContext(ctx).V(1).Info(message)
+		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
 	return ctrl.Result{}, nil
 }
@@ -1160,6 +1197,13 @@ func (r *MariaDBReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manag
 		Owns(&rbacv1.Role{}).
 		Owns(&rbacv1.RoleBinding{}).
 		WithOptions(opts)
+	builder.Watches(
+		&corev1.PersistentVolumeClaim{},
+		handler.EnqueueRequestsFromMapFunc(r.mapMariaDBManagedObjectToRequests),
+		ctrlbuilder.WithPredicates(
+			predicate.PredicateWithLabel(mariadbInstanceLabelKey),
+		),
+	)
 
 	currentNamespaceOnly, err := env.CurrentNamespaceOnly()
 	if err != nil {
@@ -1174,6 +1218,24 @@ func (r *MariaDBReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manag
 	}
 
 	return builder.Complete(r)
+}
+
+func (r *MariaDBReconciler) mapMariaDBManagedObjectToRequests(_ context.Context, obj client.Object) []reconcile.Request {
+	if obj.GetLabels()[mariadbAppLabelKey] != mariadbAppLabelValue {
+		return nil
+	}
+	instance, ok := obj.GetLabels()[mariadbInstanceLabelKey]
+	if !ok || instance == "" {
+		return nil
+	}
+	return []reconcile.Request{
+		{
+			NamespacedName: types.NamespacedName{
+				Name:      instance,
+				Namespace: obj.GetNamespace(),
+			},
+		},
+	}
 }
 
 func defaultConfig(mariadb *mariadbv1alpha1.MariaDB) (string, error) {
