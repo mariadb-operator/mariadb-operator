@@ -251,7 +251,7 @@ func (r *MariaDBReconciler) pvcAlreadyExists(ctx context.Context, mariadb *maria
 func (r *MariaDBReconciler) reconcileScaleOutInitJobs(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 	physicalBackup *mariadbv1alpha1.PhysicalBackup, fromIndex int, logger logr.Logger) (ctrl.Result, error) {
 	if physicalBackup.Spec.Storage.VolumeSnapshot != nil {
-		return ctrl.Result{}, nil
+		return r.reconcileScaleOutVolumeSnapshotPods(ctx, mariadb, fromIndex, logger)
 	}
 
 	replication := ptr.Deref(mariadb.Spec.Replication, mariadbv1alpha1.Replication{})
@@ -264,6 +264,18 @@ func (r *MariaDBReconciler) reconcileScaleOutInitJobs(ctx context.Context, maria
 		logger.WithName("job"),
 		builder.WithPhysicalBackup(physicalBackup, time.Now(), bootstrapFrom.RestoreJob),
 	)
+}
+
+func (r *MariaDBReconciler) reconcileScaleOutVolumeSnapshotPods(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+	fromIndex int, logger logr.Logger) (ctrl.Result, error) {
+	logger.Info("Upscaling StatefulSet", "replicas", mariadb.Spec.Replicas)
+	if err := r.upscaleStatefulSet(ctx, mariadb, mariadb.Spec.Replicas); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error upscaling StatefulSet: %v", err)
+	}
+
+	return r.forEachMariaDBPod(mariadb, fromIndex, func(podIndex int) (ctrl.Result, error) {
+		return r.waitForPodScheduled(ctx, mariadb, podIndex, logger)
+	})
 }
 
 func (r *MariaDBReconciler) reconcileReplicaPhysicalBackup(ctx context.Context, key types.NamespacedName, mariadb *mariadbv1alpha1.MariaDB,
