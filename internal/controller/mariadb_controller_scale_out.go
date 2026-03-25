@@ -48,6 +48,11 @@ func (r *MariaDBReconciler) reconcileScaleOut(ctx context.Context, mariadb *mari
 	}
 	fromIndex := ptr.Deref(mariadb.Status.ScaleOutInitialIndex, int(sts.Status.Replicas))
 	logger = logger.WithValues("from-index", fromIndex)
+	pvcUIDs, err := r.getStoragePVCUIDs(ctx, mariadb)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error getting storage PVC UIDs: %v", err)
+	}
+	replicaRecoveryScaleOut := isReplicaBootstrapScaleOutRecovery(mariadb, fromIndex, pvcUIDs)
 
 	if !mariadb.IsScalingOut() || mariadb.ScalingOutError() != nil {
 		if result, err := r.reconcileScaleOutError(ctx, mariadb, fromIndex, logger); !result.IsZero() || err != nil {
@@ -57,6 +62,9 @@ func (r *MariaDBReconciler) reconcileScaleOut(ctx context.Context, mariadb *mari
 
 	if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
 		condition.SetScalingOut(status)
+		if replicaRecoveryScaleOut {
+			condition.SetReplicaRecovering(status)
+		}
 		status.ScaleOutInitialIndex = &fromIndex
 		return nil
 	}); err != nil {
@@ -88,10 +96,6 @@ func (r *MariaDBReconciler) isScalingOut(mdb *mariadbv1alpha1.MariaDB, sts *apps
 	if !mdb.IsReplicationEnabled() || sts.Status.Replicas == 0 {
 		return false, nil
 	}
-	if mdb.IsSwitchingPrimary() || mdb.IsReplicationSwitchoverRequired() || mdb.IsInitializing() || mdb.IsRecoveringReplicas() ||
-		mdb.IsRestoringBackup() || mdb.IsResizingStorage() || mdb.IsUpdating() {
-		return false, nil
-	}
 	// user is able to rollback scale out operation at any point by matching the number of existing replicas
 	if sts.Status.Replicas == mdb.Spec.Replicas {
 		return false, nil
@@ -99,6 +103,10 @@ func (r *MariaDBReconciler) isScalingOut(mdb *mariadbv1alpha1.MariaDB, sts *apps
 	// ongoing scale out process
 	if mdb.IsScalingOut() {
 		return true, nil
+	}
+	if mdb.IsSwitchingPrimary() || mdb.IsReplicationSwitchoverRequired() || mdb.IsInitializing() || mdb.IsRecoveringReplicas() ||
+		mdb.IsRestoringBackup() || mdb.IsResizingStorage() || mdb.IsUpdating() {
+		return false, nil
 	}
 	if !mdb.HasConfiguredReplication() {
 		replication := ptr.Deref(mdb.Spec.Replication, mariadbv1alpha1.Replication{})
