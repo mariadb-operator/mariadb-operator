@@ -887,13 +887,8 @@ func (r *MariaDBReconciler) reconcileUsers(ctx context.Context, mariadb *mariadb
 		return result, err
 	}
 
-	var sysGrant mariadbv1alpha1.Grant
-	if err := r.Get(ctx, sysGrantKey, &sysGrant); err != nil {
-		return ctrl.Result{}, fmt.Errorf("error getting mariadb.sys Grant: %v", err)
-	}
-	if !sysGrant.IsReady() {
-		log.FromContext(ctx).V(1).Info("mariadb.sys Grant not ready. Requeuing...")
-		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+	if result, err := r.waitForGrant(ctx, sysGrantKey, "mariadb.sys Grant"); !result.IsZero() || err != nil {
+		return result, err
 	}
 
 	if mariadb.IsInitialUserEnabled() {
@@ -945,6 +940,24 @@ func (r *MariaDBReconciler) reconcileUsers(ctx context.Context, mariadb *mariadb
 			}
 			return result, err
 		}
+	}
+	return ctrl.Result{}, nil
+}
+
+func (r *MariaDBReconciler) waitForGrant(ctx context.Context, key types.NamespacedName, grantName string) (ctrl.Result, error) {
+	logger := log.FromContext(ctx)
+
+	var grant mariadbv1alpha1.Grant
+	if err := r.Get(ctx, key, &grant); err != nil {
+		if apierrors.IsNotFound(err) {
+			logger.V(1).Info("Grant not found. Requeuing...", "grant", grantName)
+			return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+		}
+		return ctrl.Result{}, fmt.Errorf("error getting %s: %v", grantName, err)
+	}
+	if !grant.IsReady() {
+		logger.V(1).Info("Grant not ready. Requeuing...", "grant", grantName)
+		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
 	return ctrl.Result{}, nil
 }
