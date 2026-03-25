@@ -251,6 +251,37 @@ func getPrimaryPVCChange(mariadb *mariadbv1alpha1.MariaDB, pvcUIDs map[int]strin
 	}, true
 }
 
+func getInitialPrimaryPVCBootstrapCandidate(mariadb *mariadbv1alpha1.MariaDB, pvcStates map[int]storagePVCState) *int {
+	if mariadb.Status.CurrentPrimaryPodIndex == nil || mariadb.CreationTimestamp.IsZero() ||
+		hasTrackedStoragePVCUIDAnnotations(mariadb.Annotations) {
+		return nil
+	}
+
+	primary := *mariadb.Status.CurrentPrimaryPodIndex
+	if state, ok := pvcStates[primary]; ok && isReusableStoragePVCForNewMariaDB(state, mariadb) {
+		return nil
+	}
+
+	for i := 0; i < int(mariadb.Spec.Replicas); i++ {
+		if i == primary {
+			continue
+		}
+		state, ok := pvcStates[i]
+		if !ok || !isReusableStoragePVCForNewMariaDB(state, mariadb) {
+			continue
+		}
+
+		candidate := i
+		return &candidate
+	}
+	return nil
+}
+
+func isReusableStoragePVCForNewMariaDB(state storagePVCState, mariadb *mariadbv1alpha1.MariaDB) bool {
+	return state.UID != "" && !state.CreationTimestamp.IsZero() &&
+		state.CreationTimestamp.Time.Before(mariadb.CreationTimestamp.Time)
+}
+
 func getReplicaScaleOutStartIndex(mariadb *mariadbv1alpha1.MariaDB, pvcStates map[int]storagePVCState,
 	logger logr.Logger) *int {
 	if idx := getLostTailReplicaScaleOutStartIndex(mariadb, pvcStates, logger); idx != nil {

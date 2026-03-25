@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/go-logr/logr"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -209,6 +210,92 @@ func TestReconcilePrimaryPVCFailoverPromotesReplicaOnPrimaryPVCChange(t *testing
 	}
 }
 
+func TestReconcilePrimaryPVCFailoverPromotesReusableReplicaOnInitialBootstrap(t *testing.T) {
+	scheme := runtime.NewScheme()
+	if err := mariadbv1alpha1.AddToScheme(scheme); err != nil {
+		t.Fatalf("error adding MariaDB scheme: %v", err)
+	}
+	if err := corev1.AddToScheme(scheme); err != nil {
+		t.Fatalf("error adding core scheme: %v", err)
+	}
+
+	creationTime := metav1.NewTime(time.Date(2026, 3, 25, 1, 0, 0, 0, time.UTC))
+	mariadb := &mariadbv1alpha1.MariaDB{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:              "mariadb",
+			Namespace:         "test",
+			CreationTimestamp: creationTime,
+		},
+		Spec: mariadbv1alpha1.MariaDBSpec{
+			Replicas: 3,
+			Replication: &mariadbv1alpha1.Replication{
+				Enabled: true,
+				ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
+					Primary: mariadbv1alpha1.PrimaryReplication{
+						PodIndex: ptr.To(0),
+					},
+				},
+			},
+		},
+		Status: mariadbv1alpha1.MariaDBStatus{
+			CurrentPrimaryPodIndex: ptr.To(0),
+		},
+	}
+	freshPrimaryPVC := &corev1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:              mariadb.PVCKey(builder.StorageVolume, 0).Name,
+			Namespace:         mariadb.Namespace,
+			UID:               "fresh-primary-uid",
+			CreationTimestamp: metav1.NewTime(creationTime.Add(5 * time.Minute)),
+		},
+	}
+	reusableReplicaPVC := &corev1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:              mariadb.PVCKey(builder.StorageVolume, 1).Name,
+			Namespace:         mariadb.Namespace,
+			UID:               "reusable-replica-uid",
+			CreationTimestamp: metav1.NewTime(creationTime.Add(-5 * time.Minute)),
+		},
+	}
+	otherReusableReplicaPVC := &corev1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:              mariadb.PVCKey(builder.StorageVolume, 2).Name,
+			Namespace:         mariadb.Namespace,
+			UID:               "other-reusable-replica-uid",
+			CreationTimestamp: metav1.NewTime(creationTime.Add(-4 * time.Minute)),
+		},
+	}
+
+	fakeClient := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithStatusSubresource(&mariadbv1alpha1.MariaDB{}).
+		WithObjects(mariadb, freshPrimaryPVC, reusableReplicaPVC, otherReusableReplicaPVC).
+		Build()
+
+	reconciler := &MariaDBReconciler{
+		Client: fakeClient,
+	}
+
+	result, err := reconciler.reconcilePrimaryPVCFailover(context.Background(), mariadb)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.IsZero() {
+		t.Fatalf("expected reconcile to requeue after promoting reusable replica")
+	}
+
+	var updated mariadbv1alpha1.MariaDB
+	if err := fakeClient.Get(context.Background(), client.ObjectKeyFromObject(mariadb), &updated); err != nil {
+		t.Fatalf("error getting MariaDB: %v", err)
+	}
+	if got := ptr.Deref(updated.Spec.Replication.Primary.PodIndex, -1); got != 1 {
+		t.Fatalf("expected spec primary pod index 1, got %d", got)
+	}
+	if got := ptr.Deref(updated.Status.CurrentPrimaryPodIndex, -1); got != 1 {
+		t.Fatalf("expected status primary pod index 1, got %d", got)
+	}
+}
+
 func TestGetPrimaryPVCChange(t *testing.T) {
 	mariadb := &mariadbv1alpha1.MariaDB{
 		ObjectMeta: metav1.ObjectMeta{
@@ -231,6 +318,108 @@ func TestGetPrimaryPVCChange(t *testing.T) {
 
 	if _, ok := getPrimaryPVCChange(mariadb, map[int]string{0: "primary-uid"}); ok {
 		t.Fatalf("expected unchanged primary PVC to be ignored")
+	}
+}
+
+func TestGetInitialPrimaryPVCBootstrapCandidate(t *testing.T) {
+	creationTime := metav1.NewTime(time.Date(2026, 3, 25, 1, 0, 0, 0, time.UTC))
+
+	testCases := map[string]struct {
+		mariadb   *mariadbv1alpha1.MariaDB
+		pvcStates map[int]storagePVCState
+		want      *int
+	}{
+		"reuses older replica when primary pvc is fresh": {
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: metav1.ObjectMeta{
+					CreationTimestamp: creationTime,
+				},
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Replicas: 3,
+				},
+				Status: mariadbv1alpha1.MariaDBStatus{
+					CurrentPrimaryPodIndex: ptr.To(0),
+				},
+			},
+			pvcStates: map[int]storagePVCState{
+				0: {
+					UID:               "fresh-primary-uid",
+					CreationTimestamp: metav1.NewTime(creationTime.Add(5 * time.Minute)),
+				},
+				1: {
+					UID:               "reusable-replica-uid",
+					CreationTimestamp: metav1.NewTime(creationTime.Add(-5 * time.Minute)),
+				},
+			},
+			want: ptr.To(1),
+		},
+		"does not infer candidate when primary pvc is reusable": {
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: metav1.ObjectMeta{
+					CreationTimestamp: creationTime,
+				},
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Replicas: 2,
+				},
+				Status: mariadbv1alpha1.MariaDBStatus{
+					CurrentPrimaryPodIndex: ptr.To(0),
+				},
+			},
+			pvcStates: map[int]storagePVCState{
+				0: {
+					UID:               "primary-uid",
+					CreationTimestamp: metav1.NewTime(creationTime.Add(-5 * time.Minute)),
+				},
+				1: {
+					UID:               "replica-uid",
+					CreationTimestamp: metav1.NewTime(creationTime.Add(-4 * time.Minute)),
+				},
+			},
+		},
+		"does not infer candidate when pvc annotations are already tracked": {
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: metav1.ObjectMeta{
+					CreationTimestamp: creationTime,
+					Annotations: map[string]string{
+						storagePVCUIDAnnotationKey(0): "tracked-primary-uid",
+					},
+				},
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Replicas: 2,
+				},
+				Status: mariadbv1alpha1.MariaDBStatus{
+					CurrentPrimaryPodIndex: ptr.To(0),
+				},
+			},
+			pvcStates: map[int]storagePVCState{
+				0: {
+					UID:               "fresh-primary-uid",
+					CreationTimestamp: metav1.NewTime(creationTime.Add(5 * time.Minute)),
+				},
+				1: {
+					UID:               "reusable-replica-uid",
+					CreationTimestamp: metav1.NewTime(creationTime.Add(-5 * time.Minute)),
+				},
+			},
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			got := getInitialPrimaryPVCBootstrapCandidate(tc.mariadb, tc.pvcStates)
+			if tc.want == nil {
+				if got != nil {
+					t.Fatalf("expected no bootstrap candidate, got %d", *got)
+				}
+				return
+			}
+			if got == nil {
+				t.Fatalf("expected bootstrap candidate %d, got nil", *tc.want)
+			}
+			if *got != *tc.want {
+				t.Fatalf("expected bootstrap candidate %d, got %d", *tc.want, *got)
+			}
+		})
 	}
 }
 

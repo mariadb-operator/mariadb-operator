@@ -34,9 +34,27 @@ func (r *MariaDBReconciler) reconcilePrimaryPVCFailover(ctx context.Context, mar
 		return ctrl.Result{}, nil
 	}
 
-	pvcUIDs, err := r.getStoragePVCUIDs(ctx, mariadb)
+	pvcStates, err := r.getStoragePVCStates(ctx, mariadb)
 	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error getting storage PVC UIDs: %v", err)
+		return ctrl.Result{}, fmt.Errorf("error getting storage PVC states: %v", err)
+	}
+	pvcUIDs := make(map[int]string, len(pvcStates))
+	for i, state := range pvcStates {
+		if state.UID != "" {
+			pvcUIDs[i] = state.UID
+		}
+	}
+
+	if candidateIndex := getInitialPrimaryPVCBootstrapCandidate(mariadb, pvcStates); candidateIndex != nil {
+		currentPrimary := ptr.Deref(mariadb.Status.CurrentPrimaryPodIndex, 0)
+		logger := log.FromContext(ctx).WithName("primary-failover").WithValues(
+			"primary", stspkg.PodName(mariadb.ObjectMeta, currentPrimary),
+			"pod-index", currentPrimary,
+			"new-primary", stspkg.PodName(mariadb.ObjectMeta, *candidateIndex),
+			"new-primary-index", *candidateIndex,
+		)
+		logger.Info("Fresh primary storage detected during bootstrap, promoting reusable replica PVC as primary")
+		return r.switchPrimaryToIndex(ctx, mariadb, currentPrimary, *candidateIndex, logger)
 	}
 
 	change, ok := getPrimaryPVCChange(mariadb, pvcUIDs)
@@ -75,10 +93,15 @@ func (r *MariaDBReconciler) reconcilePrimaryPVCFailover(ctx context.Context, mar
 		return ctrl.Result{}, fmt.Errorf("error getting failover candidate Pod index: %v", err)
 	}
 
+	return r.switchPrimaryToIndex(ctx, mariadb, change.PodIndex, *candidateIndex, logger)
+}
+
+func (r *MariaDBReconciler) switchPrimaryToIndex(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+	currentPrimaryIndex int, candidateIndex int, logger logr.Logger) (ctrl.Result, error) {
 	if err := r.patch(ctx, mariadb, func(mdb *mariadbv1alpha1.MariaDB) error {
 		replicationSpec := ptr.Deref(mdb.Spec.Replication, mariadbv1alpha1.Replication{})
 		replicationSpec.Enabled = true
-		replicationSpec.Primary.PodIndex = candidateIndex
+		replicationSpec.Primary.PodIndex = ptr.To(candidateIndex)
 		mdb.Spec.Replication = &replicationSpec
 		return nil
 	}); err != nil {
@@ -86,7 +109,7 @@ func (r *MariaDBReconciler) reconcilePrimaryPVCFailover(ctx context.Context, mar
 	}
 
 	if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
-		status.UpdateCurrentPrimary(mariadb, *candidateIndex)
+		status.UpdateCurrentPrimary(mariadb, candidateIndex)
 		status.CurrentPrimaryFailingSince = nil
 		condition.SetPrimarySwitched(status)
 		return nil
@@ -94,7 +117,8 @@ func (r *MariaDBReconciler) reconcilePrimaryPVCFailover(ctx context.Context, mar
 		return ctrl.Result{}, fmt.Errorf("error patching MariaDB status: %v", err)
 	}
 
-	logger.Info("Failing over primary after storage PVC change", "new-primary", candidateName, "new-primary-index", *candidateIndex)
+	candidateName := stspkg.PodName(mariadb.ObjectMeta, candidateIndex)
+	logger.Info("Switching primary", "new-primary", candidateName, "new-primary-index", candidateIndex)
 	if r.Recorder != nil {
 		r.Recorder.Eventf(
 			mariadb,
@@ -102,9 +126,9 @@ func (r *MariaDBReconciler) reconcilePrimaryPVCFailover(ctx context.Context, mar
 			corev1.EventTypeNormal,
 			mariadbv1alpha1.ReasonPrimarySwitching,
 			mariadbv1alpha1.ActionReconciling,
-			"Failing over primary from index '%d' to index '%d' after storage PVC change",
-			change.PodIndex,
-			*candidateIndex,
+			"Switching primary from index '%d' to index '%d'",
+			currentPrimaryIndex,
+			candidateIndex,
 		)
 	}
 	return ctrl.Result{Requeue: true}, nil
