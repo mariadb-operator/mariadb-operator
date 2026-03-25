@@ -333,6 +333,7 @@ func (r *MariaDBReconciler) setScaledOutAndCleanup(ctx context.Context, mariadb 
 		return ctrl.Result{}, nil
 	}
 	physicalBackupKey := mariadb.PhysicalBackupScaleOutKey()
+	replicaRecoveryScaleOut := false
 
 	if mariadb.Status.ScaleOutInitialIndex != nil {
 		fromIndex := *mariadb.Status.ScaleOutInitialIndex
@@ -353,6 +354,7 @@ func (r *MariaDBReconciler) setScaledOutAndCleanup(ctx context.Context, mariadb 
 		if err != nil {
 			return ctrl.Result{}, fmt.Errorf("error getting storage PVC UIDs: %v", err)
 		}
+		replicaRecoveryScaleOut = isReplicaBootstrapScaleOutRecovery(mariadb, fromIndex, pvcUIDs)
 		if err := r.syncStoragePVCUIDAnnotations(ctx, mariadb, pvcUIDs); err != nil {
 			return ctrl.Result{}, fmt.Errorf("error syncing storage PVC annotations: %v", err)
 		}
@@ -371,6 +373,9 @@ func (r *MariaDBReconciler) setScaledOutAndCleanup(ctx context.Context, mariadb 
 
 	if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
 		condition.SetScaledOut(status)
+		if replicaRecoveryScaleOut {
+			condition.SetReplicaRecovered(status)
+		}
 		status.ScaleOutInitialIndex = nil
 		return nil
 	}); err != nil {
@@ -402,4 +407,14 @@ func (r *MariaDBReconciler) cleanupPhysicalBackup(ctx context.Context, key types
 		return err
 	}
 	return r.Delete(ctx, &physicalBackup)
+}
+
+func isReplicaBootstrapScaleOutRecovery(mariadb *mariadbv1alpha1.MariaDB, fromIndex int, pvcUIDs map[int]string) bool {
+	storedUID, ok := storedStoragePVCUID(mariadb.Annotations, fromIndex)
+	if !ok || storedUID == "" {
+		return false
+	}
+
+	currentUID := pvcUIDs[fromIndex]
+	return currentUID == "" || currentUID != storedUID
 }
