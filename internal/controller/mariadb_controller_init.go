@@ -460,10 +460,27 @@ func (r *MariaDBReconciler) ensureReplicationConfiguredInPod(ctx context.Context
 	}
 	defer req.Close()
 
-	pollCtx, cancel := context.WithTimeout(ctx, 1*time.Minute)
+	pollCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 	defer cancel()
 
 	return wait.PollUntilSuccessOrContextCancel(pollCtx, logger, func(ctx context.Context) error {
+		var replicaPod corev1.Pod
+		podKey := types.NamespacedName{
+			Name:      pod,
+			Namespace: mariadb.Namespace,
+		}
+		if err := r.Get(ctx, podKey, &replicaPod); err != nil {
+			if apierrors.IsNotFound(err) {
+				return errors.New("pod not found")
+			}
+			return fmt.Errorf("error getting Pod: %v", err)
+		}
+		if !podpkg.PodScheduled(&replicaPod) {
+			return errors.New("pod not scheduled")
+		}
+		if !podpkg.PodReady(&replicaPod) {
+			return errors.New("pod not ready")
+		}
 		if result, err := r.ReplicationReconciler.ReconcileReplicationInPod(
 			ctx,
 			req,
