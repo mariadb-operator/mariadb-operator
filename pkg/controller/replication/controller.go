@@ -236,7 +236,7 @@ func (r *ReplicationReconciler) ReconcileReplicationInPod(ctx context.Context, r
 	pod := statefulset.PodName(req.mariadb.ObjectMeta, podIndex)
 
 	if primaryPodIndex == podIndex {
-		if role, ok := replRoles[pod]; ok && role == mariadbv1alpha1.ReplicationRolePrimary {
+		if role, ok := replRoles[pod]; ok && shouldSkipPrimaryConfiguration(role, req.mariadb.HasConfiguredReplication()) {
 			return ctrl.Result{}, nil
 		}
 		client, err := req.replClientSet.currentPrimaryClient(ctx)
@@ -273,6 +273,10 @@ func (r *ReplicationReconciler) ReconcileReplicationInPod(ctx context.Context, r
 		return ctrl.Result{}, fmt.Errorf("error configuring replica: %v", err)
 	}
 	return ctrl.Result{}, nil
+}
+
+func shouldSkipPrimaryConfiguration(role mariadbv1alpha1.ReplicationRole, hasConfiguredReplication bool) bool {
+	return hasConfiguredReplication && role == mariadbv1alpha1.ReplicationRolePrimary
 }
 
 func (r *ReplicationReconciler) getReplicaOpts(ctx context.Context, req *ReconcileRequest, pod string, index int,
