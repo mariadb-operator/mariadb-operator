@@ -478,9 +478,6 @@ func (r *MariaDBReconciler) ensureReplicationConfiguredInPod(ctx context.Context
 		if !podpkg.PodScheduled(&replicaPod) {
 			return errors.New("pod not scheduled")
 		}
-		if !podpkg.PodReady(&replicaPod) {
-			return errors.New("pod not ready")
-		}
 		if result, err := r.ReplicationReconciler.ReconcileReplicationInPod(
 			ctx,
 			req,
