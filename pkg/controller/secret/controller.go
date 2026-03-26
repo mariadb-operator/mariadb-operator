@@ -87,10 +87,11 @@ func (r *SecretReconciler) ReconcilePassword(ctx context.Context, req PasswordRe
 }
 
 type SecretRequest struct {
-	Owner    metav1.Object
-	Metadata []*mariadbv1alpha1.Metadata
-	Key      types.NamespacedName
-	Data     map[string][]byte
+	Owner        metav1.Object
+	Metadata     []*mariadbv1alpha1.Metadata
+	Key          types.NamespacedName
+	Data         map[string][]byte
+	SkipIfExists bool
 }
 
 func (r *SecretReconciler) Reconcile(ctx context.Context, req *SecretRequest) error {
@@ -108,6 +109,9 @@ func (r *SecretReconciler) Reconcile(ctx context.Context, req *SecretRequest) er
 	if err := r.Get(ctx, req.Key, &existingSecret); err != nil {
 		if !apierrors.IsNotFound(err) {
 			return fmt.Errorf("error reconciling Secret: %v", err)
+		}
+		if req.SkipIfExists {
+			return nil
 		}
 		return r.Create(ctx, secret)
 	}
