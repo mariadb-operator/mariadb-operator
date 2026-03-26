@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -196,6 +197,90 @@ func TestReconcilePrimaryPVCFailoverPromotesReplicaOnPrimaryPVCChange(t *testing
 	}
 	if result.IsZero() {
 		t.Fatalf("expected reconcile to requeue after triggering failover")
+	}
+
+	var updated mariadbv1alpha1.MariaDB
+	if err := fakeClient.Get(context.Background(), client.ObjectKeyFromObject(mariadb), &updated); err != nil {
+		t.Fatalf("error getting MariaDB: %v", err)
+	}
+	if got := ptr.Deref(updated.Spec.Replication.Primary.PodIndex, -1); got != 1 {
+		t.Fatalf("expected spec primary pod index 1, got %d", got)
+	}
+	if got := ptr.Deref(updated.Status.CurrentPrimaryPodIndex, -1); got != 1 {
+		t.Fatalf("expected status primary pod index 1, got %d", got)
+	}
+}
+
+func TestReconcilePrimaryPVCFailoverPromotesExternallyPromotedPrimaryOnPrimaryPVCChange(t *testing.T) {
+	scheme := runtime.NewScheme()
+	if err := mariadbv1alpha1.AddToScheme(scheme); err != nil {
+		t.Fatalf("error adding MariaDB scheme: %v", err)
+	}
+	if err := corev1.AddToScheme(scheme); err != nil {
+		t.Fatalf("error adding core scheme: %v", err)
+	}
+
+	mariadb := &mariadbv1alpha1.MariaDB{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "mariadb",
+			Namespace: "test",
+			Annotations: map[string]string{
+				storagePVCUIDAnnotationKey(0): "old-primary-uid",
+				storagePVCUIDAnnotationKey(1): "replica-uid",
+			},
+		},
+		Spec: mariadbv1alpha1.MariaDBSpec{
+			Replicas: 2,
+			Replication: &mariadbv1alpha1.Replication{
+				Enabled: true,
+				ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
+					Primary: mariadbv1alpha1.PrimaryReplication{
+						PodIndex: ptr.To(0),
+					},
+				},
+			},
+		},
+		Status: mariadbv1alpha1.MariaDBStatus{
+			CurrentPrimaryPodIndex: ptr.To(0),
+		},
+	}
+	primaryPVC := &corev1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      mariadb.PVCKey(builder.StorageVolume, 0).Name,
+			Namespace: mariadb.Namespace,
+			UID:       "new-primary-uid",
+		},
+	}
+	replicaPVC := &corev1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      mariadb.PVCKey(builder.StorageVolume, 1).Name,
+			Namespace: mariadb.Namespace,
+			UID:       "replica-uid",
+		},
+	}
+
+	fakeClient := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithStatusSubresource(&mariadbv1alpha1.MariaDB{}).
+		WithObjects(mariadb, primaryPVC, replicaPVC).
+		Build()
+
+	reconciler := &MariaDBReconciler{
+		Client: fakeClient,
+		FailoverCandidateFn: func(context.Context, *mariadbv1alpha1.MariaDB, logr.Logger) (string, error) {
+			return "", errors.New("no promotion candidates were found")
+		},
+		PromotedPrimaryCandidateFn: func(context.Context, *mariadbv1alpha1.MariaDB, logr.Logger) (string, error) {
+			return "mariadb-1", nil
+		},
+	}
+
+	result, err := reconciler.reconcilePrimaryPVCFailover(context.Background(), mariadb)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.IsZero() {
+		t.Fatalf("expected reconcile to requeue after promoting externally promoted primary")
 	}
 
 	var updated mariadbv1alpha1.MariaDB

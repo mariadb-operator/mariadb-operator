@@ -76,14 +76,15 @@ type MariaDBReconciler struct {
 	Scheme   *runtime.Scheme
 	Recorder events.EventRecorder
 
-	Builder             *builder.Builder
-	RefResolver         *refresolver.RefResolver
-	ConditionReady      *condition.Ready
-	Environment         *environment.OperatorEnv
-	Discovery           *discovery.Discovery
-	BackupProcessor     backup.BackupProcessor
-	ReplConfigClient    *replication.ReplicationConfigClient
-	FailoverCandidateFn func(context.Context, *mariadbv1alpha1.MariaDB, logr.Logger) (string, error)
+	Builder                    *builder.Builder
+	RefResolver                *refresolver.RefResolver
+	ConditionReady             *condition.Ready
+	Environment                *environment.OperatorEnv
+	Discovery                  *discovery.Discovery
+	BackupProcessor            backup.BackupProcessor
+	ReplConfigClient           *replication.ReplicationConfigClient
+	FailoverCandidateFn        func(context.Context, *mariadbv1alpha1.MariaDB, logr.Logger) (string, error)
+	PromotedPrimaryCandidateFn func(context.Context, *mariadbv1alpha1.MariaDB, logr.Logger) (string, error)
 
 	ConfigMapReconciler      *configmap.ConfigMapReconciler
 	SecretReconciler         *secret.SecretReconciler
