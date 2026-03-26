@@ -94,14 +94,14 @@ func newContext() (context.Context, context.CancelFunc) {
 	)
 }
 
-func getAPIServer(apiHandler router.RouteHandler, env *environment.PodEnvironment, k8sClient client.Client,
+func getAPIServer(apiHandlers []router.RouteHandler, env *environment.PodEnvironment, k8sClient client.Client,
 	logger logr.Logger) (*server.Server, error) {
 	routerOpts, err := getRouterOpts(logger)
 	if err != nil {
 		return nil, err
 	}
 	router := router.NewRouter(
-		apiHandler,
+		apiHandlers,
 		k8sClient,
 		logger,
 		routerOpts...,
