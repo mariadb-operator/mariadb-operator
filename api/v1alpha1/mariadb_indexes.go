@@ -18,6 +18,7 @@ import (
 const (
 	mariadbMyCnfConfigMapFieldPath = ".spec.myCnfConfigMapKeyRef.name"
 
+	mariadbRootPasswordSecretFieldPath    = ".spec.rootPasswordSecretKeyRef.name"
 	mariadbMetricsPasswordSecretFieldPath = ".spec.metrics.passwordSecretKeyRef"
 
 	mariadbTLSServerCASecretFieldPath   = ".spec.tls.serverCASecretRef"
@@ -40,6 +41,17 @@ func (m *MariaDB) IndexerFuncForFieldPath(fieldPath string) (client.IndexerFunc,
 			}
 			if mdb.Spec.MyCnfConfigMapKeyRef != nil && mdb.Spec.MyCnfConfigMapKeyRef.Name != "" {
 				return []string{mdb.Spec.MyCnfConfigMapKeyRef.Name}
+			}
+			return nil
+		}, nil
+	case mariadbRootPasswordSecretFieldPath:
+		return func(obj client.Object) []string {
+			mdb, ok := obj.(*MariaDB)
+			if !ok {
+				return nil
+			}
+			if !mdb.IsRootPasswordEmpty() && mdb.Spec.RootPasswordSecretKeyRef.Name != "" {
+				return []string{mdb.Spec.RootPasswordSecretKeyRef.Name}
 			}
 			return nil
 		}, nil
@@ -132,6 +144,7 @@ func IndexMariaDB(ctx context.Context, mgr manager.Manager, builder *ctrlbuilder
 	}
 
 	secretFieldPaths := []string{
+		mariadbRootPasswordSecretFieldPath,
 		mariadbMetricsPasswordSecretFieldPath,
 		mariadbTLSServerCASecretFieldPath,
 		mariadbTLSServerCertSecretFieldPath,
