@@ -1014,10 +1014,18 @@ func (r *MaxScaleReconciler) reconcileInitInPod(ctx context.Context, mxs *mariad
 	reconcileMonitor := func(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
 		return r.reconcileMonitor(ctx, req, logger)
 	}
+	reconcileServices := func(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
+		return r.reconcileServices(ctx, req, logger)
+	}
+	reconcileListeners := func(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
+		return r.reconcileListeners(ctx, req, logger)
+	}
 
 	reconcileFns := []reconcileFnMaxScale{
 		reconcileServers,
 		reconcileMonitor,
+		reconcileServices,
+		reconcileListeners,
 	}
 	for _, reconcileFn := range reconcileFns {
 		if result, err := reconcileFn(ctx, req); !result.IsZero() || err != nil {
@@ -1039,6 +1047,20 @@ func (r *MaxScaleReconciler) shouldInitialize(ctx context.Context, mxs *mariadbv
 	allExist, err = client.Monitor.AllExists(ctx, []string{mxs.Spec.Monitor.Name})
 	if err != nil {
 		return false, fmt.Errorf("error checking if monitor exists: %v", err)
+	}
+	if !allExist {
+		return true, nil
+	}
+	allExist, err = client.Service.AllExists(ctx, mxs.ServiceIDs())
+	if err != nil {
+		return false, fmt.Errorf("error checking if all services exist: %v", err)
+	}
+	if !allExist {
+		return true, nil
+	}
+	allExist, err = client.Listener.AllExists(ctx, mxs.ListenerIDs())
+	if err != nil {
+		return false, fmt.Errorf("error checking if all listeners exist: %v", err)
 	}
 	if !allExist {
 		return true, nil
