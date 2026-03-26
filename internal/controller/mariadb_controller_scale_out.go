@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -194,6 +195,13 @@ func (r *MariaDBReconciler) reconcileTailStoragePVCDeletion(ctx context.Context,
 
 func (r *MariaDBReconciler) reconcileScaleOutError(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, fromIndex int,
 	logger logr.Logger) (ctrl.Result, error) {
+	if scaleOutErr := mariadb.ScalingOutError(); scaleOutErr != nil &&
+		!strings.Contains(scaleOutErr.Error(), "replica datasource not found") &&
+		!strings.Contains(scaleOutErr.Error(), "storage PVCs already exist") {
+		logger.Info("Unable to scale out MariaDB. Requeuing...", "err", scaleOutErr.Error())
+		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+	}
+
 	replication := ptr.Deref(mariadb.Spec.Replication, mariadbv1alpha1.Replication{})
 
 	if replication.Replica.ReplicaBootstrapFrom == nil {
@@ -338,13 +346,20 @@ func (r *MariaDBReconciler) getVolumeSnapshotKey(ctx context.Context, mariadb *m
 	if err != nil {
 		return nil, err
 	}
-	if len(snapshotList.Items) == 0 {
-		return nil, errors.New("VolumeSnapshot not found")
+	snapshots := snapshotList.Items[:0]
+	for _, snapshot := range snapshotList.Items {
+		if physicalBackup.CreationTimestamp.IsZero() || snapshot.CreationTimestamp.IsZero() ||
+			!snapshot.CreationTimestamp.Time.Before(physicalBackup.CreationTimestamp.Time) {
+			snapshots = append(snapshots, snapshot)
+		}
 	}
-	sort.Slice(snapshotList.Items, func(i, j int) bool {
-		return snapshotList.Items[i].CreationTimestamp.After(snapshotList.Items[j].CreationTimestamp.Time)
+	if len(snapshots) == 0 {
+		return nil, errors.New("VolumeSnapshot not found for current PhysicalBackup")
+	}
+	sort.Slice(snapshots, func(i, j int) bool {
+		return snapshots[i].CreationTimestamp.After(snapshots[j].CreationTimestamp.Time)
 	})
-	return ptr.To(client.ObjectKeyFromObject(&snapshotList.Items[0])), nil
+	return ptr.To(client.ObjectKeyFromObject(&snapshots[0])), nil
 }
 
 func (r *MariaDBReconciler) setScaledOutAndCleanup(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,

@@ -98,3 +98,46 @@ func TestEffectiveMaxScaleServerPreservesManualMaintenance(t *testing.T) {
 		t.Fatalf("expected manual maintenance to be preserved")
 	}
 }
+
+func TestShouldSkipServerStateUpdate(t *testing.T) {
+	testCases := map[string]struct {
+		currentState        string
+		desiredMaintenance  bool
+		wantSkipStateUpdate bool
+	}{
+		"skip when state already matches maintenance": {
+			currentState:        "Slave, Running, Maintenance",
+			desiredMaintenance:  true,
+			wantSkipStateUpdate: true,
+		},
+		"skip when state already matches running": {
+			currentState:        "Slave, Running",
+			desiredMaintenance:  false,
+			wantSkipStateUpdate: true,
+		},
+		"skip when current primary cannot enter maintenance yet": {
+			currentState:        "Master, Running",
+			desiredMaintenance:  true,
+			wantSkipStateUpdate: true,
+		},
+		"update when replica should enter maintenance": {
+			currentState:        "Slave, Running",
+			desiredMaintenance:  true,
+			wantSkipStateUpdate: false,
+		},
+		"update when maintenance should be cleared": {
+			currentState:        "Slave, Running, Maintenance",
+			desiredMaintenance:  false,
+			wantSkipStateUpdate: false,
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			got := shouldSkipServerStateUpdate(tc.currentState, tc.desiredMaintenance)
+			if got != tc.wantSkipStateUpdate {
+				t.Fatalf("expected skip=%v, got %v", tc.wantSkipStateUpdate, got)
+			}
+		})
+	}
+}

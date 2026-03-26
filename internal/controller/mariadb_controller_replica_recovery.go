@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -178,6 +179,12 @@ func (r *MariaDBReconciler) reconcileReplicaRecoveryBackup(ctx context.Context, 
 
 func (r *MariaDBReconciler) reconcileReplicaRecoveryError(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 	logger logr.Logger) (ctrl.Result, error) {
+	if recoveryErr := mariadb.ReplicaRecoveryError(); recoveryErr != nil &&
+		!strings.Contains(recoveryErr.Error(), "replica datasource not found") {
+		logger.Info("Unable to recover replicas. Requeuing...", "err", recoveryErr.Error())
+		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+	}
+
 	replication := ptr.Deref(mariadb.Spec.Replication, mariadbv1alpha1.Replication{})
 
 	if replication.Replica.ReplicaBootstrapFrom == nil {
@@ -411,7 +418,7 @@ func (r *MariaDBReconciler) reconcileAndWaitForJobReplicaRecovery(ctx context.Co
 	if err := r.ensurePodDeleted(ctx, podKey, logger); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error ensuring Pod deleted: %v", err)
 	}
-	return r.waitForInitJobComplete(ctx, jobKey, logger)
+	return r.waitForInitJobComplete(ctx, mariadb, jobKey, logger)
 }
 
 func (r *MariaDBReconciler) getPodIfExists(ctx context.Context, key types.NamespacedName) (*corev1.Pod, error) {
@@ -490,13 +497,38 @@ func (r *MariaDBReconciler) isInitJobComplete(ctx context.Context, key types.Nam
 	return jobpkg.IsJobComplete(&job), nil
 }
 
-func (r *MariaDBReconciler) waitForInitJobComplete(ctx context.Context, key types.NamespacedName,
-	logger logr.Logger) (ctrl.Result, error) {
+func (r *MariaDBReconciler) waitForInitJobComplete(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+	key types.NamespacedName, logger logr.Logger) (ctrl.Result, error) {
 	var job batchv1.Job
 	if err := r.Get(ctx, key, &job); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error getting recovery Job: %v", err)
 	}
 	if !jobpkg.IsJobComplete(&job) {
+		schedulingErr, err := r.jobSchedulingError(ctx, key)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		if schedulingErr != "" {
+			errMsg := fmt.Sprintf("PhysicalBackup init Job '%s' is unschedulable: %s", key.Name, schedulingErr)
+			if r.Recorder != nil {
+				r.Recorder.Eventf(mariadb,
+					nil,
+					corev1.EventTypeWarning,
+					mariadbv1alpha1.ReasonMariaDBReplicaRecoveryError,
+					mariadbv1alpha1.ActionReconciling,
+					"Unable to recover replicas: %s",
+					errMsg,
+				)
+			}
+			if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
+				condition.SetReplicaRecoveryError(status, errMsg)
+				return nil
+			}); err != nil {
+				return ctrl.Result{}, fmt.Errorf("error patching MariaDB status: %v", err)
+			}
+			logger.Info("Unable to recover replicas. Requeuing...", "err", errMsg)
+			return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+		}
 		logger.V(1).Info("PhysicalBackup init job not completed. Requeuing...")
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
