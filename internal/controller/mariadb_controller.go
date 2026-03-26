@@ -36,6 +36,7 @@ import (
 	kadapter "github.com/mariadb-operator/mariadb-operator/v26/pkg/kubernetes/adapter"
 	mdbpod "github.com/mariadb-operator/mariadb-operator/v26/pkg/pod"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/refresolver"
+	mariadbsql "github.com/mariadb-operator/mariadb-operator/v26/pkg/sql"
 	sts "github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
 	mdbsnapshot "github.com/mariadb-operator/mariadb-operator/v26/pkg/volumesnapshot"
 	appsv1 "k8s.io/api/apps/v1"
@@ -315,6 +316,36 @@ func (r *MariaDBReconciler) reconcileSecret(ctx context.Context, mariadb *mariad
 			return ctrl.Result{}, err
 		}
 	}
+
+	return r.reconcileRootPasswordSecret(ctx, mariadb)
+}
+
+// reconcileRootPasswordSecret is used to create a duplicate of the root password secret.
+//
+// @WARN: If the internal duplicated password is modified externally, the operator will fail to reconcile the database
+func (r *MariaDBReconciler) reconcileRootPasswordSecret(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
+	if !mariadb.IsRootPasswordEmpty() {
+		rootPassword, err := r.RefResolver.SecretKeyRef(ctx, mariadb.Spec.RootPasswordSecretKeyRef.SecretKeySelector, mariadb.Namespace)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("error getting root password secret: %v", err)
+		}
+
+		internalSecretKey := mariadb.InternalRootPasswordSecretKey()
+
+		req := secret.SecretRequest{
+			Owner:        mariadb,
+			Metadata:     []*mariadbv1alpha1.Metadata{mariadb.Spec.InheritMetadata},
+			Key:          internalSecretKey,
+			SkipIfExists: true,
+			Data: map[string][]byte{
+				mariadb.Spec.RootPasswordSecretKeyRef.Key: []byte(rootPassword),
+			},
+		}
+		if err := r.SecretReconciler.Reconcile(ctx, &req); err != nil {
+			return ctrl.Result{}, fmt.Errorf("error reconciling internal root password secret: %v", err)
+		}
+	}
+
 	return ctrl.Result{}, nil
 }
 
@@ -909,6 +940,69 @@ func (r *MariaDBReconciler) reconcileUsers(ctx context.Context, mariadb *mariadb
 			return result, err
 		}
 	}
+
+	// @TODO: MVP, cyclo complexity is high, improve
+	if !mariadb.IsRootPasswordEmpty() {
+		newRootPassword, err := r.RefResolver.SecretKeyRef(ctx, mariadb.Spec.RootPasswordSecretKeyRef.SecretKeySelector, mariadb.Namespace)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("error getting root password secret: %v", err)
+		}
+
+		internalRootPasswordSecretKey := mariadb.InternalRootPasswordSecretKey()
+		var internalRootPasswordSecret corev1.Secret
+		err = r.Get(ctx, internalRootPasswordSecretKey, &internalRootPasswordSecret)
+		if err != nil {
+			if apierrors.IsNotFound(err) {
+				log.FromContext(ctx).V(1).Info("Internal root password secret not found, requeuing")
+				return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+			}
+			return ctrl.Result{}, fmt.Errorf("error getting internal root password secret: %v", err)
+		}
+		internalRootPassword := internalRootPasswordSecret.Data[mariadb.Spec.RootPasswordSecretKeyRef.Key]
+
+		if newRootPassword != string(internalRootPassword) {
+			newPasswordLogger := log.FromContext(ctx)
+			newPasswordLogger.Info("Root password changed. Updating.")
+
+			sqlCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+			defer cancel()
+
+			sqlClient, err := mariadbsql.NewClientWithMariaDB(
+				sqlCtx,
+				mariadb,
+				r.RefResolver,
+				mariadbsql.WithPassword(string(internalRootPassword)),
+				mariadbsql.WithHost(mariadb.GetHost()),
+				mariadbsql.WithTimeout(5*time.Second),
+			)
+			if err != nil {
+				return ctrl.Result{}, fmt.Errorf("error creating SQL client for root password update: %v", err)
+			}
+			defer sqlClient.Close()
+
+			if err := sqlClient.AlterUser(
+				sqlCtx,
+				"'root'@'localhost'",
+				mariadbsql.WithIdentifiedBy(newRootPassword),
+				mariadbsql.WithMaxUserConnections(3),
+			); err != nil {
+				return ctrl.Result{}, fmt.Errorf("error executing ALTER USER for root: %v", err)
+			}
+
+			patch := client.MergeFrom(internalRootPasswordSecret.DeepCopy())
+			internalRootPasswordSecret.Data[mariadb.Spec.RootPasswordSecretKeyRef.Key] = []byte(newRootPassword)
+			if err := r.Patch(ctx, &internalRootPasswordSecret, patch); err != nil {
+				// @TODO: Better restoration in case of a failure?
+				if err := sqlClient.AlterUser(sqlCtx, "'root'@'localhost'", mariadbsql.WithIdentifiedBy(string(internalRootPassword))); err != nil {
+					return ctrl.Result{}, fmt.Errorf("error restoring root password: %v", err)
+				}
+
+				return ctrl.Result{}, fmt.Errorf("error updating internal root password secret: %v", err)
+			}
+			newPasswordLogger.Info("Root password updated successfully")
+		}
+	}
+
 	return ctrl.Result{}, nil
 }
 
