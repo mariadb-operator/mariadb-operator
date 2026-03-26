@@ -16,9 +16,7 @@ bases:
 - ../crd
 - ../rbac
 - ../manager
-# [WEBHOOK] To enable webhook resources for this kustomization, uncomment this line and provide
-# the corresponding webhook deployment and certificate management components.
-#- ../webhook
+- ../webhook
 # [CERTMANAGER] To enable cert-manager, uncomment all sections with 'CERTMANAGER'. 'WEBHOOK' components are required.
 #- ../certmanager
 # [PROMETHEUS] To enable prometheus monitor, uncomment all sections with 'PROMETHEUS'.
