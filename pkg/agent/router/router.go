@@ -64,7 +64,7 @@ type ProbeHandler interface {
 	Readiness(w http.ResponseWriter, r *http.Request)
 }
 
-func NewRouter(apiHandlder RouteHandler, k8sClient ctrlclient.Client, logger logr.Logger, opts ...Option) http.Handler {
+func NewRouter(apiHandlders []RouteHandler, k8sClient ctrlclient.Client, logger logr.Logger, opts ...Option) http.Handler {
 	routerOpts := Options{
 		CompressLevel:  5,
 		KubernetesAuth: false,
@@ -80,7 +80,7 @@ func NewRouter(apiHandlder RouteHandler, k8sClient ctrlclient.Client, logger log
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
-	r.Mount("/api", apiRouter(apiHandlder, k8sClient, logger, &routerOpts))
+	r.Mount("/api", apiRouter(apiHandlders, k8sClient, logger, &routerOpts))
 
 	return r
 }
@@ -108,7 +108,7 @@ func NewProbeRouter(handler ProbeHandler, logger logr.Logger, opts ...Option) ht
 	return r
 }
 
-func apiRouter(handler RouteHandler, k8sClient ctrlclient.Client, logger logr.Logger, opts *Options) http.Handler {
+func apiRouter(handlers []RouteHandler, k8sClient ctrlclient.Client, logger logr.Logger, opts *Options) http.Handler {
 	r := chi.NewRouter()
 	if opts.RateLimitRequests != nil && opts.RateLimitDuration != nil {
 		r.Use(httprate.LimitAll(*opts.RateLimitRequests, *opts.RateLimitDuration))
@@ -121,7 +121,9 @@ func apiRouter(handler RouteHandler, k8sClient ctrlclient.Client, logger logr.Lo
 		r.Use(middleware.BasicAuth("mariadb-operator", opts.BasicAuthCreds))
 	}
 
-	handler.SetupRoutes(r)
+	for _, handler := range handlers {
+		handler.SetupRoutes(r)
+	}
 
 	return r
 }
