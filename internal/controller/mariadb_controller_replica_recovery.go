@@ -290,7 +290,7 @@ func isReplicaPhysicalBackupStaleForPVCRecovery(physicalBackup *mariadbv1alpha1.
 		if !ok || pvcState.UID == "" || pvcState.CreationTimestamp.IsZero() {
 			continue
 		}
-		if pvcState.CreationTimestamp.Time.After(physicalBackup.CreationTimestamp.Time) {
+		if pvcState.CreationTimestamp.After(physicalBackup.CreationTimestamp.Time) {
 			return true
 		}
 	}

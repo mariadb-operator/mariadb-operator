@@ -722,7 +722,11 @@ func TestResetReplicaRecoveryIfNotNeededCleansRecoveryArtifacts(t *testing.T) {
 		t.Fatalf("expected replica recovery reset to handle cleanup")
 	}
 
-	if err := fakeClient.Get(context.Background(), client.ObjectKeyFromObject(physicalBackup), &mariadbv1alpha1.PhysicalBackup{}); !apierrors.IsNotFound(err) {
+	if err := fakeClient.Get(
+		context.Background(),
+		client.ObjectKeyFromObject(physicalBackup),
+		&mariadbv1alpha1.PhysicalBackup{},
+	); !apierrors.IsNotFound(err) {
 		t.Fatalf("expected replica recovery PhysicalBackup to be deleted, got err=%v", err)
 	}
 	if err := fakeClient.Get(context.Background(), client.ObjectKeyFromObject(initJob), &batchv1.Job{}); !apierrors.IsNotFound(err) {
@@ -812,7 +816,11 @@ func TestRetryReplicaRecoveryWithFreshBackupDeletesArtifactsOncePerPVC(t *testin
 	if got := updated.Annotations[replicaRecoveryRefreshPVCUIDAnnotationKey(0)]; got != "retry-pvc-uid" {
 		t.Fatalf("expected retry annotation to be set, got %q", got)
 	}
-	if err := fakeClient.Get(context.Background(), client.ObjectKeyFromObject(physicalBackup), &mariadbv1alpha1.PhysicalBackup{}); !apierrors.IsNotFound(err) {
+	if err := fakeClient.Get(
+		context.Background(),
+		client.ObjectKeyFromObject(physicalBackup),
+		&mariadbv1alpha1.PhysicalBackup{},
+	); !apierrors.IsNotFound(err) {
 		t.Fatalf("expected replica recovery PhysicalBackup to be deleted, got err=%v", err)
 	}
 	if err := fakeClient.Get(context.Background(), client.ObjectKeyFromObject(initJob), &batchv1.Job{}); !apierrors.IsNotFound(err) {
