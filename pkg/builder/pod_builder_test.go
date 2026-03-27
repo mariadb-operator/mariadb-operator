@@ -1253,3 +1253,173 @@ func TestMariadbConfigVolume(t *testing.T) {
 		t.Fatalf("expecting to have '%s' key, got: '%s'", expectedKey, volume.Projected.Sources[0].ConfigMap.Items[0].Key)
 	}
 }
+
+func TestMariadbEphemeralStorageEmptyDir(t *testing.T) {
+	tests := []struct {
+		name          string
+		mariadb       *mariadbv1alpha1.MariaDB
+		wantEmptyDir  bool
+		wantSizeLimit string
+	}{
+		{
+			name: "ephemeral disabled",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-mariadb",
+				},
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Storage: mariadbv1alpha1.Storage{
+						Size: ptr.To(resource.MustParse("1Gi")),
+					},
+				},
+			},
+			wantEmptyDir: false,
+		},
+		{
+			name: "ephemeral enabled without emptyDir config",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-mariadb",
+				},
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Storage: mariadbv1alpha1.Storage{
+						Ephemeral: ptr.To(true),
+					},
+				},
+			},
+			wantEmptyDir:  true,
+			wantSizeLimit: "",
+		},
+		{
+			name: "ephemeral enabled with emptyDir sizeLimit",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-mariadb",
+				},
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Storage: mariadbv1alpha1.Storage{
+						Ephemeral: ptr.To(true),
+						EmptyDir: &mariadbv1alpha1.EmptyDirVolumeSource{
+							SizeLimit: ptr.To(resource.MustParse("500Mi")),
+						},
+					},
+				},
+			},
+			wantEmptyDir:  true,
+			wantSizeLimit: "500Mi",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			volumes, err := mariadbVolumes(tt.mariadb)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			var storageVolume *corev1.Volume
+			for i := range volumes {
+				if volumes[i].Name == StorageVolume {
+					storageVolume = &volumes[i]
+					break
+				}
+			}
+
+			if tt.wantEmptyDir {
+				if storageVolume == nil {
+					t.Fatal("expected storage volume to exist")
+				}
+				if storageVolume.EmptyDir == nil {
+					t.Fatal("expected emptyDir to be set")
+				}
+				if tt.wantSizeLimit != "" {
+					if storageVolume.EmptyDir.SizeLimit == nil {
+						t.Fatal("expected sizeLimit to be set")
+					}
+					if storageVolume.EmptyDir.SizeLimit.String() != tt.wantSizeLimit {
+						t.Errorf("expected sizeLimit %s, got %s", tt.wantSizeLimit, storageVolume.EmptyDir.SizeLimit.String())
+					}
+				}
+			} else {
+				if storageVolume != nil && storageVolume.EmptyDir != nil {
+					t.Error("expected no emptyDir storage volume")
+				}
+			}
+		})
+	}
+}
+
+func TestMaxScaleEmptyDir(t *testing.T) {
+	tests := []struct {
+		name          string
+		maxscale      *mariadbv1alpha1.MaxScale
+		wantSizeLimit string
+	}{
+		{
+			name: "without emptyDir config",
+			maxscale: &mariadbv1alpha1.MaxScale{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-maxscale",
+				},
+				Spec: mariadbv1alpha1.MaxScaleSpec{
+					Config: mariadbv1alpha1.MaxScaleConfig{},
+				},
+			},
+			wantSizeLimit: "",
+		},
+		{
+			name: "with emptyDir sizeLimit",
+			maxscale: &mariadbv1alpha1.MaxScale{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-maxscale",
+				},
+				Spec: mariadbv1alpha1.MaxScaleSpec{
+					Config: mariadbv1alpha1.MaxScaleConfig{
+						EmptyDir: &mariadbv1alpha1.EmptyDirVolumeSource{
+							SizeLimit: ptr.To(resource.MustParse("300Mi")),
+						},
+					},
+				},
+			},
+			wantSizeLimit: "300Mi",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			volumes := maxscaleVolumes(tt.maxscale)
+
+			// Check all 3 emptyDir volumes (run, log, cache)
+			emptyDirVolumes := []string{RunVolume, LogVolume, CacheVolume}
+			for _, volName := range emptyDirVolumes {
+				var vol *corev1.Volume
+				for i := range volumes {
+					if volumes[i].Name == volName {
+						vol = &volumes[i]
+						break
+					}
+				}
+
+				if vol == nil {
+					t.Fatalf("expected volume %s to exist", volName)
+				}
+				if vol.EmptyDir == nil {
+					t.Fatalf("expected emptyDir to be set for volume %s", volName)
+				}
+
+				if tt.wantSizeLimit != "" {
+					if vol.EmptyDir.SizeLimit == nil {
+						t.Fatalf("expected sizeLimit to be set for volume %s", volName)
+					}
+					if vol.EmptyDir.SizeLimit.String() != tt.wantSizeLimit {
+						t.Errorf("expected sizeLimit %s for volume %s, got %s", tt.wantSizeLimit, volName, vol.EmptyDir.SizeLimit.String())
+					}
+				} else {
+					if vol.EmptyDir.SizeLimit != nil {
+						t.Errorf("expected no sizeLimit for volume %s", volName)
+					}
+				}
+			}
+		})
+	}
+}

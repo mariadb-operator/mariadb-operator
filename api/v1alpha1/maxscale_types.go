@@ -269,6 +269,10 @@ type MaxScaleConfig struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Sync *MaxScaleConfigSync `json:"sync,omitempty"`
+	// EmptyDir defines the emptyDir volume configuration for run, log, and cache volumes.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	EmptyDir *EmptyDirVolumeSource `json:"emptyDir,omitempty"`
 }
 
 func (m *MaxScaleConfig) SetDefaults(mxs *MaxScale) {
