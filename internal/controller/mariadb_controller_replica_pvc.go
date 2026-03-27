@@ -18,6 +18,7 @@ import (
 )
 
 const storagePVCUIDAnnotationPrefix = "k8s.mariadb.com/storage-pvc-uid-"
+const replicaRecoveryRefreshPVCUIDAnnotationPrefix = "k8s.mariadb.com/replica-recovery-refresh-pvc-uid-"
 const initJobStoragePVCUIDAnnotation = "k8s.mariadb.com/init-job-storage-pvc-uid"
 const sqlReconcileTokenAnnotation = "k8s.mariadb.com/sql-reconcile-token"
 
@@ -36,6 +37,10 @@ func storagePVCUIDAnnotationKey(podIndex int) string {
 	return fmt.Sprintf("%s%d", storagePVCUIDAnnotationPrefix, podIndex)
 }
 
+func replicaRecoveryRefreshPVCUIDAnnotationKey(podIndex int) string {
+	return fmt.Sprintf("%s%d", replicaRecoveryRefreshPVCUIDAnnotationPrefix, podIndex)
+}
+
 func storagePVCUIDTrackedAnnotations(annotations map[string]string) map[string]string {
 	tracked := make(map[string]string)
 	for key, value := range annotations {
@@ -48,6 +53,16 @@ func storagePVCUIDTrackedAnnotations(annotations map[string]string) map[string]s
 
 func hasTrackedStoragePVCUIDAnnotations(annotations map[string]string) bool {
 	return len(storagePVCUIDTrackedAnnotations(annotations)) > 0
+}
+
+func replicaRecoveryRefreshPVCUIDTrackedAnnotations(annotations map[string]string) map[string]string {
+	tracked := make(map[string]string)
+	for key, value := range annotations {
+		if strings.HasPrefix(key, replicaRecoveryRefreshPVCUIDAnnotationPrefix) {
+			tracked[key] = value
+		}
+	}
+	return tracked
 }
 
 func desiredStoragePVCUIDAnnotations(replicas int32, pvcUIDs map[int]string) map[string]string {
@@ -93,6 +108,14 @@ func storedStoragePVCUID(annotations map[string]string, podIndex int) (string, b
 		return "", false
 	}
 	uid, ok := annotations[storagePVCUIDAnnotationKey(podIndex)]
+	return uid, ok
+}
+
+func storedReplicaRecoveryRefreshPVCUID(annotations map[string]string, podIndex int) (string, bool) {
+	if annotations == nil {
+		return "", false
+	}
+	uid, ok := annotations[replicaRecoveryRefreshPVCUIDAnnotationKey(podIndex)]
 	return uid, ok
 }
 
@@ -423,6 +446,49 @@ func (r *MariaDBReconciler) syncStoragePVCUIDAnnotations(ctx context.Context, ma
 		}
 		for key, value := range desiredAnnotations {
 			mdb.Annotations[key] = value
+		}
+		return nil
+	})
+}
+
+func (r *MariaDBReconciler) syncReplicaRecoveryRefreshPVCUIDAnnotation(ctx context.Context,
+	mariadb *mariadbv1alpha1.MariaDB, podIndex int, pvcUID string) error {
+	key := client.ObjectKeyFromObject(mariadb)
+
+	var current mariadbv1alpha1.MariaDB
+	if err := r.Get(ctx, key, &current); err != nil {
+		return fmt.Errorf("error getting MariaDB: %v", err)
+	}
+	if current.Annotations != nil && current.Annotations[replicaRecoveryRefreshPVCUIDAnnotationKey(podIndex)] == pvcUID {
+		return nil
+	}
+
+	return r.patch(ctx, &current, func(mdb *mariadbv1alpha1.MariaDB) error {
+		if mdb.Annotations == nil {
+			mdb.Annotations = map[string]string{}
+		}
+		mdb.Annotations[replicaRecoveryRefreshPVCUIDAnnotationKey(podIndex)] = pvcUID
+		return nil
+	})
+}
+
+func (r *MariaDBReconciler) clearReplicaRecoveryRefreshPVCUIDAnnotations(ctx context.Context,
+	mariadb *mariadbv1alpha1.MariaDB) error {
+	key := client.ObjectKeyFromObject(mariadb)
+
+	var current mariadbv1alpha1.MariaDB
+	if err := r.Get(ctx, key, &current); err != nil {
+		return fmt.Errorf("error getting MariaDB: %v", err)
+	}
+	if len(replicaRecoveryRefreshPVCUIDTrackedAnnotations(current.Annotations)) == 0 {
+		return nil
+	}
+
+	return r.patch(ctx, &current, func(mdb *mariadbv1alpha1.MariaDB) error {
+		for key := range mdb.Annotations {
+			if strings.HasPrefix(key, replicaRecoveryRefreshPVCUIDAnnotationPrefix) {
+				delete(mdb.Annotations, key)
+			}
 		}
 		return nil
 	})

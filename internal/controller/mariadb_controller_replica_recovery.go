@@ -54,7 +54,7 @@ func (r *MariaDBReconciler) reconcileReplicaRecovery(ctx context.Context, mariad
 	logger := log.FromContext(ctx).
 		WithName("replica-recovery")
 
-	pvcUIDs, pvcRecoveryReplicas, err := r.getPVCRecoveryReplicas(ctx, mariadb, logger)
+	pvcStates, pvcUIDs, pvcRecoveryReplicas, err := r.getPVCRecoveryReplicas(ctx, mariadb, logger)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -98,7 +98,14 @@ func (r *MariaDBReconciler) reconcileReplicaRecovery(ctx context.Context, mariad
 	}
 	logger.V(1).Info("Recovering replicas")
 	physicalBackupKey := mariadb.PhysicalBackupReplicaRecoveryKey()
-	physicalBackup, snapshotKey, result, err := r.reconcileReplicaRecoveryBackup(ctx, physicalBackupKey, mariadb, logger)
+	physicalBackup, snapshotKey, result, err := r.reconcileReplicaRecoveryBackup(
+		ctx,
+		physicalBackupKey,
+		mariadb,
+		pvcStates,
+		pvcRecoveryReplicas,
+		logger,
+	)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -110,10 +117,10 @@ func (r *MariaDBReconciler) reconcileReplicaRecovery(ctx context.Context, mariad
 }
 
 func (r *MariaDBReconciler) getPVCRecoveryReplicas(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	logger logr.Logger) (map[int]string, []string, error) {
+	logger logr.Logger) (map[int]storagePVCState, map[int]string, []string, error) {
 	pvcStates, err := r.getStoragePVCStates(ctx, mariadb)
 	if err != nil {
-		return nil, nil, fmt.Errorf("error getting storage PVC state: %v", err)
+		return nil, nil, nil, fmt.Errorf("error getting storage PVC state: %v", err)
 	}
 
 	pvcUIDs := make(map[int]string, len(pvcStates))
@@ -126,7 +133,7 @@ func (r *MariaDBReconciler) getPVCRecoveryReplicas(ctx context.Context, mariadb 
 		getReplicasWithLostPVC(mariadb, pvcUIDs, logger),
 		getReplicasWithFreshPVCReplicationErrors(mariadb, pvcStates, logger),
 	)
-	return pvcUIDs, replicas, nil
+	return pvcStates, pvcUIDs, replicas, nil
 }
 
 func (r *MariaDBReconciler) resetReplicaRecoveryIfNotNeeded(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
@@ -139,6 +146,12 @@ func (r *MariaDBReconciler) resetReplicaRecoveryIfNotNeeded(ctx context.Context,
 	}
 	if err := r.syncStoragePVCUIDAnnotations(ctx, mariadb, pvcUIDs); err != nil {
 		return false, fmt.Errorf("error syncing storage PVC annotations: %v", err)
+	}
+	if err := r.clearReplicaRecoveryRefreshPVCUIDAnnotations(ctx, mariadb); err != nil {
+		return false, fmt.Errorf("error clearing replica recovery retry annotations: %v", err)
+	}
+	if err := r.cleanupReplicaRecoveryArtifacts(ctx, mariadb); err != nil {
+		return false, fmt.Errorf("error cleaning replica recovery artifacts: %v", err)
 	}
 	return true, nil
 }
@@ -158,8 +171,16 @@ func (r *MariaDBReconciler) completeReplicaRecoveryIfDone(ctx context.Context, m
 }
 
 func (r *MariaDBReconciler) reconcileReplicaRecoveryBackup(ctx context.Context, key types.NamespacedName,
-	mariadb *mariadbv1alpha1.MariaDB, logger logr.Logger) (*mariadbv1alpha1.PhysicalBackup, *types.NamespacedName, ctrl.Result, error) {
-	if result, err := r.ensureReplicaPhysicalBackupCurrent(ctx, key, mariadb, logger); !result.IsZero() || err != nil {
+	mariadb *mariadbv1alpha1.MariaDB, pvcStates map[int]storagePVCState, pvcRecoveryReplicas []string,
+	logger logr.Logger) (*mariadbv1alpha1.PhysicalBackup, *types.NamespacedName, ctrl.Result, error) {
+	if result, err := r.ensureReplicaPhysicalBackupCurrent(
+		ctx,
+		key,
+		mariadb,
+		pvcStates,
+		pvcRecoveryReplicas,
+		logger,
+	); !result.IsZero() || err != nil {
 		return nil, nil, result, err
 	}
 	if result, err := r.reconcileReplicaPhysicalBackup(ctx, key, mariadb, logger); !result.IsZero() || err != nil {
@@ -213,7 +234,8 @@ func (r *MariaDBReconciler) reconcileReplicaRecoveryError(ctx context.Context, m
 }
 
 func (r *MariaDBReconciler) ensureReplicaPhysicalBackupCurrent(ctx context.Context, key types.NamespacedName,
-	mariadb *mariadbv1alpha1.MariaDB, logger logr.Logger) (ctrl.Result, error) {
+	mariadb *mariadbv1alpha1.MariaDB, pvcStates map[int]storagePVCState, pvcRecoveryReplicas []string,
+	logger logr.Logger) (ctrl.Result, error) {
 	var physicalBackup mariadbv1alpha1.PhysicalBackup
 	if err := r.Get(ctx, key, &physicalBackup); err != nil {
 		if apierrors.IsNotFound(err) {
@@ -221,20 +243,26 @@ func (r *MariaDBReconciler) ensureReplicaPhysicalBackupCurrent(ctx context.Conte
 		}
 		return ctrl.Result{}, fmt.Errorf("error getting PhysicalBackup: %v", err)
 	}
-	if !isReplicaPhysicalBackupStale(&physicalBackup, mariadb) {
+	if !isReplicaPhysicalBackupStale(&physicalBackup, mariadb, pvcStates, pvcRecoveryReplicas) {
 		return ctrl.Result{}, nil
 	}
 
-	logger.Info("Deleting stale PhysicalBackup from previous replica recovery", "name", physicalBackup.Name)
-	if err := r.Delete(ctx, &physicalBackup, &client.DeleteOptions{
-		PropagationPolicy: ptr.To(metav1.DeletePropagationBackground),
-	}); err != nil && !apierrors.IsNotFound(err) {
-		return ctrl.Result{}, fmt.Errorf("error deleting stale PhysicalBackup: %v", err)
+	logger.Info("Deleting stale replica recovery artifacts", "physicalBackup", physicalBackup.Name)
+	if err := r.cleanupReplicaRecoveryArtifacts(ctx, mariadb); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error deleting stale replica recovery artifacts: %v", err)
 	}
 	return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 }
 
 func isReplicaPhysicalBackupStale(physicalBackup *mariadbv1alpha1.PhysicalBackup,
+	mariadb *mariadbv1alpha1.MariaDB, pvcStates map[int]storagePVCState, pvcRecoveryReplicas []string) bool {
+	if isReplicaPhysicalBackupStaleByCondition(physicalBackup, mariadb) {
+		return true
+	}
+	return isReplicaPhysicalBackupStaleForPVCRecovery(physicalBackup, pvcStates, pvcRecoveryReplicas)
+}
+
+func isReplicaPhysicalBackupStaleByCondition(physicalBackup *mariadbv1alpha1.PhysicalBackup,
 	mariadb *mariadbv1alpha1.MariaDB) bool {
 	condition := meta.FindStatusCondition(mariadb.Status.Conditions, mariadbv1alpha1.ConditionTypeReplicaRecovered)
 	if condition == nil || condition.Status != metav1.ConditionFalse {
@@ -244,6 +272,29 @@ func isReplicaPhysicalBackupStale(physicalBackup *mariadbv1alpha1.PhysicalBackup
 		return false
 	}
 	return physicalBackup.CreationTimestamp.Time.Before(condition.LastTransitionTime.Time)
+}
+
+func isReplicaPhysicalBackupStaleForPVCRecovery(physicalBackup *mariadbv1alpha1.PhysicalBackup,
+	pvcStates map[int]storagePVCState, pvcRecoveryReplicas []string) bool {
+	if physicalBackup.CreationTimestamp.IsZero() {
+		return false
+	}
+
+	for _, replica := range pvcRecoveryReplicas {
+		podIndex, err := stsobj.PodIndex(replica)
+		if err != nil || podIndex == nil {
+			continue
+		}
+
+		pvcState, ok := pvcStates[*podIndex]
+		if !ok || pvcState.UID == "" || pvcState.CreationTimestamp.IsZero() {
+			continue
+		}
+		if pvcState.CreationTimestamp.Time.After(physicalBackup.CreationTimestamp.Time) {
+			return true
+		}
+	}
+	return false
 }
 
 func (r *MariaDBReconciler) reconcileReplicasToRecover(ctx context.Context, replicas []string, mariadb *mariadbv1alpha1.MariaDB,
@@ -276,6 +327,13 @@ func (r *MariaDBReconciler) reconcileReplicasToRecover(ctx context.Context, repl
 		}
 
 		if err := r.ensureReplicationConfiguredInPod(ctx, replica, mariadb, snapshotKey, replicaLogger); err != nil {
+			refreshed, refreshErr := r.retryReplicaRecoveryWithFreshBackup(ctx, replica, mariadb, err, replicaLogger)
+			if refreshErr != nil {
+				return ctrl.Result{}, refreshErr
+			}
+			if refreshed {
+				return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+			}
 			return ctrl.Result{}, fmt.Errorf("error ensuring replica %s configured: %v", replica, err)
 		}
 		if err := r.ensureReplicaRecovered(ctx, replica, mariadb, replicaLogger); err != nil {
@@ -657,6 +715,47 @@ func (r *MariaDBReconciler) ensureReplicaRecovered(ctx context.Context, replica 
 	})
 }
 
+func (r *MariaDBReconciler) retryReplicaRecoveryWithFreshBackup(ctx context.Context, replica string,
+	mariadb *mariadbv1alpha1.MariaDB, replicationErr error, logger logr.Logger) (bool, error) {
+	if !errors.Is(replicationErr, context.DeadlineExceeded) {
+		return false, nil
+	}
+
+	podIndex, err := stsobj.PodIndex(replica)
+	if err != nil {
+		return false, fmt.Errorf("error getting replica pod index: %v", err)
+	}
+
+	pvcState, ok, err := r.getStoragePVCState(ctx, mariadb, *podIndex)
+	if err != nil {
+		return false, fmt.Errorf("error getting storage PVC state: %v", err)
+	}
+	if !ok || pvcState.UID == "" {
+		return false, nil
+	}
+
+	if refreshedUID, ok := storedReplicaRecoveryRefreshPVCUID(mariadb.Annotations, *podIndex); ok && refreshedUID == pvcState.UID {
+		logger.Info(
+			"Replica recovery already retried with a fresh PhysicalBackup for this PVC",
+			"replica-pvc-uid", pvcState.UID,
+		)
+		return false, nil
+	}
+
+	if err := r.syncReplicaRecoveryRefreshPVCUIDAnnotation(ctx, mariadb, *podIndex, pvcState.UID); err != nil {
+		return false, fmt.Errorf("error recording replica recovery retry: %v", err)
+	}
+	if err := r.cleanupReplicaRecoveryArtifacts(ctx, mariadb); err != nil {
+		return false, fmt.Errorf("error cleaning replica recovery artifacts: %v", err)
+	}
+
+	logger.Info(
+		"Replica recovery configuration timed out, retrying with a fresh PhysicalBackup",
+		"replica-pvc-uid", pvcState.UID,
+	)
+	return true, nil
+}
+
 func (r *MariaDBReconciler) setReplicaRecoveredAndCleanup(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {
 	if !mariadb.IsRecoveringReplicas() {
 		return nil
@@ -669,6 +768,17 @@ func (r *MariaDBReconciler) setReplicaRecoveredAndCleanup(ctx context.Context, m
 		return fmt.Errorf("error patching MariaDB status: %v", err)
 	}
 
+	if err := r.cleanupReplicaRecoveryArtifacts(ctx, mariadb); err != nil {
+		return err
+	}
+	if err := r.clearReplicaRecoveryRefreshPVCUIDAnnotations(ctx, mariadb); err != nil {
+		return fmt.Errorf("error clearing replica recovery retry annotations: %v", err)
+	}
+	return nil
+}
+
+func (r *MariaDBReconciler) cleanupReplicaRecoveryArtifacts(ctx context.Context,
+	mariadb *mariadbv1alpha1.MariaDB) error {
 	if err := r.cleanupPhysicalBackup(ctx, mariadb.PhysicalBackupReplicaRecoveryKey()); err != nil {
 		return err
 	}

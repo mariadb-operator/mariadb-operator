@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -412,6 +413,9 @@ func TestEnsureReplicaPhysicalBackupCurrentDeletesStaleRecoveryBackup(t *testing
 	if err := mariadbv1alpha1.AddToScheme(scheme); err != nil {
 		t.Fatalf("error adding MariaDB scheme: %v", err)
 	}
+	if err := batchv1.AddToScheme(scheme); err != nil {
+		t.Fatalf("error adding batch scheme: %v", err)
+	}
 
 	recoveryStart := metav1.NewTime(time.Date(2026, 3, 23, 22, 36, 21, 0, time.UTC))
 	backupTime := metav1.NewTime(time.Date(2026, 3, 23, 22, 33, 44, 0, time.UTC))
@@ -420,6 +424,9 @@ func TestEnsureReplicaPhysicalBackupCurrentDeletesStaleRecoveryBackup(t *testing
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "mariadb",
 			Namespace: "test",
+		},
+		Spec: mariadbv1alpha1.MariaDBSpec{
+			Replicas: 2,
 		},
 		Status: mariadbv1alpha1.MariaDBStatus{
 			Conditions: []metav1.Condition{
@@ -439,10 +446,16 @@ func TestEnsureReplicaPhysicalBackupCurrentDeletesStaleRecoveryBackup(t *testing
 			CreationTimestamp: backupTime,
 		},
 	}
+	initJob := &batchv1.Job{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      mariadb.PhysicalBackupInitJobKey(0).Name,
+			Namespace: mariadb.Namespace,
+		},
+	}
 
 	fakeClient := fake.NewClientBuilder().
 		WithScheme(scheme).
-		WithObjects(mariadb, physicalBackup).
+		WithObjects(mariadb, physicalBackup, initJob).
 		Build()
 
 	reconciler := &MariaDBReconciler{
@@ -453,6 +466,8 @@ func TestEnsureReplicaPhysicalBackupCurrentDeletesStaleRecoveryBackup(t *testing
 		context.Background(),
 		mariadb.PhysicalBackupReplicaRecoveryKey(),
 		mariadb,
+		nil,
+		nil,
 		logr.Discard(),
 	)
 	if err != nil {
@@ -469,5 +484,456 @@ func TestEnsureReplicaPhysicalBackupCurrentDeletesStaleRecoveryBackup(t *testing
 	)
 	if !apierrors.IsNotFound(err) {
 		t.Fatalf("expected stale PhysicalBackup to be deleted, got err=%v", err)
+	}
+	err = fakeClient.Get(
+		context.Background(),
+		client.ObjectKeyFromObject(initJob),
+		&batchv1.Job{},
+	)
+	if !apierrors.IsNotFound(err) {
+		t.Fatalf("expected stale init Job to be deleted, got err=%v", err)
+	}
+}
+
+func TestEnsureReplicaPhysicalBackupCurrentDeletesStaleRecoveryArtifactsForRecreatedPVC(t *testing.T) {
+	scheme := runtime.NewScheme()
+	if err := mariadbv1alpha1.AddToScheme(scheme); err != nil {
+		t.Fatalf("error adding MariaDB scheme: %v", err)
+	}
+	if err := batchv1.AddToScheme(scheme); err != nil {
+		t.Fatalf("error adding batch scheme: %v", err)
+	}
+
+	backupTime := metav1.NewTime(time.Date(2026, 3, 23, 22, 33, 44, 0, time.UTC))
+	pvcCreationTime := metav1.NewTime(time.Date(2026, 3, 23, 22, 36, 21, 0, time.UTC))
+
+	mariadb := &mariadbv1alpha1.MariaDB{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "mariadb",
+			Namespace: "test",
+		},
+		Spec: mariadbv1alpha1.MariaDBSpec{
+			Replicas: 2,
+		},
+	}
+	physicalBackup := &mariadbv1alpha1.PhysicalBackup{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:              mariadb.PhysicalBackupReplicaRecoveryKey().Name,
+			Namespace:         mariadb.Namespace,
+			CreationTimestamp: backupTime,
+		},
+	}
+	initJob := &batchv1.Job{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      mariadb.PhysicalBackupInitJobKey(0).Name,
+			Namespace: mariadb.Namespace,
+		},
+	}
+
+	fakeClient := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(mariadb, physicalBackup, initJob).
+		Build()
+
+	reconciler := &MariaDBReconciler{
+		Client: fakeClient,
+	}
+
+	result, err := reconciler.ensureReplicaPhysicalBackupCurrent(
+		context.Background(),
+		mariadb.PhysicalBackupReplicaRecoveryKey(),
+		mariadb,
+		map[int]storagePVCState{
+			0: {
+				UID:               "new-replica-pvc-uid",
+				CreationTimestamp: pvcCreationTime,
+			},
+		},
+		[]string{"mariadb-0"},
+		logr.Discard(),
+	)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.RequeueAfter != time.Second {
+		t.Fatalf("expected requeue after 1s, got %v", result.RequeueAfter)
+	}
+
+	err = fakeClient.Get(
+		context.Background(),
+		client.ObjectKeyFromObject(physicalBackup),
+		&mariadbv1alpha1.PhysicalBackup{},
+	)
+	if !apierrors.IsNotFound(err) {
+		t.Fatalf("expected stale PhysicalBackup to be deleted, got err=%v", err)
+	}
+	err = fakeClient.Get(
+		context.Background(),
+		client.ObjectKeyFromObject(initJob),
+		&batchv1.Job{},
+	)
+	if !apierrors.IsNotFound(err) {
+		t.Fatalf("expected stale init Job to be deleted, got err=%v", err)
+	}
+}
+
+func TestEnsureReplicaPhysicalBackupCurrentKeepsCurrentRecoveryArtifactsForPVC(t *testing.T) {
+	scheme := runtime.NewScheme()
+	if err := mariadbv1alpha1.AddToScheme(scheme); err != nil {
+		t.Fatalf("error adding MariaDB scheme: %v", err)
+	}
+	if err := batchv1.AddToScheme(scheme); err != nil {
+		t.Fatalf("error adding batch scheme: %v", err)
+	}
+
+	backupTime := metav1.NewTime(time.Date(2026, 3, 23, 22, 36, 21, 0, time.UTC))
+	pvcCreationTime := metav1.NewTime(time.Date(2026, 3, 23, 22, 33, 44, 0, time.UTC))
+
+	mariadb := &mariadbv1alpha1.MariaDB{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "mariadb",
+			Namespace: "test",
+		},
+		Spec: mariadbv1alpha1.MariaDBSpec{
+			Replicas: 2,
+		},
+	}
+	physicalBackup := &mariadbv1alpha1.PhysicalBackup{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:              mariadb.PhysicalBackupReplicaRecoveryKey().Name,
+			Namespace:         mariadb.Namespace,
+			CreationTimestamp: backupTime,
+		},
+	}
+	initJob := &batchv1.Job{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      mariadb.PhysicalBackupInitJobKey(0).Name,
+			Namespace: mariadb.Namespace,
+		},
+	}
+
+	fakeClient := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(mariadb, physicalBackup, initJob).
+		Build()
+
+	reconciler := &MariaDBReconciler{
+		Client: fakeClient,
+	}
+
+	result, err := reconciler.ensureReplicaPhysicalBackupCurrent(
+		context.Background(),
+		mariadb.PhysicalBackupReplicaRecoveryKey(),
+		mariadb,
+		map[int]storagePVCState{
+			0: {
+				UID:               "current-replica-pvc-uid",
+				CreationTimestamp: pvcCreationTime,
+			},
+		},
+		[]string{"mariadb-0"},
+		logr.Discard(),
+	)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !result.IsZero() {
+		t.Fatalf("expected no requeue, got %+v", result)
+	}
+
+	if err := fakeClient.Get(context.Background(), client.ObjectKeyFromObject(physicalBackup), &mariadbv1alpha1.PhysicalBackup{}); err != nil {
+		t.Fatalf("expected current PhysicalBackup to remain, got err=%v", err)
+	}
+	if err := fakeClient.Get(context.Background(), client.ObjectKeyFromObject(initJob), &batchv1.Job{}); err != nil {
+		t.Fatalf("expected current init Job to remain, got err=%v", err)
+	}
+}
+
+func TestResetReplicaRecoveryIfNotNeededCleansRecoveryArtifacts(t *testing.T) {
+	scheme := runtime.NewScheme()
+	if err := mariadbv1alpha1.AddToScheme(scheme); err != nil {
+		t.Fatalf("error adding MariaDB scheme: %v", err)
+	}
+	if err := batchv1.AddToScheme(scheme); err != nil {
+		t.Fatalf("error adding batch scheme: %v", err)
+	}
+
+	mariadb := &mariadbv1alpha1.MariaDB{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "mariadb",
+			Namespace: "test",
+			Annotations: map[string]string{
+				storagePVCUIDAnnotationKey(0):                "replica-uid",
+				storagePVCUIDAnnotationKey(1):                "primary-uid",
+				replicaRecoveryRefreshPVCUIDAnnotationKey(0): "replica-uid",
+				replicaRecoveryRefreshPVCUIDAnnotationKey(1): "primary-uid",
+			},
+		},
+		Spec: mariadbv1alpha1.MariaDBSpec{
+			Replicas: 2,
+		},
+		Status: mariadbv1alpha1.MariaDBStatus{
+			Conditions: []metav1.Condition{
+				{
+					Type:   mariadbv1alpha1.ConditionTypeReplicaRecovered,
+					Status: metav1.ConditionFalse,
+					Reason: mariadbv1alpha1.ConditionReasonReplicaRecovered,
+				},
+			},
+		},
+	}
+	physicalBackup := &mariadbv1alpha1.PhysicalBackup{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      mariadb.PhysicalBackupReplicaRecoveryKey().Name,
+			Namespace: mariadb.Namespace,
+		},
+	}
+	initJob := &batchv1.Job{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      mariadb.PhysicalBackupInitJobKey(0).Name,
+			Namespace: mariadb.Namespace,
+		},
+	}
+
+	fakeClient := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithStatusSubresource(&mariadbv1alpha1.MariaDB{}).
+		WithObjects(mariadb, physicalBackup, initJob).
+		Build()
+
+	reconciler := &MariaDBReconciler{
+		Client: fakeClient,
+	}
+
+	handled, err := reconciler.resetReplicaRecoveryIfNotNeeded(
+		context.Background(),
+		mariadb,
+		false,
+		nil,
+		map[int]string{
+			0: "replica-uid",
+			1: "primary-uid",
+		},
+	)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !handled {
+		t.Fatalf("expected replica recovery reset to handle cleanup")
+	}
+
+	if err := fakeClient.Get(context.Background(), client.ObjectKeyFromObject(physicalBackup), &mariadbv1alpha1.PhysicalBackup{}); !apierrors.IsNotFound(err) {
+		t.Fatalf("expected replica recovery PhysicalBackup to be deleted, got err=%v", err)
+	}
+	if err := fakeClient.Get(context.Background(), client.ObjectKeyFromObject(initJob), &batchv1.Job{}); !apierrors.IsNotFound(err) {
+		t.Fatalf("expected replica recovery init Job to be deleted, got err=%v", err)
+	}
+
+	var updated mariadbv1alpha1.MariaDB
+	if err := fakeClient.Get(context.Background(), client.ObjectKeyFromObject(mariadb), &updated); err != nil {
+		t.Fatalf("error getting MariaDB: %v", err)
+	}
+	if _, ok := updated.Annotations[replicaRecoveryRefreshPVCUIDAnnotationKey(0)]; ok {
+		t.Fatalf("expected replica recovery retry annotation to be cleared")
+	}
+	if updated.IsRecoveringReplicas() {
+		t.Fatalf("expected replica recovery condition to be reset")
+	}
+}
+
+func TestRetryReplicaRecoveryWithFreshBackupDeletesArtifactsOncePerPVC(t *testing.T) {
+	scheme := runtime.NewScheme()
+	if err := mariadbv1alpha1.AddToScheme(scheme); err != nil {
+		t.Fatalf("error adding MariaDB scheme: %v", err)
+	}
+	if err := corev1.AddToScheme(scheme); err != nil {
+		t.Fatalf("error adding core scheme: %v", err)
+	}
+	if err := batchv1.AddToScheme(scheme); err != nil {
+		t.Fatalf("error adding batch scheme: %v", err)
+	}
+
+	mariadb := &mariadbv1alpha1.MariaDB{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "mariadb",
+			Namespace: "test",
+		},
+		Spec: mariadbv1alpha1.MariaDBSpec{
+			Replicas: 2,
+		},
+	}
+	replicaPVC := &corev1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      mariadb.PVCKey(builder.StorageVolume, 0).Name,
+			Namespace: mariadb.Namespace,
+			UID:       "retry-pvc-uid",
+		},
+	}
+	physicalBackup := &mariadbv1alpha1.PhysicalBackup{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      mariadb.PhysicalBackupReplicaRecoveryKey().Name,
+			Namespace: mariadb.Namespace,
+		},
+	}
+	initJob := &batchv1.Job{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      mariadb.PhysicalBackupInitJobKey(0).Name,
+			Namespace: mariadb.Namespace,
+		},
+	}
+
+	fakeClient := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(mariadb, replicaPVC, physicalBackup, initJob).
+		Build()
+
+	reconciler := &MariaDBReconciler{
+		Client: fakeClient,
+	}
+
+	retried, err := reconciler.retryReplicaRecoveryWithFreshBackup(
+		context.Background(),
+		"mariadb-0",
+		mariadb,
+		context.DeadlineExceeded,
+		logr.Discard(),
+	)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !retried {
+		t.Fatalf("expected replica recovery to schedule a fresh-backup retry")
+	}
+
+	var updated mariadbv1alpha1.MariaDB
+	if err := fakeClient.Get(context.Background(), client.ObjectKeyFromObject(mariadb), &updated); err != nil {
+		t.Fatalf("error getting MariaDB: %v", err)
+	}
+	if got := updated.Annotations[replicaRecoveryRefreshPVCUIDAnnotationKey(0)]; got != "retry-pvc-uid" {
+		t.Fatalf("expected retry annotation to be set, got %q", got)
+	}
+	if err := fakeClient.Get(context.Background(), client.ObjectKeyFromObject(physicalBackup), &mariadbv1alpha1.PhysicalBackup{}); !apierrors.IsNotFound(err) {
+		t.Fatalf("expected replica recovery PhysicalBackup to be deleted, got err=%v", err)
+	}
+	if err := fakeClient.Get(context.Background(), client.ObjectKeyFromObject(initJob), &batchv1.Job{}); !apierrors.IsNotFound(err) {
+		t.Fatalf("expected replica recovery init Job to be deleted, got err=%v", err)
+	}
+
+	retryBackup := &mariadbv1alpha1.PhysicalBackup{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      mariadb.PhysicalBackupReplicaRecoveryKey().Name,
+			Namespace: mariadb.Namespace,
+		},
+	}
+	retryJob := &batchv1.Job{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      mariadb.PhysicalBackupInitJobKey(0).Name,
+			Namespace: mariadb.Namespace,
+		},
+	}
+	if err := fakeClient.Create(context.Background(), retryBackup); err != nil {
+		t.Fatalf("error creating retry PhysicalBackup: %v", err)
+	}
+	if err := fakeClient.Create(context.Background(), retryJob); err != nil {
+		t.Fatalf("error creating retry Job: %v", err)
+	}
+
+	retried, err = reconciler.retryReplicaRecoveryWithFreshBackup(
+		context.Background(),
+		"mariadb-0",
+		&updated,
+		context.DeadlineExceeded,
+		logr.Discard(),
+	)
+	if err != nil {
+		t.Fatalf("unexpected error on second retry attempt: %v", err)
+	}
+	if retried {
+		t.Fatalf("expected only one fresh-backup retry per PVC")
+	}
+	if err := fakeClient.Get(context.Background(), client.ObjectKeyFromObject(retryBackup), &mariadbv1alpha1.PhysicalBackup{}); err != nil {
+		t.Fatalf("expected PhysicalBackup to remain after retry budget is exhausted, got err=%v", err)
+	}
+	if err := fakeClient.Get(context.Background(), client.ObjectKeyFromObject(retryJob), &batchv1.Job{}); err != nil {
+		t.Fatalf("expected init Job to remain after retry budget is exhausted, got err=%v", err)
+	}
+}
+
+func TestRetryReplicaRecoveryWithFreshBackupIgnoresNonTimeoutErrors(t *testing.T) {
+	scheme := runtime.NewScheme()
+	if err := mariadbv1alpha1.AddToScheme(scheme); err != nil {
+		t.Fatalf("error adding MariaDB scheme: %v", err)
+	}
+	if err := corev1.AddToScheme(scheme); err != nil {
+		t.Fatalf("error adding core scheme: %v", err)
+	}
+	if err := batchv1.AddToScheme(scheme); err != nil {
+		t.Fatalf("error adding batch scheme: %v", err)
+	}
+
+	mariadb := &mariadbv1alpha1.MariaDB{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "mariadb",
+			Namespace: "test",
+		},
+		Spec: mariadbv1alpha1.MariaDBSpec{
+			Replicas: 2,
+		},
+	}
+	replicaPVC := &corev1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      mariadb.PVCKey(builder.StorageVolume, 0).Name,
+			Namespace: mariadb.Namespace,
+			UID:       "retry-pvc-uid",
+		},
+	}
+	physicalBackup := &mariadbv1alpha1.PhysicalBackup{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      mariadb.PhysicalBackupReplicaRecoveryKey().Name,
+			Namespace: mariadb.Namespace,
+		},
+	}
+	initJob := &batchv1.Job{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      mariadb.PhysicalBackupInitJobKey(0).Name,
+			Namespace: mariadb.Namespace,
+		},
+	}
+
+	fakeClient := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(mariadb, replicaPVC, physicalBackup, initJob).
+		Build()
+
+	reconciler := &MariaDBReconciler{
+		Client: fakeClient,
+	}
+
+	retried, err := reconciler.retryReplicaRecoveryWithFreshBackup(
+		context.Background(),
+		"mariadb-0",
+		mariadb,
+		errors.New("access denied"),
+		logr.Discard(),
+	)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if retried {
+		t.Fatalf("expected non-timeout replication errors to skip fresh-backup retry")
+	}
+
+	var updated mariadbv1alpha1.MariaDB
+	if err := fakeClient.Get(context.Background(), client.ObjectKeyFromObject(mariadb), &updated); err != nil {
+		t.Fatalf("error getting MariaDB: %v", err)
+	}
+	if _, ok := updated.Annotations[replicaRecoveryRefreshPVCUIDAnnotationKey(0)]; ok {
+		t.Fatalf("expected retry annotation to remain unset for non-timeout errors")
+	}
+	if err := fakeClient.Get(context.Background(), client.ObjectKeyFromObject(physicalBackup), &mariadbv1alpha1.PhysicalBackup{}); err != nil {
+		t.Fatalf("expected PhysicalBackup to remain for non-timeout errors, got err=%v", err)
+	}
+	if err := fakeClient.Get(context.Background(), client.ObjectKeyFromObject(initJob), &batchv1.Job{}); err != nil {
+		t.Fatalf("expected init Job to remain for non-timeout errors, got err=%v", err)
 	}
 }

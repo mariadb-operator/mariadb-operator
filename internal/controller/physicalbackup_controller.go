@@ -437,6 +437,15 @@ func sortPods(pods []corev1.Pod) {
 	})
 }
 
+func shouldWaitForConfiguredReplicaBackupTarget(backup *mariadbv1alpha1.PhysicalBackup,
+	mariadb *mariadbv1alpha1.MariaDB) bool {
+	if !mariadb.IsReplicationEnabled() || mariadb.HasConfiguredReplica() {
+		return false
+	}
+	target := ptr.Deref(backup.Spec.Target, mariadbv1alpha1.PhysicalBackupTargetReplica)
+	return target == mariadbv1alpha1.PhysicalBackupTargetReplica
+}
+
 func isReplicationReady(ctx context.Context, client *sql.Client, logger logr.Logger) (bool, error) {
 	replStatus, err := client.ReplicaStatus(ctx, logger)
 	if err != nil {
