@@ -11,6 +11,7 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
+	agentclient "github.com/mariadb-operator/mariadb-operator/v26/pkg/agent/client"
 	agentresources "github.com/mariadb-operator/mariadb-operator/v26/pkg/agent/resources"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/backup"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/builder"
@@ -986,7 +987,14 @@ func (r *MariaDBReconciler) reconcileUsers(ctx context.Context, mariadb *mariadb
 				mariadbsql.WithIdentifiedBy(newRootPassword),
 				mariadbsql.WithMaxUserConnections(3),
 			); err != nil {
-				return ctrl.Result{}, fmt.Errorf("error executing ALTER USER for root: %v", err)
+				return ctrl.Result{}, fmt.Errorf("error executing ALTER USER for root@localhost: %v", err)
+			}
+			if err := sqlClient.AlterUser(
+				sqlCtx,
+				"'root'@'%'",
+				mariadbsql.WithIdentifiedBy(newRootPassword),
+			); err != nil {
+				return ctrl.Result{}, fmt.Errorf("error executing ALTER USER for root@%%: %v", err)
 			}
 
 			patch := client.MergeFrom(internalRootPasswordSecret.DeepCopy())
@@ -994,12 +1002,45 @@ func (r *MariaDBReconciler) reconcileUsers(ctx context.Context, mariadb *mariadb
 			if err := r.Patch(ctx, &internalRootPasswordSecret, patch); err != nil {
 				// @TODO: Better restoration in case of a failure?
 				if err := sqlClient.AlterUser(sqlCtx, "'root'@'localhost'", mariadbsql.WithIdentifiedBy(string(internalRootPassword))); err != nil {
-					return ctrl.Result{}, fmt.Errorf("error restoring root password: %v", err)
+					return ctrl.Result{}, fmt.Errorf("error restoring root password for root@localhost: %v", err)
+				}
+				if err := sqlClient.AlterUser(sqlCtx, "'root'@'%'", mariadbsql.WithIdentifiedBy(string(internalRootPassword))); err != nil {
+					return ctrl.Result{}, fmt.Errorf("error restoring root password for root@%%: %v", err)
 				}
 
 				return ctrl.Result{}, fmt.Errorf("error updating internal root password secret: %v", err)
 			}
 			newPasswordLogger.Info("Root password updated successfully")
+		}
+
+		// Always send the password to the agent
+		// @TODO: Is this a good idea? Maybe we should track it in the status?
+		// @TODO: Do this in goroutines
+		clientSet, err := agentclient.NewClientSet(ctx, mariadb, r.Environment, r.RefResolver)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("error creating agent client set: %v", err)
+		}
+		pods, err := mdbpod.ListMariaDBPods(ctx, r.Client, mariadb)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("error listing MariaDB pods: %v", err)
+		}
+		var errBundle *multierror.Error
+		for i := range pods {
+			if !mdbpod.PodReady(&pods[i]) {
+				continue
+			}
+			agentClient, err := clientSet.ClientForIndex(i)
+			if err != nil {
+				errBundle = multierror.Append(errBundle,
+					fmt.Errorf("error getting agent client for pod '%s': %v", pods[i].Name, err))
+				continue
+			}
+			if err := agentClient.Environment.SetValue(ctx, "MARIADB_ROOT_PASSWORD", newRootPassword); err != nil {
+				errBundle = multierror.Append(errBundle, err)
+			}
+		}
+		if err := errBundle.ErrorOrNil(); err != nil {
+			return ctrl.Result{}, fmt.Errorf("error setting root password in agent environment: %v", err)
 		}
 	}
 
