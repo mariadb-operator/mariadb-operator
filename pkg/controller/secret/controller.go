@@ -110,10 +110,11 @@ func (r *SecretReconciler) Reconcile(ctx context.Context, req *SecretRequest) er
 		if !apierrors.IsNotFound(err) {
 			return fmt.Errorf("error reconciling Secret: %v", err)
 		}
-		if req.SkipIfExists {
-			return nil
-		}
 		return r.Create(ctx, secret)
+	}
+
+	if req.SkipIfExists {
+		return nil
 	}
 
 	patch := client.MergeFrom(existingSecret.DeepCopy())
