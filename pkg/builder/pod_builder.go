@@ -38,6 +38,7 @@ type mariadbPodOpts struct {
 	includeProbes                bool
 	includeHAAnnotations         bool
 	includeAffinity              bool
+	includeLifecycle             bool
 }
 
 func newMariadbPodOpts(userOpts ...mariadbPodOpt) *mariadbPodOpts {
@@ -188,8 +189,19 @@ func withHAAnnotations(includeHAAnnotations bool) mariadbPodOpt {
 	}
 }
 
+func withLifecycle(includeLifecycle bool) mariadbPodOpt {
+	return func(opts *mariadbPodOpts) {
+		opts.includeLifecycle = includeLifecycle
+	}
+}
+
 func (b *Builder) mariadbPodTemplate(mariadb *mariadbv1alpha1.MariaDB, opts ...mariadbPodOpt) (*corev1.PodTemplateSpec, error) {
-	containers, err := b.mariadbContainers(mariadb, opts...)
+	containerOpts := []mariadbPodOpt{
+		withLifecycle(true),
+	}
+	containerOpts = append(containerOpts, opts...)
+
+	containers, err := b.mariadbContainers(mariadb, containerOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("error building MariaDB containers: %v", err)
 	}
@@ -248,7 +260,7 @@ func (b *Builder) mariadbPodTemplate(mariadb *mariadbv1alpha1.MariaDB, opts ...m
 }
 
 func (b *Builder) maxscalePodTemplate(mxs *mariadbv1alpha1.MaxScale, annotations map[string]string) (*corev1.PodTemplateSpec, error) {
-	containers, err := b.maxscaleContainers(mxs)
+	containers, err := b.maxscaleContainers(mxs, withLifecycle(true))
 	if err != nil {
 		return nil, err
 	}

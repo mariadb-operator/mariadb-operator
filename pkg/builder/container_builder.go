@@ -147,9 +147,14 @@ func (b *Builder) mariadbContainers(mariadb *mariadbv1alpha1.MariaDB, opts ...ma
 	return containers, nil
 }
 
-func (b *Builder) maxscaleContainers(mxs *mariadbv1alpha1.MaxScale) ([]corev1.Container, error) {
+func (b *Builder) maxscaleContainers(mxs *mariadbv1alpha1.MaxScale, opts ...mariadbPodOpt) ([]corev1.Container, error) {
 	tpl := mxs.Spec.ContainerTemplate
-	container, err := b.buildContainerWithTemplate(mxs.Spec.Image, mxs.Spec.ImagePullPolicy, &tpl)
+	container, err := b.buildContainerWithTemplate(
+		mxs.Spec.Image,
+		mxs.Spec.ImagePullPolicy,
+		&tpl,
+		opts...,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -366,6 +371,9 @@ func (b *Builder) buildContainerWithTemplate(image string, pullPolicy corev1.Pul
 		container.Resources = *mariadbOpts.resources
 	} else if tpl.Resources != nil && mariadbOpts.includeMariadbResources {
 		container.Resources = tpl.Resources.ToKubernetesType()
+	}
+	if tpl.Lifecycle != nil && mariadbOpts.includeLifecycle {
+		container.Lifecycle = ptr.To(tpl.Lifecycle.ToKubernetesType())
 	}
 	return &container, nil
 }

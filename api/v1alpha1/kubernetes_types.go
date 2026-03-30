@@ -248,6 +248,44 @@ func (p Probe) ToKubernetesType() corev1.Probe {
 	}
 }
 
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#lifecyclehandler-v1-core.
+type LifecycleHandler struct {
+	// +optional
+	Exec *ExecAction `json:"exec,omitempty"`
+	// +optional
+	HTTPGet *HTTPGetAction `json:"httpGet,omitempty"`
+}
+
+func (l LifecycleHandler) ToKubernetesType() corev1.LifecycleHandler {
+	lifecycleHandler := corev1.LifecycleHandler{}
+	if l.Exec != nil {
+		lifecycleHandler.Exec = ptr.To(l.Exec.ToKubernetesType())
+	}
+	if l.HTTPGet != nil {
+		lifecycleHandler.HTTPGet = ptr.To(l.HTTPGet.ToKubernetesType())
+	}
+	return lifecycleHandler
+}
+
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#lifecycle-v1-core.
+type Lifecycle struct {
+	// +optional
+	PostStart *LifecycleHandler `json:"postStart,omitempty"`
+	// +optional
+	PreStop *LifecycleHandler `json:"preStop,omitempty"`
+}
+
+func (l Lifecycle) ToKubernetesType() corev1.Lifecycle {
+	lifecycle := corev1.Lifecycle{}
+	if l.PostStart != nil {
+		lifecycle.PostStart = ptr.To(l.PostStart.ToKubernetesType())
+	}
+	if l.PreStop != nil {
+		lifecycle.PreStop = ptr.To(l.PreStop.ToKubernetesType())
+	}
+	return lifecycle
+}
+
 // Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#resourcerequirements-v1-core.
 type ResourceRequirements struct {
 	// +optional

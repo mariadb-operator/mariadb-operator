@@ -1027,6 +1027,89 @@ func TestMariadbPodBuilderAffinity(t *testing.T) {
 	}
 }
 
+func TestMariadbPodLifecycleOnlyFirst(t *testing.T) {
+	builder := newDefaultTestBuilder(t)
+
+	mariadb := &mariadbv1alpha1.MariaDB{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test-mariadb-lifecycle",
+		},
+		Spec: mariadbv1alpha1.MariaDBSpec{
+			ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
+				Lifecycle: &mariadbv1alpha1.Lifecycle{
+					PostStart: &mariadbv1alpha1.LifecycleHandler{
+						Exec: &mariadbv1alpha1.ExecAction{
+							Command: []string{"echo", "hello"},
+						},
+					},
+				},
+			},
+			MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
+				SidecarContainers: []mariadbv1alpha1.Container{
+					{
+						Image: "busybox",
+						Command: []string{
+							"sh",
+							"-c",
+							"sleep 1",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	podTpl, err := builder.mariadbPodTemplate(mariadb)
+	if err != nil {
+		t.Fatalf("unexpected error building MariaDB Pod template: %v", err)
+	}
+
+	if len(podTpl.Spec.Containers) < 2 {
+		t.Fatalf("expected at least two containers, got %d", len(podTpl.Spec.Containers))
+	}
+
+	if podTpl.Spec.Containers[0].Lifecycle == nil {
+		t.Error("expected lifecycle on first container")
+	}
+	if podTpl.Spec.Containers[1].Lifecycle != nil {
+		t.Error("did not expect lifecycle on second (sidecar) container")
+	}
+}
+
+func TestMaxScalePodLifecycleSingle(t *testing.T) {
+	builder := newDefaultTestBuilder(t)
+
+	mxs := &mariadbv1alpha1.MaxScale{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test-maxscale-lifecycle",
+		},
+		Spec: mariadbv1alpha1.MaxScaleSpec{
+			ContainerTemplate: mariadbv1alpha1.ContainerTemplate{
+				Lifecycle: &mariadbv1alpha1.Lifecycle{
+					PostStart: &mariadbv1alpha1.LifecycleHandler{
+						Exec: &mariadbv1alpha1.ExecAction{
+							Command: []string{"echo", "hello"},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	podTpl, err := builder.maxscalePodTemplate(mxs, nil)
+	if err != nil {
+		t.Fatalf("unexpected error building MaxScale Pod template: %v", err)
+	}
+
+	if len(podTpl.Spec.Containers) != 1 {
+		t.Fatalf("expected one container, got %d", len(podTpl.Spec.Containers))
+	}
+
+	if podTpl.Spec.Containers[0].Lifecycle == nil {
+		t.Error("expected lifecycle on maxscale container")
+	}
+}
+
 func TestMariadbPodBuilderInitContainers(t *testing.T) {
 	builder := newDefaultTestBuilder(t)
 	objMeta := metav1.ObjectMeta{
