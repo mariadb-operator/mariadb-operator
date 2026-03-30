@@ -1013,11 +1013,21 @@ func (r *MariaDBReconciler) reconcileRootPassword(ctx context.Context, mariadb *
 			var errBundle *multierror.Error
 			errBundle = multierror.Append(
 				errBundle,
-				sqlClient.AlterUser(patchCtx, "'root'@'localhost'", mariadbsql.WithIdentifiedBy(string(internalRootPassword))),
+				sqlClient.AlterUser(
+					patchCtx,
+					"'root'@'localhost'",
+					mariadbsql.WithIdentifiedBy(string(internalRootPassword)),
+					mariadbsql.WithMaxUserConnections(10),
+				),
 			)
 			errBundle = multierror.Append(
 				errBundle,
-				sqlClient.AlterUser(patchCtx, "'root'@'%'", mariadbsql.WithIdentifiedBy(string(internalRootPassword))),
+				sqlClient.AlterUser(
+					patchCtx,
+					"'root'@'%'",
+					mariadbsql.WithIdentifiedBy(string(internalRootPassword)),
+					mariadbsql.WithMaxUserConnections(10),
+				),
 			)
 
 			if errBundle.ErrorOrNil() == nil {
@@ -1037,7 +1047,7 @@ func (r *MariaDBReconciler) reconcileRootPassword(ctx context.Context, mariadb *
 			sqlCtx,
 			"'root'@'localhost'",
 			mariadbsql.WithIdentifiedBy(newRootPassword),
-			mariadbsql.WithMaxUserConnections(3),
+			mariadbsql.WithMaxUserConnections(10),
 		),
 	)
 	errBundle = multierror.Append(
@@ -1046,7 +1056,7 @@ func (r *MariaDBReconciler) reconcileRootPassword(ctx context.Context, mariadb *
 			sqlCtx,
 			"'root'@'%'",
 			mariadbsql.WithIdentifiedBy(newRootPassword),
-			mariadbsql.WithMaxUserConnections(3),
+			mariadbsql.WithMaxUserConnections(10),
 		),
 	)
 
