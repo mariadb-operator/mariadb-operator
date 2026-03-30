@@ -1184,6 +1184,113 @@ func TestContainerSecurityContext(t *testing.T) {
 	}
 }
 
+func TestBuildContainerLifecycle(t *testing.T) {
+	builder := newDefaultTestBuilder(t)
+
+	tests := []struct {
+		name      string
+		container *mariadbv1alpha1.ContainerTemplate
+		opts      []mariadbPodOpt
+		want      *corev1.Lifecycle
+	}{
+
+		{
+			name:      "no lifecycle",
+			container: &mariadbv1alpha1.ContainerTemplate{},
+			opts: []mariadbPodOpt{
+				withLifecycle(true),
+			},
+			want: nil,
+		},
+		{
+			name: "with postStart lifecycle",
+			container: &mariadbv1alpha1.ContainerTemplate{
+				Lifecycle: &mariadbv1alpha1.Lifecycle{
+					PostStart: &mariadbv1alpha1.LifecycleHandler{
+						Exec: &mariadbv1alpha1.ExecAction{
+							Command: []string{"echo", "hello"},
+						},
+					},
+				},
+			},
+			opts: []mariadbPodOpt{
+				withLifecycle(true),
+			},
+			want: &corev1.Lifecycle{
+				PostStart: &corev1.LifecycleHandler{
+					Exec: &corev1.ExecAction{
+						Command: []string{"echo", "hello"},
+					},
+				},
+			},
+		},
+		{
+			name: "with preStop lifecycle",
+			container: &mariadbv1alpha1.ContainerTemplate{
+				Lifecycle: &mariadbv1alpha1.Lifecycle{
+					PreStop: &mariadbv1alpha1.LifecycleHandler{
+						Exec: &mariadbv1alpha1.ExecAction{
+							Command: []string{"echo", "hello"},
+						},
+					},
+				},
+			},
+			opts: []mariadbPodOpt{
+				withLifecycle(true),
+			},
+			want: &corev1.Lifecycle{
+				PreStop: &corev1.LifecycleHandler{
+					Exec: &corev1.ExecAction{
+						Command: []string{"echo", "hello"},
+					},
+				},
+			},
+		},
+		{
+			name: "without lifecycle",
+			container: &mariadbv1alpha1.ContainerTemplate{
+				Lifecycle: &mariadbv1alpha1.Lifecycle{
+					PreStop: &mariadbv1alpha1.LifecycleHandler{
+						Exec: &mariadbv1alpha1.ExecAction{
+							Command: []string{"echo", "hello"},
+						},
+					},
+				},
+			},
+			opts: []mariadbPodOpt{
+				withLifecycle(false),
+			},
+			want: nil,
+		},
+		{
+			name: "defaults to no lifecycle",
+			container: &mariadbv1alpha1.ContainerTemplate{
+				Lifecycle: &mariadbv1alpha1.Lifecycle{
+					PreStop: &mariadbv1alpha1.LifecycleHandler{
+						Exec: &mariadbv1alpha1.ExecAction{
+							Command: []string{"echo", "hello"},
+						},
+					},
+				},
+			},
+			want: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := builder.buildContainerWithTemplate("mariadb", corev1.PullIfNotPresent, tt.container, tt.opts...)
+			if err != nil {
+				t.Fatalf("unexpected error building container: %v", err)
+			}
+
+			if diff := cmp.Diff(tt.want, got.Lifecycle); diff != "" {
+				t.Errorf("unexpected Lifecycle (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
 func TestMariadbEnv(t *testing.T) {
 	tests := []struct {
 		name           string
