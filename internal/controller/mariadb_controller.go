@@ -1081,6 +1081,12 @@ func (r *MariaDBReconciler) reconcileRootPassword(ctx context.Context, mariadb *
 		return result, err
 	}
 
+	if mariadb.IsGaleraEnabled() {
+		if err := sqlClient.SetSystemVariable(ctx, "wsrep_sst_auth", fmt.Sprintf("'%s:%s'", "root", newRootPassword)); err != nil {
+			return ctrl.Result{}, fmt.Errorf("error setting wsrep_sst_auth: %v", err)
+		}
+	}
+
 	rootPassLogger.Info("Root password updated successfully")
 
 	return ctrl.Result{}, nil
