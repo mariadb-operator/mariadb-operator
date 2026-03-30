@@ -40,6 +40,7 @@ import (
 	mariadbsql "github.com/mariadb-operator/mariadb-operator/v26/pkg/sql"
 	sts "github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
 	mdbsnapshot "github.com/mariadb-operator/mariadb-operator/v26/pkg/volumesnapshot"
+	"golang.org/x/sync/errgroup"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
@@ -49,6 +50,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/events"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -942,106 +944,159 @@ func (r *MariaDBReconciler) reconcileUsers(ctx context.Context, mariadb *mariadb
 		}
 	}
 
-	// @TODO: MVP, cyclo complexity is high, improve
-	if !mariadb.IsRootPasswordEmpty() {
-		newRootPassword, err := r.RefResolver.SecretKeyRef(ctx, mariadb.Spec.RootPasswordSecretKeyRef.SecretKeySelector, mariadb.Namespace)
-		if err != nil {
-			return ctrl.Result{}, fmt.Errorf("error getting root password secret: %v", err)
+	return r.reconcileRootPassword(ctx, mariadb)
+}
+
+// reconcileRootPassword will ensure the root password in the mariadb CR is up to date
+// @NOTE: `root@localhost` and `root@%` are modified as both are created when MariaDB is first configured
+
+// @WARN: If updating the agent's environment fails, then the probes will fail and a restart will be triggered.
+// The correct password will be picked up from the secret. Alternatively we can send the root password on every reconcile
+// loop but that is very chatty.
+func (r *MariaDBReconciler) reconcileRootPassword(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
+	if mariadb.IsRootPasswordEmpty() {
+		return ctrl.Result{}, nil
+	}
+
+	if result, err := r.shouldReconcileRootPassword(ctx, mariadb); !result.IsZero() || err != nil {
+		return result, err
+	}
+
+	newRootPassword, err := r.RefResolver.SecretKeyRef(ctx, mariadb.Spec.RootPasswordSecretKeyRef.SecretKeySelector, mariadb.Namespace)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error getting root password secret: %v", err)
+	}
+
+	internalRootPasswordSecretKey := mariadb.InternalRootPasswordSecretKey()
+	var internalRootPasswordSecret corev1.Secret
+	err = r.Get(ctx, internalRootPasswordSecretKey, &internalRootPasswordSecret)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			log.FromContext(ctx).V(1).Info("Internal root password secret not found, requeuing")
+			return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 		}
+		return ctrl.Result{}, fmt.Errorf("error getting internal root password secret: %v", err)
+	}
+	internalRootPassword := internalRootPasswordSecret.Data[mariadb.Spec.RootPasswordSecretKeyRef.Key]
 
-		internalRootPasswordSecretKey := mariadb.InternalRootPasswordSecretKey()
-		var internalRootPasswordSecret corev1.Secret
-		err = r.Get(ctx, internalRootPasswordSecretKey, &internalRootPasswordSecret)
-		if err != nil {
-			if apierrors.IsNotFound(err) {
-				log.FromContext(ctx).V(1).Info("Internal root password secret not found, requeuing")
-				return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
-			}
-			return ctrl.Result{}, fmt.Errorf("error getting internal root password secret: %v", err)
-		}
-		internalRootPassword := internalRootPasswordSecret.Data[mariadb.Spec.RootPasswordSecretKeyRef.Key]
+	if newRootPassword == string(internalRootPassword) {
+		return ctrl.Result{}, nil
+	}
 
-		if newRootPassword != string(internalRootPassword) {
-			newPasswordLogger := log.FromContext(ctx)
-			newPasswordLogger.Info("Root password changed. Updating.")
+	rootPassLogger := log.FromContext(ctx).WithName("root-password")
+	rootPassLogger.Info("Root password changed. Updating.")
 
-			sqlCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
-			defer cancel()
+	sqlCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
 
-			sqlClient, err := mariadbsql.NewClientWithMariaDB(
-				sqlCtx,
-				mariadb,
-				r.RefResolver,
-				mariadbsql.WithPassword(string(internalRootPassword)),
-				mariadbsql.WithHost(mariadb.GetHost()),
-				mariadbsql.WithTimeout(5*time.Second),
+	sqlClient, err := mariadbsql.NewClientWithMariaDB(
+		sqlCtx,
+		mariadb,
+		r.RefResolver,
+		mariadbsql.WithPassword(string(internalRootPassword)), // Using the internal password
+		mariadbsql.WithHost(mariadb.GetHost()),
+		mariadbsql.WithTimeout(5*time.Second),
+	)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error creating SQL client for root password update: %v", err)
+	}
+	defer sqlClient.Close()
+
+	if err := sqlClient.AlterUser(
+		sqlCtx,
+		"'root'@'localhost'",
+		mariadbsql.WithIdentifiedBy(newRootPassword),
+		mariadbsql.WithMaxUserConnections(3),
+	); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error executing ALTER USER for root@localhost: %v", err)
+	}
+	if err := sqlClient.AlterUser(
+		sqlCtx,
+		"'root'@'%'",
+		mariadbsql.WithIdentifiedBy(newRootPassword),
+		mariadbsql.WithMaxUserConnections(3),
+	); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error executing ALTER USER for root@%%: %v", err)
+	}
+
+	patch := client.MergeFrom(internalRootPasswordSecret.DeepCopy())
+	internalRootPasswordSecret.Data[mariadb.Spec.RootPasswordSecretKeyRef.Key] = []byte(newRootPassword)
+
+	if err := r.Patch(ctx, &internalRootPasswordSecret, patch); err != nil {
+		patchCtx, cancel := context.WithTimeout(ctx, time.Second*10)
+		defer cancel()
+		err = wait.PollUntilContextCancel(patchCtx, time.Second, true, func(ctx context.Context) (done bool, err error) {
+			var errBundle *multierror.Error
+			errBundle = multierror.Append(
+				errBundle,
+				sqlClient.AlterUser(patchCtx, "'root'@'localhost'", mariadbsql.WithIdentifiedBy(string(internalRootPassword))),
 			)
-			if err != nil {
-				return ctrl.Result{}, fmt.Errorf("error creating SQL client for root password update: %v", err)
-			}
-			defer sqlClient.Close()
+			errBundle = multierror.Append(
+				errBundle,
+				sqlClient.AlterUser(patchCtx, "'root'@'%'", mariadbsql.WithIdentifiedBy(string(internalRootPassword))),
+			)
 
-			if err := sqlClient.AlterUser(
-				sqlCtx,
-				"'root'@'localhost'",
-				mariadbsql.WithIdentifiedBy(newRootPassword),
-				mariadbsql.WithMaxUserConnections(3),
-			); err != nil {
-				return ctrl.Result{}, fmt.Errorf("error executing ALTER USER for root@localhost: %v", err)
-			}
-			if err := sqlClient.AlterUser(
-				sqlCtx,
-				"'root'@'%'",
-				mariadbsql.WithIdentifiedBy(newRootPassword),
-			); err != nil {
-				return ctrl.Result{}, fmt.Errorf("error executing ALTER USER for root@%%: %v", err)
-			}
+			return errBundle.ErrorOrNil() == nil, nil
+		})
 
-			patch := client.MergeFrom(internalRootPasswordSecret.DeepCopy())
-			internalRootPasswordSecret.Data[mariadb.Spec.RootPasswordSecretKeyRef.Key] = []byte(newRootPassword)
-			if err := r.Patch(ctx, &internalRootPasswordSecret, patch); err != nil {
-				// @TODO: Better restoration in case of a failure?
-				if err := sqlClient.AlterUser(sqlCtx, "'root'@'localhost'", mariadbsql.WithIdentifiedBy(string(internalRootPassword))); err != nil {
-					return ctrl.Result{}, fmt.Errorf("error restoring root password for root@localhost: %v", err)
-				}
-				if err := sqlClient.AlterUser(sqlCtx, "'root'@'%'", mariadbsql.WithIdentifiedBy(string(internalRootPassword))); err != nil {
-					return ctrl.Result{}, fmt.Errorf("error restoring root password for root@%%: %v", err)
-				}
+		return ctrl.Result{}, err
+	}
 
-				return ctrl.Result{}, fmt.Errorf("error updating internal root password secret: %v", err)
-			}
-			newPasswordLogger.Info("Root password updated successfully")
-		}
+	clientSet, err := agentclient.NewClientSet(ctx, mariadb, r.Environment, r.RefResolver)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error creating agent client set: %v", err)
+	}
 
-		// Always send the password to the agent
-		// @TODO: Is this a good idea? Maybe we should track it in the status?
-		// @TODO: Do this in goroutines
-		clientSet, err := agentclient.NewClientSet(ctx, mariadb, r.Environment, r.RefResolver)
-		if err != nil {
-			return ctrl.Result{}, fmt.Errorf("error creating agent client set: %v", err)
-		}
-		pods, err := mdbpod.ListMariaDBPods(ctx, r.Client, mariadb)
-		if err != nil {
-			return ctrl.Result{}, fmt.Errorf("error listing MariaDB pods: %v", err)
-		}
-		var errBundle *multierror.Error
-		for i := range pods {
-			if !mdbpod.PodReady(&pods[i]) {
-				continue
-			}
+	pods, err := mdbpod.ListMariaDBPods(ctx, r.Client, mariadb)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error listing MariaDB pods: %v", err)
+	}
+
+	g := new(errgroup.Group)
+	g.SetLimit(len(pods))
+	for i := range pods {
+		g.Go(func() error {
 			agentClient, err := clientSet.ClientForIndex(i)
 			if err != nil {
-				errBundle = multierror.Append(errBundle,
-					fmt.Errorf("error getting agent client for pod '%s': %v", pods[i].Name, err))
-				continue
+				return fmt.Errorf("error getting agent client for pod '%s': %v", pods[i].Name, err)
 			}
 			if err := agentClient.Environment.SetValue(ctx, "MARIADB_ROOT_PASSWORD", newRootPassword); err != nil {
-				errBundle = multierror.Append(errBundle, err)
+				return err
 			}
-		}
-		if err := errBundle.ErrorOrNil(); err != nil {
-			return ctrl.Result{}, fmt.Errorf("error setting root password in agent environment: %v", err)
-		}
+			return nil
+		})
+	}
+
+	if err := g.Wait(); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error setting root password in agent environment: %v", err)
+	}
+
+	rootPassLogger.Info("Root password updated successfully")
+
+	return ctrl.Result{}, nil
+}
+
+// shouldReconcileRootPassword checks if a root password reconciliation is safe to happen.
+func (r *MariaDBReconciler) shouldReconcileRootPassword(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
+	if mariadb.IsInitializing() || mariadb.IsUpdating() || mariadb.IsRestoringBackup() ||
+		mariadb.IsScalingOut() || mariadb.IsRecoveringReplicas() || mariadb.HasGaleraNotReadyCondition() ||
+		mariadb.IsSwitchingPrimary() || mariadb.IsReplicationSwitchoverRequired() {
+		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+	}
+
+	healthy, err := health.IsStatefulSetHealthy(
+		ctx,
+		r.Client,
+		client.ObjectKeyFromObject(mariadb),
+		health.WithDesiredReplicas(mariadb.Spec.Replicas),
+		health.WithPort(mariadb.Spec.Port),
+		health.WithEndpointPolicy(health.EndpointPolicyAll),
+	)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error checking MariaDB health: %v", err)
+	}
+	if !healthy {
+		return ctrl.Result{RequeueAfter: time.Second}, nil
 	}
 
 	return ctrl.Result{}, nil
