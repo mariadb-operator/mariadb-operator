@@ -4,6 +4,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/datastructures"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/discovery"
@@ -1251,5 +1252,50 @@ func TestMariadbConfigVolume(t *testing.T) {
 	expectedKey = "my.cnf"
 	if volume.Projected.Sources[1].ConfigMap.Items[0].Key != expectedKey {
 		t.Fatalf("expecting to have '%s' key, got: '%s'", expectedKey, volume.Projected.Sources[0].ConfigMap.Items[0].Key)
+	}
+}
+
+func TestMariadbTerminationGracePeriodSeconds(t *testing.T) {
+	builder := newDefaultTestBuilder(t)
+	objMeta := metav1.ObjectMeta{
+		Name: "test-mariadb-termination-grace",
+	}
+
+	tests := []struct {
+		name string
+		tgs  *int64
+	}{
+		{
+			name: "unset",
+			tgs:  nil,
+		},
+		{
+			name: "set",
+			tgs:  ptr.To(int64(5)),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mariadb := &mariadbv1alpha1.MariaDB{
+				ObjectMeta: objMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					MariaDBPodTemplate: mariadbv1alpha1.MariaDBPodTemplate{
+						TerminationGracePeriodSeconds: tt.tgs,
+					},
+					Storage: mariadbv1alpha1.Storage{
+						Size: ptr.To(resource.MustParse("300Mi")),
+					},
+				},
+			}
+
+			podTpl, err := builder.mariadbPodTemplate(mariadb)
+			if err != nil {
+				t.Fatalf("unexpected error building MariaDB Pod template: %v", err)
+			}
+			if diff := cmp.Diff(podTpl.Spec.TerminationGracePeriodSeconds, tt.tgs); diff != "" {
+				t.Errorf("unexpected TerminationGracePeriodSeconds(-want +got):\n%s", diff)
+			}
+		})
 	}
 }

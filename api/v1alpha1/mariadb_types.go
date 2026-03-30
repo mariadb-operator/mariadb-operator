@@ -521,7 +521,7 @@ func (v MariaDBVolume) ToKubernetesType() corev1.Volume {
 	}
 }
 
-// MariaDBPodTemplate defines a template for MariaDB Pods.
+// MariaDBPodTemplate defines a template for MariaDB Pods. Refer to the Kubernetes dos: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#pod-v1-core.
 type MariaDBPodTemplate struct {
 	// PodMetadata defines extra metadata for the Pod.
 	// +optional
@@ -571,12 +571,14 @@ type MariaDBPodTemplate struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	TopologySpreadConstraints []TopologySpreadConstraint `json:"topologySpreadConstraints,omitempty"`
-	// EnableServiceLinks indicates whether information about services should be injected into pod's
-	// environment variables, matching the syntax of Docker links. Defaults to true if not specified.
-	// Set to false to disable injection of service link environment variables.
+	// EnableServiceLinks to be used in the Pod.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	EnableServiceLinks *bool `json:"enableServiceLinks,omitempty"`
+	// TerminationGracePeriodSeconds to be used in the Pod.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	TerminationGracePeriodSeconds *int64 `json:"terminationGracePeriodSeconds,omitempty"`
 }
 
 // SetDefaults sets reasonable defaults.
