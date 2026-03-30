@@ -42,6 +42,7 @@ import (
 	mdbsnapshot "github.com/mariadb-operator/mariadb-operator/v26/pkg/volumesnapshot"
 	"golang.org/x/sync/errgroup"
 	appsv1 "k8s.io/api/apps/v1"
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -1002,30 +1003,13 @@ func (r *MariaDBReconciler) reconcileRootPassword(ctx context.Context, mariadb *
 	}
 	defer sqlClient.Close()
 
-	if err := sqlClient.AlterUser(
-		sqlCtx,
-		"'root'@'localhost'",
-		mariadbsql.WithIdentifiedBy(newRootPassword),
-		mariadbsql.WithMaxUserConnections(3),
-	); err != nil {
-		return ctrl.Result{}, fmt.Errorf("error executing ALTER USER for root@localhost: %v", err)
-	}
-	if err := sqlClient.AlterUser(
-		sqlCtx,
-		"'root'@'%'",
-		mariadbsql.WithIdentifiedBy(newRootPassword),
-		mariadbsql.WithMaxUserConnections(3),
-	); err != nil {
-		return ctrl.Result{}, fmt.Errorf("error executing ALTER USER for root@%%: %v", err)
-	}
+	// only context cancel error may be returned
+	restoreFunc := func(err error) error {
+		rootPassLogger.Error(err, "attempting to restore the previous password")
 
-	patch := client.MergeFrom(internalRootPasswordSecret.DeepCopy())
-	internalRootPasswordSecret.Data[mariadb.Spec.RootPasswordSecretKeyRef.Key] = []byte(newRootPassword)
-
-	if err := r.Patch(ctx, &internalRootPasswordSecret, patch); err != nil {
 		patchCtx, cancel := context.WithTimeout(ctx, time.Second*10)
 		defer cancel()
-		err = wait.PollUntilContextCancel(patchCtx, time.Second, true, func(ctx context.Context) (done bool, err error) {
+		return wait.PollUntilContextCancel(patchCtx, time.Second, true, func(ctx context.Context) (done bool, err error) {
 			var errBundle *multierror.Error
 			errBundle = multierror.Append(
 				errBundle,
@@ -1036,10 +1020,67 @@ func (r *MariaDBReconciler) reconcileRootPassword(ctx context.Context, mariadb *
 				sqlClient.AlterUser(patchCtx, "'root'@'%'", mariadbsql.WithIdentifiedBy(string(internalRootPassword))),
 			)
 
-			return errBundle.ErrorOrNil() == nil, nil
-		})
+			if errBundle.ErrorOrNil() == nil {
+				return true, nil
 
-		return ctrl.Result{}, err
+			}
+			rootPassLogger.Error(errBundle.ErrorOrNil(), "error while restoring root user password")
+
+			return false, nil
+		})
+	}
+
+	var errBundle *multierror.Error
+	errBundle = multierror.Append(
+		errBundle,
+		sqlClient.AlterUser(
+			sqlCtx,
+			"'root'@'localhost'",
+			mariadbsql.WithIdentifiedBy(newRootPassword),
+			mariadbsql.WithMaxUserConnections(3),
+		),
+	)
+	errBundle = multierror.Append(
+		errBundle,
+		sqlClient.AlterUser(
+			sqlCtx,
+			"'root'@'%'",
+			mariadbsql.WithIdentifiedBy(newRootPassword),
+			mariadbsql.WithMaxUserConnections(3),
+		),
+	)
+
+	if errBundle.ErrorOrNil() != nil {
+		return ctrl.Result{}, fmt.Errorf(
+			"error updating root user password: %v",
+			multierror.Append(errBundle, restoreFunc(errBundle.ErrorOrNil())),
+		)
+	}
+
+	patch := client.MergeFrom(internalRootPasswordSecret.DeepCopy())
+	internalRootPasswordSecret.Data[mariadb.Spec.RootPasswordSecretKeyRef.Key] = []byte(newRootPassword)
+
+	if err := r.Patch(ctx, &internalRootPasswordSecret, patch); err != nil {
+		return ctrl.Result{}, fmt.Errorf(
+			"error while patching internal root password secret: %v",
+			multierror.Append(err, restoreFunc(err)),
+		)
+	}
+
+	if result, err := r.ensureRootPasswordInAgent(ctx, mariadb); !result.IsZero() || err != nil {
+		return result, err
+	}
+
+	rootPassLogger.Info("Root password updated successfully")
+
+	return ctrl.Result{}, nil
+}
+
+// ensureRootPasswordInAgent updates the root password inside the database agents
+func (r *MariaDBReconciler) ensureRootPasswordInAgent(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
+	newRootPassword, err := r.RefResolver.SecretKeyRef(ctx, mariadb.Spec.RootPasswordSecretKeyRef.SecretKeySelector, mariadb.Namespace)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error getting root password secret: %v", err)
 	}
 
 	clientSet, err := agentclient.NewClientSet(ctx, mariadb, r.Environment, r.RefResolver)
@@ -1071,8 +1112,6 @@ func (r *MariaDBReconciler) reconcileRootPassword(ctx context.Context, mariadb *
 		return ctrl.Result{}, fmt.Errorf("error setting root password in agent environment: %v", err)
 	}
 
-	rootPassLogger.Info("Root password updated successfully")
-
 	return ctrl.Result{}, nil
 }
 
@@ -1097,6 +1136,25 @@ func (r *MariaDBReconciler) shouldReconcileRootPassword(ctx context.Context, mar
 	}
 	if !healthy {
 		return ctrl.Result{RequeueAfter: time.Second}, nil
+	}
+
+	var jobList batchv1.JobList
+	if err := r.List(
+		ctx,
+		&jobList,
+		client.InNamespace(mariadb.Namespace),
+		client.MatchingLabels(
+			labels.NewLabelsBuilder().
+				WithMariaDBSelectorLabels(mariadb).
+				Build(),
+		),
+	); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error listing jobs: %v", err)
+	}
+	for _, job := range jobList.Items {
+		if job.Status.Active > 0 {
+			return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+		}
 	}
 
 	return ctrl.Result{}, nil
