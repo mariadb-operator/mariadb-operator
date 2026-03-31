@@ -750,7 +750,7 @@ func (c *Client) GtidStrictMode(ctx context.Context) (bool, error) {
 }
 
 func (c *Client) ChangeWsrepSSTAuth(ctx context.Context, username, password string) error {
-	return c.SetSystemVariable(ctx, "wsrep_sst_auth", fmt.Sprintf("%s:%s", username, password))
+	return c.SetSystemVariable(ctx, "wsrep_sst_auth", fmt.Sprintf("'%s:%s'", username, password))
 }
 
 func (c *Client) DisableGtidStrictMode(ctx context.Context) error {
