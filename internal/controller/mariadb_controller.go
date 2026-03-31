@@ -23,6 +23,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/endpoints"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/galera"
 	galeraresources "github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/galera/resources"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/maintenance"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/pvc"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/rbac"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/replication"
@@ -87,6 +88,7 @@ type MariaDBReconciler struct {
 
 	ReplicationReconciler *replication.ReplicationReconciler
 	GaleraReconciler      *galera.GaleraReconciler
+	MaintenanceReconciler *maintenance.MaintenanceReconciler
 }
 
 type reconcilePhaseMariaDB struct {
@@ -208,6 +210,10 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			Reconcile: r.reconcilePITR,
 		},
 		{
+			Name:      "Maintenance",
+			Reconcile: r.MaintenanceReconciler.Reconcile,
+		},
+		{
 			Name:      "SQL",
 			Reconcile: r.reconcileSQL,
 		},
@@ -264,6 +270,11 @@ func shouldSkipPhase(err error) bool {
 }
 
 func requeueResult(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
+	if mdb.IsMaintenanceModeEnabled() {
+		log.FromContext(ctx).V(1).Info("Maintenance mode enabled. Requeuing MariaDB...")
+		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
+	}
+
 	if mdb.IsTLSEnabled() {
 		log.FromContext(ctx).V(1).Info("Requeuing MariaDB")
 		return ctrl.Result{RequeueAfter: 5 * time.Minute}, nil // ensure certificates get renewed
@@ -1013,8 +1024,8 @@ func (r *MariaDBReconciler) getTargetVolumeSnapshot(ctx context.Context, backup 
 }
 
 func (r *MariaDBReconciler) reconcileSuspend(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
-	if mariadb.IsSuspended() || mariadb.IsMaintenanceModeEnabled() {
-		log.FromContext(ctx).V(1).Info("MariaDB in maintenance or suspended. Skipping...")
+	if mariadb.IsSuspended() {
+		log.FromContext(ctx).V(1).Info("MariaDB suspended. Skipping...")
 		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 	}
 	// Skip reconciliation if the MariaDB CR is being deleted

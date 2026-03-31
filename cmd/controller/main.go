@@ -27,6 +27,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/deployment"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/endpoints"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/galera"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/maintenance"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/pvc"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/rbac"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/replication"
@@ -262,6 +263,7 @@ var rootCmd = &cobra.Command{
 		scheme := mgr.GetScheme()
 		galeraRecorder := mgr.GetEventRecorder("galera")
 		replRecorder := mgr.GetEventRecorder("replication")
+		maintenanceRecorder := mgr.GetEventRecorder("maintenance")
 
 		kubeClientset, err := kubernetes.NewForConfig(restConfig)
 		if err != nil {
@@ -331,6 +333,7 @@ var rootCmd = &cobra.Command{
 			galera.WithConfigMapReconciler(configMapReconciler),
 			galera.WithServiceReconciler(serviceReconciler),
 		)
+		maintenanceReconciler := maintenance.NewMaintenanceReconciler(client, maintenanceRecorder, builder)
 
 		podReplicationController := controller.NewPodController(
 			"pod-replication",
@@ -386,6 +389,7 @@ var rootCmd = &cobra.Command{
 
 			ReplicationReconciler: replicationReconciler,
 			GaleraReconciler:      galeraReconciler,
+			MaintenanceReconciler: maintenanceReconciler,
 		}).SetupWithManager(ctx, mgr, env, ctrlcontroller.Options{MaxConcurrentReconciles: mariadbMaxConcurrentReconciles}); err != nil {
 			setupLog.Error(err, "Unable to create controller", "controller", "MariaDB")
 			os.Exit(1)
