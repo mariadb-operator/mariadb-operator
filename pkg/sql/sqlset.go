@@ -3,6 +3,7 @@ package sql
 import (
 	"context"
 	"fmt"
+	"iter"
 	"sync"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
@@ -14,6 +15,11 @@ type ClientSet struct {
 	refResolver   *refresolver.RefResolver
 	clientByIndex map[int]*Client
 	mux           *sync.Mutex
+}
+
+type ClientResult struct {
+	Client *Client
+	Err    error
 }
 
 func NewClientSet(mariadb *mariadbv1alpha1.MariaDB, refResolver *refresolver.RefResolver) *ClientSet {
@@ -49,6 +55,18 @@ func (c *ClientSet) ClientForIndex(ctx context.Context, index int, clientOpts ..
 	c.clientByIndex[index] = client
 	c.mux.Unlock()
 	return client, nil
+}
+
+func (c *ClientSet) Clients(ctx context.Context, clientOpts ...Opt) iter.Seq2[int, *ClientResult] {
+	return func(yield func(int, *ClientResult) bool) {
+		for i := 0; i < int(c.Mariadb.Spec.Replicas); i++ {
+			client, err := c.ClientForIndex(ctx, i, clientOpts...)
+
+			if !yield(i, &ClientResult{Client: client, Err: err}) {
+				return
+			}
+		}
+	}
 }
 
 func (c *ClientSet) validateIndex(index int) error {

@@ -5037,6 +5037,15 @@ spec:
                   cordon:
                     description: Cordon blocks connections to the resource.
                     type: boolean
+                  drainConnections:
+                    description: DrainConnections determines whether all connections
+                      in MariaDB should be drained after `drainGracePeriodSeconds`.
+                    type: boolean
+                  drainGracePeriodSeconds:
+                    default: 30
+                    description: DrainGracePeriodSeconds defines the grace period
+                      in seconds before a connection in MariaDB is drained.
+                    type: integer
                   enabled:
                     description: Enabled turns on maintenance mode
                     type: boolean
