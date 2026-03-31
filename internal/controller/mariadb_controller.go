@@ -950,10 +950,6 @@ func (r *MariaDBReconciler) reconcileUsers(ctx context.Context, mariadb *mariadb
 
 // reconcileRootPassword will ensure the root password in the mariadb CR is up to date
 // @NOTE: `root@localhost` and `root@%` are modified as both are created when MariaDB is first configured
-
-// @WARN: If updating the agent's environment fails, then the probes will fail and a restart will be triggered.
-// The correct password will be picked up from the secret. Alternatively we can send the root password on every reconcile
-// loop but that is very chatty.
 func (r *MariaDBReconciler) reconcileRootPassword(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
 	if mariadb.IsRootPasswordEmpty() {
 		return ctrl.Result{}, nil
@@ -962,6 +958,17 @@ func (r *MariaDBReconciler) reconcileRootPassword(ctx context.Context, mariadb *
 	if result, err := r.shouldReconcileRootPassword(ctx, mariadb); !result.IsZero() || err != nil {
 		return result, err
 	}
+
+	changePasswordCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
+
+	return r.reconcileRootPasswordInMariaDB(changePasswordCtx, mariadb)
+}
+
+// reconcileRootPasswordInMariaDB will rotate the rootPassword if needed
+// If not needed, it will ensure the root password is set to the desired one
+func (r *MariaDBReconciler) reconcileRootPasswordInMariaDB(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
+	rootPassLogger := log.FromContext(ctx).WithName("root-password")
 
 	newRootPassword, err := r.RefResolver.SecretKeyRef(ctx, mariadb.Spec.RootPasswordSecretKeyRef.SecretKeySelector, mariadb.Namespace)
 	if err != nil {
@@ -973,7 +980,7 @@ func (r *MariaDBReconciler) reconcileRootPassword(ctx context.Context, mariadb *
 	err = r.Get(ctx, internalRootPasswordSecretKey, &internalRootPasswordSecret)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
-			log.FromContext(ctx).V(1).Info("Internal root password secret not found, requeuing")
+			rootPassLogger.V(1).Info("Internal root password secret not found, requeuing")
 			return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 		}
 		return ctrl.Result{}, fmt.Errorf("error getting internal root password secret: %v", err)
@@ -981,17 +988,14 @@ func (r *MariaDBReconciler) reconcileRootPassword(ctx context.Context, mariadb *
 	internalRootPassword := internalRootPasswordSecret.Data[mariadb.Spec.RootPasswordSecretKeyRef.Key]
 
 	if newRootPassword == string(internalRootPassword) {
-		return ctrl.Result{}, nil
+		// Ensure root password is set as expected
+		return r.ensureRootPassword(ctx, mariadb)
 	}
 
-	rootPassLogger := log.FromContext(ctx).WithName("root-password")
 	rootPassLogger.Info("Root password changed. Updating.")
 
-	sqlCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
-	defer cancel()
-
 	sqlClient, err := mariadbsql.NewClientWithMariaDB(
-		sqlCtx,
+		ctx,
 		mariadb,
 		r.RefResolver,
 		mariadbsql.WithPassword(string(internalRootPassword)), // Using the internal password
@@ -1044,7 +1048,7 @@ func (r *MariaDBReconciler) reconcileRootPassword(ctx context.Context, mariadb *
 	errBundle = multierror.Append(
 		errBundle,
 		sqlClient.AlterUser(
-			sqlCtx,
+			ctx,
 			"'root'@'localhost'",
 			mariadbsql.WithIdentifiedBy(newRootPassword),
 			mariadbsql.WithMaxUserConnections(10),
@@ -1053,7 +1057,7 @@ func (r *MariaDBReconciler) reconcileRootPassword(ctx context.Context, mariadb *
 	errBundle = multierror.Append(
 		errBundle,
 		sqlClient.AlterUser(
-			sqlCtx,
+			ctx,
 			"'root'@'%'",
 			mariadbsql.WithIdentifiedBy(newRootPassword),
 			mariadbsql.WithMaxUserConnections(10),
@@ -1077,24 +1081,16 @@ func (r *MariaDBReconciler) reconcileRootPassword(ctx context.Context, mariadb *
 		)
 	}
 
-	if result, err := r.ensureRootPasswordInAgent(ctx, mariadb); !result.IsZero() || err != nil {
-		return result, err
-	}
+	rootPassLogger.Info("Root password updated successfully. Requeuing...")
 
-	if mariadb.IsGaleraEnabled() {
-		if err := sqlClient.SetSystemVariable(ctx, "wsrep_sst_auth", fmt.Sprintf("'%s:%s'", "root", newRootPassword)); err != nil {
-			return ctrl.Result{}, fmt.Errorf("error setting wsrep_sst_auth: %v", err)
-		}
-	}
-
-	rootPassLogger.Info("Root password updated successfully")
-
-	return ctrl.Result{}, nil
+	return ctrl.Result{RequeueAfter: time.Second}, nil
 }
 
-// ensureRootPasswordInAgent updates the root password inside the database agents
-func (r *MariaDBReconciler) ensureRootPasswordInAgent(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
-	newRootPassword, err := r.RefResolver.SecretKeyRef(ctx, mariadb.Spec.RootPasswordSecretKeyRef.SecretKeySelector, mariadb.Namespace)
+// ensureRootPassword updates the root password based on the current value of `RootPasswordSecretKeyRef`
+// - Inside the agents for the probes
+// - If galera is enabled, updates `wsrep_sst_auth`
+func (r *MariaDBReconciler) ensureRootPassword(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
+	rootPassword, err := r.RefResolver.SecretKeyRef(ctx, mariadb.Spec.RootPasswordSecretKeyRef.SecretKeySelector, mariadb.Namespace)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error getting root password secret: %v", err)
 	}
@@ -1117,7 +1113,7 @@ func (r *MariaDBReconciler) ensureRootPasswordInAgent(ctx context.Context, maria
 			if err != nil {
 				return fmt.Errorf("error getting agent client for pod '%s': %v", pods[i].Name, err)
 			}
-			if err := agentClient.Environment.SetValue(ctx, "MARIADB_ROOT_PASSWORD", newRootPassword); err != nil {
+			if err := agentClient.Environment.SetValue(ctx, "MARIADB_ROOT_PASSWORD", rootPassword); err != nil {
 				return err
 			}
 			return nil
@@ -1126,6 +1122,25 @@ func (r *MariaDBReconciler) ensureRootPasswordInAgent(ctx context.Context, maria
 
 	if err := g.Wait(); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error setting root password in agent environment: %v", err)
+	}
+
+	if mariadb.IsGaleraEnabled() {
+		sqlClient, err := mariadbsql.NewClientWithMariaDB(
+			ctx,
+			mariadb,
+			r.RefResolver,
+			mariadbsql.WithPassword(rootPassword),
+			mariadbsql.WithHost(mariadb.GetHost()),
+			mariadbsql.WithTimeout(5*time.Second),
+		)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("error creating SQL client for root password update: %v", err)
+		}
+		defer sqlClient.Close()
+
+		if err := sqlClient.ChangeWsrepSSTAuth(ctx, "root", rootPassword); err != nil {
+			return ctrl.Result{}, fmt.Errorf("error setting wsrep_sst_auth: %v", err)
+		}
 	}
 
 	return ctrl.Result{}, nil
