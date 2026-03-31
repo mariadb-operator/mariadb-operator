@@ -573,10 +573,14 @@ func (r *MaxScaleReconciler) reconcileInternalService(ctx context.Context, maxsc
 
 func (r *MaxScaleReconciler) reconcileKubernetesService(ctx context.Context, maxscale *mariadbv1alpha1.MaxScale) error {
 	key := client.ObjectKeyFromObject(maxscale)
-	selectorLabels :=
+	selectorLabelsBuilder :=
 		labels.NewLabelsBuilder().
-			WithMaxScaleSelectorLabels(maxscale).
-			Build()
+			WithMaxScaleSelectorLabels(maxscale)
+	if maxscale.IsMaintenanceModeEnabled() {
+		selectorLabelsBuilder = selectorLabelsBuilder.WithCordon(maxscale)
+	}
+	selectorLabels := selectorLabelsBuilder.Build()
+
 	ports := []corev1.ServicePort{
 		{
 			Name: "admin",
