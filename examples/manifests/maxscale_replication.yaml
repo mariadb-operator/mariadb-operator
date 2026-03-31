@@ -8,6 +8,21 @@ spec:
   mariaDbRef:
     name: mariadb-repl
 
+
+  lifecycle:
+    postStart:
+      exec:
+        command:
+          - bash
+          - -c
+          - echo "postStart" >> /var/lib/maxscale/lifecycle
+    preStop:
+      exec:
+        command:
+          - bash
+          - -c
+          - echo "preStop" >> /var/lib/maxscale/lifecycle
+
   # Trigger a switchover by declaring the desired primary server
   # primaryServer: mariadb-repl-0
 

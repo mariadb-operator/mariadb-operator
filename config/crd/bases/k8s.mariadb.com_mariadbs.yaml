@@ -1460,6 +1460,13 @@ spec:
                                 required:
                                 - port
                                 type: object
+                              sleep:
+                                description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#sleepaction-v1-core'
+                                properties:
+                                  seconds:
+                                    format: int64
+                                    type: integer
+                                type: object
                             type: object
                           preStop:
                             description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#lifecyclehandler-v1-core.'
@@ -1491,6 +1498,13 @@ spec:
                                     type: string
                                 required:
                                 - port
+                                type: object
+                              sleep:
+                                description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#sleepaction-v1-core'
+                                properties:
+                                  seconds:
+                                    format: int64
+                                    type: integer
                                 type: object
                             type: object
                         type: object
@@ -2037,6 +2051,13 @@ spec:
                                 required:
                                 - port
                                 type: object
+                              sleep:
+                                description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#sleepaction-v1-core'
+                                properties:
+                                  seconds:
+                                    format: int64
+                                    type: integer
+                                type: object
                             type: object
                           preStop:
                             description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#lifecyclehandler-v1-core.'
@@ -2068,6 +2089,13 @@ spec:
                                     type: string
                                 required:
                                 - port
+                                type: object
+                              sleep:
+                                description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#sleepaction-v1-core'
+                                properties:
+                                  seconds:
+                                    format: int64
+                                    type: integer
                                 type: object
                             type: object
                         type: object
@@ -2733,6 +2761,13 @@ spec:
                         required:
                         - port
                         type: object
+                      sleep:
+                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#sleepaction-v1-core'
+                        properties:
+                          seconds:
+                            format: int64
+                            type: integer
+                        type: object
                     type: object
                   preStop:
                     description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#lifecyclehandler-v1-core.'
@@ -2764,6 +2799,13 @@ spec:
                             type: string
                         required:
                         - port
+                        type: object
+                      sleep:
+                        description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#sleepaction-v1-core'
+                        properties:
+                          seconds:
+                            format: int64
+                            type: integer
                         type: object
                     type: object
                 type: object
@@ -4001,6 +4043,13 @@ spec:
                                 required:
                                 - port
                                 type: object
+                              sleep:
+                                description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#sleepaction-v1-core'
+                                properties:
+                                  seconds:
+                                    format: int64
+                                    type: integer
+                                type: object
                             type: object
                           preStop:
                             description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#lifecyclehandler-v1-core.'
@@ -4032,6 +4081,13 @@ spec:
                                     type: string
                                 required:
                                 - port
+                                type: object
+                              sleep:
+                                description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#sleepaction-v1-core'
+                                properties:
+                                  seconds:
+                                    format: int64
+                                    type: integer
                                 type: object
                             type: object
                         type: object
@@ -4460,6 +4516,13 @@ spec:
                                 required:
                                 - port
                                 type: object
+                              sleep:
+                                description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#sleepaction-v1-core'
+                                properties:
+                                  seconds:
+                                    format: int64
+                                    type: integer
+                                type: object
                             type: object
                           preStop:
                             description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#lifecyclehandler-v1-core.'
@@ -4491,6 +4554,13 @@ spec:
                                     type: string
                                 required:
                                 - port
+                                type: object
+                              sleep:
+                                description: 'Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#sleepaction-v1-core'
+                                properties:
+                                  seconds:
+                                    format: int64
+                                    type: integer
                                 type: object
                             type: object
                         type: object
