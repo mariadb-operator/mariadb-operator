@@ -599,7 +599,7 @@ func (p *MariaDBPodTemplate) ServiceAccountKey(objMeta metav1.ObjectMeta) types.
 	}
 }
 
-// MariaDBMaintenance defines different capabilities of the operator to allow for maintenance to be performed on the DB.
+// MariaDBMaintenance defines different capabilities of the operator to allow for maintenance to be performed on MariaDB.
 type MariaDBMaintenance struct {
 	Cordoning `json:",inline"`
 	// Enabled turns on maintenance mode
@@ -1224,10 +1224,12 @@ func (m *MariaDB) ScalingOutError() error {
 	return nil
 }
 
+// IsMaintenanceModeEnabled indicates whether the maintenance mode is enabled.
 func (m *MariaDB) IsMaintenanceModeEnabled() bool {
 	return ptr.Deref(m.Spec.Maintenance, MariaDBMaintenance{}).Enabled
 }
 
+// IsCordonEnabled indicates whether the cordoning is enabled.
 func (m *MariaDB) IsCordonEnabled() bool {
 	return m.IsMaintenanceModeEnabled() && m.Spec.Maintenance.Cordon
 }
