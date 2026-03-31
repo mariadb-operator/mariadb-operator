@@ -597,10 +597,14 @@ func (r *MariaDBReconciler) reconcileDefaultService(ctx context.Context, mariadb
 	if mariadb.Spec.ServicePorts != nil {
 		ports = append(ports, kadapter.ToKubernetesSlice(mariadb.Spec.ServicePorts)...)
 	}
-	selectorLabels :=
+	selectorLabelsBuilder :=
 		labels.NewLabelsBuilder().
-			WithMariaDBSelectorLabels(mariadb).
-			Build()
+			WithMariaDBSelectorLabels(mariadb)
+	if mariadb.IsMaintenanceModeEnabled() {
+		selectorLabelsBuilder = selectorLabelsBuilder.WithCordon(mariadb)
+	}
+	selectorLabels := selectorLabelsBuilder.Build()
+
 	opts := builder.ServiceOpts{
 		Ports:          ports,
 		SelectorLabels: selectorLabels,
@@ -700,11 +704,15 @@ func (r *MariaDBReconciler) reconcilePrimaryService(ctx context.Context, mariadb
 	if mariadb.Spec.ServicePorts != nil {
 		ports = append(ports, kadapter.ToKubernetesSlice(mariadb.Spec.ServicePorts)...)
 	}
-	serviceLabels :=
+	serviceLabelsBuilder :=
 		labels.NewLabelsBuilder().
 			WithMariaDBSelectorLabels(mariadb).
-			WithStatefulSetPod(mariadb.ObjectMeta, *mariadb.Status.CurrentPrimaryPodIndex).
-			Build()
+			WithStatefulSetPod(mariadb.ObjectMeta, *mariadb.Status.CurrentPrimaryPodIndex)
+	if mariadb.IsMaintenanceModeEnabled() {
+		serviceLabelsBuilder = serviceLabelsBuilder.WithCordon(mariadb)
+	}
+	serviceLabels := serviceLabelsBuilder.Build()
+
 	opts := builder.ServiceOpts{
 		Ports:          ports,
 		SelectorLabels: serviceLabels,
