@@ -402,8 +402,8 @@ func (r *MaxScaleReconciler) getMariaDB(ctx context.Context, req *requestMaxScal
 }
 
 func (r *MaxScaleReconciler) reconcileSuspend(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
-	if req.mxs.IsSuspended() || req.mxs.IsMaintenanceModeEnabled() {
-		log.FromContext(ctx).V(1).Info("MaxScale in maintenance or suspended. Skipping...")
+	if req.mxs.IsSuspended() {
+		log.FromContext(ctx).V(1).Info("MaxScale is suspended. Skipping...")
 		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 	}
 	return ctrl.Result{}, nil

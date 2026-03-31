@@ -606,6 +606,15 @@ type MariaDBMaintenance struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
 	Enabled bool `json:"enabled,omitempty"`
+	// DrainConnections determines whether all connections in MariaDB should be drained after `drainGracePeriodSeconds`.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
+	DrainConnections bool `json:"drainConnections,omitempty"`
+	// DrainGracePeriodSeconds defines the grace period in seconds before a connection in MariaDB is drained.
+	// +optional
+	// +kubebuilder:default=30
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
+	DrainGracePeriodSeconds int `json:"drainGracePeriodSeconds,omitempty"`
 }
 
 // MariaDBSpec defines the desired state of MariaDB
