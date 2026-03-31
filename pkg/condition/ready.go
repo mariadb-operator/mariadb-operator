@@ -217,7 +217,7 @@ func SetReadyWithInitJob(c Conditioner, job *batchv1.Job) {
 	}
 }
 
-func SetReadyWithMaxScaleStatus(c Conditioner, mss *mariadbv1alpha1.MaxScaleStatus) {
+func SetReadyWithMaxScaleStatus(c Conditioner, mss *mariadbv1alpha1.MaxScaleStatus, mxs *mariadbv1alpha1.MaxScale) {
 	for _, srv := range mss.Servers {
 		if srv.IsReady() {
 			continue
@@ -237,6 +237,11 @@ func SetReadyWithMaxScaleStatus(c Conditioner, mss *mariadbv1alpha1.MaxScaleStat
 				Message: fmt.Sprintf("Server %s not ready", srv.Name),
 			})
 		}
+		return
+	}
+
+	if mxs.IsMaintenanceModeEnabled() {
+		SetReadyWithMaintenance(c, mxs)
 		return
 	}
 
