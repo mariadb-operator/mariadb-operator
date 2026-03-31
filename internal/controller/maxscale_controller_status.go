@@ -117,7 +117,7 @@ func (r *MaxScaleReconciler) reconcileStatus(ctx context.Context, req *requestMa
 
 		condition.SetReadyWithStatefulSet(mss, &sts)
 		if r.isStatefulSetReady(&sts, req.mxs) {
-			condition.SetReadyWithMaxScaleStatus(mss, mss)
+			condition.SetReadyWithMaxScaleStatus(mss, mss, req.mxs)
 		}
 		return nil
 	})
