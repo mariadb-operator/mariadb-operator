@@ -11,20 +11,6 @@ spec:
   # maxScaleRef:
   #   name: maxscale-repl
 
-  lifecycle:
-    postStart:
-      exec:
-        command:
-          - bash
-          - -c
-          - echo "postStart" >> /var/lib/mysql/lifecycle
-    preStop:
-      exec:
-        command:
-          - bash
-          - -c
-          - echo "preStop" >> /var/lib/mysql/lifecycle
-
   storage:
     size: 1Gi
     # storageClassName: csi-hostpath-sc
