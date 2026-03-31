@@ -42,7 +42,6 @@ func (r *MariaDBReconciler) reconcileUpdates(ctx context.Context, mdb *mariadbv1
 	}
 	mariadbKey := client.ObjectKeyFromObject(mdb)
 	logger := log.FromContext(ctx).WithName("update")
-
 	var sts appsv1.StatefulSet
 	if err := r.Get(ctx, mariadbKey, &sts); err != nil {
 		return ctrl.Result{}, err
@@ -55,7 +54,6 @@ func (r *MariaDBReconciler) reconcileUpdates(ctx context.Context, mdb *mariadbv1
 		)
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
-	
 	stsUpdateRevision := sts.Status.UpdateRevision
 	if stsUpdateRevision == "" {
 		logger.V(1).Info("StatefulSet status.updateRevision not set. Requeuing...")
@@ -66,17 +64,14 @@ func (r *MariaDBReconciler) reconcileUpdates(ctx context.Context, mdb *mariadbv1
 	if result, err := r.getPodsByRole(ctx, mdb, &podsByRole, logger); !result.IsZero() || err != nil {
 		return result, err
 	}
-
 	stalePodNames := podsByRole.getStalePodNames(stsUpdateRevision)
 	if len(stalePodNames) == 0 {
 		return ctrl.Result{}, nil
 	}
 	logger.V(1).Info("Detected stale Pods that need updating", "pods", stalePodNames)
-
 	if result, err := r.waitForReadyStatus(ctx, mdb, logger); !result.IsZero() || err != nil {
 		return result, err
 	}
-
 	for _, replicaPod := range podsByRole.replicas {
 		if mdbpod.PodUpdated(&replicaPod, stsUpdateRevision) {
 			logger.V(1).Info("Replica Pod up to date", "pod", replicaPod.Name)
