@@ -68,3 +68,9 @@ type BlobStorage interface {
 	IsAuthenticated(ctx context.Context) bool
 	IsNotFound(err error) bool
 }
+
+// Cordonable means that a resource can be "cordoned" (external connections interrupted)
+// Currently: `MaxScale` and `MariaDB`
+type Cordonable interface {
+	IsCordonEnabled() bool
+}
