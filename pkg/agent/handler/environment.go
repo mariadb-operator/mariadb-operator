@@ -54,7 +54,7 @@ func (e *EnvironmentHandler) SetValue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	e.logger.Info("Setting a value", "key", req.Key)
+	e.logger.V(1).Info("Setting a value", "key", req.Key)
 
 	v := reflect.ValueOf(e.environment).Elem()
 	t := v.Type()
