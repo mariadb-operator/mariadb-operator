@@ -48,7 +48,11 @@ func (r *MariaDBReconciler) reconcileUpdates(ctx context.Context, mdb *mariadbv1
 		return ctrl.Result{}, err
 	}
 	if sts.Generation != sts.Status.ObservedGeneration {
-		logger.V(1).Info("StatefulSet status is stale, requeuing to wait for K8s controller", "Generation", sts.Generation, "ObservedGeneration", sts.Status.ObservedGeneration)
+		logger.V(1).Info(
+			"StatefulSet status is stale, requeuing to wait for K8s controller",
+			"Generation", sts.Generation,
+			"ObservedGeneration", sts.Status.ObservedGeneration,
+		)
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
 	
