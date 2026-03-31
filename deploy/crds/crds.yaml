@@ -5029,6 +5029,18 @@ spec:
                     format: int32
                     type: integer
                 type: object
+              maintenance:
+                description: |-
+                  Maintenance defines different capabilities of the operator to allow for maintenance to be performed on the DB.
+                  Not to be confused with `suspend`, maintenance does not interfere with the normal reconciliation of the operator.
+                properties:
+                  cordon:
+                    description: Cordon blocks connections to the resource.
+                    type: boolean
+                  enabled:
+                    description: Enabled turns on maintenance mode
+                    type: boolean
+                type: object
               maxScaleRef:
                 description: |-
                   MaxScaleRef is a reference to a MaxScale resource to be used with the current MariaDB.
