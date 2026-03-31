@@ -248,12 +248,26 @@ func (p Probe) ToKubernetesType() corev1.Probe {
 	}
 }
 
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#sleepaction-v1-core
+type SleepAction struct {
+	// +optional
+	Seconds int64 `json:"seconds"`
+}
+
+func (s SleepAction) ToKubernetesType() corev1.SleepAction {
+	return corev1.SleepAction{
+		Seconds: s.Seconds,
+	}
+}
+
 // Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#lifecyclehandler-v1-core.
 type LifecycleHandler struct {
 	// +optional
 	Exec *ExecAction `json:"exec,omitempty"`
 	// +optional
 	HTTPGet *HTTPGetAction `json:"httpGet,omitempty"`
+	// +optional
+	Sleep *SleepAction `json:"sleep,omitempty"`
 }
 
 func (l LifecycleHandler) ToKubernetesType() corev1.LifecycleHandler {
@@ -263,6 +277,9 @@ func (l LifecycleHandler) ToKubernetesType() corev1.LifecycleHandler {
 	}
 	if l.HTTPGet != nil {
 		lifecycleHandler.HTTPGet = ptr.To(l.HTTPGet.ToKubernetesType())
+	}
+	if l.Sleep != nil {
+		lifecycleHandler.Sleep = ptr.To(l.Sleep.ToKubernetesType())
 	}
 	return lifecycleHandler
 }
