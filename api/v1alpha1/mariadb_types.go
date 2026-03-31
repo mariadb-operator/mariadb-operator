@@ -599,6 +599,15 @@ func (p *MariaDBPodTemplate) ServiceAccountKey(objMeta metav1.ObjectMeta) types.
 	}
 }
 
+// MariaDBMaintenance defines different capabilities of the operator to allow for maintenance to be performed on the DB.
+type MariaDBMaintenance struct {
+	Cordoning `json:",inline"`
+	// Enabled turns on maintenance mode
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
+	Enabled bool `json:"enabled,omitempty"`
+}
+
 // MariaDBSpec defines the desired state of MariaDB
 type MariaDBSpec struct {
 	// ContainerTemplate defines templates to configure Container objects.
@@ -767,6 +776,11 @@ type MariaDBSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	SecondaryConnection *ConnectionTemplate `json:"secondaryConnection,omitempty" webhook:"inmutable"`
+	// Maintenance defines different capabilities of the operator to allow for maintenance to be performed on the DB.
+	// Not to be confused with `suspend`, maintenance does not interfere with the normal reconciliation of the operator.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	Maintenance *MariaDBMaintenance `json:"maintenance,omitempty"`
 }
 
 // MariaDBTLSStatus aggregates the status of the certificates used by the MariaDB instance.
@@ -1208,6 +1222,14 @@ func (m *MariaDB) ScalingOutError() error {
 		return errors.New(c.Message)
 	}
 	return nil
+}
+
+func (m *MariaDB) IsMaintenanceModeEnabled() bool {
+	return ptr.Deref(m.Spec.Maintenance, MariaDBMaintenance{}).Enabled
+}
+
+func (m *MariaDB) IsCordonEnabled() bool {
+	return m.IsMaintenanceModeEnabled() && m.Spec.Maintenance.Cordon
 }
 
 // ServerDNSNames are the Service DNS names used by server TLS certificates.
