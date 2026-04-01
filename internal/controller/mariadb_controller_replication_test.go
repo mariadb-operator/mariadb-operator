@@ -6,7 +6,7 @@ import (
 	volumesnapshotv1 "github.com/kubernetes-csi/external-snapshotter/client/v8/apis/volumesnapshot/v1"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/metadata"
-	"github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
+	stsobj "github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -56,7 +56,7 @@ var _ = Describe("MariaDB replication", Ordered, func() {
 
 		By("Expecting to create a primary Service")
 		Expect(k8sClient.Get(testCtx, mdb.PrimaryServiceKey(), &svc)).To(Succeed())
-		Expect(svc.Spec.Selector["statefulset.kubernetes.io/pod-name"]).To(Equal(statefulset.PodName(mdb.ObjectMeta, 0)))
+		Expect(svc.Spec.Selector["statefulset.kubernetes.io/pod-name"]).To(Equal(stsobj.PodName(mdb.ObjectMeta, 0)))
 
 		By("Expecting to create a secondary Service")
 		Expect(k8sClient.Get(testCtx, mdb.SecondaryServiceKey(), &svc)).To(Succeed())
@@ -223,7 +223,7 @@ var _ = Describe("MariaDB replication", Ordered, func() {
 			if err := k8sClient.Get(testCtx, mdb.PrimaryServiceKey(), &svc); err != nil {
 				return false
 			}
-			return svc.Spec.Selector["statefulset.kubernetes.io/pod-name"] == statefulset.PodName(mdb.ObjectMeta, podIndex)
+			return svc.Spec.Selector["statefulset.kubernetes.io/pod-name"] == stsobj.PodName(mdb.ObjectMeta, podIndex)
 		}, testTimeout, testInterval).Should(BeTrue())
 	})
 
@@ -514,4 +514,115 @@ var _ = Describe("MariaDB replication scale out", Ordered, func() {
 			},
 		),
 	)
+})
+
+var _ = Describe("MariaDB replication with password", Ordered, func() {
+	var (
+		key = types.NamespacedName{
+			Name:      "mariadb-repl",
+			Namespace: testNamespace,
+		}
+		passwordSecretKey = types.NamespacedName{
+			Name:      "mariadb-repl-password",
+			Namespace: testNamespace,
+		}
+		mdb *mariadbv1alpha1.MariaDB
+	)
+
+	BeforeAll(func() {
+		passwordSecret := corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      passwordSecretKey.Name,
+				Namespace: passwordSecretKey.Namespace,
+				Labels: map[string]string{
+					metadata.WatchLabel: "",
+				},
+			},
+			Data: map[string][]byte{
+				"password": []byte("MariaDB11!"),
+			},
+		}
+		Expect(k8sClient.Create(testCtx, &passwordSecret)).To(Succeed())
+		DeferCleanup(func() {
+			Expect(k8sClient.Delete(testCtx, &passwordSecret)).To(Succeed())
+		})
+
+		mdb = buildTestMariaDBWithRepl(key)
+		applyMariadbTestConfig(mdb)
+
+		probe := &mariadbv1alpha1.Probe{
+			InitialDelaySeconds: 10,
+			TimeoutSeconds:      1,
+			PeriodSeconds:       1,
+			FailureThreshold:    5,
+		}
+		mdb.Spec.LivenessProbe = probe
+		mdb.Spec.ReadinessProbe = probe
+
+		mdb.Spec.RootPasswordSecretKeyRef = mariadbv1alpha1.GeneratedSecretKeyRef{
+			SecretKeySelector: mariadbv1alpha1.SecretKeySelector{
+				LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+					Name: passwordSecretKey.Name,
+				},
+				Key: "password",
+			},
+		}
+
+		By("Creating MariaDB with replication")
+		Expect(k8sClient.Create(testCtx, mdb)).To(Succeed())
+		DeferCleanup(func() {
+			deleteMariadb(key, false)
+		})
+	})
+
+	It("should update root password", func() {
+		var mdb mariadbv1alpha1.MariaDB
+		By("Expecting MariaDB to be ready for 10 seconds to ensure it's stable")
+		Eventually(func(g Gomega) bool {
+			g.Expect(k8sClient.Get(testCtx, key, &mdb)).To(Succeed())
+			return mdb.IsReady()
+		}, testTimeout, testInterval).MustPassRepeatedly(10).Should(BeTrue())
+
+		By("Verifying initial password")
+		executeSqlInPodByIndex(&mdb, 0, "SELECT 1")
+
+		oldPassword := "MariaDB11!"
+		newPassword := "MariaDB12!"
+
+		By("Updating password Secret")
+		Eventually(func(g Gomega) bool {
+			var secret corev1.Secret
+			g.Expect(k8sClient.Get(testCtx, passwordSecretKey, &secret)).To(Succeed())
+			secret.Data["password"] = []byte(newPassword)
+			g.Expect(k8sClient.Update(testCtx, &secret)).To(Succeed())
+			return true
+		}, testTimeout, testInterval).Should(BeTrue())
+
+		By("Expecting MariaDB to be ready for 10 seconds")
+		Eventually(func(g Gomega) bool {
+			g.Expect(k8sClient.Get(testCtx, key, &mdb)).To(Succeed())
+			return mdb.IsReady()
+		}, testTimeout, testInterval).MustPassRepeatedly(10).Should(BeTrue())
+
+		By("Verifying new password")
+		executeSqlInPodByIndex(&mdb, 0, "SELECT 1")
+
+		By("Updating password Secret back to old")
+		Eventually(func(g Gomega) bool {
+			var secret corev1.Secret
+			g.Expect(k8sClient.Get(testCtx, passwordSecretKey, &secret)).To(Succeed())
+			secret.Data["password"] = []byte(oldPassword)
+			g.Expect(k8sClient.Update(testCtx, &secret)).To(Succeed())
+			return true
+		}, testTimeout, testInterval).Should(BeTrue())
+
+		By("Expecting MariaDB to be ready for 10 seconds")
+		Eventually(func(g Gomega) bool {
+			g.Expect(k8sClient.Get(testCtx, key, &mdb)).To(Succeed())
+			return mdb.IsReady()
+		}, testTimeout, testInterval).MustPassRepeatedly(10).Should(BeTrue())
+
+		By("Verifying old password")
+		executeSqlInPodByIndex(&mdb, 0, "SELECT 1")
+	})
 })
