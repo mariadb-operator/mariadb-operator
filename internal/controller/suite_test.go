@@ -370,6 +370,7 @@ var _ = BeforeSuite(func() {
 	}()
 
 	By("Applying static test load balancer Services")
+	Expect(k8sManager.GetCache().WaitForCacheSync(testCtx)).To(BeTrue())
 	testCreateStaticLoadBalancerServices(testCtx)
 
 	By("Creating initial test data")
