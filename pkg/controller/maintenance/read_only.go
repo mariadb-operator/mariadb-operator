@@ -43,11 +43,15 @@ func (r *MaintenanceReconciler) reconcileReadOnly(ctx context.Context, mariadb *
 		}
 		if desiredReadOnly {
 			podLogger.Info("Enabling readonly")
+			// TODO: emit event
+
 			if err := client.EnableReadOnly(ctx); err != nil {
 				return ctrl.Result{}, fmt.Errorf("error enabling readonly in Pod index %d: %v", podIndex, err)
 			}
 		} else {
 			podLogger.Info("Disabling readonly")
+			// TODO: emit event
+
 			if err := client.DisableReadOnly(ctx); err != nil {
 				return ctrl.Result{}, fmt.Errorf("error disabling readonly in Pod index %d: %v", podIndex, err)
 			}
