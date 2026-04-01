@@ -9,7 +9,6 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/sql"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
-	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
@@ -61,8 +60,7 @@ func (r *MaintenanceReconciler) reconcileReadOnly(ctx context.Context, mariadb *
 
 // getReadOnlyDesiredPodState returns a map with the desired readOnly state indexed by Pod index.
 func (r *MaintenanceReconciler) getReadOnlyDesiredPodState(mariadb *mariadbv1alpha1.MariaDB) map[int]bool {
-	maintenance := ptr.Deref(mariadb.Spec.Maintenance, mariadbv1alpha1.MariaDBMaintenance{})
-	desiredReadOnly := mariadb.IsMaintenanceModeEnabled() && maintenance.ReadOnly
+	desiredReadOnly := mariadb.IsReadOnlyEnabled()
 	desiredReadOnlyPodState := make(map[int]bool, mariadb.Spec.Replicas)
 
 	for i := 0; i < int(mariadb.Spec.Replicas); i++ {
