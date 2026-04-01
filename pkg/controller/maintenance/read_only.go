@@ -14,10 +14,6 @@ import (
 
 func (r *MaintenanceReconciler) reconcileReadOnly(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 	logger logr.Logger) (ctrl.Result, error) {
-	// Prerequisite to determine desired state
-	if mariadb.Status.CurrentPrimaryPodIndex == nil {
-		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
-	}
 	readOnlyDesiredPodState := r.getReadOnlyDesiredPodState(mariadb)
 
 	clientSet := sql.NewClientSet(mariadb, r.refResolver)
