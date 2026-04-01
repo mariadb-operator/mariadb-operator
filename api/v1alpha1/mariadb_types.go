@@ -615,6 +615,10 @@ type MariaDBMaintenance struct {
 	// +kubebuilder:default=30
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
 	DrainGracePeriodSeconds int `json:"drainGracePeriodSeconds,omitempty"`
+	// ReadOnly will allow only read statements to be performed on the resource.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
+	ReadOnly bool `json:"readOnly,omitempty"`
 }
 
 // MariaDBSpec defines the desired state of MariaDB
@@ -1241,6 +1245,11 @@ func (m *MariaDB) IsMaintenanceModeEnabled() bool {
 // IsCordonEnabled indicates whether the cordoning is enabled.
 func (m *MariaDB) IsCordonEnabled() bool {
 	return m.IsMaintenanceModeEnabled() && m.Spec.Maintenance.Cordon
+}
+
+// IsReadOnlyEnabled indicates whether the readonly is enabled.
+func (m *MariaDB) IsReadOnlyEnabled() bool {
+	return m.IsMaintenanceModeEnabled() && m.Spec.Maintenance.ReadOnly
 }
 
 // ServerDNSNames are the Service DNS names used by server TLS certificates.

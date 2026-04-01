@@ -175,7 +175,7 @@ var _ = BeforeSuite(func() {
 		galera.WithConfigMapReconciler(configMapReconciler),
 		galera.WithServiceReconciler(serviceReconciler),
 	)
-	maintenanceReconciler := maintenance.NewMaintenanceReconciler(client, maintenanceRecorder, builder)
+	maintenanceReconciler := maintenance.NewMaintenanceReconciler(client, maintenanceRecorder)
 
 	podReplicationController := NewPodController(
 		"pod-replication",
