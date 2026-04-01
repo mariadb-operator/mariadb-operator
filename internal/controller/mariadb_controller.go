@@ -1090,6 +1090,10 @@ func (r *MariaDBReconciler) reconcileRootPasswordInMariaDB(ctx context.Context, 
 // - Inside the agents for the probes
 // - If galera is enabled, updates `wsrep_sst_auth`
 func (r *MariaDBReconciler) ensureRootPassword(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
+	if !mariadb.IsHAEnabled() {
+		return ctrl.Result{}, nil
+	}
+
 	rootPassword, err := r.RefResolver.SecretKeyRef(ctx, mariadb.Spec.RootPasswordSecretKeyRef.SecretKeySelector, mariadb.Namespace)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error getting root password secret: %v", err)
