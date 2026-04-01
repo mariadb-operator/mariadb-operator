@@ -46,17 +46,23 @@ func (r *MaintenanceReconciler) Reconcile(ctx context.Context, mariadb *mariadbv
 	return ctrl.Result{}, nil
 }
 
-func shouldReconcileMaintenance(mariadb *mariadbv1alpha1.MariaDB, logger logr.Logger) bool {
-	if mariadb.Status.CurrentPrimary == nil || mariadb.Status.CurrentPrimaryPodIndex == nil {
+func shouldReconcileMaintenance(mdb *mariadbv1alpha1.MariaDB, logger logr.Logger) bool {
+	if mdb.Status.CurrentPrimary == nil || mdb.Status.CurrentPrimaryPodIndex == nil {
 		logger.V(1).Info("Current primary not set. Skippping maintenance reconciliation...")
 		return false
 	}
-	if mariadb.IsReplicationEnabled() && !mariadb.HasConfiguredReplication() {
+	if mdb.IsReplicationEnabled() && !mdb.HasConfiguredReplication() {
 		logger.V(1).Info("Replication not configured. Skippping maintenance reconciliation...")
 		return false
 	}
-	if mariadb.IsGaleraEnabled() && !mariadb.HasGaleraConfiguredCondition() {
+	if mdb.IsGaleraEnabled() && !mdb.HasGaleraConfiguredCondition() {
 		logger.V(1).Info("Galera not configured. Skippping maintenance reconciliation...")
+		return false
+	}
+	if mdb.IsInitializing() || mdb.IsUpdating() || mdb.IsRestoringBackup() || mdb.IsResizingStorage() ||
+		mdb.IsScalingOut() || mdb.IsRecoveringReplicas() || mdb.HasGaleraNotReadyCondition() ||
+		mdb.IsSwitchingPrimary() || mdb.IsReplicationSwitchoverRequired() {
+		logger.V(1).Info("Operation in progress. Skipping maintenance reconciliation...")
 		return false
 	}
 	return true
