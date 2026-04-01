@@ -14,14 +14,18 @@ import (
 )
 
 func (r *MaintenanceReconciler) reconcileDrainConnections(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	clientSet *sql.ClientSet, logger logr.Logger) (ctrl.Result, error) {
+	logger logr.Logger) (ctrl.Result, error) {
 	maintenance := ptr.Deref(mariadb.Spec.Maintenance, mariadbv1alpha1.MariaDBMaintenance{})
 	if !maintenance.DrainConnections {
 		return ctrl.Result{}, nil
 	}
+	drainLogger := logger.WithName("drain")
 
 	g := new(errgroup.Group)
 	g.SetLimit(int(mariadb.Spec.Replicas))
+
+	clientSet := sql.NewClientSet(mariadb, r.refResolver)
+	defer clientSet.Close()
 
 	for i, result := range clientSet.Clients(ctx) {
 		g.Go(func() error {
@@ -36,7 +40,7 @@ func (r *MaintenanceReconciler) reconcileDrainConnections(ctx context.Context, m
 				return fmt.Errorf("error fetching processlist for %s: %v", podName, result.Err)
 			}
 
-			return r.drainProcesses(ctx, client, processes, mariadb.Spec.Maintenance.DrainGracePeriodSeconds, logger.WithValues("pod", podName))
+			return r.drainProcesses(ctx, client, processes, mariadb.Spec.Maintenance.DrainGracePeriodSeconds, drainLogger.WithValues("pod", podName))
 		})
 	}
 
@@ -51,12 +55,12 @@ func (r *MaintenanceReconciler) drainProcesses(ctx context.Context, client *sql.
 
 		if process.Time > drainTimeoutSeconds && process.IsSafeToTerminate() {
 			plogger.Info("Draining process")
+			// TODO: emit event
 
 			if err := client.SoftKillProcess(ctx, process); sql.IgnoreYouAreNotOwnerOfThread(err) != nil {
 				return fmt.Errorf("error killing process ID(%d) Command(%s): %v", process.ID, process.Command, err)
 			}
 		}
 	}
-
 	return nil
 }

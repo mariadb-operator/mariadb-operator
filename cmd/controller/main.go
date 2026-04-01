@@ -333,7 +333,7 @@ var rootCmd = &cobra.Command{
 			galera.WithConfigMapReconciler(configMapReconciler),
 			galera.WithServiceReconciler(serviceReconciler),
 		)
-		maintenanceReconciler := maintenance.NewMaintenanceReconciler(client, maintenanceRecorder, builder)
+		maintenanceReconciler := maintenance.NewMaintenanceReconciler(client, maintenanceRecorder)
 
 		podReplicationController := controller.NewPodController(
 			"pod-replication",
