@@ -32,7 +32,9 @@ func (r *MaintenanceReconciler) reconcileReadOnly(ctx context.Context, mariadb *
 
 		client, err := clientSet.ClientForIndex(ctx, podIndex)
 		if err != nil {
-			return ctrl.Result{}, fmt.Errorf("error getting SQL client for Pod index %d: %v", podIndex, err)
+			// This is to avoid noisy error logs, as it is continuously reconciling.
+			readOnlyLogger.V(1).Info("Error getting SQL client for Pod index", "err", err, "pod-index", podIndex)
+			return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 		}
 		currentReadOnly, err := client.GetReadOnly(ctx)
 		if err != nil {

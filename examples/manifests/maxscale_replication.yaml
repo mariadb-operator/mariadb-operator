@@ -99,4 +99,9 @@ spec:
     # verifyPeerHost: false
     # replicationSSLEnabled: true
 
+  # Configure maintenance mode to perform manual operations.
+  # maintenance:
+  #   enabled: true
+  #   cordon: false
+
   requeueInterval: 1h
