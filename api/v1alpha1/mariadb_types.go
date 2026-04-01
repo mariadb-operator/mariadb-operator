@@ -1247,6 +1247,16 @@ func (m *MariaDB) IsCordonEnabled() bool {
 	return m.IsMaintenanceModeEnabled() && m.Spec.Maintenance.Cordon
 }
 
+// IsCordoned indicates that the reason the database is not ready is because it is cordoned
+// Since cordoned means connections are blocked, we set the status to not ready
+func (m *MariaDB) IsCordoned() bool {
+	condition := meta.FindStatusCondition(m.Status.Conditions, ConditionTypeReady)
+	if condition == nil {
+		return false
+	}
+	return condition.Status == metav1.ConditionFalse && condition.Reason == ConditionReasonCordoned
+}
+
 // IsReadOnlyEnabled indicates whether the readonly is enabled.
 func (m *MariaDB) IsReadOnlyEnabled() bool {
 	return m.IsMaintenanceModeEnabled() && m.Spec.Maintenance.ReadOnly
