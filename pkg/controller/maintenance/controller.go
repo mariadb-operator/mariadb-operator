@@ -48,15 +48,15 @@ func (r *MaintenanceReconciler) Reconcile(ctx context.Context, mariadb *mariadbv
 
 func shouldReconcileMaintenance(mdb *mariadbv1alpha1.MariaDB, logger logr.Logger) bool {
 	if mdb.Status.CurrentPrimary == nil || mdb.Status.CurrentPrimaryPodIndex == nil {
-		logger.V(1).Info("Current primary not set. Skippping maintenance reconciliation...")
+		logger.V(1).Info("Current primary not set. Skipping maintenance reconciliation...")
 		return false
 	}
 	if mdb.IsReplicationEnabled() && !mdb.HasConfiguredReplication() {
-		logger.V(1).Info("Replication not configured. Skippping maintenance reconciliation...")
+		logger.V(1).Info("Replication not configured. Skipping maintenance reconciliation...")
 		return false
 	}
 	if mdb.IsGaleraEnabled() && !mdb.HasGaleraConfiguredCondition() {
-		logger.V(1).Info("Galera not configured. Skippping maintenance reconciliation...")
+		logger.V(1).Info("Galera not configured. Skipping maintenance reconciliation...")
 		return false
 	}
 	if mdb.IsInitializing() || mdb.IsUpdating() || mdb.IsRestoringBackup() || mdb.IsResizingStorage() ||
