@@ -15,7 +15,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var _ = Describe("MariaDB Maintenance", Focus, Ordered, Label("basic"), func() {
+var _ = Describe("MariaDB Maintenance",  Ordered, Label("basic"), func() {
 	key := types.NamespacedName{
 		Name:      "mariadb-repl",
 		Namespace: testNamespace,
