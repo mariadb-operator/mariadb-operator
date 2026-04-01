@@ -132,3 +132,11 @@ spec:
     #         operator: In
     #         values: 
     #         - amd64
+
+  # Configure maintenance mode to perform manual operations.
+  # maintenance:
+  #   enabled: true
+  #   cordon: false
+  #   drainConnections: false
+  #   drainGracePeriodSeconds: 30
+  #   readOnly: false
