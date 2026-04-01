@@ -199,6 +199,7 @@ rules:
   - maxscale
   verbs:
   - create
+  - get
   - list
   - patch
   - watch

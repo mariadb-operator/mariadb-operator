@@ -112,7 +112,8 @@ type patcherMariaDB func(*mariadbv1alpha1.MariaDBStatus) error
 //+kubebuilder:rbac:groups=k8s.mariadb.com,resources=mariadbs,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=k8s.mariadb.com,resources=mariadbs/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=k8s.mariadb.com,resources=mariadbs/finalizers,verbs=update
-//+kubebuilder:rbac:groups=k8s.mariadb.com,resources=maxscale;restores;connections;databases;users;grants;physicalbackups,verbs=list;watch;create;patch
+//+kubebuilder:rbac:groups=k8s.mariadb.com,resources=maxscale;connections;databases;users;grants,verbs=get;list;watch;create;patch
+//+kubebuilder:rbac:groups=k8s.mariadb.com,resources=restores;physicalbackups,verbs=get;list;watch;create;patch;delete
 //+kubebuilder:rbac:groups=k8s.mariadb.com,resources=pointintimerecoveries,verbs=list;watch;get
 //+kubebuilder:rbac:groups=k8s.mariadb.com,resources=pointintimerecoveries/status,verbs=get;patch;update
 //+kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;patch;delete

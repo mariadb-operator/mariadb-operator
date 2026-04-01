@@ -358,7 +358,7 @@ func (r *MariaDBReconciler) jobSchedulingError(ctx context.Context, key types.Na
 	}
 	for _, pod := range pods {
 		if schedulingErr := podSchedulingError(&pod); schedulingErr != "" {
-			return fmt.Sprintf("Job Pod '%s' is unschedulable: %s", pod.Name, schedulingErr), nil
+			return schedulingErr, nil
 		}
 	}
 	return "", nil

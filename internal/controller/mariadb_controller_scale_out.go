@@ -195,11 +195,14 @@ func (r *MariaDBReconciler) reconcileTailStoragePVCDeletion(ctx context.Context,
 
 func (r *MariaDBReconciler) reconcileScaleOutError(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, fromIndex int,
 	logger logr.Logger) (ctrl.Result, error) {
-	if scaleOutErr := mariadb.ScalingOutError(); scaleOutErr != nil &&
-		!strings.Contains(scaleOutErr.Error(), "replica datasource not found") &&
-		!strings.Contains(scaleOutErr.Error(), "storage PVCs already exist") {
-		logger.Info("Unable to scale out MariaDB. Requeuing...", "err", scaleOutErr.Error())
-		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+	if scaleOutErr := mariadb.ScalingOutError(); scaleOutErr != nil {
+		errMsg := scaleOutErr.Error()
+		if !strings.Contains(errMsg, "replica datasource not found") &&
+			!strings.Contains(errMsg, "storage PVCs already exist") &&
+			!isInitJobUnschedulableScaleOutError(errMsg) {
+			logger.Info("Unable to scale out MariaDB. Requeuing...", "err", errMsg)
+			return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+		}
 	}
 
 	replication := ptr.Deref(mariadb.Spec.Replication, mariadbv1alpha1.Replication{})
@@ -239,6 +242,11 @@ func (r *MariaDBReconciler) reconcileScaleOutError(ctx context.Context, mariadb 
 	}
 
 	return ctrl.Result{}, nil
+}
+
+func isInitJobUnschedulableScaleOutError(errMsg string) bool {
+	errLower := strings.ToLower(errMsg)
+	return strings.Contains(errMsg, "PhysicalBackup init Job") && strings.Contains(errLower, "unschedulable")
 }
 
 func (r *MariaDBReconciler) pvcAlreadyExists(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, fromIndex int) (bool, error) {

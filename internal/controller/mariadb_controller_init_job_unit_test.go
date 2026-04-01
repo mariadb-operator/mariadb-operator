@@ -130,7 +130,7 @@ func TestReconcileScaleOutErrorPreservesCustomError(t *testing.T) {
 					Type:    mariadbv1alpha1.ConditionTypeScaledOut,
 					Status:  metav1.ConditionFalse,
 					Reason:  mariadbv1alpha1.ConditionReasonScaleOutError,
-					Message: "Scale out error: PhysicalBackup init Job is unschedulable",
+					Message: "Scale out error: non-retriable custom error",
 				},
 			},
 		},
@@ -142,6 +142,66 @@ func TestReconcileScaleOutErrorPreservesCustomError(t *testing.T) {
 	}
 	if result.RequeueAfter != 30*time.Second {
 		t.Fatalf("expected requeue after 30s, got %v", result.RequeueAfter)
+	}
+}
+
+func TestReconcileScaleOutErrorRetriesUnschedulableInitJobError(t *testing.T) {
+	scheme := runtime.NewScheme()
+	if err := mariadbv1alpha1.AddToScheme(scheme); err != nil {
+		t.Fatalf("error adding MariaDB scheme: %v", err)
+	}
+	if err := corev1.AddToScheme(scheme); err != nil {
+		t.Fatalf("error adding core scheme: %v", err)
+	}
+
+	mariadb := &mariadbv1alpha1.MariaDB{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "mariadb",
+			Namespace: "test",
+		},
+		Spec: mariadbv1alpha1.MariaDBSpec{
+			Replicas: 2,
+			Replication: &mariadbv1alpha1.Replication{
+				Enabled: true,
+				ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
+					Replica: mariadbv1alpha1.ReplicaReplication{
+						ReplicaBootstrapFrom: &mariadbv1alpha1.ReplicaBootstrapFrom{
+							PhysicalBackupTemplateRef: mariadbv1alpha1.LocalObjectReference{
+								Name: "physicalbackup-tpl",
+							},
+						},
+					},
+				},
+			},
+		},
+		Status: mariadbv1alpha1.MariaDBStatus{
+			Conditions: []metav1.Condition{
+				{
+					Type:   mariadbv1alpha1.ConditionTypeScaledOut,
+					Status: metav1.ConditionFalse,
+					Reason: mariadbv1alpha1.ConditionReasonScaleOutError,
+					Message: "Scale out error: PhysicalBackup init Job 'mariadb-1-pb-init' is unschedulable: " +
+						"Job Pod 'mariadb-1-pb-init-abcde' is unschedulable: 0/1 nodes are available: " +
+						"pod has unbound immediate PersistentVolumeClaims.",
+				},
+			},
+		},
+	}
+
+	fakeClient := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithStatusSubresource(&mariadbv1alpha1.MariaDB{}).
+		WithObjects(mariadb).
+		Build()
+
+	reconciler := &MariaDBReconciler{Client: fakeClient}
+
+	result, err := reconciler.reconcileScaleOutError(context.Background(), mariadb, 1, logr.Discard())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !result.IsZero() {
+		t.Fatalf("expected no requeue for retriable init-job unschedulable error, got %v", result)
 	}
 }
 
