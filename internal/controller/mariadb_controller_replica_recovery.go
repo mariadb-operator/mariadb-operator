@@ -59,11 +59,12 @@ func (r *MariaDBReconciler) reconcileReplicaRecovery(ctx context.Context, mariad
 		return ctrl.Result{}, err
 	}
 	replicaRecoveryEnabled := mariadb.IsReplicaRecoveryEnabled()
+	immediateRecoveryReplicas := getReplicasWithImmediateRecoverableErrors(mariadb, logger)
 
 	if handled, err := r.resetReplicaRecoveryIfNotNeeded(
 		ctx,
 		mariadb,
-		replicaRecoveryEnabled,
+		replicaRecoveryEnabled || len(immediateRecoveryReplicas) > 0,
 		pvcRecoveryReplicas,
 		pvcUIDs,
 	); handled || err != nil {
@@ -76,11 +77,14 @@ func (r *MariaDBReconciler) reconcileReplicaRecovery(ctx context.Context, mariad
 		}
 	}
 
-	replicasToRecover := pvcRecoveryReplicas
+	replicasToRecover := mergeReplicasToRecover(
+		immediateRecoveryReplicas,
+		pvcRecoveryReplicas,
+	)
 	if replicaRecoveryEnabled {
 		replicasToRecover = mergeReplicasToRecover(
 			getReplicasToRecover(mariadb, logger),
-			pvcRecoveryReplicas,
+			replicasToRecover,
 		)
 	}
 	logger = logger.
@@ -818,6 +822,24 @@ func getReplicasToRecover(mdb *mariadbv1alpha1.MariaDB, logger logr.Logger) []st
 	return replicas
 }
 
+func getReplicasWithImmediateRecoverableErrors(mdb *mariadbv1alpha1.MariaDB, logger logr.Logger) []string {
+	replication := ptr.Deref(mdb.Status.Replication, mariadbv1alpha1.ReplicationStatus{})
+	var replicas []string
+	for replica, status := range replication.Replicas {
+		if hasImmediateRecoverableError(
+			status,
+			recoverableIOErrorCodes,
+			logger.WithValues("replica", replica),
+		) {
+			replicas = append(replicas, replica)
+		}
+	}
+	sort.Slice(replicas, func(i, j int) bool {
+		return replicas[i] < replicas[j]
+	})
+	return replicas
+}
+
 func mergeReplicasToRecover(replicaSets ...[]string) []string {
 	replicasSet := make(map[string]struct{})
 	for _, replicas := range replicaSets {
@@ -836,13 +858,21 @@ func mergeReplicasToRecover(replicaSets ...[]string) []string {
 	return replicas
 }
 
-func isRecoverableError(mdb *mariadbv1alpha1.MariaDB, status mariadbv1alpha1.ReplicaStatus,
+func hasImmediateRecoverableError(status mariadbv1alpha1.ReplicaStatus,
 	recoverableIOErrorCodes []int, logger logr.Logger) bool {
 	for _, code := range recoverableIOErrorCodes {
 		if status.LastIOErrno != nil && *status.LastIOErrno == code {
 			logger.V(1).Info("Recoverable IO error code detected", "io-errno", *status.LastIOErrno)
 			return true
 		}
+	}
+	return false
+}
+
+func isRecoverableError(mdb *mariadbv1alpha1.MariaDB, status mariadbv1alpha1.ReplicaStatus,
+	recoverableIOErrorCodes []int, logger logr.Logger) bool {
+	if hasImmediateRecoverableError(status, recoverableIOErrorCodes, logger) {
+		return true
 	}
 	lastIOErrno := ptr.Deref(status.LastIOErrno, 0)
 	lastSQLErrno := ptr.Deref(status.LastSQLErrno, 0)

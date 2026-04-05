@@ -7,6 +7,7 @@ import (
 	condition "github.com/mariadb-operator/mariadb-operator/v26/pkg/condition"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 )
 
@@ -127,5 +128,38 @@ func TestSetReadyWithMariaDBAllowsConfiguredReplica(t *testing.T) {
 	}
 	if ready.Reason != mariadbv1alpha1.ConditionReasonStatefulSetReady {
 		t.Fatalf("expected reason %s, got %s", mariadbv1alpha1.ConditionReasonStatefulSetReady, ready.Reason)
+	}
+}
+
+func TestSetReadyWithMariaDBKeepsPendingUpdateNotReady(t *testing.T) {
+	mdb := &mariadbv1alpha1.MariaDB{
+		Status: mariadbv1alpha1.MariaDBStatus{
+			Conditions: []metav1.Condition{
+				{
+					Type:   mariadbv1alpha1.ConditionTypeUpdated,
+					Status: "False",
+					Reason: mariadbv1alpha1.ConditionReasonPendingUpdate,
+				},
+			},
+		},
+	}
+	sts := &appsv1.StatefulSet{
+		Status: appsv1.StatefulSetStatus{
+			Replicas:      1,
+			ReadyReplicas: 1,
+		},
+	}
+
+	condition.SetReadyWithMariaDB(&mdb.Status, sts, mdb)
+
+	ready := meta.FindStatusCondition(mdb.Status.Conditions, mariadbv1alpha1.ConditionTypeReady)
+	if ready == nil {
+		t.Fatal("expected ready condition to be set")
+	}
+	if ready.Status != "False" {
+		t.Fatalf("expected ready condition to be false, got %s", ready.Status)
+	}
+	if ready.Reason != mariadbv1alpha1.ConditionReasonPendingUpdate {
+		t.Fatalf("expected reason %s, got %s", mariadbv1alpha1.ConditionReasonPendingUpdate, ready.Reason)
 	}
 }

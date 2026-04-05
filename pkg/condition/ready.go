@@ -187,7 +187,7 @@ func SetReadyWithMariaDB(c Conditioner, sts *appsv1.StatefulSet, mdb *mariadbv1a
 	if mdb.HasPendingUpdate() {
 		c.SetCondition(metav1.Condition{
 			Type:    mariadbv1alpha1.ConditionTypeReady,
-			Status:  metav1.ConditionTrue,
+			Status:  metav1.ConditionFalse,
 			Reason:  mariadbv1alpha1.ConditionReasonPendingUpdate,
 			Message: "Pending update",
 		})
