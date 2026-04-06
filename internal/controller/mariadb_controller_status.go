@@ -128,18 +128,32 @@ func (r *MariaDBReconciler) getReplicationRoles(ctx context.Context,
 			continue
 		}
 
-		role := mariadbv1alpha1.ReplicationRoleUnknown
-		if isReplica {
-			role = mariadbv1alpha1.ReplicationRoleReplica
-		} else if hasConnectedReplicas {
-			role = mariadbv1alpha1.ReplicationRolePrimary
-		}
+		role := observedReplicationRole(
+			isReplica,
+			hasConnectedReplicas,
+			i,
+			mdb.Status.CurrentPrimaryPodIndex,
+		)
 		if replState == nil {
 			replState = make(map[string]mariadbv1alpha1.ReplicationRole)
 		}
 		replState[pod] = role
 	}
 	return replState, nil
+}
+
+func observedReplicationRole(isReplica, hasConnectedReplicas bool, podIndex int,
+	currentPrimaryPodIndex *int) mariadbv1alpha1.ReplicationRole {
+	if isReplica {
+		return mariadbv1alpha1.ReplicationRoleReplica
+	}
+	if currentPrimaryPodIndex != nil && podIndex == *currentPrimaryPodIndex {
+		return mariadbv1alpha1.ReplicationRolePrimary
+	}
+	if hasConnectedReplicas {
+		return mariadbv1alpha1.ReplicationRolePrimary
+	}
+	return mariadbv1alpha1.ReplicationRoleUnknown
 }
 
 func (r *MariaDBReconciler) getReplicaStatus(ctx context.Context,

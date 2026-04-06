@@ -35,6 +35,7 @@ rules:
   - create
   - delete
   - deletecollection
+  - get
   - list
   - patch
   - watch
@@ -198,6 +199,7 @@ rules:
   - maxscale
   verbs:
   - create
+  - get
   - list
   - patch
   - watch

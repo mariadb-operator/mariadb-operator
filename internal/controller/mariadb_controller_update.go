@@ -291,7 +291,7 @@ func (r *MariaDBReconciler) getPodsByRole(ctx context.Context, mdb *mariadbv1alp
 			replicas = append(replicas, pod)
 		}
 	}
-	if mdb.IsHAEnabled() && len(replicas) == 0 {
+	if mdb.IsHAEnabled() && mdb.Spec.Replicas > 1 && len(replicas) == 0 {
 		return ctrl.Result{}, errors.New("no replica Pods found")
 	}
 	if primary == nil {

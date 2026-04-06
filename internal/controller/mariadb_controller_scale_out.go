@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -32,6 +33,9 @@ func (r *MariaDBReconciler) reconcileScaleOut(ctx context.Context, mariadb *mari
 	if err := r.Get(ctx, client.ObjectKeyFromObject(mariadb), &sts); err != nil {
 		return ctrl.Result{}, err
 	}
+	if result, err := r.reconcileReplicaBootstrapScaleOut(ctx, mariadb, &sts, logger); !result.IsZero() || err != nil {
+		return result, err
+	}
 
 	isScalingOut, err := r.isScalingOut(mariadb, &sts)
 	if err != nil {
@@ -45,6 +49,11 @@ func (r *MariaDBReconciler) reconcileScaleOut(ctx context.Context, mariadb *mari
 	}
 	fromIndex := ptr.Deref(mariadb.Status.ScaleOutInitialIndex, int(sts.Status.Replicas))
 	logger = logger.WithValues("from-index", fromIndex)
+	pvcUIDs, err := r.getStoragePVCUIDs(ctx, mariadb)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error getting storage PVC UIDs: %v", err)
+	}
+	replicaRecoveryScaleOut := isReplicaBootstrapScaleOutRecovery(mariadb, fromIndex, pvcUIDs)
 
 	if !mariadb.IsScalingOut() || mariadb.ScalingOutError() != nil {
 		if result, err := r.reconcileScaleOutError(ctx, mariadb, fromIndex, logger); !result.IsZero() || err != nil {
@@ -54,6 +63,9 @@ func (r *MariaDBReconciler) reconcileScaleOut(ctx context.Context, mariadb *mari
 
 	if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
 		condition.SetScalingOut(status)
+		if replicaRecoveryScaleOut {
+			condition.SetReplicaRecovering(status)
+		}
 		status.ScaleOutInitialIndex = &fromIndex
 		return nil
 	}); err != nil {
@@ -78,29 +90,11 @@ func (r *MariaDBReconciler) reconcileScaleOut(ctx context.Context, mariadb *mari
 		return result, err
 	}
 
-	if physicalBackup.Spec.Storage.VolumeSnapshot == nil {
-		replication := ptr.Deref(mariadb.Spec.Replication, mariadbv1alpha1.Replication{})
-		bootstrapFrom := ptr.Deref(replication.Replica.ReplicaBootstrapFrom, mariadbv1alpha1.ReplicaBootstrapFrom{})
-
-		if result, err := r.reconcileRollingInitJobs(
-			ctx,
-			mariadb,
-			fromIndex,
-			logger.WithName("job"),
-			builder.WithPhysicalBackup(physicalBackup, time.Now(), bootstrapFrom.RestoreJob),
-		); !result.IsZero() || err != nil {
-			return result, err
-		}
-	}
-	return ctrl.Result{}, nil
+	return r.reconcileScaleOutInitJobs(ctx, mariadb, physicalBackup, fromIndex, logger)
 }
 
 func (r *MariaDBReconciler) isScalingOut(mdb *mariadbv1alpha1.MariaDB, sts *appsv1.StatefulSet) (bool, error) {
-	if !mdb.IsReplicationEnabled() || !mdb.HasConfiguredReplication() || sts.Status.Replicas == 0 {
-		return false, nil
-	}
-	if mdb.IsSwitchingPrimary() || mdb.IsReplicationSwitchoverRequired() || mdb.IsInitializing() || mdb.IsRecoveringReplicas() ||
-		mdb.IsRestoringBackup() || mdb.IsResizingStorage() || mdb.IsUpdating() {
+	if !mdb.IsReplicationEnabled() || sts.Status.Replicas == 0 {
 		return false, nil
 	}
 	// user is able to rollback scale out operation at any point by matching the number of existing replicas
@@ -111,13 +105,106 @@ func (r *MariaDBReconciler) isScalingOut(mdb *mariadbv1alpha1.MariaDB, sts *apps
 	if mdb.IsScalingOut() {
 		return true, nil
 	}
+	if mdb.IsSwitchingPrimary() || mdb.IsReplicationSwitchoverRequired() || mdb.IsInitializing() || mdb.IsRecoveringReplicas() ||
+		mdb.IsRestoringBackup() || mdb.IsResizingStorage() || mdb.IsUpdating() {
+		return false, nil
+	}
+	if !mdb.HasConfiguredReplication() {
+		replication := ptr.Deref(mdb.Spec.Replication, mariadbv1alpha1.Replication{})
+		if replication.Replica.ReplicaBootstrapFrom == nil || mdb.Status.CurrentPrimaryPodIndex == nil {
+			return false, nil
+		}
+	}
 	// initial condition for starting scale out process, all replicas should be ready
 	return sts.Status.Replicas == sts.Status.ReadyReplicas &&
 		sts.Status.Replicas < mdb.Spec.Replicas, nil
 }
 
+func (r *MariaDBReconciler) reconcileReplicaBootstrapScaleOut(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+	sts *appsv1.StatefulSet, logger logr.Logger) (ctrl.Result, error) {
+	if mariadb.IsScalingOut() || mariadb.IsRecoveringReplicas() {
+		return ctrl.Result{}, nil
+	}
+	if mariadb.IsSwitchingPrimary() || mariadb.IsReplicationSwitchoverRequired() || mariadb.IsInitializing() ||
+		mariadb.IsRestoringBackup() || mariadb.IsResizingStorage() || mariadb.IsUpdating() {
+		return ctrl.Result{}, nil
+	}
+
+	replication := ptr.Deref(mariadb.Spec.Replication, mariadbv1alpha1.Replication{})
+	if replication.Replica.ReplicaBootstrapFrom == nil {
+		return ctrl.Result{}, nil
+	}
+
+	pvcStates, err := r.getStoragePVCStates(ctx, mariadb)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error getting storage PVC state: %v", err)
+	}
+	fromIndex := getReplicaScaleOutStartIndex(mariadb, pvcStates, logger)
+	if fromIndex == nil {
+		return ctrl.Result{}, nil
+	}
+
+	if result, err := r.reconcileStatefulSetReplicas(ctx, sts, int32(*fromIndex), logger); !result.IsZero() || err != nil {
+		return result, err
+	}
+	return r.reconcileTailStoragePVCDeletion(ctx, mariadb, *fromIndex, logger)
+}
+
+func (r *MariaDBReconciler) reconcileStatefulSetReplicas(ctx context.Context, sts *appsv1.StatefulSet, replicas int32,
+	logger logr.Logger) (ctrl.Result, error) {
+	if ptr.Deref(sts.Spec.Replicas, 0) != replicas {
+		patch := client.MergeFrom(sts.DeepCopy())
+		sts.Spec.Replicas = ptr.To(replicas)
+		logger.Info("Patching StatefulSet replicas", "replicas", replicas)
+		if err := r.Patch(ctx, sts, patch); err != nil {
+			return ctrl.Result{}, fmt.Errorf("error patching StatefulSet replicas: %v", err)
+		}
+		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+	}
+	if sts.Status.Replicas != replicas {
+		logger.V(1).Info("Waiting for StatefulSet replica count", "replicas", replicas, "current", sts.Status.Replicas)
+		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+	}
+	return ctrl.Result{}, nil
+}
+
+func (r *MariaDBReconciler) reconcileTailStoragePVCDeletion(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+	fromIndex int, logger logr.Logger) (ctrl.Result, error) {
+	deletedPVC := false
+	for i := fromIndex; i < int(mariadb.Spec.Replicas); i++ {
+		pvcKey := mariadb.PVCKey(builder.StorageVolume, i)
+		var pvc corev1.PersistentVolumeClaim
+		if err := r.Get(ctx, pvcKey, &pvc); err != nil {
+			if apierrors.IsNotFound(err) {
+				continue
+			}
+			return ctrl.Result{}, fmt.Errorf("error getting PVC '%s': %v", pvcKey.Name, err)
+		}
+
+		logger.Info("Deleting replica storage PVC to trigger bootstrap", "pvc", pvc.Name)
+		if err := r.Delete(ctx, &pvc); err != nil && !apierrors.IsNotFound(err) {
+			return ctrl.Result{}, fmt.Errorf("error deleting PVC '%s': %v", pvc.Name, err)
+		}
+		deletedPVC = true
+	}
+	if deletedPVC {
+		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+	}
+	return ctrl.Result{}, nil
+}
+
 func (r *MariaDBReconciler) reconcileScaleOutError(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, fromIndex int,
 	logger logr.Logger) (ctrl.Result, error) {
+	if scaleOutErr := mariadb.ScalingOutError(); scaleOutErr != nil {
+		errMsg := scaleOutErr.Error()
+		if !strings.Contains(errMsg, "replica datasource not found") &&
+			!strings.Contains(errMsg, "storage PVCs already exist") &&
+			!isInitJobUnschedulableScaleOutError(errMsg) {
+			logger.Info("Unable to scale out MariaDB. Requeuing...", "err", errMsg)
+			return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+		}
+	}
+
 	replication := ptr.Deref(mariadb.Spec.Replication, mariadbv1alpha1.Replication{})
 
 	if replication.Replica.ReplicaBootstrapFrom == nil {
@@ -157,6 +244,11 @@ func (r *MariaDBReconciler) reconcileScaleOutError(ctx context.Context, mariadb 
 	return ctrl.Result{}, nil
 }
 
+func isInitJobUnschedulableScaleOutError(errMsg string) bool {
+	errLower := strings.ToLower(errMsg)
+	return strings.Contains(errMsg, "PhysicalBackup init Job") && strings.Contains(errLower, "unschedulable")
+}
+
 func (r *MariaDBReconciler) pvcAlreadyExists(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, fromIndex int) (bool, error) {
 	for i := fromIndex; i < int(mariadb.Spec.Replicas); i++ {
 		pvcKey := mariadb.PVCKey(builder.StorageVolumeRole, i)
@@ -170,6 +262,36 @@ func (r *MariaDBReconciler) pvcAlreadyExists(ctx context.Context, mariadb *maria
 		}
 	}
 	return false, nil
+}
+
+func (r *MariaDBReconciler) reconcileScaleOutInitJobs(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+	physicalBackup *mariadbv1alpha1.PhysicalBackup, fromIndex int, logger logr.Logger) (ctrl.Result, error) {
+	if physicalBackup.Spec.Storage.VolumeSnapshot != nil {
+		return r.reconcileScaleOutVolumeSnapshotPods(ctx, mariadb, fromIndex, logger)
+	}
+
+	replication := ptr.Deref(mariadb.Spec.Replication, mariadbv1alpha1.Replication{})
+	bootstrapFrom := ptr.Deref(replication.Replica.ReplicaBootstrapFrom, mariadbv1alpha1.ReplicaBootstrapFrom{})
+
+	return r.reconcileRollingInitJobs(
+		ctx,
+		mariadb,
+		fromIndex,
+		logger.WithName("job"),
+		builder.WithPhysicalBackup(physicalBackup, time.Now(), bootstrapFrom.RestoreJob),
+	)
+}
+
+func (r *MariaDBReconciler) reconcileScaleOutVolumeSnapshotPods(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+	fromIndex int, logger logr.Logger) (ctrl.Result, error) {
+	logger.Info("Upscaling StatefulSet", "replicas", mariadb.Spec.Replicas)
+	if err := r.upscaleStatefulSet(ctx, mariadb, mariadb.Spec.Replicas); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error upscaling StatefulSet: %v", err)
+	}
+
+	return r.forEachMariaDBPod(mariadb, fromIndex, func(podIndex int) (ctrl.Result, error) {
+		return r.waitForPodScheduled(ctx, mariadb, podIndex, logger)
+	})
 }
 
 func (r *MariaDBReconciler) reconcileReplicaPhysicalBackup(ctx context.Context, key types.NamespacedName, mariadb *mariadbv1alpha1.MariaDB,
@@ -232,13 +354,20 @@ func (r *MariaDBReconciler) getVolumeSnapshotKey(ctx context.Context, mariadb *m
 	if err != nil {
 		return nil, err
 	}
-	if len(snapshotList.Items) == 0 {
-		return nil, errors.New("VolumeSnapshot not found")
+	snapshots := snapshotList.Items[:0]
+	for _, snapshot := range snapshotList.Items {
+		if physicalBackup.CreationTimestamp.IsZero() || snapshot.CreationTimestamp.IsZero() ||
+			!snapshot.CreationTimestamp.Time.Before(physicalBackup.CreationTimestamp.Time) {
+			snapshots = append(snapshots, snapshot)
+		}
 	}
-	sort.Slice(snapshotList.Items, func(i, j int) bool {
-		return snapshotList.Items[i].CreationTimestamp.After(snapshotList.Items[j].CreationTimestamp.Time)
+	if len(snapshots) == 0 {
+		return nil, errors.New("VolumeSnapshot not found for current PhysicalBackup")
+	}
+	sort.Slice(snapshots, func(i, j int) bool {
+		return snapshots[i].CreationTimestamp.After(snapshots[j].CreationTimestamp.Time)
 	})
-	return ptr.To(client.ObjectKeyFromObject(&snapshotList.Items[0])), nil
+	return ptr.To(client.ObjectKeyFromObject(&snapshots[0])), nil
 }
 
 func (r *MariaDBReconciler) setScaledOutAndCleanup(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
@@ -247,6 +376,7 @@ func (r *MariaDBReconciler) setScaledOutAndCleanup(ctx context.Context, mariadb 
 		return ctrl.Result{}, nil
 	}
 	physicalBackupKey := mariadb.PhysicalBackupScaleOutKey()
+	replicaRecoveryScaleOut := false
 
 	if mariadb.Status.ScaleOutInitialIndex != nil {
 		fromIndex := *mariadb.Status.ScaleOutInitialIndex
@@ -263,6 +393,14 @@ func (r *MariaDBReconciler) setScaledOutAndCleanup(ctx context.Context, mariadb 
 		if err := r.ensureReplicationConfigured(ctx, fromIndex, mariadb, snapshotKey, logger); err != nil {
 			return ctrl.Result{}, err
 		}
+		pvcUIDs, err := r.getStoragePVCUIDs(ctx, mariadb)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("error getting storage PVC UIDs: %v", err)
+		}
+		replicaRecoveryScaleOut = isReplicaBootstrapScaleOutRecovery(mariadb, fromIndex, pvcUIDs)
+		if err := r.syncStoragePVCUIDAnnotations(ctx, mariadb, pvcUIDs); err != nil {
+			return ctrl.Result{}, fmt.Errorf("error syncing storage PVC annotations: %v", err)
+		}
 
 		if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
 			status.ScaleOutInitialIndex = nil
@@ -278,10 +416,20 @@ func (r *MariaDBReconciler) setScaledOutAndCleanup(ctx context.Context, mariadb 
 
 	if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
 		condition.SetScaledOut(status)
+		if replicaRecoveryScaleOut {
+			condition.SetReplicaRecovered(status)
+		}
 		status.ScaleOutInitialIndex = nil
 		return nil
 	}); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error patching MariaDB status: %v", err)
+	}
+	pvcUIDs, err := r.getStoragePVCUIDs(ctx, mariadb)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error getting storage PVC UIDs: %v", err)
+	}
+	if err := r.syncStoragePVCUIDAnnotations(ctx, mariadb, pvcUIDs); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error syncing storage PVC annotations: %v", err)
 	}
 
 	if err := r.cleanupPhysicalBackup(ctx, physicalBackupKey); err != nil {
@@ -302,4 +450,14 @@ func (r *MariaDBReconciler) cleanupPhysicalBackup(ctx context.Context, key types
 		return err
 	}
 	return r.Delete(ctx, &physicalBackup)
+}
+
+func isReplicaBootstrapScaleOutRecovery(mariadb *mariadbv1alpha1.MariaDB, fromIndex int, pvcUIDs map[int]string) bool {
+	storedUID, ok := storedStoragePVCUID(mariadb.Annotations, fromIndex)
+	if !ok || storedUID == "" {
+		return false
+	}
+
+	currentUID := pvcUIDs[fromIndex]
+	return currentUID == "" || currentUID != storedUID
 }
