@@ -599,6 +599,28 @@ func (p *MariaDBPodTemplate) ServiceAccountKey(objMeta metav1.ObjectMeta) types.
 	}
 }
 
+// MariaDBMaintenance defines different capabilities of the operator to allow for maintenance to be performed on MariaDB.
+type MariaDBMaintenance struct {
+	Cordoning `json:",inline"`
+	// Enabled turns on maintenance mode
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
+	Enabled bool `json:"enabled,omitempty"`
+	// DrainConnections determines whether all connections in MariaDB should be drained after `drainGracePeriodSeconds`.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
+	DrainConnections bool `json:"drainConnections,omitempty"`
+	// DrainGracePeriodSeconds defines the grace period in seconds before a connection in MariaDB is drained.
+	// +optional
+	// +kubebuilder:default=30
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
+	DrainGracePeriodSeconds int `json:"drainGracePeriodSeconds,omitempty"`
+	// ReadOnly will allow only read statements to be performed on the resource.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
+	ReadOnly bool `json:"readOnly,omitempty"`
+}
+
 // MariaDBSpec defines the desired state of MariaDB
 type MariaDBSpec struct {
 	// ContainerTemplate defines templates to configure Container objects.
@@ -767,6 +789,11 @@ type MariaDBSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	SecondaryConnection *ConnectionTemplate `json:"secondaryConnection,omitempty" webhook:"inmutable"`
+	// Maintenance defines different capabilities of the operator to allow for maintenance to be performed on the DB.
+	// Not to be confused with `suspend`, maintenance does not interfere with the normal reconciliation of the operator.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	Maintenance *MariaDBMaintenance `json:"maintenance,omitempty"`
 }
 
 // MariaDBTLSStatus aggregates the status of the certificates used by the MariaDB instance.
@@ -1208,6 +1235,31 @@ func (m *MariaDB) ScalingOutError() error {
 		return errors.New(c.Message)
 	}
 	return nil
+}
+
+// IsMaintenanceModeEnabled indicates whether the maintenance mode is enabled.
+func (m *MariaDB) IsMaintenanceModeEnabled() bool {
+	return ptr.Deref(m.Spec.Maintenance, MariaDBMaintenance{}).Enabled
+}
+
+// IsCordonEnabled indicates whether the cordoning is enabled.
+func (m *MariaDB) IsCordonEnabled() bool {
+	return m.IsMaintenanceModeEnabled() && m.Spec.Maintenance.Cordon
+}
+
+// IsCordoned indicates that the reason the database is not ready is because it is cordoned
+// Since cordoned means connections are blocked, we set the status to not ready
+func (m *MariaDB) IsCordoned() bool {
+	condition := meta.FindStatusCondition(m.Status.Conditions, ConditionTypeReady)
+	if condition == nil {
+		return false
+	}
+	return condition.Status == metav1.ConditionFalse && condition.Reason == ConditionReasonCordoned
+}
+
+// IsReadOnlyEnabled indicates whether the readonly is enabled.
+func (m *MariaDB) IsReadOnlyEnabled() bool {
+	return m.IsMaintenanceModeEnabled() && m.Spec.Maintenance.ReadOnly
 }
 
 // ServerDNSNames are the Service DNS names used by server TLS certificates.

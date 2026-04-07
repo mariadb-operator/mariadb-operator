@@ -132,3 +132,15 @@ spec:
     #         operator: In
     #         values: 
     #         - amd64
+
+  # maintenance:
+  #   # Configure maintenance mode
+  #   enabled: true
+  #   # Do not allow connections through
+  #   cordon: false
+  #   # Drain long-running connections. Does not affect replication connections and such
+  #   drainConnections: false
+  #   # Drain after 30 seconds
+  #   drainGracePeriodSeconds: 30
+  #   # Set database to read_only
+  #   readOnly: false

@@ -20,6 +20,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/deployment"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/endpoints"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/galera"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/maintenance"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/pvc"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/rbac"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/replication"
@@ -118,6 +119,7 @@ var _ = BeforeSuite(func() {
 	scheme := k8sManager.GetScheme()
 	galeraRecorder := k8sManager.GetEventRecorder("galera")
 	replRecorder := k8sManager.GetEventRecorder("replication")
+	maintenanceRecorder := k8sManager.GetEventRecorder("maintenance")
 
 	kubeClientset, err := kubernetes.NewForConfig(cfg)
 	Expect(err).ToNot(HaveOccurred())
@@ -173,6 +175,7 @@ var _ = BeforeSuite(func() {
 		galera.WithConfigMapReconciler(configMapReconciler),
 		galera.WithServiceReconciler(serviceReconciler),
 	)
+	maintenanceReconciler := maintenance.NewMaintenanceReconciler(client, maintenanceRecorder)
 
 	podReplicationController := NewPodController(
 		"pod-replication",
@@ -228,6 +231,7 @@ var _ = BeforeSuite(func() {
 
 		ReplicationReconciler: replicationReconciler,
 		GaleraReconciler:      galeraReconciler,
+		MaintenanceReconciler: maintenanceReconciler,
 	}).SetupWithManager(testCtx, k8sManager, env, ctrlcontroller.Options{MaxConcurrentReconciles: 10})
 	Expect(err).ToNot(HaveOccurred())
 

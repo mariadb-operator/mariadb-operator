@@ -82,4 +82,10 @@ spec:
     # verifyPeerCertificate: true
     # verifyPeerHost: false
 
+  # maintenance:
+  #   # Configure maintenance mode
+  #   enabled: true
+  #   # Do not allow connections through
+  #   cordon: false
+
   requeueInterval: 1h
