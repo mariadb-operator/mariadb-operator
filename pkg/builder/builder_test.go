@@ -9,6 +9,7 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/discovery"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/environment"
+	mdbmetadata "github.com/mariadb-operator/mariadb-operator/v26/pkg/metadata"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -52,6 +53,7 @@ func assertObjectMeta(t *testing.T, objMeta *metav1.ObjectMeta, wantLabels, want
 	if objMeta == nil {
 		t.Fatal("expecting object metadata to not be nil")
 	}
+	wantLabels = withManagedByLabel(wantLabels)
 	if wantLabels != nil && !reflect.DeepEqual(wantLabels, objMeta.Labels) {
 		t.Errorf("unexpected labels, want: %v  got: %v", wantLabels, objMeta.Labels)
 	}
@@ -70,4 +72,17 @@ func assertMeta(t *testing.T, meta *mariadbv1alpha1.Metadata, wantLabels, wantAn
 	if wantAnnotations != nil && !reflect.DeepEqual(wantAnnotations, meta.Annotations) {
 		t.Errorf("unexpected annotations, want: %v  got: %v", wantAnnotations, meta.Annotations)
 	}
+}
+
+func withManagedByLabel(labels map[string]string) map[string]string {
+	if labels == nil {
+		return nil
+	}
+
+	labelsCopy := make(map[string]string, len(labels)+1)
+	for k, v := range labels {
+		labelsCopy[k] = v
+	}
+	labelsCopy[mdbmetadata.KubernetesManagedByLabel] = mdbmetadata.KubernetesManagedByValue
+	return labelsCopy
 }
