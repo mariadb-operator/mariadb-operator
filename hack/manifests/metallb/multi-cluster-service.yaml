@@ -1,0 +1,215 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: mariadb-eu-south-0
+  namespace: default
+  annotations:
+    metallb.io/loadBalancerIPs: $CIDR_PREFIX.1.11
+spec:
+  ports:
+    - name: mariadb
+      port: 3306
+      protocol: TCP
+      targetPort: 3306
+    - name: agent
+      port: 5555
+      protocol: TCP
+      targetPort: 5555
+    - name: agent-probe
+      port: 5566
+      protocol: TCP
+      targetPort: 5566
+  selector:
+    app.kubernetes.io/instance: mariadb-eu-south
+    app.kubernetes.io/name: mariadb
+    statefulset.kubernetes.io/pod-name: mariadb-eu-south-0
+  type: LoadBalancer
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mariadb-eu-south-1
+  namespace: default
+  annotations:
+    metallb.io/loadBalancerIPs: $CIDR_PREFIX.1.12
+spec:
+  ports:
+    - name: mariadb
+      port: 3306
+      protocol: TCP
+      targetPort: 3306
+    - name: agent
+      port: 5555
+      protocol: TCP
+      targetPort: 5555
+    - name: agent-probe
+      port: 5566
+      protocol: TCP
+      targetPort: 5566
+  selector:
+    app.kubernetes.io/instance: mariadb-eu-south
+    app.kubernetes.io/name: mariadb
+    statefulset.kubernetes.io/pod-name: mariadb-eu-south-1
+  type: LoadBalancer
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mariadb-eu-south-2
+  namespace: default
+  annotations:
+    metallb.io/loadBalancerIPs: $CIDR_PREFIX.1.13
+spec:
+  ports:
+    - name: mariadb
+      port: 3306
+      protocol: TCP
+      targetPort: 3306
+    - name: agent
+      port: 5555
+      protocol: TCP
+      targetPort: 5555
+    - name: agent-probe
+      port: 5566
+      protocol: TCP
+      targetPort: 5566
+  selector:
+    app.kubernetes.io/instance: mariadb-eu-south
+    app.kubernetes.io/name: mariadb
+    statefulset.kubernetes.io/pod-name: mariadb-eu-south-2
+  type: LoadBalancer
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mariadb-eu-south-3
+  namespace: default
+  annotations:
+    metallb.io/loadBalancerIPs: $CIDR_PREFIX.1.14
+spec:
+  ports:
+    - name: mariadb
+      port: 3306
+      protocol: TCP
+      targetPort: 3306
+    - name: agent
+      port: 5555
+      protocol: TCP
+      targetPort: 5555
+    - name: agent-probe
+      port: 5566
+      protocol: TCP
+      targetPort: 5566
+  selector:
+    app.kubernetes.io/instance: mariadb-eu-south
+    app.kubernetes.io/name: mariadb
+    statefulset.kubernetes.io/pod-name: mariadb-eu-south-3
+  type: LoadBalancer
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mariadb-eu-central-0
+  namespace: default
+  annotations:
+    metallb.io/loadBalancerIPs: $CIDR_PREFIX.1.16
+spec:
+  ports:
+    - name: mariadb
+      port: 3306
+      protocol: TCP
+      targetPort: 3306
+    - name: agent
+      port: 5555
+      protocol: TCP
+      targetPort: 5555
+    - name: agent-probe
+      port: 5566
+      protocol: TCP
+      targetPort: 5566
+  selector:
+    app.kubernetes.io/instance: mariadb-eu-central
+    app.kubernetes.io/name: mariadb
+    statefulset.kubernetes.io/pod-name: mariadb-eu-central-0
+  type: LoadBalancer
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mariadb-eu-central-1
+  namespace: default
+  annotations:
+    metallb.io/loadBalancerIPs: $CIDR_PREFIX.1.17
+spec:
+  ports:
+    - name: mariadb
+      port: 3306
+      protocol: TCP
+      targetPort: 3306
+    - name: agent
+      port: 5555
+      protocol: TCP
+      targetPort: 5555
+    - name: agent-probe
+      port: 5566
+      protocol: TCP
+      targetPort: 5566
+  selector:
+    app.kubernetes.io/instance: mariadb-eu-central
+    app.kubernetes.io/name: mariadb
+    statefulset.kubernetes.io/pod-name: mariadb-eu-central-1
+  type: LoadBalancer
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mariadb-eu-central-2
+  namespace: default
+  annotations:
+    metallb.io/loadBalancerIPs: $CIDR_PREFIX.1.18
+spec:
+  ports:
+    - name: mariadb
+      port: 3306
+      protocol: TCP
+      targetPort: 3306
+    - name: agent
+      port: 5555
+      protocol: TCP
+      targetPort: 5555
+    - name: agent-probe
+      port: 5566
+      protocol: TCP
+      targetPort: 5566
+  selector:
+    app.kubernetes.io/instance: mariadb-eu-central
+    app.kubernetes.io/name: mariadb
+    statefulset.kubernetes.io/pod-name: mariadb-eu-central-2
+  type: LoadBalancer
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mariadb-eu-central-3
+  namespace: default
+  annotations:
+    metallb.io/loadBalancerIPs: $CIDR_PREFIX.1.19
+spec:
+  ports:
+    - name: mariadb
+      port: 3306
+      protocol: TCP
+      targetPort: 3306
+    - name: agent
+      port: 5555
+      protocol: TCP
+      targetPort: 5555
+    - name: agent-probe
+      port: 5566
+      protocol: TCP
+      targetPort: 5566
+  selector:
+    app.kubernetes.io/instance: mariadb-eu-central
+    app.kubernetes.io/name: mariadb
+    statefulset.kubernetes.io/pod-name: mariadb-eu-central-3
+  type: LoadBalancer
