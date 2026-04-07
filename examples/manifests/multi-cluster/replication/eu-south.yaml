@@ -1,0 +1,91 @@
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-eu-south
+spec:
+  rootPasswordSecretKeyRef:
+    name: mariadb
+    key: password
+  storage:
+    size: 1Gi
+  replicas: 2
+  # If you want to restore original cluster from replica cluster.
+  # @WARN: You will need to set gtidStrictMode to false in the `replication` spec
+  # bootstrapFrom:
+  #   s3:
+  #     bucket: multi-cluster
+  #     prefix: eu-central
+  #     endpoint: minio.minio.svc.cluster.local:9000
+  #     region: us-east-1
+  #     accessKeyIdSecretKeyRef:
+  #       name: minio
+  #       key: access-key-id
+  #     secretAccessKeySecretKeyRef:
+  #       name: minio
+  #       key: secret-access-key
+  #     tls:
+  #       enabled: true
+  #       caSecretKeyRef:
+  #         name: minio-ca
+  #         key: ca.crt
+  #   backupContentType: Physical
+  replication:
+    enabled: true
+    # gtidStrictMode: false # For bootstrapping from replica
+    gtidDomainId: 0
+    serverIdStartIndex: 10
+    replica:
+      replPasswordSecretKeyRef:
+        name: mariadb
+        key: password
+      bootstrapFrom:
+        physicalBackupTemplateRef:
+          name: eu-south-backup
+      recovery:
+        enabled: true
+        errorDurationThreshold: 30s
+  primaryService:
+    type: LoadBalancer
+    metadata:
+      annotations:
+        metallb.io/loadBalancerIPs: 172.18.1.10
+  tls:
+    enabled: true
+    required: false
+    serverCASecretRef:
+      name: mariadb-server-ca
+    serverCertAdditionalNames:
+      - 172.18.1.10
+    clientCASecretRef:
+      name: mariadb-server-ca
+  multiCluster:
+    enabled: true
+    primary: mariadb-eu-south
+    replicas:
+      - mariadb-eu-central
+    members:
+      - name: mariadb-eu-south
+        externalMariaDbRef:
+          name: mariadb-eu-south
+          namespace: default
+      - name: mariadb-eu-central
+        externalMariaDbRef:
+          name: mariadb-eu-central
+---
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: ExternalMariaDB
+metadata:
+  name: mariadb-eu-south
+spec:
+  host: mariadb-eu-south-primary.default.svc.cluster.local
+  port: 3306
+  username: root
+  passwordSecretKeyRef:
+    name: mariadb
+    key: password
+  tls:
+    enabled: true
+    serverCASecretRef:
+      name: mariadb-server-ca
+    clientCASecretRef:
+      name: mariadb-server-ca
