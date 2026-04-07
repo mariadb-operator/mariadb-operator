@@ -1025,7 +1025,7 @@ func (r *MariaDBReconciler) getTargetVolumeSnapshot(ctx context.Context, backup 
 
 func (r *MariaDBReconciler) reconcileSuspend(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
 	if mariadb.IsSuspended() {
-		log.FromContext(ctx).V(1).Info("MariaDB suspended. Skipping...")
+		log.FromContext(ctx).V(1).Info("MariaDB is suspended. Skipping...")
 		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 	}
 	// Skip reconciliation if the MariaDB CR is being deleted
