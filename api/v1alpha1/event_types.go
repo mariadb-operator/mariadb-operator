@@ -85,4 +85,7 @@ const (
 
 	// ReasonMariaDBRootPasswordChanged indicates that a root password change was completed after an update to the rootPasswordSecretKeyRef.
 	ReasonMariaDBRootPasswordChanged = "MariaDBRootPasswordChanged"
+
+	// ReasonMaintenance indicates that an action related to maintenance has been performed.
+	ReasonMaintenance = "Maintenance"
 )

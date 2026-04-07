@@ -9,6 +9,7 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/sql"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
+	corev1 "k8s.io/api/core/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
@@ -29,12 +30,12 @@ func (r *MaintenanceReconciler) reconcileReadOnly(ctx context.Context, mariadb *
 		client, err := clientSet.ClientForIndex(ctx, podIndex)
 		if err != nil {
 			// This is to avoid noisy error logs, as it is continuously reconciling.
-			readOnlyLogger.V(1).Info("Error getting SQL client for Pod index", "err", err, "pod-index", podIndex)
+			podLogger.V(1).Info("Error getting SQL client for Pod index", "err", err)
 			return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 		}
 		currentReadOnly, err := client.GetReadOnly(ctx)
 		if err != nil {
-			return ctrl.Result{}, fmt.Errorf("error getting readonly state in Pod index %d: %v", podIndex, err)
+			return ctrl.Result{}, fmt.Errorf("error getting readonly state in Pod %s: %v", podName, err)
 		}
 
 		if desiredReadOnly == currentReadOnly {
@@ -43,17 +44,19 @@ func (r *MaintenanceReconciler) reconcileReadOnly(ctx context.Context, mariadb *
 		}
 		if desiredReadOnly {
 			podLogger.Info("Enabling readonly")
-			// TODO: emit event
+			r.recorder.Eventf(mariadb, nil, corev1.EventTypeNormal, mariadbv1alpha1.ConditionReasonMaintenance, mariadbv1alpha1.ActionReconciling,
+				"Enabling readonly in Pod %s", podName)
 
 			if err := client.EnableReadOnly(ctx); err != nil {
-				return ctrl.Result{}, fmt.Errorf("error enabling readonly in Pod index %d: %v", podIndex, err)
+				return ctrl.Result{}, fmt.Errorf("error enabling readonly in Pod %s %v", podName, err)
 			}
 		} else {
 			podLogger.Info("Disabling readonly")
-			// TODO: emit event
+			r.recorder.Eventf(mariadb, nil, corev1.EventTypeNormal, mariadbv1alpha1.ConditionReasonMaintenance, mariadbv1alpha1.ActionReconciling,
+				"Disabling readonly in Pod %s", podName)
 
 			if err := client.DisableReadOnly(ctx); err != nil {
-				return ctrl.Result{}, fmt.Errorf("error disabling readonly in Pod index %d: %v", podIndex, err)
+				return ctrl.Result{}, fmt.Errorf("error disabling readonly in Pod %s: %v", podName, err)
 			}
 		}
 	}
