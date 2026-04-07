@@ -9,6 +9,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/sql"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
 	"golang.org/x/sync/errgroup"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
@@ -37,10 +38,10 @@ func (r *MaintenanceReconciler) reconcileDrainConnections(ctx context.Context, m
 
 			processes, err := client.GetProcessList(ctx)
 			if err != nil {
-				return fmt.Errorf("error fetching processlist for %s: %v", podName, result.Err)
+				return fmt.Errorf("error fetching processlist for %s: %v", podName, err)
 			}
 
-			return r.drainProcesses(ctx, client, processes, mariadb.Spec.Maintenance.DrainGracePeriodSeconds, drainLogger.WithValues("pod", podName))
+			return r.drainProcesses(ctx, client, processes, mariadb, drainLogger.WithValues("pod", podName))
 		})
 	}
 
@@ -48,14 +49,15 @@ func (r *MaintenanceReconciler) reconcileDrainConnections(ctx context.Context, m
 }
 
 func (r *MaintenanceReconciler) drainProcesses(ctx context.Context, client *sql.Client, processes []sql.Process,
-	drainTimeoutSeconds int, logger logr.Logger) error {
+	mariadb *mariadbv1alpha1.MariaDB, logger logr.Logger) error {
 	for _, process := range processes {
-		plogger := logger.WithValues("id", process.ID, "command", process.Command, "time", process.Time).V(1)
-		plogger.Info("Evaluating candidate process for draining")
+		plogger := logger.WithValues("id", process.ID, "command", process.Command, "time", process.Time)
+		plogger.V(1).Info("Evaluating candidate process for draining")
 
-		if process.Time > drainTimeoutSeconds && process.IsSafeToTerminate() {
+		if process.Time > mariadb.Spec.Maintenance.DrainGracePeriodSeconds && process.IsSafeToTerminate() {
 			plogger.Info("Draining process")
-			// TODO: emit event
+			r.recorder.Eventf(mariadb, nil, corev1.EventTypeNormal, mariadbv1alpha1.ConditionReasonMaintenance, mariadbv1alpha1.ActionReconciling,
+				"Draining process (id=%d,command=%s,time=%d)", process.ID, process.Command, process.Time)
 
 			if err := client.SoftKillProcess(ctx, process); sql.IgnoreYouAreNotOwnerOfThread(err) != nil {
 				return fmt.Errorf("error killing process ID(%d) Command(%s): %v", process.ID, process.Command, err)
