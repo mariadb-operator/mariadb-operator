@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 	"text/template"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
@@ -255,6 +256,11 @@ func NewReplicationConfig(env *env.PodEnvironment) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error getting GTID strict mode: %v", err)
 	}
+	// TODO: unit tests
+	gtidDomainID, err := gtidDomainID(env.MariaDBReplGtidDomainID)
+	if err != nil {
+		return nil, fmt.Errorf("error getting GTID domain ID: %v", err)
+	}
 	semiSyncEnabled, err := env.ReplSemiSyncEnabled()
 	if err != nil {
 		return nil, fmt.Errorf("error getting semi-sync enabled: %v", err)
@@ -263,7 +269,13 @@ func NewReplicationConfig(env *env.PodEnvironment) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error getting semi-sync master timeout: %v", err)
 	}
-	serverId, err := serverId(env.PodName)
+	// TODO: unit tests
+	serverIDStartIndex, err := serverIDStartIndex(env.MariaDBReplServerIDStartIndex)
+	if err != nil {
+		return nil, fmt.Errorf("error getting server ID start index: %v", err)
+	}
+	// TODO: unit tests
+	serverID, err := serverId(env.PodName, serverIDStartIndex)
 	if err != nil {
 		return nil, fmt.Errorf("error getting server ID: %v", err)
 	}
@@ -280,6 +292,9 @@ log_basename={{.LogName }}
 {{- with .GtidStrictMode }}
 gtid_strict_mode
 {{- end }}
+{{- with .GtidDomainID }}
+gtid_domain_id={{ .GtidDomainID }}
+{{- end }}
 {{- if .SemiSyncEnabled }}
 rpl_semi_sync_master_enabled=ON
 rpl_semi_sync_slave_enabled=ON
@@ -290,7 +305,7 @@ rpl_semi_sync_master_timeout={{ . }}
 rpl_semi_sync_master_wait_point={{ . }}
 {{- end }}
 {{- end }}
-server_id={{ .ServerId }}
+server_id={{ .ServerID }}
 {{- with .SyncBinlog }}
 sync_binlog={{ . }}
 {{- end }}
@@ -299,18 +314,20 @@ sync_binlog={{ . }}
 	err = tpl.Execute(buf, struct {
 		LogName                 string
 		GtidStrictMode          bool
+		GtidDomainID            *int
 		SemiSyncEnabled         bool
 		SemiSyncMasterTimeout   *int64
 		SemiSyncMasterWaitPoint string
 		SyncBinlog              *int
-		ServerId                int
+		ServerID                int
 	}{
 		LogName:                 env.MariadbName,
 		GtidStrictMode:          gtidStrictMode,
+		GtidDomainID:            gtidDomainID,
 		SemiSyncEnabled:         semiSyncEnabled,
 		SemiSyncMasterTimeout:   semiSyncMasterTimeout,
 		SemiSyncMasterWaitPoint: env.MariaDBReplSemiSyncMasterWaitPoint,
-		ServerId:                serverId,
+		ServerID:                serverID,
 		SyncBinlog:              syncBinlog,
 	})
 	if err != nil {
@@ -319,12 +336,34 @@ sync_binlog={{ . }}
 	return buf.Bytes(), nil
 }
 
-func serverId(podName string) (int, error) {
+func gtidDomainID(rawGtidDomainID string) (*int, error) {
+	if rawGtidDomainID == "" {
+		return nil, nil // rely on server defaults
+	}
+	gtidDomainId, err := strconv.Atoi(rawGtidDomainID)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing GTID domain ID: %v", err)
+	}
+	return &gtidDomainId, nil
+}
+
+func serverIDStartIndex(rawStartIndex string) (int, error) {
+	if rawStartIndex == "" {
+		return 10, nil
+	}
+	startIndex, err := strconv.Atoi(rawStartIndex)
+	if err != nil {
+		return 0, fmt.Errorf("serverID start index could not be parsed. %v", err)
+	}
+	return startIndex, nil
+}
+
+func serverId(podName string, startIndex int) (int, error) {
 	podIndex, err := statefulset.PodIndex(podName)
 	if err != nil {
 		return 0, fmt.Errorf("error getting Pod index: %v", err)
 	}
-	return 10 + *podIndex, nil
+	return startIndex + *podIndex, nil
 }
 
 func formatAccountName(username, host string) string {

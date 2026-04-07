@@ -249,6 +249,18 @@ type ReplicationSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	GtidStrictMode *bool `json:"gtidStrictMode,omitempty"`
+	// GtidDomainID is gtid_domain_id for all of the MariaDB nodes.
+	// It is immutable.
+	// See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/gtid#gtid_domain_id
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	GtidDomainID *int `json:"gtidDomainId,omitempty" webhook:"inmutable"`
+	// ServerIDStartIndex sets the start index of the MariaDB nodes. Each subsequent replica will increment this by 1.
+	// It is immutable.
+	// See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/replication-and-binary-log-system-variables#server_id
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	ServerIDStartIndex *int `json:"serverIdStartIndex,omitempty" webhook:"inmutable"`
 	// SemiSyncEnabled determines whether semi-synchronous replication is enabled.
 	// Semi-synchronous replication requires that at least one replica should have sent an ACK to the primary node
 	// before committing the transaction back to the client.
@@ -320,6 +332,12 @@ func (r *Replication) SetDefaults(mdb *MariaDB, env *environment.OperatorEnv) er
 
 	if r.GtidStrictMode == nil {
 		r.GtidStrictMode = ptr.To(true)
+	}
+	if r.ServerIDStartIndex == nil {
+		r.ServerIDStartIndex = ptr.To(10)
+	}
+	if r.GtidDomainID == nil {
+		r.GtidDomainID = ptr.To(0)
 	}
 	if r.SemiSyncEnabled == nil {
 		r.SemiSyncEnabled = ptr.To(true)
@@ -459,10 +477,19 @@ func (m *MariaDB) IsReplicationSwitchoverRequired() bool {
 type ReplicationRole string
 
 const (
+	// ReplicationRolePrimary is the primary Pod in a replication cluster.
 	ReplicationRolePrimary ReplicationRole = "Primary"
+	// ReplicationRolePrimary is the secondary Pod in a replication cluster.
 	ReplicationRoleReplica ReplicationRole = "Replica"
+	// ReplicationRolePrimaryReplica is the primary Pod in a replica cluster, when using a multi-cluster topology.
+	ReplicationRolePrimaryReplica ReplicationRole = "PrimaryReplica"
+	// ReplicationRoleUnknown is the primary Pod in a replica cluster when using the multi-cluster topology.
 	ReplicationRoleUnknown ReplicationRole = "Unknown"
 )
+
+func (r ReplicationRole) IsPrimary() bool {
+	return r == ReplicationRolePrimaryReplica || r == ReplicationRolePrimary
+}
 
 // ReplicaStatusVars is the observed replica status variables.
 type ReplicaStatusVars struct {
