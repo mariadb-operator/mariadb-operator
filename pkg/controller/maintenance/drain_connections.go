@@ -56,7 +56,7 @@ func (r *MaintenanceReconciler) drainProcesses(ctx context.Context, client *sql.
 
 		if process.Time > mariadb.Spec.Maintenance.DrainGracePeriodSeconds && process.IsSafeToTerminate() {
 			plogger.Info("Draining process")
-			r.recorder.Eventf(mariadb, nil, corev1.EventTypeNormal, mariadbv1alpha1.ConditionReasonMaintenance, mariadbv1alpha1.ActionReconciling,
+			r.recorder.Eventf(mariadb, nil, corev1.EventTypeNormal, mariadbv1alpha1.ReasonMaintenance, mariadbv1alpha1.ActionReconciling,
 				"Draining process (id=%d,command=%s,time=%d)", process.ID, process.Command, process.Time)
 
 			if err := client.SoftKillProcess(ctx, process); sql.IgnoreYouAreNotOwnerOfThread(err) != nil {
