@@ -67,7 +67,7 @@ func (r *MariaDBReconciler) reconcileRootPasswordInMariaDB(ctx context.Context, 
 
 	if newRootPassword == string(internalRootPassword) {
 		// Ensure root password is set as expected
-		return r.ensureRootPassword(ctx, mariadb)
+		return r.ensureRootPasswordInDataPlane(ctx, mariadb)
 	}
 
 	rootPassLogger.Info("Root password changed. Updating.")
