@@ -11,7 +11,6 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
-	agentclient "github.com/mariadb-operator/mariadb-operator/v26/pkg/agent/client"
 	agentresources "github.com/mariadb-operator/mariadb-operator/v26/pkg/agent/resources"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/backup"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/builder"
@@ -37,12 +36,9 @@ import (
 	kadapter "github.com/mariadb-operator/mariadb-operator/v26/pkg/kubernetes/adapter"
 	mdbpod "github.com/mariadb-operator/mariadb-operator/v26/pkg/pod"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/refresolver"
-	mariadbsql "github.com/mariadb-operator/mariadb-operator/v26/pkg/sql"
 	sts "github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
 	mdbsnapshot "github.com/mariadb-operator/mariadb-operator/v26/pkg/volumesnapshot"
-	"golang.org/x/sync/errgroup"
 	appsv1 "k8s.io/api/apps/v1"
-	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -51,7 +47,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/events"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -215,6 +210,10 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		{
 			Name:      "SQL",
 			Reconcile: r.reconcileSQL,
+		},
+		{
+			Name:      "Root Password",
+			Reconcile: r.reconcileRootPassword,
 		},
 		{
 			Name:      "Metrics",
@@ -942,253 +941,6 @@ func (r *MariaDBReconciler) reconcileUsers(ctx context.Context, mariadb *mariadb
 				return ctrl.Result{}, fmt.Errorf("error reconciling user auth: %v", err)
 			}
 			return result, err
-		}
-	}
-
-	return r.reconcileRootPassword(ctx, mariadb)
-}
-
-// reconcileRootPassword will ensure the root password in the mariadb CR is up to date
-// @NOTE: `root@localhost` and `root@%` are modified as both are created when MariaDB is first configured
-func (r *MariaDBReconciler) reconcileRootPassword(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
-	if mariadb.IsRootPasswordEmpty() {
-		return ctrl.Result{}, nil
-	}
-
-	if result, err := r.shouldReconcileRootPassword(ctx, mariadb); !result.IsZero() || err != nil {
-		return result, err
-	}
-
-	changePasswordCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
-	defer cancel()
-
-	return r.reconcileRootPasswordInMariaDB(changePasswordCtx, mariadb)
-}
-
-// reconcileRootPasswordInMariaDB will rotate the rootPassword if needed
-// If not needed, it will ensure the root password is set to the desired one
-func (r *MariaDBReconciler) reconcileRootPasswordInMariaDB(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
-	rootPassLogger := log.FromContext(ctx).WithName("root-password")
-
-	newRootPassword, err := r.RefResolver.SecretKeyRef(ctx, mariadb.Spec.RootPasswordSecretKeyRef.SecretKeySelector, mariadb.Namespace)
-	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error getting root password secret: %v", err)
-	}
-
-	internalRootPasswordSecretKey := mariadb.InternalRootPasswordSecretKey()
-	var internalRootPasswordSecret corev1.Secret
-	err = r.Get(ctx, internalRootPasswordSecretKey, &internalRootPasswordSecret)
-	if err != nil {
-		if apierrors.IsNotFound(err) {
-			rootPassLogger.V(1).Info("Internal root password secret not found, requeuing")
-			return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
-		}
-		return ctrl.Result{}, fmt.Errorf("error getting internal root password secret: %v", err)
-	}
-	internalRootPassword := internalRootPasswordSecret.Data[mariadb.Spec.RootPasswordSecretKeyRef.Key]
-
-	if newRootPassword == string(internalRootPassword) {
-		// Ensure root password is set as expected
-		return r.ensureRootPassword(ctx, mariadb)
-	}
-
-	rootPassLogger.Info("Root password changed. Updating.")
-
-	sqlClient, err := mariadbsql.NewClientWithMariaDB(
-		ctx,
-		mariadb,
-		r.RefResolver,
-		mariadbsql.WithPassword(string(internalRootPassword)), // Using the internal password
-		mariadbsql.WithHost(mariadb.GetHost()),
-		mariadbsql.WithTimeout(5*time.Second),
-	)
-	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error creating SQL client for root password update: %v", err)
-	}
-	defer sqlClient.Close()
-
-	// only context cancel error may be returned
-	restoreFunc := func(err error) error {
-		rootPassLogger.Error(err, "attempting to restore the previous password")
-
-		patchCtx, cancel := context.WithTimeout(ctx, time.Second*10)
-		defer cancel()
-		return wait.PollUntilContextCancel(patchCtx, time.Second, true, func(ctx context.Context) (done bool, err error) {
-			var errBundle *multierror.Error
-			errBundle = multierror.Append(
-				errBundle,
-				sqlClient.AlterUser(
-					patchCtx,
-					"'root'@'localhost'",
-					mariadbsql.WithIdentifiedBy(string(internalRootPassword)),
-					mariadbsql.WithMaxUserConnections(10),
-				),
-			)
-			errBundle = multierror.Append(
-				errBundle,
-				sqlClient.AlterUser(
-					patchCtx,
-					"'root'@'%'",
-					mariadbsql.WithIdentifiedBy(string(internalRootPassword)),
-					mariadbsql.WithMaxUserConnections(10),
-				),
-			)
-
-			if errBundle.ErrorOrNil() == nil {
-				return true, nil
-
-			}
-			rootPassLogger.Error(errBundle.ErrorOrNil(), "error while restoring root user password")
-
-			return false, nil
-		})
-	}
-
-	var errBundle *multierror.Error
-	errBundle = multierror.Append(
-		errBundle,
-		sqlClient.AlterUser(
-			ctx,
-			"'root'@'localhost'",
-			mariadbsql.WithIdentifiedBy(newRootPassword),
-			mariadbsql.WithMaxUserConnections(10),
-		),
-	)
-	errBundle = multierror.Append(
-		errBundle,
-		sqlClient.AlterUser(
-			ctx,
-			"'root'@'%'",
-			mariadbsql.WithIdentifiedBy(newRootPassword),
-			mariadbsql.WithMaxUserConnections(10),
-		),
-	)
-
-	if errBundle.ErrorOrNil() != nil {
-		return ctrl.Result{}, fmt.Errorf(
-			"error updating root user password: %v",
-			multierror.Append(errBundle, restoreFunc(errBundle.ErrorOrNil())),
-		)
-	}
-
-	patch := client.MergeFrom(internalRootPasswordSecret.DeepCopy())
-	internalRootPasswordSecret.Data[mariadb.Spec.RootPasswordSecretKeyRef.Key] = []byte(newRootPassword)
-
-	if err := r.Patch(ctx, &internalRootPasswordSecret, patch); err != nil {
-		return ctrl.Result{}, fmt.Errorf(
-			"error while patching internal root password secret: %v",
-			multierror.Append(err, restoreFunc(err)),
-		)
-	}
-
-	rootPassLogger.Info("Root password updated successfully. Requeuing...")
-
-	return ctrl.Result{RequeueAfter: time.Second}, nil
-}
-
-// ensureRootPassword updates the root password based on the current value of `RootPasswordSecretKeyRef`
-// - Inside the agents for the probes
-// - If galera is enabled, updates `wsrep_sst_auth`
-func (r *MariaDBReconciler) ensureRootPassword(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
-	if !mariadb.IsHAEnabled() {
-		return ctrl.Result{}, nil
-	}
-
-	rootPassword, err := r.RefResolver.SecretKeyRef(ctx, mariadb.Spec.RootPasswordSecretKeyRef.SecretKeySelector, mariadb.Namespace)
-	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error getting root password secret: %v", err)
-	}
-
-	clientSet, err := agentclient.NewClientSet(ctx, mariadb, r.Environment, r.RefResolver)
-	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error creating agent client set: %v", err)
-	}
-
-	pods, err := mdbpod.ListMariaDBPods(ctx, r.Client, mariadb)
-	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error listing MariaDB pods: %v", err)
-	}
-
-	g := new(errgroup.Group)
-	g.SetLimit(len(pods))
-	for i := range pods {
-		g.Go(func() error {
-			agentClient, err := clientSet.ClientForIndex(i)
-			if err != nil {
-				return fmt.Errorf("error getting agent client for pod '%s': %v", pods[i].Name, err)
-			}
-			if err := agentClient.Environment.SetValue(ctx, "MARIADB_ROOT_PASSWORD", rootPassword); err != nil {
-				return err
-			}
-			return nil
-		})
-	}
-
-	if err := g.Wait(); err != nil {
-		return ctrl.Result{}, fmt.Errorf("error setting root password in agent environment: %v", err)
-	}
-
-	if mariadb.IsGaleraEnabled() {
-		sqlClient, err := mariadbsql.NewClientWithMariaDB(
-			ctx,
-			mariadb,
-			r.RefResolver,
-			mariadbsql.WithPassword(rootPassword),
-			mariadbsql.WithHost(mariadb.GetHost()),
-			mariadbsql.WithTimeout(5*time.Second),
-		)
-		if err != nil {
-			return ctrl.Result{}, fmt.Errorf("error creating SQL client for root password update: %v", err)
-		}
-		defer sqlClient.Close()
-
-		if err := sqlClient.ChangeWsrepSSTAuth(ctx, "root", rootPassword); err != nil {
-			return ctrl.Result{}, fmt.Errorf("error setting wsrep_sst_auth: %v", err)
-		}
-	}
-
-	return ctrl.Result{}, nil
-}
-
-// shouldReconcileRootPassword checks if a root password reconciliation is safe to happen.
-func (r *MariaDBReconciler) shouldReconcileRootPassword(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
-	if mariadb.IsInitializing() || mariadb.IsUpdating() || mariadb.IsRestoringBackup() ||
-		mariadb.IsScalingOut() || mariadb.IsRecoveringReplicas() || mariadb.HasGaleraNotReadyCondition() ||
-		mariadb.IsSwitchingPrimary() || mariadb.IsReplicationSwitchoverRequired() {
-		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
-	}
-
-	healthy, err := health.IsStatefulSetHealthy(
-		ctx,
-		r.Client,
-		client.ObjectKeyFromObject(mariadb),
-		health.WithDesiredReplicas(mariadb.Spec.Replicas),
-		health.WithPort(mariadb.Spec.Port),
-		health.WithEndpointPolicy(health.EndpointPolicyAll),
-	)
-	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error checking MariaDB health: %v", err)
-	}
-	if !healthy {
-		return ctrl.Result{RequeueAfter: time.Second}, nil
-	}
-
-	var jobList batchv1.JobList
-	if err := r.List(
-		ctx,
-		&jobList,
-		client.InNamespace(mariadb.Namespace),
-		client.MatchingLabels(
-			labels.NewLabelsBuilder().
-				WithMariaDBSelectorLabels(mariadb).
-				Build(),
-		),
-	); err != nil {
-		return ctrl.Result{}, fmt.Errorf("error listing jobs: %v", err)
-	}
-	for _, job := range jobList.Items {
-		if job.Status.Active > 0 {
-			return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 		}
 	}
 
