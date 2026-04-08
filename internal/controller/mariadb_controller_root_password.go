@@ -158,6 +158,8 @@ func (r *MariaDBReconciler) reconcileRootPasswordInMariaDB(ctx context.Context, 
 		)
 	}
 
+	r.Recorder.Eventf(mariadb, nil, corev1.EventTypeNormal, mariadbv1alpha1.ReasonMariaDBRootPasswordChanged,
+		mariadbv1alpha1.ActionReconciling, "Root password updated successfully.")
 	rootPassLogger.Info("Root password updated successfully. Requeuing...")
 
 	return ctrl.Result{RequeueAfter: time.Second}, nil
