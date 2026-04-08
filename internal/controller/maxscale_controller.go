@@ -117,7 +117,29 @@ func (r *MaxScaleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		mxs: &mxs,
 	}
 
-	phases := []reconcilePhaseMaxScale{
+	phases := r.reconcilePhases()
+
+	for _, p := range phases {
+		logger.V(1).Info(fmt.Sprintf("Reconcile phase %s", p.name), "phase", p.name)
+		result, err := p.reconcile(ctx, request)
+		if err != nil {
+			if apierrors.IsNotFound(err) {
+				continue
+			}
+			if err := r.handleError(ctx, &mxs, err, r.handleConfigSyncConflict); err != nil {
+				return ctrl.Result{}, fmt.Errorf("error reconciling phase %s: %v", p.name, err)
+			}
+		}
+		if !result.IsZero() {
+			return result, err
+		}
+	}
+
+	return r.requeueResult(ctx, &mxs)
+}
+
+func (r *MaxScaleReconciler) reconcilePhases() []reconcilePhaseMaxScale {
+	return []reconcilePhaseMaxScale{
 		{
 			name:      "Finalizer",
 			reconcile: r.reconcileFinalizer,
@@ -163,12 +185,8 @@ func (r *MaxScaleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			reconcile: r.reconcileService,
 		},
 		{
-			name:      "StatefulSet Ready",
-			reconcile: r.ensureStatefulSetReady,
-		},
-		{
-			name:      "Client",
-			reconcile: r.setupClients,
+			name:      "Pod Clients",
+			reconcile: r.setupPodClients,
 		},
 		{
 			name:      "Admin",
@@ -181,6 +199,14 @@ func (r *MaxScaleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		{
 			name:      "Sync",
 			reconcile: r.reconcileSync,
+		},
+		{
+			name:      "StatefulSet Ready",
+			reconcile: r.ensureStatefulSetReady,
+		},
+		{
+			name:      "Client",
+			reconcile: r.setupClients,
 		},
 		{
 			name:      "Primary Server",
@@ -223,24 +249,6 @@ func (r *MaxScaleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			reconcile: r.reconcileMetrics,
 		},
 	}
-
-	for _, p := range phases {
-		logger.V(1).Info(fmt.Sprintf("Reconcile phase %s", p.name), "phase", p.name)
-		result, err := p.reconcile(ctx, request)
-		if err != nil {
-			if apierrors.IsNotFound(err) {
-				continue
-			}
-			if err := r.handleError(ctx, &mxs, err, r.handleConfigSyncConflict); err != nil {
-				return ctrl.Result{}, fmt.Errorf("error reconciling phase %s: %v", p.name, err)
-			}
-		}
-		if !result.IsZero() {
-			return result, err
-		}
-	}
-
-	return r.requeueResult(ctx, &mxs)
 }
 
 type errorHandler func(ctx context.Context, mxs *mariadbv1alpha1.MaxScale, err error) error
@@ -1550,6 +1558,10 @@ func (r *MaxScaleReconciler) setupClients(ctx context.Context, req *requestMaxSc
 	}
 	req.primaryClient = primaryClient
 
+	return ctrl.Result{}, nil
+}
+
+func (r *MaxScaleReconciler) setupPodClients(ctx context.Context, req *requestMaxScale) (ctrl.Result, error) {
 	podClientSet, err := r.clientSetByPod(ctx, req.mxs)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error getting Pod client set: %v", err)
