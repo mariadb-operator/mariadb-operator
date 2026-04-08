@@ -64,7 +64,7 @@ type ProbeHandler interface {
 	Readiness(w http.ResponseWriter, r *http.Request)
 }
 
-func NewRouter(apiHandlders []RouteHandler, k8sClient ctrlclient.Client, logger logr.Logger, opts ...Option) http.Handler {
+func NewRouter(apiHandlers []RouteHandler, k8sClient ctrlclient.Client, logger logr.Logger, opts ...Option) http.Handler {
 	routerOpts := Options{
 		CompressLevel:  5,
 		KubernetesAuth: false,
@@ -80,7 +80,7 @@ func NewRouter(apiHandlders []RouteHandler, k8sClient ctrlclient.Client, logger 
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
-	r.Mount("/api", apiRouter(apiHandlders, k8sClient, logger, &routerOpts))
+	r.Mount("/api", apiRouter(apiHandlers, k8sClient, logger, &routerOpts))
 
 	return r
 }
