@@ -1007,6 +1007,14 @@ func (m *MariaDB) IsPointInTimeRecoveryEnabled() bool {
 	return m.Spec.PointInTimeRecoveryRef != nil
 }
 
+// InternalRootPasswordSecretKey returns the key for the internal root password secret.
+func (m *MariaDB) InternalRootPasswordSecretKey() types.NamespacedName {
+	return types.NamespacedName{
+		Name:      fmt.Sprintf("internal-%s", m.Name),
+		Namespace: m.Namespace,
+	}
+}
+
 // AreMetricsEnabled indicates whether the MariaDB instance has metrics enabled
 func (m *MariaDB) AreMetricsEnabled() bool {
 	return ptr.Deref(m.Spec.Metrics, MariadbMetrics{}).Enabled

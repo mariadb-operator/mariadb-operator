@@ -749,6 +749,10 @@ func (c *Client) GtidStrictMode(ctx context.Context) (bool, error) {
 	return parseBool(rawGtidStrictMode)
 }
 
+func (c *Client) ChangeWsrepSSTAuth(ctx context.Context, username, password string) error {
+	return c.SetSystemVariable(ctx, "wsrep_sst_auth", fmt.Sprintf("'%s:%s'", username, password))
+}
+
 func (c *Client) DisableGtidStrictMode(ctx context.Context) error {
 	return c.SetSystemVariable(ctx, "gtid_strict_mode", "0")
 }
