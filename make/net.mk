@@ -23,6 +23,7 @@ host-mdb-test: ## Add MariaDB test hosts to /etc/hosts.
 .PHONY: host-mdb-emulated-external-test
 host-mdb-emulated-external-test: ## Add MariaDB test hosts to /etc/hosts.
 	@./hack/add_host.sh 0 47 mdb-emulate-external-test.default.svc.cluster.local
+	@./hack/add_host.sh 0 48 mdb-emulate-external-test-0.mdb-emulate-external-test-internal.default.svc.cluster.local
 
 .PHONY: host-mxs-test
 host-mxs-test: ## Add MaxScale test hosts to /etc/hosts.
