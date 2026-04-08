@@ -32,6 +32,7 @@ var galeraCommand = &cobra.Command{
 		}
 		logger.Info("Galera agent starting")
 
+		//@WARN: The `PodEnvironment` should always be passed as a reference. See: `pkg/agent/handler/environment.go`
 		env, err := environment.GetPodEnv(context.Background())
 		if err != nil {
 			logger.Error(err, "Error getting environment variables")
