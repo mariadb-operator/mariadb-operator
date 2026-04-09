@@ -10,7 +10,9 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	condition "github.com/mariadb-operator/mariadb-operator/v26/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/replication"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/multicluster"
 	mdbpod "github.com/mariadb-operator/mariadb-operator/v26/pkg/pod"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/sql"
 	stspkg "github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
 	appsv1 "k8s.io/api/apps/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -118,6 +120,12 @@ func (r *MariaDBReconciler) getReplicationRoles(ctx context.Context,
 
 		var aggErr *multierror.Error
 
+		isPrimaryReplica, err := client.IsReplicationPrimaryReplica(
+			ctx,
+			logger,
+			sql.WithReplicationConnectionName(multicluster.ReplicaConnectionName),
+		)
+		aggErr = multierror.Append(aggErr, err)
 		isReplica, err := client.IsReplicationReplica(ctx)
 		aggErr = multierror.Append(aggErr, err)
 		hasConnectedReplicas, err := client.HasConnectedReplicas(ctx)
@@ -129,7 +137,9 @@ func (r *MariaDBReconciler) getReplicationRoles(ctx context.Context,
 		}
 
 		role := mariadbv1alpha1.ReplicationRoleUnknown
-		if isReplica {
+		if isPrimaryReplica {
+			role = mariadbv1alpha1.ReplicationRolePrimaryReplica
+		} else if isReplica {
 			role = mariadbv1alpha1.ReplicationRoleReplica
 		} else if hasConnectedReplicas {
 			role = mariadbv1alpha1.ReplicationRolePrimary

@@ -48,10 +48,10 @@ func (r *ReplicationConfigClient) ConfigurePrimary(ctx context.Context, mariadb 
 		return fmt.Errorf("error checking replica: %v", err)
 	}
 	if isReplica {
-		if err := client.StopAllSlaves(ctx); err != nil {
+		if err := client.StopSlave(ctx); err != nil {
 			return fmt.Errorf("error stopping slaves: %v", err)
 		}
-		if err := client.ResetAllSlaves(ctx); err != nil {
+		if err := client.ResetSlaveAll(ctx); err != nil {
 			return fmt.Errorf("error resetting slave: %v", err)
 		}
 		if err := client.ResetGtidSlavePos(ctx); err != nil {
@@ -114,7 +114,7 @@ func (r *ReplicationConfigClient) ConfigureReplica(ctx context.Context, mariadb 
 			return fmt.Errorf("error resetting master: %v", err)
 		}
 	}
-	if err := client.StopAllSlaves(ctx); err != nil {
+	if err := client.StopSlave(ctx); err != nil {
 		return fmt.Errorf("error stopping slaves: %v", err)
 	}
 	if opts.GtidSlavePos != nil {
