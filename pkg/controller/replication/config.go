@@ -256,7 +256,6 @@ func NewReplicationConfig(env *env.PodEnvironment) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error getting GTID strict mode: %v", err)
 	}
-	// TODO: unit tests
 	gtidDomainID, err := gtidDomainID(env.MariaDBReplGtidDomainID)
 	if err != nil {
 		return nil, fmt.Errorf("error getting GTID domain ID: %v", err)
@@ -269,12 +268,10 @@ func NewReplicationConfig(env *env.PodEnvironment) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error getting semi-sync master timeout: %v", err)
 	}
-	// TODO: unit tests
 	serverIDStartIndex, err := serverIDStartIndex(env.MariaDBReplServerIDStartIndex)
 	if err != nil {
 		return nil, fmt.Errorf("error getting server ID start index: %v", err)
 	}
-	// TODO: unit tests
 	serverID, err := serverId(env.PodName, serverIDStartIndex)
 	if err != nil {
 		return nil, fmt.Errorf("error getting server ID: %v", err)
@@ -293,7 +290,7 @@ log_basename={{.LogName }}
 gtid_strict_mode
 {{- end }}
 {{- with .GtidDomainID }}
-gtid_domain_id={{ .GtidDomainID }}
+gtid_domain_id={{ . }}
 {{- end }}
 {{- if .SemiSyncEnabled }}
 rpl_semi_sync_master_enabled=ON
