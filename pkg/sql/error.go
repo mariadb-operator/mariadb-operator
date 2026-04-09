@@ -5,7 +5,13 @@ import (
 	"strings"
 )
 
-var SQLYouAreNotOwnerOfThread = 1095 // Ref: https://mariadb.com/docs/server/reference/error-codes/mariadb-error-codes-1000-to-1099/e1095
+var (
+	// Ref: https://mariadb.com/docs/server/reference/error-codes/mariadb-error-codes-1000-to-1099/e1095
+	SQLYouAreNotOwnerOfThread = 1095
+	// ERROR 1617 (HY000): There is no master connection  '<conn_name'
+	// Ref: https://mariadb.com/docs/server/reference/error-codes/mariadb-error-codes-1600-to-1699/e1617
+	SQLConnectionNotExists = 1617
+)
 
 // IsSQLErrorNumber checks if the error's string message contains the pattern
 // "Error NNNN" where NNNN is the specified error number.
@@ -22,6 +28,11 @@ func returnNilIfErrorIsNumber(err error, number int) error {
 	}
 
 	return err
+}
+
+// Connection Not Exists
+func IgnoreConnectionNotExists(err error) error {
+	return returnNilIfErrorIsNumber(err, SQLConnectionNotExists)
 }
 
 // You are not owner of thread
