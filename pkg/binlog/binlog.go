@@ -359,6 +359,7 @@ func GetBinlogMetadata(binlogPath string, logger logr.Logger) (*BinlogMetadata, 
 		}
 		prevGtids := make([]*mariadbrepl.Gtid, len(listEvent.GTIDs))
 		for i, gtid := range listEvent.GTIDs {
+			// TODO: test GTID with multiple domain IDs
 			gtid, err := toMariadbGtid(&gtid)
 			if err != nil {
 				return nil, err
@@ -373,6 +374,7 @@ func GetBinlogMetadata(binlogPath string, logger logr.Logger) (*BinlogMetadata, 
 		if err != nil {
 			return nil, fmt.Errorf("error decoding first GTID event: %v", err)
 		}
+		// TODO: test GTID with multiple domain IDs
 		gtid, err := toMariadbGtid(&firstGtid.GTID)
 		if err != nil {
 			return nil, err
@@ -384,6 +386,7 @@ func GetBinlogMetadata(binlogPath string, logger logr.Logger) (*BinlogMetadata, 
 		if err != nil {
 			return nil, fmt.Errorf("error decoding last GTID event: %v", err)
 		}
+		// TODO: test GTID with multiple domain IDs
 		gtid, err := toMariadbGtid(&lastGtid.GTID)
 		if err != nil {
 			return nil, err
