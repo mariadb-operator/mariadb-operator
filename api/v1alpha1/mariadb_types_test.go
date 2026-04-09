@@ -1279,8 +1279,6 @@ var _ = Describe("MariaDB types", func() {
 							Enabled: true,
 							ReplicationSpec: ReplicationSpec{
 								GtidStrictMode:     ptr.To(true),
-								GtidDomainID:       ptr.To(0),
-								ServerIDStartIndex: ptr.To(10),
 								SemiSyncEnabled:    ptr.To(true),
 								SemiSyncWaitPoint:  nil,
 								SyncBinlog:         nil,
@@ -1370,8 +1368,6 @@ var _ = Describe("MariaDB types", func() {
 							Enabled: true,
 							ReplicationSpec: ReplicationSpec{
 								GtidStrictMode:     ptr.To(true),
-								GtidDomainID:       ptr.To(0),
-								ServerIDStartIndex: ptr.To(10),
 								SemiSyncEnabled:    ptr.To(true),
 								SemiSyncWaitPoint:  nil,
 								SemiSyncAckTimeout: nil,

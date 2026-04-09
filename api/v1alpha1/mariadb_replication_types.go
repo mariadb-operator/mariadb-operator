@@ -333,12 +333,6 @@ func (r *Replication) SetDefaults(mdb *MariaDB, env *environment.OperatorEnv) er
 	if r.GtidStrictMode == nil {
 		r.GtidStrictMode = ptr.To(true)
 	}
-	if r.ServerIDStartIndex == nil {
-		r.ServerIDStartIndex = ptr.To(10)
-	}
-	if r.GtidDomainID == nil {
-		r.GtidDomainID = ptr.To(0)
-	}
 	if r.SemiSyncEnabled == nil {
 		r.SemiSyncEnabled = ptr.To(true)
 	}

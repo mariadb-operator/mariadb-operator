@@ -2194,15 +2194,6 @@ spec:
       type: string
     - jsonPath: .spec.updateStrategy.type
       name: Updates
-      priority: 1
-      type: string
-    - jsonPath: .spec.multiCluster.enabled
-      name: IsMultiCluster
-      priority: 1
-      type: string
-    - jsonPath: .spec.multiCluster.primary
-      name: PrimaryCluster
-      priority: 1
       type: string
     - jsonPath: .metadata.creationTimestamp
       name: Age

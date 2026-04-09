@@ -1413,6 +1413,8 @@ func TestMariadbEnv(t *testing.T) {
 						Enabled: true,
 						ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
 							GtidStrictMode:     ptr.To(true),
+							GtidDomainID:       ptr.To(10),
+							ServerIDStartIndex: ptr.To(100),
 							SemiSyncEnabled:    ptr.To(true),
 							SemiSyncAckTimeout: &metav1.Duration{Duration: 10 * time.Second},
 							SemiSyncWaitPoint:  ptr.To(mariadbv1alpha1.WaitPointAfterCommit),
@@ -1435,6 +1437,14 @@ func TestMariadbEnv(t *testing.T) {
 					{
 						Name:  "MARIADB_REPL_GTID_STRICT_MODE",
 						Value: strconv.FormatBool(true),
+					},
+					{
+						Name:  "MARIADB_REPL_GTID_DOMAIN_ID",
+						Value: "10",
+					},
+					{
+						Name:  "MARIADB_REPL_SERVER_ID_START_INDEX",
+						Value: "100",
 					},
 					{
 						Name:  "MARIADB_REPL_SEMI_SYNC_ENABLED",
