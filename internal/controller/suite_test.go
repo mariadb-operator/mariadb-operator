@@ -153,13 +153,13 @@ var _ = BeforeSuite(func() {
 	svcMonitorReconciler := servicemonitor.NewServiceMonitorReconciler(client)
 	certReconciler := certctrl.NewCertReconciler(client, scheme, k8sManager.GetEventRecorder("cert"), disc, builder)
 
-	replConfigClient := replication.NewReplicationConfigClient(client, builder, secretReconciler)
+	topologyManager := replication.NewTopologyManager(client, builder, secretReconciler)
 	replicationReconciler, err := replication.NewReplicationReconciler(
 		client,
 		replRecorder,
 		builder,
 		env,
-		replConfigClient,
+		topologyManager,
 		replication.WithRefResolver(refResolver),
 		replication.WithSecretReconciler(secretReconciler),
 		replication.WithServiceReconciler(serviceReconciler),
@@ -184,9 +184,6 @@ var _ = BeforeSuite(func() {
 		NewPodReplicationController(
 			client,
 			replRecorder,
-			builder,
-			refResolver,
-			replConfigClient,
 		),
 		[]string{
 			metadata.MariadbAnnotation,
@@ -209,13 +206,13 @@ var _ = BeforeSuite(func() {
 		Scheme:   scheme,
 		Recorder: k8sManager.GetEventRecorder("mariadb"),
 
-		Environment:      env,
-		Builder:          builder,
-		RefResolver:      refResolver,
-		ConditionReady:   conditionReady,
-		Discovery:        disc,
-		BackupProcessor:  backupProcessor,
-		ReplConfigClient: replConfigClient,
+		Environment:     env,
+		Builder:         builder,
+		RefResolver:     refResolver,
+		ConditionReady:  conditionReady,
+		Discovery:       disc,
+		BackupProcessor: backupProcessor,
+		TopologyManager: topologyManager,
 
 		ConfigMapReconciler:      configMapReconciler,
 		SecretReconciler:         secretReconciler,
