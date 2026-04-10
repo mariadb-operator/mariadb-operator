@@ -122,7 +122,7 @@ func (r *MariaDBReconciler) getReplicationRoles(ctx context.Context,
 		isPrimaryReplica, err := client.IsReplicationPrimaryReplica(
 			ctx,
 			logger,
-			sql.WithReplicationConnectionName(replication.MultiClusterReplicaConnectionName),
+			sql.WithConnectionName(replication.MultiClusterReplicaConnectionName),
 		)
 		aggErr = multierror.Append(aggErr, err)
 		isReplica, err := client.IsReplicationReplica(ctx)
