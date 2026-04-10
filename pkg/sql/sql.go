@@ -708,7 +708,7 @@ type ReplicationOpts struct {
 
 type ReplicationOpt func(opts *ReplicationOpts)
 
-func WithReplicationConnectionName(connectionName string) ReplicationOpt {
+func WithConnectionName(connectionName string) ReplicationOpt {
 	return func(opts *ReplicationOpts) {
 		opts.ConnectionName = fmt.Sprintf("'%s'", connectionName)
 	}
@@ -734,7 +734,11 @@ func (c *Client) StopSlave(ctx context.Context, replOpts ...ReplicationOpt) erro
 	return c.Exec(ctx, fmt.Sprintf("STOP SLAVE %s;", opts.ConnectionName))
 }
 
-func (c *Client) ResetSlaveAll(ctx context.Context, replOpts ...ReplicationOpt) error {
+func (c *Client) StopAllSlaves(ctx context.Context) error {
+	return c.Exec(ctx, "STOP ALL SLAVES;")
+}
+
+func (c *Client) ResetSlave(ctx context.Context, replOpts ...ReplicationOpt) error {
 	opts := getReplOpts(replOpts...)
 	return c.Exec(ctx, fmt.Sprintf("RESET SLAVE %s ALL;", opts.ConnectionName))
 }

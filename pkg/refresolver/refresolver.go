@@ -73,7 +73,7 @@ func (r *RefResolver) MariaDBObject(ctx context.Context, ref *mariadbv1alpha1.Ma
 	}
 }
 
-func (r *RefResolver) ExternalMariaDB(ctx context.Context, ref *mariadbv1alpha1.MariaDBRef,
+func (r *RefResolver) ExternalMariaDB(ctx context.Context, ref *mariadbv1alpha1.ObjectReference,
 	namespace string) (*mariadbv1alpha1.ExternalMariaDB, error) {
 	key := types.NamespacedName{
 		Name:      ref.Name,
@@ -83,11 +83,11 @@ func (r *RefResolver) ExternalMariaDB(ctx context.Context, ref *mariadbv1alpha1.
 		key.Namespace = ref.Namespace
 	}
 
-	var external_mariadb mariadbv1alpha1.ExternalMariaDB
-	if err := r.client.Get(ctx, key, &external_mariadb); err != nil {
+	var externalMariadb mariadbv1alpha1.ExternalMariaDB
+	if err := r.client.Get(ctx, key, &externalMariadb); err != nil {
 		return nil, err
 	}
-	return &external_mariadb, nil
+	return &externalMariadb, nil
 }
 
 func (r *RefResolver) MariaDBFromAnnotation(ctx context.Context, objMeta metav1.ObjectMeta) (*mariadbv1alpha1.MariaDB, error) {
