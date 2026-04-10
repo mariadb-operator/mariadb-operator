@@ -10,7 +10,6 @@ import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	condition "github.com/mariadb-operator/mariadb-operator/v26/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/replication"
-	"github.com/mariadb-operator/mariadb-operator/v26/pkg/multicluster"
 	mdbpod "github.com/mariadb-operator/mariadb-operator/v26/pkg/pod"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/sql"
 	stspkg "github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
@@ -123,7 +122,7 @@ func (r *MariaDBReconciler) getReplicationRoles(ctx context.Context,
 		isPrimaryReplica, err := client.IsReplicationPrimaryReplica(
 			ctx,
 			logger,
-			sql.WithReplicationConnectionName(multicluster.ReplicaConnectionName),
+			sql.WithReplicationConnectionName(replication.MultiClusterReplicaConnectionName),
 		)
 		aggErr = multierror.Append(aggErr, err)
 		isReplica, err := client.IsReplicationReplica(ctx)
