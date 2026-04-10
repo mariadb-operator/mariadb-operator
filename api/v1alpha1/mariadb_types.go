@@ -491,6 +491,10 @@ type TLS struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	GaleraSSTEnabled *bool `json:"galeraSSTEnabled,omitempty"`
+	// ServerCertAdditionalNames is a list of additional certificate common names
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	ServerCertAdditionalNames []string `json:"serverCertAdditionalNames,omitempty"`
 }
 
 // Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#volume-v1-core.
@@ -721,6 +725,10 @@ type MariaDBSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Galera *Galera `json:"galera,omitempty"`
+	// MultiCluster definitions enable the addition of replica clusters optionally running in a separate kubernetes cluster.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	MultiCluster *MultiCluster `json:"multiCluster,omitempty"`
 	// MaxScaleRef is a reference to a MaxScale resource to be used with the current MariaDB.
 	// Providing this reference implies delegating high availability tasks such as primary failover to MaxScale.
 	// +optional
@@ -1237,6 +1245,23 @@ func (m *MariaDB) ScalingOutError() error {
 	return nil
 }
 
+// IsMultiClusterEnabled indicates whether MultiCluster topology is enabled.
+func (m *MariaDB) IsMultiClusterEnabled() bool {
+	return ptr.Deref(m.Spec.MultiCluster, MultiCluster{}).Enabled
+}
+
+// IsMultiClusterPrimary indicated whether the current cluster is the primary cluster.
+func (m *MariaDB) IsMultiClusterPrimary() bool {
+	return m.IsMultiClusterEnabled() && ptr.Deref(m.Spec.MultiCluster, MultiCluster{}).Primary == m.Name
+}
+
+func (m *MariaDB) GetMultiClusterPrimary() *string {
+	if !m.IsMultiClusterEnabled() {
+		return nil
+	}
+	return ptr.To(ptr.Deref(m.Spec.MultiCluster, MultiCluster{}).Primary)
+}
+
 // IsMaintenanceModeEnabled indicates whether the maintenance mode is enabled.
 func (m *MariaDB) IsMaintenanceModeEnabled() bool {
 	return ptr.Deref(m.Spec.Maintenance, MariaDBMaintenance{}).Enabled
@@ -1262,13 +1287,14 @@ func (m *MariaDB) IsReadOnlyEnabled() bool {
 	return m.IsMaintenanceModeEnabled() && m.Spec.Maintenance.ReadOnly
 }
 
-// ServerDNSNames are the Service DNS names used by server TLS certificates.
+// TLSServerDNSNames are the Service DNS names used by server TLS certificates.
 func (m *MariaDB) TLSServerDNSNames() []string {
 	var names []string
 	names = append(names, statefulset.ServiceNameVariants(m.ObjectMeta, m.Name)...)
 	names = append(names, statefulset.HeadlessServiceNameVariants(m.ObjectMeta, "*", m.InternalServiceKey().Name)...)
 	names = append(names, statefulset.ServiceNameVariants(m.ObjectMeta, m.PrimaryServiceKey().Name)...)
 	names = append(names, statefulset.ServiceNameVariants(m.ObjectMeta, m.SecondaryServiceKey().Name)...)
+	names = append(names, ptr.Deref(m.Spec.TLS, TLS{}).ServerCertAdditionalNames...)
 	names = append(names, "localhost")
 	return names
 }

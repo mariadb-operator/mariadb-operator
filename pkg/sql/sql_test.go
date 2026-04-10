@@ -41,7 +41,7 @@ func TestBuildChangeMasterQuery(t *testing.T) {
 				WithChangeMasterCredentials("repl", "password"),
 				WithChangeMasterGtid("CurrentPos"),
 			},
-			wantQuery: `CHANGE MASTER TO
+			wantQuery: `CHANGE MASTER  TO
 MASTER_HOST='127.0.0.1',
 MASTER_PORT=3306,
 MASTER_USER='repl',
@@ -70,7 +70,7 @@ MASTER_USE_GTID=CurrentPos;
 				WithChangeMasterGtid("CurrentPos"),
 				WithChangeMasterSSL("/etc/pki/client.crt", "/etc/pki/client.key", "/etc/pki/ca.crt"),
 			},
-			wantQuery: `CHANGE MASTER TO
+			wantQuery: `CHANGE MASTER  TO
 MASTER_SSL=1,
 MASTER_SSL_CERT='/etc/pki/client.crt',
 MASTER_SSL_KEY='/etc/pki/client.key',
@@ -93,12 +93,30 @@ MASTER_USE_GTID=CurrentPos;
 				WithChangeMasterGtid("CurrentPos"),
 				WithChangeMasterRetries(10),
 			},
-			wantQuery: `CHANGE MASTER TO
+			wantQuery: `CHANGE MASTER  TO
 MASTER_HOST='127.0.0.1',
 MASTER_PORT=3306,
 MASTER_USER='repl',
 MASTER_PASSWORD='password',
 MASTER_CONNECT_RETRY=10,
+MASTER_USE_GTID=CurrentPos;
+`,
+			wantErr: false,
+		},
+		{
+			name: "valid with custom connection",
+			options: []ChangeMasterOpt{
+				WithChangeMasterConnectionName("replica"),
+				WithChangeMasterHost("127.0.0.1"),
+				WithChangeMasterPort(3306),
+				WithChangeMasterCredentials("repl", "password"),
+				WithChangeMasterGtid("CurrentPos"),
+			},
+			wantQuery: `CHANGE MASTER 'replica' TO
+MASTER_HOST='127.0.0.1',
+MASTER_PORT=3306,
+MASTER_USER='repl',
+MASTER_PASSWORD='password',
 MASTER_USE_GTID=CurrentPos;
 `,
 			wantErr: false,

@@ -308,13 +308,13 @@ var rootCmd = &cobra.Command{
 		svcMonitorReconciler := servicemonitor.NewServiceMonitorReconciler(client)
 		certReconciler := certctrl.NewCertReconciler(client, scheme, mgr.GetEventRecorder("cert"), discovery, builder)
 
-		replConfigClient := replication.NewReplicationConfigClient(client, builder, secretReconciler)
+		topologyManager := replication.NewTopologyManager(client)
 		replicationReconciler, err := replication.NewReplicationReconciler(
 			client,
 			replRecorder,
 			builder,
 			env,
-			replConfigClient,
+			topologyManager,
 			replication.WithRefResolver(refResolver),
 			replication.WithSecretReconciler(secretReconciler),
 			replication.WithServiceReconciler(serviceReconciler),
@@ -342,9 +342,6 @@ var rootCmd = &cobra.Command{
 			controller.NewPodReplicationController(
 				client,
 				replRecorder,
-				builder,
-				refResolver,
-				replConfigClient,
 			),
 			[]string{
 				metadata.MariadbAnnotation,
@@ -367,13 +364,13 @@ var rootCmd = &cobra.Command{
 			Scheme:   scheme,
 			Recorder: mgr.GetEventRecorder("mariadb"),
 
-			Environment:      env,
-			Builder:          builder,
-			RefResolver:      refResolver,
-			ConditionReady:   conditionReady,
-			Discovery:        discovery,
-			BackupProcessor:  backupProcessor,
-			ReplConfigClient: replConfigClient,
+			Environment:     env,
+			Builder:         builder,
+			RefResolver:     refResolver,
+			ConditionReady:  conditionReady,
+			Discovery:       discovery,
+			BackupProcessor: backupProcessor,
+			TopologyManager: topologyManager,
 
 			ConfigMapReconciler:      configMapReconciler,
 			SecretReconciler:         secretReconciler,

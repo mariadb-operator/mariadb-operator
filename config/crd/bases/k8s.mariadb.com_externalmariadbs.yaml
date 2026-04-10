@@ -265,6 +265,12 @@ spec:
                         default: ""
                         type: string
                     type: object
+                  serverCertAdditionalNames:
+                    description: ServerCertAdditionalNames is a list of additional
+                      certificate common names
+                    items:
+                      type: string
+                    type: array
                   serverCertIssuerRef:
                     description: |-
                       ServerCertIssuerRef is a reference to a cert-manager issuer object used to issue the server certificate. cert-manager must be installed previously in the cluster.

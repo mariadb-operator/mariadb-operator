@@ -66,13 +66,13 @@ type MariaDBReconciler struct {
 	Scheme   *runtime.Scheme
 	Recorder events.EventRecorder
 
-	Builder          *builder.Builder
-	RefResolver      *refresolver.RefResolver
-	ConditionReady   *condition.Ready
-	Environment      *environment.OperatorEnv
-	Discovery        *discovery.Discovery
-	BackupProcessor  backup.BackupProcessor
-	ReplConfigClient *replication.ReplicationConfigClient
+	Builder         *builder.Builder
+	RefResolver     *refresolver.RefResolver
+	ConditionReady  *condition.Ready
+	Environment     *environment.OperatorEnv
+	Discovery       *discovery.Discovery
+	BackupProcessor backup.BackupProcessor
+	TopologyManager *replication.TopologyManager
 
 	ConfigMapReconciler      *configmap.ConfigMapReconciler
 	SecretReconciler         *secret.SecretReconciler
