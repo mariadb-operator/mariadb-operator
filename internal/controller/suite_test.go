@@ -153,7 +153,7 @@ var _ = BeforeSuite(func() {
 	svcMonitorReconciler := servicemonitor.NewServiceMonitorReconciler(client)
 	certReconciler := certctrl.NewCertReconciler(client, scheme, k8sManager.GetEventRecorder("cert"), disc, builder)
 
-	topologyManager := replication.NewTopologyManager(client, builder, secretReconciler)
+	topologyManager := replication.NewTopologyManager(client)
 	replicationReconciler, err := replication.NewReplicationReconciler(
 		client,
 		replRecorder,

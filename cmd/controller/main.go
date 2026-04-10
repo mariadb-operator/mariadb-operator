@@ -308,7 +308,7 @@ var rootCmd = &cobra.Command{
 		svcMonitorReconciler := servicemonitor.NewServiceMonitorReconciler(client)
 		certReconciler := certctrl.NewCertReconciler(client, scheme, mgr.GetEventRecorder("cert"), discovery, builder)
 
-		topologyManager := replication.NewTopologyManager(client, builder, secretReconciler)
+		topologyManager := replication.NewTopologyManager(client)
 		replicationReconciler, err := replication.NewReplicationReconciler(
 			client,
 			replRecorder,

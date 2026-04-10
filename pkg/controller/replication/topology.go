@@ -7,9 +7,7 @@ import (
 
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
-	"github.com/mariadb-operator/mariadb-operator/v26/pkg/builder"
 	builderpki "github.com/mariadb-operator/mariadb-operator/v26/pkg/builder/pki"
-	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/secret"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/refresolver"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/sql"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
@@ -65,18 +63,13 @@ type Topology interface {
 
 type TopologyManager struct {
 	client.Client
-	builder          *builder.Builder
-	refResolver      *refresolver.RefResolver
-	secretReconciler *secret.SecretReconciler
+	refResolver *refresolver.RefResolver
 }
 
-func NewTopologyManager(client client.Client, builder *builder.Builder,
-	secretReconciler *secret.SecretReconciler) *TopologyManager {
+func NewTopologyManager(client client.Client) *TopologyManager {
 	return &TopologyManager{
-		Client:           client,
-		builder:          builder,
-		refResolver:      refresolver.New(client),
-		secretReconciler: secretReconciler,
+		Client:      client,
+		refResolver: refresolver.New(client),
 	}
 }
 
@@ -91,31 +84,25 @@ func (t *TopologyManager) TopologyForMariaDB(mariadb *mariadbv1alpha1.MariaDB, l
 	return newSingleClusterTopology(
 		mariadb,
 		t.Client,
-		t.builder,
 		t.refResolver,
-		t.secretReconciler,
 		logger.WithName("single-cluster"),
 	)
 }
 
 type singleClusterTopology struct {
 	client.Client
-	mariadb          *mariadbv1alpha1.MariaDB
-	builder          *builder.Builder
-	refResolver      *refresolver.RefResolver
-	secretReconciler *secret.SecretReconciler
-	logger           logr.Logger
+	mariadb     *mariadbv1alpha1.MariaDB
+	refResolver *refresolver.RefResolver
+	logger      logr.Logger
 }
 
-func newSingleClusterTopology(mariadb *mariadbv1alpha1.MariaDB, client client.Client, builder *builder.Builder,
-	refResolver *refresolver.RefResolver, secretReconciler *secret.SecretReconciler, logger logr.Logger) Topology {
+func newSingleClusterTopology(mariadb *mariadbv1alpha1.MariaDB, client client.Client, refResolver *refresolver.RefResolver,
+	logger logr.Logger) Topology {
 	return &singleClusterTopology{
-		Client:           client,
-		mariadb:          mariadb,
-		builder:          builder,
-		refResolver:      refResolver,
-		secretReconciler: secretReconciler,
-		logger:           logger,
+		Client:      client,
+		mariadb:     mariadb,
+		refResolver: refResolver,
+		logger:      logger,
 	}
 }
 
