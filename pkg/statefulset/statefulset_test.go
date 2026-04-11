@@ -1,93 +1,28 @@
 package statefulset
 
 import (
-	"testing"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func TestStatefulSetValidPodName(t *testing.T) {
-	tests := []struct {
-		name     string
-		meta     metav1.ObjectMeta
-		replicas int
-		podName  string
-		wantErr  bool
-	}{
-		{
-			name: "empty",
-			meta: metav1.ObjectMeta{
-				Name: "",
-			},
-			replicas: 0,
-			podName:  "",
-			wantErr:  true,
-		},
-		{
-			name: "negative replicas",
-			meta: metav1.ObjectMeta{
-				Name: "",
-			},
-			replicas: -1,
-			podName:  "",
-			wantErr:  true,
-		},
-		{
-			name: "no index no prefix",
-			meta: metav1.ObjectMeta{
-				Name: "mariadb-galera",
-			},
-			replicas: 3,
-			podName:  "foo",
-			wantErr:  true,
-		},
-		{
-			name: "no index",
-			meta: metav1.ObjectMeta{
-				Name: "mariadb-galera",
-			},
-			replicas: 3,
-			podName:  "mariadb-galera",
-			wantErr:  true,
-		},
-		{
-			name: "invalid index",
-			meta: metav1.ObjectMeta{
-				Name: "mariadb-galera",
-			},
-			replicas: 3,
-			podName:  "mariadb-galera-5",
-			wantErr:  true,
-		},
-		{
-			name: "no prefix",
-			meta: metav1.ObjectMeta{
-				Name: "mariadb-galera",
-			},
-			replicas: 3,
-			podName:  "foo-0",
-			wantErr:  true,
-		},
-		{
-			name: "valid",
-			meta: metav1.ObjectMeta{
-				Name: "mariadb-galera",
-			},
-			replicas: 3,
-			podName:  "mariadb-galera-0",
-			wantErr:  false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := ValidPodName(tt.meta, tt.replicas, tt.podName)
-			if !tt.wantErr && err != nil {
-				t.Errorf("unexpected error: %v", err)
+var _ = Describe("StatefulSetValidPodName", func() {
+	DescribeTable("validates pod names",
+		func(meta metav1.ObjectMeta, replicas int, podName string, wantErr bool) {
+			err := ValidPodName(meta, replicas, podName)
+			if wantErr {
+				Expect(err).To(HaveOccurred())
+			} else {
+				Expect(err).NotTo(HaveOccurred())
 			}
-			if tt.wantErr && err == nil {
-				t.Error("expecting error, got nil")
-			}
-		})
-	}
-}
+		},
+		Entry("empty", metav1.ObjectMeta{Name: ""}, 0, "", true),
+		Entry("negative replicas", metav1.ObjectMeta{Name: ""}, -1, "", true),
+		Entry("no index no prefix", metav1.ObjectMeta{Name: "mariadb-galera"}, 3, "foo", true),
+		Entry("no index", metav1.ObjectMeta{Name: "mariadb-galera"}, 3, "mariadb-galera", true),
+		Entry("invalid index", metav1.ObjectMeta{Name: "mariadb-galera"}, 3, "mariadb-galera-5", true),
+		Entry("no prefix", metav1.ObjectMeta{Name: "mariadb-galera"}, 3, "foo-0", true),
+		Entry("valid", metav1.ObjectMeta{Name: "mariadb-galera"}, 3, "mariadb-galera-0", false),
+	)
+})
