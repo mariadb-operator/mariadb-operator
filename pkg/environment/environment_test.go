@@ -2,212 +2,116 @@ package environment
 
 import (
 	"context"
-	"reflect"
-	"testing"
+	"os"
 
-	"github.com/google/go-cmp/cmp"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
-func TestWatchNamespaces(t *testing.T) {
-	tests := []struct {
-		name           string
-		env            map[string]string
-		wantNamespaces []string
-		wantErr        bool
-	}{
-		{
-			name:           "no env",
-			env:            map[string]string{},
-			wantNamespaces: nil,
-			wantErr:        true,
-		},
-		{
-			name: "single namespace",
-			env: map[string]string{
-				"WATCH_NAMESPACE": "ns1",
-			},
-			wantNamespaces: []string{"ns1"},
-			wantErr:        false,
-		},
-		{
-			name: "multiple namespaces",
-			env: map[string]string{
-				"WATCH_NAMESPACE": "ns1,ns2,ns3",
-			},
-			wantNamespaces: []string{"ns1", "ns2", "ns3"},
-			wantErr:        false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			for k, v := range tt.env {
-				t.Setenv(k, v)
+var _ = Describe("WatchNamespaces", func() {
+	DescribeTable("returns namespaces from env",
+		func(env map[string]string, wantNamespaces []string, wantErr bool) {
+			for k, v := range env {
+				DeferCleanup(os.Setenv, k, os.Getenv(k))
+				os.Setenv(k, v)
 			}
-			env, err := GetOperatorEnv(context.Background())
-			if err != nil && !tt.wantErr {
-				t.Fatalf("unexpected error getting environment: %v", err)
+			operatorEnv, err := GetOperatorEnv(context.Background())
+			if !wantErr {
+				Expect(err).NotTo(HaveOccurred())
 			}
-			if env == nil {
+			if operatorEnv == nil {
 				return
 			}
+			namespaces, err := operatorEnv.WatchNamespaces()
+			Expect(namespaces).To(Equal(wantNamespaces))
+			if wantErr {
+				Expect(err).To(HaveOccurred())
+			} else {
+				Expect(err).NotTo(HaveOccurred())
+			}
+		},
+		Entry("no env", map[string]string{}, nil, true),
+		Entry("single namespace", map[string]string{"WATCH_NAMESPACE": "ns1"}, []string{"ns1"}, false),
+		Entry("multiple namespaces",
+			map[string]string{"WATCH_NAMESPACE": "ns1,ns2,ns3"},
+			[]string{"ns1", "ns2", "ns3"},
+			false,
+		),
+	)
+})
 
-			namespaces, err := env.WatchNamespaces()
-			if !reflect.DeepEqual(tt.wantNamespaces, namespaces) {
-				t.Errorf("unexpected namespaces value: expected: %v, got: %v", tt.wantNamespaces, env)
+var _ = Describe("CurrentNamespaceOnly", func() {
+	DescribeTable("returns whether operator watches only its own namespace",
+		func(env map[string]string, wantBool bool) {
+			for k, v := range env {
+				DeferCleanup(os.Setenv, k, os.Getenv(k))
+				os.Setenv(k, v)
 			}
-			if tt.wantErr && err == nil {
-				t.Error("expect error to have occurred, got nil")
-			}
-			if !tt.wantErr && err != nil {
-				t.Errorf("expect error to not have occurred, got: %v", err)
-			}
-		})
-	}
-}
-
-func TestCurrentNamespaceOnly(t *testing.T) {
-	tests := []struct {
-		name     string
-		env      map[string]string
-		wantBool bool
-	}{
-		{
-			name:     "no env",
-			env:      map[string]string{},
-			wantBool: false,
-		},
-		{
-			name: "same namespace",
-			env: map[string]string{
-				"WATCH_NAMESPACE":            "ns1",
-				"MARIADB_OPERATOR_NAMESPACE": "ns1",
-			},
-			wantBool: true,
-		},
-		{
-			name: "other namespace",
-			env: map[string]string{
-				"WATCH_NAMESPACE":            "ns2",
-				"MARIADB_OPERATOR_NAMESPACE": "ns1",
-			},
-			wantBool: false,
-		},
-		{
-			name: "multiple namespaces",
-			env: map[string]string{
-				"WATCH_NAMESPACE":            "ns1,ns2,ns3",
-				"MARIADB_OPERATOR_NAMESPACE": "ns1",
-			},
-			wantBool: false,
-		},
-		{
-			name: "all namespaces",
-			env: map[string]string{
-				"WATCH_NAMESPACE":            "",
-				"MARIADB_OPERATOR_NAMESPACE": "ns1",
-			},
-			wantBool: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			for k, v := range tt.env {
-				t.Setenv(k, v)
-			}
-			env, err := GetOperatorEnv(context.Background())
-			if err != nil {
-				t.Fatalf("unexpected error getting environment: %v", err)
-			}
-			if env == nil {
+			operatorEnv, err := GetOperatorEnv(context.Background())
+			Expect(err).NotTo(HaveOccurred())
+			if operatorEnv == nil {
 				return
 			}
+			currentNamespaceOnly, err := operatorEnv.CurrentNamespaceOnly()
+			Expect(currentNamespaceOnly).To(Equal(wantBool))
+			Expect(err).NotTo(HaveOccurred())
+		},
+		Entry("no env", map[string]string{}, false),
+		Entry("same namespace",
+			map[string]string{"WATCH_NAMESPACE": "ns1", "MARIADB_OPERATOR_NAMESPACE": "ns1"},
+			true,
+		),
+		Entry("other namespace",
+			map[string]string{"WATCH_NAMESPACE": "ns2", "MARIADB_OPERATOR_NAMESPACE": "ns1"},
+			false,
+		),
+		Entry("multiple namespaces",
+			map[string]string{"WATCH_NAMESPACE": "ns1,ns2,ns3", "MARIADB_OPERATOR_NAMESPACE": "ns1"},
+			false,
+		),
+		Entry("all namespaces",
+			map[string]string{"WATCH_NAMESPACE": "", "MARIADB_OPERATOR_NAMESPACE": "ns1"},
+			false,
+		),
+	)
+})
 
-			currentNamespaceOnly, err := env.CurrentNamespaceOnly()
-			if !reflect.DeepEqual(tt.wantBool, currentNamespaceOnly) {
-				t.Errorf("unexpected currentNamespaceOnly value: expected: %v, got: %v", tt.wantBool, env)
+var _ = Describe("TLSEnabled", func() {
+	DescribeTable("returns whether TLS is enabled",
+		func(env map[string]string, wantBool, wantErr bool) {
+			for k, v := range map[string]string{
+				"CLUSTER_NAME":          "test",
+				"POD_NAME":              "mariadb-0",
+				"POD_NAMESPACE":         "default",
+				"POD_IP":                "10.244.0.11",
+				"MARIADB_NAME":          "mariadb",
+				"MARIADB_ROOT_PASSWORD": "MariaDB11!",
+				"MYSQL_TCP_PORT":        "3306",
+			} {
+				DeferCleanup(os.Setenv, k, os.Getenv(k))
+				os.Setenv(k, v)
 			}
-			if err != nil {
-				t.Errorf("expect error to not have occurred, got: %v", err)
+			for k, v := range env {
+				DeferCleanup(os.Setenv, k, os.Getenv(k))
+				os.Setenv(k, v)
 			}
-		})
-	}
-}
-
-func TestTLSEnabled(t *testing.T) {
-	tests := []struct {
-		name     string
-		env      map[string]string
-		wantBool bool
-		wantErr  bool
-	}{
-		{
-			name:     "no env",
-			env:      map[string]string{},
-			wantBool: false,
-			wantErr:  false,
-		},
-		{
-			name: "empty",
-			env: map[string]string{
-				"TLS_ENABLED": "",
-			},
-			wantBool: false,
-			wantErr:  false,
-		},
-		{
-			name: "invalid",
-			env: map[string]string{
-				"TLS_ENABLED": "foo",
-			},
-			wantBool: false,
-			wantErr:  true,
-		},
-		{
-			name: "valid bool",
-			env: map[string]string{
-				"TLS_ENABLED": "true",
-			},
-			wantBool: true,
-			wantErr:  false,
-		},
-		{
-			name: "valid number",
-			env: map[string]string{
-				"TLS_ENABLED": "1",
-			},
-			wantBool: true,
-			wantErr:  false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Setenv("CLUSTER_NAME", "test")
-			t.Setenv("POD_NAME", "mariadb-0")
-			t.Setenv("POD_NAMESPACE", "default")
-			t.Setenv("POD_IP", "10.244.0.11")
-			t.Setenv("MARIADB_NAME", "mariadb")
-			t.Setenv("MARIADB_ROOT_PASSWORD", "MariaDB11!")
-			t.Setenv("MYSQL_TCP_PORT", "3306")
-			for k, v := range tt.env {
-				t.Setenv(k, v)
-			}
-
-			env, err := GetPodEnv(context.Background())
-			if err != nil {
-				t.Fatalf("unexpected error getting environment: %v", err)
-			}
-			if env == nil {
+			podEnv, err := GetPodEnv(context.Background())
+			Expect(err).NotTo(HaveOccurred())
+			if podEnv == nil {
 				return
 			}
-
-			isTLSEnabled, err := env.IsTLSEnabled()
-			gotErr := err != nil
-			if diff := cmp.Diff(tt.wantErr, gotErr); diff != "" {
-				t.Errorf("unexpected err (-want +got):\n%s", diff)
+			isTLSEnabled, err := podEnv.IsTLSEnabled()
+			if wantErr {
+				Expect(err).To(HaveOccurred())
+			} else {
+				Expect(err).NotTo(HaveOccurred())
 			}
-			if diff := cmp.Diff(tt.wantBool, isTLSEnabled); diff != "" {
-				t.Errorf("unexpected bool (-want +got):\n%s", diff)
-			}
-		})
-	}
-}
+			Expect(isTLSEnabled).To(Equal(wantBool))
+		},
+		Entry("no env", map[string]string{}, false, false),
+		Entry("empty", map[string]string{"TLS_ENABLED": ""}, false, false),
+		Entry("invalid", map[string]string{"TLS_ENABLED": "foo"}, false, true),
+		Entry("valid bool", map[string]string{"TLS_ENABLED": "true"}, true, false),
+		Entry("valid number", map[string]string{"TLS_ENABLED": "1"}, true, false),
+	)
+})
