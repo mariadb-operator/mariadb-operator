@@ -1,98 +1,43 @@
 package time_test
 
 import (
-	"testing"
 	gotime "time"
 
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/time"
-	"github.com/stretchr/testify/assert"
 )
 
-func TestFormat(t *testing.T) {
-	tests := []struct {
-		name  string
-		input gotime.Time
-		want  string
-	}{
-		{
-			name:  "UTC time",
-			input: gotime.Date(2024, 6, 1, 15, 4, 5, 0, gotime.UTC),
-			want:  "20240601150405",
+var _ = Describe("Format", func() {
+	DescribeTable("formats time to string",
+		func(input gotime.Time, want string) {
+			Expect(time.Format(input)).To(Equal(want))
 		},
-		{
-			name:  "Different year and month",
-			input: gotime.Date(1999, 12, 31, 23, 59, 59, 0, gotime.UTC),
-			want:  "19991231235959",
-		},
-		{
-			name:  "Non-UTC time zone",
-			input: gotime.Date(2024, 6, 1, 15, 4, 5, 0, gotime.FixedZone("CET", 2*60*60)),
-			want:  "20240601130405", // 15:04:05 CET is 13:04:05 UTC
-		},
-	}
+		Entry("UTC time", gotime.Date(2024, 6, 1, 15, 4, 5, 0, gotime.UTC), "20240601150405"),
+		Entry("Different year and month", gotime.Date(1999, 12, 31, 23, 59, 59, 0, gotime.UTC), "19991231235959"),
+		Entry("Non-UTC time zone", gotime.Date(2024, 6, 1, 15, 4, 5, 0, gotime.FixedZone("CET", 2*60*60)), "20240601130405"),
+	)
+})
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := time.Format(tt.input)
-			assert.Equal(t, tt.want, result)
-		})
-	}
-}
-
-func TestParse(t *testing.T) {
-	tests := []struct {
-		name    string
-		input   string
-		want    gotime.Time
-		wantErr bool
-	}{
-		{
-			name:  "Valid timestamp",
-			input: "20240601150405",
-			want:  gotime.Date(2024, 6, 1, 15, 4, 5, 0, gotime.UTC),
-		},
-		{
-			name:  "Another valid timestamp",
-			input: "19991231235959",
-			want:  gotime.Date(1999, 12, 31, 23, 59, 59, 0, gotime.UTC),
-		},
-		{
-			name:    "Invalid format - too short",
-			input:   "20240601",
-			wantErr: true,
-		},
-		{
-			name:    "Invalid format - non-numeric",
-			input:   "2024ABCD150405",
-			wantErr: true,
-		},
-		{
-			name:    "Invalid date - impossible month",
-			input:   "20241301150405",
-			wantErr: true,
-		},
-		{
-			name:    "Invalid date - impossible day",
-			input:   "20240632150405",
-			wantErr: true,
-		},
-		{
-			name:    "Empty string",
-			input:   "",
-			wantErr: true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result, err := time.Parse(tt.input)
-			if tt.wantErr {
-				assert.Error(t, err)
+var _ = Describe("Parse", func() {
+	DescribeTable("parses string to time",
+		func(input string, want gotime.Time, wantErr bool) {
+			result, err := time.Parse(input)
+			if wantErr {
+				Expect(err).To(HaveOccurred())
 			} else {
-				assert.NoError(t, err)
-				assert.True(t, result.Equal(tt.want), "expected: %v, got: %v", tt.want, result)
-				assert.Equal(t, gotime.UTC, result.Location())
+				Expect(err).NotTo(HaveOccurred())
+				Expect(result.Equal(want)).To(BeTrue())
+				Expect(result.Location()).To(Equal(gotime.UTC))
 			}
-		})
-	}
-}
+		},
+		Entry("Valid timestamp", "20240601150405", gotime.Date(2024, 6, 1, 15, 4, 5, 0, gotime.UTC), false),
+		Entry("Another valid timestamp", "19991231235959", gotime.Date(1999, 12, 31, 23, 59, 59, 0, gotime.UTC), false),
+		Entry("Invalid format - too short", "20240601", gotime.Time{}, true),
+		Entry("Invalid format - non-numeric", "2024ABCD150405", gotime.Time{}, true),
+		Entry("Invalid date - impossible month", "20241301150405", gotime.Time{}, true),
+		Entry("Invalid date - impossible day", "20240632150405", gotime.Time{}, true),
+		Entry("Empty string", "", gotime.Time{}, true),
+	)
+})
