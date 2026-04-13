@@ -237,7 +237,7 @@ func (r *ReplicationReconciler) ReconcileReplicationInPod(ctx context.Context, r
 	topology := r.topologyManager.TopologyForMariaDB(req.mariadb, logger.WithValues("pod", pod))
 
 	if primaryPodIndex == podIndex {
-		if role, ok := replRoles[pod]; ok && role == mariadbv1alpha1.ReplicationRolePrimary {
+		if shouldSkipPrimaryReconciliation(req.mariadb, replRoles, pod, logger) {
 			return ctrl.Result{}, nil
 		}
 		client, err := req.replClientSet.currentPrimaryClient(ctx)
@@ -334,4 +334,17 @@ func (r *ReplicationReconciler) patchStatus(ctx context.Context, mariadb *mariad
 	patch := client.MergeFrom(mariadb.DeepCopy())
 	patcher(&mariadb.Status)
 	return r.Status().Patch(ctx, mariadb, patch)
+}
+
+func shouldSkipPrimaryReconciliation(mariadb *mariadbv1alpha1.MariaDB, replRoles map[string]mariadbv1alpha1.ReplicationRole,
+	pod string, logger logr.Logger) bool {
+	role, ok := replRoles[pod]
+	if !ok {
+		logger.V(1).Info("Primary Pod role not yet assigned. Skipping reconciliation...", "pod", pod)
+		return true
+	}
+	if mariadb.IsMultiClusterReplica() {
+		return role == mariadbv1alpha1.ReplicationRolePrimaryReplica
+	}
+	return role == mariadbv1alpha1.ReplicationRolePrimary
 }
