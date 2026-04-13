@@ -1250,9 +1250,14 @@ func (m *MariaDB) IsMultiClusterEnabled() bool {
 	return ptr.Deref(m.Spec.MultiCluster, MultiCluster{}).Enabled
 }
 
-// IsMultiClusterPrimary indicated whether the current cluster is the primary cluster.
+// IsMultiClusterPrimary indicated whether the current cluster is a primary cluster.
 func (m *MariaDB) IsMultiClusterPrimary() bool {
 	return m.IsMultiClusterEnabled() && ptr.Deref(m.Spec.MultiCluster, MultiCluster{}).Primary == m.Name
+}
+
+// IsMultiClusterReplica indicated whether the current cluster is a replica cluster.
+func (m *MariaDB) IsMultiClusterReplica() bool {
+	return m.IsMultiClusterEnabled() && ptr.Deref(m.Spec.MultiCluster, MultiCluster{}).Primary != m.Name
 }
 
 func (m *MariaDB) GetMultiClusterPrimary() *string {

@@ -822,12 +822,13 @@ func (c Client) IsReplicationReplica(ctx context.Context, replOpts ...Replicatio
 	return c.Exists(ctx, fmt.Sprintf("SHOW REPLICA %s STATUS", opts.ConnectionName))
 }
 
-// IsReplicationPrimaryReplica determines if the server is both a primary in a local cluster and a replica of a remote cluster.
+// IsReplicationPrimaryReplica determines if the server is both a primary and a replica, a situation that happens in the multi-cluster topology.
+// By default, the default server connection is used (empty string), make sure you pass the "WithConnectionName" option
+// to verify the right connection.
 func (c Client) IsReplicationPrimaryReplica(ctx context.Context, logger logr.Logger, replOpts ...ReplicationOpt) (bool, error) {
 	replicaStatus, err := c.ReplicaStatus(ctx, logger, replOpts...)
 	if err != nil {
-		// not a (remote) replica
-		return false, IgnoreConnectionNotExists(err)
+		return false, fmt.Errorf("error getting replica status: %v", err)
 	}
 	// not a replica: replica threads not running
 	if (replicaStatus.SlaveIORunning == nil || !*replicaStatus.SlaveIORunning) ||
@@ -837,9 +838,9 @@ func (c Client) IsReplicationPrimaryReplica(ctx context.Context, logger logr.Log
 
 	hasConnectedReplicas, err := c.HasConnectedReplicas(ctx)
 	if err != nil {
-		return false, fmt.Errorf("error detrermening if server has connected replicas: %v", err)
+		return false, fmt.Errorf("error determining if server has connected replicas: %v", err)
 	}
-	// local primary
+	// condition to be a primary
 	return hasConnectedReplicas, nil
 }
 
