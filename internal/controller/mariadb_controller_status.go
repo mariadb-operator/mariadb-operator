@@ -117,17 +117,24 @@ func (r *MariaDBReconciler) getReplicationRoles(ctx context.Context,
 			continue
 		}
 
-		var aggErr *multierror.Error
-
-		isPrimaryReplica, err := client.IsReplicationPrimaryReplica(
-			ctx,
-			logger,
-			sql.WithConnectionName(replication.MultiClusterReplicaConnectionName),
+		var (
+			aggErr                                            *multierror.Error
+			isPrimaryReplica, isReplica, hasConnectedReplicas bool
 		)
+
+		if mdb.IsMultiClusterReplica() {
+			isPrimaryReplica, err = client.IsReplicationPrimaryReplica(
+				ctx,
+				logger,
+				sql.WithConnectionName(replication.MultiClusterReplicaConnectionName),
+			)
+			if err != nil && !sql.IsConnectionNotExists(err) {
+				aggErr = multierror.Append(aggErr, err)
+			}
+		}
+		isReplica, err = client.IsReplicationReplica(ctx)
 		aggErr = multierror.Append(aggErr, err)
-		isReplica, err := client.IsReplicationReplica(ctx)
-		aggErr = multierror.Append(aggErr, err)
-		hasConnectedReplicas, err := client.HasConnectedReplicas(ctx)
+		hasConnectedReplicas, err = client.HasConnectedReplicas(ctx)
 		aggErr = multierror.Append(aggErr, err)
 
 		if err := aggErr.ErrorOrNil(); err != nil {
