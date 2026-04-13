@@ -177,7 +177,7 @@ func (r *MariaDBReconciler) getReplicaStatus(ctx context.Context,
 
 	var replicaStatus map[string]mariadbv1alpha1.ReplicaStatus
 	for i := 0; i < int(mdb.Spec.Replicas); i++ {
-		if i == *mdb.Status.CurrentPrimaryPodIndex {
+		if i == *mdb.Status.CurrentPrimaryPodIndex && !mdb.IsMultiClusterReplica() {
 			continue
 		}
 		pod := stspkg.PodName(mdb.ObjectMeta, i)
@@ -203,7 +203,11 @@ func (r *MariaDBReconciler) getReplicaStatus(ctx context.Context,
 			continue
 		}
 
-		newReplicaStatus, err := client.ReplicaStatus(ctx, logger)
+		var replOpts []sql.ReplicationOpt
+		if mdb.IsMultiClusterReplica() {
+			replOpts = append(replOpts, sql.WithConnectionName(replication.MultiClusterReplicaConnectionName))
+		}
+		newReplicaStatus, err := client.ReplicaStatus(ctx, logger, replOpts...)
 		if err != nil {
 			logger.V(1).Info("error checking Pod replica status", "err", err, "pod", pod)
 			preserveCurrentState()
