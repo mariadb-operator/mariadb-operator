@@ -31,8 +31,8 @@ func returnNilIfErrorIsNumber(err error, number int) error {
 }
 
 // Connection Not Exists
-func IgnoreConnectionNotExists(err error) error {
-	return returnNilIfErrorIsNumber(err, SQLConnectionNotExists)
+func IsConnectionNotExists(err error) bool {
+	return IsSQLErrorNumber(err, SQLConnectionNotExists)
 }
 
 // You are not owner of thread
