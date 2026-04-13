@@ -122,7 +122,7 @@ func (r *MariaDBReconciler) getReplicationRoles(ctx context.Context,
 			isPrimaryReplica, isReplica, hasConnectedReplicas bool
 		)
 
-		if mdb.IsMultiClusterReplica() {
+		if mdb.IsMultiClusterPrimaryReplica(i) {
 			isPrimaryReplica, err = client.IsReplicationPrimaryReplica(
 				ctx,
 				logger,
@@ -177,7 +177,7 @@ func (r *MariaDBReconciler) getReplicaStatus(ctx context.Context,
 
 	var replicaStatus map[string]mariadbv1alpha1.ReplicaStatus
 	for i := 0; i < int(mdb.Spec.Replicas); i++ {
-		if i == *mdb.Status.CurrentPrimaryPodIndex && !mdb.IsMultiClusterReplica() {
+		if i == *mdb.Status.CurrentPrimaryPodIndex && !mdb.IsMultiClusterPrimaryReplica(i) {
 			continue
 		}
 		pod := stspkg.PodName(mdb.ObjectMeta, i)
@@ -204,7 +204,7 @@ func (r *MariaDBReconciler) getReplicaStatus(ctx context.Context,
 		}
 
 		var replOpts []sql.ReplicationOpt
-		if mdb.IsMultiClusterReplica() {
+		if mdb.IsMultiClusterPrimaryReplica(i) {
 			replOpts = append(replOpts, sql.WithConnectionName(replication.MultiClusterReplicaConnectionName))
 		}
 		newReplicaStatus, err := client.ReplicaStatus(ctx, logger, replOpts...)

@@ -1245,26 +1245,32 @@ func (m *MariaDB) ScalingOutError() error {
 	return nil
 }
 
-// IsMultiClusterEnabled indicates whether MultiCluster topology is enabled.
+// IsMultiClusterEnabled indicates whether the multi-cluster topology is enabled.
 func (m *MariaDB) IsMultiClusterEnabled() bool {
 	return ptr.Deref(m.Spec.MultiCluster, MultiCluster{}).Enabled
 }
 
-// IsMultiClusterPrimary indicated whether the current cluster is a primary cluster.
+// IsMultiClusterPrimary indicates whether the current cluster is a primary cluster part of a multi-cluster topology.
 func (m *MariaDB) IsMultiClusterPrimary() bool {
 	return m.IsMultiClusterEnabled() && ptr.Deref(m.Spec.MultiCluster, MultiCluster{}).Primary == m.Name
 }
 
-// IsMultiClusterReplica indicated whether the current cluster is a replica cluster.
-func (m *MariaDB) IsMultiClusterReplica() bool {
-	return m.IsMultiClusterEnabled() && ptr.Deref(m.Spec.MultiCluster, MultiCluster{}).Primary != m.Name
-}
-
+// GetMultiClusterPrimary obtains the primary cluster member name.
 func (m *MariaDB) GetMultiClusterPrimary() *string {
 	if !m.IsMultiClusterEnabled() {
 		return nil
 	}
 	return ptr.To(ptr.Deref(m.Spec.MultiCluster, MultiCluster{}).Primary)
+}
+
+// IsMultiClusterReplica indicates whether the current cluster is a replica cluster part of a multi-cluster topology.
+func (m *MariaDB) IsMultiClusterReplica() bool {
+	return m.IsMultiClusterEnabled() && ptr.Deref(m.Spec.MultiCluster, MultiCluster{}).Primary != m.Name
+}
+
+// IsMultiClusterPrimaryReplica determines whether a given Pod index is a primary replica i.e. primary Pod in a replica cluster.
+func (m *MariaDB) IsMultiClusterPrimaryReplica(podIndex int) bool {
+	return m.IsMultiClusterReplica() && m.Status.CurrentPrimaryPodIndex != nil && *m.Status.CurrentPrimaryPodIndex == podIndex
 }
 
 // IsMaintenanceModeEnabled indicates whether the maintenance mode is enabled.
