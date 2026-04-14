@@ -1,0 +1,157 @@
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-eu-central
+spec:
+  rootPasswordSecretKeyRef:
+    name: mariadb
+    key: password
+  maxScaleRef:
+    name: maxscale-eu-central
+  storage:
+    size: 1Gi
+  replicas: 2
+  bootstrapFrom:
+    s3:
+      bucket: multi-cluster
+      prefix: eu-south
+      endpoint: minio.minio.svc.cluster.local:9000
+      region: us-east-1
+      accessKeyIdSecretKeyRef:
+        name: minio
+        key: access-key-id
+      secretAccessKeySecretKeyRef:
+        name: minio
+        key: secret-access-key
+      tls:
+        enabled: true
+        caSecretKeyRef:
+          name: minio-ca
+          key: ca.crt
+    backupContentType: Physical
+  replication:
+    enabled: true
+    gtidDomainId: 1
+    serverIdStartIndex: 20
+    replica:
+      replPasswordSecretKeyRef:
+        name: mariadb
+        key: password
+  primaryService:
+    type: LoadBalancer
+    metadata:
+      annotations:
+        metallb.io/loadBalancerIPs: 172.18.1.15
+  tls:
+    enabled: true
+    required: true
+    serverCASecretRef:
+      name: mariadb-server-ca
+    serverCertAdditionalNames:
+      - 172.18.1.15
+    clientCASecretRef:
+      name: mariadb-server-ca
+  multiCluster:
+    enabled: true
+    primary: mariadb-eu-south
+    replicas:
+      - mariadb-eu-central
+    members:
+      - name: mariadb-eu-south
+        externalMariaDbRef:
+          name: mariadb-eu-south
+      - name: mariadb-eu-central
+        externalMariaDbRef:
+          name: mariadb-eu-central
+---
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: ExternalMariaDB
+metadata:
+  name: mariadb-eu-central
+spec:
+  host: maxscale-eu-central.default.svc.cluster.local
+  port: 3306
+  username: root
+  passwordSecretKeyRef:
+    name: mariadb
+    key: password
+  tls:
+    enabled: true
+    serverCASecretRef:
+      name: mariadb-server-ca
+    clientCASecretRef:
+      name: mariadb-server-ca
+---
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MaxScale
+metadata:
+  name: maxscale-eu-central
+spec:
+  mariaDbRef:
+    name: mariadb-eu-central
+  replicas: 2
+  # Trigger a switchover by declaring the desired primary server
+  # primaryServer: mariadb-repl-0
+  services:
+    - name: rw-router
+      router: readwritesplit
+      listener:
+        port: 3306
+      params:
+        # By default, MaxScale does not allow connections as root.
+        # See: https://mariadb.com/docs/maxscale/maxscale-management/deployment/maxscale-configuration-guide#enable_root_user
+        # We will be creating the "repl" user as part of the replication setup, so we need elevated permissions.
+        enable_root_user: "true"
+  monitor:
+    name: eu-central # This must be different for each cluster, as it would clash in the mysql.maxscale_config table
+    interval: 2s
+    cooperativeMonitoring: majority_of_all
+    params:
+      auto_failover: "true"
+      auto_rejoin: "true"
+      switchover_on_low_disk_space: "true"
+  auth:
+    generate: false
+    adminUsername: mariadb-operator
+    adminPasswordSecretKeyRef:
+      name: maxscale
+      key: password
+    # Dedicated users with scoped permissions may be created in both sides, passwords must match
+    clientUsername: root
+    clientPasswordSecretKeyRef:
+      name: mariadb
+      key: password
+    clientMaxConnections: 90
+    serverUsername: root
+    serverPasswordSecretKeyRef:
+      name: mariadb
+      key: password
+    serverMaxConnections: 90
+    monitorUsername: root
+    monitorPasswordSecretKeyRef:
+      name: mariadb
+      key: password
+    monitorMaxConnections: 90
+    syncUsername: root
+    syncPasswordSecretKeyRef:
+      name: mariadb
+      key: password
+    syncMaxConnections: 90
+  kubernetesService:
+    type: LoadBalancer
+    metadata:
+      annotations:
+        metallb.io/loadBalancerIPs: 172.18.1.24
+  guiKubernetesService:
+    type: LoadBalancer
+    metadata:
+      annotations:
+        metallb.io/loadBalancerIPs: 172.18.1.25
+  tls:
+    enabled: true
+    # Trust and issue certificates with the MariaDB CA.
+    # Remote replicas will be able to establish TLS trust transparently through MaxScale.
+    listenerCASecretRef:
+      name: mariadb-server-ca
+    serverCASecretRef:
+      name: mariadb-server-ca
