@@ -864,6 +864,10 @@ type MariaDBStatus struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	PointInTimeRecovery *MariaDBPointInTimeRecoveryStatus `json:"pointInTimeRecovery,omitempty"`
+	// RootPasswordHash is a hash of the root password. It is used to avoid unnecessary reconciliations.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	RootPasswordHash *string `json:"rootPasswordHash,omitempty"`
 }
 
 // SetCondition sets a status condition to MariaDB
