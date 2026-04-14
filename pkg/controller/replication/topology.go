@@ -162,7 +162,7 @@ func (r *singleClusterTopology) ConfigureReplica(ctx context.Context, client *sq
 	}
 	if opts.GtidSlavePos != nil {
 		if err := client.SetGtidSlavePos(ctx, *opts.GtidSlavePos); err != nil {
-			return fmt.Errorf("error setting slave position \"%s\": %v", *opts.GtidSlavePos, err)
+			return fmt.Errorf("error setting slave position %s: %v", *opts.GtidSlavePos, err)
 		}
 	} else if opts.ResetGtidSlavePos {
 		if err := client.ResetGtidSlavePos(ctx); err != nil {
@@ -315,7 +315,6 @@ func newMultiClusterTopology(mariadb *mariadbv1alpha1.MariaDB, singleCluster *si
 func (m *multiClusterTopology) ConfigurePrimary(ctx context.Context, client *sql.Client) error {
 	if m.mariadb.IsMultiClusterPrimary() {
 		m.logger.Info("Configuring primary")
-
 		return m.singleCluster.ConfigurePrimary(ctx, client)
 	}
 
@@ -325,16 +324,20 @@ func (m *multiClusterTopology) ConfigurePrimary(ctx context.Context, client *sql
 
 func (m *multiClusterTopology) ConfigureReplica(ctx context.Context, client *sql.Client, primaryPodIndex int,
 	replicaOpts ...ConfigureReplicaOpt) error {
-	m.logger.Info("Configuring replica")
+	if m.mariadb.IsMultiClusterPrimary() {
+		m.logger.Info("Configuring replica")
+		return m.singleCluster.ConfigureReplica(ctx, client, primaryPodIndex, replicaOpts...)
+	}
 
-	return m.singleCluster.ConfigureReplica(ctx, client, primaryPodIndex, replicaOpts...)
+	m.logger.Info("Configuring replica in replica cluster")
+	return m.configureReplicaInReplicaCluster(ctx, client, primaryPodIndex, replicaOpts...)
 }
 
 func (m *multiClusterTopology) configurePrimaryReplica(ctx context.Context, client *sql.Client) error {
 	if err := client.StopAllSlaves(ctx); err != nil {
 		return fmt.Errorf("error stopping all slaves: %v", err)
 	}
-	// reset local slave
+	// reset local replica
 	if err := client.ResetSlave(ctx); err != nil {
 		return fmt.Errorf("error resetting local slave: %v", err)
 	}
@@ -349,7 +352,7 @@ func (m *multiClusterTopology) configurePrimaryReplica(ctx context.Context, clie
 	if err := m.changeMasterPrimaryInPrimaryReplica(ctx, client); err != nil {
 		return fmt.Errorf("error changing master in primary replica: %v", err)
 	}
-	// start remote slave
+	// start remote replica
 	if err := client.StartSlave(ctx, sql.WithConnectionName(MultiClusterReplicaConnectionName)); err != nil {
 		return fmt.Errorf("error starting primary replica slave: %v", err)
 	}
@@ -397,6 +400,47 @@ func (m *multiClusterTopology) changeMasterPrimaryInPrimaryReplica(ctx context.C
 	}
 	if err := client.ChangeMaster(ctx, opts...); err != nil {
 		return fmt.Errorf("error executing CHANGE MASTER in primary replica: %v", err)
+	}
+	return nil
+}
+
+func (m *multiClusterTopology) configureReplicaInReplicaCluster(ctx context.Context, client *sql.Client, primaryPodIndex int,
+	replicaOpts ...ConfigureReplicaOpt) error {
+	opts := ConfigureReplicaOpts{}
+	for _, setOpt := range replicaOpts {
+		setOpt(&opts)
+	}
+
+	if err := client.StopAllSlaves(ctx); err != nil {
+		return fmt.Errorf("error stopping all replicas: %v", err)
+	}
+	if err := client.ResetSlave(
+		ctx,
+		sql.WithConnectionName(MultiClusterReplicaConnectionName),
+	); err != nil && !sql.IsConnectionNotExists(err) {
+		return fmt.Errorf("error resetting remote replica: %v", err)
+	}
+	if err := client.ResetSlave(ctx); err != nil {
+		return fmt.Errorf("error resetting local replica: %v", err)
+	}
+
+	if opts.GtidSlavePos != nil {
+		if err := client.SetGtidSlavePos(ctx, *opts.GtidSlavePos); err != nil {
+			return fmt.Errorf("error setting slave position %s: %v", *opts.GtidSlavePos, err)
+		}
+	} else if opts.ResetGtidSlavePos {
+		if err := client.ResetGtidSlavePos(ctx); err != nil {
+			return fmt.Errorf("error resetting slave position: %v", err)
+		}
+	}
+	if err := client.EnableReadOnly(ctx); err != nil {
+		return fmt.Errorf("error enabling read_only: %v", err)
+	}
+	if err := m.singleCluster.changeMaster(ctx, m.mariadb, client, primaryPodIndex, opts.ChangeMasterOpts...); err != nil {
+		return fmt.Errorf("error changing master: %v", err)
+	}
+	if err := client.StartSlave(ctx); err != nil {
+		return fmt.Errorf("error starting local replica: %v", err)
 	}
 	return nil
 }
