@@ -160,6 +160,11 @@ func waitForPreviousPod(ctx context.Context, fm *filemanager.FileManager, k8sCli
 	if mdb.HasGaleraConfiguredCondition() || hasGaleraState || podIndex == 0 {
 		return nil
 	}
+	bootstrapFrom := ptr.Deref(mdb.Spec.BootstrapFrom, mariadbv1alpha1.BootstrapFrom{})
+	if bootstrapFrom.IsRestoreOnlyPrimaryEnabled() && bootstrapFrom.IsSecondarySSTParallelEnabled() {
+		logger.Info("Skipping previous Pod readiness gate for parallel secondary SST")
+		return nil
+	}
 	previousPodName, err := getPreviousPodName(mdb, podIndex)
 	if err != nil {
 		return fmt.Errorf("error getting previous Pod: %v", err)

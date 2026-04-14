@@ -360,7 +360,7 @@ func (b *BackupCommand) MariadbOperatorBackup() (*Command, error) {
 	return NewCommand(nil, args), nil
 }
 
-func (b *BackupCommand) MariadbOperatorRestore() (*Command, error) {
+func (b *BackupCommand) MariadbOperatorRestore(copyBinaryTo *string) (*Command, error) {
 	if b.BackupContentType == "" {
 		return nil, errors.New("backup content type must be set")
 	}
@@ -380,6 +380,12 @@ func (b *BackupCommand) MariadbOperatorRestore() (*Command, error) {
 		args = append(args, []string{
 			"--log-level",
 			b.LogLevel,
+		}...)
+	}
+	if copyBinaryTo != nil {
+		args = append(args, []string{
+			"--copy-binary-to",
+			*copyBinaryTo,
 		}...)
 	}
 
@@ -415,7 +421,9 @@ func (b *BackupCommand) MariadbRestore(restore *mariadbv1alpha1.Restore,
 }
 
 type MariaDBBackupRestoreOpts struct {
-	cleanupDataDir bool
+	cleanupDataDir     bool
+	operatorBinaryPath string
+	dataDir            string
 }
 
 type MariaDBBackupRestoreOpt func(*MariaDBBackupRestoreOpts)
@@ -423,6 +431,23 @@ type MariaDBBackupRestoreOpt func(*MariaDBBackupRestoreOpts)
 func WithCleanupDataDir(cleanup bool) MariaDBBackupRestoreOpt {
 	return func(mdro *MariaDBBackupRestoreOpts) {
 		mdro.cleanupDataDir = cleanup
+	}
+}
+
+// WithOperatorBinaryPath sets the path to the operator binary for streaming restore mode.
+// When set, the restore command uses the binary to stream backups via `operator backup stream | mbstream`.
+func WithOperatorBinaryPath(path string) MariaDBBackupRestoreOpt {
+	return func(mdro *MariaDBBackupRestoreOpts) {
+		mdro.operatorBinaryPath = path
+	}
+}
+
+// WithDataDir sets the data directory for direct streaming restore.
+// When set together with operatorBinaryPath, the backup is streamed directly to the data directory
+// without intermediate staging, reducing disk usage.
+func WithDataDir(dataDir string) MariaDBBackupRestoreOpt {
+	return func(mdro *MariaDBBackupRestoreOpts) {
+		mdro.dataDir = dataDir
 	}
 }
 
@@ -436,8 +461,129 @@ func (b *BackupCommand) MariadbBackupRestore(mariadb *mariadbv1alpha1.MariaDB, d
 		setOpt(&opts)
 	}
 
+	// Streaming restore: operator binary streams from S3 → decompresses → pipes to mbstream.
+	if opts.operatorBinaryPath != "" {
+		return b.streamingBackupRestore(dataDirPath, opts)
+	}
+	return b.legacyBackupRestore(dataDirPath, opts)
+}
+
+func (b *BackupCommand) streamingBackupRestore(dataDirPath string, opts MariaDBBackupRestoreOpts) (*Command, error) {
+	streamCmd := b.buildStreamCommand(opts.operatorBinaryPath)
+	directRestoreMarkerPath := filepath.Join(opts.dataDir, ".mariadb-operator-restore-complete")
+
+	cleanupDataDirCmd := `if [ -d /var/lib/mysql ]; then
+	echo "💾 Cleaning up data directory";
+	rm -rf /var/lib/mysql/*;
+fi`
+
+	// Direct streaming: stream directly to data directory (no staging).
+	if opts.dataDir != "" {
+		existingBackupCheck := fmt.Sprintf(`if [ -f %[1]s ] && [ -f %[2]s/ibdata1 ]; then
+	echo '💾 Existing prepared backup found in data directory';
+	exit 0
+fi`, directRestoreMarkerPath, opts.dataDir)
+
+		// Clean up any partial extraction from a previous failed streaming attempt.
+		// At this point the durable restore marker does not exist, so any files present are incomplete.
+		cleanPartialCmd := fmt.Sprintf(`rm -f %[1]s;
+if [ -d %[2]s ] && [ "$(ls -A %[2]s 2>/dev/null)" ]; then
+	echo '💾 Cleaning partial extraction from data directory';
+	rm -rf %[2]s/*;
+fi`, directRestoreMarkerPath, opts.dataDir)
+
+		cmds := []string{
+			"set -euo pipefail",
+			existingBackupCheck,
+			cleanPartialCmd,
+			fmt.Sprintf("mkdir -p %s", opts.dataDir),
+			"echo 💾 Streaming backup directly to data directory",
+			"set +e",
+			fmt.Sprintf(
+				"%s | mbstream -x -C %s",
+				streamCmd,
+				opts.dataDir,
+			),
+			"STREAM_EXIT=${PIPESTATUS[0]}",
+			"MBSTREAM_EXIT=${PIPESTATUS[1]}",
+			"set -e",
+			`if [ $STREAM_EXIT -ne 0 ]; then echo "💾 Stream command failed with exit code $STREAM_EXIT"; exit $STREAM_EXIT; fi`,
+			`if [ $MBSTREAM_EXIT -ne 0 ]; then echo "💾 mbstream failed with exit code $MBSTREAM_EXIT"; exit $MBSTREAM_EXIT; fi`,
+			"echo 💾 Preparing backup in-place",
+			fmt.Sprintf("mariadb-backup --prepare --target-dir=%s", opts.dataDir),
+		}
+		cmds = append(cmds, copyBinlogMetaCmds(opts.dataDir, dataDirPath)...)
+		cmds = append(cmds, fmt.Sprintf("touch %s", directRestoreMarkerPath))
+		return NewBashCommand(cmds), nil
+	}
+
+	// Streaming with staging: stream to staging directory, then prepare and copy-back.
+	copyBackupCmd := fmt.Sprintf(
+		"mariadb-backup --copy-back --target-dir=%s --force-non-empty-directories",
+		b.BackupFullDirPath,
+	)
+	existingBackupRestoreCmd, err := b.existingBackupRestoreCmd(
+		dataDirPath,
+		cleanupDataDirCmd,
+		copyBackupCmd,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("error getting existing backup command: %v", err)
+	}
+
+	cmds := []string{
+		"set -euo pipefail",
+		existingBackupRestoreCmd,
+		fmt.Sprintf("mkdir -p %s", b.BackupFullDirPath),
+		"echo 💾 Streaming backup to staging directory",
+		"set +e",
+		fmt.Sprintf(
+			"%s | mbstream -x -C %s",
+			streamCmd,
+			b.BackupFullDirPath,
+		),
+		"STREAM_EXIT=${PIPESTATUS[0]}",
+		"MBSTREAM_EXIT=${PIPESTATUS[1]}",
+		"set -e",
+		`if [ $STREAM_EXIT -ne 0 ]; then echo "💾 Stream command failed with exit code $STREAM_EXIT"; exit $STREAM_EXIT; fi`,
+		`if [ $MBSTREAM_EXIT -ne 0 ]; then echo "💾 mbstream failed with exit code $MBSTREAM_EXIT"; exit $MBSTREAM_EXIT; fi`,
+		"echo 💾 Preparing backup",
+		fmt.Sprintf("mariadb-backup --prepare --target-dir=%s", b.BackupFullDirPath),
+	}
+	if opts.cleanupDataDir {
+		cmds = append(cmds, cleanupDataDirCmd)
+	}
+	cmds = append(cmds, []string{
+		"echo 💾 Copying backup to data directory",
+		copyBackupCmd,
+	}...)
+	cmds = append(cmds, copyBinlogMetaCmds(b.BackupFullDirPath, dataDirPath)...)
+	return NewBashCommand(cmds), nil
+}
+
+func (b *BackupCommand) buildStreamCommand(operatorBinaryPath string) string {
+	args := []string{
+		operatorBinaryPath,
+		"backup",
+		"stream",
+		"--path",
+		b.Path,
+		"--target-file-path",
+		b.TargetFilePath,
+		"--backup-content-type",
+		string(b.BackupContentType),
+	}
+	if b.LogLevel != "" {
+		args = append(args, "--log-level", b.LogLevel)
+	}
+	args = append(args, b.s3Args()...)
+	args = append(args, b.absArgs()...)
+	return strings.Join(args, " ")
+}
+
+func (b *BackupCommand) legacyBackupRestore(dataDirPath string, opts MariaDBBackupRestoreOpts) (*Command, error) {
 	// Replicas being recovered will have a data directory in error state, needs to be cleaned up before restoring.
-	cleanupDataDirCmd := `if [ -d /var/lib/mysql ]; then 
+	cleanupDataDirCmd := `if [ -d /var/lib/mysql ]; then
 	echo "💾 Cleaning up data directory";
 	rm -rf /var/lib/mysql/*;
 fi`
@@ -452,7 +598,7 @@ fi`
 		dataDirPath,
 		cleanupDataDirCmd,
 		copyBackupCmd,
-		restoreOpts...,
+		WithCleanupDataDir(opts.cleanupDataDir),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("error getting existing backup command: %v", err)
@@ -837,7 +983,9 @@ func copyBinlogMetaCmds(sourceDir string, destDir string) []string {
 		destPath := filepath.Join(destDir, replication.MariaDBOperatorFileName)
 		return fmt.Sprintf(`if [ -f %[1]s ]; then 
 	echo "💾 Copying binlog position file '%[1]s' to '%[2]s'";
-	cp %[1]s %[2]s
+	if [ "%[1]s" != "%[2]s" ]; then
+		cp %[1]s %[2]s
+	fi
 fi`,
 			sourcePath,
 			destPath,

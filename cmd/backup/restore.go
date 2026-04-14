@@ -2,7 +2,9 @@ package backup
 
 import (
 	"fmt"
+	"io"
 	"os"
+	"path/filepath"
 	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
@@ -12,11 +14,19 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var targetTimeRaw string
+const operatorBinaryPath = "/bin/mariadb-operator"
+
+var (
+	targetTimeRaw string
+	copyBinaryTo  string
+)
 
 func init() {
 	restoreCommand.Flags().StringVar(&targetTimeRaw, "target-time", "",
 		"RFC3339 (1970-01-01T00:00:00Z) date and time that defines the backup target time.")
+	restoreCommand.Flags().StringVar(&copyBinaryTo, "copy-binary-to", "",
+		"Path to copy the operator binary for streaming restore mode. When set, the restore command writes the S3 key "+
+			"to the target file and copies the operator binary, instead of downloading and decompressing the backup.")
 }
 
 var restoreCommand = &cobra.Command{
@@ -75,27 +85,44 @@ var restoreCommand = &cobra.Command{
 		}
 		logger.Info("obtained target backup", "file", backupTargetFile)
 
-		logger.Info("pulling target backup", "file", backupTargetFile, "prefix", s3Prefix)
-		if err := backupStorage.Pull(ctx, backupTargetFile); err != nil {
-			logger.Error(err, "error pulling target backup", "file", backupTargetFile, "prefix", s3Prefix)
-			os.Exit(1)
-		}
+		if copyBinaryTo != "" {
+			// Streaming mode: write S3 key to target file and copy operator binary.
+			// The main container will use the binary to invoke `backup stream | mbstream`.
+			logger.Info("streaming mode: writing target file and copying operator binary",
+				"target-file", targetFilePath, "copy-binary-to", copyBinaryTo)
 
-		backupCompressor, err := getBackupCompressorWithFile(backupTargetFile, backupProcessor)
-		if err != nil {
-			logger.Error(err, "error getting backup compressor")
-			os.Exit(1)
-		}
-		backupTargetFile, err = backupCompressor.Decompress(backupTargetFile)
-		if err != nil {
-			logger.Error(err, "error decompressing backup", "file", backupTargetFile)
-			os.Exit(1)
-		}
+			if err := writeTargetFile(backupTargetFile); err != nil {
+				logger.Error(err, "error writing target file", "file", backupTargetFile)
+				os.Exit(1)
+			}
+			if err := copyOperatorBinary(copyBinaryTo); err != nil {
+				logger.Error(err, "error copying operator binary", "dest", copyBinaryTo)
+				os.Exit(1)
+			}
+			logger.Info("streaming mode setup complete")
+		} else {
+			logger.Info("pulling target backup", "file", backupTargetFile, "prefix", s3Prefix)
+			if err := backupStorage.Pull(ctx, backupTargetFile); err != nil {
+				logger.Error(err, "error pulling target backup", "file", backupTargetFile, "prefix", s3Prefix)
+				os.Exit(1)
+			}
 
-		logger.Info("writing target file", "file", targetFilePath, "file-content", backupTargetFile)
-		if err := writeTargetFile(backupTargetFile); err != nil {
-			logger.Error(err, "error writing target file", "file", backupTargetFile)
-			os.Exit(1)
+			backupCompressor, err := getBackupCompressorWithFile(backupTargetFile, backupProcessor)
+			if err != nil {
+				logger.Error(err, "error getting backup compressor")
+				os.Exit(1)
+			}
+			backupTargetFile, err = backupCompressor.Decompress(backupTargetFile)
+			if err != nil {
+				logger.Error(err, "error decompressing backup", "file", backupTargetFile)
+				os.Exit(1)
+			}
+
+			logger.Info("writing target file", "file", targetFilePath, "file-content", backupTargetFile)
+			if err := writeTargetFile(backupTargetFile); err != nil {
+				logger.Error(err, "error writing target file", "file", backupTargetFile)
+				os.Exit(1)
+			}
 		}
 	},
 }
@@ -133,4 +160,26 @@ func getBackupCompressorWithFile(fileName string, processor backup.BackupProcess
 		return nil, fmt.Errorf("error parsing compression algorithm: %v", err)
 	}
 	return mdbcompression.NewBackupCompressor(calg, path, processor.GetUncompressedBackupFile, logger)
+}
+
+func copyOperatorBinary(destPath string) error {
+	if err := os.MkdirAll(filepath.Dir(destPath), 0755); err != nil {
+		return fmt.Errorf("error creating destination directory: %v", err)
+	}
+	src, err := os.Open(operatorBinaryPath)
+	if err != nil {
+		return fmt.Errorf("error opening operator binary: %v", err)
+	}
+	defer src.Close()
+
+	dst, err := os.OpenFile(destPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0755)
+	if err != nil {
+		return fmt.Errorf("error creating destination file: %v", err)
+	}
+	defer dst.Close()
+
+	if _, err := io.Copy(dst, src); err != nil {
+		return fmt.Errorf("error copying operator binary: %v", err)
+	}
+	return nil
 }
