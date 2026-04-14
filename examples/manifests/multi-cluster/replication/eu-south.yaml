@@ -40,7 +40,7 @@ spec:
         key: password
       bootstrapFrom:
         physicalBackupTemplateRef:
-          name: eu-south-backup
+          name: physicalbackup-eu-south
       recovery:
         enabled: true
         errorDurationThreshold: 30s
