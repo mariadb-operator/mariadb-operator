@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/go-multierror"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	agentclient "github.com/mariadb-operator/mariadb-operator/v26/pkg/agent/client"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/hash"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/health"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/job"
 	mdbpod "github.com/mariadb-operator/mariadb-operator/v26/pkg/pod"
@@ -16,6 +17,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -65,9 +67,17 @@ func (r *MariaDBReconciler) reconcileRootPasswordInMariaDB(ctx context.Context, 
 	}
 	internalRootPassword := internalRootPasswordSecret.Data[mariadb.Spec.RootPasswordSecretKeyRef.Key]
 
+	newRootPasswordHash := hash.Hash(newRootPassword)
 	if newRootPassword == string(internalRootPassword) {
-		// Ensure root password is set as expected
-		return r.ensureRootPasswordInDataPlane(ctx, mariadb)
+		rootPasswordHash := ptr.Deref(mariadb.Status.RootPasswordHash, "")
+		if mariadb.Status.RootPasswordHash != nil && rootPasswordHash == newRootPasswordHash {
+			return ctrl.Result{}, nil
+		}
+		if result, err := r.reconcileRootPasswordInDataPlane(ctx, mariadb); !result.IsZero() || err != nil {
+			return result, err
+		}
+
+		return ctrl.Result{}, r.patchRootPasswordHash(ctx, mariadb, newRootPasswordHash)
 	}
 
 	rootPassLogger.Info("Root password changed. Updating.")
@@ -158,6 +168,10 @@ func (r *MariaDBReconciler) reconcileRootPasswordInMariaDB(ctx context.Context, 
 		)
 	}
 
+	if err := r.patchRootPasswordHash(ctx, mariadb, newRootPasswordHash); err != nil {
+		return ctrl.Result{}, err
+	}
+
 	r.Recorder.Eventf(mariadb, nil, corev1.EventTypeNormal, mariadbv1alpha1.ReasonMariaDBRootPasswordChanged,
 		mariadbv1alpha1.ActionReconciling, "Root password updated successfully.")
 	rootPassLogger.Info("Root password updated successfully. Requeuing...")
@@ -165,11 +179,11 @@ func (r *MariaDBReconciler) reconcileRootPasswordInMariaDB(ctx context.Context, 
 	return ctrl.Result{RequeueAfter: time.Second}, nil
 }
 
-// ensureRootPasswordInDataPlane updates the root password based on the current value of `RootPasswordSecretKeyRef`
+// reconcileRootPasswordInDataPlane updates the root password based on the current value of `RootPasswordSecretKeyRef`
 // - Inside the agents for the probes
 // - If galera is enabled, updates `wsrep_sst_auth`
 // @TODO: When https://github.com/mariadb-operator/mariadb-operator/pull/1621 is merged, we can remove the check for IsHAEnabled
-func (r *MariaDBReconciler) ensureRootPasswordInDataPlane(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
+func (r *MariaDBReconciler) reconcileRootPasswordInDataPlane(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
 	if !mariadb.IsHAEnabled() {
 		return ctrl.Result{}, nil
 	}
@@ -263,4 +277,15 @@ func (r *MariaDBReconciler) shouldReconcileRootPassword(ctx context.Context, mar
 	}
 
 	return ctrl.Result{}, nil
+}
+
+func (r *MariaDBReconciler) patchRootPasswordHash(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, newRootPasswordHash string) error {
+	if err := r.patchStatus(ctx, mariadb, func(md *mariadbv1alpha1.MariaDBStatus) error {
+		md.RootPasswordHash = ptr.To(newRootPasswordHash)
+		return nil
+	}); err != nil {
+		return fmt.Errorf("error patching MariaDB status with root password hash: %v", err)
+	}
+
+	return nil
 }
