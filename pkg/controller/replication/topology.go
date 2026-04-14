@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
@@ -324,13 +325,17 @@ func (m *multiClusterTopology) ConfigurePrimary(ctx context.Context, client *sql
 
 func (m *multiClusterTopology) ConfigureReplica(ctx context.Context, client *sql.Client, primaryPodIndex int,
 	replicaOpts ...ConfigureReplicaOpt) error {
+	opts := slices.Clone(replicaOpts)
+	// keep binary logs in replicas: when promoted to new primary, they will have binary logs to dump to the replica cluster
+	opts = append(opts, WithResetMaster(false))
+
 	if m.mariadb.IsMultiClusterPrimary() {
 		m.logger.Info("Configuring replica")
-		return m.singleCluster.ConfigureReplica(ctx, client, primaryPodIndex, replicaOpts...)
+		return m.singleCluster.ConfigureReplica(ctx, client, primaryPodIndex, opts...)
 	}
 
 	m.logger.Info("Configuring replica in replica cluster")
-	return m.configureReplicaInReplicaCluster(ctx, client, primaryPodIndex, replicaOpts...)
+	return m.configureReplicaInReplicaCluster(ctx, client, primaryPodIndex, opts...)
 }
 
 func (m *multiClusterTopology) configurePrimaryReplica(ctx context.Context, client *sql.Client) error {
