@@ -1203,13 +1203,22 @@ ignore_db_dirs = 'lost+found'
 {{- with .TimeZone }}
 default_time_zone = {{ . }}
 {{- end }}
+{{- with .LogSlaveUpdates }}
+log_slave_updates=ON
+{{- end }}
 `)
 
 	buf := new(bytes.Buffer)
 	err := tpl.Execute(buf, struct {
-		TimeZone *string
+		TimeZone        *string
+		LogSlaveUpdates bool
 	}{
 		TimeZone: mariadb.Spec.TimeZone,
+		// See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/replication-and-binary-log-system-variables#log_slave_updates
+		// We set this so:
+		// - We don't have to re-configure the replication in the replica cluster when primary cluster changes
+		// - Replica cluster primary can relay events to its replicas
+		LogSlaveUpdates: mariadb.IsMultiClusterEnabled(),
 	})
 	if err != nil {
 		return "", err
