@@ -117,8 +117,19 @@ host-multi-cluster: ## Add multi-cluster hosts to /etc/hosts.
 	@./hack/add_host.sh 1 18 mariadb-eu-central-2.mariadb-eu-central-internal.default.svc.cluster.local
 	@./hack/add_host.sh 1 19 mariadb-eu-central-3.mariadb-eu-central-internal.default.svc.cluster.local
 
+.PHONY: host-multi-cluster-mxs
+host-multi-cluster-mxs: ## Add multi-cluster maxscale hosts to /etc/hosts.
+	@./hack/add_host.sh 1 20 maxscale-eu-south.default.svc.cluster.local
+	@./hack/add_host.sh 1 21 maxscale-eu-south-gui.default.svc.cluster.local
+	@./hack/add_host.sh 1 22 maxscale-eu-south-0.maxscale-eu-south-internal.default.svc.cluster.local
+	@./hack/add_host.sh 1 23 maxscale-eu-south-1.maxscale-eu-south-internal.default.svc.cluster.local
+	@./hack/add_host.sh 1 24 maxscale-eu-central.default.svc.cluster.local
+	@./hack/add_host.sh 1 25 maxscale-eu-central-gui.default.svc.cluster.local
+	@./hack/add_host.sh 1 26 maxscale-eu-central-0.maxscale-eu-central-internal.default.svc.cluster.local
+	@./hack/add_host.sh 1 27 maxscale-eu-central-1.maxscale-eu-central-internal.default.svc.cluster.local
+
 .PHONY: host
-host: host-mariadb host-mdb-test host-mdb-emulated-external-test host-mxs-test host-mariadb-repl host-mariadb-galera host-mariadb-galera-test host-monitoring host-minio host-maxscale-repl host-maxscale-galera host-maxscale-gui host-multi-cluster host-azurite ## Configure hosts for local development.
+host: host-mariadb host-mdb-test host-mdb-emulated-external-test host-mxs-test host-mariadb-repl host-mariadb-galera host-mariadb-galera-test host-monitoring host-minio host-maxscale-repl host-maxscale-galera host-maxscale-gui host-multi-cluster host-multi-cluster-mxs host-azurite ## Configure hosts for local development.
 
 .PHONY: net
 net: install-metallb host ## Configure networking for local development.
