@@ -79,7 +79,7 @@ spec:
     name: mariadb-eu-south
   replicas: 2
   # Trigger a switchover by declaring the desired primary server
-  # primaryServer: mariadb-repl-0
+  # primaryServer: mariadb-eu-south-0
   services:
     - name: rw-router
       router: readwritesplit
