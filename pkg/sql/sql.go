@@ -46,6 +46,7 @@ type Opts struct {
 	TLSCACert           []byte
 	TLSClientCert       []byte
 	TLSClientPrivateKey []byte
+	CustomTLSCAName     string
 
 	Params  map[string]string
 	Timeout *time.Duration
@@ -95,6 +96,13 @@ func WithMaxscaleTLS(name, namespace string, tlsCaCert []byte) Opt {
 	return func(o *Opts) {
 		o.MaxscaleName = name
 		o.Namespace = namespace
+		o.TLSCACert = tlsCaCert
+	}
+}
+
+func WithCustomTLSCA(caName string, tlsCaCert []byte) Opt {
+	return func(o *Opts) {
+		o.CustomTLSCAName = caName
 		o.TLSCACert = tlsCaCert
 	}
 }
@@ -274,6 +282,19 @@ func BuildDSN(opts Opts) (string, error) {
 			return "", fmt.Errorf("error configuring TLS: %v", err)
 		}
 		config.TLSConfig = configName
+	}
+	if opts.CustomTLSCAName != "" && opts.TLSCACert != nil {
+		var tlsCfg tls.Config
+		caBundle := x509.NewCertPool()
+		if ok := caBundle.AppendCertsFromPEM(opts.TLSCACert); !ok {
+			return "", errors.New("failed to parse PEM-encoded CA certificates")
+		}
+		tlsCfg.RootCAs = caBundle
+
+		if err := mysql.RegisterTLSConfig(opts.CustomTLSCAName, &tlsCfg); err != nil {
+			return "", fmt.Errorf("error registering TLS config %s: %v", opts.CustomTLSCAName, err)
+		}
+		config.TLSConfig = opts.CustomTLSCAName
 	}
 	return config.FormatDSN(), nil
 }
