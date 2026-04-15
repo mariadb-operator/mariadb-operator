@@ -27,6 +27,7 @@ var (
 	validateThreshold time.Duration
 	rawTargetTime     string
 	targetTime        *time.Time
+	caCertPath        string
 )
 
 func init() {
@@ -42,6 +43,7 @@ func init() {
 	flag.DurationVar(&insertInterval, "insert-interval", 1*time.Second, "Insert interval (e.g. 1s)")
 	flag.DurationVar(&validateThreshold, "validate-threshold", 1*time.Second, "Validation threshold for gap checking (e.g. 1s)")
 	flag.StringVar(&rawTargetTime, "target-time", "", "Target time for PITR validation (format: RFC3339 (1970-01-01T00:00:00Z))")
+	flag.StringVar(&caCertPath, "ca-cert", "", "Path to CA certificate to establish TLS trust")
 	flag.Parse()
 }
 
@@ -53,7 +55,17 @@ func main() {
 		}
 		targetTime = &parsed
 	}
-	client, err := sql.NewClient(
+
+	var caCert []byte
+	if caCertPath != "" {
+		content, err := os.ReadFile(caCertPath)
+		if err != nil {
+			log.Fatalf("error reading CA certificate file %s: %v", caCertPath, err)
+		}
+		caCert = content
+	}
+
+	opts := []sql.Opt{
 		sql.WithHost(host),
 		sql.WithUsername(username),
 		sql.WithPassword(password),
@@ -62,7 +74,12 @@ func main() {
 		sql.WithParams(map[string]string{
 			"parseTime": "true",
 		}),
-	)
+	}
+	if caCert != nil {
+		opts = append(opts, sql.WithCustomTLSCA("client", caCert))
+	}
+
+	client, err := sql.NewClient(opts...)
 	if err != nil {
 		log.Fatalf("error getting client: %v", err)
 	}
