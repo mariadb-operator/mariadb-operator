@@ -63,7 +63,7 @@ func (r *MaxScaleReconciler) reconcileTLSCerts(ctx context.Context, mxs *mariadb
 		certctrl.WithCABundle(mxs.TLSCABundleSecretKeyRef(), mxs.Namespace),
 		certctrl.WithCA(
 			tls.ListenerCASecretRef == nil,
-			mxs.TLSAdminCASecretKey(),
+			mxs.TLSListenerCASecretKey(),
 		),
 		certctrl.WithCert(
 			tls.ListenerCertSecretRef == nil,
