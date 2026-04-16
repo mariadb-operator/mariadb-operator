@@ -278,20 +278,11 @@ func (b *Builder) BuildPhysicalBackupJob(key types.NamespacedName, backup *maria
 					{
 						LabelSelector: &metav1.LabelSelector{
 							MatchLabels: map[string]string{
-								metadata.InstanceLabel: mariadb.Name,
-								metadata.ReplicaLabel:  fmt.Sprintf("%d", *podIndex),
+								labels.InstanceLabel:      mariadb.Name,
+								labels.StatefulSetPodName: pod.Name,
 							},
 						},
 						TopologyKey: "kubernetes.io/hostname",
-						NamespaceSelector: &metav1.LabelSelector{
-							MatchExpressions: []metav1.LabelSelectorRequirement{
-								{
-									Key:      metadata.NamespaceLabel,
-									Operator: metav1.LabelSelectorOpIn,
-									Values:   []string{mariadb.Namespace},
-								},
-							},
-						},
 					},
 				},
 			},
