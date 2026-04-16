@@ -236,6 +236,11 @@ type PhysicalBackupSpec struct {
 	// +kubebuilder:validation:Minimum=0
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	SuccessfulJobsHistoryLimit *int32 `json:"successfulJobsHistoryLimit,omitempty"`
+	// FailedJobsHistoryLimit defines the maximum number of failed Jobs to be displayed. It defaults to 0, meaning failed jobs will not be displayed.
+	// +optional
+	// +kubebuilder:validation:Minimum=0
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	FailedJobsHistoryLimit *int32 `json:"failedJobsHistoryLimit,omitempty"`
 	// LogLevel to be used in the PhysicalBackup Job. It defaults to 'info'.
 	// +optional
 	// +kubebuilder:default=info
