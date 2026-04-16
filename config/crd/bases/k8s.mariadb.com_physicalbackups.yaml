@@ -77,8 +77,7 @@ spec:
                 type: string
               failedJobsHistoryLimit:
                 description: FailedJobsHistoryLimit defines the maximum number of
-                  failed Jobs to be displayed. It defaults to 0, meaning failed jobs
-                  will not be displayed.
+                  failed Jobs to be displayed. It defaults to 5.
                 format: int32
                 minimum: 0
                 type: integer
