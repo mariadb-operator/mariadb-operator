@@ -19,7 +19,7 @@ import (
 //	full binlog history from position 0 and re-apply transactions they already have,
 //	causing ER_DUP_ENTRY (errno 1062) and a stuck replication thread.
 //
-// This test currently FAILS (asserts the desired correct behaviour, which the bug violates).
+// This test currently FAILS (asserts the desired correct behavior, which the bug violates).
 // It will PASS once the fix is applied (e.g. setting req.replicasSynced = true inside
 // waitForNewPrimarySync after it confirms the new primary has no more relay-log events).
 func TestConfigureReplicaOpts_HardFailover_ResetsGtid(t *testing.T) {
@@ -41,7 +41,7 @@ func TestConfigureReplicaOpts_HardFailover_ResetsGtid(t *testing.T) {
 	}
 
 	// Post-fix: returning zero opts is correct for hard failover with PITR disabled.
-	// It means gtid_slave_pos is left untouched on the replica, which is the right behaviour.
+	// It means gtid_slave_pos is left untouched on the replica, which is the right behavior.
 	cro := ConfigureReplicaOpts{}
 	for _, opt := range opts {
 		opt(&cro)
