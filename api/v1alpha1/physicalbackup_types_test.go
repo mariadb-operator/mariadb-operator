@@ -50,6 +50,7 @@ var _ = Describe("PhysicalBackup types", func() {
 						Timeout:                    &DefaultPhysicalBackupTimeout,
 						BackoffLimit:               5,
 						SuccessfulJobsHistoryLimit: ptr.To(int32(5)),
+						FailedJobsHistoryLimit:     ptr.To(int32(5)),
 					},
 				},
 			),
@@ -67,6 +68,7 @@ var _ = Describe("PhysicalBackup types", func() {
 						Timeout:                    &metav1.Duration{Duration: 5 * time.Minute},
 						BackoffLimit:               3,
 						SuccessfulJobsHistoryLimit: ptr.To(int32(3)),
+						FailedJobsHistoryLimit:     ptr.To(int32(3)),
 					},
 				},
 				&MariaDB{
@@ -84,6 +86,7 @@ var _ = Describe("PhysicalBackup types", func() {
 						Timeout:                    &metav1.Duration{Duration: 5 * time.Minute},
 						BackoffLimit:               3,
 						SuccessfulJobsHistoryLimit: ptr.To(int32(3)),
+						FailedJobsHistoryLimit:     ptr.To(int32(3)),
 					},
 				},
 			),

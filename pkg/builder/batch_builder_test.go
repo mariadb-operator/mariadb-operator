@@ -1,7 +1,6 @@
 package builder
 
 import (
-	"errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -453,7 +452,7 @@ func TestBackupJobMeta(t *testing.T) {
 	}
 }
 
-func TestPhysicalBackupJobNodeSelector(t *testing.T) {
+func TestPhysicalBackupJobPodAffinity(t *testing.T) {
 	builder := newDefaultTestBuilder(t)
 	podObjMeta := metav1.ObjectMeta{
 		Name: "mariadb-0",
@@ -466,11 +465,11 @@ func TestPhysicalBackupJobNodeSelector(t *testing.T) {
 	}
 
 	tests := []struct {
-		name             string
-		backup           *mariadbv1alpha1.PhysicalBackup
-		pod              *corev1.Pod
-		wantErr          bool
-		wantNodeSelector bool
+		name            string
+		backup          *mariadbv1alpha1.PhysicalBackup
+		pod             *corev1.Pod
+		wantErr         bool
+		wantPodAffinity bool
 	}{
 		{
 			name:   "error when pod nodeName is empty",
@@ -481,11 +480,11 @@ func TestPhysicalBackupJobNodeSelector(t *testing.T) {
 					NodeName: "",
 				},
 			},
-			wantErr:          true,
-			wantNodeSelector: false,
+			wantErr:         true,
+			wantPodAffinity: false,
 		},
 		{
-			name: "nodeSelector set when podAffinity is true (default)",
+			name: "podAffinity set when podAffinity is true (default)",
 			backup: &mariadbv1alpha1.PhysicalBackup{
 				Spec: mariadbv1alpha1.PhysicalBackupSpec{
 					Storage: mariadbv1alpha1.PhysicalBackupStorage{
@@ -501,11 +500,11 @@ func TestPhysicalBackupJobNodeSelector(t *testing.T) {
 					NodeName: "node-1",
 				},
 			},
-			wantErr:          false,
-			wantNodeSelector: true,
+			wantErr:         false,
+			wantPodAffinity: true,
 		},
 		{
-			name: "nodeSelector set when podAffinity is true (explicit)",
+			name: "podAffinity set when podAffinity is true (explicit)",
 			backup: &mariadbv1alpha1.PhysicalBackup{
 				Spec: mariadbv1alpha1.PhysicalBackupSpec{
 					PodAffinity: ptr.To(true),
@@ -522,11 +521,11 @@ func TestPhysicalBackupJobNodeSelector(t *testing.T) {
 					NodeName: "node-1",
 				},
 			},
-			wantErr:          false,
-			wantNodeSelector: true,
+			wantErr:         false,
+			wantPodAffinity: true,
 		},
 		{
-			name: "nodeSelector not set when podAffinity is false",
+			name: "podAffinity not set when podAffinity is false",
 			backup: &mariadbv1alpha1.PhysicalBackup{
 				Spec: mariadbv1alpha1.PhysicalBackupSpec{
 					PodAffinity: ptr.To(false),
@@ -543,8 +542,8 @@ func TestPhysicalBackupJobNodeSelector(t *testing.T) {
 					NodeName: "node-1",
 				},
 			},
-			wantErr:          false,
-			wantNodeSelector: false,
+			wantErr:         false,
+			wantPodAffinity: false,
 		},
 	}
 
@@ -566,20 +565,21 @@ func TestPhysicalBackupJobNodeSelector(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
-			nodeSelector := job.Spec.Template.Spec.NodeSelector
-			if tt.wantNodeSelector {
-				assert.NotNil(t, nodeSelector, "expected nodeSelector to be set")
-				assert.Equal(
-					t,
-					tt.pod.Spec.NodeName,
-					nodeSelector["kubernetes.io/hostname"],
-					errors.New("expected nodeSelector to be set to pod's nodeName"),
-				)
+			affinity := job.Spec.Template.Spec.Affinity
+			if tt.wantPodAffinity {
+				assert.NotNil(t, affinity, "expected affinity to be set")
+				assert.NotNil(t, affinity.PodAffinity, "expected podAffinity to be set")
+				assert.NotEmpty(t, affinity.PodAffinity.RequiredDuringSchedulingIgnoredDuringExecution, "expected required pod affinity terms")
+
+				term := affinity.PodAffinity.RequiredDuringSchedulingIgnoredDuringExecution[0]
+				assert.Equal(t, "kubernetes.io/hostname", term.TopologyKey)
+				assert.Equal(t, mariadb.Name, term.LabelSelector.MatchLabels[labels.InstanceLabel])
+				assert.Equal(t, tt.pod.Name, term.LabelSelector.MatchLabels[labels.StatefulSetPodName])
 			} else {
 				assert.True(
 					t,
-					nodeSelector == nil || nodeSelector["kubernetes.io/hostname"] == "",
-					fmt.Errorf("expected nodeSelector to be nil or not set, got %v", nodeSelector),
+					affinity == nil || affinity.PodAffinity == nil,
+					fmt.Errorf("expected affinity to be nil or not have podAffinity, got %v", affinity),
 				)
 			}
 		})
