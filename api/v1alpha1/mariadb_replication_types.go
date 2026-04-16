@@ -6,7 +6,6 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/mariadb-operator/mariadb-operator/v26/pkg/docker"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/environment"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -339,17 +338,8 @@ func (r *Replication) SetDefaults(mdb *MariaDB, env *environment.OperatorEnv) er
 
 	autoUpdateDataPlane := ptr.Deref(mdb.Spec.UpdateStrategy.AutoUpdateDataPlane, false)
 	if autoUpdateDataPlane {
-		initBumped, err := docker.SetTagOrDigest(env.MariadbOperatorImage, r.InitContainer.Image)
-		if err != nil {
-			return fmt.Errorf("error bumping replication init image: %v", err)
-		}
-		r.InitContainer.Image = initBumped
-
-		agentBumped, err := docker.SetTagOrDigest(env.MariadbOperatorImage, r.Agent.Image)
-		if err != nil {
-			return fmt.Errorf("error bumping replication agent image: %v", err)
-		}
-		r.Agent.Image = agentBumped
+		r.InitContainer.Image = env.MariadbOperatorImage
+		r.Agent.Image = env.MariadbOperatorImage
 	}
 
 	return nil

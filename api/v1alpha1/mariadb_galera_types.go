@@ -5,7 +5,6 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/mariadb-operator/mariadb-operator/v26/pkg/docker"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/environment"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/galera/recovery"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
@@ -305,17 +304,8 @@ func (g *Galera) SetDefaults(mdb *MariaDB, env *environment.OperatorEnv) error {
 
 	autoUpdateDataPlane := ptr.Deref(mdb.Spec.UpdateStrategy.AutoUpdateDataPlane, false)
 	if autoUpdateDataPlane {
-		initBumped, err := docker.SetTagOrDigest(env.MariadbOperatorImage, g.InitContainer.Image)
-		if err != nil {
-			return fmt.Errorf("error bumping Galera init image: %v", err)
-		}
-		g.InitContainer.Image = initBumped
-
-		agentBumped, err := docker.SetTagOrDigest(env.MariadbOperatorImage, g.Agent.Image)
-		if err != nil {
-			return fmt.Errorf("error bumping Galera agent image: %v", err)
-		}
-		g.Agent.Image = agentBumped
+		g.InitContainer.Image = env.MariadbOperatorImage
+		g.Agent.Image = env.MariadbOperatorImage
 	}
 
 	return nil
