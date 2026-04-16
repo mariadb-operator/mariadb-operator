@@ -10,6 +10,10 @@ build: ## Build binary.
 docker-build: ## Build docker image.
 	$(DOCKER) buildx build -t $(IMG) . $(DOCKER_ARGS)
 
+.PHONY: docker-push
+docker-push: ## Build and push docker image to registry.
+	$(DOCKER) buildx build -t $(IMG) . --push
+
 .PHONY: docker-load
 docker-load: kind ## Load docker image in KIND.
 	$(KIND) load docker-image --name $(CLUSTER) $(IMG)
