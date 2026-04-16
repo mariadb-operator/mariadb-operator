@@ -293,6 +293,7 @@ func (r *ReplicationReconciler) waitForNewPrimarySync(ctx context.Context, req *
 	}
 
 	logger.V(1).Info("New primary synced")
+	req.replicasSynced = true
 	return nil
 }
 
@@ -443,9 +444,12 @@ func (r *ReplicationReconciler) configureReplicaOpts(ctx context.Context, req *R
 		}
 		logger.Info("Configuring replicas with primary GTID", "gtid", primaryBinlogPos)
 		replicaOpts = append(replicaOpts, WithGtidSlavePos(primaryBinlogPos))
-	} else {
+	} else if req.currentPrimaryReady {
+		// Planned switchover where replica sync did not complete: reset as a last-resort fallback.
 		replicaOpts = append(replicaOpts, WithResetGtidSlavePos())
 	}
+	// Hard failover (currentPrimaryReady=false): leave gtid_slave_pos untouched so surviving
+	// replicas reconnect from their last applied GTID instead of replaying all history.
 
 	// avoid deleting binary logs during archival to prevent drifting from object storage
 	if req.mariadb.IsPointInTimeRecoveryEnabled() {
