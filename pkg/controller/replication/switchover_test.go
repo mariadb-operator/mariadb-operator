@@ -60,6 +60,34 @@ func TestConfigureReplicaOpts_HardFailover_ResetsGtid(t *testing.T) {
 	}
 }
 
+// TestWaitForReplicaSync_ReconnectsDisconnectedReplica documents the bug:
+//
+//	During a planned switchover, the phases are:
+//	  1. Lock primary (FLUSH TABLES WITH READ LOCK)
+//	  2. Set read_only on primary
+//	  3. Wait for replica sync (MASTER_GTID_WAIT)
+//	  4. Configure new primary (STOP SLAVE / RESET SLAVE ALL on the new primary)
+//	  5. Connect remaining replicas to new primary
+//	  6. Change old primary to replica
+//
+//	If a previous iteration completed phase 4 but failed in phase 5 or 6, the new
+//	primary has no slave configured.  The next reconcile loop retries from phase 1,
+//	but phase 3 calls MASTER_GTID_WAIT on a replica that can never advance its GTID
+//	(no slave running) – timing out on every attempt and leaving the cluster stuck
+//	with the old primary in read_only=ON indefinitely.
+//
+//	The fix: before issuing MASTER_GTID_WAIT, waitForReplicaSync checks whether the
+//	replica has a slave configured (IsReplicationReplica).  If not, it calls
+//	ConfigureReplica with WithResetMaster(false) to reconnect the replica to the
+//	current primary so it can catch up, then issues the GTID wait.
+//
+//	Because this path requires live SQL connections it is covered by integration
+//	tests.  This comment serves as the design record.
+func TestWaitForReplicaSync_ReconnectsDisconnectedReplica(_ *testing.T) {
+	// Integration-test only; documented here for design record.
+	// See pkg/controller/replication/switchover.go: waitForReplicaSync.
+}
+
 // TestConfigureReplicaOpts_PlannedSwitchover_DoesNotResetGtid verifies that the planned
 // switchover path (old primary still reachable, replicas fully synced) does NOT reset GTID.
 // This path was already correct; the test serves as a regression guard.

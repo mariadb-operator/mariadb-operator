@@ -230,6 +230,29 @@ func (r *ReplicationReconciler) waitForReplicaSync(ctx context.Context, req *Rec
 			if err != nil {
 				return fmt.Errorf("error getting replica '%d' client: %v", i, err)
 			}
+
+			// A previous switchover iteration may have already run configureNewPrimary
+			// (phase 4), which calls STOP SLAVE / RESET SLAVE ALL on the new primary,
+			// disconnecting its slave thread.  If that earlier attempt then failed in a
+			// later phase (e.g. changePrimaryToReplica), the retry will reach this point
+			// with the replica having no slave configured and a GTID that can never
+			// advance – causing MASTER_GTID_WAIT to always time out.
+			// Detect this state and reconnect the replica to the current primary so it
+			// can catch up before we issue the wait.
+			isReplica, err := replClient.IsReplicationReplica(ctx)
+			if err != nil {
+				return fmt.Errorf("error checking replica '%d' replication status: %v", i, err)
+			}
+			if !isReplica {
+				logger.Info("Replica has no slave configured, reconnecting to current primary before sync wait", "replica", i)
+				r.recorder.Eventf(req.mariadb, nil, corev1.EventTypeNormal, mariadbv1alpha1.ReasonReplicationReplicaConn,
+					mariadbv1alpha1.ActionReconciling, "Reconnecting replica '%d' to current primary for sync", i)
+				if err := r.replConfigClient.ConfigureReplica(ctx, req.mariadb, replClient,
+					*req.mariadb.Status.CurrentPrimaryPodIndex, WithResetMaster(false)); err != nil {
+					return fmt.Errorf("error reconnecting replica '%d' for sync: %v", i, err)
+				}
+			}
+
 			logger.V(1).Info("Syncing replica with primary GTID", "replica", i, "gtid", primaryGtid)
 			syncTimeout := ptr.Deref(replication.Replica.SyncTimeout, metav1.Duration{Duration: 10 * time.Second}).Duration
 
