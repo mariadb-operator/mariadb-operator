@@ -279,7 +279,7 @@ func (b *Builder) BuildPhysicalBackupJob(key types.NamespacedName, backup *maria
 						LabelSelector: &metav1.LabelSelector{
 							MatchLabels: labels.NewLabelsBuilder().
 								WithInstance(mariadb.Name).
-								WithStatefulSetPod(mariadb.ObjectMeta, podIndex).
+								WithStatefulSetPod(mariadb.ObjectMeta, *podIndex).
 								Build(),
 						},
 						TopologyKey: "kubernetes.io/hostname",
