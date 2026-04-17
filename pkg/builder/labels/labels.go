@@ -44,11 +44,6 @@ func (b *LabelsBuilder) WithStatefulSetPod(objMeta metav1.ObjectMeta, podIndex i
 	return b
 }
 
-func (b *LabelsBuilder) WithPodName(name string) *LabelsBuilder {
-	b.labels[statefulSetPodName] = name
-	return b
-}
-
 func (b *LabelsBuilder) WithLabels(labels map[string]string) *LabelsBuilder {
 	for k, v := range labels {
 		b.labels[k] = v
