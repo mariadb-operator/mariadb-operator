@@ -130,6 +130,16 @@ func (r *singleClusterTopology) ConfigurePrimary(ctx context.Context, client *sq
 			return fmt.Errorf("error resetting slave: %v", err)
 		}
 		if err := client.ResetGtidSlavePos(ctx); err != nil {
+			// This error could happen when log_slave_updates=0N (multi-cluster, PITR),
+			// when the replica to be promoted already has binary logs.
+			// If returned, this error will completely block switchover/failover operations.
+			// Error 1948 (HY000): Specified value for @@gtid_slave_pos contains no value for
+			// replication domain 0. This conflicts with the binary log which contains GTID
+			// 0-11-1176. If MASTER_GTID_POS=CURRENT_POS is used, the binlog position will
+			// override the new value of @@gtid_slave_pos'
+			if sql.IsGtidSlavePosNoValueForDomain(err) {
+				return nil
+			}
 			return fmt.Errorf("error resetting slave position: %v", err)
 		}
 	}
