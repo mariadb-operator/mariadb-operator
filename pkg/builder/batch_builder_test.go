@@ -573,8 +573,8 @@ func TestPhysicalBackupJobPodAffinity(t *testing.T) {
 
 				term := affinity.PodAffinity.RequiredDuringSchedulingIgnoredDuringExecution[0]
 				assert.Equal(t, "kubernetes.io/hostname", term.TopologyKey)
-				assert.Equal(t, mariadb.Name, term.LabelSelector.MatchLabels[labels.InstanceLabel])
-				assert.Equal(t, tt.pod.Name, term.LabelSelector.MatchLabels[labels.StatefulSetPodName])
+				assert.Equal(t, mariadb.Name, term.LabelSelector.MatchLabels["app.kubernetes.io/instance"])
+				assert.Equal(t, tt.pod.Name, term.LabelSelector.MatchLabels["statefulset.kubernetes.io/pod-name"])
 			} else {
 				assert.True(
 					t,

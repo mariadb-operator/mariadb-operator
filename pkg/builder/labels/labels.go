@@ -9,15 +9,14 @@ import (
 )
 
 const (
-	InstanceLabel      = "app.kubernetes.io/instance"
-	StatefulSetPodName = "statefulset.kubernetes.io/pod-name"
-
-	appLabel    = "app.kubernetes.io/name"
-	volumeRole  = "pvc.k8s.mariadb.com/role"
-	podRole     = "k8s.mariadb.com/role"
-	appMariaDb  = "mariadb"
-	appExporter = "exporter"
-	appMaxScale = "maxscale"
+	appLabel           = "app.kubernetes.io/name"
+	instanceLabel      = "app.kubernetes.io/instance"
+	statefulSetPodName = "statefulset.kubernetes.io/pod-name"
+	volumeRole         = "pvc.k8s.mariadb.com/role"
+	podRole            = "k8s.mariadb.com/role"
+	appMariaDb         = "mariadb"
+	appExporter        = "exporter"
+	appMaxScale        = "maxscale"
 )
 
 type LabelsBuilder struct {
@@ -36,12 +35,17 @@ func (b *LabelsBuilder) WithApp(app string) *LabelsBuilder {
 }
 
 func (b *LabelsBuilder) WithInstance(instance string) *LabelsBuilder {
-	b.labels[InstanceLabel] = instance
+	b.labels[instanceLabel] = instance
 	return b
 }
 
 func (b *LabelsBuilder) WithStatefulSetPod(objMeta metav1.ObjectMeta, podIndex int) *LabelsBuilder {
-	b.labels[StatefulSetPodName] = statefulset.PodName(objMeta, podIndex)
+	b.labels[statefulSetPodName] = statefulset.PodName(objMeta, podIndex)
+	return b
+}
+
+func (b *LabelsBuilder) WithPodName(name string) *LabelsBuilder {
+	b.labels[statefulSetPodName] = name
 	return b
 }
 
