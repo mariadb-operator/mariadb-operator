@@ -37,6 +37,7 @@ CRD_REF_DOCS_VERSION ?= v0.2.0
 FLUX_VERSION ?= 0.40.1
 JQ_VERSION ?= jq-1.7
 YQ_VERSION ?= v4.18.1
+YQ_SYSTEM ?= $(shell if command -v yq >/dev/null 2>&1 && yq --version 2>/dev/null | grep -Eq 'version (v)?4([. ]|$$)|^yq 4([. ]|$$)'; then command -v yq; fi)
 
 .PHONY: kind
 kind: $(KIND) ## Download kind locally if necessary.
@@ -133,16 +134,19 @@ endif
 .PHONY: yq
 yq: ## Download yq locally if necessary.
 ifeq (,$(wildcard $(YQ)))
-ifeq (,$(shell which yq 2>/dev/null))
+ifeq (,$(YQ_SYSTEM))
 	@{ \
 	set -e ;\
 	mkdir -p $(dir $(YQ)) ;\
+	tmp_dir=$$(mktemp -d) ;\
 	curl -sSLo - https://github.com/mikefarah/yq/releases/download/$(YQ_VERSION)/yq_linux_amd64.tar.gz | \
-	tar xzf - -C bin/ ;\
-	mv bin/yq_linux_amd64 bin/yq ;\
+	tar xzf - -C $$tmp_dir ;\
+	mv $$tmp_dir/yq_linux_amd64 $(YQ) ;\
+	chmod +x $(YQ) ;\
+	rm -rf $$tmp_dir ;\
 	}
 else
-YQ = $(shell which yq)
+YQ = $(YQ_SYSTEM)
 endif
 endif
 
