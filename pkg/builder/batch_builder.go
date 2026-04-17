@@ -277,10 +277,10 @@ func (b *Builder) BuildPhysicalBackupJob(key types.NamespacedName, backup *maria
 				RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
 					{
 						LabelSelector: &metav1.LabelSelector{
-							MatchLabels: map[string]string{
-								labels.InstanceLabel:      mariadb.Name,
-								labels.StatefulSetPodName: pod.Name,
-							},
+							MatchLabels: labels.NewLabelsBuilder().
+								WithInstance(mariadb.Name).
+								WithPodName(pod.Name).
+								Build(),
 						},
 						TopologyKey: "kubernetes.io/hostname",
 					},

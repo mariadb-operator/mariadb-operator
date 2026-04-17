@@ -197,31 +197,19 @@ func (r *PhysicalBackupReconciler) cleanupJobs(ctx context.Context, backup *mari
 			return err
 		}
 
-		for i := maxHistory; i < len(completeJobs); i++ {
-			job := completeJobs[i]
-
-			err := r.Delete(ctx, job, &client.DeleteOptions{PropagationPolicy: ptr.To(metav1.DeletePropagationBackground)})
-			if err != nil && !apierrors.IsNotFound(err) {
-				return fmt.Errorf("error deleting Job \"%s\": %v", job.Name, err)
-			}
-			logger.V(1).Info("Deleted old Job", "job", job.Name, "physicalbackup", backup.Name)
+		if err := deleteOldJobs(ctx, r.Client, completeJobs, maxHistory, logger, backup.Name); err != nil {
+			return err
 		}
 	}
 
-	maxFailedHistory := int(ptr.Deref(backup.Spec.FailedJobsHistoryLimit, 0))
+	maxFailedHistory := int(ptr.Deref(backup.Spec.FailedJobsHistoryLimit, 5))
 	if len(failedJobs) > maxFailedHistory {
 		if err := sortByObjectTime(failedJobs); err != nil {
 			return err
 		}
 
-		for i := maxFailedHistory; i < len(failedJobs); i++ {
-			job := failedJobs[i]
-
-			err := r.Delete(ctx, job, &client.DeleteOptions{PropagationPolicy: ptr.To(metav1.DeletePropagationBackground)})
-			if err != nil && !apierrors.IsNotFound(err) {
-				return fmt.Errorf("error deleting failed Job \"%s\": %v", job.Name, err)
-			}
-			logger.V(1).Info("Deleted old failed Job", "job", job.Name, "physicalbackup", backup.Name)
+		if err := deleteOldJobs(ctx, r.Client, failedJobs, maxFailedHistory, logger, backup.Name); err != nil {
+			return err
 		}
 	}
 
