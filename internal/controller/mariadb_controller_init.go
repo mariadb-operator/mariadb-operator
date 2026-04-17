@@ -114,26 +114,14 @@ func (r *MariaDBReconciler) reconcilePhysicalBackupInit(ctx context.Context, mar
 		return ctrl.Result{}, err
 	}
 
-	if bootstrapFrom.VolumeSnapshotRef == nil {
-		if result, err := r.reconcileRollingInitJobs(
-			ctx,
-			mariadb,
-			fromIndex,
-			logger.WithName("job"),
-			builder.WithBootstrapFrom(&bootstrapFrom),
-		); !result.IsZero() || err != nil {
-			return result, err
-		}
-		if err := r.cleanupInitJobs(ctx, mariadb); err != nil {
-			return ctrl.Result{}, err
-		}
-		if err := r.cleanupPhysicalBackupStagingPVC(ctx, mariadb); err != nil {
-			return ctrl.Result{}, err
-		}
-	} else {
+	if bootstrapFrom.VolumeSnapshotRef != nil {
 		logger.Info("Provisioning StatefulSet", "replicas", mariadb.Spec.Replicas)
 		if err := r.upscaleStatefulSet(ctx, mariadb, mariadb.Spec.Replicas); err != nil {
 			return ctrl.Result{}, err
+		}
+	} else {
+		if result, err := r.reconcileRestoreMode(ctx, mariadb, &bootstrapFrom, fromIndex, logger); !result.IsZero() || err != nil {
+			return result, err
 		}
 	}
 
@@ -471,6 +459,179 @@ func (r *MariaDBReconciler) ensureReplicationConfiguredInPod(ctx context.Context
 		}
 		return nil
 	})
+}
+
+// reconcileRestoreMode dispatches to the appropriate restore strategy and performs cleanup.
+func (r *MariaDBReconciler) reconcileRestoreMode(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+	bootstrapFrom *mariadbv1alpha1.BootstrapFrom, fromIndex int, logger logr.Logger) (ctrl.Result, error) {
+	restoreOpt := builder.WithBootstrapFrom(bootstrapFrom)
+
+	if bootstrapFrom.IsRestoreOnlyPrimaryEnabled() && mariadb.IsGaleraEnabled() {
+		logger.Info("Using SST-aware restore mode: restoring only primary pod")
+		result, err := r.reconcileSSTAwareInit(ctx, mariadb, logger.WithName("sst-init"), restoreOpt)
+		if !result.IsZero() || err != nil {
+			return result, err
+		}
+	} else if bootstrapFrom.IsRestoreParallelEnabled() {
+		logger.Info("Using parallel restore mode: all pods restore concurrently")
+		result, err := r.reconcileParallelInit(
+			ctx, mariadb, fromIndex, logger.WithName("parallel-init"), restoreOpt,
+		)
+		if !result.IsZero() || err != nil {
+			return result, err
+		}
+	} else {
+		result, err := r.reconcileRollingInitJobs(
+			ctx, mariadb, fromIndex, logger.WithName("job"), restoreOpt,
+		)
+		if !result.IsZero() || err != nil {
+			return result, err
+		}
+	}
+
+	if err := r.cleanupInitJobs(ctx, mariadb); err != nil {
+		return ctrl.Result{}, err
+	}
+	if err := r.cleanupPhysicalBackupStagingPVC(ctx, mariadb); err != nil {
+		return ctrl.Result{}, err
+	}
+	return ctrl.Result{}, nil
+}
+
+// reconcileSSTAwareInit restores only pod 0 from backup. Once pod 0 is ready (Galera primary is up),
+// all secondary pods are started and join the cluster via Galera State Snapshot Transfer (SST).
+func (r *MariaDBReconciler) reconcileSSTAwareInit(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+	logger logr.Logger, restoreOpts ...builder.RestoreOpt) (ctrl.Result, error) {
+
+	// Step 1: Create and wait for the restore job for pod 0.
+	primaryJobKey := mariadb.PhysicalBackupInitJobKey(0)
+	if result, err := r.reconcileAndWaitForInitJob(
+		ctx,
+		mariadb,
+		primaryJobKey,
+		0,
+		logger,
+		restoreOpts...,
+	); !result.IsZero() || err != nil {
+		return result, err
+	}
+
+	// Step 2: Start pod 0 by upscaling to 1 replica.
+	logger.Info("Upscaling StatefulSet for primary pod", "replicas", 1)
+	if err := r.upscaleStatefulSet(ctx, mariadb, 1); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error upscaling StatefulSet: %v", err)
+	}
+
+	// Step 3: Wait for pod 0 to be ready (Galera primary must be fully up).
+	if result, err := r.waitForPodReady(ctx, mariadb, 0, logger); !result.IsZero() || err != nil {
+		return result, err
+	}
+	logger.Info("Primary pod is ready, starting secondary pods")
+
+	// Step 4: Start all secondary pods. They will join via Galera SST.
+	logger.Info("Upscaling StatefulSet for all replicas", "replicas", mariadb.Spec.Replicas)
+	if err := r.upscaleStatefulSet(ctx, mariadb, mariadb.Spec.Replicas); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error upscaling StatefulSet: %v", err)
+	}
+
+	// Step 5: Wait for all secondary pods to be scheduled.
+	for i := 1; i < int(mariadb.Spec.Replicas); i++ {
+		if result, err := r.waitForPodScheduled(ctx, mariadb, i, logger); !result.IsZero() || err != nil {
+			return result, err
+		}
+	}
+
+	return ctrl.Result{}, nil
+}
+
+// reconcileParallelInit creates restore jobs for all pods simultaneously.
+// Once all jobs are complete, all pods are started at once.
+func (r *MariaDBReconciler) reconcileParallelInit(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+	fromIndex int, logger logr.Logger, restoreOpts ...builder.RestoreOpt) (ctrl.Result, error) {
+
+	// Step 1: Create all restore jobs.
+	for i := fromIndex; i < int(mariadb.Spec.Replicas); i++ {
+		jobKey := mariadb.PhysicalBackupInitJobKey(i)
+		var job batchv1.Job
+		if err := r.Get(ctx, jobKey, &job); err != nil {
+			if apierrors.IsNotFound(err) {
+				logger.Info("Creating parallel PhysicalBackup init job", "name", jobKey.Name, "podIndex", i)
+				if err := r.createInitJob(ctx, mariadb, jobKey, i, restoreOpts...); err != nil {
+					return ctrl.Result{}, err
+				}
+			} else {
+				return ctrl.Result{}, fmt.Errorf("error getting init job: %v", err)
+			}
+		}
+	}
+
+	// Step 2: Wait for all jobs to complete.
+	allComplete, err := r.allInitJobsComplete(ctx, mariadb, fromIndex)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if !allComplete {
+		logger.V(1).Info("Not all parallel init jobs completed. Requeuing...")
+		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+	}
+	logger.Info("All parallel init jobs completed")
+
+	// Step 3: Start all pods.
+	logger.Info("Upscaling StatefulSet", "replicas", mariadb.Spec.Replicas)
+	if err := r.upscaleStatefulSet(ctx, mariadb, mariadb.Spec.Replicas); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error upscaling StatefulSet: %v", err)
+	}
+
+	// Step 4: Wait for all pods to be scheduled.
+	for i := fromIndex; i < int(mariadb.Spec.Replicas); i++ {
+		if result, err := r.waitForPodScheduled(ctx, mariadb, i, logger); !result.IsZero() || err != nil {
+			return result, err
+		}
+		logger.Info("Pod successfully initialized", "pod", stsobj.PodName(mariadb.ObjectMeta, i))
+	}
+
+	return ctrl.Result{}, nil
+}
+
+// waitForPodReady waits until the specified pod reaches the Ready condition.
+func (r *MariaDBReconciler) waitForPodReady(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, podIndex int,
+	logger logr.Logger) (ctrl.Result, error) {
+	podKey := types.NamespacedName{
+		Name:      stsobj.PodName(mariadb.ObjectMeta, podIndex),
+		Namespace: mariadb.Namespace,
+	}
+	var pod corev1.Pod
+	if err := r.Get(ctx, podKey, &pod); err != nil {
+		if apierrors.IsNotFound(err) {
+			return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+		}
+		return ctrl.Result{}, fmt.Errorf("error getting Pod: %v", err)
+	}
+
+	if !podpkg.PodReady(&pod) {
+		logger.V(1).Info("Pod not ready. Requeuing...", "pod", pod.Name)
+		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+	}
+	return ctrl.Result{}, nil
+}
+
+// allInitJobsComplete checks if all init jobs for all pod indices are complete.
+func (r *MariaDBReconciler) allInitJobsComplete(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+	fromIndex int) (bool, error) {
+	for i := fromIndex; i < int(mariadb.Spec.Replicas); i++ {
+		key := mariadb.PhysicalBackupInitJobKey(i)
+		var job batchv1.Job
+		if err := r.Get(ctx, key, &job); err != nil {
+			if apierrors.IsNotFound(err) {
+				return false, nil
+			}
+			return false, fmt.Errorf("error getting init job: %v", err)
+		}
+		if !jobpkg.IsJobComplete(&job) {
+			return false, nil
+		}
+	}
+	return true, nil
 }
 
 func (r *MariaDBReconciler) cleanupInitJobs(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {

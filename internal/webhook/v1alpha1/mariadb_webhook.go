@@ -217,6 +217,44 @@ func validateBootstrapFrom(mariadb *v1alpha1.MariaDB) error {
 			err.Error(),
 		)
 	}
+	return validateRestoreModes(mariadb)
+}
+
+func validateRestoreModes(mariadb *v1alpha1.MariaDB) error {
+	b := mariadb.Spec.BootstrapFrom
+	if b == nil {
+		return nil
+	}
+	bootstrapFromPath := field.NewPath("spec").Child("bootstrapFrom")
+
+	if b.IsRestoreOnlyPrimaryEnabled() && !mariadb.IsGaleraEnabled() {
+		return field.Invalid(
+			bootstrapFromPath.Child("restoreOnlyPrimary"),
+			b.RestoreOnlyPrimary,
+			"'restoreOnlyPrimary' requires Galera to be enabled, as secondaries join via SST",
+		)
+	}
+	if b.IsRestoreOnlyPrimaryEnabled() && b.PointInTimeRecoveryRef != nil {
+		return field.Invalid(
+			bootstrapFromPath.Child("restoreOnlyPrimary"),
+			b.RestoreOnlyPrimary,
+			"'restoreOnlyPrimary' is not supported with 'pointInTimeRecoveryRef'",
+		)
+	}
+	if b.IsSecondarySSTParallelEnabled() && !b.IsRestoreOnlyPrimaryEnabled() {
+		return field.Invalid(
+			bootstrapFromPath.Child("secondarySSTParallel"),
+			b.SecondarySSTParallel,
+			"'secondarySSTParallel' requires 'restoreOnlyPrimary' to be enabled",
+		)
+	}
+	if b.IsRestoreParallelEnabled() && b.PointInTimeRecoveryRef != nil {
+		return field.Invalid(
+			bootstrapFromPath.Child("restoreParallel"),
+			b.RestoreParallel,
+			"'restoreParallel' is not supported with 'pointInTimeRecoveryRef'",
+		)
+	}
 	return nil
 }
 

@@ -11,7 +11,10 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
+	"time"
 
+	"github.com/go-logr/logr"
 	"github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/refresolver"
 	"github.com/minio/minio-go/v7"
@@ -377,6 +380,225 @@ func getMinioOptions(opts MinioOpts) (*minio.Options, error) {
 		Secure:    opts.TLS,
 		Transport: transport,
 	}, nil
+}
+
+// GetObjectStream returns a streaming reader for an S3 object along with its size.
+func (c *Client) GetObjectStream(ctx context.Context, fileName string) (*minio.Object, int64, error) {
+	getOpts, err := c.getObjectOptions()
+	if err != nil {
+		return nil, 0, err
+	}
+	prefixedFilePath := c.PrefixedFileName(fileName)
+
+	obj, err := c.GetObject(ctx, c.bucket, prefixedFilePath, *getOpts)
+	if err != nil {
+		return nil, 0, fmt.Errorf("error getting object: %v", err)
+	}
+	stat, err := obj.Stat()
+	if err != nil {
+		obj.Close()
+		return nil, 0, fmt.Errorf("error getting object stat: %v", err)
+	}
+	return obj, stat.Size, nil
+}
+
+// ResumableReaderConfig configures the retry behavior of ResumableReader.
+type ResumableReaderConfig struct {
+	MaxRetries     int
+	InitialBackoff time.Duration
+	MaxBackoff     time.Duration
+	Logger         logr.Logger
+}
+
+// DefaultResumableReaderConfig returns reasonable defaults for resumable reads.
+func DefaultResumableReaderConfig(logger logr.Logger) ResumableReaderConfig {
+	return ResumableReaderConfig{
+		MaxRetries:     10,
+		InitialBackoff: 2 * time.Second,
+		MaxBackoff:     60 * time.Second,
+		Logger:         logger,
+	}
+}
+
+// ResumableReader is a thread-safe io.ReadCloser that automatically resumes S3 reads
+// on transient network errors using Range headers.
+type ResumableReader struct {
+	client        *Client
+	ctx           context.Context
+	bucket        string
+	objectKey     string
+	totalSize     int64
+	position      int64
+	currentReader io.ReadCloser
+	config        ResumableReaderConfig
+	mu            sync.Mutex
+	closed        bool
+	retryCount    int
+	totalRetries  int
+	lastError     error
+	getOpts       minio.GetObjectOptions
+}
+
+// GetResumableObjectStream returns a ResumableReader that automatically retries and resumes
+// reads from the given position on transient errors.
+func (c *Client) GetResumableObjectStream(ctx context.Context, fileName string,
+	config ResumableReaderConfig) (*ResumableReader, int64, error) {
+	getOpts, err := c.getObjectOptions()
+	if err != nil {
+		return nil, 0, err
+	}
+	prefixedFilePath := c.PrefixedFileName(fileName)
+
+	obj, err := c.GetObject(ctx, c.bucket, prefixedFilePath, *getOpts)
+	if err != nil {
+		return nil, 0, fmt.Errorf("error getting object: %v", err)
+	}
+	stat, err := obj.Stat()
+	if err != nil {
+		obj.Close()
+		return nil, 0, fmt.Errorf("error getting object stat: %v", err)
+	}
+
+	return &ResumableReader{
+		client:        c,
+		ctx:           ctx,
+		bucket:        c.bucket,
+		objectKey:     prefixedFilePath,
+		totalSize:     stat.Size,
+		position:      0,
+		currentReader: obj,
+		config:        config,
+		getOpts:       *getOpts,
+	}, stat.Size, nil
+}
+
+func (r *ResumableReader) Read(p []byte) (int, error) {
+	r.mu.Lock()
+	if r.closed {
+		r.mu.Unlock()
+		return 0, errors.New("reader is closed")
+	}
+	if err := r.ctx.Err(); err != nil {
+		r.mu.Unlock()
+		return 0, err
+	}
+	reader := r.currentReader
+	r.mu.Unlock()
+
+	n, err := reader.Read(p)
+
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	r.position += int64(n)
+
+	if err == nil {
+		r.retryCount = 0
+		return n, nil
+	}
+
+	if err == io.EOF {
+		return n, io.EOF
+	}
+
+	if r.retryCount >= r.config.MaxRetries {
+		r.lastError = err
+		return n, fmt.Errorf("max retries (%d) exceeded, last error: %w", r.config.MaxRetries, err)
+	}
+
+	r.retryCount++
+	r.totalRetries++
+	r.config.Logger.Info("Read error, attempting to resume",
+		"error", err,
+		"position", r.position,
+		"totalSize", r.totalSize,
+		"retry", r.retryCount,
+		"progress", fmt.Sprintf("%.1f%%", float64(r.position)/float64(r.totalSize)*100),
+	)
+
+	if resumeErr := r.resumeFromPositionLocked(); resumeErr != nil {
+		r.lastError = resumeErr
+		return n, fmt.Errorf("error resuming from position %d: %w", r.position, resumeErr)
+	}
+
+	return n, nil
+}
+
+func (r *ResumableReader) resumeFromPositionLocked() error {
+	if r.currentReader != nil {
+		r.currentReader.Close()
+		r.currentReader = nil
+	}
+
+	backoff := r.config.InitialBackoff * time.Duration(1<<(r.retryCount-1))
+	if backoff > r.config.MaxBackoff {
+		backoff = r.config.MaxBackoff
+	}
+
+	r.config.Logger.Info("Waiting before resume",
+		"backoff", backoff,
+		"position", r.position,
+	)
+
+	// Release lock during sleep so the reader can be closed concurrently.
+	r.mu.Unlock()
+	select {
+	case <-time.After(backoff):
+	case <-r.ctx.Done():
+		r.mu.Lock()
+		return r.ctx.Err()
+	}
+	r.mu.Lock()
+
+	if r.closed {
+		return errors.New("reader closed during backoff")
+	}
+
+	getOpts := r.getOpts
+	if err := getOpts.SetRange(r.position, r.totalSize-1); err != nil {
+		return fmt.Errorf("error setting range header: %v", err)
+	}
+
+	obj, err := r.client.GetObject(r.ctx, r.bucket, r.objectKey, getOpts)
+	if err != nil {
+		return fmt.Errorf("error getting object for resume: %v", err)
+	}
+
+	r.currentReader = obj
+	r.config.Logger.Info("Successfully resumed read",
+		"position", r.position,
+		"totalSize", r.totalSize,
+		"progress", fmt.Sprintf("%.1f%%", float64(r.position)/float64(r.totalSize)*100),
+	)
+	return nil
+}
+
+// Position returns the current read position (thread-safe).
+func (r *ResumableReader) Position() int64 {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.position
+}
+
+// TotalRetries returns the total number of retries performed (thread-safe).
+func (r *ResumableReader) TotalRetries() int {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.totalRetries
+}
+
+// Close closes the ResumableReader and releases resources.
+func (r *ResumableReader) Close() error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.closed {
+		return nil
+	}
+	r.closed = true
+	if r.currentReader != nil {
+		return r.currentReader.Close()
+	}
+	return nil
 }
 
 func getTransport(opts *MinioOpts) (*http.Transport, error) {

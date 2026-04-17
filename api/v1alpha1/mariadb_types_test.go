@@ -1773,6 +1773,40 @@ var _ = Describe("MariaDB types", func() {
 				true,
 			),
 			Entry(
+				"Invalid restore only primary without physical content type",
+				&BootstrapFrom{
+					BackupRef: &TypedLocalObjectReference{
+						Name: "test",
+						Kind: PhysicalBackupKind,
+					},
+					RestoreOnlyPrimary: ptr.To(true),
+				},
+				true,
+			),
+			Entry(
+				"Invalid restore parallel without physical content type",
+				&BootstrapFrom{
+					BackupRef: &TypedLocalObjectReference{
+						Name: "test",
+						Kind: PhysicalBackupKind,
+					},
+					RestoreParallel: ptr.To(true),
+				},
+				true,
+			),
+			Entry(
+				"Invalid secondary SST parallel without restore only primary",
+				&BootstrapFrom{
+					BackupRef: &TypedLocalObjectReference{
+						Name: "test",
+						Kind: PhysicalBackupKind,
+					},
+					BackupContentType:    BackupContentTypePhysical,
+					SecondarySSTParallel: ptr.To(true),
+				},
+				true,
+			),
+			Entry(
 				"Mutually exclusive 1",
 				&BootstrapFrom{
 					VolumeSnapshotRef: &LocalObjectReference{
@@ -1832,6 +1866,43 @@ var _ = Describe("MariaDB types", func() {
 					},
 				},
 				true,
+			),
+			Entry(
+				"Valid restore only primary",
+				&BootstrapFrom{
+					BackupRef: &TypedLocalObjectReference{
+						Name: "test",
+						Kind: PhysicalBackupKind,
+					},
+					BackupContentType:  BackupContentTypePhysical,
+					RestoreOnlyPrimary: ptr.To(true),
+				},
+				false,
+			),
+			Entry(
+				"Valid secondary SST parallel",
+				&BootstrapFrom{
+					BackupRef: &TypedLocalObjectReference{
+						Name: "test",
+						Kind: PhysicalBackupKind,
+					},
+					BackupContentType:    BackupContentTypePhysical,
+					RestoreOnlyPrimary:   ptr.To(true),
+					SecondarySSTParallel: ptr.To(true),
+				},
+				false,
+			),
+			Entry(
+				"Valid restore parallel",
+				&BootstrapFrom{
+					BackupRef: &TypedLocalObjectReference{
+						Name: "test",
+						Kind: PhysicalBackupKind,
+					},
+					BackupContentType: BackupContentTypePhysical,
+					RestoreParallel:   ptr.To(true),
+				},
+				false,
 			),
 			Entry(
 				"Valid 1",
