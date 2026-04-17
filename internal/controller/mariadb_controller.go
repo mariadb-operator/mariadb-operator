@@ -212,6 +212,10 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			Reconcile: r.reconcileSQL,
 		},
 		{
+			Name:      "Root Password",
+			Reconcile: r.reconcileRootPassword,
+		},
+		{
 			Name:      "Metrics",
 			Reconcile: r.reconcileMetrics,
 		},
@@ -315,6 +319,36 @@ func (r *MariaDBReconciler) reconcileSecret(ctx context.Context, mariadb *mariad
 			return ctrl.Result{}, err
 		}
 	}
+
+	return r.reconcileRootPasswordSecret(ctx, mariadb)
+}
+
+// reconcileRootPasswordSecret is used to create a duplicate of the root password secret.
+//
+// @WARN: If the internal duplicated password is modified externally, the operator will fail to reconcile the database
+func (r *MariaDBReconciler) reconcileRootPasswordSecret(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
+	if !mariadb.IsRootPasswordEmpty() {
+		rootPassword, err := r.RefResolver.SecretKeyRef(ctx, mariadb.Spec.RootPasswordSecretKeyRef.SecretKeySelector, mariadb.Namespace)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("error getting root password secret: %v", err)
+		}
+
+		internalSecretKey := mariadb.InternalRootPasswordSecretKey()
+
+		req := secret.SecretRequest{
+			Owner:        mariadb,
+			Metadata:     []*mariadbv1alpha1.Metadata{mariadb.Spec.InheritMetadata},
+			Key:          internalSecretKey,
+			SkipIfExists: true,
+			Data: map[string][]byte{
+				mariadb.Spec.RootPasswordSecretKeyRef.Key: []byte(rootPassword),
+			},
+		}
+		if err := r.SecretReconciler.Reconcile(ctx, &req); err != nil {
+			return ctrl.Result{}, fmt.Errorf("error reconciling internal root password secret: %v", err)
+		}
+	}
+
 	return ctrl.Result{}, nil
 }
 
@@ -909,6 +943,7 @@ func (r *MariaDBReconciler) reconcileUsers(ctx context.Context, mariadb *mariadb
 			return result, err
 		}
 	}
+
 	return ctrl.Result{}, nil
 }
 
