@@ -168,10 +168,6 @@ func (r *MariaDBReconciler) reconcileRootPasswordInMariaDB(ctx context.Context, 
 		)
 	}
 
-	if err := r.patchRootPasswordHash(ctx, mariadb, newRootPasswordHash); err != nil {
-		return ctrl.Result{}, err
-	}
-
 	r.Recorder.Eventf(mariadb, nil, corev1.EventTypeNormal, mariadbv1alpha1.ReasonMariaDBRootPasswordChanged,
 		mariadbv1alpha1.ActionReconciling, "Root password updated successfully.")
 	rootPassLogger.Info("Root password updated successfully. Requeuing...")
