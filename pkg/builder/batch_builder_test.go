@@ -459,7 +459,7 @@ func TestPhysicalBackupJobPodAffinity(t *testing.T) {
 	}
 	mariadb := &mariadbv1alpha1.MariaDB{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "physicalbackup-test",
+			Name: "mariadb",
 		},
 		Spec: mariadbv1alpha1.MariaDBSpec{},
 	}
