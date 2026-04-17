@@ -37,7 +37,7 @@ var _ = Describe("User", Label("basic"), func() {
 				},
 				PasswordSecretKeyRef: &testPasswordSecretRef,
 				Require:              testTLSRequirements,
-				MaxUserConnections:   20,
+				MaxUserConnections:   ptr.To(int32(20)),
 			},
 		}
 		Expect(k8sClient.Create(testCtx, &user)).To(Succeed())
@@ -105,7 +105,7 @@ var _ = Describe("User", Label("basic"), func() {
 				},
 				PasswordSecretKeyRef: &testPasswordSecretRef,
 				Require:              testTLSRequirements,
-				MaxUserConnections:   20,
+				MaxUserConnections:   ptr.To(int32(20)),
 			},
 		}
 		Expect(k8sClient.Create(testCtx, &user)).To(Succeed())
@@ -178,7 +178,7 @@ var _ = Describe("User", Label("basic"), func() {
 				},
 				PasswordSecretKeyRef: &testPasswordSecretRef,
 				Require:              testTLSRequirements,
-				MaxUserConnections:   20,
+				MaxUserConnections:   ptr.To(int32(20)),
 			},
 		}
 		Expect(k8sClient.Create(testCtx, &user)).To(Succeed())
@@ -267,7 +267,7 @@ var _ = Describe("User", Label("basic"), func() {
 					},
 				},
 				Require:            testTLSRequirements,
-				MaxUserConnections: 20,
+				MaxUserConnections: ptr.To(int32(20)),
 			},
 		}
 		Expect(k8sClient.Create(testCtx, &user)).To(Succeed())
@@ -322,7 +322,7 @@ var _ = Describe("User", Label("basic"), func() {
 				},
 				PasswordSecretKeyRef: &testPasswordSecretRef,
 				Require:              testTLSRequirements,
-				MaxUserConnections:   20,
+				MaxUserConnections:   ptr.To(int32(20)),
 			},
 		}
 		Expect(k8sClient.Create(testCtx, &user)).To(Succeed())
@@ -433,7 +433,7 @@ var _ = Describe("User", Label("basic"), func() {
 				},
 				PasswordSecretKeyRef: &testPasswordSecretRef,
 				Require:              testTLSRequirements,
-				MaxUserConnections:   20,
+				MaxUserConnections:   ptr.To(int32(20)),
 			},
 		}
 		Expect(k8sClient.Create(testCtx, &user)).To(Succeed())
@@ -548,7 +548,7 @@ var _ = Describe("User on a external MariaDB", func() {
 				},
 				PasswordSecretKeyRef: &testPasswordSecretRef,
 				// Require:              testTLSRequirements,
-				MaxUserConnections: 20,
+				MaxUserConnections: ptr.To(int32(20)),
 			},
 		}
 		Expect(k8sClient.Create(testCtx, &user)).To(Succeed())
@@ -617,7 +617,7 @@ var _ = Describe("User on a external MariaDB", func() {
 				},
 				PasswordSecretKeyRef: &testPasswordSecretRef,
 				// Require:              testTLSRequirements,
-				MaxUserConnections: 20,
+				MaxUserConnections: ptr.To(int32(20)),
 			},
 		}
 		Expect(k8sClient.Create(testCtx, &user)).To(Succeed())
@@ -691,7 +691,7 @@ var _ = Describe("User on a external MariaDB", func() {
 				},
 				PasswordSecretKeyRef: &testPasswordSecretRef,
 				// Require:              testTLSRequirements,
-				MaxUserConnections: 20,
+				MaxUserConnections: ptr.To(int32(20)),
 			},
 		}
 		Expect(k8sClient.Create(testCtx, &user)).To(Succeed())
@@ -747,7 +747,7 @@ var _ = Describe("User on a external MariaDB", func() {
 				},
 				PasswordSecretKeyRef: &testPasswordSecretRef,
 				Require:              testTLSRequirements,
-				MaxUserConnections:   20,
+				MaxUserConnections:   ptr.To(int32(20)),
 			},
 		}
 		Expect(k8sClient.Create(testCtx, &user)).To(Succeed())
@@ -861,7 +861,7 @@ var _ = Describe("User on a external MariaDB", func() {
 				},
 				PasswordSecretKeyRef: &testPasswordSecretRef,
 				// Require:              testTLSRequirements,
-				MaxUserConnections: 20,
+				MaxUserConnections: ptr.To(int32(20)),
 			},
 		}
 		Expect(k8sClient.Create(testCtx, &user)).To(Succeed())
