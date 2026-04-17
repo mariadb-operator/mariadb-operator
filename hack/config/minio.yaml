@@ -43,6 +43,11 @@ buckets:
     purge: false
     versioning: false
     objectlocking: false
+  - name: multi-cluster
+    policy: none
+    purge: false
+    versioning: false
+    objectlocking: false
   - name: scaleout
     policy: none
     purge: false

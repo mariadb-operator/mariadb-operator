@@ -46,6 +46,7 @@ type Opts struct {
 	TLSCACert           []byte
 	TLSClientCert       []byte
 	TLSClientPrivateKey []byte
+	CustomTLSCAName     string
 
 	Params  map[string]string
 	Timeout *time.Duration
@@ -95,6 +96,13 @@ func WithMaxscaleTLS(name, namespace string, tlsCaCert []byte) Opt {
 	return func(o *Opts) {
 		o.MaxscaleName = name
 		o.Namespace = namespace
+		o.TLSCACert = tlsCaCert
+	}
+}
+
+func WithCustomTLSCA(caName string, tlsCaCert []byte) Opt {
+	return func(o *Opts) {
+		o.CustomTLSCAName = caName
 		o.TLSCACert = tlsCaCert
 	}
 }
@@ -274,6 +282,19 @@ func BuildDSN(opts Opts) (string, error) {
 			return "", fmt.Errorf("error configuring TLS: %v", err)
 		}
 		config.TLSConfig = configName
+	}
+	if opts.CustomTLSCAName != "" && opts.TLSCACert != nil {
+		var tlsCfg tls.Config
+		caBundle := x509.NewCertPool()
+		if ok := caBundle.AppendCertsFromPEM(opts.TLSCACert); !ok {
+			return "", errors.New("failed to parse PEM-encoded CA certificates")
+		}
+		tlsCfg.RootCAs = caBundle
+
+		if err := mysql.RegisterTLSConfig(opts.CustomTLSCAName, &tlsCfg); err != nil {
+			return "", fmt.Errorf("error registering TLS config %s: %v", opts.CustomTLSCAName, err)
+		}
+		config.TLSConfig = opts.CustomTLSCAName
 	}
 	return config.FormatDSN(), nil
 }
@@ -702,16 +723,45 @@ func (c *Client) ResetMaster(ctx context.Context) error {
 	return c.Exec(ctx, "RESET MASTER;")
 }
 
-func (c *Client) StartSlave(ctx context.Context) error {
-	return c.Exec(ctx, "START SLAVE;")
+type ReplicationOpts struct {
+	ConnectionName string
+}
+
+type ReplicationOpt func(opts *ReplicationOpts)
+
+func WithConnectionName(connectionName string) ReplicationOpt {
+	return func(opts *ReplicationOpts) {
+		opts.ConnectionName = fmt.Sprintf("'%s'", connectionName)
+	}
+}
+
+func getReplOpts(setOpts ...ReplicationOpt) ReplicationOpts {
+	opts := ReplicationOpts{
+		ConnectionName: "", // default connection name in MariaDB server, used in single-cluster topology
+	}
+	for _, setOpt := range setOpts {
+		setOpt(&opts)
+	}
+	return opts
+}
+
+func (c *Client) StartSlave(ctx context.Context, replOpts ...ReplicationOpt) error {
+	opts := getReplOpts(replOpts...)
+	return c.Exec(ctx, fmt.Sprintf("START SLAVE %s;", opts.ConnectionName))
+}
+
+func (c *Client) StopSlave(ctx context.Context, replOpts ...ReplicationOpt) error {
+	opts := getReplOpts(replOpts...)
+	return c.Exec(ctx, fmt.Sprintf("STOP SLAVE %s;", opts.ConnectionName))
 }
 
 func (c *Client) StopAllSlaves(ctx context.Context) error {
 	return c.Exec(ctx, "STOP ALL SLAVES;")
 }
 
-func (c *Client) ResetAllSlaves(ctx context.Context) error {
-	return c.Exec(ctx, "RESET SLAVE ALL;")
+func (c *Client) ResetSlave(ctx context.Context, replOpts ...ReplicationOpt) error {
+	opts := getReplOpts(replOpts...)
+	return c.Exec(ctx, fmt.Sprintf("RESET SLAVE %s ALL;", opts.ConnectionName))
 }
 
 func (c *Client) WaitForReplicaGtid(ctx context.Context, gtid string, timeout time.Duration) error {
@@ -788,15 +838,40 @@ func (c Client) IsReplicationPrimary(ctx context.Context) (bool, error) {
 	return c.Exists(ctx, "SHOW MASTER STATUS")
 }
 
-func (c Client) IsReplicationReplica(ctx context.Context) (bool, error) {
-	return c.Exists(ctx, "SHOW REPLICA STATUS")
+func (c Client) IsReplicationReplica(ctx context.Context, replOpts ...ReplicationOpt) (bool, error) {
+	opts := getReplOpts(replOpts...)
+	return c.Exists(ctx, fmt.Sprintf("SHOW REPLICA %s STATUS", opts.ConnectionName))
+}
+
+// IsReplicationPrimaryReplica determines if the server is both a primary and a replica, a situation that happens in the multi-cluster topology.
+// By default, the default server connection is used (empty string), make sure you pass the "WithConnectionName" option
+// to verify the right connection.
+func (c Client) IsReplicationPrimaryReplica(ctx context.Context, logger logr.Logger, replOpts ...ReplicationOpt) (bool, error) {
+	replicaStatus, err := c.ReplicaStatus(ctx, logger, replOpts...)
+	if err != nil {
+		return false, fmt.Errorf("error getting replica status: %v", err)
+	}
+	// not a replica: replica threads not running
+	if (replicaStatus.SlaveIORunning == nil || !*replicaStatus.SlaveIORunning) ||
+		(replicaStatus.SlaveSQLRunning == nil || !*replicaStatus.SlaveSQLRunning) {
+		return false, nil
+	}
+
+	hasConnectedReplicas, err := c.HasConnectedReplicas(ctx)
+	if err != nil {
+		return false, fmt.Errorf("error determining if server has connected replicas: %v", err)
+	}
+	// condition to be a primary
+	return hasConnectedReplicas, nil
 }
 
 // See: https://mariadb.com/docs/server/reference/sql-statements/administrative-sql-statements/show/show-replica-status
-func (c Client) ReplicaStatus(ctx context.Context, logger logr.Logger) (*mariadbv1alpha1.ReplicaStatusVars, error) {
-	row, err := c.QueryColumnMap(ctx, "SHOW REPLICA STATUS")
+func (c Client) ReplicaStatus(ctx context.Context, logger logr.Logger,
+	replOpts ...ReplicationOpt) (*mariadbv1alpha1.ReplicaStatusVars, error) {
+	opts := getReplOpts(replOpts...)
+	row, err := c.QueryColumnMap(ctx, fmt.Sprintf("SHOW REPLICA %s STATUS", opts.ConnectionName))
 	if err != nil {
-		return nil, fmt.Errorf("error getting replica status: %v", err)
+		return nil, err
 	}
 
 	status := mariadbv1alpha1.ReplicaStatusVars{}
@@ -863,6 +938,10 @@ func (c Client) ReplicaStatus(ctx context.Context, logger logr.Logger) (*mariadb
 		status.GtidCurrentPos = &gtidCurrentPos
 	}
 
+	if usingGtid, ok := row["Using_Gtid"]; ok && usingGtid != "" {
+		status.UsingGtid = &usingGtid
+	}
+
 	return &status, nil
 }
 
@@ -881,6 +960,7 @@ func (c Client) HasConnectedReplicas(ctx context.Context) (bool, error) {
 }
 
 type ChangeMasterOpts struct {
+	ReplicationOpts
 	Host     string
 	Port     int32
 	User     string
@@ -895,6 +975,12 @@ type ChangeMasterOpts struct {
 }
 
 type ChangeMasterOpt func(*ChangeMasterOpts)
+
+func WithChangeMasterConnectionName(connectionName string) ChangeMasterOpt {
+	return func(cmo *ChangeMasterOpts) {
+		cmo.ConnectionName = fmt.Sprintf("'%s'", connectionName)
+	}
+}
 
 func WithChangeMasterHost(host string) ChangeMasterOpt {
 	return func(cmo *ChangeMasterOpts) {
@@ -946,6 +1032,9 @@ func (c *Client) ChangeMaster(ctx context.Context, changeMasterOpts ...ChangeMas
 
 func buildChangeMasterQuery(changeMasterOpts ...ChangeMasterOpt) (string, error) {
 	opts := ChangeMasterOpts{
+		ReplicationOpts: ReplicationOpts{
+			ConnectionName: "", // default connection name in MariaDB server, used in single-cluster topology
+		},
 		Port: 3306,
 		Gtid: "CurrentPos",
 	}
@@ -962,7 +1051,7 @@ func buildChangeMasterQuery(changeMasterOpts ...ChangeMasterOpt) (string, error)
 		return "", errors.New("all SSL paths must be provided when SSL is enabled")
 	}
 
-	tpl := createTpl("change-master.sql", `CHANGE MASTER TO
+	tpl := createTpl("change-master.sql", `CHANGE MASTER {{ .ConnectionName }} TO
 {{- if .SSLEnabled }}
 MASTER_SSL=1,
 MASTER_SSL_CERT='{{ .SSLCertPath }}',
