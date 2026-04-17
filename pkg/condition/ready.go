@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/interfaces"
 	jobpkg "github.com/mariadb-operator/mariadb-operator/v26/pkg/job"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
@@ -184,6 +185,12 @@ func SetReadyWithMariaDB(c Conditioner, sts *appsv1.StatefulSet, mdb *mariadbv1a
 		})
 		return
 	}
+
+	if mdb.IsMaintenanceModeEnabled() {
+		SetReadyWithMaintenance(c, mdb)
+		return
+	}
+
 	c.SetCondition(metav1.Condition{
 		Type:    mariadbv1alpha1.ConditionTypeReady,
 		Status:  metav1.ConditionTrue,
@@ -210,7 +217,7 @@ func SetReadyWithInitJob(c Conditioner, job *batchv1.Job) {
 	}
 }
 
-func SetReadyWithMaxScaleStatus(c Conditioner, mss *mariadbv1alpha1.MaxScaleStatus) {
+func SetReadyWithMaxScaleStatus(c Conditioner, mss *mariadbv1alpha1.MaxScaleStatus, mxs *mariadbv1alpha1.MaxScale) {
 	for _, srv := range mss.Servers {
 		if srv.IsReady() {
 			continue
@@ -230,6 +237,11 @@ func SetReadyWithMaxScaleStatus(c Conditioner, mss *mariadbv1alpha1.MaxScaleStat
 				Message: fmt.Sprintf("Server %s not ready", srv.Name),
 			})
 		}
+		return
+	}
+
+	if mxs.IsMaintenanceModeEnabled() {
+		SetReadyWithMaintenance(c, mxs)
 		return
 	}
 
@@ -288,5 +300,25 @@ func SetReadySuspended(c Conditioner) {
 		Status:  metav1.ConditionFalse,
 		Reason:  mariadbv1alpha1.ConditionReasonSuspended,
 		Message: "Suspended",
+	})
+}
+
+// SetReadyWithMaintenance will set the correct ready state based on the Maintenance prop, while checking if the object is cordoned
+func SetReadyWithMaintenance(c Conditioner, obj interfaces.Cordonable) {
+	if obj.IsCordonEnabled() {
+		c.SetCondition(metav1.Condition{
+			Type:    mariadbv1alpha1.ConditionTypeReady,
+			Status:  metav1.ConditionFalse,
+			Reason:  mariadbv1alpha1.ConditionReasonCordoned,
+			Message: "Cordoned",
+		})
+		return
+	}
+
+	c.SetCondition(metav1.Condition{
+		Type:    mariadbv1alpha1.ConditionTypeReady,
+		Status:  metav1.ConditionTrue,
+		Reason:  mariadbv1alpha1.ConditionReasonMaintenance,
+		Message: "Maintenance",
 	})
 }

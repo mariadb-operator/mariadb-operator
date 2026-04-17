@@ -2869,6 +2869,31 @@ spec:
                     format: int32
                     type: integer
                 type: object
+              maintenance:
+                description: |-
+                  Maintenance defines different capabilities of the operator to allow for maintenance to be performed on the DB.
+                  Not to be confused with `suspend`, maintenance does not interfere with the normal reconciliation of the operator.
+                properties:
+                  cordon:
+                    description: Cordon blocks connections to the resource.
+                    type: boolean
+                  drainConnections:
+                    description: DrainConnections determines whether all connections
+                      in MariaDB should be drained after `drainGracePeriodSeconds`.
+                    type: boolean
+                  drainGracePeriodSeconds:
+                    default: 30
+                    description: DrainGracePeriodSeconds defines the grace period
+                      in seconds before a connection in MariaDB is drained.
+                    type: integer
+                  enabled:
+                    description: Enabled turns on maintenance mode
+                    type: boolean
+                  readOnly:
+                    description: ReadOnly will allow only read statements to be performed
+                      on the resource.
+                    type: boolean
+                type: object
               maxScaleRef:
                 description: |-
                   MaxScaleRef is a reference to a MaxScale resource to be used with the current MariaDB.

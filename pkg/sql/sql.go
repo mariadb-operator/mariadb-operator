@@ -686,6 +686,10 @@ func (c *Client) UnlockTables(ctx context.Context) error {
 	return c.Exec(ctx, "UNLOCK TABLES;")
 }
 
+func (c *Client) GetReadOnly(ctx context.Context) (bool, error) {
+	return c.IsSystemVariableEnabled(ctx, "read_only")
+}
+
 func (c *Client) EnableReadOnly(ctx context.Context) error {
 	return c.SetSystemVariable(ctx, "read_only", "1")
 }

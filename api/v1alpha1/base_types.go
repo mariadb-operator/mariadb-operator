@@ -1098,3 +1098,11 @@ func validateTLSCert(item *tlsValidationItem) error {
 	}
 	return nil
 }
+
+// Cordoning defines the parameters for cordoning a resource, resulting in the connections being blocked.
+type Cordoning struct {
+	// Cordon blocks connections to the resource.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
+	Cordon bool `json:"cordon,omitempty"`
+}

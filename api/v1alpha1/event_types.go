@@ -82,4 +82,7 @@ const (
 
 	// ReasonBinlogTimelineInvalid indicates that an error has occurred when validating the binlog timeline to be used for point-in-time recovery.
 	ReasonBinlogTimelineInvalid = "BinlogTimelineInvalid"
+
+	// ReasonMaintenance indicates that an action related to maintenance has been performed.
+	ReasonMaintenance = "Maintenance"
 )

@@ -73,6 +73,21 @@ func (r *EndpointsReconciler) Reconcile(ctx context.Context, key types.Namespace
 
 func (r *EndpointsReconciler) endpointSlice(ctx context.Context, key types.NamespacedName,
 	mariadb *mariadbv1alpha1.MariaDB, serviceName string, logger logr.Logger) (*discoveryv1.EndpointSlice, error) {
+	if mariadb.IsCordonEnabled() {
+		endpointSlice, err := r.builder.BuildEndpointSlice(
+			key,
+			mariadb,
+			discoveryv1.AddressTypeIPv4,
+			[]discoveryv1.Endpoint{},
+			[]discoveryv1.EndpointPort{},
+			serviceName,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("error building EndpointSlice: %v", err)
+		}
+		return endpointSlice, nil
+	}
+
 	pods, err := mdbpod.ListMariaDBSecondaryPods(ctx, r.Client, mariadb)
 	if err != nil {
 		return nil, fmt.Errorf("error listing secondary Pods: %v", err)

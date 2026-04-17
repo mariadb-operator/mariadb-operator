@@ -2,6 +2,7 @@ package builder
 
 import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/interfaces"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/metadata"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -14,6 +15,7 @@ const (
 	statefulSetPodName = "statefulset.kubernetes.io/pod-name"
 	volumeRole         = "pvc.k8s.mariadb.com/role"
 	podRole            = "k8s.mariadb.com/role"
+	cordonLabel        = "k8s.mariadb.com/cordon"
 	appMariaDb         = "mariadb"
 	appExporter        = "exporter"
 	appMaxScale        = "maxscale"
@@ -78,6 +80,13 @@ func (b *LabelsBuilder) WithPVCRole(role string) *LabelsBuilder {
 
 func (b *LabelsBuilder) WithPodRole(role string) *LabelsBuilder {
 	b.labels[podRole] = role
+	return b
+}
+
+func (b *LabelsBuilder) WithCordon(obj interfaces.Cordonable) *LabelsBuilder {
+	if obj.IsCordonEnabled() {
+		b.labels[cordonLabel] = ""
+	}
 	return b
 }
 
