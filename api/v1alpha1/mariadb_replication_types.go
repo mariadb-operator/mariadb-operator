@@ -523,6 +523,10 @@ type ReplicaStatusVars struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	GtidCurrentPos *string `json:"gtidCurrentPos,omitempty"`
+	// UsingGtid is the GTID position mode (Slave_Pos or Current_Pos)
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	UsingGtid *string `json:"usingGtid,omitempty"`
 }
 
 // EqualErrors determines equality of error codes.

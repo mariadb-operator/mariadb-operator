@@ -938,6 +938,10 @@ func (c Client) ReplicaStatus(ctx context.Context, logger logr.Logger,
 		status.GtidCurrentPos = &gtidCurrentPos
 	}
 
+	if usingGtid, ok := row["Using_Gtid"]; ok && usingGtid != "" {
+		status.UsingGtid = &usingGtid
+	}
+
 	return &status, nil
 }
 

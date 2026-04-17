@@ -6777,6 +6777,10 @@ spec:
                           description: SlaveSQLRunning indicates whether the slave
                             SQL thread is running.
                           type: boolean
+                        usingGtid:
+                          description: UsingGtid is the GTID position mode (Slave_Pos
+                            or Current_Pos)
+                          type: string
                       type: object
                     description: Replicas is the observed replication status for each
                       replica.
