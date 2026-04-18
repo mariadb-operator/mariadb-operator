@@ -2,6 +2,7 @@ package metadata
 
 import (
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/metadata"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -58,5 +59,6 @@ func (b *MetadataBuilder) WithAnnotations(annotations map[string]string) *Metada
 }
 
 func (b *MetadataBuilder) Build() metav1.ObjectMeta {
+	b.objMeta.Labels[metadata.KubernetesManagedByLabel] = metadata.KubernetesManagedByValue
 	return b.objMeta
 }
