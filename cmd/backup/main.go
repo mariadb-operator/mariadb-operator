@@ -57,7 +57,9 @@ var (
 
 	maxRetention time.Duration
 
-	compression string
+	compression     string
+	fileNamePrefix  string
+	timestampFormat string
 )
 
 func init() {
@@ -98,6 +100,10 @@ func init() {
 
 	RootCmd.PersistentFlags().StringVar(&compression, "compression", string(mariadbv1alpha1.CompressNone),
 		"Compression algorithm: none, gzip or bzip2.")
+	RootCmd.PersistentFlags().StringVar(&fileNamePrefix, "file-name-prefix", "backup",
+		"Prefix for backup file names.")
+	RootCmd.PersistentFlags().StringVar(&timestampFormat, "timestamp-format", string(mariadbv1alpha1.TimestampFormatISO8601),
+		"Timestamp format for backup file names: iso8601 or compact.")
 
 	RootCmd.PersistentFlags().StringVar(&physicalBackupDirPath, "physical-backup-dir-path", "",
 		"Directory path where the physical backup is located. Only considered when backup-content-type is Physical.")
@@ -209,7 +215,10 @@ func getBackupProcessor() (backup.BackupProcessor, error) {
 	switch backType {
 	case mariadbv1alpha1.BackupContentTypeLogical:
 		logger.Info("configuring logical backup processor")
-		return backup.NewLogicalBackupProcessor(), nil
+		return backup.NewLogicalBackupProcessor(
+			backup.WithLogicalBackupPrefix(fileNamePrefix),
+			backup.WithLogicalBackupTimestampFormat(mariadbv1alpha1.BackupTimestampFormat(timestampFormat)),
+		), nil
 	case mariadbv1alpha1.BackupContentTypePhysical:
 		logger.Info("configuring physical backup processor")
 		return backup.NewPhysicalBackupProcessor(), nil
