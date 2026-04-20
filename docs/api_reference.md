@@ -97,7 +97,6 @@ _Appears in:_
 | `startupProbe` _[Probe](#probe)_ | StartupProbe to be used in the Container. |  |  |
 | `resources` _[ResourceRequirements](#resourcerequirements)_ | Resources describes the compute resource requirements. |  |  |
 | `securityContext` _[SecurityContext](#securitycontext)_ | SecurityContext holds security configuration that will be applied to a container. |  |  |
-| `lifecycle` _[Lifecycle](#lifecycle)_ | Lifecycle are actions that the management system should take in response to container lifecycle events. |  |  |
 | `image` _string_ | Image name to be used by the MariaDB instances. The supported format is `<image>:<tag>`. |  |  |
 | `imagePullPolicy` _[PullPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#pullpolicy-v1-core)_ | ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`. |  | Enum: [Always Never IfNotPresent] <br /> |
 | `port` _integer_ | Port where the agent will be listening for API connections. |  |  |
@@ -492,7 +491,6 @@ _Appears in:_
 | `startupProbe` _[Probe](#probe)_ | StartupProbe to be used in the Container. |  |  |
 | `resources` _[ResourceRequirements](#resourcerequirements)_ | Resources describes the compute resource requirements. |  |  |
 | `securityContext` _[SecurityContext](#securitycontext)_ | SecurityContext holds security configuration that will be applied to a container. |  |  |
-| `lifecycle` _[Lifecycle](#lifecycle)_ | Lifecycle are actions that the management system should take in response to container lifecycle events. |  |  |
 
 
 #### CooperativeMonitoring
@@ -682,7 +680,6 @@ Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kub
 
 
 _Appears in:_
-- [LifecycleHandler](#lifecyclehandler)
 - [Probe](#probe)
 - [ProbeHandler](#probehandler)
 
@@ -1015,7 +1012,6 @@ Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kub
 
 
 _Appears in:_
-- [LifecycleHandler](#lifecyclehandler)
 - [Probe](#probe)
 - [ProbeHandler](#probehandler)
 
@@ -1092,7 +1088,6 @@ _Appears in:_
 | `startupProbe` _[Probe](#probe)_ | StartupProbe to be used in the Container. |  |  |
 | `resources` _[ResourceRequirements](#resourcerequirements)_ | Resources describes the compute resource requirements. |  |  |
 | `securityContext` _[SecurityContext](#securitycontext)_ | SecurityContext holds security configuration that will be applied to a container. |  |  |
-| `lifecycle` _[Lifecycle](#lifecycle)_ | Lifecycle are actions that the management system should take in response to container lifecycle events. |  |  |
 | `image` _string_ | Image name to be used by the MariaDB instances. The supported format is `<image>:<tag>`. |  | Required: \{\} <br /> |
 | `imagePullPolicy` _[PullPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#pullpolicy-v1-core)_ | ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`. |  | Enum: [Always Never IfNotPresent] <br /> |
 
@@ -1218,45 +1213,6 @@ _Appears in:_
 | `values` _string array_ |  |  |  |
 
 
-#### Lifecycle
-
-
-
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#lifecycle-v1-core.
-
-
-
-_Appears in:_
-- [Agent](#agent)
-- [ContainerTemplate](#containertemplate)
-- [InitContainer](#initcontainer)
-- [MariaDBSpec](#mariadbspec)
-- [MaxScaleSpec](#maxscalespec)
-
-| Field | Description | Default | Validation |
-| --- | --- | --- | --- |
-| `postStart` _[LifecycleHandler](#lifecyclehandler)_ |  |  |  |
-| `preStop` _[LifecycleHandler](#lifecyclehandler)_ |  |  |  |
-
-
-#### LifecycleHandler
-
-
-
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#lifecyclehandler-v1-core.
-
-
-
-_Appears in:_
-- [Lifecycle](#lifecycle)
-
-| Field | Description | Default | Validation |
-| --- | --- | --- | --- |
-| `exec` _[ExecAction](#execaction)_ |  |  |  |
-| `httpGet` _[HTTPGetAction](#httpgetaction)_ |  |  |  |
-| `sleep` _[SleepAction](#sleepaction)_ |  |  |  |
-
-
 #### LocalObjectReference
 
 
@@ -1320,7 +1276,7 @@ MariaDB is the Schema for the mariadbs API. It is used to define MariaDB cluster
 
 
 
-MariaDBPodTemplate defines a template for MariaDB Pods. Refer to the Kubernetes dos: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#pod-v1-core.
+MariaDBPodTemplate defines a template for MariaDB Pods.
 
 
 
@@ -1341,8 +1297,7 @@ _Appears in:_
 | `volumes` _[MariaDBVolume](#mariadbvolume) array_ | Volumes to be used in the Pod. |  |  |
 | `priorityClassName` _string_ | PriorityClassName to be used in the Pod. |  |  |
 | `topologySpreadConstraints` _[TopologySpreadConstraint](#topologyspreadconstraint) array_ | TopologySpreadConstraints to be used in the Pod. |  |  |
-| `enableServiceLinks` _boolean_ | EnableServiceLinks to be used in the Pod. |  |  |
-| `terminationGracePeriodSeconds` _integer_ | TerminationGracePeriodSeconds to be used in the Pod. |  |  |
+| `enableServiceLinks` _boolean_ | EnableServiceLinks indicates whether information about services should be injected into pod's<br />environment variables, matching the syntax of Docker links. Defaults to true if not specified.<br />Set to false to disable injection of service link environment variables. |  |  |
 
 
 #### MariaDBRef
@@ -1395,7 +1350,6 @@ _Appears in:_
 | `startupProbe` _[Probe](#probe)_ | StartupProbe to be used in the Container. |  |  |
 | `resources` _[ResourceRequirements](#resourcerequirements)_ | Resources describes the compute resource requirements. |  |  |
 | `securityContext` _[SecurityContext](#securitycontext)_ | SecurityContext holds security configuration that will be applied to a container. |  |  |
-| `lifecycle` _[Lifecycle](#lifecycle)_ | Lifecycle are actions that the management system should take in response to container lifecycle events. |  |  |
 | `podMetadata` _[Metadata](#metadata)_ | PodMetadata defines extra metadata for the Pod. |  |  |
 | `imagePullSecrets` _[LocalObjectReference](#localobjectreference) array_ | ImagePullSecrets is the list of pull Secrets to be used to pull the image. |  |  |
 | `initContainers` _[Container](#container) array_ | InitContainers to be used in the Pod. |  |  |
@@ -1408,8 +1362,7 @@ _Appears in:_
 | `volumes` _[MariaDBVolume](#mariadbvolume) array_ | Volumes to be used in the Pod. |  |  |
 | `priorityClassName` _string_ | PriorityClassName to be used in the Pod. |  |  |
 | `topologySpreadConstraints` _[TopologySpreadConstraint](#topologyspreadconstraint) array_ | TopologySpreadConstraints to be used in the Pod. |  |  |
-| `enableServiceLinks` _boolean_ | EnableServiceLinks to be used in the Pod. |  |  |
-| `terminationGracePeriodSeconds` _integer_ | TerminationGracePeriodSeconds to be used in the Pod. |  |  |
+| `enableServiceLinks` _boolean_ | EnableServiceLinks indicates whether information about services should be injected into pod's<br />environment variables, matching the syntax of Docker links. Defaults to true if not specified.<br />Set to false to disable injection of service link environment variables. |  |  |
 | `suspend` _boolean_ | Suspend indicates whether the current resource should be suspended or not.<br />This can be useful for maintenance, as disabling the reconciliation prevents the operator from interfering with user operations during maintenance activities. | false |  |
 | `image` _string_ | Image name to be used by the MariaDB instances. The supported format is `<image>:<tag>`.<br />Only MariaDB official images are supported. |  |  |
 | `imagePullPolicy` _[PullPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#pullpolicy-v1-core)_ | ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`. |  | Enum: [Always Never IfNotPresent] <br /> |
@@ -1767,7 +1720,6 @@ _Appears in:_
 | `startupProbe` _[Probe](#probe)_ | StartupProbe to be used in the Container. |  |  |
 | `resources` _[ResourceRequirements](#resourcerequirements)_ | Resources describes the compute resource requirements. |  |  |
 | `securityContext` _[SecurityContext](#securitycontext)_ | SecurityContext holds security configuration that will be applied to a container. |  |  |
-| `lifecycle` _[Lifecycle](#lifecycle)_ | Lifecycle are actions that the management system should take in response to container lifecycle events. |  |  |
 | `podMetadata` _[Metadata](#metadata)_ | PodMetadata defines extra metadata for the Pod. |  |  |
 | `imagePullSecrets` _[LocalObjectReference](#localobjectreference) array_ | ImagePullSecrets is the list of pull Secrets to be used to pull the image. |  |  |
 | `podSecurityContext` _[PodSecurityContext](#podsecuritycontext)_ | SecurityContext holds pod-level security attributes and common container settings. |  |  |
@@ -2978,22 +2930,6 @@ _Appears in:_
 | `loadBalancerClass` _string_ | LoadBalancerClass Service field. |  |  |
 
 
-#### SleepAction
-
-
-
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#sleepaction-v1-core
-
-
-
-_Appears in:_
-- [LifecycleHandler](#lifecyclehandler)
-
-| Field | Description | Default | Validation |
-| --- | --- | --- | --- |
-| `seconds` _integer_ |  |  |  |
-
-
 #### SqlJob
 
 
@@ -3477,5 +3413,4 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `weight` _integer_ |  |  |  |
 | `podAffinityTerm` _[PodAffinityTerm](#podaffinityterm)_ |  |  |  |
-
 
