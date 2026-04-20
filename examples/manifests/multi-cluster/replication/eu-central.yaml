@@ -31,6 +31,8 @@ spec:
     enabled: true
     gtidDomainId: 1
     serverIdStartIndex: 20
+    # primary:
+    #   podIndex: 0
     replica:
       replPasswordSecretKeyRef:
         name: mariadb
@@ -42,7 +44,7 @@ spec:
         metallb.universe.tf/loadBalancerIPs: 172.18.1.15
   tls:
     enabled: true
-    required: false
+    required: true
     serverCASecretRef:
       name: mariadb-server-ca
     serverCertAdditionalNames:

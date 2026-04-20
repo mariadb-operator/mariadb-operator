@@ -34,6 +34,8 @@ spec:
     # gtidStrictMode: false # For bootstrapping from replica
     gtidDomainId: 0
     serverIdStartIndex: 10
+    # primary:
+    #   podIndex: 0
     replica:
       replPasswordSecretKeyRef:
         name: mariadb
@@ -51,7 +53,7 @@ spec:
         metallb.io/loadBalancerIPs: 172.18.1.10
   tls:
     enabled: true
-    required: false
+    required: true
     serverCASecretRef:
       name: mariadb-server-ca
     serverCertAdditionalNames:
@@ -67,7 +69,6 @@ spec:
       - name: mariadb-eu-south
         externalMariaDbRef:
           name: mariadb-eu-south
-          namespace: default
       - name: mariadb-eu-central
         externalMariaDbRef:
           name: mariadb-eu-central
