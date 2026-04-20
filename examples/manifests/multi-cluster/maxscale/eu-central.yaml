@@ -33,6 +33,8 @@ spec:
     enabled: true
     gtidDomainId: 1
     serverIdStartIndex: 20
+    # This is required when the remote replica connects through MaxScale, see 'host' field in the ExternalMariaDB resource below.
+    semiSyncEnabled: false
     replica:
       replPasswordSecretKeyRef:
         name: mariadb
@@ -103,9 +105,12 @@ spec:
         # We will be creating the "repl" user as part of the replication setup, so we need elevated permissions.
         enable_root_user: "true"
   monitor:
-    name: eu-central # This must be different for each cluster, as it would clash in the mysql.maxscale_config table
+    # This must be different for each cluster, as it would clash in the mysql.maxscale_config table.
+    name: eu-central 
     interval: 2s
-    cooperativeMonitoring: majority_of_all
+    # Required for running with an even number of replicas, like in this example (2).
+    # Use majority_of_all otherwise.
+    cooperativeMonitoring: majority_of_running
     params:
       auto_failover: "true"
       auto_rejoin: "true"
