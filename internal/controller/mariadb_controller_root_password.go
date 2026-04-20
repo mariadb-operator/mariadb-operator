@@ -69,8 +69,10 @@ func (r *MariaDBReconciler) reconcileRootPasswordInMariaDB(ctx context.Context, 
 
 	newRootPasswordHash := hash.Hash(newRootPassword)
 	if newRootPassword == string(internalRootPassword) {
-		rootPasswordHash := ptr.Deref(mariadb.Status.RootPasswordHash, "")
-		if mariadb.Status.RootPasswordHash != nil && rootPasswordHash == newRootPasswordHash {
+		if mariadb.Status.RootPasswordHash == nil {
+			return ctrl.Result{}, r.patchRootPasswordHash(ctx, mariadb, newRootPasswordHash)
+		}
+		if *mariadb.Status.RootPasswordHash == newRootPasswordHash {
 			return ctrl.Result{}, nil
 		}
 		if result, err := r.reconcileRootPasswordInDataPlane(ctx, mariadb); !result.IsZero() || err != nil {
