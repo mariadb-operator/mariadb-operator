@@ -28,11 +28,38 @@ type backupDiff struct {
 }
 
 // LogicalBackupProcessor processes logical backups.
-type LogicalBackupProcessor struct{}
+type LogicalBackupProcessor struct {
+	fileNamePrefix  string
+	timestampFormat mariadbv1alpha1.BackupTimestampFormat
+}
+
+// LogicalBackupProcessorOpt is an option to modify LogicalBackupProcessor behavior.
+type LogicalBackupProcessorOpt func(*LogicalBackupProcessor)
+
+// WithLogicalBackupPrefix configures a custom file name prefix (default: "backup").
+func WithLogicalBackupPrefix(prefix string) LogicalBackupProcessorOpt {
+	return func(p *LogicalBackupProcessor) {
+		p.fileNamePrefix = prefix
+	}
+}
+
+// WithLogicalBackupTimestampFormat configures a custom timestamp format (default: iso8601).
+func WithLogicalBackupTimestampFormat(f mariadbv1alpha1.BackupTimestampFormat) LogicalBackupProcessorOpt {
+	return func(p *LogicalBackupProcessor) {
+		p.timestampFormat = f
+	}
+}
 
 // NewLogicalBackupProcessor creates a new LogicalBackupProcessor.
-func NewLogicalBackupProcessor() BackupProcessor {
-	return &LogicalBackupProcessor{}
+func NewLogicalBackupProcessor(opts ...LogicalBackupProcessorOpt) BackupProcessor {
+	p := &LogicalBackupProcessor{
+		fileNamePrefix:  "backup",
+		timestampFormat: mariadbv1alpha1.TimestampFormatISO8601,
+	}
+	for _, setOpt := range opts {
+		setOpt(p)
+	}
+	return p
 }
 
 // GetBackupTargetFile returns the backup file whose timestamp is closest to, but not after, the target recovery time.
@@ -92,9 +119,8 @@ func (p *LogicalBackupProcessor) GetOldBackupFiles(backupFileNames []string, max
 
 // IsValidBackupFile determines whether a backup file name is valid.
 func (p *LogicalBackupProcessor) IsValidBackupFile(fileName string) bool {
-	// Must start with "backup." and contain ".sql" either as suffix (uncompressed)
-	// or before the compression extension (e.g. ".sql.gz", ".sql.bz2").
-	if !strings.HasPrefix(fileName, "backup.") || !strings.Contains(fileName, ".sql") {
+	prefix := p.fileNamePrefix + "."
+	if !strings.HasPrefix(fileName, prefix) || !strings.Contains(fileName, ".sql") {
 		return false
 	}
 	_, err := p.ParseCompressionAlgorithm(fileName)
@@ -159,7 +185,12 @@ func (p *LogicalBackupProcessor) parseDateInBackupFile(fileName string) (time.Ti
 	if len(parts) != 3 && len(parts) != 4 {
 		return time.Time{}, fmt.Errorf("invalid backup file name: %s", fileName)
 	}
-	return ParseBackupDate(parts[1])
+	layout := p.timestampFormat.GoLayout()
+	t, err := time.Parse(layout, parts[1])
+	if err != nil {
+		return time.Time{}, fmt.Errorf("error parsing backup date: %v", err)
+	}
+	return t, nil
 }
 
 // PhysicalBackupProcessor processes physical backups.

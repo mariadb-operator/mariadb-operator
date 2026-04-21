@@ -842,6 +842,45 @@ func CompressionFromExtension(ext string) (CompressAlgorithm, error) {
 	}
 }
 
+// BackupTimestampFormat defines the format of the timestamp used in backup filenames.
+type BackupTimestampFormat string
+
+const (
+	// TimestampFormatISO8601 uses ISO 8601 / RFC 3339 format: 2006-01-02T15:04:05Z
+	TimestampFormatISO8601 BackupTimestampFormat = "iso8601"
+	// TimestampFormatCompact uses a compact numeric format without separators: 20060102150405
+	TimestampFormatCompact BackupTimestampFormat = "compact"
+)
+
+func (f BackupTimestampFormat) Validate() error {
+	switch f {
+	case BackupTimestampFormat(""), TimestampFormatISO8601, TimestampFormatCompact:
+		return nil
+	default:
+		return fmt.Errorf("invalid timestamp format: %v, supported formats: [%v|%v]", f, TimestampFormatISO8601, TimestampFormatCompact)
+	}
+}
+
+// GoLayout returns the Go time layout string for parsing timestamps produced with this format.
+func (f BackupTimestampFormat) GoLayout() string {
+	switch f {
+	case TimestampFormatCompact:
+		return "20060102150405"
+	default:
+		return time.RFC3339
+	}
+}
+
+// ShellFormat returns the strftime format string used by the shell `date` command.
+func (f BackupTimestampFormat) ShellFormat() string {
+	switch f {
+	case TimestampFormatCompact:
+		return "%Y%m%d%H%M%S"
+	default:
+		return "%Y-%m-%dT%H:%M:%SZ"
+	}
+}
+
 // BackupStorage defines the final storage for backups.
 type BackupStorage struct {
 	// S3 defines the configuration to store backups in a S3 compatible storage.

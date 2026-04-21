@@ -528,6 +528,224 @@ func TestLogicalGetUncompressedBackupFile(t *testing.T) {
 	}
 }
 
+func TestLogicalCustomPrefixIsValidBackupFile(t *testing.T) {
+	p := NewLogicalBackupProcessor(
+		WithLogicalBackupPrefix("mydb"),
+	)
+	tests := []struct {
+		name       string
+		backupFile string
+		wantValid  bool
+	}{
+		{
+			name:       "default prefix rejected",
+			backupFile: "backup.2023-12-18T16:14:00Z.sql",
+			wantValid:  false,
+		},
+		{
+			name:       "custom prefix valid",
+			backupFile: "mydb.2023-12-18T16:14:00Z.sql",
+			wantValid:  true,
+		},
+		{
+			name:       "custom prefix with gzip",
+			backupFile: "mydb.2023-12-18T16:14:00Z.sql.gz",
+			wantValid:  true,
+		},
+		{
+			name:       "custom prefix with bzip2",
+			backupFile: "mydb.2023-12-18T16:14:00Z.sql.bz2",
+			wantValid:  true,
+		},
+		{
+			name:       "wrong prefix",
+			backupFile: "other.2023-12-18T16:14:00Z.sql",
+			wantValid:  false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			valid := p.IsValidBackupFile(tt.backupFile)
+			if tt.wantValid != valid {
+				t.Fatalf("unexpected backup file validity, expected: %v got: %v", tt.wantValid, valid)
+			}
+		})
+	}
+}
+
+func TestLogicalCompactTimestampIsValidBackupFile(t *testing.T) {
+	p := NewLogicalBackupProcessor(
+		WithLogicalBackupTimestampFormat(mariadbv1alpha1.TimestampFormatCompact),
+	)
+	tests := []struct {
+		name       string
+		backupFile string
+		wantValid  bool
+	}{
+		{
+			name:       "iso8601 rejected",
+			backupFile: "backup.2023-12-18T16:14:00Z.sql",
+			wantValid:  false,
+		},
+		{
+			name:       "compact valid",
+			backupFile: "backup.20231218161400.sql",
+			wantValid:  true,
+		},
+		{
+			name:       "compact with gzip",
+			backupFile: "backup.20231218161400.sql.gz",
+			wantValid:  true,
+		},
+		{
+			name:       "compact with bzip2",
+			backupFile: "backup.20231218161400.sql.bz2",
+			wantValid:  true,
+		},
+		{
+			name:       "invalid compact timestamp",
+			backupFile: "backup.2023121816.sql",
+			wantValid:  false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			valid := p.IsValidBackupFile(tt.backupFile)
+			if tt.wantValid != valid {
+				t.Fatalf("unexpected backup file validity, expected: %v got: %v", tt.wantValid, valid)
+			}
+		})
+	}
+}
+
+func TestLogicalCustomPrefixAndCompactGetTargetFile(t *testing.T) {
+	p := NewLogicalBackupProcessor(
+		WithLogicalBackupPrefix("mydb"),
+		WithLogicalBackupTimestampFormat(mariadbv1alpha1.TimestampFormatCompact),
+	)
+	tests := []struct {
+		name           string
+		backupFiles    []string
+		targetRecovery time.Time
+		wantFile       string
+		wantErr        bool
+	}{
+		{
+			name: "single compact backup",
+			backupFiles: []string{
+				"mydb.20231218155800.sql",
+			},
+			targetRecovery: time.Now(),
+			wantFile:       "mydb.20231218155800.sql",
+			wantErr:        false,
+		},
+		{
+			name: "multiple compact backups",
+			backupFiles: []string{
+				"mydb.20231218155800.sql",
+				"mydb.20231218160000.sql",
+				"mydb.20231218160300.sql",
+			},
+			targetRecovery: mustParseCompactDate(t, "20231218160100"),
+			wantFile:       "mydb.20231218160000.sql",
+			wantErr:        false,
+		},
+		{
+			name: "exact match",
+			backupFiles: []string{
+				"mydb.20231218155800.sql",
+				"mydb.20231218160000.sql",
+			},
+			targetRecovery: mustParseCompactDate(t, "20231218160000"),
+			wantFile:       "mydb.20231218160000.sql",
+			wantErr:        false,
+		},
+		{
+			name: "iso8601 files ignored",
+			backupFiles: []string{
+				"backup.2023-12-18T15:58:00Z.sql",
+			},
+			targetRecovery: time.Now(),
+			wantFile:       "",
+			wantErr:        true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			file, err := p.GetBackupTargetFile(tt.backupFiles, tt.targetRecovery, logger)
+			if err != nil && !tt.wantErr {
+				t.Fatalf("unexpected error getting target recovery file: %v", err)
+			}
+			if tt.wantFile != file {
+				t.Fatalf("unexpected backup target file, expected: %v got: %v", tt.wantFile, file)
+			}
+			if tt.wantErr && err == nil {
+				t.Error("expect error to have occurred, got nil")
+			}
+			if !tt.wantErr && err != nil {
+				t.Errorf("expect error to not have occurred, got: %v", err)
+			}
+		})
+	}
+}
+
+func TestLogicalCustomPrefixAndCompactGetOldBackupFiles(t *testing.T) {
+	p := NewLogicalBackupProcessor(
+		WithLogicalBackupPrefix("mydb"),
+		WithLogicalBackupTimestampFormat(mariadbv1alpha1.TimestampFormatCompact),
+	)
+	previousNowFn := now
+	tests := []struct {
+		name         string
+		nowFn        func() time.Time
+		backupFiles  []string
+		maxRetention time.Duration
+		wantBackups  []string
+	}{
+		{
+			name:  "multiple old compact backups",
+			nowFn: testTimeFn(mustParseCompactDate(t, "20231222221000")),
+			backupFiles: []string{
+				"mydb.20231222130000.sql",
+				"mydb.20231222140000.sql",
+				"mydb.20231222150000.sql",
+				"mydb.20231222200000.sql",
+			},
+			maxRetention: 8 * time.Hour,
+			wantBackups: []string{
+				"mydb.20231222130000.sql",
+				"mydb.20231222140000.sql",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			now = tt.nowFn
+			t.Cleanup(func() {
+				now = previousNowFn
+			})
+
+			backups := p.GetOldBackupFiles(tt.backupFiles, tt.maxRetention, logger)
+			if !reflect.DeepEqual(tt.wantBackups, backups) {
+				t.Fatalf("unexpected backup files, expected: %v got: %v", tt.wantBackups, backups)
+			}
+		})
+	}
+}
+
+func mustParseCompactDate(t *testing.T, dateString string) time.Time {
+	t.Helper()
+	target, err := time.Parse("20060102150405", dateString)
+	if err != nil {
+		t.Fatalf("unexpected error parsing compact date: %v", err)
+	}
+	return target
+}
+
 func TestPhysicalGetTargetFile(t *testing.T) {
 	p := NewPhysicalBackupProcessor()
 	tests := []struct {

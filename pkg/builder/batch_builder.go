@@ -69,6 +69,8 @@ func (b *Builder) BuildBackupJob(key types.NamespacedName, backup *mariadbv1alph
 		command.WithCleanupTargetFile(backupShouldCleanupTargetFile(backup)),
 		command.WithMaxRetention(backup.Spec.MaxRetention.Duration),
 		command.WithCompression(backup.Spec.Compression),
+		command.WithFileNamePrefix(backup.Spec.FileNamePrefix),
+		command.WithTimestampFormat(backup.Spec.TimestampFormat),
 		command.WithUserEnv(batchUserEnv),
 		command.WithPasswordEnv(batchPasswordEnv),
 		command.WithLogLevel(backup.Spec.LogLevel),
