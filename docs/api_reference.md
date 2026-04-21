@@ -3414,4 +3414,3 @@ _Appears in:_
 | `weight` _integer_ |  |  |  |
 | `podAffinityTerm` _[PodAffinityTerm](#podaffinityterm)_ |  |  |  |
 
-

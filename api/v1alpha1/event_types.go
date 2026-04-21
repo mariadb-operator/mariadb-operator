@@ -82,4 +82,7 @@ const (
 
 	// ReasonBinlogTimelineInvalid indicates that an error has occurred when validating the binlog timeline to be used for point-in-time recovery.
 	ReasonBinlogTimelineInvalid = "BinlogTimelineInvalid"
+
+	// ReasonMariaDBRootPasswordChanged indicates that a root password change was completed after an update to the rootPasswordSecretKeyRef.
+	ReasonMariaDBRootPasswordChanged = "MariaDBRootPasswordChanged"
 )

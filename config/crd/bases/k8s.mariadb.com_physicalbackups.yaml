@@ -75,6 +75,12 @@ spec:
                 - bzip2
                 - gzip
                 type: string
+              failedJobsHistoryLimit:
+                description: FailedJobsHistoryLimit defines the maximum number of
+                  failed Jobs to be displayed. It defaults to 5.
+                format: int32
+                minimum: 0
+                type: integer
               imagePullSecrets:
                 description: ImagePullSecrets is the list of pull Secrets to be used
                   to pull the image.

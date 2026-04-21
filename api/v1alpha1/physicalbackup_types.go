@@ -236,6 +236,11 @@ type PhysicalBackupSpec struct {
 	// +kubebuilder:validation:Minimum=0
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	SuccessfulJobsHistoryLimit *int32 `json:"successfulJobsHistoryLimit,omitempty"`
+	// FailedJobsHistoryLimit defines the maximum number of failed Jobs to be displayed. It defaults to 5.
+	// +optional
+	// +kubebuilder:validation:Minimum=0
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	FailedJobsHistoryLimit *int32 `json:"failedJobsHistoryLimit,omitempty"`
 	// LogLevel to be used in the PhysicalBackup Job. It defaults to 'info'.
 	// +optional
 	// +kubebuilder:default=info
@@ -347,6 +352,9 @@ func (b *PhysicalBackup) SetDefaults(mariadb *MariaDB) {
 	}
 	if b.Spec.SuccessfulJobsHistoryLimit == nil {
 		b.Spec.SuccessfulJobsHistoryLimit = ptr.To(int32(5))
+	}
+	if b.Spec.FailedJobsHistoryLimit == nil {
+		b.Spec.FailedJobsHistoryLimit = ptr.To(int32(5))
 	}
 	b.Spec.SetDefaults(b)
 }

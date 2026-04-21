@@ -38,6 +38,9 @@ artifacts/
 # PITR
 /binlogs/
 
+# Support
+/support/
+
 # Coverage
 cover.*
 

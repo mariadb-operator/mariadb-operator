@@ -949,6 +949,10 @@ type MariaDBStatus struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	PointInTimeRecovery *MariaDBPointInTimeRecoveryStatus `json:"pointInTimeRecovery,omitempty"`
+	// RootPasswordHash is a hash of the root password. It is used to avoid unnecessary reconciliations.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	RootPasswordHash *string `json:"rootPasswordHash,omitempty"`
 }
 
 // SetCondition sets a status condition to MariaDB
@@ -1090,6 +1094,14 @@ func (m *MariaDB) IsPointInTimeRecoveryEnabled() bool {
 		return false
 	}
 	return m.Spec.PointInTimeRecoveryRef != nil
+}
+
+// InternalRootPasswordSecretKey returns the key for the internal root password secret.
+func (m *MariaDB) InternalRootPasswordSecretKey() types.NamespacedName {
+	return types.NamespacedName{
+		Name:      fmt.Sprintf("internal-%s", m.Name),
+		Namespace: m.Namespace,
+	}
 }
 
 // AreMetricsEnabled indicates whether the MariaDB instance has metrics enabled
