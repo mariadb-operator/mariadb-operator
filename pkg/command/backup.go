@@ -391,7 +391,9 @@ func (b *BackupCommand) MariadbOperatorRestore(copyBinaryTo *string) (*Command, 
 
 	args = append(args, b.s3Args()...)
 	args = append(args, b.absArgs()...)
-	args = append(args, b.physicalBackupArgs()...)
+	if copyBinaryTo == nil {
+		args = append(args, b.physicalBackupArgs()...)
+	}
 
 	return NewCommand(nil, args), nil
 }
@@ -489,7 +491,7 @@ fi`, directRestoreMarkerPath, opts.dataDir)
 		cleanPartialCmd := fmt.Sprintf(`rm -f %[1]s;
 if [ -d %[2]s ] && [ "$(ls -A %[2]s 2>/dev/null)" ]; then
 	echo '💾 Cleaning partial extraction from data directory';
-	rm -rf %[2]s/*;
+	find %[2]s -mindepth 1 -maxdepth 1 -exec rm -rf -- {} +;
 fi`, directRestoreMarkerPath, opts.dataDir)
 
 		cmds := []string{

@@ -366,7 +366,7 @@ All restore modes now use streaming by default when restoring from S3 or Azure B
 
 The streaming pipeline is: `S3/Azure → decompress → mbstream → data directory`
 
-The streaming restore includes automatic retry with exponential backoff for transient network errors, and progress logging every 5%.
+For S3 compatible storage, the streaming restore includes automatic retry with exponential backoff for transient network errors. Streaming restores also include progress logging every 5% when the object size is available.
 
 ## Target recovery time
 

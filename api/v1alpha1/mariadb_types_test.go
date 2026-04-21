@@ -1773,22 +1773,22 @@ var _ = Describe("MariaDB types", func() {
 				true,
 			),
 			Entry(
-				"Invalid restore only primary without physical content type",
+				"Invalid restore only primary with logical backup",
 				&BootstrapFrom{
 					BackupRef: &TypedLocalObjectReference{
 						Name: "test",
-						Kind: PhysicalBackupKind,
+						Kind: BackupKind,
 					},
 					RestoreOnlyPrimary: ptr.To(true),
 				},
 				true,
 			),
 			Entry(
-				"Invalid restore parallel without physical content type",
+				"Invalid restore parallel with logical backup",
 				&BootstrapFrom{
 					BackupRef: &TypedLocalObjectReference{
 						Name: "test",
-						Kind: PhysicalBackupKind,
+						Kind: BackupKind,
 					},
 					RestoreParallel: ptr.To(true),
 				},
@@ -1868,13 +1868,12 @@ var _ = Describe("MariaDB types", func() {
 				true,
 			),
 			Entry(
-				"Valid restore only primary",
+				"Valid restore only primary with inferred physical content type",
 				&BootstrapFrom{
 					BackupRef: &TypedLocalObjectReference{
 						Name: "test",
 						Kind: PhysicalBackupKind,
 					},
-					BackupContentType:  BackupContentTypePhysical,
 					RestoreOnlyPrimary: ptr.To(true),
 				},
 				false,
@@ -1893,14 +1892,13 @@ var _ = Describe("MariaDB types", func() {
 				false,
 			),
 			Entry(
-				"Valid restore parallel",
+				"Valid restore parallel with inferred physical content type",
 				&BootstrapFrom{
 					BackupRef: &TypedLocalObjectReference{
 						Name: "test",
 						Kind: PhysicalBackupKind,
 					},
-					BackupContentType: BackupContentTypePhysical,
-					RestoreParallel:   ptr.To(true),
+					RestoreParallel: ptr.To(true),
 				},
 				false,
 			),

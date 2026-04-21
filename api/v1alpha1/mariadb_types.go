@@ -288,6 +288,24 @@ func (b *BootstrapFrom) IsRestoreParallelEnabled() bool {
 	return ptr.Deref(b.RestoreParallel, false)
 }
 
+func (b *BootstrapFrom) effectiveBackupContentType() BackupContentType {
+	if b.BackupContentType != "" {
+		return b.BackupContentType
+	}
+	if b.BackupRef != nil {
+		switch b.BackupRef.Kind {
+		case PhysicalBackupKind:
+			return BackupContentTypePhysical
+		case "", BackupKind:
+			return BackupContentTypeLogical
+		}
+	}
+	if b.VolumeSnapshotRef != nil {
+		return BackupContentTypePhysical
+	}
+	return BackupContentTypeLogical
+}
+
 func (b *BootstrapFrom) Validate() error {
 	if b.BackupRef == nil && b.VolumeSnapshotRef == nil && b.PointInTimeRecoveryRef == nil &&
 		b.S3 == nil && b.AzureBlob == nil && b.Volume == nil {
@@ -337,11 +355,12 @@ func (b *BootstrapFrom) Validate() error {
 }
 
 func (b *BootstrapFrom) validateRestoreModes() error {
+	contentType := b.effectiveBackupContentType()
 	if b.IsRestoreOnlyPrimaryEnabled() && b.IsRestoreParallelEnabled() {
 		return errors.New("'restoreOnlyPrimary' and 'restoreParallel' are mutually exclusive")
 	}
 	if b.IsRestoreOnlyPrimaryEnabled() {
-		if b.BackupContentType != BackupContentTypePhysical {
+		if contentType != BackupContentTypePhysical {
 			return errors.New("'restoreOnlyPrimary' requires 'backupContentType' to be 'Physical'")
 		}
 		if b.VolumeSnapshotRef != nil {
@@ -352,7 +371,7 @@ func (b *BootstrapFrom) validateRestoreModes() error {
 		return errors.New("'secondarySSTParallel' requires 'restoreOnlyPrimary' to be enabled")
 	}
 	if b.IsRestoreParallelEnabled() {
-		if b.BackupContentType != BackupContentTypePhysical {
+		if contentType != BackupContentTypePhysical {
 			return errors.New("'restoreParallel' requires 'backupContentType' to be 'Physical'")
 		}
 		if b.VolumeSnapshotRef != nil {

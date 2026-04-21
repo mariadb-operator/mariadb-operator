@@ -43,14 +43,16 @@ var restoreCommand = &cobra.Command{
 		ctx, cancel := newContext()
 		defer cancel()
 
-		physicalBackupExists, err := checkPhysicalBackupDir()
-		if err != nil {
-			logger.Error(err, "error checking physical backup directory")
-			os.Exit(1)
-		}
-		if physicalBackupExists {
-			logger.Info("physical backup directory already exists.")
-			os.Exit(0)
+		if copyBinaryTo == "" {
+			physicalBackupExists, err := checkPhysicalBackupDir()
+			if err != nil {
+				logger.Error(err, "error checking physical backup directory")
+				os.Exit(1)
+			}
+			if physicalBackupExists {
+				logger.Info("physical backup directory already exists.")
+				os.Exit(0)
+			}
 		}
 
 		backupProcessor, err := getBackupProcessor()

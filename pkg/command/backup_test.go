@@ -1019,7 +1019,7 @@ func TestMariadbBackupRestore(t *testing.T) {
 				WithDataDir("/var/lib/mysql"),
 			},
 			wantErr:     false,
-			wantCleanup: true,
+			wantCleanup: false,
 		},
 	}
 
@@ -1049,6 +1049,7 @@ func TestMariadbBackupRestore(t *testing.T) {
 				}
 				if tt.name == "streaming restore uses durable marker and explicit pipeline handling" {
 					assert.Contains(t, script, ".mariadb-operator-restore-complete")
+					assert.Contains(t, script, "find /var/lib/mysql -mindepth 1 -maxdepth 1 -exec rm -rf -- {} +")
 					assert.Contains(t, script, "set +e")
 					assert.Contains(t, script, "STREAM_EXIT=${PIPESTATUS[0]}")
 					assert.Contains(t, script, "MBSTREAM_EXIT=${PIPESTATUS[1]}")
@@ -1057,6 +1058,31 @@ func TestMariadbBackupRestore(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestMariadbOperatorRestoreStreamingSetupOmitsPhysicalBackupDirPath(t *testing.T) {
+	targetTime := time.Date(2025, time.January, 2, 3, 4, 5, 0, time.UTC)
+	backupCmd := &BackupCommand{
+		BackupOpts: BackupOpts{
+			Path:              "/backup",
+			TargetFilePath:    "/backup/0-backup-target.txt",
+			BackupFullDirPath: "/backup/full",
+			BackupContentType: mariadbv1alpha1.BackupContentTypePhysical,
+			TargetTime:        targetTime,
+			S3:                true,
+			S3Bucket:          "bucket",
+			S3Endpoint:        "endpoint",
+		},
+	}
+
+	copyBinaryTo := "/backup/bin/mariadb-operator"
+	cmd, err := backupCmd.MariadbOperatorRestore(&copyBinaryTo)
+	assert.NoError(t, err)
+	assert.NotNil(t, cmd)
+
+	args := strings.Join(cmd.Args, " ")
+	assert.Contains(t, args, "--copy-binary-to /backup/bin/mariadb-operator")
+	assert.NotContains(t, args, "--physical-backup-dir-path")
 }
 
 func TestCopyBinlogMetaCmdsSkipsSelfCopy(t *testing.T) {
