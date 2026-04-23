@@ -108,8 +108,8 @@ spec:
     # This must be different for each cluster, as it would clash in the mysql.maxscale_config table.
     name: eu-central 
     interval: 2s
-    # Required for running with an even number of replicas, like in this example (2).
-    # Use majority_of_all otherwise.
+    # majority_of_running is required for running with an even number of MariaDB replicas, like in this example (replicas=2).
+    # majority_of_all should be used for the majority of the cases.
     cooperativeMonitoring: majority_of_running
     params:
       auto_failover: "true"
