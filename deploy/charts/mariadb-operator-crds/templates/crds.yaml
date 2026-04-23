@@ -6999,6 +6999,12 @@ spec:
                           AutoFailover indicates whether the operator should automatically update PodIndex to perform an automatic primary failover.
                           It is enabled by default.
                         type: boolean
+                      autoFailoverAllowUnknownLag:
+                        description: |-
+                          AutoFailoverAllowUnknownLag indicates whether ready replicas with unknown lag
+                          are considered as valid candidates for an automatic primary failover.
+                          It is enabled by default.
+                        type: boolean
                       autoFailoverDelay:
                         description: |-
                           AutoFailoverDelay indicates the duration before performing an automatic primary failover.
@@ -7394,6 +7400,7 @@ spec:
                           If not provided, it defaults to 0, which means that replicas are not allowed to lag behind the primary (recommended).
                           Lagged replicas will not be taken into account as candidates for the new primary during failover,
                           and they will block other operations, such as switchover and upgrade.
+                          To modify this behavior, refer to .Spec.Replication.StandaloneProbes and .Spec.Replication.Primary.AutoFailoverAllowUnknownLag
                           This field is not taken into account by MaxScale, you can define the maximum lag as router parameters.
                           See: https://mariadb.com/docs/maxscale/reference/maxscale-routers/maxscale-readwritesplit#max_replication_lag.
                         type: integer
@@ -7472,7 +7479,8 @@ spec:
                     type: string
                   standaloneProbes:
                     description: |-
-                      StandaloneProbes indicates whether to use the default non-HA startup and liveness probes.
+                      StandaloneProbes indicates whether to use simple non-HA startup, liveness and readiness probes.
+                      Refer to .Spec.Replication.Replica.MaxLagSeconds to understand the implications.
                       It is disabled by default
                     type: boolean
                   syncBinlog:

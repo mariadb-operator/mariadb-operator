@@ -833,7 +833,7 @@ func mariadbStartupProbe(mariadb *mariadbv1alpha1.MariaDB) (*corev1.Probe, error
 }
 
 func mariadbReadinessProbe(mariadb *mariadbv1alpha1.MariaDB) (*corev1.Probe, error) {
-	if mariadb.IsHAEnabled() {
+	if mariadb.IsHAEnabled() && !mariadb.UseStandaloneProbes() {
 		return mariadbAgentProbe(mariadb, "/readiness", mariadb.Spec.ReadinessProbe)
 	}
 	return mariadbProbe(mariadb, mariadb.Spec.ReadinessProbe), nil
