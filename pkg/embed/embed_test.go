@@ -2,158 +2,91 @@ package embed
 
 import (
 	"context"
-	"testing"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/environment"
 )
 
-func TestReadEntrypoint(t *testing.T) {
-	tests := []struct {
-		name      string
-		mariadb   *mariadbv1alpha1.MariaDB
-		env       *environment.OperatorEnv
-		wantBytes bool
-		wantErr   bool
-	}{
-		{
-			name:      "empty",
-			mariadb:   &mariadbv1alpha1.MariaDB{},
-			env:       &environment.OperatorEnv{},
-			wantBytes: false,
-			wantErr:   true,
+var _ = Describe("ReadEntrypoint", func() {
+	DescribeTable("reads entrypoint based on mariadb version",
+		func(mariadb *mariadbv1alpha1.MariaDB, env *environment.OperatorEnv, wantBytes, wantErr bool) {
+			bytes, err := ReadEntrypoint(context.Background(), mariadb, env)
+			if wantBytes {
+				Expect(bytes).NotTo(BeNil())
+			} else {
+				Expect(bytes).To(BeNil())
+			}
+			if wantErr {
+				Expect(err).To(HaveOccurred())
+			} else {
+				Expect(err).NotTo(HaveOccurred())
+			}
 		},
-		{
-			name:    "empty with default",
-			mariadb: &mariadbv1alpha1.MariaDB{},
-			env: &environment.OperatorEnv{
-				MariadbDefaultVersion: "10.11",
-			},
-			wantBytes: true,
-			wantErr:   false,
-		},
-		{
-			name: "invalid version",
-			mariadb: &mariadbv1alpha1.MariaDB{
-				Spec: mariadbv1alpha1.MariaDBSpec{
-					Image: "mariadb:foo",
-				},
-			},
-			env:       &environment.OperatorEnv{},
-			wantBytes: false,
-			wantErr:   true,
-		},
-		{
-			name: "invalid version with default",
-			mariadb: &mariadbv1alpha1.MariaDB{
-				Spec: mariadbv1alpha1.MariaDBSpec{
-					Image: "mariadb:foo",
-				},
-			},
-			env: &environment.OperatorEnv{
-				MariadbDefaultVersion: "10.11",
-			},
-			wantBytes: true,
-			wantErr:   false,
-		},
-		{
-			name: "sha256",
-			mariadb: &mariadbv1alpha1.MariaDB{
+		Entry("empty", &mariadbv1alpha1.MariaDB{}, &environment.OperatorEnv{}, false, true),
+		Entry("empty with default",
+			&mariadbv1alpha1.MariaDB{},
+			&environment.OperatorEnv{MariadbDefaultVersion: "10.11"},
+			true, false,
+		),
+		Entry("invalid version",
+			&mariadbv1alpha1.MariaDB{Spec: mariadbv1alpha1.MariaDBSpec{Image: "mariadb:foo"}},
+			&environment.OperatorEnv{},
+			false, true,
+		),
+		Entry("invalid version with default",
+			&mariadbv1alpha1.MariaDB{Spec: mariadbv1alpha1.MariaDBSpec{Image: "mariadb:foo"}},
+			&environment.OperatorEnv{MariadbDefaultVersion: "10.11"},
+			true, false,
+		),
+		Entry("sha256",
+			&mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Image: "mariadb@sha256:3f48454b6a33e094af6d23ced54645ec0533cb11854d07738920852ca48e390d",
 				},
 			},
-			env:       &environment.OperatorEnv{},
-			wantBytes: false,
-			wantErr:   true,
-		},
-		{
-			name: "sha256 with default",
-			mariadb: &mariadbv1alpha1.MariaDB{
+			&environment.OperatorEnv{},
+			false, true,
+		),
+		Entry("sha256 with default",
+			&mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Image: "mariadb@sha256:3f48454b6a33e094af6d23ced54645ec0533cb11854d07738920852ca48e390d",
 				},
 			},
-			env: &environment.OperatorEnv{
-				MariadbDefaultVersion: "10.11",
-			},
-			wantBytes: true,
-			wantErr:   false,
-		},
-		{
-			name: "unsupported version",
-			mariadb: &mariadbv1alpha1.MariaDB{
-				Spec: mariadbv1alpha1.MariaDBSpec{
-					Image: "mariadb:8.0.0",
-				},
-			},
-			env:       &environment.OperatorEnv{},
-			wantBytes: false,
-			wantErr:   true,
-		},
-		{
-			name: "unsupported version with default",
-			mariadb: &mariadbv1alpha1.MariaDB{
-				Spec: mariadbv1alpha1.MariaDBSpec{
-					Image: "mariadb:8.0.0",
-				},
-			},
-			env: &environment.OperatorEnv{
-				MariadbDefaultVersion: "10.11",
-			},
-			wantBytes: true,
-			wantErr:   false,
-		},
-		{
-			name: "supported version",
-			mariadb: &mariadbv1alpha1.MariaDB{
-				Spec: mariadbv1alpha1.MariaDBSpec{
-					Image: "mariadb:10.11.8",
-				},
-			},
-			wantBytes: true,
-			wantErr:   false,
-		},
-		{
-			name: "supported registry version",
-			mariadb: &mariadbv1alpha1.MariaDB{
+			&environment.OperatorEnv{MariadbDefaultVersion: "10.11"},
+			true, false,
+		),
+		Entry("unsupported version",
+			&mariadbv1alpha1.MariaDB{Spec: mariadbv1alpha1.MariaDBSpec{Image: "mariadb:8.0.0"}},
+			&environment.OperatorEnv{},
+			false, true,
+		),
+		Entry("unsupported version with default",
+			&mariadbv1alpha1.MariaDB{Spec: mariadbv1alpha1.MariaDBSpec{Image: "mariadb:8.0.0"}},
+			&environment.OperatorEnv{MariadbDefaultVersion: "10.11"},
+			true, false,
+		),
+		Entry("supported version",
+			&mariadbv1alpha1.MariaDB{Spec: mariadbv1alpha1.MariaDBSpec{Image: "mariadb:10.11.8"}},
+			nil,
+			true, false,
+		),
+		Entry("supported registry version",
+			&mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Image: "registry-1.docker.io/v2/library/mariadb:10.6.18-14",
 				},
 			},
-			wantBytes: true,
-			wantErr:   false,
-		},
-		{
-			name: "invalid default",
-			mariadb: &mariadbv1alpha1.MariaDB{
-				Spec: mariadbv1alpha1.MariaDBSpec{
-					Image: "",
-				},
-			},
-			env: &environment.OperatorEnv{
-				MariadbDefaultVersion: "latest",
-			},
-			wantBytes: false,
-			wantErr:   true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			bytes, err := ReadEntrypoint(context.Background(), tt.mariadb, tt.env)
-			if tt.wantBytes && bytes == nil {
-				t.Error("expected bytes but got nil")
-			}
-			if !tt.wantBytes && bytes != nil {
-				t.Error("unexpected bytes")
-			}
-			if tt.wantErr && err == nil {
-				t.Error("expected error but got nil")
-			}
-			if !tt.wantErr && err != nil {
-				t.Errorf("unexpected error getting minor version: %v", err)
-			}
-		})
-	}
-}
+			nil,
+			true, false,
+		),
+		Entry("invalid default",
+			&mariadbv1alpha1.MariaDB{Spec: mariadbv1alpha1.MariaDBSpec{Image: ""}},
+			&environment.OperatorEnv{MariadbDefaultVersion: "latest"},
+			false, true,
+		),
+	)
+})
