@@ -52,6 +52,8 @@ func (r *ExternalMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	if err := r.Get(ctx, req.NamespacedName, &external_mariadb); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
+	logger := log.FromContext(ctx).V(1)
+
 	phases := []reconcilePhaseExternalMariaDB{
 		{
 			Name:      "Spec",
@@ -68,11 +70,10 @@ func (r *ExternalMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	}
 
 	for _, p := range phases {
+		logger.Info(fmt.Sprintf("Reconcile phase %s", p.Name), "phase", p.Name)
+
 		result, err := p.Reconcile(ctx, &external_mariadb)
 		if err != nil {
-
-			log.FromContext(ctx).V(1).Info("Phase name", "name", p.Name)
-
 			var errBundle *multierror.Error
 			errBundle = multierror.Append(errBundle, err)
 
@@ -87,7 +88,8 @@ func (r *ExternalMariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 			}
 
 			if err := errBundle.ErrorOrNil(); err != nil {
-				return ctrl.Result{}, fmt.Errorf("error reconciling %s: %v", p.Name, err)
+				logger.Info("Error reconciling", "phase", p.Name, "err", err)
+				return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 			}
 		}
 		if !result.IsZero() {

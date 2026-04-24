@@ -105,6 +105,7 @@ var RootCmd = &cobra.Command{
 			fmt.Printf("Error setting up logger: %v\n", err)
 			os.Exit(1)
 		}
+		// TODO: test GTID with multiple domain IDs
 		startGtid, err := mariadbrepl.ParseGtid(startGtidRaw)
 		if err != nil {
 			logger.Error(err, "Error parsing start GTID", "gtid", startGtidRaw)
