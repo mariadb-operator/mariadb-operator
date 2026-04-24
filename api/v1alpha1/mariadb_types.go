@@ -254,6 +254,56 @@ type BootstrapFrom struct {
 	// +kubebuilder:validation:Enum=debug;info;warn;error;dpanic;panic;fatal
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	LogLevel string `json:"logLevel,omitempty"`
+	// RestoreOnlyPrimary indicates that only the primary Pod (index 0) should be restored from the physical backup.
+	// Secondary Pods will join the cluster via Galera State Snapshot Transfer (SST).
+	// Only applicable for physical backups with Galera enabled. Mutually exclusive with RestoreParallel.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch","urn:alm:descriptor:com.tectonic.ui:advanced"}
+	RestoreOnlyPrimary *bool `json:"restoreOnlyPrimary,omitempty" webhook:"inmutableinit"`
+	// SecondarySSTParallel indicates that secondary Pods should be allowed to join via Galera SST in parallel
+	// after the primary Pod has been restored. This only applies together with RestoreOnlyPrimary.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch","urn:alm:descriptor:com.tectonic.ui:advanced"}
+	SecondarySSTParallel *bool `json:"secondarySSTParallel,omitempty" webhook:"inmutableinit"`
+	// RestoreParallel indicates that all Pods should restore from the physical backup in parallel.
+	// Each Pod downloads and restores the backup independently. This is the fastest mode but uses the most bandwidth.
+	// Only applicable for physical backups. Mutually exclusive with RestoreOnlyPrimary.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch","urn:alm:descriptor:com.tectonic.ui:advanced"}
+	RestoreParallel *bool `json:"restoreParallel,omitempty" webhook:"inmutableinit"`
+}
+
+// IsRestoreOnlyPrimaryEnabled returns true if RestoreOnlyPrimary is set to true.
+func (b *BootstrapFrom) IsRestoreOnlyPrimaryEnabled() bool {
+	return ptr.Deref(b.RestoreOnlyPrimary, false)
+}
+
+// IsSecondarySSTParallelEnabled returns true if SecondarySSTParallel is set to true.
+func (b *BootstrapFrom) IsSecondarySSTParallelEnabled() bool {
+	return ptr.Deref(b.SecondarySSTParallel, false)
+}
+
+// IsRestoreParallelEnabled returns true if RestoreParallel is set to true.
+func (b *BootstrapFrom) IsRestoreParallelEnabled() bool {
+	return ptr.Deref(b.RestoreParallel, false)
+}
+
+func (b *BootstrapFrom) effectiveBackupContentType() BackupContentType {
+	if b.BackupContentType != "" {
+		return b.BackupContentType
+	}
+	if b.BackupRef != nil {
+		switch b.BackupRef.Kind {
+		case PhysicalBackupKind:
+			return BackupContentTypePhysical
+		case "", BackupKind:
+			return BackupContentTypeLogical
+		}
+	}
+	if b.VolumeSnapshotRef != nil {
+		return BackupContentTypePhysical
+	}
+	return BackupContentTypeLogical
 }
 
 func (b *BootstrapFrom) Validate() error {
@@ -297,7 +347,42 @@ func (b *BootstrapFrom) Validate() error {
 		return errors.New("inconsistent 'volumeSnapshotRef' and 'backupContentType' fields. Physical type must be set in this case")
 	}
 
+	if err := b.validateRestoreModes(); err != nil {
+		return err
+	}
+
 	return b.validateMutuallyExclusive()
+}
+
+func (b *BootstrapFrom) validateRestoreModes() error {
+	contentType := b.effectiveBackupContentType()
+	if b.IsRestoreOnlyPrimaryEnabled() && b.IsRestoreParallelEnabled() {
+		return errors.New("'restoreOnlyPrimary' and 'restoreParallel' are mutually exclusive")
+	}
+	if b.IsRestoreOnlyPrimaryEnabled() {
+		if contentType != BackupContentTypePhysical {
+			return errors.New("'restoreOnlyPrimary' requires 'backupContentType' to be 'Physical'")
+		}
+		if b.VolumeSnapshotRef != nil {
+			return errors.New("'restoreOnlyPrimary' is not supported with 'volumeSnapshotRef'")
+		}
+	}
+	if b.IsSecondarySSTParallelEnabled() && !b.IsRestoreOnlyPrimaryEnabled() {
+		return errors.New("'secondarySSTParallel' requires 'restoreOnlyPrimary' to be enabled")
+	}
+	if b.IsRestoreParallelEnabled() {
+		if contentType != BackupContentTypePhysical {
+			return errors.New("'restoreParallel' requires 'backupContentType' to be 'Physical'")
+		}
+		if b.VolumeSnapshotRef != nil {
+			return errors.New("'restoreParallel' is not supported with 'volumeSnapshotRef'")
+		}
+		if b.StagingStorage != nil && b.StagingStorage.PersistentVolumeClaim != nil {
+			return errors.New("'restoreParallel' is not supported with 'stagingStorage.persistentVolumeClaim'; " +
+				"each Pod needs its own staging storage, use emptyDir instead")
+		}
+	}
+	return nil
 }
 
 func (b *BootstrapFrom) validateMutuallyExclusive() error {

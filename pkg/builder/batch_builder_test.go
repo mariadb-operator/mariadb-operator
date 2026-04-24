@@ -1432,6 +1432,93 @@ func TestPhysicalBackupRestoreJobSelectorLabels(t *testing.T) {
 	}
 }
 
+func TestPhysicalBackupRestoreJobUsesStreamingOnlyForObjectStorage(t *testing.T) {
+	builder := newDefaultTestBuilder(t)
+	key := types.NamespacedName{
+		Name:      "physical-backup-restore-job-streaming-mode",
+		Namespace: "test",
+	}
+	podIndex := ptr.To(0)
+
+	tests := []struct {
+		name                  string
+		bootstrapFrom         *mariadbv1alpha1.BootstrapFrom
+		wantOperatorStreaming bool
+	}{
+		{
+			name: "volume source keeps legacy restore path",
+			bootstrapFrom: &mariadbv1alpha1.BootstrapFrom{
+				Volume: &mariadbv1alpha1.StorageVolumeSource{
+					EmptyDir: &mariadbv1alpha1.EmptyDirVolumeSource{},
+				},
+				BackupContentType: mariadbv1alpha1.BackupContentTypePhysical,
+			},
+			wantOperatorStreaming: false,
+		},
+		{
+			name: "s3 source enables streaming restore path",
+			bootstrapFrom: &mariadbv1alpha1.BootstrapFrom{
+				Volume: &mariadbv1alpha1.StorageVolumeSource{
+					EmptyDir: &mariadbv1alpha1.EmptyDirVolumeSource{},
+				},
+				S3: &mariadbv1alpha1.S3{
+					Bucket:   "bucket",
+					Endpoint: "endpoint",
+					Region:   "auto",
+				},
+				BackupContentType: mariadbv1alpha1.BackupContentTypePhysical,
+			},
+			wantOperatorStreaming: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mariadb := &mariadbv1alpha1.MariaDB{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "mariadb-test",
+					Namespace: "test",
+				},
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					BootstrapFrom: tt.bootstrapFrom,
+				},
+			}
+
+			job, err := builder.BuildPhysicalBackupRestoreJob(
+				key,
+				mariadb,
+				podIndex,
+				WithBootstrapFrom(tt.bootstrapFrom),
+			)
+			if err != nil {
+				t.Fatalf("unexpected error building PhysicalBackupRestoreJob: %v", err)
+			}
+
+			var operatorScript, mariadbScript string
+			for _, container := range job.Spec.Template.Spec.InitContainers {
+				script := strings.Join(append(container.Command, container.Args...), " ")
+				if container.Name == "mariadb-operator" {
+					operatorScript = script
+				}
+			}
+			for _, container := range job.Spec.Template.Spec.Containers {
+				script := strings.Join(append(container.Command, container.Args...), " ")
+				if container.Name == "mariadb" {
+					mariadbScript = script
+				}
+			}
+
+			if tt.wantOperatorStreaming {
+				assert.Contains(t, operatorScript, "--copy-binary-to")
+				assert.Contains(t, mariadbScript, "backup stream")
+			} else {
+				assert.NotContains(t, operatorScript, "--copy-binary-to")
+				assert.NotContains(t, mariadbScript, "backup stream")
+			}
+		})
+	}
+}
+
 func TestPhysicalBackupRestoreJobMeta(t *testing.T) {
 	builder := newDefaultTestBuilder(t)
 	objMeta := metav1.ObjectMeta{

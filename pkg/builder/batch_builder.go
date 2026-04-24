@@ -41,6 +41,8 @@ const (
 	batchPasswordEnv      = "MARIADB_OPERATOR_PASSWORD"
 )
 
+var batchOperatorBinaryPath = filepath.Join(batchStorageMountPath, "bin", "mariadb-operator")
+
 var (
 	batchBackupTargetFilePath  = filepath.Join(batchStorageMountPath, "0-backup-target.txt")
 	batchBackupDirFullPath     = filepath.Join(batchStorageMountPath, batchBackupDirFull)
@@ -382,7 +384,7 @@ func (b *Builder) BuildRestoreJob(key types.NamespacedName, restore *mariadbv1al
 	if err != nil {
 		return nil, fmt.Errorf("error building restore command: %v", err)
 	}
-	operatorCmd, err := cmd.MariadbOperatorRestore()
+	operatorCmd, err := cmd.MariadbOperatorRestore(nil)
 	if err != nil {
 		return nil, fmt.Errorf("error getting mariadb-operator command: %v", err)
 	}
@@ -580,14 +582,24 @@ func (b *Builder) BuildPhysicalBackupRestoreJob(key types.NamespacedName, mariad
 	if err != nil {
 		return nil, fmt.Errorf("error building backup command: %v", err)
 	}
-	operatorCmd, err := cmd.MariadbOperatorRestore()
+	var copyBinaryTo *string
+	restoreCommandOpts := append([]command.MariaDBBackupRestoreOpt{}, opts.RestoreCommandOpts...)
+	if opts.S3 != nil || opts.ABS != nil {
+		copyBinaryTo = ptr.To(batchOperatorBinaryPath)
+		restoreCommandOpts = append(
+			restoreCommandOpts,
+			command.WithOperatorBinaryPath(batchOperatorBinaryPath),
+			command.WithDataDir(batchDataDir),
+		)
+	}
+	operatorCmd, err := cmd.MariadbOperatorRestore(copyBinaryTo)
 	if err != nil {
 		return nil, fmt.Errorf("error getting mariadb-operator command: %v", err)
 	}
 	restoreCmd, err := cmd.MariadbBackupRestore(
 		mariadb,
 		batchDataDir,
-		opts.RestoreCommandOpts...,
+		restoreCommandOpts...,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("error getting mariadb-backup restore command: %v", err)
@@ -607,11 +619,18 @@ func (b *Builder) BuildPhysicalBackupRestoreJob(key types.NamespacedName, mariad
 	if err != nil {
 		return nil, err
 	}
+	// The mariadb container runs the bash restore script. In streaming mode,
+	// the script invokes the operator binary which needs object-storage credentials.
+	mariadbEnv := physicalBackupJobEnv(mariadb)
+	if copyBinaryTo != nil {
+		mariadbEnv = append(mariadbEnv, s3Env(opts.S3)...)
+		mariadbEnv = append(mariadbEnv, absEnv(opts.ABS)...)
+	}
 	mariadbContainer, err := b.jobMariadbContainer(
 		restoreCmd,
 		b.env,
 		volumeMounts,
-		physicalBackupJobEnv(mariadb),
+		mariadbEnv,
 		jobResources(restoreJob.Resources),
 		mariadb,
 		mariadb.Spec.SecurityContext,
