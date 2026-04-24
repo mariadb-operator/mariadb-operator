@@ -3,7 +3,9 @@ package controller
 import (
 	"context"
 	"fmt"
+	"net"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -13,7 +15,6 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/docker"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/environment"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/metadata"
-	"github.com/mariadb-operator/mariadb-operator/v26/pkg/refresolver"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/sql"
 	stsobj "github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
 	. "github.com/onsi/ginkgo/v2"
@@ -1325,7 +1326,7 @@ func deletePVC(pvcKey types.NamespacedName) {
 }
 
 func executeSqlInPodByIndex(mdb *mariadbv1alpha1.MariaDB, podIndex int, query string) {
-	clientSet := sql.NewClientSet(mdb, refresolver.New(k8sClient))
+	clientSet := sql.NewClientSet(mdb, testRefResolver)
 	sqlClient, err := clientSet.ClientForIndex(testCtx, podIndex)
 
 	Expect(err).ToNot(HaveOccurred(), "Could not create an internal client.")
@@ -1500,4 +1501,15 @@ func applyDecoratorChain[T any](
 		}
 		return backup
 	}
+}
+
+func prefixedIPAddr(ipAddr string) string {
+	var addr string
+	if strings.HasPrefix(ipAddr, ".") {
+		addr = testCidrPrefix + ipAddr
+	} else {
+		addr = ipAddr
+	}
+	Expect(net.ParseIP(addr)).ToNot(BeNil())
+	return addr
 }

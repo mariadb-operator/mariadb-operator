@@ -56,6 +56,7 @@ var (
 	testCtx                    = context.Background()
 	testLogger                 logr.Logger
 	k8sClient                  client.Client
+	testRefResolver            *refresolver.RefResolver
 	testCidrPrefix             string
 	testEmulateExternalMdbHost string = "mdb-emulate-external-test.default.svc.cluster.local"
 	// This is to make sure that backups taken during the tests are matched
@@ -114,6 +115,7 @@ var _ = BeforeSuite(func() {
 	})
 	Expect(err).ToNot(HaveOccurred())
 	k8sClient = k8sManager.GetClient()
+	testRefResolver = refresolver.New(k8sClient)
 
 	client := k8sManager.GetClient()
 	scheme := k8sManager.GetScheme()
