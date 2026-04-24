@@ -1324,6 +1324,7 @@ func deletePVC(pvcKey types.NamespacedName) {
 	Expect(client.IgnoreNotFound(k8sClient.Delete(testCtx, &pvc))).NotTo(HaveOccurred())
 }
 
+// nolint:unused // for future use?
 func executeSqlInPodByIndex(mdb *mariadbv1alpha1.MariaDB, podIndex int, query string) {
 	clientSet := sql.NewClientSet(mdb, refresolver.New(k8sClient))
 	sqlClient, err := clientSet.ClientForIndex(testCtx, podIndex)

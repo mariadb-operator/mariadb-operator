@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -202,6 +203,11 @@ func (r *MariaDBReconciler) reconcilePITRInitError(ctx context.Context, mariadb 
 
 func (r *MariaDBReconciler) reconcilePhysicalBackupInitError(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 	logger logr.Logger) (ctrl.Result, error) {
+	if initErr := mariadb.InitError(); initErr != nil && !strings.Contains(initErr.Error(), "storage PVCs already exist") {
+		logger.Info("Unable to init MariaDB. Requeuing...", "err", initErr.Error())
+		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+	}
+
 	pvcs, err := pvc.ListStoragePVCs(ctx, r.Client, mariadb)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error listing PVCs: %v", err)
@@ -332,10 +338,108 @@ func (r *MariaDBReconciler) reconcileAndWaitForInitJob(ctx context.Context, mari
 		}
 	}
 	if !jobpkg.IsJobComplete(&job) {
+		schedulingErr, err := r.jobSchedulingError(ctx, key)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		if schedulingErr != "" {
+			return r.requeueUnschedulableInitJob(ctx, mariadb, key, schedulingErr, logger)
+		}
 		logger.V(1).Info("PhysicalBackup init job not completed. Requeuing...")
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}
 	return ctrl.Result{}, nil
+}
+
+func (r *MariaDBReconciler) jobSchedulingError(ctx context.Context, key types.NamespacedName) (string, error) {
+	pods, err := r.listJobPods(ctx, key)
+	if err != nil {
+		return "", err
+	}
+	for _, pod := range pods {
+		if schedulingErr := podSchedulingError(&pod); schedulingErr != "" {
+			return schedulingErr, nil
+		}
+	}
+	return "", nil
+}
+
+func (r *MariaDBReconciler) listJobPods(ctx context.Context, key types.NamespacedName) ([]corev1.Pod, error) {
+	var podList corev1.PodList
+	if err := r.List(
+		ctx,
+		&podList,
+		client.InNamespace(key.Namespace),
+		client.MatchingLabels{
+			"batch.kubernetes.io/job-name": key.Name,
+		},
+	); err != nil {
+		return nil, fmt.Errorf("error listing Job Pods: %v", err)
+	}
+	if len(podList.Items) > 0 {
+		return podList.Items, nil
+	}
+
+	podList = corev1.PodList{}
+	if err := r.List(
+		ctx,
+		&podList,
+		client.InNamespace(key.Namespace),
+		client.MatchingLabels{
+			"job-name": key.Name,
+		},
+	); err != nil {
+		return nil, fmt.Errorf("error listing Job Pods: %v", err)
+	}
+	return podList.Items, nil
+}
+
+func podSchedulingError(pod *corev1.Pod) string {
+	if pod == nil || pod.Spec.NodeName != "" {
+		return ""
+	}
+	for _, c := range pod.Status.Conditions {
+		if c.Type == corev1.PodScheduled &&
+			c.Status == corev1.ConditionFalse &&
+			c.Reason == corev1.PodReasonUnschedulable &&
+			c.Message != "" {
+			return c.Message
+		}
+	}
+	return ""
+}
+
+func (r *MariaDBReconciler) requeueUnschedulableInitJob(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+	key types.NamespacedName, schedulingErr string, logger logr.Logger) (ctrl.Result, error) {
+	errMsg := fmt.Sprintf("PhysicalBackup init Job '%s' is unschedulable: %s", key.Name, schedulingErr)
+
+	if mariadb.IsScalingOut() {
+		if r.Recorder != nil {
+			r.Recorder.Eventf(mariadb, nil, corev1.EventTypeWarning, mariadbv1alpha1.ReasonMariaDBScaleOutError,
+				mariadbv1alpha1.ActionReconciling, "Unable to scale out MariaDB: %s", errMsg)
+		}
+		if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
+			condition.SetScaleOutError(status, errMsg)
+			return nil
+		}); err != nil {
+			return ctrl.Result{}, fmt.Errorf("error patching MariaDB status: %v", err)
+		}
+		logger.Info("Unable to scale out MariaDB. Requeuing...", "err", errMsg)
+		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+	}
+
+	if r.Recorder != nil {
+		r.Recorder.Eventf(mariadb, nil, corev1.EventTypeWarning, mariadbv1alpha1.ReasonMariaDBInitError,
+			mariadbv1alpha1.ActionReconciling, "Unable to init MariaDB: %s", errMsg)
+	}
+	if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) error {
+		condition.SetInitError(status, errMsg)
+		return nil
+	}); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error patching MariaDB status: %v", err)
+	}
+	logger.Info("Unable to init MariaDB. Requeuing...", "err", errMsg)
+	return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 }
 
 func (r *MariaDBReconciler) createInitJob(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
@@ -348,6 +452,14 @@ func (r *MariaDBReconciler) createInitJob(ctx context.Context, mariadb *mariadbv
 	)
 	if err != nil {
 		return fmt.Errorf("error building PhysicalBackup init Job: %v", err)
+	}
+	if pvcState, ok, err := r.getStoragePVCState(ctx, mariadb, podIndex); err != nil {
+		return err
+	} else if ok && pvcState.UID != "" {
+		if job.Annotations == nil {
+			job.Annotations = make(map[string]string)
+		}
+		job.Annotations[initJobStoragePVCUIDAnnotation] = pvcState.UID
 	}
 	return r.Create(ctx, job)
 }
@@ -452,10 +564,24 @@ func (r *MariaDBReconciler) ensureReplicationConfiguredInPod(ctx context.Context
 	}
 	defer req.Close()
 
-	pollCtx, cancel := context.WithTimeout(ctx, 1*time.Minute)
+	pollCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 	defer cancel()
 
 	return wait.PollUntilSuccessOrContextCancel(pollCtx, logger, func(ctx context.Context) error {
+		var replicaPod corev1.Pod
+		podKey := types.NamespacedName{
+			Name:      pod,
+			Namespace: mariadb.Namespace,
+		}
+		if err := r.Get(ctx, podKey, &replicaPod); err != nil {
+			if apierrors.IsNotFound(err) {
+				return errors.New("pod not found")
+			}
+			return fmt.Errorf("error getting Pod: %v", err)
+		}
+		if !podpkg.PodScheduled(&replicaPod) {
+			return errors.New("pod not scheduled")
+		}
 		if result, err := r.ReplicationReconciler.ReconcileReplicationInPod(
 			ctx,
 			req,
