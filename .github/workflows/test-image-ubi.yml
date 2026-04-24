@@ -8,8 +8,8 @@ on:
         required: true
         type: string
       mariadb_version:
-        description: "MariaDB version related by image if not obvious via tag"
-        required: false
+        description: "MariaDB version related by image"
+        required: true
         type: string
 
 jobs:
