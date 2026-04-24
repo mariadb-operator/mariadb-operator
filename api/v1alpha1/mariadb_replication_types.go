@@ -289,6 +289,14 @@ type ReplicationSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	StandaloneProbes *bool `json:"standaloneProbes,omitempty"`
+	// ServerIdBase is the base value used to calculate the server_id for each Pod.
+	// server_id = ServerIdBase + podIndex.
+	// This is useful for multi-cluster setups to avoid server_id conflicts.
+	// It defaults to 10.
+	// +optional
+	// +kubebuilder:default=10
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:number"}
+	ServerIdBase *int `json:"serverIdBase,omitempty"`
 }
 
 // IsGtidStrictModeEnabled determines whether GTID strict mode is enabled.
