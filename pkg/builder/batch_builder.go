@@ -38,7 +38,7 @@ const (
 	batchBackupDirFull    = "full"
 	batchDataDir          = "/var/lib/mysql"
 	batchUserEnv          = "MARIADB_OPERATOR_USER"
-	batchPasswordEnv      = "MARIADB_OPERATOR_PASSWORD"
+	batchPasswordEnv      = "MYSQL_PWD"
 )
 
 var (

@@ -47,7 +47,7 @@ func TestConnectionFlags(t *testing.T) {
 					Port: 3306,
 				},
 			},
-			want: "--user=${USER} --password=${PASS} --host=test.default.svc.cluster.local --port=3306",
+			want: "--user=${USER} --host=test.default.svc.cluster.local --port=3306",
 		},
 		{
 			name: "basic flags with Galera",
@@ -64,7 +64,7 @@ func TestConnectionFlags(t *testing.T) {
 					},
 				},
 			},
-			want: "--user=${USER} --password=${PASS} --host=test-primary.default.svc.cluster.local --port=3306",
+			want: "--user=${USER} --host=test-primary.default.svc.cluster.local --port=3306",
 		},
 		{
 			name: "with database",
@@ -81,7 +81,7 @@ func TestConnectionFlags(t *testing.T) {
 					},
 				},
 			},
-			want: "--user=${USER} --password=${PASS} --host=test-primary.default.svc.cluster.local --port=3306 --database=test",
+			want: "--user=${USER} --host=test-primary.default.svc.cluster.local --port=3306 --database=test",
 		},
 		{
 			name: "with host override",
@@ -99,7 +99,7 @@ func TestConnectionFlags(t *testing.T) {
 				},
 			},
 			flagOpts: []ConnectionFlagOpt{WithHostConnectionFlag("custom-host")},
-			want:     "--user=${USER} --password=${PASS} --host=custom-host --port=3306",
+			want:     "--user=${USER} --host=custom-host --port=3306",
 		},
 	}
 
