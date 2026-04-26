@@ -57,6 +57,7 @@ func WithResetMaster(resetMaster bool) ConfigureReplicaOpt {
 }
 
 type Topology interface {
+	IsSwitchingPrimary(ctx context.Context) (bool, error)
 	ConfigurePrimary(ctx context.Context, client *sql.Client) error
 	ConfigureReplica(ctx context.Context, client *sql.Client, primaryPodIndex int, replicaOpts ...ConfigureReplicaOpt) error
 }
@@ -113,6 +114,37 @@ func newSingleClusterTopology(mariadb *mariadbv1alpha1.MariaDB, client client.Cl
 		refResolver: refResolver,
 		logger:      logger,
 	}
+}
+
+// When pointing to MaxScale, MariaDB's status.currentPrimaryPodIndex is eventually consistent, as it depends on:
+// - MaxScale API reporting the new primary
+// - MaxScale controller patching MaxScale status
+// - MariaDB watcher indexer receiving the event
+// - MariaDB controller patching MariaDB status
+// IsSwitchingPrimary provides a consistent way to determine if a switchover/failover is ongoing.
+func (r *singleClusterTopology) IsSwitchingPrimary(ctx context.Context) (bool, error) {
+	if !r.mariadb.IsMaxScaleEnabled() {
+		return r.mariadb.IsSwitchingPrimary(), nil
+	}
+	mxs, err := r.refResolver.MaxScale(ctx, r.mariadb.Spec.MaxScaleRef, r.mariadb.Namespace)
+	if err != nil {
+		return false, fmt.Errorf("error getting MaxScale: %v", err)
+	}
+
+	// ensure MaxScale is pointing to servers managed by MariaDB i.e. running as a StatefulSet.
+	if mxs.Spec.MariaDBRef == nil {
+		return r.mariadb.IsSwitchingPrimary(), nil
+	}
+	primaryServer := mxs.Status.GetPrimaryServer()
+	if primaryServer == nil || r.mariadb.Status.CurrentPrimaryPodIndex == nil {
+		return false, nil
+	}
+
+	primaryServerIndex, err := statefulset.PodIndex(*primaryServer)
+	if err != nil {
+		return false, fmt.Errorf("error getting Pod index for %s: %v", *primaryServer, err)
+	}
+	return *primaryServerIndex != *r.mariadb.Status.CurrentPrimaryPodIndex, nil
 }
 
 func (r *singleClusterTopology) ConfigurePrimary(ctx context.Context, client *sql.Client) error {
@@ -321,6 +353,10 @@ func newMultiClusterTopology(mariadb *mariadbv1alpha1.MariaDB, singleCluster *si
 		refResolver:   refResolver,
 		logger:        logger,
 	}
+}
+
+func (m *multiClusterTopology) IsSwitchingPrimary(ctx context.Context) (bool, error) {
+	return m.singleCluster.IsSwitchingPrimary(ctx)
 }
 
 func (m *multiClusterTopology) ConfigurePrimary(ctx context.Context, client *sql.Client) error {
