@@ -133,9 +133,6 @@ var _ = Describe("MariaDB MultiCluster with Replication", Ordered, Focus, func()
 
 		By("Creating primary ExternalMariaDB")
 		Expect(k8sClient.Create(testCtx, primaryExternalMdb)).To(Succeed())
-		DeferCleanup(func() {
-			deleteExternalMariadb(primaryKey, false)
-		})
 
 		By("Expecting primary ExternalMariaDB to be ready eventually")
 		Eventually(func() bool {
@@ -183,13 +180,14 @@ var _ = Describe("MariaDB MultiCluster with Replication", Ordered, Focus, func()
 
 	It("should allow to perform writes in the primary", func() {
 		Expect(k8sClient.Get(testCtx, primaryKey, primaryMdb)).To(Succeed())
-		podIndex := ptr.Deref(primaryMdb.Status.CurrentPrimaryPodIndex, 0)
+		Expect(primaryMdb.Status.CurrentPrimary).NotTo(BeNil())
+		podIndex := *primaryMdb.Status.CurrentPrimaryPodIndex
 
 		// in addition to verify writes, this increases gtid_current_pos, to be validated in the next step.
 		By("Writing in primary MariaDB")
-		query := `CREATE DATABASE test;`
+		query := `CREATE DATABASE IF NOT EXISTS test;`
 		executeSqlInPodByIndex(primaryMdb, podIndex, query)
-		query = `CREATE TABLE test.test (id INT PRIMARY KEY AUTO_INCREMENT, test VARCHAR(100));`
+		query = `CREATE TABLE IF NOT EXISTS test.test (id INT PRIMARY KEY AUTO_INCREMENT, test VARCHAR(100));`
 		executeSqlInPodByIndex(primaryMdb, podIndex, query)
 		query = `INSERT INTO test.test (test) VALUES ('test');`
 		executeSqlInPodByIndex(primaryMdb, podIndex, query)
@@ -198,9 +196,18 @@ var _ = Describe("MariaDB MultiCluster with Replication", Ordered, Focus, func()
 	It("should have valid replication status", func() {
 		By("Getting primary MariaDB client")
 		Expect(k8sClient.Get(testCtx, primaryKey, primaryMdb)).To(Succeed())
+		Expect(primaryMdb.Status.CurrentPrimary).NotTo(BeNil())
+
 		// replica index in primary cluster
-		primaryPodIndex := getPodIndexForRole(primaryMdb, mariadbv1alpha1.ReplicationRoleReplica)
-		primaryClient, err := sql.NewInternalClientWithPodIndex(testCtx, primaryMdb, testRefResolver, primaryPodIndex)
+		var primaryPodIndex *int
+		for i := 0; i < int(primaryMdb.Spec.Replicas); i++ {
+			if i != *primaryMdb.Status.CurrentPrimaryPodIndex {
+				primaryPodIndex = &i
+				break
+			}
+		}
+		Expect(primaryPodIndex).NotTo(BeNil())
+		primaryClient, err := sql.NewInternalClientWithPodIndex(testCtx, primaryMdb, testRefResolver, *primaryPodIndex)
 		Expect(err).To(Succeed())
 		defer primaryClient.Close()
 
@@ -211,9 +218,11 @@ var _ = Describe("MariaDB MultiCluster with Replication", Ordered, Focus, func()
 
 		By("Getting primary replica MariaDB client")
 		Expect(k8sClient.Get(testCtx, replicaKey, replicaMdb)).To(Succeed())
+		Expect(replicaMdb.Status.CurrentPrimary).NotTo(BeNil())
+
 		// primary index in replica cluster
-		primaryReplicaPodIndex := getPodIndexForRole(replicaMdb, mariadbv1alpha1.ReplicationRolePrimaryReplica)
-		primaryReplicaClient, err := sql.NewInternalClientWithPodIndex(testCtx, replicaMdb, testRefResolver, primaryReplicaPodIndex)
+		primaryReplicaPodIndex := replicaMdb.Status.CurrentPrimaryPodIndex
+		primaryReplicaClient, err := sql.NewInternalClientWithPodIndex(testCtx, replicaMdb, testRefResolver, *primaryReplicaPodIndex)
 		Expect(err).To(Succeed())
 		defer primaryReplicaClient.Close()
 
@@ -224,10 +233,18 @@ var _ = Describe("MariaDB MultiCluster with Replication", Ordered, Focus, func()
 
 		By("Getting replica MariaDB client")
 		Expect(k8sClient.Get(testCtx, replicaKey, replicaMdb)).To(Succeed())
+		Expect(replicaMdb.Status.CurrentPrimary).NotTo(BeNil())
+
 		// replica index in replica cluster
-		replicaPodIndex := getPodIndexForRole(replicaMdb, mariadbv1alpha1.ReplicationRoleReplica)
+		var replicaPodIndex *int
+		for i := 0; i < int(replicaMdb.Spec.Replicas); i++ {
+			if i != *replicaMdb.Status.CurrentPrimaryPodIndex {
+				replicaPodIndex = &i
+				break
+			}
+		}
 		Expect(primaryReplicaPodIndex).ToNot(BeNil())
-		replicaClient, err := sql.NewInternalClientWithPodIndex(testCtx, replicaMdb, testRefResolver, replicaPodIndex)
+		replicaClient, err := sql.NewInternalClientWithPodIndex(testCtx, replicaMdb, testRefResolver, *replicaPodIndex)
 		Expect(err).To(Succeed())
 		defer replicaClient.Close()
 
@@ -293,6 +310,7 @@ func multiClusterReplicationDecorator(gtidDomainID *int, serverStartIndex *int) 
 			ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
 				GtidDomainID:       gtidDomainID,
 				ServerIDStartIndex: serverStartIndex,
+				SemiSyncEnabled:    ptr.To(false),
 				Replica: mariadbv1alpha1.ReplicaReplication{
 					ReplPasswordSecretKeyRef: &mariadbv1alpha1.GeneratedSecretKeyRef{
 						SecretKeySelector: mariadbv1alpha1.SecretKeySelector{
@@ -341,25 +359,6 @@ func buildExternalMariadb(key types.NamespacedName, host string) *mariadbv1alpha
 			},
 		},
 	}
-}
-
-func getPodIndexForRole(mdb *mariadbv1alpha1.MariaDB, role mariadbv1alpha1.ReplicationRole) int {
-	replStatus := mdb.Status.Replication
-	Expect(replStatus).ToNot(BeNil())
-	roles := replStatus.Roles
-	Expect(roles).ToNot(BeNil())
-
-	var pod string
-	for p, r := range roles {
-		if r == role {
-			pod = p
-			break
-		}
-	}
-	podIndex, err := statefulset.PodIndex(pod)
-	Expect(err).ToNot(HaveOccurred())
-	Expect(podIndex).ToNot(BeNil())
-	return *podIndex
 }
 
 func testGtidCurrentPos(client sql.Client, domainIds ...int) {
