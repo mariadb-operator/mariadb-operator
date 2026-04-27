@@ -375,10 +375,10 @@ func testGtidCurrentPos(client sql.Client, domainIds ...int) {
 	}, testTimeout, testInterval).Should(BeTrue())
 }
 
-func testReplicationRunning(client sql.Client, connectioName *string) {
+func testReplicationRunning(client sql.Client, connectionName *string) {
 	var opts []sql.ReplicationOpt
-	if connectioName != nil {
-		opts = append(opts, sql.WithConnectionName(*connectioName))
+	if connectionName != nil {
+		opts = append(opts, sql.WithConnectionName(*connectionName))
 	}
 
 	Eventually(func(g Gomega) bool {
