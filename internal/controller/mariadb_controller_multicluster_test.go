@@ -15,7 +15,7 @@ import (
 	"k8s.io/utils/ptr"
 )
 
-var _ = Describe("MariaDB MultiCluster with Replication", Ordered, Focus, func() {
+var _ = Describe("MariaDB multi-cluster with replication", Ordered, Focus, func() {
 	var (
 		primaryKey = types.NamespacedName{
 			Name:      "mariadb-eu-south",
@@ -180,7 +180,7 @@ var _ = Describe("MariaDB MultiCluster with Replication", Ordered, Focus, func()
 
 	It("should allow to perform writes in the primary", func() {
 		Expect(k8sClient.Get(testCtx, primaryKey, primaryMdb)).To(Succeed())
-		Expect(primaryMdb.Status.CurrentPrimary).NotTo(BeNil())
+		Expect(primaryMdb.Status.CurrentPrimaryPodIndex).NotTo(BeNil())
 		podIndex := *primaryMdb.Status.CurrentPrimaryPodIndex
 
 		// in addition to verify writes, this increases gtid_current_pos, to be validated in the next step.
@@ -196,7 +196,7 @@ var _ = Describe("MariaDB MultiCluster with Replication", Ordered, Focus, func()
 	It("should have valid replication status", func() {
 		By("Getting primary MariaDB client")
 		Expect(k8sClient.Get(testCtx, primaryKey, primaryMdb)).To(Succeed())
-		Expect(primaryMdb.Status.CurrentPrimary).NotTo(BeNil())
+		Expect(primaryMdb.Status.CurrentPrimaryPodIndex).NotTo(BeNil())
 
 		// replica index in primary cluster
 		var primaryPodIndex *int
@@ -252,6 +252,76 @@ var _ = Describe("MariaDB MultiCluster with Replication", Ordered, Focus, func()
 		testGtidCurrentPos(*replicaClient, *primaryGtidDomainId, *replicaGtidDomainId)
 		By("Ensuring replica replication running")
 		testReplicationRunning(*replicaClient, nil)
+	})
+
+	It("should perform switchover in primary cluster", func() {
+		Expect(k8sClient.Get(testCtx, primaryKey, primaryMdb)).To(Succeed())
+		Expect(primaryMdb.Status.CurrentPrimaryPodIndex).NotTo(BeNil())
+		currentPrimaryPodIndex := primaryMdb.Status.CurrentPrimaryPodIndex
+		var newPrimaryPodIndex *int
+		for i := 0; i < int(primaryMdb.Spec.Replicas); i++ {
+			if i != *currentPrimaryPodIndex {
+				newPrimaryPodIndex = &i
+				break
+			}
+		}
+
+		By("Triggering switchover in primary MariaDB")
+		Eventually(func() bool {
+			if err := k8sClient.Get(testCtx, primaryKey, primaryMdb); err != nil {
+				return false
+			}
+			primaryMdb.Spec.Replication.Primary.PodIndex = newPrimaryPodIndex
+			return k8sClient.Update(testCtx, primaryMdb) == nil
+		}, testTimeout, testInterval).Should(BeTrue())
+
+		By("Expecting primary MariaDB to be switched over eventually")
+		expectMariadbFn(testCtx, k8sClient, primaryKey, func(mdb *mariadbv1alpha1.MariaDB) bool {
+			if mdb.Status.CurrentPrimaryPodIndex == nil {
+				return false
+			}
+			return mdb.IsReady() && *mdb.Status.CurrentPrimaryPodIndex != *currentPrimaryPodIndex
+		})
+
+		By("Expecting replica MariaDB to be ready")
+		expectMariadbFn(testCtx, k8sClient, replicaKey, func(mdb *mariadbv1alpha1.MariaDB) bool {
+			return mdb.IsReady()
+		})
+	})
+
+	It("should perform switchover in replica cluster", func() {
+		Expect(k8sClient.Get(testCtx, replicaKey, replicaMdb)).To(Succeed())
+		Expect(replicaMdb.Status.CurrentPrimaryPodIndex).NotTo(BeNil())
+		currentPrimaryPodIndex := replicaMdb.Status.CurrentPrimaryPodIndex
+		var newPrimaryPodIndex *int
+		for i := 0; i < int(replicaMdb.Spec.Replicas); i++ {
+			if i != *currentPrimaryPodIndex {
+				newPrimaryPodIndex = &i
+				break
+			}
+		}
+
+		By("Triggering switchover in replica MariaDB")
+		Eventually(func() bool {
+			if err := k8sClient.Get(testCtx, replicaKey, replicaMdb); err != nil {
+				return false
+			}
+			replicaMdb.Spec.Replication.Primary.PodIndex = newPrimaryPodIndex
+			return k8sClient.Update(testCtx, replicaMdb) == nil
+		}, testTimeout, testInterval).Should(BeTrue())
+
+		By("Expecting replica MariaDB to be switched over eventually")
+		expectMariadbFn(testCtx, k8sClient, replicaKey, func(mdb *mariadbv1alpha1.MariaDB) bool {
+			if mdb.Status.CurrentPrimaryPodIndex == nil {
+				return false
+			}
+			return mdb.IsReady() && *mdb.Status.CurrentPrimaryPodIndex != *currentPrimaryPodIndex
+		})
+
+		By("Expecting primary MariaDB to be ready")
+		expectMariadbFn(testCtx, k8sClient, primaryKey, func(mdb *mariadbv1alpha1.MariaDB) bool {
+			return mdb.IsReady()
+		})
 	})
 })
 
