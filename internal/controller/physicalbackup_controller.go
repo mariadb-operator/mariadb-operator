@@ -103,7 +103,7 @@ func (r *PhysicalBackupReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		WithValues(
 			"mariadb", mariadb.Name,
 		)
-	if !shouldReconcilePhysicalBackup(mariadb, logger) {
+	if !shouldReconcilePhysicalBackup(&backup, mariadb, logger) {
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 
@@ -336,7 +336,9 @@ func (r *PhysicalBackupReconciler) SetupWithManager(ctx context.Context, mgr ctr
 	return builder.Complete(r)
 }
 
-func shouldReconcilePhysicalBackup(mdb *mariadbv1alpha1.MariaDB, logger logr.Logger) bool {
+func shouldReconcilePhysicalBackup(backup *mariadbv1alpha1.PhysicalBackup, mdb *mariadbv1alpha1.MariaDB, logger logr.Logger) bool {
+	isReplicaRecoveryBackup := isReplicaRecoveryPhysicalBackup(backup, mdb)
+
 	if mdb.IsSuspended() {
 		logger.Info("MariaDB is suspended, skipping PhysicalBackup schedule...")
 		return false
@@ -354,6 +356,10 @@ func shouldReconcilePhysicalBackup(mdb *mariadbv1alpha1.MariaDB, logger logr.Log
 		return false
 	}
 	if mdb.IsUpdating() || mdb.HasPendingUpdate() {
+		if isReplicaRecoveryBackup {
+			logger.Info("Update in progress, continuing replica recovery PhysicalBackup schedule...")
+			return true
+		}
 		logger.Info("Update in progress, skipping PhysicalBackup schedule...")
 		return false
 	}
@@ -374,6 +380,13 @@ func shouldReconcilePhysicalBackup(mdb *mariadbv1alpha1.MariaDB, logger logr.Log
 		return false
 	}
 	return true
+}
+
+func isReplicaRecoveryPhysicalBackup(backup *mariadbv1alpha1.PhysicalBackup, mdb *mariadbv1alpha1.MariaDB) bool {
+	if backup == nil || mdb == nil || !mdb.IsRecoveringReplicas() {
+		return false
+	}
+	return client.ObjectKeyFromObject(backup) == mdb.PhysicalBackupReplicaRecoveryKey()
 }
 
 func getObjectName(obj client.Object, now time.Time) string {

@@ -17,6 +17,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/sql"
 	stsobj "github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/wait"
+	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -101,6 +102,9 @@ func (r *MariaDBReconciler) reconcileReplicaRecovery(ctx context.Context, mariad
 		return ctrl.Result{}, fmt.Errorf("error patching MariaDB status: %v", err)
 	}
 	logger.V(1).Info("Recovering replicas")
+	if result, err := r.quiescePVCRecoveryReplicas(ctx, mariadb, pvcRecoveryReplicas, logger); !result.IsZero() || err != nil {
+		return result, err
+	}
 	physicalBackupKey := mariadb.PhysicalBackupReplicaRecoveryKey()
 	physicalBackup, snapshotKey, result, err := r.reconcileReplicaRecoveryBackup(
 		ctx,
@@ -153,6 +157,12 @@ func (r *MariaDBReconciler) resetReplicaRecoveryIfNotNeeded(ctx context.Context,
 	}
 	if err := r.clearReplicaRecoveryRefreshPVCUIDAnnotations(ctx, mariadb); err != nil {
 		return false, fmt.Errorf("error clearing replica recovery retry annotations: %v", err)
+	}
+	if err := r.clearReplicaRecoveryNodeAnnotations(ctx, mariadb); err != nil {
+		return false, fmt.Errorf("error clearing replica recovery node annotations: %v", err)
+	}
+	if err := r.clearReplicaRecoveryCompletedPVCUIDAnnotations(ctx, mariadb); err != nil {
+		return false, fmt.Errorf("error clearing replica recovery completed PVC annotations: %v", err)
 	}
 	if err := r.cleanupReplicaRecoveryArtifacts(ctx, mariadb); err != nil {
 		return false, fmt.Errorf("error cleaning replica recovery artifacts: %v", err)
@@ -355,6 +365,125 @@ func (r *MariaDBReconciler) reconcileReplicasToRecover(ctx context.Context, repl
 	return ctrl.Result{Requeue: true}, nil
 }
 
+func (r *MariaDBReconciler) quiescePVCRecoveryReplicas(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+	replicas []string, logger logr.Logger) (ctrl.Result, error) {
+	if len(replicas) == 0 {
+		return ctrl.Result{}, nil
+	}
+
+	podsToDelete := make(map[string]types.NamespacedName, len(replicas))
+	pendingRecoveryReplica := false
+	for _, replica := range replicas {
+		action, result, err := r.getPVCRecoveryQuiesceAction(ctx, mariadb, replica, logger)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		if !result.IsZero() {
+			return result, nil
+		}
+		if !action.pending {
+			continue
+		}
+		pendingRecoveryReplica = true
+		if action.podKey != nil {
+			podsToDelete[replica] = *action.podKey
+		}
+	}
+	if !pendingRecoveryReplica {
+		return ctrl.Result{}, nil
+	}
+
+	stsDeleted := false
+	var sts appsv1.StatefulSet
+	if err := r.Get(ctx, client.ObjectKeyFromObject(mariadb), &sts); err != nil {
+		if !apierrors.IsNotFound(err) {
+			return ctrl.Result{}, fmt.Errorf("error getting StatefulSet: %v", err)
+		}
+	} else {
+		if err := r.deleteStatefulSetLeavingOrphanPods(ctx, mariadb); err != nil {
+			return ctrl.Result{}, fmt.Errorf("error deleting StatefulSet: %v", err)
+		}
+		stsDeleted = true
+	}
+
+	podDeleted := false
+	for replica, podKey := range podsToDelete {
+		if err := r.ensurePodDeleted(ctx, podKey, logger.WithValues("replica", replica)); err != nil {
+			return ctrl.Result{}, fmt.Errorf("error ensuring Pod deleted: %v", err)
+		}
+		podDeleted = true
+	}
+
+	if stsDeleted || podDeleted {
+		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+	}
+	return ctrl.Result{}, nil
+}
+
+type pvcRecoveryQuiesceAction struct {
+	pending bool
+	podKey  *types.NamespacedName
+}
+
+func (r *MariaDBReconciler) getPVCRecoveryQuiesceAction(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+	replica string, logger logr.Logger) (pvcRecoveryQuiesceAction, ctrl.Result, error) {
+	podIndex, err := stsobj.PodIndex(replica)
+	if err != nil {
+		return pvcRecoveryQuiesceAction{}, ctrl.Result{}, fmt.Errorf("error getting replica pod index: %v", err)
+	}
+	pvcState, pvcStateFound, err := r.getStoragePVCState(ctx, mariadb, *podIndex)
+	if err != nil {
+		return pvcRecoveryQuiesceAction{}, ctrl.Result{}, fmt.Errorf("error getting replica storage PVC state: %v", err)
+	}
+	if pvcStateFound && isReplicaRecoveryCompletedForPVC(mariadb.Annotations, *podIndex, pvcState) {
+		return pvcRecoveryQuiesceAction{}, ctrl.Result{}, nil
+	}
+
+	initJobComplete, err := r.isInitJobComplete(ctx, mariadb.PhysicalBackupInitJobKey(*podIndex))
+	if err != nil {
+		return pvcRecoveryQuiesceAction{}, ctrl.Result{}, fmt.Errorf("error checking recovery Job status: %v", err)
+	}
+	if initJobComplete {
+		if pvcStateFound && pvcState.UID != "" {
+			if err := r.recordReplicaRecoveryCompletedPVC(ctx, mariadb, *podIndex, pvcState.UID); err != nil {
+				return pvcRecoveryQuiesceAction{}, ctrl.Result{}, err
+			}
+		}
+		return pvcRecoveryQuiesceAction{}, ctrl.Result{}, nil
+	}
+
+	podKey := types.NamespacedName{
+		Name:      replica,
+		Namespace: mariadb.Namespace,
+	}
+	pod, err := r.getPodIfExists(ctx, podKey)
+	if err != nil {
+		return pvcRecoveryQuiesceAction{}, ctrl.Result{}, err
+	}
+	if pod == nil {
+		if _, ok := storedReplicaRecoveryNode(mariadb.Annotations, *podIndex); !ok {
+			logger.V(1).Info("Waiting for replica pod to exist before pausing PVC recovery target", "replica", replica)
+			return pvcRecoveryQuiesceAction{}, ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+		}
+		return pvcRecoveryQuiesceAction{pending: true}, ctrl.Result{}, nil
+	}
+	if pod.Spec.NodeName == "" {
+		logger.V(1).Info("Waiting for replica pod to be scheduled before pausing PVC recovery target", "replica", replica)
+		return pvcRecoveryQuiesceAction{}, ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+	}
+	if err := r.syncReplicaRecoveryNodeAnnotation(ctx, mariadb, *podIndex, pod.Spec.NodeName); err != nil {
+		return pvcRecoveryQuiesceAction{}, ctrl.Result{}, fmt.Errorf("error recording replica recovery node: %v", err)
+	}
+	if mariadb.Annotations == nil {
+		mariadb.Annotations = map[string]string{}
+	}
+	mariadb.Annotations[replicaRecoveryNodeAnnotationKey(*podIndex)] = pod.Spec.NodeName
+	return pvcRecoveryQuiesceAction{
+		pending: true,
+		podKey:  &podKey,
+	}, ctrl.Result{}, nil
+}
+
 func (r *MariaDBReconciler) reconcileJobReplicaRecovery(ctx context.Context, replica string, physicalBackup *mariadbv1alpha1.PhysicalBackup,
 	mariadb *mariadbv1alpha1.MariaDB, logger logr.Logger) (ctrl.Result, error) {
 	podIndex, err := stsobj.PodIndex(replica)
@@ -388,6 +517,9 @@ func (r *MariaDBReconciler) reconcileJobReplicaRecovery(ctx context.Context, rep
 	); !result.IsZero() || err != nil {
 		return result, err
 	}
+	if err := r.recordReplicaRecoveryCompletedPVC(ctx, mariadb, *podIndex, pvcState.UID); err != nil {
+		return ctrl.Result{}, err
+	}
 
 	if result, err := r.reconcileStatefulSet(ctx, mariadb); !result.IsZero() || err != nil {
 		return result, err
@@ -399,6 +531,21 @@ func (r *MariaDBReconciler) reconcileJobReplicaRecovery(ctx context.Context, rep
 		return ctrl.Result{}, err
 	}
 	return ctrl.Result{}, nil
+}
+
+func (r *MariaDBReconciler) recordReplicaRecoveryCompletedPVC(ctx context.Context,
+	mariadb *mariadbv1alpha1.MariaDB, podIndex int, pvcUID string) error {
+	if err := r.syncReplicaRecoveryCompletedPVCUIDAnnotation(ctx, mariadb, podIndex, pvcUID); err != nil {
+		return fmt.Errorf("error recording replica recovery completed PVC: %v", err)
+	}
+	if pvcUID == "" {
+		return nil
+	}
+	if mariadb.Annotations == nil {
+		mariadb.Annotations = map[string]string{}
+	}
+	mariadb.Annotations[replicaRecoveryCompletedPVCUIDAnnotationKey(podIndex)] = pvcUID
+	return nil
 }
 
 func (r *MariaDBReconciler) reconcileReplicaRecoveryPVC(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
@@ -518,13 +665,21 @@ func (r *MariaDBReconciler) ensureRecoveryJobCreated(ctx context.Context, physic
 		return ctrl.Result{}, fmt.Errorf("error getting recovery Job: %v", err)
 	}
 
-	if pod == nil {
-		logger.V(1).Info("Waiting for Pod to exist before creating recovery Job")
-		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
-	}
-	if pod.Spec.NodeName == "" {
-		logger.V(1).Info("Waiting for Pod to be scheduled before creating recovery Job", "pod", pod.Name)
-		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+	if pod == nil || pod.Spec.NodeName == "" {
+		if nodeName, ok := storedReplicaRecoveryNode(mariadb.Annotations, podIndex); ok && nodeName != "" {
+			logger.V(1).Info("Using stored recovery node to create PhysicalBackup init job", "node", nodeName)
+			pod = &corev1.Pod{
+				Spec: corev1.PodSpec{
+					NodeName: nodeName,
+				},
+			}
+		} else if pod == nil {
+			logger.V(1).Info("Waiting for Pod to exist before creating recovery Job")
+			return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+		} else {
+			logger.V(1).Info("Waiting for Pod to be scheduled before creating recovery Job", "pod", pod.Name)
+			return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+		}
 	}
 
 	replication := ptr.Deref(mariadb.Spec.Replication, mariadbv1alpha1.Replication{})
@@ -749,6 +904,9 @@ func (r *MariaDBReconciler) retryReplicaRecoveryWithFreshBackup(ctx context.Cont
 	if err := r.syncReplicaRecoveryRefreshPVCUIDAnnotation(ctx, mariadb, *podIndex, pvcState.UID); err != nil {
 		return false, fmt.Errorf("error recording replica recovery retry: %v", err)
 	}
+	if err := r.clearReplicaRecoveryCompletedPVCUIDAnnotation(ctx, mariadb, *podIndex); err != nil {
+		return false, fmt.Errorf("error clearing replica recovery completed PVC annotation: %v", err)
+	}
 	if err := r.cleanupReplicaRecoveryArtifacts(ctx, mariadb); err != nil {
 		return false, fmt.Errorf("error cleaning replica recovery artifacts: %v", err)
 	}
@@ -777,6 +935,12 @@ func (r *MariaDBReconciler) setReplicaRecoveredAndCleanup(ctx context.Context, m
 	}
 	if err := r.clearReplicaRecoveryRefreshPVCUIDAnnotations(ctx, mariadb); err != nil {
 		return fmt.Errorf("error clearing replica recovery retry annotations: %v", err)
+	}
+	if err := r.clearReplicaRecoveryNodeAnnotations(ctx, mariadb); err != nil {
+		return fmt.Errorf("error clearing replica recovery node annotations: %v", err)
+	}
+	if err := r.clearReplicaRecoveryCompletedPVCUIDAnnotations(ctx, mariadb); err != nil {
+		return fmt.Errorf("error clearing replica recovery completed PVC annotations: %v", err)
 	}
 	return nil
 }

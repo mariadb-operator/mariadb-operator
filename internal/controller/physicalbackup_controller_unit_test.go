@@ -3,81 +3,103 @@ package controller
 import (
 	"testing"
 
+	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
-	"k8s.io/utils/ptr"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func TestShouldWaitForConfiguredReplicaBackupTarget(t *testing.T) {
-	testCases := map[string]struct {
-		backup *mariadbv1alpha1.PhysicalBackup
-		mdb    *mariadbv1alpha1.MariaDB
-		want   bool
-	}{
-		"standalone does not wait": {
-			backup: &mariadbv1alpha1.PhysicalBackup{},
-			mdb:    &mariadbv1alpha1.MariaDB{},
-			want:   false,
+func TestShouldReconcilePhysicalBackupAllowsReplicaRecoveryDuringPendingUpdate(t *testing.T) {
+	mariadb := &mariadbv1alpha1.MariaDB{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "mdb",
+			Namespace: "default",
 		},
-		"replication without configured replica waits for strict replica target": {
-			backup: &mariadbv1alpha1.PhysicalBackup{
-				Spec: mariadbv1alpha1.PhysicalBackupSpec{
-					Target: ptr.To(mariadbv1alpha1.PhysicalBackupTargetReplica),
+		Status: mariadbv1alpha1.MariaDBStatus{
+			Conditions: []metav1.Condition{
+				{
+					Type:   mariadbv1alpha1.ConditionTypeUpdated,
+					Status: metav1.ConditionFalse,
+					Reason: mariadbv1alpha1.ConditionReasonPendingUpdate,
+				},
+				{
+					Type:   mariadbv1alpha1.ConditionTypeReplicaRecovered,
+					Status: metav1.ConditionFalse,
+					Reason: mariadbv1alpha1.ConditionReasonReplicaRecovering,
 				},
 			},
-			mdb: &mariadbv1alpha1.MariaDB{
-				Spec: mariadbv1alpha1.MariaDBSpec{
-					Replication: &mariadbv1alpha1.Replication{
-						Enabled: true,
-					},
-				},
-			},
-			want: true,
 		},
-		"replication with configured replica does not wait": {
-			backup: &mariadbv1alpha1.PhysicalBackup{
-				Spec: mariadbv1alpha1.PhysicalBackupSpec{
-					Target: ptr.To(mariadbv1alpha1.PhysicalBackupTargetReplica),
-				},
-			},
-			mdb: &mariadbv1alpha1.MariaDB{
-				Spec: mariadbv1alpha1.MariaDBSpec{
-					Replication: &mariadbv1alpha1.Replication{
-						Enabled: true,
-					},
-				},
-				Status: mariadbv1alpha1.MariaDBStatus{
-					Replication: &mariadbv1alpha1.ReplicationStatus{
-						Roles: map[string]mariadbv1alpha1.ReplicationRole{
-							"mariadb-1": mariadbv1alpha1.ReplicationRoleReplica,
-						},
-					},
-				},
-			},
-			want: false,
-		},
-		"prefer replica target can fall back to primary": {
-			backup: &mariadbv1alpha1.PhysicalBackup{
-				Spec: mariadbv1alpha1.PhysicalBackupSpec{
-					Target: ptr.To(mariadbv1alpha1.PhysicalBackupTargetPreferReplica),
-				},
-			},
-			mdb: &mariadbv1alpha1.MariaDB{
-				Spec: mariadbv1alpha1.MariaDBSpec{
-					Replication: &mariadbv1alpha1.Replication{
-						Enabled: true,
-					},
-				},
-			},
-			want: false,
+	}
+	recoveryKey := mariadb.PhysicalBackupReplicaRecoveryKey()
+	backup := &mariadbv1alpha1.PhysicalBackup{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      recoveryKey.Name,
+			Namespace: recoveryKey.Namespace,
 		},
 	}
 
-	for name, tc := range testCases {
-		t.Run(name, func(t *testing.T) {
-			got := shouldWaitForConfiguredReplicaBackupTarget(tc.backup, tc.mdb)
-			if got != tc.want {
-				t.Fatalf("expected %t, got %t", tc.want, got)
-			}
-		})
+	if !shouldReconcilePhysicalBackup(backup, mariadb, logr.Discard()) {
+		t.Fatal("expected replica recovery PhysicalBackup to reconcile during pending update")
+	}
+}
+
+func TestShouldReconcilePhysicalBackupSkipsRegularBackupDuringPendingUpdate(t *testing.T) {
+	mariadb := &mariadbv1alpha1.MariaDB{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "mdb",
+			Namespace: "default",
+		},
+		Status: mariadbv1alpha1.MariaDBStatus{
+			Conditions: []metav1.Condition{
+				{
+					Type:   mariadbv1alpha1.ConditionTypeUpdated,
+					Status: metav1.ConditionFalse,
+					Reason: mariadbv1alpha1.ConditionReasonPendingUpdate,
+				},
+				{
+					Type:   mariadbv1alpha1.ConditionTypeReplicaRecovered,
+					Status: metav1.ConditionFalse,
+					Reason: mariadbv1alpha1.ConditionReasonReplicaRecovering,
+				},
+			},
+		},
+	}
+	backup := &mariadbv1alpha1.PhysicalBackup{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "physicalbackup-tpl",
+			Namespace: "default",
+		},
+	}
+
+	if shouldReconcilePhysicalBackup(backup, mariadb, logr.Discard()) {
+		t.Fatal("expected regular PhysicalBackup to stay blocked during pending update")
+	}
+}
+
+func TestShouldReconcilePhysicalBackupSkipsRecoveryNameWhenNotRecoveringReplicas(t *testing.T) {
+	mariadb := &mariadbv1alpha1.MariaDB{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "mdb",
+			Namespace: "default",
+		},
+		Status: mariadbv1alpha1.MariaDBStatus{
+			Conditions: []metav1.Condition{
+				{
+					Type:   mariadbv1alpha1.ConditionTypeUpdated,
+					Status: metav1.ConditionFalse,
+					Reason: mariadbv1alpha1.ConditionReasonPendingUpdate,
+				},
+			},
+		},
+	}
+	recoveryKey := mariadb.PhysicalBackupReplicaRecoveryKey()
+	backup := &mariadbv1alpha1.PhysicalBackup{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      recoveryKey.Name,
+			Namespace: recoveryKey.Namespace,
+		},
+	}
+
+	if shouldReconcilePhysicalBackup(backup, mariadb, logr.Discard()) {
+		t.Fatal("expected recovery-named PhysicalBackup to stay blocked when replica recovery is not active")
 	}
 }
