@@ -25,6 +25,11 @@ var (
 	primaryGtidDomainId     = ptr.To(0)
 	primaryServerStartIndex = ptr.To(10)
 	primaryBackup           *mariadbv1alpha1.PhysicalBackup
+	primaryMaxScaleKey      = types.NamespacedName{
+		Name:      "maxscale-eu-south",
+		Namespace: testNamespace,
+	}
+	primaryMaxScale *mariadbv1alpha1.MaxScale
 
 	replicaKey = types.NamespacedName{
 		Name:      "mariadb-eu-central",
@@ -34,6 +39,11 @@ var (
 	replicaExternalMdb      *mariadbv1alpha1.ExternalMariaDB
 	replicaGtidDomainId     = ptr.To(1)
 	replicaServerStartIndex = ptr.To(20)
+	replicaMaxScaleKey      = types.NamespacedName{
+		Name:      "maxscale-eu-central",
+		Namespace: testNamespace,
+	}
+	replicaMaxScale *mariadbv1alpha1.MaxScale
 
 	multiCluster = mariadbv1alpha1.MultiCluster{
 		Enabled: true,
@@ -62,7 +72,7 @@ var (
 	}
 )
 
-var _ = Describe("MariaDB multi-cluster with replication", Ordered, Focus, func() {
+var _ = Describe("MariaDB multi-cluster with replication", Ordered, func() {
 	BeforeAll(func() {
 		primaryBackup = buildPhysicalBackupWithS3Storage(
 			primaryKey,
@@ -97,14 +107,14 @@ var _ = Describe("MariaDB multi-cluster with replication", Ordered, Focus, func(
 			),
 		)(replicaKey)
 
-		primaryExternalMdb = buildExternalMariadb(
+		primaryExternalMdb = buildMultiClusterExternalMariadb(
 			primaryKey,
 			statefulset.ServiceFQDN(metav1.ObjectMeta{
 				Name:      primaryMdb.PrimaryServiceKey().Name,
 				Namespace: primaryMdb.Namespace,
 			}),
 		)
-		replicaExternalMdb = buildExternalMariadb(
+		replicaExternalMdb = buildMultiClusterExternalMariadb(
 			replicaKey,
 			statefulset.ServiceFQDN(metav1.ObjectMeta{
 				Name:      replicaMdb.PrimaryServiceKey().Name,
@@ -267,6 +277,191 @@ var _ = Describe("MariaDB multi-cluster with replication", Ordered, Focus, func(
 	It("should have valid replication status after switchover", testReplicationStatus)
 })
 
+var _ = Describe("MariaDB multi-cluster with replication and MaxScale", Ordered, Focus, func() {
+	BeforeAll(func() {
+		primaryBackup = buildPhysicalBackupWithS3Storage(
+			primaryKey,
+			"test-multi-cluster",
+			primaryKey.Name,
+		)(primaryKey)
+
+		primaryMdb = applyDecoratorChain(
+			multiClusterMariaDBBuilder(
+				prefixedIPAddr(".1.10"),
+				multiCluster,
+			),
+			multiClusterReplicationDecorator(
+				primaryGtidDomainId,
+				primaryServerStartIndex,
+			),
+			mariadbMaxScaleDecorator(primaryMaxScaleKey),
+		)(primaryKey)
+		replicaMdb = applyDecoratorChain(
+			multiClusterMariaDBBuilder(
+				prefixedIPAddr(".1.15"),
+				multiCluster,
+			),
+			multiClusterReplicationDecorator(
+				replicaGtidDomainId,
+				replicaServerStartIndex,
+			),
+			mariadbBootstrapFromDecorator(
+				&mariadbv1alpha1.BootstrapFrom{
+					BackupContentType: mariadbv1alpha1.BackupContentTypePhysical,
+					S3:                primaryBackup.Spec.Storage.S3,
+				},
+			),
+			mariadbMaxScaleDecorator(replicaMaxScaleKey),
+		)(replicaKey)
+
+		primaryMaxScale = buildMultiClusterMaxScale(primaryMaxScaleKey, primaryKey, prefixedIPAddr(".1.20"))
+		replicaMaxScale = buildMultiClusterMaxScale(replicaMaxScaleKey, replicaKey, prefixedIPAddr(".1.24"))
+
+		primaryExternalMdb = buildMultiClusterExternalMariadb(
+			primaryKey,
+			statefulset.ServiceFQDN(metav1.ObjectMeta{
+				Name:      primaryMaxScaleKey.Name,
+				Namespace: primaryMaxScaleKey.Namespace,
+			}),
+		)
+		replicaExternalMdb = buildMultiClusterExternalMariadb(
+			replicaKey,
+			statefulset.ServiceFQDN(metav1.ObjectMeta{
+				Name:      replicaMaxScaleKey.Name,
+				Namespace: replicaMaxScaleKey.Namespace,
+			}),
+		)
+	})
+
+	// TODO: idempotent cleanup
+	// AfterAll(func() {
+	// 	deleteMariadb(primaryKey, false)
+	// 	deleteExternalMariadb(primaryKey, false)
+	// 	deletePhysicalBackup(primaryKey)
+	// 	deleteMariadb(replicaKey, false)
+	// 	deleteExternalMariadb(replicaKey, false)
+	// })
+
+	It("should reconcile primary cluster", func() {
+		By("Creating primary MariaDB")
+		Expect(k8sClient.Create(testCtx, primaryMdb)).To(Succeed())
+		By("Creating primary MaxScale")
+		Expect(k8sClient.Create(testCtx, primaryMaxScale)).To(Succeed())
+
+		By("Expecting primary MariaDB to be ready eventually")
+		expectMariadbFn(testCtx, k8sClient, primaryKey, func(mdb *mariadbv1alpha1.MariaDB) bool {
+			return mdb.IsReady()
+		})
+		By("Expecting primary MaxScale to be ready eventually")
+		Eventually(func() bool {
+			if err := k8sClient.Get(testCtx, primaryMaxScaleKey, primaryMaxScale); err != nil {
+				return false
+			}
+			return primaryMaxScale.IsReady()
+		}, testTimeout, testInterval).Should(BeTrue())
+
+		By("Creating primary ExternalMariaDB")
+		Expect(k8sClient.Create(testCtx, primaryExternalMdb)).To(Succeed())
+
+		By("Expecting primary ExternalMariaDB to be ready eventually")
+		Eventually(func() bool {
+			if err := k8sClient.Get(testCtx, primaryKey, primaryExternalMdb); err != nil {
+				return false
+			}
+			return primaryExternalMdb.IsReady()
+		}, testTimeout, testInterval).Should(BeTrue())
+	})
+
+	It("should create a physical backup of primary cluster", func() {
+		By("Creating PhysicalBackup")
+		Expect(k8sClient.Create(testCtx, primaryBackup)).To(Succeed())
+
+		By("Expecting PhysicalBackup to complete eventually")
+		Eventually(func() bool {
+			if err := k8sClient.Get(testCtx, primaryKey, primaryBackup); err != nil {
+				return false
+			}
+			return primaryBackup.IsComplete()
+		}, testTimeout, testInterval).Should(BeTrue())
+	})
+
+	It("should create replica cluster from physical backup", func() {
+		By("Creating replica MariaDB")
+		Expect(k8sClient.Create(testCtx, replicaMdb)).To(Succeed())
+		By("Creating replica MaxScale")
+		Expect(k8sClient.Create(testCtx, replicaMaxScale)).To(Succeed())
+
+		By("Expecting replica MariaDB to be ready eventually")
+		expectMariadbFn(testCtx, k8sClient, replicaKey, func(mdb *mariadbv1alpha1.MariaDB) bool {
+			return mdb.IsReady()
+		})
+		By("Expecting replica MaxScale to be ready eventually")
+		Eventually(func() bool {
+			if err := k8sClient.Get(testCtx, replicaMaxScaleKey, replicaMaxScale); err != nil {
+				return false
+			}
+			return replicaMaxScale.IsReady()
+		}, testTimeout, testInterval).Should(BeTrue())
+
+		By("Creating replica ExternalMariaDB")
+		Expect(k8sClient.Create(testCtx, replicaExternalMdb)).To(Succeed())
+
+		By("Expecting ExternalMariaDB to eventually be ready")
+		Eventually(func() bool {
+			if err := k8sClient.Get(testCtx, replicaKey, replicaExternalMdb); err != nil {
+				return false
+			}
+			return replicaExternalMdb.IsReady()
+		}, testTimeout, testInterval).Should(BeTrue())
+	})
+
+	It("should allow to perform writes in the primary", func() {
+		By("Expecting primary MaxScale to be ready eventually")
+		Eventually(func() bool {
+			if err := k8sClient.Get(testCtx, primaryMaxScaleKey, primaryMaxScale); err != nil {
+				return false
+			}
+			return primaryMaxScale.IsReady()
+		}, testTimeout, testInterval).Should(BeTrue())
+
+		caCert, err := testRefResolver.SecretKeyRef(
+			testCtx,
+			mariadbv1alpha1.SecretKeySelector{
+				LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+					Name: "mariadb-server-ca",
+				},
+				Key: "ca.crt",
+			},
+			testNamespace,
+		)
+		Expect(err).ToNot(HaveOccurred())
+
+		client, err := sql.NewClient(
+			sql.WithHost(statefulset.ServiceFQDN(metav1.ObjectMeta{
+				Name:      primaryMaxScaleKey.Name,
+				Namespace: primaryMaxScaleKey.Namespace,
+			})),
+			sql.WithPort(3306),
+			sql.WithUsername("root"),
+			sql.WithPassword("MariaDB11!"),
+			sql.WithCustomTLSCA("mariadb-server-ca", []byte(caCert)),
+		)
+		Expect(err).ToNot(HaveOccurred())
+		defer client.Close()
+
+		// in addition to verify writes, this increases gtid_current_pos, to be validated in the next step.
+		By("Writing in primary MaxScale")
+		query := `CREATE DATABASE IF NOT EXISTS test;`
+		Expect(client.Exec(testCtx, query)).To(Succeed())
+		query = `CREATE TABLE IF NOT EXISTS test.test (id INT PRIMARY KEY AUTO_INCREMENT, test VARCHAR(100));`
+		Expect(client.Exec(testCtx, query)).To(Succeed())
+		query = `INSERT INTO test.test (test) VALUES ('test');`
+		Expect(client.Exec(testCtx, query)).To(Succeed())
+	})
+
+	It("should have valid replication status", testReplicationStatus)
+})
+
 func multiClusterMariaDBBuilder(ipAddr string,
 	multiCluster mariadbv1alpha1.MultiCluster) func(key types.NamespacedName) *mariadbv1alpha1.MariaDB {
 	return func(key types.NamespacedName) *mariadbv1alpha1.MariaDB {
@@ -346,17 +541,17 @@ func mariadbBootstrapFromDecorator(bootSstrapFrom *mariadbv1alpha1.BootstrapFrom
 	}
 }
 
-// func mariadbMaxScaleDecorator(maxScaleKey types.NamespacedName) func(*mariadbv1alpha1.MariaDB) *mariadbv1alpha1.MariaDB {
-// 	return func(mdb *mariadbv1alpha1.MariaDB) *mariadbv1alpha1.MariaDB {
-// 		mdb.Spec.MaxScaleRef = &mariadbv1alpha1.ObjectReference{
-// 			Name:      maxScaleKey.Name,
-// 			Namespace: testNamespace,
-// 		}
-// 		return mdb
-// 	}
-// }
+func mariadbMaxScaleDecorator(maxScaleKey types.NamespacedName) func(*mariadbv1alpha1.MariaDB) *mariadbv1alpha1.MariaDB {
+	return func(mdb *mariadbv1alpha1.MariaDB) *mariadbv1alpha1.MariaDB {
+		mdb.Spec.MaxScaleRef = &mariadbv1alpha1.ObjectReference{
+			Name:      maxScaleKey.Name,
+			Namespace: testNamespace,
+		}
+		return mdb
+	}
+}
 
-func buildExternalMariadb(key types.NamespacedName, host string) *mariadbv1alpha1.ExternalMariaDB {
+func buildMultiClusterExternalMariadb(key types.NamespacedName, host string) *mariadbv1alpha1.ExternalMariaDB {
 	return &mariadbv1alpha1.ExternalMariaDB{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      key.Name,
@@ -377,6 +572,105 @@ func buildExternalMariadb(key types.NamespacedName, host string) *mariadbv1alpha
 					ServerCASecretRef: &mariadbv1alpha1.LocalObjectReference{
 						Name: "mariadb-server-ca",
 					},
+				},
+			},
+		},
+	}
+}
+
+func buildMultiClusterMaxScale(key, mdbKey types.NamespacedName, ipAddr string) *mariadbv1alpha1.MaxScale {
+	return &mariadbv1alpha1.MaxScale{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      key.Name,
+			Namespace: key.Namespace,
+		},
+		Spec: mariadbv1alpha1.MaxScaleSpec{
+			MariaDBRef: &mariadbv1alpha1.MariaDBRef{
+				ObjectReference: mariadbv1alpha1.ObjectReference{
+					Name:      mdbKey.Name,
+					Namespace: mdbKey.Namespace,
+				},
+			},
+			Replicas: 2,
+			KubernetesService: &mariadbv1alpha1.ServiceTemplate{
+				Type: corev1.ServiceTypeLoadBalancer,
+				Metadata: &mariadbv1alpha1.Metadata{
+					Annotations: map[string]string{
+						"metallb.universe.tf/loadBalancerIPs": ipAddr,
+					},
+				},
+			},
+			Services: []mariadbv1alpha1.MaxScaleService{
+				{
+					Name:   "rw-router",
+					Router: mariadbv1alpha1.ServiceRouterReadWriteSplit,
+					Listener: mariadbv1alpha1.MaxScaleListener{
+						Port: 3306,
+					},
+					Params: map[string]string{
+						"enable_root_user": "true",
+					},
+				},
+			},
+			Monitor: mariadbv1alpha1.MaxScaleMonitor{
+				Name:                  key.Name,
+				CooperativeMonitoring: ptr.To(mariadbv1alpha1.CooperativeMonitoringMajorityOfRunning),
+			},
+			Auth: mariadbv1alpha1.MaxScaleAuth{
+				Generate:      ptr.To(false),
+				AdminUsername: "mariadb-operator",
+				AdminPasswordSecretKeyRef: mariadbv1alpha1.GeneratedSecretKeyRef{
+					SecretKeySelector: mariadbv1alpha1.SecretKeySelector{
+						LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+							Name: testPwdKey.Name,
+						},
+						Key: testPwdSecretKey,
+					},
+				},
+				ClientUsername: "root",
+				ClientPasswordSecretKeyRef: mariadbv1alpha1.GeneratedSecretKeyRef{
+					SecretKeySelector: mariadbv1alpha1.SecretKeySelector{
+						LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+							Name: testPwdKey.Name,
+						},
+						Key: testPwdSecretKey,
+					},
+				},
+				ServerUsername: "root",
+				ServerPasswordSecretKeyRef: mariadbv1alpha1.GeneratedSecretKeyRef{
+					SecretKeySelector: mariadbv1alpha1.SecretKeySelector{
+						LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+							Name: testPwdKey.Name,
+						},
+						Key: testPwdSecretKey,
+					},
+				},
+				MonitorUsername: "root",
+				MonitorPasswordSecretKeyRef: mariadbv1alpha1.GeneratedSecretKeyRef{
+					SecretKeySelector: mariadbv1alpha1.SecretKeySelector{
+						LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+							Name: testPwdKey.Name,
+						},
+						Key: testPwdSecretKey,
+					},
+				},
+				SyncUsername: ptr.To("root"),
+				SyncPasswordSecretKeyRef: &mariadbv1alpha1.GeneratedSecretKeyRef{
+					SecretKeySelector: mariadbv1alpha1.SecretKeySelector{
+						LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+							Name: testPwdKey.Name,
+						},
+						Key: testPwdSecretKey,
+					},
+				},
+			},
+			TLS: &mariadbv1alpha1.MaxScaleTLS{
+				Enabled: true,
+				ListenerCASecretRef: &mariadbv1alpha1.LocalObjectReference{
+					Name: "mariadb-server-ca",
+				},
+				ServerCASecretRef: &mariadbv1alpha1.LocalObjectReference{
+					Name: "mariadb-server-ca",
 				},
 			},
 		},
@@ -433,7 +727,7 @@ func testReplicationStatus() {
 			break
 		}
 	}
-	Expect(primaryReplicaPodIndex).ToNot(BeNil())
+	Expect(replicaPodIndex).ToNot(BeNil())
 	replicaClient, err := sql.NewInternalClientWithPodIndex(testCtx, replicaMdb, testRefResolver, *replicaPodIndex)
 	Expect(err).To(Succeed())
 	defer replicaClient.Close()
