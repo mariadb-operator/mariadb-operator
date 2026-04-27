@@ -31,6 +31,8 @@ spec:
     enabled: true
     gtidDomainId: 1
     serverIdStartIndex: 20
+    # Prevent timeouts from replica ACKs in cross-regional setups.
+    semiSyncEnabled: false
     # primary:
     #   podIndex: 0
     replica:
