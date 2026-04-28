@@ -177,6 +177,16 @@ func (r *MariaDBReconciler) getReplicationRole(ctx context.Context, mdb *mariadb
 	return role, nil
 }
 
+func shouldSkipReplicaStatusForPod(mdb *mariadbv1alpha1.MariaDB, podIndex int) bool {
+	isPrimary := podIndex == *mdb.Status.CurrentPrimaryPodIndex
+	if mdb.IsMultiClusterEnabled() {
+		// Primary pod does not have a replication status in multi-cluster topology, but primary replica does.
+		return isPrimary && !mdb.IsMultiClusterPrimaryReplica(podIndex)
+	}
+	// Primary pod does not have a replication status in single-cluster topology.
+	return isPrimary
+}
+
 func (r *MariaDBReconciler) getReplicaStatus(ctx context.Context,
 	mdb *mariadbv1alpha1.MariaDB, logger logr.Logger) (map[string]mariadbv1alpha1.ReplicaStatus, error) {
 	if !mdb.IsReplicationEnabled() {
@@ -196,7 +206,7 @@ func (r *MariaDBReconciler) getReplicaStatus(ctx context.Context,
 
 	var replicaStatus map[string]mariadbv1alpha1.ReplicaStatus
 	for i := 0; i < int(mdb.Spec.Replicas); i++ {
-		if i == *mdb.Status.CurrentPrimaryPodIndex && !mdb.IsMultiClusterPrimaryReplica(i) {
+		if shouldSkipReplicaStatusForPod(mdb, i) {
 			continue
 		}
 		pod := stspkg.PodName(mdb.ObjectMeta, i)
