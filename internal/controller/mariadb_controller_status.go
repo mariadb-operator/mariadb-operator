@@ -133,26 +133,22 @@ func (r *MariaDBReconciler) getReplicationRoles(ctx context.Context,
 func (r *MariaDBReconciler) getReplicationRole(ctx context.Context, mdb *mariadbv1alpha1.MariaDB, podIndex int,
 	client *sql.Client, logger logr.Logger) (mariadbv1alpha1.ReplicationRole, error) {
 	var (
-		err                error
-		aggErr             *multierror.Error
-		isPrimaryReplica   bool
-		isSecondaryReplica bool
-		isReplica          bool
-		isPrimary          bool
+		err              error
+		aggErr           *multierror.Error
+		isPrimaryReplica bool
+		isReplica        bool
+		isPrimary        bool
 	)
 
-	if mdb.IsMultiClusterEnabled() {
-		if mdb.IsMultiClusterPrimaryReplica(podIndex) {
-			isPrimaryReplica, err = client.IsReplicationPrimaryReplica(
-				ctx,
-				logger,
-				sql.WithConnectionName(replication.MultiClusterReplicaConnectionName),
-			)
-			if err != nil && !sql.IsConnectionNotExists(err) {
-				aggErr = multierror.Append(aggErr, err)
-			}
+	if mdb.IsMultiClusterPrimaryReplica(podIndex) {
+		isPrimaryReplica, err = client.IsReplicationPrimaryReplica(
+			ctx,
+			logger,
+			sql.WithConnectionName(replication.MultiClusterReplicaConnectionName),
+		)
+		if err != nil && !sql.IsConnectionNotExists(err) {
+			aggErr = multierror.Append(aggErr, err)
 		}
-		isSecondaryReplica = mdb.IsMultiClusterSecondaryReplica(podIndex) && !isPrimaryReplica
 	}
 
 	isReplica, err = client.IsReplicationReplica(ctx)
@@ -167,8 +163,6 @@ func (r *MariaDBReconciler) getReplicationRole(ctx context.Context, mdb *mariadb
 	role := mariadbv1alpha1.ReplicationRoleUnknown
 	if isPrimaryReplica {
 		role = mariadbv1alpha1.ReplicationRolePrimaryReplica
-	} else if isSecondaryReplica {
-		role = mariadbv1alpha1.ReplicationRoleSecondaryReplica
 	} else if isReplica {
 		role = mariadbv1alpha1.ReplicationRoleReplica
 	} else if isPrimary {
