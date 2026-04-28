@@ -1253,11 +1253,18 @@ func deleteMariadb(key types.NamespacedName, assertPVCDeletion bool) {
 	}, testHighTimeout, testInterval).Should(BeTrue())
 }
 
-func deleteExternalMariadb(key types.NamespacedName, assertPVCDeletion bool) {
-	var mdb mariadbv1alpha1.ExternalMariaDB
-	By("Deleting MariaDB")
-	Expect(k8sClient.Get(testCtx, key, &mdb)).To(Succeed())
-	Expect(k8sClient.Delete(testCtx, &mdb)).To(Succeed())
+func deleteExternalMariadb(key types.NamespacedName) {
+	By("Deleting ExternalMariaDB")
+	emdb := mariadbv1alpha1.ExternalMariaDB{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      key.Name,
+			Namespace: key.Namespace,
+		},
+	}
+	err := k8sClient.Delete(testCtx, &emdb)
+	if err != nil && !apierrors.IsNotFound(err) {
+		Expect(err).ToNot(HaveOccurred())
+	}
 }
 
 func deleteMaxScale(key types.NamespacedName, assertPVCDeletion bool) {
