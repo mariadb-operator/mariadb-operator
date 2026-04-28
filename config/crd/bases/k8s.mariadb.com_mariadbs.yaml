@@ -3451,21 +3451,20 @@ spec:
                     type: string
                 type: object
               multiCluster:
-                description: MultiCluster definitions enable the addition of replica
-                  clusters optionally running in a separate kubernetes cluster.
+                description: MultiCluster configures the multi-cluster topology.
                 properties:
                   enabled:
-                    description: Enabled is a flag to enable MultiCluster replication.
+                    description: Enabled is a flag to enable the multi-cluster topology.
                     type: boolean
                   members:
-                    description: Members is an array of all the members of the multi
-                      cluster setup, including the current cluster.
+                    description: Members is the specification of each member of the
+                      multi-cluster topology.
                     items:
                       properties:
                         externalMariaDbRef:
-                          description: ExternalMariaDBRef holds a reference to an
-                            ExternalMariaDB with connection details for the remote/local
-                            cluster.
+                          description: |-
+                            ExternalMariaDBRef holds a reference to an ExternalMariaDB with connection details to form the multi-cluster topology.
+                            These connection details are utilized to setup remote replicas.
                           properties:
                             name:
                               type: string
@@ -3473,18 +3472,20 @@ spec:
                               type: string
                           type: object
                         name:
-                          description: Name us the name by which the Cluster will
-                            be known.
+                          description: Name is the identifier of the member.
                           type: string
                       required:
                       - name
                       type: object
                     type: array
                   primary:
-                    description: Primary is the name of the primary MariaDB cluster.
+                    description: Primary is the name of the primary cluster. It refers
+                      to a member in the 'members' field, containing its full specification.
                     type: string
                   replicas:
-                    description: Replicas is a string array of all the replica members.
+                    description: Replicas is the name of all replica clusters. They
+                      refer to a member in the 'members' field, containing its full
+                      specification.
                     items:
                       type: string
                     type: array
