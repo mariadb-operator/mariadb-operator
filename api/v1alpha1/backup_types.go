@@ -3,6 +3,7 @@ package v1alpha1
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -60,6 +61,19 @@ type BackupSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch","urn:alm:descriptor:com.tectonic.ui:advanced"}
 	IgnoreGlobalPriv *bool `json:"ignoreGlobalPriv,omitempty"`
+	// FileNamePrefix is the prefix for backup file names. It defaults to 'backup'.
+	// Must not contain dots.
+	// +optional
+	// +kubebuilder:default=backup
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	FileNamePrefix string `json:"fileNamePrefix,omitempty" webhook:"inmutable"`
+	// TimestampFormat defines the format of the timestamp used in backup filenames.
+	// It defaults to 'iso8601'.
+	// +optional
+	// +kubebuilder:default=iso8601
+	// +kubebuilder:validation:Enum=iso8601;compact
+	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
+	TimestampFormat BackupTimestampFormat `json:"timestampFormat,omitempty" webhook:"inmutable"`
 	// LogLevel to be used in the Backup Job. It defaults to 'info'.
 	// +optional
 	// +kubebuilder:default=info
@@ -131,6 +145,12 @@ func (b *Backup) Validate() error {
 	if err := b.Spec.Compression.Validate(); err != nil {
 		return fmt.Errorf("invalid Compression: %v", err)
 	}
+	if b.Spec.FileNamePrefix != "" && strings.Contains(b.Spec.FileNamePrefix, ".") {
+		return errors.New("'spec.fileNamePrefix' must not contain dots")
+	}
+	if err := b.Spec.TimestampFormat.Validate(); err != nil {
+		return fmt.Errorf("invalid TimestampFormat: %v", err)
+	}
 	if b.Spec.Storage.S3 == nil && b.Spec.StagingStorage != nil {
 		return errors.New("'spec.stagingStorage' may only be specified when 'spec.storage.s3' is set")
 	}
@@ -150,6 +170,12 @@ func (b *Backup) SetDefaults(mariadb *MariaDB) {
 	if b.Spec.IgnoreGlobalPriv == nil {
 		b.Spec.IgnoreGlobalPriv = ptr.To(ptr.Deref(mariadb.Spec.Galera, Galera{}).Enabled)
 	}
+	if b.Spec.FileNamePrefix == "" {
+		b.Spec.FileNamePrefix = "backup"
+	}
+	if b.Spec.TimestampFormat == BackupTimestampFormat("") {
+		b.Spec.TimestampFormat = TimestampFormatISO8601
+	}
 	b.Spec.SetDefaults(b.ObjectMeta, mariadb.ObjectMeta)
 }
 
@@ -162,6 +188,12 @@ func (b *Backup) SetExternalDefaults(mariadb *ExternalMariaDB) {
 	}
 	if b.Spec.BackoffLimit == 0 {
 		b.Spec.BackoffLimit = 5
+	}
+	if b.Spec.FileNamePrefix == "" {
+		b.Spec.FileNamePrefix = "backup"
+	}
+	if b.Spec.TimestampFormat == BackupTimestampFormat("") {
+		b.Spec.TimestampFormat = TimestampFormatISO8601
 	}
 
 	b.Spec.SetExternalDefaults(b.ObjectMeta)
