@@ -74,28 +74,32 @@ func NewTopologyManager(client client.Client) *TopologyManager {
 }
 
 func (t *TopologyManager) TopologyForMariaDB(mariadb *mariadbv1alpha1.MariaDB, logger logr.Logger) Topology {
-	singleCluster := newSingleClusterTopology(
-		mariadb,
-		t.Client,
-		t.refResolver,
-		logger.WithName("single-cluster"),
-	)
-
 	if mariadb.IsMultiClusterEnabled() && mariadb.IsReplicationEnabled() {
 		logger.V(1).Info("Configuring multi-cluster replication topology")
+		multiClusterLogger := logger.WithName("multi-cluster")
 
 		return newMultiClusterTopology(
 			mariadb,
-			singleCluster,
+			newSingleClusterTopology(
+				mariadb,
+				t.Client,
+				t.refResolver,
+				multiClusterLogger,
+			),
 			t.Client,
 			t.refResolver,
-			logger.WithName("multi-cluster"),
+			multiClusterLogger,
 		)
 	}
 	// TODO: multi-cluster with Galera
 
 	logger.V(1).Info("Configuring single-cluster replication topology")
-	return singleCluster
+	return newSingleClusterTopology(
+		mariadb,
+		t.Client,
+		t.refResolver,
+		logger.WithName("single-cluster"),
+	)
 }
 
 type singleClusterTopology struct {
@@ -325,11 +329,8 @@ func newMultiClusterTopology(mariadb *mariadbv1alpha1.MariaDB, singleCluster *si
 
 func (m *multiClusterTopology) ConfigurePrimary(ctx context.Context, client *sql.Client) error {
 	if m.mariadb.IsMultiClusterPrimary() {
-		m.logger.Info("Configuring primary")
 		return m.singleCluster.ConfigurePrimary(ctx, client)
 	}
-
-	m.logger.Info("Configuring primary replica")
 	return m.configurePrimaryReplica(ctx, client)
 }
 
@@ -340,15 +341,14 @@ func (m *multiClusterTopology) ConfigureReplica(ctx context.Context, client *sql
 	opts = append(opts, WithResetMaster(false))
 
 	if m.mariadb.IsMultiClusterPrimary() {
-		m.logger.Info("Configuring replica")
 		return m.singleCluster.ConfigureReplica(ctx, client, primaryPodIndex, opts...)
 	}
-
-	m.logger.Info("Configuring replica in replica cluster")
-	return m.configureReplicaInReplicaCluster(ctx, client, primaryPodIndex, opts...)
+	return m.configureSecondaryReplica(ctx, client, primaryPodIndex, opts...)
 }
 
 func (m *multiClusterTopology) configurePrimaryReplica(ctx context.Context, client *sql.Client) error {
+	m.logger.Info("Configuring primary replica")
+
 	if err := client.StopAllSlaves(ctx); err != nil {
 		return fmt.Errorf("error stopping all slaves: %v", err)
 	}
@@ -419,8 +419,10 @@ func (m *multiClusterTopology) changeMasterPrimaryInPrimaryReplica(ctx context.C
 	return nil
 }
 
-func (m *multiClusterTopology) configureReplicaInReplicaCluster(ctx context.Context, client *sql.Client, primaryPodIndex int,
+func (m *multiClusterTopology) configureSecondaryReplica(ctx context.Context, client *sql.Client, primaryPodIndex int,
 	replicaOpts ...ConfigureReplicaOpt) error {
+	m.logger.Info("Configuring secondary replica")
+
 	opts := ConfigureReplicaOpts{}
 	for _, setOpt := range replicaOpts {
 		setOpt(&opts)
