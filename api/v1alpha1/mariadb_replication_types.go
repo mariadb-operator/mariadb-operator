@@ -477,6 +477,8 @@ const (
 	ReplicationRoleReplica ReplicationRole = "Replica"
 	// ReplicationRolePrimaryReplica is the primary Pod in a replica cluster, when using a multi-cluster topology.
 	ReplicationRolePrimaryReplica ReplicationRole = "PrimaryReplica"
+	// ReplicationRoleSecondaryReplica is a replica Pod in a replica cluster, when using a multi-cluster topology.
+	ReplicationRoleSecondaryReplica ReplicationRole = "SecondaryReplica"
 	// ReplicationRoleUnknown is the primary Pod in a replica cluster when using the multi-cluster topology.
 	ReplicationRoleUnknown ReplicationRole = "Unknown"
 )

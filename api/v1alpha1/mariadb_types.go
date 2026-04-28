@@ -1268,9 +1268,16 @@ func (m *MariaDB) IsMultiClusterReplica() bool {
 	return m.IsMultiClusterEnabled() && ptr.Deref(m.Spec.MultiCluster, MultiCluster{}).Primary != m.Name
 }
 
-// IsMultiClusterPrimaryReplica determines whether a given Pod index is a primary replica i.e. primary Pod in a replica cluster.
+// IsMultiClusterPrimaryReplica determines whether a given Pod index is a primary Pod in a replica cluster.
 func (m *MariaDB) IsMultiClusterPrimaryReplica(podIndex int) bool {
 	return m.IsMultiClusterReplica() && m.Status.CurrentPrimaryPodIndex != nil && *m.Status.CurrentPrimaryPodIndex == podIndex
+}
+
+// IsMultiClusterSecondaryReplica determines whether a given Pod index is a replica Pod in a replica cluster.
+// It only applies to replication-based topologies.
+func (m *MariaDB) IsMultiClusterSecondaryReplica(podIndex int) bool {
+	return m.IsReplicationEnabled() && m.IsMultiClusterReplica() &&
+		m.Status.CurrentPrimaryPodIndex != nil && *m.Status.CurrentPrimaryPodIndex != podIndex
 }
 
 // IsMaintenanceModeEnabled indicates whether the maintenance mode is enabled.

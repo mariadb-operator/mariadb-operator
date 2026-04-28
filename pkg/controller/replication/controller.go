@@ -253,8 +253,7 @@ func (r *ReplicationReconciler) ReconcileReplicationInPod(ctx context.Context, r
 	}
 
 	if !opts.forceReplicaConfiguration {
-		role, ok := replRoles[pod]
-		if ok && role == mariadbv1alpha1.ReplicationRoleReplica {
+		if shouldSkipReplicaReconciliation(req.mariadb, replRoles, pod, logger) {
 			return ctrl.Result{}, nil
 		}
 	}
@@ -347,4 +346,17 @@ func shouldSkipPrimaryReconciliation(mariadb *mariadbv1alpha1.MariaDB, replRoles
 		return role == mariadbv1alpha1.ReplicationRolePrimaryReplica
 	}
 	return role == mariadbv1alpha1.ReplicationRolePrimary
+}
+
+func shouldSkipReplicaReconciliation(mariadb *mariadbv1alpha1.MariaDB, replRoles map[string]mariadbv1alpha1.ReplicationRole,
+	pod string, logger logr.Logger) bool {
+	role, ok := replRoles[pod]
+	if !ok {
+		logger.V(1).Info("Replica Pod role not yet assigned. Skipping reconciliation...", "pod", pod)
+		return true
+	}
+	if mariadb.IsMultiClusterReplica() {
+		return role == mariadbv1alpha1.ReplicationRoleSecondaryReplica
+	}
+	return role == mariadbv1alpha1.ReplicationRoleReplica
 }
