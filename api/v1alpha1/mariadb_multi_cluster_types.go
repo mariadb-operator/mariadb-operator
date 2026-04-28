@@ -5,35 +5,36 @@ import (
 )
 
 type MultiCluster struct {
-	// MultiClusterSpec is the desired MultiCluster specification.
+	// MultiClusterSpec is the desired multi-cluster topology specification.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	MultiClusterSpec `json:",inline"`
-	// Enabled is a flag to enable MultiCluster replication.
+	// Enabled is a flag to enable the multi-cluster topology.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:booleanSwitch"}
 	Enabled bool `json:"enabled,omitempty"`
 }
 
 type MultiClusterSpec struct {
-	// Primary is the name of the primary MariaDB cluster.
+	// Primary is the name of the primary cluster. It refers to a member in the 'members' field, containing its full specification.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Primary string `json:"primary,omitempty"`
-	// Replicas is a string array of all the replica members.
+	// Replicas is the name of all replica clusters. They refer to a member in the 'members' field, containing its full specification.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Replicas []string `json:"replicas,omitempty"`
-	// Members is an array of all the members of the multi cluster setup, including the current cluster.
+	// Members is the specification of each member of the multi-cluster topology.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Members []MultiClusterMember `json:"members,omitempty"`
 }
 
 type MultiClusterMember struct {
-	// Name us the name by which the Cluster will be known.
+	// Name is the identifier of the member.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Name string `json:"name"`
-	// ExternalMariaDBRef holds a reference to an ExternalMariaDB with connection details for the remote/local cluster.
+	// ExternalMariaDBRef holds a reference to an ExternalMariaDB with connection details to form the multi-cluster topology.
+	// These connection details are utilized to setup remote replicas.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	ExternalMariaDBRef ObjectReference `json:"externalMariaDbRef,omitempty"`
 }
