@@ -14,6 +14,7 @@ import (
 	labels "github.com/mariadb-operator/mariadb-operator/v26/pkg/builder/labels"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/docker"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/environment"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/job"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/metadata"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/sql"
 	stsobj "github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
@@ -1342,7 +1343,7 @@ func executeSqlInPodByIndex(mdb *mariadbv1alpha1.MariaDB, podIndex int, query st
 	Expect(sqlClient.Exec(testCtx, query)).ToNot(HaveOccurred(), fmt.Sprintf("Could not execute query: %s.", query))
 }
 
-func deletePhysicalBackup(key types.NamespacedName) {
+func deletePhysicalBackup(key types.NamespacedName, deleteJobs bool) {
 	var backup mariadbv1alpha1.PhysicalBackup
 	By("Deleting PhysicalBackup")
 	err := k8sClient.Get(testCtx, key, &backup)
@@ -1351,6 +1352,23 @@ func deletePhysicalBackup(key types.NamespacedName) {
 	}
 	if !apierrors.IsNotFound(err) {
 		Expect(err).ToNot(HaveOccurred())
+	}
+
+	if deleteJobs {
+		By("Deleting Jobs")
+		jobList, err := job.ListJobs(testCtx, k8sClient, &backup)
+		if err != nil && !apierrors.IsNotFound(err) {
+			Expect(err).ToNot(HaveOccurred())
+		}
+		for _, job := range jobList.Items {
+			if err := k8sClient.Delete(
+				testCtx,
+				&job,
+				&client.DeleteOptions{PropagationPolicy: ptr.To(metav1.DeletePropagationBackground)},
+			); err != nil && !apierrors.IsNotFound(err) {
+				Expect(err).ToNot(HaveOccurred())
+			}
+		}
 	}
 }
 

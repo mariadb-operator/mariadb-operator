@@ -570,7 +570,7 @@ var _ = Describe("MariaDB Galera disaster recovery", Ordered, func() {
 
 		Expect(k8sClient.Create(testCtx, backup)).To(Succeed())
 		DeferCleanup(func() {
-			deletePhysicalBackup(backupKey)
+			deletePhysicalBackup(backupKey, false)
 		})
 
 		By("Expecting PhysicalBackup to complete eventually")
