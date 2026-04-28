@@ -473,7 +473,7 @@ type ReplicationRole string
 const (
 	// ReplicationRolePrimary is the primary Pod in a replication cluster.
 	ReplicationRolePrimary ReplicationRole = "Primary"
-	// ReplicationRolePrimary is the replica Pod in a replication cluster.
+	// ReplicationRoleReplica is the replica Pod in a replication cluster.
 	ReplicationRoleReplica ReplicationRole = "Replica"
 	// ReplicationRolePrimaryReplica is the primary Pod in a replica cluster, when using a multi-cluster topology.
 	ReplicationRolePrimaryReplica ReplicationRole = "PrimaryReplica"

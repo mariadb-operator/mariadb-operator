@@ -247,7 +247,7 @@ func (r *ReplicationReconciler) ReconcileReplicationInPod(ctx context.Context, r
 		}
 
 		if err := topology.ConfigurePrimary(ctx, client); err != nil {
-			return ctrl.Result{}, fmt.Errorf("error configuring replica: %v", err)
+			return ctrl.Result{}, fmt.Errorf("error configuring primary: %v", err)
 		}
 		return ctrl.Result{}, nil
 	}
