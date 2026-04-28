@@ -336,7 +336,7 @@ var _ = Describe("MariaDB replication restore from backup", Ordered, func() {
 			backup := builderFn(backupKey)
 			testPhysicalBackup(backup)
 			// We delete the PhysicalBackup, because the job holds the pvc
-			deletePhysicalBackup(backupKey)
+			deletePhysicalBackup(backupKey, false)
 			DeferCleanup(cleanupFn(backupKey))
 
 			By("Deleting MariaDB")
@@ -455,7 +455,7 @@ var _ = Describe("MariaDB replication scale out", Ordered, func() {
 			testPhysicalBackup(backup)
 
 			DeferCleanup(func() {
-				deletePhysicalBackup(backupKey)
+				deletePhysicalBackup(backupKey, false)
 				cleanupFn(backupKey)()
 			})
 

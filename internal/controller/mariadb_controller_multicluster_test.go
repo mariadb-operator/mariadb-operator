@@ -124,9 +124,9 @@ var _ = Describe("MariaDB multi-cluster with replication", Ordered, Focus, func(
 	})
 
 	AfterAll(func() {
+		deletePhysicalBackup(primaryKey, true)
 		deleteMariadb(primaryKey, true)
 		deleteExternalMariadb(primaryKey)
-		deletePhysicalBackup(primaryKey)
 
 		deleteMariadb(replicaKey, true)
 		deleteExternalMariadb(replicaKey)
@@ -170,13 +170,13 @@ var _ = Describe("MariaDB multi-cluster with replication", Ordered, Focus, func(
 		By("Creating replica MariaDB")
 		Expect(k8sClient.Create(testCtx, replicaMdb)).To(Succeed())
 
-		By("Creating replica ExternalMariaDB")
-		Expect(k8sClient.Create(testCtx, replicaExternalMdb)).To(Succeed())
-
 		By("Expecting MariaDB to be ready eventually")
 		expectMariadbFn(testCtx, k8sClient, replicaKey, func(mdb *mariadbv1alpha1.MariaDB) bool {
 			return mdb.IsReady()
 		})
+
+		By("Creating replica ExternalMariaDB")
+		Expect(k8sClient.Create(testCtx, replicaExternalMdb)).To(Succeed())
 
 		By("Expecting ExternalMariaDB to eventually be ready")
 		Eventually(func() bool {
@@ -334,10 +334,10 @@ var _ = Describe("MariaDB multi-cluster with replication and MaxScale", Ordered,
 	})
 
 	AfterAll(func() {
+		deletePhysicalBackup(primaryKey, true)
 		deleteMariadb(primaryKey, true)
 		deleteMaxScale(primaryMaxScaleKey, true)
 		deleteExternalMariadb(primaryKey)
-		deletePhysicalBackup(primaryKey)
 
 		deleteMariadb(replicaKey, true)
 		deleteMaxScale(replicaMaxScaleKey, true)
