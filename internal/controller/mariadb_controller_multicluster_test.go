@@ -467,7 +467,7 @@ var _ = Describe("MariaDB multi-cluster with replication and MaxScale", Ordered,
 func multiClusterMariaDBBuilder(ipAddr string,
 	multiCluster mariadbv1alpha1.MultiCluster) func(key types.NamespacedName) *mariadbv1alpha1.MariaDB {
 	return func(key types.NamespacedName) *mariadbv1alpha1.MariaDB {
-		return &mariadbv1alpha1.MariaDB{
+		mdb := &mariadbv1alpha1.MariaDB{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      key.Name,
 				Namespace: key.Namespace,
@@ -509,6 +509,7 @@ func multiClusterMariaDBBuilder(ipAddr string,
 				MultiCluster: &multiCluster,
 			},
 		}
+		return applyMariadbTestConfig(mdb)
 	}
 }
 
@@ -581,7 +582,7 @@ func buildMultiClusterExternalMariadb(key types.NamespacedName, host string) *ma
 }
 
 func buildMultiClusterMaxScale(key, mdbKey types.NamespacedName, ipAddr string) *mariadbv1alpha1.MaxScale {
-	return &mariadbv1alpha1.MaxScale{
+	mxs := &mariadbv1alpha1.MaxScale{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      key.Name,
 			Namespace: key.Namespace,
@@ -677,6 +678,7 @@ func buildMultiClusterMaxScale(key, mdbKey types.NamespacedName, ipAddr string) 
 			},
 		},
 	}
+	return applyMaxscaleTestConfig(mxs)
 }
 
 func testReplicationStatus() {
