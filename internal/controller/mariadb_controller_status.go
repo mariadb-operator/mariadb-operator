@@ -116,13 +116,33 @@ func (r *MariaDBReconciler) getReplicationRoles(ctx context.Context,
 			logger.V(1).Info("error getting client for Pod", "err", err, "pod", pod)
 			continue
 		}
+		role, err := r.getReplicationRole(ctx, mdb, i, client, logger)
+		if err != nil {
+			logger.V(1).Info("error getting Pod replication role", "err", err, "pod", pod)
+			continue
+		}
 
-		var (
-			aggErr                                            *multierror.Error
-			isPrimaryReplica, isReplica, hasConnectedReplicas bool
-		)
+		if replState == nil {
+			replState = make(map[string]mariadbv1alpha1.ReplicationRole)
+		}
+		replState[pod] = role
+	}
+	return replState, nil
+}
 
-		if mdb.IsMultiClusterPrimaryReplica(i) {
+func (r *MariaDBReconciler) getReplicationRole(ctx context.Context, mdb *mariadbv1alpha1.MariaDB, podIndex int,
+	client *sql.Client, logger logr.Logger) (mariadbv1alpha1.ReplicationRole, error) {
+	var (
+		err                error
+		aggErr             *multierror.Error
+		isPrimaryReplica   bool
+		isSecondaryReplica bool
+		isReplica          bool
+		isPrimary          bool
+	)
+
+	if mdb.IsMultiClusterEnabled() {
+		if mdb.IsMultiClusterPrimaryReplica(podIndex) {
 			isPrimaryReplica, err = client.IsReplicationPrimaryReplica(
 				ctx,
 				logger,
@@ -132,30 +152,29 @@ func (r *MariaDBReconciler) getReplicationRoles(ctx context.Context,
 				aggErr = multierror.Append(aggErr, err)
 			}
 		}
-		isReplica, err = client.IsReplicationReplica(ctx)
-		aggErr = multierror.Append(aggErr, err)
-		hasConnectedReplicas, err = client.HasConnectedReplicas(ctx)
-		aggErr = multierror.Append(aggErr, err)
-
-		if err := aggErr.ErrorOrNil(); err != nil {
-			logger.V(1).Info("error checking Pod replication state", "err", err, "pod", pod)
-			continue
-		}
-
-		role := mariadbv1alpha1.ReplicationRoleUnknown
-		if isPrimaryReplica {
-			role = mariadbv1alpha1.ReplicationRolePrimaryReplica
-		} else if isReplica {
-			role = mariadbv1alpha1.ReplicationRoleReplica
-		} else if hasConnectedReplicas {
-			role = mariadbv1alpha1.ReplicationRolePrimary
-		}
-		if replState == nil {
-			replState = make(map[string]mariadbv1alpha1.ReplicationRole)
-		}
-		replState[pod] = role
+		isSecondaryReplica = mdb.IsMultiClusterSecondaryReplica(podIndex) && !isPrimaryReplica
 	}
-	return replState, nil
+
+	isReplica, err = client.IsReplicationReplica(ctx)
+	aggErr = multierror.Append(aggErr, err)
+	isPrimary, err = client.HasConnectedReplicas(ctx)
+	aggErr = multierror.Append(aggErr, err)
+
+	if err := aggErr.ErrorOrNil(); err != nil {
+		return mariadbv1alpha1.ReplicationRoleUnknown, err
+	}
+
+	role := mariadbv1alpha1.ReplicationRoleUnknown
+	if isPrimaryReplica {
+		role = mariadbv1alpha1.ReplicationRolePrimaryReplica
+	} else if isSecondaryReplica {
+		role = mariadbv1alpha1.ReplicationRoleSecondaryReplica
+	} else if isReplica {
+		role = mariadbv1alpha1.ReplicationRoleReplica
+	} else if isPrimary {
+		role = mariadbv1alpha1.ReplicationRolePrimary
+	}
+	return role, nil
 }
 
 func (r *MariaDBReconciler) getReplicaStatus(ctx context.Context,
