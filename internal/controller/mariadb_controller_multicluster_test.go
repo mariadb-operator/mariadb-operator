@@ -72,7 +72,7 @@ var (
 	}
 )
 
-var _ = Describe("MariaDB multi-cluster with replication", Ordered, func() {
+var _ = Describe("MariaDB multi-cluster with replication", Ordered, Focus, func() {
 	BeforeAll(func() {
 		primaryBackup = buildPhysicalBackupWithS3Storage(
 			primaryKey,
@@ -277,7 +277,7 @@ var _ = Describe("MariaDB multi-cluster with replication", Ordered, func() {
 	It("should have valid replication status after switchover", testReplicationStatus)
 })
 
-var _ = Describe("MariaDB multi-cluster with replication and MaxScale", Ordered, func() {
+var _ = Describe("MariaDB multi-cluster with replication and MaxScale", Ordered, Focus, func() {
 	BeforeAll(func() {
 		primaryBackup = buildPhysicalBackupWithS3Storage(
 			primaryKey,
@@ -294,7 +294,6 @@ var _ = Describe("MariaDB multi-cluster with replication and MaxScale", Ordered,
 				primaryGtidDomainId,
 				primaryServerStartIndex,
 			),
-			mariadbMaxScaleDecorator(primaryMaxScaleKey),
 		)(primaryKey)
 		replicaMdb = applyDecoratorChain(
 			multiClusterMariaDBBuilder(
@@ -311,11 +310,10 @@ var _ = Describe("MariaDB multi-cluster with replication and MaxScale", Ordered,
 					S3:                primaryBackup.Spec.Storage.S3,
 				},
 			),
-			mariadbMaxScaleDecorator(replicaMaxScaleKey),
 		)(replicaKey)
 
-		primaryMaxScale = buildMultiClusterMaxScale(primaryMaxScaleKey, primaryKey, prefixedIPAddr(".1.20"))
-		replicaMaxScale = buildMultiClusterMaxScale(replicaMaxScaleKey, replicaKey, prefixedIPAddr(".1.24"))
+		primaryMaxScale = buildMultiClusterMaxScale(primaryMaxScaleKey, prefixedIPAddr(".1.20"))
+		replicaMaxScale = buildMultiClusterMaxScale(replicaMaxScaleKey, prefixedIPAddr(".1.24"))
 
 		primaryExternalMdb = buildMultiClusterExternalMariadb(
 			primaryKey,
@@ -347,20 +345,14 @@ var _ = Describe("MariaDB multi-cluster with replication and MaxScale", Ordered,
 	It("should reconcile primary cluster", func() {
 		By("Creating primary MariaDB")
 		Expect(k8sClient.Create(testCtx, primaryMdb)).To(Succeed())
-		By("Creating primary MaxScale")
-		Expect(k8sClient.Create(testCtx, primaryMaxScale)).To(Succeed())
 
 		By("Expecting primary MariaDB to be ready eventually")
 		expectMariadbFn(testCtx, k8sClient, primaryKey, func(mdb *mariadbv1alpha1.MariaDB) bool {
 			return mdb.IsReady()
 		})
-		By("Expecting primary MaxScale to be ready eventually")
-		Eventually(func() bool {
-			if err := k8sClient.Get(testCtx, primaryMaxScaleKey, primaryMaxScale); err != nil {
-				return false
-			}
-			return primaryMaxScale.IsReady()
-		}, testTimeout, testInterval).Should(BeTrue())
+
+		By("Confiruging primary MariaDB with MaxScale")
+		testMaxscale(primaryMdb, primaryMaxScale)
 
 		By("Creating primary ExternalMariaDB")
 		Expect(k8sClient.Create(testCtx, primaryExternalMdb)).To(Succeed())
@@ -390,20 +382,14 @@ var _ = Describe("MariaDB multi-cluster with replication and MaxScale", Ordered,
 	It("should create replica cluster from physical backup", func() {
 		By("Creating replica MariaDB")
 		Expect(k8sClient.Create(testCtx, replicaMdb)).To(Succeed())
-		By("Creating replica MaxScale")
-		Expect(k8sClient.Create(testCtx, replicaMaxScale)).To(Succeed())
 
 		By("Expecting replica MariaDB to be ready eventually")
 		expectMariadbFn(testCtx, k8sClient, replicaKey, func(mdb *mariadbv1alpha1.MariaDB) bool {
 			return mdb.IsReady()
 		})
-		By("Expecting replica MaxScale to be ready eventually")
-		Eventually(func() bool {
-			if err := k8sClient.Get(testCtx, replicaMaxScaleKey, replicaMaxScale); err != nil {
-				return false
-			}
-			return replicaMaxScale.IsReady()
-		}, testTimeout, testInterval).Should(BeTrue())
+
+		By("Confiruging replica MariaDB with MaxScale")
+		testMaxscale(primaryMdb, primaryMaxScale)
 
 		By("Creating replica ExternalMariaDB")
 		Expect(k8sClient.Create(testCtx, replicaExternalMdb)).To(Succeed())
@@ -544,16 +530,6 @@ func mariadbBootstrapFromDecorator(bootSstrapFrom *mariadbv1alpha1.BootstrapFrom
 	}
 }
 
-func mariadbMaxScaleDecorator(maxScaleKey types.NamespacedName) func(*mariadbv1alpha1.MariaDB) *mariadbv1alpha1.MariaDB {
-	return func(mdb *mariadbv1alpha1.MariaDB) *mariadbv1alpha1.MariaDB {
-		mdb.Spec.MaxScaleRef = &mariadbv1alpha1.ObjectReference{
-			Name:      maxScaleKey.Name,
-			Namespace: testNamespace,
-		}
-		return mdb
-	}
-}
-
 func buildMultiClusterExternalMariadb(key types.NamespacedName, host string) *mariadbv1alpha1.ExternalMariaDB {
 	return &mariadbv1alpha1.ExternalMariaDB{
 		ObjectMeta: metav1.ObjectMeta{
@@ -581,19 +557,13 @@ func buildMultiClusterExternalMariadb(key types.NamespacedName, host string) *ma
 	}
 }
 
-func buildMultiClusterMaxScale(key, mdbKey types.NamespacedName, ipAddr string) *mariadbv1alpha1.MaxScale {
+func buildMultiClusterMaxScale(key types.NamespacedName, ipAddr string) *mariadbv1alpha1.MaxScale {
 	mxs := &mariadbv1alpha1.MaxScale{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      key.Name,
 			Namespace: key.Namespace,
 		},
 		Spec: mariadbv1alpha1.MaxScaleSpec{
-			MariaDBRef: &mariadbv1alpha1.MariaDBRef{
-				ObjectReference: mariadbv1alpha1.ObjectReference{
-					Name:      mdbKey.Name,
-					Namespace: mdbKey.Namespace,
-				},
-			},
 			Replicas: 2,
 			KubernetesService: &mariadbv1alpha1.ServiceTemplate{
 				Type: corev1.ServiceTypeLoadBalancer,
