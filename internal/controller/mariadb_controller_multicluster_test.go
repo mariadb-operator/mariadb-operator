@@ -72,7 +72,7 @@ var (
 	}
 )
 
-var _ = Describe("MariaDB multi-cluster with replication", Ordered, func() {
+var _ = Describe("MariaDB multi-cluster with replication", Ordered, Focus, func() {
 	BeforeAll(func() {
 		primaryBackup = buildPhysicalBackupWithS3Storage(
 			primaryKey,
@@ -123,14 +123,14 @@ var _ = Describe("MariaDB multi-cluster with replication", Ordered, func() {
 		)
 	})
 
-	// TODO: idempotent cleanup
-	// AfterAll(func() {
-	// 	deleteMariadb(primaryKey, false)
-	// 	deleteExternalMariadb(primaryKey, false)
-	// 	deletePhysicalBackup(primaryKey)
-	// 	deleteMariadb(replicaKey, false)
-	// 	deleteExternalMariadb(replicaKey, false)
-	// })
+	AfterAll(func() {
+		deleteMariadb(primaryKey, true)
+		deleteExternalMariadb(primaryKey)
+		deletePhysicalBackup(primaryKey)
+
+		deleteMariadb(replicaKey, true)
+		deleteExternalMariadb(replicaKey)
+	})
 
 	It("should reconcile primary cluster", func() {
 		By("Creating primary MariaDB")
@@ -333,14 +333,16 @@ var _ = Describe("MariaDB multi-cluster with replication and MaxScale", Ordered,
 		)
 	})
 
-	// TODO: idempotent cleanup
-	// AfterAll(func() {
-	// 	deleteMariadb(primaryKey, false)
-	// 	deleteExternalMariadb(primaryKey, false)
-	// 	deletePhysicalBackup(primaryKey)
-	// 	deleteMariadb(replicaKey, false)
-	// 	deleteExternalMariadb(replicaKey, false)
-	// })
+	AfterAll(func() {
+		deleteMariadb(primaryKey, true)
+		deleteMaxScale(primaryMaxScaleKey, true)
+		deleteExternalMariadb(primaryKey)
+		deletePhysicalBackup(primaryKey)
+
+		deleteMariadb(replicaKey, true)
+		deleteMaxScale(replicaMaxScaleKey, true)
+		deleteExternalMariadb(replicaKey)
+	})
 
 	It("should reconcile primary cluster", func() {
 		By("Creating primary MariaDB")
