@@ -473,19 +473,15 @@ type ReplicationRole string
 const (
 	// ReplicationRolePrimary is the primary Pod in a replication cluster.
 	ReplicationRolePrimary ReplicationRole = "Primary"
-	// ReplicationRolePrimary is the secondary Pod in a replication cluster.
+	// ReplicationRolePrimary is the replica Pod in a replication cluster.
 	ReplicationRoleReplica ReplicationRole = "Replica"
 	// ReplicationRolePrimaryReplica is the primary Pod in a replica cluster, when using a multi-cluster topology.
 	ReplicationRolePrimaryReplica ReplicationRole = "PrimaryReplica"
 	// ReplicationRoleSecondaryReplica is a replica Pod in a replica cluster, when using a multi-cluster topology.
 	ReplicationRoleSecondaryReplica ReplicationRole = "SecondaryReplica"
-	// ReplicationRoleUnknown is the primary Pod in a replica cluster when using the multi-cluster topology.
+	// ReplicationRoleUnknown is an unknown replication state.
 	ReplicationRoleUnknown ReplicationRole = "Unknown"
 )
-
-func (r ReplicationRole) IsPrimary() bool {
-	return r == ReplicationRolePrimaryReplica || r == ReplicationRolePrimary
-}
 
 // ReplicaStatusVars is the observed replica status variables.
 type ReplicaStatusVars struct {

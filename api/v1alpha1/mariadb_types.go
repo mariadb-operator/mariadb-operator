@@ -725,7 +725,7 @@ type MariaDBSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	Galera *Galera `json:"galera,omitempty"`
-	// MultiCluster definitions enable the addition of replica clusters optionally running in a separate kubernetes cluster.
+	// MultiCluster configures the multi-cluster topology.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	MultiCluster *MultiCluster `json:"multiCluster,omitempty"`
