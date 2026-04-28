@@ -8,6 +8,8 @@ var (
 	KubernetesEndpointSliceManagedByLabel = "endpointslice.kubernetes.io/managed-by"
 	KubernetesEndpointSliceManagedByValue = "mariadb-operator.k8s.mariadb.com"
 	KubernetesHostnameLabel               = "kubernetes.io/hostname"
+	KubernetesManagedByLabel              = "app.kubernetes.io/managed-by"
+	KubernetesManagedByValue              = "mariadb-operator"
 
 	ReplicationAnnotation = "k8s.mariadb.com/replication"
 	GtidAnnotation        = "k8s.mariadb.com/gtid"
