@@ -364,7 +364,7 @@ func (m *multiClusterTopology) configurePrimaryReplica(ctx context.Context, clie
 		return fmt.Errorf("error reconciling primary SQL: %v", err)
 	}
 
-	if err := m.changeMasterPrimaryInPrimaryReplica(ctx, client); err != nil {
+	if err := m.changeMasterInPrimaryReplica(ctx, client); err != nil {
 		return fmt.Errorf("error changing master in primary replica: %v", err)
 	}
 	// start remote replica
@@ -374,7 +374,7 @@ func (m *multiClusterTopology) configurePrimaryReplica(ctx context.Context, clie
 	return nil
 }
 
-func (m *multiClusterTopology) changeMasterPrimaryInPrimaryReplica(ctx context.Context, client *sql.Client) error {
+func (m *multiClusterTopology) changeMasterInPrimaryReplica(ctx context.Context, client *sql.Client) error {
 	member := m.mariadb.GetMultiClusterPrimary()
 	if member == nil {
 		return errors.New("unable to find multi-cluster primary member")
