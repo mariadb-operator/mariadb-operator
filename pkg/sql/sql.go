@@ -773,6 +773,10 @@ func (c *Client) GtidCurrentPos(ctx context.Context) (string, error) {
 	return c.SystemVariable(ctx, "gtid_current_pos")
 }
 
+func (c *Client) GtidSlavePos(ctx context.Context) (string, error) {
+	return c.SystemVariable(ctx, "gtid_slave_pos")
+}
+
 func (c *Client) SetGtidSlavePos(ctx context.Context, gtid string) error {
 	if gtid == "" {
 		return errors.New("gtid must not be empty")

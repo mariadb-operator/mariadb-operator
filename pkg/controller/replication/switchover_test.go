@@ -144,8 +144,14 @@ func TestWaitForNewPrimarySync_NoSlaveSkipsRelayLogWait(_ *testing.T) {
 //	leaving the pod in a half-configured state, which interacts badly with the
 //	downstream switchover phases and the failover-sync path.
 //
-//	Fix: hoist ResetGtidSlavePos out of the `if isReplica` gate so it always runs.
-//	SET @@global.gtid_slave_pos='' is idempotent on a clean primary.
+//	Fix: read gtid_slave_pos and call ResetGtidSlavePos whenever it is non-empty,
+//	regardless of whether the slave entry still exists.  Skipping the reset when
+//	already empty is required because, with gtid_strict_mode=1, the server rejects
+//	`SET @@global.gtid_slave_pos = ''` on a primary whose binlog already contains
+//	GTIDs (Error 1948 - "Specified value for @@gtid_slave_pos contains no value for
+//	replication domain X. This conflicts with the binary log which contains GTID Y").
+//	A blanket unconditional reset would regress healthy primaries that have written
+//	to their binlog.
 //
 //	Because this path requires live SQL connections it is covered by integration
 //	tests.  This comment serves as the design record.

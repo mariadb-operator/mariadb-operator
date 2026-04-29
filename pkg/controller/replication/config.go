@@ -54,13 +54,25 @@ func (r *ReplicationConfigClient) ConfigurePrimary(ctx context.Context, mariadb 
 			return fmt.Errorf("error resetting slave: %v", err)
 		}
 	}
-	// Always reset gtid_slave_pos so the primary is left in a clean state even when a
-	// previous attempt aborted between ResetAllSlaves and ResetGtidSlavePos.  Without
-	// this, IsReplicationReplica returns false on retry (slave entry already gone) and
-	// gtid_slave_pos stays polluted, leaving the pod in a half-configured state that
-	// breaks subsequent switchover phases.  SET @@global.gtid_slave_pos='' is idempotent.
-	if err := client.ResetGtidSlavePos(ctx); err != nil {
-		return fmt.Errorf("error resetting slave position: %v", err)
+	// Reset gtid_slave_pos when it carries leftover state, regardless of whether the
+	// slave entry still exists.  This handles the partial-failure case where an earlier
+	// attempt completed ResetAllSlaves but aborted before ResetGtidSlavePos, leaving the
+	// pod with no slave entry but a polluted gtid_slave_pos that breaks subsequent
+	// switchover phases.
+	//
+	// Skip the reset when gtid_slave_pos is already empty: with gtid_strict_mode enabled,
+	// `SET @@global.gtid_slave_pos = ''` is rejected on a primary whose binlog already
+	// contains GTIDs (Error 1948 - "Specified value for @@gtid_slave_pos contains no
+	// value for replication domain X").  A no-op reset would unnecessarily fail healthy
+	// primaries that have written to their binlog.
+	gtidSlavePos, err := client.GtidSlavePos(ctx)
+	if err != nil {
+		return fmt.Errorf("error getting gtid_slave_pos: %v", err)
+	}
+	if gtidSlavePos != "" {
+		if err := client.ResetGtidSlavePos(ctx); err != nil {
+			return fmt.Errorf("error resetting slave position: %v", err)
+		}
 	}
 	if err := client.DisableReadOnly(ctx); err != nil {
 		return fmt.Errorf("error disabling read_only: %v", err)
