@@ -166,7 +166,7 @@ jobs:
   # Using the default GitHub action workers: https://docs.github.com/en/actions/reference/runners/github-hosted-runners#standard-github-hosted-runners-for-public-repositories
   # It results in Pods ending up in Pending state, causing the Eventually blocks to fail: https://github.com/mariadb-operator/mariadb-operator/actions/runs/25092999123/job/73523204752?pr=1698
   integration-test-multi-cluster:
-    name: Multi-cluster Integration tests
+    name: Integration tests - Multi-cluster
     runs-on: ubuntu-latest
     needs: 
       - detect-noop

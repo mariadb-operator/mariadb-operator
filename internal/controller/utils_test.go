@@ -828,6 +828,22 @@ func applyMariadbTestConfig(mdb *mariadbv1alpha1.MariaDB) *mariadbv1alpha1.Maria
 	return mdb
 }
 
+// Use this configuration when running several Pods (4 or more) in parallel during the tests.
+// Otherwise, you may end up with Pods in Pending state, that are very hard to detect during the tests, see 'mariadb-eu-central-1':
+// https://github.com/mariadb-operator/mariadb-operator/actions/runs/25092999123/job/73523204752?pr=1698
+func applyMariadbSmallTestConfig(mdb *mariadbv1alpha1.MariaDB) *mariadbv1alpha1.MariaDB {
+	mdb.Spec.Resources = &mariadbv1alpha1.ResourceRequirements{
+		Requests: corev1.ResourceList{
+			"cpu":    resource.MustParse("100m"),
+			"memory": resource.MustParse("128Mi"),
+		},
+		Limits: corev1.ResourceList{
+			"memory": resource.MustParse("256Mi"),
+		},
+	}
+	return mdb
+}
+
 // See: https://docs.github.com/en/actions/using-github-hosted-runners/using-github-hosted-runners/about-github-hosted-runners#standard-github-hosted-runners-for-public-repositories
 func applyMaxscaleTestConfig(mxs *mariadbv1alpha1.MaxScale) *mariadbv1alpha1.MaxScale {
 	mxs.Spec.Resources = &mariadbv1alpha1.ResourceRequirements{
@@ -837,6 +853,22 @@ func applyMaxscaleTestConfig(mxs *mariadbv1alpha1.MaxScale) *mariadbv1alpha1.Max
 		},
 		Limits: corev1.ResourceList{
 			"memory": resource.MustParse("128Mi"),
+		},
+	}
+	return mxs
+}
+
+// Use this configuration when running several Pods (4 or more) in parallel during the tests.
+// Otherwise, you may end up with Pods in Pending state, that are very hard to detect during the tests, see 'mariadb-eu-central-1':
+// https://github.com/mariadb-operator/mariadb-operator/actions/runs/25092999123/job/73523204752?pr=1698
+func applyMaxscaleSmallTestConfig(mxs *mariadbv1alpha1.MaxScale) *mariadbv1alpha1.MaxScale {
+	mxs.Spec.Resources = &mariadbv1alpha1.ResourceRequirements{
+		Requests: corev1.ResourceList{
+			"cpu":    resource.MustParse("100m"),
+			"memory": resource.MustParse("64Mi"),
+		},
+		Limits: corev1.ResourceList{
+			"memory": resource.MustParse("64Mi"),
 		},
 	}
 	return mxs
