@@ -72,7 +72,7 @@ var (
 	}
 )
 
-var _ = Describe("MariaDB multi-cluster with replication", Ordered, Focus, func() {
+var _ = Describe("MariaDB multi-cluster with replication", Ordered, func() {
 	BeforeAll(func() {
 		primaryBackup = buildPhysicalBackupWithS3Storage(
 			primaryKey,
@@ -277,7 +277,7 @@ var _ = Describe("MariaDB multi-cluster with replication", Ordered, Focus, func(
 	It("should have valid replication status after switchover", testReplicationStatus)
 })
 
-var _ = Describe("MariaDB multi-cluster with replication and MaxScale", Ordered, Focus, func() {
+var _ = Describe("MariaDB multi-cluster with replication and MaxScale", Ordered, func() {
 	BeforeAll(func() {
 		primaryBackup = buildPhysicalBackupWithS3Storage(
 			primaryKey,
