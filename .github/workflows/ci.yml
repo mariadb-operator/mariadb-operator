@@ -172,7 +172,7 @@ jobs:
       - detect-noop
       - integration-test-type
       - integration-test
-    if: ${{ needs.detect-noop.outputs.noop != 'true' && needs.integration-test-type.outputs.type == 'full' && needs.integration-test.result == 'success' }}
+    if: ${{ needs.detect-noop.outputs.noop != 'true' && needs.integration-test-type.outputs.type == 'full' }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
