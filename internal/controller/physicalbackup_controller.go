@@ -39,6 +39,8 @@ import (
 
 var errPhysicalBackupNoTargetPodsAvailable = errors.New("no target Pods available")
 
+const missingPhysicalBackupArtifactRetryDelay = 30 * time.Second
+
 // PhysicalBackupReconciler reconciles a PhysicalBackup object
 type PhysicalBackupReconciler struct {
 	client.Client
@@ -104,7 +106,7 @@ func (r *PhysicalBackupReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		WithValues(
 			"mariadb", mariadb.Name,
 		)
-	if !shouldReconcilePhysicalBackup(mariadb, logger) {
+	if !shouldReconcilePhysicalBackup(&backup, mariadb, logger) {
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 
@@ -150,7 +152,7 @@ func (r *PhysicalBackupReconciler) reconcileTemplate(ctx context.Context, backup
 	}
 
 	if backup.Spec.Schedule != nil {
-		return r.reconcileTemplateScheduled(ctx, backup, scheduleFn)
+		return r.reconcileTemplateScheduled(ctx, backup, numReconciledObjects, scheduleFn)
 	}
 	if numReconciledObjects == 0 {
 		return scheduleFn(time.Now(), nil)
@@ -159,7 +161,7 @@ func (r *PhysicalBackupReconciler) reconcileTemplate(ctx context.Context, backup
 }
 
 func (r *PhysicalBackupReconciler) reconcileTemplateScheduled(ctx context.Context, backup *mariadbv1alpha1.PhysicalBackup,
-	scheduleFn scheduleFn) (ctrl.Result, error) {
+	numReconciledObjects int, scheduleFn scheduleFn) (ctrl.Result, error) {
 	schedule := ptr.Deref(backup.Spec.Schedule, mariadbv1alpha1.PhysicalBackupSchedule{})
 
 	if schedule.Suspend {
@@ -170,6 +172,12 @@ func (r *PhysicalBackupReconciler) reconcileTemplateScheduled(ctx context.Contex
 	now := time.Now()
 	if isImmediate && backup.Status.LastScheduleCheckTime == nil {
 		return scheduleFn(now, nil)
+	}
+	if retryAfter := missingPhysicalBackupArtifactRetryAfter(backup, numReconciledObjects, now); retryAfter != nil {
+		if *retryAfter <= 0 {
+			return scheduleFn(now, nil)
+		}
+		return ctrl.Result{RequeueAfter: *retryAfter}, nil
 	}
 
 	if schedule.Cron == "" {
@@ -202,6 +210,23 @@ func (r *PhysicalBackupReconciler) reconcileTemplateScheduled(ctx context.Contex
 		return ctrl.Result{RequeueAfter: nextTime.Sub(now)}, nil
 	}
 	return scheduleFn(now, cronSchedule)
+}
+
+func missingPhysicalBackupArtifactRetryAfter(backup *mariadbv1alpha1.PhysicalBackup,
+	numReconciledObjects int, now time.Time) *time.Duration {
+	if backup.Spec.Schedule == nil || backup.Spec.Schedule.Cron != "" {
+		return nil
+	}
+	if !ptr.Deref(backup.Spec.Schedule.Immediate, true) || numReconciledObjects > 0 ||
+		backup.Status.LastScheduleTime == nil {
+		return nil
+	}
+
+	elapsed := now.Sub(backup.Status.LastScheduleTime.Time)
+	if elapsed >= missingPhysicalBackupArtifactRetryDelay {
+		return ptr.To(time.Duration(0))
+	}
+	return ptr.To(missingPhysicalBackupArtifactRetryDelay - elapsed)
 }
 
 func (r *PhysicalBackupReconciler) patch(ctx context.Context, backup *mariadbv1alpha1.PhysicalBackup,
@@ -337,7 +362,9 @@ func (r *PhysicalBackupReconciler) SetupWithManager(ctx context.Context, mgr ctr
 	return builder.Complete(r)
 }
 
-func shouldReconcilePhysicalBackup(mdb *mariadbv1alpha1.MariaDB, logger logr.Logger) bool {
+func shouldReconcilePhysicalBackup(backup *mariadbv1alpha1.PhysicalBackup, mdb *mariadbv1alpha1.MariaDB, logger logr.Logger) bool {
+	isReplicaRecoveryBackup := isReplicaRecoveryPhysicalBackup(backup, mdb)
+
 	if mdb.IsSuspended() {
 		logger.Info("MariaDB is suspended, skipping PhysicalBackup schedule...")
 		return false
@@ -355,6 +382,10 @@ func shouldReconcilePhysicalBackup(mdb *mariadbv1alpha1.MariaDB, logger logr.Log
 		return false
 	}
 	if mdb.IsUpdating() || mdb.HasPendingUpdate() {
+		if isReplicaRecoveryBackup {
+			logger.Info("Update in progress, continuing replica recovery PhysicalBackup schedule...")
+			return true
+		}
 		logger.Info("Update in progress, skipping PhysicalBackup schedule...")
 		return false
 	}
@@ -375,6 +406,13 @@ func shouldReconcilePhysicalBackup(mdb *mariadbv1alpha1.MariaDB, logger logr.Log
 		return false
 	}
 	return true
+}
+
+func isReplicaRecoveryPhysicalBackup(backup *mariadbv1alpha1.PhysicalBackup, mdb *mariadbv1alpha1.MariaDB) bool {
+	if backup == nil || mdb == nil || !mdb.IsRecoveringReplicas() {
+		return false
+	}
+	return client.ObjectKeyFromObject(backup) == mdb.PhysicalBackupReplicaRecoveryKey()
 }
 
 func getObjectName(obj client.Object, now time.Time) string {
@@ -449,6 +487,15 @@ func sortPods(pods []corev1.Pod) {
 	sort.Slice(pods, func(i, j int) bool {
 		return pods[i].Name < pods[j].Name
 	})
+}
+
+func shouldWaitForConfiguredReplicaBackupTarget(backup *mariadbv1alpha1.PhysicalBackup,
+	mariadb *mariadbv1alpha1.MariaDB) bool {
+	if !mariadb.IsReplicationEnabled() || mariadb.HasConfiguredReplica() {
+		return false
+	}
+	target := ptr.Deref(backup.Spec.Target, mariadbv1alpha1.PhysicalBackupTargetReplica)
+	return target == mariadbv1alpha1.PhysicalBackupTargetReplica
 }
 
 func isReplicationReady(ctx context.Context, client *sql.Client, logger logr.Logger) (bool, error) {

@@ -236,7 +236,7 @@ func (r *ReplicationReconciler) ReconcileReplicationInPod(ctx context.Context, r
 	pod := statefulset.PodName(req.mariadb.ObjectMeta, podIndex)
 
 	if primaryPodIndex == podIndex {
-		if role, ok := replRoles[pod]; ok && role == mariadbv1alpha1.ReplicationRolePrimary {
+		if role, ok := replRoles[pod]; ok && shouldSkipPrimaryConfiguration(role, req.mariadb.HasConfiguredReplication()) {
 			return ctrl.Result{}, nil
 		}
 		client, err := req.replClientSet.currentPrimaryClient(ctx)
@@ -251,17 +251,23 @@ func (r *ReplicationReconciler) ReconcileReplicationInPod(ctx context.Context, r
 		return ctrl.Result{}, nil
 	}
 
-	if !opts.forceReplicaConfiguration {
-		role, ok := replRoles[pod]
-		if ok && role == mariadbv1alpha1.ReplicationRoleReplica {
-			return ctrl.Result{}, nil
-		}
-	}
-
 	client, err := req.replClientSet.clientForIndex(ctx, podIndex)
 	if err != nil {
 		logger.V(1).Info("error getting replica client", "err", err, "pod", pod)
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+	}
+
+	if !opts.forceReplicaConfiguration {
+		role, ok := replRoles[pod]
+		if ok && role == mariadbv1alpha1.ReplicationRoleReplica {
+			skip, err := shouldSkipReplicaConfiguration(ctx, client, logger)
+			if err != nil {
+				logger.V(1).Info("Replica state verification failed, reconfiguring replica", "err", err, "pod", pod)
+			} else if skip {
+				return ctrl.Result{}, nil
+			}
+			logger.Info("Replica state drifted, reconfiguring replica", "pod", pod)
+		}
 	}
 	logger.Info("Configuring replica", "pod", pod)
 
@@ -273,6 +279,34 @@ func (r *ReplicationReconciler) ReconcileReplicationInPod(ctx context.Context, r
 		return ctrl.Result{}, fmt.Errorf("error configuring replica: %v", err)
 	}
 	return ctrl.Result{}, nil
+}
+
+func shouldSkipPrimaryConfiguration(role mariadbv1alpha1.ReplicationRole, hasConfiguredReplication bool) bool {
+	return hasConfiguredReplication && role == mariadbv1alpha1.ReplicationRolePrimary
+}
+
+type replicaStateClient interface {
+	IsSystemVariableEnabled(ctx context.Context, variable string) (bool, error)
+	ReplicaStatus(ctx context.Context, logger logr.Logger) (*mariadbv1alpha1.ReplicaStatusVars, error)
+}
+
+func shouldSkipReplicaConfiguration(ctx context.Context, client replicaStateClient, logger logr.Logger) (bool, error) {
+	readOnly, err := client.IsSystemVariableEnabled(ctx, "read_only")
+	if err != nil {
+		return false, fmt.Errorf("error checking read_only: %v", err)
+	}
+	if !readOnly {
+		return false, nil
+	}
+
+	status, err := client.ReplicaStatus(ctx, logger)
+	if err != nil {
+		return false, fmt.Errorf("error getting replica status: %v", err)
+	}
+	if status == nil {
+		return false, nil
+	}
+	return ptr.Deref(status.SlaveIORunning, false) && ptr.Deref(status.SlaveSQLRunning, false), nil
 }
 
 func (r *ReplicationReconciler) getReplicaOpts(ctx context.Context, req *ReconcileRequest, pod string, index int,
