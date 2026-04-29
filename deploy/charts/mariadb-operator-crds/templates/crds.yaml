@@ -1843,6 +1843,12 @@ spec:
                         default: ""
                         type: string
                     type: object
+                  serverCertAdditionalNames:
+                    description: ServerCertAdditionalNames is a list of additional
+                      certificate common names
+                    items:
+                      type: string
+                    type: array
                   serverCertIssuerRef:
                     description: |-
                       ServerCertIssuerRef is a reference to a cert-manager issuer object used to issue the server certificate. cert-manager must be installed previously in the cluster.
@@ -5610,6 +5616,46 @@ spec:
                       by the exporter.
                     type: string
                 type: object
+              multiCluster:
+                description: MultiCluster configures the multi-cluster topology.
+                properties:
+                  enabled:
+                    description: Enabled is a flag to enable the multi-cluster topology.
+                    type: boolean
+                  members:
+                    description: Members is the specification of each member of the
+                      multi-cluster topology.
+                    items:
+                      properties:
+                        externalMariaDbRef:
+                          description: |-
+                            ExternalMariaDBRef holds a reference to an ExternalMariaDB with connection details to form the multi-cluster topology.
+                            These connection details are utilized to setup remote replicas.
+                          properties:
+                            name:
+                              type: string
+                            namespace:
+                              type: string
+                          type: object
+                        name:
+                          description: Name is the identifier of the member.
+                          type: string
+                      required:
+                      - name
+                      type: object
+                    type: array
+                  primary:
+                    description: Primary is the name of the primary cluster. It refers
+                      to a member in the 'members' field, containing its full specification.
+                    type: string
+                  replicas:
+                    description: Replicas is the name of all replica clusters. They
+                      refer to a member in the 'members' field, containing its full
+                      specification.
+                    items:
+                      type: string
+                    type: array
+                type: object
               myCnf:
                 description: |-
                   MyCnf allows to specify the my.cnf file mounted by Mariadb.
@@ -6553,6 +6599,12 @@ spec:
                   enabled:
                     description: Enabled is a flag to enable replication.
                     type: boolean
+                  gtidDomainId:
+                    description: |-
+                      GtidDomainID is gtid_domain_id for all of the MariaDB nodes.
+                      It is immutable.
+                      See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/gtid#gtid_domain_id
+                    type: integer
                   gtidStrictMode:
                     description: |-
                       GtidStrictMode determines whether the GTID strict mode is enabled.
@@ -7495,6 +7547,12 @@ spec:
                     - AfterSync
                     - AfterCommit
                     type: string
+                  serverIdStartIndex:
+                    description: |-
+                      ServerIDStartIndex sets the start index of the MariaDB nodes. Each subsequent replica will increment this by 1.
+                      It is immutable.
+                      See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/replication-and-binary-log-system-variables#server_id
+                    type: integer
                   standaloneProbes:
                     description: |-
                       StandaloneProbes indicates whether to use the default non-HA startup and liveness probes.
@@ -8218,6 +8276,12 @@ spec:
                         default: ""
                         type: string
                     type: object
+                  serverCertAdditionalNames:
+                    description: ServerCertAdditionalNames is a list of additional
+                      certificate common names
+                    items:
+                      type: string
+                    type: array
                   serverCertIssuerRef:
                     description: |-
                       ServerCertIssuerRef is a reference to a cert-manager issuer object used to issue the server certificate. cert-manager must be installed previously in the cluster.
@@ -8880,6 +8944,10 @@ spec:
                           description: SlaveSQLRunning indicates whether the slave
                             SQL thread is running.
                           type: boolean
+                        usingGtid:
+                          description: UsingGtid is the GTID position mode (Slave_Pos
+                            or Current_Pos)
+                          type: string
                       type: object
                     description: Replicas is the observed replication status for each
                       replica.

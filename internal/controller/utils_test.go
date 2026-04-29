@@ -3,7 +3,9 @@ package controller
 import (
 	"context"
 	"fmt"
+	"net"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -12,8 +14,8 @@ import (
 	labels "github.com/mariadb-operator/mariadb-operator/v26/pkg/builder/labels"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/docker"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/environment"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/job"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/metadata"
-	"github.com/mariadb-operator/mariadb-operator/v26/pkg/refresolver"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/sql"
 	stsobj "github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
 	. "github.com/onsi/ginkgo/v2"
@@ -826,6 +828,22 @@ func applyMariadbTestConfig(mdb *mariadbv1alpha1.MariaDB) *mariadbv1alpha1.Maria
 	return mdb
 }
 
+// Use this configuration when running several Pods (4 or more) in parallel during the tests.
+// Otherwise, you may end up with Pods in Pending state, that are very hard to detect during the tests, see 'mariadb-eu-central-1':
+// https://github.com/mariadb-operator/mariadb-operator/actions/runs/25092999123/job/73523204752?pr=1698
+func applyMariadbSmallTestConfig(mdb *mariadbv1alpha1.MariaDB) *mariadbv1alpha1.MariaDB {
+	mdb.Spec.Resources = &mariadbv1alpha1.ResourceRequirements{
+		Requests: corev1.ResourceList{
+			"cpu":    resource.MustParse("100m"),
+			"memory": resource.MustParse("128Mi"),
+		},
+		Limits: corev1.ResourceList{
+			"memory": resource.MustParse("256Mi"),
+		},
+	}
+	return mdb
+}
+
 // See: https://docs.github.com/en/actions/using-github-hosted-runners/using-github-hosted-runners/about-github-hosted-runners#standard-github-hosted-runners-for-public-repositories
 func applyMaxscaleTestConfig(mxs *mariadbv1alpha1.MaxScale) *mariadbv1alpha1.MaxScale {
 	mxs.Spec.Resources = &mariadbv1alpha1.ResourceRequirements{
@@ -835,6 +853,22 @@ func applyMaxscaleTestConfig(mxs *mariadbv1alpha1.MaxScale) *mariadbv1alpha1.Max
 		},
 		Limits: corev1.ResourceList{
 			"memory": resource.MustParse("128Mi"),
+		},
+	}
+	return mxs
+}
+
+// Use this configuration when running several Pods (4 or more) in parallel during the tests.
+// Otherwise, you may end up with Pods in Pending state, that are very hard to detect during the tests, see 'mariadb-eu-central-1':
+// https://github.com/mariadb-operator/mariadb-operator/actions/runs/25092999123/job/73523204752?pr=1698
+func applyMaxscaleSmallTestConfig(mxs *mariadbv1alpha1.MaxScale) *mariadbv1alpha1.MaxScale {
+	mxs.Spec.Resources = &mariadbv1alpha1.ResourceRequirements{
+		Requests: corev1.ResourceList{
+			"cpu":    resource.MustParse("100m"),
+			"memory": resource.MustParse("64Mi"),
+		},
+		Limits: corev1.ResourceList{
+			"memory": resource.MustParse("64Mi"),
 		},
 	}
 	return mxs
@@ -1252,11 +1286,18 @@ func deleteMariadb(key types.NamespacedName, assertPVCDeletion bool) {
 	}, testHighTimeout, testInterval).Should(BeTrue())
 }
 
-func deleteExternalMariadb(key types.NamespacedName, assertPVCDeletion bool) {
-	var mdb mariadbv1alpha1.ExternalMariaDB
-	By("Deleting MariaDB")
-	Expect(k8sClient.Get(testCtx, key, &mdb)).To(Succeed())
-	Expect(k8sClient.Delete(testCtx, &mdb)).To(Succeed())
+func deleteExternalMariadb(key types.NamespacedName) {
+	By("Deleting ExternalMariaDB")
+	emdb := mariadbv1alpha1.ExternalMariaDB{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      key.Name,
+			Namespace: key.Namespace,
+		},
+	}
+	err := k8sClient.Delete(testCtx, &emdb)
+	if err != nil && !apierrors.IsNotFound(err) {
+		Expect(err).ToNot(HaveOccurred())
+	}
 }
 
 func deleteMaxScale(key types.NamespacedName, assertPVCDeletion bool) {
@@ -1325,7 +1366,7 @@ func deletePVC(pvcKey types.NamespacedName) {
 }
 
 func executeSqlInPodByIndex(mdb *mariadbv1alpha1.MariaDB, podIndex int, query string) {
-	clientSet := sql.NewClientSet(mdb, refresolver.New(k8sClient))
+	clientSet := sql.NewClientSet(mdb, testRefResolver)
 	sqlClient, err := clientSet.ClientForIndex(testCtx, podIndex)
 
 	Expect(err).ToNot(HaveOccurred(), "Could not create an internal client.")
@@ -1334,7 +1375,7 @@ func executeSqlInPodByIndex(mdb *mariadbv1alpha1.MariaDB, podIndex int, query st
 	Expect(sqlClient.Exec(testCtx, query)).ToNot(HaveOccurred(), fmt.Sprintf("Could not execute query: %s.", query))
 }
 
-func deletePhysicalBackup(key types.NamespacedName) {
+func deletePhysicalBackup(key types.NamespacedName, deleteJobs bool) {
 	var backup mariadbv1alpha1.PhysicalBackup
 	By("Deleting PhysicalBackup")
 	err := k8sClient.Get(testCtx, key, &backup)
@@ -1343,6 +1384,23 @@ func deletePhysicalBackup(key types.NamespacedName) {
 	}
 	if !apierrors.IsNotFound(err) {
 		Expect(err).ToNot(HaveOccurred())
+	}
+
+	if deleteJobs {
+		By("Deleting Jobs")
+		jobList, err := job.ListJobs(testCtx, k8sClient, &backup)
+		if err != nil && !apierrors.IsNotFound(err) {
+			Expect(err).ToNot(HaveOccurred())
+		}
+		for _, job := range jobList.Items {
+			if err := k8sClient.Delete(
+				testCtx,
+				&job,
+				&client.DeleteOptions{PropagationPolicy: ptr.To(metav1.DeletePropagationBackground)},
+			); err != nil && !apierrors.IsNotFound(err) {
+				Expect(err).ToNot(HaveOccurred())
+			}
+		}
 	}
 }
 
@@ -1500,4 +1558,15 @@ func applyDecoratorChain[T any](
 		}
 		return backup
 	}
+}
+
+func prefixedIPAddr(ipAddr string) string {
+	var addr string
+	if strings.HasPrefix(ipAddr, ".") {
+		addr = testCidrPrefix + ipAddr
+	} else {
+		addr = ipAddr
+	}
+	Expect(net.ParseIP(addr)).ToNot(BeNil())
+	return addr
 }
