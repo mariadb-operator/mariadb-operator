@@ -1,6 +1,7 @@
 package config
 
 import (
+	"regexp"
 	"testing"
 
 	"github.com/go-logr/logr"
@@ -44,6 +45,159 @@ func TestGaleraConfigMarshal(t *testing.T) {
 			},
 			wantConfig: "",
 			wantErr:    true,
+		},
+		{
+			name: "multicluster all params",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      "mariadb-galera",
+					Namespace: "default",
+				},
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							SST:            mariadbv1alpha1.SSTMariaBackup,
+							GaleraLibPath:  "/usr/lib/galera/libgalera_smm.so",
+							ReplicaThreads: 1,
+							GtidDomainID:   ptr.To(0),
+							ServerID:       ptr.To(100),
+						},
+					},
+					MultiCluster: &mariadbv1alpha1.MultiCluster{
+						Enabled: true,
+					},
+					Replicas: 3,
+				},
+			},
+			podEnv: &environment.PodEnvironment{
+				PodName:             "mariadb-galera-1",
+				PodIP:               "10.244.0.32",
+				MariadbRootPassword: "mariadb",
+			},
+			//nolint:lll
+			wantConfig: `[mariadb]
+bind_address=*
+default_storage_engine=InnoDB
+binlog_format=row
+innodb_autoinc_lock_mode=2
+
+# Cluster
+wsrep_on=ON
+wsrep_cluster_address="gcomm://mariadb-galera-0.mariadb-galera-internal.default.svc.cluster.local,mariadb-galera-1.mariadb-galera-internal.default.svc.cluster.local,mariadb-galera-2.mariadb-galera-internal.default.svc.cluster.local"
+wsrep_cluster_name=mariadb-operator
+wsrep_slave_threads=1
+
+# Node
+wsrep_node_address="10.244.0.32"
+wsrep_node_name="mariadb-galera-1"
+
+# Provider
+wsrep_provider=/usr/lib/galera/libgalera_smm.so
+wsrep_provider_options="gmcast.listen_addr=tcp://0.0.0.0:4567;ist.recv_addr=10.244.0.32:4568;socket.ssl=false"
+
+# SST
+wsrep_sst_method="mariabackup"
+wsrep_sst_auth="root:mariadb"
+wsrep_sst_receive_address="10.244.0.32:4444"
+
+# Multi-cluster
+log-bin
+log_slave_updates=ON
+wsrep_gtid_mode=ON
+wsrep_gtid_domain_id=0
+gtid_domain_id=2
+server_id=100
+`,
+			wantErr: false,
+		},
+		{
+			name: "multicluster invalid Pod",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      "mariadb-galera",
+					Namespace: "default",
+				},
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							SST:            mariadbv1alpha1.SSTMariaBackup,
+							GaleraLibPath:  "/usr/lib/galera/libgalera_smm.so",
+							ReplicaThreads: 1,
+							GtidDomainID:   ptr.To(0),
+							ServerID:       ptr.To(100),
+						},
+					},
+					MultiCluster: &mariadbv1alpha1.MultiCluster{
+						Enabled: true,
+					},
+					Replicas: 3,
+				},
+			},
+			podEnv: &environment.PodEnvironment{
+				PodName:             "test",
+				PodIP:               "10.244.0.32",
+				MariadbRootPassword: "mariadb",
+			},
+			wantConfig: "",
+			wantErr:    true,
+		},
+		{
+			name: "multicluster missing params",
+			mariadb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      "mariadb-galera",
+					Namespace: "default",
+				},
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Galera: &mariadbv1alpha1.Galera{
+						Enabled: true,
+						GaleraSpec: mariadbv1alpha1.GaleraSpec{
+							SST:            mariadbv1alpha1.SSTMariaBackup,
+							GaleraLibPath:  "/usr/lib/galera/libgalera_smm.so",
+							ReplicaThreads: 1,
+							// Intentionally leaving GtidDomainID and ServerID nil
+						},
+					},
+					MultiCluster: &mariadbv1alpha1.MultiCluster{
+						Enabled: true,
+					},
+					Replicas: 3,
+				},
+			},
+			podEnv: &environment.PodEnvironment{
+				PodName:             "mariadb-galera-1",
+				PodIP:               "10.244.0.32",
+				MariadbRootPassword: "mariadb",
+			},
+			//nolint:lll
+			wantConfig: `[mariadb]
+bind_address=*
+default_storage_engine=InnoDB
+binlog_format=row
+innodb_autoinc_lock_mode=2
+
+# Cluster
+wsrep_on=ON
+wsrep_cluster_address="gcomm://mariadb-galera-0.mariadb-galera-internal.default.svc.cluster.local,mariadb-galera-1.mariadb-galera-internal.default.svc.cluster.local,mariadb-galera-2.mariadb-galera-internal.default.svc.cluster.local"
+wsrep_cluster_name=mariadb-operator
+wsrep_slave_threads=1
+
+# Node
+wsrep_node_address="10.244.0.32"
+wsrep_node_name="mariadb-galera-1"
+
+# Provider
+wsrep_provider=/usr/lib/galera/libgalera_smm.so
+wsrep_provider_options="gmcast.listen_addr=tcp://0.0.0.0:4567;ist.recv_addr=10.244.0.32:4568;socket.ssl=false"
+
+# SST
+wsrep_sst_method="mariabackup"
+wsrep_sst_auth="root:mariadb"
+wsrep_sst_receive_address="10.244.0.32:4444"
+`,
+			wantErr: false,
 		},
 		{
 			name: "Galera not enabled",
@@ -514,7 +668,13 @@ tkey=/etc/pki/client.key
 			if !tt.wantErr && err != nil {
 				t.Errorf("expect error to not have occurred, got: %v", err)
 			}
-			if diff := cmp.Diff(tt.wantConfig, string(bytes)); diff != "" {
+			// normalize consecutive blank lines to at most one empty line for comparison
+			norm := func(s string) string {
+				r := regexp.MustCompile("\n{2,}")
+				return r.ReplaceAllString(s, "\n\n")
+			}
+
+			if diff := cmp.Diff(norm(tt.wantConfig), norm(string(bytes))); diff != "" {
 				t.Errorf("unexpected config (-want +got):\n%s", diff)
 			}
 		})
