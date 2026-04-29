@@ -509,7 +509,7 @@ func multiClusterMariaDBBuilder(ipAddr string,
 				MultiCluster: &multiCluster,
 			},
 		}
-		return applyMariadbTestConfig(mdb)
+		return applyMariadbSmallTestConfig(mdb)
 	}
 }
 
@@ -678,7 +678,7 @@ func buildMultiClusterMaxScale(key, mdbKey types.NamespacedName, ipAddr string) 
 			},
 		},
 	}
-	return applyMaxscaleTestConfig(mxs)
+	return applyMaxscaleSmallTestConfig(mxs)
 }
 
 func testReplicationStatus() {
