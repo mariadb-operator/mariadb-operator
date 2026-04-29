@@ -333,17 +333,6 @@ var _ = Describe("MariaDB multi-cluster with replication and MaxScale", Ordered,
 		)
 	})
 
-	AfterAll(func() {
-		deletePhysicalBackup(primaryKey, true)
-		deleteMariadb(primaryKey, true)
-		deleteMaxScale(primaryMaxScaleKey, true)
-		deleteExternalMariadb(primaryKey)
-
-		deleteMariadb(replicaKey, true)
-		deleteMaxScale(replicaMaxScaleKey, true)
-		deleteExternalMariadb(replicaKey)
-	})
-
 	It("should reconcile primary cluster", func() {
 		By("Creating primary MaxScale")
 		Expect(k8sClient.Create(testCtx, primaryMaxScale)).To(Succeed())
