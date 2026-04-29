@@ -28,7 +28,8 @@ func (r *MariaDBReconciler) reconcileStatus(ctx context.Context, mdb *mariadbv1a
 			return nil
 		})
 	}
-	logger := log.FromContext(ctx).WithName("status").V(1)
+	statusLogger := log.FromContext(ctx).WithName("status")
+	logger := statusLogger.V(1)
 
 	var sts appsv1.StatefulSet
 	if err := r.Get(ctx, client.ObjectKeyFromObject(mdb), &sts); err != nil {
@@ -47,6 +48,9 @@ func (r *MariaDBReconciler) reconcileStatus(ctx context.Context, mdb *mariadbv1a
 	mxsPrimaryPodIndex, mxsErr := r.getMaxScalePrimaryPod(ctx, mdb)
 	if mxsErr != nil {
 		logger.Info("error getting MaxScale primary Pod", "err", mxsErr)
+	}
+	if result, err := r.syncMaxScalePrimaryStatusIndex(ctx, mdb, mxsPrimaryPodIndex, statusLogger); !result.IsZero() || err != nil {
+		return result, err
 	}
 
 	tlsStatus, err := r.getTLSStatus(ctx, mdb)
@@ -345,4 +349,25 @@ func setMaxScalePrimary(mdb *mariadbv1alpha1.MariaDB, podIndex *int) {
 	}
 	mdb.Status.CurrentPrimaryPodIndex = podIndex
 	mdb.Status.CurrentPrimary = ptr.To(stspkg.PodName(mdb.ObjectMeta, *podIndex))
+}
+
+func (r *MariaDBReconciler) syncMaxScalePrimaryStatusIndex(ctx context.Context, mdb *mariadbv1alpha1.MariaDB,
+	podIndex *int, logger logr.Logger) (ctrl.Result, error) {
+	if !mdb.IsMaxScaleEnabled() || podIndex == nil {
+		return ctrl.Result{}, nil
+	}
+	if mdb.Status.CurrentPrimaryPodIndex != nil && *mdb.Status.CurrentPrimaryPodIndex == *podIndex {
+		return ctrl.Result{}, nil
+	}
+
+	primaryName := stspkg.PodName(mdb.ObjectMeta, *podIndex)
+	logger.Info("Syncing MariaDB primary status from MaxScale", "primary", primaryName, "pod-index", *podIndex)
+	if err := r.patchStatus(ctx, mdb, func(status *mariadbv1alpha1.MariaDBStatus) error {
+		status.UpdateCurrentPrimary(mdb, *podIndex)
+		condition.SetPrimarySwitched(status)
+		return nil
+	}); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error patching MariaDB primary status from MaxScale: %v", err)
+	}
+	return ctrl.Result{Requeue: true}, nil
 }
