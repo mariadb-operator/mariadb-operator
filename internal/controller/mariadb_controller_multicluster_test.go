@@ -336,9 +336,11 @@ var _ = Describe("MariaDB multi-cluster with replication and MaxScale", Ordered,
 	AfterAll(func() {
 		deletePhysicalBackup(primaryKey, true)
 		deleteMariadb(primaryKey, true)
+		deleteMaxScale(primaryKey, true)
 		deleteExternalMariadb(primaryKey)
 
 		deleteMariadb(replicaKey, true)
+		deleteMaxScale(replicaKey, true)
 		deleteExternalMariadb(replicaKey)
 	})
 
