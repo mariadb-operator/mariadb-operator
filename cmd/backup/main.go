@@ -318,6 +318,7 @@ func handleBackupMeta(ctx context.Context, backupLogger logr.Logger) error {
 	if err != nil {
 		return fmt.Errorf("error getting backup GTID: %v", err)
 	}
+	// TODO: test GTID with multiple domain IDs
 	gtid, err := replication.ParseGtid(rawGTID)
 	if err != nil {
 		return fmt.Errorf("error parsing GTID %s: %v", rawGTID, err)

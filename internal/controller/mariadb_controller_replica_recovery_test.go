@@ -172,7 +172,7 @@ var _ = Describe("MariaDB Replica Recovery", Ordered, func() {
 			})
 
 			DeferCleanup(func() {
-				deletePhysicalBackup(backupKey)
+				deletePhysicalBackup(backupKey, false)
 				cleanupFn(backupKey)()
 			})
 

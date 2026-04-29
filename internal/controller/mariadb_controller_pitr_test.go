@@ -49,7 +49,7 @@ var _ = Describe("MariaDB PITR with Replication", Ordered, func() {
 
 			DeferCleanup(func() {
 				deleteMariadb(key, false)
-				deletePhysicalBackup(key)
+				deletePhysicalBackup(key, false)
 				deletePitr(key)
 			})
 		})
@@ -91,7 +91,7 @@ var _ = Describe("MariaDB PITR with Replication", Ordered, func() {
 
 			DeferCleanup(func() {
 				deleteMariadb(key, false)
-				deletePhysicalBackup(key)
+				deletePhysicalBackup(key, false)
 				deletePitr(key)
 			})
 		})

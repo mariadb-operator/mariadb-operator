@@ -1909,6 +1909,13 @@ spec:
                       GaleraLibPath is a path inside the MariaDB image to the wsrep provider plugin. It is defaulted if not provided.
                       More info: https://galeracluster.com/library/documentation/mysql-wsrep-options.html#wsrep-provider.
                     type: string
+                  gtidDomainId:
+                    description: |-
+                      GtidDomainID is the domain ID to be used in GTID mode, enabled when the multi-cluster topology is used.
+                      For example: if you set this to `0`, the 'wsrep_gtid_domain_id' will be 0, while the replicas (if 3) will have 'gtid_domain_id' 1,2,3.
+                      Make sure it has a different value on each the member of a multi-cluster topology.
+                      See: https://mariadb.com/docs/galera-cluster/high-availability/using-mariadb-replication-with-mariadb-galera-cluster/configuring-mariadb-replication-between-two-mariadb-galera-clusters
+                    type: integer
                   initContainer:
                     description: InitContainer is an init container that runs in the
                       MariaDB Pod and co-operates with mariadb-operator.
@@ -2539,10 +2546,36 @@ spec:
                           during the cluster recovery.
                         type: string
                     type: object
+                  replPasswordSecretKeyRef:
+                    description: |-
+                      ReplPasswordSecretKeyRef provides a reference to the Secret to use as password for the replication user.
+                      This will be utilized as password of the replication user, when the multi-cluster topology is enabled.
+                      By default, a random password will be generated.
+                    properties:
+                      generate:
+                        default: false
+                        description: Generate indicates whether the Secret should
+                          be generated if the Secret referenced is not present.
+                        type: boolean
+                      key:
+                        type: string
+                      name:
+                        default: ""
+                        type: string
+                    required:
+                    - key
+                    type: object
+                    x-kubernetes-map-type: atomic
                   replicaThreads:
                     description: |-
                       ReplicaThreads is the number of replica threads used to apply Galera write sets in parallel.
                       More info: https://mariadb.com/kb/en/galera-cluster-system-variables/#wsrep_slave_threads.
+                    type: integer
+                  serverId:
+                    description: |-
+                      ServerID is the server ID to be used in GTID mode, enabled when the multi-cluster topology is used.
+                      Make sure it has a different value on each the member of a multi-cluster topology.
+                      See: https://mariadb.com/docs/galera-cluster/high-availability/using-mariadb-replication-with-mariadb-galera-cluster/configuring-mariadb-replication-between-two-mariadb-galera-clusters
                     type: integer
                   sst:
                     description: |-
@@ -3449,6 +3482,46 @@ spec:
                     description: Username is the username of the monitoring user used
                       by the exporter.
                     type: string
+                type: object
+              multiCluster:
+                description: MultiCluster configures the multi-cluster topology.
+                properties:
+                  enabled:
+                    description: Enabled is a flag to enable the multi-cluster topology.
+                    type: boolean
+                  members:
+                    description: Members is the specification of each member of the
+                      multi-cluster topology.
+                    items:
+                      properties:
+                        externalMariaDbRef:
+                          description: |-
+                            ExternalMariaDBRef holds a reference to an ExternalMariaDB with connection details to form the multi-cluster topology.
+                            These connection details are utilized to setup remote replicas.
+                          properties:
+                            name:
+                              type: string
+                            namespace:
+                              type: string
+                          type: object
+                        name:
+                          description: Name is the identifier of the member.
+                          type: string
+                      required:
+                      - name
+                      type: object
+                    type: array
+                  primary:
+                    description: Primary is the name of the primary cluster. It refers
+                      to a member in the 'members' field, containing its full specification.
+                    type: string
+                  replicas:
+                    description: Replicas is the name of all replica clusters. They
+                      refer to a member in the 'members' field, containing its full
+                      specification.
+                    items:
+                      type: string
+                    type: array
                 type: object
               myCnf:
                 description: |-
@@ -4393,6 +4466,12 @@ spec:
                   enabled:
                     description: Enabled is a flag to enable replication.
                     type: boolean
+                  gtidDomainId:
+                    description: |-
+                      GtidDomainID is gtid_domain_id for all of the MariaDB nodes.
+                      It is immutable.
+                      See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/gtid#gtid_domain_id
+                    type: integer
                   gtidStrictMode:
                     description: |-
                       GtidStrictMode determines whether the GTID strict mode is enabled.
@@ -5335,6 +5414,12 @@ spec:
                     - AfterSync
                     - AfterCommit
                     type: string
+                  serverIdStartIndex:
+                    description: |-
+                      ServerIDStartIndex sets the start index of the MariaDB nodes. Each subsequent replica will increment this by 1.
+                      It is immutable.
+                      See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/replication-and-binary-log-system-variables#server_id
+                    type: integer
                   standaloneProbes:
                     description: |-
                       StandaloneProbes indicates whether to use the default non-HA startup and liveness probes.
@@ -6058,6 +6143,12 @@ spec:
                         default: ""
                         type: string
                     type: object
+                  serverCertAdditionalNames:
+                    description: ServerCertAdditionalNames is a list of additional
+                      certificate common names
+                    items:
+                      type: string
+                    type: array
                   serverCertIssuerRef:
                     description: |-
                       ServerCertIssuerRef is a reference to a cert-manager issuer object used to issue the server certificate. cert-manager must be installed previously in the cluster.
@@ -6720,6 +6811,10 @@ spec:
                           description: SlaveSQLRunning indicates whether the slave
                             SQL thread is running.
                           type: boolean
+                        usingGtid:
+                          description: UsingGtid is the GTID position mode (Slave_Pos
+                            or Current_Pos)
+                          type: string
                       type: object
                     description: Replicas is the observed replication status for each
                       replica.

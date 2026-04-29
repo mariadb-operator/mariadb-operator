@@ -8,10 +8,7 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
-	"github.com/mariadb-operator/mariadb-operator/v26/pkg/builder"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/replication"
-
-	"github.com/mariadb-operator/mariadb-operator/v26/pkg/refresolver"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -28,20 +25,13 @@ var (
 // PodReplicationController reconciles a Pod object
 type PodReplicationController struct {
 	client.Client
-	recorder    events.EventRecorder
-	builder     *builder.Builder
-	refResolver *refresolver.RefResolver
-	replConfig  *replication.ReplicationConfigClient
+	recorder events.EventRecorder
 }
 
-func NewPodReplicationController(client client.Client, recorder events.EventRecorder, builder *builder.Builder,
-	refResolver *refresolver.RefResolver, replConfig *replication.ReplicationConfigClient) PodReadinessController {
+func NewPodReplicationController(client client.Client, recorder events.EventRecorder) PodReadinessController {
 	return &PodReplicationController{
-		Client:      client,
-		recorder:    recorder,
-		builder:     builder,
-		refResolver: refResolver,
-		replConfig:  replConfig,
+		Client:   client,
+		recorder: recorder,
 	}
 }
 

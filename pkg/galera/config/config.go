@@ -47,6 +47,11 @@ func (c *ConfigFile) Marshal(podEnv *environment.PodEnvironment) ([]byte, error)
 	}
 	galera := ptr.Deref(c.mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
 
+	gtidDomainID, err := c.gtidDomainID(podEnv.PodName, 1)
+	if err != nil {
+		return nil, fmt.Errorf("error getting gtid_domain_id: %v", err)
+	}
+
 	tpl := createTpl("galera", `[mariadb]
 bind_address=*
 default_storage_engine=InnoDB
@@ -79,6 +84,16 @@ encrypt=3
 tca={{ .SSTSSLCAPath }}
 tcert={{ .SSTSSLCertPath }}
 tkey={{ .SSTSSLKeyPath }}
+{{- end }}
+{{- if and .MultiClusterEnabled .WsrepGtidDomainID .GtidDomainID .ServerID }}
+
+# Multi-cluster
+log-bin
+log_slave_updates=ON
+wsrep_gtid_mode=ON
+wsrep_gtid_domain_id={{ .WsrepGtidDomainID }}
+gtid_domain_id={{ .GtidDomainID }}
+server_id={{ .ServerID }}
 {{- end }}
 `)
 	buf := new(bytes.Buffer)
@@ -123,6 +138,11 @@ tkey={{ .SSTSSLKeyPath }}
 		SSTSSLCAPath   string
 		SSTSSLCertPath string
 		SSTSSLKeyPath  string
+
+		MultiClusterEnabled bool
+		WsrepGtidDomainID   *int
+		GtidDomainID        *int
+		ServerID            *int
 	}{
 		ClusterAddress: clusterAddr,
 		Threads:        galera.ReplicaThreads,
@@ -145,6 +165,11 @@ tkey={{ .SSTSSLKeyPath }}
 		SSTSSLCAPath:   podEnv.TLSCACertPath,
 		SSTSSLCertPath: podEnv.TLSClientCertPath,
 		SSTSSLKeyPath:  podEnv.TLSClientKeyPath,
+
+		MultiClusterEnabled: c.mariadb.IsMultiClusterEnabled(),
+		WsrepGtidDomainID:   galera.GtidDomainID,
+		GtidDomainID:        gtidDomainID,
+		ServerID:            galera.ServerID,
 	})
 	if err != nil {
 		return nil, err
@@ -202,6 +227,25 @@ func (c *ConfigFile) getProviderOptions(env *environment.PodEnvironment, options
 
 	providerOpts := newProviderOptions(wsrepOpts)
 	return providerOpts.marshal(), nil
+}
+
+// gtidDomainID can be used to get a new 'gtid_domain_id' from the pod name.
+// We are relying on the natural incrementation of pod naming in statefulsets.
+// The 'offset' is added since 'gtid_domain_id' and 'wsrep_gtid_domain_id' must never match and they will for the first pod ("-0")
+// See: https://mariadb.com/docs/galera-cluster/high-availability/using-mariadb-replication-with-mariadb-galera-cluster/configuring-mariadb-replication-between-two-mariadb-galera-clusters
+func (c *ConfigFile) gtidDomainID(podName string, offset int) (*int, error) {
+	if !c.mariadb.IsMultiClusterEnabled() {
+		return nil, nil
+	}
+	galera := ptr.Deref(c.mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
+	if galera.GtidDomainID == nil {
+		return nil, nil
+	}
+	podIndex, err := statefulset.PodIndex(podName)
+	if err != nil {
+		return nil, fmt.Errorf("error getting Pod index: %v", err)
+	}
+	return ptr.To(offset + *galera.GtidDomainID + *podIndex), nil
 }
 
 func UpdateConfig(configBytes []byte, podEnv *environment.PodEnvironment) ([]byte, error) {

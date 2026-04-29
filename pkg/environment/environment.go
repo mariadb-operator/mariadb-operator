@@ -70,6 +70,8 @@ type PodEnvironment struct {
 
 	MariaDBReplEnabled                 string `env:"MARIADB_REPL_ENABLED"`
 	MariaDBReplGtidStrictMode          string `env:"MARIADB_REPL_GTID_STRICT_MODE"`
+	MariaDBReplGtidDomainID            string `env:"MARIADB_REPL_GTID_DOMAIN_ID"`
+	MariaDBReplServerIDStartIndex      string `env:"MARIADB_REPL_SERVER_ID_START_INDEX"`
 	MariaDBReplSemiSyncEnabled         string `env:"MARIADB_REPL_SEMI_SYNC_ENABLED"`
 	MariaDBReplSemiSyncMasterTimeout   string `env:"MARIADB_REPL_SEMI_SYNC_MASTER_TIMEOUT"`
 	MariaDBReplSemiSyncMasterWaitPoint string `env:"MARIADB_REPL_SEMI_SYNC_MASTER_WAIT_POINT"`

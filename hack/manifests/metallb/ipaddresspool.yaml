@@ -1,7 +1,7 @@
 apiVersion: metallb.io/v1beta1
 kind: IPAddressPool
 metadata:
-  name: load-balancer
+  name: load-balancer-0
   namespace: metallb
 spec:
   addresses:
@@ -14,4 +14,14 @@ metadata:
   namespace: metallb
 spec:
   ipAddressPools:
-    - load-balancer
+    - load-balancer-0
+    - load-balancer-1
+---
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: load-balancer-1
+  namespace: metallb
+spec:
+  addresses:
+    - $CIDR_PREFIX.1.10-$CIDR_PREFIX.1.240
