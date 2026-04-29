@@ -283,6 +283,24 @@ func (r *ReplicationReconciler) waitForNewPrimarySync(ctx context.Context, req *
 		return fmt.Errorf("error getting new primary client: %v", err)
 	}
 
+	// A previous switchover iteration may have completed configureNewPrimary (phase 4),
+	// which calls STOP ALL SLAVES / RESET SLAVE ALL on the new primary, removing its
+	// slave entry entirely. With no slave thread there is nothing in the relay log to
+	// drain; SHOW REPLICA STATUS returns no rows and HasRelayLogEvents would error
+	// forever on the missing Gtid_IO_Pos – producing a context.DeadlineExceeded loop
+	// that the surrounding switchover state machine cannot escape.
+	// Treat "no slave configured" as "no relay events to wait for" so the switchover
+	// can advance to phase 4 and reconfigure the primary cleanly.
+	isReplica, err := newPrimaryClient.IsReplicationReplica(ctx)
+	if err != nil {
+		return fmt.Errorf("error checking new primary replication status: %v", err)
+	}
+	if !isReplica {
+		logger.Info("New primary has no slave configured, skipping relay log drain wait")
+		req.replicasSynced = true
+		return nil
+	}
+
 	logger.Info("Waiting for new primary to be synced")
 	r.recorder.Eventf(req.mariadb, nil, corev1.EventTypeNormal, mariadbv1alpha1.ReasonReplicationPrimaryNewSync,
 		mariadbv1alpha1.ActionReconciling, "Waiting for new primary to be synced")
@@ -486,6 +504,11 @@ func (r *ReplicationReconciler) currentPrimaryReady(ctx context.Context, mariadb
 	if mariadb.Status.CurrentPrimaryPodIndex == nil {
 		return false, errors.New("'status.currentPrimaryPodIndex' must be set")
 	}
-	_, err := clientSet.clientForIndex(ctx, *mariadb.Status.CurrentPrimaryPodIndex, sql.WithTimeout(1*time.Second))
+	// 5s connect budget covers TCP dial + TLS handshake + auth even under operator
+	// CPU pressure or network jitter.  A tighter budget (the previous 1s) was prone
+	// to false negatives on TLS-enabled clusters: a transient flip to "not ready"
+	// switches the state machine onto the failover-style sync path, which can leave
+	// the new primary's slave thread in an unrecoverable wiped state.
+	_, err := clientSet.clientForIndex(ctx, *mariadb.Status.CurrentPrimaryPodIndex, sql.WithTimeout(5*time.Second))
 	return err == nil, nil
 }

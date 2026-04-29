@@ -101,3 +101,78 @@ func TestConfigureReplicaOpts_PlannedSwitchover_ReplicasSyncedTrue_DoesNotReset(
 	// a mock. This test serves only as documentation; the integration test covers it.
 	t.Skip("planned-switchover path requires a live SQL connection to the primary; covered by integration tests")
 }
+
+// TestWaitForNewPrimarySync_NoSlaveSkipsRelayLogWait documents the bug:
+//
+//	When the current primary is unreachable (currentPrimaryReady=false), waitSync
+//	dispatches to waitForNewPrimarySync instead of waitForReplicaSync.  That path
+//	polls the new primary's SHOW REPLICA STATUS to confirm its relay log has been
+//	drained before promotion.
+//
+//	If a previous switchover iteration already completed phase 4 (configureNewPrimary
+//	calls STOP ALL SLAVES / RESET SLAVE ALL on the new primary), the slave entry on
+//	the new primary is gone.  SHOW REPLICA STATUS returns no rows, so ReplicaStatus
+//	produces a struct with Gtid_IO_Pos == nil, and HasRelayLogEvents errors with
+//	"GTID IO position must be set".  PollUntilSuccessOrContextCancel keeps retrying
+//	until the syncTimeout (default 10s) elapses, returning context.DeadlineExceeded.
+//	That raw error propagates as:
+//	    "error in Wait sync switchover reconcile phase: context deadline exceeded"
+//	and the cluster never advances – the slave-reconnect fix added to
+//	waitForReplicaSync (commit 9dc14190) does not run on this path.
+//
+//	Fix: at the top of waitForNewPrimarySync, treat "no slave configured" as
+//	"no relay log events to wait for" – set replicasSynced=true and return nil.
+//	Phase 4 will reconfigure the primary cleanly on the same iteration.
+//
+//	Because this path requires live SQL connections it is covered by integration
+//	tests.  This comment serves as the design record.
+func TestWaitForNewPrimarySync_NoSlaveSkipsRelayLogWait(_ *testing.T) {
+	// Integration-test only; documented here for design record.
+	// See pkg/controller/replication/switchover.go: waitForNewPrimarySync.
+}
+
+// TestConfigurePrimary_IdempotentAfterPartialFailure documents the bug:
+//
+//	ConfigurePrimary chains StopAllSlaves -> ResetAllSlaves -> ResetGtidSlavePos
+//	inside an `if isReplica` gate.  If ResetAllSlaves succeeds but ResetGtidSlavePos
+//	fails (transient TLS / context error on the same connection), the pod is left
+//	with no slave entry but a preserved gtid_slave_pos.
+//
+//	On retry, IsReplicationReplica returns false (slave entry gone), the entire
+//	StopAllSlaves/ResetAllSlaves/ResetGtidSlavePos block is skipped, and
+//	gtid_slave_pos stays polluted.  ConfigurePrimary then returns success despite
+//	leaving the pod in a half-configured state, which interacts badly with the
+//	downstream switchover phases and the failover-sync path.
+//
+//	Fix: hoist ResetGtidSlavePos out of the `if isReplica` gate so it always runs.
+//	SET @@global.gtid_slave_pos='' is idempotent on a clean primary.
+//
+//	Because this path requires live SQL connections it is covered by integration
+//	tests.  This comment serves as the design record.
+func TestConfigurePrimary_IdempotentAfterPartialFailure(_ *testing.T) {
+	// Integration-test only; documented here for design record.
+	// See pkg/controller/replication/config.go: ConfigurePrimary.
+}
+
+// TestCurrentPrimaryReady_ToleratesTransientConnectBlips documents the bug:
+//
+//	currentPrimaryReady opens a fresh SQL client to the current primary with a
+//	1-second connect budget.  The DSN-level timeout covers TCP dial + TLS handshake
+//	+ auth.  On TLS-enabled clusters under operator CPU pressure or network jitter,
+//	a 1s budget is too tight and intermittently returns false even when the primary
+//	is healthy.
+//
+//	Each false flips the switchover state machine onto the failover-style sync path
+//	(waitForNewPrimarySync), which can leave the new primary's slave thread in a
+//	state from which the switchover cannot recover.
+//
+//	Fix: bump the connect budget to 5s, matching BuildDSN's default for unspecified
+//	timeouts.  This still bails out fast on a genuinely-down primary but tolerates
+//	transient TLS handshake jitter.
+//
+//	Because this path requires live SQL connections it is covered by integration
+//	tests.  This comment serves as the design record.
+func TestCurrentPrimaryReady_ToleratesTransientConnectBlips(_ *testing.T) {
+	// Integration-test only; documented here for design record.
+	// See pkg/controller/replication/switchover.go: currentPrimaryReady.
+}

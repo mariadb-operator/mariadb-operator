@@ -53,9 +53,14 @@ func (r *ReplicationConfigClient) ConfigurePrimary(ctx context.Context, mariadb 
 		if err := client.ResetAllSlaves(ctx); err != nil {
 			return fmt.Errorf("error resetting slave: %v", err)
 		}
-		if err := client.ResetGtidSlavePos(ctx); err != nil {
-			return fmt.Errorf("error resetting slave position: %v", err)
-		}
+	}
+	// Always reset gtid_slave_pos so the primary is left in a clean state even when a
+	// previous attempt aborted between ResetAllSlaves and ResetGtidSlavePos.  Without
+	// this, IsReplicationReplica returns false on retry (slave entry already gone) and
+	// gtid_slave_pos stays polluted, leaving the pod in a half-configured state that
+	// breaks subsequent switchover phases.  SET @@global.gtid_slave_pos='' is idempotent.
+	if err := client.ResetGtidSlavePos(ctx); err != nil {
+		return fmt.Errorf("error resetting slave position: %v", err)
 	}
 	if err := client.DisableReadOnly(ctx); err != nil {
 		return fmt.Errorf("error disabling read_only: %v", err)
