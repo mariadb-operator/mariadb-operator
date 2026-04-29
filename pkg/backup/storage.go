@@ -3,6 +3,7 @@ package backup
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/go-logr/logr"
@@ -69,6 +70,27 @@ func (f *FileSystemBackupStorage) shouldProcessBackupFile(fileName string, logge
 	return false
 }
 
+// PullStream returns a streaming reader for a local file along with its size.
+func (f *FileSystemBackupStorage) PullStream(_ context.Context, fileName string) (io.ReadCloser, int64, error) {
+	filePath := GetFilePath(f.basePath, fileName)
+	file, err := os.Open(filePath)
+	if err != nil {
+		return nil, 0, fmt.Errorf("error opening file: %v", err)
+	}
+	info, err := file.Stat()
+	if err != nil {
+		file.Close()
+		return nil, 0, fmt.Errorf("error getting file info: %v", err)
+	}
+	return file, info.Size(), nil
+}
+
+// PullStreamResumable returns a streaming reader. For local files, this is equivalent to PullStream.
+func (f *FileSystemBackupStorage) PullStreamResumable(ctx context.Context, fileName string,
+	_ mariadbminio.ResumableReaderConfig) (io.ReadCloser, int64, error) {
+	return f.PullStream(ctx, fileName)
+}
+
 type BlobBackupStorage struct {
 	processor BackupProcessor
 	client    interfaces.BlobStorage
@@ -123,4 +145,27 @@ func (s *BlobBackupStorage) shouldProcessBackupFile(fileName string, logger logr
 	}
 	logger.V(1).Info("ignoring file", "file", fileName)
 	return false
+}
+
+// PullStream returns a streaming reader for a blob storage object along with its size.
+// For S3 clients, it uses StatObject for size. For other providers, size may be -1 (unknown).
+func (s *BlobBackupStorage) PullStream(ctx context.Context, fileName string) (io.ReadCloser, int64, error) {
+	if minioClient, ok := s.client.(*mariadbminio.Client); ok {
+		return minioClient.GetObjectStream(ctx, fileName)
+	}
+	reader, err := s.client.GetObjectWithOptions(ctx, fileName)
+	if err != nil {
+		return nil, 0, err
+	}
+	return reader, -1, nil
+}
+
+// PullStreamResumable returns a resumable streaming reader for a blob storage object.
+// For S3, it uses the ResumableReader with automatic retry. For other providers, it falls back to PullStream.
+func (s *BlobBackupStorage) PullStreamResumable(ctx context.Context, fileName string,
+	config mariadbminio.ResumableReaderConfig) (io.ReadCloser, int64, error) {
+	if minioClient, ok := s.client.(*mariadbminio.Client); ok {
+		return minioClient.GetResumableObjectStream(ctx, fileName, config)
+	}
+	return s.PullStream(ctx, fileName)
 }
