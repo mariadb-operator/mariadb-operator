@@ -72,7 +72,7 @@ var (
 	}
 )
 
-var _ = Describe("MariaDB multi-cluster with replication", Ordered, func() {
+var _ = Describe("MariaDB multi-cluster with replication", Ordered, Focus, func() {
 	BeforeAll(func() {
 		primaryBackup = buildPhysicalBackupWithS3Storage(
 			primaryKey,
@@ -333,11 +333,20 @@ var _ = Describe("MariaDB multi-cluster with replication and MaxScale", Ordered,
 		)
 	})
 
+	AfterAll(func() {
+		deletePhysicalBackup(primaryKey, true)
+		deleteMariadb(primaryKey, true)
+		deleteExternalMariadb(primaryKey)
+
+		deleteMariadb(replicaKey, true)
+		deleteExternalMariadb(replicaKey)
+	})
+
 	It("should reconcile primary cluster", func() {
-		By("Creating primary MaxScale")
-		Expect(k8sClient.Create(testCtx, primaryMaxScale)).To(Succeed())
 		By("Creating primary MariaDB")
 		Expect(k8sClient.Create(testCtx, primaryMdb)).To(Succeed())
+		By("Creating primary MaxScale")
+		Expect(k8sClient.Create(testCtx, primaryMaxScale)).To(Succeed())
 
 		By("Expecting primary MariaDB to be ready eventually")
 		expectMariadbFn(testCtx, k8sClient, primaryKey, func(mdb *mariadbv1alpha1.MariaDB) bool {
@@ -377,10 +386,10 @@ var _ = Describe("MariaDB multi-cluster with replication and MaxScale", Ordered,
 	})
 
 	It("should create replica cluster from physical backup", func() {
-		By("Creating replica MaxScale")
-		Expect(k8sClient.Create(testCtx, replicaMaxScale)).To(Succeed())
 		By("Creating replica MariaDB")
 		Expect(k8sClient.Create(testCtx, replicaMdb)).To(Succeed())
+		By("Creating replica MaxScale")
+		Expect(k8sClient.Create(testCtx, replicaMaxScale)).To(Succeed())
 
 		By("Expecting replica MariaDB to be ready eventually")
 		expectMariadbFn(testCtx, k8sClient, replicaKey, func(mdb *mariadbv1alpha1.MariaDB) bool {
