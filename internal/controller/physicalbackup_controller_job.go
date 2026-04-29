@@ -357,6 +357,25 @@ func (r *PhysicalBackupReconciler) createJob(ctx context.Context, backup *mariad
 		return ctrl.Result{}, fmt.Errorf("error building Job: %v", err)
 	}
 
+	created := true
+	if err := r.Create(ctx, job); err != nil {
+		if !apierrors.IsAlreadyExists(err) {
+			return ctrl.Result{}, fmt.Errorf("error creating Job: %v", err)
+		}
+		created = false
+	}
+	if created {
+		r.Recorder.Eventf(
+			backup,
+			job,
+			corev1.EventTypeNormal,
+			mariadbv1alpha1.ReasonJobScheduled,
+			mariadbv1alpha1.ActionReconciling,
+			"Job %s scheduled",
+			job.Name,
+		)
+	}
+
 	if err := r.patchStatus(ctx, backup, func(status *mariadbv1alpha1.PhysicalBackupStatus) {
 		status.LastScheduleCheckTime = &metav1.Time{
 			Time: now,
@@ -372,19 +391,6 @@ func (r *PhysicalBackupReconciler) createJob(ctx context.Context, backup *mariad
 	}); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error patching status: %v", err)
 	}
-
-	if err := r.Create(ctx, job); err != nil {
-		return ctrl.Result{}, fmt.Errorf("error creating Job: %v", err)
-	}
-	r.Recorder.Eventf(
-		backup,
-		job,
-		corev1.EventTypeNormal,
-		mariadbv1alpha1.ReasonJobScheduled,
-		mariadbv1alpha1.ActionReconciling,
-		"Job %s scheduled",
-		job.Name,
-	)
 	return ctrl.Result{}, nil
 }
 

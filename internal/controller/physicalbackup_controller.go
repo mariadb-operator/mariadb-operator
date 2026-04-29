@@ -38,6 +38,8 @@ import (
 
 var errPhysicalBackupNoTargetPodsAvailable = errors.New("no target Pods available")
 
+const missingPhysicalBackupArtifactRetryDelay = 30 * time.Second
+
 // PhysicalBackupReconciler reconciles a PhysicalBackup object
 type PhysicalBackupReconciler struct {
 	client.Client
@@ -149,7 +151,7 @@ func (r *PhysicalBackupReconciler) reconcileTemplate(ctx context.Context, backup
 	}
 
 	if backup.Spec.Schedule != nil {
-		return r.reconcileTemplateScheduled(ctx, backup, scheduleFn)
+		return r.reconcileTemplateScheduled(ctx, backup, numReconciledObjects, scheduleFn)
 	}
 	if numReconciledObjects == 0 {
 		return scheduleFn(time.Now(), nil)
@@ -158,7 +160,7 @@ func (r *PhysicalBackupReconciler) reconcileTemplate(ctx context.Context, backup
 }
 
 func (r *PhysicalBackupReconciler) reconcileTemplateScheduled(ctx context.Context, backup *mariadbv1alpha1.PhysicalBackup,
-	scheduleFn scheduleFn) (ctrl.Result, error) {
+	numReconciledObjects int, scheduleFn scheduleFn) (ctrl.Result, error) {
 	schedule := ptr.Deref(backup.Spec.Schedule, mariadbv1alpha1.PhysicalBackupSchedule{})
 
 	if schedule.Suspend {
@@ -169,6 +171,12 @@ func (r *PhysicalBackupReconciler) reconcileTemplateScheduled(ctx context.Contex
 	now := time.Now()
 	if isImmediate && backup.Status.LastScheduleCheckTime == nil {
 		return scheduleFn(now, nil)
+	}
+	if retryAfter := missingPhysicalBackupArtifactRetryAfter(backup, numReconciledObjects, now); retryAfter != nil {
+		if *retryAfter <= 0 {
+			return scheduleFn(now, nil)
+		}
+		return ctrl.Result{RequeueAfter: *retryAfter}, nil
 	}
 
 	if schedule.Cron == "" {
@@ -201,6 +209,23 @@ func (r *PhysicalBackupReconciler) reconcileTemplateScheduled(ctx context.Contex
 		return ctrl.Result{RequeueAfter: nextTime.Sub(now)}, nil
 	}
 	return scheduleFn(now, cronSchedule)
+}
+
+func missingPhysicalBackupArtifactRetryAfter(backup *mariadbv1alpha1.PhysicalBackup,
+	numReconciledObjects int, now time.Time) *time.Duration {
+	if backup.Spec.Schedule == nil || backup.Spec.Schedule.Cron != "" {
+		return nil
+	}
+	if !ptr.Deref(backup.Spec.Schedule.Immediate, true) || numReconciledObjects > 0 ||
+		backup.Status.LastScheduleTime == nil {
+		return nil
+	}
+
+	elapsed := now.Sub(backup.Status.LastScheduleTime.Time)
+	if elapsed >= missingPhysicalBackupArtifactRetryDelay {
+		return ptr.To(time.Duration(0))
+	}
+	return ptr.To(missingPhysicalBackupArtifactRetryDelay - elapsed)
 }
 
 func (r *PhysicalBackupReconciler) patch(ctx context.Context, backup *mariadbv1alpha1.PhysicalBackup,

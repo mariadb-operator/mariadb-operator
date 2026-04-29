@@ -11,6 +11,7 @@ import (
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	builderpki "github.com/mariadb-operator/mariadb-operator/v26/pkg/builder/pki"
+	condition "github.com/mariadb-operator/mariadb-operator/v26/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/replication"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/environment"
 	galeraconfig "github.com/mariadb-operator/mariadb-operator/v26/pkg/galera/config"
@@ -42,6 +43,10 @@ func (r *MariaDBReconciler) reconcileUpdates(ctx context.Context, mdb *mariadbv1
 	}
 	mariadbKey := client.ObjectKeyFromObject(mdb)
 	logger := log.FromContext(ctx).WithName("update")
+
+	if result, err := r.syncMaxScalePrimaryStatus(ctx, mdb, logger); !result.IsZero() || err != nil {
+		return result, err
+	}
 
 	var sts appsv1.StatefulSet
 	if err := r.Get(ctx, mariadbKey, &sts); err != nil {
@@ -102,6 +107,35 @@ func (r *MariaDBReconciler) reconcileUpdates(ctx context.Context, mdb *mariadbv1
 		return ctrl.Result{}, fmt.Errorf("error updating primary Pod '%s': %v", primaryPod.Name, err)
 	}
 	return ctrl.Result{}, nil
+}
+
+func (r *MariaDBReconciler) syncMaxScalePrimaryStatus(ctx context.Context, mdb *mariadbv1alpha1.MariaDB,
+	logger logr.Logger) (ctrl.Result, error) {
+	if !mdb.IsMaxScaleEnabled() {
+		return ctrl.Result{}, nil
+	}
+	podIndex, err := r.getMaxScalePrimaryPod(ctx, mdb)
+	if err != nil {
+		logger.V(1).Info("error getting MaxScale primary Pod", "err", err)
+		return ctrl.Result{}, nil
+	}
+	if podIndex == nil {
+		return ctrl.Result{}, nil
+	}
+	if mdb.Status.CurrentPrimaryPodIndex != nil && *mdb.Status.CurrentPrimaryPodIndex == *podIndex {
+		return ctrl.Result{}, nil
+	}
+
+	primaryName := statefulset.PodName(mdb.ObjectMeta, *podIndex)
+	logger.Info("Syncing MariaDB primary status from MaxScale", "primary", primaryName, "pod-index", *podIndex)
+	if err := r.patchStatus(ctx, mdb, func(status *mariadbv1alpha1.MariaDBStatus) error {
+		status.UpdateCurrentPrimary(mdb, *podIndex)
+		condition.SetPrimarySwitched(status)
+		return nil
+	}); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error patching MariaDB primary status from MaxScale: %v", err)
+	}
+	return ctrl.Result{Requeue: true}, nil
 }
 
 func (r *MariaDBReconciler) getUpdateAnnotations(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (map[string]string, error) {
