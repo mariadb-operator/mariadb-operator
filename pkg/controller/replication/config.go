@@ -54,24 +54,37 @@ func (r *ReplicationConfigClient) ConfigurePrimary(ctx context.Context, mariadb 
 			return fmt.Errorf("error resetting slave: %v", err)
 		}
 	}
-	// Reset gtid_slave_pos when it carries leftover state, regardless of whether the
-	// slave entry still exists.  This handles the partial-failure case where an earlier
-	// attempt completed ResetAllSlaves but aborted before ResetGtidSlavePos, leaving the
-	// pod with no slave entry but a polluted gtid_slave_pos that breaks subsequent
-	// switchover phases.
+	// Clear leftover replication state from gtid_slave_pos when it diverges from the
+	// pod's own binlog position.  This handles the partial-failure case where an earlier
+	// attempt completed ResetAllSlaves but aborted before this step, leaving the pod with
+	// no slave entry but a polluted gtid_slave_pos that breaks subsequent switchover phases.
 	//
-	// Skip the reset when gtid_slave_pos is already empty: with gtid_strict_mode enabled,
-	// `SET @@global.gtid_slave_pos = ''` is rejected on a primary whose binlog already
-	// contains GTIDs (Error 1948 - "Specified value for @@gtid_slave_pos contains no
-	// value for replication domain X").  A no-op reset would unnecessarily fail healthy
-	// primaries that have written to their binlog.
+	// Why align with gtid_binlog_pos rather than reset to '':
+	// with gtid_strict_mode enabled, the server rejects `SET @@global.gtid_slave_pos = ''`
+	// whenever the binlog already contains GTIDs for any domain
+	// (Error 1948 - "Specified value for @@gtid_slave_pos contains no value for replication
+	// domain X.  This conflicts with the binary log which contains GTID Y").  A new primary's
+	// own log_basename binlog always has at least its initial GTID_LIST event, so blanket
+	// reset would fail on every healthy promotion.  Aligning slave_pos with the binlog pos
+	// satisfies strict_mode and is semantically harmless: gtid_slave_pos is only consulted
+	// when a slave thread runs, and we are configuring this pod as a primary.
 	gtidSlavePos, err := client.GtidSlavePos(ctx)
 	if err != nil {
 		return fmt.Errorf("error getting gtid_slave_pos: %v", err)
 	}
-	if gtidSlavePos != "" {
-		if err := client.ResetGtidSlavePos(ctx); err != nil {
-			return fmt.Errorf("error resetting slave position: %v", err)
+	gtidBinlogPos, err := client.GtidBinlogPos(ctx)
+	if err != nil {
+		return fmt.Errorf("error getting gtid_binlog_pos: %v", err)
+	}
+	if gtidSlavePos != gtidBinlogPos {
+		if gtidBinlogPos == "" {
+			if err := client.ResetGtidSlavePos(ctx); err != nil {
+				return fmt.Errorf("error resetting slave position: %v", err)
+			}
+		} else {
+			if err := client.SetGtidSlavePos(ctx, gtidBinlogPos); err != nil {
+				return fmt.Errorf("error setting slave position: %v", err)
+			}
 		}
 	}
 	if err := client.DisableReadOnly(ctx); err != nil {

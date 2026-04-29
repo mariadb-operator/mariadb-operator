@@ -144,14 +144,19 @@ func TestWaitForNewPrimarySync_NoSlaveSkipsRelayLogWait(_ *testing.T) {
 //	leaving the pod in a half-configured state, which interacts badly with the
 //	downstream switchover phases and the failover-sync path.
 //
-//	Fix: read gtid_slave_pos and call ResetGtidSlavePos whenever it is non-empty,
-//	regardless of whether the slave entry still exists.  Skipping the reset when
-//	already empty is required because, with gtid_strict_mode=1, the server rejects
-//	`SET @@global.gtid_slave_pos = ''` on a primary whose binlog already contains
-//	GTIDs (Error 1948 - "Specified value for @@gtid_slave_pos contains no value for
-//	replication domain X. This conflicts with the binary log which contains GTID Y").
-//	A blanket unconditional reset would regress healthy primaries that have written
-//	to their binlog.
+//	Fix: align gtid_slave_pos with the pod's own gtid_binlog_pos when they diverge.
+//	This handles three cases under gtid_strict_mode=1:
+//	  - slave_pos == binlog_pos: no-op (already aligned).
+//	  - binlog_pos empty: ResetGtidSlavePos to '' (strict mode is satisfied — no
+//	    binlog domains to reconcile).
+//	  - binlog_pos non-empty and slave_pos differs: SetGtidSlavePos(binlog_pos).
+//	    This satisfies strict mode (slave_pos covers the binlog domains) without
+//	    failing on the healthy-promotion case where the new primary's own binlog has
+//	    at least an initial GTID_LIST event from its server_id.  An earlier blanket
+//	    reset to '' regressed every healthy primary because Error 1948 rejected the
+//	    reset whenever the binlog had any GTID for any domain.
+//	    gtid_slave_pos is only consulted when a slave thread runs, so freezing it at
+//	    the binlog pos is harmless for a pod that is becoming primary.
 //
 //	Because this path requires live SQL connections it is covered by integration
 //	tests.  This comment serves as the design record.
