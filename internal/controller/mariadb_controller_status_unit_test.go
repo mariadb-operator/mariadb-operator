@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	condition "github.com/mariadb-operator/mariadb-operator/v26/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/refresolver"
@@ -241,6 +242,58 @@ func TestReconcileStatusRequeuesAfterMaxScalePrimarySync(t *testing.T) {
 	}
 
 	result, err := reconciler.reconcileStatus(context.Background(), mariadb)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.IsZero() {
+		t.Fatalf("expected requeue after syncing primary status, got %+v", result)
+	}
+
+	var updated mariadbv1alpha1.MariaDB
+	if err := fakeClient.Get(context.Background(), client.ObjectKeyFromObject(mariadb), &updated); err != nil {
+		t.Fatalf("error getting MariaDB: %v", err)
+	}
+	if updated.Status.CurrentPrimaryPodIndex == nil || *updated.Status.CurrentPrimaryPodIndex != 0 {
+		t.Fatalf("expected current primary index 0, got %v", updated.Status.CurrentPrimaryPodIndex)
+	}
+	if updated.Status.CurrentPrimary == nil || *updated.Status.CurrentPrimary != "db-cluster-0" {
+		t.Fatalf("expected current primary db-cluster-0, got %v", updated.Status.CurrentPrimary)
+	}
+}
+
+func TestSyncReplicationPrimaryStatusUpdatesStalePrimary(t *testing.T) {
+	scheme := runtime.NewScheme()
+	if err := mariadbv1alpha1.AddToScheme(scheme); err != nil {
+		t.Fatalf("error adding MariaDB scheme: %v", err)
+	}
+
+	mariadb := &mariadbv1alpha1.MariaDB{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "db-cluster",
+			Namespace: "test",
+		},
+		Spec: mariadbv1alpha1.MariaDBSpec{
+			Replicas: 2,
+		},
+		Status: mariadbv1alpha1.MariaDBStatus{
+			CurrentPrimary:         ptr.To("db-cluster-1"),
+			CurrentPrimaryPodIndex: ptr.To(1),
+		},
+	}
+	fakeClient := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithStatusSubresource(&mariadbv1alpha1.MariaDB{}).
+		WithObjects(mariadb).
+		Build()
+	reconciler := &MariaDBReconciler{
+		Client: fakeClient,
+	}
+	roles := map[string]mariadbv1alpha1.ReplicationRole{
+		"db-cluster-0": mariadbv1alpha1.ReplicationRolePrimary,
+		"db-cluster-1": mariadbv1alpha1.ReplicationRoleReplica,
+	}
+
+	result, err := reconciler.syncReplicationPrimaryStatus(context.Background(), mariadb, roles, logr.Discard())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

@@ -45,11 +45,8 @@ func (r *MariaDBReconciler) reconcileStatus(ctx context.Context, mdb *mariadbv1a
 		logger.Info("error getting replication status", "err", replStatus)
 	}
 
-	mxsPrimaryPodIndex, mxsErr := r.getMaxScalePrimaryPod(ctx, mdb)
-	if mxsErr != nil {
-		logger.Info("error getting MaxScale primary Pod", "err", mxsErr)
-	}
-	if result, err := r.syncMaxScalePrimaryStatusIndex(ctx, mdb, mxsPrimaryPodIndex, statusLogger); !result.IsZero() || err != nil {
+	mxsPrimaryPodIndex, mxsErr, result, err := r.syncObservedPrimaryStatus(ctx, mdb, replRoles, statusLogger, logger)
+	if !result.IsZero() || err != nil {
 		return result, err
 	}
 
@@ -95,6 +92,23 @@ func (r *MariaDBReconciler) reconcileStatus(ctx context.Context, mdb *mariadbv1a
 		condition.SetReadyWithMariaDB(&mdb.Status, &sts, mdb)
 		return nil
 	})
+}
+
+func (r *MariaDBReconciler) syncObservedPrimaryStatus(ctx context.Context, mdb *mariadbv1alpha1.MariaDB,
+	replRoles map[string]mariadbv1alpha1.ReplicationRole, statusLogger logr.Logger,
+	logger logr.Logger) (*int, error, ctrl.Result, error) {
+	if result, err := r.syncReplicationPrimaryStatus(ctx, mdb, replRoles, statusLogger); !result.IsZero() || err != nil {
+		return nil, nil, result, err
+	}
+
+	mxsPrimaryPodIndex, mxsErr := r.getMaxScalePrimaryPod(ctx, mdb)
+	if mxsErr != nil {
+		logger.Info("error getting MaxScale primary Pod", "err", mxsErr)
+	}
+	if result, err := r.syncMaxScalePrimaryStatusIndex(ctx, mdb, mxsPrimaryPodIndex, statusLogger); !result.IsZero() || err != nil {
+		return mxsPrimaryPodIndex, mxsErr, result, err
+	}
+	return mxsPrimaryPodIndex, mxsErr, ctrl.Result{}, nil
 }
 
 func (r *MariaDBReconciler) getReplicationRoles(ctx context.Context,
@@ -370,4 +384,52 @@ func (r *MariaDBReconciler) syncMaxScalePrimaryStatusIndex(ctx context.Context, 
 		return ctrl.Result{}, fmt.Errorf("error patching MariaDB primary status from MaxScale: %v", err)
 	}
 	return ctrl.Result{Requeue: true}, nil
+}
+
+func (r *MariaDBReconciler) syncReplicationPrimaryStatus(ctx context.Context, mdb *mariadbv1alpha1.MariaDB,
+	roles map[string]mariadbv1alpha1.ReplicationRole, logger logr.Logger) (ctrl.Result, error) {
+	if mdb.IsMaxScaleEnabled() {
+		return ctrl.Result{}, nil
+	}
+	podIndex, err := replicationPrimaryPodIndex(mdb, roles)
+	if err != nil {
+		logger.V(1).Info("Unable to sync MariaDB primary status from replication roles", "err", err)
+		return ctrl.Result{}, nil
+	}
+	if podIndex == nil {
+		return ctrl.Result{}, nil
+	}
+	if mdb.Status.CurrentPrimaryPodIndex != nil && *mdb.Status.CurrentPrimaryPodIndex == *podIndex {
+		return ctrl.Result{}, nil
+	}
+
+	primaryName := stspkg.PodName(mdb.ObjectMeta, *podIndex)
+	logger.Info("Syncing MariaDB primary status from replication roles", "primary", primaryName, "pod-index", *podIndex)
+	if err := r.patchStatus(ctx, mdb, func(status *mariadbv1alpha1.MariaDBStatus) error {
+		status.UpdateCurrentPrimary(mdb, *podIndex)
+		condition.SetPrimarySwitched(status)
+		return nil
+	}); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error patching MariaDB primary status from replication roles: %v", err)
+	}
+	return ctrl.Result{Requeue: true}, nil
+}
+
+func replicationPrimaryPodIndex(mdb *mariadbv1alpha1.MariaDB,
+	roles map[string]mariadbv1alpha1.ReplicationRole) (*int, error) {
+	var primaryPodIndex *int
+	for pod, role := range roles {
+		if role != mariadbv1alpha1.ReplicationRolePrimary {
+			continue
+		}
+		podIndex, err := stspkg.PodIndex(pod)
+		if err != nil {
+			return nil, fmt.Errorf("error getting pod index for primary Pod %s: %v", pod, err)
+		}
+		if primaryPodIndex != nil && *primaryPodIndex != *podIndex {
+			return nil, fmt.Errorf("multiple primary Pods observed for MariaDB %s/%s", mdb.Namespace, mdb.Name)
+		}
+		primaryPodIndex = podIndex
+	}
+	return primaryPodIndex, nil
 }
