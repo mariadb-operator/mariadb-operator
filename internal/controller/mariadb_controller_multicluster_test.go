@@ -72,7 +72,7 @@ var (
 	}
 )
 
-var _ = Describe("MariaDB multi-cluster with replication", Ordered, func() {
+var _ = Describe("MariaDB multi-cluster with replication", Ordered, Label("multi-cluster"), func() {
 	BeforeAll(func() {
 		primaryBackup = buildPhysicalBackupWithS3Storage(
 			primaryKey,
@@ -277,7 +277,7 @@ var _ = Describe("MariaDB multi-cluster with replication", Ordered, func() {
 	It("should have valid replication status after switchover", testReplicationStatus)
 })
 
-var _ = Describe("MariaDB multi-cluster with replication and MaxScale", Ordered, func() {
+var _ = Describe("MariaDB multi-cluster with replication and MaxScale", Ordered, Label("multi-cluster"), func() {
 	BeforeAll(func() {
 		primaryBackup = buildPhysicalBackupWithS3Storage(
 			primaryKey,
@@ -507,7 +507,7 @@ func multiClusterMariaDBBuilder(ipAddr string,
 				MultiCluster: &multiCluster,
 			},
 		}
-		return applyMariadbSmallTestConfig(mdb)
+		return applyMariadbTestConfig(mdb)
 	}
 }
 
@@ -676,7 +676,7 @@ func buildMultiClusterMaxScale(key, mdbKey types.NamespacedName, ipAddr string) 
 			},
 		},
 	}
-	return applyMaxscaleSmallTestConfig(mxs)
+	return applyMaxscaleTestConfig(mxs)
 }
 
 func testReplicationStatus() {
