@@ -117,10 +117,18 @@ func (r *MariaDBReconciler) getUpdateAnnotations(ctx context.Context, mariadb *m
 
 	if mariadb.IsGaleraEnabled() {
 		logger := log.FromContext(ctx).WithName("galera-config")
+
+		podName := "pod-name"
+		// for backwards compatibility, to avoid a rolling update on existing MariaDB instances
+		// managed by mariadb-operator version prior to 26.06
+		if mariadb.IsMultiClusterEnabled() {
+			podName = "pod-name-0"
+		}
+
 		env := &environment.PodEnvironment{
 			ClusterName:         "cluster.local",
 			PodIP:               "10.0.0.0",
-			PodName:             "pod-name",
+			PodName:             podName,
 			MariadbName:         mariadb.Name,
 			MariadbRootPassword: "password",
 			MariadbPort:         strconv.Itoa(int(mariadb.Spec.Port)),

@@ -4075,6 +4075,13 @@ spec:
                       GaleraLibPath is a path inside the MariaDB image to the wsrep provider plugin. It is defaulted if not provided.
                       More info: https://galeracluster.com/library/documentation/mysql-wsrep-options.html#wsrep-provider.
                     type: string
+                  gtidDomainId:
+                    description: |-
+                      GtidDomainID is the domain ID to be used in GTID mode, enabled when the multi-cluster topology is used.
+                      For example: if you set this to `0`, the 'wsrep_gtid_domain_id' will be 0, while the replicas (if 3) will have 'gtid_domain_id' 1,2,3.
+                      Make sure it has a different value on each the member of a multi-cluster topology.
+                      See: https://mariadb.com/docs/galera-cluster/high-availability/using-mariadb-replication-with-mariadb-galera-cluster/configuring-mariadb-replication-between-two-mariadb-galera-clusters
+                    type: integer
                   initContainer:
                     description: InitContainer is an init container that runs in the
                       MariaDB Pod and co-operates with mariadb-operator.
@@ -4705,10 +4712,36 @@ spec:
                           during the cluster recovery.
                         type: string
                     type: object
+                  replPasswordSecretKeyRef:
+                    description: |-
+                      ReplPasswordSecretKeyRef provides a reference to the Secret to use as password for the replication user.
+                      This will be utilized as password of the replication user, when the multi-cluster topology is enabled.
+                      By default, a random password will be generated.
+                    properties:
+                      generate:
+                        default: false
+                        description: Generate indicates whether the Secret should
+                          be generated if the Secret referenced is not present.
+                        type: boolean
+                      key:
+                        type: string
+                      name:
+                        default: ""
+                        type: string
+                    required:
+                    - key
+                    type: object
+                    x-kubernetes-map-type: atomic
                   replicaThreads:
                     description: |-
                       ReplicaThreads is the number of replica threads used to apply Galera write sets in parallel.
                       More info: https://mariadb.com/kb/en/galera-cluster-system-variables/#wsrep_slave_threads.
+                    type: integer
+                  serverId:
+                    description: |-
+                      ServerID is the server ID to be used in GTID mode, enabled when the multi-cluster topology is used.
+                      Make sure it has a different value on each the member of a multi-cluster topology.
+                      See: https://mariadb.com/docs/galera-cluster/high-availability/using-mariadb-replication-with-mariadb-galera-cluster/configuring-mariadb-replication-between-two-mariadb-galera-clusters
                     type: integer
                   sst:
                     description: |-
