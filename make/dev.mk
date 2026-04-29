@@ -36,8 +36,12 @@ test-int-basic: envtest ginkgo ## Run integration tests with label 'basic'
 	$(MAKE) TEST_ARGS="--label-filter=basic" test-int
 
 .PHONY: test-int
-test-int: envtest ginkgo ## Run integration tests.
-	$(TEST) ./internal/controller/...
+test-int: envtest ginkgo ## Run integration tests, excluding feature-specific tests.
+	$(TEST) --label-filter="!multi-cluster" ./internal/controller/...
+
+.PHONY: test-int-multi-cluster
+test-int-multi-cluster: envtest ginkgo ## Run multi-cluster integration tests.
+	$(TEST) --label-filter="multi-cluster" ./internal/controller/...
 
 .PHONY: test-api
 test-api: envtest ginkgo ## Run api unit tests.
