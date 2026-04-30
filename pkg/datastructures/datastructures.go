@@ -127,10 +127,26 @@ func Unique[T comparable](elements ...T) []T {
 	return result
 }
 
+// repeatableFlags are CLI flags whose mariadb-dump / mariadb-binlog
+// semantics let the user pass the option multiple times, each value
+// adding to the previous one rather than overriding it. UniqueArgs must
+// keep every occurrence of these flags; dropping all but the last would
+// silently lose user-supplied entries (see issue #1691).
+var repeatableFlags = map[string]struct{}{
+	"--ignore-table":      {},
+	"--ignore-table-data": {},
+	"--ignore-databases":  {},
+	"--ignore-tables":     {},
+}
+
 // UniqueArgs returns unique CLI arguments with smart deduplication:
-//   - For exact duplicates (same string), keeps the first occurrence to preserve order
-//   - For flag name conflicts with different values (e.g., --flag vs --flag=value),
-//     keeps the last occurrence so user-specified args can override defaults
+//   - For repeatable flags (e.g. --ignore-table) every occurrence is
+//     kept regardless of value, only exact-string duplicates are folded.
+//   - For other exact duplicates (same string), keeps the first
+//     occurrence to preserve order.
+//   - For flag name conflicts with different values (e.g., --flag vs
+//     --flag=value), keeps the last occurrence so user-specified args
+//     can override defaults.
 func UniqueArgs(args ...string) []string {
 	type occurrence struct {
 		index int
@@ -146,26 +162,40 @@ func UniqueArgs(args ...string) []string {
 
 	// Determine which index to keep for each flag
 	keepIndex := make(map[int]bool)
-	for _, occurrences := range flagOccurrences {
+	for flagName, occurrences := range flagOccurrences {
 		if len(occurrences) == 1 {
 			keepIndex[occurrences[0].index] = true
-		} else {
-			// Check if all args are identical (exact duplicates)
-			allSame := true
-			first := occurrences[0].arg
-			for _, occ := range occurrences[1:] {
-				if occ.arg != first {
-					allSame = false
-					break
+			continue
+		}
+
+		if _, repeatable := repeatableFlags[flagName]; repeatable {
+			// Repeatable flags: keep every distinct full-string occurrence
+			// (collapse exact duplicates only).
+			seen := make(map[string]bool, len(occurrences))
+			for _, occ := range occurrences {
+				if !seen[occ.arg] {
+					seen[occ.arg] = true
+					keepIndex[occ.index] = true
 				}
 			}
-			if allSame {
-				// Keep first for exact duplicates (preserve order)
-				keepIndex[occurrences[0].index] = true
-			} else {
-				// Keep last for value overrides (user args win)
-				keepIndex[occurrences[len(occurrences)-1].index] = true
+			continue
+		}
+
+		// Check if all args are identical (exact duplicates)
+		allSame := true
+		first := occurrences[0].arg
+		for _, occ := range occurrences[1:] {
+			if occ.arg != first {
+				allSame = false
+				break
 			}
+		}
+		if allSame {
+			// Keep first for exact duplicates (preserve order)
+			keepIndex[occurrences[0].index] = true
+		} else {
+			// Keep last for value overrides (user args win)
+			keepIndex[occurrences[len(occurrences)-1].index] = true
 		}
 	}
 
