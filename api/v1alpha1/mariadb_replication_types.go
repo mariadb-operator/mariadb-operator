@@ -139,6 +139,15 @@ type ReplicaRecovery struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
 	ErrorDurationThreshold *metav1.Duration `json:"errorDurationThreshold,omitempty"`
+	// MinHealthyDuration is the minimum duration the replica must report no replication errors
+	// (Last_IO_Errno == 0 and Last_SQL_Errno == 0) before the recovery is declared successful.
+	// Any error observed during the verification window resets the timer.
+	// This guards against backup-vs-binlog drift where the SQL thread fails on the first event
+	// applied after START SLAVE, which can otherwise be missed by a single-shot status check.
+	// It defaults to 30 seconds.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=spec
+	MinHealthyDuration *metav1.Duration `json:"minHealthyDuration,omitempty"`
 }
 
 // ReplicaReplication is the replication configuration and operation parameters for the replicas.

@@ -368,6 +368,12 @@ func (r *MariaDBReconciler) reconcileAndWaitForRecoveryJob(ctx context.Context, 
 	)
 }
 
+// defaultReplicaRecoveryMinHealthy is the default verification window for ensureReplicaRecovered.
+// SQL-thread failures from backup-vs-binlog drift typically surface within the first second
+// after START SLAVE, so a 30s window is well over the failure horizon while still bounding
+// recovery time.
+const defaultReplicaRecoveryMinHealthy = 30 * time.Second
+
 func (r *MariaDBReconciler) ensureReplicaRecovered(ctx context.Context, replica string, mariadb *mariadbv1alpha1.MariaDB,
 	logger logr.Logger) error {
 	podIndex, err := stsobj.PodIndex(replica)
@@ -375,8 +381,16 @@ func (r *MariaDBReconciler) ensureReplicaRecovered(ctx context.Context, replica 
 		return fmt.Errorf("error getting replica pod index: %v", err)
 	}
 
-	pollCtx, cancel := context.WithTimeout(ctx, 1*time.Minute)
+	replication := ptr.Deref(mariadb.Spec.Replication, mariadbv1alpha1.Replication{})
+	recovery := ptr.Deref(replication.Replica.ReplicaRecovery, mariadbv1alpha1.ReplicaRecovery{})
+	minHealthy := ptr.Deref(recovery.MinHealthyDuration, metav1.Duration{Duration: defaultReplicaRecoveryMinHealthy}).Duration
+
+	// Total budget must exceed the verification window so we always get a chance to either
+	// observe stable health or surface a real error.
+	pollCtx, cancel := context.WithTimeout(ctx, minHealthy+90*time.Second)
 	defer cancel()
+
+	verifier := newReplicaRecoveryVerifier(minHealthy)
 
 	return wait.PollUntilSuccessOrContextCancel(pollCtx, logger, func(ctx context.Context) error {
 		client, err := sql.NewInternalClientWithPodIndex(ctx, mariadb, r.RefResolver, *podIndex)
@@ -390,13 +404,54 @@ func (r *MariaDBReconciler) ensureReplicaRecovered(ctx context.Context, replica 
 			return fmt.Errorf("error getting replica status: %v", err)
 		}
 
-		if replStatus.LastIOErrno != nil && *replStatus.LastIOErrno == 0 &&
-			replStatus.LastSQLErrno != nil && *replStatus.LastSQLErrno == 0 {
-			logger.Info("Replica recovered")
-			return nil
+		stable, reason := verifier.observe(replStatus)
+		if !stable {
+			return errors.New(reason)
 		}
-		return errors.New("replica not recovered")
+		logger.Info("Replica recovered", "min_healthy_duration", minHealthy)
+		return nil
 	})
+}
+
+// replicaRecoveryVerifier requires a replica's status to remain error-free for a minimum
+// duration before recovery is declared complete. Any observed replication error resets the
+// timer. This catches the case where START SLAVE was just issued but the SQL thread has not
+// yet attempted to apply the first event — without a verification window, a transient clean
+// status can be misread as recovery success.
+type replicaRecoveryVerifier struct {
+	minHealthyDuration time.Duration
+	firstHealthyAt     time.Time
+	now                func() time.Time
+}
+
+func newReplicaRecoveryVerifier(minHealthyDuration time.Duration) *replicaRecoveryVerifier {
+	return &replicaRecoveryVerifier{
+		minHealthyDuration: minHealthyDuration,
+		now:                time.Now,
+	}
+}
+
+// observe records a replica status sample and reports whether recovery is stable.
+// When stable is false, reason describes why the verifier is still waiting.
+func (v *replicaRecoveryVerifier) observe(status *mariadbv1alpha1.ReplicaStatusVars) (stable bool, reason string) {
+	if status == nil {
+		v.firstHealthyAt = time.Time{}
+		return false, "replica status unavailable"
+	}
+	ioOk := status.LastIOErrno != nil && *status.LastIOErrno == 0
+	sqlOk := status.LastSQLErrno != nil && *status.LastSQLErrno == 0
+	if !ioOk || !sqlOk {
+		v.firstHealthyAt = time.Time{}
+		return false, "replica reporting replication error"
+	}
+	now := v.now()
+	if v.firstHealthyAt.IsZero() {
+		v.firstHealthyAt = now
+	}
+	if now.Sub(v.firstHealthyAt) < v.minHealthyDuration {
+		return false, "replica healthy, waiting for verification window"
+	}
+	return true, ""
 }
 
 func (r *MariaDBReconciler) setReplicaRecoveredAndCleanup(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) error {

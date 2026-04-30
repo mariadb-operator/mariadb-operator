@@ -344,3 +344,112 @@ func buildTestMariaDBRecovery(key types.NamespacedName) *mariadbv1alpha1.MariaDB
 		},
 	}
 }
+
+var _ = Describe("replicaRecoveryVerifier", func() {
+	healthy := func() *mariadbv1alpha1.ReplicaStatusVars {
+		return &mariadbv1alpha1.ReplicaStatusVars{
+			LastIOErrno:  ptr.To(0),
+			LastSQLErrno: ptr.To(0),
+		}
+	}
+	withSQLError := func() *mariadbv1alpha1.ReplicaStatusVars {
+		return &mariadbv1alpha1.ReplicaStatusVars{
+			LastIOErrno:  ptr.To(0),
+			LastSQLErrno: ptr.To(1032),
+		}
+	}
+	withIOError := func() *mariadbv1alpha1.ReplicaStatusVars {
+		return &mariadbv1alpha1.ReplicaStatusVars{
+			LastIOErrno:  ptr.To(1236),
+			LastSQLErrno: ptr.To(0),
+		}
+	}
+
+	It("does not declare recovery on the first healthy observation", func() {
+		clock := time.Unix(0, 0)
+		v := newReplicaRecoveryVerifier(30 * time.Second)
+		v.now = func() time.Time { return clock }
+
+		stable, reason := v.observe(healthy())
+		Expect(stable).To(BeFalse())
+		Expect(reason).To(ContainSubstring("verification window"))
+	})
+
+	It("declares recovery only after the verification window elapses", func() {
+		clock := time.Unix(0, 0)
+		v := newReplicaRecoveryVerifier(30 * time.Second)
+		v.now = func() time.Time { return clock }
+
+		stable, _ := v.observe(healthy())
+		Expect(stable).To(BeFalse())
+
+		clock = clock.Add(29 * time.Second)
+		stable, _ = v.observe(healthy())
+		Expect(stable).To(BeFalse())
+
+		clock = clock.Add(2 * time.Second)
+		stable, _ = v.observe(healthy())
+		Expect(stable).To(BeTrue())
+	})
+
+	It("resets the timer when an SQL error appears mid-window", func() {
+		clock := time.Unix(0, 0)
+		v := newReplicaRecoveryVerifier(30 * time.Second)
+		v.now = func() time.Time { return clock }
+
+		_, _ = v.observe(healthy())
+
+		clock = clock.Add(20 * time.Second)
+		stable, reason := v.observe(withSQLError())
+		Expect(stable).To(BeFalse())
+		Expect(reason).To(ContainSubstring("replication error"))
+
+		clock = clock.Add(29 * time.Second)
+		stable, _ = v.observe(healthy())
+		Expect(stable).To(BeFalse(), "timer must restart from the error observation, not accumulate")
+
+		clock = clock.Add(31 * time.Second)
+		stable, _ = v.observe(healthy())
+		Expect(stable).To(BeTrue())
+	})
+
+	It("treats IO errors the same as SQL errors", func() {
+		clock := time.Unix(0, 0)
+		v := newReplicaRecoveryVerifier(30 * time.Second)
+		v.now = func() time.Time { return clock }
+
+		_, _ = v.observe(healthy())
+		clock = clock.Add(15 * time.Second)
+		stable, _ := v.observe(withIOError())
+		Expect(stable).To(BeFalse())
+
+		clock = clock.Add(31 * time.Second)
+		stable, _ = v.observe(healthy())
+		Expect(stable).To(BeFalse(), "verifier must restart after IO error, not accept the prior healthy run")
+	})
+
+	It("treats nil status as unhealthy and resets the timer", func() {
+		clock := time.Unix(0, 0)
+		v := newReplicaRecoveryVerifier(30 * time.Second)
+		v.now = func() time.Time { return clock }
+
+		_, _ = v.observe(healthy())
+		clock = clock.Add(20 * time.Second)
+		stable, reason := v.observe(nil)
+		Expect(stable).To(BeFalse())
+		Expect(reason).To(ContainSubstring("status unavailable"))
+
+		clock = clock.Add(31 * time.Second)
+		stable, _ = v.observe(healthy())
+		Expect(stable).To(BeFalse())
+	})
+
+	It("treats unset errno fields as unhealthy", func() {
+		clock := time.Unix(0, 0)
+		v := newReplicaRecoveryVerifier(30 * time.Second)
+		v.now = func() time.Time { return clock }
+
+		stable, _ := v.observe(&mariadbv1alpha1.ReplicaStatusVars{})
+		Expect(stable).To(BeFalse())
+	})
+})
