@@ -139,9 +139,17 @@ func (r *ReplicationReconciler) Reconcile(ctx context.Context, mdb *mariadbv1alp
 	}
 	defer req.Close()
 
-	if mdb.IsReplicationSwitchoverRequired() {
-		return ctrl.Result{}, r.reconcileSwitchover(ctx, req, switchoverLogger)
-	}
+	// Always reconcile per-pod replication first, then switchover. The previous short-circuit
+	// dispatched directly to reconcileSwitchover when IsReplicationSwitchoverRequired was true.
+	// That assumed status.replication.roles was accurate, but the roles can desync to "Unknown"
+	// after a node/pod outage (see getReplicationRoles in mariadb_controller_status.go: a pod
+	// that is neither configured as a replica nor has connected replicas is recorded as Unknown).
+	// In that state shouldReconcileSwitchover sees HasConfiguredReplica=false and bails, while
+	// the path that would have reconfigured the pods (ReconcileReplicationInPod) was bypassed by
+	// the dispatch fork — leaving the cluster wedged with PrimarySwitched=False forever. Letting
+	// reconcileReplication run first restores the roles via ConfigurePrimary / ConfigureReplica;
+	// shouldReconcileReplication itself already permits this during a switchover (returns zero
+	// result for IsSwitchingPrimary), so the existing safety boundaries are unchanged.
 	if result, err := r.reconcileReplication(ctx, req, logger); !result.IsZero() || err != nil {
 		return result, err
 	}

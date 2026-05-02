@@ -187,3 +187,39 @@ func TestCurrentPrimaryReady_ToleratesTransientConnectBlips(_ *testing.T) {
 	// Integration-test only; documented here for design record.
 	// See pkg/controller/replication/switchover.go: currentPrimaryReady.
 }
+
+// TestReplicationReconcile_RefreshesRolesBeforeSwitchover documents the bug:
+//
+//	Replication.Reconcile previously short-circuited directly to reconcileSwitchover when
+//	IsReplicationSwitchoverRequired() was true (spec.podIndex != status.podIndex), bypassing
+//	reconcileReplication entirely. That dispatch assumed status.replication.roles was accurate.
+//
+//	After a node/pod outage in which both pods briefly lose their replication threads,
+//	getReplicationRoles (mariadb_controller_status.go) records each pod as
+//	ReplicationRoleUnknown (it is set when neither IsReplicationReplica nor
+//	HasConnectedReplicas returns true).  If a switchover is then requested, the wedge
+//	is:
+//	  - reconcileSwitchover -> reconcileStaleSwitchover: not stale (IsSwitchingPrimary
+//	    && !IsReplicationSwitchoverRequired = true && !true = false) -> returns nil.
+//	  - reconcileSwitchover -> shouldReconcileSwitchover: HasConfiguredReplica()=false
+//	    (no role == Replica in status) -> returns false -> reconcile exits silently.
+//	  - reconcileReplication, the path that would have refreshed roles by calling
+//	    ConfigurePrimary / ConfigureReplica via ReconcileReplicationInPod, was never
+//	    invoked because the dispatch took the switchover-only branch.
+//	  - Status reconciler still sees Unknown roles (no SQL slave thread on either pod),
+//	    so the next reconcile observes the same state.  Stuck forever; condition stays
+//	    PrimarySwitched=False with the original error message frozen.
+//
+//	Fix: always run reconcileReplication first, then reconcileSwitchover.
+//	shouldReconcileReplication already permits this during a switchover (it returns
+//	(zero, nil) when IsSwitchingPrimary, signalling "OK to proceed"), so the existing
+//	safety boundaries around per-pod reconciliation are unchanged.  The per-pod
+//	reconciler restores Primary / Replica roles, after which the next reconcile pass
+//	finds HasConfiguredReplica()=true and the switchover phases run.
+//
+//	Because this path requires live SQL connections it is covered by integration
+//	tests.  This comment serves as the design record.
+func TestReplicationReconcile_RefreshesRolesBeforeSwitchover(_ *testing.T) {
+	// Integration-test only; documented here for design record.
+	// See pkg/controller/replication/controller.go: Replication.Reconcile dispatch order.
+}
