@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
@@ -153,15 +154,35 @@ var RootCmd = &cobra.Command{
 		}
 		logger.Info("obtained target backup", "file", backupTargetFile)
 
-		if err := backupCompressor.Compress(backupTargetFile); err != nil {
+		finalBackupFile, err := backupCompressor.Compress(backupTargetFile)
+		if err != nil {
 			logger.Error(err, "error compressing backup", "file", backupTargetFile)
 			os.Exit(1)
 		}
+		if finalBackupFile != backupTargetFile {
+			logger.Info("compressed backup", "src", backupTargetFile, "dst", finalBackupFile)
+		}
 
-		logger.Info("pushing target backup", "file", backupTargetFile)
-		if err := backupStorage.Push(ctx, backupTargetFile); err != nil {
-			logger.Error(err, "error pushing target backup", "file", backupTargetFile)
-			os.Exit(1)
+		// Push idempotency marker (defense in depth, complements compressor idempotency).
+		// If the operator container is restarted by the kubelet under RestartPolicy: OnFailure
+		// after a successful Push, this marker short-circuits the Push on the next attempt so we
+		// do not re-upload (and, more importantly, do not redo any of the steps in front of it).
+		// CronJob runs that overwrite the target file with a new timestamp will see a stale marker
+		// and overwrite it.
+		alreadyPushed := pushMarkerMatches(finalBackupFile, logger)
+		if alreadyPushed {
+			logger.Info("backup already pushed in a previous attempt, skipping push", "file", finalBackupFile)
+		} else {
+			logger.Info("pushing target backup", "file", finalBackupFile)
+			if err := backupStorage.Push(ctx, finalBackupFile); err != nil {
+				logger.Error(err, "error pushing target backup", "file", finalBackupFile)
+				os.Exit(1)
+			}
+			if err := writePushMarker(finalBackupFile); err != nil {
+				// Best-effort: the push already succeeded. A missing marker only costs a redundant
+				// re-upload on the next restart, which is preferable to failing the whole job.
+				logger.Error(err, "error writing push marker (non-fatal)", "file", finalBackupFile)
+			}
 		}
 
 		logger.Info("cleaning up old backups")
@@ -179,8 +200,8 @@ var RootCmd = &cobra.Command{
 			}
 		}
 
-		if err := cleanupFile(backupTargetFile, logger.WithName("cleanup")); err != nil && os.IsNotExist(err) {
-			logger.Error(err, "error cleaning up target file", "file", backupTargetFile)
+		if err := cleanupFile(finalBackupFile, logger.WithName("cleanup")); err != nil && !os.IsNotExist(err) {
+			logger.Error(err, "error cleaning up target file", "file", finalBackupFile)
 			os.Exit(1)
 		}
 
@@ -279,6 +300,33 @@ func readTargetFile() (string, error) {
 		return "", err
 	}
 	return string(bytes), nil
+}
+
+// pushMarkerPath is the sibling marker file that records the most recently pushed backup file
+// for the current target file. It lives next to the target file so it shares its lifecycle and
+// volume; CronJob runs that overwrite the target file will see a stale marker (mismatched
+// content) and overwrite it on the next push.
+func pushMarkerPath() string {
+	return targetFilePath + ".pushed"
+}
+
+// pushMarkerMatches reports whether a push marker exists and references the given backup file,
+// indicating that this exact file has already been successfully pushed by a previous attempt of
+// the current container/Pod. Any read error (including ENOENT) is treated as "no marker" so we
+// fall through to a normal push.
+func pushMarkerMatches(backupFile string, logger logr.Logger) bool {
+	bytes, err := os.ReadFile(pushMarkerPath())
+	if err != nil {
+		if !os.IsNotExist(err) {
+			logger.Error(err, "error reading push marker (treating as missing)", "file", pushMarkerPath())
+		}
+		return false
+	}
+	return strings.TrimSpace(string(bytes)) == backupFile
+}
+
+func writePushMarker(backupFile string) error {
+	return os.WriteFile(pushMarkerPath(), []byte(backupFile), 0o644)
 }
 
 func cleanupFile(fileName string, logger logr.Logger) error {

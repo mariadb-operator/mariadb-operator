@@ -12,7 +12,11 @@ import (
 )
 
 type BackupCompressor interface {
-	Compress(fileName string) error
+	// Compress compresses fileName in place and returns the final, post-compression file name
+	// (e.g. "backup.<ts>.sql" -> "backup.<ts>.sql.gz"). For NopBackupCompressor the input name
+	// is returned unchanged. The operation is idempotent: if the post-compression file already
+	// exists from a previous run, no work is performed and the existing name is returned.
+	Compress(fileName string) (string, error)
 	Decompress(fileName string) (string, error)
 }
 
@@ -42,8 +46,8 @@ func NewNopBackupCompressor(basePath string, getUncompressedFilename GetBackupUn
 	}
 }
 
-func (c *NopBackupCompressor) Compress(fileName string) error {
-	return nil
+func (c *NopBackupCompressor) Compress(fileName string) (string, error) {
+	return fileName, nil
 }
 
 func (c *NopBackupCompressor) Decompress(fileName string) (string, error) {
@@ -67,8 +71,8 @@ func NewGzipBackupCompressor(basePath string, getUncompressedFilename GetBackupU
 	}
 }
 
-func (c *GzipBackupCompressor) Compress(fileName string) error {
-	return compressFile(c.basePath, fileName, c.logger, c.compressor)
+func (c *GzipBackupCompressor) Compress(fileName string) (string, error) {
+	return compressFile(c.basePath, fileName, "gz", c.logger, c.compressor)
 }
 
 func (c *GzipBackupCompressor) Decompress(fileName string) (string, error) {
@@ -92,28 +96,49 @@ func NewBzip2BackupCompressor(basePath string, getUncompressedFilename GetBackup
 	}
 }
 
-func (c *Bzip2BackupCompressor) Compress(fileName string) error {
-	return compressFile(c.basePath, fileName, c.logger, c.compressor)
+func (c *Bzip2BackupCompressor) Compress(fileName string) (string, error) {
+	return compressFile(c.basePath, fileName, "bz2", c.logger, c.compressor)
 }
 
 func (c *Bzip2BackupCompressor) Decompress(fileName string) (string, error) {
 	return decompressFile(c.basePath, fileName, c.logger, c.getUncompressedFilename, c.compressor)
 }
 
-func compressFile(path, fileName string, logger logr.Logger, compressor Compressor) error {
-	filePath := getFilePath(path, fileName)
-	compressedFilePath := filePath + ".tmp"
-	logger.Info("compressing file", "file", filePath)
+// compressFile compresses path/fileName into path/fileName.<ext> and removes the plain source on success.
+//
+// Idempotency: if the compressed output already exists (e.g. a previous container attempt completed
+// the compress step but crashed before push), the function returns the existing output name without
+// re-compressing. This prevents nested compression layers when the operator-backup container is
+// restarted by the kubelet under RestartPolicy: OnFailure.
+func compressFile(path, fileName, ext string, logger logr.Logger, compressor Compressor) (string, error) {
+	plainFilePath := getFilePath(path, fileName)
+	compressedFileName := fileName + "." + ext
+	compressedFilePath := plainFilePath + "." + ext
 
-	// compressedFilePath must be closed before renaming. See: https://github.com/mariadb-operator/mariadb-operator/issues/1007
+	if _, err := os.Stat(compressedFilePath); err == nil {
+		logger.Info("compressed file already exists, skipping compression", "file", compressedFilePath)
+		// A prior attempt produced the compressed output but may have crashed before removing the
+		// plain source. Drop it now so the next List/retention pass does not see a duplicate.
+		if err := os.Remove(plainFilePath); err != nil && !os.IsNotExist(err) {
+			return "", fmt.Errorf("error removing stale plain backup %s: %w", plainFilePath, err)
+		}
+		return compressedFileName, nil
+	} else if !os.IsNotExist(err) {
+		return "", fmt.Errorf("error stat-ing compressed backup %s: %w", compressedFilePath, err)
+	}
+
+	tmpFilePath := compressedFilePath + ".tmp"
+	logger.Info("compressing file", "src", plainFilePath, "dst", compressedFilePath)
+
+	// tmpFilePath must be closed before renaming. See: https://github.com/mariadb-operator/mariadb-operator/issues/1007
 	if err := func() error {
-		plainFile, err := os.Open(filePath)
+		plainFile, err := os.Open(plainFilePath)
 		if err != nil {
 			return err
 		}
 		defer plainFile.Close()
 
-		compressedFile, err := os.Create(compressedFilePath)
+		compressedFile, err := os.Create(tmpFilePath)
 		if err != nil {
 			return err
 		}
@@ -125,19 +150,21 @@ func compressFile(path, fileName string, logger logr.Logger, compressor Compress
 		var errBundle *multierror.Error
 		errBundle = multierror.Append(errBundle, err)
 
-		if err := os.Remove(compressedFilePath); err != nil && !os.IsNotExist(err) {
-			errBundle = multierror.Append(errBundle, err)
+		if rmErr := os.Remove(tmpFilePath); rmErr != nil && !os.IsNotExist(rmErr) {
+			errBundle = multierror.Append(errBundle, rmErr)
 		}
-		return errBundle
+		return "", errBundle
 	}
 
-	if err := os.Remove(filePath); err != nil {
-		return err
+	// Rename tmp -> final BEFORE removing the plain source so there is never a window where neither
+	// file exists. If we crash between Rename and Remove, the idempotency check above handles it.
+	if err := os.Rename(tmpFilePath, compressedFilePath); err != nil {
+		return "", err
 	}
-	if err := os.Rename(compressedFilePath, filePath); err != nil {
-		return err
+	if err := os.Remove(plainFilePath); err != nil {
+		return "", err
 	}
-	return nil
+	return compressedFileName, nil
 }
 
 func decompressFile(path, fileName string, logger logr.Logger, getUncompressedFilename GetBackupUncompressedFilenameFn,
