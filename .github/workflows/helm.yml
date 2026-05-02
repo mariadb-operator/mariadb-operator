@@ -144,30 +144,41 @@ jobs:
       - lint-cluster
       - lint-crds
       - lint-operator
-    if: github.ref == 'refs/heads/main' && github.repository == 'mariadb-operator/mariadb-operator'
+    if: github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      packages: write
+    env:
+      OCI_REGISTRY: oci://ghcr.io/${{ github.repository_owner }}/charts
     steps:
       - name: Checkout
         uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-          token: "${{ secrets.GHA_TOKEN }}"
-
-      - name: Configure Git
-        run: |
-          git config user.name "$GITHUB_ACTOR"
-          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
 
       - name: Install Helm
         uses: azure/setup-helm@v4
-
-      - name: Run chart-releaser
-        id: chart-releaser
-        uses: helm/chart-releaser-action@v1.7.0
-        env:
-          CR_TOKEN: "${{ secrets.GHA_TOKEN }}"
-          CR_RELEASE_NAME_TEMPLATE: "{{ .Name }}-{{ .Version }}"
         with:
-          charts_dir: deploy/charts
-          skip_existing: "true"
-          pages_branch: gh-pages
-          packages_with_index: true
+          version: ${{ env.HELM_VERSION }}
+
+      - name: Login to GHCR
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" \
+            | helm registry login ghcr.io \
+                --username "${{ github.actor }}" \
+                --password-stdin
+
+      - name: Package and push charts
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/charts
+          for chart in mariadb-operator-crds mariadb-operator mariadb-cluster; do
+            chart_dir="deploy/charts/$chart"
+            version=$(grep -E '^version:' "$chart_dir/Chart.yaml" | awk '{print $2}' | tr -d '"')
+            if helm show chart "$OCI_REGISTRY/$chart" --version "$version" > /dev/null 2>&1; then
+              echo "::notice::$chart-$version already published to $OCI_REGISTRY, skipping"
+              continue
+            fi
+            helm dependency update "$chart_dir"
+            helm package "$chart_dir" -d /tmp/charts
+            helm push "/tmp/charts/${chart}-${version}.tgz" "$OCI_REGISTRY"
+            echo "::notice::Published $OCI_REGISTRY/$chart:$version"
+          done
