@@ -414,14 +414,14 @@ func (r *PhysicalBackupReconciler) deleteJobSync(ctx context.Context, job *batch
 }
 
 func getBackupFileName(backup *mariadbv1alpha1.PhysicalBackup, now time.Time) (string, error) {
-	backupFile := fmt.Sprintf("physicalbackup-%s.xb", mdbtime.Format(now))
-
-	if backup.Spec.Compression != "" && backup.Spec.Compression != mariadbv1alpha1.CompressNone {
-		ext, err := backup.Spec.Compression.Extension()
-		if err != nil {
-			return "", fmt.Errorf("error getting compression algorithm extension: %v", err)
-		}
-		backupFile = fmt.Sprintf("%s.%s", backupFile, ext)
-	}
-	return backupFile, nil
+	// Always emit the plain ".xb" name regardless of compression. The compression
+	// extension (.gz, .bz2) is appended later by the operator-backup container in
+	// pkg/compression/backup_compressor.go::compressFile when the file is actually
+	// compressed. Putting the extension here too produced doubly-named files like
+	// "physicalbackup-<ts>.xb.gz.gz" — invalid per PhysicalBackupProcessor.IsValidBackupFile
+	// (which expects 2 or 3 dot-parts) so the file became unreachable for restore.
+	// Decoupling the dump-output filename from compression state mirrors the
+	// equivalent fix for logical backups in pkg/command/backup.go::newBackupFile.
+	_ = backup // keep signature compatible with existing callers
+	return fmt.Sprintf("physicalbackup-%s.xb", mdbtime.Format(now)), nil
 }
