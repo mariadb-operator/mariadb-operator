@@ -53,6 +53,9 @@ func (r *ReplicationConfigClient) ConfigurePrimary(ctx context.Context, mariadb 
 		if err := client.ResetAllSlaves(ctx); err != nil {
 			return fmt.Errorf("error resetting slave: %v", err)
 		}
+		if err := client.ResetMaster(ctx); err != nil {
+			return fmt.Errorf("error resetting binlogs: %v", err)
+		}
 		if err := client.ResetGtidSlavePos(ctx); err != nil {
 			return fmt.Errorf("error resetting slave position: %v", err)
 		}
