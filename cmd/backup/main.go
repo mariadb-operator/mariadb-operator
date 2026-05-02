@@ -200,13 +200,21 @@ var RootCmd = &cobra.Command{
 			}
 		}
 
-		if err := cleanupFile(finalBackupFile, logger.WithName("cleanup")); err != nil && !os.IsNotExist(err) {
-			logger.Error(err, "error cleaning up target file", "file", finalBackupFile)
+		// handleBackupMeta must run BEFORE cleanupFile. In S3+staging+physicalBackupMeta mode
+		// cleanupFile deletes the compressed file from the staging volume; if handleBackupMeta
+		// then failed (transient apiserver/network error), the OnFailure restart would re-enter
+		// Compress() with neither the plain source nor the compressed output present and exit
+		// non-zero on every retry, never reaching the push marker check below it. With this
+		// ordering, cleanupFile is the last fallible step and a failure there is recovered on
+		// the next restart by the compressor's idempotency check (compressed file present)
+		// combined with cleanupFile's tolerance of os.IsNotExist below.
+		if err := handleBackupMeta(ctx, logger.WithName("backup-meta")); err != nil {
+			logger.Error(err, "error handling backup meta")
 			os.Exit(1)
 		}
 
-		if err := handleBackupMeta(ctx, logger.WithName("backup-meta")); err != nil {
-			logger.Error(err, "error handling backup meta")
+		if err := cleanupFile(finalBackupFile, logger.WithName("cleanup")); err != nil && !os.IsNotExist(err) {
+			logger.Error(err, "error cleaning up target file", "file", finalBackupFile)
 			os.Exit(1)
 		}
 	},
