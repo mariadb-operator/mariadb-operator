@@ -37,7 +37,7 @@ Common labels
 helm.sh/chart: {{ include "mariadb-cluster.chart" . }}
 {{ include "mariadb-cluster.selectorLabels" . }}
 {{- if .Chart.AppVersion }}
-app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+app.kubernetes.io/version: {{ .Chart.AppVersion | replace "+" "_" | quote }}
 {{- end }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end }}

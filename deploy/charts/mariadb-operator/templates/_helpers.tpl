@@ -37,7 +37,7 @@ Common labels
 helm.sh/chart: {{ include "mariadb-operator.chart" . }}
 {{ include "mariadb-operator.selectorLabels" . }}
 {{- if .Chart.AppVersion }}
-app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+app.kubernetes.io/version: {{ .Chart.AppVersion | replace "+" "_" | quote }}
 {{- end }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end }}
@@ -57,7 +57,7 @@ Webhook common labels
 helm.sh/chart: {{ include "mariadb-operator.chart" . }}
 {{ include "mariadb-operator-webhook.selectorLabels" . }}
 {{- if .Chart.AppVersion }}
-app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+app.kubernetes.io/version: {{ .Chart.AppVersion | replace "+" "_" | quote }}
 {{- end }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end }}
@@ -105,7 +105,7 @@ Cert-controller common labels
 helm.sh/chart: {{ include "mariadb-operator.chart" . }}
 {{ include "mariadb-operator-cert-controller.selectorLabels" . }}
 {{- if .Chart.AppVersion }}
-app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+app.kubernetes.io/version: {{ .Chart.AppVersion | replace "+" "_" | quote }}
 {{- end }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end }}
