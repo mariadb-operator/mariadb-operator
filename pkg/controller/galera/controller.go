@@ -16,6 +16,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/service"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/environment"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/refresolver"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/sql"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
@@ -127,33 +128,11 @@ func (r *GaleraReconciler) Reconcile(ctx context.Context, mariadb *mariadbv1alph
 			return ctrl.Result{}, err
 		}
 
-		// // TODO: finish and validate this. Evaluate introducing status condition vs continuously reconciling if possible.
-		// if mariadb.IsMultiClusterEnabled() && mariadb.IsMultiClusterReplica() {
-		// 	logger.Info("Configuring Galera multi-cluster replication")
-		// 	currentPrimaryPodIndex := *mariadb.Status.CurrentPrimaryPodIndex
-
-		// 	sqlClient, err := sql.NewInternalClientWithPodIndex(
-		// 		ctx,
-		// 		mariadb,
-		// 		r.refResolver,
-		// 		currentPrimaryPodIndex,
-		// 	)
-		// 	if err != nil {
-		// 		return ctrl.Result{}, fmt.Errorf("error getting SQL client for primary: %v", err)
-		// 	}
-		// 	defer sqlClient.Close()
-
-		// 	err = r.topologyManager.
-		// 		TopologyForMariaDB(mariadb, logger).
-		// 		ConfigureReplica(
-		// 			ctx,
-		// 			sqlClient,
-		// 			currentPrimaryPodIndex,
-		// 		)
-		// 	if err != nil {
-		// 		return ctrl.Result{}, fmt.Errorf("error configuring Galera multi-cluster replication: %v", err)
-		// 	}
-		// }
+		if mariadb.IsMultiClusterEnabled() {
+			if err := r.reconcileMultiCluster(ctx, mariadb, logger); err != nil {
+				return ctrl.Result{}, fmt.Errorf("error reconciling multi-cluster: %v", err)
+			}
+		}
 
 		logger.Info("Galera cluster is healthy")
 		r.recorder.Eventf(mariadb, nil, corev1.EventTypeNormal, mariadbv1alpha1.ReasonGaleraClusterHealthy,
@@ -199,6 +178,46 @@ func (r *GaleraReconciler) disableBootstrap(ctx context.Context, mariadb *mariad
 		if err := agentClient.Galera.DisableBootstrap(ctx); err != nil && !errors.IsNotFound(err) {
 			return fmt.Errorf("error disabling bootstrap in Pod %d: %v", i, err)
 		}
+	}
+	return nil
+}
+
+func (r *GaleraReconciler) reconcileMultiCluster(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB, logger logr.Logger) error {
+	if !mariadb.IsMultiClusterReplica() || mariadb.HasConfiguredMultiCluster() {
+		return nil
+	}
+	logger.Info("Configuring Galera multi-cluster replication")
+	currentPrimaryPodIndex := *mariadb.Status.CurrentPrimaryPodIndex
+
+	sqlClient, err := sql.NewInternalClientWithPodIndex(
+		ctx,
+		mariadb,
+		r.refResolver,
+		currentPrimaryPodIndex,
+	)
+	if err != nil {
+		return fmt.Errorf("error getting SQL client for primary: %v", err)
+	}
+	defer sqlClient.Close()
+
+	err = r.topologyManager.
+		TopologyForMariaDB(mariadb, logger).
+		ConfigurePrimary(
+			ctx,
+			sqlClient,
+		)
+	if err != nil {
+		return fmt.Errorf("error configuring Galera multi-cluster replication: %v", err)
+	}
+
+	logger.Info("Galera multi-cluster replication has been configured")
+	r.recorder.Eventf(mariadb, nil, corev1.EventTypeNormal, mariadbv1alpha1.ReasonMultiClusterConfigured, mariadbv1alpha1.ActionReconciling,
+		"Galera multi-cluster replication has been configured")
+
+	if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
+		condition.SetMultiClusterConfigured(&mariadb.Status)
+	}); err != nil {
+		return fmt.Errorf("error patching multi-cluster status: %v", err)
 	}
 	return nil
 }

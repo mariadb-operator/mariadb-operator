@@ -2,6 +2,9 @@ package v1alpha1
 
 import (
 	"fmt"
+
+	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/utils/ptr"
 )
 
 type MultiCluster struct {
@@ -48,4 +51,38 @@ func (c *MultiCluster) GetExternalMariaDBRefForMember(memberName string) (*Objec
 		}
 	}
 	return nil, fmt.Errorf("no externalMariaDBRef found for member %s", memberName)
+}
+
+// IsMultiClusterEnabled indicates whether the multi-cluster topology is enabled.
+func (m *MariaDB) IsMultiClusterEnabled() bool {
+	return ptr.Deref(m.Spec.MultiCluster, MultiCluster{}).Enabled
+}
+
+// IsMultiClusterPrimary indicates whether the current cluster is a primary cluster part of a multi-cluster topology.
+func (m *MariaDB) IsMultiClusterPrimary() bool {
+	return m.IsMultiClusterEnabled() && ptr.Deref(m.Spec.MultiCluster, MultiCluster{}).Primary == m.Name
+}
+
+// GetMultiClusterPrimary obtains the primary cluster member name.
+func (m *MariaDB) GetMultiClusterPrimary() *string {
+	if !m.IsMultiClusterEnabled() {
+		return nil
+	}
+	return ptr.To(ptr.Deref(m.Spec.MultiCluster, MultiCluster{}).Primary)
+}
+
+// IsMultiClusterReplica indicates whether the current cluster is a replica cluster part of a multi-cluster topology.
+func (m *MariaDB) IsMultiClusterReplica() bool {
+	return m.IsMultiClusterEnabled() && ptr.Deref(m.Spec.MultiCluster, MultiCluster{}).Primary != m.Name
+}
+
+// IsMultiClusterPrimaryReplica determines whether a given Pod index is a primary Pod in a replica cluster.
+func (m *MariaDB) IsMultiClusterPrimaryReplica(podIndex int) bool {
+	return m.IsMultiClusterReplica() && m.Status.CurrentPrimaryPodIndex != nil && *m.Status.CurrentPrimaryPodIndex == podIndex
+}
+
+// HasConfiguredMultiCluster checks if ConditionTypeMultiClusterConfigured condition is true.
+// If so, it indicates that multi-cluster replication has been configured. Only used for Galera.
+func (m *MariaDB) HasConfiguredMultiCluster() bool {
+	return meta.IsStatusConditionTrue(m.Status.Conditions, ConditionTypeMultiClusterConfigured)
 }

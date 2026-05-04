@@ -39,6 +39,9 @@ const (
 	// ReasonGaleraPVCNotBound indicates that a Galera PVC is not in Bound phase, therefore the init process cannot be started.
 	ReasonGaleraPVCNotBound = "GaleraPVCNotBound"
 
+	// ReasonMultiClusterConfigured indicates that the multi-cluster replication has been configured
+	ReasonMultiClusterConfigured = "MultiClusterConfigured"
+
 	// ReasonPrimarySwitching indicates that primary is being switched.
 	ReasonPrimarySwitching = "PrimarySwitching"
 	// ReasonPrimarySwitched indicates that primary has been switched.

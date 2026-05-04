@@ -25,6 +25,8 @@ const (
 	ConditionTypeReplicaRecovered string = "ReplicaRecovered"
 	// ConditionTypeReplicationConfigured indicates that replication has been successfully configured.
 	ConditionTypeReplicationConfigured string = "ReplicationConfigured"
+	// ConditionTypeMultiClusterConfigured indicates that multi-cluster replication has been successfully configured for galera.
+	ConditionTypeMultiClusterConfigured string = "MultiClusterConfigured"
 
 	ConditionReasonStatefulSetNotReady   string = "StatefulSetNotReady"
 	ConditionReasonStatefulSetReady      string = "StatefulSetReady"
@@ -60,6 +62,8 @@ const (
 	ConditionReasonSuspended             string = "Suspended"
 	ConditionReasonMaintenance           string = "Maintenance"
 	ConditionReasonCordoned              string = "Cordoned"
+
+	ConditionReasonMultiClusterConfigured string = "MultiClusterConfigured"
 
 	ConditionReasonMaxScaleNotReady string = "MaxScaleNotReady"
 	ConditionReasonMaxScaleReady    string = "MaxScaleReady"
