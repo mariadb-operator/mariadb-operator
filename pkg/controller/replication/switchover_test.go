@@ -212,7 +212,7 @@ func TestCurrentPrimaryReady_ToleratesTransientConnectBlips(_ *testing.T) {
 //
 //	Fix: always run reconcileReplication first, then reconcileSwitchover.
 //	shouldReconcileReplication already permits this during a switchover (it returns
-//	(zero, nil) when IsSwitchingPrimary, signalling "OK to proceed"), so the existing
+//	(zero, nil) when IsSwitchingPrimary, signaling "OK to proceed"), so the existing
 //	safety boundaries around per-pod reconciliation are unchanged.  The per-pod
 //	reconciler restores Primary / Replica roles, after which the next reconcile pass
 //	finds HasConfiguredReplica()=true and the switchover phases run.
