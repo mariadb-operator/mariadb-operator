@@ -18,9 +18,7 @@ import (
 
 var (
 	MultiClusterReplicaConnectionName = "replica"
-
-	replUser     = "repl"
-	replUserHost = "%"
+	errTopologyNotSupported           = errors.New("topology not supported")
 )
 
 type ConfigureReplicaOpts struct {
@@ -74,48 +72,55 @@ func NewTopologyManager(client client.Client) *TopologyManager {
 }
 
 func (t *TopologyManager) TopologyForMariaDB(mariadb *mariadbv1alpha1.MariaDB, logger logr.Logger) Topology {
-	if mariadb.IsMultiClusterEnabled() && mariadb.IsReplicationEnabled() {
-		logger.V(1).Info("Configuring multi-cluster replication topology")
+	if mariadb.IsMultiClusterEnabled() {
 		multiClusterLogger := logger.WithName("multi-cluster")
+		multiClusterLogger.V(1).Info("Configuring multi-cluster topology")
+		userSqlReconciler := newUserSqlReconciler(mariadb, t.refResolver, multiClusterLogger)
 
 		return newMultiClusterTopology(
 			mariadb,
 			newSingleClusterTopology(
 				mariadb,
+				userSqlReconciler,
 				t.Client,
 				t.refResolver,
 				multiClusterLogger,
 			),
+			userSqlReconciler,
 			t.Client,
 			t.refResolver,
 			multiClusterLogger,
 		)
 	}
-	// TODO: multi-cluster with Galera
 
-	logger.V(1).Info("Configuring single-cluster replication topology")
+	singleClusterLogger := logger.WithName("single-cluster")
+	singleClusterLogger.V(1).Info("Configuring single-cluster topology")
+
 	return newSingleClusterTopology(
 		mariadb,
+		newUserSqlReconciler(mariadb, t.refResolver, singleClusterLogger),
 		t.Client,
 		t.refResolver,
-		logger.WithName("single-cluster"),
+		singleClusterLogger,
 	)
 }
 
 type singleClusterTopology struct {
 	client.Client
-	mariadb     *mariadbv1alpha1.MariaDB
-	refResolver *refresolver.RefResolver
-	logger      logr.Logger
+	mariadb           *mariadbv1alpha1.MariaDB
+	refResolver       *refresolver.RefResolver
+	userSqlReconciler *userSqlReconciler
+	logger            logr.Logger
 }
 
-func newSingleClusterTopology(mariadb *mariadbv1alpha1.MariaDB, client client.Client, refResolver *refresolver.RefResolver,
-	logger logr.Logger) *singleClusterTopology {
+func newSingleClusterTopology(mariadb *mariadbv1alpha1.MariaDB, userSqlReconciler *userSqlReconciler, client client.Client,
+	refResolver *refresolver.RefResolver, logger logr.Logger) *singleClusterTopology {
 	return &singleClusterTopology{
-		Client:      client,
-		mariadb:     mariadb,
-		refResolver: refResolver,
-		logger:      logger,
+		Client:            client,
+		mariadb:           mariadb,
+		refResolver:       refResolver,
+		userSqlReconciler: userSqlReconciler,
+		logger:            logger,
 	}
 }
 
@@ -150,8 +155,8 @@ func (r *singleClusterTopology) ConfigurePrimary(ctx context.Context, client *sq
 	if err := client.DisableReadOnly(ctx); err != nil {
 		return fmt.Errorf("error disabling read_only: %v", err)
 	}
-	if err := r.reconcilePrimarySql(ctx, client); err != nil {
-		return fmt.Errorf("error reconciling primary SQL: %v", err)
+	if err := r.userSqlReconciler.reconcileReplUserSql(ctx, client); err != nil {
+		return fmt.Errorf("error reconciling replication user SQL: %v", err)
 	}
 	return nil
 }
@@ -248,90 +253,50 @@ func (r *singleClusterTopology) changeMaster(ctx context.Context, mariadb *maria
 	return nil
 }
 
-func (r *singleClusterTopology) reconcilePrimarySql(ctx context.Context, client *sql.Client) error {
-	r.logger.V(1).Info("Reconciling primary SQL")
-
-	opts := userSqlOpts{
-		username:   replUser,
-		host:       replUserHost,
-		privileges: []string{"REPLICATION REPLICA"},
-	}
-	if err := r.reconcileUserSql(ctx, client, &opts); err != nil {
-		return fmt.Errorf("error reconciling '%s' SQL user: %v", replUser, err)
-	}
-	return nil
-}
-
-type userSqlOpts struct {
-	username   string
-	host       string
-	privileges []string
-}
-
-func (r *singleClusterTopology) reconcileUserSql(ctx context.Context, client *sql.Client,
-	opts *userSqlOpts) error {
-	r.logger.V(1).Info("Reconciling user SQL")
-
-	replication := ptr.Deref(r.mariadb.Spec.Replication, mariadbv1alpha1.Replication{})
-	if replication.Replica.ReplPasswordSecretKeyRef == nil {
-		return errors.New("'spec.replication.replica.replPasswordSecretKeyRef` must not be nil'")
-	}
-
-	replPassword, err := r.refResolver.SecretKeyRef(ctx, replication.Replica.ReplPasswordSecretKeyRef.SecretKeySelector, r.mariadb.Namespace)
-	if err != nil {
-		return fmt.Errorf("error getting repl password: %v", err)
-	}
-	accountName := formatAccountName(opts.username, opts.host)
-
-	exists, err := client.UserExists(ctx, opts.username, opts.host)
-	if err != nil {
-		return fmt.Errorf("error checking if replication user exists: %v", err)
-	}
-	if exists {
-		if err := client.AlterUser(ctx, accountName, sql.WithIdentifiedBy(replPassword)); err != nil {
-			return fmt.Errorf("error altering replication user: %v", err)
-		}
-	} else {
-		if err := client.CreateUser(ctx, accountName, sql.WithIdentifiedBy(replPassword)); err != nil {
-			return fmt.Errorf("error creating replication user: %v", err)
-		}
-	}
-	if err := client.Grant(
-		ctx,
-		opts.privileges,
-		"*",
-		"*",
-		accountName,
-	); err != nil {
-		return fmt.Errorf("error creating grant: %v", err)
-	}
-	return nil
-}
-
 type multiClusterTopology struct {
 	client.Client
-	mariadb       *mariadbv1alpha1.MariaDB
-	singleCluster *singleClusterTopology
-	refResolver   *refresolver.RefResolver
-	logger        logr.Logger
+	mariadb           *mariadbv1alpha1.MariaDB
+	singleCluster     *singleClusterTopology
+	userSqlReconciler *userSqlReconciler
+	refResolver       *refresolver.RefResolver
+	logger            logr.Logger
 }
 
 func newMultiClusterTopology(mariadb *mariadbv1alpha1.MariaDB, singleCluster *singleClusterTopology,
-	client client.Client, refResolver *refresolver.RefResolver, logger logr.Logger) *multiClusterTopology {
+	userSqlReconciler *userSqlReconciler, client client.Client, refResolver *refresolver.RefResolver,
+	logger logr.Logger) *multiClusterTopology {
 	return &multiClusterTopology{
-		Client:        client,
-		mariadb:       mariadb,
-		singleCluster: singleCluster,
-		refResolver:   refResolver,
-		logger:        logger,
+		Client:            client,
+		mariadb:           mariadb,
+		singleCluster:     singleCluster,
+		userSqlReconciler: userSqlReconciler,
+		refResolver:       refResolver,
+		logger:            logger,
 	}
 }
 
 func (m *multiClusterTopology) ConfigurePrimary(ctx context.Context, client *sql.Client) error {
 	if m.mariadb.IsMultiClusterPrimary() {
-		return m.singleCluster.ConfigurePrimary(ctx, client)
+		if m.mariadb.IsReplicationEnabled() {
+			return m.singleCluster.ConfigurePrimary(ctx, client)
+		} else if m.mariadb.IsGaleraEnabled() {
+			return nil // noop: clustering managed by Galera
+		}
+	} else if m.mariadb.IsMultiClusterReplica() {
+
+		return m.configurePrimaryReplica(ctx, client)
 	}
-	return m.configurePrimaryReplica(ctx, client)
+
+	err := fmt.Errorf("error configuring primary: %w", errTopologyNotSupported)
+	m.logger.Error(
+		err,
+		err.Error(),
+		"primary-cluster", m.mariadb.IsMultiClusterPrimary(),
+		"replica-cluster", m.mariadb.IsMultiClusterReplica(),
+		"replication", m.mariadb.IsReplicationEnabled(),
+		"galera", m.mariadb.IsGaleraEnabled(),
+	)
+	return err
 }
 
 func (m *multiClusterTopology) ConfigureReplica(ctx context.Context, client *sql.Client, primaryPodIndex int,
@@ -341,9 +306,26 @@ func (m *multiClusterTopology) ConfigureReplica(ctx context.Context, client *sql
 	opts = append(opts, WithResetMaster(false))
 
 	if m.mariadb.IsMultiClusterPrimary() {
-		return m.singleCluster.ConfigureReplica(ctx, client, primaryPodIndex, opts...)
+		if m.mariadb.IsReplicationEnabled() {
+			return m.singleCluster.ConfigureReplica(ctx, client, primaryPodIndex, opts...)
+		} else if m.mariadb.IsGaleraEnabled() {
+			return nil // noop: clustering managed by Galera
+		}
+	} else if m.mariadb.IsMultiClusterReplica() {
+		return m.configureSecondaryReplica(ctx, client, primaryPodIndex, opts...)
 	}
-	return m.configureSecondaryReplica(ctx, client, primaryPodIndex, opts...)
+
+	err := fmt.Errorf("error configuring replica: %w", errTopologyNotSupported)
+	m.logger.Error(
+		err,
+		err.Error(),
+		"primary-cluster", m.mariadb.IsMultiClusterPrimary(),
+		"replica-cluster", m.mariadb.IsMultiClusterReplica(),
+		"replication", m.mariadb.IsReplicationEnabled(),
+		"galera", m.mariadb.IsGaleraEnabled(),
+		"primary-pod", primaryPodIndex,
+	)
+	return err
 }
 
 func (m *multiClusterTopology) configurePrimaryReplica(ctx context.Context, client *sql.Client) error {
@@ -360,8 +342,8 @@ func (m *multiClusterTopology) configurePrimaryReplica(ctx context.Context, clie
 	if err := client.DisableReadOnly(ctx); err != nil {
 		return fmt.Errorf("error disabling read_only: %v", err)
 	}
-	if err := m.singleCluster.reconcilePrimarySql(ctx, client); err != nil {
-		return fmt.Errorf("error reconciling primary SQL: %v", err)
+	if err := m.userSqlReconciler.reconcileReplUserSql(ctx, client); err != nil {
+		return fmt.Errorf("error reconciling replication user SQL: %v", err)
 	}
 
 	if err := m.changeMasterInPrimaryReplica(ctx, client); err != nil {
