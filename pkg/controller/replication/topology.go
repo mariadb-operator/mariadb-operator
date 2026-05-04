@@ -283,7 +283,6 @@ func (m *multiClusterTopology) ConfigurePrimary(ctx context.Context, client *sql
 			return nil // noop: clustering managed by Galera
 		}
 	} else if m.mariadb.IsMultiClusterReplica() {
-
 		return m.configurePrimaryReplica(ctx, client)
 	}
 
