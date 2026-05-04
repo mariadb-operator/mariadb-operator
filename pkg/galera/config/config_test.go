@@ -1,7 +1,6 @@
 package config
 
 import (
-	"regexp"
 	"testing"
 
 	"github.com/go-logr/logr"
@@ -668,13 +667,7 @@ tkey=/etc/pki/client.key
 			if !tt.wantErr && err != nil {
 				t.Errorf("expect error to not have occurred, got: %v", err)
 			}
-			// normalize consecutive blank lines to at most one empty line for comparison
-			norm := func(s string) string {
-				r := regexp.MustCompile("\n{2,}")
-				return r.ReplaceAllString(s, "\n\n")
-			}
-
-			if diff := cmp.Diff(norm(tt.wantConfig), norm(string(bytes))); diff != "" {
+			if diff := cmp.Diff(tt.wantConfig, string(bytes)); diff != "" {
 				t.Errorf("unexpected config (-want +got):\n%s", diff)
 			}
 		})
