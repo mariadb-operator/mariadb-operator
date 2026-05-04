@@ -847,26 +847,35 @@ func (c Client) IsReplicationReplica(ctx context.Context, replOpts ...Replicatio
 	return c.Exists(ctx, fmt.Sprintf("SHOW REPLICA %s STATUS", opts.ConnectionName))
 }
 
-// IsReplicationPrimaryReplica determines if the server is both a primary and a replica, a situation that happens in the multi-cluster topology.
+// IsReplicationPrimaryReplica determines if the server is both a primary and a replica, a situation that happens in the multi-cluster replication topology.
 // By default, the default server connection is used (empty string), make sure you pass the "WithConnectionName" option
 // to verify the right connection.
 func (c Client) IsReplicationPrimaryReplica(ctx context.Context, logger logr.Logger, replOpts ...ReplicationOpt) (bool, error) {
-	replicaStatus, err := c.ReplicaStatus(ctx, logger, replOpts...)
+	isReplicationRunnning, err := c.IsReplicationRunning(ctx, logger, replOpts...)
 	if err != nil {
-		return false, fmt.Errorf("error getting replica status: %v", err)
+		return false, fmt.Errorf("error checking if replication is running: %v", err)
 	}
-	// not a replica: replica threads not running
-	if (replicaStatus.SlaveIORunning == nil || !*replicaStatus.SlaveIORunning) ||
-		(replicaStatus.SlaveSQLRunning == nil || !*replicaStatus.SlaveSQLRunning) {
+	if !isReplicationRunnning {
 		return false, nil
 	}
-
 	hasConnectedReplicas, err := c.HasConnectedReplicas(ctx)
 	if err != nil {
 		return false, fmt.Errorf("error determining if server has connected replicas: %v", err)
 	}
 	// condition to be a primary
 	return hasConnectedReplicas, nil
+}
+
+// IsReplicationRunning determines if the replication threads are in a running state.
+// By default, the default server connection is used (empty string), make sure you pass the "WithConnectionName" option
+// to verify the right connection.
+func (c Client) IsReplicationRunning(ctx context.Context, logger logr.Logger, replOpts ...ReplicationOpt) (bool, error) {
+	replicaStatus, err := c.ReplicaStatus(ctx, logger, replOpts...)
+	if err != nil {
+		return false, fmt.Errorf("error getting replica status: %v", err)
+	}
+	return replicaStatus.SlaveIORunning != nil && *replicaStatus.SlaveIORunning &&
+		replicaStatus.SlaveSQLRunning != nil && *replicaStatus.SlaveSQLRunning, nil
 }
 
 // See: https://mariadb.com/docs/server/reference/sql-statements/administrative-sql-statements/show/show-replica-status
