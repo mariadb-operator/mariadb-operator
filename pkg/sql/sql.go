@@ -851,11 +851,11 @@ func (c Client) IsReplicationReplica(ctx context.Context, replOpts ...Replicatio
 // By default, the default server connection is used (empty string), make sure you pass the "WithConnectionName" option
 // to verify the right connection.
 func (c Client) IsReplicationPrimaryReplica(ctx context.Context, logger logr.Logger, replOpts ...ReplicationOpt) (bool, error) {
-	isReplicationRunnning, err := c.IsReplicationRunning(ctx, logger, replOpts...)
+	isReplicationRunning, err := c.IsReplicationRunning(ctx, logger, replOpts...)
 	if err != nil {
 		return false, fmt.Errorf("error checking if replication is running: %v", err)
 	}
-	if !isReplicationRunnning {
+	if !isReplicationRunning {
 		return false, nil
 	}
 	hasConnectedReplicas, err := c.HasConnectedReplicas(ctx)
