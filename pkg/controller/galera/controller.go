@@ -12,6 +12,7 @@ import (
 	condition "github.com/mariadb-operator/mariadb-operator/v26/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/configmap"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/pvc"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/replication"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/service"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/environment"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/refresolver"
@@ -51,6 +52,7 @@ type GaleraReconciler struct {
 	recorder            events.EventRecorder
 	env                 *environment.OperatorEnv
 	builder             *builder.Builder
+	topologyManager     *replication.TopologyManager
 	refResolver         *refresolver.RefResolver
 	configMapReconciler *configmap.ConfigMapReconciler
 	serviceReconciler   *service.ServiceReconciler
@@ -58,13 +60,15 @@ type GaleraReconciler struct {
 }
 
 func NewGaleraReconciler(client client.Client, kubeClientset *kubernetes.Clientset, recorder events.EventRecorder,
-	env *environment.OperatorEnv, builder *builder.Builder, opts ...Option) *GaleraReconciler {
+	env *environment.OperatorEnv, builder *builder.Builder, topologyManager *replication.TopologyManager,
+	opts ...Option) *GaleraReconciler {
 	r := &GaleraReconciler{
-		Client:        client,
-		kubeClientset: kubeClientset,
-		recorder:      recorder,
-		env:           env,
-		builder:       builder,
+		Client:          client,
+		kubeClientset:   kubeClientset,
+		recorder:        recorder,
+		env:             env,
+		builder:         builder,
+		topologyManager: topologyManager,
 	}
 	for _, setOpt := range opts {
 		setOpt(r)
@@ -100,11 +104,17 @@ func (r *GaleraReconciler) Reconcile(ctx context.Context, mariadb *mariadbv1alph
 	if !mariadb.IsGaleraEnabled() {
 		return ctrl.Result{}, nil
 	}
+	logger := log.FromContext(ctx).WithName("galera")
+
+	if mariadb.Status.CurrentPrimaryPodIndex == nil {
+		logger.V(1).Info("'status.currentPrimaryPodIndex' must be set. Skipping")
+		return ctrl.Result{}, nil
+	}
+
 	var sts appsv1.StatefulSet
 	if err := r.Get(ctx, client.ObjectKeyFromObject(mariadb), &sts); err != nil {
 		return ctrl.Result{}, err
 	}
-	logger := log.FromContext(ctx).WithName("galera")
 
 	if mariadb.HasGaleraNotReadyCondition() {
 		if result, err := r.reconcileRecovery(ctx, mariadb, logger.WithName("recovery")); !result.IsZero() || err != nil {
@@ -116,6 +126,35 @@ func (r *GaleraReconciler) Reconcile(ctx context.Context, mariadb *mariadbv1alph
 		if err := r.disableBootstrap(ctx, mariadb, logger); err != nil {
 			return ctrl.Result{}, err
 		}
+
+		// // TODO: finish and validate this. Evaluate introducing status condition vs continuously reconciling if possible.
+		// if mariadb.IsMultiClusterEnabled() && mariadb.IsMultiClusterReplica() {
+		// 	logger.Info("Configuring Galera multi-cluster replication")
+		// 	currentPrimaryPodIndex := *mariadb.Status.CurrentPrimaryPodIndex
+
+		// 	sqlClient, err := sql.NewInternalClientWithPodIndex(
+		// 		ctx,
+		// 		mariadb,
+		// 		r.refResolver,
+		// 		currentPrimaryPodIndex,
+		// 	)
+		// 	if err != nil {
+		// 		return ctrl.Result{}, fmt.Errorf("error getting SQL client for primary: %v", err)
+		// 	}
+		// 	defer sqlClient.Close()
+
+		// 	err = r.topologyManager.
+		// 		TopologyForMariaDB(mariadb, logger).
+		// 		ConfigureReplica(
+		// 			ctx,
+		// 			sqlClient,
+		// 			currentPrimaryPodIndex,
+		// 		)
+		// 	if err != nil {
+		// 		return ctrl.Result{}, fmt.Errorf("error configuring Galera multi-cluster replication: %v", err)
+		// 	}
+		// }
+
 		logger.Info("Galera cluster is healthy")
 		r.recorder.Eventf(mariadb, nil, corev1.EventTypeNormal, mariadbv1alpha1.ReasonGaleraClusterHealthy,
 			mariadbv1alpha1.ActionReconciling, "Galera cluster is healthy")
