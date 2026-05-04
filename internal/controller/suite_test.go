@@ -173,6 +173,7 @@ var _ = BeforeSuite(func() {
 		galeraRecorder,
 		env,
 		builder,
+		topologyManager,
 		galera.WithRefResolver(refResolver),
 		galera.WithConfigMapReconciler(configMapReconciler),
 		galera.WithServiceReconciler(serviceReconciler),

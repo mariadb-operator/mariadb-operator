@@ -329,6 +329,7 @@ var rootCmd = &cobra.Command{
 			galeraRecorder,
 			env,
 			builder,
+			topologyManager,
 			galera.WithRefResolver(refResolver),
 			galera.WithConfigMapReconciler(configMapReconciler),
 			galera.WithServiceReconciler(serviceReconciler),
