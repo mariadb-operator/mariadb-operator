@@ -1,0 +1,65 @@
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-eu-south
+spec:
+  rootPasswordSecretKeyRef:
+    name: mariadb
+    key: password
+  storage:
+    size: 1Gi
+  replicas: 3
+  galera:
+    # Configuring MariaDB Replication between Two MariaDB Galera Clusters:
+    # See: https://mariadb.com/docs/galera-cluster/high-availability/using-mariadb-replication-with-mariadb-galera-cluster/configuring-mariadb-replication-between-two-mariadb-galera-clusters
+    enabled: true
+    gtidDomainId: 0
+    serverId: 1
+    replPasswordSecretKeyRef:
+      name: mariadb
+      key: password
+  primaryService:
+    type: LoadBalancer
+    metadata:
+      annotations:
+        metallb.io/loadBalancerIPs: 172.18.1.10
+  tls:
+    enabled: true
+    required: true
+    serverCASecretRef:
+      name: mariadb-server-ca
+    serverCertAdditionalNames:
+      - 172.18.1.10
+    clientCASecretRef:
+      name: mariadb-server-ca
+  multiCluster:
+    enabled: true
+    primary: mariadb-eu-south
+    replicas:
+      - mariadb-eu-central
+    members:
+      - name: mariadb-eu-south
+        externalMariaDbRef:
+          name: mariadb-eu-south
+      - name: mariadb-eu-central
+        externalMariaDbRef:
+          name: mariadb-eu-central
+---
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: ExternalMariaDB
+metadata:
+  name: mariadb-eu-south
+spec:
+  host: mariadb-eu-south-primary.default.svc.cluster.local
+  port: 3306
+  username: root
+  passwordSecretKeyRef:
+    name: mariadb
+    key: password
+  tls:
+    enabled: true
+    serverCASecretRef:
+      name: mariadb-server-ca
+    clientCASecretRef:
+      name: mariadb-server-ca
+
