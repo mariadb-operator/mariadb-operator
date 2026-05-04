@@ -128,52 +128,18 @@ func (r *MariaDBReconciler) getReplicationRoles(ctx context.Context,
 			continue
 		}
 
-		role := replicationRoleFor(mdb, i, isReplica, hasConnectedReplicas)
+		role := mariadbv1alpha1.ReplicationRoleUnknown
+		if isReplica {
+			role = mariadbv1alpha1.ReplicationRoleReplica
+		} else if hasConnectedReplicas {
+			role = mariadbv1alpha1.ReplicationRolePrimary
+		}
 		if replState == nil {
 			replState = make(map[string]mariadbv1alpha1.ReplicationRole)
 		}
 		replState[pod] = role
 	}
 	return replState, nil
-}
-
-// replicationRoleFor returns the replication role for the pod at podIndex.
-//
-// Three signals are consulted in priority order:
-//  1. isReplica            -> Replica  (CHANGE MASTER configured locally)
-//  2. hasConnectedReplicas -> Primary  (a replica is currently streaming Binlog Dump)
-//  3. configured primary   -> Primary  (fallback when no replica is connected)
-//
-// Without case 3 a configured primary whose only replica is unreachable
-// (CrashLoopBackOff, network partition, slow restart) falls through to
-// Unknown.  That mislabel cascades into ReconcileReplicationInPod, whose
-// early-return only fires when role == Primary; so the operator calls
-// ConfigurePrimary on the existing primary every reconcile (~5s) without
-// ever advancing the status.  ConfigurePrimary succeeds silently and roles
-// are written by a different reconciler, so the loop logs "Configuring
-// primary" forever with no error and no progress.  Field incident:
-// hotcrp-ltichiring3-db wedged for 32h, operator log was 217/251 lines
-// "Configuring primary" with zero errors.
-//
-// hasConnectedReplicas reflects runtime liveness ("is anyone streaming from
-// me right now?"), not configuration.  Status.CurrentPrimaryPodIndex is the
-// source of truth for "who is the primary?" — fall back to it when neither
-// runtime signal is conclusive.  Related: 1437dfca made reconcileReplication
-// run before reconcileSwitchover so role drift mid-switchover could be
-// repaired; this completes that picture by preventing the post-switchover
-// state from drifting in the first place.
-func replicationRoleFor(mdb *mariadbv1alpha1.MariaDB, podIndex int,
-	isReplica, hasConnectedReplicas bool) mariadbv1alpha1.ReplicationRole {
-	if isReplica {
-		return mariadbv1alpha1.ReplicationRoleReplica
-	}
-	if hasConnectedReplicas {
-		return mariadbv1alpha1.ReplicationRolePrimary
-	}
-	if mdb.Status.CurrentPrimaryPodIndex != nil && *mdb.Status.CurrentPrimaryPodIndex == podIndex {
-		return mariadbv1alpha1.ReplicationRolePrimary
-	}
-	return mariadbv1alpha1.ReplicationRoleUnknown
 }
 
 func (r *MariaDBReconciler) getReplicaStatus(ctx context.Context,
