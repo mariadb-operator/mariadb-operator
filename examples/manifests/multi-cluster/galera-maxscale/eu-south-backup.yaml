@@ -9,7 +9,7 @@ spec:
   schedule:
     cron: "0 * * * *"
     immediate: true
-    onDemand: "1"
+    # onDemand: "1"
   target: PreferReplica
   compression: bzip2
   storage:

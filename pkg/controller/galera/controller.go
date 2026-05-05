@@ -211,7 +211,10 @@ func (r *GaleraReconciler) reconcileMultiCluster(ctx context.Context, mariadb *m
 		if currentPrimaryPodIndex == i {
 			primaryClient, err := clientSet.ClientForIndex(ctx, i)
 			if err != nil {
-				return ctrl.Result{}, fmt.Errorf("error getting client for current primary Pod index %d: %v", i, err)
+				// During failover, operator might not be able to connect to Pods in error state.
+				// This avoids noisy logging and ensures that the request is requeued to be able to configure the primary in the next reconciliation cycle.
+				logger.V(1).Info("Error getting primary client for Pod index", "err", err, "pod-index", i)
+				return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 			}
 			if err := topology.ConfigurePrimary(
 				ctx,
@@ -223,8 +226,8 @@ func (r *GaleraReconciler) reconcileMultiCluster(ctx context.Context, mariadb *m
 			replicaClient, err := clientSet.ClientForIndex(ctx, i)
 			if err != nil {
 				// During failover, operator might not be able to connect to Pods in error state.
-				// This prevents blocking the reconciliation, leaving the reset for the next reconciliation cycles.
-				logger.V(1).Info("error getting client for current Pod index", "err", "pod-index", i)
+				// This avoids noisy logging and prevents blocking the reconciliation, leaving the reset for the next reconciliation cycles.
+				logger.V(1).Info("Error getting replica client for Pod index", "err", err, "pod-index", i)
 				continue
 			}
 			if err := replicaClient.StopSlave(
