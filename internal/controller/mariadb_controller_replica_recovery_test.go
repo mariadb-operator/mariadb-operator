@@ -121,6 +121,122 @@ var _ = Describe("isRecoverableError", func() {
 	)
 })
 
+// getReplicasToRecover gates on isRecoverableError, which only returns true
+// for errors whose age exceeds errorDurationThreshold (default 5m). When
+// mariadb is crashlooping mid-recovery, every container restart refreshes
+// LastErrorTransitionTime and the replica drops out of the recoverable list
+// for a window. The outer reconcile interprets the empty list as "all
+// healthy", calls setReplicaRecoveredAndCleanup, and tears down the in-flight
+// pb-recovery PB and pb-init Job.  These tests pin the post-fix behaviour
+// where an in-flight recovery keeps the replica in the list as long as it
+// still reports any replication error.
+var _ = Describe("getReplicasToRecover", func() {
+	logger := logr.Discard()
+	freshError := metav1.Now()
+	emptyMdb := &mariadbv1alpha1.MariaDB{}
+	recoveringMdb := func() *mariadbv1alpha1.MariaDB {
+		mdb := &mariadbv1alpha1.MariaDB{}
+		meta.SetStatusCondition(&mdb.Status.Conditions, metav1.Condition{
+			Type:    mariadbv1alpha1.ConditionTypeReplicaRecovered,
+			Status:  metav1.ConditionFalse,
+			Reason:  mariadbv1alpha1.ConditionReasonReplicaRecovering,
+			Message: "Recovering replica",
+		})
+		return mdb
+	}
+	withReplicas := func(mdb *mariadbv1alpha1.MariaDB, replicas map[string]mariadbv1alpha1.ReplicaStatus) *mariadbv1alpha1.MariaDB {
+		mdb.Status.Replication = &mariadbv1alpha1.ReplicationStatus{
+			Replicas: replicas,
+		}
+		return mdb
+	}
+
+	It("returns empty when no replicas exist", func() {
+		Expect(getReplicasToRecover(emptyMdb, logger)).To(BeEmpty())
+	})
+
+	It("returns replicas with recoverable IO codes regardless of recovering state", func() {
+		mdb := withReplicas(emptyMdb.DeepCopy(), map[string]mariadbv1alpha1.ReplicaStatus{
+			"r0": {
+				ReplicaStatusVars: mariadbv1alpha1.ReplicaStatusVars{
+					LastIOErrno: ptr.To(1236),
+				},
+			},
+		})
+		Expect(getReplicasToRecover(mdb, logger)).To(ConsistOf("r0"))
+	})
+
+	It("returns replicas with errors past the threshold regardless of recovering state", func() {
+		old := metav1.NewTime(time.Now().Add(-10 * time.Minute))
+		mdb := withReplicas(emptyMdb.DeepCopy(), map[string]mariadbv1alpha1.ReplicaStatus{
+			"r0": {
+				ReplicaStatusVars: mariadbv1alpha1.ReplicaStatusVars{
+					LastSQLErrno: ptr.To(1032),
+				},
+				LastErrorTransitionTime: old,
+			},
+		})
+		Expect(getReplicasToRecover(mdb, logger)).To(ConsistOf("r0"))
+	})
+
+	It("excludes replicas with fresh errors when not recovering", func() {
+		mdb := withReplicas(emptyMdb.DeepCopy(), map[string]mariadbv1alpha1.ReplicaStatus{
+			"r0": {
+				ReplicaStatusVars: mariadbv1alpha1.ReplicaStatusVars{
+					LastSQLErrno: ptr.To(1032),
+				},
+				LastErrorTransitionTime: freshError,
+			},
+		})
+		Expect(getReplicasToRecover(mdb, logger)).To(BeEmpty())
+	})
+
+	It("includes replicas with fresh errors when already recovering (regression guard for medicine-stg2 oscillation)", func() {
+		mdb := withReplicas(recoveringMdb(), map[string]mariadbv1alpha1.ReplicaStatus{
+			"r0": {
+				ReplicaStatusVars: mariadbv1alpha1.ReplicaStatusVars{
+					LastSQLErrno: ptr.To(1032),
+				},
+				LastErrorTransitionTime: freshError,
+			},
+		})
+		Expect(getReplicasToRecover(mdb, logger)).To(ConsistOf("r0"))
+	})
+
+	It("includes replicas with fresh IO errors when already recovering", func() {
+		mdb := withReplicas(recoveringMdb(), map[string]mariadbv1alpha1.ReplicaStatus{
+			"r0": {
+				ReplicaStatusVars: mariadbv1alpha1.ReplicaStatusVars{
+					LastIOErrno: ptr.To(1045),
+				},
+				LastErrorTransitionTime: freshError,
+			},
+		})
+		Expect(getReplicasToRecover(mdb, logger)).To(ConsistOf("r0"))
+	})
+
+	It("excludes replicas with no error even while recovering (genuine recovery completion path)", func() {
+		mdb := withReplicas(recoveringMdb(), map[string]mariadbv1alpha1.ReplicaStatus{
+			"r0": {
+				ReplicaStatusVars: mariadbv1alpha1.ReplicaStatusVars{
+					LastIOErrno:  ptr.To(0),
+					LastSQLErrno: ptr.To(0),
+				},
+			},
+		})
+		Expect(getReplicasToRecover(mdb, logger)).To(BeEmpty())
+	})
+
+	It("returns replicas in deterministic sorted order", func() {
+		mdb := withReplicas(recoveringMdb(), map[string]mariadbv1alpha1.ReplicaStatus{
+			"r2": {ReplicaStatusVars: mariadbv1alpha1.ReplicaStatusVars{LastIOErrno: ptr.To(1045)}, LastErrorTransitionTime: freshError},
+			"r0": {ReplicaStatusVars: mariadbv1alpha1.ReplicaStatusVars{LastIOErrno: ptr.To(1045)}, LastErrorTransitionTime: freshError},
+			"r1": {ReplicaStatusVars: mariadbv1alpha1.ReplicaStatusVars{LastIOErrno: ptr.To(1045)}, LastErrorTransitionTime: freshError},
+		})
+		Expect(getReplicasToRecover(mdb, logger)).To(Equal([]string{"r0", "r1", "r2"}))
+	})
+})
+
 var _ = Describe("MariaDB Replica Recovery", Ordered, func() {
 	var (
 		key = types.NamespacedName{

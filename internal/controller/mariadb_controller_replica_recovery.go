@@ -488,15 +488,38 @@ func (r *MariaDBReconciler) resetReplicaRecovery(ctx context.Context, mariadb *m
 
 func getReplicasToRecover(mdb *mariadbv1alpha1.MariaDB, logger logr.Logger) []string {
 	replication := ptr.Deref(mdb.Status.Replication, mariadbv1alpha1.ReplicationStatus{})
+	isRecovering := mdb.IsRecoveringReplicas()
 	var replicas []string
-	for replica, err := range replication.Replicas {
+	for replica, status := range replication.Replicas {
 		if isRecoverableError(
 			mdb,
-			err,
+			status,
 			recoverableIOErrorCodes,
 			logger.WithValues("replica", replica),
 		) {
 			replicas = append(replicas, replica)
+			continue
+		}
+		// While a recovery is in-flight, keep the replica in the list as long
+		// as it still reports replication errors. The errorDurationThreshold
+		// check in isRecoverableError exists to *trigger* recovery on sustained
+		// errors; it is not a "recovery complete" signal. Without this branch a
+		// replica whose error transition time was just refreshed (e.g. by a
+		// mariadb restart in CrashLoopBackOff during the in-flight recovery)
+		// drops out of the list momentarily, the outer reconcile interprets
+		// that as "all healthy", calls setReplicaRecoveredAndCleanup which
+		// tears down the in-flight pb-recovery PB and the pending pb-init Job,
+		// and the cluster oscillates indefinitely without ever completing
+		// recovery. Field incident: moodle-medicine-stg2-db looped for 25+
+		// hours producing repeated 38GB pb-recovery backups while pod-0
+		// accumulated 707 mariadb container restarts and pb-init was never
+		// created.
+		if isRecovering {
+			lastIOErrno := ptr.Deref(status.LastIOErrno, 0)
+			lastSQLErrno := ptr.Deref(status.LastSQLErrno, 0)
+			if lastIOErrno != 0 || lastSQLErrno != 0 {
+				replicas = append(replicas, replica)
+			}
 		}
 	}
 	sort.Slice(replicas, func(i, j int) bool {
