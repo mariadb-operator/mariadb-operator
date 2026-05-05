@@ -3,7 +3,6 @@ package v1alpha1
 import (
 	"fmt"
 
-	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/utils/ptr"
 )
 
@@ -79,10 +78,4 @@ func (m *MariaDB) IsMultiClusterReplica() bool {
 // IsMultiClusterPrimaryReplica determines whether a given Pod index is a primary Pod in a replica cluster.
 func (m *MariaDB) IsMultiClusterPrimaryReplica(podIndex int) bool {
 	return m.IsMultiClusterReplica() && m.Status.CurrentPrimaryPodIndex != nil && *m.Status.CurrentPrimaryPodIndex == podIndex
-}
-
-// HasConfiguredMultiCluster checks if ConditionTypeMultiClusterConfigured condition is true.
-// If so, it indicates that multi-cluster replication has been configured. Only used for Galera.
-func (m *MariaDB) HasConfiguredMultiCluster() bool {
-	return meta.IsStatusConditionTrue(m.Status.Conditions, ConditionTypeMultiClusterConfigured)
 }
