@@ -23,6 +23,7 @@ spec:
     app.kubernetes.io/instance: mariadb-eu-south
     app.kubernetes.io/name: mariadb
     statefulset.kubernetes.io/pod-name: mariadb-eu-south-0
+  publishNotReadyAddresses: true
   type: LoadBalancer
 ---
 apiVersion: v1
@@ -50,6 +51,7 @@ spec:
     app.kubernetes.io/instance: mariadb-eu-south
     app.kubernetes.io/name: mariadb
     statefulset.kubernetes.io/pod-name: mariadb-eu-south-1
+  publishNotReadyAddresses: true
   type: LoadBalancer
 ---
 apiVersion: v1
@@ -77,6 +79,7 @@ spec:
     app.kubernetes.io/instance: mariadb-eu-south
     app.kubernetes.io/name: mariadb
     statefulset.kubernetes.io/pod-name: mariadb-eu-south-2
+  publishNotReadyAddresses: true
   type: LoadBalancer
 ---
 apiVersion: v1
@@ -104,6 +107,7 @@ spec:
     app.kubernetes.io/instance: mariadb-eu-south
     app.kubernetes.io/name: mariadb
     statefulset.kubernetes.io/pod-name: mariadb-eu-south-3
+  publishNotReadyAddresses: true
   type: LoadBalancer
 ---
 apiVersion: v1
@@ -131,6 +135,7 @@ spec:
     app.kubernetes.io/instance: mariadb-eu-central
     app.kubernetes.io/name: mariadb
     statefulset.kubernetes.io/pod-name: mariadb-eu-central-0
+  publishNotReadyAddresses: true
   type: LoadBalancer
 ---
 apiVersion: v1
@@ -158,6 +163,7 @@ spec:
     app.kubernetes.io/instance: mariadb-eu-central
     app.kubernetes.io/name: mariadb
     statefulset.kubernetes.io/pod-name: mariadb-eu-central-1
+  publishNotReadyAddresses: true
   type: LoadBalancer
 ---
 apiVersion: v1
@@ -185,6 +191,7 @@ spec:
     app.kubernetes.io/instance: mariadb-eu-central
     app.kubernetes.io/name: mariadb
     statefulset.kubernetes.io/pod-name: mariadb-eu-central-2
+  publishNotReadyAddresses: true
   type: LoadBalancer
 ---
 apiVersion: v1
@@ -212,4 +219,5 @@ spec:
     app.kubernetes.io/instance: mariadb-eu-central
     app.kubernetes.io/name: mariadb
     statefulset.kubernetes.io/pod-name: mariadb-eu-central-3
+  publishNotReadyAddresses: true
   type: LoadBalancer

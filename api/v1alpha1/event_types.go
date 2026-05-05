@@ -38,9 +38,8 @@ const (
 	ReasonGaleraPodSyncTimeout = "GaleraPodSyncTimeout"
 	// ReasonGaleraPVCNotBound indicates that a Galera PVC is not in Bound phase, therefore the init process cannot be started.
 	ReasonGaleraPVCNotBound = "GaleraPVCNotBound"
-
-	// ReasonMultiClusterConfigured indicates that the multi-cluster replication has been configured
-	ReasonMultiClusterConfigured = "MultiClusterConfigured"
+	// ReasonGaleraPrimaryReplicaConfigured indicates that the Galera primary replica has been configured.
+	ReasonGaleraPrimaryReplicaConfigured = "GaleraPrimaryReplicaConfigured"
 
 	// ReasonPrimarySwitching indicates that primary is being switched.
 	ReasonPrimarySwitching = "PrimarySwitching"
