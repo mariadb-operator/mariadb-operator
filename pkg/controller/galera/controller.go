@@ -166,7 +166,7 @@ func (r *GaleraReconciler) Reconcile(ctx context.Context, mariadb *mariadbv1alph
 			"Primary switched from index '%d' to index '%d'", primary, newPrimary)
 
 		if mariadb.IsMultiClusterEnabled() {
-			// Requeue to trigger a multi-cluster reconciliation based on the new primary
+			// Requeue to trigger multi-cluster reconciliation based on the new primary
 			return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 		}
 	}
@@ -222,8 +222,8 @@ func (r *GaleraReconciler) reconcileMultiCluster(ctx context.Context, mariadb *m
 		} else {
 			replicaClient, err := clientSet.ClientForIndex(ctx, i)
 			if err != nil {
-				// During failover, operator might not be able to connect, therefore blocking the reconciliation here.
-				// Leave the reset for the next reconciliation.
+				// During failover, operator might not be able to connect to Pods in error state.
+				// This prevents blocking the reconciliation, leaving the reset for the next reconciliation cycles.
 				logger.V(1).Info("error getting client for current Pod index", "err", "pod-index", i)
 				continue
 			}
@@ -242,8 +242,8 @@ func (r *GaleraReconciler) reconcileMultiCluster(ctx context.Context, mariadb *m
 		}
 	}
 	logger.Info("Galera primary replica configured", "pod-index", currentPrimaryPodIndex)
-	r.recorder.Eventf(mariadb, nil, corev1.EventTypeNormal, mariadbv1alpha1.ReasonMultiClusterConfigured, mariadbv1alpha1.ActionReconciling,
-		"Galera primary replica configured on Pod %d", currentPrimaryPodIndex)
+	r.recorder.Eventf(mariadb, nil, corev1.EventTypeNormal, mariadbv1alpha1.ReasonGaleraPrimaryReplicaConfigured,
+		mariadbv1alpha1.ActionReconciling, "Galera primary replica configured on Pod %d", currentPrimaryPodIndex)
 	// Requeue to update status
 	return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 }
