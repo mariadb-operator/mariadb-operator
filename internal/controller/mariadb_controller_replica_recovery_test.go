@@ -127,7 +127,7 @@ var _ = Describe("isRecoverableError", func() {
 // LastErrorTransitionTime and the replica drops out of the recoverable list
 // for a window. The outer reconcile interprets the empty list as "all
 // healthy", calls setReplicaRecoveredAndCleanup, and tears down the in-flight
-// pb-recovery PB and pb-init Job.  These tests pin the post-fix behaviour
+// pb-recovery PB and pb-init Job.  These tests pin the post-fix behavior
 // where an in-flight recovery keeps the replica in the list as long as it
 // still reports any replication error.
 var _ = Describe("getReplicasToRecover", func() {
