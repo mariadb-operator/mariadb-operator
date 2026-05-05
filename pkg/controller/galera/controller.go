@@ -161,7 +161,7 @@ func (r *GaleraReconciler) Reconcile(ctx context.Context, mariadb *mariadbv1alph
 			return ctrl.Result{}, fmt.Errorf("error patching current primary status: %v", err)
 		}
 		if mariadb.IsMultiClusterEnabled() {
-			if err := r.reconcileMultiClusterSwtichover(ctx, mariadb, topology, primary, newPrimary); err != nil {
+			if err := r.reconcileMultiClusterSwitchover(ctx, mariadb, topology, primary, newPrimary); err != nil {
 				return ctrl.Result{}, fmt.Errorf("error performingr replication switchover: %v", err)
 			}
 		}
@@ -231,7 +231,7 @@ func (r *GaleraReconciler) reconcileMultiCluster(ctx context.Context, mariadb *m
 	return nil
 }
 
-func (r *GaleraReconciler) reconcileMultiClusterSwtichover(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
+func (r *GaleraReconciler) reconcileMultiClusterSwitchover(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 	topology replication.Topology, primary, newPrimary int) error {
 	if !mariadb.IsMultiClusterReplica() || !mariadb.HasConfiguredMultiCluster() {
 		return nil
