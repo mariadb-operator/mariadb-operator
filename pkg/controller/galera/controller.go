@@ -2,12 +2,14 @@ package galera
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"time"
 
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	agentclient "github.com/mariadb-operator/mariadb-operator/v26/pkg/agent/client"
-	"github.com/mariadb-operator/mariadb-operator/v26/pkg/agent/errors"
+	agenterrors "github.com/mariadb-operator/mariadb-operator/v26/pkg/agent/errors"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/builder"
 	condition "github.com/mariadb-operator/mariadb-operator/v26/pkg/condition"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/controller/configmap"
@@ -128,13 +130,6 @@ func (r *GaleraReconciler) Reconcile(ctx context.Context, mariadb *mariadbv1alph
 		if err := r.disableBootstrap(ctx, mariadb, logger); err != nil {
 			return ctrl.Result{}, err
 		}
-
-		if mariadb.IsMultiClusterEnabled() {
-			if err := r.reconcileMultiCluster(ctx, mariadb, topology, logger); err != nil {
-				return ctrl.Result{}, fmt.Errorf("error reconciling multi-cluster: %v", err)
-			}
-		}
-
 		logger.Info("Galera cluster is healthy")
 		r.recorder.Eventf(mariadb, nil, corev1.EventTypeNormal, mariadbv1alpha1.ReasonGaleraClusterHealthy,
 			mariadbv1alpha1.ActionReconciling, "Galera cluster is healthy")
@@ -144,6 +139,12 @@ func (r *GaleraReconciler) Reconcile(ctx context.Context, mariadb *mariadbv1alph
 			condition.SetGaleraConfigured(&mariadb.Status)
 		}); err != nil {
 			return ctrl.Result{}, fmt.Errorf("error patching Galera status: %v", err)
+		}
+	}
+
+	if mariadb.IsMultiClusterEnabled() {
+		if result, err := r.reconcileMultiCluster(ctx, mariadb, topology, logger); !result.IsZero() || err != nil {
+			return result, err
 		}
 	}
 
@@ -160,15 +161,14 @@ func (r *GaleraReconciler) Reconcile(ctx context.Context, mariadb *mariadbv1alph
 		}); err != nil {
 			return ctrl.Result{}, fmt.Errorf("error patching current primary status: %v", err)
 		}
-		if mariadb.IsMultiClusterEnabled() {
-			if err := r.reconcileMultiClusterSwitchover(ctx, mariadb, topology, primary, newPrimary); err != nil {
-				return ctrl.Result{}, fmt.Errorf("error performingr replication switchover: %v", err)
-			}
-		}
-
 		logger.Info("Primary switched", "primary", primary, "new-primary", newPrimary)
 		r.recorder.Eventf(mariadb, nil, corev1.EventTypeNormal, mariadbv1alpha1.ReasonPrimarySwitched, mariadbv1alpha1.ActionReconciling,
 			"Primary switched from index '%d' to index '%d'", primary, newPrimary)
+
+		if mariadb.IsMultiClusterEnabled() {
+			// Requeue to trigger a multi-cluster reconciliation based on the new primary
+			return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+		}
 	}
 	return ctrl.Result{}, nil
 }
@@ -185,7 +185,7 @@ func (r *GaleraReconciler) disableBootstrap(ctx context.Context, mariadb *mariad
 		if err != nil {
 			return fmt.Errorf("error creating agent client: %v", err)
 		}
-		if err := agentClient.Galera.DisableBootstrap(ctx); err != nil && !errors.IsNotFound(err) {
+		if err := agentClient.Galera.DisableBootstrap(ctx); err != nil && !agenterrors.IsNotFound(err) {
 			return fmt.Errorf("error disabling bootstrap in Pod %d: %v", i, err)
 		}
 	}
@@ -193,77 +193,92 @@ func (r *GaleraReconciler) disableBootstrap(ctx context.Context, mariadb *mariad
 }
 
 func (r *GaleraReconciler) reconcileMultiCluster(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	topology replication.Topology, logger logr.Logger) error {
-	if !mariadb.IsMultiClusterReplica() || mariadb.HasConfiguredMultiCluster() {
-		return nil
-	}
-	logger.Info("Configuring Galera multi-cluster replication")
-	currentPrimaryPodIndex := *mariadb.Status.CurrentPrimaryPodIndex
-
-	sqlClient, err := sql.NewInternalClientWithPodIndex(
-		ctx,
-		mariadb,
-		r.refResolver,
-		currentPrimaryPodIndex,
-	)
-	if err != nil {
-		return fmt.Errorf("error getting SQL client for primary: %v", err)
-	}
-	defer sqlClient.Close()
-
-	err = topology.ConfigurePrimary(
-		ctx,
-		sqlClient,
-	)
-	if err != nil {
-		return fmt.Errorf("error configuring Galera multi-cluster replication: %v", err)
-	}
-
-	logger.Info("Galera multi-cluster replication has been configured")
-	r.recorder.Eventf(mariadb, nil, corev1.EventTypeNormal, mariadbv1alpha1.ReasonMultiClusterConfigured, mariadbv1alpha1.ActionReconciling,
-		"Galera multi-cluster replication has been configured")
-
-	if err := r.patchStatus(ctx, mariadb, func(status *mariadbv1alpha1.MariaDBStatus) {
-		condition.SetMultiClusterConfigured(&mariadb.Status)
-	}); err != nil {
-		return fmt.Errorf("error patching multi-cluster status: %v", err)
-	}
-	return nil
-}
-
-func (r *GaleraReconciler) reconcileMultiClusterSwitchover(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	topology replication.Topology, primary, newPrimary int) error {
-	if !mariadb.IsMultiClusterReplica() || !mariadb.HasConfiguredMultiCluster() {
-		return nil
+	topology replication.Topology, logger logr.Logger) (ctrl.Result, error) {
+	if !shouldReconcileMultiCluster(mariadb, logger) {
+		return ctrl.Result{}, nil
 	}
 	clientSet := sql.NewClientSet(mariadb, r.refResolver)
 	defer clientSet.Close()
 
-	primaryClient, err := clientSet.ClientForIndex(ctx, primary)
+	podIndexes, err := multiClusterPodIndexes(mariadb)
 	if err != nil {
-		return fmt.Errorf("error getting client for current primary Pod index %d: %v", primary, err)
+		return ctrl.Result{}, fmt.Errorf("error getting multi-cluster Pod indexes: %v", err)
 	}
-	if err := primaryClient.StopSlave(
-		ctx,
-		sql.WithConnectionName(replication.MultiClusterReplicaConnectionName),
-	); !sql.IsConnectionNotExists(err) {
-		return fmt.Errorf("error stopping primary replica slave: %v", err)
-	}
-	if err := primaryClient.ResetSlave(
-		ctx,
-		sql.WithConnectionName(replication.MultiClusterReplicaConnectionName),
-	); !sql.IsConnectionNotExists(err) {
-		return fmt.Errorf("error resetting primary replica slave: %v", err)
-	}
+	currentPrimaryPodIndex := *mariadb.Status.CurrentPrimaryPodIndex
+	logger.Info("Configuring Galera primary replica", "pod-index", currentPrimaryPodIndex)
 
-	newPrimaryClient, err := clientSet.ClientForIndex(ctx, newPrimary)
-	if err != nil {
-		return fmt.Errorf("error getting client for new primary Pod index %d: %v", primary, err)
+	for _, i := range podIndexes {
+		if currentPrimaryPodIndex == i {
+			primaryClient, err := clientSet.ClientForIndex(ctx, i)
+			if err != nil {
+				return ctrl.Result{}, fmt.Errorf("error getting client for current primary Pod index %d: %v", i, err)
+			}
+			if err := topology.ConfigurePrimary(
+				ctx,
+				primaryClient,
+			); err != nil {
+				return ctrl.Result{}, fmt.Errorf("error configuring primary replica: %v", err)
+			}
+		} else {
+			replicaClient, err := clientSet.ClientForIndex(ctx, i)
+			if err != nil {
+				// During failover, operator might not be able to connect, therefore blocking the reconciliation here.
+				// Leave the reset for the next reconciliation.
+				logger.V(1).Info("error getting client for current Pod index", "err", "pod-index", i)
+				continue
+			}
+			if err := replicaClient.StopSlave(
+				ctx,
+				sql.WithConnectionName(replication.MultiClusterReplicaConnectionName),
+			); err != nil && !sql.IsConnectionNotExists(err) {
+				return ctrl.Result{}, fmt.Errorf("error stopping replica slave: %v", err)
+			}
+			if err := replicaClient.ResetSlave(
+				ctx,
+				sql.WithConnectionName(replication.MultiClusterReplicaConnectionName),
+			); err != nil && !sql.IsConnectionNotExists(err) {
+				return ctrl.Result{}, fmt.Errorf("error resetting replica slave: %v", err)
+			}
+		}
 	}
-	if err := topology.ConfigurePrimary(ctx, newPrimaryClient); err != nil {
-		return fmt.Errorf("error configuring new primary at Pod index %d: %v", newPrimary, err)
+	logger.Info("Galera primary replica configured", "pod-index", currentPrimaryPodIndex)
+	r.recorder.Eventf(mariadb, nil, corev1.EventTypeNormal, mariadbv1alpha1.ReasonMultiClusterConfigured, mariadbv1alpha1.ActionReconciling,
+		"Galera primary replica configured on Pod %d", currentPrimaryPodIndex)
+	// Requeue to update status
+	return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+}
+
+func shouldReconcileMultiCluster(mariadb *mariadbv1alpha1.MariaDB, logger logr.Logger) bool {
+	if !mariadb.IsMultiClusterReplica() || !mariadb.HasGaleraConfiguredCondition() || mariadb.HasGaleraNotReadyCondition() {
+		return false
 	}
-	return nil
+	if mariadb.Status.CurrentPrimary != nil && mariadb.Status.Replication != nil {
+		role, ok := mariadb.Status.Replication.Roles[*mariadb.Status.CurrentPrimary]
+		if !ok {
+			logger.V(1).Info("Primary replica role not found. Reconciling Galera multi-cluster...")
+			return true
+		}
+		if role != mariadbv1alpha1.ReplicationRolePrimaryReplica {
+			logger.V(1).Info("Unexpected role in primary replica. Reconciling Galera multi-cluster", "role", role)
+			return true
+		}
+	}
+	return false
+}
+
+func multiClusterPodIndexes(mariadb *mariadbv1alpha1.MariaDB) ([]int, error) {
+	if mariadb.Status.CurrentPrimaryPodIndex == nil {
+		return nil, errors.New("'status.currentPrimaryPodIndex' must be set")
+	}
+	podIndexes := []int{
+		*mariadb.Status.CurrentPrimaryPodIndex,
+	}
+	for i := 0; i < int(mariadb.Spec.Replicas); i++ {
+		if i != *mariadb.Status.CurrentPrimaryPodIndex {
+			podIndexes = append(podIndexes, i)
+		}
+	}
+	return podIndexes, nil
 }
 
 func (r *GaleraReconciler) patchStatus(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
