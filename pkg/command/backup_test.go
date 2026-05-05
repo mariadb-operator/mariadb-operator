@@ -1024,8 +1024,18 @@ func TestMariadbBackupRestore(t *testing.T) {
 				}
 				script := cmd.Args[0] // NewBashCommand puts the whole script here
 				if tt.wantCleanup {
-					assert.Contains(t, script, "rm -rf /var/lib/mysql/*")
+					// The cleanup must remove dotfiles too — `rm -rf /var/lib/mysql/*`
+					// would skip them because shell glob `*` doesn't match dotfiles by
+					// default, so files like /var/lib/mysql/.config/db.opt would survive
+					// and break `mariadb-backup --copy-back` on retry with EEXIST.
+					// See pkg/command/backup.go::cleanupDataDirCmd for the field-incident
+					// rationale.
+					assert.Contains(t, script, "find /var/lib/mysql -mindepth 1 -maxdepth 1 -exec rm -rf {} +",
+						"cleanup must use find -delete (or equivalent) to also remove dotfiles like .config/")
+					assert.NotContains(t, script, "rm -rf /var/lib/mysql/*",
+						"shell glob cleanup misses dotfiles; do not regress to it")
 				} else {
+					assert.NotContains(t, script, "find /var/lib/mysql -mindepth 1")
 					assert.NotContains(t, script, "rm -rf /var/lib/mysql/*")
 				}
 			}

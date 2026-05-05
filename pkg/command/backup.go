@@ -437,9 +437,21 @@ func (b *BackupCommand) MariadbBackupRestore(mariadb *mariadbv1alpha1.MariaDB, d
 	}
 
 	// Replicas being recovered will have a data directory in error state, needs to be cleaned up before restoring.
-	cleanupDataDirCmd := `if [ -d /var/lib/mysql ]; then 
+	// Use `find -mindepth 1 -delete` instead of `rm -rf /var/lib/mysql/*` because the
+	// shell glob `*` does not match dotfiles by default. Without this, hidden
+	// entries like `/var/lib/mysql/.config/db.opt` (created by mariadb-backup
+	// --copy-back) survive the cleanup. On the first attempt that's harmless
+	// (destination is empty, copy-back creates `.config/`). On any subsequent
+	// container restart (OnFailure restartPolicy / backoffLimit retries — for any
+	// reason: liveness flap, crashed pod, etc.) the dotfile persists, the next
+	// `mariadb-backup --copy-back` fails with errno 17 "File exists" trying to
+	// recreate `.config/db.opt`, the script exits non-zero, container restarts,
+	// repeat until `backoffLimit` is exceeded and the recovery wedges.
+	// Field incident: moodle-medicine-stg2-db pb-init Job hit this loop on every
+	// retry; manual `rm -rf /var/lib/mysql/.config` between retries unblocked it.
+	cleanupDataDirCmd := `if [ -d /var/lib/mysql ]; then
 	echo "💾 Cleaning up data directory";
-	rm -rf /var/lib/mysql/*;
+	find /var/lib/mysql -mindepth 1 -maxdepth 1 -exec rm -rf {} +;
 fi`
 	// The ext4 filesystem creates a lost+found directory by default, which causes mariadb-backup to fail with:
 	// "Original data directory /var/lib/mysql is not empty!"
