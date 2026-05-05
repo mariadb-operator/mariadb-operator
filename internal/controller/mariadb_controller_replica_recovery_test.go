@@ -132,7 +132,14 @@ var _ = Describe("isRecoverableError", func() {
 // still reports any replication error.
 var _ = Describe("getReplicasToRecover", func() {
 	logger := logr.Discard()
-	freshError := metav1.Now()
+	// freshError must be evaluated at test-execution time, not at package init or
+	// Describe-discovery time.  The integration suite runs ginkgo Describe specs
+	// many minutes after their bodies are evaluated (envtest setup is slow), so a
+	// metav1.Now() captured up here would already be older than the default 5m
+	// errorDurationThreshold by the time the spec runs — and isRecoverableError
+	// would (correctly) classify it as recoverable, breaking the
+	// "fresh errors when not recovering" expectation.
+	freshError := func() metav1.Time { return metav1.Now() }
 	emptyMdb := &mariadbv1alpha1.MariaDB{}
 	recoveringMdb := func() *mariadbv1alpha1.MariaDB {
 		mdb := &mariadbv1alpha1.MariaDB{}
@@ -185,7 +192,7 @@ var _ = Describe("getReplicasToRecover", func() {
 				ReplicaStatusVars: mariadbv1alpha1.ReplicaStatusVars{
 					LastSQLErrno: ptr.To(1032),
 				},
-				LastErrorTransitionTime: freshError,
+				LastErrorTransitionTime: freshError(),
 			},
 		})
 		Expect(getReplicasToRecover(mdb, logger)).To(BeEmpty())
@@ -197,7 +204,7 @@ var _ = Describe("getReplicasToRecover", func() {
 				ReplicaStatusVars: mariadbv1alpha1.ReplicaStatusVars{
 					LastSQLErrno: ptr.To(1032),
 				},
-				LastErrorTransitionTime: freshError,
+				LastErrorTransitionTime: freshError(),
 			},
 		})
 		Expect(getReplicasToRecover(mdb, logger)).To(ConsistOf("r0"))
@@ -209,7 +216,7 @@ var _ = Describe("getReplicasToRecover", func() {
 				ReplicaStatusVars: mariadbv1alpha1.ReplicaStatusVars{
 					LastIOErrno: ptr.To(1045),
 				},
-				LastErrorTransitionTime: freshError,
+				LastErrorTransitionTime: freshError(),
 			},
 		})
 		Expect(getReplicasToRecover(mdb, logger)).To(ConsistOf("r0"))
@@ -229,9 +236,9 @@ var _ = Describe("getReplicasToRecover", func() {
 
 	It("returns replicas in deterministic sorted order", func() {
 		mdb := withReplicas(recoveringMdb(), map[string]mariadbv1alpha1.ReplicaStatus{
-			"r2": {ReplicaStatusVars: mariadbv1alpha1.ReplicaStatusVars{LastIOErrno: ptr.To(1045)}, LastErrorTransitionTime: freshError},
-			"r0": {ReplicaStatusVars: mariadbv1alpha1.ReplicaStatusVars{LastIOErrno: ptr.To(1045)}, LastErrorTransitionTime: freshError},
-			"r1": {ReplicaStatusVars: mariadbv1alpha1.ReplicaStatusVars{LastIOErrno: ptr.To(1045)}, LastErrorTransitionTime: freshError},
+			"r2": {ReplicaStatusVars: mariadbv1alpha1.ReplicaStatusVars{LastIOErrno: ptr.To(1045)}, LastErrorTransitionTime: freshError()},
+			"r0": {ReplicaStatusVars: mariadbv1alpha1.ReplicaStatusVars{LastIOErrno: ptr.To(1045)}, LastErrorTransitionTime: freshError()},
+			"r1": {ReplicaStatusVars: mariadbv1alpha1.ReplicaStatusVars{LastIOErrno: ptr.To(1045)}, LastErrorTransitionTime: freshError()},
 		})
 		Expect(getReplicasToRecover(mdb, logger)).To(Equal([]string{"r0", "r1", "r2"}))
 	})
