@@ -1033,6 +1033,12 @@ func (m *MariaDB) IsHAEnabled() bool {
 	return m.IsReplicationEnabled() || m.IsGaleraEnabled()
 }
 
+// HasPendingHATopologyConfiguration indicates that an HA topology has been enabled, but not yet configured
+func (m *MariaDB) HasPendingHATopologyConfiguration() bool {
+	return (m.IsReplicationEnabled() && !m.HasConfiguredReplication()) ||
+		(m.IsGaleraEnabled() && !m.HasGaleraConfiguredCondition())
+}
+
 // IsMaxScaleEnabled indicates that a MaxScale instance is forwarding traffic to this MariaDB instance
 func (m *MariaDB) IsMaxScaleEnabled() bool {
 	return m.Spec.MaxScaleRef != nil
