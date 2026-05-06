@@ -838,7 +838,7 @@ func applyMariadbSmallTestConfig(mdb *mariadbv1alpha1.MariaDB) *mariadbv1alpha1.
 			"memory": resource.MustParse("128Mi"),
 		},
 		Limits: corev1.ResourceList{
-			"memory": resource.MustParse("256Mi"),
+			"memory": resource.MustParse("128Mi"),
 		},
 	}
 	return mdb
