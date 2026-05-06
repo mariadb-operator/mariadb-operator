@@ -143,9 +143,9 @@ jobs:
         if: ${{ steps.test.outputs.type == 'basic' }}
         run: make test-int-basic
 
-      # - name: Run integration tests
-      #   if: ${{ steps.test.outputs.type == 'full' }}
-      #   run: make test-int
+      - name: Run integration tests
+        if: ${{ steps.test.outputs.type == 'full' }}
+        run: make test-int
 
       - name: Run multi-cluster integration tests
         if: ${{ steps.test.outputs.type == 'full' }}
