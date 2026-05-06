@@ -714,9 +714,7 @@ func (r *MaxScaleReconciler) reconcileAuth(ctx context.Context, req *requestMaxS
 	// - Performing writes in mysql.user and  mysql.maxscale_config  (related to auth and monitor respectively)
 	// before MariaDB is fully configured and restored.
 	// - Provision MaxScale in the middle of a point-in-time restoration.
-	if (mariadb.IsReplicationEnabled() && !mariadb.HasConfiguredReplication()) ||
-		(mariadb.IsGaleraEnabled() && !mariadb.HasGaleraConfiguredCondition()) ||
-		mariadb.HasPendingBinlogReplay() {
+	if mariadb.HasPendingHATopologyConfiguration() || mariadb.HasPendingBinlogReplay() {
 		logger.Info("Waiting for MariaDB to be fully configured and restored. Requeuing...")
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
