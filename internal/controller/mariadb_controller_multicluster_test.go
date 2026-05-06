@@ -535,14 +535,14 @@ var _ = Describe("MariaDB multi-cluster with Galera", Ordered, Label("multi-clus
 		)
 	})
 
-	AfterAll(func() {
-		deletePhysicalBackup(primaryKey, true)
-		deleteMariadb(primaryKey, true)
-		deleteExternalMariadb(primaryKey)
+	// AfterAll(func() {
+	// 	deletePhysicalBackup(primaryKey, true)
+	// 	deleteMariadb(primaryKey, true)
+	// 	deleteExternalMariadb(primaryKey)
 
-		deleteMariadb(replicaKey, true)
-		deleteExternalMariadb(replicaKey)
-	})
+	// 	deleteMariadb(replicaKey, true)
+	// 	deleteExternalMariadb(replicaKey)
+	// })
 
 	It("should reconcile primary cluster", testCreatePrimaryMariaDB)
 	It("should create a physical backup of primary cluster", testCreatePrimaryPhysicalBackup)
@@ -612,16 +612,16 @@ var _ = Describe("MariaDB multi-cluster with Galera and MaxScale", Ordered, Labe
 		)
 	})
 
-	AfterAll(func() {
-		deletePhysicalBackup(primaryKey, true)
-		deleteMariadb(primaryKey, true)
-		deleteMaxScale(primaryKey, true)
-		deleteExternalMariadb(primaryKey)
+	// AfterAll(func() {
+	// 	deletePhysicalBackup(primaryKey, true)
+	// 	deleteMariadb(primaryKey, true)
+	// 	deleteMaxScale(primaryKey, true)
+	// 	deleteExternalMariadb(primaryKey)
 
-		deleteMariadb(replicaKey, true)
-		deleteMaxScale(replicaKey, true)
-		deleteExternalMariadb(replicaKey)
-	})
+	// 	deleteMariadb(replicaKey, true)
+	// 	deleteMaxScale(replicaKey, true)
+	// 	deleteExternalMariadb(replicaKey)
+	// })
 
 	It("should reconcile primary cluster", testCreatePrimaryMariaDBMaxScale)
 	It("should create a physical backup of primary cluster", testCreatePrimaryPhysicalBackup)
