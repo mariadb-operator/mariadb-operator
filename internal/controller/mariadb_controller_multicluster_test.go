@@ -148,148 +148,13 @@ var _ = Describe("MariaDB multi-cluster with replication", Ordered, Label("multi
 		deleteExternalMariadb(replicaKey)
 	})
 
-	It("should reconcile primary cluster", func() {
-		By("Creating primary MariaDB")
-		Expect(k8sClient.Create(testCtx, primaryMdb)).To(Succeed())
-
-		By("Expecting primary MariaDB to be ready eventually")
-		expectMariadbFn(testCtx, k8sClient, primaryKey, func(mdb *mariadbv1alpha1.MariaDB) bool {
-			return mdb.IsReady()
-		})
-
-		By("Creating primary ExternalMariaDB")
-		Expect(k8sClient.Create(testCtx, primaryExternalMdb)).To(Succeed())
-
-		By("Expecting primary ExternalMariaDB to be ready eventually")
-		Eventually(func() bool {
-			if err := k8sClient.Get(testCtx, primaryKey, primaryExternalMdb); err != nil {
-				return false
-			}
-			return primaryExternalMdb.IsReady()
-		}, testTimeout, testInterval).Should(BeTrue())
-	})
-
-	It("should create a physical backup of primary cluster", func() {
-		By("Creating PhysicalBackup")
-		Expect(k8sClient.Create(testCtx, primaryBackup)).To(Succeed())
-
-		By("Expecting PhysicalBackup to complete eventually")
-		Eventually(func() bool {
-			if err := k8sClient.Get(testCtx, primaryKey, primaryBackup); err != nil {
-				return false
-			}
-			return primaryBackup.IsComplete()
-		}, testTimeout, testInterval).Should(BeTrue())
-	})
-
-	It("should create replica cluster from physical backup", func() {
-		By("Creating replica MariaDB")
-		Expect(k8sClient.Create(testCtx, replicaMdb)).To(Succeed())
-
-		By("Expecting MariaDB to be ready eventually")
-		expectMariadbFn(testCtx, k8sClient, replicaKey, func(mdb *mariadbv1alpha1.MariaDB) bool {
-			return mdb.IsReady()
-		})
-
-		By("Creating replica ExternalMariaDB")
-		Expect(k8sClient.Create(testCtx, replicaExternalMdb)).To(Succeed())
-
-		By("Expecting ExternalMariaDB to eventually be ready")
-		Eventually(func() bool {
-			if err := k8sClient.Get(testCtx, replicaKey, replicaExternalMdb); err != nil {
-				return false
-			}
-			return replicaExternalMdb.IsReady()
-		}, testTimeout, testInterval).Should(BeTrue())
-	})
-
-	It("should allow to perform writes in the primary", func() {
-		Expect(k8sClient.Get(testCtx, primaryKey, primaryMdb)).To(Succeed())
-		Expect(primaryMdb.Status.CurrentPrimaryPodIndex).NotTo(BeNil())
-		podIndex := *primaryMdb.Status.CurrentPrimaryPodIndex
-
-		// in addition to verify writes, this increases gtid_current_pos, to be validated in the next step.
-		By("Writing in primary MariaDB")
-		query := `CREATE DATABASE IF NOT EXISTS test;`
-		executeSqlInPodByIndex(primaryMdb, podIndex, query)
-		query = `CREATE TABLE IF NOT EXISTS test.test (id INT PRIMARY KEY AUTO_INCREMENT, test VARCHAR(100));`
-		executeSqlInPodByIndex(primaryMdb, podIndex, query)
-		query = `INSERT INTO test.test (test) VALUES ('test');`
-		executeSqlInPodByIndex(primaryMdb, podIndex, query)
-	})
-
+	It("should reconcile primary cluster", testCreatePrimaryMariaDB)
+	It("should create a physical backup of primary cluster", testCreatePrimaryPhysicalBackup)
+	It("should create replica cluster from physical backup", testCreateReplicaMariaDB)
+	It("should allow to perform writes in the primary", testWritePrimaryMariaDB)
 	It("should have valid replication status", testReplicationStatus)
-
-	It("should perform switchover in primary cluster", func() {
-		Expect(k8sClient.Get(testCtx, primaryKey, primaryMdb)).To(Succeed())
-		Expect(primaryMdb.Status.CurrentPrimaryPodIndex).NotTo(BeNil())
-		currentPrimaryPodIndex := primaryMdb.Status.CurrentPrimaryPodIndex
-		var newPrimaryPodIndex *int
-		for i := 0; i < int(primaryMdb.Spec.Replicas); i++ {
-			if i != *currentPrimaryPodIndex {
-				newPrimaryPodIndex = &i
-				break
-			}
-		}
-
-		By("Triggering switchover in primary MariaDB")
-		Eventually(func() bool {
-			if err := k8sClient.Get(testCtx, primaryKey, primaryMdb); err != nil {
-				return false
-			}
-			primaryMdb.Spec.Replication.Primary.PodIndex = newPrimaryPodIndex
-			return k8sClient.Update(testCtx, primaryMdb) == nil
-		}, testTimeout, testInterval).Should(BeTrue())
-
-		By("Expecting primary MariaDB to be switched over eventually")
-		expectMariadbFn(testCtx, k8sClient, primaryKey, func(mdb *mariadbv1alpha1.MariaDB) bool {
-			if mdb.Status.CurrentPrimaryPodIndex == nil {
-				return false
-			}
-			return mdb.IsReady() && *mdb.Status.CurrentPrimaryPodIndex != *currentPrimaryPodIndex
-		})
-
-		By("Expecting replica MariaDB to be ready")
-		expectMariadbFn(testCtx, k8sClient, replicaKey, func(mdb *mariadbv1alpha1.MariaDB) bool {
-			return mdb.IsReady()
-		})
-	})
-
-	It("should perform switchover in replica cluster", func() {
-		Expect(k8sClient.Get(testCtx, replicaKey, replicaMdb)).To(Succeed())
-		Expect(replicaMdb.Status.CurrentPrimaryPodIndex).NotTo(BeNil())
-		currentPrimaryPodIndex := replicaMdb.Status.CurrentPrimaryPodIndex
-		var newPrimaryPodIndex *int
-		for i := 0; i < int(replicaMdb.Spec.Replicas); i++ {
-			if i != *currentPrimaryPodIndex {
-				newPrimaryPodIndex = &i
-				break
-			}
-		}
-
-		By("Triggering switchover in replica MariaDB")
-		Eventually(func() bool {
-			if err := k8sClient.Get(testCtx, replicaKey, replicaMdb); err != nil {
-				return false
-			}
-			replicaMdb.Spec.Replication.Primary.PodIndex = newPrimaryPodIndex
-			return k8sClient.Update(testCtx, replicaMdb) == nil
-		}, testTimeout, testInterval).Should(BeTrue())
-
-		By("Expecting replica MariaDB to be switched over eventually")
-		expectMariadbFn(testCtx, k8sClient, replicaKey, func(mdb *mariadbv1alpha1.MariaDB) bool {
-			if mdb.Status.CurrentPrimaryPodIndex == nil {
-				return false
-			}
-			return mdb.IsReady() && *mdb.Status.CurrentPrimaryPodIndex != *currentPrimaryPodIndex
-		})
-
-		By("Expecting primary MariaDB to be ready")
-		expectMariadbFn(testCtx, k8sClient, primaryKey, func(mdb *mariadbv1alpha1.MariaDB) bool {
-			return mdb.IsReady()
-		})
-	})
-
+	It("should perform switchover in primary cluster", testSwitchoverPrimaryMariaDBBuilder(updateReplicationPrimary))
+	It("should perform switchover in replica cluster", testSwitchoverReplicaMariaDBBuilder(updateReplicationPrimary))
 	It("should have valid replication status after switchover", testReplicationStatus)
 })
 
@@ -354,131 +219,18 @@ var _ = Describe("MariaDB multi-cluster with replication and MaxScale", Ordered,
 	AfterAll(func() {
 		deletePhysicalBackup(primaryKey, true)
 		deleteMariadb(primaryKey, true)
-		deleteMaxScale(primaryKey, true)
+		deleteMaxScale(primaryMaxScaleKey, true)
 		deleteExternalMariadb(primaryKey)
 
 		deleteMariadb(replicaKey, true)
-		deleteMaxScale(replicaKey, true)
+		deleteMaxScale(replicaMaxScaleKey, true)
 		deleteExternalMariadb(replicaKey)
 	})
 
-	It("should reconcile primary cluster", func() {
-		By("Creating primary MariaDB")
-		Expect(k8sClient.Create(testCtx, primaryMdb)).To(Succeed())
-		By("Creating primary MaxScale")
-		Expect(k8sClient.Create(testCtx, primaryMaxScale)).To(Succeed())
-
-		By("Expecting primary MariaDB to be ready eventually")
-		expectMariadbFn(testCtx, k8sClient, primaryKey, func(mdb *mariadbv1alpha1.MariaDB) bool {
-			return mdb.IsReady()
-		})
-		By("Expecting primary MaxScale to be ready eventually")
-		Eventually(func() bool {
-			if err := k8sClient.Get(testCtx, primaryMaxScaleKey, primaryMaxScale); err != nil {
-				return false
-			}
-			return primaryMaxScale.IsReady()
-		}, testTimeout, testInterval).Should(BeTrue())
-
-		By("Creating primary ExternalMariaDB")
-		Expect(k8sClient.Create(testCtx, primaryExternalMdb)).To(Succeed())
-
-		By("Expecting primary ExternalMariaDB to be ready eventually")
-		Eventually(func() bool {
-			if err := k8sClient.Get(testCtx, primaryKey, primaryExternalMdb); err != nil {
-				return false
-			}
-			return primaryExternalMdb.IsReady()
-		}, testTimeout, testInterval).Should(BeTrue())
-	})
-
-	It("should create a physical backup of primary cluster", func() {
-		By("Creating PhysicalBackup")
-		Expect(k8sClient.Create(testCtx, primaryBackup)).To(Succeed())
-
-		By("Expecting PhysicalBackup to complete eventually")
-		Eventually(func() bool {
-			if err := k8sClient.Get(testCtx, primaryKey, primaryBackup); err != nil {
-				return false
-			}
-			return primaryBackup.IsComplete()
-		}, testTimeout, testInterval).Should(BeTrue())
-	})
-
-	It("should create replica cluster from physical backup", func() {
-		By("Creating replica MariaDB")
-		Expect(k8sClient.Create(testCtx, replicaMdb)).To(Succeed())
-		By("Creating replica MaxScale")
-		Expect(k8sClient.Create(testCtx, replicaMaxScale)).To(Succeed())
-
-		By("Expecting replica MariaDB to be ready eventually")
-		expectMariadbFn(testCtx, k8sClient, replicaKey, func(mdb *mariadbv1alpha1.MariaDB) bool {
-			return mdb.IsReady()
-		})
-		By("Expecting replica MaxScale to be ready eventually")
-		Eventually(func() bool {
-			if err := k8sClient.Get(testCtx, replicaMaxScaleKey, replicaMaxScale); err != nil {
-				return false
-			}
-			return replicaMaxScale.IsReady()
-		}, testTimeout, testInterval).Should(BeTrue())
-
-		By("Creating replica ExternalMariaDB")
-		Expect(k8sClient.Create(testCtx, replicaExternalMdb)).To(Succeed())
-
-		By("Expecting ExternalMariaDB to eventually be ready")
-		Eventually(func() bool {
-			if err := k8sClient.Get(testCtx, replicaKey, replicaExternalMdb); err != nil {
-				return false
-			}
-			return replicaExternalMdb.IsReady()
-		}, testTimeout, testInterval).Should(BeTrue())
-	})
-
-	It("should allow to perform writes in the primary", func() {
-		By("Expecting primary MaxScale to be ready eventually")
-		Eventually(func() bool {
-			if err := k8sClient.Get(testCtx, primaryMaxScaleKey, primaryMaxScale); err != nil {
-				return false
-			}
-			return primaryMaxScale.IsReady()
-		}, testTimeout, testInterval).Should(BeTrue())
-
-		caCert, err := testRefResolver.SecretKeyRef(
-			testCtx,
-			mariadbv1alpha1.SecretKeySelector{
-				LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
-					Name: "mariadb-server-ca",
-				},
-				Key: "ca.crt",
-			},
-			testNamespace,
-		)
-		Expect(err).ToNot(HaveOccurred())
-
-		client, err := sql.NewClient(
-			sql.WithHost(statefulset.ServiceFQDN(metav1.ObjectMeta{
-				Name:      primaryMaxScaleKey.Name,
-				Namespace: primaryMaxScaleKey.Namespace,
-			})),
-			sql.WithPort(3306),
-			sql.WithUsername("root"),
-			sql.WithPassword("MariaDB11!"),
-			sql.WithCustomTLSCA("mariadb-server-ca", []byte(caCert)),
-		)
-		Expect(err).ToNot(HaveOccurred())
-		defer client.Close()
-
-		// in addition to verify writes, this increases gtid_current_pos, to be validated in the next step.
-		By("Writing in primary MaxScale")
-		query := `CREATE DATABASE IF NOT EXISTS test;`
-		Expect(client.Exec(testCtx, query)).To(Succeed())
-		query = `CREATE TABLE IF NOT EXISTS test.test (id INT PRIMARY KEY AUTO_INCREMENT, test VARCHAR(100));`
-		Expect(client.Exec(testCtx, query)).To(Succeed())
-		query = `INSERT INTO test.test (test) VALUES ('test');`
-		Expect(client.Exec(testCtx, query)).To(Succeed())
-	})
-
+	It("should reconcile primary cluster", testCreatePrimaryMariaDBMaxScale)
+	It("should create a physical backup of primary cluster", testCreatePrimaryPhysicalBackup)
+	It("should create replica cluster from physical backup", testCreateReplicaMariaDBMaxScale)
+	It("should allow to perform writes in the primary", testWritePrimaryMaxScale)
 	It("should have valid replication status", testReplicationStatus)
 })
 
@@ -615,11 +367,11 @@ var _ = Describe("MariaDB multi-cluster with Galera and MaxScale", Ordered, Labe
 	AfterAll(func() {
 		deletePhysicalBackup(primaryKey, true)
 		deleteMariadb(primaryKey, true)
-		deleteMaxScale(primaryKey, true)
+		deleteMaxScale(primaryMaxScaleKey, true)
 		deleteExternalMariadb(primaryKey)
 
 		deleteMariadb(replicaKey, true)
-		deleteMaxScale(replicaKey, true)
+		deleteMaxScale(replicaMaxScaleKey, true)
 		deleteExternalMariadb(replicaKey)
 	})
 
@@ -805,6 +557,10 @@ func testWritePrimaryMaxScale() {
 }
 
 type updatePrimaryFn func(mdb *mariadbv1alpha1.MariaDB, podIndex *int)
+
+func updateReplicationPrimary(mdb *mariadbv1alpha1.MariaDB, podIndex *int) {
+	mdb.Spec.Replication.Primary.PodIndex = podIndex
+}
 
 func updateGaleraPrimary(mdb *mariadbv1alpha1.MariaDB, podIndex *int) {
 	mdb.Spec.Galera.Primary.PodIndex = podIndex
