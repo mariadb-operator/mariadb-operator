@@ -482,7 +482,7 @@ var _ = Describe("MariaDB multi-cluster with replication and MaxScale", Ordered,
 	It("should have valid replication status", testReplicationStatus)
 })
 
-var _ = Describe("MariaDB multi-cluster with Galera", Ordered, Label("multi-cluster"), Focus, func() {
+var _ = Describe("MariaDB multi-cluster with Galera", Ordered, Label("multi-cluster"), func() {
 	BeforeAll(func() {
 		primaryBackup = buildPhysicalBackupWithS3Storage(
 			primaryKey,
@@ -554,7 +554,7 @@ var _ = Describe("MariaDB multi-cluster with Galera", Ordered, Label("multi-clus
 	It("should have valid replication status after switchover", testGaleraReplicationStatus)
 })
 
-var _ = Describe("MariaDB multi-cluster with Galera and MaxScale", Ordered, Label("multi-cluster"), Focus, func() {
+var _ = Describe("MariaDB multi-cluster with Galera and MaxScale", Ordered, Label("multi-cluster"), func() {
 	BeforeAll(func() {
 		primaryBackup = buildPhysicalBackupWithS3Storage(
 			primaryKey,
