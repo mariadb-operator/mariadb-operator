@@ -229,12 +229,22 @@ func (r *ReplicationReconciler) ReconcileReplicationInPod(ctx context.Context, r
 	for _, setOpt := range reconcilePodOpts {
 		setOpt(&opts)
 	}
+	pod := statefulset.PodName(req.mariadb.ObjectMeta, podIndex)
+	topology := r.topologyManager.TopologyForMariaDB(req.mariadb, logger.WithValues("pod", pod))
+
+	isSwitchingPrimary, err := topology.IsSwitchingPrimary(ctx)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error determining whether primary is being switched: %v", err)
+	}
+	if isSwitchingPrimary {
+		// logger.V(1).Info("primary switchover/failover ongoing. Skiping replication reconsiliation...", "pod", pod)
+		logger.Info("primary switchover/failover ongoing. Skiping replication reconsiliation...", "pod", pod)
+		return ctrl.Result{}, nil
+	}
 
 	primaryPodIndex := *req.mariadb.Status.CurrentPrimaryPodIndex
 	replStatus := ptr.Deref(req.mariadb.Status.Replication, mariadbv1alpha1.ReplicationStatus{})
 	replRoles := replStatus.Roles
-	pod := statefulset.PodName(req.mariadb.ObjectMeta, podIndex)
-	topology := r.topologyManager.TopologyForMariaDB(req.mariadb, logger.WithValues("pod", pod))
 
 	if primaryPodIndex == podIndex {
 		if shouldSkipPrimaryReconciliation(req.mariadb, replRoles, pod, logger) {
