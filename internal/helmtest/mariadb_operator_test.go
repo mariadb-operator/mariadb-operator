@@ -478,8 +478,8 @@ func TestOperatorHelmStrategy(t *testing.T) {
 	RegisterTestingT(t)
 	opts := &helm.Options{
 		SetValues: map[string]string{
-			"strategy.type": "RollingUpdate",
-			"strategy.rollingUpdate.maxSurge": "1",
+			"strategy.type":                         "RollingUpdate",
+			"strategy.rollingUpdate.maxSurge":       "1",
 			"strategy.rollingUpdate.maxUnavailable": "0",
 		},
 		KubectlOptions: &k8s.KubectlOptions{
@@ -544,7 +544,7 @@ func TestWebhookHelmStrategy(t *testing.T) {
 	RegisterTestingT(t)
 	opts := &helm.Options{
 		SetValues: map[string]string{
-			"webhook.enabled": `true`,
+			"webhook.enabled":       `true`,
 			"webhook.strategy.type": "Recreate",
 		},
 		KubectlOptions: &k8s.KubectlOptions{
@@ -606,9 +606,9 @@ func TestCertControllerHelmStrategy(t *testing.T) {
 	RegisterTestingT(t)
 	opts := &helm.Options{
 		SetValues: map[string]string{
-			"certController.enabled": `true`,
-			"certController.strategy.type": "RollingUpdate",
-			"certController.strategy.rollingUpdate.maxSurge": "25%",
+			"certController.enabled":                               `true`,
+			"certController.strategy.type":                         "RollingUpdate",
+			"certController.strategy.rollingUpdate.maxSurge":       "25%",
 			"certController.strategy.rollingUpdate.maxUnavailable": "25%",
 		},
 		KubectlOptions: &k8s.KubectlOptions{
