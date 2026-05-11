@@ -53,9 +53,6 @@ var (
 		Enabled: true,
 		MultiClusterSpec: mariadbv1alpha1.MultiClusterSpec{
 			Primary: primaryKey.Name,
-			Replicas: []string{
-				replicaKey.Name,
-			},
 			Members: []mariadbv1alpha1.MultiClusterMember{
 				{
 					Name: primaryKey.Name,
