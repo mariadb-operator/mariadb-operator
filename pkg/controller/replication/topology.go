@@ -344,18 +344,13 @@ func (m *multiClusterTopology) configurePrimaryReplica(ctx context.Context, clie
 	if err := m.userSqlReconciler.reconcileReplUserSql(ctx, client); err != nil {
 		return fmt.Errorf("error reconciling replication user SQL: %v", err)
 	}
-
-	if err := m.changeMasterInPrimaryReplica(ctx, client); err != nil {
+	if err := m.configurePrimaryReplicaConnection(ctx, client); err != nil {
 		return fmt.Errorf("error changing master in primary replica: %v", err)
-	}
-	// start remote replica
-	if err := client.StartSlave(ctx, sql.WithConnectionName(MultiClusterReplicaConnectionName)); err != nil {
-		return fmt.Errorf("error starting primary replica slave: %v", err)
 	}
 	return nil
 }
 
-func (m *multiClusterTopology) changeMasterInPrimaryReplica(ctx context.Context, client *sql.Client) error {
+func (m *multiClusterTopology) configurePrimaryReplicaConnection(ctx context.Context, client *sql.Client) error {
 	member := m.mariadb.GetMultiClusterPrimary()
 	if member == nil {
 		return errors.New("unable to find multi-cluster primary member")
@@ -396,6 +391,9 @@ func (m *multiClusterTopology) changeMasterInPrimaryReplica(ctx context.Context,
 	}
 	if err := client.ChangeMaster(ctx, opts...); err != nil {
 		return fmt.Errorf("error executing CHANGE MASTER in primary replica: %v", err)
+	}
+	if err := client.StartSlave(ctx, sql.WithConnectionName(MultiClusterReplicaConnectionName)); err != nil {
+		return fmt.Errorf("error starting primary replica slave: %v", err)
 	}
 	return nil
 }
