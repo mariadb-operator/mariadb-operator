@@ -55,8 +55,6 @@ spec:
   multiCluster:
     enabled: true
     primary: mariadb-eu-south
-    replicas:
-      - mariadb-eu-central
     members:
       - name: mariadb-eu-south
         externalMariaDbRef:

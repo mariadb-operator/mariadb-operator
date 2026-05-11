@@ -3515,13 +3515,6 @@ spec:
                     description: Primary is the name of the primary cluster. It refers
                       to a member in the 'members' field, containing its full specification.
                     type: string
-                  replicas:
-                    description: Replicas is the name of all replica clusters. They
-                      refer to a member in the 'members' field, containing its full
-                      specification.
-                    items:
-                      type: string
-                    type: array
                 type: object
               myCnf:
                 description: |-
