@@ -21,10 +21,6 @@ type MultiClusterSpec struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
 	Primary string `json:"primary,omitempty"`
-	// Replicas is the name of all replica clusters. They refer to a member in the 'members' field, containing its full specification.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	Replicas []string `json:"replicas,omitempty"`
 	// Members is the specification of each member of the multi-cluster topology.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
