@@ -873,6 +873,10 @@ type MariaDBStatus struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	CurrentPrimaryFailingSince *metav1.Time `json:"currentPrimaryFailingSince,omitempty"`
+	// CurrentMultiClusterPrimary is the current primary cluster name when using the multi-cluster topology.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	CurrentMultiClusterPrimary *string `json:"currentMultiClusterPrimary,omitempty"`
 	// ScaleOutInitialIndex is the initial index where the scale out operation started.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
