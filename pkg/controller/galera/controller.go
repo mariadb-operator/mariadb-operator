@@ -2,7 +2,6 @@ package galera
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
@@ -200,9 +199,9 @@ func (r *GaleraReconciler) reconcileMultiCluster(ctx context.Context, mariadb *m
 	clientSet := sql.NewClientSet(mariadb, r.refResolver)
 	defer clientSet.Close()
 
-	podIndexes, err := multiClusterPodIndexes(mariadb)
+	podIndexes, err := mariadb.OrderedPodIndexes()
 	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("error getting multi-cluster Pod indexes: %v", err)
+		return ctrl.Result{}, fmt.Errorf("error getting ordered Pod indexes: %v", err)
 	}
 	currentPrimaryPodIndex := *mariadb.Status.CurrentPrimaryPodIndex
 	logger.Info("Configuring Galera primary replica", "pod-index", currentPrimaryPodIndex)
@@ -267,21 +266,6 @@ func shouldReconcileMultiCluster(mariadb *mariadbv1alpha1.MariaDB, logger logr.L
 		}
 	}
 	return false
-}
-
-func multiClusterPodIndexes(mariadb *mariadbv1alpha1.MariaDB) ([]int, error) {
-	if mariadb.Status.CurrentPrimaryPodIndex == nil {
-		return nil, errors.New("'status.currentPrimaryPodIndex' must be set")
-	}
-	podIndexes := []int{
-		*mariadb.Status.CurrentPrimaryPodIndex,
-	}
-	for i := 0; i < int(mariadb.Spec.Replicas); i++ {
-		if i != *mariadb.Status.CurrentPrimaryPodIndex {
-			podIndexes = append(podIndexes, i)
-		}
-	}
-	return podIndexes, nil
 }
 
 func (r *GaleraReconciler) patchStatus(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
