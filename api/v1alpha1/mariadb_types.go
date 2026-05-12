@@ -1398,6 +1398,23 @@ func (m *MariaDB) GetDataPlaneAgent() (*Topology, *Agent, error) {
 	return nil, nil, errors.New("agent could not be found")
 }
 
+// OrderedPodIndexes returns the MariaDB Pod indexes in order,
+// starting with the primary and following by the replicas in index ascending order.
+func (m *MariaDB) OrderedPodIndexes() ([]int, error) {
+	if m.Status.CurrentPrimaryPodIndex == nil {
+		return nil, errors.New("'status.currentPrimaryPodIndex' must be set")
+	}
+	podIndexes := []int{
+		*m.Status.CurrentPrimaryPodIndex,
+	}
+	for i := 0; i < int(m.Spec.Replicas); i++ {
+		if i != *m.Status.CurrentPrimaryPodIndex {
+			podIndexes = append(podIndexes, i)
+		}
+	}
+	return podIndexes, nil
+}
+
 // +kubebuilder:object:root=true
 
 // MariaDBList contains a list of MariaDB

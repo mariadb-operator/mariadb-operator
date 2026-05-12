@@ -823,6 +823,27 @@ func (c *Client) GtidBinlogPos(ctx context.Context) (string, error) {
 	return c.SystemVariable(ctx, "gtid_binlog_pos")
 }
 
+func (c *Client) GtidBinlogState(ctx context.Context) (string, error) {
+	return c.SystemVariable(ctx, "gtid_binlog_state")
+}
+
+func (c *Client) SetBinlogState(ctx context.Context, binlogState string) error {
+	if binlogState == "" {
+		return errors.New("gtid_binlog_state must not be empty")
+	}
+	return c.Exec(ctx, fmt.Sprintf("SET @@global.gtid_binlog_state='%s';", binlogState))
+}
+
+func (c *Client) ResetBinlogState(ctx context.Context, binlogState string) error {
+	if err := c.ResetMaster(ctx); err != nil {
+		return fmt.Errorf("error resetting master: %v", err)
+	}
+	if err := c.SetBinlogState(ctx, binlogState); err != nil {
+		return fmt.Errorf("error setting gtid_binlog_state: %v", err)
+	}
+	return nil
+}
+
 func (c *Client) GtidCurrentPos(ctx context.Context) (string, error) {
 	return c.SystemVariable(ctx, "gtid_current_pos")
 }
