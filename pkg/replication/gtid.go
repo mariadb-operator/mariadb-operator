@@ -193,3 +193,90 @@ func ParseRawGtidInMetaFile(fileBytes []byte) (string, error) {
 	}
 	return parts[2], nil
 }
+
+func ParseAllGtids(rawGtid string) ([]Gtid, error) {
+	if rawGtid == "" {
+		return nil, errors.New("input raw GTID must be set")
+	}
+	if !strings.Contains(rawGtid, ",") {
+		gtid, err := ParseGtid(rawGtid)
+		if err != nil {
+			return nil, fmt.Errorf("error parsing GTID %s: %v", rawGtid, err)
+		}
+		return []Gtid{*gtid}, nil
+	}
+	var gtids []Gtid
+
+	for rawPart := range strings.SplitSeq(rawGtid, ",") {
+		part := strings.TrimSpace(rawPart)
+		if part == "" {
+			continue
+		}
+		gtid, err := ParseGtid(part)
+		if err != nil {
+			return nil, fmt.Errorf("error parsing GTID %s: %v", part, err)
+		}
+		gtids = append(gtids, *gtid)
+	}
+	return gtids, nil
+}
+
+func FilterByDomain(gtids []Gtid, keepDomains ...uint32) []Gtid {
+	var filtered []Gtid
+	keepMap := make(map[uint32]bool)
+	for _, d := range keepDomains {
+		keepMap[d] = true
+	}
+
+	for _, g := range gtids {
+		if keepMap[g.DomainID] {
+			filtered = append(filtered, g)
+		}
+	}
+	return filtered
+}
+
+func ExcludeByDomain(gtids []Gtid, dropDomains ...uint32) []Gtid {
+	var filtered []Gtid
+	dropMap := make(map[uint32]bool)
+	for _, d := range dropDomains {
+		dropMap[d] = true
+	}
+
+	for _, g := range gtids {
+		if !dropMap[g.DomainID] {
+			filtered = append(filtered, g)
+		}
+	}
+	return filtered
+}
+
+func GtidsToString(gtids []Gtid) string {
+	if len(gtids) == 0 {
+		return ""
+	}
+	gtidStrings := make([]string, len(gtids))
+	for i, g := range gtids {
+		gtidStrings[i] = g.String()
+	}
+	return strings.Join(gtidStrings, ",")
+}
+
+func GtidsEqual(a, b []Gtid) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	seen := make(map[string]int)
+	for _, g := range a {
+		seen[g.String()]++
+	}
+	for _, g := range b {
+		key := g.String()
+		count, exists := seen[key]
+		if !exists || count == 0 {
+			return false
+		}
+		seen[key]--
+	}
+	return true
+}
