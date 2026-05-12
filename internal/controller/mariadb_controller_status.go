@@ -73,6 +73,10 @@ func (r *MariaDBReconciler) reconcileStatus(ctx context.Context, mdb *mariadbv1a
 			}
 			status.Replication.Replicas = replStatus
 		}
+		// reset replication status after a cluster-level switchover
+		if mdb.IsMultiClusterPrimary() && mdb.IsGaleraEnabled() {
+			status.Replication = nil
+		}
 
 		if tlsStatus != nil {
 			status.TLS = tlsStatus

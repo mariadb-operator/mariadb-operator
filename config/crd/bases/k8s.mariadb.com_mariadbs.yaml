@@ -6642,6 +6642,10 @@ spec:
                   - type
                   type: object
                 type: array
+              currentMultiClusterPrimary:
+                description: CurrentMultiClusterPrimary is the current primary cluster
+                  name when using the multi-cluster topology.
+                type: string
               currentPrimary:
                 description: CurrentPrimary is the primary Pod.
                 type: string
