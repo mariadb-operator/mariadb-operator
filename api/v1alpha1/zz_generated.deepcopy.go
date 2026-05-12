@@ -2448,6 +2448,11 @@ func (in *MariaDBStatus) DeepCopyInto(out *MariaDBStatus) {
 		in, out := &in.CurrentPrimaryFailingSince, &out.CurrentPrimaryFailingSince
 		*out = (*in).DeepCopy()
 	}
+	if in.CurrentMultiClusterPrimary != nil {
+		in, out := &in.CurrentMultiClusterPrimary, &out.CurrentMultiClusterPrimary
+		*out = new(string)
+		**out = **in
+	}
 	if in.ScaleOutInitialIndex != nil {
 		in, out := &in.ScaleOutInitialIndex, &out.ScaleOutInitialIndex
 		*out = new(int)

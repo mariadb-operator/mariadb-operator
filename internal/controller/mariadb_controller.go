@@ -214,6 +214,10 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			Reconcile: r.reconcilePITR,
 		},
 		{
+			Name:      "MultiCluster",
+			Reconcile: r.reconcileMultiCluster,
+		},
+		{
 			Name:      "Maintenance",
 			Reconcile: r.MaintenanceReconciler.Reconcile,
 		},
