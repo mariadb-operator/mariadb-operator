@@ -110,7 +110,9 @@ func (r *MariaDBReconciler) reconfigurePrimaryGtids(ctx context.Context, mdb *ma
 	if err != nil {
 		return fmt.Errorf("error parsing gtid_binlog_state GTIDs %s: %v", binlogState, err)
 	}
-	primaryGtids := replication.FilterByDomain(allGtids, uint32(*domainId))
+	primaryGtids := replication.GtidsToString(
+		replication.FilterByDomain(allGtids, uint32(*domainId)),
+	)
 
 	podIndexes, err := mdb.OrderedPodIndexes()
 	if err != nil {
@@ -124,18 +126,27 @@ func (r *MariaDBReconciler) reconfigurePrimaryGtids(ctx context.Context, mdb *ma
 		}
 
 		if currentPrimaryPodIndex == i {
-			if err := client.ResetBinlogState(ctx, replication.GtidsToString(primaryGtids)); err != nil {
+			if err := client.ResetBinlogState(ctx, primaryGtids); err != nil {
 				return fmt.Errorf("error resetting gtid_binlog_state in primary Pod: %v", err)
 			}
+			// TODO: consider removing, as it always returns:
+			// error reconciling MultiCluster: 1 error occurred:\n\t* error reconciling primary GTIDs:
+			// error resetting gtid_slave_pos in primary Pod: Error 1948 (HY000):
+			// Specified value for @@gtid_slave_pos contains no value for replication domain 1.
+			// This conflicts with the binary log which contains GTID 1-20-4. If MASTER_GTID_POS=CURRENT_POS is used,
+			// the binlog position will override the new value of @@gtid_slave_pos
 			if err := client.ResetGtidSlavePos(ctx); err != nil && !sql.IsGtidSlavePosNoValueForDomain(err) {
 				return fmt.Errorf("error resetting gtid_slave_pos in primary Pod: %v", err)
 			}
 		} else {
-			if err := client.ResetBinlogState(ctx, replication.GtidsToString(primaryGtids)); err != nil {
-				return fmt.Errorf("error resetting gtid_binlog_state in replica Pod index %d: %v", i, err)
-			}
 			if err := client.StopSlave(ctx); err != nil {
 				return fmt.Errorf("error stopping replica: %v", err)
+			}
+			if err := client.ResetBinlogState(ctx, primaryGtids); err != nil {
+				return fmt.Errorf("error resetting gtid_binlog_state in replica Pod index %d: %v", i, err)
+			}
+			if err := client.SetGtidSlavePos(ctx, primaryGtids); err != nil {
+				return fmt.Errorf("error setting gtid_slave_pos in replica Pod index %d: %v", i, err)
 			}
 			if err := client.StartSlave(ctx); err != nil {
 				return fmt.Errorf("error starting replica: %v", err)
