@@ -2,10 +2,13 @@ package replication
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 )
 
 // TestConfigureReplicaOpts_HardFailover_ResetsGtid documents the bug:
@@ -186,6 +189,278 @@ func TestConfigurePrimary_IdempotentAfterPartialFailure(_ *testing.T) {
 func TestCurrentPrimaryReady_ToleratesTransientConnectBlips(_ *testing.T) {
 	// Integration-test only; documented here for design record.
 	// See pkg/controller/replication/switchover.go: currentPrimaryReady.
+}
+
+// TestTargetReplicaError_GuardsAgainstWedgedTarget covers the regression closed
+// by reconcileSwitchover's early-bail check. Field incidents on both
+// moodle-education-stg-db and moodle-education-prod-db wedged for 5+ days with
+// the same shape: spec.replication.primary.podIndex pointed at a replica whose
+// SQL thread had aborted with errno 1062 (Duplicate entry on mdl_task_log),
+// status.replication.replicas[target].lastSQLErrno persisted across reconciles,
+// and the switchover state machine repeatedly locked the still-healthy current
+// primary read-only and then timed out in MASTER_GTID_WAIT — because a replica
+// with a dead SQL thread cannot advance gtid_current_pos, no matter how long
+// we wait.
+//
+// targetReplicaError reads the cached MariaDB.Status (not a live SQL query) so
+// the guard also fires when the target's mariadb container is in CrashLoopBackOff
+// (the exact wedge mode where live SQL would itself fail with "invalid
+// connection" and obscure the real cause).
+func TestTargetReplicaError_GuardsAgainstWedgedTarget(t *testing.T) {
+	t.Parallel()
+	mdbObjectMeta := metav1.ObjectMeta{Name: "moodle-education-stg-db"}
+	primaryIndex0 := 0
+	primaryIndex1 := 1
+
+	tests := []struct {
+		name      string
+		mdb       *mariadbv1alpha1.MariaDB
+		wantErr   bool
+		wantMatch string
+	}{
+		{
+			name: "nil replication status returns nil",
+			mdb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: mdbObjectMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Replication: &mariadbv1alpha1.Replication{ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
+						Primary: mariadbv1alpha1.PrimaryReplication{PodIndex: &primaryIndex1}},
+					},
+				},
+				Status: mariadbv1alpha1.MariaDBStatus{
+					CurrentPrimaryPodIndex: &primaryIndex0,
+				},
+			},
+		},
+		{
+			name: "target == current primary returns nil even if other replicas are errored",
+			mdb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: mdbObjectMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Replication: &mariadbv1alpha1.Replication{ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
+						Primary: mariadbv1alpha1.PrimaryReplication{PodIndex: &primaryIndex0}},
+					},
+				},
+				Status: mariadbv1alpha1.MariaDBStatus{
+					CurrentPrimaryPodIndex: &primaryIndex0,
+					Replication: &mariadbv1alpha1.ReplicationStatus{
+						Replicas: map[string]mariadbv1alpha1.ReplicaStatus{
+							"moodle-education-stg-db-1": {
+								ReplicaStatusVars: mariadbv1alpha1.ReplicaStatusVars{
+									LastSQLErrno: ptr.To(1062),
+									LastSQLError: ptr.To("Duplicate entry"),
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "healthy target returns nil",
+			mdb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: mdbObjectMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Replication: &mariadbv1alpha1.Replication{ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
+						Primary: mariadbv1alpha1.PrimaryReplication{PodIndex: &primaryIndex1}},
+					},
+				},
+				Status: mariadbv1alpha1.MariaDBStatus{
+					CurrentPrimaryPodIndex: &primaryIndex0,
+					Replication: &mariadbv1alpha1.ReplicationStatus{
+						Replicas: map[string]mariadbv1alpha1.ReplicaStatus{
+							"moodle-education-stg-db-1": {
+								ReplicaStatusVars: mariadbv1alpha1.ReplicaStatusVars{
+									LastSQLErrno: ptr.To(0),
+									LastIOErrno:  ptr.To(0),
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "target with SQL errno 1062 returns actionable error",
+			mdb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: mdbObjectMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Replication: &mariadbv1alpha1.Replication{ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
+						Primary: mariadbv1alpha1.PrimaryReplication{PodIndex: &primaryIndex1}},
+					},
+				},
+				Status: mariadbv1alpha1.MariaDBStatus{
+					CurrentPrimaryPodIndex: &primaryIndex0,
+					Replication: &mariadbv1alpha1.ReplicationStatus{
+						Replicas: map[string]mariadbv1alpha1.ReplicaStatus{
+							"moodle-education-stg-db-1": {
+								ReplicaStatusVars: mariadbv1alpha1.ReplicaStatusVars{
+									LastSQLErrno: ptr.To(1062),
+									LastSQLError: ptr.To("Duplicate entry '71306391' for key 'PRIMARY'"),
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr:   true,
+			wantMatch: "unrecoverable SQL thread error (errno 1062)",
+		},
+		{
+			name: "target with IO errno 1236 returns actionable error",
+			mdb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: mdbObjectMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Replication: &mariadbv1alpha1.Replication{ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
+						Primary: mariadbv1alpha1.PrimaryReplication{PodIndex: &primaryIndex1}},
+					},
+				},
+				Status: mariadbv1alpha1.MariaDBStatus{
+					CurrentPrimaryPodIndex: &primaryIndex0,
+					Replication: &mariadbv1alpha1.ReplicationStatus{
+						Replicas: map[string]mariadbv1alpha1.ReplicaStatus{
+							"moodle-education-stg-db-1": {
+								ReplicaStatusVars: mariadbv1alpha1.ReplicaStatusVars{
+									LastIOErrno: ptr.To(1236),
+									LastIOError: ptr.To("Got fatal error 1236 from master"),
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr:   true,
+			wantMatch: "unrecoverable IO thread error (errno 1236)",
+		},
+		{
+			name: "target with SlaveSQLRunning=false but errno=0 returns actionable error",
+			mdb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: mdbObjectMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Replication: &mariadbv1alpha1.Replication{ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
+						Primary: mariadbv1alpha1.PrimaryReplication{PodIndex: &primaryIndex1}},
+					},
+				},
+				Status: mariadbv1alpha1.MariaDBStatus{
+					CurrentPrimaryPodIndex: &primaryIndex0,
+					Replication: &mariadbv1alpha1.ReplicationStatus{
+						Replicas: map[string]mariadbv1alpha1.ReplicaStatus{
+							"moodle-education-stg-db-1": {
+								ReplicaStatusVars: mariadbv1alpha1.ReplicaStatusVars{
+									LastSQLErrno:    ptr.To(0),
+									LastIOErrno:     ptr.To(0),
+									SlaveIORunning:  ptr.To(true),
+									SlaveSQLRunning: ptr.To(false),
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr:   true,
+			wantMatch: "SQL thread is not running",
+		},
+		{
+			name: "target with SlaveIORunning=false but errno=0 returns actionable error",
+			mdb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: mdbObjectMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Replication: &mariadbv1alpha1.Replication{ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
+						Primary: mariadbv1alpha1.PrimaryReplication{PodIndex: &primaryIndex1}},
+					},
+				},
+				Status: mariadbv1alpha1.MariaDBStatus{
+					CurrentPrimaryPodIndex: &primaryIndex0,
+					Replication: &mariadbv1alpha1.ReplicationStatus{
+						Replicas: map[string]mariadbv1alpha1.ReplicaStatus{
+							"moodle-education-stg-db-1": {
+								ReplicaStatusVars: mariadbv1alpha1.ReplicaStatusVars{
+									LastSQLErrno:    ptr.To(0),
+									LastIOErrno:     ptr.To(0),
+									SlaveIORunning:  ptr.To(false),
+									SlaveSQLRunning: ptr.To(true),
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr:   true,
+			wantMatch: "IO thread is not running",
+		},
+		{
+			name: "nil thread-running fields default to true (uninitialized replica)",
+			mdb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: mdbObjectMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Replication: &mariadbv1alpha1.Replication{ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
+						Primary: mariadbv1alpha1.PrimaryReplication{PodIndex: &primaryIndex1}},
+					},
+				},
+				Status: mariadbv1alpha1.MariaDBStatus{
+					CurrentPrimaryPodIndex: &primaryIndex0,
+					Replication: &mariadbv1alpha1.ReplicationStatus{
+						Replicas: map[string]mariadbv1alpha1.ReplicaStatus{
+							"moodle-education-stg-db-1": {
+								ReplicaStatusVars: mariadbv1alpha1.ReplicaStatusVars{
+									LastSQLErrno: ptr.To(0),
+									LastIOErrno:  ptr.To(0),
+									// SlaveIORunning and SlaveSQLRunning unset
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "target absent from status map returns nil (no observation yet)",
+			mdb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: mdbObjectMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Replication: &mariadbv1alpha1.Replication{ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
+						Primary: mariadbv1alpha1.PrimaryReplication{PodIndex: &primaryIndex1}},
+					},
+				},
+				Status: mariadbv1alpha1.MariaDBStatus{
+					CurrentPrimaryPodIndex: &primaryIndex0,
+					Replication: &mariadbv1alpha1.ReplicationStatus{
+						Replicas: map[string]mariadbv1alpha1.ReplicaStatus{},
+					},
+				},
+			},
+		},
+		{
+			name: "nil PodIndex in spec returns nil (operator hasn't defaulted yet)",
+			mdb: &mariadbv1alpha1.MariaDB{
+				ObjectMeta: mdbObjectMeta,
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Replication: &mariadbv1alpha1.Replication{},
+				},
+				Status: mariadbv1alpha1.MariaDBStatus{
+					CurrentPrimaryPodIndex: &primaryIndex0,
+				},
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			err := targetReplicaError(tc.mdb)
+			if tc.wantErr {
+				if err == nil {
+					t.Fatalf("expected error containing %q, got nil", tc.wantMatch)
+				}
+				if !strings.Contains(err.Error(), tc.wantMatch) {
+					t.Fatalf("expected error containing %q, got %q", tc.wantMatch, err.Error())
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("expected nil, got %v", err)
+			}
+		})
+	}
 }
 
 // TestReplicationReconcile_RefreshesRolesBeforeSwitchover documents the bug:

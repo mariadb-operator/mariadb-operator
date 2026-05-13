@@ -40,6 +40,76 @@ func shouldReconcileSwitchover(mdb *mariadbv1alpha1.MariaDB) bool {
 	return mdb.IsReplicationSwitchoverRequired()
 }
 
+// targetReplicaError returns a non-nil error describing a persistent replication
+// failure on the switchover target replica, observed from MariaDB.Status. The
+// caller should refuse to start (or continue) the switchover when this returns
+// an error: locking the primary read-only and entering waitForReplicaSync against
+// a replica whose SQL or IO thread is broken just produces a timeout loop while
+// leaving the primary degraded. Reading from cached status (rather than a live
+// SQL query) means this also works when the target's mariadb container is in
+// CrashLoopBackOff — the wedge mode where the live check would itself fail with
+// "invalid connection".
+//
+// Returns nil when the status is missing, the target is the current primary
+// (nothing to check), or the target's last observed status had errno == 0.
+func targetReplicaError(mdb *mariadbv1alpha1.MariaDB) error {
+	if mdb.Status.Replication == nil || mdb.Status.Replication.Replicas == nil {
+		return nil
+	}
+	replication := ptr.Deref(mdb.Spec.Replication, mariadbv1alpha1.Replication{})
+	if replication.Primary.PodIndex == nil {
+		return nil
+	}
+	target := *replication.Primary.PodIndex
+	if mdb.Status.CurrentPrimaryPodIndex != nil && *mdb.Status.CurrentPrimaryPodIndex == target {
+		return nil
+	}
+	podName := statefulset.PodName(mdb.ObjectMeta, target)
+	status, ok := mdb.Status.Replication.Replicas[podName]
+	if !ok {
+		return nil
+	}
+	if errno := ptr.Deref(status.LastSQLErrno, 0); errno != 0 {
+		msg := ptr.Deref(status.LastSQLError, "")
+		return fmt.Errorf(
+			"switchover target replica '%s' has unrecoverable SQL thread error (errno %d): %s; "+
+				"recover the replica before retrying the switchover",
+			podName, errno, msg,
+		)
+	}
+	if errno := ptr.Deref(status.LastIOErrno, 0); errno != 0 {
+		msg := ptr.Deref(status.LastIOError, "")
+		return fmt.Errorf(
+			"switchover target replica '%s' has unrecoverable IO thread error (errno %d): %s; "+
+				"recover the replica before retrying the switchover",
+			podName, errno, msg,
+		)
+	}
+	// Catch the no-errno-but-thread-stopped case: a replica whose SQL thread
+	// was halted by `STOP SLAVE SQL_THREAD` (or by `slave_skip_errors` after
+	// a prior incident) reports Slave_SQL_Running=No with Last_SQL_Errno=0.
+	// gtid_current_pos still cannot advance, so MASTER_GTID_WAIT in
+	// waitForReplicaSync would still time out indefinitely. Note: SlaveSQLRunning
+	// and SlaveIORunning are nil on a replica that has never been configured —
+	// we default to true (`ptr.Deref(..., true)`) to avoid blocking the very
+	// first switchover before status has been populated.
+	if !ptr.Deref(status.SlaveSQLRunning, true) {
+		return fmt.Errorf(
+			"switchover target replica '%s' SQL thread is not running (Slave_SQL_Running=No); "+
+				"recover the replica before retrying the switchover",
+			podName,
+		)
+	}
+	if !ptr.Deref(status.SlaveIORunning, true) {
+		return fmt.Errorf(
+			"switchover target replica '%s' IO thread is not running (Slave_IO_Running=No); "+
+				"recover the replica before retrying the switchover",
+			podName,
+		)
+	}
+	return nil
+}
+
 func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *ReconcileRequest, switchoverLogger logr.Logger) error {
 	logger := switchoverLogger.WithValues("mariadb", req.mariadb.Name)
 
@@ -54,6 +124,21 @@ func (r *ReplicationReconciler) reconcileSwitchover(ctx context.Context, req *Re
 	}
 	if !shouldReconcileSwitchover(req.mariadb) {
 		return nil
+	}
+
+	// Refuse to start the switchover if the target replica's last-observed
+	// replication state shows a persistent SQL or IO thread error. Without
+	// this guard, lockPrimaryWithReadLock / setPrimaryReadOnly run first
+	// (degrading the still-healthy current primary to read-only), and then
+	// waitForReplicaSync loops on MASTER_GTID_WAIT timeouts forever — because
+	// a replica whose SQL thread has aborted can never advance its
+	// gtid_current_pos, regardless of how long we wait. Field incidents on
+	// moodle-education-{stg,prod}-db hit this exact pattern with errno 1062
+	// on mdl_task_log, leaving both clusters wedged for 5+ days.
+	if err := targetReplicaError(req.mariadb); err != nil {
+		r.recorder.Eventf(req.mariadb, nil, corev1.EventTypeWarning, mariadbv1alpha1.ReasonReplicationReplicaSyncErr,
+			mariadbv1alpha1.ActionReconciling, "Refusing switchover: %v", err)
+		return err
 	}
 
 	replication := ptr.Deref(req.mariadb.Spec.Replication, mariadbv1alpha1.Replication{})
