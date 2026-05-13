@@ -236,22 +236,7 @@ func FilterByDomain(gtids []Gtid, keepDomains ...uint32) []Gtid {
 	return filtered
 }
 
-func ExcludeByDomain(gtids []Gtid, dropDomains ...uint32) []Gtid {
-	var filtered []Gtid
-	dropMap := make(map[uint32]bool)
-	for _, d := range dropDomains {
-		dropMap[d] = true
-	}
-
-	for _, g := range gtids {
-		if !dropMap[g.DomainID] {
-			filtered = append(filtered, g)
-		}
-	}
-	return filtered
-}
-
-func GtidsToString(gtids []Gtid) string {
+func GtidsToString(gtids ...Gtid) string {
 	if len(gtids) == 0 {
 		return ""
 	}
@@ -260,23 +245,4 @@ func GtidsToString(gtids []Gtid) string {
 		gtidStrings[i] = g.String()
 	}
 	return strings.Join(gtidStrings, ",")
-}
-
-func GtidsEqual(a, b []Gtid) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	seen := make(map[string]int)
-	for _, g := range a {
-		seen[g.String()]++
-	}
-	for _, g := range b {
-		key := g.String()
-		count, exists := seen[key]
-		if !exists || count == 0 {
-			return false
-		}
-		seen[key]--
-	}
-	return true
 }
