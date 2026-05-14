@@ -2225,11 +2225,6 @@ func (in *MariaDBPointInTimeRecoveryStatus) DeepCopyInto(out *MariaDBPointInTime
 		*out = new(replication.Gtid)
 		**out = **in
 	}
-	if in.GtidStrictModePaused != nil {
-		in, out := &in.GtidStrictModePaused, &out.GtidStrictModePaused
-		*out = new(bool)
-		**out = **in
-	}
 	if in.StorageReadyForArchival != nil {
 		in, out := &in.StorageReadyForArchival, &out.StorageReadyForArchival
 		*out = new(bool)
@@ -4488,6 +4483,11 @@ func (in *ReplicationStatus) DeepCopyInto(out *ReplicationStatus) {
 	if in.ReplicaToRecover != nil {
 		in, out := &in.ReplicaToRecover, &out.ReplicaToRecover
 		*out = new(string)
+		**out = **in
+	}
+	if in.GtidStrictModePaused != nil {
+		in, out := &in.GtidStrictModePaused, &out.GtidStrictModePaused
+		*out = new(bool)
 		**out = **in
 	}
 }

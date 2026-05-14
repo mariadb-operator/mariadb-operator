@@ -562,6 +562,10 @@ type ReplicationStatus struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	ReplicaToRecover *string `json:"replicaToRecover,omitempty"`
+	// GtidStrictModePaused indicates that gtid_strict_mode has been temporarily paused.
+	// +optional
+	// +operator-sdk:csv:customresourcedefinitions:type=status
+	GtidStrictModePaused *bool `json:"gtidStrictModePaused,omitempty"`
 }
 
 // UseStandaloneProbes indicates whether to use the default non-HA startup and liveness probes.
