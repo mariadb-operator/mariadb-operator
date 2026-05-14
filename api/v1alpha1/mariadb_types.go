@@ -842,10 +842,6 @@ type MariaDBPointInTimeRecoveryStatus struct {
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status
 	LastArchivedGtid *mariadbrepl.Gtid `json:"lastArchivedGtid,omitempty"`
-	// GtidStrictModePaused indicates that gtid_strict_mode has been temporarily paused to replay binlogs.
-	// +optional
-	// +operator-sdk:csv:customresourcedefinitions:type=status
-	GtidStrictModePaused *bool `json:"gtidStrictModePaused,omitempty"`
 	// StorageReadyForArchival indicates that the storage is ready for archival, meaning that the sidecar agent can start archiving the binary logs.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=status

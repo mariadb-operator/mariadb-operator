@@ -8885,10 +8885,6 @@ spec:
                 description: PointInTimeRecovery is the status of the point-in-time-recovery
                   process.
                 properties:
-                  gtidStrictModePaused:
-                    description: GtidStrictModePaused indicates that gtid_strict_mode
-                      has been temporarily paused to replay binlogs.
-                    type: boolean
                   lastArchivedBinaryLog:
                     description: LastArchivedBinaryLog is name of the last archived
                       binary log.
@@ -8925,6 +8921,10 @@ spec:
                 description: Replication is the replication current status per each
                   Pod.
                 properties:
+                  gtidStrictModePaused:
+                    description: GtidStrictModePaused indicates that gtid_strict_mode
+                      has been temporarily paused.
+                    type: boolean
                   replicaToRecover:
                     description: ReplicaToRecover is the replica that is being recovered
                       by the operator.

@@ -17,7 +17,11 @@ import (
 func (r *MariaDBReconciler) reconcileMultiCluster(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
 	logger := log.FromContext(ctx).WithName("multi-cluster")
 
-	if !shouldReconcileMultiCluster(mdb, logger) {
+	shouldReconcile, err := r.shouldReconcileMultiCluster(ctx, mdb, logger)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("error determining whether multi-cluster should be reconciled: %v", err)
+	}
+	if !shouldReconcile {
 		return ctrl.Result{}, nil
 	}
 	multiCluster := ptr.Deref(mdb.Spec.MultiCluster, mariadbv1alpha1.MultiCluster{})
@@ -110,11 +114,11 @@ func (r *MariaDBReconciler) reconfigurePrimaryClusterGtids(ctx context.Context, 
 		}
 
 		if currentPrimaryPodIndex == i {
-			if err := r.filterPrimaryBinlogStateByDomain(ctx, client, uint32(*domainId), logger); err != nil {
+			if err := r.filterPrimaryBinlogByDomain(ctx, mdb, uint32(*domainId), client, logger); err != nil {
 				return fmt.Errorf("error filtering primary gtid_binlog_state by domain: %v", err)
 			}
 		} else {
-			if err := r.filterReplicaGtidByDomain(ctx, client, uint32(*domainId), i); err != nil {
+			if err := r.filterReplicaGtidByDomain(ctx, uint32(*domainId), i, client); err != nil {
 				return fmt.Errorf("error filtering replica gtid_slave_pos by domain: %v", err)
 			}
 		}
@@ -122,8 +126,8 @@ func (r *MariaDBReconciler) reconfigurePrimaryClusterGtids(ctx context.Context, 
 	return nil
 }
 
-func (r *MariaDBReconciler) filterPrimaryBinlogStateByDomain(ctx context.Context, client *sql.Client,
-	domainId uint32, logger logr.Logger) error {
+func (r *MariaDBReconciler) filterPrimaryBinlogByDomain(ctx context.Context, mdb *mariadbv1alpha1.MariaDB, domainId uint32,
+	client *sql.Client, logger logr.Logger) error {
 	rawBinlogState, err := client.GtidBinlogState(ctx)
 	if err != nil {
 		return fmt.Errorf("error getting gtid_binlog_state: %v", err)
@@ -143,20 +147,20 @@ func (r *MariaDBReconciler) filterPrimaryBinlogStateByDomain(ctx context.Context
 	if err := client.ResetBinlogState(ctx, primaryGtids); err != nil {
 		return fmt.Errorf("error resetting gtid_binlog_state in primary Pod: %v", err)
 	}
-	// TODO: consider removing, as it always returns:
-	// error reconciling MultiCluster: 1 error occurred:\n\t* error reconciling primary GTIDs:
-	// error resetting gtid_slave_pos in primary Pod: Error 1948 (HY000):
-	// Specified value for @@gtid_slave_pos contains no value for replication domain 1.
-	// This conflicts with the binary log which contains GTID 1-20-4. If MASTER_GTID_POS=CURRENT_POS is used,
-	// the binlog position will override the new value of @@gtid_slave_pos
-	if err := client.ResetGtidSlavePos(ctx); err != nil && !sql.IsGtidSlavePosNoValueForDomain(err) {
+	if err := replicationctrl.PauseGtidStrictMode(ctx, mdb, client, r.Client, logger.V(1)); err != nil {
+		return fmt.Errorf("error pausing gtid_strict_mode in primary Pod: %v", err)
+	}
+	if err := client.ResetGtidSlavePos(ctx); err != nil {
 		return fmt.Errorf("error resetting gtid_slave_pos in primary Pod: %v", err)
+	}
+	if err := replicationctrl.ResumeGtidStrictMode(ctx, mdb, client, r.Client, logger.V(1)); err != nil {
+		return fmt.Errorf("error resuming gtid_strict_mode in primary Pod: %v", err)
 	}
 	return nil
 }
 
-func (r *MariaDBReconciler) filterReplicaGtidByDomain(ctx context.Context, client *sql.Client, domainId uint32,
-	podIndex int) error {
+func (r *MariaDBReconciler) filterReplicaGtidByDomain(ctx context.Context, domainId uint32, podIndex int,
+	client *sql.Client) error {
 	rawReplicaGtid, err := client.GtidCurrentPos(ctx)
 	if err != nil {
 		return fmt.Errorf("error getting replica GTID: %v", err)
@@ -262,9 +266,14 @@ func (r *MariaDBReconciler) getExternalPrimaryClient(ctx context.Context, mdb *m
 	return externalPrimaryClient, nil
 }
 
-func shouldReconcileMultiCluster(mdb *mariadbv1alpha1.MariaDB, logger logr.Logger) bool {
+func (r *MariaDBReconciler) shouldReconcileMultiCluster(ctx context.Context, mdb *mariadbv1alpha1.MariaDB,
+	logger logr.Logger) (bool, error) {
 	if !mdb.IsMultiClusterEnabled() {
-		return false
+		return false, nil
+	}
+	if mdb.Status.CurrentPrimary == nil || mdb.Status.CurrentPrimaryPodIndex == nil {
+		logger.V(1).Info("Current MariaDB primary not set, skipping multi-cluster reconciliation...")
+		return false, nil
 	}
 	if mdb.HasPendingHATopologyConfiguration() ||
 		mdb.IsSwitchingPrimary() || mdb.IsReplicationSwitchoverRequired() ||
@@ -272,16 +281,19 @@ func shouldReconcileMultiCluster(mdb *mariadbv1alpha1.MariaDB, logger logr.Logge
 		mdb.IsInitializing() || mdb.IsScalingOut() || mdb.IsRestoringBackup() || mdb.IsResizingStorage() || mdb.IsUpdating() ||
 		mdb.HasPendingBinlogReplay() {
 		logger.V(1).Info("Ongoing MariaDB operation detected, skipping multi-cluster reconciliation...")
-		return false
+		return false, nil
 	}
-
-	// TODO: avoid reconciling on MaxScale switchover?
-
-	if mdb.Status.CurrentPrimary == nil || mdb.Status.CurrentPrimaryPodIndex == nil {
-		logger.V(1).Info("Current MariaDB primary not set, skipping multi-cluster reconciliation...")
-		return false
+	if mdb.IsMaxScaleEnabled() {
+		mxs, err := r.RefResolver.MaxScale(ctx, mdb.Spec.MaxScaleRef, mdb.Namespace)
+		if err != nil {
+			return false, fmt.Errorf("error getting MaxScale: %v", err)
+		}
+		if mxs.IsSwitchingPrimary() {
+			logger.V(1).Info("Ongoing MaxScale switchover detected, skipping multi-cluster reconciliation...")
+			return false, nil
+		}
 	}
-	return true
+	return true, nil
 }
 
 func composeGtids(rawGtid, rawExternalGtid string) (string, error) {
