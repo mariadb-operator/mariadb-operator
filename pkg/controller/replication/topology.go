@@ -17,7 +17,7 @@ import (
 )
 
 var (
-	MultiClusterReplicaConnectionName = "replica"
+	MultiClusterReplicaConnectionName = "multi-cluster"
 	errTopologyNotSupported           = errors.New("topology not supported")
 )
 
