@@ -94,32 +94,6 @@ func (r *MariaDBReconciler) reconfigurePrimaryClusterGtids(ctx context.Context, 
 	defer clientSet.Close()
 	currentPrimaryPodIndex := *mdb.Status.CurrentPrimaryPodIndex
 
-	primaryClient, err := clientSet.ClientForIndex(ctx, currentPrimaryPodIndex)
-	if err != nil {
-		return fmt.Errorf("error getting primary client: %v", err)
-	}
-
-	domainId, err := primaryClient.GtidDomainId(ctx)
-	if err != nil {
-		return fmt.Errorf("error getting gtid_domain_id: %v", err)
-	}
-	binlogState, err := primaryClient.GtidBinlogState(ctx)
-	if err != nil {
-		return fmt.Errorf("error getting gtid_binlog_state: %v", err)
-	}
-	if binlogState == "" {
-		logger.Info("gtid_binlog_state is empty, skipping reconciliation...")
-		return nil
-	}
-
-	binlogStateGtids, err := replication.ParseAllGtids(binlogState)
-	if err != nil {
-		return fmt.Errorf("error parsing gtid_binlog_state GTIDs %s: %v", binlogState, err)
-	}
-	primaryGtids := replication.GtidsToString(
-		replication.FilterByDomain(binlogStateGtids, uint32(*domainId))...,
-	)
-
 	podIndexes, err := mdb.OrderedPodIndexes()
 	if err != nil {
 		return fmt.Errorf("error getting ordered Pod indexes: %v", err)
@@ -130,35 +104,82 @@ func (r *MariaDBReconciler) reconfigurePrimaryClusterGtids(ctx context.Context, 
 		if err != nil {
 			return fmt.Errorf("error getting client for Pod index %d: %v", i, err)
 		}
+		domainId, err := client.GtidDomainId(ctx)
+		if err != nil {
+			return fmt.Errorf("error getting gtid_domain_id for Pod index %d: %v", i, err)
+		}
 
 		if currentPrimaryPodIndex == i {
-			if err := client.ResetBinlogState(ctx, primaryGtids); err != nil {
-				return fmt.Errorf("error resetting gtid_binlog_state in primary Pod: %v", err)
-			}
-			// TODO: consider removing, as it always returns:
-			// error reconciling MultiCluster: 1 error occurred:\n\t* error reconciling primary GTIDs:
-			// error resetting gtid_slave_pos in primary Pod: Error 1948 (HY000):
-			// Specified value for @@gtid_slave_pos contains no value for replication domain 1.
-			// This conflicts with the binary log which contains GTID 1-20-4. If MASTER_GTID_POS=CURRENT_POS is used,
-			// the binlog position will override the new value of @@gtid_slave_pos
-			if err := client.ResetGtidSlavePos(ctx); err != nil && !sql.IsGtidSlavePosNoValueForDomain(err) {
-				return fmt.Errorf("error resetting gtid_slave_pos in primary Pod: %v", err)
+			if err := r.filterPrimaryBinlogStateByDomain(ctx, client, uint32(*domainId), logger); err != nil {
+				return fmt.Errorf("error filtering primary gtid_binlog_state by domain: %v", err)
 			}
 		} else {
-			if err := client.StopSlave(ctx); err != nil {
-				return fmt.Errorf("error stopping replica: %v", err)
-			}
-			// TODO: replica may be lagged: filter current gtid_slave_pos by domain ID rather than pushing primary GTID
-			if err := client.ResetBinlogState(ctx, primaryGtids); err != nil {
-				return fmt.Errorf("error resetting gtid_binlog_state in replica Pod index %d: %v", i, err)
-			}
-			if err := client.SetGtidSlavePos(ctx, primaryGtids); err != nil {
-				return fmt.Errorf("error setting gtid_slave_pos in replica Pod index %d: %v", i, err)
-			}
-			if err := client.StartSlave(ctx); err != nil {
-				return fmt.Errorf("error starting replica: %v", err)
+			if err := r.filterReplicaGtidByDomain(ctx, client, uint32(*domainId), i); err != nil {
+				return fmt.Errorf("error filtering replica gtid_slave_pos by domain: %v", err)
 			}
 		}
+	}
+	return nil
+}
+
+func (r *MariaDBReconciler) filterPrimaryBinlogStateByDomain(ctx context.Context, client *sql.Client,
+	domainId uint32, logger logr.Logger) error {
+	rawBinlogState, err := client.GtidBinlogState(ctx)
+	if err != nil {
+		return fmt.Errorf("error getting gtid_binlog_state: %v", err)
+	}
+	if rawBinlogState == "" {
+		logger.Info("gtid_binlog_state is empty, skipping reconciliation...")
+		return nil
+	}
+	binlogStateGtids, err := replication.ParseAllGtids(rawBinlogState)
+	if err != nil {
+		return fmt.Errorf("error parsing gtid_binlog_state GTIDs %s: %v", rawBinlogState, err)
+	}
+	primaryGtids := replication.GtidsToString(
+		replication.FilterByDomain(binlogStateGtids, domainId)...,
+	)
+
+	if err := client.ResetBinlogState(ctx, primaryGtids); err != nil {
+		return fmt.Errorf("error resetting gtid_binlog_state in primary Pod: %v", err)
+	}
+	// TODO: consider removing, as it always returns:
+	// error reconciling MultiCluster: 1 error occurred:\n\t* error reconciling primary GTIDs:
+	// error resetting gtid_slave_pos in primary Pod: Error 1948 (HY000):
+	// Specified value for @@gtid_slave_pos contains no value for replication domain 1.
+	// This conflicts with the binary log which contains GTID 1-20-4. If MASTER_GTID_POS=CURRENT_POS is used,
+	// the binlog position will override the new value of @@gtid_slave_pos
+	if err := client.ResetGtidSlavePos(ctx); err != nil && !sql.IsGtidSlavePosNoValueForDomain(err) {
+		return fmt.Errorf("error resetting gtid_slave_pos in primary Pod: %v", err)
+	}
+	return nil
+}
+
+func (r *MariaDBReconciler) filterReplicaGtidByDomain(ctx context.Context, client *sql.Client, domainId uint32,
+	podIndex int) error {
+	rawReplicaGtid, err := client.GtidCurrentPos(ctx)
+	if err != nil {
+		return fmt.Errorf("error getting replica GTID: %v", err)
+	}
+	replicaGtids, err := replication.ParseAllGtids(rawReplicaGtid)
+	if err != nil {
+		return fmt.Errorf("error parsing replica GTID: %v", err)
+	}
+	replicaGtid := replication.GtidsToString(
+		replication.FilterByDomain(replicaGtids, domainId)...,
+	)
+
+	if err := client.StopSlave(ctx); err != nil {
+		return fmt.Errorf("error stopping replica in replica Pod index %d: %v", podIndex, err)
+	}
+	if err := client.ResetBinlogState(ctx, replicaGtid); err != nil {
+		return fmt.Errorf("error resetting gtid_binlog_state in replica Pod index %d: %v", podIndex, err)
+	}
+	if err := client.SetGtidSlavePos(ctx, replicaGtid); err != nil {
+		return fmt.Errorf("error setting gtid_slave_pos in replica Pod index %d: %v", podIndex, err)
+	}
+	if err := client.StartSlave(ctx); err != nil {
+		return fmt.Errorf("error starting replica in replica Pod index %d: %v", podIndex, err)
 	}
 	return nil
 }
@@ -176,11 +197,11 @@ func (r *MariaDBReconciler) reconfigureReplicaClusterGtids(ctx context.Context, 
 	}
 	defer primaryClient.Close()
 
-	binlogPos, err := primaryClient.GtidBinlogPos(ctx)
+	rawBinlogPos, err := primaryClient.GtidBinlogPos(ctx)
 	if err != nil {
 		return fmt.Errorf("error getting gtid_binlog_pos: %v", err)
 	}
-	binlogPosGtids, err := replication.ParseAllGtids(binlogPos)
+	binlogPosGtids, err := replication.ParseAllGtids(rawBinlogPos)
 	if err != nil {
 		return fmt.Errorf("error parsing gtid_binlog_pos GTIDs: %v", err)
 	}
@@ -199,7 +220,7 @@ func (r *MariaDBReconciler) reconfigureReplicaClusterGtids(ctx context.Context, 
 		logger.Info(
 			"External domain ID found in primary replica GTID, skipping reconciliation...",
 			"domain-id", externalDomainId,
-			"gitd", binlogPos,
+			"gitd", rawBinlogPos,
 		)
 		return nil
 	}
@@ -208,7 +229,7 @@ func (r *MariaDBReconciler) reconfigureReplicaClusterGtids(ctx context.Context, 
 	if err != nil {
 		return fmt.Errorf("error getting gtid_binlog_pos from external primary: %v", err)
 	}
-	composedGtid, err := composeGtids(binlogPos, externalBinlogPos)
+	composedGtid, err := composeGtids(rawBinlogPos, externalBinlogPos)
 	if err != nil {
 		return fmt.Errorf("error composing GTIDs: %v", err)
 	}
