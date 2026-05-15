@@ -4,7 +4,7 @@ metadata:
   name: mdb-test-0-lb
   namespace: default
   annotations:
-    metallb.universe.tf/loadBalancerIPs: $CIDR_PREFIX.0.45
+    metallb.io/loadBalancerIPs: $CIDR_PREFIX.0.45
 spec:
   ports:
   - name: mariadb
