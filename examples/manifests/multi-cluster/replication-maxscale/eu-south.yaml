@@ -51,19 +51,6 @@ spec:
       - name: mariadb-eu-central
         externalMariaDbRef:
           name: mariadb-eu-central
-  # Enable maintenance mode on the primary cluster before initiating a cluster switchover.
-  # This prevents new writes to the primary, allowing the replica cluster to fully sync.
-  # maintenance:
-  #   # Configure maintenance mode
-  #   enabled: true
-  #   # Do not allow connections through
-  #   cordon: true
-  #   # Drain long-running connections. Does not affect replication connections and such
-  #   drainConnections: true
-  #   # Drain after 30 seconds
-  #   drainGracePeriodSeconds: 30
-  #   # Set database to read_only
-  #   readOnly: true
 ---
 apiVersion: k8s.mariadb.com/v1alpha1
 kind: ExternalMariaDB
@@ -159,3 +146,10 @@ spec:
       name: mariadb-server-ca
     serverCASecretRef:
       name: mariadb-server-ca
+  # Enable maintenance mode on the primary cluster before initiating a cluster switchover.
+  # This prevents new writes to the primary, allowing the replica cluster to fully sync.
+  # maintenance:
+  #   # Configure maintenance mode
+  #   enabled: true
+  #   # Do not allow connections through
+  #   cordon: false
