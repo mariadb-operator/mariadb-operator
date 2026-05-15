@@ -85,12 +85,12 @@ kubectl replace -f https://github.com/mariadb-operator/mariadb-operator/releases
 -   labels:
 -     k8s.mariadb.io/service: "mysvc"
 -   annotations:
--     metallb.universe.tf/loadBalancerIPs: 172.18.0.150
+-     metallb.io/loadBalancerIPs: 172.18.0.150
 +   metadata:
 +     labels:
 +       k8s.mariadb.io/service: "mysvc"
 +     annotations:
-+       metallb.universe.tf/loadBalancerIPs: 172.18.0.150
++       metallb.io/loadBalancerIPs: 172.18.0.150
 
   connection:
     secretName: mariadb-galera-conn

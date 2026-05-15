@@ -4,7 +4,7 @@ metadata:
   name: mdb-emulate-external-test-0-lb
   namespace: default
   annotations:
-    metallb.universe.tf/loadBalancerIPs: $CIDR_PREFIX.0.48
+    metallb.io/loadBalancerIPs: $CIDR_PREFIX.0.48
 spec:
   ports:
   - name: mariadb

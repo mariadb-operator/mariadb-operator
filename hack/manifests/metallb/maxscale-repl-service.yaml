@@ -4,7 +4,7 @@ metadata:
   name: maxscale-repl-0-lb
   namespace: default
   annotations:
-    metallb.universe.tf/loadBalancerIPs: $CIDR_PREFIX.0.210
+    metallb.io/loadBalancerIPs: $CIDR_PREFIX.0.210
 spec:
   ports:
   - name: admin
@@ -27,7 +27,7 @@ metadata:
   name: maxscale-repl-1-lb
   namespace: default
   annotations:
-    metallb.universe.tf/loadBalancerIPs: $CIDR_PREFIX.0.211
+    metallb.io/loadBalancerIPs: $CIDR_PREFIX.0.211
 spec:
   ports:
   - name: admin
@@ -50,7 +50,7 @@ metadata:
   name: maxscale-repl-2-lb
   namespace: default
   annotations:
-    metallb.universe.tf/loadBalancerIPs: $CIDR_PREFIX.0.212
+    metallb.io/loadBalancerIPs: $CIDR_PREFIX.0.212
 spec:
   ports:
   - name: admin
@@ -73,7 +73,7 @@ metadata:
   name: maxscale-repl-3-lb
   namespace: default
   annotations:
-    metallb.universe.tf/loadBalancerIPs: $CIDR_PREFIX.0.213
+    metallb.io/loadBalancerIPs: $CIDR_PREFIX.0.213
 spec:
   ports:
   - name: admin
@@ -96,7 +96,7 @@ metadata:
   name: mariadb-repl-maxscale-0-lb
   namespace: default
   annotations:
-    metallb.universe.tf/loadBalancerIPs: $CIDR_PREFIX.0.215
+    metallb.io/loadBalancerIPs: $CIDR_PREFIX.0.215
 spec:
   ports:
   - name: admin
@@ -119,7 +119,7 @@ metadata:
   name: mariadb-repl-maxscale-1-lb
   namespace: default
   annotations:
-    metallb.universe.tf/loadBalancerIPs: $CIDR_PREFIX.0.216
+    metallb.io/loadBalancerIPs: $CIDR_PREFIX.0.216
 spec:
   ports:
   - name: admin
@@ -142,7 +142,7 @@ metadata:
   name: mariadb-repl-maxscale-2-lb
   namespace: default
   annotations:
-    metallb.universe.tf/loadBalancerIPs: $CIDR_PREFIX.0.217
+    metallb.io/loadBalancerIPs: $CIDR_PREFIX.0.217
 spec:
   ports:
   - name: admin
@@ -165,7 +165,7 @@ metadata:
   name: mariadb-repl-maxscale-3-lb
   namespace: default
   annotations:
-    metallb.universe.tf/loadBalancerIPs: $CIDR_PREFIX.0.218
+    metallb.io/loadBalancerIPs: $CIDR_PREFIX.0.218
 spec:
   ports:
   - name: admin

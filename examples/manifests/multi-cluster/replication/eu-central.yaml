@@ -43,7 +43,7 @@ spec:
     type: LoadBalancer
     metadata:
       annotations:
-        metallb.universe.tf/loadBalancerIPs: 172.18.1.15
+        metallb.io/loadBalancerIPs: 172.18.1.15
   tls:
     enabled: true
     required: true
