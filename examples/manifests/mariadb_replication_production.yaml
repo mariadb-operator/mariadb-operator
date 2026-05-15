@@ -78,17 +78,17 @@ spec:
   #   type: LoadBalancer
   #   metadata:
   #     annotations:
-  #       metallb.universe.tf/loadBalancerIPs: 172.18.0.120
+  #       metallb.io/loadBalancerIPs: 172.18.0.120
   # primaryService:
   #   type: LoadBalancer
   #   metadata:
   #     annotations:
-  #       metallb.universe.tf/loadBalancerIPs: 172.18.0.130
+  #       metallb.io/loadBalancerIPs: 172.18.0.130
   # secondaryService:
   #   type: LoadBalancer
   #   metadata:
   #     annotations:
-  #       metallb.universe.tf/loadBalancerIPs: 172.18.0.131
+  #       metallb.io/loadBalancerIPs: 172.18.0.131
   metrics:
     enabled: true
   # Issue and configure TLS certificates. For enhanced security, TLS will be enforced in all connections .

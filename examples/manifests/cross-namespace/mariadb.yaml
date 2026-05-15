@@ -21,4 +21,4 @@ spec:
   service:
     type: LoadBalancer
     annotations:
-      metallb.universe.tf/loadBalancerIPs: 172.18.0.40
+      metallb.io/loadBalancerIPs: 172.18.0.40

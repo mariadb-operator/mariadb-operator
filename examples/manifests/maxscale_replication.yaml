@@ -58,13 +58,13 @@ spec:
     type: LoadBalancer
     metadata:
       annotations:
-        metallb.universe.tf/loadBalancerIPs: 172.18.0.214
+        metallb.io/loadBalancerIPs: 172.18.0.214
 
   guiKubernetesService:
     type: LoadBalancer
     metadata:
       annotations:
-        metallb.universe.tf/loadBalancerIPs: 172.18.0.230
+        metallb.io/loadBalancerIPs: 172.18.0.230
 
   connection:
     secretName: mxs-repl-conn
