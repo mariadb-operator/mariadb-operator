@@ -94,19 +94,19 @@ spec:
     type: LoadBalancer
     metadata:
       annotations:
-        metallb.universe.tf/loadBalancerIPs: 172.18.0.150
+        metallb.io/loadBalancerIPs: 172.18.0.150
 
   primaryService:
     type: LoadBalancer
     metadata:
       annotations:
-        metallb.universe.tf/loadBalancerIPs: 172.18.0.160
+        metallb.io/loadBalancerIPs: 172.18.0.160
 
   secondaryService:
     type: LoadBalancer
     metadata:
       annotations:
-        metallb.universe.tf/loadBalancerIPs: 172.18.0.161
+        metallb.io/loadBalancerIPs: 172.18.0.161
 ```
 
 In the case of `MaxScale`, you can also do this via the `kubernetesService` field.
@@ -156,7 +156,7 @@ spec:
     type: LoadBalancer
     metadata:
       annotations:
-        metallb.universe.tf/loadBalancerIPs: 172.18.0.150
+        metallb.io/loadBalancerIPs: 172.18.0.150
 ```
 
 #### Istio
