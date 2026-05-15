@@ -139,4 +139,4 @@ spec:
   #   # Configure maintenance mode
   #   enabled: true
   #   # Do not allow connections through
-  #   cordon: false
+  #   cordon: true
