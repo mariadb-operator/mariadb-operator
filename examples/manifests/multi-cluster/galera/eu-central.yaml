@@ -66,9 +66,9 @@ spec:
   #   # Configure maintenance mode
   #   enabled: true
   #   # Do not allow connections through
-  #   cordon: false
+  #   cordon: true
   #   # Drain long-running connections. Does not affect replication connections and such
-  #   drainConnections: false
+  #   drainConnections: true
   #   # Drain after 30 seconds
   #   drainGracePeriodSeconds: 30
   #   # Set database to read_only
