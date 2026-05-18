@@ -8,6 +8,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gstruct"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -149,10 +150,34 @@ var _ = Describe("MariaDB multi-cluster with replication", Ordered, Label("multi
 	It("should create a physical backup of primary cluster", testCreatePrimaryPhysicalBackup)
 	It("should create replica cluster from physical backup", testCreateReplicaMariaDB)
 	It("should allow to perform writes in the primary", testWritePrimaryMariaDB)
-	It("should have valid replication status", testReplicationStatus)
-	It("should perform switchover in primary cluster", testSwitchoverPrimaryMariaDBBuilder(updateReplicationPrimary))
-	It("should perform switchover in replica cluster", testSwitchoverReplicaMariaDBBuilder(updateReplicationPrimary))
-	It("should have valid replication status after switchover", testReplicationStatus)
+	It("should have valid replication status", testReplicationStatusBuilder(
+		primaryKey,
+		replicaKey,
+		*primaryGtidDomainId,
+		*replicaGtidDomainId,
+	))
+	It("should perform switchover in primary cluster", testSwitchoverPrimaryMariaDBBuilder(
+		updateReplicationPrimary,
+	))
+	It("should perform switchover in replica cluster", testSwitchoverReplicaMariaDBBuilder(
+		updateReplicationPrimary,
+	))
+	It("should have valid replication status after switchover", testReplicationStatusBuilder(
+		primaryKey,
+		replicaKey,
+		*primaryGtidDomainId,
+		*replicaGtidDomainId,
+	))
+	It("should perform cluster switchover", testMultiClusterSwitchoverBuilder(
+		*primaryGtidDomainId,
+		*replicaGtidDomainId,
+	))
+	It("should have valid replication status after cluster switchover", testReplicationStatusBuilder(
+		replicaKey,
+		primaryKey,
+		*replicaGtidDomainId,
+		*primaryGtidDomainId,
+	))
 })
 
 var _ = Describe("MariaDB multi-cluster with replication and MaxScale", Ordered, Label("multi-cluster"), func() {
@@ -228,7 +253,12 @@ var _ = Describe("MariaDB multi-cluster with replication and MaxScale", Ordered,
 	It("should create a physical backup of primary cluster", testCreatePrimaryPhysicalBackup)
 	It("should create replica cluster from physical backup", testCreateReplicaMariaDBMaxScale)
 	It("should allow to perform writes in the primary", testWritePrimaryMaxScale)
-	It("should have valid replication status", testReplicationStatus)
+	It("should have valid replication status", testReplicationStatusBuilder(
+		primaryKey,
+		replicaKey,
+		*primaryGtidDomainId,
+		*replicaGtidDomainId,
+	))
 })
 
 var _ = Describe("MariaDB multi-cluster with Galera", Ordered, Label("multi-cluster"), func() {
@@ -297,10 +327,25 @@ var _ = Describe("MariaDB multi-cluster with Galera", Ordered, Label("multi-clus
 	It("should create a physical backup of primary cluster", testCreatePrimaryPhysicalBackup)
 	It("should create replica cluster from physical backup", testCreateReplicaMariaDB)
 	It("should allow to perform writes in the primary", testWritePrimaryMariaDB)
-	It("should have valid replication status", testGaleraReplicationStatus)
-	It("should perform switchover in primary cluster", testSwitchoverPrimaryMariaDBBuilder(updateGaleraPrimary))
-	It("should perform switchover in replica cluster", testSwitchoverReplicaMariaDBBuilder(updateGaleraPrimary))
-	It("should have valid replication status after switchover", testGaleraReplicationStatus)
+	It("should have valid replication status", testGaleraReplicationStatusBuilder(
+		replicaKey,
+	))
+	It("should perform switchover in primary cluster", testSwitchoverPrimaryMariaDBBuilder(
+		updateGaleraPrimary,
+	))
+	It("should perform switchover in replica cluster", testSwitchoverReplicaMariaDBBuilder(
+		updateGaleraPrimary,
+	))
+	It("should have valid replication status after switchover", testGaleraReplicationStatusBuilder(
+		replicaKey,
+	))
+	It("should perform cluster switchover", testMultiClusterSwitchoverBuilder(
+		*primaryGaleraGtidDomainId,
+		*replicaGaleraGtidDomainId,
+	))
+	It("should have valid replication status after cluster switchover", testGaleraReplicationStatusBuilder(
+		primaryKey,
+	))
 })
 
 var _ = Describe("MariaDB multi-cluster with Galera and MaxScale", Ordered, Label("multi-cluster"), func() {
@@ -376,7 +421,7 @@ var _ = Describe("MariaDB multi-cluster with Galera and MaxScale", Ordered, Labe
 	It("should create a physical backup of primary cluster", testCreatePrimaryPhysicalBackup)
 	It("should create replica cluster from physical backup", testCreateReplicaMariaDBMaxScale)
 	It("should allow to perform writes in the primary", testWritePrimaryMaxScale)
-	It("should have valid replication status", testGaleraReplicationStatus)
+	It("should have valid replication status", testGaleraReplicationStatusBuilder(replicaKey))
 })
 
 func testCreatePrimaryMariaDB() {
@@ -662,7 +707,7 @@ func multiClusterMariaDBBuilder(ipAddr string, replicas int32,
 					Type: corev1.ServiceTypeLoadBalancer,
 					Metadata: &mariadbv1alpha1.Metadata{
 						Annotations: map[string]string{
-							"metallb.universe.tf/loadBalancerIPs": prefixedIPAddr(ipAddr),
+							"metallb.io/loadBalancerIPs": prefixedIPAddr(ipAddr),
 						},
 					},
 				},
@@ -792,7 +837,7 @@ func buildMultiClusterMaxScale(key, mdbKey types.NamespacedName, ipAddr string) 
 				Type: corev1.ServiceTypeLoadBalancer,
 				Metadata: &mariadbv1alpha1.Metadata{
 					Annotations: map[string]string{
-						"metallb.universe.tf/loadBalancerIPs": prefixedIPAddr(ipAddr),
+						"metallb.io/loadBalancerIPs": prefixedIPAddr(ipAddr),
 					},
 				},
 			},
@@ -874,78 +919,168 @@ func buildMultiClusterMaxScale(key, mdbKey types.NamespacedName, ipAddr string) 
 	return applyMaxscaleSmallTestConfig(mxs)
 }
 
-func testReplicationStatus() {
-	By("Getting primary MariaDB client")
-	Expect(k8sClient.Get(testCtx, primaryKey, primaryMdb)).To(Succeed())
-	Expect(primaryMdb.Status.CurrentPrimaryPodIndex).NotTo(BeNil())
+func testReplicationStatusBuilder(primaryKey, replicaKey types.NamespacedName,
+	primaryGtidDomainId, replicaGtidDomainId int) func() {
+	var (
+		primaryMdb mariadbv1alpha1.MariaDB
+		replicaMdb mariadbv1alpha1.MariaDB
+	)
+	return func() {
+		By("Getting primary MariaDB client")
+		Expect(k8sClient.Get(testCtx, primaryKey, &primaryMdb)).To(Succeed())
+		Expect(primaryMdb.Status.CurrentPrimaryPodIndex).NotTo(BeNil())
 
-	var primaryPodIndex *int
-	for i := 0; i < int(primaryMdb.Spec.Replicas); i++ {
-		if i != *primaryMdb.Status.CurrentPrimaryPodIndex {
-			primaryPodIndex = &i
-			break
+		var primaryPodIndex *int
+		for i := 0; i < int(primaryMdb.Spec.Replicas); i++ {
+			if i != *primaryMdb.Status.CurrentPrimaryPodIndex {
+				primaryPodIndex = &i
+				break
+			}
 		}
-	}
-	Expect(primaryPodIndex).NotTo(BeNil())
-	primaryClient, err := sql.NewInternalClientWithPodIndex(testCtx, primaryMdb, testRefResolver, *primaryPodIndex)
-	Expect(err).To(Succeed())
-	defer primaryClient.Close()
+		Expect(primaryPodIndex).NotTo(BeNil())
+		primaryClient, err := sql.NewInternalClientWithPodIndex(testCtx, &primaryMdb, testRefResolver, *primaryPodIndex)
+		Expect(err).To(Succeed())
+		defer primaryClient.Close()
 
-	By("Ensuring valid primary gtid_current_pos")
-	testGtidCurrentPos(*primaryClient, *primaryGtidDomainId)
-	By("Ensuring primary replication running")
-	testReplicationRunning(*primaryClient, nil)
+		By("Ensuring valid primary gtid_current_pos")
+		testGtidCurrentPos(*primaryClient, primaryGtidDomainId)
+		By("Ensuring primary replication running")
+		testReplicationRunning(*primaryClient, nil)
 
-	By("Getting primary replica MariaDB client")
-	Expect(k8sClient.Get(testCtx, replicaKey, replicaMdb)).To(Succeed())
-	Expect(replicaMdb.Status.CurrentPrimary).NotTo(BeNil())
+		By("Getting primary replica MariaDB client")
+		Expect(k8sClient.Get(testCtx, replicaKey, &replicaMdb)).To(Succeed())
+		Expect(replicaMdb.Status.CurrentPrimary).NotTo(BeNil())
 
-	primaryReplicaPodIndex := replicaMdb.Status.CurrentPrimaryPodIndex
-	primaryReplicaClient, err := sql.NewInternalClientWithPodIndex(testCtx, replicaMdb, testRefResolver, *primaryReplicaPodIndex)
-	Expect(err).To(Succeed())
-	defer primaryReplicaClient.Close()
+		primaryReplicaPodIndex := replicaMdb.Status.CurrentPrimaryPodIndex
+		primaryReplicaClient, err := sql.NewInternalClientWithPodIndex(testCtx, &replicaMdb, testRefResolver, *primaryReplicaPodIndex)
+		Expect(err).To(Succeed())
+		defer primaryReplicaClient.Close()
 
-	By("Ensuring valid primary replica gtid_current_pos")
-	testGtidCurrentPos(*primaryReplicaClient, *primaryGtidDomainId, *replicaGtidDomainId)
-	By("Ensuring primary replica replication running")
-	testReplicationRunning(*primaryReplicaClient, &replicationctrl.MultiClusterReplicaConnectionName)
+		By("Ensuring valid primary replica gtid_current_pos")
+		testGtidCurrentPos(*primaryReplicaClient, primaryGtidDomainId, replicaGtidDomainId)
+		By("Ensuring primary replica replication running")
+		testReplicationRunning(*primaryReplicaClient, &replicationctrl.MultiClusterReplicaConnectionName)
 
-	By("Getting replica MariaDB client")
-	Expect(k8sClient.Get(testCtx, replicaKey, replicaMdb)).To(Succeed())
-	Expect(replicaMdb.Status.CurrentPrimary).NotTo(BeNil())
+		By("Getting replica MariaDB client")
+		Expect(k8sClient.Get(testCtx, replicaKey, &replicaMdb)).To(Succeed())
+		Expect(replicaMdb.Status.CurrentPrimary).NotTo(BeNil())
 
-	var replicaPodIndex *int
-	for i := 0; i < int(replicaMdb.Spec.Replicas); i++ {
-		if i != *replicaMdb.Status.CurrentPrimaryPodIndex {
-			replicaPodIndex = &i
-			break
+		var replicaPodIndex *int
+		for i := 0; i < int(replicaMdb.Spec.Replicas); i++ {
+			if i != *replicaMdb.Status.CurrentPrimaryPodIndex {
+				replicaPodIndex = &i
+				break
+			}
 		}
-	}
-	Expect(replicaPodIndex).ToNot(BeNil())
-	replicaClient, err := sql.NewInternalClientWithPodIndex(testCtx, replicaMdb, testRefResolver, *replicaPodIndex)
-	Expect(err).To(Succeed())
-	defer replicaClient.Close()
+		Expect(replicaPodIndex).ToNot(BeNil())
+		replicaClient, err := sql.NewInternalClientWithPodIndex(testCtx, &replicaMdb, testRefResolver, *replicaPodIndex)
+		Expect(err).To(Succeed())
+		defer replicaClient.Close()
 
-	By("Ensuring valid replica gtid_current_pos")
-	testGtidCurrentPos(*replicaClient, *primaryGtidDomainId, *replicaGtidDomainId)
-	By("Ensuring replica replication running")
-	testReplicationRunning(*replicaClient, nil)
+		By("Ensuring valid replica gtid_current_pos")
+		testGtidCurrentPos(*replicaClient, primaryGtidDomainId, replicaGtidDomainId)
+		By("Ensuring replica replication running")
+		testReplicationRunning(*replicaClient, nil)
+	}
 }
 
-func testGaleraReplicationStatus() {
-	By("Getting primary replica MariaDB client")
-	Expect(k8sClient.Get(testCtx, replicaKey, replicaMdb)).To(Succeed())
-	Expect(replicaMdb.Status.CurrentPrimary).NotTo(BeNil())
+func testGaleraReplicationStatusBuilder(replicaKey types.NamespacedName) func() {
+	var replicaMdb mariadbv1alpha1.MariaDB
+	return func() {
+		By("Getting primary replica MariaDB client")
+		Expect(k8sClient.Get(testCtx, replicaKey, &replicaMdb)).To(Succeed())
+		Expect(replicaMdb.Status.CurrentPrimary).NotTo(BeNil())
 
-	primaryReplicaPodIndex := replicaMdb.Status.CurrentPrimaryPodIndex
-	primaryReplicaClient, err := sql.NewInternalClientWithPodIndex(testCtx, replicaMdb, testRefResolver, *primaryReplicaPodIndex)
-	Expect(err).To(Succeed())
-	defer primaryReplicaClient.Close()
+		primaryReplicaPodIndex := replicaMdb.Status.CurrentPrimaryPodIndex
+		primaryReplicaClient, err := sql.NewInternalClientWithPodIndex(testCtx, &replicaMdb, testRefResolver, *primaryReplicaPodIndex)
+		Expect(err).To(Succeed())
+		defer primaryReplicaClient.Close()
 
-	By("Ensuring valid primary replica gtid_current_pos")
-	testGtidCurrentPos(*primaryReplicaClient, *primaryGaleraGtidDomainId, *replicaGaleraGtidDomainId)
-	By("Ensuring primary replica replication running")
-	testReplicationRunning(*primaryReplicaClient, &replicationctrl.MultiClusterReplicaConnectionName)
+		By("Ensuring valid primary replica gtid_current_pos")
+		testGtidCurrentPos(*primaryReplicaClient, *primaryGaleraGtidDomainId, *replicaGaleraGtidDomainId)
+		By("Ensuring primary replica replication running")
+		testReplicationRunning(*primaryReplicaClient, &replicationctrl.MultiClusterReplicaConnectionName)
+	}
+}
+
+func testMultiClusterSwitchoverBuilder(primaryGtidDomainId, replicaGtidDomainId int) func() {
+	return func() {
+		By("Expecting replica MariaDB to be ready")
+		expectMariadbFn(testCtx, k8sClient, replicaKey, func(mdb *mariadbv1alpha1.MariaDB) bool {
+			return mdb.IsReady()
+		})
+		By("Expecting primary MariaDB to be ready")
+		expectMariadbFn(testCtx, k8sClient, primaryKey, func(mdb *mariadbv1alpha1.MariaDB) bool {
+			return mdb.IsReady()
+		})
+
+		By("Promoting replica cluster")
+		Eventually(func(g Gomega) bool {
+			if err := k8sClient.Get(testCtx, replicaKey, replicaMdb); err != nil {
+				return false
+			}
+			replicaMdb.Spec.MultiCluster.Primary = replicaMdb.Name
+			g.Expect(k8sClient.Update(testCtx, replicaMdb)).To(Succeed())
+			return true
+		}, testTimeout, testInterval).Should(BeTrue())
+
+		By("Getting replica MariaDB client")
+		replicaClient, err := sql.NewInternalClientWithPodIndex(testCtx, replicaMdb, testRefResolver, *replicaMdb.Status.CurrentPrimaryPodIndex)
+		Expect(err).To(Succeed())
+		defer replicaClient.Close()
+
+		By("Ensuring no replication in promoted replica")
+		Eventually(func(g Gomega) bool {
+			status, err := replicaClient.ReplicaStatus(
+				testCtx,
+				testLogger,
+				sql.WithConnectionName(replicationctrl.MultiClusterReplicaConnectionName),
+			)
+			g.Expect(err).ToNot(Succeed())
+			g.Expect(status).To(BeNil())
+			return true
+		}, testTimeout, testInterval).Should(BeTrue())
+
+		By("Demoting primary cluster")
+		Eventually(func(g Gomega) bool {
+			if err := k8sClient.Get(testCtx, primaryKey, primaryMdb); err != nil {
+				return false
+			}
+			primaryMdb.Spec.MultiCluster.Primary = replicaMdb.Name
+			g.Expect(k8sClient.Update(testCtx, primaryMdb)).To(Succeed())
+			return true
+		}, testTimeout, testInterval).Should(BeTrue())
+
+		By("Getting primary MariaDB client")
+		primaryClient, err := sql.NewInternalClientWithPodIndex(testCtx, primaryMdb, testRefResolver, *primaryMdb.Status.CurrentPrimaryPodIndex)
+		Expect(err).To(Succeed())
+		defer primaryClient.Close()
+
+		By("Ensuring multiple GTIDs in demoted primary")
+		Eventually(func(g Gomega) bool {
+			status, err := primaryClient.ReplicaStatus(
+				testCtx,
+				testLogger,
+				sql.WithConnectionName(replicationctrl.MultiClusterReplicaConnectionName),
+			)
+			g.Expect(err).To(Succeed())
+			g.Expect(status).ToNot(BeNil())
+			g.Expect(status.GtidCurrentPos).ToNot(BeNil())
+
+			primaryGtids, err := replication.ParseAllGtids(*status.GtidCurrentPos)
+			g.Expect(err).To(Succeed())
+			g.Expect(primaryGtids).To(HaveLen(2))
+			g.Expect(primaryGtids).To(ContainElement(MatchFields(IgnoreExtras,
+				Fields{
+					"DomainID": BeEquivalentTo(primaryGtidDomainId),
+				})))
+			g.Expect(primaryGtids).To(ContainElement(MatchFields(IgnoreExtras,
+				Fields{
+					"DomainID": BeEquivalentTo(replicaGtidDomainId),
+				})))
+			return true
+		}, testTimeout, testInterval).Should(BeTrue())
+	}
 }
 
 func testGtidCurrentPos(client sql.Client, domainIds ...int) {
@@ -969,7 +1104,7 @@ func testReplicationRunning(client sql.Client, connectionName *string) {
 
 	Eventually(func(g Gomega) bool {
 		status, err := client.ReplicaStatus(testCtx, testLogger, opts...)
-		Expect(err).To(Succeed())
+		g.Expect(err).To(Succeed())
 
 		return ptr.Deref(status.SlaveIORunning, false) &&
 			ptr.Deref(status.SlaveSQLRunning, false) &&
