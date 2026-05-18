@@ -3,7 +3,7 @@
     // TODO: bump when available, see: https://github.com/devcontainers/images/tree/main/src/go
     "image": "mcr.microsoft.com/devcontainers/go:1.25-bookworm",
     "features": {
-        "ghcr.io/devcontainers/features/docker-in-docker:2.16.1": {
+        "ghcr.io/devcontainers/features/docker-in-docker:2.17.0": {
             "moby": true,
             "installDockerBuildx": true,
             "version": "latest",
