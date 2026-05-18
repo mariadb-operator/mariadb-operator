@@ -144,7 +144,7 @@ Being able to provide metadata allows you to integrate with other CNCF landscape
 
 #### Metallb
 
-If you run on bare metal and you use [Metallb](https://metallb.universe.tf/) for managing the `LoadBalancer` objects, you can declare its IPs via annotations:
+If you run on bare metal and you use [Metallb](https://metallb.io) for managing the `LoadBalancer` objects, you can declare its IPs via annotations:
 
 ```yaml
 apiVersion: k8s.mariadb.com/v1alpha1
