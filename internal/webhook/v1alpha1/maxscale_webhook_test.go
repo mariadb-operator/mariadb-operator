@@ -494,7 +494,7 @@ var _ = Describe("MaxScale webhook", func() {
 						Type: corev1.ServiceTypeLoadBalancer,
 						Metadata: &v1alpha1.Metadata{
 							Annotations: map[string]string{
-								"metallb.universe.tf/loadBalancerIPs": "172.18.0.214",
+								"metallb.io/loadBalancerIPs": "172.18.0.214",
 							},
 						},
 					},
