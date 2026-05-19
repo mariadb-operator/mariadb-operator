@@ -2,6 +2,7 @@ package maintenance
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
@@ -35,13 +36,13 @@ func (r *MaintenanceReconciler) Reconcile(ctx context.Context, mariadb *mariadbv
 		return ctrl.Result{}, nil
 	}
 	if !mariadb.IsMaintenanceModeEnabled() {
-		return r.reconcileReadOnly(ctx, mariadb, logger)
+		return ctrl.Result{}, r.reconcileReadOnly(ctx, mariadb, logger)
 	}
-	if result, err := r.reconcileDrainConnections(ctx, mariadb, logger); !result.IsZero() || err != nil {
-		return result, err
+	if err := r.reconcileDrainConnections(ctx, mariadb, logger); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error draining connections: %v", err)
 	}
-	if result, err := r.reconcileReadOnly(ctx, mariadb, logger); !result.IsZero() || err != nil {
-		return result, err
+	if err := r.reconcileReadOnly(ctx, mariadb, logger); err != nil {
+		return ctrl.Result{}, fmt.Errorf("error reconciling readonly: %v", err)
 	}
 	return ctrl.Result{}, nil
 }

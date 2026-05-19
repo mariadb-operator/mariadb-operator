@@ -202,6 +202,10 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			Reconcile: r.GaleraReconciler.Reconcile,
 		},
 		{
+			Name:      "Root Password",
+			Reconcile: r.reconcileRootPassword,
+		},
+		{
 			Name:      "Restore",
 			Reconcile: r.reconcileRestore,
 		},
@@ -216,10 +220,6 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		{
 			Name:      "SQL",
 			Reconcile: r.reconcileSQL,
-		},
-		{
-			Name:      "Root Password",
-			Reconcile: r.reconcileRootPassword,
 		},
 		{
 			Name:      "Metrics",

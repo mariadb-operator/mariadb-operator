@@ -11,14 +11,13 @@ import (
 	"golang.org/x/sync/errgroup"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/ptr"
-	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 func (r *MaintenanceReconciler) reconcileDrainConnections(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	logger logr.Logger) (ctrl.Result, error) {
+	logger logr.Logger) error {
 	maintenance := ptr.Deref(mariadb.Spec.Maintenance, mariadbv1alpha1.MariaDBMaintenance{})
 	if !maintenance.DrainConnections {
-		return ctrl.Result{}, nil
+		return nil
 	}
 	drainLogger := logger.WithName("drain")
 
@@ -45,7 +44,7 @@ func (r *MaintenanceReconciler) reconcileDrainConnections(ctx context.Context, m
 		})
 	}
 
-	return ctrl.Result{}, g.Wait()
+	return g.Wait()
 }
 
 func (r *MaintenanceReconciler) drainProcesses(ctx context.Context, client *sql.Client, processes []sql.Process,
