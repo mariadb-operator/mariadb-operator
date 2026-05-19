@@ -14,6 +14,10 @@ import (
 func (r *MaintenanceReconciler) reconcileReadOnly(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
 	logger logr.Logger) error {
 	readOnlyLogger := logger.WithName("readonly")
+
+	if !shouldReconcileReadOnly(mariadb, readOnlyLogger) {
+		return nil
+	}
 	readOnlyDesiredPodState := r.getReadOnlyDesiredPodState(mariadb)
 
 	clientSet := sql.NewClientSet(mariadb, r.refResolver)
