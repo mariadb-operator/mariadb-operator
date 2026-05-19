@@ -249,7 +249,7 @@ var _ = Describe("MariaDB replication", Ordered, func() {
 					Type: corev1.ServiceTypeLoadBalancer,
 					Metadata: &mariadbv1alpha1.Metadata{
 						Annotations: map[string]string{
-							"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.214",
+							"metallb.io/loadBalancerIPs": testCidrPrefix + ".0.214",
 						},
 					},
 				},
@@ -257,7 +257,7 @@ var _ = Describe("MariaDB replication", Ordered, func() {
 					Type: corev1.ServiceTypeLoadBalancer,
 					Metadata: &mariadbv1alpha1.Metadata{
 						Annotations: map[string]string{
-							"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.230",
+							"metallb.io/loadBalancerIPs": testCidrPrefix + ".0.230",
 						},
 					},
 				},
