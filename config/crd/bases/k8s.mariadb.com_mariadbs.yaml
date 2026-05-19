@@ -3493,6 +3493,8 @@ spec:
                     description: Members is the specification of each member of the
                       multi-cluster topology.
                     items:
+                      description: MultiClusterMember defines the configuration for
+                        a multi-cluster topology member.
                       properties:
                         externalMariaDbRef:
                           description: |-

@@ -60,7 +60,7 @@ var _ = Describe("MariaDB Maintenance", Ordered, Label("basic"), func() {
 				Type: corev1.ServiceTypeLoadBalancer,
 				Metadata: &mariadbv1alpha1.Metadata{
 					Annotations: map[string]string{
-						"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.120",
+						"metallb.io/loadBalancerIPs": testCidrPrefix + ".0.120",
 					},
 				},
 			},
@@ -68,7 +68,7 @@ var _ = Describe("MariaDB Maintenance", Ordered, Label("basic"), func() {
 				Type: corev1.ServiceTypeLoadBalancer,
 				Metadata: &mariadbv1alpha1.Metadata{
 					Annotations: map[string]string{
-						"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.130",
+						"metallb.io/loadBalancerIPs": testCidrPrefix + ".0.130",
 					},
 				},
 			},
@@ -76,7 +76,7 @@ var _ = Describe("MariaDB Maintenance", Ordered, Label("basic"), func() {
 				Type: corev1.ServiceTypeLoadBalancer,
 				Metadata: &mariadbv1alpha1.Metadata{
 					Annotations: map[string]string{
-						"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.131",
+						"metallb.io/loadBalancerIPs": testCidrPrefix + ".0.131",
 					},
 				},
 			},
