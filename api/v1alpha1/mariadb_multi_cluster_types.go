@@ -6,6 +6,7 @@ import (
 	"k8s.io/utils/ptr"
 )
 
+// MultiCluster is the multi-cluster topology configuration.
 type MultiCluster struct {
 	// MultiClusterSpec is the desired multi-cluster topology specification.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec
@@ -16,6 +17,7 @@ type MultiCluster struct {
 	Enabled bool `json:"enabled,omitempty"`
 }
 
+// MultiClusterSpec is the specification for the multi-cluster topology.
 type MultiClusterSpec struct {
 	// Primary is the name of the primary cluster. It refers to a member in the 'members' field, containing its full specification.
 	// +optional
@@ -27,6 +29,7 @@ type MultiClusterSpec struct {
 	Members []MultiClusterMember `json:"members,omitempty"`
 }
 
+// MultiClusterMember defines the configuration for a multi-cluster topology member.
 type MultiClusterMember struct {
 	// Name is the identifier of the member.
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}

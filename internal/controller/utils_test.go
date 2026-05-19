@@ -197,7 +197,7 @@ max_allowed_packet=256M`),
 				Type: corev1.ServiceTypeLoadBalancer,
 				Metadata: &mariadbv1alpha1.Metadata{
 					Annotations: map[string]string{
-						"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.46",
+						"metallb.io/loadBalancerIPs": testCidrPrefix + ".0.46",
 					},
 				},
 			},
@@ -328,7 +328,7 @@ max_allowed_packet=256M`),
 				Type: corev1.ServiceTypeLoadBalancer,
 				Metadata: &mariadbv1alpha1.Metadata{
 					Annotations: map[string]string{
-						"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.47",
+						"metallb.io/loadBalancerIPs": testCidrPrefix + ".0.47",
 					},
 				},
 			},
@@ -1492,7 +1492,7 @@ func buildTestMariaDBWithRepl(key types.NamespacedName) *mariadbv1alpha1.MariaDB
 				Type: corev1.ServiceTypeLoadBalancer,
 				Metadata: &mariadbv1alpha1.Metadata{
 					Annotations: map[string]string{
-						"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.120",
+						"metallb.io/loadBalancerIPs": testCidrPrefix + ".0.120",
 					},
 				},
 			},
@@ -1509,7 +1509,7 @@ func buildTestMariaDBWithRepl(key types.NamespacedName) *mariadbv1alpha1.MariaDB
 				Type: corev1.ServiceTypeLoadBalancer,
 				Metadata: &mariadbv1alpha1.Metadata{
 					Annotations: map[string]string{
-						"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.130",
+						"metallb.io/loadBalancerIPs": testCidrPrefix + ".0.130",
 					},
 				},
 			},
@@ -1526,7 +1526,7 @@ func buildTestMariaDBWithRepl(key types.NamespacedName) *mariadbv1alpha1.MariaDB
 				Type: corev1.ServiceTypeLoadBalancer,
 				Metadata: &mariadbv1alpha1.Metadata{
 					Annotations: map[string]string{
-						"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.131",
+						"metallb.io/loadBalancerIPs": testCidrPrefix + ".0.131",
 					},
 				},
 			},
