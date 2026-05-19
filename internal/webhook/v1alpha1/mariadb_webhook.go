@@ -319,7 +319,7 @@ func validateMultiCluster(mariadb *v1alpha1.MariaDB) error {
 		return field.Invalid(
 			field.NewPath("spec").Child("multiCluster").Child("enabled"),
 			multiCluster.Enabled,
-			"either replication or Galera must be enabled when muti-cluster is enabled.",
+			"either replication or Galera must be enabled when multi-cluster is enabled.",
 		)
 	}
 
