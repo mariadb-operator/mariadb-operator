@@ -3,9 +3,11 @@ package v1alpha1
 import (
 	"context"
 	"errors"
+	"fmt"
 	"reflect"
 
 	"github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
+	"github.com/mariadb-operator/mariadb-operator/v26/pkg/datastructures"
 	galerakeys "github.com/mariadb-operator/mariadb-operator/v26/pkg/galera/config/keys"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/utils/ptr"
@@ -46,6 +48,7 @@ func (v *MariaDBCustomValidator) ValidateCreate(ctx context.Context, mariadb *v1
 		validateRootPassword,
 		validateMaxScale,
 		validateTLS,
+		validateMultiCluster,
 	}
 	for _, fn := range validateFns {
 		if err := fn(mariadb); err != nil {
@@ -71,6 +74,7 @@ func (v *MariaDBCustomValidator) ValidateUpdate(ctx context.Context, oldMariadb,
 		validateStorage,
 		validateRootPassword,
 		validateTLS,
+		validateMultiCluster,
 	}
 	for _, fn := range validateFns {
 		if err := fn(mariadb); err != nil {
@@ -302,6 +306,47 @@ func validateTLS(mariadb *v1alpha1.MariaDB) error {
 		if err := validateTLSCert(&item); err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+func validateMultiCluster(mariadb *v1alpha1.MariaDB) error {
+	multiCluster := ptr.Deref(mariadb.Spec.MultiCluster, v1alpha1.MultiCluster{})
+	if !multiCluster.Enabled {
+		return nil
+	}
+	if !mariadb.IsGaleraEnabled() && !mariadb.IsReplicationEnabled() {
+		return field.Invalid(
+			field.NewPath("spec").Child("multiCluster").Child("enabled"),
+			multiCluster.Enabled,
+			"either replication or Galera must be enabled when muti-cluster is enabled.",
+		)
+	}
+
+	if multiCluster.Primary == "" {
+		return field.Invalid(
+			field.NewPath("spec").Child("multiCluster").Child("primary"),
+			multiCluster.Primary,
+			"'spec.multiCluster.primary' must be specified",
+		)
+	}
+
+	memberIndex := datastructures.NewIndex(multiCluster.Members, func(m v1alpha1.MultiClusterMember) string {
+		return m.Name
+	})
+	if !datastructures.Has(memberIndex, mariadb.Name) {
+		return field.Invalid(
+			field.NewPath("spec").Child("multiCluster").Child("members"),
+			multiCluster.Members,
+			fmt.Sprintf("current cluster %s is not defined as a multi-cluster member.", mariadb.Name),
+		)
+	}
+	if !datastructures.Has(memberIndex, multiCluster.Primary) {
+		return field.Invalid(
+			field.NewPath("spec").Child("multiCluster").Child("members"),
+			multiCluster.Members,
+			fmt.Sprintf("primary cluster %s is not defined as a multi-cluster member.", multiCluster.Primary),
+		)
 	}
 	return nil
 }
