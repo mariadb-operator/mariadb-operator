@@ -3,18 +3,16 @@ package maintenance
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/go-logr/logr"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/sql"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
 	corev1 "k8s.io/api/core/v1"
-	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 func (r *MaintenanceReconciler) reconcileReadOnly(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB,
-	logger logr.Logger) (ctrl.Result, error) {
+	logger logr.Logger) error {
 	readOnlyDesiredPodState := r.getReadOnlyDesiredPodState(mariadb)
 
 	clientSet := sql.NewClientSet(mariadb, r.refResolver)
@@ -29,13 +27,14 @@ func (r *MaintenanceReconciler) reconcileReadOnly(ctx context.Context, mariadb *
 
 		client, err := clientSet.ClientForIndex(ctx, podIndex)
 		if err != nil {
-			// This is to avoid noisy error logs, as it is continuously reconciling.
+			// We shouldn't be returning an error here, as it would hang the reconciliation i.e. next phases won't be executed.
+			// Readonly will be reconciled once a SQL connection can be established.
 			podLogger.V(1).Info("Error getting SQL client for Pod index", "err", err)
-			return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+			return nil
 		}
 		currentReadOnly, err := client.GetReadOnly(ctx)
 		if err != nil {
-			return ctrl.Result{}, fmt.Errorf("error getting readonly state in Pod %s: %v", podName, err)
+			return fmt.Errorf("error getting readonly state in Pod %s: %v", podName, err)
 		}
 
 		if desiredReadOnly == currentReadOnly {
@@ -48,7 +47,7 @@ func (r *MaintenanceReconciler) reconcileReadOnly(ctx context.Context, mariadb *
 				"Enabling readonly in Pod %s", podName)
 
 			if err := client.EnableReadOnly(ctx); err != nil {
-				return ctrl.Result{}, fmt.Errorf("error enabling readonly in Pod %s %v", podName, err)
+				return fmt.Errorf("error enabling readonly in Pod %s %v", podName, err)
 			}
 		} else {
 			podLogger.Info("Disabling readonly")
@@ -56,11 +55,11 @@ func (r *MaintenanceReconciler) reconcileReadOnly(ctx context.Context, mariadb *
 				"Disabling readonly in Pod %s", podName)
 
 			if err := client.DisableReadOnly(ctx); err != nil {
-				return ctrl.Result{}, fmt.Errorf("error disabling readonly in Pod %s: %v", podName, err)
+				return fmt.Errorf("error disabling readonly in Pod %s: %v", podName, err)
 			}
 		}
 	}
-	return ctrl.Result{}, nil
+	return nil
 }
 
 // getReadOnlyDesiredPodState returns a map with the desired readOnly state indexed by Pod index.
