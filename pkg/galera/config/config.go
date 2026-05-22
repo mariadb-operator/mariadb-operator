@@ -22,8 +22,9 @@ import (
 )
 
 const (
-	ConfigFileName    = "0-galera.cnf"
-	BootstrapFileName = recovery.BootstrapFileName
+	ConfigFileName     = "0-galera.cnf"
+	BootstrapFileName  = recovery.BootstrapFileName
+	gtidDomainIDOffset = 1
 )
 
 var BootstrapFile = []byte(`[galera]
@@ -47,7 +48,7 @@ func (c *ConfigFile) Marshal(podEnv *environment.PodEnvironment) ([]byte, error)
 	}
 	galera := ptr.Deref(c.mariadb.Spec.Galera, mariadbv1alpha1.Galera{})
 
-	gtidDomainID, err := c.gtidDomainID(podEnv.PodName, 1)
+	gtidDomainID, err := c.gtidDomainID(podEnv.PodName)
 	if err != nil {
 		return nil, fmt.Errorf("error getting gtid_domain_id: %v", err)
 	}
@@ -231,9 +232,9 @@ func (c *ConfigFile) getProviderOptions(env *environment.PodEnvironment, options
 
 // gtidDomainID can be used to get a new 'gtid_domain_id' from the pod name.
 // We are relying on the natural incrementation of pod naming in statefulsets.
-// The 'offset' is added since 'gtid_domain_id' and 'wsrep_gtid_domain_id' must never match and they will for the first pod ("-0")
+// An offset is added since 'gtid_domain_id' and 'wsrep_gtid_domain_id' must never match and they will for the first pod ("-0")
 // See: https://mariadb.com/docs/galera-cluster/high-availability/using-mariadb-replication-with-mariadb-galera-cluster/configuring-mariadb-replication-between-two-mariadb-galera-clusters
-func (c *ConfigFile) gtidDomainID(podName string, offset int) (*int, error) {
+func (c *ConfigFile) gtidDomainID(podName string) (*int, error) {
 	if !c.mariadb.IsMultiClusterEnabled() {
 		return nil, nil
 	}
@@ -245,7 +246,7 @@ func (c *ConfigFile) gtidDomainID(podName string, offset int) (*int, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error getting Pod index: %v", err)
 	}
-	return ptr.To(offset + *galera.GtidDomainID + *podIndex), nil
+	return ptr.To(gtidDomainIDOffset + *galera.GtidDomainID + *podIndex), nil
 }
 
 func UpdateConfig(configBytes []byte, podEnv *environment.PodEnvironment) ([]byte, error) {
