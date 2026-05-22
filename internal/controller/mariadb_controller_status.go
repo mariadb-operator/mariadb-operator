@@ -145,7 +145,7 @@ func (r *MariaDBReconciler) getReplicationRole(ctx context.Context, mdb *mariadb
 		isPrimary        bool
 	)
 
-	isPrimaryReplica, err = r.isPrimaryReplica(ctx, mdb, podIndex, client, logger)
+	isPrimaryReplica, err = r.isMultiClusterPrimaryReplica(ctx, mdb, podIndex, client, logger)
 	if err != nil && !sql.IsConnectionNotExists(err) {
 		aggErr = multierror.Append(aggErr, err)
 	}
@@ -169,7 +169,7 @@ func (r *MariaDBReconciler) getReplicationRole(ctx context.Context, mdb *mariadb
 	return role, nil
 }
 
-func (r *MariaDBReconciler) isPrimaryReplica(ctx context.Context, mdb *mariadbv1alpha1.MariaDB, podIndex int,
+func (r *MariaDBReconciler) isMultiClusterPrimaryReplica(ctx context.Context, mdb *mariadbv1alpha1.MariaDB, podIndex int,
 	client *sql.Client, logger logr.Logger) (bool, error) {
 	if !mdb.IsMultiClusterPrimaryReplica(podIndex) {
 		return false, nil
