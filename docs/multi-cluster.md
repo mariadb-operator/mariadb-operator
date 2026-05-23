@@ -94,45 +94,7 @@ Before provisioning a multi-cluster setup, ensure the following:
 
 The provisioning process consists of the following steps:
 
-#### Step 1: Create PhysicalBackup template
-
-The replica cluster bootstraps from a physical backup of the primary cluster. Create a `PhysicalBackup` template that the operator will use to create the actual backup:
-
-```yaml
-apiVersion: k8s.mariadb.com/v1alpha1
-kind: PhysicalBackup
-metadata:
-  name: physicalbackup-eu-south
-spec:
-  mariaDbRef:
-    name: mariadb-eu-south
-  schedule:
-    cron: "0 * * * *"
-    immediate: true
-  target: PreferReplica
-  compression: bzip2
-  storage:
-    s3:
-      bucket: multi-cluster
-      prefix: eu-south
-      endpoint: minio.minio.svc.cluster.local:9000
-      region: us-east-1
-      accessKeyIdSecretKeyRef:
-        name: minio
-        key: access-key-id
-      secretAccessKeySecretKeyRef:
-        name: minio
-        key: secret-access-key
-      tls:
-        enabled: true
-        caSecretKeyRef:
-          name: minio-ca
-          key: ca.crt
-```
-
-Apply this template to the **primary cluster** (eu-south). The operator will periodically create physical backups, which will be used to bootstrap the replica cluster.
-
-#### Step 2: Deploy primary cluster
+#### Step 1: Deploy primary cluster
 
 Deploy the primary cluster in the first Kubernetes cluster (eu-south). This cluster will serve as the source of all write operations:
 
@@ -218,6 +180,45 @@ spec:
     clientCASecretRef:
       name: mariadb-server-ca
 ```
+
+#### Step 2: Create PhysicalBackup
+
+The replica cluster bootstraps from a physical backup of the primary cluster. Create a `PhysicalBackup` resource that the operator will use to take a full backup of the primary cluster:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: PhysicalBackup
+metadata:
+  name: physicalbackup-eu-south
+spec:
+  mariaDbRef:
+    name: mariadb-eu-south
+  onDemand: "1"
+  target: PreferReplica
+  compression: bzip2
+  storage:
+    s3:
+      bucket: multi-cluster
+      prefix: eu-south
+      endpoint: minio.minio.svc.cluster.local:9000
+      region: us-east-1
+      accessKeyIdSecretKeyRef:
+        name: minio
+        key: access-key-id
+      secretAccessKeySecretKeyRef:
+        name: minio
+        key: secret-access-key
+      tls:
+        enabled: true
+        caSecretKeyRef:
+          name: minio-ca
+          key: ca.crt
+```
+
+Apply this `PhysicalBackup` to the **primary cluster** (eu-south). The operator will take a full physical backup and store it in the S3 bucket. This backup will be used to bootstrap the replica cluster.
+
+> [!TIP]
+> The `onDemand` field triggers an immediate backup. Alternatively, you can use a `schedule.cron` to create periodic backups.
 
 #### Step 3: Deploy replica cluster
 
@@ -319,7 +320,7 @@ spec:
 
 When the replica cluster is deployed, the operator will:
 
-1. Create a `PhysicalBackup` job that downloads the latest backup from the S3 bucket.
+1. Download the physical backup from the S3 bucket.
 2. Restore the backup to the replica cluster's Pods.
 3. Configure the internal replication topology (primary + replicas within the cluster).
 4. Configure the multi-cluster replication connection (primary replica -> primary cluster).
