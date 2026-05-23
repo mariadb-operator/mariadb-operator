@@ -33,20 +33,7 @@ Please refer to the [replication](./replication.md) and [Galera](./galera.md) do
 
 ## Introduction
 
-The multi-cluster feature extends the MariaDB operator's high availability capabilities beyond a single Kubernetes cluster. It enables the following architecture:
-
-```
-+-------------------+                    +-------------------+
-|  Cluster A (eu-south)              |  Cluster B (eu-central)              |
-|                          |                    |                          |
-|  +------------------+  |  |  +------------------+  |
-|  |   Galera/Repl    |  |  |  |   Galera/Repl    |  |
-|  |   Primary        |  |  |  |   PrimaryReplica |  |
-|  |   Replica        |<-+--->|   Replica        |  |
-|  |   Replica        |  |  |  |   Replica        |  |
-|  +------------------+  |  |  +------------------+  |
-+-------------------+                    +-------------------+
-```
+The multi-cluster feature extends the MariaDB operator's high availability capabilities beyond a single Kubernetes cluster. Please refer to the [architecture diagram](#architecture) for a visual representation.
 
 Each cluster runs its own HA topology (replication or Galera), and the clusters are connected via a dedicated replication connection. The primary cluster's primary Pod acts as the source of truth, and the replica cluster's primary Pod (called the "primary replica") replicates from it.
 
