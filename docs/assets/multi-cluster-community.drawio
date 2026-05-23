@@ -62,7 +62,7 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="5EfBjm7NbJ47lxaDM1mC-82" connectable="0" parent="5EfBjm7NbJ47lxaDM1mC-80" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=24;labelBackgroundColor=none;" value="Take physical backups&lt;br&gt;and archive binary logs" vertex="1">
+        <mxCell id="5EfBjm7NbJ47lxaDM1mC-82" connectable="0" parent="5EfBjm7NbJ47lxaDM1mC-80" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=24;labelBackgroundColor=none;" value="Take physical backups" vertex="1">
           <mxGeometry relative="1" x="-0.0663" y="-8" as="geometry">
             <mxPoint x="18" y="24" as="offset" />
           </mxGeometry>
@@ -70,7 +70,7 @@
         <mxCell id="5EfBjm7NbJ47lxaDM1mC-138" parent="1" style="aspect=fixed;sketch=0;html=1;dashed=0;whitespace=wrap;verticalLabelPosition=bottom;verticalAlign=top;fillColor=#2875E2;strokeColor=#ffffff;points=[[0.005,0.63,0],[0.1,0.2,0],[0.9,0.2,0],[0.5,0,0],[0.995,0.63,0],[0.72,0.99,0],[0.5,1,0],[0.28,0.99,0]];shape=mxgraph.kubernetes.icon2;prIcon=user" value="" vertex="1">
           <mxGeometry height="153.6" width="160" x="2142.08" y="-600" as="geometry" />
         </mxCell>
-        <mxCell id="5EfBjm7NbJ47lxaDM1mC-139" edge="1" parent="1" source="5EfBjm7NbJ47lxaDM1mC-138" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;entryPerimeter=0;strokeWidth=5;fillColor=#1ba1e2;strokeColor=#006EAF;" target="5EfBjm7NbJ47lxaDM1mC-128">
+        <mxCell id="5EfBjm7NbJ47lxaDM1mC-139" edge="1" parent="1" source="5EfBjm7NbJ47lxaDM1mC-138" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;entryPerimeter=0;strokeWidth=8;fillColor=#1ba1e2;strokeColor=#006EAF;" target="5EfBjm7NbJ47lxaDM1mC-128">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="5EfBjm7NbJ47lxaDM1mC-140" connectable="0" parent="5EfBjm7NbJ47lxaDM1mC-139" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=24;labelBackgroundColor=none;" value="Client&lt;div&gt;&lt;br&gt;&lt;/div&gt;" vertex="1">
@@ -103,7 +103,7 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="5EfBjm7NbJ47lxaDM1mC-169" edge="1" parent="1" source="5EfBjm7NbJ47lxaDM1mC-128" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;entryPerimeter=0;strokeWidth=5;fillColor=#1ba1e2;strokeColor=#006EAF;" target="5EfBjm7NbJ47lxaDM1mC-63">
+        <mxCell id="5EfBjm7NbJ47lxaDM1mC-169" edge="1" parent="1" source="5EfBjm7NbJ47lxaDM1mC-128" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;entryPerimeter=0;strokeWidth=8;fillColor=#1ba1e2;strokeColor=#006EAF;" target="5EfBjm7NbJ47lxaDM1mC-63">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="2220" y="-304" />
@@ -203,7 +203,7 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="5EfBjm7NbJ47lxaDM1mC-197" edge="1" parent="1" source="5EfBjm7NbJ47lxaDM1mC-176" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.995;entryY=0.63;entryDx=0;entryDy=0;entryPerimeter=0;strokeWidth=5;fillColor=#1ba1e2;strokeColor=#006EAF;" target="5EfBjm7NbJ47lxaDM1mC-63">
+        <mxCell id="5EfBjm7NbJ47lxaDM1mC-197" edge="1" parent="1" source="5EfBjm7NbJ47lxaDM1mC-176" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.995;entryY=0.63;entryDx=0;entryDy=0;entryPerimeter=0;strokeWidth=8;fillColor=#1ba1e2;strokeColor=#006EAF;" target="5EfBjm7NbJ47lxaDM1mC-63">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="2220" y="1081" />
