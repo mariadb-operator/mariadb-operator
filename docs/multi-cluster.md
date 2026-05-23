@@ -16,10 +16,7 @@ Please refer to the [replication](./replication.md) and [Galera](./galera.md) do
 - [Use cases](#use-cases)
 - [Provisioning](#provisioning)
   - [Prerequisites](#prerequisites)
-  - [Create PhysicalBackup template](#create-physicalbackup-template)
-  - [Deploy primary cluster](#deploy-primary-cluster)
-  - [Deploy replica cluster](#deploy-replica-cluster)
-  - [Bootstrap the replica cluster](#bootstrap-the-replica-cluster)
+  - [Provisioning process](#provisioning-process)
   - [Scenarios](#scenarios)
     - [Replication](#replication)
     - [Replication with MaxScale](#replication-with-maxscale)
@@ -94,7 +91,11 @@ Before provisioning a multi-cluster setup, ensure the following:
 6. **Metallb or equivalent**: For assigning stable LoadBalancer IPs across clusters.
 7. **ExternalMariaDB CRD**: The operator must have access to the `ExternalMariaDB` CRD for cross-cluster connections.
 
-### Create PhysicalBackup template
+### Provisioning process
+
+The provisioning process consists of the following steps:
+
+#### Step 1: Create PhysicalBackup template
 
 The replica cluster bootstraps from a physical backup of the primary cluster. Create a `PhysicalBackup` template that the operator will use to create the actual backup:
 
@@ -132,7 +133,7 @@ spec:
 
 Apply this template to the **primary cluster** (eu-south). The operator will periodically create physical backups, which will be used to bootstrap the replica cluster.
 
-### Deploy primary cluster
+#### Step 2: Deploy primary cluster
 
 Deploy the primary cluster in the first Kubernetes cluster (eu-south). This cluster will serve as the source of all write operations:
 
@@ -219,7 +220,7 @@ spec:
       name: mariadb-server-ca
 ```
 
-### Deploy replica cluster
+#### Step 3: Deploy replica cluster
 
 Deploy the replica cluster in the second Kubernetes cluster (eu-central). This cluster will replicate data from the primary cluster:
 
@@ -315,7 +316,7 @@ spec:
       name: mariadb-server-ca
 ```
 
-### Bootstrap the replica cluster
+#### Step 4: Bootstrap the replica cluster
 
 When the replica cluster is deployed, the operator will:
 
