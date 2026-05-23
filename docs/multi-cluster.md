@@ -23,7 +23,6 @@ Please refer to the [replication](./replication.md) and [Galera](./galera.md) do
     - [Galera](#galera)
     - [Galera with MaxScale](#galera-with-maxscale)
 - [Cluster switchover](#cluster-switchover)
-  - [Maintenance mode](#maintenance-mode)
   - [GTID domain ID filtering](#gtid-domain-id-filtering)
   - [Triggering a cluster switchover](#triggering-a-cluster-switchover)
 - [Status subresource](#status-subresource)
@@ -446,17 +445,7 @@ See `examples/manifests/multi-cluster/galera-maxscale/` for complete manifests.
 
 Cluster switchover is the process of promoting a replica cluster to become the new primary. This is useful for disaster recovery, migrations, or blue-green deployments.
 
-### Maintenance mode
-
-Before initiating a cluster switchover, it is recommended to put the primary cluster in maintenance mode. This prevents new writes from being accepted, allowing the replica cluster to fully sync before the switchover.
-
-The operator supports the following maintenance mode features:
-- `cordon`: Blocks new connections to the cluster.
-- `drainConnections`: Drains long-running connections (does not affect replication connections).
-- `readOnly`: Sets the database to read-only mode.
-- `drainGracePeriodSeconds`: The grace period for draining connections.
-
-To enable maintenance mode on the primary cluster:
+Before initiating a cluster switchover, it is **strongly recommended** to put the primary cluster in [maintenance mode](./maintenance.md). This prevents new writes from being accepted, allowing the replica cluster to fully sync before the switchover. The recommended maintenance mode configuration for a cluster switchover is:
 
 ```yaml
 apiVersion: k8s.mariadb.com/v1alpha1
@@ -471,6 +460,13 @@ spec:
     drainGracePeriodSeconds: 30
     readOnly: true
 ```
+
+This configuration:
+- **Cordons** the cluster to block new connections.
+- **Drains** long-running connections after the grace period.
+- **Sets the database to read-only** to prevent any writes.
+
+For more details on maintenance mode, see the [maintenance documentation](./maintenance.md).
 
 ### GTID domain ID filtering
 
@@ -701,7 +697,7 @@ If the replica cluster fails to bootstrap:
 
 If a cluster switchover is stuck:
 
-1. **Check maintenance mode**: Ensure the primary cluster is in maintenance mode (recommended).
+1. **Check maintenance mode**: Ensure the primary cluster is in maintenance mode (see [maintenance documentation](./maintenance.md)).
 2. **Check replication sync**: Check that the replica cluster is fully synced with the primary cluster.
 3. **Check GTID filtering**: Check that GTID filtering is working correctly for both clusters.
 4. **Cancel switchover**: To cancel a switchover, set `spec.multiCluster.primary` back to the original primary cluster name.
