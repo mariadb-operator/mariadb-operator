@@ -604,6 +604,8 @@ The multi-cluster feature has the following limitations:
 
 10. **Maintenance mode**: The maintenance mode feature is recommended but not required for cluster switchover. Without it, there may be a brief period of data loss.
 
+11. **Backups on primary only**: Physical backups can only be taken from the primary cluster. Currently, only backups with a single GTID domain ID are supported, which means backups cannot be taken from replica clusters (which have multiple GTID domain IDs). To recover a replica cluster, it must be re-bootstrapped from a backup taken in the primary cluster.
+
 ## Troubleshooting
 
 ### Checking multi-cluster status
