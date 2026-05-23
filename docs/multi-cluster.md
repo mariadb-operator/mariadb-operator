@@ -434,6 +434,14 @@ In this scenario:
 - The replica cluster's primary Pod (primary replica) replicates from the primary cluster's primary.
 - The replica cluster's Galera members replicate from the primary replica.
 
+**Galera-specific considerations:**
+
+- **GTID domain ID**: The Galera cluster uses `spec.galera.gtidDomainId` instead of `spec.replication.gtidDomainId`. The primary cluster uses `0`, and replica clusters use different values (e.g., `10`, `20`, etc.) to prevent GTID conflicts.
+- **Server ID**: Each Galera node must have a unique `spec.galera.serverId`. The operator does not automatically increment server IDs for Galera clusters, so you must set them manually.
+- **Replication configuration**: Galera uses `spec.galera.replPasswordSecretKeyRef` to configure the replication user, not `spec.replication.replica.replPasswordSecretKeyRef`.
+- **Semi-synchronous replication**: Semi-synchronous replication is not supported with Galera. The operator automatically disables it when Galera is enabled.
+- **Replication topology**: Galera provides synchronous multi-master replication within each cluster, while inter-cluster replication is asynchronous. This means the primary cluster's Galera nodes are fully synchronized with each other, and the replica cluster's primary replica replicates asynchronously from the primary cluster.
+
 See `examples/manifests/multi-cluster/galera/` for complete manifests.
 
 #### Galera with MaxScale
@@ -555,6 +563,9 @@ kubectl get mariadb mariadb-eu-central -o jsonpath="{.status.replication}" | jq
 ```
 
 The `status.replication` field contains detailed replication status for each replica, including the multi-cluster primary replica connection.
+
+> [!NOTE]
+> **Galera-specific behavior**: When using Galera as the intra-cluster HA mechanism, the replication status only shows the **primary replica** (the Pod that replicates from the primary cluster). Regular Galera nodes do not appear in the replication status because Galera handles its own clustering internally. The `status.replication.roles` field will only include the primary replica, not all Galera nodes.
 
 ## Replication roles
 
