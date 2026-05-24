@@ -76,7 +76,7 @@ This will result in the following status:
 
 ```bash
 kubectl get mariadb
-NAME                 READY   STATUS        PRIMARY                UPDATES                    AGE
+NAME                 READY   STATUS       PRIMARY                UPDATES                    AGE
 mariadb-eu-south     True    Cordoned     mariadb-eu-south-0     ReplicasFirstPrimaryLast   91m
 ```
 
@@ -277,7 +277,6 @@ The operator also emits Kubernetes events during maintenance operations. You can
 
 ```bash
 kubectl get events --field-selector involvedObject.name=mariadb-eu-south --sort-by='.lastTimestamp'
-
 LAST SEEN   TYPE      REASON        OBJECT                           MESSAGE
 37s         Normal    Maintenance   MariaDB/mariadb-eu-south         Enabling readonly in Pod mariadb-eu-south-0
 19s         Normal    Maintenance   MariaDB/mariadb-eu-south         Draining process (id=7756,command=Query,time=31)
