@@ -18,8 +18,8 @@ Maintenance mode is designed to work with any MariaDB topology and is particular
 - [Read-only mode](#read-only-mode)
 - [Composing maintenance modes](#composing-maintenance-modes)
 - [Disabling maintenance mode](#disabling-maintenance-mode)
-- [Troubleshooting](#troubleshooting)
 - [MaxScale maintenance mode](#maxscale-maintenance-mode)
+- [Troubleshooting](#troubleshooting)
 <!-- /toc -->
 
 ## Enabling maintenance mode
@@ -200,6 +200,30 @@ When maintenance mode is disabled, the operator will:
 1. Disable read-only mode on all Pods (if it was enabled).
 2. Re-add the Pods to the service endpoints (if cordon was enabled).
 
+## MaxScale maintenance mode
+
+The `MaxScale` CR also supports maintenance mode with a similar mechanism. When enabled, it cordons the Kubernetes service by modifying the service selector labels, effectively removing MaxScale Pods from the endpoints and blocking new connections.
+
+Unlike MariaDB, MaxScale maintenance mode only provides cordon functionality. It does not support draining connections or read-only mode, as MaxScale acts as a proxy rather than a database.
+
+To enable maintenance mode on `MaxScale`:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MaxScale
+metadata:
+  name: mariadb-eu-south
+spec:
+  maintenance:
+    enabled: true
+    cordon: true
+```
+
+This behaves similarly to MariaDB's cordon mode: existing connections through the service are not immediately terminated, but new connection attempts will fail as the Pods are removed from the service endpoints.
+
+> [!NOTE]
+> MaxScale also supports putting individual backend MariaDB servers in maintenance mode. See the [Server maintenance](./maxscale.md#server-maintenance) section for details.
+
 ## Troubleshooting
 
 The operator tracks the `MariaDB` status conditions during maintenance operations. This status is the first place to look for when troubleshooting maintenance issues:
@@ -232,37 +256,9 @@ The operator also emits Kubernetes events during maintenance operations. You can
 
 ```bash
 kubectl get events --field-selector involvedObject.name=mariadb-eu-south --sort-by='.lastTimestamp'
-```
 
-This will display events such as:
-
-```bash
 LAST SEEN   TYPE      REASON        OBJECT                           MESSAGE
 37s         Normal    Maintenance   MariaDB/mariadb-eu-south         Enabling readonly in Pod mariadb-eu-south-0
 19s         Normal    Maintenance   MariaDB/mariadb-eu-south         Draining process (id=7756,command=Query,time=31)
 8s          Normal    Maintenance   MariaDB/mariadb-eu-south         Disabling readonly in Pod mariadb-eu-south-0
 ```
-
-## MaxScale maintenance mode
-
-The `MaxScale` CR also supports maintenance mode with a similar mechanism. When enabled, it cordons the Kubernetes service by modifying the service selector labels, effectively removing MaxScale Pods from the endpoints and blocking new connections.
-
-Unlike MariaDB, MaxScale maintenance mode only provides cordon functionality. It does not support draining connections or read-only mode, as MaxScale acts as a proxy rather than a database.
-
-To enable maintenance mode on `MaxScale`:
-
-```yaml
-apiVersion: k8s.mariadb.com/v1alpha1
-kind: MaxScale
-metadata:
-  name: mariadb-eu-south
-spec:
-  maintenance:
-    enabled: true
-    cordon: true
-```
-
-This behaves similarly to MariaDB's cordon mode: existing connections through the service are not immediately terminated, but new connection attempts will fail as the Pods are removed from the service endpoints.
-
-> [!NOTE]
-> MaxScale also supports putting individual backend MariaDB servers in maintenance mode. See the [Server maintenance](./maxscale.md#server-maintenance) section for details.
