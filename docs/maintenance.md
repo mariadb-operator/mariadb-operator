@@ -215,11 +215,11 @@ When maintenance mode is disabled, the operator will:
 
 ## MaxScale maintenance mode
 
-MaxScale also supports maintenance mode with a similar mechanism. When enabled, it cordons the MaxScale Kubernetes service by modifying the service selector labels, effectively removing MaxScale Pods from the endpoints and blocking new connections.
+The `MaxScale` CR also supports maintenance mode with a similar mechanism. When enabled, it cordons the Kubernetes service by modifying the service selector labels, effectively removing MaxScale Pods from the endpoints and blocking new connections.
 
 Unlike MariaDB, MaxScale maintenance mode only provides cordon functionality. It does not support draining connections or read-only mode, as MaxScale acts as a proxy rather than a database.
 
-To enable maintenance mode on MaxScale:
+To enable maintenance mode on `MaxScale`:
 
 ```yaml
 apiVersion: k8s.mariadb.com/v1alpha1
