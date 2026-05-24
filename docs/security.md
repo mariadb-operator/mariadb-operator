@@ -13,7 +13,7 @@
 The root password for a `MariaDB` resource can be specified in a Secret, like so:
 
 ```yaml
-apiVersion: enterprise.mariadb.com/v1alpha1
+apiVersion: k8s.mariadb.com/v1alpha1
 kind: MariaDB
 metadata:
   name: mariadb-galera
@@ -28,7 +28,7 @@ spec:
 By default, `rootPasswordSecretKeyRef` are optional and defaulted by the operator, resulting in random password generation if not provided:
 
 ```yaml
-apiVersion: enterprise.mariadb.com/v1alpha1
+apiVersion: k8s.mariadb.com/v1alpha1
 kind: MariaDB
 metadata:
   name: mariadb-galera
@@ -44,7 +44,7 @@ spec:
 You may choose to explicitly provide a `Secret` reference via `rootPasswordSecretKeyRef` and opt-out from random password generation by either not providing the `generate` field or setting it to `false`:
 
 ```yaml
-apiVersion: enterprise.mariadb.com/v1alpha1
+apiVersion: k8s.mariadb.com/v1alpha1
 kind: MariaDB
 metadata:
   name: mariadb-galera
