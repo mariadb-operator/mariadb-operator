@@ -562,6 +562,11 @@ kubectl get mariadb mariadb-eu-south -o jsonpath="{.status.currentPrimary}"
 mariadb-eu-south-0
 ```
 
+```bash
+kubectl get mariadb mariadb-eu-central -o jsonpath="{.status.currentPrimary}"
+mariadb-eu-central-0
+```
+
 The `status.currentPrimary` field indicates the current primary Pod name within the cluster.
 
 ### Current multi-cluster primary
@@ -571,9 +576,22 @@ kubectl get mariadb mariadb-eu-south -o jsonpath="{.status.currentMultiClusterPr
 mariadb-eu-south
 ```
 
-The `status.currentMultiClusterPrimary` field indicates the current primary cluster member name. This is updated during cluster switchover operations.
+```bash
+kubectl get mariadb mariadb-eu-central -o jsonpath="{.status.currentMultiClusterPrimary}"
+mariadb-eu-south
+```
+
+The `status.currentMultiClusterPrimary` field indicates the current primary cluster member name. This is updated during cluster switchover operations. In the example above, both clusters report `mariadb-eu-south` as the current multi-cluster primary.
 
 ### Replication roles
+
+```bash
+kubectl get mariadb mariadb-eu-south -o jsonpath="{.status.replication.roles}" | jq
+{
+  "mariadb-eu-south-0": "Primary",
+  "mariadb-eu-south-1": "Replica"
+}
+```
 
 ```bash
 kubectl get mariadb mariadb-eu-central -o jsonpath="{.status.replication.roles}" | jq
@@ -583,18 +601,64 @@ kubectl get mariadb mariadb-eu-central -o jsonpath="{.status.replication.roles}"
 }
 ```
 
-The `status.replication.roles` field indicates the replication role of each Pod. In a multi-cluster setup, the primary Pod of the replica cluster has the role `PrimaryReplica`, indicating that it replicates from the primary cluster.
+The `status.replication.roles` field indicates the replication role of each Pod. In a multi-cluster setup, the primary Pod of the replica cluster has the role `PrimaryReplica`, indicating that it replicates from the primary cluster. The primary cluster's Pods use the standard `Primary` and `Replica` roles.
 
 ### Replication status
+
+```bash
+kubectl get mariadb mariadb-eu-south -o jsonpath="{.status.replication}" | jq
+{
+  "replicas": {
+    "mariadb-eu-south-1": {
+      "gtidCurrentPos": "0-10-3278",
+      "gtidIOPos": "0-10-3278",
+      "lastErrorTransitionTime": "2026-05-24T07:32:26Z",
+      "lastIOErrno": 0,
+      "lastIOError": "",
+      "lastSQLErrno": 0,
+      "lastSQLError": "",
+      "secondsBehindMaster": 0,
+      "slaveIORunning": true,
+      "slaveSQLRunning": true,
+      "usingGtid": "Current_Pos"
+    }
+  },
+  "roles": {
+    "mariadb-eu-south-0": "Primary",
+    "mariadb-eu-south-1": "Replica"
+  }
+}
+```
 
 ```bash
 kubectl get mariadb mariadb-eu-central -o jsonpath="{.status.replication}" | jq
 {
   "replicas": {
-    "mariadb-eu-central-1": {
+    "mariadb-eu-central-0": {
+      "gtidCurrentPos": "0-10-3278,1-20-6",
+      "gtidIOPos": "0-10-3278",
+      "lastErrorTransitionTime": "2026-05-24T07:47:56Z",
+      "lastIOErrno": 0,
+      "lastIOError": "",
+      "lastSQLErrno": 0,
+      "lastSQLError": "",
+      "secondsBehindMaster": 0,
       "slaveIORunning": true,
       "slaveSQLRunning": true,
-      "secondsBehindMaster": 0
+      "usingGtid": "Slave_Pos"
+    },
+    "mariadb-eu-central-1": {
+      "gtidCurrentPos": "0-10-3278,1-20-6",
+      "gtidIOPos": "1-20-6,0-10-3278",
+      "lastErrorTransitionTime": "2026-05-24T07:47:56Z",
+      "lastIOErrno": 0,
+      "lastIOError": "",
+      "lastSQLErrno": 0,
+      "lastSQLError": "",
+      "secondsBehindMaster": 0,
+      "slaveIORunning": true,
+      "slaveSQLRunning": true,
+      "usingGtid": "Slave_Pos"
     }
   },
   "roles": {
@@ -604,7 +668,14 @@ kubectl get mariadb mariadb-eu-central -o jsonpath="{.status.replication}" | jq
 }
 ```
 
-The `status.replication` field contains detailed replication status for each replica, including the multi-cluster primary replica connection.
+The `status.replication` field contains detailed replication status for each replica, including the multi-cluster primary replica connection. Key fields include:
+
+- `gtidCurrentPos`: The current GTID position. For the primary replica (`mariadb-eu-central-0`), this shows both domain `0` (replicated from the primary cluster) and domain `1` (its own cluster's transactions).
+- `gtidIOPos`: The GTID position up to which the I/O thread has received events from the source.
+- `slaveIORunning` / `slaveSQLRunning`: Whether the I/O and SQL replication threads are running.
+- `secondsBehindMaster`: The replication lag in seconds. A value of `0` indicates the replica is fully in sync.
+- `lastIOError` / `lastSQLError`: Any recent errors from the I/O or SQL threads.
+- `usingGtid`: The GTID mode used — `Current_Pos` for the primary cluster's replicas (which are sources) and `Slave_Pos` for the replica cluster's pods (which are slaves).
 
 > [!NOTE]
 > **Galera-specific behavior**: When using Galera as the intra-cluster HA mechanism, the replication status only shows the **primary replica** (the Pod that replicates from the primary cluster). Regular Galera nodes do not appear in the replication status because Galera handles its own clustering internally. The `status.replication.roles` field will only include the primary replica, not all Galera nodes.
