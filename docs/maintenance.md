@@ -44,7 +44,7 @@ NAME                 READY   STATUS        PRIMARY                UPDATES       
 mariadb-eu-south     True    Maintenance   mariadb-eu-south-0     ReplicasFirstPrimaryLast   91m
 ```
 
-The following subsections describe the maintenance mode in detail.
+The following sections describe the maintenance mode in detail.
 
 ## Cordon mode
 
@@ -70,7 +70,7 @@ This will result in the following status:
 ```bash
 kubectl get mariadb
 NAME                 READY   STATUS        PRIMARY                UPDATES                    AGE
-mariadb-eu-south     True     Cordoned     mariadb-eu-south-0     ReplicasFirstPrimaryLast   91m
+mariadb-eu-south     True    Cordoned     mariadb-eu-south-0     ReplicasFirstPrimaryLast   91m
 ```
 
 > [!NOTE]
@@ -119,7 +119,7 @@ To enable read-only mode:
 apiVersion: k8s.mariadb.com/v1alpha1
 kind: MariaDB
 metadata:
-  name: mariadb
+  name: mariadb-eu-south
 spec:
   maintenance:
     enabled: true
