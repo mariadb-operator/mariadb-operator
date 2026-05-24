@@ -18,6 +18,7 @@ Maintenance mode is designed to work with any MariaDB topology and is particular
 - [Read-only mode](#read-only-mode)
 - [Composing maintenance modes](#composing-maintenance-modes)
 - [Readiness during maintenance](#readiness-during-maintenance)
+- [Events during maintenance](#events-during-maintenance)
 - [Disabling maintenance mode](#disabling-maintenance-mode)
 - [MaxScale maintenance mode](#maxscale-maintenance-mode)
 <!-- /toc -->
@@ -194,6 +195,23 @@ When maintenance mode is enabled, the MariaDB resource's readiness state changes
 When `cordon` is enabled, the resource is marked as not ready (`Ready=False`) with the reason `Cordoned`. This prevents Kubernetes from routing traffic to the database.
 
 When cordon is disabled but maintenance mode is enabled, the resource is marked as ready (`Ready=True`) with the reason `Maintenance`. This indicates that the database is in maintenance mode but still accepting connections.
+
+## Events during maintenance
+
+The operator emits Kubernetes events during maintenance operations. You can retrieve them using:
+
+```bash
+kubectl get events --field-selector involvedObject.name=mariadb-eu-south --sort-by='.lastTimestamp'
+```
+
+This will display events such as:
+
+```bash
+LAST SEEN   TYPE      REASON        OBJECT                           MESSAGE
+37s         Normal    Maintenance   MariaDB/mariadb-eu-south         Enabling readonly in Pod mariadb-eu-south-0
+19s         Normal    Maintenance   MariaDB/mariadb-eu-south         Draining process (id=7756,command=Query,time=31)
+8s          Normal    Maintenance   MariaDB/mariadb-eu-south         Disabling readonly in Pod mariadb-eu-south-0
+```
 
 ## Disabling maintenance mode
 
