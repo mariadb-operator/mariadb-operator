@@ -17,8 +17,8 @@ Maintenance mode is designed to work with any MariaDB topology and is particular
 - [Drain connections](#drain-connections)
 - [Read-only mode](#read-only-mode)
 - [Composing maintenance modes](#composing-maintenance-modes)
-- [Troubleshooting](#troubleshooting)
 - [Disabling maintenance mode](#disabling-maintenance-mode)
+- [Troubleshooting](#troubleshooting)
 - [MaxScale maintenance mode](#maxscale-maintenance-mode)
 <!-- /toc -->
 
@@ -182,6 +182,24 @@ spec:
     drainGracePeriodSeconds: 60
 ```
 
+## Disabling maintenance mode
+
+To disable maintenance mode, set `spec.maintenance.enabled: false`:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-eu-south
+spec:
+  maintenance:
+    enabled: false
+```
+
+When maintenance mode is disabled, the operator will:
+1. Disable read-only mode on all Pods (if it was enabled).
+2. Re-add the Pods to the service endpoints (if cordon was enabled).
+
 ## Troubleshooting
 
 The operator tracks the `MariaDB` status conditions during maintenance operations. This status is the first place to look for when troubleshooting maintenance issues:
@@ -224,24 +242,6 @@ LAST SEEN   TYPE      REASON        OBJECT                           MESSAGE
 19s         Normal    Maintenance   MariaDB/mariadb-eu-south         Draining process (id=7756,command=Query,time=31)
 8s          Normal    Maintenance   MariaDB/mariadb-eu-south         Disabling readonly in Pod mariadb-eu-south-0
 ```
-
-## Disabling maintenance mode
-
-To disable maintenance mode, set `spec.maintenance.enabled: false`:
-
-```yaml
-apiVersion: k8s.mariadb.com/v1alpha1
-kind: MariaDB
-metadata:
-  name: mariadb-eu-south
-spec:
-  maintenance:
-    enabled: false
-```
-
-When maintenance mode is disabled, the operator will:
-1. Disable read-only mode on all Pods (if it was enabled).
-2. Re-add the Pods to the service endpoints (if cordon was enabled).
 
 ## MaxScale maintenance mode
 
