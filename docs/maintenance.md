@@ -24,7 +24,10 @@ Maintenance mode is designed to work with any MariaDB topology and is particular
 
 ## Enabling maintenance mode
 
-To enable maintenance mode, set `spec.maintenance.enabled: true` in the `MariaDB` CR:
+> [!IMPORTANT]
+> When MaxScale is used, the maintenance mode should be enabled in the `MaxScale` CR. See [MaxScale maintenance mode](#maxscale-maintenance-mode) for more information.
+
+To enable maintenance mode in MariaDB, set `spec.maintenance.enabled: true` in the `MariaDB` CR:
 
 ```yaml
 apiVersion: k8s.mariadb.com/v1alpha1
@@ -32,8 +35,10 @@ kind: MariaDB
 metadata:
   name: mariadb-eu-south 
 spec:
+  # [...]
   maintenance:
     enabled: true
+  # [...]
 ```
 
 This will result in the following status:
@@ -60,9 +65,11 @@ kind: MariaDB
 metadata:
   name: mariadb-eu-south
 spec:
+  # [...]
   maintenance:
     enabled: true
     cordon: true
+  # [...]
 ```
 
 This will result in the following status:
@@ -98,10 +105,12 @@ kind: MariaDB
 metadata:
   name: mariadb-eu-south
 spec:
+  # [...]
   maintenance:
     enabled: true
     drainConnections: true
     drainGracePeriodSeconds: 30
+  # [...]
 ```
 
 > [!TIP]
@@ -121,9 +130,11 @@ kind: MariaDB
 metadata:
   name: mariadb-eu-south
 spec:
+  # [...]
   maintenance:
     enabled: true
     readOnly: true
+  # [...]
 ```
 
 > [!NOTE]
@@ -143,12 +154,14 @@ kind: MariaDB
 metadata:
   name: mariadb-eu-south
 spec:
+  # [...]
   maintenance:
     enabled: true
     cordon: true
     drainConnections: true
     drainGracePeriodSeconds: 30
     readOnly: true
+  # [...]
 ```
 
 ### Read-only only
@@ -161,9 +174,11 @@ kind: MariaDB
 metadata:
   name: mariadb-eu-south
 spec:
+  # [...]
   maintenance:
     enabled: true
     readOnly: true
+  # [...]
 ```
 
 ### Drain only
@@ -176,10 +191,12 @@ kind: MariaDB
 metadata:
   name: mariadb-eu-south
 spec:
+  # [...]
   maintenance:
     enabled: true
     drainConnections: true
     drainGracePeriodSeconds: 60
+  # [...]
 ```
 
 ## Disabling maintenance mode
@@ -192,8 +209,10 @@ kind: MariaDB
 metadata:
   name: mariadb-eu-south
 spec:
+  # [...]
   maintenance:
     enabled: false
+  # [...]
 ```
 
 When maintenance mode is disabled, the operator will:
@@ -214,9 +233,11 @@ kind: MaxScale
 metadata:
   name: mariadb-eu-south
 spec:
+  # [...]
   maintenance:
     enabled: true
     cordon: true
+  # [...]
 ```
 
 This behaves similarly to MariaDB's cordon mode: existing connections through the service are not immediately terminated, but new connection attempts will fail as the Pods are removed from the service endpoints.
