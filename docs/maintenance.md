@@ -2,12 +2,9 @@
 
 The operator provides a maintenance mode that allows you to safely perform maintenance operations on a MariaDB cluster. When enabled, maintenance mode gives you fine-grained control over how the database behaves during maintenance windows, including blocking new connections, draining existing connections, and setting the database to read-only mode.
 
-Maintenance mode is designed to work with any MariaDB topology (standalone, replication, or Galera) and is particularly useful for:
+Maintenance mode is designed to work with any MariaDB topology and is particularly useful for:
 
-- **Cluster switchover**: Preventing writes to the primary cluster before switching to a replica cluster in a [multi-cluster](./multi-cluster.md) setup.
-- **Schema migrations**: Performing schema changes that require exclusive access.
-- **Backup operations**: Ensuring consistent backups by preventing concurrent writes.
-- **Configuration changes**: Applying database configuration changes without risking data inconsistency.
+- **Cluster switchover**: Preventing writes to the primary cluster before switching to a replica cluster in a [multi-cluster](./multi-cluster.md) setup. You can ensure that no writes are lost during the switchover process, allowing the replicas to catch up to the primary.
 - **Debugging**: Isolating the database from application traffic while investigating issues.
 
 > [!IMPORTANT]
@@ -22,8 +19,6 @@ Maintenance mode is designed to work with any MariaDB topology (standalone, repl
 - [Composing maintenance modes](#composing-maintenance-modes)
 - [Readiness during maintenance](#readiness-during-maintenance)
 - [Disabling maintenance mode](#disabling-maintenance-mode)
-- [Maintenance mode in replication topology](#maintenance-mode-in-replication-topology)
-- [Maintenance mode in Galera topology](#maintenance-mode-in-galera-topology)
 <!-- /toc -->
 
 ## Enabling maintenance mode
@@ -34,17 +29,21 @@ To enable maintenance mode, set `spec.maintenance.enabled: true` in the `MariaDB
 apiVersion: k8s.mariadb.com/v1alpha1
 kind: MariaDB
 metadata:
-  name: mariadb
+  name: mariadb-eu-south 
 spec:
   maintenance:
     enabled: true
 ```
 
-When maintenance mode is enabled, the operator will:
-1. Drain connections that have been running longer than the grace period.
-2. Set the database to read-only mode (if `readOnly` is enabled).
+This will result in the following status:
 
-The following subsections describe each maintenance mode in detail.
+```bash
+kubectl get mariadb
+NAME                 READY   STATUS        PRIMARY                UPDATES                    AGE
+mariadb-eu-south     True    Maintenance   mariadb-eu-south-0     ReplicasFirstPrimaryLast   91m
+```
+
+The following subsections describe the maintenance mode in detail.
 
 ## Cordon mode
 
@@ -58,15 +57,23 @@ To enable cordon mode:
 apiVersion: k8s.mariadb.com/v1alpha1
 kind: MariaDB
 metadata:
-  name: mariadb
+  name: mariadb-eu-south
 spec:
   maintenance:
     enabled: true
     cordon: true
 ```
 
+This will result in the following status:
+
+```bash
+kubectl get mariadb
+NAME                 READY   STATUS        PRIMARY                UPDATES                    AGE
+mariadb-eu-south     True     Cordoned     mariadb-eu-south-0     ReplicasFirstPrimaryLast   91m
+```
+
 > [!NOTE]
-> Cordon mode only affects new connections through Kubernetes services. Direct Pod connections (e.g., for replication) are not affected.
+> Cordon mode only affects new connections through Kubernetes services. Direct Pod connections and already established connections are not affected.
 
 ## Drain connections
 
@@ -103,7 +110,7 @@ spec:
 
 Read-only mode sets the database to read-only, preventing any write operations (INSERT, UPDATE, DELETE, CREATE, DROP, ALTER, etc.). Read operations (SELECT) continue to work normally.
 
-This is useful when you need to prevent any data modifications while still allowing applications to read data. For example, during a schema migration, you might set the database to read-only to prevent writes while you verify the migration.
+This is useful when you need to prevent any data modifications, and therefore, allowing the replicas to sync with the primary. 
 
 To enable read-only mode:
 
@@ -119,13 +126,13 @@ spec:
 ```
 
 > [!NOTE]
-> When maintenance mode is enabled without `readOnly`, the operator still sets replicas to read-only in a replication topology (see [maintenance mode in replication topology](#maintenance-mode-in-replication-topology)).
+> When maintenance mode is enabled without `readOnly`, the operator still sets replicas to read-only in a replication topology.
 
 ## Composing maintenance modes
 
 You can combine multiple maintenance modes to achieve the desired behavior. The following combinations are commonly used:
 
-### Full maintenance (recommended for cluster switchover)
+### Full maintenance
 
 This combination provides the most comprehensive maintenance mode, blocking new connections, draining existing connections, and setting the database to read-only:
 
@@ -204,19 +211,3 @@ spec:
 When maintenance mode is disabled, the operator will:
 1. Disable read-only mode on all Pods (if it was enabled).
 2. Re-add the Pods to the service endpoints (if cordon was enabled).
-
-## Maintenance mode in replication topology
-
-In a replication topology, maintenance mode is applied selectively:
-
-- **Primary Pod**: The primary Pod follows the maintenance mode settings exactly. If `readOnly` is enabled, only the primary is set to read-only.
-- **Replica Pods**: All replica Pods are always set to read-only, regardless of the `readOnly` setting. This ensures that replicas cannot accept writes even if the primary is not in read-only mode.
-
-This behavior is important for [multi-cluster](./multi-cluster.md) setups, where you want to ensure that the primary cluster does not accept writes while the replica cluster is being prepared for switchover.
-
-## Maintenance mode in Galera topology
-
-In a Galera topology, maintenance mode is applied to all Pods uniformly. When `readOnly` is enabled, all Galera nodes are set to read-only mode.
-
-> [!WARNING]
-> Setting a Galera cluster to read-only mode may affect cluster functionality. Ensure that all nodes are set to read-only simultaneously to avoid inconsistencies.
