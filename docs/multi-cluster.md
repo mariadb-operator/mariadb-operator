@@ -379,6 +379,10 @@ The simplest multi-cluster scenario uses replication as the intra-cluster HA mec
 
 ```yaml
 # Primary cluster (eu-south)
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-eu-south
 spec:
   replicas: 3
   replication:
@@ -412,6 +416,10 @@ When using MaxScale, the replica cluster's primary replica connects to MaxScale 
 
 ```yaml
 # Replica cluster (eu-central) with MaxScale
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-eu-central
 spec:
   maxScaleRef:
     name: maxscale-eu-central
@@ -451,6 +459,10 @@ This scenario uses Galera as the intra-cluster HA mechanism. Each cluster runs a
 
 ```yaml
 # Primary cluster (eu-south) with Galera
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-eu-south
 spec:
   replicas: 3
   galera:
