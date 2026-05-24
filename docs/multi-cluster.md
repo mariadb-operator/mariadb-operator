@@ -384,7 +384,6 @@ kind: MariaDB
 metadata:
   name: mariadb-eu-south
 spec:
-  # [...]
   replicas: 3
   replication:
     enabled: true
@@ -399,7 +398,6 @@ spec:
       - name: mariadb-eu-central
         externalMariaDbRef:
           name: mariadb-eu-central
-  # [...]
 ```
 
 In this scenario:
@@ -423,7 +421,6 @@ kind: MariaDB
 metadata:
   name: mariadb-eu-central
 spec:
-  # [...]
   maxScaleRef:
     name: maxscale-eu-central
   replication:
@@ -439,7 +436,14 @@ spec:
       - name: mariadb-eu-central
         externalMariaDbRef:
           name: mariadb-eu-central
-  # [...]
+---
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: ExternalMariaDB
+metadata:
+  name: mariadb-eu-central
+spec:
+  host: maxscale-eu-central.default.svc.cluster.local
+  port: 3306
 ```
 
 Key differences:
@@ -460,7 +464,6 @@ kind: MariaDB
 metadata:
   name: mariadb-eu-south
 spec:
-  # [...]
   replicas: 3
   galera:
     enabled: true
@@ -476,7 +479,6 @@ spec:
       - name: mariadb-eu-central
         externalMariaDbRef:
           name: mariadb-eu-central
-  # [...]
 ```
 
 In this scenario:
@@ -514,14 +516,12 @@ kind: MariaDB
 metadata:
   name: mariadb-eu-south
 spec:
-  # [...]
   maintenance:
     enabled: true
     cordon: true
     drainConnections: true
     drainGracePeriodSeconds: 30
     readOnly: true
-  # [...]
 ```
 
 This configuration:
@@ -550,11 +550,9 @@ kind: MariaDB
 metadata:
   name: mariadb-eu-central
 spec:
-  # [...]
   multiCluster:
     enabled: true
     primary: mariadb-eu-central
-  # [...]
 ```
 
 This tells the operator that the replica cluster should become the new primary. The operator will:
