@@ -96,7 +96,7 @@ To enable drain connections mode with a custom grace period:
 apiVersion: k8s.mariadb.com/v1alpha1
 kind: MariaDB
 metadata:
-  name: mariadb
+  name: mariadb-eu-south
 spec:
   maintenance:
     enabled: true
@@ -141,7 +141,7 @@ This combination provides the most comprehensive maintenance mode, blocking new 
 apiVersion: k8s.mariadb.com/v1alpha1
 kind: MariaDB
 metadata:
-  name: mariadb
+  name: mariadb-eu-south
 spec:
   maintenance:
     enabled: true
@@ -159,7 +159,7 @@ This combination only sets the database to read-only, allowing new connections a
 apiVersion: k8s.mariadb.com/v1alpha1
 kind: MariaDB
 metadata:
-  name: mariadb
+  name: mariadb-eu-south
 spec:
   maintenance:
     enabled: true
@@ -174,7 +174,7 @@ This combination only drains long-running connections, allowing new connections 
 apiVersion: k8s.mariadb.com/v1alpha1
 kind: MariaDB
 metadata:
-  name: mariadb
+  name: mariadb-eu-south
 spec:
   maintenance:
     enabled: true
@@ -203,7 +203,7 @@ To disable maintenance mode, set `spec.maintenance.enabled: false`:
 apiVersion: k8s.mariadb.com/v1alpha1
 kind: MariaDB
 metadata:
-  name: mariadb
+  name: mariadb-eu-south
 spec:
   maintenance:
     enabled: false
@@ -225,7 +225,7 @@ To enable maintenance mode on `MaxScale`:
 apiVersion: k8s.mariadb.com/v1alpha1
 kind: MaxScale
 metadata:
-  name: maxscale-galera
+  name: mariadb-eu-south
 spec:
   maintenance:
     enabled: true
