@@ -6,6 +6,58 @@ In a multi-cluster setup, each Kubernetes cluster runs a MariaDB cluster with it
 
 Please refer to the [replication](./replication.md) and [Galera](./galera.md) documentation for more details about the underlying HA topologies.
 
+## Table of contents
+<!-- toc -->
+- [Introduction](#introduction)
+- [Use cases](#use-cases)
+- [Architecture](#architecture)
+- [Provisioning](#provisioning)
+  - [Prerequisites](#prerequisites)
+  - [Provisioning process](#provisioning-process)
+  - [Scenarios](#scenarios)
+    - [Replication](#replication)
+    - [Replication with MaxScale](#replication-with-maxscale)
+    - [Galera](#galera)
+    - [Galera with MaxScale](#galera-with-maxscale)
+- [Cluster switchover](#cluster-switchover)
+  - [GTID domain ID filtering](#gtid-domain-id-filtering)
+  - [Triggering a cluster switchover](#triggering-a-cluster-switchover)
+- [Status subresource](#status-subresource)
+- [Replication roles](#replication-roles)
+- [Limitations](#limitations)
+- [Troubleshooting](#troubleshooting)
+<!-- /toc -->
+
+## Introduction
+
+The multi-cluster feature extends the MariaDB operator's high availability capabilities beyond a single Kubernetes cluster. Please refer to the [architecture diagram](#architecture) for a visual representation.
+
+Each cluster runs its own HA topology (replication or Galera), and the clusters are connected via a dedicated replication connection. The primary cluster's primary Pod acts as the source of truth, and the replica cluster's primary Pod (called the "primary replica") replicates from it.
+
+The operator handles the full lifecycle of this topology, including:
+- Bootstrapping the replica cluster from a physical backup of the primary cluster
+- Configuring the replication connection between clusters
+- Managing GTID domain IDs to prevent GTID conflicts between clusters
+- Performing cluster-level switchover when needed
+
+## Use cases
+
+### Multi-region deployments
+
+Deploy MariaDB clusters across different geographic regions for disaster recovery and reduced latency. The primary cluster in one region handles all write operations, while replica clusters in other regions provide read scalability and regional failover capability.
+
+### Blue-green deployments
+
+Maintain two identical cluster topologies (blue and green) and switch between them for zero-downtime deployments. While one cluster serves traffic, the other can be updated in the background.
+
+### Active-passive disaster recovery
+
+Run a primary cluster in one region and a passive replica cluster in another region. In case of a regional outage, switch traffic to the replica cluster, which can then become the new primary.
+
+### Data locality
+
+Place replica clusters closer to your application instances to reduce network latency for read operations, while keeping the primary cluster in a central location.
+
 ## Architecture
 
 ![Multi-cluster architecture](./assets/multi-cluster.png)
@@ -63,57 +115,6 @@ TLS is used to encrypt traffic between clusters and between Pods within a cluste
 ### S3 Storage
 
 S3-compatible storage is used to store physical backups. The primary cluster uploads backups to S3, and the replica cluster downloads them during bootstrapping. A shared S3 bucket is used by all clusters.
-
-## Table of contents
-<!-- toc -->
-- [Introduction](#introduction)
-- [Use cases](#use-cases)
-- [Provisioning](#provisioning)
-  - [Prerequisites](#prerequisites)
-  - [Provisioning process](#provisioning-process)
-  - [Scenarios](#scenarios)
-    - [Replication](#replication)
-    - [Replication with MaxScale](#replication-with-maxscale)
-    - [Galera](#galera)
-    - [Galera with MaxScale](#galera-with-maxscale)
-- [Cluster switchover](#cluster-switchover)
-  - [GTID domain ID filtering](#gtid-domain-id-filtering)
-  - [Triggering a cluster switchover](#triggering-a-cluster-switchover)
-- [Status subresource](#status-subresource)
-- [Replication roles](#replication-roles)
-- [Limitations](#limitations)
-- [Troubleshooting](#troubleshooting)
-<!-- /toc -->
-
-## Introduction
-
-The multi-cluster feature extends the MariaDB operator's high availability capabilities beyond a single Kubernetes cluster. Please refer to the [architecture diagram](#architecture) for a visual representation.
-
-Each cluster runs its own HA topology (replication or Galera), and the clusters are connected via a dedicated replication connection. The primary cluster's primary Pod acts as the source of truth, and the replica cluster's primary Pod (called the "primary replica") replicates from it.
-
-The operator handles the full lifecycle of this topology, including:
-- Bootstrapping the replica cluster from a physical backup of the primary cluster
-- Configuring the replication connection between clusters
-- Managing GTID domain IDs to prevent GTID conflicts between clusters
-- Performing cluster-level switchover when needed
-
-## Use cases
-
-### Multi-region deployments
-
-Deploy MariaDB clusters across different geographic regions for disaster recovery and reduced latency. The primary cluster in one region handles all write operations, while replica clusters in other regions provide read scalability and regional failover capability.
-
-### Blue-green deployments
-
-Maintain two identical cluster topologies (blue and green) and switch between them for zero-downtime deployments. While one cluster serves traffic, the other can be updated in the background.
-
-### Active-passive disaster recovery
-
-Run a primary cluster in one region and a passive replica cluster in another region. In case of a regional outage, switch traffic to the replica cluster, which can then become the new primary.
-
-### Data locality
-
-Place replica clusters closer to your application instances to reduce network latency for read operations, while keeping the primary cluster in a central location.
 
 ## Provisioning
 
