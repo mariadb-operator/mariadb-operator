@@ -17,8 +17,7 @@ Maintenance mode is designed to work with any MariaDB topology and is particular
 - [Drain connections](#drain-connections)
 - [Read-only mode](#read-only-mode)
 - [Composing maintenance modes](#composing-maintenance-modes)
-- [Readiness during maintenance](#readiness-during-maintenance)
-- [Events during maintenance](#events-during-maintenance)
+- [Troubleshooting](#troubleshooting)
 - [Disabling maintenance mode](#disabling-maintenance-mode)
 - [MaxScale maintenance mode](#maxscale-maintenance-mode)
 <!-- /toc -->
@@ -183,9 +182,24 @@ spec:
     drainGracePeriodSeconds: 60
 ```
 
-## Readiness during maintenance
+## Troubleshooting
 
-When maintenance mode is enabled, the MariaDB resource's readiness state changes to reflect the maintenance status:
+The operator tracks the `MariaDB` status conditions during maintenance operations. This status is the first place to look for when troubleshooting maintenance issues:
+
+```bash
+kubectl get mariadb mariadb-eu-south -o jsonpath="{.status.conditions}" | jq
+[
+  {
+    "lastTransitionTime": "2025-01-01T00:00:00Z",
+    "message": "Maintenance",
+    "reason": "Maintenance",
+    "status": "True",
+    "type": "Ready"
+  }
+]
+```
+
+The following status conditions indicate the maintenance state:
 
 | Condition | Reason | Message |
 |-----------|--------|---------|
@@ -196,9 +210,7 @@ When `cordon` is enabled, the resource is marked as not ready (`Ready=False`) wi
 
 When cordon is disabled but maintenance mode is enabled, the resource is marked as ready (`Ready=True`) with the reason `Maintenance`. This indicates that the database is in maintenance mode but still accepting connections.
 
-## Events during maintenance
-
-The operator emits Kubernetes events during maintenance operations. You can retrieve them using:
+The operator also emits Kubernetes events during maintenance operations. You can retrieve them using:
 
 ```bash
 kubectl get events --field-selector involvedObject.name=mariadb-eu-south --sort-by='.lastTimestamp'
