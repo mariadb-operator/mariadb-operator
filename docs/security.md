@@ -64,7 +64,7 @@ This way, we are telling the operator that we are expecting a `Secret` to be ava
 
 ### Password Rotation
 
-> [!IMPORTANT] **Warning**
+> [!IMPORTANT]
 > It is highly recommended to enable SSL connections to the MariaDB server. If SSL is not enabled, the root password will be transmitted in plain text over the network during the rotation process.
 
 When the value in the `Secret` referenced by `spec.rootPasswordSecretKeyRef` is updated, the operator will perform the following actions to rotate the root password:
