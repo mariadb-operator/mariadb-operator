@@ -19,6 +19,7 @@ Maintenance mode is designed to work with any MariaDB topology and is particular
 - [Composing maintenance modes](#composing-maintenance-modes)
 - [Readiness during maintenance](#readiness-during-maintenance)
 - [Disabling maintenance mode](#disabling-maintenance-mode)
+- [MaxScale maintenance mode](#maxscale-maintenance-mode)
 <!-- /toc -->
 
 ## Enabling maintenance mode
@@ -211,3 +212,27 @@ spec:
 When maintenance mode is disabled, the operator will:
 1. Disable read-only mode on all Pods (if it was enabled).
 2. Re-add the Pods to the service endpoints (if cordon was enabled).
+
+## MaxScale maintenance mode
+
+MaxScale also supports maintenance mode with a similar mechanism. When enabled, it cordons the MaxScale Kubernetes service by modifying the service selector labels, effectively removing MaxScale Pods from the endpoints and blocking new connections.
+
+Unlike MariaDB, MaxScale maintenance mode only provides cordon functionality. It does not support draining connections or read-only mode, as MaxScale acts as a proxy rather than a database.
+
+To enable maintenance mode on MaxScale:
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MaxScale
+metadata:
+  name: maxscale-galera
+spec:
+  maintenance:
+    enabled: true
+    cordon: true
+```
+
+This behaves similarly to MariaDB's cordon mode: existing connections through the service are not immediately terminated, but new connection attempts will fail as the Pods are removed from the service endpoints.
+
+> [!NOTE]
+> MaxScale also supports putting individual backend MariaDB servers in maintenance mode. See the [Server maintenance](./maxscale.md#server-maintenance) section for details.
