@@ -1,5 +1,15 @@
 # Security
 
+## Table of contents
+<!-- toc -->
+- [Root Password](#root-password)
+- [Password Rotation](#password-rotation)
+- [Data Plane Updates](#data-plane-updates)
+- [Updating the password](#updating-the-password)
+<!-- /toc -->
+
+## Root Password
+
 The root password for a `MariaDB` resource can be specified in a Secret, like so:
 
 ```yaml
@@ -52,16 +62,7 @@ This way, we are telling the operator that we are expecting a `Secret` to be ava
 - [sealed-secrets](https://github.com/bitnami-labs/sealed-secrets): The `Secret` is reconciled from a `SealedSecret`, which is decrypted by the sealed-secrets controller.
 - [external-secrets](https://github.com/external-secrets/external-secrets): The `Secret` is reconciled fom an `ExternalSecret`, which is read by the external-secrets controller from an external secrets source (Vault, AWS Secrets Manager ...).
 
-## Table of contents
-<!-- toc -->
-- [Root Password](#root-password)
-- [Password Rotation](#password-rotation)
-- [Updating the password](#updating-the-password)
-<!-- /toc -->
-
-## Root Password
-
-## Password Rotation
+### Password Rotation
 
 > [!IMPORTANT] **Warning**
 > It is highly recommended to enable SSL connections to the MariaDB server. If SSL is not enabled, the root password will be transmitted in plain text over the network during the rotation process.
@@ -75,14 +76,14 @@ When the value in the `Secret` referenced by `spec.rootPasswordSecretKeyRef` is 
 
 The operator will only attempt a password rotation when the `MariaDB` cluster is in a stable and healthy state. It will wait for any ongoing operations such as initialization, updates, backups, or scaling to complete before changing the password.
 
-### Data Plane Updates
+#### Data Plane Updates
 
 The operator also ensures that the root password is propagated to other components that might need it:
 
 - **Agent**: The operator updates the `MARIADB_ROOT_PASSWORD` environment variable in the agent sidecar containers. This allows the liveness and readiness probes to connect to the database.
 - **Galera**: If Galera is enabled, the operator updates the `wsrep_sst_auth` credentials used for State Snapshot Transfers (SST).
 
-### Updating the password
+#### Updating the password
 
 To update the root password, you just need to update the `Secret` referenced by `rootPasswordSecretKeyRef`. For example, using `kubectl`:
 
