@@ -65,8 +65,8 @@ Place replica clusters closer to your application instances to reduce network la
 The multi-cluster architecture consists of the following components:
 
 - **MariaDB Operator**: Runs on each cluster, responsible for provisioning and managing the `MariaDB` cluster, configuring the internal HA topology (replication or Galera), setting up multi-cluster replication connections, and monitoring replication status.
-- **Primary Cluster**: The cluster where writes are performed. Its primary Pod is the source of truth for write operations.
-- **Replica Cluster**: Replicates data from the primary cluster using a remote connection. Its primary replica Pod replicates from the primary cluster's primary Pod and acts as the source of truth for the replica cluster's internal topology.
+- **Primary Cluster**: The cluster where writes are performed. Its primary Pod is the source of truth for write operations: both local replicas and remote replicas replicate from it.
+- **Replica Cluster**: Replicates data from the primary cluster using a remote connection. Its primary replica Pod replicates from the primary cluster's primary Pod and acts as the source of truth for the replica cluster's internal topology. This cluster must only be used for read operations or as disaster recovery standby.
 - **MaxScale Service**: An internal Kubernetes Service that routes traffic to `MaxScale` Pods within a cluster. When `MaxScale` is used, the primary replica connects to this service instead of the `MariaDB` Kubernetes service.
 - **LoadBalancer**: An external load balancer managed by the user (e.g., cloud provider LB or Metallb in bare metal) that exposes the primary cluster to applications. This load balancer must be manually updated to point to the new primary cluster after a cluster switchover.
 
