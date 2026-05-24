@@ -64,57 +64,11 @@ Place replica clusters closer to your application instances to reduce network la
 
 The multi-cluster architecture consists of the following components:
 
-### Kubernetes Clusters
-
-Each Kubernetes cluster runs its own instance of the MariaDB operator and a MariaDB cluster. The clusters are connected via network (e.g., VPC peering, VPN, or direct internet access) to enable cross-cluster replication.
-
-### MariaDB Operator
-
-The MariaDB operator runs in each cluster and manages the MariaDB resources. In a multi-cluster setup, each operator is responsible for:
-- Creating and managing the MariaDB StatefulSet within its cluster
-- Configuring the internal HA topology (replication or Galera)
-- Setting up the multi-cluster replication connection to the primary cluster
-- Monitoring replication status and handling failover
-
-### MariaDB Cluster
-
-Each Kubernetes cluster runs a MariaDB cluster with its own HA topology:
-- **Replication topology**: One primary Pod handles writes, one or more replica Pods replicate from the primary.
-- **Galera topology**: All Pods form a synchronous multi-master cluster.
-
-### Primary Cluster
-
-The primary cluster is the source of all write operations. It consists of:
-- **Primary Pod**: The Pod that handles all write operations. In a replication topology, this is the Pod with the primary role. In a Galera topology, any Pod can handle writes.
-- **Replica Pods** (replication) / **Galera nodes** (Galera): Pods that replicate from the primary or participate in the Galera cluster.
-
-### Replica Cluster
-
-The replica cluster replicates data from the primary cluster. It consists of:
-- **Primary Replica Pod**: The Pod that replicates from the primary cluster's primary Pod. This Pod acts as the source of truth for the replica cluster's internal topology.
-- **Replica Pods** (replication) / **Galera nodes** (Galera): Pods that replicate from the primary replica or participate in the Galera cluster.
-
-### ExternalMariaDB
-
-The `ExternalMariaDB` CRD defines connection details to a MariaDB instance in a different Kubernetes cluster. Each cluster has `ExternalMariaDB` resources for all clusters in the multi-cluster topology, including itself. These resources are used to:
-- Establish replication connections between clusters
-- Configure the multi-cluster primary replica connection
-
-### PhysicalBackup
-
-The `PhysicalBackup` CRD is used to take backups of the primary cluster. The replica cluster bootstraps from a physical backup of the primary cluster. The backup is stored in S3-compatible storage and downloaded by the replica cluster during bootstrapping.
-
-### LoadBalancer Services
-
-Each cluster exposes its MariaDB primary via a LoadBalancer service (`spec.primaryService`). This service is used by other clusters to connect to the primary Pod for replication. In development environments, Metallb is used to assign stable IP addresses to the LoadBalancer services.
-
-### TLS Certificates
-
-TLS is used to encrypt traffic between clusters and between Pods within a cluster. A shared CA certificate is used to issue certificates for all clusters, enabling mutual TLS authentication.
-
-### S3 Storage
-
-S3-compatible storage is used to store physical backups. The primary cluster uploads backups to S3, and the replica cluster downloads them during bootstrapping. A shared S3 bucket is used by all clusters.
+- **MariaDB Operator**: Runs on each cluster, responsible for provisioning and managing the `MariaDB` cluster, configuring the internal HA topology (replication or Galera), setting up multi-cluster replication connections, and monitoring replication status.
+- **Primary Cluster**: The cluster where writes are performed. Its primary Pod is the source of truth for write operations.
+- **Replica Cluster**: Replicates data from the primary cluster using a remote connection. Its primary replica Pod replicates from the primary cluster's primary Pod and acts as the source of truth for the replica cluster's internal topology.
+- **MaxScale Service**: An internal Kubernetes Service that routes traffic to `MaxScale` Pods within a cluster. When `MaxScale` is used, the primary replica connects to this service instead of the `MariaDB` Kubernetes service.
+- **LoadBalancer**: An external load balancer managed by the user (e.g., cloud provider LB or Metallb in bare metal) that exposes the primary cluster to applications. This load balancer must be manually updated to point to the new primary cluster after a cluster switchover.
 
 ## Provisioning
 
