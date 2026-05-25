@@ -699,12 +699,11 @@ kubectl get externalmariadb mariadb-eu-central -o jsonpath="{.status}" | jq
       "status": "True",
       "type": "Ready"
     }
-  ],
-  "version": "11.8"
+  ]
 }
 ```
 
-Verify that the `status.conditions` shows `Ready: True` and `Healthy`. The `status.version` field shows the detected MariaDB version of the remote cluster.
+Verify that the `status.conditions` shows `Ready: True` and `Healthy`.
 
 ### Checking Kubernetes events
 
