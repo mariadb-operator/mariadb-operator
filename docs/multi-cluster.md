@@ -180,6 +180,26 @@ Key fields:
 - `spec.replication.semiSyncEnabled`: Set to `false` for cross-regional setups to avoid ACK timeouts.
 - `spec.primaryService`: The service used to expose the primary cluster's primary Pod for replication connections from replica clusters.
 
+Verify the primary cluster is running:
+
+```bash
+kubectl get mariadb mariadb-eu-south -o jsonpath="{.status}" | jq '{conditions: .conditions, currentPrimary: .currentPrimary, currentMultiClusterPrimary: .currentMultiClusterPrimary}'
+{
+  "conditions": [
+    {
+      "lastTransitionTime": "2026-05-25T18:09:50Z",
+      "message": "Running",
+      "reason": "StatefulSetReady",
+      "status": "True",
+      "type": "Ready"
+    },
+    # [...]
+  ],
+  "currentPrimary": "mariadb-eu-south-0",
+  "currentMultiClusterPrimary": "mariadb-eu-south"
+}
+```
+
 #### Step 2: Create PhysicalBackup
 
 The replica cluster bootstraps from a physical backup of the primary cluster. Create a `PhysicalBackup` resource that the operator will use to take a full backup of the primary cluster:
@@ -217,6 +237,25 @@ spec:
 ```
 
 This `PhysicalBackup` is applied to the **primary cluster** (eu-south). The operator will take a full physical backup and store it in the S3 bucket. This backup will be used to bootstrap the replica cluster.
+
+Verify the backup is complete:
+
+```bash
+kubectl get physicalbackup physicalbackup-eu-south -o jsonpath="{.status}" | jq
+{
+  "conditions": [
+    {
+      "lastTransitionTime": "2026-05-25T18:10:10Z",
+      "message": "Success",
+      "reason": "JobComplete",
+      "status": "True",
+      "type": "Complete"
+    }
+  ],
+  "lastScheduleCheckTime": "2026-05-25T18:10:01Z",
+  "lastScheduleTime": "2026-05-25T18:10:01Z"
+}
+```
 
 #### Step 3: Deploy replica cluster
 
@@ -310,6 +349,26 @@ Key differences from the primary cluster:
 - `spec.bootstrapFrom`: Points to the S3 bucket where the primary cluster's backups are stored. This is used to bootstrap the replica cluster with the latest data.
 - `spec.replication.gtidDomainId`: Set to a different value (`1`) than the primary cluster (`0`).
 - `spec.replication.serverIdStartIndex`: Set to a different value (`20`) than the primary cluster (`10`) to avoid server ID conflicts.
+
+Verify the replica cluster is running and has bootstrapped from the primary:
+
+```bash
+kubectl get mariadb mariadb-eu-central -o jsonpath="{.status}" | jq '{conditions: .conditions, currentPrimary: .currentPrimary, currentMultiClusterPrimary: .currentMultiClusterPrimary}'
+{
+  "conditions": [
+    {
+      "lastTransitionTime": "2026-05-25T18:11:14Z",
+      "message": "Running",
+      "reason": "StatefulSetReady",
+      "status": "True",
+      "type": "Ready"
+    },
+    # [...]
+  ],
+  "currentPrimary": "mariadb-eu-central-0",
+  "currentMultiClusterPrimary": "mariadb-eu-south"
+}
+```
 
 Check the replication status to verify the replica cluster is connected to the primary:
 
