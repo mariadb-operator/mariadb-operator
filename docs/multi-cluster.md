@@ -463,7 +463,12 @@ The switchover process consists of the following steps:
 
 ### Step 1: Enable maintenance mode on the primary cluster
 
-Before initiating a cluster switchover, put the primary cluster in [maintenance mode](./maintenance.md). This prevents new writes from being accepted, allowing the replica cluster to fully sync. The recommended maintenance mode configuration is:
+Before initiating a cluster switchover, put the primary cluster in [maintenance mode](./maintenance.md). This prevents new writes from being accepted, allowing the replica cluster to fully sync.
+
+> [!NOTE]
+> When using MaxScale, enable maintenance mode on the `MaxScale` CR instead of the `MariaDB` CR. See the [MaxScale maintenance mode](./maintenance.md#maxscale-maintenance-mode) section for more information.
+
+The recommended maintenance mode configuration is:
 
 ```yaml
 apiVersion: k8s.mariadb.com/v1alpha1
@@ -661,7 +666,10 @@ The LoadBalancer should route traffic to either the MariaDB primary service or t
 
 ### Step 5: Disable maintenance mode on the old primary
 
-Once the switchover is complete and traffic has been redirected, disable maintenance mode on the old primary cluster (now the replica) to bring it back into the topology as a replica of the new primary:
+Once the switchover is complete and traffic has been redirected, disable maintenance mode on the old primary cluster (now the replica) to bring it back into the topology as a replica of the new primary.
+
+> [!NOTE]
+> When using MaxScale, disable maintenance mode on the `MaxScale` CR instead of the `MariaDB` CR. See the [MaxScale maintenance mode](./maintenance.md#maxscale-maintenance-mode) section for more information.
 
 ```bash
 kubectl patch mariadb mariadb-eu-south --type merge -p '{"spec":{"maintenance":{"enabled":false}}}'
