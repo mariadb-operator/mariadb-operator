@@ -970,18 +970,31 @@ kubectl get externalmariadb mariadb-eu-central -o jsonpath="{.status}" | jq
 
 Verify that the `status.conditions` shows `Ready: True` and `Healthy`.
 
-### Checking Kubernetes events
+### Rebuilding a replica cluster in bad state
 
-The operator emits Kubernetes events during multi-cluster operations. Check them for debugging:
+When a replica cluster enters a bad state (e.g., data corruption, replication failure that cannot be recovered), the recommended approach is to rebuild it from a physical backup of the primary cluster. This process mirrors the provisioning steps described in [Provisioning process](#provisioning-process), with the key differences that you must delete the PVCs and MariaDB CR first, and point to an existing backup rather than creating a new one.
 
-```bash
-kubectl get events --field-selector involvedObject.name=mariadb-eu-south --sort-by='.lastTimestamp'
-kubectl get events --field-selector involvedObject.name=mariadb-eu-central --sort-by='.lastTimestamp'
-```
+1. **Detect the issue**: Check the replication status to identify the problem. Look for `slaveIORunning` or `slaveSQLRunning` set to `false`, non-empty `lastIOError`/`lastSQLError`, error codes (`lastIOErrno`/`lastSQLErrno`) greater than `0`, continuously increasing `secondsBehindMaster`, or a `Ready` condition showing `False`. If the errors cannot be resolved by restarting replication threads or fixing the underlying issue (network, credentials, etc.), a rebuild is necessary.
 
-Look for events related to:
-- `PrimaryReplicaConfigured`: The primary replica has been configured.
-- `MultiClusterReconciled`: The multi-cluster topology has been reconciled.
-- `ClusterSwitched`: A cluster switchover has been performed.
+2. **Delete the MariaDB CR**: Delete the replica cluster's `MariaDB` custom resource to stop the operator from managing the failing cluster:
+
+   ```bash
+   kubectl delete mariadb mariadb-eu-central
+   ```
+
+3. **Delete the PVCs**: Delete all PersistentVolumeClaims belonging to the replica cluster to remove the corrupted or broken data:
+
+   ```bash
+   kubectl delete pvc -l app.kubernetes.io/component=mariadb,app.kubernetes.io/instance=mariadb-eu-central
+   ```
+
+4. **Recreate the MariaDB CR**: Create a new `MariaDB` CR for the replica cluster, using the same configuration as the original replica (see [Step 3: Deploy replica cluster](#step-3-deploy-replica-cluster)) and pointing `spec.bootstrapFrom` to an existing physical backup in the primary cluster's S3 bucket. The operator will automatically download the backup, restore it to the new Pods, configure the internal replication topology, and establish the multi-cluster replication connection.
+
+5. **Verify the rebuild**: Check that the `BackupRestored` and `ReplicationConfigured` conditions are present and `True`, and verify that `slaveIORunning` and `slaveSQLRunning` are `true`, `secondsBehindMaster` is `0`, and both `lastIOError` and `lastSQLError` are empty:
+
+   ```bash
+   kubectl get mariadb mariadb-eu-central -o jsonpath="{.status}" | jq '{conditions: .conditions, currentPrimary: .currentPrimary, currentMultiClusterPrimary: .currentMultiClusterPrimary}'
+   kubectl get mariadb mariadb-eu-central -o jsonpath="{.status.replication}" | jq
+   ```
 
 
