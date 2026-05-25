@@ -690,33 +690,19 @@ Key replication fields to check:
 To verify that the `ExternalMariaDB` resources are correctly configured and reachable:
 
 ```bash
-kubectl get externalmariadb mariadb-eu-central -o yaml
-apiVersion: k8s.mariadb.com/v1alpha1
-kind: ExternalMariaDB
-metadata:
-  name: mariadb-eu-central
-  namespace: default
-spec:
-  host: mariadb-eu-central-primary.default.svc.cluster.local
-  port: 3306
-  username: root
-  passwordSecretKeyRef:
-    key: password
-    name: mariadb
-  tls:
-    enabled: true
-    serverCASecretRef:
-      name: mariadb-server-ca
-    clientCASecretRef:
-      name: mariadb-server-ca
-status:
-  conditions:
-  - lastTransitionTime: "2026-05-24T17:21:49Z"
-    message: Healthy
-    reason: Healthy
-    status: "True"
-    type: Ready
-  version: "11.8"
+kubectl get externalmariadb mariadb-eu-central -o jsonpath="{.status}" | jq
+{
+  "conditions": [
+    {
+      "lastTransitionTime": "2026-05-24T17:21:49Z",
+      "message": "Healthy",
+      "reason": "Healthy",
+      "status": "True",
+      "type": "Ready"
+    }
+  ],
+  "version": "11.8"
+}
 ```
 
 Verify that the `status.conditions` shows `Ready: True` and `Healthy`. The `status.version` field shows the detected MariaDB version of the remote cluster.
