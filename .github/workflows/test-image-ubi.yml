@@ -50,7 +50,7 @@ jobs:
 
       - name: Tell the MariaDB Folks that failed
         if: ${{ failure() && contains(inputs.mariadb_image, 'mariadb-foundation') }}
-        uses: zulip/github-actions-zulip/send-message@v1
+        uses: zulip/github-actions-zulip/send-message@v2
         with:
           api-key: ${{ secrets.MARIADB_ZULIP_API_KEY }}
           email: "mariadb-operator-bot@mariadb.zulipchat.com"
