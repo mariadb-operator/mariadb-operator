@@ -683,7 +683,6 @@ Key replication fields to check:
 - `lastIOError` / `lastSQLError`: Any recent errors from the I/O or SQL threads. Empty strings indicate no errors.
 - `gtidCurrentPos`: The current GTID position. For the primary replica, this shows both domain `0` (replicated from the primary cluster) and domain `1` (its own cluster's transactions).
 - `gtidIOPos`: The GTID position up to which the I/O thread has received events from the source. A difference between `gtidCurrentPos` and `gtidIOPos` indicates the I/O thread is behind.
-- `usingGtid`: The GTID mode used — `Current_Pos` for the primary cluster's replicas (which are sources) and `Slave_Pos` for the replica cluster's Pods (which are slaves).
 
 ### Checking ExternalMariaDB connectivity
 
