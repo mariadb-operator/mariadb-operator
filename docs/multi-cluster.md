@@ -494,6 +494,40 @@ Verify that the replica cluster has fully synced with the primary cluster before
 
 ```bash
 kubectl get mariadb mariadb-eu-central -o jsonpath="{.status.replication}" | jq
+{
+  "replicas": {
+    "mariadb-eu-central-0": {
+      "gtidCurrentPos": "0-10-4337,1-20-11",
+      "gtidIOPos": "0-10-4337",
+      "lastErrorTransitionTime": "2026-05-24T07:47:56Z",
+      "lastIOErrno": 0,
+      "lastIOError": "",
+      "lastSQLErrno": 0,
+      "lastSQLError": "",
+      "secondsBehindMaster": 0,
+      "slaveIORunning": true,
+      "slaveSQLRunning": true,
+      "usingGtid": "Slave_Pos"
+    },
+    "mariadb-eu-central-1": {
+      "gtidCurrentPos": "0-10-4337,1-20-11",
+      "gtidIOPos": "1-20-11,0-10-4337",
+      "lastErrorTransitionTime": "2026-05-24T07:47:56Z",
+      "lastIOErrno": 0,
+      "lastIOError": "",
+      "lastSQLErrno": 0,
+      "lastSQLError": "",
+      "secondsBehindMaster": 0,
+      "slaveIORunning": true,
+      "slaveSQLRunning": true,
+      "usingGtid": "Slave_Pos"
+    }
+  },
+  "roles": {
+    "mariadb-eu-central-0": "PrimaryReplica",
+    "mariadb-eu-central-1": "Replica"
+  }
+}
 ```
 
 Ensure that `slaveIORunning` and `slaveSQLRunning` are `true` and `secondsBehindMaster` is `0` for the primary replica.
@@ -502,17 +536,9 @@ Ensure that `slaveIORunning` and `slaveSQLRunning` are `true` and `secondsBehind
 
 Update the `spec.multiCluster.primary` field on the replica cluster to its own name:
 
-```yaml
-apiVersion: k8s.mariadb.com/v1alpha1
-kind: MariaDB
-metadata:
-  name: mariadb-eu-central
-spec:
-  # [...]
-  multiCluster:
-    enabled: true
-    primary: mariadb-eu-central
-  # [...]
+```bash
+kubectl patch mariadb mariadb-eu-central --type merge -p '{"spec":{"multiCluster":{"primary":"mariadb-eu-central"}}}'
+mariadb.k8s.mariadb.com/mariadb-eu-central patched
 ```
 
 This tells the operator that the replica cluster should become the new primary. The operator will:
@@ -520,6 +546,87 @@ This tells the operator that the replica cluster should become the new primary. 
 1. Reset the primary replica connection on all Pods of the old primary cluster.
 2. Reconfigure GTIDs on the old primary cluster to only include its own domain ID.
 3. Set the `status.currentMultiClusterPrimary` field to the new primary cluster.
+
+Verify the switchover by checking both clusters:
+
+```bash
+kubectl get mariadb -o jsonpath='{range .items[*]}{.metadata.name}: primary={.status.currentPrimary}, multiClusterPrimary={.status.currentMultiClusterPrimary}{"\n"}{end}'
+mariadb-eu-central: primary=mariadb-eu-central-0, multiClusterPrimary=mariadb-eu-central
+mariadb-eu-south: primary=mariadb-eu-south-0, multiClusterPrimary=mariadb-eu-south
+```
+
+The new primary (`mariadb-eu-central`) has been promoted. The old primary (`mariadb-eu-south`) still shows itself as the multi-cluster primary because its `spec.multiCluster.primary` field still points to itself. Update it to point to the new primary:
+
+```bash
+kubectl patch mariadb mariadb-eu-south --type merge -p '{"spec":{"multiCluster":{"primary":"mariadb-eu-central"}}}'
+mariadb.k8s.mariadb.com/mariadb-eu-south patched
+```
+
+After updating, verify that both clusters report the new primary:
+
+```bash
+kubectl get mariadb -o jsonpath='{range .items[*]}{.metadata.name}: primary={.status.currentPrimary}, multiClusterPrimary={.status.currentMultiClusterPrimary}{"\n"}{end}'
+mariadb-eu-central: primary=mariadb-eu-central-0, multiClusterPrimary=mariadb-eu-central
+mariadb-eu-south: primary=mariadb-eu-south-0, multiClusterPrimary=mariadb-eu-central
+```
+
+Check the replication roles to confirm the topology:
+
+```bash
+kubectl get mariadb mariadb-eu-central -o jsonpath="{.status.replication.roles}" | jq
+{
+  "mariadb-eu-central-0": "Primary",
+  "mariadb-eu-central-1": "Replica"
+}
+```
+
+```bash
+kubectl get mariadb mariadb-eu-south -o jsonpath="{.status.replication.roles}" | jq
+{
+  "mariadb-eu-south-0": "PrimaryReplica",
+  "mariadb-eu-south-1": "Replica"
+}
+```
+
+The old primary (`mariadb-eu-south`) now has a `PrimaryReplica` Pod (`mariadb-eu-south-0`) that replicates from the new primary. Check its replication status:
+
+```bash
+kubectl get mariadb mariadb-eu-south -o jsonpath="{.status.replication}" | jq
+{
+  "replicas": {
+    "mariadb-eu-south-0": {
+      "gtidCurrentPos": "0-10-4339,1-20-11",
+      "gtidIOPos": "1-20-11,0-10-4339",
+      "lastErrorTransitionTime": "2026-05-25T15:19:29Z",
+      "lastIOErrno": 0,
+      "lastIOError": "",
+      "lastSQLErrno": 0,
+      "lastSQLError": "",
+      "secondsBehindMaster": 0,
+      "slaveIORunning": true,
+      "slaveSQLRunning": true,
+      "usingGtid": "Slave_Pos"
+    },
+    "mariadb-eu-south-1": {
+      "gtidCurrentPos": "0-10-4339",
+      "gtidIOPos": "0-10-4339",
+      "lastErrorTransitionTime": "2026-05-24T07:32:26Z",
+      "lastIOErrno": 0,
+      "lastIOError": "",
+      "lastSQLErrno": 0,
+      "lastSQLError": "",
+      "secondsBehindMaster": 0,
+      "slaveIORunning": true,
+      "slaveSQLRunning": true,
+      "usingGtid": "Current_Pos"
+    }
+  },
+  "roles": {
+    "mariadb-eu-south-0": "PrimaryReplica",
+    "mariadb-eu-south-1": "Replica"
+  }
+}
+```
 
 The operator continuously reconciles the multi-cluster topology and will automatically adjust GTIDs when the primary changes. During this process, GTIDs are filtered by domain ID to ensure that each cluster only replicates its own transactions, preventing GTID conflicts when the replica cluster becomes the new primary.
 
@@ -534,7 +641,12 @@ The LoadBalancer should route traffic to either the MariaDB primary service or t
 
 ### Step 5: Disable maintenance mode on the old primary
 
-Once the switchover is complete and traffic has been redirected, disable maintenance mode on the old primary cluster (now the replica) to bring it back into the topology as a replica of the new primary.
+Once the switchover is complete and traffic has been redirected, disable maintenance mode on the old primary cluster (now the replica) to bring it back into the topology as a replica of the new primary:
+
+```bash
+kubectl patch mariadb mariadb-eu-south --type merge -p '{"spec":{"maintenance":{"enabled":false}}}'
+mariadb.k8s.mariadb.com/mariadb-eu-south patched
+```
 
 ## Limitations
 
