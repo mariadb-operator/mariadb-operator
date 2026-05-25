@@ -571,7 +571,7 @@ For TLS, the CA certificate used to sign server certificates must be the same ac
 The first step in troubleshooting a multi-cluster setup is to check the status of both the primary and replica MariaDB clusters:
 
 ```bash
-$ kubectl get mariadb
+kubectl get mariadb
 NAME             READY   STATUS    PRIMARY                UPDATES                    AGE
 mariadb-eu-south True    Running   mariadb-eu-south-0     ReplicasFirstPrimaryLast   31h
 mariadb-eu-central True   Running   mariadb-eu-central-0   ReplicasFirstPrimaryLast   30h
@@ -583,16 +583,22 @@ Check the following fields:
 - `status.currentMultiClusterPrimary`: The current primary cluster member name. In a healthy setup, both clusters report the same name (`mariadb-eu-south`).
 
 ```bash
-$ kubectl get mariadb mariadb-eu-south -o jsonpath="{.status.currentPrimary}" && echo ""
+kubectl get mariadb mariadb-eu-south -o jsonpath="{.status.currentPrimary}"
 mariadb-eu-south-0
+```
 
-$ kubectl get mariadb mariadb-eu-central -o jsonpath="{.status.currentPrimary}" && echo ""
+```bash
+kubectl get mariadb mariadb-eu-central -o jsonpath="{.status.currentPrimary}"
 mariadb-eu-central-0
+```
 
-$ kubectl get mariadb mariadb-eu-south -o jsonpath="{.status.currentMultiClusterPrimary}" && echo ""
+```bash
+kubectl get mariadb mariadb-eu-south -o jsonpath="{.status.currentMultiClusterPrimary}"
 mariadb-eu-south
+```
 
-$ kubectl get mariadb mariadb-eu-central -o jsonpath="{.status.currentMultiClusterPrimary}" && echo ""
+```bash
+kubectl get mariadb mariadb-eu-central -o jsonpath="{.status.currentMultiClusterPrimary}"
 mariadb-eu-south
 ```
 
@@ -601,13 +607,15 @@ mariadb-eu-south
 Check the replication roles of each cluster to verify the topology:
 
 ```bash
-$ kubectl get mariadb mariadb-eu-south -o jsonpath="{.status.replication.roles}" | jq
+kubectl get mariadb mariadb-eu-south -o jsonpath="{.status.replication.roles}" | jq
 {
   "mariadb-eu-south-0": "Primary",
   "mariadb-eu-south-1": "Replica"
 }
+```
 
-$ kubectl get mariadb mariadb-eu-central -o jsonpath="{.status.replication.roles}" | jq
+```bash
+kubectl get mariadb mariadb-eu-central -o jsonpath="{.status.replication.roles}" | jq
 {
   "mariadb-eu-central-0": "PrimaryReplica",
   "mariadb-eu-central-1": "Replica"
@@ -631,7 +639,7 @@ The `PrimaryReplica` role is unique to the multi-cluster topology. It represents
 To check the replication connections between clusters, inspect the replication status of the replica cluster:
 
 ```bash
-$ kubectl get mariadb mariadb-eu-central -o jsonpath="{.status.replication}" | jq
+kubectl get mariadb mariadb-eu-central -o jsonpath="{.status.replication}" | jq
 {
   "replicas": {
     "mariadb-eu-central-0": {
@@ -682,7 +690,7 @@ Key replication fields to check:
 To verify that the `ExternalMariaDB` resources are correctly configured and reachable:
 
 ```bash
-$ kubectl get externalmariadb mariadb-eu-central -o yaml
+kubectl get externalmariadb mariadb-eu-central -o yaml
 apiVersion: k8s.mariadb.com/v1alpha1
 kind: ExternalMariaDB
 metadata:
@@ -718,8 +726,8 @@ Verify that the `status.conditions` shows `Ready: True` and `Healthy`. The `stat
 The operator emits Kubernetes events during multi-cluster operations. Check them for debugging:
 
 ```bash
-$ kubectl get events --field-selector involvedObject.name=mariadb-eu-south --sort-by='.lastTimestamp'
-$ kubectl get events --field-selector involvedObject.name=mariadb-eu-central --sort-by='.lastTimestamp'
+kubectl get events --field-selector involvedObject.name=mariadb-eu-south --sort-by='.lastTimestamp'
+kubectl get events --field-selector involvedObject.name=mariadb-eu-central --sort-by='.lastTimestamp'
 ```
 
 Look for events related to:
