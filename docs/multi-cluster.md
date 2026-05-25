@@ -100,37 +100,76 @@ The provisioning process consists of the following steps:
 
 Deploy the primary cluster in the first Kubernetes cluster (eu-south). This cluster will serve as the source of all write operations:
 
-```bash
-kubectl apply -f examples/manifests/multi-cluster/replication/eu-south.yaml
-mariadb.k8s.mariadb.com/mariadb-eu-south created
-externalmariadb.k8s.mariadb.com/mariadb-eu-south created
-```
-
-Wait for the primary cluster to be ready:
-
-```bash
-kubectl wait --for=condition=Ready mariadb/mariadb-eu-south --timeout=300s
-mariadb.k8s.mariadb.com/mariadb-eu-south condition met
-```
-
-Verify the primary cluster is running:
-
-```bash
-kubectl get mariadb mariadb-eu-south -o jsonpath="{.status}" | jq '{conditions: .conditions, currentPrimary: .currentPrimary, currentMultiClusterPrimary: .currentMultiClusterPrimary}'
-{
-  "conditions": [
-    {
-      "lastTransitionTime": "2026-05-25T18:09:50Z",
-      "message": "Running",
-      "reason": "StatefulSetReady",
-      "status": "True",
-      "type": "Ready"
-    },
-    # [...]
-  ],
-  "currentPrimary": "mariadb-eu-south-0",
-  "currentMultiClusterPrimary": "mariadb-eu-south"
-}
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-eu-south
+spec:
+  rootPasswordSecretKeyRef:
+    name: mariadb
+    key: password
+  storage:
+    size: 1Gi
+  replicas: 2
+  replication:
+    enabled: true
+    gtidDomainId: 0
+    serverIdStartIndex: 10
+    # Prevent timeouts from replica ACKs in cross-regional setups.
+    semiSyncEnabled: false
+    replica:
+      replPasswordSecretKeyRef:
+        name: mariadb
+        key: password
+      bootstrapFrom:
+        physicalBackupTemplateRef:
+          name: physicalbackup-eu-south
+      recovery:
+        enabled: true
+        errorDurationThreshold: 30s
+  primaryService:
+    type: LoadBalancer
+    metadata:
+      annotations:
+        metallb.io/loadBalancerIPs: 172.18.1.10
+  tls:
+    enabled: true
+    required: true
+    serverCASecretRef:
+      name: mariadb-server-ca
+    serverCertAdditionalNames:
+      - 172.18.1.10
+    clientCASecretRef:
+      name: mariadb-server-ca
+  multiCluster:
+    enabled: true
+    primary: mariadb-eu-south
+    members:
+      - name: mariadb-eu-south
+        externalMariaDbRef:
+          name: mariadb-eu-south
+      - name: mariadb-eu-central
+        externalMariaDbRef:
+          name: mariadb-eu-central
+---
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: ExternalMariaDB
+metadata:
+  name: mariadb-eu-south
+spec:
+  host: mariadb-eu-south-primary.default.svc.cluster.local
+  port: 3306
+  username: root
+  passwordSecretKeyRef:
+    name: mariadb
+    key: password
+  tls:
+    enabled: true
+    serverCASecretRef:
+      name: mariadb-server-ca
+    clientCASecretRef:
+      name: mariadb-server-ca
 ```
 
 Key fields:
@@ -145,104 +184,126 @@ Key fields:
 
 The replica cluster bootstraps from a physical backup of the primary cluster. Create a `PhysicalBackup` resource that the operator will use to take a full backup of the primary cluster:
 
-```bash
-kubectl apply -f examples/manifests/multi-cluster/replication/eu-south-backup.yaml
-physicalbackup.k8s.mariadb.com/physicalbackup-eu-south created
-```
-
-Wait for the backup to complete:
-
-```bash
-kubectl wait --for=condition=Complete physicalbackup/physicalbackup-eu-south --timeout=300s
-physicalbackup.k8s.mariadb.com/physicalbackup-eu-south condition met
-```
-
-Verify the backup is complete:
-
-```bash
-kubectl get physicalbackup physicalbackup-eu-south -o jsonpath="{.status}" | jq
-{
-  "conditions": [
-    {
-      "lastTransitionTime": "2026-05-25T18:10:10Z",
-      "message": "Success",
-      "reason": "JobComplete",
-      "status": "True",
-      "type": "Complete"
-    }
-  ],
-  "lastScheduleCheckTime": "2026-05-25T18:10:01Z",
-  "lastScheduleTime": "2026-05-25T18:10:01Z"
-}
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: PhysicalBackup
+metadata:
+  name: physicalbackup-eu-south
+spec:
+  mariaDbRef:
+    name: mariadb-eu-south
+  schedule:
+    cron: "0 * * * *"
+    immediate: true
+  target: PreferReplica
+  compression: bzip2
+  storage:
+    s3:
+      bucket: multi-cluster
+      prefix: eu-south
+      endpoint: minio.minio.svc.cluster.local:9000
+      region: us-east-1
+      accessKeyIdSecretKeyRef:
+        name: minio
+        key: access-key-id
+      secretAccessKeySecretKeyRef:
+        name: minio
+        key: secret-access-key
+      tls:
+        enabled: true
+        caSecretKeyRef:
+          name: minio-ca
+          key: ca.crt
 ```
 
 This `PhysicalBackup` is applied to the **primary cluster** (eu-south). The operator will take a full physical backup and store it in the S3 bucket. This backup will be used to bootstrap the replica cluster.
-
-> [!TIP]
-> The `schedule.cron` with `immediate: true` triggers an immediate backup. Alternatively, you can use `onDemand: "1"` for on-demand backups.
 
 #### Step 3: Deploy replica cluster
 
 Deploy the replica cluster in the second Kubernetes cluster (eu-central). This cluster will replicate data from the primary cluster:
 
-```bash
-kubectl apply -f examples/manifests/multi-cluster/replication/eu-central.yaml
-mariadb.k8s.mariadb.com/mariadb-eu-central created
-externalmariadb.k8s.mariadb.com/mariadb-eu-central created
-```
-
-Wait for the replica cluster to be ready:
-
-```bash
-kubectl wait --for=condition=Ready mariadb/mariadb-eu-central --timeout=300s
-mariadb.k8s.mariadb.com/mariadb-eu-central condition met
-```
-
-Verify the replica cluster is running and has bootstrapped from the primary:
-
-```bash
-kubectl get mariadb mariadb-eu-central -o jsonpath="{.status}" | jq '{conditions: .conditions, currentPrimary: .currentPrimary, currentMultiClusterPrimary: .currentMultiClusterPrimary}'
-{
-  "conditions": [
-    {
-      "lastTransitionTime": "2026-05-25T18:11:14Z",
-      "message": "Running",
-      "reason": "StatefulSetReady",
-      "status": "True",
-      "type": "Ready"
-    },
-    {
-      "lastTransitionTime": "2026-05-25T18:10:55Z",
-      "message": "Initialized",
-      "reason": "Initialized",
-      "status": "True",
-      "type": "Initialized"
-    },
-    {
-      "lastTransitionTime": "2026-05-25T18:10:40Z",
-      "message": "Updated",
-      "reason": "Updated",
-      "status": "True",
-      "type": "Updated"
-    },
-    {
-      "lastTransitionTime": "2026-05-25T18:10:55Z",
-      "message": "Restored physical backup",
-      "reason": "RestorePhysicalBackup",
-      "status": "True",
-      "type": "BackupRestored"
-    },
-    {
-      "lastTransitionTime": "2026-05-25T18:10:55Z",
-      "message": "Replication configured",
-      "reason": "ReplicationConfigured",
-      "status": "True",
-      "type": "ReplicationConfigured"
-    }
-  ],
-  "currentPrimary": "mariadb-eu-central-0",
-  "currentMultiClusterPrimary": "mariadb-eu-south"
-}
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-eu-central
+spec:
+  rootPasswordSecretKeyRef:
+    name: mariadb
+    key: password
+  storage:
+    size: 1Gi
+  replicas: 2
+  bootstrapFrom:
+    s3:
+      bucket: multi-cluster
+      prefix: eu-south
+      endpoint: minio.minio.svc.cluster.local:9000
+      region: us-east-1
+      accessKeyIdSecretKeyRef:
+        name: minio
+        key: access-key-id
+      secretAccessKeySecretKeyRef:
+        name: minio
+        key: secret-access-key
+      tls:
+        enabled: true
+        caSecretKeyRef:
+          name: minio-ca
+          key: ca.crt
+    backupContentType: Physical
+  replication:
+    enabled: true
+    gtidDomainId: 1
+    serverIdStartIndex: 20
+    # Prevent timeouts from replica ACKs in cross-regional setups.
+    semiSyncEnabled: false
+    replica:
+      replPasswordSecretKeyRef:
+        name: mariadb
+        key: password
+  primaryService:
+    type: LoadBalancer
+    metadata:
+      annotations:
+        metallb.io/loadBalancerIPs: 172.18.1.15
+  tls:
+    enabled: true
+    required: true
+    serverCASecretRef:
+      name: mariadb-server-ca
+    serverCertAdditionalNames:
+      - 172.18.1.15
+    clientCASecretRef:
+      name: mariadb-server-ca
+  multiCluster:
+    enabled: true
+    primary: mariadb-eu-south
+    members:
+      - name: mariadb-eu-south
+        externalMariaDbRef:
+          name: mariadb-eu-south
+      - name: mariadb-eu-central
+        externalMariaDbRef:
+          name: mariadb-eu-central
+---
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: ExternalMariaDB
+metadata:
+  name: mariadb-eu-central
+spec:
+  host: mariadb-eu-central-primary.default.svc.cluster.local
+  port: 3306
+  username: root
+  passwordSecretKeyRef:
+    name: mariadb
+    key: password
+  tls:
+    enabled: true
+    serverCASecretRef:
+      name: mariadb-server-ca
+    clientCASecretRef:
+      name: mariadb-server-ca
 ```
 
 Key differences from the primary cluster:
@@ -301,11 +362,7 @@ When the replica cluster is deployed, the operator will automatically:
 3. Configure the internal replication topology (primary + replicas within the cluster).
 4. Configure the multi-cluster replication connection (primary replica -> primary cluster).
 
-Verify the bootstrap is complete by checking the `BackupRestored` condition in the replica cluster status. The replica cluster will show the following conditions:
-
-- `Initialized`: The cluster has been initialized.
-- `BackupRestored`: The physical backup has been restored.
-- `ReplicationConfigured`: The replication connection has been configured.
+Verify the bootstrap is complete by checking the `BackupRestored` and `ReplicationConfigured` conditions in the replica cluster status.
 
 After bootstrapping, the replica cluster's Pods will be connected to the primary cluster via replication. The operator continuously monitors this connection and will automatically reconnect if the connection is lost.
 
