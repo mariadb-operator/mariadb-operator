@@ -713,15 +713,6 @@ status:
 
 Verify that the `status.conditions` shows `Ready: True` and `Healthy`. The `status.version` field shows the detected MariaDB version of the remote cluster.
 
-To test connectivity from a replica cluster Pod:
-
-```bash
-$ kubectl exec -it mariadb-eu-central-0 -c mariadb -- mariadb -h mariadb-eu-south-primary -u root -p -e "SELECT 1;"
-Enter password:
-1
-1
-```
-
 ### Checking Kubernetes events
 
 The operator emits Kubernetes events during multi-cluster operations. Check them for debugging:
