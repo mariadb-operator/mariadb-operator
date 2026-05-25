@@ -350,7 +350,14 @@ Key differences from the primary cluster:
 - `spec.replication.gtidDomainId`: Set to a different value (`1`) than the primary cluster (`0`).
 - `spec.replication.serverIdStartIndex`: Set to a different value (`20`) than the primary cluster (`10`) to avoid server ID conflicts.
 
-Verify the replica cluster is running and has bootstrapped from the primary:
+When the replica cluster is deployed, the operator will automatically:
+
+1. Download the physical backup from the S3 bucket.
+2. Restore the backup to the replica cluster's Pods.
+3. Configure the internal replication topology (primary + replicas within the cluster).
+4. Configure the multi-cluster replication connection (primary replica -> primary cluster).
+
+Verify the bootstrap is complete by checking the `BackupRestored` and `ReplicationConfigured` conditions in the replica cluster status:
 
 ```bash
 kubectl get mariadb mariadb-eu-central -o jsonpath="{.status}" | jq '{conditions: .conditions, currentPrimary: .currentPrimary, currentMultiClusterPrimary: .currentMultiClusterPrimary}'
@@ -363,7 +370,20 @@ kubectl get mariadb mariadb-eu-central -o jsonpath="{.status}" | jq '{conditions
       "status": "True",
       "type": "Ready"
     },
-    # [...]
+    {
+      "lastTransitionTime": "2026-05-25T18:10:55Z",
+      "message": "Restored physical backup",
+      "reason": "RestorePhysicalBackup",
+      "status": "True",
+      "type": "BackupRestored"
+    },
+    {
+      "lastTransitionTime": "2026-05-25T18:10:55Z",
+      "message": "Replication configured",
+      "reason": "ReplicationConfigured",
+      "status": "True",
+      "type": "ReplicationConfigured"
+    }
   ],
   "currentPrimary": "mariadb-eu-central-0",
   "currentMultiClusterPrimary": "mariadb-eu-south"
@@ -411,19 +431,6 @@ kubectl get mariadb mariadb-eu-central -o jsonpath="{.status.replication}" | jq
 ```
 
 The `PrimaryReplica` Pod (`mariadb-eu-central-0`) replicates from the primary cluster's primary Pod. The `gtidCurrentPos` shows both domain `0` (replicated from the primary cluster) and domain `1` (its own cluster's transactions).
-
-#### Step 4: Bootstrap the replica cluster
-
-When the replica cluster is deployed, the operator will automatically:
-
-1. Download the physical backup from the S3 bucket.
-2. Restore the backup to the replica cluster's Pods.
-3. Configure the internal replication topology (primary + replicas within the cluster).
-4. Configure the multi-cluster replication connection (primary replica -> primary cluster).
-
-Verify the bootstrap is complete by checking the `BackupRestored` and `ReplicationConfigured` conditions in the replica cluster status.
-
-After bootstrapping, the replica cluster's Pods will be connected to the primary cluster via replication. The operator continuously monitors this connection and will automatically reconnect if the connection is lost.
 
 ### Scenarios
 
