@@ -571,221 +571,42 @@ For TLS, the CA certificate used to sign server certificates must be the same ac
 The first step in troubleshooting a multi-cluster setup is to check the status of both the primary and replica MariaDB clusters:
 
 ```bash
-# Check the primary cluster status
-$ kubectl get mariadb mariadb-eu-south
+$ kubectl get mariadb
 NAME             READY   STATUS    PRIMARY                UPDATES                    AGE
 mariadb-eu-south True    Running   mariadb-eu-south-0     ReplicasFirstPrimaryLast   31h
+mariadb-eu-central True   Running   mariadb-eu-central-0   ReplicasFirstPrimaryLast   30h
 ```
 
+Check the following fields:
+
+- `status.currentPrimary`: The current primary Pod name within the cluster. For the primary cluster, this is `mariadb-eu-south-0`. For the replica cluster, this is the primary replica Pod (`mariadb-eu-central-0`).
+- `status.currentMultiClusterPrimary`: The current primary cluster member name. In a healthy setup, both clusters report the same name (`mariadb-eu-south`).
+
 ```bash
-# Check the replica cluster status
-$ kubectl get mariadb mariadb-eu-central
-NAME                 READY   STATUS    PRIMARY                  UPDATES                    AGE
-mariadb-eu-central   True    Running   mariadb-eu-central-0     ReplicasFirstPrimaryLast   30h
+$ kubectl get mariadb mariadb-eu-south -o jsonpath="{.status.currentPrimary}" && echo ""
+mariadb-eu-south-0
+
+$ kubectl get mariadb mariadb-eu-central -o jsonpath="{.status.currentPrimary}" && echo ""
+mariadb-eu-central-0
+
+$ kubectl get mariadb mariadb-eu-south -o jsonpath="{.status.currentMultiClusterPrimary}" && echo ""
+mariadb-eu-south
+
+$ kubectl get mariadb mariadb-eu-central -o jsonpath="{.status.currentMultiClusterPrimary}" && echo ""
+mariadb-eu-south
 ```
 
-```bash
-# Check the full status of the primary cluster
-$ kubectl get mariadb mariadb-eu-south -o jsonpath="{.status}" | jq
-{
-  "conditions": [
-    {
-      "lastTransitionTime": "2026-05-24T17:26:19Z",
-      "message": "Running",
-      "reason": "StatefulSetReady",
-      "status": "True",
-      "type": "Ready"
-    },
-    {
-      "lastTransitionTime": "2026-05-24T07:32:10Z",
-      "message": "Updated",
-      "reason": "Updated",
-      "status": "True",
-      "type": "Updated"
-    },
-    {
-      "lastTransitionTime": "2026-05-24T07:32:26Z",
-      "message": "Replication configured",
-      "reason": "ReplicationConfigured",
-      "status": "True",
-      "type": "ReplicationConfigured"
-    }
-  ],
-  "currentMultiClusterPrimary": "mariadb-eu-south",
-  "currentPrimary": "mariadb-eu-south-0",
-  "currentPrimaryPodIndex": 0,
-  "defaultVersion": "11.8",
-  "replicas": 2,
-  "replication": {
-    "replicas": {
-      "mariadb-eu-south-1": {
-        "gtidCurrentPos": "0-10-4337",
-        "gtidIOPos": "0-10-4337",
-        "lastErrorTransitionTime": "2026-05-24T07:32:26Z",
-        "lastIOErrno": 0,
-        "lastIOError": "",
-        "lastSQLErrno": 0,
-        "lastSQLError": "",
-        "secondsBehindMaster": 0,
-        "slaveIORunning": true,
-        "slaveSQLRunning": true,
-        "usingGtid": "Current_Pos"
-      }
-    },
-    "roles": {
-      "mariadb-eu-south-0": "Primary",
-      "mariadb-eu-south-1": "Replica"
-    }
-  },
-  "rootPasswordHash": "04dd991e50f47e246523586fa275070888f2f20df097381ac8c6782e03bb8f39",
-  "tls": {
-    "caBundle": [
-      {
-        "issuer": "CN=mariadb-server-ca",
-        "notAfter": "2027-05-24T07:23:41Z",
-        "notBefore": "2026-05-24T07:23:41Z",
-        "subject": "CN=mariadb-server-ca"
-      }
-    ],
-    "clientCert": {
-      "issuer": "CN=mariadb-server-ca",
-      "notAfter": "2026-08-22T07:32:05Z",
-      "notBefore": "2026-05-24T06:32:05Z",
-      "subject": "CN=mariadb-eu-south-client"
-    },
-    "serverCert": {
-      "issuer": "CN=mariadb-server-ca",
-      "notAfter": "2026-08-22T07:32:05Z",
-      "notBefore": "2026-05-24T06:32:05Z",
-      "subject": "CN=mariadb-eu-south.default.svc.cluster.local"
-    }
-  }
-}
-```
+### Checking replication roles
+
+Check the replication roles of each cluster to verify the topology:
 
 ```bash
-# Check the full status of the replica cluster
-$ kubectl get mariadb mariadb-eu-central -o jsonpath="{.status}" | jq
-{
-  "conditions": [
-    {
-      "lastTransitionTime": "2026-05-24T07:48:24Z",
-      "message": "Running",
-      "reason": "StatefulSetReady",
-      "status": "True",
-      "type": "Ready"
-    },
-    {
-      "lastTransitionTime": "2026-05-24T07:47:56Z",
-      "message": "Initialized",
-      "reason": "Initialized",
-      "status": "True",
-      "type": "Initialized"
-    },
-    {
-      "lastTransitionTime": "2026-05-24T07:47:41Z",
-      "message": "Updated",
-      "reason": "Updated",
-      "status": "True",
-      "type": "Updated"
-    },
-    {
-      "lastTransitionTime": "2026-05-24T07:47:56Z",
-      "message": "Restored physical backup",
-      "reason": "RestorePhysicalBackup",
-      "status": "True",
-      "type": "BackupRestored"
-    },
-    {
-      "lastTransitionTime": "2026-05-24T07:47:56Z",
-      "message": "Replication configured",
-      "reason": "ReplicationConfigured",
-      "status": "True",
-      "type": "ReplicationConfigured"
-    }
-  ],
-  "currentMultiClusterPrimary": "mariadb-eu-south",
-  "currentPrimary": "mariadb-eu-central-0",
-  "currentPrimaryPodIndex": 0,
-  "defaultVersion": "11.8",
-  "replicas": 2,
-  "replication": {
-    "replicas": {
-      "mariadb-eu-central-0": {
-        "gtidCurrentPos": "0-10-4337,1-20-11",
-        "gtidIOPos": "0-10-4337",
-        "lastErrorTransitionTime": "2026-05-24T07:47:56Z",
-        "lastIOErrno": 0,
-        "lastIOError": "",
-        "lastSQLErrno": 0,
-        "lastSQLError": "",
-        "secondsBehindMaster": 0,
-        "slaveIORunning": true,
-        "slaveSQLRunning": true,
-        "usingGtid": "Slave_Pos"
-      },
-      "mariadb-eu-central-1": {
-        "gtidCurrentPos": "0-10-4337,1-20-11",
-        "gtidIOPos": "1-20-11,0-10-4337",
-        "lastErrorTransitionTime": "2026-05-24T07:47:56Z",
-        "lastIOErrno": 0,
-        "lastIOError": "",
-        "lastSQLErrno": 0,
-        "lastSQLError": "",
-        "secondsBehindMaster": 0,
-        "slaveIORunning": true,
-        "slaveSQLRunning": true,
-        "usingGtid": "Slave_Pos"
-      }
-    },
-    "roles": {
-      "mariadb-eu-central-0": "PrimaryReplica",
-      "mariadb-eu-central-1": "Replica"
-    }
-  },
-  "rootPasswordHash": "04dd991e50f47e246523586fa275070888f2f20df097381ac8c6782e03bb8f39",
-  "tls": {
-    "caBundle": [
-      {
-        "issuer": "CN=mariadb-server-ca",
-        "notAfter": "2027-05-24T07:23:41Z",
-        "notBefore": "2026-05-24T07:23:41Z",
-        "subject": "CN=mariadb-server-ca"
-      }
-    ],
-    "clientCert": {
-      "issuer": "CN=mariadb-server-ca",
-      "notAfter": "2026-08-22T07:47:20Z",
-      "notBefore": "2026-05-24T06:47:20Z",
-      "subject": "CN=mariadb-eu-central-client"
-    },
-    "serverCert": {
-      "issuer": "CN=mariadb-server-ca",
-      "notAfter": "2026-08-22T07:47:20Z",
-      "notBefore": "2026-05-24T06:47:20Z",
-      "subject": "CN=mariadb-eu-central.default.svc.cluster.local"
-    }
-  }
-}
-```
-
-Key status fields to check:
-
-- `status.currentPrimary`: The current primary Pod name within the cluster. For the primary cluster, this is the write-accepting Pod (`mariadb-eu-south-0`). For the replica cluster, this is the primary replica Pod (`mariadb-eu-central-0`).
-- `status.currentMultiClusterPrimary`: The current primary cluster member name. This is updated during cluster switchover operations. In a healthy setup, both clusters report the same name (`mariadb-eu-south`).
-- `status.replication.roles`: The replication role of each Pod. In a multi-cluster setup, the primary Pod of the replica cluster has the role `PrimaryReplica`, indicating that it replicates from the primary cluster. The primary cluster's Pods use the standard `Primary` and `Replica` roles.
-
-```bash
-# Check replication roles of the primary cluster
 $ kubectl get mariadb mariadb-eu-south -o jsonpath="{.status.replication.roles}" | jq
 {
   "mariadb-eu-south-0": "Primary",
   "mariadb-eu-south-1": "Replica"
 }
-```
 
-```bash
-# Check replication roles of the replica cluster
 $ kubectl get mariadb mariadb-eu-central -o jsonpath="{.status.replication.roles}" | jq
 {
   "mariadb-eu-central-0": "PrimaryReplica",
@@ -793,7 +614,7 @@ $ kubectl get mariadb mariadb-eu-central -o jsonpath="{.status.replication.roles
 }
 ```
 
-The multi-cluster topology introduces the following replication roles:
+The `PrimaryReplica` role is unique to the multi-cluster topology. It represents the Pod that acts as the replication source for the replica cluster's internal replicas, while itself replicating from the primary MariaDB cluster.
 
 | Role | Description |
 |------|-------------|
@@ -802,14 +623,14 @@ The multi-cluster topology introduces the following replication roles:
 | `PrimaryReplica` | The primary Pod in a replica MariaDB cluster. Replicates from the primary MariaDB cluster's primary. |
 | `Unknown` | An unknown replication state. |
 
-The `PrimaryReplica` role is unique to the multi-cluster topology. It represents the Pod that acts as the replication source for the replica cluster's internal replicas, while itself replicating from the primary MariaDB cluster.
+> [!NOTE]
+> **Galera-specific behavior**: When using Galera as the intra-cluster HA mechanism, the replication status only shows the **primary replica** (the Pod that replicates from the primary cluster). Regular Galera nodes do not appear in the replication status because Galera handles its own clustering internally.
 
 ### Checking replication connections
 
-To check the replication connections between clusters, inspect the replication status:
+To check the replication connections between clusters, inspect the replication status of the replica cluster:
 
 ```bash
-# Check replication status of the replica cluster
 $ kubectl get mariadb mariadb-eu-central -o jsonpath="{.status.replication}" | jq
 {
   "replicas": {
@@ -850,21 +671,17 @@ $ kubectl get mariadb mariadb-eu-central -o jsonpath="{.status.replication}" | j
 Key replication fields to check:
 
 - `slaveIORunning` / `slaveSQLRunning`: Should be `true` for all replicas, including the primary replica. If `false`, the replication thread has stopped.
-- `secondsBehindMaster`: The replication lag in seconds. A value of `0` indicates the replica is fully in sync. Non-zero values indicate replication lag.
+- `secondsBehindMaster`: The replication lag in seconds. A value of `0` indicates the replica is fully in sync.
 - `lastIOError` / `lastSQLError`: Any recent errors from the I/O or SQL threads. Empty strings indicate no errors.
-- `gtidCurrentPos`: The current GTID position. For the primary replica (`mariadb-eu-central-0`), this shows both domain `0` (replicated from the primary cluster) and domain `1` (its own cluster's transactions).
+- `gtidCurrentPos`: The current GTID position. For the primary replica, this shows both domain `0` (replicated from the primary cluster) and domain `1` (its own cluster's transactions).
 - `gtidIOPos`: The GTID position up to which the I/O thread has received events from the source. A difference between `gtidCurrentPos` and `gtidIOPos` indicates the I/O thread is behind.
 - `usingGtid`: The GTID mode used — `Current_Pos` for the primary cluster's replicas (which are sources) and `Slave_Pos` for the replica cluster's Pods (which are slaves).
-
-> [!NOTE]
-> **Galera-specific behavior**: When using Galera as the intra-cluster HA mechanism, the replication status only shows the **primary replica** (the Pod that replicates from the primary cluster). Regular Galera nodes do not appear in the replication status because Galera handles its own clustering internally. The `status.replication.roles` field will only include the primary replica, not all Galera nodes.
 
 ### Checking ExternalMariaDB connectivity
 
 To verify that the `ExternalMariaDB` resources are correctly configured and reachable:
 
 ```bash
-# Check the ExternalMariaDB resource
 $ kubectl get externalmariadb mariadb-eu-central -o yaml
 apiVersion: k8s.mariadb.com/v1alpha1
 kind: ExternalMariaDB
@@ -904,23 +721,6 @@ Enter password:
 1
 1
 ```
-
-### GTID domain ID issues
-
-If you encounter GTID-related errors during cluster switchover, check the following:
-
-1. **Unique domain IDs**: Ensure each MariaDB cluster has a unique `gtidDomainId`. The primary cluster uses `0`, and replica clusters use different values (e.g., `1`, `2`, etc.).
-2. **GTID strict mode**: The operator temporarily pauses `gtid_strict_mode` during switchover. If it fails to resume, check the `status.replication.gtidStrictModePaused` field.
-3. **GTID consistency**: Ensure that the GTID sets of both MariaDB clusters do not overlap. Check `status.replication.replicas.*.gtidCurrentPos` to verify the GTID positions.
-
-### Bootstrap failures
-
-If the replica cluster fails to bootstrap:
-
-1. **Check PhysicalBackup**: Ensure the `PhysicalBackup` template is correctly configured and the S3 bucket is accessible.
-2. **Check bootstrapFrom**: Ensure `spec.bootstrapFrom` points to the correct S3 bucket and prefix.
-3. **Check backup job**: `kubectl get jobs -l app.kubernetes.io/instance=<mariadb-name>`
-4. **Check backup job logs**: `kubectl logs <backup-job-name>`
 
 ### Checking Kubernetes events
 
