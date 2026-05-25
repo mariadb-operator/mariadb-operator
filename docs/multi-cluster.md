@@ -488,6 +488,26 @@ This configuration:
 
 For more details on maintenance mode, see the [maintenance documentation](./maintenance.md).
 
+Verify that the primary cluster is cordoned:
+
+```bash
+kubectl get mariadb mariadb-eu-south -o jsonpath="{.status}" | jq '{conditions: .conditions}'
+{
+  "conditions": [
+    {
+      "lastTransitionTime": "2026-05-25T15:43:37Z",
+      "message": "Cordoned",
+      "reason": "Cordoned",
+      "status": "False",
+      "type": "Ready"
+    },
+    # [...]
+  ]
+}
+```
+
+The `Ready` condition shows `status: "False"` with `reason: "Cordoned"`, indicating the cluster is in maintenance mode.
+
 ### Step 2: Wait for the replica cluster to sync
 
 Verify that the replica cluster has fully synced with the primary cluster before proceeding. Check the replication status:
@@ -497,9 +517,9 @@ kubectl get mariadb mariadb-eu-central -o jsonpath="{.status.replication}" | jq
 {
   "replicas": {
     "mariadb-eu-central-0": {
-      "gtidCurrentPos": "0-10-4337,1-20-11",
-      "gtidIOPos": "0-10-4337",
-      "lastErrorTransitionTime": "2026-05-24T07:47:56Z",
+      "gtidCurrentPos": "0-10-4341,1-20-19",
+      "gtidIOPos": "1-20-19,0-10-4341",
+      "lastErrorTransitionTime": "2026-05-25T15:43:22Z",
       "lastIOErrno": 0,
       "lastIOError": "",
       "lastSQLErrno": 0,
@@ -510,8 +530,8 @@ kubectl get mariadb mariadb-eu-central -o jsonpath="{.status.replication}" | jq
       "usingGtid": "Slave_Pos"
     },
     "mariadb-eu-central-1": {
-      "gtidCurrentPos": "0-10-4337,1-20-11",
-      "gtidIOPos": "1-20-11,0-10-4337",
+      "gtidCurrentPos": "1-20-19",
+      "gtidIOPos": "1-20-19",
       "lastErrorTransitionTime": "2026-05-24T07:47:56Z",
       "lastIOErrno": 0,
       "lastIOError": "",
@@ -595,9 +615,9 @@ kubectl get mariadb mariadb-eu-south -o jsonpath="{.status.replication}" | jq
 {
   "replicas": {
     "mariadb-eu-south-0": {
-      "gtidCurrentPos": "0-10-4339,1-20-11",
-      "gtidIOPos": "1-20-11,0-10-4339",
-      "lastErrorTransitionTime": "2026-05-25T15:19:29Z",
+      "gtidCurrentPos": "0-10-4343,1-20-19",
+      "gtidIOPos": "1-20-19,0-10-4343",
+      "lastErrorTransitionTime": "2026-05-25T15:44:12Z",
       "lastIOErrno": 0,
       "lastIOError": "",
       "lastSQLErrno": 0,
@@ -608,8 +628,8 @@ kubectl get mariadb mariadb-eu-south -o jsonpath="{.status.replication}" | jq
       "usingGtid": "Slave_Pos"
     },
     "mariadb-eu-south-1": {
-      "gtidCurrentPos": "0-10-4339",
-      "gtidIOPos": "0-10-4339",
+      "gtidCurrentPos": "0-10-4343",
+      "gtidIOPos": "0-10-4343",
       "lastErrorTransitionTime": "2026-05-24T07:32:26Z",
       "lastIOErrno": 0,
       "lastIOError": "",
@@ -647,6 +667,28 @@ Once the switchover is complete and traffic has been redirected, disable mainten
 kubectl patch mariadb mariadb-eu-south --type merge -p '{"spec":{"maintenance":{"enabled":false}}}'
 mariadb.k8s.mariadb.com/mariadb-eu-south patched
 ```
+
+Verify that the old primary is back to Running state:
+
+```bash
+kubectl get mariadb mariadb-eu-south -o jsonpath="{.status}" | jq '{conditions: .conditions, currentPrimary: .currentPrimary, currentMultiClusterPrimary: .currentMultiClusterPrimary}'
+{
+  "conditions": [
+    {
+      "lastTransitionTime": "2026-05-25T15:44:41Z",
+      "message": "Running",
+      "reason": "StatefulSetReady",
+      "status": "True",
+      "type": "Ready"
+    },
+    # [...]
+  ],
+  "currentPrimary": "mariadb-eu-south-0",
+  "currentMultiClusterPrimary": "mariadb-eu-central"
+}
+```
+
+The `Ready` condition shows `status: "True"`, indicating the cluster is back to normal operation. The `currentMultiClusterPrimary` confirms the cluster is now a replica of `mariadb-eu-central`.
 
 ## Limitations
 
