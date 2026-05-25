@@ -18,16 +18,8 @@ Please refer to the [replication](./replication.md) and [Galera](./galera.md) do
   - [Prerequisites](#prerequisites)
   - [Provisioning process](#provisioning-process)
   - [Scenarios](#scenarios)
-    - [Replication](#replication)
-    - [Replication with MaxScale](#replication-with-maxscale)
-    - [Galera](#galera)
-    - [Galera with MaxScale](#galera-with-maxscale)
 - [Cluster switchover](#cluster-switchover)
 - [Limitations](#limitations)
-  - [External LoadBalancer](#external-loadbalancer)
-  - [Backups on primary only](#backups-on-primary-only)
-  - [MaxScale monitor names](#maxscale-monitor-names)
-  - [Shared secrets](#shared-secrets)
 - [Troubleshooting](#troubleshooting)
 <!-- /toc -->
 
