@@ -33,14 +33,9 @@ var restoreCommand = &cobra.Command{
 		ctx, cancel := newContext()
 		defer cancel()
 
-		physicalBackupExists, err := checkPhysicalBackupDir()
-		if err != nil {
-			logger.Error(err, "error checking physical backup directory")
+		if err := cleanupStaleStagingArea(); err != nil {
+			logger.Error(err, "error cleaning up stale staging area")
 			os.Exit(1)
-		}
-		if physicalBackupExists {
-			logger.Info("physical backup directory already exists.")
-			os.Exit(0)
 		}
 
 		backupProcessor, err := getBackupProcessor()
@@ -100,20 +95,31 @@ var restoreCommand = &cobra.Command{
 	},
 }
 
-func checkPhysicalBackupDir() (bool, error) {
+// cleanupStaleStagingArea cleans up /backup/full staging directory in case that it has been used before.
+// Manually provisioned backup PVCs use /backup/full directory and do not clean it up after the restoration,
+// potentially leading to the usage of a stale backup in further restorations.
+// See: https://github.com/mariadb-operator/mariadb-operator/pull/1744
+func cleanupStaleStagingArea() error {
 	if backupContentType != string(mariadbv1alpha1.BackupContentTypePhysical) || physicalBackupDirPath == "" {
-		return false, nil
+		return nil
 	}
-	logger.Info("checking existing physical backup directory", "dir-path", physicalBackupDirPath)
+	logger.Info("checking stale staging area", "dir-path", physicalBackupDirPath)
 
 	entries, err := os.ReadDir(physicalBackupDirPath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return false, nil
+			return nil
 		}
-		return false, fmt.Errorf("error reading physical backup directory path (%s): %v", physicalBackupDirPath, err)
+		return fmt.Errorf("error reading staging area directory path (%s): %v", physicalBackupDirPath, err)
 	}
-	return len(entries) > 0, nil
+	if len(entries) > 0 {
+		logger.Info("cleaning up staging area", "dir-path", physicalBackupDirPath)
+
+		if err := os.RemoveAll(physicalBackupDirPath); err != nil {
+			return fmt.Errorf("error removing staging area directory path (%s): %v", physicalBackupDirPath, err)
+		}
+	}
+	return nil
 }
 
 func getTargetTime() (time.Time, error) {

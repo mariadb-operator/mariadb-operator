@@ -1,12 +1,10 @@
 package command
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"path/filepath"
 	"strings"
-	"text/template"
 	"time"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
@@ -448,19 +446,9 @@ fi`
 		"mariadb-backup --copy-back --target-dir=%s --force-non-empty-directories",
 		b.BackupFullDirPath,
 	)
-	existingBackupRestoreCmd, err := b.existingBackupRestoreCmd(
-		dataDirPath,
-		cleanupDataDirCmd,
-		copyBackupCmd,
-		restoreOpts...,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("error getting existing backup command: %v", err)
-	}
 
 	cmds := []string{
 		"set -euo pipefail",
-		existingBackupRestoreCmd,
 		"echo 💾 Extracting backup",
 		fmt.Sprintf(
 			"mkdir -p %s",
@@ -531,45 +519,6 @@ func (b *BackupCommand) MariadbBinlog(mariadb *mariadbv1alpha1.MariaDB) (*Comman
 		return nil, fmt.Errorf("error getting mariadb-binlog args: %v", err)
 	}
 	return NewBashCommand(mariadbBinlogArgs), nil
-}
-
-func (b *BackupCommand) existingBackupRestoreCmd(dataDirPath, cleanupDataDirCmd, copyBackupCmd string,
-	restoreOpts ...MariaDBBackupRestoreOpt) (string, error) {
-	opts := MariaDBBackupRestoreOpts{}
-	for _, setOpt := range restoreOpts {
-		setOpt(&opts)
-	}
-
-	tpl := createTpl("restore.sh", `if [ -d {{ .BackupDir }} ]; then
-  echo '💾 Existing backup directory found. Copying backup to data directory';
-  {{- if .CleanupDataDir }}
-  { {{ .CleanupDataDirCmd }}; } &&
-  {{- end }}
-  { {{ .CopyBackupCmd }}; } &&
-  {{- range $cmd := .CopyBinlogMetaCmds }}
-  { {{ $cmd }}; } &&
-  {{- end }}
-  exit 0
-fi`)
-	buf := new(bytes.Buffer)
-	err := tpl.Execute(buf, struct {
-		BackupDir          string
-		CleanupDataDir     bool
-		CleanupDataDirCmd  string
-		CopyBackupCmd      string
-		CopyBinlogMetaCmds []string
-	}{
-		BackupDir:          b.BackupFullDirPath,
-		CleanupDataDir:     opts.cleanupDataDir,
-		CleanupDataDirCmd:  cleanupDataDirCmd,
-		CopyBackupCmd:      copyBackupCmd,
-		CopyBinlogMetaCmds: copyBinlogMetaCmds(b.BackupFullDirPath, dataDirPath),
-	})
-	if err != nil {
-		return "", err
-	}
-	// Trim surrounding whitespace and newlines to reduce bash syntax error risk
-	return strings.TrimSpace(buf.String()), nil
 }
 
 func (b *BackupCommand) newBackupFile() string {
@@ -847,8 +796,4 @@ fi`,
 		copyBinlogMetaCmd(replication.BinlogFileName),
 		copyBinlogMetaCmd(replication.LegacyBinlogFileName),
 	}
-}
-
-func createTpl(name, t string) *template.Template {
-	return template.Must(template.New(name).Parse(t))
 }
