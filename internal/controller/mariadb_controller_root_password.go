@@ -27,8 +27,10 @@ import (
 // @NOTE: `root@localhost` and `root@%` are modified as both are created when MariaDB is first configured
 func (r *MariaDBReconciler) reconcileRootPassword(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (ctrl.Result, error) {
 	if !mariadb.IsReady() {
-		log.FromContext(ctx).V(1).Info("MariaDB not ready. Requeuing root password")
-		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+		// We shouldn't be requeuing here, as it would hang the reconciliation i.e. next phases won't be executed.
+		// If root password Secret was changed, root Password will be reconciled once the Pods become ready, and so the MariaDB resource will.
+		log.FromContext(ctx).V(1).Info("MariaDB not ready. Skipping root password reconciliation...")
+		return ctrl.Result{}, nil
 	}
 
 	if mariadb.IsRootPasswordEmpty() {

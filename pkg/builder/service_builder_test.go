@@ -38,7 +38,7 @@ func TestServiceMeta(t *testing.T) {
 							"database.myorg.io": "mariadb",
 						},
 						Annotations: map[string]string{
-							"metallb.universe.tf/loadBalancerIPs": "172.18.0.20",
+							"metallb.io/loadBalancerIPs": "172.18.0.20",
 						},
 					},
 				},
@@ -49,7 +49,7 @@ func TestServiceMeta(t *testing.T) {
 					"database.myorg.io": "mariadb",
 				},
 				Annotations: map[string]string{
-					"metallb.universe.tf/loadBalancerIPs": "172.18.0.20",
+					"metallb.io/loadBalancerIPs": "172.18.0.20",
 				},
 			},
 		},
@@ -84,7 +84,7 @@ func TestServiceMeta(t *testing.T) {
 							"database.myorg.io": "mariadb",
 						},
 						Annotations: map[string]string{
-							"metallb.universe.tf/loadBalancerIPs": "172.18.0.20",
+							"metallb.io/loadBalancerIPs": "172.18.0.20",
 						},
 					},
 				},
@@ -103,8 +103,8 @@ func TestServiceMeta(t *testing.T) {
 					"database.myorg.io": "mariadb",
 				},
 				Annotations: map[string]string{
-					"database.myorg.io":                   "mariadb",
-					"metallb.universe.tf/loadBalancerIPs": "172.18.0.20",
+					"database.myorg.io":          "mariadb",
+					"metallb.io/loadBalancerIPs": "172.18.0.20",
 				},
 			},
 		},

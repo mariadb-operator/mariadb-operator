@@ -94,19 +94,19 @@ spec:
     type: LoadBalancer
     metadata:
       annotations:
-        metallb.universe.tf/loadBalancerIPs: 172.18.0.150
+        metallb.io/loadBalancerIPs: 172.18.0.150
 
   primaryService:
     type: LoadBalancer
     metadata:
       annotations:
-        metallb.universe.tf/loadBalancerIPs: 172.18.0.160
+        metallb.io/loadBalancerIPs: 172.18.0.160
 
   secondaryService:
     type: LoadBalancer
     metadata:
       annotations:
-        metallb.universe.tf/loadBalancerIPs: 172.18.0.161
+        metallb.io/loadBalancerIPs: 172.18.0.161
 ```
 
 In the case of `MaxScale`, you can also do this via the `kubernetesService` field.
@@ -144,7 +144,7 @@ Being able to provide metadata allows you to integrate with other CNCF landscape
 
 #### Metallb
 
-If you run on bare metal and you use [Metallb](https://metallb.universe.tf/) for managing the `LoadBalancer` objects, you can declare its IPs via annotations:
+If you run on bare metal and you use [Metallb](https://metallb.io) for managing the `LoadBalancer` objects, you can declare its IPs via annotations:
 
 ```yaml
 apiVersion: k8s.mariadb.com/v1alpha1
@@ -156,7 +156,7 @@ spec:
     type: LoadBalancer
     metadata:
       annotations:
-        metallb.universe.tf/loadBalancerIPs: 172.18.0.150
+        metallb.io/loadBalancerIPs: 172.18.0.150
 ```
 
 #### Istio

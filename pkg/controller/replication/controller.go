@@ -53,7 +53,7 @@ type ReplicationReconciler struct {
 	recorder            events.EventRecorder
 	builder             *builder.Builder
 	env                 *environment.OperatorEnv
-	replConfigClient    *ReplicationConfigClient
+	topologyManager     *TopologyManager
 	refResolver         *refresolver.RefResolver
 	secretReconciler    *secret.SecretReconciler
 	configMapreconciler *configmap.ConfigMapReconciler
@@ -61,13 +61,13 @@ type ReplicationReconciler struct {
 }
 
 func NewReplicationReconciler(client client.Client, recorder events.EventRecorder, builder *builder.Builder, env *environment.OperatorEnv,
-	replConfigClient *ReplicationConfigClient, opts ...Option) (*ReplicationReconciler, error) {
+	topologyManager *TopologyManager, opts ...Option) (*ReplicationReconciler, error) {
 	r := &ReplicationReconciler{
-		Client:           client,
-		recorder:         recorder,
-		builder:          builder,
-		env:              env,
-		replConfigClient: replConfigClient,
+		Client:          client,
+		recorder:        recorder,
+		builder:         builder,
+		env:             env,
+		topologyManager: topologyManager,
 	}
 	for _, setOpt := range opts {
 		setOpt(r)
@@ -234,9 +234,10 @@ func (r *ReplicationReconciler) ReconcileReplicationInPod(ctx context.Context, r
 	replStatus := ptr.Deref(req.mariadb.Status.Replication, mariadbv1alpha1.ReplicationStatus{})
 	replRoles := replStatus.Roles
 	pod := statefulset.PodName(req.mariadb.ObjectMeta, podIndex)
+	topology := r.topologyManager.TopologyForMariaDB(req.mariadb, logger.WithValues("pod", pod))
 
 	if primaryPodIndex == podIndex {
-		if role, ok := replRoles[pod]; ok && role == mariadbv1alpha1.ReplicationRolePrimary {
+		if shouldSkipPrimaryReconciliation(req.mariadb, replRoles, pod, logger) {
 			return ctrl.Result{}, nil
 		}
 		client, err := req.replClientSet.currentPrimaryClient(ctx)
@@ -244,9 +245,9 @@ func (r *ReplicationReconciler) ReconcileReplicationInPod(ctx context.Context, r
 			logger.V(1).Info("error getting current primary client", "err", err, "pod", pod)
 			return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 		}
-		logger.Info("Configuring primary", "pod", pod)
-		if err := r.replConfigClient.ConfigurePrimary(ctx, req.mariadb, client); err != nil {
-			return ctrl.Result{}, fmt.Errorf("error configuring replica: %v", err)
+
+		if err := topology.ConfigurePrimary(ctx, client); err != nil {
+			return ctrl.Result{}, fmt.Errorf("error configuring primary: %v", err)
 		}
 		return ctrl.Result{}, nil
 	}
@@ -263,13 +264,12 @@ func (r *ReplicationReconciler) ReconcileReplicationInPod(ctx context.Context, r
 		logger.V(1).Info("error getting replica client", "err", err, "pod", pod)
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
-	logger.Info("Configuring replica", "pod", pod)
 
 	replicaOpts, err := r.getReplicaOpts(ctx, req, pod, podIndex, logger, reconcilePodOpts...)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error getting replica opts: %v", err)
 	}
-	if err := r.replConfigClient.ConfigureReplica(ctx, req.mariadb, client, primaryPodIndex, replicaOpts...); err != nil {
+	if err := topology.ConfigureReplica(ctx, client, primaryPodIndex, replicaOpts...); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error configuring replica: %v", err)
 	}
 	return ctrl.Result{}, nil
@@ -334,4 +334,17 @@ func (r *ReplicationReconciler) patchStatus(ctx context.Context, mariadb *mariad
 	patch := client.MergeFrom(mariadb.DeepCopy())
 	patcher(&mariadb.Status)
 	return r.Status().Patch(ctx, mariadb, patch)
+}
+
+func shouldSkipPrimaryReconciliation(mariadb *mariadbv1alpha1.MariaDB, replRoles map[string]mariadbv1alpha1.ReplicationRole,
+	pod string, logger logr.Logger) bool {
+	role, ok := replRoles[pod]
+	if !ok {
+		logger.V(1).Info("Primary Pod role not yet assigned. Skipping reconciliation...", "pod", pod)
+		return true
+	}
+	if mariadb.IsMultiClusterReplica() {
+		return role == mariadbv1alpha1.ReplicationRolePrimaryReplica
+	}
+	return role == mariadbv1alpha1.ReplicationRolePrimary
 }

@@ -73,7 +73,7 @@ var _ = Describe("External MariaDB spec", func() {
 		}
 		Expect(k8sClient.Create(testCtx, &emdb)).To(Succeed())
 		DeferCleanup(func() {
-			deleteExternalMariadb(key, false)
+			deleteExternalMariadb(key)
 		})
 
 		By("Expecting to eventually default")
@@ -147,7 +147,7 @@ var _ = Describe("External MariaDB spec", func() {
 		}
 		Expect(k8sClient.Create(testCtx, &emdb)).To(Succeed())
 		DeferCleanup(func() {
-			deleteExternalMariadb(key, false)
+			deleteExternalMariadb(key)
 		})
 
 		By("Expecting IsTLSMutual to return false")
@@ -218,7 +218,7 @@ var _ = Describe("External MariaDB spec", func() {
 		}
 		Expect(k8sClient.Create(testCtx, &emdb)).To(Succeed())
 		DeferCleanup(func() {
-			deleteExternalMariadb(emdbKey, true)
+			deleteExternalMariadb(emdbKey)
 		})
 
 		By("Expecting ExternalMariaDB to be ready eventually")
