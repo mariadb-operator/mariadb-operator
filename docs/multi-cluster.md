@@ -60,11 +60,11 @@ Place replica clusters closer to your application instances to reduce network la
 
 The multi-cluster architecture consists of the following components:
 
-- **MariaDB Operator**: Runs on each Kubernetes cluster, responsible for provisioning and managing the `MariaDB` cluster, configuring the internal HA topology (replication or Galera), setting up multi-cluster replication connections, and monitoring replication status.
+- **MariaDB Operator**: Runs on each Kubernetes cluster, responsible for provisioning and managing the MariaDB cluster, configuring the internal HA topology (replication or Galera), setting up multi-cluster replication connections, and monitoring replication status.
 - **Primary Cluster**: The MariaDB cluster where writes are performed. Its primary Pod is the source of truth for write operations: both local replicas and remote replicas replicate from it.
 - **Replica Cluster**: The MariaDB cluster that replicates data from the primary cluster. Its primary replica Pod replicates from the primary cluster's primary Pod and acts as the source of truth for the replica cluster's internal topology. This cluster must only be used for read operations or as disaster recovery standby.
-- **MaxScale Service**: An internal Kubernetes Service that routes traffic to `MaxScale` Pods within a cluster. When `MaxScale` is used, the primary replica connects to this service instead of the `MariaDB` Kubernetes service.
-- **LoadBalancer**: An external load balancer managed by the user (e.g., cloud provider LB or Metallb in bare metal) that exposes the primary cluster to applications. This load balancer must be manually updated to point to the new primary cluster after a cluster switchover. When deploying within a single Kubernetes cluster (e.g., blue-green), a Kubernetes Service can be used instead of a load balancer.
+- **MaxScale Service**: An internal Kubernetes Service that routes traffic to MaxScale Pods within a cluster. When MaxScale is used, the primary replica connects to this service instead of the MariaDB Kubernetes service.
+- **LoadBalancer**: An external load balancer managed by the user (e.g., cloud provider LB or Metallb in bare metal) that exposes the primary cluster to applications. This load balancer must be manually updated to point to the new primary cluster after a [cluster switchover](#cluster-switchover). When deploying within a single Kubernetes cluster (e.g., blue-green), a Kubernetes Service can be used instead of a load balancer.
 
 ## Provisioning
 
@@ -75,13 +75,13 @@ The provisioning process involves deploying two MariaDB clusters (primary and re
 Before provisioning a multi-cluster setup, ensure the following generic prerequisites are met:
 
 - **Shared secrets**: The same root password secret must be available in all clusters.
-- **TLS certificates**: The same CA certificate must be available in all clusters. The CA TLS secret will be used to issue certificates to be able to establish trust between clusters.
+- **TLS certificates**: The same CA certificate must be available in all clusters. The CA TLS secret will be used to issue certificates that will be used to establish trust between clusters.
 - **Network connectivity**: Connectivity must be available between all MariaDB clusters.
 
 For multi-region HA deployments, additional requirements apply:
 
 - **Multiple Kubernetes clusters**: At least two Kubernetes clusters with network connectivity between them.
-- **LoadBalancer**: An externally managed load balancer that exposes the primary cluster for replication connections. It must be manually updated to point to the new primary cluster after a cluster switchover.
+- **LoadBalancer**: An externally managed load balancer that exposes the primary cluster for replication connections. It must be manually updated to point to the new primary cluster after a [cluster switchover](#cluster-switchover).
 - **S3-compatible storage**: An S3-compatible bucket accessible from multiple regions for storing physical backups used for bootstrapping the replica cluster.
 
 ### Provisioning process
@@ -113,12 +113,6 @@ spec:
       replPasswordSecretKeyRef:
         name: mariadb
         key: password
-      bootstrapFrom:
-        physicalBackupTemplateRef:
-          name: physicalbackup-eu-south
-      recovery:
-        enabled: true
-        errorDurationThreshold: 30s
   tls:
     enabled: true
     required: true
@@ -160,7 +154,7 @@ Key fields:
 - `spec.multiCluster.enabled`: Enables the multi-cluster topology.
 - `spec.multiCluster.primary`: The name of the primary cluster member. This must be the name of the current cluster.
 - `spec.multiCluster.members`: A list of all clusters in the multi-cluster topology, each with its `ExternalMariaDB` reference, containing connection details.
-- `spec.replication.gtidDomainId`: The GTID domain ID for this cluster. The primary cluster uses `0`, and replica clusters use different values (e.g., `1`, `2`, etc.) to prevent GTID conflicts. Refer to [MariaDB docs](https://mariadb.com/docs/server/ha-and-performance/standard-replication/gtid#gtid_domain_id) for additional documentation.
+- `spec.replication.gtidDomainId`: The GTID domain ID for this cluster. For example: the primary cluster uses `0`, and replica clusters use different values (e.g., `1`, `2`, etc.) to prevent GTID conflicts. Refer to [MariaDB docs](https://mariadb.com/docs/server/ha-and-performance/standard-replication/gtid#gtid_domain_id) for additional documentation.
 - `spec.replication.serverIdStartIndex`: The starting server ID for this cluster. Each Pod increments this value by `1`. Replica clusters should use a different starting value to avoid server ID conflicts. Refer to [MariaDB docs](https://mariadb.com/docs/server/ha-and-performance/standard-replication/replication-and-binary-log-system-variables#server_id) for additional documentation.
 
 Verify the primary cluster is running:
@@ -288,8 +282,6 @@ spec:
     required: true
     serverCASecretRef:
       name: mariadb-server-ca
-    serverCertAdditionalNames:
-      - 172.18.1.15
     clientCASecretRef:
       name: mariadb-server-ca
   multiCluster:
@@ -483,7 +475,7 @@ spec:
 ```
 
 Key differences:
-- An additional `MaxScale` resource should be provisioned on each side.
+- An additional `MaxScale` CR should be provisioned on each side.
 - The `ExternalMariaDB` host points to the MaxScale service instead of the MariaDB primary service.
 
 See the [replication-maxscale example](../examples/manifests/multi-cluster/replication-maxscale/) for complete manifests.
@@ -627,7 +619,7 @@ The `Ready` condition shows `status: "False"` with `reason: "Cordoned"`, indicat
 
 ### Step 2: Wait for the replica cluster to sync
 
-Verify that the replica cluster has fully synced with the primary cluster before proceeding. Check the replication status:
+Verify that the replica cluster has fully synced with the primary cluster. Check the replication status:
 
 ```bash
 kubectl get mariadb mariadb-eu-central -o jsonpath="{.status.replication}" | jq
@@ -678,10 +670,10 @@ kubectl patch mariadb mariadb-eu-central --type merge -p '{"spec":{"multiCluster
 mariadb.k8s.mariadb.com/mariadb-eu-central patched
 ```
 
-This tells the operator that the replica cluster should become the new primary. The operator will the following actions
+This tells the operator that the replica cluster should be promoted to primary. The operator will the following actions
 
 - Reset the primary replica connection.
-- Reconfigure GTIDs on the to only include its own domain ID.
+- Reconfigure GTIDs to only include its own domain ID.
 
 Verify the switchover by checking both clusters:
 
@@ -770,8 +762,8 @@ After the switchover completes, update the externally managed load balancer to p
 
 The load balancer should route traffic to either the MariaDB primary service or the MaxScale service, depending on your deployment configuration:
 
-- **Without MaxScale**: Route to the MariaDB primary service (defined by `spec.primaryService`), which exposes the primary Pod directly. See the [high availability documentation](./high-availability.md) for more details on the primary service configuration.
-- **With MaxScale**: Route to the MaxScale service, which provides connection pooling, query routing, and additional HA features. See the [MaxScale documentation](./maxscale.md) for more details on the MaxScale service configuration.
+- **Without MaxScale**: Route to the MariaDB primary service (defined by `spec.primaryService`), which exposes the primary Pod directly. See the [high availability documentation](./high_availability.md) for more details on the primary service configuration.
+- **With MaxScale**: Route to the MaxScale service, which provides connection pooling, query routing, and additional HA features. See the [MaxScale documentation](./maxscale.md#kubernetes-services) for more details on the MaxScale service configuration.
 
 ### Step 5: Disable maintenance mode on the old primary
 
@@ -809,29 +801,27 @@ The `Ready` condition shows `status: "True"`, indicating the cluster is back to 
 
 ## Limitations
 
-The multi-cluster feature has the following limitations:
-
 ### External LoadBalancer
 
-The external load balancer that routes traffic to the primary cluster is not managed by the operator. It must be manually created and configured by the user. More importantly, it must be manually updated to point to the new primary cluster during a [cluster switchover](#cluster-switchover). This applies to both multi-region HA and single-cluster blue-green deployments.
+The external load balancer that routes traffic to the primary cluster is not managed by the operator. It must be manually created and configured by the user. More importantly, it must be manually updated to point to the new primary cluster during a [cluster switchover](#cluster-switchover).
 
 ### Backups on primary only
 
 Physical backups can only be taken from the primary cluster. This is because backups capture the GTID of the cluster, and currently only backups with a single GTID domain ID are supported. Replica clusters have multiple GTID domain IDs (their own plus the domains they replicate from), therefore, they are incompatible with the GTID backup format currently supported by the operator.
 
-As a consequence, replica clusters cannot be backed and restored directly using its own backups. To recover a replica cluster from a failure, it must be re-bootstrapped from a backup taken in the primary cluster. This means the recovery point is determined by the last successful backup on the primary.
+As a consequence, replica clusters cannot be backed up and restored directly using its own backups. To recover a replica cluster from a failure, it must be re-bootstrapped from a backup taken in the primary cluster.
 
 ### MaxScale monitor names
 
 When using MaxScale with multi-cluster, each MariaDB cluster must have a unique monitor name to avoid conflicts in the `mysql.maxscale_config` table. MaxScale stores monitor configurations in a shared database table, and duplicate monitor names cause conflicts.
 
-The operator generates monitor names automatically using the MaxScale CR name as a prefix (e.g., `<maxscale-name>-monitor`). To avoid conflicts, each MaxScale CR must have a unique name across all clusters. For example, use `maxscale-eu-south` for the primary cluster and `maxscale-eu-central` for the replica cluster. This applies to both multi-region and single-cluster deployments when MaxScale is used.
+The operator generates monitor names automatically using the MaxScale CR name as a prefix (e.g., `<maxscale-name>-monitor`). To avoid conflicts, each MaxScale CR must have a unique name across all clusters. For example, use `maxscale-eu-south` for the primary cluster and `maxscale-eu-central` for the replica cluster.
 
 ### Shared secrets
 
-All MariaDB clusters in a multi-cluster topology must share the same secrets, specifically the root password and the TLS CA certificate. The root password secret is used by the replica cluster to connect to the primary cluster during bootstrapping and replication setup. The TLS CA certificate is used to establish trusted TLS connections between clusters.
+All MariaDB clusters in a multi-cluster topology must share the same secrets, specifically, the user passwords and the TLS CA certificate. The user passwords should match across clusters to avoid causing replication conflicts. The TLS CA certificate is used to establish trusted TLS connections between clusters.
 
-For multi-region HA deployments, the same secrets must be available in all Kubernetes clusters. Any mismatch in secret data will prevent replication connections from being established.
+For multi-region HA deployments, the same secrets must be available in all Kubernetes clusters. Any mismatch in secret data will prevent replication connections from being established or cause replication conflicts.
 
 For TLS, the CA certificate used to issue client and server certificates must be the same across all clusters. When configuring `spec.tls.serverCASecretRef` and `spec.tls.clientCASecretRef`, point to the same CA secret in each cluster. The operator uses this CA to issue certificates and establish TLS trust between clusters, and a mismatched CA will result in TLS handshake failures.
 
@@ -950,8 +940,8 @@ kubectl get mariadb mariadb-eu-central -o jsonpath="{.status.replication}" | jq
 Key replication fields to check:
 
 - `slaveIORunning` / `slaveSQLRunning`: Should be `true` for all replicas, including the primary replica. If `false`, the replication thread has stopped.
-- `secondsBehindMaster`: The replication lag in seconds. A value of `0` indicates the replica is fully in sync.
 - `lastIOError` / `lastSQLError`: Any recent errors from the I/O or SQL threads. Empty strings indicate no errors.
+- `secondsBehindMaster`: The replication lag in seconds. A value of `0` indicates the replica is fully in sync.
 - `gtidCurrentPos`: The current GTID position. For the primary replica, this shows both its own domain and the primary cluster's domain.
 - `gtidIOPos`: The GTID position up to which the I/O thread has received events from the source. A difference between `gtidCurrentPos` and `gtidIOPos` indicates that there are events yet to be processed.
 
@@ -982,7 +972,7 @@ When a replica cluster enters a bad state (e.g., data corruption, replication fa
 
 1. **Detect the issue**: Check the replication status to identify the problem. Look for `slaveIORunning` or `slaveSQLRunning` set to `false`, non-empty `lastIOError`/`lastSQLError`, error codes (`lastIOErrno`/`lastSQLErrno`) greater than `0`, continuously increasing `secondsBehindMaster`, or a `Ready` condition showing `False`. If the errors cannot be resolved by restarting replication threads or fixing the underlying issue (network, credentials, etc.), a rebuild is necessary.
 
-2. **Delete the MariaDB CR**: Delete the replica cluster's `MariaDB` custom resource to stop the operator from managing the failing cluster:
+2. **Delete the MariaDB CR**: Delete the replica cluster's `MariaDB` CR to stop the operator from managing the failing cluster:
 
    ```bash
    kubectl delete mariadb mariadb-eu-central
@@ -996,7 +986,7 @@ When a replica cluster enters a bad state (e.g., data corruption, replication fa
 
 4. **Recreate the MariaDB CR**: Create a new `MariaDB` CR for the replica cluster, using the same configuration as the previous one and pointing `spec.bootstrapFrom` to an existing physical backup in the primary cluster's S3 bucket (see [Step 3: Deploy replica cluster](#step-3-deploy-replica-cluster)) . The operator will automatically download the backup, restore it to the new Pods, configure the internal replication topology, and establish the multi-cluster replication connection.
 
-5. **Verify the rebuild**: Check the following fields to verify the rebuild is successful and that the multi-cluster topology is heal
+5. **Verify the rebuild**: Check the following fields to verify the rebuild is successful and that the multi-cluster topology is healthy:
   - `BackupRestored` and `ReplicationConfigured` conditions are present and `True` 
   - `slaveIORunning` and `slaveSQLRunning` are `true`
   - `lastIOError` and `lastSQLError` are empty
