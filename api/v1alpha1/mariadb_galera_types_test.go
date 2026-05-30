@@ -257,20 +257,20 @@ var _ = Describe("MariaDB Galera types", func() {
 					},
 				},
 				&environment.OperatorEnv{
-					MariadbOperatorImage: "docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:v0.0.2",
+					MariadbOperatorImage: "ghcr.io/mariadb-operator/mariadb-operator:v0.0.2",
 				},
 				&Galera{
 					Enabled: true,
 					GaleraSpec: GaleraSpec{
 						Agent: Agent{
-							Image: "docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:v0.0.1",
+							Image: "ghcr.io/mariadb-operator/mariadb-operator:v0.0.1",
 						},
 						InitContainer: InitContainer{
-							Image: "docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:v0.0.1",
+							Image: "ghcr.io/mariadb-operator/mariadb-operator:v0.0.1",
 						},
 					},
 				},
-				"docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:v0.0.1",
+				"ghcr.io/mariadb-operator/mariadb-operator:v0.0.1",
 			),
 			Entry(
 				"auto update enabled",
@@ -283,20 +283,20 @@ var _ = Describe("MariaDB Galera types", func() {
 					},
 				},
 				&environment.OperatorEnv{
-					MariadbOperatorImage: "docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:v0.0.2",
+					MariadbOperatorImage: "ghcr.io/mariadb-operator/mariadb-operator:v0.0.2",
 				},
 				&Galera{
 					Enabled: true,
 					GaleraSpec: GaleraSpec{
 						Agent: Agent{
-							Image: "docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:v0.0.1",
+							Image: "ghcr.io/mariadb-operator/mariadb-operator:v0.0.1",
 						},
 						InitContainer: InitContainer{
-							Image: "docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:v0.0.1",
+							Image: "ghcr.io/mariadb-operator/mariadb-operator:v0.0.1",
 						},
 					},
 				},
-				"docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:v0.0.2",
+				"ghcr.io/mariadb-operator/mariadb-operator:v0.0.2",
 			),
 		)
 
