@@ -433,7 +433,7 @@ spec:
           name: mariadb-eu-central
   # [...]
 ```
-See the [replication example](../examples/manifests//multi-cluster/replication/) for complete manifests.
+See the [replication example](../examples/manifests/multi-cluster/replication/) for complete manifests.
 
 #### Replication with MaxScale
 
@@ -670,7 +670,7 @@ kubectl patch mariadb mariadb-eu-central --type merge -p '{"spec":{"multiCluster
 mariadb.k8s.mariadb.com/mariadb-eu-central patched
 ```
 
-This tells the operator that the replica cluster should be promoted to primary. The operator will the following actions
+This tells the operator that the replica cluster should be promoted to primary. The operator will perform the following actions:
 
 - Reset the primary replica connection.
 - Reconfigure GTIDs to only include its own domain ID.
@@ -984,22 +984,22 @@ When a replica cluster enters a bad state (e.g., data corruption, replication fa
    kubectl delete pvc -l app.kubernetes.io/component=mariadb,app.kubernetes.io/instance=mariadb-eu-central
    ```
 
-4. **Recreate the MariaDB CR**: Create a new `MariaDB` CR for the replica cluster, using the same configuration as the previous one and pointing `spec.bootstrapFrom` to an existing physical backup in the primary cluster's S3 bucket (see [Step 3: Deploy replica cluster](#step-3-deploy-replica-cluster)) . The operator will automatically download the backup, restore it to the new Pods, configure the internal replication topology, and establish the multi-cluster replication connection.
+4. **Recreate the MariaDB CR**: Create a new `MariaDB` CR for the replica cluster, using the same configuration as the previous one and pointing `spec.bootstrapFrom` to an existing physical backup in the primary cluster's S3 bucket (see [Step 3: Deploy replica cluster](#step-3-deploy-replica-cluster)). The operator will automatically download the backup, restore it to the new Pods, configure the internal replication topology, and establish the multi-cluster replication connection.
 
 5. **Verify the rebuild**: Check the following fields to verify the rebuild is successful and that the multi-cluster topology is healthy:
-  - `BackupRestored` and `ReplicationConfigured` conditions are present and `True` 
+  - `BackupRestored` and `ReplicationConfigured` conditions are present and `True`
   - `slaveIORunning` and `slaveSQLRunning` are `true`
   - `lastIOError` and `lastSQLError` are empty
   - `secondsBehindMaster` is `0`
-  - `gtidCurrentPos` reports a single domain ID in the primary cluster
-  - `gtidCurrentPos` reports both its domain ID and the primary cluster's domain ID
-  - `currentMultiClusterPrimary` reports the same name is both clusters
+  - `gtidCurrentPos` on the primary cluster reports only its own domain ID
+  - `gtidCurrentPos` on the replica cluster reports both its own domain ID and the primary cluster's domain ID
+  - `currentMultiClusterPrimary` reports the same name in both clusters
 
   To verify this, run the following commands:
-   ```bash
-   kubectl get mariadb mariadb-eu-south -o jsonpath="{.status}" | jq '{conditions: .conditions, currentPrimary: .currentPrimary, currentMultiClusterPrimary: .currentMultiClusterPrimary, replication: .replication}'
 
-   kubectl get mariadb mariadb-eu-central -o jsonpath="{.status}" | jq '{conditions: .conditions, currentPrimary: .currentPrimary, currentMultiClusterPrimary: .currentMultiClusterPrimary, replication: .replication}'
-   ```
+  ```bash
+  kubectl get mariadb mariadb-eu-south -o jsonpath="{.status}" | jq '{conditions: .conditions, currentPrimary: .currentPrimary, currentMultiClusterPrimary: .currentMultiClusterPrimary, replication: .replication}'
 
+  kubectl get mariadb mariadb-eu-central -o jsonpath="{.status}" | jq '{conditions: .conditions, currentPrimary: .currentPrimary, currentMultiClusterPrimary: .currentMultiClusterPrimary, replication: .replication}'
+  ```
 
