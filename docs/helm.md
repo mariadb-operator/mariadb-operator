@@ -1,8 +1,5 @@
 # Helm
 
-> [!NOTE]  
-> This documentation applies to `mariadb-operator` version >= v0.0.32
-
 > [!WARNING]
 > The Helm registry at `helm.mariadb.com` is being deprecated and will be removed in a future release. The registry at `mariadb-operator.github.io/mariadb-operator` will continue to work. We recommend using the [OCI-based installation](#oci-based-installation) instead, which does not require a Helm repository and provides a simpler installation experience.
 
