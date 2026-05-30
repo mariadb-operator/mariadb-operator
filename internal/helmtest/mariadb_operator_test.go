@@ -334,7 +334,7 @@ func testOperatorHelmTemplates(t *testing.T, opts *helm.Options, expectedTemplat
 func TestOperatorHelmImageTagAndDigest(t *testing.T) {
 	RegisterTestingT(t)
 
-	repository := "docker-registry3.mariadb.com/mariadb-operator/mariadb-operator"
+	repository := "ghcr.io/mariadb-operator/mariadb-operator"
 	tag := "v1.0.0"
 	digest := "sha256:abc123def456"
 
@@ -373,7 +373,7 @@ func TestOperatorHelmImageTagAndDigest(t *testing.T) {
 
 func TestOperatorHelmConfigMap(t *testing.T) {
 	RegisterTestingT(t)
-	repository := "docker-registry3.mariadb.com/mariadb-operator/mariadb-operator"
+	repository := "ghcr.io/mariadb-operator/mariadb-operator"
 	tag := "v1.0.0"
 	opts := &helm.Options{
 		SetValues: map[string]string{

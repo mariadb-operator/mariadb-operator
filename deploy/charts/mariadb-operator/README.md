@@ -33,7 +33,7 @@ Refer to the [helm documentation](https://github.com/mariadb-operator/mariadb-op
 | certController.ha.enabled | bool | `false` | Enable high availability |
 | certController.ha.replicas | int | `3` | Number of replicas |
 | certController.image.pullPolicy | string | `"IfNotPresent"` |  |
-| certController.image.repository | string | `"docker-registry3.mariadb.com/mariadb-operator/mariadb-operator"` |  |
+| certController.image.repository | string | `"ghcr.io/mariadb-operator/mariadb-operator"` |  |
 | certController.image.tag | string | `""` | Image tag to use. By default the chart appVersion is used |
 | certController.imagePullSecrets | list | `[]` |  |
 | certController.nodeSelector | object | `{}` | Node selectors to add to cert-controller container |
@@ -60,14 +60,14 @@ Refer to the [helm documentation](https://github.com/mariadb-operator/mariadb-op
 | certController.tolerations | list | `[]` | Tolerations to add to cert-controller container |
 | certController.topologySpreadConstraints | list | `[]` | topologySpreadConstraints to add to cert-controller container |
 | clusterName | string | `"cluster.local"` | Cluster DNS name |
-| config | object | `{"exporterImage":{"repository":"prom/mysqld-exporter","tag":"v0.15.1"},"exporterMaxscaleImage":{"repository":"docker-registry2.mariadb.com/mariadb/maxscale-prometheus-exporter-ubi","tag":"v0.0.1"},"galeraLibPath":"/usr/lib/galera/libgalera_smm.so","mariadbDefaultVersion":"11.8","mariadbImage":{"repository":"docker-registry1.mariadb.com/library/mariadb","tag":"11.8.5"},"mariadbImageName":"docker-registry1.mariadb.com/library/mariadb","maxscaleImage":{"repository":"docker-registry2.mariadb.com/mariadb/maxscale","tag":"23.08.5"}}` | Operator configuration |
+| config | object | `{"exporterImage":{"repository":"prom/mysqld-exporter","tag":"v0.15.1"},"exporterMaxscaleImage":{"repository":"mariadb/maxscale-prometheus-exporter-ubi","tag":"v0.0.1"},"galeraLibPath":"/usr/lib/galera/libgalera_smm.so","mariadbDefaultVersion":"11.8","mariadbImage":{"repository":"mariadb","tag":"11.8.5"},"mariadbImageName":"mariadb","maxscaleImage":{"repository":"mariadb/maxscale","tag":"23.08.5"}}` | Operator configuration |
 | config.exporterImage | object | `{"repository":"prom/mysqld-exporter","tag":"v0.15.1"}` | Default MariaDB exporter image |
-| config.exporterMaxscaleImage | object | `{"repository":"docker-registry2.mariadb.com/mariadb/maxscale-prometheus-exporter-ubi","tag":"v0.0.1"}` | Default MaxScale exporter image |
+| config.exporterMaxscaleImage | object | `{"repository":"mariadb/maxscale-prometheus-exporter-ubi","tag":"v0.0.1"}` | Default MaxScale exporter image |
 | config.galeraLibPath | string | `"/usr/lib/galera/libgalera_smm.so"` | Galera library path to be used with MariaDB Galera |
 | config.mariadbDefaultVersion | string | `"11.8"` | Default MariaDB version to be used when unable to infer it via image tag |
-| config.mariadbImage | object | `{"repository":"docker-registry1.mariadb.com/library/mariadb","tag":"11.8.5"}` | Default MariaDB image |
-| config.mariadbImageName | string | `"docker-registry1.mariadb.com/library/mariadb"` | Default MariaDB image name |
-| config.maxscaleImage | object | `{"repository":"docker-registry2.mariadb.com/mariadb/maxscale","tag":"23.08.5"}` | Default MaxScale image |
+| config.mariadbImage | object | `{"repository":"mariadb","tag":"11.8.5"}` | Default MariaDB image |
+| config.mariadbImageName | string | `"mariadb"` | Default MariaDB image name |
+| config.maxscaleImage | object | `{"repository":"mariadb/maxscale","tag":"23.08.5"}` | Default MaxScale image |
 | crds | object | `{"enabled":false}` | CRDs |
 | crds.enabled | bool | `false` | Whether the helm chart should create and update the CRDs. It is false by default, which implies that the CRDs must be managed independently with the mariadb-operator-crds helm chart. **WARNING** This should only be set to true during the initial deployment. If this chart manages the CRDs and is later uninstalled, all MariaDB instances will be DELETED. |
 | currentNamespaceOnly | bool | `false` | Whether the operator should watch CRDs only in its own namespace or not. |
@@ -80,7 +80,7 @@ Refer to the [helm documentation](https://github.com/mariadb-operator/mariadb-op
 | ha.enabled | bool | `false` | Enable high availability of the controller. If you enable it we recommend to set `affinity` and `pdb` |
 | ha.replicas | int | `3` | Number of replicas |
 | image.pullPolicy | string | `"IfNotPresent"` |  |
-| image.repository | string | `"docker-registry3.mariadb.com/mariadb-operator/mariadb-operator"` |  |
+| image.repository | string | `"ghcr.io/mariadb-operator/mariadb-operator"` |  |
 | image.tag | string | `""` | Image tag to use. By default the chart appVersion is used |
 | imagePullSecrets | list | `[]` |  |
 | logLevel | string | `"INFO"` | Controller log level |
@@ -131,7 +131,7 @@ Refer to the [helm documentation](https://github.com/mariadb-operator/mariadb-op
 | webhook.ha.replicas | int | `3` | Number of replicas |
 | webhook.hostNetwork | bool | `false` | Expose the webhook server in the host network |
 | webhook.image.pullPolicy | string | `"IfNotPresent"` |  |
-| webhook.image.repository | string | `"docker-registry3.mariadb.com/mariadb-operator/mariadb-operator"` |  |
+| webhook.image.repository | string | `"ghcr.io/mariadb-operator/mariadb-operator"` |  |
 | webhook.image.tag | string | `""` | Image tag to use. By default the chart appVersion is used |
 | webhook.imagePullSecrets | list | `[]` |  |
 | webhook.nodeSelector | object | `{}` | Node selectors to add to webhook Pod |
