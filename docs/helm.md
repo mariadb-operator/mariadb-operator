@@ -3,7 +3,10 @@
 > [!NOTE]  
 > This documentation applies to `mariadb-operator` version >= v0.0.32
 
-Helm is the preferred way to install `mariadb-operator` in vanilla Kubernetes clusters (i.e. not OpenShift). This doc aims to provide guidance on how to manage the installation and upgrades of both the CRDs and the operator via Helm charts.
+> [!WARNING]
+> The Helm registry at `helm.mariadb.com` is being deprecated and will be removed in a future release. The registry at `mariadb-operator.github.io/mariadb-operator` will continue to work. We recommend using the [OCI-based installation](#oci-based-installation) instead, which does not require a Helm repository and provides a simpler installation experience.
+
+This doc provides guidance on how to manage the installation and upgrades of both the CRDs and the operator via Helm charts in vanilla Kubernetes clusters (i.e. not OpenShift).
 
 ## Table of contents
 <!-- toc -->
@@ -75,7 +78,7 @@ Helm has certain [limitations when it comes to manage CRDs](https://helm.sh/docs
 CRDs can be installed in your cluster by running the following commands
 
 ```bash
-helm repo add mariadb-operator https://helm.mariadb.com/mariadb-operator
+helm repo add mariadb-operator https://mariadb-operator.github.io/mariadb-operator
 helm install mariadb-operator-crds mariadb-operator/mariadb-operator-crds
 ```
 
@@ -84,14 +87,14 @@ helm install mariadb-operator-crds mariadb-operator/mariadb-operator-crds
 Once the CRDs are available in the cluster, you can proceed to install the operator:
 
 ```bash
-helm repo add mariadb-operator https://helm.mariadb.com/mariadb-operator
+helm repo add mariadb-operator https://mariadb-operator.github.io/mariadb-operator
 helm install mariadb-operator mariadb-operator/mariadb-operator
 ```
 
 If you have the [prometheus operator](https://github.com/prometheus-operator/prometheus-operator) and [cert-manager](https://cert-manager.io/docs/installation/) already installed in your cluster, it is recommended to leverage them to scrape the operator metrics and provision the webhook certificate respectively:
 
 ```bash
-helm repo add mariadb-operator https://helm.mariadb.com/mariadb-operator
+helm repo add mariadb-operator https://mariadb-operator.github.io/mariadb-operator
 helm install mariadb-operator mariadb-operator/mariadb-operator \
   --set metrics.enabled=true --set webhook.cert.certManager.enabled=true
 ```
@@ -108,7 +111,7 @@ Deployments are highly configurable via the [helm values](./../deploy/charts/mar
 The operator watches CRDs in all namespaces and requires cluster-wide RBAC permissions to operate. This is the default deployment mode, enabled through the default configuration values:
 
 ```bash
-helm repo add mariadb-operator https://helm.mariadb.com/mariadb-operator
+helm repo add mariadb-operator https://mariadb-operator.github.io/mariadb-operator
 helm install mariadb-operator mariadb-operator/mariadb-operator
 ```
 
@@ -117,7 +120,7 @@ helm install mariadb-operator mariadb-operator/mariadb-operator
 By setting `currentNamespaceOnly=true`, the operator will only watch CRDs within the namespace it is deployed in, and the RBAC permissions will be restricted to that namespace as well:
 
 ```bash
-helm repo add mariadb-operator https://helm.mariadb.com/mariadb-operator
+helm repo add mariadb-operator https://mariadb-operator.github.io/mariadb-operator
 helm install mariadb-operator \
   -n databases --create-namespace \
   --set currentNamespaceOnly=true \
