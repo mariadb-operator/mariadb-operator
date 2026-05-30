@@ -8,6 +8,7 @@ Helm is the preferred way to install `mariadb-operator` in vanilla Kubernetes cl
 ## Table of contents
 <!-- toc -->
 - [Charts](#charts)
+- [OCI-based installation](#oci-based-installation)
 - [Control-plane](#control-plane)
 - [Installing CRDs](#installing-crds)
 - [Installing the operator](#installing-the-operator)
@@ -24,6 +25,40 @@ The installation of `mariadb-operator` is split into multiple different helm cha
 - [`mariadb-operator-crds`](../deploy/charts/mariadb-operator-crds/): Bundles the [`CustomResourceDefinitions`](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/) required by the operator.
 - [`mariadb-operator`](../deploy/charts/mariadb-operator/): Contains the template manifests required to install the operator.
 - [`mariadb-cluster`](../deploy/charts/mariadb-cluster/): Contains the template maniffests to deploy a `MariaDB` cluster based on the operator CRDs.
+
+## OCI-based installation
+
+Helm charts are also available as OCI images on GitHub Container Registry (`ghcr.io`). This approach allows you to install charts without needing a Helm repository, using only the chart name and version.
+
+### Install
+
+Install the charts in the following order:
+
+```bash
+helm install mariadb-operator-crds oci://ghcr.io/mariadb-operator/mariadb-operator-crds-helm --version <version>
+helm install mariadb-operator oci://ghcr.io/mariadb-operator/mariadb-operator-helm --version <version>
+helm install mariadb-cluster oci://ghcr.io/mariadb-operator/mariadb-cluster-helm --version <version>
+```
+
+### Upgrade
+
+Upgrade the charts in the following order:
+
+```bash
+helm upgrade mariadb-operator-crds oci://ghcr.io/mariadb-operator/mariadb-operator-crds-helm --version <new-version>
+helm upgrade mariadb-operator oci://ghcr.io/mariadb-operator/mariadb-operator-helm --version <new-version>
+helm upgrade mariadb-cluster oci://ghcr.io/mariadb-operator/mariadb-cluster-helm --version <new-version>
+```
+
+### Uninstall
+
+Uninstall the charts in the following order:
+
+```bash
+helm uninstall mariadb-operator
+helm uninstall mariadb-operator-crds
+helm uninstall mariadb-cluster
+```
 
 ## Control-plane
 
