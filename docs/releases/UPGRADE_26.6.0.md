@@ -3,9 +3,9 @@
 This guide illustrates, step by step, how to update to `26.6.0` from previous versions. This guide only applies if you are updating from a version prior to `26.6.x`, otherwise you may upgrade directly (see [Helm](../helm.md#updates))
 
 > [!TIP]
-> The [OCI-based installation](../helm.md#oci-based-installation) is recommended. To migrate an existing release, run `helm upgrade --install` with the same release but pointing to the `oci://` path.
+> The [OCI-based installation](../helm.md#oci-based-installation) is recommended. To migrate an existing release, run `helm upgrade --install` with the same release but pointing to the `oci://` path. Refer to [this buide](https://www.securecodebox.io/blog/2024/06/28/helm-chart-oci-registry-migration/) for further information.
 
-> [!WARNING]
+> [!CAUTION]
 > When migrating `mariadb-operator-crds` to the [OCI-based installation](../helm.md#oci-based-installation), always use `helm upgrade` in-place. Running `helm uninstall` first will delete the CRDs and cascade-delete all CRs, causing downtime.
 
 - The [data-plane](../data_plane.md) must be updated to the `26.6.0` version. You must set `updateStrategy.autoUpdateDataPlane=true` in your `MariaDB` resources before updating the operator. Then, once updated, the operator will also be updating the data-plane based on its version:
