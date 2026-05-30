@@ -17,11 +17,11 @@ SHELL = /usr/bin/env bash -o pipefail
 VERSION ?= 26.6.0-dev
 
 # mariadb-operator
-IMG_NAME ?= docker-registry3.mariadb.com/mariadb-operator/mariadb-operator
+IMG_NAME ?= ghcr.io/mariadb-operator/mariadb-operator
 IMG ?= $(IMG_NAME):$(VERSION)
 
 # mariadb
-RELATED_IMAGE_MARIADB_NAME ?= docker-registry1.mariadb.com/library/mariadb
+RELATED_IMAGE_MARIADB_NAME ?= mariadb
 RELATED_IMAGE_MARIADB_VERSION ?= 11.8.5
 # RELATED_IMAGE_MARIADB_VERSION ?= 11.8.2-ubi
 RELATED_IMAGE_MARIADB ?= $(RELATED_IMAGE_MARIADB_NAME):$(RELATED_IMAGE_MARIADB_VERSION)
@@ -30,7 +30,7 @@ MARIADB_GALERA_LIB_PATH ?= /usr/lib/galera/libgalera_smm.so
 # MARIADB_GALERA_LIB_PATH ?= /usr/lib64/galera/libgalera_smm.so
 
 # maxscale
-RELATED_IMAGE_MAXSCALE_NAME ?= docker-registry2.mariadb.com/mariadb/maxscale
+RELATED_IMAGE_MAXSCALE_NAME ?= mariadb/maxscale
 RELATED_IMAGE_MAXSCALE_VERSION ?= 23.08.5
 RELATED_IMAGE_MAXSCALE ?= $(RELATED_IMAGE_MAXSCALE_NAME):$(RELATED_IMAGE_MAXSCALE_VERSION)
 
@@ -40,7 +40,7 @@ RELATED_IMAGE_EXPORTER_VERSION ?= v0.15.1
 RELATED_IMAGE_EXPORTER ?= $(RELATED_IMAGE_EXPORTER_NAME):$(RELATED_IMAGE_EXPORTER_VERSION)
 
 # maxscale-exporter
-RELATED_IMAGE_EXPORTER_MAXSCALE_NAME ?= docker-registry2.mariadb.com/mariadb/maxscale-prometheus-exporter-ubi
+RELATED_IMAGE_EXPORTER_MAXSCALE_NAME ?= mariadb/maxscale-prometheus-exporter-ubi
 RELATED_IMAGE_EXPORTER_MAXSCALE_VERSION ?= v0.0.1
 RELATED_IMAGE_EXPORTER_MAXSCALE ?= $(RELATED_IMAGE_EXPORTER_MAXSCALE_NAME):$(RELATED_IMAGE_EXPORTER_MAXSCALE_VERSION)
 
