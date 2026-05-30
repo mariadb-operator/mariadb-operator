@@ -33,7 +33,7 @@ To enable maintenance mode in MariaDB, set `spec.maintenance.enabled: true` in t
 apiVersion: k8s.mariadb.com/v1alpha1
 kind: MariaDB
 metadata:
-  name: mariadb-eu-south 
+  name: mariadb-eu-south
 spec:
   # [...]
   maintenance:
@@ -120,7 +120,7 @@ spec:
 
 Read-only mode sets the database to read-only, preventing any write operations (INSERT, UPDATE, DELETE, CREATE, DROP, ALTER, etc.). Read operations (SELECT) continue to work normally.
 
-This is useful when you need to prevent any data modifications, and therefore, allowing the replicas to sync with the primary. 
+This is useful when you need to prevent any data modifications, allowing the replicas to sync with the primary.
 
 To enable read-only mode:
 
