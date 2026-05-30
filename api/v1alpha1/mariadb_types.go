@@ -466,7 +466,7 @@ type TLS struct {
 	// By default, the Secret field 'ca.crt' provisioned by cert-manager will be added to the trust chain. A custom trust bundle may be specified via serverCASecretRef.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	ServerCertIssuerRef *cmmeta.ObjectReference `json:"serverCertIssuerRef,omitempty"`
+	ServerCertIssuerRef *cmmeta.IssuerReference `json:"serverCertIssuerRef,omitempty"`
 	// ClientCASecretRef is a reference to a Secret containing the client certificate authority keypair. It is used to establish trust and issue client certificates.
 	// One of:
 	// - Secret containing both the 'ca.crt' and 'ca.key' keys. This allows you to bring your own CA to Kubernetes to issue certificates.
@@ -485,7 +485,7 @@ type TLS struct {
 	// By default, the Secret field 'ca.crt' provisioned by cert-manager will be added to the trust chain. A custom trust bundle may be specified via clientCASecretRef.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	ClientCertIssuerRef *cmmeta.ObjectReference `json:"clientCertIssuerRef,omitempty"`
+	ClientCertIssuerRef *cmmeta.IssuerReference `json:"clientCertIssuerRef,omitempty"`
 	// GaleraSSTEnabled determines whether Galera SST connections should use TLS.
 	// It disabled by default.
 	// +optional
