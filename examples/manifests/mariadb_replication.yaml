@@ -66,10 +66,10 @@ spec:
     # syncBinlog: 1
     # Init container that cooperates with mariadb-operator.
     # initContainer:
-    #   image: ghcr.io/mariadb-operator/mariadb-operator:26.3.0
+    #   image: ghcr.io/mariadb-operator/mariadb-operator:26.6.0
     # Agent sidecar that cooperates with mariadb-operator.
     # agent:
-    #   image: ghcr.io/mariadb-operator/mariadb-operator:26.3.0
+    #   image: ghcr.io/mariadb-operator/mariadb-operator:26.6.0
   
   service:
     type: LoadBalancer
