@@ -11,7 +11,7 @@ Run and operate MariaDB in a cloud native way
 You can easily deploy the operator to your cluster by installing the `mariadb-operator-crds` and `mariadb-operator` Helm charts:
 
 ```bash
-helm repo add mariadb-operator https://helm.mariadb.com/mariadb-operator
+helm repo add mariadb-operator https://mariadb-operator.github.io/mariadb-operator
 helm install mariadb-operator-crds mariadb-operator/mariadb-operator-crds
 helm install mariadb-operator mariadb-operator/mariadb-operator
 ```
