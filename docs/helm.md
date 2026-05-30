@@ -55,9 +55,9 @@ helm upgrade mariadb-cluster oci://ghcr.io/mariadb-operator/mariadb-cluster-helm
 Uninstall the charts in the following order:
 
 ```bash
+helm uninstall mariadb-cluster
 helm uninstall mariadb-operator
 helm uninstall mariadb-operator-crds
-helm uninstall mariadb-cluster
 ```
 
 ## Control-plane
