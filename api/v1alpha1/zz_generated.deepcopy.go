@@ -3084,7 +3084,7 @@ func (in *MaxScaleTLS) DeepCopyInto(out *MaxScaleTLS) {
 	}
 	if in.AdminCertIssuerRef != nil {
 		in, out := &in.AdminCertIssuerRef, &out.AdminCertIssuerRef
-		*out = new(metav1.ObjectReference)
+		*out = new(metav1.IssuerReference)
 		**out = **in
 	}
 	if in.ListenerCASecretRef != nil {
@@ -3099,7 +3099,7 @@ func (in *MaxScaleTLS) DeepCopyInto(out *MaxScaleTLS) {
 	}
 	if in.ListenerCertIssuerRef != nil {
 		in, out := &in.ListenerCertIssuerRef, &out.ListenerCertIssuerRef
-		*out = new(metav1.ObjectReference)
+		*out = new(metav1.IssuerReference)
 		**out = **in
 	}
 	if in.ServerCASecretRef != nil {
@@ -5180,7 +5180,7 @@ func (in *TLS) DeepCopyInto(out *TLS) {
 	}
 	if in.ServerCertIssuerRef != nil {
 		in, out := &in.ServerCertIssuerRef, &out.ServerCertIssuerRef
-		*out = new(metav1.ObjectReference)
+		*out = new(metav1.IssuerReference)
 		**out = **in
 	}
 	if in.ClientCASecretRef != nil {
@@ -5195,7 +5195,7 @@ func (in *TLS) DeepCopyInto(out *TLS) {
 	}
 	if in.ClientCertIssuerRef != nil {
 		in, out := &in.ClientCertIssuerRef, &out.ClientCertIssuerRef
-		*out = new(metav1.ObjectReference)
+		*out = new(metav1.IssuerReference)
 		**out = **in
 	}
 	if in.GaleraSSTEnabled != nil {
