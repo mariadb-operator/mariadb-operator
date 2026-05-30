@@ -45,6 +45,7 @@ Refer to the [helm documentation](https://github.com/mariadb-operator/mariadb-op
 | certController.renewBeforePercentage | int | `33` | How long before the certificate expiration should the renewal process be triggered. For example, if a certificate is valid for 60 minutes, and renewBeforePercentage=25, cert-controller will begin to attempt to renew the certificate 45 minutes after it was issued (i.e. when there are 15 minutes (25%) remaining until the certificate is no longer valid). |
 | certController.requeueDuration | string | `"5m"` | Requeue duration to ensure that certificate gets renewed. |
 | certController.resources | object | `{}` | Resources to add to cert-controller container |
+| certController.revisionHistoryLimit | int | `10` | Specifies the amount of historic ReplicaSets k8s should keep (see https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#clean-up-policy) |
 | certController.securityContext | object | `{}` | Security context to add to cert-controller Pod |
 | certController.serviceAccount.annotations | object | `{}` | Annotations to add to the service account |
 | certController.serviceAccount.automount | bool | `true` | Automounts the service account token in all containers of the Pod |
@@ -57,6 +58,7 @@ Refer to the [helm documentation](https://github.com/mariadb-operator/mariadb-op
 | certController.serviceMonitor.metricRelabelings | list | `[]` |  |
 | certController.serviceMonitor.relabelings | list | `[]` |  |
 | certController.serviceMonitor.scrapeTimeout | string | `"25s"` | Timeout if metrics can't be retrieved in given time interval |
+| certController.strategy | object | `{}` | Set deployment strategy |
 | certController.tolerations | list | `[]` | Tolerations to add to cert-controller container |
 | certController.topologySpreadConstraints | list | `[]` | topologySpreadConstraints to add to cert-controller container |
 | clusterName | string | `"cluster.local"` | Cluster DNS name |
@@ -103,12 +105,14 @@ Refer to the [helm documentation](https://github.com/mariadb-operator/mariadb-op
 | rbac.aggregation.enabled | bool | `true` | Specifies whether the cluster roles aggrate to view and edit predefinied roles |
 | rbac.enabled | bool | `true` | Specifies whether RBAC resources should be created |
 | resources | object | `{}` | Resources to add to controller container |
+| revisionHistoryLimit | int | `10` | Specifies the amount of historic ReplicaSets k8s should keep (see https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#clean-up-policy) |
 | securityContext | object | `{}` | Security context to add to controller container |
 | serviceAccount.annotations | object | `{}` | Annotations to add to the service account |
 | serviceAccount.automount | bool | `true` | Automounts the service account token in all containers of the Pod |
 | serviceAccount.enabled | bool | `true` | Specifies whether a service account should be created |
 | serviceAccount.extraLabels | object | `{}` | Extra Labels to add to the service account |
 | serviceAccount.name | string | `""` | The name of the service account to use. If not set and enabled is true, a name is generated using the fullname template |
+| strategy | object | `{}` | Set deployment strategy |
 | tolerations | list | `[]` | Tolerations to add to controller Pod |
 | topologySpreadConstraints | list | `[]` | topologySpreadConstraints to add to controller Pod |
 | webhook.affinity | object | `{}` | Affinity to add to webhook Pod |
@@ -142,6 +146,7 @@ Refer to the [helm documentation](https://github.com/mariadb-operator/mariadb-op
 | webhook.port | int | `9443` | Port to be used by the webhook server |
 | webhook.priorityClassName | string | `""` | priorityClassName to add to webhook Pod |
 | webhook.resources | object | `{}` | Resources to add to webhook container |
+| webhook.revisionHistoryLimit | int | `10` | Specifies the amount of historic ReplicaSets k8s should keep (see https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#clean-up-policy) |
 | webhook.securityContext | object | `{}` | Security context to add to webhook container |
 | webhook.serviceAccount.annotations | object | `{}` | Annotations to add to the service account |
 | webhook.serviceAccount.automount | bool | `true` | Automounts the service account token in all containers of the Pod |
@@ -154,5 +159,6 @@ Refer to the [helm documentation](https://github.com/mariadb-operator/mariadb-op
 | webhook.serviceMonitor.metricRelabelings | list | `[]` |  |
 | webhook.serviceMonitor.relabelings | list | `[]` |  |
 | webhook.serviceMonitor.scrapeTimeout | string | `"25s"` | Timeout if metrics can't be retrieved in given time interval |
+| webhook.strategy | object | `{}` | Set deployment strategy |
 | webhook.tolerations | list | `[]` | Tolerations to add to webhook Pod |
 | webhook.topologySpreadConstraints | list | `[]` | topologySpreadConstraints to add to webhook Pod |
