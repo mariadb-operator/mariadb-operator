@@ -725,11 +725,11 @@ var _ = Describe("MariaDB Galera alternative configs", Ordered, func() {
 				TLS: &mariadbv1alpha1.TLS{
 					Enabled:  true,
 					Required: ptr.To(true),
-					ServerCertIssuerRef: &cmmeta.ObjectReference{
+					ServerCertIssuerRef: &cmmeta.IssuerReference{
 						Name: "root-ca",
 						Kind: "ClusterIssuer",
 					},
-					ClientCertIssuerRef: &cmmeta.ObjectReference{
+					ClientCertIssuerRef: &cmmeta.IssuerReference{
 						Name: "root-ca",
 						Kind: "ClusterIssuer",
 					},

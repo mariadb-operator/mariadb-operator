@@ -19,7 +19,7 @@ type tlsValidationItem struct {
 	caFieldPath         string
 	certSecretRef       *v1alpha1.LocalObjectReference
 	certFieldPath       string
-	certIssuerRef       *cmmeta.ObjectReference
+	certIssuerRef       *cmmeta.IssuerReference
 	certIssuerFieldPath string
 }
 

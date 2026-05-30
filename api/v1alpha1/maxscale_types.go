@@ -481,7 +481,7 @@ type MaxScaleTLS struct {
 	// By default, the Secret field 'ca.crt' provisioned by cert-manager will be added to the trust chain. A custom trust bundle may be specified via adminCASecretRef.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	AdminCertIssuerRef *cmmeta.ObjectReference `json:"adminCertIssuerRef,omitempty"`
+	AdminCertIssuerRef *cmmeta.IssuerReference `json:"adminCertIssuerRef,omitempty"`
 	// ListenerCASecretRef is a reference to a Secret containing the listener certificate authority keypair. It is used to establish trust and issue certificates for the MaxScale's listeners.
 	// One of:
 	// - Secret containing both the 'ca.crt' and 'ca.key' keys. This allows you to bring your own CA to Kubernetes to issue certificates.
@@ -499,7 +499,7 @@ type MaxScaleTLS struct {
 	// By default, the Secret field 'ca.crt' provisioned by cert-manager will be added to the trust chain. A custom trust bundle may be specified via listenerCASecretRef.
 	// +optional
 	// +operator-sdk:csv:customresourcedefinitions:type=spec,xDescriptors={"urn:alm:descriptor:com.tectonic.ui:advanced"}
-	ListenerCertIssuerRef *cmmeta.ObjectReference `json:"listenerCertIssuerRef,omitempty"`
+	ListenerCertIssuerRef *cmmeta.IssuerReference `json:"listenerCertIssuerRef,omitempty"`
 	// ServerCASecretRef is a reference to a Secret containing the MariaDB server CA certificates. It is used to establish trust with MariaDB servers.
 	// The Secret should contain a 'ca.crt' key in order to establish trust.
 	// If not provided, and the reference to a MariaDB resource is set (mariaDbRef), it will be defaulted to the referred MariaDB CA bundle.

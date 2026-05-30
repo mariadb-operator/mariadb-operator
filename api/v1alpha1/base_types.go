@@ -1073,7 +1073,7 @@ type tlsValidationItem struct {
 	caFieldPath         string
 	certSecretRef       *LocalObjectReference
 	certFieldPath       string
-	certIssuerRef       *cmmeta.ObjectReference
+	certIssuerRef       *cmmeta.IssuerReference
 	certIssuerFieldPath string
 }
 

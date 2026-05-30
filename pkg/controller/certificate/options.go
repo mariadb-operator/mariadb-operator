@@ -23,7 +23,7 @@ type CertReconcilerOpts struct {
 
 	shouldIssueCert bool
 	certHandler     CertHandler
-	certIssuerRef   *cmmeta.ObjectReference
+	certIssuerRef   *cmmeta.IssuerReference
 	certSecretKey   types.NamespacedName
 	certCommonName  string
 	certDNSNames    []string
@@ -90,7 +90,7 @@ func WithCertHandler(certHandler CertHandler) CertReconcilerOpt {
 	}
 }
 
-func WithCertIssuerRef(issuerRef *cmmeta.ObjectReference) CertReconcilerOpt {
+func WithCertIssuerRef(issuerRef *cmmeta.IssuerReference) CertReconcilerOpt {
 	return func(o *CertReconcilerOpts) {
 		o.certIssuerRef = issuerRef
 	}
