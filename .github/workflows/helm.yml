@@ -145,6 +145,9 @@ jobs:
       - lint-crds
       - lint-operator
     if: github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+      packages: write
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -171,3 +174,36 @@ jobs:
           skip_existing: "true"
           pages_branch: gh-pages
           packages_with_index: true
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push charts to GHCR
+        if: steps.chart-releaser.outputs.changed_charts != ''
+        run: |
+          declare -A chart_oci
+          chart_oci["mariadb-cluster"]="ghcr.io/${{ github.repository_owner }}/mariadb-cluster-helm"
+          chart_oci["mariadb-operator-crds"]="ghcr.io/${{ github.repository_owner }}/mariadb-operator-crds-helm"
+          chart_oci["mariadb-operator"]="ghcr.io/${{ github.repository_owner }}/mariadb-operator-helm"
+
+          IFS=',' read -ra charts <<< "${{ steps.chart-releaser.outputs.changed_charts }}"
+          for chart_name in "${charts[@]}"; do
+            chart_version=$(grep '^version:' "deploy/charts/${chart_name}/Chart.yaml" | awk '{print $2}')
+            pkg=".cr-release-packages/${chart_name}-${chart_version}.tgz"
+
+            if [ ! -f "$pkg" ]; then
+              echo "Package not found: $pkg, skipping"
+              continue
+            fi
+            if [ -z "${chart_oci[$chart_name]+_}" ]; then
+              echo "No OCI mapping for chart '$chart_name', skipping"
+              continue
+            fi
+
+            echo "Pushing $pkg to ${chart_oci[$chart_name]}"
+            helm push "$pkg" "oci://${chart_oci[$chart_name]}"
+          done
