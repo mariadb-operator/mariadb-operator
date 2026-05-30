@@ -36,7 +36,7 @@
     </tr>
     <tr>
       <td>MariaDB Operator</td>
-	    <td><code>ghcr.io/mariadb-operator/mariadb-operator:26.3.0</code></td>
+	    <td><code>ghcr.io/mariadb-operator/mariadb-operator:26.6.0</code></td>
       <td><code>amd64</code> <code>arm64</code></td>
     </tr>
   </tbody>

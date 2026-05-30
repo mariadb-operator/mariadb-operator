@@ -97,6 +97,7 @@ _Appears in:_
 | `startupProbe` _[Probe](#probe)_ | StartupProbe to be used in the Container. |  |  |
 | `resources` _[ResourceRequirements](#resourcerequirements)_ | Resources describes the compute resource requirements. |  |  |
 | `securityContext` _[SecurityContext](#securitycontext)_ | SecurityContext holds security configuration that will be applied to a container. |  |  |
+| `lifecycle` _[Lifecycle](#lifecycle)_ | Lifecycle are actions that the management system should take in response to container lifecycle events. |  |  |
 | `image` _string_ | Image name to be used by the MariaDB instances. The supported format is `<image>:<tag>`. |  |  |
 | `imagePullPolicy` _[PullPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#pullpolicy-v1-core)_ | ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`. |  | Enum: [Always Never IfNotPresent] <br /> |
 | `port` _integer_ | Port where the agent will be listening for API connections. |  |  |
@@ -491,6 +492,7 @@ _Appears in:_
 | `startupProbe` _[Probe](#probe)_ | StartupProbe to be used in the Container. |  |  |
 | `resources` _[ResourceRequirements](#resourcerequirements)_ | Resources describes the compute resource requirements. |  |  |
 | `securityContext` _[SecurityContext](#securitycontext)_ | SecurityContext holds security configuration that will be applied to a container. |  |  |
+| `lifecycle` _[Lifecycle](#lifecycle)_ | Lifecycle are actions that the management system should take in response to container lifecycle events. |  |  |
 
 
 #### CooperativeMonitoring
@@ -509,6 +511,23 @@ _Appears in:_
 | --- | --- |
 | `majority_of_all` | CooperativeMonitoringMajorityOfAll requires a lock from the majority of the MariaDB servers, even the ones that are down.<br /> |
 | `majority_of_running` | CooperativeMonitoringMajorityOfRunning requires a lock from the majority of the MariaDB servers.<br /> |
+
+
+#### Cordoning
+
+
+
+Cordoning defines the parameters for cordoning a resource, resulting in the connections being blocked.
+
+
+
+_Appears in:_
+- [MariaDBMaintenance](#mariadbmaintenance)
+- [MaxScaleMaintenance](#maxscalemaintenance)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `cordon` _boolean_ | Cordon blocks connections to the resource. |  |  |
 
 
 #### CronJobTemplate
@@ -680,6 +699,7 @@ Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kub
 
 
 _Appears in:_
+- [LifecycleHandler](#lifecyclehandler)
 - [Probe](#probe)
 - [ProbeHandler](#probehandler)
 
@@ -782,6 +802,7 @@ _Appears in:_
 | `clientCertSecretRef` _[LocalObjectReference](#localobjectreference)_ | ClientCertSecretRef is a reference to a TLS Secret containing the client certificate.<br />It is mutually exclusive with clientCertIssuerRef. |  |  |
 | `clientCertIssuerRef` _[IssuerReference](#issuerreference)_ | ClientCertIssuerRef is a reference to a cert-manager issuer object used to issue the client certificate. cert-manager must be installed previously in the cluster.<br />It is mutually exclusive with clientCertSecretRef.<br />By default, the Secret field 'ca.crt' provisioned by cert-manager will be added to the trust chain. A custom trust bundle may be specified via clientCASecretRef. |  |  |
 | `galeraSSTEnabled` _boolean_ | GaleraSSTEnabled determines whether Galera SST connections should use TLS.<br />It disabled by default. |  |  |
+| `serverCertAdditionalNames` _string array_ | ServerCertAdditionalNames is a list of additional certificate common names |  |  |
 | `mutual` _boolean_ | Mutual specifies whether TLS must be mutual between server and client for external connections.<br />When set to false, the client certificate will not be sent during the TLS handshake.<br />It is enabled by default. |  |  |
 
 
@@ -809,6 +830,9 @@ _Appears in:_
 | `initContainer` _[InitContainer](#initcontainer)_ | InitContainer is an init container that runs in the MariaDB Pod and co-operates with mariadb-operator. |  |  |
 | `initJob` _[GaleraInitJob](#galerainitjob)_ | InitJob defines a Job that co-operates with mariadb-operator by performing initialization tasks. |  |  |
 | `config` _[GaleraConfig](#galeraconfig)_ | GaleraConfig defines storage options for the Galera configuration files. |  |  |
+| `gtidDomainId` _integer_ | GtidDomainID is the domain ID to be used in GTID mode, enabled when the multi-cluster topology is used.<br />For example: if you set this to `0`, the 'wsrep_gtid_domain_id' will be 0, while the replicas (if 3) will have 'gtid_domain_id' 1,2,3.<br />Make sure it has a different value on each the member of a multi-cluster topology.<br />See: https://mariadb.com/docs/galera-cluster/high-availability/using-mariadb-replication-with-mariadb-galera-cluster/configuring-mariadb-replication-between-two-mariadb-galera-clusters |  |  |
+| `serverId` _integer_ | ServerID is the server ID to be used in GTID mode, enabled when the multi-cluster topology is used.<br />Make sure it has a different value on each the member of a multi-cluster topology.<br />See: https://mariadb.com/docs/galera-cluster/high-availability/using-mariadb-replication-with-mariadb-galera-cluster/configuring-mariadb-replication-between-two-mariadb-galera-clusters |  |  |
+| `replPasswordSecretKeyRef` _[GeneratedSecretKeyRef](#generatedsecretkeyref)_ | ReplPasswordSecretKeyRef provides a reference to the Secret to use as password for the replication user.<br />This will be utilized as password of the replication user, when the multi-cluster topology is enabled.<br />By default, a random password will be generated. |  |  |
 | `enabled` _boolean_ | Enabled is a flag to enable Galera. |  |  |
 
 
@@ -918,6 +942,9 @@ _Appears in:_
 | `initContainer` _[InitContainer](#initcontainer)_ | InitContainer is an init container that runs in the MariaDB Pod and co-operates with mariadb-operator. |  |  |
 | `initJob` _[GaleraInitJob](#galerainitjob)_ | InitJob defines a Job that co-operates with mariadb-operator by performing initialization tasks. |  |  |
 | `config` _[GaleraConfig](#galeraconfig)_ | GaleraConfig defines storage options for the Galera configuration files. |  |  |
+| `gtidDomainId` _integer_ | GtidDomainID is the domain ID to be used in GTID mode, enabled when the multi-cluster topology is used.<br />For example: if you set this to `0`, the 'wsrep_gtid_domain_id' will be 0, while the replicas (if 3) will have 'gtid_domain_id' 1,2,3.<br />Make sure it has a different value on each the member of a multi-cluster topology.<br />See: https://mariadb.com/docs/galera-cluster/high-availability/using-mariadb-replication-with-mariadb-galera-cluster/configuring-mariadb-replication-between-two-mariadb-galera-clusters |  |  |
+| `serverId` _integer_ | ServerID is the server ID to be used in GTID mode, enabled when the multi-cluster topology is used.<br />Make sure it has a different value on each the member of a multi-cluster topology.<br />See: https://mariadb.com/docs/galera-cluster/high-availability/using-mariadb-replication-with-mariadb-galera-cluster/configuring-mariadb-replication-between-two-mariadb-galera-clusters |  |  |
+| `replPasswordSecretKeyRef` _[GeneratedSecretKeyRef](#generatedsecretkeyref)_ | ReplPasswordSecretKeyRef provides a reference to the Secret to use as password for the replication user.<br />This will be utilized as password of the replication user, when the multi-cluster topology is enabled.<br />By default, a random password will be generated. |  |  |
 
 
 #### GeneratedSecretKeyRef
@@ -930,6 +957,8 @@ GeneratedSecretKeyRef defines a reference to a Secret that can be automatically 
 
 _Appears in:_
 - [BasicAuth](#basicauth)
+- [Galera](#galera)
+- [GaleraSpec](#galeraspec)
 - [MariaDBSpec](#mariadbspec)
 - [MariadbMetrics](#mariadbmetrics)
 - [MaxScaleAuth](#maxscaleauth)
@@ -1012,6 +1041,7 @@ Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kub
 
 
 _Appears in:_
+- [LifecycleHandler](#lifecyclehandler)
 - [Probe](#probe)
 - [ProbeHandler](#probehandler)
 
@@ -1088,6 +1118,7 @@ _Appears in:_
 | `startupProbe` _[Probe](#probe)_ | StartupProbe to be used in the Container. |  |  |
 | `resources` _[ResourceRequirements](#resourcerequirements)_ | Resources describes the compute resource requirements. |  |  |
 | `securityContext` _[SecurityContext](#securitycontext)_ | SecurityContext holds security configuration that will be applied to a container. |  |  |
+| `lifecycle` _[Lifecycle](#lifecycle)_ | Lifecycle are actions that the management system should take in response to container lifecycle events. |  |  |
 | `image` _string_ | Image name to be used by the MariaDB instances. The supported format is `<image>:<tag>`. |  | Required: \{\} <br /> |
 | `imagePullPolicy` _[PullPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#pullpolicy-v1-core)_ | ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`. |  | Enum: [Always Never IfNotPresent] <br /> |
 
@@ -1213,6 +1244,45 @@ _Appears in:_
 | `values` _string array_ |  |  |  |
 
 
+#### Lifecycle
+
+
+
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#lifecycle-v1-core.
+
+
+
+_Appears in:_
+- [Agent](#agent)
+- [ContainerTemplate](#containertemplate)
+- [InitContainer](#initcontainer)
+- [MariaDBSpec](#mariadbspec)
+- [MaxScaleSpec](#maxscalespec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `postStart` _[LifecycleHandler](#lifecyclehandler)_ |  |  |  |
+| `preStop` _[LifecycleHandler](#lifecyclehandler)_ |  |  |  |
+
+
+#### LifecycleHandler
+
+
+
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#lifecyclehandler-v1-core.
+
+
+
+_Appears in:_
+- [Lifecycle](#lifecycle)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `exec` _[ExecAction](#execaction)_ |  |  |  |
+| `httpGet` _[HTTPGetAction](#httpgetaction)_ |  |  |  |
+| `sleep` _[SleepAction](#sleepaction)_ |  |  |  |
+
+
 #### LocalObjectReference
 
 
@@ -1272,11 +1342,31 @@ MariaDB is the Schema for the mariadbs API. It is used to define MariaDB cluster
 | `spec` _[MariaDBSpec](#mariadbspec)_ |  |  |  |
 
 
+#### MariaDBMaintenance
+
+
+
+MariaDBMaintenance defines different capabilities of the operator to allow for maintenance to be performed on MariaDB.
+
+
+
+_Appears in:_
+- [MariaDBSpec](#mariadbspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `cordon` _boolean_ | Cordon blocks connections to the resource. |  |  |
+| `enabled` _boolean_ | Enabled turns on maintenance mode |  |  |
+| `drainConnections` _boolean_ | DrainConnections determines whether all connections in MariaDB should be drained after `drainGracePeriodSeconds`. |  |  |
+| `drainGracePeriodSeconds` _integer_ | DrainGracePeriodSeconds defines the grace period in seconds before a connection in MariaDB is drained. | 30 |  |
+| `readOnly` _boolean_ | ReadOnly will allow only read statements to be performed on the resource. |  |  |
+
+
 #### MariaDBPodTemplate
 
 
 
-MariaDBPodTemplate defines a template for MariaDB Pods.
+MariaDBPodTemplate defines a template for MariaDB Pods. Refer to the Kubernetes dos: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#pod-v1-core.
 
 
 
@@ -1297,7 +1387,8 @@ _Appears in:_
 | `volumes` _[MariaDBVolume](#mariadbvolume) array_ | Volumes to be used in the Pod. |  |  |
 | `priorityClassName` _string_ | PriorityClassName to be used in the Pod. |  |  |
 | `topologySpreadConstraints` _[TopologySpreadConstraint](#topologyspreadconstraint) array_ | TopologySpreadConstraints to be used in the Pod. |  |  |
-| `enableServiceLinks` _boolean_ | EnableServiceLinks indicates whether information about services should be injected into pod's<br />environment variables, matching the syntax of Docker links. Defaults to true if not specified.<br />Set to false to disable injection of service link environment variables. |  |  |
+| `enableServiceLinks` _boolean_ | EnableServiceLinks to be used in the Pod. |  |  |
+| `terminationGracePeriodSeconds` _integer_ | TerminationGracePeriodSeconds to be used in the Pod. |  |  |
 
 
 #### MariaDBRef
@@ -1350,6 +1441,7 @@ _Appears in:_
 | `startupProbe` _[Probe](#probe)_ | StartupProbe to be used in the Container. |  |  |
 | `resources` _[ResourceRequirements](#resourcerequirements)_ | Resources describes the compute resource requirements. |  |  |
 | `securityContext` _[SecurityContext](#securitycontext)_ | SecurityContext holds security configuration that will be applied to a container. |  |  |
+| `lifecycle` _[Lifecycle](#lifecycle)_ | Lifecycle are actions that the management system should take in response to container lifecycle events. |  |  |
 | `podMetadata` _[Metadata](#metadata)_ | PodMetadata defines extra metadata for the Pod. |  |  |
 | `imagePullSecrets` _[LocalObjectReference](#localobjectreference) array_ | ImagePullSecrets is the list of pull Secrets to be used to pull the image. |  |  |
 | `initContainers` _[Container](#container) array_ | InitContainers to be used in the Pod. |  |  |
@@ -1362,7 +1454,8 @@ _Appears in:_
 | `volumes` _[MariaDBVolume](#mariadbvolume) array_ | Volumes to be used in the Pod. |  |  |
 | `priorityClassName` _string_ | PriorityClassName to be used in the Pod. |  |  |
 | `topologySpreadConstraints` _[TopologySpreadConstraint](#topologyspreadconstraint) array_ | TopologySpreadConstraints to be used in the Pod. |  |  |
-| `enableServiceLinks` _boolean_ | EnableServiceLinks indicates whether information about services should be injected into pod's<br />environment variables, matching the syntax of Docker links. Defaults to true if not specified.<br />Set to false to disable injection of service link environment variables. |  |  |
+| `enableServiceLinks` _boolean_ | EnableServiceLinks to be used in the Pod. |  |  |
+| `terminationGracePeriodSeconds` _integer_ | TerminationGracePeriodSeconds to be used in the Pod. |  |  |
 | `suspend` _boolean_ | Suspend indicates whether the current resource should be suspended or not.<br />This can be useful for maintenance, as disabling the reconciliation prevents the operator from interfering with user operations during maintenance activities. | false |  |
 | `image` _string_ | Image name to be used by the MariaDB instances. The supported format is `<image>:<tag>`.<br />Only MariaDB official images are supported. |  |  |
 | `imagePullPolicy` _[PullPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#pullpolicy-v1-core)_ | ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`. |  | Enum: [Always Never IfNotPresent] <br /> |
@@ -1384,6 +1477,7 @@ _Appears in:_
 | `tls` _[TLS](#tls)_ | TLS defines the PKI to be used with MariaDB. |  |  |
 | `replication` _[Replication](#replication)_ | Replication configures high availability via replication. This feature is still in alpha, use Galera if you are looking for a more production-ready HA. |  |  |
 | `galera` _[Galera](#galera)_ | Replication configures high availability via Galera. |  |  |
+| `multiCluster` _[MultiCluster](#multicluster)_ | MultiCluster configures the multi-cluster topology. |  |  |
 | `maxScaleRef` _[ObjectReference](#objectreference)_ | MaxScaleRef is a reference to a MaxScale resource to be used with the current MariaDB.<br />Providing this reference implies delegating high availability tasks such as primary failover to MaxScale. |  |  |
 | `pointInTimeRecoveryRef` _[LocalObjectReference](#localobjectreference)_ | PointInTimeRecoveryRef is a reference to a PointInTimeRecovery resource to be used with the current MariaDB.<br />Providing this reference implies configuring binary logs in the MariaDB instance and binary log archival in the sidecar agent. |  |  |
 | `replicas` _integer_ | Replicas indicates the number of desired instances. | 1 |  |
@@ -1398,6 +1492,7 @@ _Appears in:_
 | `primaryConnection` _[ConnectionTemplate](#connectiontemplate)_ | PrimaryConnection defines a template to configure the primary Connection object.<br />This Connection provides the initial User access to the initial Database.<br />It will make use of the PrimaryService to route network traffic to the primary Pod. |  |  |
 | `secondaryService` _[ServiceTemplate](#servicetemplate)_ | SecondaryService defines a template to configure the secondary Service object.<br />The network traffic of this Service will be routed to the secondary Pods. |  |  |
 | `secondaryConnection` _[ConnectionTemplate](#connectiontemplate)_ | SecondaryConnection defines a template to configure the secondary Connection object.<br />This Connection provides the initial User access to the initial Database.<br />It will make use of the SecondaryService to route network traffic to the secondary Pods. |  |  |
+| `maintenance` _[MariaDBMaintenance](#mariadbmaintenance)_ | Maintenance defines different capabilities of the operator to allow for maintenance to be performed on the DB.<br />Not to be confused with `suspend`, maintenance does not interfere with the normal reconciliation of the operator. |  |  |
 
 
 #### MariaDBVolume
@@ -1592,6 +1687,23 @@ _Appears in:_
 | `params` _object (keys:string, values:string)_ | Params defines extra parameters to pass to the listener.<br />Any parameter supported by MaxScale may be specified here. See reference:<br />https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-maxscale-configuration-guide/#listener_1. |  |  |
 
 
+#### MaxScaleMaintenance
+
+
+
+MaxScaleMaintenance defines different capabilities of the operator to allow for maintenance to be performed on MaxScale.
+
+
+
+_Appears in:_
+- [MaxScaleSpec](#maxscalespec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `cordon` _boolean_ | Cordon blocks connections to the resource. |  |  |
+| `enabled` _boolean_ | Enabled turns on maintenance mode |  |  |
+
+
 #### MaxScaleMetrics
 
 
@@ -1720,6 +1832,7 @@ _Appears in:_
 | `startupProbe` _[Probe](#probe)_ | StartupProbe to be used in the Container. |  |  |
 | `resources` _[ResourceRequirements](#resourcerequirements)_ | Resources describes the compute resource requirements. |  |  |
 | `securityContext` _[SecurityContext](#securitycontext)_ | SecurityContext holds security configuration that will be applied to a container. |  |  |
+| `lifecycle` _[Lifecycle](#lifecycle)_ | Lifecycle are actions that the management system should take in response to container lifecycle events. |  |  |
 | `podMetadata` _[Metadata](#metadata)_ | PodMetadata defines extra metadata for the Pod. |  |  |
 | `imagePullSecrets` _[LocalObjectReference](#localobjectreference) array_ | ImagePullSecrets is the list of pull Secrets to be used to pull the image. |  |  |
 | `podSecurityContext` _[PodSecurityContext](#podsecuritycontext)_ | SecurityContext holds pod-level security attributes and common container settings. |  |  |
@@ -1751,6 +1864,7 @@ _Appears in:_
 | `kubernetesService` _[ServiceTemplate](#servicetemplate)_ | KubernetesService defines a template for a Kubernetes Service object to connect to MaxScale. |  |  |
 | `guiKubernetesService` _[ServiceTemplate](#servicetemplate)_ | GuiKubernetesService defines a template for a Kubernetes Service object to connect to MaxScale's GUI. |  |  |
 | `requeueInterval` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#duration-v1-meta)_ | RequeueInterval is used to perform requeue reconciliations. If not defined, it defaults to 10s. |  |  |
+| `maintenance` _[MaxScaleMaintenance](#maxscalemaintenance)_ | Maintenance defines different capabilities of the operator to allow for maintenance to be performed on the DB.<br />Not to be confused with `suspend`, maintenance does not interfere with the normal reconciliation of the operator. |  |  |
 
 
 #### MaxScaleTLS
@@ -1830,6 +1944,59 @@ _Appears in:_
 | --- | --- |
 | `mariadbmon` | MonitorModuleMariadb is a monitor to be used with MariaDB servers.<br /> |
 | `galeramon` | MonitorModuleGalera is a monitor to be used with Galera servers.<br /> |
+
+
+#### MultiCluster
+
+
+
+MultiCluster is the multi-cluster topology configuration.
+
+
+
+_Appears in:_
+- [MariaDBSpec](#mariadbspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `primary` _string_ | Primary is the name of the primary cluster. It refers to a member in the 'members' field, containing its full specification. |  |  |
+| `members` _[MultiClusterMember](#multiclustermember) array_ | Members is the specification of each member of the multi-cluster topology. |  |  |
+| `enabled` _boolean_ | Enabled is a flag to enable the multi-cluster topology. |  |  |
+
+
+#### MultiClusterMember
+
+
+
+MultiClusterMember defines the configuration for a multi-cluster topology member.
+
+
+
+_Appears in:_
+- [MultiCluster](#multicluster)
+- [MultiClusterSpec](#multiclusterspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `name` _string_ | Name is the identifier of the member. |  |  |
+| `externalMariaDbRef` _[ObjectReference](#objectreference)_ | ExternalMariaDBRef holds a reference to an ExternalMariaDB with connection details to form the multi-cluster topology.<br />These connection details are utilized to setup remote replicas. |  |  |
+
+
+#### MultiClusterSpec
+
+
+
+MultiClusterSpec is the specification for the multi-cluster topology.
+
+
+
+_Appears in:_
+- [MultiCluster](#multicluster)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `primary` _string_ | Primary is the name of the primary cluster. It refers to a member in the 'members' field, containing its full specification. |  |  |
+| `members` _[MultiClusterMember](#multiclustermember) array_ | Members is the specification of each member of the multi-cluster topology. |  |  |
 
 
 #### NFSVolumeSource
@@ -1953,6 +2120,7 @@ _Appears in:_
 - [ConnectionSpec](#connectionspec)
 - [MariaDBRef](#mariadbref)
 - [MariaDBSpec](#mariadbspec)
+- [MultiClusterMember](#multiclustermember)
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
@@ -2132,6 +2300,7 @@ _Appears in:_
 | `restartPolicy` _[RestartPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#restartpolicy-v1-core)_ | RestartPolicy to be added to the PhysicalBackup Pod. | OnFailure | Enum: [Always OnFailure Never] <br /> |
 | `inheritMetadata` _[Metadata](#metadata)_ | InheritMetadata defines the metadata to be inherited by children resources. |  |  |
 | `successfulJobsHistoryLimit` _integer_ | SuccessfulJobsHistoryLimit defines the maximum number of successful Jobs to be displayed. It defaults to 5. |  | Minimum: 0 <br /> |
+| `failedJobsHistoryLimit` _integer_ | FailedJobsHistoryLimit defines the maximum number of failed Jobs to be displayed. It defaults to 5. |  | Minimum: 0 <br /> |
 | `logLevel` _string_ | LogLevel to be used in the PhysicalBackup Job. It defaults to 'info'. | info | Enum: [debug info warn error dpanic panic fatal] <br /> |
 
 
@@ -2506,6 +2675,8 @@ _Appears in:_
 | `primary` _[PrimaryReplication](#primaryreplication)_ | Primary is the replication configuration for the primary node. |  |  |
 | `replica` _[ReplicaReplication](#replicareplication)_ | ReplicaReplication is the replication configuration for the replica nodes. |  |  |
 | `gtidStrictMode` _boolean_ | GtidStrictMode determines whether the GTID strict mode is enabled.<br />See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/gtid#gtid_strict_mode.<br />It is enabled by default. |  |  |
+| `gtidDomainId` _integer_ | GtidDomainID is gtid_domain_id for all of the MariaDB nodes.<br />It is immutable.<br />See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/gtid#gtid_domain_id |  |  |
+| `serverIdStartIndex` _integer_ | ServerIDStartIndex sets the start index of the MariaDB nodes. Each subsequent replica will increment this by 1.<br />It is immutable.<br />See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/replication-and-binary-log-system-variables#server_id |  |  |
 | `semiSyncEnabled` _boolean_ | SemiSyncEnabled determines whether semi-synchronous replication is enabled.<br />Semi-synchronous replication requires that at least one replica should have sent an ACK to the primary node<br />before committing the transaction back to the client.<br />See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/semisynchronous-replication<br />It is enabled by default |  |  |
 | `semiSyncAckTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#duration-v1-meta)_ | SemiSyncAckTimeout for the replica to acknowledge transactions to the primary.<br />It requires semi-synchronous replication to be enabled.<br />See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/semisynchronous-replication#rpl_semi_sync_master_timeout |  |  |
 | `semiSyncWaitPoint` _[WaitPoint](#waitpoint)_ | SemiSyncWaitPoint determines whether the transaction should wait for an ACK after having synced the binlog (AfterSync)<br />or after having committed to the storage engine (AfterCommit, the default).<br />It requires semi-synchronous replication to be enabled.<br />See: https://mariadb.com/kb/en/semisynchronous-replication/#rpl_semi_sync_master_wait_point. |  | Enum: [AfterSync AfterCommit] <br /> |
@@ -2534,6 +2705,8 @@ _Appears in:_
 | `primary` _[PrimaryReplication](#primaryreplication)_ | Primary is the replication configuration for the primary node. |  |  |
 | `replica` _[ReplicaReplication](#replicareplication)_ | ReplicaReplication is the replication configuration for the replica nodes. |  |  |
 | `gtidStrictMode` _boolean_ | GtidStrictMode determines whether the GTID strict mode is enabled.<br />See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/gtid#gtid_strict_mode.<br />It is enabled by default. |  |  |
+| `gtidDomainId` _integer_ | GtidDomainID is gtid_domain_id for all of the MariaDB nodes.<br />It is immutable.<br />See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/gtid#gtid_domain_id |  |  |
+| `serverIdStartIndex` _integer_ | ServerIDStartIndex sets the start index of the MariaDB nodes. Each subsequent replica will increment this by 1.<br />It is immutable.<br />See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/replication-and-binary-log-system-variables#server_id |  |  |
 | `semiSyncEnabled` _boolean_ | SemiSyncEnabled determines whether semi-synchronous replication is enabled.<br />Semi-synchronous replication requires that at least one replica should have sent an ACK to the primary node<br />before committing the transaction back to the client.<br />See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/semisynchronous-replication<br />It is enabled by default |  |  |
 | `semiSyncAckTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#duration-v1-meta)_ | SemiSyncAckTimeout for the replica to acknowledge transactions to the primary.<br />It requires semi-synchronous replication to be enabled.<br />See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/semisynchronous-replication#rpl_semi_sync_master_timeout |  |  |
 | `semiSyncWaitPoint` _[WaitPoint](#waitpoint)_ | SemiSyncWaitPoint determines whether the transaction should wait for an ACK after having synced the binlog (AfterSync)<br />or after having committed to the storage engine (AfterCommit, the default).<br />It requires semi-synchronous replication to be enabled.<br />See: https://mariadb.com/kb/en/semisynchronous-replication/#rpl_semi_sync_master_wait_point. |  | Enum: [AfterSync AfterCommit] <br /> |
@@ -2930,6 +3103,22 @@ _Appears in:_
 | `loadBalancerClass` _string_ | LoadBalancerClass Service field. |  |  |
 
 
+#### SleepAction
+
+
+
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#sleepaction-v1-core
+
+
+
+_Appears in:_
+- [LifecycleHandler](#lifecyclehandler)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `seconds` _integer_ |  |  |  |
+
+
 #### SqlJob
 
 
@@ -3141,6 +3330,7 @@ _Appears in:_
 | `clientCertSecretRef` _[LocalObjectReference](#localobjectreference)_ | ClientCertSecretRef is a reference to a TLS Secret containing the client certificate.<br />It is mutually exclusive with clientCertIssuerRef. |  |  |
 | `clientCertIssuerRef` _[IssuerReference](#issuerreference)_ | ClientCertIssuerRef is a reference to a cert-manager issuer object used to issue the client certificate. cert-manager must be installed previously in the cluster.<br />It is mutually exclusive with clientCertSecretRef.<br />By default, the Secret field 'ca.crt' provisioned by cert-manager will be added to the trust chain. A custom trust bundle may be specified via clientCASecretRef. |  |  |
 | `galeraSSTEnabled` _boolean_ | GaleraSSTEnabled determines whether Galera SST connections should use TLS.<br />It disabled by default. |  |  |
+| `serverCertAdditionalNames` _string array_ | ServerCertAdditionalNames is a list of additional certificate common names |  |  |
 
 
 #### TLSConfig
@@ -3413,4 +3603,5 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `weight` _integer_ |  |  |  |
 | `podAffinityTerm` _[PodAffinityTerm](#podaffinityterm)_ |  |  |  |
+
 
