@@ -37,6 +37,7 @@ spec:
       - name: mariadb-replica
         externalMariaDbRef:
           name: mariadb-replica
+  # [...]
 ```
 
 Refer to the [multi-cluster docs](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/multi-cluster.md) for a complete guide and examples.
@@ -45,7 +46,7 @@ Refer to the [multi-cluster docs](https://github.com/mariadb-operator/mariadb-op
 
 The operator now provides a **maintenance mode** that allows you to safely perform maintenance operations on a MariaDB cluster. When enabled, maintenance mode gives you fine-grained control over how the database behaves during maintenance windows, including blocking new connections, draining existing connections, and setting the database to read-only mode.
 
-This is particularly useful for cluster switchover in multi-cluster setups (preventing writes to the primary before switching to a replica), debugging by isolating the database from application traffic, or any operational task that requires controlled access.
+This is particularly useful for cluster switchover in multi-cluster setups (preventing writes to the primary before promoting a replica), debugging by isolating the database from application traffic, or any operational task that requires controlled access.
 
 The maintenance mode supports three composable modes:
 - **Cordon mode**: blocks all new connections by removing Pods from service endpoints
@@ -65,6 +66,7 @@ spec:
     drainConnections: true
     drainGracePeriodSeconds: 30
     readOnly: true
+  # [...]
 ```
 
 MaxScale also supports maintenance mode via cordon functionality.
@@ -73,7 +75,7 @@ Refer to the [maintenance docs](https://github.com/mariadb-operator/mariadb-oper
 
 ## Root password rotation
 
-You can now rotate the root password of a `MariaDB` resource by simply updating the referenced `Secret`. The operator automatically handles the rotation process: it connects using the old password, issues `ALTER USER` commands to update the password, propagates the new password to all components (agent sidecars, Galera SST credentials), and even rolls back if the update fails to ensure consistency.
+You can now rotate the root password of a `MariaDB` resource by simply updating the referenced `Secret`. The operator automatically handles the rotation process: it connects using the old password, issues `ALTER USER` commands to update the password and reconciles the password in the data-plane.
 
 This enables seamless credential rotation without downtime, and works well with GitOps tools like sealed-secrets and external-secrets for managing secrets declaratively.
 
@@ -91,14 +93,14 @@ helm install mariadb-operator oci://ghcr.io/mariadb-operator/charts/mariadb-oper
 helm install mariadb-cluster oci://ghcr.io/mariadb-operator/charts/mariadb-cluster --version 26.6.0
 ```
 
-Refer to the __[UPGRADE GUIDE](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/releases/UPGRADE_26.6.0.md)__ for migrating to the Helm OCI charts.
+Refer to the __[UPGRADE GUIDE](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/releases/UPGRADE_26.6.0.md)__ for migrating to the new Helm OCI charts.
 
-### Deprecation notice
+## ⚠️ Deprecation notice
 
 > [!CAUTION]
-> The `helm.mariadb.com` Helm repository is **deprecated** and will be removed in a future release. We strongly encourage migrating from the Helm registry approach to Helm OCI. Refer to the [upgrade guide](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/releases/UPGRADE_26.6.0.md) and [Helm docs](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/helm.md) for migration steps.
+> The `helm.mariadb.com` Helm repository is **deprecated** and will be removed in a future release. We strongly encourage migrating to the new Helm OCI artifacts. Refer to the [upgrade guide](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/releases/UPGRADE_26.6.0.md) and [Helm docs](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/helm.md) for details.
 >
-> Similarly, the `docker-registry*.mariadb.com` Docker registries are **deprecated**. Please migrate to the new registries. Refer to the [Docker docs](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/docker.md) for details.
+> Similarly, the `docker-registry*.mariadb.com` Docker registries will be **deprecated** in a future release. Please migrate to the new registries. Refer to the [Docker docs](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/docker.md) for details.
 
 ## Bugfixes
 
