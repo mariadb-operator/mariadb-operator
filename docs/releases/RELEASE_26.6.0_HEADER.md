@@ -2,7 +2,7 @@
 
 Welcome to another release of `{{ .ProjectName }}`! This is a big one — we are introducing the **multi-cluster topology**, a game-changing feature that enables you to replicate data across multiple Kubernetes clusters for high availability, disaster recovery, and zero-downtime blue-green deployments.
 
-We've also added **root password rotation** for seamless credential management, a powerful **maintenance mode** for safe operational windows, and a new way to consume our Helm charts via **OCI registries**.
+We've also added a powerful **maintenance mode** for safe operational windows, **root password rotation** for seamless credential management, and a new way to consume our Helm charts via **OCI registries**.
 
 Additionally, we have received a bunch of contributions from our amazing community during this release, including bug fixes and improvements. We feel very grateful for your efforts and support, thank you! 🙇‍♂️ Refer to the PRs in the changelog below for further details.
 
@@ -20,6 +20,22 @@ A multi-cluster setup can be deployed in two ways:
 
 The operator handles the full lifecycle of this topology, including: provisioning the primary and replica MariaDB clusters, taking physical backups of the primary cluster, bootstrapping the replica cluster from the backup, configuring the replication connection between clusters, and performing cluster-level switchover when needed.
 
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+spec:
+  multiCluster:
+    enabled: true
+    primary: mariadb-primary
+    members:
+      - name: mariadb-primary
+        externalMariaDbRef:
+          name: mariadb-primary
+      - name: mariadb-replica
+        externalMariaDbRef:
+          name: mariadb-replica
+```
+
 Refer to the [multi-cluster docs](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/multi-cluster.md) for a complete guide and examples.
 
 ## Maintenance mode
@@ -32,6 +48,18 @@ The maintenance mode supports three composable modes:
 - **Cordon mode**: blocks all new connections by removing Pods from service endpoints
 - **Drain connections**: gracefully terminates long-running connections after a configurable grace period
 - **Read-only mode**: sets the database to read-only, preventing any write operations while allowing reads
+
+```yaml
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+spec:
+  maintenance:
+    enabled: true
+    cordon: true
+    drainConnections: true
+    drainGracePeriodSeconds: 30
+    readOnly: true
+```
 
 MaxScale also supports maintenance mode via cordon functionality.
 
@@ -60,7 +88,7 @@ helm upgrade --install mariadb-operator oci://ghcr.io/mariadb-operator/charts/ma
 > [!CAUTION]
 > The `helm.mariadb.com` Helm repository is **deprecated** and will be removed in a future release. We strongly encourage migrating from the Helm registry approach to Helm OCI. Refer to the [upgrade guide](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/releases/UPGRADE_26.6.0.md) and [Helm docs](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/helm.md) for migration steps.
 >
-> Similarly, the `docker-registry*.mariadb.com` Docker registries are **deprecated**. Please migrate to the new registries on GHCR. Refer to the [upgrade guide](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/releases/UPGRADE_26.6.0.md) and [Docker docs](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/docker.md) for migration steps.
+> Similarly, the `docker-registry*.mariadb.com` Docker registries are **deprecated**. Please migrate to the new registries. Refer to the [Docker docs](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/docker.md) for details.
 
 ## Bugfixes
 
