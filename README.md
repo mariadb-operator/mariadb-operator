@@ -24,7 +24,7 @@ Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB
 - Multiple [highly available](./docs/high_availability.md) topologies supported:
   - [Asynchronous replication](./docs/replication.md)
   - [Synchronous multi-master via Galera](./docs/galera.md)
-  - [Multi-cluster](./docs/multi-cluster.md): cross-cluster replication for multi-region deployments, disaster recovery, and blue-green upgrades.
+  - __[Multi-cluster](./docs/multi-cluster.md)✨__: cross-cluster replication for multi-region deployments, disaster recovery, and blue-green upgrades.
   - [MaxScale](./docs/maxscale.md) as database proxy to load balance requests and perform  failover/switchover operations
 - Flexible [storage](./docs/storage.md) configuration. [Volume expansion](./docs/storage.md#volume-resize).
 - [Physical backups](./docs/physical_backup.md) based on [mariadb-backup](https://mariadb.com/docs/server/server-usage/backup-and-restore/mariadb-backup/full-backup-and-restore-with-mariadb-backup) and [Kubernetes VolumeSnapshots](https://kubernetes.io/docs/concepts/storage/volume-snapshots/).
@@ -53,6 +53,7 @@ Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB
 - CRDs designed according to the Kubernetes [API conventions](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md).
 - Install it using [helm](./docs/helm.md), [OLM](https://operatorhub.io/operator/mariadb-operator) or [static manifests](./deploy/manifests).
 - Multiple [deployment modes](./docs/helm.md#deployment-modes): cluster-wide and single namespace.
+- Helm charts published as [OCI artifacts](./docs/helm.md#oci-based-installation)
 - Helm chart to deploy [MariaDB clusters](./docs/helm.md#mariadb-cluster-helm-chart) and its associated CRs.
 - Multi-arch distroless [image](https://github.com/orgs/mariadb-operator/packages/container/package/mariadb-operator).
 - [GitOps](#gitops) friendly.
