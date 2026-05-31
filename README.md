@@ -24,6 +24,7 @@ Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB
 - Multiple [highly available](./docs/high_availability.md) topologies supported:
   - [Asynchronous replication](./docs/replication.md)
   - [Synchronous multi-master via Galera](./docs/galera.md)
+  - [Multi-cluster](./docs/multi-cluster.md): cross-cluster replication for multi-region deployments, disaster recovery, and blue-green upgrades.
   - [MaxScale](./docs/maxscale.md) as database proxy to load balance requests and perform  failover/switchover operations
 - Flexible [storage](./docs/storage.md) configuration. [Volume expansion](./docs/storage.md#volume-resize).
 - [Physical backups](./docs/physical_backup.md) based on [mariadb-backup](https://mariadb.com/docs/server/server-usage/backup-and-restore/mariadb-backup/full-backup-and-restore-with-mariadb-backup) and [Kubernetes VolumeSnapshots](https://kubernetes.io/docs/concepts/storage/volume-snapshots/).
@@ -34,6 +35,7 @@ Run and operate MariaDB in a cloud native way. Declaratively manage your MariaDB
 - [Bootstrap new instances](./docs/physical_backup.md#restoration) from: Physical backups, logical backups, S3, Azure Blob Storage, PVCs, `VolumeSnapshots`...
 - [Point-In-Time-Recovery](./docs/pitr.md): Archive binary logs to enable point-in-time restoration and significantly reduce RPO.
 - [Cluster-aware rolling update](./docs/updates.md#replicasfirstprimarylast): roll out replica Pods one by one, wait for each of them to become ready, and then proceed with the primary Pod, using `ReplicasFirstPrimaryLast`.
+- Zero-downtime blue-green updates: leverage the [multi-cluster topology](./docs/multi-cluster.md) to maintain two identical cluster topologies, upgrade one in the background, and switch between them without downtime.
 - Manual [update strategies](./docs/updates.md#update-strategies): `OnDelete` and `Never`.
 - Automated [data-plane updates](./docs/updates.md#auto-update-data-plane).
 - [my.cnf change detection](./docs/configuration.md#mycnf). Automatically trigger [updates](./docs/updates.md) when my.cnf changes.
