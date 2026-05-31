@@ -1,7 +1,7 @@
 # Helm
 
 > [!WARNING]
-> The Helm registry at `helm.mariadb.com` is being deprecated and will be removed in a future release. The registry at `mariadb-operator.github.io/mariadb-operator` will continue to work. We recommend using the [OCI-based installation](#oci-based-installation) instead, which does not require a Helm repository and provides a simpler installation experience.
+> The Helm registry at `helm.mariadb.com` is __deprecated__ and will be removed in a future release. The registry at `mariadb-operator.github.io/mariadb-operator` will continue to work. We recommend using the [OCI-based installation](#oci-based-installation) instead, which does not require a Helm repository and provides a simpler installation experience.
 
 This doc provides guidance on how to manage the installation and upgrades of both the CRDs and the operator via Helm charts in vanilla Kubernetes clusters (i.e. not OpenShift).
 

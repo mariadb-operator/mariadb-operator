@@ -1,6 +1,6 @@
 **`{{ .ProjectName }}` [26.06](https://github.com/mariadb-operator/mariadb-operator/releases/tag/26.6.0) is here!** 🦭
 
-Welcome to another release of `{{ .ProjectName }}`! This is a big one — we are introducing the **multi-cluster topology**, a game-changing feature that enables you to replicate data across multiple Kubernetes clusters for high availability, disaster recovery, and zero-downtime blue-green deployments.
+Welcome to another release of `{{ .ProjectName }}`! This is a big one! We are introducing the **multi-cluster topology**✨, a game-changing feature that enables you to replicate data across multiple Kubernetes clusters for high availability, disaster recovery, and zero-downtime blue-green deployments.
 
 We've also added a powerful **maintenance mode** for safe operational windows, **root password rotation** for seamless credential management, and a new way to consume our Helm charts via **OCI registries**.
 
@@ -14,9 +14,9 @@ The multi-cluster feature enables high availability by replicating data between 
 
 A multi-cluster setup can be deployed in two ways:
 
-**Across multiple Kubernetes clusters** — each Kubernetes cluster runs a MariaDB cluster with its own HA mechanism. The clusters are connected via remote replication, forming a hierarchy where the primary cluster receives all write operations and the replica clusters replicate data from it. This provides both intra-cluster HA (within each cluster) and inter-cluster HA (across Kubernetes clusters), making it ideal for multi-region deployments and disaster recovery.
+**Across multiple Kubernetes clusters**: each Kubernetes cluster runs a MariaDB cluster with its own HA mechanism. The clusters are connected via remote replication, forming a hierarchy where the primary cluster receives all write operations and the replica clusters replicate data from it. This provides both intra-cluster HA (within each cluster) and inter-cluster HA (across Kubernetes clusters), making it ideal for multi-region deployments and disaster recovery.
 
-**Within a single Kubernetes cluster** — a single Kubernetes cluster can host multiple MariaDB clusters with local replication configured between them. This is useful for blue-green deployments, where one cluster serves traffic while the other is updated in the background, enabling zero-downtime upgrades without data loss.
+**Within a single Kubernetes cluster**: a single Kubernetes cluster can host multiple MariaDB clusters with local replication configured between them. This is useful for blue-green deployments, where one cluster serves traffic while the other is updated in the background, enabling zero-downtime upgrades without data loss.
 
 The operator handles the full lifecycle of this topology, including: provisioning the primary and replica MariaDB clusters, taking physical backups of the primary cluster, bootstrapping the replica cluster from the backup, configuring the replication connection between clusters, and performing cluster-level switchover when needed.
 
@@ -46,7 +46,7 @@ Refer to the [multi-cluster docs](https://github.com/mariadb-operator/mariadb-op
 
 The operator now provides a **maintenance mode** that allows you to safely perform maintenance operations on a MariaDB cluster. When enabled, maintenance mode gives you fine-grained control over how the database behaves during maintenance windows, including blocking new connections, draining existing connections, and setting the database to read-only mode.
 
-This is particularly useful for cluster switchover in multi-cluster setups (preventing writes to the primary before promoting a replica), debugging by isolating the database from application traffic, or any operational task that requires controlled access.
+This is particularly useful for cluster switchover in multi-cluster setups (preventing writes to the primary cluster before promoting a replica), debugging by isolating the database from application traffic, or any operational task that requires controlled access.
 
 The maintenance mode supports three composable modes:
 - **Cordon mode**: blocks all new connections by removing Pods from service endpoints
@@ -100,7 +100,7 @@ Refer to the __[UPGRADE GUIDE](https://github.com/mariadb-operator/mariadb-opera
 > [!CAUTION]
 > The `helm.mariadb.com` Helm repository is **deprecated** and will be removed in a future release. We strongly encourage migrating to the new Helm OCI artifacts. Refer to the [upgrade guide](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/releases/UPGRADE_26.6.0.md) and [Helm docs](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/helm.md) for details.
 >
-> Similarly, the `docker-registry*.mariadb.com` Docker registries will be **deprecated** in a future release. Please migrate to the new registries. Refer to the [Docker docs](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/docker.md) for details.
+> Similarly, the `docker-registry*.mariadb.com` Docker registries are **deprecated** and will be removed in a future release. Please migrate to the new registries. Refer to the [Docker docs](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/docker.md) for details.
 
 ## Bugfixes
 
