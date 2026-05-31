@@ -77,10 +77,12 @@ Refer to the [security docs](https://github.com/mariadb-operator/mariadb-operato
 
 We are excited to announce that our Helm charts are now available via **OCI registries** on **GitHub Container Registry (GHCR)**. This is the recommended way to install and manage the MariaDB operator going forward.
 
-OCI-based Helm charts offer a simpler experience — no need to add separate Helm repositories, manage credentials, or deal with registry-specific tooling. You can install directly from GHCR:
+OCI-based Helm charts offer a simpler experience — no need to add separate Helm repositories, manage credentials, or deal with registry-specific tooling. All three charts are available on GHCR:
 
 ```bash
-helm upgrade --install mariadb-operator oci://ghcr.io/mariadb-operator/charts/mariadb-operator --version 26.6.0
+helm upgrade --install mariadb-operator-crds oci://ghcr.io/mariadb-operator/mariadb-operator-crds-helm --version 26.6.0
+helm upgrade --install mariadb-operator oci://ghcr.io/mariadb-operator/mariadb-operator-helm --version 26.6.0
+helm upgrade --install mariadb-cluster oci://ghcr.io/mariadb-operator/mariadb-cluster-helm --version 26.6.0
 ```
 
 ### Deprecation notice
