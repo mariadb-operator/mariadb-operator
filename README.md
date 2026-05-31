@@ -70,17 +70,18 @@ For example Custom Resources (CRs) demonstrating how to use the operator, refer 
 
 ## Helm installation
 
-You can easily deploy the operator to your cluster by installing the `mariadb-operator-crds` and `mariadb-operator` Helm charts:
+Helm charts are available as [OCI images on GitHub Container Registry](./docs/helm.md#oci-based-installation):
 
 ```bash
-helm repo add mariadb-operator https://mariadb-operator.github.io/mariadb-operator
-helm install mariadb-operator-crds mariadb-operator/mariadb-operator-crds
-helm install mariadb-operator mariadb-operator/mariadb-operator
+helm install mariadb-operator-crds oci://ghcr.io/mariadb-operator/charts/mariadb-operator-crds --version <version>
+helm install mariadb-operator oci://ghcr.io/mariadb-operator/charts/mariadb-operator --version <version>
+helm install mariadb-cluster oci://ghcr.io/mariadb-operator/charts/mariadb-cluster --version <version>
 ```
 
 Refer to the [helm documentation](./docs/helm.md) for further detail.
 
 ## Upgrading from older releases
+
 When upgrading from an older version of the operator, it’s important to understand how both operator and operand resources are affected.  Ensure you read both the [updates section of the helm docs](https://github.com/mariadb-operator/mariadb-operator/blob/main/docs/helm.md#updates), and the [release notes](https://github.com/mariadb-operator/mariadb-operator/releases) for any additional version-specific steps that may be required. Do not attempt to skip intermediate version upgrades. Upgrade progressively through each version to the next.
 
 ## Openshift installation
@@ -109,7 +110,7 @@ This [migration guide](./docs/logical_backup.md#migrating-an-external-mariadb-to
 We are actively working on the following features, which will be released in upcoming versions. Stay tuned!
 
 - [x] ~~[Point In Time Recovery (PITR)](https://github.com/mariadb-operator/mariadb-operator/issues/507)~~
-- [ ] [Multi-cluster topology](https://github.com/mariadb-operator/mariadb-operator/issues/1543)
+- [x] ~~[Multi-cluster topology](https://github.com/mariadb-operator/mariadb-operator/issues/1543)~~
 
 ## Adopters
 
