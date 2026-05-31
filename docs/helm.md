@@ -28,16 +28,16 @@ The installation of `mariadb-operator` is split into multiple different helm cha
 
 ## OCI-based installation
 
-Helm charts are also available as OCI images on GitHub Container Registry (`ghcr.io`). This approach allows you to install charts without needing a Helm repository, using only the chart name and version.
+Helm charts are also available as OCI images on GitHub Container Registry (`ghcr.io`). This approach streamlines the installation experience: no separate repository setup, no additional tooling required. Simply pull and install directly from GHCR using standard Helm commands.
 
 ### Install
 
 Install the charts in the following order:
 
 ```bash
-helm install mariadb-operator-crds oci://ghcr.io/mariadb-operator/mariadb-operator-crds-helm --version <version>
-helm install mariadb-operator oci://ghcr.io/mariadb-operator/mariadb-operator-helm --version <version>
-helm install mariadb-cluster oci://ghcr.io/mariadb-operator/mariadb-cluster-helm --version <version>
+helm install mariadb-operator-crds oci://ghcr.io/mariadb-operator/charts/mariadb-operator-crds --version <version>
+helm install mariadb-operator oci://ghcr.io/mariadb-operator/charts/mariadb-operator --version <version>
+helm install mariadb-cluster oci://ghcr.io/mariadb-operator/charts/mariadb-cluster --version <version>
 ```
 
 ### Upgrade
@@ -45,9 +45,9 @@ helm install mariadb-cluster oci://ghcr.io/mariadb-operator/mariadb-cluster-helm
 Upgrade the charts in the following order:
 
 ```bash
-helm upgrade mariadb-operator-crds oci://ghcr.io/mariadb-operator/mariadb-operator-crds-helm --version <new-version>
-helm upgrade mariadb-operator oci://ghcr.io/mariadb-operator/mariadb-operator-helm --version <new-version>
-helm upgrade mariadb-cluster oci://ghcr.io/mariadb-operator/mariadb-cluster-helm --version <new-version>
+helm upgrade mariadb-operator-crds oci://ghcr.io/mariadb-operator/charts/mariadb-operator-crds --version <new-version>
+helm upgrade mariadb-operator oci://ghcr.io/mariadb-operator/charts/mariadb-operator --version <new-version>
+helm upgrade mariadb-cluster oci://ghcr.io/mariadb-operator/charts/mariadb-cluster --version <new-version>
 ```
 
 ### Uninstall
