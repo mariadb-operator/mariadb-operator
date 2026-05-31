@@ -23,7 +23,10 @@ The operator handles the full lifecycle of this topology, including: provisionin
 ```yaml
 apiVersion: k8s.mariadb.com/v1alpha1
 kind: MariaDB
+metadata:
+  name: mariadb-primary
 spec:
+  # [...]
   multiCluster:
     enabled: true
     primary: mariadb-primary
@@ -52,7 +55,10 @@ The maintenance mode supports three composable modes:
 ```yaml
 apiVersion: k8s.mariadb.com/v1alpha1
 kind: MariaDB
+metadata:
+  name: mariadb-primary
 spec:
+  # [...]
   maintenance:
     enabled: true
     cordon: true
