@@ -239,7 +239,7 @@ var _ = Describe("Grant", Label("basic"), func() {
 	})
 })
 
-var _ = Describe("Grant deletion idempotency", Label("finalizer"), func() {
+var _ = Describe("Grant deletion idempotency", Label("finalizer"), Focus, func() {
 	BeforeEach(func() {
 		By("Waiting for MariaDB to be ready")
 		expectMariadbReady(testCtx, k8sClient, testMdbkey)
