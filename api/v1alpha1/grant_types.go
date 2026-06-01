@@ -142,7 +142,3 @@ func (m *GrantList) ListItems() []ctrlclient.Object {
 	}
 	return items
 }
-
-func init() {
-	SchemeBuilder.Register(&Grant{}, &GrantList{})
-}

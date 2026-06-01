@@ -3,7 +3,8 @@ CLUSTER ?= mdb
 ##@ Cluster
 
 KIND_CONFIG ?= hack/config/kind.yaml
-KIND_IMAGE ?= kindest/node:v1.35.0
+# TODO: bump to Kubernetes 1.36.x, see: https://hub.docker.com/r/kindest/node/tags
+KIND_IMAGE ?= kindest/node:v1.35.0 
 
 .PHONY: cluster
 cluster: kind ## Create a single node kind cluster.

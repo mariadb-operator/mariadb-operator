@@ -493,7 +493,7 @@ type TLS struct {
 	GaleraSSTEnabled *bool `json:"galeraSSTEnabled,omitempty"`
 }
 
-// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#volume-v1-core.
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#volume-v1-core.
 type MariaDBVolumeSource struct {
 	VolumeSource `json:",inline"`
 	// +optional
@@ -508,7 +508,7 @@ func (v MariaDBVolumeSource) ToKubernetesType() corev1.VolumeSource {
 	return volumeSource
 }
 
-// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#volume-v1-core.
+// Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#volume-v1-core.
 type MariaDBVolume struct {
 	MariaDBVolumeSource `json:",inline"`
 	Name                string `json:"name"`
@@ -521,7 +521,7 @@ func (v MariaDBVolume) ToKubernetesType() corev1.Volume {
 	}
 }
 
-// MariaDBPodTemplate defines a template for MariaDB Pods. Refer to the Kubernetes dos: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#pod-v1-core.
+// MariaDBPodTemplate defines a template for MariaDB Pods. Refer to the Kubernetes dos: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#pod-v1-core.
 type MariaDBPodTemplate struct {
 	// PodMetadata defines extra metadata for the Pod.
 	// +optional
@@ -1343,8 +1343,4 @@ func (m *MariaDBList) ListItems() []client.Object {
 		items[i] = item.DeepCopy()
 	}
 	return items
-}
-
-func init() {
-	SchemeBuilder.Register(&MariaDB{}, &MariaDBList{})
 }

@@ -418,5 +418,5 @@ func (m *PhysicalBackupList) ListItems() []client.Object {
 }
 
 func init() {
-	SchemeBuilder.Register(&PhysicalBackup{}, &PhysicalBackupList{})
+	SchemeBuilder.Register()
 }
