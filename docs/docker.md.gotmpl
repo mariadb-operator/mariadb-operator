@@ -1,7 +1,7 @@
 # Docker Images for MariaDB Operator
 
 > [!WARNING]
-> The Docker registries at `docker-registry*.mariadb.com` are being deprecated and will be removed in a future release. All images have been migrated to new registries as shown in the table below.
+> The Docker registries at `docker-registry*.mariadb.com` are __deprecated__ and will be removed in a future release. All images have been migrated to new registries as shown in the table below.
 
 `mariadb-operator` defaults to the following Docker images when no `image` field is specifield in the `MariaDB` and `MaxScale` CRs:
 
