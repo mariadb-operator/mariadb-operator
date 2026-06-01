@@ -58,7 +58,7 @@ func (wf *wrappedDatabaseFinalizer) Reconcile(ctx context.Context, mdbClient *sq
 
 func (wf *wrappedDatabaseFinalizer) patch(ctx context.Context, database *mariadbv1alpha1.Database,
 	patchFn func(*mariadbv1alpha1.Database)) error {
-	patch := client.MergeFrom(database.DeepCopy())
+	patch := client.MergeFromWithOptions(database.DeepCopy(), client.MergeFromWithOptimisticLock{})
 	patchFn(database)
 
 	if err := wf.Patch(ctx, database, patch); err != nil {

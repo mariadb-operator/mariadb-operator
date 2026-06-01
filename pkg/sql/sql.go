@@ -634,7 +634,7 @@ func (c *Client) Revoke(
 		accountName,
 	)
 
-	return c.Exec(ctx, query)
+	return IgnoreNonExistingGrant(c.Exec(ctx, query))
 }
 
 func escapeWildcard(s string) string {
