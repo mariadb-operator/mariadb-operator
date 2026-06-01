@@ -2,6 +2,7 @@ kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 nodes:
   - role: control-plane
+    # TODO: bump to Kubernetes 1.36.x, see: https://hub.docker.com/r/kindest/node/tags
     image: &image kindest/node:v1.35.0
   - role: worker
     image: *image
