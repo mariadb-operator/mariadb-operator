@@ -31,7 +31,7 @@ Package v1alpha1 contains API Schema definitions for the v1alpha1 API group
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#affinity-v1-core.
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#affinity-v1-core.
 
 
 
@@ -99,12 +99,12 @@ _Appears in:_
 | `securityContext` _[SecurityContext](#securitycontext)_ | SecurityContext holds security configuration that will be applied to a container. |  |  |
 | `lifecycle` _[Lifecycle](#lifecycle)_ | Lifecycle are actions that the management system should take in response to container lifecycle events. |  |  |
 | `image` _string_ | Image name to be used by the MariaDB instances. The supported format is `<image>:<tag>`. |  |  |
-| `imagePullPolicy` _[PullPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#pullpolicy-v1-core)_ | ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`. |  | Enum: [Always Never IfNotPresent] <br /> |
+| `imagePullPolicy` _[PullPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#pullpolicy-v1-core)_ | ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`. |  | Enum: [Always Never IfNotPresent] <br /> |
 | `port` _integer_ | Port where the agent will be listening for API connections. |  |  |
 | `probePort` _integer_ | Port where the agent will be listening for probe connections. |  |  |
 | `kubernetesAuth` _[KubernetesAuth](#kubernetesauth)_ | KubernetesAuth to be used by the agent container |  |  |
 | `basicAuth` _[BasicAuth](#basicauth)_ | BasicAuth to be used by the agent container |  |  |
-| `gracefulShutdownTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#duration-v1-meta)_ | GracefulShutdownTimeout is the time we give to the agent container in order to gracefully terminate in-flight requests. |  |  |
+| `gracefulShutdownTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#duration-v1-meta)_ | GracefulShutdownTimeout is the time we give to the agent container in order to gracefully terminate in-flight requests. |  |  |
 
 
 #### AzureBlob
@@ -144,7 +144,7 @@ Backup is the Schema for the backups API. It is used to define backup jobs and i
 | --- | --- | --- | --- |
 | `apiVersion` _string_ | `k8s.mariadb.com/v1alpha1` | | |
 | `kind` _string_ | `Backup` | | |
-| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
 | `spec` _[BackupSpec](#backupspec)_ |  |  |  |
 
 
@@ -187,7 +187,7 @@ _Appears in:_
 | `serviceAccountName` _string_ | ServiceAccountName is the name of the ServiceAccount to be used by the Pods. |  |  |
 | `affinity` _[AffinityConfig](#affinityconfig)_ | Affinity to be used in the Pod. |  |  |
 | `nodeSelector` _object (keys:string, values:string)_ | NodeSelector to be used in the Pod. |  |  |
-| `tolerations` _[Toleration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#toleration-v1-core) array_ | Tolerations to be used in the Pod. |  |  |
+| `tolerations` _[Toleration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#toleration-v1-core) array_ | Tolerations to be used in the Pod. |  |  |
 | `priorityClassName` _string_ | PriorityClassName to be used in the Pod. |  |  |
 | `successfulJobsHistoryLimit` _integer_ | SuccessfulJobsHistoryLimit defines the maximum number of successful Jobs to be displayed. |  | Minimum: 0 <br /> |
 | `failedJobsHistoryLimit` _integer_ | FailedJobsHistoryLimit defines the maximum number of failed Jobs to be displayed. |  | Minimum: 0 <br /> |
@@ -197,12 +197,12 @@ _Appears in:_
 | `stagingStorage` _[StagingStorage](#stagingstorage)_ | StagingStorage defines the temporary storage used to keep external backups (i.e. S3) while they are being processed.<br />It defaults to an emptyDir volume, meaning that the backups will be temporarily stored in the node where the Backup Job is scheduled.<br />The staging area gets cleaned up after each backup is completed, consider this for sizing it appropriately. |  |  |
 | `storage` _[BackupStorage](#backupstorage)_ | Storage defines the final storage for backups. |  | Required: \{\} <br /> |
 | `schedule` _[Schedule](#schedule)_ | Schedule defines when the Backup will be taken. |  |  |
-| `maxRetention` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#duration-v1-meta)_ | MaxRetention defines the retention policy for backups. Old backups will be cleaned up by the Backup Job.<br />It defaults to 30 days. |  |  |
+| `maxRetention` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#duration-v1-meta)_ | MaxRetention defines the retention policy for backups. Old backups will be cleaned up by the Backup Job.<br />It defaults to 30 days. |  |  |
 | `databases` _string array_ | Databases defines the logical databases to be backed up. If not provided, all databases are backed up. |  |  |
 | `ignoreGlobalPriv` _boolean_ | IgnoreGlobalPriv indicates to ignore the mysql.global_priv in backups.<br />If not provided, it will default to true when the referred MariaDB instance has Galera enabled and otherwise to false.<br />See: https://github.com/mariadb-operator/mariadb-operator/issues/556 |  |  |
 | `logLevel` _string_ | LogLevel to be used in the Backup Job. It defaults to 'info'. | info | Enum: [debug info warn error dpanic panic fatal] <br /> |
 | `backoffLimit` _integer_ | BackoffLimit defines the maximum number of attempts to successfully take a Backup. |  |  |
-| `restartPolicy` _[RestartPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#restartpolicy-v1-core)_ | RestartPolicy to be added to the Backup Pod. | OnFailure | Enum: [Always OnFailure Never] <br /> |
+| `restartPolicy` _[RestartPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#restartpolicy-v1-core)_ | RestartPolicy to be added to the Backup Pod. | OnFailure | Enum: [Always OnFailure Never] <br /> |
 | `inheritMetadata` _[Metadata](#metadata)_ | InheritMetadata defines the metadata to be inherited by children resources. |  |  |
 
 
@@ -262,7 +262,7 @@ _Appears in:_
 | `s3` _[S3](#s3)_ | S3 defines the configuration to restore backups from a S3 compatible storage.<br />This field takes precedence over the Volume source. |  |  |
 | `azureBlob` _[AzureBlob](#azureblob)_ | AzureBlob defines the configuration to restore from Azure Blob compatible storage.<br />This field takes precedence over the Volume source. |  |  |
 | `volume` _[StorageVolumeSource](#storagevolumesource)_ | Volume is a Kubernetes Volume object that contains a backup. |  |  |
-| `targetRecoveryTime` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#time-v1-meta)_ | TargetRecoveryTime is a RFC3339 (1970-01-01T00:00:00Z) date and time that defines the point in time recovery objective.<br />It is used to determine the closest restoration source in time. |  |  |
+| `targetRecoveryTime` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#time-v1-meta)_ | TargetRecoveryTime is a RFC3339 (1970-01-01T00:00:00Z) date and time that defines the point in time recovery objective.<br />It is used to determine the closest restoration source in time. |  |  |
 | `stagingStorage` _[StagingStorage](#stagingstorage)_ | StagingStorage defines the temporary storage used to keep external backups and binary logs (i.e. S3) while they are being processed.<br />It defaults to an emptyDir volume, meaning that the backups will be temporarily stored in the node where the Job is scheduled. |  |  |
 | `restoreJob` _[Job](#job)_ | RestoreJob defines additional properties for the restoration Job. |  |  |
 | `logLevel` _string_ | LogLevel to be used in the mariadb-operator container of the restoration Job. It defaults to 'info'. | info | Enum: [debug info warn error dpanic panic fatal] <br /> |
@@ -272,7 +272,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#csivolumesource-v1-core.
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#csivolumesource-v1-core.
 
 
 
@@ -337,7 +337,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#configmapkeyselector-v1-core.
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#configmapkeyselector-v1-core.
 
 
 
@@ -356,7 +356,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#configmapvolumesource-v1-core.
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#configmapvolumesource-v1-core.
 
 
 
@@ -386,7 +386,7 @@ Connection is the Schema for the connections API. It is used to configure connec
 | --- | --- | --- | --- |
 | `apiVersion` _string_ | `k8s.mariadb.com/v1alpha1` | | |
 | `kind` _string_ | `Connection` | | |
-| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
 | `spec` _[ConnectionSpec](#connectionspec)_ |  |  |  |
 
 
@@ -458,7 +458,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `name` _string_ | Name to be given to the container. |  |  |
 | `image` _string_ | Image name to be used by the container. The supported format is `<image>:<tag>`. |  | Required: \{\} <br /> |
-| `imagePullPolicy` _[PullPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#pullpolicy-v1-core)_ | ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`. |  | Enum: [Always Never IfNotPresent] <br /> |
+| `imagePullPolicy` _[PullPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#pullpolicy-v1-core)_ | ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`. |  | Enum: [Always Never IfNotPresent] <br /> |
 | `command` _string array_ | Command to be used in the Container. |  |  |
 | `args` _string array_ | Args to be used in the Container. |  |  |
 | `env` _[EnvVar](#envvar) array_ | Env represents the environment variables to be injected in a container. |  |  |
@@ -563,7 +563,7 @@ Database is the Schema for the databases API. It is used to define a logical dat
 | --- | --- | --- | --- |
 | `apiVersion` _string_ | `k8s.mariadb.com/v1alpha1` | | |
 | `kind` _string_ | `Database` | | |
-| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
 | `spec` _[DatabaseSpec](#databasespec)_ |  |  |  |
 
 
@@ -580,8 +580,8 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `requeueInterval` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#duration-v1-meta)_ | RequeueInterval is used to perform requeue reconciliations. |  |  |
-| `retryInterval` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#duration-v1-meta)_ | RetryInterval is the interval used to perform retries. |  |  |
+| `requeueInterval` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#duration-v1-meta)_ | RequeueInterval is used to perform requeue reconciliations. |  |  |
+| `retryInterval` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#duration-v1-meta)_ | RetryInterval is the interval used to perform retries. |  |  |
 | `cleanupPolicy` _[CleanupPolicy](#cleanuppolicy)_ | CleanupPolicy defines the behavior for cleaning up a SQL resource. |  | Enum: [Skip Delete] <br /> |
 | `mariaDbRef` _[MariaDBRef](#mariadbref)_ | MariaDBRef is a reference to a MariaDB object. |  | Required: \{\} <br /> |
 | `characterSet` _string_ | CharacterSet to use in the Database. | utf8 |  |
@@ -593,7 +593,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#emptydirvolumesource-v1-core.
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#emptydirvolumesource-v1-core.
 
 
 
@@ -606,15 +606,15 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `medium` _[StorageMedium](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#storagemedium-v1-core)_ |  |  |  |
-| `sizeLimit` _[Quantity](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#quantity-resource-api)_ |  |  |  |
+| `medium` _[StorageMedium](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#storagemedium-v1-core)_ |  |  |  |
+| `sizeLimit` _[Quantity](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#quantity-resource-api)_ |  |  |  |
 
 
 #### EnvFromSource
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#envfromsource-v1-core.
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#envfromsource-v1-core.
 
 
 
@@ -636,7 +636,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#envvarsource-v1-core.
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#envvarsource-v1-core.
 
 
 
@@ -659,7 +659,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#envvarsource-v1-core.
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#envvarsource-v1-core.
 
 
 
@@ -677,7 +677,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#ephemeralvolumesource-v1-core.
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#ephemeralvolumesource-v1-core.
 
 
 
@@ -694,7 +694,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#execaction-v1-core.
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#execaction-v1-core.
 
 
 
@@ -723,7 +723,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `image` _string_ | Image name to be used as metrics exporter. The supported format is `<image>:<tag>`.<br />Only mysqld-exporter >= v0.15.0 is supported: https://github.com/prometheus/mysqld_exporter |  |  |
-| `imagePullPolicy` _[PullPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#pullpolicy-v1-core)_ | ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`. |  | Enum: [Always Never IfNotPresent] <br /> |
+| `imagePullPolicy` _[PullPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#pullpolicy-v1-core)_ | ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`. |  | Enum: [Always Never IfNotPresent] <br /> |
 | `imagePullSecrets` _[LocalObjectReference](#localobjectreference) array_ | ImagePullSecrets is the list of pull Secrets to be used to pull the image. |  |  |
 | `args` _string array_ | Args to be used in the Container. |  |  |
 | `port` _integer_ | Port where the exporter will be listening for connections. |  |  |
@@ -733,7 +733,7 @@ _Appears in:_
 | `podSecurityContext` _[PodSecurityContext](#podsecuritycontext)_ | SecurityContext holds pod-level security attributes and common container settings. |  |  |
 | `affinity` _[AffinityConfig](#affinityconfig)_ | Affinity to be used in the Pod. |  |  |
 | `nodeSelector` _object (keys:string, values:string)_ | NodeSelector to be used in the Pod. |  |  |
-| `tolerations` _[Toleration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#toleration-v1-core) array_ | Tolerations to be used in the Pod. |  |  |
+| `tolerations` _[Toleration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#toleration-v1-core) array_ | Tolerations to be used in the Pod. |  |  |
 | `priorityClassName` _string_ | PriorityClassName to be used in the Pod. |  |  |
 
 
@@ -751,7 +751,7 @@ ExternalMariaDB is the Schema for the external MariaDBs API. It is used to defin
 | --- | --- | --- | --- |
 | `apiVersion` _string_ | `k8s.mariadb.com/v1alpha1` | | |
 | `kind` _string_ | `ExternalMariaDB` | | |
-| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
 | `spec` _[ExternalMariaDBSpec](#externalmariadbspec)_ |  |  |  |
 
 
@@ -769,7 +769,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `image` _string_ | Image name to be used to perform operations on the external MariaDB, for example, for taking backups.<br />The supported format is `<image>:<tag>`. Only MariaDB official images are supported.<br />If not provided, the MariaDB image version be inferred by the operator in runtime. The default MariaDB image will be used in this case, |  |  |
-| `imagePullPolicy` _[PullPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#pullpolicy-v1-core)_ | ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`. |  | Enum: [Always Never IfNotPresent] <br /> |
+| `imagePullPolicy` _[PullPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#pullpolicy-v1-core)_ | ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`. |  | Enum: [Always Never IfNotPresent] <br /> |
 | `imagePullSecrets` _[LocalObjectReference](#localobjectreference) array_ | ImagePullSecrets is the list of pull Secrets to be used to pull the image. |  |  |
 | `inheritMetadata` _[Metadata](#metadata)_ | InheritMetadata defines the metadata to be inherited by children resources. |  |  |
 | `host` _string_ | Hostname of the external MariaDB. |  | Required: \{\} <br /> |
@@ -888,14 +888,14 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `enabled` _boolean_ | Enabled is a flag to enable GaleraRecovery. |  |  |
-| `minClusterSize` _[IntOrString](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#intorstring-intstr-util)_ | MinClusterSize is the minimum number of replicas to consider the cluster healthy. It can be either a number of replicas (1) or a percentage (50%).<br />If Galera consistently reports less replicas than this value for the given 'ClusterHealthyTimeout' interval, a cluster recovery is initiated.<br />It defaults to '1' replica, and it is highly recommendeded to keep this value at '1' in most cases.<br />If set to more than one replica, the cluster recovery process may restart the healthy replicas as well. |  |  |
-| `clusterMonitorInterval` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#duration-v1-meta)_ | ClusterMonitorInterval represents the interval used to monitor the Galera cluster health. |  |  |
-| `clusterHealthyTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#duration-v1-meta)_ | ClusterHealthyTimeout represents the duration at which a Galera cluster, that consistently failed health checks,<br />is considered unhealthy, and consequently the Galera recovery process will be initiated by the operator. |  |  |
-| `clusterBootstrapTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#duration-v1-meta)_ | ClusterBootstrapTimeout is the time limit for bootstrapping a cluster.<br />Once this timeout is reached, the Galera recovery state is reset and a new cluster bootstrap will be attempted. |  |  |
-| `clusterUpscaleTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#duration-v1-meta)_ | ClusterUpscaleTimeout represents the maximum duration for upscaling the cluster's StatefulSet during the recovery process. |  |  |
-| `clusterDownscaleTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#duration-v1-meta)_ | ClusterDownscaleTimeout represents the maximum duration for downscaling the cluster's StatefulSet during the recovery process. |  |  |
-| `podRecoveryTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#duration-v1-meta)_ | PodRecoveryTimeout is the time limit for recevorying the sequence of a Pod during the cluster recovery. |  |  |
-| `podSyncTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#duration-v1-meta)_ | PodSyncTimeout is the time limit for a Pod to join the cluster after having performed a cluster bootstrap during the cluster recovery. |  |  |
+| `minClusterSize` _[IntOrString](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#intorstring-intstr-util)_ | MinClusterSize is the minimum number of replicas to consider the cluster healthy. It can be either a number of replicas (1) or a percentage (50%).<br />If Galera consistently reports less replicas than this value for the given 'ClusterHealthyTimeout' interval, a cluster recovery is initiated.<br />It defaults to '1' replica, and it is highly recommended to keep this value at '1' in most cases.<br />If set to more than one replica, the cluster recovery process may restart the healthy replicas as well. |  |  |
+| `clusterMonitorInterval` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#duration-v1-meta)_ | ClusterMonitorInterval represents the interval used to monitor the Galera cluster health. |  |  |
+| `clusterHealthyTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#duration-v1-meta)_ | ClusterHealthyTimeout represents the duration at which a Galera cluster, that consistently failed health checks,<br />is considered unhealthy, and consequently the Galera recovery process will be initiated by the operator. |  |  |
+| `clusterBootstrapTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#duration-v1-meta)_ | ClusterBootstrapTimeout is the time limit for bootstrapping a cluster.<br />Once this timeout is reached, the Galera recovery state is reset and a new cluster bootstrap will be attempted. |  |  |
+| `clusterUpscaleTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#duration-v1-meta)_ | ClusterUpscaleTimeout represents the maximum duration for upscaling the cluster's StatefulSet during the recovery process. |  |  |
+| `clusterDownscaleTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#duration-v1-meta)_ | ClusterDownscaleTimeout represents the maximum duration for downscaling the cluster's StatefulSet during the recovery process. |  |  |
+| `podRecoveryTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#duration-v1-meta)_ | PodRecoveryTimeout is the time limit for recevorying the sequence of a Pod during the cluster recovery. |  |  |
+| `podSyncTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#duration-v1-meta)_ | PodSyncTimeout is the time limit for a Pod to join the cluster after having performed a cluster bootstrap during the cluster recovery. |  |  |
 | `forceClusterBootstrapInPod` _string_ | ForceClusterBootstrapInPod allows you to manually initiate the bootstrap process in a specific Pod.<br />IMPORTANT: Use this option only in exceptional circumstances. Not selecting the Pod with the highest sequence number may result in data loss.<br />IMPORTANT: Ensure you unset this field after completing the bootstrap to allow the operator to choose the appropriate Pod to bootstrap from in an event of cluster recovery. |  |  |
 | `job` _[GaleraRecoveryJob](#galerarecoveryjob)_ | Job defines a Job that co-operates with mariadb-operator by performing the Galera cluster recovery . |  |  |
 
@@ -985,7 +985,7 @@ Grant is the Schema for the grants API. It is used to define grants as if you we
 | --- | --- | --- | --- |
 | `apiVersion` _string_ | `k8s.mariadb.com/v1alpha1` | | |
 | `kind` _string_ | `Grant` | | |
-| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
 | `spec` _[GrantSpec](#grantspec)_ |  |  |  |
 
 
@@ -1002,8 +1002,8 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `requeueInterval` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#duration-v1-meta)_ | RequeueInterval is used to perform requeue reconciliations. |  |  |
-| `retryInterval` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#duration-v1-meta)_ | RetryInterval is the interval used to perform retries. |  |  |
+| `requeueInterval` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#duration-v1-meta)_ | RequeueInterval is used to perform requeue reconciliations. |  |  |
+| `retryInterval` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#duration-v1-meta)_ | RetryInterval is the interval used to perform retries. |  |  |
 | `cleanupPolicy` _[CleanupPolicy](#cleanuppolicy)_ | CleanupPolicy defines the behavior for cleaning up a SQL resource. |  | Enum: [Skip Delete] <br /> |
 | `mariaDbRef` _[MariaDBRef](#mariadbref)_ | MariaDBRef is a reference to a MariaDB object. |  | Required: \{\} <br /> |
 | `privileges` _string array_ | Privileges to use in the Grant. |  | MinItems: 1 <br />Required: \{\} <br /> |
@@ -1036,7 +1036,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#httpgetaction-v1-core.
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#httpgetaction-v1-core.
 
 
 
@@ -1048,9 +1048,9 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `path` _string_ |  |  |  |
-| `port` _[IntOrString](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#intorstring-intstr-util)_ |  |  |  |
+| `port` _[IntOrString](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#intorstring-intstr-util)_ |  |  |  |
 | `host` _string_ |  |  |  |
-| `scheme` _[URIScheme](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#urischeme-v1-core)_ |  |  |  |
+| `scheme` _[URIScheme](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#urischeme-v1-core)_ |  |  |  |
 
 
 #### HealthCheck
@@ -1067,15 +1067,15 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `interval` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#duration-v1-meta)_ | Interval used to perform health checks. |  |  |
-| `retryInterval` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#duration-v1-meta)_ | RetryInterval is the interval used to perform health check retries. |  |  |
+| `interval` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#duration-v1-meta)_ | Interval used to perform health checks. |  |  |
+| `retryInterval` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#duration-v1-meta)_ | RetryInterval is the interval used to perform health check retries. |  |  |
 
 
 #### HostPathVolumeSource
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#hostpathvolumesource-v1-core
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#hostpathvolumesource-v1-core
 
 
 
@@ -1120,7 +1120,7 @@ _Appears in:_
 | `securityContext` _[SecurityContext](#securitycontext)_ | SecurityContext holds security configuration that will be applied to a container. |  |  |
 | `lifecycle` _[Lifecycle](#lifecycle)_ | Lifecycle are actions that the management system should take in response to container lifecycle events. |  |  |
 | `image` _string_ | Image name to be used by the MariaDB instances. The supported format is `<image>:<tag>`. |  | Required: \{\} <br /> |
-| `imagePullPolicy` _[PullPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#pullpolicy-v1-core)_ | ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`. |  | Enum: [Always Never IfNotPresent] <br /> |
+| `imagePullPolicy` _[PullPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#pullpolicy-v1-core)_ | ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`. |  | Enum: [Always Never IfNotPresent] <br /> |
 
 
 #### Job
@@ -1140,7 +1140,7 @@ _Appears in:_
 | `metadata` _[Metadata](#metadata)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
 | `affinity` _[AffinityConfig](#affinityconfig)_ | Affinity to be used in the Pod. |  |  |
 | `nodeSelector` _object (keys:string, values:string)_ | NodeSelector to be used in the Pod. |  |  |
-| `tolerations` _[Toleration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#toleration-v1-core) array_ | Tolerations to be used in the Pod. |  |  |
+| `tolerations` _[Toleration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#toleration-v1-core) array_ | Tolerations to be used in the Pod. |  |  |
 | `resources` _[ResourceRequirements](#resourcerequirements)_ | Resources describes the compute resource requirements. |  |  |
 | `args` _string array_ | Args to be used in the Container. |  |  |
 
@@ -1187,7 +1187,7 @@ _Appears in:_
 | `serviceAccountName` _string_ | ServiceAccountName is the name of the ServiceAccount to be used by the Pods. |  |  |
 | `affinity` _[AffinityConfig](#affinityconfig)_ | Affinity to be used in the Pod. |  |  |
 | `nodeSelector` _object (keys:string, values:string)_ | NodeSelector to be used in the Pod. |  |  |
-| `tolerations` _[Toleration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#toleration-v1-core) array_ | Tolerations to be used in the Pod. |  |  |
+| `tolerations` _[Toleration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#toleration-v1-core) array_ | Tolerations to be used in the Pod. |  |  |
 | `priorityClassName` _string_ | PriorityClassName to be used in the Pod. |  |  |
 
 
@@ -1213,7 +1213,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#labelselector-v1-meta
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#labelselector-v1-meta
 
 
 
@@ -1230,7 +1230,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#labelselectorrequirement-v1-meta
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#labelselectorrequirement-v1-meta
 
 
 
@@ -1240,7 +1240,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `key` _string_ |  |  |  |
-| `operator` _[LabelSelectorOperator](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#labelselectoroperator-v1-meta)_ |  |  |  |
+| `operator` _[LabelSelectorOperator](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#labelselectoroperator-v1-meta)_ |  |  |  |
 | `values` _string array_ |  |  |  |
 
 
@@ -1248,7 +1248,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#lifecycle-v1-core.
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#lifecycle-v1-core.
 
 
 
@@ -1269,7 +1269,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#lifecyclehandler-v1-core.
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#lifecyclehandler-v1-core.
 
 
 
@@ -1287,7 +1287,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#localobjectreference-v1-core.
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#localobjectreference-v1-core.
 
 
 
@@ -1338,7 +1338,7 @@ MariaDB is the Schema for the mariadbs API. It is used to define MariaDB cluster
 | --- | --- | --- | --- |
 | `apiVersion` _string_ | `k8s.mariadb.com/v1alpha1` | | |
 | `kind` _string_ | `MariaDB` | | |
-| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
 | `spec` _[MariaDBSpec](#mariadbspec)_ |  |  |  |
 
 
@@ -1366,7 +1366,7 @@ _Appears in:_
 
 
 
-MariaDBPodTemplate defines a template for MariaDB Pods. Refer to the Kubernetes dos: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#pod-v1-core.
+MariaDBPodTemplate defines a template for MariaDB Pods. Refer to the Kubernetes dos: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#pod-v1-core.
 
 
 
@@ -1383,7 +1383,7 @@ _Appears in:_
 | `serviceAccountName` _string_ | ServiceAccountName is the name of the ServiceAccount to be used by the Pods. |  |  |
 | `affinity` _[AffinityConfig](#affinityconfig)_ | Affinity to be used in the Pod. |  |  |
 | `nodeSelector` _object (keys:string, values:string)_ | NodeSelector to be used in the Pod. |  |  |
-| `tolerations` _[Toleration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#toleration-v1-core) array_ | Tolerations to be used in the Pod. |  |  |
+| `tolerations` _[Toleration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#toleration-v1-core) array_ | Tolerations to be used in the Pod. |  |  |
 | `volumes` _[MariaDBVolume](#mariadbvolume) array_ | Volumes to be used in the Pod. |  |  |
 | `priorityClassName` _string_ | PriorityClassName to be used in the Pod. |  |  |
 | `topologySpreadConstraints` _[TopologySpreadConstraint](#topologyspreadconstraint) array_ | TopologySpreadConstraints to be used in the Pod. |  |  |
@@ -1450,7 +1450,7 @@ _Appears in:_
 | `serviceAccountName` _string_ | ServiceAccountName is the name of the ServiceAccount to be used by the Pods. |  |  |
 | `affinity` _[AffinityConfig](#affinityconfig)_ | Affinity to be used in the Pod. |  |  |
 | `nodeSelector` _object (keys:string, values:string)_ | NodeSelector to be used in the Pod. |  |  |
-| `tolerations` _[Toleration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#toleration-v1-core) array_ | Tolerations to be used in the Pod. |  |  |
+| `tolerations` _[Toleration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#toleration-v1-core) array_ | Tolerations to be used in the Pod. |  |  |
 | `volumes` _[MariaDBVolume](#mariadbvolume) array_ | Volumes to be used in the Pod. |  |  |
 | `priorityClassName` _string_ | PriorityClassName to be used in the Pod. |  |  |
 | `topologySpreadConstraints` _[TopologySpreadConstraint](#topologyspreadconstraint) array_ | TopologySpreadConstraints to be used in the Pod. |  |  |
@@ -1458,7 +1458,7 @@ _Appears in:_
 | `terminationGracePeriodSeconds` _integer_ | TerminationGracePeriodSeconds to be used in the Pod. |  |  |
 | `suspend` _boolean_ | Suspend indicates whether the current resource should be suspended or not.<br />This can be useful for maintenance, as disabling the reconciliation prevents the operator from interfering with user operations during maintenance activities. | false |  |
 | `image` _string_ | Image name to be used by the MariaDB instances. The supported format is `<image>:<tag>`.<br />Only MariaDB official images are supported. |  |  |
-| `imagePullPolicy` _[PullPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#pullpolicy-v1-core)_ | ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`. |  | Enum: [Always Never IfNotPresent] <br /> |
+| `imagePullPolicy` _[PullPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#pullpolicy-v1-core)_ | ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`. |  | Enum: [Always Never IfNotPresent] <br /> |
 | `inheritMetadata` _[Metadata](#metadata)_ | InheritMetadata defines the metadata to be inherited by children resources. |  |  |
 | `rootPasswordSecretKeyRef` _[GeneratedSecretKeyRef](#generatedsecretkeyref)_ | RootPasswordSecretKeyRef is a reference to a Secret key containing the root password. |  |  |
 | `rootEmptyPassword` _boolean_ | RootEmptyPassword indicates if the root password should be empty. Don't use this feature in production, it is only intended for development and test environments. |  |  |
@@ -1499,7 +1499,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#volume-v1-core.
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#volume-v1-core.
 
 
 
@@ -1524,7 +1524,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#volume-v1-core.
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#volume-v1-core.
 
 
 
@@ -1577,7 +1577,7 @@ MaxScale is the Schema for the maxscales API. It is used to define MaxScale clus
 | --- | --- | --- | --- |
 | `apiVersion` _string_ | `k8s.mariadb.com/v1alpha1` | | |
 | `kind` _string_ | `MaxScale` | | |
-| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
 | `spec` _[MaxScaleSpec](#maxscalespec)_ |  |  |  |
 
 
@@ -1663,8 +1663,8 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `database` _string_ | Database is the MariaDB logical database where the 'maxscale_config' table will be created in order to persist and synchronize config changes. If not provided, it defaults to 'mysql'. |  |  |
-| `interval` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#duration-v1-meta)_ | Interval defines the config synchronization interval. It is defaulted if not provided. |  |  |
-| `timeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#duration-v1-meta)_ | Interval defines the config synchronization timeout. It is defaulted if not provided. |  |  |
+| `interval` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#duration-v1-meta)_ | Interval defines the config synchronization interval. It is defaulted if not provided. |  |  |
+| `timeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#duration-v1-meta)_ | Interval defines the config synchronization timeout. It is defaulted if not provided. |  |  |
 
 
 #### MaxScaleListener
@@ -1738,7 +1738,7 @@ _Appears in:_
 | `suspend` _boolean_ | Suspend indicates whether the current resource should be suspended or not.<br />This can be useful for maintenance, as disabling the reconciliation prevents the operator from interfering with user operations during maintenance activities. | false |  |
 | `name` _string_ | Name is the identifier of the monitor. It is defaulted if not provided. |  |  |
 | `module` _[MonitorModule](#monitormodule)_ | Module is the module to use to monitor MariaDB servers. It is mandatory when no MariaDB reference is provided. |  |  |
-| `interval` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#duration-v1-meta)_ | Interval used to monitor MariaDB servers. It is defaulted if not provided. |  |  |
+| `interval` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#duration-v1-meta)_ | Interval used to monitor MariaDB servers. It is defaulted if not provided. |  |  |
 | `cooperativeMonitoring` _[CooperativeMonitoring](#cooperativemonitoring)_ | CooperativeMonitoring enables coordination between multiple MaxScale instances running monitors. It is defaulted when HA is enabled. |  | Enum: [majority_of_all majority_of_running] <br /> |
 | `params` _object (keys:string, values:string)_ | Params defines extra parameters to pass to the monitor.<br />Any parameter supported by MaxScale may be specified here. See reference:<br />https://mariadb.com/kb/en/mariadb-maxscale-2308-common-monitor-parameters/.<br />Monitor specific parameter are also supported:<br />https://mariadb.com/kb/en/mariadb-maxscale-2308-galera-monitor/#galera-monitor-optional-parameters.<br />https://mariadb.com/kb/en/mariadb-maxscale-2308-mariadb-monitor/#configuration. |  |  |
 
@@ -1762,7 +1762,7 @@ _Appears in:_
 | `serviceAccountName` _string_ | ServiceAccountName is the name of the ServiceAccount to be used by the Pods. |  |  |
 | `affinity` _[AffinityConfig](#affinityconfig)_ | Affinity to be used in the Pod. |  |  |
 | `nodeSelector` _object (keys:string, values:string)_ | NodeSelector to be used in the Pod. |  |  |
-| `tolerations` _[Toleration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#toleration-v1-core) array_ | Tolerations to be used in the Pod. |  |  |
+| `tolerations` _[Toleration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#toleration-v1-core) array_ | Tolerations to be used in the Pod. |  |  |
 | `priorityClassName` _string_ | PriorityClassName to be used in the Pod. |  |  |
 | `topologySpreadConstraints` _[TopologySpreadConstraint](#topologyspreadconstraint) array_ | TopologySpreadConstraints to be used in the Pod. |  |  |
 | `enableServiceLinks` _boolean_ | EnableServiceLinks indicates whether information about services should be injected into pod's<br />environment variables, matching the syntax of Docker links. Defaults to true if not specified.<br />Set to false to disable injection of service link environment variables. |  |  |
@@ -1839,7 +1839,7 @@ _Appears in:_
 | `serviceAccountName` _string_ | ServiceAccountName is the name of the ServiceAccount to be used by the Pods. |  |  |
 | `affinity` _[AffinityConfig](#affinityconfig)_ | Affinity to be used in the Pod. |  |  |
 | `nodeSelector` _object (keys:string, values:string)_ | NodeSelector to be used in the Pod. |  |  |
-| `tolerations` _[Toleration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#toleration-v1-core) array_ | Tolerations to be used in the Pod. |  |  |
+| `tolerations` _[Toleration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#toleration-v1-core) array_ | Tolerations to be used in the Pod. |  |  |
 | `priorityClassName` _string_ | PriorityClassName to be used in the Pod. |  |  |
 | `topologySpreadConstraints` _[TopologySpreadConstraint](#topologyspreadconstraint) array_ | TopologySpreadConstraints to be used in the Pod. |  |  |
 | `enableServiceLinks` _boolean_ | EnableServiceLinks indicates whether information about services should be injected into pod's<br />environment variables, matching the syntax of Docker links. Defaults to true if not specified.<br />Set to false to disable injection of service link environment variables. |  |  |
@@ -1848,7 +1848,7 @@ _Appears in:_
 | `primaryServer` _string_ | PrimaryServer specifies the desired primary server. Setting this field triggers a switchover operation in MaxScale to the desired server.<br />This option is only valid when using monitors that support switchover, currently limited to the MariaDB monitor. |  |  |
 | `servers` _[MaxScaleServer](#maxscaleserver) array_ | Servers are the MariaDB servers to forward traffic to. It is required if 'spec.mariaDbRef' is not provided. |  |  |
 | `image` _string_ | Image name to be used by the MaxScale instances. The supported format is `<image>:<tag>`.<br />Only MaxScale official images are supported. |  |  |
-| `imagePullPolicy` _[PullPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#pullpolicy-v1-core)_ | ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`. |  | Enum: [Always Never IfNotPresent] <br /> |
+| `imagePullPolicy` _[PullPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#pullpolicy-v1-core)_ | ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `IfNotPresent`. |  | Enum: [Always Never IfNotPresent] <br /> |
 | `inheritMetadata` _[Metadata](#metadata)_ | InheritMetadata defines the metadata to be inherited by children resources. |  |  |
 | `services` _[MaxScaleService](#maxscaleservice) array_ | Services define how the traffic is forwarded to the MariaDB servers. It is defaulted if not provided. |  |  |
 | `monitor` _[MaxScaleMonitor](#maxscalemonitor)_ | Monitor monitors MariaDB server instances. It is required if 'spec.mariaDbRef' is not provided. |  |  |
@@ -1860,10 +1860,10 @@ _Appears in:_
 | `connection` _[ConnectionTemplate](#connectiontemplate)_ | Connection provides a template to define the Connection for MaxScale. |  |  |
 | `replicas` _integer_ | Replicas indicates the number of desired instances. | 1 |  |
 | `podDisruptionBudget` _[PodDisruptionBudget](#poddisruptionbudget)_ | PodDisruptionBudget defines the budget for replica availability. |  |  |
-| `updateStrategy` _[StatefulSetUpdateStrategy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#statefulsetupdatestrategy-v1-apps)_ | UpdateStrategy defines the update strategy for the StatefulSet object. |  |  |
+| `updateStrategy` _[StatefulSetUpdateStrategy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#statefulsetupdatestrategy-v1-apps)_ | UpdateStrategy defines the update strategy for the StatefulSet object. |  |  |
 | `kubernetesService` _[ServiceTemplate](#servicetemplate)_ | KubernetesService defines a template for a Kubernetes Service object to connect to MaxScale. |  |  |
 | `guiKubernetesService` _[ServiceTemplate](#servicetemplate)_ | GuiKubernetesService defines a template for a Kubernetes Service object to connect to MaxScale's GUI. |  |  |
-| `requeueInterval` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#duration-v1-meta)_ | RequeueInterval is used to perform requeue reconciliations. If not defined, it defaults to 10s. |  |  |
+| `requeueInterval` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#duration-v1-meta)_ | RequeueInterval is used to perform requeue reconciliations. If not defined, it defaults to 10s. |  |  |
 | `maintenance` _[MaxScaleMaintenance](#maxscalemaintenance)_ | Maintenance defines different capabilities of the operator to allow for maintenance to be performed on the DB.<br />Not to be confused with `suspend`, maintenance does not interfere with the normal reconciliation of the operator. |  |  |
 
 
@@ -2003,7 +2003,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#nfsvolumesource-v1-core.
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#nfsvolumesource-v1-core.
 
 
 
@@ -2025,7 +2025,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#nodeaffinity-v1-core
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#nodeaffinity-v1-core
 
 
 
@@ -2043,7 +2043,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#nodeselector-v1-core
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#nodeselector-v1-core
 
 
 
@@ -2059,7 +2059,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#nodeselectorrequirement-v1-core
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#nodeselectorrequirement-v1-core
 
 
 
@@ -2069,7 +2069,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `key` _string_ |  |  |  |
-| `operator` _[NodeSelectorOperator](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#nodeselectoroperator-v1-core)_ |  |  |  |
+| `operator` _[NodeSelectorOperator](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#nodeselectoroperator-v1-core)_ |  |  |  |
 | `values` _string array_ |  |  |  |
 
 
@@ -2077,7 +2077,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#nodeselectorterm-v1-core
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#nodeselectorterm-v1-core
 
 
 
@@ -2095,7 +2095,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#objectfieldselector-v1-core.
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#objectfieldselector-v1-core.
 
 
 
@@ -2112,7 +2112,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#objectreference-v1-core.
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#objectreference-v1-core.
 
 
 
@@ -2151,7 +2151,7 @@ _Appears in:_
 _Underlying type:_ _string_
 
 PersistentVolumeClaimRetentionPolicyType describes the lifecycle of persistent volume claims.
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#statefulsetpersistentvolumeclaimretentionpolicy-v1-apps.
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#statefulsetpersistentvolumeclaimretentionpolicy-v1-apps.
 
 
 
@@ -2168,7 +2168,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#persistentvolumeclaimspec-v1-core.
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#persistentvolumeclaimspec-v1-core.
 
 
 
@@ -2180,9 +2180,9 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `accessModes` _[PersistentVolumeAccessMode](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#persistentvolumeaccessmode-v1-core) array_ |  |  |  |
-| `selector` _[LabelSelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#labelselector-v1-meta)_ |  |  |  |
-| `resources` _[VolumeResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#volumeresourcerequirements-v1-core)_ |  |  |  |
+| `accessModes` _[PersistentVolumeAccessMode](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#persistentvolumeaccessmode-v1-core) array_ |  |  |  |
+| `selector` _[LabelSelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#labelselector-v1-meta)_ |  |  |  |
+| `resources` _[VolumeResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#volumeresourcerequirements-v1-core)_ |  |  |  |
 | `storageClassName` _string_ |  |  |  |
 
 
@@ -2190,7 +2190,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#persistentvolumeclaimvolumesource-v1-core.
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#persistentvolumeclaimvolumesource-v1-core.
 
 
 
@@ -2221,7 +2221,7 @@ PhysicalBackup is the Schema for the physicalbackups API. It is used to define p
 | --- | --- | --- | --- |
 | `apiVersion` _string_ | `k8s.mariadb.com/v1alpha1` | | |
 | `kind` _string_ | `PhysicalBackup` | | |
-| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
 | `spec` _[PhysicalBackupSpec](#physicalbackupspec)_ |  |  |  |
 
 
@@ -2242,7 +2242,7 @@ _Appears in:_
 | `imagePullSecrets` _[LocalObjectReference](#localobjectreference) array_ | ImagePullSecrets is the list of pull Secrets to be used to pull the image. |  |  |
 | `podSecurityContext` _[PodSecurityContext](#podsecuritycontext)_ | SecurityContext holds pod-level security attributes and common container settings. |  |  |
 | `serviceAccountName` _string_ | ServiceAccountName is the name of the ServiceAccount to be used by the Pods. |  |  |
-| `tolerations` _[Toleration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#toleration-v1-core) array_ | Tolerations to be used in the Pod. |  |  |
+| `tolerations` _[Toleration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#toleration-v1-core) array_ | Tolerations to be used in the Pod. |  |  |
 | `priorityClassName` _string_ | PriorityClassName to be used in the Pod. |  |  |
 
 
@@ -2285,7 +2285,7 @@ _Appears in:_
 | `imagePullSecrets` _[LocalObjectReference](#localobjectreference) array_ | ImagePullSecrets is the list of pull Secrets to be used to pull the image. |  |  |
 | `podSecurityContext` _[PodSecurityContext](#podsecuritycontext)_ | SecurityContext holds pod-level security attributes and common container settings. |  |  |
 | `serviceAccountName` _string_ | ServiceAccountName is the name of the ServiceAccount to be used by the Pods. |  |  |
-| `tolerations` _[Toleration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#toleration-v1-core) array_ | Tolerations to be used in the Pod. |  |  |
+| `tolerations` _[Toleration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#toleration-v1-core) array_ | Tolerations to be used in the Pod. |  |  |
 | `priorityClassName` _string_ | PriorityClassName to be used in the Pod. |  |  |
 | `mariaDbRef` _[MariaDBRef](#mariadbref)_ | MariaDBRef is a reference to a MariaDB object. |  | Required: \{\} <br /> |
 | `target` _[PhysicalBackupTarget](#physicalbackuptarget)_ | Target defines in which Pod the physical backups will be taken. It defaults to "Replica", meaning that the physical backups will only be taken in ready replicas. |  | Enum: [Replica PreferReplica] <br /> |
@@ -2293,11 +2293,11 @@ _Appears in:_
 | `stagingStorage` _[StagingStorage](#stagingstorage)_ | StagingStorage defines the temporary storage used to keep external backups (i.e. S3) while they are being processed.<br />It defaults to an emptyDir volume, meaning that the backups will be temporarily stored in the node where the PhysicalBackup Job is scheduled.<br />The staging area gets cleaned up after each backup is completed, consider this for sizing it appropriately. |  |  |
 | `storage` _[PhysicalBackupStorage](#physicalbackupstorage)_ | Storage defines the final storage for backups. |  | Required: \{\} <br /> |
 | `schedule` _[PhysicalBackupSchedule](#physicalbackupschedule)_ | Schedule defines when the PhysicalBackup will be taken. |  |  |
-| `maxRetention` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#duration-v1-meta)_ | MaxRetention defines the retention policy for backups. Old backups will be cleaned up by the Backup Job.<br />It defaults to 30 days. |  |  |
-| `timeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#duration-v1-meta)_ | Timeout defines the maximum duration of a PhysicalBackup job or snapshot.<br />If this duration is exceeded, the job or snapshot is considered expired and is deleted by the operator.<br />A new job or snapshot will then be created according to the schedule.<br />It defaults to 1 hour. |  |  |
+| `maxRetention` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#duration-v1-meta)_ | MaxRetention defines the retention policy for backups. Old backups will be cleaned up by the Backup Job.<br />It defaults to 30 days. |  |  |
+| `timeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#duration-v1-meta)_ | Timeout defines the maximum duration of a PhysicalBackup job or snapshot.<br />If this duration is exceeded, the job or snapshot is considered expired and is deleted by the operator.<br />A new job or snapshot will then be created according to the schedule.<br />It defaults to 1 hour. |  |  |
 | `podAffinity` _boolean_ | PodAffinity indicates whether the Jobs should run in the same Node as the MariaDB Pods to be able to attach the PVC.<br />It defaults to true. |  |  |
 | `backoffLimit` _integer_ | BackoffLimit defines the maximum number of attempts to successfully take a PhysicalBackup. |  |  |
-| `restartPolicy` _[RestartPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#restartpolicy-v1-core)_ | RestartPolicy to be added to the PhysicalBackup Pod. | OnFailure | Enum: [Always OnFailure Never] <br /> |
+| `restartPolicy` _[RestartPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#restartpolicy-v1-core)_ | RestartPolicy to be added to the PhysicalBackup Pod. | OnFailure | Enum: [Always OnFailure Never] <br /> |
 | `inheritMetadata` _[Metadata](#metadata)_ | InheritMetadata defines the metadata to be inherited by children resources. |  |  |
 | `successfulJobsHistoryLimit` _integer_ | SuccessfulJobsHistoryLimit defines the maximum number of successful Jobs to be displayed. It defaults to 5. |  | Minimum: 0 <br /> |
 | `failedJobsHistoryLimit` _integer_ | FailedJobsHistoryLimit defines the maximum number of failed Jobs to be displayed. It defaults to 5. |  | Minimum: 0 <br /> |
@@ -2362,7 +2362,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#podaffinityterm-v1-core.
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#podaffinityterm-v1-core.
 
 
 
@@ -2380,7 +2380,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#podantiaffinity-v1-core.
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#podantiaffinity-v1-core.
 
 
 
@@ -2408,15 +2408,15 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `minAvailable` _[IntOrString](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#intorstring-intstr-util)_ | MinAvailable defines the number of minimum available Pods. |  |  |
-| `maxUnavailable` _[IntOrString](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#intorstring-intstr-util)_ | MaxUnavailable defines the number of maximum unavailable Pods. |  |  |
+| `minAvailable` _[IntOrString](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#intorstring-intstr-util)_ | MinAvailable defines the number of minimum available Pods. |  |  |
+| `maxUnavailable` _[IntOrString](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#intorstring-intstr-util)_ | MaxUnavailable defines the number of maximum unavailable Pods. |  |  |
 
 
 #### PodSecurityContext
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#podsecuritycontext-v1-core
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#podsecuritycontext-v1-core
 
 
 
@@ -2435,15 +2435,15 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `seLinuxOptions` _[SELinuxOptions](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#selinuxoptions-v1-core)_ |  |  |  |
+| `seLinuxOptions` _[SELinuxOptions](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#selinuxoptions-v1-core)_ |  |  |  |
 | `runAsUser` _integer_ |  |  |  |
 | `runAsGroup` _integer_ |  |  |  |
 | `runAsNonRoot` _boolean_ |  |  |  |
 | `supplementalGroups` _integer array_ |  |  |  |
 | `fsGroup` _integer_ |  |  |  |
-| `fsGroupChangePolicy` _[PodFSGroupChangePolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#podfsgroupchangepolicy-v1-core)_ |  |  |  |
-| `seccompProfile` _[SeccompProfile](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#seccompprofile-v1-core)_ |  |  |  |
-| `appArmorProfile` _[AppArmorProfile](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#apparmorprofile-v1-core)_ |  |  |  |
+| `fsGroupChangePolicy` _[PodFSGroupChangePolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#podfsgroupchangepolicy-v1-core)_ |  |  |  |
+| `seccompProfile` _[SeccompProfile](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#seccompprofile-v1-core)_ |  |  |  |
+| `appArmorProfile` _[AppArmorProfile](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#apparmorprofile-v1-core)_ |  |  |  |
 
 
 #### PointInTimeRecovery
@@ -2460,7 +2460,7 @@ PointInTimeRecovery is the Schema for the pointintimerecoveries API. It contains
 | --- | --- | --- | --- |
 | `apiVersion` _string_ | `k8s.mariadb.com/v1alpha1` | | |
 | `kind` _string_ | `PointInTimeRecovery` | | |
-| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
 | `spec` _[PointInTimeRecoverySpec](#pointintimerecoveryspec)_ |  |  |  |
 
 
@@ -2480,7 +2480,7 @@ _Appears in:_
 | `physicalBackupRef` _[LocalObjectReference](#localobjectreference)_ | PhysicalBackupRef is a reference to a PhysicalBackup object that will be used as base backup. |  | Required: \{\} <br /> |
 | `storage` _[PointInTimeRecoveryStorage](#pointintimerecoverystorage)_ | PointInTimeRecoveryStorage is the storage where the point in time recovery data will be stored |  | Required: \{\} <br /> |
 | `compression` _[CompressAlgorithm](#compressalgorithm)_ | Compression algorithm to be used for compressing the binary logs.<br />This field is immutable, it cannot be updated after creation. |  | Enum: [none bzip2 gzip] <br /> |
-| `archiveTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#duration-v1-meta)_ | ArchiveTimeout defines the maximum duration for the binary log archival.<br />If this duration is exceeded, the sidecar agent will log an error and it will be retried in the next archive cycle.<br />It defaults to 1 hour. | 1h |  |
+| `archiveTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#duration-v1-meta)_ | ArchiveTimeout defines the maximum duration for the binary log archival.<br />If this duration is exceeded, the sidecar agent will log an error and it will be retried in the next archive cycle.<br />It defaults to 1 hour. | 1h |  |
 | `strictMode` _boolean_ | StrictMode controls the behavior when a point-in-time restoration cannot reach the exact target time:<br />When enabled: Returns an error and avoids replaying binary logs if target time is not reached.<br />When disabled (default): Replays available binary logs until the last recoverable time. It logs logs an error if target time is not reached. |  |  |
 
 
@@ -2505,7 +2505,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#preferredschedulingterm-v1-core
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#preferredschedulingterm-v1-core
 
 
 
@@ -2552,14 +2552,14 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `podIndex` _integer_ | PodIndex is the StatefulSet index of the primary node. The user may change this field to perform a manual switchover. |  |  |
 | `autoFailover` _boolean_ | AutoFailover indicates whether the operator should automatically update PodIndex to perform an automatic primary failover.<br />It is enabled by default. |  |  |
-| `autoFailoverDelay` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#duration-v1-meta)_ | AutoFailoverDelay indicates the duration before performing an automatic primary failover.<br />By default, no extra delay is added. |  |  |
+| `autoFailoverDelay` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#duration-v1-meta)_ | AutoFailoverDelay indicates the duration before performing an automatic primary failover.<br />By default, no extra delay is added. |  |  |
 
 
 #### Probe
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#probe-v1-core.
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#probe-v1-core.
 
 
 
@@ -2586,7 +2586,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#probe-v1-core.
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#probe-v1-core.
 
 
 
@@ -2631,7 +2631,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `enabled` _boolean_ | Enabled is a flag to enable replica recovery. |  | Required: \{\} <br /> |
-| `errorDurationThreshold` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#duration-v1-meta)_ | ErrorDurationThreshold defines the time duration after which, if a replica continues to report errors,<br />the operator will initiate the recovery process for that replica.<br />This threshold applies only to error codes not identified as recoverable by the operator.<br />Errors identified as recoverable will trigger the recovery process immediately.<br />It defaults to 5 minutes. |  |  |
+| `errorDurationThreshold` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#duration-v1-meta)_ | ErrorDurationThreshold defines the time duration after which, if a replica continues to report errors,<br />the operator will initiate the recovery process for that replica.<br />This threshold applies only to error codes not identified as recoverable by the operator.<br />Errors identified as recoverable will trigger the recovery process immediately.<br />It defaults to 5 minutes. |  |  |
 
 
 #### ReplicaReplication
@@ -2652,7 +2652,7 @@ _Appears in:_
 | `gtid` _[Gtid](#gtid)_ | Gtid indicates which Global Transaction ID (GTID) position mode should be used when connecting a replica to the master.<br />By default, CurrentPos is used.<br />See: https://mariadb.com/docs/server/reference/sql-statements/administrative-sql-statements/replication-statements/change-master-to#master_use_gtid. |  | Enum: [CurrentPos SlavePos] <br /> |
 | `connectionRetrySeconds` _integer_ | ConnectionRetrySeconds is the number of seconds that the replica will wait between connection retries.<br />See: https://mariadb.com/docs/server/reference/sql-statements/administrative-sql-statements/replication-statements/change-master-to#master_connect_retry. |  |  |
 | `maxLagSeconds` _integer_ | MaxLagSeconds is the maximum number of seconds that replicas are allowed to lag behind the primary.<br />If a replica exceeds this threshold, it is marked as not ready and read queries will no longer be forwarded to it.<br />If not provided, it defaults to 0, which means that replicas are not allowed to lag behind the primary (recommended).<br />Lagged replicas will not be taken into account as candidates for the new primary during failover,<br />and they will block other operations, such as switchover and upgrade.<br />This field is not taken into account by MaxScale, you can define the maximum lag as router parameters.<br />See: https://mariadb.com/docs/maxscale/reference/maxscale-routers/maxscale-readwritesplit#max_replication_lag. |  |  |
-| `syncTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#duration-v1-meta)_ | SyncTimeout defines the timeout for the synchronization phase during switchover and failover operations.<br />During switchover, all replicas must be synced with the current primary before promoting the new primary.<br />During failover, the new primary must be synced before being promoted as primary. This implies processing all the events in the relay log.<br />When the timeout is reached, the operator restarts the operation from the beginning.<br />It defaults to 10s.<br />See: https://mariadb.com/docs/server/reference/sql-functions/secondary-functions/miscellaneous-functions/master_gtid_wait |  |  |
+| `syncTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#duration-v1-meta)_ | SyncTimeout defines the timeout for the synchronization phase during switchover and failover operations.<br />During switchover, all replicas must be synced with the current primary before promoting the new primary.<br />During failover, the new primary must be synced before being promoted as primary. This implies processing all the events in the relay log.<br />When the timeout is reached, the operator restarts the operation from the beginning.<br />It defaults to 10s.<br />See: https://mariadb.com/docs/server/reference/sql-functions/secondary-functions/miscellaneous-functions/master_gtid_wait |  |  |
 | `bootstrapFrom` _[ReplicaBootstrapFrom](#replicabootstrapfrom)_ | ReplicaBootstrapFrom defines the data sources used to bootstrap new replicas.<br />This will be used as part of the scaling out and recovery operations, when new replicas are created.<br />If not provided, scale out and recovery operations will return an error. |  |  |
 | `recovery` _[ReplicaRecovery](#replicarecovery)_ | ReplicaRecovery defines how the replicas should be recovered after they enter an error state.<br />This process deletes data from faulty replicas and recreates them using the source defined in the bootstrapFrom field.<br />It is disabled by default, and it requires the bootstrapFrom field to be set. |  |  |
 
@@ -2678,7 +2678,7 @@ _Appears in:_
 | `gtidDomainId` _integer_ | GtidDomainID is gtid_domain_id for all of the MariaDB nodes.<br />It is immutable.<br />See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/gtid#gtid_domain_id |  |  |
 | `serverIdStartIndex` _integer_ | ServerIDStartIndex sets the start index of the MariaDB nodes. Each subsequent replica will increment this by 1.<br />It is immutable.<br />See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/replication-and-binary-log-system-variables#server_id |  |  |
 | `semiSyncEnabled` _boolean_ | SemiSyncEnabled determines whether semi-synchronous replication is enabled.<br />Semi-synchronous replication requires that at least one replica should have sent an ACK to the primary node<br />before committing the transaction back to the client.<br />See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/semisynchronous-replication<br />It is enabled by default |  |  |
-| `semiSyncAckTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#duration-v1-meta)_ | SemiSyncAckTimeout for the replica to acknowledge transactions to the primary.<br />It requires semi-synchronous replication to be enabled.<br />See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/semisynchronous-replication#rpl_semi_sync_master_timeout |  |  |
+| `semiSyncAckTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#duration-v1-meta)_ | SemiSyncAckTimeout for the replica to acknowledge transactions to the primary.<br />It requires semi-synchronous replication to be enabled.<br />See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/semisynchronous-replication#rpl_semi_sync_master_timeout |  |  |
 | `semiSyncWaitPoint` _[WaitPoint](#waitpoint)_ | SemiSyncWaitPoint determines whether the transaction should wait for an ACK after having synced the binlog (AfterSync)<br />or after having committed to the storage engine (AfterCommit, the default).<br />It requires semi-synchronous replication to be enabled.<br />See: https://mariadb.com/kb/en/semisynchronous-replication/#rpl_semi_sync_master_wait_point. |  | Enum: [AfterSync AfterCommit] <br /> |
 | `syncBinlog` _integer_ | SyncBinlog indicates after how many events the binary log is synchronized to the disk.<br />See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/replication-and-binary-log-system-variables#sync_binlog |  |  |
 | `initContainer` _[InitContainer](#initcontainer)_ | InitContainer is an init container that runs in the MariaDB Pod and co-operates with mariadb-operator. |  |  |
@@ -2708,7 +2708,7 @@ _Appears in:_
 | `gtidDomainId` _integer_ | GtidDomainID is gtid_domain_id for all of the MariaDB nodes.<br />It is immutable.<br />See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/gtid#gtid_domain_id |  |  |
 | `serverIdStartIndex` _integer_ | ServerIDStartIndex sets the start index of the MariaDB nodes. Each subsequent replica will increment this by 1.<br />It is immutable.<br />See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/replication-and-binary-log-system-variables#server_id |  |  |
 | `semiSyncEnabled` _boolean_ | SemiSyncEnabled determines whether semi-synchronous replication is enabled.<br />Semi-synchronous replication requires that at least one replica should have sent an ACK to the primary node<br />before committing the transaction back to the client.<br />See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/semisynchronous-replication<br />It is enabled by default |  |  |
-| `semiSyncAckTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#duration-v1-meta)_ | SemiSyncAckTimeout for the replica to acknowledge transactions to the primary.<br />It requires semi-synchronous replication to be enabled.<br />See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/semisynchronous-replication#rpl_semi_sync_master_timeout |  |  |
+| `semiSyncAckTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#duration-v1-meta)_ | SemiSyncAckTimeout for the replica to acknowledge transactions to the primary.<br />It requires semi-synchronous replication to be enabled.<br />See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/semisynchronous-replication#rpl_semi_sync_master_timeout |  |  |
 | `semiSyncWaitPoint` _[WaitPoint](#waitpoint)_ | SemiSyncWaitPoint determines whether the transaction should wait for an ACK after having synced the binlog (AfterSync)<br />or after having committed to the storage engine (AfterCommit, the default).<br />It requires semi-synchronous replication to be enabled.<br />See: https://mariadb.com/kb/en/semisynchronous-replication/#rpl_semi_sync_master_wait_point. |  | Enum: [AfterSync AfterCommit] <br /> |
 | `syncBinlog` _integer_ | SyncBinlog indicates after how many events the binary log is synchronized to the disk.<br />See: https://mariadb.com/docs/server/ha-and-performance/standard-replication/replication-and-binary-log-system-variables#sync_binlog |  |  |
 | `initContainer` _[InitContainer](#initcontainer)_ | InitContainer is an init container that runs in the MariaDB Pod and co-operates with mariadb-operator. |  |  |
@@ -2720,7 +2720,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#resourcerequirements-v1-core.
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#resourcerequirements-v1-core.
 
 
 
@@ -2757,7 +2757,7 @@ Restore is the Schema for the restores API. It is used to define restore jobs an
 | --- | --- | --- | --- |
 | `apiVersion` _string_ | `k8s.mariadb.com/v1alpha1` | | |
 | `kind` _string_ | `Restore` | | |
-| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
 | `spec` _[RestoreSpec](#restorespec)_ |  |  |  |
 
 
@@ -2777,7 +2777,7 @@ _Appears in:_
 | `backupRef` _[LocalObjectReference](#localobjectreference)_ | BackupRef is a reference to a Backup object. It has priority over S3 and Volume. |  |  |
 | `s3` _[S3](#s3)_ | S3 defines the configuration to restore backups from a S3 compatible storage. It has priority over Volume. |  |  |
 | `volume` _[StorageVolumeSource](#storagevolumesource)_ | Volume is a Kubernetes Volume object that contains a backup. |  |  |
-| `targetRecoveryTime` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#time-v1-meta)_ | TargetRecoveryTime is a RFC3339 (1970-01-01T00:00:00Z) date and time that defines the point in time recovery objective.<br />It is used to determine the closest restoration source in time. |  |  |
+| `targetRecoveryTime` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#time-v1-meta)_ | TargetRecoveryTime is a RFC3339 (1970-01-01T00:00:00Z) date and time that defines the point in time recovery objective.<br />It is used to determine the closest restoration source in time. |  |  |
 | `stagingStorage` _[StagingStorage](#stagingstorage)_ | StagingStorage defines the temporary storage used to keep external backups (i.e. S3) while they are being processed.<br />It defaults to an emptyDir volume, meaning that the backups will be temporarily stored in the node where the Restore Job is scheduled. |  |  |
 
 
@@ -2803,18 +2803,18 @@ _Appears in:_
 | `serviceAccountName` _string_ | ServiceAccountName is the name of the ServiceAccount to be used by the Pods. |  |  |
 | `affinity` _[AffinityConfig](#affinityconfig)_ | Affinity to be used in the Pod. |  |  |
 | `nodeSelector` _object (keys:string, values:string)_ | NodeSelector to be used in the Pod. |  |  |
-| `tolerations` _[Toleration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#toleration-v1-core) array_ | Tolerations to be used in the Pod. |  |  |
+| `tolerations` _[Toleration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#toleration-v1-core) array_ | Tolerations to be used in the Pod. |  |  |
 | `priorityClassName` _string_ | PriorityClassName to be used in the Pod. |  |  |
 | `backupRef` _[LocalObjectReference](#localobjectreference)_ | BackupRef is a reference to a Backup object. It has priority over S3 and Volume. |  |  |
 | `s3` _[S3](#s3)_ | S3 defines the configuration to restore backups from a S3 compatible storage. It has priority over Volume. |  |  |
 | `volume` _[StorageVolumeSource](#storagevolumesource)_ | Volume is a Kubernetes Volume object that contains a backup. |  |  |
-| `targetRecoveryTime` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#time-v1-meta)_ | TargetRecoveryTime is a RFC3339 (1970-01-01T00:00:00Z) date and time that defines the point in time recovery objective.<br />It is used to determine the closest restoration source in time. |  |  |
+| `targetRecoveryTime` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#time-v1-meta)_ | TargetRecoveryTime is a RFC3339 (1970-01-01T00:00:00Z) date and time that defines the point in time recovery objective.<br />It is used to determine the closest restoration source in time. |  |  |
 | `stagingStorage` _[StagingStorage](#stagingstorage)_ | StagingStorage defines the temporary storage used to keep external backups (i.e. S3) while they are being processed.<br />It defaults to an emptyDir volume, meaning that the backups will be temporarily stored in the node where the Restore Job is scheduled. |  |  |
 | `mariaDbRef` _[MariaDBRef](#mariadbref)_ | MariaDBRef is a reference to a MariaDB object. |  | Required: \{\} <br /> |
 | `database` _string_ | Database defines the logical database to be restored. If not provided, all databases available in the backup are restored.<br />IMPORTANT: The database must previously exist. |  |  |
 | `logLevel` _string_ | LogLevel to be used n the Backup Job. It defaults to 'info'. | info | Enum: [debug info warn error dpanic panic fatal] <br /> |
 | `backoffLimit` _integer_ | BackoffLimit defines the maximum number of attempts to successfully perform a Backup. | 5 |  |
-| `restartPolicy` _[RestartPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#restartpolicy-v1-core)_ | RestartPolicy to be added to the Backup Job. | OnFailure | Enum: [Always OnFailure Never] <br /> |
+| `restartPolicy` _[RestartPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#restartpolicy-v1-core)_ | RestartPolicy to be added to the Backup Job. | OnFailure | Enum: [Always OnFailure Never] <br /> |
 | `inheritMetadata` _[Metadata](#metadata)_ | InheritMetadata defines the metadata to be inherited by children resources. |  |  |
 
 
@@ -2862,8 +2862,8 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `requeueInterval` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#duration-v1-meta)_ | RequeueInterval is used to perform requeue reconciliations. |  |  |
-| `retryInterval` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#duration-v1-meta)_ | RetryInterval is the interval used to perform retries. |  |  |
+| `requeueInterval` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#duration-v1-meta)_ | RequeueInterval is used to perform requeue reconciliations. |  |  |
+| `retryInterval` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#duration-v1-meta)_ | RetryInterval is the interval used to perform retries. |  |  |
 | `cleanupPolicy` _[CleanupPolicy](#cleanuppolicy)_ | CleanupPolicy defines the behavior for cleaning up a SQL resource. |  | Enum: [Skip Delete] <br /> |
 
 
@@ -2925,7 +2925,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#secretkeyselector-v1-core.
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#secretkeyselector-v1-core.
 
 
 
@@ -2977,7 +2977,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#secretvolumesource-v1-core.
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#secretvolumesource-v1-core.
 
 
 
@@ -2997,7 +2997,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#securitycontext-v1-core.
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#securitycontext-v1-core.
 
 
 
@@ -3016,7 +3016,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `capabilities` _[Capabilities](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#capabilities-v1-core)_ |  |  |  |
+| `capabilities` _[Capabilities](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#capabilities-v1-core)_ |  |  |  |
 | `privileged` _boolean_ |  |  |  |
 | `runAsUser` _integer_ |  |  |  |
 | `runAsGroup` _integer_ |  |  |  |
@@ -3049,7 +3049,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#serviceport-v1-core
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#serviceport-v1-core
 
 
 
@@ -3093,12 +3093,12 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `type` _[ServiceType](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#servicetype-v1-core)_ | Type is the Service type. One of `ClusterIP`, `NodePort` or `LoadBalancer`. If not defined, it defaults to `ClusterIP`. | ClusterIP | Enum: [ClusterIP NodePort LoadBalancer] <br /> |
+| `type` _[ServiceType](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#servicetype-v1-core)_ | Type is the Service type. One of `ClusterIP`, `NodePort` or `LoadBalancer`. If not defined, it defaults to `ClusterIP`. | ClusterIP | Enum: [ClusterIP NodePort LoadBalancer] <br /> |
 | `metadata` _[Metadata](#metadata)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
 | `loadBalancerIP` _string_ | LoadBalancerIP Service field. |  |  |
 | `loadBalancerSourceRanges` _string array_ | LoadBalancerSourceRanges Service field. |  |  |
-| `externalTrafficPolicy` _[ServiceExternalTrafficPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#serviceexternaltrafficpolicy-v1-core)_ | ExternalTrafficPolicy Service field. |  |  |
-| `sessionAffinity` _[ServiceAffinity](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#serviceaffinity-v1-core)_ | SessionAffinity Service field. |  |  |
+| `externalTrafficPolicy` _[ServiceExternalTrafficPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#serviceexternaltrafficpolicy-v1-core)_ | ExternalTrafficPolicy Service field. |  |  |
+| `sessionAffinity` _[ServiceAffinity](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#serviceaffinity-v1-core)_ | SessionAffinity Service field. |  |  |
 | `allocateLoadBalancerNodePorts` _boolean_ | AllocateLoadBalancerNodePorts Service field. |  |  |
 | `loadBalancerClass` _string_ | LoadBalancerClass Service field. |  |  |
 
@@ -3107,7 +3107,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#sleepaction-v1-core
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#sleepaction-v1-core
 
 
 
@@ -3133,7 +3133,7 @@ SqlJob is the Schema for the sqljobs API. It is used to run sql scripts as jobs.
 | --- | --- | --- | --- |
 | `apiVersion` _string_ | `k8s.mariadb.com/v1alpha1` | | |
 | `kind` _string_ | `SqlJob` | | |
-| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
 | `spec` _[SqlJobSpec](#sqljobspec)_ |  |  |  |
 
 
@@ -3159,7 +3159,7 @@ _Appears in:_
 | `serviceAccountName` _string_ | ServiceAccountName is the name of the ServiceAccount to be used by the Pods. |  |  |
 | `affinity` _[AffinityConfig](#affinityconfig)_ | Affinity to be used in the Pod. |  |  |
 | `nodeSelector` _object (keys:string, values:string)_ | NodeSelector to be used in the Pod. |  |  |
-| `tolerations` _[Toleration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#toleration-v1-core) array_ | Tolerations to be used in the Pod. |  |  |
+| `tolerations` _[Toleration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#toleration-v1-core) array_ | Tolerations to be used in the Pod. |  |  |
 | `priorityClassName` _string_ | PriorityClassName to be used in the Pod. |  |  |
 | `successfulJobsHistoryLimit` _integer_ | SuccessfulJobsHistoryLimit defines the maximum number of successful Jobs to be displayed. |  | Minimum: 0 <br /> |
 | `failedJobsHistoryLimit` _integer_ | FailedJobsHistoryLimit defines the maximum number of failed Jobs to be displayed. |  | Minimum: 0 <br /> |
@@ -3175,7 +3175,7 @@ _Appears in:_
 | `sql` _string_ | Sql is the script to be executed by the SqlJob. |  |  |
 | `sqlConfigMapKeyRef` _[ConfigMapKeySelector](#configmapkeyselector)_ | SqlConfigMapKeyRef is a reference to a ConfigMap containing the Sql script.<br />It is defaulted to a ConfigMap with the contents of the Sql field. |  |  |
 | `backoffLimit` _integer_ | BackoffLimit defines the maximum number of attempts to successfully execute a SqlJob. | 5 |  |
-| `restartPolicy` _[RestartPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#restartpolicy-v1-core)_ | RestartPolicy to be added to the SqlJob Pod. | OnFailure | Enum: [Always OnFailure Never] <br /> |
+| `restartPolicy` _[RestartPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#restartpolicy-v1-core)_ | RestartPolicy to be added to the SqlJob Pod. | OnFailure | Enum: [Always OnFailure Never] <br /> |
 | `inheritMetadata` _[Metadata](#metadata)_ | InheritMetadata defines the metadata to be inherited by children resources. |  |  |
 
 
@@ -3205,7 +3205,7 @@ _Appears in:_
 
 
 StatefulSetPersistentVolumeClaimRetentionPolicy describes the lifecycle of PVCs created from volumeClaimTemplates.
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#statefulsetpersistentvolumeclaimretentionpolicy-v1-apps.
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#statefulsetpersistentvolumeclaimretentionpolicy-v1-apps.
 
 
 
@@ -3232,7 +3232,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `ephemeral` _boolean_ | Ephemeral indicates whether to use ephemeral storage in the PVCs. It is only compatible with non HA MariaDBs. |  |  |
-| `size` _[Quantity](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#quantity-resource-api)_ | Size of the PVCs to be mounted by MariaDB. Required if not provided in 'VolumeClaimTemplate'. It supersedes the storage size specified in 'VolumeClaimTemplate'. |  |  |
+| `size` _[Quantity](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#quantity-resource-api)_ | Size of the PVCs to be mounted by MariaDB. Required if not provided in 'VolumeClaimTemplate'. It supersedes the storage size specified in 'VolumeClaimTemplate'. |  |  |
 | `storageClassName` _string_ | StorageClassName to be used to provision the PVCS. It supersedes the 'StorageClassName' specified in 'VolumeClaimTemplate'.<br />If not provided, the default 'StorageClass' configured in the cluster is used. |  |  |
 | `resizeInUseVolumes` _boolean_ | ResizeInUseVolumes indicates whether the PVCs can be resized. The 'StorageClassName' used should have 'allowVolumeExpansion' set to 'true' to allow resizing.<br />It defaults to true. |  |  |
 | `waitForVolumeResize` _boolean_ | WaitForVolumeResize indicates whether to wait for the PVCs to be resized before marking the MariaDB object as ready. This will block other operations such as cluster recovery while the resize is in progress.<br />It defaults to true. |  |  |
@@ -3244,7 +3244,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#volume-v1-core.
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#volume-v1-core.
 
 
 
@@ -3293,7 +3293,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#tcpsocketaction-v1-core.
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#tcpsocketaction-v1-core.
 
 
 
@@ -3303,7 +3303,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `port` _[IntOrString](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#intorstring-intstr-util)_ |  |  |  |
+| `port` _[IntOrString](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#intorstring-intstr-util)_ |  |  |  |
 | `host` _string_ |  |  |  |
 
 
@@ -3376,7 +3376,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#topologyspreadconstraint-v1-core.
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#topologyspreadconstraint-v1-core.
 
 
 
@@ -3390,11 +3390,11 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `maxSkew` _integer_ |  |  |  |
 | `topologyKey` _string_ |  |  |  |
-| `whenUnsatisfiable` _[UnsatisfiableConstraintAction](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#unsatisfiableconstraintaction-v1-core)_ |  |  |  |
-| `labelSelector` _[LabelSelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#labelselector-v1-meta)_ |  |  |  |
+| `whenUnsatisfiable` _[UnsatisfiableConstraintAction](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#unsatisfiableconstraintaction-v1-core)_ |  |  |  |
+| `labelSelector` _[LabelSelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#labelselector-v1-meta)_ |  |  |  |
 | `minDomains` _integer_ |  |  |  |
-| `nodeAffinityPolicy` _[NodeInclusionPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#nodeinclusionpolicy-v1-core)_ |  |  |  |
-| `nodeTaintsPolicy` _[NodeInclusionPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#nodeinclusionpolicy-v1-core)_ |  |  |  |
+| `nodeAffinityPolicy` _[NodeInclusionPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#nodeinclusionpolicy-v1-core)_ |  |  |  |
+| `nodeTaintsPolicy` _[NodeInclusionPolicy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#nodeinclusionpolicy-v1-core)_ |  |  |  |
 | `matchLabelKeys` _string array_ |  |  |  |
 
 
@@ -3429,7 +3429,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `type` _[UpdateType](#updatetype)_ | Type defines the type of updates. One of `ReplicasFirstPrimaryLast`, `RollingUpdate` or `OnDelete`. If not defined, it defaults to `ReplicasFirstPrimaryLast`. | ReplicasFirstPrimaryLast | Enum: [ReplicasFirstPrimaryLast RollingUpdate OnDelete Never] <br /> |
-| `rollingUpdate` _[RollingUpdateStatefulSetStrategy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#rollingupdatestatefulsetstrategy-v1-apps)_ | RollingUpdate defines parameters for the RollingUpdate type. |  |  |
+| `rollingUpdate` _[RollingUpdateStatefulSetStrategy](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#rollingupdatestatefulsetstrategy-v1-apps)_ | RollingUpdate defines parameters for the RollingUpdate type. |  |  |
 | `autoUpdateDataPlane` _boolean_ | AutoUpdateDataPlane indicates whether the Galera data-plane version (agent and init containers) should be automatically updated based on the operator version. It defaults to false.<br />Updating the operator will trigger updates on all the MariaDB instances that have this flag set to true. Thus, it is recommended to progressively set this flag after having updated the operator. |  |  |
 
 
@@ -3466,7 +3466,7 @@ User is the Schema for the users API.  It is used to define grants as if you wer
 | --- | --- | --- | --- |
 | `apiVersion` _string_ | `k8s.mariadb.com/v1alpha1` | | |
 | `kind` _string_ | `User` | | |
-| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
 | `spec` _[UserSpec](#userspec)_ |  |  |  |
 
 
@@ -3483,8 +3483,8 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `requeueInterval` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#duration-v1-meta)_ | RequeueInterval is used to perform requeue reconciliations. |  |  |
-| `retryInterval` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#duration-v1-meta)_ | RetryInterval is the interval used to perform retries. |  |  |
+| `requeueInterval` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#duration-v1-meta)_ | RequeueInterval is used to perform requeue reconciliations. |  |  |
+| `retryInterval` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#duration-v1-meta)_ | RetryInterval is the interval used to perform retries. |  |  |
 | `cleanupPolicy` _[CleanupPolicy](#cleanuppolicy)_ | CleanupPolicy defines the behavior for cleaning up a SQL resource. |  | Enum: [Skip Delete] <br /> |
 | `mariaDbRef` _[MariaDBRef](#mariadbref)_ | MariaDBRef is a reference to a MariaDB object. |  | Required: \{\} <br /> |
 | `passwordSecretKeyRef` _[SecretKeySelector](#secretkeyselector)_ | PasswordSecretKeyRef is a reference to the password to be used by the User.<br />If not provided, the account will be locked and the password will expire.<br />If the referred Secret is labeled with "k8s.mariadb.com/watch", updates may be performed to the Secret in order to update the password. |  |  |
@@ -3514,9 +3514,9 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `accessModes` _[PersistentVolumeAccessMode](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#persistentvolumeaccessmode-v1-core) array_ |  |  |  |
-| `selector` _[LabelSelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#labelselector-v1-meta)_ |  |  |  |
-| `resources` _[VolumeResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#volumeresourcerequirements-v1-core)_ |  |  |  |
+| `accessModes` _[PersistentVolumeAccessMode](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#persistentvolumeaccessmode-v1-core) array_ |  |  |  |
+| `selector` _[LabelSelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#labelselector-v1-meta)_ |  |  |  |
+| `resources` _[VolumeResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#volumeresourcerequirements-v1-core)_ |  |  |  |
 | `storageClassName` _string_ |  |  |  |
 | `metadata` _[Metadata](#metadata)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
 
@@ -3525,7 +3525,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#volumemount-v1-core.
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#volumemount-v1-core.
 
 
 
@@ -3549,7 +3549,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#volume-v1-core.
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#volume-v1-core.
 
 
 
@@ -3592,7 +3592,7 @@ _Appears in:_
 
 
 
-Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#weightedpodaffinityterm-v1-core.
+Refer to the Kubernetes docs: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.36/#weightedpodaffinityterm-v1-core.
 
 
 
