@@ -107,6 +107,7 @@ Refer to the __[UPGRADE GUIDE](https://github.com/mariadb-operator/mariadb-opera
 - Fixed a `PhysicalBackup` deadlock that could occur during backup operations ([#1712](https://github.com/mariadb-operator/mariadb-operator/pull/1712))
 - Fixed a stale staging area issue that could cause incorrect backup state ([#1744](https://github.com/mariadb-operator/mariadb-operator/pull/1744))
 - Fixed MaxScale Pod initialization to properly account for services and listeners ([#1678](https://github.com/mariadb-operator/mariadb-operator/pull/1678))
+- Fixed Grant deletion hanging in Terminating on finalizer removal ([#1750](https://github.com/mariadb-operator/mariadb-operator/pull/1750))
 
 ## Improvements
 
@@ -119,6 +120,7 @@ Refer to the __[UPGRADE GUIDE](https://github.com/mariadb-operator/mariadb-opera
 - Added support for `TerminationGracePeriodSeconds` on MariaDB pods ([#1686](https://github.com/mariadb-operator/mariadb-operator/pull/1686))
 - Added support for `Lifecycle` hooks on MariaDB pods ([#1687](https://github.com/mariadb-operator/mariadb-operator/pull/1687))
 - Added `strategy` and `revisionHistoryLimit` configuration to Deployments in the Helm chart ([#1726](https://github.com/mariadb-operator/mariadb-operator/pull/1726))
+- Made `volumes` and `volumeMounts` fields mutable ([#1601](https://github.com/mariadb-operator/mariadb-operator/pull/1601))
 
 ---
 
