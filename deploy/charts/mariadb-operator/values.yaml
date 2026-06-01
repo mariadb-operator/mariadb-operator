@@ -326,7 +326,7 @@ config:
   # -- Default MariaDB image
   mariadbImage:
     repository: mariadb
-    tag: 11.8.5
+    tag: 11.8.8
   # -- Default MariaDB image name
   mariadbImageName: mariadb
   # -- Default MaxScale image

@@ -16,7 +16,7 @@
   <tbody>
     <tr>
       <td>MariaDB Community Server</td>
-      <td><code>mariadb:11.8.2</code></td>
+      <td><code>mariadb:11.8.8</code></td>
       <td><code>amd64</code> <code>arm64</code></td>
     </tr>
 	  <tr>
