@@ -17,6 +17,9 @@ var (
 	SQLGtidSlavePosNoValueForDomain = 1948
 	// Ref: https://mariadb.com/docs/server/reference/error-codes/mariadb-error-codes-1000-to-1099/e1095
 	SQLYouAreNotOwnerOfThread = 1095
+	// Error 1141 (42000): There is no such grant defined for user on host
+	// Ref: https://mariadb.com/docs/server/reference/error-codes/mariadb-error-codes-1100-to-1199/e1141
+	SQLNonexistingGrant = 1141
 )
 
 // IsSQLErrorNumber checks if the error's string message contains the pattern
@@ -49,4 +52,10 @@ func IsGtidSlavePosNoValueForDomain(err error) bool {
 // You are not owner of thread
 func IgnoreYouAreNotOwnerOfThread(err error) error {
 	return returnNilIfErrorIsNumber(err, SQLYouAreNotOwnerOfThread)
+}
+
+// IgnoreNonExistingGrant returns nil if the error is ER_NONEXISTING_GRANT (1141),
+// mirroring the IF EXISTS semantics used by DROP USER IF EXISTS and DROP DATABASE IF EXISTS.
+func IgnoreNonExistingGrant(err error) error {
+	return returnNilIfErrorIsNumber(err, SQLNonexistingGrant)
 }
