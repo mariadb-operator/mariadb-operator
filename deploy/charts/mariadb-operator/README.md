@@ -62,12 +62,12 @@ Refer to the [helm documentation](https://github.com/mariadb-operator/mariadb-op
 | certController.tolerations | list | `[]` | Tolerations to add to cert-controller container |
 | certController.topologySpreadConstraints | list | `[]` | topologySpreadConstraints to add to cert-controller container |
 | clusterName | string | `"cluster.local"` | Cluster DNS name |
-| config | object | `{"exporterImage":{"repository":"prom/mysqld-exporter","tag":"v0.15.1"},"exporterMaxscaleImage":{"repository":"mariadb/maxscale-prometheus-exporter-ubi","tag":"v0.0.1"},"galeraLibPath":"/usr/lib/galera/libgalera_smm.so","mariadbDefaultVersion":"11.8","mariadbImage":{"repository":"mariadb","tag":"11.8.5"},"mariadbImageName":"mariadb","maxscaleImage":{"repository":"mariadb/maxscale","tag":"23.08.5"}}` | Operator configuration |
+| config | object | `{"exporterImage":{"repository":"prom/mysqld-exporter","tag":"v0.15.1"},"exporterMaxscaleImage":{"repository":"mariadb/maxscale-prometheus-exporter-ubi","tag":"v0.0.1"},"galeraLibPath":"/usr/lib/galera/libgalera_smm.so","mariadbDefaultVersion":"11.8","mariadbImage":{"repository":"mariadb","tag":"11.8.8"},"mariadbImageName":"mariadb","maxscaleImage":{"repository":"mariadb/maxscale","tag":"23.08.5"}}` | Operator configuration |
 | config.exporterImage | object | `{"repository":"prom/mysqld-exporter","tag":"v0.15.1"}` | Default MariaDB exporter image |
 | config.exporterMaxscaleImage | object | `{"repository":"mariadb/maxscale-prometheus-exporter-ubi","tag":"v0.0.1"}` | Default MaxScale exporter image |
 | config.galeraLibPath | string | `"/usr/lib/galera/libgalera_smm.so"` | Galera library path to be used with MariaDB Galera |
 | config.mariadbDefaultVersion | string | `"11.8"` | Default MariaDB version to be used when unable to infer it via image tag |
-| config.mariadbImage | object | `{"repository":"mariadb","tag":"11.8.5"}` | Default MariaDB image |
+| config.mariadbImage | object | `{"repository":"mariadb","tag":"11.8.8"}` | Default MariaDB image |
 | config.mariadbImageName | string | `"mariadb"` | Default MariaDB image name |
 | config.maxscaleImage | object | `{"repository":"mariadb/maxscale","tag":"23.08.5"}` | Default MaxScale image |
 | crds | object | `{"enabled":false}` | CRDs |
