@@ -347,6 +347,100 @@ var _ = Describe("Grant deletion idempotency", Label("finalizer"), func() {
 		}, testTimeout, testInterval).Should(BeTrue())
 	})
 
+	It("should delete Grant with ALL PRIVILEGES and GRANT OPTION cleanly", func() {
+		By("Creating a User")
+		userKey := types.NamespacedName{
+			Name:      "grant-all-priv-user",
+			Namespace: testNamespace,
+		}
+		user := mariadbv1alpha1.User{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      userKey.Name,
+				Namespace: userKey.Namespace,
+			},
+			Spec: mariadbv1alpha1.UserSpec{
+				MariaDBRef: mariadbv1alpha1.MariaDBRef{
+					ObjectReference: mariadbv1alpha1.ObjectReference{
+						Name: testMdbkey.Name,
+					},
+					WaitForIt: true,
+				},
+				PasswordSecretKeyRef: &mariadbv1alpha1.SecretKeySelector{
+					LocalObjectReference: mariadbv1alpha1.LocalObjectReference{
+						Name: testPwdKey.Name,
+					},
+					Key: testPwdSecretKey,
+				},
+			},
+		}
+		Expect(k8sClient.Create(testCtx, &user)).To(Succeed())
+		DeferCleanup(func() {
+			Expect(k8sClient.Delete(testCtx, &user)).To(Succeed())
+		})
+
+		By("Expecting User to be ready eventually")
+		Eventually(func() bool {
+			if err := k8sClient.Get(testCtx, userKey, &user); err != nil {
+				return false
+			}
+			return user.IsReady()
+		}, testTimeout, testInterval).Should(BeTrue())
+
+		By("Creating a Grant with ALL PRIVILEGES and GRANT OPTION")
+		grantKey := types.NamespacedName{
+			Name:      "grant-all-priv-test",
+			Namespace: testNamespace,
+		}
+		grant := mariadbv1alpha1.Grant{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      grantKey.Name,
+				Namespace: grantKey.Namespace,
+			},
+			Spec: mariadbv1alpha1.GrantSpec{
+				SQLTemplate: mariadbv1alpha1.SQLTemplate{
+					RetryInterval: &metav1.Duration{Duration: 1 * time.Second},
+				},
+				MariaDBRef: mariadbv1alpha1.MariaDBRef{
+					ObjectReference: mariadbv1alpha1.ObjectReference{
+						Name: testMdbkey.Name,
+					},
+					WaitForIt: true,
+				},
+				Privileges:  []string{"ALL PRIVILEGES"},
+				Database:    "*",
+				Table:       "*",
+				Username:    userKey.Name,
+				GrantOption: true,
+			},
+		}
+		Expect(k8sClient.Create(testCtx, &grant)).To(Succeed())
+
+		By("Expecting Grant to be ready eventually")
+		Eventually(func() bool {
+			if err := k8sClient.Get(testCtx, grantKey, &grant); err != nil {
+				return false
+			}
+			return grant.IsReady()
+		}, testTimeout, testInterval).Should(BeTrue())
+
+		By("Expecting Grant to have finalizer")
+		Eventually(func() bool {
+			if err := k8sClient.Get(testCtx, grantKey, &grant); err != nil {
+				return false
+			}
+			return controllerutil.ContainsFinalizer(&grant, grantFinalizerName)
+		}, testTimeout, testInterval).Should(BeTrue())
+
+		By("Deleting the Grant")
+		Expect(k8sClient.Delete(testCtx, &grant)).To(Succeed())
+
+		By("Expecting Grant to be deleted cleanly (not Error 1064 on malformed REVOKE)")
+		Eventually(func() bool {
+			err := k8sClient.Get(testCtx, grantKey, &grant)
+			return apierrors.IsNotFound(err)
+		}, testTimeout, testInterval).Should(BeTrue())
+	})
+
 	It("should delete Grant cleanly with foreground propagation", func() {
 		By("Creating a User")
 		userKey := types.NamespacedName{

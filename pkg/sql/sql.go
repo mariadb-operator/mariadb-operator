@@ -624,17 +624,36 @@ func (c *Client) Revoke(
 		setOpt(&grantOpts)
 	}
 
-	if grantOpts.grantOption {
-		privileges = append(privileges, "GRANT OPTION")
+	var query string
+	// MariaDB requires "REVOKE ALL PRIVILEGES, GRANT OPTION FROM" (no ON clause)
+	// for this specific combination. The normal "REVOKE ... ON ... FROM" syntax
+	// produces Error 1064 (syntax error) when ALL PRIVILEGES and GRANT OPTION
+	// are combined: https://mariadb.com/kb/en/revoke/
+	if grantOpts.grantOption && hasAllPrivileges(privileges) {
+		query = fmt.Sprintf("REVOKE ALL PRIVILEGES, GRANT OPTION FROM %s", accountName)
+	} else {
+		if grantOpts.grantOption {
+			privileges = append(privileges, "GRANT OPTION")
+		}
+		query = fmt.Sprintf("REVOKE %s ON %s.%s FROM %s",
+			strings.Join(privileges, ", "),
+			escapeWildcard(database),
+			escapeWildcard(table),
+			accountName,
+		)
 	}
-	query := fmt.Sprintf("REVOKE %s ON %s.%s FROM %s",
-		strings.Join(privileges, ","),
-		escapeWildcard(database),
-		escapeWildcard(table),
-		accountName,
-	)
 
 	return IgnoreNonExistingGrant(c.Exec(ctx, query))
+}
+
+func hasAllPrivileges(privileges []string) bool {
+	for _, p := range privileges {
+		upper := strings.ToUpper(strings.TrimSpace(p))
+		if upper == "ALL PRIVILEGES" || upper == "ALL" {
+			return true
+		}
+	}
+	return false
 }
 
 func escapeWildcard(s string) string {
