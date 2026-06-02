@@ -182,15 +182,6 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 			Reconcile: r.reconcileStatefulSet,
 		},
 		{
-			// Root password rotation should be done:
-			// - After Pods have been created (after "StatefulSet"), to be able to connect.
-			//   If they are not Ready, it will be retried in the next reconciliation cycle.
-			// - Before any stage that connects via SQL (e.g. "Replication", "Galera"...),
-			// 	 to prevent them from using the old Password
-			Name:      "Root Password",
-			Reconcile: r.reconcileRootPassword,
-		},
-		{
 			Name:      "PodDisruptionBudget",
 			Reconcile: r.reconcilePodDisruptionBudget,
 		},
@@ -209,6 +200,10 @@ func (r *MariaDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		{
 			Name:      "Galera",
 			Reconcile: r.GaleraReconciler.Reconcile,
+		},
+		{
+			Name:      "Root Password",
+			Reconcile: r.reconcileRootPassword,
 		},
 		{
 			Name:      "Restore",
