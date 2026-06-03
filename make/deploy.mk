@@ -3,9 +3,8 @@ CLUSTER ?= mdb
 ##@ Cluster
 
 KIND_CONFIG ?= hack/config/kind.yaml
-# TODO: use upstream image when released, see: https://hub.docker.com/r/kindest/node/tags
 # Build custom image with: kind build node-image --type release --image kindest/node:1.36.1 1.36.1
-KIND_IMAGE ?= mmontes11/kind:1.36.1
+KIND_IMAGE ?= kindest/node:v1.36.1
 
 .PHONY: cluster
 cluster: kind ## Create a single node kind cluster.
