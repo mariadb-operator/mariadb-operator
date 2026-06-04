@@ -43,6 +43,10 @@ func (r *MariaDBReconciler) reconcileUpdates(ctx context.Context, mdb *mariadbv1
 	mariadbKey := client.ObjectKeyFromObject(mdb)
 	logger := log.FromContext(ctx).WithName("update")
 
+	if result, err := r.syncMaxScalePrimaryStatus(ctx, mdb, logger); !result.IsZero() || err != nil {
+		return result, err
+	}
+
 	var sts appsv1.StatefulSet
 	if err := r.Get(ctx, mariadbKey, &sts); err != nil {
 		return ctrl.Result{}, err
@@ -102,6 +106,19 @@ func (r *MariaDBReconciler) reconcileUpdates(ctx context.Context, mdb *mariadbv1
 		return ctrl.Result{}, fmt.Errorf("error updating primary Pod '%s': %v", primaryPod.Name, err)
 	}
 	return ctrl.Result{}, nil
+}
+
+func (r *MariaDBReconciler) syncMaxScalePrimaryStatus(ctx context.Context, mdb *mariadbv1alpha1.MariaDB,
+	logger logr.Logger) (ctrl.Result, error) {
+	if !mdb.IsMaxScaleEnabled() {
+		return ctrl.Result{}, nil
+	}
+	podIndex, err := r.getMaxScalePrimaryPod(ctx, mdb)
+	if err != nil {
+		logger.V(1).Info("error getting MaxScale primary Pod", "err", err)
+		return ctrl.Result{}, nil
+	}
+	return r.syncMaxScalePrimaryStatusIndex(ctx, mdb, podIndex, logger)
 }
 
 func (r *MariaDBReconciler) getUpdateAnnotations(ctx context.Context, mariadb *mariadbv1alpha1.MariaDB) (map[string]string, error) {
@@ -291,7 +308,7 @@ func (r *MariaDBReconciler) getPodsByRole(ctx context.Context, mdb *mariadbv1alp
 			replicas = append(replicas, pod)
 		}
 	}
-	if mdb.IsHAEnabled() && len(replicas) == 0 {
+	if mdb.IsHAEnabled() && mdb.Spec.Replicas > 1 && len(replicas) == 0 {
 		return ctrl.Result{}, errors.New("no replica Pods found")
 	}
 	if primary == nil {

@@ -331,6 +331,11 @@ func (r *PhysicalBackupReconciler) reconcileStorage(ctx context.Context, backup 
 
 func (r *PhysicalBackupReconciler) createJob(ctx context.Context, backup *mariadbv1alpha1.PhysicalBackup, mariadb *mariadbv1alpha1.MariaDB,
 	now time.Time, schedule cron.Schedule, logger logr.Logger) (ctrl.Result, error) {
+	if shouldWaitForConfiguredReplicaBackupTarget(backup, mariadb) {
+		logger.Info("Replication not configured yet. Requeuing...", "target", backup.Spec.Target)
+		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+	}
+
 	podIndex, err := r.physicalBackupTarget(ctx, backup, mariadb, logger)
 	if err != nil {
 		if errors.Is(err, errPhysicalBackupNoTargetPodsAvailable) {
@@ -363,6 +368,25 @@ func (r *PhysicalBackupReconciler) createJob(ctx context.Context, backup *mariad
 		return ctrl.Result{}, fmt.Errorf("error building Job: %v", err)
 	}
 
+	created := true
+	if err := r.Create(ctx, job); err != nil {
+		if !apierrors.IsAlreadyExists(err) {
+			return ctrl.Result{}, fmt.Errorf("error creating Job: %v", err)
+		}
+		created = false
+	}
+	if created {
+		r.Recorder.Eventf(
+			backup,
+			job,
+			corev1.EventTypeNormal,
+			mariadbv1alpha1.ReasonJobScheduled,
+			mariadbv1alpha1.ActionReconciling,
+			"Job %s scheduled",
+			job.Name,
+		)
+	}
+
 	if err := r.patchStatus(ctx, backup, func(status *mariadbv1alpha1.PhysicalBackupStatus) {
 		status.LastScheduleCheckTime = &metav1.Time{
 			Time: now,
@@ -378,19 +402,6 @@ func (r *PhysicalBackupReconciler) createJob(ctx context.Context, backup *mariad
 	}); err != nil {
 		return ctrl.Result{}, fmt.Errorf("error patching status: %v", err)
 	}
-
-	if err := r.Create(ctx, job); err != nil {
-		return ctrl.Result{}, fmt.Errorf("error creating Job: %v", err)
-	}
-	r.Recorder.Eventf(
-		backup,
-		job,
-		corev1.EventTypeNormal,
-		mariadbv1alpha1.ReasonJobScheduled,
-		mariadbv1alpha1.ActionReconciling,
-		"Job %s scheduled",
-		job.Name,
-	)
 	return ctrl.Result{}, nil
 }
 

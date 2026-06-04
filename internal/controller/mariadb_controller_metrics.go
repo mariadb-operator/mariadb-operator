@@ -43,9 +43,12 @@ func (r *MariaDBReconciler) reconcileMetrics(ctx context.Context, mariadb *maria
 		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 	}
 
-	if !mariadb.IsReady() {
-		log.FromContext(ctx).V(1).Info("MariaDB not ready. Requeuing metrics")
-		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+	if result, err := r.waitForWritableService(
+		ctx,
+		mariadb,
+		"MariaDB writable service not ready. Requeuing metrics",
+	); !result.IsZero() || err != nil {
+		return result, err
 	}
 
 	if err := r.reconcileMetricsPassword(ctx, mariadb); err != nil {

@@ -197,10 +197,11 @@ func (r *SqlReconciler) addRequeueIntervalOffset(duration time.Duration) time.Du
 
 func waitForMariaDB(ctx context.Context, client ctrlclient.Client, mdb interfaces.MariaDBObject,
 	logSql bool) (ctrl.Result, error) {
-
-	kind := mdb.GetObjectKind()
-	if kind.GroupVersionKind().Kind == mariadbv1alpha1.ExternalMariaDBKind {
+	switch mariadb := mdb.(type) {
+	case *mariadbv1alpha1.ExternalMariaDB:
 		return ctrl.Result{}, nil
+	case *mariadbv1alpha1.MariaDB:
+		return waitForMariaDBService(ctx, client, mariadb, logSql)
 	}
 
 	healthy, err := health.IsStatefulSetHealthy(
@@ -217,6 +218,26 @@ func waitForMariaDB(ctx context.Context, client ctrlclient.Client, mdb interface
 	if !healthy {
 		if logSql {
 			log.FromContext(ctx).V(1).Info("MariaDB unhealthy. Requeuing SQL resource")
+		}
+		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
+	}
+	return ctrl.Result{}, nil
+}
+
+func waitForMariaDBService(ctx context.Context, client ctrlclient.Client, mariadb *mariadbv1alpha1.MariaDB,
+	logSql bool) (ctrl.Result, error) {
+	serviceKey := ctrlclient.ObjectKeyFromObject(mariadb)
+	if mariadb.IsHAEnabled() {
+		serviceKey = mariadb.PrimaryServiceKey()
+	}
+
+	healthy, err := health.IsServiceHealthy(ctx, client, serviceKey)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if !healthy {
+		if logSql {
+			log.FromContext(ctx).V(1).Info("MariaDB service not healthy. Requeuing SQL resource")
 		}
 		return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 	}

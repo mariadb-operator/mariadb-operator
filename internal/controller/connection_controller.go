@@ -352,7 +352,10 @@ func (r *ConnectionReconciler) getSqlOpts(ctx context.Context, conn *mariadbv1al
 	if conn.Spec.Database != nil {
 		sqlOpts.Database = *conn.Spec.Database
 	}
-	if mxs := refs.MaxScale; mxs != nil && mxs.IsTLSEnabled() {
+	if mxs := refs.MaxScale; mxs != nil {
+		if !mxs.IsTLSEnabled() {
+			return sqlOpts, nil
+		}
 		caBundle, err := r.RefResolver.SecretKeyRef(ctx, mxs.TLSCABundleSecretKeyRef(), mxs.Namespace)
 		if err != nil {
 			return clientsql.Opts{}, fmt.Errorf("error getting MaxScale CA bundle: %v", err)
@@ -360,8 +363,12 @@ func (r *ConnectionReconciler) getSqlOpts(ctx context.Context, conn *mariadbv1al
 		sqlOpts.TLSCACert = []byte(caBundle)
 		sqlOpts.MaxscaleName = mxs.Name
 		sqlOpts.Namespace = mxs.Namespace
-
-	} else if mdb := refs.MariaDB; mdb != nil && mdb.IsTLSEnabled() {
+		if err := r.addSqlClientCertOpts(ctx, conn, refs.MariaDB, &sqlOpts); err != nil {
+			return clientsql.Opts{}, fmt.Errorf("error adding SQL client opts: %v", err)
+		}
+		return sqlOpts, nil
+	}
+	if mdb := refs.MariaDB; mdb != nil && mdb.IsTLSEnabled() {
 		caBundle, err := r.RefResolver.SecretKeyRef(ctx, mdb.TLSCABundleSecretKeyRef(), mdb.Namespace)
 		if err != nil {
 			return clientsql.Opts{}, fmt.Errorf("error getting MariaDB CA bundle: %v", err)

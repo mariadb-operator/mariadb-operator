@@ -2,7 +2,9 @@ package controller
 
 import (
 	"context"
+	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -37,6 +39,7 @@ import (
 	. "github.com/onsi/gomega"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"go.uber.org/zap/zapcore"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -45,9 +48,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/config"
 	ctrlcontroller "sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	log "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"sigs.k8s.io/yaml"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -364,6 +369,10 @@ var _ = BeforeSuite(func() {
 		Expect(err).ToNot(HaveOccurred())
 	}()
 
+	By("Applying static test load balancer Services")
+	Expect(k8sManager.GetCache().WaitForCacheSync(testCtx)).To(BeTrue())
+	testCreateStaticLoadBalancerServices(testCtx)
+
 	By("Creating initial test data")
 	testCreateInitialData(testCtx, *env)
 	DeferCleanup(func() {
@@ -371,3 +380,52 @@ var _ = BeforeSuite(func() {
 		testCleanupInitialData(testCtx)
 	})
 })
+
+func testCreateStaticLoadBalancerServices(ctx context.Context) {
+	manifestPaths := []string{
+		filepath.Join("..", "..", "hack", "manifests", "metallb", "mdb-test-service.yaml"),
+		filepath.Join("..", "..", "hack", "manifests", "metallb", "mariadb-service.yaml"),
+		filepath.Join("..", "..", "hack", "manifests", "metallb", "mariadb-repl-service.yaml"),
+		filepath.Join("..", "..", "hack", "manifests", "metallb", "mariadb-galera-service.yaml"),
+		filepath.Join("..", "..", "hack", "manifests", "metallb", "mariadb-galera-test-service.yaml"),
+		filepath.Join("..", "..", "hack", "manifests", "metallb", "maxscale-service.yaml"),
+		filepath.Join("..", "..", "hack", "manifests", "metallb", "maxscale-repl-service.yaml"),
+		filepath.Join("..", "..", "hack", "manifests", "metallb", "maxscale-galera-service.yaml"),
+	}
+	for _, manifestPath := range manifestPaths {
+		testApplyStaticLoadBalancerManifest(ctx, manifestPath)
+	}
+}
+
+func testApplyStaticLoadBalancerManifest(ctx context.Context, manifestPath string) {
+	manifest, err := os.ReadFile(manifestPath)
+	Expect(err).ToNot(HaveOccurred())
+
+	docs := strings.Split(strings.ReplaceAll(string(manifest), "$CIDR_PREFIX", testCidrPrefix), "---")
+	for _, doc := range docs {
+		doc = strings.TrimSpace(doc)
+		if doc == "" {
+			continue
+		}
+
+		var desired corev1.Service
+		Expect(yaml.Unmarshal([]byte(doc), &desired)).To(Succeed())
+
+		current := &corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      desired.Name,
+				Namespace: desired.Namespace,
+			},
+		}
+		_, err := controllerutil.CreateOrPatch(ctx, k8sClient, current, func() error {
+			current.Labels = desired.Labels
+			current.Annotations = desired.Annotations
+			current.Spec.Ports = desired.Spec.Ports
+			current.Spec.Selector = desired.Spec.Selector
+			current.Spec.PublishNotReadyAddresses = desired.Spec.PublishNotReadyAddresses
+			current.Spec.Type = desired.Spec.Type
+			return nil
+		})
+		Expect(err).ToNot(HaveOccurred())
+	}
+}

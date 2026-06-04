@@ -16,6 +16,7 @@ import (
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/health"
 	mdbhttp "github.com/mariadb-operator/mariadb-operator/v26/pkg/http"
 	mxsclient "github.com/mariadb-operator/mariadb-operator/v26/pkg/maxscale/client"
+	mxsstate "github.com/mariadb-operator/mariadb-operator/v26/pkg/maxscale/state"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/pki"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/refresolver"
 	stsobj "github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
@@ -72,10 +73,24 @@ func (m *maxScaleAPI) patchServer(ctx context.Context, srv *mariadbv1alpha1.MaxS
 }
 
 func (m *maxScaleAPI) updateServerState(ctx context.Context, srv *mariadbv1alpha1.MaxScaleServer) error {
+	currentSrv, err := m.client.Server.Get(ctx, srv.Name)
+	if err != nil {
+		return err
+	}
+	if shouldSkipServerStateUpdate(currentSrv.Attributes.State, srv.Maintenance) {
+		return nil
+	}
 	if srv.Maintenance {
 		return m.client.Server.SetMaintenance(ctx, srv.Name)
 	}
 	return m.client.Server.ClearMaintenance(ctx, srv.Name)
+}
+
+func shouldSkipServerStateUpdate(currentState string, desiredMaintenance bool) bool {
+	if mxsstate.InMaintenance(currentState) == desiredMaintenance {
+		return true
+	}
+	return desiredMaintenance && mxsstate.IsMaster(currentState)
 }
 
 func (m *maxScaleAPI) serverAttributes(ctx context.Context, srv *mariadbv1alpha1.MaxScaleServer) (*mxsclient.ServerAttributes, error) {

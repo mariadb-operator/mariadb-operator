@@ -14,6 +14,7 @@ import (
 	stsobj "github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	klabels "k8s.io/apimachinery/pkg/labels"
@@ -175,9 +176,15 @@ func (r *MariaDBReconciler) getStoragePVCs(ctx context.Context, mdb *mariadbv1al
 func (r *MariaDBReconciler) deleteStatefulSetLeavingOrphanPods(ctx context.Context, mdb *mariadbv1alpha1.MariaDB) error {
 	var sts appsv1.StatefulSet
 	if err := r.Get(ctx, client.ObjectKeyFromObject(mdb), &sts); err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil
+		}
 		return fmt.Errorf("error getting StatefulSet: %v", err)
 	}
 	if err := r.Delete(ctx, &sts, &client.DeleteOptions{PropagationPolicy: ptr.To(metav1.DeletePropagationOrphan)}); err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil
+		}
 		return fmt.Errorf("error deleting StatefulSet: %v", err)
 	}
 	return nil

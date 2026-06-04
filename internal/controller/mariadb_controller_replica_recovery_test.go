@@ -7,6 +7,7 @@ import (
 	volumesnapshotv1 "github.com/kubernetes-csi/external-snapshotter/client/v8/apis/volumesnapshot/v1"
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/metadata"
+	stsobj "github.com/mariadb-operator/mariadb-operator/v26/pkg/statefulset"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -121,6 +122,283 @@ var _ = Describe("isRecoverableError", func() {
 	)
 })
 
+var _ = Describe("shouldReconcileReplicaRecovery", func() {
+	DescribeTable("should decide whether replica recovery can run",
+		func(mdb *mariadbv1alpha1.MariaDB, expected bool) {
+			Expect(shouldReconcileReplicaRecovery(mdb)).To(Equal(expected))
+		},
+		Entry("allows recovery while update is in progress",
+			&mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Replication: &mariadbv1alpha1.Replication{
+						Enabled: true,
+					},
+				},
+				Status: mariadbv1alpha1.MariaDBStatus{
+					Conditions: []metav1.Condition{
+						{
+							Type:   mariadbv1alpha1.ConditionTypeReplicationConfigured,
+							Status: metav1.ConditionTrue,
+						},
+						{
+							Type:   mariadbv1alpha1.ConditionTypeUpdated,
+							Status: metav1.ConditionFalse,
+							Reason: mariadbv1alpha1.ConditionReasonUpdating,
+						},
+					},
+				},
+			},
+			true,
+		),
+		Entry("blocks recovery while initializing",
+			&mariadbv1alpha1.MariaDB{
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Replication: &mariadbv1alpha1.Replication{
+						Enabled: true,
+					},
+				},
+				Status: mariadbv1alpha1.MariaDBStatus{
+					Conditions: []metav1.Condition{
+						{
+							Type:   mariadbv1alpha1.ConditionTypeReplicationConfigured,
+							Status: metav1.ConditionTrue,
+						},
+						{
+							Type:   mariadbv1alpha1.ConditionTypeInitialized,
+							Status: metav1.ConditionFalse,
+						},
+					},
+				},
+			},
+			false,
+		),
+	)
+})
+
+var _ = Describe("getReplicasWithLostPVC", func() {
+	logger := logr.Discard()
+
+	DescribeTable("should detect lost replica storage",
+		func(mdb *mariadbv1alpha1.MariaDB, pvcUIDs map[int]string, expected []string) {
+			replicas := getReplicasWithLostPVC(mdb, pvcUIDs, logger)
+			Expect(replicas).To(Equal(expected))
+		},
+		Entry("recreated replica PVC",
+			&mariadbv1alpha1.MariaDB{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        "mariadb-repl",
+					Namespace:   "test",
+					Annotations: map[string]string{storagePVCUIDAnnotationKey(1): "old-uid"},
+				},
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Replicas: 3,
+					Replication: &mariadbv1alpha1.Replication{
+						Enabled: true,
+					},
+				},
+				Status: mariadbv1alpha1.MariaDBStatus{
+					CurrentPrimaryPodIndex: ptr.To(0),
+				},
+			},
+			map[int]string{
+				1: "new-uid",
+			},
+			[]string{stsobj.PodName(metav1.ObjectMeta{Name: "mariadb-repl"}, 1)},
+		),
+		Entry("missing replica PVC",
+			&mariadbv1alpha1.MariaDB{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        "mariadb-repl",
+					Namespace:   "test",
+					Annotations: map[string]string{storagePVCUIDAnnotationKey(2): "old-uid"},
+				},
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Replicas: 3,
+					Replication: &mariadbv1alpha1.Replication{
+						Enabled: true,
+					},
+				},
+				Status: mariadbv1alpha1.MariaDBStatus{
+					CurrentPrimaryPodIndex: ptr.To(0),
+				},
+			},
+			map[int]string{},
+			[]string{stsobj.PodName(metav1.ObjectMeta{Name: "mariadb-repl"}, 2)},
+		),
+		Entry("current primary PVC changes are ignored",
+			&mariadbv1alpha1.MariaDB{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        "mariadb-repl",
+					Namespace:   "test",
+					Annotations: map[string]string{storagePVCUIDAnnotationKey(0): "old-uid"},
+				},
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Replicas: 3,
+					Replication: &mariadbv1alpha1.Replication{
+						Enabled: true,
+					},
+				},
+				Status: mariadbv1alpha1.MariaDBStatus{
+					CurrentPrimaryPodIndex: ptr.To(0),
+				},
+			},
+			map[int]string{
+				0: "new-uid",
+			},
+			nil,
+		),
+		Entry("replicas without stored PVC UID are ignored",
+			&mariadbv1alpha1.MariaDB{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "mariadb-repl",
+					Namespace: "test",
+				},
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Replicas: 3,
+					Replication: &mariadbv1alpha1.Replication{
+						Enabled: true,
+					},
+				},
+				Status: mariadbv1alpha1.MariaDBStatus{
+					CurrentPrimaryPodIndex: ptr.To(0),
+				},
+			},
+			map[int]string{
+				1: "new-uid",
+			},
+			nil,
+		),
+	)
+})
+
+var _ = Describe("getReplicaScaleOutStartIndex", func() {
+	logger := logr.Discard()
+
+	DescribeTable("should detect replica tails that must be rebuilt through scale out",
+		func(mdb *mariadbv1alpha1.MariaDB, pvcStates map[int]storagePVCState, expected *int) {
+			startIndex := getReplicaScaleOutStartIndex(mdb, pvcStates, logger)
+			if expected == nil {
+				Expect(startIndex).To(BeNil())
+				return
+			}
+			Expect(startIndex).ToNot(BeNil())
+			Expect(*startIndex).To(Equal(*expected))
+		},
+		Entry("recreated tail replica after pvc tracking",
+			&mariadbv1alpha1.MariaDB{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        "mariadb-repl",
+					Namespace:   "test",
+					Annotations: map[string]string{storagePVCUIDAnnotationKey(1): "old-uid"},
+				},
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Replicas: 2,
+					Replication: &mariadbv1alpha1.Replication{
+						Enabled: true,
+					},
+				},
+				Status: mariadbv1alpha1.MariaDBStatus{
+					CurrentPrimaryPodIndex: ptr.To(0),
+				},
+			},
+			map[int]storagePVCState{
+				0: {UID: "primary-uid"},
+				1: {UID: "new-uid"},
+			},
+			ptr.To(1),
+		),
+		Entry("fresh tail replica pvc on new cluster with existing primary pvc",
+			&mariadbv1alpha1.MariaDB{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:              "mariadb-repl",
+					Namespace:         "test",
+					CreationTimestamp: metav1.NewTime(time.Date(2026, 3, 23, 10, 0, 0, 0, time.UTC)),
+				},
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Replicas: 2,
+					Replication: &mariadbv1alpha1.Replication{
+						Enabled: true,
+					},
+				},
+				Status: mariadbv1alpha1.MariaDBStatus{
+					CurrentPrimaryPodIndex: ptr.To(0),
+				},
+			},
+			map[int]storagePVCState{
+				0: {
+					UID:               "primary-uid",
+					CreationTimestamp: metav1.NewTime(time.Date(2026, 3, 22, 10, 0, 0, 0, time.UTC)),
+				},
+				1: {
+					UID:               "fresh-replica-uid",
+					CreationTimestamp: metav1.NewTime(time.Date(2026, 3, 23, 10, 1, 0, 0, time.UTC)),
+				},
+			},
+			ptr.To(1),
+		),
+		Entry("middle replica change does not trigger tail scale out",
+			&mariadbv1alpha1.MariaDB{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "mariadb-repl",
+					Namespace: "test",
+					Annotations: map[string]string{
+						storagePVCUIDAnnotationKey(1): "old-uid-1",
+						storagePVCUIDAnnotationKey(2): "old-uid-2",
+					},
+				},
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Replicas: 3,
+					Replication: &mariadbv1alpha1.Replication{
+						Enabled: true,
+					},
+				},
+				Status: mariadbv1alpha1.MariaDBStatus{
+					CurrentPrimaryPodIndex: ptr.To(0),
+				},
+			},
+			map[int]storagePVCState{
+				0: {UID: "primary-uid"},
+				1: {UID: "new-uid-1"},
+				2: {UID: "old-uid-2"},
+			},
+			nil,
+		),
+		Entry("fresh tail is ignored once pvc annotations are tracked",
+			&mariadbv1alpha1.MariaDB{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:              "mariadb-repl",
+					Namespace:         "test",
+					CreationTimestamp: metav1.NewTime(time.Date(2026, 3, 23, 10, 0, 0, 0, time.UTC)),
+					Annotations: map[string]string{
+						storagePVCUIDAnnotationKey(0): "primary-uid",
+						storagePVCUIDAnnotationKey(1): "fresh-replica-uid",
+					},
+				},
+				Spec: mariadbv1alpha1.MariaDBSpec{
+					Replicas: 2,
+					Replication: &mariadbv1alpha1.Replication{
+						Enabled: true,
+					},
+				},
+				Status: mariadbv1alpha1.MariaDBStatus{
+					CurrentPrimaryPodIndex: ptr.To(0),
+				},
+			},
+			map[int]storagePVCState{
+				0: {
+					UID:               "primary-uid",
+					CreationTimestamp: metav1.NewTime(time.Date(2026, 3, 22, 10, 0, 0, 0, time.UTC)),
+				},
+				1: {
+					UID:               "fresh-replica-uid",
+					CreationTimestamp: metav1.NewTime(time.Date(2026, 3, 23, 10, 1, 0, 0, time.UTC)),
+				},
+			},
+			nil,
+		),
+	)
+})
+
 var _ = Describe("MariaDB Replica Recovery", Ordered, func() {
 	var (
 		key = types.NamespacedName{
@@ -129,8 +407,6 @@ var _ = Describe("MariaDB Replica Recovery", Ordered, func() {
 		}
 		mdb *mariadbv1alpha1.MariaDB
 	)
-
-	var primaryPodIndex int
 
 	BeforeEach(func() {
 		mdb = buildTestMariaDBRecovery(key)
@@ -150,8 +426,6 @@ var _ = Describe("MariaDB Replica Recovery", Ordered, func() {
 			return mdb.IsReady()
 
 		}, testHighTimeout, testInterval).Should(BeTrue())
-
-		primaryPodIndex = ptr.Deref(mdb.Status.CurrentPrimaryPodIndex, 0)
 	})
 
 	DescribeTable(
@@ -203,21 +477,14 @@ var _ = Describe("MariaDB Replica Recovery", Ordered, func() {
 			By("Deleting the First Replica Pod")
 			deletePodByIndex(mdb, podIndexToDelete)
 
-			By("Flushing Binary Logs Continuously Until Replica Recovery is needed")
+			By("Expecting replica recovery to be triggered by the lost PVC")
 			Eventually(func() bool {
-				query := `FLUSH LOGS;`
-				executeSqlInPodByIndex(mdb, primaryPodIndex, query)
-				query = `PURGE BINARY LOGS BEFORE NOW();`
-				executeSqlInPodByIndex(mdb, primaryPodIndex, query)
-
 				if err := k8sClient.Get(testCtx, key, mdb); err != nil {
 					return false
 				}
-
-				// Adding mariadbv1alpha1.ConditionTypeReplicaRecovered just in case, should never be true, but we don't want to get stuck
 				return meta.IsStatusConditionTrue(mdb.Status.Conditions, mariadbv1alpha1.ConditionTypeReplicaRecovered) ||
 					meta.IsStatusConditionFalse(mdb.Status.Conditions, mariadbv1alpha1.ConditionTypeReplicaRecovered)
-			}, testTimeout, time.Second*2).Should(BeTrue())
+			}, testHighTimeout, testInterval).Should(BeTrue())
 
 			By("Expecting MariaDB to have recovered eventually")
 			Eventually(func() bool {

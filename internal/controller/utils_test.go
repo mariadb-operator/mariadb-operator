@@ -1334,6 +1334,21 @@ func executeSqlInPodByIndex(mdb *mariadbv1alpha1.MariaDB, podIndex int, query st
 	Expect(sqlClient.Exec(testCtx, query)).ToNot(HaveOccurred(), fmt.Sprintf("Could not execute query: %s.", query))
 }
 
+func readOnlyInPodByIndex(mdb *mariadbv1alpha1.MariaDB, podIndex int) (bool, error) {
+	clientSet := sql.NewClientSet(mdb, refresolver.New(k8sClient))
+	sqlClient, err := clientSet.ClientForIndex(testCtx, podIndex)
+	if err != nil {
+		return false, fmt.Errorf("could not create an internal client: %v", err)
+	}
+	defer sqlClient.Close()
+
+	readOnly, err := sqlClient.IsSystemVariableEnabled(testCtx, "read_only")
+	if err != nil {
+		return false, fmt.Errorf("could not query read_only: %v", err)
+	}
+	return readOnly, nil
+}
+
 func deletePhysicalBackup(key types.NamespacedName) {
 	var backup mariadbv1alpha1.PhysicalBackup
 	By("Deleting PhysicalBackup")
