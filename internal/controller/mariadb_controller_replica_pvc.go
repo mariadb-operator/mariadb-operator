@@ -29,6 +29,11 @@ type storagePVCState struct {
 	CreationTimestamp metav1.Time
 }
 
+type podLifecycleState struct {
+	UID               string
+	CreationTimestamp metav1.Time
+}
+
 type pvcChange struct {
 	PodIndex   int
 	StoredUID  string
@@ -220,6 +225,29 @@ func (r *MariaDBReconciler) getStoragePVCUIDs(ctx context.Context, mariadb *mari
 	return pvcUIDs, nil
 }
 
+func (r *MariaDBReconciler) getPodLifecycleStates(ctx context.Context,
+	mariadb *mariadbv1alpha1.MariaDB) (map[int]podLifecycleState, error) {
+	podStates := make(map[int]podLifecycleState, int(mariadb.Spec.Replicas))
+	for i := 0; i < int(mariadb.Spec.Replicas); i++ {
+		var pod corev1.Pod
+		podKey := client.ObjectKey{
+			Name:      stsobj.PodName(mariadb.ObjectMeta, i),
+			Namespace: mariadb.Namespace,
+		}
+		if err := r.Get(ctx, podKey, &pod); err != nil {
+			if apierrors.IsNotFound(err) {
+				continue
+			}
+			return nil, fmt.Errorf("error getting Pod '%s': %v", podKey.Name, err)
+		}
+		podStates[i] = podLifecycleState{
+			UID:               string(pod.UID),
+			CreationTimestamp: pod.CreationTimestamp,
+		}
+	}
+	return podStates, nil
+}
+
 func getReplicasWithLostPVC(mariadb *mariadbv1alpha1.MariaDB, pvcUIDs map[int]string, logger logr.Logger) []string {
 	if mariadb.Status.CurrentPrimaryPodIndex == nil {
 		return nil
@@ -256,7 +284,7 @@ func getReplicasWithLostPVC(mariadb *mariadbv1alpha1.MariaDB, pvcUIDs map[int]st
 }
 
 func getReplicasWithFreshPVCReplicationErrors(mariadb *mariadbv1alpha1.MariaDB, pvcStates map[int]storagePVCState,
-	logger logr.Logger) []string {
+	podStates map[int]podLifecycleState, logger logr.Logger) []string {
 	if mariadb.Status.CurrentPrimaryPodIndex == nil || mariadb.CreationTimestamp.IsZero() || mariadb.Status.Replication == nil {
 		return nil
 	}
@@ -269,6 +297,10 @@ func getReplicasWithFreshPVCReplicationErrors(mariadb *mariadbv1alpha1.MariaDB, 
 
 		state, ok := pvcStates[i]
 		if !ok || !isRecoverableFreshReplicaPVC(mariadb, pvcStates, i, state) {
+			continue
+		}
+
+		if isReplicaRecoveryCompletedForPVC(mariadb.Annotations, i, state) {
 			continue
 		}
 
@@ -289,6 +321,9 @@ func getReplicasWithFreshPVCReplicationErrors(mariadb *mariadbv1alpha1.MariaDB, 
 		if lastIOErrno == 0 && lastSQLErrno == 0 {
 			continue
 		}
+		if !isCurrentFreshPVCReplicationError(replicaStatus, state, podStates[i]) {
+			continue
+		}
 
 		logger.Info(
 			"Fresh replica storage has replication errors, scheduling replica recovery",
@@ -299,6 +334,21 @@ func getReplicasWithFreshPVCReplicationErrors(mariadb *mariadbv1alpha1.MariaDB, 
 		replicas = append(replicas, replica)
 	}
 	return replicas
+}
+
+func isCurrentFreshPVCReplicationError(replicaStatus mariadbv1alpha1.ReplicaStatus, pvcState storagePVCState,
+	podState podLifecycleState) bool {
+	if replicaStatus.LastErrorTransitionTime.IsZero() {
+		return false
+	}
+	errorTime := replicaStatus.LastErrorTransitionTime.Time
+	if !pvcState.CreationTimestamp.IsZero() && errorTime.Before(pvcState.CreationTimestamp.Time) {
+		return false
+	}
+	if !podState.CreationTimestamp.IsZero() && errorTime.Before(podState.CreationTimestamp.Time) {
+		return false
+	}
+	return true
 }
 
 func isRecoverableFreshReplicaPVC(mariadb *mariadbv1alpha1.MariaDB, pvcStates map[int]storagePVCState,

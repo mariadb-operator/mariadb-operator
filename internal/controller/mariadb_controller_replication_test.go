@@ -116,6 +116,69 @@ var _ = Describe("MariaDB replication", Ordered, func() {
 		Expect(k8sClient.Get(testCtx, key, &pdb)).To(Succeed())
 	})
 
+	It("should repair live SQL role drift", func() {
+		By("Expecting MariaDB primary to be set")
+		Eventually(func() bool {
+			if err := k8sClient.Get(testCtx, key, mdb); err != nil {
+				return false
+			}
+			return mdb.Status.CurrentPrimaryPodIndex != nil
+		}, testTimeout, testInterval).Should(BeTrue())
+
+		primaryPodIndex := *mdb.Status.CurrentPrimaryPodIndex
+		replicaPodIndex := -1
+		for i := 0; i < int(mdb.Spec.Replicas); i++ {
+			if i != primaryPodIndex {
+				replicaPodIndex = i
+				break
+			}
+		}
+		Expect(replicaPodIndex).ToNot(Equal(-1))
+
+		By("Expecting live SQL roles to be healthy")
+		Eventually(func() bool {
+			readOnly, err := readOnlyInPodByIndex(mdb, primaryPodIndex)
+			return err == nil && !readOnly
+		}, testTimeout, testInterval).Should(BeTrue())
+		Eventually(func() bool {
+			readOnly, err := readOnlyInPodByIndex(mdb, replicaPodIndex)
+			return err == nil && readOnly
+		}, testTimeout, testInterval).Should(BeTrue())
+
+		By("Corrupting live SQL role state")
+		executeSqlInPodByIndex(mdb, primaryPodIndex, "SET GLOBAL read_only=1;")
+		executeSqlInPodByIndex(mdb, replicaPodIndex, "SET GLOBAL read_only=0;")
+		Eventually(func() bool {
+			readOnly, err := readOnlyInPodByIndex(mdb, primaryPodIndex)
+			return err == nil && readOnly
+		}, testTimeout, testInterval).Should(BeTrue())
+		Eventually(func() bool {
+			readOnly, err := readOnlyInPodByIndex(mdb, replicaPodIndex)
+			return err == nil && !readOnly
+		}, testTimeout, testInterval).Should(BeTrue())
+
+		By("Triggering MariaDB reconciliation")
+		Eventually(func(g Gomega) bool {
+			g.Expect(k8sClient.Get(testCtx, key, mdb)).To(Succeed())
+			if mdb.Annotations == nil {
+				mdb.Annotations = make(map[string]string)
+			}
+			mdb.Annotations["k8s.mariadb.com/test-reconcile-at"] = time.Now().Format(time.RFC3339Nano)
+			g.Expect(k8sClient.Update(testCtx, mdb)).To(Succeed())
+			return true
+		}, testTimeout, testInterval).Should(BeTrue())
+
+		By("Expecting live SQL role drift to be repaired")
+		Eventually(func() bool {
+			readOnly, err := readOnlyInPodByIndex(mdb, primaryPodIndex)
+			return err == nil && !readOnly
+		}, testHighTimeout, testInterval).Should(BeTrue())
+		Eventually(func() bool {
+			readOnly, err := readOnlyInPodByIndex(mdb, replicaPodIndex)
+			return err == nil && readOnly
+		}, testHighTimeout, testInterval).Should(BeTrue())
+	})
+
 	It("should fail and switch over primary", func() {
 		By("Expecting MariaDB primary to be set")
 		Eventually(func() bool {

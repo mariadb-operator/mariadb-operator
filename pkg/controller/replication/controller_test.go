@@ -12,43 +12,65 @@ import (
 
 func TestShouldSkipPrimaryConfiguration(t *testing.T) {
 	tests := []struct {
-		name                     string
-		role                     mariadbv1alpha1.ReplicationRole
-		hasConfiguredReplication bool
-		want                     bool
+		name         string
+		readOnly     bool
+		readOnlyErr  error
+		isReplica    bool
+		isReplicaErr error
+		wantSkip     bool
+		wantErr      bool
 	}{
 		{
-			name:                     "primary before replication configured",
-			role:                     mariadbv1alpha1.ReplicationRolePrimary,
-			hasConfiguredReplication: false,
-			want:                     false,
+			name:     "writable primary without replica status",
+			readOnly: false,
+			wantSkip: true,
 		},
 		{
-			name:                     "primary after replication configured",
-			role:                     mariadbv1alpha1.ReplicationRolePrimary,
-			hasConfiguredReplication: true,
-			want:                     true,
+			name:     "read only primary must be reconfigured",
+			readOnly: true,
 		},
 		{
-			name:                     "replica after replication configured",
-			role:                     mariadbv1alpha1.ReplicationRoleReplica,
-			hasConfiguredReplication: true,
-			want:                     false,
+			name:      "primary with replica status must be reconfigured",
+			readOnly:  false,
+			isReplica: true,
 		},
 		{
-			name:                     "unknown after replication configured",
-			role:                     mariadbv1alpha1.ReplicationRoleUnknown,
-			hasConfiguredReplication: true,
-			want:                     false,
+			name:     "writable primary with empty replica status skips",
+			readOnly: false,
+			wantSkip: true,
+		},
+		{
+			name:        "read only error is returned",
+			readOnlyErr: errors.New("read_only unavailable"),
+			wantErr:     true,
+		},
+		{
+			name:         "replica status error is returned",
+			readOnly:     false,
+			isReplicaErr: errors.New("replica status unavailable"),
+			wantErr:      true,
 		},
 	}
 
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			got := shouldSkipPrimaryConfiguration(tt.role, tt.hasConfiguredReplication)
-			if got != tt.want {
-				t.Fatalf("unexpected skip decision: got %t, want %t", got, tt.want)
+			client := &fakeReplicaStateClient{
+				readOnly:     tt.readOnly,
+				readOnlyErr:  tt.readOnlyErr,
+				isReplica:    tt.isReplica,
+				isReplicaErr: tt.isReplicaErr,
+			}
+
+			got, err := shouldSkipPrimaryConfiguration(context.Background(), client, logr.Discard())
+			if tt.wantErr && err == nil {
+				t.Fatalf("expected error")
+			}
+			if !tt.wantErr && err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if got != tt.wantSkip {
+				t.Fatalf("unexpected skip decision: got %t, want %t", got, tt.wantSkip)
 			}
 		})
 	}
@@ -137,12 +159,18 @@ func TestShouldSkipReplicaConfiguration(t *testing.T) {
 type fakeReplicaStateClient struct {
 	readOnly      bool
 	readOnlyErr   error
+	isReplica     bool
+	isReplicaErr  error
 	replicaStatus *mariadbv1alpha1.ReplicaStatusVars
 	replicaErr    error
 }
 
 func (f *fakeReplicaStateClient) IsSystemVariableEnabled(context.Context, string) (bool, error) {
 	return f.readOnly, f.readOnlyErr
+}
+
+func (f *fakeReplicaStateClient) IsReplicationReplica(context.Context) (bool, error) {
+	return f.isReplica, f.isReplicaErr
 }
 
 func (f *fakeReplicaStateClient) ReplicaStatus(context.Context, logr.Logger) (*mariadbv1alpha1.ReplicaStatusVars, error) {

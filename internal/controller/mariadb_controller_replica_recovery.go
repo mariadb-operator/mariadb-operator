@@ -130,6 +130,10 @@ func (r *MariaDBReconciler) getPVCRecoveryReplicas(ctx context.Context, mariadb 
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("error getting storage PVC state: %v", err)
 	}
+	podStates, err := r.getPodLifecycleStates(ctx, mariadb)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("error getting Pod lifecycle state: %v", err)
+	}
 
 	pvcUIDs := make(map[int]string, len(pvcStates))
 	for i, state := range pvcStates {
@@ -139,7 +143,7 @@ func (r *MariaDBReconciler) getPVCRecoveryReplicas(ctx context.Context, mariadb 
 	}
 	replicas := mergeReplicasToRecover(
 		getReplicasWithLostPVC(mariadb, pvcUIDs, logger),
-		getReplicasWithFreshPVCReplicationErrors(mariadb, pvcStates, logger),
+		getReplicasWithFreshPVCReplicationErrors(mariadb, pvcStates, podStates, logger),
 	)
 	return pvcStates, pvcUIDs, replicas, nil
 }

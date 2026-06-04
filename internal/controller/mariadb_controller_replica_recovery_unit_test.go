@@ -119,6 +119,7 @@ func TestReconcileReplicaRecoveryDetectsFreshErroredReplicaAfterPVCUIDSync(t *te
 	creationTime := metav1.NewTime(time.Date(2026, 3, 13, 9, 0, 0, 0, time.UTC))
 	replicaPVCBirth := metav1.NewTime(time.Date(2026, 3, 23, 21, 12, 55, 0, time.UTC))
 	primaryPVCBirth := metav1.NewTime(time.Date(2026, 3, 13, 9, 19, 51, 0, time.UTC))
+	errorTransitionTime := metav1.NewTime(time.Date(2026, 3, 23, 21, 14, 0, 0, time.UTC))
 
 	mariadb := &mariadbv1alpha1.MariaDB{
 		ObjectMeta: metav1.ObjectMeta{
@@ -150,6 +151,7 @@ func TestReconcileReplicaRecoveryDetectsFreshErroredReplicaAfterPVCUIDSync(t *te
 				},
 				Replicas: map[string]mariadbv1alpha1.ReplicaStatus{
 					"mariadb-0": {
+						LastErrorTransitionTime: errorTransitionTime,
 						ReplicaStatusVars: mariadbv1alpha1.ReplicaStatusVars{
 							LastIOErrno:  ptr.To(0),
 							LastSQLErrno: ptr.To(1396),
@@ -222,6 +224,7 @@ func TestReconcileReplicaRecoveryDetectsFreshErroredConfiguredReplicaAfterPVCUID
 	creationTime := metav1.NewTime(time.Date(2026, 3, 13, 9, 0, 0, 0, time.UTC))
 	replicaPVCBirth := metav1.NewTime(time.Date(2026, 3, 23, 21, 12, 55, 0, time.UTC))
 	primaryPVCBirth := metav1.NewTime(time.Date(2026, 3, 13, 9, 19, 51, 0, time.UTC))
+	errorTransitionTime := metav1.NewTime(time.Date(2026, 3, 23, 21, 14, 0, 0, time.UTC))
 
 	mariadb := &mariadbv1alpha1.MariaDB{
 		ObjectMeta: metav1.ObjectMeta{
@@ -253,6 +256,7 @@ func TestReconcileReplicaRecoveryDetectsFreshErroredConfiguredReplicaAfterPVCUID
 				},
 				Replicas: map[string]mariadbv1alpha1.ReplicaStatus{
 					"mariadb-0": {
+						LastErrorTransitionTime: errorTransitionTime,
 						ReplicaStatusVars: mariadbv1alpha1.ReplicaStatusVars{
 							LastIOErrno:  ptr.To(0),
 							LastSQLErrno: ptr.To(1396),
@@ -313,6 +317,120 @@ func TestReconcileReplicaRecoveryDetectsFreshErroredConfiguredReplicaAfterPVCUID
 	}
 }
 
+func TestReconcileReplicaRecoveryIgnoresFreshPVCErrorOlderThanCurrentPod(t *testing.T) {
+	scheme := runtime.NewScheme()
+	if err := mariadbv1alpha1.AddToScheme(scheme); err != nil {
+		t.Fatalf("error adding MariaDB scheme: %v", err)
+	}
+	if err := corev1.AddToScheme(scheme); err != nil {
+		t.Fatalf("error adding core scheme: %v", err)
+	}
+
+	creationTime := metav1.NewTime(time.Date(2026, 3, 13, 9, 0, 0, 0, time.UTC))
+	replicaPVCBirth := metav1.NewTime(time.Date(2026, 3, 23, 21, 12, 55, 0, time.UTC))
+	primaryPVCBirth := metav1.NewTime(time.Date(2026, 3, 13, 9, 19, 51, 0, time.UTC))
+	errorTransitionTime := metav1.NewTime(time.Date(2026, 3, 23, 21, 14, 0, 0, time.UTC))
+	replicaPodBirth := metav1.NewTime(time.Date(2026, 3, 23, 21, 15, 0, 0, time.UTC))
+
+	mariadb := &mariadbv1alpha1.MariaDB{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:              "mariadb",
+			Namespace:         "test",
+			CreationTimestamp: creationTime,
+			Annotations: map[string]string{
+				storagePVCUIDAnnotationKey(0): "new-replica-uid",
+				storagePVCUIDAnnotationKey(1): "primary-uid",
+			},
+		},
+		Spec: mariadbv1alpha1.MariaDBSpec{
+			Replicas: 2,
+			Replication: &mariadbv1alpha1.Replication{
+				Enabled: true,
+				ReplicationSpec: mariadbv1alpha1.ReplicationSpec{
+					Primary: mariadbv1alpha1.PrimaryReplication{
+						PodIndex: ptr.To(1),
+					},
+				},
+			},
+		},
+		Status: mariadbv1alpha1.MariaDBStatus{
+			CurrentPrimaryPodIndex: ptr.To(1),
+			Replication: &mariadbv1alpha1.ReplicationStatus{
+				Roles: map[string]mariadbv1alpha1.ReplicationRole{
+					"mariadb-1": mariadbv1alpha1.ReplicationRolePrimary,
+					"mariadb-0": mariadbv1alpha1.ReplicationRoleReplica,
+				},
+				Replicas: map[string]mariadbv1alpha1.ReplicaStatus{
+					"mariadb-0": {
+						LastErrorTransitionTime: errorTransitionTime,
+						ReplicaStatusVars: mariadbv1alpha1.ReplicaStatusVars{
+							LastIOErrno:  ptr.To(0),
+							LastSQLErrno: ptr.To(1396),
+						},
+					},
+				},
+			},
+			Conditions: []metav1.Condition{
+				{
+					Type:   mariadbv1alpha1.ConditionTypeReplicationConfigured,
+					Status: metav1.ConditionTrue,
+					Reason: mariadbv1alpha1.ConditionReasonReplicationConfigured,
+				},
+			},
+		},
+	}
+	replicaPVC := &corev1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:              mariadb.PVCKey(builder.StorageVolume, 0).Name,
+			Namespace:         mariadb.Namespace,
+			UID:               "new-replica-uid",
+			CreationTimestamp: replicaPVCBirth,
+		},
+	}
+	primaryPVC := &corev1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:              mariadb.PVCKey(builder.StorageVolume, 1).Name,
+			Namespace:         mariadb.Namespace,
+			UID:               "primary-uid",
+			CreationTimestamp: primaryPVCBirth,
+		},
+	}
+	replicaPod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:              "mariadb-0",
+			Namespace:         mariadb.Namespace,
+			UID:               "current-replica-pod",
+			CreationTimestamp: replicaPodBirth,
+		},
+	}
+
+	fakeClient := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithStatusSubresource(&mariadbv1alpha1.MariaDB{}).
+		WithObjects(mariadb, replicaPVC, primaryPVC, replicaPod).
+		Build()
+
+	reconciler := &MariaDBReconciler{
+		Client: fakeClient,
+	}
+
+	result, err := reconciler.reconcileReplicaRecovery(context.Background(), mariadb)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !result.IsZero() {
+		t.Fatalf("expected no requeue for stale replica error, got %+v", result)
+	}
+
+	var updated mariadbv1alpha1.MariaDB
+	if err := fakeClient.Get(context.Background(), client.ObjectKeyFromObject(mariadb), &updated); err != nil {
+		t.Fatalf("error getting MariaDB: %v", err)
+	}
+	if updated.ReplicaRecoveryError() != nil {
+		t.Fatalf("expected stale fresh-PVC error to be ignored, got %v", updated.ReplicaRecoveryError())
+	}
+}
+
 func TestReconcileReplicaRecoveryDetectsRecreatedReplicaPVCOlderThanRecreatedMariaDB(t *testing.T) {
 	scheme := runtime.NewScheme()
 	if err := mariadbv1alpha1.AddToScheme(scheme); err != nil {
@@ -325,6 +443,7 @@ func TestReconcileReplicaRecoveryDetectsRecreatedReplicaPVCOlderThanRecreatedMar
 	primaryPVCBirth := metav1.NewTime(time.Date(2026, 4, 12, 15, 30, 0, 0, time.UTC))
 	replicaPVCBirth := metav1.NewTime(time.Date(2026, 4, 23, 15, 40, 38, 0, time.UTC))
 	creationTime := metav1.NewTime(time.Date(2026, 4, 23, 15, 53, 2, 0, time.UTC))
+	errorTransitionTime := metav1.NewTime(time.Date(2026, 4, 23, 15, 41, 0, 0, time.UTC))
 
 	mariadb := &mariadbv1alpha1.MariaDB{
 		ObjectMeta: metav1.ObjectMeta{
@@ -356,6 +475,7 @@ func TestReconcileReplicaRecoveryDetectsRecreatedReplicaPVCOlderThanRecreatedMar
 				},
 				Replicas: map[string]mariadbv1alpha1.ReplicaStatus{
 					"mariadb-1": {
+						LastErrorTransitionTime: errorTransitionTime,
 						ReplicaStatusVars: mariadbv1alpha1.ReplicaStatusVars{
 							LastIOErrno:  ptr.To(0),
 							LastSQLErrno: ptr.To(1396),
