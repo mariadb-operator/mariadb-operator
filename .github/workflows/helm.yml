@@ -187,6 +187,8 @@ jobs:
       # https://github.com/prometheus-community/helm-charts/blob/efa63abd06f635cd17ea729a8b91c6643c7d802a/.github/workflows/release.yaml#L89
       # https://github.com/orgs/prometheus-community/packages?repo_name=helm-charts
       - name: Push charts to GHCR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           shopt -s nullglob
           for pkg in .cr-release-packages/*.tgz; do
@@ -199,7 +201,8 @@ jobs:
             chart_version=$(basename "${pkg}" .tgz | sed 's/^.*-\([0-9].*\)$/\1/')
             repo="oci://ghcr.io/${{ github.repository_owner }}/charts"
 
-            if helm pull "${repo}/${chart_name}" --version "${chart_version}" --destination /tmp/helm-check 2>/dev/null; then
+            if gh api "/orgs/${{ github.repository_owner }}/packages/container/charts%2F${chart_name}/versions" \
+                --jq ".[].metadata.container.tags[]" 2>/dev/null | grep -q "^${chart_version}$"; then
               echo "Chart already exists: ${chart_name} ${chart_version}"
             else
               echo "Pushing ${chart_name} ${chart_version} to ${repo}"
