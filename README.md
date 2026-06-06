@@ -73,9 +73,9 @@ For example Custom Resources (CRs) demonstrating how to use the operator, refer 
 Helm charts are available as [OCI images on GitHub Container Registry](./docs/helm.md#oci-based-installation):
 
 ```bash
-helm install mariadb-operator-crds oci://ghcr.io/mariadb-operator/charts/mariadb-operator-crds --version <version>
-helm install mariadb-operator oci://ghcr.io/mariadb-operator/charts/mariadb-operator --version <version>
-helm install mariadb-cluster oci://ghcr.io/mariadb-operator/charts/mariadb-cluster --version <version>
+helm install mariadb-operator-crds oci://ghcr.io/mariadb-operator/charts/mariadb-operator-crds
+helm install mariadb-operator oci://ghcr.io/mariadb-operator/charts/mariadb-operator
+helm install mariadb-cluster oci://ghcr.io/mariadb-operator/charts/mariadb-cluster
 ```
 
 Refer to the [helm documentation](./docs/helm.md) for further detail.
