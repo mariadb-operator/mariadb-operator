@@ -36,6 +36,10 @@ func shouldReconcileReplicaRecovery(mdb *mariadbv1alpha1.MariaDB) bool {
 	if !mdb.IsReplicationEnabled() || !mdb.HasConfiguredReplication() {
 		return false
 	}
+	// Replica clusters part of a multi-cluster topology must be recovered using PhysicalBackups taken in in the primary cluster.
+	if mdb.IsMultiClusterReplica() {
+		return false
+	}
 	if mdb.IsSwitchingPrimary() || mdb.IsReplicationSwitchoverRequired() || mdb.IsInitializing() || mdb.IsScalingOut() ||
 		mdb.IsRestoringBackup() || mdb.IsResizingStorage() || mdb.IsUpdating() {
 		return false

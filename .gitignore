@@ -20,6 +20,10 @@ bin/
 # Packaged Helm charts
 *.tgz
 
+# Certificates
+*.crt
+*.pem
+
 # Git
 .gitconfig
 

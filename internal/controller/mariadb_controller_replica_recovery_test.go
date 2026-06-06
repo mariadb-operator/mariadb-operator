@@ -172,7 +172,7 @@ var _ = Describe("MariaDB Replica Recovery", Ordered, func() {
 			})
 
 			DeferCleanup(func() {
-				deletePhysicalBackup(backupKey)
+				deletePhysicalBackup(backupKey, false)
 				cleanupFn(backupKey)()
 			})
 
@@ -309,7 +309,7 @@ func buildTestMariaDBRecovery(key types.NamespacedName) *mariadbv1alpha1.MariaDB
 				Type: corev1.ServiceTypeLoadBalancer,
 				Metadata: &mariadbv1alpha1.Metadata{
 					Annotations: map[string]string{
-						"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.120",
+						"metallb.io/loadBalancerIPs": testCidrPrefix + ".0.120",
 					},
 				},
 			},
@@ -317,7 +317,7 @@ func buildTestMariaDBRecovery(key types.NamespacedName) *mariadbv1alpha1.MariaDB
 				Type: corev1.ServiceTypeLoadBalancer,
 				Metadata: &mariadbv1alpha1.Metadata{
 					Annotations: map[string]string{
-						"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.130",
+						"metallb.io/loadBalancerIPs": testCidrPrefix + ".0.130",
 					},
 				},
 			},
@@ -325,7 +325,7 @@ func buildTestMariaDBRecovery(key types.NamespacedName) *mariadbv1alpha1.MariaDB
 				Type: corev1.ServiceTypeLoadBalancer,
 				Metadata: &mariadbv1alpha1.Metadata{
 					Annotations: map[string]string{
-						"metallb.universe.tf/loadBalancerIPs": testCidrPrefix + ".0.131",
+						"metallb.io/loadBalancerIPs": testCidrPrefix + ".0.131",
 					},
 				},
 			},

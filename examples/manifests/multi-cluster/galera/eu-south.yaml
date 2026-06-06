@@ -1,0 +1,76 @@
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: MariaDB
+metadata:
+  name: mariadb-eu-south
+spec:
+  rootPasswordSecretKeyRef:
+    name: mariadb
+    key: password
+  storage:
+    size: 1Gi
+  replicas: 3
+  galera:
+    # Configuring MariaDB Replication between Two MariaDB Galera Clusters:
+    # See: https://mariadb.com/docs/galera-cluster/high-availability/using-mariadb-replication-with-mariadb-galera-cluster/configuring-mariadb-replication-between-two-mariadb-galera-clusters
+    enabled: true
+    gtidDomainId: 0
+    serverId: 1
+    replPasswordSecretKeyRef:
+      name: mariadb
+      key: password
+  primaryService:
+    type: LoadBalancer
+    metadata:
+      annotations:
+        metallb.io/loadBalancerIPs: 172.18.1.10
+  tls:
+    enabled: true
+    required: true
+    serverCASecretRef:
+      name: mariadb-server-ca
+    serverCertAdditionalNames:
+      - 172.18.1.10
+    clientCASecretRef:
+      name: mariadb-server-ca
+  multiCluster:
+    enabled: true
+    primary: mariadb-eu-south
+    members:
+      - name: mariadb-eu-south
+        externalMariaDbRef:
+          name: mariadb-eu-south
+      - name: mariadb-eu-central
+        externalMariaDbRef:
+          name: mariadb-eu-central
+  # Enable maintenance mode on the primary cluster before initiating a cluster switchover.
+  # This prevents new writes to the primary, allowing the replica cluster to fully sync.
+  # maintenance:
+  #   # Configure maintenance mode
+  #   enabled: true
+  #   # Do not allow connections through
+  #   cordon: true
+  #   # Drain long-running connections. Does not affect replication connections and such
+  #   drainConnections: true
+  #   # Drain after 30 seconds
+  #   drainGracePeriodSeconds: 30
+  #   # Set database to read_only
+  #   readOnly: true
+---
+apiVersion: k8s.mariadb.com/v1alpha1
+kind: ExternalMariaDB
+metadata:
+  name: mariadb-eu-south
+spec:
+  host: mariadb-eu-south-primary.default.svc.cluster.local
+  port: 3306
+  username: root
+  passwordSecretKeyRef:
+    name: mariadb
+    key: password
+  tls:
+    enabled: true
+    serverCASecretRef:
+      name: mariadb-server-ca
+    clientCASecretRef:
+      name: mariadb-server-ca
+

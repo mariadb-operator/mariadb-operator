@@ -145,6 +145,9 @@ jobs:
       - lint-crds
       - lint-operator
     if: github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+      packages: write
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -171,3 +174,24 @@ jobs:
           skip_existing: "true"
           pages_branch: gh-pages
           packages_with_index: true
+
+      # See: https://github.com/helm/chart-releaser/issues/183
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # See:
+      # https://github.com/prometheus-community/helm-charts/blob/efa63abd06f635cd17ea729a8b91c6643c7d802a/.github/workflows/release.yaml#L89
+      # https://github.com/orgs/prometheus-community/packages?repo_name=helm-charts
+      - name: Push charts to GHCR
+        run: |
+          shopt -s nullglob
+          for pkg in .cr-release-packages/*.tgz; do
+            if [ -z "${pkg:-}" ]; then
+              break
+            fi
+            helm push "${pkg}" "oci://ghcr.io/${{ github.repository_owner }}/charts"
+          done

@@ -36,8 +36,12 @@ test-int-basic: envtest ginkgo ## Run integration tests with label 'basic'
 	$(MAKE) TEST_ARGS="--label-filter=basic" test-int
 
 .PHONY: test-int
-test-int: envtest ginkgo ## Run integration tests.
-	$(TEST) ./internal/controller/...
+test-int: envtest ginkgo ## Run integration tests, excluding feature-specific tests.
+	$(TEST) --label-filter="!multi-cluster" ./internal/controller/...
+
+.PHONY: test-int-multi-cluster
+test-int-multi-cluster: envtest ginkgo ## Run multi-cluster integration tests.
+	$(TEST) --label-filter="multi-cluster" ./internal/controller/...
 
 .PHONY: test-api
 test-api: envtest ginkgo ## Run api unit tests.
@@ -155,6 +159,7 @@ pitr: local-dir ## Run PITR from your host.
 
 CLIENT_FLAGS ?= --host=mariadb-repl-primary.default.svc.cluster.local --port=3306 \
 	--username=root --password=MariaDB11! --database=test --table=test --timeout=3s
+# 	--ca-cert=ca.crt
 .PHONY: client
 client: ## Run sample client application in insert mode.
 	$(GO) run hack/client/*.go $(CLIENT_FLAGS) --mode=insert --insert-interval=1s

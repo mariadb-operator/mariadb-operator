@@ -45,17 +45,17 @@ spec:
               name: health
           env:
             - name: RELATED_IMAGE_MARIADB
-              value: docker-registry1.mariadb.com/library/mariadb:11.4.5
+              value: mariadb:11.4.5
             - name: RELATED_IMAGE_MARIADB_NAME
-              value: docker-registry1.mariadb.com/library/mariadb
+              value: mariadb
             - name: RELATED_IMAGE_MAXSCALE
-              value: docker-registry2.mariadb.com/mariadb/maxscale:23.08.5
+              value: mariadb/maxscale:23.08.5
             - name: RELATED_IMAGE_EXPORTER
               value: prom/mysqld-exporter:v0.15.1
             - name: RELATED_IMAGE_EXPORTER_MAXSCALE
-              value: docker-registry2.mariadb.com/mariadb/maxscale-prometheus-exporter-ubi:v0.0.1
+              value: mariadb/maxscale-prometheus-exporter-ubi:v0.0.1
             - name: MARIADB_OPERATOR_IMAGE
-              value: docker-registry3.mariadb.com/mariadb-operator/mariadb-operator:0.34.0
+              value: ghcr.io/mariadb-operator/mariadb-operator:0.34.0
             - name: MARIADB_GALERA_LIB_PATH
               value: /usr/lib64/galera/libgalera_smm.so
             - name: MARIADB_DEFAULT_VERSION

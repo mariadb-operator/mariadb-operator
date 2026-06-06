@@ -43,6 +43,11 @@ buckets:
     purge: false
     versioning: false
     objectlocking: false
+  - name: multi-cluster
+    policy: none
+    purge: false
+    versioning: false
+    objectlocking: false
   - name: scaleout
     policy: none
     purge: false
@@ -94,6 +99,11 @@ buckets:
     versioning: false
     objectlocking: false
   - name: test-mariadb-galera-physical
+    policy: none
+    purge: false
+    versioning: false
+    objectlocking: false
+  - name: test-multi-cluster
     policy: none
     purge: false
     versioning: false
