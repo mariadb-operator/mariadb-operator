@@ -193,5 +193,16 @@ jobs:
             if [ -z "${pkg:-}" ]; then
               break
             fi
-            helm push "${pkg}" "oci://ghcr.io/${{ github.repository_owner }}/charts"
+            # Extract chart name and version from package filename
+            # e.g. mariadb-operator-crds-26.6.0.tgz -> chart_name=mariadb-operator-crds, chart_version=26.6.0
+            chart_name=$(basename "${pkg}" .tgz | sed 's/-[0-9].*$//')
+            chart_version=$(basename "${pkg}" .tgz | sed 's/^.*-\([0-9].*\)$/\1/')
+            repo="oci://ghcr.io/${{ github.repository_owner }}/charts"
+
+            if helm pull "${repo}/${chart_name}" --version "${chart_version}" --destination /tmp/helm-check 2>/dev/null; then
+              echo "Chart already exists: ${chart_name} ${chart_version}"
+            else
+              echo "Pushing ${chart_name} ${chart_version} to ${repo}"
+              helm push "${pkg}" "${repo}"
+            fi
           done
