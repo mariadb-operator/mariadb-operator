@@ -3,9 +3,6 @@
 ## Table of contents
 <!-- toc -->
 - [Root Password](#root-password)
-- [Password Rotation](#password-rotation)
-- [Data Plane Updates](#data-plane-updates)
-- [Updating the password](#updating-the-password)
 <!-- /toc -->
 
 ## Root Password
