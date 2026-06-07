@@ -1,263 +1,104 @@
 package replication
 
 import (
-	"testing"
-
 	"github.com/go-logr/logr"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
-func TestParseGtid(t *testing.T) {
+var _ = Describe("ParseGtidWithDomainId", func() {
 	logger := logr.Discard()
 
-	tests := []struct {
-		name         string
-		input        string
-		gtidDomainId uint32
-		wantGtid     *Gtid
-		wantErr      bool
-	}{
-		{
-			name:         "empty",
-			input:        "",
-			gtidDomainId: 0,
-			wantGtid:     nil,
-			wantErr:      true,
-		},
-		{
-			name:         "invalid",
-			input:        "foo",
-			gtidDomainId: 0,
-			wantGtid:     nil,
-			wantErr:      true,
-		},
-		{
-			name:     "too few parts",
-			input:    "1-2",
-			wantGtid: nil,
-			wantErr:  true,
-		},
-		{
-			name:     "too many parts",
-			input:    "1-2-3-4",
-			wantGtid: nil,
-			wantErr:  true,
-		},
-		{
-			name:     "non-numeric domain",
-			input:    "a-2-3",
-			wantGtid: nil,
-			wantErr:  true,
-		},
-		{
-			name:     "non-numeric server",
-			input:    "1-b-3",
-			wantGtid: nil,
-			wantErr:  true,
-		},
-		{
-			name:     "non-numeric sequence",
-			input:    "1-2-c",
-			wantGtid: nil,
-			wantErr:  true,
-		},
-		{
-			name:         "all zero",
-			input:        "0-0-0",
-			gtidDomainId: 0,
-			wantGtid: &Gtid{
-				DomainID:   0,
-				ServerID:   0,
-				SequenceID: 0,
-			},
-			wantErr: false,
-		},
-		{
-			name:         "valid",
-			input:        "0-2001-48431",
-			gtidDomainId: 0,
-			wantGtid: &Gtid{
-				DomainID:   0,
-				ServerID:   2001,
-				SequenceID: 48431,
-			},
-			wantErr: false,
-		},
-		{
-			name:         "max values",
-			input:        "0-4294967295-18446744073709551615",
-			gtidDomainId: 0,
-			wantGtid: &Gtid{
-				DomainID:   0,
-				ServerID:   4294967295,
-				SequenceID: 18446744073709551615,
-			},
-			wantErr: false,
-		},
-		{
-			name:         "multiple GTID, some invalid",
-			input:        "2-a-48438,0-2001-48431,1-2101-48436",
-			gtidDomainId: 0,
-			wantGtid: &Gtid{
-				DomainID:   0,
-				ServerID:   2001,
-				SequenceID: 48431,
-			},
-			wantErr: false,
-		},
-		{
-			name:         "multiple GTID, some empty",
-			input:        ",0-2002-48432",
-			gtidDomainId: 0,
-			wantGtid: &Gtid{
-				DomainID:   0,
-				ServerID:   2002,
-				SequenceID: 48432,
-			},
-			wantErr: false,
-		},
-		{
-			name:         "multiple GTID from same domain",
-			input:        "0-2001-48431,0-2002-48432",
-			gtidDomainId: 0,
-			wantGtid: &Gtid{
-				DomainID:   0,
-				ServerID:   2001,
-				SequenceID: 48431,
-			},
-			wantErr: false,
-		},
-		{
-			name:         "1. multiple GTID from different domains",
-			input:        "2-2201-48438,1-2101-48436,0-2001-48431",
-			gtidDomainId: 0,
-			wantGtid: &Gtid{
-				DomainID:   0,
-				ServerID:   2001,
-				SequenceID: 48431,
-			},
-			wantErr: false,
-		},
-		{
-			name:         "2. multiple GTID from different domains",
-			input:        "0-2001-48431,2-2201-48438,1-2101-48436",
-			gtidDomainId: 0,
-			wantGtid: &Gtid{
-				DomainID:   0,
-				ServerID:   2001,
-				SequenceID: 48431,
-			},
-			wantErr: false,
-		},
-		{
-			name:         "3. multiple GTID from different domains",
-			input:        "2-2201-48438,0-2001-48431,1-2101-48436",
-			gtidDomainId: 0,
-			wantGtid: &Gtid{
-				DomainID:   0,
-				ServerID:   2001,
-				SequenceID: 48431,
-			},
-			wantErr: false,
-		},
-		{
-			name:         "multiple GTID from different domains using non default domain",
-			input:        "2-2201-48438,1-2101-48436,0-2001-48431",
-			gtidDomainId: 1,
-			wantGtid: &Gtid{
-				DomainID:   1,
-				ServerID:   2101,
-				SequenceID: 48436,
-			},
-			wantErr: false,
-		},
-		{
-			name:         "domain not found",
-			input:        "2-2201-48438,1-2101-48436,0-2001-48431",
-			gtidDomainId: 5,
-			wantGtid:     nil,
-			wantErr:      true,
-		},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			got, err := ParseGtidWithDomainId(tc.input, tc.gtidDomainId, logger)
-			if tc.wantErr {
-				if err == nil {
-					t.Fatalf("expected error for input %q, got nil and result %#v", tc.input, got)
-				}
+	DescribeTable("parses GTID with domain id",
+		func(input string, gtidDomainId uint32, wantGtid *Gtid, wantErr bool) {
+			got, err := ParseGtidWithDomainId(input, gtidDomainId, logger)
+			if wantErr {
+				Expect(err).To(HaveOccurred())
 				return
 			}
-			if err != nil {
-				t.Fatalf("unexpected error for input %q: %v", tc.input, err)
-			}
-			//nolint:staticcheck
-			if got == nil {
-				t.Fatalf("expected non-nil result for input %q", tc.input)
-			}
-			//nolint:staticcheck
-			if got.DomainID != tc.wantGtid.DomainID || got.ServerID != tc.wantGtid.ServerID || got.SequenceID != tc.wantGtid.SequenceID {
-				t.Fatalf("parse mismatch for input %q: got %+v, want %+v", tc.input, got, tc.wantGtid)
-			}
-		})
-	}
-}
+			Expect(err).NotTo(HaveOccurred())
+			Expect(got).NotTo(BeNil())
+			Expect(got.DomainID).To(Equal(wantGtid.DomainID))
+			Expect(got.ServerID).To(Equal(wantGtid.ServerID))
+			Expect(got.SequenceID).To(Equal(wantGtid.SequenceID))
+		},
+		Entry("empty", "", uint32(0), (*Gtid)(nil), true),
+		Entry("invalid", "foo", uint32(0), (*Gtid)(nil), true),
+		Entry("too few parts", "1-2", uint32(0), (*Gtid)(nil), true),
+		Entry("too many parts", "1-2-3-4", uint32(0), (*Gtid)(nil), true),
+		Entry("non-numeric domain", "a-2-3", uint32(0), (*Gtid)(nil), true),
+		Entry("non-numeric server", "1-b-3", uint32(0), (*Gtid)(nil), true),
+		Entry("non-numeric sequence", "1-2-c", uint32(0), (*Gtid)(nil), true),
+		Entry("all zero", "0-0-0", uint32(0), &Gtid{
+			DomainID:   0,
+			ServerID:   0,
+			SequenceID: 0,
+		}, false),
+		Entry("valid", "0-2001-48431", uint32(0), &Gtid{
+			DomainID:   0,
+			ServerID:   2001,
+			SequenceID: 48431,
+		}, false),
+		Entry("max values", "0-4294967295-18446744073709551615", uint32(0), &Gtid{
+			DomainID:   0,
+			ServerID:   4294967295,
+			SequenceID: 18446744073709551615,
+		}, false),
+		Entry("multiple GTID, some invalid", "2-a-48438,0-2001-48431,1-2101-48436", uint32(0), &Gtid{
+			DomainID:   0,
+			ServerID:   2001,
+			SequenceID: 48431,
+		}, false),
+		Entry("multiple GTID, some empty", ",0-2002-48432", uint32(0), &Gtid{
+			DomainID:   0,
+			ServerID:   2002,
+			SequenceID: 48432,
+		}, false),
+		Entry("multiple GTID from same domain", "0-2001-48431,0-2002-48432", uint32(0), &Gtid{
+			DomainID:   0,
+			ServerID:   2001,
+			SequenceID: 48431,
+		}, false),
+		Entry("1. multiple GTID from different domains", "2-2201-48438,1-2101-48436,0-2001-48431", uint32(0), &Gtid{
+			DomainID:   0,
+			ServerID:   2001,
+			SequenceID: 48431,
+		}, false),
+		Entry("2. multiple GTID from different domains", "0-2001-48431,2-2201-48438,1-2101-48436", uint32(0), &Gtid{
+			DomainID:   0,
+			ServerID:   2001,
+			SequenceID: 48431,
+		}, false),
+		Entry("3. multiple GTID from different domains", "2-2201-48438,0-2001-48431,1-2101-48436", uint32(0), &Gtid{
+			DomainID:   0,
+			ServerID:   2001,
+			SequenceID: 48431,
+		}, false),
+		Entry("multiple GTID from different domains using non default domain", "2-2201-48438,1-2101-48436,0-2001-48431", uint32(1), &Gtid{
+			DomainID:   1,
+			ServerID:   2101,
+			SequenceID: 48436,
+		}, false),
+		Entry("domain not found", "2-2201-48438,1-2101-48436,0-2001-48431", uint32(5), (*Gtid)(nil), true),
+	)
+})
 
-func TestParseRawGtidInMetaFile(t *testing.T) {
-	tests := []struct {
-		name     string
-		input    string
-		wantGtid string
-		wantErr  bool
-	}{
-		{
-			name:    "empty file",
-			input:   "",
-			wantErr: true,
-		},
-		{
-			name:    "one field only",
-			input:   "mariadb-repl-bin.000003",
-			wantErr: true,
-		},
-		{
-			name:    "two fields only",
-			input:   "mariadb-repl-bin.000004 456",
-			wantErr: true,
-		},
-		{
-			name:     "valid format",
-			input:    "mariadb-repl-bin.000001 335 0-10-9",
-			wantGtid: "0-10-9",
-			wantErr:  false,
-		},
-		{
-			name:     "extra spaces and newline",
-			input:    "  mariadb-repl-bin.000002   123    1-2-3  \n",
-			wantGtid: "1-2-3",
-			wantErr:  false,
-		},
-		{
-			name:     "tabs between fields",
-			input:    "bin\t12\t2-3-4",
-			wantGtid: "2-3-4",
-			wantErr:  false,
-		},
-	}
-
-	for _, tc := range tests {
-		tc := tc
-		t.Run(tc.name, func(t *testing.T) {
-			got, err := ParseRawGtidInMetaFile([]byte(tc.input))
-			if tc.wantErr && err == nil {
-				t.Fatal("error expected, got nil")
+var _ = Describe("ParseRawGtidInMetaFile", func() {
+	DescribeTable("parses raw GTID in meta file",
+		func(input string, wantGtid string, wantErr bool) {
+			got, err := ParseRawGtidInMetaFile([]byte(input))
+			if wantErr {
+				Expect(err).To(HaveOccurred())
+			} else {
+				Expect(err).NotTo(HaveOccurred())
 			}
-			if !tc.wantErr && err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-			if got != tc.wantGtid {
-				t.Fatalf("gtid mismatch: want=%q got=%q", tc.wantGtid, got)
-			}
-		})
-	}
-}
+			Expect(got).To(Equal(wantGtid))
+		},
+		Entry("empty file", "", "", true),
+		Entry("one field only", "mariadb-repl-bin.000003", "", true),
+		Entry("two fields only", "mariadb-repl-bin.000004 456", "", true),
+		Entry("valid format", "mariadb-repl-bin.000001 335 0-10-9", "0-10-9", false),
+		Entry("extra spaces and newline", "  mariadb-repl-bin.000002   123    1-2-3  \n", "1-2-3", false),
+		Entry("tabs between fields", "bin\t12\t2-3-4", "2-3-4", false),
+	)
+})
