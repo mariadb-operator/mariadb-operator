@@ -1,60 +1,52 @@
 package pki
 
 import (
-	"testing"
-
-	"github.com/google/go-cmp/cmp"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
-func TestBundleCertificatePEMs(t *testing.T) {
-	tests := []struct {
-		name      string
-		pems      [][]byte
-		opts      []BundleOption
-		wantBytes []byte
-		wantErr   bool
-	}{
-		{
-			name:      "nil",
-			pems:      nil,
-			opts:      nil,
-			wantBytes: nil,
-			wantErr:   true,
+var _ = Describe("BundleCertificatePEMs", func() {
+	DescribeTable("bundles certificate PEMs",
+		func(pems [][]byte, opts []BundleOption, wantBytes []byte, wantErr bool) {
+			bundleBytes, err := BundleCertificatePEMs(pems, opts...)
+			if wantErr {
+				Expect(err).To(HaveOccurred())
+			} else {
+				Expect(err).NotTo(HaveOccurred())
+			}
+			Expect(bundleBytes).To(Equal(wantBytes))
 		},
-		{
-			name: "empty",
-			pems: [][]byte{
+		Entry("nil", [][]byte(nil), []BundleOption(nil), []byte(nil), true),
+		Entry("empty",
+			[][]byte{
 				[]byte(""),
 				[]byte(""),
 			},
-			opts:      nil,
-			wantBytes: nil,
-			wantErr:   true,
-		},
-		{
-			name: "invalid PEM",
-			pems: [][]byte{
+			[]BundleOption(nil),
+			[]byte(nil),
+			true,
+		),
+		Entry("invalid PEM",
+			[][]byte{
 				[]byte("test"),
 			},
-			opts:      nil,
-			wantBytes: nil,
-			wantErr:   true,
-		},
-		{
-			name: "invalid cert",
-			pems: [][]byte{
+			[]BundleOption(nil),
+			[]byte(nil),
+			true,
+		),
+		Entry("invalid cert",
+			[][]byte{
 				[]byte(`-----BEGIN CERTIFICATE-----
 FOO
 -----END CERTIFICATE-----
 `),
 			},
-			opts:      nil,
-			wantBytes: nil,
-			wantErr:   true,
-		},
-		{
-			name: "mixed valid and invalid PEMs",
-			pems: [][]byte{
+			[]BundleOption(nil),
+			[]byte(nil),
+			true,
+		),
+		Entry("mixed valid and invalid PEMs",
+			[][]byte{
 				// Subject: CN=mariadb-client-ca
 				// Serial Number: a8:a4:f4:36:0a:dd:95:97:65:8a:b0:60:4d:f5:d1:47:ae:a9:6a
 				[]byte(`-----BEGIN CERTIFICATE-----
@@ -74,10 +66,10 @@ WVQiuKIOhYk=
 `),
 				[]byte("invalid data"),
 			},
-			opts: nil,
+			[]BundleOption(nil),
 			// Subject: CN=mariadb-client-ca
 			// Serial Number: a8:a4:f4:36:0a:dd:95:97:65:8a:b0:60:4d:f5:d1:47:ae:a9:6a
-			wantBytes: []byte(`-----BEGIN CERTIFICATE-----
+			[]byte(`-----BEGIN CERTIFICATE-----
 MIICFDCCAX2gAwIBAgIUAKik9DYK3ZWXZYqwYE310UeuqWowDQYJKoZIhvcNAQEL
 BQAwHDEaMBgGA1UEAwwRbWFyaWFkYi1jbGllbnQtY2EwHhcNMjQxMTA4MTcxMTM0
 WhcNMjUxMTA4MTcxMTM0WjAcMRowGAYDVQQDDBFtYXJpYWRiLWNsaWVudC1jYTCB
@@ -92,11 +84,10 @@ VDiVGD+f28/5eme54pwI9FUuKxujP0pj4VPiCKR2igJcJnCIAeDTlNmcs7CiXtIn
 WVQiuKIOhYk=
 -----END CERTIFICATE-----
 `),
-			wantErr: false,
-		},
-		{
-			name: "single PEM with single block",
-			pems: [][]byte{
+			false,
+		),
+		Entry("single PEM with single block",
+			[][]byte{
 				// Subject: CN=mariadb-client-ca
 				// Serial Number: a8:a4:f4:36:0a:dd:95:97:65:8a:b0:60:4d:f5:d1:47:ae:a9:6a
 				[]byte(`-----BEGIN CERTIFICATE-----
@@ -115,10 +106,10 @@ WVQiuKIOhYk=
 -----END CERTIFICATE-----
 `),
 			},
-			opts: nil,
+			[]BundleOption(nil),
 			// Subject: CN=mariadb-client-ca
 			// Serial Number: a8:a4:f4:36:0a:dd:95:97:65:8a:b0:60:4d:f5:d1:47:ae:a9:6a
-			wantBytes: []byte(`-----BEGIN CERTIFICATE-----
+			[]byte(`-----BEGIN CERTIFICATE-----
 MIICFDCCAX2gAwIBAgIUAKik9DYK3ZWXZYqwYE310UeuqWowDQYJKoZIhvcNAQEL
 BQAwHDEaMBgGA1UEAwwRbWFyaWFkYi1jbGllbnQtY2EwHhcNMjQxMTA4MTcxMTM0
 WhcNMjUxMTA4MTcxMTM0WjAcMRowGAYDVQQDDBFtYXJpYWRiLWNsaWVudC1jYTCB
@@ -133,11 +124,10 @@ VDiVGD+f28/5eme54pwI9FUuKxujP0pj4VPiCKR2igJcJnCIAeDTlNmcs7CiXtIn
 WVQiuKIOhYk=
 -----END CERTIFICATE-----
 `),
-			wantErr: false,
-		},
-		{
-			name: "multiple PEMs with single block",
-			pems: [][]byte{
+			false,
+		),
+		Entry("multiple PEMs with single block",
+			[][]byte{
 				// Subject: CN=mariadb-client-ca
 				// Serial Number: a8:a4:f4:36:0a:dd:95:97:65:8a:b0:60:4d:f5:d1:47:ae:a9:6a
 				[]byte(`-----BEGIN CERTIFICATE-----
@@ -173,12 +163,12 @@ idE60fGmuV8=
 -----END CERTIFICATE-----
 `),
 			},
-			opts: nil,
+			[]BundleOption(nil),
 			// Subject: CN=mariadb-client-ca
 			// Serial Number: a8:a4:f4:36:0a:dd:95:97:65:8a:b0:60:4d:f5:d1:47:ae:a9:6a
 			// Subject: CN=mariadb-server-ca
 			// Serial Number: 0a:c3:3a:30:47:9e:b3:0e:2a:4d:8a:e9:e6:56:95:ad:98:70:a2:91
-			wantBytes: []byte(`-----BEGIN CERTIFICATE-----
+			[]byte(`-----BEGIN CERTIFICATE-----
 MIICFDCCAX2gAwIBAgIUAKik9DYK3ZWXZYqwYE310UeuqWowDQYJKoZIhvcNAQEL
 BQAwHDEaMBgGA1UEAwwRbWFyaWFkYi1jbGllbnQtY2EwHhcNMjQxMTA4MTcxMTM0
 WhcNMjUxMTA4MTcxMTM0WjAcMRowGAYDVQQDDBFtYXJpYWRiLWNsaWVudC1jYTCB
@@ -207,11 +197,10 @@ xj8tutwZ3pBj0lLiTnzYb6VnXpl12TiHImapwwAkZEpMZ3W3o0TjK2gyc6F9o2h/
 idE60fGmuV8=
 -----END CERTIFICATE-----
 `),
-			wantErr: false,
-		},
-		{
-			name: "multiple PEMs with multiple blocks",
-			pems: [][]byte{
+			false,
+		),
+		Entry("multiple PEMs with multiple blocks",
+			[][]byte{
 				// Subject: CN=mariadb-client-ca
 				// Serial Number: a8:a4:f4:36:0a:dd:95:97:65:8a:b0:60:4d:f5:d1:47:ae:a9:6a
 				// Subject: CN=mariadb-client-ca
@@ -279,7 +268,7 @@ IOz3lKAeaG0=
 -----END CERTIFICATE-----
 `),
 			},
-			opts: nil,
+			[]BundleOption(nil),
 			// Subject: CN=mariadb-client-ca
 			// Serial Number: a8:a4:f4:36:0a:dd:95:97:65:8a:b0:60:4d:f5:d1:47:ae:a9:6a
 			// Subject: CN=mariadb-client-ca
@@ -288,7 +277,7 @@ IOz3lKAeaG0=
 			// Serial Number: 0a:c3:3a:30:47:9e:b3:0e:2a:4d:8a:e9:e6:56:95:ad:98:70:a2:91
 			// Subject: CN=mariadb-server-ca
 			// Serial Number: 0d:05:59:c6:ea:0f:f8:d8:c7:ed:c8:59:2b:4e:be:ee:d9:b9:19:44
-			wantBytes: []byte(`-----BEGIN CERTIFICATE-----
+			[]byte(`-----BEGIN CERTIFICATE-----
 MIICFDCCAX2gAwIBAgIUAKik9DYK3ZWXZYqwYE310UeuqWowDQYJKoZIhvcNAQEL
 BQAwHDEaMBgGA1UEAwwRbWFyaWFkYi1jbGllbnQtY2EwHhcNMjQxMTA4MTcxMTM0
 WhcNMjUxMTA4MTcxMTM0WjAcMRowGAYDVQQDDBFtYXJpYWRiLWNsaWVudC1jYTCB
@@ -345,11 +334,10 @@ k1rkhnzkhp/qyt5VrpEtGjQmwDnwvbC/FYvbIWJ02asmjeqrg8IpSY+yJycbuzTW
 IOz3lKAeaG0=
 -----END CERTIFICATE-----
 `),
-			wantErr: false,
-		},
-		{
-			name: "duplicated certs",
-			pems: [][]byte{
+			false,
+		),
+		Entry("duplicated certs",
+			[][]byte{
 				// Subject: CN=mariadb-client-ca
 				// Serial Number: a8:a4:f4:36:0a:dd:95:97:65:8a:b0:60:4d:f5:d1:47:ae:a9:6a
 				// Subject: CN=mariadb-client-ca
@@ -417,12 +405,12 @@ idE60fGmuV8=
 -----END CERTIFICATE-----
 `),
 			},
-			opts: nil,
+			[]BundleOption(nil),
 			// Subject: CN=mariadb-client-ca
 			// Serial Number: a8:a4:f4:36:0a:dd:95:97:65:8a:b0:60:4d:f5:d1:47:ae:a9:6a
 			// Subject: CN=mariadb-server-ca
 			// Serial Number: 0a:c3:3a:30:47:9e:b3:0e:2a:4d:8a:e9:e6:56:95:ad:98:70:a2:91
-			wantBytes: []byte(`-----BEGIN CERTIFICATE-----
+			[]byte(`-----BEGIN CERTIFICATE-----
 MIICFDCCAX2gAwIBAgIUAKik9DYK3ZWXZYqwYE310UeuqWowDQYJKoZIhvcNAQEL
 BQAwHDEaMBgGA1UEAwwRbWFyaWFkYi1jbGllbnQtY2EwHhcNMjQxMTA4MTcxMTM0
 WhcNMjUxMTA4MTcxMTM0WjAcMRowGAYDVQQDDBFtYXJpYWRiLWNsaWVudC1jYTCB
@@ -451,11 +439,10 @@ xj8tutwZ3pBj0lLiTnzYb6VnXpl12TiHImapwwAkZEpMZ3W3o0TjK2gyc6F9o2h/
 idE60fGmuV8=
 -----END CERTIFICATE-----
 `),
-			wantErr: false,
-		},
-		{
-			name: "expired cert",
-			pems: [][]byte{
+			false,
+		),
+		Entry("expired cert",
+			[][]byte{
 				// Expired cert
 				[]byte(`-----BEGIN CERTIFICATE-----
 MIIFSzCCBDOgAwIBAgIQSueVSfqavj8QDxekeOFpCTANBgkqhkiG9w0BAQsFADCB
@@ -490,27 +477,11 @@ RwxPuzZEaFZcVlmtqoq8
 -----END CERTIFICATE-----
 `),
 			},
-			opts: []BundleOption{
+			[]BundleOption{
 				WithSkipExpired(true),
 			},
-			wantBytes: nil,
-			wantErr:   true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			bundleBytes, err := BundleCertificatePEMs(tt.pems, tt.opts...)
-
-			if tt.wantErr && err == nil {
-				t.Error("expect error to have occurred, got nil")
-			}
-			if !tt.wantErr && err != nil {
-				t.Errorf("expect error to not have occurred, got: %v", err)
-			}
-			if diff := cmp.Diff(tt.wantBytes, bundleBytes); diff != "" {
-				t.Errorf("unexpected bundle content (-want +got):\n%s", diff)
-			}
-		})
-	}
-}
+			[]byte(nil),
+			true,
+		),
+	)
+})
