@@ -1,36 +1,37 @@
 package builder
 
 import (
-	"testing"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	"k8s.io/utils/ptr"
 )
 
-func TestServiceMonitorMeta(t *testing.T) {
-	builder := newDefaultTestBuilder(t)
-	tests := []struct {
-		name     string
-		mariadb  *mariadbv1alpha1.MariaDB
-		wantMeta *mariadbv1alpha1.Metadata
-	}{
-		{
-			name: "no meta",
-			mariadb: &mariadbv1alpha1.MariaDB{
+var _ = Describe("ServiceMonitorMeta", func() {
+	builder := newDefaultTestBuilder()
+
+	DescribeTable("should build ServiceMonitor with expected meta",
+		func(mariadb *mariadbv1alpha1.MariaDB, wantMeta *mariadbv1alpha1.Metadata) {
+			svcMonitor, err := builder.BuildServiceMonitor(mariadb)
+			Expect(err).NotTo(HaveOccurred())
+			assertObjectMeta(&svcMonitor.ObjectMeta, wantMeta.Labels, wantMeta.Annotations)
+		},
+		Entry("no meta",
+			&mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Metrics: &mariadbv1alpha1.MariadbMetrics{
 						Enabled: true,
 					},
 				},
 			},
-			wantMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels:      map[string]string{},
 				Annotations: map[string]string{},
 			},
-		},
-		{
-			name: "with meta",
-			mariadb: &mariadbv1alpha1.MariaDB{
+		),
+		Entry("with meta",
+			&mariadbv1alpha1.MariaDB{
 				Spec: mariadbv1alpha1.MariaDBSpec{
 					Metrics: &mariadbv1alpha1.MariadbMetrics{
 						Enabled: true,
@@ -45,7 +46,7 @@ func TestServiceMonitorMeta(t *testing.T) {
 					},
 				},
 			},
-			wantMeta: &mariadbv1alpha1.Metadata{
+			&mariadbv1alpha1.Metadata{
 				Labels: map[string]string{
 					"database.myorg.io": "mariadb",
 				},
@@ -53,67 +54,27 @@ func TestServiceMonitorMeta(t *testing.T) {
 					"database.myorg.io": "mariadb",
 				},
 			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			svcMonitor, err := builder.BuildServiceMonitor(tt.mariadb)
-			if err != nil {
-				t.Fatalf("unexpected error building ServiceMonitor: %v", err)
-			}
-			assertObjectMeta(t, &svcMonitor.ObjectMeta, tt.wantMeta.Labels, tt.wantMeta.Annotations)
-		})
-	}
-}
+		),
+	)
+})
 
-func TestRoleRelabelConfig(t *testing.T) {
-	tests := []struct {
-		name            string
-		podIndex        int
-		primaryPodIndex *int
-		wantRole        string
-	}{
-		{
-			name:            "primary index is nil",
-			podIndex:        0,
-			primaryPodIndex: nil,
-			wantRole:        "",
-		},
-		{
-			name:            "pod is primary",
-			podIndex:        0,
-			primaryPodIndex: ptr.To(0),
-			wantRole:        "primary",
-		},
-		{
-			name:            "pod is replica",
-			podIndex:        1,
-			primaryPodIndex: ptr.To(0),
-			wantRole:        "replica",
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			roleRelabelConfig := roleRelabelConfig(tt.podIndex, tt.primaryPodIndex)
-			if tt.wantRole == "" {
-				if roleRelabelConfig != nil {
-					t.Errorf("expected empty relabel config, got %v", roleRelabelConfig)
-				}
+var _ = Describe("RoleRelabelConfig", func() {
+	DescribeTable("should build the role relabel config",
+		func(podIndex int, primaryPodIndex *int, wantRole string) {
+			relabelConfig := roleRelabelConfig(podIndex, primaryPodIndex)
+			if wantRole == "" {
+				Expect(relabelConfig).To(BeNil())
 				return
 			}
-			if len(roleRelabelConfig) != 1 {
-				t.Fatalf("expected 1 relabel config, got %d", len(roleRelabelConfig))
-			}
-			cfg := roleRelabelConfig[0]
-			if cfg.Action != "replace" {
-				t.Errorf("expected action 'replace', got %q", cfg.Action)
-			}
-			if cfg.TargetLabel != "role" {
-				t.Errorf("expected target label 'role', got %q", cfg.TargetLabel)
-			}
-			if cfg.Replacement == nil || *cfg.Replacement != tt.wantRole {
-				t.Errorf("expected role %q, got %v", tt.wantRole, cfg.Replacement)
-			}
-		})
-	}
-}
+			Expect(relabelConfig).To(HaveLen(1))
+			cfg := relabelConfig[0]
+			Expect(cfg.Action).To(Equal("replace"))
+			Expect(cfg.TargetLabel).To(Equal("role"))
+			Expect(cfg.Replacement).NotTo(BeNil())
+			Expect(*cfg.Replacement).To(Equal(wantRole))
+		},
+		Entry("primary index is nil", 0, nil, ""),
+		Entry("pod is primary", 0, ptr.To(0), "primary"),
+		Entry("pod is replica", 1, ptr.To(0), "replica"),
+	)
+})
