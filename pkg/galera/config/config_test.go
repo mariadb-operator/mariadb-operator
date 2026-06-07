@@ -1,27 +1,31 @@
 package config
 
 import (
-	"testing"
-
 	"github.com/go-logr/logr"
-	"github.com/google/go-cmp/cmp"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+
 	mariadbv1alpha1 "github.com/mariadb-operator/mariadb-operator/v26/api/v1alpha1"
 	"github.com/mariadb-operator/mariadb-operator/v26/pkg/environment"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 )
 
-func TestGaleraConfigMarshal(t *testing.T) {
-	tests := []struct {
-		name       string
-		mariadb    *mariadbv1alpha1.MariaDB
-		podEnv     *environment.PodEnvironment
-		wantConfig string
-		wantErr    bool
-	}{
-		{
-			name: "no replicas",
-			mariadb: &mariadbv1alpha1.MariaDB{
+var _ = Describe("Galera config marshal", func() {
+	DescribeTable("marshaling a Galera config",
+		func(mariadb *mariadbv1alpha1.MariaDB, podEnv *environment.PodEnvironment, wantConfig string, wantErr bool) {
+			bytes, err := NewConfigFile(mariadb, logr.Discard()).Marshal(podEnv)
+
+			if wantErr {
+				Expect(err).To(HaveOccurred())
+			} else {
+				Expect(err).NotTo(HaveOccurred())
+			}
+			Expect(string(bytes)).To(Equal(wantConfig))
+		},
+		Entry(
+			"no replicas",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "mariadb-galera",
 					Namespace: "default",
@@ -37,17 +41,17 @@ func TestGaleraConfigMarshal(t *testing.T) {
 					Replicas: 0,
 				},
 			},
-			podEnv: &environment.PodEnvironment{
+			&environment.PodEnvironment{
 				PodName:             "mariadb-galera-0",
 				PodIP:               "10.244.0.32",
 				MariadbRootPassword: "mariadb",
 			},
-			wantConfig: "",
-			wantErr:    true,
-		},
-		{
-			name: "multicluster all params",
-			mariadb: &mariadbv1alpha1.MariaDB{
+			"",
+			true,
+		),
+		Entry(
+			"multicluster all params",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "mariadb-galera",
 					Namespace: "default",
@@ -69,13 +73,13 @@ func TestGaleraConfigMarshal(t *testing.T) {
 					Replicas: 3,
 				},
 			},
-			podEnv: &environment.PodEnvironment{
+			&environment.PodEnvironment{
 				PodName:             "mariadb-galera-1",
 				PodIP:               "10.244.0.32",
 				MariadbRootPassword: "mariadb",
 			},
 			//nolint:lll
-			wantConfig: `[mariadb]
+			`[mariadb]
 bind_address=*
 default_storage_engine=InnoDB
 binlog_format=row
@@ -108,11 +112,11 @@ wsrep_gtid_domain_id=0
 gtid_domain_id=2
 server_id=100
 `,
-			wantErr: false,
-		},
-		{
-			name: "multicluster invalid Pod",
-			mariadb: &mariadbv1alpha1.MariaDB{
+			false,
+		),
+		Entry(
+			"multicluster invalid Pod",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "mariadb-galera",
 					Namespace: "default",
@@ -134,17 +138,17 @@ server_id=100
 					Replicas: 3,
 				},
 			},
-			podEnv: &environment.PodEnvironment{
+			&environment.PodEnvironment{
 				PodName:             "test",
 				PodIP:               "10.244.0.32",
 				MariadbRootPassword: "mariadb",
 			},
-			wantConfig: "",
-			wantErr:    true,
-		},
-		{
-			name: "multicluster missing params",
-			mariadb: &mariadbv1alpha1.MariaDB{
+			"",
+			true,
+		),
+		Entry(
+			"multicluster missing params",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "mariadb-galera",
 					Namespace: "default",
@@ -165,13 +169,13 @@ server_id=100
 					Replicas: 3,
 				},
 			},
-			podEnv: &environment.PodEnvironment{
+			&environment.PodEnvironment{
 				PodName:             "mariadb-galera-1",
 				PodIP:               "10.244.0.32",
 				MariadbRootPassword: "mariadb",
 			},
 			//nolint:lll
-			wantConfig: `[mariadb]
+			`[mariadb]
 bind_address=*
 default_storage_engine=InnoDB
 binlog_format=row
@@ -196,11 +200,11 @@ wsrep_sst_method="mariabackup"
 wsrep_sst_auth="root:mariadb"
 wsrep_sst_receive_address="10.244.0.32:4444"
 `,
-			wantErr: false,
-		},
-		{
-			name: "Galera not enabled",
-			mariadb: &mariadbv1alpha1.MariaDB{
+			false,
+		),
+		Entry(
+			"Galera not enabled",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "mariadb-galera",
 					Namespace: "default",
@@ -212,17 +216,17 @@ wsrep_sst_receive_address="10.244.0.32:4444"
 					Replicas: 0,
 				},
 			},
-			podEnv: &environment.PodEnvironment{
+			&environment.PodEnvironment{
 				PodName:             "mariadb-galera-0",
 				PodIP:               "10.244.0.32",
 				MariadbRootPassword: "mariadb",
 			},
-			wantConfig: "",
-			wantErr:    true,
-		},
-		{
-			name: "invalid IP",
-			mariadb: &mariadbv1alpha1.MariaDB{
+			"",
+			true,
+		),
+		Entry(
+			"invalid IP",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "mariadb-galera",
 					Namespace: "default",
@@ -234,17 +238,17 @@ wsrep_sst_receive_address="10.244.0.32:4444"
 					Replicas: 0,
 				},
 			},
-			podEnv: &environment.PodEnvironment{
+			&environment.PodEnvironment{
 				PodName:             "mariadb-galera-0",
 				PodIP:               "foo",
 				MariadbRootPassword: "mariadb",
 			},
-			wantConfig: "",
-			wantErr:    true,
-		},
-		{
-			name: "rsync",
-			mariadb: &mariadbv1alpha1.MariaDB{
+			"",
+			true,
+		),
+		Entry(
+			"rsync",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "mariadb-galera",
 					Namespace: "default",
@@ -261,13 +265,13 @@ wsrep_sst_receive_address="10.244.0.32:4444"
 					Replicas: 3,
 				},
 			},
-			podEnv: &environment.PodEnvironment{
+			&environment.PodEnvironment{
 				PodName:             "mariadb-galera-0",
 				PodIP:               "10.244.0.32",
 				MariadbRootPassword: "mariadb",
 			},
 			//nolint:lll
-			wantConfig: `[mariadb]
+			`[mariadb]
 bind_address=*
 default_storage_engine=InnoDB
 binlog_format=row
@@ -291,11 +295,11 @@ wsrep_provider_options="gmcast.listen_addr=tcp://0.0.0.0:4567;ist.recv_addr=10.2
 wsrep_sst_method="rsync"
 wsrep_sst_receive_address="10.244.0.32:4444"
 `,
-			wantErr: false,
-		},
-		{
-			name: "mariabackup",
-			mariadb: &mariadbv1alpha1.MariaDB{
+			false,
+		),
+		Entry(
+			"mariabackup",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "mariadb-galera",
 					Namespace: "default",
@@ -312,13 +316,13 @@ wsrep_sst_receive_address="10.244.0.32:4444"
 					Replicas: 3,
 				},
 			},
-			podEnv: &environment.PodEnvironment{
+			&environment.PodEnvironment{
 				PodName:             "mariadb-galera-1",
 				PodIP:               "10.244.0.32",
 				MariadbRootPassword: "mariadb",
 			},
 			//nolint:lll
-			wantConfig: `[mariadb]
+			`[mariadb]
 bind_address=*
 default_storage_engine=InnoDB
 binlog_format=row
@@ -343,11 +347,11 @@ wsrep_sst_method="mariabackup"
 wsrep_sst_auth="root:mariadb"
 wsrep_sst_receive_address="10.244.0.32:4444"
 `,
-			wantErr: false,
-		},
-		{
-			name: "IPv6",
-			mariadb: &mariadbv1alpha1.MariaDB{
+			false,
+		),
+		Entry(
+			"IPv6",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "mariadb-galera",
 					Namespace: "default",
@@ -364,13 +368,13 @@ wsrep_sst_receive_address="10.244.0.32:4444"
 					Replicas: 3,
 				},
 			},
-			podEnv: &environment.PodEnvironment{
+			&environment.PodEnvironment{
 				PodName:             "mariadb-galera-1",
 				PodIP:               "2001:db8::a1",
 				MariadbRootPassword: "mariadb",
 			},
 			//nolint:lll
-			wantConfig: `[mariadb]
+			`[mariadb]
 bind_address=*
 default_storage_engine=InnoDB
 binlog_format=row
@@ -395,11 +399,11 @@ wsrep_sst_method="mariabackup"
 wsrep_sst_auth="root:mariadb"
 wsrep_sst_receive_address="[2001:db8::a1]:4444"
 `,
-			wantErr: false,
-		},
-		{
-			name: "Additional WSREP provider options",
-			mariadb: &mariadbv1alpha1.MariaDB{
+			false,
+		),
+		Entry(
+			"Additional WSREP provider options",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "mariadb-galera",
 					Namespace: "default",
@@ -420,13 +424,13 @@ wsrep_sst_receive_address="[2001:db8::a1]:4444"
 					Replicas: 3,
 				},
 			},
-			podEnv: &environment.PodEnvironment{
+			&environment.PodEnvironment{
 				PodName:             "mariadb-galera-1",
 				PodIP:               "2001:db8::a1",
 				MariadbRootPassword: "mariadb",
 			},
 			//nolint:lll
-			wantConfig: `[mariadb]
+			`[mariadb]
 bind_address=*
 default_storage_engine=InnoDB
 binlog_format=row
@@ -451,11 +455,11 @@ wsrep_sst_method="mariabackup"
 wsrep_sst_auth="root:mariadb"
 wsrep_sst_receive_address="[2001:db8::a1]:4444"
 `,
-			wantErr: false,
-		},
-		{
-			name: "TLS",
-			mariadb: &mariadbv1alpha1.MariaDB{
+			false,
+		),
+		Entry(
+			"TLS",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "mariadb-galera",
 					Namespace: "default",
@@ -478,7 +482,7 @@ wsrep_sst_receive_address="[2001:db8::a1]:4444"
 					Replicas: 3,
 				},
 			},
-			podEnv: &environment.PodEnvironment{
+			&environment.PodEnvironment{
 				PodName:             "mariadb-galera-1",
 				PodIP:               "10.244.0.32",
 				MariadbRootPassword: "mariadb",
@@ -490,7 +494,7 @@ wsrep_sst_receive_address="[2001:db8::a1]:4444"
 				TLSClientKeyPath:    "/etc/pki/client.key",
 			},
 			//nolint:lll
-			wantConfig: `[mariadb]
+			`[mariadb]
 bind_address=*
 default_storage_engine=InnoDB
 binlog_format=row
@@ -520,11 +524,11 @@ tca=/etc/pki/ca.crt
 tcert=/etc/pki/client.crt
 tkey=/etc/pki/client.key
 `,
-			wantErr: false,
-		},
-		{
-			name: "TLS with Galera SST disabled",
-			mariadb: &mariadbv1alpha1.MariaDB{
+			false,
+		),
+		Entry(
+			"TLS with Galera SST disabled",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "mariadb-galera",
 					Namespace: "default",
@@ -547,7 +551,7 @@ tkey=/etc/pki/client.key
 					Replicas: 3,
 				},
 			},
-			podEnv: &environment.PodEnvironment{
+			&environment.PodEnvironment{
 				PodName:             "mariadb-galera-1",
 				PodIP:               "10.244.0.32",
 				MariadbRootPassword: "mariadb",
@@ -559,7 +563,7 @@ tkey=/etc/pki/client.key
 				TLSClientKeyPath:    "/etc/pki/client.key",
 			},
 			//nolint:lll
-			wantConfig: `[mariadb]
+			`[mariadb]
 bind_address=*
 default_storage_engine=InnoDB
 binlog_format=row
@@ -584,11 +588,11 @@ wsrep_sst_method="mariabackup"
 wsrep_sst_auth="root:mariadb"
 wsrep_sst_receive_address="10.244.0.32:4444"
 `,
-			wantErr: false,
-		},
-		{
-			name: "TLS with required disabled",
-			mariadb: &mariadbv1alpha1.MariaDB{
+			false,
+		),
+		Entry(
+			"TLS with required disabled",
+			&mariadbv1alpha1.MariaDB{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "mariadb-galera",
 					Namespace: "default",
@@ -611,7 +615,7 @@ wsrep_sst_receive_address="10.244.0.32:4444"
 					Replicas: 3,
 				},
 			},
-			podEnv: &environment.PodEnvironment{
+			&environment.PodEnvironment{
 				PodName:             "mariadb-galera-1",
 				PodIP:               "10.244.0.32",
 				MariadbRootPassword: "mariadb",
@@ -623,7 +627,7 @@ wsrep_sst_receive_address="10.244.0.32:4444"
 				TLSClientKeyPath:    "/etc/pki/client.key",
 			},
 			//nolint:lll
-			wantConfig: `[mariadb]
+			`[mariadb]
 bind_address=*
 default_storage_engine=InnoDB
 binlog_format=row
@@ -653,38 +657,25 @@ tca=/etc/pki/ca.crt
 tcert=/etc/pki/client.crt
 tkey=/etc/pki/client.key
 `,
-			wantErr: false,
+			false,
+		),
+	)
+})
+
+var _ = Describe("Galera config update", func() {
+	DescribeTable("updating a Galera config",
+		func(config string, podEnv *environment.PodEnvironment, wantConfig []byte, wantErr bool) {
+			bytes, err := UpdateConfig([]byte(config), podEnv)
+			if wantErr {
+				Expect(err).To(HaveOccurred())
+			} else {
+				Expect(err).NotTo(HaveOccurred())
+			}
+			Expect(string(bytes)).To(Equal(string(wantConfig)))
 		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			bytes, err := NewConfigFile(tt.mariadb, logr.Discard()).Marshal(tt.podEnv)
-
-			if tt.wantErr && err == nil {
-				t.Error("expect error to have occurred, got nil")
-			}
-			if !tt.wantErr && err != nil {
-				t.Errorf("expect error to not have occurred, got: %v", err)
-			}
-			if diff := cmp.Diff(tt.wantConfig, string(bytes)); diff != "" {
-				t.Errorf("unexpected config (-want +got):\n%s", diff)
-			}
-		})
-	}
-}
-
-func TestGaleraConfigUpdate(t *testing.T) {
-	tests := []struct {
-		name       string
-		config     string
-		podEnv     *environment.PodEnvironment
-		wantConfig []byte
-		wantErr    bool
-	}{
-		{
-			name: "invalid IP",
-			config: `[mariadb]
+		Entry(
+			"invalid IP",
+			`[mariadb]
 bind_address=*
 default_storage_engine=InnoDB
 binlog_format=row
@@ -708,15 +699,15 @@ wsrep_provider_options="gmcast.listen_addr=tcp://0.0.0.0:4567;ist.recv_addr=10.2
 wsrep_sst_method="mariabackup"
 wsrep_sst_auth="root:mariadb"
 wsrep_sst_receive_address="10.244.0.32:4444"`,
-			podEnv: &environment.PodEnvironment{
+			&environment.PodEnvironment{
 				PodIP: "foo",
 			},
-			wantConfig: nil,
-			wantErr:    true,
-		},
-		{
-			name: "IPv4",
-			config: `[mariadb]
+			nil,
+			true,
+		),
+		Entry(
+			"IPv4",
+			`[mariadb]
 bind_address=*
 default_storage_engine=InnoDB
 binlog_format=row
@@ -740,10 +731,10 @@ wsrep_provider_options="gmcast.listen_addr=tcp://0.0.0.0:4567;ist.recv_addr=10.2
 wsrep_sst_method="mariabackup"
 wsrep_sst_auth="root:mariadb"
 wsrep_sst_receive_address="10.244.0.32:4444"`,
-			podEnv: &environment.PodEnvironment{
+			&environment.PodEnvironment{
 				PodIP: "10.244.0.33",
 			},
-			wantConfig: []byte(`[mariadb]
+			[]byte(`[mariadb]
 bind_address=*
 default_storage_engine=InnoDB
 binlog_format=row
@@ -767,11 +758,11 @@ wsrep_provider_options="gmcast.listen_addr=tcp://0.0.0.0:4567;ist.recv_addr=10.2
 wsrep_sst_method="mariabackup"
 wsrep_sst_auth="root:mariadb"
 wsrep_sst_receive_address="10.244.0.33:4444"`),
-			wantErr: false,
-		},
-		{
-			name: "IPv6",
-			config: `[mariadb]
+			false,
+		),
+		Entry(
+			"IPv6",
+			`[mariadb]
 bind_address=*
 default_storage_engine=InnoDB
 binlog_format=row
@@ -795,10 +786,10 @@ wsrep_provider_options="gcache.size=1G;gcs.fc_limit=128;gmcast.listen_addr=tcp:/
 wsrep_sst_method="mariabackup"
 wsrep_sst_auth="root:mariadb"
 wsrep_sst_receive_address="[2001:db8::a1]:4444"`,
-			podEnv: &environment.PodEnvironment{
+			&environment.PodEnvironment{
 				PodIP: "2001:db8::a2",
 			},
-			wantConfig: []byte(`[mariadb]
+			[]byte(`[mariadb]
 bind_address=*
 default_storage_engine=InnoDB
 binlog_format=row
@@ -822,21 +813,7 @@ wsrep_provider_options="gcache.size=1G;gcs.fc_limit=128;gmcast.listen_addr=tcp:/
 wsrep_sst_method="mariabackup"
 wsrep_sst_auth="root:mariadb"
 wsrep_sst_receive_address="[2001:db8::a2]:4444"`),
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			bytes, err := UpdateConfig([]byte(tt.config), tt.podEnv)
-			if tt.wantErr && err == nil {
-				t.Error("error expected, got nil")
-			}
-			if !tt.wantErr && err != nil {
-				t.Errorf("error unexpected, got %v", err)
-			}
-			if diff := cmp.Diff(string(tt.wantConfig), string(bytes)); diff != "" {
-				t.Errorf("unexpected config (-want +got):\n%s", diff)
-			}
-		})
-	}
-}
+			false,
+		),
+	)
+})
